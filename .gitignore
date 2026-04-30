@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+venv/
+.env
+*.sqlite3
+/practicayoruba/logs/
+!/practicayoruba/logs/.gitkeep
+/practicayoruba/media/
+.DS_Store
+.pytest_cache/
+htmlcov/
