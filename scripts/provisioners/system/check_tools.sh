@@ -2,9 +2,6 @@
 # =============================================================================
 # check_tools.sh — Verifica el estado del entorno — PracticaYoruba API
 # =============================================================================
-# Uso:
-#   bash scripts/provisioners/system/check_tools.sh
-# =============================================================================
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -14,20 +11,18 @@ source "${PROJECT_ROOT}/scripts/utils/logging.sh"
 source "${PROJECT_ROOT}/scripts/utils/core.sh"
 source "${PROJECT_ROOT}/scripts/utils/network.sh"
 
-# Activar venv si existe
 VENV_PYTHON="${PROJECT_ROOT}/venv/bin/python3"
 if exists_file "$VENV_PYTHON"; then
     export PATH="${PROJECT_ROOT}/venv/bin:${PATH}"
 fi
 
-# Leer .env
 ENV_FILE="${PROJECT_ROOT}/practicayoruba/.env"
 if exists_file "$ENV_FILE"; then
     set -a; source "$ENV_FILE"; set +a
 fi
 
-POSTGRES_HOST="${DB_HOST:-127.0.0.1}"
-POSTGRES_PORT="${DB_PORT:-5432}"
+MYSQL_HOST="${DB_HOST:-127.0.0.1}"
+MYSQL_PORT="${DB_PORT:-3306}"
 
 ERRORS=0; WARNINGS=0; OK=0
 
@@ -43,9 +38,9 @@ check_system() {
         && ok "python3: $(python3 --version 2>&1)" \
         || fail "python3 no encontrado"
 
-    command_exists psql \
-        && ok "psql: $(psql --version 2>&1 | head -1)" \
-        || warn "psql no encontrado (instala postgresql-client)"
+    command_exists mysql \
+        && ok "mysql: $(mysql --version 2>&1 | head -1)" \
+        || warn "mysql client no encontrado (instala mysql-client)"
 }
 
 # =============================================================================
@@ -59,8 +54,8 @@ check_venv() {
         return
     fi
 
-    for pkg in django djangorestframework psycopg2 rest_framework_simplejwt; do
-        "${PROJECT_ROOT}/venv/bin/python3" -c "import ${pkg//-/_}" 2>/dev/null \
+    for pkg in django djangorestframework MySQLdb rest_framework_simplejwt; do
+        "${PROJECT_ROOT}/venv/bin/python3" -c "import ${pkg}" 2>/dev/null \
             && ok "paquete: ${pkg}" \
             || fail "paquete faltante: ${pkg}"
     done
@@ -85,24 +80,24 @@ check_env_file() {
 
 # =============================================================================
 check_database() {
-    log_header "PostgreSQL"
+    log_header "MySQL"
 
-    log_info "Host: ${POSTGRES_HOST}:${POSTGRES_PORT}"
+    log_info "Host: ${MYSQL_HOST}:${MYSQL_PORT}"
 
-    if tcp_is_reachable "$POSTGRES_HOST" "$POSTGRES_PORT" 3; then
-        ok "PostgreSQL alcanzable en ${POSTGRES_HOST}:${POSTGRES_PORT}"
+    if tcp_is_reachable "$MYSQL_HOST" "$MYSQL_PORT" 3; then
+        ok "MySQL alcanzable en ${MYSQL_HOST}:${MYSQL_PORT}"
     else
-        warn "PostgreSQL NO alcanzable — arranca con: sudo pg_ctlcluster 16 main start"
+        warn "MySQL NO alcanzable — arranca con: sudo service mysql start"
         return
     fi
 
-    # Verificar conexion con credenciales Django
     local db_name="${DB_NAME:-practicayoruba_db}"
     local db_user="${DB_USER:-django_user}"
     local db_pass="${DB_PASSWORD:-django_pass}"
 
-    PGPASSWORD="$db_pass" psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" \
-        -U "$db_user" -d "$db_name" -c "SELECT 1;" &>/dev/null \
+    mysql -h "$MYSQL_HOST" -P "$MYSQL_PORT" \
+        -u "$db_user" -p"${db_pass}" \
+        -e "SELECT 1;" "$db_name" &>/dev/null \
         && ok "Conexion Django OK: ${db_user}@${db_name}" \
         || warn "No se pudo conectar como ${db_user} a ${db_name} — ejecuta db_setup.sh"
 }
@@ -125,8 +120,6 @@ check_logs_dir() {
         || warn ".env no encontrado"
 }
 
-# =============================================================================
-# MAIN
 # =============================================================================
 log_separator 60 "="
 echo "  PracticaYoruba API — Estado del entorno"

@@ -2,17 +2,14 @@
 # =============================================================================
 # bootstrap.sh — PracticaYoruba API: setup y verificacion del entorno
 # =============================================================================
-# Un solo comando para todo:
-#   sudo bash scripts/bootstrap.sh
-#
-# Flags:
-#   --skip-update   Omite apt-get update
+# Uso:
+#   sudo bash scripts/bootstrap.sh [--skip-update]
 #
 # Flujo:
 #   Fase 1 — Sistema       : verifica Ubuntu 24.04
 #   Fase 2 — Paquetes      : instala dependencias del sistema
 #   Fase 3 — Python        : crea venv e instala requirements
-#   Fase 4 — Base de datos : arranca PostgreSQL y crea BD/usuario
+#   Fase 4 — Base de datos : arranca MySQL y crea BD/usuario
 #   Fase 5 — Migraciones   : ejecuta manage.py migrate
 #   Fase 6 — Verificacion  : estado completo del entorno
 # =============================================================================
@@ -35,8 +32,7 @@ source "${SCRIPT_DIR}/utils/network.sh"
 source "${SCRIPT_DIR}/utils/database.sh"
 source "${SCRIPT_DIR}/utils/provisioning.sh"
 
-LOG_NAME="bootstrap"
-init_log "$LOG_NAME"
+init_log "bootstrap"
 
 # =============================================================================
 phase_os() {
@@ -64,7 +60,7 @@ phase_packages() {
     install_apt_packages \
         python3 python3-dev python3-venv python3-pip \
         build-essential pkg-config \
-        libpq-dev postgresql-client \
+        default-libmysqlclient-dev mysql-client \
         curl git
 }
 
@@ -82,28 +78,26 @@ phase_python() {
 
     setup_venv "$venv_dir" "$requirements"
 
-    # Verificar drivers criticos
-    "${venv_dir}/bin/python3" -c "import psycopg2" 2>/dev/null \
-        && log_success "psycopg2 OK" \
-        || { log_fatal "psycopg2 no disponible — revisa libpq-dev"; exit 1; }
+    "${venv_dir}/bin/python3" -c "import MySQLdb" 2>/dev/null \
+        && log_success "mysqlclient OK" \
+        || { log_fatal "mysqlclient no disponible — revisa default-libmysqlclient-dev"; exit 1; }
 }
 
 # =============================================================================
 phase_database() {
     log_header "Fase 4/6 — Base de datos"
 
-    # Arrancar PostgreSQL si esta caido
-    pg_start 16 main || log_warn "No se pudo arrancar PostgreSQL automaticamente"
+    mysql_start || log_warn "No se pudo arrancar MySQL automaticamente"
 
     echo ""
-    if pg_is_running; then
-        bash "${SCRIPT_DIR}/provisioners/postgres/db_setup.sh" && \
-            log_success "PostgreSQL configurado" || \
+    if mysql_is_running; then
+        bash "${SCRIPT_DIR}/provisioners/mysql/db_setup.sh" && \
+            log_success "MySQL configurado" || \
             log_warn "db_setup.sh tuvo advertencias"
     else
-        log_warn "PostgreSQL no disponible — configura manualmente"
-        log_warn "  sudo pg_ctlcluster 16 main start"
-        log_warn "  sudo bash scripts/provisioners/postgres/db_setup.sh"
+        log_warn "MySQL no disponible — configura manualmente:"
+        log_warn "  sudo service mysql start"
+        log_warn "  sudo bash scripts/provisioners/mysql/db_setup.sh"
     fi
 }
 
@@ -119,8 +113,8 @@ phase_migrations() {
         return 0
     fi
 
-    if ! pg_is_running; then
-        log_warn "PostgreSQL no disponible — omitiendo migraciones"
+    if ! mysql_is_running; then
+        log_warn "MySQL no disponible — omitiendo migraciones"
         return 0
     fi
 
@@ -178,7 +172,7 @@ main() {
     log_info "  python manage.py createsuperuser"
     log_info "  python manage.py runserver"
     echo ""
-    log_info "Para verificar el entorno en cualquier momento:"
+    log_info "Para verificar el entorno:"
     log_info "  bash scripts/provisioners/system/check_tools.sh"
     echo ""
 }

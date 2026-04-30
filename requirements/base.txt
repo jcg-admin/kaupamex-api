@@ -3,5 +3,5 @@ python-decouple==3.8
 djangorestframework==3.14.0
 djangorestframework-simplejwt==5.3.1
 drf-spectacular==0.27.0
-psycopg2-binary==2.9.9
+mysqlclient==2.2.1
 Pillow==10.2.0
