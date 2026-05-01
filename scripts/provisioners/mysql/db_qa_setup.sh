@@ -1,18 +1,18 @@
 #!/bin/bash
 # =============================================================================
-# db_uta_setup.sh — MySQL: crea BD de UTA (Unit Testing / Acceptance)
+# db_qa_setup.sh — MySQL: crea BD de QA (Unit Testing / Acceptance)
 # =============================================================================
 # IDEMPOTENTE. BD completamente separada de produccion.
 #
 # Uso:
-#   sudo bash scripts/provisioners/mysql/db_uta_setup.sh
+#   sudo bash scripts/provisioners/mysql/db_qa_setup.sh
 #
 # Variables leidas desde practicayoruba/.env:
-#   DB_UTA_NAME      (default: practicayoruba_uta)
-#   DB_UTA_USER      (default: django_user)
-#   DB_UTA_PASSWORD  (default: django_pass)
-#   DB_UTA_HOST      (default: 127.0.0.1)
-#   DB_UTA_PORT      (default: 3306)
+#   DB_QA_NAME      (default: practicayoruba_qa)
+#   DB_QA_USER      (default: django_user)
+#   DB_QA_PASSWORD  (default: django_pass)
+#   DB_QA_HOST      (default: 127.0.0.1)
+#   DB_QA_PORT      (default: 3306)
 # =============================================================================
 set -euo pipefail
 
@@ -26,11 +26,11 @@ if [[ -f "$ENV_FILE" ]]; then
     set -a; source "$ENV_FILE"; set +a
 fi
 
-DB_NAME="${DB_UTA_NAME:-practicayoruba_uta}"
-DB_USER="${DB_UTA_USER:-django_user}"
-DB_PASSWORD="${DB_UTA_PASSWORD:-django_pass}"
-DB_HOST="${DB_UTA_HOST:-127.0.0.1}"
-DB_PORT="${DB_UTA_PORT:-3306}"
+DB_NAME="${DB_QA_NAME:-practicayoruba_qa}"
+DB_USER="${DB_QA_USER:-django_user}"
+DB_PASSWORD="${DB_QA_PASSWORD:-django_pass}"
+DB_HOST="${DB_QA_HOST:-127.0.0.1}"
+DB_PORT="${DB_QA_PORT:-3306}"
 
 TOTAL_STEPS=4
 
@@ -41,7 +41,7 @@ my_root_quiet() { mysql --batch --silent --skip-column-names "$@" 2>/dev/null; }
 check_prerequisites() {
     log_step 1 $TOTAL_STEPS "Verificando prerequisitos"
 
-    [[ $EUID -ne 0 ]] && { log_fatal "Ejecuta con sudo"; exit 1; }
+    [[ $EUID -ne 0 ]] && { log_fatal "Ejecqa con sudo"; exit 1; }
     command -v mysql &>/dev/null || { log_fatal "mysql client no encontrado"; exit 1; }
     my_root_quiet -e "SELECT 1;" > /dev/null || {
         log_fatal "MySQL no responde en ${DB_HOST}:${DB_PORT}"
@@ -52,7 +52,7 @@ check_prerequisites() {
 
 # =============================================================================
 create_database() {
-    log_step 2 $TOTAL_STEPS "Base de datos UTA: ${DB_NAME}"
+    log_step 2 $TOTAL_STEPS "Base de datos QA: ${DB_NAME}"
 
     local exists
     exists=$(my_root_quiet -e \
@@ -60,13 +60,13 @@ create_database() {
          WHERE SCHEMA_NAME = '${DB_NAME}';" || echo "0")
 
     if [[ "$exists" -gt 0 ]]; then
-        log_info "BD UTA ya existe — sin cambios"
+        log_info "BD QA ya existe — sin cambios"
     else
         my_root -e \
             "CREATE DATABASE \`${DB_NAME}\`
              CHARACTER SET utf8mb4
              COLLATE utf8mb4_unicode_ci;" > /dev/null
-        log_success "BD UTA ${DB_NAME} creada"
+        log_success "BD QA ${DB_NAME} creada"
     fi
 }
 
@@ -85,7 +85,7 @@ grant_privileges() {
 
 # =============================================================================
 verify_connection() {
-    log_step 4 $TOTAL_STEPS "Verificando conexion Django → UTA"
+    log_step 4 $TOTAL_STEPS "Verificando conexion Django → QA"
 
     local result
     result=$(mysql -h "$DB_HOST" -P "$DB_PORT" \
@@ -101,8 +101,8 @@ verify_connection() {
 }
 
 # =============================================================================
-log_header "MySQL UTA Setup — PracticaYoruba API"
-echo "  BD UTA  : ${DB_NAME}"
+log_header "MySQL QA Setup — PracticaYoruba API"
+echo "  BD QA  : ${DB_NAME}"
 echo "  Usuario : ${DB_USER}"
 echo "  Host    : ${DB_HOST}:${DB_PORT}"
 echo "  NOTA    : BD exclusiva para tests, separada de produccion"
@@ -114,5 +114,5 @@ grant_privileges
 verify_connection
 
 echo ""
-log_success "BD UTA lista."
+log_success "BD QA lista."
 log_info "Siguiente: cd practicayoruba && DJANGO_SETTINGS_MODULE=config.settings.testing python manage.py migrate"

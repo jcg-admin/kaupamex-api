@@ -1,6 +1,6 @@
 """
 conftest.py — Fixtures globales para PracticaYoruba API tests.
-BD: practicayoruba_uta (config.settings.testing)
+BD: practicayoruba_qa (config.settings.testing)
 """
 import pytest
 

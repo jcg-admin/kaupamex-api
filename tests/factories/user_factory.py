@@ -1,6 +1,6 @@
 """
 Factories de usuarios — PracticaYoruba API.
-Usan la BD UTA (practicayoruba_uta).
+Usan la BD QA (practicayoruba_qa).
 """
 import factory
 from django.contrib.auth import get_user_model

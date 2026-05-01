@@ -8,7 +8,7 @@ Endpoints cubiertos:
   POST /api/v1/auth/refresh/
   POST /api/v1/auth/logout/
 
-BD: practicayoruba_uta
+BD: practicayoruba_qa
 """
 import pytest
 from django.urls import reverse

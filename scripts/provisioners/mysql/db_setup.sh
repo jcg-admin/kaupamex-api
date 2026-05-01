@@ -46,7 +46,7 @@ my_root_quiet() {
 check_prerequisites() {
     log_step 1 $TOTAL_STEPS "Verificando prerequisitos"
 
-    [[ $EUID -ne 0 ]] && { log_fatal "Ejecuta con sudo"; exit 1; }
+    [[ $EUID -ne 0 ]] && { log_fatal "Ejecqa con sudo"; exit 1; }
 
     command -v mysql &>/dev/null \
         || { log_fatal "mysql client no encontrado. Instala mysql-client."; exit 1; }

@@ -8,7 +8,7 @@ Los tests usan una BD **completamente separada** de produccion:
 |---------|----|----------|
 | Produccion | `practicayoruba_db` | `config.settings.production` |
 | Desarrollo | `practicayoruba_db` | `config.settings.development` |
-| Tests (UTA) | `practicayoruba_uta` | `config.settings.testing` |
+| Tests (QA) | `practicayoruba_qa` | `config.settings.testing` |
 
 Nunca se toca `practicayoruba_db` al correr tests.
 

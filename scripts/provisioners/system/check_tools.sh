@@ -50,7 +50,7 @@ check_venv() {
     if exists_dir "${PROJECT_ROOT}/venv"; then
         ok "venv existe: ${PROJECT_ROOT}/venv"
     else
-        warn "venv no existe — ejecuta: python3 -m venv venv"
+        warn "venv no existe — ejecqa: python3 -m venv venv"
         return
     fi
 
@@ -99,7 +99,7 @@ check_database() {
         -u "$db_user" -p"${db_pass}" \
         -e "SELECT 1;" "$db_name" &>/dev/null \
         && ok "Conexion Django OK: ${db_user}@${db_name}" \
-        || warn "No se pudo conectar como ${db_user} a ${db_name} — ejecuta db_setup.sh"
+        || warn "No se pudo conectar como ${db_user} a ${db_name} — ejecqa db_setup.sh"
 }
 
 # =============================================================================

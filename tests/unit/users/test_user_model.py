@@ -4,7 +4,7 @@ Tests unitarios del modelo User — PracticaYoruba API.
 TDD: estos tests documentan el comportamiento esperado del modelo
 ANTES de que exista la logica. Si el test pasa, el modelo cumple el contrato.
 
-BD: practicayoruba_uta
+BD: practicayoruba_qa
 """
 import pytest
 from django.contrib.auth import get_user_model

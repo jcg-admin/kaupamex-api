@@ -10,7 +10,7 @@
 #   Fase 2 — Paquetes      : instala dependencias del sistema
 #   Fase 3 — Python        : crea venv e instala requirements
 #   Fase 4 — Base de datos : arranca MySQL y crea BD/usuario
-#   Fase 5 — Migraciones   : ejecuta manage.py migrate
+#   Fase 5 — Migraciones   : ejecqa manage.py migrate
 #   Fase 6 — Verificacion  : estado completo del entorno
 # =============================================================================
 set -euo pipefail
