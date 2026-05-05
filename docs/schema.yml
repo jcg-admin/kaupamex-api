@@ -1,0 +1,329 @@
+openapi: 3.0.3
+info:
+  title: PracticaYoruba API
+  version: 1.0.0
+  description: |-
+    API REST de PracticaYoruba — plataforma e-commerce de productos Yoruba.
+
+    Autenticación: JWT Bearer token via POST /api/v1/auth/login/
+    Todos los endpoints bajo el prefijo /api/v1/
+  contact:
+    name: Equipo PracticaYoruba
+    email: dev@practicayoruba.mx
+  license:
+    name: Propietario
+paths:
+  /api/v1/auth/login/:
+    post:
+      operationId: auth_login_create
+      description: |-
+        Takes a set of user credentials and returns an access and refresh JSON web
+        token pair to prove the authentication of those credentials.
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPairRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPairRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPairRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenObtainPair'
+          description: ''
+  /api/v1/auth/logout/:
+    post:
+      operationId: auth_logout_create
+      description: |-
+        Takes a token and blacklists it. Must be used with the
+        `rest_framework_simplejwt.token_blacklist` app installed.
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenBlacklistRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenBlacklistRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenBlacklistRequest'
+        required: true
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/refresh/:
+    post:
+      operationId: auth_refresh_create
+      description: |-
+        Takes a refresh type JSON web token and returns an access type JSON web
+        token if the refresh token is valid.
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+          description: ''
+  /api/v1/auth/register/:
+    post:
+      operationId: auth_register_create
+      description: Crea una cuenta nueva con is_active=False hasta verificar el email
+        (UC-AUTH-01). El email se normaliza a minúsculas. Los mensajes de unicidad
+        son intencionalmente ambiguos para prevenir enumeración de usuarios.
+      summary: Registrar cuenta de comprador
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '201':
+          description: Cuenta creada. Se envía email de verificación.
+        '400':
+          description: Error de validación (formato o unicidad).
+  /api/v1/config/settings/:
+    get:
+      operationId: config_settings_retrieve
+      description: 'Retorna el singleton SiteSettings con los parámetros globales
+        del sistema: tasa de IVA, moneda, timeout de órdenes, días de devolución y
+        umbral de envío gratis. Solo accesible para administradores.'
+      summary: Obtener configuración global
+      tags:
+      - config
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SiteSettings'
+          description: ''
+        '401':
+          description: No autenticado.
+        '403':
+          description: El usuario no es administrador.
+    patch:
+      operationId: config_settings_partial_update
+      description: Actualiza uno o más parámetros del singleton SiteSettings. Los
+        cambios tienen efecto inmediato para nuevas solicitudes. Las órdenes ya creadas
+        conservan los valores del momento en que se crearon.
+      summary: Actualizar configuración global
+      tags:
+      - config
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedSiteSettingsRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedSiteSettingsRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedSiteSettingsRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SiteSettings'
+          description: ''
+        '400':
+          description: Error de validación (rango o formato inválido).
+        '401':
+          description: No autenticado.
+        '403':
+          description: El usuario no es administrador.
+components:
+  schemas:
+    PatchedSiteSettingsRequest:
+      type: object
+      properties:
+        site_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        iva_rate:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,1}(?:\.\d{0,4})?$
+        currency:
+          type: string
+          minLength: 1
+          maxLength: 3
+        order_timeout_minutes:
+          type: integer
+          maximum: 4294967295
+          minimum: 1
+          format: int64
+        max_return_days:
+          type: integer
+          maximum: 4294967295
+          minimum: 1
+          format: int64
+        free_shipping_threshold:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+    RegisterRequest:
+      type: object
+      description: |-
+        UC-AUTH-01: Registro de comprador.
+        FR-AUTH-01.02: validar formato
+        FR-AUTH-01.03: unicidad con mensaje ambiguo
+        FR-AUTH-01.04: is_active=False
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 8
+        password_confirm:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - email
+      - password
+      - password_confirm
+      - username
+    SiteSettings:
+      type: object
+      properties:
+        site_name:
+          type: string
+          maxLength: 100
+        iva_rate:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,1}(?:\.\d{0,4})?$
+        currency:
+          type: string
+          maxLength: 3
+        order_timeout_minutes:
+          type: integer
+          maximum: 4294967295
+          minimum: 1
+          format: int64
+        max_return_days:
+          type: integer
+          maximum: 4294967295
+          minimum: 1
+          format: int64
+        free_shipping_threshold:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - updated_at
+    TokenBlacklistRequest:
+      type: object
+      properties:
+        refresh:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - refresh
+    TokenObtainPair:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+          readOnly: true
+      required:
+      - access
+      - refresh
+    TokenObtainPairRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          writeOnly: true
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - password
+      - username
+    TokenRefresh:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+      required:
+      - access
+      - refresh
+    TokenRefreshRequest:
+      type: object
+      properties:
+        refresh:
+          type: string
+          minLength: 1
+      required:
+      - refresh
+  securitySchemes:
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

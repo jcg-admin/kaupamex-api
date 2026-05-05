@@ -1,9 +1,11 @@
 """
 Views de Users — UC-AUTH-01
 """
+from drf_spectacular.utils import extend_schema, OpenApiResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
+
 from .serializers import RegisterSerializer
 
 
@@ -12,6 +14,20 @@ class RegisterView(APIView):
     permission_classes = [AllowAny]
     throttle_scope = 'register'
 
+    @extend_schema(
+        summary='Registrar cuenta de comprador',
+        description=(
+            'Crea una cuenta nueva con is_active=False hasta verificar el email '
+            '(UC-AUTH-01). El email se normaliza a minúsculas. Los mensajes de '
+            'unicidad son intencionalmente ambiguos para prevenir enumeración de usuarios.'
+        ),
+        request=RegisterSerializer,
+        responses={
+            201: OpenApiResponse(description='Cuenta creada. Se envía email de verificación.'),
+            400: OpenApiResponse(description='Error de validación (formato o unicidad).'),
+        },
+        tags=['auth'],
+    )
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():

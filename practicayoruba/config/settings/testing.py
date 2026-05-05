@@ -34,6 +34,14 @@ DATABASES = {
     }
 }
 
+
+# drf-spectacular — en tests no se necesitan las UIs, solo el schema endpoint
+SPECTACULAR_SETTINGS = {
+    **SPECTACULAR_SETTINGS,
+    'SERVE_PUBLIC': True,
+    'SERVE_PERMISSIONS': ['rest_framework.permissions.AllowAny'],
+}
+
 # Hasher mas rapido en tests
 PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.PBKDF2PasswordHasher',

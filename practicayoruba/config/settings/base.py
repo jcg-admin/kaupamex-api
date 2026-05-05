@@ -106,9 +106,68 @@ SIMPLE_JWT = {
 }
 
 SPECTACULAR_SETTINGS = {
+    # --- Metadatos ---
     'TITLE': 'PracticaYoruba API',
+    'DESCRIPTION': (
+        'API REST de PracticaYoruba — plataforma e-commerce de productos Yoruba.\n\n'
+        'Autenticación: JWT Bearer token via POST /api/v1/auth/login/\n'
+        'Todos los endpoints bajo el prefijo /api/v1/'
+    ),
     'VERSION': '1.0.0',
-    'SERVE_INCLUDE_SCHEMA': False,
+    'CONTACT': {
+        'name': 'Equipo PracticaYoruba',
+        'email': 'dev@practicayoruba.mx',
+    },
+    'LICENSE': {'name': 'Propietario'},
+
+    # --- Schema ---
+    'SERVE_INCLUDE_SCHEMA': False,   # el endpoint /api/schema/ no aparece en el schema
+    'SERVE_PUBLIC': True,
+    'SERVE_PERMISSIONS': ['rest_framework.permissions.AllowAny'],
+    # Strips /api/v1 del path al generar los tags automaticamente:
+    # /api/v1/auth/login/ → tag "auth"
+    # /api/v1/config/settings/ → tag "config"
+    'SCHEMA_PATH_PREFIX': r'/api/v[0-9]+',
+
+    # --- Componentes ---
+    # Genera componentes separados para request y response cuando difieren
+    'COMPONENT_SPLIT_REQUEST': True,
+    # PATCH genera un schema donde ningun campo es required
+    'COMPONENT_SPLIT_PATCH': True,
+
+    # --- OpenAPI version ---
+    'OAS_VERSION': '3.0.3',
+
+    # --- Swagger UI ---
+    'SWAGGER_UI_SETTINGS': {
+        'deepLinking': True,
+        'persistAuthorization': True,   # el JWT persiste al recargar la UI
+        'displayOperationId': False,
+        'filter': True,
+        'docExpansion': 'none',
+        'defaultModelsExpandDepth': 2,
+    },
+
+    # --- Redoc ---
+    'REDOC_UI_SETTINGS': {
+        'hideDownloadButton': False,
+        'expandResponses': '200,201',
+        'requiredPropsFirst': True,
+    },
+
+    # --- Ordenamiento y hooks ---
+    'SORT_OPERATIONS': True,
+    'POSTPROCESSING_HOOKS': [
+        'drf_spectacular.hooks.postprocess_schema_enums',
+    ],
+    'PREPROCESSING_HOOKS': [
+        # Elimina endpoints duplicados con sufijo {format} (ej: /products.json)
+        'drf_spectacular.hooks.preprocess_exclude_path_format',
+    ],
+
+    # --- Enums ---
+    'ENUM_GENERATE_CHOICE_DESCRIPTION': True,
+    'ENUM_SUFFIX': '',
 }
 
 LOGGING = {
