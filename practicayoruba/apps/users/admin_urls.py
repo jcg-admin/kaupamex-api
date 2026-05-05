@@ -1,8 +1,12 @@
-from django.urls import path
-from .views import AdminUserListView
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .admin_views import AdminUserViewSet
 
 app_name = 'admin_users'
 
+router = DefaultRouter()
+router.register(r'users', AdminUserViewSet, basename='admin-user')
+
 urlpatterns = [
-    path('users/', AdminUserListView.as_view(), name='user-list'),
+    path('', include(router.urls)),
 ]
