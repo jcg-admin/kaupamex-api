@@ -11,6 +11,8 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 from PIL import Image
+from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.types import OpenApiTypes
 
 from .models import Address
 
@@ -119,13 +121,16 @@ class ProfileSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = fields
 
+    @extend_schema_field(OpenApiTypes.URI)
     def get_avatar_url(self, obj):
         request = self.context.get('request')
         return obj.get_avatar_url(request)
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_profile_completeness(self, obj):
         return obj.profile_completeness()
 
+    @extend_schema_field(OpenApiTypes.OBJECT)
     def get_pending_fields(self, obj):
         return obj.pending_fields()
 

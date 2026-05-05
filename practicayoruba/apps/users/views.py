@@ -4,7 +4,8 @@ Views — apps.users
 Sprint 1: RegisterView
 Sprint 2: ProfileView, AddressViewSet, ChangePasswordView
 """
-from drf_spectacular.utils import extend_schema, OpenApiResponse
+from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
+from drf_spectacular.types import OpenApiTypes as OAT
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
@@ -112,6 +113,9 @@ class AddressViewSet(ModelViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = AddressSerializer
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
+    # queryset estatico requerido por drf-spectacular para inferir el tipo del path param.
+    # get_queryset() lo sobreescribe en runtime para filtrar por usuario.
+    queryset = Address.objects.none()
 
     def get_queryset(self):
         return Address.objects.filter(user=self.request.user)
@@ -161,6 +165,7 @@ class AddressViewSet(ModelViewSet):
 
     @extend_schema(
         summary='Editar direccion de envio',
+        parameters=[OpenApiParameter('id', OAT.INT, OpenApiParameter.PATH)],
         request=AddressSerializer,
         responses={200: AddressSerializer},
         tags=['auth'],
@@ -170,6 +175,7 @@ class AddressViewSet(ModelViewSet):
 
     @extend_schema(
         summary='Eliminar direccion de envio',
+        parameters=[OpenApiParameter('id', OAT.INT, OpenApiParameter.PATH)],
         responses={204: None},
         tags=['auth'],
     )

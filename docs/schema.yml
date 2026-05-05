@@ -13,6 +13,186 @@ info:
   license:
     name: Propietario
 paths:
+  /api/v1/auth/addresses/:
+    get:
+      operationId: auth_addresses_list
+      description: |-
+        /api/v1/auth/addresses/ — UC-AUTH-07: Gestionar Direcciones de Envio.
+
+        GET    /addresses/      — listar las direcciones del usuario autenticado
+        POST   /addresses/      — crear nueva direccion (max 5)
+        PATCH  /addresses/{id}/ — editar una direccion propia
+        DELETE /addresses/{id}/ — eliminar una direccion propia
+      summary: Listar direcciones de envio
+      tags:
+      - auth
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Address'
+          description: ''
+    post:
+      operationId: auth_addresses_create
+      description: |-
+        /api/v1/auth/addresses/ — UC-AUTH-07: Gestionar Direcciones de Envio.
+
+        GET    /addresses/      — listar las direcciones del usuario autenticado
+        POST   /addresses/      — crear nueva direccion (max 5)
+        PATCH  /addresses/{id}/ — editar una direccion propia
+        DELETE /addresses/{id}/ — eliminar una direccion propia
+      summary: Crear direccion de envio
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddressRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AddressRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AddressRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Address'
+          description: ''
+        '400':
+          description: Error de validacion.
+        '422':
+          description: Limite de 5 direcciones alcanzado.
+  /api/v1/auth/addresses/{id}/:
+    get:
+      operationId: auth_addresses_retrieve
+      description: |-
+        /api/v1/auth/addresses/ — UC-AUTH-07: Gestionar Direcciones de Envio.
+
+        GET    /addresses/      — listar las direcciones del usuario autenticado
+        POST   /addresses/      — crear nueva direccion (max 5)
+        PATCH  /addresses/{id}/ — editar una direccion propia
+        DELETE /addresses/{id}/ — eliminar una direccion propia
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Direccion de envio.
+        required: true
+      tags:
+      - auth
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Address'
+          description: ''
+    patch:
+      operationId: auth_addresses_partial_update
+      description: |-
+        /api/v1/auth/addresses/ — UC-AUTH-07: Gestionar Direcciones de Envio.
+
+        GET    /addresses/      — listar las direcciones del usuario autenticado
+        POST   /addresses/      — crear nueva direccion (max 5)
+        PATCH  /addresses/{id}/ — editar una direccion propia
+        DELETE /addresses/{id}/ — eliminar una direccion propia
+      summary: Editar direccion de envio
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAddressRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAddressRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAddressRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Address'
+          description: ''
+    delete:
+      operationId: auth_addresses_destroy
+      description: |-
+        /api/v1/auth/addresses/ — UC-AUTH-07: Gestionar Direcciones de Envio.
+
+        GET    /addresses/      — listar las direcciones del usuario autenticado
+        POST   /addresses/      — crear nueva direccion (max 5)
+        PATCH  /addresses/{id}/ — editar una direccion propia
+        DELETE /addresses/{id}/ — eliminar una direccion propia
+      summary: Eliminar direccion de envio
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - auth
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/auth/change-password/:
+    post:
+      operationId: auth_change_password_create
+      description: 'Verifica la contrasena actual antes de establecer la nueva. La
+        nueva debe cumplir los validadores de Django (min 8 chars, no muy comun, no
+        similar al username). NOTA: no invalida otras sesiones activas (DT-S2-03).'
+      summary: Cambiar contrasena
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: Contrasena cambiada exitosamente.
+        '400':
+          description: Contrasena actual incorrecta o nueva invalida.
+        '401':
+          description: No autenticado.
   /api/v1/auth/login/:
     post:
       operationId: auth_login_create
@@ -63,6 +243,58 @@ paths:
       responses:
         '200':
           description: No response body
+  /api/v1/auth/profile/:
+    get:
+      operationId: auth_profile_retrieve
+      description: 'Retorna los datos del perfil del comprador autenticado: datos
+        personales, avatar_url absoluta, profile_completeness (0-100 en multiplos
+        de 20) y pending_fields con los campos opcionales pendientes.'
+      summary: Ver perfil del comprador
+      tags:
+      - auth
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+          description: ''
+        '401':
+          description: No autenticado.
+    patch:
+      operationId: auth_profile_partial_update
+      description: Actualiza first_name, last_name, phone y/o avatar. El email y el
+        username no son editables en este endpoint. El avatar se valida (JPEG/PNG/WebP),
+        redimensiona a 800x800 y se convierte a WebP.
+      summary: Editar perfil del comprador
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdateProfileRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdateProfileRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdateProfileRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+          description: ''
+        '400':
+          description: Error de validacion (formato de avatar u otro).
+        '401':
+          description: No autenticado.
   /api/v1/auth/refresh/:
     post:
       operationId: auth_refresh_create
@@ -94,8 +326,8 @@ paths:
     post:
       operationId: auth_register_create
       description: Crea una cuenta nueva con is_active=False hasta verificar el email
-        (UC-AUTH-01). El email se normaliza a minúsculas. Los mensajes de unicidad
-        son intencionalmente ambiguos para prevenir enumeración de usuarios.
+        (UC-AUTH-01). El email se normaliza a minusculas. Los mensajes de unicidad
+        son intencionalmente ambiguos para prevenir enumeracion de usuarios.
       summary: Registrar cuenta de comprador
       tags:
       - auth
@@ -116,9 +348,9 @@ paths:
       - {}
       responses:
         '201':
-          description: Cuenta creada. Se envía email de verificación.
+          description: Cuenta creada. Se envia email de verificacion.
         '400':
-          description: Error de validación (formato o unicidad).
+          description: Error de validacion (formato o unicidad).
   /api/v1/config/settings/:
     get:
       operationId: config_settings_retrieve
@@ -177,6 +409,185 @@ paths:
           description: El usuario no es administrador.
 components:
   schemas:
+    Address:
+      type: object
+      description: 'UC-AUTH-07: Serializer de direccion de envio.'
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        alias:
+          type: string
+          title: Nombre de la direccion
+          description: 'Ej: Casa, Trabajo, Almacen.'
+          maxLength: 50
+        recipient_name:
+          type: string
+          title: Nombre del destinatario
+          maxLength: 150
+        street:
+          type: string
+          title: Calle y numero
+          maxLength: 200
+        city:
+          type: string
+          title: Ciudad
+          maxLength: 100
+        state:
+          type: string
+          title: Estado
+          maxLength: 100
+        zip_code:
+          type: string
+          title: Codigo postal
+          maxLength: 10
+        country:
+          type: string
+          title: Pais
+          description: Codigo ISO 3166-1 alpha-2.
+          maxLength: 2
+        phone:
+          type: string
+          title: Telefono del destinatario
+          maxLength: 20
+        is_default:
+          type: boolean
+          title: Direccion predeterminada
+      required:
+      - alias
+      - city
+      - id
+      - phone
+      - recipient_name
+      - state
+      - street
+      - zip_code
+    AddressRequest:
+      type: object
+      description: 'UC-AUTH-07: Serializer de direccion de envio.'
+      properties:
+        alias:
+          type: string
+          minLength: 1
+          title: Nombre de la direccion
+          description: 'Ej: Casa, Trabajo, Almacen.'
+          maxLength: 50
+        recipient_name:
+          type: string
+          minLength: 1
+          title: Nombre del destinatario
+          maxLength: 150
+        street:
+          type: string
+          minLength: 1
+          title: Calle y numero
+          maxLength: 200
+        city:
+          type: string
+          minLength: 1
+          title: Ciudad
+          maxLength: 100
+        state:
+          type: string
+          minLength: 1
+          title: Estado
+          maxLength: 100
+        zip_code:
+          type: string
+          minLength: 1
+          title: Codigo postal
+          maxLength: 10
+        country:
+          type: string
+          minLength: 1
+          title: Pais
+          description: Codigo ISO 3166-1 alpha-2.
+          maxLength: 2
+        phone:
+          type: string
+          minLength: 1
+          title: Telefono del destinatario
+          maxLength: 20
+        is_default:
+          type: boolean
+          title: Direccion predeterminada
+      required:
+      - alias
+      - city
+      - phone
+      - recipient_name
+      - state
+      - street
+      - zip_code
+    ChangePasswordRequest:
+      type: object
+      description: 'UC-AUTH-08: Cambiar contrasena del comprador autenticado.'
+      properties:
+        current_password:
+          type: string
+          writeOnly: true
+          minLength: 1
+        new_password:
+          type: string
+          writeOnly: true
+          minLength: 8
+        new_password_confirm:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - current_password
+      - new_password
+      - new_password_confirm
+    PatchedAddressRequest:
+      type: object
+      description: 'UC-AUTH-07: Serializer de direccion de envio.'
+      properties:
+        alias:
+          type: string
+          minLength: 1
+          title: Nombre de la direccion
+          description: 'Ej: Casa, Trabajo, Almacen.'
+          maxLength: 50
+        recipient_name:
+          type: string
+          minLength: 1
+          title: Nombre del destinatario
+          maxLength: 150
+        street:
+          type: string
+          minLength: 1
+          title: Calle y numero
+          maxLength: 200
+        city:
+          type: string
+          minLength: 1
+          title: Ciudad
+          maxLength: 100
+        state:
+          type: string
+          minLength: 1
+          title: Estado
+          maxLength: 100
+        zip_code:
+          type: string
+          minLength: 1
+          title: Codigo postal
+          maxLength: 10
+        country:
+          type: string
+          minLength: 1
+          title: Pais
+          description: Codigo ISO 3166-1 alpha-2.
+          maxLength: 2
+        phone:
+          type: string
+          minLength: 1
+          title: Telefono del destinatario
+          maxLength: 20
+        is_default:
+          type: boolean
+          title: Direccion predeterminada
     PatchedSiteSettingsRequest:
       type: object
       properties:
@@ -206,6 +617,90 @@ components:
           type: string
           format: decimal
           pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+    PatchedUpdateProfileRequest:
+      type: object
+      description: 'UC-AUTH-06: Actualiza campos de perfil. Email y username no editables.'
+      properties:
+        first_name:
+          type: string
+          title: Nombre
+          maxLength: 150
+        last_name:
+          type: string
+          title: Apellido
+          maxLength: 150
+        phone:
+          type: string
+          title: Telefono
+          description: Numero de telefono del comprador.
+          maxLength: 20
+        avatar:
+          type: string
+          format: binary
+          nullable: true
+          description: 'Imagen de perfil del comprador. Formatos: JPEG, PNG, WebP.'
+        remove_avatar:
+          type: boolean
+          writeOnly: true
+          default: false
+    Profile:
+      type: object
+      description: 'UC-AUTH-05: Retorna el perfil del comprador autenticado.'
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          readOnly: true
+          title: Nombre de usuario
+          description: Obligatorio. Longitud máxima 150 caracteres alfanuméricos.
+            Letras, dígitos y @/./+/-/_ únicamente.
+        email:
+          type: string
+          format: email
+          readOnly: true
+          title: Dirección de correo electrónico
+        first_name:
+          type: string
+          readOnly: true
+          title: Nombre
+        last_name:
+          type: string
+          readOnly: true
+          title: Apellido
+        phone:
+          type: string
+          readOnly: true
+          title: Telefono
+          description: Numero de telefono del comprador.
+        avatar_url:
+          type: string
+          format: uri
+          readOnly: true
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Fecha de creación
+        profile_completeness:
+          type: integer
+          readOnly: true
+        pending_fields:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+      required:
+      - avatar_url
+      - date_joined
+      - email
+      - first_name
+      - id
+      - last_name
+      - pending_fields
+      - phone
+      - profile_completeness
+      - username
     RegisterRequest:
       type: object
       description: |-
