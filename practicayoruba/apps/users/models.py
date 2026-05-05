@@ -20,3 +20,12 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.get_full_name() or self.username
+
+    def get_avatar_url(self):
+        """Retorna la URL del avatar o None si no tiene."""
+        if self.avatar and hasattr(self.avatar, 'url'):
+            try:
+                return self.avatar.url
+            except ValueError:
+                return None
+        return None

@@ -20,6 +20,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'drf_spectacular',
     'apps.users',
+    'apps.settings_app',
 ]
 
 AUTH_USER_MODEL = 'users.User'

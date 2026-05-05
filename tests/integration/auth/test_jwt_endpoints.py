@@ -55,7 +55,7 @@ class TestLoginEndpoint:
 
         assert response.status_code == 401
 
-    def test_login_con_usuario_inexistente_retorna_401(self, api_client):
+    def test_login_con_usuario_inexistente_retorna_401(self, api_client, db):
         url = reverse('users:login')
         response = api_client.post(url, {
             'username': 'noexiste',
