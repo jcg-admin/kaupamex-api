@@ -22,6 +22,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 
 source "${PROJECT_ROOT}/scripts/utils/logging.sh"
+source "${PROJECT_ROOT}/scripts/utils/network.sh"
 source "${PROJECT_ROOT}/scripts/utils/database.sh"
 
 ENV_FILE="${PROJECT_ROOT}/practicayoruba/.env"
@@ -146,7 +147,7 @@ verify_connection() {
 
     local sock=""
     for s in /run/mysqld/mysqld.sock /var/run/mysqld/mysqld.sock; do
-        [[ -S "$s" ]] && mysqladmin --socket="$s" ping --silent 2>/dev/null && sock="$s" && break
+        [[ -S "$s" ]] && mysqladmin --socket="$s" ping --silent >/dev/null 2>&1 && sock="$s" && break
     done
 
     local result

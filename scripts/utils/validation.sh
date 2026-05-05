@@ -17,14 +17,14 @@ validate_ubuntu() {
     local required_prefix="${1:-24.04}"
     local os_release="/etc/os-release"
 
-    [[ ! -f "$os_release" ]] && { log_error "No se encontro ${os_release}"; return 1; }
+    [[ -f "$os_release" ]] || { log_error "No se encontro ${os_release}"; return 1; }
 
     local os_id os_version_id
     os_id=$(. "$os_release" && echo "${ID:-}")
     os_version_id=$(. "$os_release" && echo "${VERSION_ID:-}")
 
-    [[ "${os_id,,}" != "ubuntu" ]] && { log_error "SO incompatible: ${os_id}"; return 1; }
-    [[ "${os_version_id}" != "${required_prefix}"* ]] && {
+    [[ "${os_id,,}" == "ubuntu" ]] || { log_error "SO incompatible: ${os_id}"; return 1; }
+    [[ "${os_version_id}" == "${required_prefix}"* ]] || {
         log_error "Version incompatible: Ubuntu ${os_version_id} (se requiere ${required_prefix}.x)"
         return 1
     }

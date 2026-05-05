@@ -27,9 +27,9 @@ MYSQL_PORT="${DB_PORT:-3306}"
 
 ERRORS=0; WARNINGS=0; OK=0
 
-ok()   { log_success "$1"; OK=$(( OK + 1 )); }
-warn() { log_warn "$1";    WARNINGS=$(( WARNINGS + 1 )); }
-fail() { log_error "$1";   ERRORS=$(( ERRORS + 1 )); }
+ok()   { log_success "$1"; OK=$(( OK + 1 ))   || true; }
+warn() { log_warn "$1";    WARNINGS=$(( WARNINGS + 1 )) || true; }
+fail() { log_error "$1";   ERRORS=$(( ERRORS + 1 ))   || true; }
 
 # =============================================================================
 check_system() {
@@ -89,7 +89,7 @@ check_database() {
     local socket_ok=false
     for sock in /run/mysqld/mysqld.sock /var/run/mysqld/mysqld.sock; do
         if [[ -S "$sock" ]]; then
-            if mysqladmin --socket="$sock" ping --silent 2>/dev/null; then
+            if mysqladmin --socket="$sock" ping --silent >/dev/null 2>&1; then
                 ok "MySQL alcanzable via socket: ${sock}"
                 socket_ok=true
                 break
@@ -101,7 +101,7 @@ check_database() {
     done
 
     # 2. Si socket fallo, verificar via TCP
-    if ! $socket_ok; then
+    if [[ "$socket_ok" != "true" ]]; then
         if tcp_is_reachable "$MYSQL_HOST" "$MYSQL_PORT" 3; then
             ok "MySQL alcanzable via TCP: ${MYSQL_HOST}:${MYSQL_PORT}"
         else
@@ -133,7 +133,7 @@ check_database() {
     done
 
     # Fallback TCP
-    if ! $connected; then
+    if [[ "$connected" != "true" ]]; then
         mysql -h "$MYSQL_HOST" -P "$MYSQL_PORT" \
             -u "$db_user" -p"${db_pass}" \
             -e "SELECT 1;" "$db_name" &>/dev/null \
@@ -178,4 +178,4 @@ echo "  OK: ${OK}   WARN: ${WARNINGS}   ERROR: ${ERRORS}"
 log_separator 60 "-"
 echo ""
 
-(( ERRORS > 0 )) && exit 1 || exit 0
+if (( ERRORS > 0 )); then exit 1; fi

@@ -36,7 +36,7 @@ mysql_is_running() {
     if command -v mysqladmin &>/dev/null; then
         for sock in "${_MYSQL_SOCKETS[@]}"; do
             if [[ -S "$sock" ]]; then
-                if mysqladmin --socket="$sock" ping --silent 2>/dev/null; then
+                if mysqladmin --socket="$sock" ping --silent >/dev/null 2>&1; then
                     return 0
                 fi
             fi
@@ -45,7 +45,7 @@ mysql_is_running() {
 
     # 2. Intentar via TCP
     if command -v mysqladmin &>/dev/null; then
-        if mysqladmin ping --silent --host="$host" --port="$port" 2>/dev/null; then
+        if mysqladmin ping --silent --host="$host" --port="$port" >/dev/null 2>&1; then
             return 0
         fi
     fi
@@ -79,7 +79,7 @@ mysql_cleanup_stale() {
     for sock in "${_MYSQL_SOCKETS[@]}"; do
         [[ -S "$sock" ]] || continue
         # Intentar conectar — si falla con ECONNREFUSED el proceso no existe
-        if ! mysqladmin --socket="$sock" ping --silent 2>/dev/null; then
+        if ! mysqladmin --socket="$sock" ping --silent >/dev/null 2>&1; then
             log_warn "Socket stale detectado: ${sock}"
             rm -f "$sock"
             cleaned=$(( cleaned + 1 ))
@@ -121,9 +121,6 @@ _mysql_start_direct() {
     fi
 
     log_info "Arrancando ${daemon} directamente (sin systemd)..."
-
-    # Limpiar stale antes de arrancar
-    mysql_cleanup_stale
 
     nohup su -s /bin/bash mysql -c \
         "${daemon} \
