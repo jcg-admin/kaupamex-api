@@ -43,7 +43,7 @@ init_log() {
 }
 
 _write_log() {
-    [[ -n "$_LOG_FILE" ]] && echo "$(date '+%H:%M:%S') $*" >> "$_LOG_FILE"
+    [[ -n "$_LOG_FILE" ]] && echo "$(date '+%H:%M:%S') $*" >> "$_LOG_FILE" || true
 }
 
 log_header() {

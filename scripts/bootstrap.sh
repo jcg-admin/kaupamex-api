@@ -87,18 +87,26 @@ phase_python() {
 phase_database() {
     log_header "Fase 4/6 — Base de datos"
 
-    mysql_start || log_warn "No se pudo arrancar MySQL automaticamente"
+    # 1. Arrancar MySQL (incluye limpieza de estado stale y fallback sin systemd)
+    if ! mysql_start; then
+        log_warn "MySQL no pudo arrancar automaticamente"
+        log_warn "Opciones manuales:"
+        log_warn "  Con systemd : sudo service mysql start"
+        log_warn "  Sin systemd : ver README — seccion 'Entornos sin systemd'"
+        log_warn "Continuando — db_setup.sh fallara si MySQL no esta disponible"
+    fi
 
     echo ""
-    if mysql_is_running; then
-        bash "${SCRIPT_DIR}/provisioners/mysql/db_setup.sh" && \
-            log_success "MySQL configurado" || \
-            log_warn "db_setup.sh tuvo advertencias"
-    else
-        log_warn "MySQL no disponible — configura manualmente:"
-        log_warn "  sudo service mysql start"
-        log_warn "  sudo bash scripts/provisioners/mysql/db_setup.sh"
-    fi
+
+    # 2. Configurar BDs y usuario (el script valida y arranca si es necesario)
+    bash "${SCRIPT_DIR}/provisioners/mysql/db_setup.sh" && \
+        log_success "MySQL configurado" || \
+        log_warn "db_setup.sh reporto advertencias — revisa el output"
+
+    # 3. Configurar BD de QA para tests
+    bash "${SCRIPT_DIR}/provisioners/mysql/db_qa_setup.sh" && \
+        log_success "BD QA configurada" || \
+        log_warn "db_qa_setup.sh reporto advertencias"
 }
 
 # =============================================================================

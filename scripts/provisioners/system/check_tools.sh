@@ -10,6 +10,7 @@ PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 source "${PROJECT_ROOT}/scripts/utils/logging.sh"
 source "${PROJECT_ROOT}/scripts/utils/core.sh"
 source "${PROJECT_ROOT}/scripts/utils/network.sh"
+source "${PROJECT_ROOT}/scripts/utils/database.sh"
 
 VENV_PYTHON="${PROJECT_ROOT}/venv/bin/python3"
 if exists_file "$VENV_PYTHON"; then
@@ -50,7 +51,7 @@ check_venv() {
     if exists_dir "${PROJECT_ROOT}/venv"; then
         ok "venv existe: ${PROJECT_ROOT}/venv"
     else
-        warn "venv no existe — ejecqa: python3 -m venv venv"
+        warn "venv no existe — ejecuta: python3 -m venv venv"
         return
     fi
 
@@ -80,26 +81,65 @@ check_env_file() {
 
 # =============================================================================
 check_database() {
-    log_header "MySQL"
+    log_header "MySQL / MariaDB"
 
-    log_info "Host: ${MYSQL_HOST}:${MYSQL_PORT}"
+    log_info "Host configurado: ${MYSQL_HOST}:${MYSQL_PORT}"
 
-    if tcp_is_reachable "$MYSQL_HOST" "$MYSQL_PORT" 3; then
-        ok "MySQL alcanzable en ${MYSQL_HOST}:${MYSQL_PORT}"
-    else
-        warn "MySQL NO alcanzable — arranca con: sudo service mysql start"
-        return
+    # 1. Verificar via socket Unix (entornos sin red / contenedores)
+    local socket_ok=false
+    for sock in /run/mysqld/mysqld.sock /var/run/mysqld/mysqld.sock; do
+        if [[ -S "$sock" ]]; then
+            if mysqladmin --socket="$sock" ping --silent 2>/dev/null; then
+                ok "MySQL alcanzable via socket: ${sock}"
+                socket_ok=true
+                break
+            else
+                warn "Socket existe pero no responde (posible archivo stale): ${sock}"
+                warn "  Limpieza: bash scripts/provisioners/mysql/db_qa_setup.sh"
+            fi
+        fi
+    done
+
+    # 2. Si socket fallo, verificar via TCP
+    if ! $socket_ok; then
+        if tcp_is_reachable "$MYSQL_HOST" "$MYSQL_PORT" 3; then
+            ok "MySQL alcanzable via TCP: ${MYSQL_HOST}:${MYSQL_PORT}"
+        else
+            warn "MySQL NO alcanzable ni via socket ni TCP"
+            warn "  Opciones de arranque:"
+            warn "  Con systemd : sudo service mysql start"
+            warn "  Sin systemd : bash scripts/provisioners/mysql/db_qa_setup.sh"
+            return
+        fi
     fi
 
+    # 3. Verificar conexion con credenciales Django
     local db_name="${DB_NAME:-practicayoruba_db}"
     local db_user="${DB_USER:-django_user}"
     local db_pass="${DB_PASSWORD:-django_pass}"
+    local connected=false
 
-    mysql -h "$MYSQL_HOST" -P "$MYSQL_PORT" \
-        -u "$db_user" -p"${db_pass}" \
-        -e "SELECT 1;" "$db_name" &>/dev/null \
-        && ok "Conexion Django OK: ${db_user}@${db_name}" \
-        || warn "No se pudo conectar como ${db_user} a ${db_name} — ejecqa db_setup.sh"
+    # Intentar socket
+    for sock in /run/mysqld/mysqld.sock /var/run/mysqld/mysqld.sock; do
+        if [[ -S "$sock" ]]; then
+            mysql --socket="$sock" \
+                -u "$db_user" -p"${db_pass}" \
+                -e "SELECT 1;" "$db_name" &>/dev/null && {
+                ok "Conexion Django OK (socket): ${db_user}@${db_name}"
+                connected=true
+                break
+            }
+        fi
+    done
+
+    # Fallback TCP
+    if ! $connected; then
+        mysql -h "$MYSQL_HOST" -P "$MYSQL_PORT" \
+            -u "$db_user" -p"${db_pass}" \
+            -e "SELECT 1;" "$db_name" &>/dev/null \
+            && ok "Conexion Django OK (TCP): ${db_user}@${db_name}" \
+            || warn "No se pudo conectar como ${db_user} a ${db_name} — ejecuta db_setup.sh"
+    fi
 }
 
 # =============================================================================
