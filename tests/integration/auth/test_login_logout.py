@@ -110,3 +110,52 @@ class TestLogout:
         api_client.credentials()
         refresh_r = api_client.post('/api/v1/auth/refresh/', {'refresh': tokens['refresh']}, format='json')
         assert refresh_r.status_code == 401
+
+
+# ── Auditoría: correcciones post-auditoría ────────────────────────────
+
+class TestLoginAuditCorrections:
+    """Tests añadidos por la auditoría de UCs (FR-AUTH-02.07/09/15)."""
+
+    def test_login_normaliza_username_a_minusculas(self, api_client, user, db):
+        """FR-AUTH-02.07: username en mayúsculas debe encontrar la cuenta."""
+        r = api_client.post('/api/v1/auth/login/', {
+            'username': user.username.upper(),
+            'password': 'TestPass123!',
+        }, format='json')
+        assert r.status_code == 200
+
+    def test_login_retorna_objeto_user(self, api_client, user, db):
+        """FR-AUTH-02.15: la respuesta debe incluir objeto 'user' con datos básicos."""
+        r = api_client.post('/api/v1/auth/login/', {
+            'username': user.username,
+            'password': 'TestPass123!',
+        }, format='json')
+        assert r.status_code == 200
+        data = r.json()
+        assert 'user' in data
+        assert data['user']['id'] == user.pk
+        assert data['user']['username'] == user.username
+        assert data['user']['email'] == user.email
+        assert 'is_staff' in data['user']
+        assert 'avatar_url' in data['user']
+
+    def test_login_cuenta_sin_verificar_retorna_codigo_diferenciado(
+        self, api_client, db
+    ):
+        """FR-AUTH-02.09: email no verificado debe retornar mensaje diferenciado."""
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        u = User.objects.create_user(
+            username='sinverif', email='sinverif@test.mx',
+            password='TestPass123!', is_active=False,
+        )
+        r = api_client.post('/api/v1/auth/login/', {
+            'username': 'sinverif',
+            'password': 'TestPass123!',
+        }, format='json')
+        assert r.status_code == 401
+        data = r.json()
+        # El error debe diferenciar "email no verificado" de "creds incorrectas"
+        error_str = str(data)
+        assert 'EMAIL_NO_VERIFICADO' in error_str or 'verificad' in error_str.lower()

@@ -1,11 +1,11 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
     TokenRefreshView,
     TokenBlacklistView,
 )
 from .views import RegisterView, ProfileView, AddressViewSet, ChangePasswordView
+from .tokens import PYTokenObtainPairView
 
 app_name = 'users'
 
@@ -15,7 +15,7 @@ router.register(r'addresses', AddressViewSet, basename='address')
 urlpatterns = [
     # Sprint 1
     path('register/',        RegisterView.as_view(),         name='register'),
-    path('login/',           TokenObtainPairView.as_view(),  name='login'),
+    path('login/',           PYTokenObtainPairView.as_view(), name='login'),
     path('refresh/',         TokenRefreshView.as_view(),     name='token-refresh'),
     path('logout/',          TokenBlacklistView.as_view(),   name='logout'),
     # Sprint 2

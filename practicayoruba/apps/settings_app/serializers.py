@@ -11,7 +11,9 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
         fields = [
             'site_name', 'iva_rate', 'currency',
             'order_timeout_minutes', 'max_return_days',
-            'free_shipping_threshold', 'updated_at',
+            'free_shipping_threshold',
+            'min_stock_threshold', 'avatar_max_size_mb', 'max_addresses_per_user',
+            'updated_at',
         ]
         read_only_fields = ['updated_at']
 

@@ -27,6 +27,24 @@ class SiteSettings(models.Model):
         default=Decimal('500.00'),
         validators=[MinValueValidator(Decimal('0.00'))],
     )
+    min_stock_threshold = models.PositiveIntegerField(
+        default=5,
+        validators=[MinValueValidator(1)],
+        help_text='Umbral minimo de stock que activa alertas de inventario (FR-INV-01.02).',
+        verbose_name='Umbral minimo de stock',
+    )
+    avatar_max_size_mb = models.PositiveIntegerField(
+        default=5,
+        validators=[MinValueValidator(1)],
+        help_text='Tamaño maximo permitido para avatares, en MB (FR-AUTH-06.04).',
+        verbose_name='Tamaño maximo avatar (MB)',
+    )
+    max_addresses_per_user = models.PositiveIntegerField(
+        default=5,
+        validators=[MinValueValidator(1)],
+        help_text='Numero maximo de direcciones de envio por comprador (FR-AUTH-07.02).',
+        verbose_name='Maximo de direcciones por usuario',
+    )
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
