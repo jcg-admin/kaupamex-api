@@ -21,6 +21,37 @@ Problema que resuelve:
 Patron seguido: IACT-api/apps/users/viewsets_openapi_completion.py
 """
 
+# ─────────────────────────────────────────────────────────────────────
+# SPECTACULAR_TAGS
+# Recogidas automáticamente por config.spectacular_hooks.collect_app_tags
+# ─────────────────────────────────────────────────────────────────────
+SPECTACULAR_TAGS = [
+    {
+        'name': 'auth',
+        'description': (
+            'Autenticación y ciclo de vida de la sesión: registro, login, '
+            'logout, renovación de token, recuperación de contraseña y '
+            'verificación de email.'
+        ),
+    },
+    {
+        'name': 'admin',
+        'description': (
+            'Gestión de usuarios del backoffice (solo administradores): '
+            'listado, perfil, suspensión, reactivación y creación de cuentas '
+            'de operaciones.'
+        ),
+    },
+    {
+        'name': 'profile',
+        'description': (
+            'Perfil, avatar y direcciones del comprador autenticado.'
+        ),
+    },
+]
+
+
+
 from drf_spectacular.extensions import OpenApiSerializerExtension
 from drf_spectacular.utils import inline_serializer
 from rest_framework import serializers

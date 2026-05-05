@@ -1,7 +1,17 @@
 """
 schema.py — apps.settings_app
-Extensiones de drf-spectacular para SiteSettings.
 
-Importado automaticamente desde SettingsAppConfig.ready().
+Extensiones drf-spectacular para la configuración del sistema.
+Importado desde SettingsAppConfig.ready().
 """
-# Sin extensiones por ahora.
+
+SPECTACULAR_TAGS = [
+    {
+        'name': 'config',
+        'description': (
+            'Configuración global del sistema (SiteSettings): IVA, '
+            'tamaño de avatar, límite de direcciones, etc. '
+            'Solo lectura pública; modificación requiere is_staff.'
+        ),
+    },
+]

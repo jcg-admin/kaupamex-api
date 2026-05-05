@@ -160,6 +160,8 @@ SPECTACULAR_SETTINGS = {
     'SORT_OPERATIONS': True,
     'POSTPROCESSING_HOOKS': [
         'drf_spectacular.hooks.postprocess_schema_enums',
+        # OCP: agrega SPECTACULAR_TAGS de cada apps/*/schema.py sin tocar base.py
+        'config.spectacular_hooks.collect_app_tags',
     ],
     'PREPROCESSING_HOOKS': [
         # Elimina endpoints duplicados con sufijo {format} (ej: /products.json)
