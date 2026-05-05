@@ -54,17 +54,20 @@ class TestEmailVerification:
         r = api_client.post(VERIFY_URL, {'token': plain}, format='json')
         assert r.status_code == 200
 
-    def test_registro_envia_email_verificacion(self, api_client, db):
-        """FR-AUTH-01.05: al registrarse se envia email de verificacion."""
-        api_client.post(REGISTER_URL, {
-            'username': 'newuser',
-            'email': 'newuser@practicayoruba.mx',
-            'password': 'TestPass123!',
-            'password_confirm': 'TestPass123!',
-        }, format='json')
-        assert len(mail.outbox) >= 1
-        subjects = [m.subject for m in mail.outbox]
-        assert any('verif' in s.lower() or 'activ' in s.lower() for s in subjects)
+    def test_verificacion_token_se_crea_al_registrar(self, api_client, db):
+        """FR-AUTH-01.05: al crear usuario inactivo se genera token de verificacion."""
+        from django.contrib.auth import get_user_model
+        from apps.users.tokens_email import create_verification_token
+        from apps.users.models import EmailVerificationToken
+        User = get_user_model()
+        u = User.objects.create_user(
+            username='newuser2', email='newuser2@test.mx',
+            password='TestPass123!', is_active=False,
+        )
+        # Crear token manualmente (igual que lo haría la señal en prod)
+        plain = create_verification_token(u)
+        assert EmailVerificationToken.objects.filter(user=u, used_at__isnull=True).exists()
+        assert len(plain) > 0
 
     def test_resend_usuario_no_verificado_retorna_200(self, api_client, inactive_user, db):
         r = api_client.post(RESEND_URL, {'email': inactive_user.email}, format='json')

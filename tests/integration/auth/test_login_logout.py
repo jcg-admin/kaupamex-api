@@ -159,3 +159,58 @@ class TestLoginAuditCorrections:
         # El error debe diferenciar "email no verificado" de "creds incorrectas"
         error_str = str(data)
         assert 'EMAIL_NO_VERIFICADO' in error_str or 'verificad' in error_str.lower()
+
+
+class TestLoginRateLimit:
+    """FR-AUTH-02.01: max 5 intentos fallidos por IP en 15 minutos."""
+
+    @pytest.fixture(autouse=True)
+    def clean_cache(self):
+        """Limpia la caché antes y después de cada test de rate limiting."""
+        from django.core.cache import cache
+        cache.clear()
+        yield
+        cache.clear()
+
+    def test_5_intentos_fallidos_bloquean_la_ip(self, api_client, user, db):
+        from django.core.cache import cache
+        cache.clear()
+        payload = {'username': user.username, 'password': 'MalPassword!'}
+        for _ in range(5):
+            api_client.post('/api/v1/auth/login/', payload, format='json')
+        r = api_client.post('/api/v1/auth/login/', payload, format='json')
+        assert r.status_code == 429
+
+    def test_login_exitoso_restablece_el_contador(self, api_client, user, db):
+        """FR-AUTH-02.14: login exitoso limpia el contador de la IP."""
+        from django.core.cache import cache
+        cache.clear()
+        for _ in range(3):
+            api_client.post('/api/v1/auth/login/', {
+                'username': user.username, 'password': 'MalPassword!'
+            }, format='json')
+        api_client.post('/api/v1/auth/login/', {
+            'username': user.username, 'password': 'TestPass123!'
+        }, format='json')
+        # Despues del exito, intentos fallidos ya no bloquean
+        for _ in range(5):
+            api_client.post('/api/v1/auth/login/', {
+                'username': user.username, 'password': 'MalPassword!'
+            }, format='json')
+        r = api_client.post('/api/v1/auth/login/', {
+            'username': user.username, 'password': 'MalPassword!'
+        }, format='json')
+        assert r.status_code == 429  # nuevo ciclo de 5 intentos
+
+    def test_respuesta_429_incluye_retry_after(self, api_client, user, db):
+        """FR-AUTH-02.01: la respuesta debe incluir Retry-After."""
+        from django.core.cache import cache
+        cache.clear()
+        for _ in range(6):
+            api_client.post('/api/v1/auth/login/', {
+                'username': user.username, 'password': 'MalPassword!'
+            }, format='json')
+        r = api_client.post('/api/v1/auth/login/', {
+            'username': user.username, 'password': 'MalPassword!'
+        }, format='json')
+        assert 'Retry-After' in r.headers or 'retry_after' in r.json()

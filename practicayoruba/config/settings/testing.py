@@ -61,3 +61,7 @@ LOGGING = {
 # Email — locmem para tests (django.core.mail.outbox)
 EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 FRONTEND_URL = "http://localhost:3001"
+
+# MySQL en testing — evitar deadlocks por conexiones persistentes
+DATABASES['default']['CONN_MAX_AGE'] = 0  # Nueva conexión por request
+DATABASES['default']['OPTIONS']['connect_timeout'] = 10
