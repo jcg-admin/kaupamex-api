@@ -31,6 +31,7 @@ class Product(models.Model):
     name         = models.CharField(max_length=200)
     slug         = models.SlugField(max_length=220, unique=True, db_index=True)
     sku          = models.CharField(max_length=50, unique=True)
+    short_description = models.CharField(max_length=500, blank=True, default='')
     description  = models.TextField(blank=True, default='')
     category     = models.ForeignKey(
         Category, on_delete=models.PROTECT, related_name='products',
@@ -48,6 +49,15 @@ class Product(models.Model):
     class Meta:
         db_table = 'catalogue_product'
         ordering = ['-created_at']
+        indexes = [
+            # FULLTEXT index para UC-SRCH-01 — se crea via RunSQL en la migración
+        ]
+
+    @property
+    def availability(self):
+        if self.stock > 0:
+            return 'available'
+        return 'out_of_stock'
 
     def __str__(self):
         return self.name
