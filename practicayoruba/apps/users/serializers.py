@@ -86,10 +86,12 @@ class AddressSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         user = request.user if request else None
         if user and not self.instance:
+            from apps.settings_app.models import SiteSettings
+            max_addr = SiteSettings.get_current().max_addresses_per_user
             count = Address.objects.filter(user=user).count()
-            if count >= Address.MAX_PER_USER:
+            if count >= max_addr:
                 raise serializers.ValidationError(
-                    {'non_field_errors': f'Maximo {Address.MAX_PER_USER} direcciones por usuario.'},
+                    {'non_field_errors': f'Maximo {max_addr} direcciones por usuario.'},
                     code='limite_direcciones',
                 )
         return attrs
@@ -152,9 +154,17 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
         """
         FR-AUTH-06.04: valida formato y contenido del avatar.
         Intenta abrir con Pillow para detectar archivos falsos.
+        Limite de tamaño desde SiteSettings.avatar_max_size_mb (P3-04).
         """
         if value is None:
             return value
+        # Validar tamaño contra SiteSettings (P3-04)
+        from apps.settings_app.models import SiteSettings
+        max_mb = SiteSettings.get_current().avatar_max_size_mb
+        if value.size > max_mb * 1024 * 1024:
+            raise serializers.ValidationError(
+                f"El avatar no puede superar {max_mb} MB."
+            )
         try:
             img = Image.open(value)
             img.verify()
@@ -243,3 +253,64 @@ class ChangePasswordSerializer(serializers.Serializer):
         user.set_password(self.validated_data['new_password'])
         user.save(update_fields=['password'])
         return user
+
+
+# ─── Sprint 3 ─────────────────────────────────────────────────────────
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    """UC-AUTH-09 Fase 1: solicitar recuperacion de contrasena."""
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        return value.lower().strip()
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    """UC-AUTH-09 Fase 2: confirmar token y establecer nueva contrasena."""
+    token                = serializers.CharField(write_only=True)
+    new_password         = serializers.CharField(write_only=True, min_length=8)
+    new_password_confirm = serializers.CharField(write_only=True)
+
+    def validate_new_password(self, value):
+        try:
+            validate_password(value)
+        except DjangoValidationError as e:
+            raise serializers.ValidationError(list(e.messages))
+        return value
+
+    def validate(self, attrs):
+        if attrs['new_password'] != attrs['new_password_confirm']:
+            raise serializers.ValidationError(
+                {'new_password_confirm': 'Las contrasenas no coinciden.'}
+            )
+        return attrs
+
+
+class EmailVerificationSerializer(serializers.Serializer):
+    """UC-AUTH-10: verificar email con token del enlace."""
+    token = serializers.CharField()
+
+
+class ResendVerificationSerializer(serializers.Serializer):
+    """UC-AUTH-10: reenviar email de verificacion."""
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        return value.lower().strip()
+
+
+class AdminUserListSerializer(serializers.ModelSerializer):
+    """UC-AUTH-11: datos del usuario para el listado del admin."""
+    full_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = [
+            'id', 'username', 'email', 'full_name',
+            'is_active', 'is_staff', 'date_joined', 'last_login',
+        ]
+        read_only_fields = fields
+
+    @extend_schema_field(OpenApiTypes.STR)
+    def get_full_name(self, obj):
+        return obj.get_full_name()

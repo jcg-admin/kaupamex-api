@@ -57,3 +57,7 @@ LOGGING = {
     'handlers': {'null': {'class': 'logging.NullHandler'}},
     'root':     {'handlers': ['null']},
 }
+
+# Email — locmem para tests (django.core.mail.outbox)
+EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+FRONTEND_URL = "http://localhost:3001"

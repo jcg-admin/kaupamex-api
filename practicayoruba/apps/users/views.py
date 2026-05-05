@@ -212,3 +212,213 @@ class ChangePasswordView(APIView):
             serializer.save()
             return Response({'message': 'Contrasena actualizada exitosamente.'})
         return Response(serializer.errors, status=400)
+
+
+# ─── Sprint 3 ─────────────────────────────────────────────────────────
+import rest_framework.pagination
+from django.contrib.auth import get_user_model
+User = get_user_model()
+
+from rest_framework.generics import ListAPIView
+from rest_framework.filters import SearchFilter
+from django.db.models import Q
+
+from .tokens_email import (
+    check_rate_limit, create_password_reset_token, send_password_reset_email,
+    validate_password_reset_token, invalidate_all_sessions,
+    create_verification_token, send_verification_email, validate_verification_token,
+)
+from .serializers import (
+    PasswordResetRequestSerializer, PasswordResetConfirmSerializer,
+    EmailVerificationSerializer, ResendVerificationSerializer,
+    AdminUserListSerializer,
+)
+
+
+class PasswordResetRequestView(APIView):
+    """POST /api/v1/auth/password-reset/ — UC-AUTH-09 Fase 1."""
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        summary='Solicitar recuperacion de contrasena',
+        description=(
+            'Genera un token de recuperacion y envia un email al usuario. '
+            'Siempre retorna 200 independientemente de si el email existe '
+            '(FR-AUTH-09.01 — previene enumeracion). Rate limit: 3/hora/email.'
+        ),
+        request=PasswordResetRequestSerializer,
+        responses={
+            200: OpenApiResponse(description='Email enviado si la cuenta existe.'),
+            400: OpenApiResponse(description='Formato de email invalido.'),
+            429: OpenApiResponse(description='Limite de solicitudes alcanzado.'),
+        },
+        tags=['auth'],
+    )
+    def post(self, request):
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        email = serializer.validated_data['email']
+
+        if not check_rate_limit(email):
+            return Response(
+                {'detail': 'Demasiadas solicitudes. Intenta de nuevo en 1 hora.'},
+                status=429,
+            )
+
+        try:
+            user = User.objects.get(email__iexact=email, is_active=True)
+            plain = create_password_reset_token(user)
+            send_password_reset_email(user, plain)
+        except User.DoesNotExist:
+            pass  # Silencioso — no revela si el email existe
+
+        return Response(
+            {'message': 'Si ese email esta registrado, recibiras las instrucciones.'}
+        )
+
+
+class PasswordResetConfirmView(APIView):
+    """POST /api/v1/auth/password-reset/confirm/ — UC-AUTH-09 Fase 2."""
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        summary='Confirmar recuperacion de contrasena',
+        request=PasswordResetConfirmSerializer,
+        responses={
+            200: OpenApiResponse(description='Contrasena restablecida. Sesiones invalidadas.'),
+            400: OpenApiResponse(description='Token invalido, expirado o contrasena debil.'),
+        },
+        tags=['auth'],
+    )
+    def post(self, request):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        try:
+            token_obj = validate_password_reset_token(
+                serializer.validated_data['token']
+            )
+        except ValueError as e:
+            return Response({'token': str(e)}, status=400)
+
+        from django.utils import timezone
+        from django.db import transaction
+
+        with transaction.atomic():
+            user = token_obj.user
+            user.set_password(serializer.validated_data['new_password'])
+            user.save(update_fields=['password'])
+            token_obj.used_at = timezone.now()
+            token_obj.save(update_fields=['used_at'])
+            invalidate_all_sessions(user)
+
+        return Response({'message': 'Contrasena restablecida exitosamente. Inicia sesion.'})
+
+
+class EmailVerifyView(APIView):
+    """POST /api/v1/auth/verify-email/ — UC-AUTH-10."""
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        summary='Verificar email y activar cuenta',
+        request=EmailVerificationSerializer,
+        responses={
+            200: OpenApiResponse(description='Cuenta activada o ya estaba activa.'),
+            400: OpenApiResponse(description='Token invalido o expirado.'),
+        },
+        tags=['auth'],
+    )
+    def post(self, request):
+        serializer = EmailVerificationSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        try:
+            token_obj = validate_verification_token(serializer.validated_data['token'])
+        except ValueError as e:
+            return Response({'token': str(e)}, status=400)
+
+        if token_obj is None:
+            return Response({'message': 'Tu cuenta ya esta activa. Puedes iniciar sesion.'})
+
+        from django.utils import timezone
+        from django.db import transaction
+
+        with transaction.atomic():
+            user = token_obj.user
+            user.is_active = True
+            user.save(update_fields=['is_active'])
+            token_obj.used_at = timezone.now()
+            token_obj.save(update_fields=['used_at'])
+
+        return Response({'message': 'Cuenta activada exitosamente. Puedes iniciar sesion.'})
+
+
+class ResendVerificationView(APIView):
+    """POST /api/v1/auth/resend-verification/ — UC-AUTH-10."""
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        summary='Reenviar email de verificacion',
+        request=ResendVerificationSerializer,
+        responses={
+            200: OpenApiResponse(description='Email reenviado si la cuenta existe y no esta activa.'),
+        },
+        tags=['auth'],
+    )
+    def post(self, request):
+        serializer = ResendVerificationSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        email = serializer.validated_data['email']
+        try:
+            user = User.objects.get(email__iexact=email, is_active=False)
+            plain = create_verification_token(user)
+            send_verification_email(user, plain)
+        except User.DoesNotExist:
+            pass  # Silencioso
+
+        return Response(
+            {'message': 'Si ese email esta pendiente de verificacion, recibiras un nuevo enlace.'}
+        )
+
+
+class AdminUserPagination(rest_framework.pagination.PageNumberPagination):
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+
+class AdminUserListView(ListAPIView):
+    """GET /api/v1/admin/users/ — UC-AUTH-11."""
+    permission_classes  = [IsAuthenticated]
+    serializer_class    = AdminUserListSerializer
+    filter_backends     = [SearchFilter]
+    search_fields       = ['username', 'email', 'first_name', 'last_name']
+    pagination_class    = AdminUserPagination
+
+    def get_queryset(self):
+        if not self.request.user.is_staff:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('Solo administradores pueden acceder a este endpoint.')
+        qs = User.objects.all().order_by('-date_joined')
+        is_active = self.request.query_params.get('is_active')
+        is_staff  = self.request.query_params.get('is_staff')
+        if is_active is not None:
+            qs = qs.filter(is_active=(is_active.lower() == 'true'))
+        if is_staff is not None:
+            qs = qs.filter(is_staff=(is_staff.lower() == 'true'))
+        return qs
+
+    @extend_schema(
+        summary='Listar usuarios (Admin)',
+        description='Listado paginado de todos los usuarios. Solo staff.',
+        responses={200: AdminUserListSerializer(many=True)},
+        tags=['admin'],
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)

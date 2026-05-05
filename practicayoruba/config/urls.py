@@ -29,4 +29,5 @@ urlpatterns = [
     # --- API v1 ---
     path('api/v1/auth/',   include('apps.users.urls')),
     path('api/v1/config/', include('apps.settings_app.urls', namespace='settings_app')),
+    path('api/v1/admin/',  include('apps.users.admin_urls', namespace='admin_users')),
 ]

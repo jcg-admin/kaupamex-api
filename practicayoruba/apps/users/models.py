@@ -146,3 +146,45 @@ class Address(models.Model):
                 super().save(*args, **kwargs)
         else:
             super().save(*args, **kwargs)
+
+
+class PasswordResetToken(models.Model):
+    """
+    Token de recuperacion de contrasena (UC-AUTH-09, FR-AUTH-09.03).
+    El token en claro se envia al email. Solo el hash se guarda en BD.
+    Validez: 1 hora. Un solo uso.
+    """
+    user       = models.ForeignKey(User, on_delete=models.CASCADE,
+                                   related_name='password_reset_tokens')
+    token_hash = models.CharField(max_length=64, unique=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    used_at    = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'users_password_reset_token'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'PasswordReset [{self.user.username}] — usado: {bool(self.used_at)}'
+
+
+class EmailVerificationToken(models.Model):
+    """
+    Token de verificacion de email (UC-AUTH-10, FR-AUTH-10.02).
+    El token en claro se envia al email. Solo el hash se guarda en BD.
+    Validez: 24 horas. Idempotente si la cuenta ya esta activa.
+    """
+    user       = models.ForeignKey(User, on_delete=models.CASCADE,
+                                   related_name='email_verification_tokens')
+    token_hash = models.CharField(max_length=64, unique=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    used_at    = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'users_email_verification_token'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'EmailVerif [{self.user.username}] — usado: {bool(self.used_at)}'

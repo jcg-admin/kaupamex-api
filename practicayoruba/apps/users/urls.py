@@ -4,7 +4,11 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
     TokenBlacklistView,
 )
-from .views import RegisterView, ProfileView, AddressViewSet, ChangePasswordView
+from .views import (
+    RegisterView, ProfileView, AddressViewSet, ChangePasswordView,
+    PasswordResetRequestView, PasswordResetConfirmView,
+    EmailVerifyView, ResendVerificationView, AdminUserListView,
+)
 from .tokens import PYTokenObtainPairView
 
 app_name = 'users'
@@ -22,4 +26,9 @@ urlpatterns = [
     path('profile/',         ProfileView.as_view(),          name='profile'),
     path('change-password/', ChangePasswordView.as_view(),   name='change-password'),
     path('',                 include(router.urls)),
+    # Sprint 3
+    path('password-reset/',          PasswordResetRequestView.as_view(), name='password-reset-request'),
+    path('password-reset/confirm/',  PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
+    path('verify-email/',            EmailVerifyView.as_view(),           name='verify-email'),
+    path('resend-verification/',     ResendVerificationView.as_view(),    name='resend-verification'),
 ]
