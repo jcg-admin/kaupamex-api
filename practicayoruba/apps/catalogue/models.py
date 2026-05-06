@@ -41,6 +41,7 @@ class Product(models.Model):
         validators=[MinValueValidator(Decimal('0.01'))],
     )
     stock        = models.PositiveIntegerField(default=0)
+    is_featured  = models.BooleanField(default=False, db_index=True)
     is_active    = models.BooleanField(default=True, db_index=True)
     is_published = models.BooleanField(default=False, db_index=True)
     created_at   = models.DateTimeField(auto_now_add=True)
@@ -56,8 +57,8 @@ class Product(models.Model):
     @property
     def availability(self):
         if self.stock > 0:
-            return 'available'
-        return 'out_of_stock'
+            return 'IN_STOCK'
+        return 'OUT_OF_STOCK' 
 
     def __str__(self):
         return self.name

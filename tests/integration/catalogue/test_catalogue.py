@@ -80,7 +80,7 @@ class TestCatalogueList:
                                description='', category=category,
                                price=Decimal('9000.00'), is_active=True, is_published=True)
         r = api_client.get(CATALOGUE_URL, {'ordering': 'price'})
-        prices = [p['price'] for p in r.json()['results']]
+        prices = [p['base_price'] for p in r.json()['results']]
         assert prices == sorted(prices)
 
     def test_producto_inactivo_no_aparece(self, api_client, category, db):

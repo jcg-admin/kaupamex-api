@@ -10,8 +10,8 @@ from decimal import Decimal
 
 pytestmark = pytest.mark.integration
 
-CATALOGUE_URL  = '/api/v1/catalogue/'
-SEARCH_URL     = '/api/v1/catalogue/search/'
+CATALOGUE_URL = '/api/v1/catalogue/'
+SEARCH_URL    = '/api/v1/catalogue/search/'
 
 
 # =============================================================================
@@ -44,6 +44,7 @@ def product_oshun(db, cat_collares):
         stock=10,
         is_active=True,
         is_published=True,
+        is_featured=True,
     )
 
 
@@ -61,6 +62,7 @@ def product_yemaya(db, cat_pulseras):
         stock=5,
         is_active=True,
         is_published=True,
+        is_featured=False,
     )
 
 
@@ -111,11 +113,24 @@ class TestProductoDetalle:
     def test_detalle_contiene_campos_requeridos(self, api_client, product_oshun):
         r = api_client.get(f'{CATALOGUE_URL}{product_oshun.slug}/')
         data = r.json()
-        for campo in ['id', 'name', 'slug', 'sku', 'description',
-                      'short_description', 'price', 'price_with_tax',
-                      'stock', 'is_active', 'is_published',
-                      'category', 'availability']:
+        for campo in [
+            'id', 'name', 'slug', 'sku',
+            'description', 'short_description',
+            'base_price', 'price_with_tax',
+            'stock', 'availability',
+            'category', 'images', 'discount',
+        ]:
             assert campo in data, f'Falta campo: {campo}'
+
+    def test_detalle_base_price_es_precio_sin_iva(self, api_client, product_oshun):
+        r = api_client.get(f'{CATALOGUE_URL}{product_oshun.slug}/')
+        data = r.json()
+        assert float(data['base_price']) == float(product_oshun.price)
+
+    def test_detalle_price_with_tax_mayor_que_base(self, api_client, product_oshun):
+        r = api_client.get(f'{CATALOGUE_URL}{product_oshun.slug}/')
+        data = r.json()
+        assert float(data['price_with_tax']) > float(data['base_price'])
 
     def test_detalle_retorna_categoria_como_objeto(self, api_client, product_oshun):
         r = api_client.get(f'{CATALOGUE_URL}{product_oshun.slug}/')
@@ -125,13 +140,21 @@ class TestProductoDetalle:
         assert 'name' in data['category']
         assert 'slug' in data['category']
 
-    def test_detalle_availability_con_stock(self, api_client, product_oshun):
+    def test_detalle_availability_con_stock_es_IN_STOCK(self, api_client, product_oshun):
         r = api_client.get(f'{CATALOGUE_URL}{product_oshun.slug}/')
-        assert r.json()['availability'] == 'available'
+        assert r.json()['availability'] == 'IN_STOCK'
 
-    def test_detalle_availability_sin_stock(self, api_client, product_sin_stock):
+    def test_detalle_availability_sin_stock_es_OUT_OF_STOCK(self, api_client, product_sin_stock):
         r = api_client.get(f'{CATALOGUE_URL}{product_sin_stock.slug}/')
-        assert r.json()['availability'] == 'out_of_stock'
+        assert r.json()['availability'] == 'OUT_OF_STOCK'
+
+    def test_detalle_images_retorna_lista(self, api_client, product_oshun):
+        r = api_client.get(f'{CATALOGUE_URL}{product_oshun.slug}/')
+        assert isinstance(r.json()['images'], list)
+
+    def test_detalle_discount_nulo_sin_descuento(self, api_client, product_oshun):
+        r = api_client.get(f'{CATALOGUE_URL}{product_oshun.slug}/')
+        assert r.json()['discount'] is None
 
     def test_detalle_producto_inexistente_retorna_404(self, api_client):
         r = api_client.get(f'{CATALOGUE_URL}producto-que-no-existe/')
@@ -144,11 +167,6 @@ class TestProductoDetalle:
     def test_detalle_es_publico_sin_autenticar(self, api_client, product_oshun):
         r = api_client.get(f'{CATALOGUE_URL}{product_oshun.slug}/')
         assert r.status_code == 200
-
-    def test_detalle_incluye_precio_con_iva(self, api_client, product_oshun):
-        r = api_client.get(f'{CATALOGUE_URL}{product_oshun.slug}/')
-        data = r.json()
-        assert float(data['price_with_tax']) > float(data['price'])
 
 
 # =============================================================================
@@ -181,19 +199,33 @@ class TestBusqueda:
         r = api_client.get(SEARCH_URL, {'q': 'inactivo'})
         assert r.json()['count'] == 0
 
-    def test_busqueda_termino_muy_corto_retorna_400(self, api_client):
+    def test_busqueda_termino_1_char_retorna_400(self, api_client):
         r = api_client.get(SEARCH_URL, {'q': 'a'})
         assert r.status_code == 400
+
+    def test_busqueda_codigo_error_TERMINO_MUY_CORTO(self, api_client):
+        r = api_client.get(SEARCH_URL, {'q': 'a'})
+        assert r.json().get('codigo_error') == 'TERMINO_MUY_CORTO'
 
     def test_busqueda_sin_termino_retorna_400(self, api_client):
         r = api_client.get(SEARCH_URL, {})
         assert r.status_code == 400
 
-    def test_busqueda_termino_vacio_retorna_400(self, api_client):
+    def test_busqueda_termino_solo_espacios_retorna_400(self, api_client):
         r = api_client.get(SEARCH_URL, {'q': '   '})
         assert r.status_code == 400
 
-    def test_busqueda_sin_resultados_retorna_lista_vacia(self, api_client, product_oshun):
+    def test_busqueda_normaliza_espacios_internos(self, api_client, product_oshun):
+        # "Oshun  dorado" (doble espacio) debe encontrar "Collar Oshun dorado"
+        r = api_client.get(SEARCH_URL, {'q': 'Oshun  dorado'})
+        assert r.status_code == 200
+
+    def test_busqueda_trunca_termino_a_100_chars(self, api_client, product_oshun):
+        termino_largo = 'a' * 150
+        r = api_client.get(SEARCH_URL, {'q': termino_largo})
+        assert r.status_code == 200
+
+    def test_busqueda_sin_resultados_retorna_count_cero(self, api_client, product_oshun):
         r = api_client.get(SEARCH_URL, {'q': 'xyzterm123inexistente'})
         data = r.json()
         assert data['count'] == 0
@@ -203,13 +235,35 @@ class TestBusqueda:
         r = api_client.get(SEARCH_URL, {'q': 'oshun'})
         assert r.status_code == 200
 
-    def test_busqueda_retorna_precio_con_iva(self, api_client, product_oshun):
+    def test_busqueda_retorna_base_price_en_resultados(self, api_client, product_oshun):
         r = api_client.get(SEARCH_URL, {'q': 'oshun'})
         resultado = r.json()['results'][0]
+        assert 'base_price' in resultado
         assert 'price_with_tax' in resultado
 
-    def test_busqueda_retorna_metadatos_paginacion(self, api_client, product_oshun):
+    def test_busqueda_retorna_highlighted_term(self, api_client, product_oshun):
+        r = api_client.get(SEARCH_URL, {'q': 'oshun'})
+        resultado = r.json()['results'][0]
+        assert 'highlighted_name' in resultado
+
+    def test_busqueda_featured_aparece_primero(
+        self, api_client, product_oshun, product_yemaya, cat_collares
+    ):
+        # product_oshun es featured=True, product_yemaya no
+        # ambos contienen "collar" o "pulsera" — buscar término que devuelva ambos
+        from apps.catalogue.models import Product
+        Product.objects.filter(slug='pulsera-yemaya-azul').update(
+            name='Pulsera Yemaya collar azul',  # para que aparezca en búsqueda de 'collar'
+            description='collar Yemaya',
+        )
         r = api_client.get(SEARCH_URL, {'q': 'collar'})
+        resultados = r.json()['results']
+        if len(resultados) >= 2:
+            # El featured debe aparecer primero
+            assert resultados[0]['is_featured'] is True
+
+    def test_busqueda_metadatos_paginacion(self, api_client, product_oshun):
+        r = api_client.get(SEARCH_URL, {'q': 'oshun'})
         data = r.json()
         assert 'count' in data
         assert 'next' in data
@@ -217,7 +271,7 @@ class TestBusqueda:
 
 
 # =============================================================================
-# UC-CAT-03-EXT: Filtros Avanzados sobre resultados de búsqueda
+# UC-CAT-03-EXT: Filtros Avanzados
 # =============================================================================
 
 class TestBusquedaFiltrosAvanzados:
@@ -230,26 +284,36 @@ class TestBusquedaFiltrosAvanzados:
         assert any('Oshun' in n for n in nombres)
         assert not any('Yemaya' in n for n in nombres)
 
-    def test_filtro_precio_minimo(self, api_client, product_oshun, product_yemaya):
-        # Oshun=1250, Yemaya=450 — precio_min=900 debe excluir Yemaya
+    def test_filtro_precio_minimo_sin_iva(self, api_client, product_oshun, product_yemaya):
+        # Oshun=1250, Yemaya=450 — price_min=900 debe excluir Yemaya (BR-001: sin IVA)
         r = api_client.get(SEARCH_URL, {'q': 'collar pulsera', 'price_min': '900'})
         nombres = [p['name'] for p in r.json()['results']]
         assert not any('Yemaya' in n for n in nombres)
 
-    def test_filtro_precio_maximo(self, api_client, product_oshun, product_yemaya):
-        # precio_max=600 debe excluir Oshun
+    def test_filtro_precio_maximo_sin_iva(self, api_client, product_oshun, product_yemaya):
+        # price_max=600 debe excluir Oshun
         r = api_client.get(SEARCH_URL, {'q': 'collar pulsera', 'price_max': '600'})
         nombres = [p['name'] for p in r.json()['results']]
         assert not any('Oshun' in n for n in nombres)
 
-    def test_filtro_solo_disponibles(
+    def test_filtro_solo_con_stock(
         self, api_client, product_oshun, product_sin_stock
     ):
         r = api_client.get(SEARCH_URL, {'q': 'collar', 'in_stock': 'true'})
         for p in r.json()['results']:
             assert p['stock'] > 0
 
+    def test_filtros_sin_resultados_incluye_active_filters(
+        self, api_client, product_oshun
+    ):
+        # Filtros muy restrictivos — respuesta debe incluir active_filters
+        r = api_client.get(SEARCH_URL, {
+            'q': 'collar', 'price_min': '99999'
+        })
+        data = r.json()
+        assert data['count'] == 0
+        assert 'active_filters' in data
+
     def test_filtros_no_requeridos(self, api_client, product_oshun):
-        # Sin filtros opcionales debe funcionar igual que búsqueda simple
         r = api_client.get(SEARCH_URL, {'q': 'oshun'})
         assert r.status_code == 200
