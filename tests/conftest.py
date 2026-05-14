@@ -2,7 +2,19 @@
 conftest.py — Fixtures globales para PracticaYoruba API tests.
 BD: practicayoruba_qa (config.settings.testing)
 """
+import subprocess
+import time
+from pathlib import Path
+
 import pytest
+
+# ─── Paths del repositorio ───────────────────────────────────────────────────
+# Construidos relativos a este archivo — portables entre entornos.
+_TESTS_DIR = Path(__file__).resolve().parent        # tests/
+_REPO_ROOT  = _TESTS_DIR.parent                     # PracticaYoruba-api/
+_DB_QA_SCRIPT = (
+    _REPO_ROOT / 'scripts' / 'provisioners' / 'mysql' / 'db_qa_setup.sh'
+)
 
 
 
@@ -76,7 +88,6 @@ def clear_rate_limit_cache():
     Solo limpia claves de rate limiting (prefijos login_fails: y pw_reset:).
     """
     from django.core.cache import cache
-    import hashlib
 
     def clear_rl():
         # Django LocMemCache no tiene método de scan — usamos cache.clear()
@@ -92,9 +103,6 @@ def clear_rate_limit_cache():
 # En este entorno MariaDB corre sin systemd y puede morir durante
 # suites largas. El fixture reinicia automáticamente si detecta caída.
 
-import subprocess
-import time
-
 
 def _mariadb_alive() -> bool:
     try:
@@ -107,10 +115,33 @@ def _mariadb_alive() -> bool:
         return False
 
 
-def _restart_mariadb():
+def _restart_mariadb() -> bool:
+    """
+    Intenta restablecer el entorno de BD ejecutando db_qa_setup.sh.
+    Retorna True si MariaDB responde en los 30 segundos siguientes.
+
+    Nota: este script recrea el schema QA si es necesario — no reinicia
+    el proceso de MariaDB directamente. En entornos sin systemd el proceso
+    debe ser arrancado externamente; este helper solo reaplica el setup.
+    Ver testing.py y ADR-008 para el contexto completo.
+    """
+    if not _DB_QA_SCRIPT.exists():
+        # No silenciar — en un entorno nuevo el path debe existir.
+        # Si no existe, hay un problema de configuración del repositorio.
+        import warnings
+        warnings.warn(
+            f"mariadb_keepalive: script no encontrado: {_DB_QA_SCRIPT}\n"
+            f"  El fixture no puede restablecer la BD automáticamente.\n"
+            f"  Verifica que el repositorio esté en el estado correcto.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        return False
+
     subprocess.run(
-        ['bash', '/mnt/project/PracticaYoruba-api/scripts/provisioners/mysql/db_qa_setup.sh'],
-        capture_output=True, timeout=90
+        ['bash', str(_DB_QA_SCRIPT)],
+        capture_output=True,
+        timeout=90,
     )
     for _ in range(30):
         if _mariadb_alive():
