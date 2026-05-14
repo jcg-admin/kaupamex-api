@@ -83,6 +83,10 @@ STATIC_URL = '/static/'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# Dirección remitente por defecto para todos los emails del sistema.
+# Sobrescribir en production.py via decouple si se necesita otro valor.
+DEFAULT_FROM_EMAIL = 'noreply@practicayoruba.mx'
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {

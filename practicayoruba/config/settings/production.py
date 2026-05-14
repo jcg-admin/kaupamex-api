@@ -26,3 +26,31 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 # Usada por la vista serve_spa en config/urls.py para servir index.html.
 # ALLOWED_HOSTS debe incluir el dominio real en el .env de producción.
 UI_DIST = config('UI_DIST', default='/opt/practicayoruba/ui/dist')
+
+# --- Email -----------------------------------------------------------------
+# Puerto saliente requerido en el VPS: 587/tcp (SMTP STARTTLS).
+# UFW ya permite todo el tráfico saliente (default allow outgoing) —
+# no requiere regla adicional.
+#
+# Variables requeridas en el .env de producción:
+#   EMAIL_HOST          ej: smtp.sendgrid.net
+#   EMAIL_HOST_USER     ej: apikey  (SendGrid usa "apikey" como usuario)
+#   EMAIL_HOST_PASSWORD ej: SG.xxxxxxx...
+#
+# Variables opcionales (defaults válidos para la mayoría de proveedores):
+#   EMAIL_PORT          default: 587
+#   EMAIL_USE_TLS       default: True  (STARTTLS en puerto 587)
+EMAIL_BACKEND     = config(
+    'EMAIL_BACKEND',
+    default='django.core.mail.backends.smtp.EmailBackend',
+)
+EMAIL_HOST        = config('EMAIL_HOST',        default='')
+EMAIL_PORT        = config('EMAIL_PORT',        default=587,  cast=int)
+EMAIL_USE_TLS     = config('EMAIL_USE_TLS',     default=True, cast=bool)
+EMAIL_HOST_USER   = config('EMAIL_HOST_USER',   default='')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+
+# URL base del frontend — usada en tokens_email.py para construir los
+# enlaces de verificación de cuenta y recuperación de contraseña.
+# Debe coincidir con el dominio público de la aplicación.
+FRONTEND_URL = config('FRONTEND_URL', default='https://practicayoruba.mx')
