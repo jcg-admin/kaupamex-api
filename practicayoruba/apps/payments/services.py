@@ -20,6 +20,18 @@ from .models import Payment, PaymentGatewayEvent
 logger = logging.getLogger('apps')
 
 
+def _get_gateway(gateway_type: str = 'MERCADOPAGO') -> BaseGateway:
+    """
+    Retorna la instancia del gateway solicitado.
+    BR-006: MP es el gateway primario.
+    BR-007: PayPal es el secundario disponible desde MVP.
+    """
+    if gateway_type == 'PAYPAL':
+        from .gateways.paypal import PayPalGateway
+        return PayPalGateway()
+    return MercadoPagoGateway()
+
+
 def _get_default_gateway() -> BaseGateway:
     """Retorna el gateway activo por defecto (BR-006: MP es el primario)."""
     return MercadoPagoGateway()
@@ -42,6 +54,7 @@ def initiate_payment(
     request,
     installments: int = 1,
     gateway: BaseGateway = None,
+    gateway_type: str = 'MERCADOPAGO',
 ) -> Payment:
     """
     Inicia el proceso de pago para una orden.
@@ -69,7 +82,7 @@ def initiate_payment(
         )
 
     if gateway is None:
-        gateway = _get_default_gateway()
+        gateway = _get_gateway(gateway_type)
 
     base_url  = f'{request.scheme}://{request.get_host()}'
     back_urls = _build_back_urls(order.order_number, base_url)
@@ -83,7 +96,7 @@ def initiate_payment(
     with transaction.atomic():
         payment = Payment.objects.create(
             order=order,
-            gateway=Payment.GATEWAY_MERCADOPAGO,
+            gateway=gateway_type,
             preference_id=result.preference_id,
             status=Payment.STATUS_PENDING,
             amount=order.value.total,
