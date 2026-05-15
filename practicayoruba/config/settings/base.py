@@ -194,3 +194,20 @@ LOGGING = {
         'apps':   {'handlers': ['console', 'file'], 'level': 'INFO'},
     },
 }
+
+# Cache — DatabaseCache (Sprint 6)
+# UC-SRCH-02 (autocomplete) usa la clave "autocomplete:<prefijo>" con TTL 60s.
+# UC-CAT-08 (árbol de categorías) usará la clave "categories:tree" con TTL 300s.
+# La tabla se crea con: python manage.py createcachetable
+# En testing.py se sobrescribe con LocMemCache para evitar dependencia de BD.
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'cache_table',
+        'TIMEOUT': 300,
+        'OPTIONS': {
+            'MAX_ENTRIES': 5000,
+            'CULL_FREQUENCY': 4,
+        },
+    }
+}

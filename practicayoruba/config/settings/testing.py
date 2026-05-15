@@ -65,3 +65,14 @@ FRONTEND_URL = "http://localhost:3001"
 # MySQL en testing — evitar deadlocks por conexiones persistentes
 DATABASES['default']['CONN_MAX_AGE'] = 0  # Nueva conexión por request
 DATABASES['default']['OPTIONS']['connect_timeout'] = 10
+
+# Cache — LocMemCache en tests (no requiere tabla en BD, no comparte entre
+# procesos, pero es suficiente para verificar el comportamiento funcional).
+# El DatabaseCache de base.py se sobrescribe aquí para evitar que los tests
+# dependan de que la tabla cache_table exista en practicayoruba_qa.
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'test-cache',
+    }
+}

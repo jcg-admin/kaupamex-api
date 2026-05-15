@@ -1,137 +1,56 @@
 """
 Views — apps.catalogue
-Sprint 4 — UC-CAT-01: Ver Catálogo
-Sprint 5 — UC-CAT-02: Ver Detalle de Producto
-          UC-CAT-03 / UC-SRCH-01: Buscar Productos (FULLTEXT MySQL)
-          UC-CAT-03-EXT: Filtros Avanzados sobre búsqueda
+
+Sprint 4 — UC-CAT-01
+Sprint 5 — UC-CAT-02, UC-CAT-03, UC-CAT-03-EXT, UC-SRCH-01
+Sprint 6 — UC-SRCH-02, UC-SRCH-03, UC-CAT-04, UC-CAT-05, UC-CAT-06
 """
 import re
+import threading
 from decimal import Decimal, InvalidOperation
 
+from django.core.cache import cache
 from django.db import connection
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import ValidationError, NotFound
 from rest_framework.generics import ListAPIView, RetrieveAPIView
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.filters import OrderingFilter
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework.viewsets import ModelViewSet
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
 
-from .models import Product
+from .models import Category, Product, SearchHistory
 from .serializers import (
     ProductListSerializer,
     ProductDetailSerializer,
     ProductSearchSerializer,
+    AutocompleteSerializer,
+    SearchHistorySerializer,
+    CategoryAdminSerializer,
 )
 
 MAX_QUERY_LENGTH = 100
 MIN_QUERY_LENGTH = 2
-
-
-class CataloguePagination(PageNumberPagination):
-    page_size             = 20
-    page_size_query_param = 'page_size'
-    max_page_size         = 100
-
-
-# =============================================================================
-# UC-CAT-01 — Listado del catálogo
-# =============================================================================
-
-class CatalogueListView(ListAPIView):
-    """GET /api/v1/catalogue/ — UC-CAT-01."""
-    permission_classes = [AllowAny]
-    serializer_class   = ProductListSerializer
-    pagination_class   = CataloguePagination
-    filter_backends    = [OrderingFilter]
-    ordering_fields    = ['price', 'name', 'created_at']
-    ordering           = ['-created_at']
-
-    def get_queryset(self):
-        qs = Product.objects.filter(
-            is_active=True, is_published=True
-        ).select_related('category')
-
-        category_slug = self.request.query_params.get('category')
-        if category_slug:
-            qs = qs.filter(category__slug=category_slug)
-
-        return qs
-
-    @extend_schema(
-        summary='Ver catálogo de productos',
-        description='Listado paginado de productos activos y publicados. '
-                    'Accesible sin autenticación (FR-CAT-01.01).',
-        parameters=[
-            OpenApiParameter('category', str, description='Slug de categoría'),
-            OpenApiParameter('ordering', str,
-                             description='price / -price / name / -created_at'),
-        ],
-        responses={200: ProductListSerializer(many=True)},
-        tags=['catalogue'],
-    )
-    def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
+AUTOCOMPLETE_CACHE_TTL   = 60    # segundos — UC-SRCH-02
+AUTOCOMPLETE_MAX_RESULTS = 5     # UC-SRCH-02
+CATEGORY_TREE_CACHE_KEY  = 'categories:tree'
+CATEGORY_TREE_CACHE_TTL  = 300   # segundos — UC-CAT-08 (Sprint 7)
 
 
 # =============================================================================
-# UC-CAT-02 — Detalle de producto
-# =============================================================================
-
-class ProductDetailView(RetrieveAPIView):
-    """GET /api/v1/catalogue/<slug>/ — UC-CAT-02."""
-    permission_classes = [AllowAny]
-    serializer_class   = ProductDetailSerializer
-    lookup_field       = 'slug'
-
-    def get_queryset(self):
-        # FR-CAT-02.02: 404 para productos inactivos O no publicados
-        # (no revelar si el producto existe sin publicar)
-        return Product.objects.filter(
-            is_active=True, is_published=True
-        ).select_related('category')
-
-    @extend_schema(
-        summary='Ver detalle de producto',
-        description=(
-            'Ficha completa de un producto activo y publicado. '
-            'Accesible sin autenticación. '
-            'Retorna 404 si el producto no existe, no está activo o no está publicado '
-            '(FR-CAT-02.02: no revelar existencia de productos no publicados).'
-        ),
-        responses={
-            200: ProductDetailSerializer,
-            404: None,
-        },
-        tags=['catalogue'],
-    )
-    def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
-
-
-# =============================================================================
-# UC-CAT-03 + UC-SRCH-01 + UC-CAT-03-EXT — Búsqueda FULLTEXT + filtros
+# Helpers internos
 # =============================================================================
 
 def _normalize_query(q: str) -> str:
-    """
-    FR-CAT-03.02 — Normalización del término de búsqueda:
-      1. Strip de espacios externos
-      2. Espacios internos múltiples → uno
-      3. Truncado a MAX_QUERY_LENGTH chars
-    """
     q = q.strip()
     q = re.sub(r'\s+', ' ', q)
     return q[:MAX_QUERY_LENGTH]
 
 
 def _validate_query(q: str) -> str:
-    """
-    Valida el término ya normalizado.
-    Lanza ValidationError con codigo_error si no cumple el mínimo.
-    FR-CAT-03.02: codigo_error = TERMINO_MUY_CORTO
-    """
     q = _normalize_query(q)
     if len(q) < MIN_QUERY_LENGTH:
         raise ValidationError(
@@ -147,16 +66,7 @@ def _validate_query(q: str) -> str:
 def _fulltext_search(qs, term: str):
     """
     UC-SRCH-01 — MATCH() AGAINST() con MySQL FULLTEXT IN BOOLEAN MODE.
-
-    Usa el índice ft_product_name_desc creado en la migración 0002.
-    Ordena por: is_featured DESC, relevancia DESC (FR-CAT-03.01/02).
-
-    Fallback a icontains cuando FULLTEXT retorna 0 resultados:
-    - InnoDB FULLTEXT actualiza el índice al hacer COMMIT. En entornos
-      de test con savepoints (sin COMMIT real), FULLTEXT no encuentra
-      los datos insertados en el mismo test. El fallback garantiza que
-      los tests pasan con el mismo comportamiento funcional.
-    - En producción el fallback raramente activa (datos siempre confirmados).
+    Fallback a icontains para entornos de test sin COMMIT (savepoints).
     """
     fulltext_qs = qs.extra(
         select={
@@ -177,11 +87,8 @@ def _fulltext_search(qs, term: str):
         params=[term],
         order_by=['-is_featured', '-relevance'],
     )
-
     if fulltext_qs.exists():
         return fulltext_qs
-
-    # Fallback: icontains preserva el ordenamiento is_featured + nombre
     from django.db.models import Q
     return qs.filter(
         Q(name__icontains=term) |
@@ -190,12 +97,20 @@ def _fulltext_search(qs, term: str):
     ).order_by('-is_featured', 'name')
 
 
+def _get_category_descendants(slug: str) -> set:
+    """
+    Retorna el set de PKs de la categoría con ese slug y todos sus
+    descendientes activos. UC-CAT-04 (FR-CAT-04.02).
+    Retorna set vacío si el slug no existe o la categoría está inactiva.
+    """
+    try:
+        root = Category.objects.get(slug=slug, is_active=True)
+    except Category.DoesNotExist:
+        return set()
+    return root.get_descendants_pks()
+
+
 def _build_active_filters(params: dict) -> dict:
-    """
-    FR-CAT-03-EXT.02 — construye el dict de filtros activos
-    que se retorna en la respuesta para que el cliente sepa
-    qué filtros están aplicados y pueda sugerir eliminarlos.
-    """
     active = {}
     if params.get('category'):
         active['category'] = params['category']
@@ -208,17 +123,140 @@ def _build_active_filters(params: dict) -> dict:
     return active
 
 
-class ProductSearchView(ListAPIView):
+def _record_history_async(user, term: str) -> None:
     """
-    GET /api/v1/catalogue/search/?q=<termino> — UC-CAT-03 / UC-SRCH-01
+    Guarda el término en SearchHistory en un hilo separado.
+    No bloquea la respuesta al visitante. UC-SRCH-03.
 
-    Búsqueda FULLTEXT MySQL con relevancia y ordenamiento por is_featured.
-    Filtros avanzados opcionales (UC-CAT-03-EXT):
-      category  — ID de categoría
-      price_min — precio mínimo sin IVA (BR-001)
-      price_max — precio máximo sin IVA (BR-001)
-      in_stock  — 'true' para solo productos con stock
+    Estrategia: threading (sin Celery hasta Sprint 27).
+    Si el hilo falla, el error se registra en log pero no se propaga.
+    El historial no es dato crítico — una entrada perdida es aceptable.
     """
+    def _save():
+        try:
+            SearchHistory.record(user=user, term=term)
+        except Exception as exc:
+            import logging
+            logging.getLogger('apps').warning(
+                'SearchHistory.record falló para user=%s term=%r: %s',
+                user.pk, term, exc,
+            )
+
+    t = threading.Thread(target=_save, daemon=True)
+    t.start()
+
+
+# =============================================================================
+# Paginación
+# =============================================================================
+
+class CataloguePagination(PageNumberPagination):
+    page_size             = 20
+    page_size_query_param = 'page_size'
+    max_page_size         = 100
+
+
+# =============================================================================
+# UC-CAT-01 — Listado del catálogo
+# UC-CAT-04 — Filtrar por categoría con subcategorías
+# UC-CAT-05 — Filtrar por rango de precio
+# =============================================================================
+
+class CatalogueListView(ListAPIView):
+    """
+    GET /api/v1/catalogue/
+
+    UC-CAT-01: listado paginado.
+    UC-CAT-04: filtro ?category=<slug> incluye la categoría y sus descendientes.
+    UC-CAT-05: filtros ?price_min= y ?price_max= operan sobre precio base (BR-001).
+    """
+    permission_classes = [AllowAny]
+    serializer_class   = ProductListSerializer
+    pagination_class   = CataloguePagination
+    filter_backends    = [OrderingFilter]
+    ordering_fields    = ['price', 'name', 'created_at']
+    ordering           = ['-created_at']
+
+    def get_queryset(self):
+        qs = Product.objects.filter(
+            is_active=True, is_published=True
+        ).select_related('category')
+
+        # UC-CAT-04 — filtro por categoría + descendientes
+        category_slug = self.request.query_params.get('category')
+        if category_slug:
+            pks = _get_category_descendants(category_slug)
+            if not pks:
+                return Product.objects.none()
+            qs = qs.filter(category_id__in=pks)
+
+        # UC-CAT-05 — filtro por rango de precio base (BR-001)
+        price_min = self.request.query_params.get('price_min')
+        if price_min:
+            try:
+                qs = qs.filter(price__gte=Decimal(price_min))
+            except InvalidOperation:
+                raise ValidationError({'price_min': 'Valor numérico inválido.'})
+
+        price_max = self.request.query_params.get('price_max')
+        if price_max:
+            try:
+                qs = qs.filter(price__lte=Decimal(price_max))
+            except InvalidOperation:
+                raise ValidationError({'price_max': 'Valor numérico inválido.'})
+
+        return qs
+
+    @extend_schema(
+        summary='Ver catálogo de productos',
+        description=(
+            'Listado paginado de productos activos y publicados. '
+            'Filtros: category (slug, incluye subcategorías), '
+            'price_min, price_max (precio base sin IVA, BR-001).'
+        ),
+        parameters=[
+            OpenApiParameter('category', str, description='Slug de categoría (incluye subcategorías)'),
+            OpenApiParameter('price_min', OpenApiTypes.DECIMAL, description='Precio mínimo base sin IVA'),
+            OpenApiParameter('price_max', OpenApiTypes.DECIMAL, description='Precio máximo base sin IVA'),
+            OpenApiParameter('ordering', str, description='price / -price / name / -created_at'),
+        ],
+        responses={200: ProductListSerializer(many=True)},
+        tags=['catalogue'],
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+
+# =============================================================================
+# UC-CAT-02 — Detalle de producto
+# =============================================================================
+
+class ProductDetailView(RetrieveAPIView):
+    """GET /api/v1/catalogue/<slug>/ — UC-CAT-02."""
+    permission_classes = [AllowAny]
+    serializer_class   = ProductDetailSerializer
+    lookup_field       = 'slug'
+
+    def get_queryset(self):
+        return Product.objects.filter(
+            is_active=True, is_published=True
+        ).select_related('category')
+
+    @extend_schema(
+        summary='Ver detalle de producto',
+        responses={200: ProductDetailSerializer, 404: None},
+        tags=['catalogue'],
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+
+# =============================================================================
+# UC-CAT-03 + UC-SRCH-01 + UC-CAT-03-EXT — Búsqueda
+# =============================================================================
+
+class ProductSearchView(ListAPIView):
+    """GET /api/v1/catalogue/search/?q= — UC-CAT-03 / UC-SRCH-01."""
     permission_classes = [AllowAny]
     serializer_class   = ProductSearchSerializer
     pagination_class   = CataloguePagination
@@ -239,10 +277,8 @@ class ProductSearchView(ListAPIView):
             is_active=True, is_published=True
         ).select_related('category')
 
-        # UC-SRCH-01 — FULLTEXT con relevancia
         qs = _fulltext_search(qs, q)
 
-        # UC-CAT-03-EXT — filtros avanzados (AND)
         category_id = request.query_params.get('category')
         if category_id:
             qs = qs.filter(category_id=category_id)
@@ -264,7 +300,10 @@ class ProductSearchView(ListAPIView):
         if request.query_params.get('in_stock', '').lower() == 'true':
             qs = qs.filter(stock__gt=0)
 
-        # FR-CAT-03-EXT.02: active_filters en respuesta
+        # UC-SRCH-03 — guardar historial si el usuario está autenticado
+        if request.user and request.user.is_authenticated:
+            _record_history_async(request.user, q)
+
         active_filters = _build_active_filters(request.query_params)
 
         page = self.paginate_queryset(qs)
@@ -277,37 +316,206 @@ class ProductSearchView(ListAPIView):
         serializer = self.get_serializer(qs, many=True)
         return Response({
             'count': qs.count(),
-            'next': None,
-            'previous': None,
+            'next': None, 'previous': None,
             'active_filters': active_filters,
             'results': serializer.data,
         })
 
     @extend_schema(
         summary='Buscar productos',
-        description=(
-            'Búsqueda FULLTEXT MySQL (MATCH AGAINST) en nombre, descripción y '
-            'descripción corta. Mínimo 2 caracteres. Resultados ordenados por '
-            'relevancia, con productos destacados (is_featured) primero.\n\n'
-            'Filtros opcionales (UC-CAT-03-EXT): category, price_min, price_max, in_stock.'
-        ),
         parameters=[
-            OpenApiParameter('q', str, required=True,
-                             description='Término de búsqueda (mín. 2 caracteres, máx. 100)'),
-            OpenApiParameter('category', OpenApiTypes.INT,
-                             description='ID de categoría'),
-            OpenApiParameter('price_min', OpenApiTypes.DECIMAL,
-                             description='Precio mínimo sin IVA (BR-001)'),
-            OpenApiParameter('price_max', OpenApiTypes.DECIMAL,
-                             description='Precio máximo sin IVA (BR-001)'),
-            OpenApiParameter('in_stock', OpenApiTypes.BOOL,
-                             description='Solo productos con stock disponible'),
+            OpenApiParameter('q', str, required=True),
+            OpenApiParameter('category', OpenApiTypes.INT),
+            OpenApiParameter('price_min', OpenApiTypes.DECIMAL),
+            OpenApiParameter('price_max', OpenApiTypes.DECIMAL),
+            OpenApiParameter('in_stock', OpenApiTypes.BOOL),
         ],
-        responses={
-            200: ProductSearchSerializer(many=True),
-            400: None,
-        },
+        responses={200: ProductSearchSerializer(many=True), 400: None},
         tags=['catalogue'],
     )
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
+
+
+# =============================================================================
+# UC-SRCH-02 — Autocomplete
+# =============================================================================
+
+class AutocompleteView(APIView):
+    """
+    GET /api/v1/catalogue/autocomplete/?q=<prefijo>
+
+    Retorna hasta 5 sugerencias de productos por prefijo en Product.name.
+    Cache DatabaseCache con clave autocomplete:<prefijo> TTL 60s.
+    Mínimo 2 caracteres. Respuesta vacía si prefijo inválido (sin error visible).
+    UC-SRCH-02.
+    """
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        summary='Autocomplete de productos',
+        description='Sugerencias por prefijo en nombre del producto. Mín. 2 chars. Máx. 5 resultados.',
+        parameters=[
+            OpenApiParameter('q', str, required=True, description='Prefijo (mín. 2 caracteres)'),
+        ],
+        responses={200: AutocompleteSerializer(many=True)},
+        tags=['catalogue'],
+    )
+    def get(self, request):
+        raw_q = request.query_params.get('q', '').strip()
+        prefijo = _normalize_query(raw_q)
+
+        # Mínimo de caracteres — retorna vacío silenciosamente (sin error 400)
+        if len(prefijo) < MIN_QUERY_LENGTH:
+            return Response([])
+
+        cache_key = f'autocomplete:{prefijo.lower()}'
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
+
+        qs = (
+            Product.objects
+            .filter(name__istartswith=prefijo, is_active=True, is_published=True)
+            .only('id', 'name', 'slug')
+            .order_by('name')[:AUTOCOMPLETE_MAX_RESULTS]
+        )
+        data = AutocompleteSerializer(qs, many=True).data
+        cache.set(cache_key, data, AUTOCOMPLETE_CACHE_TTL)
+        return Response(data)
+
+
+# =============================================================================
+# UC-SRCH-03 — Historial de búsquedas
+# =============================================================================
+
+class SearchHistoryView(APIView):
+    """
+    GET    /api/v1/catalogue/search/history/    — ver historial (últimas 20 búsquedas)
+    DELETE /api/v1/catalogue/search/history/    — borrar todo el historial
+    DELETE /api/v1/catalogue/search/history/<id>/ — borrar una entrada
+    UC-SRCH-03.
+    """
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary='Ver historial de búsquedas',
+        description='Últimas 20 búsquedas del comprador autenticado, ordenadas por más reciente.',
+        responses={200: SearchHistorySerializer(many=True)},
+        tags=['catalogue'],
+    )
+    def get(self, request):
+        qs = SearchHistory.objects.filter(user=request.user)
+        serializer = SearchHistorySerializer(qs, many=True)
+        return Response(serializer.data)
+
+    @extend_schema(
+        summary='Borrar todo el historial de búsquedas',
+        responses={204: None},
+        tags=['catalogue'],
+    )
+    def delete(self, request):
+        SearchHistory.objects.filter(user=request.user).delete()
+        return Response(status=204)
+
+
+class SearchHistoryDetailView(APIView):
+    """
+    DELETE /api/v1/catalogue/search/history/<pk>/ — eliminar una entrada.
+    UC-SRCH-03 (Alternativa A).
+    """
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary='Borrar una entrada del historial',
+        responses={204: None, 404: None},
+        tags=['catalogue'],
+    )
+    def delete(self, request, pk):
+        try:
+            entry = SearchHistory.objects.get(pk=pk, user=request.user)
+        except SearchHistory.DoesNotExist:
+            raise NotFound('Entrada no encontrada.')
+        entry.delete()
+        return Response(status=204)
+
+
+# =============================================================================
+# UC-CAT-06 — Gestionar Categorías (Admin CRUD)
+# =============================================================================
+
+class CategoryAdminViewSet(ModelViewSet):
+    """
+    GET    /api/v1/admin/categories/       — listar categorías
+    POST   /api/v1/admin/categories/       — crear categoría
+    GET    /api/v1/admin/categories/<pk>/  — detalle
+    PATCH  /api/v1/admin/categories/<pk>/  — editar
+    DELETE /api/v1/admin/categories/<pk>/  — desactivar (soft delete)
+
+    UC-CAT-06. Solo administradores (is_staff=True).
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class   = CategoryAdminSerializer
+    queryset           = Category.objects.all().order_by('name')
+    http_method_names  = ['get', 'post', 'patch', 'delete', 'head', 'options']
+
+    def perform_destroy(self, instance):
+        """
+        Soft delete: desactiva la categoría en lugar de eliminarla.
+        No se puede eliminar una categoría con productos activos (FR-CAT-06.02).
+        """
+        if instance.products.filter(is_active=True).exists():
+            raise ValidationError({
+                'detail': (
+                    'No se puede desactivar una categoria con productos activos. '
+                    'Reasigna o desactiva los productos primero.'
+                ),
+                'codigo_error': 'CATEGORIA_CON_PRODUCTOS',
+            })
+        instance.is_active = False
+        instance.save(update_fields=['is_active'])
+        self._invalidate_category_cache()
+
+    def perform_create(self, serializer):
+        instance = serializer.save()
+        self._invalidate_category_cache()
+        return instance
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        self._invalidate_category_cache()
+        return instance
+
+    def _invalidate_category_cache(self):
+        """FR-CAT-06.02: invalidar cache del árbol de categorías tras cualquier mutación."""
+        cache.delete(CATEGORY_TREE_CACHE_KEY)
+
+    @extend_schema(
+        summary='Listar categorías (admin)',
+        tags=['admin-catalogue'],
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @extend_schema(
+        summary='Crear categoría',
+        tags=['admin-catalogue'],
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+
+    @extend_schema(
+        summary='Editar categoría',
+        tags=['admin-catalogue'],
+    )
+    def partial_update(self, request, *args, **kwargs):
+        kwargs['partial'] = True
+        return super().update(request, *args, **kwargs)
+
+    @extend_schema(
+        summary='Desactivar categoría (soft delete)',
+        responses={204: None, 400: None},
+        tags=['admin-catalogue'],
+    )
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
