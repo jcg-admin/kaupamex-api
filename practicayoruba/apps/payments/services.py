@@ -176,3 +176,181 @@ def get_installment_plans(order, gateway: BaseGateway = None) -> list:
         gateway = _get_default_gateway()
     amount = order.value.total
     return gateway.get_installment_plans(amount)
+
+
+def execute_refund(
+    payment,
+    amount=None,
+    reason: str = '',
+    initiated_by=None,
+    gateway: 'BaseGateway' = None,
+):
+    """
+    Ejecuta un reembolso sobre un Payment aprobado.
+    UC-PAY-07 (FR-PAY-07.02), UC-PAY-09.
+
+    :param payment: instancia Payment con status=APPROVED
+    :param amount: Decimal o None (None = reembolso total)
+    :param reason: motivo del reembolso
+    :param initiated_by: User que inicia el reembolso (admin o sistema)
+    :param gateway: BaseGateway opcional (None usa el gateway del pago)
+    :returns: Refund creado
+    :raises ValueError: si el pago no es reembolsable
+    :raises RuntimeError: si el gateway falla
+    """
+    from decimal import Decimal
+    from django.db import transaction
+    from .models import Payment as PaymentModel, Refund
+
+    if payment.status != PaymentModel.STATUS_APPROVED:
+        raise ValueError(
+            f'El pago no es reembolsable (estado: {payment.status}). '
+            f'Solo los pagos en estado APPROVED pueden reembolsarse.'
+        )
+
+    refund_amount = amount if amount is not None else payment.amount
+    if refund_amount <= Decimal('0') or refund_amount > payment.amount:
+        raise ValueError(
+            f'El monto de reembolso ({refund_amount}) debe ser mayor que 0 '
+            f'y no superar el monto del pago ({payment.amount}).'
+        )
+
+    if gateway is None:
+        gateway = _get_gateway(payment.gateway)
+
+    # Ejecutar el reembolso en el gateway
+    result = gateway.refund(
+        gateway_payment_id=payment.gateway_payment_id,
+        amount=refund_amount,
+    )
+
+    with transaction.atomic():
+        refund = Refund.objects.create(
+            payment=payment,
+            amount=refund_amount,
+            reason=reason,
+            gateway_refund_id=result.refund_id,
+            # H-REF-007: FR decía PROCESSED, el modelo tiene APPROVED
+            status=Refund.STATUS_APPROVED,
+        )
+
+        # Actualizar estado del Payment
+        from django.db.models import Sum as DjSum
+        total_refunded = (
+            Refund.objects.filter(
+                payment=payment, status=Refund.STATUS_APPROVED
+            ).aggregate(total=DjSum('amount'))['total'] or Decimal('0')
+        )
+
+        if total_refunded >= payment.amount:
+            payment.status = PaymentModel.STATUS_REFUNDED
+        else:
+            payment.status = PaymentModel.STATUS_PARTIALLY_REFUNDED
+        payment.save(update_fields=['status'])
+
+    import logging
+    logging.getLogger('apps').info(
+        'Reembolso ejecutado: payment=%s amount=%s refund_id=%s',
+        payment.pk, refund_amount, result.refund_id,
+    )
+    return refund
+
+
+def get_payment_status(order_number: str, user) -> dict:
+    """
+    Retorna el estado del pago más reciente de una orden.
+    UC-PAY-05 (FR-PAY-05.02).
+    RNF-SEC-003 (H-REF-006): 404 si la orden no existe O no pertenece al user.
+    """
+    from apps.orders.models import Order
+    from .models import Payment as PaymentModel
+
+    try:
+        order = Order.objects.get(order_number=order_number, user=user)
+    except Order.DoesNotExist:
+        return None  # Caller convierte en 404
+
+    payment = (
+        PaymentModel.objects.filter(order=order)
+        .order_by('-created_at')
+        .first()
+    )
+    return {
+        'order_number':  order.order_number,
+        'order_status':  order.status,
+        'payment_status': payment.status if payment else 'NO_PAYMENT',
+        'gateway':        payment.gateway if payment else None,
+        'amount':         str(payment.amount) if payment else None,
+        'created_at':     payment.created_at if payment else None,
+    }
+
+
+def get_payment_history(order_number: str, user) -> list | None:
+    """
+    Retorna todos los pagos de una orden ordenados por -created_at.
+    UC-PAY-06. RNF-SEC-003: 404 si la orden no existe O no pertenece al user.
+    """
+    from apps.orders.models import Order
+    from .models import Payment as PaymentModel
+
+    try:
+        order = Order.objects.get(order_number=order_number, user=user)
+    except Order.DoesNotExist:
+        return None
+
+    return list(
+        PaymentModel.objects.filter(order=order)
+        .order_by('-created_at')
+        .values(
+            'id', 'gateway', 'status', 'amount',
+            'installments', 'preference_id', 'gateway_payment_id',
+            'created_at', 'updated_at',
+        )
+    )
+
+
+def get_retry_eligibility(order_number: str, user) -> dict | None:
+    """
+    Verifica si una orden es elegible para reintentar el pago.
+    UC-PAY-08 (FR-PAY-08.01). H-REF-004: condición real = Order.status=PENDING.
+    """
+    from apps.orders.models import Order
+    from .models import Payment as PaymentModel
+
+    try:
+        order = Order.objects.get(order_number=order_number, user=user)
+    except Order.DoesNotExist:
+        return None
+
+    if order.status != Order.STATUS_PENDING:
+        return {
+            'eligible':      False,
+            'reason':        f'La orden está en estado {order.status}.',
+            'codigo_error':  'ORDEN_NO_REINTENTABLE',
+        }
+
+    failed_payment = (
+        PaymentModel.objects.filter(
+            order=order,
+            status__in=[PaymentModel.STATUS_FAILED, PaymentModel.STATUS_CANCELLED],
+        )
+        .order_by('-created_at')
+        .first()
+    )
+
+    return {
+        'eligible':          True,
+        'order_number':      order.order_number,
+        'order_status':      order.status,
+        'last_failed_gateway': failed_payment.gateway if failed_payment else None,
+        'available_gateways': _get_available_gateways(),
+    }
+
+
+def _get_available_gateways() -> list:
+    """Retorna los gateways activos configurados en PaymentGateway."""
+    from apps.settings_app.models import PaymentGateway
+    return list(
+        PaymentGateway.objects.filter(is_active=True)
+        .values_list('gateway', flat=True)
+    )

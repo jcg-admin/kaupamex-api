@@ -184,3 +184,35 @@ class MercadoPagoGateway(BaseGateway):
             amount=Decimal(str(data.get('transaction_amount', 0))),
             installments=data.get('installments', 1),
         )
+
+
+    def refund(self, gateway_payment_id: str, amount) -> 'RefundResult':
+        """
+        Ejecuta un reembolso en MercadoPago. UC-PAY-07 (FR-PAY-07.02).
+        H-REF-002: usa sdk.refund().create() del SDK oficial.
+
+        MercadoPago acepta reembolso total (sin monto) o parcial (con monto).
+        Retorna el refund_id de MP para guardarlo en Refund.gateway_refund_id.
+        """
+        from decimal import Decimal as Dec
+        from .base import RefundResult
+
+        sdk = _get_sdk()
+        payload = {}
+        if amount is not None:
+            payload['amount'] = float(amount)
+
+        response = sdk.refund().create(gateway_payment_id, payload)
+
+        if response.get('status') not in (200, 201):
+            body = response.get('response', {})
+            msg  = body.get('message', str(response))
+            logger.error('MercadoPago refund error: %s', msg)
+            raise RuntimeError(f'Error al reembolsar en MercadoPago: {msg}')
+
+        data = response['response']
+        return RefundResult(
+            refund_id=str(data.get('id', '')),
+            status='approved',
+            amount=Dec(str(data.get('amount', amount or 0))),
+        )
