@@ -163,10 +163,9 @@ class ShippingMethodViewSet(ModelViewSet):
         Soft delete: is_active=False.
         Sprint 14: verificar ordenes en estado PENDING/PROCESSING.
         """
-        from apps.orders.models import Order
-        active_orders = Order.objects.filter(
+        from apps.orders.proxy_models import ActiveOrder
+        active_orders = ActiveOrder.objects.filter(
             shipping_method=instance,
-            status__in=[Order.STATUS_PENDING, Order.STATUS_PROCESSING],
         ).count()
         if active_orders > 0:
             from rest_framework.exceptions import ValidationError

@@ -1,15 +1,26 @@
 """
 Models — apps.inventory
-Sprint 10 — UC-INV-01 (Ver Stock), UC-INV-02 (Decrementar Stock)
+Sprint 10 — UC-INV-01, UC-INV-02
+
+Refactorizado en sprint de infraestructura: herencia-modelos-django
+  StockMovement → TimeStampedModel con override de created_at (DEC-003:
+                  db_index=True se mantiene por volumen de la tabla)
+  StockAlert    → TimeStampedModel con override de created_at (idem)
 """
 from django.conf import settings
 from django.db import models
 
+from apps.core.models import TimeStampedModel
 
-class StockMovement(models.Model):
+
+class StockMovement(TimeStampedModel):
     """
     Registro de cada cambio de stock. UC-INV-02, UC-INV-03, UC-INV-04.
-    delta negativo = decremento (SALE), positivo = incremento (CANCELLATION/ADJUSTMENT).
+    delta negativo = decremento (SALE), positivo = incremento.
+
+    created_at overrideado con db_index=True (DEC-003): la tabla de
+    movimientos es de alto volumen y se filtra/ordena frecuentemente
+    por fecha de creación.
     """
     TYPE_SALE         = 'SALE'
     TYPE_CANCELLATION = 'CANCELLATION'
@@ -22,34 +33,27 @@ class StockMovement(models.Model):
         (TYPE_IMPORT,       'Importacion CSV'),
     ]
 
+    # DEC-003: override del campo base para mantener el db_index
+    # que ya existe en la BD (migración 0001).
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
     variant       = models.ForeignKey(
         'chartsize.ProductVariant', null=True, blank=True,
-        on_delete=models.SET_NULL,
-        related_name='stock_movements',
-        help_text='Variante afectada. Null si el producto no tiene variantes.',
+        on_delete=models.SET_NULL, related_name='stock_movements',
     )
     product       = models.ForeignKey(
         'catalogue.Product', on_delete=models.CASCADE,
         related_name='stock_movements',
     )
-    delta         = models.IntegerField(
-        verbose_name='Delta de stock',
-        help_text='Negativo para decrementos, positivo para incrementos.',
-    )
-    stock_after   = models.PositiveIntegerField(verbose_name='Stock tras el movimiento')
+    delta         = models.IntegerField()
+    stock_after   = models.PositiveIntegerField()
     movement_type = models.CharField(max_length=20, choices=TYPES, db_index=True)
-    reference     = models.CharField(
-        max_length=50, blank=True, default='',
-        verbose_name='Referencia',
-        help_text='Numero de orden o identificador externo.',
-    )
+    reference     = models.CharField(max_length=50, blank=True, default='')
     notes         = models.TextField(blank=True, default='')
     created_by    = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True,
-        on_delete=models.SET_NULL,
-        related_name='stock_movements',
+        on_delete=models.SET_NULL, related_name='stock_movements',
     )
-    created_at    = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
         db_table     = 'inventory_stock_movement'
@@ -60,25 +64,25 @@ class StockMovement(models.Model):
         return f'{self.movement_type} {self.delta:+d} → {self.stock_after} ({self.product.sku})'
 
 
-class StockAlert(models.Model):
+class StockAlert(TimeStampedModel):
     """
     Alerta de stock bajo o agotado. UC-INV-02 (FR-INV-02.02).
-    Se crea cuando el stock cae por debajo de SiteSettings.min_stock_threshold.
-    Deduplicacion: no se crea si ya existe una alerta sin resolver en las ultimas 24h.
+    created_at overrideado con db_index=True (DEC-003).
     """
-    variant       = models.ForeignKey(
+    # DEC-003: override del campo base para mantener el db_index
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    variant        = models.ForeignKey(
         'chartsize.ProductVariant', null=True, blank=True,
-        on_delete=models.SET_NULL,
-        related_name='stock_alerts',
+        on_delete=models.SET_NULL, related_name='stock_alerts',
     )
-    product       = models.ForeignKey(
+    product        = models.ForeignKey(
         'catalogue.Product', on_delete=models.CASCADE,
         related_name='stock_alerts',
     )
-    stock_at_alert = models.PositiveIntegerField(verbose_name='Stock al momento de la alerta')
+    stock_at_alert = models.PositiveIntegerField()
     resolved       = models.BooleanField(default=False, db_index=True)
     resolved_at    = models.DateTimeField(null=True, blank=True)
-    created_at     = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
         db_table     = 'inventory_stock_alert'

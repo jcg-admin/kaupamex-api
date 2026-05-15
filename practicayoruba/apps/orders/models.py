@@ -8,6 +8,8 @@ import uuid
 from decimal import Decimal
 from django.conf import settings
 from django.db import models
+
+from apps.core.models import TimeStampedModel
 from django.core.validators import MinValueValidator
 
 
@@ -16,7 +18,7 @@ def _generate_order_number() -> str:
     return f'PY-{str(uuid.uuid4())[:8].upper()}'
 
 
-class Order(models.Model):
+class Order(TimeStampedModel):
     STATUS_PENDING        = 'PENDING'
     STATUS_PROCESSING     = 'PROCESSING'
     STATUS_IN_PREPARATION = 'IN_PREPARATION'
@@ -52,8 +54,9 @@ class Order(models.Model):
     voucher_discount = models.DecimalField(
         max_digits=10, decimal_places=2, default=Decimal('0.00'))
     notes           = models.TextField(blank=True, default='')
-    created_at      = models.DateTimeField(auto_now_add=True, db_index=True)
-    updated_at      = models.DateTimeField(auto_now=True)
+    # DEC-003: override para mantener db_index en tabla de alto volumen
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    # updated_at viene de TimeStampedModel
 
     class Meta:
         db_table = 'orders_order'
@@ -69,7 +72,7 @@ class Order(models.Model):
         super().save(*args, **kwargs)
 
 
-class OrderItem(models.Model):
+class OrderItem(TimeStampedModel):
     """
     Snapshot inmutable de un item de la orden. BR-005.
     variant puede ser null si la variante fue eliminada del catálogo,
@@ -96,7 +99,7 @@ class OrderItem(models.Model):
         return f'{self.order.order_number} — {self.product_name}'
 
 
-class OrderValue(models.Model):
+class OrderValue(TimeStampedModel):
     """Snapshot financiero de la orden. BR-005. OneToOne con Order."""
     order         = models.OneToOneField(Order, on_delete=models.CASCADE,
                         related_name='value')
@@ -112,7 +115,7 @@ class OrderValue(models.Model):
         db_table = 'orders_order_value'
 
 
-class OrderAddress(models.Model):
+class OrderAddress(TimeStampedModel):
     """Snapshot de la dirección de envío al momento del checkout. BR-005."""
     order          = models.OneToOneField(Order, on_delete=models.CASCADE,
                          related_name='address')
