@@ -54,6 +54,13 @@ class Order(TimeStampedModel):
     voucher_discount = models.DecimalField(
         max_digits=10, decimal_places=2, default=Decimal('0.00'))
     notes               = models.TextField(blank=True, default='')
+    # UC-ORD-08 — cancelación admin (H-ADM-003)
+    admin_cancelled_by  = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='admin_cancelled_orders',
+        help_text='Admin que canceló la orden. Null si la cancela el comprador.',
+    )
     # UC-ORD-04 — campos de cancelación (H-ORD-001)
     cancellation_reason = models.TextField(
         blank=True, default='',
@@ -138,3 +145,38 @@ class OrderAddress(TimeStampedModel):
 
     class Meta:
         db_table = 'orders_order_address'
+
+
+class OrderStatusLog(TimeStampedModel):
+    """
+    Registro de auditoría de cambios de estado de órdenes.
+    UC-ORD-07 (FR-ORD-07.02) — H-ADM-001.
+
+    Cada transición de estado crea un registro inmutable con:
+    - Estado anterior y nuevo estado
+    - Administrador responsable (null si es el sistema)
+    - Timestamp (created_at de TimeStampedModel)
+    - Notas opcionales sobre el cambio
+    """
+    order           = models.ForeignKey(
+        Order, on_delete=models.CASCADE, related_name='status_logs',
+    )
+    previous_status = models.CharField(max_length=20)
+    new_status      = models.CharField(max_length=20)
+    changed_by      = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='order_status_changes',
+        help_text='Usuario que realizó el cambio. Null si fue el sistema.',
+    )
+    notes           = models.TextField(blank=True, default='')
+
+    class Meta:
+        db_table     = 'orders_status_log'
+        ordering     = ['-created_at']
+        verbose_name = 'Historial de estado de orden'
+
+    def __str__(self):
+        return (
+            f'{self.order.order_number}: '
+            f'{self.previous_status} → {self.new_status}'
+        )
