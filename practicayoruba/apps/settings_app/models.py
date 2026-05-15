@@ -78,3 +78,122 @@ class SiteSettings(models.Model):
     @classmethod
     def get_current(cls):
         return cls.get_or_create_defaults()
+
+
+# =============================================================================
+# Sprint 8 — UC-CFG-01 y UC-CFG-02
+# =============================================================================
+
+def _fernet_key() -> bytes:
+    """
+    Deriva una clave Fernet de 32 bytes desde SECRET_KEY.
+    Usa los primeros 32 bytes del SHA-256 de la clave, codificados en base64 URL-safe.
+    """
+    import hashlib, base64
+    from django.conf import settings
+    raw = hashlib.sha256(settings.SECRET_KEY.encode()).digest()
+    return base64.urlsafe_b64encode(raw)
+
+
+class PaymentGateway(models.Model):
+    """
+    Configuracion de un gateway de pago. UC-CFG-01.
+    Las credenciales se almacenan cifradas con Fernet (AES-128-CBC + HMAC).
+    Un registro por provider (unique). No se crea automaticamente —
+    el admin configura cada gateway desde el panel.
+    """
+    PROVIDER_MP     = 'mercado_pago'
+    PROVIDER_PAYPAL = 'paypal'
+    PROVIDERS = [
+        (PROVIDER_MP,     'Mercado Pago'),
+        (PROVIDER_PAYPAL, 'PayPal'),
+    ]
+
+    provider        = models.CharField(
+        max_length=20, unique=True, choices=PROVIDERS,
+        verbose_name='Proveedor de pago',
+    )
+    is_active       = models.BooleanField(default=False, db_index=True)
+    credentials_enc = models.TextField(blank=True, default='',
+                          verbose_name='Credenciales cifradas (Fernet JSON)')
+    verified_at     = models.DateTimeField(null=True, blank=True,
+                          verbose_name='Última verificación de conectividad')
+    updated_at      = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table   = 'settings_payment_gateway'
+        verbose_name = 'Gateway de pago'
+
+    def __str__(self):
+        return f'{self.get_provider_display()} ({"activo" if self.is_active else "inactivo"})'
+
+    def set_credentials(self, credentials: dict) -> None:
+        """Cifra y almacena el dict de credenciales."""
+        import json
+        from cryptography.fernet import Fernet
+        f = Fernet(_fernet_key())
+        raw = json.dumps(credentials).encode()
+        self.credentials_enc = f.encrypt(raw).decode()
+
+    def get_credentials(self) -> dict:
+        """Descifra y retorna el dict de credenciales. Retorna {} si no hay."""
+        if not self.credentials_enc:
+            return {}
+        import json
+        from cryptography.fernet import Fernet, InvalidToken
+        try:
+            f = Fernet(_fernet_key())
+            raw = f.decrypt(self.credentials_enc.encode())
+            return json.loads(raw)
+        except (InvalidToken, Exception):
+            return {}
+
+    def get_masked_credentials(self) -> dict:
+        """Retorna las credenciales con los valores enmascarados (últimos 4 chars)."""
+        creds = self.get_credentials()
+        masked = {}
+        for key, val in creds.items():
+            s = str(val)
+            masked[key] = '*' * max(0, len(s) - 4) + s[-4:] if len(s) > 4 else '****'
+        return masked
+
+
+class ShippingMethod(models.Model):
+    """
+    Metodo de envio configurable. UC-CFG-02.
+    El campo 'zones' es una lista de codigos ISO de estado/region.
+    Lista vacia = aplica a todo el territorio.
+    """
+    name           = models.CharField(max_length=100, verbose_name='Nombre')
+    description    = models.TextField(blank=True, default='',
+                         verbose_name='Descripcion')
+    cost           = models.DecimalField(
+        max_digits=8, decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name='Costo de envio',
+    )
+    estimated_days = models.PositiveSmallIntegerField(
+        verbose_name='Dias habiles estimados',
+        validators=[MinValueValidator(1)],
+    )
+    is_active      = models.BooleanField(default=True, db_index=True)
+    free_threshold = models.DecimalField(
+        max_digits=10, decimal_places=2,
+        null=True, blank=True,
+        verbose_name='Monto minimo para envio gratis',
+        help_text='Si el subtotal del carrito supera este monto, el costo es 0.',
+    )
+    zones          = models.JSONField(
+        default=list, blank=True,
+        verbose_name='Zonas geograficas',
+        help_text='Lista de codigos ISO de estado. Vacio = todo el territorio.',
+    )
+    updated_at     = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table     = 'settings_shipping_method'
+        ordering     = ['cost', 'name']
+        verbose_name = 'Metodo de envio'
+
+    def __str__(self):
+        return f'{self.name} — ${self.cost} ({self.estimated_days}d)'
