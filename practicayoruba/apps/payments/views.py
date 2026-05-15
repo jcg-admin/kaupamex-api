@@ -64,7 +64,8 @@ class InitiatePaymentView(APIView):
         s.is_valid(raise_exception=True)
 
         order_number = s.validated_data['order_number']
-        installments = s.validated_data['installments']
+        installments  = s.validated_data['installments']
+        gateway_type  = s.validated_data.get('gateway', 'MERCADOPAGO')
 
         # Buscar la orden — solo el dueño puede pagarla
         try:
@@ -94,6 +95,7 @@ class InitiatePaymentView(APIView):
                 order=order,
                 request=request,
                 installments=installments,
+                gateway_type=gateway_type,
             )
         except ValueError as exc:
             raise ValidationError({'detail': str(exc), 'codigo_error': 'GATEWAY_CONFIG_ERROR'})

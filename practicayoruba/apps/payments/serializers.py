@@ -19,14 +19,21 @@ class PaymentSerializer(serializers.ModelSerializer):
 
 
 class InitiatePaymentSerializer(serializers.Serializer):
-    """POST /api/v1/payments/initiate/ — UC-PAY-01."""
+    """POST /api/v1/payments/initiate/ — UC-PAY-01 (MP) y UC-PAY-02 (PayPal)."""
+    GATEWAY_CHOICES = [('MERCADOPAGO', 'MercadoPago'), ('PAYPAL', 'PayPal')]
+
     order_number  = serializers.CharField(
         max_length=20,
         help_text='Número de orden a pagar (PY-XXXXXXXX).',
     )
+    gateway       = serializers.ChoiceField(
+        choices=GATEWAY_CHOICES,
+        default='MERCADOPAGO',
+        help_text='Gateway de pago. MERCADOPAGO (por defecto, BR-006) o PAYPAL (BR-007).',
+    )
     installments  = serializers.IntegerField(
         default=1, min_value=1,
-        help_text='Número de cuotas MSI. 1 = contado (UC-PAY-01). >1 = cuotas (UC-PAY-01-EXT).',
+        help_text='Número de cuotas MSI. Solo aplica para MERCADOPAGO. 1 = contado.',
     )
 
 

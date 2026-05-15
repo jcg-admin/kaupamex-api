@@ -1,0 +1,342 @@
+"""
+Tests — Webhooks de confirmación de pago (UC-PAY-03, UC-PAY-04)
+
+Nombre descriptivo: describe el dominio testeado, no el número de sprint.
+Cubre verificación de firma, idempotencia, actualización de Order y Payment.
+"""
+import hashlib
+import hmac
+import json
+import pytest
+from decimal import Decimal
+from unittest.mock import patch, MagicMock
+
+pytestmark = pytest.mark.integration
+
+MP_WEBHOOK_URL = '/api/v1/payments/webhooks/mercadopago/'
+PP_WEBHOOK_URL = '/api/v1/payments/webhooks/paypal/'
+
+
+@pytest.fixture
+def cat_wh(db):
+    from apps.catalogue.models import Category
+    return Category.objects.create(name='Cat WH', slug='cat-wh', is_active=True)
+
+
+@pytest.fixture
+def orden_processing_mp(db, auth_user, cat_wh):
+    """Orden con Payment de MP en PENDING, lista para recibir webhook."""
+    from apps.catalogue.models import Product
+    from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
+    from apps.payments.models import Payment
+
+    prod = Product.objects.create(
+        name='Pulso Orula', slug='pulso-orula', sku='WH-PO-001',
+        description='', category=cat_wh,
+        price=Decimal('600.00'), stock=10,
+        is_active=True, is_published=True,
+    )
+    order = Order.objects.create(user=auth_user, status='PENDING')
+    OrderItem.objects.create(
+        order=order, product_name=prod.name, sku=prod.sku,
+        unit_price=prod.price, quantity=1, subtotal=prod.price,
+    )
+    OrderValue.objects.create(
+        order=order, subtotal=Decimal('600.00'), tax=Decimal('82.76'),
+        shipping_cost=Decimal('0.00'), discount=Decimal('0.00'), total=Decimal('600.00'),
+    )
+    OrderAddress.objects.create(
+        order=order, recipient_name='Test', street='St 1',
+        city='CDMX', state='CMX', zip_code='06600',
+    )
+    payment = Payment.objects.create(
+        order=order, gateway='MERCADOPAGO',
+        preference_id='PREF-WH-TEST-001',
+        gateway_payment_id='MP-PAY-999',
+        status='PENDING', amount=Decimal('600.00'),
+    )
+    return order, payment
+
+
+@pytest.fixture
+def mp_gateway_wh(db):
+    from apps.settings_app.models import PaymentGateway
+    gw = PaymentGateway(name='MP WH', gateway='MERCADOPAGO', is_active=True)
+    gw.set_credentials({'access_token': 'TEST-TOKEN', 'client_secret': 'TEST-SECRET'})
+    gw.save()
+    return gw
+
+
+def _make_mp_signature(client_secret: str, payment_id: str, request_id: str, ts: str) -> str:
+    manifest = f'id:{payment_id};request-id:{request_id};ts:{ts}'
+    return hmac.new(client_secret.encode(), manifest.encode(), hashlib.sha256).hexdigest()
+
+
+class TestMercadoPagoWebhook:
+
+    def test_webhook_pago_aprobado_actualiza_payment_y_orden(
+        self, api_client, orden_processing_mp, mp_gateway_wh, db
+    ):
+        """FR-PAY-03.02: pago aprobado → Payment=APPROVED, Order=PROCESSING."""
+        order, payment = orden_processing_mp
+        ts         = '1715000000'
+        request_id = 'REQ-TEST-123'
+        signature  = _make_mp_signature('TEST-SECRET', 'MP-PAY-999', request_id, ts)
+
+        with patch('apps.payments.gateways.mercadopago.mercadopago') as mock_mp:
+            sdk = MagicMock()
+            mock_mp.SDK.return_value = sdk
+            sdk.payment.return_value.get.return_value = {
+                'status': 200,
+                'response': {
+                    'id': 999, 'status': 'approved',
+                    'transaction_amount': 600.00, 'installments': 1,
+                },
+            }
+            res = api_client.post(
+                MP_WEBHOOK_URL,
+                data=json.dumps({'type': 'payment', 'data': {'id': 'MP-PAY-999'},
+                                 'external_reference': order.order_number}),
+                content_type='application/json',
+                HTTP_X_SIGNATURE=f'ts={ts};v1={signature}',
+                HTTP_X_REQUEST_ID=request_id,
+            )
+
+        assert res.status_code == 200
+        payment.refresh_from_db()
+        order.refresh_from_db()
+        assert payment.status == 'APPROVED'
+        assert order.status == 'PROCESSING'  # H-PAY-002: no PAYMENT_CONFIRMED
+
+    def test_webhook_firma_invalida_retorna_401(
+        self, api_client, orden_processing_mp, mp_gateway_wh, db
+    ):
+        """FR-PAY-03.01: firma inválida → 401, sin procesar."""
+        order, payment = orden_processing_mp
+        res = api_client.post(
+            MP_WEBHOOK_URL,
+            data=json.dumps({'type': 'payment', 'data': {'id': 'MP-PAY-999'}}),
+            content_type='application/json',
+            HTTP_X_SIGNATURE='ts=1234;v1=firma-invalida-falsa',
+            HTTP_X_REQUEST_ID='req-1',
+        )
+        assert res.status_code == 401
+        payment.refresh_from_db()
+        assert payment.status == 'PENDING'  # no cambió
+
+    def test_webhook_idempotente_pago_ya_aprobado(
+        self, api_client, orden_processing_mp, mp_gateway_wh, db
+    ):
+        """FR-PAY-03.02: mismo webhook dos veces — solo la primera cambia el estado."""
+        order, payment = orden_processing_mp
+        payment.status = 'APPROVED'
+        payment.save()
+        order.status = 'PROCESSING'
+        order.save()
+
+        ts        = '1715000001'
+        req_id    = 'REQ-DUP-456'
+        signature = _make_mp_signature('TEST-SECRET', 'MP-PAY-999', req_id, ts)
+
+        with patch('apps.payments.gateways.mercadopago.mercadopago') as mock_mp:
+            sdk = MagicMock()
+            mock_mp.SDK.return_value = sdk
+            sdk.payment.return_value.get.return_value = {
+                'status': 200,
+                'response': {'id': 999, 'status': 'approved', 'transaction_amount': 600.0},
+            }
+            res = api_client.post(
+                MP_WEBHOOK_URL,
+                data=json.dumps({'type': 'payment', 'data': {'id': 'MP-PAY-999'}}),
+                content_type='application/json',
+                HTTP_X_SIGNATURE=f'ts={ts};v1={signature}',
+                HTTP_X_REQUEST_ID=req_id,
+            )
+
+        assert res.status_code == 200
+        payment.refresh_from_db()
+        assert payment.status == 'APPROVED'  # sin cambio
+        order.refresh_from_db()
+        assert order.status == 'PROCESSING'  # sin cambio
+
+    def test_webhook_pago_rechazado_marca_payment_failed(
+        self, api_client, orden_processing_mp, mp_gateway_wh, db
+    ):
+        """FR-PAY-03.02: pago rechazado → Payment=FAILED, Order permanece en PENDING."""
+        order, payment = orden_processing_mp
+        ts     = '1715000002'
+        req_id = 'REQ-FAIL-789'
+        sig    = _make_mp_signature('TEST-SECRET', 'MP-PAY-999', req_id, ts)
+
+        with patch('apps.payments.gateways.mercadopago.mercadopago') as mock_mp:
+            sdk = MagicMock()
+            mock_mp.SDK.return_value = sdk
+            sdk.payment.return_value.get.return_value = {
+                'status': 200,
+                'response': {'id': 999, 'status': 'rejected', 'transaction_amount': 600.0},
+            }
+            res = api_client.post(
+                MP_WEBHOOK_URL,
+                data=json.dumps({'type': 'payment', 'data': {'id': 'MP-PAY-999'}}),
+                content_type='application/json',
+                HTTP_X_SIGNATURE=f'ts={ts};v1={sig}',
+                HTTP_X_REQUEST_ID=req_id,
+            )
+
+        assert res.status_code == 200
+        payment.refresh_from_db()
+        order.refresh_from_db()
+        assert payment.status == 'FAILED'
+        assert order.status == 'PENDING'  # sin procesar
+
+    def test_webhook_tipo_no_payment_ignorado(self, api_client, db):
+        """Eventos que no son 'payment' se ignoran con 200."""
+        res = api_client.post(
+            MP_WEBHOOK_URL,
+            data=json.dumps({'type': 'merchant_order', 'data': {'id': '1'}}),
+            content_type='application/json',
+            HTTP_X_SIGNATURE='ts=1;v1=x',
+        )
+        assert res.status_code in (200, 401)  # ignorado o firma inválida
+
+
+class TestPayPalWebhook:
+
+    def _pp_webhook_headers(self):
+        return {
+            'HTTP_PAYPAL_TRANSMISSION_ID':   'TRANS-TEST-001',
+            'HTTP_PAYPAL_TRANSMISSION_SIG':  'SIG-FAKE',
+            'HTTP_PAYPAL_TRANSMISSION_TIME': '2026-05-14T00:00:00Z',
+            'HTTP_PAYPAL_CERT_URL':          'https://api.sandbox.paypal.com/v1/notifications/certs/CERT-TEST',
+            'HTTP_PAYPAL_AUTH_ALGO':         'SHA256withRSA',
+        }
+
+    @pytest.fixture
+    def orden_paypal_wh(self, db, auth_user, cat_wh):
+        from apps.catalogue.models import Product
+        from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
+        from apps.payments.models import Payment
+
+        prod = Product.objects.create(
+            name='Azabache', slug='azabache-wh', sku='WH-AZ-001',
+            description='', category=cat_wh,
+            price=Decimal('400.00'), stock=5,
+            is_active=True, is_published=True,
+        )
+        order = Order.objects.create(user=auth_user, status='PENDING')
+        OrderItem.objects.create(
+            order=order, product_name=prod.name, sku=prod.sku,
+            unit_price=prod.price, quantity=1, subtotal=prod.price,
+        )
+        OrderValue.objects.create(
+            order=order, subtotal=Decimal('400.00'), tax=Decimal('55.17'),
+            shipping_cost=Decimal('0.00'), discount=Decimal('0.00'), total=Decimal('400.00'),
+        )
+        OrderAddress.objects.create(
+            order=order, recipient_name='T', street='S 1',
+            city='CDMX', state='CMX', zip_code='06600',
+        )
+        payment = Payment.objects.create(
+            order=order, gateway='PAYPAL',
+            preference_id='PP-ORDER-WH-001',
+            status='PENDING', amount=Decimal('400.00'),
+        )
+        return order, payment
+
+    def test_webhook_paypal_capture_completed(
+        self, api_client, orden_paypal_wh, db
+    ):
+        """UC-PAY-04: PAYMENT.CAPTURE.COMPLETED → Payment=APPROVED, Order=PROCESSING."""
+        order, payment = orden_paypal_wh
+
+        payload = {
+            'event_type': 'PAYMENT.CAPTURE.COMPLETED',
+            'resource': {
+                'id': 'PP-CAPTURE-001',
+                'status': 'COMPLETED',
+                'amount': {'currency_code': 'MXN', 'value': '400.00'},
+                'supplementary_data': {
+                    'related_ids': {'order_id': 'PP-ORDER-WH-001'}
+                },
+            },
+        }
+        payment.gateway_payment_id = 'PP-CAPTURE-001'
+        payment.save()
+
+        with patch(
+            'apps.payments.webhooks.PayPalGateway.verify_webhook_signature',
+            return_value=True
+        ):
+            res = api_client.post(
+                PP_WEBHOOK_URL,
+                data=json.dumps(payload),
+                content_type='application/json',
+                **self._pp_webhook_headers(),
+            )
+
+        assert res.status_code == 200
+        payment.refresh_from_db()
+        order.refresh_from_db()
+        assert payment.status == 'APPROVED'
+        assert order.status == 'PROCESSING'
+
+    def test_webhook_paypal_firma_invalida_retorna_401(
+        self, api_client, db
+    ):
+        with patch(
+            'apps.payments.webhooks.PayPalGateway.verify_webhook_signature',
+            return_value=False
+        ):
+            res = api_client.post(
+                PP_WEBHOOK_URL,
+                data=json.dumps({'event_type': 'PAYMENT.CAPTURE.COMPLETED', 'resource': {}}),
+                content_type='application/json',
+            )
+        assert res.status_code == 401
+
+    def test_webhook_paypal_evento_ignorado_retorna_200(
+        self, api_client, db
+    ):
+        """Eventos no relevantes se ignoran con 200."""
+        with patch(
+            'apps.payments.webhooks.PayPalGateway.verify_webhook_signature',
+            return_value=True
+        ):
+            res = api_client.post(
+                PP_WEBHOOK_URL,
+                data=json.dumps({'event_type': 'INVOICING.INVOICE.CREATED', 'resource': {}}),
+                content_type='application/json',
+            )
+        assert res.status_code == 200
+        assert res.json()['status'] == 'ignored'
+
+    def test_webhook_paypal_idempotente(
+        self, api_client, orden_paypal_wh, db
+    ):
+        """El mismo capture_id procesado dos veces no cambia el estado."""
+        order, payment = orden_paypal_wh
+        payment.status             = 'APPROVED'
+        payment.gateway_payment_id = 'PP-CAP-DUP'
+        payment.save()
+        order.status = 'PROCESSING'
+        order.save()
+
+        payload = {
+            'event_type': 'PAYMENT.CAPTURE.COMPLETED',
+            'resource': {
+                'id': 'PP-CAP-DUP',
+                'status': 'COMPLETED',
+                'amount': {'currency_code': 'MXN', 'value': '400.00'},
+            },
+        }
+        with patch(
+            'apps.payments.webhooks.PayPalGateway.verify_webhook_signature',
+            return_value=True
+        ):
+            api_client.post(PP_WEBHOOK_URL,
+                            data=json.dumps(payload), content_type='application/json')
+
+        payment.refresh_from_db()
+        order.refresh_from_db()
+        assert payment.status == 'APPROVED'   # sin cambio
+        assert order.status   == 'PROCESSING' # sin cambio
