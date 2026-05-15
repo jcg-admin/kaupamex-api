@@ -151,7 +151,7 @@ class ShippingMethodViewSet(ModelViewSet):
     DELETE /api/v1/admin/shipping-methods/<pk>/  — desactivar (soft delete)
 
     UC-CFG-02 (FR-CFG-02.02).
-    Proteccion de ordenes: TODO Sprint 12.
+    Proteccion de ordenes activas: TODO Sprint 18 (apps.orders).
     """
     permission_classes = [IsAuthenticated, IsAdminUser]
     serializer_class   = ShippingMethodSerializer
@@ -161,7 +161,7 @@ class ShippingMethodViewSet(ModelViewSet):
     def perform_destroy(self, instance):
         """
         Soft delete: is_active=False.
-        TODO Sprint 12: verificar ordenes activas antes de desactivar.
+        TODO Sprint 18: verificar ordenes activas antes de desactivar (apps.orders).
         """
         instance.is_active = False
         instance.save(update_fields=['is_active'])
