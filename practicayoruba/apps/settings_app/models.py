@@ -22,6 +22,11 @@ class SiteSettings(TimeStampedModel):
     """Configuración singleton del sitio. UC-CFG-03."""
     # — Impuestos y umbrales —
     iva_rate               = models.DecimalField(max_digits=5, decimal_places=4, default=Decimal('0.16'))
+    # UC-ORD-10 — timeout de pago para alertas del dashboard (H-ADM-004)
+    payment_timeout_minutes = models.PositiveIntegerField(
+        default=30,
+        help_text='Minutos hasta que una orden PENDING se cancela por timeout (UC-SYS-01).'
+    )
     min_stock_threshold    = models.PositiveIntegerField(default=5)
     free_shipping_threshold = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     # — Contacto (UC-CFG-05) —
