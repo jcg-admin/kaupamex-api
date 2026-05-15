@@ -290,3 +290,55 @@ class PayPalGateway(BaseGateway):
             return False
 
         return resp.json().get('verification_status') == 'SUCCESS'
+
+
+    def refund(self, gateway_payment_id: str, amount) -> 'RefundResult':
+        """
+        Ejecuta un reembolso en PayPal. UC-PAY-07 (FR-PAY-07.02).
+        H-REF-003: usa la API REST v2 directamente.
+
+        gateway_payment_id es el capture_id de PayPal.
+        Body vacío = reembolso total; con amount = reembolso parcial.
+        """
+        from decimal import Decimal as Dec
+        from .base import RefundResult
+
+        creds        = _get_credentials()
+        access_token = _get_access_token(creds)
+        env          = creds.get('env', 'sandbox')
+        base_url     = PAYPAL_API_BASE if env == 'live' else PAYPAL_API_SANDBOX
+
+        payload = {}
+        if amount is not None:
+            payload = {
+                'amount': {
+                    'currency_code': 'MXN',
+                    'value': str(amount),
+                }
+            }
+
+        resp = requests.post(
+            f'{base_url}/v2/payments/captures/{gateway_payment_id}/refund',
+            headers={
+                'Authorization': f'Bearer {access_token}',
+                'Content-Type':  'application/json',
+            },
+            json=payload,
+            timeout=20,
+        )
+
+        if resp.status_code not in (200, 201):
+            logger.error('PayPal refund error: %s', resp.text)
+            raise RuntimeError(f'Error al reembolsar en PayPal: {resp.text}')
+
+        data = resp.json()
+        refunded_amount = (
+            Dec(data.get('amount', {}).get('value', str(amount or 0)))
+            if data.get('amount')
+            else (amount or Dec('0'))
+        )
+        return RefundResult(
+            refund_id=data.get('id', ''),
+            status='approved',
+            amount=refunded_amount,
+        )

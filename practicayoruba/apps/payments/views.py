@@ -10,7 +10,7 @@ from drf_spectacular.utils import (
     extend_schema, OpenApiResponse, OpenApiParameter,
 )
 from rest_framework.exceptions import ValidationError
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -456,3 +456,242 @@ class ExpressCheckoutView(APIView):
 
         from apps.orders.serializers import OrderSerializer
         return Response(OrderSerializer(order).data, status=201)
+
+
+# =============================================================================
+# Sprint 17 — UC-PAY-05, UC-PAY-06, UC-PAY-07, UC-PAY-08, UC-PAY-09
+# =============================================================================
+
+class PaymentStatusView(APIView):
+    """
+    GET /api/v1/payments/<order_number>/status/
+    Retorna el estado del pago más reciente de la orden.
+    UC-PAY-05 (FR-PAY-05.02).
+    RNF-SEC-003 (H-REF-006): 404 si no existe O pertenece a otro user.
+    """
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary='Estado del pago de una orden',
+        description=(
+            'Retorna el estado del pago más reciente. '
+            'Si no hay ningún pago, retorna payment_status=NO_PAYMENT. '
+            'RNF-SEC-003: siempre 404 si la orden no existe o no es del usuario '
+            '(nunca 403 para evitar enumeración de recursos).'
+        ),
+        responses={
+            200: OpenApiResponse(description='Estado del pago.'),
+            404: OpenApiResponse(description='Orden no encontrada.'),
+        },
+        tags=['payments'],
+    )
+    def get(self, request, order_number):
+        from .services import get_payment_status
+        from .serializers import PaymentStatusSerializer as PSS
+
+        result = get_payment_status(order_number, request.user)
+        if result is None:
+            return Response(
+                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDEN_NO_ENCONTRADA'},
+                status=404,
+            )
+        return Response(PSS(result).data)
+
+
+class PaymentHistoryView(APIView):
+    """
+    GET /api/v1/payments/<order_number>/history/
+    Retorna todos los pagos de una orden ordenados por -created_at.
+    UC-PAY-06. RNF-SEC-003.
+    """
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary='Historial de pagos de una orden',
+        description=(
+            'Lista todos los intentos de pago de la orden. '
+            'Incluye pagos fallidos y aprobados. '
+            'RNF-SEC-003: 404 si la orden no existe o no es del usuario.'
+        ),
+        responses={
+            200: PaymentSerializer(many=True),
+            404: OpenApiResponse(description='Orden no encontrada.'),
+        },
+        tags=['payments'],
+    )
+    def get(self, request, order_number):
+        from .services import get_payment_history
+
+        history = get_payment_history(order_number, request.user)
+        if history is None:
+            return Response(
+                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDEN_NO_ENCONTRADA'},
+                status=404,
+            )
+        return Response(history)
+
+
+class RefundView(APIView):
+    """
+    POST /api/v1/payments/<order_number>/refund/
+    Solicita un reembolso sobre el pago aprobado de la orden.
+    UC-PAY-07 (FR-PAY-07.02).
+    El comprador puede solicitar el reembolso si la orden fue cancelada.
+    RNF-SEC-003: 404 si la orden no existe o no es del usuario.
+    """
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary='Solicitar reembolso',
+        description=(
+            'Ejecuta un reembolso total o parcial sobre el pago aprobado. '
+            'amount=null → reembolso total. '
+            'amount<total → reembolso parcial (Payment.status=PARTIALLY_REFUNDED). '
+            'H-REF-007: Refund.status será APPROVED (no PROCESSED como en la FR).'
+        ),
+        request='RefundRequestSerializer',
+        responses={
+            201: 'RefundSerializer',
+            400: OpenApiResponse(description='Pago no reembolsable.'),
+            404: OpenApiResponse(description='Orden o pago no encontrado.'),
+            503: OpenApiResponse(description='Gateway no disponible.'),
+        },
+        tags=['payments'],
+    )
+    def post(self, request, order_number):
+        from apps.orders.models import Order
+        from .models import Payment as PaymentModel
+        from .services import execute_refund
+        from .serializers import RefundRequestSerializer as RRS, RefundSerializer
+
+        # RNF-SEC-003: usar filter+first, nunca get con user separado
+        order = Order.objects.filter(
+            order_number=order_number, user=request.user
+        ).first()
+        if not order:
+            return Response(
+                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDEN_NO_ENCONTRADA'},
+                status=404,
+            )
+
+        payment = (
+            PaymentModel.objects.filter(order=order, status=PaymentModel.STATUS_APPROVED)
+            .order_by('-created_at').first()
+        )
+        if not payment:
+            return Response(
+                {'detail': 'No hay pago aprobado en esta orden.',
+                 'codigo_error': 'PAGO_NO_REEMBOLSABLE'},
+                status=400,
+            )
+
+        s = RRS(data=request.data)
+        s.is_valid(raise_exception=True)
+
+        try:
+            refund = execute_refund(
+                payment=payment,
+                amount=s.validated_data.get('amount'),
+                reason=s.validated_data.get('reason', ''),
+            )
+        except ValueError as exc:
+            return Response({'detail': str(exc), 'codigo_error': 'PAGO_NO_REEMBOLSABLE'},
+                            status=400)
+        except RuntimeError as exc:
+            return Response({'detail': str(exc), 'codigo_error': 'GATEWAY_NO_DISPONIBLE'},
+                            status=503)
+
+        return Response(RefundSerializer(refund).data, status=201)
+
+
+class RetryEligibilityView(APIView):
+    """
+    GET /api/v1/payments/<order_number>/retry-eligibility/
+    Verifica si la orden es elegible para reintentar el pago.
+    UC-PAY-08 (FR-PAY-08.01). H-REF-004: condición real = Order.status=PENDING.
+    """
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary='Elegibilidad para reintentar pago',
+        description=(
+            'Verifica si la orden tiene un pago fallido y sigue en PENDING. '
+            'Si eligible=true, el comprador puede usar POST /payments/initiate/ '
+            'para crear un nuevo intento de pago. '
+            'H-REF-004: la FR dice PENDING_PAYMENT — el estado real es PENDING.'
+        ),
+        responses={
+            200: 'RetryEligibilitySerializer',
+            404: OpenApiResponse(description='Orden no encontrada.'),
+        },
+        tags=['payments'],
+    )
+    def get(self, request, order_number):
+        from .services import get_retry_eligibility
+        from .serializers import RetryEligibilitySerializer
+
+        result = get_retry_eligibility(order_number, request.user)
+        if result is None:
+            return Response(
+                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDEN_NO_ENCONTRADA'},
+                status=404,
+            )
+        # Rellenar campos opcionales para el serializer
+        result.setdefault('order_number', order_number)
+        result.setdefault('order_status', None)
+        result.setdefault('last_failed_gateway', None)
+        result.setdefault('available_gateways', [])
+        result.setdefault('reason', None)
+        result.setdefault('codigo_error', None)
+        return Response(RetryEligibilitySerializer(result).data)
+
+
+class AdminRefundView(APIView):
+    """
+    POST /api/v1/admin/payments/<payment_id>/refund/
+    El admin inicia manualmente un reembolso sobre un pago aprobado.
+    UC-PAY-09.
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    @extend_schema(
+        summary='Reembolso manual (admin)',
+        description=(
+            'El admin puede reembolsar cualquier Payment aprobado '
+            'independientemente del estado de la orden. '
+            'Reutiliza execute_refund() del servicio — mismo código que UC-PAY-07.'
+        ),
+        request='RefundRequestSerializer',
+        responses={
+            201: 'RefundSerializer',
+            400: OpenApiResponse(description='Pago no reembolsable.'),
+            404: OpenApiResponse(description='Payment no encontrado.'),
+            503: OpenApiResponse(description='Gateway no disponible.'),
+        },
+        tags=['payments-admin'],
+    )
+    def post(self, request, payment_id):
+        from .models import Payment as PaymentModel
+        from .services import execute_refund
+        from .serializers import RefundRequestSerializer, RefundSerializer
+
+        payment = get_object_or_404(PaymentModel, pk=payment_id)
+
+        s = RefundRequestSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+
+        try:
+            refund = execute_refund(
+                payment=payment,
+                amount=s.validated_data.get('amount'),
+                reason=s.validated_data.get('reason', ''),
+                initiated_by=request.user,
+            )
+        except ValueError as exc:
+            return Response({'detail': str(exc), 'codigo_error': 'PAGO_NO_REEMBOLSABLE'},
+                            status=400)
+        except RuntimeError as exc:
+            return Response({'detail': str(exc), 'codigo_error': 'GATEWAY_NO_DISPONIBLE'},
+                            status=503)
+
+        return Response(RefundSerializer(refund).data, status=201)

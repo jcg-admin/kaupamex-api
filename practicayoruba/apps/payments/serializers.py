@@ -90,3 +90,49 @@ class ExpressCheckoutSerializer(serializers.Serializer):
         default=1, min_value=1,
         help_text='Número de cuotas. 1 = contado.',
     )
+
+
+class PaymentStatusSerializer(serializers.Serializer):
+    """Respuesta de GET /api/v1/payments/<order>/status/ — UC-PAY-05."""
+    order_number    = serializers.CharField()
+    order_status    = serializers.CharField()
+    payment_status  = serializers.CharField()
+    gateway         = serializers.CharField(allow_null=True)
+    amount          = serializers.DecimalField(
+        max_digits=10, decimal_places=2, allow_null=True)
+    created_at      = serializers.DateTimeField(allow_null=True)
+
+
+class RefundRequestSerializer(serializers.Serializer):
+    """POST /api/v1/payments/<order>/refund/ — UC-PAY-07."""
+    amount = serializers.DecimalField(
+        max_digits=10, decimal_places=2,
+        required=False, allow_null=True,
+        help_text='Monto a reembolsar. Null o ausente = reembolso total.',
+    )
+    reason = serializers.CharField(
+        required=False, default='', allow_blank=True,
+        help_text='Motivo del reembolso.',
+    )
+
+
+class RefundSerializer(serializers.ModelSerializer):
+    payment_id = serializers.IntegerField(source='payment.pk', read_only=True)
+
+    class Meta:
+        model  = Refund
+        fields = ['id', 'payment_id', 'amount', 'reason',
+                  'gateway_refund_id', 'status', 'created_at']
+        read_only_fields = fields
+
+
+class RetryEligibilitySerializer(serializers.Serializer):
+    """Respuesta de GET /api/v1/payments/<order>/retry-eligibility/ — UC-PAY-08."""
+    eligible             = serializers.BooleanField()
+    order_number         = serializers.CharField(allow_null=True)
+    order_status         = serializers.CharField(allow_null=True)
+    last_failed_gateway  = serializers.CharField(allow_null=True)
+    available_gateways   = serializers.ListField(
+        child=serializers.CharField(), allow_null=True)
+    reason               = serializers.CharField(allow_null=True)
+    codigo_error         = serializers.CharField(allow_null=True)

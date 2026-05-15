@@ -34,11 +34,33 @@ class PaymentVerification:
     installments:       int = 1
 
 
+@dataclass
+class RefundResult:
+    """Resultado de ejecutar un reembolso en el gateway."""
+    refund_id: str
+    status:    str    # 'approved' | 'failed'
+    amount:    Decimal
+
+
 class BaseGateway(ABC):
     """
     Interfaz abstracta del Strategy Pattern para gateways de pago.
     Todas las implementaciones deben respetar esta firma.
     """
+
+    @abstractmethod
+    def refund(
+        self,
+        gateway_payment_id: str,
+        amount: Decimal,
+    ) -> RefundResult:
+        """
+        Ejecuta un reembolso en el gateway.
+
+        :param gateway_payment_id: ID del pago en el gateway a reembolsar
+        :param amount: importe a reembolsar (total o parcial)
+        :returns: RefundResult con refund_id, status y amount
+        """
 
     @abstractmethod
     def create_preference(
