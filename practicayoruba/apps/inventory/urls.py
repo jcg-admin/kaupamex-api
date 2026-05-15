@@ -3,6 +3,7 @@ from django.urls import path
 from .views import (
     InventoryDashboardView, StockAdjustView,
     VariantStockAdjustView, StockAlertListView,
+    ProductImportView, ProductImportStatusView,
 )
 
 app_name = 'admin_inventory'
@@ -16,4 +17,8 @@ urlpatterns = [
          StockAdjustView.as_view(), name='product-adjust'),
     path('inventory/variants/<int:variant_pk>/adjust/',
          VariantStockAdjustView.as_view(), name='variant-adjust'),
+    path('inventory/import/',
+         ProductImportView.as_view(), name='product-import'),
+    path('inventory/import/<str:job_id>/',
+         ProductImportStatusView.as_view(), name='product-import-status'),
 ]
