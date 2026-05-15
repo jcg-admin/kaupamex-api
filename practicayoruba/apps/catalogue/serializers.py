@@ -95,12 +95,16 @@ class ProductListSerializer(serializers.ModelSerializer):
             'id', 'name', 'slug', 'sku',
             'category_name',
             'base_price', 'price_with_tax',
-            'stock', 'is_active', 'is_published', 'is_featured',
+            'stock', 'is_active', 'is_published',
         ]
 
     def get_price_with_tax(self, obj):
         iva_rate = SiteSettings.get_current().iva_rate
         return round(float(obj.price) * (1 + float(iva_rate)), 2)
+
+    def get_availability(self, obj) -> str:
+        """UC-CAT-01: IN_STOCK si stock > 0, OUT_OF_STOCK si no."""
+        return 'IN_STOCK' if obj.stock > 0 else 'OUT_OF_STOCK'
 
 
 class RelatedProductSerializer(serializers.ModelSerializer):
@@ -126,7 +130,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         source='price', max_digits=10, decimal_places=2, read_only=True
     )
     price_with_tax    = serializers.SerializerMethodField()
-    availability      = serializers.CharField(read_only=True)
+    availability      = serializers.SerializerMethodField()
     images            = serializers.SerializerMethodField()
     discount          = serializers.SerializerMethodField()
     related_products  = serializers.SerializerMethodField()
@@ -143,13 +147,17 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             'images',
             'related_products',
             'variants',
-            'is_active', 'is_published', 'is_featured',
+            'is_active', 'is_published',
             'created_at', 'updated_at',
         ]
 
     def get_price_with_tax(self, obj):
         iva_rate = SiteSettings.get_current().iva_rate
         return round(float(obj.price) * (1 + float(iva_rate)), 2)
+
+    def get_availability(self, obj) -> str:
+        """UC-CAT-01 / FR-CAT-01.02: IN_STOCK si stock > 0, OUT_OF_STOCK si no."""
+        return 'IN_STOCK' if obj.stock > 0 else 'OUT_OF_STOCK'
 
     def get_images(self, obj):
         # Sprint 8: sustituir por ProductImageSerializer(obj.images.all(), many=True).data
@@ -206,7 +214,7 @@ class ProductSearchSerializer(serializers.ModelSerializer):
             'short_description',
             'category_name',
             'base_price', 'price_with_tax',
-            'stock', 'is_featured',
+            'stock',
             'highlighted_name',
         ]
 
@@ -300,9 +308,11 @@ class ProductAdminSerializer(serializers.ModelSerializer):
     """
     base_price     = serializers.DecimalField(
         source='price', max_digits=10, decimal_places=2,
+        min_value=0,
+        help_text='Precio sin IVA. Debe ser ≥ 0 (BR-001).',
     )
     price_with_tax = serializers.SerializerMethodField(read_only=True)
-    availability   = serializers.CharField(read_only=True)
+    availability   = serializers.SerializerMethodField()
     category_id    = serializers.PrimaryKeyRelatedField(
         queryset=Category.objects.filter(is_active=True),
         source='category',
@@ -317,11 +327,16 @@ class ProductAdminSerializer(serializers.ModelSerializer):
             'category_id',
             'base_price', 'price_with_tax',
             'stock', 'availability', 'images',
-            'is_published', 'is_featured', 'is_active',
+            'is_published', 'is_active',
             'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
         extra_kwargs     = {'slug': {'required': False, 'allow_blank': True}}
+
+
+    def get_availability(self, obj) -> str:
+        """UC-CAT-01: IN_STOCK si stock > 0, OUT_OF_STOCK si no."""
+        return 'IN_STOCK' if obj.stock > 0 else 'OUT_OF_STOCK'
 
     def get_price_with_tax(self, obj):
         iva_rate = SiteSettings.get_current().iva_rate

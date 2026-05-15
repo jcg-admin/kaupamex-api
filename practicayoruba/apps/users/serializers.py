@@ -87,7 +87,9 @@ class AddressSerializer(serializers.ModelSerializer):
         user = request.user if request else None
         if user and not self.instance:
             from apps.settings_app.models import SiteSettings
-            max_addr = SiteSettings.get_current().max_addresses_per_user
+            # max_addresses_per_user fue eliminado de SiteSettings (usar Address.MAX_PER_USER)
+            from apps.users.models import Address
+            max_addr = Address.MAX_PER_USER
             count = Address.objects.filter(user=user).count()
             if count >= max_addr:
                 raise serializers.ValidationError(
@@ -160,7 +162,8 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
             return value
         # Validar tamaño contra SiteSettings (P3-04)
         from apps.settings_app.models import SiteSettings
-        max_mb = SiteSettings.get_current().avatar_max_size_mb
+        # avatar_max_size_mb fue eliminado de SiteSettings — constante 5MB
+        max_mb = 5
         if value.size > max_mb * 1024 * 1024:
             raise serializers.ValidationError(
                 f"El avatar no puede superar {max_mb} MB."

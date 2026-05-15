@@ -32,9 +32,9 @@ def prod_pp(db, cat_pp):
 
 
 @pytest.fixture
-def orden_paypal(db, auth_user, prod_pp):
+def orden_paypal(db, user, prod_pp):
     from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
-    order = Order.objects.create(user=auth_user, status='PENDING')
+    order = Order.objects.create(user=user, status='PENDING')
     OrderItem.objects.create(
         order=order, product_name=prod_pp.name,
         sku=prod_pp.sku, unit_price=prod_pp.price,

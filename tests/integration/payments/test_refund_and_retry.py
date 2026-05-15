@@ -117,10 +117,10 @@ def mock_mp_sdk_full():
 class TestReembolsoComprador:
 
     def test_reembolso_total_exitoso(
-        self, auth_client, auth_user, prod_ref, mp_gateway_ref, mock_mp_refund, db
+        self, auth_client, user, prod_ref, mp_gateway_ref, mock_mp_refund, db
     ):
         """FR-PAY-07.02: reembolso total → Payment=REFUNDED, Refund creado."""
-        order, payment = _make_order_with_payment(auth_user, prod_ref)
+        order, payment = _make_order_with_payment(user, prod_ref)
 
         res = auth_client.post(REFUND_URL(order.order_number), {}, format='json')
         assert res.status_code == 201, res.json()
@@ -132,10 +132,10 @@ class TestReembolsoComprador:
         assert payment.status == 'REFUNDED'
 
     def test_reembolso_parcial_actualiza_estado_correctly(
-        self, auth_client, auth_user, prod_ref, mp_gateway_ref, db
+        self, auth_client, user, prod_ref, mp_gateway_ref, db
     ):
         """Reembolso parcial → Payment=PARTIALLY_REFUNDED."""
-        order, payment = _make_order_with_payment(auth_user, prod_ref)
+        order, payment = _make_order_with_payment(user, prod_ref)
 
         monto_parcial = Decimal('1200.00')
         with patch('apps.payments.gateways.mercadopago.mercadopago') as mock_mp:
@@ -157,11 +157,11 @@ class TestReembolsoComprador:
         assert Decimal(res.json()['amount']) == monto_parcial
 
     def test_pago_no_aprobado_no_es_reembolsable(
-        self, auth_client, auth_user, prod_ref, mp_gateway_ref, db
+        self, auth_client, user, prod_ref, mp_gateway_ref, db
     ):
         """FR-PAY-07.02: solo pagos APPROVED son reembolsables."""
         order, _ = _make_order_with_payment(
-            auth_user, prod_ref, status='FAILED'
+            user, prod_ref, status='FAILED'
         )
         res = auth_client.post(REFUND_URL(order.order_number), {}, format='json')
         assert res.status_code == 400
@@ -182,10 +182,10 @@ class TestReembolsoComprador:
         assert res.json()['codigo_error'] == 'ORDEN_NO_ENCONTRADA'
 
     def test_gateway_falla_retorna_503(
-        self, auth_client, auth_user, prod_ref, mp_gateway_ref, db
+        self, auth_client, user, prod_ref, mp_gateway_ref, db
     ):
         """FR-PAY-07.02 Escenario 2: gateway no disponible → 503."""
-        order, _ = _make_order_with_payment(auth_user, prod_ref)
+        order, _ = _make_order_with_payment(user, prod_ref)
         with patch('apps.payments.gateways.mercadopago.mercadopago') as mock_mp:
             sdk = MagicMock()
             mock_mp.SDK.return_value = sdk
@@ -197,11 +197,11 @@ class TestReembolsoComprador:
         assert res.status_code == 503
 
     def test_reembolso_registra_gateway_refund_id(
-        self, auth_client, auth_user, prod_ref, mp_gateway_ref, mock_mp_refund, db
+        self, auth_client, user, prod_ref, mp_gateway_ref, mock_mp_refund, db
     ):
         """El Refund.gateway_refund_id se guarda para trazabilidad."""
         from apps.payments.models import Refund
-        order, _ = _make_order_with_payment(auth_user, prod_ref)
+        order, _ = _make_order_with_payment(user, prod_ref)
         auth_client.post(REFUND_URL(order.order_number), {}, format='json')
         refund = Refund.objects.filter(payment__order=order).first()
         assert refund is not None
@@ -215,10 +215,10 @@ class TestReembolsoComprador:
 class TestReembolsoAdmin:
 
     def test_admin_puede_reembolsar_cualquier_pago(
-        self, admin_client, auth_user, prod_ref, mp_gateway_ref, mock_mp_refund, db
+        self, admin_client, user, prod_ref, mp_gateway_ref, mock_mp_refund, db
     ):
         """UC-PAY-09: admin reembolsa sin restricción de propietario."""
-        _, payment = _make_order_with_payment(auth_user, prod_ref)
+        _, payment = _make_order_with_payment(user, prod_ref)
         res = admin_client.post(
             ADMIN_REFUND_URL(payment.pk),
             {'reason': 'Devolución manual por admin'},
@@ -228,18 +228,18 @@ class TestReembolsoAdmin:
         assert res.json()['status'] == 'APPROVED'
 
     def test_usuario_normal_no_puede_usar_endpoint_admin(
-        self, auth_client, auth_user, prod_ref, db
+        self, auth_client, user, prod_ref, db
     ):
         """UC-PAY-09: solo admins pueden usar /admin/payments/."""
-        _, payment = _make_order_with_payment(auth_user, prod_ref)
+        _, payment = _make_order_with_payment(user, prod_ref)
         res = auth_client.post(ADMIN_REFUND_URL(payment.pk), {}, format='json')
         assert res.status_code == 403
 
     def test_admin_reembolso_con_motivo_guardado(
-        self, admin_client, auth_user, prod_ref, mp_gateway_ref, mock_mp_refund, db
+        self, admin_client, user, prod_ref, mp_gateway_ref, mock_mp_refund, db
     ):
         from apps.payments.models import Refund
-        _, payment = _make_order_with_payment(auth_user, prod_ref)
+        _, payment = _make_order_with_payment(user, prod_ref)
         motivo = 'Fallo en la entrega reportado por logística'
         admin_client.post(
             ADMIN_REFUND_URL(payment.pk),
@@ -250,9 +250,9 @@ class TestReembolsoAdmin:
         assert refund.reason == motivo
 
     def test_admin_reembolso_pago_no_aprobado_retorna_400(
-        self, admin_client, auth_user, prod_ref, mp_gateway_ref, db
+        self, admin_client, user, prod_ref, mp_gateway_ref, db
     ):
-        _, payment = _make_order_with_payment(auth_user, prod_ref, status='FAILED')
+        _, payment = _make_order_with_payment(user, prod_ref, status='FAILED')
         res = admin_client.post(ADMIN_REFUND_URL(payment.pk), {}, format='json')
         assert res.status_code == 400
         assert res.json()['codigo_error'] == 'PAGO_NO_REEMBOLSABLE'
@@ -265,12 +265,12 @@ class TestReembolsoAdmin:
 class TestReintentoPago:
 
     def test_reintento_crea_nuevo_payment_conservando_historial(
-        self, auth_client, auth_user, prod_ref, mp_gateway_ref, mock_mp_sdk_full, db
+        self, auth_client, user, prod_ref, mp_gateway_ref, mock_mp_sdk_full, db
     ):
         """FR-PAY-08.01: el pago fallido queda en historial, se crea uno nuevo."""
         from apps.payments.models import Payment
         order, failed_payment = _make_order_with_payment(
-            auth_user, prod_ref, status='FAILED'
+            user, prod_ref, status='FAILED'
         )
         # La orden debe estar en PENDING para reintentar
         order.status = 'PENDING'
@@ -289,7 +289,7 @@ class TestReintentoPago:
         assert failed_payment.status == 'FAILED'  # el anterior no cambió
 
     def test_reintento_puede_cambiar_de_gateway(
-        self, auth_client, auth_user, prod_ref, mp_gateway_ref, db
+        self, auth_client, user, prod_ref, mp_gateway_ref, db
     ):
         """FR-PAY-08.01: el comprador puede cambiar al otro gateway."""
         from apps.payments.models import Payment
@@ -302,7 +302,7 @@ class TestReintentoPago:
         })
         pp_gw.save()
 
-        order, _ = _make_order_with_payment(auth_user, prod_ref, status='FAILED')
+        order, _ = _make_order_with_payment(user, prod_ref, status='FAILED')
         order.status = 'PENDING'
         order.save()
 

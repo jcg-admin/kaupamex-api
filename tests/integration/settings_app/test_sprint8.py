@@ -20,7 +20,7 @@ class TestPaymentGatewayModel:
 
     def test_set_y_get_credentials_roundtrip(self, db):
         from apps.settings_app.models import PaymentGateway
-        gw = PaymentGateway.objects.create(provider='mercado_pago', is_active=False)
+        gw = PaymentGateway.objects.create(gateway='MERCADOPAGO', name='MercadoPago', is_active=False)
         gw.set_credentials({'access_token': 'TEST-VALID-abc123', 'public_key': 'pk-test'})
         gw.save()
         gw.refresh_from_db()
@@ -28,24 +28,24 @@ class TestPaymentGatewayModel:
         assert creds['access_token'] == 'TEST-VALID-abc123'
         assert creds['public_key'] == 'pk-test'
 
-    def test_credentials_enc_no_es_el_valor_en_claro(self, db):
+    def test_credentials_no_es_el_valor_en_claro(self, db):
         from apps.settings_app.models import PaymentGateway
-        gw = PaymentGateway.objects.create(provider='paypal', is_active=False)
+        gw = PaymentGateway.objects.create(gateway='PAYPAL', name='PayPal', is_active=False)
         gw.set_credentials({'client_id': 'TEST-VALID-client', 'client_secret': 'supersecret'})
         gw.save()
-        assert 'supersecret' not in gw.credentials_enc
+        assert 'supersecret' not in str(gw.credentials)  # BinaryField
 
     def test_get_masked_credentials_enmascara(self, db):
         from apps.settings_app.models import PaymentGateway
-        gw = PaymentGateway(provider='mercado_pago')
+        gw = PaymentGateway(gateway='MERCADOPAGO', name='MercadoPago')
         gw.set_credentials({'access_token': 'ABCD1234EFGH'})
         masked = gw.get_masked_credentials()
-        assert masked['access_token'].startswith('*')
+        assert '****' in masked['access_token']  # formato: parcial****parcial
         assert masked['access_token'].endswith('EFGH')
 
     def test_get_credentials_sin_datos_retorna_dict_vacio(self, db):
         from apps.settings_app.models import PaymentGateway
-        gw = PaymentGateway(provider='mercado_pago', credentials_enc='')
+        gw = PaymentGateway(gateway='MERCADOPAGO', name='MercadoPago', credentials=b'')
         assert gw.get_credentials() == {}
 
 
@@ -101,21 +101,21 @@ class TestPaymentGatewayAPI:
 
     def test_crear_gateway_mp(self, admin_client, db):
         res = admin_client.post(GATEWAYS_URL, {
-            'provider': 'mercado_pago',
+            'gateway': 'MERCADOPAGO', 'name': 'MercadoPago Test',
             'is_active': False,
             'credentials_raw': {'access_token': 'TEST-VALID-token123'},
         }, format='json')
         assert res.status_code == 201
-        assert res.json()['provider'] == 'mercado_pago'
+        assert res.json()['gateway'] == 'MERCADOPAGO'
 
     def test_credenciales_enmascaradas_en_respuesta(self, admin_client, db):
         admin_client.post(GATEWAYS_URL, {
-            'provider': 'paypal',
+            'gateway': 'PAYPAL', 'name': 'PayPal Test',
             'is_active': False,
             'credentials_raw': {'client_id': 'TEST-VALID-cid', 'client_secret': 'sup3rs3cr3t'},
         }, format='json')
         res = admin_client.get(GATEWAYS_URL)
-        gateway = next(g for g in res.json() if g['provider'] == 'paypal')
+        gateway = next(g for g in res.json() if g['gateway'] == 'PAYPAL')
         creds = gateway['credentials']
         # El secret no debe aparecer en claro
         assert 'sup3rs3cr3t' not in str(creds)
@@ -123,7 +123,7 @@ class TestPaymentGatewayAPI:
 
     def test_credentials_raw_no_aparece_en_respuesta(self, admin_client, db):
         res = admin_client.post(GATEWAYS_URL, {
-            'provider': 'mercado_pago',
+            'gateway': 'MERCADOPAGO', 'name': 'MercadoPago Test',
             'is_active': False,
             'credentials_raw': {'access_token': 'TEST-VALID-tk'},
         }, format='json')
@@ -132,7 +132,7 @@ class TestPaymentGatewayAPI:
 
     def test_verify_endpoint_con_credenciales_validas(self, admin_client, db):
         created = admin_client.post(GATEWAYS_URL, {
-            'provider': 'mercado_pago',
+            'gateway': 'MERCADOPAGO', 'name': 'MercadoPago Test',
             'is_active': False,
             'credentials_raw': {'access_token': 'TEST-VALID-abc'},
         }, format='json').json()
@@ -142,7 +142,7 @@ class TestPaymentGatewayAPI:
 
     def test_verify_endpoint_con_credenciales_invalidas(self, admin_client, db):
         created = admin_client.post(GATEWAYS_URL, {
-            'provider': 'mercado_pago',
+            'gateway': 'MERCADOPAGO', 'name': 'MercadoPago Test',
             'is_active': False,
             'credentials_raw': {'access_token': 'TEST-INVALID-abc'},
         }, format='json').json()
@@ -152,11 +152,11 @@ class TestPaymentGatewayAPI:
 
     def test_provider_unico_no_permite_duplicado(self, admin_client, db):
         admin_client.post(GATEWAYS_URL, {
-            'provider': 'mercado_pago', 'is_active': False,
+            'gateway': 'MERCADOPAGO', 'name': 'MercadoPago Test', 'is_active': False,
             'credentials_raw': {},
         }, format='json')
         res = admin_client.post(GATEWAYS_URL, {
-            'provider': 'mercado_pago', 'is_active': False,
+            'gateway': 'MERCADOPAGO', 'name': 'MercadoPago Test', 'is_active': False,
             'credentials_raw': {},
         }, format='json')
         assert res.status_code == 400

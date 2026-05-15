@@ -84,9 +84,9 @@ class PaymentGatewayViewSet(ModelViewSet):
     def _verify_and_mark(self, instance: PaymentGateway, creds: dict):
         """Verifica conectividad y actualiza verified_at si OK."""
         try:
-            if instance.provider == PaymentGateway.PROVIDER_MP:
+            if instance.gateway == PaymentGateway.GATEWAY_MERCADOPAGO:
                 ok = connector.verify_mercadopago(creds.get('access_token', ''))
-            elif instance.provider == PaymentGateway.PROVIDER_PAYPAL:
+            elif instance.gateway == PaymentGateway.GATEWAY_PAYPAL:
                 ok = connector.verify_paypal(
                     creds.get('client_id', ''), creds.get('client_secret', '')
                 )
@@ -116,9 +116,9 @@ class PaymentGatewayViewSet(ModelViewSet):
         if not creds:
             return Response({'detail': 'No hay credenciales configuradas.'}, status=400)
         try:
-            if instance.provider == PaymentGateway.PROVIDER_MP:
+            if instance.gateway == PaymentGateway.GATEWAY_MERCADOPAGO:
                 ok = connector.verify_mercadopago(creds.get('access_token', ''))
-            elif instance.provider == PaymentGateway.PROVIDER_PAYPAL:
+            elif instance.gateway == PaymentGateway.GATEWAY_PAYPAL:
                 ok = connector.verify_paypal(
                     creds.get('client_id', ''), creds.get('client_secret', '')
                 )

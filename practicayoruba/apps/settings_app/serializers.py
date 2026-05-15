@@ -13,10 +13,9 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model  = SiteSettings
         fields = [
-            'id', 'site_name', 'iva_rate', 'currency',
-            'order_timeout_minutes', 'max_return_days',
-            'free_shipping_threshold', 'min_stock_threshold',
-            'avatar_max_size_mb', 'max_addresses_per_user',
+            'id', 'iva_rate', 'payment_timeout_minutes',
+            'min_stock_threshold', 'free_shipping_threshold',
+            'support_email', 'phone', 'address', 'social_links',
             'updated_at',
         ]
         read_only_fields = ['id', 'updated_at']
@@ -28,22 +27,23 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
 
 class PaymentGatewaySerializer(serializers.ModelSerializer):
     """
-    Lectura: credenciales enmascaradas.
-    Escritura: credenciales en claro → se cifran antes de guardar.
+    UC-CFG-01 — Lectura: credenciales enmascaradas (nunca en claro).
+    Escritura: credentials_raw → se cifran con Fernet antes de guardar.
+    Actualizado tras migración 0007: provider→gateway, credentials_enc→credentials.
     """
     credentials     = serializers.SerializerMethodField(read_only=True)
     credentials_raw = serializers.JSONField(
         write_only=True, required=False, default=dict,
         help_text='Credenciales en claro. Se cifran al guardar. No se retornan en la respuesta.',
     )
-    provider_display = serializers.CharField(
-        source='get_provider_display', read_only=True
+    gateway_display = serializers.CharField(
+        source='get_gateway_display', read_only=True,
     )
 
     class Meta:
         model  = PaymentGateway
         fields = [
-            'id', 'provider', 'provider_display',
+            'id', 'name', 'gateway', 'gateway_display',
             'is_active', 'credentials', 'credentials_raw',
             'verified_at', 'updated_at',
         ]
@@ -54,16 +54,16 @@ class PaymentGatewaySerializer(serializers.ModelSerializer):
         return obj.get_masked_credentials()
 
     def validate_credentials_raw(self, value: dict) -> dict:
-        """Validacion de formato por provider."""
-        provider = self.initial_data.get('provider') or (
-            self.instance.provider if self.instance else None
+        """Validación de formato por gateway."""
+        gateway = self.initial_data.get('gateway') or (
+            self.instance.gateway if self.instance else None
         )
-        if provider == PaymentGateway.PROVIDER_MP:
+        if gateway == PaymentGateway.GATEWAY_MERCADOPAGO:
             if 'access_token' not in value:
                 raise serializers.ValidationError(
                     {'access_token': 'Requerido para MercadoPago.'}
                 )
-        elif provider == PaymentGateway.PROVIDER_PAYPAL:
+        elif gateway == PaymentGateway.GATEWAY_PAYPAL:
             for field in ('client_id', 'client_secret'):
                 if field not in value:
                     raise serializers.ValidationError(
@@ -76,7 +76,7 @@ class PaymentGatewaySerializer(serializers.ModelSerializer):
         instance = super().create(validated_data)
         if creds_raw:
             instance.set_credentials(creds_raw)
-            instance.save(update_fields=['credentials_enc'])
+            instance.save(update_fields=['credentials'])
         return instance
 
     def update(self, instance, validated_data):
@@ -84,7 +84,7 @@ class PaymentGatewaySerializer(serializers.ModelSerializer):
         instance = super().update(instance, validated_data)
         if creds_raw is not None:
             instance.set_credentials(creds_raw)
-            instance.save(update_fields=['credentials_enc', 'verified_at'])
+            instance.save(update_fields=['credentials', 'verified_at'])
         return instance
 
 
@@ -96,7 +96,7 @@ class ShippingMethodSerializer(serializers.ModelSerializer):
     class Meta:
         model  = ShippingMethod
         fields = [
-            'id', 'name', 'description', 'cost', 'estimated_days',
+            'id', 'name', 'cost', 'estimated_days',
             'is_active', 'free_threshold', 'zones', 'updated_at',
         ]
         read_only_fields = ['id', 'updated_at']

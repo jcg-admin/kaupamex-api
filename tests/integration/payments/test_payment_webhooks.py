@@ -24,7 +24,7 @@ def cat_wh(db):
 
 
 @pytest.fixture
-def orden_processing_mp(db, auth_user, cat_wh):
+def orden_processing_mp(db, user, cat_wh):
     """Orden con Payment de MP en PENDING, lista para recibir webhook."""
     from apps.catalogue.models import Product
     from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
@@ -36,7 +36,7 @@ def orden_processing_mp(db, auth_user, cat_wh):
         price=Decimal('600.00'), stock=10,
         is_active=True, is_published=True,
     )
-    order = Order.objects.create(user=auth_user, status='PENDING')
+    order = Order.objects.create(user=user, status='PENDING')
     OrderItem.objects.create(
         order=order, product_name=prod.name, sku=prod.sku,
         unit_price=prod.price, quantity=1, subtotal=prod.price,
@@ -212,7 +212,7 @@ class TestPayPalWebhook:
         }
 
     @pytest.fixture
-    def orden_paypal_wh(self, db, auth_user, cat_wh):
+    def orden_paypal_wh(self, db, user, cat_wh):
         from apps.catalogue.models import Product
         from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
         from apps.payments.models import Payment
@@ -223,7 +223,7 @@ class TestPayPalWebhook:
             price=Decimal('400.00'), stock=5,
             is_active=True, is_published=True,
         )
-        order = Order.objects.create(user=auth_user, status='PENDING')
+        order = Order.objects.create(user=user, status='PENDING')
         OrderItem.objects.create(
             order=order, product_name=prod.name, sku=prod.sku,
             unit_price=prod.price, quantity=1, subtotal=prod.price,
@@ -264,7 +264,7 @@ class TestPayPalWebhook:
         payment.save()
 
         with patch(
-            'apps.payments.webhooks.PayPalGateway.verify_webhook_signature',
+            'apps.payments.gateways.paypal.PayPalGateway.verify_webhook_signature',
             return_value=True
         ):
             res = api_client.post(
@@ -284,7 +284,7 @@ class TestPayPalWebhook:
         self, api_client, db
     ):
         with patch(
-            'apps.payments.webhooks.PayPalGateway.verify_webhook_signature',
+            'apps.payments.gateways.paypal.PayPalGateway.verify_webhook_signature',
             return_value=False
         ):
             res = api_client.post(
@@ -299,7 +299,7 @@ class TestPayPalWebhook:
     ):
         """Eventos no relevantes se ignoran con 200."""
         with patch(
-            'apps.payments.webhooks.PayPalGateway.verify_webhook_signature',
+            'apps.payments.gateways.paypal.PayPalGateway.verify_webhook_signature',
             return_value=True
         ):
             res = api_client.post(
@@ -330,7 +330,7 @@ class TestPayPalWebhook:
             },
         }
         with patch(
-            'apps.payments.webhooks.PayPalGateway.verify_webhook_signature',
+            'apps.payments.gateways.paypal.PayPalGateway.verify_webhook_signature',
             return_value=True
         ):
             api_client.post(PP_WEBHOOK_URL,

@@ -17,11 +17,13 @@ router.register(r'categories', CategoryAdminViewSet, basename='admin-category')
 router.register(r'products',   ProductAdminViewSet,  basename='admin-product')
 
 urlpatterns = [
-    path('', include(router.urls)),
+    # ─── URLs específicas PRIMERO — antes del router (evita que el router capture) ───
     path('products/price-sync/',
          ProductPriceSyncView.as_view(),         name='price-sync'),
     path('products/price-sync/confirm/',
          ProductPriceSyncConfirmView.as_view(),   name='price-sync-confirm'),
     path('products/price-sync/template/',
          ProductPriceSyncTemplateView.as_view(),  name='price-sync-template'),
+    # ─── Router LAST ────────────────────────────────────────────────────────────────
+    path('', include(router.urls)),
 ]

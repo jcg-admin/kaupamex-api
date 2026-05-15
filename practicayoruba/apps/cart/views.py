@@ -105,8 +105,8 @@ class CartView(APIView):
     )
     def get(self, request):
         cart, _, cart_token = _get_or_create_cart(request)
-        _refresh_item_prices(cart)
-        data = CartSerializer(cart).data
+        changed_ids = set(_refresh_item_prices(cart))
+        data = CartSerializer(cart, context={'changed_ids': changed_ids, 'request': request}).data
         response = Response(data)
         if cart_token:
             response['X-Cart-Token'] = cart_token

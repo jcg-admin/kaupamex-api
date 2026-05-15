@@ -19,7 +19,7 @@ CANCELABLE_STATUSES = ['PENDING', 'PROCESSING']
 EDITABLE_STATUSES   = ['PENDING', 'PROCESSING', 'IN_PREPARATION']  # dirección y envío
 
 
-def cancel_order(order, reason: str = '', cancelled_by=None):
+def cancel_order(order, reason: str = '', cancelled_by=None, cancelable_statuses=None):
     """
     Cancela una orden de forma atómica.
     UC-ORD-04 (FR-ORD-04.02, FR-ORD-04.03).
@@ -36,11 +36,12 @@ def cancel_order(order, reason: str = '', cancelled_by=None):
     from apps.inventory.services import InventoryService
     from apps.inventory.proxy_models import CancellationMovement
 
-    if order.status not in CANCELABLE_STATUSES:
+    _cancelable = cancelable_statuses if cancelable_statuses is not None else CANCELABLE_STATUSES
+    if order.status not in _cancelable:
         raise ValueError(
             f'La orden {order.order_number} no se puede cancelar '
             f'(estado: {order.status}). Solo se permiten cancelaciones '
-            f'en estados: {CANCELABLE_STATUSES}.'
+            f'en estados: {_cancelable}.'
         )
 
     with transaction.atomic():

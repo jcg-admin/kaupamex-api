@@ -94,6 +94,11 @@ class OrderItem(TimeStampedModel):
     variant puede ser null si la variante fue eliminada del catálogo,
     pero product_name, sku y unit_price conservan el valor al checkout.
     """
+    product         = models.ForeignKey(
+        'catalogue.Product', null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='order_items',
+        help_text='Producto original. null si fue eliminado. No es snapshot.'
+    )
     order         = models.ForeignKey(Order, on_delete=models.CASCADE,
                         related_name='items')
     variant       = models.ForeignKey(

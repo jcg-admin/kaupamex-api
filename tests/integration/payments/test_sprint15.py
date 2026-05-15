@@ -40,11 +40,11 @@ def prod_s15(db, cat_s15):
 
 
 @pytest.fixture
-def orden_pendiente(db, auth_user, prod_s15):
+def orden_pendiente(db, user, prod_s15):
     """Orden en estado PENDING con OrderValue."""
     from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
     order = Order.objects.create(
-        user=auth_user, status='PENDING',
+        user=user, status='PENDING',
     )
     OrderItem.objects.create(
         order=order, product_name=prod_s15.name,
@@ -335,7 +335,7 @@ class TestCheckoutExpress:
         assert res.json()['express_available'] is False
 
     def test_comprador_recurrente_con_direccion_es_elegible(
-        self, auth_client, auth_user, cat_s15, db
+        self, auth_client, user, cat_s15, db
     ):
         """Comprador con orden DELIVERED y dirección default → eligible."""
         from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
@@ -346,13 +346,13 @@ class TestCheckoutExpress:
             name='Estándar', cost=Decimal('80'), estimated_days=5, is_active=True
         )
         Address.objects.create(
-            user=auth_user, alias='Casa',
+            user=user, alias='Casa',
             recipient_name='Test', street='Calle 1',
             city='CDMX', state='CMX', zip_code='06600',
             is_default=True,
         )
         # Crear orden entregada
-        o = Order.objects.create(user=auth_user, status='DELIVERED')
+        o = Order.objects.create(user=user, status='DELIVERED')
 
         res = auth_client.get(ELIGIBILITY_URL)
         data = res.json()
@@ -361,10 +361,10 @@ class TestCheckoutExpress:
         assert data['default_shipping'] is not None
 
     def test_comprador_sin_direccion_default_no_es_elegible(
-        self, auth_client, auth_user, db
+        self, auth_client, user, db
     ):
         from apps.orders.models import Order
-        Order.objects.create(user=auth_user, status='DELIVERED')
+        Order.objects.create(user=user, status='DELIVERED')
         # Sin dirección default
         res = auth_client.get(ELIGIBILITY_URL)
         assert res.json()['express_available'] is False
@@ -381,7 +381,7 @@ class TestCheckoutExpress:
         assert res.json()['codigo_error'] == 'NO_ELEGIBLE_EXPRESS'
 
     def test_express_checkout_crea_orden(
-        self, auth_client, auth_user, prod_s15, db
+        self, auth_client, user, prod_s15, db
     ):
         """Comprador elegible con carrito → crea orden directa."""
         from apps.orders.models import Order
@@ -392,12 +392,12 @@ class TestCheckoutExpress:
             name='Estándar', cost=Decimal('80'), estimated_days=5, is_active=True
         )
         Address.objects.create(
-            user=auth_user, alias='Casa',
+            user=user, alias='Casa',
             recipient_name='Test User', street='Reforma 100',
             city='CDMX', state='CMX', zip_code='06600',
             is_default=True,
         )
-        Order.objects.create(user=auth_user, status='DELIVERED')
+        Order.objects.create(user=user, status='DELIVERED')
 
         # Agregar producto al carrito
         prod_s15.stock = 10
@@ -413,7 +413,7 @@ class TestCheckoutExpress:
         assert data['status'] == 'PENDING'
 
     def test_express_checkout_vacia_el_carrito(
-        self, auth_client, auth_user, prod_s15, db
+        self, auth_client, user, prod_s15, db
     ):
         from apps.orders.models import Order
         from apps.users.models import Address
@@ -424,12 +424,12 @@ class TestCheckoutExpress:
             name='Estándar', cost=Decimal('80'), estimated_days=5, is_active=True
         )
         Address.objects.create(
-            user=auth_user, alias='Casa',
+            user=user, alias='Casa',
             recipient_name='Test', street='Calle',
             city='CDMX', state='CMX', zip_code='06600',
             is_default=True,
         )
-        Order.objects.create(user=auth_user, status='DELIVERED')
+        Order.objects.create(user=user, status='DELIVERED')
 
         auth_client.post('/api/v1/cart/items/', {
             'product_id': prod_s15.pk, 'quantity': 1,

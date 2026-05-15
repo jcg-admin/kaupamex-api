@@ -318,45 +318,55 @@ class TestFusionarCarrito:
         assert res.status_code == 401
 
     def test_merge_fusiona_carrito_anonimo_en_usuario(
-        self, api_client, auth_client, product_sin_variante, db
+        self, auth_client, product_sin_variante, db
     ):
         """FC-CART-06 Escenario principal: fusión de carrito anónimo."""
-        # Crear carrito anónimo con 2 items
-        res = api_client.post(ITEMS_URL, {
-            'product_id': product_sin_variante.pk, 'quantity': 2,
-        }, format='json')
-        anon_token = res['X-Cart-Token']
+        import uuid
+        from apps.cart.models import Cart, CartItem
+        # Crear carrito anónimo directamente en BD
+        anon_token = uuid.uuid4()
+        anon_cart = Cart.objects.create(cart_token=anon_token, user=None)
+        CartItem.objects.create(
+            cart=anon_cart, product=product_sin_variante,
+            quantity=2, unit_price=product_sin_variante.price,
+        )
         # Fusionar al autenticar
         merge_res = auth_client.post(MERGE_URL, {
-            'cart_token': anon_token,
+            'cart_token': str(anon_token),
         }, format='json')
         assert merge_res.status_code == 200
         items = merge_res.json()['items']
         assert len(items) == 1
         assert items[0]['quantity'] == 2
 
+    
     def test_merge_suma_cantidades_si_mismo_producto(
-        self, api_client, auth_client, product_sin_variante, db
+        self, auth_client, product_sin_variante, db
     ):
         """El usuario ya tenía 1 item; el anónimo tenía 2 del mismo → total 3."""
-        # El auth_client agrega 1 item
+        import uuid
+        from apps.cart.models import Cart, CartItem
+        # El auth_client agrega 1 item propio
         auth_client.post(ITEMS_URL, {
             'product_id': product_sin_variante.pk, 'quantity': 1,
         }, format='json')
-        # El anónimo agrega 2 items
-        res = api_client.post(ITEMS_URL, {
-            'product_id': product_sin_variante.pk, 'quantity': 2,
-        }, format='json')
-        anon_token = res['X-Cart-Token']
-        # Fusionar
+        # Carrito anónimo con 2 items — creado directamente en BD
+        anon_token = uuid.uuid4()
+        anon_cart = Cart.objects.create(cart_token=anon_token, user=None)
+        CartItem.objects.create(
+            cart=anon_cart, product=product_sin_variante,
+            quantity=2, unit_price=product_sin_variante.price,
+        )
+        # Fusionar: total debe ser 1 + 2 = 3
         merge_res = auth_client.post(MERGE_URL, {
-            'cart_token': anon_token,
+            'cart_token': str(anon_token),
         }, format='json')
         assert merge_res.status_code == 200
         items = merge_res.json()['items']
-        total_qty = sum(i['quantity'] for i in items)
-        assert total_qty == 3
+        assert len(items) == 1
+        assert items[0]['quantity'] == 3
 
+    
     def test_merge_con_token_inexistente_retorna_carrito_usuario(
         self, auth_client, db
     ):
