@@ -68,7 +68,7 @@ class ProductVariantAdminViewSet(ModelViewSet):
     UC-CHT-03: CRUD de variantes.
     UC-CHT-04: precio diferenciado via price_override.
     Proteccion CartItems activos: implementada en Sprint 12.
-    Proteccion ordenes activas: TODO Sprint 18 (VARIANTE_CON_ORDENES).
+    Proteccion ordenes activas: resuelto en Sprint 19 con ActiveOrder proxy.
     """
     permission_classes = [IsAuthenticated, IsAdminUser]
     serializer_class   = ProductVariantAdminSerializer
