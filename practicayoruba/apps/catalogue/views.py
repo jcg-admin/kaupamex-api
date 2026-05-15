@@ -625,6 +625,15 @@ class CategoryListView(APIView):
 # UC-CAT-09 y UC-CAT-10 — CRUD admin de productos
 # =============================================================================
 
+def _count_active_carts(product) -> int:
+    """Cuenta CartItems activos que contienen este producto (Sprint 12)."""
+    try:
+        from apps.cart.models import CartItem
+        return CartItem.objects.filter(product=product).count()
+    except Exception:
+        return 0
+
+
 # =============================================================================
 # Sprint 8 — UC-CAT-11: Desactivar producto con preview de impacto
 # =============================================================================
@@ -668,7 +677,7 @@ class ProductDeactivateAction:
             'product_id': product.pk,
             'product_name': product.name,
             'stock': product.stock,
-            'active_carts': 0,    # TODO Sprint 12 cuando exista apps.cart
+            'active_carts': _count_active_carts(product),
             'wishlists': 0,       # TODO Sprint 13 cuando exista apps.wishlist
         }
 
