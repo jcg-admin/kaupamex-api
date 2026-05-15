@@ -8,11 +8,13 @@ El diagrama canonico esta en modelo-chartsize.rst.
 """
 from decimal import Decimal
 from django.db import models
+
+from apps.core.models import TimeStampedModel
 from django.core.validators import MinValueValidator
 from django.utils.text import slugify
 
 
-class VariantType(models.Model):
+class VariantType(TimeStampedModel):
     """
     Tipo de atributo de variante. Ej: 'Tamaño', 'Presentación'.
     Un producto puede tener uno o más tipos de variante.
@@ -38,7 +40,7 @@ class VariantType(models.Model):
         return f'{self.product.name} — {self.name}'
 
 
-class VariantOption(models.Model):
+class VariantOption(TimeStampedModel):
     """
     Opcion dentro de un tipo de variante. Ej: 'Grande', '250ml'.
     UC-CHT-03.
@@ -67,7 +69,7 @@ class VariantOption(models.Model):
         super().save(*args, **kwargs)
 
 
-class ProductVariant(models.Model):
+class ProductVariant(TimeStampedModel):
     """
     Variante concreta de un producto. Combina producto + opcion de variante.
     UC-CHT-01, UC-CHT-03, UC-CHT-04.

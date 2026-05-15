@@ -9,11 +9,13 @@ VoucherUsage: registro de uso por orden — se crea en Sprint 18 (cuando exista 
 from decimal import Decimal
 from django.conf import settings
 from django.db import models
+
+from apps.core.models import TimeStampedModel
 from django.core.validators import MinValueValidator
 from django.utils import timezone
 
 
-class Voucher(models.Model):
+class Voucher(TimeStampedModel):
     TYPE_FIXED        = 'FIXED'
     TYPE_PERCENTAGE   = 'PERCENTAGE'
     TYPE_FREE_SHIPPING = 'FREE_SHIPPING'
@@ -77,8 +79,6 @@ class Voucher(models.Model):
                               on_delete=models.SET_NULL,
                               related_name='created_vouchers',
                           )
-    created_at          = models.DateTimeField(auto_now_add=True)
-    updated_at          = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table     = 'voucher_voucher'
@@ -146,7 +146,7 @@ class Voucher(models.Model):
         return Decimal('0.00')
 
 
-class VoucherChangeLog(models.Model):
+class VoucherChangeLog(TimeStampedModel):
     """
     Historial de cambios de administrador en un Voucher. UC-PRO-02.
     Un registro por cada edicion con el snapshot de campos modificados.
@@ -159,12 +159,12 @@ class VoucherChangeLog(models.Model):
     )
     changes    = models.JSONField(
         help_text='Dict de {campo: {before, after}} con los cambios aplicados.')
-    changed_at = models.DateTimeField(auto_now_add=True)
+    # created_at viene de TimeStampedModel (renombrado de changed_at en migración)
 
     class Meta:
         db_table     = 'voucher_change_log'
-        ordering     = ['-changed_at']
+        ordering     = ['-created_at']
         verbose_name = 'Cambio de voucher'
 
     def __str__(self):
-        return f'{self.voucher.code} — {self.changed_at.date()}'
+        return f'{self.voucher.code} — {self.created_at.date()}'

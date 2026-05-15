@@ -8,6 +8,8 @@ import os
 from django.contrib.auth.models import AbstractUser
 from django.db import models, transaction
 
+from apps.core.models import TimeStampedModel
+
 
 def avatar_upload_path(instance, filename):
     """Path para avatares subidos. El Sprint 2 convierte a WebP."""
@@ -84,7 +86,7 @@ class User(AbstractUser):
         return pending
 
 
-class Address(models.Model):
+class Address(TimeStampedModel):
     """
     Direccion de envio del comprador (FR-AUTH-07.02, FR-AUTH-07.04).
     Maximo 5 por usuario. Solo una puede ser is_default=True a la vez.
@@ -148,7 +150,7 @@ class Address(models.Model):
             super().save(*args, **kwargs)
 
 
-class PasswordResetToken(models.Model):
+class PasswordResetToken(TimeStampedModel):
     """
     Token de recuperacion de contrasena (UC-AUTH-09, FR-AUTH-09.03).
     El token en claro se envia al email. Solo el hash se guarda en BD.
@@ -157,7 +159,6 @@ class PasswordResetToken(models.Model):
     user       = models.ForeignKey(User, on_delete=models.CASCADE,
                                    related_name='password_reset_tokens')
     token_hash = models.CharField(max_length=64, unique=True, db_index=True)
-    created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
     used_at    = models.DateTimeField(null=True, blank=True)
 
@@ -169,7 +170,7 @@ class PasswordResetToken(models.Model):
         return f'PasswordReset [{self.user.username}] — usado: {bool(self.used_at)}'
 
 
-class EmailVerificationToken(models.Model):
+class EmailVerificationToken(TimeStampedModel):
     """
     Token de verificacion de email (UC-AUTH-10, FR-AUTH-10.02).
     El token en claro se envia al email. Solo el hash se guarda en BD.
@@ -178,7 +179,6 @@ class EmailVerificationToken(models.Model):
     user       = models.ForeignKey(User, on_delete=models.CASCADE,
                                    related_name='email_verification_tokens')
     token_hash = models.CharField(max_length=64, unique=True, db_index=True)
-    created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
     used_at    = models.DateTimeField(null=True, blank=True)
 

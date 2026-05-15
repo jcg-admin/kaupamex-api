@@ -234,7 +234,18 @@ class AutocompleteSerializer(serializers.ModelSerializer):
 # =============================================================================
 
 class SearchHistorySerializer(serializers.ModelSerializer):
-    """UC-SRCH-03 — entrada del historial de búsquedas."""
+    """
+    UC-SRCH-03 — entrada del historial de búsquedas.
+    H-INH-002: el campo interno 'updated_at' se expone como 'searched_at'
+    para mantener backward compatibility con la API. drf-spectacular
+    lo documenta con el nombre del campo del serializer ('searched_at').
+    """
+    searched_at = serializers.DateTimeField(
+        source='updated_at',
+        read_only=True,
+        help_text='Última vez que se realizó esta búsqueda.',
+    )
+
     class Meta:
         model  = SearchHistory
         fields = ['id', 'term', 'searched_at']

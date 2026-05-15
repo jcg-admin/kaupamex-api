@@ -3,8 +3,10 @@ from decimal import Decimal
 from django.conf import settings
 from django.db import models
 
+from apps.core.models import TimeStampedModel
 
-class WishlistItem(models.Model):
+
+class WishlistItem(TimeStampedModel):
     """
     Item en la lista de deseos de un comprador. UC-WISH-01/02/03.
     Unico por (user, product, variant).
@@ -24,7 +26,6 @@ class WishlistItem(models.Model):
         on_delete=models.SET_NULL, related_name='wishlist_items',
     )
     price_at_add  = models.DecimalField(max_digits=10, decimal_places=2)
-    created_at    = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table        = 'wishlist_item'
