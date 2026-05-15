@@ -678,7 +678,7 @@ class ProductDeactivateAction:
             'product_name': product.name,
             'stock': product.stock,
             'active_carts': _count_active_carts(product),
-            'wishlists': 0,       # TODO Sprint 13 cuando exista apps.wishlist
+            'wishlists': 0,       # TODO Sprint 14 cuando exista apps.wishlist
         }
 
         confirm = request.data.get('confirm', False)
