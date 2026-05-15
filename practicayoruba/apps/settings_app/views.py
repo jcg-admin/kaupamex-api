@@ -161,8 +161,22 @@ class ShippingMethodViewSet(ModelViewSet):
     def perform_destroy(self, instance):
         """
         Soft delete: is_active=False.
-        TODO Sprint 18: verificar ordenes activas antes de desactivar (apps.orders).
+        Sprint 14: verificar ordenes en estado PENDING/PROCESSING.
         """
+        from apps.orders.models import Order
+        active_orders = Order.objects.filter(
+            shipping_method=instance,
+            status__in=[Order.STATUS_PENDING, Order.STATUS_PROCESSING],
+        ).count()
+        if active_orders > 0:
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({
+                'detail': (
+                    f'Este método tiene {active_orders} orden(es) activa(s). '
+                    'Espera a que se procesen antes de desactivarlo.'
+                ),
+                'codigo_error': 'METODO_CON_ORDENES_ACTIVAS',
+            })
         instance.is_active = False
         instance.save(update_fields=['is_active'])
 

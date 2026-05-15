@@ -1,0 +1,209 @@
+"""Tests Sprint 14 — Checkout y Orden (UC-ORD-01)."""
+import pytest
+from decimal import Decimal
+pytestmark = pytest.mark.integration
+
+CHECKOUT_URL = '/api/v1/checkout/'
+ITEMS_URL    = '/api/v1/cart/items/'
+
+ADDR = {
+    'recipient_name': 'Test User',
+    'street': 'Av. Reforma 100',
+    'city': 'CDMX',
+    'state': 'Ciudad de Mexico',
+    'zip_code': '06600',
+    'country': 'MX',
+}
+
+
+@pytest.fixture
+def cat_ord(db):
+    from apps.catalogue.models import Category
+    return Category.objects.create(name='Cat Ord', slug='cat-ord', is_active=True)
+
+
+@pytest.fixture
+def prod_ord(db, cat_ord):
+    from apps.catalogue.models import Product
+    return Product.objects.create(
+        name='Prod Ord', slug='prod-ord', sku='ORD-001',
+        description='', category=cat_ord,
+        price=Decimal('500.00'), stock=10,
+        is_active=True, is_published=True,
+    )
+
+
+@pytest.fixture
+def cart_con_item_auth(auth_client, prod_ord):
+    auth_client.post(ITEMS_URL, {
+        'product_id': prod_ord.pk, 'quantity': 2,
+    }, format='json')
+    return auth_client
+
+
+@pytest.fixture
+def shipping(db):
+    from apps.settings_app.models import ShippingMethod
+    return ShippingMethod.objects.create(
+        name='Estándar', cost=Decimal('80.00'), estimated_days=5, is_active=True)
+
+
+class TestCheckout:
+
+    def test_checkout_autenticado(
+        self, cart_con_item_auth, prod_ord, db
+    ):
+        res = cart_con_item_auth.post(CHECKOUT_URL, {
+            'address': ADDR,
+        }, format='json')
+        assert res.status_code == 201
+        data = res.json()
+        assert data['order_number'].startswith('PY-')
+        assert data['status'] == 'PENDING'
+        assert len(data['items']) == 1
+        assert data['items'][0]['quantity'] == 2
+        assert data['items'][0]['product_name'] == 'Prod Ord'
+
+    def test_checkout_crea_snapshot_inmutable_br005(
+        self, cart_con_item_auth, prod_ord, db
+    ):
+        """BR-005: unit_price del OrderItem = precio al momento del checkout."""
+        original_price = prod_ord.price
+        res = cart_con_item_auth.post(CHECKOUT_URL, {'address': ADDR}, format='json')
+        assert res.status_code == 201
+        item_price = Decimal(res.json()['items'][0]['unit_price'])
+        assert item_price == original_price
+        # Cambiar precio del producto — no debe afectar la orden
+        prod_ord.price = Decimal('999.00')
+        prod_ord.save()
+        from apps.orders.models import Order
+        order = Order.objects.get(order_number=res.json()['order_number'])
+        assert order.items.first().unit_price == original_price
+
+    def test_checkout_decrementa_stock(
+        self, cart_con_item_auth, prod_ord, db
+    ):
+        cart_con_item_auth.post(CHECKOUT_URL, {'address': ADDR}, format='json')
+        prod_ord.refresh_from_db()
+        assert prod_ord.stock == 8  # 10 - 2
+
+    def test_checkout_vacia_el_carrito(
+        self, cart_con_item_auth, db
+    ):
+        cart_con_item_auth.post(CHECKOUT_URL, {'address': ADDR}, format='json')
+        from apps.cart.models import CartItem
+        assert CartItem.objects.count() == 0
+
+    def test_checkout_crea_ordervalue(
+        self, cart_con_item_auth, prod_ord, db
+    ):
+        res = cart_con_item_auth.post(CHECKOUT_URL, {'address': ADDR}, format='json')
+        value = res.json()['value']
+        assert Decimal(value['subtotal']) == Decimal('1000.00')  # 500 * 2
+        assert 'tax' in value
+        assert 'total' in value
+
+    def test_checkout_con_metodo_envio(
+        self, cart_con_item_auth, shipping, db
+    ):
+        res = cart_con_item_auth.post(CHECKOUT_URL, {
+            'address': ADDR,
+            'shipping_method_id': shipping.pk,
+        }, format='json')
+        assert res.status_code == 201
+        assert Decimal(res.json()['value']['shipping_cost']) == Decimal('80.00')
+
+    def test_checkout_carrito_vacio_retorna_400(self, auth_client, db):
+        res = auth_client.post(CHECKOUT_URL, {'address': ADDR}, format='json')
+        assert res.status_code in (400, 404)
+
+    def test_checkout_anonimo(self, api_client, prod_ord, db):
+        """BR-011: visitante anónimo puede hacer checkout."""
+        add_res = api_client.post(ITEMS_URL, {
+            'product_id': prod_ord.pk, 'quantity': 1,
+        }, format='json')
+        cart_token = add_res['X-Cart-Token']
+        api_client.credentials(HTTP_X_CART_TOKEN=cart_token)
+        res = api_client.post(CHECKOUT_URL, {
+            'cart_token': cart_token,
+            'guest_email': 'invitado@test.mx',
+            'address': ADDR,
+        }, format='json')
+        assert res.status_code == 201
+        assert res.json()['guest_email'] == 'invitado@test.mx'
+
+    def test_checkout_anonimo_sin_guest_email_retorna_400(
+        self, api_client, prod_ord, db
+    ):
+        add_res = api_client.post(ITEMS_URL, {
+            'product_id': prod_ord.pk, 'quantity': 1,
+        }, format='json')
+        cart_token = add_res['X-Cart-Token']
+        api_client.credentials(HTTP_X_CART_TOKEN=cart_token)
+        res = api_client.post(CHECKOUT_URL, {
+            'cart_token': cart_token,
+            'address': ADDR,
+        }, format='json')
+        assert res.status_code == 400
+        assert res.json()['codigo_error'] == 'GUEST_EMAIL_REQUERIDO'
+
+    def test_checkout_stock_insuficiente_retorna_409(
+        self, auth_client, prod_ord, db
+    ):
+        prod_ord.stock = 1
+        prod_ord.save()
+        auth_client.post(ITEMS_URL, {
+            'product_id': prod_ord.pk, 'quantity': 1,
+        }, format='json')
+        # Agotar el stock antes de confirmar
+        prod_ord.stock = 0
+        prod_ord.save()
+        res = auth_client.post(CHECKOUT_URL, {'address': ADDR}, format='json')
+        assert res.status_code == 409
+        assert res.json()['codigo_error'] == 'STOCK_INSUFICIENTE'
+        # Stock NO debe haber cambiado
+        prod_ord.refresh_from_db()
+        assert prod_ord.stock == 0
+
+    def test_checkout_con_voucher_aplica_descuento(
+        self, auth_client, prod_ord, db, admin_user
+    ):
+        from apps.voucher.models import Voucher
+        from django.utils import timezone
+        v = Voucher.objects.create(
+            code='PROMO100', voucher_type='FIXED',
+            discount_value=Decimal('100.00'),
+            valid_from=timezone.now() - __import__('datetime').timedelta(days=1),
+            is_active=True, min_order_amount=Decimal('0'), created_by=admin_user,
+        )
+        auth_client.post(ITEMS_URL, {'product_id': prod_ord.pk, 'quantity': 1}, format='json')
+        auth_client.post('/api/v1/cart/voucher/', {'code': 'PROMO100'}, format='json')
+        res = auth_client.post(CHECKOUT_URL, {'address': ADDR}, format='json')
+        assert res.status_code == 201
+        assert Decimal(res.json()['value']['discount']) == Decimal('100.00')
+        assert Decimal(res.json()['value']['total']) == Decimal('400.00')
+        assert res.json()['voucher_code'] == 'PROMO100'
+
+
+class TestShippingMethodProtection:
+
+    def test_desactivar_metodo_con_ordenes_activas_retorna_400(
+        self, admin_client, shipping, prod_ord, db
+    ):
+        from apps.orders.models import Order, OrderValue, OrderAddress
+        o = Order.objects.create(
+            order_number='PY-TEST0001',
+            status='PENDING', shipping_method=shipping
+        )
+        OrderValue.objects.create(
+            order=o, subtotal=Decimal('500'), tax=Decimal('68.97'),
+            shipping_cost=Decimal('80'), discount=Decimal('0'),
+            total=Decimal('580')
+        )
+        OrderAddress.objects.create(
+            order=o, recipient_name='Test', street='St',
+            city='CDMX', state='CMX', zip_code='06600'
+        )
+        res = admin_client.delete(f'/api/v1/admin/shipping-methods/{shipping.pk}/')
+        assert res.status_code == 400
+        assert res.json()['codigo_error'] == 'METODO_CON_ORDENES_ACTIVAS'
