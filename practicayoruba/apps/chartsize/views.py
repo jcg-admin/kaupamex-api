@@ -102,7 +102,7 @@ class ProductVariantAdminViewSet(ModelViewSet):
         """
         Soft delete: is_active=False.
         Sprint 12: verificar CartItems activos antes de desactivar.
-        TODO Sprint 18: verificar ordenes activas (VARIANTE_CON_ORDENES).
+        H-ORD-005: verificar órdenes activas resuelto arriba.
         """
         # H-S12-006: protección contra CartItems activos
         active_cart_items = instance.cart_items.count()

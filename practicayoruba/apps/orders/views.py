@@ -1,15 +1,16 @@
 """
-Views — apps.orders (Sprint 14)
-UC-ORD-01: Crear Orden desde Carrito (Checkout)
+Views — apps.orders
+UC-ORD-01: Checkout, UC-ORD-02..06: Gestión del comprador (Sprint 18)
 """
 import uuid
 from decimal import Decimal
 
 from django.db import transaction
 from django.shortcuts import get_object_or_404
-from drf_spectacular.utils import extend_schema, OpenApiResponse
+from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -198,4 +199,298 @@ class OrderDetailView(APIView):
             order = get_object_or_404(qs, order_number=order_number, user=request.user)
         else:
             return Response(status=403)
+        return Response(OrderSerializer(order).data)
+
+
+# =============================================================================
+# Sprint 18 — UC-ORD-02/03/04/05/06 — Gestión del comprador
+# =============================================================================
+
+class OrderPagination(PageNumberPagination):
+    """10 órdenes por página — RNF-PERF-003."""
+    page_size             = 10
+    page_size_query_param = 'page_size'
+    max_page_size         = 50
+
+
+class OrderListView(APIView):
+    """
+    GET /api/v1/orders/
+    Lista todas las órdenes del usuario autenticado, paginadas.
+    UC-ORD-03 (FR-ORD-03.02). RNF-PERF-003: 10 por página.
+    H-ORD-003: thumbnail resuelto desde Product.images, sin N+1.
+    """
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary='Historial de órdenes del usuario',
+        description=(
+            'Lista todas las órdenes del usuario paginadas (10 por página). '
+            'Incluye thumbnail del primer ítem, total, y conteo de ítems. '
+            'RNF-PERF-003: paginación con page_size ajustable hasta 50.'
+        ),
+        parameters=[
+            OpenApiParameter('page', int, description='Número de página'),
+            OpenApiParameter('page_size', int, description='Órdenes por página (max 50)'),
+        ],
+        responses={200: 'OrderListSerializer (paginado)'},
+        tags=['orders'],
+    )
+    def get(self, request):
+        from django.db.models import Prefetch
+        from .models import Order, OrderItem
+        from .serializers import OrderListSerializer
+        from apps.catalogue.models import ProductImage
+
+        qs = (
+            Order.objects.filter(user=request.user)
+            .select_related('value', 'shipping_method')
+            .prefetch_related(
+                Prefetch(
+                    'items',
+                    queryset=OrderItem.objects.select_related('product')
+                             .prefetch_related(
+                                 Prefetch(
+                                     'product__images',
+                                     queryset=ProductImage.objects.filter(is_cover=True)[:1],
+                                     to_attr='_images_prefetched',
+                                 )
+                             ),
+                    to_attr='_items_prefetched',
+                )
+            )
+            .order_by('-created_at')
+        )
+
+        paginator = OrderPagination()
+        page = paginator.paginate_queryset(qs, request)
+        serializer = OrderListSerializer(page, many=True, context={'request': request})
+        return paginator.get_paginated_response(serializer.data)
+
+
+class OrderDetailView(APIView):
+    """
+    GET /api/v1/orders/<order_number>/
+    Devuelve el detalle completo de una orden.
+    UC-ORD-02 (FR-ORD-02.02). RNF-SEC-003: filter(order_number, user) → 404.
+    Carga anticipada de items, value y address (evita N+1).
+    """
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary='Detalle de una orden',
+        description=(
+            'Retorna el snapshot completo: ítems con precios al momento del '
+            'checkout (BR-005), dirección, desglose financiero y estado actual. '
+            'RNF-SEC-003: 404 si la orden no existe o no pertenece al usuario.'
+        ),
+        responses={
+            200: 'OrderSerializer',
+            404: OpenApiResponse(description='Orden no encontrada.'),
+        },
+        tags=['orders'],
+    )
+    def get(self, request, order_number):
+        from .models import Order
+        from .serializers import OrderSerializer
+
+        order = (
+            Order.objects
+            .filter(order_number=order_number, user=request.user)
+            .select_related('value', 'address', 'shipping_method')
+            .prefetch_related('items')
+            .first()
+        )
+        if not order:
+            return Response(
+                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDEN_NO_ENCONTRADA'},
+                status=404,
+            )
+        return Response(OrderSerializer(order).data)
+
+
+class OrderCancelView(APIView):
+    """
+    POST /api/v1/orders/<order_number>/cancel/
+    Cancela una orden del comprador.
+    UC-ORD-04 (FR-ORD-04.02, FR-ORD-04.03).
+
+    Transacción atómica:
+      1. Valida estado cancelable (PENDING, PROCESSING)
+      2. Order → CANCELLED + cancellation_reason + cancelled_at
+      3. Restaura stock (InventoryService.restore)
+      4. Reembolso automático si había Payment aprobado
+    """
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary='Cancelar una orden',
+        description=(
+            'Cancela una orden en estado PENDING o PROCESSING. '
+            'Restaura el stock de todos los ítems. '
+            'Si había un pago aprobado, inicia el reembolso automáticamente. '
+            'H-ORD-002: solo PENDING y PROCESSING son cancelables por el comprador.'
+        ),
+        request='CancelOrderSerializer',
+        responses={
+            200: 'OrderSerializer',
+            400: OpenApiResponse(description='Orden no cancelable.'),
+            404: OpenApiResponse(description='Orden no encontrada.'),
+            503: OpenApiResponse(description='Gateway de reembolso no disponible.'),
+        },
+        tags=['orders'],
+    )
+    def post(self, request, order_number):
+        from .models import Order
+        from .serializers import CancelOrderSerializer, OrderSerializer
+        from .services import cancel_order
+
+        order = (
+            Order.objects
+            .filter(order_number=order_number, user=request.user)
+            .select_related('value', 'shipping_method')
+            .prefetch_related('items__product', 'items__variant', 'payments')
+            .first()
+        )
+        if not order:
+            return Response(
+                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDEN_NO_ENCONTRADA'},
+                status=404,
+            )
+
+        s = CancelOrderSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+
+        try:
+            cancel_order(
+                order=order,
+                reason=s.validated_data.get('reason', ''),
+                cancelled_by=request.user,
+            )
+        except ValueError as exc:
+            return Response(
+                {'detail': str(exc), 'codigo_error': 'CANCELACION_NO_PERMITIDA'},
+                status=400,
+            )
+        except RuntimeError as exc:
+            return Response(
+                {'detail': str(exc), 'codigo_error': 'GATEWAY_NO_DISPONIBLE'},
+                status=503,
+            )
+
+        order.refresh_from_db()
+        return Response(OrderSerializer(order).data)
+
+
+class OrderAddressUpdateView(APIView):
+    """
+    PATCH /api/v1/orders/<order_number>/address/
+    Edita la dirección de entrega de una orden.
+    UC-ORD-05 (FR-ORD-05.02).
+    Solo posible en PENDING, PROCESSING, IN_PREPARATION.
+    """
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary='Actualizar dirección de entrega',
+        description=(
+            'Actualiza la dirección de entrega de una orden. '
+            'Solo posible antes de que se cree la guía de envío '
+            '(estados: PENDING, PROCESSING, IN_PREPARATION). '
+            'H-ORD-002: los estados editables mapean correctamente al modelo.'
+        ),
+        request='UpdateAddressSerializer',
+        responses={
+            200: 'OrderSerializer',
+            400: OpenApiResponse(description='Dirección no editable.'),
+            404: OpenApiResponse(description='Orden no encontrada.'),
+        },
+        tags=['orders'],
+    )
+    def patch(self, request, order_number):
+        from .models import Order
+        from .serializers import UpdateAddressSerializer, OrderSerializer
+        from .services import update_order_address
+
+        order = (
+            Order.objects
+            .filter(order_number=order_number, user=request.user)
+            .select_related('address', 'value')
+            .first()
+        )
+        if not order:
+            return Response(
+                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDEN_NO_ENCONTRADA'},
+                status=404,
+            )
+
+        s = UpdateAddressSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+
+        try:
+            update_order_address(order, s.validated_data)
+        except ValueError as exc:
+            return Response(
+                {'detail': str(exc), 'codigo_error': 'DIRECCION_NO_EDITABLE'},
+                status=400,
+            )
+
+        order.refresh_from_db()
+        return Response(OrderSerializer(order).data)
+
+
+class OrderShippingUpdateView(APIView):
+    """
+    PATCH /api/v1/orders/<order_number>/shipping/
+    Cambia el método de envío y recalcula el total.
+    UC-ORD-06 (FR-ORD-06.02).
+    Solo posible en PENDING, PROCESSING, IN_PREPARATION.
+    H-ORD-007: recalcula total = neto + tax + nuevo_shipping_cost.
+    """
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary='Cambiar método de envío',
+        description=(
+            'Cambia el método de envío de la orden y recalcula el total. '
+            'Solo posible antes del envío (PENDING, PROCESSING, IN_PREPARATION). '
+            'H-ORD-007: total = subtotal_neto + IVA + costo_nuevo_envío.'
+        ),
+        request='UpdateShippingSerializer',
+        responses={
+            200: 'OrderSerializer',
+            400: OpenApiResponse(description='Cambio de envío no permitido.'),
+            404: OpenApiResponse(description='Orden no encontrada.'),
+        },
+        tags=['orders'],
+    )
+    def patch(self, request, order_number):
+        from .models import Order
+        from .serializers import UpdateShippingSerializer, OrderSerializer
+        from .services import update_shipping_method
+
+        order = (
+            Order.objects
+            .filter(order_number=order_number, user=request.user)
+            .select_related('value', 'shipping_method')
+            .first()
+        )
+        if not order:
+            return Response(
+                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDEN_NO_ENCONTRADA'},
+                status=404,
+            )
+
+        s = UpdateShippingSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+
+        try:
+            update_shipping_method(order, s.validated_data['shipping_method_id'])
+        except ValueError as exc:
+            return Response(
+                {'detail': str(exc), 'codigo_error': 'METODO_NO_EDITABLE'},
+                status=400,
+            )
+
+        order.refresh_from_db()
         return Response(OrderSerializer(order).data)
