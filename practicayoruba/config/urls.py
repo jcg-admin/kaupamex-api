@@ -38,6 +38,8 @@ urlpatterns = [
     path('api/v1/admin/',     include('apps.catalogue.admin_urls', namespace='admin_catalogue')),
     path('api/v1/admin/',     include('apps.settings_app.admin_urls', namespace='admin_settings')),
     path('api/v1/catalogue/', include('apps.catalogue.urls',   namespace='catalogue')),
+    path('api/v1/catalogue/', include('apps.chartsize.urls',   namespace='chartsize')),
+    path('api/v1/admin/',     include('apps.chartsize.admin_urls', namespace='admin_chartsize')),
 ]
 
 

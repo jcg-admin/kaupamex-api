@@ -130,6 +130,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     images            = serializers.SerializerMethodField()
     discount          = serializers.SerializerMethodField()
     related_products  = serializers.SerializerMethodField()
+    variants           = serializers.SerializerMethodField()
 
     class Meta:
         model  = Product
@@ -141,6 +142,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             'stock', 'availability',
             'images',
             'related_products',
+            'variants',
             'is_active', 'is_published', 'is_featured',
             'created_at', 'updated_at',
         ]
@@ -156,6 +158,19 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     def get_discount(self, obj):
         # Sprint 7 (vouchers): sustituir por lógica de ProductDiscount activo (BR-012) — Sprint 13
         return None
+
+    def get_variants(self, obj):
+        """
+        UC-CHT-01 (FR-CHT-01.02): variantes activas del producto.
+        Incluidas en la ficha sin endpoint separado.
+        """
+        VariantSer = _get_variant_serializer()
+        qs = (
+            obj.variants.filter(is_active=True)
+            .select_related('option', 'option__variant_type')
+            .order_by('option__order', 'option__label')
+        )
+        return VariantSer(qs, many=True, context=self.context).data
 
     def get_related_products(self, obj):
         """
@@ -228,6 +243,11 @@ class SearchHistorySerializer(serializers.ModelSerializer):
 # =============================================================================
 # Sprint 7 — UC-CAT-07, UC-CAT-08, UC-CAT-09, UC-CAT-10
 # =============================================================================
+
+# Sprint 9 — import lazy para evitar circular import con apps.chartsize
+def _get_variant_serializer():
+    from apps.chartsize.serializers import ProductVariantSerializer
+    return ProductVariantSerializer
 
 class ProductImageSerializer(serializers.ModelSerializer):
     """Imagen de producto. Gestión completa en Sprint 8."""
