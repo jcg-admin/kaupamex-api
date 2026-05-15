@@ -1,10 +1,11 @@
 """
-Tests de integracion — Sprint 13
-UC-PRO-01: Crear Voucher
-UC-PRO-02: Editar Voucher con auditoría
-UC-PRO-03: Desactivar Voucher
-UC-PRO-04: Reporte de Uso
-UC-CART-04: Aplicar Cupón de Descuento
+Tests — Voucher management and cart discount application
+
+UC-PRO-01: Create voucher
+UC-PRO-02: Edit voucher with audit log
+UC-PRO-03: Deactivate voucher
+UC-PRO-04: Usage report
+UC-CART-04: Apply discount coupon to cart
 """
 import pytest
 from decimal import Decimal

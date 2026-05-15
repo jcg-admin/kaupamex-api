@@ -1,10 +1,11 @@
 """
-Tests de integracion — Sprint 12
-UC-CART-01: Agregar Producto al Carrito
-UC-CART-02: Ver y Editar Carrito
-UC-CART-03: Eliminar Item del Carrito
-UC-CART-05: Guardar Carrito para Despues
-UC-CART-06: Sincronizar Carrito Anonimo al Autenticar
+Tests — Cart (UC-CART-01/02/03/05/06)
+
+UC-CART-01: Add product to cart
+UC-CART-02: View and edit cart
+UC-CART-03: Remove item from cart
+UC-CART-05: Save cart for later
+UC-CART-06: Merge anonymous cart on login
 """
 import uuid, pytest
 from decimal import Decimal

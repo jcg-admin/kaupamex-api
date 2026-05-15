@@ -1,10 +1,11 @@
 """
-Tests de integracion — Sprint 10
-UC-CFG-04: Contenido Estático (StaticPage/Version)
-UC-CFG-05: Datos de Contacto (SiteSettings extendido)
-UC-INV-01: Dashboard de Stock
-UC-INV-02: Decremento de Stock (InventoryService)
-UC-INV-04: Ajuste Manual de Stock
+Tests — Stock dashboard, decrement and configuration
+
+UC-INV-01: Stock dashboard
+UC-INV-02: Stock decrement (InventoryService)
+UC-INV-04: Manual stock adjustment
+UC-CFG-04: Static content (StaticPage/Version)
+UC-CFG-05: Contact data (SiteSettings extended)
 """
 import pytest
 from decimal import Decimal

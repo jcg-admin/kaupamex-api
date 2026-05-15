@@ -1,8 +1,9 @@
 """
-Tests de integracion — Sprint 11
-UC-INV-03: Restaurar Stock (servicio idempotente — complementa Sprint 10)
-UC-INV-04: Ajuste Manual por Delta (corrección de Sprint 10)
-UC-INV-05: Importar Productos desde CSV
+Tests — Stock restoration, delta adjustments and CSV import
+
+UC-INV-03: Restore stock (idempotent service)
+UC-INV-04: Manual delta adjustment
+UC-INV-05: Import products from CSV
 """
 import csv, io, pytest
 from decimal import Decimal

@@ -1,7 +1,8 @@
 """
-Tests de integracion — Sprint 8 (settings_app)
-UC-CFG-01: Configurar Gateways de Pago
-UC-CFG-02: Configurar Metodos y Costos de Envio
+Tests — Payment gateways and shipping methods configuration
+
+UC-CFG-01: Configure payment gateways
+UC-CFG-02: Configure shipping methods and costs
 """
 import pytest
 from decimal import Decimal

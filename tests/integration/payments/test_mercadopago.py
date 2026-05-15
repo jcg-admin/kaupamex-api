@@ -1,8 +1,9 @@
 """
-Tests de integración — Sprint 15
-UC-PAY-01:     Procesar Pago con MercadoPago
-UC-PAY-01-EXT: Cuotas MSI
-UC-ORD-01-EXT: Checkout Express
+Tests — MercadoPago payment, MSI installments and express checkout
+
+UC-PAY-01:     Process payment with MercadoPago
+UC-PAY-01-EXT: MSI installment plans
+UC-ORD-01-EXT: Express checkout
 """
 import json
 import uuid

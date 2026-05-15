@@ -1,9 +1,10 @@
 """
-Tests de integracion — Sprint 5
-UC-CAT-02: Ver Detalle de Producto
-UC-CAT-03: Buscar Productos por Texto
-UC-CAT-03-EXT: Buscar con Filtros Avanzados
-UC-SRCH-01: Full-Text Search con MySQL FULLTEXT
+Tests — Product detail and full-text search
+
+UC-CAT-02: View product detail
+UC-CAT-03: Search products by text (full-text)
+UC-CAT-03-EXT: Advanced search filters
+UC-SRCH-01: Full-text search with MariaDB FULLTEXT
 """
 import pytest
 from decimal import Decimal

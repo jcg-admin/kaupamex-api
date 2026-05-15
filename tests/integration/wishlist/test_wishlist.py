@@ -1,4 +1,10 @@
-"""Tests Sprint 14 — Wishlist (UC-WISH-01/02/03)."""
+"""
+Tests — Wishlist (UC-WISH-01/02/03)
+
+UC-WISH-01: Add product to wishlist
+UC-WISH-02: View wishlist
+UC-WISH-03: Move wishlist item to cart
+"""
 import pytest
 from decimal import Decimal
 pytestmark = pytest.mark.integration

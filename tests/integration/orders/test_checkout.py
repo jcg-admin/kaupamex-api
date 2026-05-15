@@ -1,4 +1,8 @@
-"""Tests Sprint 14 — Checkout y Orden (UC-ORD-01)."""
+"""
+Tests — Checkout and order creation (UC-ORD-01)
+
+UC-ORD-01: Create order from cart (checkout)
+"""
 import pytest
 from decimal import Decimal
 pytestmark = pytest.mark.integration
