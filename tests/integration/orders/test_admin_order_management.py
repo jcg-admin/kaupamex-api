@@ -59,19 +59,19 @@ def _make_order(user, prod, status='PENDING'):
 
 class TestSeguridadAdminEndpoints:
 
-    def test_usuario_normal_no_accede_a_lista_admin(self, auth_client, db):
+    def test_usuario_normal_no_accede_a_lista_admin(self, user, auth_client, db):
         res = auth_client.get(ADMIN_LIST_URL)
         assert res.status_code == 403
 
     def test_usuario_normal_no_puede_cambiar_estado(
-        self, auth_client, auth_user, prod_adm, db
+        self, auth_client, user, prod_adm, db
     ):
-        order = _make_order(auth_user, prod_adm)
+        order = _make_order(user, prod_adm)
         res   = auth_client.patch(ADMIN_STATUS_URL(order.order_number),
                                   {'new_status': 'PROCESSING'}, format='json')
         assert res.status_code == 403
 
-    def test_sin_auth_retorna_401(self, api_client, db):
+    def test_sin_auth_retorna_401(self, user, api_client, db):
         res = api_client.get(ADMIN_LIST_URL)
         assert res.status_code == 401
 
@@ -83,23 +83,23 @@ class TestSeguridadAdminEndpoints:
 class TestBuscarOrdenesAdmin:
 
     def test_admin_ve_todas_las_ordenes(
-        self, admin_client, auth_user, prod_adm, db
+        self, admin_client, user, prod_adm, db
     ):
         from django.contrib.auth import get_user_model
         User = get_user_model()
         other = User.objects.create_user(
             username='other_adm', email='oa@test.com', password='pass'
         )
-        _make_order(auth_user, prod_adm)
+        _make_order(user, prod_adm)
         _make_order(other,     prod_adm)
 
         res = admin_client.get(ADMIN_LIST_URL)
         assert res.status_code == 200
         assert res.json()['count'] >= 2
 
-    def test_filtro_por_status(self, admin_client, auth_user, prod_adm, db):
-        _make_order(auth_user, prod_adm, 'PENDING')
-        _make_order(auth_user, prod_adm, 'SHIPPED')
+    def test_filtro_por_status(self, admin_client, user, prod_adm, db):
+        _make_order(user, prod_adm, 'PENDING')
+        _make_order(user, prod_adm, 'SHIPPED')
 
         res = admin_client.get(ADMIN_LIST_URL, {'status': 'PENDING'})
         data = res.json()
@@ -107,9 +107,9 @@ class TestBuscarOrdenesAdmin:
         assert statuses == {'PENDING'}
 
     def test_filtro_por_numero_orden_parcial(
-        self, admin_client, auth_user, prod_adm, db
+        self, admin_client, user, prod_adm, db
     ):
-        order = _make_order(auth_user, prod_adm)
+        order = _make_order(user, prod_adm)
         prefix = order.order_number[:5]
 
         res = admin_client.get(ADMIN_LIST_URL, {'order_number': prefix})
@@ -117,13 +117,13 @@ class TestBuscarOrdenesAdmin:
         first_num = res.json()['results'][0]['order_number']
         assert prefix.upper() in first_num.upper() or order.order_number == first_num
 
-    def test_filtros_combinados_and(self, admin_client, auth_user, prod_adm, db):
-        order_p = _make_order(auth_user, prod_adm, 'PENDING')
-        order_s = _make_order(auth_user, prod_adm, 'SHIPPED')
+    def test_filtros_combinados_and(self, admin_client, user, prod_adm, db):
+        order_p = _make_order(user, prod_adm, 'PENDING')
+        order_s = _make_order(user, prod_adm, 'SHIPPED')
 
         res = admin_client.get(ADMIN_LIST_URL, {
             'status': 'PENDING',
-            'email':  auth_user.email,
+            'email':  user.email,
         })
         results = res.json()['results']
         statuses = {o['status'] for o in results}
@@ -137,9 +137,9 @@ class TestBuscarOrdenesAdmin:
 class TestTransicionEstadoAdmin:
 
     def test_transicion_valida_pending_a_processing(
-        self, admin_client, auth_user, prod_adm, db
+        self, admin_client, user, prod_adm, db
     ):
-        order = _make_order(auth_user, prod_adm, 'PENDING')
+        order = _make_order(user, prod_adm, 'PENDING')
         res   = admin_client.patch(
             ADMIN_STATUS_URL(order.order_number),
             {'new_status': 'PROCESSING', 'notes': 'Pago verificado'},
@@ -149,10 +149,10 @@ class TestTransicionEstadoAdmin:
         assert res.json()['status'] == 'PROCESSING'
 
     def test_transicion_crea_statuslog(
-        self, admin_client, auth_user, prod_adm, db
+        self, admin_client, user, prod_adm, db
     ):
         from apps.orders.models import OrderStatusLog
-        order = _make_order(auth_user, prod_adm, 'PROCESSING')
+        order = _make_order(user, prod_adm, 'PROCESSING')
         admin_client.patch(
             ADMIN_STATUS_URL(order.order_number),
             {'new_status': 'IN_PREPARATION'},
@@ -164,10 +164,10 @@ class TestTransicionEstadoAdmin:
         assert log.new_status == 'IN_PREPARATION'
 
     def test_transicion_invalida_retorna_400(
-        self, admin_client, auth_user, prod_adm, db
+        self, admin_client, user, prod_adm, db
     ):
         """H-ADM-002: SHIPPED no puede volver a PROCESSING."""
-        order = _make_order(auth_user, prod_adm, 'SHIPPED')
+        order = _make_order(user, prod_adm, 'SHIPPED')
         res   = admin_client.patch(
             ADMIN_STATUS_URL(order.order_number),
             {'new_status': 'PROCESSING'},
@@ -177,10 +177,10 @@ class TestTransicionEstadoAdmin:
         assert res.json()['codigo_error'] == 'TRANSICION_NO_PERMITIDA'
 
     def test_estado_terminal_no_tiene_transiciones(
-        self, admin_client, auth_user, prod_adm, db
+        self, admin_client, user, prod_adm, db
     ):
         """DELIVERED es terminal — no hay transición posible."""
-        order = _make_order(auth_user, prod_adm, 'DELIVERED')
+        order = _make_order(user, prod_adm, 'DELIVERED')
         res   = admin_client.patch(
             ADMIN_STATUS_URL(order.order_number),
             {'new_status': 'SHIPPED'},  # intentar retroceder
@@ -189,11 +189,11 @@ class TestTransicionEstadoAdmin:
         assert res.status_code == 400
 
     def test_flujo_completo_pending_a_delivered(
-        self, admin_client, auth_user, prod_adm, db
+        self, admin_client, user, prod_adm, db
     ):
         """Flujo feliz completo: PENDING → PROCESSING → IN_PREPARATION → SHIPPED → DELIVERED."""
         from apps.orders.models import OrderStatusLog
-        order = _make_order(auth_user, prod_adm, 'PENDING')
+        order = _make_order(user, prod_adm, 'PENDING')
 
         for new_status in ['PROCESSING', 'IN_PREPARATION', 'SHIPPED', 'DELIVERED']:
             res = admin_client.patch(
@@ -215,10 +215,10 @@ class TestTransicionEstadoAdmin:
 class TestCancelarOrdenAdmin:
 
     def test_admin_cancela_in_preparation(
-        self, admin_client, auth_user, prod_adm, db
+        self, admin_client, user, prod_adm, db
     ):
         """H-ADM-005: el admin puede cancelar IN_PREPARATION (el comprador no)."""
-        order = _make_order(auth_user, prod_adm, 'IN_PREPARATION')
+        order = _make_order(user, prod_adm, 'IN_PREPARATION')
         res   = admin_client.post(
             ADMIN_CANCEL_URL(order.order_number),
             {'reason': 'Fraude detectado en el pedido'},
@@ -230,9 +230,9 @@ class TestCancelarOrdenAdmin:
         assert order.admin_cancelled_by is not None
 
     def test_motivo_obligatorio_min_10_chars(
-        self, admin_client, auth_user, prod_adm, db
+        self, admin_client, user, prod_adm, db
     ):
-        order = _make_order(auth_user, prod_adm, 'PENDING')
+        order = _make_order(user, prod_adm, 'PENDING')
         res   = admin_client.post(
             ADMIN_CANCEL_URL(order.order_number),
             {'reason': 'corto'},
@@ -242,9 +242,9 @@ class TestCancelarOrdenAdmin:
         assert res.json()['codigo_error'] == 'CANCELACION_NO_PERMITIDA'
 
     def test_admin_no_puede_cancelar_shipped(
-        self, admin_client, auth_user, prod_adm, db
+        self, admin_client, user, prod_adm, db
     ):
-        order = _make_order(auth_user, prod_adm, 'SHIPPED')
+        order = _make_order(user, prod_adm, 'SHIPPED')
         res   = admin_client.post(
             ADMIN_CANCEL_URL(order.order_number),
             {'reason': 'Motivo de prueba suficientemente largo'},
@@ -253,10 +253,10 @@ class TestCancelarOrdenAdmin:
         assert res.status_code == 400
 
     def test_admin_cancelacion_restaura_stock(
-        self, admin_client, auth_user, prod_adm, db
+        self, admin_client, user, prod_adm, db
     ):
         stock_inicial = prod_adm.stock
-        order = _make_order(auth_user, prod_adm, 'IN_PREPARATION')
+        order = _make_order(user, prod_adm, 'IN_PREPARATION')
         admin_client.post(
             ADMIN_CANCEL_URL(order.order_number),
             {'reason': 'Stock incorrecto reportado por almacén'},
@@ -266,10 +266,10 @@ class TestCancelarOrdenAdmin:
         assert prod_adm.stock == stock_inicial + 1
 
     def test_admin_cancelacion_registra_statuslog(
-        self, admin_client, auth_user, prod_adm, db
+        self, admin_client, user, prod_adm, db
     ):
         from apps.orders.models import OrderStatusLog
-        order = _make_order(auth_user, prod_adm, 'PROCESSING')
+        order = _make_order(user, prod_adm, 'PROCESSING')
         admin_client.post(
             ADMIN_CANCEL_URL(order.order_number),
             {'reason': 'Cancelación administrativa por validación'},
@@ -304,14 +304,14 @@ class TestDashboardTransaccional:
         assert 'generated_at'    in data
 
     def test_dashboard_contadores_correctos(
-        self, admin_client, auth_user, prod_adm, db
+        self, admin_client, user, prod_adm, db
     ):
         from apps.settings_app.models import SiteSettings
         SiteSettings.get_current()
 
-        _make_order(auth_user, prod_adm, 'PENDING')
-        _make_order(auth_user, prod_adm, 'PENDING')
-        _make_order(auth_user, prod_adm, 'PROCESSING')
+        _make_order(user, prod_adm, 'PENDING')
+        _make_order(user, prod_adm, 'PENDING')
+        _make_order(user, prod_adm, 'PROCESSING')
 
         res    = admin_client.get(ADMIN_DASHBOARD_URL)
         counts = res.json()['order_counts']

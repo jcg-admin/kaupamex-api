@@ -463,10 +463,10 @@ class TestCategoryModel:
     def test_get_descendants_pks_incluye_hijos(
         self, cat_collares, cat_collares_oshun, db
     ):
-        pks = cat_collares.get_descendants_pks()
+        pks = cat_collares.get_descendants_ids()
         assert cat_collares.pk in pks
         assert cat_collares_oshun.pk in pks
 
     def test_get_descendants_pks_categoria_hoja(self, cat_collares_oshun, db):
-        pks = cat_collares_oshun.get_descendants_pks()
+        pks = cat_collares_oshun.get_descendants_ids()
         assert pks == {cat_collares_oshun.pk}

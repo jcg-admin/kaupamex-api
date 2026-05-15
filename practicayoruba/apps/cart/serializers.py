@@ -39,9 +39,12 @@ class CartItemSerializer(serializers.ModelSerializer):
         return obj.is_available()
 
     def get_price_changed(self, obj):
-        """True si el precio del item difiere del precio vigente."""
-        current = obj.current_price()
-        return current != obj.unit_price
+        """True si el precio fue actualizado durante esta request (FR-CART-01.02)."""
+        changed_ids = self.context.get('changed_ids', set())
+        if changed_ids:
+            return obj.pk in changed_ids
+        # Fallback: comparar con precio vigente
+        return obj.current_price() != obj.unit_price
 
 
 class CartSerializer(serializers.ModelSerializer):

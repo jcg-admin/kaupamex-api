@@ -102,12 +102,18 @@ class ProductVariantAdminViewSet(ModelViewSet):
         """
         Soft delete: is_active=False.
         Sprint 12: verificar CartItems activos antes de desactivar.
-        H-ORD-005: verificar órdenes activas resuelto arriba.
+        H-ORD-005: verificar ActiveOrders antes de desactivar (Sprint 19).
         """
+        # H-ORD-005: protección contra órdenes activas
+        from apps.orders.proxy_models import ActiveOrder
+        if ActiveOrder.objects.filter(items__variant=instance).exists():
+            raise ValidationError({
+                'detail': 'No se puede eliminar esta variante porque tiene órdenes activas.',
+                'codigo_error': 'VARIANTE_CON_ORDENES_ACTIVAS',
+            })
         # H-S12-006: protección contra CartItems activos
         active_cart_items = instance.cart_items.count()
         if active_cart_items > 0:
-            from rest_framework.exceptions import ValidationError
             raise ValidationError({
                 'detail': (
                     f'Esta variante tiene {active_cart_items} item(s) en carritos activos. '

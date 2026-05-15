@@ -99,7 +99,12 @@ class Cart(TimeStampedModel):
                 existing = self.items.filter(variant=other_item.variant).first()
                 if existing:
                     existing.quantity  += other_item.quantity
-                    existing.unit_price = other_item.variant.effective_price()
+                    # variant puede ser None para productos sin variantes
+                    existing.unit_price = (
+                        other_item.variant.effective_price()
+                        if other_item.variant
+                        else other_item.product.price
+                    )
                     existing.save(update_fields=['quantity', 'unit_price'])
                 else:
                     other_item.cart = self

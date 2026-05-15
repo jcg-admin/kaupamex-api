@@ -86,9 +86,32 @@ class PaymentGateway(TimeStampedModel):
         self.credentials = f.encrypt(json.dumps(data).encode())
 
     def get_credentials(self) -> dict:
+        """Descifra y retorna las credenciales. {} si están vacías o son inválidas."""
         import json
-        f = Fernet(self._fernet_key())
-        return json.loads(f.decrypt(bytes(self.credentials)).decode())
+        if not self.credentials:
+            return {}
+        try:
+            f = Fernet(self._fernet_key())
+            return json.loads(f.decrypt(bytes(self.credentials)).decode())
+        except Exception:
+            return {}
+
+    def get_masked_credentials(self) -> dict:
+        """Retorna credenciales con campos sensibles enmascarados.
+        Formato: '****' + últimos 4 caracteres (empieza siempre con *).
+        BR-009 / RNF-SEC-002: nunca exponer credenciales completas.
+        """
+        try:
+            creds = self.get_credentials()
+        except Exception:
+            return {}
+        masked = {}
+        for key, value in creds.items():
+            if isinstance(value, str) and len(value) > 4:
+                masked[key] = '****' + value[-4:]
+            else:
+                masked[key] = '****'
+        return masked
 
 
 class ShippingMethod(TimeStampedModel):

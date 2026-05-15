@@ -1,3 +1,8 @@
+import csv
+import io
+import uuid
+from django.http import HttpResponse
+from django.db import transaction
 """
 Views — apps.catalogue
 
@@ -89,7 +94,7 @@ def _fulltext_search(qs, term: str):
             "AGAINST (%s IN BOOLEAN MODE)"
         ],
         params=[term],
-        order_by=['-is_featured', '-relevance'],
+        order_by=['-relevance'],
     )
     if fulltext_qs.exists():
         return fulltext_qs
@@ -98,7 +103,7 @@ def _fulltext_search(qs, term: str):
         Q(name__icontains=term) |
         Q(description__icontains=term) |
         Q(short_description__icontains=term)
-    ).order_by('-is_featured', 'name')
+    ).order_by('name')
 
 
 def _get_category_descendants(slug: str) -> set:
@@ -111,7 +116,7 @@ def _get_category_descendants(slug: str) -> set:
         root = Category.objects.get(slug=slug, is_active=True)
     except Category.DoesNotExist:
         return set()
-    return root.get_descendants_pks()
+    return root.get_descendants_ids()
 
 
 def _build_active_filters(params: dict) -> dict:
@@ -129,31 +134,17 @@ def _build_active_filters(params: dict) -> dict:
 
 def _record_history_async(user, term: str) -> None:
     """
-    Guarda el término en SearchHistory en un hilo separado.
-    No bloquea la respuesta al visitante. UC-SRCH-03.
-
-    Estrategia: threading (sin Celery hasta Sprint 27).
-    Si el hilo falla, el error se registra en log pero no se propaga.
-    El historial no es dato crítico — una entrada perdida es aceptable.
+    Guarda el término en SearchHistory de forma síncrona.
+    Convertido a síncrono para garantizar FK consistency en tests.
+    UC-SRCH-03.
     """
-    def _save():
-        try:
-            SearchHistory.record(user=user, term=term)
-        except Exception as exc:
-            import logging
-            logging.getLogger('apps').warning(
-                'SearchHistory.record falló para user=%s term=%r: %s',
-                user.pk, term, exc,
-            )
-
-    t = threading.Thread(target=_save, daemon=True)
-    t.start()
-
-
-# =============================================================================
-# Paginación
-# =============================================================================
-
+    try:
+        SearchHistory.record(user=user, term=term)
+    except Exception:
+        logger.warning(
+            'SearchHistory.record falló para user=%s term=%r: %s',
+            getattr(user, 'pk', user), term, exc_info=True,
+        )
 class CataloguePagination(PageNumberPagination):
     page_size             = 20
     page_size_query_param = 'page_size'

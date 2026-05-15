@@ -92,6 +92,7 @@ def admin_cancel_order(order, reason: str, admin_user):
         order=order,
         reason=reason,
         cancelled_by=admin_user,
+        cancelable_statuses=ADMIN_CANCELABLE_STATUSES,
     )
 
     # Registrar quién (admin) canceló

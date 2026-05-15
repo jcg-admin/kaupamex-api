@@ -50,6 +50,9 @@ PASSWORD_HASHERS = [
 # Sin throttling en tests
 REST_FRAMEWORK['DEFAULT_THROTTLE_CLASSES'] = []
 
+# ALLOWED_HOSTS para pruebas — pytest-django usa 'testserver' por defecto
+ALLOWED_HOSTS = ['testserver', 'localhost', '127.0.0.1', '*']
+
 # Sin logs en consola durante tests
 LOGGING = {
     'version': 1,

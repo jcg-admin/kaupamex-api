@@ -21,7 +21,7 @@ def cat_hist(db):
 
 
 @pytest.fixture
-def orden_con_pago(db, auth_user, cat_hist):
+def orden_con_pago(db, user, cat_hist):
     """Orden con un Payment APPROVED."""
     from apps.catalogue.models import Product
     from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
@@ -33,7 +33,7 @@ def orden_con_pago(db, auth_user, cat_hist):
         price=Decimal('2400.00'), stock=3,
         is_active=True, is_published=True,
     )
-    order = Order.objects.create(user=auth_user, status='PROCESSING')
+    order = Order.objects.create(user=user, status='PROCESSING')
     OrderItem.objects.create(
         order=order, product_name=prod.name, sku=prod.sku,
         unit_price=prod.price, quantity=1, subtotal=prod.price,
@@ -57,7 +57,7 @@ def orden_con_pago(db, auth_user, cat_hist):
 
 
 @pytest.fixture
-def orden_con_historial(db, auth_user, cat_hist):
+def orden_con_historial(db, user, cat_hist):
     """Orden con un Payment FAILED seguido de uno APPROVED."""
     from apps.catalogue.models import Product
     from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
@@ -71,7 +71,7 @@ def orden_con_historial(db, auth_user, cat_hist):
         price=Decimal('1200.00'), stock=5,
         is_active=True, is_published=True,
     )
-    order = Order.objects.create(user=auth_user, status='PROCESSING')
+    order = Order.objects.create(user=user, status='PROCESSING')
     OrderItem.objects.create(
         order=order, product_name=prod.name, sku=prod.sku,
         unit_price=prod.price, quantity=1, subtotal=prod.price,
@@ -121,7 +121,7 @@ class TestEstadoPago:
         assert data['order_number'] == order.order_number
 
     def test_orden_sin_pagos_retorna_no_payment(
-        self, auth_client, auth_user, cat_hist, db
+        self, auth_client, user, cat_hist, db
     ):
         from apps.orders.models import Order, OrderValue, OrderAddress
         from apps.catalogue.models import Product
@@ -130,7 +130,7 @@ class TestEstadoPago:
             description='', category=cat_hist,
             price=Decimal('100'), stock=1, is_active=True, is_published=True,
         )
-        order = Order.objects.create(user=auth_user, status='PENDING')
+        order = Order.objects.create(user=user, status='PENDING')
         OrderValue.objects.create(
             order=order, subtotal=Decimal('100'), tax=Decimal('13.79'),
             shipping_cost=Decimal('0'), discount=Decimal('0'), total=Decimal('100'),
@@ -190,7 +190,7 @@ class TestHistorialPagos:
         assert pagos[0]['status'] == 'APPROVED'
         assert pagos[1]['status'] == 'FAILED'
 
-    def test_historial_rnf_sec_003(self, auth_client, db):
+    def test_historial_rnf_sec_003(self, user, auth_client, db):
         """RNF-SEC-003: orden de otro usuario → 404."""
         from django.contrib.auth import get_user_model
         from apps.orders.models import Order
@@ -203,10 +203,10 @@ class TestHistorialPagos:
         assert res.status_code == 404
 
     def test_historial_orden_sin_pagos_retorna_lista_vacia(
-        self, auth_client, auth_user, cat_hist, db
+        self, auth_client, user, cat_hist, db
     ):
         from apps.orders.models import Order
-        order = Order.objects.create(user=auth_user, status='PENDING')
+        order = Order.objects.create(user=user, status='PENDING')
         res = auth_client.get(HISTORY_URL(order.order_number))
         assert res.status_code == 200
         assert res.json() == []
@@ -219,7 +219,7 @@ class TestHistorialPagos:
 class TestElegibilidadReintento:
 
     def test_orden_con_pago_fallido_es_reintentable(
-        self, auth_client, auth_user, cat_hist, db
+        self, auth_client, user, cat_hist, db
     ):
         from apps.orders.models import Order
         from apps.payments.models import Payment
@@ -229,7 +229,7 @@ class TestElegibilidadReintento:
         gw.set_credentials({'access_token': 'T', 'client_secret': 'S'})
         gw.save()
 
-        order = Order.objects.create(user=auth_user, status='PENDING')
+        order = Order.objects.create(user=user, status='PENDING')
         Payment.objects.create(
             order=order, gateway='MERCADOPAGO',
             status='FAILED', amount=Decimal('500'),

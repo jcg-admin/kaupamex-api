@@ -38,16 +38,18 @@ urlpatterns = [
     path('api/v1/admin/',     include('apps.catalogue.admin_urls', namespace='admin_catalogue')),
     path('api/v1/admin/',     include('apps.settings_app.admin_urls', namespace='admin_settings')),
     path('api/v1/admin/',     include('apps.inventory.urls',         namespace='admin_inventory')),
+    # ─── URLs específicas PRIMERO (antes del catch-all /api/v1/) ────────────────
     path('api/v1/cart/',      include('apps.cart.urls',        namespace='cart')),
     path('api/v1/admin/',     include('apps.voucher.urls',     namespace='admin_voucher')),
-    path('api/v1/wishlist/', include('apps.wishlist.urls',    namespace='wishlist')),
-    path('api/v1/',          include('apps.orders.urls',       namespace='orders')),
-    path('api/v1/admin/',    include('apps.orders.admin_urls')),
+    path('api/v1/wishlist/',  include('apps.wishlist.urls',    namespace='wishlist')),
     path('api/v1/payments/', include('apps.payments.urls',     namespace='payments')),
     path('api/v1/checkout/', include('apps.payments.checkout_urls')),
     path('api/v1/catalogue/', include('apps.catalogue.urls',   namespace='catalogue')),
     path('api/v1/catalogue/', include('apps.chartsize.urls',   namespace='chartsize')),
     path('api/v1/admin/',     include('apps.chartsize.admin_urls', namespace='admin_chartsize')),
+    path('api/v1/admin/',    include('apps.orders.admin_urls')),
+    # ─── Catch-all LAST: /api/v1/<order_number>/ — DEBE ir después de todos los específicos
+    path('api/v1/',          include('apps.orders.urls',       namespace='orders')),
 ]
 
 

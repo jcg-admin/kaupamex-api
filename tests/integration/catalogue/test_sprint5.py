@@ -44,7 +44,6 @@ def product_oshun(db, cat_collares):
         stock=10,
         is_active=True,
         is_published=True,
-        is_featured=True,
     )
 
 
@@ -62,7 +61,6 @@ def product_yemaya(db, cat_pulseras):
         stock=5,
         is_active=True,
         is_published=True,
-        is_featured=False,
     )
 
 
@@ -258,9 +256,8 @@ class TestBusqueda:
         )
         r = api_client.get(SEARCH_URL, {'q': 'collar'})
         resultados = r.json()['results']
-        if len(resultados) >= 2:
-            # El featured debe aparecer primero
-            assert resultados[0]['is_featured'] is True
+        # is_featured fue eliminado del modelo — verificar solo que hay resultados
+        assert len(resultados) >= 1
 
     def test_busqueda_metadatos_paginacion(self, api_client, product_oshun):
         r = api_client.get(SEARCH_URL, {'q': 'oshun'})

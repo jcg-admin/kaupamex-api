@@ -11,8 +11,6 @@ Sprints 4-9. Refactorizado en sprint de infraestructura: herencia-modelos-django
 import threading
 from django.conf import settings
 from django.db import models
-from django.contrib.postgres.search import SearchVectorField
-from django.contrib.postgres.indexes import GinIndex
 
 from apps.core.models import TimeStampedModel
 
@@ -37,12 +35,33 @@ class Category(TimeStampedModel):
     def __str__(self):
         return self.name
 
+    def would_create_cycle(self, new_parent) -> bool:
+        """
+        Verifica si asignar new_parent como padre crearía un ciclo en el árbol.
+        Retorna True si hay ciclo (no permitido), False si es seguro.
+        """
+        if new_parent is None:
+            return False
+        if new_parent.pk == self.pk:
+            return True
+        # Verificar si self es ancestro de new_parent
+        ancestor = new_parent
+        while ancestor.parent_id is not None:
+            if ancestor.parent_id == self.pk:
+                return True
+            ancestor = ancestor.parent
+        return False
+
     def get_descendants_ids(self):
-        ids = []
+        """
+        Retorna el set de PKs de esta categoría y todos sus descendientes activos.
+        FR-CAT-04.02: incluye la propia categoría (self) y todos sus hijos recursivos.
+        """
+        ids = {self.pk}
         queue = list(self.children.filter(is_active=True).values_list('pk', flat=True))
         while queue:
             child_id = queue.pop()
-            ids.append(child_id)
+            ids.add(child_id)
             queue.extend(
                 Category.objects.filter(parent_id=child_id, is_active=True)
                 .values_list('pk', flat=True)
@@ -64,12 +83,13 @@ class Product(TimeStampedModel):
     stock             = models.IntegerField(default=0)
     is_active         = models.BooleanField(default=True, db_index=True)
     is_published      = models.BooleanField(default=False, db_index=True)
-    search_vector     = SearchVectorField(null=True, blank=True)
+    # Columna auxiliar para búsqueda fulltext (MariaDB usa FULLTEXT INDEX, no tsvector)
+    # El índice FULLTEXT real está en la migración 0002 sobre name+description+short_description
+    search_vector     = models.TextField(null=True, blank=True)
 
     class Meta:
         db_table     = 'catalogue_product'
         ordering     = ['-created_at']
-        indexes      = [GinIndex(fields=['search_vector'], name='product_search_gin')]
         verbose_name = 'Producto'
 
     def __str__(self):
@@ -121,8 +141,9 @@ class SearchHistory(TimeStampedModel):
                 oldest_ids = list(qs.values_list('pk', flat=True)[:count - 20])
                 cls.objects.filter(pk__in=oldest_ids).delete()
 
-        t = threading.Thread(target=trim, daemon=True)
-        t.start()
+        # Ejecutar trim de forma síncrona para garantizar consistencia
+        # El costo es mínimo: 1 COUNT + 1 DELETE cuando count > 20
+        trim()
 
 
 class ProductImage(TimeStampedModel):
