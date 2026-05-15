@@ -53,7 +53,16 @@ class Order(TimeStampedModel):
                           help_text='Código del voucher al momento del checkout.')
     voucher_discount = models.DecimalField(
         max_digits=10, decimal_places=2, default=Decimal('0.00'))
-    notes           = models.TextField(blank=True, default='')
+    notes               = models.TextField(blank=True, default='')
+    # UC-ORD-04 — campos de cancelación (H-ORD-001)
+    cancellation_reason = models.TextField(
+        blank=True, default='',
+        help_text='Motivo de la cancelación (comprador o admin).'
+    )
+    cancelled_at        = models.DateTimeField(
+        null=True, blank=True,
+        help_text='Timestamp de la cancelación. Null si la orden no está cancelada.'
+    )
     # DEC-003: override para mantener db_index en tabla de alto volumen
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     # updated_at viene de TimeStampedModel
