@@ -306,3 +306,84 @@ class CartMergeView(APIView):
 
         _refresh_item_prices(user_cart)
         return Response(CartSerializer(user_cart).data)
+
+
+# =============================================================================
+# Sprint 13 — UC-CART-04: Aplicar/quitar cupón de descuento
+# =============================================================================
+
+class CartVoucherView(APIView):
+    """
+    POST   /api/v1/cart/voucher/ — aplicar cupón (UC-CART-04)
+    DELETE /api/v1/cart/voucher/ — quitar cupón
+    """
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        summary='Aplicar cupón de descuento al carrito',
+        description=(
+            'Valida el código y lo vincula al carrito. '
+            'Retorna el carrito con totales actualizados. '
+            'UC-CART-04 (FR-CART-04.01, FR-CART-04.02).'
+        ),
+        tags=['cart'],
+    )
+    def post(self, request):
+        from apps.voucher.serializers import ApplyVoucherSerializer
+        from apps.voucher.models import Voucher
+
+        s = ApplyVoucherSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        code = s.validated_data['code'].upper()
+
+        try:
+            voucher = Voucher.objects.get(code=code)
+        except Voucher.DoesNotExist:
+            raise ValidationError({'code': 'Cupón no encontrado.',
+                                   'codigo_error': 'VOUCHER_NO_ENCONTRADO'})
+
+        cart, _, cart_token = _get_or_create_cart(request)
+        subtotal = cart.get_subtotal()
+
+        error_code = voucher.validate_for_cart(subtotal, request.user)
+        if error_code:
+            messages = {
+                'VOUCHER_INACTIVO':                  'Este cupón no está activo.',
+                'VOUCHER_NO_VIGENTE':                'Este cupón aún no está vigente.',
+                'VOUCHER_EXPIRADO':                  'Este cupón ha expirado.',
+                'VOUCHER_AGOTADO':                   'Este cupón ha alcanzado su límite de usos.',
+                'MONTO_MINIMO_NO_ALCANZADO':         f'El carrito debe superar ${voucher.min_order_amount}.',
+                'VOUCHER_REQUIERE_AUTENTICACION':    'Debes iniciar sesión para usar este cupón.',
+                'VOUCHER_RESTRINGIDO_A_OTRO_EMAIL':  'Este cupón no es válido para tu cuenta.',
+            }
+            raise ValidationError({
+                'code': messages.get(error_code, 'Cupón inválido.'),
+                'codigo_error': error_code,
+            })
+
+        cart.voucher = voucher
+        cart.save(update_fields=['voucher'])
+
+        data = CartSerializer(cart).data
+        response = Response(data)
+        if cart_token:
+            response['X-Cart-Token'] = cart_token
+        return response
+
+    @extend_schema(
+        summary='Quitar cupón del carrito',
+        responses={200: None},
+        tags=['cart'],
+    )
+    def delete(self, request):
+        cart, _, cart_token = _get_or_create_cart(request)
+        if not cart.voucher_id:
+            raise ValidationError({'detail': 'No hay cupón aplicado.',
+                                   'codigo_error': 'SIN_CUPON'})
+        cart.voucher = None
+        cart.save(update_fields=['voucher'])
+        data = CartSerializer(cart).data
+        response = Response(data)
+        if cart_token:
+            response['X-Cart-Token'] = cart_token
+        return response

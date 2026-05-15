@@ -63,11 +63,10 @@ class Cart(models.Model):
         ) or Decimal('0.00')
 
     def get_discount(self) -> Decimal:
-        """Descuento del voucher aplicado, si existe."""
+        """Descuento del voucher aplicado, si existe. UC-CART-04 (FR-CART-04.02)."""
         if not self.voucher_id:
             return Decimal('0.00')
-        # Sprint 13: sustituir por self.voucher.calculate_discount(self.get_subtotal())
-        return Decimal('0.00')
+        return self.voucher.calculate_discount(self.get_subtotal())
 
     def get_free_shipping_threshold(self) -> Decimal | None:
         """Umbral de envio gratis desde SiteSettings."""
@@ -101,7 +100,10 @@ class Cart(models.Model):
             'total':                     str(subtotal_net),
             'free_shipping_threshold':   str(threshold) if threshold else None,
             'free_shipping_remaining':   str(free_shipping_remaining) if free_shipping_remaining else None,
-            'free_shipping_applied':     bool(threshold and subtotal_net >= threshold),
+            'free_shipping_applied':     bool(
+                (threshold and subtotal_net >= threshold) or
+                (self.voucher_id and self.voucher.voucher_type == 'FREE_SHIPPING')
+            ),
             'item_count':                self.items.count(),
         }
 
