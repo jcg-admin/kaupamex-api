@@ -35,6 +35,7 @@ urlpatterns = [
     path('api/v1/auth/',      include('apps.users.urls')),
     path('api/v1/config/',    include('apps.settings_app.urls', namespace='settings_app')),
     path('api/v1/admin/',     include('apps.users.admin_urls', namespace='admin_users')),
+    path('api/v1/admin/',     include('apps.catalogue.admin_urls', namespace='admin_catalogue')),
     path('api/v1/catalogue/', include('apps.catalogue.urls',   namespace='catalogue')),
 ]
 
