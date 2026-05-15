@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     'apps.settings_app',
     'apps.catalogue',
     'apps.chartsize',
+    'apps.inventory',
 ]
 
 AUTH_USER_MODEL = 'users.User'

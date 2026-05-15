@@ -45,6 +45,17 @@ class SiteSettings(models.Model):
         help_text='Numero maximo de direcciones de envio por comprador (FR-AUTH-07.02).',
         verbose_name='Maximo de direcciones por usuario',
     )
+    # Datos de contacto del negocio (UC-CFG-05)
+    support_email = models.EmailField(max_length=254, blank=True, default='',
+                        verbose_name='Email de soporte',
+                        help_text='Visible en footer y emails transaccionales.')
+    phone         = models.CharField(max_length=30, blank=True, default='',
+                        verbose_name='Telefono de contacto')
+    address       = models.TextField(blank=True, default='',
+                        verbose_name='Direccion fisica')
+    social_links  = models.JSONField(default=dict, blank=True,
+                        verbose_name='Redes sociales',
+                        help_text='Dict de plataforma→URL. Ej: {"instagram":"https://..."}.')
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -197,3 +208,89 @@ class ShippingMethod(models.Model):
 
     def __str__(self):
         return f'{self.name} — ${self.cost} ({self.estimated_days}d)'
+
+
+# =============================================================================
+# Sprint 10 — UC-CFG-04: Contenido estático con versionado
+# =============================================================================
+
+class StaticPage(models.Model):
+    """
+    Página estática del sitio. UC-CFG-04.
+    Cada página tiene un historial de versiones numeradas.
+    """
+    PAGE_ABOUT    = 'about'
+    PAGE_TERMS    = 'terms'
+    PAGE_PRIVACY  = 'privacy'
+    PAGE_RETURNS  = 'returns'
+    PAGE_FAQ      = 'faq'
+    PAGE_CHOICES  = [
+        (PAGE_ABOUT,   'Acerca de nosotros'),
+        (PAGE_TERMS,   'Términos y condiciones'),
+        (PAGE_PRIVACY, 'Política de privacidad'),
+        (PAGE_RETURNS, 'Política de devoluciones'),
+        (PAGE_FAQ,     'Preguntas frecuentes'),
+    ]
+
+    slug       = models.SlugField(max_length=20, unique=True, choices=PAGE_CHOICES)
+    title      = models.CharField(max_length=200)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table     = 'settings_static_page'
+        verbose_name = 'Página estática'
+
+    def __str__(self):
+        return self.get_slug_display()
+
+    @property
+    def current_version(self):
+        """Retorna la version PUBLISHED activa, o None."""
+        return self.versions.filter(status='PUBLISHED').order_by('-version').first()
+
+
+class StaticPageVersion(models.Model):
+    """
+    Version de una página estática. UC-CFG-04 (FR-CFG-04.02).
+    Solo una version por página puede estar en estado PUBLISHED.
+    """
+    STATUS_DRAFT     = 'DRAFT'
+    STATUS_PUBLISHED = 'PUBLISHED'
+    STATUS_ARCHIVED  = 'ARCHIVED'
+    STATUS_CHOICES   = [
+        (STATUS_DRAFT,     'Borrador'),
+        (STATUS_PUBLISHED, 'Publicado'),
+        (STATUS_ARCHIVED,  'Archivado'),
+    ]
+
+    page       = models.ForeignKey(
+        StaticPage, on_delete=models.CASCADE,
+        related_name='versions',
+    )
+    version    = models.PositiveIntegerField(verbose_name='Número de versión')
+    content    = models.TextField(verbose_name='Contenido HTML')
+    status     = models.CharField(
+        max_length=12, choices=STATUS_CHOICES,
+        default=STATUS_DRAFT, db_index=True,
+    )
+    created_by = models.ForeignKey(
+        'users.User', null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='static_page_versions',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    publish_at = models.DateTimeField(
+        null=True, blank=True,
+        verbose_name='Publicar en fecha futura',
+        help_text='Si está en blanco, la publicación es inmediata. '
+                  'El cron UC-SYS-04 activará las programadas (Sprint 33).',
+    )
+
+    class Meta:
+        db_table        = 'settings_static_page_version'
+        unique_together = [('page', 'version')]
+        ordering        = ['-version']
+        verbose_name    = 'Versión de página estática'
+
+    def __str__(self):
+        return f'{self.page.slug} v{self.version} ({self.status})'
