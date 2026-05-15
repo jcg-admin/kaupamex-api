@@ -151,7 +151,7 @@ class ShippingMethodViewSet(ModelViewSet):
     DELETE /api/v1/admin/shipping-methods/<pk>/  — desactivar (soft delete)
 
     UC-CFG-02 (FR-CFG-02.02).
-    Proteccion de ordenes activas: TODO Sprint 18 (apps.orders).
+    Proteccion de ordenes activas: resuelto via ActiveOrder proxy (H-ORD-005).
     """
     permission_classes = [IsAuthenticated, IsAdminUser]
     serializer_class   = ShippingMethodSerializer
