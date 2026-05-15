@@ -71,7 +71,7 @@ class PaymentGatewayViewSet(ModelViewSet):
     """
     permission_classes = [IsAuthenticated, IsAdminUser]
     serializer_class   = PaymentGatewaySerializer
-    queryset           = PaymentGateway.objects.all().order_by('provider')
+    queryset           = PaymentGateway.objects.all().order_by('gateway')
     http_method_names  = ['get', 'post', 'patch', 'head', 'options']
 
     def perform_update(self, serializer):

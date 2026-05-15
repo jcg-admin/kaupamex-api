@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     'apps.voucher',
     'apps.wishlist',
     'apps.orders',
+    'apps.payments',
 ]
 
 AUTH_USER_MODEL = 'users.User'
