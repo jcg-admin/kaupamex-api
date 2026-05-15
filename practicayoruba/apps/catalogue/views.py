@@ -634,6 +634,15 @@ def _count_active_carts(product) -> int:
         return 0
 
 
+def _count_wishlist_items(product) -> int:
+    """Cuenta WishlistItems activos que contienen este producto (Sprint 14)."""
+    try:
+        from apps.wishlist.models import WishlistItem
+        return WishlistItem.objects.filter(product=product).count()
+    except Exception:
+        return 0
+
+
 # =============================================================================
 # Sprint 8 — UC-CAT-11: Desactivar producto con preview de impacto
 # =============================================================================
@@ -678,7 +687,7 @@ class ProductDeactivateAction:
             'product_name': product.name,
             'stock': product.stock,
             'active_carts': _count_active_carts(product),
-            'wishlists': 0,       # TODO Sprint 14 cuando exista apps.wishlist
+            'wishlists': _count_wishlist_items(product),
         }
 
         confirm = request.data.get('confirm', False)
