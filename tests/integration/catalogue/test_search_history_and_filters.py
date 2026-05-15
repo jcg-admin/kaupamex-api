@@ -1,10 +1,11 @@
 """
-Tests de integracion — Sprint 6
-UC-SRCH-02: Autocomplete / Sugerencias
-UC-SRCH-03: Guardar Historial de Busquedas
-UC-CAT-04:  Filtrar Catalogo por Categoria (con subcategorias)
-UC-CAT-05:  Filtrar Catalogo por Rango de Precio
-UC-CAT-06:  Gestionar Categorias del Catalogo (Admin)
+Tests — Search history, autocomplete and catalogue filters
+
+UC-SRCH-02: Autocomplete / suggestions
+UC-SRCH-03: Save search history
+UC-CAT-04: Filter catalogue by category (with subcategories)
+UC-CAT-05: Filter catalogue by price range
+UC-CAT-06: Manage catalogue categories (admin)
 """
 import pytest
 from decimal import Decimal

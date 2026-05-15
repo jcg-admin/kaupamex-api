@@ -1,7 +1,8 @@
 """
-Tests de integracion — Sprint 8 (catalogue)
-UC-CAT-11: Desactivar Producto con preview de impacto
-UC-CAT-12: Sincronizar Precios en Lote (CSV + porcentual)
+Tests — Admin product deactivation and bulk price sync
+
+UC-CAT-11: Deactivate product with impact preview
+UC-CAT-12: Bulk price sync (CSV upload and percentage adjustment)
 """
 import csv, io, pytest
 from decimal import Decimal

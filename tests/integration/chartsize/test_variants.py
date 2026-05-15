@@ -1,9 +1,10 @@
 """
-Tests de integracion — Sprint 9
-UC-CHT-01: Ver Variantes (campo variants en ficha del producto)
-UC-CHT-02: Validar variante antes de agregar al carrito
-UC-CHT-03: Gestionar variantes admin (CRUD)
-UC-CHT-04: Precio diferenciado por variante
+Tests — Product variants (UC-CHT-01/02/03/04)
+
+UC-CHT-01: View variants (variants field in product detail)
+UC-CHT-02: Validate variant before adding to cart
+UC-CHT-03: Manage variants admin (CRUD)
+UC-CHT-04: Variant-specific pricing
 """
 import pytest
 from decimal import Decimal

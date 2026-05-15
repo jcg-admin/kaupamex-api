@@ -1,9 +1,10 @@
 """
-Tests de integración — Sprint 7
-UC-CAT-07: Ver Productos Relacionados
-UC-CAT-08: Listar Categorías (Árbol Jerárquico)
-UC-CAT-09: Crear Producto (Admin)
-UC-CAT-10: Editar Producto (Admin)
+Tests — Admin product and category management
+
+UC-CAT-07: View related products
+UC-CAT-08: List categories (hierarchical tree)
+UC-CAT-09: Create product (admin)
+UC-CAT-10: Edit product (admin)
 """
 import pytest
 from decimal import Decimal
