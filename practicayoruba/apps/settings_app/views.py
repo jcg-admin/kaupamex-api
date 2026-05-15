@@ -186,3 +186,131 @@ class ShippingMethodViewSet(ModelViewSet):
     )
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
+
+
+# =============================================================================
+# Sprint 10 — UC-CFG-04: Contenido estático con versionado
+# =============================================================================
+
+from .models import StaticPage, StaticPageVersion
+from rest_framework import serializers as drf_serializers
+
+
+class StaticPageVersionSerializer(drf_serializers.ModelSerializer):
+    created_by_username = drf_serializers.CharField(
+        source='created_by.username', read_only=True, default=None
+    )
+    class Meta:
+        model  = StaticPageVersion
+        fields = ['id', 'version', 'content', 'status',
+                  'created_by_username', 'created_at', 'publish_at']
+        read_only_fields = ['id', 'version', 'created_at']
+
+
+class StaticPageSerializer(drf_serializers.ModelSerializer):
+    current_version = StaticPageVersionSerializer(read_only=True)
+    slug_display    = drf_serializers.CharField(source='get_slug_display', read_only=True)
+
+    class Meta:
+        model  = StaticPage
+        fields = ['id', 'slug', 'slug_display', 'title', 'current_version', 'updated_at']
+        read_only_fields = ['id', 'updated_at']
+
+
+class StaticPagePublishSerializer(drf_serializers.Serializer):
+    content    = drf_serializers.CharField()
+    publish_at = drf_serializers.DateTimeField(required=False, allow_null=True)
+
+
+class StaticPageAdminView(APIView):
+    """
+    GET  /api/v1/admin/pages/          — listar páginas estáticas
+    GET  /api/v1/admin/pages/<slug>/   — detalle con versión activa
+    POST /api/v1/admin/pages/<slug>/publish/ — publicar nueva versión
+    POST /api/v1/admin/pages/<slug>/versions/<version>/restore/ — revertir
+    UC-CFG-04 (FR-CFG-04.02).
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    @extend_schema(summary='Listar páginas estáticas', tags=['config'])
+    def get(self, request, slug=None):
+        if slug:
+            try:
+                page = StaticPage.objects.prefetch_related('versions').get(slug=slug)
+            except StaticPage.DoesNotExist:
+                return Response({'detail': 'Página no encontrada.'}, status=404)
+            return Response(StaticPageSerializer(page).data)
+        pages = StaticPage.objects.all()
+        return Response(StaticPageSerializer(pages, many=True).data)
+
+
+class StaticPagePublishView(APIView):
+    """POST /api/v1/admin/pages/<slug>/publish/ — publicar nueva versión."""
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    @extend_schema(summary='Publicar nueva versión de página estática', tags=['config'])
+    def post(self, request, slug):
+        page, _ = StaticPage.objects.get_or_create(
+            slug=slug,
+            defaults={'title': dict(StaticPage.PAGE_CHOICES).get(slug, slug)},
+        )
+        s = StaticPagePublishSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+
+        publish_at = s.validated_data.get('publish_at')
+        is_immediate = not publish_at
+
+        # Archivar versión activa si existe
+        if is_immediate:
+            StaticPageVersion.objects.filter(
+                page=page, status=StaticPageVersion.STATUS_PUBLISHED
+            ).update(status=StaticPageVersion.STATUS_ARCHIVED)
+
+        # Calcular siguiente número de versión
+        last = page.versions.order_by('-version').first()
+        next_version = (last.version + 1) if last else 1
+
+        new_status = (StaticPageVersion.STATUS_PUBLISHED
+                      if is_immediate else StaticPageVersion.STATUS_DRAFT)
+
+        version = StaticPageVersion.objects.create(
+            page=page,
+            version=next_version,
+            content=s.validated_data['content'],
+            status=new_status,
+            created_by=request.user,
+            publish_at=publish_at,
+        )
+        return Response(StaticPageVersionSerializer(version).data, status=201)
+
+
+class StaticPageRestoreView(APIView):
+    """POST /api/v1/admin/pages/<slug>/versions/<version>/restore/"""
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    @extend_schema(summary='Revertir a versión anterior', tags=['config'])
+    def post(self, request, slug, version):
+        try:
+            old = StaticPageVersion.objects.get(
+                page__slug=slug, version=version
+            )
+        except StaticPageVersion.DoesNotExist:
+            return Response({'detail': 'Versión no encontrada.'}, status=404)
+
+        page = old.page
+        # Archivar la actual
+        StaticPageVersion.objects.filter(
+            page=page, status=StaticPageVersion.STATUS_PUBLISHED
+        ).update(status=StaticPageVersion.STATUS_ARCHIVED)
+
+        last = page.versions.order_by('-version').first()
+        next_version = last.version + 1
+
+        restored = StaticPageVersion.objects.create(
+            page=page,
+            version=next_version,
+            content=old.content,
+            status=StaticPageVersion.STATUS_PUBLISHED,
+            created_by=request.user,
+        )
+        return Response(StaticPageVersionSerializer(restored).data, status=201)
