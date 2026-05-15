@@ -1,3 +1,8 @@
+"""
+URLs — apps.settings_app
+Sprint 1: /api/v1/config/settings/
+Sprint 8: /api/v1/admin/gateways/ y /api/v1/admin/shipping-methods/
+"""
 from django.urls import path
 from .views import SiteSettingsView
 

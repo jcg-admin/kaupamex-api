@@ -12,6 +12,7 @@ from decimal import Decimal, InvalidOperation
 from django.core.cache import cache
 from django.db import connection
 from rest_framework.exceptions import ValidationError, NotFound
+from rest_framework.decorators import action
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.filters import OrderingFilter
@@ -19,7 +20,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
-from drf_spectacular.utils import extend_schema, OpenApiParameter
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
 from drf_spectacular.types import OpenApiTypes
 
 from .models import Category, Product, SearchHistory
@@ -624,7 +625,77 @@ class CategoryListView(APIView):
 # UC-CAT-09 y UC-CAT-10 — CRUD admin de productos
 # =============================================================================
 
-class ProductAdminViewSet(ModelViewSet):
+# =============================================================================
+# Sprint 8 — UC-CAT-11: Desactivar producto con preview de impacto
+# =============================================================================
+
+class ProductDeactivateAction:
+    """
+    Mixin para ProductAdminViewSet.
+    POST /api/v1/admin/products/<pk>/deactivate/
+
+    Sin body  → retorna preview de impacto (stock, carts=0, wishlists=0).
+    {"confirm": true} → desactiva y purga caches.
+    """
+
+    @action(detail=True, methods=['post'], url_path='deactivate')
+    @extend_schema(
+        summary='Desactivar producto con preview de impacto',
+        description=(
+            'Sin body: retorna el impacto (stock, carritos, wishlists). '
+            'Con {"confirm": true}: desactiva el producto y purga caches. '
+            'UC-CAT-11 (FR-CAT-11.02).'
+        ),
+        responses={
+            200: OpenApiResponse(description='Preview de impacto o confirmacion de desactivacion.'),
+            400: OpenApiResponse(description='Producto ya desactivado.'),
+        },
+        tags=['admin-catalogue'],
+    )
+    def deactivate(self, request, pk=None):
+        from apps.catalogue.models import Product
+        product = self.get_object()
+
+        if not product.is_active:
+            return Response(
+                {'detail': 'El producto ya está desactivado.',
+                 'codigo_error': 'PRODUCTO_YA_INACTIVO'},
+                status=400,
+            )
+
+        # Preview de impacto
+        impact = {
+            'product_id': product.pk,
+            'product_name': product.name,
+            'stock': product.stock,
+            'active_carts': 0,    # TODO Sprint 12 cuando exista apps.cart
+            'wishlists': 0,       # TODO Sprint 13 cuando exista apps.wishlist
+        }
+
+        confirm = request.data.get('confirm', False)
+        if not confirm:
+            impact['message'] = (
+                'Envía {"confirm": true} para confirmar la desactivación.'
+            )
+            return Response(impact, status=200)
+
+        # Confirmar desactivacion
+        product.is_active    = False
+        product.is_published = False
+        product.save(update_fields=['is_active', 'is_published'])
+
+        # Purgar caches (H-S8-001: correccion del perform_destroy de Sprint 7)
+        cache.delete(f'product:{product.pk}:detail')
+        cache.delete(CATEGORY_TREE_CACHE_KEY)
+
+        return Response({
+            **impact,
+            'is_active': False,
+            'message': 'Producto desactivado correctamente.',
+        }, status=200)
+
+
+class ProductAdminViewSet(ProductDeactivateAction, ModelViewSet):
     """
     GET    /api/v1/admin/products/       — listar todos los productos
     POST   /api/v1/admin/products/       — crear producto (UC-CAT-09)
@@ -658,10 +729,12 @@ class ProductAdminViewSet(ModelViewSet):
             cache.delete(CATEGORY_TREE_CACHE_KEY)
 
     def perform_destroy(self, instance):
-        """Soft delete: is_active=False."""
-        instance.is_active = False
+        """Soft delete: is_active=False. Purga caches del producto y árbol."""
+        instance.is_active    = False
         instance.is_published = False
         instance.save(update_fields=['is_active', 'is_published'])
+        # H-S8-001: purgar también la ficha del producto (Sprint 7 solo purgaba categories:tree)
+        cache.delete(f'product:{instance.pk}:detail')
         cache.delete(CATEGORY_TREE_CACHE_KEY)
 
     @extend_schema(summary='Listar productos (admin)', tags=['admin-catalogue'])
@@ -699,3 +772,211 @@ class ProductAdminViewSet(ModelViewSet):
     )
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
+
+
+# =============================================================================
+# Sprint 8 — UC-CAT-12: Sincronizacion de precios en lote
+# =============================================================================
+
+PRICE_SYNC_CACHE_TTL = 600   # 10 minutos para la sesion de preview
+
+
+class ProductPriceSyncView(APIView):
+    """
+    POST   /api/v1/admin/products/price-sync/          — subir CSV o ajuste porcentual
+    POST   /api/v1/admin/products/price-sync/confirm/  — confirmar cambios
+    GET    /api/v1/admin/products/price-sync/template/ — descargar plantilla CSV
+
+    UC-CAT-12.
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def _parse_csv(self, file_obj) -> tuple:
+        """
+        Parsea el CSV y retorna (filas_validas, filas_invalidas).
+        Cada fila valida: {'sku': str, 'product': Product, 'old_price': Decimal, 'new_price': Decimal}
+        Cada fila invalida: {'sku': str, 'error': str, 'line': int}
+        """
+        from apps.catalogue.models import Product
+        try:
+            content = file_obj.read().decode('utf-8-sig')  # utf-8-sig para BOM de Excel
+        except UnicodeDecodeError:
+            content = file_obj.read().decode('latin-1')
+
+        reader = csv.DictReader(io.StringIO(content))
+        required_cols = {'sku', 'price'}
+        if not required_cols.issubset(set(reader.fieldnames or [])):
+            return [], [{'sku': '', 'error': 'El CSV debe tener columnas "sku" y "price"', 'line': 0}]
+
+        validas, invalidas = [], []
+        sku_index = {p.sku.upper(): p for p in
+                     Product.objects.filter(is_active=True).only('id', 'sku', 'price', 'name')}
+
+        for i, row in enumerate(reader, start=2):  # línea 1 = headers
+            sku = (row.get('sku') or '').strip().upper()
+            price_raw = (row.get('price') or '').strip().replace(',', '.')
+            if not sku:
+                invalidas.append({'sku': sku, 'error': 'SKU vacío', 'line': i})
+                continue
+            try:
+                new_price = Decimal(price_raw)
+                if new_price <= Decimal('0'):
+                    raise ValueError('precio <= 0')
+            except Exception:
+                invalidas.append({'sku': sku, 'error': f'Precio inválido: "{price_raw}"', 'line': i})
+                continue
+
+            product = sku_index.get(sku)
+            if not product:
+                invalidas.append({'sku': sku, 'error': 'SKU no encontrado en el catálogo', 'line': i})
+                continue
+
+            validas.append({
+                'sku': sku,
+                'product_id': product.pk,
+                'product_name': product.name,
+                'old_price': str(product.price),
+                'new_price': str(new_price),
+                'diff_pct': round(float((new_price - product.price) / product.price * 100), 2),
+            })
+
+        return validas, invalidas
+
+    def _apply_percentage(self, pct: float, category_id=None,
+                          price_min=None, price_max=None) -> tuple:
+        """Calcula ajuste porcentual. Retorna (filas_validas, [])."""
+        from apps.catalogue.models import Product
+        qs = Product.objects.filter(is_active=True).only('id', 'sku', 'price', 'name')
+        if category_id:
+            qs = qs.filter(category_id=category_id)
+        if price_min:
+            qs = qs.filter(price__gte=price_min)
+        if price_max:
+            qs = qs.filter(price__lte=price_max)
+
+        multiplier = Decimal(str(1 + pct / 100))
+        validas = []
+        for p in qs:
+            new_price = max(Decimal('0.01'), (p.price * multiplier).quantize(Decimal('0.01')))
+            validas.append({
+                'sku': p.sku,
+                'product_id': p.pk,
+                'product_name': p.name,
+                'old_price': str(p.price),
+                'new_price': str(new_price),
+                'diff_pct': pct,
+            })
+        return validas, []
+
+    @extend_schema(
+        summary='Preview de sincronización de precios (CSV o porcentaje)',
+        tags=['admin-catalogue'],
+    )
+    def post(self, request):
+        """Subir CSV o iniciar ajuste porcentual — retorna preview con session_id."""
+        mode = request.data.get('mode', 'csv')
+
+        if mode == 'percentage':
+            try:
+                pct = float(request.data.get('pct', 0))
+            except (TypeError, ValueError):
+                return Response({'detail': 'pct debe ser un número.'}, status=400)
+            category_id = request.data.get('category_id')
+            price_min   = request.data.get('price_min')
+            price_max   = request.data.get('price_max')
+            validas, invalidas = self._apply_percentage(pct, category_id, price_min, price_max)
+        else:
+            csv_file = request.FILES.get('file')
+            if not csv_file:
+                return Response({'detail': 'Se requiere el archivo CSV.'}, status=400)
+            validas, invalidas = self._parse_csv(csv_file)
+
+        session_id = str(uuid.uuid4())
+        cache.set(f'price_sync:{session_id}', validas, PRICE_SYNC_CACHE_TTL)
+
+        return Response({
+            'session_id': session_id,
+            'valid_count':   len(validas),
+            'invalid_count': len(invalidas),
+            'preview':       validas[:50],   # primeras 50 para no sobrecargar la respuesta
+            'errors':        invalidas,
+            'message': (
+                f'{len(validas)} precios listos para actualizar. '
+                f'Usa POST /price-sync/confirm/ con el session_id para confirmar.'
+            ),
+        })
+
+
+class ProductPriceSyncConfirmView(APIView):
+    """POST /api/v1/admin/products/price-sync/confirm/ — UC-CAT-12."""
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    @extend_schema(
+        summary='Confirmar sincronización de precios',
+        tags=['admin-catalogue'],
+    )
+    def post(self, request):
+        session_id = request.data.get('session_id')
+        if not session_id:
+            return Response({'detail': 'session_id requerido.'}, status=400)
+
+        validas = cache.get(f'price_sync:{session_id}')
+        if validas is None:
+            return Response({
+                'detail': 'Sesión expirada o no encontrada. Sube el CSV nuevamente.',
+                'codigo_error': 'SESSION_EXPIRADA',
+            }, status=400)
+
+        from apps.catalogue.models import Product
+        import logging
+        logger = logging.getLogger('apps')
+
+        product_ids = [row['product_id'] for row in validas]
+        products = {p.pk: p for p in Product.objects.filter(pk__in=product_ids)}
+
+        updated = []
+        with transaction.atomic():
+            for row in validas:
+                p = products.get(row['product_id'])
+                if not p:
+                    continue
+                p.price = Decimal(row['new_price'])
+                updated.append(p)
+            Product.objects.bulk_update(updated, ['price'])
+
+        # Purgar caches de fichas modificadas (H-S8-005)
+        keys_to_delete = [f'product:{p.pk}:detail' for p in updated]
+        if keys_to_delete:
+            cache.delete_many(keys_to_delete)
+
+        # Invalidar sesion
+        cache.delete(f'price_sync:{session_id}')
+
+        logger.info('price_sync: %d productos actualizados por %s',
+                    len(updated), request.user.username)
+
+        return Response({
+            'updated_count': len(updated),
+            'message': f'{len(updated)} precios actualizados correctamente.',
+        })
+
+
+class ProductPriceSyncTemplateView(APIView):
+    """GET /api/v1/admin/products/price-sync/template/ — UC-CAT-12 Alt-C."""
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    @extend_schema(
+        summary='Descargar plantilla CSV de precios',
+        tags=['admin-catalogue'],
+    )
+    def get(self, request):
+        from apps.catalogue.models import Product
+        response = HttpResponse(content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = 'attachment; filename="price-template.csv"'
+        response.write('\ufeff')  # BOM para Excel
+
+        writer = csv.writer(response)
+        writer.writerow(['sku', 'name', 'price'])
+        for p in Product.objects.filter(is_active=True).only('sku', 'name', 'price').order_by('sku'):
+            writer.writerow([p.sku, p.name, str(p.price)])
+        return response
