@@ -1,0 +1,80 @@
+"""Serializers — apps.cart (Sprint 12)."""
+import uuid
+from decimal import Decimal
+from rest_framework import serializers
+from .models import Cart, CartItem, SavedCart, SavedCartItem
+
+
+class CartItemSerializer(serializers.ModelSerializer):
+    product_name  = serializers.CharField(source='product.name', read_only=True)
+    product_slug  = serializers.CharField(source='product.slug', read_only=True)
+    variant_label = serializers.SerializerMethodField()
+    sku           = serializers.SerializerMethodField()
+    subtotal      = serializers.SerializerMethodField()
+    available_stock = serializers.SerializerMethodField()
+    is_available  = serializers.SerializerMethodField()
+    price_changed = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = CartItem
+        fields = [
+            'id', 'product_name', 'product_slug', 'variant_label', 'sku',
+            'quantity', 'unit_price', 'subtotal',
+            'available_stock', 'is_available', 'price_changed',
+        ]
+
+    def get_variant_label(self, obj):
+        return obj.variant.option.label if obj.variant else None
+
+    def get_sku(self, obj):
+        return obj.variant.sku if obj.variant else obj.product.sku
+
+    def get_subtotal(self, obj):
+        return str(obj.get_subtotal())
+
+    def get_available_stock(self, obj):
+        return obj.available_stock()
+
+    def get_is_available(self, obj):
+        return obj.is_available()
+
+    def get_price_changed(self, obj):
+        """True si el precio del item difiere del precio vigente."""
+        current = obj.current_price()
+        return current != obj.unit_price
+
+
+class CartSerializer(serializers.ModelSerializer):
+    items  = CartItemSerializer(many=True, read_only=True)
+    totals = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = Cart
+        fields = ['id', 'cart_token', 'items', 'totals']
+
+    def get_totals(self, obj):
+        return obj.get_totals()
+
+
+class AddItemSerializer(serializers.Serializer):
+    """POST /api/v1/cart/items/ — UC-CART-01."""
+    product_id = serializers.IntegerField()
+    variant_id = serializers.IntegerField(required=False, allow_null=True)
+    quantity   = serializers.IntegerField(min_value=1, default=1)
+
+
+class UpdateItemSerializer(serializers.Serializer):
+    """PATCH /api/v1/cart/items/<pk>/ — UC-CART-02."""
+    quantity = serializers.IntegerField(min_value=1)
+
+
+class MergeCartSerializer(serializers.Serializer):
+    """POST /api/v1/cart/merge/ — UC-CART-06."""
+    cart_token = serializers.UUIDField()
+
+
+class SavedCartItemSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source='product.name', read_only=True)
+    class Meta:
+        model  = SavedCartItem
+        fields = ['id', 'product_name', 'quantity', 'price_at_save']

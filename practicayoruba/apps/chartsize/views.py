@@ -100,8 +100,21 @@ class ProductVariantAdminViewSet(ModelViewSet):
     def perform_destroy(self, instance):
         """
         Soft delete: is_active=False.
-        TODO Sprint 12: verificar ordenes activas (VARIANTE_CON_ORDENES).
+        Sprint 12: verificar CartItems activos antes de desactivar.
+        TODO Sprint 18: verificar ordenes activas (VARIANTE_CON_ORDENES).
         """
+        # H-S12-006: protección contra CartItems activos
+        active_cart_items = instance.cart_items.count()
+        if active_cart_items > 0:
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({
+                'detail': (
+                    f'Esta variante tiene {active_cart_items} item(s) en carritos activos. '
+                    f'Desactivarla los dejaría sin stock. '
+                    f'Espera a que esos carritos expiren o sean vaciados.'
+                ),
+                'codigo_error': 'VARIANTE_CON_ITEMS_EN_CARRITO',
+            })
         instance.is_active = False
         instance.stock     = 0
         instance.save(update_fields=['is_active', 'stock'])
