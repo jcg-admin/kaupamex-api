@@ -154,3 +154,23 @@ class SearchHistory(models.Model):
                 .values_list('pk', flat=True)[:total - max_entries]
             )
             cls.objects.filter(pk__in=oldest_ids).delete()
+
+
+class ProductImage(models.Model):
+    """
+    Imagen de un producto. UC-CAT-09 / UC-CAT-10 (Sprint 8 completa la gestión).
+    Sprint 7 crea el modelo para que el serializer pueda referenciarlo.
+    """
+    product  = models.ForeignKey(
+        Product, on_delete=models.CASCADE, related_name='images',
+    )
+    image    = models.ImageField(upload_to='products/%Y/%m/')
+    alt_text = models.CharField(max_length=200, blank=True, default='')
+    order    = models.PositiveSmallIntegerField(default=0, db_index=True)
+
+    class Meta:
+        db_table = 'catalogue_product_image'
+        ordering = ['order', 'id']
+
+    def __str__(self):
+        return f'{self.product.name} — imagen {self.order}'

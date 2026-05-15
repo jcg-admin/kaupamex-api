@@ -16,6 +16,7 @@ from .views import (
     AutocompleteView,
     SearchHistoryView,
     SearchHistoryDetailView,
+    CategoryListView,
 )
 
 app_name = 'catalogue'
@@ -28,5 +29,6 @@ urlpatterns = [
          SearchHistoryView.as_view(),      name='search-history-list'),
     path('search/history/<int:pk>/',
          SearchHistoryDetailView.as_view(), name='search-history-detail'),
+    path('categories/',   CategoryListView.as_view(),    name='category-list'),
     path('<slug:slug>/',  ProductDetailView.as_view(),    name='product-detail'),
 ]

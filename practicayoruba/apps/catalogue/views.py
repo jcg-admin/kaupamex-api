@@ -30,6 +30,8 @@ from .serializers import (
     AutocompleteSerializer,
     SearchHistorySerializer,
     CategoryAdminSerializer,
+    CategoryWithCountSerializer,
+    ProductAdminSerializer,
 )
 
 MAX_QUERY_LENGTH = 100
@@ -37,6 +39,7 @@ MIN_QUERY_LENGTH = 2
 AUTOCOMPLETE_CACHE_TTL   = 60    # segundos — UC-SRCH-02
 AUTOCOMPLETE_MAX_RESULTS = 5     # UC-SRCH-02
 CATEGORY_TREE_CACHE_KEY  = 'categories:tree'
+CATEGORY_TREE_CACHE_TTL  = 3600   # 1 hora — UC-CAT-08 (FR-CAT-08.02)
 CATEGORY_TREE_CACHE_TTL  = 300   # segundos — UC-CAT-08 (Sprint 7)
 
 
@@ -515,6 +518,183 @@ class CategoryAdminViewSet(ModelViewSet):
     @extend_schema(
         summary='Desactivar categoría (soft delete)',
         responses={204: None, 400: None},
+        tags=['admin-catalogue'],
+    )
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
+
+
+# =============================================================================
+# Sprint 7 — UC-CAT-07, UC-CAT-08, UC-CAT-09, UC-CAT-10
+# =============================================================================
+
+# =============================================================================
+# UC-CAT-08 — Árbol de categorías público
+# =============================================================================
+
+def _build_category_tree_with_counts():
+    """
+    Construye el árbol de categorías con product_count acumulado.
+    H-S7-008: 2 queries totales — O(1) independiente del nro de categorías.
+
+    Query 1: todos los productos activos y publicados agrupados por category_id
+    Query 2: todas las categorías activas con sus hijos (prefetch_related)
+    Luego se propaga bottom-up en Python.
+    """
+    from django.db.models import Count
+
+    # Query 1: conteo directo por category_id
+    direct_counts = dict(
+        Product.objects.filter(is_active=True, is_published=True)
+        .values('category_id')
+        .annotate(n=Count('id'))
+        .values_list('category_id', 'n')
+    )
+
+    # Query 2: todas las categorías con hijos pre-cargados
+    all_cats = list(
+        Category.objects.filter(is_active=True)
+        .prefetch_related('children')
+        .order_by('name')
+    )
+
+    # Índice rápido por pk
+    cat_map = {c.pk: c for c in all_cats}
+
+    # Inicializar conteos
+    accumulated = {c.pk: direct_counts.get(c.pk, 0) for c in all_cats}
+
+    # Propagación bottom-up: sumar hijos al padre
+    # Orden inverso al de profundidad para garantizar que hijos estén
+    # calculados antes que sus padres
+    def _accumulate(cat_pk: int) -> int:
+        total = accumulated[cat_pk]
+        cat = cat_map[cat_pk]
+        for child in cat.children.all():
+            if child.pk in accumulated:
+                total += _accumulate(child.pk)
+        accumulated[cat_pk] = total
+        return total
+
+    # Solo propagar desde raíces (sin parent)
+    roots = [c for c in all_cats if c.parent_id is None]
+    for root in roots:
+        _accumulate(root.pk)
+
+    # Anotar en el objeto para que el serializer lo lea
+    for cat in all_cats:
+        cat.product_count = accumulated[cat.pk]
+
+    return roots
+
+
+class CategoryListView(APIView):
+    """
+    GET /api/v1/catalogue/categories/
+
+    Árbol completo de categorías activas con product_count acumulado.
+    Cache DatabaseCache 'categories:tree' TTL 3600s (1 hora).
+    La invalidación ocurre en CategoryAdminViewSet tras cualquier mutación.
+    UC-CAT-08 (FR-CAT-08.01, FR-CAT-08.02).
+    """
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        summary='Árbol de categorías del catálogo',
+        description=(
+            'Estructura jerárquica completa de categorías activas con conteo '
+            'de productos activos y publicados (acumulado en descendientes). '
+            'Respuesta cacheada 1 hora.'
+        ),
+        responses={200: CategoryWithCountSerializer(many=True)},
+        tags=['catalogue'],
+    )
+    def get(self, request):
+        cached = cache.get(CATEGORY_TREE_CACHE_KEY)
+        if cached is not None:
+            return Response(cached)
+
+        roots = _build_category_tree_with_counts()
+        data = CategoryWithCountSerializer(roots, many=True).data
+        cache.set(CATEGORY_TREE_CACHE_KEY, data, CATEGORY_TREE_CACHE_TTL)
+        return Response(data)
+
+
+# =============================================================================
+# UC-CAT-09 y UC-CAT-10 — CRUD admin de productos
+# =============================================================================
+
+class ProductAdminViewSet(ModelViewSet):
+    """
+    GET    /api/v1/admin/products/       — listar todos los productos
+    POST   /api/v1/admin/products/       — crear producto (UC-CAT-09)
+    GET    /api/v1/admin/products/<pk>/  — detalle admin
+    PATCH  /api/v1/admin/products/<pk>/  — editar producto (UC-CAT-10)
+    DELETE /api/v1/admin/products/<pk>/  — desactivar producto (soft delete)
+
+    Solo administradores (is_staff=True).
+    Imágenes: diferidas a Sprint 8. images=[] en la respuesta.
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class   = ProductAdminSerializer
+    queryset           = (
+        Product.objects
+        .select_related('category')
+        .order_by('-created_at')
+    )
+    http_method_names  = ['get', 'post', 'patch', 'delete', 'head', 'options']
+
+    def perform_create(self, serializer):
+        serializer.save()
+        # No invalidamos categories:tree al crear un producto —
+        # el product_count de la categoría sube, pero solo importa
+        # cuando el producto quede publicado. Se invalida en perform_update.
+
+    def perform_update(self, serializer):
+        old_category_pk = self.get_object().category_id
+        instance = serializer.save()
+        # H-S7-007: invalidar categories:tree si cambió la categoría
+        if instance.category_id != old_category_pk:
+            cache.delete(CATEGORY_TREE_CACHE_KEY)
+
+    def perform_destroy(self, instance):
+        """Soft delete: is_active=False."""
+        instance.is_active = False
+        instance.is_published = False
+        instance.save(update_fields=['is_active', 'is_published'])
+        cache.delete(CATEGORY_TREE_CACHE_KEY)
+
+    @extend_schema(summary='Listar productos (admin)', tags=['admin-catalogue'])
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @extend_schema(
+        summary='Crear producto',
+        description=(
+            'Crea el producto con is_published=False por defecto. '
+            'Imágenes diferidas a Sprint 8.'
+        ),
+        tags=['admin-catalogue'],
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+
+    @extend_schema(
+        summary='Editar producto (PATCH)',
+        description=(
+            'Solo los campos enviados se modifican. '
+            'BR-005: los cambios de precio no afectan órdenes ya creadas. '
+            'Imágenes diferidas a Sprint 8.'
+        ),
+        tags=['admin-catalogue'],
+    )
+    def partial_update(self, request, *args, **kwargs):
+        kwargs['partial'] = True
+        return super().update(request, *args, **kwargs)
+
+    @extend_schema(
+        summary='Desactivar producto (soft delete)',
+        responses={204: None},
         tags=['admin-catalogue'],
     )
     def destroy(self, request, *args, **kwargs):
