@@ -44,6 +44,11 @@ class StockAlertSerializer(serializers.ModelSerializer):
 
 
 class StockAdjustSerializer(serializers.Serializer):
-    """UC-INV-04: ajuste manual de stock."""
-    new_stock  = serializers.IntegerField(min_value=0)
-    notes      = serializers.CharField(required=False, default='', allow_blank=True)
+    """
+    UC-INV-04: ajuste manual de stock por delta.
+    delta positivo = entrada de mercancía.
+    delta negativo = salida / corrección a la baja.
+    FR-INV-04.02: el resultado (stock_actual + delta) no puede ser negativo.
+    """
+    delta = serializers.IntegerField()
+    notes = serializers.CharField(required=False, default='', allow_blank=True)

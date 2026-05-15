@@ -189,11 +189,14 @@ class InventoryService:
         return movements
 
     @staticmethod
-    def adjust(product, variant=None, new_stock: int = 0,
+    def adjust(product, variant=None, delta: int = 0,
                notes: str = '', created_by=None):
         """
-        Ajuste manual de stock. UC-INV-04.
-        Establece el stock al valor absoluto indicado (no incrementa/decrementa).
+        Ajuste manual de stock por delta. UC-INV-04 (FR-INV-04.02).
+        delta positivo = entrada de mercancía.
+        delta negativo = salida / corrección a la baja.
+        Si stock_actual + delta < 0 → lanza ValueError.
+        Referencia de auditoría: ADMIN:<created_by.pk>.
         """
         from apps.catalogue.models import Product
         from apps.chartsize.models import ProductVariant
@@ -202,22 +205,31 @@ class InventoryService:
         with transaction.atomic():
             if variant:
                 v = ProductVariant.objects.select_for_update().get(pk=variant.pk)
-                delta = new_stock - v.stock
+                new_stock = v.stock + delta
+                if new_stock < 0:
+                    raise ValueError(
+                        f'El ajuste resultaría en stock negativo ({new_stock}).'
+                    )
                 v.stock = new_stock
                 v.save(update_fields=['stock'])
                 stock_after = new_stock
             else:
                 p = Product.objects.select_for_update().get(pk=product.pk)
-                delta = new_stock - p.stock
+                new_stock = p.stock + delta
+                if new_stock < 0:
+                    raise ValueError(
+                        f'El ajuste resultaría en stock negativo ({new_stock}).'
+                    )
                 p.stock = new_stock
                 p.save(update_fields=['stock'])
                 stock_after = new_stock
 
+            reference = f'ADMIN:{created_by.pk}' if created_by else 'ADMIN'
             mov = StockMovement.objects.create(
                 product=product, variant=variant,
                 delta=delta, stock_after=stock_after,
                 movement_type=StockMovement.TYPE_ADJUSTMENT,
-                notes=notes, created_by=created_by,
+                reference=reference, notes=notes, created_by=created_by,
             )
             _maybe_create_alert(product, variant, stock_after)
             return mov

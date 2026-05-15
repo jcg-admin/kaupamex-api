@@ -292,31 +292,31 @@ class TestAjusteManual:
     ):
         res = admin_client.post(
             f'{INV_URL}{product_s10.pk}/adjust/',
-            {'new_stock': 25, 'notes': 'Inventario físico'},
+            {'delta': 15, 'notes': 'Inventario físico'},
             format='json',
         )
         assert res.status_code == 201
         product_s10.refresh_from_db()
-        assert product_s10.stock == 25
+        assert product_s10.stock == 25  # stock inicial 10 + delta 15
 
     def test_ajuste_variante(
         self, admin_client, product_s10, variant_s10, db
     ):
         res = admin_client.post(
             f'{INV_URL}variants/{variant_s10.pk}/adjust/',
-            {'new_stock': 15},
+            {'delta': 7},
             format='json',
         )
         assert res.status_code == 201
         variant_s10.refresh_from_db()
-        assert variant_s10.stock == 15
+        assert variant_s10.stock == 15  # stock inicial 8 + delta 7
 
     def test_ajuste_stock_negativo_retorna_400(
         self, admin_client, product_s10, db
     ):
         res = admin_client.post(
             f'{INV_URL}{product_s10.pk}/adjust/',
-            {'new_stock': -5},
+            {'delta': -20},
             format='json',
         )
         assert res.status_code == 400
