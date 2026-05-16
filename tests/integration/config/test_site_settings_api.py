@@ -86,3 +86,21 @@ class TestSiteSettingsEndpointPatch:
         )
         s = SiteSettings.get_current()
         assert s.payment_timeout_minutes == 60
+
+    def test_invalid_iva_rate_returns_400(self, admin_client):
+        """Negative test: iva_rate out of valid bounds should return 400."""
+        res = admin_client.patch(
+            '/api/v1/config/settings/',
+            {'iva_rate': '1.5'},  # > 1.0 is invalid
+            format='json',
+        )
+        assert res.status_code == 400
+
+    def test_negative_payment_timeout_returns_400(self, admin_client):
+        """Negative test: negative payment_timeout_minutes should return 400."""
+        res = admin_client.patch(
+            '/api/v1/config/settings/',
+            {'payment_timeout_minutes': -10},
+            format='json',
+        )
+        assert res.status_code == 400
