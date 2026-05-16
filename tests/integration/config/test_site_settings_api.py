@@ -50,7 +50,7 @@ class TestSiteSettingsEndpointGet:
 class TestSiteSettingsEndpointPatch:
     """PATCH /api/v1/config/settings/ — solo admin."""
 
-    def test_admin_puede_actualizar_iva_rate(self, admin_client):
+    def test_admin_can_update_iva_rate(self, admin_client):
         res = admin_client.patch(
             '/api/v1/config/settings/',
             {'iva_rate': '0.08'},
@@ -59,7 +59,7 @@ class TestSiteSettingsEndpointPatch:
         assert res.status_code == 200
         assert Decimal(res.json()['iva_rate']) == Decimal('0.08')
 
-    def test_admin_puede_actualizar_payment_timeout(self, admin_client):
+    def test_admin_can_update_payment_timeout(self, admin_client):
         """payment_timeout_minutes reemplaza a order_timeout_minutes."""
         res = admin_client.patch(
             '/api/v1/config/settings/',
@@ -69,7 +69,7 @@ class TestSiteSettingsEndpointPatch:
         assert res.status_code == 200
         assert res.json()['payment_timeout_minutes'] == 45
 
-    def test_regular_user_no_puede_patch(self, auth_client):
+    def test_regular_user_cannot_patch(self, auth_client):
         res = auth_client.patch(
             '/api/v1/config/settings/',
             {'iva_rate': '0.00'},
@@ -77,7 +77,7 @@ class TestSiteSettingsEndpointPatch:
         )
         assert res.status_code == 403
 
-    def test_update_persiste_en_base_de_datos(self, admin_client, db):
+    def test_update_persists_to_database(self, admin_client, db):
         from apps.settings_app.models import SiteSettings
         admin_client.patch(
             '/api/v1/config/settings/',
