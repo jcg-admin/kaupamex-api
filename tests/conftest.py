@@ -34,7 +34,7 @@ def user(db):
 
 @pytest.fixture
 def auth_user(db):
-    """Alias de 'user' — nombre usado en tests de payments y orders."""
+    """Usuario independiente usado en tests de payments y orders."""
     from django.contrib.auth import get_user_model
     User = get_user_model()
     return User.objects.create_user(
