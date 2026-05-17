@@ -152,11 +152,22 @@ def _restart_mariadb() -> bool:
         )
         return False
 
-    subprocess.run(
+    result = subprocess.run(
         ['bash', str(_DB_QA_SCRIPT)],
         capture_output=True,
         timeout=90,
     )
+
+    if result.returncode != 0:
+        import warnings
+        stderr_snippet = result.stderr.decode('utf-8', errors='replace')[:500]
+        warnings.warn(
+            f"mariadb_keepalive: db_qa_setup.sh failed with exit code {result.returncode}\n"
+            f"  stderr: {stderr_snippet}",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+
     for _ in range(30):
         if _mariadb_alive():
             return True
