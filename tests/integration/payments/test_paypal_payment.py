@@ -7,7 +7,7 @@ no cuándo se implementó.
 import json
 import pytest
 from decimal import Decimal
-from unittest.mock import patch, MagicMock, PropertyMock
+from unittest.mock import patch, MagicMock
 
 pytestmark = pytest.mark.integration
 
