@@ -7,7 +7,7 @@ no cuándo se implementó.
 import json
 import pytest
 from decimal import Decimal
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, PropertyMock
 
 pytestmark = pytest.mark.integration
 
@@ -70,14 +70,14 @@ def paypal_gateway_activo(db):
 
 @pytest.fixture
 def mock_paypal_api():
-    """Mock de todas las llamadas requests a PayPal API usando URL mapping."""
+    """Mock de todas las llamadas requests a PayPal API."""
     with patch('apps.payments.gateways.paypal.requests') as mock_req:
-        # Token endpoint response
+        # Token endpoint
         token_resp = MagicMock()
         token_resp.status_code = 200
         token_resp.json.return_value = {'access_token': 'PP-TEST-TOKEN'}
 
-        # Order creation endpoint response
+        # Order creation endpoint
         order_resp = MagicMock()
         order_resp.status_code = 201
         order_resp.json.return_value = {
@@ -90,7 +90,7 @@ def mock_paypal_api():
             ],
         }
 
-        # Capture endpoint response
+        # Capture endpoint
         capture_resp = MagicMock()
         capture_resp.status_code = 201
         capture_resp.json.return_value = {
@@ -107,18 +107,9 @@ def mock_paypal_api():
             }]
         }
 
-        # Map responses by URL pattern for robustness
-        def post_side_effect(url, *args, **kwargs):
-            if '/oauth2/token' in url or 'oauth2/token' in url:
-                return token_resp
-            elif '/v2/checkout/orders' in url and '/capture' in url:
-                return capture_resp
-            elif '/v2/checkout/orders' in url:
-                return order_resp
-            # Default fallback
-            return MagicMock(status_code=200, json=lambda: {})
-
-        mock_req.post.side_effect = post_side_effect
+        # post se usa para token, order creation y capture
+        # Secuenciamos las respuestas
+        mock_req.post.side_effect = [token_resp, order_resp, token_resp, capture_resp]
         mock_req.get.return_value.status_code = 200
         yield mock_req
 

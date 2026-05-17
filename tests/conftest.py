@@ -33,9 +33,17 @@ def user(db):
 
 
 @pytest.fixture
-def auth_user(user):
+def auth_user(db):
     """Alias de 'user' — nombre usado en tests de payments y orders."""
-    return user
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    return User.objects.create_user(
+        username='authuser',
+        email='auth@practicayoruba.mx',
+        password='AuthPass123!',
+        first_name='Auth',
+        last_name='User',
+    )
 
 
 @pytest.fixture
@@ -121,7 +129,7 @@ def _mariadb_alive() -> bool:
         return False
 
 
-def _reapply_qa_setup() -> bool:
+def _restart_mariadb() -> bool:
     """
     Intenta restablecer el entorno de BD ejecutando db_qa_setup.sh.
     Retorna True si MariaDB responde en los 30 segundos siguientes.
@@ -144,23 +152,11 @@ def _reapply_qa_setup() -> bool:
         )
         return False
 
-    result = subprocess.run(
+    subprocess.run(
         ['bash', str(_DB_QA_SCRIPT)],
         capture_output=True,
         timeout=90,
     )
-    
-    # Log errors if script failed
-    if result.returncode != 0:
-        import warnings
-        stderr_snippet = result.stderr.decode('utf-8', errors='replace')[:500]
-        warnings.warn(
-            f"mariadb_keepalive: db_qa_setup.sh failed with exit code {result.returncode}\n"
-            f"  stderr: {stderr_snippet}",
-            RuntimeWarning,
-            stacklevel=2,
-        )
-    
     for _ in range(30):
         if _mariadb_alive():
             return True
@@ -172,5 +168,5 @@ def _reapply_qa_setup() -> bool:
 def mariadb_keepalive(db):
     """Reinicia MariaDB si cayó antes del test (ADR-008)."""
     if not _mariadb_alive():
-        _reapply_qa_setup()
+        _restart_mariadb()
     yield
