@@ -8,8 +8,8 @@ Runbook de operaciones para PracticaYoruba-api.
 
 ```bash
 # 1. Clonar y configurar
-git clone <repo> PracticaYoruba-api
-cd PracticaYoruba-api
+git clone <repo>
+cd e-comerce-api
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements/development.txt
@@ -58,9 +58,9 @@ python manage.py showmigrations
 DJANGO_SETTINGS_MODULE=config.settings.testing \
   python manage.py showmigrations
 
-# Verificar estado completo de la BD (desde PracticaYoruba-db)
-bash ../PracticaYoruba-db/scripts/verify.sh
-python ../PracticaYoruba-db/scripts/check_db.py
+# Verificar estado completo de la BD (desde e-comerce-db)
+bash ../e-comerce-db/scripts/verify.sh
+python ../e-comerce-db/scripts/check_db.py
 ```
 
 ---
