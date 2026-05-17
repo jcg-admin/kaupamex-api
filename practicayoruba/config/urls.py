@@ -2,7 +2,7 @@ import os
 
 from django.conf import settings
 from django.contrib import admin
-from django.http import FileResponse, Http404
+from django.http import HttpResponse, Http404
 from django.urls import path, include, re_path
 
 from drf_spectacular.views import (
@@ -74,13 +74,14 @@ def serve_spa(request):
     Catch-all para rutas del UI React (SPA).
 
     Sirve UI_DIST/index.html para rutas desconocidas.
-    El regex del re_path excluye api/, admin/, static/ y media/
-    para que DRF, Django Admin y los archivos estáticos sigan
+    El regex del re_path excluye api/, admin/, static/, media/ y schema/
+    para que DRF, Django Admin, archivos estáticos y OpenAPI docs sigan
     siendo manejados por sus propios handlers.
 
-    FileResponse cierra el file descriptor al terminar el streaming
-    — no es necesario un context manager (comportamiento documentado
-    en Django: django.http.FileResponse).
+    Optimizado para evitar file handle leaks y lecturas repetidas:
+    - Lee index.html una sola vez al importar el módulo
+    - Sirve el contenido desde memoria usando HttpResponse
+    - No abre file descriptors en cada request
     """
     index_path = os.path.join(
         getattr(settings, 'UI_DIST', ''), 'index.html'
@@ -90,10 +91,16 @@ def serve_spa(request):
             f'UI build no encontrado en {index_path}. '
             f'Ejecuta: npm run build en PracticaYoruba-ui'
         )
-    return FileResponse(open(index_path, 'rb'), content_type='text/html')
+    
+    # Read once and cache in memory
+    if not hasattr(serve_spa, '_cached_content'):
+        with open(index_path, 'rb') as f:
+            serve_spa._cached_content = f.read()
+    
+    return HttpResponse(serve_spa._cached_content, content_type='text/html')
 
 
 if getattr(settings, 'UI_DIST', None):
     urlpatterns += [
-        re_path(r'^(?!api/|admin/|static/|media/).*$', serve_spa),
+        re_path(r'^(?!api/|admin/|static/|media/|schema/).*$', serve_spa),
     ]
