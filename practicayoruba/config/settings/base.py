@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     'apps.contact',
     'apps.newsletter',
     'apps.questions',
+    'apps.reports',
 ]
 
 AUTH_USER_MODEL = 'users.User'
