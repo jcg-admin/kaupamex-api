@@ -155,9 +155,19 @@ class SearchHistory(TimeStampedModel):
         trim()
 
 
-class ProductDiscount(TimeStampedModel):
+class ProductDiscount(TimeStampedModel, SoftDeleteModel):
     """
     Product-level discount (UC-DASH-01..04).
+
+    Hereda de SoftDeleteModel (DEC-DOC-007). Coexisten dos semánticas:
+
+    - ``is_active`` / ``deactivated_at`` / ``deactivated_by``:
+      desactivacion de NEGOCIO (el admin marca la promocion como
+      no-aplicable; sigue listada en reportes y en el historial de
+      precios aplicados a las ordenes pasadas).
+    - ``is_deleted`` / ``deleted_at``: borrado LOGICO de SISTEMA.
+      Fuera del manager por defecto pero recuperable via
+      ``ProductDiscount.all_objects`` para auditoria.
 
     Distinto de Voucher (apps.voucher): no tiene codigo y se aplica
     automaticamente al render del producto en catalogo. Una sola
