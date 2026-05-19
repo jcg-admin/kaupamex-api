@@ -185,6 +185,12 @@ SPECTACULAR_SETTINGS = {
     'ENUM_SUFFIX': '',
 }
 
+# H-09: ensure logs directory exists on fresh checkouts before RotatingFileHandler
+# tries to open the file. Using mkdir(parents=True, exist_ok=True) is idempotent
+# and keeps the existing deployment assumption (logs live under BASE_DIR/logs).
+LOG_DIR = BASE_DIR / 'logs'
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -192,7 +198,7 @@ LOGGING = {
         'console': {'class': 'logging.StreamHandler'},
         'file': {
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': BASE_DIR / 'logs' / 'django.log',
+            'filename': LOG_DIR / 'django.log',
             'maxBytes': 1024 * 1024 * 10,
             'backupCount': 3,
         },
