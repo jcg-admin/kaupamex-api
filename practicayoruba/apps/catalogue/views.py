@@ -364,7 +364,13 @@ class AutocompleteView(APIView):
         if len(prefijo) < MIN_QUERY_LENGTH:
             return Response([])
 
-        cache_key = f'autocomplete:{prefijo.lower()}'
+        # H-S8-006: el prefijo normalizado puede contener espacios (ver
+        # _normalize_query), y los espacios estan prohibidos en claves de cache
+        # estilo memcached (Django emite CacheKeyWarning). Sustituimos los
+        # espacios por '_' antes de construir la clave; como _normalize_query ya
+        # colapsa cualquier secuencia de espacios a uno solo, la sustitucion es
+        # 1:1 y no introduce colisiones entre entradas distintas.
+        cache_key = f'autocomplete:{prefijo.lower().replace(" ", "_")}'
         cached = cache.get(cache_key)
         if cached is not None:
             return Response(cached)
