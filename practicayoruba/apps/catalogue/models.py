@@ -9,8 +9,12 @@ Sprints 4-9. Refactorizado en sprint de infraestructura: herencia-modelos-django
   ProductImage  → TimeStampedModel (migración 0006: ADD created_at + updated_at)
 """
 import threading
+from decimal import Decimal
+
 from django.conf import settings
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.utils import timezone
 
 from apps.core.models import TimeStampedModel
 
@@ -145,6 +149,74 @@ class SearchHistory(TimeStampedModel):
         # Ejecutar trim de forma síncrona para garantizar consistencia
         # El costo es mínimo: 1 COUNT + 1 DELETE cuando count > 20
         trim()
+
+
+class ProductDiscount(TimeStampedModel):
+    """
+    Product-level discount (UC-DASH-01..04).
+
+    Distinto de Voucher (apps.voucher): no tiene codigo y se aplica
+    automaticamente al render del producto en catalogo. Una sola
+    promocion activa por producto a la vez (la mas reciente con
+    valid_from <= now <= valid_until y is_active=True).
+
+    Status derivado:
+      CURRENT  — is_active y valid_from <= now y (valid_until None o now <= valid_until)
+      FUTURE   — is_active y now < valid_from
+      EXPIRED  — is_active y valid_until y now > valid_until
+      INACTIVE — is_active=False (no expuesto en filtros UI)
+    """
+    product       = models.ForeignKey(
+        Product, on_delete=models.CASCADE, related_name='discounts',
+    )
+    discount_pct  = models.DecimalField(
+        max_digits=5, decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01')),
+                    MaxValueValidator(Decimal('100.00'))],
+        help_text='Porcentaje de descuento (0.01 - 100).',
+    )
+    valid_from    = models.DateTimeField(db_index=True)
+    valid_until   = models.DateTimeField(null=True, blank=True, db_index=True)
+    is_active     = models.BooleanField(default=True, db_index=True)
+    deactivated_at = models.DateTimeField(null=True, blank=True)
+    deactivated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='deactivated_product_discounts',
+    )
+    created_by    = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='created_product_discounts',
+    )
+
+    class Meta:
+        db_table     = 'catalogue_product_discount'
+        ordering     = ['-created_at']
+        verbose_name = 'Descuento de producto'
+        indexes = [
+            models.Index(fields=['product', 'is_active']),
+        ]
+
+    def __str__(self):
+        return f'{self.product.sku} -{self.discount_pct}% ({self.status})'
+
+    @property
+    def status(self) -> str:
+        if not self.is_active:
+            return 'INACTIVE'
+        now = timezone.now()
+        if now < self.valid_from:
+            return 'FUTURE'
+        if self.valid_until and now > self.valid_until:
+            return 'EXPIRED'
+        return 'CURRENT'
+
+    @property
+    def discounted_price(self) -> Decimal:
+        original = self.product.price
+        factor = (Decimal('100.00') - self.discount_pct) / Decimal('100')
+        return (original * factor).quantize(Decimal('0.01'))
 
 
 class ProductImage(TimeStampedModel):
