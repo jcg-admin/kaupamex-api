@@ -149,9 +149,19 @@ class CartItemView(APIView):
 
         # Resolver variante
         if variant_id:
-            variant = get_object_or_404(
-                ProductVariant, pk=variant_id, product=product, is_active=True
+            variant = (
+                ProductVariant.objects
+                .filter(pk=variant_id, product=product, is_active=True)
+                .first()
             )
+            if variant is None:
+                return Response(
+                    {
+                        'detail': 'La variante solicitada no esta disponible.',
+                        'codigo_error': 'VARIANTE_NO_DISPONIBLE',
+                    },
+                    status=404,
+                )
         elif product.variant_types.filter(is_active=True).exists():
             raise ValidationError({
                 'variant_id': (
@@ -166,6 +176,15 @@ class CartItemView(APIView):
         # Verificar stock
         available = variant.stock if variant else product.stock
         if available < quantity:
+            if variant is not None:
+                return Response(
+                    {
+                        'detail': f'Variante sin stock suficiente. Disponible: {available}.',
+                        'codigo_error': 'VARIANTE_SIN_STOCK',
+                        'available_stock': available,
+                    },
+                    status=409,
+                )
             raise ValidationError({
                 'quantity': f'Stock insuficiente. Disponible: {available}.',
                 'codigo_error': 'STOCK_INSUFICIENTE',
@@ -181,6 +200,17 @@ class CartItemView(APIView):
             if existing:
                 new_qty = existing.quantity + quantity
                 if new_qty > available:
+                    if variant is not None:
+                        return Response(
+                            {
+                                'detail': (
+                                    f'Variante sin stock suficiente. Disponible: {available}.'
+                                ),
+                                'codigo_error': 'VARIANTE_SIN_STOCK',
+                                'available_stock': available,
+                            },
+                            status=409,
+                        )
                     raise ValidationError({
                         'quantity': f'Stock insuficiente. Disponible: {available}.',
                         'codigo_error': 'STOCK_INSUFICIENTE',

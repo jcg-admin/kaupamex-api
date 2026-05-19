@@ -3,6 +3,8 @@ Views — apps.chartsize
 
 Sprint 9 — UC-CHT-01, UC-CHT-02, UC-CHT-03, UC-CHT-04
 """
+from decimal import Decimal, InvalidOperation
+
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 from rest_framework.exceptions import ValidationError
@@ -198,3 +200,59 @@ class VariantTypeAdminViewSet(ModelViewSet):
     def partial_update(self, request, *args, **kwargs):
         kwargs['partial'] = True
         return super().update(request, *args, **kwargs)
+
+
+# =============================================================================
+# UC-CHT-04 — Differentiated price endpoint
+# UI consumes PUT/DELETE /api/v1/admin/variants/<variant_pk>/price/
+# =============================================================================
+
+class VariantPriceAdminView(APIView):
+    """
+    PUT    /api/v1/admin/variants/<variant_pk>/price/  — set price_override
+    DELETE /api/v1/admin/variants/<variant_pk>/price/  — clear price_override
+
+    UC-CHT-04 (FR-CHT-04.02): differentiated price per variant.
+    Returns the updated variant serialized with ProductVariantAdminSerializer.
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def _get_variant(self, variant_pk):
+        return get_object_or_404(ProductVariant, pk=variant_pk)
+
+    @extend_schema(
+        summary='Set differentiated price on a variant',
+        request={'application/json': {'type': 'object',
+                                       'properties': {'price': {'type': 'string'}},
+                                       'required': ['price']}},
+        responses={200: ProductVariantAdminSerializer, 400: None, 404: None},
+        tags=['variants'],
+    )
+    def put(self, request, variant_pk):
+        variant = self._get_variant(variant_pk)
+        raw = request.data.get('price', None)
+        if raw is None or raw == '':
+            raise ValidationError({'price': 'This field is required.'})
+        try:
+            value = Decimal(str(raw))
+        except (InvalidOperation, TypeError, ValueError):
+            raise ValidationError({'price': 'Invalid decimal value.'})
+        if value <= Decimal('0'):
+            raise ValidationError({
+                'price': 'The differentiated price must be greater than zero.',
+            })
+        variant.price_override = value
+        variant.save(update_fields=['price_override', 'updated_at'])
+        return Response(ProductVariantAdminSerializer(variant).data)
+
+    @extend_schema(
+        summary='Clear differentiated price (fall back to product base price)',
+        responses={200: ProductVariantAdminSerializer, 404: None},
+        tags=['variants'],
+    )
+    def delete(self, request, variant_pk):
+        variant = self._get_variant(variant_pk)
+        if variant.price_override is not None:
+            variant.price_override = None
+            variant.save(update_fields=['price_override', 'updated_at'])
+        return Response(ProductVariantAdminSerializer(variant).data)
