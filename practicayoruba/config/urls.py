@@ -48,6 +48,8 @@ urlpatterns = [
     path('api/v1/catalogue/', include('apps.chartsize.urls',   namespace='chartsize')),
     path('api/v1/admin/',     include('apps.chartsize.admin_urls', namespace='admin_chartsize')),
     path('api/v1/admin/',    include('apps.orders.admin_urls')),
+    path('api/v1/support/',   include('apps.support.urls',          namespace='support')),
+    path('api/v1/admin/',     include('apps.support.admin_urls',    namespace='admin_support')),
     # ─── Catch-all LAST: /api/v1/<order_number>/ — DEBE ir después de todos los específicos
     path('api/v1/',          include('apps.orders.urls',       namespace='orders')),
 ]
