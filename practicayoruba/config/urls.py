@@ -52,6 +52,8 @@ urlpatterns = [
     path('api/v1/admin/',     include('apps.support.admin_urls',    namespace='admin_support')),
     path('api/v1/returns/',   include('apps.returns.urls',          namespace='returns')),
     path('api/v1/admin/',     include('apps.returns.admin_urls',    namespace='admin_returns')),
+    path('api/v1/notifications/', include('apps.notifications.urls', namespace='notifications')),
+    path('api/v1/admin/',     include('apps.notifications.admin_urls', namespace='admin_notifications')),
     # ─── Catch-all LAST: /api/v1/<order_number>/ — DEBE ir después de todos los específicos
     path('api/v1/',          include('apps.orders.urls',       namespace='orders')),
 ]
