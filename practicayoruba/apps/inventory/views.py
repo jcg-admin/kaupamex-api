@@ -309,11 +309,31 @@ from django.utils.text import slugify
 from rest_framework.parsers import MultiPartParser
 
 
-IMPORT_JOB_TTL   = 3600   # 1 hora
-IMPORT_SYNC_LIMIT = 100   # filas síncronas máximas
+IMPORT_JOB_TTL    = 3600   # 1 hora
+IMPORT_SYNC_LIMIT = 100    # filas síncronas máximas
+IMPORT_REPORT_TTL = 3600   # CSV descargable disponible 1 hora
 
 
-def _process_import_csv(content: bytes, user, initial_state: str = 'BORRADOR') -> dict:
+def _persist_report(report_id: str, error_report: list) -> None:
+    """Guarda el error_report bajo una clave de cache descargable."""
+    cache.set(f'import_report:{report_id}', error_report, IMPORT_REPORT_TTL)
+
+
+def _build_download_url(request, report_id: str) -> str:
+    """Construye la URL absoluta del CSV descargable (UC-INV-05 Alt C, D-006)."""
+    from django.urls import reverse
+    try:
+        path = reverse('admin_inventory:product-import-report',
+                       kwargs={'report_id': report_id})
+    except Exception:  # pragma: no cover
+        path = f'/api/v1/admin/inventory/import-reports/{report_id}.csv'
+    if request is not None:
+        return request.build_absolute_uri(path)
+    return path
+
+
+def _process_import_csv(content: bytes, user, initial_state: str = 'BORRADOR',
+                         request=None) -> dict:
     """
     Procesa el CSV de importación de productos. UC-INV-05 (FR-INV-05.02).
 
@@ -427,6 +447,15 @@ def _process_import_csv(content: bytes, user, initial_state: str = 'BORRADOR') -
         except Exception as exc:
             _err(i, sku, 'unknown', str(exc))
 
+    # D-006 — UC-INV-05 Alt C: si hubo al menos un error, persistimos el
+    # error_report con un report_id y exponemos un download_url firmado
+    # (TTL 1h). Si no hubo errores, no hay nada que descargar.
+    download_url = None
+    if error_report:
+        report_id = str(uuid.uuid4())
+        _persist_report(report_id, error_report)
+        download_url = _build_download_url(request, report_id)
+
     return {
         'status':           'COMPLETED',
         # legacy
@@ -437,10 +466,9 @@ def _process_import_csv(content: bytes, user, initial_state: str = 'BORRADOR') -
         'products_created': created,
         'products_failed':  failed,
         'error_report':     error_report[:50],
-        # Sin almacenamiento persistente del reporte → null por ahora;
-        # el UI agent puede dejar el botón deshabilitado mientras se
-        # implementa la descarga (UC-INV-05 PARTE 7, Alternativa C).
-        'download_url':     None,
+        # UC-INV-05 Alt C — D-006: URL al CSV descargable con los errores.
+        # Solo se setea si hubo errores en la import.
+        'download_url':     download_url,
     }
 
 
@@ -484,7 +512,9 @@ class ProductImportView(APIView):
 
         if line_count <= IMPORT_SYNC_LIMIT:
             # Síncrono
-            result = _process_import_csv(content, request.user, initial_state)
+            result = _process_import_csv(
+                content, request.user, initial_state, request=request,
+            )
             # Encabezado inválido → 422 ENCABEZADO_CSV_INVALIDO (UC-INV-05).
             if result.get('codigo_error') == 'ENCABEZADO_CSV_INVALIDO':
                 return Response(result, status=422)
@@ -499,6 +529,8 @@ class ProductImportView(APIView):
             user = request.user
 
             def _run():
+                # request no se pasa al hilo (puede caducar);
+                # download_url usa fallback de path relativo.
                 result = _process_import_csv(content, user, initial_state)
                 cache.set(f'import_job:{job_id}', result, IMPORT_JOB_TTL)
 
@@ -530,3 +562,43 @@ class ProductImportStatusView(APIView):
             return Response({'detail': 'Job no encontrado o expirado.',
                              'codigo_error': 'JOB_NO_ENCONTRADO'}, status=404)
         return Response(result)
+
+
+class ProductImportReportView(APIView):
+    """
+    GET /api/v1/admin/inventory/import-reports/<report_id>.csv
+
+    UC-INV-05 Alt C (D-006): descarga del CSV con las filas que fallaron
+    en una importacion previa. El report_id se publica en el campo
+    ``download_url`` de la respuesta de ``ProductImportView``. El reporte
+    queda disponible durante ``IMPORT_REPORT_TTL`` segundos (1 hora).
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    @extend_schema(
+        summary='Descargar reporte CSV de errores de importacion',
+        tags=['inventory'],
+    )
+    def get(self, request, report_id):
+        from django.http import HttpResponse
+        report = cache.get(f'import_report:{report_id}')
+        if report is None:
+            return Response(
+                {'detail':       'Reporte no encontrado o expirado.',
+                 'codigo_error': 'REPORTE_NO_ENCONTRADO'},
+                status=404,
+            )
+        buf = io.StringIO()
+        writer = csv.writer(buf)
+        writer.writerow(['row', 'field', 'reason'])
+        for entry in report:
+            writer.writerow([
+                entry.get('row', ''),
+                entry.get('field', ''),
+                entry.get('reason', ''),
+            ])
+        response = HttpResponse(buf.getvalue(), content_type='text/csv')
+        response['Content-Disposition'] = (
+            f'attachment; filename="import-errors-{report_id}.csv"'
+        )
+        return response

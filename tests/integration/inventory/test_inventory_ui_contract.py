@@ -333,3 +333,84 @@ class TestImportEnglishKeys:
         }, format='multipart')
         p = Product.objects.get(sku='EN-BOR-1')
         assert p.is_active is False
+
+
+# =============================================================================
+# D-006 — UC-INV-05 Alt C: descarga del CSV con el error_report
+# =============================================================================
+
+class TestImportReportDownload:
+    """download_url debe apuntar a un CSV descargable con los errores."""
+
+    def test_download_url_set_when_there_are_errors(
+        self, admin_client, cat_ui, db,
+    ):
+        # CSV con 1 fila que falla (precio invalido) -> error_report no vacio.
+        rows = [
+            {'name': 'Bad price', 'sku': 'D006-BAD',
+             'base_price': 'NaN', 'category_slug': cat_ui.slug},
+        ]
+        res = admin_client.post(IMPORT_URL, {
+            'file': _make_csv(rows),
+        }, format='multipart')
+        assert res.status_code == 200
+        data = res.json()
+        assert data['products_failed'] >= 1
+        download_url = data['download_url']
+        assert download_url, 'download_url debe estar presente si hubo errores'
+        assert 'import-reports/' in download_url
+        assert download_url.endswith('.csv')
+
+    def test_download_url_is_null_when_no_errors(
+        self, admin_client, cat_ui, db,
+    ):
+        rows = [
+            {'name': 'OK', 'sku': 'D006-OK',
+             'base_price': '100.00', 'category_slug': cat_ui.slug},
+        ]
+        res = admin_client.post(IMPORT_URL, {
+            'file': _make_csv(rows),
+        }, format='multipart')
+        assert res.status_code == 200
+        data = res.json()
+        assert data['products_failed'] == 0
+        assert data['download_url'] is None
+
+    def test_download_endpoint_returns_csv(
+        self, admin_client, cat_ui, db,
+    ):
+        # Provocamos 1 error.
+        rows = [
+            {'name': 'Sin categoria', 'sku': 'D006-CAT',
+             'base_price': '100', 'category_slug': 'no-existe'},
+        ]
+        res = admin_client.post(IMPORT_URL, {
+            'file': _make_csv(rows),
+        }, format='multipart')
+        assert res.status_code == 200
+        download_url = res.json()['download_url']
+        # Tomar el path relativo (de la URL absoluta).
+        from urllib.parse import urlparse
+        path = urlparse(download_url).path
+
+        dl = admin_client.get(path)
+        assert dl.status_code == 200
+        assert dl['Content-Type'].startswith('text/csv')
+        assert dl['Content-Disposition'].startswith('attachment')
+        body = dl.content.decode()
+        assert body.splitlines()[0] == 'row,field,reason'
+        assert 'D006-CAT' not in body  # row tiene line number
+        assert 'category_slug' in body
+
+    def test_download_unknown_report_returns_404(self, admin_client, db):
+        res = admin_client.get(
+            '/api/v1/admin/inventory/import-reports/no-existe.csv'
+        )
+        assert res.status_code == 404
+        assert res.json()['codigo_error'] == 'REPORTE_NO_ENCONTRADO'
+
+    def test_download_requires_auth(self, api_client, db):
+        res = api_client.get(
+            '/api/v1/admin/inventory/import-reports/whatever.csv'
+        )
+        assert res.status_code == 401

@@ -3,7 +3,7 @@ from django.urls import path
 from .views import (
     InventoryDashboardView, StockAdjustView,
     VariantStockAdjustView, VariantMovementsView, StockAlertListView,
-    ProductImportView, ProductImportStatusView,
+    ProductImportView, ProductImportStatusView, ProductImportReportView,
 )
 
 app_name = 'admin_inventory'
@@ -27,4 +27,7 @@ urlpatterns = [
          ProductImportView.as_view(), name='product-import'),
     path('inventory/import/<str:job_id>/',
          ProductImportStatusView.as_view(), name='product-import-status'),
+    # D-006 — UC-INV-05 Alt C: descarga CSV del error_report.
+    path('inventory/import-reports/<str:report_id>.csv',
+         ProductImportReportView.as_view(), name='product-import-report'),
 ]
