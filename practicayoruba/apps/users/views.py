@@ -6,6 +6,7 @@ Sprint 2: ProfileView, AddressViewSet, ChangePasswordView
 """
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes as OAT
+from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
@@ -181,6 +182,27 @@ class AddressViewSet(ModelViewSet):
     )
     def destroy(self, request, *args, **kwargs):
         return self._do_destroy(request, *args, **kwargs)
+
+    @extend_schema(
+        summary='Marcar direccion como predeterminada',
+        description=(
+            'Marca la direccion indicada como is_default=True y desmarca '
+            'cualquier otra del mismo usuario. UC-AUTH-07.'
+        ),
+        parameters=[OpenApiParameter('id', OAT.INT, OpenApiParameter.PATH)],
+        request=None,
+        responses={
+            200: AddressSerializer,
+            404: OpenApiResponse(description='Direccion no encontrada.'),
+        },
+        tags=['auth'],
+    )
+    @action(detail=True, methods=['post'], url_path='set-default')
+    def set_default(self, request, pk=None):
+        addr = self.get_object()
+        addr.is_default = True
+        addr.save()  # el save() del modelo desmarca las demas atomicamente
+        return Response(self.get_serializer(addr).data, status=200)
 
 
 class ChangePasswordView(APIView):
