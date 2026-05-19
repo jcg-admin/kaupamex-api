@@ -268,3 +268,121 @@ class TestAdminQueue:
         data = res.json()
         items = data['results'] if isinstance(data, dict) else data
         assert all(item['priority'] == 'HIGH' for item in items)
+
+
+# ────────────── UC-SUPP-01 AC-03 — order ownership + duplicate (D-002/D-003) ─
+
+class TestCreateTicketOrderOwnership:
+    """D-002 — order_id solo se acepta si pertenece al comprador autenticado."""
+
+    def _make_order(self, owner):
+        from apps.orders.models import Order
+        return Order.objects.create(user=owner, status=Order.STATUS_PENDING)
+
+    def test_create_ticket_with_own_order_returns_201(self, auth_client, user, db):
+        order = self._make_order(user)
+        res = auth_client.post(TICKETS_URL, {
+            'subject': 'Producto dañado',
+            'body':    'El paquete tenía la caja rota.',
+            'order_id': order.pk,
+        }, format='json')
+        assert res.status_code == 201, res.content
+        assert res.json()['order_id'] == order.pk
+
+    def test_create_ticket_with_other_user_order_returns_400(
+            self, auth_client, user, admin_user, db):
+        other_order = self._make_order(admin_user)  # owned by admin, not buyer
+        res = auth_client.post(TICKETS_URL, {
+            'subject': 'Producto dañado',
+            'body':    'El paquete tenía la caja rota.',
+            'order_id': other_order.pk,
+        }, format='json')
+        assert res.status_code == 400
+        body = res.json()
+        # DRF anida el error bajo el nombre del campo.
+        order_errs = body.get('order_id') or body.get('order_id', [])
+        # validate_order_id raises ValidationError({...}); DRF lo expone
+        # como lista de dicts o dict.
+        flat = str(order_errs)
+        assert 'ORDER_NOT_FOUND' in flat
+
+    def test_create_ticket_with_nonexistent_order_returns_400(
+            self, auth_client, db):
+        res = auth_client.post(TICKETS_URL, {
+            'subject': 'Producto dañado',
+            'body':    'El paquete tenía la caja rota.',
+            'order_id': 999999,
+        }, format='json')
+        assert res.status_code == 400
+        assert 'ORDER_NOT_FOUND' in str(res.content)
+
+
+class TestCreateTicketDuplicateDetection:
+    """D-003 — UC-SUPP-01 AC-03: 409 DUPLICATE_TICKET si ya hay uno activo."""
+
+    def test_second_ticket_same_category_returns_409(self, auth_client, db):
+        first = auth_client.post(TICKETS_URL, {
+            'subject': 'Pedido perdido',
+            'body':    'Lleva 2 semanas sin entregarse.',
+            'category': 'GENERAL',
+        }, format='json')
+        assert first.status_code == 201
+
+        second = auth_client.post(TICKETS_URL, {
+            'subject': 'Pedido perdido nuevamente',
+            'body':    'Sigue sin llegar al domicilio indicado.',
+            'category': 'GENERAL',
+        }, format='json')
+        assert second.status_code == 409
+        body = second.json()
+        assert body['error_code'] == 'DUPLICATE_TICKET'
+        assert body['ticket_id'] == first.json()['ticket_id']
+
+    def test_different_category_allows_new_ticket(self, auth_client, db):
+        first = auth_client.post(TICKETS_URL, {
+            'subject': 'Pedido perdido',
+            'body':    'Lleva semanas sin entregarse.',
+            'category': 'GENERAL',
+        }, format='json')
+        assert first.status_code == 201
+
+        second = auth_client.post(TICKETS_URL, {
+            'subject': 'Producto dañado',
+            'body':    'El paquete llego destrozado.',
+            'category': 'DAMAGED',
+        }, format='json')
+        assert second.status_code == 201
+
+    def test_closed_ticket_does_not_block_new_one(self, auth_client, user, db):
+        from apps.support.models import SupportTicket
+        SupportTicket.objects.create(
+            user=user, subject='Antiguo', body='Mensaje suficientemente largo.',
+            category='GENERAL', status=SupportTicket.Status.CLOSED)
+
+        res = auth_client.post(TICKETS_URL, {
+            'subject': 'Caso nuevo',
+            'body':    'Detalle suficientemente largo del caso reciente.',
+            'category': 'GENERAL',
+        }, format='json')
+        assert res.status_code == 201
+
+    def test_different_order_allows_new_ticket(self, auth_client, user, db):
+        from apps.orders.models import Order
+        order_a = Order.objects.create(user=user, status=Order.STATUS_PENDING)
+        order_b = Order.objects.create(user=user, status=Order.STATUS_PENDING)
+
+        first = auth_client.post(TICKETS_URL, {
+            'subject': 'Problema con orden A',
+            'body':    'La orden A tiene un problema visible.',
+            'category': 'ORDER',
+            'order_id': order_a.pk,
+        }, format='json')
+        assert first.status_code == 201
+
+        second = auth_client.post(TICKETS_URL, {
+            'subject': 'Problema con orden B',
+            'body':    'La orden B tiene otro problema distinto.',
+            'category': 'ORDER',
+            'order_id': order_b.pk,
+        }, format='json')
+        assert second.status_code == 201

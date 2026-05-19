@@ -9,7 +9,16 @@ from .models import SupportTicket, SupportTicketReply
 
 
 class SupportTicketCreateSerializer(serializers.Serializer):
-    """UC-SUPP-01 — request body."""
+    """
+    UC-SUPP-01 — request body.
+
+    Valida AC-03:
+
+    * ``order_id`` solo es aceptado si la orden existe y pertenece al
+      comprador autenticado. Para no revelar la existencia de ordenes
+      ajenas (RNF-SEC-003) se devuelve ``ORDER_NOT_FOUND`` aunque la
+      orden exista pero pertenezca a otro usuario.
+    """
 
     subject = serializers.CharField(min_length=5, max_length=150)
     body = serializers.CharField(min_length=10)
@@ -24,6 +33,21 @@ class SupportTicketCreateSerializer(serializers.Serializer):
         required=False,
         default=SupportTicket.Priority.NORMAL,
     )
+
+    def validate_order_id(self, value):
+        if value in (None, ''):
+            return value
+        request = self.context.get('request')
+        if request is None or not getattr(request.user, 'is_authenticated', False):
+            return value  # las views protegen con IsAuthenticated
+        # Import diferido para evitar ciclos en apps cargando.
+        from apps.orders.models import Order
+        if not Order.objects.filter(pk=value, user=request.user).exists():
+            raise serializers.ValidationError({
+                'error_code': 'ORDER_NOT_FOUND',
+                'detail':     'La orden no existe o no pertenece al comprador.',
+            })
+        return value
 
 
 class SupportTicketCreateResponseSerializer(serializers.ModelSerializer):

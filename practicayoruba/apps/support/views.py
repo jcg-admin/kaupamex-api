@@ -12,8 +12,11 @@ User endpoints:
 Admin endpoints:
   GET    /api/v1/admin/support/tickets/           UC-SUPP-05 queue
 """
+from datetime import timedelta
+
 from django.http import Http404
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
@@ -37,6 +40,18 @@ HIGH_PRIORITY_CATEGORIES = {
     SupportTicket.Category.URGENT,
     SupportTicket.Category.FRAUD,
 }
+
+# UC-SUPP-01 AC-03: ventana de deteccion de tickets duplicados. Si el
+# comprador ya tiene un ticket abierto con la misma categoria + orden
+# en los ultimos 1440 minutos (24h), el nuevo POST se rechaza con
+# 409 DUPLICATE_TICKET para protegerse contra dobles envios del UI o
+# bots de soporte.
+DUPLICATE_TICKET_WINDOW = timedelta(hours=24)
+ACTIVE_TICKET_STATUSES = (
+    SupportTicket.Status.OPEN,
+    SupportTicket.Status.IN_PROGRESS,
+    SupportTicket.Status.AWAITING_USER,
+)
 
 
 def _get_ticket_for_user(ticket_id, user):
@@ -74,7 +89,9 @@ class SupportTicketListCreateView(APIView):
         responses={201: SupportTicketCreateResponseSerializer},
     )
     def post(self, request):
-        serializer = SupportTicketCreateSerializer(data=request.data)
+        serializer = SupportTicketCreateSerializer(
+            data=request.data, context={'request': request}
+        )
         serializer.is_valid(raise_exception=True)
         payload = serializer.validated_data
 
@@ -82,6 +99,29 @@ class SupportTicketListCreateView(APIView):
         priority = payload.get('priority', SupportTicket.Priority.NORMAL)
         if category in HIGH_PRIORITY_CATEGORIES:
             priority = SupportTicket.Priority.HIGH
+
+        # UC-SUPP-01 AC-03 — duplicate ticket detection (D-003).
+        threshold = timezone.now() - DUPLICATE_TICKET_WINDOW
+        duplicate_qs = SupportTicket.objects.filter(
+            user=request.user,
+            category=category,
+            status__in=ACTIVE_TICKET_STATUSES,
+            created_at__gte=threshold,
+        )
+        if payload.get('order_id'):
+            duplicate_qs = duplicate_qs.filter(order_id=payload['order_id'])
+        else:
+            duplicate_qs = duplicate_qs.filter(order_id__isnull=True)
+        existing = duplicate_qs.order_by('-created_at').first()
+        if existing is not None:
+            return Response(
+                {
+                    'error_code': 'DUPLICATE_TICKET',
+                    'detail':     'Ya tienes un ticket abierto con esta categoria.',
+                    'ticket_id':  existing.pk,
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
 
         ticket = SupportTicket.objects.create(
             user=request.user,
