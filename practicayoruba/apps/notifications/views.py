@@ -15,6 +15,7 @@ Admin endpoints (UC-NOT-07):
 
 Identifiers + JSON keys in English (DEC-DOC-005).
 """
+from django.conf import settings as dj_settings
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.http import Http404
@@ -33,6 +34,7 @@ from .models import (
     NotificationPreference,
     NotificationType,
 )
+from .tasks import dispatch_manual_fanout
 from .serializers import (
     ManualNotificationCreateSerializer,
     ManualNotificationResponseSerializer,
@@ -337,29 +339,47 @@ class AdminManualNotificationCreateView(APIView):
                 ),
             )
 
-            # Crea Notification por destinatario respetando preferencias.
+            # D-004: fanout sincrono para audiencias chicas (preserva el
+            # comportamiento previo, mantiene los tests existentes verdes
+            # y evita la latencia de despachar a Celery para 1-N usuarios).
+            # Para audiencias grandes (>threshold) se despacha al broker
+            # para no bloquear la request. En tests, el override
+            # CELERY_TASK_ALWAYS_EAGER=True hace que .delay() ejecute en
+            # proceso, eliminando la dependencia de redis.
+            threshold = getattr(
+                dj_settings, 'MANUAL_FANOUT_ASYNC_THRESHOLD', 100,
+            )
             if user_ids:
-                disabled = set(
-                    NotificationPreference.objects
-                    .filter(
-                        user_id__in=user_ids,
-                        type=NotificationType.PROMOTION,
-                        enabled=False,
+                if len(user_ids) > threshold:
+                    dispatch_manual_fanout.delay(
+                        list(user_ids),
+                        subject,
+                        message,
+                        NotificationType.PROMOTION,
                     )
-                    .values_list('user_id', flat=True)
-                )
-                to_create = [
-                    Notification(
-                        user_id=uid,
-                        type=NotificationType.PROMOTION,
-                        subject=subject,
-                        body=message,
+                else:
+                    # Camino sincrono (logica original conservada).
+                    disabled = set(
+                        NotificationPreference.objects
+                        .filter(
+                            user_id__in=user_ids,
+                            type=NotificationType.PROMOTION,
+                            enabled=False,
+                        )
+                        .values_list('user_id', flat=True)
                     )
-                    for uid in user_ids
-                    if uid not in disabled
-                ]
-                if to_create:
-                    Notification.objects.bulk_create(to_create)
+                    to_create = [
+                        Notification(
+                            user_id=uid,
+                            type=NotificationType.PROMOTION,
+                            subject=subject,
+                            body=message,
+                        )
+                        for uid in user_ids
+                        if uid not in disabled
+                    ]
+                    if to_create:
+                        Notification.objects.bulk_create(to_create)
 
         return Response(
             ManualNotificationResponseSerializer(manual).data,

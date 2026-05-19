@@ -216,6 +216,31 @@ LOGGING = {
     },
 }
 
+# ───────────────────────────── Celery (D-004) ────────────────────────────
+# Broker opcional. Si `REDIS_URL` no esta definido el sistema funciona en
+# modo eager (todas las tasks se ejecutan inline) — adecuado para dev y
+# tests. En produccion se setea REDIS_URL para activar fanout asincrono
+# de notificaciones manuales (apps.notifications.tasks.dispatch_manual_fanout).
+CELERY_BROKER_URL = config(
+    'CELERY_BROKER_URL',
+    default=config('REDIS_URL', default='memory://'),
+)
+CELERY_RESULT_BACKEND = config('CELERY_RESULT_BACKEND', default='cache+memory://')
+CELERY_TASK_ALWAYS_EAGER = config(
+    'CELERY_TASK_ALWAYS_EAGER', default=True, cast=bool,
+)
+CELERY_TASK_EAGER_PROPAGATES = True
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+
+# Umbral a partir del cual el fanout de notificaciones manuales se
+# despacha asincronamente (D-004). >100 destinatarios -> Celery;
+# <=100 -> ejecucion sincrona en proceso.
+MANUAL_FANOUT_ASYNC_THRESHOLD = config(
+    'MANUAL_FANOUT_ASYNC_THRESHOLD', default=100, cast=int,
+)
+
 # Cache — DatabaseCache (Sprint 6)
 # UC-SRCH-02 (autocomplete) usa la clave "autocomplete:<prefijo>" con TTL 60s.
 # UC-CAT-08 (árbol de categorías) usará la clave "categories:tree" con TTL 300s.
