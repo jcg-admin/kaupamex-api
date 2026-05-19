@@ -10,11 +10,17 @@ ReturnHistoryEntry: pista de auditoria (UC-RET-04 expone el historial).
 from django.conf import settings
 from django.db import models
 
-from apps.core.models import TimeStampedModel
+from apps.core.models import SoftDeleteModel, TimeStampedModel
 
 
-class ReturnRequest(TimeStampedModel):
-    """Solicitud de devolucion. UC-RET-01..06."""
+class ReturnRequest(TimeStampedModel, SoftDeleteModel):
+    """Solicitud de devolucion. UC-RET-01..06.
+
+    Hereda de SoftDeleteModel (DEC-DOC-007): un DELETE conserva la fila
+    junto a sus ``ReturnItem`` y ``ReturnHistoryEntry`` (referenciados
+    via CASCADE). El borrado fisico romperia el historial financiero y
+    el rastro de auditoria que UC-RET-04 expone.
+    """
 
     class Status(models.TextChoices):
         PENDING_REVIEW = 'PENDING_REVIEW', 'Pendiente de revision'
