@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     'apps.support',
     'apps.returns',
     'apps.notifications',
+    'apps.contact',
 ]
 
 AUTH_USER_MODEL = 'users.User'
