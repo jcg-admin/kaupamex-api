@@ -302,16 +302,23 @@ class TestImportarProductosCSV:
         assert res.status_code == 200
         assert res.json()['failed'] == 1
 
-    def test_encabezado_invalido_retorna_400(self, admin_client, db):
-        """FR-INV-05.02 Escenario 2: sin columna 'sku' → ENCABEZADO_INVALIDO."""
+    def test_encabezado_invalido_retorna_422(self, admin_client, db):
+        """
+        FR-INV-05.02 Escenario 2: sin columna 'sku' → ENCABEZADO_CSV_INVALIDO.
+
+        UC-INV-05 PARTE 7 (UI contract): el código pasa a
+        ENCABEZADO_CSV_INVALIDO y el status a 422 (semantic error).
+        El código antiguo ENCABEZADO_INVALIDO se conserva como alias por
+        compatibilidad — ver _process_import_csv.
+        """
         # CSV sin columna 'sku'
         csv_f = _make_csv(
             [{'name': 'X', 'price': '100', 'cat': 'test'}],
             headers=['name', 'price', 'cat']
         )
         res = admin_client.post(IMPORT_URL, {'file': csv_f}, format='multipart')
-        assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'ENCABEZADO_INVALIDO'
+        assert res.status_code == 422
+        assert res.json()['codigo_error'] == 'ENCABEZADO_CSV_INVALIDO'
 
     def test_filas_validas_e_invalidas_mixtas(
         self, admin_client, cat_s11, db
