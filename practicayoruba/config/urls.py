@@ -44,6 +44,10 @@ urlpatterns = [
     path('api/v1/wishlist/',  include('apps.wishlist.urls',    namespace='wishlist')),
     path('api/v1/payments/', include('apps.payments.urls',     namespace='payments')),
     path('api/v1/checkout/', include('apps.payments.checkout_urls')),
+    # P-17 browse overrides must precede apps.catalogue.urls so /api/v1/catalogue/search/
+    # resolves to the new wrapper (normalized_query, persists to apps.search_history).
+    path('api/v1/',           include('apps.catalogue.browse_public_urls',
+                                      namespace='catalogue_browse_public')),
     path('api/v1/catalogue/', include('apps.catalogue.urls',   namespace='catalogue')),
     path('api/v1/catalogue/', include('apps.chartsize.urls',   namespace='chartsize')),
     path('api/v1/admin/',     include('apps.chartsize.admin_urls', namespace='admin_chartsize')),
@@ -61,6 +65,23 @@ urlpatterns = [
     path('api/v1/products/',  include('apps.questions.urls',        namespace='questions')),
     path('api/v1/admin/',     include('apps.questions.admin_urls',  namespace='admin_questions')),
     path('api/v1/admin/',     include('apps.reports.admin_urls',    namespace='admin_reports')),
+
+    # ─── P-13 logistics + UC-CFG-04 static content ─────────────────────────────
+    path('api/v1/logistics/', include('apps.logistics.urls',        namespace='logistics')),
+    path('api/v1/admin/',     include('apps.static_content.admin_urls',
+                                      namespace='admin_static_content')),
+
+    # ─── P-14 reviews ──────────────────────────────────────────────────────────
+    path('api/v1/products/',  include('apps.reviews.urls',          namespace='reviews')),
+    path('api/v1/admin/',     include('apps.reviews.admin_urls',    namespace='admin_reviews')),
+
+    # ─── P-17 catalogue browse + search history ────────────────────────────────
+    path('api/v1/search/',    include('apps.search_history.urls',   namespace='search_history')),
+    path('api/v1/products/',  include('apps.catalogue.browse_product_urls',
+                                      namespace='catalogue_browse_product')),
+    path('api/v1/admin/',     include('apps.catalogue.browse_admin_urls',
+                                      namespace='catalogue_browse_admin')),
+
     # ─── Catch-all LAST: /api/v1/<order_number>/ — DEBE ir después de todos los específicos
     path('api/v1/',          include('apps.orders.urls',       namespace='orders')),
 ]
