@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     'apps.payments',
     'apps.support',
     'apps.returns',
+    'apps.notifications',
 ]
 
 AUTH_USER_MODEL = 'users.User'
