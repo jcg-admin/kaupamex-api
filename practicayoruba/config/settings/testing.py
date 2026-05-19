@@ -50,6 +50,15 @@ PASSWORD_HASHERS = [
 # Sin throttling en tests
 REST_FRAMEWORK['DEFAULT_THROTTLE_CLASSES'] = []
 
+# JWT — clave de firma exclusiva para tests (>=32 bytes para evitar
+# InsecureKeyLengthWarning emitido por PyJWT cuando la clave HMAC-SHA256
+# tiene menos de 32 bytes). En produccion la clave proviene de variables
+# de entorno y debe ser larga; aqui forzamos un valor seguro determinista.
+SIMPLE_JWT = {
+    **SIMPLE_JWT,
+    'SIGNING_KEY': 'testing-signing-key-please-do-not-use-in-production-0123456789',
+}
+
 # ALLOWED_HOSTS para pruebas — pytest-django usa 'testserver' por defecto
 ALLOWED_HOSTS = ['testserver', 'localhost', '127.0.0.1', '*']
 
