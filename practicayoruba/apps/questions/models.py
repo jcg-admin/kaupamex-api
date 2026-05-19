@@ -16,7 +16,7 @@ Visibilidad publica: ANSWERED con answer_body no vacio.
 from django.conf import settings
 from django.db import models
 
-from apps.core.models import TimeStampedModel
+from apps.core.models import SoftDeleteModel, TimeStampedModel
 
 
 class QuestionStatus(models.TextChoices):
@@ -25,8 +25,14 @@ class QuestionStatus(models.TextChoices):
     REJECTED = 'REJECTED', 'Rechazada'
 
 
-class ProductQuestion(TimeStampedModel):
-    """Pregunta sobre un producto."""
+class ProductQuestion(TimeStampedModel, SoftDeleteModel):
+    """Pregunta sobre un producto.
+
+    Hereda de SoftDeleteModel (DEC-DOC-007): un DELETE del admin
+    conserva la pregunta para auditoria de moderacion (UC-QST-04).
+    El estado ``REJECTED`` representa rechazo de NEGOCIO (no se muestra
+    al publico) — independiente del ``is_deleted`` (sistema).
+    """
 
     product = models.ForeignKey(
         'catalogue.Product',
