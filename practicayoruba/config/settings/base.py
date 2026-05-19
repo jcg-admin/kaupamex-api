@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     'apps.wishlist',
     'apps.orders',
     'apps.payments',
+    'apps.support',
 ]
 
 AUTH_USER_MODEL = 'users.User'
