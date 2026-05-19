@@ -76,6 +76,32 @@ class VoucherViewSet(ModelViewSet):
         voucher.save(update_fields=['is_active', 'deactivated_at', 'deactivated_by'])
         return Response(VoucherSerializer(voucher).data)
 
+    @action(detail=True, methods=['post'], url_path='deactivate')
+    @extend_schema(
+        summary='Desactivar voucher (UC-PRO-03)',
+        description=(
+            'Desactivacion explicita via POST — contrato esperado por el UI. '
+            'Equivalente funcional al DELETE soft-delete, expuesto como accion '
+            'nombrada para que el UI pueda mostrar confirmacion con '
+            '`current_uses` antes de invocar.'
+        ),
+        responses={200: VoucherSerializer},
+        tags=['vouchers'],
+    )
+    def deactivate(self, request, pk=None):
+        voucher = self.get_object()
+        if not voucher.is_active:
+            return Response(
+                {'detail': 'El voucher ya está inactivo.',
+                 'codigo_error': 'VOUCHER_YA_INACTIVO'},
+                status=400,
+            )
+        voucher.is_active      = False
+        voucher.deactivated_at = timezone.now()
+        voucher.deactivated_by = request.user
+        voucher.save(update_fields=['is_active', 'deactivated_at', 'deactivated_by'])
+        return Response(VoucherSerializer(voucher).data)
+
     @action(detail=False, methods=['get'], url_path='report')
     @extend_schema(
         summary='Reporte de uso de vouchers',
