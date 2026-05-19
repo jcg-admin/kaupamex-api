@@ -4,7 +4,10 @@ Rutas manuales para evitar dependencia de drf-nested-routers.
 """
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import ProductVariantAdminViewSet, VariantTypeAdminViewSet
+from .views import (
+    ProductVariantAdminViewSet, VariantTypeAdminViewSet,
+    VariantPriceAdminView,
+)
 
 app_name = 'admin_chartsize'
 
@@ -27,4 +30,10 @@ vtype_router.register(
 urlpatterns = [
     path('products/', include(variant_router.urls)),
     path('products/', include(vtype_router.urls)),
+    # UC-CHT-04 — differentiated price endpoint consumed by UI
+    path(
+        'variants/<int:variant_pk>/price/',
+        VariantPriceAdminView.as_view(),
+        name='admin-variant-price',
+    ),
 ]

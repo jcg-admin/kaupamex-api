@@ -1,9 +1,9 @@
-"""Admin URLs — apps.inventory (Sprint 10)."""
+"""Admin URLs — apps.inventory (Sprint 10 + UI contract 2026-05)."""
 from django.urls import path
 from .views import (
     InventoryDashboardView, StockAdjustView,
-    VariantStockAdjustView, StockAlertListView,
-    ProductImportView, ProductImportStatusView,
+    VariantStockAdjustView, VariantMovementsView, StockAlertListView,
+    ProductImportView, ProductImportStatusView, ProductImportReportView,
 )
 
 app_name = 'admin_inventory'
@@ -13,12 +13,21 @@ urlpatterns = [
          InventoryDashboardView.as_view(), name='dashboard'),
     path('inventory/alerts/',
          StockAlertListView.as_view(), name='alert-list'),
-    path('inventory/<int:product_pk>/adjust/',
-         StockAdjustView.as_view(), name='product-adjust'),
+
+    # URLs específicas de variante (UI contract UC-INV-02..04)
+    # — DEBEN ir antes del <int:product_pk> catch para no chocar.
     path('inventory/variants/<int:variant_pk>/adjust/',
          VariantStockAdjustView.as_view(), name='variant-adjust'),
+    path('inventory/variants/<int:variant_pk>/movements/',
+         VariantMovementsView.as_view(), name='variant-movements'),
+
+    path('inventory/<int:product_pk>/adjust/',
+         StockAdjustView.as_view(), name='product-adjust'),
     path('inventory/import/',
          ProductImportView.as_view(), name='product-import'),
     path('inventory/import/<str:job_id>/',
          ProductImportStatusView.as_view(), name='product-import-status'),
+    # D-006 — UC-INV-05 Alt C: descarga CSV del error_report.
+    path('inventory/import-reports/<str:report_id>.csv',
+         ProductImportReportView.as_view(), name='product-import-report'),
 ]

@@ -230,6 +230,35 @@ class TestDesactivarVoucher:
         assert res.status_code == 200
         assert res.json()['is_active'] is True
 
+    # --- POST /deactivate/ — contrato esperado por el UI (UC-PRO-03) ---
+
+    def test_deactivate_action_marca_inactivo(self, admin_client, voucher_fixed, db):
+        """UI llama POST /:id/deactivate/ y espera el voucher serializado."""
+        res = admin_client.post(f'{VOUCHERS_URL}{voucher_fixed.pk}/deactivate/')
+        assert res.status_code == 200
+        body = res.json()
+        assert body['is_active'] is False
+        assert body['status'] == 'INACTIVO'
+        voucher_fixed.refresh_from_db()
+        assert voucher_fixed.is_active is False
+        assert voucher_fixed.deactivated_at is not None
+        assert voucher_fixed.deactivated_by is not None
+
+    def test_deactivate_action_voucher_ya_inactivo_retorna_400(self, admin_client, voucher_fixed, db):
+        voucher_fixed.is_active = False
+        voucher_fixed.save()
+        res = admin_client.post(f'{VOUCHERS_URL}{voucher_fixed.pk}/deactivate/')
+        assert res.status_code == 400
+        assert res.json()['codigo_error'] == 'VOUCHER_YA_INACTIVO'
+
+    def test_deactivate_action_sin_auth_retorna_401(self, api_client, voucher_fixed, db):
+        res = api_client.post(f'{VOUCHERS_URL}{voucher_fixed.pk}/deactivate/')
+        assert res.status_code == 401
+
+    def test_deactivate_action_usuario_normal_retorna_403(self, auth_client, voucher_fixed, db):
+        res = auth_client.post(f'{VOUCHERS_URL}{voucher_fixed.pk}/deactivate/')
+        assert res.status_code in (401, 403)
+
     def test_status_expirado(self, db, admin_user):
         from apps.voucher.models import Voucher
         v = Voucher.objects.create(

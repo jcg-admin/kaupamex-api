@@ -1,0 +1,159 @@
+"""
+Integration tests — P-17 catalogue browse + search + price-sync alias endpoints.
+
+These complement existing catalogue tests by hitting the new URL surface
+required by the UI:
+
+  GET  /api/v1/products/<slug>/related/
+  GET  /api/v1/categories/
+  GET  /api/v1/catalogue/search/?q=&category=&price_min=&price_max=&page=
+  POST /api/v1/admin/price-sync/preview-csv/
+  POST /api/v1/admin/price-sync/apply-csv/
+  POST /api/v1/admin/price-sync/preview-percentage/
+  POST /api/v1/admin/price-sync/apply-percentage/
+  GET  /api/v1/admin/price-sync/template.csv
+"""
+import io
+from decimal import Decimal
+
+import pytest
+
+pytestmark = pytest.mark.integration
+
+
+@pytest.fixture
+def cat_browse(db):
+    from apps.catalogue.models import Category
+    return Category.objects.create(
+        name='Browse', slug='browse', is_active=True,
+    )
+
+
+@pytest.fixture
+def prod_browse(db, cat_browse):
+    from apps.catalogue.models import Product
+    return Product.objects.create(
+        name='Yoruba Sample', slug='yoruba-sample', sku='BR-001',
+        category=cat_browse, price=Decimal('100'), stock=5,
+        is_active=True, is_published=True,
+    )
+
+
+class TestRelatedProducts:
+
+    def test_related_misma_categoria(self, api_client, cat_browse, prod_browse, db):
+        from apps.catalogue.models import Product
+        p2 = Product.objects.create(
+            name='Otro', slug='otro-yoruba', sku='BR-002',
+            category=cat_browse, price=Decimal('100'), stock=1,
+            is_active=True, is_published=True,
+        )
+        r = api_client.get(f'/api/v1/products/{prod_browse.slug}/related/')
+        assert r.status_code == 200
+        data = r.json()
+        slugs = {p['slug'] for p in data['results']}
+        assert p2.slug in slugs
+        assert prod_browse.slug not in slugs
+
+    def test_slug_inexistente_loud_404(self, api_client, db):
+        r = api_client.get('/api/v1/products/no-existe/related/')
+        assert r.status_code == 404
+        assert r.json()['codigo_error'] == 'PRODUCTO_NO_ENCONTRADO'
+
+
+class TestCategoryTree:
+
+    def test_categorias_publicas(self, api_client, cat_browse, prod_browse, db):
+        r = api_client.get('/api/v1/categories/')
+        assert r.status_code == 200
+        slugs = {c['slug'] for c in r.json()}
+        assert 'browse' in slugs
+
+
+class TestCatalogueSearchWrapper:
+
+    def test_search_devuelve_normalized_query(
+        self, api_client, prod_browse, db,
+    ):
+        r = api_client.get('/api/v1/catalogue/search/?q=  Yoruba  Sample  ')
+        assert r.status_code == 200
+        body = r.json()
+        assert body['normalized_query'] == 'Yoruba Sample'
+
+    def test_search_persiste_history_para_auth(
+        self, auth_client, user, prod_browse, db,
+    ):
+        from apps.search_history.models import SearchEntry
+        r = auth_client.get('/api/v1/catalogue/search/?q=yoruba')
+        assert r.status_code == 200
+        assert SearchEntry.objects.filter(user=user, normalized_query='yoruba').exists()
+
+
+class TestPriceSyncAliases:
+
+    def test_template_csv(self, admin_client, prod_browse, db):
+        r = admin_client.get('/api/v1/admin/price-sync/template.csv')
+        assert r.status_code == 200
+        assert r['Content-Type'].startswith('text/csv')
+        body = r.content.decode('utf-8-sig')
+        assert 'sku' in body and 'price' in body
+
+    def test_preview_percentage_y_apply(self, admin_client, prod_browse, db):
+        r = admin_client.post(
+            '/api/v1/admin/price-sync/preview-percentage/',
+            {'pct': 10}, format='json',
+        )
+        assert r.status_code == 200
+        data = r.json()
+        assert data['valid_count'] >= 1
+        sid = data['session_id']
+
+        r2 = admin_client.post(
+            '/api/v1/admin/price-sync/apply-percentage/',
+            {'session_id': sid}, format='json',
+        )
+        assert r2.status_code == 200
+        assert r2.json()['updated_count'] >= 1
+
+    def test_preview_csv_y_apply(self, admin_client, prod_browse, db):
+        csv = 'sku,price\nBR-001,150.00\n'
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        upload = SimpleUploadedFile(
+            'p.csv', csv.encode('utf-8'), content_type='text/csv',
+        )
+        r = admin_client.post(
+            '/api/v1/admin/price-sync/preview-csv/',
+            {'file': upload}, format='multipart',
+        )
+        assert r.status_code == 200
+        data = r.json()
+        assert data['valid_count'] == 1
+        sid = data['session_id']
+
+        r2 = admin_client.post(
+            '/api/v1/admin/price-sync/apply-csv/',
+            {'session_id': sid}, format='json',
+        )
+        assert r2.status_code == 200
+        from apps.catalogue.models import Product
+        prod_browse.refresh_from_db()
+        assert prod_browse.price == Decimal('150.00')
+
+    def test_apply_sesion_expirada_loud(self, admin_client, db):
+        r = admin_client.post(
+            '/api/v1/admin/price-sync/apply-csv/',
+            {'session_id': 'ghost'}, format='json',
+        )
+        assert r.status_code == 400
+        assert r.json()['codigo_error'] == 'SESSION_EXPIRADA'
+
+    def test_preview_csv_requires_file(self, admin_client, db):
+        r = admin_client.post(
+            '/api/v1/admin/price-sync/preview-csv/', {}, format='multipart',
+        )
+        assert r.status_code == 400
+        assert r.json()['codigo_error'] == 'CSV_REQUERIDO'
+
+    def test_anon_recibe_401(self, api_client, db):
+        r = api_client.get('/api/v1/admin/price-sync/template.csv')
+        assert r.status_code == 401

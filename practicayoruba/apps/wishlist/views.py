@@ -64,18 +64,33 @@ class WishlistView(APIView):
 
         price = variant.effective_price() if variant else product.price
 
+        # DEC-DOC-007: si hay una fila soft-deleted con el mismo
+        # (user, product, variant), reactivarla en lugar de crear duplicado.
+        existing = WishlistItem.all_objects.filter(
+            user=request.user, product=product, variant=variant,
+        ).first()
+        if existing is not None:
+            if existing.is_deleted:
+                existing.is_deleted = False
+                existing.deleted_at = None
+                existing.price_at_add = price
+                existing.save(update_fields=[
+                    'is_deleted', 'deleted_at', 'price_at_add', 'updated_at',
+                ])
+                return Response(WishlistItemSerializer(existing).data, status=201)
+            return Response(WishlistItemSerializer(existing).data, status=200)
+
         try:
-            item, created = WishlistItem.objects.get_or_create(
+            item = WishlistItem.objects.create(
                 user=request.user, product=product, variant=variant,
-                defaults={'price_at_add': price},
+                price_at_add=price,
             )
         except IntegrityError:
             item = WishlistItem.objects.get(
                 user=request.user, product=product, variant=variant)
-            created = False
+            return Response(WishlistItemSerializer(item).data, status=200)
 
-        return Response(WishlistItemSerializer(item).data,
-                        status=201 if created else 200)
+        return Response(WishlistItemSerializer(item).data, status=201)
 
 
 class WishlistItemDetailView(APIView):

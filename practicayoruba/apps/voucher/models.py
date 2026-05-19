@@ -10,12 +10,31 @@ from decimal import Decimal
 from django.conf import settings
 from django.db import models
 
-from apps.core.models import TimeStampedModel
+from apps.core.models import SoftDeleteModel, TimeStampedModel
 from django.core.validators import MinValueValidator
 from django.utils import timezone
 
 
-class Voucher(TimeStampedModel):
+class Voucher(TimeStampedModel, SoftDeleteModel):
+    """
+    Cupon de descuento aplicable a un carrito.
+
+    Coexisten dos semánticas de "borrado":
+
+    - ``is_active`` / ``deactivated_at`` / ``deactivated_by``: desactivacion
+      de NEGOCIO. El admin marca el cupon como no-usable (UC-PRO-03):
+      sigue listado en reportes (UC-PRO-04) y en historiales de uso.
+    - ``is_deleted`` / ``deleted_at`` (heredados de SoftDeleteModel,
+      DEC-DOC-007): borrado LOGICO de SISTEMA. El admin removio la fila
+      del listado operativo; queda fuera del manager por defecto pero
+      recuperable via ``Voucher.all_objects`` para auditoria.
+
+    Ambos campos son ortogonales: un voucher puede estar
+    ``is_active=False`` (desactivado de negocio) e ``is_deleted=False``
+    (todavia listable). Tambien puede llegar a ``is_deleted=True`` sin
+    pasar por ``is_active=False`` si el admin descarta el registro
+    directamente.
+    """
     TYPE_FIXED        = 'FIXED'
     TYPE_PERCENTAGE   = 'PERCENTAGE'
     TYPE_FREE_SHIPPING = 'FREE_SHIPPING'

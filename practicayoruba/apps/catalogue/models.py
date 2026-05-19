@@ -9,10 +9,14 @@ Sprints 4-9. Refactorizado en sprint de infraestructura: herencia-modelos-django
   ProductImage  → TimeStampedModel (migración 0006: ADD created_at + updated_at)
 """
 import threading
-from django.conf import settings
-from django.db import models
+from decimal import Decimal
 
-from apps.core.models import TimeStampedModel
+from django.conf import settings
+from django.core.validators import MaxValueValidator, MinValueValidator
+from django.db import models
+from django.utils import timezone
+
+from apps.core.models import SoftDeleteModel, TimeStampedModel
 
 
 class Category(TimeStampedModel):
@@ -69,8 +73,12 @@ class Category(TimeStampedModel):
         return ids
 
 
-class Product(TimeStampedModel):
-    """Producto del catálogo. UC-CAT-01/02/09/10/11/12."""
+class Product(TimeStampedModel, SoftDeleteModel):
+    """Producto del catálogo. UC-CAT-01/02/09/10/11/12.
+
+    Hereda de SoftDeleteModel (DEC-DOC-007): el borrado fisico esta
+    prohibido — se preserva historial via ``is_deleted`` + ``deleted_at``.
+    """
     name              = models.CharField(max_length=200)
     slug              = models.SlugField(max_length=220, unique=True)
     sku               = models.CharField(max_length=50, unique=True, db_index=True)
@@ -83,6 +91,7 @@ class Product(TimeStampedModel):
     stock             = models.IntegerField(default=0)
     is_active         = models.BooleanField(default=True, db_index=True)
     is_published      = models.BooleanField(default=False, db_index=True)
+    is_featured       = models.BooleanField(default=False, db_index=True)
     # Columna auxiliar para búsqueda fulltext (MariaDB usa FULLTEXT INDEX, no tsvector)
     # El índice FULLTEXT real está en la migración 0002 sobre name+description+short_description
     search_vector     = models.TextField(null=True, blank=True)
@@ -144,6 +153,84 @@ class SearchHistory(TimeStampedModel):
         # Ejecutar trim de forma síncrona para garantizar consistencia
         # El costo es mínimo: 1 COUNT + 1 DELETE cuando count > 20
         trim()
+
+
+class ProductDiscount(TimeStampedModel, SoftDeleteModel):
+    """
+    Product-level discount (UC-DASH-01..04).
+
+    Hereda de SoftDeleteModel (DEC-DOC-007). Coexisten dos semánticas:
+
+    - ``is_active`` / ``deactivated_at`` / ``deactivated_by``:
+      desactivacion de NEGOCIO (el admin marca la promocion como
+      no-aplicable; sigue listada en reportes y en el historial de
+      precios aplicados a las ordenes pasadas).
+    - ``is_deleted`` / ``deleted_at``: borrado LOGICO de SISTEMA.
+      Fuera del manager por defecto pero recuperable via
+      ``ProductDiscount.all_objects`` para auditoria.
+
+    Distinto de Voucher (apps.voucher): no tiene codigo y se aplica
+    automaticamente al render del producto en catalogo. Una sola
+    promocion activa por producto a la vez (la mas reciente con
+    valid_from <= now <= valid_until y is_active=True).
+
+    Status derivado:
+      CURRENT  — is_active y valid_from <= now y (valid_until None o now <= valid_until)
+      FUTURE   — is_active y now < valid_from
+      EXPIRED  — is_active y valid_until y now > valid_until
+      INACTIVE — is_active=False (no expuesto en filtros UI)
+    """
+    product       = models.ForeignKey(
+        Product, on_delete=models.CASCADE, related_name='discounts',
+    )
+    discount_pct  = models.DecimalField(
+        max_digits=5, decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01')),
+                    MaxValueValidator(Decimal('100.00'))],
+        help_text='Porcentaje de descuento (0.01 - 100).',
+    )
+    valid_from    = models.DateTimeField(db_index=True)
+    valid_until   = models.DateTimeField(null=True, blank=True, db_index=True)
+    is_active     = models.BooleanField(default=True, db_index=True)
+    deactivated_at = models.DateTimeField(null=True, blank=True)
+    deactivated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='deactivated_product_discounts',
+    )
+    created_by    = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='created_product_discounts',
+    )
+
+    class Meta:
+        db_table     = 'catalogue_product_discount'
+        ordering     = ['-created_at']
+        verbose_name = 'Descuento de producto'
+        indexes = [
+            models.Index(fields=['product', 'is_active']),
+        ]
+
+    def __str__(self):
+        return f'{self.product.sku} -{self.discount_pct}% ({self.status})'
+
+    @property
+    def status(self) -> str:
+        if not self.is_active:
+            return 'INACTIVE'
+        now = timezone.now()
+        if now < self.valid_from:
+            return 'FUTURE'
+        if self.valid_until and now > self.valid_until:
+            return 'EXPIRED'
+        return 'CURRENT'
+
+    @property
+    def discounted_price(self) -> Decimal:
+        original = self.product.price
+        factor = (Decimal('100.00') - self.discount_pct) / Decimal('100')
+        return (original * factor).quantize(Decimal('0.01'))
 
 
 class ProductImage(TimeStampedModel):

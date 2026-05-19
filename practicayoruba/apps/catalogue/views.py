@@ -94,7 +94,7 @@ def _fulltext_search(qs, term: str):
             "AGAINST (%s IN BOOLEAN MODE)"
         ],
         params=[term],
-        order_by=['-relevance'],
+        order_by=['-is_featured', '-relevance'],
     )
     if fulltext_qs.exists():
         return fulltext_qs
@@ -103,7 +103,7 @@ def _fulltext_search(qs, term: str):
         Q(name__icontains=term) |
         Q(description__icontains=term) |
         Q(short_description__icontains=term)
-    ).order_by('name')
+    ).order_by('-is_featured', 'name')
 
 
 def _get_category_descendants(slug: str) -> set:
@@ -364,7 +364,13 @@ class AutocompleteView(APIView):
         if len(prefijo) < MIN_QUERY_LENGTH:
             return Response([])
 
-        cache_key = f'autocomplete:{prefijo.lower()}'
+        # H-S8-006: el prefijo normalizado puede contener espacios (ver
+        # _normalize_query), y los espacios estan prohibidos en claves de cache
+        # estilo memcached (Django emite CacheKeyWarning). Sustituimos los
+        # espacios por '_' antes de construir la clave; como _normalize_query ya
+        # colapsa cualquier secuencia de espacios a uno solo, la sustitucion es
+        # 1:1 y no introduce colisiones entre entradas distintas.
+        cache_key = f'autocomplete:{prefijo.lower().replace(" ", "_")}'
         cached = cache.get(cache_key)
         if cached is not None:
             return Response(cached)
@@ -622,6 +628,8 @@ def _count_active_carts(product) -> int:
         from apps.cart.models import CartItem
         return CartItem.objects.filter(product=product).count()
     except Exception:
+        # silent OK because apps.cart es opcional (deployments parciales).
+        # El preview de impacto trata 0 como "sin carritos". DEC-DOC-008.
         return 0
 
 
@@ -631,6 +639,7 @@ def _count_wishlist_items(product) -> int:
         from apps.wishlist.models import WishlistItem
         return WishlistItem.objects.filter(product=product).count()
     except Exception:
+        # silent OK because apps.wishlist es opcional. DEC-DOC-008.
         return 0
 
 
@@ -738,10 +747,21 @@ class ProductAdminViewSet(ProductDeactivateAction, ModelViewSet):
             cache.delete(CATEGORY_TREE_CACHE_KEY)
 
     def perform_destroy(self, instance):
-        """Soft delete: is_active=False. Purga caches del producto y árbol."""
+        """Soft delete (DEC-DOC-007).
+
+        Marca el producto como borrado logicamente: ``is_deleted=True``
+        + ``deleted_at`` (via mixin), y desactiva la visibilidad
+        (``is_active=False``, ``is_published=False``). Purga las
+        caches del producto y del arbol de categorias.
+        """
+        from django.utils import timezone
         instance.is_active    = False
         instance.is_published = False
-        instance.save(update_fields=['is_active', 'is_published'])
+        instance.is_deleted   = True
+        instance.deleted_at   = timezone.now()
+        instance.save(update_fields=[
+            'is_active', 'is_published', 'is_deleted', 'deleted_at',
+        ])
         # H-S8-001: purgar también la ficha del producto (Sprint 7 solo purgaba categories:tree)
         cache.delete(f'product:{instance.pk}:detail')
         cache.delete(CATEGORY_TREE_CACHE_KEY)

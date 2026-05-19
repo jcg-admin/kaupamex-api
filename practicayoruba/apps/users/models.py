@@ -8,7 +8,7 @@ import os
 from django.contrib.auth.models import AbstractUser
 from django.db import models, transaction
 
-from apps.core.models import TimeStampedModel
+from apps.core.models import SoftDeleteModel, TimeStampedModel
 
 
 def avatar_upload_path(instance, filename):
@@ -49,6 +49,9 @@ class User(AbstractUser):
                 return request.build_absolute_uri(self.avatar.url)
             return self.avatar.url
         except (ValueError, AttributeError):
+            # silent OK because contract: get_avatar_url() retorna None
+            # cuando el storage no puede resolver la URL (archivo
+            # huerfano). DEC-DOC-008.
             return None
 
     def profile_completeness(self):
@@ -86,10 +89,15 @@ class User(AbstractUser):
         return pending
 
 
-class Address(TimeStampedModel):
+class Address(TimeStampedModel, SoftDeleteModel):
     """
     Direccion de envio del comprador (FR-AUTH-07.02, FR-AUTH-07.04).
     Maximo 5 por usuario. Solo una puede ser is_default=True a la vez.
+
+    Hereda SoftDeleteModel (DEC-DOC-007): un Address borrado conserva
+    la referencia historica desde Order/Shipment (snapshot ya esta en
+    OrderAddress, pero preservar la fila original facilita auditoria
+    y trazabilidad).
     """
     MAX_PER_USER = 5
 

@@ -3,6 +3,8 @@ Views — apps.chartsize
 
 Sprint 9 — UC-CHT-01, UC-CHT-02, UC-CHT-03, UC-CHT-04
 """
+from decimal import Decimal, InvalidOperation
+
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 from rest_framework.exceptions import ValidationError
@@ -100,10 +102,18 @@ class ProductVariantAdminViewSet(ModelViewSet):
 
     def perform_destroy(self, instance):
         """
-        Soft delete: is_active=False.
+        Soft delete (DEC-DOC-007).
+
+        Marca la variante como borrada logicamente (``is_deleted=True`` +
+        ``deleted_at``) y, ademas, desactiva la visibilidad de negocio
+        (``is_active=False``, ``stock=0``) — ambos campos coexisten:
+        uno modela la regla de negocio (UC-CHT-03), el otro la politica
+        de retencion historica.
+
         Sprint 12: verificar CartItems activos antes de desactivar.
         H-ORD-005: verificar ActiveOrders antes de desactivar (Sprint 19).
         """
+        from django.utils import timezone
         # H-ORD-005: protección contra órdenes activas
         from apps.orders.proxy_models import ActiveOrder
         if ActiveOrder.objects.filter(items__variant=instance).exists():
@@ -124,7 +134,11 @@ class ProductVariantAdminViewSet(ModelViewSet):
             })
         instance.is_active = False
         instance.stock     = 0
-        instance.save(update_fields=['is_active', 'stock'])
+        instance.is_deleted = True
+        instance.deleted_at = timezone.now()
+        instance.save(update_fields=[
+            'is_active', 'stock', 'is_deleted', 'deleted_at',
+        ])
 
     @extend_schema(summary='Listar variantes del producto', tags=['admin-catalogue'])
     def list(self, request, *args, **kwargs):
@@ -183,8 +197,14 @@ class VariantTypeAdminViewSet(ModelViewSet):
         serializer.save(product=self._get_product())
 
     def perform_destroy(self, instance):
+        """Soft delete (DEC-DOC-007): ``is_deleted`` + visibilidad apagada."""
+        from django.utils import timezone
         instance.is_active = False
-        instance.save(update_fields=['is_active'])
+        instance.is_deleted = True
+        instance.deleted_at = timezone.now()
+        instance.save(update_fields=[
+            'is_active', 'is_deleted', 'deleted_at',
+        ])
 
     @extend_schema(summary='Listar tipos de variante', tags=['admin-catalogue'])
     def list(self, request, *args, **kwargs):
@@ -198,3 +218,59 @@ class VariantTypeAdminViewSet(ModelViewSet):
     def partial_update(self, request, *args, **kwargs):
         kwargs['partial'] = True
         return super().update(request, *args, **kwargs)
+
+
+# =============================================================================
+# UC-CHT-04 — Differentiated price endpoint
+# UI consumes PUT/DELETE /api/v1/admin/variants/<variant_pk>/price/
+# =============================================================================
+
+class VariantPriceAdminView(APIView):
+    """
+    PUT    /api/v1/admin/variants/<variant_pk>/price/  — set price_override
+    DELETE /api/v1/admin/variants/<variant_pk>/price/  — clear price_override
+
+    UC-CHT-04 (FR-CHT-04.02): differentiated price per variant.
+    Returns the updated variant serialized with ProductVariantAdminSerializer.
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def _get_variant(self, variant_pk):
+        return get_object_or_404(ProductVariant, pk=variant_pk)
+
+    @extend_schema(
+        summary='Set differentiated price on a variant',
+        request={'application/json': {'type': 'object',
+                                       'properties': {'price': {'type': 'string'}},
+                                       'required': ['price']}},
+        responses={200: ProductVariantAdminSerializer, 400: None, 404: None},
+        tags=['variants'],
+    )
+    def put(self, request, variant_pk):
+        variant = self._get_variant(variant_pk)
+        raw = request.data.get('price', None)
+        if raw is None or raw == '':
+            raise ValidationError({'price': 'This field is required.'})
+        try:
+            value = Decimal(str(raw))
+        except (InvalidOperation, TypeError, ValueError):
+            raise ValidationError({'price': 'Invalid decimal value.'})
+        if value <= Decimal('0'):
+            raise ValidationError({
+                'price': 'The differentiated price must be greater than zero.',
+            })
+        variant.price_override = value
+        variant.save(update_fields=['price_override', 'updated_at'])
+        return Response(ProductVariantAdminSerializer(variant).data)
+
+    @extend_schema(
+        summary='Clear differentiated price (fall back to product base price)',
+        responses={200: ProductVariantAdminSerializer, 404: None},
+        tags=['variants'],
+    )
+    def delete(self, request, variant_pk):
+        variant = self._get_variant(variant_pk)
+        if variant.price_override is not None:
+            variant.price_override = None
+            variant.save(update_fields=['price_override', 'updated_at'])
+        return Response(ProductVariantAdminSerializer(variant).data)

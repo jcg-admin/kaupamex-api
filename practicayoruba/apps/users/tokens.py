@@ -87,6 +87,9 @@ class PYTokenObtainPairSerializer(TokenObtainPairSerializer):
                     code='email_no_verificado',
                 )
         except User.DoesNotExist:
+            # silent OK because anti-user-enumeration: super().validate()
+            # devolvera AuthenticationFailed con mensaje generico, sin
+            # revelar si el username existe. DEC-DOC-008.
             pass
 
         data = super().validate(attrs)

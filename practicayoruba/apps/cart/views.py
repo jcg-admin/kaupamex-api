@@ -6,10 +6,13 @@ UC-CART-03: Eliminar Item del Carrito
 UC-CART-05: Guardar Carrito para Despues
 UC-CART-06: Sincronizar Carrito Anonimo al Autenticar
 """
+import logging
 import uuid
 from decimal import Decimal
 
 from django.db import transaction
+
+logger = logging.getLogger(__name__)
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework.exceptions import ValidationError
@@ -54,7 +57,13 @@ def _get_or_create_cart(request) -> tuple:
             if cart:
                 return cart, False, str(token)
         except (ValueError, AttributeError):
-            pass
+            # Loud-log: cart_token malformado puede indicar manipulacion
+            # del cliente. No abortamos (creamos carrito nuevo) pero
+            # operaciones debe ver la frecuencia. DEC-DOC-008.
+            logger.warning(
+                'cart_token malformed value=%r, creating new cart',
+                raw_token,
+            )
 
     # Crear carrito anonimo nuevo
     new_token = uuid.uuid4()
@@ -149,9 +158,19 @@ class CartItemView(APIView):
 
         # Resolver variante
         if variant_id:
-            variant = get_object_or_404(
-                ProductVariant, pk=variant_id, product=product, is_active=True
+            variant = (
+                ProductVariant.objects
+                .filter(pk=variant_id, product=product, is_active=True)
+                .first()
             )
+            if variant is None:
+                return Response(
+                    {
+                        'detail': 'La variante solicitada no esta disponible.',
+                        'codigo_error': 'VARIANTE_NO_DISPONIBLE',
+                    },
+                    status=404,
+                )
         elif product.variant_types.filter(is_active=True).exists():
             raise ValidationError({
                 'variant_id': (
@@ -166,6 +185,15 @@ class CartItemView(APIView):
         # Verificar stock
         available = variant.stock if variant else product.stock
         if available < quantity:
+            if variant is not None:
+                return Response(
+                    {
+                        'detail': f'Variante sin stock suficiente. Disponible: {available}.',
+                        'codigo_error': 'VARIANTE_SIN_STOCK',
+                        'available_stock': available,
+                    },
+                    status=409,
+                )
             raise ValidationError({
                 'quantity': f'Stock insuficiente. Disponible: {available}.',
                 'codigo_error': 'STOCK_INSUFICIENTE',
@@ -181,6 +209,17 @@ class CartItemView(APIView):
             if existing:
                 new_qty = existing.quantity + quantity
                 if new_qty > available:
+                    if variant is not None:
+                        return Response(
+                            {
+                                'detail': (
+                                    f'Variante sin stock suficiente. Disponible: {available}.'
+                                ),
+                                'codigo_error': 'VARIANTE_SIN_STOCK',
+                                'available_stock': available,
+                            },
+                            status=409,
+                        )
                     raise ValidationError({
                         'quantity': f'Stock insuficiente. Disponible: {available}.',
                         'codigo_error': 'STOCK_INSUFICIENTE',

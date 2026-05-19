@@ -10,25 +10,77 @@ Sprints 1, 8, 10. Refactorizado en sprint de infraestructura: herencia-modelos-d
 
 H-INH-004: estos 4 modelos solo tenían updated_at — se agrega created_at.
 """
+import logging
 from decimal import Decimal
 from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator, MaxValueValidator, RegexValidator
 from django.db import models
 from cryptography.fernet import Fernet
 
 from apps.core.models import TimeStampedModel
 
+logger = logging.getLogger(__name__)
+
 
 class SiteSettings(TimeStampedModel):
-    """Configuración singleton del sitio. UC-CFG-03."""
+    """Configuración singleton del sitio. UC-CFG-03.
+
+    DEC-DOC-005: identificadores en inglés.
+    Contrato: FR-CFG-03.01 (parámetros globales) y FR-CFG-03.02 (validación).
+    """
+    # — Identidad del sitio —
+    site_name = models.CharField(max_length=100, default='PracticaYoruba')
+
     # — Impuestos y umbrales —
-    iva_rate               = models.DecimalField(max_digits=5, decimal_places=4, default=Decimal('0.16'))
+    iva_rate = models.DecimalField(
+        max_digits=5,
+        decimal_places=4,
+        default=Decimal('0.16'),
+        validators=[
+            MinValueValidator(Decimal('0')),
+            MaxValueValidator(Decimal('1')),
+        ],
+        help_text='Tasa de IVA expresada como fracción decimal entre 0 y 1 (ej. 0.16 = 16%).',
+    )
+    currency = models.CharField(
+        max_length=3,
+        default='MXN',
+        validators=[
+            RegexValidator(
+                regex=r'^[A-Z]{3}$',
+                message='Currency must be a 3-letter ISO 4217 code (uppercase).',
+            ),
+        ],
+        help_text='Código ISO 4217 de la moneda (3 letras mayúsculas).',
+    )
+
     # UC-ORD-10 — timeout de pago para alertas del dashboard (H-ADM-004)
     payment_timeout_minutes = models.PositiveIntegerField(
         default=30,
         help_text='Minutos hasta que una orden PENDING se cancela por timeout (UC-SYS-01).'
     )
-    min_stock_threshold    = models.PositiveIntegerField(default=5)
-    free_shipping_threshold = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    # UC-CFG-03 — timeout para abandono de carrito / orden
+    order_timeout_minutes = models.PositiveIntegerField(
+        default=30,
+        validators=[MinValueValidator(1)],
+        help_text='Minutos antes de que una orden sin pagar expire (FR-CFG-03.01).',
+    )
+    # UC-RTN-01 — ventana máxima de devolución
+    max_return_days = models.PositiveIntegerField(
+        default=30,
+        validators=[MinValueValidator(1)],
+        help_text='Días máximos para solicitar una devolución.',
+    )
+
+    min_stock_threshold = models.PositiveIntegerField(default=5)
+    free_shipping_threshold = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal('500.00'),
+        validators=[MinValueValidator(Decimal('0'))],
+    )
+
     # — Contacto (UC-CFG-05) —
     support_email = models.EmailField(max_length=254, blank=True, default='')
     phone         = models.CharField(max_length=30, blank=True, default='')
@@ -40,12 +92,32 @@ class SiteSettings(TimeStampedModel):
         verbose_name = 'Configuración del sitio'
 
     def __str__(self):
-        return 'SiteSettings'
+        return f'SiteSettings({self.site_name})'
+
+    def clean(self):
+        """Singleton: solo se permite un registro (pk=1)."""
+        super().clean()
+        if self.pk is None and SiteSettings.objects.exists():
+            raise ValidationError('SiteSettings is a singleton; only one record is allowed.')
+
+    def save(self, *args, **kwargs):
+        # Fijar pk=1 para reforzar el singleton a nivel de almacenamiento.
+        if self.pk is None and SiteSettings.objects.exists():
+            raise ValidationError('SiteSettings is a singleton; only one record is allowed.')
+        if self.pk is None:
+            self.pk = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_or_create_defaults(cls) -> 'SiteSettings':
+        """Devuelve el registro singleton, creándolo con defaults si no existe."""
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
 
     @classmethod
     def get_current(cls) -> 'SiteSettings':
-        obj, _ = cls.objects.get_or_create(pk=1)
-        return obj
+        """Alias retrocompatible — usar get_or_create_defaults en código nuevo."""
+        return cls.get_or_create_defaults()
 
 
 class PaymentGateway(TimeStampedModel):
@@ -94,6 +166,13 @@ class PaymentGateway(TimeStampedModel):
             f = Fernet(self._fernet_key())
             return json.loads(f.decrypt(bytes(self.credentials)).decode())
         except Exception:
+            # Loud-log: credenciales no descifrables (SECRET_KEY rotada
+            # o blob corrupto). UI debe tratar como "sin credenciales"
+            # y obligar a re-ingresarlas. DEC-DOC-008.
+            logger.warning(
+                'PaymentGateway.get_credentials: decrypt failed gw=%s',
+                getattr(self, 'gateway', '?'), exc_info=True,
+            )
             return {}
 
     def get_masked_credentials(self) -> dict:
@@ -104,6 +183,12 @@ class PaymentGateway(TimeStampedModel):
         try:
             creds = self.get_credentials()
         except Exception:
+            # Loud-log: get_credentials ya loggea pero envolvemos por si
+            # falla antes de su try. DEC-DOC-008.
+            logger.warning(
+                'PaymentGateway.get_masked_credentials failed gw=%s',
+                getattr(self, 'gateway', '?'), exc_info=True,
+            )
             return {}
         masked = {}
         for key, value in creds.items():

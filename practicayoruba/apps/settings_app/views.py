@@ -6,8 +6,11 @@ Sprint 8: PaymentGatewayViewSet (UC-CFG-01), ShippingMethodViewSet (UC-CFG-02)
 """
 import csv
 import io
+import logging
 import uuid
 from decimal import Decimal, InvalidOperation
+
+logger = logging.getLogger(__name__)
 from django.db import transaction
 from django.http import HttpResponse
 from django.utils import timezone
@@ -97,8 +100,13 @@ class PaymentGatewayViewSet(ModelViewSet):
                 instance.verified_at = timezone.now()
                 instance.save(update_fields=['verified_at'])
         except Exception:
-            # Fallo de red — no bloquear el guardado (EX-02 del FR)
-            pass
+            # silent OK because EX-02 del FR: el guardado no se bloquea
+            # ante fallo de red, pero el incidente queda loggeado para
+            # operaciones. DEC-DOC-008.
+            logger.warning(
+                'post-save gateway verify failed gw=%s (EX-02 FR)',
+                getattr(instance, 'gateway', '?'), exc_info=True,
+            )
 
     @action(detail=True, methods=['post'], url_path='verify')
     @extend_schema(

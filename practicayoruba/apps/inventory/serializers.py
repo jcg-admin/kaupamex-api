@@ -52,3 +52,30 @@ class StockAdjustSerializer(serializers.Serializer):
     """
     delta = serializers.IntegerField()
     notes = serializers.CharField(required=False, default='', allow_blank=True)
+
+
+# ─── UC-INV-04 contrato UI: ajuste por nueva cantidad absoluta ─────────────
+# Reason enum tomado de UC-INV-04 PARTE 7. observations es libre.
+ADJUSTMENT_REASONS = [
+    'CONTEO_FISICO', 'MERMA', 'ROBO',
+    'DEVOLUCION', 'DESCONTINUADO', 'OTRO',
+]
+
+
+class VariantAdjustNewQuantitySerializer(serializers.Serializer):
+    """
+    UC-INV-04 — payload de la UI (UC-INV-01..05 ui agent).
+
+    Campos en snake_case inglés; los valores del enum reason permanecen en
+    español para coincidir con el catálogo de motivos visible al usuario
+    final (DEC-DOC-005: identificadores en inglés, valores de negocio que el
+    usuario lee pueden ser en español).
+    """
+    # No usamos min_value: la regla "no negativo" se aplica en la vista
+    # para devolver HTTP 422 con codigo_error STOCK_NEGATIVO_NO_PERMITIDO
+    # (UC-INV-04 PARTE 7), en lugar del 400 genérico de DRF.
+    new_quantity = serializers.IntegerField(required=True)
+    reason       = serializers.ChoiceField(choices=ADJUSTMENT_REASONS, required=True)
+    observations = serializers.CharField(
+        required=False, default='', allow_blank=True, max_length=500,
+    )

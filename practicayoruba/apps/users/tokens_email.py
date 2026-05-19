@@ -9,10 +9,13 @@ El token en claro se envia por email.
 Solo el hash SHA-256 se guarda en la BD.
 """
 import hashlib
+import logging
 import secrets
 from datetime import timedelta
 
 from django.core.cache import cache
+
+logger = logging.getLogger(__name__)
 from django.core.mail import send_mail
 from django.conf import settings
 from django.utils import timezone
@@ -101,7 +104,13 @@ def invalidate_all_sessions(user):
         try:
             RefreshToken(token.token).blacklist()
         except Exception:
-            pass
+            # Loud-log (no re-raise): el loop debe seguir invalidando
+            # el resto de tokens aunque uno este corrupto/duplicado.
+            # DEC-DOC-008.
+            logger.warning(
+                'blacklist refresh token failed user_id=%s token_id=%s',
+                user.pk, token.id, exc_info=True,
+            )
 
 
 # ─── Email Verification ───────────────────────────────────────────────
