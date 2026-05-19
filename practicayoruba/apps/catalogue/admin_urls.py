@@ -9,6 +9,11 @@ from .views import (
     CategoryAdminViewSet, ProductAdminViewSet,
     ProductPriceSyncView, ProductPriceSyncConfirmView, ProductPriceSyncTemplateView,
 )
+from .product_discount_views import (
+    ProductDiscountDeactivateView,
+    ProductDiscountDetailView,
+    ProductDiscountListCreateView,
+)
 
 app_name = 'admin_catalogue'
 
@@ -24,6 +29,16 @@ urlpatterns = [
          ProductPriceSyncConfirmView.as_view(),   name='price-sync-confirm'),
     path('products/price-sync/template/',
          ProductPriceSyncTemplateView.as_view(),  name='price-sync-template'),
+    # ─── Product discounts (UC-DASH-01..04) ─────────────────────────────────────────
+    path('product-discounts/',
+         ProductDiscountListCreateView.as_view(),
+         name='product-discount-list-create'),
+    path('product-discounts/<int:pk>/',
+         ProductDiscountDetailView.as_view(),
+         name='product-discount-detail'),
+    path('product-discounts/<int:pk>/deactivate/',
+         ProductDiscountDeactivateView.as_view(),
+         name='product-discount-deactivate'),
     # ─── Router LAST ────────────────────────────────────────────────────────────────
     path('', include(router.urls)),
 ]
