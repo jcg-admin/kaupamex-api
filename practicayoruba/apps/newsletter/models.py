@@ -16,7 +16,7 @@ import secrets
 from django.conf import settings
 from django.db import models
 
-from apps.core.models import TimeStampedModel
+from apps.core.models import SoftDeleteModel, TimeStampedModel
 
 
 def _generate_unsubscribe_token():
@@ -30,8 +30,23 @@ class SubscriberStatus(models.TextChoices):
     UNSUBSCRIBED = 'UNSUBSCRIBED', 'Dado de baja'
 
 
-class NewsletterSubscriber(TimeStampedModel):
-    """Suscriptor de la newsletter publica."""
+class NewsletterSubscriber(TimeStampedModel, SoftDeleteModel):
+    """Suscriptor de la newsletter publica.
+
+    Coexisten dos semánticas de "borrado":
+
+    - ``status=UNSUBSCRIBED`` / ``unsubscribed_at``: opt-out de NEGOCIO
+      (el usuario o el admin marca la baja de la newsletter). La fila
+      sigue listada y se conserva el token para casos de re-suscripcion.
+    - ``is_deleted`` / ``deleted_at`` (heredados de SoftDeleteModel,
+      DEC-DOC-007): borrado LOGICO de SISTEMA. El admin descarta la
+      fila del listado operativo; queda disponible en
+      ``NewsletterSubscriber.all_objects`` para auditoria (PII +
+      compliance LOPD).
+
+    Ambos son ortogonales: un suscriptor confirmado puede ser borrado
+    logicamente sin pasar antes por UNSUBSCRIBED.
+    """
 
     email = models.EmailField(unique=True)
     status = models.CharField(
