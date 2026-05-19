@@ -14,8 +14,34 @@ from .models import StockMovement, StockAlert
 from .serializers import (
     StockDashboardSerializer, StockMovementSerializer,
     StockAlertSerializer, StockAdjustSerializer,
+    VariantAdjustNewQuantitySerializer,
 )
 from .services import InventoryService, _get_stock_status
+
+
+# Mapeo de alias en inglés (UI agent) hacia los códigos internos en español
+# del estado de stock. Aceptamos ambos para no romper el contrato existente.
+STATUS_ALIASES = {
+    'LOW':     'BAJO',
+    'OUT':     'AGOTADO',
+    'NORMAL':  'NORMAL',
+    'BAJO':    'BAJO',
+    'AGOTADO': 'AGOTADO',
+}
+
+
+def _paginate(rows, page: int, page_size: int):
+    """Paginación trivial en memoria (UC-INV-01: <500ms p95 ya cumplido)."""
+    total = len(rows)
+    total_pages = max(1, (total + page_size - 1) // page_size)
+    start = (page - 1) * page_size
+    end   = start + page_size
+    return rows[start:end], {
+        'page':        page,
+        'page_size':   page_size,
+        'total':       total,
+        'total_pages': total_pages,
+    }
 
 
 class InventoryDashboardView(APIView):
@@ -37,8 +63,10 @@ class InventoryDashboardView(APIView):
     )
     def get(self, request):
         threshold = SiteSettings.get_current().min_stock_threshold
-        status_filter = request.query_params.get('status', '').upper()
-        rows = []
+        raw_status = request.query_params.get('status', '').upper()
+        # Aceptamos NORMAL / BAJO / AGOTADO y los alias inglés LOW / OUT.
+        status_filter = STATUS_ALIASES.get(raw_status, raw_status)
+        all_rows = []
 
         # Productos con variantes → iterar variantes
         for v in (ProductVariant.objects
@@ -46,9 +74,7 @@ class InventoryDashboardView(APIView):
                   .select_related('product', 'option', 'option__variant_type')
                   .order_by('product__name', 'option__order')):
             st = _get_stock_status(v.stock, threshold)
-            if status_filter and st != status_filter:
-                continue
-            rows.append({
+            all_rows.append({
                 'product_id':    v.product.pk,
                 'product_name':  v.product.name,
                 'sku':           v.sku,
@@ -70,9 +96,7 @@ class InventoryDashboardView(APIView):
                   .exclude(pk__in=products_with_variants)
                   .order_by('name')):
             st = _get_stock_status(p.stock, threshold)
-            if status_filter and st != status_filter:
-                continue
-            rows.append({
+            all_rows.append({
                 'product_id':    p.pk,
                 'product_name':  p.name,
                 'sku':           p.sku,
@@ -83,10 +107,40 @@ class InventoryDashboardView(APIView):
                 'threshold':     threshold,
             })
 
+        # Sumario sobre el universo completo (no afectado por el filtro)
+        summary = {
+            'normal': sum(1 for r in all_rows if r['status'] == 'NORMAL'),
+            'low':    sum(1 for r in all_rows if r['status'] == 'BAJO'),
+            'out':    sum(1 for r in all_rows if r['status'] == 'AGOTADO'),
+            'total':  len(all_rows),
+        }
+
+        # Aplicar filtro de estado tras calcular el sumario
+        if status_filter:
+            filtered = [r for r in all_rows if r['status'] == status_filter]
+        else:
+            filtered = all_rows
+
+        # Paginación
+        try:
+            page = max(1, int(request.query_params.get('page', '1')))
+        except ValueError:
+            page = 1
+        try:
+            page_size = min(200, max(1, int(
+                request.query_params.get('page_size', '50')
+            )))
+        except ValueError:
+            page_size = 50
+
+        page_rows, pagination = _paginate(filtered, page, page_size)
+
         return Response({
-            'threshold': threshold,
-            'count': len(rows),
-            'results': rows,
+            'threshold':  threshold,
+            'count':      len(filtered),
+            'results':    page_rows,
+            'summary':    summary,
+            'pagination': pagination,
         })
 
 
@@ -123,16 +177,74 @@ class VariantStockAdjustView(APIView):
     """
     POST /api/v1/admin/inventory/variants/<variant_pk>/adjust/
     Ajuste manual de stock de una variante. UC-INV-04.
+
+    Acepta dos payloads:
+
+    1. Legacy ({delta, notes}) — usado por tests anteriores. Devuelve el
+       StockMovement serializado, HTTP 201, codigo_error STOCK_NEGATIVO 400.
+
+    2. UI contract ({new_quantity, reason, observations}) — UC-INV-04 UI mock.
+       Devuelve {variant_id, previous_stock, new_stock, delta, movement_id},
+       HTTP 201, codigo_error STOCK_NEGATIVO_NO_PERMITIDO 422 si negativo.
+
+    El payload se autodetecta por la presencia de "new_quantity".
     """
     permission_classes = [IsAuthenticated, IsAdminUser]
 
     @extend_schema(
         summary='Ajuste manual de stock (variante)',
+        description=(
+            'Soporta payload legacy {delta, notes} o el payload UI '
+            '{new_quantity, reason, observations}. En el segundo caso la '
+            'respuesta usa identificadores en inglés y emite HTTP 422 con '
+            'STOCK_NEGATIVO_NO_PERMITIDO al intentar dejar stock negativo.'
+        ),
         tags=['inventory'],
     )
     def post(self, request, variant_pk):
         from django.shortcuts import get_object_or_404
         variant = get_object_or_404(ProductVariant, pk=variant_pk, is_active=True)
+
+        if 'new_quantity' in request.data:
+            return self._handle_new_quantity(request, variant)
+        return self._handle_legacy_delta(request, variant)
+
+    # ─── modo nuevo: new_quantity ───────────────────────────────────────────
+    def _handle_new_quantity(self, request, variant):
+        s = VariantAdjustNewQuantitySerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        new_qty = s.validated_data['new_quantity']
+        reason  = s.validated_data['reason']
+        obs     = s.validated_data.get('observations', '')
+
+        previous_stock = variant.stock
+        delta = new_qty - previous_stock
+
+        # En este modo new_quantity ya está validado >= 0 por el serializer,
+        # de modo que el delta nunca produce stock negativo. Mantenemos el
+        # bloque defensivo por consistencia con UC-INV-04 EX-01.
+        if new_qty < 0:
+            return Response({
+                'detail': f'El ajuste resultaría en stock negativo ({new_qty}).',
+                'codigo_error': 'STOCK_NEGATIVO_NO_PERMITIDO',
+            }, status=422)
+
+        notes = f'{reason}: {obs}' if obs else reason
+        mov = InventoryService.adjust(
+            product=variant.product, variant=variant,
+            delta=delta, notes=notes,
+            created_by=request.user,
+        )
+        return Response({
+            'variant_id':     variant.pk,
+            'previous_stock': previous_stock,
+            'new_stock':      mov.stock_after,
+            'delta':          delta,
+            'movement_id':    mov.pk,
+        }, status=201)
+
+    # ─── modo legacy: delta ─────────────────────────────────────────────────
+    def _handle_legacy_delta(self, request, variant):
         s = StockAdjustSerializer(data=request.data)
         s.is_valid(raise_exception=True)
         try:
@@ -146,6 +258,34 @@ class VariantStockAdjustView(APIView):
             return Response({'detail': str(exc),
                              'codigo_error': 'STOCK_NEGATIVO'}, status=400)
         return Response(StockMovementSerializer(mov).data, status=201)
+
+
+class VariantMovementsView(ListAPIView):
+    """
+    GET /api/v1/admin/inventory/variants/<variant_pk>/movements/
+    Bitácora de movimientos de stock de una variante. UC-INV-02/03.
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class   = StockMovementSerializer
+    pagination_class   = None  # respuesta envuelta manualmente
+
+    @extend_schema(
+        summary='Bitácora de movimientos de stock por variante',
+        tags=['inventory'],
+    )
+    def get(self, request, variant_pk):
+        from django.shortcuts import get_object_or_404
+        variant = get_object_or_404(ProductVariant, pk=variant_pk)
+        qs = (StockMovement.objects
+              .filter(variant=variant)
+              .select_related('product', 'variant', 'variant__option')
+              .order_by('-created_at'))
+        data = StockMovementSerializer(qs, many=True).data
+        return Response({
+            'variant_id': variant.pk,
+            'count':      len(data),
+            'results':    data,
+        })
 
 
 class StockAlertListView(ListAPIView):
@@ -173,15 +313,28 @@ IMPORT_JOB_TTL   = 3600   # 1 hora
 IMPORT_SYNC_LIMIT = 100   # filas síncronas máximas
 
 
-def _process_import_csv(content: bytes, user) -> dict:
+def _process_import_csv(content: bytes, user, initial_state: str = 'BORRADOR') -> dict:
     """
     Procesa el CSV de importación de productos. UC-INV-05 (FR-INV-05.02).
-    Retorna un dict con created, failed y errors.
-    Cada fila crea un Product en borrador (is_active=False, is_published=False).
+
+    initial_state ∈ {'BORRADOR', 'ACTIVO'} controla is_active/is_published.
+    Por defecto los productos se crean en BORRADOR.
+
+    Retorna un dict con ambas familias de claves:
+
+      Inglés (UI agent / DEC-DOC-005):
+        products_created, products_failed, error_report:[{row, field, reason}],
+        download_url.
+
+      Legacy (tests Sprint 11):
+        created, failed, errors:[{line, sku, error}].
+
     Tolerante a fallos: si una fila falla, las demás siguen procesándose.
     """
     from apps.catalogue.models import Category, Product
-    from .models import StockMovement
+
+    is_active_flag    = (initial_state or 'BORRADOR').upper() == 'ACTIVO'
+    is_published_flag = is_active_flag
 
     try:
         text = content.decode('utf-8-sig')
@@ -194,49 +347,61 @@ def _process_import_csv(content: bytes, user) -> dict:
     if not required.issubset(headers):
         missing = required - headers
         return {
-            'status': 'ERROR',
-            'codigo_error': 'ENCABEZADO_INVALIDO',
-            'detail': f'Columnas faltantes: {", ".join(sorted(missing))}',
-            'created': 0, 'failed': 0, 'errors': [],
+            'status':       'ERROR',
+            # Códigos legacy + nuevo (UI agent UC-INV-05).
+            'codigo_error': 'ENCABEZADO_CSV_INVALIDO',
+            'detail':       f'Columnas faltantes: {", ".join(sorted(missing))}',
+            # legacy
+            'created':           0,
+            'failed':            0,
+            'errors':            [],
+            # english (UI contract)
+            'products_created':  0,
+            'products_failed':   0,
+            'error_report':      [],
+            'download_url':      None,
         }
 
-    created, failed, errors = 0, 0, []
+    created, failed = 0, 0
+    legacy_errors  = []   # [{line, sku, error}]
+    error_report   = []   # [{row, field, reason}]
+
+    def _err(line, sku, field, reason):
+        nonlocal failed
+        failed += 1
+        legacy_errors.append({'line': line, 'sku': sku, 'error': reason})
+        error_report.append({'row': line, 'field': field, 'reason': reason})
 
     for i, row in enumerate(reader, start=2):
-        name  = (row.get('name') or '').strip()
-        sku   = (row.get('sku') or '').strip().upper()
-        price = (row.get('base_price') or '').strip().replace(',', '.')
+        name     = (row.get('name') or '').strip()
+        sku      = (row.get('sku') or '').strip().upper()
+        price    = (row.get('base_price') or '').strip().replace(',', '.')
         cat_slug = (row.get('category_slug') or '').strip()
 
         if not all([name, sku, price, cat_slug]):
-            failed += 1
-            errors.append({'line': i, 'sku': sku or '(vacío)',
-                           'error': 'Campos obligatorios vacíos.'})
+            _err(i, sku or '(vacío)', 'required',
+                 'Campos obligatorios vacíos.')
             continue
 
         try:
-            from decimal import Decimal, InvalidOperation
+            from decimal import Decimal
             price_dec = Decimal(price)
             if price_dec <= 0:
                 raise ValueError('precio <= 0')
         except Exception:
-            failed += 1
-            errors.append({'line': i, 'sku': sku,
-                           'error': f'Precio inválido: "{price}"'})
+            _err(i, sku, 'base_price', f'Precio inválido: "{price}"')
             continue
 
         try:
             cat = Category.objects.get(slug=cat_slug, is_active=True)
         except Category.DoesNotExist:
-            failed += 1
-            errors.append({'line': i, 'sku': sku,
-                           'error': f'Categoría "{cat_slug}" no existe.'})
+            _err(i, sku, 'category_slug',
+                 f'Categoría "{cat_slug}" no existe.')
             continue
 
         if Product.objects.filter(sku__iexact=sku).exists():
-            failed += 1
-            errors.append({'line': i, 'sku': sku,
-                           'error': f'SKU "{sku}" ya existe en el catálogo.'})
+            _err(i, sku, 'sku',
+                 f'SKU "{sku}" ya existe en el catálogo.')
             continue
 
         # Generar slug único
@@ -255,18 +420,27 @@ def _process_import_csv(content: bytes, user) -> dict:
                 category=cat,
                 price=price_dec,
                 stock=max(0, int(row.get('stock', 0) or 0)),
-                is_active=False, is_published=False,
+                is_active=is_active_flag,
+                is_published=is_published_flag,
             )
             created += 1
         except Exception as exc:
-            failed += 1
-            errors.append({'line': i, 'sku': sku, 'error': str(exc)})
+            _err(i, sku, 'unknown', str(exc))
 
     return {
-        'status': 'COMPLETED',
-        'created': created,
-        'failed': failed,
-        'errors': errors[:50],   # máx 50 errores en la respuesta
+        'status':           'COMPLETED',
+        # legacy
+        'created':          created,
+        'failed':           failed,
+        'errors':           legacy_errors[:50],
+        # english (UI contract)
+        'products_created': created,
+        'products_failed':  failed,
+        'error_report':     error_report[:50],
+        # Sin almacenamiento persistente del reporte → null por ahora;
+        # el UI agent puede dejar el botón deshabilitado mientras se
+        # implementa la descarga (UC-INV-05 PARTE 7, Alternativa C).
+        'download_url':     None,
     }
 
 
@@ -299,6 +473,7 @@ class ProductImportView(APIView):
         if not csv_file:
             return Response({'detail': 'Se requiere el archivo CSV.'}, status=400)
 
+        initial_state = request.data.get('initial_state', 'BORRADOR')
         content = csv_file.read()
 
         # Contar filas para decidir modo síncrono/asíncrono
@@ -309,9 +484,10 @@ class ProductImportView(APIView):
 
         if line_count <= IMPORT_SYNC_LIMIT:
             # Síncrono
-            result = _process_import_csv(content, request.user)
-            if result.get('codigo_error') == 'ENCABEZADO_INVALIDO':
-                return Response(result, status=400)
+            result = _process_import_csv(content, request.user, initial_state)
+            # Encabezado inválido → 422 ENCABEZADO_CSV_INVALIDO (UC-INV-05).
+            if result.get('codigo_error') == 'ENCABEZADO_CSV_INVALIDO':
+                return Response(result, status=422)
             return Response(result, status=200)
         else:
             # Asíncrono — threading + cache
@@ -323,7 +499,7 @@ class ProductImportView(APIView):
             user = request.user
 
             def _run():
-                result = _process_import_csv(content, user)
+                result = _process_import_csv(content, user, initial_state)
                 cache.set(f'import_job:{job_id}', result, IMPORT_JOB_TTL)
 
             t = threading.Thread(target=_run, daemon=True)
