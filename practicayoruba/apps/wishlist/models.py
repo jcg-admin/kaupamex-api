@@ -3,15 +3,18 @@ from decimal import Decimal
 from django.conf import settings
 from django.db import models
 
-from apps.core.models import TimeStampedModel
+from apps.core.models import SoftDeleteModel, TimeStampedModel
 
 
-class WishlistItem(TimeStampedModel):
+class WishlistItem(TimeStampedModel, SoftDeleteModel):
     """
     Item en la lista de deseos de un comprador. UC-WISH-01/02/03.
     Unico por (user, product, variant).
     variant es nullable para productos sin variantes.
     price_at_add: precio en el momento de agregar (informativo, no snapshot de orden).
+
+    Hereda SoftDeleteModel (DEC-DOC-007): un item eliminado conserva
+    historial para metricas de interes / re-marketing.
     """
     user          = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE,

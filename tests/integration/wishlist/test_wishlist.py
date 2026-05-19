@@ -109,3 +109,29 @@ class TestWishlist:
         move_res = auth_client.post(f'{WISH_URL}{item_id}/move-to-cart/', format='json')
         assert move_res.status_code == 400
         assert move_res.json()['codigo_error'] == 'PRODUCTO_NO_DISPONIBLE'
+
+    def test_delete_is_soft(self, auth_client, prod_s14, db):
+        """DEC-DOC-007: delete marca is_deleted=True, no borra fisicamente."""
+        from apps.wishlist.models import WishlistItem
+        res = auth_client.post(WISH_URL, {'product_id': prod_s14.pk}, format='json')
+        item_id = res.json()['id']
+        auth_client.delete(f'{WISH_URL}{item_id}/')
+        # Filtrado por default manager: ya no aparece
+        assert WishlistItem.objects.filter(pk=item_id).exists() is False
+        # Pero la fila persiste para auditoria
+        item = WishlistItem.all_objects.get(pk=item_id)
+        assert item.is_deleted is True
+        assert item.deleted_at is not None
+
+    def test_re_add_after_soft_delete_reactiva(self, auth_client, prod_s14, db):
+        """Re-agregar un producto previamente borrado reactiva la fila."""
+        from apps.wishlist.models import WishlistItem
+        res1 = auth_client.post(WISH_URL, {'product_id': prod_s14.pk}, format='json')
+        item_id = res1.json()['id']
+        auth_client.delete(f'{WISH_URL}{item_id}/')
+        res2 = auth_client.post(WISH_URL, {'product_id': prod_s14.pk}, format='json')
+        assert res2.status_code == 201
+        # Mismo pk, ahora no eliminado
+        assert res2.json()['id'] == item_id
+        assert WishlistItem.all_objects.filter(pk=item_id).count() == 1
+        assert WishlistItem.objects.filter(pk=item_id).exists() is True
