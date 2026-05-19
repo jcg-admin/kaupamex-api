@@ -16,7 +16,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils import timezone
 
-from apps.core.models import TimeStampedModel
+from apps.core.models import SoftDeleteModel, TimeStampedModel
 
 
 class Category(TimeStampedModel):
@@ -73,8 +73,12 @@ class Category(TimeStampedModel):
         return ids
 
 
-class Product(TimeStampedModel):
-    """Producto del catálogo. UC-CAT-01/02/09/10/11/12."""
+class Product(TimeStampedModel, SoftDeleteModel):
+    """Producto del catálogo. UC-CAT-01/02/09/10/11/12.
+
+    Hereda de SoftDeleteModel (DEC-DOC-007): el borrado fisico esta
+    prohibido — se preserva historial via ``is_deleted`` + ``deleted_at``.
+    """
     name              = models.CharField(max_length=200)
     slug              = models.SlugField(max_length=220, unique=True)
     sku               = models.CharField(max_length=50, unique=True, db_index=True)
