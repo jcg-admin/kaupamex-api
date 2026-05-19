@@ -10,11 +10,16 @@ se envia por email y se registra en el propio modelo.
 from django.conf import settings
 from django.db import models
 
-from apps.core.models import TimeStampedModel
+from apps.core.models import SoftDeleteModel, TimeStampedModel
 
 
-class ContactMessage(TimeStampedModel):
-    """Mensaje recibido por el formulario publico de contacto."""
+class ContactMessage(TimeStampedModel, SoftDeleteModel):
+    """Mensaje recibido por el formulario publico de contacto.
+
+    Hereda de SoftDeleteModel (DEC-DOC-007): un DELETE del admin
+    conserva la fila para auditoria (PII compliance + historial de
+    contacto comercial).
+    """
 
     name = models.CharField(max_length=120)
     email = models.EmailField()
