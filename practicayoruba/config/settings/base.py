@@ -37,6 +37,10 @@ INSTALLED_APPS = [
     'apps.newsletter',
     'apps.questions',
     'apps.reports',
+    'apps.logistics',
+    'apps.reviews',
+    'apps.search_history',
+    'apps.static_content',
 ]
 
 AUTH_USER_MODEL = 'users.User'
