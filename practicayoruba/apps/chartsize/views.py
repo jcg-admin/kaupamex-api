@@ -102,10 +102,18 @@ class ProductVariantAdminViewSet(ModelViewSet):
 
     def perform_destroy(self, instance):
         """
-        Soft delete: is_active=False.
+        Soft delete (DEC-DOC-007).
+
+        Marca la variante como borrada logicamente (``is_deleted=True`` +
+        ``deleted_at``) y, ademas, desactiva la visibilidad de negocio
+        (``is_active=False``, ``stock=0``) — ambos campos coexisten:
+        uno modela la regla de negocio (UC-CHT-03), el otro la politica
+        de retencion historica.
+
         Sprint 12: verificar CartItems activos antes de desactivar.
         H-ORD-005: verificar ActiveOrders antes de desactivar (Sprint 19).
         """
+        from django.utils import timezone
         # H-ORD-005: protección contra órdenes activas
         from apps.orders.proxy_models import ActiveOrder
         if ActiveOrder.objects.filter(items__variant=instance).exists():
@@ -126,7 +134,11 @@ class ProductVariantAdminViewSet(ModelViewSet):
             })
         instance.is_active = False
         instance.stock     = 0
-        instance.save(update_fields=['is_active', 'stock'])
+        instance.is_deleted = True
+        instance.deleted_at = timezone.now()
+        instance.save(update_fields=[
+            'is_active', 'stock', 'is_deleted', 'deleted_at',
+        ])
 
     @extend_schema(summary='Listar variantes del producto', tags=['admin-catalogue'])
     def list(self, request, *args, **kwargs):
@@ -185,8 +197,14 @@ class VariantTypeAdminViewSet(ModelViewSet):
         serializer.save(product=self._get_product())
 
     def perform_destroy(self, instance):
+        """Soft delete (DEC-DOC-007): ``is_deleted`` + visibilidad apagada."""
+        from django.utils import timezone
         instance.is_active = False
-        instance.save(update_fields=['is_active'])
+        instance.is_deleted = True
+        instance.deleted_at = timezone.now()
+        instance.save(update_fields=[
+            'is_active', 'is_deleted', 'deleted_at',
+        ])
 
     @extend_schema(summary='Listar tipos de variante', tags=['admin-catalogue'])
     def list(self, request, *args, **kwargs):

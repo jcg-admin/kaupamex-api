@@ -9,16 +9,20 @@ El diagrama canonico esta en modelo-chartsize.rst.
 from decimal import Decimal
 from django.db import models
 
-from apps.core.models import TimeStampedModel
+from apps.core.models import SoftDeleteModel, TimeStampedModel
 from django.core.validators import MinValueValidator
 from django.utils.text import slugify
 
 
-class VariantType(TimeStampedModel):
+class VariantType(TimeStampedModel, SoftDeleteModel):
     """
     Tipo de atributo de variante. Ej: 'Tamaño', 'Presentación'.
     Un producto puede tener uno o más tipos de variante.
     UC-CHT-03.
+
+    Hereda de SoftDeleteModel (DEC-DOC-007). ``is_active`` representa
+    visibilidad de NEGOCIO; ``is_deleted`` representa borrado LOGICO
+    de SISTEMA y preserva el historial referenciado en ordenes pasadas.
     """
     product   = models.ForeignKey(
         'catalogue.Product', on_delete=models.CASCADE,
@@ -40,10 +44,16 @@ class VariantType(TimeStampedModel):
         return f'{self.product.name} — {self.name}'
 
 
-class VariantOption(TimeStampedModel):
+class VariantOption(TimeStampedModel, SoftDeleteModel):
     """
     Opcion dentro de un tipo de variante. Ej: 'Grande', '250ml'.
     UC-CHT-03.
+
+    Hereda de SoftDeleteModel (DEC-DOC-007). Las opciones quedan
+    referenciadas desde ProductVariant via CASCADE: un borrado fisico
+    arruinaria el historial de pedidos. Preservar la fila con
+    ``is_deleted=True`` permite que las consultas administrativas
+    sigan reconstruyendo la variante exacta de cada orden pasada.
     """
     variant_type = models.ForeignKey(
         VariantType, on_delete=models.CASCADE,
@@ -69,10 +79,16 @@ class VariantOption(TimeStampedModel):
         super().save(*args, **kwargs)
 
 
-class ProductVariant(TimeStampedModel):
+class ProductVariant(TimeStampedModel, SoftDeleteModel):
     """
     Variante concreta de un producto. Combina producto + opcion de variante.
     UC-CHT-01, UC-CHT-03, UC-CHT-04.
+
+    Hereda de SoftDeleteModel (DEC-DOC-007). ``is_active`` codifica la
+    visibilidad de NEGOCIO (la variante ya no se ofrece); ``is_deleted``
+    codifica el borrado LOGICO de SISTEMA. Mantener la fila preserva la
+    coherencia de OrderItem / Cart histórico cuando referencian la
+    variante por id.
 
     El SKU completo de la variante es: Product.sku + '-' + sku_suffix
     (si sku_suffix esta en blanco, se usa el SKU del producto directamente).
