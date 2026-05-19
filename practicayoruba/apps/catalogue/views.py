@@ -94,7 +94,7 @@ def _fulltext_search(qs, term: str):
             "AGAINST (%s IN BOOLEAN MODE)"
         ],
         params=[term],
-        order_by=['-relevance'],
+        order_by=['-is_featured', '-relevance'],
     )
     if fulltext_qs.exists():
         return fulltext_qs
@@ -103,7 +103,7 @@ def _fulltext_search(qs, term: str):
         Q(name__icontains=term) |
         Q(description__icontains=term) |
         Q(short_description__icontains=term)
-    ).order_by('name')
+    ).order_by('-is_featured', 'name')
 
 
 def _get_category_descendants(slug: str) -> set:

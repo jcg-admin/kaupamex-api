@@ -83,6 +83,7 @@ class Product(TimeStampedModel):
     stock             = models.IntegerField(default=0)
     is_active         = models.BooleanField(default=True, db_index=True)
     is_published      = models.BooleanField(default=False, db_index=True)
+    is_featured       = models.BooleanField(default=False, db_index=True)
     # Columna auxiliar para búsqueda fulltext (MariaDB usa FULLTEXT INDEX, no tsvector)
     # El índice FULLTEXT real está en la migración 0002 sobre name+description+short_description
     search_vector     = models.TextField(null=True, blank=True)

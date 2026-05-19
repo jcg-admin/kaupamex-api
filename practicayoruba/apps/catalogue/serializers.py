@@ -215,6 +215,7 @@ class ProductSearchSerializer(serializers.ModelSerializer):
             'category_name',
             'base_price', 'price_with_tax',
             'stock',
+            'is_featured',
             'highlighted_name',
         ]
 
