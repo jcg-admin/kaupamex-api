@@ -54,11 +54,29 @@ class VoucherViewSet(ModelViewSet):
             )
 
     def perform_destroy(self, instance):
-        """Soft delete: is_active=False. UC-PRO-03."""
+        """Soft delete (UC-PRO-03 + DEC-DOC-007).
+
+        Coexisten dos semánticas:
+        - ``is_active=False`` + ``deactivated_at`` / ``deactivated_by``:
+          desactivacion de NEGOCIO (UC-PRO-03). El reporte UC-PRO-04
+          sigue listandolo.
+        - ``is_deleted=True`` + ``deleted_at``: borrado LOGICO de
+          SISTEMA. Lo excluye del manager por defecto pero queda en
+          ``Voucher.all_objects`` para auditoria.
+
+        Ambos campos se aplican aquí: un DELETE HTTP representa una
+        desactivacion de cupon (no usable + no listable).
+        """
+        now = timezone.now()
         instance.is_active      = False
-        instance.deactivated_at = timezone.now()
+        instance.deactivated_at = now
         instance.deactivated_by = self.request.user
-        instance.save(update_fields=['is_active', 'deactivated_at', 'deactivated_by'])
+        instance.is_deleted     = True
+        instance.deleted_at     = now
+        instance.save(update_fields=[
+            'is_active', 'deactivated_at', 'deactivated_by',
+            'is_deleted', 'deleted_at',
+        ])
 
     @action(detail=True, methods=['post'], url_path='activate')
     @extend_schema(
