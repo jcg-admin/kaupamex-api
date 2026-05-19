@@ -369,6 +369,12 @@ class AdminReturnRefundView(APIView):
     )
     def post(self, request, return_id):
         ret = _get_admin_return(return_id)
+        if ret.refund_at is not None:
+            return Response(
+                {'error_code': 'REFUND_ALREADY_PROCESSED',
+                 'detail': 'Ya se proceso el reembolso para esta solicitud.'},
+                status=status.HTTP_409_CONFLICT,
+            )
         if ret.status not in (
             ReturnRequest.Status.APPROVED,
             ReturnRequest.Status.RECEIVED,
@@ -377,12 +383,6 @@ class AdminReturnRefundView(APIView):
                 {'error_code': 'INVALID_STATE',
                  'detail': 'La solicitud no esta lista para reembolso.'},
                 status=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            )
-        if ret.refund_at is not None:
-            return Response(
-                {'error_code': 'REFUND_ALREADY_PROCESSED',
-                 'detail': 'Ya se proceso el reembolso para esta solicitud.'},
-                status=status.HTTP_409_CONFLICT,
             )
 
         serializer = ReturnRefundSerializer(data=request.data)
