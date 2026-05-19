@@ -9,11 +9,17 @@ SupportTicketReply modela cada mensaje del hilo de conversacion.
 from django.conf import settings
 from django.db import models
 
-from apps.core.models import TimeStampedModel
+from apps.core.models import SoftDeleteModel, TimeStampedModel
 
 
-class SupportTicket(TimeStampedModel):
-    """Ticket de soporte. UC-SUPP-01."""
+class SupportTicket(TimeStampedModel, SoftDeleteModel):
+    """Ticket de soporte. UC-SUPP-01.
+
+    Hereda de SoftDeleteModel (DEC-DOC-007): el historial de soporte
+    se conserva incluso despues de una operacion DELETE del admin —
+    es referenciado desde ``SupportTicketReply`` via CASCADE y se
+    consulta en auditorias post-venta.
+    """
 
     class Status(models.TextChoices):
         OPEN = 'OPEN', 'Abierto'
