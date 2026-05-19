@@ -10,6 +10,7 @@ Sprints 1, 8, 10. Refactorizado en sprint de infraestructura: herencia-modelos-d
 
 H-INH-004: estos 4 modelos solo tenían updated_at — se agrega created_at.
 """
+import logging
 from decimal import Decimal
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -18,6 +19,8 @@ from django.db import models
 from cryptography.fernet import Fernet
 
 from apps.core.models import TimeStampedModel
+
+logger = logging.getLogger(__name__)
 
 
 class SiteSettings(TimeStampedModel):
@@ -163,6 +166,13 @@ class PaymentGateway(TimeStampedModel):
             f = Fernet(self._fernet_key())
             return json.loads(f.decrypt(bytes(self.credentials)).decode())
         except Exception:
+            # Loud-log: credenciales no descifrables (SECRET_KEY rotada
+            # o blob corrupto). UI debe tratar como "sin credenciales"
+            # y obligar a re-ingresarlas. DEC-DOC-008.
+            logger.warning(
+                'PaymentGateway.get_credentials: decrypt failed gw=%s',
+                getattr(self, 'gateway', '?'), exc_info=True,
+            )
             return {}
 
     def get_masked_credentials(self) -> dict:
@@ -173,6 +183,12 @@ class PaymentGateway(TimeStampedModel):
         try:
             creds = self.get_credentials()
         except Exception:
+            # Loud-log: get_credentials ya loggea pero envolvemos por si
+            # falla antes de su try. DEC-DOC-008.
+            logger.warning(
+                'PaymentGateway.get_masked_credentials failed gw=%s',
+                getattr(self, 'gateway', '?'), exc_info=True,
+            )
             return {}
         masked = {}
         for key, value in creds.items():

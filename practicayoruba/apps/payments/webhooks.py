@@ -37,6 +37,11 @@ def _get_mp_client_secret() -> str | None:
         creds = gw.get_credentials()
         return creds.get('client_secret')
     except Exception:
+        # Loud-log: si no podemos leer el secret, todos los webhooks
+        # MP seran rechazados con 401. Operaciones debe verlo. DEC-DOC-008.
+        logger.error(
+            'MP webhook: cannot read client_secret', exc_info=True,
+        )
         return None
 
 

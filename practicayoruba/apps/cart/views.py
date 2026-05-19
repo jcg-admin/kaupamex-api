@@ -6,10 +6,13 @@ UC-CART-03: Eliminar Item del Carrito
 UC-CART-05: Guardar Carrito para Despues
 UC-CART-06: Sincronizar Carrito Anonimo al Autenticar
 """
+import logging
 import uuid
 from decimal import Decimal
 
 from django.db import transaction
+
+logger = logging.getLogger(__name__)
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework.exceptions import ValidationError
@@ -54,7 +57,13 @@ def _get_or_create_cart(request) -> tuple:
             if cart:
                 return cart, False, str(token)
         except (ValueError, AttributeError):
-            pass
+            # Loud-log: cart_token malformado puede indicar manipulacion
+            # del cliente. No abortamos (creamos carrito nuevo) pero
+            # operaciones debe ver la frecuencia. DEC-DOC-008.
+            logger.warning(
+                'cart_token malformed value=%r, creating new cart',
+                raw_token,
+            )
 
     # Crear carrito anonimo nuevo
     new_token = uuid.uuid4()

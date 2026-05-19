@@ -210,6 +210,9 @@ def _compute_audience_count(recipient_type, recipient_identifier, product_id):
         try:
             from apps.orders.models import OrderItem
         except Exception:
+            # silent OK because apps.orders es opcional (deployments
+            # parciales / tests aislados). Caller interpreta 0 como
+            # "sin audiencia". DEC-DOC-008.
             return 0
         return (
             OrderItem.objects
@@ -239,6 +242,7 @@ def _resolve_audience_user_ids(recipient_type, recipient_identifier, product_id)
         try:
             from apps.orders.models import OrderItem
         except Exception:
+            # silent OK because apps.orders es opcional. DEC-DOC-008.
             return []
         return list(
             OrderItem.objects

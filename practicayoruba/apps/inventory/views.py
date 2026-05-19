@@ -1,4 +1,6 @@
 """Views — apps.inventory (Sprint 10)."""
+import logging
+
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
@@ -17,6 +19,8 @@ from .serializers import (
     VariantAdjustNewQuantitySerializer,
 )
 from .services import InventoryService, _get_stock_status
+
+logger = logging.getLogger(__name__)
 
 
 # Mapeo de alias en inglés (UI agent) hacia los códigos internos en español
@@ -326,6 +330,8 @@ def _build_download_url(request, report_id: str) -> str:
         path = reverse('admin_inventory:product-import-report',
                        kwargs={'report_id': report_id})
     except Exception:  # pragma: no cover
+        # silent OK because URL fallback determinista cuando el router
+        # no esta registrado (test envs). DEC-DOC-008.
         path = f'/api/v1/admin/inventory/import-reports/{report_id}.csv'
     if request is not None:
         return request.build_absolute_uri(path)
@@ -508,6 +514,13 @@ class ProductImportView(APIView):
         try:
             line_count = content.decode('utf-8-sig', errors='replace').count('\n')
         except Exception:
+            # Loud-log: decode no debe fallar con errors='replace', pero
+            # si lo hace, caemos en el branch async por seguridad.
+            # DEC-DOC-008.
+            logger.warning(
+                'CSV decode failed, falling back to async import',
+                exc_info=True,
+            )
             line_count = 0
 
         if line_count <= IMPORT_SYNC_LIMIT:
