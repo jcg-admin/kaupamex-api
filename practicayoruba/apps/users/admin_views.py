@@ -40,10 +40,10 @@ class AdminUserDetailSerializer(AdminUserListSerializer):
             'profile_completeness', 'address_count',
         ]
 
-    def get_profile_completeness(self, obj):
+    def get_profile_completeness(self, obj) -> int:
         return obj.profile_completeness()
 
-    def get_address_count(self, obj):
+    def get_address_count(self, obj) -> int:
         return obj.addresses.count()
 
 

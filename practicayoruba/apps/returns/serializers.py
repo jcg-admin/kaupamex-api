@@ -82,7 +82,7 @@ class ReturnDetailSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = fields
 
-    def get_history(self, obj):
+    def get_history(self, obj) -> list:
         qs = obj.history_entries.all().order_by('created_at')
         return ReturnHistoryEntrySerializer(qs, many=True).data
 
@@ -106,13 +106,13 @@ class AdminReturnListSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = fields
 
-    def get_user_email(self, obj):
+    def get_user_email(self, obj) -> str | None:
         return getattr(obj.user, 'email', None)
 
-    def get_user_username(self, obj):
+    def get_user_username(self, obj) -> str | None:
         return getattr(obj.user, 'username', None)
 
-    def get_available_action(self, obj):
+    def get_available_action(self, obj) -> str | None:
         """UC-RET-05 PARTE 8.4: accion segun estado."""
         if obj.status == ReturnRequest.Status.PENDING_REVIEW:
             return 'REVIEW'
@@ -140,10 +140,10 @@ class AdminReturnDetailSerializer(ReturnDetailSerializer):
         ]
         read_only_fields = fields
 
-    def get_user_email(self, obj):
+    def get_user_email(self, obj) -> str | None:
         return getattr(obj.user, 'email', None)
 
-    def get_user_username(self, obj):
+    def get_user_username(self, obj) -> str | None:
         return getattr(obj.user, 'username', None)
 
 

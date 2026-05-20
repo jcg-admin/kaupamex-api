@@ -41,7 +41,7 @@ class ShipmentGuideSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['delivered_at', 'created_at']
 
-    def get_last_event(self, obj):
+    def get_last_event(self, obj) -> dict | None:
         ev = obj.events.first()
         return ShipmentEventSerializer(ev).data if ev else None
 

@@ -26,7 +26,7 @@ class StockMovementSerializer(serializers.ModelSerializer):
         fields = ['id', 'product_sku', 'variant_label', 'delta', 'stock_after',
                   'movement_type', 'reference', 'notes', 'created_at']
 
-    def get_variant_label(self, obj):
+    def get_variant_label(self, obj) -> str | None:
         return obj.variant.option.label if obj.variant else None
 
 
@@ -39,7 +39,7 @@ class StockAlertSerializer(serializers.ModelSerializer):
         fields = ['id', 'product_sku', 'variant_label',
                   'stock_at_alert', 'resolved', 'created_at']
 
-    def get_variant_label(self, obj):
+    def get_variant_label(self, obj) -> str | None:
         return obj.variant.option.label if obj.variant else None
 
 
