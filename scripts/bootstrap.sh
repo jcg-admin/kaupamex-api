@@ -298,6 +298,19 @@ main() {
             [[ -e "$path" ]] && chown -R "${repo_owner}:${repo_group}" "$path"
         done
         log_success "  Ownership restaurado a ${repo_owner}:${repo_group}"
+
+        # D-031 followup: cualquier git que se invoque despues como
+        # root sobre PROJECT_ROOT (por ejemplo en CI o si el operador
+        # corre `sudo git status` para diagnosticar) emite
+        # "dubious ownership in repository" porque root no es el owner.
+        # Marcar el repo como safe.directory en la config global de root
+        # elimina ese warning sin abrir riesgos (root ya tiene full
+        # access por definicion). Se hace ANTES de salir del bloque
+        # privilegiado del script.
+        if command -v git >/dev/null 2>&1; then
+            git config --global --add safe.directory "$PROJECT_ROOT" 2>/dev/null || true
+            log_info "  git safe.directory registrado para $PROJECT_ROOT (root)"
+        fi
     else
         log_warn "  PROJECT_ROOT root-owned o sin stat — omitiendo chown post-bootstrap"
         log_warn "  Si manage.py falla con PermissionError en logs/:"

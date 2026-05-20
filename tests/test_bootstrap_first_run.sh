@@ -2,9 +2,13 @@
 # tests/test_bootstrap_first_run.sh
 # Cubre bootstrap.sh + scripts/utils/provisioning.sh +
 # scripts/provisioners/system/check_tools.sh + pytest.ini en la
-# primera corrida sobre Ubuntu 24.04 noble fresh. Hallazgos cerrados:
-# H-12, H-13, H-14, H-15, H-16, H-18, H-19, H-21, H-22, H-23, H-24,
-# H-25 (ver registro-deuda-tecnica entrada D-031).
+# primera corrida sobre Ubuntu 24.04 noble fresh. Tambien verifica
+# higiene del modelo cart.Cart (sin UniqueConstraint partial que
+# dispara W036 en MariaDB).
+#
+# Hallazgos cerrados: H-12, H-13, H-14, H-15, H-16, H-18, H-19,
+# H-21, H-22, H-23, H-24, H-25 (D-031) + H-26 (safe.directory) +
+# H-27 (W036 cart.Cart) — ambos del followup post-D-032.
 set -euo pipefail
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 EXIT=0
@@ -122,6 +126,32 @@ if grep -qE 'MARIADB_CLI="\$\(mariadb_client_bin\)"' "$PROJECT_ROOT/scripts/boot
     pass "bootstrap.sh re-resuelve MARIADB_CLI tras instalar mariadb-client (H-25)"
 else
     fail "bootstrap.sh no re-resuelve MARIADB_CLI (H-25 regresion — vacio en primer run)"
+fi
+
+# H-26: bootstrap registra git safe.directory para PROJECT_ROOT
+# Evita "dubious ownership" cuando root toca repo de develop.
+if grep -qE 'git config --global --add safe\.directory' "$PROJECT_ROOT/scripts/bootstrap.sh"; then
+    pass "bootstrap.sh registra git safe.directory (H-26)"
+else
+    fail "bootstrap.sh no registra git safe.directory (H-26 regresion — dubious ownership emergera)"
+fi
+
+# H-27: cart.Cart NO tiene UniqueConstraint con condition
+# (incompatible con MariaDB, dispara warning W036; redundante con
+# OneToOneField que ya crea UNIQUE en columna).
+# Filtramos lineas de comentario para no matchear la explicacion en
+# el codigo de la propia remocion.
+if grep -vE '^\s*#' "$PROJECT_ROOT/practicayoruba/apps/cart/models.py" \
+   | grep -qE 'UniqueConstraint\s*\([^)]*condition\s*='; then
+    fail "cart/models.py tiene UniqueConstraint(condition=) en codigo activo (H-27 regresion — W036 sobre MariaDB)"
+else
+    pass "cart/models.py sin UniqueConstraint(condition=) — W036 cerrado (H-27)"
+fi
+# Migracion de remocion debe existir
+if [[ -f "$PROJECT_ROOT/practicayoruba/apps/cart/migrations/0005_remove_redundant_user_constraint.py" ]]; then
+    pass "cart/migrations/0005_remove_redundant_user_constraint.py presente (H-27)"
+else
+    fail "cart migration 0005 ausente (H-27 — schema sin sync)"
 fi
 
 echo ""
