@@ -57,10 +57,18 @@ phase_packages() {
 
     apt_update
 
+    # D-031 / H-12: en Ubuntu 24.04 noble el paquete 'mysql-client'
+    # instala Oracle MySQL 8.0 (no MariaDB). Esto:
+    #   1. Conflicta con mariadb-client (apt remueve uno al instalar el otro)
+    #   2. Provoca que el CLI 'mysql' apunte a MySQL 8.0 incompatible con
+    #      MariaDB 11.8 server (D-028: en 11.x el CLI es 'mariadb')
+    #   3. Si el operador instalo mariadb-server antes, apt lo desinstala
+    #      al instalar mysql-client (cascada confirmada por deploy@yollotl).
+    # Usar mariadb-client + libmariadb-dev — consistente con D-028.
     install_apt_packages \
         python3 python3-dev python3-venv python3-pip \
         build-essential pkg-config \
-        default-libmysqlclient-dev mysql-client \
+        libmariadb-dev mariadb-client \
         curl git
 }
 
@@ -73,7 +81,7 @@ phase_python() {
         exit 1
     }
 
-    local venv_dir="${PROJECT_ROOT}/venv"
+    local venv_dir="${PROJECT_ROOT}/.venv"
     local requirements="${PROJECT_ROOT}/requirements/development.txt"
 
     setup_venv "$venv_dir" "$requirements"
@@ -113,7 +121,7 @@ phase_database() {
 phase_migrations() {
     log_header "Fase 5/6 — Migraciones Django"
 
-    local python="${PROJECT_ROOT}/venv/bin/python3"
+    local python="${PROJECT_ROOT}/.venv/bin/python3"
     local manage="${PROJECT_ROOT}/practicayoruba/manage.py"
 
     if ! exists_file "$manage"; then
@@ -128,8 +136,20 @@ phase_migrations() {
 
     local env_file="${PROJECT_ROOT}/practicayoruba/.env"
     if ! exists_file "$env_file"; then
-        log_warn ".env no existe — copia desde .env.example antes de migrar"
-        return 0
+        # D-031 / H-15: auto-crear .env desde .env.example. Antes el
+        # script salia con warn y exigia copia manual — el operador
+        # tenia que recordar el paso. Ahora idempotente: si .env existe
+        # se preserva; si no, se copia desde .env.example.
+        local env_example="${PROJECT_ROOT}/practicayoruba/.env.example"
+        if exists_file "$env_example"; then
+            log_info ".env no existe — copiando desde .env.example..."
+            cp "$env_example" "$env_file"
+            log_success ".env creado: ${env_file}"
+            log_warn "  Revisa SECRET_KEY antes de usar en produccion"
+        else
+            log_warn ".env y .env.example no existen — omitiendo migraciones"
+            return 0
+        fi
     fi
 
     DJANGO_SETTINGS_MODULE=config.settings.development \
@@ -175,7 +195,7 @@ main() {
     log_success "Bootstrap completado."
     echo ""
     log_info "Siguientes pasos:"
-    log_info "  source venv/bin/activate"
+    log_info "  source .venv/bin/activate"
     log_info "  cd practicayoruba"
     log_info "  python manage.py createsuperuser"
     log_info "  python manage.py runserver"
