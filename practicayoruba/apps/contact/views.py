@@ -87,6 +87,7 @@ class AdminContactMessageMarkReadView(APIView):
     """POST /api/v1/admin/contact/messages/<id>/read/."""
 
     permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class = ContactMessageListItemSerializer
 
     @extend_schema(
         summary='Marcar mensaje como leido',
