@@ -1,6 +1,10 @@
 #!/bin/bash
-# tests/test_d031_regressions.sh — D-031 regression tests
-# Detecta regresion de los 6 fixes en bootstrap.sh + check_tools.sh
+# tests/test_bootstrap_first_run.sh
+# Cubre bootstrap.sh + scripts/utils/provisioning.sh +
+# scripts/provisioners/system/check_tools.sh + pytest.ini en la
+# primera corrida sobre Ubuntu 24.04 noble fresh. Hallazgos cerrados:
+# H-12, H-13, H-14, H-15, H-16, H-18, H-19, H-21, H-22, H-23, H-24,
+# H-25 (ver registro-deuda-tecnica entrada D-031).
 set -euo pipefail
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 EXIT=0
@@ -66,14 +70,6 @@ else
     fail "check_tools.sh sin deteccion de mariadb CLI (H-17 regresion)"
 fi
 
-echo ""
-if [[ "$EXIT" -eq 0 ]]; then
-    echo ">>> ALL PASS — D-031 fix integro"
-else
-    echo ">>> FAIL — D-031 regresion detectada"
-fi
-exit "$EXIT"
-
 # H-19: pytest.ini con pythonpath + testpaths
 if grep -qE '^pythonpath\s*=\s*practicayoruba' "$PROJECT_ROOT/pytest.ini"; then
     pass "pytest.ini define pythonpath = practicayoruba"
@@ -94,7 +90,12 @@ else
 fi
 
 # H-22: db_qa_setup.sh pre-crea test_practicayoruba_qa
-if grep -qE 'CREATE DATABASE IF NOT EXISTS.*test_' "$PROJECT_ROOT/scripts/provisioners/mysql/db_qa_setup.sh"; then
+# El loop bash itera sobre ambas BDs ("${DB_NAME}" y "test_${DB_NAME}")
+# antes de emitir CREATE DATABASE IF NOT EXISTS, asi que verifico ambos
+# patrones (el loop y el CREATE) en lugar de buscar test_ y CREATE en la
+# misma linea (no estan en la misma linea por la indireccion de la var).
+if grep -qE 'for db in.*"test_\$\{DB_NAME\}"' "$PROJECT_ROOT/scripts/provisioners/mysql/db_qa_setup.sh" \
+   && grep -qE 'CREATE DATABASE IF NOT EXISTS' "$PROJECT_ROOT/scripts/provisioners/mysql/db_qa_setup.sh"; then
     pass "db_qa_setup.sh pre-crea test_<DB_NAME> (H-22 anti-hang)"
 else
     fail "db_qa_setup.sh no pre-crea test_DB (H-22 regresion)"
@@ -122,3 +123,11 @@ if grep -qE 'MARIADB_CLI="\$\(mariadb_client_bin\)"' "$PROJECT_ROOT/scripts/boot
 else
     fail "bootstrap.sh no re-resuelve MARIADB_CLI (H-25 regresion — vacio en primer run)"
 fi
+
+echo ""
+if [[ "$EXIT" -eq 0 ]]; then
+    echo ">>> ALL PASS — bootstrap first run integro"
+else
+    echo ">>> FAIL — regresion en bootstrap first run"
+fi
+exit "$EXIT"

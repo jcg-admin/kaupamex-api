@@ -1,9 +1,17 @@
 #!/bin/bash
 # =============================================================================
-# tests/test_d032_spectacular.sh — D-032 regression tests
+# tests/test_openapi_schema_warnings.sh
 # =============================================================================
-# Detecta regresion de los 6 fixes (T-1..T-6) que cerraron las ~100
-# warnings de drf-spectacular emitidas al generar /api/schema/.
+# Asegura que la generacion del schema OpenAPI por drf-spectacular
+# (GET /api/schema/) emita cero warnings. Cubre los 6 frentes que
+# producian ~100 warnings antes del fix:
+#
+#   T-1: APIView sin serializer_class (endpoints excluidos del schema)
+#   T-2: SerializerMethodField sin type hint (campos defaultando a "string")
+#   T-3: string refs ('OrderSerializer') en @extend_schema (no resueltos)
+#   T-4: ENUM_NAME_OVERRIDES para colisiones de choice sets
+#   T-5: chartsize ViewSets path params untyped
+#   T-6: operationId collisions list-vs-detail (y splits de clase)
 #
 # Dos modos de validacion:
 #
@@ -14,11 +22,13 @@
 #     Solo si se detecta venv activo, MARIADB y MIGRACIONES aplicadas.
 #
 # Uso:
-#   bash tests/test_d032_spectacular.sh           # solo estatico
-#   bash tests/test_d032_spectacular.sh --runtime # estatico + dinamico
+#   bash tests/test_openapi_schema_warnings.sh           # solo estatico
+#   bash tests/test_openapi_schema_warnings.sh --runtime # estatico + dinamico
 #
 # Idempotente: solo lee codigo. Si se invoca --runtime levanta una
 # subshell con manage.py, no toca la BD.
+#
+# Hallazgos cerrados: registro-deuda-tecnica entrada D-032.
 # =============================================================================
 set -euo pipefail
 
