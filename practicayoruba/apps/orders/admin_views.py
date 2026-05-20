@@ -11,6 +11,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
 
+from .serializers import OrderSerializer
+
 logger = logging.getLogger('apps')
 
 
@@ -44,7 +46,7 @@ class AdminOrderListView(APIView):
             OpenApiParameter('date_to',      str, description='Fecha hasta (YYYY-MM-DD)'),
             OpenApiParameter('page',         int, description='Número de página'),
         ],
-        responses={200: 'OrderSerializer paginado'},
+        responses={200: OrderSerializer(many=True)},
         tags=['orders-admin'],
     )
     def get(self, request):
@@ -91,7 +93,7 @@ class AdminOrderDetailView(APIView):
         summary='Detalle de orden (admin)',
         description='Retorna el detalle completo. Sin restricción de propietario.',
         responses={
-            200: 'OrderSerializer',
+            200: OrderSerializer,
             404: OpenApiResponse(description='Orden no encontrada.'),
         },
         tags=['orders-admin'],
@@ -144,7 +146,7 @@ class AdminOrderStatusUpdateView(APIView):
             'required': ['new_status'],
         }},
         responses={
-            200: 'OrderSerializer',
+            200: OrderSerializer,
             400: OpenApiResponse(description='Transición no permitida.'),
             404: OpenApiResponse(description='Orden no encontrada.'),
         },
@@ -212,7 +214,7 @@ class AdminOrderCancelView(APIView):
             'required': ['reason'],
         }},
         responses={
-            200: 'OrderSerializer',
+            200: OrderSerializer,
             400: OpenApiResponse(description='Cancelación no permitida o motivo inválido.'),
             404: OpenApiResponse(description='Orden no encontrada.'),
             503: OpenApiResponse(description='Gateway de reembolso no disponible.'),
