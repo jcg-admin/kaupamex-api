@@ -176,12 +176,13 @@ class PYTokenRefreshSerializer(TokenRefreshSerializer):
     """
 
     def validate(self, attrs):
-        # Primero validacion stock simplejwt (firma + expiracion
-        # + blacklist). Si falla, raise antes de tocar la DB.
-        data = super().validate(attrs)
-
-        # Re-construir el refresh para lookup del user_id claim.
-        # super() ya lo proceso, asi que sabemos que es valido.
+        # IMPORTANTE: el lookup del user va ANTES de super().validate()
+        # porque super() rota el refresh (BLACKLIST_AFTER_ROTATION=True);
+        # tras super(), attrs['refresh'] esta blacklisteado y cualquier
+        # re-instanciacion de RefreshToken fallaria por check_blacklist.
+        #
+        # RefreshToken(token) verifica firma + expiracion + blacklist
+        # check pero NO blacklistea por si mismo.
         refresh = RefreshToken(attrs['refresh'])
         user_id = refresh.get(jwt_settings.USER_ID_CLAIM)
         user = User.objects.filter(pk=user_id).first()
@@ -192,14 +193,16 @@ class PYTokenRefreshSerializer(TokenRefreshSerializer):
                 refresh.blacklist()
             except Exception:
                 # blacklist puede fallar si el token ya esta en
-                # blacklist por rotation. Aceptable.
+                # blacklist (idempotente). Aceptable.
                 pass
             raise InvalidToken({
                 'detail': 'Cuenta inactiva. Inicia sesion de nuevo.',
                 'codigo_error': 'ACCOUNT_INACTIVE',
             })
 
-        return data
+        # User valido y activo: dejar simplejwt rotar + emitir
+        # nuevo access (+ nuevo refresh por ROTATE_REFRESH_TOKENS).
+        return super().validate(attrs)
 
 
 class PYTokenRefreshView(TokenRefreshView):
