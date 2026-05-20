@@ -5,12 +5,27 @@
 # Uso:
 #   sudo bash scripts/bootstrap.sh [--skip-update]
 #
+# Modelo de usuarios (D-031 H-24, ver Procedimiento-Implementacion-
+# Almacenamiento-WSL2-ecomerce-p001 v1.0.0):
+#   - INVOCADOR: deploy (cuenta sudoer). Ejecuta el script con sudo.
+#   - RUNTIME:   develop (owner del repo). Quien usa manage.py / pytest
+#                tras el bootstrap. NO debe correr este script
+#                directamente — no tiene sudo y los apt-get fallarian
+#                con permission denied criptico.
+#   - PROVEEDOR: root (heredado via sudo). Instala paquetes, configura
+#                MariaDB. El script chowna al final al repo OWNER
+#                (develop) para que el runtime tenga write access.
+#
+# Cuentas en NO uso aqui (responsabilidad del provisioning de
+# almacenamiento, D-030):
+#   - infra, svc-backups, svc-dbdata
+#
 # Flujo:
 #   Fase 1 — Sistema       : verifica Ubuntu 24.04
 #   Fase 2 — Paquetes      : instala dependencias del sistema
-#   Fase 3 — Python        : crea venv e instala requirements
-#   Fase 4 — Base de datos : arranca MySQL, crea BD produccion y BD QA
-#   Fase 5 — Migraciones   : ejecqa manage.py migrate
+#   Fase 3 — Python        : crea venv e instala requirements (uv)
+#   Fase 4 — Base de datos : arranca MariaDB, crea BD produccion y BD QA
+#   Fase 5 — Migraciones   : ejecuta manage.py migrate
 #   Fase 6 — Verificacion  : estado completo del entorno
 # =============================================================================
 set -euo pipefail
@@ -31,6 +46,30 @@ source "${SCRIPT_DIR}/utils/validation.sh"
 source "${SCRIPT_DIR}/utils/network.sh"
 source "${SCRIPT_DIR}/utils/database.sh"
 source "${SCRIPT_DIR}/utils/provisioning.sh"
+
+# D-031 H-24 (reportado por deploy@yollotl): si develop (no-sudoer)
+# invoca bootstrap.sh directamente, los apt-get fallan con permission
+# denied criptico despues de varios minutos. Fail loud al inicio con
+# mensaje explicativo del modelo de usuarios.
+if [[ "$(id -u)" -ne 0 ]]; then
+    log_fatal "bootstrap.sh debe ejecutarse como root (via sudo)"
+    log_error ""
+    log_error "  Estas corriendo como: $(whoami) (UID $(id -u))"
+    log_error ""
+    log_error "  Modelo de usuarios del proyecto (D-030):"
+    log_error "    deploy   — cuenta sudoer que invoca este script"
+    log_error "    develop  — owner del repo, usa manage.py / pytest"
+    log_error "               POST-bootstrap (no aqui)"
+    log_error ""
+    log_error "  Invocacion correcta:"
+    log_error "    sudo bash scripts/bootstrap.sh"
+    log_error ""
+    log_error "  Si estas en develop sin sudo, cambia a deploy primero:"
+    log_error "    su deploy"
+    log_error "    cd ${PROJECT_ROOT}"
+    log_error "    sudo bash scripts/bootstrap.sh"
+    exit 1
+fi
 
 init_log "bootstrap"
 
@@ -70,6 +109,16 @@ phase_packages() {
         build-essential pkg-config \
         libmariadb-dev mariadb-client \
         curl git
+
+    # D-031 H-25: MARIADB_CLI / MARIADB_ADM se resolvieron al SOURCEAR
+    # database.sh (linea ~32), ANTES de que mariadb-client estuviera
+    # instalado. En el primer run bootstrap aparecen vacias y los
+    # helpers como mariadb_is_running fallarian. Re-resolver
+    # explicitamente AHORA que el paquete acaba de instalarse.
+    MARIADB_CLI="$(mariadb_client_bin)"
+    MARIADB_ADM="$(mariadb_admin_bin)"
+    export MARIADB_CLI MARIADB_ADM
+    log_info "  Re-resolucion CLI MariaDB: ${MARIADB_CLI:-(no encontrado)}"
 }
 
 # =============================================================================

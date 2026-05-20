@@ -106,3 +106,19 @@ if grep -qE 'BOOTSTRAP_FAILED|DB_PHASE_FAILED' "$PROJECT_ROOT/scripts/bootstrap.
 else
     fail "bootstrap.sh silenciaba fallos de phase_database (H-23 regresion)"
 fi
+
+# H-24: scripts validan root al inicio
+for f in scripts/bootstrap.sh scripts/provisioners/mysql/db_setup.sh scripts/provisioners/mysql/db_qa_setup.sh; do
+    if grep -qE 'id -u.*-ne 0|"\$\(id -u\)" -ne 0' "$PROJECT_ROOT/$f"; then
+        pass "$(basename "$f") valida root al inicio (H-24)"
+    else
+        fail "$(basename "$f") no valida root (H-24 regresion — develop puede invocarlo)"
+    fi
+done
+
+# H-25: bootstrap re-resuelve MARIADB_CLI post phase_packages
+if grep -qE 'MARIADB_CLI="\$\(mariadb_client_bin\)"' "$PROJECT_ROOT/scripts/bootstrap.sh"; then
+    pass "bootstrap.sh re-resuelve MARIADB_CLI tras instalar mariadb-client (H-25)"
+else
+    fail "bootstrap.sh no re-resuelve MARIADB_CLI (H-25 regresion — vacio en primer run)"
+fi

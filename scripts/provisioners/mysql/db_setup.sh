@@ -1,13 +1,17 @@
 #!/bin/bash
 # =============================================================================
-# db_setup.sh — MySQL: crea BD y usuario para PracticaYoruba API
+# db_setup.sh — MariaDB: crea BD y usuario para PracticaYoruba API
 # =============================================================================
 # IDEMPOTENTE: se puede ejecutar N veces sin efectos adversos.
 #
 # Uso:
 #   sudo bash scripts/provisioners/mysql/db_setup.sh
-#   # o en contenedores sin sudo:
-#   bash scripts/provisioners/mysql/db_setup.sh
+#
+# Modelo de usuarios (D-031 H-24):
+#   - INVOCADOR: deploy via sudo (necesita acceso al socket
+#     mariadbd via unix_socket auth como root) o root directo.
+#   - NO RUN AS develop: develop no tiene sudo ni acceso al
+#     socket. Si llamas sin sudo, el script aborta loud.
 #
 # Variables leidas desde practicayoruba/.env (con defaults):
 #   DB_NAME      (default: practicayoruba_db)
@@ -24,6 +28,17 @@ PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 source "${PROJECT_ROOT}/scripts/utils/logging.sh"
 source "${PROJECT_ROOT}/scripts/utils/network.sh"
 source "${PROJECT_ROOT}/scripts/utils/database.sh"
+
+# D-031 H-24: validar root al inicio (loud fail antes de cualquier
+# operacion). Sin esto, el primer 'mariadb -u root' falla con un
+# 'Access denied' ambiguo y el operador no sabe que el problema es
+# de privilegios del script, no de credenciales de MariaDB.
+if [[ "$(id -u)" -ne 0 ]]; then
+    log_fatal "db_setup.sh debe ejecutarse como root (via sudo)"
+    log_error "  Estas corriendo como: $(whoami) (UID $(id -u))"
+    log_error "  Usa: sudo bash scripts/provisioners/mysql/db_setup.sh"
+    exit 1
+fi
 
 ENV_FILE="${PROJECT_ROOT}/practicayoruba/.env"
 if [[ -f "$ENV_FILE" ]]; then

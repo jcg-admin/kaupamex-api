@@ -1,13 +1,15 @@
 #!/bin/bash
 # =============================================================================
-# db_qa_setup.sh — MySQL: crea BD de QA (Unit Testing / Acceptance)
+# db_qa_setup.sh — MariaDB: crea BD de QA (Unit Testing / Acceptance)
 # =============================================================================
 # IDEMPOTENTE. BD completamente separada de produccion.
 #
 # Uso:
 #   sudo bash scripts/provisioners/mysql/db_qa_setup.sh
-#   # o en contenedores sin sudo:
-#   bash scripts/provisioners/mysql/db_qa_setup.sh
+#
+# Modelo de usuarios (D-031 H-24):
+#   - INVOCADOR: deploy via sudo (acceso al socket como root).
+#   - NO RUN AS develop: sin sudo el script aborta loud.
 #
 # Variables leidas desde practicayoruba/.env:
 #   DB_QA_NAME      (default: practicayoruba_qa)
@@ -24,6 +26,16 @@ PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 source "${PROJECT_ROOT}/scripts/utils/logging.sh"
 source "${PROJECT_ROOT}/scripts/utils/network.sh"
 source "${PROJECT_ROOT}/scripts/utils/database.sh"
+
+# D-031 H-24: validar root al inicio (loud fail antes de cualquier
+# operacion). Sin sudo el socket-auth como root falla con un
+# 'Access denied' ambiguo.
+if [[ "$(id -u)" -ne 0 ]]; then
+    log_fatal "db_qa_setup.sh debe ejecutarse como root (via sudo)"
+    log_error "  Estas corriendo como: $(whoami) (UID $(id -u))"
+    log_error "  Usa: sudo bash scripts/provisioners/mysql/db_qa_setup.sh"
+    exit 1
+fi
 
 ENV_FILE="${PROJECT_ROOT}/practicayoruba/.env"
 if [[ -f "$ENV_FILE" ]]; then
