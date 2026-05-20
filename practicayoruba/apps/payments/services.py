@@ -17,6 +17,7 @@ from .models import Payment, PaymentGatewayEvent, Payment as PaymentModel, Refun
 from .gateways.paypal import PayPalGateway
 from django.db.models import Sum as DjSum
 from apps.settings_app.models import PaymentGateway
+from apps.orders.models import Order
 
 
 
@@ -75,7 +76,6 @@ def initiate_payment(
     :raises ValueError: si la orden no está en PENDING
     :raises RuntimeError: si el gateway falla (propagado al caller)
     """
-    from apps.orders.models import Order
 
     if order.status != Order.STATUS_PENDING:
         raise ValueError(
@@ -259,7 +259,6 @@ def get_payment_status(order_number: str, user) -> dict:
     UC-PAY-05 (FR-PAY-05.02).
     RNF-SEC-003 (H-REF-006): 404 si la orden no existe O no pertenece al user.
     """
-    from apps.orders.models import Order
 
     try:
         order = Order.objects.get(order_number=order_number, user=user)
@@ -286,7 +285,6 @@ def get_payment_history(order_number: str, user) -> list | None:
     Retorna todos los pagos de una orden ordenados por -created_at.
     UC-PAY-06. RNF-SEC-003: 404 si la orden no existe O no pertenece al user.
     """
-    from apps.orders.models import Order
 
     try:
         order = Order.objects.get(order_number=order_number, user=user)
@@ -309,7 +307,6 @@ def get_retry_eligibility(order_number: str, user) -> dict | None:
     Verifica si una orden es elegible para reintentar el pago.
     UC-PAY-08 (FR-PAY-08.01). H-REF-004: condición real = Order.status=PENDING.
     """
-    from apps.orders.models import Order
 
     try:
         order = Order.objects.get(order_number=order_number, user=user)

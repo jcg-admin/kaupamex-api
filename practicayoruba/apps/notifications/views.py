@@ -23,11 +23,13 @@ from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from apps.orders.models import OrderItem
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from .models import MANDATORY_NOTIFICATION_TYPES, NOTIFICATION_TYPE_LABELS, ManualNotification, Notification, NotificationPreference, NotificationType
 from .tasks import dispatch_manual_fanout
 from .serializers import ManualNotificationCreateSerializer, ManualNotificationResponseSerializer, NotificationPreferenceItemSerializer, NotificationPreferencesUpdateSerializer, NotificationSerializer
+
 
 
 
@@ -197,13 +199,6 @@ def _compute_audience_count(recipient_type, recipient_identifier, product_id):
     if recipient_type == ManualNotification.RecipientType.PRODUCT_BUYERS:
         if not product_id:
             return 0
-        try:
-            from apps.orders.models import OrderItem
-        except Exception:
-            # silent OK because apps.orders es opcional (deployments
-            # parciales / tests aislados). Caller interpreta 0 como
-            # "sin audiencia". DEC-DOC-008.
-            return 0
         return (
             OrderItem.objects
             .filter(product_id=product_id, order__user__isnull=False)
@@ -229,11 +224,6 @@ def _resolve_audience_user_ids(recipient_type, recipient_identifier, product_id)
         return list(qs.values_list('id', flat=True))
 
     if recipient_type == ManualNotification.RecipientType.PRODUCT_BUYERS:
-        try:
-            from apps.orders.models import OrderItem
-        except Exception:
-            # silent OK because apps.orders es opcional. DEC-DOC-008.
-            return []
         return list(
             OrderItem.objects
             .filter(product_id=product_id, order__user__isnull=False)

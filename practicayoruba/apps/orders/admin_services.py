@@ -12,6 +12,8 @@ from .models import OrderStatusLog, Order
 from .services import cancel_order
 from django.db.models import Count, Sum, Q
 from datetime import timedelta
+from apps.payments.models import Payment
+from apps.settings_app.models import SiteSettings
 
 logger = logging.getLogger('apps')
 
@@ -119,8 +121,6 @@ def get_dashboard_data():
     UC-ORD-10 (4 bloques en una sola respuesta).
     H-ADM-004: usa SiteSettings.payment_timeout_minutes.
     """
-    from apps.payments.models import Payment
-    from apps.settings_app.models import SiteSettings
 
     now      = timezone.now()
     settings = SiteSettings.get_current()

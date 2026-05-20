@@ -10,6 +10,7 @@ from rest_framework import serializers
 from .models import Category, Product, ProductImage, SearchHistory
 from apps.settings_app.models import SiteSettings
 from django.utils.text import slugify
+from apps.chartsize.serializers import ProductVariantSerializer
 
 
 # =============================================================================
@@ -267,7 +268,6 @@ class SearchHistorySerializer(serializers.ModelSerializer):
 
 # Sprint 9 — import lazy para evitar circular import con apps.chartsize
 def _get_variant_serializer():
-    from apps.chartsize.serializers import ProductVariantSerializer
     return ProductVariantSerializer
 
 class ProductImageSerializer(serializers.ModelSerializer):

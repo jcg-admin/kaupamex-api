@@ -28,6 +28,7 @@ from apps.settings_app.models import PaymentGateway as PGModel
 from django.db import transaction
 from .gateways.mercadopago import MercadoPagoGateway
 from .gateways.paypal import PayPalGateway
+from apps.orders.models import Order
 
 
 
@@ -88,7 +89,6 @@ def _process_payment_approval(gateway_payment_id: str, gateway: str, amount: Dec
     Idempotente: si el Payment ya es APPROVED, no cambia nada.
     FR-PAY-03.02, FR-PAY-04.01 (H-PAY-005).
     """
-    from apps.orders.models import Order
 
     payment = (
         Payment.objects

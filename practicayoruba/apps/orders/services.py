@@ -12,6 +12,8 @@ from django.utils import timezone
 from apps.inventory.services import InventoryService
 from apps.inventory.proxy_models import CancellationMovement
 from .models import OrderAddress
+from apps.payments.services import execute_refund
+from apps.settings_app.models import ShippingMethod
 
 
 logger = logging.getLogger('apps')
@@ -78,7 +80,6 @@ def cancel_order(order, reason: str = '', cancelled_by=None, cancelable_statuses
             order.payments.filter(status='APPROVED').order_by('-created_at').first()
         )
         if approved_payment:
-            from apps.payments.services import execute_refund
             try:
                 refund = execute_refund(
                     payment=approved_payment,
@@ -140,7 +141,6 @@ def update_shipping_method(order, shipping_method_id: int):
     :raises ValueError: si la orden no permite cambiar el envío.
     :raises ValueError: si el método de envío no existe o está inactivo.
     """
-    from apps.settings_app.models import ShippingMethod
 
     if order.status not in EDITABLE_STATUSES:
         raise ValueError(

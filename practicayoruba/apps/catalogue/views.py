@@ -22,6 +22,8 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiRespon
 from drf_spectacular.types import OpenApiTypes
 from .models import Category, Product, SearchHistory
 from .serializers import ProductListSerializer, ProductDetailSerializer, ProductSearchSerializer, AutocompleteSerializer, SearchHistorySerializer, CategoryAdminSerializer, CategoryWithCountSerializer, ProductAdminSerializer
+from apps.cart.models import CartItem
+from apps.wishlist.models import WishlistItem
 import logging
 """
 Views — apps.catalogue
@@ -620,7 +622,6 @@ class CategoryListView(APIView):
 def _count_active_carts(product) -> int:
     """Cuenta CartItems activos que contienen este producto (Sprint 12)."""
     try:
-        from apps.cart.models import CartItem
         return CartItem.objects.filter(product=product).count()
     except Exception:
         # silent OK because apps.cart es opcional (deployments parciales).
@@ -631,7 +632,6 @@ def _count_active_carts(product) -> int:
 def _count_wishlist_items(product) -> int:
     """Cuenta WishlistItems activos que contienen este producto (Sprint 14)."""
     try:
-        from apps.wishlist.models import WishlistItem
         return WishlistItem.objects.filter(product=product).count()
     except Exception:
         # silent OK because apps.wishlist es opcional. DEC-DOC-008.

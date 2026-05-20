@@ -24,6 +24,7 @@ from .models import SiteSettings, PaymentGateway, ShippingMethod, StaticPage, St
 from .serializers import SiteSettingsSerializer, PaymentGatewaySerializer, ShippingMethodSerializer
 from .gateway_connector import connector
 from rest_framework import serializers as drf_serializers
+from apps.orders.proxy_models import ActiveOrder
 
 logger = logging.getLogger(__name__)
 
@@ -169,7 +170,6 @@ class ShippingMethodViewSet(ModelViewSet):
         Soft delete: is_active=False.
         Sprint 14: verificar ordenes en estado PENDING/PROCESSING.
         """
-        from apps.orders.proxy_models import ActiveOrder
         active_orders = ActiveOrder.objects.filter(
             shipping_method=instance,
         ).count()

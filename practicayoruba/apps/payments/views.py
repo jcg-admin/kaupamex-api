@@ -10,7 +10,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from apps.orders.models import Order
+from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from apps.orders.proxy_models import DeliveredOrder
 from .models import Payment, Payment as PaymentModel
 from .serializers import InitiatePaymentSerializer, InitiatePaymentResponseSerializer, InstallmentPlansResponseSerializer, PaymentSerializer, PaymentReturnSerializer, CheckoutEligibilitySerializer, ExpressCheckoutSerializer, RefundRequestSerializer, RefundSerializer, RetryEligibilitySerializer, PaymentStatusSerializer as PSS, RefundRequestSerializer as RRS
@@ -22,6 +22,8 @@ from rest_framework.test import APIRequestFactory
 from rest_framework.request import Request
 from django.db import transaction as db_transaction
 from apps.inventory.services import InventoryService, InsufficientStockError
+from apps.orders.views import CheckoutView
+from apps.orders.serializers import CheckoutSerializer, OrderSerializer
 
 
 
@@ -346,8 +348,6 @@ class ExpressCheckoutView(APIView):
             raise ValidationError({'detail': 'El carrito está vacío.', 'codigo_error': 'CARRITO_VACIO'})
 
         # Reutilizar el servicio de checkout de UC-ORD-01
-        from apps.orders.views import CheckoutView
-        from apps.orders.serializers import CheckoutSerializer
 
         addr = eligibility['default_address']
         shipping_id = eligibility['default_shipping']['id']
@@ -377,7 +377,6 @@ class ExpressCheckoutView(APIView):
         drf_request.user = request.user
 
         # Ejecutar el checkout directamente
-        from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
 
         cart_items = list(cart.items.select_related('product', 'variant__product', 'variant__option').all())
         check_items = [{'product': ci.product, 'variant': ci.variant, 'quantity': ci.quantity} for ci in cart_items]
@@ -445,7 +444,6 @@ class ExpressCheckoutView(APIView):
         except InsufficientStockError as exc:
             return Response({'detail': str(exc), 'codigo_error': 'STOCK_INSUFICIENTE'}, status=409)
 
-        from apps.orders.serializers import OrderSerializer
         return Response(OrderSerializer(order).data, status=201)
 
 
@@ -547,7 +545,6 @@ class RefundView(APIView):
         tags=['payments'],
     )
     def post(self, request, order_number):
-        from apps.orders.models import Order
 
         # RNF-SEC-003: usar filter+first, nunca get con user separado
         order = Order.objects.filter(

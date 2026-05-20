@@ -11,51 +11,27 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
-
-# DRF + plugins
 from rest_framework import serializers as drf_serializers
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
-
 from drf_spectacular.types import OpenApiTypes as OAT
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
-
-# Local
 from apps.cart.models import Cart, SavedCart
 from apps.notifications.models import NotificationPreference
 from apps.search_history.models import SearchEntry
 from apps.wishlist.models import WishlistItem
+from .models import Address, EmailVerificationToken, PasswordResetToken, UserDeactivationEvent
+from .serializers import AddressSerializer, ChangePasswordSerializer, EmailVerificationSerializer, PasswordResetConfirmSerializer, PasswordResetRequestSerializer, ProfileSerializer, RegisterSerializer, ResendVerificationSerializer, UpdateProfileSerializer
+from .tokens_email import check_rate_limit, create_password_reset_token, create_verification_token, invalidate_all_sessions, send_password_reset_email, send_verification_email, validate_password_reset_token, validate_verification_token
 
-from .models import (
-    Address,
-    EmailVerificationToken,
-    PasswordResetToken,
-    UserDeactivationEvent,
-)
-from .serializers import (
-    AddressSerializer,
-    ChangePasswordSerializer,
-    EmailVerificationSerializer,
-    PasswordResetConfirmSerializer,
-    PasswordResetRequestSerializer,
-    ProfileSerializer,
-    RegisterSerializer,
-    ResendVerificationSerializer,
-    UpdateProfileSerializer,
-)
-from .tokens_email import (
-    check_rate_limit,
-    create_password_reset_token,
-    create_verification_token,
-    invalidate_all_sessions,
-    send_password_reset_email,
-    send_verification_email,
-    validate_password_reset_token,
-    validate_verification_token,
-)
+# DRF + plugins
+
+
+# Local
+
 
 User = get_user_model()
 
