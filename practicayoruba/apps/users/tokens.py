@@ -7,14 +7,22 @@ PYTokenObtainPairView: login personalizado con:
   FR-AUTH-02.09: mensaje diferenciado para email no verificado
   FR-AUTH-02.14: restablecimiento del contador tras login exitoso
   FR-AUTH-02.15: objeto 'user' en la respuesta
+
+PYTokenRefreshView: refresh con validacion is_active.
+  Cierra D-26 del audit T-102 (refresh-validar-user-activo).
+  Sin esta validacion, simplejwt emite nuevo access aunque
+  el usuario haya sido suspendido (privilege-after-suspend
+  window hasta 7 dias). Ver DEC-REF-1..4.
 """
 import hashlib
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from rest_framework.response import Response
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from rest_framework_simplejwt.views import TokenObtainPairView
-from rest_framework_simplejwt.exceptions import AuthenticationFailed
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.exceptions import AuthenticationFailed, InvalidToken
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.settings import api_settings as jwt_settings
 
 User = get_user_model()
 
@@ -146,3 +154,54 @@ class PYTokenObtainPairView(TokenObtainPairView):
             record_failed_attempt(ip)
 
         return response
+
+
+# ─── Refresh con validacion is_active (D-26) ──────────────────────────
+
+
+class PYTokenRefreshSerializer(TokenRefreshSerializer):
+    """
+    Extiende ``TokenRefreshSerializer`` simplejwt para validar
+    ``user.is_active`` antes de emitir nuevo access. Cierra D-26
+    del audit T-102 (privilege-after-suspend window).
+
+    Si el usuario fue suspendido (UC-AUTH-13) o auto-baja
+    (UC-AUTH-16) tras emitir el refresh, esta validacion lo
+    rechaza con 401 + ``codigo_error='ACCOUNT_INACTIVE'`` y
+    blacklistea el refresh (anti-replay).
+
+    Ver DEC-REF-1 (subclass pattern), DEC-REF-2 (blacklist),
+    DEC-REF-3 (401 + ACCOUNT_INACTIVE), DEC-REF-4 (lookup
+    defensivo con .filter().first()).
+    """
+
+    def validate(self, attrs):
+        # Primero validacion stock simplejwt (firma + expiracion
+        # + blacklist). Si falla, raise antes de tocar la DB.
+        data = super().validate(attrs)
+
+        # Re-construir el refresh para lookup del user_id claim.
+        # super() ya lo proceso, asi que sabemos que es valido.
+        refresh = RefreshToken(attrs['refresh'])
+        user_id = refresh.get(jwt_settings.USER_ID_CLAIM)
+        user = User.objects.filter(pk=user_id).first()
+
+        if not user or not user.is_active:
+            # Anti-replay: blacklistear antes de raise.
+            try:
+                refresh.blacklist()
+            except Exception:
+                # blacklist puede fallar si el token ya esta en
+                # blacklist por rotation. Aceptable.
+                pass
+            raise InvalidToken({
+                'detail': 'Cuenta inactiva. Inicia sesion de nuevo.',
+                'codigo_error': 'ACCOUNT_INACTIVE',
+            })
+
+        return data
+
+
+class PYTokenRefreshView(TokenRefreshView):
+    """View custom que usa ``PYTokenRefreshSerializer``."""
+    serializer_class = PYTokenRefreshSerializer

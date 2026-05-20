@@ -1,8 +1,8 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from rest_framework_simplejwt.views import TokenRefreshView, TokenBlacklistView
+from rest_framework_simplejwt.views import TokenBlacklistView
 from .views import RegisterView, ProfileView, AddressViewSet, ChangePasswordView, PasswordResetRequestView, PasswordResetConfirmView, EmailVerifyView, ResendVerificationView, DeactivateAccountView
-from .tokens import PYTokenObtainPairView
+from .tokens import PYTokenObtainPairView, PYTokenRefreshView
 
 app_name = 'users'
 
@@ -13,7 +13,7 @@ urlpatterns = [
     # Sprint 1
     path('register/',        RegisterView.as_view(),         name='register'),
     path('login/',           PYTokenObtainPairView.as_view(), name='login'),
-    path('refresh/',         TokenRefreshView.as_view(),     name='token-refresh'),
+    path('refresh/',         PYTokenRefreshView.as_view(),   name='token-refresh'),
     path('logout/',          TokenBlacklistView.as_view(),   name='logout'),
     # Sprint 2
     path('profile/',         ProfileView.as_view(),          name='profile'),

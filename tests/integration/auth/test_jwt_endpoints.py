@@ -121,3 +121,68 @@ class TestLogoutEndpoint:
         response = api_client.post(url_refresh, {'refresh': token_str}, format='json')
 
         assert response.status_code == 401
+
+
+class TestRefreshValidatesIsActive:
+    """
+    POST /api/v1/auth/refresh/ — valida user.is_active (D-26).
+    Cierra refresh-validar-user-activo. Antes del fix, un usuario
+    suspendido (UC-AUTH-13) o self-deleted (UC-AUTH-16) seguia
+    renovando hasta 7 dias (refresh TTL).
+    """
+
+    def test_refresh_rechaza_user_inactivo(self, api_client, user):
+        refresh = RefreshToken.for_user(user)
+        token_str = str(refresh)
+
+        # Suspender al usuario tras login
+        user.is_active = False
+        user.save(update_fields=['is_active'])
+
+        url = reverse('users:token-refresh')
+        response = api_client.post(url, {'refresh': token_str}, format='json')
+
+        assert response.status_code == 401
+        assert response.data.get('codigo_error') == 'ACCOUNT_INACTIVE'
+
+    def test_refresh_rechaza_self_deleted(self, api_client, user):
+        refresh = RefreshToken.for_user(user)
+        token_str = str(refresh)
+
+        user.is_active = False
+        user.deactivated_reason = 'self_deleted'
+        user.save(update_fields=['is_active', 'deactivated_reason'])
+
+        url = reverse('users:token-refresh')
+        response = api_client.post(url, {'refresh': token_str}, format='json')
+
+        assert response.status_code == 401
+        assert response.data.get('codigo_error') == 'ACCOUNT_INACTIVE'
+
+    def test_refresh_blacklistea_token_de_user_inactivo(self, api_client, user):
+        refresh = RefreshToken.for_user(user)
+        token_str = str(refresh)
+
+        user.is_active = False
+        user.save(update_fields=['is_active'])
+
+        url = reverse('users:token-refresh')
+
+        # Primer intento: rechazado por is_active=False.
+        r1 = api_client.post(url, {'refresh': token_str}, format='json')
+        assert r1.status_code == 401
+
+        # Segundo intento con mismo token: debe seguir rechazado
+        # (blacklisteado por la primera llamada — anti-replay).
+        r2 = api_client.post(url, {'refresh': token_str}, format='json')
+        assert r2.status_code == 401
+
+    def test_refresh_exitoso_para_user_activo(self, api_client, user):
+        """Regression: happy path sigue funcionando tras el fix."""
+        refresh = RefreshToken.for_user(user)
+
+        url = reverse('users:token-refresh')
+        response = api_client.post(url, {'refresh': str(refresh)}, format='json')
+
+        assert response.status_code == 200
+        assert 'access' in response.data
