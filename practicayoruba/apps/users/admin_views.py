@@ -15,6 +15,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from drf_spectacular.utils import extend_schema, OpenApiParameter
+from .models import UserDeactivationEvent
 from .serializers import AdminUserListSerializer
 from .tokens_email import invalidate_all_sessions
 
@@ -189,7 +190,6 @@ class AdminUserViewSet(ModelViewSet):
             ])
             invalidate_all_sessions(target)
             # GAP 10: audit log del evento (append-only).
-            from .models import UserDeactivationEvent
             UserDeactivationEvent.objects.create(
                 user=target,
                 reason=User.DEACTIVATION_SUSPENDED,

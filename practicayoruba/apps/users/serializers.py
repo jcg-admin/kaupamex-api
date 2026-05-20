@@ -17,7 +17,7 @@ from rest_framework import serializers
 from PIL import Image
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
-from .models import Address
+from .models import Address, UserDeactivationEvent
 from apps.settings_app.models import SiteSettings
 
 
@@ -80,7 +80,6 @@ class RegisterSerializer(serializers.Serializer):
         user.deactivated_at = timezone.now()
         user.save(update_fields=['deactivated_reason', 'deactivated_at'])
         # GAP 10: audit log de la transicion (cuenta nueva == is_active=False).
-        from .models import UserDeactivationEvent
         UserDeactivationEvent.objects.create(
             user=user,
             reason=User.DEACTIVATION_UNVERIFIED,

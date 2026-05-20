@@ -24,6 +24,11 @@ from drf_spectacular.types import OpenApiTypes as OAT
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
 
 # Local
+from apps.cart.models import Cart, SavedCart
+from apps.notifications.models import NotificationPreference
+from apps.search_history.models import SearchEntry
+from apps.wishlist.models import WishlistItem
+
 from .models import (
     Address,
     EmailVerificationToken,
@@ -556,10 +561,6 @@ class DeactivateAccountView(APIView):
             #   - users_address (referenciado desde orders_order_address
             #     snapshot, conservar la fila original facilita lookup)
             #   - users_deactivation_event (audit append-only)
-            from apps.cart.models import Cart, SavedCart
-            from apps.wishlist.models import WishlistItem
-            from apps.search_history.models import SearchEntry
-            from apps.notifications.models import NotificationPreference
             Cart.objects.filter(user=user).delete()
             SavedCart.objects.filter(user=user).delete()
             # WishlistItem.all_objects + hard_delete: bypassa el
