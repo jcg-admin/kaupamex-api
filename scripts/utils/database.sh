@@ -5,7 +5,17 @@
 # MySQL / MariaDB.
 # Depende de: logging.sh, network.sh
 #
+# D-031 / H-17 (mismo patron que D-028 del submodulo db): en MariaDB
+# 11.x el CLI canonico es 'mariadb' y la herramienta admin es
+# 'mariadb-admin'. Los aliases legacy 'mysql' / 'mysqladmin' ya NO se
+# instalan en Ubuntu 24.04 noble con mariadb-client. Los helpers
+# mariadb_client_bin / mariadb_admin_bin resuelven el binario
+# disponible. Variables exportadas MARIADB_CLI / MARIADB_ADM al
+# sourcear este archivo.
+#
 # Funciones publicas:
+#   mariadb_client_bin    — devuelve binario CLI disponible (mariadb|mysql)
+#   mariadb_admin_bin     — devuelve binario admin (mariadb-admin|mysqladmin)
 #   mysql_is_running      — detecta si el servidor responde (TCP o socket)
 #   mysql_cleanup_stale   — limpia archivos pid/sock de sesiones anteriores
 #   mysql_start           — arranca MySQL/MariaDB (systemd o directo)
@@ -23,6 +33,30 @@ _MYSQL_SOCKETS=(
 _MYSQL_PID_FILE="/run/mysqld/mysqld.pid"
 
 # -----------------------------------------------------------------------------
+# mariadb_client_bin / mariadb_admin_bin (D-028 / D-031 H-17)
+#   Resuelven el binario disponible. Preferencia: canonico (mariadb /
+#   mariadb-admin) sobre legacy (mysql / mysqladmin). Cadena vacia si
+#   ninguno esta instalado.
+# -----------------------------------------------------------------------------
+mariadb_client_bin() {
+    if command -v mariadb &>/dev/null; then echo "mariadb"
+    elif command -v mysql &>/dev/null; then echo "mysql"
+    else echo ""; fi
+}
+
+mariadb_admin_bin() {
+    if command -v mariadb-admin &>/dev/null; then echo "mariadb-admin"
+    elif command -v mysqladmin &>/dev/null; then echo "mysqladmin"
+    else echo ""; fi
+}
+
+# Resolucion al sourcear. Re-resolver tras instalacion de mariadb-client
+# con: MARIADB_CLI=$(mariadb_client_bin); MARIADB_ADM=$(mariadb_admin_bin).
+MARIADB_CLI="$(mariadb_client_bin)"
+MARIADB_ADM="$(mariadb_admin_bin)"
+export MARIADB_CLI MARIADB_ADM
+
+# -----------------------------------------------------------------------------
 # mysql_is_running [host] [port]
 #   Retorna 0 si el servidor responde, 1 si no.
 #   Verifica en este orden:
@@ -33,10 +67,10 @@ mysql_is_running() {
     local host="${1:-127.0.0.1}" port="${2:-3306}"
 
     # 1. Intentar via socket Unix
-    if command -v mysqladmin &>/dev/null; then
+    if [[ -n "${MARIADB_ADM:-}" ]]; then
         for sock in "${_MYSQL_SOCKETS[@]}"; do
             if [[ -S "$sock" ]]; then
-                if mysqladmin --socket="$sock" ping --silent >/dev/null 2>&1; then
+                if "${MARIADB_ADM:-mariadb-admin}" --socket="$sock" ping --silent >/dev/null 2>&1; then
                     return 0
                 fi
             fi
@@ -44,8 +78,8 @@ mysql_is_running() {
     fi
 
     # 2. Intentar via TCP
-    if command -v mysqladmin &>/dev/null; then
-        if mysqladmin ping --silent --host="$host" --port="$port" >/dev/null 2>&1; then
+    if [[ -n "${MARIADB_ADM:-}" ]]; then
+        if "${MARIADB_ADM:-mariadb-admin}" ping --silent --host="$host" --port="$port" >/dev/null 2>&1; then
             return 0
         fi
     fi
@@ -79,7 +113,7 @@ mysql_cleanup_stale() {
     for sock in "${_MYSQL_SOCKETS[@]}"; do
         [[ -S "$sock" ]] || continue
         # Intentar conectar — si falla con ECONNREFUSED el proceso no existe
-        if ! mysqladmin --socket="$sock" ping --silent >/dev/null 2>&1; then
+        if ! "${MARIADB_ADM:-mariadb-admin}" --socket="$sock" ping --silent >/dev/null 2>&1; then
             log_warn "Socket stale detectado: ${sock}"
             rm -f "$sock"
             cleaned=$(( cleaned + 1 ))
