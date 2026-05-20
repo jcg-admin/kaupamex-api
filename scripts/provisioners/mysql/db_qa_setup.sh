@@ -1,13 +1,15 @@
 #!/bin/bash
 # =============================================================================
-# db_qa_setup.sh — MySQL: crea BD de QA (Unit Testing / Acceptance)
+# db_qa_setup.sh — MariaDB: crea BD de QA (Unit Testing / Acceptance)
 # =============================================================================
 # IDEMPOTENTE. BD completamente separada de produccion.
 #
 # Uso:
 #   sudo bash scripts/provisioners/mysql/db_qa_setup.sh
-#   # o en contenedores sin sudo:
-#   bash scripts/provisioners/mysql/db_qa_setup.sh
+#
+# Modelo de usuarios (D-031 H-24):
+#   - INVOCADOR: deploy via sudo (acceso al socket como root).
+#   - NO RUN AS develop: sin sudo el script aborta loud.
 #
 # Variables leidas desde practicayoruba/.env:
 #   DB_QA_NAME      (default: practicayoruba_qa)
@@ -24,6 +26,16 @@ PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 source "${PROJECT_ROOT}/scripts/utils/logging.sh"
 source "${PROJECT_ROOT}/scripts/utils/network.sh"
 source "${PROJECT_ROOT}/scripts/utils/database.sh"
+
+# D-031 H-24: validar root al inicio (loud fail antes de cualquier
+# operacion). Sin sudo el socket-auth como root falla con un
+# 'Access denied' ambiguo.
+if [[ "$(id -u)" -ne 0 ]]; then
+    log_fatal "db_qa_setup.sh debe ejecutarse como root (via sudo)"
+    log_error "  Estas corriendo como: $(whoami) (UID $(id -u))"
+    log_error "  Usa: sudo bash scripts/provisioners/mysql/db_qa_setup.sh"
+    exit 1
+fi
 
 ENV_FILE="${PROJECT_ROOT}/practicayoruba/.env"
 if [[ -f "$ENV_FILE" ]]; then
@@ -42,16 +54,16 @@ TOTAL_STEPS=5
 _my_exec() {
     local sock=""
     for s in /run/mysqld/mysqld.sock /var/run/mysqld/mysqld.sock; do
-        if [[ -S "$s" ]] && mysqladmin --socket="$s" ping --silent >/dev/null 2>&1; then
+        if [[ -S "$s" ]] && "${MARIADB_ADM:-mariadb-admin}" --socket="$s" ping --silent >/dev/null 2>&1; then
             sock="$s"
             break
         fi
     done
 
     if [[ -n "$sock" ]]; then
-        mysql --socket="$sock" --batch "$@" 2>&1
+        "${MARIADB_CLI:-mariadb}" --socket="$sock" --batch "$@" 2>&1
     else
-        mysql -h "$DB_HOST" -P "$DB_PORT" --batch "$@" 2>&1
+        "${MARIADB_CLI:-mariadb}" -h "$DB_HOST" -P "$DB_PORT" --batch "$@" 2>&1
     fi
 }
 
@@ -61,7 +73,8 @@ _my_exec_quiet() { _my_exec --silent --skip-column-names "$@" 2>/dev/null; }
 check_prerequisites() {
     log_step 1 $TOTAL_STEPS "Verificando prerequisitos"
 
-    command -v mysql &>/dev/null || { log_fatal "mysql client no encontrado"; exit 1; }
+    # D-031 H-17: ver db_setup.sh; MARIADB_CLI resuelto en utils/database.sh.
+    [[ -n "${MARIADB_CLI:-}" ]] || { log_fatal "Cliente MariaDB no encontrado (ni mariadb ni mysql). Instala mariadb-client."; exit 1; }
 
     if ! mysql_is_running "$DB_HOST" "$DB_PORT"; then
         log_warn "MySQL no responde — intentando arranque automatico"
@@ -99,10 +112,29 @@ create_database() {
 grant_privileges() {
     log_step 3 $TOTAL_STEPS "Privilegios: ${DB_USER} sobre ${DB_NAME}"
 
+    # D-031 H-22 (reportado deploy@yollotl): pre-crear las dos BDs que
+    # pytest-django puede usar:
+    #   - practicayoruba_qa: testing.py declara TEST.NAME=practicayoruba_qa
+    #     (Django usa esta BD directamente como test database)
+    #   - test_practicayoruba_qa: si alguien quita el override TEST.NAME,
+    #     Django crea test_<DB_NAME> por convencion default
+    # Pre-crear ambas + grant ALL evita necesidad de GRANT CREATE/DROP
+    # ON *.* a django_user. Combinado con --reuse-db en pytest.ini
+    # (H-21), elimina los cuelgues en DROP+CREATE.
+    for db in "${DB_NAME}" "test_${DB_NAME}"; do
+        _my_exec -e \
+            "CREATE DATABASE IF NOT EXISTS \`${db}\`
+             CHARACTER SET utf8mb4
+             COLLATE utf8mb4_unicode_ci;" > /dev/null
+    done
+    log_info "  Pre-creadas: ${DB_NAME} y test_${DB_NAME} (anti-hang H-22)"
+
     for host in "%" "localhost" "127.0.0.1"; do
         _my_exec -e \
             "GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '${DB_USER}'@'${host}';" > /dev/null
-        # pytest necesita poder crear/borrar test_<DB_NAME>
+        # pytest necesita poder crear/borrar test_<DB_NAME>; GRANT ALL
+        # incluye CREATE/DROP DENTRO de esa BD (suficiente para
+        # migrate/flush) pero NO CREATE/DROP DATABASE global.
         _my_exec -e \
             "GRANT ALL PRIVILEGES ON \`test_${DB_NAME}\`.* TO '${DB_USER}'@'${host}';" > /dev/null
     done
@@ -134,12 +166,12 @@ verify_connection() {
 
     local sock=""
     for s in /run/mysqld/mysqld.sock /var/run/mysqld/mysqld.sock; do
-        [[ -S "$s" ]] && mysqladmin --socket="$s" ping --silent >/dev/null 2>&1 && sock="$s" && break
+        [[ -S "$s" ]] && "${MARIADB_ADM:-mariadb-admin}" --socket="$s" ping --silent >/dev/null 2>&1 && sock="$s" && break
     done
 
     local result
     if [[ -n "$sock" ]]; then
-        result=$(mysql --socket="$sock" \
+        result=$("${MARIADB_CLI:-mariadb}" --socket="$sock" \
             -u "$DB_USER" -p"${DB_PASSWORD}" \
             --batch --silent --skip-column-names \
             -e "SELECT CONCAT(DATABASE(), '@', USER());" \
@@ -148,7 +180,7 @@ verify_connection() {
             exit 1
         }
     else
-        result=$(mysql -h "$DB_HOST" -P "$DB_PORT" \
+        result=$("${MARIADB_CLI:-mariadb}" -h "$DB_HOST" -P "$DB_PORT" \
             -u "$DB_USER" -p"${DB_PASSWORD}" \
             --batch --silent --skip-column-names \
             -e "SELECT CONCAT(DATABASE(), '@', USER());" \

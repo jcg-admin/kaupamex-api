@@ -12,9 +12,16 @@ source "${PROJECT_ROOT}/scripts/utils/core.sh"
 source "${PROJECT_ROOT}/scripts/utils/network.sh"
 source "${PROJECT_ROOT}/scripts/utils/database.sh"
 
-VENV_PYTHON="${PROJECT_ROOT}/venv/bin/python3"
+# D-031: convencion actual es .venv; fallback a venv si existe (legacy)
+if [[ -x "${PROJECT_ROOT}/.venv/bin/python3" ]]; then
+    VENV_PYTHON="${PROJECT_ROOT}/.venv/bin/python3"
+elif [[ -x "${PROJECT_ROOT}/venv/bin/python3" ]]; then
+    VENV_PYTHON="${PROJECT_ROOT}/venv/bin/python3"
+else
+    VENV_PYTHON="${PROJECT_ROOT}/.venv/bin/python3"
+fi
 if exists_file "$VENV_PYTHON"; then
-    export PATH="${PROJECT_ROOT}/venv/bin:${PATH}"
+    export PATH="${PROJECT_ROOT}/.venv/bin:${PROJECT_ROOT}/venv/bin:${PATH}"
 fi
 
 ENV_FILE="${PROJECT_ROOT}/practicayoruba/.env"
@@ -39,24 +46,42 @@ check_system() {
         && ok "python3: $(python3 --version 2>&1)" \
         || fail "python3 no encontrado"
 
-    command_exists mysql \
-        && ok "mysql: $(mysql --version 2>&1 | head -1)" \
-        || warn "mysql client no encontrado (instala mysql-client)"
+    # D-031 / H-12: en MariaDB 11.x el CLI es 'mariadb' (no 'mysql').
+    # Aceptar ambos para backwards-compat con MariaDB <=10.11; preferir
+    # el canonico cuando esta disponible.
+    if command_exists mariadb; then
+        ok "mariadb: $(mariadb --version 2>&1 | head -1)"
+    elif command_exists mysql; then
+        ok "mysql (legacy): $(mysql --version 2>&1 | head -1)"
+    else
+        warn "MariaDB CLI no encontrado (instala mariadb-client)"
+    fi
 }
 
 # =============================================================================
 check_venv() {
     log_header "Entorno virtual"
 
-    if exists_dir "${PROJECT_ROOT}/venv"; then
-        ok "venv existe: ${PROJECT_ROOT}/venv"
+    # D-031 / H-13: la convencion del repo es .venv (no venv) — sync
+    # con server/.env.example y D-030. Acepta ambos para backwards-compat.
+    local venv_dir=""
+    if exists_dir "${PROJECT_ROOT}/.venv"; then
+        venv_dir="${PROJECT_ROOT}/.venv"
+        ok "venv existe: ${venv_dir}"
+    elif exists_dir "${PROJECT_ROOT}/venv"; then
+        venv_dir="${PROJECT_ROOT}/venv"
+        warn "venv legacy en ${venv_dir} — convencion actual es .venv"
     else
-        warn "venv no existe — ejecuta: python3 -m venv venv"
+        warn "venv no existe — ejecuta: uv venv .venv  (o python3 -m venv .venv)"
         return
     fi
 
-    for pkg in django djangorestframework MySQLdb rest_framework_simplejwt; do
-        "${PROJECT_ROOT}/venv/bin/python3" -c "import ${pkg}" 2>/dev/null \
+    # D-031 / H-16: el nombre importable de DRF es 'rest_framework',
+    # NO 'djangorestframework'. El check anterior siempre fallaba
+    # falso-positivo aun con DRF correctamente instalado. Mismo
+    # principio para mysqlclient: el modulo se importa como MySQLdb.
+    for pkg in django rest_framework MySQLdb rest_framework_simplejwt; do
+        "${venv_dir}/bin/python3" -c "import ${pkg}" 2>/dev/null \
             && ok "paquete: ${pkg}" \
             || fail "paquete faltante: ${pkg}"
     done

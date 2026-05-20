@@ -1,13 +1,17 @@
 #!/bin/bash
 # =============================================================================
-# db_setup.sh — MySQL: crea BD y usuario para PracticaYoruba API
+# db_setup.sh — MariaDB: crea BD y usuario para PracticaYoruba API
 # =============================================================================
 # IDEMPOTENTE: se puede ejecutar N veces sin efectos adversos.
 #
 # Uso:
 #   sudo bash scripts/provisioners/mysql/db_setup.sh
-#   # o en contenedores sin sudo:
-#   bash scripts/provisioners/mysql/db_setup.sh
+#
+# Modelo de usuarios (D-031 H-24):
+#   - INVOCADOR: deploy via sudo (necesita acceso al socket
+#     mariadbd via unix_socket auth como root) o root directo.
+#   - NO RUN AS develop: develop no tiene sudo ni acceso al
+#     socket. Si llamas sin sudo, el script aborta loud.
 #
 # Variables leidas desde practicayoruba/.env (con defaults):
 #   DB_NAME      (default: practicayoruba_db)
@@ -24,6 +28,17 @@ PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 source "${PROJECT_ROOT}/scripts/utils/logging.sh"
 source "${PROJECT_ROOT}/scripts/utils/network.sh"
 source "${PROJECT_ROOT}/scripts/utils/database.sh"
+
+# D-031 H-24: validar root al inicio (loud fail antes de cualquier
+# operacion). Sin esto, el primer 'mariadb -u root' falla con un
+# 'Access denied' ambiguo y el operador no sabe que el problema es
+# de privilegios del script, no de credenciales de MariaDB.
+if [[ "$(id -u)" -ne 0 ]]; then
+    log_fatal "db_setup.sh debe ejecutarse como root (via sudo)"
+    log_error "  Estas corriendo como: $(whoami) (UID $(id -u))"
+    log_error "  Usa: sudo bash scripts/provisioners/mysql/db_setup.sh"
+    exit 1
+fi
 
 ENV_FILE="${PROJECT_ROOT}/practicayoruba/.env"
 if [[ -f "$ENV_FILE" ]]; then
@@ -42,16 +57,16 @@ TOTAL_STEPS=5
 _my_exec() {
     local sock=""
     for s in /run/mysqld/mysqld.sock /var/run/mysqld/mysqld.sock; do
-        if [[ -S "$s" ]] && mysqladmin --socket="$s" ping --silent >/dev/null 2>&1; then
+        if [[ -S "$s" ]] && "${MARIADB_ADM:-mariadb-admin}" --socket="$s" ping --silent >/dev/null 2>&1; then
             sock="$s"
             break
         fi
     done
 
     if [[ -n "$sock" ]]; then
-        mysql --socket="$sock" --batch "$@" 2>&1
+        "${MARIADB_CLI:-mariadb}" --socket="$sock" --batch "$@" 2>&1
     else
-        mysql -h "$DB_HOST" -P "$DB_PORT" --batch "$@" 2>&1
+        "${MARIADB_CLI:-mariadb}" -h "$DB_HOST" -P "$DB_PORT" --batch "$@" 2>&1
     fi
 }
 
@@ -61,7 +76,10 @@ _my_exec_quiet() { _my_exec --silent --skip-column-names "$@" 2>/dev/null; }
 check_prerequisites() {
     log_step 1 $TOTAL_STEPS "Verificando prerequisitos"
 
-    command -v mysql &>/dev/null || { log_fatal "mysql client no encontrado. Instala mysql-client."; exit 1; }
+    # D-031 H-17: en MariaDB 11.x el CLI es 'mariadb'; el alias 'mysql'
+    # ya no se instala en Ubuntu 24.04 noble. MARIADB_CLI lo resuelve
+    # en utils/database.sh (mariadb canonico, mysql legacy fallback).
+    [[ -n "${MARIADB_CLI:-}" ]] || { log_fatal "Cliente MariaDB no encontrado (ni mariadb ni mysql en PATH). Instala mariadb-client."; exit 1; }
 
     if ! mysql_is_running "$DB_HOST" "$DB_PORT"; then
         log_warn "MySQL no responde — intentando arranque automatico"
@@ -147,12 +165,12 @@ verify_connection() {
 
     local sock=""
     for s in /run/mysqld/mysqld.sock /var/run/mysqld/mysqld.sock; do
-        [[ -S "$s" ]] && mysqladmin --socket="$s" ping --silent >/dev/null 2>&1 && sock="$s" && break
+        [[ -S "$s" ]] && "${MARIADB_ADM:-mariadb-admin}" --socket="$s" ping --silent >/dev/null 2>&1 && sock="$s" && break
     done
 
     local result
     if [[ -n "$sock" ]]; then
-        result=$(mysql --socket="$sock" \
+        result=$("${MARIADB_CLI:-mariadb}" --socket="$sock" \
             -u "$DB_USER" -p"${DB_PASSWORD}" \
             --batch --silent --skip-column-names \
             -e "SELECT CONCAT(DATABASE(), '@', USER());" \
@@ -162,7 +180,7 @@ verify_connection() {
             exit 1
         }
     else
-        result=$(mysql -h "$DB_HOST" -P "$DB_PORT" \
+        result=$("${MARIADB_CLI:-mariadb}" -h "$DB_HOST" -P "$DB_PORT" \
             -u "$DB_USER" -p"${DB_PASSWORD}" \
             --batch --silent --skip-column-names \
             -e "SELECT CONCAT(DATABASE(), '@', USER());" \
