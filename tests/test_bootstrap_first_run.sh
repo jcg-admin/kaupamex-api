@@ -154,6 +154,52 @@ else
     fail "cart migration 0005 ausente (H-27 — schema sin sync)"
 fi
 
+# ----------------------------------------------------------------------------
+# Iniciativa permisos-runtime-www-data (H-LOG-1..3)
+# ----------------------------------------------------------------------------
+
+# H-LOG-1/2: bootstrap.sh detecta www-data y aplica chgrp+setgid en
+# logs/ y media/ para que Apache pueda escribir.
+if grep -qE 'getent group www-data' "$PROJECT_ROOT/scripts/bootstrap.sh"; then
+    pass "bootstrap.sh detecta www-data via getent group (H-LOG-1)"
+else
+    fail "bootstrap.sh no detecta www-data (H-LOG-1 regresion)"
+fi
+if grep -qE 'chgrp -R www-data' "$PROJECT_ROOT/scripts/bootstrap.sh"; then
+    pass "bootstrap.sh aplica chgrp www-data a runtime dirs (H-LOG-2)"
+else
+    fail "bootstrap.sh sin chgrp www-data (H-LOG-2 regresion)"
+fi
+# H-LOG-3: g+s (setgid) para que archivos nuevos hereden el grupo
+if grep -qE 'chmod -R g\+w,g\+s' "$PROJECT_ROOT/scripts/bootstrap.sh"; then
+    pass "bootstrap.sh aplica g+w,g+s a runtime dirs (H-LOG-3 setgid propaga grupo)"
+else
+    fail "bootstrap.sh sin g+s (H-LOG-3 regresion — archivos nuevos no heredarian grupo)"
+fi
+
+# ----------------------------------------------------------------------------
+# Iniciativa configurar-ui-dist-en-deploy (H-UID-1, H-UID-2)
+# ----------------------------------------------------------------------------
+
+# H-UID-1: .env.example documenta UI_DIST con default WSL2
+if grep -qE '^UI_DIST=/srv/repos/ecom/ui/dist' "$PROJECT_ROOT/practicayoruba/.env.example"; then
+    pass ".env.example documenta UI_DIST con default WSL2 (H-UID-1)"
+else
+    fail ".env.example NO documenta UI_DIST (H-UID-1 regresion)"
+fi
+
+# H-UID-2: production.py default es '' (centinela), NO el path obsoleto /opt/...
+if grep -qE "config\('UI_DIST', default=''\)" "$PROJECT_ROOT/practicayoruba/config/settings/production.py"; then
+    pass "production.py UI_DIST default='' (centinela, H-UID-2)"
+else
+    fail "production.py UI_DIST con default obsoleto (H-UID-2 regresion)"
+fi
+if grep -qE "default='/opt/practicayoruba" "$PROJECT_ROOT/practicayoruba/config/settings/production.py"; then
+    fail "production.py todavia usa default /opt/practicayoruba (H-UID-2 regresion)"
+else
+    pass "production.py sin default /opt/practicayoruba obsoleto (H-UID-2)"
+fi
+
 echo ""
 if [[ "$EXIT" -eq 0 ]]; then
     echo ">>> ALL PASS — bootstrap first run integro"
