@@ -20,6 +20,25 @@ def avatar_upload_path(instance, filename):
 
 
 class User(AbstractUser):
+    # UC-AUTH-01 Alt-A (refinado) + UC-AUTH-13 + UC-AUTH-16:
+    # is_active=False puede tener tres causas distintas. El flag
+    # solo no las distingue, lo que filtraba E2/E3/E4 al mismo
+    # codigo. Estos dos campos las separan para que UC-AUTH-01
+    # Alt-A y ResendVerificationView decidan correctamente si la
+    # cuenta es reactivable via email.
+    DEACTIVATION_UNVERIFIED   = 'unverified'
+    DEACTIVATION_SUSPENDED    = 'suspended'
+    DEACTIVATION_SELF_DELETED = 'self_deleted'
+    DEACTIVATION_REASON_CHOICES = [
+        (DEACTIVATION_UNVERIFIED,   'No verificada (email pendiente)'),
+        (DEACTIVATION_SUSPENDED,    'Suspendida por administrador'),
+        (DEACTIVATION_SELF_DELETED, 'Dada de baja por el usuario'),
+    ]
+    DEACTIVATION_REASONS_REACTIVABLE_BY_EMAIL = {
+        DEACTIVATION_UNVERIFIED,
+        DEACTIVATION_SELF_DELETED,
+    }
+
     avatar = models.ImageField(
         upload_to=avatar_upload_path,
         null=True, blank=True,
@@ -30,6 +49,23 @@ class User(AbstractUser):
         max_length=20, blank=True, default='',
         verbose_name='Telefono',
         help_text='Numero de telefono del comprador.',
+    )
+    deactivated_reason = models.CharField(
+        max_length=20,
+        choices=DEACTIVATION_REASON_CHOICES,
+        null=True, blank=True,
+        verbose_name='Causa de inactividad',
+        help_text=(
+            'Causa por la que is_active=False. NULL cuando la cuenta esta '
+            'activa. Distingue cuentas reactivables por email '
+            '(unverified, self_deleted) de las que requieren UC-AUTH-14 '
+            '(suspended). Ver UC-AUTH-01 Alt-A.'
+        ),
+    )
+    deactivated_at = models.DateTimeField(
+        null=True, blank=True,
+        verbose_name='Fecha de desactivacion',
+        help_text='Timestamp del cambio is_active True -> False.',
     )
 
     class Meta:

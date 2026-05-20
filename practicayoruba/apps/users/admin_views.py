@@ -170,7 +170,14 @@ class AdminUserViewSet(ModelViewSet):
             )
         with transaction.atomic():
             target.is_active = False
-            target.save(update_fields=['is_active'])
+            # GAP-3 cierre: registrar la causa explicita para que
+            # ResendVerificationView no reactive por email (UC-AUTH-01
+            # Alt-A.3). Solo UC-AUTH-14 restaura cuentas suspendidas.
+            target.deactivated_reason = User.DEACTIVATION_SUSPENDED
+            target.deactivated_at = timezone.now()
+            target.save(update_fields=[
+                'is_active', 'deactivated_reason', 'deactivated_at',
+            ])
             invalidate_all_sessions(target)
         return Response({'message': f'Cuenta de {target.username} suspendida.'})
 
@@ -184,5 +191,10 @@ class AdminUserViewSet(ModelViewSet):
         _require_admin(request.user)
         target = self.get_object()
         target.is_active = True
-        target.save(update_fields=['is_active'])
+        # Limpiar la causa para que el estado quede consistente.
+        target.deactivated_reason = None
+        target.deactivated_at = None
+        target.save(update_fields=[
+            'is_active', 'deactivated_reason', 'deactivated_at',
+        ])
         return Response({'message': f'Cuenta de {target.username} reactivada.'})

@@ -11,6 +11,7 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework import serializers as drf_serializers
 
 from .models import Address
 from .serializers import (
@@ -372,7 +373,13 @@ class EmailVerifyView(APIView):
         with transaction.atomic():
             user = token_obj.user
             user.is_active = True
-            user.save(update_fields=['is_active'])
+            # GAP-3 cierre: limpiar la causa al reactivar para que el
+            # estado de la cuenta sea consistente despues del click.
+            user.deactivated_reason = None
+            user.deactivated_at = None
+            user.save(update_fields=[
+                'is_active', 'deactivated_reason', 'deactivated_at',
+            ])
             token_obj.used_at = timezone.now()
             token_obj.save(update_fields=['used_at'])
 
@@ -399,14 +406,79 @@ class ResendVerificationView(APIView):
         email = serializer.validated_data['email']
         try:
             user = User.objects.get(email__iexact=email, is_active=False)
-            plain = create_verification_token(user)
-            send_verification_email(user, plain)
+            # UC-AUTH-01 Alt-A.3: cuentas suspendidas por admin NO se
+            # reactivan por email. UC-AUTH-14 es el unico camino.
+            # El mensaje al cliente es identico al caso DoesNotExist
+            # para no filtrar el estado de la cuenta.
+            if user.deactivated_reason in User.DEACTIVATION_REASONS_REACTIVABLE_BY_EMAIL:
+                plain = create_verification_token(user)
+                send_verification_email(user, plain)
+            # else: silencio deliberado (suspended).
         except User.DoesNotExist:
             pass  # Silencioso
 
         return Response(
             {'message': 'Si ese email esta pendiente de verificacion, recibiras un nuevo enlace.'}
         )
+
+
+class DeactivateAccountSerializer(drf_serializers.Serializer):
+    """Payload de POST /api/v1/auth/me/deactivate/ — UC-AUTH-16."""
+    password = drf_serializers.CharField(write_only=True)
+
+
+class DeactivateAccountView(APIView):
+    """POST /api/v1/auth/me/deactivate/ — UC-AUTH-16 (Dar de Baja la Propia Cuenta).
+
+    Soft-delete logico iniciado por el propio usuario. Pone
+    is_active=False y registra la causa (self_deleted) y el
+    timestamp. Invalida refresh tokens activos.
+
+    Postcondiciones: la cuenta puede reactivarse via
+    UC-AUTH-01 Alt-A.2 (re-registro con mismo email -> reenvio
+    de email de verificacion) o via UC-AUTH-14 (admin).
+    """
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary='Dar de baja la propia cuenta (UC-AUTH-16)',
+        description=(
+            'Soft-delete logico iniciado por el comprador autenticado. '
+            'Requiere reautenticacion con la contrasena de la sesion '
+            'actual. is_active pasa a False con deactivated_reason='
+            "'self_deleted'. No elimina datos. La cuenta puede "
+            'reactivarse despues via UC-AUTH-01 Alt-A.2.'
+        ),
+        request=DeactivateAccountSerializer,
+        responses={
+            200: OpenApiResponse(description='Cuenta dada de baja.'),
+            400: OpenApiResponse(description='Contrasena incorrecta o payload invalido.'),
+            401: OpenApiResponse(description='No autenticado.'),
+        },
+        tags=['auth'],
+    )
+    def post(self, request):
+        serializer = DeactivateAccountSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        user = request.user
+        if not user.check_password(serializer.validated_data['password']):
+            return Response({'detail': 'Contrasena incorrecta.'}, status=400)
+
+        from django.utils import timezone
+        from django.db import transaction
+        from .tokens_email import invalidate_all_sessions
+        with transaction.atomic():
+            user.is_active = False
+            user.deactivated_reason = User.DEACTIVATION_SELF_DELETED
+            user.deactivated_at = timezone.now()
+            user.save(update_fields=[
+                'is_active', 'deactivated_reason', 'deactivated_at',
+            ])
+            invalidate_all_sessions(user)
+
+        return Response({'message': 'Tu cuenta ha sido dada de baja.'}, status=200)
 
 
 class AdminUserPagination(rest_framework.pagination.PageNumberPagination):

@@ -8,6 +8,7 @@ from .views import (
     RegisterView, ProfileView, AddressViewSet, ChangePasswordView,
     PasswordResetRequestView, PasswordResetConfirmView,
     EmailVerifyView, ResendVerificationView, AdminUserListView,
+    DeactivateAccountView,
 )
 from .tokens import PYTokenObtainPairView
 
@@ -31,4 +32,6 @@ urlpatterns = [
     path('password-reset/confirm/',  PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
     path('verify-email/',            EmailVerifyView.as_view(),           name='verify-email'),
     path('resend-verification/',     ResendVerificationView.as_view(),    name='resend-verification'),
+    # UC-AUTH-16: auto soft-delete por el usuario autenticado.
+    path('me/deactivate/',           DeactivateAccountView.as_view(),     name='me-deactivate'),
 ]

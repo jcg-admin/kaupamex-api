@@ -58,6 +58,7 @@ class RegisterSerializer(serializers.Serializer):
         return attrs
 
     def create(self, validated_data):
+        from django.utils import timezone
         validated_data.pop('password_confirm')
         user = User.objects.create_user(
             username=validated_data['username'],
@@ -65,6 +66,12 @@ class RegisterSerializer(serializers.Serializer):
             password=validated_data['password'],
             is_active=False,
         )
+        # UC-AUTH-01 + GAP-3 cierre: distinguir la causa de is_active=False
+        # para que UC-AUTH-01 Alt-A.2 (re-registro reactivable via email)
+        # pueda separarse de UC-AUTH-13 (suspendida por admin).
+        user.deactivated_reason = User.DEACTIVATION_UNVERIFIED
+        user.deactivated_at = timezone.now()
+        user.save(update_fields=['deactivated_reason', 'deactivated_at'])
         return user
 
 
