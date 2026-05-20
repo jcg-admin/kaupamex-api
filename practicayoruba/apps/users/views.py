@@ -11,26 +11,46 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
+
+# DRF + plugins
 from rest_framework import serializers as drf_serializers
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied
-from rest_framework.filters import SearchFilter
-from rest_framework.generics import ListAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
+
 from drf_spectacular.types import OpenApiTypes as OAT
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
-from .models import Address, EmailVerificationToken, PasswordResetToken
-from .serializers import AddressSerializer, AdminUserListSerializer, ChangePasswordSerializer, EmailVerificationSerializer, PasswordResetConfirmSerializer, PasswordResetRequestSerializer, ProfileSerializer, RegisterSerializer, ResendVerificationSerializer, UpdateProfileSerializer
-from .tokens_email import check_rate_limit, create_password_reset_token, create_verification_token, invalidate_all_sessions, send_password_reset_email, send_verification_email, validate_password_reset_token, validate_verification_token
-
-# DRF + plugins
-import rest_framework.pagination
-
 
 # Local
+from .models import (
+    Address,
+    EmailVerificationToken,
+    PasswordResetToken,
+    UserDeactivationEvent,
+)
+from .serializers import (
+    AddressSerializer,
+    ChangePasswordSerializer,
+    EmailVerificationSerializer,
+    PasswordResetConfirmSerializer,
+    PasswordResetRequestSerializer,
+    ProfileSerializer,
+    RegisterSerializer,
+    ResendVerificationSerializer,
+    UpdateProfileSerializer,
+)
+from .tokens_email import (
+    check_rate_limit,
+    create_password_reset_token,
+    create_verification_token,
+    invalidate_all_sessions,
+    send_password_reset_email,
+    send_verification_email,
+    validate_password_reset_token,
+    validate_verification_token,
+)
 
 User = get_user_model()
 
@@ -518,46 +538,23 @@ class DeactivateAccountView(APIView):
                 user=user, used_at__isnull=True,
             ).update(used_at=now)
             invalidate_all_sessions(user)
+            # GAP 10: audit log del evento (append-only).
+            UserDeactivationEvent.objects.create(
+                user=user,
+                reason=User.DEACTIVATION_SELF_DELETED,
+                source=UserDeactivationEvent.SOURCE_SELF,
+                actor=None,
+            )
 
         return Response({'message': 'Tu cuenta ha sido dada de baja.'}, status=200)
 
 
-class AdminUserPagination(rest_framework.pagination.PageNumberPagination):
-    page_size = 20
-    page_size_query_param = 'page_size'
-    max_page_size = 100
+# AdminUserPagination definicion canonica vive en admin_views.py
+# (donde AdminUserViewSet la usa). Aqui solo quedaba huerfana.
 
 
-class AdminUserListView(ListAPIView):
-    """GET /api/v1/admin/users/ — UC-AUTH-11."""
-    permission_classes  = [IsAuthenticated]
-    serializer_class    = AdminUserListSerializer
-    filter_backends     = [SearchFilter]
-    search_fields       = ['username', 'email', 'first_name', 'last_name']
-    pagination_class    = AdminUserPagination
-
-    def get_queryset(self):
-        if not self.request.user.is_staff:
-            raise PermissionDenied('Solo administradores pueden acceder a este endpoint.')
-        qs = User.objects.all().order_by('-date_joined')
-        is_active = self.request.query_params.get('is_active')
-        is_staff  = self.request.query_params.get('is_staff')
-        # UC-AUTH-11 + GAP-3: filtro por motivo de inactividad para que
-        # el admin pueda separar 'unverified', 'suspended', 'self_deleted'.
-        deactivated_reason = self.request.query_params.get('deactivated_reason')
-        if is_active is not None:
-            qs = qs.filter(is_active=(is_active.lower() == 'true'))
-        if is_staff is not None:
-            qs = qs.filter(is_staff=(is_staff.lower() == 'true'))
-        if deactivated_reason:
-            qs = qs.filter(deactivated_reason=deactivated_reason)
-        return qs
-
-    @extend_schema(
-        summary='Listar usuarios (Admin)',
-        description='Listado paginado de todos los usuarios. Solo staff.',
-        responses={200: AdminUserListSerializer(many=True)},
-        tags=['admin'],
-    )
-    def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
+# AdminUserListView eliminado (era codigo muerto): no estaba registrado
+# en urlpatterns. El endpoint GET /api/v1/admin/users/ lo sirve
+# AdminUserViewSet en admin_views.py via router DefaultRouter.
+# La logica de filtros (incluido el nuevo ?deactivated_reason=) vive
+# alli — ver admin_views.AdminUserViewSet.get_queryset.

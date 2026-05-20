@@ -123,10 +123,17 @@ class AdminUserViewSet(ModelViewSet):
                 Q(username__icontains=search) | Q(email__icontains=search) |
                 Q(first_name__icontains=search) | Q(last_name__icontains=search)
             )
+        # UC-AUTH-11 + GAP-3: el admin filtra por motivo concreto de
+        # inactividad para decidir el camino correcto (suspended
+        # requiere UC-AUTH-14; unverified/self_deleted esperan
+        # UC-AUTH-01 Alt-A.2).
+        deactivated_reason = self.request.query_params.get('deactivated_reason')
         if is_active is not None:
             qs = qs.filter(is_active=(is_active.lower() == 'true'))
         if is_staff is not None:
             qs = qs.filter(is_staff=(is_staff.lower() == 'true'))
+        if deactivated_reason:
+            qs = qs.filter(deactivated_reason=deactivated_reason)
         return qs
 
     @extend_schema(summary='Listar usuarios', tags=['admin'])
@@ -181,6 +188,15 @@ class AdminUserViewSet(ModelViewSet):
                 'is_active', 'deactivated_reason', 'deactivated_at',
             ])
             invalidate_all_sessions(target)
+            # GAP 10: audit log del evento (append-only).
+            from .models import UserDeactivationEvent
+            UserDeactivationEvent.objects.create(
+                user=target,
+                reason=User.DEACTIVATION_SUSPENDED,
+                source=UserDeactivationEvent.SOURCE_ADMIN,
+                actor=request.user,
+                note=request.data.get('note', '')[:255],
+            )
         return Response({'message': f'Cuenta de {target.username} suspendida.'})
 
     @extend_schema(

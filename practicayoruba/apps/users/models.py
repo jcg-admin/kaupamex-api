@@ -195,6 +195,73 @@ class Address(TimeStampedModel, SoftDeleteModel):
             super().save(*args, **kwargs)
 
 
+class UserDeactivationEvent(TimeStampedModel):
+    """
+    Audit log de transiciones is_active=True -> False (GAP 10 cierre).
+
+    Cierra el gap de observabilidad detectado en el audit profundo:
+    el flag users_user.is_active + deactivated_reason refleja el ESTADO
+    actual, pero no preserva el historial. Si la cuenta se reactiva y
+    despues se vuelve a dar de baja por otro motivo, perdemos la pista
+    del evento anterior.
+
+    Esta tabla append-only registra cada transicion:
+
+    - user: a quien afecta.
+    - reason: que motivo se aplico ('unverified', 'suspended', 'self_deleted').
+    - actor: quien la inicio. NULL si fue el propio usuario o un signal
+      (created_with_is_active_false en RegisterSerializer). Otro user
+      cuando UC-AUTH-13 (admin suspend).
+    - source: que codepath la genero ('register', 'self', 'admin').
+    - note: texto libre opcional para el admin.
+
+    Las reactivaciones (is_active=False -> True) NO se registran aqui —
+    el evento de cierre se infiere por la fecha del siguiente evento o
+    por users_user.deactivated_reason IS NULL.
+    """
+    SOURCE_REGISTER = 'register'
+    SOURCE_SELF     = 'self'
+    SOURCE_ADMIN    = 'admin'
+    SOURCE_CHOICES = [
+        (SOURCE_REGISTER, 'Registro (cuenta nueva inactiva por verificar)'),
+        (SOURCE_SELF,     'Auto-baja del propio usuario'),
+        (SOURCE_ADMIN,    'Suspension por administrador'),
+    ]
+
+    user = models.ForeignKey(
+        'users.User', on_delete=models.CASCADE,
+        related_name='deactivation_events',
+    )
+    reason = models.CharField(
+        max_length=20,
+        choices=User.DEACTIVATION_REASON_CHOICES,
+    )
+    source = models.CharField(max_length=20, choices=SOURCE_CHOICES)
+    actor = models.ForeignKey(
+        'users.User', on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='+',
+        help_text=(
+            'Quien disparo el evento. NULL para SOURCE_REGISTER o '
+            'SOURCE_SELF. Solo SOURCE_ADMIN registra al admin.'
+        ),
+    )
+    note = models.CharField(max_length=255, blank=True, default='')
+
+    class Meta:
+        db_table = 'users_deactivation_event'
+        verbose_name = 'Evento de desactivacion'
+        verbose_name_plural = 'Eventos de desactivacion'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', '-created_at']),
+            models.Index(fields=['source']),
+        ]
+
+    def __str__(self):
+        return f'{self.user.username} -> {self.reason} via {self.source}'
+
+
 class PasswordResetToken(TimeStampedModel):
     """
     Token de recuperacion de contrasena (UC-AUTH-09, FR-AUTH-09.03).

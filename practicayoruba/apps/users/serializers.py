@@ -79,6 +79,14 @@ class RegisterSerializer(serializers.Serializer):
         user.deactivated_reason = User.DEACTIVATION_UNVERIFIED
         user.deactivated_at = timezone.now()
         user.save(update_fields=['deactivated_reason', 'deactivated_at'])
+        # GAP 10: audit log de la transicion (cuenta nueva == is_active=False).
+        from .models import UserDeactivationEvent
+        UserDeactivationEvent.objects.create(
+            user=user,
+            reason=User.DEACTIVATION_UNVERIFIED,
+            source=UserDeactivationEvent.SOURCE_REGISTER,
+            actor=None,
+        )
         return user
 
 
