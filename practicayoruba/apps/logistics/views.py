@@ -33,6 +33,7 @@ from .serializers import (
 
 class _AdminOnly:
     permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class = ShipmentGuideSerializer
 
 
 # =============================================================================

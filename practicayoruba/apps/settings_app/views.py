@@ -252,6 +252,7 @@ class StaticPageAdminView(APIView):
     UC-CFG-04 (FR-CFG-04.02).
     """
     permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class = StaticPageSerializer
 
     @extend_schema(summary='Listar páginas estáticas', tags=['config'])
     def get(self, request, slug=None):
@@ -268,6 +269,7 @@ class StaticPageAdminView(APIView):
 class StaticPagePublishView(APIView):
     """POST /api/v1/admin/pages/<slug>/publish/ — publicar nueva versión."""
     permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class = StaticPagePublishSerializer
 
     @extend_schema(summary='Publicar nueva versión de página estática', tags=['config'])
     def post(self, request, slug):
@@ -308,6 +310,7 @@ class StaticPagePublishView(APIView):
 class StaticPageRestoreView(APIView):
     """POST /api/v1/admin/pages/<slug>/versions/<version>/restore/"""
     permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class = StaticPageVersionSerializer
 
     @extend_schema(summary='Revertir a versión anterior', tags=['config'])
     def post(self, request, slug, version):

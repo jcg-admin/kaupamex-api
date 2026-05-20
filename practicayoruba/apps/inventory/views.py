@@ -12,6 +12,8 @@ from apps.catalogue.models import Product
 from apps.chartsize.models import ProductVariant
 from apps.settings_app.models import SiteSettings
 
+from rest_framework import serializers
+
 from .models import StockMovement, StockAlert
 from .serializers import (
     StockDashboardSerializer, StockMovementSerializer,
@@ -56,6 +58,7 @@ class InventoryDashboardView(APIView):
     UC-INV-01 (FR-INV-01.02).
     """
     permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class = StockDashboardSerializer
 
     @extend_schema(
         summary='Dashboard de inventario',
@@ -154,6 +157,7 @@ class StockAdjustView(APIView):
     Ajuste manual de stock de un producto (sin variante). UC-INV-04.
     """
     permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class = StockAdjustSerializer
 
     @extend_schema(
         summary='Ajuste manual de stock (producto sin variante)',
@@ -194,6 +198,7 @@ class VariantStockAdjustView(APIView):
     El payload se autodetecta por la presencia de "new_quantity".
     """
     permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class = StockAdjustSerializer
 
     @extend_schema(
         summary='Ajuste manual de stock (variante)',
@@ -491,6 +496,7 @@ class ProductImportView(APIView):
     """
     permission_classes = [IsAuthenticated, IsAdminUser]
     parser_classes     = [MultiPartParser]
+    serializer_class   = serializers.Serializer
 
     @extend_schema(
         summary='Importar productos desde CSV',
@@ -564,6 +570,7 @@ class ProductImportView(APIView):
 class ProductImportStatusView(APIView):
     """GET /api/v1/admin/inventory/import/<job_id>/ — polling de estado."""
     permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class   = serializers.Serializer
 
     @extend_schema(
         summary='Consultar estado de importación CSV',
@@ -587,6 +594,7 @@ class ProductImportReportView(APIView):
     queda disponible durante ``IMPORT_REPORT_TTL`` segundos (1 hora).
     """
     permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class   = serializers.Serializer
 
     @extend_schema(
         summary='Descargar reporte CSV de errores de importacion',

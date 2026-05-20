@@ -20,6 +20,7 @@ from .serializers import StaticContentSerializer
 
 class _AdminOnly:
     permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class = StaticContentSerializer
 
 
 class StaticContentListView(_AdminOnly, APIView):

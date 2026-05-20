@@ -140,6 +140,7 @@ class CartItemView(APIView):
     DELETE /api/v1/cart/items/<pk>/  — eliminar item. UC-CART-03.
     """
     permission_classes = [AllowAny]
+    serializer_class = CartItemSerializer
 
     @extend_schema(
         summary='Agregar item al carrito',
@@ -279,6 +280,7 @@ class CartItemView(APIView):
 class CartSaveView(APIView):
     """POST /api/v1/cart/save/ — UC-CART-05."""
     permission_classes = [IsAuthenticated]
+    serializer_class = SavedCartItemSerializer
 
     @extend_schema(
         summary='Guardar carrito para después',
@@ -357,6 +359,7 @@ class CartVoucherView(APIView):
     DELETE /api/v1/cart/voucher/ — quitar cupón
     """
     permission_classes = [AllowAny]
+    serializer_class = CartSerializer
 
     @extend_schema(
         summary='Aplicar cupón de descuento al carrito',

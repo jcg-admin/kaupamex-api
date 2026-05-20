@@ -16,6 +16,7 @@ from decimal import Decimal, InvalidOperation
 
 from django.core.cache import cache
 from django.db import connection
+from rest_framework import serializers as rf_serializers
 from rest_framework.exceptions import ValidationError, NotFound
 from rest_framework.decorators import action
 from rest_framework.generics import ListAPIView, RetrieveAPIView
@@ -819,6 +820,7 @@ class ProductPriceSyncView(APIView):
     UC-CAT-12.
     """
     permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class = rf_serializers.Serializer
 
     def _parse_csv(self, file_obj) -> tuple:
         """
@@ -939,6 +941,7 @@ class ProductPriceSyncView(APIView):
 class ProductPriceSyncConfirmView(APIView):
     """POST /api/v1/admin/products/price-sync/confirm/ — UC-CAT-12."""
     permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class = rf_serializers.Serializer
 
     @extend_schema(
         summary='Confirmar sincronización de precios',
@@ -993,6 +996,7 @@ class ProductPriceSyncConfirmView(APIView):
 class ProductPriceSyncTemplateView(APIView):
     """GET /api/v1/admin/products/price-sync/template/ — UC-CAT-12 Alt-C."""
     permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class = rf_serializers.Serializer
 
     @extend_schema(
         summary='Descargar plantilla CSV de precios',

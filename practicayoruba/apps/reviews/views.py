@@ -41,6 +41,8 @@ from .serializers import (
 class ProductReviewsView(APIView):
     """GET (public) / POST (auth) /api/v1/products/<product_id>/reviews/."""
 
+    serializer_class = ReviewPublicSerializer
+
     def get_permissions(self):
         if self.request.method == 'POST':
             return [IsAuthenticated()]
@@ -143,6 +145,7 @@ class ProductReviewsView(APIView):
 
 class _AdminOnly:
     permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class = ReviewAdminSerializer
 
 
 class ReviewAdminListView(_AdminOnly, APIView):

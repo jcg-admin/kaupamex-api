@@ -20,6 +20,7 @@ from decimal import Decimal
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from drf_spectacular.utils import extend_schema, OpenApiResponse
+from rest_framework import serializers
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -140,6 +141,7 @@ class MercadoPagoWebhookView(APIView):
       - Procesamiento idempotente por gateway_payment_id.
     """
     permission_classes = [AllowAny]
+    serializer_class = serializers.Serializer
 
     @extend_schema(
         summary='Webhook de MercadoPago',
@@ -251,6 +253,7 @@ class PayPalWebhookView(APIView):
       - PAYMENT.CAPTURE.DENIED → marca como fallido
     """
     permission_classes = [AllowAny]
+    serializer_class = serializers.Serializer
 
     @extend_schema(
         summary='Webhook de PayPal',

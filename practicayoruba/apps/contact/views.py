@@ -15,7 +15,7 @@ JSON keys + identifiers in English (DEC-DOC-005).
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, OpenApiResponse
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
@@ -90,6 +90,8 @@ class AdminContactMessageMarkReadView(APIView):
 
     @extend_schema(
         summary='Marcar mensaje como leido',
+        request=None,
+        responses={200: OpenApiResponse(description='Marcado como leido.')},
         tags=['contact'],
     )
     def post(self, request, message_id):

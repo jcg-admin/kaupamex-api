@@ -20,6 +20,7 @@ from .serializers import SearchEntrySerializer
 
 class SearchHistoryListView(APIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = SearchEntrySerializer
 
     @extend_schema(
         summary='List search history (latest 20).',
@@ -38,6 +39,7 @@ class SearchHistoryListView(APIView):
 
 class SearchHistoryEntryView(APIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = SearchEntrySerializer
 
     @extend_schema(summary='Delete a single search history entry.', tags=['search'])
     def delete(self, request, pk):

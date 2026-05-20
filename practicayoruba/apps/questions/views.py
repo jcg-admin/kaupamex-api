@@ -36,6 +36,8 @@ from .serializers import (
 class ProductQuestionsView(APIView):
     """GET/POST /api/v1/products/<product_id>/questions/."""
 
+    serializer_class = PublicQuestionItemSerializer
+
     def get_permissions(self):
         # GET es publico; POST requiere AllowAny (anon o autenticado).
         return [AllowAny()]
@@ -154,6 +156,7 @@ class AdminQuestionApproveView(APIView):
     """POST /api/v1/admin/questions/<id>/approve/."""
 
     permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class = AdminQuestionItemSerializer
 
     @extend_schema(
         summary='Aprobar pregunta respondida',
@@ -176,6 +179,7 @@ class AdminQuestionRejectView(APIView):
     """POST /api/v1/admin/questions/<id>/reject/."""
 
     permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class = AdminQuestionItemSerializer
 
     @extend_schema(
         summary='Rechazar pregunta',

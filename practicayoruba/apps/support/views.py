@@ -210,6 +210,7 @@ class SupportTicketCloseView(APIView):
     """POST /api/v1/support/tickets/{id}/close/."""
 
     permission_classes = [IsAuthenticated]
+    serializer_class = SupportTicketCloseSerializer
 
     @extend_schema(
         summary='Cerrar ticket',
@@ -255,6 +256,7 @@ class SupportTicketReopenView(APIView):
     """POST /api/v1/support/tickets/{id}/reopen/."""
 
     permission_classes = [IsAuthenticated]
+    serializer_class = SupportTicketDetailSerializer
 
     @extend_schema(
         summary='Reabrir ticket',

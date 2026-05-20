@@ -11,7 +11,7 @@ Read-only admin aggregation endpoints under /api/v1/admin/reports/:
 Identifiers + JSON keys in English (DEC-DOC-005).
 """
 from drf_spectacular.utils import OpenApiParameter, extend_schema
-from rest_framework import status
+from rest_framework import serializers, status
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.negotiation import DefaultContentNegotiation
 from rest_framework.renderers import BaseRenderer, JSONRenderer
@@ -62,6 +62,7 @@ from .exports import EXPORTERS
 
 class _AdminMixin:
     permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class = serializers.Serializer
 
 
 class SalesReportView(_AdminMixin, APIView):
@@ -117,6 +118,7 @@ class CustomersRFMReportView(_AdminMixin, APIView):
 
 class ReportExportView(APIView):
     permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class = serializers.Serializer
     # DRF normally interprets ?format= as a renderer selector and raises
     # Http404 if no renderer matches. The export contract uses ?format=
     # for the output type (csv|pdf) instead, so we install a passthrough
