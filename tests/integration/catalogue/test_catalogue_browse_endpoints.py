@@ -58,7 +58,7 @@ class TestRelatedProducts:
     def test_slug_inexistente_loud_404(self, api_client, db):
         r = api_client.get('/api/v1/products/no-existe/related/')
         assert r.status_code == 404
-        assert r.json()['codigo_error'] == 'PRODUCTO_NO_ENCONTRADO'
+        assert r.json()['codigo_error'] == 'PRODUCT_NOT_FOUND'
 
 
 class TestCategoryTree:

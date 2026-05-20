@@ -108,7 +108,7 @@ class TestWishlist:
         item_id = res.json()['id']
         move_res = auth_client.post(f'{WISH_URL}{item_id}/move-to-cart/', format='json')
         assert move_res.status_code == 400
-        assert move_res.json()['codigo_error'] == 'PRODUCTO_NO_DISPONIBLE'
+        assert move_res.json()['codigo_error'] == 'PRODUCT_UNAVAILABLE'
 
     def test_delete_is_soft(self, auth_client, prod_s14, db):
         """DEC-DOC-007: delete marca is_deleted=True, no borra fisicamente."""

@@ -81,7 +81,7 @@ class TestEmailVerification:
             'password': 'TestPass123!',
         }, format='json')
         assert r.status_code == 401
-        assert 'EMAIL_NO_VERIFICADO' in str(r.json())
+        assert 'EMAIL_NOT_VERIFIED' in str(r.json())
 
     def test_login_cuenta_verificada_funciona(self, api_client, inactive_user, db):
         plain = create_verification_token(inactive_user)

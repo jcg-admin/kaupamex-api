@@ -179,7 +179,7 @@ class ShippingMethodViewSet(ModelViewSet):
                     f'Este método tiene {active_orders} orden(es) activa(s). '
                     'Espera a que se procesen antes de desactivarlo.'
                 ),
-                'codigo_error': 'METODO_CON_ORDENES_ACTIVAS',
+                'codigo_error': 'METHOD_WITH_ACTIVE_ORDERS',
             })
         instance.is_active = False
         instance.save(update_fields=['is_active'])

@@ -117,7 +117,7 @@ class TestCartAddItemVariantErrors:
             'product_id': product_v.pk, 'quantity': 1,
         }, format='json')
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'VARIANTE_REQUERIDA'
+        assert res.json()['codigo_error'] == 'VARIANT_REQUIRED'
 
     def test_inactive_variant_returns_404_variante_no_disponible(
         self, api_client, product_v, variant_v, db
@@ -130,7 +130,7 @@ class TestCartAddItemVariantErrors:
             'quantity': 1,
         }, format='json')
         assert res.status_code == 404
-        assert res.json()['codigo_error'] == 'VARIANTE_NO_DISPONIBLE'
+        assert res.json()['codigo_error'] == 'VARIANT_UNAVAILABLE'
 
     def test_unknown_variant_returns_404_variante_no_disponible(
         self, api_client, product_v, variant_v, db
@@ -141,7 +141,7 @@ class TestCartAddItemVariantErrors:
             'quantity': 1,
         }, format='json')
         assert res.status_code == 404
-        assert res.json()['codigo_error'] == 'VARIANTE_NO_DISPONIBLE'
+        assert res.json()['codigo_error'] == 'VARIANT_UNAVAILABLE'
 
     def test_variant_without_stock_returns_409_variante_sin_stock(
         self, api_client, product_v, variant_v_sin_stock, db
@@ -152,7 +152,7 @@ class TestCartAddItemVariantErrors:
             'quantity': 1,
         }, format='json')
         assert res.status_code == 409
-        assert res.json()['codigo_error'] == 'VARIANTE_SIN_STOCK'
+        assert res.json()['codigo_error'] == 'VARIANT_OUT_OF_STOCK'
 
     def test_variant_quantity_exceeds_stock_returns_409(
         self, api_client, product_v, variant_v, db
@@ -163,7 +163,7 @@ class TestCartAddItemVariantErrors:
             'quantity': variant_v.stock + 1,
         }, format='json')
         assert res.status_code == 409
-        assert res.json()['codigo_error'] == 'VARIANTE_SIN_STOCK'
+        assert res.json()['codigo_error'] == 'VARIANT_OUT_OF_STOCK'
 
 
 # ---------------------------------------------------------------------------

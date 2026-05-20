@@ -105,12 +105,12 @@ class ProductReviewsView(APIView):
         if order.user_id != request.user.id:
             raise PermissionDenied({
                 'detail': 'No puedes reseñar productos que no compraste.',
-                'codigo_error': 'PRODUCTO_NO_COMPRADO',
+                'codigo_error': 'PRODUCT_NOT_PURCHASED',
             })
         if not order.items.filter(product=product).exists():
             raise PermissionDenied({
                 'detail': 'El producto no fue comprado en esa orden.',
-                'codigo_error': 'PRODUCTO_NO_COMPRADO',
+                'codigo_error': 'PRODUCT_NOT_PURCHASED',
             })
 
         try:

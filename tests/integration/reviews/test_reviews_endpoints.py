@@ -83,7 +83,7 @@ class TestPublicReviewListing:
     def test_producto_inexistente_loud_404(self, api_client, db):
         r = api_client.get(PRODUCT_REVIEWS_URL(999999))
         assert r.status_code == 404
-        assert r.json()['codigo_error'] == 'PRODUCTO_NO_ENCONTRADO'
+        assert r.json()['codigo_error'] == 'PRODUCT_NOT_FOUND'
 
 
 class TestCreateReview:
@@ -110,7 +110,7 @@ class TestCreateReview:
             'order_id': o.id, 'rating': 4, 'title': 'X', 'body': 'X',
         }, format='json')
         assert r.status_code == 403
-        assert r.json()['codigo_error'] == 'PRODUCTO_NO_COMPRADO'
+        assert r.json()['codigo_error'] == 'PRODUCT_NOT_PURCHASED'
 
     def test_409_resena_duplicada(
         self, auth_client, user, prod_rev, order_user_with_product, db,
@@ -123,9 +123,9 @@ class TestCreateReview:
             'order_id': order_user_with_product.id,
             'rating': 3, 'title': 'C', 'body': 'D',
         }, format='json')
-        # Aceptamos 400 con codigo_error RESENA_DUPLICADA (DRF ValidationError).
+        # Aceptamos 400 con codigo_error REVIEW_DUPLICATE (DRF ValidationError).
         assert r.status_code in (400, 409)
-        assert r.json()['codigo_error'] == 'RESENA_DUPLICADA'
+        assert r.json()['codigo_error'] == 'REVIEW_DUPLICATE'
 
     def test_requiere_auth(self, api_client, prod_rev, db):
         r = api_client.post(PRODUCT_REVIEWS_URL(prod_rev.id), {}, format='json')

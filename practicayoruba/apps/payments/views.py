@@ -335,7 +335,7 @@ class ExpressCheckoutView(APIView):
         if not eligibility['express_available']:
             raise ValidationError({
                 'detail': eligibility['reason'],
-                'codigo_error': 'NO_ELEGIBLE_EXPRESS',
+                'codigo_error': 'NOT_ELIGIBLE_EXPRESS',
             })
 
         # Obtener carrito del usuario
@@ -563,7 +563,7 @@ class RefundView(APIView):
         if not payment:
             return Response(
                 {'detail': 'No hay pago aprobado en esta orden.',
-                 'codigo_error': 'PAGO_NO_REEMBOLSABLE'},
+                 'codigo_error': 'PAYMENT_NOT_REFUNDABLE'},
                 status=400,
             )
 
@@ -577,7 +577,7 @@ class RefundView(APIView):
                 reason=s.validated_data.get('reason', ''),
             )
         except ValueError as exc:
-            return Response({'detail': str(exc), 'codigo_error': 'PAGO_NO_REEMBOLSABLE'},
+            return Response({'detail': str(exc), 'codigo_error': 'PAYMENT_NOT_REFUNDABLE'},
                             status=400)
         except RuntimeError as exc:
             return Response({'detail': str(exc), 'codigo_error': 'GATEWAY_UNAVAILABLE'},
@@ -665,7 +665,7 @@ class AdminRefundView(APIView):
                 initiated_by=request.user,
             )
         except ValueError as exc:
-            return Response({'detail': str(exc), 'codigo_error': 'PAGO_NO_REEMBOLSABLE'},
+            return Response({'detail': str(exc), 'codigo_error': 'PAYMENT_NOT_REFUNDABLE'},
                             status=400)
         except RuntimeError as exc:
             return Response({'detail': str(exc), 'codigo_error': 'GATEWAY_UNAVAILABLE'},

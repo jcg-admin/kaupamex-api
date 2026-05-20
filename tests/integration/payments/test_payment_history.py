@@ -150,7 +150,7 @@ class TestEstadoPago:
         order = Order.objects.create(user=other, status='PENDING')
         res = auth_client.get(STATUS_URL(order.order_number))
         assert res.status_code == 404
-        assert res.json()['codigo_error'] == 'ORDEN_NO_ENCONTRADA'
+        assert res.json()['codigo_error'] == 'ORDER_NOT_FOUND'
 
     def test_orden_inexistente_retorna_404(self, auth_client, db):
         res = auth_client.get(STATUS_URL('PY-NO-EXISTE'))

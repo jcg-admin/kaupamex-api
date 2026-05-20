@@ -185,7 +185,7 @@ class TestIniciarPago:
             'order_number': orden_pendiente.order_number,
         }, format='json')
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'ORDEN_NO_PAGABLE'
+        assert res.json()['codigo_error'] == 'ORDER_NOT_PAYABLE'
 
     def test_iniciar_pago_orden_inexistente_retorna_400(
         self, auth_client, db
@@ -194,7 +194,7 @@ class TestIniciarPago:
             'order_number': 'PY-NO-EXISTE',
         }, format='json')
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'ORDEN_NO_ENCONTRADA'
+        assert res.json()['codigo_error'] == 'ORDER_NOT_FOUND'
 
     def test_iniciar_pago_gateway_down_retorna_503(
         self, auth_client, orden_pendiente, mp_gateway_activo, db
@@ -210,7 +210,7 @@ class TestIniciarPago:
                 'order_number': orden_pendiente.order_number,
             }, format='json')
         assert res.status_code == 503
-        assert res.json()['codigo_error'] == 'GATEWAY_NO_DISPONIBLE'
+        assert res.json()['codigo_error'] == 'GATEWAY_UNAVAILABLE'
 
     def test_br009_credenciales_no_en_respuesta(
         self, auth_client, orden_pendiente, mp_gateway_activo, mock_mp_sdk, db
@@ -372,7 +372,7 @@ class TestCheckoutExpress:
         }, format='json')
         res = auth_client.post(EXPRESS_URL, {}, format='json')
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'NO_ELEGIBLE_EXPRESS'
+        assert res.json()['codigo_error'] == 'NOT_ELIGIBLE_EXPRESS'
 
     def test_express_checkout_crea_orden(
         self, auth_client, user, prod_s15, db

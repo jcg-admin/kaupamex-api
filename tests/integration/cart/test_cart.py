@@ -115,7 +115,7 @@ class TestAgregarProducto:
             'quantity': 1,
         }, format='json')
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'VARIANTE_REQUERIDA'
+        assert res.json()['codigo_error'] == 'VARIANT_REQUIRED'
 
     def test_upsert_incrementa_cantidad_existente(
         self, api_client, product_sin_variante, db
@@ -141,7 +141,7 @@ class TestAgregarProducto:
             'product_id': product_sin_variante.pk, 'quantity': 5,
         }, format='json')
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'STOCK_INSUFICIENTE'
+        assert res.json()['codigo_error'] == 'INSUFFICIENT_STOCK'
 
     def test_anonimo_recibe_cart_token_en_header(
         self, api_client, product_sin_variante, db
@@ -277,7 +277,7 @@ class TestGuardarCarrito:
     def test_guardar_carrito_vacio_retorna_400(self, auth_client, db):
         res = auth_client.post(SAVE_URL)
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'CARRITO_VACIO'
+        assert res.json()['codigo_error'] == 'EMPTY_CART'
 
     def test_guardar_carrito_con_items(
         self, auth_client, product_sin_variante, db

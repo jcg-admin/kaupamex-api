@@ -150,7 +150,7 @@ class TestCheckout:
             'address': ADDR,
         }, format='json')
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'GUEST_EMAIL_REQUERIDO'
+        assert res.json()['codigo_error'] == 'GUEST_EMAIL_REQUIRED'
 
     def test_checkout_stock_insuficiente_retorna_409(
         self, auth_client, prod_ord, db
@@ -165,7 +165,7 @@ class TestCheckout:
         prod_ord.save()
         res = auth_client.post(CHECKOUT_URL, {'address': ADDR}, format='json')
         assert res.status_code == 409
-        assert res.json()['codigo_error'] == 'STOCK_INSUFICIENTE'
+        assert res.json()['codigo_error'] == 'INSUFFICIENT_STOCK'
         # Stock NO debe haber cambiado
         prod_ord.refresh_from_db()
         assert prod_ord.stock == 0
@@ -208,4 +208,4 @@ class TestShippingMethodProtection:
         )
         res = admin_client.delete(f'/api/v1/admin/shipping-methods/{shipping.pk}/')
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'METODO_CON_ORDENES_ACTIVAS'
+        assert res.json()['codigo_error'] == 'METHOD_WITH_ACTIVE_ORDERS'

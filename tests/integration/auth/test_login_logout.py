@@ -158,7 +158,7 @@ class TestLoginAuditCorrections:
         data = r.json()
         # El error debe diferenciar "email no verificado" de "creds incorrectas"
         error_str = str(data)
-        assert 'EMAIL_NO_VERIFICADO' in error_str or 'verificad' in error_str.lower()
+        assert 'EMAIL_NOT_VERIFIED' in error_str or 'verificad' in error_str.lower()
 
 
 class TestLoginRateLimit:

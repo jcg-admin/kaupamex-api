@@ -142,7 +142,7 @@ class TestPaymentGatewayAPI:
         }, format='json').json()
         res = admin_client.post(f'{GATEWAYS_URL}{created["id"]}/verify/')
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'CREDENCIALES_INVALIDAS'
+        assert res.json()['codigo_error'] == 'INVALID_CREDENTIALS'
 
     def test_provider_unico_no_permite_duplicado(self, admin_client, db):
         admin_client.post(GATEWAYS_URL, {

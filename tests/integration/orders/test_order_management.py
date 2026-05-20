@@ -90,7 +90,7 @@ class TestDetalleOrden:
         order = _create_full_order(other, prod_ord)
         res = auth_client.get(DETAIL_URL(order.order_number))
         assert res.status_code == 404  # nunca 403 — RNF-SEC-003
-        assert res.json()['codigo_error'] == 'ORDEN_NO_ENCONTRADA'
+        assert res.json()['codigo_error'] == 'ORDER_NOT_FOUND'
 
     def test_detalle_incluye_snapshots_br005(self, auth_client, user, prod_ord, db):
         """BR-005: el precio del item es el del checkout, no el actual."""
@@ -198,7 +198,7 @@ class TestCancelarOrden:
         order = _create_full_order(user, prod_ord, status='IN_PREPARATION')
         res = auth_client.post(CANCEL_URL(order.order_number), {}, format='json')
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'CANCELACION_NO_PERMITIDA'
+        assert res.json()['codigo_error'] == 'CANCELLATION_NOT_ALLOWED'
 
     def test_cancelar_delivered_no_permitido(
         self, auth_client, user, prod_ord, db
@@ -293,7 +293,7 @@ class TestEditarDireccion:
             'city': 'Z', 'state': 'W', 'zip_code': '00000',
         }, format='json')
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'DIRECCION_NO_EDITABLE'
+        assert res.json()['codigo_error'] == 'ADDRESS_NOT_EDITABLE'
 
     def test_editar_direccion_rnf_sec_003(self, auth_client, prod_ord, db):
         User = get_user_model()
@@ -357,7 +357,7 @@ class TestCambiarMetodoEnvio:
             'shipping_method_id': shipping_methods['standard'].pk,
         }, format='json')
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'METODO_NO_EDITABLE'
+        assert res.json()['codigo_error'] == 'METHOD_NOT_EDITABLE'
 
     def test_cambiar_envio_inexistente_retorna_400(
         self, auth_client, user, prod_ord, db

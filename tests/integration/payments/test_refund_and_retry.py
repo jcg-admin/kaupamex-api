@@ -165,7 +165,7 @@ class TestReembolsoComprador:
         )
         res = auth_client.post(REFUND_URL(order.order_number), {}, format='json')
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'PAGO_NO_REEMBOLSABLE'
+        assert res.json()['codigo_error'] == 'PAYMENT_NOT_REFUNDABLE'
 
     def test_rnf_sec_003_orden_ajena_retorna_404(
         self, auth_client, prod_ref, db
@@ -178,7 +178,7 @@ class TestReembolsoComprador:
         order, _ = _make_order_with_payment(other, prod_ref)
         res = auth_client.post(REFUND_URL(order.order_number), {}, format='json')
         assert res.status_code == 404
-        assert res.json()['codigo_error'] == 'ORDEN_NO_ENCONTRADA'
+        assert res.json()['codigo_error'] == 'ORDER_NOT_FOUND'
 
     def test_gateway_falla_retorna_503(
         self, auth_client, user, prod_ref, mp_gateway_ref, db
@@ -252,7 +252,7 @@ class TestReembolsoAdmin:
         _, payment = _make_order_with_payment(user, prod_ref, status='FAILED')
         res = admin_client.post(ADMIN_REFUND_URL(payment.pk), {}, format='json')
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'PAGO_NO_REEMBOLSABLE'
+        assert res.json()['codigo_error'] == 'PAYMENT_NOT_REFUNDABLE'
 
 
 # =============================================================================
