@@ -3,7 +3,6 @@ from decimal import Decimal
 from django.utils import timezone
 from rest_framework import serializers
 from .models import Voucher, VoucherChangeLog
-from .serializers import VoucherSerializer as VS
 
 
 class VoucherSerializer(serializers.ModelSerializer):
@@ -74,7 +73,7 @@ class VoucherReportSerializer(serializers.ModelSerializer):
         ]
 
     def get_status(self, obj):
-        return VS().get_status(obj)
+        return VoucherSerializer().get_status(obj)
 
 
 class ApplyVoucherSerializer(serializers.Serializer):
