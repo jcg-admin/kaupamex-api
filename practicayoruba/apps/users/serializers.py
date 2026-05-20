@@ -6,19 +6,24 @@ Sprint 2: ProfileSerializer, UpdateProfileSerializer,
           ChangePasswordSerializer, AddressSerializer
 """
 import io
+import logging
 import time
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.files.base import ContentFile
+from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
 from PIL import Image
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
-from .models import Address, UserDeactivationEvent
 from apps.settings_app.models import SiteSettings
+from .models import Address, UserDeactivationEvent
+from .tokens_email import create_verification_token, send_verification_email
+
+logger = logging.getLogger(__name__)
 
 
 
@@ -86,6 +91,29 @@ class RegisterSerializer(serializers.Serializer):
             source=UserDeactivationEvent.SOURCE_REGISTER,
             actor=None,
         )
+        # FR-AUTH-01.05 + UC-AUTH-10: envio de email de verificacion.
+        # Antes vivia en apps.users.signals.send_email_verification_on_register
+        # (signal post_save). Inline-eado para eliminar el unico import
+        # lazy real en apps.users.apps.py def ready() — fan-out 1-a-1
+        # disfrazado de signal es codigo mas opaco que llamada directa.
+        # El envio se difiere a post-commit por la misma razon historica:
+        # evitar deadlocks en transacciones de tests con MySQL.
+        user_id = user.pk
+
+        def _send_verification():
+            try:
+                u = User.objects.get(pk=user_id)
+                plain = create_verification_token(u)
+                send_verification_email(u, plain)
+            except User.DoesNotExist:
+                # silent OK: usuario eliminado entre save y on_commit.
+                # No retry — no hay a quien enviar. DEC-DOC-008.
+                logger.info(
+                    'verification email skipped: user_id=%s removed '
+                    'before on_commit', user_id,
+                )
+
+        transaction.on_commit(_send_verification)
         return user
 
 
