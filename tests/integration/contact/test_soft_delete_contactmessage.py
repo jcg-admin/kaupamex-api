@@ -5,13 +5,14 @@ DEC-DOC-007: ContactMessage inherits from SoftDeleteModel to preserve
 audit trail (PII + commercial contact history).
 """
 import pytest
+from apps.contact.models import ContactMessage
+from apps.core.models import SoftDeleteModel
 
 pytestmark = pytest.mark.integration
 
 
 @pytest.fixture
 def message(db):
-    from apps.contact.models import ContactMessage
     return ContactMessage.objects.create(
         name='Alice',
         email='alice@example.com',
@@ -24,14 +25,11 @@ class TestContactMessageSoftDelete:
 
     @pytest.mark.django_db
     def test_inherits_softdeletemodel(self):
-        from apps.contact.models import ContactMessage
-        from apps.core.models import SoftDeleteModel
         assert issubclass(ContactMessage, SoftDeleteModel)
         assert hasattr(ContactMessage, 'all_objects')
 
     @pytest.mark.django_db
     def test_delete_hides_from_default_manager(self, message):
-        from apps.contact.models import ContactMessage
         pk = message.pk
         message.delete()
         assert not ContactMessage.objects.filter(pk=pk).exists()
@@ -41,14 +39,12 @@ class TestContactMessageSoftDelete:
 
     @pytest.mark.django_db
     def test_restore(self, message):
-        from apps.contact.models import ContactMessage
         message.delete()
         ContactMessage.all_objects.get(pk=message.pk).restore()
         assert ContactMessage.objects.filter(pk=message.pk).exists()
 
     @pytest.mark.django_db
     def test_hard_delete_removes(self, message):
-        from apps.contact.models import ContactMessage
         pk = message.pk
         message.hard_delete()
         assert not ContactMessage.all_objects.filter(pk=pk).exists()

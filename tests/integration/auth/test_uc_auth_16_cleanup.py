@@ -16,6 +16,12 @@ Conserva:
 """
 import pytest
 from decimal import Decimal
+from apps.catalogue.models import Category, Product
+from apps.cart.models import Cart, SavedCart
+from apps.wishlist.models import WishlistItem
+from apps.search_history.models import SearchEntry
+from apps.notifications.models import NotificationPreference
+from apps.users.models import Address, UserDeactivationEvent
 
 pytestmark = pytest.mark.api
 
@@ -25,7 +31,6 @@ URL = '/api/v1/auth/me/deactivate/'
 @pytest.fixture
 def product(db):
     """Producto + variante mínimos para wishlist/cart tests."""
-    from apps.catalogue.models import Category, Product
     cat = Category.objects.create(name='Test', slug='test')
     return Product.objects.create(
         name='Test Product', slug='test-p',
@@ -37,7 +42,6 @@ def product(db):
 class TestSelfDeleteEliminaCartActivo:
 
     def test_cart_se_elimina(self, auth_client, user, db):
-        from apps.cart.models import Cart
         Cart.objects.create(user=user)
         auth_client.post(URL, {'password': 'TestPass123!'}, format='json')
         assert Cart.objects.filter(user=user).count() == 0
@@ -46,7 +50,6 @@ class TestSelfDeleteEliminaCartActivo:
 class TestSelfDeleteEliminaSavedCarts:
 
     def test_saved_cart_se_elimina(self, auth_client, user, db):
-        from apps.cart.models import SavedCart
         SavedCart.objects.create(user=user, name='manana')
         auth_client.post(URL, {'password': 'TestPass123!'}, format='json')
         assert SavedCart.objects.filter(user=user).count() == 0
@@ -55,7 +58,6 @@ class TestSelfDeleteEliminaSavedCarts:
 class TestSelfDeleteEliminaWishlist:
 
     def test_wishlist_hard_delete(self, auth_client, user, product, db):
-        from apps.wishlist.models import WishlistItem
         WishlistItem.objects.create(
             user=user, product=product, price_at_add=Decimal('100'),
         )
@@ -68,7 +70,6 @@ class TestSelfDeleteEliminaWishlist:
 class TestSelfDeleteEliminaSearchHistory:
 
     def test_search_entries_se_eliminan(self, auth_client, user, db):
-        from apps.search_history.models import SearchEntry
         SearchEntry.objects.create(
             user=user, query='oshun', normalized_query='oshun',
         )
@@ -79,7 +80,6 @@ class TestSelfDeleteEliminaSearchHistory:
 class TestSelfDeleteEliminaNotificationPreferences:
 
     def test_preferences_se_eliminan(self, auth_client, user, db):
-        from apps.notifications.models import NotificationPreference
         NotificationPreference.objects.create(
             user=user, type='order_confirmed', enabled=True,
         )
@@ -90,7 +90,6 @@ class TestSelfDeleteEliminaNotificationPreferences:
 class TestSelfDeleteConservaTransaccionales:
 
     def test_address_se_conserva(self, auth_client, user, db):
-        from apps.users.models import Address
         a = Address.objects.create(
             user=user, alias='Casa', recipient_name='X',
             street='S', city='C', state='S', zip_code='00000',
@@ -102,7 +101,6 @@ class TestSelfDeleteConservaTransaccionales:
         assert Address.all_objects.filter(pk=a.pk, user=user).exists()
 
     def test_deactivation_event_se_conserva(self, auth_client, user, db):
-        from apps.users.models import UserDeactivationEvent
         auth_client.post(URL, {'password': 'TestPass123!'}, format='json')
         # El evento del self-delete debe persistir.
         assert UserDeactivationEvent.objects.filter(

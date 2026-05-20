@@ -8,6 +8,8 @@ UC-CHT-04: Variant-specific pricing
 """
 import pytest
 from decimal import Decimal
+from apps.catalogue.models import Category, Product
+from apps.chartsize.models import VariantType, VariantOption, ProductVariant
 
 pytestmark = pytest.mark.integration
 
@@ -17,13 +19,11 @@ ADMIN_PROD_URL = '/api/v1/admin/products/'
 
 @pytest.fixture
 def cat_soperas(db):
-    from apps.catalogue.models import Category
     return Category.objects.create(name='Soperas S9', slug='soperas-s9', is_active=True)
 
 
 @pytest.fixture
 def product_s9(db, cat_soperas):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Sopera Yemaya S9', slug='sopera-s9', sku='S9-YEM-001',
         description='Sopera sagrada', category=cat_soperas,
@@ -34,7 +34,6 @@ def product_s9(db, cat_soperas):
 
 @pytest.fixture
 def variant_type(db, product_s9):
-    from apps.chartsize.models import VariantType
     return VariantType.objects.create(
         product=product_s9, name='Tamaño', is_active=True, order=0
     )
@@ -42,7 +41,6 @@ def variant_type(db, product_s9):
 
 @pytest.fixture
 def opt_chica(db, variant_type):
-    from apps.chartsize.models import VariantOption
     return VariantOption.objects.create(
         variant_type=variant_type, label='Chica', slug='chica', order=0, is_active=True
     )
@@ -50,7 +48,6 @@ def opt_chica(db, variant_type):
 
 @pytest.fixture
 def opt_grande(db, variant_type):
-    from apps.chartsize.models import VariantOption
     return VariantOption.objects.create(
         variant_type=variant_type, label='Grande', slug='grande', order=1, is_active=True
     )
@@ -58,7 +55,6 @@ def opt_grande(db, variant_type):
 
 @pytest.fixture
 def var_chica(db, product_s9, opt_chica):
-    from apps.chartsize.models import ProductVariant
     return ProductVariant.objects.create(
         product=product_s9, option=opt_chica,
         sku_suffix='CHC', stock=5, is_active=True,
@@ -67,7 +63,6 @@ def var_chica(db, product_s9, opt_chica):
 
 @pytest.fixture
 def var_grande(db, product_s9, opt_grande):
-    from apps.chartsize.models import ProductVariant
     return ProductVariant.objects.create(
         product=product_s9, option=opt_grande,
         sku_suffix='GRD', price_override=Decimal('3500.00'),
@@ -97,7 +92,6 @@ class TestProductVariantModelo:
         assert var_chica.sku == f'{product_s9.sku}-CHC'
 
     def test_sku_sin_sufijo(self, product_s9, opt_chica, db):
-        from apps.chartsize.models import ProductVariant
         v = ProductVariant.objects.create(
             product=product_s9, option=opt_chica,
             sku_suffix='', stock=1, is_active=True,

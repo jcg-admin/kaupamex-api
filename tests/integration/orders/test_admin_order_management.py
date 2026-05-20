@@ -5,6 +5,10 @@ Nombre descriptivo: dominio y perspectiva, no número de sprint.
 """
 import pytest
 from decimal import Decimal
+from apps.catalogue.models import Category, Product
+from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress, OrderStatusLog
+from django.contrib.auth import get_user_model
+from apps.settings_app.models import SiteSettings
 
 pytestmark = pytest.mark.integration
 
@@ -17,13 +21,11 @@ ADMIN_DASHBOARD_URL  = '/api/v1/admin/dashboard/'
 
 @pytest.fixture
 def cat_adm(db):
-    from apps.catalogue.models import Category
     return Category.objects.create(name='Cat Admin', slug='cat-adm', is_active=True)
 
 
 @pytest.fixture
 def prod_adm(db, cat_adm):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Elekes Admin', slug='elekes-admin', sku='ADM-001',
         description='', category=cat_adm,
@@ -33,7 +35,6 @@ def prod_adm(db, cat_adm):
 
 
 def _make_order(user, prod, status='PENDING'):
-    from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
     order = Order.objects.create(user=user, status=status)
     OrderItem.objects.create(
         order=order, product_name=prod.name, sku=prod.sku,
@@ -85,7 +86,6 @@ class TestBuscarOrdenesAdmin:
     def test_admin_ve_todas_las_ordenes(
         self, admin_client, user, prod_adm, db
     ):
-        from django.contrib.auth import get_user_model
         User = get_user_model()
         other = User.objects.create_user(
             username='other_adm', email='oa@test.com', password='pass'
@@ -151,7 +151,6 @@ class TestTransicionEstadoAdmin:
     def test_transicion_crea_statuslog(
         self, admin_client, user, prod_adm, db
     ):
-        from apps.orders.models import OrderStatusLog
         order = _make_order(user, prod_adm, 'PROCESSING')
         admin_client.patch(
             ADMIN_STATUS_URL(order.order_number),
@@ -192,7 +191,6 @@ class TestTransicionEstadoAdmin:
         self, admin_client, user, prod_adm, db
     ):
         """Flujo feliz completo: PENDING → PROCESSING → IN_PREPARATION → SHIPPED → DELIVERED."""
-        from apps.orders.models import OrderStatusLog
         order = _make_order(user, prod_adm, 'PENDING')
 
         for new_status in ['PROCESSING', 'IN_PREPARATION', 'SHIPPED', 'DELIVERED']:
@@ -268,7 +266,6 @@ class TestCancelarOrdenAdmin:
     def test_admin_cancelacion_registra_statuslog(
         self, admin_client, user, prod_adm, db
     ):
-        from apps.orders.models import OrderStatusLog
         order = _make_order(user, prod_adm, 'PROCESSING')
         admin_client.post(
             ADMIN_CANCEL_URL(order.order_number),
@@ -291,7 +288,6 @@ class TestDashboardTransaccional:
     def test_dashboard_retorna_cuatro_bloques(
         self, admin_client, db
     ):
-        from apps.settings_app.models import SiteSettings
         SiteSettings.get_current()  # crear singleton con defaults
 
         res = admin_client.get(ADMIN_DASHBOARD_URL)
@@ -306,7 +302,6 @@ class TestDashboardTransaccional:
     def test_dashboard_contadores_correctos(
         self, admin_client, user, prod_adm, db
     ):
-        from apps.settings_app.models import SiteSettings
         SiteSettings.get_current()
 
         _make_order(user, prod_adm, 'PENDING')
@@ -330,7 +325,6 @@ class TestDashboardTransaccional:
         self, admin_client, db
     ):
         """H-ADM-004: el dashboard expone el timeout configurado."""
-        from apps.settings_app.models import SiteSettings
         settings = SiteSettings.get_current()
         settings.payment_timeout_minutes = 45
         settings.save()

@@ -9,6 +9,10 @@ UC-CART-06: Merge anonymous cart on login
 """
 import uuid, pytest
 from decimal import Decimal
+from apps.catalogue.models import Category, Product
+from apps.chartsize.models import VariantType, VariantOption, ProductVariant
+from apps.cart.models import Cart, CartItem, SavedCart
+from apps.users.models import User
 
 pytestmark = pytest.mark.integration
 
@@ -20,13 +24,11 @@ MERGE_URL = '/api/v1/cart/merge/'
 
 @pytest.fixture
 def cat_s12(db):
-    from apps.catalogue.models import Category
     return Category.objects.create(name='Cat S12', slug='cat-s12', is_active=True)
 
 
 @pytest.fixture
 def product_sin_variante(db, cat_s12):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Prod Sin Variante', slug='prod-sin-var-s12', sku='S12-SV-001',
         description='', category=cat_s12,
@@ -37,7 +39,6 @@ def product_sin_variante(db, cat_s12):
 
 @pytest.fixture
 def product_con_variante(db, cat_s12):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Prod Con Variante', slug='prod-con-var-s12', sku='S12-CV-001',
         description='', category=cat_s12,
@@ -48,7 +49,6 @@ def product_con_variante(db, cat_s12):
 
 @pytest.fixture
 def variant_s12(db, product_con_variante):
-    from apps.chartsize.models import VariantType, VariantOption, ProductVariant
     vt = VariantType.objects.create(
         product=product_con_variante, name='Tamaño', order=0
     )
@@ -245,7 +245,6 @@ class TestEliminarItem:
         self, api_client, product_sin_variante, db
     ):
         """No se puede eliminar un item de otro carrito."""
-        from apps.cart.models import Cart, CartItem
         other_cart = Cart.objects.create(cart_token=uuid.uuid4())
         item = CartItem.objects.create(
             cart=other_cart, product=product_sin_variante,
@@ -293,7 +292,6 @@ class TestGuardarCarrito:
     def test_guardar_reemplaza_carrito_guardado_anterior(
         self, auth_client, product_sin_variante, db
     ):
-        from apps.cart.models import SavedCart
         auth_client.post(ITEMS_URL, {
             'product_id': product_sin_variante.pk, 'quantity': 1,
         }, format='json')
@@ -302,7 +300,6 @@ class TestGuardarCarrito:
             'product_id': product_sin_variante.pk, 'quantity': 3,
         }, format='json')
         auth_client.post(SAVE_URL)
-        from apps.users.models import User
         user = User.objects.get(username='testuser')
         saved = SavedCart.objects.get(user=user)
         assert saved.items.count() == 1
@@ -322,8 +319,6 @@ class TestFusionarCarrito:
         self, auth_client, product_sin_variante, db
     ):
         """FC-CART-06 Escenario principal: fusión de carrito anónimo."""
-        import uuid
-        from apps.cart.models import Cart, CartItem
         # Crear carrito anónimo directamente en BD
         anon_token = uuid.uuid4()
         anon_cart = Cart.objects.create(cart_token=anon_token, user=None)
@@ -345,8 +340,6 @@ class TestFusionarCarrito:
         self, auth_client, product_sin_variante, db
     ):
         """El usuario ya tenía 1 item; el anónimo tenía 2 del mismo → total 3."""
-        import uuid
-        from apps.cart.models import Cart, CartItem
         # El auth_client agrega 1 item propio
         auth_client.post(ITEMS_URL, {
             'product_id': product_sin_variante.pk, 'quantity': 1,
@@ -388,7 +381,6 @@ class TestProteccionVarianteConCartItems:
         self, admin_client, product_con_variante, variant_s12, db
     ):
         """H-S12-006: variante con CartItems activos no puede desactivarse."""
-        from apps.cart.models import Cart, CartItem
         cart = Cart.objects.create(cart_token=uuid.uuid4())
         CartItem.objects.create(
             cart=cart, product=product_con_variante,

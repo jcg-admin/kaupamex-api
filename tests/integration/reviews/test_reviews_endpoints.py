@@ -2,6 +2,10 @@
 Integration tests — P-14 reviews endpoints (UC-REV-01..03).
 """
 from decimal import Decimal
+from apps.catalogue.models import Category, Product
+from apps.orders.models import Order, OrderAddress, OrderItem, OrderValue
+from apps.reviews.models import Review, ReviewModerationLog
+from django.contrib.auth import get_user_model
 
 import pytest
 
@@ -16,13 +20,11 @@ REJECT_URL          = lambda pk: f'/api/v1/admin/reviews/{pk}/reject/'
 
 @pytest.fixture
 def cat_rev(db):
-    from apps.catalogue.models import Category
     return Category.objects.create(name='Rev', slug='rev', is_active=True)
 
 
 @pytest.fixture
 def prod_rev(db, cat_rev):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Producto Rev', slug='producto-rev', sku='REV-001',
         category=cat_rev, price=Decimal('100'), stock=10,
@@ -32,9 +34,6 @@ def prod_rev(db, cat_rev):
 
 @pytest.fixture
 def order_user_with_product(db, user, prod_rev):
-    from apps.orders.models import (
-        Order, OrderAddress, OrderItem, OrderValue,
-    )
     o = Order.objects.create(user=user, status='DELIVERED')
     OrderItem.objects.create(
         order=o, product=prod_rev, product_name=prod_rev.name,
@@ -58,18 +57,15 @@ class TestPublicReviewListing:
     def test_listado_solo_aprobadas_con_metricas(
         self, api_client, prod_rev, user, order_user_with_product, db,
     ):
-        from apps.reviews.models import Review
         Review.objects.create(
             user=user, product=prod_rev, order=order_user_with_product,
             rating=5, title='Buena', body='Excelente',
             status=Review.STATUS_APPROVED,
         )
         # Una pendiente que NO debe aparecer.
-        from django.contrib.auth import get_user_model
         u2 = get_user_model().objects.create_user(
             username='u2rev', email='u2@rev.com', password='x',
         )
-        from apps.orders.models import Order
         o2 = Order.objects.create(user=u2, status='DELIVERED')
         Review.objects.create(
             user=u2, product=prod_rev, order=o2,
@@ -106,8 +102,6 @@ class TestCreateReview:
     def test_403_si_orden_es_de_otro_usuario(
         self, auth_client, prod_rev, db,
     ):
-        from django.contrib.auth import get_user_model
-        from apps.orders.models import Order
         other = get_user_model().objects.create_user(
             username='otherrev', email='or@rev.com', password='x',
         )
@@ -121,7 +115,6 @@ class TestCreateReview:
     def test_409_resena_duplicada(
         self, auth_client, user, prod_rev, order_user_with_product, db,
     ):
-        from apps.reviews.models import Review
         Review.objects.create(
             user=user, product=prod_rev, order=order_user_with_product,
             rating=5, title='A', body='B',
@@ -145,7 +138,6 @@ class TestAdminQueue:
     def test_queue_pending_fifo(
         self, admin_client, user, prod_rev, order_user_with_product, db,
     ):
-        from apps.reviews.models import Review
         r1 = Review.objects.create(
             user=user, product=prod_rev, order=order_user_with_product,
             rating=3, title='1', body='1',
@@ -158,7 +150,6 @@ class TestAdminQueue:
     def test_approve_idempotente_y_audita(
         self, admin_client, user, prod_rev, order_user_with_product, db,
     ):
-        from apps.reviews.models import Review, ReviewModerationLog
         rev = Review.objects.create(
             user=user, product=prod_rev, order=order_user_with_product,
             rating=5, title='1', body='1',
@@ -181,7 +172,6 @@ class TestAdminQueue:
     def test_reject_requiere_reason_y_audita(
         self, admin_client, user, prod_rev, order_user_with_product, db,
     ):
-        from apps.reviews.models import Review, ReviewModerationLog
         rev = Review.objects.create(
             user=user, product=prod_rev, order=order_user_with_product,
             rating=1, title='no', body='no',
@@ -198,7 +188,6 @@ class TestAdminQueue:
     def test_reject_reason_invalido_loud(
         self, admin_client, user, prod_rev, order_user_with_product, db,
     ):
-        from apps.reviews.models import Review
         rev = Review.objects.create(
             user=user, product=prod_rev, order=order_user_with_product,
             rating=1, title='no', body='no',
@@ -210,7 +199,6 @@ class TestAdminQueue:
     def test_comprador_no_puede_aprobar(
         self, auth_client, user, prod_rev, order_user_with_product, db,
     ):
-        from apps.reviews.models import Review
         rev = Review.objects.create(
             user=user, product=prod_rev, order=order_user_with_product,
             rating=5, title='ok', body='ok',

@@ -10,6 +10,10 @@ import json
 import pytest
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
+from apps.catalogue.models import Category, Product
+from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from apps.payments.models import Payment
+from apps.settings_app.models import PaymentGateway
 
 pytestmark = pytest.mark.integration
 
@@ -19,16 +23,12 @@ PP_WEBHOOK_URL = '/api/v1/payments/webhooks/paypal/'
 
 @pytest.fixture
 def cat_wh(db):
-    from apps.catalogue.models import Category
     return Category.objects.create(name='Cat WH', slug='cat-wh', is_active=True)
 
 
 @pytest.fixture
 def orden_processing_mp(db, user, cat_wh):
     """Orden con Payment de MP en PENDING, lista para recibir webhook."""
-    from apps.catalogue.models import Product
-    from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
-    from apps.payments.models import Payment
 
     prod = Product.objects.create(
         name='Pulso Orula', slug='pulso-orula', sku='WH-PO-001',
@@ -60,7 +60,6 @@ def orden_processing_mp(db, user, cat_wh):
 
 @pytest.fixture
 def mp_gateway_wh(db):
-    from apps.settings_app.models import PaymentGateway
     gw = PaymentGateway(name='MP WH', gateway='MERCADOPAGO', is_active=True)
     gw.set_credentials({'access_token': 'TEST-TOKEN', 'client_secret': 'TEST-SECRET'})
     gw.save()
@@ -213,9 +212,6 @@ class TestPayPalWebhook:
 
     @pytest.fixture
     def orden_paypal_wh(self, db, user, cat_wh):
-        from apps.catalogue.models import Product
-        from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
-        from apps.payments.models import Payment
 
         prod = Product.objects.create(
             name='Azabache', slug='azabache-wh', sku='WH-AZ-001',

@@ -17,6 +17,10 @@ Cierra el flujo:
   used_at = NOW (invalidados).
 """
 import pytest
+from django.contrib.auth import get_user_model
+from django.utils import timezone
+from datetime import timedelta
+from apps.users.models import EmailVerificationToken, PasswordResetToken
 
 pytestmark = pytest.mark.api
 
@@ -46,7 +50,6 @@ class TestDeactivateHappyPath:
         assert user.deactivated_at is not None
 
     def test_baja_no_elimina_la_fila(self, auth_client, user):
-        from django.contrib.auth import get_user_model
         auth_client.post(URL, {'password': 'TestPass123!'}, format='json')
         # baja logica: la fila persiste
         assert get_user_model().objects.filter(pk=user.pk).exists()
@@ -85,9 +88,6 @@ class TestDeactivateSideEffects:
     def test_email_verification_token_pendiente_se_marca_usado(
         self, auth_client, user, db,
     ):
-        from django.utils import timezone
-        from datetime import timedelta
-        from apps.users.models import EmailVerificationToken
         EmailVerificationToken.objects.create(
             user=user,
             token_hash='a' * 64,
@@ -100,9 +100,6 @@ class TestDeactivateSideEffects:
     def test_password_reset_token_pendiente_se_marca_usado(
         self, auth_client, user, db,
     ):
-        from django.utils import timezone
-        from datetime import timedelta
-        from apps.users.models import PasswordResetToken
         PasswordResetToken.objects.create(
             user=user,
             token_hash='b' * 64,

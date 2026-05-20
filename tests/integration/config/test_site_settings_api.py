@@ -15,6 +15,7 @@ Contrato:
 """
 import pytest
 from decimal import Decimal
+from apps.settings_app.models import SiteSettings
 
 pytestmark = pytest.mark.api
 
@@ -78,7 +79,6 @@ class TestSiteSettingsEndpointPatch:
         assert res.status_code == 403
 
     def test_update_persists_to_database(self, admin_client, db):
-        from apps.settings_app.models import SiteSettings
         admin_client.patch(
             '/api/v1/config/settings/',
             {'payment_timeout_minutes': 60},

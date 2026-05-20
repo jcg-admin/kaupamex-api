@@ -12,6 +12,8 @@ UC-CHT-04: Set/clear differentiated price on
 """
 import pytest
 from decimal import Decimal
+from apps.catalogue.models import Category, Product
+from apps.chartsize.models import VariantType, VariantOption, ProductVariant
 
 pytestmark = pytest.mark.integration
 
@@ -27,13 +29,11 @@ ADMIN_VAR_URL  = '/api/v1/admin/variants/'
 
 @pytest.fixture
 def cat_v(db):
-    from apps.catalogue.models import Category
     return Category.objects.create(name='Variants Cat', slug='variants-cat', is_active=True)
 
 
 @pytest.fixture
 def product_v(db, cat_v):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Yemaya Sopera', slug='yemaya-sopera-v', sku='V-YEM-001',
         description='Orisha sopera', category=cat_v,
@@ -44,7 +44,6 @@ def product_v(db, cat_v):
 
 @pytest.fixture
 def variant_type_v(db, product_v):
-    from apps.chartsize.models import VariantType
     return VariantType.objects.create(
         product=product_v, name='Orisha', is_active=True, order=0
     )
@@ -52,7 +51,6 @@ def variant_type_v(db, product_v):
 
 @pytest.fixture
 def option_v(db, variant_type_v):
-    from apps.chartsize.models import VariantOption
     return VariantOption.objects.create(
         variant_type=variant_type_v, label='Yemaya', slug='yemaya-v', order=0, is_active=True,
     )
@@ -60,7 +58,6 @@ def option_v(db, variant_type_v):
 
 @pytest.fixture
 def option_v_b(db, variant_type_v):
-    from apps.chartsize.models import VariantOption
     return VariantOption.objects.create(
         variant_type=variant_type_v, label='Oshun', slug='oshun-v', order=1, is_active=True,
     )
@@ -68,7 +65,6 @@ def option_v_b(db, variant_type_v):
 
 @pytest.fixture
 def variant_v(db, product_v, option_v):
-    from apps.chartsize.models import ProductVariant
     return ProductVariant.objects.create(
         product=product_v, option=option_v,
         sku_suffix='YEM', stock=5, is_active=True,
@@ -77,7 +73,6 @@ def variant_v(db, product_v, option_v):
 
 @pytest.fixture
 def variant_v_sin_stock(db, product_v, option_v_b):
-    from apps.chartsize.models import ProductVariant
     return ProductVariant.objects.create(
         product=product_v, option=option_v_b,
         sku_suffix='OSH', stock=0, is_active=True,

@@ -9,6 +9,11 @@ UC-CFG-05: Contact data (SiteSettings extended)
 """
 import pytest
 from decimal import Decimal
+from apps.catalogue.models import Category, Product
+from apps.chartsize.models import VariantType, VariantOption, ProductVariant
+from apps.settings_app.models import StaticPageVersion, SiteSettings
+from apps.inventory.services import InventoryService, InsufficientStockError
+from apps.inventory.models import StockAlert
 
 pytestmark = pytest.mark.integration
 
@@ -20,13 +25,11 @@ PAGES_URL    = '/api/v1/admin/pages/'
 
 @pytest.fixture
 def cat_s10(db):
-    from apps.catalogue.models import Category
     return Category.objects.create(name='Cat S10', slug='cat-s10', is_active=True)
 
 
 @pytest.fixture
 def product_s10(db, cat_s10):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Prod S10', slug='prod-s10', sku='S10-001',
         description='', category=cat_s10,
@@ -37,7 +40,6 @@ def product_s10(db, cat_s10):
 
 @pytest.fixture
 def variant_type_s10(db, product_s10):
-    from apps.chartsize.models import VariantType
     return VariantType.objects.create(
         product=product_s10, name='Tamaño S10', order=0
     )
@@ -45,7 +47,6 @@ def variant_type_s10(db, product_s10):
 
 @pytest.fixture
 def opt_s10(db, variant_type_s10):
-    from apps.chartsize.models import VariantOption
     return VariantOption.objects.create(
         variant_type=variant_type_s10, label='Mediana', slug='mediana-s10', order=0
     )
@@ -53,7 +54,6 @@ def opt_s10(db, variant_type_s10):
 
 @pytest.fixture
 def variant_s10(db, product_s10, opt_s10):
-    from apps.chartsize.models import ProductVariant
     return ProductVariant.objects.create(
         product=product_s10, option=opt_s10,
         sku_suffix='MED', stock=8, is_active=True,
@@ -116,7 +116,6 @@ class TestContenidoEstatico:
         assert res.json()['version'] == 2
 
     def test_segunda_publicacion_archiva_anterior(self, admin_client, db):
-        from apps.settings_app.models import StaticPageVersion
         admin_client.post(f'{PAGES_URL}terms/publish/',
             {'content': 'v1'}, format='json')
         admin_client.post(f'{PAGES_URL}terms/publish/',
@@ -205,7 +204,6 @@ class TestDashboardInventario:
 class TestInventoryServiceDecrement:
 
     def test_decremento_simple_sin_variante(self, product_s10, db):
-        from apps.inventory.services import InventoryService
         product_s10.stock = 10
         product_s10.save()
         movs = InventoryService.decrement(
@@ -216,7 +214,6 @@ class TestInventoryServiceDecrement:
         assert product_s10.stock == 7
 
     def test_decremento_con_variante(self, product_s10, variant_s10, db):
-        from apps.inventory.services import InventoryService
         variant_s10.stock = 8
         variant_s10.save()
         movs = InventoryService.decrement(
@@ -227,7 +224,6 @@ class TestInventoryServiceDecrement:
         assert movs[0].delta == -2
 
     def test_stock_insuficiente_lanza_error(self, product_s10, db):
-        from apps.inventory.services import InventoryService, InsufficientStockError
         product_s10.stock = 2
         product_s10.save()
         with pytest.raises(InsufficientStockError):
@@ -238,9 +234,6 @@ class TestInventoryServiceDecrement:
         assert product_s10.stock == 2  # rollback
 
     def test_decremento_crea_alerta_bajo_umbral(self, product_s10, db):
-        from apps.inventory.services import InventoryService
-        from apps.inventory.models import StockAlert
-        from apps.settings_app.models import SiteSettings
         SiteSettings.objects.update_or_create(pk=1, defaults={'min_stock_threshold': 5})
         product_s10.stock = 6
         product_s10.save()
@@ -250,9 +243,6 @@ class TestInventoryServiceDecrement:
         assert StockAlert.objects.filter(product=product_s10, resolved=False).exists()
 
     def test_deduplicacion_24h_no_crea_segunda_alerta(self, product_s10, db):
-        from apps.inventory.services import InventoryService
-        from apps.inventory.models import StockAlert
-        from apps.settings_app.models import SiteSettings
         SiteSettings.objects.update_or_create(pk=1, defaults={'min_stock_threshold': 5})
         product_s10.stock = 4
         product_s10.save()
@@ -266,7 +256,6 @@ class TestInventoryServiceDecrement:
         assert StockAlert.objects.filter(product=product_s10).count() == 1
 
     def test_restaurar_stock_idempotente(self, product_s10, db):
-        from apps.inventory.services import InventoryService
         product_s10.stock = 5
         product_s10.save()
         InventoryService.restore(
@@ -323,7 +312,6 @@ class TestAjusteManual:
         assert res.status_code == 400
 
     def test_alertas_pendientes(self, admin_client, product_s10, db):
-        from apps.inventory.models import StockAlert
         StockAlert.objects.create(product=product_s10, stock_at_alert=3)
         res = admin_client.get(ALERTS_URL)
         assert res.status_code == 200

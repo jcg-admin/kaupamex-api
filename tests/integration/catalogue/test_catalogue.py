@@ -4,6 +4,7 @@ UC-CAT-01: Ver Catalogo de Productos
 """
 import pytest
 from decimal import Decimal
+from apps.catalogue.models import Category, Product
 
 pytestmark = pytest.mark.integration
 
@@ -12,13 +13,11 @@ CATALOGUE_URL = '/api/v1/catalogue/'
 
 @pytest.fixture
 def category(db):
-    from apps.catalogue.models import Category
     return Category.objects.create(name='Collares', slug='collares', is_active=True)
 
 
 @pytest.fixture
 def products(db, category):
-    from apps.catalogue.models import Product
     prods = []
     for i in range(5):
         prods.append(Product.objects.create(
@@ -47,7 +46,6 @@ class TestCatalogueList:
         assert 'results' in data
 
     def test_catalogo_solo_muestra_activos_y_publicados(self, api_client, products, category, db):
-        from apps.catalogue.models import Product
         Product.objects.create(
             name='Inactivo', slug='inactivo', sku='INACT-001',
             description='', category=category,
@@ -72,7 +70,6 @@ class TestCatalogueList:
         assert r.json()['count'] == 0
 
     def test_ordenamiento_por_precio_ascendente(self, api_client, category, db):
-        from apps.catalogue.models import Product
         Product.objects.create(name='Barato', slug='barato', sku='BAR-001',
                                description='', category=category,
                                price=Decimal('100.00'), is_active=True, is_published=True)
@@ -84,7 +81,6 @@ class TestCatalogueList:
         assert prices == sorted(prices)
 
     def test_producto_inactivo_no_aparece(self, api_client, category, db):
-        from apps.catalogue.models import Product
         p = Product.objects.create(
             name='Borrador', slug='borrador', sku='BOR-001',
             description='', category=category,

@@ -2,6 +2,8 @@
 Integration tests — P-17 search history endpoints (UC-SRCH-03).
 """
 import pytest
+from apps.search_history.models import SearchEntry
+from django.contrib.auth import get_user_model
 
 pytestmark = pytest.mark.integration
 
@@ -12,7 +14,6 @@ DETAIL_URL = lambda pk: f'/api/v1/search/history/{pk}/'
 
 @pytest.fixture
 def entries(db, user):
-    from apps.search_history.models import SearchEntry
     out = []
     for i in range(3):
         out.append(SearchEntry.objects.create(
@@ -25,8 +26,6 @@ def entries(db, user):
 class TestSearchHistory:
 
     def test_lista_solo_propias_20_max(self, auth_client, user, db):
-        from apps.search_history.models import SearchEntry
-        from django.contrib.auth import get_user_model
         other = get_user_model().objects.create_user(
             username='otherSH', email='osh@sh.com', password='x',
         )
@@ -49,20 +48,16 @@ class TestSearchHistory:
         assert r.status_code == 401
 
     def test_delete_all(self, auth_client, user, entries, db):
-        from apps.search_history.models import SearchEntry
         r = auth_client.delete(LIST_URL)
         assert r.status_code == 204
         assert SearchEntry.objects.filter(user=user).count() == 0
 
     def test_delete_single(self, auth_client, user, entries, db):
-        from apps.search_history.models import SearchEntry
         r = auth_client.delete(DETAIL_URL(entries[0].id))
         assert r.status_code == 204
         assert not SearchEntry.objects.filter(pk=entries[0].id).exists()
 
     def test_delete_ajeno_devuelve_404_loud(self, auth_client, db):
-        from django.contrib.auth import get_user_model
-        from apps.search_history.models import SearchEntry
         other = get_user_model().objects.create_user(
             username='oshd', email='oshd@sh.com', password='x',
         )

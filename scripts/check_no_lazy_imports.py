@@ -30,7 +30,10 @@ import ast
 import sys
 from pathlib import Path
 
-DEFAULT_ROOT = Path('practicayoruba/apps')
+DEFAULT_ROOTS = [
+    Path('practicayoruba/apps'),
+    Path('tests'),
+]
 
 
 def find_lazy_imports(tree: ast.AST):
@@ -53,14 +56,17 @@ def collect_files(args: list[str]) -> list[Path]:
     if args:
         # Modo pre-commit: rutas explicitas.
         return [Path(a) for a in args if a.endswith('.py')]
-    # Modo audit completo.
-    if not DEFAULT_ROOT.exists():
-        # Permite correr desde la raiz del monorepo o desde api/.
-        alt = Path('api') / DEFAULT_ROOT
+    # Modo audit completo — itera por todos los roots default.
+    out = []
+    for root in DEFAULT_ROOTS:
+        if root.exists():
+            out.extend(root.rglob('*.py'))
+            continue
+        # Permite correr desde la raiz del monorepo (con 'api/' prefix).
+        alt = Path('api') / root
         if alt.exists():
-            return list(alt.rglob('*.py'))
-        return []
-    return list(DEFAULT_ROOT.rglob('*.py'))
+            out.extend(alt.rglob('*.py'))
+    return out
 
 
 def main(argv: list[str]) -> int:
@@ -73,7 +79,7 @@ def main(argv: list[str]) -> int:
     findings: list[tuple[Path, int, str]] = []
 
     for path in files:
-        if 'migrations' in path.parts:
+        if 'migrations' in path.parts or '__pycache__' in path.parts:
             continue
         try:
             src = path.read_text()
@@ -101,7 +107,7 @@ def main(argv: list[str]) -> int:
         )
         print('', file=sys.stderr)
         print(
-            'Lazy imports estan PROHIBIDOS en practicayoruba/apps/**.',
+            'Lazy imports estan PROHIBIDOS en practicayoruba/apps/** y tests/**.',
             file=sys.stderr,
         )
         print(

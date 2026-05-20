@@ -15,6 +15,9 @@ required by the UI:
 """
 import io
 from decimal import Decimal
+from apps.catalogue.models import Category, Product
+from apps.search_history.models import SearchEntry
+from django.core.files.uploadedfile import SimpleUploadedFile
 
 import pytest
 
@@ -23,7 +26,6 @@ pytestmark = pytest.mark.integration
 
 @pytest.fixture
 def cat_browse(db):
-    from apps.catalogue.models import Category
     return Category.objects.create(
         name='Browse', slug='browse', is_active=True,
     )
@@ -31,7 +33,6 @@ def cat_browse(db):
 
 @pytest.fixture
 def prod_browse(db, cat_browse):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Yoruba Sample', slug='yoruba-sample', sku='BR-001',
         category=cat_browse, price=Decimal('100'), stock=5,
@@ -42,7 +43,6 @@ def prod_browse(db, cat_browse):
 class TestRelatedProducts:
 
     def test_related_misma_categoria(self, api_client, cat_browse, prod_browse, db):
-        from apps.catalogue.models import Product
         p2 = Product.objects.create(
             name='Otro', slug='otro-yoruba', sku='BR-002',
             category=cat_browse, price=Decimal('100'), stock=1,
@@ -83,7 +83,6 @@ class TestCatalogueSearchWrapper:
     def test_search_persiste_history_para_auth(
         self, auth_client, user, prod_browse, db,
     ):
-        from apps.search_history.models import SearchEntry
         r = auth_client.get('/api/v1/catalogue/search/?q=yoruba')
         assert r.status_code == 200
         assert SearchEntry.objects.filter(user=user, normalized_query='yoruba').exists()
@@ -117,7 +116,6 @@ class TestPriceSyncAliases:
 
     def test_preview_csv_y_apply(self, admin_client, prod_browse, db):
         csv = 'sku,price\nBR-001,150.00\n'
-        from django.core.files.uploadedfile import SimpleUploadedFile
         upload = SimpleUploadedFile(
             'p.csv', csv.encode('utf-8'), content_type='text/csv',
         )
@@ -135,7 +133,6 @@ class TestPriceSyncAliases:
             {'session_id': sid}, format='json',
         )
         assert r2.status_code == 200
-        from apps.catalogue.models import Product
         prod_browse.refresh_from_db()
         assert prod_browse.price == Decimal('150.00')
 

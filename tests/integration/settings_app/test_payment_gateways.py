@@ -6,6 +6,8 @@ UC-CFG-02: Configure shipping methods and costs
 """
 import pytest
 from decimal import Decimal
+from apps.settings_app.models import PaymentGateway, ShippingMethod
+from apps.settings_app.gateway_connector import GatewayConnector
 
 pytestmark = pytest.mark.integration
 
@@ -20,7 +22,6 @@ SHIPPING_URL  = '/api/v1/admin/shipping-methods/'
 class TestPaymentGatewayModel:
 
     def test_set_y_get_credentials_roundtrip(self, db):
-        from apps.settings_app.models import PaymentGateway
         gw = PaymentGateway.objects.create(gateway='MERCADOPAGO', name='MercadoPago', is_active=False)
         gw.set_credentials({'access_token': 'TEST-VALID-abc123', 'public_key': 'pk-test'})
         gw.save()
@@ -30,14 +31,12 @@ class TestPaymentGatewayModel:
         assert creds['public_key'] == 'pk-test'
 
     def test_credentials_no_es_el_valor_en_claro(self, db):
-        from apps.settings_app.models import PaymentGateway
         gw = PaymentGateway.objects.create(gateway='PAYPAL', name='PayPal', is_active=False)
         gw.set_credentials({'client_id': 'TEST-VALID-client', 'client_secret': 'supersecret'})
         gw.save()
         assert 'supersecret' not in str(gw.credentials)  # BinaryField
 
     def test_get_masked_credentials_enmascara(self, db):
-        from apps.settings_app.models import PaymentGateway
         gw = PaymentGateway(gateway='MERCADOPAGO', name='MercadoPago')
         gw.set_credentials({'access_token': 'ABCD1234EFGH'})
         masked = gw.get_masked_credentials()
@@ -45,7 +44,6 @@ class TestPaymentGatewayModel:
         assert masked['access_token'].endswith('EFGH')
 
     def test_get_credentials_sin_datos_retorna_dict_vacio(self, db):
-        from apps.settings_app.models import PaymentGateway
         gw = PaymentGateway(gateway='MERCADOPAGO', name='MercadoPago', credentials=b'')
         assert gw.get_credentials() == {}
 
@@ -57,27 +55,22 @@ class TestPaymentGatewayModel:
 class TestGatewayConnectorMock:
 
     def test_mp_token_test_valid_retorna_true(self):
-        from apps.settings_app.gateway_connector import GatewayConnector
         c = GatewayConnector()
         assert c.verify_mercadopago('TEST-VALID-xyz') is True
 
     def test_mp_token_test_invalid_retorna_false(self):
-        from apps.settings_app.gateway_connector import GatewayConnector
         c = GatewayConnector()
         assert c.verify_mercadopago('TEST-INVALID-xyz') is False
 
     def test_mp_token_vacio_retorna_false(self):
-        from apps.settings_app.gateway_connector import GatewayConnector
         c = GatewayConnector()
         assert c.verify_mercadopago('') is False
 
     def test_pp_client_id_test_valid_retorna_true(self):
-        from apps.settings_app.gateway_connector import GatewayConnector
         c = GatewayConnector()
         assert c.verify_paypal('TEST-VALID-id', 'some-secret') is True
 
     def test_pp_client_id_test_invalid_retorna_false(self):
-        from apps.settings_app.gateway_connector import GatewayConnector
         c = GatewayConnector()
         assert c.verify_paypal('TEST-INVALID-id', 'some-secret') is False
 
@@ -216,7 +209,6 @@ class TestShippingMethodAPI:
         assert res.json()['cost'] == '90.00'
 
     def test_desactivar_metodo_soft_delete(self, admin_client, db):
-        from apps.settings_app.models import ShippingMethod
         created = admin_client.post(SHIPPING_URL, {
             'name': 'A Desactivar', 'cost': '60.00', 'estimated_days': 2,
         }, format='json').json()

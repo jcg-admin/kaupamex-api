@@ -6,6 +6,9 @@ import io
 import pytest
 from PIL import Image
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.contrib.auth import get_user_model
+from rest_framework_simplejwt.tokens import RefreshToken
+from apps.users.models import Address
 
 pytestmark = pytest.mark.integration
 
@@ -55,13 +58,11 @@ class TestProfileGet:
         assert isinstance(data['pending_fields'], list)
 
     def test_completeness_usuario_sin_opcionales(self, api_client, db):
-        from django.contrib.auth import get_user_model
         User = get_user_model()
         u = User.objects.create_user(
             username='empty', email='empty@test.mx', password='Pass123!',
             first_name='', last_name='', phone='',
         )
-        from rest_framework_simplejwt.tokens import RefreshToken
         api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {RefreshToken.for_user(u).access_token}')
         r = api_client.get(PROFILE_URL)
         assert r.json()['profile_completeness'] == 0
@@ -73,7 +74,6 @@ class TestProfileGet:
         user.phone = '5551234567'
         user.save()
         # Crear una direccion para el usuario
-        from apps.users.models import Address
         Address.objects.create(
             user=user, alias='Casa', recipient_name='Demo Yoruba',
             street='Calle 1', city='CDMX', state='CDMX',
@@ -89,11 +89,9 @@ class TestProfileGet:
         assert r.json()['profile_completeness'] % 20 == 0
 
     def test_aislamiento_datos(self, api_client, db):
-        from django.contrib.auth import get_user_model
         User = get_user_model()
         u1 = User.objects.create_user(username='u1', email='u1@test.mx', password='Pass123!')
         u2 = User.objects.create_user(username='u2', email='u2@test.mx', password='Pass123!')
-        from rest_framework_simplejwt.tokens import RefreshToken
         api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {RefreshToken.for_user(u1).access_token}')
         r = api_client.get(PROFILE_URL)
         assert r.json()['username'] == 'u1'

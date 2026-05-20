@@ -6,13 +6,14 @@ con la semantica de NEGOCIO (status=UNSUBSCRIBED + unsubscribed_at).
 """
 import pytest
 from django.utils import timezone
+from apps.newsletter.models import NewsletterSubscriber, SubscriberStatus
+from apps.core.models import SoftDeleteModel
 
 pytestmark = pytest.mark.integration
 
 
 @pytest.fixture
 def subscriber(db):
-    from apps.newsletter.models import NewsletterSubscriber, SubscriberStatus
     return NewsletterSubscriber.objects.create(
         email='subs@example.com',
         status=SubscriberStatus.CONFIRMED,
@@ -24,14 +25,11 @@ class TestNewsletterSubscriberSoftDelete:
 
     @pytest.mark.django_db
     def test_inherits_softdeletemodel(self):
-        from apps.newsletter.models import NewsletterSubscriber
-        from apps.core.models import SoftDeleteModel
         assert issubclass(NewsletterSubscriber, SoftDeleteModel)
         assert hasattr(NewsletterSubscriber, 'all_objects')
 
     @pytest.mark.django_db
     def test_delete_hides_from_default_manager(self, subscriber):
-        from apps.newsletter.models import NewsletterSubscriber
         pk = subscriber.pk
         subscriber.delete()
         assert not NewsletterSubscriber.objects.filter(pk=pk).exists()
@@ -41,14 +39,12 @@ class TestNewsletterSubscriberSoftDelete:
 
     @pytest.mark.django_db
     def test_restore(self, subscriber):
-        from apps.newsletter.models import NewsletterSubscriber
         subscriber.delete()
         NewsletterSubscriber.all_objects.get(pk=subscriber.pk).restore()
         assert NewsletterSubscriber.objects.filter(pk=subscriber.pk).exists()
 
     @pytest.mark.django_db
     def test_hard_delete_removes(self, subscriber):
-        from apps.newsletter.models import NewsletterSubscriber
         pk = subscriber.pk
         subscriber.hard_delete()
         assert not NewsletterSubscriber.all_objects.filter(pk=pk).exists()
@@ -57,7 +53,6 @@ class TestNewsletterSubscriberSoftDelete:
     def test_business_unsubscribe_and_system_delete_coexist(self, subscriber):
         """``unsubscribed_at`` (NEGOCIO) y ``deleted_at`` (SISTEMA) son
         campos independientes; pueden marcarse ambos en la misma fila."""
-        from apps.newsletter.models import NewsletterSubscriber, SubscriberStatus
         now = timezone.now()
         subscriber.status = SubscriberStatus.UNSUBSCRIBED
         subscriber.unsubscribed_at = now

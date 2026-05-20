@@ -13,6 +13,8 @@ Admin:
 JSON keys + identifiers in English (DEC-DOC-005).
 """
 import pytest
+from apps.newsletter.models import NewsletterSubscriber
+from django.core import mail
 
 pytestmark = pytest.mark.integration
 
@@ -27,7 +29,6 @@ def _admin_force_unsub_url(pk):
 
 
 def _make_subscriber(email='sub@example.com', status='CONFIRMED'):
-    from apps.newsletter.models import NewsletterSubscriber
     return NewsletterSubscriber.objects.create(email=email, status=status)
 
 
@@ -42,7 +43,6 @@ class TestSubscribe:
         assert body['email'] == 'nuevo@example.com'
         assert body['status'] == 'PENDING'
 
-        from apps.newsletter.models import NewsletterSubscriber
         assert NewsletterSubscriber.objects.filter(
             email='nuevo@example.com',
         ).count() == 1
@@ -155,7 +155,6 @@ class TestAdminCreateCampaign:
         assert res.status_code == 403
 
     def test_admin_creates_and_sends_campaign(self, admin_client, db):
-        from django.core import mail
         _make_subscriber('uno@example.com', status='CONFIRMED')
         _make_subscriber('dos@example.com', status='CONFIRMED')
         _make_subscriber('pendiente@example.com', status='PENDING')

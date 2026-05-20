@@ -11,9 +11,14 @@ DEC-DOC-005: English identifiers and English JSON keys.
 """
 from datetime import timedelta
 from decimal import Decimal
+from django.utils import timezone
+from apps.catalogue.models import Category, Product
+from django.contrib.auth import get_user_model
+from apps.orders.models import Order, OrderItem, OrderValue
+from apps.payments.models import Payment
+from apps.support.models import SupportTicket
 
 import pytest
-from django.utils import timezone
 
 pytestmark = pytest.mark.integration
 
@@ -26,13 +31,11 @@ def _now():
 
 @pytest.fixture
 def category(db):
-    from apps.catalogue.models import Category
     return Category.objects.create(name='Rep Cat', slug='rep-cat', is_active=True)
 
 
 @pytest.fixture
 def product(db, category):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Rep Prod', slug='rep-prod', sku='REP-001',
         description='', category=category,
@@ -43,7 +46,6 @@ def product(db, category):
 
 @pytest.fixture
 def product_b(db, category):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Rep Prod B', slug='rep-prod-b', sku='REP-002',
         description='', category=category,
@@ -54,7 +56,6 @@ def product_b(db, category):
 
 @pytest.fixture
 def buyer(db):
-    from django.contrib.auth import get_user_model
     User = get_user_model()
     return User.objects.create_user(
         username='buyer1', email='b1@x.com', password='Pass123!',
@@ -63,7 +64,6 @@ def buyer(db):
 
 @pytest.fixture
 def buyer_b(db):
-    from django.contrib.auth import get_user_model
     User = get_user_model()
     return User.objects.create_user(
         username='buyer2', email='b2@x.com', password='Pass123!',
@@ -72,8 +72,6 @@ def buyer_b(db):
 
 def _make_order(user, product, qty=1, when=None, status='DELIVERED',
                 gateway='MERCADOPAGO', payment_status='APPROVED'):
-    from apps.orders.models import Order, OrderItem, OrderValue
-    from apps.payments.models import Payment
     when = when or _now()
     o = Order.objects.create(user=user, status=status)
     Order.objects.filter(pk=o.pk).update(created_at=when, updated_at=when)
@@ -196,7 +194,6 @@ class TestDashboard:
         assert body['today']['orders'] >= 2
 
     def test_dashboard_open_tickets(self, admin_client, product, buyer):
-        from apps.support.models import SupportTicket
         SupportTicket.objects.create(
             user=buyer, subject='Hello world there', body='Need help with order',
             status='OPEN',

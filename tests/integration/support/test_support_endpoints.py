@@ -12,6 +12,8 @@ UC-SUPP-05  GET    /api/v1/admin/support/tickets/               admin queue
 Identifiers in English (DEC-DOC-005).
 """
 import pytest
+from apps.support.models import SupportTicket, SupportTicketReply
+from apps.orders.models import Order
 
 pytestmark = pytest.mark.integration
 
@@ -61,7 +63,6 @@ class TestCreateTicket:
             'category': 'URGENT',
         }, format='json')
         assert res.status_code == 201
-        from apps.support.models import SupportTicket
         ticket = SupportTicket.objects.get(pk=res.json()['ticket_id'])
         assert ticket.priority == 'HIGH'
         assert ticket.category == 'URGENT'
@@ -70,7 +71,6 @@ class TestCreateTicket:
 # ────────────────────────────── UC-SUPP-02 ────────────────────────────────
 class TestListAndDetail:
     def test_list_only_own_tickets(self, auth_client, user, admin_user, db):
-        from apps.support.models import SupportTicket
         SupportTicket.objects.create(
             user=user, subject='Mio uno', body='Mensaje suficientemente largo.')
         SupportTicket.objects.create(
@@ -83,7 +83,6 @@ class TestListAndDetail:
         assert items[0]['subject'] == 'Mio uno'
 
     def test_detail_returns_replies(self, auth_client, user, db):
-        from apps.support.models import SupportTicket, SupportTicketReply
         t = SupportTicket.objects.create(
             user=user, subject='Detalle', body='Mensaje del ticket original.')
         SupportTicketReply.objects.create(
@@ -97,14 +96,12 @@ class TestListAndDetail:
 
     def test_detail_other_user_returns_404(self, auth_client, admin_user, db):
         """RNF-SEC-003 — leak prevention."""
-        from apps.support.models import SupportTicket
         t = SupportTicket.objects.create(
             user=admin_user, subject='Ajeno', body='No accesible para el otro.')
         res = auth_client.get(f'{TICKETS_URL}{t.pk}/')
         assert res.status_code == 404
 
     def test_buyer_does_not_see_internal_notes(self, auth_client, user, admin_user, db):
-        from apps.support.models import SupportTicket, SupportTicketReply
         t = SupportTicket.objects.create(
             user=user, subject='Notas', body='Mensaje del ticket original.')
         SupportTicketReply.objects.create(
@@ -122,7 +119,6 @@ class TestListAndDetail:
 # ────────────────────────────── UC-SUPP-03 ────────────────────────────────
 class TestReplies:
     def test_buyer_can_reply_to_own_ticket(self, auth_client, user, db):
-        from apps.support.models import SupportTicket
         t = SupportTicket.objects.create(
             user=user, subject='Reply test', body='Mensaje original del ticket.')
         res = auth_client.post(f'{TICKETS_URL}{t.pk}/replies/', {
@@ -132,7 +128,6 @@ class TestReplies:
         assert res.json()['body'].startswith('Gracias')
 
     def test_reply_too_short_returns_400(self, auth_client, user, db):
-        from apps.support.models import SupportTicket
         t = SupportTicket.objects.create(
             user=user, subject='Reply test', body='Mensaje original del ticket.')
         res = auth_client.post(f'{TICKETS_URL}{t.pk}/replies/', {
@@ -141,7 +136,6 @@ class TestReplies:
         assert res.status_code == 400
 
     def test_reply_to_closed_ticket_returns_409(self, auth_client, user, db):
-        from apps.support.models import SupportTicket
         t = SupportTicket.objects.create(
             user=user, subject='Cerrado', body='Mensaje original del ticket.',
             status='CLOSED')
@@ -151,7 +145,6 @@ class TestReplies:
         assert res.status_code == 409
 
     def test_reply_to_other_user_ticket_returns_404(self, auth_client, admin_user, db):
-        from apps.support.models import SupportTicket
         t = SupportTicket.objects.create(
             user=admin_user, subject='Ajeno', body='Mensaje original del ticket.')
         res = auth_client.post(f'{TICKETS_URL}{t.pk}/replies/', {
@@ -160,7 +153,6 @@ class TestReplies:
         assert res.status_code == 404
 
     def test_buyer_cannot_post_internal_note(self, auth_client, user, db):
-        from apps.support.models import SupportTicket
         t = SupportTicket.objects.create(
             user=user, subject='Notas', body='Mensaje original del ticket.')
         res = auth_client.post(f'{TICKETS_URL}{t.pk}/replies/', {
@@ -170,7 +162,6 @@ class TestReplies:
         assert res.status_code == 403
 
     def test_admin_can_post_internal_note(self, admin_client, user, db):
-        from apps.support.models import SupportTicket
         t = SupportTicket.objects.create(
             user=user, subject='Admin reply', body='Mensaje original del ticket.')
         res = admin_client.post(f'{TICKETS_URL}{t.pk}/replies/', {
@@ -184,7 +175,6 @@ class TestReplies:
 # ────────────────────────────── UC-SUPP-04 ────────────────────────────────
 class TestCloseReopen:
     def test_buyer_can_close_own_ticket(self, auth_client, user, db):
-        from apps.support.models import SupportTicket
         t = SupportTicket.objects.create(
             user=user, subject='Cerrar', body='Mensaje original del ticket.')
         res = auth_client.post(f'{TICKETS_URL}{t.pk}/close/', {}, format='json')
@@ -192,7 +182,6 @@ class TestCloseReopen:
         assert res.json()['status'] == 'CLOSED'
 
     def test_close_already_closed_returns_409(self, auth_client, user, db):
-        from apps.support.models import SupportTicket
         t = SupportTicket.objects.create(
             user=user, subject='Cerrar', body='Mensaje original del ticket.',
             status='CLOSED')
@@ -200,14 +189,12 @@ class TestCloseReopen:
         assert res.status_code == 409
 
     def test_close_other_user_ticket_returns_404(self, auth_client, admin_user, db):
-        from apps.support.models import SupportTicket
         t = SupportTicket.objects.create(
             user=admin_user, subject='Ajeno', body='Mensaje original del ticket.')
         res = auth_client.post(f'{TICKETS_URL}{t.pk}/close/', {}, format='json')
         assert res.status_code == 404
 
     def test_reopen_closed_ticket(self, auth_client, user, db):
-        from apps.support.models import SupportTicket
         t = SupportTicket.objects.create(
             user=user, subject='Reabrir', body='Mensaje original del ticket.',
             status='CLOSED')
@@ -216,7 +203,6 @@ class TestCloseReopen:
         assert res.json()['status'] == 'OPEN'
 
     def test_reopen_open_ticket_returns_409(self, auth_client, user, db):
-        from apps.support.models import SupportTicket
         t = SupportTicket.objects.create(
             user=user, subject='Reabrir', body='Mensaje original del ticket.')
         res = auth_client.post(f'{TICKETS_URL}{t.pk}/reopen/', {}, format='json')
@@ -226,7 +212,6 @@ class TestCloseReopen:
 # ────────────────────────────── UC-SUPP-05 ────────────────────────────────
 class TestAdminQueue:
     def test_admin_lists_all_tickets(self, admin_client, user, db):
-        from apps.support.models import SupportTicket
         SupportTicket.objects.create(
             user=user, subject='Uno', body='Mensaje suficientemente largo.')
         SupportTicket.objects.create(
@@ -243,7 +228,6 @@ class TestAdminQueue:
         assert res.status_code == 403
 
     def test_admin_filter_by_status(self, admin_client, user, db):
-        from apps.support.models import SupportTicket
         SupportTicket.objects.create(
             user=user, subject='Abierto', body='Mensaje suficientemente largo.')
         SupportTicket.objects.create(
@@ -256,7 +240,6 @@ class TestAdminQueue:
         assert all(item['status'] == 'CLOSED' for item in items)
 
     def test_admin_filter_by_priority(self, admin_client, user, db):
-        from apps.support.models import SupportTicket
         SupportTicket.objects.create(
             user=user, subject='Alta', body='Mensaje suficientemente largo.',
             priority='HIGH')
@@ -276,7 +259,6 @@ class TestCreateTicketOrderOwnership:
     """D-002 — order_id solo se acepta si pertenece al comprador autenticado."""
 
     def _make_order(self, owner):
-        from apps.orders.models import Order
         return Order.objects.create(user=owner, status=Order.STATUS_PENDING)
 
     def test_create_ticket_with_own_order_returns_201(self, auth_client, user, db):
@@ -354,7 +336,6 @@ class TestCreateTicketDuplicateDetection:
         assert second.status_code == 201
 
     def test_closed_ticket_does_not_block_new_one(self, auth_client, user, db):
-        from apps.support.models import SupportTicket
         SupportTicket.objects.create(
             user=user, subject='Antiguo', body='Mensaje suficientemente largo.',
             category='GENERAL', status=SupportTicket.Status.CLOSED)
@@ -367,7 +348,6 @@ class TestCreateTicketDuplicateDetection:
         assert res.status_code == 201
 
     def test_different_order_allows_new_ticket(self, auth_client, user, db):
-        from apps.orders.models import Order
         order_a = Order.objects.create(user=user, status=Order.STATUS_PENDING)
         order_b = Order.objects.create(user=user, status=Order.STATUS_PENDING)
 

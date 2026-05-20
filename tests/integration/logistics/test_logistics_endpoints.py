@@ -11,6 +11,10 @@ Endpoints under test:
 English JSON keys per DEC-DOC-005. Spanish business codes per DEC-DOC-006.
 """
 from decimal import Decimal
+from apps.catalogue.models import Category, Product
+from apps.orders.models import Order, OrderAddress, OrderItem, OrderValue
+from apps.logistics.models import Courier, ShipmentGuide
+from django.utils import timezone
 
 import pytest
 
@@ -26,13 +30,11 @@ GUIDE_URL    = lambda pk: f'/api/v1/logistics/guides/{pk}/'
 
 @pytest.fixture
 def cat_log(db):
-    from apps.catalogue.models import Category
     return Category.objects.create(name='Logistics', slug='log-cat', is_active=True)
 
 
 @pytest.fixture
 def prod_log(db, cat_log):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Pulsera Yoruba', slug='pulsera-yoruba', sku='LOG-PY-001',
         category=cat_log, price=Decimal('500.00'), stock=10,
@@ -42,9 +44,6 @@ def prod_log(db, cat_log):
 
 @pytest.fixture
 def order_log(db, user, prod_log):
-    from apps.orders.models import (
-        Order, OrderAddress, OrderItem, OrderValue,
-    )
     o = Order.objects.create(user=user, status=Order.STATUS_IN_PREPARATION)
     OrderItem.objects.create(
         order=o, product=prod_log, product_name=prod_log.name,
@@ -64,7 +63,6 @@ def order_log(db, user, prod_log):
 
 @pytest.fixture
 def courier_log(db):
-    from apps.logistics.models import Courier
     return Courier.objects.create(name='Estafeta', code='ESF')
 
 
@@ -90,12 +88,8 @@ class TestLogisticsPanel:
     def test_panel_separa_groups_a_y_b(
         self, admin_client, order_log, courier_log, prod_log, user, db
     ):
-        from apps.logistics.models import ShipmentGuide
         # group A: order_log has no guide.
         # group B: create another order + guide.
-        from apps.orders.models import (
-            Order, OrderItem, OrderValue, OrderAddress,
-        )
         o2 = Order.objects.create(user=user, status='SHIPPED')
         OrderItem.objects.create(
             order=o2, product=prod_log, product_name=prod_log.name,
@@ -123,7 +117,6 @@ class TestLogisticsPanel:
     def test_panel_courier_id_filter(
         self, admin_client, order_log, courier_log, prod_log, user, db
     ):
-        from apps.logistics.models import Courier, ShipmentGuide
         c2 = Courier.objects.create(name='DHL', code='DHL')
         ShipmentGuide.objects.create(
             order=order_log, courier=c2, tracking_number='OTHER-001',
@@ -156,7 +149,6 @@ class TestCreateShipmentGuide:
     def test_tracking_duplicado_emite_codigo_error_loud(
         self, admin_client, order_log, courier_log, db
     ):
-        from apps.logistics.models import ShipmentGuide
         ShipmentGuide.objects.create(
             order=order_log, courier=courier_log, tracking_number='DUPE',
         )
@@ -174,7 +166,6 @@ class TestUpdateGuideStatus:
     def test_admin_actualiza_status(
         self, admin_client, order_log, courier_log, db,
     ):
-        from apps.logistics.models import ShipmentGuide
         g = ShipmentGuide.objects.create(
             order=order_log, courier=courier_log, tracking_number='UPD-1',
         )
@@ -190,7 +181,6 @@ class TestUpdateGuideStatus:
     def test_status_invalido_emite_codigo_error_loud(
         self, admin_client, order_log, courier_log, db,
     ):
-        from apps.logistics.models import ShipmentGuide
         g = ShipmentGuide.objects.create(
             order=order_log, courier=courier_log, tracking_number='UPD-2',
         )
@@ -205,7 +195,6 @@ class TestConfirmDelivery:
     def test_confirmacion_primera_vez_marca_delivered(
         self, admin_client, order_log, courier_log, db,
     ):
-        from apps.logistics.models import ShipmentGuide
         g = ShipmentGuide.objects.create(
             order=order_log, courier=courier_log, tracking_number='DEL-1',
             status=ShipmentGuide.STATUS_IN_TRANSIT,
@@ -221,8 +210,6 @@ class TestConfirmDelivery:
     def test_confirmacion_idempotente(
         self, admin_client, order_log, courier_log, db,
     ):
-        from apps.logistics.models import ShipmentGuide
-        from django.utils import timezone
         g = ShipmentGuide.objects.create(
             order=order_log, courier=courier_log, tracking_number='DEL-2',
             status=ShipmentGuide.STATUS_DELIVERED,
@@ -235,7 +222,6 @@ class TestConfirmDelivery:
     def test_guia_cancelada_no_se_puede_confirmar(
         self, admin_client, order_log, courier_log, db,
     ):
-        from apps.logistics.models import ShipmentGuide
         g = ShipmentGuide.objects.create(
             order=order_log, courier=courier_log, tracking_number='DEL-3',
             status=ShipmentGuide.STATUS_CANCELLED,

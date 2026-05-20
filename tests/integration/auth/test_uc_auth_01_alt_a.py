@@ -12,6 +12,7 @@ RegisterView.post (commit posterior al refactor PEP 8):
 import pytest
 from django.core import mail
 from django.utils import timezone
+from django.contrib.auth import get_user_model
 
 pytestmark = pytest.mark.api
 
@@ -27,7 +28,6 @@ NEW_REGISTRATION = {
 
 @pytest.fixture
 def active_user(db):
-    from django.contrib.auth import get_user_model
     return get_user_model().objects.create_user(
         username='activo',
         email='rebote@practicayoruba.mx',
@@ -38,7 +38,6 @@ def active_user(db):
 
 @pytest.fixture
 def unverified_user(db):
-    from django.contrib.auth import get_user_model
     User = get_user_model()
     u = User.objects.create_user(
         username='unverif',
@@ -54,7 +53,6 @@ def unverified_user(db):
 
 @pytest.fixture
 def self_deleted_user(db):
-    from django.contrib.auth import get_user_model
     User = get_user_model()
     u = User.objects.create_user(
         username='exuser',
@@ -70,7 +68,6 @@ def self_deleted_user(db):
 
 @pytest.fixture
 def suspended_user(db):
-    from django.contrib.auth import get_user_model
     User = get_user_model()
     u = User.objects.create_user(
         username='suspended',
@@ -129,7 +126,6 @@ class TestAltA2InactivaReactivable:
         assert len(mail.outbox) >= 1
 
     def test_no_crea_usuario_duplicado(self, api_client, unverified_user):
-        from django.contrib.auth import get_user_model
         api_client.post(URL, NEW_REGISTRATION, format='json')
         count = get_user_model().objects.filter(
             email__iexact='rebote@practicayoruba.mx',
@@ -166,7 +162,6 @@ class TestRegistroNuevoFlujoEstandar:
         assert r.status_code == 201
 
     def test_email_nuevo_setea_reason_unverified(self, api_client, db):
-        from django.contrib.auth import get_user_model
         api_client.post(URL, NEW_REGISTRATION, format='json')
         u = get_user_model().objects.get(email='rebote@practicayoruba.mx')
         assert u.is_active is False

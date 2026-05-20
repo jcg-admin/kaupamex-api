@@ -5,13 +5,14 @@ DEC-DOC-007: SupportTicket inherits from SoftDeleteModel to preserve
 support history referenced by SupportTicketReply via CASCADE.
 """
 import pytest
+from apps.support.models import SupportTicket
+from apps.core.models import SoftDeleteModel
 
 pytestmark = pytest.mark.integration
 
 
 @pytest.fixture
 def ticket(db, user):
-    from apps.support.models import SupportTicket
     return SupportTicket.objects.create(
         user=user,
         subject='Issue X',
@@ -25,14 +26,11 @@ class TestSupportTicketSoftDelete:
 
     @pytest.mark.django_db
     def test_inherits_softdeletemodel(self):
-        from apps.support.models import SupportTicket
-        from apps.core.models import SoftDeleteModel
         assert issubclass(SupportTicket, SoftDeleteModel)
         assert hasattr(SupportTicket, 'all_objects')
 
     @pytest.mark.django_db
     def test_delete_hides_from_default_manager(self, ticket):
-        from apps.support.models import SupportTicket
         pk = ticket.pk
         ticket.delete()
         assert not SupportTicket.objects.filter(pk=pk).exists()
@@ -42,14 +40,12 @@ class TestSupportTicketSoftDelete:
 
     @pytest.mark.django_db
     def test_restore(self, ticket):
-        from apps.support.models import SupportTicket
         ticket.delete()
         SupportTicket.all_objects.get(pk=ticket.pk).restore()
         assert SupportTicket.objects.filter(pk=ticket.pk).exists()
 
     @pytest.mark.django_db
     def test_hard_delete_removes(self, ticket):
-        from apps.support.models import SupportTicket
         pk = ticket.pk
         ticket.hard_delete()
         assert not SupportTicket.all_objects.filter(pk=pk).exists()

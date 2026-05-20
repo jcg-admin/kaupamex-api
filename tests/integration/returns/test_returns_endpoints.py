@@ -15,6 +15,7 @@ UC-RET-06  POST   /api/v1/admin/returns/{id}/refund/        refund
 Identifiers in English (DEC-DOC-005).
 """
 import pytest
+from apps.returns.models import ReturnRequest, ReturnHistoryEntry
 
 pytestmark = pytest.mark.integration
 
@@ -81,7 +82,6 @@ class TestCreateReturn:
 # ────────────────────────────── UC-RET-04 ────────────────────────────────
 class TestListAndDetail:
     def test_list_only_own_returns(self, auth_client, user, admin_user, db):
-        from apps.returns.models import ReturnRequest
         ReturnRequest.objects.create(
             user=user, order_id=1, reason='OTHER',
             description='Mensaje suficientemente largo de prueba.')
@@ -96,7 +96,6 @@ class TestListAndDetail:
         assert items[0]['order_id'] == 1
 
     def test_detail_includes_history(self, auth_client, user, db):
-        from apps.returns.models import ReturnHistoryEntry, ReturnRequest
         ret = ReturnRequest.objects.create(
             user=user, order_id=1, reason='OTHER',
             description='Mensaje suficientemente largo de prueba.')
@@ -114,7 +113,6 @@ class TestListAndDetail:
 
     def test_detail_other_user_returns_404(self, auth_client, admin_user, db):
         """RNF-SEC-003 — no revelar existencia."""
-        from apps.returns.models import ReturnRequest
         ret = ReturnRequest.objects.create(
             user=admin_user, order_id=1, reason='OTHER',
             description='Mensaje suficientemente largo de prueba.')
@@ -129,7 +127,6 @@ class TestAdminQueue:
         assert res.status_code == 403
 
     def test_admin_sees_all_with_metrics_block(self, admin_client, user, db):
-        from apps.returns.models import ReturnRequest
         ReturnRequest.objects.create(
             user=user, order_id=1, reason='OTHER',
             description='Mensaje suficientemente largo de prueba.')
@@ -146,7 +143,6 @@ class TestAdminQueue:
         assert body['metrics']['aprobadas'] >= 1
 
     def test_admin_filter_by_status(self, admin_client, user, db):
-        from apps.returns.models import ReturnRequest
         ReturnRequest.objects.create(
             user=user, order_id=1, reason='OTHER',
             description='Mensaje suficientemente largo de prueba.')
@@ -160,7 +156,6 @@ class TestAdminQueue:
         assert all(r['status'] == 'APPROVED' for r in results)
 
     def test_available_action_for_pending(self, admin_client, user, db):
-        from apps.returns.models import ReturnRequest
         ReturnRequest.objects.create(
             user=user, order_id=1, reason='OTHER',
             description='Mensaje suficientemente largo de prueba.')
@@ -172,7 +167,6 @@ class TestAdminQueue:
 # ────────────────────────────── UC-RET-02 ────────────────────────────────
 class TestAdminApproveReject:
     def _create_pending(self, user, order_id=1):
-        from apps.returns.models import ReturnRequest
         return ReturnRequest.objects.create(
             user=user, order_id=order_id, reason='DAMAGED_PRODUCT',
             description='Mensaje suficientemente largo de prueba.')
@@ -238,14 +232,12 @@ class TestAdminApproveReject:
 # ────────────────────────────── UC-RET-03 ────────────────────────────────
 class TestAdminReception:
     def _create_approved(self, user):
-        from apps.returns.models import ReturnRequest
         return ReturnRequest.objects.create(
             user=user, order_id=1, reason='DAMAGED_PRODUCT',
             description='Mensaje suficientemente largo de prueba.',
             status='APPROVED')
 
     def test_reception_requires_approved(self, admin_client, user, db):
-        from apps.returns.models import ReturnRequest
         ret = ReturnRequest.objects.create(
             user=user, order_id=1, reason='OTHER',
             description='Mensaje suficientemente largo de prueba.')
@@ -283,7 +275,6 @@ class TestAdminReception:
 # ────────────────────────────── UC-RET-06 ────────────────────────────────
 class TestAdminRefund:
     def _create_approved(self, user):
-        from apps.returns.models import ReturnRequest
         return ReturnRequest.objects.create(
             user=user, order_id=1, reason='DAMAGED_PRODUCT',
             description='Mensaje suficientemente largo de prueba.',
@@ -302,7 +293,6 @@ class TestAdminRefund:
         assert str(body['refund_amount']) == '1234.50'
 
     def test_refund_rejected_returns_422(self, admin_client, user, db):
-        from apps.returns.models import ReturnRequest
         ret = ReturnRequest.objects.create(
             user=user, order_id=1, reason='OTHER',
             description='Mensaje suficientemente largo de prueba.',
@@ -328,7 +318,6 @@ class TestAdminRefund:
 # ────────────────────────────── Admin detail ─────────────────────────────
 class TestAdminDetail:
     def test_admin_detail_includes_user_info(self, admin_client, user, db):
-        from apps.returns.models import ReturnRequest
         ret = ReturnRequest.objects.create(
             user=user, order_id=1, reason='OTHER',
             description='Mensaje suficientemente largo de prueba.')
@@ -340,7 +329,6 @@ class TestAdminDetail:
 
     def test_non_admin_cannot_access_admin_detail(
             self, auth_client, user, db):
-        from apps.returns.models import ReturnRequest
         ret = ReturnRequest.objects.create(
             user=user, order_id=1, reason='OTHER',
             description='Mensaje suficientemente largo de prueba.')

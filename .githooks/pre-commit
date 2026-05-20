@@ -32,8 +32,8 @@ while IFS= read -r line; do
     STAGED_PY+=("$line")
 done < <(
     git diff --cached --name-only --diff-filter=ACM \
-        -- 'practicayoruba/apps/***.py' 2>/dev/null \
-    | grep -v 'migrations/' || true
+        -- 'practicayoruba/apps/***.py' 'tests/***.py' 2>/dev/null \
+    | grep -vE 'migrations/|__pycache__' || true
 )
 
 if [[ "${#STAGED_PY[@]}" -gt 0 ]]; then

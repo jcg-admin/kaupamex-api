@@ -5,6 +5,13 @@ Nombre descriptivo: dominio, no número de sprint.
 """
 import pytest
 from decimal import Decimal
+from apps.catalogue.models import Category, Product
+from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from django.contrib.auth import get_user_model
+from apps.payments.models import Payment, Refund
+from apps.settings_app.models import PaymentGateway, ShippingMethod
+from unittest.mock import patch, MagicMock
+from apps.chartsize.models import VariantType, VariantOption, ProductVariant
 
 pytestmark = pytest.mark.integration
 
@@ -21,13 +28,11 @@ SHIPPING_URL= lambda o: f'/api/v1/{o}/shipping/'
 
 @pytest.fixture
 def cat_ord(db):
-    from apps.catalogue.models import Category
     return Category.objects.create(name='Cat Ord', slug='cat-ord', is_active=True)
 
 
 @pytest.fixture
 def prod_ord(db, cat_ord):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Collar Yoruba Test', slug='collar-yoruba-test', sku='ORD-CY-001',
         description='', category=cat_ord,
@@ -37,7 +42,6 @@ def prod_ord(db, cat_ord):
 
 
 def _create_full_order(user, prod, status='PENDING', n_items=1):
-    from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
     order = Order.objects.create(user=user, status=status)
     for i in range(n_items):
         OrderItem.objects.create(
@@ -79,7 +83,6 @@ class TestDetalleOrden:
         assert 'status_display' in data
 
     def test_rnf_sec_003_orden_ajena_retorna_404(self, auth_client, prod_ord, db):
-        from django.contrib.auth import get_user_model
         User = get_user_model()
         other = User.objects.create_user(
             username='other_ord', email='other@ord.com', password='pass'
@@ -114,7 +117,6 @@ class TestListadoOrdenes:
     def test_listado_solo_muestra_ordenes_propias(
         self, auth_client, user, prod_ord, db
     ):
-        from django.contrib.auth import get_user_model
         User = get_user_model()
         other = User.objects.create_user(
             username='other_list', email='ol@test.com', password='pass'
@@ -209,9 +211,6 @@ class TestCancelarOrden:
         self, auth_client, user, prod_ord, db
     ):
         """H-ORD-004: cancelar orden PROCESSING con Payment → reembolso automático."""
-        from apps.payments.models import Payment, Refund
-        from apps.settings_app.models import PaymentGateway
-        from unittest.mock import patch, MagicMock
 
         gw = PaymentGateway(name='MP', gateway='MERCADOPAGO', is_active=True)
         gw.set_credentials({'access_token': 'T', 'client_secret': 'S'})
@@ -246,7 +245,6 @@ class TestCancelarOrden:
     def test_cancelar_rnf_sec_003_orden_ajena_retorna_404(
         self, auth_client, prod_ord, db
     ):
-        from django.contrib.auth import get_user_model
         User = get_user_model()
         other = User.objects.create_user(
             username='other_cancel', email='oc@test.com', password='pass'
@@ -298,7 +296,6 @@ class TestEditarDireccion:
         assert res.json()['codigo_error'] == 'DIRECCION_NO_EDITABLE'
 
     def test_editar_direccion_rnf_sec_003(self, auth_client, prod_ord, db):
-        from django.contrib.auth import get_user_model
         User = get_user_model()
         other = User.objects.create_user(
             username='other_addr', email='oa@test.com', password='pass'
@@ -319,7 +316,6 @@ class TestCambiarMetodoEnvio:
 
     @pytest.fixture
     def shipping_methods(self, db):
-        from apps.settings_app.models import ShippingMethod
         express = ShippingMethod.objects.create(
             name='Express', cost=Decimal('150.00'),
             estimated_days=1, is_active=True,
@@ -333,7 +329,6 @@ class TestCambiarMetodoEnvio:
     def test_cambiar_envio_recalcula_total(
         self, auth_client, user, prod_ord, shipping_methods, db
     ):
-        from apps.settings_app.models import ShippingMethod
 
         order = _create_full_order(user, prod_ord, status='PENDING')
         order.shipping_method = shipping_methods['express']
@@ -382,9 +377,6 @@ class TestProteccionVariantesOrdenes:
 
     def test_no_eliminar_variante_con_orden_activa(self, admin_client, prod_ord, db):
         """H-ORD-005: variante con ActiveOrder no puede eliminarse."""
-        from apps.chartsize.models import VariantType, VariantOption, ProductVariant
-        from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
-        from django.contrib.auth import get_user_model
         User = get_user_model()
 
         vtype  = VariantType.objects.create(name='Talla', product=prod_ord)

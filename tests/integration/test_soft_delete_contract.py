@@ -11,6 +11,10 @@ These tests validate the SoftDeleteModel mixin in apps.core.models:
 - ``queryset.delete()`` does a bulk soft delete via UPDATE.
 """
 import pytest
+from apps.core.models import SoftDeleteModel, SoftDeleteManager, AllObjectsManager
+from apps.catalogue.models import Product, Category
+from apps.orders.models import Order
+from apps.users.models import Address
 
 pytestmark = pytest.mark.integration
 
@@ -19,19 +23,14 @@ class TestSoftDeleteContract:
     """Contract tests against apps.core.models.SoftDeleteModel."""
 
     def test_softdeletemodel_is_abstract(self):
-        from apps.core.models import SoftDeleteModel
         assert SoftDeleteModel._meta.abstract is True
 
     def test_softdeletemodel_declares_required_fields(self):
-        from apps.core.models import SoftDeleteModel
         field_names = {f.name for f in SoftDeleteModel._meta.get_fields()}
         assert 'is_deleted' in field_names
         assert 'deleted_at' in field_names
 
     def test_softdeletemodel_exposes_dual_managers(self):
-        from apps.core.models import (
-            SoftDeleteModel, SoftDeleteManager, AllObjectsManager,
-        )
         # Managers son tipos distintos; los modelos concretos
         # heredan ambos. Verificamos los tipos en el mixin abstracto.
         assert SoftDeleteManager is not AllObjectsManager
@@ -51,7 +50,6 @@ class TestSoftDeleteOnProduct:
 
     @pytest.mark.django_db
     def test_delete_marks_soft_and_hides_from_default_manager(self):
-        from apps.catalogue.models import Product, Category
         cat = Category.objects.create(name='Cat soft', slug='cat-soft')
         product = Product.objects.create(
             category=cat, name='Soft Delete Subject',
@@ -70,7 +68,6 @@ class TestSoftDeleteOnProduct:
 
     @pytest.mark.django_db
     def test_restore_reverts_soft_delete(self):
-        from apps.catalogue.models import Product, Category
         cat = Category.objects.create(name='Cat restore', slug='cat-restore')
         product = Product.objects.create(
             category=cat, name='Restore Subject',
@@ -84,7 +81,6 @@ class TestSoftDeleteOnProduct:
 
     @pytest.mark.django_db
     def test_hard_delete_actually_removes_row(self):
-        from apps.catalogue.models import Product, Category
         cat = Category.objects.create(name='Cat hard', slug='cat-hard')
         product = Product.objects.create(
             category=cat, name='Hard Delete Subject',
@@ -101,8 +97,6 @@ class TestSoftDeleteOnOrder:
 
     @pytest.mark.django_db
     def test_order_inherits_softdelete(self):
-        from apps.orders.models import Order
-        from apps.core.models import SoftDeleteModel
         assert issubclass(Order, SoftDeleteModel)
         assert hasattr(Order, 'all_objects')
 
@@ -112,7 +106,5 @@ class TestSoftDeleteOnAddress:
 
     @pytest.mark.django_db
     def test_address_inherits_softdelete(self):
-        from apps.users.models import Address
-        from apps.core.models import SoftDeleteModel
         assert issubclass(Address, SoftDeleteModel)
         assert hasattr(Address, 'all_objects')

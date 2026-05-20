@@ -10,6 +10,12 @@ import uuid
 import pytest
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
+from apps.catalogue.models import Category, Product
+from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from apps.settings_app.models import PaymentGateway, ShippingMethod
+from apps.payments.models import Payment, PaymentGatewayEvent
+from apps.users.models import Address
+from apps.cart.models import CartItem
 
 pytestmark = pytest.mark.integration
 
@@ -25,13 +31,11 @@ EXPRESS_URL     = '/api/v1/checkout/express/'
 
 @pytest.fixture
 def cat_s15(db):
-    from apps.catalogue.models import Category
     return Category.objects.create(name='Cat S15', slug='cat-s15', is_active=True)
 
 
 @pytest.fixture
 def prod_s15(db, cat_s15):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Prod S15', slug='prod-s15', sku='S15-001',
         description='', category=cat_s15,
@@ -43,7 +47,6 @@ def prod_s15(db, cat_s15):
 @pytest.fixture
 def orden_pendiente(db, user, prod_s15):
     """Orden en estado PENDING con OrderValue."""
-    from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
     order = Order.objects.create(
         user=user, status='PENDING',
     )
@@ -68,7 +71,6 @@ def orden_pendiente(db, user, prod_s15):
 @pytest.fixture
 def mp_gateway_activo(db, admin_user):
     """PaymentGateway de MercadoPago activo con credenciales de prueba."""
-    from apps.settings_app.models import PaymentGateway
     gw = PaymentGateway(
         name='MercadoPago Test',
         gateway='MERCADOPAGO',
@@ -152,7 +154,6 @@ class TestIniciarPago:
     def test_iniciar_pago_crea_registro_payment_en_bd(
         self, auth_client, orden_pendiente, mp_gateway_activo, mock_mp_sdk, db
     ):
-        from apps.payments.models import Payment
         auth_client.post(INITIATE_URL, {
             'order_number': orden_pendiente.order_number,
         }, format='json')
@@ -164,7 +165,6 @@ class TestIniciarPago:
     def test_iniciar_pago_registra_evento_de_auditoria(
         self, auth_client, orden_pendiente, mp_gateway_activo, mock_mp_sdk, db
     ):
-        from apps.payments.models import Payment, PaymentGatewayEvent
         auth_client.post(INITIATE_URL, {
             'order_number': orden_pendiente.order_number,
         }, format='json')
@@ -227,7 +227,6 @@ class TestIniciarPago:
     def test_retorno_gateway_aprobado_actualiza_payment(
         self, auth_client, orden_pendiente, mp_gateway_activo, mock_mp_sdk, db
     ):
-        from apps.payments.models import Payment
         # Crear el Payment primero
         auth_client.post(INITIATE_URL, {
             'order_number': orden_pendiente.order_number,
@@ -246,7 +245,6 @@ class TestIniciarPago:
     def test_retorno_gateway_pendiente_no_cambia_status(
         self, auth_client, orden_pendiente, mp_gateway_activo, mock_mp_sdk, db
     ):
-        from apps.payments.models import Payment
         auth_client.post(INITIATE_URL, {
             'order_number': orden_pendiente.order_number,
         }, format='json')
@@ -308,7 +306,6 @@ class TestCuotasMSI:
         self, auth_client, orden_pendiente, mp_gateway_activo, mock_mp_sdk, db
     ):
         """UC-PAY-01-EXT: iniciar pago con 3 cuotas MSI."""
-        from apps.payments.models import Payment
         res = auth_client.post(INITIATE_URL, {
             'order_number': orden_pendiente.order_number,
             'installments': 3,
@@ -339,9 +336,6 @@ class TestCheckoutExpress:
         self, auth_client, user, cat_s15, db
     ):
         """Comprador con orden DELIVERED y dirección default → eligible."""
-        from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
-        from apps.users.models import Address
-        from apps.settings_app.models import ShippingMethod
 
         ShippingMethod.objects.create(
             name='Estándar', cost=Decimal('80'), estimated_days=5, is_active=True
@@ -364,7 +358,6 @@ class TestCheckoutExpress:
     def test_comprador_sin_direccion_default_no_es_elegible(
         self, auth_client, user, db
     ):
-        from apps.orders.models import Order
         Order.objects.create(user=user, status='DELIVERED')
         # Sin dirección default
         res = auth_client.get(ELIGIBILITY_URL)
@@ -385,9 +378,6 @@ class TestCheckoutExpress:
         self, auth_client, user, prod_s15, db
     ):
         """Comprador elegible con carrito → crea orden directa."""
-        from apps.orders.models import Order
-        from apps.users.models import Address
-        from apps.settings_app.models import ShippingMethod
 
         ShippingMethod.objects.create(
             name='Estándar', cost=Decimal('80'), estimated_days=5, is_active=True
@@ -416,10 +406,6 @@ class TestCheckoutExpress:
     def test_express_checkout_vacia_el_carrito(
         self, auth_client, user, prod_s15, db
     ):
-        from apps.orders.models import Order
-        from apps.users.models import Address
-        from apps.settings_app.models import ShippingMethod
-        from apps.cart.models import CartItem
 
         ShippingMethod.objects.create(
             name='Estándar', cost=Decimal('80'), estimated_days=5, is_active=True

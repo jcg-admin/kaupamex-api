@@ -5,6 +5,8 @@ Cada transicion is_active=True -> False debe crear UNA fila en
 users_deactivation_event con (reason, source, actor) consistentes.
 """
 import pytest
+from apps.users.models import UserDeactivationEvent
+from django.contrib.auth import get_user_model
 
 pytestmark = pytest.mark.api
 
@@ -13,7 +15,6 @@ class TestEventOnRegister:
     """Cuenta nueva -> evento source='register', actor=None."""
 
     def test_register_crea_evento_unverified(self, api_client, db):
-        from apps.users.models import UserDeactivationEvent
         api_client.post('/api/v1/auth/register/', {
             'username': 'newev',
             'email': 'newev@practicayoruba.mx',
@@ -32,7 +33,6 @@ class TestEventOnSelfDeactivate:
     """UC-AUTH-16 -> evento source='self', actor=None."""
 
     def test_self_deactivate_crea_evento(self, auth_client, user):
-        from apps.users.models import UserDeactivationEvent
         auth_client.post(
             '/api/v1/auth/me/deactivate/',
             {'password': 'TestPass123!'},
@@ -53,14 +53,12 @@ class TestEventOnAdminSuspend:
 
     @pytest.fixture
     def target_user(self, db):
-        from django.contrib.auth import get_user_model
         return get_user_model().objects.create_user(
             username='tgt', email='tgt@practicayoruba.mx',
             password='X', is_active=True,
         )
 
     def test_admin_suspend_crea_evento(self, admin_auth_client, admin_user, target_user):
-        from apps.users.models import UserDeactivationEvent
         admin_auth_client.post(
             f'/api/v1/admin/users/{target_user.pk}/suspend/',
         )
@@ -74,7 +72,6 @@ class TestEventOnAdminSuspend:
     def test_admin_suspend_acepta_note_en_payload(
         self, admin_auth_client, admin_user, target_user,
     ):
-        from apps.users.models import UserDeactivationEvent
         admin_auth_client.post(
             f'/api/v1/admin/users/{target_user.pk}/suspend/',
             {'note': 'usuario reporto fraude'},
@@ -89,7 +86,6 @@ class TestEventOrdering:
 
     @pytest.fixture
     def target(self, db):
-        from django.contrib.auth import get_user_model
         return get_user_model().objects.create_user(
             username='cycle', email='cycle@practicayoruba.mx',
             password='X', is_active=True,
@@ -98,7 +94,6 @@ class TestEventOrdering:
     def test_dos_suspensiones_consecutivas_crean_dos_eventos(
         self, admin_auth_client, target,
     ):
-        from apps.users.models import UserDeactivationEvent
         admin_auth_client.post(f'/api/v1/admin/users/{target.pk}/suspend/')
         admin_auth_client.post(f'/api/v1/admin/users/{target.pk}/reactivate/')
         admin_auth_client.post(f'/api/v1/admin/users/{target.pk}/suspend/')

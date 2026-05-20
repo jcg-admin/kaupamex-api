@@ -12,6 +12,7 @@ BD: practicayoruba_qa
 """
 import pytest
 from django.urls import reverse
+from rest_framework_simplejwt.tokens import RefreshToken
 
 pytestmark = pytest.mark.integration
 
@@ -75,7 +76,6 @@ class TestRefreshEndpoint:
     """POST /api/v1/auth/refresh/ — renueva el access token."""
 
     def test_refresh_con_token_valido_retorna_200(self, api_client, user):
-        from rest_framework_simplejwt.tokens import RefreshToken
         refresh = RefreshToken.for_user(user)
 
         url = reverse('users:token-refresh')
@@ -99,7 +99,6 @@ class TestLogoutEndpoint:
     """POST /api/v1/auth/logout/ — invalida el refresh token."""
 
     def test_logout_con_refresh_valido_retorna_200(self, api_client, user):
-        from rest_framework_simplejwt.tokens import RefreshToken
         refresh = RefreshToken.for_user(user)
 
         url = reverse('users:logout')
@@ -110,7 +109,6 @@ class TestLogoutEndpoint:
         assert response.status_code == 200
 
     def test_refresh_invalido_despues_de_logout(self, api_client, user):
-        from rest_framework_simplejwt.tokens import RefreshToken
         refresh = RefreshToken.for_user(user)
         token_str = str(refresh)
 

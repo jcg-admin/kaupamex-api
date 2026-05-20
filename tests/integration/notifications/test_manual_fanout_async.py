@@ -12,10 +12,14 @@ Verifica que `AdminManualNotificationCreateView`:
 JSON keys + identificadores en ingles (DEC-DOC-005).
 """
 from unittest import mock
-
-import pytest
 from django.contrib.auth import get_user_model
 from django.test import override_settings
+from decimal import Decimal
+from apps.catalogue.models import Category, Product
+from apps.orders.models import Order, OrderItem
+from apps.notifications.models import Notification
+
+import pytest
 
 
 ADMIN_MANUAL_URL = '/api/v1/admin/notifications/manual/'
@@ -28,10 +32,7 @@ def _create_buyers(n):
     orders/catalogue cuando este test corre — evita romper el modulo
     si esas apps cambian en otros bumps.
     """
-    from decimal import Decimal
 
-    from apps.catalogue.models import Category, Product
-    from apps.orders.models import Order, OrderItem
 
     category, _ = Category.objects.get_or_create(
         name='Fanout cat', defaults={'slug': 'fanout-cat'},
@@ -94,7 +95,6 @@ class TestManualFanoutBranching:
         # No se despacho al broker porque la audiencia esta bajo el umbral.
         mocked_delay.assert_not_called()
 
-        from apps.notifications.models import Notification
         assert Notification.objects.filter(
             user=user, subject='Sync branch',
         ).count() == 1
@@ -129,7 +129,6 @@ class TestManualFanoutBranching:
 
         # Con CELERY_TASK_ALWAYS_EAGER=True el task se ejecuto en proceso
         # y creo las Notification correspondientes.
-        from apps.notifications.models import Notification
         created = Notification.objects.filter(subject='Async branch')
         assert created.count() == 3
         assert set(created.values_list('user_id', flat=True)) == set(user_ids)

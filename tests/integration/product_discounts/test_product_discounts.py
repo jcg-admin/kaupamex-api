@@ -10,9 +10,10 @@ DEC-DOC-005: English identifiers and English JSON keys.
 """
 from datetime import timedelta
 from decimal import Decimal
+from django.utils import timezone
+from apps.catalogue.models import Category, Product, ProductDiscount
 
 import pytest
-from django.utils import timezone
 
 pytestmark = pytest.mark.integration
 
@@ -33,13 +34,11 @@ def _future(**kw):
 
 @pytest.fixture
 def category(db):
-    from apps.catalogue.models import Category
     return Category.objects.create(name='Discount Cat', slug='discount-cat', is_active=True)
 
 
 @pytest.fixture
 def product(db, category):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Discounted Prod', slug='discounted-prod', sku='DISC-001',
         description='', category=category,
@@ -50,7 +49,6 @@ def product(db, category):
 
 @pytest.fixture
 def product_b(db, category):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Other Prod', slug='other-prod', sku='OTHER-001',
         description='', category=category,
@@ -61,7 +59,6 @@ def product_b(db, category):
 
 @pytest.fixture
 def current_discount(db, product, admin_user):
-    from apps.catalogue.models import ProductDiscount
     return ProductDiscount.objects.create(
         product=product,
         discount_pct=Decimal('20.00'),
@@ -93,7 +90,6 @@ class TestListProductDiscounts:
         assert Decimal(row['discounted_price']) == Decimal('800.00')
 
     def test_list_filter_by_status_current(self, admin_client, product, product_b, admin_user):
-        from apps.catalogue.models import ProductDiscount
         ProductDiscount.objects.create(
             product=product, discount_pct=Decimal('10'),
             valid_from=_past(days=1), valid_until=_future(days=10),
@@ -111,7 +107,6 @@ class TestListProductDiscounts:
         assert rows[0]['status'] == 'CURRENT'
 
     def test_list_filter_by_status_future(self, admin_client, product, admin_user):
-        from apps.catalogue.models import ProductDiscount
         ProductDiscount.objects.create(
             product=product, discount_pct=Decimal('15'),
             valid_from=_future(days=5), valid_until=_future(days=20),
@@ -124,7 +119,6 @@ class TestListProductDiscounts:
         assert rows[0]['status'] == 'FUTURE'
 
     def test_list_filter_by_status_expired(self, admin_client, product, admin_user):
-        from apps.catalogue.models import ProductDiscount
         ProductDiscount.objects.create(
             product=product, discount_pct=Decimal('15'),
             valid_from=_past(days=10), valid_until=_past(days=1),

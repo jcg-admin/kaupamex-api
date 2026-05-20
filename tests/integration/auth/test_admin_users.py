@@ -3,6 +3,7 @@ Tests de integracion — Listado de usuarios (Admin)
 UC-AUTH-11
 """
 import pytest
+from django.contrib.auth import get_user_model
 
 pytestmark = pytest.mark.integration
 
@@ -11,7 +12,6 @@ USERS_URL = '/api/v1/admin/users/'
 
 @pytest.fixture
 def sample_users(db):
-    from django.contrib.auth import get_user_model
     User = get_user_model()
     users = [
         User.objects.create_user(username=f'buyer{i}', email=f'buyer{i}@test.mx',

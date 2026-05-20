@@ -5,6 +5,12 @@ UC-ORD-01: Create order from cart (checkout)
 """
 import pytest
 from decimal import Decimal
+from apps.catalogue.models import Category, Product
+from apps.settings_app.models import ShippingMethod
+from apps.orders.models import Order, OrderValue, OrderAddress
+from apps.cart.models import CartItem
+from apps.voucher.models import Voucher
+from django.utils import timezone
 pytestmark = pytest.mark.integration
 
 CHECKOUT_URL = '/api/v1/checkout/'
@@ -22,13 +28,11 @@ ADDR = {
 
 @pytest.fixture
 def cat_ord(db):
-    from apps.catalogue.models import Category
     return Category.objects.create(name='Cat Ord', slug='cat-ord', is_active=True)
 
 
 @pytest.fixture
 def prod_ord(db, cat_ord):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Prod Ord', slug='prod-ord', sku='ORD-001',
         description='', category=cat_ord,
@@ -47,7 +51,6 @@ def cart_con_item_auth(auth_client, prod_ord):
 
 @pytest.fixture
 def shipping(db):
-    from apps.settings_app.models import ShippingMethod
     return ShippingMethod.objects.create(
         name='Estándar', cost=Decimal('80.00'), estimated_days=5, is_active=True)
 
@@ -80,7 +83,6 @@ class TestCheckout:
         # Cambiar precio del producto — no debe afectar la orden
         prod_ord.price = Decimal('999.00')
         prod_ord.save()
-        from apps.orders.models import Order
         order = Order.objects.get(order_number=res.json()['order_number'])
         assert order.items.first().unit_price == original_price
 
@@ -95,7 +97,6 @@ class TestCheckout:
         self, cart_con_item_auth, db
     ):
         cart_con_item_auth.post(CHECKOUT_URL, {'address': ADDR}, format='json')
-        from apps.cart.models import CartItem
         assert CartItem.objects.count() == 0
 
     def test_checkout_crea_ordervalue(
@@ -172,8 +173,6 @@ class TestCheckout:
     def test_checkout_con_voucher_aplica_descuento(
         self, auth_client, prod_ord, db, admin_user
     ):
-        from apps.voucher.models import Voucher
-        from django.utils import timezone
         v = Voucher.objects.create(
             code='PROMO100', voucher_type='FIXED',
             discount_value=Decimal('100.00'),
@@ -194,7 +193,6 @@ class TestShippingMethodProtection:
     def test_desactivar_metodo_con_ordenes_activas_retorna_400(
         self, admin_client, shipping, prod_ord, db
     ):
-        from apps.orders.models import Order, OrderValue, OrderAddress
         o = Order.objects.create(
             order_number='PY-TEST0001',
             status='PENDING', shipping_method=shipping

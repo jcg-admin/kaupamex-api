@@ -16,6 +16,7 @@ Mutations:
 JSON keys + identifiers in English (DEC-DOC-005).
 """
 import pytest
+from apps.notifications.models import Notification, NotificationPreference
 
 pytestmark = pytest.mark.integration
 
@@ -29,7 +30,6 @@ ADMIN_MANUAL_URL = '/api/v1/admin/notifications/manual/'
 
 # ─── helpers ─────────────────────────────────────────────────────────────
 def _make_notification(user, **kwargs):
-    from apps.notifications.models import Notification
     defaults = {
         'user': user,
         'type': 'SYSTEM',
@@ -120,7 +120,6 @@ class TestMarkAllRead:
         assert res.status_code == 200
         assert res.json()['updated'] == 2
 
-        from apps.notifications.models import Notification
         assert Notification.objects.filter(user=user, read=False).count() == 0
         # ajeno permanece sin tocar
         other.refresh_from_db()
@@ -170,7 +169,6 @@ class TestUpdatePreferences:
         by_type = {r['type']: r for r in body['results']}
         assert by_type['PROMOTION']['enabled'] is False
 
-        from apps.notifications.models import NotificationPreference
         pref = NotificationPreference.objects.get(user=user, type='PROMOTION')
         assert pref.enabled is False
 
@@ -263,7 +261,6 @@ class TestAdminManualNotification:
         assert body['recipients_count'] == 1
         assert body['status'] == 'SENT'
 
-        from apps.notifications.models import Notification
         assert Notification.objects.filter(
             user=user, subject='Hola directo',
         ).count() == 1
@@ -287,7 +284,6 @@ class TestAdminManualNotification:
     def test_send_to_user_who_disabled_promotion_skips_notification(
         self, admin_client, user, db,
     ):
-        from apps.notifications.models import NotificationPreference
         NotificationPreference.objects.create(
             user=user, type='PROMOTION', enabled=False,
         )
@@ -301,7 +297,6 @@ class TestAdminManualNotification:
         # recipients_count refleja la audiencia bruta, no la entregada.
         assert res.json()['recipients_count'] == 1
 
-        from apps.notifications.models import Notification
         assert Notification.objects.filter(
             user=user, subject='Promo bloqueada',
         ).count() == 0

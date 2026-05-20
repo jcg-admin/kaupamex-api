@@ -7,6 +7,10 @@ UC-INV-05: Import products from CSV
 """
 import csv, io, pytest
 from decimal import Decimal
+from apps.catalogue.models import Category, Product
+from apps.chartsize.models import VariantType, VariantOption, ProductVariant
+from apps.inventory.models import StockMovement
+from apps.inventory.services import InventoryService
 
 pytestmark = pytest.mark.integration
 
@@ -16,7 +20,6 @@ IMPORT_URL    = '/api/v1/admin/inventory/import/'
 
 @pytest.fixture
 def cat_s11(db):
-    from apps.catalogue.models import Category
     return Category.objects.create(
         name='Cat S11', slug='cat-s11', is_active=True
     )
@@ -24,7 +27,6 @@ def cat_s11(db):
 
 @pytest.fixture
 def product_s11(db, cat_s11):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Prod S11', slug='prod-s11', sku='S11-001',
         description='', category=cat_s11,
@@ -35,7 +37,6 @@ def product_s11(db, cat_s11):
 
 @pytest.fixture
 def variant_type_s11(db, product_s11):
-    from apps.chartsize.models import VariantType
     return VariantType.objects.create(
         product=product_s11, name='Presentacion', order=0
     )
@@ -43,7 +44,6 @@ def variant_type_s11(db, product_s11):
 
 @pytest.fixture
 def opt_s11(db, variant_type_s11):
-    from apps.chartsize.models import VariantOption
     return VariantOption.objects.create(
         variant_type=variant_type_s11, label='100ml',
         slug='100ml-s11', order=0
@@ -52,7 +52,6 @@ def opt_s11(db, variant_type_s11):
 
 @pytest.fixture
 def variant_s11(db, product_s11, opt_s11):
-    from apps.chartsize.models import ProductVariant
     return ProductVariant.objects.create(
         product=product_s11, option=opt_s11,
         sku_suffix='100', stock=6, is_active=True,
@@ -133,7 +132,6 @@ class TestAjusteDelta:
         self, admin_client, admin_user, product_s11, db
     ):
         """FR-INV-04.02: referencia = ADMIN:<pk>."""
-        from apps.inventory.models import StockMovement
         admin_client.post(
             f'{INV_URL}{product_s11.pk}/adjust/',
             {'delta': 1, 'notes': 'Test'},
@@ -165,7 +163,6 @@ class TestAjusteDelta:
 class TestRestaurarStock:
 
     def test_restaurar_incrementa_stock(self, product_s11, db):
-        from apps.inventory.services import InventoryService
         product_s11.stock = 3
         product_s11.save()
         InventoryService.restore(
@@ -176,7 +173,6 @@ class TestRestaurarStock:
         assert product_s11.stock == 7
 
     def test_restaurar_idempotente_misma_referencia(self, product_s11, db):
-        from apps.inventory.services import InventoryService
         product_s11.stock = 5
         product_s11.save()
         for _ in range(3):
@@ -189,7 +185,6 @@ class TestRestaurarStock:
 
     def test_restaurar_sin_referencia_no_es_idempotente(self, product_s11, db):
         """Sin referencia no hay deduplicación — cada llamada restaura."""
-        from apps.inventory.services import InventoryService
         product_s11.stock = 0
         product_s11.save()
         InventoryService.restore(
@@ -204,7 +199,6 @@ class TestRestaurarStock:
         assert product_s11.stock == 4
 
     def test_restaurar_variante(self, product_s11, variant_s11, db):
-        from apps.inventory.services import InventoryService
         variant_s11.stock = 1
         variant_s11.save()
         InventoryService.restore(
@@ -217,7 +211,6 @@ class TestRestaurarStock:
     def test_check_availability_detecta_insuficiente(
         self, product_s11, db
     ):
-        from apps.inventory.services import InventoryService
         product_s11.stock = 2
         product_s11.save()
         result = InventoryService.check_availability(
@@ -227,7 +220,6 @@ class TestRestaurarStock:
         assert result[0]['available'] == 2
 
     def test_check_availability_stock_suficiente(self, product_s11, db):
-        from apps.inventory.services import InventoryService
         product_s11.stock = 10
         product_s11.save()
         result = InventoryService.check_availability(
@@ -267,7 +259,6 @@ class TestImportarProductosCSV:
         self, admin_client, cat_s11, db
     ):
         """FR-INV-05.02: productos creados con is_active=False, is_published=False."""
-        from apps.catalogue.models import Product
         rows = [{'name': 'Borrador CSV', 'sku': 'BOR-001',
                  'base_price': '800.00', 'category_slug': cat_s11.slug}]
         admin_client.post(IMPORT_URL, {'file': _make_csv(rows)}, format='multipart')
