@@ -73,3 +73,15 @@ else
     echo ">>> FAIL — D-031 regresion detectada"
 fi
 exit "$EXIT"
+
+# H-19: pytest.ini con pythonpath + testpaths
+if grep -qE '^pythonpath\s*=\s*practicayoruba' "$PROJECT_ROOT/pytest.ini"; then
+    pass "pytest.ini define pythonpath = practicayoruba"
+else
+    fail "pytest.ini sin pythonpath para que config sea importable (H-19 regresion)"
+fi
+if grep -qE '^testpaths\s*=\s*tests' "$PROJECT_ROOT/pytest.ini"; then
+    pass "pytest.ini define testpaths = tests"
+else
+    fail "pytest.ini sin testpaths — pytest no encuentra los tests (H-19 regresion)"
+fi
