@@ -85,3 +85,10 @@ if grep -qE '^testpaths\s*=\s*tests' "$PROJECT_ROOT/pytest.ini"; then
 else
     fail "pytest.ini sin testpaths — pytest no encuentra los tests (H-19 regresion)"
 fi
+
+# H-21: pytest.ini con --reuse-db default
+if grep -qE "^\s+--reuse-db" "$PROJECT_ROOT/pytest.ini"; then
+    pass "pytest.ini incluye --reuse-db default (H-21)"
+else
+    fail "pytest.ini sin --reuse-db — pytest cuelga creando test DB (H-21 regresion)"
+fi
