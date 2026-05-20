@@ -12,6 +12,10 @@ from rest_framework.views import APIView
 from apps.catalogue.models import Product
 from apps.chartsize.models import ProductVariant
 from .models import WishlistItem
+from apps.cart.views import _get_or_create_cart
+from apps.cart.models import CartItem
+from django.db import transaction
+from apps.cart.serializers import CartSerializer
 
 
 class WishlistItemSerializer(ModelSerializer):
@@ -129,9 +133,6 @@ class WishlistMoveToCartView(APIView):
             })
 
         # Reutilizar la lógica de agregar al carrito (H-S14-006)
-        from apps.cart.views import _get_or_create_cart
-        from apps.cart.models import CartItem
-        from django.db import transaction
 
         cart, _, _ = _get_or_create_cart(request)
         unit_price = item.current_price
@@ -155,5 +156,4 @@ class WishlistMoveToCartView(APIView):
         if remove:
             item.delete()
 
-        from apps.cart.serializers import CartSerializer
         return Response(CartSerializer(cart).data, status=200)

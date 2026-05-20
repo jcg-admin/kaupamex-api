@@ -9,6 +9,7 @@ import io
 import logging
 import uuid
 from decimal import Decimal, InvalidOperation
+from rest_framework.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
 from django.db import transaction
@@ -176,7 +177,6 @@ class ShippingMethodViewSet(ModelViewSet):
             shipping_method=instance,
         ).count()
         if active_orders > 0:
-            from rest_framework.exceptions import ValidationError
             raise ValidationError({
                 'detail': (
                     f'Este método tiene {active_orders} orden(es) activa(s). '

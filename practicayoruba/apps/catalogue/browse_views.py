@@ -41,6 +41,7 @@ from .views import (
     _validate_query,
     CataloguePagination,
 )
+from apps.search_history.models import SearchEntry
 
 
 # =============================================================================
@@ -175,7 +176,6 @@ class CatalogueSearchView(APIView):
         # Legacy history (catalogue.SearchHistory) — keep old contract green.
         if request.user and request.user.is_authenticated:
             _record_history_async(request.user, q)
-            from apps.search_history.models import SearchEntry
             SearchEntry.objects.create(
                 user=request.user,
                 query=raw_q[:200],

@@ -10,6 +10,9 @@ from decimal import Decimal
 
 from django.db import transaction
 from django.utils import timezone
+from apps.inventory.services import InventoryService
+from apps.inventory.proxy_models import CancellationMovement
+from .models import OrderAddress
 
 logger = logging.getLogger('apps')
 
@@ -33,8 +36,6 @@ def cancel_order(order, reason: str = '', cancelled_by=None, cancelable_statuses
     :raises ValueError: si la orden no es cancelable
     :raises RuntimeError: si el gateway de reembolso falla
     """
-    from apps.inventory.services import InventoryService
-    from apps.inventory.proxy_models import CancellationMovement
 
     _cancelable = cancelable_statuses if cancelable_statuses is not None else CANCELABLE_STATUSES
     if order.status not in _cancelable:
@@ -108,7 +109,6 @@ def update_order_address(order, address_data: dict):
     Solo posible en estados: PENDING, PROCESSING, IN_PREPARATION.
     :raises ValueError: si la orden no permite editar la dirección.
     """
-    from .models import OrderAddress
 
     if order.status not in EDITABLE_STATUSES:
         raise ValueError(

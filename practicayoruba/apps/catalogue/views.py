@@ -3,6 +3,11 @@ import io
 import uuid
 from django.http import HttpResponse
 from django.db import transaction
+from django.db.models import Q
+from django.db.models import Count
+from apps.catalogue.models import Product
+from django.utils import timezone
+import logging
 """
 Views — apps.catalogue
 
@@ -99,7 +104,6 @@ def _fulltext_search(qs, term: str):
     )
     if fulltext_qs.exists():
         return fulltext_qs
-    from django.db.models import Q
     return qs.filter(
         Q(name__icontains=term) |
         Q(description__icontains=term) |
@@ -542,7 +546,6 @@ def _build_category_tree_with_counts():
     Query 2: todas las categorías activas con sus hijos (prefetch_related)
     Luego se propaga bottom-up en Python.
     """
-    from django.db.models import Count
 
     # Query 1: conteo directo por category_id
     direct_counts = dict(
@@ -674,7 +677,6 @@ class ProductDeactivateAction:
         tags=['admin-catalogue'],
     )
     def deactivate(self, request, pk=None):
-        from apps.catalogue.models import Product
         product = self.get_object()
 
         if not product.is_active:
@@ -757,7 +759,6 @@ class ProductAdminViewSet(ProductDeactivateAction, ModelViewSet):
         (``is_active=False``, ``is_published=False``). Purga las
         caches del producto y del arbol de categorias.
         """
-        from django.utils import timezone
         instance.is_active    = False
         instance.is_published = False
         instance.is_deleted   = True
@@ -830,7 +831,6 @@ class ProductPriceSyncView(APIView):
         Cada fila valida: {'sku': str, 'product': Product, 'old_price': Decimal, 'new_price': Decimal}
         Cada fila invalida: {'sku': str, 'error': str, 'line': int}
         """
-        from apps.catalogue.models import Product
         try:
             content = file_obj.read().decode('utf-8-sig')  # utf-8-sig para BOM de Excel
         except UnicodeDecodeError:
@@ -878,7 +878,6 @@ class ProductPriceSyncView(APIView):
     def _apply_percentage(self, pct: float, category_id=None,
                           price_min=None, price_max=None) -> tuple:
         """Calcula ajuste porcentual. Retorna (filas_validas, [])."""
-        from apps.catalogue.models import Product
         qs = Product.objects.filter(is_active=True).only('id', 'sku', 'price', 'name')
         if category_id:
             qs = qs.filter(category_id=category_id)
@@ -961,8 +960,6 @@ class ProductPriceSyncConfirmView(APIView):
                 'codigo_error': 'SESSION_EXPIRADA',
             }, status=400)
 
-        from apps.catalogue.models import Product
-        import logging
         logger = logging.getLogger('apps')
 
         product_ids = [row['product_id'] for row in validas]
@@ -1005,7 +1002,6 @@ class ProductPriceSyncTemplateView(APIView):
         tags=['admin-catalogue'],
     )
     def get(self, request):
-        from apps.catalogue.models import Product
         response = HttpResponse(content_type='text/csv; charset=utf-8')
         response['Content-Disposition'] = 'attachment; filename="price-template.csv"'
         response.write('\ufeff')  # BOM para Excel

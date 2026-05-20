@@ -26,6 +26,24 @@ from .serializers import (
     RefundSerializer, RetryEligibilitySerializer,
 )
 from .services import initiate_payment, handle_gateway_return, get_installment_plans
+from apps.users.models import Address
+from apps.settings_app.models import ShippingMethod
+from apps.cart.models import Cart
+from rest_framework.test import APIRequestFactory
+from rest_framework.request import Request
+from django.db import transaction as db_transaction
+from apps.inventory.services import InventoryService, InsufficientStockError
+from apps.settings_app.models import SiteSettings, ShippingMethod
+from decimal import Decimal as Dec
+from .services import get_payment_status
+from .serializers import PaymentStatusSerializer as PSS
+from .services import get_payment_history
+from .models import Payment as PaymentModel
+from .services import execute_refund
+from .serializers import RefundRequestSerializer as RRS, RefundSerializer
+from .services import get_retry_eligibility
+from .serializers import RetryEligibilitySerializer
+from .serializers import RefundRequestSerializer, RefundSerializer
 
 logger = logging.getLogger('apps')
 
@@ -248,7 +266,6 @@ def _check_express_eligibility(user) -> dict:
         return result
 
     # 2. Tiene dirección predeterminada
-    from apps.users.models import Address
     try:
         addr = Address.objects.get(user=user, is_default=True)
     except Address.DoesNotExist:
@@ -256,7 +273,6 @@ def _check_express_eligibility(user) -> dict:
         return result
 
     # 3. Hay al menos un método de envío activo
-    from apps.settings_app.models import ShippingMethod
     shipping = ShippingMethod.objects.filter(is_active=True).order_by('cost').first()
     if not shipping:
         result['reason'] = 'Sin métodos de envío disponibles.'
@@ -340,7 +356,6 @@ class ExpressCheckoutView(APIView):
             })
 
         # Obtener carrito del usuario
-        from apps.cart.models import Cart
         try:
             cart = Cart.objects.get(user=request.user)
         except Cart.DoesNotExist:
@@ -370,7 +385,6 @@ class ExpressCheckoutView(APIView):
         }
 
         # Crear el request interno con los datos del express
-        from rest_framework.test import APIRequestFactory
         factory = APIRequestFactory()
         inner_request = factory.post('/api/v1/checkout/', checkout_data, format='json')
         inner_request.user = request.user
@@ -378,16 +392,11 @@ class ExpressCheckoutView(APIView):
         inner_request._request = request._request
 
         checkout_view = CheckoutView.as_view()
-        from rest_framework.request import Request
         drf_request = Request(inner_request)
         drf_request.user = request.user
 
         # Ejecutar el checkout directamente
-        from django.db import transaction as db_transaction
-        from apps.inventory.services import InventoryService, InsufficientStockError
         from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
-        from apps.settings_app.models import SiteSettings, ShippingMethod
-        from decimal import Decimal as Dec
 
         cart_items = list(cart.items.select_related('product', 'variant__product', 'variant__option').all())
         check_items = [{'product': ci.product, 'variant': ci.variant, 'quantity': ci.quantity} for ci in cart_items]
@@ -487,8 +496,6 @@ class PaymentStatusView(APIView):
         tags=['payments'],
     )
     def get(self, request, order_number):
-        from .services import get_payment_status
-        from .serializers import PaymentStatusSerializer as PSS
 
         result = get_payment_status(order_number, request.user)
         if result is None:
@@ -521,7 +528,6 @@ class PaymentHistoryView(APIView):
         tags=['payments'],
     )
     def get(self, request, order_number):
-        from .services import get_payment_history
 
         history = get_payment_history(order_number, request.user)
         if history is None:
@@ -561,9 +567,6 @@ class RefundView(APIView):
     )
     def post(self, request, order_number):
         from apps.orders.models import Order
-        from .models import Payment as PaymentModel
-        from .services import execute_refund
-        from .serializers import RefundRequestSerializer as RRS, RefundSerializer
 
         # RNF-SEC-003: usar filter+first, nunca get con user separado
         order = Order.objects.filter(
@@ -628,8 +631,6 @@ class RetryEligibilityView(APIView):
         tags=['payments'],
     )
     def get(self, request, order_number):
-        from .services import get_retry_eligibility
-        from .serializers import RetryEligibilitySerializer
 
         result = get_retry_eligibility(order_number, request.user)
         if result is None:
@@ -672,9 +673,6 @@ class AdminRefundView(APIView):
         tags=['payments-admin'],
     )
     def post(self, request, payment_id):
-        from .models import Payment as PaymentModel
-        from .services import execute_refund
-        from .serializers import RefundRequestSerializer, RefundSerializer
 
         payment = get_object_or_404(PaymentModel, pk=payment_id)
 

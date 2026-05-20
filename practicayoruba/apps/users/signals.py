@@ -13,6 +13,8 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.db import transaction
 from django.contrib.auth import get_user_model
+from .models import User as U
+from .tokens_email import create_verification_token, send_verification_email
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -28,8 +30,6 @@ def send_email_verification_on_register(sender, instance, created, **kwargs):
         user_id = instance.pk
 
         def _send():
-            from .models import User as U
-            from .tokens_email import create_verification_token, send_verification_email
             try:
                 user = U.objects.get(pk=user_id)
                 plain = create_verification_token(user)

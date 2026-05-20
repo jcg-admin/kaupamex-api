@@ -21,6 +21,11 @@ from .serializers import (
     VariantAdjustNewQuantitySerializer,
 )
 from .services import InventoryService, _get_stock_status
+from django.urls import reverse
+from apps.catalogue.models import Category, Product
+from decimal import Decimal
+from django.shortcuts import get_object_or_404
+from django.http import HttpResponse
 
 logger = logging.getLogger(__name__)
 
@@ -164,7 +169,6 @@ class StockAdjustView(APIView):
         tags=['inventory'],
     )
     def post(self, request, product_pk):
-        from django.shortcuts import get_object_or_404
         product = get_object_or_404(Product, pk=product_pk, is_active=True)
         s = StockAdjustSerializer(data=request.data)
         s.is_valid(raise_exception=True)
@@ -211,7 +215,6 @@ class VariantStockAdjustView(APIView):
         tags=['inventory'],
     )
     def post(self, request, variant_pk):
-        from django.shortcuts import get_object_or_404
         variant = get_object_or_404(ProductVariant, pk=variant_pk, is_active=True)
 
         if 'new_quantity' in request.data:
@@ -283,7 +286,6 @@ class VariantMovementsView(ListAPIView):
         tags=['inventory'],
     )
     def get(self, request, variant_pk):
-        from django.shortcuts import get_object_or_404
         variant = get_object_or_404(ProductVariant, pk=variant_pk)
         qs = (StockMovement.objects
               .filter(variant=variant)
@@ -330,7 +332,6 @@ def _persist_report(report_id: str, error_report: list) -> None:
 
 def _build_download_url(request, report_id: str) -> str:
     """Construye la URL absoluta del CSV descargable (UC-INV-05 Alt C, D-006)."""
-    from django.urls import reverse
     try:
         path = reverse('admin_inventory:product-import-report',
                        kwargs={'report_id': report_id})
@@ -362,7 +363,6 @@ def _process_import_csv(content: bytes, user, initial_state: str = 'BORRADOR',
 
     Tolerante a fallos: si una fila falla, las demás siguen procesándose.
     """
-    from apps.catalogue.models import Category, Product
 
     is_active_flag    = (initial_state or 'BORRADOR').upper() == 'ACTIVO'
     is_published_flag = is_active_flag
@@ -415,7 +415,6 @@ def _process_import_csv(content: bytes, user, initial_state: str = 'BORRADOR',
             continue
 
         try:
-            from decimal import Decimal
             price_dec = Decimal(price)
             if price_dec <= 0:
                 raise ValueError('precio <= 0')
@@ -601,7 +600,6 @@ class ProductImportReportView(APIView):
         tags=['inventory'],
     )
     def get(self, request, report_id):
-        from django.http import HttpResponse
         report = cache.get(f'import_report:{report_id}')
         if report is None:
             return Response(

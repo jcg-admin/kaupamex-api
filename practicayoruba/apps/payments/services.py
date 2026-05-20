@@ -16,6 +16,11 @@ from django.urls import reverse
 from .gateways.base import BaseGateway
 from .gateways.mercadopago import MercadoPagoGateway
 from .models import Payment, PaymentGatewayEvent
+from .gateways.paypal import PayPalGateway
+from .models import Payment as PaymentModel, Refund
+from django.db.models import Sum as DjSum
+from .models import Payment as PaymentModel
+from apps.settings_app.models import PaymentGateway
 
 logger = logging.getLogger('apps')
 
@@ -27,7 +32,6 @@ def _get_gateway(gateway_type: str = 'MERCADOPAGO') -> BaseGateway:
     BR-007: PayPal es el secundario disponible desde MVP.
     """
     if gateway_type == 'PAYPAL':
-        from .gateways.paypal import PayPalGateway
         return PayPalGateway()
     return MercadoPagoGateway()
 
@@ -198,9 +202,6 @@ def execute_refund(
     :raises ValueError: si el pago no es reembolsable
     :raises RuntimeError: si el gateway falla
     """
-    from decimal import Decimal
-    from django.db import transaction
-    from .models import Payment as PaymentModel, Refund
 
     if payment.status != PaymentModel.STATUS_APPROVED:
         raise ValueError(
@@ -235,7 +236,6 @@ def execute_refund(
         )
 
         # Actualizar estado del Payment
-        from django.db.models import Sum as DjSum
         total_refunded = (
             Refund.objects.filter(
                 payment=payment, status=Refund.STATUS_APPROVED
@@ -248,7 +248,6 @@ def execute_refund(
             payment.status = PaymentModel.STATUS_PARTIALLY_REFUNDED
         payment.save(update_fields=['status'])
 
-    import logging
     logging.getLogger('apps').info(
         'Reembolso ejecutado: payment=%s amount=%s refund_id=%s',
         payment.pk, refund_amount, result.refund_id,
@@ -263,7 +262,6 @@ def get_payment_status(order_number: str, user) -> dict:
     RNF-SEC-003 (H-REF-006): 404 si la orden no existe O no pertenece al user.
     """
     from apps.orders.models import Order
-    from .models import Payment as PaymentModel
 
     try:
         order = Order.objects.get(order_number=order_number, user=user)
@@ -291,7 +289,6 @@ def get_payment_history(order_number: str, user) -> list | None:
     UC-PAY-06. RNF-SEC-003: 404 si la orden no existe O no pertenece al user.
     """
     from apps.orders.models import Order
-    from .models import Payment as PaymentModel
 
     try:
         order = Order.objects.get(order_number=order_number, user=user)
@@ -315,7 +312,6 @@ def get_retry_eligibility(order_number: str, user) -> dict | None:
     UC-PAY-08 (FR-PAY-08.01). H-REF-004: condición real = Order.status=PENDING.
     """
     from apps.orders.models import Order
-    from .models import Payment as PaymentModel
 
     try:
         order = Order.objects.get(order_number=order_number, user=user)
@@ -349,7 +345,6 @@ def get_retry_eligibility(order_number: str, user) -> dict | None:
 
 def _get_available_gateways() -> list:
     """Retorna los gateways activos configurados en PaymentGateway."""
-    from apps.settings_app.models import PaymentGateway
     return list(
         PaymentGateway.objects.filter(is_active=True)
         .values_list('gateway', flat=True)

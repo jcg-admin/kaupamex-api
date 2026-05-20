@@ -22,6 +22,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 
 from .models import Address
+from apps.settings_app.models import SiteSettings
 
 User = get_user_model()
 
@@ -102,7 +103,6 @@ class AddressSerializer(serializers.ModelSerializer):
             # apps.settings_app es lazy-import: settings_app importa cosas
             # de apps.users (via FK al User model), entonces top-level
             # genera import circular durante el arranque de Django.
-            from apps.settings_app.models import SiteSettings  # noqa: F401
             # max_addresses_per_user fue eliminado de SiteSettings; usar
             # Address.MAX_PER_USER directamente (Address ya esta importado
             # al top de este modulo).
@@ -180,7 +180,6 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
         # apps.settings_app es lazy-import por riesgo circular (ver
         # validate() arriba). avatar_max_size_mb fue eliminado de
         # SiteSettings — constante 5MB.
-        from apps.settings_app.models import SiteSettings  # noqa: F401
         max_mb = 5
         if value.size > max_mb * 1024 * 1024:
             raise serializers.ValidationError(

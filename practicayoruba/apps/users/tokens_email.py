@@ -14,6 +14,8 @@ import secrets
 from datetime import timedelta
 
 from django.core.cache import cache
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
+from rest_framework_simplejwt.tokens import RefreshToken
 
 logger = logging.getLogger(__name__)
 from django.core.mail import send_mail
@@ -98,8 +100,6 @@ def invalidate_all_sessions(user):
     """
     DT-S2-03: invalida todos los refresh tokens activos del usuario.
     """
-    from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
-    from rest_framework_simplejwt.tokens import RefreshToken
     for token in OutstandingToken.objects.filter(user=user):
         try:
             RefreshToken(token.token).blacklist()

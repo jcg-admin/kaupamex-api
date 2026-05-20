@@ -11,6 +11,8 @@ import uuid
 from decimal import Decimal
 
 from django.db import transaction
+from apps.voucher.serializers import ApplyVoucherSerializer
+from apps.voucher.models import Voucher
 
 logger = logging.getLogger(__name__)
 from django.shortcuts import get_object_or_404
@@ -394,8 +396,6 @@ class CartVoucherView(APIView):
         tags=['cart'],
     )
     def post(self, request):
-        from apps.voucher.serializers import ApplyVoucherSerializer
-        from apps.voucher.models import Voucher
 
         s = ApplyVoucherSerializer(data=request.data)
         s.is_valid(raise_exception=True)

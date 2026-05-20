@@ -12,6 +12,11 @@ from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
 
 from .serializers import OrderSerializer
+from .models import Order
+from django.db.models import Q
+from .admin_services import transition_order_status
+from .admin_services import admin_cancel_order
+from .admin_services import get_dashboard_data
 
 logger = logging.getLogger('apps')
 
@@ -51,8 +56,6 @@ class AdminOrderListView(APIView):
         operation_id='admin_orders_list',
     )
     def get(self, request):
-        from .models import Order
-        from .serializers import OrderSerializer
 
         qs = (
             Order.objects.select_related('value', 'user', 'shipping_method')
@@ -67,7 +70,6 @@ class AdminOrderListView(APIView):
         if status := params.get('status'):
             qs = qs.filter(status=status)
         if email := params.get('email'):
-            from django.db.models import Q
             qs = qs.filter(
                 Q(user__email__icontains=email) |
                 Q(guest_email__icontains=email)
@@ -101,8 +103,6 @@ class AdminOrderDetailView(APIView):
         operation_id='admin_orders_retrieve',
     )
     def get(self, request, order_number):
-        from .models import Order
-        from .serializers import OrderSerializer
 
         try:
             order = (
@@ -155,9 +155,6 @@ class AdminOrderStatusUpdateView(APIView):
         tags=['orders-admin'],
     )
     def patch(self, request, order_number):
-        from .models import Order
-        from .serializers import OrderSerializer
-        from .admin_services import transition_order_status
 
         try:
             order = Order.objects.select_related('value', 'user').get(
@@ -224,9 +221,6 @@ class AdminOrderCancelView(APIView):
         tags=['orders-admin'],
     )
     def post(self, request, order_number):
-        from .models import Order
-        from .serializers import OrderSerializer
-        from .admin_services import admin_cancel_order
 
         try:
             order = (
@@ -281,6 +275,5 @@ class AdminDashboardView(APIView):
         tags=['orders-admin'],
     )
     def get(self, request):
-        from .admin_services import get_dashboard_data
         data = get_dashboard_data()
         return Response(data)

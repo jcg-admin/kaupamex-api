@@ -24,6 +24,18 @@ from .serializers import (
     CancelOrderSerializer, CheckoutSerializer, OrderListSerializer,
     OrderSerializer, UpdateAddressSerializer, UpdateShippingSerializer,
 )
+from django.db.models import Prefetch
+from .models import Order, OrderItem
+from .serializers import OrderListSerializer
+from apps.catalogue.models import ProductImage
+from .models import Order
+from .serializers import OrderSerializer
+from .serializers import CancelOrderSerializer, OrderSerializer
+from .services import cancel_order
+from .serializers import UpdateAddressSerializer, OrderSerializer
+from .services import update_order_address
+from .serializers import UpdateShippingSerializer, OrderSerializer
+from .services import update_shipping_method
 
 
 class CheckoutView(APIView):
@@ -241,10 +253,6 @@ class OrderListView(APIView):
         operation_id='orders_list',
     )
     def get(self, request):
-        from django.db.models import Prefetch
-        from .models import Order, OrderItem
-        from .serializers import OrderListSerializer
-        from apps.catalogue.models import ProductImage
 
         qs = (
             Order.objects.filter(user=request.user)
@@ -296,8 +304,6 @@ class OrderDetailView(APIView):
         operation_id='orders_retrieve',
     )
     def get(self, request, order_number):
-        from .models import Order
-        from .serializers import OrderSerializer
 
         order = (
             Order.objects
@@ -346,9 +352,6 @@ class OrderCancelView(APIView):
         tags=['orders'],
     )
     def post(self, request, order_number):
-        from .models import Order
-        from .serializers import CancelOrderSerializer, OrderSerializer
-        from .services import cancel_order
 
         order = (
             Order.objects
@@ -413,9 +416,6 @@ class OrderAddressUpdateView(APIView):
         tags=['orders'],
     )
     def patch(self, request, order_number):
-        from .models import Order
-        from .serializers import UpdateAddressSerializer, OrderSerializer
-        from .services import update_order_address
 
         order = (
             Order.objects
@@ -470,9 +470,6 @@ class OrderShippingUpdateView(APIView):
         tags=['orders'],
     )
     def patch(self, request, order_number):
-        from .models import Order
-        from .serializers import UpdateShippingSerializer, OrderSerializer
-        from .services import update_shipping_method
 
         order = (
             Order.objects

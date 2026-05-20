@@ -23,6 +23,8 @@ from .serializers import (
     ProductVariantAdminSerializer,
     VariantTypeAdminSerializer,
 )
+from django.utils import timezone
+from apps.orders.proxy_models import ActiveOrder
 
 
 # =============================================================================
@@ -150,9 +152,7 @@ class ProductVariantAdminViewSet(ModelViewSet):
         Sprint 12: verificar CartItems activos antes de desactivar.
         H-ORD-005: verificar ActiveOrders antes de desactivar (Sprint 19).
         """
-        from django.utils import timezone
         # H-ORD-005: protección contra órdenes activas
-        from apps.orders.proxy_models import ActiveOrder
         if ActiveOrder.objects.filter(items__variant=instance).exists():
             raise ValidationError({
                 'detail': 'No se puede eliminar esta variante porque tiene órdenes activas.',
@@ -269,7 +269,6 @@ class VariantTypeAdminViewSet(ModelViewSet):
 
     def perform_destroy(self, instance):
         """Soft delete (DEC-DOC-007): ``is_deleted`` + visibilidad apagada."""
-        from django.utils import timezone
         instance.is_active = False
         instance.is_deleted = True
         instance.deleted_at = timezone.now()

@@ -9,6 +9,7 @@ import re
 from rest_framework import serializers
 from .models import Category, Product, ProductImage, SearchHistory
 from apps.settings_app.models import SiteSettings
+from django.utils.text import slugify
 
 
 # =============================================================================
@@ -369,7 +370,6 @@ class ProductAdminSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         """Auto-generar slug desde name si no se proporcionó."""
-        from django.utils.text import slugify
         if not data.get('slug') and data.get('name'):
             base_slug = slugify(data['name'])
             slug = base_slug

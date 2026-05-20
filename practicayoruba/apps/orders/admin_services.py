@@ -8,6 +8,11 @@ Reutiliza cancel_order() de services.py con permisos ampliados.
 import logging
 from django.db import transaction
 from django.utils import timezone
+from .models import OrderStatusLog
+from .services import cancel_order
+from django.db.models import Count, Sum, Q
+from datetime import timedelta
+from .models import Order
 
 logger = logging.getLogger('apps')
 
@@ -32,7 +37,6 @@ def transition_order_status(order, new_status: str, admin_user, notes: str = '')
     Crea OrderStatusLog en cada transición.
     :raises ValueError: si la transición no está permitida.
     """
-    from .models import OrderStatusLog
 
     allowed = ALLOWED_TRANSITIONS.get(order.status, [])
     if new_status not in allowed:
@@ -70,8 +74,6 @@ def admin_cancel_order(order, reason: str, admin_user):
     El motivo es obligatorio — mínimo 10 caracteres.
     Reutiliza la lógica de cancel_order() con ADMIN_CANCELABLE_STATUSES.
     """
-    from .models import OrderStatusLog
-    from .services import cancel_order
 
     if len(reason.strip()) < 10:
         raise ValueError(
@@ -118,10 +120,6 @@ def get_dashboard_data():
     UC-ORD-10 (4 bloques en una sola respuesta).
     H-ADM-004: usa SiteSettings.payment_timeout_minutes.
     """
-    from django.db.models import Count, Sum, Q
-    from django.utils import timezone
-    from datetime import timedelta
-    from .models import Order
     from apps.payments.models import Payment
     from apps.settings_app.models import SiteSettings
 

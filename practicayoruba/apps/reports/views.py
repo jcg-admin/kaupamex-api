@@ -17,6 +17,7 @@ from rest_framework.negotiation import DefaultContentNegotiation
 from rest_framework.renderers import BaseRenderer, JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework import exceptions
 
 
 class _PassthroughNegotiator(DefaultContentNegotiation):
@@ -30,7 +31,6 @@ class _PassthroughNegotiator(DefaultContentNegotiation):
         # Always return the first renderer with its media type, skipping
         # DRF's Accept-header / URL_FORMAT_OVERRIDE filtering entirely.
         if not renderers:
-            from rest_framework import exceptions
             raise exceptions.NotAcceptable()
         return renderers[0], renderers[0].media_type
 

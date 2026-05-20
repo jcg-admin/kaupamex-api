@@ -26,13 +26,16 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Payment, PaymentGatewayEvent
+from apps.settings_app.models import PaymentGateway as PGModel
+from django.db import transaction
+from .gateways.mercadopago import MercadoPagoGateway
+from .gateways.paypal import PayPalGateway
 
 logger = logging.getLogger('apps')
 
 
 def _get_mp_client_secret() -> str | None:
     """Lee el client_secret de MercadoPago para verificar firmas de webhooks."""
-    from apps.settings_app.models import PaymentGateway as PGModel
     try:
         gw    = PGModel.objects.get(gateway='MERCADOPAGO', is_active=True)
         creds = gw.get_credentials()
@@ -86,7 +89,6 @@ def _process_payment_approval(gateway_payment_id: str, gateway: str, amount: Dec
     FR-PAY-03.02, FR-PAY-04.01 (H-PAY-005).
     """
     from apps.orders.models import Order
-    from django.db import transaction
 
     payment = (
         Payment.objects
@@ -179,7 +181,6 @@ class MercadoPagoWebhookView(APIView):
 
         # Consultar estado definitivo al gateway (paso 6 del flujo)
         try:
-            from .gateways.mercadopago import MercadoPagoGateway
             gw_result = MercadoPagoGateway().verify_payment(payment_id)
         except Exception as exc:
             logger.error('MP webhook: error consultando estado: %s', exc)
@@ -278,7 +279,6 @@ class PayPalWebhookView(APIView):
 
         # Verificar firma consultando PayPal (H-PAY-003)
         try:
-            from .gateways.paypal import PayPalGateway
             pp_gateway = PayPalGateway()
             headers = {
                 'paypal-cert-url':        request.META.get('HTTP_PAYPAL_CERT_URL', ''),
