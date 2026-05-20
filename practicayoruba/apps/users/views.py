@@ -538,6 +538,36 @@ class DeactivateAccountView(APIView):
                 user=user, used_at__isnull=True,
             ).update(used_at=now)
             invalidate_all_sessions(user)
+            # FU-4: politica de limpieza en self-delete.
+            # Se ELIMINAN fisicamente los datos volatiles que no tienen
+            # relevancia fiscal y que el usuario probablemente prefiere
+            # que no persistan tras la baja:
+            #   - cart_cart + cart_cart_item (carrito activo)
+            #   - cart_saved_cart + cart_saved_cart_item (carritos guardados)
+            #   - wishlist_item (hereda SoftDeleteModel — hard_delete()
+            #     fuerza borrado fisico, no soft)
+            #   - search_history_entry (historial personal de busquedas)
+            #   - notifications_preference (preferencias personales)
+            #
+            # Se CONSERVAN (transaccionales/fiscales):
+            #   - orders_order + relacionados (audit fiscal)
+            #   - payments_payment, refunds, gateway_event
+            #   - returns_*, support_ticket_* (audit cliente)
+            #   - users_address (referenciado desde orders_order_address
+            #     snapshot, conservar la fila original facilita lookup)
+            #   - users_deactivation_event (audit append-only)
+            from apps.cart.models import Cart, SavedCart
+            from apps.wishlist.models import WishlistItem
+            from apps.search_history.models import SearchEntry
+            from apps.notifications.models import NotificationPreference
+            Cart.objects.filter(user=user).delete()
+            SavedCart.objects.filter(user=user).delete()
+            # WishlistItem.all_objects + hard_delete: bypassa el
+            # soft-delete del modelo (queremos borrado fisico).
+            for item in WishlistItem.all_objects.filter(user=user):
+                item.hard_delete()
+            SearchEntry.objects.filter(user=user).delete()
+            NotificationPreference.objects.filter(user=user).delete()
             # GAP 10: audit log del evento (append-only).
             UserDeactivationEvent.objects.create(
                 user=user,
