@@ -238,6 +238,7 @@ class OrderListView(APIView):
         ],
         responses={200: OrderListSerializer(many=True)},
         tags=['orders'],
+        operation_id='orders_list',
     )
     def get(self, request):
         from django.db.models import Prefetch
@@ -292,6 +293,7 @@ class OrderDetailView(APIView):
             404: OpenApiResponse(description='Orden no encontrada.'),
         },
         tags=['orders'],
+        operation_id='orders_retrieve',
     )
     def get(self, request, order_number):
         from .models import Order

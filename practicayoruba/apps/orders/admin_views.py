@@ -48,6 +48,7 @@ class AdminOrderListView(APIView):
         ],
         responses={200: OrderSerializer(many=True)},
         tags=['orders-admin'],
+        operation_id='admin_orders_list',
     )
     def get(self, request):
         from .models import Order
@@ -97,6 +98,7 @@ class AdminOrderDetailView(APIView):
             404: OpenApiResponse(description='Orden no encontrada.'),
         },
         tags=['orders-admin'],
+        operation_id='admin_orders_retrieve',
     )
     def get(self, request, order_number):
         from .models import Order

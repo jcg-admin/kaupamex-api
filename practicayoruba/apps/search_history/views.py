@@ -31,7 +31,8 @@ class SearchHistoryListView(APIView):
         qs = SearchEntry.objects.filter(user=request.user)[:20]
         return Response(SearchEntrySerializer(qs, many=True).data)
 
-    @extend_schema(summary='Clear search history.', tags=['search'])
+    @extend_schema(summary='Clear search history.', tags=['search'],
+                   operation_id='search_history_clear_all')
     def delete(self, request):
         SearchEntry.objects.filter(user=request.user).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -41,7 +42,8 @@ class SearchHistoryEntryView(APIView):
     permission_classes = [IsAuthenticated]
     serializer_class = SearchEntrySerializer
 
-    @extend_schema(summary='Delete a single search history entry.', tags=['search'])
+    @extend_schema(summary='Delete a single search history entry.', tags=['search'],
+                   operation_id='search_history_entry_destroy')
     def delete(self, request, pk):
         try:
             entry = SearchEntry.objects.get(pk=pk, user=request.user)

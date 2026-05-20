@@ -119,7 +119,8 @@ class CourierListView(_AdminOnly, APIView):
 # =============================================================================
 
 class ShipmentGuideListCreateView(_AdminOnly, APIView):
-    @extend_schema(summary='List shipment guides.', tags=['logistics'])
+    @extend_schema(summary='List shipment guides.', tags=['logistics'],
+                   operation_id='logistics_guides_list')
     def get(self, request):
         qs = ShipmentGuide.objects.select_related('order', 'courier').order_by('-created_at')
         return Response(ShipmentGuideSerializer(qs, many=True).data)
@@ -152,7 +153,8 @@ class ShipmentGuideListCreateView(_AdminOnly, APIView):
 # =============================================================================
 
 class ShipmentGuideDetailView(_AdminOnly, APIView):
-    @extend_schema(summary='Shipment guide detail.', tags=['logistics'])
+    @extend_schema(summary='Shipment guide detail.', tags=['logistics'],
+                   operation_id='logistics_guides_retrieve')
     def get(self, request, pk):
         try:
             guide = ShipmentGuide.objects.select_related('order', 'courier').get(pk=pk)

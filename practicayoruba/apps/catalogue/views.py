@@ -415,6 +415,7 @@ class SearchHistoryView(APIView):
         summary='Borrar todo el historial de búsquedas',
         responses={204: None},
         tags=['catalogue'],
+        operation_id='catalogue_search_history_clear_all',
     )
     def delete(self, request):
         SearchHistory.objects.filter(user=request.user).delete()
@@ -432,6 +433,7 @@ class SearchHistoryDetailView(APIView):
         summary='Borrar una entrada del historial',
         responses={204: None, 404: None},
         tags=['catalogue'],
+        operation_id='catalogue_search_history_entry_destroy',
     )
     def delete(self, request, pk):
         try:
