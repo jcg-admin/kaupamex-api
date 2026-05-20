@@ -134,14 +134,14 @@ class ReportExportView(APIView):
     def get(self, request, slug):
         if slug not in EXPORTERS:
             return Response(
-                {'error_code': 'REPORTE_NO_DISPONIBLE',
+                {'error_code': 'REPORT_UNAVAILABLE',
                  'detail': f'Unknown report: {slug}.'},
                 status=status.HTTP_404_NOT_FOUND,
             )
         fmt = (request.query_params.get('format') or 'csv').lower()
         if fmt not in ('csv', 'pdf'):
             return Response(
-                {'error_code': 'FORMATO_NO_SOPORTADO',
+                {'error_code': 'FORMAT_NOT_SUPPORTED',
                  'detail': f'Unsupported format: {fmt}.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
@@ -168,7 +168,7 @@ class ReportExportView(APIView):
         response = exporter(payload, fmt)
         if response is None:
             return Response(
-                {'error_code': 'FORMATO_NO_SOPORTADO'},
+                {'error_code': 'FORMAT_NOT_SUPPORTED'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         return response

@@ -150,7 +150,7 @@ class ProductVariantAdminViewSet(ModelViewSet):
         if ActiveOrder.objects.filter(items__variant=instance).exists():
             raise ValidationError({
                 'detail': 'No se puede eliminar esta variante porque tiene órdenes activas.',
-                'codigo_error': 'VARIANTE_CON_ORDENES_ACTIVAS',
+                'codigo_error': 'VARIANT_WITH_ACTIVE_ORDERS',
             })
         # H-S12-006: protección contra CartItems activos
         active_cart_items = instance.cart_items.count()
@@ -161,7 +161,7 @@ class ProductVariantAdminViewSet(ModelViewSet):
                     f'Desactivarla los dejaría sin stock. '
                     f'Espera a que esos carritos expiren o sean vaciados.'
                 ),
-                'codigo_error': 'VARIANTE_CON_ITEMS_EN_CARRITO',
+                'codigo_error': 'VARIANT_WITH_CART_ITEMS',
             })
         instance.is_active = False
         instance.stock     = 0

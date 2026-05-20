@@ -401,26 +401,24 @@ class CartVoucherView(APIView):
             voucher = Voucher.objects.get(code=code)
         except Voucher.DoesNotExist:
             raise ValidationError({'code': 'Cupón no encontrado.',
-                                   # canon-idioma: heredado de voucher app (en allowlist FU)
-                                   'codigo_error': 'VOUCHER_NO_ENCONTRADO'})
+                                   'codigo_error': 'VOUCHER_NOT_FOUND'})
 
         cart, _, cart_token = _get_or_create_cart(request)
         subtotal = cart.get_subtotal()
 
         error_code = voucher.validate_for_cart(subtotal, request.user)
         if error_code:
-            # voucher.validate_for_cart emite codes ES legacy (voucher app
-            # en allowlist FU); cart mapea a mensaje user-facing y propaga
-            # el error_code tal cual al cliente. Cuando voucher migre, las
-            # keys del dict se renombran a EN en un sweep separado.
+            # voucher.validate_for_cart emite codes EN canonicos; cart mapea
+            # a mensaje user-facing y propaga el error_code tal cual al
+            # cliente.
             messages = {
-                'VOUCHER_INACTIVO':                  'Este cupón no está activo.',  # canon-idioma: voucher legacy
-                'VOUCHER_NO_VIGENTE':                'Este cupón aún no está vigente.',  # canon-idioma: voucher legacy
-                'VOUCHER_EXPIRADO':                  'Este cupón ha expirado.',  # canon-idioma: voucher legacy
-                'VOUCHER_AGOTADO':                   'Este cupón ha alcanzado su límite de usos.',  # canon-idioma: voucher legacy
-                'MONTO_MINIMO_NO_ALCANZADO':         f'El carrito debe superar ${voucher.min_order_amount}.',  # canon-idioma: voucher legacy
-                'VOUCHER_REQUIERE_AUTENTICACION':    'Debes iniciar sesión para usar este cupón.',  # canon-idioma: voucher legacy
-                'VOUCHER_RESTRINGIDO_A_OTRO_EMAIL':  'Este cupón no es válido para tu cuenta.',  # canon-idioma: voucher legacy
+                'VOUCHER_INACTIVE':                   'Este cupón no está activo.',
+                'VOUCHER_NOT_YET_ACTIVE':             'Este cupón aún no está vigente.',
+                'VOUCHER_EXPIRED':                    'Este cupón ha expirado.',
+                'VOUCHER_EXHAUSTED':                  'Este cupón ha alcanzado su límite de usos.',
+                'MINIMUM_AMOUNT_NOT_REACHED':         f'El carrito debe superar ${voucher.min_order_amount}.',
+                'VOUCHER_REQUIRES_AUTHENTICATION':    'Debes iniciar sesión para usar este cupón.',
+                'VOUCHER_RESTRICTED_TO_OTHER_EMAIL':  'Este cupón no es válido para tu cuenta.',
             }
             raise ValidationError({
                 'code': messages.get(error_code, 'Cupón inválido.'),
@@ -445,7 +443,7 @@ class CartVoucherView(APIView):
         cart, _, cart_token = _get_or_create_cart(request)
         if not cart.voucher_id:
             raise ValidationError({'detail': 'No hay cupón aplicado.',
-                                   'codigo_error': 'SIN_CUPON'})
+                                   'codigo_error': 'NO_ACTIVE_VOUCHER'})
         cart.voucher = None
         cart.save(update_fields=['voucher'])
         data = CartSerializer(cart).data

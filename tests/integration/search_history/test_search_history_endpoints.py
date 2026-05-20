@@ -66,4 +66,4 @@ class TestSearchHistory:
         )
         r = auth_client.delete(DETAIL_URL(e.id))
         assert r.status_code == 404
-        assert r.json()['codigo_error'] == 'ENTRADA_NO_ENCONTRADA'
+        assert r.json()['codigo_error'] == 'ENTRY_NOT_FOUND'

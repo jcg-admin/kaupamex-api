@@ -111,7 +111,7 @@ class VoucherViewSet(ModelViewSet):
         if not voucher.is_active:
             return Response(
                 {'detail': 'El voucher ya está inactivo.',
-                 'codigo_error': 'VOUCHER_YA_INACTIVO'},
+                 'codigo_error': 'VOUCHER_ALREADY_INACTIVE'},
                 status=400,
             )
         voucher.is_active      = False

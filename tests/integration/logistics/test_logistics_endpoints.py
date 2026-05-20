@@ -129,7 +129,7 @@ class TestLogisticsPanel:
     def test_panel_invalid_courier_id_loud_error(self, admin_client, db):
         r = admin_client.get(PANEL_URL + '?courier_id=abc')
         assert r.status_code == 400
-        assert r.json()['codigo_error'] == 'COURIER_ID_INVALIDO'
+        assert r.json()['codigo_error'] == 'COURIER_ID_INVALID'
 
 
 class TestCreateShipmentGuide:
@@ -158,7 +158,7 @@ class TestCreateShipmentGuide:
             'tracking_number': 'DUPE',
         }, format='json')
         assert r.status_code == 400
-        assert 'TRACKING_DUPLICADO' in str(r.json())
+        assert 'TRACKING_DUPLICATE' in str(r.json())
 
 
 class TestUpdateGuideStatus:
@@ -186,7 +186,7 @@ class TestUpdateGuideStatus:
         )
         r = admin_client.patch(GUIDE_URL(g.id), {'status': 'X'}, format='json')
         assert r.status_code == 400
-        assert r.json()['codigo_error'] == 'STATUS_INVALIDO'
+        assert r.json()['codigo_error'] == 'STATUS_INVALID'
 
 
 class TestConfirmDelivery:
@@ -228,9 +228,9 @@ class TestConfirmDelivery:
         )
         r = admin_client.post(CONFIRM_URL(g.id), {}, format='json')
         assert r.status_code == 400
-        assert r.json()['codigo_error'] == 'GUIA_CANCELADA'
+        assert r.json()['codigo_error'] == 'SHIPMENT_GUIDE_CANCELLED'
 
     def test_guia_no_encontrada_loud_404(self, admin_client, db):
         r = admin_client.post(CONFIRM_URL(999999), {}, format='json')
         assert r.status_code == 404
-        assert r.json()['codigo_error'] == 'GUIA_NO_ENCONTRADA'
+        assert r.json()['codigo_error'] == 'SHIPMENT_GUIDE_NOT_FOUND'

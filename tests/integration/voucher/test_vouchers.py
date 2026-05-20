@@ -108,7 +108,7 @@ class TestCrearVoucher:
         }, format='json')
         assert res.status_code == 201
         assert res.json()['code'] == 'NUEVO50'
-        assert res.json()['status'] == 'ACTIVO'
+        assert res.json()['status'] == 'ACTIVE'
 
     def test_crear_voucher_porcentaje(self, admin_client, db):
         res = admin_client.post(VOUCHERS_URL, {
@@ -196,7 +196,7 @@ class TestEditarVoucher:
             {'code': 'NUEVO_CODIGO'}, format='json',
         )
         assert res.status_code == 400
-        assert 'CAMPO_INMUTABLE_CON_USOS' in str(res.json())
+        assert 'FIELD_IMMUTABLE_WHILE_USED' in str(res.json())
 
     def test_editar_max_uses_sin_usos_ok(self, admin_client, voucher_fixed, db):
         res = admin_client.patch(
@@ -235,7 +235,7 @@ class TestDesactivarVoucher:
         assert res.status_code == 200
         body = res.json()
         assert body['is_active'] is False
-        assert body['status'] == 'INACTIVO'
+        assert body['status'] == 'INACTIVE'
         voucher_fixed.refresh_from_db()
         assert voucher_fixed.is_active is False
         assert voucher_fixed.deactivated_at is not None
@@ -246,7 +246,7 @@ class TestDesactivarVoucher:
         voucher_fixed.save()
         res = admin_client.post(f'{VOUCHERS_URL}{voucher_fixed.pk}/deactivate/')
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'VOUCHER_YA_INACTIVO'
+        assert res.json()['codigo_error'] == 'VOUCHER_ALREADY_INACTIVE'
 
     def test_deactivate_action_sin_auth_retorna_401(self, api_client, voucher_fixed, db):
         res = api_client.post(f'{VOUCHERS_URL}{voucher_fixed.pk}/deactivate/')
@@ -266,7 +266,7 @@ class TestDesactivarVoucher:
             min_order_amount=Decimal('0.00'),
         )
         data = VoucherSerializer(v).data
-        assert data['status'] == 'EXPIRADO'
+        assert data['status'] == 'EXPIRED'
 
 
 # =============================================================================
@@ -323,7 +323,7 @@ class TestAplicarCupon:
         client, _ = cart_con_item
         res = client.post(VOUCHER_APPLY_URL, {'code': 'NOEXISTE'}, format='json')
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'VOUCHER_NO_ENCONTRADO'
+        assert res.json()['codigo_error'] == 'VOUCHER_NOT_FOUND'
 
     def test_voucher_expirado_retorna_400(self, cart_con_item, db, admin_user):
         Voucher.objects.create(
@@ -334,7 +334,7 @@ class TestAplicarCupon:
         client, _ = cart_con_item
         res = client.post(VOUCHER_APPLY_URL, {'code': 'VENCIDO'}, format='json')
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'VOUCHER_EXPIRADO'
+        assert res.json()['codigo_error'] == 'VOUCHER_EXPIRED'
 
     def test_voucher_agotado_retorna_400(self, cart_con_item, db, admin_user):
         Voucher.objects.create(
@@ -345,7 +345,7 @@ class TestAplicarCupon:
         client, _ = cart_con_item
         res = client.post(VOUCHER_APPLY_URL, {'code': 'AGOTADO'}, format='json')
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'VOUCHER_AGOTADO'
+        assert res.json()['codigo_error'] == 'VOUCHER_EXHAUSTED'
 
     def test_monto_minimo_no_alcanzado_retorna_400(self, cart_con_item, db, admin_user):
         Voucher.objects.create(
@@ -356,7 +356,7 @@ class TestAplicarCupon:
         client, _ = cart_con_item  # subtotal $1000 < $2000
         res = client.post(VOUCHER_APPLY_URL, {'code': 'MINIMO2000'}, format='json')
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'MONTO_MINIMO_NO_ALCANZADO'
+        assert res.json()['codigo_error'] == 'MINIMUM_AMOUNT_NOT_REACHED'
 
     def test_quitar_cupon(self, cart_con_item, voucher_fixed, db):
         client, _ = cart_con_item
@@ -369,7 +369,7 @@ class TestAplicarCupon:
         client, _ = cart_con_item
         res = client.delete(VOUCHER_APPLY_URL)
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'SIN_CUPON'
+        assert res.json()['codigo_error'] == 'NO_ACTIVE_VOUCHER'
 
     def test_reemplazar_voucher_existente(self, cart_con_item, voucher_fixed, voucher_pct, db):
         """FR-CART-04.02 Escenario 4: reemplaza voucher A por B."""

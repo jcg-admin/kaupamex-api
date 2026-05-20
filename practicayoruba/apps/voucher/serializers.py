@@ -23,15 +23,15 @@ class VoucherSerializer(serializers.ModelSerializer):
 
     def get_status(self, obj) -> str:
         if not obj.is_active:
-            return 'INACTIVO'
+            return 'INACTIVE'
         now = timezone.now()
         if now < obj.valid_from:
-            return 'PENDIENTE'
+            return 'NOT_YET_ACTIVE'
         if obj.valid_until and now > obj.valid_until:
-            return 'EXPIRADO'
+            return 'EXPIRED'
         if obj.max_uses is not None and obj.current_uses >= obj.max_uses:
-            return 'AGOTADO'
-        return 'ACTIVO'
+            return 'EXHAUSTED'
+        return 'ACTIVE'
 
     def validate_code(self, value):
         return value.upper()
@@ -57,7 +57,7 @@ class VoucherSerializer(serializers.ModelSerializer):
                 if campo in data:
                     raise serializers.ValidationError(
                         {campo: f'El campo "{campo}" es inmutable cuando el voucher ya tiene usos.',
-                         'codigo_error': 'CAMPO_INMUTABLE_CON_USOS'})
+                         'codigo_error': 'FIELD_IMMUTABLE_WHILE_USED'})
         return data
 
 

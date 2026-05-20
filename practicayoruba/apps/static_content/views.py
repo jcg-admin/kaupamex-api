@@ -40,12 +40,12 @@ class StaticContentListView(_AdminOnly, APIView):
         if not slug or not title:
             raise ValidationError({
                 'detail': 'slug y title son requeridos.',
-                'codigo_error': 'CAMPOS_REQUERIDOS',
+                'codigo_error': 'REQUIRED_FIELDS_MISSING',
             })
         if StaticContent.objects.filter(slug=slug).exists():
             raise ValidationError({
                 'detail': 'Ya existe contenido con ese slug.',
-                'codigo_error': 'SLUG_DUPLICADO',
+                'codigo_error': 'SLUG_DUPLICATE',
             })
         content = StaticContent.objects.create(
             slug=slug, title=title, body=body, version=1,
@@ -68,7 +68,7 @@ class StaticContentDetailView(_AdminOnly, APIView):
             content = StaticContent.objects.prefetch_related('versions').get(slug=slug)
         except StaticContent.DoesNotExist:
             raise NotFound({'detail': 'Contenido no encontrado.',
-                            'codigo_error': 'CONTENIDO_NO_ENCONTRADO'})
+                            'codigo_error': 'CONTENT_NOT_FOUND'})
         return Response(StaticContentSerializer(content).data)
 
     @extend_schema(summary='Edit static content page (bumps version).',
@@ -79,14 +79,14 @@ class StaticContentDetailView(_AdminOnly, APIView):
             content = StaticContent.objects.select_for_update().get(slug=slug)
         except StaticContent.DoesNotExist:
             raise NotFound({'detail': 'Contenido no encontrado.',
-                            'codigo_error': 'CONTENIDO_NO_ENCONTRADO'})
+                            'codigo_error': 'CONTENT_NOT_FOUND'})
 
         title = request.data.get('title', content.title)
         body  = request.data.get('body',  content.body)
         if not title:
             raise ValidationError({
                 'detail': 'title no puede ser vacio.',
-                'codigo_error': 'TITULO_REQUERIDO',
+                'codigo_error': 'TITLE_REQUIRED',
             })
 
         content.version += 1

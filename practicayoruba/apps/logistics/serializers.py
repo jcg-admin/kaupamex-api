@@ -55,7 +55,7 @@ class ShipmentGuideCreateSerializer(serializers.ModelSerializer):
         source='courier', write_only=True,
     )
     # Override field to drop the auto UniqueValidator — we raise a loud
-    # business error (TRACKING_DUPLICADO) ourselves in validate_tracking_number.
+    # business error (TRACKING_DUPLICATE) ourselves in validate_tracking_number.
     tracking_number = serializers.CharField(max_length=80, validators=[])
 
     class Meta:
@@ -67,12 +67,12 @@ class ShipmentGuideCreateSerializer(serializers.ModelSerializer):
         if not value:
             raise serializers.ValidationError({
                 'detail': 'tracking_number requerido.',
-                'codigo_error': 'TRACKING_REQUERIDO',
+                'codigo_error': 'TRACKING_REQUIRED',
             })
         if ShipmentGuide.all_objects.filter(tracking_number=value).exists():
             raise serializers.ValidationError({
                 'detail': 'Tracking number ya registrado.',
-                'codigo_error': 'TRACKING_DUPLICADO',
+                'codigo_error': 'TRACKING_DUPLICATE',
             })
         return value
 
@@ -81,6 +81,6 @@ class ShipmentGuideCreateSerializer(serializers.ModelSerializer):
         if ShipmentGuide.all_objects.filter(order=order, is_deleted=False).exists():
             raise serializers.ValidationError({
                 'detail': 'La orden ya tiene una guia de envio activa.',
-                'codigo_error': 'GUIA_DUPLICADA',
+                'codigo_error': 'SHIPMENT_GUIDE_DUPLICATE',
             })
         return attrs

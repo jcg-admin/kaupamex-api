@@ -391,7 +391,7 @@ class TestProteccionVarianteConCartItems:
             f'/api/v1/admin/products/{product_con_variante.pk}/variants/{variant_s12.pk}/'
         )
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'VARIANTE_CON_ITEMS_EN_CARRITO'
+        assert res.json()['codigo_error'] == 'VARIANT_WITH_CART_ITEMS'
 
     def test_desactivar_variante_sin_cart_items_ok(
         self, admin_client, product_con_variante, variant_s12, db
