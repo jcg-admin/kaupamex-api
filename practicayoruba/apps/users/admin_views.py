@@ -6,9 +6,10 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
-from drf_spectacular.utils import extend_schema, OpenApiParameter
+import rest_framework.pagination
 from rest_framework import serializers as drf_serializers
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
@@ -16,17 +17,18 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-import rest_framework.pagination
+from drf_spectacular.utils import extend_schema, OpenApiParameter
+
 from .serializers import AdminUserListSerializer
+from .tokens_email import invalidate_all_sessions
+
+User = get_user_model()
 
 
 class AdminUserPagination(rest_framework.pagination.PageNumberPagination):
     page_size = 20
     page_size_query_param = 'page_size'
     max_page_size = 100
-from .tokens_email import invalidate_all_sessions
-
-User = get_user_model()
 
 
 class AdminUserDetailSerializer(AdminUserListSerializer):
@@ -116,7 +118,7 @@ class AdminUserViewSet(ModelViewSet):
         is_active = self.request.query_params.get('is_active')
         is_staff  = self.request.query_params.get('is_staff')
         if search:
-            from django.db.models import Q
+            # Q ya importado al top del modulo
             qs = qs.filter(
                 Q(username__icontains=search) | Q(email__icontains=search) |
                 Q(first_name__icontains=search) | Q(last_name__icontains=search)

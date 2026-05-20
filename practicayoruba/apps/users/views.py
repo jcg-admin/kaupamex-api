@@ -3,24 +3,56 @@ Views — apps.users
 
 Sprint 1: RegisterView
 Sprint 2: ProfileView, AddressViewSet, ChangePasswordView
+Sprint 3: Password reset, email verification, admin user management
+Sprint 4: DeactivateAccountView (UC-AUTH-16)
 """
-from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
-from drf_spectacular.types import OpenApiTypes as OAT
+# stdlib + Django
+from django.contrib.auth import get_user_model
+from django.db import transaction
+from django.db.models import Q
+from django.utils import timezone
+
+# DRF + plugins
+import rest_framework.pagination
+from rest_framework import serializers as drf_serializers
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.filters import SearchFilter
+from rest_framework.generics import ListAPIView
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
-from rest_framework.response import Response
-from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework import serializers as drf_serializers
 
+from drf_spectacular.types import OpenApiTypes as OAT
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
+
+# Local
 from .models import Address
 from .serializers import (
-    RegisterSerializer,
-    ProfileSerializer,
-    UpdateProfileSerializer,
-    ChangePasswordSerializer,
     AddressSerializer,
+    AdminUserListSerializer,
+    ChangePasswordSerializer,
+    EmailVerificationSerializer,
+    PasswordResetConfirmSerializer,
+    PasswordResetRequestSerializer,
+    ProfileSerializer,
+    RegisterSerializer,
+    ResendVerificationSerializer,
+    UpdateProfileSerializer,
 )
+from .tokens_email import (
+    check_rate_limit,
+    create_password_reset_token,
+    create_verification_token,
+    invalidate_all_sessions,
+    send_password_reset_email,
+    send_verification_email,
+    validate_password_reset_token,
+    validate_verification_token,
+)
+
+User = get_user_model()
 
 
 class RegisterView(APIView):
@@ -238,24 +270,6 @@ class ChangePasswordView(APIView):
 
 
 # ─── Sprint 3 ─────────────────────────────────────────────────────────
-import rest_framework.pagination
-from django.contrib.auth import get_user_model
-User = get_user_model()
-
-from rest_framework.generics import ListAPIView
-from rest_framework.filters import SearchFilter
-from django.db.models import Q
-
-from .tokens_email import (
-    check_rate_limit, create_password_reset_token, send_password_reset_email,
-    validate_password_reset_token, invalidate_all_sessions,
-    create_verification_token, send_verification_email, validate_verification_token,
-)
-from .serializers import (
-    PasswordResetRequestSerializer, PasswordResetConfirmSerializer,
-    EmailVerificationSerializer, ResendVerificationSerializer,
-    AdminUserListSerializer,
-)
 
 
 class PasswordResetRequestView(APIView):
@@ -327,9 +341,6 @@ class PasswordResetConfirmView(APIView):
         except ValueError as e:
             return Response({'token': str(e)}, status=400)
 
-        from django.utils import timezone
-        from django.db import transaction
-
         with transaction.atomic():
             user = token_obj.user
             user.set_password(serializer.validated_data['new_password'])
@@ -366,9 +377,6 @@ class EmailVerifyView(APIView):
 
         if token_obj is None:
             return Response({'message': 'Tu cuenta ya esta activa. Puedes iniciar sesion.'})
-
-        from django.utils import timezone
-        from django.db import transaction
 
         with transaction.atomic():
             user = token_obj.user
@@ -466,9 +474,6 @@ class DeactivateAccountView(APIView):
         if not user.check_password(serializer.validated_data['password']):
             return Response({'detail': 'Contrasena incorrecta.'}, status=400)
 
-        from django.utils import timezone
-        from django.db import transaction
-        from .tokens_email import invalidate_all_sessions
         with transaction.atomic():
             user.is_active = False
             user.deactivated_reason = User.DEACTIVATION_SELF_DELETED
@@ -497,7 +502,6 @@ class AdminUserListView(ListAPIView):
 
     def get_queryset(self):
         if not self.request.user.is_staff:
-            from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied('Solo administradores pueden acceder a este endpoint.')
         qs = User.objects.all().order_by('-date_joined')
         is_active = self.request.query_params.get('is_active')

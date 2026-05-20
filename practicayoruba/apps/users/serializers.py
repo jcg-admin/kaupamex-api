@@ -6,13 +6,20 @@ Sprint 2: ProfileSerializer, UpdateProfileSerializer,
           ChangePasswordSerializer, AddressSerializer
 """
 import io
+import time
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.files.base import ContentFile
+from django.utils import timezone
+
 from rest_framework import serializers
+
 from PIL import Image
-from drf_spectacular.utils import extend_schema_field
+
 from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 
 from .models import Address
 
@@ -58,7 +65,6 @@ class RegisterSerializer(serializers.Serializer):
         return attrs
 
     def create(self, validated_data):
-        from django.utils import timezone
         validated_data.pop('password_confirm')
         user = User.objects.create_user(
             username=validated_data['username'],
@@ -93,9 +99,13 @@ class AddressSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         user = request.user if request else None
         if user and not self.instance:
-            from apps.settings_app.models import SiteSettings
-            # max_addresses_per_user fue eliminado de SiteSettings (usar Address.MAX_PER_USER)
-            from apps.users.models import Address
+            # apps.settings_app es lazy-import: settings_app importa cosas
+            # de apps.users (via FK al User model), entonces top-level
+            # genera import circular durante el arranque de Django.
+            from apps.settings_app.models import SiteSettings  # noqa: F401
+            # max_addresses_per_user fue eliminado de SiteSettings; usar
+            # Address.MAX_PER_USER directamente (Address ya esta importado
+            # al top de este modulo).
             max_addr = Address.MAX_PER_USER
             count = Address.objects.filter(user=user).count()
             if count >= max_addr:
@@ -167,9 +177,10 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
         """
         if value is None:
             return value
-        # Validar tamaño contra SiteSettings (P3-04)
-        from apps.settings_app.models import SiteSettings
-        # avatar_max_size_mb fue eliminado de SiteSettings — constante 5MB
+        # apps.settings_app es lazy-import por riesgo circular (ver
+        # validate() arriba). avatar_max_size_mb fue eliminado de
+        # SiteSettings — constante 5MB.
+        from apps.settings_app.models import SiteSettings  # noqa: F401
         max_mb = 5
         if value.size > max_mb * 1024 * 1024:
             raise serializers.ValidationError(
@@ -200,9 +211,6 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
             instance.avatar = None
 
         elif avatar_file is not None:
-            import time
-            from django.core.files.base import ContentFile
-
             img = Image.open(avatar_file)
             # Redimensionar si supera 800x800 (FR-AUTH-06.04)
             img.thumbnail((800, 800), Image.LANCZOS)

@@ -5,6 +5,8 @@ User: modelo de comprador extendido de AbstractUser.
 Address: direcciones de envio del comprador (max 5 por usuario).
 """
 import os
+import time
+
 from django.contrib.auth.models import AbstractUser
 from django.db import models, transaction
 
@@ -13,7 +15,6 @@ from apps.core.models import SoftDeleteModel, TimeStampedModel
 
 def avatar_upload_path(instance, filename):
     """Path para avatares subidos. El Sprint 2 convierte a WebP."""
-    import time
     ext = filename.rsplit('.', 1)[-1].lower()
     ts = int(time.time())
     return os.path.join('avatars', f'user_{instance.pk}_{ts}.{ext}')
