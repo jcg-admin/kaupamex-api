@@ -57,8 +57,8 @@ class StockAdjustSerializer(serializers.Serializer):
 # ─── UC-INV-04 contrato UI: ajuste por nueva cantidad absoluta ─────────────
 # Reason enum tomado de UC-INV-04 PARTE 7. observations es libre.
 ADJUSTMENT_REASONS = [
-    'CONTEO_FISICO', 'MERMA', 'ROBO',
-    'DEVOLUCION', 'DESCONTINUADO', 'OTRO',
+    'CONTEO_FISICO', 'MERMA', 'ROBO',  # canon-idioma: T-709 data migration pendiente
+    'DEVOLUCION', 'DESCONTINUADO', 'OTRO',  # canon-idioma: T-709 data migration pendiente
 ]
 
 

@@ -31,5 +31,5 @@ def get_own_order(order_number: str, user, select_related=None, prefetch_related
 
 NOT_FOUND_RESPONSE = {
     'detail':       'Orden no encontrada.',
-    'codigo_error': 'ORDEN_NO_ENCONTRADA',
+    'codigo_error': 'ORDER_NOT_FOUND',
 }

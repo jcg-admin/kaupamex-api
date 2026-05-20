@@ -469,7 +469,7 @@ class CategoryAdminViewSet(ModelViewSet):
                     'No se puede desactivar una categoria con productos activos. '
                     'Reasigna o desactiva los productos primero.'
                 ),
-                'codigo_error': 'CATEGORIA_CON_PRODUCTOS',
+                'codigo_error': 'CATEGORY_HAS_PRODUCTS',
             })
         instance.is_active = False
         instance.save(update_fields=['is_active'])
@@ -946,7 +946,7 @@ class ProductPriceSyncConfirmView(APIView):
         if validas is None:
             return Response({
                 'detail': 'Sesión expirada o no encontrada. Sube el CSV nuevamente.',
-                'codigo_error': 'SESSION_EXPIRADA',
+                'codigo_error': 'SESSION_EXPIRED',
             }, status=400)
 
         logger = logging.getLogger('apps')

@@ -78,13 +78,13 @@ class ProductDiscountListCreateView(APIView):
             product = Product.objects.get(pk=data['product_id'])
         except Product.DoesNotExist:
             return Response(
-                {'error_code': 'PRODUCTO_NO_DISPONIBLE',
+                {'error_code': 'PRODUCT_UNAVAILABLE',
                  'detail': 'Product not found.'},
                 status=status.HTTP_422_UNPROCESSABLE_ENTITY,
             )
         if not product.is_active:
             return Response(
-                {'error_code': 'PRODUCTO_NO_DISPONIBLE',
+                {'error_code': 'PRODUCT_UNAVAILABLE',
                  'detail': 'Product is inactive.'},
                 status=status.HTTP_422_UNPROCESSABLE_ENTITY,
             )
@@ -95,7 +95,7 @@ class ProductDiscountListCreateView(APIView):
         ).filter(Q(valid_until__isnull=True) | Q(valid_until__gte=now))
         if active_qs.exists():
             return Response(
-                {'error_code': 'DESCUENTO_ACTIVO_EXISTENTE',
+                {'error_code': 'DISCOUNT_ALREADY_ACTIVE',
                  'detail': 'An active discount already exists for this product.'},
                 status=status.HTTP_409_CONFLICT,
             )
@@ -135,7 +135,7 @@ class ProductDiscountDetailView(APIView):
         instance = self._get_or_404(pk)
         if instance is None:
             return Response(
-                {'error_code': 'DESCUENTO_NO_DISPONIBLE',
+                {'error_code': 'DISCOUNT_UNAVAILABLE',
                  'detail': 'Discount not found.'},
                 status=status.HTTP_404_NOT_FOUND,
             )
@@ -147,9 +147,9 @@ class ProductDiscountDetailView(APIView):
         if not serializer.is_valid():
             # If the date-range error code is present, surface as 422
             errors = serializer.errors
-            if any('RANGO_FECHAS_INVALIDO' in str(v) for v in errors.values()):
+            if any('DATE_RANGE_INVALID' in str(v) for v in errors.values()):
                 return Response(
-                    {'error_code': 'RANGO_FECHAS_INVALIDO',
+                    {'error_code': 'DATE_RANGE_INVALID',
                      'detail': 'Invalid date range.'},
                     status=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 )
@@ -177,13 +177,13 @@ class ProductDiscountDeactivateView(APIView):
             instance = ProductDiscount.objects.select_related('product').get(pk=pk)
         except ProductDiscount.DoesNotExist:
             return Response(
-                {'error_code': 'DESCUENTO_NO_DISPONIBLE',
+                {'error_code': 'DISCOUNT_UNAVAILABLE',
                  'detail': 'Discount not found.'},
                 status=status.HTTP_404_NOT_FOUND,
             )
         if not instance.is_active:
             return Response(
-                {'error_code': 'DESCUENTO_YA_INACTIVO',
+                {'error_code': 'DISCOUNT_ALREADY_INACTIVE',
                  'detail': 'Discount is already inactive.'},
                 status=status.HTTP_409_CONFLICT,
             )

@@ -317,7 +317,7 @@ def get_retry_eligibility(order_number: str, user) -> dict | None:
         return {
             'eligible':      False,
             'reason':        f'La orden está en estado {order.status}.',
-            'codigo_error':  'ORDEN_NO_REINTENTABLE',
+            'codigo_error':  'ORDER_NOT_RETRYABLE',
         }
 
     failed_payment = (

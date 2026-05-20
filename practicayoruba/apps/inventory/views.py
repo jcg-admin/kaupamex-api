@@ -236,7 +236,7 @@ class VariantStockAdjustView(APIView):
         if new_qty < 0:
             return Response({
                 'detail': f'El ajuste resultaría en stock negativo ({new_qty}).',
-                'codigo_error': 'STOCK_NEGATIVO_NO_PERMITIDO',
+                'codigo_error': 'NEGATIVE_STOCK_NOT_ALLOWED',
             }, status=422)
 
         notes = f'{reason}: {obs}' if obs else reason
@@ -375,7 +375,7 @@ def _process_import_csv(content: bytes, user, initial_state: str = 'BORRADOR',
         return {
             'status':       'ERROR',
             # Códigos legacy + nuevo (UI agent UC-INV-05).
-            'codigo_error': 'ENCABEZADO_CSV_INVALIDO',
+            'codigo_error': 'CSV_HEADER_INVALID',
             'detail':       f'Columnas faltantes: {", ".join(sorted(missing))}',
             # legacy
             'created':           0,
@@ -529,7 +529,7 @@ class ProductImportView(APIView):
                 content, request.user, initial_state, request=request,
             )
             # Encabezado inválido → 422 ENCABEZADO_CSV_INVALIDO (UC-INV-05).
-            if result.get('codigo_error') == 'ENCABEZADO_CSV_INVALIDO':
+            if result.get('codigo_error') == 'CSV_HEADER_INVALID':
                 return Response(result, status=422)
             return Response(result, status=200)
         else:
@@ -574,7 +574,7 @@ class ProductImportStatusView(APIView):
         result = cache.get(f'import_job:{job_id}')
         if result is None:
             return Response({'detail': 'Job no encontrado o expirado.',
-                             'codigo_error': 'JOB_NO_ENCONTRADO'}, status=404)
+                             'codigo_error': 'JOB_NOT_FOUND'}, status=404)
         return Response(result)
 
 
@@ -599,7 +599,7 @@ class ProductImportReportView(APIView):
         if report is None:
             return Response(
                 {'detail':       'Reporte no encontrado o expirado.',
-                 'codigo_error': 'REPORTE_NO_ENCONTRADO'},
+                 'codigo_error': 'REPORT_NOT_FOUND'},
                 status=404,
             )
         buf = io.StringIO()

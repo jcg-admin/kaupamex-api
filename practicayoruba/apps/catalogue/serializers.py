@@ -66,7 +66,7 @@ class CategoryAdminSerializer(serializers.ModelSerializer):
             if instance.would_create_cycle(parent):
                 raise serializers.ValidationError({
                     'parent_id': 'Esta relacion crearia un ciclo en la jerarquia de categorias.',
-                    'codigo_error': 'CICLO_EN_JERARQUIA',
+                    'codigo_error': 'CYCLE_IN_HIERARCHY',
                 })
         return data
 

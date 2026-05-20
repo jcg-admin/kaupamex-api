@@ -54,7 +54,7 @@ class ProductReviewsView(APIView):
         except Product.DoesNotExist:
             raise NotFound({
                 'detail': 'Producto no encontrado.',
-                'codigo_error': 'PRODUCTO_NO_ENCONTRADO',
+                'codigo_error': 'PRODUCT_NOT_FOUND',
             })
 
         approved = Review.objects.filter(
@@ -87,7 +87,7 @@ class ProductReviewsView(APIView):
         except Product.DoesNotExist:
             raise NotFound({
                 'detail': 'Producto no encontrado.',
-                'codigo_error': 'PRODUCTO_NO_ENCONTRADO',
+                'codigo_error': 'PRODUCT_NOT_FOUND',
             })
 
         ser = ReviewCreateSerializer(data=request.data)
@@ -100,7 +100,7 @@ class ProductReviewsView(APIView):
         except Order.DoesNotExist:
             raise NotFound({
                 'detail': 'Orden no encontrada.',
-                'codigo_error': 'ORDEN_NO_ENCONTRADA',
+                'codigo_error': 'ORDER_NOT_FOUND',
             })
         if order.user_id != request.user.id:
             raise PermissionDenied({
@@ -126,7 +126,7 @@ class ProductReviewsView(APIView):
         except IntegrityError:
             raise ValidationError({
                 'detail': 'Ya enviaste una reseña para este producto.',
-                'codigo_error': 'RESENA_DUPLICADA',
+                'codigo_error': 'REVIEW_DUPLICATE',
             })
 
         return Response(
@@ -156,7 +156,7 @@ class ReviewAdminListView(_AdminOnly, APIView):
         if status_filter not in valid:
             raise ValidationError({
                 'detail': f'status invalido: {status_filter}.',
-                'codigo_error': 'STATUS_INVALIDO',
+                'codigo_error': 'STATUS_INVALID',
             })
         qs = (
             Review.objects.filter(status=status_filter)
@@ -178,14 +178,14 @@ class ReviewApproveView(_AdminOnly, APIView):
         except Review.DoesNotExist:
             raise NotFound({
                 'detail': 'Reseña no encontrada.',
-                'codigo_error': 'RESENA_NO_ENCONTRADA',
+                'codigo_error': 'REVIEW_NOT_FOUND',
             })
 
         already = review.status == Review.STATUS_APPROVED
         if review.status == Review.STATUS_REJECTED:
             raise ValidationError({
                 'detail': 'No se puede aprobar una reseña ya rechazada.',
-                'codigo_error': 'RESENA_YA_RECHAZADA',
+                'codigo_error': 'REVIEW_ALREADY_REJECTED',
             })
         if not already:
             review.status = Review.STATUS_APPROVED
@@ -221,21 +221,21 @@ class ReviewRejectView(_AdminOnly, APIView):
         except Review.DoesNotExist:
             raise NotFound({
                 'detail': 'Reseña no encontrada.',
-                'codigo_error': 'RESENA_NO_ENCONTRADA',
+                'codigo_error': 'REVIEW_NOT_FOUND',
             })
 
         reason = (request.data.get('reason') or '').strip()
         if reason not in self.VALID_REASONS:
             raise ValidationError({
                 'detail': 'reason invalido.',
-                'codigo_error': 'MOTIVO_INVALIDO',
+                'codigo_error': 'REASON_INVALID',
                 'allowed': sorted(self.VALID_REASONS),
             })
 
         if review.status == Review.STATUS_APPROVED:
             raise ValidationError({
                 'detail': 'No se puede rechazar una reseña ya aprobada.',
-                'codigo_error': 'RESENA_YA_APROBADA',
+                'codigo_error': 'REVIEW_ALREADY_APPROVED',
             })
 
         review.status = Review.STATUS_REJECTED

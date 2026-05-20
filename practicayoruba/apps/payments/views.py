@@ -83,13 +83,13 @@ class InitiatePaymentView(APIView):
         except Order.DoesNotExist:
             raise ValidationError({
                 'order_number': f'Orden {order_number!r} no encontrada.',
-                'codigo_error': 'ORDEN_NO_ENCONTRADA',
+                'codigo_error': 'ORDER_NOT_FOUND',
             })
 
         if order.status != Order.STATUS_PENDING:
             raise ValidationError({
                 'detail': f'La orden no está en estado PENDING (estado: {order.status}).',
-                'codigo_error': 'ORDEN_NO_PAGABLE',
+                'codigo_error': 'ORDER_NOT_PAYABLE',
             })
 
         try:
@@ -103,7 +103,7 @@ class InitiatePaymentView(APIView):
             raise ValidationError({'detail': str(exc), 'codigo_error': 'GATEWAY_CONFIG_ERROR'})
         except RuntimeError as exc:
             return Response(
-                {'detail': str(exc), 'codigo_error': 'GATEWAY_NO_DISPONIBLE'},
+                {'detail': str(exc), 'codigo_error': 'GATEWAY_UNAVAILABLE'},
                 status=503,
             )
 
@@ -195,7 +195,7 @@ class InstallmentPlansView(APIView):
     def get(self, request):
         order_number = request.query_params.get('order_number')
         if not order_number:
-            raise ValidationError({'order_number': 'Requerido.', 'codigo_error': 'ORDER_NUMBER_REQUERIDO'})
+            raise ValidationError({'order_number': 'Requerido.', 'codigo_error': 'ORDER_NUMBER_REQUIRED'})
 
         order = get_object_or_404(
             Order.objects.select_related('value'),
@@ -342,10 +342,10 @@ class ExpressCheckoutView(APIView):
         try:
             cart = Cart.objects.get(user=request.user)
         except Cart.DoesNotExist:
-            raise ValidationError({'detail': 'No tienes un carrito activo.', 'codigo_error': 'CARRITO_VACIO'})
+            raise ValidationError({'detail': 'No tienes un carrito activo.', 'codigo_error': 'EMPTY_CART'})
 
         if not cart.items.exists():
-            raise ValidationError({'detail': 'El carrito está vacío.', 'codigo_error': 'CARRITO_VACIO'})
+            raise ValidationError({'detail': 'El carrito está vacío.', 'codigo_error': 'EMPTY_CART'})
 
         # Reutilizar el servicio de checkout de UC-ORD-01
 
@@ -479,7 +479,7 @@ class PaymentStatusView(APIView):
         result = get_payment_status(order_number, request.user)
         if result is None:
             return Response(
-                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDEN_NO_ENCONTRADA'},
+                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDER_NOT_FOUND'},
                 status=404,
             )
         return Response(PSS(result).data)
@@ -511,7 +511,7 @@ class PaymentHistoryView(APIView):
         history = get_payment_history(order_number, request.user)
         if history is None:
             return Response(
-                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDEN_NO_ENCONTRADA'},
+                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDER_NOT_FOUND'},
                 status=404,
             )
         return Response(history)
@@ -552,7 +552,7 @@ class RefundView(APIView):
         ).first()
         if not order:
             return Response(
-                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDEN_NO_ENCONTRADA'},
+                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDER_NOT_FOUND'},
                 status=404,
             )
 
@@ -580,7 +580,7 @@ class RefundView(APIView):
             return Response({'detail': str(exc), 'codigo_error': 'PAGO_NO_REEMBOLSABLE'},
                             status=400)
         except RuntimeError as exc:
-            return Response({'detail': str(exc), 'codigo_error': 'GATEWAY_NO_DISPONIBLE'},
+            return Response({'detail': str(exc), 'codigo_error': 'GATEWAY_UNAVAILABLE'},
                             status=503)
 
         return Response(RefundSerializer(refund).data, status=201)
@@ -613,7 +613,7 @@ class RetryEligibilityView(APIView):
         result = get_retry_eligibility(order_number, request.user)
         if result is None:
             return Response(
-                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDEN_NO_ENCONTRADA'},
+                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDER_NOT_FOUND'},
                 status=404,
             )
         # Rellenar campos opcionales para el serializer
@@ -668,7 +668,7 @@ class AdminRefundView(APIView):
             return Response({'detail': str(exc), 'codigo_error': 'PAGO_NO_REEMBOLSABLE'},
                             status=400)
         except RuntimeError as exc:
-            return Response({'detail': str(exc), 'codigo_error': 'GATEWAY_NO_DISPONIBLE'},
+            return Response({'detail': str(exc), 'codigo_error': 'GATEWAY_UNAVAILABLE'},
                             status=503)
 
         return Response(RefundSerializer(refund).data, status=201)

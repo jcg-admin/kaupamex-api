@@ -128,7 +128,7 @@ class WishlistMoveToCartView(APIView):
         if not item.is_available:
             raise ValidationError({
                 'detail': 'Este producto no está disponible.',
-                'codigo_error': 'PRODUCTO_NO_DISPONIBLE',
+                'codigo_error': 'PRODUCT_UNAVAILABLE',
             })
 
         # Reutilizar la lógica de agregar al carrito (H-S14-006)

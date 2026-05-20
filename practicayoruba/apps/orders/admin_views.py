@@ -109,7 +109,7 @@ class AdminOrderDetailView(APIView):
             )
         except Order.DoesNotExist:
             return Response(
-                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDEN_NO_ENCONTRADA'},
+                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDER_NOT_FOUND'},
                 status=404,
             )
         return Response(OrderSerializer(order).data)
@@ -158,7 +158,7 @@ class AdminOrderStatusUpdateView(APIView):
             )
         except Order.DoesNotExist:
             return Response(
-                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDEN_NO_ENCONTRADA'},
+                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDER_NOT_FOUND'},
                 status=404,
             )
 
@@ -167,7 +167,7 @@ class AdminOrderStatusUpdateView(APIView):
 
         if not new_status:
             return Response(
-                {'detail': 'new_status es requerido.', 'codigo_error': 'CAMPO_REQUERIDO'},
+                {'detail': 'new_status es requerido.', 'codigo_error': 'FIELD_REQUIRED'},
                 status=400,
             )
 
@@ -175,7 +175,7 @@ class AdminOrderStatusUpdateView(APIView):
             transition_order_status(order, new_status, request.user, notes)
         except ValueError as exc:
             return Response(
-                {'detail': str(exc), 'codigo_error': 'TRANSICION_NO_PERMITIDA'},
+                {'detail': str(exc), 'codigo_error': 'TRANSITION_NOT_ALLOWED'},
                 status=400,
             )
 
@@ -227,7 +227,7 @@ class AdminOrderCancelView(APIView):
             )
         except Order.DoesNotExist:
             return Response(
-                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDEN_NO_ENCONTRADA'},
+                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDER_NOT_FOUND'},
                 status=404,
             )
 
@@ -236,12 +236,12 @@ class AdminOrderCancelView(APIView):
             admin_cancel_order(order, reason, request.user)
         except ValueError as exc:
             return Response(
-                {'detail': str(exc), 'codigo_error': 'CANCELACION_NO_PERMITIDA'},
+                {'detail': str(exc), 'codigo_error': 'CANCELLATION_NOT_ALLOWED'},
                 status=400,
             )
         except RuntimeError as exc:
             return Response(
-                {'detail': str(exc), 'codigo_error': 'GATEWAY_NO_DISPONIBLE'},
+                {'detail': str(exc), 'codigo_error': 'GATEWAY_UNAVAILABLE'},
                 status=503,
             )
 

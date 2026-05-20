@@ -54,7 +54,7 @@ class RelatedProductsView(APIView):
         except Product.DoesNotExist:
             raise NotFound({
                 'detail': 'Producto no encontrado.',
-                'codigo_error': 'PRODUCTO_NO_ENCONTRADO',
+                'codigo_error': 'PRODUCT_NOT_FOUND',
             })
 
         related = (
@@ -146,7 +146,7 @@ class CatalogueSearchView(APIView):
             except InvalidOperation:
                 raise ValidationError({
                     key: 'Valor numerico invalido.',
-                    'codigo_error': 'PRICE_FILTER_INVALIDO',
+                    'codigo_error': 'PRICE_FILTER_INVALID',
                 })
             if key == 'price_min':
                 qs = qs.filter(price__gte=val)

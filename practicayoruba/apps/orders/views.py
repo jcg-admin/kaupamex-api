@@ -72,16 +72,16 @@ class CheckoutView(APIView):
                 cart = Cart.objects.get(user=request.user)
             except Cart.DoesNotExist:
                 raise ValidationError({'detail': 'No tienes un carrito activo.',
-                                       'codigo_error': 'CARRITO_VACIO'})
+                                       'codigo_error': 'EMPTY_CART'})
         else:
             cart_token = data.get('cart_token')
             if not cart_token:
                 raise ValidationError({'cart_token': 'Requerido para visitantes anónimos.',
-                                       'codigo_error': 'CART_TOKEN_REQUERIDO'})
+                                       'codigo_error': 'CART_TOKEN_REQUIRED'})
             guest_email = data.get('guest_email')
             if not guest_email:
                 raise ValidationError({'guest_email': 'Requerido para visitantes anónimos.',
-                                       'codigo_error': 'GUEST_EMAIL_REQUERIDO'})
+                                       'codigo_error': 'GUEST_EMAIL_REQUIRED'})
             cart = get_object_or_404(Cart, cart_token=cart_token, user__isnull=True)
 
         # 2. Verificar items
@@ -90,7 +90,7 @@ class CheckoutView(APIView):
         ).all())
         if not cart_items:
             raise ValidationError({'detail': 'El carrito está vacío.',
-                                   'codigo_error': 'CARRITO_VACIO'})
+                                   'codigo_error': 'EMPTY_CART'})
 
         # 3. Verificar disponibilidad (sin bloqueo aún)
         check_items = [
@@ -302,7 +302,7 @@ class OrderDetailView(APIView):
         )
         if not order:
             return Response(
-                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDEN_NO_ENCONTRADA'},
+                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDER_NOT_FOUND'},
                 status=404,
             )
         return Response(OrderSerializer(order).data)
@@ -350,7 +350,7 @@ class OrderCancelView(APIView):
         )
         if not order:
             return Response(
-                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDEN_NO_ENCONTRADA'},
+                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDER_NOT_FOUND'},
                 status=404,
             )
 
@@ -365,12 +365,12 @@ class OrderCancelView(APIView):
             )
         except ValueError as exc:
             return Response(
-                {'detail': str(exc), 'codigo_error': 'CANCELACION_NO_PERMITIDA'},
+                {'detail': str(exc), 'codigo_error': 'CANCELLATION_NOT_ALLOWED'},
                 status=400,
             )
         except RuntimeError as exc:
             return Response(
-                {'detail': str(exc), 'codigo_error': 'GATEWAY_NO_DISPONIBLE'},
+                {'detail': str(exc), 'codigo_error': 'GATEWAY_UNAVAILABLE'},
                 status=503,
             )
 
@@ -413,7 +413,7 @@ class OrderAddressUpdateView(APIView):
         )
         if not order:
             return Response(
-                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDEN_NO_ENCONTRADA'},
+                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDER_NOT_FOUND'},
                 status=404,
             )
 
@@ -424,7 +424,7 @@ class OrderAddressUpdateView(APIView):
             update_order_address(order, s.validated_data)
         except ValueError as exc:
             return Response(
-                {'detail': str(exc), 'codigo_error': 'DIRECCION_NO_EDITABLE'},
+                {'detail': str(exc), 'codigo_error': 'ADDRESS_NOT_EDITABLE'},
                 status=400,
             )
 
@@ -467,7 +467,7 @@ class OrderShippingUpdateView(APIView):
         )
         if not order:
             return Response(
-                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDEN_NO_ENCONTRADA'},
+                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDER_NOT_FOUND'},
                 status=404,
             )
 
@@ -478,7 +478,7 @@ class OrderShippingUpdateView(APIView):
             update_shipping_method(order, s.validated_data['shipping_method_id'])
         except ValueError as exc:
             return Response(
-                {'detail': str(exc), 'codigo_error': 'METODO_NO_EDITABLE'},
+                {'detail': str(exc), 'codigo_error': 'METHOD_NOT_EDITABLE'},
                 status=400,
             )
 

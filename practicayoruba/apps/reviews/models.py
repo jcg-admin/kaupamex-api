@@ -27,7 +27,7 @@ class Review(TimeStampedModel, SoftDeleteModel):
 
     REJECT_INAPPROPRIATE = 'CONTENIDO_INAPROPIADO'
     REJECT_SPAM          = 'SPAM'
-    REJECT_LANGUAGE      = 'IDIOMA_NO_SOPORTADO'
+    REJECT_LANGUAGE      = 'LANGUAGE_NOT_SUPPORTED'
     REJECT_UNRELATED     = 'NO_RELACIONADA'
     REJECT_REASONS = [
         (REJECT_INAPPROPRIATE, 'Contenido inapropiado'),
