@@ -129,5 +129,7 @@ def serve_spa(request):
 
 if getattr(settings, 'UI_DIST', None):
     urlpatterns += [
-        re_path(r'^(?!api/|admin/|static/|media/).*$', serve_spa),
+        re_path(r'^(?!api/|admin/|static/|media/|.*\.(?:js|css|map|ico|png|jpg|svg|woff2?|ttf|eot)).*$', serve_spa),
     ]
+
+
