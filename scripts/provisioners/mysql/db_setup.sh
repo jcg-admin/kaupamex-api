@@ -7,11 +7,16 @@
 # Uso:
 #   sudo bash scripts/provisioners/mysql/db_setup.sh
 #
-# Modelo de usuarios (D-031 H-24):
+# Modelo de usuarios (D-031 H-24, ver Procedimiento-Implementacion-
+# Almacenamiento-WSL2-ecomerce-p001 v1.0.0):
 #   - INVOCADOR: deploy via sudo (necesita acceso al socket
 #     mariadbd via unix_socket auth como root) o root directo.
 #   - NO RUN AS develop: develop no tiene sudo ni acceso al
 #     socket. Si llamas sin sudo, el script aborta loud.
+#   - NO RUN AS infra: la cuenta infra tiene sudo NOPASSWD solo
+#     sobre una whitelist de binarios (mkfs.ext4, mount, apt, ...);
+#     'bash' NO esta en la whitelist, asi que 'sudo bash db_setup.sh'
+#     fallaria con 'sudo: a password is required'. Usar deploy.
 #
 # Variables leidas desde practicayoruba/.env (con defaults):
 #   DB_NAME      (default: practicayoruba_db)

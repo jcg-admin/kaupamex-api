@@ -5,6 +5,13 @@
 # Uso:
 #   sudo bash scripts/bootstrap.sh [--skip-update]
 #
+# Path esperado en produccion WSL2 (Clase A, ver Procedimiento-
+# Implementacion-Almacenamiento-WSL2-ecomerce-p001 FASE 5):
+#   /srv/repos/ecom/e-comerce-api/scripts/bootstrap.sh
+# El script resuelve PROJECT_ROOT relativo a su propia ubicacion
+# (SCRIPT_DIR/..) asi que funciona en cualquier checkout, pero el
+# layout de produccion lo coloca bajo /srv/repos/ecom/.
+#
 # Modelo de usuarios (D-031 H-24, ver Procedimiento-Implementacion-
 # Almacenamiento-WSL2-ecomerce-p001 v1.0.0):
 #   - INVOCADOR: deploy (cuenta sudoer). Ejecuta el script con sudo.
