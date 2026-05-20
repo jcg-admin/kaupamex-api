@@ -100,10 +100,29 @@ create_database() {
 grant_privileges() {
     log_step 3 $TOTAL_STEPS "Privilegios: ${DB_USER} sobre ${DB_NAME}"
 
+    # D-031 H-22 (reportado deploy@yollotl): pre-crear las dos BDs que
+    # pytest-django puede usar:
+    #   - practicayoruba_qa: testing.py declara TEST.NAME=practicayoruba_qa
+    #     (Django usa esta BD directamente como test database)
+    #   - test_practicayoruba_qa: si alguien quita el override TEST.NAME,
+    #     Django crea test_<DB_NAME> por convencion default
+    # Pre-crear ambas + grant ALL evita necesidad de GRANT CREATE/DROP
+    # ON *.* a django_user. Combinado con --reuse-db en pytest.ini
+    # (H-21), elimina los cuelgues en DROP+CREATE.
+    for db in "${DB_NAME}" "test_${DB_NAME}"; do
+        _my_exec -e \
+            "CREATE DATABASE IF NOT EXISTS \`${db}\`
+             CHARACTER SET utf8mb4
+             COLLATE utf8mb4_unicode_ci;" > /dev/null
+    done
+    log_info "  Pre-creadas: ${DB_NAME} y test_${DB_NAME} (anti-hang H-22)"
+
     for host in "%" "localhost" "127.0.0.1"; do
         _my_exec -e \
             "GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '${DB_USER}'@'${host}';" > /dev/null
-        # pytest necesita poder crear/borrar test_<DB_NAME>
+        # pytest necesita poder crear/borrar test_<DB_NAME>; GRANT ALL
+        # incluye CREATE/DROP DENTRO de esa BD (suficiente para
+        # migrate/flush) pero NO CREATE/DROP DATABASE global.
         _my_exec -e \
             "GRANT ALL PRIVILEGES ON \`test_${DB_NAME}\`.* TO '${DB_USER}'@'${host}';" > /dev/null
     done

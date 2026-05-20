@@ -106,15 +106,35 @@ phase_database() {
 
     echo ""
 
-    # 2. Configurar BDs y usuario (el script valida y arranca si es necesario)
-    bash "${SCRIPT_DIR}/provisioners/mysql/db_setup.sh" && \
-        log_success "MySQL configurado" || \
-        log_warn "db_setup.sh reporto advertencias — revisa el output"
+    # D-031 H-23 (reportado deploy@yollotl): antes el script seguia
+    # adelante con log_warn aunque db_setup fallara, declaraba
+    # "Bootstrap completado" al final y verify reportaba 1 ERROR — pero
+    # exit code 0 falseando el estado real. Ahora propagamos exit no-cero
+    # si alguno de los provisioners critico falla (DEC-DOC-008). El
+    # operador puede leer DB_PHASE_FAILED como flag al final.
+    DB_PHASE_FAILED=false
+
+    # 2. Configurar BDs y usuario
+    if bash "${SCRIPT_DIR}/provisioners/mysql/db_setup.sh"; then
+        log_success "MySQL configurado"
+    else
+        log_error "db_setup.sh fallo — revisa el output arriba"
+        DB_PHASE_FAILED=true
+    fi
 
     # 3. Configurar BD de QA para tests
-    bash "${SCRIPT_DIR}/provisioners/mysql/db_qa_setup.sh" && \
-        log_success "BD QA configurada" || \
-        log_warn "db_qa_setup.sh reporto advertencias"
+    if bash "${SCRIPT_DIR}/provisioners/mysql/db_qa_setup.sh"; then
+        log_success "BD QA configurada"
+    else
+        log_error "db_qa_setup.sh fallo — revisa el output arriba"
+        DB_PHASE_FAILED=true
+    fi
+
+    if [[ "$DB_PHASE_FAILED" == "true" ]]; then
+        log_error "Fase 4 de base de datos fallo. Migraciones y verify"
+        log_error "no se ejecutaran. Resuelve el error y re-ejecuta."
+        return 1
+    fi
 }
 
 # =============================================================================
@@ -184,7 +204,12 @@ main() {
     echo ""
     phase_python
     echo ""
-    phase_database
+    # D-031 H-23: capturar fallo de phase_database para skip migrations
+    # + reportar al final con exit code distinto de cero.
+    BOOTSTRAP_FAILED=false
+    if ! phase_database; then
+        BOOTSTRAP_FAILED=true
+    fi
     echo ""
     phase_migrations
     echo ""
@@ -226,7 +251,15 @@ main() {
 
     log_separator 60 "="
     log_info "Tiempo total: $(show_elapsed)"
-    log_success "Bootstrap completado."
+    # D-031 H-23: reportar estado real. Antes siempre decia "completado"
+    # incluso con phases falladas.
+    if [[ "${BOOTSTRAP_FAILED:-false}" == "true" ]]; then
+        log_error "Bootstrap completado CON ERRORES."
+        log_error "Revisa los mensajes ERR arriba y resuelve antes de"
+        log_error "ejecutar tests o el servidor."
+    else
+        log_success "Bootstrap completado."
+    fi
     echo ""
     log_info "Siguientes pasos:"
     log_info "  source .venv/bin/activate"
@@ -236,7 +269,13 @@ main() {
     echo ""
     log_info "Para verificar el entorno:"
     log_info "  bash scripts/provisioners/system/check_tools.sh"
+    log_info "Para correr tests:"
+    log_info "  pytest tests/"
     echo ""
+
+    # Exit con codigo distinto de cero si alguna phase critica fallo
+    [[ "${BOOTSTRAP_FAILED:-false}" == "true" ]] && return 1
+    return 0
 }
 
 main

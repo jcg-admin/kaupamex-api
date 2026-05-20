@@ -92,3 +92,17 @@ if grep -qE "^\s+--reuse-db" "$PROJECT_ROOT/pytest.ini"; then
 else
     fail "pytest.ini sin --reuse-db — pytest cuelga creando test DB (H-21 regresion)"
 fi
+
+# H-22: db_qa_setup.sh pre-crea test_practicayoruba_qa
+if grep -qE 'CREATE DATABASE IF NOT EXISTS.*test_' "$PROJECT_ROOT/scripts/provisioners/mysql/db_qa_setup.sh"; then
+    pass "db_qa_setup.sh pre-crea test_<DB_NAME> (H-22 anti-hang)"
+else
+    fail "db_qa_setup.sh no pre-crea test_DB (H-22 regresion)"
+fi
+
+# H-23: bootstrap.sh propaga exit code de phase_database
+if grep -qE 'BOOTSTRAP_FAILED|DB_PHASE_FAILED' "$PROJECT_ROOT/scripts/bootstrap.sh"; then
+    pass "bootstrap.sh propaga estado de phase_database (H-23 loud failure)"
+else
+    fail "bootstrap.sh silenciaba fallos de phase_database (H-23 regresion)"
+fi
