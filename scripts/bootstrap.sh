@@ -151,6 +151,32 @@ phase_python() {
 phase_database() {
     log_header "Fase 4/6 — Base de datos"
 
+    # 0. Cross-repo env sync (T-B2 de iniciativa
+    #    resolver-problemas-db-pendientes — cierra ENV-01, H-03).
+    #    Si el sibling repo e-comerce-db esta presente y trae
+    #    scripts/verify_env_sync.sh, validar que las claves DB_* en
+    #    db/.env.example coincidan con las de practicayoruba/.env.example.
+    #    Drift = log_error pero no fatal — la causa raiz (.env real
+    #    desincronizado) la captura phase_database / phase_verify.
+    local _env_sync=""
+    for cand in \
+        "$(cd "${PROJECT_ROOT}/.." && pwd)/db/scripts/verify_env_sync.sh" \
+        "$(cd "${PROJECT_ROOT}/.." && pwd)/e-comerce-db/scripts/verify_env_sync.sh" \
+        "$(cd "${PROJECT_ROOT}/.." && pwd)/PracticaYoruba-db/scripts/verify_env_sync.sh"; do
+        if [[ -f "$cand" ]]; then _env_sync="$cand"; break; fi
+    done
+    if [[ -n "$_env_sync" ]]; then
+        log_info "  Verificando sync de claves DB_* (db <-> api)"
+        if bash "$_env_sync" --api-root "${PROJECT_ROOT}"; then
+            log_success "  Plantillas .env sincronizadas"
+        else
+            log_error "  DRIFT en claves DB_* entre db/.env.example y api/.env.example"
+            log_error "  Revisar el diff arriba y sincronizar manualmente."
+        fi
+    else
+        log_info "  Skip verify_env_sync (e-comerce-db sibling no detectado)"
+    fi
+
     # 1. Arrancar MySQL (incluye limpieza de estado stale y fallback sin systemd)
     if ! mysql_start; then
         log_warn "MySQL no pudo arrancar automaticamente"
