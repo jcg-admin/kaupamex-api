@@ -22,7 +22,8 @@ from .serializers import (
     InitiatePaymentSerializer, InitiatePaymentResponseSerializer,
     InstallmentPlansResponseSerializer, PaymentSerializer,
     PaymentReturnSerializer, CheckoutEligibilitySerializer,
-    ExpressCheckoutSerializer,
+    ExpressCheckoutSerializer, RefundRequestSerializer,
+    RefundSerializer, RetryEligibilitySerializer,
 )
 from .services import initiate_payment, handle_gateway_return, get_installment_plans
 
@@ -549,9 +550,9 @@ class RefundView(APIView):
             'amount<total → reembolso parcial (Payment.status=PARTIALLY_REFUNDED). '
             'H-REF-007: Refund.status será APPROVED (no PROCESSED como en la FR).'
         ),
-        request='RefundRequestSerializer',
+        request=RefundRequestSerializer,
         responses={
-            201: 'RefundSerializer',
+            201: RefundSerializer,
             400: OpenApiResponse(description='Pago no reembolsable.'),
             404: OpenApiResponse(description='Orden o pago no encontrado.'),
             503: OpenApiResponse(description='Gateway no disponible.'),
@@ -621,7 +622,7 @@ class RetryEligibilityView(APIView):
             'H-REF-004: la FR dice PENDING_PAYMENT — el estado real es PENDING.'
         ),
         responses={
-            200: 'RetryEligibilitySerializer',
+            200: RetryEligibilitySerializer,
             404: OpenApiResponse(description='Orden no encontrada.'),
         },
         tags=['payments'],
@@ -661,9 +662,9 @@ class AdminRefundView(APIView):
             'independientemente del estado de la orden. '
             'Reutiliza execute_refund() del servicio — mismo código que UC-PAY-07.'
         ),
-        request='RefundRequestSerializer',
+        request=RefundRequestSerializer,
         responses={
-            201: 'RefundSerializer',
+            201: RefundSerializer,
             400: OpenApiResponse(description='Pago no reembolsable.'),
             404: OpenApiResponse(description='Payment no encontrado.'),
             503: OpenApiResponse(description='Gateway no disponible.'),

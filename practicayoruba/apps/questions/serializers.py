@@ -21,7 +21,7 @@ class PublicQuestionItemSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = fields
 
-    def get_asker_name(self, obj):
+    def get_asker_name(self, obj) -> str:
         # Anonimo si no se provee nombre.
         if obj.asker_user_id and not obj.asker_name:
             return obj.asker_user.username if obj.asker_user else 'Usuario'

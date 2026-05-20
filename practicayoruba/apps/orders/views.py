@@ -20,7 +20,10 @@ from apps.inventory.services import InventoryService, InsufficientStockError
 from apps.settings_app.models import SiteSettings, ShippingMethod
 
 from .models import Order, OrderItem, OrderValue, OrderAddress
-from .serializers import CheckoutSerializer, OrderSerializer
+from .serializers import (
+    CancelOrderSerializer, CheckoutSerializer, OrderListSerializer,
+    OrderSerializer, UpdateAddressSerializer, UpdateShippingSerializer,
+)
 
 
 class CheckoutView(APIView):
@@ -233,8 +236,9 @@ class OrderListView(APIView):
             OpenApiParameter('page', int, description='Número de página'),
             OpenApiParameter('page_size', int, description='Órdenes por página (max 50)'),
         ],
-        responses={200: 'OrderListSerializer (paginado)'},
+        responses={200: OrderListSerializer(many=True)},
         tags=['orders'],
+        operation_id='orders_list',
     )
     def get(self, request):
         from django.db.models import Prefetch
@@ -285,10 +289,11 @@ class OrderDetailView(APIView):
             'RNF-SEC-003: 404 si la orden no existe o no pertenece al usuario.'
         ),
         responses={
-            200: 'OrderSerializer',
+            200: OrderSerializer,
             404: OpenApiResponse(description='Orden no encontrada.'),
         },
         tags=['orders'],
+        operation_id='orders_retrieve',
     )
     def get(self, request, order_number):
         from .models import Order
@@ -331,9 +336,9 @@ class OrderCancelView(APIView):
             'Si había un pago aprobado, inicia el reembolso automáticamente. '
             'H-ORD-002: solo PENDING y PROCESSING son cancelables por el comprador.'
         ),
-        request='CancelOrderSerializer',
+        request=CancelOrderSerializer,
         responses={
-            200: 'OrderSerializer',
+            200: OrderSerializer,
             400: OpenApiResponse(description='Orden no cancelable.'),
             404: OpenApiResponse(description='Orden no encontrada.'),
             503: OpenApiResponse(description='Gateway de reembolso no disponible.'),
@@ -399,9 +404,9 @@ class OrderAddressUpdateView(APIView):
             '(estados: PENDING, PROCESSING, IN_PREPARATION). '
             'H-ORD-002: los estados editables mapean correctamente al modelo.'
         ),
-        request='UpdateAddressSerializer',
+        request=UpdateAddressSerializer,
         responses={
-            200: 'OrderSerializer',
+            200: OrderSerializer,
             400: OpenApiResponse(description='Dirección no editable.'),
             404: OpenApiResponse(description='Orden no encontrada.'),
         },
@@ -456,9 +461,9 @@ class OrderShippingUpdateView(APIView):
             'Solo posible antes del envío (PENDING, PROCESSING, IN_PREPARATION). '
             'H-ORD-007: total = subtotal_neto + IVA + costo_nuevo_envío.'
         ),
-        request='UpdateShippingSerializer',
+        request=UpdateShippingSerializer,
         responses={
-            200: 'OrderSerializer',
+            200: OrderSerializer,
             400: OpenApiResponse(description='Cambio de envío no permitido.'),
             404: OpenApiResponse(description='Orden no encontrada.'),
         },

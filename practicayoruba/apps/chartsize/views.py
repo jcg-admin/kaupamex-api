@@ -6,7 +6,10 @@ Sprint 9 — UC-CHT-01, UC-CHT-02, UC-CHT-03, UC-CHT-04
 from decimal import Decimal, InvalidOperation
 
 from django.shortcuts import get_object_or_404
-from drf_spectacular.utils import extend_schema, OpenApiResponse
+from drf_spectacular.utils import (
+    extend_schema, extend_schema_view, OpenApiParameter, OpenApiResponse,
+)
+from drf_spectacular.types import OpenApiTypes
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
@@ -59,6 +62,40 @@ class VariantDetailView(APIView):
 # UC-CHT-03 y UC-CHT-04 — CRUD admin de variantes
 # =============================================================================
 
+@extend_schema_view(
+    list=extend_schema(parameters=[
+        OpenApiParameter('product_pk', OpenApiTypes.INT,
+                         OpenApiParameter.PATH),
+    ]),
+    create=extend_schema(parameters=[
+        OpenApiParameter('product_pk', OpenApiTypes.INT,
+                         OpenApiParameter.PATH),
+    ]),
+    retrieve=extend_schema(parameters=[
+        OpenApiParameter('product_pk', OpenApiTypes.INT,
+                         OpenApiParameter.PATH),
+        OpenApiParameter('id', OpenApiTypes.INT,
+                         OpenApiParameter.PATH),
+    ]),
+    update=extend_schema(parameters=[
+        OpenApiParameter('product_pk', OpenApiTypes.INT,
+                         OpenApiParameter.PATH),
+        OpenApiParameter('id', OpenApiTypes.INT,
+                         OpenApiParameter.PATH),
+    ]),
+    partial_update=extend_schema(parameters=[
+        OpenApiParameter('product_pk', OpenApiTypes.INT,
+                         OpenApiParameter.PATH),
+        OpenApiParameter('id', OpenApiTypes.INT,
+                         OpenApiParameter.PATH),
+    ]),
+    destroy=extend_schema(parameters=[
+        OpenApiParameter('product_pk', OpenApiTypes.INT,
+                         OpenApiParameter.PATH),
+        OpenApiParameter('id', OpenApiTypes.INT,
+                         OpenApiParameter.PATH),
+    ]),
+)
 class ProductVariantAdminViewSet(ModelViewSet):
     """
     GET    /api/v1/admin/products/<product_pk>/variants/
@@ -169,6 +206,40 @@ class ProductVariantAdminViewSet(ModelViewSet):
         return super().destroy(request, *args, **kwargs)
 
 
+@extend_schema_view(
+    list=extend_schema(parameters=[
+        OpenApiParameter('product_pk', OpenApiTypes.INT,
+                         OpenApiParameter.PATH),
+    ]),
+    create=extend_schema(parameters=[
+        OpenApiParameter('product_pk', OpenApiTypes.INT,
+                         OpenApiParameter.PATH),
+    ]),
+    retrieve=extend_schema(parameters=[
+        OpenApiParameter('product_pk', OpenApiTypes.INT,
+                         OpenApiParameter.PATH),
+        OpenApiParameter('id', OpenApiTypes.INT,
+                         OpenApiParameter.PATH),
+    ]),
+    update=extend_schema(parameters=[
+        OpenApiParameter('product_pk', OpenApiTypes.INT,
+                         OpenApiParameter.PATH),
+        OpenApiParameter('id', OpenApiTypes.INT,
+                         OpenApiParameter.PATH),
+    ]),
+    partial_update=extend_schema(parameters=[
+        OpenApiParameter('product_pk', OpenApiTypes.INT,
+                         OpenApiParameter.PATH),
+        OpenApiParameter('id', OpenApiTypes.INT,
+                         OpenApiParameter.PATH),
+    ]),
+    destroy=extend_schema(parameters=[
+        OpenApiParameter('product_pk', OpenApiTypes.INT,
+                         OpenApiParameter.PATH),
+        OpenApiParameter('id', OpenApiTypes.INT,
+                         OpenApiParameter.PATH),
+    ]),
+)
 class VariantTypeAdminViewSet(ModelViewSet):
     """
     GET|POST /api/v1/admin/products/<product_pk>/variant-types/

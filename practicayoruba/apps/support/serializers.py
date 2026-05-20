@@ -91,7 +91,7 @@ class SupportTicketReplySerializer(serializers.ModelSerializer):
         ]
         read_only_fields = fields
 
-    def get_author(self, obj):
+    def get_author(self, obj) -> str:
         if obj.author is None:
             return 'SYSTEM'
         return 'ADMIN' if obj.author.is_staff else 'BUYER'
@@ -114,7 +114,7 @@ class SupportTicketDetailSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = fields
 
-    def get_replies(self, obj):
+    def get_replies(self, obj) -> list:
         request = self.context.get('request')
         is_staff = bool(request and request.user.is_authenticated and request.user.is_staff)
         qs = obj.replies.all().order_by('created_at')
@@ -122,12 +122,12 @@ class SupportTicketDetailSerializer(serializers.ModelSerializer):
             qs = qs.filter(is_internal_note=False)
         return SupportTicketReplySerializer(qs, many=True).data
 
-    def get_available_actions(self, obj):
+    def get_available_actions(self, obj) -> list:
         if obj.status == SupportTicket.Status.CLOSED:
             return ['REOPEN']
         return ['REPLY', 'CLOSE']
 
-    def get_buyer(self, obj):
+    def get_buyer(self, obj) -> dict | None:
         request = self.context.get('request')
         if not (request and request.user.is_authenticated and request.user.is_staff):
             return None

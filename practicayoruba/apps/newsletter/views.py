@@ -42,6 +42,7 @@ class NewsletterSubscribeView(APIView):
     """POST /api/v1/newsletter/subscribe/."""
 
     permission_classes = [AllowAny]
+    serializer_class = SubscribeSerializer
 
     @extend_schema(
         summary='Suscribirse a la newsletter',
@@ -81,6 +82,7 @@ class NewsletterUnsubscribeView(APIView):
     """POST /api/v1/newsletter/unsubscribe/."""
 
     permission_classes = [AllowAny]
+    serializer_class = UnsubscribeSerializer
 
     @extend_schema(
         summary='Cancelar suscripcion via token',
@@ -141,6 +143,7 @@ class AdminSubscriberForceUnsubscribeView(APIView):
     """POST /api/v1/admin/newsletter/subscribers/<id>/unsubscribe/."""
 
     permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class = SubscriberListItemSerializer
 
     @extend_schema(
         summary='Forzar baja de un suscriptor',

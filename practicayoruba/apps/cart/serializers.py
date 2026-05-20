@@ -23,22 +23,22 @@ class CartItemSerializer(serializers.ModelSerializer):
             'available_stock', 'is_available', 'price_changed',
         ]
 
-    def get_variant_label(self, obj):
+    def get_variant_label(self, obj) -> str | None:
         return obj.variant.option.label if obj.variant else None
 
-    def get_sku(self, obj):
+    def get_sku(self, obj) -> str:
         return obj.variant.sku if obj.variant else obj.product.sku
 
-    def get_subtotal(self, obj):
+    def get_subtotal(self, obj) -> str:
         return str(obj.get_subtotal())
 
-    def get_available_stock(self, obj):
+    def get_available_stock(self, obj) -> int:
         return obj.available_stock()
 
-    def get_is_available(self, obj):
+    def get_is_available(self, obj) -> bool:
         return obj.is_available()
 
-    def get_price_changed(self, obj):
+    def get_price_changed(self, obj) -> bool:
         """True si el precio fue actualizado durante esta request (FR-CART-01.02)."""
         changed_ids = self.context.get('changed_ids', set())
         if changed_ids:
@@ -55,7 +55,7 @@ class CartSerializer(serializers.ModelSerializer):
         model  = Cart
         fields = ['id', 'cart_token', 'items', 'totals']
 
-    def get_totals(self, obj):
+    def get_totals(self, obj) -> dict:
         return obj.get_totals()
 
 

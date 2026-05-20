@@ -24,8 +24,16 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 # --- UI React (SPA) ----------------------------------------------------
 # Ruta al build de producción del UI (resultado de: npm run build).
 # Usada por la vista serve_spa en config/urls.py para servir index.html.
-# ALLOWED_HOSTS debe incluir el dominio real en el .env de producción.
-UI_DIST = config('UI_DIST', default='/opt/practicayoruba/ui/dist')
+#
+# Iniciativa: configurar-ui-dist-en-deploy (H-UID-1, H-UID-2). Default
+# previo ``/opt/practicayoruba/ui/dist`` era ruta histórica obsoleta
+# para el layout WSL2/VPS canónico. Cambiado a string vacío — centinela
+# para que ``serve_spa`` se desactive (urls.py:130 ya tiene el guard
+# ``if getattr(settings, 'UI_DIST', None):``).
+#
+# Configurar en ``practicayoruba/.env`` la ruta real:
+#   UI_DIST=/srv/repos/ecom/ui/dist   (WSL2 canónico)
+UI_DIST = config('UI_DIST', default='')
 
 # --- Email -----------------------------------------------------------------
 # Puerto saliente requerido en el VPS: 587/tcp (SMTP STARTTLS).

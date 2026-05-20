@@ -54,6 +54,7 @@ class RelatedProductsView(APIView):
     acceptable — return 404 with loud error code (DEC-DOC-008).
     """
     permission_classes = [AllowAny]
+    serializer_class = ProductListSerializer
 
     @extend_schema(
         summary='Related products by category (UC-CAT-07).',
@@ -116,6 +117,7 @@ class CategoryTreeView(APIView):
 
 class CatalogueSearchView(APIView):
     permission_classes = [AllowAny]
+    serializer_class = ProductSearchSerializer
 
     @extend_schema(
         summary='Search products with normalized_query (UC-CAT-03).',

@@ -20,10 +20,13 @@ from .serializers import StaticContentSerializer
 
 class _AdminOnly:
     permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class = StaticContentSerializer
 
 
 class StaticContentListView(_AdminOnly, APIView):
-    @extend_schema(summary='List static content pages.', tags=['static-content'])
+    @extend_schema(summary='List static content pages.',
+                   tags=['static-content'],
+                   operation_id='admin_static_content_list')
     def get(self, request):
         qs = StaticContent.objects.all().prefetch_related('versions')
         return Response(StaticContentSerializer(qs, many=True).data)
@@ -57,7 +60,9 @@ class StaticContentListView(_AdminOnly, APIView):
 
 
 class StaticContentDetailView(_AdminOnly, APIView):
-    @extend_schema(summary='Retrieve static content page.', tags=['static-content'])
+    @extend_schema(summary='Retrieve static content page.',
+                   tags=['static-content'],
+                   operation_id='admin_static_content_retrieve')
     def get(self, request, slug):
         try:
             content = StaticContent.objects.prefetch_related('versions').get(slug=slug)

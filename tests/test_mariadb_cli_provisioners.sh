@@ -1,5 +1,8 @@
 #!/bin/bash
-# tests/test_d031_part2.sh — D-031 part 2: api db provisioners CLI rename
+# tests/test_mariadb_cli_provisioners.sh
+# Cubre utils/database.sh helpers + db_setup.sh + db_qa_setup.sh usando
+# MARIADB_CLI / MARIADB_ADM (el rename mariadb 11.x). Hallazgos H-17,
+# H-21..H-25 (ver registro-deuda-tecnica entrada D-031).
 set -euo pipefail
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 EXIT=0
@@ -49,8 +52,8 @@ done
 
 echo ""
 if [[ "$EXIT" -eq 0 ]]; then
-    echo ">>> ALL PASS — D-031 part 2 fix integro"
+    echo ">>> ALL PASS — MariaDB CLI rename en provisioners integro"
 else
-    echo ">>> FAIL — D-031 part 2 regresion detectada"
+    echo ">>> FAIL — regresion en MariaDB CLI rename de provisioners"
 fi
 exit "$EXIT"

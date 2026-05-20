@@ -169,6 +169,7 @@ class ProductDiscountDeactivateView(APIView):
     """POST /api/v1/admin/product-discounts/<id>/deactivate/."""
 
     permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class = ProductDiscountSerializer
 
     @extend_schema(
         summary='Deactivate product discount (UC-DASH-04)',

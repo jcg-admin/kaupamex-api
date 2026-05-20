@@ -30,7 +30,7 @@ class CategoryTreeSerializer(serializers.ModelSerializer):
         model  = Category
         fields = ['id', 'name', 'slug', 'description', 'children']
 
-    def get_children(self, obj):
+    def get_children(self, obj) -> list:
         active_children = obj.children.filter(is_active=True)
         return CategoryTreeSerializer(active_children, many=True).data
 
@@ -53,7 +53,7 @@ class CategoryAdminSerializer(serializers.ModelSerializer):
             'parent_id', 'is_active', 'product_count',
         ]
 
-    def get_product_count(self, obj):
+    def get_product_count(self, obj) -> int:
         return obj.products.filter(is_active=True).count()
 
     def validate(self, data):
@@ -98,7 +98,7 @@ class ProductListSerializer(serializers.ModelSerializer):
             'stock', 'is_active', 'is_published',
         ]
 
-    def get_price_with_tax(self, obj):
+    def get_price_with_tax(self, obj) -> float:
         iva_rate = SiteSettings.get_current().iva_rate
         return round(float(obj.price) * (1 + float(iva_rate)), 2)
 
@@ -118,7 +118,7 @@ class RelatedProductSerializer(serializers.ModelSerializer):
         model  = Product
         fields = ['id', 'name', 'slug', 'base_price', 'price_with_tax', 'stock']
 
-    def get_price_with_tax(self, obj):
+    def get_price_with_tax(self, obj) -> float:
         iva_rate = SiteSettings.get_current().iva_rate
         return round(float(obj.price) * (1 + float(iva_rate)), 2)
 
@@ -151,7 +151,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at',
         ]
 
-    def get_price_with_tax(self, obj):
+    def get_price_with_tax(self, obj) -> float:
         iva_rate = SiteSettings.get_current().iva_rate
         return round(float(obj.price) * (1 + float(iva_rate)), 2)
 
@@ -159,15 +159,15 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         """UC-CAT-01 / FR-CAT-01.02: IN_STOCK si stock > 0, OUT_OF_STOCK si no."""
         return 'IN_STOCK' if obj.stock > 0 else 'OUT_OF_STOCK'
 
-    def get_images(self, obj):
+    def get_images(self, obj) -> list:
         # Sprint 8: sustituir por ProductImageSerializer(obj.images.all(), many=True).data
         return []
 
-    def get_discount(self, obj):
+    def get_discount(self, obj) -> dict | None:
         # Sprint 7 (vouchers): sustituir por lógica de ProductDiscount activo (BR-012) — Sprint 13
         return None
 
-    def get_variants(self, obj):
+    def get_variants(self, obj) -> list:
         """
         UC-CHT-01 (FR-CHT-01.02): variantes activas del producto.
         Incluidas en la ficha sin endpoint separado.
@@ -180,7 +180,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         )
         return VariantSer(qs, many=True, context=self.context).data
 
-    def get_related_products(self, obj):
+    def get_related_products(self, obj) -> list:
         """
         UC-CAT-07 (FR-CAT-07.02): hasta 4 productos activos de la misma categoría,
         excluyendo el producto actual, ordenados por más reciente.
@@ -219,7 +219,7 @@ class ProductSearchSerializer(serializers.ModelSerializer):
             'highlighted_name',
         ]
 
-    def get_price_with_tax(self, obj):
+    def get_price_with_tax(self, obj) -> float:
         iva_rate = SiteSettings.get_current().iva_rate
         return round(float(obj.price) * (1 + float(iva_rate)), 2)
 
@@ -289,7 +289,7 @@ class CategoryWithCountSerializer(serializers.ModelSerializer):
         model  = Category
         fields = ['id', 'name', 'slug', 'description', 'product_count', 'children']
 
-    def get_children(self, obj):
+    def get_children(self, obj) -> list:
         # Los hijos vienen pre-cargados desde la vista vía prefetch_related
         active_children = [c for c in obj.children.all() if c.is_active]
         return CategoryWithCountSerializer(
@@ -339,11 +339,11 @@ class ProductAdminSerializer(serializers.ModelSerializer):
         """UC-CAT-01: IN_STOCK si stock > 0, OUT_OF_STOCK si no."""
         return 'IN_STOCK' if obj.stock > 0 else 'OUT_OF_STOCK'
 
-    def get_price_with_tax(self, obj):
+    def get_price_with_tax(self, obj) -> float:
         iva_rate = SiteSettings.get_current().iva_rate
         return round(float(obj.price) * (1 + float(iva_rate)), 2)
 
-    def get_images(self, obj):
+    def get_images(self, obj) -> list:
         # Sprint 8: sustituir por ProductImageSerializer(obj.images.all(), many=True).data
         return []
 

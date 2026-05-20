@@ -52,10 +52,10 @@ class OrderSerializer(serializers.ModelSerializer):
             'created_at', 'cancelled_at', 'cancellation_reason',
         ]
 
-    def get_shipping_method_name(self, obj):
+    def get_shipping_method_name(self, obj) -> str | None:
         return obj.shipping_method.name if obj.shipping_method else None
 
-    def get_status_display(self, obj):
+    def get_status_display(self, obj) -> str:
         return obj.get_status_display()
 
 
@@ -107,7 +107,7 @@ class OrderListSerializer(serializers.ModelSerializer):
             return cover.image.url
         return None
 
-    def get_status_display(self, obj):
+    def get_status_display(self, obj) -> str:
         return obj.get_status_display()
 
 

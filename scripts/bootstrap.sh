@@ -5,6 +5,13 @@
 # Uso:
 #   sudo bash scripts/bootstrap.sh [--skip-update]
 #
+# Path esperado en produccion WSL2 (Clase A, ver Procedimiento-
+# Implementacion-Almacenamiento-WSL2-ecomerce-p001 FASE 5):
+#   /srv/repos/ecom/e-comerce-api/scripts/bootstrap.sh
+# El script resuelve PROJECT_ROOT relativo a su propia ubicacion
+# (SCRIPT_DIR/..) asi que funciona en cualquier checkout, pero el
+# layout de produccion lo coloca bajo /srv/repos/ecom/.
+#
 # Modelo de usuarios (D-031 H-24, ver Procedimiento-Implementacion-
 # Almacenamiento-WSL2-ecomerce-p001 v1.0.0):
 #   - INVOCADOR: deploy (cuenta sudoer). Ejecuta el script con sudo.
@@ -291,6 +298,39 @@ main() {
             [[ -e "$path" ]] && chown -R "${repo_owner}:${repo_group}" "$path"
         done
         log_success "  Ownership restaurado a ${repo_owner}:${repo_group}"
+
+        # D-031 followup: cualquier git que se invoque despues como
+        # root sobre PROJECT_ROOT (por ejemplo en CI o si el operador
+        # corre `sudo git status` para diagnosticar) emite
+        # "dubious ownership in repository" porque root no es el owner.
+        # Marcar el repo como safe.directory en la config global de root
+        # elimina ese warning sin abrir riesgos (root ya tiene full
+        # access por definicion). Se hace ANTES de salir del bloque
+        # privilegiado del script.
+        if command -v git >/dev/null 2>&1; then
+            git config --global --add safe.directory "$PROJECT_ROOT" 2>/dev/null || true
+            log_info "  git safe.directory registrado para $PROJECT_ROOT (root)"
+        fi
+
+        # Iniciativa permisos-runtime-www-data (H-LOG-1..3).
+        # Si www-data existe (entorno con Apache+mod_wsgi), logs/ y
+        # media/ deben ser group-writable por www-data para que Django
+        # corriendo bajo mod_wsgi pueda escribir django.log y uploads.
+        # develop sigue como owner (no rompe runserver local). setgid
+        # (g+s) propaga el grupo a archivos nuevos. chgrp/chmod -R cubre
+        # archivos pre-existentes creados por runserver como develop.
+        if getent group www-data >/dev/null 2>&1; then
+            log_info "  Configurando permisos runtime para www-data (Apache)..."
+            for runtime_dir in "${PROJECT_ROOT}/practicayoruba/logs" \
+                               "${PROJECT_ROOT}/practicayoruba/media"; do
+                mkdir -p "$runtime_dir"
+                chgrp -R www-data "$runtime_dir" 2>/dev/null || true
+                chmod -R g+w,g+s "$runtime_dir" 2>/dev/null || true
+            done
+            log_success "  logs/ y media/ con grupo www-data + setgid (H-LOG)"
+        else
+            log_info "  www-data no existe — saltando permisos runtime (entorno dev sin Apache)"
+        fi
     else
         log_warn "  PROJECT_ROOT root-owned o sin stat — omitiendo chown post-bootstrap"
         log_warn "  Si manage.py falla con PermissionError en logs/:"

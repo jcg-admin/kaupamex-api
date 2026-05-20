@@ -42,6 +42,7 @@ class WishlistView(APIView):
     POST /api/v1/wishlist/ — agregar producto (UC-WISH-01)
     """
     permission_classes = [IsAuthenticated]
+    serializer_class = WishlistItemSerializer
 
     @extend_schema(summary='Ver lista de deseos', tags=['wishlist'])
     def get(self, request):
@@ -113,6 +114,7 @@ class WishlistItemDetailView(APIView):
 class WishlistMoveToCartView(APIView):
     """POST /api/v1/wishlist/<pk>/move-to-cart/ — UC-WISH-03."""
     permission_classes = [IsAuthenticated]
+    serializer_class = WishlistItemSerializer
 
     @extend_schema(
         summary='Mover producto de wishlist al carrito',

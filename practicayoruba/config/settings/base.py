@@ -194,6 +194,46 @@ SPECTACULAR_SETTINGS = {
     # --- Enums ---
     'ENUM_GENERATE_CHOICE_DESCRIPTION': True,
     'ENUM_SUFFIX': '',
+
+    # D-032 T-4: cada modelo con campos 'status' o 'gateway' tiene su
+    # propio choice set. Sin overrides drf-spectacular auto-resuelve
+    # con sufijos hex (StatusFc3Enum, Gateway409Enum) — feo en clientes
+    # generados. Cada entrada mapea EnumName -> path al choice set.
+    'ENUM_NAME_OVERRIDES': {
+        # status fields (mas de un modelo usa este nombre de campo)
+        'OrderStatusEnum':
+            'apps.orders.models.Order.STATUSES',
+        'PaymentStatusEnum':
+            'apps.payments.models.Payment.STATUSES',
+        'RefundStatusEnum':
+            'apps.payments.models.Refund.STATUSES',
+        'ReviewStatusEnum':
+            'apps.reviews.models.Review.STATUSES',
+        'ShipmentGuideStatusEnum':
+            'apps.logistics.models.ShipmentGuide.STATUSES',
+        'StaticPageVersionStatusEnum':
+            'apps.settings_app.models.StaticPageVersion.STATUS_CHOICES',
+        'NotificationStatusEnum':
+            'apps.notifications.models.ManualNotification.Status.choices',
+        'NewsletterSubscriberStatusEnum':
+            'apps.newsletter.models.SubscriberStatus.choices',
+        'QuestionStatusEnum':
+            'apps.questions.models.QuestionStatus.choices',
+        'SupportTicketStatusEnum':
+            'apps.support.models.SupportTicket.Status.choices',
+        'ReturnRequestStatusEnum':
+            'apps.returns.models.ReturnRequest.Status.choices',
+        # gateway fields (Payment vs PaymentGateway tienen choice sets
+        # diferentes — el segundo agrega TEST sandbox)
+        'PaymentGatewayChoiceEnum':
+            'apps.payments.models.Payment.GATEWAYS',
+        'PaymentGatewayConfigEnum':
+            'apps.settings_app.models.PaymentGateway.GATEWAYS',
+        # AudienceFilterEnum: alias para ManualNotification.RecipientType
+        # que aparece en serializers diferentes con choice set identico
+        'AudienceFilterEnum':
+            'apps.notifications.models.ManualNotification.RecipientType.choices',
+    },
 }
 
 # H-09: ensure logs directory exists on fresh checkouts before RotatingFileHandler

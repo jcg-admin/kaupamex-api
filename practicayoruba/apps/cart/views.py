@@ -133,18 +133,23 @@ class CartView(APIView):
         return Response(status=204)
 
 
-class CartItemView(APIView):
+class CartItemListView(APIView):
     """
-    POST   /api/v1/cart/items/       — agregar item. UC-CART-01.
-    PATCH  /api/v1/cart/items/<pk>/  — editar cantidad. UC-CART-02.
-    DELETE /api/v1/cart/items/<pk>/  — eliminar item. UC-CART-03.
+    POST /api/v1/cart/items/ — agregar item. UC-CART-01.
+
+    Split de CartItemView (D-032 T-6): el detail view se separo para
+    eliminar colisiones de operationId que spectacular emitia cuando
+    una sola clase manejaba dos URLs (la URL de lista y la URL de
+    detalle).
     """
     permission_classes = [AllowAny]
+    serializer_class = CartItemSerializer
 
     @extend_schema(
         summary='Agregar item al carrito',
         request=AddItemSerializer,
         tags=['cart'],
+        operation_id='cart_items_add',
     )
     def post(self, request):
         s = AddItemSerializer(data=request.data)
@@ -239,10 +244,22 @@ class CartItemView(APIView):
             response['X-Cart-Token'] = cart_token
         return response
 
+
+class CartItemDetailView(APIView):
+    """
+    PATCH  /api/v1/cart/items/<pk>/ — editar cantidad. UC-CART-02.
+    DELETE /api/v1/cart/items/<pk>/ — eliminar item.   UC-CART-03.
+
+    Split de CartItemView (D-032 T-6).
+    """
+    permission_classes = [AllowAny]
+    serializer_class = CartItemSerializer
+
     @extend_schema(
         summary='Editar cantidad de item',
         request=UpdateItemSerializer,
         tags=['cart'],
+        operation_id='cart_items_update',
     )
     def patch(self, request, pk):
         cart, _, _ = _get_or_create_cart(request)
@@ -264,12 +281,19 @@ class CartItemView(APIView):
         summary='Eliminar item del carrito',
         responses={204: None},
         tags=['cart'],
+        operation_id='cart_items_destroy',
     )
     def delete(self, request, pk):
         cart, _, _ = _get_or_create_cart(request)
         item = get_object_or_404(CartItem, pk=pk, cart=cart)
         item.delete()
         return Response(status=204)
+
+
+# Backwards-compatible alias for any module that imports the
+# pre-split class name. urls.py refs go directly to the two new
+# classes; this alias only protects accidental imports.
+CartItemView = CartItemListView
 
 
 # =============================================================================
@@ -279,6 +303,7 @@ class CartItemView(APIView):
 class CartSaveView(APIView):
     """POST /api/v1/cart/save/ — UC-CART-05."""
     permission_classes = [IsAuthenticated]
+    serializer_class = SavedCartItemSerializer
 
     @extend_schema(
         summary='Guardar carrito para después',
@@ -357,6 +382,7 @@ class CartVoucherView(APIView):
     DELETE /api/v1/cart/voucher/ — quitar cupón
     """
     permission_classes = [AllowAny]
+    serializer_class = CartSerializer
 
     @extend_schema(
         summary='Aplicar cupón de descuento al carrito',

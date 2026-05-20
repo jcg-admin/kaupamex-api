@@ -7,9 +7,12 @@
 # Uso:
 #   sudo bash scripts/provisioners/mysql/db_qa_setup.sh
 #
-# Modelo de usuarios (D-031 H-24):
+# Modelo de usuarios (D-031 H-24, ver Procedimiento-Implementacion-
+# Almacenamiento-WSL2-ecomerce-p001 v1.0.0):
 #   - INVOCADOR: deploy via sudo (acceso al socket como root).
 #   - NO RUN AS develop: sin sudo el script aborta loud.
+#   - NO RUN AS infra: 'bash' no esta en la whitelist NOPASSWD de
+#     infra; 'sudo bash db_qa_setup.sh' falla. Usar deploy.
 #
 # Variables leidas desde practicayoruba/.env:
 #   DB_QA_NAME      (default: practicayoruba_qa)

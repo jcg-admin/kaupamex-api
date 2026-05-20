@@ -243,31 +243,50 @@ class StaticPagePublishSerializer(drf_serializers.Serializer):
     publish_at = drf_serializers.DateTimeField(required=False, allow_null=True)
 
 
-class StaticPageAdminView(APIView):
+class StaticPageAdminListView(APIView):
     """
-    GET  /api/v1/admin/pages/          — listar páginas estáticas
-    GET  /api/v1/admin/pages/<slug>/   — detalle con versión activa
-    POST /api/v1/admin/pages/<slug>/publish/ — publicar nueva versión
-    POST /api/v1/admin/pages/<slug>/versions/<version>/restore/ — revertir
+    GET /api/v1/admin/pages/ — listar páginas estáticas.
+    UC-CFG-04 (FR-CFG-04.02).
+
+    Split de StaticPageAdminView (D-032 T-6): el detail se separo en
+    StaticPageAdminDetailView para evitar colision de operationId.
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class = StaticPageSerializer
+
+    @extend_schema(summary='Listar páginas estáticas', tags=['config'],
+                   operation_id='admin_pages_list')
+    def get(self, request):
+        pages = StaticPage.objects.all()
+        return Response(StaticPageSerializer(pages, many=True).data)
+
+
+class StaticPageAdminDetailView(APIView):
+    """
+    GET /api/v1/admin/pages/<slug>/ — detalle con versión activa.
     UC-CFG-04 (FR-CFG-04.02).
     """
     permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class = StaticPageSerializer
 
-    @extend_schema(summary='Listar páginas estáticas', tags=['config'])
-    def get(self, request, slug=None):
-        if slug:
-            try:
-                page = StaticPage.objects.prefetch_related('versions').get(slug=slug)
-            except StaticPage.DoesNotExist:
-                return Response({'detail': 'Página no encontrada.'}, status=404)
-            return Response(StaticPageSerializer(page).data)
-        pages = StaticPage.objects.all()
-        return Response(StaticPageSerializer(pages, many=True).data)
+    @extend_schema(summary='Detalle de página estática', tags=['config'],
+                   operation_id='admin_pages_retrieve')
+    def get(self, request, slug):
+        try:
+            page = StaticPage.objects.prefetch_related('versions').get(slug=slug)
+        except StaticPage.DoesNotExist:
+            return Response({'detail': 'Página no encontrada.'}, status=404)
+        return Response(StaticPageSerializer(page).data)
+
+
+# Alias retrocompatible
+StaticPageAdminView = StaticPageAdminListView
 
 
 class StaticPagePublishView(APIView):
     """POST /api/v1/admin/pages/<slug>/publish/ — publicar nueva versión."""
     permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class = StaticPagePublishSerializer
 
     @extend_schema(summary='Publicar nueva versión de página estática', tags=['config'])
     def post(self, request, slug):
@@ -308,6 +327,7 @@ class StaticPagePublishView(APIView):
 class StaticPageRestoreView(APIView):
     """POST /api/v1/admin/pages/<slug>/versions/<version>/restore/"""
     permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class = StaticPageVersionSerializer
 
     @extend_schema(summary='Revertir a versión anterior', tags=['config'])
     def post(self, request, slug, version):

@@ -38,12 +38,12 @@ class Cart(TimeStampedModel):
     class Meta:
         db_table     = 'cart_cart'
         verbose_name = 'Carrito'
-        constraints  = [
-            models.UniqueConstraint(
-                fields=['user'], condition=models.Q(user__isnull=False),
-                name='unique_user_cart',
-            ),
-        ]
+        # Cart.user es OneToOneField -> ya crea UNIQUE a nivel de BD.
+        # SQL standard permite multiples NULLs en columnas UNIQUE
+        # (NULL != NULL), asi que "un user max un cart, multiples
+        # carritos anonimos" ya esta cubierto sin constraint adicional.
+        # La UniqueConstraint(fields=['user'], condition=Q(...)) era
+        # redundante y solo generaba el warning W036 en MariaDB.
 
     def __str__(self):
         if self.user:

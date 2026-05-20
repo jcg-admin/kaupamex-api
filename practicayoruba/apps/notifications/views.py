@@ -66,6 +66,7 @@ class NotificationUnreadCountView(APIView):
     """GET /api/v1/notifications/unread-count/."""
 
     permission_classes = [IsAuthenticated]
+    serializer_class = NotificationSerializer
 
     @extend_schema(
         summary='Contar notificaciones no leidas',
@@ -83,6 +84,7 @@ class NotificationMarkReadView(APIView):
     """POST /api/v1/notifications/{id}/read/."""
 
     permission_classes = [IsAuthenticated]
+    serializer_class = NotificationSerializer
 
     @extend_schema(
         summary='Marcar notificacion como leida',
@@ -103,6 +105,7 @@ class NotificationMarkAllReadView(APIView):
     """POST /api/v1/notifications/read-all/."""
 
     permission_classes = [IsAuthenticated]
+    serializer_class = NotificationSerializer
 
     @extend_schema(
         summary='Marcar todas las notificaciones como leidas',
@@ -258,6 +261,7 @@ class AdminAudienceCountView(APIView):
     """GET /api/v1/admin/notifications/audience-count/."""
 
     permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class = ManualNotificationCreateSerializer
 
     @extend_schema(
         summary='Tamano de la audiencia destino',
