@@ -7,17 +7,15 @@ Identifiers + JSON keys in English (DEC-DOC-005).
 """
 from datetime import timedelta
 from decimal import Decimal
-
-from django.db.models import Count, F, Sum
+from django.db.models import Count, F, Sum, Max as models_Max
 from django.db.models.functions import TruncDate
 from django.utils import timezone
-from apps.orders.models import Order, OrderValue
+from apps.orders.models import Order, OrderValue, OrderItem
 from apps.payments.models import Payment
 from apps.catalogue.models import Product
-from apps.orders.models import OrderItem
 from apps.inventory.models import StockAlert
-from apps.orders.models import Order, OrderItem, OrderValue
 from apps.support.models import SupportTicket
+
 
 
 # ────────────────────────── Period parsing ─────────────────────────────────
@@ -324,4 +322,3 @@ def build_rfm_payload(period_days: int, segment_filter: str | None = None) -> di
 
 # `Max` import — placed at the bottom to avoid shadowing the module-level
 # `models` reference if it were used elsewhere; isolated for clarity.
-from django.db.models import Max as models_Max  # noqa: E402

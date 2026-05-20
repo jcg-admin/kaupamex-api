@@ -5,10 +5,10 @@ English JSON keys per DEC-DOC-005. Business error codes Spanish per
 DEC-DOC-006 — raised in views, not here.
 """
 from rest_framework import serializers
-
 from apps.orders.models import Order
-
 from .models import Courier, ShipmentEvent, ShipmentGuide
+
+
 
 
 class CourierSerializer(serializers.ModelSerializer):

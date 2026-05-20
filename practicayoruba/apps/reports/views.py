@@ -11,13 +11,14 @@ Read-only admin aggregation endpoints under /api/v1/admin/reports/:
 Identifiers + JSON keys in English (DEC-DOC-005).
 """
 from drf_spectacular.utils import OpenApiParameter, extend_schema
-from rest_framework import serializers, status
+from rest_framework import serializers, status, exceptions
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.negotiation import DefaultContentNegotiation
 from rest_framework.renderers import BaseRenderer, JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework import exceptions
+from .aggregations import build_dashboard_payload, build_rfm_payload, build_sales_payload, build_top_sellers_payload, parse_period
+from .exports import EXPORTERS
 
 
 class _PassthroughNegotiator(DefaultContentNegotiation):
@@ -50,14 +51,6 @@ class _PDFRenderer(BaseRenderer):
     def render(self, data, accepted_media_type=None, renderer_context=None):
         return data if isinstance(data, (bytes, str)) else str(data)
 
-from .aggregations import (
-    build_dashboard_payload,
-    build_rfm_payload,
-    build_sales_payload,
-    build_top_sellers_payload,
-    parse_period,
-)
-from .exports import EXPORTERS
 
 
 class _AdminMixin:

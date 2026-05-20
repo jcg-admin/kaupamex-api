@@ -4,8 +4,8 @@ Serializers — apps.returns.
 Cumplen los contratos JSON declarados en UC-RET-01..06 (PARTE 7C).
 """
 from rest_framework import serializers
-
 from .models import ReturnHistoryEntry, ReturnItem, ReturnRequest
+
 
 
 # ────────────────────────────── Items ────────────────────────────────────

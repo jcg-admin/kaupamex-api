@@ -8,11 +8,10 @@ Reutiliza cancel_order() de services.py con permisos ampliados.
 import logging
 from django.db import transaction
 from django.utils import timezone
-from .models import OrderStatusLog
+from .models import OrderStatusLog, Order
 from .services import cancel_order
 from django.db.models import Count, Sum, Q
 from datetime import timedelta
-from .models import Order
 
 logger = logging.getLogger('apps')
 

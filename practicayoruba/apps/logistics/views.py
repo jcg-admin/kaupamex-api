@@ -19,16 +19,11 @@ from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
 from apps.orders.models import Order
-
 from .models import Courier, ShipmentEvent, ShipmentGuide
-from .serializers import (
-    CourierSerializer,
-    ShipmentEventSerializer,
-    ShipmentGuideCreateSerializer,
-    ShipmentGuideSerializer,
-)
+from .serializers import CourierSerializer, ShipmentEventSerializer, ShipmentGuideCreateSerializer, ShipmentGuideSerializer
+
+
 
 
 class _AdminOnly:

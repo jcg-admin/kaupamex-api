@@ -3,47 +3,28 @@ Views — apps.payments
 Sprint 15 — UC-PAY-01, UC-PAY-01-EXT, UC-ORD-01-EXT
 """
 import logging
-from decimal import Decimal
-
+from decimal import Decimal, Decimal as Dec
 from django.shortcuts import get_object_or_404
-from drf_spectacular.utils import (
-    extend_schema, OpenApiResponse, OpenApiParameter,
-)
+from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
 from apps.orders.models import Order
 from apps.orders.proxy_models import DeliveredOrder
-
-from .models import Payment
-from .serializers import (
-    InitiatePaymentSerializer, InitiatePaymentResponseSerializer,
-    InstallmentPlansResponseSerializer, PaymentSerializer,
-    PaymentReturnSerializer, CheckoutEligibilitySerializer,
-    ExpressCheckoutSerializer, RefundRequestSerializer,
-    RefundSerializer, RetryEligibilitySerializer,
-)
-from .services import initiate_payment, handle_gateway_return, get_installment_plans
+from .models import Payment, Payment as PaymentModel
+from .serializers import InitiatePaymentSerializer, InitiatePaymentResponseSerializer, InstallmentPlansResponseSerializer, PaymentSerializer, PaymentReturnSerializer, CheckoutEligibilitySerializer, ExpressCheckoutSerializer, RefundRequestSerializer, RefundSerializer, RetryEligibilitySerializer, PaymentStatusSerializer as PSS, RefundRequestSerializer as RRS
+from .services import initiate_payment, handle_gateway_return, get_installment_plans, get_payment_status, get_payment_history, execute_refund, get_retry_eligibility
 from apps.users.models import Address
-from apps.settings_app.models import ShippingMethod
+from apps.settings_app.models import ShippingMethod, SiteSettings
 from apps.cart.models import Cart
 from rest_framework.test import APIRequestFactory
 from rest_framework.request import Request
 from django.db import transaction as db_transaction
 from apps.inventory.services import InventoryService, InsufficientStockError
-from apps.settings_app.models import SiteSettings, ShippingMethod
-from decimal import Decimal as Dec
-from .services import get_payment_status
-from .serializers import PaymentStatusSerializer as PSS
-from .services import get_payment_history
-from .models import Payment as PaymentModel
-from .services import execute_refund
-from .serializers import RefundRequestSerializer as RRS, RefundSerializer
-from .services import get_retry_eligibility
-from .serializers import RetryEligibilitySerializer
-from .serializers import RefundRequestSerializer, RefundSerializer
+
+
+
 
 logger = logging.getLogger('apps')
 

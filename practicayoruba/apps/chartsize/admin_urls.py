@@ -4,10 +4,7 @@ Rutas manuales para evitar dependencia de drf-nested-routers.
 """
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import (
-    ProductVariantAdminViewSet, VariantTypeAdminViewSet,
-    VariantPriceAdminView,
-)
+from .views import ProductVariantAdminViewSet, VariantTypeAdminViewSet, VariantPriceAdminView
 
 app_name = 'admin_chartsize'
 

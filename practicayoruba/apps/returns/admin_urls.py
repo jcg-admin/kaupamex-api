@@ -1,15 +1,7 @@
 """Admin URLs — apps.returns (UC-RET-02/03/05/06)."""
 from django.urls import path
+from .views import AdminReturnApproveView, AdminReturnDetailView, AdminReturnListView, AdminReturnReceptionView, AdminReturnRefundView, AdminReturnRejectView, AdminReturnRequestInfoView
 
-from .views import (
-    AdminReturnApproveView,
-    AdminReturnDetailView,
-    AdminReturnListView,
-    AdminReturnReceptionView,
-    AdminReturnRefundView,
-    AdminReturnRejectView,
-    AdminReturnRequestInfoView,
-)
 
 app_name = 'admin_returns'
 

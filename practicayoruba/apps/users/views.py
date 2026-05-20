@@ -11,9 +11,6 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
-
-# DRF + plugins
-import rest_framework.pagination
 from rest_framework import serializers as drf_serializers
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
@@ -23,34 +20,17 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
-
 from drf_spectacular.types import OpenApiTypes as OAT
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
+from .models import Address, EmailVerificationToken, PasswordResetToken
+from .serializers import AddressSerializer, AdminUserListSerializer, ChangePasswordSerializer, EmailVerificationSerializer, PasswordResetConfirmSerializer, PasswordResetRequestSerializer, ProfileSerializer, RegisterSerializer, ResendVerificationSerializer, UpdateProfileSerializer
+from .tokens_email import check_rate_limit, create_password_reset_token, create_verification_token, invalidate_all_sessions, send_password_reset_email, send_verification_email, validate_password_reset_token, validate_verification_token
+
+# DRF + plugins
+import rest_framework.pagination
+
 
 # Local
-from .models import Address
-from .serializers import (
-    AddressSerializer,
-    AdminUserListSerializer,
-    ChangePasswordSerializer,
-    EmailVerificationSerializer,
-    PasswordResetConfirmSerializer,
-    PasswordResetRequestSerializer,
-    ProfileSerializer,
-    RegisterSerializer,
-    ResendVerificationSerializer,
-    UpdateProfileSerializer,
-)
-from .tokens_email import (
-    check_rate_limit,
-    create_password_reset_token,
-    create_verification_token,
-    invalidate_all_sessions,
-    send_password_reset_email,
-    send_verification_email,
-    validate_password_reset_token,
-    validate_verification_token,
-)
 
 User = get_user_model()
 
@@ -74,6 +54,40 @@ class RegisterView(APIView):
         tags=['auth'],
     )
     def post(self, request):
+        # UC-AUTH-01 Alt-A: cuando el email ya existe en BD, el flujo se
+        # ramifica segun users_user.deactivated_reason. La respuesta
+        # publica es ambigua en A.2/A.3 (no filtra estado de cuenta)
+        # pero explicita en A.1 (cuenta activa) por necesidad UX.
+        email = (request.data.get('email') or '').lower().strip()
+        existing = User.objects.filter(email__iexact=email).first() if email else None
+
+        if existing is not None:
+            CREATED_RESPONSE = Response(
+                {'message': 'Cuenta creada. Revisa tu email para activarla.',
+                 'user_id': existing.pk},
+                status=201,
+            )
+            # Alt-A.1: cuenta activa -> indicar al usuario que use login.
+            if existing.is_active:
+                return Response(
+                    {'email': [
+                        'Esa cuenta ya esta registrada. Inicia sesion '
+                        'o recupera tu contrasena si la olvidaste.'
+                    ]},
+                    status=400,
+                )
+            # Alt-A.2: inactiva reactivable (unverified o self_deleted)
+            # -> generar token + reenviar email. Mismo response shape que
+            # una cuenta nueva para no filtrar el estado.
+            if existing.deactivated_reason in User.DEACTIVATION_REASONS_REACTIVABLE_BY_EMAIL:
+                plain = create_verification_token(existing)
+                send_verification_email(existing, plain)
+                return CREATED_RESPONSE
+            # Alt-A.3: suspendida por admin (o motivo desconocido) ->
+            # no enviar email, retornar response indistinguible.
+            return CREATED_RESPONSE
+
+        # Camino estandar: email no existe, crear cuenta nueva.
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
@@ -466,6 +480,19 @@ class DeactivateAccountView(APIView):
         tags=['auth'],
     )
     def post(self, request):
+        # Rate-limit por user.pk para evitar abuso de sesion robada
+        # repitiendo intentos hasta acertar la password. La key se hashea
+        # internamente; el prefijo "deactivate:" la separa del bucket de
+        # password reset.
+        if not check_rate_limit(
+            f'deactivate:{request.user.pk}',
+            max_requests=5, window=3600,
+        ):
+            return Response(
+                {'detail': 'Demasiados intentos. Intenta en 1 hora.'},
+                status=429,
+            )
+
         serializer = DeactivateAccountSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -481,6 +508,15 @@ class DeactivateAccountView(APIView):
             user.save(update_fields=[
                 'is_active', 'deactivated_reason', 'deactivated_at',
             ])
+            # Invalidar tokens pendientes para que enlaces viejos no
+            # sirvan tras la baja. used_at = NOW marca como consumido.
+            now = timezone.now()
+            EmailVerificationToken.objects.filter(
+                user=user, used_at__isnull=True,
+            ).update(used_at=now)
+            PasswordResetToken.objects.filter(
+                user=user, used_at__isnull=True,
+            ).update(used_at=now)
             invalidate_all_sessions(user)
 
         return Response({'message': 'Tu cuenta ha sido dada de baja.'}, status=200)
@@ -506,10 +542,15 @@ class AdminUserListView(ListAPIView):
         qs = User.objects.all().order_by('-date_joined')
         is_active = self.request.query_params.get('is_active')
         is_staff  = self.request.query_params.get('is_staff')
+        # UC-AUTH-11 + GAP-3: filtro por motivo de inactividad para que
+        # el admin pueda separar 'unverified', 'suspended', 'self_deleted'.
+        deactivated_reason = self.request.query_params.get('deactivated_reason')
         if is_active is not None:
             qs = qs.filter(is_active=(is_active.lower() == 'true'))
         if is_staff is not None:
             qs = qs.filter(is_staff=(is_staff.lower() == 'true'))
+        if deactivated_reason:
+            qs = qs.filter(deactivated_reason=deactivated_reason)
         return qs
 
     @extend_schema(

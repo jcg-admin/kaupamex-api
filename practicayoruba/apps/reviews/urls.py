@@ -2,8 +2,8 @@
 URLs — apps.reviews (public side, mounted at /api/v1/products/).
 """
 from django.urls import path
-
 from .views import ProductReviewsView
+
 
 app_name = 'reviews'
 

@@ -4,7 +4,6 @@ UC-ORD-01: Checkout, UC-ORD-02..06: Gestión del comprador (Sprint 18)
 """
 import uuid
 from decimal import Decimal
-
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
@@ -13,29 +12,18 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
 from apps.cart.models import Cart, CartItem
 from apps.cart.views import _get_or_create_cart
 from apps.inventory.services import InventoryService, InsufficientStockError
 from apps.settings_app.models import SiteSettings, ShippingMethod
-
 from .models import Order, OrderItem, OrderValue, OrderAddress
-from .serializers import (
-    CancelOrderSerializer, CheckoutSerializer, OrderListSerializer,
-    OrderSerializer, UpdateAddressSerializer, UpdateShippingSerializer,
-)
+from .serializers import CancelOrderSerializer, CheckoutSerializer, OrderListSerializer, OrderSerializer, UpdateAddressSerializer, UpdateShippingSerializer
 from django.db.models import Prefetch
-from .models import Order, OrderItem
-from .serializers import OrderListSerializer
 from apps.catalogue.models import ProductImage
-from .models import Order
-from .serializers import OrderSerializer
-from .serializers import CancelOrderSerializer, OrderSerializer
-from .services import cancel_order
-from .serializers import UpdateAddressSerializer, OrderSerializer
-from .services import update_order_address
-from .serializers import UpdateShippingSerializer, OrderSerializer
-from .services import update_shipping_method
+from .services import cancel_order, update_order_address, update_shipping_method
+
+
+
 
 
 class CheckoutView(APIView):

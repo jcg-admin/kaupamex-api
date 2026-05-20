@@ -15,7 +15,6 @@ ProductPriceSyncConfirmView) — no business logic duplicated.
 import csv
 import uuid
 from decimal import Decimal
-
 from django.core.cache import cache
 from django.db import transaction
 from django.http import HttpResponse
@@ -24,9 +23,10 @@ from rest_framework import serializers
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
 from .models import Product
-from .views import ProductPriceSyncView, PRICE_SYNC_CACHE_TTL  # type: ignore
+from .views import ProductPriceSyncView, PRICE_SYNC_CACHE_TTL
+
+
 
 
 class _AdminOnly:

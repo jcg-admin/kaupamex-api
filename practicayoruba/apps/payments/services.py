@@ -8,19 +8,17 @@ Recibe cualquier BaseGateway — desconoce el tipo concreto (Strategy Pattern).
 import json
 import logging
 from decimal import Decimal
-
 from django.conf import settings
 from django.db import transaction
 from django.urls import reverse
-
 from .gateways.base import BaseGateway
 from .gateways.mercadopago import MercadoPagoGateway
-from .models import Payment, PaymentGatewayEvent
+from .models import Payment, PaymentGatewayEvent, Payment as PaymentModel, Refund
 from .gateways.paypal import PayPalGateway
-from .models import Payment as PaymentModel, Refund
 from django.db.models import Sum as DjSum
-from .models import Payment as PaymentModel
 from apps.settings_app.models import PaymentGateway
+
+
 
 logger = logging.getLogger('apps')
 

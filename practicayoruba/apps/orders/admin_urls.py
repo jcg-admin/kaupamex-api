@@ -1,12 +1,6 @@
 """URLs Admin — apps.orders (Sprint 19)."""
 from django.urls import path
-from .admin_views import (
-    AdminOrderListView,
-    AdminOrderDetailView,
-    AdminOrderStatusUpdateView,
-    AdminOrderCancelView,
-    AdminDashboardView,
-)
+from .admin_views import AdminOrderListView, AdminOrderDetailView, AdminOrderStatusUpdateView, AdminOrderCancelView, AdminDashboardView
 
 urlpatterns = [
     # UC-ORD-09 — Buscar/listar órdenes

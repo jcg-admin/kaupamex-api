@@ -9,8 +9,8 @@ import time
 
 from django.contrib.auth.models import AbstractUser
 from django.db import models, transaction
-
 from apps.core.models import SoftDeleteModel, TimeStampedModel
+
 
 
 def avatar_upload_path(instance, filename):

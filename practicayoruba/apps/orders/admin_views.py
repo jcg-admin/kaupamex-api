@@ -3,20 +3,16 @@ Vistas Admin — apps.orders
 Sprint 19 — UC-ORD-07, UC-ORD-08, UC-ORD-09, UC-ORD-10
 """
 import logging
-from drf_spectacular.utils import (
-    extend_schema, OpenApiResponse, OpenApiParameter,
-)
+from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
-
 from .serializers import OrderSerializer
 from .models import Order
 from django.db.models import Q
-from .admin_services import transition_order_status
-from .admin_services import admin_cancel_order
-from .admin_services import get_dashboard_data
+from .admin_services import transition_order_status, admin_cancel_order, get_dashboard_data
+
 
 logger = logging.getLogger('apps')
 

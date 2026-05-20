@@ -1,9 +1,6 @@
 """URLs — apps.cart (Sprint 12)."""
 from django.urls import path
-from .views import (
-    CartView, CartItemListView, CartItemDetailView,
-    CartSaveView, CartMergeView, CartVoucherView,
-)
+from .views import CartView, CartItemListView, CartItemDetailView, CartSaveView, CartMergeView, CartVoucherView
 
 app_name = 'cart'
 

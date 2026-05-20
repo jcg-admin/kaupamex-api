@@ -25,23 +25,10 @@ from rest_framework import status
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
-from .models import (
-    MANDATORY_NOTIFICATION_TYPES,
-    NOTIFICATION_TYPE_LABELS,
-    ManualNotification,
-    Notification,
-    NotificationPreference,
-    NotificationType,
-)
+from .models import MANDATORY_NOTIFICATION_TYPES, NOTIFICATION_TYPE_LABELS, ManualNotification, Notification, NotificationPreference, NotificationType
 from .tasks import dispatch_manual_fanout
-from .serializers import (
-    ManualNotificationCreateSerializer,
-    ManualNotificationResponseSerializer,
-    NotificationPreferenceItemSerializer,
-    NotificationPreferencesUpdateSerializer,
-    NotificationSerializer,
-)
+from .serializers import ManualNotificationCreateSerializer, ManualNotificationResponseSerializer, NotificationPreferenceItemSerializer, NotificationPreferencesUpdateSerializer, NotificationSerializer
+
 
 
 # ────────────────────────────── UC-NOT-01 ────────────────────────────────

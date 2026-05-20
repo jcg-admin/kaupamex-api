@@ -13,7 +13,6 @@ Search history persistence is delegated to apps.search_history.
 """
 import re
 from decimal import Decimal, InvalidOperation
-
 from django.core.cache import cache
 from django.db.models import Q
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -22,26 +21,12 @@ from rest_framework.generics import ListAPIView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
 from .models import Category, Product
-from .serializers import (
-    CategoryWithCountSerializer,
-    ProductListSerializer,
-    ProductSearchSerializer,
-)
-from .views import (
-    CATEGORY_TREE_CACHE_KEY,
-    CATEGORY_TREE_CACHE_TTL,
-    _build_active_filters,
-    _build_category_tree_with_counts,
-    _fulltext_search,
-    _get_category_descendants,
-    _normalize_query,
-    _record_history_async,
-    _validate_query,
-    CataloguePagination,
-)
+from .serializers import CategoryWithCountSerializer, ProductListSerializer, ProductSearchSerializer
+from .views import CATEGORY_TREE_CACHE_KEY, CATEGORY_TREE_CACHE_TTL, _build_active_filters, _build_category_tree_with_counts, _fulltext_search, _get_category_descendants, _normalize_query, _record_history_async, _validate_query, CataloguePagination
 from apps.search_history.models import SearchEntry
+
+
 
 
 # =============================================================================

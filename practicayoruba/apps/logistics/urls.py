@@ -5,14 +5,8 @@ Mounted in config/urls.py as:
   path('api/v1/logistics/', include('apps.logistics.urls', namespace='logistics'))
 """
 from django.urls import path
+from .views import ConfirmDeliveryView, CourierListView, LogisticsPanelView, ShipmentGuideDetailView, ShipmentGuideListCreateView
 
-from .views import (
-    ConfirmDeliveryView,
-    CourierListView,
-    LogisticsPanelView,
-    ShipmentGuideDetailView,
-    ShipmentGuideListCreateView,
-)
 
 app_name = 'logistics'
 

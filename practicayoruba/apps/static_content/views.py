@@ -13,9 +13,9 @@ from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
 from .models import StaticContent, StaticContentVersion
 from .serializers import StaticContentSerializer
+
 
 
 class _AdminOnly:

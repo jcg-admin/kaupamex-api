@@ -2,8 +2,8 @@
 Admin URLs — apps.reviews. Mounted at /api/v1/admin/.
 """
 from django.urls import path
-
 from .views import ReviewAdminListView, ReviewApproveView, ReviewRejectView
+
 
 app_name = 'admin_reviews'
 

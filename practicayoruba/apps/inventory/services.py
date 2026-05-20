@@ -11,14 +11,13 @@ Se llama desde:
 import logging
 from datetime import timedelta
 from decimal import Decimal
-
 from django.db import transaction
 from django.utils import timezone
 from apps.settings_app.models import SiteSettings
-from .models import StockAlert
+from .models import StockAlert, StockMovement
 from apps.catalogue.models import Product
 from apps.chartsize.models import ProductVariant
-from .models import StockMovement
+
 
 logger = logging.getLogger('apps')
 

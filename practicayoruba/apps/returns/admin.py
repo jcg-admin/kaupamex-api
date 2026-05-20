@@ -1,7 +1,7 @@
 """Django admin registration for apps.returns."""
 from django.contrib import admin
-
 from .models import ReturnHistoryEntry, ReturnItem, ReturnRequest
+
 
 
 @admin.register(ReturnRequest)

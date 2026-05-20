@@ -12,17 +12,17 @@ import hashlib
 import logging
 import secrets
 from datetime import timedelta
-
 from django.core.cache import cache
 from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
 from rest_framework_simplejwt.tokens import RefreshToken
-
-logger = logging.getLogger(__name__)
 from django.core.mail import send_mail
 from django.conf import settings
 from django.utils import timezone
-
 from .models import PasswordResetToken, EmailVerificationToken
+
+
+logger = logging.getLogger(__name__)
+
 
 RESET_TTL_HOURS  = 1
 VERIFY_TTL_HOURS = 24

@@ -7,14 +7,8 @@ Mounted in config/urls.py:
 DEC-DOC-005: English identifiers.
 """
 from django.urls import path
+from .views import CustomersRFMReportView, DashboardReportView, ReportExportView, SalesReportView, TopSellersReportView
 
-from .views import (
-    CustomersRFMReportView,
-    DashboardReportView,
-    ReportExportView,
-    SalesReportView,
-    TopSellersReportView,
-)
 
 app_name = 'admin_reports'
 

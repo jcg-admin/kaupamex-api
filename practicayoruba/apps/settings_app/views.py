@@ -10,8 +10,6 @@ import logging
 import uuid
 from decimal import Decimal, InvalidOperation
 from rest_framework.exceptions import ValidationError
-
-logger = logging.getLogger(__name__)
 from django.db import transaction
 from django.http import HttpResponse
 from django.utils import timezone
@@ -21,16 +19,15 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
-
 from django.core.cache import cache
-
-from .models import SiteSettings, PaymentGateway, ShippingMethod
-from .serializers import (
-    SiteSettingsSerializer,
-    PaymentGatewaySerializer,
-    ShippingMethodSerializer,
-)
+from .models import SiteSettings, PaymentGateway, ShippingMethod, StaticPage, StaticPageVersion
+from .serializers import SiteSettingsSerializer, PaymentGatewaySerializer, ShippingMethodSerializer
 from .gateway_connector import connector
+from rest_framework import serializers as drf_serializers
+
+logger = logging.getLogger(__name__)
+
+
 
 
 class SiteSettingsView(APIView):
@@ -213,8 +210,6 @@ class ShippingMethodViewSet(ModelViewSet):
 # Sprint 10 — UC-CFG-04: Contenido estático con versionado
 # =============================================================================
 
-from .models import StaticPage, StaticPageVersion
-from rest_framework import serializers as drf_serializers
 
 
 class StaticPageVersionSerializer(drf_serializers.ModelSerializer):

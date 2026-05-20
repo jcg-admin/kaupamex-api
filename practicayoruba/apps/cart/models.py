@@ -11,12 +11,11 @@ Refactorizado en sprint de infraestructura: herencia-modelos-django
 import uuid
 from decimal import Decimal
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 from django.core.validators import MinValueValidator
-
 from apps.core.models import TimeStampedModel
 from apps.settings_app.models import SiteSettings
-from django.db import transaction
+
 
 
 class Cart(TimeStampedModel):

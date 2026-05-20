@@ -7,25 +7,23 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView
-
-from apps.catalogue.models import Product
+from apps.catalogue.models import Product, Category
 from apps.chartsize.models import ProductVariant
 from apps.settings_app.models import SiteSettings
-
 from rest_framework import serializers
-
 from .models import StockMovement, StockAlert
-from .serializers import (
-    StockDashboardSerializer, StockMovementSerializer,
-    StockAlertSerializer, StockAdjustSerializer,
-    VariantAdjustNewQuantitySerializer,
-)
+from .serializers import StockDashboardSerializer, StockMovementSerializer, StockAlertSerializer, StockAdjustSerializer, VariantAdjustNewQuantitySerializer
 from .services import InventoryService, _get_stock_status
 from django.urls import reverse
-from apps.catalogue.models import Category, Product
 from decimal import Decimal
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
+from django.core.cache import cache
+from django.utils.text import slugify
+from rest_framework.parsers import MultiPartParser
+
+
+
 
 logger = logging.getLogger(__name__)
 
@@ -315,9 +313,6 @@ class StockAlertListView(ListAPIView):
 # =============================================================================
 
 import csv, io, threading, uuid
-from django.core.cache import cache
-from django.utils.text import slugify
-from rest_framework.parsers import MultiPartParser
 
 
 IMPORT_JOB_TTL    = 3600   # 1 hora

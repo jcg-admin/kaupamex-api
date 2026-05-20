@@ -16,7 +16,6 @@ import hmac
 import json
 import logging
 from decimal import Decimal
-
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from drf_spectacular.utils import extend_schema, OpenApiResponse
@@ -24,12 +23,13 @@ from rest_framework import serializers
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
 from .models import Payment, PaymentGatewayEvent
 from apps.settings_app.models import PaymentGateway as PGModel
 from django.db import transaction
 from .gateways.mercadopago import MercadoPagoGateway
 from .gateways.paypal import PayPalGateway
+
+
 
 logger = logging.getLogger('apps')
 

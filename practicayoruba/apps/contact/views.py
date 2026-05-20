@@ -20,15 +20,11 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
 from django.conf import settings
-
 from .models import ContactMessage
-from .serializers import (
-    ContactMessageCreateSerializer,
-    ContactMessageListItemSerializer,
-    ContactMessageReplySerializer,
-)
+from .serializers import ContactMessageCreateSerializer, ContactMessageListItemSerializer, ContactMessageReplySerializer
+
+
 
 
 class ContactMessageCreateView(APIView):

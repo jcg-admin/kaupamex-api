@@ -1,11 +1,6 @@
 """URLs — apps.payments (Sprint 15)."""
 from django.urls import path
-from .views import (
-    InitiatePaymentView, PaymentReturnView,
-    InstallmentPlansView,
-    PaymentStatusView, PaymentHistoryView,
-    RefundView, RetryEligibilityView, AdminRefundView,
-)
+from .views import InitiatePaymentView, PaymentReturnView, InstallmentPlansView, PaymentStatusView, PaymentHistoryView, RefundView, RetryEligibilityView, AdminRefundView
 from .webhooks import MercadoPagoWebhookView, PayPalWebhookView
 
 app_name = 'payments'

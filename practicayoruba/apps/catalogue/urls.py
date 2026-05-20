@@ -9,15 +9,7 @@ Sprint 6: GET /api/v1/catalogue/autocomplete/
           GET|POST|PATCH|DELETE /api/v1/admin/categories/  (admin_urls)
 """
 from django.urls import path
-from .views import (
-    CatalogueListView,
-    ProductDetailView,
-    ProductSearchView,
-    AutocompleteView,
-    SearchHistoryView,
-    SearchHistoryDetailView,
-    CategoryListView,
-)
+from .views import CatalogueListView, ProductDetailView, ProductSearchView, AutocompleteView, SearchHistoryView, SearchHistoryDetailView, CategoryListView
 
 app_name = 'catalogue'
 

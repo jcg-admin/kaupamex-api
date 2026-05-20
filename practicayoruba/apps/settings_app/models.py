@@ -17,8 +17,8 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, MaxValueValidator, RegexValidator
 from django.db import models
 from cryptography.fernet import Fernet
-
 from apps.core.models import TimeStampedModel
+
 import hashlib
 import base64
 import json

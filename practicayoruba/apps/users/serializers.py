@@ -13,16 +13,16 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.files.base import ContentFile
 from django.utils import timezone
-
 from rest_framework import serializers
-
 from PIL import Image
-
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
-
 from .models import Address
 from apps.settings_app.models import SiteSettings
+
+
+
+
 
 User = get_user_model()
 
@@ -49,10 +49,10 @@ class RegisterSerializer(serializers.Serializer):
         return value
 
     def validate_email(self, value):
-        value = value.lower().strip()
-        if User.objects.filter(email__iexact=value).exists():
-            raise serializers.ValidationError(AMBIGUOUS_MSG)
-        return value
+        # UC-AUTH-01 refinado: la deteccion de email existente vive en
+        # RegisterView.post para que pueda discriminar por
+        # deactivated_reason (Alt-A.1/A.2/A.3). Aqui solo se normaliza.
+        return value.lower().strip()
 
     def validate_password(self, value):
         validate_password(value)
@@ -325,6 +325,10 @@ class AdminUserListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'username', 'email', 'full_name',
             'is_active', 'is_staff', 'date_joined', 'last_login',
+            # GAP-3 cierre (UC-AUTH-12/13/14/16): admin distingue las
+            # tres causas de is_active=False para decidir si invocar
+            # UC-AUTH-14 (reactivar) o esperar a UC-AUTH-01 Alt-A.2.
+            'deactivated_reason', 'deactivated_at',
         ]
         read_only_fields = fields
 

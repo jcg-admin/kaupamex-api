@@ -1,11 +1,7 @@
 """Admin URLs — apps.newsletter (UC-NEW-03..04)."""
 from django.urls import path
+from .views import AdminCampaignCreateView, AdminSubscriberForceUnsubscribeView, AdminSubscriberListView
 
-from .views import (
-    AdminCampaignCreateView,
-    AdminSubscriberForceUnsubscribeView,
-    AdminSubscriberListView,
-)
 
 app_name = 'admin_newsletter'
 

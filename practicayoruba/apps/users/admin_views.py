@@ -8,19 +8,19 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
-
-import rest_framework.pagination
 from rest_framework import serializers as drf_serializers
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
-
 from drf_spectacular.utils import extend_schema, OpenApiParameter
-
 from .serializers import AdminUserListSerializer
 from .tokens_email import invalidate_all_sessions
+
+import rest_framework.pagination
+
+
 
 User = get_user_model()
 

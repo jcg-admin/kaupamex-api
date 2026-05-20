@@ -9,8 +9,8 @@ se envia por email y se registra en el propio modelo.
 """
 from django.conf import settings
 from django.db import models
-
 from apps.core.models import SoftDeleteModel, TimeStampedModel
+
 
 
 class ContactMessage(TimeStampedModel, SoftDeleteModel):

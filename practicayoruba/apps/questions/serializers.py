@@ -4,8 +4,8 @@ Serializers — apps.questions.
 JSON keys in English (DEC-DOC-005).
 """
 from rest_framework import serializers
-
 from .models import ProductQuestion, QuestionStatus
+
 
 
 class PublicQuestionItemSerializer(serializers.ModelSerializer):

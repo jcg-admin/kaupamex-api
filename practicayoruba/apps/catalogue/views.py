@@ -2,25 +2,12 @@ import csv
 import io
 import uuid
 from django.http import HttpResponse
-from django.db import transaction
-from django.db.models import Q
-from django.db.models import Count
+from django.db import transaction, connection
+from django.db.models import Q, Count
 from apps.catalogue.models import Product
 from django.utils import timezone
-import logging
-"""
-Views — apps.catalogue
-
-Sprint 4 — UC-CAT-01
-Sprint 5 — UC-CAT-02, UC-CAT-03, UC-CAT-03-EXT, UC-SRCH-01
-Sprint 6 — UC-SRCH-02, UC-SRCH-03, UC-CAT-04, UC-CAT-05, UC-CAT-06
-"""
-import re
-import threading
 from decimal import Decimal, InvalidOperation
-
 from django.core.cache import cache
-from django.db import connection
 from rest_framework import serializers as rf_serializers
 from rest_framework.exceptions import ValidationError, NotFound
 from rest_framework.decorators import action
@@ -33,18 +20,20 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
 from drf_spectacular.types import OpenApiTypes
-
 from .models import Category, Product, SearchHistory
-from .serializers import (
-    ProductListSerializer,
-    ProductDetailSerializer,
-    ProductSearchSerializer,
-    AutocompleteSerializer,
-    SearchHistorySerializer,
-    CategoryAdminSerializer,
-    CategoryWithCountSerializer,
-    ProductAdminSerializer,
-)
+from .serializers import ProductListSerializer, ProductDetailSerializer, ProductSearchSerializer, AutocompleteSerializer, SearchHistorySerializer, CategoryAdminSerializer, CategoryWithCountSerializer, ProductAdminSerializer
+import logging
+"""
+Views — apps.catalogue
+
+Sprint 4 — UC-CAT-01
+Sprint 5 — UC-CAT-02, UC-CAT-03, UC-CAT-03-EXT, UC-SRCH-01
+Sprint 6 — UC-SRCH-02, UC-SRCH-03, UC-CAT-04, UC-CAT-05, UC-CAT-06
+"""
+import re
+import threading
+
+
 
 MAX_QUERY_LENGTH = 100
 MIN_QUERY_LENGTH = 2

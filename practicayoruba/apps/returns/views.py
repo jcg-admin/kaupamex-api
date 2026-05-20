@@ -25,20 +25,9 @@ from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
 from .models import ReturnHistoryEntry, ReturnItem, ReturnRequest
-from .serializers import (
-    AdminReturnDetailSerializer,
-    AdminReturnListSerializer,
-    ReturnApproveSerializer,
-    ReturnCreateSerializer,
-    ReturnDetailSerializer,
-    ReturnInfoRequestSerializer,
-    ReturnListSerializer,
-    ReturnReceptionSerializer,
-    ReturnRefundSerializer,
-    ReturnRejectSerializer,
-)
+from .serializers import AdminReturnDetailSerializer, AdminReturnListSerializer, ReturnApproveSerializer, ReturnCreateSerializer, ReturnDetailSerializer, ReturnInfoRequestSerializer, ReturnListSerializer, ReturnReceptionSerializer, ReturnRefundSerializer, ReturnRejectSerializer
+
 
 
 def _get_own_return(return_id, user):

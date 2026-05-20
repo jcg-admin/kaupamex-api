@@ -13,8 +13,8 @@ Uso:
     ActiveOrder.objects.select_related('user')  # órdenes en proceso activo
 """
 from django.db import models
-
 from .models import Order
+
 
 
 # =============================================================================

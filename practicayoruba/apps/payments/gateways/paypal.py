@@ -11,15 +11,13 @@ Flujo de dos pasos (H-PAY-006):
 """
 import json
 import logging
-from decimal import Decimal
+from decimal import Decimal, Decimal as Dec
 from typing import Optional
+from .base import BaseGateway, PreferenceResult, InstallmentPlan, PaymentVerification, RefundResult
+from apps.settings_app.models import PaymentGateway
 
 import requests
 
-from .base import BaseGateway, PreferenceResult, InstallmentPlan, PaymentVerification
-from apps.settings_app.models import PaymentGateway
-from decimal import Decimal as Dec
-from .base import RefundResult
 
 logger = logging.getLogger('apps')
 

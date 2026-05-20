@@ -4,13 +4,8 @@ Serializers — apps.notifications.
 JSON keys in English (DEC-DOC-005).
 """
 from rest_framework import serializers
+from .models import ManualNotification, Notification, NotificationPreference, NotificationType
 
-from .models import (
-    ManualNotification,
-    Notification,
-    NotificationPreference,
-    NotificationType,
-)
 
 
 class NotificationSerializer(serializers.ModelSerializer):

@@ -1,13 +1,6 @@
 """URLs — apps.orders (UC-ORD-01..06)."""
 from django.urls import path
-from .views import (
-    CheckoutView,
-    OrderListView,
-    OrderDetailView,
-    OrderCancelView,
-    OrderAddressUpdateView,
-    OrderShippingUpdateView,
-)
+from .views import CheckoutView, OrderListView, OrderDetailView, OrderCancelView, OrderAddressUpdateView, OrderShippingUpdateView
 
 app_name = 'orders'
 

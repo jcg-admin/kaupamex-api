@@ -1,6 +1,6 @@
 """Views — apps.wishlist (Sprint 14)."""
 from decimal import Decimal
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ValidationError
@@ -8,14 +8,13 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.serializers import ModelSerializer, SerializerMethodField
 from rest_framework.views import APIView
-
 from apps.catalogue.models import Product
 from apps.chartsize.models import ProductVariant
 from .models import WishlistItem
 from apps.cart.views import _get_or_create_cart
 from apps.cart.models import CartItem
-from django.db import transaction
 from apps.cart.serializers import CartSerializer
+
 
 
 class WishlistItemSerializer(ModelSerializer):

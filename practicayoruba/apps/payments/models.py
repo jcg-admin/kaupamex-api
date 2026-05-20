@@ -11,8 +11,8 @@ a TimeStampedModel. La semántica es idéntica.
 from decimal import Decimal
 from django.db import models
 from django.core.validators import MinValueValidator
-
 from apps.core.models import TimeStampedModel
+
 
 
 class Payment(TimeStampedModel):

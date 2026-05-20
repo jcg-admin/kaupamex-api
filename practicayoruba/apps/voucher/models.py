@@ -9,10 +9,10 @@ VoucherUsage: registro de uso por orden — se crea en Sprint 18 (cuando exista 
 from decimal import Decimal
 from django.conf import settings
 from django.db import models
-
 from apps.core.models import SoftDeleteModel, TimeStampedModel
 from django.core.validators import MinValueValidator
 from django.utils import timezone
+
 
 
 class Voucher(TimeStampedModel, SoftDeleteModel):

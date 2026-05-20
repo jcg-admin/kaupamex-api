@@ -13,8 +13,8 @@ Uso:
     AdjustmentMovement.objects.filter(product=p)  # solo ADJUSTMENT
 """
 from django.db import models
-
 from .models import StockMovement
+
 
 
 # =============================================================================

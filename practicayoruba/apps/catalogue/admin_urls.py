@@ -5,15 +5,8 @@ Montado en config/urls.py como: path('api/v1/admin/', include('apps.catalogue.ad
 """
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import (
-    CategoryAdminViewSet, ProductAdminViewSet,
-    ProductPriceSyncView, ProductPriceSyncConfirmView, ProductPriceSyncTemplateView,
-)
-from .product_discount_views import (
-    ProductDiscountDeactivateView,
-    ProductDiscountDetailView,
-    ProductDiscountListCreateView,
-)
+from .views import CategoryAdminViewSet, ProductAdminViewSet, ProductPriceSyncView, ProductPriceSyncConfirmView, ProductPriceSyncTemplateView
+from .product_discount_views import ProductDiscountDeactivateView, ProductDiscountDetailView, ProductDiscountListCreateView
 
 app_name = 'admin_catalogue'
 

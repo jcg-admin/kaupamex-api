@@ -7,14 +7,12 @@ BR-009: las credenciales NUNCA pasan al frontend.
 """
 import json
 import logging
-from decimal import Decimal
+from decimal import Decimal, Decimal as Dec
+from .base import BaseGateway, PreferenceResult, InstallmentPlan, PaymentVerification, RefundResult
+from apps.settings_app.models import PaymentGateway
 
 import mercadopago
 
-from .base import BaseGateway, PreferenceResult, InstallmentPlan, PaymentVerification
-from apps.settings_app.models import PaymentGateway
-from decimal import Decimal as Dec
-from .base import RefundResult
 
 logger = logging.getLogger('apps')
 

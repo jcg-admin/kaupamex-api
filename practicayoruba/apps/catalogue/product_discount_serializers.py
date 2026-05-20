@@ -4,10 +4,10 @@ Serializers — ProductDiscount (UC-DASH-01..04).
 DEC-DOC-005: English identifiers and English JSON keys.
 """
 from decimal import Decimal
-
 from rest_framework import serializers
-
 from .models import Product, ProductDiscount
+
+
 
 
 class ProductDiscountSerializer(serializers.ModelSerializer):

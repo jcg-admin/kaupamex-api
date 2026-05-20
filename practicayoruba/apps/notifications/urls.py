@@ -1,13 +1,7 @@
 """URLs — apps.notifications (user endpoints)."""
 from django.urls import path
+from .views import NotificationListView, NotificationMarkAllReadView, NotificationMarkReadView, NotificationPreferencesView, NotificationUnreadCountView
 
-from .views import (
-    NotificationListView,
-    NotificationMarkAllReadView,
-    NotificationMarkReadView,
-    NotificationPreferencesView,
-    NotificationUnreadCountView,
-)
 
 app_name = 'notifications'
 

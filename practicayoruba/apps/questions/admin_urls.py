@@ -1,12 +1,7 @@
 """Admin URLs — apps.questions (UC-QST-03..04)."""
 from django.urls import path
+from .views import AdminQuestionAnswerView, AdminQuestionApproveView, AdminQuestionRejectView, AdminQuestionsListView
 
-from .views import (
-    AdminQuestionAnswerView,
-    AdminQuestionApproveView,
-    AdminQuestionRejectView,
-    AdminQuestionsListView,
-)
 
 app_name = 'admin_questions'
 

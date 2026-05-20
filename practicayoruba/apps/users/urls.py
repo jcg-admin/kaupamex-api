@@ -1,15 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from rest_framework_simplejwt.views import (
-    TokenRefreshView,
-    TokenBlacklistView,
-)
-from .views import (
-    RegisterView, ProfileView, AddressViewSet, ChangePasswordView,
-    PasswordResetRequestView, PasswordResetConfirmView,
-    EmailVerifyView, ResendVerificationView, AdminUserListView,
-    DeactivateAccountView,
-)
+from rest_framework_simplejwt.views import TokenRefreshView, TokenBlacklistView
+from .views import RegisterView, ProfileView, AddressViewSet, ChangePasswordView, PasswordResetRequestView, PasswordResetConfirmView, EmailVerifyView, ResendVerificationView, AdminUserListView, DeactivateAccountView
 from .tokens import PYTokenObtainPairView
 
 app_name = 'users'

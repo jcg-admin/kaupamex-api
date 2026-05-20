@@ -1,10 +1,7 @@
 """Admin URLs — apps.notifications (UC-NOT-07)."""
 from django.urls import path
+from .views import AdminAudienceCountView, AdminManualNotificationCreateView
 
-from .views import (
-    AdminAudienceCountView,
-    AdminManualNotificationCreateView,
-)
 
 app_name = 'admin_notifications'
 
