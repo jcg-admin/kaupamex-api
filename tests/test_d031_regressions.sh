@@ -53,10 +53,10 @@ else
 fi
 
 # H-18: bootstrap.sh restaura ownership a SUDO_USER al final
-if grep -qE "SUDO_USER.*chown|chown.*SUDO_USER|chown.*sudo_uid" "$PROJECT_ROOT/scripts/bootstrap.sh"; then
-    pass "bootstrap.sh restaura ownership a SUDO_USER (no deja root-owned)"
+if grep -qE "stat.*PROJECT_ROOT.*chown|chown.*repo_owner" "$PROJECT_ROOT/scripts/bootstrap.sh"; then
+    pass "bootstrap.sh restaura ownership al owner del repo"
 else
-    fail "bootstrap.sh no restaura ownership post-sudo (H-18 regresion)"
+    fail "bootstrap.sh no chown al repo_owner post-sudo (H-18 regresion)"
 fi
 
 # H-17: mariadb (no mysql) como CLI canonico

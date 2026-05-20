@@ -192,27 +192,36 @@ main() {
 
     # D-031 / H-18: bootstrap corre como root (sudo bash) y crea
     # artefactos en el filesystem (logs/, .venv/, .env). El usuario
-    # invocador (SUDO_USER, p.ej. develop) necesita escribir en logs/
-    # cuando ejecute manage.py migrate / runserver post-bootstrap. Si
-    # quedan owned por root, manage.py revienta con
-    # PermissionError: '...practicayoruba/logs/django.log'.
-    # Reportado por deploy@yollotl.
+    # que ejecuta manage.py despues NO es necesariamente $SUDO_USER:
+    # en el modelo de 5 cuentas del procedimiento de almacenamiento
+    # (D-030), deploy invoca sudo pero develop es quien edita codigo
+    # y corre manage.py. Si chowneamos a deploy, develop sigue sin
+    # poder escribir → mismo error PermissionError.
     #
-    # Restaurar ownership al usuario invocador (idempotente: chown
-    # repeat sobre archivos del usuario no tiene efecto).
-    if [[ -n "${SUDO_USER:-}" && "$SUDO_USER" != "root" ]]; then
-        local sudo_uid sudo_gid
-        sudo_uid=$(id -u "$SUDO_USER" 2>/dev/null) || sudo_uid=""
-        sudo_gid=$(id -g "$SUDO_USER" 2>/dev/null) || sudo_gid=""
-        if [[ -n "$sudo_uid" && -n "$sudo_gid" ]]; then
-            log_info "  Restaurando ownership a ${SUDO_USER}:${SUDO_USER}..."
-            for path in "${PROJECT_ROOT}/.venv" \
-                        "${PROJECT_ROOT}/practicayoruba/logs" \
-                        "${PROJECT_ROOT}/practicayoruba/.env"; do
-                [[ -e "$path" ]] && chown -R "${sudo_uid}:${sudo_gid}" "$path"
-            done
-            log_success "  Ownership restaurado"
-        fi
+    # Fix correcto: chown al OWNER del repo (PROJECT_ROOT), no a
+    # SUDO_USER. El procedimiento garantiza que el repo es propiedad
+    # del runtime-user (develop en WSL2/VPS con procedimiento;
+    # ubuntu/practicayoruba en VPS estandar). Si el repo es root-owned
+    # (clone como root sin chown), el script no toca nada — safe default.
+    #
+    # Reportado por deploy@yollotl: 'develop' (owner del repo) no
+    # podia escribir logs/ tras sudo bootstrap.
+    local repo_owner repo_group
+    repo_owner=$(stat -c '%U' "$PROJECT_ROOT" 2>/dev/null) || repo_owner=""
+    repo_group=$(stat -c '%G' "$PROJECT_ROOT" 2>/dev/null) || repo_group=""
+    if [[ -n "$repo_owner" && "$repo_owner" != "root" ]]; then
+        log_info "  Restaurando ownership a ${repo_owner}:${repo_group} (owner del repo)..."
+        for path in "${PROJECT_ROOT}/.venv" \
+                    "${PROJECT_ROOT}/practicayoruba/logs" \
+                    "${PROJECT_ROOT}/practicayoruba/.env"; do
+            [[ -e "$path" ]] && chown -R "${repo_owner}:${repo_group}" "$path"
+        done
+        log_success "  Ownership restaurado a ${repo_owner}:${repo_group}"
+    else
+        log_warn "  PROJECT_ROOT root-owned o sin stat — omitiendo chown post-bootstrap"
+        log_warn "  Si manage.py falla con PermissionError en logs/:"
+        log_warn "    sudo chown -R \$(stat -c '%U' \"$PROJECT_ROOT\"):\$(stat -c '%G' \"$PROJECT_ROOT\") \\"
+        log_warn "      ${PROJECT_ROOT}/practicayoruba/logs ${PROJECT_ROOT}/.venv"
     fi
 
     log_separator 60 "="
