@@ -190,6 +190,31 @@ main() {
     echo ""
     phase_verify
 
+    # D-031 / H-18: bootstrap corre como root (sudo bash) y crea
+    # artefactos en el filesystem (logs/, .venv/, .env). El usuario
+    # invocador (SUDO_USER, p.ej. develop) necesita escribir en logs/
+    # cuando ejecute manage.py migrate / runserver post-bootstrap. Si
+    # quedan owned por root, manage.py revienta con
+    # PermissionError: '...practicayoruba/logs/django.log'.
+    # Reportado por deploy@yollotl.
+    #
+    # Restaurar ownership al usuario invocador (idempotente: chown
+    # repeat sobre archivos del usuario no tiene efecto).
+    if [[ -n "${SUDO_USER:-}" && "$SUDO_USER" != "root" ]]; then
+        local sudo_uid sudo_gid
+        sudo_uid=$(id -u "$SUDO_USER" 2>/dev/null) || sudo_uid=""
+        sudo_gid=$(id -g "$SUDO_USER" 2>/dev/null) || sudo_gid=""
+        if [[ -n "$sudo_uid" && -n "$sudo_gid" ]]; then
+            log_info "  Restaurando ownership a ${SUDO_USER}:${SUDO_USER}..."
+            for path in "${PROJECT_ROOT}/.venv" \
+                        "${PROJECT_ROOT}/practicayoruba/logs" \
+                        "${PROJECT_ROOT}/practicayoruba/.env"; do
+                [[ -e "$path" ]] && chown -R "${sudo_uid}:${sudo_gid}" "$path"
+            done
+            log_success "  Ownership restaurado"
+        fi
+    fi
+
     log_separator 60 "="
     log_info "Tiempo total: $(show_elapsed)"
     log_success "Bootstrap completado."
