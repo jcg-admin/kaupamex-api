@@ -293,7 +293,9 @@ class ChangePasswordView(APIView):
             'Verifica la contrasena actual antes de establecer la nueva. '
             'La nueva debe cumplir los validadores de Django (min 8 chars, '
             'no muy comun, no similar al username). '
-            'NOTA: no invalida otras sesiones activas (DT-S2-03).'
+            'UC-AUTH-08 PARTE 8.2 (DEC-AUM-01): invalida todas las '
+            'sesiones activas del usuario tras el cambio para cerrar '
+            'el vector account-takeover.'
         ),
         request=ChangePasswordSerializer,
         responses={

@@ -21,6 +21,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from apps.settings_app.models import SiteSettings
 from .models import Address, UserDeactivationEvent
+from .tokens_email import invalidate_all_sessions
 from .tokens_email import create_verification_token, send_verification_email
 
 logger = logging.getLogger(__name__)
@@ -304,6 +305,12 @@ class ChangePasswordSerializer(serializers.Serializer):
         user = self.context['request'].user
         user.set_password(self.validated_data['new_password'])
         user.save(update_fields=['password'])
+        # DEC-AUM-01: UC-AUTH-08 PARTE 8.2 + paso 12 requieren
+        # invalidar sesiones activas tras cambio de password
+        # (vector account-takeover si se omite). Helper reusado
+        # del mismo modulo (mismo patron que PasswordResetConfirm +
+        # DeactivateAccount).
+        invalidate_all_sessions(user)
         return user
 
 
