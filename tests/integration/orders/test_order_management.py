@@ -15,11 +15,11 @@ from apps.chartsize.models import VariantType, VariantOption, ProductVariant
 
 pytestmark = pytest.mark.integration
 
-ORDERS_URL  = '/api/v1/'
-DETAIL_URL  = lambda o: f'/api/v1/{o}/'
-CANCEL_URL  = lambda o: f'/api/v1/{o}/cancel/'
-ADDRESS_URL = lambda o: f'/api/v1/{o}/address/'
-SHIPPING_URL= lambda o: f'/api/v1/{o}/shipping/'
+ORDERS_URL  = '/api/v1/orders/'
+DETAIL_URL  = lambda o: f'/api/v1/orders/{o}/'
+CANCEL_URL  = lambda o: f'/api/v1/orders/{o}/cancel/'
+ADDRESS_URL = lambda o: f'/api/v1/orders/{o}/address/'
+SHIPPING_URL= lambda o: f'/api/v1/orders/{o}/shipping/'
 
 
 # ---------------------------------------------------------------------------

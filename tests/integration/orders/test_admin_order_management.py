@@ -173,7 +173,8 @@ class TestTransicionEstadoAdmin:
             format='json',
         )
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'TRANSICION_NO_PERMITIDA'
+        # Canon EN (canon-idioma-enums-error-codes): codigo retorna EN.
+        assert res.json()['codigo_error'] == 'TRANSITION_NOT_ALLOWED'
 
     def test_estado_terminal_no_tiene_transiciones(
         self, admin_client, user, prod_adm, db
@@ -237,7 +238,8 @@ class TestCancelarOrdenAdmin:
             format='json',
         )
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'CANCELACION_NO_PERMITIDA'
+        # Canon EN (canon-idioma-enums-error-codes): codigo retorna EN.
+        assert res.json()['codigo_error'] == 'CANCELLATION_NOT_ALLOWED'
 
     def test_admin_no_puede_cancelar_shipped(
         self, admin_client, user, prod_adm, db
