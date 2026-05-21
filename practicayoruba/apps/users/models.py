@@ -315,17 +315,24 @@ class AuthEvent(TimeStampedModel):
 
     Ver iniciativa audit-log-eventos-auth (DEC-AL-1..6).
     """
-    ACTION_LOGIN_SUCCESS    = "LOGIN_SUCCESS"
-    ACTION_LOGIN_FAIL       = "LOGIN_FAIL"
-    ACTION_LOGOUT           = "LOGOUT"
-    ACTION_REFRESH_SUCCESS  = "REFRESH_SUCCESS"
-    ACTION_REFRESH_FAIL     = "REFRESH_FAIL"
+    ACTION_LOGIN_SUCCESS     = "LOGIN_SUCCESS"
+    ACTION_LOGIN_FAIL        = "LOGIN_FAIL"
+    ACTION_LOGOUT            = "LOGOUT"
+    ACTION_REFRESH_SUCCESS   = "REFRESH_SUCCESS"
+    ACTION_REFRESH_FAIL      = "REFRESH_FAIL"
+    # audit-log-eventos-auth-register (DEC-ALR-1):
+    ACTION_REGISTER_ATTEMPT  = "REGISTER_ATTEMPT"
+    ACTION_REGISTER_SUCCESS  = "REGISTER_SUCCESS"
+    ACTION_REGISTER_FAIL     = "REGISTER_FAIL"
     ACTION_CHOICES = [
         (ACTION_LOGIN_SUCCESS,    "Login exitoso"),
         (ACTION_LOGIN_FAIL,       "Login fallido"),
         (ACTION_LOGOUT,           "Logout"),
         (ACTION_REFRESH_SUCCESS,  "Refresh exitoso"),
         (ACTION_REFRESH_FAIL,     "Refresh fallido"),
+        (ACTION_REGISTER_ATTEMPT, "Registro intento"),
+        (ACTION_REGISTER_SUCCESS, "Registro exitoso"),
+        (ACTION_REGISTER_FAIL,    "Registro fallido"),
     ]
 
     REASON_BAD_CREDS        = "BAD_CREDS"

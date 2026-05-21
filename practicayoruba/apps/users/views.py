@@ -17,6 +17,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
+from .audit import audit_log_auth
 from rest_framework.viewsets import ModelViewSet
 from drf_spectacular.types import OpenApiTypes as OAT
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
@@ -24,7 +25,7 @@ from apps.cart.models import Cart, SavedCart
 from apps.notifications.models import NotificationPreference
 from apps.search_history.models import SearchEntry
 from apps.wishlist.models import WishlistItem
-from .models import Address, EmailVerificationToken, PasswordResetToken, UserDeactivationEvent
+from .models import Address, AuthEvent, EmailVerificationToken, PasswordResetToken, UserDeactivationEvent
 from .serializers import AddressSerializer, ChangePasswordSerializer, EmailVerificationSerializer, PasswordResetConfirmSerializer, PasswordResetRequestSerializer, ProfileSerializer, RegisterSerializer, ResendVerificationSerializer, UpdateProfileSerializer
 from .tokens_email import check_rate_limit, create_password_reset_token, create_verification_token, invalidate_all_sessions, send_password_reset_email, send_verification_email, validate_password_reset_token, validate_verification_token
 
@@ -63,6 +64,13 @@ class RegisterView(APIView):
         # publica es ambigua en A.2/A.3 (no filtra estado de cuenta)
         # pero explicita en A.1 (cuenta activa) por necesidad UX.
         email = (request.data.get('email') or '').lower().strip()
+        # audit-log-eventos-auth-register DEC-ALR-2: emit ATTEMPT
+        # SIEMPRE para signal de account enumeration probes.
+        audit_log_auth(
+            None, AuthEvent.ACTION_REGISTER_ATTEMPT, request,
+            extra={'email_present': bool(email)},
+        )
+
         existing = User.objects.filter(email__iexact=email).first() if email else None
 
         if existing is not None:
@@ -73,6 +81,11 @@ class RegisterView(APIView):
             )
             # Alt-A.1: cuenta activa -> indicar al usuario que use login.
             if existing.is_active:
+                # DEC-ALR-3: REGISTER_FAIL sin leak (reason generico).
+                audit_log_auth(
+                    None, AuthEvent.ACTION_REGISTER_FAIL, request,
+                    reason='email_invalid',
+                )
                 return Response(
                     {'email': [
                         'Esa cuenta ya esta registrada. Inicia sesion '
@@ -83,6 +96,7 @@ class RegisterView(APIView):
             # Alt-A.2: inactiva reactivable (unverified o self_deleted)
             # -> generar token + reenviar email. Mismo response shape que
             # una cuenta nueva para no filtrar el estado.
+            # DEC-ALR-5: NO emit REGISTER_SUCCESS (no se crea user nuevo).
             if existing.deactivated_reason in User.DEACTIVATION_REASONS_REACTIVABLE_BY_EMAIL:
                 plain = create_verification_token(existing)
                 send_verification_email(existing, plain)
@@ -95,11 +109,24 @@ class RegisterView(APIView):
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
+            # DEC-ALR-4: REGISTER_SUCCESS convive con
+            # UserDeactivationEvent(source='register') ya
+            # existente en RegisterSerializer.save().
+            audit_log_auth(
+                user, AuthEvent.ACTION_REGISTER_SUCCESS, request,
+            )
             return Response(
                 {'message': 'Cuenta creada. Revisa tu email para activarla.',
                  'user_id': user.pk},
                 status=201,
             )
+        # DEC-ALR-3: reason = primer field error name + '_invalid'
+        # (sin leak del value ni del error message completo).
+        first_field = next(iter(serializer.errors.keys()), 'unknown')
+        audit_log_auth(
+            None, AuthEvent.ACTION_REGISTER_FAIL, request,
+            reason=f'{first_field}_invalid',
+        )
         return Response(serializer.errors, status=400)
 
 
