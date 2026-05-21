@@ -383,6 +383,26 @@ class TestCategoryAdmin:
         cat_collares.refresh_from_db()
         assert cat_collares.is_active is False
 
+    def test_desactivar_categoria_endpoint_explicito(
+        self, admin_client, cat_collares, db,
+    ):
+        """T-109-A iter 18 (UC-CAT-06 D-01 CRITICA): endpoint
+        ``POST .../deactivate/`` que la UI invoca. Antes solo existia
+        DELETE -> UI recibia 405."""
+        res = admin_client.post(f'{CATEGORIES_URL}{cat_collares.pk}/deactivate/')
+        assert res.status_code == 200, res.content
+        cat_collares.refresh_from_db()
+        assert cat_collares.is_active is False
+
+    def test_desactivar_endpoint_con_productos_retorna_400(
+        self, admin_client, cat_collares, product_collar, db,
+    ):
+        """T-109-A: el endpoint explicito hereda la misma logica de
+        FR-CAT-06.02 (rechazo con productos activos)."""
+        res = admin_client.post(f'{CATEGORIES_URL}{cat_collares.pk}/deactivate/')
+        assert res.status_code == 400
+        assert 'CATEGORY_HAS_PRODUCTS' in str(res.json())
+
     def test_desactivar_categoria_con_productos_retorna_400(
         self, admin_client, cat_collares, product_collar, db
     ):

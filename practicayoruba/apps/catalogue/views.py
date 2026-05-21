@@ -463,6 +463,19 @@ class CategoryAdminViewSet(ModelViewSet):
         Soft delete: desactiva la categoría en lugar de eliminarla.
         No se puede eliminar una categoría con productos activos (FR-CAT-06.02).
         """
+        self._deactivate_category(instance)
+
+    @action(detail=True, methods=['post'], url_path='deactivate')
+    def deactivate(self, request, pk=None):
+        """T-109-A (iter 18): endpoint explicito ``POST .../deactivate/``
+        que la UI espera (UC-CAT-06). Antes solo existia DELETE; UI
+        invocaba el path por POST y recibia 405. Reusa la misma logica
+        de soft-delete que perform_destroy."""
+        instance = self.get_object()
+        self._deactivate_category(instance)
+        return Response(self.get_serializer(instance).data)
+
+    def _deactivate_category(self, instance):
         if instance.products.filter(is_active=True).exists():
             raise ValidationError({
                 'detail': (
