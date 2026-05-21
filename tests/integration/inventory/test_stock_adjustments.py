@@ -309,7 +309,8 @@ class TestImportarProductosCSV:
         )
         res = admin_client.post(IMPORT_URL, {'file': csv_f}, format='multipart')
         assert res.status_code == 422
-        assert res.json()['codigo_error'] == 'ENCABEZADO_CSV_INVALIDO'
+        # T-111.1 anti-soft-on-tests (canon EN).
+        assert res.json()['codigo_error'] == 'CSV_HEADER_INVALID'
 
     def test_filas_validas_e_invalidas_mixtas(
         self, admin_client, cat_s11, db
@@ -332,7 +333,8 @@ class TestImportarProductosCSV:
     def test_polling_job_no_encontrado(self, admin_client, db):
         res = admin_client.get(f'{IMPORT_URL}uuid-que-no-existe/')
         assert res.status_code == 404
-        assert res.json()['codigo_error'] == 'JOB_NO_ENCONTRADO'
+        # T-111.1 anti-soft-on-tests (canon EN).
+        assert res.json()['codigo_error'] == 'JOB_NOT_FOUND'
 
     def test_import_csv_sin_archivo_retorna_400(self, admin_client, db):
         res = admin_client.post(IMPORT_URL, {}, format='multipart')

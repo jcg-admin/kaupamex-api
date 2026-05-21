@@ -209,7 +209,9 @@ class TestAdjustNewQuantity:
             'reason': 'MERMA',
         }, format='json')
         assert res.status_code == 422
-        assert res.json()['codigo_error'] == 'STOCK_NEGATIVO_NO_PERMITIDO'
+        # T-111.1 anti-soft-on-tests (canon EN): codigo ya retorna
+        # NEGATIVE_STOCK_NOT_ALLOWED. Test antes asertaba ES.
+        assert res.json()['codigo_error'] == 'NEGATIVE_STOCK_NOT_ALLOWED'
 
     def test_adjust_decreases_stock_correctly(
         self, admin_client, variant_ui, db
@@ -302,7 +304,8 @@ class TestImportEnglishKeys:
             'file': csv_f,
         }, format='multipart')
         assert res.status_code == 422
-        assert res.json()['codigo_error'] == 'ENCABEZADO_CSV_INVALIDO'
+        # T-111.1 anti-soft-on-tests (canon EN).
+        assert res.json()['codigo_error'] == 'CSV_HEADER_INVALID'
 
     def test_initial_state_activo_creates_active_products(
         self, admin_client, cat_ui, db,
@@ -404,7 +407,8 @@ class TestImportReportDownload:
             '/api/v1/admin/inventory/import-reports/no-existe.csv'
         )
         assert res.status_code == 404
-        assert res.json()['codigo_error'] == 'REPORTE_NO_ENCONTRADO'
+        # T-111.1 anti-soft-on-tests (canon EN).
+        assert res.json()['codigo_error'] == 'REPORT_NOT_FOUND'
 
     def test_download_requires_auth(self, api_client, db):
         res = api_client.get(
