@@ -187,6 +187,31 @@ class TestCheckout:
         assert Decimal(res.json()['value']['total']) == Decimal('400.00')
         assert res.json()['voucher_code'] == 'PROMO100'
 
+    def test_checkout_incrementa_voucher_current_uses(
+        self, auth_client, prod_ord, db, admin_user,
+    ):
+        """T-115 D-01 CRITICA (implementar-current-uses-increment):
+        verificar que el campo Voucher.current_uses se incrementa
+        atomicamente tras crear la Order. Antes el campo era leido en
+        is_usable()/can_apply() pero nunca incrementado -> max_uses
+        no limitaba en la practica."""
+        v = Voucher.objects.create(
+            code='LIMIT1', voucher_type='FIXED',
+            discount_value=Decimal('50.00'),
+            valid_from=timezone.now() - __import__('datetime').timedelta(days=1),
+            is_active=True, min_order_amount=Decimal('0'),
+            max_uses=2, current_uses=0, created_by=admin_user,
+        )
+        auth_client.post(ITEMS_URL, {'product_id': prod_ord.pk, 'quantity': 1}, format='json')
+        auth_client.post('/api/v1/cart/voucher/', {'code': 'LIMIT1'}, format='json')
+        res = auth_client.post(CHECKOUT_URL, {'address': ADDR}, format='json')
+        assert res.status_code == 201
+        v.refresh_from_db()
+        assert v.current_uses == 1, (
+            f'Voucher.current_uses debio incrementarse a 1; valor real: '
+            f'{v.current_uses}'
+        )
+
 
 class TestShippingMethodProtection:
 

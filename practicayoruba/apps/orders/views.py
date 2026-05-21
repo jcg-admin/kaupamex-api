@@ -5,6 +5,8 @@ UC-ORD-01: Checkout, UC-ORD-02..06: Gestión del comprador (Sprint 18)
 import uuid
 from decimal import Decimal
 from django.db import transaction
+from django.db.models import F
+from apps.voucher.models import Voucher
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from apps.users.audit import audit_log_business
@@ -175,7 +177,30 @@ class CheckoutView(APIView):
                 addr_data = data['address']
                 OrderAddress.objects.create(order=order, **addr_data)
 
-                # f. Vaciar carrito
+                # f. Incrementar Voucher.current_uses atomicamente
+                # (DEC-VCU-01 T-115 D-01 CRITICA: el campo se leia en
+                # is_usable()/can_apply() pero NUNCA se incrementaba.
+                # max_uses no limitaba en la practica).
+                if cart.voucher_id:
+                    voucher_locked = (
+                        Voucher.objects.select_for_update()
+                        .get(pk=cart.voucher_id)
+                    )
+                    if (voucher_locked.max_uses is not None
+                            and voucher_locked.current_uses >=
+                                voucher_locked.max_uses):
+                        # Race detectada: otro checkout consumio el
+                        # cupo entre validacion y lock.
+                        raise ValueError(
+                            f'Voucher {voucher_locked.code} agotado: '
+                            f'{voucher_locked.current_uses}/'
+                            f'{voucher_locked.max_uses}.'
+                        )
+                    Voucher.objects.filter(pk=cart.voucher_id).update(
+                        current_uses=F('current_uses') + 1
+                    )
+
+                # g. Vaciar carrito
                 cart.items.all().delete()
                 cart.voucher = None
                 cart.save(update_fields=['voucher'])
