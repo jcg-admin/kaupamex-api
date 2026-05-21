@@ -14,9 +14,11 @@ UC-RET-06  POST   /api/v1/admin/returns/{id}/refund/        refund
 
 Identifiers in English (DEC-DOC-005).
 """
+from datetime import timedelta
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
 import pytest
+from django.utils import timezone
 from apps.orders.models import Order
 from apps.payments.models import Payment
 from apps.returns.models import ReturnHistoryEntry, ReturnRequest
@@ -146,6 +148,34 @@ class TestListAndDetail:
         assert isinstance(body['history'], list)
         assert body['history'][0]['status_to'] == 'PENDING_REVIEW'
         assert body['history'][0]['actor'] == 'BUYER'
+
+    def test_detail_history_ordered_desc(self, auth_client, user, db):
+        """UC-RET-04 D-09 (DEC-RET-07): historial ordenado DESC para que el
+        comprador vea el ultimo evento del lifecycle arriba."""
+        ret = ReturnRequest.objects.create(
+            user=user, order_id=1, reason='OTHER',
+            description='Mensaje suficientemente largo de prueba.')
+        first = ReturnHistoryEntry.objects.create(
+            return_request=ret, status_to='PENDING_REVIEW', actor=user,
+            justification='Solicitud creada.',
+        )
+        second = ReturnHistoryEntry.objects.create(
+            return_request=ret, status_to='APPROVED', actor=user,
+            justification='Aprobada.',
+        )
+        ReturnHistoryEntry.objects.filter(pk=first.pk).update(
+            created_at=timezone.now() - timedelta(hours=2),
+        )
+        ReturnHistoryEntry.objects.filter(pk=second.pk).update(
+            created_at=timezone.now(),
+        )
+        res = auth_client.get(f'{RETURNS_URL}{ret.pk}/')
+        assert res.status_code == 200
+        history = res.json()['history']
+        assert len(history) == 2
+        # DESC: el evento mas reciente (APPROVED) viene primero.
+        assert history[0]['status_to'] == 'APPROVED'
+        assert history[1]['status_to'] == 'PENDING_REVIEW'
 
     def test_detail_other_user_returns_404(self, auth_client, admin_user, db):
         """RNF-SEC-003 — no revelar existencia."""
