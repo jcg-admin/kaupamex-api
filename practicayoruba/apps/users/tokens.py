@@ -90,7 +90,10 @@ class PYTokenObtainPairSerializer(TokenObtainPairSerializer):
             if not user.is_active and user.has_usable_password():
                 raise AuthenticationFailed(
                     detail={
-                        'codigo': 'EMAIL_NO_VERIFICADO',
+                        # T-103 iter 16 (canon EN per UC-AUTH-02:601):
+                        # key 'codigo' -> 'codigo_error', valor
+                        # 'EMAIL_NO_VERIFICADO' -> 'EMAIL_NOT_VERIFIED'.
+                        'codigo_error': 'EMAIL_NOT_VERIFIED',
                         'mensaje': (
                             'Tu cuenta aún no está activada. '
                             'Revisa tu email y haz clic en el enlace de verificación.'
@@ -164,7 +167,7 @@ class PYTokenObtainPairView(TokenObtainPairView):
             record_failed_attempt(ip)
             reason = AuthEvent.REASON_BAD_CREDS
             detail = getattr(exc, 'detail', None)
-            if isinstance(detail, dict) and detail.get('codigo') == 'EMAIL_NO_VERIFICADO':
+            if isinstance(detail, dict) and detail.get('codigo_error') == 'EMAIL_NOT_VERIFIED':
                 reason = AuthEvent.REASON_EMAIL_NOT_VERIFIED
             self._audit_login(request, success=False, reason=reason)
             raise

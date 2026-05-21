@@ -50,7 +50,10 @@ class TestSelfDeleteEliminaCartActivo:
 class TestSelfDeleteEliminaSavedCarts:
 
     def test_saved_cart_se_elimina(self, auth_client, user, db):
-        SavedCart.objects.create(user=user, name='manana')
+        # T-103 iter 16: SavedCart model nunca tuvo campo `name`
+        # (apps/cart/models.py:158-173 declara solo OneToOneField user).
+        # Test outlier: kwarg name removido (anti-soft).
+        SavedCart.objects.create(user=user)
         auth_client.post(URL, {'password': 'TestPass123!'}, format='json')
         assert SavedCart.objects.filter(user=user).count() == 0
 
