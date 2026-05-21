@@ -101,14 +101,19 @@ class TestWishlist:
         assert item['price_changed'] is True
         assert item['current_price'] == '900.00'
 
-    def test_move_without_stock_returns_400(self, auth_client, prod_s14, db):
+    def test_move_without_stock_returns_409(self, auth_client, prod_s14, db):
+        """UC-WISH-03 EX-01 + PARTE 7.3 (T-104 D-05): producto sin
+        stock -> 409 PRODUCT_OUT_OF_STOCK (state conflict, NO 400
+        request error). Anti-soft-on-tests: test antes asertaba el
+        comportamiento del bug (400 generico, codigo_error
+        PRODUCT_UNAVAILABLE no documentado en UC)."""
         prod_s14.stock = 0
         prod_s14.save()
         res = auth_client.post(WISH_URL, {'product_id': prod_s14.pk}, format='json')
         item_id = res.json()['id']
         move_res = auth_client.post(f'{WISH_URL}{item_id}/move-to-cart/', format='json')
-        assert move_res.status_code == 400
-        assert move_res.json()['codigo_error'] == 'PRODUCT_UNAVAILABLE'
+        assert move_res.status_code == 409
+        assert move_res.json()['codigo_error'] == 'PRODUCT_OUT_OF_STOCK'
 
     def test_delete_is_soft(self, auth_client, prod_s14, db):
         """DEC-DOC-007: delete marca is_deleted=True, no borra fisicamente."""
