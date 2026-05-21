@@ -25,6 +25,8 @@ from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from apps.users.audit import audit_log_business
+from apps.users.models import BusinessEvent
 from .models import ReturnHistoryEntry, ReturnItem, ReturnRequest
 from .serializers import AdminReturnDetailSerializer, AdminReturnListSerializer, ReturnApproveSerializer, ReturnCreateSerializer, ReturnDetailSerializer, ReturnInfoRequestSerializer, ReturnListSerializer, ReturnReceptionSerializer, ReturnRefundSerializer, ReturnRejectSerializer
 
@@ -109,6 +111,11 @@ class ReturnListCreateView(APIView):
         _record_history(
             ret, ReturnRequest.Status.PENDING_REVIEW, request.user,
             justification='Solicitud creada por el comprador.',
+        )
+        audit_log_business(
+            request.user, BusinessEvent.ACTION_RETURN_REQUESTED, request,
+            target_type=BusinessEvent.TARGET_RETURN, target_id=ret.pk,
+            extra={'order_id': payload['order_id'], 'reason': payload['reason']},
         )
         return Response(
             ReturnDetailSerializer(ret).data,
@@ -225,6 +232,11 @@ class AdminReturnApproveView(APIView):
             ret, ReturnRequest.Status.APPROVED, request.user,
             justification=serializer.validated_data['justification'],
         )
+        audit_log_business(
+            request.user, BusinessEvent.ACTION_RETURN_RESOLVED, request,
+            target_type=BusinessEvent.TARGET_RETURN, target_id=ret.pk,
+            extra={'resolution': 'APPROVED'},
+        )
         return Response(AdminReturnDetailSerializer(ret).data)
 
 
@@ -259,6 +271,11 @@ class AdminReturnRejectView(APIView):
         _record_history(
             ret, ReturnRequest.Status.REJECTED, request.user,
             justification=justification,
+        )
+        audit_log_business(
+            request.user, BusinessEvent.ACTION_RETURN_RESOLVED, request,
+            target_type=BusinessEvent.TARGET_RETURN, target_id=ret.pk,
+            extra={'resolution': 'REJECTED'},
         )
         return Response(AdminReturnDetailSerializer(ret).data)
 

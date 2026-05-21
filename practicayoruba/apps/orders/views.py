@@ -7,6 +7,8 @@ from decimal import Decimal
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
+from apps.users.audit import audit_log_business
+from apps.users.models import BusinessEvent
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
@@ -182,6 +184,14 @@ class CheckoutView(APIView):
             return Response({'detail': str(exc),
                              'codigo_error': 'STOCK_INSUFICIENTE'}, status=409)
 
+        audit_log_business(
+            user if user and user.is_authenticated else None,
+            BusinessEvent.ACTION_ORDER_CREATED,
+            request,
+            target_type=BusinessEvent.TARGET_ORDER,
+            target_id=order.pk,
+            extra={'order_number': order.order_number},
+        )
         return Response(OrderSerializer(order).data, status=201)
 
 
@@ -374,6 +384,15 @@ class OrderCancelView(APIView):
                 status=503,
             )
 
+        audit_log_business(
+            request.user if request.user.is_authenticated else None,
+            BusinessEvent.ACTION_ORDER_CANCELLED,
+            request,
+            target_type=BusinessEvent.TARGET_ORDER,
+            target_id=order.pk,
+            extra={'order_number': order.order_number,
+                   'reason': s.validated_data.get('reason', '')},
+        )
         order.refresh_from_db()
         return Response(OrderSerializer(order).data)
 

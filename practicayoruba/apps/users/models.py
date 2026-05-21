@@ -357,3 +357,51 @@ class AuthEvent(TimeStampedModel):
         u = self.user.username if self.user_id else "anon"
         return f"AuthEvent[{u}] {self.action} {self.created_at:%Y-%m-%d %H:%M}"
 
+
+
+class BusinessEvent(TimeStampedModel):
+    """
+    Audit trail de eventos business cross-cutting (orders,
+    returns) — distinto de AuthEvent (auth flow). Sucesora
+    de audit-log-eventos-auth.
+
+    Patron similar: append-only, PII safe, indexed for
+    forensics. target_type + target_id en lugar de
+    GenericForeignKey por simplicidad (DEC-CC-4).
+    """
+    ACTION_ORDER_CREATED    = "ORDER_CREATED"
+    ACTION_ORDER_CANCELLED  = "ORDER_CANCELLED"
+    ACTION_RETURN_REQUESTED = "RETURN_REQUESTED"
+    ACTION_RETURN_RESOLVED  = "RETURN_RESOLVED"
+    ACTION_CHOICES = [
+        (ACTION_ORDER_CREATED,    "Order creada"),
+        (ACTION_ORDER_CANCELLED,  "Order cancelada"),
+        (ACTION_RETURN_REQUESTED, "Return solicitada"),
+        (ACTION_RETURN_RESOLVED,  "Return resuelta"),
+    ]
+
+    TARGET_ORDER  = "order"
+    TARGET_RETURN = "return"
+
+    actor       = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="business_events",
+    )
+    action      = models.CharField(max_length=30, choices=ACTION_CHOICES, db_index=True)
+    target_type = models.CharField(max_length=20, blank=True, default="")
+    target_id   = models.PositiveIntegerField(null=True, blank=True)
+    ip_addr     = models.GenericIPAddressField(null=True, blank=True)
+    extra_json  = models.JSONField(null=True, blank=True)
+
+    class Meta:
+        db_table = "users_business_event"
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["action", "-created_at"]),
+            models.Index(fields=["target_type", "target_id"]),
+        ]
+
+    def __str__(self):
+        a = self.actor.username if self.actor_id else "system"
+        return f"BusinessEvent[{a}] {self.action} {self.target_type}#{self.target_id}"
+
