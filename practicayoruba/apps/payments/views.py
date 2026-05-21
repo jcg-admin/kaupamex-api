@@ -69,17 +69,21 @@ class InitiatePaymentView(APIView):
         installments  = s.validated_data['installments']
         gateway_type  = s.validated_data.get('gateway', 'MERCADOPAGO')
 
-        # Buscar la orden — solo el dueño puede pagarla
+        # Buscar la orden — solo el dueño puede pagarla.
+        # DEC-BC-11 (2026-05-21): permission_classes = [IsAuthenticated]
+        # garantiza request.user.is_authenticated. La rama else previa
+        # (Order.objects.get sin filtro user=) era codigo muerto +
+        # vector latente: si alguien cambiaba la permission a AllowAny
+        # sin tocar este bloque, un comprador autenticado o invitado
+        # podria iniciar pago sobre la orden de otro user (audit T-101
+        # UC-PAY-01 D-09 + D-14). Codigo muerto eliminado para cerrar
+        # el vector latente y mantener la invariante "solo el dueno
+        # paga" como propiedad estructural.
         try:
-            if request.user.is_authenticated:
-                order = Order.objects.select_related('value').get(
-                    order_number=order_number,
-                    user=request.user,
-                )
-            else:
-                order = Order.objects.select_related('value').get(
-                    order_number=order_number
-                )
+            order = Order.objects.select_related('value').get(
+                order_number=order_number,
+                user=request.user,
+            )
         except Order.DoesNotExist:
             raise ValidationError({
                 'order_number': f'Orden {order_number!r} no encontrada.',

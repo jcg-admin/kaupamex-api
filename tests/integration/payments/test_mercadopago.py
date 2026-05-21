@@ -138,6 +138,39 @@ class TestIniciarPago:
         res = api_client.post(INITIATE_URL, {}, format='json')
         assert res.status_code == 401
 
+    def test_iniciar_pago_orden_ajena_retorna_404(
+        self, api_client, orden_pendiente, mp_gateway_activo, db, django_user_model,
+    ):
+        """T-304 / DEC-BC-11: usuario autenticado NO puede iniciar pago
+        sobre la orden de OTRO usuario.
+
+        El audit T-101 UC-PAY-01 D-09/D-14 detecto que el InitiatePaymentView
+        tenia un branch `else` (no autenticado) que ejecutaba
+        ``Order.objects.get(order_number=...)`` SIN filtro ``user=``. Era
+        codigo muerto bajo ``IsAuthenticated`` (vector latente) pero
+        habria sido fraude si alguien cambiaba la permission a AllowAny
+        sin tocar el branch.
+
+        Tras el fix (collapse a un solo Order.objects.get con filtro
+        ``user=request.user``), un comprador autenticado distinto al
+        dueno no encuentra la orden y recibe ORDER_NOT_FOUND.
+        """
+        # Crear otro usuario que intentara pagar la orden de `user`
+        attacker = django_user_model.objects.create_user(
+            username='attacker', email='attacker@test.mx',
+            password='AttackPass123!',
+        )
+        api_client.force_authenticate(user=attacker)
+        res = api_client.post(INITIATE_URL, {
+            'order_number': orden_pendiente.order_number,
+        }, format='json')
+        assert res.status_code == 400, (
+            f'Esperado 400 ORDER_NOT_FOUND (filtro user= excluye orden ajena), '
+            f'recibido {res.status_code}: {res.json() if hasattr(res, "json") else res.content}'
+        )
+        body = res.json()
+        assert body.get('codigo_error') == 'ORDER_NOT_FOUND'
+
     def test_iniciar_pago_crea_payment_y_retorna_checkout_url(
         self, auth_client, orden_pendiente, mp_gateway_activo, mock_mp_sdk, db
     ):
