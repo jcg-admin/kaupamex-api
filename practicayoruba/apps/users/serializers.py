@@ -20,7 +20,8 @@ from PIL import Image
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from apps.settings_app.models import SiteSettings
-from .models import Address, UserDeactivationEvent
+from .audit import audit_log_auth
+from .models import Address, AuthEvent, UserDeactivationEvent
 from .tokens_email import invalidate_all_sessions
 from .tokens_email import create_verification_token, send_verification_email
 
@@ -305,6 +306,7 @@ class ChangePasswordSerializer(serializers.Serializer):
 
     def save(self, **kwargs):
         user = self.context['request'].user
+        request = self.context['request']
         user.set_password(self.validated_data['new_password'])
         user.save(update_fields=['password'])
         # DEC-AUM-01: UC-AUTH-08 PARTE 8.2 + paso 12 requieren
@@ -313,6 +315,10 @@ class ChangePasswordSerializer(serializers.Serializer):
         # del mismo modulo (mismo patron que PasswordResetConfirm +
         # DeactivateAccount).
         invalidate_all_sessions(user)
+        # T-119 D-02 iter 20 (UC-AUTH-08 AC-06 audit log):
+        # registrar evento PASSWORD_CHANGE. Antes el cambio era
+        # silencioso (sin trazabilidad para forense / GDPR).
+        audit_log_auth(user, AuthEvent.ACTION_PASSWORD_CHANGE, request)
         return user
 
 
