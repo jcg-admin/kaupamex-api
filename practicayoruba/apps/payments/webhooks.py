@@ -69,8 +69,12 @@ def _verify_mp_signature(request, payment_id: str, request_id: str) -> bool:
 
     client_secret = _get_mp_client_secret()
     if not client_secret:
-        logger.warning('MP webhook: client_secret no configurado, saltando verificación')
-        return True  # En testing/sandbox sin secret configurado se acepta
+        # DEC-BC-01 (2026-05-21): fail-closed por seguridad. La rama
+        # historica "return True" abria un vector de fraude (cualquiera
+        # podia simular `payment.approved`). El system check en apps.py
+        # bloquea el deploy si DEBUG=False y no hay client_secret.
+        logger.error('MP webhook: client_secret no configurado — rechazando webhook')
+        return False
 
     manifest = f'id:{payment_id};request-id:{request_id};ts:{ts}'
     expected = hmac.new(

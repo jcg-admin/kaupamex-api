@@ -12,6 +12,7 @@ from decimal import Decimal
 from unittest.mock import patch, MagicMock
 from apps.catalogue.models import Category, Product
 from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from apps.payments.checks import check_mercadopago_client_secret
 from apps.payments.models import Payment
 from apps.settings_app.models import PaymentGateway
 
@@ -197,6 +198,59 @@ class TestMercadoPagoWebhook:
             HTTP_X_SIGNATURE='ts=1;v1=x',
         )
         assert res.status_code in (200, 401)  # ignorado o firma inválida
+
+    def test_webhook_mp_no_secret_fail_closed(
+        self, api_client, orden_processing_mp, db,
+    ):
+        """T-102 / DEC-BC-01: sin client_secret en BD el webhook se rechaza 401.
+
+        Antes de DEC-BC-01 la rama "no secret -> return True" abria un vector
+        de fraude: cualquiera podia simular `payment.approved` y forzar
+        Order.status=PROCESSING sin haber pagado. Ahora es fail-closed.
+        """
+        # NO crear PaymentGateway(MERCADOPAGO) — secret ausente.
+        order, payment = orden_processing_mp
+        res = api_client.post(
+            MP_WEBHOOK_URL,
+            data=json.dumps({'type': 'payment', 'data': {'id': 'MP-PAY-999'}}),
+            content_type='application/json',
+            HTTP_X_SIGNATURE='ts=1;v1=anything',
+            HTTP_X_REQUEST_ID='req-no-secret',
+        )
+        assert res.status_code == 401, (
+            f'fail-open regresion: webhook sin secret deberia rechazar 401, '
+            f'recibido {res.status_code}'
+        )
+        payment.refresh_from_db()
+        assert payment.status == 'PENDING'  # no se cambio
+
+    def test_django_check_warns_missing_secret(self, db, settings):
+        """T-103 / DEC-BC-01 E001: system check bloquea deploy cuando
+        DEBUG=False y no hay PaymentGateway(MP).client_secret."""
+        # Caso 1: DEBUG=False, sin PaymentGateway -> error E001.
+        settings.DEBUG = False
+        errors = check_mercadopago_client_secret(app_configs=None)
+        assert any(e.id == 'payments.E001' for e in errors), (
+            f'Se esperaba payments.E001 cuando no hay PaymentGateway(MP) '
+            f'activo, recibido: {[e.id for e in errors]}'
+        )
+
+        # Caso 2: PaymentGateway existe pero sin client_secret -> error E001.
+        gw = PaymentGateway(name='MP', gateway='MERCADOPAGO', is_active=True)
+        gw.set_credentials({'access_token': 'X'})  # sin client_secret
+        gw.save()
+        errors = check_mercadopago_client_secret(app_configs=None)
+        assert any(e.id == 'payments.E001' for e in errors), (
+            f'Se esperaba payments.E001 cuando client_secret falta, '
+            f'recibido: {[e.id for e in errors]}'
+        )
+
+        # Caso 3: DEBUG=True -> no errors (sandbox tolerado).
+        settings.DEBUG = True
+        errors = check_mercadopago_client_secret(app_configs=None)
+        assert errors == [], (
+            f'En DEBUG=True no deberia emitir errores, recibido: {errors}'
+        )
 
 
 class TestPayPalWebhook:
