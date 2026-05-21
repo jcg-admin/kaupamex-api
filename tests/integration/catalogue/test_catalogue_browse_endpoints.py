@@ -142,14 +142,16 @@ class TestPriceSyncAliases:
             {'session_id': 'ghost'}, format='json',
         )
         assert r.status_code == 400
-        assert r.json()['codigo_error'] == 'SESSION_EXPIRADA'
+        # T-109-B anti-soft-on-tests (canon EN).
+        assert r.json()['codigo_error'] == 'SESSION_EXPIRED'
 
     def test_preview_csv_requires_file(self, admin_client, db):
         r = admin_client.post(
             '/api/v1/admin/price-sync/preview-csv/', {}, format='multipart',
         )
         assert r.status_code == 400
-        assert r.json()['codigo_error'] == 'CSV_REQUERIDO'
+        # T-109-B anti-soft-on-tests (canon EN).
+        assert r.json()['codigo_error'] == 'CSV_REQUIRED'
 
     def test_anon_recibe_401(self, api_client, db):
         r = api_client.get('/api/v1/admin/price-sync/template.csv')

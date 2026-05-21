@@ -201,7 +201,8 @@ class TestSincronizarPreciosCSV:
             PRICE_CONFIRM_URL, {'session_id': 'uuid-que-no-existe'}, format='json'
         )
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'SESSION_EXPIRADA'
+        # T-109-B anti-soft-on-tests (canon EN).
+        assert res.json()['codigo_error'] == 'SESSION_EXPIRED'
 
     def test_template_descarga_csv_con_productos(
         self, admin_client, product_activo, db

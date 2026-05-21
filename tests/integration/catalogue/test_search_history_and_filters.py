@@ -389,7 +389,8 @@ class TestCategoryAdmin:
         """FR-CAT-06.02 Escenario 3: no se puede desactivar con productos activos."""
         res = admin_client.delete(f'{CATEGORIES_URL}{cat_collares.pk}/')
         assert res.status_code == 400
-        assert 'CATEGORIA_CON_PRODUCTOS' in str(res.json())
+        # T-109-B anti-soft-on-tests (canon EN).
+        assert 'CATEGORY_HAS_PRODUCTS' in str(res.json())
 
     def test_ciclo_directo_retorna_400(
         self, admin_client, cat_collares, cat_collares_oshun, db
@@ -405,7 +406,8 @@ class TestCategoryAdmin:
             format='json',
         )
         assert res.status_code == 400
-        assert 'CICLO_EN_JERARQUIA' in str(res.json())
+        # T-109-B anti-soft-on-tests (canon EN).
+        assert 'CYCLE_IN_HIERARCHY' in str(res.json())
 
     def test_nombre_duplicado_retorna_400(self, admin_client, cat_collares, db):
         res = admin_client.post(CATEGORIES_URL, {
