@@ -15,6 +15,7 @@ Admin endpoints:
   POST   /api/v1/admin/returns/{id}/reception/     UC-RET-03 register reception
   POST   /api/v1/admin/returns/{id}/refund/        UC-RET-06 process refund
 """
+from django.db import transaction
 from django.db.models import Count
 from django.http import Http404
 from django.shortcuts import get_object_or_404
@@ -27,10 +28,12 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from apps.users.audit import audit_log_business
 from apps.users.models import BusinessEvent
+from apps.orders.models import Order as OrderModel
 from apps.payments.models import Payment
 from apps.payments.services import execute_refund
 from .models import ReturnHistoryEntry, ReturnItem, ReturnRequest
 from .serializers import AdminReturnDetailSerializer, AdminReturnListSerializer, ReturnApproveSerializer, ReturnCreateSerializer, ReturnDetailSerializer, ReturnInfoRequestSerializer, ReturnListSerializer, ReturnReceptionSerializer, ReturnRefundSerializer, ReturnRejectSerializer
+from apps.notifications.service import notify_return_processed
 
 
 
@@ -242,18 +245,27 @@ class AdminReturnApproveView(APIView):
             )
         serializer = ReturnApproveSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        ret.status = ReturnRequest.Status.APPROVED
-        ret.rejection_reason = ''
-        ret.save(update_fields=['status', 'rejection_reason', 'updated_at'])
-        _record_history(
-            ret, ReturnRequest.Status.APPROVED, request.user,
-            justification=serializer.validated_data['justification'],
-        )
-        audit_log_business(
-            request.user, BusinessEvent.ACTION_RETURN_RESOLVED, request,
-            target_type=BusinessEvent.TARGET_RETURN, target_id=ret.pk,
-            extra={'resolution': 'APPROVED'},
-        )
+        with transaction.atomic():
+            ret.status = ReturnRequest.Status.APPROVED
+            ret.rejection_reason = ''
+            ret.save(update_fields=['status', 'rejection_reason', 'updated_at'])
+            _record_history(
+                ret, ReturnRequest.Status.APPROVED, request.user,
+                justification=serializer.validated_data['justification'],
+            )
+            audit_log_business(
+                request.user, BusinessEvent.ACTION_RETURN_RESOLVED, request,
+                target_type=BusinessEvent.TARGET_RETURN, target_id=ret.pk,
+                extra={'resolution': 'APPROVED'},
+            )
+            ret_order = OrderModel.objects.filter(pk=ret.order_id).first()
+            if ret_order:
+                notify_return_processed(
+                    order=ret_order,
+                    user=ret.user,
+                    return_status='APPROVED',
+                    reason=None,
+                )
         return Response(AdminReturnDetailSerializer(ret).data)
 
 
@@ -282,18 +294,27 @@ class AdminReturnRejectView(APIView):
         serializer = ReturnRejectSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         justification = serializer.validated_data['justification']
-        ret.status = ReturnRequest.Status.REJECTED
-        ret.rejection_reason = justification
-        ret.save(update_fields=['status', 'rejection_reason', 'updated_at'])
-        _record_history(
-            ret, ReturnRequest.Status.REJECTED, request.user,
-            justification=justification,
-        )
-        audit_log_business(
-            request.user, BusinessEvent.ACTION_RETURN_RESOLVED, request,
-            target_type=BusinessEvent.TARGET_RETURN, target_id=ret.pk,
-            extra={'resolution': 'REJECTED'},
-        )
+        with transaction.atomic():
+            ret.status = ReturnRequest.Status.REJECTED
+            ret.rejection_reason = justification
+            ret.save(update_fields=['status', 'rejection_reason', 'updated_at'])
+            _record_history(
+                ret, ReturnRequest.Status.REJECTED, request.user,
+                justification=justification,
+            )
+            audit_log_business(
+                request.user, BusinessEvent.ACTION_RETURN_RESOLVED, request,
+                target_type=BusinessEvent.TARGET_RETURN, target_id=ret.pk,
+                extra={'resolution': 'REJECTED'},
+            )
+            ret_order = OrderModel.objects.filter(pk=ret.order_id).first()
+            if ret_order:
+                notify_return_processed(
+                    order=ret_order,
+                    user=ret.user,
+                    return_status='REJECTED',
+                    reason=justification,
+                )
         return Response(AdminReturnDetailSerializer(ret).data)
 
 

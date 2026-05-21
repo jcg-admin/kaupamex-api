@@ -314,6 +314,8 @@ MANUAL_FANOUT_ASYNC_THRESHOLD = config(
     'MANUAL_FANOUT_ASYNC_THRESHOLD', default=100, cast=int,
 )
 
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+
 # Cache — DatabaseCache (Sprint 6)
 # UC-SRCH-02 (autocomplete) usa la clave "autocomplete:<prefijo>" con TTL 60s.
 # UC-CAT-08 (árbol de categorías) usará la clave "categories:tree" con TTL 300s.
