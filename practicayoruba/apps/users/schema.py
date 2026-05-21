@@ -52,8 +52,8 @@ SPECTACULAR_TAGS = [
 
 
 
-from drf_spectacular.extensions import OpenApiSerializerExtension
-from drf_spectacular.utils import inline_serializer
+from drf_spectacular.extensions import OpenApiSerializerExtension, OpenApiViewExtension
+from drf_spectacular.utils import inline_serializer, extend_schema, OpenApiResponse
 from rest_framework import serializers
 
 
@@ -116,8 +116,6 @@ class PYTokenObtainPairSerializerExtension(OpenApiSerializerExtension):
         return auto_schema._map_serializer(fixed, direction)
 
 
-from drf_spectacular.extensions import OpenApiViewExtension
-from drf_spectacular.utils import extend_schema, OpenApiResponse
 
 
 class TokenBlacklistViewFix(OpenApiViewExtension):

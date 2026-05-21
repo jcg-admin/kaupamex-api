@@ -3,15 +3,16 @@ Vistas Admin — apps.orders
 Sprint 19 — UC-ORD-07, UC-ORD-08, UC-ORD-09, UC-ORD-10
 """
 import logging
-from drf_spectacular.utils import (
-    extend_schema, OpenApiResponse, OpenApiParameter,
-)
+from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
+from .serializers import AdminOrderSerializer
+from .models import Order
+from django.db.models import Q
+from .admin_services import transition_order_status, admin_cancel_order, get_dashboard_data
 
-from .serializers import OrderSerializer
 
 logger = logging.getLogger('apps')
 
@@ -46,13 +47,11 @@ class AdminOrderListView(APIView):
             OpenApiParameter('date_to',      str, description='Fecha hasta (YYYY-MM-DD)'),
             OpenApiParameter('page',         int, description='Número de página'),
         ],
-        responses={200: OrderSerializer(many=True)},
+        responses={200: AdminOrderSerializer(many=True)},
         tags=['orders-admin'],
         operation_id='admin_orders_list',
     )
     def get(self, request):
-        from .models import Order
-        from .serializers import OrderSerializer
 
         qs = (
             Order.objects.select_related('value', 'user', 'shipping_method')
@@ -67,7 +66,6 @@ class AdminOrderListView(APIView):
         if status := params.get('status'):
             qs = qs.filter(status=status)
         if email := params.get('email'):
-            from django.db.models import Q
             qs = qs.filter(
                 Q(user__email__icontains=email) |
                 Q(guest_email__icontains=email)
@@ -79,7 +77,7 @@ class AdminOrderListView(APIView):
 
         paginator = AdminOrderPagination()
         page      = paginator.paginate_queryset(qs, request)
-        return paginator.get_paginated_response(OrderSerializer(page, many=True).data)
+        return paginator.get_paginated_response(AdminOrderSerializer(page, many=True).data)
 
 
 class AdminOrderDetailView(APIView):
@@ -94,15 +92,13 @@ class AdminOrderDetailView(APIView):
         summary='Detalle de orden (admin)',
         description='Retorna el detalle completo. Sin restricción de propietario.',
         responses={
-            200: OrderSerializer,
+            200: AdminOrderSerializer,
             404: OpenApiResponse(description='Orden no encontrada.'),
         },
         tags=['orders-admin'],
         operation_id='admin_orders_retrieve',
     )
     def get(self, request, order_number):
-        from .models import Order
-        from .serializers import OrderSerializer
 
         try:
             order = (
@@ -113,10 +109,10 @@ class AdminOrderDetailView(APIView):
             )
         except Order.DoesNotExist:
             return Response(
-                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDEN_NO_ENCONTRADA'},
+                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDER_NOT_FOUND'},
                 status=404,
             )
-        return Response(OrderSerializer(order).data)
+        return Response(AdminOrderSerializer(order).data)
 
 
 class AdminOrderStatusUpdateView(APIView):
@@ -148,16 +144,13 @@ class AdminOrderStatusUpdateView(APIView):
             'required': ['new_status'],
         }},
         responses={
-            200: OrderSerializer,
+            200: AdminOrderSerializer,
             400: OpenApiResponse(description='Transición no permitida.'),
             404: OpenApiResponse(description='Orden no encontrada.'),
         },
         tags=['orders-admin'],
     )
     def patch(self, request, order_number):
-        from .models import Order
-        from .serializers import OrderSerializer
-        from .admin_services import transition_order_status
 
         try:
             order = Order.objects.select_related('value', 'user').get(
@@ -165,7 +158,7 @@ class AdminOrderStatusUpdateView(APIView):
             )
         except Order.DoesNotExist:
             return Response(
-                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDEN_NO_ENCONTRADA'},
+                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDER_NOT_FOUND'},
                 status=404,
             )
 
@@ -174,7 +167,7 @@ class AdminOrderStatusUpdateView(APIView):
 
         if not new_status:
             return Response(
-                {'detail': 'new_status es requerido.', 'codigo_error': 'CAMPO_REQUERIDO'},
+                {'detail': 'new_status es requerido.', 'codigo_error': 'FIELD_REQUIRED'},
                 status=400,
             )
 
@@ -182,12 +175,12 @@ class AdminOrderStatusUpdateView(APIView):
             transition_order_status(order, new_status, request.user, notes)
         except ValueError as exc:
             return Response(
-                {'detail': str(exc), 'codigo_error': 'TRANSICION_NO_PERMITIDA'},
+                {'detail': str(exc), 'codigo_error': 'TRANSITION_NOT_ALLOWED'},
                 status=400,
             )
 
         order.refresh_from_db()
-        return Response(OrderSerializer(order).data)
+        return Response(AdminOrderSerializer(order).data)
 
 
 class AdminOrderCancelView(APIView):
@@ -216,7 +209,7 @@ class AdminOrderCancelView(APIView):
             'required': ['reason'],
         }},
         responses={
-            200: OrderSerializer,
+            200: AdminOrderSerializer,
             400: OpenApiResponse(description='Cancelación no permitida o motivo inválido.'),
             404: OpenApiResponse(description='Orden no encontrada.'),
             503: OpenApiResponse(description='Gateway de reembolso no disponible.'),
@@ -224,9 +217,6 @@ class AdminOrderCancelView(APIView):
         tags=['orders-admin'],
     )
     def post(self, request, order_number):
-        from .models import Order
-        from .serializers import OrderSerializer
-        from .admin_services import admin_cancel_order
 
         try:
             order = (
@@ -237,7 +227,7 @@ class AdminOrderCancelView(APIView):
             )
         except Order.DoesNotExist:
             return Response(
-                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDEN_NO_ENCONTRADA'},
+                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDER_NOT_FOUND'},
                 status=404,
             )
 
@@ -246,17 +236,17 @@ class AdminOrderCancelView(APIView):
             admin_cancel_order(order, reason, request.user)
         except ValueError as exc:
             return Response(
-                {'detail': str(exc), 'codigo_error': 'CANCELACION_NO_PERMITIDA'},
+                {'detail': str(exc), 'codigo_error': 'CANCELLATION_NOT_ALLOWED'},
                 status=400,
             )
         except RuntimeError as exc:
             return Response(
-                {'detail': str(exc), 'codigo_error': 'GATEWAY_NO_DISPONIBLE'},
+                {'detail': str(exc), 'codigo_error': 'GATEWAY_UNAVAILABLE'},
                 status=503,
             )
 
         order.refresh_from_db()
-        return Response(OrderSerializer(order).data)
+        return Response(AdminOrderSerializer(order).data)
 
 
 class AdminDashboardView(APIView):
@@ -281,6 +271,5 @@ class AdminDashboardView(APIView):
         tags=['orders-admin'],
     )
     def get(self, request):
-        from .admin_services import get_dashboard_data
         data = get_dashboard_data()
         return Response(data)

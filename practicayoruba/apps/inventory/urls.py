@@ -1,10 +1,6 @@
 """Admin URLs — apps.inventory (Sprint 10 + UI contract 2026-05)."""
 from django.urls import path
-from .views import (
-    InventoryDashboardView, StockAdjustView,
-    VariantStockAdjustView, VariantMovementsView, StockAlertListView,
-    ProductImportView, ProductImportStatusView, ProductImportReportView,
-)
+from .views import InventoryDashboardView, StockAdjustView, VariantStockAdjustView, VariantMovementsView, StockAlertListView, ProductImportView, ProductImportStatusView, ProductImportReportView
 
 app_name = 'admin_inventory'
 

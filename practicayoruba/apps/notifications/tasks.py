@@ -20,6 +20,7 @@ Decision de diseno (DEC-DOC-005):
   crea Notification por destinatario.
 """
 from celery import shared_task
+from .models import Notification, NotificationPreference
 
 
 @shared_task(name='notifications.dispatch_manual_fanout')
@@ -40,7 +41,6 @@ def dispatch_manual_fanout(user_ids, subject, message, notification_type):
     if not user_ids:
         return 0
 
-    from .models import Notification, NotificationPreference
 
     disabled = set(
         NotificationPreference.objects

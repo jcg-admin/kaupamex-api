@@ -8,6 +8,12 @@ import json
 import pytest
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
+from apps.catalogue.models import Category, Product
+from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from apps.settings_app.models import PaymentGateway
+from apps.payments.models import Payment
+from apps.payments.gateways.paypal import PayPalGateway
+from apps.payments.gateways.base import BaseGateway
 
 pytestmark = pytest.mark.integration
 
@@ -16,13 +22,11 @@ INITIATE_URL = '/api/v1/payments/initiate/'
 
 @pytest.fixture
 def cat_pp(db):
-    from apps.catalogue.models import Category
     return Category.objects.create(name='Cat PP', slug='cat-pp', is_active=True)
 
 
 @pytest.fixture
 def prod_pp(db, cat_pp):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Collar Yoruba', slug='collar-yoruba', sku='PP-CY-001',
         description='', category=cat_pp,
@@ -33,7 +37,6 @@ def prod_pp(db, cat_pp):
 
 @pytest.fixture
 def orden_paypal(db, user, prod_pp):
-    from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
     order = Order.objects.create(user=user, status='PENDING')
     OrderItem.objects.create(
         order=order, product_name=prod_pp.name,
@@ -54,7 +57,6 @@ def orden_paypal(db, user, prod_pp):
 
 @pytest.fixture
 def paypal_gateway_activo(db):
-    from apps.settings_app.models import PaymentGateway
     gw = PaymentGateway(
         name='PayPal Test', gateway='PAYPAL', is_active=True,
     )
@@ -131,7 +133,6 @@ class TestPagoConPayPal:
     def test_iniciar_pago_paypal_registra_preference_id(
         self, auth_client, orden_paypal, paypal_gateway_activo, mock_paypal_api, db
     ):
-        from apps.payments.models import Payment
         auth_client.post(INITIATE_URL, {
             'order_number': orden_paypal.order_number,
             'gateway':      'PAYPAL',
@@ -157,11 +158,8 @@ class TestPagoConPayPal:
         self, auth_client, orden_paypal, paypal_gateway_activo, mock_paypal_api, db
     ):
         """PayPal no ofrece MSI — lista vacía."""
-        from apps.payments.gateways.paypal import PayPalGateway
         plans = PayPalGateway().get_installment_plans(Decimal('800.00'))
         assert plans == []
 
     def test_gateway_paypal_es_subclase_de_base_gateway(self, db):
-        from apps.payments.gateways.base import BaseGateway
-        from apps.payments.gateways.paypal import PayPalGateway
         assert issubclass(PayPalGateway, BaseGateway)

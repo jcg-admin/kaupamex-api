@@ -14,7 +14,15 @@ UC-RET-06  POST   /api/v1/admin/returns/{id}/refund/        refund
 
 Identifiers in English (DEC-DOC-005).
 """
+from datetime import timedelta
+from decimal import Decimal
+from unittest.mock import MagicMock, patch
 import pytest
+from django.utils import timezone
+from apps.orders.models import Order
+from apps.payments.models import Payment
+from apps.returns.models import ReturnHistoryEntry, ReturnRequest
+from apps.settings_app.models import PaymentGateway
 
 pytestmark = pytest.mark.integration
 
@@ -77,11 +85,41 @@ class TestCreateReturn:
         body = res.json()
         assert len(body['items']) == 2
 
+    def test_create_different_items_same_order(self, auth_client, db):
+        """UC-RET-01 D-05 (DEC-RET-03): items distintos de la misma orden
+        no chocan en idempotencia. Antes de DEC-RET-03 el segundo fallaba
+        con REQUEST_ALREADY_EXISTS."""
+        payload_a = _valid_payload()
+        payload_a['items'] = [{'product_id': 101, 'quantity': 1}]
+        first = auth_client.post(RETURNS_URL, payload_a, format='json')
+        assert first.status_code == 201, first.content
+        payload_b = _valid_payload()
+        payload_b['items'] = [{'product_id': 202, 'quantity': 1}]
+        second = auth_client.post(RETURNS_URL, payload_b, format='json')
+        assert second.status_code == 201, second.content
+
+    def test_create_overlapping_items_same_order_returns_409(
+        self, auth_client, db,
+    ):
+        """UC-RET-01 D-05 (DEC-RET-03): items que se solapan con una
+        solicitud pendiente bloquean con 409."""
+        payload_a = _valid_payload()
+        payload_a['items'] = [{'product_id': 101, 'quantity': 1}]
+        first = auth_client.post(RETURNS_URL, payload_a, format='json')
+        assert first.status_code == 201, first.content
+        payload_b = _valid_payload()
+        payload_b['items'] = [
+            {'product_id': 101, 'quantity': 1},
+            {'product_id': 999, 'quantity': 1},
+        ]
+        second = auth_client.post(RETURNS_URL, payload_b, format='json')
+        assert second.status_code == 409
+        assert second.json()['error_code'] == 'REQUEST_ALREADY_EXISTS'
+
 
 # ────────────────────────────── UC-RET-04 ────────────────────────────────
 class TestListAndDetail:
     def test_list_only_own_returns(self, auth_client, user, admin_user, db):
-        from apps.returns.models import ReturnRequest
         ReturnRequest.objects.create(
             user=user, order_id=1, reason='OTHER',
             description='Mensaje suficientemente largo de prueba.')
@@ -96,7 +134,6 @@ class TestListAndDetail:
         assert items[0]['order_id'] == 1
 
     def test_detail_includes_history(self, auth_client, user, db):
-        from apps.returns.models import ReturnHistoryEntry, ReturnRequest
         ret = ReturnRequest.objects.create(
             user=user, order_id=1, reason='OTHER',
             description='Mensaje suficientemente largo de prueba.')
@@ -112,9 +149,36 @@ class TestListAndDetail:
         assert body['history'][0]['status_to'] == 'PENDING_REVIEW'
         assert body['history'][0]['actor'] == 'BUYER'
 
+    def test_detail_history_ordered_desc(self, auth_client, user, db):
+        """UC-RET-04 D-09 (DEC-RET-07): historial ordenado DESC para que el
+        comprador vea el ultimo evento del lifecycle arriba."""
+        ret = ReturnRequest.objects.create(
+            user=user, order_id=1, reason='OTHER',
+            description='Mensaje suficientemente largo de prueba.')
+        first = ReturnHistoryEntry.objects.create(
+            return_request=ret, status_to='PENDING_REVIEW', actor=user,
+            justification='Solicitud creada.',
+        )
+        second = ReturnHistoryEntry.objects.create(
+            return_request=ret, status_to='APPROVED', actor=user,
+            justification='Aprobada.',
+        )
+        ReturnHistoryEntry.objects.filter(pk=first.pk).update(
+            created_at=timezone.now() - timedelta(hours=2),
+        )
+        ReturnHistoryEntry.objects.filter(pk=second.pk).update(
+            created_at=timezone.now(),
+        )
+        res = auth_client.get(f'{RETURNS_URL}{ret.pk}/')
+        assert res.status_code == 200
+        history = res.json()['history']
+        assert len(history) == 2
+        # DESC: el evento mas reciente (APPROVED) viene primero.
+        assert history[0]['status_to'] == 'APPROVED'
+        assert history[1]['status_to'] == 'PENDING_REVIEW'
+
     def test_detail_other_user_returns_404(self, auth_client, admin_user, db):
         """RNF-SEC-003 — no revelar existencia."""
-        from apps.returns.models import ReturnRequest
         ret = ReturnRequest.objects.create(
             user=admin_user, order_id=1, reason='OTHER',
             description='Mensaje suficientemente largo de prueba.')
@@ -129,7 +193,6 @@ class TestAdminQueue:
         assert res.status_code == 403
 
     def test_admin_sees_all_with_metrics_block(self, admin_client, user, db):
-        from apps.returns.models import ReturnRequest
         ReturnRequest.objects.create(
             user=user, order_id=1, reason='OTHER',
             description='Mensaje suficientemente largo de prueba.')
@@ -146,7 +209,6 @@ class TestAdminQueue:
         assert body['metrics']['aprobadas'] >= 1
 
     def test_admin_filter_by_status(self, admin_client, user, db):
-        from apps.returns.models import ReturnRequest
         ReturnRequest.objects.create(
             user=user, order_id=1, reason='OTHER',
             description='Mensaje suficientemente largo de prueba.')
@@ -160,7 +222,6 @@ class TestAdminQueue:
         assert all(r['status'] == 'APPROVED' for r in results)
 
     def test_available_action_for_pending(self, admin_client, user, db):
-        from apps.returns.models import ReturnRequest
         ReturnRequest.objects.create(
             user=user, order_id=1, reason='OTHER',
             description='Mensaje suficientemente largo de prueba.')
@@ -172,7 +233,6 @@ class TestAdminQueue:
 # ────────────────────────────── UC-RET-02 ────────────────────────────────
 class TestAdminApproveReject:
     def _create_pending(self, user, order_id=1):
-        from apps.returns.models import ReturnRequest
         return ReturnRequest.objects.create(
             user=user, order_id=order_id, reason='DAMAGED_PRODUCT',
             description='Mensaje suficientemente largo de prueba.')
@@ -238,14 +298,12 @@ class TestAdminApproveReject:
 # ────────────────────────────── UC-RET-03 ────────────────────────────────
 class TestAdminReception:
     def _create_approved(self, user):
-        from apps.returns.models import ReturnRequest
         return ReturnRequest.objects.create(
             user=user, order_id=1, reason='DAMAGED_PRODUCT',
             description='Mensaje suficientemente largo de prueba.',
             status='APPROVED')
 
     def test_reception_requires_approved(self, admin_client, user, db):
-        from apps.returns.models import ReturnRequest
         ret = ReturnRequest.objects.create(
             user=user, order_id=1, reason='OTHER',
             description='Mensaje suficientemente largo de prueba.')
@@ -281,28 +339,76 @@ class TestAdminReception:
 
 
 # ────────────────────────────── UC-RET-06 ────────────────────────────────
-class TestAdminRefund:
-    def _create_approved(self, user):
-        from apps.returns.models import ReturnRequest
-        return ReturnRequest.objects.create(
-            user=user, order_id=1, reason='DAMAGED_PRODUCT',
-            description='Mensaje suficientemente largo de prueba.',
-            status='APPROVED')
+def _create_approved_order_and_return(user, payment_amount=Decimal('2000.00')):
+    """Crea Order + Payment APPROVED + ReturnRequest APPROVED.
 
-    def test_refund_changes_status_and_amount(self, admin_client, user, db):
-        ret = self._create_approved(user)
+    UC-RET-06 D-01: el refund debe ejecutar el gateway sobre el Payment
+    real. La sucesora corregir-hallazgos-buyer-devoluciones aplico
+    DEC-RET-01 que conecta AdminReturnRefundView -> execute_refund;
+    los tests requieren un Payment reembolsable asociado.
+    """
+    order = Order.objects.create(user=user, status='PROCESSING')
+    payment = Payment.objects.create(
+        order=order, gateway='MERCADOPAGO',
+        preference_id=f'PREF-RET-{order.pk}',
+        gateway_payment_id=f'GW-RET-{order.pk}',
+        status=Payment.STATUS_APPROVED, amount=payment_amount,
+    )
+    ret = ReturnRequest.objects.create(
+        user=user, order_id=order.pk, reason='DAMAGED_PRODUCT',
+        description='Mensaje suficientemente largo de prueba.',
+        status='APPROVED',
+    )
+    return order, payment, ret
+
+
+@pytest.fixture
+def mp_gateway_active(db):
+    """PaymentGateway MERCADOPAGO con credenciales validas (test)."""
+    gw = PaymentGateway(name='MP Ret', gateway='MERCADOPAGO', is_active=True)
+    gw.set_credentials({'access_token': 'TEST-TOK', 'client_secret': 'TEST-SEC'})
+    gw.save()
+    return gw
+
+
+@pytest.fixture
+def mock_mp_refund_ok():
+    """Mock SDK MercadoPago.refund.create -> happy path."""
+    with patch('apps.payments.gateways.mercadopago.mercadopago') as mock_mp:
+        sdk = MagicMock()
+        mock_mp.SDK.return_value = sdk
+        sdk.refund.return_value.create.return_value = {
+            'status': 201,
+            'response': {
+                'id': 999777, 'payment_id': 12345,
+                'amount': 1234.50, 'status': 'approved',
+            },
+        }
+        yield sdk
+
+
+class TestAdminRefund:
+    def test_refund_changes_status_and_amount(
+        self, admin_client, user, mp_gateway_active, mock_mp_refund_ok, db,
+    ):
+        _, payment, ret = _create_approved_order_and_return(
+            user, payment_amount=Decimal('1234.50'),
+        )
         res = admin_client.post(
             f'{ADMIN_RETURNS_URL}{ret.pk}/refund/',
             {'amount': '1234.50'}, format='json')
-        assert res.status_code == 200
+        assert res.status_code == 200, res.content
         body = res.json()
         assert body['status'] == 'REFUNDED'
         assert body['refund_at'] is not None
-        # DRF serializa Decimal como string.
         assert str(body['refund_amount']) == '1234.50'
+        # UC-RET-06 D-02: gateway_refund_id PROVEN poblado.
+        payment.refresh_from_db()
+        assert payment.status == Payment.STATUS_REFUNDED
+        refund = payment.refunds.get()
+        assert refund.gateway_refund_id == '999777'
 
     def test_refund_rejected_returns_422(self, admin_client, user, db):
-        from apps.returns.models import ReturnRequest
         ret = ReturnRequest.objects.create(
             user=user, order_id=1, reason='OTHER',
             description='Mensaje suficientemente largo de prueba.',
@@ -312,23 +418,40 @@ class TestAdminRefund:
             {'amount': '100.00'}, format='json')
         assert res.status_code == 422
 
-    def test_refund_idempotent_returns_409(self, admin_client, user, db):
-        ret = self._create_approved(user)
+    def test_refund_idempotent_returns_409(
+        self, admin_client, user, mp_gateway_active, mock_mp_refund_ok, db,
+    ):
+        _, _, ret = _create_approved_order_and_return(
+            user, payment_amount=Decimal('500.00'),
+        )
         first = admin_client.post(
             f'{ADMIN_RETURNS_URL}{ret.pk}/refund/',
             {'amount': '100.00'}, format='json')
-        assert first.status_code == 200
+        assert first.status_code == 200, first.content
         second = admin_client.post(
             f'{ADMIN_RETURNS_URL}{ret.pk}/refund/',
             {'amount': '100.00'}, format='json')
         assert second.status_code == 409
         assert second.json()['error_code'] == 'REFUND_ALREADY_PROCESSED'
 
+    def test_refund_without_payment_returns_422(
+        self, admin_client, user, db,
+    ):
+        """UC-RET-06 D-02 ALT — sin Payment no se puede reembolsar."""
+        ret = ReturnRequest.objects.create(
+            user=user, order_id=99999, reason='OTHER',
+            description='Mensaje suficientemente largo de prueba.',
+            status='APPROVED')
+        res = admin_client.post(
+            f'{ADMIN_RETURNS_URL}{ret.pk}/refund/',
+            {'amount': '100.00'}, format='json')
+        assert res.status_code == 422
+        assert res.json()['error_code'] == 'PAYMENT_NOT_FOUND'
+
 
 # ────────────────────────────── Admin detail ─────────────────────────────
 class TestAdminDetail:
     def test_admin_detail_includes_user_info(self, admin_client, user, db):
-        from apps.returns.models import ReturnRequest
         ret = ReturnRequest.objects.create(
             user=user, order_id=1, reason='OTHER',
             description='Mensaje suficientemente largo de prueba.')
@@ -340,7 +463,6 @@ class TestAdminDetail:
 
     def test_non_admin_cannot_access_admin_detail(
             self, auth_client, user, db):
-        from apps.returns.models import ReturnRequest
         ret = ReturnRequest.objects.create(
             user=user, order_id=1, reason='OTHER',
             description='Mensaje suficientemente largo de prueba.')

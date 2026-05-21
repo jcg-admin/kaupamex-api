@@ -5,16 +5,17 @@ DEC-DOC-007: el descuento de producto coexiste con la semantica
 """
 from datetime import timedelta
 from decimal import Decimal
+from django.utils import timezone
+from apps.catalogue.models import Category, Product, ProductDiscount
+from apps.core.models import SoftDeleteModel
 
 import pytest
-from django.utils import timezone
 
 pytestmark = pytest.mark.integration
 
 
 @pytest.fixture
 def discount(db, admin_user):
-    from apps.catalogue.models import Category, Product, ProductDiscount
     cat = Category.objects.create(name='Cat PD', slug='cat-pd')
     product = Product.objects.create(
         category=cat, name='PD Prod', slug='pd-prod',
@@ -34,14 +35,11 @@ class TestProductDiscountSoftDelete:
 
     @pytest.mark.django_db
     def test_inherits_softdeletemodel(self):
-        from apps.catalogue.models import ProductDiscount
-        from apps.core.models import SoftDeleteModel
         assert issubclass(ProductDiscount, SoftDeleteModel)
         assert hasattr(ProductDiscount, 'all_objects')
 
     @pytest.mark.django_db
     def test_delete_hides_from_default_manager(self, discount):
-        from apps.catalogue.models import ProductDiscount
         pk = discount.pk
         discount.delete()
         assert not ProductDiscount.objects.filter(pk=pk).exists()
@@ -51,14 +49,12 @@ class TestProductDiscountSoftDelete:
 
     @pytest.mark.django_db
     def test_restore(self, discount):
-        from apps.catalogue.models import ProductDiscount
         discount.delete()
         ProductDiscount.all_objects.get(pk=discount.pk).restore()
         assert ProductDiscount.objects.filter(pk=discount.pk).exists()
 
     @pytest.mark.django_db
     def test_hard_delete_removes(self, discount):
-        from apps.catalogue.models import ProductDiscount
         pk = discount.pk
         discount.hard_delete()
         assert not ProductDiscount.all_objects.filter(pk=pk).exists()

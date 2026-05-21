@@ -6,6 +6,8 @@ UC-CAT-12: Bulk price sync (CSV upload and percentage adjustment)
 """
 import csv, io, pytest
 from decimal import Decimal
+from apps.catalogue.models import Category, Product
+from django.core.cache import cache
 
 pytestmark = pytest.mark.integration
 
@@ -17,13 +19,11 @@ PRICE_TMPL_URL    = '/api/v1/admin/products/price-sync/template/'
 
 @pytest.fixture
 def cat_soperas(db):
-    from apps.catalogue.models import Category
     return Category.objects.create(name='Soperas S8', slug='soperas-s8', is_active=True)
 
 
 @pytest.fixture
 def product_activo(db, cat_soperas):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Sopera Yemaya S8', slug='sopera-yemaya-s8', sku='S8-YEM-001',
         description='', category=cat_soperas,
@@ -34,7 +34,6 @@ def product_activo(db, cat_soperas):
 
 @pytest.fixture
 def product_sin_stock(db, cat_soperas):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Producto Sin Stock', slug='sin-stock-s8', sku='S8-NST-001',
         description='', category=cat_soperas,
@@ -86,7 +85,6 @@ class TestDesactivarProducto:
         assert product_activo.is_published is False
 
     def test_desactivar_purga_cache_ficha(self, admin_client, product_activo, db):
-        from django.core.cache import cache
         cache.set(f'product:{product_activo.pk}:detail', {'dummy': 1}, 300)
         admin_client.post(
             f'{ADMIN_PROD_URL}{product_activo.pk}/deactivate/',
@@ -95,7 +93,6 @@ class TestDesactivarProducto:
         assert cache.get(f'product:{product_activo.pk}:detail') is None
 
     def test_desactivar_purga_cache_arbol(self, admin_client, product_activo, db):
-        from django.core.cache import cache
         cache.set('categories:tree', [{'stale': True}], 300)
         admin_client.post(
             f'{ADMIN_PROD_URL}{product_activo.pk}/deactivate/',
@@ -132,7 +129,6 @@ class TestDesactivarProducto:
         self, admin_client, product_activo, db
     ):
         """perform_destroy mejorado en Sprint 8 también purga product:{pk}:detail."""
-        from django.core.cache import cache
         cache.set(f'product:{product_activo.pk}:detail', {'dummy': 1}, 300)
         admin_client.delete(f'{ADMIN_PROD_URL}{product_activo.pk}/')
         assert cache.get(f'product:{product_activo.pk}:detail') is None
@@ -187,7 +183,6 @@ class TestSincronizarPreciosCSV:
         assert product_activo.price == Decimal('4000.00')
 
     def test_confirm_purga_cache_ficha(self, admin_client, product_activo, db):
-        from django.core.cache import cache
         cache.set(f'product:{product_activo.pk}:detail', {'old': True}, 300)
         csv_file = _make_csv([(product_activo.sku, '4100.00')])
         preview = admin_client.post(PRICE_SYNC_URL, {'file': csv_file}, format='multipart')
@@ -206,7 +201,8 @@ class TestSincronizarPreciosCSV:
             PRICE_CONFIRM_URL, {'session_id': 'uuid-que-no-existe'}, format='json'
         )
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'SESSION_EXPIRADA'
+        # T-109-B anti-soft-on-tests (canon EN).
+        assert res.json()['codigo_error'] == 'SESSION_EXPIRED'
 
     def test_template_descarga_csv_con_productos(
         self, admin_client, product_activo, db

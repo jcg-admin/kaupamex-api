@@ -13,9 +13,9 @@ from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
 from .models import SearchEntry
 from .serializers import SearchEntrySerializer
+
 
 
 class SearchHistoryListView(APIView):
@@ -50,7 +50,7 @@ class SearchHistoryEntryView(APIView):
         except SearchEntry.DoesNotExist:
             raise NotFound({
                 'detail': 'Entrada no encontrada.',
-                'codigo_error': 'ENTRADA_NO_ENCONTRADA',
+                'codigo_error': 'ENTRY_NOT_FOUND',
             })
         entry.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

@@ -13,7 +13,6 @@ Search history persistence is delegated to apps.search_history.
 """
 import re
 from decimal import Decimal, InvalidOperation
-
 from django.core.cache import cache
 from django.db.models import Q
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -22,25 +21,12 @@ from rest_framework.generics import ListAPIView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
 from .models import Category, Product
-from .serializers import (
-    CategoryWithCountSerializer,
-    ProductListSerializer,
-    ProductSearchSerializer,
-)
-from .views import (
-    CATEGORY_TREE_CACHE_KEY,
-    CATEGORY_TREE_CACHE_TTL,
-    _build_active_filters,
-    _build_category_tree_with_counts,
-    _fulltext_search,
-    _get_category_descendants,
-    _normalize_query,
-    _record_history_async,
-    _validate_query,
-    CataloguePagination,
-)
+from .serializers import CategoryWithCountSerializer, ProductListSerializer, ProductSearchSerializer
+from .views import CATEGORY_TREE_CACHE_KEY, CATEGORY_TREE_CACHE_TTL, _build_active_filters, _build_category_tree_with_counts, _fulltext_search, _get_category_descendants, _normalize_query, _record_history_async, _validate_query, CataloguePagination
+from apps.search_history.models import SearchEntry
+
+
 
 
 # =============================================================================
@@ -68,7 +54,7 @@ class RelatedProductsView(APIView):
         except Product.DoesNotExist:
             raise NotFound({
                 'detail': 'Producto no encontrado.',
-                'codigo_error': 'PRODUCTO_NO_ENCONTRADO',
+                'codigo_error': 'PRODUCT_NOT_FOUND',
             })
 
         related = (
@@ -160,7 +146,7 @@ class CatalogueSearchView(APIView):
             except InvalidOperation:
                 raise ValidationError({
                     key: 'Valor numerico invalido.',
-                    'codigo_error': 'PRICE_FILTER_INVALIDO',
+                    'codigo_error': 'PRICE_FILTER_INVALID',
                 })
             if key == 'price_min':
                 qs = qs.filter(price__gte=val)
@@ -175,7 +161,6 @@ class CatalogueSearchView(APIView):
         # Legacy history (catalogue.SearchHistory) — keep old contract green.
         if request.user and request.user.is_authenticated:
             _record_history_async(request.user, q)
-            from apps.search_history.models import SearchEntry
             SearchEntry.objects.create(
                 user=request.user,
                 query=raw_q[:200],

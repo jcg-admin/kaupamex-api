@@ -18,6 +18,12 @@ UC-INV-05: POST /api/v1/admin/inventory/import/ accepting initial_state
 """
 import csv, io, pytest
 from decimal import Decimal
+from apps.catalogue.models import Category, Product
+from apps.chartsize.models import VariantType, VariantOption, ProductVariant
+from apps.settings_app.models import SiteSettings
+from apps.inventory.services import InventoryService
+from apps.inventory.models import StockMovement
+from urllib.parse import urlparse
 
 pytestmark = pytest.mark.integration
 
@@ -27,7 +33,6 @@ IMPORT_URL = '/api/v1/admin/inventory/import/'
 
 @pytest.fixture
 def cat_ui(db):
-    from apps.catalogue.models import Category
     return Category.objects.create(
         name='Cat UI', slug='cat-ui', is_active=True,
     )
@@ -35,7 +40,6 @@ def cat_ui(db):
 
 @pytest.fixture
 def product_ui(db, cat_ui):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Prod UI', slug='prod-ui', sku='UI-001',
         description='', category=cat_ui,
@@ -46,7 +50,6 @@ def product_ui(db, cat_ui):
 
 @pytest.fixture
 def variant_ui(db, product_ui):
-    from apps.chartsize.models import VariantType, VariantOption, ProductVariant
     vt = VariantType.objects.create(
         product=product_ui, name='Tamano', order=0,
     )
@@ -97,7 +100,6 @@ class TestDashboardSummary:
     def test_filter_status_low_english_alias(
         self, admin_client, product_ui, variant_ui, db
     ):
-        from apps.settings_app.models import SiteSettings
         SiteSettings.objects.update_or_create(
             pk=1, defaults={'min_stock_threshold': 5},
         )
@@ -145,7 +147,6 @@ class TestVariantMovementsLog:
     def test_movements_returns_list(
         self, admin_client, product_ui, variant_ui, db
     ):
-        from apps.inventory.services import InventoryService
         InventoryService.adjust(
             product=product_ui, variant=variant_ui,
             delta=3, notes='entrada',
@@ -208,7 +209,9 @@ class TestAdjustNewQuantity:
             'reason': 'MERMA',
         }, format='json')
         assert res.status_code == 422
-        assert res.json()['codigo_error'] == 'STOCK_NEGATIVO_NO_PERMITIDO'
+        # T-111.1 anti-soft-on-tests (canon EN): codigo ya retorna
+        # NEGATIVE_STOCK_NOT_ALLOWED. Test antes asertaba ES.
+        assert res.json()['codigo_error'] == 'NEGATIVE_STOCK_NOT_ALLOWED'
 
     def test_adjust_decreases_stock_correctly(
         self, admin_client, variant_ui, db
@@ -234,7 +237,6 @@ class TestAdjustNewQuantity:
     def test_adjust_records_stock_movement_with_reason(
         self, admin_client, variant_ui, db
     ):
-        from apps.inventory.models import StockMovement
         url = f'{INV_URL}variants/{variant_ui.pk}/adjust/'
         admin_client.post(url, {
             'new_quantity': 20,
@@ -302,12 +304,12 @@ class TestImportEnglishKeys:
             'file': csv_f,
         }, format='multipart')
         assert res.status_code == 422
-        assert res.json()['codigo_error'] == 'ENCABEZADO_CSV_INVALIDO'
+        # T-111.1 anti-soft-on-tests (canon EN).
+        assert res.json()['codigo_error'] == 'CSV_HEADER_INVALID'
 
     def test_initial_state_activo_creates_active_products(
         self, admin_client, cat_ui, db,
     ):
-        from apps.catalogue.models import Product
         rows = [
             {'name': 'Activo X', 'sku': 'EN-ACT-1',
              'base_price': '300.00', 'category_slug': cat_ui.slug},
@@ -323,7 +325,6 @@ class TestImportEnglishKeys:
     def test_initial_state_default_is_borrador(
         self, admin_client, cat_ui, db,
     ):
-        from apps.catalogue.models import Product
         rows = [
             {'name': 'Borrador D', 'sku': 'EN-BOR-1',
              'base_price': '300.00', 'category_slug': cat_ui.slug},
@@ -390,7 +391,6 @@ class TestImportReportDownload:
         assert res.status_code == 200
         download_url = res.json()['download_url']
         # Tomar el path relativo (de la URL absoluta).
-        from urllib.parse import urlparse
         path = urlparse(download_url).path
 
         dl = admin_client.get(path)
@@ -407,7 +407,8 @@ class TestImportReportDownload:
             '/api/v1/admin/inventory/import-reports/no-existe.csv'
         )
         assert res.status_code == 404
-        assert res.json()['codigo_error'] == 'REPORTE_NO_ENCONTRADO'
+        # T-111.1 anti-soft-on-tests (canon EN).
+        assert res.json()['codigo_error'] == 'REPORT_NOT_FOUND'
 
     def test_download_requires_auth(self, api_client, db):
         res = api_client.get(

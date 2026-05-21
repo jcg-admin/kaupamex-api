@@ -3,29 +3,30 @@ Views — apps.payments
 Sprint 15 — UC-PAY-01, UC-PAY-01-EXT, UC-ORD-01-EXT
 """
 import logging
-from decimal import Decimal
-
+from decimal import Decimal, Decimal as Dec
 from django.shortcuts import get_object_or_404
-from drf_spectacular.utils import (
-    extend_schema, OpenApiResponse, OpenApiParameter,
-)
+from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
-from apps.orders.models import Order
+from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from apps.orders.proxy_models import DeliveredOrder
+from .models import Payment, Payment as PaymentModel
+from .serializers import InitiatePaymentSerializer, InitiatePaymentResponseSerializer, InstallmentPlansResponseSerializer, PaymentSerializer, PaymentReturnSerializer, CheckoutEligibilitySerializer, ExpressCheckoutSerializer, RefundRequestSerializer, RefundSerializer, RetryEligibilitySerializer, PaymentStatusSerializer as PSS, RefundRequestSerializer as RRS
+from .services import initiate_payment, handle_gateway_return, get_installment_plans, get_payment_status, get_payment_history, execute_refund, get_retry_eligibility
+from apps.users.models import Address
+from apps.settings_app.models import ShippingMethod, SiteSettings
+from apps.cart.models import Cart
+from rest_framework.test import APIRequestFactory
+from rest_framework.request import Request
+from django.db import transaction as db_transaction
+from apps.inventory.services import InventoryService, InsufficientStockError
+from apps.orders.views import CheckoutView
+from apps.orders.serializers import CheckoutSerializer, OrderSerializer
 
-from .models import Payment
-from .serializers import (
-    InitiatePaymentSerializer, InitiatePaymentResponseSerializer,
-    InstallmentPlansResponseSerializer, PaymentSerializer,
-    PaymentReturnSerializer, CheckoutEligibilitySerializer,
-    ExpressCheckoutSerializer, RefundRequestSerializer,
-    RefundSerializer, RetryEligibilitySerializer,
-)
-from .services import initiate_payment, handle_gateway_return, get_installment_plans
+
+
 
 logger = logging.getLogger('apps')
 
@@ -68,27 +69,31 @@ class InitiatePaymentView(APIView):
         installments  = s.validated_data['installments']
         gateway_type  = s.validated_data.get('gateway', 'MERCADOPAGO')
 
-        # Buscar la orden — solo el dueño puede pagarla
+        # Buscar la orden — solo el dueño puede pagarla.
+        # DEC-BC-11 (2026-05-21): permission_classes = [IsAuthenticated]
+        # garantiza request.user.is_authenticated. La rama else previa
+        # (Order.objects.get sin filtro user=) era codigo muerto +
+        # vector latente: si alguien cambiaba la permission a AllowAny
+        # sin tocar este bloque, un comprador autenticado o invitado
+        # podria iniciar pago sobre la orden de otro user (audit T-101
+        # UC-PAY-01 D-09 + D-14). Codigo muerto eliminado para cerrar
+        # el vector latente y mantener la invariante "solo el dueno
+        # paga" como propiedad estructural.
         try:
-            if request.user.is_authenticated:
-                order = Order.objects.select_related('value').get(
-                    order_number=order_number,
-                    user=request.user,
-                )
-            else:
-                order = Order.objects.select_related('value').get(
-                    order_number=order_number
-                )
+            order = Order.objects.select_related('value').get(
+                order_number=order_number,
+                user=request.user,
+            )
         except Order.DoesNotExist:
             raise ValidationError({
                 'order_number': f'Orden {order_number!r} no encontrada.',
-                'codigo_error': 'ORDEN_NO_ENCONTRADA',
+                'codigo_error': 'ORDER_NOT_FOUND',
             })
 
         if order.status != Order.STATUS_PENDING:
             raise ValidationError({
                 'detail': f'La orden no está en estado PENDING (estado: {order.status}).',
-                'codigo_error': 'ORDEN_NO_PAGABLE',
+                'codigo_error': 'ORDER_NOT_PAYABLE',
             })
 
         try:
@@ -102,7 +107,7 @@ class InitiatePaymentView(APIView):
             raise ValidationError({'detail': str(exc), 'codigo_error': 'GATEWAY_CONFIG_ERROR'})
         except RuntimeError as exc:
             return Response(
-                {'detail': str(exc), 'codigo_error': 'GATEWAY_NO_DISPONIBLE'},
+                {'detail': str(exc), 'codigo_error': 'GATEWAY_UNAVAILABLE'},
                 status=503,
             )
 
@@ -194,7 +199,7 @@ class InstallmentPlansView(APIView):
     def get(self, request):
         order_number = request.query_params.get('order_number')
         if not order_number:
-            raise ValidationError({'order_number': 'Requerido.', 'codigo_error': 'ORDER_NUMBER_REQUERIDO'})
+            raise ValidationError({'order_number': 'Requerido.', 'codigo_error': 'ORDER_NUMBER_REQUIRED'})
 
         order = get_object_or_404(
             Order.objects.select_related('value'),
@@ -248,7 +253,6 @@ def _check_express_eligibility(user) -> dict:
         return result
 
     # 2. Tiene dirección predeterminada
-    from apps.users.models import Address
     try:
         addr = Address.objects.get(user=user, is_default=True)
     except Address.DoesNotExist:
@@ -256,7 +260,6 @@ def _check_express_eligibility(user) -> dict:
         return result
 
     # 3. Hay al menos un método de envío activo
-    from apps.settings_app.models import ShippingMethod
     shipping = ShippingMethod.objects.filter(is_active=True).order_by('cost').first()
     if not shipping:
         result['reason'] = 'Sin métodos de envío disponibles.'
@@ -336,22 +339,19 @@ class ExpressCheckoutView(APIView):
         if not eligibility['express_available']:
             raise ValidationError({
                 'detail': eligibility['reason'],
-                'codigo_error': 'NO_ELEGIBLE_EXPRESS',
+                'codigo_error': 'NOT_ELIGIBLE_EXPRESS',
             })
 
         # Obtener carrito del usuario
-        from apps.cart.models import Cart
         try:
             cart = Cart.objects.get(user=request.user)
         except Cart.DoesNotExist:
-            raise ValidationError({'detail': 'No tienes un carrito activo.', 'codigo_error': 'CARRITO_VACIO'})
+            raise ValidationError({'detail': 'No tienes un carrito activo.', 'codigo_error': 'EMPTY_CART'})
 
         if not cart.items.exists():
-            raise ValidationError({'detail': 'El carrito está vacío.', 'codigo_error': 'CARRITO_VACIO'})
+            raise ValidationError({'detail': 'El carrito está vacío.', 'codigo_error': 'EMPTY_CART'})
 
         # Reutilizar el servicio de checkout de UC-ORD-01
-        from apps.orders.views import CheckoutView
-        from apps.orders.serializers import CheckoutSerializer
 
         addr = eligibility['default_address']
         shipping_id = eligibility['default_shipping']['id']
@@ -370,7 +370,6 @@ class ExpressCheckoutView(APIView):
         }
 
         # Crear el request interno con los datos del express
-        from rest_framework.test import APIRequestFactory
         factory = APIRequestFactory()
         inner_request = factory.post('/api/v1/checkout/', checkout_data, format='json')
         inner_request.user = request.user
@@ -378,23 +377,17 @@ class ExpressCheckoutView(APIView):
         inner_request._request = request._request
 
         checkout_view = CheckoutView.as_view()
-        from rest_framework.request import Request
         drf_request = Request(inner_request)
         drf_request.user = request.user
 
         # Ejecutar el checkout directamente
-        from django.db import transaction as db_transaction
-        from apps.inventory.services import InventoryService, InsufficientStockError
-        from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
-        from apps.settings_app.models import SiteSettings, ShippingMethod
-        from decimal import Decimal as Dec
 
         cart_items = list(cart.items.select_related('product', 'variant__product', 'variant__option').all())
         check_items = [{'product': ci.product, 'variant': ci.variant, 'quantity': ci.quantity} for ci in cart_items]
 
         insufficient = InventoryService.check_availability(check_items)
         if insufficient:
-            return Response({'detail': 'Stock insuficiente.', 'codigo_error': 'STOCK_INSUFICIENTE', 'items': insufficient}, status=409)
+            return Response({'detail': 'Stock insuficiente.', 'codigo_error': 'INSUFFICIENT_STOCK', 'items': insufficient}, status=409)
 
         settings_obj = SiteSettings.get_current()
         iva_rate = settings_obj.iva_rate
@@ -453,9 +446,8 @@ class ExpressCheckoutView(APIView):
                 cart.save(update_fields=['voucher'])
 
         except InsufficientStockError as exc:
-            return Response({'detail': str(exc), 'codigo_error': 'STOCK_INSUFICIENTE'}, status=409)
+            return Response({'detail': str(exc), 'codigo_error': 'INSUFFICIENT_STOCK'}, status=409)
 
-        from apps.orders.serializers import OrderSerializer
         return Response(OrderSerializer(order).data, status=201)
 
 
@@ -487,13 +479,11 @@ class PaymentStatusView(APIView):
         tags=['payments'],
     )
     def get(self, request, order_number):
-        from .services import get_payment_status
-        from .serializers import PaymentStatusSerializer as PSS
 
         result = get_payment_status(order_number, request.user)
         if result is None:
             return Response(
-                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDEN_NO_ENCONTRADA'},
+                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDER_NOT_FOUND'},
                 status=404,
             )
         return Response(PSS(result).data)
@@ -521,12 +511,11 @@ class PaymentHistoryView(APIView):
         tags=['payments'],
     )
     def get(self, request, order_number):
-        from .services import get_payment_history
 
         history = get_payment_history(order_number, request.user)
         if history is None:
             return Response(
-                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDEN_NO_ENCONTRADA'},
+                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDER_NOT_FOUND'},
                 status=404,
             )
         return Response(history)
@@ -560,10 +549,6 @@ class RefundView(APIView):
         tags=['payments'],
     )
     def post(self, request, order_number):
-        from apps.orders.models import Order
-        from .models import Payment as PaymentModel
-        from .services import execute_refund
-        from .serializers import RefundRequestSerializer as RRS, RefundSerializer
 
         # RNF-SEC-003: usar filter+first, nunca get con user separado
         order = Order.objects.filter(
@@ -571,7 +556,7 @@ class RefundView(APIView):
         ).first()
         if not order:
             return Response(
-                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDEN_NO_ENCONTRADA'},
+                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDER_NOT_FOUND'},
                 status=404,
             )
 
@@ -582,7 +567,7 @@ class RefundView(APIView):
         if not payment:
             return Response(
                 {'detail': 'No hay pago aprobado en esta orden.',
-                 'codigo_error': 'PAGO_NO_REEMBOLSABLE'},
+                 'codigo_error': 'PAYMENT_NOT_REFUNDABLE'},
                 status=400,
             )
 
@@ -596,10 +581,10 @@ class RefundView(APIView):
                 reason=s.validated_data.get('reason', ''),
             )
         except ValueError as exc:
-            return Response({'detail': str(exc), 'codigo_error': 'PAGO_NO_REEMBOLSABLE'},
+            return Response({'detail': str(exc), 'codigo_error': 'PAYMENT_NOT_REFUNDABLE'},
                             status=400)
         except RuntimeError as exc:
-            return Response({'detail': str(exc), 'codigo_error': 'GATEWAY_NO_DISPONIBLE'},
+            return Response({'detail': str(exc), 'codigo_error': 'GATEWAY_UNAVAILABLE'},
                             status=503)
 
         return Response(RefundSerializer(refund).data, status=201)
@@ -628,13 +613,11 @@ class RetryEligibilityView(APIView):
         tags=['payments'],
     )
     def get(self, request, order_number):
-        from .services import get_retry_eligibility
-        from .serializers import RetryEligibilitySerializer
 
         result = get_retry_eligibility(order_number, request.user)
         if result is None:
             return Response(
-                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDEN_NO_ENCONTRADA'},
+                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDER_NOT_FOUND'},
                 status=404,
             )
         # Rellenar campos opcionales para el serializer
@@ -672,9 +655,6 @@ class AdminRefundView(APIView):
         tags=['payments-admin'],
     )
     def post(self, request, payment_id):
-        from .models import Payment as PaymentModel
-        from .services import execute_refund
-        from .serializers import RefundRequestSerializer, RefundSerializer
 
         payment = get_object_or_404(PaymentModel, pk=payment_id)
 
@@ -689,10 +669,10 @@ class AdminRefundView(APIView):
                 initiated_by=request.user,
             )
         except ValueError as exc:
-            return Response({'detail': str(exc), 'codigo_error': 'PAGO_NO_REEMBOLSABLE'},
+            return Response({'detail': str(exc), 'codigo_error': 'PAYMENT_NOT_REFUNDABLE'},
                             status=400)
         except RuntimeError as exc:
-            return Response({'detail': str(exc), 'codigo_error': 'GATEWAY_NO_DISPONIBLE'},
+            return Response({'detail': str(exc), 'codigo_error': 'GATEWAY_UNAVAILABLE'},
                             status=503)
 
         return Response(RefundSerializer(refund).data, status=201)

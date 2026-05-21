@@ -5,9 +5,15 @@ UC-ORD-01: Create order from cart (checkout)
 """
 import pytest
 from decimal import Decimal
+from apps.catalogue.models import Category, Product
+from apps.settings_app.models import ShippingMethod
+from apps.orders.models import Order, OrderValue, OrderAddress
+from apps.cart.models import CartItem
+from apps.voucher.models import Voucher
+from django.utils import timezone
 pytestmark = pytest.mark.integration
 
-CHECKOUT_URL = '/api/v1/checkout/'
+CHECKOUT_URL = '/api/v1/orders/checkout/'
 ITEMS_URL    = '/api/v1/cart/items/'
 
 ADDR = {
@@ -22,13 +28,11 @@ ADDR = {
 
 @pytest.fixture
 def cat_ord(db):
-    from apps.catalogue.models import Category
     return Category.objects.create(name='Cat Ord', slug='cat-ord', is_active=True)
 
 
 @pytest.fixture
 def prod_ord(db, cat_ord):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Prod Ord', slug='prod-ord', sku='ORD-001',
         description='', category=cat_ord,
@@ -47,7 +51,6 @@ def cart_con_item_auth(auth_client, prod_ord):
 
 @pytest.fixture
 def shipping(db):
-    from apps.settings_app.models import ShippingMethod
     return ShippingMethod.objects.create(
         name='Estándar', cost=Decimal('80.00'), estimated_days=5, is_active=True)
 
@@ -80,7 +83,6 @@ class TestCheckout:
         # Cambiar precio del producto — no debe afectar la orden
         prod_ord.price = Decimal('999.00')
         prod_ord.save()
-        from apps.orders.models import Order
         order = Order.objects.get(order_number=res.json()['order_number'])
         assert order.items.first().unit_price == original_price
 
@@ -95,7 +97,6 @@ class TestCheckout:
         self, cart_con_item_auth, db
     ):
         cart_con_item_auth.post(CHECKOUT_URL, {'address': ADDR}, format='json')
-        from apps.cart.models import CartItem
         assert CartItem.objects.count() == 0
 
     def test_checkout_crea_ordervalue(
@@ -149,7 +150,7 @@ class TestCheckout:
             'address': ADDR,
         }, format='json')
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'GUEST_EMAIL_REQUERIDO'
+        assert res.json()['codigo_error'] == 'GUEST_EMAIL_REQUIRED'
 
     def test_checkout_stock_insuficiente_retorna_409(
         self, auth_client, prod_ord, db
@@ -164,7 +165,7 @@ class TestCheckout:
         prod_ord.save()
         res = auth_client.post(CHECKOUT_URL, {'address': ADDR}, format='json')
         assert res.status_code == 409
-        assert res.json()['codigo_error'] == 'STOCK_INSUFICIENTE'
+        assert res.json()['codigo_error'] == 'INSUFFICIENT_STOCK'
         # Stock NO debe haber cambiado
         prod_ord.refresh_from_db()
         assert prod_ord.stock == 0
@@ -172,8 +173,6 @@ class TestCheckout:
     def test_checkout_con_voucher_aplica_descuento(
         self, auth_client, prod_ord, db, admin_user
     ):
-        from apps.voucher.models import Voucher
-        from django.utils import timezone
         v = Voucher.objects.create(
             code='PROMO100', voucher_type='FIXED',
             discount_value=Decimal('100.00'),
@@ -188,13 +187,37 @@ class TestCheckout:
         assert Decimal(res.json()['value']['total']) == Decimal('400.00')
         assert res.json()['voucher_code'] == 'PROMO100'
 
+    def test_checkout_incrementa_voucher_current_uses(
+        self, auth_client, prod_ord, db, admin_user,
+    ):
+        """T-115 D-01 CRITICA (implementar-current-uses-increment):
+        verificar que el campo Voucher.current_uses se incrementa
+        atomicamente tras crear la Order. Antes el campo era leido en
+        is_usable()/can_apply() pero nunca incrementado -> max_uses
+        no limitaba en la practica."""
+        v = Voucher.objects.create(
+            code='LIMIT1', voucher_type='FIXED',
+            discount_value=Decimal('50.00'),
+            valid_from=timezone.now() - __import__('datetime').timedelta(days=1),
+            is_active=True, min_order_amount=Decimal('0'),
+            max_uses=2, current_uses=0, created_by=admin_user,
+        )
+        auth_client.post(ITEMS_URL, {'product_id': prod_ord.pk, 'quantity': 1}, format='json')
+        auth_client.post('/api/v1/cart/voucher/', {'code': 'LIMIT1'}, format='json')
+        res = auth_client.post(CHECKOUT_URL, {'address': ADDR}, format='json')
+        assert res.status_code == 201
+        v.refresh_from_db()
+        assert v.current_uses == 1, (
+            f'Voucher.current_uses debio incrementarse a 1; valor real: '
+            f'{v.current_uses}'
+        )
+
 
 class TestShippingMethodProtection:
 
     def test_desactivar_metodo_con_ordenes_activas_retorna_400(
         self, admin_client, shipping, prod_ord, db
     ):
-        from apps.orders.models import Order, OrderValue, OrderAddress
         o = Order.objects.create(
             order_number='PY-TEST0001',
             status='PENDING', shipping_method=shipping
@@ -210,4 +233,4 @@ class TestShippingMethodProtection:
         )
         res = admin_client.delete(f'/api/v1/admin/shipping-methods/{shipping.pk}/')
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'METODO_CON_ORDENES_ACTIVAS'
+        assert res.json()['codigo_error'] == 'METHOD_WITH_ACTIVE_ORDERS'

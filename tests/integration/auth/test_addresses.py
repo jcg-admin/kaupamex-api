@@ -3,6 +3,9 @@ Tests de integracion — Direcciones de envio
 UC-AUTH-07: Gestionar Direcciones de Envio
 """
 import pytest
+from django.contrib.auth import get_user_model
+from apps.users.models import Address
+from rest_framework_simplejwt.tokens import RefreshToken
 
 pytestmark = pytest.mark.integration
 
@@ -35,9 +38,6 @@ class TestAddressList:
         assert r.json() == []
 
     def test_solo_ve_sus_propias_direcciones(self, api_client, db):
-        from django.contrib.auth import get_user_model
-        from apps.users.models import Address
-        from rest_framework_simplejwt.tokens import RefreshToken
         User = get_user_model()
         u1 = User.objects.create_user(username='u1', email='u1@test.mx', password='Pass123!')
         u2 = User.objects.create_user(username='u2', email='u2@test.mx', password='Pass123!')
@@ -90,11 +90,35 @@ class TestAddressCreate:
         r = api_client.post(ADDR_URL, VALID_ADDR, format='json')
         assert r.status_code == 401
 
+    def test_crear_con_campos_mx_persiste(self, auth_client, db):
+        """UC-AUTH-07 D-01-07 (DEC-AUM-03): direcciones MX requieren
+        numero_exterior + interior + colonia. Verificar que se
+        persisten y exponen via serializer."""
+        payload = {**VALID_ADDR,
+                   'exterior_number': '123',
+                   'interior_number': 'Depto 5',
+                   'neighborhood': 'Roma Norte'}
+        r = auth_client.post(ADDR_URL, payload, format='json')
+        assert r.status_code == 201, r.content
+        body = r.json()
+        assert body['exterior_number'] == '123'
+        assert body['interior_number'] == 'Depto 5'
+        assert body['neighborhood'] == 'Roma Norte'
+
+    def test_crear_sin_campos_mx_es_valido(self, auth_client, db):
+        """DEC-AUM-03 backwards-compat: campos MX son blank=True,
+        direcciones legacy sin ellos siguen siendo validas."""
+        r = auth_client.post(ADDR_URL, VALID_ADDR, format='json')
+        assert r.status_code == 201
+        body = r.json()
+        assert body['exterior_number'] == ''
+        assert body['interior_number'] == ''
+        assert body['neighborhood'] == ''
+
 
 class TestAddressUpdate:
 
     def test_editar_alias(self, auth_client, user, db):
-        from apps.users.models import Address
         addr = Address.objects.create(user=user, **VALID_ADDR)
         r = auth_client.patch(f'{ADDR_URL}{addr.pk}/', {'alias': 'Nuevo alias'}, format='json')
         assert r.status_code == 200
@@ -102,9 +126,6 @@ class TestAddressUpdate:
         assert addr.alias == 'Nuevo alias'
 
     def test_no_puede_editar_direccion_de_otro_usuario(self, api_client, db):
-        from django.contrib.auth import get_user_model
-        from apps.users.models import Address
-        from rest_framework_simplejwt.tokens import RefreshToken
         User = get_user_model()
         u1 = User.objects.create_user(username='u1b', email='u1b@test.mx', password='Pass123!')
         u2 = User.objects.create_user(username='u2b', email='u2b@test.mx', password='Pass123!')
@@ -117,13 +138,11 @@ class TestAddressUpdate:
 class TestAddressDelete:
 
     def test_eliminar_retorna_204(self, auth_client, user, db):
-        from apps.users.models import Address
         addr = Address.objects.create(user=user, **VALID_ADDR)
         r = auth_client.delete(f'{ADDR_URL}{addr.pk}/')
         assert r.status_code == 204
 
     def test_eliminar_direccion_default_libera_default(self, auth_client, user, db):
-        from apps.users.models import Address
         a1 = Address.objects.create(user=user, is_default=True, **VALID_ADDR)
         a2 = Address.objects.create(user=user, is_default=False, **{**VALID_ADDR, 'alias': 'Otra'})
         auth_client.delete(f'{ADDR_URL}{a1.pk}/')
@@ -131,9 +150,6 @@ class TestAddressDelete:
         assert a2.is_default is True
 
     def test_no_puede_eliminar_direccion_de_otro(self, api_client, db):
-        from django.contrib.auth import get_user_model
-        from apps.users.models import Address
-        from rest_framework_simplejwt.tokens import RefreshToken
         User = get_user_model()
         u1 = User.objects.create_user(username='u1c', email='u1c@test.mx', password='Pass123!')
         u2 = User.objects.create_user(username='u2c', email='u2c@test.mx', password='Pass123!')

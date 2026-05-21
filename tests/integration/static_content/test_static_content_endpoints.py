@@ -51,9 +51,9 @@ class TestStaticContent:
             'slug': 'about', 'title': 'About', 'body': 'x',
         }, format='json')
         assert r.status_code == 400
-        assert r.json()['codigo_error'] == 'SLUG_DUPLICADO'
+        assert r.json()['codigo_error'] == 'SLUG_DUPLICATE'
 
     def test_get_inexistente_loud_404(self, admin_client, db):
         r = admin_client.get(DETAIL_URL('does-not-exist'))
         assert r.status_code == 404
-        assert r.json()['codigo_error'] == 'CONTENIDO_NO_ENCONTRADO'
+        assert r.json()['codigo_error'] == 'CONTENT_NOT_FOUND'

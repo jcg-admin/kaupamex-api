@@ -4,8 +4,8 @@ Serializers — apps.returns.
 Cumplen los contratos JSON declarados en UC-RET-01..06 (PARTE 7C).
 """
 from rest_framework import serializers
-
 from .models import ReturnHistoryEntry, ReturnItem, ReturnRequest
+
 
 
 # ────────────────────────────── Items ────────────────────────────────────
@@ -83,7 +83,9 @@ class ReturnDetailSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_history(self, obj) -> list:
-        qs = obj.history_entries.all().order_by('created_at')
+        # UC-RET-04 PARTE 3 paso 3 (DEC-RET-07): ordenar DESC para que el
+        # comprador vea el ultimo evento del lifecycle arriba.
+        qs = obj.history_entries.all().order_by('-created_at')
         return ReturnHistoryEntrySerializer(qs, many=True).data
 
 

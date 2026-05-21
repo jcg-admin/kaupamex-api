@@ -4,6 +4,10 @@ UC-AUTH-09 + DT-S2-03 (invalidacion de sesiones)
 """
 import pytest
 from django.core import mail
+from django.contrib.auth import get_user_model
+from django.core.cache import cache
+from rest_framework_simplejwt.tokens import RefreshToken
+import re
 
 pytestmark = pytest.mark.integration
 
@@ -13,7 +17,6 @@ CONFIRM_URL = '/api/v1/auth/password-reset/confirm/'
 
 @pytest.fixture
 def active_user(db):
-    from django.contrib.auth import get_user_model
     User = get_user_model()
     return User.objects.create_user(
         username='resetuser',
@@ -50,7 +53,6 @@ class TestPasswordResetRequest:
 
     def test_rate_limit_3_solicitudes_por_hora(self, api_client, active_user, db):
         """FR-AUTH-09.01: maximo 3 solicitudes por email en 1 hora."""
-        from django.core.cache import cache
         cache.clear()
         for _ in range(3):
             api_client.post(REQUEST_URL, {'email': active_user.email}, format='json')
@@ -64,12 +66,10 @@ class TestPasswordResetConfirm:
         """Solicita el reset y extrae el token del email."""
         api_client.post(REQUEST_URL, {'email': active_user.email}, format='json')
         body = mail.outbox[0].body
-        import re
         match = re.search(r'token=([A-Za-z0-9_-]+)', body)
         return match.group(1) if match else None
 
     def test_confirmacion_exitosa_retorna_200(self, api_client, active_user, db):
-        from django.core.cache import cache
         cache.clear()
         token = self._get_token(api_client, active_user)
         r = api_client.post(CONFIRM_URL, {
@@ -80,7 +80,6 @@ class TestPasswordResetConfirm:
         assert r.status_code == 200
 
     def test_nueva_contrasena_persiste(self, api_client, active_user, db):
-        from django.core.cache import cache
         cache.clear()
         token = self._get_token(api_client, active_user)
         api_client.post(CONFIRM_URL, {
@@ -100,7 +99,6 @@ class TestPasswordResetConfirm:
         assert r.status_code == 400
 
     def test_token_ya_usado_retorna_400(self, api_client, active_user, db):
-        from django.core.cache import cache
         cache.clear()
         token = self._get_token(api_client, active_user)
         payload = {
@@ -113,7 +111,6 @@ class TestPasswordResetConfirm:
         assert r.status_code == 400
 
     def test_confirmaciones_no_coinciden_retorna_400(self, api_client, active_user, db):
-        from django.core.cache import cache
         cache.clear()
         token = self._get_token(api_client, active_user)
         r = api_client.post(CONFIRM_URL, {
@@ -125,8 +122,6 @@ class TestPasswordResetConfirm:
 
     def test_reset_invalida_sesiones_activas(self, api_client, active_user, db):
         """DT-S2-03: tras el reset, los refresh tokens anteriores son invalidos."""
-        from django.core.cache import cache
-        from rest_framework_simplejwt.tokens import RefreshToken
         cache.clear()
         # Crear sesion activa
         refresh = RefreshToken.for_user(active_user)

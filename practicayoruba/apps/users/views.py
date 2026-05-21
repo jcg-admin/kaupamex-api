@@ -3,28 +3,46 @@ Views — apps.users
 
 Sprint 1: RegisterView
 Sprint 2: ProfileView, AddressViewSet, ChangePasswordView
+Sprint 3: Password reset, email verification, admin user management
+Sprint 4: DeactivateAccountView (UC-AUTH-16)
 """
-from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
-from drf_spectacular.types import OpenApiTypes as OAT
+# stdlib + Django
+from django.contrib.auth import get_user_model
+from django.db import transaction
+from django.db.models import Q
+from django.utils import timezone
+from rest_framework import serializers as drf_serializers
 from rest_framework.decorators import action
-from rest_framework.views import APIView
-from rest_framework.viewsets import ModelViewSet
-from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
+from rest_framework.views import APIView
+from .audit import audit_log_auth
+from rest_framework.viewsets import ModelViewSet
+from drf_spectacular.types import OpenApiTypes as OAT
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
+from apps.cart.models import Cart, SavedCart
+from apps.notifications.models import NotificationPreference
+from apps.search_history.models import SearchEntry
+from apps.wishlist.models import WishlistItem
+from .models import Address, AuthEvent, EmailVerificationToken, PasswordResetToken, UserDeactivationEvent
+from .serializers import AddressSerializer, ChangePasswordSerializer, EmailVerificationSerializer, PasswordResetConfirmSerializer, PasswordResetRequestSerializer, ProfileSerializer, RegisterSerializer, ResendVerificationSerializer, UpdateProfileSerializer
+from .tokens_email import check_rate_limit, create_password_reset_token, create_verification_token, invalidate_all_sessions, send_password_reset_email, send_verification_email, validate_password_reset_token, validate_verification_token
 
-from .models import Address
-from .serializers import (
-    RegisterSerializer,
-    ProfileSerializer,
-    UpdateProfileSerializer,
-    ChangePasswordSerializer,
-    AddressSerializer,
-)
+# DRF + plugins
+
+
+# Local
+
+
+User = get_user_model()
 
 
 class RegisterView(APIView):
     """POST /api/v1/auth/register/ — UC-AUTH-01."""
     permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "register"
 
     @extend_schema(
         summary='Registrar cuenta de comprador',
@@ -41,14 +59,74 @@ class RegisterView(APIView):
         tags=['auth'],
     )
     def post(self, request):
+        # UC-AUTH-01 Alt-A: cuando el email ya existe en BD, el flujo se
+        # ramifica segun users_user.deactivated_reason. La respuesta
+        # publica es ambigua en A.2/A.3 (no filtra estado de cuenta)
+        # pero explicita en A.1 (cuenta activa) por necesidad UX.
+        email = (request.data.get('email') or '').lower().strip()
+        # audit-log-eventos-auth-register DEC-ALR-2: emit ATTEMPT
+        # SIEMPRE para signal de account enumeration probes.
+        audit_log_auth(
+            None, AuthEvent.ACTION_REGISTER_ATTEMPT, request,
+            extra={'email_present': bool(email)},
+        )
+
+        existing = User.objects.filter(email__iexact=email).first() if email else None
+
+        if existing is not None:
+            CREATED_RESPONSE = Response(
+                {'message': 'Cuenta creada. Revisa tu email para activarla.',
+                 'user_id': existing.pk},
+                status=201,
+            )
+            # Alt-A.1: cuenta activa -> indicar al usuario que use login.
+            if existing.is_active:
+                # DEC-ALR-3: REGISTER_FAIL sin leak (reason generico).
+                audit_log_auth(
+                    None, AuthEvent.ACTION_REGISTER_FAIL, request,
+                    reason='email_invalid',
+                )
+                return Response(
+                    {'email': [
+                        'Esa cuenta ya esta registrada. Inicia sesion '
+                        'o recupera tu contrasena si la olvidaste.'
+                    ]},
+                    status=400,
+                )
+            # Alt-A.2: inactiva reactivable (unverified o self_deleted)
+            # -> generar token + reenviar email. Mismo response shape que
+            # una cuenta nueva para no filtrar el estado.
+            # DEC-ALR-5: NO emit REGISTER_SUCCESS (no se crea user nuevo).
+            if existing.deactivated_reason in User.DEACTIVATION_REASONS_REACTIVABLE_BY_EMAIL:
+                plain = create_verification_token(existing)
+                send_verification_email(existing, plain)
+                return CREATED_RESPONSE
+            # Alt-A.3: suspendida por admin (o motivo desconocido) ->
+            # no enviar email, retornar response indistinguible.
+            return CREATED_RESPONSE
+
+        # Camino estandar: email no existe, crear cuenta nueva.
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
+            # DEC-ALR-4: REGISTER_SUCCESS convive con
+            # UserDeactivationEvent(source='register') ya
+            # existente en RegisterSerializer.save().
+            audit_log_auth(
+                user, AuthEvent.ACTION_REGISTER_SUCCESS, request,
+            )
             return Response(
                 {'message': 'Cuenta creada. Revisa tu email para activarla.',
                  'user_id': user.pk},
                 status=201,
             )
+        # DEC-ALR-3: reason = primer field error name + '_invalid'
+        # (sin leak del value ni del error message completo).
+        first_field = next(iter(serializer.errors.keys()), 'unknown')
+        audit_log_auth(
+            None, AuthEvent.ACTION_REGISTER_FAIL, request,
+            reason=f'{first_field}_invalid',
+        )
         return Response(serializer.errors, status=400)
 
 
@@ -215,7 +293,9 @@ class ChangePasswordView(APIView):
             'Verifica la contrasena actual antes de establecer la nueva. '
             'La nueva debe cumplir los validadores de Django (min 8 chars, '
             'no muy comun, no similar al username). '
-            'NOTA: no invalida otras sesiones activas (DT-S2-03).'
+            'UC-AUTH-08 PARTE 8.2 (DEC-AUM-01): invalida todas las '
+            'sesiones activas del usuario tras el cambio para cerrar '
+            'el vector account-takeover.'
         ),
         request=ChangePasswordSerializer,
         responses={
@@ -237,29 +317,13 @@ class ChangePasswordView(APIView):
 
 
 # ─── Sprint 3 ─────────────────────────────────────────────────────────
-import rest_framework.pagination
-from django.contrib.auth import get_user_model
-User = get_user_model()
-
-from rest_framework.generics import ListAPIView
-from rest_framework.filters import SearchFilter
-from django.db.models import Q
-
-from .tokens_email import (
-    check_rate_limit, create_password_reset_token, send_password_reset_email,
-    validate_password_reset_token, invalidate_all_sessions,
-    create_verification_token, send_verification_email, validate_verification_token,
-)
-from .serializers import (
-    PasswordResetRequestSerializer, PasswordResetConfirmSerializer,
-    EmailVerificationSerializer, ResendVerificationSerializer,
-    AdminUserListSerializer,
-)
 
 
 class PasswordResetRequestView(APIView):
     """POST /api/v1/auth/password-reset/ — UC-AUTH-09 Fase 1."""
     permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "password_reset"
 
     @extend_schema(
         summary='Solicitar recuperacion de contrasena',
@@ -304,6 +368,8 @@ class PasswordResetRequestView(APIView):
 class PasswordResetConfirmView(APIView):
     """POST /api/v1/auth/password-reset/confirm/ — UC-AUTH-09 Fase 2."""
     permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "password_confirm"
 
     @extend_schema(
         summary='Confirmar recuperacion de contrasena',
@@ -326,9 +392,6 @@ class PasswordResetConfirmView(APIView):
         except ValueError as e:
             return Response({'token': str(e)}, status=400)
 
-        from django.utils import timezone
-        from django.db import transaction
-
         with transaction.atomic():
             user = token_obj.user
             user.set_password(serializer.validated_data['new_password'])
@@ -343,6 +406,8 @@ class PasswordResetConfirmView(APIView):
 class EmailVerifyView(APIView):
     """POST /api/v1/auth/verify-email/ — UC-AUTH-10."""
     permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "email_verify"
 
     @extend_schema(
         summary='Verificar email y activar cuenta',
@@ -366,13 +431,16 @@ class EmailVerifyView(APIView):
         if token_obj is None:
             return Response({'message': 'Tu cuenta ya esta activa. Puedes iniciar sesion.'})
 
-        from django.utils import timezone
-        from django.db import transaction
-
         with transaction.atomic():
             user = token_obj.user
             user.is_active = True
-            user.save(update_fields=['is_active'])
+            # GAP-3 cierre: limpiar la causa al reactivar para que el
+            # estado de la cuenta sea consistente despues del click.
+            user.deactivated_reason = None
+            user.deactivated_at = None
+            user.save(update_fields=[
+                'is_active', 'deactivated_reason', 'deactivated_at',
+            ])
             token_obj.used_at = timezone.now()
             token_obj.save(update_fields=['used_at'])
 
@@ -382,6 +450,8 @@ class EmailVerifyView(APIView):
 class ResendVerificationView(APIView):
     """POST /api/v1/auth/resend-verification/ — UC-AUTH-10."""
     permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "resend_verification"
 
     @extend_schema(
         summary='Reenviar email de verificacion',
@@ -399,8 +469,14 @@ class ResendVerificationView(APIView):
         email = serializer.validated_data['email']
         try:
             user = User.objects.get(email__iexact=email, is_active=False)
-            plain = create_verification_token(user)
-            send_verification_email(user, plain)
+            # UC-AUTH-01 Alt-A.3: cuentas suspendidas por admin NO se
+            # reactivan por email. UC-AUTH-14 es el unico camino.
+            # El mensaje al cliente es identico al caso DoesNotExist
+            # para no filtrar el estado de la cuenta.
+            if user.deactivated_reason in User.DEACTIVATION_REASONS_REACTIVABLE_BY_EMAIL:
+                plain = create_verification_token(user)
+                send_verification_email(user, plain)
+            # else: silencio deliberado (suspended).
         except User.DoesNotExist:
             pass  # Silencioso
 
@@ -409,38 +485,123 @@ class ResendVerificationView(APIView):
         )
 
 
-class AdminUserPagination(rest_framework.pagination.PageNumberPagination):
-    page_size = 20
-    page_size_query_param = 'page_size'
-    max_page_size = 100
+class DeactivateAccountSerializer(drf_serializers.Serializer):
+    """Payload de POST /api/v1/auth/me/deactivate/ — UC-AUTH-16."""
+    password = drf_serializers.CharField(write_only=True)
 
 
-class AdminUserListView(ListAPIView):
-    """GET /api/v1/admin/users/ — UC-AUTH-11."""
-    permission_classes  = [IsAuthenticated]
-    serializer_class    = AdminUserListSerializer
-    filter_backends     = [SearchFilter]
-    search_fields       = ['username', 'email', 'first_name', 'last_name']
-    pagination_class    = AdminUserPagination
+class DeactivateAccountView(APIView):
+    """POST /api/v1/auth/me/deactivate/ — UC-AUTH-16 (Dar de Baja la Propia Cuenta).
 
-    def get_queryset(self):
-        if not self.request.user.is_staff:
-            from rest_framework.exceptions import PermissionDenied
-            raise PermissionDenied('Solo administradores pueden acceder a este endpoint.')
-        qs = User.objects.all().order_by('-date_joined')
-        is_active = self.request.query_params.get('is_active')
-        is_staff  = self.request.query_params.get('is_staff')
-        if is_active is not None:
-            qs = qs.filter(is_active=(is_active.lower() == 'true'))
-        if is_staff is not None:
-            qs = qs.filter(is_staff=(is_staff.lower() == 'true'))
-        return qs
+    Soft-delete logico iniciado por el propio usuario. Pone
+    is_active=False y registra la causa (self_deleted) y el
+    timestamp. Invalida refresh tokens activos.
+
+    Postcondiciones: la cuenta puede reactivarse via
+    UC-AUTH-01 Alt-A.2 (re-registro con mismo email -> reenvio
+    de email de verificacion) o via UC-AUTH-14 (admin).
+    """
+    permission_classes = [IsAuthenticated]
 
     @extend_schema(
-        summary='Listar usuarios (Admin)',
-        description='Listado paginado de todos los usuarios. Solo staff.',
-        responses={200: AdminUserListSerializer(many=True)},
-        tags=['admin'],
+        summary='Dar de baja la propia cuenta (UC-AUTH-16)',
+        description=(
+            'Soft-delete logico iniciado por el comprador autenticado. '
+            'Requiere reautenticacion con la contrasena de la sesion '
+            'actual. is_active pasa a False con deactivated_reason='
+            "'self_deleted'. No elimina datos. La cuenta puede "
+            'reactivarse despues via UC-AUTH-01 Alt-A.2.'
+        ),
+        request=DeactivateAccountSerializer,
+        responses={
+            200: OpenApiResponse(description='Cuenta dada de baja.'),
+            400: OpenApiResponse(description='Contrasena incorrecta o payload invalido.'),
+            401: OpenApiResponse(description='No autenticado.'),
+        },
+        tags=['auth'],
     )
-    def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
+    def post(self, request):
+        # Rate-limit por user.pk para evitar abuso de sesion robada
+        # repitiendo intentos hasta acertar la password. La key se hashea
+        # internamente; el prefijo "deactivate:" la separa del bucket de
+        # password reset.
+        if not check_rate_limit(
+            f'deactivate:{request.user.pk}',
+            max_requests=5, window=3600,
+        ):
+            return Response(
+                {'detail': 'Demasiados intentos. Intenta en 1 hora.'},
+                status=429,
+            )
+
+        serializer = DeactivateAccountSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        user = request.user
+        if not user.check_password(serializer.validated_data['password']):
+            return Response({'detail': 'Contrasena incorrecta.'}, status=400)
+
+        with transaction.atomic():
+            user.is_active = False
+            user.deactivated_reason = User.DEACTIVATION_SELF_DELETED
+            user.deactivated_at = timezone.now()
+            user.save(update_fields=[
+                'is_active', 'deactivated_reason', 'deactivated_at',
+            ])
+            # Invalidar tokens pendientes para que enlaces viejos no
+            # sirvan tras la baja. used_at = NOW marca como consumido.
+            now = timezone.now()
+            EmailVerificationToken.objects.filter(
+                user=user, used_at__isnull=True,
+            ).update(used_at=now)
+            PasswordResetToken.objects.filter(
+                user=user, used_at__isnull=True,
+            ).update(used_at=now)
+            invalidate_all_sessions(user)
+            # FU-4: politica de limpieza en self-delete.
+            # Se ELIMINAN fisicamente los datos volatiles que no tienen
+            # relevancia fiscal y que el usuario probablemente prefiere
+            # que no persistan tras la baja:
+            #   - cart_cart + cart_cart_item (carrito activo)
+            #   - cart_saved_cart + cart_saved_cart_item (carritos guardados)
+            #   - wishlist_item (hereda SoftDeleteModel — hard_delete()
+            #     fuerza borrado fisico, no soft)
+            #   - search_history_entry (historial personal de busquedas)
+            #   - notifications_preference (preferencias personales)
+            #
+            # Se CONSERVAN (transaccionales/fiscales):
+            #   - orders_order + relacionados (audit fiscal)
+            #   - payments_payment, refunds, gateway_event
+            #   - returns_*, support_ticket_* (audit cliente)
+            #   - users_address (referenciado desde orders_order_address
+            #     snapshot, conservar la fila original facilita lookup)
+            #   - users_deactivation_event (audit append-only)
+            Cart.objects.filter(user=user).delete()
+            SavedCart.objects.filter(user=user).delete()
+            # WishlistItem.all_objects + hard_delete: bypassa el
+            # soft-delete del modelo (queremos borrado fisico).
+            for item in WishlistItem.all_objects.filter(user=user):
+                item.hard_delete()
+            SearchEntry.objects.filter(user=user).delete()
+            NotificationPreference.objects.filter(user=user).delete()
+            # GAP 10: audit log del evento (append-only).
+            UserDeactivationEvent.objects.create(
+                user=user,
+                reason=User.DEACTIVATION_SELF_DELETED,
+                source=UserDeactivationEvent.SOURCE_SELF,
+                actor=None,
+            )
+
+        return Response({'message': 'Tu cuenta ha sido dada de baja.'}, status=200)
+
+
+# AdminUserPagination definicion canonica vive en admin_views.py
+# (donde AdminUserViewSet la usa). Aqui solo quedaba huerfana.
+
+
+# AdminUserListView eliminado (era codigo muerto): no estaba registrado
+# en urlpatterns. El endpoint GET /api/v1/admin/users/ lo sirve
+# AdminUserViewSet en admin_views.py via router DefaultRouter.
+# La logica de filtros (incluido el nuevo ?deactivated_reason=) vive
+# alli — ver admin_views.AdminUserViewSet.get_queryset.

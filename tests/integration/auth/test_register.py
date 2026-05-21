@@ -12,6 +12,7 @@ FR-AUTH-01.03 — unicidad con mensaje ambiguo
 FR-AUTH-01.04 — is_active=False al crear
 """
 import pytest
+from django.contrib.auth import get_user_model
 
 pytestmark = pytest.mark.api
 
@@ -36,13 +37,11 @@ class TestRegisterHappyPath:
         assert isinstance(data['user_id'], int)
 
     def test_cuenta_creada_con_is_active_false(self, api_client, db):
-        from django.contrib.auth import get_user_model
         api_client.post(URL, VALID, format='json')
         user = get_user_model().objects.get(username=VALID['username'])
         assert user.is_active is False
 
     def test_email_normalizado_a_minusculas(self, api_client, db):
-        from django.contrib.auth import get_user_model
         d = {**VALID, 'email': 'COMPRADOR@PRACTICAYORUBA.MX'}
         api_client.post(URL, d, format='json')
         user = get_user_model().objects.get(username=VALID['username'])

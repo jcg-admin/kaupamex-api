@@ -11,10 +11,11 @@ Refactorizado en sprint de infraestructura: herencia-modelos-django
 import uuid
 from decimal import Decimal
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 from django.core.validators import MinValueValidator
-
 from apps.core.models import TimeStampedModel
+from apps.settings_app.models import SiteSettings
+
 
 
 class Cart(TimeStampedModel):
@@ -61,12 +62,10 @@ class Cart(TimeStampedModel):
         return self.voucher.calculate_discount(self.get_subtotal())
 
     def get_free_shipping_threshold(self) -> Decimal | None:
-        from apps.settings_app.models import SiteSettings
         threshold = SiteSettings.get_current().free_shipping_threshold
         return threshold if threshold > 0 else None
 
     def get_totals(self) -> dict:
-        from apps.settings_app.models import SiteSettings
         subtotal     = self.get_subtotal()
         discount     = self.get_discount()
         subtotal_net = subtotal - discount
@@ -93,7 +92,6 @@ class Cart(TimeStampedModel):
         }
 
     def merge(self, other_cart: 'Cart') -> None:
-        from django.db import transaction
         with transaction.atomic():
             for other_item in other_cart.items.select_related('variant__product').all():
                 existing = self.items.filter(variant=other_item.variant).first()

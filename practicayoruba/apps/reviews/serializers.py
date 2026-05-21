@@ -1,7 +1,7 @@
 """Serializers — apps.reviews (P-14)."""
 from rest_framework import serializers
-
 from .models import Review
+
 
 
 class ReviewPublicSerializer(serializers.ModelSerializer):

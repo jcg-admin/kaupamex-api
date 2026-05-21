@@ -1,7 +1,7 @@
 """URLs — apps.returns (comprador, /api/v1/returns/)."""
 from django.urls import path
-
 from .views import ReturnDetailView, ReturnListCreateView
+
 
 app_name = 'returns'
 

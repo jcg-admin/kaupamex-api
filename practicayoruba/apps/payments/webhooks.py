@@ -16,7 +16,6 @@ import hmac
 import json
 import logging
 from decimal import Decimal
-
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from drf_spectacular.utils import extend_schema, OpenApiResponse
@@ -24,15 +23,20 @@ from rest_framework import serializers
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
 from .models import Payment, PaymentGatewayEvent
+from apps.settings_app.models import PaymentGateway as PGModel
+from django.db import transaction
+from .gateways.mercadopago import MercadoPagoGateway
+from .gateways.paypal import PayPalGateway
+from apps.orders.models import Order
+
+
 
 logger = logging.getLogger('apps')
 
 
 def _get_mp_client_secret() -> str | None:
     """Lee el client_secret de MercadoPago para verificar firmas de webhooks."""
-    from apps.settings_app.models import PaymentGateway as PGModel
     try:
         gw    = PGModel.objects.get(gateway='MERCADOPAGO', is_active=True)
         creds = gw.get_credentials()
@@ -65,8 +69,12 @@ def _verify_mp_signature(request, payment_id: str, request_id: str) -> bool:
 
     client_secret = _get_mp_client_secret()
     if not client_secret:
-        logger.warning('MP webhook: client_secret no configurado, saltando verificación')
-        return True  # En testing/sandbox sin secret configurado se acepta
+        # DEC-BC-01 (2026-05-21): fail-closed por seguridad. La rama
+        # historica "return True" abria un vector de fraude (cualquiera
+        # podia simular `payment.approved`). El system check en apps.py
+        # bloquea el deploy si DEBUG=False y no hay client_secret.
+        logger.error('MP webhook: client_secret no configurado — rechazando webhook')
+        return False
 
     manifest = f'id:{payment_id};request-id:{request_id};ts:{ts}'
     expected = hmac.new(
@@ -85,8 +93,6 @@ def _process_payment_approval(gateway_payment_id: str, gateway: str, amount: Dec
     Idempotente: si el Payment ya es APPROVED, no cambia nada.
     FR-PAY-03.02, FR-PAY-04.01 (H-PAY-005).
     """
-    from apps.orders.models import Order
-    from django.db import transaction
 
     payment = (
         Payment.objects
@@ -161,8 +167,10 @@ class MercadoPagoWebhookView(APIView):
         try:
             data = json.loads(raw_body)
         except json.JSONDecodeError:
+            # DEC-BC-06: 400 indica al cliente que el payload es invalido.
+            # MP no reintenta 4xx — el evento se descarta como malformed.
             logger.warning('MP webhook: payload no es JSON válido')
-            return Response({'status': 'invalid_json'}, status=200)
+            return Response({'status': 'invalid_json'}, status=400)
 
         # Solo procesar notificaciones de tipo 'payment'
         event_type   = data.get('type', '')
@@ -179,11 +187,13 @@ class MercadoPagoWebhookView(APIView):
 
         # Consultar estado definitivo al gateway (paso 6 del flujo)
         try:
-            from .gateways.mercadopago import MercadoPagoGateway
             gw_result = MercadoPagoGateway().verify_payment(payment_id)
         except Exception as exc:
+            # DEC-BC-06: 503 (Service Unavailable) indica gateway externo
+            # caido. MP hace exponential backoff en 5xx y reintenta el
+            # webhook — el evento no se pierde.
             logger.error('MP webhook: error consultando estado: %s', exc)
-            return Response({'status': 'gateway_error'}, status=200)
+            return Response({'status': 'gateway_error'}, status=503)
 
         # Registrar evento de auditoría
         payment = (
@@ -272,13 +282,13 @@ class PayPalWebhookView(APIView):
         try:
             data = json.loads(raw_body)
         except json.JSONDecodeError:
-            return Response({'status': 'invalid_json'}, status=200)
+            # DEC-BC-06: 400 — PayPal no reintenta 4xx.
+            return Response({'status': 'invalid_json'}, status=400)
 
         event_type = data.get('event_type', '')
 
         # Verificar firma consultando PayPal (H-PAY-003)
         try:
-            from .gateways.paypal import PayPalGateway
             pp_gateway = PayPalGateway()
             headers = {
                 'paypal-cert-url':        request.META.get('HTTP_PAYPAL_CERT_URL', ''),
@@ -316,7 +326,8 @@ class PayPalWebhookView(APIView):
             # Capturar el pago (H-PAY-006: la captura ocurre en el webhook)
             paypal_order_id = resource.get('id', '')
             if not paypal_order_id:
-                return Response({'status': 'missing_order_id'}, status=200)
+                # DEC-BC-06: 400 — payload incompleto, no reintentable.
+                return Response({'status': 'missing_order_id'}, status=400)
 
             # Buscar el Payment por preference_id (guardamos el order_id de PayPal ahí)
             payment = Payment.objects.filter(
@@ -324,8 +335,11 @@ class PayPalWebhookView(APIView):
                 gateway='PAYPAL',
             ).first()
             if not payment:
+                # DEC-BC-06: 502 (Bad Gateway) — el Payment puede aparecer
+                # en una race window con la creacion del pedido. PayPal
+                # hace backoff en 5xx y reintenta — recupera del race.
                 logger.warning('PayPal webhook: Payment no encontrado para order=%s', paypal_order_id)
-                return Response({'status': 'payment_not_found'}, status=200)
+                return Response({'status': 'payment_not_found'}, status=502)
 
             PaymentGatewayEvent.objects.create(
                 payment=payment,
@@ -339,8 +353,10 @@ class PayPalWebhookView(APIView):
                 payment.gateway_payment_id = capture_id
                 payment.save(update_fields=['gateway_payment_id'])
             except Exception as exc:
+                # DEC-BC-06: 500 — fallo interno al capturar. PayPal
+                # hace backoff en 5xx y reintenta el webhook.
                 logger.error('PayPal capture failed: %s', exc)
-                return Response({'status': 'capture_failed'}, status=200)
+                return Response({'status': 'capture_failed'}, status=500)
 
         elif event_type == 'PAYMENT.CAPTURE.COMPLETED':
             capture_id = resource.get('id', '')

@@ -9,8 +9,7 @@ import io
 import logging
 import uuid
 from decimal import Decimal, InvalidOperation
-
-logger = logging.getLogger(__name__)
+from rest_framework.exceptions import ValidationError
 from django.db import transaction
 from django.http import HttpResponse
 from django.utils import timezone
@@ -20,16 +19,16 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
-
 from django.core.cache import cache
-
-from .models import SiteSettings, PaymentGateway, ShippingMethod
-from .serializers import (
-    SiteSettingsSerializer,
-    PaymentGatewaySerializer,
-    ShippingMethodSerializer,
-)
+from .models import SiteSettings, PaymentGateway, ShippingMethod, StaticPage, StaticPageVersion
+from .serializers import SiteSettingsSerializer, PaymentGatewaySerializer, ShippingMethodSerializer
 from .gateway_connector import connector
+from rest_framework import serializers as drf_serializers
+from apps.orders.proxy_models import ActiveOrder
+
+logger = logging.getLogger(__name__)
+
+
 
 
 class SiteSettingsView(APIView):
@@ -142,7 +141,7 @@ class PaymentGatewayViewSet(ModelViewSet):
                              'verified_at': instance.verified_at})
         return Response({
             'detail': 'El gateway rechazó las credenciales.',
-            'codigo_error': 'CREDENCIALES_INVALIDAS',
+            'codigo_error': 'INVALID_CREDENTIALS',
         }, status=400)
 
 
@@ -171,18 +170,16 @@ class ShippingMethodViewSet(ModelViewSet):
         Soft delete: is_active=False.
         Sprint 14: verificar ordenes en estado PENDING/PROCESSING.
         """
-        from apps.orders.proxy_models import ActiveOrder
         active_orders = ActiveOrder.objects.filter(
             shipping_method=instance,
         ).count()
         if active_orders > 0:
-            from rest_framework.exceptions import ValidationError
             raise ValidationError({
                 'detail': (
                     f'Este método tiene {active_orders} orden(es) activa(s). '
                     'Espera a que se procesen antes de desactivarlo.'
                 ),
-                'codigo_error': 'METODO_CON_ORDENES_ACTIVAS',
+                'codigo_error': 'METHOD_WITH_ACTIVE_ORDERS',
             })
         instance.is_active = False
         instance.save(update_fields=['is_active'])
@@ -213,8 +210,6 @@ class ShippingMethodViewSet(ModelViewSet):
 # Sprint 10 — UC-CFG-04: Contenido estático con versionado
 # =============================================================================
 
-from .models import StaticPage, StaticPageVersion
-from rest_framework import serializers as drf_serializers
 
 
 class StaticPageVersionSerializer(drf_serializers.ModelSerializer):

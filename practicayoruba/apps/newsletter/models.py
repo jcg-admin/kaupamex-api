@@ -15,8 +15,8 @@ import secrets
 
 from django.conf import settings
 from django.db import models
-
 from apps.core.models import SoftDeleteModel, TimeStampedModel
+
 
 
 def _generate_unsubscribe_token():

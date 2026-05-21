@@ -8,9 +8,9 @@ import uuid
 from decimal import Decimal
 from django.conf import settings
 from django.db import models
-
 from apps.core.models import SoftDeleteModel, TimeStampedModel
 from django.core.validators import MinValueValidator
+
 
 
 def _generate_order_number() -> str:

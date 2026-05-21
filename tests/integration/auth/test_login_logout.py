@@ -19,6 +19,8 @@ FR-AUTH-02.03 — emitir par de tokens JWT
 FR-AUTH-03    — invalidar refresh token (blacklist)
 """
 import pytest
+from django.contrib.auth import get_user_model
+from django.core.cache import cache
 
 pytestmark = pytest.mark.api
 
@@ -62,7 +64,6 @@ class TestLoginFail:
         assert r.status_code == 401
 
     def test_cuenta_inactiva_retorna_401(self, api_client, db):
-        from django.contrib.auth import get_user_model
         User = get_user_model()
         user = User.objects.create_user(username='inactivo', password='Pass1234!', is_active=False)
         r = api_client.post(LOGIN_URL, {'username': 'inactivo', 'password': 'Pass1234!'}, format='json')
@@ -144,7 +145,6 @@ class TestLoginAuditCorrections:
         self, api_client, db
     ):
         """FR-AUTH-02.09: email no verificado debe retornar mensaje diferenciado."""
-        from django.contrib.auth import get_user_model
         User = get_user_model()
         u = User.objects.create_user(
             username='sinverif', email='sinverif@test.mx',
@@ -158,7 +158,7 @@ class TestLoginAuditCorrections:
         data = r.json()
         # El error debe diferenciar "email no verificado" de "creds incorrectas"
         error_str = str(data)
-        assert 'EMAIL_NO_VERIFICADO' in error_str or 'verificad' in error_str.lower()
+        assert 'EMAIL_NOT_VERIFIED' in error_str or 'verificad' in error_str.lower()
 
 
 class TestLoginRateLimit:
@@ -167,13 +167,11 @@ class TestLoginRateLimit:
     @pytest.fixture(autouse=True)
     def clean_cache(self):
         """Limpia la caché antes y después de cada test de rate limiting."""
-        from django.core.cache import cache
         cache.clear()
         yield
         cache.clear()
 
     def test_5_intentos_fallidos_bloquean_la_ip(self, api_client, user, db):
-        from django.core.cache import cache
         cache.clear()
         payload = {'username': user.username, 'password': 'MalPassword!'}
         for _ in range(5):
@@ -183,7 +181,6 @@ class TestLoginRateLimit:
 
     def test_login_exitoso_restablece_el_contador(self, api_client, user, db):
         """FR-AUTH-02.14: login exitoso limpia el contador de la IP."""
-        from django.core.cache import cache
         cache.clear()
         for _ in range(3):
             api_client.post('/api/v1/auth/login/', {
@@ -204,7 +201,6 @@ class TestLoginRateLimit:
 
     def test_respuesta_429_incluye_retry_after(self, api_client, user, db):
         """FR-AUTH-02.01: la respuesta debe incluir Retry-After."""
-        from django.core.cache import cache
         cache.clear()
         for _ in range(6):
             api_client.post('/api/v1/auth/login/', {

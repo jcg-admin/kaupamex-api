@@ -9,27 +9,25 @@ UC-CART-06: Sincronizar Carrito Anonimo al Autenticar
 import logging
 import uuid
 from decimal import Decimal
-
 from django.db import transaction
-
-logger = logging.getLogger(__name__)
+from apps.voucher.serializers import ApplyVoucherSerializer
+from apps.voucher.models import Voucher
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
 from apps.catalogue.models import Product
 from apps.chartsize.models import ProductVariant
 from apps.inventory.services import InventoryService
-
 from .models import Cart, CartItem, SavedCart, SavedCartItem
-from .serializers import (
-    CartSerializer, CartItemSerializer,
-    AddItemSerializer, UpdateItemSerializer,
-    MergeCartSerializer, SavedCartItemSerializer,
-)
+from .serializers import CartSerializer, CartItemSerializer, AddItemSerializer, UpdateItemSerializer, MergeCartSerializer, SavedCartItemSerializer
+
+
+logger = logging.getLogger(__name__)
+
+
 
 CART_TOKEN_HEADER = 'HTTP_X_CART_TOKEN'
 
@@ -172,7 +170,7 @@ class CartItemListView(APIView):
                 return Response(
                     {
                         'detail': 'La variante solicitada no esta disponible.',
-                        'codigo_error': 'VARIANTE_NO_DISPONIBLE',
+                        'codigo_error': 'VARIANT_UNAVAILABLE',
                     },
                     status=404,
                 )
@@ -182,7 +180,7 @@ class CartItemListView(APIView):
                     'Este producto tiene variantes. '
                     'Debes seleccionar una variante (variant_id).'
                 ),
-                'codigo_error': 'VARIANTE_REQUERIDA',
+                'codigo_error': 'VARIANT_REQUIRED',
             })
         else:
             variant = None
@@ -194,24 +192,26 @@ class CartItemListView(APIView):
                 return Response(
                     {
                         'detail': f'Variante sin stock suficiente. Disponible: {available}.',
-                        'codigo_error': 'VARIANTE_SIN_STOCK',
+                        'codigo_error': 'VARIANT_OUT_OF_STOCK',
                         'available_stock': available,
                     },
                     status=409,
                 )
             raise ValidationError({
                 'quantity': f'Stock insuficiente. Disponible: {available}.',
-                'codigo_error': 'STOCK_INSUFICIENTE',
+                'codigo_error': 'INSUFFICIENT_STOCK',
             })
 
         unit_price = variant.effective_price() if variant else product.price
         cart, _, cart_token = _get_or_create_cart(request)
 
+        was_new_item = True
         with transaction.atomic():
             # Upsert: si ya existe el item con la misma variante, sumar cantidad
             lookup = {'cart': cart, 'variant': variant} if variant else {'cart': cart, 'product': product, 'variant': None}
             existing = CartItem.objects.filter(**lookup).first()
             if existing:
+                was_new_item = False
                 new_qty = existing.quantity + quantity
                 if new_qty > available:
                     if variant is not None:
@@ -220,26 +220,31 @@ class CartItemListView(APIView):
                                 'detail': (
                                     f'Variante sin stock suficiente. Disponible: {available}.'
                                 ),
-                                'codigo_error': 'VARIANTE_SIN_STOCK',
+                                'codigo_error': 'VARIANT_OUT_OF_STOCK',
                                 'available_stock': available,
                             },
                             status=409,
                         )
                     raise ValidationError({
                         'quantity': f'Stock insuficiente. Disponible: {available}.',
-                        'codigo_error': 'STOCK_INSUFICIENTE',
+                        'codigo_error': 'INSUFFICIENT_STOCK',
                     })
                 existing.quantity   = new_qty
                 existing.unit_price = unit_price
                 existing.save(update_fields=['quantity', 'unit_price'])
-                item = existing
             else:
-                item = CartItem.objects.create(
+                CartItem.objects.create(
                     cart=cart, product=product, variant=variant,
                     quantity=quantity, unit_price=unit_price,
                 )
 
-        response = Response(CartItemSerializer(item).data, status=201)
+        # DEC-BC-02 + DEC-BC-08 (consolidadas): retornar Cart completo con
+        # totals (no item suelto). Single contract en todas las cart
+        # mutations garantiza que UI nunca calcule totales localmente
+        # ni asuma shape. Status 201 si insert, 200 si merge.
+        status_code = 201 if was_new_item else 200
+        data = CartSerializer(cart, context={'request': request}).data
+        response = Response(data, status=status_code)
         if cart_token:
             response['X-Cart-Token'] = cart_token
         return response
@@ -271,15 +276,17 @@ class CartItemDetailView(APIView):
         if new_qty > available:
             raise ValidationError({
                 'quantity': f'Stock insuficiente. Disponible: {available}.',
-                'codigo_error': 'STOCK_INSUFICIENTE',
+                'codigo_error': 'INSUFFICIENT_STOCK',
             })
         item.quantity = new_qty
         item.save(update_fields=['quantity'])
-        return Response(CartItemSerializer(item).data)
+        # DEC-BC-02 + DEC-BC-08: Cart shape para que UI use setCart
+        # consistentemente sin recalcular totales.
+        return Response(CartSerializer(cart, context={'request': request}).data)
 
     @extend_schema(
         summary='Eliminar item del carrito',
-        responses={204: None},
+        responses={200: CartSerializer},
         tags=['cart'],
         operation_id='cart_items_destroy',
     )
@@ -287,7 +294,11 @@ class CartItemDetailView(APIView):
         cart, _, _ = _get_or_create_cart(request)
         item = get_object_or_404(CartItem, pk=pk, cart=cart)
         item.delete()
-        return Response(status=204)
+        # DEC-BC-02 + DEC-BC-08: DELETE devuelve Cart actualizado
+        # (200) en lugar de 204. Sin necesidad de fetch post-mutation
+        # para refrescar totals.
+        cart.refresh_from_db()
+        return Response(CartSerializer(cart, context={'request': request}).data)
 
 
 # Backwards-compatible alias for any module that imports the
@@ -314,7 +325,7 @@ class CartSaveView(APIView):
         cart, _, _ = _get_or_create_cart(request)
         items = list(cart.items.select_related('product').all())
         if not items:
-            raise ValidationError({'detail': 'El carrito está vacío.', 'codigo_error': 'CARRITO_VACIO'})
+            raise ValidationError({'detail': 'El carrito está vacío.', 'codigo_error': 'EMPTY_CART'})
 
         with transaction.atomic():
             saved, _ = SavedCart.objects.get_or_create(user=request.user)
@@ -394,8 +405,6 @@ class CartVoucherView(APIView):
         tags=['cart'],
     )
     def post(self, request):
-        from apps.voucher.serializers import ApplyVoucherSerializer
-        from apps.voucher.models import Voucher
 
         s = ApplyVoucherSerializer(data=request.data)
         s.is_valid(raise_exception=True)
@@ -405,21 +414,24 @@ class CartVoucherView(APIView):
             voucher = Voucher.objects.get(code=code)
         except Voucher.DoesNotExist:
             raise ValidationError({'code': 'Cupón no encontrado.',
-                                   'codigo_error': 'VOUCHER_NO_ENCONTRADO'})
+                                   'codigo_error': 'VOUCHER_NOT_FOUND'})
 
         cart, _, cart_token = _get_or_create_cart(request)
         subtotal = cart.get_subtotal()
 
         error_code = voucher.validate_for_cart(subtotal, request.user)
         if error_code:
+            # voucher.validate_for_cart emite codes EN canonicos; cart mapea
+            # a mensaje user-facing y propaga el error_code tal cual al
+            # cliente.
             messages = {
-                'VOUCHER_INACTIVO':                  'Este cupón no está activo.',
-                'VOUCHER_NO_VIGENTE':                'Este cupón aún no está vigente.',
-                'VOUCHER_EXPIRADO':                  'Este cupón ha expirado.',
-                'VOUCHER_AGOTADO':                   'Este cupón ha alcanzado su límite de usos.',
-                'MONTO_MINIMO_NO_ALCANZADO':         f'El carrito debe superar ${voucher.min_order_amount}.',
-                'VOUCHER_REQUIERE_AUTENTICACION':    'Debes iniciar sesión para usar este cupón.',
-                'VOUCHER_RESTRINGIDO_A_OTRO_EMAIL':  'Este cupón no es válido para tu cuenta.',
+                'VOUCHER_INACTIVE':                   'Este cupón no está activo.',
+                'VOUCHER_NOT_YET_ACTIVE':             'Este cupón aún no está vigente.',
+                'VOUCHER_EXPIRED':                    'Este cupón ha expirado.',
+                'VOUCHER_EXHAUSTED':                  'Este cupón ha alcanzado su límite de usos.',
+                'MINIMUM_AMOUNT_NOT_REACHED':         f'El carrito debe superar ${voucher.min_order_amount}.',
+                'VOUCHER_REQUIRES_AUTHENTICATION':    'Debes iniciar sesión para usar este cupón.',
+                'VOUCHER_RESTRICTED_TO_OTHER_EMAIL':  'Este cupón no es válido para tu cuenta.',
             }
             raise ValidationError({
                 'code': messages.get(error_code, 'Cupón inválido.'),
@@ -444,7 +456,7 @@ class CartVoucherView(APIView):
         cart, _, cart_token = _get_or_create_cart(request)
         if not cart.voucher_id:
             raise ValidationError({'detail': 'No hay cupón aplicado.',
-                                   'codigo_error': 'SIN_CUPON'})
+                                   'codigo_error': 'NO_ACTIVE_VOUCHER'})
         cart.voucher = None
         cart.save(update_fields=['voucher'])
         data = CartSerializer(cart).data

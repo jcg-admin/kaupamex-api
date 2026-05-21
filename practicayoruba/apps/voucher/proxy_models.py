@@ -20,8 +20,8 @@ Cómo instanciar el proxy correcto desde una instancia base:
 """
 from decimal import Decimal
 from django.db import models
-
 from .models import Voucher
+
 
 
 # =============================================================================

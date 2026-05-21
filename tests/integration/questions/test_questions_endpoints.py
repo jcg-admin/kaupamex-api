@@ -14,6 +14,8 @@ Admin:
 JSON keys + identifiers in English (DEC-DOC-005).
 """
 from decimal import Decimal
+from apps.catalogue.models import Category, Product
+from apps.questions.models import ProductQuestion
 
 import pytest
 
@@ -23,7 +25,6 @@ pytestmark = pytest.mark.integration
 # ─── fixtures locales ────────────────────────────────────────────────────
 @pytest.fixture
 def category(db):
-    from apps.catalogue.models import Category
     return Category.objects.create(
         name='Catq', slug='catq', is_active=True,
     )
@@ -31,7 +32,6 @@ def category(db):
 
 @pytest.fixture
 def product(db, category):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Prodq', slug='prodq', sku='Q-001',
         description='', category=category,
@@ -49,7 +49,6 @@ def _admin_list_url(suffix=''):
 
 
 def _make_question(product, **kwargs):
-    from apps.questions.models import ProductQuestion
     defaults = {
         'product': product,
         'body': 'Una pregunta de prueba',
@@ -74,7 +73,6 @@ class TestPublicAsk:
         assert body['product'] == product.pk
         assert body['status'] == 'PENDING'
 
-        from apps.questions.models import ProductQuestion
         q = ProductQuestion.objects.get(pk=body['id'])
         assert q.asker_name == 'Carla'
         assert q.asker_email == 'carla@example.com'
@@ -86,7 +84,6 @@ class TestPublicAsk:
         }, format='json')
         assert res.status_code == 201
 
-        from apps.questions.models import ProductQuestion
         q = ProductQuestion.objects.get(pk=res.json()['id'])
         assert q.asker_user_id is not None
 

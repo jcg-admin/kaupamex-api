@@ -1,12 +1,6 @@
 from django.urls import path
+from .price_sync_views import PriceSyncApplyCSVView, PriceSyncApplyPercentageView, PriceSyncPreviewCSVView, PriceSyncPreviewPercentageView, PriceSyncTemplateView
 
-from .price_sync_views import (
-    PriceSyncApplyCSVView,
-    PriceSyncApplyPercentageView,
-    PriceSyncPreviewCSVView,
-    PriceSyncPreviewPercentageView,
-    PriceSyncTemplateView,
-)
 
 app_name = 'catalogue_browse_admin'
 

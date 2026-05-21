@@ -8,6 +8,9 @@ UC-CAT-10: Edit product (admin)
 """
 import pytest
 from decimal import Decimal
+from apps.catalogue.models import Category, Product
+from django.core.cache import cache
+from apps.catalogue.serializers import ProductAdminSerializer
 
 pytestmark = pytest.mark.integration
 
@@ -22,13 +25,11 @@ ADMIN_PROD_URL = '/api/v1/admin/products/'
 
 @pytest.fixture
 def cat_soperas(db):
-    from apps.catalogue.models import Category
     return Category.objects.create(name='Soperas', slug='soperas', is_active=True)
 
 
 @pytest.fixture
 def cat_soperas_grandes(db, cat_soperas):
-    from apps.catalogue.models import Category
     return Category.objects.create(
         name='Soperas Grandes', slug='soperas-grandes',
         parent=cat_soperas, is_active=True,
@@ -37,13 +38,11 @@ def cat_soperas_grandes(db, cat_soperas):
 
 @pytest.fixture
 def cat_pulseras(db):
-    from apps.catalogue.models import Category
     return Category.objects.create(name='Pulseras', slug='pulseras', is_active=True)
 
 
 @pytest.fixture
 def product_sopera(db, cat_soperas):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Sopera Yemaya', slug='sopera-yemaya', sku='SOP-YEM-001',
         description='Sopera sagrada de Yemaya', category=cat_soperas,
@@ -55,7 +54,6 @@ def product_sopera(db, cat_soperas):
 @pytest.fixture
 def products_soperas(db, cat_soperas):
     """5 productos en cat_soperas para testear related."""
-    from apps.catalogue.models import Product
     prods = []
     for i in range(5):
         prods.append(Product.objects.create(
@@ -69,7 +67,6 @@ def products_soperas(db, cat_soperas):
 
 @pytest.fixture
 def product_pulsera(db, cat_pulseras):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Pulsera Elegua', slug='pulsera-elegua-s7', sku='PUL-ELE-001',
         description='Pulsera sagrada de Elegua', category=cat_pulseras,
@@ -172,7 +169,6 @@ class TestArbolCategorias:
         self, api_client, cat_soperas, product_sopera, db
     ):
         """TST-FR-CAT-08.02 Escenario 3: product_count = activos y publicados."""
-        from apps.catalogue.models import Product
         # Crear uno inactivo que no debe contar
         Product.objects.create(
             name='Inactiva', slug='sop-inact', sku='INV-001',
@@ -188,7 +184,6 @@ class TestArbolCategorias:
         self, api_client, cat_soperas, cat_soperas_grandes, product_sopera, db
     ):
         """product_count del padre incluye productos de sus subcategorías."""
-        from apps.catalogue.models import Product
         Product.objects.create(
             name='Sopera Grande Shango', slug='sop-grande-shn', sku='SOP-GRD-001',
             description='', category=cat_soperas_grandes,
@@ -202,7 +197,6 @@ class TestArbolCategorias:
 
     def test_arbol_usa_cache(self, api_client, cat_soperas, db):
         """TST-FR-CAT-08.02 Escenario 1: segunda llamada viene del cache."""
-        from django.core.cache import cache
         api_client.get(CATEGORIES_URL)
         cached = cache.get('categories:tree')
         assert cached is not None
@@ -214,7 +208,6 @@ class TestArbolCategorias:
         self, admin_client, cat_soperas, db
     ):
         """TST-FR-CAT-08.02 Escenario 2: modificación invalida cache."""
-        from django.core.cache import cache
         cache.set('categories:tree', [{'nombre': 'stale'}], 3600)
         admin_client.post('/api/v1/admin/categories/', {
             'name': 'Nueva Categoria Sprint7', 'slug': 'nueva-cat-s7',
@@ -357,7 +350,6 @@ class TestEditarProductoAdmin:
         self, admin_client, product_sopera, cat_pulseras, db
     ):
         """TST-FR-CAT-10.02 Escenario 3: cambio de categoría invalida árbol."""
-        from django.core.cache import cache
         cache.set('categories:tree', [{'nombre': 'stale'}], 3600)
         admin_client.patch(
             f'{ADMIN_PROD_URL}{product_sopera.pk}/',
@@ -370,7 +362,6 @@ class TestEditarProductoAdmin:
         self, admin_client, product_sopera, cat_soperas, db
     ):
         """Sin cambio de categoría, el árbol cacheado se conserva."""
-        from django.core.cache import cache
         cache.set('categories:tree', [{'nombre': 'valido'}], 3600)
         admin_client.patch(
             f'{ADMIN_PROD_URL}{product_sopera.pk}/',
@@ -417,7 +408,6 @@ class TestEditarProductoAdmin:
 class TestProductAdminSerializerSlug:
 
     def test_slug_autogenerado_desde_name(self, cat_soperas, db):
-        from apps.catalogue.serializers import ProductAdminSerializer
         data = {
             'name': 'Collar Oshun Plateado',
             'sku': 'PLT-001',
@@ -430,8 +420,6 @@ class TestProductAdminSerializerSlug:
         assert instance.slug == 'collar-oshun-plateado'
 
     def test_slug_con_colision_agrega_sufijo(self, cat_soperas, db):
-        from apps.catalogue.models import Product
-        from apps.catalogue.serializers import ProductAdminSerializer
         Product.objects.create(
             name='Collar X', slug='collar-x', sku='CX-001',
             description='', category=cat_soperas,

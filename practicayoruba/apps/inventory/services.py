@@ -11,9 +11,13 @@ Se llama desde:
 import logging
 from datetime import timedelta
 from decimal import Decimal
-
 from django.db import transaction
 from django.utils import timezone
+from apps.settings_app.models import SiteSettings
+from .models import StockAlert, StockMovement
+from apps.catalogue.models import Product
+from apps.chartsize.models import ProductVariant
+
 
 logger = logging.getLogger('apps')
 
@@ -45,8 +49,6 @@ def _maybe_create_alert(product, variant, new_stock: int) -> None:
     Crea StockAlert si el stock cae bajo el umbral y no hay alerta reciente.
     Deduplicacion: 24 horas. FR-INV-02.02.
     """
-    from apps.settings_app.models import SiteSettings
-    from .models import StockAlert
 
     threshold = SiteSettings.get_current().min_stock_threshold
     if new_stock > threshold:
@@ -96,9 +98,6 @@ class InventoryService:
         Retorna lista de StockMovement creados.
         UC-INV-02 (FR-INV-02.02).
         """
-        from apps.catalogue.models import Product
-        from apps.chartsize.models import ProductVariant
-        from .models import StockMovement
 
         movements = []
 
@@ -146,9 +145,6 @@ class InventoryService:
         Idempotente: si ya existe un StockMovement CANCELLATION con la misma
         reference + product + variant, no crea duplicado.
         """
-        from apps.catalogue.models import Product
-        from apps.chartsize.models import ProductVariant
-        from .models import StockMovement
 
         movements = []
         with transaction.atomic():
@@ -198,9 +194,6 @@ class InventoryService:
         Si stock_actual + delta < 0 → lanza ValueError.
         Referencia de auditoría: ADMIN:<created_by.pk>.
         """
-        from apps.catalogue.models import Product
-        from apps.chartsize.models import ProductVariant
-        from .models import StockMovement
 
         with transaction.atomic():
             if variant:

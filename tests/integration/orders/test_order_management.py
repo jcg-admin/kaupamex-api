@@ -5,14 +5,21 @@ Nombre descriptivo: dominio, no número de sprint.
 """
 import pytest
 from decimal import Decimal
+from apps.catalogue.models import Category, Product
+from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from django.contrib.auth import get_user_model
+from apps.payments.models import Payment, Refund
+from apps.settings_app.models import PaymentGateway, ShippingMethod
+from unittest.mock import patch, MagicMock
+from apps.chartsize.models import VariantType, VariantOption, ProductVariant
 
 pytestmark = pytest.mark.integration
 
-ORDERS_URL  = '/api/v1/'
-DETAIL_URL  = lambda o: f'/api/v1/{o}/'
-CANCEL_URL  = lambda o: f'/api/v1/{o}/cancel/'
-ADDRESS_URL = lambda o: f'/api/v1/{o}/address/'
-SHIPPING_URL= lambda o: f'/api/v1/{o}/shipping/'
+ORDERS_URL  = '/api/v1/orders/'
+DETAIL_URL  = lambda o: f'/api/v1/orders/{o}/'
+CANCEL_URL  = lambda o: f'/api/v1/orders/{o}/cancel/'
+ADDRESS_URL = lambda o: f'/api/v1/orders/{o}/address/'
+SHIPPING_URL= lambda o: f'/api/v1/orders/{o}/shipping/'
 
 
 # ---------------------------------------------------------------------------
@@ -21,13 +28,11 @@ SHIPPING_URL= lambda o: f'/api/v1/{o}/shipping/'
 
 @pytest.fixture
 def cat_ord(db):
-    from apps.catalogue.models import Category
     return Category.objects.create(name='Cat Ord', slug='cat-ord', is_active=True)
 
 
 @pytest.fixture
 def prod_ord(db, cat_ord):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Collar Yoruba Test', slug='collar-yoruba-test', sku='ORD-CY-001',
         description='', category=cat_ord,
@@ -37,7 +42,6 @@ def prod_ord(db, cat_ord):
 
 
 def _create_full_order(user, prod, status='PENDING', n_items=1):
-    from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
     order = Order.objects.create(user=user, status=status)
     for i in range(n_items):
         OrderItem.objects.create(
@@ -79,7 +83,6 @@ class TestDetalleOrden:
         assert 'status_display' in data
 
     def test_rnf_sec_003_orden_ajena_retorna_404(self, auth_client, prod_ord, db):
-        from django.contrib.auth import get_user_model
         User = get_user_model()
         other = User.objects.create_user(
             username='other_ord', email='other@ord.com', password='pass'
@@ -87,7 +90,7 @@ class TestDetalleOrden:
         order = _create_full_order(other, prod_ord)
         res = auth_client.get(DETAIL_URL(order.order_number))
         assert res.status_code == 404  # nunca 403 — RNF-SEC-003
-        assert res.json()['codigo_error'] == 'ORDEN_NO_ENCONTRADA'
+        assert res.json()['codigo_error'] == 'ORDER_NOT_FOUND'
 
     def test_detalle_incluye_snapshots_br005(self, auth_client, user, prod_ord, db):
         """BR-005: el precio del item es el del checkout, no el actual."""
@@ -114,7 +117,6 @@ class TestListadoOrdenes:
     def test_listado_solo_muestra_ordenes_propias(
         self, auth_client, user, prod_ord, db
     ):
-        from django.contrib.auth import get_user_model
         User = get_user_model()
         other = User.objects.create_user(
             username='other_list', email='ol@test.com', password='pass'
@@ -147,6 +149,27 @@ class TestListadoOrdenes:
         results = res.json()['results']
         # El más reciente primero (por created_at DESC)
         assert results[0]['order_number'] == o2.order_number
+
+    def test_listado_filtro_status(
+        self, auth_client, user, prod_ord, db,
+    ):
+        """UC-ORD-03 D-08 (DEC-ORD-07): filtro por ?status."""
+        _create_full_order(user, prod_ord, status='PENDING')
+        o_delivered = _create_full_order(user, prod_ord, status='DELIVERED')
+        res = auth_client.get(f'{ORDERS_URL}?status=DELIVERED')
+        assert res.status_code == 200
+        results = res.json()['results']
+        assert len(results) == 1
+        assert results[0]['order_number'] == o_delivered.order_number
+
+    def test_listado_filtro_status_invalido_400(
+        self, auth_client, user, prod_ord, db,
+    ):
+        """UC-ORD-03 D-08: status invalido -> 400 INVALID_STATUS."""
+        _create_full_order(user, prod_ord, status='PENDING')
+        res = auth_client.get(f'{ORDERS_URL}?status=UNICORN')
+        assert res.status_code == 400
+        assert res.json()['codigo_error'] == 'INVALID_STATUS'
 
     def test_listado_incluye_campos_requeridos(
         self, auth_client, user, prod_ord, db
@@ -196,7 +219,7 @@ class TestCancelarOrden:
         order = _create_full_order(user, prod_ord, status='IN_PREPARATION')
         res = auth_client.post(CANCEL_URL(order.order_number), {}, format='json')
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'CANCELACION_NO_PERMITIDA'
+        assert res.json()['codigo_error'] == 'CANCELLATION_NOT_ALLOWED'
 
     def test_cancelar_delivered_no_permitido(
         self, auth_client, user, prod_ord, db
@@ -209,9 +232,6 @@ class TestCancelarOrden:
         self, auth_client, user, prod_ord, db
     ):
         """H-ORD-004: cancelar orden PROCESSING con Payment → reembolso automático."""
-        from apps.payments.models import Payment, Refund
-        from apps.settings_app.models import PaymentGateway
-        from unittest.mock import patch, MagicMock
 
         gw = PaymentGateway(name='MP', gateway='MERCADOPAGO', is_active=True)
         gw.set_credentials({'access_token': 'T', 'client_secret': 'S'})
@@ -246,7 +266,6 @@ class TestCancelarOrden:
     def test_cancelar_rnf_sec_003_orden_ajena_retorna_404(
         self, auth_client, prod_ord, db
     ):
-        from django.contrib.auth import get_user_model
         User = get_user_model()
         other = User.objects.create_user(
             username='other_cancel', email='oc@test.com', password='pass'
@@ -295,10 +314,9 @@ class TestEditarDireccion:
             'city': 'Z', 'state': 'W', 'zip_code': '00000',
         }, format='json')
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'DIRECCION_NO_EDITABLE'
+        assert res.json()['codigo_error'] == 'ADDRESS_NOT_EDITABLE'
 
     def test_editar_direccion_rnf_sec_003(self, auth_client, prod_ord, db):
-        from django.contrib.auth import get_user_model
         User = get_user_model()
         other = User.objects.create_user(
             username='other_addr', email='oa@test.com', password='pass'
@@ -319,7 +337,6 @@ class TestCambiarMetodoEnvio:
 
     @pytest.fixture
     def shipping_methods(self, db):
-        from apps.settings_app.models import ShippingMethod
         express = ShippingMethod.objects.create(
             name='Express', cost=Decimal('150.00'),
             estimated_days=1, is_active=True,
@@ -333,7 +350,6 @@ class TestCambiarMetodoEnvio:
     def test_cambiar_envio_recalcula_total(
         self, auth_client, user, prod_ord, shipping_methods, db
     ):
-        from apps.settings_app.models import ShippingMethod
 
         order = _create_full_order(user, prod_ord, status='PENDING')
         order.shipping_method = shipping_methods['express']
@@ -357,21 +373,26 @@ class TestCambiarMetodoEnvio:
     def test_cambiar_envio_shipped_no_permitido(
         self, auth_client, user, prod_ord, shipping_methods, db
     ):
+        """UC-ORD-06 PARTE 7.3 (DEC-ORD-04): orden en estado no-editable
+        -> 409 ORDER_NOT_EDITABLE (antes 400 METHOD_NOT_EDITABLE)."""
         order = _create_full_order(user, prod_ord, status='SHIPPED')
         res = auth_client.patch(SHIPPING_URL(order.order_number), {
             'shipping_method_id': shipping_methods['standard'].pk,
         }, format='json')
-        assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'METODO_NO_EDITABLE'
+        assert res.status_code == 409
+        assert res.json()['codigo_error'] == 'ORDER_NOT_EDITABLE'
 
     def test_cambiar_envio_inexistente_retorna_400(
         self, auth_client, user, prod_ord, db
     ):
+        """UC-ORD-06 PARTE 7.3 (DEC-ORD-04): shipping_method invalido
+        -> 400 SHIPPING_METHOD_NOT_AVAILABLE."""
         order = _create_full_order(user, prod_ord, status='PENDING')
         res = auth_client.patch(SHIPPING_URL(order.order_number), {
             'shipping_method_id': 99999,
         }, format='json')
         assert res.status_code == 400
+        assert res.json()['codigo_error'] == 'SHIPPING_METHOD_NOT_AVAILABLE'
 
 
 # =============================================================================
@@ -382,9 +403,6 @@ class TestProteccionVariantesOrdenes:
 
     def test_no_eliminar_variante_con_orden_activa(self, admin_client, prod_ord, db):
         """H-ORD-005: variante con ActiveOrder no puede eliminarse."""
-        from apps.chartsize.models import VariantType, VariantOption, ProductVariant
-        from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
-        from django.contrib.auth import get_user_model
         User = get_user_model()
 
         vtype  = VariantType.objects.create(name='Talla', product=prod_ord)

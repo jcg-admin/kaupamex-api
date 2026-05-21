@@ -2,20 +2,12 @@ import csv
 import io
 import uuid
 from django.http import HttpResponse
-from django.db import transaction
-"""
-Views — apps.catalogue
-
-Sprint 4 — UC-CAT-01
-Sprint 5 — UC-CAT-02, UC-CAT-03, UC-CAT-03-EXT, UC-SRCH-01
-Sprint 6 — UC-SRCH-02, UC-SRCH-03, UC-CAT-04, UC-CAT-05, UC-CAT-06
-"""
-import re
-import threading
+from django.db import transaction, connection
+from django.db.models import Q, Count
+from apps.catalogue.models import Product
+from django.utils import timezone
 from decimal import Decimal, InvalidOperation
-
 from django.core.cache import cache
-from django.db import connection
 from rest_framework import serializers as rf_serializers
 from rest_framework.exceptions import ValidationError, NotFound
 from rest_framework.decorators import action
@@ -28,18 +20,22 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
 from drf_spectacular.types import OpenApiTypes
-
 from .models import Category, Product, SearchHistory
-from .serializers import (
-    ProductListSerializer,
-    ProductDetailSerializer,
-    ProductSearchSerializer,
-    AutocompleteSerializer,
-    SearchHistorySerializer,
-    CategoryAdminSerializer,
-    CategoryWithCountSerializer,
-    ProductAdminSerializer,
-)
+from .serializers import ProductListSerializer, ProductDetailSerializer, ProductSearchSerializer, AutocompleteSerializer, SearchHistorySerializer, CategoryAdminSerializer, CategoryWithCountSerializer, ProductAdminSerializer
+from apps.cart.models import CartItem
+from apps.wishlist.models import WishlistItem
+import logging
+"""
+Views — apps.catalogue
+
+Sprint 4 — UC-CAT-01
+Sprint 5 — UC-CAT-02, UC-CAT-03, UC-CAT-03-EXT, UC-SRCH-01
+Sprint 6 — UC-SRCH-02, UC-SRCH-03, UC-CAT-04, UC-CAT-05, UC-CAT-06
+"""
+import re
+import threading
+
+
 
 MAX_QUERY_LENGTH = 100
 MIN_QUERY_LENGTH = 2
@@ -99,7 +95,6 @@ def _fulltext_search(qs, term: str):
     )
     if fulltext_qs.exists():
         return fulltext_qs
-    from django.db.models import Q
     return qs.filter(
         Q(name__icontains=term) |
         Q(description__icontains=term) |
@@ -468,13 +463,26 @@ class CategoryAdminViewSet(ModelViewSet):
         Soft delete: desactiva la categoría en lugar de eliminarla.
         No se puede eliminar una categoría con productos activos (FR-CAT-06.02).
         """
+        self._deactivate_category(instance)
+
+    @action(detail=True, methods=['post'], url_path='deactivate')
+    def deactivate(self, request, pk=None):
+        """T-109-A (iter 18): endpoint explicito ``POST .../deactivate/``
+        que la UI espera (UC-CAT-06). Antes solo existia DELETE; UI
+        invocaba el path por POST y recibia 405. Reusa la misma logica
+        de soft-delete que perform_destroy."""
+        instance = self.get_object()
+        self._deactivate_category(instance)
+        return Response(self.get_serializer(instance).data)
+
+    def _deactivate_category(self, instance):
         if instance.products.filter(is_active=True).exists():
             raise ValidationError({
                 'detail': (
                     'No se puede desactivar una categoria con productos activos. '
                     'Reasigna o desactiva los productos primero.'
                 ),
-                'codigo_error': 'CATEGORIA_CON_PRODUCTOS',
+                'codigo_error': 'CATEGORY_HAS_PRODUCTS',
             })
         instance.is_active = False
         instance.save(update_fields=['is_active'])
@@ -542,7 +550,6 @@ def _build_category_tree_with_counts():
     Query 2: todas las categorías activas con sus hijos (prefetch_related)
     Luego se propaga bottom-up en Python.
     """
-    from django.db.models import Count
 
     # Query 1: conteo directo por category_id
     direct_counts = dict(
@@ -628,7 +635,6 @@ class CategoryListView(APIView):
 def _count_active_carts(product) -> int:
     """Cuenta CartItems activos que contienen este producto (Sprint 12)."""
     try:
-        from apps.cart.models import CartItem
         return CartItem.objects.filter(product=product).count()
     except Exception:
         # silent OK because apps.cart es opcional (deployments parciales).
@@ -639,7 +645,6 @@ def _count_active_carts(product) -> int:
 def _count_wishlist_items(product) -> int:
     """Cuenta WishlistItems activos que contienen este producto (Sprint 14)."""
     try:
-        from apps.wishlist.models import WishlistItem
         return WishlistItem.objects.filter(product=product).count()
     except Exception:
         # silent OK because apps.wishlist es opcional. DEC-DOC-008.
@@ -674,7 +679,6 @@ class ProductDeactivateAction:
         tags=['admin-catalogue'],
     )
     def deactivate(self, request, pk=None):
-        from apps.catalogue.models import Product
         product = self.get_object()
 
         if not product.is_active:
@@ -757,7 +761,6 @@ class ProductAdminViewSet(ProductDeactivateAction, ModelViewSet):
         (``is_active=False``, ``is_published=False``). Purga las
         caches del producto y del arbol de categorias.
         """
-        from django.utils import timezone
         instance.is_active    = False
         instance.is_published = False
         instance.is_deleted   = True
@@ -830,7 +833,6 @@ class ProductPriceSyncView(APIView):
         Cada fila valida: {'sku': str, 'product': Product, 'old_price': Decimal, 'new_price': Decimal}
         Cada fila invalida: {'sku': str, 'error': str, 'line': int}
         """
-        from apps.catalogue.models import Product
         try:
             content = file_obj.read().decode('utf-8-sig')  # utf-8-sig para BOM de Excel
         except UnicodeDecodeError:
@@ -878,7 +880,6 @@ class ProductPriceSyncView(APIView):
     def _apply_percentage(self, pct: float, category_id=None,
                           price_min=None, price_max=None) -> tuple:
         """Calcula ajuste porcentual. Retorna (filas_validas, [])."""
-        from apps.catalogue.models import Product
         qs = Product.objects.filter(is_active=True).only('id', 'sku', 'price', 'name')
         if category_id:
             qs = qs.filter(category_id=category_id)
@@ -958,11 +959,9 @@ class ProductPriceSyncConfirmView(APIView):
         if validas is None:
             return Response({
                 'detail': 'Sesión expirada o no encontrada. Sube el CSV nuevamente.',
-                'codigo_error': 'SESSION_EXPIRADA',
+                'codigo_error': 'SESSION_EXPIRED',
             }, status=400)
 
-        from apps.catalogue.models import Product
-        import logging
         logger = logging.getLogger('apps')
 
         product_ids = [row['product_id'] for row in validas]
@@ -1005,7 +1004,6 @@ class ProductPriceSyncTemplateView(APIView):
         tags=['admin-catalogue'],
     )
     def get(self, request):
-        from apps.catalogue.models import Product
         response = HttpResponse(content_type='text/csv; charset=utf-8')
         response['Content-Disposition'] = 'attachment; filename="price-template.csv"'
         response.write('\ufeff')  # BOM para Excel

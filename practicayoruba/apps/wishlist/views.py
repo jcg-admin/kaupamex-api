@@ -1,17 +1,21 @@
 """Views — apps.wishlist (Sprint 14)."""
 from decimal import Decimal
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
+from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.serializers import ModelSerializer, SerializerMethodField
 from rest_framework.views import APIView
-
 from apps.catalogue.models import Product
 from apps.chartsize.models import ProductVariant
 from .models import WishlistItem
+from apps.cart.views import _get_or_create_cart
+from apps.cart.models import CartItem
+from apps.cart.serializers import CartSerializer
+
 
 
 class WishlistItemSerializer(ModelSerializer):
@@ -123,15 +127,18 @@ class WishlistMoveToCartView(APIView):
     def post(self, request, pk):
         item = get_object_or_404(WishlistItem, pk=pk, user=request.user)
         if not item.is_available:
-            raise ValidationError({
-                'detail': 'Este producto no está disponible.',
-                'codigo_error': 'PRODUCTO_NO_DISPONIBLE',
-            })
+            # UC-WISH-03 EX-01 + PARTE 7.3 (T-104 D-05 SPLIT chica):
+            # producto sin stock o inactivo -> HTTP 409 state conflict
+            # con codigo_error PRODUCT_OUT_OF_STOCK (alineado al UC).
+            # Antes raise ValidationError -> DRF 400 generico, codigo
+            # PRODUCT_UNAVAILABLE no documentado en UC.
+            return Response(
+                {'detail': 'Este producto no esta disponible.',
+                 'codigo_error': 'PRODUCT_OUT_OF_STOCK'},
+                status=status.HTTP_409_CONFLICT,
+            )
 
         # Reutilizar la lógica de agregar al carrito (H-S14-006)
-        from apps.cart.views import _get_or_create_cart
-        from apps.cart.models import CartItem
-        from django.db import transaction
 
         cart, _, _ = _get_or_create_cart(request)
         unit_price = item.current_price
@@ -155,5 +162,4 @@ class WishlistMoveToCartView(APIView):
         if remove:
             item.delete()
 
-        from apps.cart.serializers import CartSerializer
         return Response(CartSerializer(cart).data, status=200)

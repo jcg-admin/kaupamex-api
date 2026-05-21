@@ -19,16 +19,11 @@ from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
 from apps.orders.models import Order
-
 from .models import Courier, ShipmentEvent, ShipmentGuide
-from .serializers import (
-    CourierSerializer,
-    ShipmentEventSerializer,
-    ShipmentGuideCreateSerializer,
-    ShipmentGuideSerializer,
-)
+from .serializers import CourierSerializer, ShipmentEventSerializer, ShipmentGuideCreateSerializer, ShipmentGuideSerializer
+
+
 
 
 class _AdminOnly:
@@ -80,7 +75,7 @@ class LogisticsPanelView(_AdminOnly, APIView):
             except (TypeError, ValueError):
                 raise ValidationError({
                     'detail': 'courier_id invalido.',
-                    'codigo_error': 'COURIER_ID_INVALIDO',
+                    'codigo_error': 'COURIER_ID_INVALID',
                 })
             group_b_qs = group_b_qs.filter(courier_id=cid)
 
@@ -160,7 +155,7 @@ class ShipmentGuideDetailView(_AdminOnly, APIView):
             guide = ShipmentGuide.objects.select_related('order', 'courier').get(pk=pk)
         except ShipmentGuide.DoesNotExist:
             raise NotFound({'detail': 'Guia no encontrada.',
-                            'codigo_error': 'GUIA_NO_ENCONTRADA'})
+                            'codigo_error': 'SHIPMENT_GUIDE_NOT_FOUND'})
         data = ShipmentGuideSerializer(guide).data
         data['events'] = ShipmentEventSerializer(guide.events.all(), many=True).data
         return Response(data)
@@ -175,19 +170,19 @@ class ShipmentGuideDetailView(_AdminOnly, APIView):
             guide = ShipmentGuide.objects.select_for_update().get(pk=pk)
         except ShipmentGuide.DoesNotExist:
             raise NotFound({'detail': 'Guia no encontrada.',
-                            'codigo_error': 'GUIA_NO_ENCONTRADA'})
+                            'codigo_error': 'SHIPMENT_GUIDE_NOT_FOUND'})
 
         new_status = request.data.get('status')
         if not new_status:
             raise ValidationError({
                 'detail': 'status requerido.',
-                'codigo_error': 'STATUS_REQUERIDO',
+                'codigo_error': 'STATUS_REQUIRED',
             })
         valid_codes = {code for code, _ in ShipmentGuide.STATUSES}
         if new_status not in valid_codes:
             raise ValidationError({
                 'detail': f'status invalido: {new_status}.',
-                'codigo_error': 'STATUS_INVALIDO',
+                'codigo_error': 'STATUS_INVALID',
             })
 
         description = (request.data.get('description') or '').strip()
@@ -223,13 +218,13 @@ class ConfirmDeliveryView(_AdminOnly, APIView):
         except ShipmentGuide.DoesNotExist:
             raise NotFound({
                 'detail': 'Guia no encontrada.',
-                'codigo_error': 'GUIA_NO_ENCONTRADA',
+                'codigo_error': 'SHIPMENT_GUIDE_NOT_FOUND',
             })
 
         if guide.status == ShipmentGuide.STATUS_CANCELLED:
             raise ValidationError({
                 'detail': 'No se puede confirmar la entrega de una guia cancelada.',
-                'codigo_error': 'GUIA_CANCELADA',
+                'codigo_error': 'SHIPMENT_GUIDE_CANCELLED',
             })
 
         already = guide.status == ShipmentGuide.STATUS_DELIVERED

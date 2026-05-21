@@ -20,16 +20,11 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
 from apps.catalogue.models import Product
-
 from .models import ProductQuestion, QuestionStatus
-from .serializers import (
-    AdminAnswerSerializer,
-    AdminQuestionItemSerializer,
-    PublicQuestionCreateSerializer,
-    PublicQuestionItemSerializer,
-)
+from .serializers import AdminAnswerSerializer, AdminQuestionItemSerializer, PublicQuestionCreateSerializer, PublicQuestionItemSerializer
+
+
 
 
 # ── public ────────────────────────────────────────────────────────────

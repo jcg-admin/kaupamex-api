@@ -7,20 +7,23 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView
-
-from apps.catalogue.models import Product
+from apps.catalogue.models import Product, Category
 from apps.chartsize.models import ProductVariant
 from apps.settings_app.models import SiteSettings
-
 from rest_framework import serializers
-
 from .models import StockMovement, StockAlert
-from .serializers import (
-    StockDashboardSerializer, StockMovementSerializer,
-    StockAlertSerializer, StockAdjustSerializer,
-    VariantAdjustNewQuantitySerializer,
-)
+from .serializers import StockDashboardSerializer, StockMovementSerializer, StockAlertSerializer, StockAdjustSerializer, VariantAdjustNewQuantitySerializer
 from .services import InventoryService, _get_stock_status
+from django.urls import reverse
+from decimal import Decimal
+from django.shortcuts import get_object_or_404
+from django.http import HttpResponse
+from django.core.cache import cache
+from django.utils.text import slugify
+from rest_framework.parsers import MultiPartParser
+
+
+
 
 logger = logging.getLogger(__name__)
 
@@ -164,7 +167,6 @@ class StockAdjustView(APIView):
         tags=['inventory'],
     )
     def post(self, request, product_pk):
-        from django.shortcuts import get_object_or_404
         product = get_object_or_404(Product, pk=product_pk, is_active=True)
         s = StockAdjustSerializer(data=request.data)
         s.is_valid(raise_exception=True)
@@ -211,7 +213,6 @@ class VariantStockAdjustView(APIView):
         tags=['inventory'],
     )
     def post(self, request, variant_pk):
-        from django.shortcuts import get_object_or_404
         variant = get_object_or_404(ProductVariant, pk=variant_pk, is_active=True)
 
         if 'new_quantity' in request.data:
@@ -235,7 +236,7 @@ class VariantStockAdjustView(APIView):
         if new_qty < 0:
             return Response({
                 'detail': f'El ajuste resultaría en stock negativo ({new_qty}).',
-                'codigo_error': 'STOCK_NEGATIVO_NO_PERMITIDO',
+                'codigo_error': 'NEGATIVE_STOCK_NOT_ALLOWED',
             }, status=422)
 
         notes = f'{reason}: {obs}' if obs else reason
@@ -283,7 +284,6 @@ class VariantMovementsView(ListAPIView):
         tags=['inventory'],
     )
     def get(self, request, variant_pk):
-        from django.shortcuts import get_object_or_404
         variant = get_object_or_404(ProductVariant, pk=variant_pk)
         qs = (StockMovement.objects
               .filter(variant=variant)
@@ -313,9 +313,6 @@ class StockAlertListView(ListAPIView):
 # =============================================================================
 
 import csv, io, threading, uuid
-from django.core.cache import cache
-from django.utils.text import slugify
-from rest_framework.parsers import MultiPartParser
 
 
 IMPORT_JOB_TTL    = 3600   # 1 hora
@@ -330,7 +327,6 @@ def _persist_report(report_id: str, error_report: list) -> None:
 
 def _build_download_url(request, report_id: str) -> str:
     """Construye la URL absoluta del CSV descargable (UC-INV-05 Alt C, D-006)."""
-    from django.urls import reverse
     try:
         path = reverse('admin_inventory:product-import-report',
                        kwargs={'report_id': report_id})
@@ -362,7 +358,6 @@ def _process_import_csv(content: bytes, user, initial_state: str = 'BORRADOR',
 
     Tolerante a fallos: si una fila falla, las demás siguen procesándose.
     """
-    from apps.catalogue.models import Category, Product
 
     is_active_flag    = (initial_state or 'BORRADOR').upper() == 'ACTIVO'
     is_published_flag = is_active_flag
@@ -380,7 +375,7 @@ def _process_import_csv(content: bytes, user, initial_state: str = 'BORRADOR',
         return {
             'status':       'ERROR',
             # Códigos legacy + nuevo (UI agent UC-INV-05).
-            'codigo_error': 'ENCABEZADO_CSV_INVALIDO',
+            'codigo_error': 'CSV_HEADER_INVALID',
             'detail':       f'Columnas faltantes: {", ".join(sorted(missing))}',
             # legacy
             'created':           0,
@@ -415,7 +410,6 @@ def _process_import_csv(content: bytes, user, initial_state: str = 'BORRADOR',
             continue
 
         try:
-            from decimal import Decimal
             price_dec = Decimal(price)
             if price_dec <= 0:
                 raise ValueError('precio <= 0')
@@ -535,7 +529,7 @@ class ProductImportView(APIView):
                 content, request.user, initial_state, request=request,
             )
             # Encabezado inválido → 422 ENCABEZADO_CSV_INVALIDO (UC-INV-05).
-            if result.get('codigo_error') == 'ENCABEZADO_CSV_INVALIDO':
+            if result.get('codigo_error') == 'CSV_HEADER_INVALID':
                 return Response(result, status=422)
             return Response(result, status=200)
         else:
@@ -580,7 +574,7 @@ class ProductImportStatusView(APIView):
         result = cache.get(f'import_job:{job_id}')
         if result is None:
             return Response({'detail': 'Job no encontrado o expirado.',
-                             'codigo_error': 'JOB_NO_ENCONTRADO'}, status=404)
+                             'codigo_error': 'JOB_NOT_FOUND'}, status=404)
         return Response(result)
 
 
@@ -601,12 +595,11 @@ class ProductImportReportView(APIView):
         tags=['inventory'],
     )
     def get(self, request, report_id):
-        from django.http import HttpResponse
         report = cache.get(f'import_report:{report_id}')
         if report is None:
             return Response(
                 {'detail':       'Reporte no encontrado o expirado.',
-                 'codigo_error': 'REPORTE_NO_ENCONTRADO'},
+                 'codigo_error': 'REPORT_NOT_FOUND'},
                 status=404,
             )
         buf = io.StringIO()

@@ -9,8 +9,8 @@ Refactorizado en sprint de infraestructura: herencia-modelos-django
 """
 from django.conf import settings
 from django.db import models
-
 from apps.core.models import TimeStampedModel
+
 
 
 class StockMovement(TimeStampedModel):

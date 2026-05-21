@@ -4,6 +4,9 @@ UC-AUTH-10 + FR-AUTH-01.05 (envio en registro)
 """
 import pytest
 from django.core import mail
+from django.contrib.auth import get_user_model
+from apps.users.models import EmailVerificationToken
+from apps.users.tokens_email import create_verification_token
 
 pytestmark = pytest.mark.integration
 
@@ -14,7 +17,6 @@ REGISTER_URL = '/api/v1/auth/register/'
 
 @pytest.fixture
 def inactive_user(db):
-    from django.contrib.auth import get_user_model
     User = get_user_model()
     return User.objects.create_user(
         username='unverifuser',
@@ -27,14 +29,12 @@ def inactive_user(db):
 class TestEmailVerification:
 
     def _get_verify_token(self, inactive_user):
-        from apps.users.models import EmailVerificationToken
         token_obj = EmailVerificationToken.objects.filter(
             user=inactive_user, used_at__isnull=True
         ).first()
         return token_obj.plain_token if token_obj else None
 
     def test_token_valido_activa_cuenta(self, api_client, inactive_user, db):
-        from apps.users.tokens_email import create_verification_token
         plain = create_verification_token(inactive_user)
         r = api_client.post(VERIFY_URL, {'token': plain}, format='json')
         assert r.status_code == 200
@@ -47,7 +47,6 @@ class TestEmailVerification:
 
     def test_token_ya_usado_retorna_200_idempotente(self, api_client, inactive_user, db):
         """FR-AUTH-10.02: si la cuenta ya esta activa, 200 (idempotente)."""
-        from apps.users.tokens_email import create_verification_token
         plain = create_verification_token(inactive_user)
         api_client.post(VERIFY_URL, {'token': plain}, format='json')
         inactive_user.refresh_from_db()
@@ -56,9 +55,6 @@ class TestEmailVerification:
 
     def test_verificacion_token_se_crea_al_registrar(self, api_client, db):
         """FR-AUTH-01.05: al crear usuario inactivo se genera token de verificacion."""
-        from django.contrib.auth import get_user_model
-        from apps.users.tokens_email import create_verification_token
-        from apps.users.models import EmailVerificationToken
         User = get_user_model()
         u = User.objects.create_user(
             username='newuser2', email='newuser2@test.mx',
@@ -85,10 +81,9 @@ class TestEmailVerification:
             'password': 'TestPass123!',
         }, format='json')
         assert r.status_code == 401
-        assert 'EMAIL_NO_VERIFICADO' in str(r.json())
+        assert 'EMAIL_NOT_VERIFIED' in str(r.json())
 
     def test_login_cuenta_verificada_funciona(self, api_client, inactive_user, db):
-        from apps.users.tokens_email import create_verification_token
         plain = create_verification_token(inactive_user)
         api_client.post(VERIFY_URL, {'token': plain}, format='json')
         r = api_client.post('/api/v1/auth/login/', {

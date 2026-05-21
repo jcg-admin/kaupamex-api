@@ -7,10 +7,15 @@ Identifiers + JSON keys in English (DEC-DOC-005).
 """
 from datetime import timedelta
 from decimal import Decimal
-
-from django.db.models import Count, F, Sum
+from django.db.models import Count, F, Sum, Max as models_Max
 from django.db.models.functions import TruncDate
 from django.utils import timezone
+from apps.orders.models import Order, OrderValue, OrderItem
+from apps.payments.models import Payment
+from apps.catalogue.models import Product
+from apps.inventory.models import StockAlert
+from apps.support.models import SupportTicket
+
 
 
 # ────────────────────────── Period parsing ─────────────────────────────────
@@ -45,8 +50,6 @@ def period_window(days: int):
 # ────────────────────────── UC-REP-01 sales ────────────────────────────────
 
 def build_sales_payload(period_days: int) -> dict:
-    from apps.orders.models import Order, OrderValue
-    from apps.payments.models import Payment
 
     start, end = period_window(period_days)
     prev_start = start - timedelta(days=period_days)
@@ -135,8 +138,6 @@ def build_sales_payload(period_days: int) -> dict:
 # ────────────────────────── UC-REP-02 top sellers ──────────────────────────
 
 def build_top_sellers_payload(period_days: int, limit: int = 10) -> dict:
-    from apps.catalogue.models import Product
-    from apps.orders.models import OrderItem
 
     start, end = period_window(period_days)
 
@@ -181,9 +182,6 @@ def build_top_sellers_payload(period_days: int, limit: int = 10) -> dict:
 # ────────────────────────── UC-REP-03 dashboard ────────────────────────────
 
 def build_dashboard_payload() -> dict:
-    from apps.inventory.models import StockAlert
-    from apps.orders.models import Order, OrderItem, OrderValue
-    from apps.support.models import SupportTicket
 
     now = timezone.now()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -270,7 +268,6 @@ def _segment(recency_days: int, frequency: int, monetary: Decimal) -> str:
 
 
 def build_rfm_payload(period_days: int, segment_filter: str | None = None) -> dict:
-    from apps.orders.models import Order, OrderValue
 
     start, end = period_window(period_days)
     now = timezone.now()
@@ -325,4 +322,3 @@ def build_rfm_payload(period_days: int, segment_filter: str | None = None) -> di
 
 # `Max` import — placed at the bottom to avoid shadowing the module-level
 # `models` reference if it were used elsewhere; isolated for clarity.
-from django.db.models import Max as models_Max  # noqa: E402

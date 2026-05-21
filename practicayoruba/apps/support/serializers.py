@@ -4,8 +4,9 @@ Serializers — apps.support.
 Cumplen los contratos JSON declarados en UC-SUPP-01..05 (PARTE 7C).
 """
 from rest_framework import serializers
-
 from .models import SupportTicket, SupportTicketReply
+from apps.orders.models import Order
+
 
 
 class SupportTicketCreateSerializer(serializers.Serializer):
@@ -41,7 +42,6 @@ class SupportTicketCreateSerializer(serializers.Serializer):
         if request is None or not getattr(request.user, 'is_authenticated', False):
             return value  # las views protegen con IsAuthenticated
         # Import diferido para evitar ciclos en apps cargando.
-        from apps.orders.models import Order
         if not Order.objects.filter(pk=value, user=request.user).exists():
             raise serializers.ValidationError({
                 'error_code': 'ORDER_NOT_FOUND',

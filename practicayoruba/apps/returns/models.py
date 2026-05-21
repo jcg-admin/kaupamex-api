@@ -9,8 +9,8 @@ ReturnHistoryEntry: pista de auditoria (UC-RET-04 expone el historial).
 """
 from django.conf import settings
 from django.db import models
-
 from apps.core.models import SoftDeleteModel, TimeStampedModel
+
 
 
 class ReturnRequest(TimeStampedModel, SoftDeleteModel):

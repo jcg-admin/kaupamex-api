@@ -13,7 +13,6 @@ Admin endpoints:
   GET    /api/v1/admin/support/tickets/           UC-SUPP-05 queue
 """
 from datetime import timedelta
-
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -24,17 +23,10 @@ from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
 from .models import SupportTicket, SupportTicketReply
-from .serializers import (
-    SupportTicketCloseSerializer,
-    SupportTicketCreateResponseSerializer,
-    SupportTicketCreateSerializer,
-    SupportTicketDetailSerializer,
-    SupportTicketListSerializer,
-    SupportTicketReplyCreateSerializer,
-    SupportTicketReplySerializer,
-)
+from .serializers import SupportTicketCloseSerializer, SupportTicketCreateResponseSerializer, SupportTicketCreateSerializer, SupportTicketDetailSerializer, SupportTicketListSerializer, SupportTicketReplyCreateSerializer, SupportTicketReplySerializer
+
+
 
 HIGH_PRIORITY_CATEGORIES = {
     SupportTicket.Category.URGENT,

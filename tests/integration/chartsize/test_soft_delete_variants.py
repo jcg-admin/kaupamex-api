@@ -8,6 +8,9 @@ DEC-DOC-007: las variantes son referenciadas desde OrderItem/CartItem
 y deben preservar historial.
 """
 from decimal import Decimal
+from apps.catalogue.models import Category, Product
+from apps.chartsize.models import ProductVariant, VariantOption, VariantType
+from apps.core.models import SoftDeleteModel
 
 import pytest
 
@@ -16,8 +19,6 @@ pytestmark = pytest.mark.integration
 
 @pytest.fixture
 def variant_chain(db):
-    from apps.catalogue.models import Category, Product
-    from apps.chartsize.models import ProductVariant, VariantOption, VariantType
     cat = Category.objects.create(name='Cat CHT', slug='cat-cht')
     product = Product.objects.create(
         category=cat, name='Variant Prod', slug='variant-prod',
@@ -36,8 +37,6 @@ class TestVariantTypeSoftDelete:
 
     @pytest.mark.django_db
     def test_inherits_softdeletemodel(self):
-        from apps.chartsize.models import VariantType
-        from apps.core.models import SoftDeleteModel
         assert issubclass(VariantType, SoftDeleteModel)
         assert hasattr(VariantType, 'all_objects')
 
@@ -46,8 +45,6 @@ class TestVariantOptionSoftDelete:
 
     @pytest.mark.django_db
     def test_inherits_softdeletemodel(self):
-        from apps.chartsize.models import VariantOption
-        from apps.core.models import SoftDeleteModel
         assert issubclass(VariantOption, SoftDeleteModel)
         assert hasattr(VariantOption, 'all_objects')
 
@@ -56,14 +53,11 @@ class TestProductVariantSoftDelete:
 
     @pytest.mark.django_db
     def test_inherits_softdeletemodel(self):
-        from apps.chartsize.models import ProductVariant
-        from apps.core.models import SoftDeleteModel
         assert issubclass(ProductVariant, SoftDeleteModel)
         assert hasattr(ProductVariant, 'all_objects')
 
     @pytest.mark.django_db
     def test_delete_hides_from_default_manager(self, variant_chain):
-        from apps.chartsize.models import ProductVariant
         pv = variant_chain['variant']
         pk = pv.pk
         pv.delete()
@@ -74,7 +68,6 @@ class TestProductVariantSoftDelete:
 
     @pytest.mark.django_db
     def test_restore(self, variant_chain):
-        from apps.chartsize.models import ProductVariant
         pv = variant_chain['variant']
         pv.delete()
         ProductVariant.all_objects.get(pk=pv.pk).restore()
@@ -82,7 +75,6 @@ class TestProductVariantSoftDelete:
 
     @pytest.mark.django_db
     def test_hard_delete_removes(self, variant_chain):
-        from apps.chartsize.models import ProductVariant
         pv = variant_chain['variant']
         pk = pv.pk
         pv.hard_delete()

@@ -7,6 +7,9 @@ UC-WISH-03: Move wishlist item to cart
 """
 import pytest
 from decimal import Decimal
+from apps.catalogue.models import Category, Product
+from apps.chartsize.models import VariantType, VariantOption, ProductVariant
+from apps.wishlist.models import WishlistItem
 pytestmark = pytest.mark.integration
 
 WISH_URL = '/api/v1/wishlist/'
@@ -14,13 +17,11 @@ WISH_URL = '/api/v1/wishlist/'
 
 @pytest.fixture
 def cat_s14(db):
-    from apps.catalogue.models import Category
     return Category.objects.create(name='Cat S14', slug='cat-s14', is_active=True)
 
 
 @pytest.fixture
 def prod_s14(db, cat_s14):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Prod S14', slug='prod-s14', sku='S14-001',
         description='', category=cat_s14,
@@ -31,7 +32,6 @@ def prod_s14(db, cat_s14):
 
 @pytest.fixture
 def variant_s14(db, prod_s14):
-    from apps.chartsize.models import VariantType, VariantOption, ProductVariant
     vt = VariantType.objects.create(product=prod_s14, name='Talla', order=0)
     opt = VariantOption.objects.create(
         variant_type=vt, label='L', slug='l-s14', order=0)
@@ -101,18 +101,22 @@ class TestWishlist:
         assert item['price_changed'] is True
         assert item['current_price'] == '900.00'
 
-    def test_move_without_stock_returns_400(self, auth_client, prod_s14, db):
+    def test_move_without_stock_returns_409(self, auth_client, prod_s14, db):
+        """UC-WISH-03 EX-01 + PARTE 7.3 (T-104 D-05): producto sin
+        stock -> 409 PRODUCT_OUT_OF_STOCK (state conflict, NO 400
+        request error). Anti-soft-on-tests: test antes asertaba el
+        comportamiento del bug (400 generico, codigo_error
+        PRODUCT_UNAVAILABLE no documentado en UC)."""
         prod_s14.stock = 0
         prod_s14.save()
         res = auth_client.post(WISH_URL, {'product_id': prod_s14.pk}, format='json')
         item_id = res.json()['id']
         move_res = auth_client.post(f'{WISH_URL}{item_id}/move-to-cart/', format='json')
-        assert move_res.status_code == 400
-        assert move_res.json()['codigo_error'] == 'PRODUCTO_NO_DISPONIBLE'
+        assert move_res.status_code == 409
+        assert move_res.json()['codigo_error'] == 'PRODUCT_OUT_OF_STOCK'
 
     def test_delete_is_soft(self, auth_client, prod_s14, db):
         """DEC-DOC-007: delete marca is_deleted=True, no borra fisicamente."""
-        from apps.wishlist.models import WishlistItem
         res = auth_client.post(WISH_URL, {'product_id': prod_s14.pk}, format='json')
         item_id = res.json()['id']
         auth_client.delete(f'{WISH_URL}{item_id}/')
@@ -125,7 +129,6 @@ class TestWishlist:
 
     def test_re_add_after_soft_delete_reactiva(self, auth_client, prod_s14, db):
         """Re-agregar un producto previamente borrado reactiva la fila."""
-        from apps.wishlist.models import WishlistItem
         res1 = auth_client.post(WISH_URL, {'product_id': prod_s14.pk}, format='json')
         item_id = res1.json()['id']
         auth_client.delete(f'{WISH_URL}{item_id}/')

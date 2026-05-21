@@ -6,27 +6,30 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
-
-from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import serializers as drf_serializers
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
+from drf_spectacular.utils import extend_schema, OpenApiParameter
+from .models import UserDeactivationEvent
+from .serializers import AdminUserListSerializer
+from .tokens_email import invalidate_all_sessions
 
 import rest_framework.pagination
-from .serializers import AdminUserListSerializer
+
+
+
+User = get_user_model()
 
 
 class AdminUserPagination(rest_framework.pagination.PageNumberPagination):
     page_size = 20
     page_size_query_param = 'page_size'
     max_page_size = 100
-from .tokens_email import invalidate_all_sessions
-
-User = get_user_model()
 
 
 class AdminUserDetailSerializer(AdminUserListSerializer):
@@ -116,15 +119,22 @@ class AdminUserViewSet(ModelViewSet):
         is_active = self.request.query_params.get('is_active')
         is_staff  = self.request.query_params.get('is_staff')
         if search:
-            from django.db.models import Q
+            # Q ya importado al top del modulo
             qs = qs.filter(
                 Q(username__icontains=search) | Q(email__icontains=search) |
                 Q(first_name__icontains=search) | Q(last_name__icontains=search)
             )
+        # UC-AUTH-11 + GAP-3: el admin filtra por motivo concreto de
+        # inactividad para decidir el camino correcto (suspended
+        # requiere UC-AUTH-14; unverified/self_deleted esperan
+        # UC-AUTH-01 Alt-A.2).
+        deactivated_reason = self.request.query_params.get('deactivated_reason')
         if is_active is not None:
             qs = qs.filter(is_active=(is_active.lower() == 'true'))
         if is_staff is not None:
             qs = qs.filter(is_staff=(is_staff.lower() == 'true'))
+        if deactivated_reason:
+            qs = qs.filter(deactivated_reason=deactivated_reason)
         return qs
 
     @extend_schema(summary='Listar usuarios', tags=['admin'])
@@ -170,8 +180,23 @@ class AdminUserViewSet(ModelViewSet):
             )
         with transaction.atomic():
             target.is_active = False
-            target.save(update_fields=['is_active'])
+            # GAP-3 cierre: registrar la causa explicita para que
+            # ResendVerificationView no reactive por email (UC-AUTH-01
+            # Alt-A.3). Solo UC-AUTH-14 restaura cuentas suspendidas.
+            target.deactivated_reason = User.DEACTIVATION_SUSPENDED
+            target.deactivated_at = timezone.now()
+            target.save(update_fields=[
+                'is_active', 'deactivated_reason', 'deactivated_at',
+            ])
             invalidate_all_sessions(target)
+            # GAP 10: audit log del evento (append-only).
+            UserDeactivationEvent.objects.create(
+                user=target,
+                reason=User.DEACTIVATION_SUSPENDED,
+                source=UserDeactivationEvent.SOURCE_ADMIN,
+                actor=request.user,
+                note=request.data.get('note', '')[:255],
+            )
         return Response({'message': f'Cuenta de {target.username} suspendida.'})
 
     @extend_schema(
@@ -184,5 +209,10 @@ class AdminUserViewSet(ModelViewSet):
         _require_admin(request.user)
         target = self.get_object()
         target.is_active = True
-        target.save(update_fields=['is_active'])
+        # Limpiar la causa para que el estado quede consistente.
+        target.deactivated_reason = None
+        target.deactivated_at = None
+        target.save(update_fields=[
+            'is_active', 'deactivated_reason', 'deactivated_at',
+        ])
         return Response({'message': f'Cuenta de {target.username} reactivada.'})

@@ -9,6 +9,10 @@ UC-CART-06: Merge anonymous cart on login
 """
 import uuid, pytest
 from decimal import Decimal
+from apps.catalogue.models import Category, Product
+from apps.chartsize.models import VariantType, VariantOption, ProductVariant
+from apps.cart.models import Cart, CartItem, SavedCart
+from apps.users.models import User
 
 pytestmark = pytest.mark.integration
 
@@ -20,13 +24,11 @@ MERGE_URL = '/api/v1/cart/merge/'
 
 @pytest.fixture
 def cat_s12(db):
-    from apps.catalogue.models import Category
     return Category.objects.create(name='Cat S12', slug='cat-s12', is_active=True)
 
 
 @pytest.fixture
 def product_sin_variante(db, cat_s12):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Prod Sin Variante', slug='prod-sin-var-s12', sku='S12-SV-001',
         description='', category=cat_s12,
@@ -37,7 +39,6 @@ def product_sin_variante(db, cat_s12):
 
 @pytest.fixture
 def product_con_variante(db, cat_s12):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Prod Con Variante', slug='prod-con-var-s12', sku='S12-CV-001',
         description='', category=cat_s12,
@@ -48,7 +49,6 @@ def product_con_variante(db, cat_s12):
 
 @pytest.fixture
 def variant_s12(db, product_con_variante):
-    from apps.chartsize.models import VariantType, VariantOption, ProductVariant
     vt = VariantType.objects.create(
         product=product_con_variante, name='Tamaño', order=0
     )
@@ -87,12 +87,18 @@ class TestAgregarProducto:
     def test_agregar_producto_sin_variante_retorna_201(
         self, api_client, product_sin_variante, db
     ):
+        # DEC-BC-02 + DEC-BC-08: POST /cart/items/ retorna Cart shape
+        # (no item suelto) + 201 si insert, 200 si merge. Single
+        # contract: UI nunca calcula totales ni asume shape.
         res = api_client.post(ITEMS_URL, {
             'product_id': product_sin_variante.pk,
             'quantity': 2,
         }, format='json')
         assert res.status_code == 201
-        assert res.json()['quantity'] == 2
+        body = res.json()
+        assert 'items' in body and len(body['items']) == 1
+        assert body['items'][0]['quantity'] == 2
+        assert 'totals' in body
         assert 'X-Cart-Token' in res  # se genera token para anonimo
 
     def test_agregar_producto_con_variante(
@@ -104,7 +110,8 @@ class TestAgregarProducto:
             'quantity': 1,
         }, format='json')
         assert res.status_code == 201
-        assert res.json()['variant_label'] == 'Mediana'
+        body = res.json()
+        assert body['items'][0]['variant_label'] == 'Mediana'
 
     def test_agregar_sin_variante_cuando_producto_la_requiere_retorna_400(
         self, api_client, product_con_variante, variant_s12, db
@@ -115,22 +122,29 @@ class TestAgregarProducto:
             'quantity': 1,
         }, format='json')
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'VARIANTE_REQUERIDA'
+        assert res.json()['codigo_error'] == 'VARIANT_REQUIRED'
 
     def test_upsert_incrementa_cantidad_existente(
         self, api_client, product_sin_variante, db
     ):
-        """FR-CART-01.02 Escenario 2: item ya existente suma cantidad."""
+        """FR-CART-01.02 Escenario 2: item ya existente suma cantidad.
+
+        DEC-BC-08: status 201 si insert (primer add), 200 si merge
+        (segundo add sobre item existente).
+        """
         res1 = api_client.post(ITEMS_URL, {
             'product_id': product_sin_variante.pk, 'quantity': 1,
         }, format='json')
+        assert res1.status_code == 201  # primer add: insert
         token = res1['X-Cart-Token']
         api_client.credentials(HTTP_X_CART_TOKEN=token)
         res2 = api_client.post(ITEMS_URL, {
             'product_id': product_sin_variante.pk, 'quantity': 2,
         }, format='json')
-        assert res2.status_code == 201
-        assert res2.json()['quantity'] == 3  # 1 + 2
+        assert res2.status_code == 200  # segundo add: merge
+        body = res2.json()
+        assert len(body['items']) == 1
+        assert body['items'][0]['quantity'] == 3  # 1 + 2
 
     def test_stock_insuficiente_retorna_400(
         self, api_client, product_sin_variante, db
@@ -141,7 +155,7 @@ class TestAgregarProducto:
             'product_id': product_sin_variante.pk, 'quantity': 5,
         }, format='json')
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'STOCK_INSUFICIENTE'
+        assert res.json()['codigo_error'] == 'INSUFFICIENT_STOCK'
 
     def test_anonimo_recibe_cart_token_en_header(
         self, api_client, product_sin_variante, db
@@ -197,12 +211,17 @@ class TestVerCarrito:
     def test_editar_cantidad_item(
         self, anon_client_with_cart, product_sin_variante, db
     ):
+        # DEC-BC-02 + DEC-BC-08: PATCH /cart/items/<id>/ retorna Cart
+        # shape (con items + totals), no item suelto.
         client, _ = anon_client_with_cart
         cart_data = client.get(CART_URL).json()
         item_id = cart_data['items'][0]['id']
         res = client.patch(f'{ITEMS_URL}{item_id}/', {'quantity': 3}, format='json')
         assert res.status_code == 200
-        assert res.json()['quantity'] == 3
+        body = res.json()
+        item = next(i for i in body['items'] if i['id'] == item_id)
+        assert item['quantity'] == 3
+        assert 'totals' in body
 
     def test_editar_cantidad_mayor_al_stock_retorna_400(
         self, anon_client_with_cart, product_sin_variante, db
@@ -222,14 +241,21 @@ class TestVerCarrito:
 
 class TestEliminarItem:
 
-    def test_eliminar_item_retorna_204(
+    def test_eliminar_item_retorna_cart_actualizado(
         self, anon_client_with_cart, db
     ):
+        # DEC-BC-02 + DEC-BC-08: DELETE /cart/items/<id>/ retorna
+        # Cart actualizado (200) en lugar de 204. UI usa setCart
+        # sin necesidad de re-fetch para refrescar totals.
         client, _ = anon_client_with_cart
         cart_data = client.get(CART_URL).json()
         item_id = cart_data['items'][0]['id']
         res = client.delete(f'{ITEMS_URL}{item_id}/')
-        assert res.status_code == 204
+        assert res.status_code == 200
+        body = res.json()
+        assert 'items' in body
+        assert all(i['id'] != item_id for i in body['items'])
+        assert 'totals' in body
 
     def test_eliminar_item_actualiza_carrito(
         self, anon_client_with_cart, db
@@ -245,7 +271,6 @@ class TestEliminarItem:
         self, api_client, product_sin_variante, db
     ):
         """No se puede eliminar un item de otro carrito."""
-        from apps.cart.models import Cart, CartItem
         other_cart = Cart.objects.create(cart_token=uuid.uuid4())
         item = CartItem.objects.create(
             cart=other_cart, product=product_sin_variante,
@@ -278,7 +303,7 @@ class TestGuardarCarrito:
     def test_guardar_carrito_vacio_retorna_400(self, auth_client, db):
         res = auth_client.post(SAVE_URL)
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'CARRITO_VACIO'
+        assert res.json()['codigo_error'] == 'EMPTY_CART'
 
     def test_guardar_carrito_con_items(
         self, auth_client, product_sin_variante, db
@@ -293,7 +318,6 @@ class TestGuardarCarrito:
     def test_guardar_reemplaza_carrito_guardado_anterior(
         self, auth_client, product_sin_variante, db
     ):
-        from apps.cart.models import SavedCart
         auth_client.post(ITEMS_URL, {
             'product_id': product_sin_variante.pk, 'quantity': 1,
         }, format='json')
@@ -302,7 +326,6 @@ class TestGuardarCarrito:
             'product_id': product_sin_variante.pk, 'quantity': 3,
         }, format='json')
         auth_client.post(SAVE_URL)
-        from apps.users.models import User
         user = User.objects.get(username='testuser')
         saved = SavedCart.objects.get(user=user)
         assert saved.items.count() == 1
@@ -322,8 +345,6 @@ class TestFusionarCarrito:
         self, auth_client, product_sin_variante, db
     ):
         """FC-CART-06 Escenario principal: fusión de carrito anónimo."""
-        import uuid
-        from apps.cart.models import Cart, CartItem
         # Crear carrito anónimo directamente en BD
         anon_token = uuid.uuid4()
         anon_cart = Cart.objects.create(cart_token=anon_token, user=None)
@@ -345,8 +366,6 @@ class TestFusionarCarrito:
         self, auth_client, product_sin_variante, db
     ):
         """El usuario ya tenía 1 item; el anónimo tenía 2 del mismo → total 3."""
-        import uuid
-        from apps.cart.models import Cart, CartItem
         # El auth_client agrega 1 item propio
         auth_client.post(ITEMS_URL, {
             'product_id': product_sin_variante.pk, 'quantity': 1,
@@ -388,7 +407,6 @@ class TestProteccionVarianteConCartItems:
         self, admin_client, product_con_variante, variant_s12, db
     ):
         """H-S12-006: variante con CartItems activos no puede desactivarse."""
-        from apps.cart.models import Cart, CartItem
         cart = Cart.objects.create(cart_token=uuid.uuid4())
         CartItem.objects.create(
             cart=cart, product=product_con_variante,
@@ -399,7 +417,7 @@ class TestProteccionVarianteConCartItems:
             f'/api/v1/admin/products/{product_con_variante.pk}/variants/{variant_s12.pk}/'
         )
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'VARIANTE_CON_ITEMS_EN_CARRITO'
+        assert res.json()['codigo_error'] == 'VARIANT_WITH_CART_ITEMS'
 
     def test_desactivar_variante_sin_cart_items_ok(
         self, admin_client, product_con_variante, variant_s12, db

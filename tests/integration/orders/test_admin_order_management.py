@@ -5,6 +5,11 @@ Nombre descriptivo: dominio y perspectiva, no número de sprint.
 """
 import pytest
 from decimal import Decimal
+from apps.catalogue.models import Category, Product
+from apps.orders.admin_services import transition_order_status
+from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress, OrderStatusLog
+from django.contrib.auth import get_user_model
+from apps.settings_app.models import SiteSettings
 
 pytestmark = pytest.mark.integration
 
@@ -17,13 +22,11 @@ ADMIN_DASHBOARD_URL  = '/api/v1/admin/dashboard/'
 
 @pytest.fixture
 def cat_adm(db):
-    from apps.catalogue.models import Category
     return Category.objects.create(name='Cat Admin', slug='cat-adm', is_active=True)
 
 
 @pytest.fixture
 def prod_adm(db, cat_adm):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Elekes Admin', slug='elekes-admin', sku='ADM-001',
         description='', category=cat_adm,
@@ -33,7 +36,6 @@ def prod_adm(db, cat_adm):
 
 
 def _make_order(user, prod, status='PENDING'):
-    from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
     order = Order.objects.create(user=user, status=status)
     OrderItem.objects.create(
         order=order, product_name=prod.name, sku=prod.sku,
@@ -85,7 +87,6 @@ class TestBuscarOrdenesAdmin:
     def test_admin_ve_todas_las_ordenes(
         self, admin_client, user, prod_adm, db
     ):
-        from django.contrib.auth import get_user_model
         User = get_user_model()
         other = User.objects.create_user(
             username='other_adm', email='oa@test.com', password='pass'
@@ -129,6 +130,22 @@ class TestBuscarOrdenesAdmin:
         statuses = {o['status'] for o in results}
         assert 'SHIPPED' not in statuses
 
+    def test_admin_listado_expone_user_email_y_username(
+        self, admin_client, user, prod_adm, db,
+    ):
+        """UC-ORD-09 D-ORD-09.01 (DEC-AOQ-02): AdminOrderSerializer
+        expone user_email + user_username derivados del FK para que el
+        UI admin pueda renderizar la columna 'Comprador'. Antes
+        OrderSerializer base solo exponia user como PK entero."""
+        _make_order(user, prod_adm, 'PENDING')
+        res = admin_client.get(ADMIN_LIST_URL)
+        assert res.status_code == 200
+        results = res.json()['results']
+        assert results, 'al menos una orden'
+        first = results[0]
+        assert first['user_email'] == user.email
+        assert first['user_username'] == user.username
+
 
 # =============================================================================
 # UC-ORD-07 — Transición de estado
@@ -151,7 +168,6 @@ class TestTransicionEstadoAdmin:
     def test_transicion_crea_statuslog(
         self, admin_client, user, prod_adm, db
     ):
-        from apps.orders.models import OrderStatusLog
         order = _make_order(user, prod_adm, 'PROCESSING')
         admin_client.patch(
             ADMIN_STATUS_URL(order.order_number),
@@ -174,7 +190,8 @@ class TestTransicionEstadoAdmin:
             format='json',
         )
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'TRANSICION_NO_PERMITIDA'
+        # Canon EN (canon-idioma-enums-error-codes): codigo retorna EN.
+        assert res.json()['codigo_error'] == 'TRANSITION_NOT_ALLOWED'
 
     def test_estado_terminal_no_tiene_transiciones(
         self, admin_client, user, prod_adm, db
@@ -192,7 +209,6 @@ class TestTransicionEstadoAdmin:
         self, admin_client, user, prod_adm, db
     ):
         """Flujo feliz completo: PENDING → PROCESSING → IN_PREPARATION → SHIPPED → DELIVERED."""
-        from apps.orders.models import OrderStatusLog
         order = _make_order(user, prod_adm, 'PENDING')
 
         for new_status in ['PROCESSING', 'IN_PREPARATION', 'SHIPPED', 'DELIVERED']:
@@ -206,6 +222,32 @@ class TestTransicionEstadoAdmin:
         order.refresh_from_db()
         assert order.status == 'DELIVERED'
         assert OrderStatusLog.objects.filter(order=order).count() == 4
+
+    def test_transicion_lee_status_fresh_con_select_for_update(
+        self, admin_client, user, prod_adm, db,
+    ):
+        """UC-ORD-07 D-ORD-07.01 (DEC-AOQ-01): demuestra que
+        transition_order_status re-lee el status con
+        ``select_for_update()`` y no usa la instancia stale en memoria.
+
+        Setup simula 2 admins concurrentes: admin A tiene la orden en
+        memoria con status=PENDING. Admin B cancela la orden mientras
+        tanto (DB ahora CANCELLED, in-memory de A sigue PENDING).
+        Sin select_for_update, A leeria su instancia stale (PENDING) y
+        permitiria PENDING -> PROCESSING. Con select_for_update, A re-lee
+        la DB (CANCELLED terminal) y rechaza."""
+        User = get_user_model()
+        admin = User.objects.filter(is_staff=True).first()
+        # Admin A obtiene la orden en PENDING.
+        order_in_memory_A = _make_order(user, prod_adm, 'PENDING')
+        # Admin B (simulado) cancela la orden via UPDATE directo (no
+        # tocar la instancia en memoria de A).
+        Order.objects.filter(pk=order_in_memory_A.pk).update(status='CANCELLED')
+        # Admin A intenta transicionar a PROCESSING usando su instancia
+        # stale. select_for_update fuerza re-lectura: DB.status =
+        # CANCELLED (terminal) -> ValueError.
+        with pytest.raises(ValueError, match='Transición no permitida'):
+            transition_order_status(order_in_memory_A, 'PROCESSING', admin)
 
 
 # =============================================================================
@@ -239,7 +281,8 @@ class TestCancelarOrdenAdmin:
             format='json',
         )
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'CANCELACION_NO_PERMITIDA'
+        # Canon EN (canon-idioma-enums-error-codes): codigo retorna EN.
+        assert res.json()['codigo_error'] == 'CANCELLATION_NOT_ALLOWED'
 
     def test_admin_no_puede_cancelar_shipped(
         self, admin_client, user, prod_adm, db
@@ -268,7 +311,6 @@ class TestCancelarOrdenAdmin:
     def test_admin_cancelacion_registra_statuslog(
         self, admin_client, user, prod_adm, db
     ):
-        from apps.orders.models import OrderStatusLog
         order = _make_order(user, prod_adm, 'PROCESSING')
         admin_client.post(
             ADMIN_CANCEL_URL(order.order_number),
@@ -291,7 +333,6 @@ class TestDashboardTransaccional:
     def test_dashboard_retorna_cuatro_bloques(
         self, admin_client, db
     ):
-        from apps.settings_app.models import SiteSettings
         SiteSettings.get_current()  # crear singleton con defaults
 
         res = admin_client.get(ADMIN_DASHBOARD_URL)
@@ -306,7 +347,6 @@ class TestDashboardTransaccional:
     def test_dashboard_contadores_correctos(
         self, admin_client, user, prod_adm, db
     ):
-        from apps.settings_app.models import SiteSettings
         SiteSettings.get_current()
 
         _make_order(user, prod_adm, 'PENDING')
@@ -330,7 +370,6 @@ class TestDashboardTransaccional:
         self, admin_client, db
     ):
         """H-ADM-004: el dashboard expone el timeout configurado."""
-        from apps.settings_app.models import SiteSettings
         settings = SiteSettings.get_current()
         settings.payment_timeout_minutes = 45
         settings.save()

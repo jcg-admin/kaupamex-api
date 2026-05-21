@@ -8,6 +8,7 @@ UC-SRCH-01: Full-text search with MariaDB FULLTEXT
 """
 import pytest
 from decimal import Decimal
+from apps.catalogue.models import Category, Product
 
 pytestmark = pytest.mark.integration
 
@@ -21,19 +22,16 @@ SEARCH_URL    = '/api/v1/catalogue/search/'
 
 @pytest.fixture
 def cat_collares(db):
-    from apps.catalogue.models import Category
     return Category.objects.create(name='Collares', slug='collares', is_active=True)
 
 
 @pytest.fixture
 def cat_pulseras(db):
-    from apps.catalogue.models import Category
     return Category.objects.create(name='Pulseras', slug='pulseras', is_active=True)
 
 
 @pytest.fixture
 def product_oshun(db, cat_collares):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Collar Oshun dorado',
         slug='collar-oshun-dorado',
@@ -50,7 +48,6 @@ def product_oshun(db, cat_collares):
 
 @pytest.fixture
 def product_yemaya(db, cat_pulseras):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Pulsera Yemaya azul',
         slug='pulsera-yemaya-azul',
@@ -67,7 +64,6 @@ def product_yemaya(db, cat_pulseras):
 
 @pytest.fixture
 def product_sin_stock(db, cat_collares):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Collar Shango rojo',
         slug='collar-shango-rojo',
@@ -84,7 +80,6 @@ def product_sin_stock(db, cat_collares):
 
 @pytest.fixture
 def product_inactivo(db, cat_collares):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Collar inactivo',
         slug='collar-inactivo',
@@ -250,7 +245,6 @@ class TestBusqueda:
     ):
         # product_oshun es featured=True, product_yemaya no
         # ambos contienen "collar" o "pulsera" — buscar término que devuelva ambos
-        from apps.catalogue.models import Product
         Product.objects.filter(slug='pulsera-yemaya-azul').update(
             name='Pulsera Yemaya collar azul',  # para que aparezca en búsqueda de 'collar'
             description='collar Yemaya',

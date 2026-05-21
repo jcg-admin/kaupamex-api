@@ -14,9 +14,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.generics import ListAPIView
-
 from .models import Voucher, VoucherChangeLog
 from .serializers import VoucherSerializer, VoucherReportSerializer
+
 
 
 class VoucherViewSet(ModelViewSet):
@@ -111,7 +111,7 @@ class VoucherViewSet(ModelViewSet):
         if not voucher.is_active:
             return Response(
                 {'detail': 'El voucher ya está inactivo.',
-                 'codigo_error': 'VOUCHER_YA_INACTIVO'},
+                 'codigo_error': 'VOUCHER_ALREADY_INACTIVE'},
                 status=400,
             )
         voucher.is_active      = False

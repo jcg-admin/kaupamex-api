@@ -4,12 +4,8 @@ Serializers — apps.newsletter.
 JSON keys in English (DEC-DOC-005).
 """
 from rest_framework import serializers
+from .models import NewsletterCampaign, NewsletterSubscriber, SubscriberStatus
 
-from .models import (
-    NewsletterCampaign,
-    NewsletterSubscriber,
-    SubscriberStatus,
-)
 
 
 class SubscribeSerializer(serializers.Serializer):

@@ -3,10 +3,13 @@ Tests de integracion — Cambio de contrasena
 UC-AUTH-08: Cambiar Contrasena
 """
 import pytest
+from apps.users.models import AuthEvent
+from rest_framework_simplejwt.tokens import RefreshToken
 
 pytestmark = pytest.mark.integration
 
 CHANGE_URL = '/api/v1/auth/change-password/'
+REFRESH_URL = '/api/v1/auth/refresh/'
 
 
 class TestChangePassword:
@@ -76,3 +79,55 @@ class TestChangePassword:
         }, format='json')
         user.refresh_from_db()
         assert not user.check_password('TestPass123!')
+
+    def test_change_password_invalida_sesiones_activas(
+        self, auth_client, user, api_client, db,
+    ):
+        """UC-AUTH-08 PARTE 8.2 (DEC-AUM-01): tras change-password,
+        los refresh tokens previos quedan blacklisted. Vector
+        account-takeover post-password-change cerrado."""
+        # Crear 2 refresh tokens activos para el user (sesiones
+        # distintas en multiples dispositivos).
+        refresh_a = str(RefreshToken.for_user(user))
+        refresh_b = str(RefreshToken.for_user(user))
+        # Ejecutar change-password.
+        r = auth_client.post(CHANGE_URL, {
+            'current_password': 'TestPass123!',
+            'new_password': 'NuevoPass456@',
+            'new_password_confirm': 'NuevoPass456@',
+        }, format='json')
+        assert r.status_code == 200
+        # Verificar que AMBOS refresh tokens previos quedan
+        # invalidados (blacklisteados) — no pueden renovar.
+        for refresh_str in (refresh_a, refresh_b):
+            res = api_client.post(
+                REFRESH_URL, {'refresh': refresh_str}, format='json',
+            )
+            assert res.status_code == 401, (
+                f'refresh_str debio quedar blacklisted, status {res.status_code}'
+            )
+
+    @pytest.mark.django_db(transaction=True)
+    def test_change_password_emits_audit_event(
+        self, auth_client, user,
+    ):
+        """T-119 D-02 iter 20 (UC-AUTH-08 AC-06): change-password
+        registra evento PASSWORD_CHANGE en AuthEvent. Antes el
+        cambio era silencioso (sin trazabilidad GDPR / forense).
+
+        Requiere transaction=True porque audit_log_auth usa
+        transaction.on_commit (no se ejecuta con rollback default)."""
+        AuthEvent.objects.filter(user=user).delete()
+        r = auth_client.post(CHANGE_URL, {
+            'current_password': 'TestPass123!',
+            'new_password': 'NuevoPass456@',
+            'new_password_confirm': 'NuevoPass456@',
+        }, format='json')
+        assert r.status_code == 200
+        events = AuthEvent.objects.filter(
+            user=user, action=AuthEvent.ACTION_PASSWORD_CHANGE,
+        )
+        assert events.count() == 1, (
+            f'PASSWORD_CHANGE debio emitirse, encontrado: '
+            f'{[e.action for e in AuthEvent.objects.filter(user=user)]}'
+        )

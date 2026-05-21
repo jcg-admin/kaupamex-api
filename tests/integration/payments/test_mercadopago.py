@@ -10,6 +10,12 @@ import uuid
 import pytest
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
+from apps.catalogue.models import Category, Product
+from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from apps.settings_app.models import PaymentGateway, ShippingMethod
+from apps.payments.models import Payment, PaymentGatewayEvent
+from apps.users.models import Address
+from apps.cart.models import CartItem
 
 pytestmark = pytest.mark.integration
 
@@ -25,13 +31,11 @@ EXPRESS_URL     = '/api/v1/checkout/express/'
 
 @pytest.fixture
 def cat_s15(db):
-    from apps.catalogue.models import Category
     return Category.objects.create(name='Cat S15', slug='cat-s15', is_active=True)
 
 
 @pytest.fixture
 def prod_s15(db, cat_s15):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Prod S15', slug='prod-s15', sku='S15-001',
         description='', category=cat_s15,
@@ -43,7 +47,6 @@ def prod_s15(db, cat_s15):
 @pytest.fixture
 def orden_pendiente(db, user, prod_s15):
     """Orden en estado PENDING con OrderValue."""
-    from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
     order = Order.objects.create(
         user=user, status='PENDING',
     )
@@ -68,7 +71,6 @@ def orden_pendiente(db, user, prod_s15):
 @pytest.fixture
 def mp_gateway_activo(db, admin_user):
     """PaymentGateway de MercadoPago activo con credenciales de prueba."""
-    from apps.settings_app.models import PaymentGateway
     gw = PaymentGateway(
         name='MercadoPago Test',
         gateway='MERCADOPAGO',
@@ -136,6 +138,39 @@ class TestIniciarPago:
         res = api_client.post(INITIATE_URL, {}, format='json')
         assert res.status_code == 401
 
+    def test_iniciar_pago_orden_ajena_retorna_404(
+        self, api_client, orden_pendiente, mp_gateway_activo, db, django_user_model,
+    ):
+        """T-304 / DEC-BC-11: usuario autenticado NO puede iniciar pago
+        sobre la orden de OTRO usuario.
+
+        El audit T-101 UC-PAY-01 D-09/D-14 detecto que el InitiatePaymentView
+        tenia un branch `else` (no autenticado) que ejecutaba
+        ``Order.objects.get(order_number=...)`` SIN filtro ``user=``. Era
+        codigo muerto bajo ``IsAuthenticated`` (vector latente) pero
+        habria sido fraude si alguien cambiaba la permission a AllowAny
+        sin tocar el branch.
+
+        Tras el fix (collapse a un solo Order.objects.get con filtro
+        ``user=request.user``), un comprador autenticado distinto al
+        dueno no encuentra la orden y recibe ORDER_NOT_FOUND.
+        """
+        # Crear otro usuario que intentara pagar la orden de `user`
+        attacker = django_user_model.objects.create_user(
+            username='attacker', email='attacker@test.mx',
+            password='AttackPass123!',
+        )
+        api_client.force_authenticate(user=attacker)
+        res = api_client.post(INITIATE_URL, {
+            'order_number': orden_pendiente.order_number,
+        }, format='json')
+        assert res.status_code == 400, (
+            f'Esperado 400 ORDER_NOT_FOUND (filtro user= excluye orden ajena), '
+            f'recibido {res.status_code}: {res.json() if hasattr(res, "json") else res.content}'
+        )
+        body = res.json()
+        assert body.get('codigo_error') == 'ORDER_NOT_FOUND'
+
     def test_iniciar_pago_crea_payment_y_retorna_checkout_url(
         self, auth_client, orden_pendiente, mp_gateway_activo, mock_mp_sdk, db
     ):
@@ -152,7 +187,6 @@ class TestIniciarPago:
     def test_iniciar_pago_crea_registro_payment_en_bd(
         self, auth_client, orden_pendiente, mp_gateway_activo, mock_mp_sdk, db
     ):
-        from apps.payments.models import Payment
         auth_client.post(INITIATE_URL, {
             'order_number': orden_pendiente.order_number,
         }, format='json')
@@ -164,7 +198,6 @@ class TestIniciarPago:
     def test_iniciar_pago_registra_evento_de_auditoria(
         self, auth_client, orden_pendiente, mp_gateway_activo, mock_mp_sdk, db
     ):
-        from apps.payments.models import Payment, PaymentGatewayEvent
         auth_client.post(INITIATE_URL, {
             'order_number': orden_pendiente.order_number,
         }, format='json')
@@ -185,7 +218,7 @@ class TestIniciarPago:
             'order_number': orden_pendiente.order_number,
         }, format='json')
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'ORDEN_NO_PAGABLE'
+        assert res.json()['codigo_error'] == 'ORDER_NOT_PAYABLE'
 
     def test_iniciar_pago_orden_inexistente_retorna_400(
         self, auth_client, db
@@ -194,7 +227,7 @@ class TestIniciarPago:
             'order_number': 'PY-NO-EXISTE',
         }, format='json')
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'ORDEN_NO_ENCONTRADA'
+        assert res.json()['codigo_error'] == 'ORDER_NOT_FOUND'
 
     def test_iniciar_pago_gateway_down_retorna_503(
         self, auth_client, orden_pendiente, mp_gateway_activo, db
@@ -210,7 +243,7 @@ class TestIniciarPago:
                 'order_number': orden_pendiente.order_number,
             }, format='json')
         assert res.status_code == 503
-        assert res.json()['codigo_error'] == 'GATEWAY_NO_DISPONIBLE'
+        assert res.json()['codigo_error'] == 'GATEWAY_UNAVAILABLE'
 
     def test_br009_credenciales_no_en_respuesta(
         self, auth_client, orden_pendiente, mp_gateway_activo, mock_mp_sdk, db
@@ -227,7 +260,6 @@ class TestIniciarPago:
     def test_retorno_gateway_aprobado_actualiza_payment(
         self, auth_client, orden_pendiente, mp_gateway_activo, mock_mp_sdk, db
     ):
-        from apps.payments.models import Payment
         # Crear el Payment primero
         auth_client.post(INITIATE_URL, {
             'order_number': orden_pendiente.order_number,
@@ -246,7 +278,6 @@ class TestIniciarPago:
     def test_retorno_gateway_pendiente_no_cambia_status(
         self, auth_client, orden_pendiente, mp_gateway_activo, mock_mp_sdk, db
     ):
-        from apps.payments.models import Payment
         auth_client.post(INITIATE_URL, {
             'order_number': orden_pendiente.order_number,
         }, format='json')
@@ -273,7 +304,7 @@ class TestCuotasMSI:
     ):
         res = auth_client.get(INSTALLMENT_URL)
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'ORDER_NUMBER_REQUERIDO'
+        assert res.json()['codigo_error'] == 'ORDER_NUMBER_REQUIRED'
 
     def test_planes_cuotas_retorna_solo_msi(
         self, auth_client, orden_pendiente, mp_gateway_activo, mock_mp_sdk, db
@@ -308,7 +339,6 @@ class TestCuotasMSI:
         self, auth_client, orden_pendiente, mp_gateway_activo, mock_mp_sdk, db
     ):
         """UC-PAY-01-EXT: iniciar pago con 3 cuotas MSI."""
-        from apps.payments.models import Payment
         res = auth_client.post(INITIATE_URL, {
             'order_number': orden_pendiente.order_number,
             'installments': 3,
@@ -339,9 +369,6 @@ class TestCheckoutExpress:
         self, auth_client, user, cat_s15, db
     ):
         """Comprador con orden DELIVERED y dirección default → eligible."""
-        from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
-        from apps.users.models import Address
-        from apps.settings_app.models import ShippingMethod
 
         ShippingMethod.objects.create(
             name='Estándar', cost=Decimal('80'), estimated_days=5, is_active=True
@@ -364,7 +391,6 @@ class TestCheckoutExpress:
     def test_comprador_sin_direccion_default_no_es_elegible(
         self, auth_client, user, db
     ):
-        from apps.orders.models import Order
         Order.objects.create(user=user, status='DELIVERED')
         # Sin dirección default
         res = auth_client.get(ELIGIBILITY_URL)
@@ -379,15 +405,12 @@ class TestCheckoutExpress:
         }, format='json')
         res = auth_client.post(EXPRESS_URL, {}, format='json')
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'NO_ELEGIBLE_EXPRESS'
+        assert res.json()['codigo_error'] == 'NOT_ELIGIBLE_EXPRESS'
 
     def test_express_checkout_crea_orden(
         self, auth_client, user, prod_s15, db
     ):
         """Comprador elegible con carrito → crea orden directa."""
-        from apps.orders.models import Order
-        from apps.users.models import Address
-        from apps.settings_app.models import ShippingMethod
 
         ShippingMethod.objects.create(
             name='Estándar', cost=Decimal('80'), estimated_days=5, is_active=True
@@ -416,10 +439,6 @@ class TestCheckoutExpress:
     def test_express_checkout_vacia_el_carrito(
         self, auth_client, user, prod_s15, db
     ):
-        from apps.orders.models import Order
-        from apps.users.models import Address
-        from apps.settings_app.models import ShippingMethod
-        from apps.cart.models import CartItem
 
         ShippingMethod.objects.create(
             name='Estándar', cost=Decimal('80'), estimated_days=5, is_active=True

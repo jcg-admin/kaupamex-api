@@ -2,8 +2,8 @@
 from decimal import Decimal
 from django.conf import settings
 from django.db import models
-
 from apps.core.models import SoftDeleteModel, TimeStampedModel
+
 
 
 class WishlistItem(TimeStampedModel, SoftDeleteModel):

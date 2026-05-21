@@ -11,6 +11,9 @@ import pytest
 from decimal import Decimal
 from django.utils import timezone
 from datetime import timedelta
+from apps.catalogue.models import Category, Product
+from apps.voucher.models import Voucher, VoucherChangeLog
+from apps.voucher.serializers import VoucherSerializer
 
 pytestmark = pytest.mark.integration
 
@@ -32,13 +35,11 @@ def _future(**kw):
 
 @pytest.fixture
 def cat_s13(db):
-    from apps.catalogue.models import Category
     return Category.objects.create(name='Cat S13', slug='cat-s13', is_active=True)
 
 
 @pytest.fixture
 def product_s13(db, cat_s13):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Prod S13', slug='prod-s13', sku='S13-001',
         description='', category=cat_s13,
@@ -49,7 +50,6 @@ def product_s13(db, cat_s13):
 
 @pytest.fixture
 def voucher_fixed(db, admin_user):
-    from apps.voucher.models import Voucher
     return Voucher.objects.create(
         code='FIXED50', voucher_type='FIXED',
         discount_value=Decimal('50.00'),
@@ -61,7 +61,6 @@ def voucher_fixed(db, admin_user):
 
 @pytest.fixture
 def voucher_pct(db, admin_user):
-    from apps.voucher.models import Voucher
     return Voucher.objects.create(
         code='PCT15', voucher_type='PERCENTAGE',
         discount_pct=Decimal('15.00'),
@@ -74,7 +73,6 @@ def voucher_pct(db, admin_user):
 
 @pytest.fixture
 def voucher_fs(db, admin_user):
-    from apps.voucher.models import Voucher
     return Voucher.objects.create(
         code='FREESHIP', voucher_type='FREE_SHIPPING',
         min_order_amount=Decimal('0.00'),
@@ -110,7 +108,7 @@ class TestCrearVoucher:
         }, format='json')
         assert res.status_code == 201
         assert res.json()['code'] == 'NUEVO50'
-        assert res.json()['status'] == 'ACTIVO'
+        assert res.json()['status'] == 'ACTIVE'
 
     def test_crear_voucher_porcentaje(self, admin_client, db):
         res = admin_client.post(VOUCHERS_URL, {
@@ -183,7 +181,6 @@ class TestEditarVoucher:
         assert res.status_code == 200
 
     def test_editar_crea_change_log(self, admin_client, voucher_fixed, db):
-        from apps.voucher.models import VoucherChangeLog
         admin_client.patch(
             f'{VOUCHERS_URL}{voucher_fixed.pk}/',
             {'min_order_amount': '100.00'}, format='json',
@@ -199,7 +196,7 @@ class TestEditarVoucher:
             {'code': 'NUEVO_CODIGO'}, format='json',
         )
         assert res.status_code == 400
-        assert 'CAMPO_INMUTABLE_CON_USOS' in str(res.json())
+        assert 'FIELD_IMMUTABLE_WHILE_USED' in str(res.json())
 
     def test_editar_max_uses_sin_usos_ok(self, admin_client, voucher_fixed, db):
         res = admin_client.patch(
@@ -238,7 +235,7 @@ class TestDesactivarVoucher:
         assert res.status_code == 200
         body = res.json()
         assert body['is_active'] is False
-        assert body['status'] == 'INACTIVO'
+        assert body['status'] == 'INACTIVE'
         voucher_fixed.refresh_from_db()
         assert voucher_fixed.is_active is False
         assert voucher_fixed.deactivated_at is not None
@@ -249,7 +246,7 @@ class TestDesactivarVoucher:
         voucher_fixed.save()
         res = admin_client.post(f'{VOUCHERS_URL}{voucher_fixed.pk}/deactivate/')
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'VOUCHER_YA_INACTIVO'
+        assert res.json()['codigo_error'] == 'VOUCHER_ALREADY_INACTIVE'
 
     def test_deactivate_action_sin_auth_retorna_401(self, api_client, voucher_fixed, db):
         res = api_client.post(f'{VOUCHERS_URL}{voucher_fixed.pk}/deactivate/')
@@ -260,7 +257,6 @@ class TestDesactivarVoucher:
         assert res.status_code in (401, 403)
 
     def test_status_expirado(self, db, admin_user):
-        from apps.voucher.models import Voucher
         v = Voucher.objects.create(
             code='EXPIRADO', voucher_type='FIXED',
             discount_value=Decimal('10.00'),
@@ -269,9 +265,8 @@ class TestDesactivarVoucher:
             is_active=True, created_by=admin_user,
             min_order_amount=Decimal('0.00'),
         )
-        from apps.voucher.serializers import VoucherSerializer
         data = VoucherSerializer(v).data
-        assert data['status'] == 'EXPIRADO'
+        assert data['status'] == 'EXPIRED'
 
 
 # =============================================================================
@@ -328,10 +323,9 @@ class TestAplicarCupon:
         client, _ = cart_con_item
         res = client.post(VOUCHER_APPLY_URL, {'code': 'NOEXISTE'}, format='json')
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'VOUCHER_NO_ENCONTRADO'
+        assert res.json()['codigo_error'] == 'VOUCHER_NOT_FOUND'
 
     def test_voucher_expirado_retorna_400(self, cart_con_item, db, admin_user):
-        from apps.voucher.models import Voucher
         Voucher.objects.create(
             code='VENCIDO', voucher_type='FIXED', discount_value=Decimal('10'),
             valid_from=_past(days=10), valid_until=_past(days=1),
@@ -340,10 +334,9 @@ class TestAplicarCupon:
         client, _ = cart_con_item
         res = client.post(VOUCHER_APPLY_URL, {'code': 'VENCIDO'}, format='json')
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'VOUCHER_EXPIRADO'
+        assert res.json()['codigo_error'] == 'VOUCHER_EXPIRED'
 
     def test_voucher_agotado_retorna_400(self, cart_con_item, db, admin_user):
-        from apps.voucher.models import Voucher
         Voucher.objects.create(
             code='AGOTADO', voucher_type='FIXED', discount_value=Decimal('10'),
             valid_from=_past(days=1), max_uses=5, current_uses=5,
@@ -352,10 +345,9 @@ class TestAplicarCupon:
         client, _ = cart_con_item
         res = client.post(VOUCHER_APPLY_URL, {'code': 'AGOTADO'}, format='json')
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'VOUCHER_AGOTADO'
+        assert res.json()['codigo_error'] == 'VOUCHER_EXHAUSTED'
 
     def test_monto_minimo_no_alcanzado_retorna_400(self, cart_con_item, db, admin_user):
-        from apps.voucher.models import Voucher
         Voucher.objects.create(
             code='MINIMO2000', voucher_type='FIXED', discount_value=Decimal('50'),
             valid_from=_past(days=1), min_order_amount=Decimal('2000'),
@@ -364,7 +356,7 @@ class TestAplicarCupon:
         client, _ = cart_con_item  # subtotal $1000 < $2000
         res = client.post(VOUCHER_APPLY_URL, {'code': 'MINIMO2000'}, format='json')
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'MONTO_MINIMO_NO_ALCANZADO'
+        assert res.json()['codigo_error'] == 'MINIMUM_AMOUNT_NOT_REACHED'
 
     def test_quitar_cupon(self, cart_con_item, voucher_fixed, db):
         client, _ = cart_con_item
@@ -377,7 +369,7 @@ class TestAplicarCupon:
         client, _ = cart_con_item
         res = client.delete(VOUCHER_APPLY_URL)
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'SIN_CUPON'
+        assert res.json()['codigo_error'] == 'NO_ACTIVE_VOUCHER'
 
     def test_reemplazar_voucher_existente(self, cart_con_item, voucher_fixed, voucher_pct, db):
         """FR-CART-04.02 Escenario 4: reemplaza voucher A por B."""
@@ -396,14 +388,12 @@ class TestAplicarCupon:
 class TestVoucherModelo:
 
     def test_calculate_discount_fixed_no_supera_subtotal(self, db):
-        from apps.voucher.models import Voucher
         v = Voucher(code='T', voucher_type='FIXED', discount_value=Decimal('200'),
                     valid_from=_past(days=1), is_active=True, current_uses=0,
                     min_order_amount=Decimal('0'))
         assert v.calculate_discount(Decimal('50')) == Decimal('50')  # min(200, 50)
 
     def test_calculate_discount_pct_con_tope(self, db):
-        from apps.voucher.models import Voucher
         v = Voucher(code='T', voucher_type='PERCENTAGE', discount_pct=Decimal('15'),
                     max_discount=Decimal('100'), valid_from=_past(days=1),
                     is_active=True, current_uses=0, min_order_amount=Decimal('0'))
@@ -411,7 +401,6 @@ class TestVoucherModelo:
         assert v.calculate_discount(Decimal('400')) == Decimal('60.00')
 
     def test_calculate_discount_free_shipping_es_cero(self, db):
-        from apps.voucher.models import Voucher
         v = Voucher(code='T', voucher_type='FREE_SHIPPING',
                     valid_from=_past(days=1), is_active=True, current_uses=0,
                     min_order_amount=Decimal('0'))

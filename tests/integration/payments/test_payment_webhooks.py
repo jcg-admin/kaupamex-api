@@ -10,6 +10,11 @@ import json
 import pytest
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
+from apps.catalogue.models import Category, Product
+from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from apps.payments.checks import check_mercadopago_client_secret
+from apps.payments.models import Payment
+from apps.settings_app.models import PaymentGateway
 
 pytestmark = pytest.mark.integration
 
@@ -19,16 +24,12 @@ PP_WEBHOOK_URL = '/api/v1/payments/webhooks/paypal/'
 
 @pytest.fixture
 def cat_wh(db):
-    from apps.catalogue.models import Category
     return Category.objects.create(name='Cat WH', slug='cat-wh', is_active=True)
 
 
 @pytest.fixture
 def orden_processing_mp(db, user, cat_wh):
     """Orden con Payment de MP en PENDING, lista para recibir webhook."""
-    from apps.catalogue.models import Product
-    from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
-    from apps.payments.models import Payment
 
     prod = Product.objects.create(
         name='Pulso Orula', slug='pulso-orula', sku='WH-PO-001',
@@ -60,7 +61,6 @@ def orden_processing_mp(db, user, cat_wh):
 
 @pytest.fixture
 def mp_gateway_wh(db):
-    from apps.settings_app.models import PaymentGateway
     gw = PaymentGateway(name='MP WH', gateway='MERCADOPAGO', is_active=True)
     gw.set_credentials({'access_token': 'TEST-TOKEN', 'client_secret': 'TEST-SECRET'})
     gw.save()
@@ -199,6 +199,109 @@ class TestMercadoPagoWebhook:
         )
         assert res.status_code in (200, 401)  # ignorado o firma inválida
 
+    def test_webhook_mp_no_secret_fail_closed(
+        self, api_client, orden_processing_mp, db,
+    ):
+        """T-102 / DEC-BC-01: sin client_secret en BD el webhook se rechaza 401.
+
+        Antes de DEC-BC-01 la rama "no secret -> return True" abria un vector
+        de fraude: cualquiera podia simular `payment.approved` y forzar
+        Order.status=PROCESSING sin haber pagado. Ahora es fail-closed.
+        """
+        # NO crear PaymentGateway(MERCADOPAGO) — secret ausente.
+        order, payment = orden_processing_mp
+        res = api_client.post(
+            MP_WEBHOOK_URL,
+            data=json.dumps({'type': 'payment', 'data': {'id': 'MP-PAY-999'}}),
+            content_type='application/json',
+            HTTP_X_SIGNATURE='ts=1;v1=anything',
+            HTTP_X_REQUEST_ID='req-no-secret',
+        )
+        assert res.status_code == 401, (
+            f'fail-open regresion: webhook sin secret deberia rechazar 401, '
+            f'recibido {res.status_code}'
+        )
+        payment.refresh_from_db()
+        assert payment.status == 'PENDING'  # no se cambio
+
+    def test_django_check_warns_missing_secret(self, db, settings):
+        """T-103 / DEC-BC-01 E001: system check bloquea deploy cuando
+        DEBUG=False y no hay PaymentGateway(MP).client_secret."""
+        # Caso 1: DEBUG=False, sin PaymentGateway -> error E001.
+        settings.DEBUG = False
+        errors = check_mercadopago_client_secret(app_configs=None)
+        assert any(e.id == 'payments.E001' for e in errors), (
+            f'Se esperaba payments.E001 cuando no hay PaymentGateway(MP) '
+            f'activo, recibido: {[e.id for e in errors]}'
+        )
+
+        # Caso 2: PaymentGateway existe pero sin client_secret -> error E001.
+        gw = PaymentGateway(name='MP', gateway='MERCADOPAGO', is_active=True)
+        gw.set_credentials({'access_token': 'X'})  # sin client_secret
+        gw.save()
+        errors = check_mercadopago_client_secret(app_configs=None)
+        assert any(e.id == 'payments.E001' for e in errors), (
+            f'Se esperaba payments.E001 cuando client_secret falta, '
+            f'recibido: {[e.id for e in errors]}'
+        )
+
+        # Caso 3: DEBUG=True -> no errors (sandbox tolerado).
+        settings.DEBUG = True
+        errors = check_mercadopago_client_secret(app_configs=None)
+        assert errors == [], (
+            f'En DEBUG=True no deberia emitir errores, recibido: {errors}'
+        )
+
+    def test_mp_webhook_invalid_json_returns_400(self, api_client, db):
+        """T-105 / DEC-BC-06: payload no-JSON retorna 400 (no 200).
+
+        Antes del fix devolvia 200 -> MP no reintenta. Ahora 400 indica
+        payload malformed; MP no reintenta 4xx (intencional, no es un
+        error transitorio).
+        """
+        res = api_client.post(
+            MP_WEBHOOK_URL,
+            data='not-a-valid-json-{',
+            content_type='application/json',
+        )
+        assert res.status_code == 400, (
+            f'invalid_json deberia ser 400, recibido {res.status_code}'
+        )
+        assert res.data.get('status') == 'invalid_json'
+
+    def test_mp_webhook_gateway_error_returns_503(
+        self, api_client, orden_processing_mp, mp_gateway_wh, db,
+    ):
+        """T-105 / DEC-BC-06: gateway error retorna 503 (no 200).
+
+        Antes del fix devolvia 200 -> MP no reintenta y el evento se
+        pierde. Ahora 503 (Service Unavailable) hace que MP reintente
+        con exponential backoff.
+        """
+        order, payment = orden_processing_mp
+        ts        = '1715000099'
+        req_id    = 'REQ-GW-ERR'
+        signature = _make_mp_signature('TEST-SECRET', 'MP-PAY-999', req_id, ts)
+
+        # Mock para forzar excepcion en MercadoPagoGateway().verify_payment
+        with patch('apps.payments.webhooks.MercadoPagoGateway') as mock_cls:
+            instance = MagicMock()
+            instance.verify_payment.side_effect = Exception('MP API down')
+            mock_cls.return_value = instance
+
+            res = api_client.post(
+                MP_WEBHOOK_URL,
+                data=json.dumps({'type': 'payment', 'data': {'id': 'MP-PAY-999'}}),
+                content_type='application/json',
+                HTTP_X_SIGNATURE=f'ts={ts};v1={signature}',
+                HTTP_X_REQUEST_ID=req_id,
+            )
+
+        assert res.status_code == 503, (
+            f'gateway_error deberia ser 503, recibido {res.status_code}'
+        )
+        assert res.data.get('status') == 'gateway_error'
+
 
 class TestPayPalWebhook:
 
@@ -213,9 +316,6 @@ class TestPayPalWebhook:
 
     @pytest.fixture
     def orden_paypal_wh(self, db, user, cat_wh):
-        from apps.catalogue.models import Product
-        from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
-        from apps.payments.models import Payment
 
         prod = Product.objects.create(
             name='Azabache', slug='azabache-wh', sku='WH-AZ-001',
@@ -340,3 +440,98 @@ class TestPayPalWebhook:
         order.refresh_from_db()
         assert payment.status == 'APPROVED'   # sin cambio
         assert order.status   == 'PROCESSING' # sin cambio
+
+    def test_paypal_webhook_invalid_json_returns_400(self, api_client, db):
+        """T-105 / DEC-BC-06: payload no-JSON en webhook PayPal -> 400."""
+        res = api_client.post(
+            PP_WEBHOOK_URL,
+            data='broken-json{',
+            content_type='application/json',
+            **self._pp_webhook_headers(),
+        )
+        assert res.status_code == 400, (
+            f'invalid_json deberia ser 400, recibido {res.status_code}'
+        )
+        assert res.data.get('status') == 'invalid_json'
+
+    def test_paypal_webhook_missing_order_id_returns_400(
+        self, api_client, db,
+    ):
+        """T-105 / DEC-BC-06: CHECKOUT.ORDER.APPROVED sin id en resource -> 400."""
+        payload = {
+            'event_type': 'CHECKOUT.ORDER.APPROVED',
+            'resource': {},  # sin 'id'
+        }
+        with patch(
+            'apps.payments.gateways.paypal.PayPalGateway.verify_webhook_signature',
+            return_value=True,
+        ):
+            res = api_client.post(
+                PP_WEBHOOK_URL,
+                data=json.dumps(payload),
+                content_type='application/json',
+                **self._pp_webhook_headers(),
+            )
+        assert res.status_code == 400, (
+            f'missing_order_id deberia ser 400, recibido {res.status_code}'
+        )
+        assert res.data.get('status') == 'missing_order_id'
+
+    def test_paypal_webhook_payment_not_found_returns_502(
+        self, api_client, db,
+    ):
+        """T-105 / DEC-BC-06: Payment ausente en CHECKOUT.ORDER.APPROVED -> 502.
+
+        Antes del fix devolvia 200, PayPal no reintentaba y el evento
+        se perdia en la race window con creacion del Payment. Ahora 502
+        dispara backoff retry de PayPal — recupera del race.
+        """
+        payload = {
+            'event_type': 'CHECKOUT.ORDER.APPROVED',
+            'resource': {'id': 'PP-ORDER-INEXISTENTE'},
+        }
+        with patch(
+            'apps.payments.gateways.paypal.PayPalGateway.verify_webhook_signature',
+            return_value=True,
+        ):
+            res = api_client.post(
+                PP_WEBHOOK_URL,
+                data=json.dumps(payload),
+                content_type='application/json',
+                **self._pp_webhook_headers(),
+            )
+        assert res.status_code == 502, (
+            f'payment_not_found deberia ser 502, recibido {res.status_code}'
+        )
+        assert res.data.get('status') == 'payment_not_found'
+
+    def test_paypal_webhook_capture_failed_returns_500(
+        self, api_client, orden_paypal_wh, db,
+    ):
+        """T-105 / DEC-BC-06: error al capturar el order de PayPal -> 500."""
+        order, payment = orden_paypal_wh
+        # Ajustar preference_id al payload del payment
+        payment.preference_id = 'PP-CAP-FAIL'
+        payment.save()
+
+        payload = {
+            'event_type': 'CHECKOUT.ORDER.APPROVED',
+            'resource': {'id': 'PP-CAP-FAIL'},
+        }
+        with patch(
+            'apps.payments.gateways.paypal.PayPalGateway.verify_webhook_signature',
+            return_value=True,
+        ), patch(
+            'apps.payments.gateways.paypal.PayPalGateway.capture_order',
+            side_effect=Exception('PayPal capture API failed'),
+        ):
+            res = api_client.post(
+                PP_WEBHOOK_URL,
+                data=json.dumps(payload),
+                content_type='application/json',
+                **self._pp_webhook_headers(),
+            )
+        assert res.status_code == 500, (
+            f'capture_failed deberia ser 500, recibido {res.status_code}'
+        )
+        assert res.data.get('status') == 'capture_failed'

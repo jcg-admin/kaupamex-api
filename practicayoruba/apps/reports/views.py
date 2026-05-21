@@ -8,15 +8,35 @@ Read-only admin aggregation endpoints under /api/v1/admin/reports/:
   GET /customers-rfm/?period=&segment= (UC-REP-04)
   GET /<slug>/export/?format=csv|pdf   (UC-REP-05)
 
+SP-backed endpoints (implementar-endpoints-db-rpt sucesora):
+  GET /catalog-by-category/   (UC-DB-RPT-01, sp_rpt_catalog_by_category)
+  GET /low-stock/             (UC-DB-RPT-02, sp_rpt_low_stock)
+  GET /catalog-summary/       (UC-DB-RPT-03, sp_rpt_catalog_summary)
+
 Identifiers + JSON keys in English (DEC-DOC-005).
 """
+from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema
-from rest_framework import serializers, status
+from rest_framework import serializers, status, exceptions
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.negotiation import DefaultContentNegotiation
 from rest_framework.renderers import BaseRenderer, JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from .aggregations import build_dashboard_payload, build_rfm_payload, build_sales_payload, build_top_sellers_payload, parse_period
+from .exports import EXPORTERS
+from .sp_helpers import call_sp
+
+
+def _sp_response(sp_name: str) -> Response:
+    """DEC-DBR-04 shape: {generated_at, count, results} para los 3
+    endpoints SP-backed."""
+    rows = call_sp(sp_name)
+    return Response({
+        'generated_at': timezone.now().isoformat(),
+        'count': len(rows),
+        'results': rows,
+    })
 
 
 class _PassthroughNegotiator(DefaultContentNegotiation):
@@ -30,7 +50,6 @@ class _PassthroughNegotiator(DefaultContentNegotiation):
         # Always return the first renderer with its media type, skipping
         # DRF's Accept-header / URL_FORMAT_OVERRIDE filtering entirely.
         if not renderers:
-            from rest_framework import exceptions
             raise exceptions.NotAcceptable()
         return renderers[0], renderers[0].media_type
 
@@ -50,14 +69,6 @@ class _PDFRenderer(BaseRenderer):
     def render(self, data, accepted_media_type=None, renderer_context=None):
         return data if isinstance(data, (bytes, str)) else str(data)
 
-from .aggregations import (
-    build_dashboard_payload,
-    build_rfm_payload,
-    build_sales_payload,
-    build_top_sellers_payload,
-    parse_period,
-)
-from .exports import EXPORTERS
 
 
 class _AdminMixin:
@@ -141,14 +152,14 @@ class ReportExportView(APIView):
     def get(self, request, slug):
         if slug not in EXPORTERS:
             return Response(
-                {'error_code': 'REPORTE_NO_DISPONIBLE',
+                {'error_code': 'REPORT_UNAVAILABLE',
                  'detail': f'Unknown report: {slug}.'},
                 status=status.HTTP_404_NOT_FOUND,
             )
         fmt = (request.query_params.get('format') or 'csv').lower()
         if fmt not in ('csv', 'pdf'):
             return Response(
-                {'error_code': 'FORMATO_NO_SOPORTADO',
+                {'error_code': 'FORMAT_NOT_SUPPORTED',
                  'detail': f'Unsupported format: {fmt}.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
@@ -175,7 +186,43 @@ class ReportExportView(APIView):
         response = exporter(payload, fmt)
         if response is None:
             return Response(
-                {'error_code': 'FORMATO_NO_SOPORTADO'},
+                {'error_code': 'FORMAT_NOT_SUPPORTED'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         return response
+
+
+# ─── SP-backed endpoints — implementar-endpoints-db-rpt sucesora ────────
+
+
+class CatalogByCategoryReportView(_AdminMixin, APIView):
+    """UC-DB-RPT-01 — invoca sp_rpt_catalog_by_category (D-26 T-114)."""
+
+    @extend_schema(
+        summary='Catalog by category report (UC-DB-RPT-01)',
+        tags=['reports'],
+    )
+    def get(self, request):
+        return _sp_response('sp_rpt_catalog_by_category')
+
+
+class LowStockReportView(_AdminMixin, APIView):
+    """UC-DB-RPT-02 — invoca sp_rpt_low_stock (D-27 T-114)."""
+
+    @extend_schema(
+        summary='Low stock report (UC-DB-RPT-02)',
+        tags=['reports'],
+    )
+    def get(self, request):
+        return _sp_response('sp_rpt_low_stock')
+
+
+class CatalogSummaryReportView(_AdminMixin, APIView):
+    """UC-DB-RPT-03 — invoca sp_rpt_catalog_summary (D-28 T-114)."""
+
+    @extend_schema(
+        summary='Catalog summary report (UC-DB-RPT-03)',
+        tags=['reports'],
+    )
+    def get(self, request):
+        return _sp_response('sp_rpt_catalog_summary')

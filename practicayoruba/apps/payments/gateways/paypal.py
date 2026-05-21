@@ -11,12 +11,13 @@ Flujo de dos pasos (H-PAY-006):
 """
 import json
 import logging
-from decimal import Decimal
+from decimal import Decimal, Decimal as Dec
 from typing import Optional
+from .base import BaseGateway, PreferenceResult, InstallmentPlan, PaymentVerification, RefundResult
+from apps.settings_app.models import PaymentGateway
 
 import requests
 
-from .base import BaseGateway, PreferenceResult, InstallmentPlan, PaymentVerification
 
 logger = logging.getLogger('apps')
 
@@ -30,7 +31,6 @@ def _get_credentials() -> dict:
     BR-009: descifrado solo en el servidor.
     Retorna: {'client_id': '...', 'client_secret': '...', 'env': 'sandbox'|'live'}
     """
-    from apps.settings_app.models import PaymentGateway
     try:
         gw = PaymentGateway.objects.get(
             gateway=PaymentGateway.GATEWAY_PAYPAL,
@@ -300,8 +300,6 @@ class PayPalGateway(BaseGateway):
         gateway_payment_id es el capture_id de PayPal.
         Body vacío = reembolso total; con amount = reembolso parcial.
         """
-        from decimal import Decimal as Dec
-        from .base import RefundResult
 
         creds        = _get_credentials()
         access_token = _get_access_token(creds)

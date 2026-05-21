@@ -5,8 +5,13 @@ BD: practicayoruba_qa (config.settings.testing)
 import subprocess
 import time
 from pathlib import Path
+from django.contrib.auth import get_user_model
+from rest_framework.test import APIClient
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.core.cache import cache
 
 import pytest
+import warnings
 
 # ─── Paths del repositorio ───────────────────────────────────────────────────
 # Construidos relativos a este archivo — portables entre entornos.
@@ -21,7 +26,6 @@ _DB_QA_SCRIPT = (
 @pytest.fixture
 def user(db):
     """Usuario basico activo."""
-    from django.contrib.auth import get_user_model
     User = get_user_model()
     return User.objects.create_user(
         username='testuser',
@@ -35,7 +39,6 @@ def user(db):
 @pytest.fixture
 def auth_user(db):
     """Usuario independiente usado en tests de payments y orders."""
-    from django.contrib.auth import get_user_model
     User = get_user_model()
     return User.objects.create_user(
         username='authuser',
@@ -49,7 +52,6 @@ def auth_user(db):
 @pytest.fixture
 def admin_user(db):
     """Usuario con permisos de staff."""
-    from django.contrib.auth import get_user_model
     User = get_user_model()
     return User.objects.create_user(
         username='adminuser',
@@ -62,14 +64,12 @@ def admin_user(db):
 @pytest.fixture
 def api_client():
     """Cliente REST sin autenticar."""
-    from rest_framework.test import APIClient
     return APIClient()
 
 
 @pytest.fixture
 def auth_client(api_client, user):
     """Cliente REST autenticado con JWT."""
-    from rest_framework_simplejwt.tokens import RefreshToken
     refresh = RefreshToken.for_user(user)
     api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {refresh.access_token}')
     return api_client
@@ -78,7 +78,6 @@ def auth_client(api_client, user):
 @pytest.fixture
 def admin_client(api_client, admin_user):
     """Cliente REST autenticado como admin."""
-    from rest_framework_simplejwt.tokens import RefreshToken
     refresh = RefreshToken.for_user(admin_user)
     api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {refresh.access_token}')
     return api_client
@@ -87,7 +86,6 @@ def admin_client(api_client, admin_user):
 @pytest.fixture
 def admin_auth_client(api_client, admin_user):
     """Cliente REST autenticado como administrador."""
-    from rest_framework_simplejwt.tokens import RefreshToken
     refresh = RefreshToken.for_user(admin_user)
     api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {refresh.access_token}')
     return api_client
@@ -101,7 +99,6 @@ def clear_rate_limit_cache():
     el contador de la IP 127.0.0.1 y bloquean tests subsecuentes.
     Solo limpia claves de rate limiting (prefijos login_fails: y pw_reset:).
     """
-    from django.core.cache import cache
 
     def clear_rl():
         # Django LocMemCache no tiene método de scan — usamos cache.clear()
@@ -142,7 +139,6 @@ def _restart_mariadb() -> bool:
     if not _DB_QA_SCRIPT.exists():
         # No silenciar — en un entorno nuevo el path debe existir.
         # Si no existe, hay un problema de configuración del repositorio.
-        import warnings
         warnings.warn(
             f"mariadb_keepalive: script no encontrado: {_DB_QA_SCRIPT}\n"
             f"  El fixture no puede restablecer la BD automáticamente.\n"
@@ -159,7 +155,6 @@ def _restart_mariadb() -> bool:
     )
 
     if result.returncode != 0:
-        import warnings
         stderr_snippet = result.stderr.decode('utf-8', errors='replace')[:500]
         warnings.warn(
             f"mariadb_keepalive: db_qa_setup.sh failed with exit code {result.returncode}\n"

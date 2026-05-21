@@ -1,10 +1,7 @@
 """URLs — apps.newsletter (public endpoints)."""
 from django.urls import path
+from .views import NewsletterSubscribeView, NewsletterUnsubscribeView
 
-from .views import (
-    NewsletterSubscribeView,
-    NewsletterUnsubscribeView,
-)
 
 app_name = 'newsletter'
 

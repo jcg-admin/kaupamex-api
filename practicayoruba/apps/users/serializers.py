@@ -6,15 +6,30 @@ Sprint 2: ProfileSerializer, UpdateProfileSerializer,
           ChangePasswordSerializer, AddressSerializer
 """
 import io
+import logging
+import time
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.files.base import ContentFile
+from django.db import transaction
+from django.utils import timezone
 from rest_framework import serializers
 from PIL import Image
-from drf_spectacular.utils import extend_schema_field
 from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
+from apps.settings_app.models import SiteSettings
+from .audit import audit_log_auth
+from .models import Address, AuthEvent, UserDeactivationEvent
+from .tokens_email import invalidate_all_sessions
+from .tokens_email import create_verification_token, send_verification_email
 
-from .models import Address
+logger = logging.getLogger(__name__)
+
+
+
+
 
 User = get_user_model()
 
@@ -41,10 +56,10 @@ class RegisterSerializer(serializers.Serializer):
         return value
 
     def validate_email(self, value):
-        value = value.lower().strip()
-        if User.objects.filter(email__iexact=value).exists():
-            raise serializers.ValidationError(AMBIGUOUS_MSG)
-        return value
+        # UC-AUTH-01 refinado: la deteccion de email existente vive en
+        # RegisterView.post para que pueda discriminar por
+        # deactivated_reason (Alt-A.1/A.2/A.3). Aqui solo se normaliza.
+        return value.lower().strip()
 
     def validate_password(self, value):
         validate_password(value)
@@ -65,6 +80,42 @@ class RegisterSerializer(serializers.Serializer):
             password=validated_data['password'],
             is_active=False,
         )
+        # UC-AUTH-01 + GAP-3 cierre: distinguir la causa de is_active=False
+        # para que UC-AUTH-01 Alt-A.2 (re-registro reactivable via email)
+        # pueda separarse de UC-AUTH-13 (suspendida por admin).
+        user.deactivated_reason = User.DEACTIVATION_UNVERIFIED
+        user.deactivated_at = timezone.now()
+        user.save(update_fields=['deactivated_reason', 'deactivated_at'])
+        # GAP 10: audit log de la transicion (cuenta nueva == is_active=False).
+        UserDeactivationEvent.objects.create(
+            user=user,
+            reason=User.DEACTIVATION_UNVERIFIED,
+            source=UserDeactivationEvent.SOURCE_REGISTER,
+            actor=None,
+        )
+        # FR-AUTH-01.05 + UC-AUTH-10: envio de email de verificacion.
+        # Antes vivia en apps.users.signals.send_email_verification_on_register
+        # (signal post_save). Inline-eado para eliminar el unico import
+        # lazy real en apps.users.apps.py def ready() — fan-out 1-a-1
+        # disfrazado de signal es codigo mas opaco que llamada directa.
+        # El envio se difiere a post-commit por la misma razon historica:
+        # evitar deadlocks en transacciones de tests con MySQL.
+        user_id = user.pk
+
+        def _send_verification():
+            try:
+                u = User.objects.get(pk=user_id)
+                plain = create_verification_token(u)
+                send_verification_email(u, plain)
+            except User.DoesNotExist:
+                # silent OK: usuario eliminado entre save y on_commit.
+                # No retry — no hay a quien enviar. DEC-DOC-008.
+                logger.info(
+                    'verification email skipped: user_id=%s removed '
+                    'before on_commit', user_id,
+                )
+
+        transaction.on_commit(_send_verification)
         return user
 
 
@@ -77,6 +128,8 @@ class AddressSerializer(serializers.ModelSerializer):
         model = Address
         fields = [
             'id', 'alias', 'recipient_name', 'street',
+            # DEC-AUM-03 (UC-AUTH-07 D-01-07): campos MX agregados.
+            'exterior_number', 'interior_number', 'neighborhood',
             'city', 'state', 'zip_code', 'country',
             'phone', 'is_default',
         ]
@@ -86,9 +139,12 @@ class AddressSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         user = request.user if request else None
         if user and not self.instance:
-            from apps.settings_app.models import SiteSettings
-            # max_addresses_per_user fue eliminado de SiteSettings (usar Address.MAX_PER_USER)
-            from apps.users.models import Address
+            # apps.settings_app es lazy-import: settings_app importa cosas
+            # de apps.users (via FK al User model), entonces top-level
+            # genera import circular durante el arranque de Django.
+            # max_addresses_per_user fue eliminado de SiteSettings; usar
+            # Address.MAX_PER_USER directamente (Address ya esta importado
+            # al top de este modulo).
             max_addr = Address.MAX_PER_USER
             count = Address.objects.filter(user=user).count()
             if count >= max_addr:
@@ -160,9 +216,9 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
         """
         if value is None:
             return value
-        # Validar tamaño contra SiteSettings (P3-04)
-        from apps.settings_app.models import SiteSettings
-        # avatar_max_size_mb fue eliminado de SiteSettings — constante 5MB
+        # apps.settings_app es lazy-import por riesgo circular (ver
+        # validate() arriba). avatar_max_size_mb fue eliminado de
+        # SiteSettings — constante 5MB.
         max_mb = 5
         if value.size > max_mb * 1024 * 1024:
             raise serializers.ValidationError(
@@ -193,9 +249,6 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
             instance.avatar = None
 
         elif avatar_file is not None:
-            import time
-            from django.core.files.base import ContentFile
-
             img = Image.open(avatar_file)
             # Redimensionar si supera 800x800 (FR-AUTH-06.04)
             img.thumbnail((800, 800), Image.LANCZOS)
@@ -253,8 +306,19 @@ class ChangePasswordSerializer(serializers.Serializer):
 
     def save(self, **kwargs):
         user = self.context['request'].user
+        request = self.context['request']
         user.set_password(self.validated_data['new_password'])
         user.save(update_fields=['password'])
+        # DEC-AUM-01: UC-AUTH-08 PARTE 8.2 + paso 12 requieren
+        # invalidar sesiones activas tras cambio de password
+        # (vector account-takeover si se omite). Helper reusado
+        # del mismo modulo (mismo patron que PasswordResetConfirm +
+        # DeactivateAccount).
+        invalidate_all_sessions(user)
+        # T-119 D-02 iter 20 (UC-AUTH-08 AC-06 audit log):
+        # registrar evento PASSWORD_CHANGE. Antes el cambio era
+        # silencioso (sin trazabilidad para forense / GDPR).
+        audit_log_auth(user, AuthEvent.ACTION_PASSWORD_CHANGE, request)
         return user
 
 
@@ -311,6 +375,10 @@ class AdminUserListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'username', 'email', 'full_name',
             'is_active', 'is_staff', 'date_joined', 'last_login',
+            # GAP-3 cierre (UC-AUTH-12/13/14/16): admin distingue las
+            # tres causas de is_active=False para decidir si invocar
+            # UC-AUTH-14 (reactivar) o esperar a UC-AUTH-01 Alt-A.2.
+            'deactivated_reason', 'deactivated_at',
         ]
         read_only_fields = fields
 

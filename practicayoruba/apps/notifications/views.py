@@ -23,25 +23,14 @@ from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from apps.orders.models import OrderItem
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
-from .models import (
-    MANDATORY_NOTIFICATION_TYPES,
-    NOTIFICATION_TYPE_LABELS,
-    ManualNotification,
-    Notification,
-    NotificationPreference,
-    NotificationType,
-)
+from .models import MANDATORY_NOTIFICATION_TYPES, NOTIFICATION_TYPE_LABELS, ManualNotification, Notification, NotificationPreference, NotificationType
 from .tasks import dispatch_manual_fanout
-from .serializers import (
-    ManualNotificationCreateSerializer,
-    ManualNotificationResponseSerializer,
-    NotificationPreferenceItemSerializer,
-    NotificationPreferencesUpdateSerializer,
-    NotificationSerializer,
-)
+from .serializers import ManualNotificationCreateSerializer, ManualNotificationResponseSerializer, NotificationPreferenceItemSerializer, NotificationPreferencesUpdateSerializer, NotificationSerializer
+
+
 
 
 # ────────────────────────────── UC-NOT-01 ────────────────────────────────
@@ -169,11 +158,13 @@ class NotificationPreferencesView(APIView):
         serializer.is_valid(raise_exception=True)
         items = serializer.validated_data['preferences']
 
+        skipped_mandatory = []
         with transaction.atomic():
             for item in items:
                 type_value = item['type']
                 if type_value in MANDATORY_NOTIFICATION_TYPES:
-                    # Los mandatory no se pueden deshabilitar; se ignoran.
+                    if item['enabled'] is False:
+                        skipped_mandatory.append(type_value)
                     continue
                 NotificationPreference.objects.update_or_create(
                     user=request.user,
@@ -184,6 +175,7 @@ class NotificationPreferencesView(APIView):
         rows = _build_preference_rows(request.user)
         return Response({
             'results': NotificationPreferenceItemSerializer(rows, many=True).data,
+            'skipped_mandatory': skipped_mandatory,
         })
 
 
@@ -210,13 +202,6 @@ def _compute_audience_count(recipient_type, recipient_identifier, product_id):
     if recipient_type == ManualNotification.RecipientType.PRODUCT_BUYERS:
         if not product_id:
             return 0
-        try:
-            from apps.orders.models import OrderItem
-        except Exception:
-            # silent OK because apps.orders es opcional (deployments
-            # parciales / tests aislados). Caller interpreta 0 como
-            # "sin audiencia". DEC-DOC-008.
-            return 0
         return (
             OrderItem.objects
             .filter(product_id=product_id, order__user__isnull=False)
@@ -242,11 +227,6 @@ def _resolve_audience_user_ids(recipient_type, recipient_identifier, product_id)
         return list(qs.values_list('id', flat=True))
 
     if recipient_type == ManualNotification.RecipientType.PRODUCT_BUYERS:
-        try:
-            from apps.orders.models import OrderItem
-        except Exception:
-            # silent OK because apps.orders es opcional. DEC-DOC-008.
-            return []
         return list(
             OrderItem.objects
             .filter(product_id=product_id, order__user__isnull=False)

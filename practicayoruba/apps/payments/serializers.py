@@ -1,8 +1,8 @@
 """Serializers — apps.payments (Sprint 15). Compatible con drf-spectacular."""
 from decimal import Decimal
 from rest_framework import serializers
-
 from .models import Payment, Refund, PaymentGatewayEvent
+
 
 
 class PaymentSerializer(serializers.ModelSerializer):

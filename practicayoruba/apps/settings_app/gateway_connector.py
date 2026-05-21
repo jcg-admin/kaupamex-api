@@ -8,6 +8,11 @@ Mockeable en tests mediante la convencion de prefijos en las credenciales:
   - cualquier otro valor → intenta conexión real (requiere internet + credenciales reales)
 """
 import logging
+import urllib.request
+import urllib.error
+import json
+import urllib.parse
+import base64
 
 logger = logging.getLogger('apps')
 
@@ -35,7 +40,6 @@ class GatewayConnector:
 
         # Verificacion real
         try:
-            import urllib.request, urllib.error, json
             req = urllib.request.Request(
                 'https://api.mercadopago.com/v1/users/me',
                 headers={'Authorization': f'Bearer {access_token}'},
@@ -66,7 +70,6 @@ class GatewayConnector:
 
         # Verificacion real
         try:
-            import urllib.request, urllib.error, urllib.parse, json, base64
             credentials = base64.b64encode(
                 f'{client_id}:{client_secret}'.encode()
             ).decode()

@@ -8,8 +8,8 @@ SoftDeleteModel (DEC-DOC-007 audit exception).
 """
 from django.conf import settings
 from django.db import models
-
 from apps.core.models import TimeStampedModel
+
 
 
 class SearchEntry(TimeStampedModel):

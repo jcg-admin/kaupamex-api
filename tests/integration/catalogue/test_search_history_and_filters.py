@@ -9,6 +9,10 @@ UC-CAT-06: Manage catalogue categories (admin)
 """
 import pytest
 from decimal import Decimal
+from apps.catalogue.models import Category, Product, SearchHistory
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.core.cache import cache
+import time
 
 pytestmark = pytest.mark.integration
 
@@ -25,13 +29,11 @@ CATEGORIES_URL   = '/api/v1/admin/categories/'
 
 @pytest.fixture
 def cat_collares(db):
-    from apps.catalogue.models import Category
     return Category.objects.create(name='Collares', slug='collares', is_active=True)
 
 
 @pytest.fixture
 def cat_collares_oshun(db, cat_collares):
-    from apps.catalogue.models import Category
     return Category.objects.create(
         name='Collares de Oshun', slug='collares-oshun',
         parent=cat_collares, is_active=True,
@@ -40,13 +42,11 @@ def cat_collares_oshun(db, cat_collares):
 
 @pytest.fixture
 def cat_pulseras(db):
-    from apps.catalogue.models import Category
     return Category.objects.create(name='Pulseras', slug='pulseras', is_active=True)
 
 
 @pytest.fixture
 def product_collar(db, cat_collares):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Collar Yemaya', slug='collar-yemaya', sku='YEM-001',
         description='Collar sagrado', category=cat_collares,
@@ -57,7 +57,6 @@ def product_collar(db, cat_collares):
 
 @pytest.fixture
 def product_collar_oshun(db, cat_collares_oshun):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Collar Oshun dorado', slug='collar-oshun-dorado', sku='OSH-001',
         description='Collar de Oshun', category=cat_collares_oshun,
@@ -68,7 +67,6 @@ def product_collar_oshun(db, cat_collares_oshun):
 
 @pytest.fixture
 def product_pulsera(db, cat_pulseras):
-    from apps.catalogue.models import Product
     return Product.objects.create(
         name='Pulsera Elegua', slug='pulsera-elegua', sku='ELE-001',
         description='Pulsera de Elegua', category=cat_pulseras,
@@ -80,7 +78,6 @@ def product_pulsera(db, cat_pulseras):
 @pytest.fixture
 def auth_client_user(api_client, user):
     """Cliente autenticado con JWT — comprador regular."""
-    from rest_framework_simplejwt.tokens import RefreshToken
     refresh = RefreshToken.for_user(user)
     api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {refresh.access_token}')
     return api_client
@@ -111,7 +108,6 @@ class TestAutocomplete:
         assert any(p['name'] == 'Collar Yemaya' for p in data)
 
     def test_autocomplete_no_incluye_no_publicados(self, api_client, cat_collares, db):
-        from apps.catalogue.models import Product
         Product.objects.create(
             name='Collar Secreto', slug='collar-secreto', sku='SEC-001',
             description='', category=cat_collares,
@@ -123,7 +119,6 @@ class TestAutocomplete:
         assert 'collar-secreto' not in slugs
 
     def test_autocomplete_max_5_resultados(self, api_client, cat_collares, db):
-        from apps.catalogue.models import Product
         for i in range(8):
             Product.objects.create(
                 name=f'Collar Extra {i}', slug=f'collar-extra-{i}', sku=f'EXT-{i:03}',
@@ -135,7 +130,6 @@ class TestAutocomplete:
 
     def test_autocomplete_usa_cache(self, api_client, product_collar, db):
         """TST-FR-SRCH-02.01 Escenario 2: segunda llamada viene del cache."""
-        from django.core.cache import cache
         # Primer request — llena cache
         api_client.get(AUTOCOMPLETE_URL, {'q': 'Collar'})
         cache_key = 'autocomplete:collar'
@@ -172,7 +166,6 @@ class TestSearchHistory:
         self, auth_client_user, product_collar, db
     ):
         """TST-FR-SRCH-03.01 Escenario 1: término nuevo se crea."""
-        import time
         auth_client_user.get(SEARCH_URL, {'q': 'collar sagrado'})
         # Esperar al hilo de threading
         time.sleep(0.3)
@@ -184,19 +177,16 @@ class TestSearchHistory:
         self, api_client, product_collar, db
     ):
         api_client.get(SEARCH_URL, {'q': 'collar'})
-        from apps.catalogue.models import SearchHistory
         assert SearchHistory.objects.count() == 0
 
     def test_historial_upsert_no_duplica(self, auth_client_user, user, db):
         """TST-FR-SRCH-03.01 Escenario 2: término repetido — upsert."""
-        from apps.catalogue.models import SearchHistory
         SearchHistory.record(user=user, term='collar')
         SearchHistory.record(user=user, term='collar')
         assert SearchHistory.objects.filter(user=user, term='collar').count() == 1
 
     def test_historial_trim_a_20_entradas(self, user, db):
         """TST-FR-SRCH-03.01 Escenario 3: trim automático."""
-        from apps.catalogue.models import SearchHistory
         for i in range(22):
             SearchHistory.objects.update_or_create(
                 user=user, term=f'termino-{i}', defaults={}
@@ -205,7 +195,6 @@ class TestSearchHistory:
         assert SearchHistory.objects.filter(user=user).count() <= 20
 
     def test_borrar_entrada_individual(self, auth_client_user, user, db):
-        from apps.catalogue.models import SearchHistory
         entry = SearchHistory.objects.create(user=user, term='oshun')
         res = auth_client_user.delete(f'{HISTORY_URL}{entry.pk}/')
         assert res.status_code == 204
@@ -214,13 +203,11 @@ class TestSearchHistory:
     def test_borrar_entrada_de_otro_usuario_retorna_404(
         self, auth_client_user, admin_user, db
     ):
-        from apps.catalogue.models import SearchHistory
         entry = SearchHistory.objects.create(user=admin_user, term='elegua')
         res = auth_client_user.delete(f'{HISTORY_URL}{entry.pk}/')
         assert res.status_code == 404
 
     def test_borrar_todo_el_historial(self, auth_client_user, user, db):
-        from apps.catalogue.models import SearchHistory
         SearchHistory.objects.create(user=user, term='a')
         SearchHistory.objects.create(user=user, term='b')
         res = auth_client_user.delete(HISTORY_URL)
@@ -228,7 +215,6 @@ class TestSearchHistory:
         assert SearchHistory.objects.filter(user=user).count() == 0
 
     def test_historial_ordenado_por_mas_reciente(self, auth_client_user, user, db):
-        from apps.catalogue.models import SearchHistory
         SearchHistory.objects.create(user=user, term='primero')
         SearchHistory.objects.create(user=user, term='segundo')
         res = auth_client_user.get(HISTORY_URL)
@@ -397,13 +383,34 @@ class TestCategoryAdmin:
         cat_collares.refresh_from_db()
         assert cat_collares.is_active is False
 
+    def test_desactivar_categoria_endpoint_explicito(
+        self, admin_client, cat_collares, db,
+    ):
+        """T-109-A iter 18 (UC-CAT-06 D-01 CRITICA): endpoint
+        ``POST .../deactivate/`` que la UI invoca. Antes solo existia
+        DELETE -> UI recibia 405."""
+        res = admin_client.post(f'{CATEGORIES_URL}{cat_collares.pk}/deactivate/')
+        assert res.status_code == 200, res.content
+        cat_collares.refresh_from_db()
+        assert cat_collares.is_active is False
+
+    def test_desactivar_endpoint_con_productos_retorna_400(
+        self, admin_client, cat_collares, product_collar, db,
+    ):
+        """T-109-A: el endpoint explicito hereda la misma logica de
+        FR-CAT-06.02 (rechazo con productos activos)."""
+        res = admin_client.post(f'{CATEGORIES_URL}{cat_collares.pk}/deactivate/')
+        assert res.status_code == 400
+        assert 'CATEGORY_HAS_PRODUCTS' in str(res.json())
+
     def test_desactivar_categoria_con_productos_retorna_400(
         self, admin_client, cat_collares, product_collar, db
     ):
         """FR-CAT-06.02 Escenario 3: no se puede desactivar con productos activos."""
         res = admin_client.delete(f'{CATEGORIES_URL}{cat_collares.pk}/')
         assert res.status_code == 400
-        assert 'CATEGORIA_CON_PRODUCTOS' in str(res.json())
+        # T-109-B anti-soft-on-tests (canon EN).
+        assert 'CATEGORY_HAS_PRODUCTS' in str(res.json())
 
     def test_ciclo_directo_retorna_400(
         self, admin_client, cat_collares, cat_collares_oshun, db
@@ -419,7 +426,8 @@ class TestCategoryAdmin:
             format='json',
         )
         assert res.status_code == 400
-        assert 'CICLO_EN_JERARQUIA' in str(res.json())
+        # T-109-B anti-soft-on-tests (canon EN).
+        assert 'CYCLE_IN_HIERARCHY' in str(res.json())
 
     def test_nombre_duplicado_retorna_400(self, admin_client, cat_collares, db):
         res = admin_client.post(CATEGORIES_URL, {
@@ -429,7 +437,6 @@ class TestCategoryAdmin:
 
     def test_crear_categoria_invalida_cache(self, admin_client, db):
         """FR-CAT-06.02: cualquier mutación invalida el cache categories:tree."""
-        from django.core.cache import cache
         cache.set('categories:tree', {'dummy': True}, 300)
         admin_client.post(CATEGORIES_URL, {
             'name': 'Nueva Cat', 'slug': 'nueva-cat',

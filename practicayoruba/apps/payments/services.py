@@ -8,14 +8,18 @@ Recibe cualquier BaseGateway — desconoce el tipo concreto (Strategy Pattern).
 import json
 import logging
 from decimal import Decimal
-
 from django.conf import settings
 from django.db import transaction
 from django.urls import reverse
-
 from .gateways.base import BaseGateway
 from .gateways.mercadopago import MercadoPagoGateway
-from .models import Payment, PaymentGatewayEvent
+from .models import Payment, PaymentGatewayEvent, Payment as PaymentModel, Refund
+from .gateways.paypal import PayPalGateway
+from django.db.models import Sum as DjSum
+from apps.settings_app.models import PaymentGateway
+from apps.orders.models import Order
+
+
 
 logger = logging.getLogger('apps')
 
@@ -27,7 +31,6 @@ def _get_gateway(gateway_type: str = 'MERCADOPAGO') -> BaseGateway:
     BR-007: PayPal es el secundario disponible desde MVP.
     """
     if gateway_type == 'PAYPAL':
-        from .gateways.paypal import PayPalGateway
         return PayPalGateway()
     return MercadoPagoGateway()
 
@@ -73,7 +76,6 @@ def initiate_payment(
     :raises ValueError: si la orden no está en PENDING
     :raises RuntimeError: si el gateway falla (propagado al caller)
     """
-    from apps.orders.models import Order
 
     if order.status != Order.STATUS_PENDING:
         raise ValueError(
@@ -198,21 +200,29 @@ def execute_refund(
     :raises ValueError: si el pago no es reembolsable
     :raises RuntimeError: si el gateway falla
     """
-    from decimal import Decimal
-    from django.db import transaction
-    from .models import Payment as PaymentModel, Refund
 
-    if payment.status != PaymentModel.STATUS_APPROVED:
+    if payment.status not in (
+        PaymentModel.STATUS_APPROVED,
+        PaymentModel.STATUS_PARTIALLY_REFUNDED,
+    ):
         raise ValueError(
             f'El pago no es reembolsable (estado: {payment.status}). '
-            f'Solo los pagos en estado APPROVED pueden reembolsarse.'
+            f'Solo los pagos en estado APPROVED o PARTIALLY_REFUNDED '
+            f'pueden reembolsarse.'
         )
 
-    refund_amount = amount if amount is not None else payment.amount
-    if refund_amount <= Decimal('0') or refund_amount > payment.amount:
+    already_refunded = (
+        Refund.objects.filter(
+            payment=payment, status=Refund.STATUS_APPROVED,
+        ).aggregate(total=DjSum('amount'))['total'] or Decimal('0')
+    )
+    remaining = payment.amount - already_refunded
+    refund_amount = amount if amount is not None else remaining
+    if refund_amount <= Decimal('0') or refund_amount > remaining:
         raise ValueError(
             f'El monto de reembolso ({refund_amount}) debe ser mayor que 0 '
-            f'y no superar el monto del pago ({payment.amount}).'
+            f'y no superar el saldo reembolsable ({remaining}) del pago '
+            f'(total {payment.amount}, ya reembolsado {already_refunded}).'
         )
 
     if gateway is None:
@@ -235,7 +245,6 @@ def execute_refund(
         )
 
         # Actualizar estado del Payment
-        from django.db.models import Sum as DjSum
         total_refunded = (
             Refund.objects.filter(
                 payment=payment, status=Refund.STATUS_APPROVED
@@ -248,7 +257,6 @@ def execute_refund(
             payment.status = PaymentModel.STATUS_PARTIALLY_REFUNDED
         payment.save(update_fields=['status'])
 
-    import logging
     logging.getLogger('apps').info(
         'Reembolso ejecutado: payment=%s amount=%s refund_id=%s',
         payment.pk, refund_amount, result.refund_id,
@@ -262,8 +270,6 @@ def get_payment_status(order_number: str, user) -> dict:
     UC-PAY-05 (FR-PAY-05.02).
     RNF-SEC-003 (H-REF-006): 404 si la orden no existe O no pertenece al user.
     """
-    from apps.orders.models import Order
-    from .models import Payment as PaymentModel
 
     try:
         order = Order.objects.get(order_number=order_number, user=user)
@@ -290,8 +296,6 @@ def get_payment_history(order_number: str, user) -> list | None:
     Retorna todos los pagos de una orden ordenados por -created_at.
     UC-PAY-06. RNF-SEC-003: 404 si la orden no existe O no pertenece al user.
     """
-    from apps.orders.models import Order
-    from .models import Payment as PaymentModel
 
     try:
         order = Order.objects.get(order_number=order_number, user=user)
@@ -314,8 +318,6 @@ def get_retry_eligibility(order_number: str, user) -> dict | None:
     Verifica si una orden es elegible para reintentar el pago.
     UC-PAY-08 (FR-PAY-08.01). H-REF-004: condición real = Order.status=PENDING.
     """
-    from apps.orders.models import Order
-    from .models import Payment as PaymentModel
 
     try:
         order = Order.objects.get(order_number=order_number, user=user)
@@ -326,7 +328,7 @@ def get_retry_eligibility(order_number: str, user) -> dict | None:
         return {
             'eligible':      False,
             'reason':        f'La orden está en estado {order.status}.',
-            'codigo_error':  'ORDEN_NO_REINTENTABLE',
+            'codigo_error':  'ORDER_NOT_RETRYABLE',
         }
 
     failed_payment = (
@@ -349,7 +351,6 @@ def get_retry_eligibility(order_number: str, user) -> dict | None:
 
 def _get_available_gateways() -> list:
     """Retorna los gateways activos configurados en PaymentGateway."""
-    from apps.settings_app.models import PaymentGateway
     return list(
         PaymentGateway.objects.filter(is_active=True)
         .values_list('gateway', flat=True)

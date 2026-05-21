@@ -9,6 +9,8 @@ import re
 from rest_framework import serializers
 from .models import Category, Product, ProductImage, SearchHistory
 from apps.settings_app.models import SiteSettings
+from django.utils.text import slugify
+from apps.chartsize.serializers import ProductVariantSerializer
 
 
 # =============================================================================
@@ -64,7 +66,7 @@ class CategoryAdminSerializer(serializers.ModelSerializer):
             if instance.would_create_cycle(parent):
                 raise serializers.ValidationError({
                     'parent_id': 'Esta relacion crearia un ciclo en la jerarquia de categorias.',
-                    'codigo_error': 'CICLO_EN_JERARQUIA',
+                    'codigo_error': 'CYCLE_IN_HIERARCHY',
                 })
         return data
 
@@ -266,7 +268,6 @@ class SearchHistorySerializer(serializers.ModelSerializer):
 
 # Sprint 9 — import lazy para evitar circular import con apps.chartsize
 def _get_variant_serializer():
-    from apps.chartsize.serializers import ProductVariantSerializer
     return ProductVariantSerializer
 
 class ProductImageSerializer(serializers.ModelSerializer):
@@ -369,7 +370,6 @@ class ProductAdminSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         """Auto-generar slug desde name si no se proporcionó."""
-        from django.utils.text import slugify
         if not data.get('slug') and data.get('name'):
             base_slug = slugify(data['name'])
             slug = base_slug

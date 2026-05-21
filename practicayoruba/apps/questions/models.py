@@ -15,8 +15,8 @@ Visibilidad publica: ANSWERED con answer_body no vacio.
 """
 from django.conf import settings
 from django.db import models
-
 from apps.core.models import SoftDeleteModel, TimeStampedModel
+
 
 
 class QuestionStatus(models.TextChoices):

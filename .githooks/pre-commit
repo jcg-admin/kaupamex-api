@@ -1,0 +1,70 @@
+#!/bin/bash
+# =============================================================================
+# api/.githooks/pre-commit — gates de calidad de codigo
+# =============================================================================
+# Cargado via 'git config core.hooksPath .githooks' dentro del repo api/.
+# El parent repo (.githooks/commit-msg) valida convencion de commit
+# message; este pre-commit valida contenido de los .py staged.
+#
+# Activacion:
+#   cd /home/user/e-comerce/api
+#   git config core.hooksPath .githooks
+#
+# Gates activos:
+#
+#   1. Zero lazy imports en practicayoruba/apps/** (PEP 8).
+#      Iniciativa: docs/source/gestion/pm/api/iniciativas/
+#                  eliminar-lazy-imports-pep8/
+#      Script:     scripts/check_no_lazy_imports.py
+#
+# Skip manual: 'git commit --no-verify' (solo emergencias documentadas).
+# =============================================================================
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+EXIT_CODE=0
+
+# ─── Gate 1: lazy imports en practicayoruba/apps/** ──────────────────────────
+# Detectar staged .py dentro del scope vigilado.
+STAGED_PY=()
+while IFS= read -r line; do
+    [[ -z "$line" ]] && continue
+    STAGED_PY+=("$line")
+done < <(
+    git diff --cached --name-only --diff-filter=ACM \
+        -- 'practicayoruba/apps/***.py' 'tests/***.py' 2>/dev/null \
+    | grep -vE 'migrations/|__pycache__' || true
+)
+
+if [[ "${#STAGED_PY[@]}" -gt 0 ]]; then
+    CHECKER="$REPO_ROOT/scripts/check_no_lazy_imports.py"
+    if [[ ! -f "$CHECKER" ]]; then
+        echo "pre-commit: $CHECKER no encontrado — skip lazy import gate" >&2
+    else
+        python3 "$CHECKER" "${STAGED_PY[@]}" || EXIT_CODE=1
+    fi
+fi
+
+# ─── Gate 2: canon-idioma en values de identifier (EN canonico) ──────────────
+# Iniciativa: docs/source/gestion/pm/api/iniciativas/
+#             canon-idioma-enums-error-codes/
+# Script:     docs/scripts/check_canon_idioma.py (cross-submodule).
+# Allowlist:  docs/scripts/canon-idioma-allowlist.txt.
+# El gate aplica solo cuando hay .py staged en apps/.
+if [[ "${#STAGED_PY[@]}" -gt 0 ]]; then
+    CANON_CHECKER="$REPO_ROOT/../docs/scripts/check_canon_idioma.py"
+    if [[ ! -f "$CANON_CHECKER" ]]; then
+        echo "pre-commit: $CANON_CHECKER no encontrado — skip canon-idioma gate" >&2
+    else
+        python3 "$CANON_CHECKER" --repo-root "$REPO_ROOT/.." || EXIT_CODE=1
+    fi
+fi
+
+if [[ "$EXIT_CODE" -ne 0 ]]; then
+    echo "" >&2
+    echo "pre-commit: gates fallaron. Corrige los problemas o usa" >&2
+    echo "  git commit --no-verify" >&2
+    echo "(solo emergencias documentadas)." >&2
+fi
+
+exit "$EXIT_CODE"

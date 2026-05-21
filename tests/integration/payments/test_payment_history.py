@@ -6,6 +6,13 @@ no el número de sprint.
 """
 import pytest
 from decimal import Decimal
+from apps.catalogue.models import Category, Product
+from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from apps.payments.models import Payment
+from datetime import timedelta
+from django.contrib.auth import get_user_model
+from apps.settings_app.models import PaymentGateway
+import django.utils.timezone as tz
 
 pytestmark = pytest.mark.integration
 
@@ -16,16 +23,12 @@ RETRY_URL    = lambda o: f'/api/v1/payments/{o}/retry-eligibility/'
 
 @pytest.fixture
 def cat_hist(db):
-    from apps.catalogue.models import Category
     return Category.objects.create(name='Cat Hist', slug='cat-hist', is_active=True)
 
 
 @pytest.fixture
 def orden_con_pago(db, user, cat_hist):
     """Orden con un Payment APPROVED."""
-    from apps.catalogue.models import Product
-    from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
-    from apps.payments.models import Payment
 
     prod = Product.objects.create(
         name='Ide Orula', slug='ide-orula', sku='HIST-001',
@@ -59,11 +62,6 @@ def orden_con_pago(db, user, cat_hist):
 @pytest.fixture
 def orden_con_historial(db, user, cat_hist):
     """Orden con un Payment FAILED seguido de uno APPROVED."""
-    from apps.catalogue.models import Product
-    from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
-    from apps.payments.models import Payment
-    import django.utils.timezone as tz
-    from datetime import timedelta
 
     prod = Product.objects.create(
         name='Elekes Orula', slug='elekes-hist', sku='HIST-002',
@@ -123,8 +121,6 @@ class TestEstadoPago:
     def test_orden_sin_pagos_retorna_no_payment(
         self, auth_client, user, cat_hist, db
     ):
-        from apps.orders.models import Order, OrderValue, OrderAddress
-        from apps.catalogue.models import Product
         prod = Product.objects.create(
             name='PNoP', slug='pnop', sku='HIST-NP',
             description='', category=cat_hist,
@@ -147,8 +143,6 @@ class TestEstadoPago:
         self, auth_client, db
     ):
         """RNF-SEC-003: nunca 403, siempre 404 aunque la orden exista."""
-        from django.contrib.auth import get_user_model
-        from apps.orders.models import Order
         User = get_user_model()
         other = User.objects.create_user(
             username='other_hist', email='other_h@test.com', password='pass'
@@ -156,7 +150,7 @@ class TestEstadoPago:
         order = Order.objects.create(user=other, status='PENDING')
         res = auth_client.get(STATUS_URL(order.order_number))
         assert res.status_code == 404
-        assert res.json()['codigo_error'] == 'ORDEN_NO_ENCONTRADA'
+        assert res.json()['codigo_error'] == 'ORDER_NOT_FOUND'
 
     def test_orden_inexistente_retorna_404(self, auth_client, db):
         res = auth_client.get(STATUS_URL('PY-NO-EXISTE'))
@@ -192,8 +186,6 @@ class TestHistorialPagos:
 
     def test_historial_rnf_sec_003(self, user, auth_client, db):
         """RNF-SEC-003: orden de otro usuario → 404."""
-        from django.contrib.auth import get_user_model
-        from apps.orders.models import Order
         User = get_user_model()
         other = User.objects.create_user(
             username='other_hist2', email='o2@test.com', password='pass'
@@ -205,7 +197,6 @@ class TestHistorialPagos:
     def test_historial_orden_sin_pagos_retorna_lista_vacia(
         self, auth_client, user, cat_hist, db
     ):
-        from apps.orders.models import Order
         order = Order.objects.create(user=user, status='PENDING')
         res = auth_client.get(HISTORY_URL(order.order_number))
         assert res.status_code == 200
@@ -221,9 +212,6 @@ class TestElegibilidadReintento:
     def test_orden_con_pago_fallido_es_reintentable(
         self, auth_client, user, cat_hist, db
     ):
-        from apps.orders.models import Order
-        from apps.payments.models import Payment
-        from apps.settings_app.models import PaymentGateway
 
         gw = PaymentGateway(name='MP', gateway='MERCADOPAGO', is_active=True)
         gw.set_credentials({'access_token': 'T', 'client_secret': 'S'})

@@ -15,7 +15,6 @@ ProductPriceSyncConfirmView) — no business logic duplicated.
 import csv
 import uuid
 from decimal import Decimal
-
 from django.core.cache import cache
 from django.db import transaction
 from django.http import HttpResponse
@@ -24,9 +23,10 @@ from rest_framework import serializers
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
 from .models import Product
-from .views import ProductPriceSyncView, PRICE_SYNC_CACHE_TTL  # type: ignore
+from .views import ProductPriceSyncView, PRICE_SYNC_CACHE_TTL
+
+
 
 
 class _AdminOnly:
@@ -67,7 +67,7 @@ class PriceSyncPreviewCSVView(_AdminOnly, APIView):
         if not csv_file:
             return Response(
                 {'detail': 'Se requiere el archivo CSV.',
-                 'codigo_error': 'CSV_REQUERIDO'}, status=400,
+                 'codigo_error': 'CSV_REQUIRED'}, status=400,
             )
         helper = ProductPriceSyncView()
         validas, invalidas = helper._parse_csv(csv_file)
@@ -88,13 +88,13 @@ class PriceSyncApplyCSVView(_AdminOnly, APIView):
         if not session_id:
             return Response(
                 {'detail': 'session_id requerido.',
-                 'codigo_error': 'SESSION_ID_REQUERIDO'}, status=400,
+                 'codigo_error': 'SESSION_ID_REQUIRED'}, status=400,
             )
         updated = _apply_session(session_id)
         if updated is None:
             return Response({
                 'detail': 'Sesion expirada o no encontrada.',
-                'codigo_error': 'SESSION_EXPIRADA',
+                'codigo_error': 'SESSION_EXPIRED',
             }, status=400)
         return Response({
             'updated_count': len(updated),
@@ -110,7 +110,7 @@ class PriceSyncPreviewPercentageView(_AdminOnly, APIView):
         except (TypeError, ValueError):
             return Response(
                 {'detail': 'pct debe ser un numero.',
-                 'codigo_error': 'PCT_INVALIDO'}, status=400,
+                 'codigo_error': 'PCT_INVALID'}, status=400,
             )
         helper = ProductPriceSyncView()
         validas, _ = helper._apply_percentage(

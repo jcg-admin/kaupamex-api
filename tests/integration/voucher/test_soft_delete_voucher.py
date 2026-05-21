@@ -6,9 +6,11 @@ la semantica de NEGOCIO (is_active + deactivated_at).
 """
 from decimal import Decimal
 from datetime import timedelta
+from django.utils import timezone
+from apps.voucher.models import Voucher
+from apps.core.models import SoftDeleteModel
 
 import pytest
-from django.utils import timezone
 
 pytestmark = pytest.mark.integration
 
@@ -19,7 +21,6 @@ def _past(**kw):
 
 @pytest.fixture
 def voucher(db, admin_user):
-    from apps.voucher.models import Voucher
     return Voucher.objects.create(
         code='SOFTDEL1', voucher_type='FIXED',
         discount_value=Decimal('25.00'),
@@ -33,14 +34,11 @@ class TestVoucherSoftDelete:
 
     @pytest.mark.django_db
     def test_inherits_softdeletemodel(self):
-        from apps.voucher.models import Voucher
-        from apps.core.models import SoftDeleteModel
         assert issubclass(Voucher, SoftDeleteModel)
         assert hasattr(Voucher, 'all_objects')
 
     @pytest.mark.django_db
     def test_delete_marks_soft_and_hides_default_manager(self, voucher):
-        from apps.voucher.models import Voucher
         pk = voucher.pk
         voucher.delete()
         assert not Voucher.objects.filter(pk=pk).exists()
@@ -50,7 +48,6 @@ class TestVoucherSoftDelete:
 
     @pytest.mark.django_db
     def test_restore_brings_back(self, voucher):
-        from apps.voucher.models import Voucher
         voucher.delete()
         ghost = Voucher.all_objects.get(pk=voucher.pk)
         ghost.restore()
@@ -58,7 +55,6 @@ class TestVoucherSoftDelete:
 
     @pytest.mark.django_db
     def test_hard_delete_removes_row(self, voucher):
-        from apps.voucher.models import Voucher
         pk = voucher.pk
         voucher.hard_delete()
         assert not Voucher.all_objects.filter(pk=pk).exists()
@@ -70,7 +66,6 @@ class TestVoucherSoftDelete:
         (SISTEMA, DEC-DOC-007) son campos independientes y pueden
         convivir en la misma fila.
         """
-        from apps.voucher.models import Voucher
         now = timezone.now()
         voucher.is_active = False
         voucher.deactivated_at = now

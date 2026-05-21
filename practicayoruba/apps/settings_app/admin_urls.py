@@ -1,9 +1,7 @@
 """Admin URLs — apps.settings_app (Sprint 8)"""
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import (PaymentGatewayViewSet, ShippingMethodViewSet,
-                    StaticPageAdminListView, StaticPageAdminDetailView,
-                    StaticPagePublishView, StaticPageRestoreView)
+from .views import PaymentGatewayViewSet, ShippingMethodViewSet, StaticPageAdminListView, StaticPageAdminDetailView, StaticPagePublishView, StaticPageRestoreView
 
 app_name = 'admin_settings'
 

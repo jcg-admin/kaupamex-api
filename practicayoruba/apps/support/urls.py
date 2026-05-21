@@ -1,13 +1,7 @@
 """URLs — apps.support."""
 from django.urls import path
+from .views import SupportTicketCloseView, SupportTicketDetailView, SupportTicketListCreateView, SupportTicketReopenView, SupportTicketReplyView
 
-from .views import (
-    SupportTicketCloseView,
-    SupportTicketDetailView,
-    SupportTicketListCreateView,
-    SupportTicketReopenView,
-    SupportTicketReplyView,
-)
 
 app_name = 'support'
 

@@ -7,11 +7,12 @@ BR-009: las credenciales NUNCA pasan al frontend.
 """
 import json
 import logging
-from decimal import Decimal
+from decimal import Decimal, Decimal as Dec
+from .base import BaseGateway, PreferenceResult, InstallmentPlan, PaymentVerification, RefundResult
+from apps.settings_app.models import PaymentGateway
 
 import mercadopago
 
-from .base import BaseGateway, PreferenceResult, InstallmentPlan, PaymentVerification
 
 logger = logging.getLogger('apps')
 
@@ -32,7 +33,6 @@ def _get_sdk() -> mercadopago.SDK:
     BR-009: las credenciales se descifran solo en el servidor.
     H-S15-004: las credenciales están en PaymentGateway.credentials (Fernet).
     """
-    from apps.settings_app.models import PaymentGateway
     try:
         gateway = PaymentGateway.objects.get(
             gateway=PaymentGateway.GATEWAY_MERCADOPAGO,
@@ -194,8 +194,6 @@ class MercadoPagoGateway(BaseGateway):
         MercadoPago acepta reembolso total (sin monto) o parcial (con monto).
         Retorna el refund_id de MP para guardarlo en Refund.gateway_refund_id.
         """
-        from decimal import Decimal as Dec
-        from .base import RefundResult
 
         sdk = _get_sdk()
         payload = {}

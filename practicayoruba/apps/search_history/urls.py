@@ -1,6 +1,6 @@
 from django.urls import path
-
 from .views import SearchHistoryEntryView, SearchHistoryListView
+
 
 app_name = 'search_history'
 

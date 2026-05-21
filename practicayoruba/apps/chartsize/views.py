@@ -4,25 +4,21 @@ Views — apps.chartsize
 Sprint 9 — UC-CHT-01, UC-CHT-02, UC-CHT-03, UC-CHT-04
 """
 from decimal import Decimal, InvalidOperation
-
 from django.shortcuts import get_object_or_404
-from drf_spectacular.utils import (
-    extend_schema, extend_schema_view, OpenApiParameter, OpenApiResponse,
-)
+from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiResponse
 from drf_spectacular.types import OpenApiTypes
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
-
 from apps.catalogue.models import Product
 from .models import VariantType, VariantOption, ProductVariant
-from .serializers import (
-    ProductVariantSerializer,
-    ProductVariantAdminSerializer,
-    VariantTypeAdminSerializer,
-)
+from .serializers import ProductVariantSerializer, ProductVariantAdminSerializer, VariantTypeAdminSerializer
+from django.utils import timezone
+from apps.orders.proxy_models import ActiveOrder
+
+
 
 
 # =============================================================================
@@ -150,13 +146,11 @@ class ProductVariantAdminViewSet(ModelViewSet):
         Sprint 12: verificar CartItems activos antes de desactivar.
         H-ORD-005: verificar ActiveOrders antes de desactivar (Sprint 19).
         """
-        from django.utils import timezone
         # H-ORD-005: protección contra órdenes activas
-        from apps.orders.proxy_models import ActiveOrder
         if ActiveOrder.objects.filter(items__variant=instance).exists():
             raise ValidationError({
                 'detail': 'No se puede eliminar esta variante porque tiene órdenes activas.',
-                'codigo_error': 'VARIANTE_CON_ORDENES_ACTIVAS',
+                'codigo_error': 'VARIANT_WITH_ACTIVE_ORDERS',
             })
         # H-S12-006: protección contra CartItems activos
         active_cart_items = instance.cart_items.count()
@@ -167,7 +161,7 @@ class ProductVariantAdminViewSet(ModelViewSet):
                     f'Desactivarla los dejaría sin stock. '
                     f'Espera a que esos carritos expiren o sean vaciados.'
                 ),
-                'codigo_error': 'VARIANTE_CON_ITEMS_EN_CARRITO',
+                'codigo_error': 'VARIANT_WITH_CART_ITEMS',
             })
         instance.is_active = False
         instance.stock     = 0
@@ -269,7 +263,6 @@ class VariantTypeAdminViewSet(ModelViewSet):
 
     def perform_destroy(self, instance):
         """Soft delete (DEC-DOC-007): ``is_deleted`` + visibilidad apagada."""
-        from django.utils import timezone
         instance.is_active = False
         instance.is_deleted = True
         instance.deleted_at = timezone.now()

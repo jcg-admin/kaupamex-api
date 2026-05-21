@@ -6,8 +6,8 @@ Mounted in config/urls.py as:
        namespace='admin_static_content'))
 """
 from django.urls import path
-
 from .views import StaticContentDetailView, StaticContentListView
+
 
 app_name = 'admin_static_content'
 

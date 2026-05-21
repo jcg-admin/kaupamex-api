@@ -71,6 +71,20 @@ TEMPLATES = [{
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
+# Conexion DB — socket Unix preferido (convencion del proyecto:
+# "se tienen que conectar x socket"). Si DB_SOCKET esta seteada,
+# Django/mysqlclient ignora HOST/PORT y usa el socket directamente.
+# Fallback TCP cuando DB_SOCKET no esta seteada (CI runners
+# remotos, conexion cross-host). Ver
+# docs/source/normativa/procedimientos/proc-ejecutar-pruebas.rst.
+_DB_OPTIONS = {
+    'charset': 'utf8mb4',
+    'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+}
+_DB_SOCKET = config('DB_SOCKET', default='')
+if _DB_SOCKET:
+    _DB_OPTIONS['unix_socket'] = _DB_SOCKET
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -79,10 +93,7 @@ DATABASES = {
         'PASSWORD': config('DB_PASSWORD', default='django_pass'),
         'HOST': config('DB_HOST', default='127.0.0.1'),
         'PORT': config('DB_PORT', default='3306'),
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-        },
+        'OPTIONS': _DB_OPTIONS,
     }
 }
 
@@ -119,6 +130,24 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.JSONRenderer',
     ],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    # DEC-THR-1 (hardening-throttle-endpoints-publicos):
+    # Defense in depth contra brute-force/spam en endpoints
+    # publicos. Rates conservadores por scope sensible.
+    # testing.py desactiva DEFAULT_THROTTLE_CLASSES para tests.
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon':                '100/hour',
+        'user':                '1000/hour',
+        'register':            '5/hour',
+        'password_reset':      '5/hour',
+        'password_confirm':    '10/hour',
+        'email_verify':        '10/hour',
+        'resend_verification': '3/hour',
+        'contact':             '5/hour',
+    },
 }
 
 SIMPLE_JWT = {

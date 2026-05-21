@@ -82,8 +82,9 @@ urlpatterns = [
     path('api/v1/admin/',     include('apps.catalogue.browse_admin_urls',
                                       namespace='catalogue_browse_admin')),
 
-    # ─── Catch-all LAST: /api/v1/<order_number>/ — DEBE ir después de todos los específicos
-    path('api/v1/',          include('apps.orders.urls',       namespace='orders')),
+    # ─── Orders bajo /api/v1/orders/ (DEC-ORD-01: alineado con UI productiva
+    #     y convencion REST estandar; antes era catch-all en /api/v1/).
+    path('api/v1/orders/',   include('apps.orders.urls',       namespace='orders')),
 ]
 
 

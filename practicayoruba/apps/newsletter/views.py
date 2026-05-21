@@ -22,19 +22,9 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from .models import NewsletterCampaign, NewsletterSubscriber, SubscriberStatus
+from .serializers import CampaignCreateSerializer, CampaignResponseSerializer, SubscribeSerializer, SubscriberListItemSerializer, UnsubscribeSerializer
 
-from .models import (
-    NewsletterCampaign,
-    NewsletterSubscriber,
-    SubscriberStatus,
-)
-from .serializers import (
-    CampaignCreateSerializer,
-    CampaignResponseSerializer,
-    SubscribeSerializer,
-    SubscriberListItemSerializer,
-    UnsubscribeSerializer,
-)
 
 
 # ── public ────────────────────────────────────────────────────────────

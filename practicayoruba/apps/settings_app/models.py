@@ -17,8 +17,11 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, MaxValueValidator, RegexValidator
 from django.db import models
 from cryptography.fernet import Fernet
-
 from apps.core.models import TimeStampedModel
+
+import hashlib
+import base64
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -147,19 +150,16 @@ class PaymentGateway(TimeStampedModel):
 
     @staticmethod
     def _fernet_key() -> bytes:
-        import hashlib, base64
         raw = settings.SECRET_KEY.encode()
         digest = hashlib.sha256(raw).digest()
         return base64.urlsafe_b64encode(digest)
 
     def set_credentials(self, data: dict) -> None:
-        import json
         f = Fernet(self._fernet_key())
         self.credentials = f.encrypt(json.dumps(data).encode())
 
     def get_credentials(self) -> dict:
         """Descifra y retorna las credenciales. {} si están vacías o son inválidas."""
-        import json
         if not self.credentials:
             return {}
         try:

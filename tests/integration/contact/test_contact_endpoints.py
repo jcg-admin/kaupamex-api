@@ -13,6 +13,8 @@ Admin:
 JSON keys + identifiers in English (DEC-DOC-005).
 """
 import pytest
+from apps.contact.models import ContactMessage
+from django.core import mail
 
 pytestmark = pytest.mark.integration
 
@@ -33,7 +35,6 @@ def _admin_reply_url(pk):
 
 
 def _make_message(**kwargs):
-    from apps.contact.models import ContactMessage
     defaults = {
         'name': 'Juan',
         'email': 'juan@example.com',
@@ -62,7 +63,6 @@ class TestCreateContactMessage:
         assert body['read'] is False
         assert body['replied'] is False
 
-        from apps.contact.models import ContactMessage
         assert ContactMessage.objects.filter(
             email='maria@example.com',
         ).count() == 1
@@ -155,7 +155,6 @@ class TestAdminReply:
         assert res.status_code == 403
 
     def test_reply_records_and_sends_email(self, admin_client, db):
-        from django.core import mail
         msg = _make_message(email='destino@example.com',
                             subject='Pregunta sobre envios')
         res = admin_client.post(_admin_reply_url(msg.pk), {

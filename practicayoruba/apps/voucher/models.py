@@ -9,10 +9,10 @@ VoucherUsage: registro de uso por orden — se crea en Sprint 18 (cuando exista 
 from decimal import Decimal
 from django.conf import settings
 from django.db import models
-
 from apps.core.models import SoftDeleteModel, TimeStampedModel
 from django.core.validators import MinValueValidator
 from django.utils import timezone
+
 
 
 class Voucher(TimeStampedModel, SoftDeleteModel):
@@ -132,20 +132,20 @@ class Voucher(TimeStampedModel, SoftDeleteModel):
         """
         now = timezone.now()
         if not self.is_active:
-            return 'VOUCHER_INACTIVO'
+            return 'VOUCHER_INACTIVE'
         if now < self.valid_from:
-            return 'VOUCHER_NO_VIGENTE'
+            return 'VOUCHER_NOT_YET_ACTIVE'
         if self.valid_until and now > self.valid_until:
-            return 'VOUCHER_EXPIRADO'
+            return 'VOUCHER_EXPIRED'
         if self.max_uses is not None and self.current_uses >= self.max_uses:
-            return 'VOUCHER_AGOTADO'
+            return 'VOUCHER_EXHAUSTED'
         if subtotal < self.min_order_amount:
-            return 'MONTO_MINIMO_NO_ALCANZADO'
+            return 'MINIMUM_AMOUNT_NOT_REACHED'
         if self.restricted_to_email:
             if not user or not user.is_authenticated:
-                return 'VOUCHER_REQUIERE_AUTENTICACION'
+                return 'VOUCHER_REQUIRES_AUTHENTICATION'
             if user.email.lower() != self.restricted_to_email.lower():
-                return 'VOUCHER_RESTRINGIDO_A_OTRO_EMAIL'
+                return 'VOUCHER_RESTRICTED_TO_OTHER_EMAIL'
         return None
 
     def calculate_discount(self, subtotal: Decimal) -> Decimal:

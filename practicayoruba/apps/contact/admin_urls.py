@@ -1,12 +1,7 @@
 """Admin URLs — apps.contact (UC-COM-02..03)."""
 from django.urls import path
+from .views import AdminContactMessageDetailView, AdminContactMessageListView, AdminContactMessageMarkReadView, AdminContactMessageReplyView
 
-from .views import (
-    AdminContactMessageDetailView,
-    AdminContactMessageListView,
-    AdminContactMessageMarkReadView,
-    AdminContactMessageReplyView,
-)
 
 app_name = 'admin_contact'
 

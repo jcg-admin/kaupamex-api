@@ -25,20 +25,13 @@ from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
+from apps.users.audit import audit_log_business
+from apps.users.models import BusinessEvent
+from apps.payments.models import Payment
+from apps.payments.services import execute_refund
 from .models import ReturnHistoryEntry, ReturnItem, ReturnRequest
-from .serializers import (
-    AdminReturnDetailSerializer,
-    AdminReturnListSerializer,
-    ReturnApproveSerializer,
-    ReturnCreateSerializer,
-    ReturnDetailSerializer,
-    ReturnInfoRequestSerializer,
-    ReturnListSerializer,
-    ReturnReceptionSerializer,
-    ReturnRefundSerializer,
-    ReturnRejectSerializer,
-)
+from .serializers import AdminReturnDetailSerializer, AdminReturnListSerializer, ReturnApproveSerializer, ReturnCreateSerializer, ReturnDetailSerializer, ReturnInfoRequestSerializer, ReturnListSerializer, ReturnReceptionSerializer, ReturnRefundSerializer, ReturnRejectSerializer
+
 
 
 def _get_own_return(return_id, user):
@@ -92,16 +85,31 @@ class ReturnListCreateView(APIView):
         serializer.is_valid(raise_exception=True)
         payload = serializer.validated_data
 
-        # Idempotencia: una sola solicitud pendiente por (user, order_id).
-        existing = ReturnRequest.objects.filter(
+        # Idempotencia: AC-05 UC-RET-01 - (user, order_id, item_id).
+        # Permite solicitar devolucion de items distintos de la misma orden,
+        # bloqueando solo si los items se solapan con una solicitud pendiente
+        # existente. Sin items en ninguna parte, se trata como colision por
+        # orden (caso conservador).
+        pending_qs = ReturnRequest.objects.filter(
             user=request.user,
             order_id=payload['order_id'],
             status=ReturnRequest.Status.PENDING_REVIEW,
-        ).first()
-        if existing is not None:
+        )
+        incoming_product_ids = {
+            item['product_id'] for item in payload.get('items') or []
+        }
+        conflict = False
+        if not incoming_product_ids:
+            conflict = pending_qs.exists()
+        else:
+            conflict = ReturnItem.objects.filter(
+                return_request__in=pending_qs,
+                product_id__in=incoming_product_ids,
+            ).exists()
+        if conflict:
             return Response(
                 {'error_code': 'REQUEST_ALREADY_EXISTS',
-                 'detail': 'Ya existe una solicitud pendiente para esa orden.'},
+                 'detail': 'Ya existe una solicitud pendiente para esa orden y items.'},
                 status=status.HTTP_409_CONFLICT,
             )
 
@@ -120,6 +128,11 @@ class ReturnListCreateView(APIView):
         _record_history(
             ret, ReturnRequest.Status.PENDING_REVIEW, request.user,
             justification='Solicitud creada por el comprador.',
+        )
+        audit_log_business(
+            request.user, BusinessEvent.ACTION_RETURN_REQUESTED, request,
+            target_type=BusinessEvent.TARGET_RETURN, target_id=ret.pk,
+            extra={'order_id': payload['order_id'], 'reason': payload['reason']},
         )
         return Response(
             ReturnDetailSerializer(ret).data,
@@ -236,6 +249,11 @@ class AdminReturnApproveView(APIView):
             ret, ReturnRequest.Status.APPROVED, request.user,
             justification=serializer.validated_data['justification'],
         )
+        audit_log_business(
+            request.user, BusinessEvent.ACTION_RETURN_RESOLVED, request,
+            target_type=BusinessEvent.TARGET_RETURN, target_id=ret.pk,
+            extra={'resolution': 'APPROVED'},
+        )
         return Response(AdminReturnDetailSerializer(ret).data)
 
 
@@ -270,6 +288,11 @@ class AdminReturnRejectView(APIView):
         _record_history(
             ret, ReturnRequest.Status.REJECTED, request.user,
             justification=justification,
+        )
+        audit_log_business(
+            request.user, BusinessEvent.ACTION_RETURN_RESOLVED, request,
+            target_type=BusinessEvent.TARGET_RETURN, target_id=ret.pk,
+            extra={'resolution': 'REJECTED'},
         )
         return Response(AdminReturnDetailSerializer(ret).data)
 
@@ -389,7 +412,44 @@ class AdminReturnRefundView(APIView):
         serializer.is_valid(raise_exception=True)
         amount = serializer.validated_data['amount']
 
-        ret.refund_amount = amount
+        payment = (
+            Payment.objects
+            .filter(
+                order_id=ret.order_id,
+                status__in=(
+                    Payment.STATUS_APPROVED,
+                    Payment.STATUS_PARTIALLY_REFUNDED,
+                ),
+            )
+            .order_by('-id')
+            .first()
+        )
+        if payment is None:
+            return Response(
+                {'error_code': 'PAYMENT_NOT_FOUND',
+                 'detail': 'No hay un pago reembolsable asociado a esta orden.'},
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+
+        try:
+            refund = execute_refund(
+                payment=payment,
+                amount=amount,
+                reason=f'ReturnRequest #{ret.pk}',
+                initiated_by=request.user,
+            )
+        except ValueError as exc:
+            return Response(
+                {'error_code': 'INVALID_REFUND_AMOUNT', 'detail': str(exc)},
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+        except RuntimeError as exc:
+            return Response(
+                {'error_code': 'GATEWAY_ERROR', 'detail': str(exc)},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        ret.refund_amount = refund.amount
         ret.refund_at = timezone.now()
         ret.status = ReturnRequest.Status.REFUNDED
         ret.save(update_fields=[
@@ -397,6 +457,9 @@ class AdminReturnRefundView(APIView):
         ])
         _record_history(
             ret, ReturnRequest.Status.REFUNDED, request.user,
-            justification=f'Reembolso procesado por {amount}.',
+            justification=(
+                f'Reembolso procesado por {refund.amount} '
+                f'(gateway_refund_id={refund.gateway_refund_id}).'
+            ),
         )
         return Response(AdminReturnDetailSerializer(ret).data)

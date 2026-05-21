@@ -7,9 +7,14 @@ Centraliza la lógica de negocio fuera de las vistas.
 """
 import logging
 from decimal import Decimal
-
 from django.db import transaction
 from django.utils import timezone
+from apps.inventory.services import InventoryService
+from apps.inventory.proxy_models import CancellationMovement
+from .models import OrderAddress
+from apps.payments.services import execute_refund
+from apps.settings_app.models import ShippingMethod
+
 
 logger = logging.getLogger('apps')
 
@@ -33,8 +38,6 @@ def cancel_order(order, reason: str = '', cancelled_by=None, cancelable_statuses
     :raises ValueError: si la orden no es cancelable
     :raises RuntimeError: si el gateway de reembolso falla
     """
-    from apps.inventory.services import InventoryService
-    from apps.inventory.proxy_models import CancellationMovement
 
     _cancelable = cancelable_statuses if cancelable_statuses is not None else CANCELABLE_STATUSES
     if order.status not in _cancelable:
@@ -77,7 +80,6 @@ def cancel_order(order, reason: str = '', cancelled_by=None, cancelable_statuses
             order.payments.filter(status='APPROVED').order_by('-created_at').first()
         )
         if approved_payment:
-            from apps.payments.services import execute_refund
             try:
                 refund = execute_refund(
                     payment=approved_payment,
@@ -108,7 +110,6 @@ def update_order_address(order, address_data: dict):
     Solo posible en estados: PENDING, PROCESSING, IN_PREPARATION.
     :raises ValueError: si la orden no permite editar la dirección.
     """
-    from .models import OrderAddress
 
     if order.status not in EDITABLE_STATUSES:
         raise ValueError(
@@ -129,21 +130,28 @@ def update_order_address(order, address_data: dict):
     return address
 
 
+class OrderNotEditableError(ValueError):
+    """UC-ORD-06: la orden no permite cambios (estado no editable)."""
+
+
+class ShippingMethodNotAvailableError(ValueError):
+    """UC-ORD-06: el shipping_method indicado no existe o esta inactivo."""
+
+
 def update_shipping_method(order, shipping_method_id: int):
     """
     Cambia el método de envío y recalcula el total.
-    UC-ORD-06 (FR-ORD-06.02).
+    UC-ORD-06 (FR-ORD-06.02) v2.1.0 (DEC-ORD-04).
 
     Solo posible en estados: PENDING, PROCESSING, IN_PREPARATION.
     Recalcula: OrderValue.shipping_cost y OrderValue.total.
 
-    :raises ValueError: si la orden no permite cambiar el envío.
-    :raises ValueError: si el método de envío no existe o está inactivo.
+    :raises OrderNotEditableError: si la orden no permite cambiar el envío.
+    :raises ShippingMethodNotAvailableError: si el método no existe o está inactivo.
     """
-    from apps.settings_app.models import ShippingMethod
 
     if order.status not in EDITABLE_STATUSES:
-        raise ValueError(
+        raise OrderNotEditableError(
             f'La orden {order.order_number} no permite cambiar el método '
             f'de envío (estado: {order.status}).'
         )
@@ -151,7 +159,7 @@ def update_shipping_method(order, shipping_method_id: int):
     try:
         new_method = ShippingMethod.objects.get(pk=shipping_method_id, is_active=True)
     except ShippingMethod.DoesNotExist:
-        raise ValueError(
+        raise ShippingMethodNotAvailableError(
             f'El método de envío {shipping_method_id} no existe o está inactivo.'
         )
 

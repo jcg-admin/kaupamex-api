@@ -5,21 +5,41 @@ User: modelo de comprador extendido de AbstractUser.
 Address: direcciones de envio del comprador (max 5 por usuario).
 """
 import os
+import time
+
 from django.contrib.auth.models import AbstractUser
 from django.db import models, transaction
-
 from apps.core.models import SoftDeleteModel, TimeStampedModel
+
 
 
 def avatar_upload_path(instance, filename):
     """Path para avatares subidos. El Sprint 2 convierte a WebP."""
-    import time
     ext = filename.rsplit('.', 1)[-1].lower()
     ts = int(time.time())
     return os.path.join('avatars', f'user_{instance.pk}_{ts}.{ext}')
 
 
 class User(AbstractUser):
+    # UC-AUTH-01 Alt-A (refinado) + UC-AUTH-13 + UC-AUTH-16:
+    # is_active=False puede tener tres causas distintas. El flag
+    # solo no las distingue, lo que filtraba E2/E3/E4 al mismo
+    # codigo. Estos dos campos las separan para que UC-AUTH-01
+    # Alt-A y ResendVerificationView decidan correctamente si la
+    # cuenta es reactivable via email.
+    DEACTIVATION_UNVERIFIED   = 'unverified'
+    DEACTIVATION_SUSPENDED    = 'suspended'
+    DEACTIVATION_SELF_DELETED = 'self_deleted'
+    DEACTIVATION_REASON_CHOICES = [
+        (DEACTIVATION_UNVERIFIED,   'No verificada (email pendiente)'),
+        (DEACTIVATION_SUSPENDED,    'Suspendida por administrador'),
+        (DEACTIVATION_SELF_DELETED, 'Dada de baja por el usuario'),
+    ]
+    DEACTIVATION_REASONS_REACTIVABLE_BY_EMAIL = {
+        DEACTIVATION_UNVERIFIED,
+        DEACTIVATION_SELF_DELETED,
+    }
+
     avatar = models.ImageField(
         upload_to=avatar_upload_path,
         null=True, blank=True,
@@ -30,6 +50,23 @@ class User(AbstractUser):
         max_length=20, blank=True, default='',
         verbose_name='Telefono',
         help_text='Numero de telefono del comprador.',
+    )
+    deactivated_reason = models.CharField(
+        max_length=20,
+        choices=DEACTIVATION_REASON_CHOICES,
+        null=True, blank=True,
+        verbose_name='Causa de inactividad',
+        help_text=(
+            'Causa por la que is_active=False. NULL cuando la cuenta esta '
+            'activa. Distingue cuentas reactivables por email '
+            '(unverified, self_deleted) de las que requieren UC-AUTH-14 '
+            '(suspended). Ver UC-AUTH-01 Alt-A.'
+        ),
+    )
+    deactivated_at = models.DateTimeField(
+        null=True, blank=True,
+        verbose_name='Fecha de desactivacion',
+        help_text='Timestamp del cambio is_active True -> False.',
     )
 
     class Meta:
@@ -119,6 +156,24 @@ class Address(TimeStampedModel, SoftDeleteModel):
         max_length=200,
         verbose_name='Calle y numero',
     )
+    # DEC-AUM-03 (UC-AUTH-07 D-01-07): direcciones MX requieren
+    # numero exterior / interior / colonia segun convencion postal.
+    # Backwards-compat: blank=True para no romper rows previos.
+    exterior_number = models.CharField(
+        max_length=20, blank=True, default='',
+        verbose_name='Numero exterior',
+        help_text='Numero exterior (MX). Ej: 123, 45-B.',
+    )
+    interior_number = models.CharField(
+        max_length=20, blank=True, default='',
+        verbose_name='Numero interior',
+        help_text='Numero interior si aplica (MX). Ej: Depto 5.',
+    )
+    neighborhood = models.CharField(
+        max_length=120, blank=True, default='',
+        verbose_name='Colonia',
+        help_text='Colonia / neighborhood (MX).',
+    )
     city = models.CharField(max_length=100, verbose_name='Ciudad')
     state = models.CharField(max_length=100, verbose_name='Estado')
     zip_code = models.CharField(max_length=10, verbose_name='Codigo postal')
@@ -156,6 +211,73 @@ class Address(TimeStampedModel, SoftDeleteModel):
                 super().save(*args, **kwargs)
         else:
             super().save(*args, **kwargs)
+
+
+class UserDeactivationEvent(TimeStampedModel):
+    """
+    Audit log de transiciones is_active=True -> False (GAP 10 cierre).
+
+    Cierra el gap de observabilidad detectado en el audit profundo:
+    el flag users_user.is_active + deactivated_reason refleja el ESTADO
+    actual, pero no preserva el historial. Si la cuenta se reactiva y
+    despues se vuelve a dar de baja por otro motivo, perdemos la pista
+    del evento anterior.
+
+    Esta tabla append-only registra cada transicion:
+
+    - user: a quien afecta.
+    - reason: que motivo se aplico ('unverified', 'suspended', 'self_deleted').
+    - actor: quien la inicio. NULL si fue el propio usuario o un signal
+      (created_with_is_active_false en RegisterSerializer). Otro user
+      cuando UC-AUTH-13 (admin suspend).
+    - source: que codepath la genero ('register', 'self', 'admin').
+    - note: texto libre opcional para el admin.
+
+    Las reactivaciones (is_active=False -> True) NO se registran aqui —
+    el evento de cierre se infiere por la fecha del siguiente evento o
+    por users_user.deactivated_reason IS NULL.
+    """
+    SOURCE_REGISTER = 'register'
+    SOURCE_SELF     = 'self'
+    SOURCE_ADMIN    = 'admin'
+    SOURCE_CHOICES = [
+        (SOURCE_REGISTER, 'Registro (cuenta nueva inactiva por verificar)'),
+        (SOURCE_SELF,     'Auto-baja del propio usuario'),
+        (SOURCE_ADMIN,    'Suspension por administrador'),
+    ]
+
+    user = models.ForeignKey(
+        'users.User', on_delete=models.CASCADE,
+        related_name='deactivation_events',
+    )
+    reason = models.CharField(
+        max_length=20,
+        choices=User.DEACTIVATION_REASON_CHOICES,
+    )
+    source = models.CharField(max_length=20, choices=SOURCE_CHOICES)
+    actor = models.ForeignKey(
+        'users.User', on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='+',
+        help_text=(
+            'Quien disparo el evento. NULL para SOURCE_REGISTER o '
+            'SOURCE_SELF. Solo SOURCE_ADMIN registra al admin.'
+        ),
+    )
+    note = models.CharField(max_length=255, blank=True, default='')
+
+    class Meta:
+        db_table = 'users_deactivation_event'
+        verbose_name = 'Evento de desactivacion'
+        verbose_name_plural = 'Eventos de desactivacion'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', '-created_at']),
+            models.Index(fields=['source']),
+        ]
+
+    def __str__(self):
+        return f'{self.user.username} -> {self.reason} via {self.source}'
 
 
 class PasswordResetToken(TimeStampedModel):
@@ -196,3 +318,118 @@ class EmailVerificationToken(TimeStampedModel):
 
     def __str__(self):
         return f'EmailVerif [{self.user.username}] — usado: {bool(self.used_at)}'
+
+
+class AuthEvent(TimeStampedModel):
+    """
+    Audit log de eventos de autenticacion (UC-AUTH-02/03/04
+    POST-05/AC-06, audit T-102 D-09/D-10/D-19/D-25).
+
+    Append-only. PII safe: NO almacena passwords ni tokens.
+    Solo registra: user FK (nullable para login_fail con
+    user inexistente), action enum (EN canonico), ip, ua,
+    reason enum, extra_json para correlation_id u otros
+    contextos.
+
+    Ver iniciativa audit-log-eventos-auth (DEC-AL-1..6).
+    """
+    ACTION_LOGIN_SUCCESS     = "LOGIN_SUCCESS"
+    ACTION_LOGIN_FAIL        = "LOGIN_FAIL"
+    ACTION_LOGOUT            = "LOGOUT"
+    ACTION_REFRESH_SUCCESS   = "REFRESH_SUCCESS"
+    ACTION_REFRESH_FAIL      = "REFRESH_FAIL"
+    # audit-log-eventos-auth-register (DEC-ALR-1):
+    ACTION_REGISTER_ATTEMPT  = "REGISTER_ATTEMPT"
+    ACTION_REGISTER_SUCCESS  = "REGISTER_SUCCESS"
+    ACTION_REGISTER_FAIL     = "REGISTER_FAIL"
+    # T-119 D-02 iter 20 (UC-AUTH-08 AC-06 audit log universal):
+    ACTION_PASSWORD_CHANGE   = "PASSWORD_CHANGE"
+    ACTION_CHOICES = [
+        (ACTION_LOGIN_SUCCESS,    "Login exitoso"),
+        (ACTION_LOGIN_FAIL,       "Login fallido"),
+        (ACTION_LOGOUT,           "Logout"),
+        (ACTION_REFRESH_SUCCESS,  "Refresh exitoso"),
+        (ACTION_REFRESH_FAIL,     "Refresh fallido"),
+        (ACTION_REGISTER_ATTEMPT, "Registro intento"),
+        (ACTION_REGISTER_SUCCESS, "Registro exitoso"),
+        (ACTION_REGISTER_FAIL,    "Registro fallido"),
+        (ACTION_PASSWORD_CHANGE,  "Cambio de contrasena"),
+    ]
+
+    REASON_BAD_CREDS        = "BAD_CREDS"
+    REASON_ACCOUNT_INACTIVE = "ACCOUNT_INACTIVE"
+    REASON_EMAIL_NOT_VERIFIED = "EMAIL_NOT_VERIFIED"
+    REASON_RATE_LIMITED     = "RATE_LIMITED"
+    REASON_TOKEN_EXPIRED    = "TOKEN_EXPIRED"
+    REASON_TOKEN_INVALID    = "TOKEN_INVALID"
+
+    user       = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="auth_events",
+    )
+    action     = models.CharField(max_length=20, choices=ACTION_CHOICES, db_index=True)
+    ip_addr    = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=255, blank=True, default="")
+    reason     = models.CharField(max_length=30, blank=True, default="")
+    extra_json = models.JSONField(null=True, blank=True)
+
+    class Meta:
+        db_table = "users_auth_event"
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["user", "action", "-created_at"]),
+            models.Index(fields=["action", "-created_at"]),
+        ]
+
+    def __str__(self):
+        u = self.user.username if self.user_id else "anon"
+        return f"AuthEvent[{u}] {self.action} {self.created_at:%Y-%m-%d %H:%M}"
+
+
+
+class BusinessEvent(TimeStampedModel):
+    """
+    Audit trail de eventos business cross-cutting (orders,
+    returns) — distinto de AuthEvent (auth flow). Sucesora
+    de audit-log-eventos-auth.
+
+    Patron similar: append-only, PII safe, indexed for
+    forensics. target_type + target_id en lugar de
+    GenericForeignKey por simplicidad (DEC-CC-4).
+    """
+    ACTION_ORDER_CREATED    = "ORDER_CREATED"
+    ACTION_ORDER_CANCELLED  = "ORDER_CANCELLED"
+    ACTION_RETURN_REQUESTED = "RETURN_REQUESTED"
+    ACTION_RETURN_RESOLVED  = "RETURN_RESOLVED"
+    ACTION_CHOICES = [
+        (ACTION_ORDER_CREATED,    "Order creada"),
+        (ACTION_ORDER_CANCELLED,  "Order cancelada"),
+        (ACTION_RETURN_REQUESTED, "Return solicitada"),
+        (ACTION_RETURN_RESOLVED,  "Return resuelta"),
+    ]
+
+    TARGET_ORDER  = "order"
+    TARGET_RETURN = "return"
+
+    actor       = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="business_events",
+    )
+    action      = models.CharField(max_length=30, choices=ACTION_CHOICES, db_index=True)
+    target_type = models.CharField(max_length=20, blank=True, default="")
+    target_id   = models.PositiveIntegerField(null=True, blank=True)
+    ip_addr     = models.GenericIPAddressField(null=True, blank=True)
+    extra_json  = models.JSONField(null=True, blank=True)
+
+    class Meta:
+        db_table = "users_business_event"
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["action", "-created_at"]),
+            models.Index(fields=["target_type", "target_id"]),
+        ]
+
+    def __str__(self):
+        a = self.actor.username if self.actor_id else "system"
+        return f"BusinessEvent[{a}] {self.action} {self.target_type}#{self.target_id}"
+

@@ -4,6 +4,8 @@ UC-AUTH-12 (ver perfil), UC-AUTH-13 (suspender),
 UC-AUTH-14 (reactivar), UC-AUTH-15 (crear admin)
 """
 import pytest
+from django.contrib.auth import get_user_model
+from rest_framework_simplejwt.tokens import RefreshToken
 
 pytestmark = pytest.mark.integration
 
@@ -12,7 +14,6 @@ USERS_URL = '/api/v1/admin/users/'
 
 @pytest.fixture
 def target_user(db):
-    from django.contrib.auth import get_user_model
     return get_user_model().objects.create_user(
         username='targetuser', email='target@test.mx',
         password='Pass123!', is_active=True,
@@ -52,7 +53,6 @@ class TestAdminSuspendUser:
         assert target_user.is_active is False
 
     def test_suspender_invalida_sesiones(self, admin_auth_client, target_user, db, api_client):
-        from rest_framework_simplejwt.tokens import RefreshToken
         refresh = str(RefreshToken.for_user(target_user))
         admin_auth_client.post(f'{USERS_URL}{target_user.pk}/suspend/')
         r = api_client.post('/api/v1/auth/refresh/', {'refresh': refresh}, format='json')
@@ -71,7 +71,6 @@ class TestAdminReactivateUser:
 
     @pytest.fixture
     def inactive_target(self, db):
-        from django.contrib.auth import get_user_model
         return get_user_model().objects.create_user(
             username='inactiveuser', email='inactive@test.mx',
             password='Pass123!', is_active=False,
@@ -107,7 +106,6 @@ class TestAdminCreateAdmin:
             'email': 'newadmin2@test.mx',
             'password': 'AdminPass123!',
         }, format='json')
-        from django.contrib.auth import get_user_model
         user = get_user_model().objects.get(username='newadmin2')
         assert user.is_staff is True
 
@@ -117,7 +115,6 @@ class TestAdminCreateAdmin:
             'email': 'newadmin3@test.mx',
             'password': 'AdminPass123!',
         }, format='json')
-        from django.contrib.auth import get_user_model
         user = get_user_model().objects.get(username='newadmin3')
         assert user.is_active is True
 

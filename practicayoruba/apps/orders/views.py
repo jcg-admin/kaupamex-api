@@ -4,26 +4,30 @@ UC-ORD-01: Checkout, UC-ORD-02..06: Gestión del comprador (Sprint 18)
 """
 import uuid
 from decimal import Decimal
-
 from django.db import transaction
+from django.db.models import F
+from apps.voucher.models import Voucher
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
+from apps.users.audit import audit_log_business
+from apps.users.models import BusinessEvent
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
 from apps.cart.models import Cart, CartItem
 from apps.cart.views import _get_or_create_cart
 from apps.inventory.services import InventoryService, InsufficientStockError
 from apps.settings_app.models import SiteSettings, ShippingMethod
-
 from .models import Order, OrderItem, OrderValue, OrderAddress
-from .serializers import (
-    CancelOrderSerializer, CheckoutSerializer, OrderListSerializer,
-    OrderSerializer, UpdateAddressSerializer, UpdateShippingSerializer,
-)
+from .serializers import CancelOrderSerializer, CheckoutSerializer, OrderListSerializer, OrderSerializer, UpdateAddressSerializer, UpdateShippingSerializer
+from django.db.models import Prefetch
+from apps.catalogue.models import ProductImage
+from .services import OrderNotEditableError, ShippingMethodNotAvailableError, cancel_order, update_order_address, update_shipping_method
+
+
+
 
 
 class CheckoutView(APIView):
@@ -72,16 +76,16 @@ class CheckoutView(APIView):
                 cart = Cart.objects.get(user=request.user)
             except Cart.DoesNotExist:
                 raise ValidationError({'detail': 'No tienes un carrito activo.',
-                                       'codigo_error': 'CARRITO_VACIO'})
+                                       'codigo_error': 'EMPTY_CART'})
         else:
             cart_token = data.get('cart_token')
             if not cart_token:
                 raise ValidationError({'cart_token': 'Requerido para visitantes anónimos.',
-                                       'codigo_error': 'CART_TOKEN_REQUERIDO'})
+                                       'codigo_error': 'CART_TOKEN_REQUIRED'})
             guest_email = data.get('guest_email')
             if not guest_email:
                 raise ValidationError({'guest_email': 'Requerido para visitantes anónimos.',
-                                       'codigo_error': 'GUEST_EMAIL_REQUERIDO'})
+                                       'codigo_error': 'GUEST_EMAIL_REQUIRED'})
             cart = get_object_or_404(Cart, cart_token=cart_token, user__isnull=True)
 
         # 2. Verificar items
@@ -90,7 +94,7 @@ class CheckoutView(APIView):
         ).all())
         if not cart_items:
             raise ValidationError({'detail': 'El carrito está vacío.',
-                                   'codigo_error': 'CARRITO_VACIO'})
+                                   'codigo_error': 'EMPTY_CART'})
 
         # 3. Verificar disponibilidad (sin bloqueo aún)
         check_items = [
@@ -100,7 +104,7 @@ class CheckoutView(APIView):
         insufficient = InventoryService.check_availability(check_items)
         if insufficient:
             return Response({'detail': 'Stock insuficiente para algunos items.',
-                             'codigo_error': 'STOCK_INSUFICIENTE',
+                             'codigo_error': 'INSUFFICIENT_STOCK',
                              'items': insufficient}, status=409)
 
         # 4. Transacción atómica: decrement + crear orden
@@ -173,36 +177,47 @@ class CheckoutView(APIView):
                 addr_data = data['address']
                 OrderAddress.objects.create(order=order, **addr_data)
 
-                # f. Vaciar carrito
+                # f. Incrementar Voucher.current_uses atomicamente
+                # (DEC-VCU-01 T-115 D-01 CRITICA: el campo se leia en
+                # is_usable()/can_apply() pero NUNCA se incrementaba.
+                # max_uses no limitaba en la practica).
+                if cart.voucher_id:
+                    voucher_locked = (
+                        Voucher.objects.select_for_update()
+                        .get(pk=cart.voucher_id)
+                    )
+                    if (voucher_locked.max_uses is not None
+                            and voucher_locked.current_uses >=
+                                voucher_locked.max_uses):
+                        # Race detectada: otro checkout consumio el
+                        # cupo entre validacion y lock.
+                        raise ValueError(
+                            f'Voucher {voucher_locked.code} agotado: '
+                            f'{voucher_locked.current_uses}/'
+                            f'{voucher_locked.max_uses}.'
+                        )
+                    Voucher.objects.filter(pk=cart.voucher_id).update(
+                        current_uses=F('current_uses') + 1
+                    )
+
+                # g. Vaciar carrito
                 cart.items.all().delete()
                 cart.voucher = None
                 cart.save(update_fields=['voucher'])
 
         except InsufficientStockError as exc:
             return Response({'detail': str(exc),
-                             'codigo_error': 'STOCK_INSUFICIENTE'}, status=409)
+                             'codigo_error': 'INSUFFICIENT_STOCK'}, status=409)
 
+        audit_log_business(
+            user if user and user.is_authenticated else None,
+            BusinessEvent.ACTION_ORDER_CREATED,
+            request,
+            target_type=BusinessEvent.TARGET_ORDER,
+            target_id=order.pk,
+            extra={'order_number': order.order_number},
+        )
         return Response(OrderSerializer(order).data, status=201)
-
-
-class OrderDetailView(APIView):
-    """GET /api/v1/orders/<order_number>/ — ver detalle de orden."""
-    permission_classes = [IsAuthenticated]
-
-    @extend_schema(
-        summary='Ver detalle de orden',
-        responses={200: OrderSerializer, 404: None},
-        tags=['orders'],
-    )
-    def get(self, request, order_number):
-        qs = Order.objects.select_related(
-            'value', 'address', 'shipping_method', 'user'
-        ).prefetch_related('items')
-        if request.user.is_authenticated:
-            order = get_object_or_404(qs, order_number=order_number, user=request.user)
-        else:
-            return Response(status=403)
-        return Response(OrderSerializer(order).data)
 
 
 # =============================================================================
@@ -241,10 +256,6 @@ class OrderListView(APIView):
         operation_id='orders_list',
     )
     def get(self, request):
-        from django.db.models import Prefetch
-        from .models import Order, OrderItem
-        from .serializers import OrderListSerializer
-        from apps.catalogue.models import ProductImage
 
         qs = (
             Order.objects.filter(user=request.user)
@@ -265,6 +276,19 @@ class OrderListView(APIView):
             )
             .order_by('-created_at')
         )
+
+        # UC-ORD-03 PARTE 4.2 Alt-B + PARTE 7.1 (DEC-ORD-07):
+        # filtro por ?status=<STATUS>. Antes ignorado.
+        status_filter = request.query_params.get('status')
+        if status_filter:
+            valid_statuses = {choice[0] for choice in Order._meta.get_field('status').choices}
+            if status_filter not in valid_statuses:
+                return Response(
+                    {'detail': f'Status invalido: {status_filter}.',
+                     'codigo_error': 'INVALID_STATUS'},
+                    status=400,
+                )
+            qs = qs.filter(status=status_filter)
 
         paginator = OrderPagination()
         page = paginator.paginate_queryset(qs, request)
@@ -296,8 +320,6 @@ class OrderDetailView(APIView):
         operation_id='orders_retrieve',
     )
     def get(self, request, order_number):
-        from .models import Order
-        from .serializers import OrderSerializer
 
         order = (
             Order.objects
@@ -308,7 +330,7 @@ class OrderDetailView(APIView):
         )
         if not order:
             return Response(
-                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDEN_NO_ENCONTRADA'},
+                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDER_NOT_FOUND'},
                 status=404,
             )
         return Response(OrderSerializer(order).data)
@@ -346,9 +368,6 @@ class OrderCancelView(APIView):
         tags=['orders'],
     )
     def post(self, request, order_number):
-        from .models import Order
-        from .serializers import CancelOrderSerializer, OrderSerializer
-        from .services import cancel_order
 
         order = (
             Order.objects
@@ -359,7 +378,7 @@ class OrderCancelView(APIView):
         )
         if not order:
             return Response(
-                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDEN_NO_ENCONTRADA'},
+                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDER_NOT_FOUND'},
                 status=404,
             )
 
@@ -374,15 +393,24 @@ class OrderCancelView(APIView):
             )
         except ValueError as exc:
             return Response(
-                {'detail': str(exc), 'codigo_error': 'CANCELACION_NO_PERMITIDA'},
+                {'detail': str(exc), 'codigo_error': 'CANCELLATION_NOT_ALLOWED'},
                 status=400,
             )
         except RuntimeError as exc:
             return Response(
-                {'detail': str(exc), 'codigo_error': 'GATEWAY_NO_DISPONIBLE'},
+                {'detail': str(exc), 'codigo_error': 'GATEWAY_UNAVAILABLE'},
                 status=503,
             )
 
+        audit_log_business(
+            request.user if request.user.is_authenticated else None,
+            BusinessEvent.ACTION_ORDER_CANCELLED,
+            request,
+            target_type=BusinessEvent.TARGET_ORDER,
+            target_id=order.pk,
+            extra={'order_number': order.order_number,
+                   'reason': s.validated_data.get('reason', '')},
+        )
         order.refresh_from_db()
         return Response(OrderSerializer(order).data)
 
@@ -413,9 +441,6 @@ class OrderAddressUpdateView(APIView):
         tags=['orders'],
     )
     def patch(self, request, order_number):
-        from .models import Order
-        from .serializers import UpdateAddressSerializer, OrderSerializer
-        from .services import update_order_address
 
         order = (
             Order.objects
@@ -425,7 +450,7 @@ class OrderAddressUpdateView(APIView):
         )
         if not order:
             return Response(
-                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDEN_NO_ENCONTRADA'},
+                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDER_NOT_FOUND'},
                 status=404,
             )
 
@@ -436,7 +461,7 @@ class OrderAddressUpdateView(APIView):
             update_order_address(order, s.validated_data)
         except ValueError as exc:
             return Response(
-                {'detail': str(exc), 'codigo_error': 'DIRECCION_NO_EDITABLE'},
+                {'detail': str(exc), 'codigo_error': 'ADDRESS_NOT_EDITABLE'},
                 status=400,
             )
 
@@ -470,9 +495,6 @@ class OrderShippingUpdateView(APIView):
         tags=['orders'],
     )
     def patch(self, request, order_number):
-        from .models import Order
-        from .serializers import UpdateShippingSerializer, OrderSerializer
-        from .services import update_shipping_method
 
         order = (
             Order.objects
@@ -482,7 +504,7 @@ class OrderShippingUpdateView(APIView):
         )
         if not order:
             return Response(
-                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDEN_NO_ENCONTRADA'},
+                {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDER_NOT_FOUND'},
                 status=404,
             )
 
@@ -491,9 +513,17 @@ class OrderShippingUpdateView(APIView):
 
         try:
             update_shipping_method(order, s.validated_data['shipping_method_id'])
-        except ValueError as exc:
+        except OrderNotEditableError as exc:
+            # UC-ORD-06 PARTE 7.3 (DEC-ORD-04): 409 ORDER_NOT_EDITABLE.
             return Response(
-                {'detail': str(exc), 'codigo_error': 'METODO_NO_EDITABLE'},
+                {'detail': str(exc), 'codigo_error': 'ORDER_NOT_EDITABLE'},
+                status=409,
+            )
+        except ShippingMethodNotAvailableError as exc:
+            # UC-ORD-06 PARTE 7.3 (DEC-ORD-04): 400 SHIPPING_METHOD_NOT_AVAILABLE.
+            return Response(
+                {'detail': str(exc),
+                 'codigo_error': 'SHIPPING_METHOD_NOT_AVAILABLE'},
                 status=400,
             )
 
