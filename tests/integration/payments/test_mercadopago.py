@@ -304,7 +304,7 @@ class TestCuotasMSI:
     ):
         res = auth_client.get(INSTALLMENT_URL)
         assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'ORDER_NUMBER_REQUERIDO'
+        assert res.json()['codigo_error'] == 'ORDER_NUMBER_REQUIRED'
 
     def test_planes_cuotas_retorna_solo_msi(
         self, auth_client, orden_pendiente, mp_gateway_activo, mock_mp_sdk, db

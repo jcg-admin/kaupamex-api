@@ -102,7 +102,7 @@ class CheckoutView(APIView):
         insufficient = InventoryService.check_availability(check_items)
         if insufficient:
             return Response({'detail': 'Stock insuficiente para algunos items.',
-                             'codigo_error': 'STOCK_INSUFICIENTE',
+                             'codigo_error': 'INSUFFICIENT_STOCK',
                              'items': insufficient}, status=409)
 
         # 4. Transacción atómica: decrement + crear orden
@@ -182,7 +182,7 @@ class CheckoutView(APIView):
 
         except InsufficientStockError as exc:
             return Response({'detail': str(exc),
-                             'codigo_error': 'STOCK_INSUFICIENTE'}, status=409)
+                             'codigo_error': 'INSUFFICIENT_STOCK'}, status=409)
 
         audit_log_business(
             user if user and user.is_authenticated else None,

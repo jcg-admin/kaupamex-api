@@ -387,7 +387,7 @@ class ExpressCheckoutView(APIView):
 
         insufficient = InventoryService.check_availability(check_items)
         if insufficient:
-            return Response({'detail': 'Stock insuficiente.', 'codigo_error': 'STOCK_INSUFICIENTE', 'items': insufficient}, status=409)
+            return Response({'detail': 'Stock insuficiente.', 'codigo_error': 'INSUFFICIENT_STOCK', 'items': insufficient}, status=409)
 
         settings_obj = SiteSettings.get_current()
         iva_rate = settings_obj.iva_rate
@@ -446,7 +446,7 @@ class ExpressCheckoutView(APIView):
                 cart.save(update_fields=['voucher'])
 
         except InsufficientStockError as exc:
-            return Response({'detail': str(exc), 'codigo_error': 'STOCK_INSUFICIENTE'}, status=409)
+            return Response({'detail': str(exc), 'codigo_error': 'INSUFFICIENT_STOCK'}, status=409)
 
         return Response(OrderSerializer(order).data, status=201)
 

@@ -199,7 +199,7 @@ class CartItemListView(APIView):
                 )
             raise ValidationError({
                 'quantity': f'Stock insuficiente. Disponible: {available}.',
-                'codigo_error': 'STOCK_INSUFICIENTE',
+                'codigo_error': 'INSUFFICIENT_STOCK',
             })
 
         unit_price = variant.effective_price() if variant else product.price
@@ -225,7 +225,7 @@ class CartItemListView(APIView):
                         )
                     raise ValidationError({
                         'quantity': f'Stock insuficiente. Disponible: {available}.',
-                        'codigo_error': 'STOCK_INSUFICIENTE',
+                        'codigo_error': 'INSUFFICIENT_STOCK',
                     })
                 existing.quantity   = new_qty
                 existing.unit_price = unit_price
@@ -269,7 +269,7 @@ class CartItemDetailView(APIView):
         if new_qty > available:
             raise ValidationError({
                 'quantity': f'Stock insuficiente. Disponible: {available}.',
-                'codigo_error': 'STOCK_INSUFICIENTE',
+                'codigo_error': 'INSUFFICIENT_STOCK',
             })
         item.quantity = new_qty
         item.save(update_fields=['quantity'])
