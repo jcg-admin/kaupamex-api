@@ -16,13 +16,17 @@ PYTokenRefreshView: refresh con validacion is_active.
 """
 import hashlib
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import update_last_login
 from django.core.cache import cache
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.response import Response
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from rest_framework_simplejwt.exceptions import AuthenticationFailed, InvalidToken
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenBlacklistView, TokenRefreshView
+from rest_framework_simplejwt.exceptions import InvalidToken
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.settings import api_settings as jwt_settings
+from .audit import audit_log_auth
+from .models import AuthEvent
 
 User = get_user_model()
 
@@ -102,6 +106,11 @@ class PYTokenObtainPairSerializer(TokenObtainPairSerializer):
 
         data = super().validate(attrs)
 
+        # D-09 fix (audit-log-eventos-auth, DEC-AL-6):
+        # simplejwt no actualiza last_login por default.
+        # POST-05 UC-AUTH-02 lo requiere.
+        update_last_login(None, self.user)
+
         # FR-AUTH-02.15 — añadir objeto user a la respuesta
         user = self.user
         data['user'] = {
@@ -119,8 +128,14 @@ class PYTokenObtainPairSerializer(TokenObtainPairSerializer):
 class PYTokenObtainPairView(TokenObtainPairView):
     """
     View de login con rate limiting por IP (FR-AUTH-02.01 / FR-AUTH-02.14).
+    Emite AuthEvent LOGIN_SUCCESS / LOGIN_FAIL (D-10).
     """
     serializer_class = PYTokenObtainPairSerializer
+
+    def _audit_login(self, request, success: bool, user=None, reason: str = ''):
+        action = (AuthEvent.ACTION_LOGIN_SUCCESS if success
+                  else AuthEvent.ACTION_LOGIN_FAIL)
+        audit_log_auth(user, action, request, reason=reason)
 
     def post(self, request, *args, **kwargs):
         ip = get_client_ip(request)
@@ -128,6 +143,8 @@ class PYTokenObtainPairView(TokenObtainPairView):
         # FR-AUTH-02.01: verificar bloqueo ANTES de validar credenciales
         seconds_remaining = check_login_rate_limit(ip)
         if seconds_remaining:
+            self._audit_login(request, success=False,
+                              reason=AuthEvent.REASON_RATE_LIMITED)
             response = Response(
                 {
                     'detail': 'Demasiados intentos fallidos. Intenta de nuevo más tarde.',
@@ -140,18 +157,29 @@ class PYTokenObtainPairView(TokenObtainPairView):
 
         try:
             response = super().post(request, *args, **kwargs)
-        except Exception:
+        except AuthenticationFailed as exc:
             # super().post() puede lanzar AuthenticationFailed (APIException)
             # que no convierte a Response dentro de post() — sube a dispatch().
             # Registramos el fallo antes de dejar que suba.
             record_failed_attempt(ip)
+            reason = AuthEvent.REASON_BAD_CREDS
+            detail = getattr(exc, 'detail', None)
+            if isinstance(detail, dict) and detail.get('codigo') == 'EMAIL_NO_VERIFICADO':
+                reason = AuthEvent.REASON_EMAIL_NOT_VERIFIED
+            self._audit_login(request, success=False, reason=reason)
             raise
 
         if response.status_code == 200:
             # FR-AUTH-02.14: login exitoso — limpiar contador
             reset_failed_attempts(ip)
+            # D-10 audit log: usuario resuelto via response data.
+            user_id = (response.data or {}).get('user', {}).get('id')
+            user = User.objects.filter(pk=user_id).first() if user_id else None
+            self._audit_login(request, success=True, user=user)
         elif response.status_code in (400, 401):
             record_failed_attempt(ip)
+            self._audit_login(request, success=False,
+                              reason=AuthEvent.REASON_BAD_CREDS)
 
         return response
 
@@ -183,6 +211,7 @@ class PYTokenRefreshSerializer(TokenRefreshSerializer):
         #
         # RefreshToken(token) verifica firma + expiracion + blacklist
         # check pero NO blacklistea por si mismo.
+        request = self.context.get('request') if hasattr(self, 'context') else None
         refresh = RefreshToken(attrs['refresh'])
         user_id = refresh.get(jwt_settings.USER_ID_CLAIM)
         user = User.objects.filter(pk=user_id).first()
@@ -195,6 +224,11 @@ class PYTokenRefreshSerializer(TokenRefreshSerializer):
                 # blacklist puede fallar si el token ya esta en
                 # blacklist (idempotente). Aceptable.
                 pass
+            # D-25 audit log: refresh fallido por user inactivo.
+            audit_log_auth(
+                user, AuthEvent.ACTION_REFRESH_FAIL, request,
+                reason=AuthEvent.REASON_ACCOUNT_INACTIVE,
+            )
             raise InvalidToken({
                 'detail': 'Cuenta inactiva. Inicia sesion de nuevo.',
                 'codigo_error': 'ACCOUNT_INACTIVE',
@@ -202,9 +236,32 @@ class PYTokenRefreshSerializer(TokenRefreshSerializer):
 
         # User valido y activo: dejar simplejwt rotar + emitir
         # nuevo access (+ nuevo refresh por ROTATE_REFRESH_TOKENS).
-        return super().validate(attrs)
+        data = super().validate(attrs)
+        # D-25 audit log: refresh exitoso.
+        audit_log_auth(
+            user, AuthEvent.ACTION_REFRESH_SUCCESS, request,
+        )
+        return data
 
 
 class PYTokenRefreshView(TokenRefreshView):
     """View custom que usa ``PYTokenRefreshSerializer``."""
     serializer_class = PYTokenRefreshSerializer
+
+
+# ─── Logout audit (D-19) ───────────────────────────────────────────────
+
+
+class PYTokenBlacklistView(TokenBlacklistView):
+    """
+    Subclase de TokenBlacklistView que emite AuthEvent.ACTION_LOGOUT
+    tras el blacklist exitoso del refresh. D-19 del audit T-102.
+    """
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        if 200 <= response.status_code < 300:
+            # User puede ser anon si la request no traia Authorization;
+            # logout suele ser anon en simplejwt (solo blacklistea token).
+            user = request.user if request.user.is_authenticated else None
+            audit_log_auth(user, AuthEvent.ACTION_LOGOUT, request)
+        return response

@@ -300,3 +300,60 @@ class EmailVerificationToken(TimeStampedModel):
 
     def __str__(self):
         return f'EmailVerif [{self.user.username}] — usado: {bool(self.used_at)}'
+
+
+class AuthEvent(TimeStampedModel):
+    """
+    Audit log de eventos de autenticacion (UC-AUTH-02/03/04
+    POST-05/AC-06, audit T-102 D-09/D-10/D-19/D-25).
+
+    Append-only. PII safe: NO almacena passwords ni tokens.
+    Solo registra: user FK (nullable para login_fail con
+    user inexistente), action enum (EN canonico), ip, ua,
+    reason enum, extra_json para correlation_id u otros
+    contextos.
+
+    Ver iniciativa audit-log-eventos-auth (DEC-AL-1..6).
+    """
+    ACTION_LOGIN_SUCCESS    = "LOGIN_SUCCESS"
+    ACTION_LOGIN_FAIL       = "LOGIN_FAIL"
+    ACTION_LOGOUT           = "LOGOUT"
+    ACTION_REFRESH_SUCCESS  = "REFRESH_SUCCESS"
+    ACTION_REFRESH_FAIL     = "REFRESH_FAIL"
+    ACTION_CHOICES = [
+        (ACTION_LOGIN_SUCCESS,    "Login exitoso"),
+        (ACTION_LOGIN_FAIL,       "Login fallido"),
+        (ACTION_LOGOUT,           "Logout"),
+        (ACTION_REFRESH_SUCCESS,  "Refresh exitoso"),
+        (ACTION_REFRESH_FAIL,     "Refresh fallido"),
+    ]
+
+    REASON_BAD_CREDS        = "BAD_CREDS"
+    REASON_ACCOUNT_INACTIVE = "ACCOUNT_INACTIVE"
+    REASON_EMAIL_NOT_VERIFIED = "EMAIL_NOT_VERIFIED"
+    REASON_RATE_LIMITED     = "RATE_LIMITED"
+    REASON_TOKEN_EXPIRED    = "TOKEN_EXPIRED"
+    REASON_TOKEN_INVALID    = "TOKEN_INVALID"
+
+    user       = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="auth_events",
+    )
+    action     = models.CharField(max_length=20, choices=ACTION_CHOICES, db_index=True)
+    ip_addr    = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=255, blank=True, default="")
+    reason     = models.CharField(max_length=30, blank=True, default="")
+    extra_json = models.JSONField(null=True, blank=True)
+
+    class Meta:
+        db_table = "users_auth_event"
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["user", "action", "-created_at"]),
+            models.Index(fields=["action", "-created_at"]),
+        ]
+
+    def __str__(self):
+        u = self.user.username if self.user_id else "anon"
+        return f"AuthEvent[{u}] {self.action} {self.created_at:%Y-%m-%d %H:%M}"
+
