@@ -10,6 +10,7 @@ from django.db import transaction
 from django.utils import timezone
 from .models import OrderStatusLog, Order
 from .services import cancel_order
+from apps.notifications.service import notify_order_status_changed
 from django.db.models import Count, Sum, Q
 from datetime import timedelta
 from apps.payments.models import Payment
@@ -66,6 +67,9 @@ def transition_order_status(order, new_status: str, admin_user, notes: str = '')
             changed_by=admin_user,
             notes=notes,
         )
+
+        # UC-NOT-02: notificacion in-app + email de cambio de estado.
+        notify_order_status_changed(locked, new_status)
 
     logger.info(
         'Orden %s: %s → %s (admin=%s)',
