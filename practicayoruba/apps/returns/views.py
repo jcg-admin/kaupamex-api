@@ -28,6 +28,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from apps.users.audit import audit_log_business
 from apps.users.models import BusinessEvent
+from apps.orders.models import Order as OrderModel
 from apps.payments.models import Payment
 from apps.payments.services import execute_refund
 from .models import ReturnHistoryEntry, ReturnItem, ReturnRequest
@@ -257,12 +258,14 @@ class AdminReturnApproveView(APIView):
                 target_type=BusinessEvent.TARGET_RETURN, target_id=ret.pk,
                 extra={'resolution': 'APPROVED'},
             )
-            notify_return_processed(
-                order=ret.order,
-                user=ret.user,
-                return_status='APPROVED',
-                reason=None,
-            )
+            ret_order = OrderModel.objects.filter(pk=ret.order_id).first()
+            if ret_order:
+                notify_return_processed(
+                    order=ret_order,
+                    user=ret.user,
+                    return_status='APPROVED',
+                    reason=None,
+                )
         return Response(AdminReturnDetailSerializer(ret).data)
 
 
@@ -304,12 +307,14 @@ class AdminReturnRejectView(APIView):
                 target_type=BusinessEvent.TARGET_RETURN, target_id=ret.pk,
                 extra={'resolution': 'REJECTED'},
             )
-            notify_return_processed(
-                order=ret.order,
-                user=ret.user,
-                return_status='REJECTED',
-                reason=justification,
-            )
+            ret_order = OrderModel.objects.filter(pk=ret.order_id).first()
+            if ret_order:
+                notify_return_processed(
+                    order=ret_order,
+                    user=ret.user,
+                    return_status='REJECTED',
+                    reason=justification,
+                )
         return Response(AdminReturnDetailSerializer(ret).data)
 
 

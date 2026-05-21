@@ -37,13 +37,15 @@ _ON_COMMIT_PATH = 'apps.notifications.service.transaction.on_commit'
 @pytest.fixture
 def order_stub(db, user):
     """Orden mínima para testing; no necesita persistencia real."""
+    _user = user  # class body scope doesn't capture enclosing locals
+
     class _Shipping:
         tracking_number = 'TRACK-999'
 
     class _Order:
         pk           = 1
         order_number = 'PY-TEST-0001'
-        user         = user
+        user         = _user
         shipping_info = _Shipping()
 
     return _Order()
