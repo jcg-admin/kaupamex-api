@@ -205,11 +205,13 @@ class CartItemListView(APIView):
         unit_price = variant.effective_price() if variant else product.price
         cart, _, cart_token = _get_or_create_cart(request)
 
+        was_new_item = True
         with transaction.atomic():
             # Upsert: si ya existe el item con la misma variante, sumar cantidad
             lookup = {'cart': cart, 'variant': variant} if variant else {'cart': cart, 'product': product, 'variant': None}
             existing = CartItem.objects.filter(**lookup).first()
             if existing:
+                was_new_item = False
                 new_qty = existing.quantity + quantity
                 if new_qty > available:
                     if variant is not None:
@@ -230,14 +232,19 @@ class CartItemListView(APIView):
                 existing.quantity   = new_qty
                 existing.unit_price = unit_price
                 existing.save(update_fields=['quantity', 'unit_price'])
-                item = existing
             else:
-                item = CartItem.objects.create(
+                CartItem.objects.create(
                     cart=cart, product=product, variant=variant,
                     quantity=quantity, unit_price=unit_price,
                 )
 
-        response = Response(CartItemSerializer(item).data, status=201)
+        # DEC-BC-02 + DEC-BC-08 (consolidadas): retornar Cart completo con
+        # totals (no item suelto). Single contract en todas las cart
+        # mutations garantiza que UI nunca calcule totales localmente
+        # ni asuma shape. Status 201 si insert, 200 si merge.
+        status_code = 201 if was_new_item else 200
+        data = CartSerializer(cart, context={'request': request}).data
+        response = Response(data, status=status_code)
         if cart_token:
             response['X-Cart-Token'] = cart_token
         return response
@@ -273,11 +280,13 @@ class CartItemDetailView(APIView):
             })
         item.quantity = new_qty
         item.save(update_fields=['quantity'])
-        return Response(CartItemSerializer(item).data)
+        # DEC-BC-02 + DEC-BC-08: Cart shape para que UI use setCart
+        # consistentemente sin recalcular totales.
+        return Response(CartSerializer(cart, context={'request': request}).data)
 
     @extend_schema(
         summary='Eliminar item del carrito',
-        responses={204: None},
+        responses={200: CartSerializer},
         tags=['cart'],
         operation_id='cart_items_destroy',
     )
@@ -285,7 +294,11 @@ class CartItemDetailView(APIView):
         cart, _, _ = _get_or_create_cart(request)
         item = get_object_or_404(CartItem, pk=pk, cart=cart)
         item.delete()
-        return Response(status=204)
+        # DEC-BC-02 + DEC-BC-08: DELETE devuelve Cart actualizado
+        # (200) en lugar de 204. Sin necesidad de fetch post-mutation
+        # para refrescar totals.
+        cart.refresh_from_db()
+        return Response(CartSerializer(cart, context={'request': request}).data)
 
 
 # Backwards-compatible alias for any module that imports the
