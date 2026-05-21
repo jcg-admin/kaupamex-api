@@ -201,17 +201,28 @@ def execute_refund(
     :raises RuntimeError: si el gateway falla
     """
 
-    if payment.status != PaymentModel.STATUS_APPROVED:
+    if payment.status not in (
+        PaymentModel.STATUS_APPROVED,
+        PaymentModel.STATUS_PARTIALLY_REFUNDED,
+    ):
         raise ValueError(
             f'El pago no es reembolsable (estado: {payment.status}). '
-            f'Solo los pagos en estado APPROVED pueden reembolsarse.'
+            f'Solo los pagos en estado APPROVED o PARTIALLY_REFUNDED '
+            f'pueden reembolsarse.'
         )
 
-    refund_amount = amount if amount is not None else payment.amount
-    if refund_amount <= Decimal('0') or refund_amount > payment.amount:
+    already_refunded = (
+        Refund.objects.filter(
+            payment=payment, status=Refund.STATUS_APPROVED,
+        ).aggregate(total=DjSum('amount'))['total'] or Decimal('0')
+    )
+    remaining = payment.amount - already_refunded
+    refund_amount = amount if amount is not None else remaining
+    if refund_amount <= Decimal('0') or refund_amount > remaining:
         raise ValueError(
             f'El monto de reembolso ({refund_amount}) debe ser mayor que 0 '
-            f'y no superar el monto del pago ({payment.amount}).'
+            f'y no superar el saldo reembolsable ({remaining}) del pago '
+            f'(total {payment.amount}, ya reembolsado {already_refunded}).'
         )
 
     if gateway is None:

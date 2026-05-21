@@ -27,6 +27,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from apps.users.audit import audit_log_business
 from apps.users.models import BusinessEvent
+from apps.payments.models import Payment
+from apps.payments.services import execute_refund
 from .models import ReturnHistoryEntry, ReturnItem, ReturnRequest
 from .serializers import AdminReturnDetailSerializer, AdminReturnListSerializer, ReturnApproveSerializer, ReturnCreateSerializer, ReturnDetailSerializer, ReturnInfoRequestSerializer, ReturnListSerializer, ReturnReceptionSerializer, ReturnRefundSerializer, ReturnRejectSerializer
 
@@ -395,7 +397,44 @@ class AdminReturnRefundView(APIView):
         serializer.is_valid(raise_exception=True)
         amount = serializer.validated_data['amount']
 
-        ret.refund_amount = amount
+        payment = (
+            Payment.objects
+            .filter(
+                order_id=ret.order_id,
+                status__in=(
+                    Payment.STATUS_APPROVED,
+                    Payment.STATUS_PARTIALLY_REFUNDED,
+                ),
+            )
+            .order_by('-id')
+            .first()
+        )
+        if payment is None:
+            return Response(
+                {'error_code': 'PAYMENT_NOT_FOUND',
+                 'detail': 'No hay un pago reembolsable asociado a esta orden.'},
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+
+        try:
+            refund = execute_refund(
+                payment=payment,
+                amount=amount,
+                reason=f'ReturnRequest #{ret.pk}',
+                initiated_by=request.user,
+            )
+        except ValueError as exc:
+            return Response(
+                {'error_code': 'INVALID_REFUND_AMOUNT', 'detail': str(exc)},
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+        except RuntimeError as exc:
+            return Response(
+                {'error_code': 'GATEWAY_ERROR', 'detail': str(exc)},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        ret.refund_amount = refund.amount
         ret.refund_at = timezone.now()
         ret.status = ReturnRequest.Status.REFUNDED
         ret.save(update_fields=[
@@ -403,6 +442,9 @@ class AdminReturnRefundView(APIView):
         ])
         _record_history(
             ret, ReturnRequest.Status.REFUNDED, request.user,
-            justification=f'Reembolso procesado por {amount}.',
+            justification=(
+                f'Reembolso procesado por {refund.amount} '
+                f'(gateway_refund_id={refund.gateway_refund_id}).'
+            ),
         )
         return Response(AdminReturnDetailSerializer(ret).data)

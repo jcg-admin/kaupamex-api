@@ -14,8 +14,13 @@ UC-RET-06  POST   /api/v1/admin/returns/{id}/refund/        refund
 
 Identifiers in English (DEC-DOC-005).
 """
+from decimal import Decimal
+from unittest.mock import MagicMock, patch
 import pytest
-from apps.returns.models import ReturnRequest, ReturnHistoryEntry
+from apps.orders.models import Order
+from apps.payments.models import Payment
+from apps.returns.models import ReturnHistoryEntry, ReturnRequest
+from apps.settings_app.models import PaymentGateway
 
 pytestmark = pytest.mark.integration
 
@@ -273,24 +278,74 @@ class TestAdminReception:
 
 
 # ────────────────────────────── UC-RET-06 ────────────────────────────────
-class TestAdminRefund:
-    def _create_approved(self, user):
-        return ReturnRequest.objects.create(
-            user=user, order_id=1, reason='DAMAGED_PRODUCT',
-            description='Mensaje suficientemente largo de prueba.',
-            status='APPROVED')
+def _create_approved_order_and_return(user, payment_amount=Decimal('2000.00')):
+    """Crea Order + Payment APPROVED + ReturnRequest APPROVED.
 
-    def test_refund_changes_status_and_amount(self, admin_client, user, db):
-        ret = self._create_approved(user)
+    UC-RET-06 D-01: el refund debe ejecutar el gateway sobre el Payment
+    real. La sucesora corregir-hallazgos-buyer-devoluciones aplico
+    DEC-RET-01 que conecta AdminReturnRefundView -> execute_refund;
+    los tests requieren un Payment reembolsable asociado.
+    """
+    order = Order.objects.create(user=user, status='PROCESSING')
+    payment = Payment.objects.create(
+        order=order, gateway='MERCADOPAGO',
+        preference_id=f'PREF-RET-{order.pk}',
+        gateway_payment_id=f'GW-RET-{order.pk}',
+        status=Payment.STATUS_APPROVED, amount=payment_amount,
+    )
+    ret = ReturnRequest.objects.create(
+        user=user, order_id=order.pk, reason='DAMAGED_PRODUCT',
+        description='Mensaje suficientemente largo de prueba.',
+        status='APPROVED',
+    )
+    return order, payment, ret
+
+
+@pytest.fixture
+def mp_gateway_active(db):
+    """PaymentGateway MERCADOPAGO con credenciales validas (test)."""
+    gw = PaymentGateway(name='MP Ret', gateway='MERCADOPAGO', is_active=True)
+    gw.set_credentials({'access_token': 'TEST-TOK', 'client_secret': 'TEST-SEC'})
+    gw.save()
+    return gw
+
+
+@pytest.fixture
+def mock_mp_refund_ok():
+    """Mock SDK MercadoPago.refund.create -> happy path."""
+    with patch('apps.payments.gateways.mercadopago.mercadopago') as mock_mp:
+        sdk = MagicMock()
+        mock_mp.SDK.return_value = sdk
+        sdk.refund.return_value.create.return_value = {
+            'status': 201,
+            'response': {
+                'id': 999777, 'payment_id': 12345,
+                'amount': 1234.50, 'status': 'approved',
+            },
+        }
+        yield sdk
+
+
+class TestAdminRefund:
+    def test_refund_changes_status_and_amount(
+        self, admin_client, user, mp_gateway_active, mock_mp_refund_ok, db,
+    ):
+        _, payment, ret = _create_approved_order_and_return(
+            user, payment_amount=Decimal('1234.50'),
+        )
         res = admin_client.post(
             f'{ADMIN_RETURNS_URL}{ret.pk}/refund/',
             {'amount': '1234.50'}, format='json')
-        assert res.status_code == 200
+        assert res.status_code == 200, res.content
         body = res.json()
         assert body['status'] == 'REFUNDED'
         assert body['refund_at'] is not None
-        # DRF serializa Decimal como string.
         assert str(body['refund_amount']) == '1234.50'
+        # UC-RET-06 D-02: gateway_refund_id PROVEN poblado.
+        payment.refresh_from_db()
+        assert payment.status == Payment.STATUS_REFUNDED
+        refund = payment.refunds.get()
+        assert refund.gateway_refund_id == '999777'
 
     def test_refund_rejected_returns_422(self, admin_client, user, db):
         ret = ReturnRequest.objects.create(
@@ -302,17 +357,35 @@ class TestAdminRefund:
             {'amount': '100.00'}, format='json')
         assert res.status_code == 422
 
-    def test_refund_idempotent_returns_409(self, admin_client, user, db):
-        ret = self._create_approved(user)
+    def test_refund_idempotent_returns_409(
+        self, admin_client, user, mp_gateway_active, mock_mp_refund_ok, db,
+    ):
+        _, _, ret = _create_approved_order_and_return(
+            user, payment_amount=Decimal('500.00'),
+        )
         first = admin_client.post(
             f'{ADMIN_RETURNS_URL}{ret.pk}/refund/',
             {'amount': '100.00'}, format='json')
-        assert first.status_code == 200
+        assert first.status_code == 200, first.content
         second = admin_client.post(
             f'{ADMIN_RETURNS_URL}{ret.pk}/refund/',
             {'amount': '100.00'}, format='json')
         assert second.status_code == 409
         assert second.json()['error_code'] == 'REFUND_ALREADY_PROCESSED'
+
+    def test_refund_without_payment_returns_422(
+        self, admin_client, user, db,
+    ):
+        """UC-RET-06 D-02 ALT — sin Payment no se puede reembolsar."""
+        ret = ReturnRequest.objects.create(
+            user=user, order_id=99999, reason='OTHER',
+            description='Mensaje suficientemente largo de prueba.',
+            status='APPROVED')
+        res = admin_client.post(
+            f'{ADMIN_RETURNS_URL}{ret.pk}/refund/',
+            {'amount': '100.00'}, format='json')
+        assert res.status_code == 422
+        assert res.json()['error_code'] == 'PAYMENT_NOT_FOUND'
 
 
 # ────────────────────────────── Admin detail ─────────────────────────────
