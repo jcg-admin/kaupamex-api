@@ -14,6 +14,16 @@ from .base import *
 
 DEBUG = False
 
+# Conexion DB QA — mismo patron que base.py: socket preferido,
+# TCP fallback. Ver proc-ejecutar-pruebas.rst.
+_DB_QA_OPTIONS = {
+    'charset': 'utf8mb4',
+    'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+}
+_DB_QA_SOCKET = config('DB_QA_SOCKET', default='')
+if _DB_QA_SOCKET:
+    _DB_QA_OPTIONS['unix_socket'] = _DB_QA_SOCKET
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -22,10 +32,7 @@ DATABASES = {
         'PASSWORD': config('DB_QA_PASSWORD', default='django_pass'),
         'HOST':     config('DB_QA_HOST',     default='127.0.0.1'),
         'PORT':     config('DB_QA_PORT',     default='3306'),
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-        },
+        'OPTIONS': _DB_QA_OPTIONS,
         'TEST': {
             'NAME':      config('DB_QA_NAME', default='practicayoruba_qa'),
             'CHARSET':   'utf8mb4',

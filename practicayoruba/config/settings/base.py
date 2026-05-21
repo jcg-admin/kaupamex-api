@@ -71,6 +71,20 @@ TEMPLATES = [{
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
+# Conexion DB — socket Unix preferido (convencion del proyecto:
+# "se tienen que conectar x socket"). Si DB_SOCKET esta seteada,
+# Django/mysqlclient ignora HOST/PORT y usa el socket directamente.
+# Fallback TCP cuando DB_SOCKET no esta seteada (CI runners
+# remotos, conexion cross-host). Ver
+# docs/source/normativa/procedimientos/proc-ejecutar-pruebas.rst.
+_DB_OPTIONS = {
+    'charset': 'utf8mb4',
+    'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+}
+_DB_SOCKET = config('DB_SOCKET', default='')
+if _DB_SOCKET:
+    _DB_OPTIONS['unix_socket'] = _DB_SOCKET
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -79,10 +93,7 @@ DATABASES = {
         'PASSWORD': config('DB_PASSWORD', default='django_pass'),
         'HOST': config('DB_HOST', default='127.0.0.1'),
         'PORT': config('DB_PORT', default='3306'),
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-        },
+        'OPTIONS': _DB_OPTIONS,
     }
 }
 
