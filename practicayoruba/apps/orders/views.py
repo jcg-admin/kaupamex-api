@@ -22,7 +22,7 @@ from .models import Order, OrderItem, OrderValue, OrderAddress
 from .serializers import CancelOrderSerializer, CheckoutSerializer, OrderListSerializer, OrderSerializer, UpdateAddressSerializer, UpdateShippingSerializer
 from django.db.models import Prefetch
 from apps.catalogue.models import ProductImage
-from .services import cancel_order, update_order_address, update_shipping_method
+from .services import OrderNotEditableError, ShippingMethodNotAvailableError, cancel_order, update_order_address, update_shipping_method
 
 
 
@@ -488,9 +488,17 @@ class OrderShippingUpdateView(APIView):
 
         try:
             update_shipping_method(order, s.validated_data['shipping_method_id'])
-        except ValueError as exc:
+        except OrderNotEditableError as exc:
+            # UC-ORD-06 PARTE 7.3 (DEC-ORD-04): 409 ORDER_NOT_EDITABLE.
             return Response(
-                {'detail': str(exc), 'codigo_error': 'METHOD_NOT_EDITABLE'},
+                {'detail': str(exc), 'codigo_error': 'ORDER_NOT_EDITABLE'},
+                status=409,
+            )
+        except ShippingMethodNotAvailableError as exc:
+            # UC-ORD-06 PARTE 7.3 (DEC-ORD-04): 400 SHIPPING_METHOD_NOT_AVAILABLE.
+            return Response(
+                {'detail': str(exc),
+                 'codigo_error': 'SHIPPING_METHOD_NOT_AVAILABLE'},
                 status=400,
             )
 

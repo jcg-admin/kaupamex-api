@@ -373,21 +373,26 @@ class TestCambiarMetodoEnvio:
     def test_cambiar_envio_shipped_no_permitido(
         self, auth_client, user, prod_ord, shipping_methods, db
     ):
+        """UC-ORD-06 PARTE 7.3 (DEC-ORD-04): orden en estado no-editable
+        -> 409 ORDER_NOT_EDITABLE (antes 400 METHOD_NOT_EDITABLE)."""
         order = _create_full_order(user, prod_ord, status='SHIPPED')
         res = auth_client.patch(SHIPPING_URL(order.order_number), {
             'shipping_method_id': shipping_methods['standard'].pk,
         }, format='json')
-        assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'METHOD_NOT_EDITABLE'
+        assert res.status_code == 409
+        assert res.json()['codigo_error'] == 'ORDER_NOT_EDITABLE'
 
     def test_cambiar_envio_inexistente_retorna_400(
         self, auth_client, user, prod_ord, db
     ):
+        """UC-ORD-06 PARTE 7.3 (DEC-ORD-04): shipping_method invalido
+        -> 400 SHIPPING_METHOD_NOT_AVAILABLE."""
         order = _create_full_order(user, prod_ord, status='PENDING')
         res = auth_client.patch(SHIPPING_URL(order.order_number), {
             'shipping_method_id': 99999,
         }, format='json')
         assert res.status_code == 400
+        assert res.json()['codigo_error'] == 'SHIPPING_METHOD_NOT_AVAILABLE'
 
 
 # =============================================================================
