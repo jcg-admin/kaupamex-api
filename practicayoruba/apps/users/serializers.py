@@ -127,6 +127,8 @@ class AddressSerializer(serializers.ModelSerializer):
         model = Address
         fields = [
             'id', 'alias', 'recipient_name', 'street',
+            # DEC-AUM-03 (UC-AUTH-07 D-01-07): campos MX agregados.
+            'exterior_number', 'interior_number', 'neighborhood',
             'city', 'state', 'zip_code', 'country',
             'phone', 'is_default',
         ]

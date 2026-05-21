@@ -156,6 +156,24 @@ class Address(TimeStampedModel, SoftDeleteModel):
         max_length=200,
         verbose_name='Calle y numero',
     )
+    # DEC-AUM-03 (UC-AUTH-07 D-01-07): direcciones MX requieren
+    # numero exterior / interior / colonia segun convencion postal.
+    # Backwards-compat: blank=True para no romper rows previos.
+    exterior_number = models.CharField(
+        max_length=20, blank=True, default='',
+        verbose_name='Numero exterior',
+        help_text='Numero exterior (MX). Ej: 123, 45-B.',
+    )
+    interior_number = models.CharField(
+        max_length=20, blank=True, default='',
+        verbose_name='Numero interior',
+        help_text='Numero interior si aplica (MX). Ej: Depto 5.',
+    )
+    neighborhood = models.CharField(
+        max_length=120, blank=True, default='',
+        verbose_name='Colonia',
+        help_text='Colonia / neighborhood (MX).',
+    )
     city = models.CharField(max_length=100, verbose_name='Ciudad')
     state = models.CharField(max_length=100, verbose_name='Estado')
     zip_code = models.CharField(max_length=10, verbose_name='Codigo postal')

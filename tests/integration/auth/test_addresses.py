@@ -90,6 +90,31 @@ class TestAddressCreate:
         r = api_client.post(ADDR_URL, VALID_ADDR, format='json')
         assert r.status_code == 401
 
+    def test_crear_con_campos_mx_persiste(self, auth_client, db):
+        """UC-AUTH-07 D-01-07 (DEC-AUM-03): direcciones MX requieren
+        numero_exterior + interior + colonia. Verificar que se
+        persisten y exponen via serializer."""
+        payload = {**VALID_ADDR,
+                   'exterior_number': '123',
+                   'interior_number': 'Depto 5',
+                   'neighborhood': 'Roma Norte'}
+        r = auth_client.post(ADDR_URL, payload, format='json')
+        assert r.status_code == 201, r.content
+        body = r.json()
+        assert body['exterior_number'] == '123'
+        assert body['interior_number'] == 'Depto 5'
+        assert body['neighborhood'] == 'Roma Norte'
+
+    def test_crear_sin_campos_mx_es_valido(self, auth_client, db):
+        """DEC-AUM-03 backwards-compat: campos MX son blank=True,
+        direcciones legacy sin ellos siguen siendo validas."""
+        r = auth_client.post(ADDR_URL, VALID_ADDR, format='json')
+        assert r.status_code == 201
+        body = r.json()
+        assert body['exterior_number'] == ''
+        assert body['interior_number'] == ''
+        assert body['neighborhood'] == ''
+
 
 class TestAddressUpdate:
 
