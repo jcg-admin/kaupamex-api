@@ -150,6 +150,27 @@ class TestListadoOrdenes:
         # El más reciente primero (por created_at DESC)
         assert results[0]['order_number'] == o2.order_number
 
+    def test_listado_filtro_status(
+        self, auth_client, user, prod_ord, db,
+    ):
+        """UC-ORD-03 D-08 (DEC-ORD-07): filtro por ?status."""
+        _create_full_order(user, prod_ord, status='PENDING')
+        o_delivered = _create_full_order(user, prod_ord, status='DELIVERED')
+        res = auth_client.get(f'{ORDERS_URL}?status=DELIVERED')
+        assert res.status_code == 200
+        results = res.json()['results']
+        assert len(results) == 1
+        assert results[0]['order_number'] == o_delivered.order_number
+
+    def test_listado_filtro_status_invalido_400(
+        self, auth_client, user, prod_ord, db,
+    ):
+        """UC-ORD-03 D-08: status invalido -> 400 INVALID_STATUS."""
+        _create_full_order(user, prod_ord, status='PENDING')
+        res = auth_client.get(f'{ORDERS_URL}?status=UNICORN')
+        assert res.status_code == 400
+        assert res.json()['codigo_error'] == 'INVALID_STATUS'
+
     def test_listado_incluye_campos_requeridos(
         self, auth_client, user, prod_ord, db
     ):

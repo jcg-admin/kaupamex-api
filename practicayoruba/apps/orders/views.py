@@ -195,26 +195,6 @@ class CheckoutView(APIView):
         return Response(OrderSerializer(order).data, status=201)
 
 
-class OrderDetailView(APIView):
-    """GET /api/v1/orders/<order_number>/ — ver detalle de orden."""
-    permission_classes = [IsAuthenticated]
-
-    @extend_schema(
-        summary='Ver detalle de orden',
-        responses={200: OrderSerializer, 404: None},
-        tags=['orders'],
-    )
-    def get(self, request, order_number):
-        qs = Order.objects.select_related(
-            'value', 'address', 'shipping_method', 'user'
-        ).prefetch_related('items')
-        if request.user.is_authenticated:
-            order = get_object_or_404(qs, order_number=order_number, user=request.user)
-        else:
-            return Response(status=403)
-        return Response(OrderSerializer(order).data)
-
-
 # =============================================================================
 # Sprint 18 — UC-ORD-02/03/04/05/06 — Gestión del comprador
 # =============================================================================
@@ -271,6 +251,19 @@ class OrderListView(APIView):
             )
             .order_by('-created_at')
         )
+
+        # UC-ORD-03 PARTE 4.2 Alt-B + PARTE 7.1 (DEC-ORD-07):
+        # filtro por ?status=<STATUS>. Antes ignorado.
+        status_filter = request.query_params.get('status')
+        if status_filter:
+            valid_statuses = {choice[0] for choice in Order._meta.get_field('status').choices}
+            if status_filter not in valid_statuses:
+                return Response(
+                    {'detail': f'Status invalido: {status_filter}.',
+                     'codigo_error': 'INVALID_STATUS'},
+                    status=400,
+                )
+            qs = qs.filter(status=status_filter)
 
         paginator = OrderPagination()
         page = paginator.paginate_queryset(qs, request)
