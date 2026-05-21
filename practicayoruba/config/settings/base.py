@@ -119,6 +119,24 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.JSONRenderer',
     ],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    # DEC-THR-1 (hardening-throttle-endpoints-publicos):
+    # Defense in depth contra brute-force/spam en endpoints
+    # publicos. Rates conservadores por scope sensible.
+    # testing.py desactiva DEFAULT_THROTTLE_CLASSES para tests.
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon':                '100/hour',
+        'user':                '1000/hour',
+        'register':            '5/hour',
+        'password_reset':      '5/hour',
+        'password_confirm':    '10/hour',
+        'email_verify':        '10/hour',
+        'resend_verification': '3/hour',
+        'contact':             '5/hour',
+    },
 }
 
 SIMPLE_JWT = {

@@ -19,6 +19,7 @@ from drf_spectacular.utils import extend_schema, OpenApiResponse
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from django.conf import settings
 from .models import ContactMessage
@@ -31,6 +32,8 @@ class ContactMessageCreateView(APIView):
     """POST /api/v1/contact/messages/ — public submission."""
 
     permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'contact'
 
     @extend_schema(
         summary='Enviar mensaje de contacto',

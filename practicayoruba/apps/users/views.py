@@ -15,6 +15,7 @@ from rest_framework import serializers as drf_serializers
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from drf_spectacular.types import OpenApiTypes as OAT
@@ -39,6 +40,8 @@ User = get_user_model()
 class RegisterView(APIView):
     """POST /api/v1/auth/register/ — UC-AUTH-01."""
     permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "register"
 
     @extend_schema(
         summary='Registrar cuenta de comprador',
@@ -290,6 +293,8 @@ class ChangePasswordView(APIView):
 class PasswordResetRequestView(APIView):
     """POST /api/v1/auth/password-reset/ — UC-AUTH-09 Fase 1."""
     permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "password_reset"
 
     @extend_schema(
         summary='Solicitar recuperacion de contrasena',
@@ -334,6 +339,8 @@ class PasswordResetRequestView(APIView):
 class PasswordResetConfirmView(APIView):
     """POST /api/v1/auth/password-reset/confirm/ — UC-AUTH-09 Fase 2."""
     permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "password_confirm"
 
     @extend_schema(
         summary='Confirmar recuperacion de contrasena',
@@ -370,6 +377,8 @@ class PasswordResetConfirmView(APIView):
 class EmailVerifyView(APIView):
     """POST /api/v1/auth/verify-email/ — UC-AUTH-10."""
     permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "email_verify"
 
     @extend_schema(
         summary='Verificar email y activar cuenta',
@@ -412,6 +421,8 @@ class EmailVerifyView(APIView):
 class ResendVerificationView(APIView):
     """POST /api/v1/auth/resend-verification/ — UC-AUTH-10."""
     permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "resend_verification"
 
     @extend_schema(
         summary='Reenviar email de verificacion',
