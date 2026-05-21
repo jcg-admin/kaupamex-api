@@ -158,11 +158,13 @@ class NotificationPreferencesView(APIView):
         serializer.is_valid(raise_exception=True)
         items = serializer.validated_data['preferences']
 
+        skipped_mandatory = []
         with transaction.atomic():
             for item in items:
                 type_value = item['type']
                 if type_value in MANDATORY_NOTIFICATION_TYPES:
-                    # Los mandatory no se pueden deshabilitar; se ignoran.
+                    if item['enabled'] is False:
+                        skipped_mandatory.append(type_value)
                     continue
                 NotificationPreference.objects.update_or_create(
                     user=request.user,
@@ -173,6 +175,7 @@ class NotificationPreferencesView(APIView):
         rows = _build_preference_rows(request.user)
         return Response({
             'results': NotificationPreferenceItemSerializer(rows, many=True).data,
+            'skipped_mandatory': skipped_mandatory,
         })
 
 

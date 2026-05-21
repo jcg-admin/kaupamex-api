@@ -181,6 +181,21 @@ class TestUpdatePreferences:
         by_type = {r['type']: r for r in body['results']}
         assert by_type['ORDER_UPDATE']['enabled'] is True
         assert by_type['ORDER_UPDATE']['mandatory'] is True
+        assert body.get('skipped_mandatory') == ['ORDER_UPDATE']
+
+    def test_skipped_mandatory_empty_when_only_optional(self, auth_client, db):
+        res = auth_client.put(PREFERENCES_URL, {
+            'preferences': [{'type': 'PROMOTION', 'enabled': False}],
+        }, format='json')
+        assert res.status_code == 200
+        assert res.json().get('skipped_mandatory') == []
+
+    def test_skipped_mandatory_only_when_disabling(self, auth_client, db):
+        res = auth_client.put(PREFERENCES_URL, {
+            'preferences': [{'type': 'SYSTEM', 'enabled': True}],
+        }, format='json')
+        assert res.status_code == 200
+        assert res.json().get('skipped_mandatory') == []
 
     def test_invalid_type_returns_400(self, auth_client, db):
         res = auth_client.put(PREFERENCES_URL, {
