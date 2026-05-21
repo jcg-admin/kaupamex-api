@@ -141,7 +141,7 @@ class PaymentGatewayViewSet(ModelViewSet):
                              'verified_at': instance.verified_at})
         return Response({
             'detail': 'El gateway rechazó las credenciales.',
-            'codigo_error': 'CREDENCIALES_INVALIDAS',
+            'codigo_error': 'INVALID_CREDENTIALS',
         }, status=400)
 
 
