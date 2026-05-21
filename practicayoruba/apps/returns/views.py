@@ -85,16 +85,31 @@ class ReturnListCreateView(APIView):
         serializer.is_valid(raise_exception=True)
         payload = serializer.validated_data
 
-        # Idempotencia: una sola solicitud pendiente por (user, order_id).
-        existing = ReturnRequest.objects.filter(
+        # Idempotencia: AC-05 UC-RET-01 - (user, order_id, item_id).
+        # Permite solicitar devolucion de items distintos de la misma orden,
+        # bloqueando solo si los items se solapan con una solicitud pendiente
+        # existente. Sin items en ninguna parte, se trata como colision por
+        # orden (caso conservador).
+        pending_qs = ReturnRequest.objects.filter(
             user=request.user,
             order_id=payload['order_id'],
             status=ReturnRequest.Status.PENDING_REVIEW,
-        ).first()
-        if existing is not None:
+        )
+        incoming_product_ids = {
+            item['product_id'] for item in payload.get('items') or []
+        }
+        conflict = False
+        if not incoming_product_ids:
+            conflict = pending_qs.exists()
+        else:
+            conflict = ReturnItem.objects.filter(
+                return_request__in=pending_qs,
+                product_id__in=incoming_product_ids,
+            ).exists()
+        if conflict:
             return Response(
                 {'error_code': 'REQUEST_ALREADY_EXISTS',
-                 'detail': 'Ya existe una solicitud pendiente para esa orden.'},
+                 'detail': 'Ya existe una solicitud pendiente para esa orden y items.'},
                 status=status.HTTP_409_CONFLICT,
             )
 

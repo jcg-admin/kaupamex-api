@@ -83,6 +83,37 @@ class TestCreateReturn:
         body = res.json()
         assert len(body['items']) == 2
 
+    def test_create_different_items_same_order(self, auth_client, db):
+        """UC-RET-01 D-05 (DEC-RET-03): items distintos de la misma orden
+        no chocan en idempotencia. Antes de DEC-RET-03 el segundo fallaba
+        con REQUEST_ALREADY_EXISTS."""
+        payload_a = _valid_payload()
+        payload_a['items'] = [{'product_id': 101, 'quantity': 1}]
+        first = auth_client.post(RETURNS_URL, payload_a, format='json')
+        assert first.status_code == 201, first.content
+        payload_b = _valid_payload()
+        payload_b['items'] = [{'product_id': 202, 'quantity': 1}]
+        second = auth_client.post(RETURNS_URL, payload_b, format='json')
+        assert second.status_code == 201, second.content
+
+    def test_create_overlapping_items_same_order_returns_409(
+        self, auth_client, db,
+    ):
+        """UC-RET-01 D-05 (DEC-RET-03): items que se solapan con una
+        solicitud pendiente bloquean con 409."""
+        payload_a = _valid_payload()
+        payload_a['items'] = [{'product_id': 101, 'quantity': 1}]
+        first = auth_client.post(RETURNS_URL, payload_a, format='json')
+        assert first.status_code == 201, first.content
+        payload_b = _valid_payload()
+        payload_b['items'] = [
+            {'product_id': 101, 'quantity': 1},
+            {'product_id': 999, 'quantity': 1},
+        ]
+        second = auth_client.post(RETURNS_URL, payload_b, format='json')
+        assert second.status_code == 409
+        assert second.json()['error_code'] == 'REQUEST_ALREADY_EXISTS'
+
 
 # ────────────────────────────── UC-RET-04 ────────────────────────────────
 class TestListAndDetail:
