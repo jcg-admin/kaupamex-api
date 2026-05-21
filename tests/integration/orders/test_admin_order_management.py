@@ -130,6 +130,22 @@ class TestBuscarOrdenesAdmin:
         statuses = {o['status'] for o in results}
         assert 'SHIPPED' not in statuses
 
+    def test_admin_listado_expone_user_email_y_username(
+        self, admin_client, user, prod_adm, db,
+    ):
+        """UC-ORD-09 D-ORD-09.01 (DEC-AOQ-02): AdminOrderSerializer
+        expone user_email + user_username derivados del FK para que el
+        UI admin pueda renderizar la columna 'Comprador'. Antes
+        OrderSerializer base solo exponia user como PK entero."""
+        _make_order(user, prod_adm, 'PENDING')
+        res = admin_client.get(ADMIN_LIST_URL)
+        assert res.status_code == 200
+        results = res.json()['results']
+        assert results, 'al menos una orden'
+        first = results[0]
+        assert first['user_email'] == user.email
+        assert first['user_username'] == user.username
+
 
 # =============================================================================
 # UC-ORD-07 — Transición de estado

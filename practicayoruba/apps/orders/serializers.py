@@ -59,6 +59,26 @@ class OrderSerializer(serializers.ModelSerializer):
         return obj.get_status_display()
 
 
+class AdminOrderSerializer(OrderSerializer):
+    """UC-ORD-09 (DEC-AOQ-02): subclass para vistas admin que expone
+    user_email + user_username derivados del FK. La UI admin antes
+    consumia ``order.user?.email`` -> undefined porque ``user`` era
+    PK entero. Reuso del patron de AdminReturnListSerializer (returns)
+    sin tocar OrderSerializer base usado por endpoints buyer."""
+
+    user_email    = serializers.SerializerMethodField()
+    user_username = serializers.SerializerMethodField()
+
+    class Meta(OrderSerializer.Meta):
+        fields = OrderSerializer.Meta.fields + ['user_email', 'user_username']
+
+    def get_user_email(self, obj) -> str | None:
+        return obj.user.email if obj.user_id else None
+
+    def get_user_username(self, obj) -> str | None:
+        return obj.user.username if obj.user_id else None
+
+
 class OrderListSerializer(serializers.ModelSerializer):
     """Resumen de orden para el listado — UC-ORD-03 (FR-ORD-03.02)."""
     total         = serializers.DecimalField(

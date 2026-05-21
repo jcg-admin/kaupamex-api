@@ -8,7 +8,7 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
-from .serializers import OrderSerializer
+from .serializers import AdminOrderSerializer
 from .models import Order
 from django.db.models import Q
 from .admin_services import transition_order_status, admin_cancel_order, get_dashboard_data
@@ -47,7 +47,7 @@ class AdminOrderListView(APIView):
             OpenApiParameter('date_to',      str, description='Fecha hasta (YYYY-MM-DD)'),
             OpenApiParameter('page',         int, description='Número de página'),
         ],
-        responses={200: OrderSerializer(many=True)},
+        responses={200: AdminOrderSerializer(many=True)},
         tags=['orders-admin'],
         operation_id='admin_orders_list',
     )
@@ -77,7 +77,7 @@ class AdminOrderListView(APIView):
 
         paginator = AdminOrderPagination()
         page      = paginator.paginate_queryset(qs, request)
-        return paginator.get_paginated_response(OrderSerializer(page, many=True).data)
+        return paginator.get_paginated_response(AdminOrderSerializer(page, many=True).data)
 
 
 class AdminOrderDetailView(APIView):
@@ -92,7 +92,7 @@ class AdminOrderDetailView(APIView):
         summary='Detalle de orden (admin)',
         description='Retorna el detalle completo. Sin restricción de propietario.',
         responses={
-            200: OrderSerializer,
+            200: AdminOrderSerializer,
             404: OpenApiResponse(description='Orden no encontrada.'),
         },
         tags=['orders-admin'],
@@ -112,7 +112,7 @@ class AdminOrderDetailView(APIView):
                 {'detail': 'Orden no encontrada.', 'codigo_error': 'ORDER_NOT_FOUND'},
                 status=404,
             )
-        return Response(OrderSerializer(order).data)
+        return Response(AdminOrderSerializer(order).data)
 
 
 class AdminOrderStatusUpdateView(APIView):
@@ -144,7 +144,7 @@ class AdminOrderStatusUpdateView(APIView):
             'required': ['new_status'],
         }},
         responses={
-            200: OrderSerializer,
+            200: AdminOrderSerializer,
             400: OpenApiResponse(description='Transición no permitida.'),
             404: OpenApiResponse(description='Orden no encontrada.'),
         },
@@ -180,7 +180,7 @@ class AdminOrderStatusUpdateView(APIView):
             )
 
         order.refresh_from_db()
-        return Response(OrderSerializer(order).data)
+        return Response(AdminOrderSerializer(order).data)
 
 
 class AdminOrderCancelView(APIView):
@@ -209,7 +209,7 @@ class AdminOrderCancelView(APIView):
             'required': ['reason'],
         }},
         responses={
-            200: OrderSerializer,
+            200: AdminOrderSerializer,
             400: OpenApiResponse(description='Cancelación no permitida o motivo inválido.'),
             404: OpenApiResponse(description='Orden no encontrada.'),
             503: OpenApiResponse(description='Gateway de reembolso no disponible.'),
@@ -246,7 +246,7 @@ class AdminOrderCancelView(APIView):
             )
 
         order.refresh_from_db()
-        return Response(OrderSerializer(order).data)
+        return Response(AdminOrderSerializer(order).data)
 
 
 class AdminDashboardView(APIView):
