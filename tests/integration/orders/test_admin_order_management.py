@@ -6,6 +6,7 @@ Nombre descriptivo: dominio y perspectiva, no número de sprint.
 import pytest
 from decimal import Decimal
 from apps.catalogue.models import Category, Product
+from apps.orders.admin_services import transition_order_status
 from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress, OrderStatusLog
 from django.contrib.auth import get_user_model
 from apps.settings_app.models import SiteSettings
@@ -205,6 +206,32 @@ class TestTransicionEstadoAdmin:
         order.refresh_from_db()
         assert order.status == 'DELIVERED'
         assert OrderStatusLog.objects.filter(order=order).count() == 4
+
+    def test_transicion_lee_status_fresh_con_select_for_update(
+        self, admin_client, user, prod_adm, db,
+    ):
+        """UC-ORD-07 D-ORD-07.01 (DEC-AOQ-01): demuestra que
+        transition_order_status re-lee el status con
+        ``select_for_update()`` y no usa la instancia stale en memoria.
+
+        Setup simula 2 admins concurrentes: admin A tiene la orden en
+        memoria con status=PENDING. Admin B cancela la orden mientras
+        tanto (DB ahora CANCELLED, in-memory de A sigue PENDING).
+        Sin select_for_update, A leeria su instancia stale (PENDING) y
+        permitiria PENDING -> PROCESSING. Con select_for_update, A re-lee
+        la DB (CANCELLED terminal) y rechaza."""
+        User = get_user_model()
+        admin = User.objects.filter(is_staff=True).first()
+        # Admin A obtiene la orden en PENDING.
+        order_in_memory_A = _make_order(user, prod_adm, 'PENDING')
+        # Admin B (simulado) cancela la orden via UPDATE directo (no
+        # tocar la instancia en memoria de A).
+        Order.objects.filter(pk=order_in_memory_A.pk).update(status='CANCELLED')
+        # Admin A intenta transicionar a PROCESSING usando su instancia
+        # stale. select_for_update fuerza re-lectura: DB.status =
+        # CANCELLED (terminal) -> ValueError.
+        with pytest.raises(ValueError, match='Transición no permitida'):
+            transition_order_status(order_in_memory_A, 'PROCESSING', admin)
 
 
 # =============================================================================

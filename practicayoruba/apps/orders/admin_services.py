@@ -35,24 +35,32 @@ def transition_order_status(order, new_status: str, admin_user, notes: str = '')
     Transiciona el estado de una orden validando la máquina de estados.
     UC-ORD-07 (FR-ORD-07.02).
 
+    DEC-AOQ-01: re-lee la orden con ``select_for_update()`` dentro del
+    ``transaction.atomic()`` para serializar lecturas concurrentes (la
+    instancia ``order`` recibida puede tener status stale). Cierra el
+    vector de race condition con 2 admins simultaneos transicionando
+    desde el mismo estado inicial.
+
     Crea OrderStatusLog en cada transición.
     :raises ValueError: si la transición no está permitida.
     """
 
-    allowed = ALLOWED_TRANSITIONS.get(order.status, [])
-    if new_status not in allowed:
-        raise ValueError(
-            f"Transición no permitida: {order.status} → {new_status}. "
-            f"Transiciones válidas desde {order.status!r}: {allowed or ['ninguna (estado terminal)']}"
-        )
-
-    previous = order.status
     with transaction.atomic():
-        order.status = new_status
-        order.save(update_fields=['status'])
+        locked = Order.objects.select_for_update().get(pk=order.pk)
+        allowed = ALLOWED_TRANSITIONS.get(locked.status, [])
+        if new_status not in allowed:
+            raise ValueError(
+                f"Transición no permitida: {locked.status} → {new_status}. "
+                f"Transiciones válidas desde {locked.status!r}: "
+                f"{allowed or ['ninguna (estado terminal)']}"
+            )
+
+        previous = locked.status
+        locked.status = new_status
+        locked.save(update_fields=['status'])
 
         OrderStatusLog.objects.create(
-            order=order,
+            order=locked,
             previous_status=previous,
             new_status=new_status,
             changed_by=admin_user,
@@ -61,9 +69,9 @@ def transition_order_status(order, new_status: str, admin_user, notes: str = '')
 
     logger.info(
         'Orden %s: %s → %s (admin=%s)',
-        order.order_number, previous, new_status, admin_user.username,
+        locked.order_number, previous, new_status, admin_user.username,
     )
-    return order
+    return locked
 
 
 def admin_cancel_order(order, reason: str, admin_user):
@@ -74,6 +82,9 @@ def admin_cancel_order(order, reason: str, admin_user):
     H-ADM-005: el admin puede cancelar IN_PREPARATION (el comprador no).
     El motivo es obligatorio — mínimo 10 caracteres.
     Reutiliza la lógica de cancel_order() con ADMIN_CANCELABLE_STATUSES.
+
+    DEC-AOQ-01: re-lee la orden con ``select_for_update()`` dentro del
+    bloque atomic para serializar cancelaciones concurrentes.
     """
 
     if len(reason.strip()) < 10:
@@ -82,37 +93,39 @@ def admin_cancel_order(order, reason: str, admin_user):
             'al menos 10 caracteres (FR-ORD-08.01).'
         )
 
-    if order.status not in ADMIN_CANCELABLE_STATUSES:
-        raise ValueError(
-            f'El admin no puede cancelar una orden en estado {order.status!r}. '
-            f'Estados cancelables por admin: {ADMIN_CANCELABLE_STATUSES}.'
+    with transaction.atomic():
+        locked = Order.objects.select_for_update().get(pk=order.pk)
+        if locked.status not in ADMIN_CANCELABLE_STATUSES:
+            raise ValueError(
+                f'El admin no puede cancelar una orden en estado '
+                f'{locked.status!r}. Estados cancelables por admin: '
+                f'{ADMIN_CANCELABLE_STATUSES}.'
+            )
+
+        previous = locked.status
+        # Reutilizar cancel_order de Sprint 18 (restaura stock + reembolso)
+        # pero con los estados admin-cancelables. cancel_order opera sobre
+        # la instancia bloqueada dentro del mismo atomic.
+        cancel_order(
+            order=locked,
+            reason=reason,
+            cancelled_by=admin_user,
+            cancelable_statuses=ADMIN_CANCELABLE_STATUSES,
         )
 
-    previous = order.status
-    # Reutilizar cancel_order de Sprint 18 (restaura stock + reembolso)
-    # pero con los estados admin-cancelables
-    cancel_order(
-        order=order,
-        reason=reason,
-        cancelled_by=admin_user,
-        cancelable_statuses=ADMIN_CANCELABLE_STATUSES,
-    )
+        # Registrar quién (admin) canceló
+        locked.admin_cancelled_by = admin_user
+        locked.save(update_fields=['admin_cancelled_by'])
 
-    # Registrar quién (admin) canceló
-    with transaction.atomic():
-        order.admin_cancelled_by = admin_user
-        order.save(update_fields=['admin_cancelled_by'])
-
-        # Registrar en el log de auditoría
         OrderStatusLog.objects.create(
-            order=order,
+            order=locked,
             previous_status=previous,
             new_status='CANCELLED',
             changed_by=admin_user,
             notes=f'[ADMIN] {reason}',
         )
 
-    return order
+    return locked
 
 
 def get_dashboard_data():
