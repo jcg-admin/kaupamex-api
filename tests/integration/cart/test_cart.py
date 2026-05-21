@@ -87,12 +87,18 @@ class TestAgregarProducto:
     def test_agregar_producto_sin_variante_retorna_201(
         self, api_client, product_sin_variante, db
     ):
+        # DEC-BC-02 + DEC-BC-08: POST /cart/items/ retorna Cart shape
+        # (no item suelto) + 201 si insert, 200 si merge. Single
+        # contract: UI nunca calcula totales ni asume shape.
         res = api_client.post(ITEMS_URL, {
             'product_id': product_sin_variante.pk,
             'quantity': 2,
         }, format='json')
         assert res.status_code == 201
-        assert res.json()['quantity'] == 2
+        body = res.json()
+        assert 'items' in body and len(body['items']) == 1
+        assert body['items'][0]['quantity'] == 2
+        assert 'totals' in body
         assert 'X-Cart-Token' in res  # se genera token para anonimo
 
     def test_agregar_producto_con_variante(
@@ -104,7 +110,8 @@ class TestAgregarProducto:
             'quantity': 1,
         }, format='json')
         assert res.status_code == 201
-        assert res.json()['variant_label'] == 'Mediana'
+        body = res.json()
+        assert body['items'][0]['variant_label'] == 'Mediana'
 
     def test_agregar_sin_variante_cuando_producto_la_requiere_retorna_400(
         self, api_client, product_con_variante, variant_s12, db
@@ -120,17 +127,24 @@ class TestAgregarProducto:
     def test_upsert_incrementa_cantidad_existente(
         self, api_client, product_sin_variante, db
     ):
-        """FR-CART-01.02 Escenario 2: item ya existente suma cantidad."""
+        """FR-CART-01.02 Escenario 2: item ya existente suma cantidad.
+
+        DEC-BC-08: status 201 si insert (primer add), 200 si merge
+        (segundo add sobre item existente).
+        """
         res1 = api_client.post(ITEMS_URL, {
             'product_id': product_sin_variante.pk, 'quantity': 1,
         }, format='json')
+        assert res1.status_code == 201  # primer add: insert
         token = res1['X-Cart-Token']
         api_client.credentials(HTTP_X_CART_TOKEN=token)
         res2 = api_client.post(ITEMS_URL, {
             'product_id': product_sin_variante.pk, 'quantity': 2,
         }, format='json')
-        assert res2.status_code == 201
-        assert res2.json()['quantity'] == 3  # 1 + 2
+        assert res2.status_code == 200  # segundo add: merge
+        body = res2.json()
+        assert len(body['items']) == 1
+        assert body['items'][0]['quantity'] == 3  # 1 + 2
 
     def test_stock_insuficiente_retorna_400(
         self, api_client, product_sin_variante, db
@@ -197,12 +211,17 @@ class TestVerCarrito:
     def test_editar_cantidad_item(
         self, anon_client_with_cart, product_sin_variante, db
     ):
+        # DEC-BC-02 + DEC-BC-08: PATCH /cart/items/<id>/ retorna Cart
+        # shape (con items + totals), no item suelto.
         client, _ = anon_client_with_cart
         cart_data = client.get(CART_URL).json()
         item_id = cart_data['items'][0]['id']
         res = client.patch(f'{ITEMS_URL}{item_id}/', {'quantity': 3}, format='json')
         assert res.status_code == 200
-        assert res.json()['quantity'] == 3
+        body = res.json()
+        item = next(i for i in body['items'] if i['id'] == item_id)
+        assert item['quantity'] == 3
+        assert 'totals' in body
 
     def test_editar_cantidad_mayor_al_stock_retorna_400(
         self, anon_client_with_cart, product_sin_variante, db
@@ -222,14 +241,21 @@ class TestVerCarrito:
 
 class TestEliminarItem:
 
-    def test_eliminar_item_retorna_204(
+    def test_eliminar_item_retorna_cart_actualizado(
         self, anon_client_with_cart, db
     ):
+        # DEC-BC-02 + DEC-BC-08: DELETE /cart/items/<id>/ retorna
+        # Cart actualizado (200) en lugar de 204. UI usa setCart
+        # sin necesidad de re-fetch para refrescar totals.
         client, _ = anon_client_with_cart
         cart_data = client.get(CART_URL).json()
         item_id = cart_data['items'][0]['id']
         res = client.delete(f'{ITEMS_URL}{item_id}/')
-        assert res.status_code == 204
+        assert res.status_code == 200
+        body = res.json()
+        assert 'items' in body
+        assert all(i['id'] != item_id for i in body['items'])
+        assert 'totals' in body
 
     def test_eliminar_item_actualiza_carrito(
         self, anon_client_with_cart, db
