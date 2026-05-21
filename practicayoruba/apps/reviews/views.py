@@ -107,6 +107,18 @@ class ProductReviewsView(APIView):
                 'detail': 'No puedes reseñar productos que no compraste.',
                 'codigo_error': 'PRODUCT_NOT_PURCHASED',
             })
+        # UC-REV-01 PRE-01 + FR-REV-01.02 (T-118 D-01 CRITICA):
+        # solo se permite resenar productos de ordenes ENTREGADAS. Antes
+        # cualquier estado (PENDING/PROCESSING/SHIPPED) era aceptado =
+        # vector reseñas pre-entrega.
+        if order.status != Order.STATUS_DELIVERED:
+            raise PermissionDenied({
+                'detail': (
+                    'Solo se pueden resenar productos de ordenes '
+                    f'entregadas. Estado actual: {order.status}.'
+                ),
+                'codigo_error': 'ORDER_NOT_DELIVERED',
+            })
         if not order.items.filter(product=product).exists():
             raise PermissionDenied({
                 'detail': 'El producto no fue comprado en esa orden.',

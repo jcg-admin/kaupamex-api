@@ -112,6 +112,28 @@ class TestCreateReview:
         assert r.status_code == 403
         assert r.json()['codigo_error'] == 'PRODUCT_NOT_PURCHASED'
 
+    def test_403_si_orden_no_esta_DELIVERED(
+        self, auth_client, user, prod_rev, db,
+    ):
+        """UC-REV-01 PRE-01 (T-118 D-01 CRITICA): solo se permite
+        reseñar productos de ordenes ENTREGADAS. Antes cualquier
+        estado pasaba el guard."""
+        for st in ('PENDING', 'PROCESSING', 'SHIPPED'):
+            o = Order.objects.create(user=user, status=st)
+            OrderItem.objects.create(
+                order=o, product=prod_rev, product_name=prod_rev.name,
+                sku=prod_rev.sku, unit_price=Decimal('100'), quantity=1,
+                subtotal=Decimal('100'),
+            )
+            r = auth_client.post(PRODUCT_REVIEWS_URL(prod_rev.id), {
+                'order_id': o.id, 'rating': 4,
+                'title': f'pre-{st}', 'body': 'cuerpo de prueba',
+            }, format='json')
+            assert r.status_code == 403, (
+                f'status={st} debio rechazar, recibio {r.status_code}'
+            )
+            assert r.json()['codigo_error'] == 'ORDER_NOT_DELIVERED'
+
     def test_409_resena_duplicada(
         self, auth_client, user, prod_rev, order_user_with_product, db,
     ):
@@ -194,7 +216,9 @@ class TestAdminQueue:
         )
         r = admin_client.post(REJECT_URL(rev.id), {'reason': 'NOPE'}, format='json')
         assert r.status_code == 400
-        assert r.json()['codigo_error'] == 'MOTIVO_INVALIDO'
+        # Canon EN (T-118 alineamiento + anti-soft-on-tests): codigo ya
+        # retorna REASON_INVALID. Antes el test era outlier ES.
+        assert r.json()['codigo_error'] == 'REASON_INVALID'
 
     def test_comprador_no_puede_aprobar(
         self, auth_client, user, prod_rev, order_user_with_product, db,
