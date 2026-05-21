@@ -52,7 +52,7 @@ class ProductDiscountCreateSerializer(serializers.Serializer):
         valid_until = data.get('valid_until')
         if valid_until is not None and valid_until <= data['valid_from']:
             raise serializers.ValidationError(
-                {'error_code': 'DATE_RANGE_INVALID',
+                {'error_code': 'INVALID_DATE_RANGE',
                  'detail': 'valid_until must be strictly after valid_from.'},
             )
         return data
@@ -81,7 +81,7 @@ class ProductDiscountUpdateSerializer(serializers.Serializer):
             new_until = instance.valid_until
         if new_until is not None and new_from is not None and new_until <= new_from:
             raise serializers.ValidationError(
-                {'error_code': 'DATE_RANGE_INVALID',
+                {'error_code': 'INVALID_DATE_RANGE',
                  'detail': 'valid_until must be strictly after valid_from.'},
             )
         return data
