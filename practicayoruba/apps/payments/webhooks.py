@@ -167,8 +167,10 @@ class MercadoPagoWebhookView(APIView):
         try:
             data = json.loads(raw_body)
         except json.JSONDecodeError:
+            # DEC-BC-06: 400 indica al cliente que el payload es invalido.
+            # MP no reintenta 4xx — el evento se descarta como malformed.
             logger.warning('MP webhook: payload no es JSON válido')
-            return Response({'status': 'invalid_json'}, status=200)
+            return Response({'status': 'invalid_json'}, status=400)
 
         # Solo procesar notificaciones de tipo 'payment'
         event_type   = data.get('type', '')
@@ -187,8 +189,11 @@ class MercadoPagoWebhookView(APIView):
         try:
             gw_result = MercadoPagoGateway().verify_payment(payment_id)
         except Exception as exc:
+            # DEC-BC-06: 503 (Service Unavailable) indica gateway externo
+            # caido. MP hace exponential backoff en 5xx y reintenta el
+            # webhook — el evento no se pierde.
             logger.error('MP webhook: error consultando estado: %s', exc)
-            return Response({'status': 'gateway_error'}, status=200)
+            return Response({'status': 'gateway_error'}, status=503)
 
         # Registrar evento de auditoría
         payment = (
@@ -277,7 +282,8 @@ class PayPalWebhookView(APIView):
         try:
             data = json.loads(raw_body)
         except json.JSONDecodeError:
-            return Response({'status': 'invalid_json'}, status=200)
+            # DEC-BC-06: 400 — PayPal no reintenta 4xx.
+            return Response({'status': 'invalid_json'}, status=400)
 
         event_type = data.get('event_type', '')
 
@@ -320,7 +326,8 @@ class PayPalWebhookView(APIView):
             # Capturar el pago (H-PAY-006: la captura ocurre en el webhook)
             paypal_order_id = resource.get('id', '')
             if not paypal_order_id:
-                return Response({'status': 'missing_order_id'}, status=200)
+                # DEC-BC-06: 400 — payload incompleto, no reintentable.
+                return Response({'status': 'missing_order_id'}, status=400)
 
             # Buscar el Payment por preference_id (guardamos el order_id de PayPal ahí)
             payment = Payment.objects.filter(
@@ -328,8 +335,11 @@ class PayPalWebhookView(APIView):
                 gateway='PAYPAL',
             ).first()
             if not payment:
+                # DEC-BC-06: 502 (Bad Gateway) — el Payment puede aparecer
+                # en una race window con la creacion del pedido. PayPal
+                # hace backoff en 5xx y reintenta — recupera del race.
                 logger.warning('PayPal webhook: Payment no encontrado para order=%s', paypal_order_id)
-                return Response({'status': 'payment_not_found'}, status=200)
+                return Response({'status': 'payment_not_found'}, status=502)
 
             PaymentGatewayEvent.objects.create(
                 payment=payment,
@@ -343,8 +353,10 @@ class PayPalWebhookView(APIView):
                 payment.gateway_payment_id = capture_id
                 payment.save(update_fields=['gateway_payment_id'])
             except Exception as exc:
+                # DEC-BC-06: 500 — fallo interno al capturar. PayPal
+                # hace backoff en 5xx y reintenta el webhook.
                 logger.error('PayPal capture failed: %s', exc)
-                return Response({'status': 'capture_failed'}, status=200)
+                return Response({'status': 'capture_failed'}, status=500)
 
         elif event_type == 'PAYMENT.CAPTURE.COMPLETED':
             capture_id = resource.get('id', '')
