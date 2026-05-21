@@ -4,20 +4,21 @@ Servicios de notificacion transaccional. UC-NOT-01..05.
 
 Cada funcion `notify_*` hace dos cosas:
 1. Crea la Notification in-app (debe llamarse dentro de transaction.atomic).
-2. Despacha el email via Celery con on_commit (garantiza despacho solo si
-   la transaccion commitea).
+2. Despacha el email via transaction.on_commit (garantiza despacho solo si
+   la transaccion commitea; se ejecuta sincronamente en el mismo proceso).
 
 La separacion es intencional: in-app dentro de la transaccion mantiene
 consistencia; email fuera evita enviar si el checkout/transicion falla.
+No se usa Celery — el stack del proyecto no incluye broker de tareas.
 """
 from django.db import transaction
 from .models import Notification, NotificationType
-from .tasks import (
-    send_order_confirmation_email_task,
-    send_order_status_email_task,
-    send_shipping_update_email_task,
-    send_return_processed_email_task,
-    send_refund_email_task,
+from .emails import (
+    send_order_confirmation_email,
+    send_order_status_email,
+    send_shipping_update_email,
+    send_return_processed_email,
+    send_refund_email,
 )
 
 
@@ -45,7 +46,7 @@ def notify_order_created(order, user, total_amount):
         order_num   = order.order_number
         total_str   = str(total_amount)
         transaction.on_commit(
-            lambda: send_order_confirmation_email_task.delay(
+            lambda: send_order_confirmation_email(
                 user_email, name, order_num, total_str,
             )
         )
@@ -92,7 +93,7 @@ def notify_order_status_changed(order, new_status):
         shipping     = getattr(order, 'shipping_info', None)
         tracking_num = shipping.tracking_number if shipping else None
         transaction.on_commit(
-            lambda: send_order_status_email_task.delay(
+            lambda: send_order_status_email(
                 user_email, name, order_num, new_status, tracking_num,
             )
         )
@@ -120,7 +121,7 @@ def notify_shipping_updated(order, user, tracking_number=None, event_description
         tracking    = tracking_number
         description = event_description
         transaction.on_commit(
-            lambda: send_shipping_update_email_task.delay(
+            lambda: send_shipping_update_email(
                 user_email, name, order_num, tracking, description,
             )
         )
@@ -154,7 +155,7 @@ def notify_return_processed(order, user, return_status, reason=None):
         r_status     = return_status
         r_reason     = reason
         transaction.on_commit(
-            lambda: send_return_processed_email_task.delay(
+            lambda: send_return_processed_email(
                 user_email, name, order_num, r_status, r_reason,
             )
         )
@@ -181,7 +182,7 @@ def notify_refund_processed(order, user, amount_refunded):
         order_num   = order.order_number
         amount      = str(amount_refunded)
         transaction.on_commit(
-            lambda: send_refund_email_task.delay(
+            lambda: send_refund_email(
                 user_email, name, order_num, amount,
             )
         )

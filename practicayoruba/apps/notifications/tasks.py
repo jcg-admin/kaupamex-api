@@ -21,13 +21,6 @@ Decision de diseno (DEC-DOC-005):
 """
 from celery import shared_task
 from .models import Notification, NotificationPreference
-from .emails import (
-    send_order_confirmation_email,
-    send_order_status_email,
-    send_shipping_update_email,
-    send_return_processed_email,
-    send_refund_email,
-)
 
 
 @shared_task(name='notifications.dispatch_manual_fanout')
@@ -71,33 +64,3 @@ def dispatch_manual_fanout(user_ids, subject, message, notification_type):
     if to_create:
         Notification.objects.bulk_create(to_create)
     return len(to_create)
-
-
-@shared_task(name='notifications.send_order_confirmation_email')
-def send_order_confirmation_email_task(user_email, user_name, order_number, order_total):
-    """UC-NOT-01: email de confirmacion de orden (async via Celery)."""
-    send_order_confirmation_email(user_email, user_name, order_number, order_total)
-
-
-@shared_task(name='notifications.send_order_status_email')
-def send_order_status_email_task(user_email, user_name, order_number, new_status, tracking_number=None):
-    """UC-NOT-02: email de cambio de estado de orden (async via Celery)."""
-    send_order_status_email(user_email, user_name, order_number, new_status, tracking_number)
-
-
-@shared_task(name='notifications.send_shipping_update_email')
-def send_shipping_update_email_task(user_email, user_name, order_number, tracking_number=None, event_description=None):
-    """UC-NOT-03: email de actualizacion de envio (async via Celery)."""
-    send_shipping_update_email(user_email, user_name, order_number, tracking_number, event_description)
-
-
-@shared_task(name='notifications.send_return_processed_email')
-def send_return_processed_email_task(user_email, user_name, order_number, return_status, reason=None):
-    """UC-NOT-04: email de devolucion procesada (async via Celery)."""
-    send_return_processed_email(user_email, user_name, order_number, return_status, reason)
-
-
-@shared_task(name='notifications.send_refund_email')
-def send_refund_email_task(user_email, user_name, order_number, amount_refunded):
-    """UC-NOT-05: email de reembolso procesado (async via Celery)."""
-    send_refund_email(user_email, user_name, order_number, amount_refunded)
