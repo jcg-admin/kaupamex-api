@@ -22,6 +22,7 @@ from rest_framework.views import APIView
 from apps.orders.models import Order
 from .models import Courier, ShipmentEvent, ShipmentGuide
 from .serializers import CourierSerializer, ShipmentEventSerializer, ShipmentGuideCreateSerializer, ShipmentGuideSerializer
+from apps.notifications.service import notify_shipping_updated
 
 
 
@@ -138,6 +139,12 @@ class ShipmentGuideListCreateView(_AdminOnly, APIView):
             occurred_at=timezone.now(),
             recorded_by=request.user if request.user.is_authenticated else None,
         )
+        notify_shipping_updated(
+            order=guide.order,
+            user=guide.order.user,
+            tracking_number=guide.tracking_number,
+            event_description='Guia creada.',
+        )
         return Response(
             ShipmentGuideSerializer(guide).data, status=status.HTTP_201_CREATED,
         )
@@ -198,6 +205,12 @@ class ShipmentGuideDetailView(_AdminOnly, APIView):
             occurred_at=timezone.now(),
             recorded_by=request.user if request.user.is_authenticated else None,
         )
+        notify_shipping_updated(
+            order=guide.order,
+            user=guide.order.user,
+            tracking_number=guide.tracking_number,
+            event_description=description or f'Estado actualizado a: {new_status}.',
+        )
 
         return Response(ShipmentGuideSerializer(guide).data)
 
@@ -238,6 +251,12 @@ class ConfirmDeliveryView(_AdminOnly, APIView):
                 description='Entrega confirmada.',
                 occurred_at=guide.delivered_at,
                 recorded_by=request.user if request.user.is_authenticated else None,
+            )
+            notify_shipping_updated(
+                order=guide.order,
+                user=guide.order.user,
+                tracking_number=guide.tracking_number,
+                event_description='Entrega confirmada.',
             )
             # Sync order status (best effort).
             order = guide.order

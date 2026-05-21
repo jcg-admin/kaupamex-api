@@ -18,6 +18,7 @@ from .gateways.paypal import PayPalGateway
 from django.db.models import Sum as DjSum
 from apps.settings_app.models import PaymentGateway
 from apps.orders.models import Order
+from apps.notifications.service import notify_refund_processed
 
 
 
@@ -256,6 +257,11 @@ def execute_refund(
         else:
             payment.status = PaymentModel.STATUS_PARTIALLY_REFUNDED
         payment.save(update_fields=['status'])
+        notify_refund_processed(
+            order=payment.order,
+            user=payment.order.user,
+            amount_refunded=refund_amount,
+        )
 
     logging.getLogger('apps').info(
         'Reembolso ejecutado: payment=%s amount=%s refund_id=%s',
