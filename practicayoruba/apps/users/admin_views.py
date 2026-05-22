@@ -137,12 +137,14 @@ class AdminUserViewSet(ModelViewSet):
             qs = qs.filter(deactivated_reason=deactivated_reason)
         return qs
 
-    @extend_schema(summary='Listar usuarios', tags=['admin'])
+    @extend_schema(summary='Listar usuarios', tags=['admin'],
+                   responses={200: AdminUserListSerializer(many=True)})
     def list(self, request, *args, **kwargs):
         _require_admin(request.user)
         return super().list(request, *args, **kwargs)
 
-    @extend_schema(summary='Ver perfil de usuario', tags=['admin'])
+    @extend_schema(summary='Ver perfil de usuario', tags=['admin'],
+                   responses={200: AdminUserDetailSerializer, 404: None})
     def retrieve(self, request, *args, **kwargs):
         _require_admin(request.user)
         return super().retrieve(request, *args, **kwargs)

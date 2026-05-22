@@ -2,7 +2,8 @@
 import logging
 
 from django.db.models import Q
-from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
+from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiResponse
+from drf_spectacular.types import OpenApiTypes
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -70,6 +71,7 @@ class InventoryDashboardView(APIView):
                              description='Filtrar: NORMAL, BAJO, AGOTADO'),
         ],
         tags=['inventory'],
+        responses={200: StockDashboardSerializer},
     )
     def get(self, request):
         threshold = SiteSettings.get_current().min_stock_threshold
@@ -165,6 +167,8 @@ class StockAdjustView(APIView):
     @extend_schema(
         summary='Ajuste manual de stock (producto sin variante)',
         tags=['inventory'],
+        request=StockAdjustSerializer,
+        responses={201: StockMovementSerializer, 400: None},
     )
     def post(self, request, product_pk):
         product = get_object_or_404(Product, pk=product_pk, is_active=True)
@@ -211,6 +215,7 @@ class VariantStockAdjustView(APIView):
             'STOCK_NEGATIVO_NO_PERMITIDO al intentar dejar stock negativo.'
         ),
         tags=['inventory'],
+        responses={201: StockMovementSerializer, 400: None, 422: None},
     )
     def post(self, request, variant_pk):
         variant = get_object_or_404(ProductVariant, pk=variant_pk, is_active=True)
@@ -282,6 +287,7 @@ class VariantMovementsView(ListAPIView):
     @extend_schema(
         summary='Bitácora de movimientos de stock por variante',
         tags=['inventory'],
+        responses={200: StockMovementSerializer(many=True)},
     )
     def get(self, request, variant_pk):
         variant = get_object_or_404(ProductVariant, pk=variant_pk)
@@ -508,6 +514,11 @@ class ProductImportView(APIView):
             'Columnas: name, sku, base_price, category_slug.'
         ),
         tags=['inventory'],
+        responses={
+            200: OpenApiTypes.OBJECT,
+            202: OpenApiTypes.OBJECT,
+            400: None,
+        },
     )
     def post(self, request):
         csv_file = request.FILES.get('file')
@@ -576,6 +587,7 @@ class ProductImportStatusView(APIView):
     @extend_schema(
         summary='Consultar estado de importación CSV',
         tags=['inventory'],
+        responses={200: OpenApiTypes.OBJECT, 404: None},
     )
     def get(self, request, job_id):
         result = cache.get(f'import_job:{job_id}')
@@ -600,6 +612,10 @@ class ProductImportReportView(APIView):
     @extend_schema(
         summary='Descargar reporte CSV de errores de importacion',
         tags=['inventory'],
+        responses={
+            200: OpenApiResponse(description='CSV file with failed rows', response=OpenApiTypes.BINARY),
+            404: None,
+        },
     )
     def get(self, request, report_id):
         report = cache.get(f'import_report:{report_id}')

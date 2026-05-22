@@ -41,6 +41,7 @@ class LogisticsPanelView(_AdminOnly, APIView):
         summary='Logistics panel (group A + B).',
         parameters=[OpenApiParameter('courier_id', int, required=False)],
         tags=['logistics'],
+        responses={200: ShipmentGuideSerializer(many=True)},
     )
     def get(self, request):
         courier_id = request.query_params.get('courier_id')
@@ -104,7 +105,8 @@ class LogisticsPanelView(_AdminOnly, APIView):
 # =============================================================================
 
 class CourierListView(_AdminOnly, APIView):
-    @extend_schema(summary='List active couriers.', tags=['logistics'])
+    @extend_schema(summary='List active couriers.', tags=['logistics'],
+                   responses={200: CourierSerializer(many=True)})
     def get(self, request):
         qs = Courier.objects.filter(is_active=True)
         return Response(CourierSerializer(qs, many=True).data)
@@ -116,7 +118,8 @@ class CourierListView(_AdminOnly, APIView):
 
 class ShipmentGuideListCreateView(_AdminOnly, APIView):
     @extend_schema(summary='List shipment guides.', tags=['logistics'],
-                   operation_id='logistics_guides_list')
+                   operation_id='logistics_guides_list',
+                   responses={200: ShipmentGuideSerializer(many=True)})
     def get(self, request):
         qs = ShipmentGuide.objects.select_related('order', 'courier').order_by('-created_at')
         return Response(ShipmentGuideSerializer(qs, many=True).data)
@@ -156,7 +159,8 @@ class ShipmentGuideListCreateView(_AdminOnly, APIView):
 
 class ShipmentGuideDetailView(_AdminOnly, APIView):
     @extend_schema(summary='Shipment guide detail.', tags=['logistics'],
-                   operation_id='logistics_guides_retrieve')
+                   operation_id='logistics_guides_retrieve',
+                   responses={200: ShipmentGuideSerializer, 404: None})
     def get(self, request, pk):
         try:
             guide = ShipmentGuide.objects.select_related('order', 'courier').get(pk=pk)
@@ -170,6 +174,7 @@ class ShipmentGuideDetailView(_AdminOnly, APIView):
     @extend_schema(
         summary='Update shipment status.',
         tags=['logistics'],
+        responses={200: ShipmentGuideSerializer, 400: None, 404: None},
     )
     @transaction.atomic
     def patch(self, request, pk):
@@ -223,6 +228,7 @@ class ConfirmDeliveryView(_AdminOnly, APIView):
     @extend_schema(
         summary='Confirm delivery (UC-LOG-05). Idempotent.',
         tags=['logistics'],
+        responses={200: ShipmentGuideSerializer, 400: None, 404: None},
     )
     @transaction.atomic
     def post(self, request, pk):

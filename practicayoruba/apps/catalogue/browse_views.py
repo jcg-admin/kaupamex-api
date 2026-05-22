@@ -45,6 +45,7 @@ class RelatedProductsView(APIView):
     @extend_schema(
         summary='Related products by category (UC-CAT-07).',
         tags=['catalogue'],
+        responses={200: ProductListSerializer(many=True), 404: None},
     )
     def get(self, request, slug):
         try:
@@ -115,6 +116,7 @@ class CatalogueSearchView(APIView):
             OpenApiParameter('page', int, required=False),
         ],
         tags=['catalogue'],
+        responses={200: ProductSearchSerializer(many=True), 400: None},
     )
     def get(self, request):
         raw_q = request.query_params.get('q', '')
