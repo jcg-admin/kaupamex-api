@@ -35,7 +35,7 @@ User = get_user_model()
 
 AMBIGUOUS_MSG = 'Los datos ingresados no estan disponibles. Prueba con otros.'
 
-# ─── Sprint 1 ─────────────────────────────────────────────────────────
+# ─── Sprint 1 ─────────────────────────────────────────────────────
 
 class RegisterSerializer(serializers.Serializer):
     """
@@ -119,7 +119,7 @@ class RegisterSerializer(serializers.Serializer):
         return user
 
 
-# ─── Sprint 2 ─────────────────────────────────────────────────────────
+# ─── Sprint 2 ─────────────────────────────────────────────────────
 
 class AddressSerializer(serializers.ModelSerializer):
     """UC-AUTH-07: Serializer de direccion de envio."""
@@ -300,8 +300,8 @@ class ChangePasswordSerializer(serializers.Serializer):
             )
         if attrs['new_password'] == attrs['current_password']:
             raise serializers.ValidationError(
-                {'new_password': 'La nueva contrasena debe ser diferente a la actual.'}
-            )
+                'La nueva contrasena debe ser diferente a la actual.'
+            )  # non_field_errors — allows PASSWORD_NOT_CHANGED code in view
         return attrs
 
     def save(self, **kwargs):
@@ -322,7 +322,7 @@ class ChangePasswordSerializer(serializers.Serializer):
         return user
 
 
-# ─── Sprint 3 ─────────────────────────────────────────────────────────
+# ─── Sprint 3 ─────────────────────────────────────────────────────
 
 class PasswordResetRequestSerializer(serializers.Serializer):
     """UC-AUTH-09 Fase 1: solicitar recuperacion de contrasena."""

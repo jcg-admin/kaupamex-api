@@ -242,7 +242,11 @@ class AddressViewSet(ModelViewSet):
         if not serializer.is_valid():
             errors = serializer.errors
             if any('limite_direcciones' in str(e) for e in errors.values()):
-                return Response(errors, status=422)
+                msg = errors.get('non_field_errors', ['Limite de direcciones alcanzado.'])[0]
+                return Response(
+                    {'error_code': 'ADDRESS_LIMIT_EXCEEDED', 'detail': str(msg)},
+                    status=422,
+                )
             return Response(errors, status=400)
         self.perform_create(serializer)
         audit_log_auth(request.user, AuthEvent.ACTION_ADDRESS_CREATED, request,
@@ -328,10 +332,35 @@ class ChangePasswordView(APIView):
         if serializer.is_valid():
             serializer.save()
             return Response({'detail': 'Password changed successfully.'})
-        return Response(serializer.errors, status=400)
+        errors = serializer.errors
+        if 'current_password' in errors:
+            return Response(
+                {'error_code': 'CURRENT_PASSWORD_INCORRECT',
+                 'detail': str(errors['current_password'][0])},
+                status=400,
+            )
+        if 'non_field_errors' in errors:
+            return Response(
+                {'error_code': 'PASSWORD_NOT_CHANGED',
+                 'detail': str(errors['non_field_errors'][0])},
+                status=400,
+            )
+        if 'new_password' in errors:
+            return Response(
+                {'error_code': 'INVALID_PASSWORD',
+                 'detail': str(errors['new_password'][0])},
+                status=400,
+            )
+        if 'new_password_confirm' in errors:
+            return Response(
+                {'error_code': 'PASSWORDS_DO_NOT_MATCH',
+                 'detail': str(errors['new_password_confirm'][0])},
+                status=400,
+            )
+        return Response({'error_code': 'INVALID_PAYLOAD', 'detail': str(errors)}, status=400)
 
 
-# ─── Sprint 3 ─────────────────────────────────────────────────────────
+# ─── Sprint 3 ─────────────────────────────────────────────────────
 
 
 class PasswordResetRequestView(APIView):
