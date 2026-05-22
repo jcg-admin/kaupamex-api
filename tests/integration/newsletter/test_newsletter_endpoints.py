@@ -37,7 +37,7 @@ def _make_subscriber(email='sub@example.com', status='CONFIRMED'):
     return NewsletterSubscriber.objects.create(email=email, status=status)
 
 
-# ─── POST /newsletter/subscribe ──────────────────────────────────────────────
+# ─── POST /newsletter/subscribe ──────────────────────────────────────────
 class TestSubscribe:
     def test_anonymous_can_subscribe(self, api_client, db):
         res = api_client.post(SUBSCRIBE_URL,
@@ -75,7 +75,7 @@ class TestSubscribe:
         assert res.json()['status'] == 'PENDING'
 
 
-# ─── POST /newsletter/confirm/<token> ─────────────────────────────────────────────
+# ─── POST /newsletter/confirm/<token> ────────────────────────────────────
 class TestConfirmSubscription:
     def test_confirm_valid_token(self, api_client, db):
         email = 'pending@example.com'
@@ -139,7 +139,7 @@ class TestConfirmSubscription:
         assert any('Confirma' in s for s in subjects)
 
 
-# ─── POST /newsletter/unsubscribe ───────────────────────────────────────────────
+# ─── POST /newsletter/unsubscribe ────────────────────────────────────────
 class TestUnsubscribe:
     def test_invalid_token_returns_404(self, api_client, db):
         res = api_client.post(UNSUB_URL,
@@ -178,7 +178,7 @@ class TestUnsubscribe:
         assert res.status_code == 400
 
 
-# ─── GET /admin/newsletter/subscribers ───────────────────────────────────────────────
+# ─── GET /admin/newsletter/subscribers ───────────────────────────────────
 class TestAdminListSubscribers:
     def test_requires_auth(self, api_client, db):
         res = api_client.get(ADMIN_LIST_URL)
@@ -207,7 +207,7 @@ class TestAdminListSubscribers:
         assert rows[0]['email'] == 'c@example.com'
 
 
-# ─── POST /admin/newsletter/subscribers/<id>/unsubscribe ─────────────────────────────
+# ─── POST /admin/newsletter/subscribers/<id>/unsubscribe ─────────────────
 class TestAdminForceUnsubscribe:
     def test_requires_staff(self, auth_client, db):
         sub = _make_subscriber()
@@ -227,7 +227,7 @@ class TestAdminForceUnsubscribe:
         assert res.status_code == 404
 
 
-# ─── POST /admin/newsletter/campaigns ────────────────────────────────────────────────
+# ─── POST /admin/newsletter/campaigns ────────────────────────────────────
 class TestAdminCreateCampaign:
     def test_requires_staff(self, auth_client, db):
         res = auth_client.post(ADMIN_CAMPAIGN_URL, {

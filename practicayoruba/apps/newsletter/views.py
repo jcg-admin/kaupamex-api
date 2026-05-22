@@ -29,7 +29,7 @@ from .serializers import CampaignCreateSerializer, CampaignResponseSerializer, S
 
 
 
-# ── public ─────────────────────────────────────────────────────────────────────
+# ── public ────────────────────────────────────────────────────────────
 class NewsletterSubscribeView(APIView):
     """POST /api/v1/newsletter/subscribe/."""
 
@@ -197,7 +197,7 @@ class NewsletterUnsubscribeView(APIView):
         })
 
 
-# ── admin ─────────────────────────────────────────────────────────────────────
+# ── admin ─────────────────────────────────────────────────────────────
 class AdminSubscriberListView(APIView):
     """GET /api/v1/admin/newsletter/subscribers/."""
 
