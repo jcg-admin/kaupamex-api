@@ -63,6 +63,14 @@ class AdminContactMessageListView(APIView):
     )
     def get(self, request):
         qs = ContactMessage.objects.all()
+        # status filter: sin_leer | leido | respondido (DEC-COM-01 T-117).
+        status_param = request.query_params.get('status')
+        if status_param == 'sin_leer':
+            qs = qs.filter(read=False)
+        elif status_param == 'leido':
+            qs = qs.filter(read=True, replied=False)
+        elif status_param == 'respondido':
+            qs = qs.filter(replied=True)
         data = ContactMessageListItemSerializer(qs, many=True).data
         return Response({'results': data})
 
@@ -79,6 +87,10 @@ class AdminContactMessageDetailView(APIView):
     )
     def get(self, request, message_id):
         message = get_object_or_404(ContactMessage, pk=message_id)
+        # Auto-mark-read on detail access (DEC-COM-02 T-117).
+        if not message.read:
+            message.read = True
+            message.save(update_fields=['read', 'updated_at'])
         return Response(ContactMessageListItemSerializer(message).data)
 
 
@@ -115,6 +127,14 @@ class AdminContactMessageReplyView(APIView):
     )
     def post(self, request, message_id):
         message = get_object_or_404(ContactMessage, pk=message_id)
+
+        # Idempotency: if already replied, return current state without re-sending email.
+        if message.replied:
+            return Response(
+                ContactMessageListItemSerializer(message).data,
+                status=status.HTTP_200_OK,
+            )
+
         serializer = ContactMessageReplySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         reply_body = serializer.validated_data['reply_body']

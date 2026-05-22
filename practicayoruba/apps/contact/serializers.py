@@ -15,9 +15,9 @@ class ContactMessageCreateSerializer(serializers.ModelSerializer):
         model = ContactMessage
         fields = ['name', 'email', 'phone', 'subject', 'body']
         extra_kwargs = {
-            'name': {'min_length': 2, 'max_length': 120},
-            'subject': {'min_length': 3, 'max_length': 200},
-            'body': {'min_length': 3},
+            'name': {'min_length': 2, 'max_length': 100},
+            'subject': {'min_length': 5, 'max_length': 150},
+            'body': {'min_length': 20, 'max_length': 2000},
             'phone': {'required': False, 'allow_blank': True},
         }
 
