@@ -2,7 +2,8 @@
 Views — apps.newsletter (UC-NEW-01..04).
 
 Public endpoints:
-  POST /api/v1/newsletter/subscribe/                       subscribe (double opt-in optional)
+  POST /api/v1/newsletter/subscribe/                       subscribe (doble opt-in GDPR)
+  POST /api/v1/newsletter/confirm/<token>/                 confirmar suscripcion
   POST /api/v1/newsletter/unsubscribe/                     unsub via signed token
 
 Admin endpoints:
@@ -13,6 +14,7 @@ Admin endpoints:
 JSON keys + identifiers in English (DEC-DOC-005).
 """
 from django.conf import settings
+from django.core import signing
 from apps.core.email_executor import dispatch_email
 from django.db import transaction
 from django.shortcuts import get_object_or_404
@@ -27,7 +29,7 @@ from .serializers import CampaignCreateSerializer, CampaignResponseSerializer, S
 
 
 
-# ── public ────────────────────────────────────────────────────────────
+# ── public ─────────────────────────────────────────────────────────────────────
 class NewsletterSubscribeView(APIView):
     """POST /api/v1/newsletter/subscribe/."""
 
@@ -59,6 +61,27 @@ class NewsletterSubscribeView(APIView):
                 'status', 'unsubscribed_at', 'updated_at',
             ])
 
+        # Doble opt-in GDPR: generar token y enviar email de confirmacion (DEC-NEW-01 T-117).
+        if subscriber.status == SubscriberStatus.PENDING:
+            confirm_token = signing.dumps(email, salt='newsletter-confirm')
+            subscriber.confirmation_token = confirm_token
+            subscriber.save(update_fields=['confirmation_token', 'updated_at'])
+
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3001')
+            confirm_url = f'{frontend_url}/newsletter/confirm/?token={confirm_token}'
+            dispatch_email(
+                subject='Confirma tu suscripcion a la newsletter',
+                message=(
+                    f'Hola,\n\n'
+                    f'Para completar tu suscripcion haz clic en el siguiente enlace:\n\n'
+                    f'{confirm_url}\n\n'
+                    f'El enlace expira en 24 horas.\n\n'
+                    f'Si no solicitaste esta suscripcion, ignora este mensaje.'
+                ),
+                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@practicayoruba.mx'),
+                recipient_list=[email],
+            )
+
         return Response(
             {
                 'id': subscriber.pk,
@@ -67,6 +90,56 @@ class NewsletterSubscribeView(APIView):
             },
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
         )
+
+
+class NewsletterConfirmView(APIView):
+    """POST /api/v1/newsletter/confirm/<token>/ — UC-NEW-01 doble opt-in (DEC-NEW-01 T-117)."""
+
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        summary='Confirmar suscripcion via token',
+        tags=['newsletter'],
+        responses={200: OpenApiTypes.OBJECT, 400: OpenApiTypes.OBJECT, 404: OpenApiTypes.OBJECT},
+    )
+    def post(self, request, token):
+        try:
+            email = signing.loads(token, salt='newsletter-confirm', max_age=24 * 3600)
+        except signing.SignatureExpired:
+            return Response(
+                {'error_code': 'TOKEN_EXPIRED', 'detail': 'Token de confirmacion expirado.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except signing.BadSignature:
+            return Response(
+                {'error_code': 'INVALID_TOKEN', 'detail': 'Token de confirmacion invalido.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        try:
+            subscriber = NewsletterSubscriber.objects.get(
+                email=email,
+                confirmation_token=token,
+            )
+        except NewsletterSubscriber.DoesNotExist:
+            return Response(
+                {'error_code': 'INVALID_TOKEN', 'detail': 'Token de confirmacion invalido.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if subscriber.status != SubscriberStatus.CONFIRMED:
+            subscriber.status = SubscriberStatus.CONFIRMED
+            subscriber.confirmed_at = timezone.now()
+            subscriber.confirmation_token = None
+            subscriber.save(update_fields=[
+                'status', 'confirmed_at', 'confirmation_token', 'updated_at',
+            ])
+
+        return Response({
+            'id': subscriber.pk,
+            'email': subscriber.email,
+            'status': subscriber.status,
+        })
 
 
 class NewsletterUnsubscribeView(APIView):
@@ -79,12 +152,26 @@ class NewsletterUnsubscribeView(APIView):
         summary='Cancelar suscripcion via token',
         tags=['newsletter'],
         request=UnsubscribeSerializer,
-        responses={200: OpenApiTypes.OBJECT, 404: OpenApiTypes.OBJECT},
+        responses={200: OpenApiTypes.OBJECT, 400: OpenApiTypes.OBJECT, 404: OpenApiTypes.OBJECT},
     )
     def post(self, request):
         serializer = UnsubscribeSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         token = serializer.validated_data['token']
+
+        # Verificar firma HMAC y TTL antes de lookup en BD (DEC-NEW-02 T-117).
+        try:
+            signing.loads(token, salt='newsletter-unsub', max_age=30 * 24 * 3600)
+        except signing.SignatureExpired:
+            return Response(
+                {'error_code': 'TOKEN_EXPIRED', 'detail': 'Token expirado.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except signing.BadSignature:
+            return Response(
+                {'error_code': 'INVALID_TOKEN', 'detail': 'Token invalido.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         try:
             subscriber = NewsletterSubscriber.objects.get(
@@ -92,8 +179,7 @@ class NewsletterUnsubscribeView(APIView):
             )
         except NewsletterSubscriber.DoesNotExist:
             return Response(
-                {'error_code': 'INVALID_TOKEN',
-                 'detail': 'Token invalido.'},
+                {'error_code': 'INVALID_TOKEN', 'detail': 'Token invalido.'},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
@@ -111,7 +197,7 @@ class NewsletterUnsubscribeView(APIView):
         })
 
 
-# ── admin ─────────────────────────────────────────────────────────────
+# ── admin ─────────────────────────────────────────────────────────────────────
 class AdminSubscriberListView(APIView):
     """GET /api/v1/admin/newsletter/subscribers/."""
 

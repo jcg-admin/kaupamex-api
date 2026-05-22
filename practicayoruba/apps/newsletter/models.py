@@ -13,6 +13,7 @@ NewsletterCampaign — campana enviada por admin a una audiencia
 """
 import secrets
 
+from django.core import signing
 from django.conf import settings
 from django.db import models
 from apps.core.models import SoftDeleteModel, TimeStampedModel
@@ -20,8 +21,8 @@ from apps.core.models import SoftDeleteModel, TimeStampedModel
 
 
 def _generate_unsubscribe_token():
-    """Genera un token URL-safe de 32 bytes para opt-out."""
-    return secrets.token_urlsafe(32)
+    """Genera token HMAC firmado con TTL para opt-out (DEC-NEW-02 T-117)."""
+    return signing.dumps(secrets.token_urlsafe(16), salt='newsletter-unsub')
 
 
 class SubscriberStatus(models.TextChoices):
@@ -56,8 +57,14 @@ class NewsletterSubscriber(TimeStampedModel, SoftDeleteModel):
     )
     confirmed_at = models.DateTimeField(null=True, blank=True)
     unsubscribed_at = models.DateTimeField(null=True, blank=True)
+    confirmation_token = models.CharField(
+        max_length=200,
+        null=True,
+        blank=True,
+        default=None,
+    )
     unsubscribe_token = models.CharField(
-        max_length=64,
+        max_length=200,
         unique=True,
         default=_generate_unsubscribe_token,
     )
