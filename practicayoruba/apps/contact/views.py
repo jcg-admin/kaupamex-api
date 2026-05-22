@@ -12,7 +12,7 @@ Admin endpoints:
 
 JSON keys + identifiers in English (DEC-DOC-005).
 """
-from django.core.mail import send_mail
+from apps.core.email_executor import dispatch_email
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema, OpenApiResponse
@@ -119,12 +119,11 @@ class AdminContactMessageReplyView(APIView):
         serializer.is_valid(raise_exception=True)
         reply_body = serializer.validated_data['reply_body']
 
-        send_mail(
+        dispatch_email(
             subject=f'Re: {message.subject}',
             message=reply_body,
             from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@practicayoruba.mx'),
             recipient_list=[message.email],
-            fail_silently=True,
         )
 
         message.reply_body = reply_body

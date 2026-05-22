@@ -7,7 +7,8 @@ para cumplir POST-F01 (fallo siempre registrado, nunca silenciado).
 """
 import logging
 from django.conf import settings
-from django.core.mail import send_mail
+
+from apps.core.email_executor import dispatch_email
 
 logger = logging.getLogger(__name__)
 
@@ -32,19 +33,12 @@ def send_order_confirmation_email(user_email, user_name, order_number, order_tot
         f'Te notificaremos cuando tu pedido sea procesado.\n\n'
         f'— Equipo PracticaYoruba'
     )
-    try:
-        send_mail(
-            subject=subject,
-            message=message,
-            from_email=_from_email(),
-            recipient_list=[user_email],
-            fail_silently=False,
-        )
-    except Exception:
-        logger.error(
-            'UC-NOT-01: fallo envio email confirmacion order=%s email=%s',
-            order_number, user_email, exc_info=True,
-        )
+    dispatch_email(
+        subject=subject,
+        message=message,
+        from_email=_from_email(),
+        recipient_list=[user_email],
+    )
 
 
 def send_order_status_email(user_email, user_name, order_number, new_status, tracking_number=None):
@@ -68,19 +62,12 @@ def send_order_status_email(user_email, user_name, order_number, new_status, tra
         f'{_frontend_url()}/account/orders/{order_number}\n\n'
         f'— Equipo PracticaYoruba'
     )
-    try:
-        send_mail(
-            subject=subject,
-            message=message,
-            from_email=_from_email(),
-            recipient_list=[user_email],
-            fail_silently=False,
-        )
-    except Exception:
-        logger.error(
-            'UC-NOT-02: fallo envio email estado order=%s status=%s',
-            order_number, new_status, exc_info=True,
-        )
+    dispatch_email(
+        subject=subject,
+        message=message,
+        from_email=_from_email(),
+        recipient_list=[user_email],
+    )
 
 
 def send_shipping_update_email(user_email, user_name, order_number, tracking_number=None, event_description=None):
@@ -96,19 +83,12 @@ def send_shipping_update_email(user_email, user_name, order_number, tracking_num
         f'{_frontend_url()}/account/orders/{order_number}\n\n'
         f'— Equipo PracticaYoruba'
     )
-    try:
-        send_mail(
-            subject=subject,
-            message=message,
-            from_email=_from_email(),
-            recipient_list=[user_email],
-            fail_silently=False,
-        )
-    except Exception:
-        logger.error(
-            'UC-NOT-03: fallo envio email shipping order=%s',
-            order_number, exc_info=True,
-        )
+    dispatch_email(
+        subject=subject,
+        message=message,
+        from_email=_from_email(),
+        recipient_list=[user_email],
+    )
 
 
 def send_return_processed_email(user_email, user_name, order_number, return_status, reason=None):
@@ -131,19 +111,12 @@ def send_return_processed_email(user_email, user_name, order_number, return_stat
         f'{_frontend_url()}/account/returns/\n\n'
         f'— Equipo PracticaYoruba'
     )
-    try:
-        send_mail(
-            subject=subject,
-            message=message,
-            from_email=_from_email(),
-            recipient_list=[user_email],
-            fail_silently=False,
-        )
-    except Exception:
-        logger.error(
-            'UC-NOT-04: fallo envio email devolucion order=%s',
-            order_number, exc_info=True,
-        )
+    dispatch_email(
+        subject=subject,
+        message=message,
+        from_email=_from_email(),
+        recipient_list=[user_email],
+    )
 
 
 def send_refund_email(user_email, user_name, order_number, amount_refunded):
@@ -156,16 +129,9 @@ def send_refund_email(user_email, user_name, order_number, amount_refunded):
         f'El monto aparecera en tu cuenta en 3-5 dias habiles.\n\n'
         f'— Equipo PracticaYoruba'
     )
-    try:
-        send_mail(
-            subject=subject,
-            message=message,
-            from_email=_from_email(),
-            recipient_list=[user_email],
-            fail_silently=False,
-        )
-    except Exception:
-        logger.error(
-            'UC-NOT-05: fallo envio email reembolso order=%s',
-            order_number, exc_info=True,
-        )
+    dispatch_email(
+        subject=subject,
+        message=message,
+        from_email=_from_email(),
+        recipient_list=[user_email],
+    )

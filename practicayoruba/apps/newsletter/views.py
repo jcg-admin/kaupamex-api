@@ -13,7 +13,7 @@ Admin endpoints:
 JSON keys + identifiers in English (DEC-DOC-005).
 """
 from django.conf import settings
-from django.core.mail import send_mail
+from apps.core.email_executor import dispatch_email
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -193,15 +193,11 @@ class AdminCampaignCreateView(APIView):
             )
 
         if recipients:
-            send_mail(
+            dispatch_email(
                 subject=subject,
                 message=body,
-                from_email=getattr(
-                    settings, 'DEFAULT_FROM_EMAIL',
-                    'noreply@practicayoruba.mx',
-                ),
+                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@practicayoruba.mx'),
                 recipient_list=recipients,
-                fail_silently=True,
             )
 
         return Response(
