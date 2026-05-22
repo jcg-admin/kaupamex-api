@@ -18,7 +18,8 @@ from decimal import Decimal
 from django.core.cache import cache
 from django.db import transaction
 from django.http import HttpResponse
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, OpenApiResponse
+from drf_spectacular.types import OpenApiTypes
 from rest_framework import serializers
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
@@ -61,7 +62,11 @@ def _apply_session(session_id):
 
 
 class PriceSyncPreviewCSVView(_AdminOnly, APIView):
-    @extend_schema(summary='Preview price sync from CSV.', tags=['admin-catalogue'])
+    @extend_schema(
+        summary='Preview price sync from CSV.',
+        responses={200: OpenApiTypes.OBJECT, 400: None},
+        tags=['admin-catalogue'],
+    )
     def post(self, request):
         csv_file = request.FILES.get('file')
         if not csv_file:
@@ -82,7 +87,11 @@ class PriceSyncPreviewCSVView(_AdminOnly, APIView):
 
 
 class PriceSyncApplyCSVView(_AdminOnly, APIView):
-    @extend_schema(summary='Apply price sync (CSV).', tags=['admin-catalogue'])
+    @extend_schema(
+        summary='Apply price sync (CSV).',
+        responses={200: OpenApiTypes.OBJECT, 400: None},
+        tags=['admin-catalogue'],
+    )
     def post(self, request):
         session_id = request.data.get('session_id')
         if not session_id:
@@ -103,7 +112,11 @@ class PriceSyncApplyCSVView(_AdminOnly, APIView):
 
 
 class PriceSyncPreviewPercentageView(_AdminOnly, APIView):
-    @extend_schema(summary='Preview percentage price sync.', tags=['admin-catalogue'])
+    @extend_schema(
+        summary='Preview percentage price sync.',
+        responses={200: OpenApiTypes.OBJECT, 400: None},
+        tags=['admin-catalogue'],
+    )
     def post(self, request):
         try:
             pct = float(request.data.get('pct', 0))
@@ -129,13 +142,21 @@ class PriceSyncPreviewPercentageView(_AdminOnly, APIView):
 
 
 class PriceSyncApplyPercentageView(_AdminOnly, APIView):
-    @extend_schema(summary='Apply percentage price sync.', tags=['admin-catalogue'])
+    @extend_schema(
+        summary='Apply percentage price sync.',
+        responses={200: OpenApiTypes.OBJECT, 400: None},
+        tags=['admin-catalogue'],
+    )
     def post(self, request):
         return PriceSyncApplyCSVView().post(request)
 
 
 class PriceSyncTemplateView(_AdminOnly, APIView):
-    @extend_schema(summary='Download price sync CSV template.', tags=['admin-catalogue'])
+    @extend_schema(
+        summary='Download price sync CSV template.',
+        responses={200: OpenApiResponse(description='CSV template file download.', response=OpenApiTypes.BINARY)},
+        tags=['admin-catalogue'],
+    )
     def get(self, request):
         response = HttpResponse(content_type='text/csv; charset=utf-8')
         response['Content-Disposition'] = (

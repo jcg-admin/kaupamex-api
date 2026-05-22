@@ -184,15 +184,18 @@ class ShippingMethodViewSet(ModelViewSet):
         instance.is_active = False
         instance.save(update_fields=['is_active'])
 
-    @extend_schema(summary='Listar métodos de envío', tags=['config'])
+    @extend_schema(summary='Listar métodos de envío', tags=['config'],
+                   responses={200: ShippingMethodSerializer(many=True)})
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
-    @extend_schema(summary='Crear método de envío', tags=['config'])
+    @extend_schema(summary='Crear método de envío', tags=['config'],
+                   responses={201: ShippingMethodSerializer})
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
 
-    @extend_schema(summary='Editar método de envío', tags=['config'])
+    @extend_schema(summary='Editar método de envío', tags=['config'],
+                   responses={200: ShippingMethodSerializer})
     def partial_update(self, request, *args, **kwargs):
         kwargs['partial'] = True
         return super().update(request, *args, **kwargs)
@@ -250,7 +253,8 @@ class StaticPageAdminListView(APIView):
     serializer_class = StaticPageSerializer
 
     @extend_schema(summary='Listar páginas estáticas', tags=['config'],
-                   operation_id='admin_pages_list')
+                   operation_id='admin_pages_list',
+                   responses={200: StaticPageSerializer(many=True)})
     def get(self, request):
         pages = StaticPage.objects.all()
         return Response(StaticPageSerializer(pages, many=True).data)
@@ -265,7 +269,8 @@ class StaticPageAdminDetailView(APIView):
     serializer_class = StaticPageSerializer
 
     @extend_schema(summary='Detalle de página estática', tags=['config'],
-                   operation_id='admin_pages_retrieve')
+                   operation_id='admin_pages_retrieve',
+                   responses={200: StaticPageSerializer})
     def get(self, request, slug):
         try:
             page = StaticPage.objects.prefetch_related('versions').get(slug=slug)
@@ -283,7 +288,8 @@ class StaticPagePublishView(APIView):
     permission_classes = [IsAuthenticated, IsAdminUser]
     serializer_class = StaticPagePublishSerializer
 
-    @extend_schema(summary='Publicar nueva versión de página estática', tags=['config'])
+    @extend_schema(summary='Publicar nueva versión de página estática', tags=['config'],
+                   responses={201: StaticPageVersionSerializer})
     def post(self, request, slug):
         page, _ = StaticPage.objects.get_or_create(
             slug=slug,
@@ -324,7 +330,8 @@ class StaticPageRestoreView(APIView):
     permission_classes = [IsAuthenticated, IsAdminUser]
     serializer_class = StaticPageVersionSerializer
 
-    @extend_schema(summary='Revertir a versión anterior', tags=['config'])
+    @extend_schema(summary='Revertir a versión anterior', tags=['config'],
+                   responses={201: StaticPageVersionSerializer})
     def post(self, request, slug, version):
         try:
             old = StaticPageVersion.objects.get(

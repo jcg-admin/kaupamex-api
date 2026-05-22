@@ -20,6 +20,7 @@ from django.db.models import Count
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.generics import ListAPIView
@@ -179,6 +180,7 @@ class AdminReturnListView(ListAPIView):
         parameters=[
             OpenApiParameter('status', str, required=False),
         ],
+        responses={200: OpenApiTypes.OBJECT},
     )
     def list(self, request, *args, **kwargs):
         qs = ReturnRequest.objects.all().order_by('created_at')
@@ -349,7 +351,7 @@ class AdminReturnRequestInfoView(APIView):
         return Response(AdminReturnDetailSerializer(ret).data)
 
 
-# ────────────────────────────── UC-RET-03 reception ──────────────────────
+# ────────────────────────────── UC-RET-03 reception ────────────────────────
 class AdminReturnReceptionView(APIView):
     """POST /admin/returns/{id}/reception/ — UC-RET-03 recepcion fisica."""
 
@@ -399,7 +401,7 @@ class AdminReturnReceptionView(APIView):
         return Response(AdminReturnDetailSerializer(ret).data)
 
 
-# ────────────────────────────── UC-RET-06 refund ─────────────────────────
+# ────────────────────────────── UC-RET-06 refund ───────────────────────────
 class AdminReturnRefundView(APIView):
     """POST /admin/returns/{id}/refund/ — UC-RET-06 procesar reembolso."""
 
