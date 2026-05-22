@@ -2,9 +2,11 @@
 Views — apps.orders
 UC-ORD-01: Checkout, UC-ORD-02..06: Gestión del comprador (Sprint 18)
 """
+import json
 import uuid
 from decimal import Decimal
-from django.db import transaction
+from django.core.serializers.json import DjangoJSONEncoder
+from django.db import IntegrityError, transaction
 from django.db.models import F
 from apps.voucher.models import Voucher
 from django.shortcuts import get_object_or_404
@@ -20,7 +22,7 @@ from apps.cart.models import Cart, CartItem
 from apps.cart.views import _get_or_create_cart
 from apps.inventory.services import InventoryService, InsufficientStockError
 from apps.settings_app.models import SiteSettings, ShippingMethod
-from .models import Order, OrderItem, OrderValue, OrderAddress
+from .models import CheckoutAttempt, Order, OrderItem, OrderValue, OrderAddress
 from .serializers import CancelOrderSerializer, CheckoutSerializer, OrderListSerializer, OrderSerializer, UpdateAddressSerializer, UpdateShippingSerializer
 from django.db.models import Prefetch
 from apps.catalogue.models import ProductImage
@@ -70,6 +72,18 @@ class CheckoutView(APIView):
         s = CheckoutSerializer(data=request.data)
         s.is_valid(raise_exception=True)
         data = s.validated_data
+
+        # DEC-BC-03: idempotencia de checkout (solo usuarios autenticados)
+        idempotency_key = request.META.get('HTTP_IDEMPOTENCY_KEY', '')
+        if idempotency_key and request.user and request.user.is_authenticated:
+            try:
+                cached = CheckoutAttempt.objects.get(
+                    user=request.user,
+                    idempotency_key=idempotency_key,
+                )
+                return Response(json.loads(cached.response_json), status=201)
+            except CheckoutAttempt.DoesNotExist:
+                pass
 
         # 1. Recuperar carrito
         if request.user and request.user.is_authenticated:
@@ -222,7 +236,17 @@ class CheckoutView(APIView):
             target_id=order.pk,
             extra={'order_number': order.order_number},
         )
-        return Response(OrderSerializer(order).data, status=201)
+        order_data = OrderSerializer(order).data
+        if idempotency_key and request.user and request.user.is_authenticated:
+            try:
+                CheckoutAttempt.objects.create(
+                    user=request.user,
+                    idempotency_key=idempotency_key,
+                    response_json=json.dumps(order_data, cls=DjangoJSONEncoder),
+                )
+            except IntegrityError:
+                pass
+        return Response(order_data, status=201)
 
 
 # =============================================================================

@@ -186,3 +186,37 @@ class OrderStatusLog(TimeStampedModel):
             f'{self.order.order_number}: '
             f'{self.previous_status} → {self.new_status}'
         )
+
+
+class CheckoutAttempt(models.Model):
+    """
+    Registro de idempotencia para el endpoint de checkout. DEC-BC-03.
+
+    UNIQUE(user, idempotency_key) garantiza que el mismo checkout no se
+    procese dos veces para el mismo usuario. Solo aplica a usuarios
+    autenticados — anónimos no tienen identidad estable para el scope.
+
+    La vista almacena el response_json DESPUÉS de crear la orden; en
+    una segunda llamada con el mismo header Idempotency-Key retorna
+    el response cacheado sin re-procesar.
+    """
+    user             = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='checkout_attempts',
+    )
+    idempotency_key  = models.CharField(max_length=200)
+    response_json    = models.TextField()
+    created_at       = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'orders_checkout_attempt'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'idempotency_key'],
+                name='unique_checkout_attempt',
+            )
+        ]
+        verbose_name = 'Intento de checkout'
+
+    def __str__(self):
+        return f'{self.user_id} {self.idempotency_key}'
