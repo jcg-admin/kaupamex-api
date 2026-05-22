@@ -211,7 +211,7 @@ class AddressViewSet(ModelViewSet):
         addr_id = addr.pk
         addr.delete()
         if was_default:
-            next_addr = Address.objects.filter(user=request.user).first()
+            next_addr = Address.objects.filter(user=request.user).order_by('-pk').first()
             if next_addr:
                 next_addr.is_default = True
                 next_addr.save(update_fields=['is_default'])
@@ -299,6 +299,8 @@ class AddressViewSet(ModelViewSet):
 class ChangePasswordView(APIView):
     """POST /api/v1/auth/change-password/ — UC-AUTH-08."""
     permission_classes = [IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "change_password"
 
     @extend_schema(
         summary='Cambiar contrasena',
@@ -325,7 +327,7 @@ class ChangePasswordView(APIView):
         )
         if serializer.is_valid():
             serializer.save()
-            return Response({'message': 'Contrasena actualizada exitosamente.'})
+            return Response({'detail': 'Password changed successfully.'})
         return Response(serializer.errors, status=400)
 
 

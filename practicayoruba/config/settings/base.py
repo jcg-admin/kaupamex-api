@@ -148,6 +148,7 @@ REST_FRAMEWORK = {
         'resend_verification': '3/hour',
         'contact':             '5/hour',
         'addresses':           '30/hour',
+        'change_password':     '5/hour',   # D-04-08
     },
 }
 
