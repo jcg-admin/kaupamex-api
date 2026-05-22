@@ -412,3 +412,68 @@ class TestVoucherModelo:
     def test_is_valid_voucher_inactivo(self, voucher_fixed, db):
         voucher_fixed.is_active = False
         assert voucher_fixed.is_valid() is False
+
+
+class TestVoucherChangeLogCreate:
+    """D-03: VoucherChangeLog emitted on CREATE."""
+
+    def test_create_voucher_emits_change_log(self, admin_client, db):
+        payload = {
+            'code': 'LOG-CREATE-001',
+            'voucher_type': 'FIXED',
+            'discount_value': '50.00',
+            'valid_from': '2020-01-01T00:00:00Z',
+            'max_uses': 10,
+        }
+        r = admin_client.post('/api/v1/admin/vouchers/', payload, format='json')
+        assert r.status_code == 201
+        from apps.voucher.models import VoucherChangeLog
+        assert VoucherChangeLog.objects.filter(
+            voucher__code='LOG-CREATE-001',
+            changes__action='created',
+        ).exists()
+
+
+class TestVoucherChangeLogDelete:
+    """D-03: VoucherChangeLog emitted on DELETE."""
+
+    def test_delete_voucher_emits_change_log(self, admin_client, db):
+        from apps.voucher.models import Voucher, VoucherChangeLog
+        v = Voucher.objects.create(
+            code='LOG-DEL-001', voucher_type='FIXED',
+            discount_value='10.00', valid_from='2020-01-01T00:00:00Z',
+        )
+        r = admin_client.delete(f'/api/v1/admin/vouchers/{v.id}/')
+        assert r.status_code == 204
+        assert VoucherChangeLog.objects.filter(
+            voucher_id=v.id,
+            changes__action='deleted',
+        ).exists()
+
+
+class TestVoucherReportPagination:
+    """D-09: Report supports pagination and status filter."""
+
+    def test_report_returns_paginated_structure(self, admin_client, db):
+        r = admin_client.get('/api/v1/admin/vouchers/report/')
+        assert r.status_code == 200
+        data = r.json()
+        assert 'count' in data
+        assert 'results' in data
+        assert 'page' in data
+        assert 'pages' in data
+
+    def test_report_filters_by_status(self, admin_client, db):
+        from apps.voucher.models import Voucher
+        from django.utils import timezone
+        Voucher.objects.create(
+            code='RPT-ACTIVE-001', voucher_type='FIXED',
+            discount_value='10.00',
+            valid_from=timezone.now(),
+            is_active=True,
+        )
+        r = admin_client.get('/api/v1/admin/vouchers/report/?status=ACTIVE')
+        assert r.status_code == 200
+        results = r.json()['results']
+        for item in results:
+            assert item['status'] == 'ACTIVE'
