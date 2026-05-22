@@ -7,10 +7,18 @@ Sprint 6 — UC-SRCH-02, UC-SRCH-03, UC-CAT-04, UC-CAT-05, UC-CAT-06
 """
 import re
 from rest_framework import serializers
-from .models import Category, Product, ProductImage, SearchHistory
+from rest_framework.exceptions import APIException
+from .models import Category, Product, ProductImage, ProductPriceHistory, SearchHistory
 from apps.settings_app.models import SiteSettings
 from django.utils.text import slugify
 from apps.chartsize.serializers import ProductVariantSerializer
+
+
+class DuplicateSKUError(APIException):
+    """UC-CAT-09 D-3: SKU duplicado retorna 409 CONFLICT."""
+    status_code  = 409
+    default_code = 'DUPLICATE_SKU'
+    default_detail = 'Este SKU ya está en uso.'
 
 
 # =============================================================================
@@ -349,12 +357,13 @@ class ProductAdminSerializer(serializers.ModelSerializer):
         return []
 
     def validate_sku(self, value):
-        """FR-CAT-09.02: SKU único (case-insensitive)."""
+        """FR-CAT-09.02: SKU único (case-insensitive). 409 CONFLICT si duplicado."""
         qs = Product.objects.filter(sku__iexact=value)
         if self.instance:
             qs = qs.exclude(pk=self.instance.pk)
         if qs.exists():
-            raise serializers.ValidationError('Este SKU ya está en uso.')
+            raise DuplicateSKUError({'detail': 'Este SKU ya está en uso.',
+                                     'codigo_error': 'DUPLICATE_SKU'})
         return value.upper()
 
     def validate_slug(self, value):
@@ -379,3 +388,15 @@ class ProductAdminSerializer(serializers.ModelSerializer):
                 counter += 1
             data['slug'] = slug
         return data
+
+
+class ProductPriceHistorySerializer(serializers.ModelSerializer):
+    """UC-CAT-10 RNF 6.3: historial de cambios de precio."""
+    changed_by_username = serializers.CharField(
+        source='changed_by.username', read_only=True, allow_null=True,
+    )
+
+    class Meta:
+        model  = ProductPriceHistory
+        fields = ['id', 'old_price', 'new_price', 'source',
+                  'changed_by_username', 'created_at']

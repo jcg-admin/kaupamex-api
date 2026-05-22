@@ -248,3 +248,37 @@ class ProductImage(TimeStampedModel):
 
     def __str__(self):
         return f'{self.product.name} — imagen {self.order}'
+
+
+class ProductPriceHistory(TimeStampedModel):
+    """
+    Historial de cambios de precio de productos. UC-CAT-10 (RNF 6.3).
+    Creado en cada mutación de Product.price vía admin manual o CSV sync.
+    """
+    MANUAL     = 'MANUAL'
+    PRICE_SYNC = 'PRICE_SYNC'
+    SOURCE_CHOICES = [
+        (MANUAL,     'Ajuste manual'),
+        (PRICE_SYNC, 'Sincronización CSV'),
+    ]
+
+    product    = models.ForeignKey(
+        Product, on_delete=models.CASCADE, related_name='price_history',
+    )
+    old_price  = models.DecimalField(max_digits=10, decimal_places=2)
+    new_price  = models.DecimalField(max_digits=10, decimal_places=2)
+    changed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='product_price_changes',
+    )
+    source     = models.CharField(
+        max_length=20, choices=SOURCE_CHOICES, default=MANUAL,
+    )
+
+    class Meta:
+        db_table     = 'catalogue_product_price_history'
+        ordering     = ['-created_at']
+        verbose_name = 'Historial de precio'
+
+    def __str__(self):
+        return f'{self.product.sku}: {self.old_price}→{self.new_price}'
