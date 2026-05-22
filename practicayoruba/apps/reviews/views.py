@@ -47,6 +47,7 @@ class ProductReviewsView(APIView):
     @extend_schema(
         summary='List approved reviews for product (UC-REV-01).',
         tags=['reviews'],
+        responses={200: ReviewPublicSerializer(many=True)},
     )
     def get(self, request, product_id):
         try:
@@ -79,6 +80,7 @@ class ProductReviewsView(APIView):
         summary='Create review (UC-REV-02).',
         request=ReviewCreateSerializer,
         tags=['reviews'],
+        responses={201: ReviewAdminSerializer, 400: None, 404: None},
     )
     @transaction.atomic
     def post(self, request, product_id):
@@ -161,6 +163,7 @@ class ReviewAdminListView(_AdminOnly, APIView):
         summary='Moderation queue (UC-REV-03).',
         parameters=[OpenApiParameter('status', str, required=False)],
         tags=['reviews'],
+        responses={200: ReviewAdminSerializer(many=True)},
     )
     def get(self, request):
         status_filter = request.query_params.get('status', Review.STATUS_PENDING)
@@ -182,6 +185,7 @@ class ReviewApproveView(_AdminOnly, APIView):
     @extend_schema(
         summary='Approve review (idempotent).',
         tags=['reviews'],
+        responses={200: ReviewAdminSerializer, 400: None, 404: None},
     )
     @transaction.atomic
     def post(self, request, pk):
@@ -225,6 +229,7 @@ class ReviewRejectView(_AdminOnly, APIView):
     @extend_schema(
         summary='Reject review with reason.',
         tags=['reviews'],
+        responses={200: ReviewAdminSerializer, 400: None, 404: None},
     )
     @transaction.atomic
     def post(self, request, pk):

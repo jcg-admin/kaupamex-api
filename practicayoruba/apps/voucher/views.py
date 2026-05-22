@@ -125,21 +125,25 @@ class VoucherViewSet(ModelViewSet):
         summary='Reporte de uso de vouchers',
         description='Lista vouchers con estadísticas de uso. ROI con orders en Sprint 18.',
         tags=['vouchers'],
+        responses={200: VoucherReportSerializer(many=True)},
     )
     def report(self, request):
         qs = Voucher.objects.all().order_by('-current_uses')
         data = VoucherReportSerializer(qs, many=True).data
         return Response({'count': len(data), 'results': data})
 
-    @extend_schema(summary='Listar vouchers', tags=['vouchers'])
+    @extend_schema(summary='Listar vouchers', tags=['vouchers'],
+                   responses={200: VoucherSerializer(many=True)})
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
-    @extend_schema(summary='Crear voucher', tags=['vouchers'])
+    @extend_schema(summary='Crear voucher', tags=['vouchers'],
+                   responses={201: VoucherSerializer, 400: None})
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
 
-    @extend_schema(summary='Editar voucher (PATCH)', tags=['vouchers'])
+    @extend_schema(summary='Editar voucher (PATCH)', tags=['vouchers'],
+                   responses={200: VoucherSerializer, 400: None})
     def partial_update(self, request, *args, **kwargs):
         kwargs['partial'] = True
         return super().update(request, *args, **kwargs)

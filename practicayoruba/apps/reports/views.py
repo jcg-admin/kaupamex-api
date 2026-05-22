@@ -17,7 +17,8 @@ Identifiers + JSON keys in English (DEC-DOC-005).
 """
 from django.core.cache import cache
 from django.utils import timezone
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from rest_framework import serializers, status, exceptions
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.negotiation import DefaultContentNegotiation
@@ -90,6 +91,7 @@ class SalesReportView(_AdminMixin, APIView):
         summary='Sales report (UC-REP-01)',
         parameters=[OpenApiParameter(name='period', required=False, type=str)],
         tags=['reports'],
+        responses={200: OpenApiTypes.OBJECT},
     )
     def get(self, request):
         days = parse_period(request.query_params.get('period'))
@@ -115,6 +117,7 @@ class TopSellersReportView(_AdminMixin, APIView):
             ),
         ],
         tags=['reports'],
+        responses={200: OpenApiTypes.OBJECT},
     )
     def get(self, request):
         days = parse_period(request.query_params.get('period'))
@@ -137,7 +140,8 @@ class TopSellersReportView(_AdminMixin, APIView):
 class DashboardReportView(_AdminMixin, APIView):
     _CACHE_TTL = 30  # 30 s — UC-REP-03
 
-    @extend_schema(summary='Dashboard snapshot (UC-REP-03)', tags=['reports'])
+    @extend_schema(summary='Dashboard snapshot (UC-REP-03)', tags=['reports'],
+                   responses={200: OpenApiTypes.OBJECT})
     def get(self, request):
         key = 'reports:dashboard'
         payload = cache.get(key)
@@ -160,6 +164,7 @@ class CustomersRFMReportView(_AdminMixin, APIView):
             ),
         ],
         tags=['reports'],
+        responses={200: OpenApiTypes.OBJECT},
     )
     def get(self, request):
         days = parse_period(request.query_params.get('period'))
@@ -194,6 +199,12 @@ class ReportExportView(APIView):
             OpenApiParameter(name='segment', required=False, type=str),
         ],
         tags=['reports'],
+        responses={
+            200: OpenApiResponse(description='CSV file.', response=OpenApiTypes.BINARY),
+            400: None,
+            404: None,
+            501: None,
+        },
     )
     def get(self, request, slug):
         if slug not in EXPORTERS:
@@ -273,6 +284,7 @@ class CatalogByCategoryReportView(_AdminMixin, APIView):
     @extend_schema(
         summary='Catalog by category report (UC-DB-RPT-01)',
         tags=['reports'],
+        responses={200: OpenApiTypes.OBJECT},
     )
     def get(self, request):
         return _sp_response('sp_rpt_catalog_by_category')
@@ -284,6 +296,7 @@ class LowStockReportView(_AdminMixin, APIView):
     @extend_schema(
         summary='Low stock report (UC-DB-RPT-02)',
         tags=['reports'],
+        responses={200: OpenApiTypes.OBJECT},
     )
     def get(self, request):
         return _sp_response('sp_rpt_low_stock')
@@ -295,6 +308,7 @@ class CatalogSummaryReportView(_AdminMixin, APIView):
     @extend_schema(
         summary='Catalog summary report (UC-DB-RPT-03)',
         tags=['reports'],
+        responses={200: OpenApiTypes.OBJECT},
     )
     def get(self, request):
         return _sp_response('sp_rpt_catalog_summary')
