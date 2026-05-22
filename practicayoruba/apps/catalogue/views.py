@@ -2,7 +2,7 @@ import csv
 import io
 import uuid
 from django.http import HttpResponse
-from django.db import transaction, connection
+from django.db import transaction
 from django.db.models import Q, Count
 from apps.catalogue.models import Product
 from django.utils import timezone
@@ -20,8 +20,8 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
 from drf_spectacular.types import OpenApiTypes
-from .models import Category, Product, SearchHistory
-from .serializers import ProductListSerializer, ProductDetailSerializer, ProductSearchSerializer, AutocompleteSerializer, SearchHistorySerializer, CategoryAdminSerializer, CategoryWithCountSerializer, ProductAdminSerializer
+from .models import Category, Product, ProductPriceHistory, SearchHistory
+from .serializers import ProductListSerializer, ProductDetailSerializer, ProductSearchSerializer, AutocompleteSerializer, SearchHistorySerializer, CategoryAdminSerializer, CategoryWithCountSerializer, ProductAdminSerializer, ProductPriceHistorySerializer
 from apps.cart.models import CartItem
 from apps.wishlist.models import WishlistItem
 import logging
@@ -33,8 +33,6 @@ Sprint 5 — UC-CAT-02, UC-CAT-03, UC-CAT-03-EXT, UC-SRCH-01
 Sprint 6 — UC-SRCH-02, UC-SRCH-03, UC-CAT-04, UC-CAT-05, UC-CAT-06
 """
 import re
-import threading
-
 
 
 MAX_QUERY_LENGTH = 100
@@ -42,7 +40,6 @@ MIN_QUERY_LENGTH = 2
 AUTOCOMPLETE_CACHE_TTL   = 60    # segundos — UC-SRCH-02
 AUTOCOMPLETE_MAX_RESULTS = 5     # UC-SRCH-02
 CATEGORY_TREE_CACHE_KEY  = 'categories:tree'
-CATEGORY_TREE_CACHE_TTL  = 3600   # 1 hora — UC-CAT-08 (FR-CAT-08.02)
 CATEGORY_TREE_CACHE_TTL  = 300   # segundos — UC-CAT-08 (Sprint 7)
 
 
@@ -128,12 +125,8 @@ def _build_active_filters(params: dict) -> dict:
     return active
 
 
-def _record_history_async(user, term: str) -> None:
-    """
-    Guarda el término en SearchHistory de forma síncrona.
-    Convertido a síncrono para garantizar FK consistency en tests.
-    UC-SRCH-03.
-    """
+def _record_history(user, term: str) -> None:
+    """Guarda el término en SearchHistory. UC-SRCH-03."""
     try:
         SearchHistory.record(user=user, term=term)
     except Exception:
@@ -293,7 +286,7 @@ class ProductSearchView(ListAPIView):
 
         # UC-SRCH-03 — guardar historial si el usuario está autenticado
         if request.user and request.user.is_authenticated:
-            _record_history_async(request.user, q)
+            _record_history(request.user, q)
 
         active_filters = _build_active_filters(request.query_params)
 
@@ -752,8 +745,19 @@ class ProductAdminViewSet(ProductDeactivateAction, ModelViewSet):
         # cuando el producto quede publicado. Se invalida en perform_update.
 
     def perform_update(self, serializer):
-        old_category_pk = self.get_object().category_id
+        old_obj = self.get_object()
+        old_category_pk = old_obj.category_id
+        old_price = old_obj.price
         instance = serializer.save()
+        # UC-CAT-10 RNF 6.3: registrar cambio de precio para audit trail.
+        if instance.price != old_price:
+            ProductPriceHistory.objects.create(
+                product=instance,
+                old_price=old_price,
+                new_price=instance.price,
+                changed_by=self.request.user,
+                source=ProductPriceHistory.MANUAL,
+            )
         # H-S7-007: invalidar categories:tree si cambió la categoría
         if instance.category_id != old_category_pk:
             cache.delete(CATEGORY_TREE_CACHE_KEY)
@@ -814,6 +818,21 @@ class ProductAdminViewSet(ProductDeactivateAction, ModelViewSet):
     )
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
+
+    @action(detail=True, methods=['get'], url_path='price-history')
+    @extend_schema(
+        summary='Historial de precios del producto (UC-CAT-10 RNF 6.3)',
+        tags=['admin-catalogue'],
+        responses={200: ProductPriceHistorySerializer(many=True)},
+    )
+    def price_history(self, request, pk=None):
+        product = self.get_object()
+        qs = (ProductPriceHistory.objects
+              .filter(product=product)
+              .select_related('changed_by')
+              .order_by('-created_at'))
+        data = ProductPriceHistorySerializer(qs, many=True).data
+        return Response({'product_id': product.pk, 'count': len(data), 'results': data})
 
 
 # =============================================================================
@@ -977,14 +996,24 @@ class ProductPriceSyncConfirmView(APIView):
         products = {p.pk: p for p in Product.objects.filter(pk__in=product_ids)}
 
         updated = []
+        price_history_entries = []
         with transaction.atomic():
             for row in validas:
                 p = products.get(row['product_id'])
                 if not p:
                     continue
+                old_price = Decimal(row['old_price'])
                 p.price = Decimal(row['new_price'])
                 updated.append(p)
+                price_history_entries.append(ProductPriceHistory(
+                    product=p,
+                    old_price=old_price,
+                    new_price=p.price,
+                    changed_by=request.user,
+                    source=ProductPriceHistory.PRICE_SYNC,
+                ))
             Product.objects.bulk_update(updated, ['price'])
+            ProductPriceHistory.objects.bulk_create(price_history_entries)
 
         # Purgar caches de fichas modificadas (H-S8-005)
         keys_to_delete = [f'product:{p.pk}:detail' for p in updated]
