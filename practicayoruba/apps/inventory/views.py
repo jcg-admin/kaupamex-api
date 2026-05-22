@@ -2,7 +2,7 @@
 import logging
 
 from django.db.models import Q
-from drf_spectacular.utils import extend_schema, OpenApiParameter
+from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -297,6 +297,13 @@ class VariantMovementsView(ListAPIView):
         })
 
 
+@extend_schema_view(
+    get=extend_schema(
+        summary='Listar alertas de stock pendientes (UC-INV-01)',
+        tags=['inventory'],
+        responses={200: StockAlertSerializer(many=True)},
+    )
+)
 class StockAlertListView(ListAPIView):
     """GET /api/v1/admin/inventory/alerts/ — alertas pendientes. UC-INV-01."""
     permission_classes = [IsAuthenticated, IsAdminUser]

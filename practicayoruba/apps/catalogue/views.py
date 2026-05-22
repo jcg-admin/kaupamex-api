@@ -465,6 +465,11 @@ class CategoryAdminViewSet(ModelViewSet):
         """
         self._deactivate_category(instance)
 
+    @extend_schema(
+        summary='Desactivar categoría por POST (UC-CAT-06)',
+        responses={200: CategoryAdminSerializer, 400: None},
+        tags=['admin-catalogue'],
+    )
     @action(detail=True, methods=['post'], url_path='deactivate')
     def deactivate(self, request, pk=None):
         """T-109-A (iter 18): endpoint explicito ``POST .../deactivate/``
@@ -1006,7 +1011,7 @@ class ProductPriceSyncTemplateView(APIView):
     def get(self, request):
         response = HttpResponse(content_type='text/csv; charset=utf-8')
         response['Content-Disposition'] = 'attachment; filename="price-template.csv"'
-        response.write('\ufeff')  # BOM para Excel
+        response.write('﻿')  # BOM para Excel
 
         writer = csv.writer(response)
         writer.writerow(['sku', 'name', 'price'])
