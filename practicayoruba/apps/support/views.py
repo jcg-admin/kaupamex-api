@@ -13,6 +13,7 @@ Admin endpoints:
   GET    /api/v1/admin/support/tickets/           UC-SUPP-05 queue
 """
 from datetime import timedelta
+from django.db.models import Count, Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -21,11 +22,12 @@ from rest_framework import fields as rf_fields
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.generics import ListAPIView
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from .models import SupportTicket, SupportTicketReply
-from .serializers import SupportTicketCloseSerializer, SupportTicketCreateResponseSerializer, SupportTicketCreateSerializer, SupportTicketDetailSerializer, SupportTicketListSerializer, SupportTicketReplyCreateSerializer, SupportTicketReplySerializer
+from .serializers import AdminSupportTicketListSerializer, SupportTicketCloseSerializer, SupportTicketCreateResponseSerializer, SupportTicketCreateSerializer, SupportTicketDetailSerializer, SupportTicketListSerializer, SupportTicketReplyCreateSerializer, SupportTicketReplySerializer
 
 
 
@@ -296,11 +298,19 @@ class SupportTicketReopenView(APIView):
 
 
 # ────────────────────────────── UC-SUPP-05 ───────────────────────────────
+class AdminSupportTicketPagination(PageNumberPagination):
+    """20 tickets per page for admin queue — UC-SUPP-05."""
+    page_size             = 20
+    page_size_query_param = 'page_size'
+    max_page_size         = 100
+
+
 class AdminSupportTicketListView(ListAPIView):
     """GET /api/v1/admin/support/tickets/ — admin queue."""
 
     permission_classes = [IsAuthenticated, IsAdminUser]
-    serializer_class = SupportTicketListSerializer
+    serializer_class   = AdminSupportTicketListSerializer
+    pagination_class   = AdminSupportTicketPagination
 
     @extend_schema(
         summary='Bandeja de tickets (admin)',
@@ -312,11 +322,18 @@ class AdminSupportTicketListView(ListAPIView):
             OpenApiParameter('created_from', str, required=False),
             OpenApiParameter('created_to', str, required=False),
             OpenApiParameter('assigned_to', int, required=False),
+            OpenApiParameter('q', str, required=False,
+                             description='Busqueda por email, nombre o asunto'),
         ],
-        responses={200: SupportTicketListSerializer(many=True)},
+        responses={200: AdminSupportTicketListSerializer(many=True)},
     )
     def get_queryset(self):
-        qs = SupportTicket.objects.all()
+        qs = (
+            SupportTicket.objects
+            .select_related('user')
+            .annotate(replies_count=Count('replies'))
+            .order_by('created_at')
+        )
         params = self.request.query_params
         if params.get('status'):
             qs = qs.filter(status=params['status'])
@@ -330,4 +347,30 @@ class AdminSupportTicketListView(ListAPIView):
             qs = qs.filter(created_at__lte=params['created_to'])
         if params.get('assigned_to'):
             qs = qs.filter(user_id=params['assigned_to'])
+        q = params.get('q', '').strip()
+        if q:
+            qs = qs.filter(
+                Q(user__email__icontains=q) |
+                Q(user__first_name__icontains=q) |
+                Q(user__last_name__icontains=q) |
+                Q(subject__icontains=q)
+            )
         return qs
+
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        counts = SupportTicket.objects.aggregate(
+            open          = Count('pk', filter=Q(status=SupportTicket.Status.OPEN)),
+            in_progress   = Count('pk', filter=Q(status=SupportTicket.Status.IN_PROGRESS)),
+            awaiting_user = Count('pk', filter=Q(status=SupportTicket.Status.AWAITING_USER)),
+            resolved      = Count('pk', filter=Q(status=SupportTicket.Status.RESOLVED)),
+            closed        = Count('pk', filter=Q(status=SupportTicket.Status.CLOSED)),
+        )
+        response.data['metrics'] = {
+            'open':           counts['open'],
+            'in_progress':    counts['in_progress'],
+            'awaiting_user':  counts['awaiting_user'],
+            'resolved':       counts['resolved'],
+            'closed':         counts['closed'],
+        }
+        return response
