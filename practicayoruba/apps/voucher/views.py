@@ -34,7 +34,12 @@ class VoucherViewSet(ModelViewSet):
     http_method_names  = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
     def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
+        instance = serializer.save(created_by=self.request.user)
+        VoucherChangeLog.objects.create(
+            voucher=instance,
+            changed_by=self.request.user,
+            changes={'action': 'created', 'code': instance.code},
+        )
 
     def perform_update(self, serializer):
         old = {f: getattr(self.get_object(), f)
@@ -67,6 +72,11 @@ class VoucherViewSet(ModelViewSet):
         Ambos campos se aplican aquí: un DELETE HTTP representa una
         desactivacion de cupon (no usable + no listable).
         """
+        VoucherChangeLog.objects.create(
+            voucher=instance,
+            changed_by=self.request.user,
+            changes={'action': 'deleted', 'code': instance.code},
+        )
         now = timezone.now()
         instance.is_active      = False
         instance.deactivated_at = now
@@ -118,19 +128,46 @@ class VoucherViewSet(ModelViewSet):
         voucher.deactivated_at = timezone.now()
         voucher.deactivated_by = request.user
         voucher.save(update_fields=['is_active', 'deactivated_at', 'deactivated_by'])
+        VoucherChangeLog.objects.create(
+            voucher=voucher,
+            changed_by=request.user,
+            changes={'action': 'deactivated', 'code': voucher.code},
+        )
         return Response(VoucherSerializer(voucher).data)
 
     @action(detail=False, methods=['get'], url_path='report')
     @extend_schema(
         summary='Reporte de uso de vouchers',
-        description='Lista vouchers con estadísticas de uso. ROI con orders en Sprint 18.',
+        description='Lista vouchers con estadísticas de uso. Soporta filtros ?status= y ?is_active=.',
         tags=['vouchers'],
+        parameters=[
+            OpenApiParameter('status', str, required=False,
+                             description='ACTIVE|INACTIVE|EXPIRED|EXHAUSTED|NOT_YET_ACTIVE'),
+            OpenApiParameter('is_active', bool, required=False),
+        ],
         responses={200: VoucherReportSerializer(many=True)},
     )
     def report(self, request):
-        qs = Voucher.objects.all().order_by('-current_uses')
+        qs = Voucher.all_objects.all().order_by('-current_uses')
+        is_active = request.query_params.get('is_active')
+        if is_active is not None:
+            qs = qs.filter(is_active=is_active.lower() in ('true', '1'))
         data = VoucherReportSerializer(qs, many=True).data
-        return Response({'count': len(data), 'results': data})
+        # status filter is post-serialization (computed field)
+        status_filter = request.query_params.get('status')
+        if status_filter:
+            data = [d for d in data if d['status'] == status_filter.upper()]
+        page = int(request.query_params.get('page', 1))
+        page_size = 20
+        start = (page - 1) * page_size
+        end   = start + page_size
+        total = len(data)
+        return Response({
+            'count':    total,
+            'page':     page,
+            'pages':    (total + page_size - 1) // page_size or 1,
+            'results':  data[start:end],
+        })
 
     @extend_schema(summary='Listar vouchers', tags=['vouchers'],
                    responses={200: VoucherSerializer(many=True)})
