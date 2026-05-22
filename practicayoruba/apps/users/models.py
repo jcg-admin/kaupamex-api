@@ -344,6 +344,11 @@ class AuthEvent(TimeStampedModel):
     ACTION_REGISTER_FAIL     = "REGISTER_FAIL"
     # T-119 D-02 iter 20 (UC-AUTH-08 AC-06 audit log universal):
     ACTION_PASSWORD_CHANGE   = "PASSWORD_CHANGE"
+    # D-04-07 (hardening-addresses): audit log CRUD + set-default.
+    ACTION_ADDRESS_CREATED   = "ADDRESS_CREATED"
+    ACTION_ADDRESS_UPDATED   = "ADDRESS_UPDATED"
+    ACTION_ADDRESS_DELETED   = "ADDRESS_DELETED"
+    ACTION_ADDRESS_DEFAULT   = "ADDRESS_DEFAULT"
     ACTION_CHOICES = [
         (ACTION_LOGIN_SUCCESS,    "Login exitoso"),
         (ACTION_LOGIN_FAIL,       "Login fallido"),
@@ -354,6 +359,10 @@ class AuthEvent(TimeStampedModel):
         (ACTION_REGISTER_SUCCESS, "Registro exitoso"),
         (ACTION_REGISTER_FAIL,    "Registro fallido"),
         (ACTION_PASSWORD_CHANGE,  "Cambio de contrasena"),
+        (ACTION_ADDRESS_CREATED,  "Direccion creada"),
+        (ACTION_ADDRESS_UPDATED,  "Direccion actualizada"),
+        (ACTION_ADDRESS_DELETED,  "Direccion eliminada"),
+        (ACTION_ADDRESS_DEFAULT,  "Direccion predeterminada"),
     ]
 
     REASON_BAD_CREDS        = "BAD_CREDS"
@@ -432,4 +441,3 @@ class BusinessEvent(TimeStampedModel):
     def __str__(self):
         a = self.actor.username if self.actor_id else "system"
         return f"BusinessEvent[{a}] {self.action} {self.target_type}#{self.target_id}"
-

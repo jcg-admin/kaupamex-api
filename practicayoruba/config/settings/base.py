@@ -147,6 +147,7 @@ REST_FRAMEWORK = {
         'email_verify':        '10/hour',
         'resend_verification': '3/hour',
         'contact':             '5/hour',
+        'addresses':           '30/hour',
     },
 }
 
@@ -288,31 +289,6 @@ LOGGING = {
         'apps':   {'handlers': ['console', 'file'], 'level': 'INFO'},
     },
 }
-
-# ───────────────────────────── Celery (D-004) ────────────────────────────
-# Broker opcional. Si `REDIS_URL` no esta definido el sistema funciona en
-# modo eager (todas las tasks se ejecutan inline) — adecuado para dev y
-# tests. En produccion se setea REDIS_URL para activar fanout asincrono
-# de notificaciones manuales (apps.notifications.tasks.dispatch_manual_fanout).
-CELERY_BROKER_URL = config(
-    'CELERY_BROKER_URL',
-    default=config('REDIS_URL', default='memory://'),
-)
-CELERY_RESULT_BACKEND = config('CELERY_RESULT_BACKEND', default='cache+memory://')
-CELERY_TASK_ALWAYS_EAGER = config(
-    'CELERY_TASK_ALWAYS_EAGER', default=True, cast=bool,
-)
-CELERY_TASK_EAGER_PROPAGATES = True
-CELERY_ACCEPT_CONTENT = ['json']
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_SERIALIZER = 'json'
-
-# Umbral a partir del cual el fanout de notificaciones manuales se
-# despacha asincronamente (D-004). >100 destinatarios -> Celery;
-# <=100 -> ejecucion sincrona en proceso.
-MANUAL_FANOUT_ASYNC_THRESHOLD = config(
-    'MANUAL_FANOUT_ASYNC_THRESHOLD', default=100, cast=int,
-)
 
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 

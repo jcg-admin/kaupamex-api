@@ -190,6 +190,8 @@ class AddressViewSet(ModelViewSet):
     DELETE /addresses/{id}/ — eliminar una direccion propia
     """
     permission_classes = [IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'addresses'
     serializer_class = AddressSerializer
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
     # queryset estatico requerido por drf-spectacular para inferir el tipo del path param.
@@ -206,12 +208,15 @@ class AddressViewSet(ModelViewSet):
         """Al eliminar la default, promover la siguiente como default."""
         addr = self.get_object()
         was_default = addr.is_default
+        addr_id = addr.pk
         addr.delete()
         if was_default:
             next_addr = Address.objects.filter(user=request.user).first()
             if next_addr:
                 next_addr.is_default = True
                 next_addr.save(update_fields=['is_default'])
+        audit_log_auth(request.user, AuthEvent.ACTION_ADDRESS_DELETED, request,
+                       extra={'address_id': addr_id})
         return Response(status=204)
 
     @extend_schema(
@@ -240,6 +245,8 @@ class AddressViewSet(ModelViewSet):
                 return Response(errors, status=422)
             return Response(errors, status=400)
         self.perform_create(serializer)
+        audit_log_auth(request.user, AuthEvent.ACTION_ADDRESS_CREATED, request,
+                       extra={'address_id': serializer.instance.pk})
         return Response(serializer.data, status=201)
 
     @extend_schema(
@@ -250,7 +257,11 @@ class AddressViewSet(ModelViewSet):
         tags=['auth'],
     )
     def partial_update(self, request, *args, **kwargs):
-        return super().partial_update(request, *args, **kwargs)
+        response = super().partial_update(request, *args, **kwargs)
+        if response.status_code == 200:
+            audit_log_auth(request.user, AuthEvent.ACTION_ADDRESS_UPDATED, request,
+                           extra={'address_id': self.get_object().pk})
+        return response
 
     @extend_schema(
         summary='Eliminar direccion de envio',
@@ -280,6 +291,8 @@ class AddressViewSet(ModelViewSet):
         addr = self.get_object()
         addr.is_default = True
         addr.save()  # el save() del modelo desmarca las demas atomicamente
+        audit_log_auth(request.user, AuthEvent.ACTION_ADDRESS_DEFAULT, request,
+                       extra={'address_id': addr.pk})
         return Response(self.get_serializer(addr).data, status=200)
 
 
