@@ -16,7 +16,8 @@ from datetime import timedelta
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from drf_spectacular.utils import extend_schema, OpenApiParameter
+from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiParameter
+from rest_framework import fields as rf_fields
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.generics import ListAPIView
@@ -208,6 +209,18 @@ class SupportTicketCloseView(APIView):
         summary='Cerrar ticket',
         tags=['support'],
         request=SupportTicketCloseSerializer,
+        responses={
+            200: inline_serializer(
+                name='TicketCloseResponse',
+                fields={
+                    'ticket_id': rf_fields.IntegerField(),
+                    'status': rf_fields.CharField(),
+                    'closed_at': rf_fields.DateTimeField(),
+                    'closed_by': rf_fields.CharField(),
+                },
+            ),
+            409: None,
+        },
     )
     def post(self, request, ticket_id):
         ticket = _get_ticket_for_user(ticket_id, request.user)
@@ -253,6 +266,17 @@ class SupportTicketReopenView(APIView):
     @extend_schema(
         summary='Reabrir ticket',
         tags=['support'],
+        responses={
+            200: inline_serializer(
+                name='TicketReopenResponse',
+                fields={
+                    'ticket_id': rf_fields.IntegerField(),
+                    'status': rf_fields.CharField(),
+                    'reopened_at': rf_fields.DateTimeField(),
+                },
+            ),
+            409: None,
+        },
     )
     def post(self, request, ticket_id):
         ticket = _get_ticket_for_user(ticket_id, request.user)
@@ -289,6 +313,7 @@ class AdminSupportTicketListView(ListAPIView):
             OpenApiParameter('created_to', str, required=False),
             OpenApiParameter('assigned_to', int, required=False),
         ],
+        responses={200: SupportTicketListSerializer(many=True)},
     )
     def get_queryset(self):
         qs = SupportTicket.objects.all()

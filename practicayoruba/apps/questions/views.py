@@ -15,7 +15,8 @@ JSON keys + identifiers in English (DEC-DOC-005).
 """
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+import rest_framework.fields as rf_fields
+from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serializer
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
@@ -59,6 +60,13 @@ class ProductQuestionsView(APIView):
         summary='Crear pregunta de producto',
         tags=['questions'],
         request=PublicQuestionCreateSerializer,
+        responses={201: inline_serializer('QuestionCreatedResponse', fields={
+            'id': rf_fields.IntegerField(),
+            'product': rf_fields.IntegerField(),
+            'body': rf_fields.CharField(),
+            'status': rf_fields.CharField(),
+            'created_at': rf_fields.DateTimeField(),
+        })},
     )
     def post(self, request, product_id):
         # 404 first: el contrato dice que un producto desconocido devuelve
@@ -156,6 +164,10 @@ class AdminQuestionApproveView(APIView):
     @extend_schema(
         summary='Aprobar pregunta respondida',
         tags=['questions'],
+        responses={200: inline_serializer('QuestionStatusResponse', fields={
+            'id': rf_fields.IntegerField(),
+            'status': rf_fields.CharField(),
+        })},
     )
     def post(self, request, question_id):
         question = get_object_or_404(ProductQuestion, pk=question_id)
@@ -179,6 +191,10 @@ class AdminQuestionRejectView(APIView):
     @extend_schema(
         summary='Rechazar pregunta',
         tags=['questions'],
+        responses={200: inline_serializer('QuestionRejectStatusResponse', fields={
+            'id': rf_fields.IntegerField(),
+            'status': rf_fields.CharField(),
+        })},
     )
     def post(self, request, question_id):
         question = get_object_or_404(ProductQuestion, pk=question_id)

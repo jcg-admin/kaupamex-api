@@ -146,6 +146,7 @@ class CartItemListView(APIView):
     @extend_schema(
         summary='Agregar item al carrito',
         request=AddItemSerializer,
+        responses={201: CartSerializer, 200: CartSerializer},
         tags=['cart'],
         operation_id='cart_items_add',
     )
@@ -263,6 +264,7 @@ class CartItemDetailView(APIView):
     @extend_schema(
         summary='Editar cantidad de item',
         request=UpdateItemSerializer,
+        responses={200: CartSerializer},
         tags=['cart'],
         operation_id='cart_items_update',
     )
@@ -402,6 +404,7 @@ class CartVoucherView(APIView):
             'Retorna el carrito con totales actualizados. '
             'UC-CART-04 (FR-CART-04.01, FR-CART-04.02).'
         ),
+        responses={200: CartSerializer},
         tags=['cart'],
     )
     def post(self, request):

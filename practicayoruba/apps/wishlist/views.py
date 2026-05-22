@@ -48,14 +48,16 @@ class WishlistView(APIView):
     permission_classes = [IsAuthenticated]
     serializer_class = WishlistItemSerializer
 
-    @extend_schema(summary='Ver lista de deseos', tags=['wishlist'])
+    @extend_schema(summary='Ver lista de deseos', tags=['wishlist'],
+                   responses={200: WishlistItemSerializer(many=True)})
     def get(self, request):
         items = (WishlistItem.objects
                  .filter(user=request.user)
                  .select_related('product', 'variant__option'))
         return Response(WishlistItemSerializer(items, many=True).data)
 
-    @extend_schema(summary='Agregar producto a lista de deseos', tags=['wishlist'])
+    @extend_schema(summary='Agregar producto a lista de deseos', tags=['wishlist'],
+                   responses={201: WishlistItemSerializer, 200: WishlistItemSerializer})
     def post(self, request):
         product_id = request.data.get('product_id')
         variant_id = request.data.get('variant_id')
@@ -123,6 +125,7 @@ class WishlistMoveToCartView(APIView):
     @extend_schema(
         summary='Mover producto de wishlist al carrito',
         tags=['wishlist'],
+        responses={200: CartSerializer},
     )
     def post(self, request, pk):
         item = get_object_or_404(WishlistItem, pk=pk, user=request.user)

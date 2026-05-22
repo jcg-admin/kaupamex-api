@@ -17,7 +17,7 @@ from apps.core.email_executor import dispatch_email
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, OpenApiTypes
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
@@ -38,6 +38,7 @@ class NewsletterSubscribeView(APIView):
         summary='Suscribirse a la newsletter',
         tags=['newsletter'],
         request=SubscribeSerializer,
+        responses={201: OpenApiTypes.OBJECT, 200: OpenApiTypes.OBJECT},
     )
     def post(self, request):
         serializer = SubscribeSerializer(data=request.data)
@@ -78,6 +79,7 @@ class NewsletterUnsubscribeView(APIView):
         summary='Cancelar suscripcion via token',
         tags=['newsletter'],
         request=UnsubscribeSerializer,
+        responses={200: OpenApiTypes.OBJECT, 404: OpenApiTypes.OBJECT},
     )
     def post(self, request):
         serializer = UnsubscribeSerializer(data=request.data)
@@ -138,6 +140,7 @@ class AdminSubscriberForceUnsubscribeView(APIView):
     @extend_schema(
         summary='Forzar baja de un suscriptor',
         tags=['newsletter'],
+        responses={200: OpenApiTypes.OBJECT},
     )
     def post(self, request, subscriber_id):
         subscriber = get_object_or_404(NewsletterSubscriber, pk=subscriber_id)
