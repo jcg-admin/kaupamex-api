@@ -6,6 +6,10 @@ conservar historial de moderación (auditoría RNF-AUDIT-001).
 
 ReviewModerationLog: append-only audit trail. NO hereda SoftDeleteModel
 (DEC-DOC-007 exception para tablas de auditoría).
+
+ReviewHelpfulVote: voto de "util" por usuario/reseña (UC-REV-02
+FR-REV-02.02). Append-only; unique_together garantiza un voto por
+usuario por reseña. Incrementa Review.helpful_count.
 """
 from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
@@ -67,6 +71,10 @@ class Review(TimeStampedModel, SoftDeleteModel):
         settings.AUTH_USER_MODEL, null=True, blank=True,
         on_delete=models.SET_NULL, related_name='moderated_reviews',
     )
+    # UC-REV-02 FR-REV-02.02: votos de 'util' acumulados.
+    # Increment-only; decrementos no en scope (deduplicacion via
+    # ReviewHelpfulVote unique_together).
+    helpful_count = models.PositiveIntegerField(default=0, db_index=True)
 
     class Meta:
         db_table        = 'reviews_review'
@@ -105,3 +113,29 @@ class ReviewModerationLog(TimeStampedModel):
         db_table     = 'reviews_moderation_log'
         ordering     = ['-created_at']
         verbose_name = 'Auditoria de moderacion'
+
+
+class ReviewHelpfulVote(TimeStampedModel):
+    """
+    Voto de 'util' para una reseña (UC-REV-02 FR-REV-02.02).
+
+    Un voto por (user, review). unique_together garantiza deduplicacion
+    a nivel de BD. Cada creacion incrementa Review.helpful_count via
+    ReviewHelpfulVoteView (F() expression, atomica).
+    """
+    user   = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='helpful_votes',
+    )
+    review = models.ForeignKey(
+        Review, on_delete=models.CASCADE,
+        related_name='helpful_votes',
+    )
+
+    class Meta:
+        db_table        = 'reviews_helpful_vote'
+        unique_together = [('user', 'review')]
+        verbose_name    = 'Voto util'
+
+    def __str__(self):
+        return f'{self.user.username} -> review#{self.review_id}'

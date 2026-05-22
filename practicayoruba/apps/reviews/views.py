@@ -3,7 +3,11 @@ Views — apps.reviews (P-14 / UC-REV-01..03).
 
 Public:
   GET  /api/v1/products/<product_id>/reviews/      Approved only + stats.
+                                                   ?rating=1-5  filtrar por calificacion.
+                                                   ?sort=recent|helpful
+                                                   ?page=N  ?page_size=N (default 20, max 50).
   POST /api/v1/products/<product_id>/reviews/      Create (auth required).
+  POST /api/v1/products/<product_id>/reviews/<pk>/helpful/  Vote helpful (auth).
 
 Admin:
   GET  /api/v1/admin/reviews/?status=PENDING_MODERATION  FIFO queue.
@@ -14,6 +18,7 @@ Spanish business error codes per DEC-DOC-006. Audit log per RNF-AUDIT-001.
 """
 from collections import Counter
 from django.db import IntegrityError, transaction
+from django.db.models import F
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
@@ -23,7 +28,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from apps.catalogue.models import Product
 from apps.orders.models import Order
-from .models import Review, ReviewModerationLog
+from .models import Review, ReviewHelpfulVote, ReviewModerationLog
 from .serializers import ReviewAdminSerializer, ReviewCreateSerializer, ReviewPublicSerializer
 
 
@@ -45,8 +50,16 @@ class ProductReviewsView(APIView):
         return [AllowAny()]
 
     @extend_schema(
-        summary='List approved reviews for product (UC-REV-01).',
+        summary='List approved reviews for product (UC-REV-02).',
         tags=['reviews'],
+        parameters=[
+            OpenApiParameter('rating', int,
+                             description='Filtrar por calificacion (1-5)'),
+            OpenApiParameter('sort',   str,
+                             description='Ordenar: recent (default) | helpful'),
+            OpenApiParameter('page',      int),
+            OpenApiParameter('page_size', int, description='Default 20, max 50'),
+        ],
         responses={200: ReviewPublicSerializer(many=True)},
     )
     def get(self, request, product_id):
@@ -58,26 +71,63 @@ class ProductReviewsView(APIView):
                 'codigo_error': 'PRODUCT_NOT_FOUND',
             })
 
-        approved = Review.objects.filter(
+        all_approved = Review.objects.filter(
             product=product, status=Review.STATUS_APPROVED,
-        ).select_related('user').order_by('-created_at')
+        ).select_related('user')
 
-        ratings = list(approved.values_list('rating', flat=True))
+        # Aggregate stats from ALL approved reviews (independent of filter).
+        ratings = list(all_approved.values_list('rating', flat=True))
         total = len(ratings)
         avg = round(sum(ratings) / total, 2) if total else 0.0
         breakdown = Counter(ratings)
         rating_breakdown = {str(i): breakdown.get(i, 0) for i in range(1, 6)}
 
+        # Optional ?rating= filter (UC-REV-02 PARTE 7.1).
+        qs = all_approved
+        rating_filter = request.query_params.get('rating')
+        if rating_filter is not None:
+            try:
+                rating_val = int(rating_filter)
+                if rating_val not in range(1, 6):
+                    raise ValueError
+            except (ValueError, TypeError):
+                raise ValidationError({
+                    'detail': 'rating debe ser un entero entre 1 y 5.',
+                    'codigo_error': 'RATING_INVALID',
+                })
+            qs = qs.filter(rating=rating_val)
+
+        # Sort (FR-REV-02.02): recent (default) or helpful (-helpful_count).
+        sort_param = request.query_params.get('sort', 'recent')
+        if sort_param == 'helpful':
+            qs = qs.order_by('-helpful_count', '-created_at')
+        else:
+            qs = qs.order_by('-created_at')
+
+        # Pagination (Gap P-20 fix).
+        try:
+            page = max(1, int(request.query_params.get('page', 1)))
+            page_size = min(50, max(1, int(request.query_params.get('page_size', 20))))
+        except (ValueError, TypeError):
+            page = 1
+            page_size = 20
+        count = qs.count()
+        start = (page - 1) * page_size
+        end   = start + page_size
+
         return Response({
-            'product_id': product.id,
-            'average_rating': avg,
-            'total_reviews': total,
+            'product_id':      product.id,
+            'average_rating':  avg,
+            'total_reviews':   total,
             'rating_breakdown': rating_breakdown,
-            'results': ReviewPublicSerializer(approved, many=True).data,
+            'count':  count,
+            'page':   page,
+            'pages':  max(1, (count + page_size - 1) // page_size),
+            'results': ReviewPublicSerializer(qs[start:end], many=True).data,
         })
 
     @extend_schema(
-        summary='Create review (UC-REV-02).',
+        summary='Create review (UC-REV-01).',
         request=ReviewCreateSerializer,
         tags=['reviews'],
         responses={201: ReviewAdminSerializer, 400: None, 404: None},
@@ -147,6 +197,61 @@ class ProductReviewsView(APIView):
             ReviewAdminSerializer(review).data,
             status=status.HTTP_201_CREATED,
         )
+
+
+# =============================================================================
+# Public — helpful vote
+# =============================================================================
+
+class ReviewHelpfulVoteView(APIView):
+    """
+    POST /api/v1/products/<product_id>/reviews/<pk>/helpful/
+    UC-REV-02 FR-REV-02.02: votar una reseña como util.
+
+    Un voto por usuario por reseña. No se puede votar la propia reseña.
+    Incrementa Review.helpful_count atomicamente con F().
+    """
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary='Vote review as helpful (UC-REV-02 FR-REV-02.02).',
+        tags=['reviews'],
+        responses={200: None, 400: None, 401: None, 404: None},
+    )
+    @transaction.atomic
+    def post(self, request, product_id, pk):
+        try:
+            review = Review.objects.select_for_update().get(
+                pk=pk, product_id=product_id,
+                status=Review.STATUS_APPROVED,
+            )
+        except Review.DoesNotExist:
+            raise NotFound({
+                'detail': 'Reseña no encontrada.',
+                'codigo_error': 'REVIEW_NOT_FOUND',
+            })
+
+        if review.user_id == request.user.id:
+            raise ValidationError({
+                'detail': 'No puedes votar tu propia reseña.',
+                'codigo_error': 'CANNOT_VOTE_OWN_REVIEW',
+            })
+
+        if ReviewHelpfulVote.objects.filter(
+            user=request.user, review=review,
+        ).exists():
+            raise ValidationError({
+                'detail': 'Ya votaste esta reseña como util.',
+                'codigo_error': 'VOTE_DUPLICATE',
+            })
+
+        ReviewHelpfulVote.objects.create(user=request.user, review=review)
+        Review.objects.filter(pk=review.pk).update(
+            helpful_count=F('helpful_count') + 1,
+        )
+        review.refresh_from_db(fields=['helpful_count'])
+
+        return Response({'helpful_count': review.helpful_count})
 
 
 # =============================================================================

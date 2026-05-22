@@ -4,7 +4,7 @@ Integration tests — P-14 reviews endpoints (UC-REV-01..03).
 from decimal import Decimal
 from apps.catalogue.models import Category, Product
 from apps.orders.models import Order, OrderAddress, OrderItem, OrderValue
-from apps.reviews.models import Review, ReviewModerationLog
+from apps.reviews.models import Review, ReviewHelpfulVote, ReviewModerationLog
 from django.contrib.auth import get_user_model
 
 import pytest
@@ -16,6 +16,7 @@ PRODUCT_REVIEWS_URL = lambda pid: f'/api/v1/products/{pid}/reviews/'
 ADMIN_QUEUE_URL     = '/api/v1/admin/reviews/'
 APPROVE_URL         = lambda pk: f'/api/v1/admin/reviews/{pk}/approve/'
 REJECT_URL          = lambda pk: f'/api/v1/admin/reviews/{pk}/reject/'
+HELPFUL_URL         = lambda pid, pk: f'/api/v1/products/{pid}/reviews/{pk}/helpful/'
 
 
 @pytest.fixture
@@ -229,3 +230,121 @@ class TestAdminQueue:
         )
         r = auth_client.post(APPROVE_URL(rev.id), {}, format='json')
         assert r.status_code == 403
+
+
+# =============================================================================
+# T-118 — New capabilities: pagination, rating filter, helpful votes
+# =============================================================================
+
+class TestReviewPagination:
+    """UC-REV-02 Gap P-20 — pagination + rating filter."""
+
+    def test_respuesta_incluye_campos_paginacion(
+        self, api_client, prod_rev, user, order_user_with_product, db,
+    ):
+        Review.objects.create(
+            user=user, product=prod_rev, order=order_user_with_product,
+            rating=5, title='T', body='B', status=Review.STATUS_APPROVED,
+        )
+        r = api_client.get(PRODUCT_REVIEWS_URL(prod_rev.id))
+        data = r.json()
+        for field in ('count', 'page', 'pages', 'results'):
+            assert field in data, f'campo faltante: {field}'
+
+    def test_filtro_por_rating_filtra_resultados(
+        self, api_client, prod_rev, user, order_user_with_product, db,
+    ):
+        Review.objects.create(
+            user=user, product=prod_rev, order=order_user_with_product,
+            rating=5, title='T5', body='B', status=Review.STATUS_APPROVED,
+        )
+        r = api_client.get(PRODUCT_REVIEWS_URL(prod_rev.id), {'rating': '5'})
+        assert r.status_code == 200
+        for rev in r.json()['results']:
+            assert rev['rating'] == 5
+
+    def test_filtro_rating_invalido_retorna_400(
+        self, api_client, prod_rev, db,
+    ):
+        r = api_client.get(PRODUCT_REVIEWS_URL(prod_rev.id), {'rating': '9'})
+        assert r.status_code == 400
+        assert r.json()['codigo_error'] == 'RATING_INVALID'
+
+    def test_sort_helpful_acepta_parametro(
+        self, api_client, prod_rev, user, order_user_with_product, db,
+    ):
+        Review.objects.create(
+            user=user, product=prod_rev, order=order_user_with_product,
+            rating=4, title='T', body='B', status=Review.STATUS_APPROVED,
+        )
+        r = api_client.get(PRODUCT_REVIEWS_URL(prod_rev.id), {'sort': 'helpful'})
+        assert r.status_code == 200
+
+
+class TestReviewHelpfulVote:
+    """UC-REV-02 FR-REV-02.02 — helpful votes."""
+
+    @pytest.fixture
+    def approved_review(self, db, user, prod_rev, order_user_with_product):
+        return Review.objects.create(
+            user=user, product=prod_rev, order=order_user_with_product,
+            rating=5, title='T', body='B', status=Review.STATUS_APPROVED,
+        )
+
+    def test_voto_incrementa_helpful_count(
+        self, admin_auth_client, prod_rev, approved_review, db,
+    ):
+        r = admin_auth_client.post(
+            HELPFUL_URL(prod_rev.id, approved_review.id), {}, format='json',
+        )
+        assert r.status_code == 200
+        approved_review.refresh_from_db()
+        assert approved_review.helpful_count == 1
+
+    def test_voto_retorna_helpful_count_actualizado(
+        self, admin_auth_client, prod_rev, approved_review, db,
+    ):
+        r = admin_auth_client.post(
+            HELPFUL_URL(prod_rev.id, approved_review.id), {}, format='json',
+        )
+        assert r.json()['helpful_count'] == 1
+
+    def test_voto_duplicado_retorna_400(
+        self, admin_auth_client, prod_rev, approved_review, db,
+    ):
+        admin_auth_client.post(
+            HELPFUL_URL(prod_rev.id, approved_review.id), {}, format='json',
+        )
+        r = admin_auth_client.post(
+            HELPFUL_URL(prod_rev.id, approved_review.id), {}, format='json',
+        )
+        assert r.status_code == 400
+        assert r.json()['codigo_error'] == 'VOTE_DUPLICATE'
+
+    def test_no_puede_votar_propia_resena(
+        self, auth_client, prod_rev, approved_review, db,
+    ):
+        r = auth_client.post(
+            HELPFUL_URL(prod_rev.id, approved_review.id), {}, format='json',
+        )
+        assert r.status_code == 400
+        assert r.json()['codigo_error'] == 'CANNOT_VOTE_OWN_REVIEW'
+
+    def test_requiere_autenticacion(
+        self, api_client, prod_rev, approved_review, db,
+    ):
+        r = api_client.post(
+            HELPFUL_URL(prod_rev.id, approved_review.id), {}, format='json',
+        )
+        assert r.status_code == 401
+
+    def test_helpful_count_aparece_en_public_listing(
+        self, api_client, admin_auth_client, prod_rev, approved_review, db,
+    ):
+        admin_auth_client.post(
+            HELPFUL_URL(prod_rev.id, approved_review.id), {}, format='json',
+        )
+        r = api_client.get(PRODUCT_REVIEWS_URL(prod_rev.id))
+        review_data = r.json()['results'][0]
+        assert 'helpful_count' in review_data
+        assert review_data['helpful_count'] == 1

@@ -12,7 +12,7 @@ class ReviewPublicSerializer(serializers.ModelSerializer):
         model  = Review
         fields = [
             'id', 'rating', 'title', 'body',
-            'user_display', 'created_at',
+            'user_display', 'created_at', 'helpful_count',
         ]
 
     def get_user_display(self, obj):
