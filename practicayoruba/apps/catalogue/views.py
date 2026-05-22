@@ -787,6 +787,7 @@ class ProductAdminViewSet(ProductDeactivateAction, ModelViewSet):
             'Crea el producto con is_published=False por defecto. '
             'Imágenes diferidas a Sprint 8.'
         ),
+        responses={201: ProductAdminSerializer, 400: None},
         tags=['admin-catalogue'],
     )
     def create(self, request, *args, **kwargs):
@@ -799,6 +800,7 @@ class ProductAdminViewSet(ProductDeactivateAction, ModelViewSet):
             'BR-005: los cambios de precio no afectan órdenes ya creadas. '
             'Imágenes diferidas a Sprint 8.'
         ),
+        responses={200: ProductAdminSerializer, 400: None},
         tags=['admin-catalogue'],
     )
     def partial_update(self, request, *args, **kwargs):
@@ -909,6 +911,7 @@ class ProductPriceSyncView(APIView):
 
     @extend_schema(
         summary='Preview de sincronización de precios (CSV o porcentaje)',
+        responses={200: OpenApiTypes.OBJECT, 400: None},
         tags=['admin-catalogue'],
     )
     def post(self, request):
@@ -953,6 +956,7 @@ class ProductPriceSyncConfirmView(APIView):
 
     @extend_schema(
         summary='Confirmar sincronización de precios',
+        responses={200: OpenApiTypes.OBJECT, 400: None},
         tags=['admin-catalogue'],
     )
     def post(self, request):
@@ -1006,6 +1010,7 @@ class ProductPriceSyncTemplateView(APIView):
 
     @extend_schema(
         summary='Descargar plantilla CSV de precios',
+        responses={200: OpenApiResponse(description='CSV template file download.', response=OpenApiTypes.BINARY)},
         tags=['admin-catalogue'],
     )
     def get(self, request):
