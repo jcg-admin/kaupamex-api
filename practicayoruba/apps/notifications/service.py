@@ -59,8 +59,8 @@ def notify_order_status_changed(order, new_status):
     Solo notifica estados relevantes (FR-NOT-02.02).
     """
     notify_statuses = {
-        'PAYMENT_CONFIRMED', 'IN_PREPARATION', 'SHIPPED',
-        'DELIVERED', 'CANCELLED', 'CANCELLED_TIMEOUT',
+        'PROCESSING', 'IN_PREPARATION', 'SHIPPED',
+        'DELIVERED', 'CANCELLED', 'REFUNDED',
     }
     if new_status not in notify_statuses:
         return
@@ -70,12 +70,12 @@ def notify_order_status_changed(order, new_status):
         return
 
     _labels = {
-        'PAYMENT_CONFIRMED': 'Pago confirmado',
-        'IN_PREPARATION':    'Pedido en preparacion',
-        'SHIPPED':           'Pedido enviado',
-        'DELIVERED':         'Pedido entregado',
-        'CANCELLED':         'Orden cancelada',
-        'CANCELLED_TIMEOUT': 'Orden cancelada por tiempo agotado',
+        'PROCESSING':      'Pago en proceso',
+        'IN_PREPARATION':  'Pedido en preparacion',
+        'SHIPPED':         'Pedido enviado',
+        'DELIVERED':       'Pedido entregado',
+        'CANCELLED':       'Orden cancelada',
+        'REFUNDED':        'Orden reembolsada',
     }
     label = _labels.get(new_status, new_status)
 

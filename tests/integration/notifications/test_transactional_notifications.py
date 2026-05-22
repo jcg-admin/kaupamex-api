@@ -32,7 +32,7 @@ LOCMEM_SETTINGS = {
 _ON_COMMIT_PATH = 'apps.notifications.service.transaction.on_commit'
 
 
-# ─── fixtures ─────────────────────────────────────────────────────────────────────────
+# ─── fixtures ─────────────────────────────────────────────────────────────────────────────────────
 
 @pytest.fixture
 def order_stub(db, user):
@@ -51,7 +51,7 @@ def order_stub(db, user):
     return _Order()
 
 
-# ─── UC-NOT-01 ──────────────────────────────────────────────────────────────────────────────
+# ─── UC-NOT-01 ──────────────────────────────────────────────────────────────────────────────────────
 
 class TestNotifyOrderCreated:
     @override_settings(**LOCMEM_SETTINGS)
@@ -88,13 +88,13 @@ class TestNotifyOrderCreated:
         assert len(mail.outbox) == 0
 
 
-# ─── UC-NOT-02 ──────────────────────────────────────────────────────────────────────────────
+# ─── UC-NOT-02 ──────────────────────────────────────────────────────────────────────────────────────
 
 class TestNotifyOrderStatusChanged:
     @override_settings(**LOCMEM_SETTINGS)
     @pytest.mark.parametrize('status', [
-        'PAYMENT_CONFIRMED', 'IN_PREPARATION', 'SHIPPED',
-        'DELIVERED', 'CANCELLED', 'CANCELLED_TIMEOUT',
+        'PROCESSING', 'IN_PREPARATION', 'SHIPPED',
+        'DELIVERED', 'CANCELLED', 'REFUNDED',
     ])
     def test_crea_notification_para_estado_relevante(self, db, user, order_stub, status):
         with patch(_ON_COMMIT_PATH, side_effect=lambda f: f()):
@@ -111,12 +111,12 @@ class TestNotifyOrderStatusChanged:
     @override_settings(**LOCMEM_SETTINGS)
     def test_no_notifica_estado_no_relevante(self, db, user, order_stub):
         with patch(_ON_COMMIT_PATH, side_effect=lambda f: f()):
-            notify_order_status_changed(order_stub, 'PROCESSING')
+            notify_order_status_changed(order_stub, 'PENDING')
         assert not Notification.objects.filter(user=user).exists()
         assert len(mail.outbox) == 0
 
 
-# ─── UC-NOT-03 ──────────────────────────────────────────────────────────────────────────────
+# ─── UC-NOT-03 ──────────────────────────────────────────────────────────────────────────────────────
 
 class TestNotifyShippingUpdated:
     @override_settings(**LOCMEM_SETTINGS)
@@ -132,7 +132,7 @@ class TestNotifyShippingUpdated:
         assert 'envio' in mail.outbox[0].subject.lower()
 
 
-# ─── UC-NOT-04 ──────────────────────────────────────────────────────────────────────────────
+# ─── UC-NOT-04 ──────────────────────────────────────────────────────────────────────────────────────
 
 class TestNotifyReturnProcessed:
     @override_settings(**LOCMEM_SETTINGS)
@@ -144,7 +144,7 @@ class TestNotifyReturnProcessed:
         assert len(mail.outbox) == 1
 
 
-# ─── UC-NOT-05 ──────────────────────────────────────────────────────────────────────────────
+# ─── UC-NOT-05 ──────────────────────────────────────────────────────────────────────────────────────
 
 class TestNotifyRefundProcessed:
     @override_settings(**LOCMEM_SETTINGS)
