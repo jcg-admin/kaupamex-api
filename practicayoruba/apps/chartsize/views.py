@@ -178,6 +178,7 @@ class ProductVariantAdminViewSet(ModelViewSet):
     @extend_schema(
         summary='Crear variante',
         description='Requiere option_id de un VariantOption ya creado.',
+        responses={201: ProductVariantAdminSerializer, 400: None},
         tags=['admin-catalogue'],
     )
     def create(self, request, *args, **kwargs):
@@ -185,6 +186,7 @@ class ProductVariantAdminViewSet(ModelViewSet):
 
     @extend_schema(
         summary='Editar variante (stock, precio diferenciado, is_active)',
+        responses={200: ProductVariantAdminSerializer, 400: None},
         tags=['admin-catalogue'],
     )
     def partial_update(self, request, *args, **kwargs):
