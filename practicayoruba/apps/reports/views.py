@@ -2,11 +2,11 @@
 Views — apps.reports
 
 Read-only admin aggregation endpoints under /api/v1/admin/reports/:
-  GET /sales/?period=                 (UC-REP-01)
-  GET /top-sellers/?period=&limit=    (UC-REP-02)
-  GET /dashboard/                     (UC-REP-03)
-  GET /customers-rfm/?period=&segment= (UC-REP-04)
-  GET /<slug>/export/?format=csv|pdf   (UC-REP-05)
+  GET /sales/?period=                         (UC-REP-01)
+  GET /top-sellers/?period=&limit=&sort=      (UC-REP-02)
+  GET /dashboard/                             (UC-REP-03)
+  GET /customers-rfm/?period=&segment=        (UC-REP-04)
+  GET /<slug>/export/?format=csv&period=...   (UC-REP-05)
 
 SP-backed endpoints (implementar-endpoints-db-rpt sucesora):
   GET /catalog-by-category/   (UC-DB-RPT-01, sp_rpt_catalog_by_category)
@@ -15,6 +15,7 @@ SP-backed endpoints (implementar-endpoints-db-rpt sucesora):
 
 Identifiers + JSON keys in English (DEC-DOC-005).
 """
+from django.core.cache import cache
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers, status, exceptions
@@ -23,9 +24,15 @@ from rest_framework.negotiation import DefaultContentNegotiation
 from rest_framework.renderers import BaseRenderer, JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .aggregations import build_dashboard_payload, build_rfm_payload, build_sales_payload, build_top_sellers_payload, parse_period
+from .aggregations import (
+    build_dashboard_payload, build_rfm_payload, build_sales_payload,
+    build_top_sellers_payload, count_export_rows, parse_period,
+)
 from .exports import EXPORTERS
 from .sp_helpers import call_sp
+
+# D-19: async export for >5000 rows not yet implemented (DEC-REP-01).
+_EXPORT_ASYNC_THRESHOLD = 5000
 
 
 def _sp_response(sp_name: str) -> Response:
@@ -77,6 +84,8 @@ class _AdminMixin:
 
 
 class SalesReportView(_AdminMixin, APIView):
+    _CACHE_TTL = 300  # 5 min — UC-REP-01
+
     @extend_schema(
         summary='Sales report (UC-REP-01)',
         parameters=[OpenApiParameter(name='period', required=False, type=str)],
@@ -84,15 +93,26 @@ class SalesReportView(_AdminMixin, APIView):
     )
     def get(self, request):
         days = parse_period(request.query_params.get('period'))
-        return Response(build_sales_payload(days))
+        key = f'reports:sales:{days}'
+        payload = cache.get(key)
+        if payload is None:
+            payload = build_sales_payload(days)
+            cache.set(key, payload, self._CACHE_TTL)
+        return Response(payload)
 
 
 class TopSellersReportView(_AdminMixin, APIView):
+    _CACHE_TTL = 600  # 10 min — UC-REP-02
+
     @extend_schema(
         summary='Top sellers (UC-REP-02)',
         parameters=[
             OpenApiParameter(name='period', required=False, type=str),
             OpenApiParameter(name='limit', required=False, type=int),
+            OpenApiParameter(
+                name='sort', required=False, type=str,
+                description='UNIDADES|INGRESOS (default UNIDADES)',
+            ),
         ],
         tags=['reports'],
     )
@@ -102,29 +122,55 @@ class TopSellersReportView(_AdminMixin, APIView):
             limit = int(request.query_params.get('limit', 10))
         except (TypeError, ValueError):
             limit = 10
-        limit = max(1, min(limit, 100))
-        return Response(build_top_sellers_payload(days, limit))
+        limit = max(1, min(limit, 50))  # D-08: UC-REP-02 max 50
+        sort_by = (request.query_params.get('sort') or 'UNIDADES').upper()
+        if sort_by not in ('UNIDADES', 'INGRESOS'):
+            sort_by = 'UNIDADES'
+        key = f'reports:top-sellers:{days}:{limit}:{sort_by}'
+        payload = cache.get(key)
+        if payload is None:
+            payload = build_top_sellers_payload(days, limit, sort_by=sort_by)
+            cache.set(key, payload, self._CACHE_TTL)
+        return Response(payload)
 
 
 class DashboardReportView(_AdminMixin, APIView):
+    _CACHE_TTL = 30  # 30 s — UC-REP-03
+
     @extend_schema(summary='Dashboard snapshot (UC-REP-03)', tags=['reports'])
     def get(self, request):
-        return Response(build_dashboard_payload())
+        key = 'reports:dashboard'
+        payload = cache.get(key)
+        if payload is None:
+            payload = build_dashboard_payload()
+            cache.set(key, payload, self._CACHE_TTL)
+        return Response(payload)
 
 
 class CustomersRFMReportView(_AdminMixin, APIView):
+    _CACHE_TTL = 3600  # 1 h — UC-REP-04
+
     @extend_schema(
         summary='Customers RFM (UC-REP-04)',
         parameters=[
             OpenApiParameter(name='period', required=False, type=str),
-            OpenApiParameter(name='segment', required=False, type=str),
+            OpenApiParameter(
+                name='segment', required=False, type=str,
+                description='CHAMPIONS|LOYAL|RECENT|AT_RISK|OCCASIONAL',
+            ),
         ],
         tags=['reports'],
     )
     def get(self, request):
         days = parse_period(request.query_params.get('period'))
         segment = request.query_params.get('segment') or None
-        return Response(build_rfm_payload(days, segment))
+        seg_key = (segment or '').upper()
+        key = f'reports:rfm:{days}:{seg_key}'
+        payload = cache.get(key)
+        if payload is None:
+            payload = build_rfm_payload(days, segment)
+            cache.set(key, payload, self._CACHE_TTL)
+        return Response(payload)
 
 
 class ReportExportView(APIView):
@@ -163,8 +209,31 @@ class ReportExportView(APIView):
                  'detail': f'Unsupported format: {fmt}.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        # D-20: PDF export not yet implemented (DEC-REP-01).
+        if fmt == 'pdf':
+            return Response(
+                {'error_code': 'ASYNC_EXPORT_NOT_AVAILABLE',
+                 'detail': 'PDF export is not yet implemented.'},
+                status=status.HTTP_501_NOT_IMPLEMENTED,
+            )
 
         days = parse_period(request.query_params.get('period'))
+
+        # D-19: async export for large datasets not yet implemented (DEC-REP-01).
+        row_count = count_export_rows(slug, days)
+        if row_count > _EXPORT_ASYNC_THRESHOLD:
+            return Response(
+                {
+                    'error_code': 'ASYNC_EXPORT_NOT_AVAILABLE',
+                    'detail': (
+                        f'Export has {row_count} rows which exceeds the '
+                        f'{_EXPORT_ASYNC_THRESHOLD}-row limit. '
+                        'Async export is not yet implemented.'
+                    ),
+                },
+                status=status.HTTP_501_NOT_IMPLEMENTED,
+            )
+
         if slug == 'sales':
             payload = build_sales_payload(days)
         elif slug == 'top-sellers':
@@ -172,7 +241,10 @@ class ReportExportView(APIView):
                 limit = int(request.query_params.get('limit', 10))
             except (TypeError, ValueError):
                 limit = 10
-            payload = build_top_sellers_payload(days, max(1, min(limit, 100)))
+            sort_by = (request.query_params.get('sort') or 'UNIDADES').upper()
+            if sort_by not in ('UNIDADES', 'INGRESOS'):
+                sort_by = 'UNIDADES'
+            payload = build_top_sellers_payload(days, max(1, min(limit, 50)), sort_by=sort_by)
         elif slug == 'customers-rfm':
             payload = build_rfm_payload(
                 days, request.query_params.get('segment') or None,

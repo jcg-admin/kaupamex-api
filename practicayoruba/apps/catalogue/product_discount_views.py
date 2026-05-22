@@ -45,7 +45,7 @@ class ProductDiscountListCreateView(APIView):
     permission_classes = [IsAuthenticated, IsAdminUser]
 
     @extend_schema(
-        summary='List product discounts (UC-DASH-01)',
+        summary='List product discounts (UC-DASH-04)',
         parameters=[
             OpenApiParameter(
                 name='status', required=False, type=str,
@@ -64,7 +64,7 @@ class ProductDiscountListCreateView(APIView):
         return Response({'results': data})
 
     @extend_schema(
-        summary='Create product discount (UC-DASH-02)',
+        summary='Create product discount (UC-DASH-01)',
         request=ProductDiscountCreateSerializer,
         responses={201: ProductDiscountSerializer},
         tags=['product-discounts'],
@@ -126,7 +126,7 @@ class ProductDiscountDetailView(APIView):
             return None
 
     @extend_schema(
-        summary='Edit product discount (UC-DASH-03)',
+        summary='Edit product discount (UC-DASH-02)',
         request=ProductDiscountUpdateSerializer,
         responses=ProductDiscountSerializer,
         tags=['product-discounts'],
@@ -168,7 +168,7 @@ class ProductDiscountDeactivateView(APIView):
     serializer_class = ProductDiscountSerializer
 
     @extend_schema(
-        summary='Deactivate product discount (UC-DASH-04)',
+        summary='Deactivate product discount (UC-DASH-03)',
         responses=ProductDiscountSerializer,
         tags=['product-discounts'],
     )

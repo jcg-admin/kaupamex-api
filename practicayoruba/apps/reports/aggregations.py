@@ -18,7 +18,7 @@ from apps.support.models import SupportTicket
 
 
 
-# ────────────────────────── Period parsing ─────────────────────────────────
+# ────────────────────────── Period parsing ─────────────────────────────
 
 DEFAULT_PERIOD_DAYS = 30
 
@@ -47,7 +47,7 @@ def period_window(days: int):
     return start, end
 
 
-# ────────────────────────── UC-REP-01 sales ────────────────────────────────
+# ────────────────────────── UC-REP-01 sales ──────────────────────────
 
 def build_sales_payload(period_days: int) -> dict:
 
@@ -57,7 +57,7 @@ def build_sales_payload(period_days: int) -> dict:
 
     qs = Order.objects.filter(
         created_at__gte=start, created_at__lte=end,
-    ).exclude(status='CANCELLED')
+    ).exclude(status__in=['CANCELLED', 'CANCELLED_TIMEOUT'])  # D-03
 
     totals_agg = OrderValue.objects.filter(order__in=qs).aggregate(
         revenue=Sum('total'),
@@ -68,7 +68,7 @@ def build_sales_payload(period_days: int) -> dict:
 
     prev_qs = Order.objects.filter(
         created_at__gte=prev_start, created_at__lt=prev_end,
-    ).exclude(status='CANCELLED')
+    ).exclude(status__in=['CANCELLED', 'CANCELLED_TIMEOUT'])
     prev_agg = OrderValue.objects.filter(order__in=prev_qs).aggregate(
         revenue=Sum('total'),
         order_count=Count('id'),
@@ -135,11 +135,14 @@ def build_sales_payload(period_days: int) -> dict:
     }
 
 
-# ────────────────────────── UC-REP-02 top sellers ──────────────────────────
+# ────────────────────────── UC-REP-02 top sellers ──────────────────────
 
-def build_top_sellers_payload(period_days: int, limit: int = 10) -> dict:
-
+def build_top_sellers_payload(
+    period_days: int, limit: int = 10, sort_by: str = 'UNIDADES',
+) -> dict:
+    # D-09: sort_by 'UNIDADES' (default) or 'INGRESOS'.
     start, end = period_window(period_days)
+    order_field = '-revenue' if sort_by == 'INGRESOS' else '-units_sold'
 
     rows = (
         OrderItem.objects
@@ -147,7 +150,7 @@ def build_top_sellers_payload(period_days: int, limit: int = 10) -> dict:
         .exclude(order__status='CANCELLED')
         .values('product_id', 'product_name', 'sku')
         .annotate(units_sold=Sum('quantity'), revenue=Sum('subtotal'))
-        .order_by('-units_sold')[:limit]
+        .order_by(order_field)[:limit]
     )
     results = [
         {
@@ -179,7 +182,7 @@ def build_top_sellers_payload(period_days: int, limit: int = 10) -> dict:
     }
 
 
-# ────────────────────────── UC-REP-03 dashboard ────────────────────────────
+# ────────────────────────── UC-REP-03 dashboard ──────────────────────
 
 def build_dashboard_payload() -> dict:
 
@@ -250,7 +253,7 @@ def build_dashboard_payload() -> dict:
     }
 
 
-# ────────────────────────── UC-REP-04 RFM ──────────────────────────────────
+# ────────────────────────── UC-REP-04 RFM ──────────────────────────
 
 def _segment(recency_days: int, frequency: int, monetary: Decimal) -> str:
     """
@@ -318,6 +321,36 @@ def build_rfm_payload(period_days: int, segment_filter: str | None = None) -> di
             'total_monetary': str(total_monetary),
         },
     }
+
+
+# ────────────────────────── D-19 async threshold helper ─────────────────
+
+
+def count_export_rows(slug: str, days: int) -> int:
+    """Fast row count to gate the async export threshold (D-19)."""
+    start, end = period_window(days)
+    if slug == 'sales':
+        return (
+            OrderValue.objects.filter(
+                order__created_at__gte=start, order__created_at__lte=end,
+            ).exclude(order__status__in=['CANCELLED', 'CANCELLED_TIMEOUT']).count()
+        )
+    if slug == 'top-sellers':
+        return (
+            OrderItem.objects
+            .filter(order__created_at__gte=start, order__created_at__lte=end)
+            .exclude(order__status='CANCELLED')
+            .values('product_id').distinct().count()
+        )
+    if slug == 'customers-rfm':
+        return (
+            OrderValue.objects.filter(
+                order__created_at__gte=start, order__created_at__lte=end,
+                order__user__isnull=False,
+            ).exclude(order__status='CANCELLED')
+            .values('order__user_id').distinct().count()
+        )
+    return 0  # dashboard and unknowns are always small
 
 
 # `Max` import — placed at the bottom to avoid shadowing the module-level
