@@ -23,9 +23,9 @@ from rest_framework import serializers
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .models import Payment, PaymentGatewayEvent
+from .models import Payment, PaymentGatewayEvent, WebhookEvent
 from apps.settings_app.models import PaymentGateway as PGModel
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from .gateways.mercadopago import MercadoPagoGateway
 from .gateways.paypal import PayPalGateway
 from apps.orders.models import Order
@@ -185,6 +185,19 @@ class MercadoPagoWebhookView(APIView):
             logger.warning('MP webhook: firma inválida para payment_id=%s', payment_id)
             return Response({'status': 'invalid_signature'}, status=401)
 
+        # DEC-BC-04: insertar WebhookEvent ANTES de procesar — garantiza idempotencia
+        # a nivel de entrega. Si ya fue procesado, retornar 200 sin re-procesar.
+        try:
+            WebhookEvent.objects.create(
+                gateway='MERCADOPAGO',
+                event_id=payment_id,
+                transmission_id=request_id,
+                raw_body=raw_body,
+            )
+        except IntegrityError:
+            logger.info('MP webhook: evento duplicado payment_id=%s tx=%s — idempotente', payment_id, request_id)
+            return Response({'status': 'duplicate'}, status=200)
+
         # Consultar estado definitivo al gateway (paso 6 del flujo)
         try:
             gw_result = MercadoPagoGateway().verify_payment(payment_id)
@@ -309,6 +322,20 @@ class PayPalWebhookView(APIView):
         if not is_valid:
             logger.warning('PayPal webhook: firma inválida para event_type=%s', event_type)
             return Response({'status': 'invalid_signature'}, status=401)
+
+        # DEC-BC-04: insertar WebhookEvent ANTES de procesar — garantiza idempotencia
+        pp_event_id       = data.get('id', '')
+        pp_transmission_id = headers.get('paypal-transmission-id', '')
+        try:
+            WebhookEvent.objects.create(
+                gateway='PAYPAL',
+                event_id=pp_event_id,
+                transmission_id=pp_transmission_id,
+                raw_body=raw_body,
+            )
+        except IntegrityError:
+            logger.info('PayPal webhook: evento duplicado event_id=%s tx=%s — idempotente', pp_event_id, pp_transmission_id)
+            return Response({'status': 'duplicate'}, status=200)
 
         # Ignorar eventos no relevantes (responder 200 de todas formas)
         relevant = {
