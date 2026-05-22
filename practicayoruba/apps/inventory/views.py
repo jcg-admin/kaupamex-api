@@ -171,7 +171,7 @@ class StockAdjustView(APIView):
         responses={201: StockMovementSerializer, 400: None},
     )
     def post(self, request, product_pk):
-        product = get_object_or_404(Product, pk=product_pk, is_active=True)
+        product = get_object_or_404(Product, pk=product_pk)
         s = StockAdjustSerializer(data=request.data)
         s.is_valid(raise_exception=True)
         try:
@@ -218,7 +218,7 @@ class VariantStockAdjustView(APIView):
         responses={201: StockMovementSerializer, 400: None, 422: None},
     )
     def post(self, request, variant_pk):
-        variant = get_object_or_404(ProductVariant, pk=variant_pk, is_active=True)
+        variant = get_object_or_404(ProductVariant, pk=variant_pk)
 
         if 'new_quantity' in request.data:
             return self._handle_new_quantity(request, variant)
@@ -247,7 +247,7 @@ class VariantStockAdjustView(APIView):
         notes = f'{reason}: {obs}' if obs else reason
         mov = InventoryService.adjust(
             product=variant.product, variant=variant,
-            delta=delta, notes=notes,
+            delta=delta, notes=notes, reason=reason,
             created_by=request.user,
         )
         return Response({

@@ -22,7 +22,7 @@ from apps.cart.models import Cart, CartItem
 from apps.cart.views import _get_or_create_cart
 from apps.inventory.services import InventoryService, InsufficientStockError
 from apps.settings_app.models import SiteSettings, ShippingMethod
-from .models import CheckoutAttempt, Order, OrderItem, OrderValue, OrderAddress
+from .models import CheckoutAttempt, Order, OrderItem, OrderValue, OrderAddress, _generate_order_number
 from .serializers import CancelOrderSerializer, CheckoutSerializer, OrderListSerializer, OrderSerializer, UpdateAddressSerializer, UpdateShippingSerializer
 from django.db.models import Prefetch
 from apps.catalogue.models import ProductImage
@@ -138,11 +138,15 @@ class CheckoutView(APIView):
                     subtotal_for_shipping < shipping_method.free_threshold):
                 shipping_cost = shipping_method.cost
 
+        # Generar order_number antes de la transacción para usarlo como
+        # referencia en StockMovement (UC-INV-02 F-02: audit trail completo).
+        order_number = _generate_order_number()
+
         try:
             with transaction.atomic():
                 # a. Decrementar stock (SELECT FOR UPDATE dentro del servicio)
                 order_items_for_inv = check_items
-                InventoryService.decrement(order_items_for_inv)
+                InventoryService.decrement(order_items_for_inv, reference=order_number)
 
                 # b. Crear Order
                 user = request.user if request.user.is_authenticated else None
@@ -153,6 +157,7 @@ class CheckoutView(APIView):
                 voucher_discount = cart.get_discount()
 
                 order = Order.objects.create(
+                    order_number=order_number,
                     user=user,
                     guest_email=guest_email,
                     shipping_method=shipping_method,

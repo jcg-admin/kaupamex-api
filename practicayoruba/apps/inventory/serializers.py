@@ -23,8 +23,9 @@ class StockMovementSerializer(serializers.ModelSerializer):
 
     class Meta:
         model  = StockMovement
-        fields = ['id', 'product_sku', 'variant_label', 'delta', 'stock_after',
-                  'movement_type', 'reference', 'notes', 'created_at']
+        fields = ['id', 'product_sku', 'variant_label', 'delta',
+                  'stock_before', 'stock_after',
+                  'movement_type', 'reason', 'reference', 'notes', 'created_at']
 
     def get_variant_label(self, obj) -> str | None:
         return obj.variant.option.label if obj.variant else None

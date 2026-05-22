@@ -114,6 +114,7 @@ class InventoryService:
                         raise InsufficientStockError(
                             product.sku, v.option.label, v.stock, quantity
                         )
+                    stock_before = v.stock
                     v.stock -= quantity
                     v.save(update_fields=['stock'])
                     stock_after = v.stock
@@ -123,13 +124,15 @@ class InventoryService:
                         raise InsufficientStockError(
                             p.sku, None, p.stock, quantity
                         )
+                    stock_before = p.stock
                     p.stock -= quantity
                     p.save(update_fields=['stock'])
                     stock_after = p.stock
 
                 mov = StockMovement.objects.create(
                     product=product, variant=variant,
-                    delta=-quantity, stock_after=stock_after,
+                    delta=-quantity, stock_before=stock_before,
+                    stock_after=stock_after,
                     movement_type=StockMovement.TYPE_SALE,
                     reference=reference, created_by=created_by,
                 )
@@ -165,18 +168,21 @@ class InventoryService:
 
                 if variant:
                     v = ProductVariant.objects.select_for_update().get(pk=variant.pk)
+                    stock_before = v.stock
                     v.stock += quantity
                     v.save(update_fields=['stock'])
                     stock_after = v.stock
                 else:
                     p = Product.objects.select_for_update().get(pk=product.pk)
+                    stock_before = p.stock
                     p.stock += quantity
                     p.save(update_fields=['stock'])
                     stock_after = p.stock
 
                 mov = StockMovement.objects.create(
                     product=product, variant=variant,
-                    delta=+quantity, stock_after=stock_after,
+                    delta=+quantity, stock_before=stock_before,
+                    stock_after=stock_after,
                     movement_type=StockMovement.TYPE_CANCELLATION,
                     reference=reference, created_by=created_by,
                 )
@@ -186,18 +192,20 @@ class InventoryService:
 
     @staticmethod
     def adjust(product, variant=None, delta: int = 0,
-               notes: str = '', created_by=None):
+               notes: str = '', reason: str = '', created_by=None):
         """
         Ajuste manual de stock por delta. UC-INV-04 (FR-INV-04.02).
         delta positivo = entrada de mercancía.
         delta negativo = salida / corrección a la baja.
         Si stock_actual + delta < 0 → lanza ValueError.
         Referencia de auditoría: ADMIN:<created_by.pk>.
+        reason: código estructurado del motivo (CONTEO_FISICO, MERMA, etc.).
         """
 
         with transaction.atomic():
             if variant:
                 v = ProductVariant.objects.select_for_update().get(pk=variant.pk)
+                stock_before = v.stock
                 new_stock = v.stock + delta
                 if new_stock < 0:
                     raise ValueError(
@@ -208,6 +216,7 @@ class InventoryService:
                 stock_after = new_stock
             else:
                 p = Product.objects.select_for_update().get(pk=product.pk)
+                stock_before = p.stock
                 new_stock = p.stock + delta
                 if new_stock < 0:
                     raise ValueError(
@@ -220,9 +229,11 @@ class InventoryService:
             reference = f'ADMIN:{created_by.pk}' if created_by else 'ADMIN'
             mov = StockMovement.objects.create(
                 product=product, variant=variant,
-                delta=delta, stock_after=stock_after,
+                delta=delta, stock_before=stock_before,
+                stock_after=stock_after,
                 movement_type=StockMovement.TYPE_ADJUSTMENT,
-                reference=reference, notes=notes, created_by=created_by,
+                reason=reason, reference=reference,
+                notes=notes, created_by=created_by,
             )
             _maybe_create_alert(product, variant, stock_after)
             return mov

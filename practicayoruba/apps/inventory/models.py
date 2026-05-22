@@ -46,8 +46,10 @@ class StockMovement(TimeStampedModel):
         related_name='stock_movements',
     )
     delta         = models.IntegerField()
+    stock_before  = models.IntegerField(null=True, blank=True)
     stock_after   = models.PositiveIntegerField()
     movement_type = models.CharField(max_length=20, choices=TYPES, db_index=True)
+    reason        = models.CharField(max_length=50, blank=True, default='')
     reference     = models.CharField(max_length=50, blank=True, default='')
     notes         = models.TextField(blank=True, default='')
     created_by    = models.ForeignKey(
