@@ -441,7 +441,15 @@ class EmailVerifyView(APIView):
         try:
             token_obj = validate_verification_token(serializer.validated_data['token'])
         except ValueError as e:
-            return Response({'token': str(e)}, status=400)
+            return Response(
+                {'error_code': getattr(e, 'error_code', 'TOKEN_INVALID'), 'detail': str(e)},
+                status=400,
+            )
+        except Exception:
+            return Response(
+                {'error_code': 'SERVER_ERROR', 'detail': 'Error interno al verificar el token.'},
+                status=500,
+            )
 
         if token_obj is None:
             return Response({'message': 'Tu cuenta ya esta activa. Puedes iniciar sesion.'})
