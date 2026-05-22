@@ -21,7 +21,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from apps.orders.models import Order
 from .models import Courier, ShipmentEvent, ShipmentGuide
-from .serializers import CourierSerializer, ShipmentEventSerializer, ShipmentGuideCreateSerializer, ShipmentGuideSerializer
+from .serializers import BuyerShipmentGuideSerializer, CourierCreateUpdateSerializer, CourierSerializer, ShipmentEventSerializer, ShipmentGuideCreateSerializer, ShipmentGuideSerializer
 from apps.notifications.service import notify_shipping_updated
 
 
@@ -111,6 +111,52 @@ class CourierListView(_AdminOnly, APIView):
         qs = Courier.objects.filter(is_active=True)
         return Response(CourierSerializer(qs, many=True).data)
 
+    @extend_schema(
+        summary='Create courier.',
+        request=CourierCreateUpdateSerializer,
+        responses={201: CourierSerializer},
+        tags=['logistics'],
+    )
+    def post(self, request):
+        ser = CourierCreateUpdateSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        courier = ser.save()
+        return Response(CourierSerializer(courier).data, status=status.HTTP_201_CREATED)
+
+
+class CourierDetailView(_AdminOnly, APIView):
+    @extend_schema(
+        summary='Update courier.',
+        request=CourierCreateUpdateSerializer,
+        responses={200: CourierSerializer, 404: None},
+        tags=['logistics'],
+    )
+    def patch(self, request, pk):
+        try:
+            courier = Courier.objects.get(pk=pk)
+        except Courier.DoesNotExist:
+            raise NotFound({'detail': 'Paqueteria no encontrada.',
+                            'codigo_error': 'COURIER_NOT_FOUND'})
+        ser = CourierCreateUpdateSerializer(courier, data=request.data, partial=True)
+        ser.is_valid(raise_exception=True)
+        courier = ser.save()
+        return Response(CourierSerializer(courier).data)
+
+    @extend_schema(
+        summary='Deactivate courier (soft-disable).',
+        responses={200: None, 404: None},
+        tags=['logistics'],
+    )
+    def delete(self, request, pk):
+        try:
+            courier = Courier.objects.get(pk=pk)
+        except Courier.DoesNotExist:
+            raise NotFound({'detail': 'Paqueteria no encontrada.',
+                            'codigo_error': 'COURIER_NOT_FOUND'})
+        courier.is_active = False
+        courier.save(update_fields=['is_active', 'updated_at'])
+        return Response({'deactivated': True, 'id': courier.id})
+
 
 # =============================================================================
 # POST /api/v1/logistics/guides/  — create
@@ -135,6 +181,10 @@ class ShipmentGuideListCreateView(_AdminOnly, APIView):
         ser = ShipmentGuideCreateSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         guide = ser.save()
+        # UC-LOG-01 POST-01: transition order to SHIPPED.
+        if guide.order.status == Order.STATUS_IN_PREPARATION:
+            guide.order.status = Order.STATUS_SHIPPED
+            guide.order.save(update_fields=['status', 'updated_at'])
         ShipmentEvent.objects.create(
             guide=guide,
             status=guide.status,
@@ -221,6 +271,47 @@ class ShipmentGuideDetailView(_AdminOnly, APIView):
 
 
 # =============================================================================
+# POST /api/v1/logistics/guides/<pk>/cancel/  — UC-LOG-01 Alt-C
+# =============================================================================
+
+class CancelGuideView(_AdminOnly, APIView):
+    @extend_schema(
+        summary='Cancel shipment guide (UC-LOG-01 Alt-C). Soft-delete preserves audit trail.',
+        responses={200: None, 400: None, 404: None},
+        tags=['logistics'],
+    )
+    @transaction.atomic
+    def post(self, request, pk):
+        try:
+            guide = ShipmentGuide.objects.select_for_update().get(pk=pk)
+        except ShipmentGuide.DoesNotExist:
+            raise NotFound({'detail': 'Guia no encontrada.',
+                            'codigo_error': 'SHIPMENT_GUIDE_NOT_FOUND'})
+        if guide.status == ShipmentGuide.STATUS_DELIVERED:
+            raise ValidationError({
+                'detail': 'No se puede cancelar una guia entregada.',
+                'codigo_error': 'SHIPMENT_GUIDE_DELIVERED',
+            })
+        if guide.status == ShipmentGuide.STATUS_CANCELLED:
+            raise ValidationError({
+                'detail': 'La guia ya esta cancelada.',
+                'codigo_error': 'SHIPMENT_GUIDE_ALREADY_CANCELLED',
+            })
+        reason = (request.data.get('reason') or 'Guia cancelada.').strip()
+        guide.status = ShipmentGuide.STATUS_CANCELLED
+        guide.save(update_fields=['status', 'updated_at'])
+        ShipmentEvent.objects.create(
+            guide=guide,
+            status=ShipmentGuide.STATUS_CANCELLED,
+            description=reason,
+            occurred_at=timezone.now(),
+            recorded_by=request.user if request.user.is_authenticated else None,
+        )
+        guide.delete()  # soft-delete preserves audit history (DEC-DOC-007)
+        return Response({'cancelled': True, 'id': pk})
+
+
+# =============================================================================
 # POST /api/v1/logistics/guides/<pk>/confirm-delivery/  — UC-LOG-05
 # =============================================================================
 
@@ -276,3 +367,35 @@ class ConfirmDeliveryView(_AdminOnly, APIView):
             'delivered_at': guide.delivered_at,
             'already_delivered': already,
         })
+
+
+# =============================================================================
+# GET /api/v1/logistics/buyer/order/<order_id>/guide/  — UC-LOG-03
+# =============================================================================
+
+class BuyerGuideView(APIView):
+    """UC-LOG-03: buyer sees shipment guide for their own order."""
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary='Buyer: shipment guide for own order (UC-LOG-03).',
+        responses={200: BuyerShipmentGuideSerializer, 404: None},
+        tags=['logistics'],
+    )
+    def get(self, request, order_id):
+        try:
+            order = Order.objects.get(pk=order_id, user=request.user)
+        except Order.DoesNotExist:
+            raise NotFound({'detail': 'Orden no encontrada.',
+                            'codigo_error': 'ORDER_NOT_FOUND'})
+        try:
+            guide = (
+                ShipmentGuide.objects
+                .select_related('courier')
+                .prefetch_related('events')
+                .get(order=order)
+            )
+        except ShipmentGuide.DoesNotExist:
+            raise NotFound({'detail': 'Guia de envio no encontrada.',
+                            'codigo_error': 'SHIPMENT_GUIDE_NOT_FOUND'})
+        return Response(BuyerShipmentGuideSerializer(guide).data)

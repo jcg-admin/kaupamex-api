@@ -36,8 +36,8 @@ class ShipmentGuideSerializer(serializers.ModelSerializer):
         model  = ShipmentGuide
         fields = [
             'id', 'order', 'order_number', 'courier', 'courier_id',
-            'tracking_number', 'status', 'delivered_at', 'notes',
-            'created_at', 'last_event',
+            'tracking_number', 'status', 'delivered_at', 'estimated_delivery',
+            'notes', 'created_at', 'last_event',
         ]
         read_only_fields = ['delivered_at', 'created_at']
 
@@ -84,3 +84,33 @@ class ShipmentGuideCreateSerializer(serializers.ModelSerializer):
                 'codigo_error': 'SHIPMENT_GUIDE_DUPLICATE',
             })
         return attrs
+
+
+class CourierCreateUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = Courier
+        fields = ['name', 'code', 'tracking_url_template', 'is_active']
+
+
+class BuyerShipmentGuideSerializer(serializers.ModelSerializer):
+    courier_name = serializers.CharField(source='courier.name', read_only=True)
+    tracking_url = serializers.SerializerMethodField()
+    last_event   = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = ShipmentGuide
+        fields = [
+            'tracking_number', 'status', 'estimated_delivery',
+            'delivered_at', 'courier_name', 'tracking_url', 'last_event',
+        ]
+        read_only_fields = fields
+
+    def get_tracking_url(self, obj) -> str | None:
+        tpl = obj.courier.tracking_url_template
+        if not tpl or not obj.tracking_number:
+            return None
+        return tpl.replace('{tracking_number}', obj.tracking_number)
+
+    def get_last_event(self, obj) -> dict | None:
+        ev = obj.events.order_by('-occurred_at').first()
+        return ShipmentEventSerializer(ev).data if ev else None

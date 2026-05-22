@@ -66,6 +66,7 @@ class ShipmentGuide(TimeStampedModel, SoftDeleteModel):
         default=STATUS_CREATED, db_index=True,
     )
     delivered_at    = models.DateTimeField(null=True, blank=True)
+    estimated_delivery = models.DateTimeField(null=True, blank=True)
     notes           = models.TextField(blank=True, default='')
 
     class Meta:
