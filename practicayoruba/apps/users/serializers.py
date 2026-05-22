@@ -33,26 +33,27 @@ logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
-AMBIGUOUS_MSG = 'Los datos ingresados no estan disponibles. Prueba con otros.'
-
-# ─── Sprint 1 ─────────────────────────────────────────────────────
+# ─── Sprint 1 ──────────────────────────────────────────────────
 
 class RegisterSerializer(serializers.Serializer):
     """
     UC-AUTH-01: Registro de comprador.
     FR-AUTH-01.02: validar formato
-    FR-AUTH-01.03: unicidad con mensaje ambiguo
+    FR-AUTH-01.03: unicidad — email check vive en RegisterView.post (Alt-A flow)
     FR-AUTH-01.04: is_active=False
+    D-07: username se auto-genera desde email[:150]; campos de entrada
+          son first_name/last_name (opcionales), email, password, terms_accepted.
     """
-    username         = serializers.CharField(min_length=3, max_length=150)
+    first_name       = serializers.CharField(required=False, allow_blank=True, max_length=150, default='')
+    last_name        = serializers.CharField(required=False, allow_blank=True, max_length=150, default='')
     email            = serializers.EmailField()
     password         = serializers.CharField(write_only=True, min_length=8)
     password_confirm = serializers.CharField(write_only=True)
+    terms_accepted   = serializers.BooleanField()
 
-    def validate_username(self, value):
-        value = value.strip()
-        if User.objects.filter(username__iexact=value).exists():
-            raise serializers.ValidationError(AMBIGUOUS_MSG)
+    def validate_terms_accepted(self, value):
+        if not value:
+            raise serializers.ValidationError('Debes aceptar los terminos y condiciones.')
         return value
 
     def validate_email(self, value):
@@ -74,10 +75,14 @@ class RegisterSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         validated_data.pop('password_confirm')
+        validated_data.pop('terms_accepted')
+        email = validated_data['email']
         user = User.objects.create_user(
-            username=validated_data['username'],
-            email=validated_data['email'],
+            username=email[:150],
+            email=email,
             password=validated_data['password'],
+            first_name=validated_data.get('first_name', ''),
+            last_name=validated_data.get('last_name', ''),
             is_active=False,
         )
         # UC-AUTH-01 + GAP-3 cierre: distinguir la causa de is_active=False
@@ -119,7 +124,7 @@ class RegisterSerializer(serializers.Serializer):
         return user
 
 
-# ─── Sprint 2 ─────────────────────────────────────────────────────
+# ─── Sprint 2 ──────────────────────────────────────────────────
 
 class AddressSerializer(serializers.ModelSerializer):
     """UC-AUTH-07: Serializer de direccion de envio."""
@@ -322,7 +327,7 @@ class ChangePasswordSerializer(serializers.Serializer):
         return user
 
 
-# ─── Sprint 3 ─────────────────────────────────────────────────────
+# ─── Sprint 3 ──────────────────────────────────────────────────
 
 class PasswordResetRequestSerializer(serializers.Serializer):
     """UC-AUTH-09 Fase 1: solicitar recuperacion de contrasena."""
