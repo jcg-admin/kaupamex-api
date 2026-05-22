@@ -1,1 +1,37 @@
-from django.db import migrations, models\n\n\nclass Migration(migrations.Migration):\n\n    dependencies = [\n        ("payments", "0001_squashed_0002_sync_model_drift"),\n    ]\n\n    operations = [\n        migrations.CreateModel(\n            name="WebhookEvent",\n            fields=[\n                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False)),\n                ("gateway", models.CharField(\n                    choices=[("MERCADOPAGO", "MercadoPago"), ("PAYPAL", "PayPal")],\n                    db_index=True,\n                    max_length=20,\n                )),\n                ("event_id", models.CharField(max_length=200)),\n                ("transmission_id", models.CharField(blank=True, default="", max_length=200)),\n                ("raw_body", models.TextField()),\n                ("processed_at", models.DateTimeField(auto_now_add=True)),\n            ],\n            options={\n                "verbose_name": "Evento de webhook",\n                "db_table": "payments_webhook_event",\n            },\n        ),\n        migrations.AddConstraint(\n            model_name="webhookevent",\n            constraint=models.UniqueConstraint(\n                fields=["gateway", "event_id", "transmission_id"],\n                name="unique_webhook_event",\n            ),\n        ),\n    ]\n
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ("payments", "0001_squashed_0002_sync_model_drift"),
+    ]
+
+    operations = [
+        migrations.CreateModel(
+            name="WebhookEvent",
+            fields=[
+                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False)),
+                ("gateway", models.CharField(
+                    choices=[("MERCADOPAGO", "MercadoPago"), ("PAYPAL", "PayPal")],
+                    db_index=True,
+                    max_length=20,
+                )),
+                ("event_id", models.CharField(max_length=200)),
+                ("transmission_id", models.CharField(blank=True, default="", max_length=200)),
+                ("raw_body", models.TextField()),
+                ("processed_at", models.DateTimeField(auto_now_add=True)),
+            ],
+            options={
+                "verbose_name": "Evento de webhook",
+                "db_table": "payments_webhook_event",
+            },
+        ),
+        migrations.AddConstraint(
+            model_name="webhookevent",
+            constraint=models.UniqueConstraint(
+                fields=["gateway", "event_id", "transmission_id"],
+                name="unique_webhook_event",
+            ),
+        ),
+    ]
