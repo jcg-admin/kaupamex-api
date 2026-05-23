@@ -39,3 +39,16 @@ class ContactMessageReplySerializer(serializers.Serializer):
     """UC-COM-03 — admin reply body."""
 
     reply_body = serializers.CharField(min_length=3)
+
+
+# Aliases for view compatibility
+class ContactMessageSerializer(ContactMessageCreateSerializer):
+    """Public create + read serializer (alias for ContactMessageCreateSerializer)."""
+    id         = serializers.IntegerField(read_only=True)
+    created_at = serializers.DateTimeField(read_only=True)
+
+    class Meta(ContactMessageCreateSerializer.Meta):
+        fields = ContactMessageCreateSerializer.Meta.fields + ['id', 'created_at']
+
+
+ContactMessageAdminSerializer = ContactMessageListItemSerializer

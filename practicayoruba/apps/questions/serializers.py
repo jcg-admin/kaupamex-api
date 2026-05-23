@@ -22,7 +22,6 @@ class PublicQuestionItemSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_asker_name(self, obj) -> str:
-        # Anonimo si no se provee nombre.
         if obj.asker_user_id and not obj.asker_name:
             return obj.asker_user.username if obj.asker_user else 'Usuario'
         return obj.asker_name or 'Anonimo'
@@ -42,7 +41,6 @@ class PublicQuestionCreateSerializer(serializers.Serializer):
         user = getattr(request, 'user', None) if request else None
         is_authenticated = bool(user and user.is_authenticated)
         if not is_authenticated:
-            # Para anonimos exigimos nombre + email.
             if not attrs.get('asker_name'):
                 raise serializers.ValidationError({
                     'asker_name': 'Requerido para usuarios anonimos.',
@@ -72,3 +70,8 @@ class AdminAnswerSerializer(serializers.Serializer):
     """UC-QST-04 — admin answer body."""
 
     answer_body = serializers.CharField(min_length=3)
+
+
+# Aliases for view compatibility
+ProductQuestionSerializer      = PublicQuestionItemSerializer
+ProductQuestionAdminSerializer = AdminQuestionItemSerializer

@@ -54,3 +54,9 @@ class CampaignResponseSerializer(serializers.ModelSerializer):
             'recipients_count', 'sent_at',
         ]
         read_only_fields = fields
+
+
+# Alias for view compatibility
+NewsletterSubscribeSerializer = SubscribeSerializer
+NewsletterSubscriberAdminSerializer = SubscriberListItemSerializer
+NewsletterCampaignSerializer = CampaignResponseSerializer

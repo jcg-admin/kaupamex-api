@@ -6,8 +6,27 @@ ProductDetailSerializer: para el detalle completo de un producto.
 ProductSearchSerializer: para el endpoint de búsqueda avanzada.
 CategoryWithCountSerializer: para el árbol de categorías con conteo.
 """
+from django.db.models import Q
+from django.utils import timezone
 from rest_framework import serializers
-from .models import Category, Product, ProductImage
+from .models import Category, Product, ProductImage, ProductDiscount, SearchHistory
+
+
+def _get_sale_price(product):
+    """Return discounted price string if an active discount exists, else None."""
+    now = timezone.now()
+    discount = (
+        ProductDiscount.objects
+        .filter(
+            product=product,
+            is_active=True,
+            valid_from__lte=now,
+        )
+        .filter(Q(valid_until__isnull=True) | Q(valid_until__gte=now))
+        .order_by('-created_at')
+        .first()
+    )
+    return str(discount.discounted_price) if discount else None
 
 
 
@@ -38,6 +57,7 @@ class ProductListSerializer(serializers.ModelSerializer):
     """
     cover_image_url = serializers.SerializerMethodField()
     category_name   = serializers.CharField(source='category.name', read_only=True)
+    sale_price      = serializers.SerializerMethodField()
 
     class Meta:
         model  = Product
@@ -46,6 +66,9 @@ class ProductListSerializer(serializers.ModelSerializer):
             'category_name', 'cover_image_url',
             'is_active', 'is_published',
         ]
+
+    def get_sale_price(self, obj):
+        return _get_sale_price(obj)
 
     def get_cover_image_url(self, obj):
         request = self.context.get('request')
@@ -58,8 +81,9 @@ class ProductListSerializer(serializers.ModelSerializer):
 
 
 class ProductDetailSerializer(serializers.ModelSerializer):
-    images   = ProductImageSerializer(many=True, read_only=True)
-    category = CategorySerializer(read_only=True)
+    images     = ProductImageSerializer(many=True, read_only=True)
+    category   = CategorySerializer(read_only=True)
+    sale_price = serializers.SerializerMethodField()
 
     class Meta:
         model  = Product
@@ -69,6 +93,9 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at',
         ]
 
+    def get_sale_price(self, obj):
+        return _get_sale_price(obj)
+
 
 class ProductSearchSerializer(serializers.ModelSerializer):
     """
@@ -77,6 +104,7 @@ class ProductSearchSerializer(serializers.ModelSerializer):
     """
     cover_image_url = serializers.SerializerMethodField()
     category_name   = serializers.CharField(source='category.name', read_only=True)
+    sale_price      = serializers.SerializerMethodField()
 
     class Meta:
         model  = Product
@@ -84,6 +112,9 @@ class ProductSearchSerializer(serializers.ModelSerializer):
             'id', 'name', 'slug', 'price', 'sale_price',
             'category_name', 'cover_image_url',
         ]
+
+    def get_sale_price(self, obj):
+        return _get_sale_price(obj)
 
     def get_cover_image_url(self, obj):
         request = self.context.get('request')
@@ -113,8 +144,9 @@ class CategoryWithCountSerializer(serializers.ModelSerializer):
 
 class ProductAdminSerializer(serializers.ModelSerializer):
     """Serializer completo para vistas admin — incluye campos de publicación."""
-    images   = ProductImageSerializer(many=True, read_only=True)
-    category = CategorySerializer(read_only=True)
+    images     = ProductImageSerializer(many=True, read_only=True)
+    category   = CategorySerializer(read_only=True)
+    sale_price = serializers.SerializerMethodField()
 
     class Meta:
         model  = Product
@@ -123,3 +155,32 @@ class ProductAdminSerializer(serializers.ModelSerializer):
             'category', 'images', 'is_active', 'is_published',
             'created_at', 'updated_at',
         ]
+
+    def get_sale_price(self, obj):
+        return _get_sale_price(obj)
+
+
+class AutocompleteSerializer(serializers.ModelSerializer):
+    """UC-SRCH-02: sugerencias de autocomplete por prefijo."""
+
+    class Meta:
+        model  = Product
+        fields = ['id', 'name', 'slug']
+
+
+class SearchHistorySerializer(serializers.ModelSerializer):
+    """UC-SRCH-03: historial de busquedas del comprador."""
+    searched_at = serializers.DateTimeField(source='updated_at', read_only=True)
+
+    class Meta:
+        model  = SearchHistory
+        fields = ['id', 'term', 'searched_at']
+
+
+class CategoryAdminSerializer(serializers.ModelSerializer):
+    """UC-CAT-06: administracion de categorias (admin CRUD)."""
+
+    class Meta:
+        model  = Category
+        fields = ['id', 'name', 'slug', 'description', 'parent', 'image', 'is_active']
+        extra_kwargs = {'slug': {'required': False}}

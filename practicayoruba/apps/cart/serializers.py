@@ -43,7 +43,6 @@ class CartItemSerializer(serializers.ModelSerializer):
         changed_ids = self.context.get('changed_ids', set())
         if changed_ids:
             return obj.pk in changed_ids
-        # Fallback: comparar con precio vigente
         return obj.current_price() != obj.unit_price
 
 
@@ -81,3 +80,11 @@ class SavedCartItemSerializer(serializers.ModelSerializer):
     class Meta:
         model  = SavedCartItem
         fields = ['id', 'product_name', 'quantity', 'price_at_save']
+
+
+class SavedCartSerializer(serializers.ModelSerializer):
+    items = SavedCartItemSerializer(many=True, read_only=True)
+
+    class Meta:
+        model  = SavedCart
+        fields = ['id', 'items', 'created_at', 'updated_at']

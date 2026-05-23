@@ -93,3 +93,38 @@ class StockAlert(TimeStampedModel):
 
     def __str__(self):
         return f'Alerta {self.product.sku} stock={self.stock_at_alert}'
+
+
+class ImportJob(models.Model):
+    """UC-INV-05: job de importación de productos desde CSV."""
+    STATUS_PENDING  = 'PENDING'
+    STATUS_RUNNING  = 'RUNNING'
+    STATUS_DONE     = 'DONE'
+    STATUS_FAILED   = 'FAILED'
+    STATUSES = [
+        (STATUS_PENDING, 'Pendiente'),
+        (STATUS_RUNNING, 'En proceso'),
+        (STATUS_DONE,    'Completado'),
+        (STATUS_FAILED,  'Fallido'),
+    ]
+
+    uploaded_by   = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='import_jobs',
+    )
+    file          = models.FileField(upload_to='inventory/imports/')
+    status        = models.CharField(max_length=10, choices=STATUSES, default=STATUS_PENDING, db_index=True)
+    total_rows    = models.IntegerField(default=0)
+    imported_rows = models.IntegerField(default=0)
+    failed_rows   = models.IntegerField(default=0)
+    errors        = models.JSONField(null=True, blank=True)
+    created_at    = models.DateTimeField(auto_now_add=True)
+    updated_at    = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table     = 'inventory_import_job'
+        ordering     = ['-created_at']
+        verbose_name = 'Import job'
+
+    def __str__(self):
+        return f'ImportJob #{self.pk} {self.status}'

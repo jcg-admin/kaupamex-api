@@ -11,11 +11,12 @@ from django.utils import timezone
 from rest_framework import serializers as drf_serializers
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from drf_spectacular.utils import extend_schema, OpenApiParameter
-from .models import UserDeactivationEvent
+from .models import AuthEvent, BusinessEvent, UserDeactivationEvent
 from .serializers import AdminUserListSerializer
 from .tokens_email import invalidate_all_sessions
 
@@ -119,15 +120,10 @@ class AdminUserViewSet(ModelViewSet):
         is_active = self.request.query_params.get('is_active')
         is_staff  = self.request.query_params.get('is_staff')
         if search:
-            # Q ya importado al top del modulo
             qs = qs.filter(
                 Q(username__icontains=search) | Q(email__icontains=search) |
                 Q(first_name__icontains=search) | Q(last_name__icontains=search)
             )
-        # UC-AUTH-11 + GAP-3: el admin filtra por motivo concreto de
-        # inactividad para decidir el camino correcto (suspended
-        # requiere UC-AUTH-14; unverified/self_deleted esperan
-        # UC-AUTH-01 Alt-A.2).
         deactivated_reason = self.request.query_params.get('deactivated_reason')
         if is_active is not None:
             qs = qs.filter(is_active=(is_active.lower() == 'true'))
@@ -182,16 +178,12 @@ class AdminUserViewSet(ModelViewSet):
             )
         with transaction.atomic():
             target.is_active = False
-            # GAP-3 cierre: registrar la causa explicita para que
-            # ResendVerificationView no reactive por email (UC-AUTH-01
-            # Alt-A.3). Solo UC-AUTH-14 restaura cuentas suspendidas.
             target.deactivated_reason = User.DEACTIVATION_SUSPENDED
             target.deactivated_at = timezone.now()
             target.save(update_fields=[
                 'is_active', 'deactivated_reason', 'deactivated_at',
             ])
             invalidate_all_sessions(target)
-            # GAP 10: audit log del evento (append-only).
             UserDeactivationEvent.objects.create(
                 user=target,
                 reason=User.DEACTIVATION_SUSPENDED,
@@ -211,10 +203,105 @@ class AdminUserViewSet(ModelViewSet):
         _require_admin(request.user)
         target = self.get_object()
         target.is_active = True
-        # Limpiar la causa para que el estado quede consistente.
         target.deactivated_reason = None
         target.deactivated_at = None
         target.save(update_fields=[
             'is_active', 'deactivated_reason', 'deactivated_at',
         ])
         return Response({'message': f'Cuenta de {target.username} reactivada.'})
+
+
+class AuditLogView(APIView):
+    """
+    UC-ADM-03: Feed paginado del audit log admin (read-only).
+    Combina AuthEvent + BusinessEvent + UserDeactivationEvent.
+    GET /api/v1/admin/audit-log/
+    Filtros: ?event_type=auth|business|deactivation  ?user_id=<pk>
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    _PAGE_SIZE = 25
+
+    @extend_schema(
+        summary='Listar audit log de eventos (UC-ADM-03)',
+        parameters=[
+            OpenApiParameter('event_type', str, description='auth | business | deactivation'),
+            OpenApiParameter('user_id',    int, description='Filtrar por usuario'),
+            OpenApiParameter('page',       int, description='Número de página'),
+        ],
+        tags=['admin'],
+        responses={200: None},
+    )
+    def get(self, request):
+        event_type = request.query_params.get('event_type')
+        user_id    = request.query_params.get('user_id')
+        page       = max(1, int(request.query_params.get('page', 1)))
+        page_size  = self._PAGE_SIZE
+
+        rows = []
+
+        if not event_type or event_type == 'auth':
+            qs = AuthEvent.objects.select_related('user').order_by('-created_at')
+            if user_id:
+                qs = qs.filter(user_id=user_id)
+            for ev in qs:
+                rows.append({
+                    'id':         ev.pk,
+                    'event_type': 'auth',
+                    'user_id':    ev.user_id,
+                    'username':   ev.user.username if ev.user_id else None,
+                    'action':     ev.action,
+                    'created_at': ev.created_at.isoformat(),
+                    'extra':      {
+                        'ip_addr': str(ev.ip_addr) if ev.ip_addr else None,
+                        'reason':  ev.reason or None,
+                    },
+                })
+
+        if not event_type or event_type == 'business':
+            qs = BusinessEvent.objects.select_related('actor').order_by('-created_at')
+            if user_id:
+                qs = qs.filter(actor_id=user_id)
+            for ev in qs:
+                rows.append({
+                    'id':         ev.pk,
+                    'event_type': 'business',
+                    'user_id':    ev.actor_id,
+                    'username':   ev.actor.username if ev.actor_id else None,
+                    'action':     ev.action,
+                    'created_at': ev.created_at.isoformat(),
+                    'extra':      {
+                        'target_type': ev.target_type,
+                        'target_id':   ev.target_id,
+                    },
+                })
+
+        if not event_type or event_type == 'deactivation':
+            qs = UserDeactivationEvent.objects.select_related('user', 'actor').order_by('-created_at')
+            if user_id:
+                qs = qs.filter(user_id=user_id)
+            for ev in qs:
+                rows.append({
+                    'id':         ev.pk,
+                    'event_type': 'deactivation',
+                    'user_id':    ev.user_id,
+                    'username':   ev.user.username,
+                    'action':     ev.reason,
+                    'created_at': ev.created_at.isoformat(),
+                    'extra':      {
+                        'source': ev.source,
+                        'actor':  ev.actor.username if ev.actor_id else None,
+                    },
+                })
+
+        if not event_type:
+            rows.sort(key=lambda r: r['created_at'], reverse=True)
+
+        total = len(rows)
+        pages = max(1, (total + page_size - 1) // page_size)
+        start = (page - 1) * page_size
+        return Response({
+            'count':   total,
+            'page':    page,
+            'pages':   pages,
+            'results': rows[start: start + page_size],
+        })
