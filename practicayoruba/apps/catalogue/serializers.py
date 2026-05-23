@@ -348,7 +348,6 @@ class SearchHistorySerializer(serializers.ModelSerializer):
 # Sprint 7 — UC-CAT-07, UC-CAT-08, UC-CAT-09, UC-CAT-10
 # =============================================================================
 
-# Sprint 9 — import lazy para evitar circular import con apps.chartsize
 def _get_variant_serializer():
     return ProductVariantSerializer
 
@@ -373,7 +372,6 @@ class CategoryWithCountSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'slug', 'description', 'product_count', 'children']
 
     def get_children(self, obj) -> list:
-        # Los hijos vienen pre-cargados desde la vista vía prefetch_related
         active_children = [c for c in obj.children.all() if c.is_active]
         return CategoryWithCountSerializer(
             active_children, many=True, context=self.context
@@ -427,7 +425,6 @@ class ProductAdminSerializer(serializers.ModelSerializer):
         return round(float(obj.price) * (1 + float(iva_rate)), 2)
 
     def get_images(self, obj) -> list:
-        # Sprint 8: sustituir por ProductImageSerializer(obj.images.all(), many=True).data
         return []
 
     def validate_sku(self, value):
