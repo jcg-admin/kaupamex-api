@@ -6,6 +6,11 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
+    """
+    T-119 merge-safe: CheckoutAttempt may already exist from 0009_checkout_attempt
+    (Branch A). Use SeparateDatabaseAndState for the CreateModel so it does not
+    fail when the table is already present.
+    """
 
     dependencies = [
         ("orders", "0010_seed_shipping_zones"),
@@ -39,34 +44,55 @@ class Migration(migrations.Migration):
                 auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
             ),
         ),
-        migrations.CreateModel(
-            name="CheckoutAttempt",
-            fields=[
-                (
-                    "id",
-                    models.BigAutoField(
-                        auto_created=True,
-                        primary_key=True,
-                        serialize=False,
-                        verbose_name="ID",
-                    ),
-                ),
-                ("idempotency_key", models.CharField(max_length=100)),
-                ("response_json", models.TextField(default="")),
-                ("created_at", models.DateTimeField(auto_now_add=True)),
-                (
-                    "user",
-                    models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE,
-                        related_name="checkout_attempts",
-                        to=settings.AUTH_USER_MODEL,
-                    ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    sql="""
+                        CREATE TABLE IF NOT EXISTS `orders_checkout_attempt` (
+                            `id` bigint AUTO_INCREMENT NOT NULL PRIMARY KEY,
+                            `idempotency_key` varchar(100) NOT NULL,
+                            `response_json` longtext NOT NULL,
+                            `created_at` datetime(6) NOT NULL,
+                            `user_id` bigint NOT NULL,
+                            UNIQUE KEY `orders_checkout_attempt_uid_ikey_uniq` (`user_id`, `idempotency_key`),
+                            CONSTRAINT `orders_checkout_attempt_uid_fk_users_user`
+                                FOREIGN KEY (`user_id`) REFERENCES `users_user` (`id`)
+                        )
+                    """,
+                    reverse_sql="DROP TABLE IF EXISTS `orders_checkout_attempt`",
                 ),
             ],
-            options={
-                "verbose_name": "Checkout attempt",
-                "db_table": "orders_checkout_attempt",
-                "unique_together": {("user", "idempotency_key")},
-            },
+            state_operations=[
+                migrations.CreateModel(
+                    name="CheckoutAttempt",
+                    fields=[
+                        (
+                            "id",
+                            models.BigAutoField(
+                                auto_created=True,
+                                primary_key=True,
+                                serialize=False,
+                                verbose_name="ID",
+                            ),
+                        ),
+                        ("idempotency_key", models.CharField(max_length=100)),
+                        ("response_json", models.TextField(default="")),
+                        ("created_at", models.DateTimeField(auto_now_add=True)),
+                        (
+                            "user",
+                            models.ForeignKey(
+                                on_delete=django.db.models.deletion.CASCADE,
+                                related_name="checkout_attempts",
+                                to=settings.AUTH_USER_MODEL,
+                            ),
+                        ),
+                    ],
+                    options={
+                        "verbose_name": "Checkout attempt",
+                        "db_table": "orders_checkout_attempt",
+                        "unique_together": {("user", "idempotency_key")},
+                    },
+                ),
+            ],
         ),
     ]
