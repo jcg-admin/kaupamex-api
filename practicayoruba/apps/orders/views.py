@@ -27,7 +27,7 @@ from .serializers import CancelOrderSerializer, CheckoutSerializer, OrderListSer
 from django.db.models import Prefetch
 from apps.catalogue.models import ProductImage
 from .services import OrderNotEditableError, ShippingMethodNotAvailableError, cancel_order, update_order_address, update_shipping_method
-from apps.notifications.service import notify_order_created
+from .signals import order_created
 
 
 
@@ -225,9 +225,9 @@ class CheckoutView(APIView):
                 cart.voucher = None
                 cart.save(update_fields=['voucher'])
 
-                # UC-NOT-01: notificacion in-app + email de confirmacion.
-                # on_commit garantiza despacho solo si la transaccion commitea.
-                notify_order_created(order, user, total)
+                # UC-NOT-01: dispatch order_created. Notification wired via
+                # apps.notifications.signals._order_value_created (post_save OrderValue).
+                order_created.send(sender=Order, order=order, user=user, total=total)
 
         except InsufficientStockError as exc:
             return Response({'detail': str(exc),
