@@ -222,3 +222,17 @@ class CheckoutAttempt(models.Model):
 
     def __str__(self):
         return f'{self.user_id} {self.idempotency_key}'
+
+
+class ShippingZone(models.Model):
+    """Zona de envío cubierta. DEC-BC-18.
+    zip_code_prefix es el inicio del código postal cubierto (1-5 dígitos)."""
+    name            = models.CharField(max_length=100)
+    zip_code_prefix = models.CharField(max_length=5, db_index=True)
+    is_active       = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'orders_shipping_zone'
+
+    def __str__(self):
+        return f'{self.name} ({self.zip_code_prefix})'

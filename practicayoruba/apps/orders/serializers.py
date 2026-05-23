@@ -1,7 +1,7 @@
 """Serializers — apps.orders (Sprint 14)."""
 from decimal import Decimal
 from rest_framework import serializers
-from .models import Order, OrderItem, OrderValue, OrderAddress
+from .models import Order, OrderItem, OrderValue, OrderAddress, ShippingZone
 
 
 class OrderAddressSerializer(serializers.ModelSerializer):
@@ -139,6 +139,20 @@ class CheckoutSerializer(serializers.Serializer):
     address            = OrderAddressInputSerializer()
     shipping_method_id = serializers.IntegerField(required=False, allow_null=True)
     notes              = serializers.CharField(required=False, default='', allow_blank=True)
+
+    def validate_address(self, value):
+        """DEC-BC-18: reject zip_code not covered by any active ShippingZone."""
+        zip_code = value.get('zip_code', '')
+        prefixes = list(
+            ShippingZone.objects.filter(is_active=True)
+            .values_list('zip_code_prefix', flat=True)
+        )
+        if not any(zip_code.startswith(p) for p in prefixes):
+            raise serializers.ValidationError({
+                'zip_code': 'El código postal no está cubierto por ninguna zona de envío.',
+                'error_code': 'ZONE_NOT_COVERED',
+            })
+        return value
 
 
 # ─── Sprint 18 — serializers de edición ─────────────────────────────────────
