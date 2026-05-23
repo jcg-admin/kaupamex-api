@@ -210,12 +210,27 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         return 'IN_STOCK' if obj.stock > 0 else 'OUT_OF_STOCK'
 
     def get_images(self, obj) -> list:
-        # Sprint 8: sustituir por ProductImageSerializer(obj.images.all(), many=True).data
-        return []
+        """DEC-BC-17 sub-item 17b: retorna lista de imagenes ordenadas."""
+        return ProductImageSerializer(
+            obj.images.order_by('order', 'id'), many=True, context=self.context
+        ).data
 
     def get_discount(self, obj) -> dict | None:
-        # Sprint 7 (vouchers): sustituir por lógica de ProductDiscount activo (BR-012) — Sprint 13
-        return None
+        """DEC-BC-17 sub-item 17a: descuento activo (status CURRENT) del producto."""
+        now = timezone.now()
+        discount = (
+            obj.discounts
+            .filter(is_active=True, valid_from__lte=now)
+            .exclude(valid_until__lt=now)
+            .order_by('-valid_from')
+            .first()
+        )
+        if discount is None:
+            return None
+        return {
+            'pct': float(discount.discount_pct),
+            'discounted_price': float(discount.discounted_price),
+        }
 
     def get_variants(self, obj) -> list:
         """
@@ -319,7 +334,7 @@ def _get_variant_serializer():
     return ProductVariantSerializer
 
 class ProductImageSerializer(serializers.ModelSerializer):
-    """Imagen de producto. Gestión completa en Sprint 8."""
+    """Imagen de producto. UC-CAT-09."""
     class Meta:
         model  = ProductImage
         fields = ['id', 'image', 'alt_text', 'order']
