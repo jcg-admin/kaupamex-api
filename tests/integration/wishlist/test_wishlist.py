@@ -3,14 +3,15 @@ Tests — Wishlist (UC-WISH-01/02/03)
 
 UC-WISH-01: Agregar producto a wishlist
 UC-WISH-02: Ver lista de deseos (paginada, con filtro availability)
-UC-WISH-03: Mover item al carrito — respuesta compacta
+UC-WISH-03: Mover item al carrito — keep_in_wishlist + respuesta compacta
 
 T-104 fixes:
-  D-05 UC-WISH-02 (ALTA)  — paginacion + filtro availability
-  D-06 UC-WISH-01 (MEDIA) — 200 → 409 PRODUCT_ALREADY_IN_WISHLIST
-  D-07 UC-WISH-01 (MEDIA) — price_at_add = product.price
-  D-06 UC-WISH-03 (MEDIA) — respuesta {wishlist_item_id, cart_item_id, moved_at}
-  D-09 UC-WISH-02 (MEDIA) — nested product + availability string + price_dropped
+  D-01 UC-WISH-03 (CRITICA) — keep_in_wishlist (positive semantics)
+  D-05 UC-WISH-02 (ALTA)    — paginacion + filtro availability
+  D-06 UC-WISH-01 (MEDIA)   — 200 → 409 PRODUCT_ALREADY_IN_WISHLIST
+  D-06 UC-WISH-03 (MEDIA)   — respuesta {wishlist_item_id, cart_item_id, moved_at}
+  D-07 UC-WISH-01 (MEDIA)   — price_at_add = product.price
+  D-09 UC-WISH-02 (MEDIA)   — nested product + availability string + price_dropped
 """
 import pytest
 from decimal import Decimal
@@ -48,7 +49,7 @@ def variant_s14(db, prod_s14):
 
 class TestWishlist:
 
-    # UC-WISH-01 ── Agregar ───────────────────────────────────────────
+    # UC-WISH-01 ── Agregar ─────────────────────────────────────────────────────────
 
     def test_requires_auth(self, api_client, db):
         assert api_client.get(WISH_URL).status_code == 401
@@ -80,7 +81,7 @@ class TestWishlist:
         assert res.status_code == 201
         assert res.json()['price_at_add'] == str(prod_s14.price)
 
-    # UC-WISH-02 ── Ver lista (paginada) ──────────────────────────
+    # UC-WISH-02 ── Ver lista (paginada) ──────────────────────────────
 
     def test_view_list_returns_paginated(self, auth_client, prod_s14, db):
         """D-05 UC-WISH-02: GET retorna respuesta paginada con total_items y results."""
@@ -126,7 +127,6 @@ class TestWishlist:
         auth_client.post(WISH_URL, {'product_id': prod_s14.pk}, format='json')
         data = auth_client.get(WISH_URL).json()
         assert data['items_out_of_stock'] == 0
-        # agotar stock
         prod_s14.stock = 0
         prod_s14.save()
         data2 = auth_client.get(WISH_URL).json()
@@ -150,7 +150,7 @@ class TestWishlist:
         assert item['current_price'] == '900.00'
         assert item['price_dropped'] is False
 
-    # UC-WISH-02 ── Eliminar ─────────────────────────────────────────
+    # UC-WISH-02 ── Eliminar ───────────────────────────────────────────────
 
     def test_delete_item(self, auth_client, prod_s14, db):
         res = auth_client.post(WISH_URL, {'product_id': prod_s14.pk}, format='json')
@@ -180,7 +180,7 @@ class TestWishlist:
         assert WishlistItem.all_objects.filter(pk=item_id).count() == 1
         assert WishlistItem.objects.filter(pk=item_id).exists() is True
 
-    # UC-WISH-03 ── Mover al carrito ──────────────────────────────
+    # UC-WISH-03 ── Mover al carrito ────────────────────────────────────
 
     def test_move_to_cart(self, auth_client, prod_s14, db):
         """D-06 UC-WISH-03: respuesta compacta {wishlist_item_id, cart_item_id, moved_at}."""
@@ -193,16 +193,16 @@ class TestWishlist:
         assert 'cart_item_id' in data
         assert 'moved_at' in data
         assert data['wishlist_item_id'] == item_id
-        # Por defecto se elimina de wishlist
+        # Por defecto (keep_in_wishlist=False) se elimina de wishlist
         assert auth_client.get(WISH_URL).json()['results'] == []
 
-    def test_move_to_cart_without_removing(self, auth_client, prod_s14, db):
-        """remove_from_wishlist=False conserva el item en la lista."""
+    def test_move_to_cart_keep_in_wishlist(self, auth_client, prod_s14, db):
+        """D-01 UC-WISH-03: keep_in_wishlist=True conserva el item en la lista."""
         res = auth_client.post(WISH_URL, {'product_id': prod_s14.pk}, format='json')
         item_id = res.json()['id']
         auth_client.post(
             f'{WISH_URL}{item_id}/move-to-cart/',
-            {'remove_from_wishlist': False}, format='json')
+            {'keep_in_wishlist': True}, format='json')
         assert len(auth_client.get(WISH_URL).json()['results']) == 1
 
     def test_move_without_stock_returns_409(self, auth_client, prod_s14, db):
