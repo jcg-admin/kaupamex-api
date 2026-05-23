@@ -2,13 +2,13 @@
 Views — apps.orders
 UC-ORD-01: Checkout, UC-ORD-02..06: Gestión del comprador (Sprint 18)
 """
-import json
+import json as _json
 import uuid
 from decimal import Decimal
-from django.core.serializers.json import DjangoJSONEncoder
-from django.db import IntegrityError, transaction
+from django.db import transaction
 from django.db.models import F
 from apps.voucher.models import Voucher, VoucherUsage
+from .signals import order_created as order_created_signal
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from apps.users.audit import audit_log_business
@@ -22,12 +22,12 @@ from apps.cart.models import Cart, CartItem
 from apps.cart.views import _get_or_create_cart
 from apps.inventory.services import InventoryService, InsufficientStockError
 from apps.settings_app.models import SiteSettings, ShippingMethod
-from .models import CheckoutAttempt, Order, OrderItem, OrderValue, OrderAddress, _generate_order_number
+from .models import CheckoutAttempt, Order, OrderItem, OrderValue, OrderAddress, ShippingZone
 from .serializers import CancelOrderSerializer, CheckoutSerializer, OrderListSerializer, OrderSerializer, UpdateAddressSerializer, UpdateShippingSerializer
 from django.db.models import Prefetch
 from apps.catalogue.models import ProductImage
 from .services import OrderNotEditableError, ShippingMethodNotAvailableError, cancel_order, update_order_address, update_shipping_method
-from .signals import order_created
+from apps.notifications.service import notify_order_created
 
 
 
@@ -69,21 +69,21 @@ class CheckoutView(APIView):
         tags=['orders'],
     )
     def post(self, request):
-        s = CheckoutSerializer(data=request.data)
-        s.is_valid(raise_exception=True)
-        data = s.validated_data
-
-        # DEC-BC-03: idempotencia de checkout (solo usuarios autenticados)
-        idempotency_key = request.META.get('HTTP_IDEMPOTENCY_KEY', '')
+        # DEC-BC-03: Idempotency-Key — retorna respuesta cacheada si existe.
+        idempotency_key = request.headers.get('Idempotency-Key')
         if idempotency_key and request.user and request.user.is_authenticated:
             try:
-                cached = CheckoutAttempt.objects.get(
+                attempt = CheckoutAttempt.objects.get(
                     user=request.user,
                     idempotency_key=idempotency_key,
                 )
-                return Response(json.loads(cached.response_json), status=201)
+                return Response(_json.loads(attempt.response_json), status=201)
             except CheckoutAttempt.DoesNotExist:
                 pass
+
+        s = CheckoutSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        data = s.validated_data
 
         # 1. Recuperar carrito
         if request.user and request.user.is_authenticated:
@@ -122,15 +122,18 @@ class CheckoutView(APIView):
                              'codigo_error': 'INSUFFICIENT_STOCK',
                              'items': insufficient}, status=409)
 
-        # DEC-BC-10: single-use-by-user check (fast path before atomic block)
-        _pre_user = request.user if request.user.is_authenticated else None
-        if cart.voucher_id and _pre_user:
-            if VoucherUsage.objects.filter(user=_pre_user, voucher_id=cart.voucher_id).exists():
-                return Response(
-                    {'detail': 'Ya utilizaste este cupón anteriormente.',
-                     'codigo_error': 'VOUCHER_ALREADY_USED_BY_USER'},
-                    status=409,
-                )
+        # 3b. DEC-BC-18: validar cobertura de zona de envío.
+        zip_code = data.get('address', {}).get('zip_code', '')
+        if zip_code:
+            prefixes = [zip_code[:i] for i in range(1, min(6, len(zip_code) + 1))]
+            covered = ShippingZone.objects.filter(
+                is_active=True, zip_code_prefix__in=prefixes
+            ).exists()
+            if not covered:
+                raise ValidationError({
+                    'address': {'zip_code': 'Código postal no cubierto.'},
+                    'codigo_error': 'ZONE_NOT_COVERED',
+                })
 
         # 4. Transacción atómica: decrement + crear orden
         settings_obj = SiteSettings.get_current()
@@ -148,15 +151,11 @@ class CheckoutView(APIView):
                     subtotal_for_shipping < shipping_method.free_threshold):
                 shipping_cost = shipping_method.cost
 
-        # Generar order_number antes de la transacción para usarlo como
-        # referencia en StockMovement (UC-INV-02 F-02: audit trail completo).
-        order_number = _generate_order_number()
-
         try:
             with transaction.atomic():
                 # a. Decrementar stock (SELECT FOR UPDATE dentro del servicio)
                 order_items_for_inv = check_items
-                InventoryService.decrement(order_items_for_inv, reference=order_number)
+                InventoryService.decrement(order_items_for_inv)
 
                 # b. Crear Order
                 user = request.user if request.user.is_authenticated else None
@@ -167,7 +166,6 @@ class CheckoutView(APIView):
                 voucher_discount = cart.get_discount()
 
                 order = Order.objects.create(
-                    order_number=order_number,
                     user=user,
                     guest_email=guest_email,
                     shipping_method=shipping_method,
@@ -207,10 +205,7 @@ class CheckoutView(APIView):
                 addr_data = data['address']
                 OrderAddress.objects.create(order=order, **addr_data)
 
-                # f. Incrementar Voucher.current_uses atomicamente
-                # (DEC-VCU-01 T-115 D-01 CRITICA: el campo se leia en
-                # is_usable()/can_apply() pero NUNCA se incrementaba.
-                # max_uses no limitaba en la practica).
+                # f. Incrementar Voucher.current_uses atomicamente (DEC-BC-10).
                 if cart.voucher_id:
                     voucher_locked = (
                         Voucher.objects.select_for_update()
@@ -219,8 +214,6 @@ class CheckoutView(APIView):
                     if (voucher_locked.max_uses is not None
                             and voucher_locked.current_uses >=
                                 voucher_locked.max_uses):
-                        # Race detectada: otro checkout consumio el
-                        # cupo entre validacion y lock.
                         raise ValueError(
                             f'Voucher {voucher_locked.code} agotado: '
                             f'{voucher_locked.current_uses}/'
@@ -229,18 +222,18 @@ class CheckoutView(APIView):
                     Voucher.objects.filter(pk=cart.voucher_id).update(
                         current_uses=F('current_uses') + 1
                     )
-                    # DEC-BC-10: track single-use per user
+                    # DEC-BC-10: registrar uso por usuario para single-use validation.
                     if user:
-                        VoucherUsage.objects.create(user=user, voucher_id=cart.voucher_id)
+                        VoucherUsage.objects.create(
+                            user=user, voucher_id=cart.voucher_id)
 
                 # g. Vaciar carrito
                 cart.items.all().delete()
                 cart.voucher = None
                 cart.save(update_fields=['voucher'])
 
-                # UC-NOT-01: dispatch order_created. Notification wired via
-                # apps.notifications.signals._order_value_created (post_save OrderValue).
-                order_created.send(sender=Order, order=order, user=user, total=total)
+                # UC-NOT-01: notificacion in-app + email de confirmacion.
+                notify_order_created(order, user, total)
 
         except InsufficientStockError as exc:
             return Response({'detail': str(exc),
@@ -254,17 +247,21 @@ class CheckoutView(APIView):
             target_id=order.pk,
             extra={'order_number': order.order_number},
         )
-        order_data = OrderSerializer(order).data
-        if idempotency_key and request.user and request.user.is_authenticated:
-            try:
-                CheckoutAttempt.objects.create(
-                    user=request.user,
-                    idempotency_key=idempotency_key,
-                    response_json=json.dumps(order_data, cls=DjangoJSONEncoder),
-                )
-            except IntegrityError:
-                pass
-        return Response(order_data, status=201)
+
+        # DEC-BC-19: señal order_created para notificaciones/hooks downstream.
+        order_created_signal.send(sender=Order, order=order)
+
+        response_data = OrderSerializer(order).data
+
+        # DEC-BC-03: guardar respuesta para idempotencia futura.
+        if idempotency_key and user:
+            CheckoutAttempt.objects.create(
+                user=user,
+                idempotency_key=idempotency_key,
+                response_json=_json.dumps(response_data),
+            )
+
+        return Response(response_data, status=201)
 
 
 # =============================================================================
@@ -324,8 +321,6 @@ class OrderListView(APIView):
             .order_by('-created_at')
         )
 
-        # UC-ORD-03 PARTE 4.2 Alt-B + PARTE 7.1 (DEC-ORD-07):
-        # filtro por ?status=<STATUS>. Antes ignorado.
         status_filter = request.query_params.get('status')
         if status_filter:
             valid_statuses = {choice[0] for choice in Order._meta.get_field('status').choices}
@@ -388,12 +383,6 @@ class OrderCancelView(APIView):
     POST /api/v1/orders/<order_number>/cancel/
     Cancela una orden del comprador.
     UC-ORD-04 (FR-ORD-04.02, FR-ORD-04.03).
-
-    Transacción atómica:
-      1. Valida estado cancelable (PENDING, PROCESSING)
-      2. Order → CANCELLED + cancellation_reason + cancelled_at
-      3. Restaura stock (InventoryService.restore)
-      4. Reembolso automático si había Payment aprobado
     """
     permission_classes = [IsAuthenticated]
 
@@ -561,13 +550,11 @@ class OrderShippingUpdateView(APIView):
         try:
             update_shipping_method(order, s.validated_data['shipping_method_id'])
         except OrderNotEditableError as exc:
-            # UC-ORD-06 PARTE 7.3 (DEC-ORD-04): 409 ORDER_NOT_EDITABLE.
             return Response(
                 {'detail': str(exc), 'codigo_error': 'ORDER_NOT_EDITABLE'},
                 status=409,
             )
         except ShippingMethodNotAvailableError as exc:
-            # UC-ORD-06 PARTE 7.3 (DEC-ORD-04): 400 SHIPPING_METHOD_NOT_AVAILABLE.
             return Response(
                 {'detail': str(exc),
                  'codigo_error': 'SHIPPING_METHOD_NOT_AVAILABLE'},
