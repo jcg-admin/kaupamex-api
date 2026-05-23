@@ -9,7 +9,7 @@ Diseño:
     para evitar que el gateway reintente la entrega.
   - La verificación de firma rechaza con 401 antes de procesar.
   - La idempotencia está garantizada por unique(gateway_payment_id) en BD.
-  - Order.status → PAGADA cuando pago aprobado (DEC-BC-12).
+  - Order.status → PROCESSING cuando pago aprobado (H-PAY-002).
 """
 import hashlib
 import hmac
@@ -43,6 +43,8 @@ def _get_mp_client_secret() -> str | None:
         creds = gw.get_credentials()
         return creds.get('client_secret')
     except Exception:
+        # Loud-log: si no podemos leer el secret, todos los webhooks
+        # MP seran rechazados con 401. Operaciones debe verlo. DEC-DOC-008.
         logger.error(
             'MP webhook: cannot read client_secret', exc_info=True,
         )
@@ -68,7 +70,10 @@ def _verify_mp_signature(request, payment_id: str, request_id: str) -> bool:
 
     client_secret = _get_mp_client_secret()
     if not client_secret:
-        # DEC-BC-01 (2026-05-21): fail-closed por seguridad.
+        # DEC-BC-01 (2026-05-21): fail-closed por seguridad. La rama
+        # historica "return True" abria un vector de fraude (cualquiera
+        # podia simular `payment.approved`). El system check en apps.py
+        # bloquea el deploy si DEBUG=False y no hay client_secret.
         logger.error('MP webhook: client_secret no configurado — rechazando webhook')
         return False
 
@@ -79,6 +84,7 @@ def _verify_mp_signature(request, payment_id: str, request_id: str) -> bool:
         hashlib.sha256,
     ).hexdigest()
 
+    # Comparación en tiempo constante para prevenir timing attacks
     return hmac.compare_digest(expected, v1)
 
 
@@ -162,6 +168,8 @@ class MercadoPagoWebhookView(APIView):
         try:
             data = json.loads(raw_body)
         except json.JSONDecodeError:
+            # DEC-BC-06: 400 indica al cliente que el payload es invalido.
+            # MP no reintenta 4xx — el evento se descarta como malformed.
             logger.warning('MP webhook: payload no es JSON válido')
             return Response({'status': 'invalid_json'}, status=400)
 
@@ -197,6 +205,9 @@ class MercadoPagoWebhookView(APIView):
         try:
             gw_result = MercadoPagoGateway().verify_payment(payment_id)
         except Exception as exc:
+            # DEC-BC-06: 503 (Service Unavailable) indica gateway externo
+            # caido. MP hace exponential backoff en 5xx y reintenta el
+            # webhook — el evento no se pierde.
             logger.error('MP webhook: error consultando estado: %s', exc)
             return Response({'status': 'gateway_error'}, status=503)
 
@@ -207,6 +218,7 @@ class MercadoPagoWebhookView(APIView):
             .filter(order__order_number=data.get('external_reference', ''))
             .first()
         )
+        # Si no encontramos por order_number, buscar por gateway_payment_id
         if not payment:
             payment = Payment.objects.filter(
                 gateway_payment_id=payment_id, gateway='MERCADOPAGO'
@@ -219,10 +231,12 @@ class MercadoPagoWebhookView(APIView):
                 raw_body=raw_body,
             )
 
+        # Actualizar gateway_payment_id si aún no lo tiene
         if payment and not payment.gateway_payment_id:
             payment.gateway_payment_id = payment_id
             payment.save(update_fields=['gateway_payment_id'])
 
+        # Procesar según el estado
         if gw_result.status == 'approved':
             result = _process_payment_approval(
                 gateway_payment_id=payment_id,
@@ -284,6 +298,7 @@ class PayPalWebhookView(APIView):
         try:
             data = json.loads(raw_body)
         except json.JSONDecodeError:
+            # DEC-BC-06: 400 — PayPal no reintenta 4xx.
             return Response({'status': 'invalid_json'}, status=400)
 
         event_type      = data.get('event_type', '')
@@ -291,6 +306,7 @@ class PayPalWebhookView(APIView):
         transmission_id = request.META.get('HTTP_PAYPAL_TRANSMISSION_ID', '')
 
         # DEC-BC-04: dedup via WebhookEvent antes de verificar firma.
+        # transaction.atomic() crea savepoint para aislar el IntegrityError.
         if paypal_event_id:
             try:
                 with transaction.atomic():
@@ -330,6 +346,7 @@ class PayPalWebhookView(APIView):
             logger.warning('PayPal webhook: firma inválida para event_type=%s', event_type)
             return Response({'status': 'invalid_signature'}, status=401)
 
+        # Ignorar eventos no relevantes (responder 200 de todas formas)
         relevant = {
             'CHECKOUT.ORDER.APPROVED',
             'PAYMENT.CAPTURE.COMPLETED',
@@ -338,18 +355,25 @@ class PayPalWebhookView(APIView):
         if event_type not in relevant:
             return Response({'status': 'ignored', 'event_type': event_type}, status=200)
 
+        # Extraer identificadores del payload
         resource = data.get('resource', {})
 
         if event_type == 'CHECKOUT.ORDER.APPROVED':
+            # Capturar el pago (H-PAY-006: la captura ocurre en el webhook)
             paypal_order_id = resource.get('id', '')
             if not paypal_order_id:
+                # DEC-BC-06: 400 — payload incompleto, no reintentable.
                 return Response({'status': 'missing_order_id'}, status=400)
 
+            # Buscar el Payment por preference_id (guardamos el order_id de PayPal ahí)
             payment = Payment.objects.filter(
                 preference_id=paypal_order_id,
                 gateway='PAYPAL',
             ).first()
             if not payment:
+                # DEC-BC-06: 502 (Bad Gateway) — el Payment puede aparecer
+                # en una race window con la creacion del pedido. PayPal
+                # hace backoff en 5xx y reintenta — recupera del race.
                 logger.warning('PayPal webhook: Payment no encontrado para order=%s', paypal_order_id)
                 return Response({'status': 'payment_not_found'}, status=502)
 
@@ -365,6 +389,8 @@ class PayPalWebhookView(APIView):
                 payment.gateway_payment_id = capture_id
                 payment.save(update_fields=['gateway_payment_id'])
             except Exception as exc:
+                # DEC-BC-06: 500 — fallo interno al capturar. PayPal
+                # hace backoff en 5xx y reintenta el webhook.
                 logger.error('PayPal capture failed: %s', exc)
                 return Response({'status': 'capture_failed'}, status=500)
 
@@ -378,6 +404,7 @@ class PayPalWebhookView(APIView):
                 gateway='PAYPAL',
             ).first()
             if not payment:
+                # Buscar por order reference
                 reference = data.get('resource', {}).get('supplementary_data', {}).get(
                     'related_ids', {}).get('order_id', '')
                 if reference:

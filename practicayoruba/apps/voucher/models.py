@@ -4,7 +4,7 @@ Sprint 13 — UC-PRO-01/02/03/04, UC-CART-04
 
 Voucher: cupon de descuento. Tres tipos: FIXED, PERCENTAGE, FREE_SHIPPING.
 VoucherChangeLog: historial de cambios de admin (UC-PRO-02).
-VoucherUsage: registro de uso por usuario — DEC-BC-10.
+VoucherUsage: registro de uso por orden — se crea en Sprint 18 (cuando exista apps.orders).
 """
 from decimal import Decimal
 from django.conf import settings
@@ -204,6 +204,7 @@ class VoucherChangeLog(TimeStampedModel):
     )
     changes    = models.JSONField(
         help_text='Dict de {campo: {before, after}} con los cambios aplicados.')
+    # created_at viene de TimeStampedModel (renombrado de changed_at en migración)
 
     class Meta:
         db_table     = 'voucher_change_log'
