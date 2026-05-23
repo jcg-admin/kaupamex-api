@@ -430,6 +430,17 @@ class CartVoucherView(APIView):
                                    'codigo_error': 'VOUCHER_NOT_FOUND'})
 
         cart, _, cart_token = _get_or_create_cart(request)
+
+        # DEC-BC-20: reject if a voucher is already applied
+        if cart.voucher_id:
+            return Response(
+                {
+                    'detail': 'Ya hay un cupón aplicado. Elímínalo primero.',
+                    'codigo_error': 'VOUCHER_ALREADY_APPLIED',
+                },
+                status=409,
+            )
+
         subtotal = cart.get_subtotal()
 
         error_code = voucher.validate_for_cart(subtotal, request.user)
