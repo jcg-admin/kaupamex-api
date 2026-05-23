@@ -141,8 +141,6 @@ def _record_history_async(user, term: str) -> None:
             'SearchHistory.record falló para user=%s term=%r: %s',
             getattr(user, 'pk', user), term, exc_info=True,
         )
-
-
 class CatalogueOrderingFilter(BaseFilterBackend):
     """DEC-BC-15: ES kebab ordering aliases. Unknown value -> 400 INVALID_ORDERING."""
 
@@ -224,6 +222,25 @@ class CatalogueListView(ListAPIView):
 
         return qs
 
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        active_filters = _build_active_filters(request.query_params)
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            response = self.get_paginated_response(serializer.data)
+            response.data['filters_applied'] = active_filters
+            return response
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({
+            'count': queryset.count(),
+            'next': None, 'previous': None,
+            'filters_applied': active_filters,
+            'results': serializer.data,
+        })
+
     @extend_schema(
         summary='Ver catálogo de productos',
         description=(
@@ -241,7 +258,7 @@ class CatalogueListView(ListAPIView):
         tags=['catalogue'],
     )
     def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
+        return self.list(request, *args, **kwargs)
 
 
 # =============================================================================
