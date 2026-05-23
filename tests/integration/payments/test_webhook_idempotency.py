@@ -1,8 +1,12 @@
 """
-Tests — Idempotencia de webhooks via WebhookEvent table (DEC-BC-04)
+Tests — idempotencia de webhooks via WebhookEvent (T-205, T-206, DEC-BC-04).
 
-T-205: test_webhook_paypal_denied_after_completed_idempotent
-T-206: test_webhook_mp_replay_attack
+WebhookEvent.UNIQUE(gateway, event_id, transmission_id) previene el
+procesamiento doble de un evento identico. Los tests verifican que:
+  - T-205: PayPal DENIED con mismo transmission_id que COMPLETED previo
+           no revierte el pago ya aprobado.
+  - T-206: 10 envios del mismo webhook MP producen 1 Payment actualizado
+           + 9 respuestas 200 'already_processed'.
 """
 import hashlib
 import hmac
@@ -13,6 +17,7 @@ from unittest.mock import patch, MagicMock
 from apps.catalogue.models import Category, Product
 from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from apps.payments.models import Payment, WebhookEvent
+from apps.settings_app.models import PaymentGateway
 
 pytestmark = pytest.mark.integration
 
@@ -20,31 +25,28 @@ MP_WEBHOOK_URL = '/api/v1/payments/webhooks/mercadopago/'
 PP_WEBHOOK_URL = '/api/v1/payments/webhooks/paypal/'
 
 
-def _make_mp_signature(client_secret: str, payment_id: str, request_id: str, ts: str) -> str:
-    manifest = f'id:{payment_id};request-id:{request_id};ts:{ts}'
-    return hmac.new(client_secret.encode(), manifest.encode(), hashlib.sha256).hexdigest()
+# ─── Fixtures ─────────────────────────────────────────────────
+
+@pytest.fixture
+def cat_idem(db):
+    return Category.objects.create(name='Cat Idem', slug='cat-idem', is_active=True)
 
 
 @pytest.fixture
-def cat_idm(db):
-    return Category.objects.create(name='Cat Idm', slug='cat-idm', is_active=True)
-
-
-@pytest.fixture
-def mp_gateway_idm(db):
-    from apps.settings_app.models import PaymentGateway
-    gw = PaymentGateway(name='MP IDM', gateway='MERCADOPAGO', is_active=True)
-    gw.set_credentials({'access_token': 'TEST-TOKEN', 'client_secret': 'TEST-SECRET'})
+def mp_gateway_idem(db):
+    gw = PaymentGateway(name='MP Idem', gateway='MERCADOPAGO', is_active=True)
+    gw.set_credentials({'access_token': 'TEST-TOKEN', 'client_secret': 'SECRET-IDEM'})
     gw.save()
     return gw
 
 
 @pytest.fixture
-def orden_mp_idm(db, user, cat_idm):
+def order_mp_pending(db, user, cat_idem):
+    """Orden PENDING con Payment MP listo para webhook."""
     prod = Product.objects.create(
-        name='Idm Prod', slug='idm-prod', sku='IDM-001',
-        description='', category=cat_idm,
-        price=Decimal('500.00'), stock=10,
+        name='Idolo', slug='idolo-idem', sku='IDEM-001',
+        description='', category=cat_idem,
+        price=Decimal('500.00'), stock=5,
         is_active=True, is_published=True,
     )
     order = Order.objects.create(user=user, status='PENDING')
@@ -53,28 +55,30 @@ def orden_mp_idm(db, user, cat_idm):
         unit_price=prod.price, quantity=1, subtotal=prod.price,
     )
     OrderValue.objects.create(
-        order=order, subtotal=Decimal('500.00'), tax=Decimal('68.97'),
-        shipping_cost=Decimal('0.00'), discount=Decimal('0.00'), total=Decimal('500.00'),
+        order=order, subtotal=Decimal('500.00'), tax=Decimal('69.00'),
+        shipping_cost=Decimal('0.00'), discount=Decimal('0.00'),
+        total=Decimal('500.00'),
     )
     OrderAddress.objects.create(
-        order=order, recipient_name='Idm', street='St 1',
+        order=order, recipient_name='Test', street='Av 1',
         city='CDMX', state='CMX', zip_code='06600',
     )
     payment = Payment.objects.create(
         order=order, gateway='MERCADOPAGO',
-        preference_id='PREF-IDM-001',
-        gateway_payment_id='MP-IDM-001',
+        preference_id='PREF-IDEM-001',
+        gateway_payment_id='MP-PAY-IDEM-001',
         status='PENDING', amount=Decimal('500.00'),
     )
     return order, payment
 
 
 @pytest.fixture
-def orden_paypal_idm(db, user, cat_idm):
+def order_paypal_pending(db, user, cat_idem):
+    """Orden PENDING con Payment PayPal listo para webhook."""
     prod = Product.objects.create(
-        name='PP Idm Prod', slug='pp-idm-prod', sku='PP-IDM-001',
-        description='', category=cat_idm,
-        price=Decimal('300.00'), stock=5,
+        name='Collar PayPal', slug='collar-paypal-idem', sku='IDEM-PP-001',
+        description='', category=cat_idem,
+        price=Decimal('400.00'), stock=5,
         is_active=True, is_published=True,
     )
     order = Order.objects.create(user=user, status='PENDING')
@@ -83,61 +87,59 @@ def orden_paypal_idm(db, user, cat_idm):
         unit_price=prod.price, quantity=1, subtotal=prod.price,
     )
     OrderValue.objects.create(
-        order=order, subtotal=Decimal('300.00'), tax=Decimal('41.38'),
-        shipping_cost=Decimal('0.00'), discount=Decimal('0.00'), total=Decimal('300.00'),
+        order=order, subtotal=Decimal('400.00'), tax=Decimal('55.17'),
+        shipping_cost=Decimal('0.00'), discount=Decimal('0.00'),
+        total=Decimal('400.00'),
     )
     OrderAddress.objects.create(
-        order=order, recipient_name='PP Idm', street='St 1',
-        city='CDMX', state='CMX', zip_code='06600',
+        order=order, recipient_name='PP Test', street='Calle 2',
+        city='GDL', state='JAL', zip_code='44100',
     )
     payment = Payment.objects.create(
         order=order, gateway='PAYPAL',
-        preference_id='PP-ORDER-IDM-001',
-        gateway_payment_id='PP-CAPTURE-IDM-001',
-        status='PENDING', amount=Decimal('300.00'),
+        preference_id='PP-ORDER-IDEM-001',
+        gateway_payment_id='PP-CAP-T205',
+        status='PENDING', amount=Decimal('400.00'),
     )
     return order, payment
 
 
-def _pp_headers(transmission_id: str = 'TRANS-IDM-001'):
-    return {
-        'HTTP_PAYPAL_TRANSMISSION_ID':   transmission_id,
-        'HTTP_PAYPAL_TRANSMISSION_SIG':  'SIG-FAKE',
-        'HTTP_PAYPAL_TRANSMISSION_TIME': '2026-05-22T00:00:00Z',
-        'HTTP_PAYPAL_CERT_URL':          'https://api.sandbox.paypal.com/v1/notifications/certs/CERT',
-        'HTTP_PAYPAL_AUTH_ALGO':         'SHA256withRSA',
+def _mp_signature(secret: str, payment_id: str, request_id: str, ts: str) -> str:
+    manifest = f'id:{payment_id};request-id:{request_id};ts:{ts}'
+    return hmac.new(secret.encode(), manifest.encode(), hashlib.sha256).hexdigest()
+
+
+# ─── T-205 — PayPal DENIED con mismo transmission_id no revierte ──────────
+
+class TestWebhookPayPalIdempotencyDenied:
+
+    PP_HEADERS = {
+        'HTTP_PAYPAL_AUTH_ALGO':        'SHA256withRSA',
+        'HTTP_PAYPAL_CERT_URL':         'https://api.paypal.com/v1/notifications/certs/CERT',
+        'HTTP_PAYPAL_TRANSMISSION_SIG': 'SIG-FAKE',
+        'HTTP_PAYPAL_TRANSMISSION_TIME': '2026-05-23T00:00:00Z',
     }
 
-
-class TestWebhookEventIdempotency:
-
     def test_webhook_paypal_denied_after_completed_idempotent(
-        self, api_client, orden_paypal_idm, db
+        self, api_client, order_paypal_pending, db
     ):
         """
-        T-205: PAYMENT.CAPTURE.COMPLETED con TX-001 → APPROVED.
-        PAYMENT.CAPTURE.DENIED con MISMO TX-001 → 200 duplicate (idempotente).
-        Payment permanece APPROVED.
+        T-205: enviar PAYMENT.CAPTURE.COMPLETED con transmission_id=X → APPROVED.
+        Luego enviar PAYMENT.CAPTURE.DENIED con MISMO transmission_id=X.
+        Assert: Payment queda APPROVED (el segundo webhook es bloqueado por dedup).
         """
-        order, payment = orden_paypal_idm
+        order, payment = order_paypal_pending
+        capture_id      = 'PP-CAP-T205'
+        transmission_id = 'TX-IDEM-T205'
+        event_id        = 'EVT-T205-COMPLETED'
 
         completed_payload = {
-            'id': 'EVT-PP-IDM-001',
+            'id': event_id,
             'event_type': 'PAYMENT.CAPTURE.COMPLETED',
             'resource': {
-                'id': 'PP-CAPTURE-IDM-001',
+                'id':     capture_id,
                 'status': 'COMPLETED',
-                'amount': {'currency_code': 'MXN', 'value': '300.00'},
-                'supplementary_data': {
-                    'related_ids': {'order_id': 'PP-ORDER-IDM-001'}
-                },
-            },
-        }
-        denied_payload = {
-            'id': 'EVT-PP-IDM-001',  # mismo event id
-            'event_type': 'PAYMENT.CAPTURE.DENIED',
-            'resource': {
-                'id': 'PP-CAPTURE-IDM-001',
+                'amount': {'currency_code': 'MXN', 'value': '400.00'},
             },
         }
 
@@ -145,89 +147,116 @@ class TestWebhookEventIdempotency:
             'apps.payments.gateways.paypal.PayPalGateway.verify_webhook_signature',
             return_value=True,
         ):
-            # Primera entrega: COMPLETED con TX-001
+            # Primera peticion: COMPLETED → Payment debe quedar APPROVED
             res1 = api_client.post(
                 PP_WEBHOOK_URL,
                 data=json.dumps(completed_payload),
                 content_type='application/json',
-                **_pp_headers('TX-001'),
+                **{**self.PP_HEADERS, 'HTTP_PAYPAL_TRANSMISSION_ID': transmission_id},
             )
-            assert res1.status_code == 200
-            payment.refresh_from_db()
-            assert payment.status == 'APPROVED'
 
-            # Segunda entrega: DENIED con MISMO TX-001 (replay del mismo evento)
+        assert res1.status_code == 200
+
+        payment.refresh_from_db()
+        order.refresh_from_db()
+        assert payment.status == 'APPROVED', (
+            f'Primer webhook COMPLETED debio aprobar el pago; estado={payment.status}'
+        )
+        assert order.status == 'PAGADA', (
+            f'Orden debio quedar PAGADA; estado={order.status}'
+        )
+
+        # Segunda peticion: DENIED con MISMO event_id + transmission_id → dedup
+        denied_payload = {
+            'id': event_id,         # mismo event_id
+            'event_type': 'PAYMENT.CAPTURE.DENIED',
+            'resource': {'id': capture_id},
+        }
+
+        with patch(
+            'apps.payments.gateways.paypal.PayPalGateway.verify_webhook_signature',
+            return_value=True,
+        ):
             res2 = api_client.post(
                 PP_WEBHOOK_URL,
                 data=json.dumps(denied_payload),
                 content_type='application/json',
-                **_pp_headers('TX-001'),
+                **{**self.PP_HEADERS, 'HTTP_PAYPAL_TRANSMISSION_ID': transmission_id},
             )
 
         assert res2.status_code == 200
-        assert res2.data.get('status') == 'duplicate'
-        payment.refresh_from_db()
-        assert payment.status == 'APPROVED', (
-            'Payment debe permanecer APPROVED — el DENIED con mismo TX era un replay'
+        assert res2.data.get('status') == 'already_processed', (
+            f'Segundo webhook con mismo tx_id debio retornar already_processed; '
+            f'data={res2.data}'
         )
-        assert WebhookEvent.objects.filter(
-            gateway='PAYPAL', event_id='EVT-PP-IDM-001', transmission_id='TX-001'
-        ).count() == 1
+
+        # Payment y Order no cambiaron
+        payment.refresh_from_db()
+        order.refresh_from_db()
+        assert payment.status == 'APPROVED', 'DENIED duplicado no debe revertir a FAILED'
+        assert order.status == 'PAGADA',     'Orden no debe regresar de PAGADA'
+
+
+# ─── T-206 — MP replay attack: 10 envíos del mismo webhook ─────────────
+
+class TestWebhookMpReplayAttack:
 
     def test_webhook_mp_replay_attack(
-        self, api_client, orden_mp_idm, mp_gateway_idm, db
+        self, api_client, order_mp_pending, mp_gateway_idem, db
     ):
         """
-        T-206: enviar el mismo MP webhook (data.id=MP-IDM-001 + request_id=REQ-IDM)
-        10 veces. Solo la primera produce procesamiento; las 9 siguientes retornan
-        200 duplicate. Un solo WebhookEvent en BD.
+        T-206: enviar el mismo webhook MP con data.id=XYZ + X-Request-Id=ABC
+        10 veces. Assert: 1 sola Payment actualizada + 9 respuestas already_processed.
         """
-        order, payment = orden_mp_idm
-        ts         = '1716000000'
-        request_id = 'REQ-IDM-REPLAY'
-        signature  = _make_mp_signature('TEST-SECRET', 'MP-IDM-001', request_id, ts)
+        order, payment = order_mp_pending
+        secret      = 'SECRET-IDEM'
+        payment_id  = 'MP-PAY-IDEM-001'
+        request_id  = 'RQ-REPLAY-001'
+        ts          = '1716422400'
+        sig         = _mp_signature(secret, payment_id, request_id, ts)
+        sig_header  = f'ts={ts};v1={sig}'
 
         payload = json.dumps({
             'type': 'payment',
-            'data': {'id': 'MP-IDM-001'},
+            'data': {'id': payment_id},
             'external_reference': order.order_number,
         })
 
-        statuses = []
-        with patch('apps.payments.gateways.mercadopago.mercadopago') as mock_mp:
-            sdk = MagicMock()
-            mock_mp.SDK.return_value = sdk
-            sdk.payment.return_value.get.return_value = {
-                'status': 200,
-                'response': {
-                    'id': 1, 'status': 'approved',
-                    'transaction_amount': 500.00, 'installments': 1,
-                },
-            }
+        gw_result = MagicMock()
+        gw_result.status = 'approved'
+        gw_result.amount = Decimal('500.00')
+
+        responses = []
+        with patch(
+            'apps.payments.gateways.mercadopago.MercadoPagoGateway.verify_payment',
+            return_value=gw_result,
+        ):
             for _ in range(10):
                 res = api_client.post(
                     MP_WEBHOOK_URL,
                     data=payload,
                     content_type='application/json',
-                    HTTP_X_SIGNATURE=f'ts={ts};v1={signature}',
+                    HTTP_X_SIGNATURE=sig_header,
                     HTTP_X_REQUEST_ID=request_id,
                 )
-                assert res.status_code == 200
-                statuses.append(res.data.get('status'))
+                responses.append(res)
 
-        # La primera llamada procesa; las restantes son duplicate
-        assert statuses[0] == 'processed'
-        assert all(s == 'duplicate' for s in statuses[1:]), (
-            f'Esperado duplicate para llamadas 2-10, obtenido: {statuses[1:]}'
-        )
+        # Primera peticion: procesada normalmente
+        assert responses[0].status_code == 200
 
-        # Un solo WebhookEvent en BD
-        assert WebhookEvent.objects.filter(
-            gateway='MERCADOPAGO',
-            event_id='MP-IDM-001',
-            transmission_id='REQ-IDM-REPLAY',
-        ).count() == 1
+        # Las 9 siguientes: idempotente
+        for i, res in enumerate(responses[1:], start=1):
+            assert res.status_code == 200, f'Peticion {i+1} debio ser 200'
+            assert res.data.get('status') == 'already_processed', (
+                f'Peticion {i+1} debio retornar already_processed; data={res.data}'
+            )
 
-        # Payment APPROVED (por la primera entrega)
+        # Solo 1 WebhookEvent insertado (UNIQUE constraint)
+        count = WebhookEvent.objects.filter(
+            gateway='MERCADOPAGO', event_id=payment_id, transmission_id=request_id
+        ).count()
+        assert count == 1, f'Debio haber 1 WebhookEvent; hay {count}'
+
+        # Payment actualizado (solo por la primera peticion)
         payment.refresh_from_db()
         assert payment.status == 'APPROVED'

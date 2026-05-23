@@ -102,6 +102,9 @@ class TestVoucherUsageCreatedOnCheckout:
         Hacer checkout con voucher aplicado incrementa current_uses
         y crea VoucherUsage(user, voucher).
         """
+        from apps.orders.models import Order
+        from apps.inventory.services import InventoryService
+
         # Agregar item y aplicar voucher
         auth_client.post(ITEMS_URL, {'product_id': product_vou.pk, 'quantity': 1})
         auth_client.post(VOUCHER_APPLY_URL, {'code': voucher_single.code})
