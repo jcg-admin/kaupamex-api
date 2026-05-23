@@ -1,5 +1,5 @@
 """
-signals.py — apps.notifications (UC-NOT-01..05)
+signals.py — apps.notifications (UC-NOT-01..05, UC-NOT-08)
 
 Conecta eventos de dominio a notify_* de service.py.
 Wiring: NotificationsConfig.ready() importa este modulo.
@@ -13,6 +13,7 @@ UC-NOT-02: Order.post_save(created=False) + transicion de status —
 
 UC-NOT-04: ReturnRequest.post_save, transicion a APPROVED/REJECTED.
 UC-NOT-05: Refund.post_save(created=True, status=APPROVED).
+UC-NOT-08: SupportTicket.post_save(created=False) — transicion a CLOSED.
 
 transaction.on_commit en service.py garantiza email solo si la
 transaccion que disparo el post_save commiteo.
@@ -23,16 +24,18 @@ from django.dispatch import receiver
 from apps.orders.models import Order, OrderValue
 from apps.payments.models import Refund
 from apps.returns.models import ReturnRequest
+from apps.support.models import SupportTicket
 
 from .service import (
     notify_order_created,
     notify_order_status_changed,
     notify_refund_processed,
     notify_return_processed,
+    notify_support_closed,
 )
 
 
-# ── UC-NOT-01: OrderValue created → confirmacion de orden ────────────────
+# ── UC-NOT-01: OrderValue created → confirmacion de orden ────────────
 
 @receiver(post_save, sender=OrderValue)
 def _order_value_created(sender, instance, created, **kwargs):
@@ -43,7 +46,7 @@ def _order_value_created(sender, instance, created, **kwargs):
     notify_order_created(order, order.user, instance.total)
 
 
-# ── UC-NOT-02: Order status transition ────────────────────────────────
+# ── UC-NOT-02: Order status transition ────────────────────────────
 
 @receiver(pre_save, sender=Order)
 def _cache_order_old_status(sender, instance, **kwargs):
@@ -67,7 +70,7 @@ def _order_status_changed(sender, instance, created, **kwargs):
         notify_order_status_changed(instance, instance.status)
 
 
-# ── UC-NOT-04: ReturnRequest → APPROVED / REJECTED ──────────────────────
+# ── UC-NOT-04: ReturnRequest → APPROVED / REJECTED ─────────────────
 
 @receiver(pre_save, sender=ReturnRequest)
 def _cache_return_old_status(sender, instance, **kwargs):
@@ -104,7 +107,7 @@ def _return_status_changed(sender, instance, created, **kwargs):
     )
 
 
-# ── UC-NOT-05: Refund created with APPROVED status ──────────────────────
+# ── UC-NOT-05: Refund created with APPROVED status ─────────────────
 
 @receiver(post_save, sender=Refund)
 def _refund_created(sender, instance, created, **kwargs):
@@ -115,3 +118,33 @@ def _refund_created(sender, instance, created, **kwargs):
         return
     order = instance.payment.order
     notify_refund_processed(order, order.user, instance.amount)
+
+
+# ── UC-NOT-08: SupportTicket → CLOSED ────────────────────────────
+
+@receiver(pre_save, sender=SupportTicket)
+def _cache_ticket_old_status(sender, instance, **kwargs):
+    """Captura status anterior para detectar transicion a CLOSED."""
+    if instance.pk:
+        try:
+            instance._old_status = SupportTicket.objects.get(pk=instance.pk).status
+        except SupportTicket.DoesNotExist:
+            instance._old_status = None
+    else:
+        instance._old_status = None
+
+
+@receiver(post_save, sender=SupportTicket)
+def _support_ticket_closed(sender, instance, created, **kwargs):
+    """Dispara UC-NOT-08 cuando el ticket transiciona a CLOSED."""
+    if created:
+        return
+    old = getattr(instance, '_old_status', None)
+    if old is None or old == instance.status:
+        return
+    if instance.status != SupportTicket.Status.CLOSED:
+        return
+    # closed_by_staff: la vista de cierre manual setea _closed_by_staff;
+    # el management command no lo setea, se asume staff (auto-close).
+    closed_by_staff = getattr(instance, '_closed_by_staff', True)
+    notify_support_closed(instance, instance.user, closed_by_staff=closed_by_staff)

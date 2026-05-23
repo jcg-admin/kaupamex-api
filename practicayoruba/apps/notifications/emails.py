@@ -1,6 +1,6 @@
 """
 emails.py — apps.notifications
-Funciones de envio de email transaccional. UC-NOT-01..05.
+Funciones de envio de email transaccional. UC-NOT-01..05, UC-NOT-08.
 
 No usa fail_silently=True — los errores se registran via logger
 para cumplir POST-F01 (fallo siempre registrado, nunca silenciado).
@@ -127,6 +127,31 @@ def send_refund_email(user_email, user_name, order_number, amount_refunded):
         f'Tu reembolso de ${amount_refunded} para la orden #{order_number} '
         f'ha sido procesado.\n\n'
         f'El monto aparecera en tu cuenta en 3-5 dias habiles.\n\n'
+        f'— Equipo PracticaYoruba'
+    )
+    dispatch_email(
+        subject=subject,
+        message=message,
+        from_email=_from_email(),
+        recipient_list=[user_email],
+    )
+
+
+def send_support_closed_email(user_email, user_name, ticket_id, ticket_subject, closed_by_staff=False):
+    """UC-NOT-08: cierre de ticket de soporte."""
+    if closed_by_staff:
+        detail = (
+            f'Nuestro equipo ha marcado tu ticket #{ticket_id} '
+            f'"{ticket_subject}" como resuelto.'
+        )
+    else:
+        detail = f'Tu ticket #{ticket_id} "{ticket_subject}" ha sido cerrado.'
+    subject = f'Ticket de soporte #{ticket_id} cerrado — PracticaYoruba'
+    message = (
+        f'Hola {user_name},\n\n'
+        f'{detail}\n\n'
+        f'Si necesitas mas ayuda puedes abrir un nuevo ticket en:\n'
+        f'{_frontend_url()}/support/tickets/new\n\n'
         f'— Equipo PracticaYoruba'
     )
     dispatch_email(

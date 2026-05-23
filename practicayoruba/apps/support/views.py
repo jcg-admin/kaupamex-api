@@ -13,6 +13,7 @@ Admin endpoints:
   GET    /api/v1/admin/support/tickets/           UC-SUPP-05 queue
 """
 from datetime import timedelta
+from django.db import transaction as db_transaction
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -60,7 +61,7 @@ def _get_ticket_for_user(ticket_id, user):
     return ticket
 
 
-# ────────────────────────────── UC-SUPP-01 / UC-SUPP-02 ────────────
+# ──────────────────────────── UC-SUPP-01 / UC-SUPP-02 ────
 class SupportTicketListCreateView(APIView):
     """POST crear ticket / GET listar tickets propios del comprador."""
 
@@ -149,7 +150,7 @@ class SupportTicketDetailView(APIView):
         )
 
 
-# ────────────────────────────── UC-SUPP-03 ───────────────────────
+# ────────────────────────────── UC-SUPP-03 ───────────────────
 class SupportTicketReplyView(APIView):
     """POST /api/v1/support/tickets/{id}/replies/."""
 
@@ -198,7 +199,7 @@ class SupportTicketReplyView(APIView):
         )
 
 
-# ────────────────────────────── UC-SUPP-04 ───────────────────────
+# ────────────────────────────── UC-SUPP-04 ───────────────────
 class SupportTicketCloseView(APIView):
     """POST /api/v1/support/tickets/{id}/close/."""
 
@@ -235,25 +236,29 @@ class SupportTicketCloseView(APIView):
         serializer.is_valid(raise_exception=True)
         reason = serializer.validated_data.get('reason') or ''
 
-        ticket.status = SupportTicket.Status.CLOSED
-        ticket.save(update_fields=['status', 'updated_at'])
+        closed_by_staff = request.user.is_staff
+        with db_transaction.atomic():
+            # Signal pre_save captura _old_status; post_save disparara UC-NOT-08.
+            ticket._closed_by_staff = closed_by_staff
+            ticket.status = SupportTicket.Status.CLOSED
+            ticket.save(update_fields=['status', 'updated_at'])
 
-        body = reason or (
-            'El staff cerro este ticket.' if request.user.is_staff
-            else 'El comprador marco este ticket como resuelto.'
-        )
-        SupportTicketReply.objects.create(
-            ticket=ticket,
-            author=request.user,
-            body=body,
-            is_internal_note=False,
-        )
+            body = reason or (
+                'El staff cerro este ticket.' if closed_by_staff
+                else 'El comprador marco este ticket como resuelto.'
+            )
+            SupportTicketReply.objects.create(
+                ticket=ticket,
+                author=request.user,
+                body=body,
+                is_internal_note=False,
+            )
 
         return Response({
             'ticket_id': ticket.pk,
             'status': ticket.status,
             'closed_at': ticket.updated_at,
-            'closed_by': 'ADMIN' if request.user.is_staff else 'BUYER',
+            'closed_by': 'ADMIN' if closed_by_staff else 'BUYER',
         })
 
 
@@ -295,7 +300,7 @@ class SupportTicketReopenView(APIView):
         })
 
 
-# ────────────────────────────── UC-SUPP-05 ───────────────────────
+# ────────────────────────────── UC-SUPP-05 ───────────────────
 class AdminSupportTicketListView(ListAPIView):
     """GET /api/v1/admin/support/tickets/ — admin queue."""
 
