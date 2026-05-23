@@ -156,7 +156,7 @@ class CheckoutSerializer(serializers.Serializer):
         return value
 
 
-# ─── Sprint 18 — serializers de edición ─────────────────────────────────────
+# ─── Sprint 18 — serializers de edición ────────────────────────────────────────────
 
 class CancelOrderSerializer(serializers.Serializer):
     """POST /api/v1/orders/<order_number>/cancel/ — UC-ORD-04."""
