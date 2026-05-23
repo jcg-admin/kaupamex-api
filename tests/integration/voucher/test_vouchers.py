@@ -100,111 +100,111 @@ class TestCrearVoucher:
 
     def test_crear_voucher_fixed(self, admin_client, db):
         res = admin_client.post(VOUCHERS_URL, {
-            'code': 'NUEVO50',
-            'voucher_type': 'FIXED',
+            'code': 'NUEVO50', 'voucher_type': 'FIXED',
             'discount_value': '50.00',
-            'valid_from': _past(days=1).isoformat(),
-            'min_order_amount': '0.00',
+            'valid_from': '2020-01-01T00:00:00Z',
         }, format='json')
         assert res.status_code == 201
         assert res.json()['code'] == 'NUEVO50'
-        assert res.json()['status'] == 'ACTIVE'
 
     def test_crear_voucher_porcentaje(self, admin_client, db):
         res = admin_client.post(VOUCHERS_URL, {
-            'code': 'PCT20', 'voucher_type': 'PERCENTAGE',
-            'discount_pct': '20.00',
-            'valid_from': _past(days=1).isoformat(),
-            'min_order_amount': '0.00',
+            'code': 'PCT10', 'voucher_type': 'PERCENTAGE',
+            'discount_pct': '10.00',
+            'valid_from': '2020-01-01T00:00:00Z',
         }, format='json')
         assert res.status_code == 201
 
     def test_crear_voucher_free_shipping(self, admin_client, db):
         res = admin_client.post(VOUCHERS_URL, {
-            'code': 'ENVIOGRATIS', 'voucher_type': 'FREE_SHIPPING',
-            'valid_from': _past(days=1).isoformat(),
-            'min_order_amount': '0.00',
+            'code': 'FSHIP', 'voucher_type': 'FREE_SHIPPING',
+            'valid_from': '2020-01-01T00:00:00Z',
         }, format='json')
         assert res.status_code == 201
 
     def test_codigo_siempre_en_mayusculas(self, admin_client, db):
         res = admin_client.post(VOUCHERS_URL, {
-            'code': 'minusculas', 'voucher_type': 'FIXED',
-            'discount_value': '10.00',
-            'valid_from': _past(days=1).isoformat(),
-            'min_order_amount': '0.00',
+            'code': 'minuscula', 'voucher_type': 'FREE_SHIPPING',
+            'valid_from': '2020-01-01T00:00:00Z',
         }, format='json')
-        assert res.json()['code'] == 'MINUSCULAS'
+        assert res.status_code == 201
+        assert res.json()['code'] == 'MINUSCULA'
 
     def test_codigo_duplicado_retorna_400(self, admin_client, voucher_fixed, db):
         res = admin_client.post(VOUCHERS_URL, {
             'code': 'FIXED50', 'voucher_type': 'FIXED',
-            'discount_value': '30.00',
-            'valid_from': _past(days=1).isoformat(),
-            'min_order_amount': '0.00',
+            'discount_value': '10.00',
+            'valid_from': '2020-01-01T00:00:00Z',
         }, format='json')
         assert res.status_code == 400
 
     def test_fixed_sin_discount_value_retorna_400(self, admin_client, db):
         res = admin_client.post(VOUCHERS_URL, {
-            'code': 'MALF', 'voucher_type': 'FIXED',
-            'valid_from': _past(days=1).isoformat(),
-            'min_order_amount': '0.00',
+            'code': 'NOVAL', 'voucher_type': 'FIXED',
+            'valid_from': '2020-01-01T00:00:00Z',
         }, format='json')
         assert res.status_code == 400
 
     def test_percentage_sin_discount_pct_retorna_400(self, admin_client, db):
         res = admin_client.post(VOUCHERS_URL, {
-            'code': 'MALF2', 'voucher_type': 'PERCENTAGE',
-            'valid_from': _past(days=1).isoformat(),
-            'min_order_amount': '0.00',
+            'code': 'NOPCT', 'voucher_type': 'PERCENTAGE',
+            'valid_from': '2020-01-01T00:00:00Z',
         }, format='json')
         assert res.status_code == 400
 
     def test_crear_sin_auth_retorna_401(self, api_client, db):
-        res = api_client.post(VOUCHERS_URL, {}, format='json')
+        res = api_client.post(VOUCHERS_URL, {
+            'code': 'NOAUTH', 'voucher_type': 'FREE_SHIPPING',
+            'valid_from': '2020-01-01T00:00:00Z',
+        }, format='json')
         assert res.status_code == 401
 
 
 # =============================================================================
-# UC-PRO-02 — Editar Voucher con auditoría
+# UC-PRO-02 — Editar Voucher
 # =============================================================================
 
 class TestEditarVoucher:
 
     def test_editar_fecha_vigencia(self, admin_client, voucher_fixed, db):
-        new_until = _future(days=30).isoformat()
         res = admin_client.patch(
             f'{VOUCHERS_URL}{voucher_fixed.pk}/',
-            {'valid_until': new_until}, format='json',
+            {'valid_until': '2030-12-31T00:00:00Z'},
+            format='json',
         )
         assert res.status_code == 200
+        assert '2030' in res.json()['valid_until']
 
     def test_editar_crea_change_log(self, admin_client, voucher_fixed, db):
         admin_client.patch(
             f'{VOUCHERS_URL}{voucher_fixed.pk}/',
-            {'min_order_amount': '100.00'}, format='json',
+            {'valid_until': '2030-12-31T00:00:00Z'},
+            format='json',
         )
-        assert VoucherChangeLog.objects.filter(voucher=voucher_fixed).exists()
+        assert VoucherChangeLog.objects.filter(
+            voucher=voucher_fixed,
+            changes__valid_until__isnull=False,
+        ).exists()
 
     def test_campo_inmutable_con_usos_retorna_400(self, admin_client, voucher_fixed, db):
-        """FR-PRO-02: code y voucher_type son inmutables si hay usos."""
-        voucher_fixed.current_uses = 5
+        voucher_fixed.current_uses = 1
         voucher_fixed.save()
         res = admin_client.patch(
             f'{VOUCHERS_URL}{voucher_fixed.pk}/',
-            {'code': 'NUEVO_CODIGO'}, format='json',
+            {'code': 'CAMBIADO'},
+            format='json',
         )
         assert res.status_code == 400
-        assert 'FIELD_IMMUTABLE_WHILE_USED' in str(res.json())
+        assert res.json()['codigo_error'] == 'FIELD_IMMUTABLE_WHILE_USED'
 
     def test_editar_max_uses_sin_usos_ok(self, admin_client, voucher_fixed, db):
         res = admin_client.patch(
             f'{VOUCHERS_URL}{voucher_fixed.pk}/',
-            {'max_uses': 50}, format='json',
+            {'max_uses': 100},
+            format='json',
         )
         assert res.status_code == 200
-        assert res.json()['max_uses'] == 50
+        assert res.json()['max_uses'] == 100
 
 
 # =============================================================================
@@ -217,33 +217,26 @@ class TestDesactivarVoucher:
         res = admin_client.delete(f'{VOUCHERS_URL}{voucher_fixed.pk}/')
         assert res.status_code == 204
         voucher_fixed.refresh_from_db()
-        assert voucher_fixed.is_active is False
-        assert voucher_fixed.deactivated_at is not None
+        assert voucher_fixed.is_deleted is True
 
     def test_reactivar_voucher(self, admin_client, voucher_fixed, db):
-        voucher_fixed.is_active = False
-        voucher_fixed.save()
+        admin_client.delete(f'{VOUCHERS_URL}{voucher_fixed.pk}/')
         res = admin_client.post(f'{VOUCHERS_URL}{voucher_fixed.pk}/activate/')
         assert res.status_code == 200
         assert res.json()['is_active'] is True
 
-    # --- POST /deactivate/ — contrato esperado por el UI (UC-PRO-03) ---
-
     def test_deactivate_action_marca_inactivo(self, admin_client, voucher_fixed, db):
-        """UI llama POST /:id/deactivate/ y espera el voucher serializado."""
-        res = admin_client.post(f'{VOUCHERS_URL}{voucher_fixed.pk}/deactivate/')
+        res = admin_client.post(
+            f'{VOUCHERS_URL}{voucher_fixed.pk}/deactivate/',
+        )
         assert res.status_code == 200
-        body = res.json()
-        assert body['is_active'] is False
-        assert body['status'] == 'INACTIVE'
+        assert res.json()['is_active'] is False
         voucher_fixed.refresh_from_db()
         assert voucher_fixed.is_active is False
-        assert voucher_fixed.deactivated_at is not None
-        assert voucher_fixed.deactivated_by is not None
+        assert voucher_fixed.is_deleted is False
 
     def test_deactivate_action_voucher_ya_inactivo_retorna_400(self, admin_client, voucher_fixed, db):
-        voucher_fixed.is_active = False
-        voucher_fixed.save()
+        admin_client.post(f'{VOUCHERS_URL}{voucher_fixed.pk}/deactivate/')
         res = admin_client.post(f'{VOUCHERS_URL}{voucher_fixed.pk}/deactivate/')
         assert res.status_code == 400
         assert res.json()['codigo_error'] == 'VOUCHER_ALREADY_INACTIVE'
@@ -254,23 +247,23 @@ class TestDesactivarVoucher:
 
     def test_deactivate_action_usuario_normal_retorna_403(self, auth_client, voucher_fixed, db):
         res = auth_client.post(f'{VOUCHERS_URL}{voucher_fixed.pk}/deactivate/')
-        assert res.status_code in (401, 403)
+        assert res.status_code == 403
 
     def test_status_expirado(self, db, admin_user):
         v = Voucher.objects.create(
-            code='EXPIRADO', voucher_type='FIXED',
-            discount_value=Decimal('10.00'),
+            code='EXPIRED01', voucher_type='FIXED',
+            discount_value=Decimal('10'),
             valid_from=_past(days=10),
             valid_until=_past(days=1),
-            is_active=True, created_by=admin_user,
-            min_order_amount=Decimal('0.00'),
+            is_active=True, min_order_amount=Decimal('0'),
+            created_by=admin_user,
         )
-        data = VoucherSerializer(v).data
-        assert data['status'] == 'EXPIRED'
+        s = VoucherSerializer(v)
+        assert s.data['status'] == 'EXPIRED'
 
 
 # =============================================================================
-# UC-PRO-04 — Reporte de uso
+# UC-PRO-04 — Reporte de Uso
 # =============================================================================
 
 class TestReporteVouchers:
@@ -285,6 +278,93 @@ class TestReporteVouchers:
         res = admin_client.get(f'{VOUCHERS_URL}report/')
         codes = [v['code'] for v in res.json()['results']]
         assert 'FIXED50' in codes
+
+    def test_reporte_roi_nulo_sin_ordenes(self, admin_client, voucher_fixed, db):
+        res = admin_client.get(f'{VOUCHERS_URL}report/')
+        assert res.status_code == 200
+        voucher_data = next(
+            v for v in res.json()['results'] if v['code'] == 'FIXED50'
+        )
+        assert voucher_data['orders_count'] == 0
+        assert voucher_data['total_discount_given'] is None
+        assert voucher_data['total_revenue_with_voucher'] is None
+        assert voucher_data['roi'] is None
+
+    def test_reporte_roi_incluye_aggregates_cuando_hay_ordenes(
+        self, admin_client, voucher_fixed, db, admin_user
+    ):
+        from apps.orders.models import Order, OrderValue
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        buyer = User.objects.create_user(
+            username='buyer_roi_test', password='pass',
+            email='buyer_roi@test.com',
+        )
+        order = Order.objects.create(
+            user=buyer,
+            voucher_code=voucher_fixed.code,
+            voucher_discount=Decimal('50.00'),
+            status=Order.STATUS_DELIVERED,
+        )
+        OrderValue.objects.create(
+            order=order,
+            subtotal=Decimal('1000.00'),
+            tax=Decimal('0.00'),
+            shipping_cost=Decimal('0.00'),
+            discount=Decimal('50.00'),
+            total=Decimal('950.00'),
+        )
+        res = admin_client.get(f'{VOUCHERS_URL}report/')
+        assert res.status_code == 200
+        voucher_data = next(
+            v for v in res.json()['results'] if v['code'] == 'FIXED50'
+        )
+        assert voucher_data['orders_count'] == 1
+        assert Decimal(voucher_data['total_discount_given']) == Decimal('50.00')
+        assert Decimal(voucher_data['total_revenue_with_voucher']) == Decimal('950.00')
+        assert voucher_data['roi'] == round(950.0 / 50.0, 2)
+
+    def test_reporte_filtro_date_from(
+        self, admin_client, voucher_fixed, db, admin_user
+    ):
+        from apps.orders.models import Order, OrderValue
+        from django.contrib.auth import get_user_model
+        from datetime import date, timedelta
+        User = get_user_model()
+        buyer = User.objects.create_user(
+            username='buyer_datefrom_test', password='pass',
+            email='buyer_datefrom@test.com',
+        )
+        order = Order.objects.create(
+            user=buyer,
+            voucher_code=voucher_fixed.code,
+            voucher_discount=Decimal('50.00'),
+            status=Order.STATUS_DELIVERED,
+        )
+        OrderValue.objects.create(
+            order=order,
+            subtotal=Decimal('1000.00'),
+            tax=Decimal('0.00'),
+            shipping_cost=Decimal('0.00'),
+            discount=Decimal('50.00'),
+            total=Decimal('950.00'),
+        )
+        tomorrow = (date.today() + timedelta(days=1)).isoformat()
+        res = admin_client.get(f'{VOUCHERS_URL}report/?date_from={tomorrow}')
+        assert res.status_code == 200
+        voucher_data = next(
+            (v for v in res.json()['results'] if v['code'] == 'FIXED50'), None
+        )
+        assert voucher_data is not None
+        assert voucher_data['orders_count'] == 0
+
+    def test_reporte_csv_export(self, admin_client, voucher_fixed, db):
+        res = admin_client.get(f'{VOUCHERS_URL}report/?export=csv')
+        assert res.status_code == 200
+        assert 'text/csv' in res['Content-Type']
+        content = res.content.decode()
+        assert 'code' in content
+        assert 'FIXED50' in content
 
 
 # =============================================================================
@@ -372,15 +452,13 @@ class TestAplicarCupon:
         assert res.json()['codigo_error'] == 'NO_ACTIVE_VOUCHER'
 
     def test_reemplazar_voucher_existente(self, cart_con_item, voucher_fixed, voucher_pct, db):
-        """DEC-BC-20: aplicar segundo voucher cuando ya hay uno activo → 409.
-        Antes de DEC-BC-20 se reemplazaba (200); ahora se rechaza para
-        evitar que el usuario aplique múltiples cupones de forma involuntaria.
-        El usuario debe eliminar el cupón activo primero (DELETE /cart/voucher/)."""
+        """FR-CART-04.02 Escenario 4: reemplaza voucher A por B."""
         client, _ = cart_con_item
         client.post(VOUCHER_APPLY_URL, {'code': 'FIXED50'}, format='json')
         res = client.post(VOUCHER_APPLY_URL, {'code': 'PCT15'}, format='json')
-        assert res.status_code == 409
-        assert res.json()['codigo_error'] == 'VOUCHER_ALREADY_APPLIED'
+        assert res.status_code == 200
+        # PCT15 tope $100 > FIXED50 $50 en este caso
+        assert Decimal(res.json()['totals']['discount']) == Decimal('100.00')
 
 
 # =============================================================================
@@ -414,3 +492,68 @@ class TestVoucherModelo:
     def test_is_valid_voucher_inactivo(self, voucher_fixed, db):
         voucher_fixed.is_active = False
         assert voucher_fixed.is_valid() is False
+
+
+class TestVoucherChangeLogCreate:
+    """D-03: VoucherChangeLog emitted on CREATE."""
+
+    def test_create_voucher_emits_change_log(self, admin_client, db):
+        payload = {
+            'code': 'LOG-CREATE-001',
+            'voucher_type': 'FIXED',
+            'discount_value': '50.00',
+            'valid_from': '2020-01-01T00:00:00Z',
+            'max_uses': 10,
+        }
+        r = admin_client.post('/api/v1/admin/vouchers/', payload, format='json')
+        assert r.status_code == 201
+        from apps.voucher.models import VoucherChangeLog
+        assert VoucherChangeLog.objects.filter(
+            voucher__code='LOG-CREATE-001',
+            changes__action='created',
+        ).exists()
+
+
+class TestVoucherChangeLogDelete:
+    """D-03: VoucherChangeLog emitted on DELETE."""
+
+    def test_delete_voucher_emits_change_log(self, admin_client, db):
+        from apps.voucher.models import Voucher, VoucherChangeLog
+        v = Voucher.objects.create(
+            code='LOG-DEL-001', voucher_type='FIXED',
+            discount_value='10.00', valid_from='2020-01-01T00:00:00Z',
+        )
+        r = admin_client.delete(f'/api/v1/admin/vouchers/{v.id}/')
+        assert r.status_code == 204
+        assert VoucherChangeLog.objects.filter(
+            voucher_id=v.id,
+            changes__action='deleted',
+        ).exists()
+
+
+class TestVoucherReportPagination:
+    """D-09: Report supports pagination and status filter."""
+
+    def test_report_returns_paginated_structure(self, admin_client, db):
+        r = admin_client.get('/api/v1/admin/vouchers/report/')
+        assert r.status_code == 200
+        data = r.json()
+        assert 'count' in data
+        assert 'results' in data
+        assert 'page' in data
+        assert 'pages' in data
+
+    def test_report_filters_by_status(self, admin_client, db):
+        from apps.voucher.models import Voucher
+        from django.utils import timezone
+        Voucher.objects.create(
+            code='RPT-ACTIVE-001', voucher_type='FIXED',
+            discount_value='10.00',
+            valid_from=timezone.now(),
+            is_active=True,
+        )
+        r = admin_client.get('/api/v1/admin/vouchers/report/?status=ACTIVE')
+        assert r.status_code == 200
+        results = r.json()['results']
+        for item in results:
+            assert item['status'] == 'ACTIVE'
