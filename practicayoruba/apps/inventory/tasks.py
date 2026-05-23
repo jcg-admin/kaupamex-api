@@ -1,26 +1,22 @@
 """
-Celery tasks — apps.inventory (UC-SYS-03).
+Tareas periodicas de sistema — apps.inventory.
 
-scan_low_stock: barrido periodico de productos y variantes con
-stock <= umbral. Complementa el path inline de _maybe_create_alert
-(llamado en cada decremento/ajuste de InventoryService) cubriendo
-los casos donde el stock baja por ajuste manual sin transaccion de
-venta (UC-INV-04 sin trigger inline de alerta).
-Se registra en Celery Beat (cada 24h).
+UC-SYS-03: scan_low_stock — barrido periodico de stock bajo umbral.
+UC-INV-05: run_product_import — importacion CSV sincrona.
 """
+import csv
+import io
 import logging
 
-from celery import shared_task
-
-from apps.settings_app.models import SiteSettings
-from apps.catalogue.models import Product
+from apps.catalogue.models import Category, Product
 from apps.chartsize.models import ProductVariant
+from apps.settings_app.models import SiteSettings
+from .models import ImportJob
 from .services import _maybe_create_alert
 
 logger = logging.getLogger('apps')
 
 
-@shared_task(name='inventory.scan_low_stock')
 def scan_low_stock():
     """UC-SYS-03 path periodico: escanea stock bajo umbral."""
     threshold = SiteSettings.get_current().min_stock_threshold
@@ -44,12 +40,7 @@ def scan_low_stock():
 
 
 def run_product_import(job_id: int) -> None:
-    """UC-INV-05: proceso síncrono de importación CSV (sin broker)."""
-    import csv
-    import io
-    from .models import ImportJob
-    from apps.catalogue.models import Category, Product
-
+    """UC-INV-05: proceso sincrono de importacion CSV (sin broker)."""
     try:
         job = ImportJob.objects.get(pk=job_id)
     except ImportJob.DoesNotExist:

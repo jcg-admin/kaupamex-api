@@ -7,8 +7,3 @@ mysqlclient==2.2.1
 Pillow==10.2.0
 cryptography>=42.0.0
 mercadopago>=2.2.0
-# D-004: fanout asincrono de notificaciones manuales. En tests/dev
-# Celery corre en modo eager (CELERY_TASK_ALWAYS_EAGER=True) y no
-# requiere broker; en produccion se conecta a Redis via REDIS_URL.
-celery>=5.3.0
-redis>=5.0.0

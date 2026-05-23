@@ -1,14 +1,13 @@
 """
-Celery tasks — apps.voucher (UC-SYS-02).
+Tareas periodicas de sistema — apps.voucher (UC-SYS-02).
 
 expire_vouchers: desactiva vouchers cuya valid_until < now y que
-están activos. Registra el cambio en VoucherChangeLog con fuente
+estan activos. Registra el cambio en VoucherChangeLog con fuente
 AUTOMATIC_EXPIRATION.
-Se registra en Celery Beat (cada hora).
+Invocada por management command expire_vouchers (cron cada hora).
 """
 import logging
 
-from celery import shared_task
 from django.utils import timezone
 
 from .models import Voucher, VoucherChangeLog
@@ -16,7 +15,6 @@ from .models import Voucher, VoucherChangeLog
 logger = logging.getLogger('apps')
 
 
-@shared_task(name='voucher.expire_vouchers')
 def expire_vouchers():
     """UC-SYS-02: desactiva vouchers vencidos y registra el cambio."""
     now = timezone.now()

@@ -293,7 +293,7 @@ LOGGING = {
 
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 
-# Cache — DatabaseCache (Sprint 6)
+# Cache — DatabaseCache (cnst-arquitectura T4/T5).
 # UC-SRCH-02 (autocomplete) usa la clave "autocomplete:<prefijo>" con TTL 60s.
 # UC-CAT-08 (árbol de categorías) usará la clave "categories:tree" con TTL 300s.
 # La tabla se crea con: python manage.py createcachetable
@@ -308,23 +308,4 @@ CACHES = {
             'CULL_FREQUENCY': 4,
         },
     }
-}
-
-# Celery Beat — tareas periodicas del sistema (UC-SYS-01..03).
-# CELERY_BEAT_SCHEDULE es recogido por celery.py via config_from_object
-# con namespace='CELERY'. Cada task usa timedelta como schedule para
-# evitar importar celery.schedules desde settings.
-CELERY_BEAT_SCHEDULE = {
-    'cancel-timeout-orders': {
-        'task': 'orders.cancel_timeout_orders',
-        'schedule': timedelta(minutes=5),
-    },
-    'expire-vouchers': {
-        'task': 'voucher.expire_vouchers',
-        'schedule': timedelta(hours=1),
-    },
-    'scan-low-stock': {
-        'task': 'inventory.scan_low_stock',
-        'schedule': timedelta(hours=24),
-    },
 }

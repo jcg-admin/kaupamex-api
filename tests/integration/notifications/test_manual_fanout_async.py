@@ -1,23 +1,17 @@
 """
-Tests — D-004: manual notification fanout async/sync branching.
+Tests — UC-NOT-07: manual notification fanout (sincrono, sin broker).
 
-Verifica que `AdminManualNotificationCreateView`:
-
-* Para audiencias <= MANUAL_FANOUT_ASYNC_THRESHOLD ejecuta el fanout
-  sincronamente inline (preservando el comportamiento previo a D-004).
-* Para audiencias > threshold despacha el task
-  `dispatch_manual_fanout` a Celery; en tests se usa
-  `CELERY_TASK_ALWAYS_EAGER=True` para evitar la dependencia de redis.
-
-JSON keys + identificadores en ingles (DEC-DOC-005).
+El fanout es sincrono: AdminManualNotificationCreateView llama
+dispatch_manual_fanout() directamente (cnst-arquitectura T6:
+Celery prohibido, alternativa Cron + Management Commands).
 """
-from unittest import mock
-from django.contrib.auth import get_user_model
-from django.test import override_settings
 from decimal import Decimal
+
+from django.contrib.auth import get_user_model
+
 from apps.catalogue.models import Category, Product
+from apps.notifications.models import ManualNotification, Notification
 from apps.orders.models import Order, OrderItem
-from apps.notifications.models import Notification
 
 import pytest
 
@@ -26,32 +20,24 @@ ADMIN_MANUAL_URL = '/api/v1/admin/notifications/manual/'
 
 
 def _create_buyers(n):
-    """Crea n usuarios y los enlaza a OrderItem(product=<producto creado>).
-
-    Usa importacion diferida para que la fixture solo arme objetos de
-    orders/catalogue cuando este test corre — evita romper el modulo
-    si esas apps cambian en otros bumps.
-    """
-
-
+    """Crea n usuarios enlazados a OrderItem sobre un producto comun."""
     category, _ = Category.objects.get_or_create(
         name='Fanout cat', defaults={'slug': 'fanout-cat'},
     )
     product = Product.objects.create(
         name='Fanout product',
-        slug='fanout-product-d004',
-        sku='SKU-D004-FANOUT',
+        slug='fanout-product-sync',
+        sku='SKU-SYNC-FANOUT',
         price=Decimal('10.00'),
         stock=100,
         category=category,
     )
-
     User = get_user_model()
     user_ids = []
     for i in range(n):
         u = User.objects.create_user(
-            username=f'fanoutbuyer{i}',
-            email=f'fanoutbuyer{i}@practicayoruba.mx',
+            username=f'syncbuyer{i}',
+            email=f'syncbuyer{i}@practicayoruba.mx',
             password='Pw123456!',
         )
         order = Order.objects.create(user=u)
@@ -59,7 +45,7 @@ def _create_buyers(n):
             order=order,
             product=product,
             product_name=product.name,
-            sku=f'sku-{i}',
+            sku=f'sku-sync-{i}',
             unit_price=Decimal('10.00'),
             quantity=1,
             subtotal=Decimal('10.00'),
@@ -69,66 +55,58 @@ def _create_buyers(n):
 
 
 @pytest.mark.integration
-class TestManualFanoutBranching:
-    """D-004 — async / sync branching at recipient threshold."""
+class TestManualFanoutSync:
+    """UC-NOT-07 — fanout sincrono sin broker (cnst-arquitectura T6)."""
 
-    @override_settings(
-        CELERY_TASK_ALWAYS_EAGER=True,
-        MANUAL_FANOUT_ASYNC_THRESHOLD=100,
-    )
-    def test_below_threshold_runs_synchronously(
-        self, admin_client, user, db,
-    ):
-        """1 destinatario <= 100 -> fanout sincrono (sin .delay)."""
-        with mock.patch(
-            'apps.notifications.views.dispatch_manual_fanout.delay'
-        ) as mocked_delay:
-            res = admin_client.post(ADMIN_MANUAL_URL, {
-                'recipient_type': 'USER',
-                'recipient_identifier': user.username,
-                'subject': 'Sync branch',
-                'message': 'Mensaje sincronico.',
-            }, format='json')
+    def test_fanout_usuario_individual(self, admin_client, user, db):
+        """POST manual para USER crea ManualNotification y Notification."""
+        res = admin_client.post(ADMIN_MANUAL_URL, {
+            'recipient_type': 'USER',
+            'recipient_identifier': user.username,
+            'subject': 'Test individual',
+            'message': 'Mensaje de prueba.',
+        }, format='json')
 
         assert res.status_code == 201
-        assert res.json()['recipients_count'] == 1
-        # No se despacho al broker porque la audiencia esta bajo el umbral.
-        mocked_delay.assert_not_called()
-
+        data = res.json()
+        assert data['recipients_count'] == 1
         assert Notification.objects.filter(
-            user=user, subject='Sync branch',
+            user=user, subject='Test individual',
         ).count() == 1
+        assert ManualNotification.objects.filter(subject='Test individual').exists()
 
-    @override_settings(
-        CELERY_TASK_ALWAYS_EAGER=True,
-        MANUAL_FANOUT_ASYNC_THRESHOLD=2,
-    )
-    def test_above_threshold_dispatches_to_celery_eager(
-        self, admin_client, db,
-    ):
-        """3 destinatarios > threshold(2) -> .delay() + eager ejecuta task."""
+    def test_fanout_product_buyers(self, admin_client, db):
+        """POST manual para PRODUCT_BUYERS crea Notification por comprador."""
         user_ids, product_id = _create_buyers(3)
 
-        with mock.patch(
-            'apps.notifications.views.dispatch_manual_fanout.delay',
-            wraps=__import__(
-                'apps.notifications.tasks', fromlist=['dispatch_manual_fanout']
-            ).dispatch_manual_fanout.delay,
-        ) as spy_delay:
-            res = admin_client.post(ADMIN_MANUAL_URL, {
-                'recipient_type': 'PRODUCT_BUYERS',
-                'product_id': product_id,
-                'subject': 'Async branch',
-                'message': 'Mensaje masivo.',
-            }, format='json')
+        res = admin_client.post(ADMIN_MANUAL_URL, {
+            'recipient_type': 'PRODUCT_BUYERS',
+            'product_id': product_id,
+            'subject': 'Notif compradores',
+            'message': 'Para todos los compradores.',
+        }, format='json')
 
         assert res.status_code == 201
         assert res.json()['recipients_count'] == 3
-        # Se despacho exactamente una vez al broker.
-        assert spy_delay.call_count == 1
-
-        # Con CELERY_TASK_ALWAYS_EAGER=True el task se ejecuto en proceso
-        # y creo las Notification correspondientes.
-        created = Notification.objects.filter(subject='Async branch')
+        created = Notification.objects.filter(subject='Notif compradores')
         assert created.count() == 3
         assert set(created.values_list('user_id', flat=True)) == set(user_ids)
+
+    def test_fanout_sin_destinatarios_status_failed(
+        self, admin_client, db,
+    ):
+        """POST manual con recipient inexistente: recipients_count=0, status=FAILED."""
+        res = admin_client.post(ADMIN_MANUAL_URL, {
+            'recipient_type': 'USER',
+            'recipient_identifier': 'inexistente-usuario-xyz',
+            'subject': 'Sin destinatarios',
+            'message': 'Mensaje sin destino.',
+        }, format='json')
+
+        assert res.status_code == 201
+        data = res.json()
+        assert data['recipients_count'] == 0
+        manual = ManualNotification.objects.filter(subject='Sin destinatarios').first()
+        assert manual is not None
+        assert manual.status == ManualNotification.Status.FAILED
+        assert Notification.objects.filter(subject='Sin destinatarios').count() == 0
