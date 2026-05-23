@@ -10,6 +10,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import APIException
 from .models import Category, Product, ProductImage, ProductPriceHistory, SearchHistory
 from apps.settings_app.models import SiteSettings
+from django.utils import timezone
 from django.utils.text import slugify
 from apps.chartsize.serializers import ProductVariantSerializer
 
@@ -93,19 +94,27 @@ class CategoryAdminSerializer(serializers.ModelSerializer):
 
 class ProductListSerializer(serializers.ModelSerializer):
     """UC-CAT-01 — tarjeta de producto para el listado."""
-    category_name  = serializers.CharField(source='category.name', read_only=True)
-    base_price     = serializers.DecimalField(
+    category_name      = serializers.CharField(source='category.name', read_only=True)
+    base_price         = serializers.DecimalField(
         source='price', max_digits=10, decimal_places=2, read_only=True
     )
-    price_with_tax = serializers.SerializerMethodField()
+    price_with_tax     = serializers.SerializerMethodField()
+    availability       = serializers.SerializerMethodField()
+    image              = serializers.SerializerMethodField()
+    discount           = serializers.SerializerMethodField()
+    variants_available = serializers.SerializerMethodField()
 
     class Meta:
         model  = Product
         fields = [
             'id', 'name', 'slug', 'sku',
             'category_name',
-            'base_price', 'price_with_tax',
-            'stock', 'is_active', 'is_published',
+            'base_price', 'price_with_tax', 'discount',
+            'stock', 'availability',
+            'image',
+            'variants_available',
+            'is_featured',
+            'is_active', 'is_published',
         ]
 
     def get_price_with_tax(self, obj) -> float:
@@ -113,8 +122,39 @@ class ProductListSerializer(serializers.ModelSerializer):
         return round(float(obj.price) * (1 + float(iva_rate)), 2)
 
     def get_availability(self, obj) -> str:
-        """UC-CAT-01: IN_STOCK si stock > 0, OUT_OF_STOCK si no."""
+        """UC-CAT-01 / FR-CAT-01.02: IN_STOCK si stock > 0, OUT_OF_STOCK si no."""
         return 'IN_STOCK' if obj.stock > 0 else 'OUT_OF_STOCK'
+
+    def get_image(self, obj) -> str | None:
+        """DEC-BC-14: primera imagen del producto para la tarjeta del listado."""
+        img = obj.images.order_by('order', 'id').first()
+        if img is None or not img.image:
+            return None
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(img.image.url)
+        return img.image.url
+
+    def get_discount(self, obj) -> dict | None:
+        """DEC-BC-14: descuento activo (status CURRENT) del producto."""
+        now = timezone.now()
+        discount = (
+            obj.discounts
+            .filter(is_active=True, valid_from__lte=now)
+            .exclude(valid_until__lt=now)
+            .order_by('-valid_from')
+            .first()
+        )
+        if discount is None:
+            return None
+        return {
+            'pct': float(discount.discount_pct),
+            'discounted_price': float(discount.discounted_price),
+        }
+
+    def get_variants_available(self, obj) -> bool:
+        """DEC-BC-14: True si el producto tiene al menos una variante activa."""
+        return obj.variants.filter(is_active=True).exists()
 
 
 class RelatedProductSerializer(serializers.ModelSerializer):
