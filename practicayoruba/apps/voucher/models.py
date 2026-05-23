@@ -4,7 +4,7 @@ Sprint 13 — UC-PRO-01/02/03/04, UC-CART-04
 
 Voucher: cupon de descuento. Tres tipos: FIXED, PERCENTAGE, FREE_SHIPPING.
 VoucherChangeLog: historial de cambios de admin (UC-PRO-02).
-VoucherUsage: registro de uso por orden — se crea en Sprint 18 (cuando exista apps.orders).
+VoucherUsage: registro de uso por usuario — DEC-BC-10 T-301.
 """
 from decimal import Decimal
 from django.conf import settings
@@ -187,3 +187,27 @@ class VoucherChangeLog(TimeStampedModel):
 
     def __str__(self):
         return f'{self.voucher.code} — {self.created_at.date()}'
+
+
+class VoucherUsage(TimeStampedModel):
+    """
+    Registro de uso de un voucher por usuario. DEC-BC-10 T-301.
+    UNIQUE(user, voucher) impide que el mismo usuario redima el
+    cupon mas de una vez. created_at sirve como used_at.
+    """
+    user    = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='voucher_usages',
+    )
+    voucher = models.ForeignKey(
+        Voucher, on_delete=models.CASCADE,
+        related_name='usages',
+    )
+
+    class Meta:
+        db_table        = 'voucher_usage'
+        unique_together = [('user', 'voucher')]
+        verbose_name    = 'Uso de voucher'
+
+    def __str__(self):
+        return f'{self.user_id} → {self.voucher.code}'

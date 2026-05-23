@@ -8,7 +8,7 @@ from decimal import Decimal
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import IntegrityError, transaction
 from django.db.models import F
-from apps.voucher.models import Voucher
+from apps.voucher.models import Voucher, VoucherUsage
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from apps.users.audit import audit_log_business
@@ -122,6 +122,16 @@ class CheckoutView(APIView):
                              'codigo_error': 'INSUFFICIENT_STOCK',
                              'items': insufficient}, status=409)
 
+        # DEC-BC-10: single-use-by-user check (fast path before atomic block)
+        _pre_user = request.user if request.user.is_authenticated else None
+        if cart.voucher_id and _pre_user:
+            if VoucherUsage.objects.filter(user=_pre_user, voucher_id=cart.voucher_id).exists():
+                return Response(
+                    {'detail': 'Ya utilizaste este cupón anteriormente.',
+                     'codigo_error': 'VOUCHER_ALREADY_USED_BY_USER'},
+                    status=409,
+                )
+
         # 4. Transacción atómica: decrement + crear orden
         settings_obj = SiteSettings.get_current()
         iva_rate = settings_obj.iva_rate
@@ -219,6 +229,9 @@ class CheckoutView(APIView):
                     Voucher.objects.filter(pk=cart.voucher_id).update(
                         current_uses=F('current_uses') + 1
                     )
+                    # DEC-BC-10: track single-use per user
+                    if user:
+                        VoucherUsage.objects.create(user=user, voucher_id=cart.voucher_id)
 
                 # g. Vaciar carrito
                 cart.items.all().delete()
