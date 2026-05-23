@@ -19,7 +19,7 @@ from rest_framework.viewsets import ModelViewSet
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from .models import UserDeactivationEvent, AuthEvent, BusinessEvent
 from .serializers import AdminUserListSerializer
-from .tokens_email import invalidate_all_sessions
+from .tokens_email import invalidate_all_sessions, create_password_reset_token, send_password_reset_email
 
 import rest_framework.pagination
 
@@ -99,8 +99,10 @@ class AdminUserViewSet(ModelViewSet):
     GET    /users/            — listar (UC-AUTH-11)
     GET    /users/{pk}/       — ver perfil (UC-AUTH-12)
     POST   /users/            — crear admin (UC-AUTH-15)
-    POST   /users/{pk}/suspend/    — suspender (UC-AUTH-13)
-    POST   /users/{pk}/reactivate/ — reactivar (UC-AUTH-14)
+    POST   /users/{pk}/suspend/       — suspender (UC-AUTH-13)
+    POST   /users/{pk}/reactivate/    — reactivar (UC-AUTH-14)
+    POST   /users/{pk}/reset-password/ — enviar reset de contraseña
+    POST   /users/{pk}/make-admin/     — promover/degradar admin
     """
     permission_classes = [IsAuthenticated]
     queryset           = User.objects.all().order_by('-date_joined')
@@ -220,6 +222,41 @@ class AdminUserViewSet(ModelViewSet):
             'is_active', 'deactivated_reason', 'deactivated_at',
         ])
         return Response({'message': f'Cuenta de {target.username} reactivada.'})
+
+    @extend_schema(
+        summary='Enviar email de restablecimiento de contraseña',
+        responses={200: None, 403: None, 404: None},
+        tags=['admin'],
+    )
+    @action(detail=True, methods=['post'], url_path='reset-password')
+    def reset_password(self, request, pk=None):
+        _require_admin(request.user)
+        target = self.get_object()
+        plain = create_password_reset_token(target)
+        send_password_reset_email(target, plain)
+        return Response({'message': f'Email de restablecimiento enviado a {target.email}.'})
+
+    @extend_schema(
+        summary='Promover o degradar usuario a administrador',
+        responses={200: None, 400: None, 403: None},
+        tags=['admin'],
+    )
+    @action(detail=True, methods=['post'], url_path='make-admin')
+    def make_admin(self, request, pk=None):
+        _require_admin(request.user)
+        target = self.get_object()
+        if target.pk == request.user.pk:
+            return Response(
+                {'detail': 'No puedes modificar tu propio rol de administrador.'},
+                status=400,
+            )
+        target.is_staff = not target.is_staff
+        target.save(update_fields=['is_staff'])
+        role_label = 'promovido a' if target.is_staff else 'removido de'
+        return Response({
+            'message': f'{target.username} {role_label} administrador.',
+            'is_staff': target.is_staff,
+        })
 
 
 # =============================================================================
