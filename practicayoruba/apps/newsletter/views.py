@@ -1,295 +1,145 @@
 """
-Views — apps.newsletter (UC-NEW-01..04).
+Views — apps.newsletter (P-13 / UC-NEW-01..04).
 
-Public endpoints:
-  POST /api/v1/newsletter/subscribe/                       subscribe (doble opt-in GDPR)
-  POST /api/v1/newsletter/confirm/<token>/                 confirmar suscripcion
-  POST /api/v1/newsletter/unsubscribe/                     unsub via signed token
+Public:
+  POST /api/v1/newsletter/subscribe/           UC-NEW-01
+  POST /api/v1/newsletter/unsubscribe/         UC-NEW-02
 
-Admin endpoints:
-  GET  /api/v1/admin/newsletter/subscribers/               list
-  POST /api/v1/admin/newsletter/subscribers/<id>/unsubscribe/  forced unsub
-  POST /api/v1/admin/newsletter/campaigns/                 create + send campaign
-
-JSON keys + identifiers in English (DEC-DOC-005).
+Admin:
+  GET  /api/v1/admin/newsletter/subscribers/   UC-NEW-03
+  POST /api/v1/admin/newsletter/subscribers/<id>/unsubscribe/  UC-NEW-03
+  POST /api/v1/admin/newsletter/campaigns/     UC-NEW-04
 """
-from django.conf import settings
-from django.core import signing
-from apps.core.email_executor import dispatch_email
-from django.db import transaction
-from django.shortcuts import get_object_or_404
-from django.utils import timezone
-from drf_spectacular.utils import extend_schema, OpenApiTypes
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .models import NewsletterCampaign, NewsletterSubscriber, SubscriberStatus
-from .serializers import CampaignCreateSerializer, CampaignResponseSerializer, SubscribeSerializer, SubscriberListItemSerializer, UnsubscribeSerializer
+from .models import NewsletterSubscriber, NewsletterCampaign
+from .serializers import (
+    NewsletterSubscribeSerializer,
+    NewsletterSubscriberAdminSerializer,
+    NewsletterCampaignSerializer,
+)
 
 
 
-# ── public ────────────────────────────────────────────────────────────
+
 class NewsletterSubscribeView(APIView):
-    """POST /api/v1/newsletter/subscribe/."""
-
+    """POST /api/v1/newsletter/subscribe/ — UC-NEW-01."""
     permission_classes = [AllowAny]
-    serializer_class = SubscribeSerializer
 
     @extend_schema(
-        summary='Suscribirse a la newsletter',
+        summary='Suscribirse al newsletter (UC-NEW-01)',
+        request=NewsletterSubscribeSerializer,
         tags=['newsletter'],
-        request=SubscribeSerializer,
-        responses={201: OpenApiTypes.OBJECT, 200: OpenApiTypes.OBJECT},
+        responses={201: None, 200: None},
     )
     def post(self, request):
-        serializer = SubscribeSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        email = serializer.validated_data['email']
+        ser = NewsletterSubscribeSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        email = ser.validated_data['email']
 
-        subscriber, created = NewsletterSubscriber.objects.get_or_create(
+        sub, created = NewsletterSubscriber.objects.get_or_create(
             email=email,
-            defaults={'status': SubscriberStatus.PENDING},
+            defaults={'is_active': True},
         )
-
-        # Si ya existia en CONFIRMED, lo dejamos asi; si estaba UNSUBSCRIBED,
-        # volvemos a PENDING (re-opt-in con doble confirmacion).
-        if not created and subscriber.status == SubscriberStatus.UNSUBSCRIBED:
-            subscriber.status = SubscriberStatus.PENDING
-            subscriber.unsubscribed_at = None
-            subscriber.save(update_fields=[
-                'status', 'unsubscribed_at', 'updated_at',
-            ])
-
-        # Doble opt-in GDPR: generar token y enviar email de confirmacion (DEC-NEW-01 T-117).
-        if subscriber.status == SubscriberStatus.PENDING:
-            confirm_token = signing.dumps(email, salt='newsletter-confirm')
-            subscriber.confirmation_token = confirm_token
-            subscriber.save(update_fields=['confirmation_token', 'updated_at'])
-
-            frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3001')
-            confirm_url = f'{frontend_url}/newsletter/confirm/?token={confirm_token}'
-            dispatch_email(
-                subject='Confirma tu suscripcion a la newsletter',
-                message=(
-                    f'Hola,\n\n'
-                    f'Para completar tu suscripcion haz clic en el siguiente enlace:\n\n'
-                    f'{confirm_url}\n\n'
-                    f'El enlace expira en 24 horas.\n\n'
-                    f'Si no solicitaste esta suscripcion, ignora este mensaje.'
-                ),
-                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@practicayoruba.mx'),
-                recipient_list=[email],
-            )
+        if not created:
+            if sub.is_active:
+                return Response(
+                    {'detail': 'Ya estás suscrito.',
+                     'codigo_error': 'ALREADY_SUBSCRIBED'},
+                    status=200,
+                )
+            sub.is_active = True
+            sub.save(update_fields=['is_active'])
 
         return Response(
-            {
-                'id': subscriber.pk,
-                'email': subscriber.email,
-                'status': subscriber.status,
-            },
-            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+            {'detail': 'Suscripción confirmada.'},
+            status=status.HTTP_201_CREATED,
         )
-
-
-class NewsletterConfirmView(APIView):
-    """POST /api/v1/newsletter/confirm/<token>/ — UC-NEW-01 doble opt-in (DEC-NEW-01 T-117)."""
-
-    permission_classes = [AllowAny]
-
-    @extend_schema(
-        summary='Confirmar suscripcion via token',
-        tags=['newsletter'],
-        responses={200: OpenApiTypes.OBJECT, 400: OpenApiTypes.OBJECT, 404: OpenApiTypes.OBJECT},
-    )
-    def post(self, request, token):
-        try:
-            email = signing.loads(token, salt='newsletter-confirm', max_age=24 * 3600)
-        except signing.SignatureExpired:
-            return Response(
-                {'error_code': 'TOKEN_EXPIRED', 'detail': 'Token de confirmacion expirado.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        except signing.BadSignature:
-            return Response(
-                {'error_code': 'INVALID_TOKEN', 'detail': 'Token de confirmacion invalido.'},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
-        try:
-            subscriber = NewsletterSubscriber.objects.get(
-                email=email,
-                confirmation_token=token,
-            )
-        except NewsletterSubscriber.DoesNotExist:
-            return Response(
-                {'error_code': 'INVALID_TOKEN', 'detail': 'Token de confirmacion invalido.'},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
-        if subscriber.status != SubscriberStatus.CONFIRMED:
-            subscriber.status = SubscriberStatus.CONFIRMED
-            subscriber.confirmed_at = timezone.now()
-            subscriber.confirmation_token = None
-            subscriber.save(update_fields=[
-                'status', 'confirmed_at', 'confirmation_token', 'updated_at',
-            ])
-
-        return Response({
-            'id': subscriber.pk,
-            'email': subscriber.email,
-            'status': subscriber.status,
-        })
 
 
 class NewsletterUnsubscribeView(APIView):
-    """POST /api/v1/newsletter/unsubscribe/."""
-
+    """POST /api/v1/newsletter/unsubscribe/ — UC-NEW-02."""
     permission_classes = [AllowAny]
-    serializer_class = UnsubscribeSerializer
 
     @extend_schema(
-        summary='Cancelar suscripcion via token',
+        summary='Cancelar suscripción al newsletter (UC-NEW-02)',
+        request=NewsletterSubscribeSerializer,
         tags=['newsletter'],
-        request=UnsubscribeSerializer,
-        responses={200: OpenApiTypes.OBJECT, 400: OpenApiTypes.OBJECT, 404: OpenApiTypes.OBJECT},
+        responses={200: None, 404: None},
     )
     def post(self, request):
-        serializer = UnsubscribeSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        token = serializer.validated_data['token']
-
-        # Verificar firma HMAC y TTL antes de lookup en BD (DEC-NEW-02 T-117).
-        try:
-            signing.loads(token, salt='newsletter-unsub', max_age=30 * 24 * 3600)
-        except signing.SignatureExpired:
-            return Response(
-                {'error_code': 'TOKEN_EXPIRED', 'detail': 'Token expirado.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        except signing.BadSignature:
-            return Response(
-                {'error_code': 'INVALID_TOKEN', 'detail': 'Token invalido.'},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+        ser = NewsletterSubscribeSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        email = ser.validated_data['email']
 
         try:
-            subscriber = NewsletterSubscriber.objects.get(
-                unsubscribe_token=token,
-            )
+            sub = NewsletterSubscriber.objects.get(email=email)
         except NewsletterSubscriber.DoesNotExist:
-            return Response(
-                {'error_code': 'INVALID_TOKEN', 'detail': 'Token invalido.'},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+            raise NotFound({'detail': 'Email no encontrado.',
+                            'codigo_error': 'EMAIL_NOT_FOUND'})
 
-        if subscriber.status != SubscriberStatus.UNSUBSCRIBED:
-            subscriber.status = SubscriberStatus.UNSUBSCRIBED
-            subscriber.unsubscribed_at = timezone.now()
-            subscriber.save(update_fields=[
-                'status', 'unsubscribed_at', 'updated_at',
-            ])
-
-        return Response({
-            'id': subscriber.pk,
-            'email': subscriber.email,
-            'status': subscriber.status,
-        })
+        sub.is_active = False
+        sub.save(update_fields=['is_active'])
+        return Response({'detail': 'Suscripción cancelada.'})
 
 
-# ── admin ─────────────────────────────────────────────────────────────
-class AdminSubscriberListView(APIView):
-    """GET /api/v1/admin/newsletter/subscribers/."""
-
+class _AdminOnly:
     permission_classes = [IsAuthenticated, IsAdminUser]
 
+
+class AdminSubscriberListView(_AdminOnly, APIView):
+    """GET /api/v1/admin/newsletter/subscribers/ — UC-NEW-03."""
+
     @extend_schema(
-        summary='Listar suscriptores',
+        summary='Listar suscriptores (UC-NEW-03)',
         tags=['newsletter'],
-        responses=SubscriberListItemSerializer(many=True),
+        responses={200: NewsletterSubscriberAdminSerializer(many=True)},
     )
     def get(self, request):
-        qs = NewsletterSubscriber.objects.all()
-        status_filter = request.query_params.get('status')
-        if status_filter:
-            qs = qs.filter(status=status_filter)
-        data = SubscriberListItemSerializer(qs, many=True).data
-        return Response({'results': data})
+        qs = NewsletterSubscriber.objects.all().order_by('-created_at')
+        active = request.query_params.get('active')
+        if active is not None:
+            qs = qs.filter(is_active=(active.lower() == 'true'))
+        return Response(NewsletterSubscriberAdminSerializer(qs, many=True).data)
 
 
-class AdminSubscriberForceUnsubscribeView(APIView):
-    """POST /api/v1/admin/newsletter/subscribers/<id>/unsubscribe/."""
-
-    permission_classes = [IsAuthenticated, IsAdminUser]
-    serializer_class = SubscriberListItemSerializer
+class AdminSubscriberForceUnsubscribeView(_AdminOnly, APIView):
+    """POST /api/v1/admin/newsletter/subscribers/<id>/unsubscribe/ — UC-NEW-03."""
 
     @extend_schema(
-        summary='Forzar baja de un suscriptor',
+        summary='Dar de baja suscriptor (admin) (UC-NEW-03)',
         tags=['newsletter'],
-        responses={200: OpenApiTypes.OBJECT},
+        responses={200: None, 404: None},
     )
-    def post(self, request, subscriber_id):
-        subscriber = get_object_or_404(NewsletterSubscriber, pk=subscriber_id)
-        if subscriber.status != SubscriberStatus.UNSUBSCRIBED:
-            subscriber.status = SubscriberStatus.UNSUBSCRIBED
-            subscriber.unsubscribed_at = timezone.now()
-            subscriber.save(update_fields=[
-                'status', 'unsubscribed_at', 'updated_at',
-            ])
-        return Response({
-            'id': subscriber.pk,
-            'email': subscriber.email,
-            'status': subscriber.status,
-        })
+    def post(self, request, pk):
+        try:
+            sub = NewsletterSubscriber.objects.get(pk=pk)
+        except NewsletterSubscriber.DoesNotExist:
+            raise NotFound({'detail': 'Suscriptor no encontrado.',
+                            'codigo_error': 'SUBSCRIBER_NOT_FOUND'})
+        sub.is_active = False
+        sub.save(update_fields=['is_active'])
+        return Response({'detail': 'Suscriptor dado de baja.'})
 
 
-class AdminCampaignCreateView(APIView):
-    """POST /api/v1/admin/newsletter/campaigns/."""
-
-    permission_classes = [IsAuthenticated, IsAdminUser]
+class AdminCampaignCreateView(_AdminOnly, APIView):
+    """POST /api/v1/admin/newsletter/campaigns/ — UC-NEW-04."""
 
     @extend_schema(
-        summary='Crear y enviar campana',
+        summary='Crear campaña de newsletter (UC-NEW-04)',
+        request=NewsletterCampaignSerializer,
         tags=['newsletter'],
-        request=CampaignCreateSerializer,
-        responses={201: CampaignResponseSerializer},
+        responses={201: NewsletterCampaignSerializer, 400: None},
     )
     def post(self, request):
-        serializer = CampaignCreateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        payload = serializer.validated_data
-
-        audience_filter = payload.get(
-            'audience_filter', SubscriberStatus.CONFIRMED,
-        )
-        subject = payload['subject']
-        body = payload['body']
-
-        recipients = list(
-            NewsletterSubscriber.objects
-            .filter(status=audience_filter)
-            .values_list('email', flat=True)
-        )
-
-        with transaction.atomic():
-            campaign = NewsletterCampaign.objects.create(
-                sender=request.user,
-                subject=subject,
-                body=body,
-                audience_filter=audience_filter,
-                sent_at=timezone.now(),
-                recipients_count=len(recipients),
-            )
-
-        if recipients:
-            dispatch_email(
-                subject=subject,
-                message=body,
-                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@practicayoruba.mx'),
-                recipient_list=recipients,
-            )
-
+        ser = NewsletterCampaignSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        campaign = ser.save(created_by=request.user)
         return Response(
-            CampaignResponseSerializer(campaign).data,
+            NewsletterCampaignSerializer(campaign).data,
             status=status.HTTP_201_CREATED,
         )
