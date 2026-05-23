@@ -102,15 +102,14 @@ class TestCheckoutIdempotency:
         T-303: usuario anónimo con Idempotency-Key → checkout se procesa normalmente
         (la clave se ignora porque no hay identidad de usuario estable).
         """
-        from apps.cart.models import Cart
-        import uuid
-
-        cart_token = str(uuid.uuid4())
-        Cart.objects.create(cart_token=cart_token)
-        api_client.post(
-            ITEMS_URL, {'product_id': prod_idm_co.pk, 'quantity': 1, 'cart_token': cart_token},
+        # Add item without a cart — endpoint creates one and returns its token
+        # in the X-Cart-Token response header.
+        r_item = api_client.post(
+            ITEMS_URL, {'product_id': prod_idm_co.pk, 'quantity': 1},
             format='json',
         )
+        assert r_item.status_code == 201
+        cart_token = r_item['X-Cart-Token']
 
         payload = {
             'address': ADDR,

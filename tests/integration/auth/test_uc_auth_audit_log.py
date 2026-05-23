@@ -16,10 +16,10 @@ class TestEventOnRegister:
 
     def test_register_crea_evento_unverified(self, api_client, db):
         api_client.post('/api/v1/auth/register/', {
-            'username': 'newev',
             'email': 'newev@practicayoruba.mx',
             'password': 'Yoruba2026!',
             'password_confirm': 'Yoruba2026!',
+            'terms_accepted': True,
         }, format='json')
         events = UserDeactivationEvent.objects.filter(user__email='newev@practicayoruba.mx')
         assert events.count() == 1

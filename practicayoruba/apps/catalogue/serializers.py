@@ -328,6 +328,10 @@ class ProductAdminSerializer(serializers.ModelSerializer):
         source='category',
     )
     images         = serializers.SerializerMethodField(read_only=True)
+    # UC-CAT-09: declare sku explicitly with validators=[] so DRF's auto-added
+    # UniqueValidator (which returns 400) is bypassed. validate_sku() then runs
+    # the uniqueness check and raises DuplicateSKUError (409 CONFLICT).
+    sku            = serializers.CharField(max_length=50, validators=[])
 
     class Meta:
         model  = Product

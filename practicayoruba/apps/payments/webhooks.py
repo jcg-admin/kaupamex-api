@@ -187,13 +187,16 @@ class MercadoPagoWebhookView(APIView):
 
         # DEC-BC-04: insertar WebhookEvent ANTES de procesar — garantiza idempotencia
         # a nivel de entrega. Si ya fue procesado, retornar 200 sin re-procesar.
+        # Savepoint needed so IntegrityError does not abort the outer transaction
+        # (MySQL marks the whole transaction invalid on constraint violation).
         try:
-            WebhookEvent.objects.create(
-                gateway='MERCADOPAGO',
-                event_id=payment_id,
-                transmission_id=request_id,
-                raw_body=raw_body,
-            )
+            with transaction.atomic():
+                WebhookEvent.objects.create(
+                    gateway='MERCADOPAGO',
+                    event_id=payment_id,
+                    transmission_id=request_id,
+                    raw_body=raw_body,
+                )
         except IntegrityError:
             logger.info('MP webhook: evento duplicado payment_id=%s tx=%s — idempotente', payment_id, request_id)
             return Response({'status': 'duplicate'}, status=200)
@@ -327,12 +330,13 @@ class PayPalWebhookView(APIView):
         pp_event_id       = data.get('id', '')
         pp_transmission_id = headers.get('paypal-transmission-id', '')
         try:
-            WebhookEvent.objects.create(
-                gateway='PAYPAL',
-                event_id=pp_event_id,
-                transmission_id=pp_transmission_id,
-                raw_body=raw_body,
-            )
+            with transaction.atomic():
+                WebhookEvent.objects.create(
+                    gateway='PAYPAL',
+                    event_id=pp_event_id,
+                    transmission_id=pp_transmission_id,
+                    raw_body=raw_body,
+                )
         except IntegrityError:
             logger.info('PayPal webhook: evento duplicado event_id=%s tx=%s — idempotente', pp_event_id, pp_transmission_id)
             return Response({'status': 'duplicate'}, status=200)
