@@ -8,7 +8,11 @@ UC-SRCH-01: Full-text search with MariaDB FULLTEXT
 """
 import pytest
 from decimal import Decimal
+from django.contrib.auth import get_user_model
 from apps.catalogue.models import Category, Product
+from apps.reviews.models import Review
+from apps.questions.models import ProductQuestion, QuestionStatus
+from apps.orders.models import Order
 
 pytestmark = pytest.mark.integration
 
@@ -161,6 +165,70 @@ class TestProductoDetalle:
     def test_detalle_es_publico_sin_autenticar(self, api_client, product_oshun):
         r = api_client.get(f'{CATALOGUE_URL}{product_oshun.slug}/')
         assert r.status_code == 200
+
+    def test_detalle_contiene_reviews_summary(self, api_client, product_oshun):
+        r = api_client.get(f'{CATALOGUE_URL}{product_oshun.slug}/')
+        data = r.json()
+        assert 'reviews_summary' in data
+        rs = data['reviews_summary']
+        assert 'average_rating' in rs
+        assert 'total_count' in rs
+
+    def test_detalle_reviews_summary_sin_resenas(self, api_client, product_oshun):
+        r = api_client.get(f'{CATALOGUE_URL}{product_oshun.slug}/')
+        rs = r.json()['reviews_summary']
+        assert rs['average_rating'] is None
+        assert rs['total_count'] == 0
+
+    def test_detalle_reviews_summary_agrega_aprobadas(self, api_client, db, product_oshun):
+        User = get_user_model()
+        u = User.objects.create_user(username='rev_user', password='X', email='r@x.com')
+        order = Order.objects.create(user=u, status=Order.STATUS_DELIVERED)
+        Review.objects.create(
+            user=u, product=product_oshun, order=order,
+            rating=4, title='Bien', body='Producto bueno.',
+            status=Review.STATUS_APPROVED,
+        )
+        r = api_client.get(f'{CATALOGUE_URL}{product_oshun.slug}/')
+        rs = r.json()['reviews_summary']
+        assert rs['total_count'] == 1
+        assert rs['average_rating'] == 4.0
+
+    def test_detalle_reviews_summary_excluye_pendientes(self, api_client, db, product_oshun):
+        User = get_user_model()
+        u = User.objects.create_user(username='rev_user2', password='X', email='r2@x.com')
+        order = Order.objects.create(user=u, status=Order.STATUS_DELIVERED)
+        Review.objects.create(
+            user=u, product=product_oshun, order=order,
+            rating=5, title='Excelente', body='Muy bueno.',
+            status=Review.STATUS_PENDING,
+        )
+        r = api_client.get(f'{CATALOGUE_URL}{product_oshun.slug}/')
+        rs = r.json()['reviews_summary']
+        assert rs['total_count'] == 0
+        assert rs['average_rating'] is None
+
+    def test_detalle_contiene_questions_count(self, api_client, product_oshun):
+        r = api_client.get(f'{CATALOGUE_URL}{product_oshun.slug}/')
+        data = r.json()
+        assert 'questions_count' in data
+        assert isinstance(data['questions_count'], int)
+
+    def test_detalle_questions_count_sin_preguntas(self, api_client, product_oshun):
+        r = api_client.get(f'{CATALOGUE_URL}{product_oshun.slug}/')
+        assert r.json()['questions_count'] == 0
+
+    def test_detalle_questions_count_solo_respondidas(self, api_client, db, product_oshun):
+        ProductQuestion.objects.create(
+            product=product_oshun, body='¿Cuántos quedan?',
+            status=QuestionStatus.ANSWERED, answer_body='Quedan 10.',
+        )
+        ProductQuestion.objects.create(
+            product=product_oshun, body='¿Es original?',
+            status=QuestionStatus.PENDING, answer_body='',
+        )
+        r = api_client.get(f'{CATALOGUE_URL}{product_oshun.slug}/')
+        assert r.json()['questions_count'] == 1
 
 
 # =============================================================================
