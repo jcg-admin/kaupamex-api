@@ -10,7 +10,6 @@ Admin:
   POST /api/v1/admin/contact/<id>/mark-read/  — UC-COM-03 mark read.
   POST /api/v1/admin/contact/<id>/reply/      — UC-COM-03 reply via email.
 """
-from django.core.mail import send_mail
 from django.conf import settings
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
@@ -18,6 +17,7 @@ from rest_framework.exceptions import NotFound
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from apps.core.email_executor import dispatch_email
 from .models import ContactMessage
 from .serializers import ContactMessageSerializer, ContactMessageAdminSerializer
 
@@ -115,7 +115,7 @@ class AdminContactMessageReplyView(_AdminOnly, APIView):
                 'codigo_error': 'MESSAGE_NOT_FOUND',
             })
 
-        reply_body = (request.data.get('body') or '').strip()
+        reply_body = (request.data.get('reply_body') or '').strip()
         if not reply_body:
             return Response(
                 {'detail': 'El cuerpo de la respuesta es requerido.',
@@ -123,12 +123,11 @@ class AdminContactMessageReplyView(_AdminOnly, APIView):
                 status=400,
             )
 
-        send_mail(
+        dispatch_email(
             subject=f'Re: {msg.subject}',
             message=reply_body,
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[msg.email],
-            fail_silently=False,
         )
 
         msg.is_read = True
