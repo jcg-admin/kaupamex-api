@@ -5,6 +5,7 @@ Sprint 1: RegisterView
 Sprint 2: ProfileView, AddressViewSet, ChangePasswordView
 Sprint 3: Password reset, email verification, admin user management
 Sprint 4: DeactivateAccountView (UC-AUTH-16)
+Sprint 5: LogoutAllSessionsView (logout all devices)
 """
 # stdlib + Django
 from django.contrib.auth import get_user_model
@@ -646,6 +647,38 @@ class DeactivateAccountView(APIView):
             )
 
         return Response({'message': 'Tu cuenta ha sido dada de baja.'}, status=200)
+
+
+# ─── Sprint 5 ─────────────────────────────────────────────────────────
+
+
+class LogoutAllSessionsView(APIView):
+    """POST /api/v1/auth/logout-all/ — Cerrar todas las sesiones activas.
+
+    Invalida todos los refresh tokens outstanding del usuario autenticado.
+    Util para cerrar sesion en todos los dispositivos desde SecurityPage.
+    Reutiliza invalidate_all_sessions() ya usada en ChangePasswordView
+    y DeactivateAccountView.
+    """
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary='Cerrar todas las sesiones activas',
+        description=(
+            'Invalida todos los refresh tokens outstanding del usuario. '
+            'El access token actual sigue siendo valido hasta su TTL natural, '
+            'pero no puede renovarse. Equivale a logout en todos los dispositivos.'
+        ),
+        request=None,
+        responses={
+            200: OpenApiResponse(description='Sesiones invalidadas.'),
+            401: OpenApiResponse(description='No autenticado.'),
+        },
+        tags=['auth'],
+    )
+    def post(self, request):
+        invalidate_all_sessions(request.user)
+        return Response({'detail': 'Sesiones cerradas en todos los dispositivos.'}, status=200)
 
 
 # AdminUserPagination definicion canonica vive en admin_views.py
