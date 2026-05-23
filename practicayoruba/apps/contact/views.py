@@ -1,159 +1,137 @@
 """
-Views — apps.contact (UC-COM-01..03).
+Views — apps.contact (P-09 / UC-COM-01..03).
 
-Public endpoints:
-  POST /api/v1/contact/messages/                          create message
+Public:
+  POST /api/v1/contact/  — UC-COM-01 submit message.
 
-Admin endpoints:
-  GET  /api/v1/admin/contact/messages/                    inbox
-  GET  /api/v1/admin/contact/messages/<id>/               detail
-  POST /api/v1/admin/contact/messages/<id>/read/          mark as read
-  POST /api/v1/admin/contact/messages/<id>/reply/         send reply
-
-JSON keys + identifiers in English (DEC-DOC-005).
+Admin:
+  GET  /api/v1/admin/contact/                 — UC-COM-02 list messages.
+  GET  /api/v1/admin/contact/<id>/            — UC-COM-03 detail.
+  POST /api/v1/admin/contact/<id>/mark-read/  — UC-COM-03 mark read.
+  POST /api/v1/admin/contact/<id>/reply/      — UC-COM-03 reply via email.
 """
-from apps.core.email_executor import dispatch_email
-from django.shortcuts import get_object_or_404
-from django.utils import timezone
-from drf_spectacular.utils import extend_schema, OpenApiResponse
+from django.core.mail import send_mail
+from django.conf import settings
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
+from rest_framework.exceptions import NotFound
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
-from django.conf import settings
 from .models import ContactMessage
-from .serializers import ContactMessageCreateSerializer, ContactMessageListItemSerializer, ContactMessageReplySerializer
+from .serializers import ContactMessageSerializer, ContactMessageAdminSerializer
 
 
 
 
 class ContactMessageCreateView(APIView):
-    """POST /api/v1/contact/messages/ — public submission."""
-
+    """POST /api/v1/contact/ — UC-COM-01."""
     permission_classes = [AllowAny]
-    throttle_classes = [ScopedRateThrottle]
-    throttle_scope = 'contact'
 
     @extend_schema(
-        summary='Enviar mensaje de contacto',
+        summary='Enviar mensaje de contacto (UC-COM-01)',
+        request=ContactMessageSerializer,
         tags=['contact'],
-        request=ContactMessageCreateSerializer,
-        responses={201: ContactMessageListItemSerializer},
+        responses={201: ContactMessageSerializer},
     )
     def post(self, request):
-        serializer = ContactMessageCreateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        message = ContactMessage.objects.create(**serializer.validated_data)
-        return Response(
-            ContactMessageListItemSerializer(message).data,
-            status=status.HTTP_201_CREATED,
-        )
+        ser = ContactMessageSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        msg = ser.save()
+        return Response(ContactMessageSerializer(msg).data, status=status.HTTP_201_CREATED)
 
 
-class AdminContactMessageListView(APIView):
-    """GET /api/v1/admin/contact/messages/."""
-
+class _AdminOnly:
     permission_classes = [IsAuthenticated, IsAdminUser]
 
+
+class AdminContactMessageListView(_AdminOnly, APIView):
+    """GET /api/v1/admin/contact/ — UC-COM-02."""
+
     @extend_schema(
-        summary='Listar mensajes de contacto',
+        summary='Listar mensajes de contacto (UC-COM-02)',
         tags=['contact'],
-        responses=ContactMessageListItemSerializer(many=True),
+        responses={200: ContactMessageAdminSerializer(many=True)},
     )
     def get(self, request):
-        qs = ContactMessage.objects.all()
-        # status filter: sin_leer | leido | respondido (DEC-COM-01 T-117).
-        status_param = request.query_params.get('status')
-        if status_param == 'sin_leer':
-            qs = qs.filter(read=False)
-        elif status_param == 'leido':
-            qs = qs.filter(read=True, replied=False)
-        elif status_param == 'respondido':
-            qs = qs.filter(replied=True)
-        data = ContactMessageListItemSerializer(qs, many=True).data
-        return Response({'results': data})
+        qs = ContactMessage.objects.all().order_by('-created_at')
+        return Response(ContactMessageAdminSerializer(qs, many=True).data)
 
 
-class AdminContactMessageDetailView(APIView):
-    """GET /api/v1/admin/contact/messages/<id>/."""
-
-    permission_classes = [IsAuthenticated, IsAdminUser]
+class AdminContactMessageDetailView(_AdminOnly, APIView):
+    """GET /api/v1/admin/contact/<id>/ — UC-COM-03 detail."""
 
     @extend_schema(
-        summary='Detalle de mensaje de contacto',
+        summary='Detalle de mensaje de contacto (UC-COM-03)',
         tags=['contact'],
-        responses=ContactMessageListItemSerializer,
+        responses={200: ContactMessageAdminSerializer, 404: None},
     )
-    def get(self, request, message_id):
-        message = get_object_or_404(ContactMessage, pk=message_id)
-        # Auto-mark-read on detail access (DEC-COM-02 T-117).
-        if not message.read:
-            message.read = True
-            message.save(update_fields=['read', 'updated_at'])
-        return Response(ContactMessageListItemSerializer(message).data)
+    def get(self, request, pk):
+        try:
+            msg = ContactMessage.objects.get(pk=pk)
+        except ContactMessage.DoesNotExist:
+            raise NotFound({
+                'detail': 'Mensaje no encontrado.',
+                'codigo_error': 'MESSAGE_NOT_FOUND',
+            })
+        return Response(ContactMessageAdminSerializer(msg).data)
 
 
-class AdminContactMessageMarkReadView(APIView):
-    """POST /api/v1/admin/contact/messages/<id>/read/."""
-
-    permission_classes = [IsAuthenticated, IsAdminUser]
-    serializer_class = ContactMessageListItemSerializer
+class AdminContactMessageMarkReadView(_AdminOnly, APIView):
+    """POST /api/v1/admin/contact/<id>/mark-read/ — UC-COM-03."""
 
     @extend_schema(
-        summary='Marcar mensaje como leido',
-        request=None,
-        responses={200: OpenApiResponse(description='Marcado como leido.')},
+        summary='Marcar mensaje como leído (UC-COM-03)',
         tags=['contact'],
+        responses={200: ContactMessageAdminSerializer, 404: None},
     )
-    def post(self, request, message_id):
-        message = get_object_or_404(ContactMessage, pk=message_id)
-        if not message.read:
-            message.read = True
-            message.save(update_fields=['read', 'updated_at'])
-        return Response({'id': message.pk, 'read': True})
+    def post(self, request, pk):
+        try:
+            msg = ContactMessage.objects.get(pk=pk)
+        except ContactMessage.DoesNotExist:
+            raise NotFound({
+                'detail': 'Mensaje no encontrado.',
+                'codigo_error': 'MESSAGE_NOT_FOUND',
+            })
+        msg.is_read = True
+        msg.save(update_fields=['is_read'])
+        return Response(ContactMessageAdminSerializer(msg).data)
 
 
-class AdminContactMessageReplyView(APIView):
-    """POST /api/v1/admin/contact/messages/<id>/reply/."""
-
-    permission_classes = [IsAuthenticated, IsAdminUser]
+class AdminContactMessageReplyView(_AdminOnly, APIView):
+    """POST /api/v1/admin/contact/<id>/reply/ — UC-COM-03 reply via email."""
 
     @extend_schema(
-        summary='Responder mensaje de contacto',
+        summary='Responder mensaje de contacto por email (UC-COM-03)',
         tags=['contact'],
-        request=ContactMessageReplySerializer,
-        responses=ContactMessageListItemSerializer,
+        responses={200: None, 400: None, 404: None},
     )
-    def post(self, request, message_id):
-        message = get_object_or_404(ContactMessage, pk=message_id)
+    def post(self, request, pk):
+        try:
+            msg = ContactMessage.objects.get(pk=pk)
+        except ContactMessage.DoesNotExist:
+            raise NotFound({
+                'detail': 'Mensaje no encontrado.',
+                'codigo_error': 'MESSAGE_NOT_FOUND',
+            })
 
-        # Idempotency: if already replied, return current state without re-sending email.
-        if message.replied:
+        reply_body = (request.data.get('body') or '').strip()
+        if not reply_body:
             return Response(
-                ContactMessageListItemSerializer(message).data,
-                status=status.HTTP_200_OK,
+                {'detail': 'El cuerpo de la respuesta es requerido.',
+                 'codigo_error': 'BODY_REQUIRED'},
+                status=400,
             )
 
-        serializer = ContactMessageReplySerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        reply_body = serializer.validated_data['reply_body']
-
-        dispatch_email(
-            subject=f'Re: {message.subject}',
+        send_mail(
+            subject=f'Re: {msg.subject}',
             message=reply_body,
-            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@practicayoruba.mx'),
-            recipient_list=[message.email],
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[msg.email],
+            fail_silently=False,
         )
 
-        message.reply_body = reply_body
-        message.reply_sent_at = timezone.now()
-        message.reply_sent_by = request.user
-        message.replied = True
-        if not message.read:
-            message.read = True
-        message.save(update_fields=[
-            'reply_body', 'reply_sent_at', 'reply_sent_by',
-            'replied', 'read', 'updated_at',
-        ])
-        return Response(ContactMessageListItemSerializer(message).data)
+        msg.is_read = True
+        msg.save(update_fields=['is_read'])
+
+        return Response({'detail': 'Respuesta enviada.'})

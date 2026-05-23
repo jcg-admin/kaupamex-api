@@ -54,8 +54,7 @@ class RegisterView(APIView):
         request=RegisterSerializer,
         responses={
             201: OpenApiResponse(description='Cuenta creada. Se envia email de verificacion.'),
-            400: OpenApiResponse(description='Error de validacion (formato, contrasena, terms_accepted).'),
-            409: OpenApiResponse(description='Email ya registrado en cuenta activa (D-06).'),
+            400: OpenApiResponse(description='Error de validacion (formato o unicidad).'),
         },
         tags=['auth'],
     )
@@ -80,20 +79,19 @@ class RegisterView(APIView):
                  'user_id': existing.pk},
                 status=201,
             )
-            # Alt-A.1: cuenta activa -> 409 Conflict (D-06: semantica correcta
-            # vs 400 Bad Request previo).
+            # Alt-A.1: cuenta activa -> indicar al usuario que use login.
             if existing.is_active:
-                # DEC-ALR-3: REGISTER_FAIL sin leak de estado de cuenta.
+                # DEC-ALR-3: REGISTER_FAIL sin leak (reason generico).
                 audit_log_auth(
                     None, AuthEvent.ACTION_REGISTER_FAIL, request,
-                    reason='email_already_registered',
+                    reason='email_invalid',
                 )
                 return Response(
                     {'email': [
                         'Esa cuenta ya esta registrada. Inicia sesion '
                         'o recupera tu contrasena si la olvidaste.'
                     ]},
-                    status=409,
+                    status=400,
                 )
             # Alt-A.2: inactiva reactivable (unverified o self_deleted)
             # -> generar token + reenviar email. Mismo response shape que
@@ -362,7 +360,7 @@ class ChangePasswordView(APIView):
         return Response({'error_code': 'INVALID_PAYLOAD', 'detail': str(errors)}, status=400)
 
 
-# ─── Sprint 3 ──────────────────────────────────────────────────
+# ─── Sprint 3 ─────────────────────────────────────────────────────────
 
 
 class PasswordResetRequestView(APIView):

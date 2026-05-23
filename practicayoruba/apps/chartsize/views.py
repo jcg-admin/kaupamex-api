@@ -1,342 +1,169 @@
 """
-Views — apps.chartsize
+Views — apps.chartsize (P-04 / Sprint 7)
 
-Sprint 9 — UC-CHT-01, UC-CHT-02, UC-CHT-03, UC-CHT-04
+UC-CHT-01: Ver tallas disponibles por producto (público)
+UC-CHT-02: Editar variante de talla/precio (admin)
+UC-CHT-03: Gestionar tipos de variante (admin)
+UC-CHT-04: Ajustar precio individual de variante (admin)
 """
-from decimal import Decimal, InvalidOperation
-from django.shortcuts import get_object_or_404
-from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiResponse
-from drf_spectacular.types import OpenApiTypes
-from rest_framework.exceptions import ValidationError
-from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
+from drf_spectacular.utils import extend_schema, OpenApiParameter
+from rest_framework import status
+from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from apps.catalogue.models import Product
-from .models import VariantType, VariantOption, ProductVariant
-from .serializers import ProductVariantSerializer, ProductVariantAdminSerializer, VariantTypeAdminSerializer
-from django.utils import timezone
-from apps.orders.proxy_models import ActiveOrder
+from .models import ProductVariant, VariantType
+from .serializers import (
+    ProductVariantAdminSerializer,
+    ProductVariantPublicSerializer,
+    VariantTypeSerializer,
+)
 
 
 
-
-# =============================================================================
-# UC-CHT-01 / UC-CHT-02 — Vista pública de variante (validación)
-# =============================================================================
 
 class VariantDetailView(APIView):
     """
-    GET /api/v1/catalogue/<slug>/variants/<pk>/
-
-    Retorna el estado actual de una variante especifica (stock, precio).
-    Usado por el frontend para confirmar disponibilidad antes de agregar
-    al carrito (UC-CHT-02). El agregar al carrito es Sprint 12.
+    GET /api/v1/products/<product_id>/variants/ — UC-CHT-01.
+    Returns the list of variants for a product (public).
     """
     permission_classes = [AllowAny]
 
     @extend_schema(
-        summary='Validar estado de variante',
-        description=(
-            'Retorna stock, precio efectivo y disponibilidad de una variante. '
-            'Usado antes de agregar al carrito. UC-CHT-02 (validacion).'
-        ),
-        responses={200: ProductVariantSerializer, 404: None},
-        tags=['catalogue'],
+        summary='Listar variantes del producto (UC-CHT-01)',
+        tags=['variants'],
+        responses={200: ProductVariantPublicSerializer(many=True)},
     )
-    def get(self, request, slug, pk):
-        product = get_object_or_404(
-            Product, slug=slug, is_active=True, is_published=True
-        )
-        variant = get_object_or_404(
-            ProductVariant, pk=pk, product=product, is_active=True
-        )
-        return Response(ProductVariantSerializer(variant).data)
-
-
-# =============================================================================
-# UC-CHT-03 y UC-CHT-04 — CRUD admin de variantes
-# =============================================================================
-
-@extend_schema_view(
-    list=extend_schema(parameters=[
-        OpenApiParameter('product_pk', OpenApiTypes.INT,
-                         OpenApiParameter.PATH),
-    ]),
-    create=extend_schema(parameters=[
-        OpenApiParameter('product_pk', OpenApiTypes.INT,
-                         OpenApiParameter.PATH),
-    ]),
-    retrieve=extend_schema(parameters=[
-        OpenApiParameter('product_pk', OpenApiTypes.INT,
-                         OpenApiParameter.PATH),
-        OpenApiParameter('id', OpenApiTypes.INT,
-                         OpenApiParameter.PATH),
-    ]),
-    update=extend_schema(parameters=[
-        OpenApiParameter('product_pk', OpenApiTypes.INT,
-                         OpenApiParameter.PATH),
-        OpenApiParameter('id', OpenApiTypes.INT,
-                         OpenApiParameter.PATH),
-    ]),
-    partial_update=extend_schema(parameters=[
-        OpenApiParameter('product_pk', OpenApiTypes.INT,
-                         OpenApiParameter.PATH),
-        OpenApiParameter('id', OpenApiTypes.INT,
-                         OpenApiParameter.PATH),
-    ]),
-    destroy=extend_schema(parameters=[
-        OpenApiParameter('product_pk', OpenApiTypes.INT,
-                         OpenApiParameter.PATH),
-        OpenApiParameter('id', OpenApiTypes.INT,
-                         OpenApiParameter.PATH),
-    ]),
-)
-class ProductVariantAdminViewSet(ModelViewSet):
-    """
-    GET    /api/v1/admin/products/<product_pk>/variants/
-    POST   /api/v1/admin/products/<product_pk>/variants/
-    GET    /api/v1/admin/products/<product_pk>/variants/<pk>/
-    PATCH  /api/v1/admin/products/<product_pk>/variants/<pk>/
-    DELETE /api/v1/admin/products/<product_pk>/variants/<pk>/
-
-    UC-CHT-03: CRUD de variantes.
-    UC-CHT-04: precio diferenciado via price_override.
-    Proteccion CartItems activos: implementada en Sprint 12.
-    Proteccion ordenes activas: resuelto en Sprint 19 con ActiveOrder proxy.
-    """
-    permission_classes = [IsAuthenticated, IsAdminUser]
-    serializer_class   = ProductVariantAdminSerializer
-    http_method_names  = ['get', 'post', 'patch', 'delete', 'head', 'options']
-
-    def _get_product(self):
-        return get_object_or_404(Product, pk=self.kwargs['product_pk'])
-
-    def get_queryset(self):
-        product = self._get_product()
-        return (
+    def get(self, request, product_id):
+        try:
+            product = Product.objects.get(pk=product_id)
+        except Product.DoesNotExist:
+            raise NotFound({
+                'detail': 'Producto no encontrado.',
+                'codigo_error': 'PRODUCT_NOT_FOUND',
+            })
+        variants = (
             ProductVariant.objects
             .filter(product=product)
             .select_related('option', 'option__variant_type')
-            .order_by('option__order', 'option__label')
+            .order_by('option__variant_type__name', 'option__label')
         )
+        return Response(ProductVariantPublicSerializer(variants, many=True).data)
 
-    def get_serializer_context(self):
-        ctx = super().get_serializer_context()
-        ctx['product'] = self._get_product()
-        return ctx
 
-    def perform_create(self, serializer):
-        """
-        La variante se vincula a un VariantOption.
-        El admin debe enviar option_id (ID de una VariantOption ya creada).
-        """
-        serializer.save()
+class ProductVariantAdminViewSet(ModelViewSet):
+    """
+    Admin CRUD for product variants — UC-CHT-02.
 
-    def perform_destroy(self, instance):
-        """
-        Soft delete (DEC-DOC-007).
+    GET    /api/v1/admin/variants/           list (filterable by ?product=<id>)
+    POST   /api/v1/admin/variants/           create
+    GET    /api/v1/admin/variants/<pk>/      detail
+    PATCH  /api/v1/admin/variants/<pk>/      update
+    DELETE /api/v1/admin/variants/<pk>/      delete
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class   = ProductVariantAdminSerializer
+    queryset           = ProductVariant.objects.all().select_related(
+        'product', 'option', 'option__variant_type'
+    )
+    http_method_names  = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
-        Marca la variante como borrada logicamente (``is_deleted=True`` +
-        ``deleted_at``) y, ademas, desactiva la visibilidad de negocio
-        (``is_active=False``, ``stock=0``) — ambos campos coexisten:
-        uno modela la regla de negocio (UC-CHT-03), el otro la politica
-        de retencion historica.
+    def get_queryset(self):
+        qs = super().get_queryset()
+        product_id = self.request.query_params.get('product')
+        if product_id:
+            qs = qs.filter(product_id=product_id)
+        return qs
 
-        Sprint 12: verificar CartItems activos antes de desactivar.
-        H-ORD-005: verificar ActiveOrders antes de desactivar (Sprint 19).
-        """
-        # H-ORD-005: protección contra órdenes activas
-        if ActiveOrder.objects.filter(items__variant=instance).exists():
-            raise ValidationError({
-                'detail': 'No se puede eliminar esta variante porque tiene órdenes activas.',
-                'codigo_error': 'VARIANT_WITH_ACTIVE_ORDERS',
-            })
-        # H-S12-006: protección contra CartItems activos
-        active_cart_items = instance.cart_items.count()
-        if active_cart_items > 0:
-            raise ValidationError({
-                'detail': (
-                    f'Esta variante tiene {active_cart_items} item(s) en carritos activos. '
-                    f'Desactivarla los dejaría sin stock. '
-                    f'Espera a que esos carritos expiren o sean vaciados.'
-                ),
-                'codigo_error': 'VARIANT_WITH_CART_ITEMS',
-            })
-        instance.is_active = False
-        instance.stock     = 0
-        instance.is_deleted = True
-        instance.deleted_at = timezone.now()
-        instance.save(update_fields=[
-            'is_active', 'stock', 'is_deleted', 'deleted_at',
-        ])
-
-    @extend_schema(summary='Listar variantes del producto', tags=['admin-catalogue'])
+    @extend_schema(summary='Listar variantes (admin)', tags=['variants'],
+                   responses={200: ProductVariantAdminSerializer(many=True)})
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
-    @extend_schema(
-        summary='Crear variante',
-        description='Requiere option_id de un VariantOption ya creado.',
-        responses={201: ProductVariantAdminSerializer, 400: None},
-        tags=['admin-catalogue'],
-    )
+    @extend_schema(summary='Crear variante (admin)', tags=['variants'],
+                   responses={201: ProductVariantAdminSerializer})
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
 
-    @extend_schema(
-        summary='Editar variante (stock, precio diferenciado, is_active)',
-        responses={200: ProductVariantAdminSerializer, 400: None},
-        tags=['admin-catalogue'],
-    )
+    @extend_schema(summary='Editar variante (admin)', tags=['variants'],
+                   responses={200: ProductVariantAdminSerializer})
     def partial_update(self, request, *args, **kwargs):
         kwargs['partial'] = True
         return super().update(request, *args, **kwargs)
 
-    @extend_schema(
-        summary='Desactivar variante (soft delete)',
-        responses={204: None},
-        tags=['admin-catalogue'],
-    )
+    @extend_schema(summary='Eliminar variante (admin)', tags=['variants'],
+                   responses={204: None})
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
 
 
-@extend_schema_view(
-    list=extend_schema(parameters=[
-        OpenApiParameter('product_pk', OpenApiTypes.INT,
-                         OpenApiParameter.PATH),
-    ]),
-    create=extend_schema(parameters=[
-        OpenApiParameter('product_pk', OpenApiTypes.INT,
-                         OpenApiParameter.PATH),
-    ]),
-    retrieve=extend_schema(parameters=[
-        OpenApiParameter('product_pk', OpenApiTypes.INT,
-                         OpenApiParameter.PATH),
-        OpenApiParameter('id', OpenApiTypes.INT,
-                         OpenApiParameter.PATH),
-    ]),
-    update=extend_schema(parameters=[
-        OpenApiParameter('product_pk', OpenApiTypes.INT,
-                         OpenApiParameter.PATH),
-        OpenApiParameter('id', OpenApiTypes.INT,
-                         OpenApiParameter.PATH),
-    ]),
-    partial_update=extend_schema(parameters=[
-        OpenApiParameter('product_pk', OpenApiTypes.INT,
-                         OpenApiParameter.PATH),
-        OpenApiParameter('id', OpenApiTypes.INT,
-                         OpenApiParameter.PATH),
-    ]),
-    destroy=extend_schema(parameters=[
-        OpenApiParameter('product_pk', OpenApiTypes.INT,
-                         OpenApiParameter.PATH),
-        OpenApiParameter('id', OpenApiTypes.INT,
-                         OpenApiParameter.PATH),
-    ]),
-)
 class VariantTypeAdminViewSet(ModelViewSet):
     """
-    GET|POST /api/v1/admin/products/<product_pk>/variant-types/
-    PATCH|DELETE /api/v1/admin/products/<product_pk>/variant-types/<pk>/
+    Admin CRUD for variant types — UC-CHT-03.
 
-    UC-CHT-03: gestionar tipos de variante (Tamaño, Presentación, etc.)
+    GET    /api/v1/admin/variant-types/           list
+    POST   /api/v1/admin/variant-types/           create
+    PATCH  /api/v1/admin/variant-types/<pk>/      update
+    DELETE /api/v1/admin/variant-types/<pk>/      delete
     """
     permission_classes = [IsAuthenticated, IsAdminUser]
-    serializer_class   = VariantTypeAdminSerializer
+    serializer_class   = VariantTypeSerializer
+    queryset           = VariantType.objects.all().order_by('name')
     http_method_names  = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
-    def _get_product(self):
-        return get_object_or_404(Product, pk=self.kwargs['product_pk'])
-
-    def get_queryset(self):
-        return VariantType.objects.filter(
-            product=self._get_product()
-        ).prefetch_related('options').order_by('order', 'name')
-
-    def get_serializer_context(self):
-        ctx = super().get_serializer_context()
-        ctx['product'] = self._get_product()
-        return ctx
-
-    def perform_create(self, serializer):
-        serializer.save(product=self._get_product())
-
-    def perform_destroy(self, instance):
-        """Soft delete (DEC-DOC-007): ``is_deleted`` + visibilidad apagada."""
-        instance.is_active = False
-        instance.is_deleted = True
-        instance.deleted_at = timezone.now()
-        instance.save(update_fields=[
-            'is_active', 'is_deleted', 'deleted_at',
-        ])
-
-    @extend_schema(summary='Listar tipos de variante', tags=['admin-catalogue'])
+    @extend_schema(summary='Listar tipos de variante (admin)', tags=['variants'],
+                   responses={200: VariantTypeSerializer(many=True)})
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
-    @extend_schema(summary='Crear tipo de variante', tags=['admin-catalogue'])
+    @extend_schema(summary='Crear tipo de variante (admin)', tags=['variants'],
+                   responses={201: VariantTypeSerializer})
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
 
-    @extend_schema(summary='Editar tipo de variante', tags=['admin-catalogue'])
+    @extend_schema(summary='Editar tipo de variante (admin)', tags=['variants'],
+                   responses={200: VariantTypeSerializer})
     def partial_update(self, request, *args, **kwargs):
         kwargs['partial'] = True
         return super().update(request, *args, **kwargs)
 
+    @extend_schema(summary='Eliminar tipo de variante (admin)', tags=['variants'],
+                   responses={204: None})
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
 
-# =============================================================================
-# UC-CHT-04 — Differentiated price endpoint
-# UI consumes PUT/DELETE /api/v1/admin/variants/<variant_pk>/price/
-# =============================================================================
 
 class VariantPriceAdminView(APIView):
     """
-    PUT    /api/v1/admin/variants/<variant_pk>/price/  — set price_override
-    DELETE /api/v1/admin/variants/<variant_pk>/price/  — clear price_override
-
-    UC-CHT-04 (FR-CHT-04.02): differentiated price per variant.
-    Returns the updated variant serialized with ProductVariantAdminSerializer.
+    PATCH /api/v1/admin/variants/<pk>/price/ — UC-CHT-04.
+    Adjust the price_override of a variant.
     """
     permission_classes = [IsAuthenticated, IsAdminUser]
 
-    def _get_variant(self, variant_pk):
-        return get_object_or_404(ProductVariant, pk=variant_pk)
-
     @extend_schema(
-        summary='Set differentiated price on a variant',
-        request={'application/json': {'type': 'object',
-                                       'properties': {'price': {'type': 'string'}},
-                                       'required': ['price']}},
+        summary='Ajustar precio de variante (UC-CHT-04)',
+        tags=['variants'],
         responses={200: ProductVariantAdminSerializer, 400: None, 404: None},
-        tags=['variants'],
     )
-    def put(self, request, variant_pk):
-        variant = self._get_variant(variant_pk)
-        raw = request.data.get('price', None)
-        if raw is None or raw == '':
-            raise ValidationError({'price': 'This field is required.'})
+    def patch(self, request, pk):
         try:
-            value = Decimal(str(raw))
-        except (InvalidOperation, TypeError, ValueError):
-            raise ValidationError({'price': 'Invalid decimal value.'})
-        if value <= Decimal('0'):
-            raise ValidationError({
-                'price': 'The differentiated price must be greater than zero.',
+            variant = ProductVariant.objects.get(pk=pk)
+        except ProductVariant.DoesNotExist:
+            raise NotFound({
+                'detail': 'Variante no encontrada.',
+                'codigo_error': 'VARIANT_NOT_FOUND',
             })
-        variant.price_override = value
-        variant.save(update_fields=['price_override', 'updated_at'])
-        return Response(ProductVariantAdminSerializer(variant).data)
 
-    @extend_schema(
-        summary='Clear differentiated price (fall back to product base price)',
-        responses={200: ProductVariantAdminSerializer, 404: None},
-        tags=['variants'],
-    )
-    def delete(self, request, variant_pk):
-        variant = self._get_variant(variant_pk)
-        if variant.price_override is not None:
-            variant.price_override = None
-            variant.save(update_fields=['price_override', 'updated_at'])
+        price_override = request.data.get('price_override')
+        if price_override is None:
+            raise ValidationError({
+                'detail': 'price_override es requerido.',
+                'codigo_error': 'PRICE_REQUIRED',
+            })
+
+        variant.price_override = price_override
+        variant.save(update_fields=['price_override'])
+
         return Response(ProductVariantAdminSerializer(variant).data)
