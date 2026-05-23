@@ -7,4 +7,4 @@ class NotificationsConfig(AppConfig):
     verbose_name = 'Notificaciones'
 
     def ready(self):
-        import apps.notifications.signals  # noqa: F401 — registers signal receivers
+        import apps.notifications.handlers  # noqa: F401 — connect signal receivers

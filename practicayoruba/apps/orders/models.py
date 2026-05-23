@@ -20,23 +20,23 @@ def _generate_order_number() -> str:
 
 class Order(TimeStampedModel, SoftDeleteModel):
     """Orden de compra. Hereda SoftDeleteModel (DEC-DOC-007)."""
-    STATUS_PENDING            = 'PENDING'
-    STATUS_PROCESSING         = 'PROCESSING'
-    STATUS_IN_PREPARATION     = 'IN_PREPARATION'
-    STATUS_SHIPPED            = 'SHIPPED'
-    STATUS_DELIVERED          = 'DELIVERED'
-    STATUS_CANCELLED          = 'CANCELLED'
-    STATUS_REFUNDED           = 'REFUNDED'
-    STATUS_CANCELLED_BY_TIMEOUT = 'CANCELLED_BY_TIMEOUT'
+    STATUS_PENDING        = 'PENDING'
+    STATUS_PROCESSING     = 'PROCESSING'
+    STATUS_IN_PREPARATION = 'IN_PREPARATION'
+    STATUS_SHIPPED        = 'SHIPPED'
+    STATUS_DELIVERED      = 'DELIVERED'
+    STATUS_CANCELLED      = 'CANCELLED'
+    STATUS_REFUNDED       = 'REFUNDED'
+    STATUS_PAGADA         = 'PAGADA'
     STATUSES = [
-        (STATUS_PENDING,              'Pendiente de pago'),
-        (STATUS_PROCESSING,           'Procesando pago'),
-        (STATUS_IN_PREPARATION,       'En preparación'),
-        (STATUS_SHIPPED,              'Enviado'),
-        (STATUS_DELIVERED,            'Entregado'),
-        (STATUS_CANCELLED,            'Cancelado'),
-        (STATUS_REFUNDED,             'Reembolsado'),
-        (STATUS_CANCELLED_BY_TIMEOUT, 'Cancelado por timeout de pago'),
+        (STATUS_PENDING,        'Pendiente de pago'),
+        (STATUS_PROCESSING,     'Procesando pago'),
+        (STATUS_PAGADA,         'Pagada'),
+        (STATUS_IN_PREPARATION, 'En preparación'),
+        (STATUS_SHIPPED,        'Enviado'),
+        (STATUS_DELIVERED,      'Entregado'),
+        (STATUS_CANCELLED,      'Cancelado'),
+        (STATUS_REFUNDED,       'Reembolsado'),
     ]
 
     order_number    = models.CharField(max_length=20, unique=True, db_index=True)
@@ -192,41 +192,33 @@ class OrderStatusLog(TimeStampedModel):
 
 class CheckoutAttempt(models.Model):
     """
-    Registro de idempotencia para el endpoint de checkout. DEC-BC-03.
-
-    UNIQUE(user, idempotency_key) garantiza que el mismo checkout no se
-    procese dos veces para el mismo usuario. Solo aplica a usuarios
-    autenticados — anónimos no tienen identidad estable para el scope.
-
-    La vista almacena el response_json DESPUÉS de crear la orden; en
-    una segunda llamada con el mismo header Idempotency-Key retorna
-    el response cacheado sin re-procesar.
+    Caché de respuestas de checkout para idempotencia. DEC-BC-03.
+    UNIQUE(user, idempotency_key) previene doble orden con la misma clave.
     """
-    user             = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+    user            = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
         related_name='checkout_attempts',
     )
-    idempotency_key  = models.CharField(max_length=200)
-    response_json    = models.TextField()
-    created_at       = models.DateTimeField(auto_now_add=True)
+    idempotency_key = models.CharField(max_length=100)
+    response_json   = models.TextField(default='')
+    created_at      = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = 'orders_checkout_attempt'
-        constraints = [
-            models.UniqueConstraint(
-                fields=['user', 'idempotency_key'],
-                name='unique_checkout_attempt',
-            )
-        ]
-        verbose_name = 'Intento de checkout'
+        db_table        = 'orders_checkout_attempt'
+        unique_together = [('user', 'idempotency_key')]
+        verbose_name    = 'Checkout attempt'
 
     def __str__(self):
-        return f'{self.user_id} {self.idempotency_key}'
+        return f'{self.user_id}/{self.idempotency_key}'
 
 
 class ShippingZone(models.Model):
-    """Zona de envío cubierta. DEC-BC-18.
-    zip_code_prefix es el inicio del código postal cubierto (1-5 dígitos)."""
+    """
+    Zona de envío cubierta. DEC-BC-18.
+    zip_code_prefix es el inicio del código postal cubierto (1-5 dígitos).
+    Ejemplo: "44" cubre todos los CP que empiezan con "44" (Guadalajara, JAL).
+    """
     name            = models.CharField(max_length=100)
     zip_code_prefix = models.CharField(max_length=5, db_index=True)
     is_active       = models.BooleanField(default=True)

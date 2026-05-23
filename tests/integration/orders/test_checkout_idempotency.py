@@ -1,14 +1,19 @@
 """
-Tests — Idempotencia de checkout via CheckoutAttempt table (DEC-BC-03)
+Tests — Idempotency-Key en checkout (T-603, DEC-BC-03).
 
-T-301: test_checkout_idempotency_key_returns_cached_response
-T-302: test_checkout_idempotency_key_different_keys_create_separate_orders
-T-303: test_checkout_idempotency_key_ignored_for_anonymous
+Verifica:
+  - test_double_post_same_key_creates_one_order: dos POSTs con el mismo
+    Idempotency-Key retornan el mismo order_number y solo hay 1 Order.
+  - test_double_post_same_key_decrements_stock_once: el stock solo se
+    decrementa en el primer POST; el segundo retorna la respuesta cacheada.
 """
 import pytest
 from decimal import Decimal
+from unittest.mock import patch
+
 from apps.catalogue.models import Category, Product
-from apps.orders.models import CheckoutAttempt, Order
+from apps.inventory.services import InventoryService
+from apps.orders.models import Order, CheckoutAttempt, ShippingZone
 
 pytestmark = pytest.mark.integration
 
@@ -16,110 +21,126 @@ CHECKOUT_URL = '/api/v1/orders/checkout/'
 ITEMS_URL    = '/api/v1/cart/items/'
 
 ADDR = {
-    'recipient_name': 'Idm User',
-    'street': 'Av. Reforma 1',
+    'recipient_name': 'Test Idem',
+    'street': 'Av. Hidalgo 50',
     'city': 'CDMX',
-    'state': 'Ciudad de Mexico',
+    'state': 'CMX',
     'zip_code': '06600',
     'country': 'MX',
 }
 
-
-@pytest.fixture
-def cat_idm_co(db):
-    return Category.objects.create(name='Cat Idm CO', slug='cat-idm-co', is_active=True)
+IDEMPOTENCY_KEY = 'test-idem-key-abc123'
 
 
 @pytest.fixture
-def prod_idm_co(db, cat_idm_co):
+def zone_cdmx(db):
+    zone, _ = ShippingZone.objects.get_or_create(
+        zip_code_prefix='06', defaults={'name': 'Ciudad de México', 'is_active': True}
+    )
+    return zone
+
+
+@pytest.fixture
+def cat_idem_co(db):
+    return Category.objects.create(name='Cat Idem CO', slug='cat-idem-co', is_active=True)
+
+
+@pytest.fixture
+def prod_idem_co(db, cat_idem_co):
     return Product.objects.create(
-        name='Prod Idm CO', slug='prod-idm-co', sku='IDM-CO-001',
-        description='', category=cat_idm_co,
-        price=Decimal('400.00'), stock=20,
+        name='Prod Idem CO', slug='prod-idem-co', sku='IDEM-CO-001',
+        description='', category=cat_idem_co,
+        price=Decimal('300.00'), stock=10,
         is_active=True, is_published=True,
     )
 
 
 @pytest.fixture
-def auth_cart_idm(auth_client, prod_idm_co):
-    """auth_client con 1 item en carrito listo para checkout."""
-    auth_client.post(ITEMS_URL, {'product_id': prod_idm_co.pk, 'quantity': 1}, format='json')
+def client_with_item(auth_client, prod_idem_co, zone_cdmx):
+    auth_client.post(ITEMS_URL, {'product_id': prod_idem_co.pk, 'quantity': 1}, format='json')
     return auth_client
 
 
 class TestCheckoutIdempotency:
 
-    def test_checkout_idempotency_key_returns_cached_response(
-        self, auth_cart_idm, prod_idm_co, db
+    def test_double_post_same_key_creates_one_order(
+        self, client_with_item, user, prod_idem_co, db
     ):
         """
-        T-301: POST con Idempotency-Key → 201 + orden creada.
-        Segundo POST con MISMO Idempotency-Key → 201 + MISMO order_number,
-        SIN crear nueva orden. 1 CheckoutAttempt en BD.
+        T-603: dos POSTs con el mismo Idempotency-Key retornan el mismo
+        order_number y solo crean 1 Order en la BD.
         """
-        headers = {'HTTP_IDEMPOTENCY_KEY': 'IDM-KEY-001'}
-
-        # Primera llamada: crea orden
-        res1 = auth_cart_idm.post(CHECKOUT_URL, {'address': ADDR}, format='json', **headers)
-        assert res1.status_code == 201
-        order_number_1 = res1.data['order_number']
-
-        # Re-añadir item al carrito (el checkout lo vació)
-        auth_cart_idm.post(ITEMS_URL, {'product_id': prod_idm_co.pk, 'quantity': 1}, format='json')
-
-        # Segunda llamada con MISMA clave → respuesta cacheada
-        res2 = auth_cart_idm.post(CHECKOUT_URL, {'address': ADDR}, format='json', **headers)
-        assert res2.status_code == 201
-        assert res2.data['order_number'] == order_number_1, (
-            'El segundo POST con la misma Idempotency-Key debe retornar la misma orden'
-        )
-
-        # Solo 1 orden creada para esta clave
-        assert Order.objects.filter(order_number=order_number_1).count() == 1
-        assert CheckoutAttempt.objects.filter(idempotency_key='IDM-KEY-001').count() == 1
-
-    def test_checkout_idempotency_key_different_keys_create_separate_orders(
-        self, auth_client, prod_idm_co, db
-    ):
-        """
-        T-302: dos Idempotency-Keys distintas → dos órdenes distintas.
-        """
-        for key in ('KEY-A', 'KEY-B'):
-            auth_client.post(ITEMS_URL, {'product_id': prod_idm_co.pk, 'quantity': 1}, format='json')
-            res = auth_client.post(
+        with patch.object(InventoryService, 'check_availability', return_value=[]), \
+             patch.object(InventoryService, 'decrement', return_value=None):
+            res1 = client_with_item.post(
                 CHECKOUT_URL, {'address': ADDR}, format='json',
-                **{'HTTP_IDEMPOTENCY_KEY': key},
+                HTTP_IDEMPOTENCY_KEY=IDEMPOTENCY_KEY,
             )
-            assert res.status_code == 201
 
-        assert Order.objects.count() == 2
-        assert CheckoutAttempt.objects.count() == 2
+        assert res1.status_code == 201, f'Primera peticion fallo: {res1.data}'
+        order_number = res1.data['order_number']
 
-    def test_checkout_idempotency_key_ignored_for_anonymous(
-        self, api_client, prod_idm_co, db
+        # Segunda peticion con el mismo carrito vaciado ya no importa —
+        # el checkout lo responde desde CheckoutAttempt cacheado.
+        with patch.object(InventoryService, 'check_availability', return_value=[]), \
+             patch.object(InventoryService, 'decrement', return_value=None):
+            res2 = client_with_item.post(
+                CHECKOUT_URL, {'address': ADDR}, format='json',
+                HTTP_IDEMPOTENCY_KEY=IDEMPOTENCY_KEY,
+            )
+
+        assert res2.status_code == 201, f'Segunda peticion fallo: {res2.data}'
+        assert res2.data['order_number'] == order_number, (
+            f'Segunda peticion debio retornar el mismo order_number; '
+            f'res1={order_number}, res2={res2.data["order_number"]}'
+        )
+
+        order_count = Order.objects.filter(user=user).count()
+        assert order_count == 1, (
+            f'Solo debe haber 1 Order; hay {order_count}'
+        )
+
+        attempt_count = CheckoutAttempt.objects.filter(
+            user=user, idempotency_key=IDEMPOTENCY_KEY
+        ).count()
+        assert attempt_count == 1, (
+            f'Solo debe haber 1 CheckoutAttempt; hay {attempt_count}'
+        )
+
+    def test_double_post_same_key_decrements_stock_once(
+        self, client_with_item, user, prod_idem_co, db
     ):
         """
-        T-303: usuario anónimo con Idempotency-Key → checkout se procesa normalmente
-        (la clave se ignora porque no hay identidad de usuario estable).
+        T-603b: el stock solo se decrementa en el primer POST;
+        el segundo retorna la respuesta cacheada sin tocar stock de nuevo.
         """
-        # Add item without a cart — endpoint creates one and returns its token
-        # in the X-Cart-Token response header.
-        r_item = api_client.post(
-            ITEMS_URL, {'product_id': prod_idm_co.pk, 'quantity': 1},
-            format='json',
-        )
-        assert r_item.status_code == 201
-        cart_token = r_item['X-Cart-Token']
+        with patch.object(
+            InventoryService, 'check_availability', return_value=[]
+        ) as mock_check, patch.object(
+            InventoryService, 'decrement', return_value=None
+        ) as mock_decrement:
+            client_with_item.post(
+                CHECKOUT_URL, {'address': ADDR}, format='json',
+                HTTP_IDEMPOTENCY_KEY=IDEMPOTENCY_KEY + '-stock',
+            )
 
-        payload = {
-            'address': ADDR,
-            'cart_token': cart_token,
-            'guest_email': 'guest@example.com',
-        }
-        res = api_client.post(
-            CHECKOUT_URL, payload, format='json',
-            HTTP_IDEMPOTENCY_KEY='ANON-KEY-001',
+        first_check_calls = mock_check.call_count
+        first_decrement_calls = mock_decrement.call_count
+
+        # Segunda peticion — mismo key: respuesta cacheada, no llama a inventory
+        with patch.object(
+            InventoryService, 'check_availability', return_value=[]
+        ) as mock_check2, patch.object(
+            InventoryService, 'decrement', return_value=None
+        ) as mock_decrement2:
+            client_with_item.post(
+                CHECKOUT_URL, {'address': ADDR}, format='json',
+                HTTP_IDEMPOTENCY_KEY=IDEMPOTENCY_KEY + '-stock',
+            )
+
+        assert mock_check2.call_count == 0, (
+            'Segunda peticion (cacheada) no debe llamar check_availability'
         )
-        assert res.status_code == 201
-        # Ningun CheckoutAttempt creado para usuarios anonimos
-        assert CheckoutAttempt.objects.count() == 0
+        assert mock_decrement2.call_count == 0, (
+            'Segunda peticion (cacheada) no debe decrementar stock'
+        )

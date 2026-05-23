@@ -1,6 +1,7 @@
 """Serializers — apps.orders (Sprint 14)."""
 from decimal import Decimal
 from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 from .models import Order, OrderItem, OrderValue, OrderAddress, ShippingZone
 
 
@@ -148,7 +149,7 @@ class CheckoutSerializer(serializers.Serializer):
             .values_list('zip_code_prefix', flat=True)
         )
         if not any(zip_code.startswith(p) for p in prefixes):
-            raise serializers.ValidationError({
+            raise ValidationError({
                 'zip_code': 'El código postal no está cubierto por ninguna zona de envío.',
                 'error_code': 'ZONE_NOT_COVERED',
             })

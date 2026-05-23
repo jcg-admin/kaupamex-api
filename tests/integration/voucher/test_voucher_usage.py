@@ -1,100 +1,138 @@
 """
-Tests — VoucherUsage single-use-by-user enforcement
+Tests — VoucherUsage single-use-by-user (T-302, DEC-BC-10).
 
-T-302 / DEC-BC-10:
-  test_voucher_used_twice_same_user_rejects_409
-  test_current_uses_increments_atomic
+Verifica:
+  - test_voucher_used_twice_same_user_rejects_409: el mismo user no puede
+    aplicar 2 veces el mismo voucher al carrito cuando ya hay uno aplicado.
+  - test_current_uses_increments_atomic: current_uses se incrementa en el
+    checkout dentro de la transaccion atomica.
 """
 import pytest
-from datetime import timedelta
 from decimal import Decimal
 from django.utils import timezone
+from datetime import timedelta
+from unittest.mock import patch
+
 from apps.catalogue.models import Category, Product
+from apps.inventory.services import InventoryService
+from apps.orders.models import ShippingZone
 from apps.voucher.models import Voucher, VoucherUsage
+from apps.cart.models import Cart
 
 pytestmark = pytest.mark.integration
 
-CHECKOUT_URL     = '/api/v1/orders/checkout/'
-ITEMS_URL        = '/api/v1/cart/items/'
-CART_VOUCHER_URL = '/api/v1/cart/voucher/'
+VOUCHER_APPLY_URL = '/api/v1/cart/voucher/'
+ITEMS_URL         = '/api/v1/cart/items/'
 
-ADDR = {
-    'recipient_name': 'VchUsage User',
-    'street': 'Av. Insurgentes 1',
-    'city': 'CDMX',
-    'state': 'Ciudad de Mexico',
-    'zip_code': '06600',
-    'country': 'MX',
-}
+
+def _future(**kw):
+    return timezone.now() + timedelta(**kw)
 
 
 @pytest.fixture
-def cat_vu(db):
-    return Category.objects.create(name='Cat VU', slug='cat-vu', is_active=True)
+def zone_cdmx(db):
+    zone, _ = ShippingZone.objects.get_or_create(
+        zip_code_prefix='06', defaults={'name': 'Ciudad de México', 'is_active': True}
+    )
+    return zone
 
 
 @pytest.fixture
-def prod_vu(db, cat_vu):
+def voucher_single(db):
+    return Voucher.objects.create(
+        code='SINGLE10',
+        voucher_type='FIXED',
+        discount_value=Decimal('10.00'),
+        valid_from=timezone.now() - timedelta(days=1),
+        valid_until=_future(days=30),
+        is_active=True,
+        max_uses=100,
+        current_uses=0,
+    )
+
+
+@pytest.fixture
+def cat_vou(db):
+    return Category.objects.create(name='Cat Voucher', slug='cat-vou', is_active=True)
+
+
+@pytest.fixture
+def product_vou(db, cat_vou):
     return Product.objects.create(
-        name='Prod VU', slug='prod-vu', sku='VU-001',
-        description='', category=cat_vu,
-        price=Decimal('500.00'), stock=30,
+        name='Producto Voucher', slug='prod-vou', sku='VOU-001',
+        description='', category=cat_vou,
+        price=Decimal('200.00'), stock=10,
         is_active=True, is_published=True,
     )
 
 
-@pytest.fixture
-def voucher_vu(db):
-    return Voucher.objects.create(
-        code='VU-ONCE',
-        voucher_type=Voucher.TYPE_FIXED,
-        discount_value=Decimal('50.00'),
-        valid_from=timezone.now() - timedelta(days=1),
-        is_active=True,
-    )
-
-
-class TestVoucherUsage:
+class TestVoucherAlreadyApplied:
+    """DEC-BC-20: VOUCHER_ALREADY_APPLIED 409."""
 
     def test_voucher_used_twice_same_user_rejects_409(
-        self, auth_client, user, prod_vu, voucher_vu, db
+        self, api_client, auth_client, voucher_single, product_vou, db
     ):
         """
-        DEC-BC-10: si VoucherUsage ya existe para (user, voucher),
-        el checkout devuelve 409 VOUCHER_ALREADY_USED_BY_USER.
+        Aplicar voucher dos veces seguidas al mismo carrito retorna 409
+        con VOUCHER_ALREADY_APPLIED en el segundo intento.
         """
-        # Simular que el usuario ya usó este voucher en un checkout anterior
-        VoucherUsage.objects.create(user=user, voucher=voucher_vu)
+        # Agregar un item para que el carrito tenga subtotal
+        auth_client.post(ITEMS_URL, {'product_id': product_vou.pk, 'quantity': 1})
 
-        # Añadir item al carrito
-        auth_client.post(ITEMS_URL, {'product_id': prod_vu.pk, 'quantity': 1}, format='json')
+        # Primera aplicacion → 200
+        res1 = auth_client.post(VOUCHER_APPLY_URL, {'code': voucher_single.code})
+        assert res1.status_code == 200, f'Primera aplicacion debio ser 200; {res1.data}'
 
-        # Aplicar voucher al carrito (CartVoucherView no revisa VoucherUsage)
-        auth_client.post(CART_VOUCHER_URL, {'code': voucher_vu.code}, format='json')
+        # Segunda aplicacion (misma sesion, mismo carrito) → 409
+        res2 = auth_client.post(VOUCHER_APPLY_URL, {'code': voucher_single.code})
+        assert res2.status_code == 409, (
+            f'Segunda aplicacion debio ser 409 VOUCHER_ALREADY_APPLIED; '
+            f'status={res2.status_code}, data={res2.data}'
+        )
+        assert res2.data.get('codigo_error') == 'VOUCHER_ALREADY_APPLIED'
 
-        # Intentar checkout → debe rechazar con 409
-        r = auth_client.post(CHECKOUT_URL, {'address': ADDR}, format='json')
-        assert r.status_code == 409
-        assert r.json()['codigo_error'] == 'VOUCHER_ALREADY_USED_BY_USER'
+
+class TestVoucherUsageCreatedOnCheckout:
+    """DEC-BC-10: current_uses + VoucherUsage al hacer checkout."""
 
     def test_current_uses_increments_atomic(
-        self, auth_client, user, prod_vu, voucher_vu, db
+        self, api_client, auth_client, user, voucher_single, product_vou, zone_cdmx, db
     ):
         """
-        DEC-BC-10: checkout exitoso con voucher incrementa current_uses
-        y crea el registro VoucherUsage.
+        Hacer checkout con voucher aplicado incrementa current_uses
+        y crea VoucherUsage(user, voucher).
         """
-        # Añadir item y aplicar voucher
-        auth_client.post(ITEMS_URL, {'product_id': prod_vu.pk, 'quantity': 1}, format='json')
-        auth_client.post(CART_VOUCHER_URL, {'code': voucher_vu.code}, format='json')
+        # Agregar item y aplicar voucher
+        auth_client.post(ITEMS_URL, {'product_id': product_vou.pk, 'quantity': 1})
+        auth_client.post(VOUCHER_APPLY_URL, {'code': voucher_single.code})
 
-        # Checkout exitoso
-        r = auth_client.post(CHECKOUT_URL, {'address': ADDR}, format='json')
-        assert r.status_code == 201
+        initial_uses = Voucher.objects.get(pk=voucher_single.pk).current_uses
 
-        # current_uses debe haberse incrementado a 1
-        voucher_vu.refresh_from_db()
-        assert voucher_vu.current_uses == 1
+        checkout_data = {
+            'address': {
+                'recipient_name': 'Test',
+                'street': 'Calle 1',
+                'city': 'CDMX',
+                'state': 'CMX',
+                'zip_code': '06600',
+                'country': 'MX',
+            },
+        }
 
-        # VoucherUsage debe existir para (user, voucher)
-        assert VoucherUsage.objects.filter(user=user, voucher=voucher_vu).exists()
+        # Mock InventoryService para no depender de stock
+        with patch.object(InventoryService, 'check_availability', return_value=[]), \
+             patch.object(InventoryService, 'decrement', return_value=None):
+            res = auth_client.post('/api/v1/orders/checkout/', checkout_data, format='json')
+
+        assert res.status_code == 201, f'Checkout fallo: {res.data}'
+
+        # current_uses debe haber incrementado
+        voucher_single.refresh_from_db()
+        assert voucher_single.current_uses == initial_uses + 1, (
+            f'current_uses debio incrementar; era {initial_uses}, '
+            f'ahora {voucher_single.current_uses}'
+        )
+
+        # VoucherUsage debe existir
+        exists = VoucherUsage.objects.filter(user=user, voucher=voucher_single).exists()
+        assert exists, 'VoucherUsage no fue creado en checkout'

@@ -17,7 +17,6 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 from rest_framework.views import APIView
 from apps.catalogue.models import Product
 from apps.chartsize.models import ProductVariant
@@ -390,21 +389,12 @@ class CartMergeView(APIView):
 # Sprint 13 — UC-CART-04: Aplicar/quitar cupón de descuento
 # =============================================================================
 
-class _VoucherApplyAnonThrottle(AnonRateThrottle):
-    rate = '10/hour'
-
-
-class _VoucherApplyUserThrottle(UserRateThrottle):
-    rate = '30/hour'
-
-
 class CartVoucherView(APIView):
     """
     POST   /api/v1/cart/voucher/ — aplicar cupón (UC-CART-04)
     DELETE /api/v1/cart/voucher/ — quitar cupón
     """
     permission_classes = [AllowAny]
-    throttle_classes   = [_VoucherApplyAnonThrottle, _VoucherApplyUserThrottle]
     serializer_class = CartSerializer
 
     @extend_schema(
@@ -431,13 +421,11 @@ class CartVoucherView(APIView):
 
         cart, _, cart_token = _get_or_create_cart(request)
 
-        # DEC-BC-20: reject if a voucher is already applied
+        # DEC-BC-20: rechazar si ya hay un voucher aplicado (409).
         if cart.voucher_id:
             return Response(
-                {
-                    'detail': 'Ya hay un cupón aplicado. Elímínalo primero.',
-                    'codigo_error': 'VOUCHER_ALREADY_APPLIED',
-                },
+                {'code': 'Ya hay un cupón aplicado. Elimínalo antes de aplicar otro.',
+                 'codigo_error': 'VOUCHER_ALREADY_APPLIED'},
                 status=409,
             )
 
