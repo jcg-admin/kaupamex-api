@@ -44,12 +44,12 @@ def send_order_confirmation_email(user_email, user_name, order_number, order_tot
 def send_order_status_email(user_email, user_name, order_number, new_status, tracking_number=None):
     """UC-NOT-02: cambio de estado de orden."""
     _labels = {
-        'PROCESSING':      ('Pago en proceso', 'Tu pago esta siendo procesado. Te avisaremos cuando se confirme.'),
-        'IN_PREPARATION':  ('Pedido en preparacion', 'Tu pedido esta siendo preparado.'),
-        'SHIPPED':         ('Pedido enviado', 'Tu pedido ha sido enviado.'),
-        'DELIVERED':       ('Pedido entregado', '¡Tu pedido fue entregado! Esperamos que lo disfrutes.'),
-        'CANCELLED':       ('Orden cancelada', 'Tu orden fue cancelada.'),
-        'REFUNDED':        ('Orden reembolsada', 'Tu orden ha sido reembolsada.'),
+        'PAYMENT_CONFIRMED': ('Pago confirmado', 'El pago fue confirmado. Estamos preparando tu pedido.'),
+        'IN_PREPARATION':    ('Pedido en preparacion', 'Tu pedido esta siendo preparado.'),
+        'SHIPPED':           ('Pedido enviado', 'Tu pedido ha sido enviado.'),
+        'DELIVERED':         ('Pedido entregado', '¡Tu pedido fue entregado! Esperamos que lo disfrutes.'),
+        'CANCELLED':         ('Orden cancelada', 'Tu orden fue cancelada.'),
+        'CANCELLED_TIMEOUT': ('Orden cancelada', 'Tu orden fue cancelada por tiempo de pago agotado.'),
     }
     title, detail = _labels.get(new_status, ('Actualizacion de orden', f'Estado: {new_status}'))
     if new_status == 'SHIPPED' and tracking_number:

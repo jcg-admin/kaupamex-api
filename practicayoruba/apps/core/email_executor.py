@@ -18,7 +18,6 @@ UCs afectados: UC-NOT-01..05, UC-USR-02, UC-USR-04, UC-COM-01, UC-NEW-04.
 import logging
 from concurrent.futures import ThreadPoolExecutor
 
-from django.conf import settings
 from django.core.mail import send_mail as _send_mail
 
 from apps.notifications.models import EmailTask
@@ -26,8 +25,6 @@ from apps.notifications.models import EmailTask
 logger = logging.getLogger(__name__)
 
 _pool = ThreadPoolExecutor(max_workers=4)
-
-_LOCMEM_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
 
 
 def dispatch_email(subject, message, from_email, recipient_list, **kwargs):
@@ -37,15 +34,9 @@ def dispatch_email(subject, message, from_email, recipient_list, **kwargs):
     Retorna inmediatamente. Si el envio falla, persiste en EmailTask
     para reintento automatico por send_pending_emails.
 
-    Con locmem backend (tests) envia sincrono para que mail.outbox se
-    popule antes de que el test inspeccione el resultado.
-
     No acepta fail_silently — los errores siempre se registran y persisten.
     """
     kwargs.pop('fail_silently', None)
-    if getattr(settings, 'EMAIL_BACKEND', '') == _LOCMEM_BACKEND:
-        _send_mail(subject, message, from_email, recipient_list, **kwargs)
-        return None
     future = _pool.submit(_send_mail, subject, message, from_email, recipient_list, **kwargs)
     future.add_done_callback(
         lambda f: _persist_if_failed(f, subject, message, from_email, recipient_list)

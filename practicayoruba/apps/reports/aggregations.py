@@ -18,7 +18,7 @@ from apps.support.models import SupportTicket
 
 
 
-# ────────────────────────── Period parsing ─────────────────────────────
+# ────────────────────────── Period parsing ─────────────────────────────────
 
 DEFAULT_PERIOD_DAYS = 30
 
@@ -47,7 +47,7 @@ def period_window(days: int):
     return start, end
 
 
-# ────────────────────────── UC-REP-01 sales ──────────────────────────
+# ────────────────────────── UC-REP-01 sales ────────────────────────────────
 
 def build_sales_payload(period_days: int) -> dict:
 
@@ -135,7 +135,7 @@ def build_sales_payload(period_days: int) -> dict:
     }
 
 
-# ────────────────────────── UC-REP-02 top sellers ──────────────────────
+# ────────────────────────── UC-REP-02 top sellers ──────────────────────────
 
 def build_top_sellers_payload(
     period_days: int, limit: int = 10, sort_by: str = 'UNIDADES',
@@ -182,7 +182,7 @@ def build_top_sellers_payload(
     }
 
 
-# ────────────────────────── UC-REP-03 dashboard ──────────────────────
+# ────────────────────────── UC-REP-03 dashboard ────────────────────────────
 
 def build_dashboard_payload() -> dict:
 
@@ -253,7 +253,7 @@ def build_dashboard_payload() -> dict:
     }
 
 
-# ────────────────────────── UC-REP-04 RFM ──────────────────────────
+# ────────────────────────── UC-REP-04 RFM ──────────────────────────────────
 
 def _segment(recency_days: int, frequency: int, monetary: Decimal) -> str:
     """
@@ -323,7 +323,7 @@ def build_rfm_payload(period_days: int, segment_filter: str | None = None) -> di
     }
 
 
-# ────────────────────────── D-19 async threshold helper ─────────────────
+# ────────────────────────── D-19 async threshold helper ───────────────────
 
 
 def count_export_rows(slug: str, days: int) -> int:

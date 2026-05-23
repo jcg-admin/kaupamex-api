@@ -15,7 +15,6 @@ Admin endpoints (UC-NOT-07):
 
 Identifiers + JSON keys in English (DEC-DOC-005).
 """
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.http import Http404
@@ -345,22 +344,12 @@ class AdminManualNotificationCreateView(APIView):
             )
 
             if user_ids:
-                threshold = getattr(settings, 'MANUAL_FANOUT_ASYNC_THRESHOLD', 50)
-                ids_list = list(user_ids)
-                if len(ids_list) > threshold:
-                    dispatch_manual_fanout.delay(
-                        ids_list,
-                        subject,
-                        message,
-                        NotificationType.PROMOTION,
-                    )
-                else:
-                    dispatch_manual_fanout(
-                        ids_list,
-                        subject,
-                        message,
-                        NotificationType.PROMOTION,
-                    )
+                dispatch_manual_fanout(
+                    list(user_ids),
+                    subject,
+                    message,
+                    NotificationType.PROMOTION,
+                )
 
         return Response(
             ManualNotificationResponseSerializer(manual).data,

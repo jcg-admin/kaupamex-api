@@ -1,7 +1,6 @@
 """
 admin_views.py — apps.users
 Sprint 4 — UC-AUTH-12/13/14/15: gestión de usuarios por el administrador.
-T-119  — UC-ADM-03: audit log endpoint.
 """
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
@@ -14,12 +13,11 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from drf_spectacular.utils import extend_schema, OpenApiParameter
-from .models import UserDeactivationEvent, AuthEvent, BusinessEvent
+from .models import UserDeactivationEvent
 from .serializers import AdminUserListSerializer
-from .tokens_email import invalidate_all_sessions, create_password_reset_token, send_password_reset_email
+from .tokens_email import invalidate_all_sessions
 
 import rest_framework.pagination
 
@@ -99,10 +97,8 @@ class AdminUserViewSet(ModelViewSet):
     GET    /users/            — listar (UC-AUTH-11)
     GET    /users/{pk}/       — ver perfil (UC-AUTH-12)
     POST   /users/            — crear admin (UC-AUTH-15)
-    POST   /users/{pk}/suspend/       — suspender (UC-AUTH-13)
-    POST   /users/{pk}/reactivate/    — reactivar (UC-AUTH-14)
-    POST   /users/{pk}/reset-password/ — enviar reset de contraseña
-    POST   /users/{pk}/make-admin/     — promover/degradar admin
+    POST   /users/{pk}/suspend/    — suspender (UC-AUTH-13)
+    POST   /users/{pk}/reactivate/ — reactivar (UC-AUTH-14)
     """
     permission_classes = [IsAuthenticated]
     queryset           = User.objects.all().order_by('-date_joined')
@@ -222,179 +218,3 @@ class AdminUserViewSet(ModelViewSet):
             'is_active', 'deactivated_reason', 'deactivated_at',
         ])
         return Response({'message': f'Cuenta de {target.username} reactivada.'})
-
-    @extend_schema(
-        summary='Enviar email de restablecimiento de contraseña',
-        responses={200: None, 403: None, 404: None},
-        tags=['admin'],
-    )
-    @action(detail=True, methods=['post'], url_path='reset-password')
-    def reset_password(self, request, pk=None):
-        _require_admin(request.user)
-        target = self.get_object()
-        plain = create_password_reset_token(target)
-        send_password_reset_email(target, plain)
-        return Response({'message': f'Email de restablecimiento enviado a {target.email}.'})
-
-    @extend_schema(
-        summary='Promover o degradar usuario a administrador',
-        responses={200: None, 400: None, 403: None},
-        tags=['admin'],
-    )
-    @action(detail=True, methods=['post'], url_path='make-admin')
-    def make_admin(self, request, pk=None):
-        _require_admin(request.user)
-        target = self.get_object()
-        if target.pk == request.user.pk:
-            return Response(
-                {'detail': 'No puedes modificar tu propio rol de administrador.'},
-                status=400,
-            )
-        target.is_staff = not target.is_staff
-        target.save(update_fields=['is_staff'])
-        role_label = 'promovido a' if target.is_staff else 'removido de'
-        return Response({
-            'message': f'{target.username} {role_label} administrador.',
-            'is_staff': target.is_staff,
-        })
-
-
-# =============================================================================
-# T-119 — UC-ADM-03: Audit log unificado
-# =============================================================================
-
-class AuditLogView(APIView):
-    """
-    GET /api/v1/admin/audit-log/ — UC-ADM-03.
-    Devuelve eventos unificados de AuthEvent, BusinessEvent y
-    UserDeactivationEvent ordenados por -created_at.
-
-    Filtros opcionales:
-      ?event_type=auth|business|deactivation
-      ?user_id=<int>
-      ?action=<str>
-      ?date_from=YYYY-MM-DD
-      ?date_to=YYYY-MM-DD
-      ?page=<int>  (50 eventos por pagina)
-    """
-    permission_classes = [IsAuthenticated]
-
-    @extend_schema(
-        summary='Listar audit log unificado (UC-ADM-03)',
-        tags=['admin'],
-        parameters=[
-            OpenApiParameter('event_type', str,
-                             description='Filtrar por tipo: auth|business|deactivation'),
-            OpenApiParameter('user_id', int,
-                             description='ID de usuario afectado o actor'),
-            OpenApiParameter('action', str,
-                             description='Codigo de accion (LOGIN_SUCCESS, ORDER_CREATED, suspended...)'),
-            OpenApiParameter('date_from', str, description='Fecha inicio YYYY-MM-DD'),
-            OpenApiParameter('date_to',   str, description='Fecha fin YYYY-MM-DD'),
-            OpenApiParameter('page', int),
-        ],
-        responses={200: None, 403: None},
-    )
-    def get(self, request):
-        _require_admin(request.user)
-        event_type = request.query_params.get('event_type')
-        user_id    = request.query_params.get('user_id')
-        action_flt = request.query_params.get('action')
-        date_from  = request.query_params.get('date_from')
-        date_to    = request.query_params.get('date_to')
-
-        events = []
-
-        if not event_type or event_type == 'auth':
-            qs = AuthEvent.objects.select_related('user').order_by('-created_at')
-            if user_id:
-                qs = qs.filter(user_id=user_id)
-            if action_flt:
-                qs = qs.filter(action__iexact=action_flt)
-            if date_from:
-                qs = qs.filter(created_at__date__gte=date_from)
-            if date_to:
-                qs = qs.filter(created_at__date__lte=date_to)
-            for e in qs:
-                events.append({
-                    'id': e.pk,
-                    'event_type': 'auth',
-                    'user_id': e.user_id,
-                    'username': e.user.username if e.user else None,
-                    'action': e.action,
-                    'ip_addr': str(e.ip_addr) if e.ip_addr else None,
-                    'created_at': e.created_at.isoformat(),
-                    'extra': e.extra_json or {},
-                })
-
-        if not event_type or event_type == 'business':
-            qs = BusinessEvent.objects.select_related('actor').order_by('-created_at')
-            if user_id:
-                qs = qs.filter(actor_id=user_id)
-            if action_flt:
-                qs = qs.filter(action__iexact=action_flt)
-            if date_from:
-                qs = qs.filter(created_at__date__gte=date_from)
-            if date_to:
-                qs = qs.filter(created_at__date__lte=date_to)
-            for e in qs:
-                events.append({
-                    'id': e.pk,
-                    'event_type': 'business',
-                    'user_id': e.actor_id,
-                    'username': e.actor.username if e.actor else None,
-                    'action': e.action,
-                    'ip_addr': str(e.ip_addr) if e.ip_addr else None,
-                    'created_at': e.created_at.isoformat(),
-                    'extra': {
-                        'target_type': e.target_type,
-                        'target_id': e.target_id,
-                        **(e.extra_json or {}),
-                    },
-                })
-
-        if not event_type or event_type == 'deactivation':
-            qs = (UserDeactivationEvent.objects
-                  .select_related('user', 'actor')
-                  .order_by('-created_at'))
-            if user_id:
-                qs = qs.filter(user_id=user_id)
-            if action_flt:
-                qs = qs.filter(reason__iexact=action_flt)
-            if date_from:
-                qs = qs.filter(created_at__date__gte=date_from)
-            if date_to:
-                qs = qs.filter(created_at__date__lte=date_to)
-            for e in qs:
-                events.append({
-                    'id': e.pk,
-                    'event_type': 'deactivation',
-                    'user_id': e.user_id,
-                    'username': e.user.username if e.user else None,
-                    'action': e.reason,
-                    'ip_addr': None,
-                    'created_at': e.created_at.isoformat(),
-                    'extra': {
-                        'source': e.source,
-                        'actor_id': e.actor_id,
-                        'actor_username': e.actor.username if e.actor else None,
-                        'note': e.note,
-                    },
-                })
-
-        events.sort(key=lambda x: x['created_at'], reverse=True)
-
-        try:
-            page = max(1, int(request.query_params.get('page', 1)))
-        except (ValueError, TypeError):
-            page = 1
-        page_size = 50
-        total = len(events)
-        start = (page - 1) * page_size
-        end = start + page_size
-        return Response({
-            'count': total,
-            'page': page,
-            'pages': max(1, (total + page_size - 1) // page_size),
-            'results': events[start:end],
-        })
