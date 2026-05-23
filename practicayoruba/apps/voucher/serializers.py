@@ -61,8 +61,16 @@ class VoucherSerializer(serializers.ModelSerializer):
 
 
 class VoucherReportSerializer(serializers.ModelSerializer):
-    """UC-PRO-04: reporte básico. ROI con orders en Sprint 18."""
-    status = serializers.SerializerMethodField()
+    """UC-PRO-04: reporte de uso con ROI y agregados de ordenes."""
+    status                     = serializers.SerializerMethodField()
+    orders_count               = serializers.IntegerField(read_only=True, default=0)
+    total_discount_given       = serializers.DecimalField(
+        max_digits=12, decimal_places=2, read_only=True, allow_null=True, default=None,
+    )
+    total_revenue_with_voucher = serializers.DecimalField(
+        max_digits=12, decimal_places=2, read_only=True, allow_null=True, default=None,
+    )
+    roi = serializers.SerializerMethodField()
 
     class Meta:
         model  = Voucher
@@ -70,10 +78,21 @@ class VoucherReportSerializer(serializers.ModelSerializer):
             'id', 'code', 'voucher_type', 'discount_value', 'discount_pct',
             'max_uses', 'current_uses', 'valid_from', 'valid_until',
             'is_active', 'status',
+            'orders_count', 'total_discount_given', 'total_revenue_with_voucher', 'roi',
         ]
 
     def get_status(self, obj):
         return VoucherSerializer().get_status(obj)
+
+    def get_roi(self, obj):
+        disc = getattr(obj, 'total_discount_given', None)
+        rev  = getattr(obj, 'total_revenue_with_voucher', None)
+        if not disc:
+            return None
+        try:
+            return round(float(rev or 0) / float(disc), 2)
+        except (ZeroDivisionError, TypeError):
+            return None
 
 
 class ApplyVoucherSerializer(serializers.Serializer):
