@@ -227,6 +227,8 @@ class TestDesactivarVoucher:
         assert res.status_code == 200
         assert res.json()['is_active'] is True
 
+    # --- POST /deactivate/ — contrato esperado por el UI (UC-PRO-03) ---
+
     def test_deactivate_action_marca_inactivo(self, admin_client, voucher_fixed, db):
         """UI llama POST /:id/deactivate/ y espera el voucher serializado."""
         res = admin_client.post(f'{VOUCHERS_URL}{voucher_fixed.pk}/deactivate/')
