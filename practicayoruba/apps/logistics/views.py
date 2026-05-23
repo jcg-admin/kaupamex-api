@@ -169,3 +169,55 @@ class ConfirmDeliveryView(_AdminOnly, APIView):
         guide.save(update_fields=['delivered_at'])
 
         return Response(ShipmentGuideSerializer(guide).data)
+
+
+class BuyerGuideView(APIView):
+    """GET /api/v1/logistics/buyer/order/<order_id>/guide/ — UC-LOG-07."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, order_id):
+        from .serializers import BuyerShipmentGuideSerializer
+        try:
+            order = Order.objects.get(pk=order_id, user=request.user)
+        except Order.DoesNotExist:
+            raise NotFound({'detail': 'Orden no encontrada.', 'codigo_error': 'ORDER_NOT_FOUND'})
+
+        guide = ShipmentGuide.objects.filter(order=order).select_related('courier').first()
+        if not guide:
+            raise NotFound({'detail': 'Guía de envío no disponible.', 'codigo_error': 'GUIDE_NOT_FOUND'})
+
+        return Response(BuyerShipmentGuideSerializer(guide, context={'request': request}).data)
+
+
+class CancelGuideView(APIView):
+    """POST /api/v1/admin/logistics/guides/<pk>/cancel/ — UC-LOG-08."""
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def post(self, request, pk):
+        try:
+            guide = ShipmentGuide.objects.get(pk=pk)
+        except ShipmentGuide.DoesNotExist:
+            raise NotFound({'detail': 'Guía no encontrada.', 'codigo_error': 'GUIDE_NOT_FOUND'})
+
+        if guide.status == ShipmentGuide.STATUS_CANCELLED:
+            raise ValidationError({'detail': 'La guía ya está cancelada.', 'codigo_error': 'GUIDE_ALREADY_CANCELLED'})
+
+        guide.status = ShipmentGuide.STATUS_CANCELLED
+        guide.save(update_fields=['status', 'updated_at'])
+        return Response(ShipmentGuideSerializer(guide).data)
+
+
+class CourierDetailView(_AdminOnly, APIView):
+    """PATCH /api/v1/admin/logistics/couriers/<pk>/ — UC-LOG-02."""
+    from .serializers import CourierCreateUpdateSerializer
+
+    def patch(self, request, pk):
+        from .serializers import CourierCreateUpdateSerializer
+        try:
+            courier = Courier.objects.get(pk=pk)
+        except Courier.DoesNotExist:
+            raise NotFound({'detail': 'Courier no encontrado.', 'codigo_error': 'COURIER_NOT_FOUND'})
+        ser = CourierCreateUpdateSerializer(courier, data=request.data, partial=True)
+        ser.is_valid(raise_exception=True)
+        ser.save()
+        return Response(CourierSerializer(courier).data)

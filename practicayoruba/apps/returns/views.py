@@ -245,3 +245,21 @@ class AdminReturnRefundView(_AdminOnly, APIView):
         ret.refunded_at = timezone.now()
         ret.save(update_fields=['status', 'refunded_at'])
         return Response(ReturnRequestAdminSerializer(ret).data)
+
+
+class AdminReturnDetailView(_AdminOnly, APIView):
+    """GET /api/v1/admin/returns/<return_id>/ — UC-RET-05 detail."""
+
+    @extend_schema(
+        summary='Detalle de devolución (admin) (UC-RET-05)',
+        tags=['returns'],
+        responses={200: ReturnRequestAdminSerializer, 404: None},
+    )
+    def get(self, request, return_id):
+        try:
+            ret = ReturnRequest.objects.select_related('order__user').prefetch_related(
+                'items', 'history_entries__actor'
+            ).get(pk=return_id)
+        except ReturnRequest.DoesNotExist:
+            raise NotFound({'detail': 'Devolución no encontrada.', 'codigo_error': 'RETURN_NOT_FOUND'})
+        return Response(ReturnRequestAdminSerializer(ret).data)

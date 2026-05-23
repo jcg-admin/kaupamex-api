@@ -143,3 +143,19 @@ class AdminCampaignCreateView(_AdminOnly, APIView):
             NewsletterCampaignSerializer(campaign).data,
             status=status.HTTP_201_CREATED,
         )
+
+
+class NewsletterConfirmView(APIView):
+    """GET /api/v1/newsletter/confirm/<token>/ — doble opt-in UC-NEW-01."""
+    permission_classes = [AllowAny]
+
+    def get(self, request, token):
+        from django.utils import timezone
+        sub = NewsletterSubscriber.objects.filter(confirmation_token=token).first()
+        if not sub:
+            raise NotFound({'detail': 'Token inválido.', 'codigo_error': 'INVALID_TOKEN'})
+        from .models import SubscriberStatus
+        sub.status       = SubscriberStatus.CONFIRMED
+        sub.confirmed_at = timezone.now()
+        sub.save(update_fields=['status', 'confirmed_at'])
+        return Response({'detail': 'Suscripción confirmada.'})

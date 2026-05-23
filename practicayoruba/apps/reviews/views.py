@@ -96,7 +96,6 @@ class ProductReviewsView(APIView):
         ser.is_valid(raise_exception=True)
         data = ser.validated_data
 
-        # Order ownership check + product purchased.
         try:
             order = Order.objects.get(pk=data['order_id'])
         except Order.DoesNotExist:
@@ -109,14 +108,10 @@ class ProductReviewsView(APIView):
                 'detail': 'No puedes reseñar productos que no compraste.',
                 'codigo_error': 'PRODUCT_NOT_PURCHASED',
             })
-        # UC-REV-01 PRE-01 + FR-REV-01.02 (T-118 D-01 CRITICA):
-        # solo se permite resenar productos de ordenes ENTREGADAS. Antes
-        # cualquier estado (PENDING/PROCESSING/SHIPPED) era aceptado =
-        # vector reseñas pre-entrega.
         if order.status != Order.STATUS_DELIVERED:
             raise PermissionDenied({
                 'detail': (
-                    'Solo se pueden resenar productos de ordenes '
+                    'Solo se pueden reseñar productos de ordenes '
                     f'entregadas. Estado actual: {order.status}.'
                 ),
                 'codigo_error': 'ORDER_NOT_DELIVERED',
@@ -270,3 +265,27 @@ class ReviewRejectView(_AdminOnly, APIView):
             actor=request.user,
         )
         return Response(ReviewAdminSerializer(review).data)
+
+
+class ReviewHelpfulVoteView(APIView):
+    """POST /api/v1/products/<product_id>/reviews/<pk>/helpful/ — UC-REV-02."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, product_id, pk):
+        from django.db.models import F
+        from .models import ReviewHelpfulVote
+
+        try:
+            review = Review.objects.get(pk=pk, product_id=product_id, status=Review.STATUS_APPROVED)
+        except Review.DoesNotExist:
+            raise NotFound({'detail': 'Reseña no encontrada.', 'codigo_error': 'REVIEW_NOT_FOUND'})
+
+        try:
+            with transaction.atomic():
+                ReviewHelpfulVote.objects.create(user=request.user, review=review)
+                Review.objects.filter(pk=review.pk).update(helpful_count=F('helpful_count') + 1)
+        except IntegrityError:
+            pass  # already voted — idempotent
+
+        review.refresh_from_db(fields=['helpful_count'])
+        return Response({'helpful_count': review.helpful_count})
