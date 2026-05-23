@@ -32,7 +32,7 @@ def _hash_token(plain: str) -> str:
     return hashlib.sha256(plain.encode()).hexdigest()
 
 
-# ─── Password Reset ──────────────────────────────────────────────────
+# ─── Password Reset ──────────────────────────────────────────────────────
 
 def check_rate_limit(email: str, max_requests: int = 3, window: int = 3600) -> bool:
     """
@@ -103,13 +103,16 @@ def invalidate_all_sessions(user):
         try:
             RefreshToken(token.token).blacklist()
         except Exception:
+            # Loud-log (no re-raise): el loop debe seguir invalidando
+            # el resto de tokens aunque uno este corrupto/duplicado.
+            # DEC-DOC-008.
             logger.warning(
                 'blacklist refresh token failed user_id=%s token_id=%s',
                 user.pk, token.id, exc_info=True,
             )
 
 
-# ─── Email Verification ───────────────────────────────────────────────
+# ─── Email Verification ───────────────────────────────────────────────────
 
 def create_verification_token(user) -> str:
     """
