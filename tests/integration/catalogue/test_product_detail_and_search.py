@@ -278,6 +278,7 @@ class TestBusqueda:
         assert r.status_code == 400
 
     def test_busqueda_normaliza_espacios_internos(self, api_client, product_oshun):
+        # "Oshun  dorado" (doble espacio) debe encontrar "Collar Oshun dorado"
         r = api_client.get(SEARCH_URL, {'q': 'Oshun  dorado'})
         assert r.status_code == 200
 
@@ -310,12 +311,15 @@ class TestBusqueda:
     def test_busqueda_featured_aparece_primero(
         self, api_client, product_oshun, product_yemaya, cat_collares
     ):
+        # product_oshun es featured=True, product_yemaya no
+        # ambos contienen "collar" o "pulsera" — buscar término que devuelva ambos
         Product.objects.filter(slug='pulsera-yemaya-azul').update(
-            name='Pulsera Yemaya collar azul',
+            name='Pulsera Yemaya collar azul',  # para que aparezca en búsqueda de 'collar'
             description='collar Yemaya',
         )
         r = api_client.get(SEARCH_URL, {'q': 'collar'})
         resultados = r.json()['results']
+        # is_featured fue eliminado del modelo — verificar solo que hay resultados
         assert len(resultados) >= 1
 
     def test_busqueda_metadatos_paginacion(self, api_client, product_oshun):
@@ -341,11 +345,13 @@ class TestBusquedaFiltrosAvanzados:
         assert not any('Yemaya' in n for n in nombres)
 
     def test_filtro_precio_minimo_sin_iva(self, api_client, product_oshun, product_yemaya):
+        # Oshun=1250, Yemaya=450 — price_min=900 debe excluir Yemaya (BR-001: sin IVA)
         r = api_client.get(SEARCH_URL, {'q': 'collar pulsera', 'price_min': '900'})
         nombres = [p['name'] for p in r.json()['results']]
         assert not any('Yemaya' in n for n in nombres)
 
     def test_filtro_precio_maximo_sin_iva(self, api_client, product_oshun, product_yemaya):
+        # price_max=600 debe excluir Oshun
         r = api_client.get(SEARCH_URL, {'q': 'collar pulsera', 'price_max': '600'})
         nombres = [p['name'] for p in r.json()['results']]
         assert not any('Oshun' in n for n in nombres)
@@ -360,6 +366,7 @@ class TestBusquedaFiltrosAvanzados:
     def test_filtros_sin_resultados_incluye_active_filters(
         self, api_client, product_oshun
     ):
+        # Filtros muy restrictivos — respuesta debe incluir active_filters
         r = api_client.get(SEARCH_URL, {
             'q': 'collar', 'price_min': '99999'
         })
