@@ -205,7 +205,10 @@ class CheckoutView(APIView):
                 addr_data = data['address']
                 OrderAddress.objects.create(order=order, **addr_data)
 
-                # f. Incrementar Voucher.current_uses atomicamente (DEC-BC-10).
+                # f. Incrementar Voucher.current_uses atomicamente
+                # (DEC-VCU-01 T-115 D-01 CRITICA: el campo se leia en
+                # is_usable()/can_apply() pero NUNCA se incrementaba.
+                # max_uses no limitaba en la practica).
                 if cart.voucher_id:
                     voucher_locked = (
                         Voucher.objects.select_for_update()
@@ -214,6 +217,8 @@ class CheckoutView(APIView):
                     if (voucher_locked.max_uses is not None
                             and voucher_locked.current_uses >=
                                 voucher_locked.max_uses):
+                        # Race detectada: otro checkout consumio el
+                        # cupo entre validacion y lock.
                         raise ValueError(
                             f'Voucher {voucher_locked.code} agotado: '
                             f'{voucher_locked.current_uses}/'
@@ -233,6 +238,7 @@ class CheckoutView(APIView):
                 cart.save(update_fields=['voucher'])
 
                 # UC-NOT-01: notificacion in-app + email de confirmacion.
+                # on_commit garantiza despacho solo si la transaccion commitea.
                 notify_order_created(order, user, total)
 
         except InsufficientStockError as exc:
@@ -321,6 +327,8 @@ class OrderListView(APIView):
             .order_by('-created_at')
         )
 
+        # UC-ORD-03 PARTE 4.2 Alt-B + PARTE 7.1 (DEC-ORD-07):
+        # filtro por ?status=<STATUS>. Antes ignorado.
         status_filter = request.query_params.get('status')
         if status_filter:
             valid_statuses = {choice[0] for choice in Order._meta.get_field('status').choices}
@@ -383,6 +391,12 @@ class OrderCancelView(APIView):
     POST /api/v1/orders/<order_number>/cancel/
     Cancela una orden del comprador.
     UC-ORD-04 (FR-ORD-04.02, FR-ORD-04.03).
+
+    Transacción atómica:
+      1. Valida estado cancelable (PENDING, PROCESSING)
+      2. Order → CANCELLED + cancellation_reason + cancelled_at
+      3. Restaura stock (InventoryService.restore)
+      4. Reembolso automático si había Payment aprobado
     """
     permission_classes = [IsAuthenticated]
 
@@ -550,11 +564,13 @@ class OrderShippingUpdateView(APIView):
         try:
             update_shipping_method(order, s.validated_data['shipping_method_id'])
         except OrderNotEditableError as exc:
+            # UC-ORD-06 PARTE 7.3 (DEC-ORD-04): 409 ORDER_NOT_EDITABLE.
             return Response(
                 {'detail': str(exc), 'codigo_error': 'ORDER_NOT_EDITABLE'},
                 status=409,
             )
         except ShippingMethodNotAvailableError as exc:
+            # UC-ORD-06 PARTE 7.3 (DEC-ORD-04): 400 SHIPPING_METHOD_NOT_AVAILABLE.
             return Response(
                 {'detail': str(exc),
                  'codigo_error': 'SHIPPING_METHOD_NOT_AVAILABLE'},
