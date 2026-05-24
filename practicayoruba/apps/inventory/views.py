@@ -272,6 +272,26 @@ class ProductImportView(_AdminOnly, APIView):
         csv_file = request.FILES.get('file')
         if not csv_file:
             return Response({'detail': 'El archivo CSV es requerido.', 'codigo_error': 'FILE_REQUIRED'}, status=400)
+        # H-CICLO26-05: validar extensión y content-type del archivo subido.
+        # Sin esta comprobación un atacante podría subir un archivo arbitrario
+        # (HTML, ejecutable, etc.) que se almacenará en MEDIA_ROOT con el
+        # nombre original. La extensión no es garantía suficiente, pero junto
+        # con el content-type declarado por el cliente reduce el riesgo.
+        _allowed_content_types = {
+            'text/csv', 'text/plain', 'application/csv',
+            'application/vnd.ms-excel',
+        }
+        file_name = csv_file.name or ''
+        if not file_name.lower().endswith('.csv'):
+            return Response(
+                {'detail': 'Solo se admiten archivos .csv.', 'codigo_error': 'FILE_TYPE_INVALID'},
+                status=400,
+            )
+        if csv_file.content_type and csv_file.content_type.split(';')[0].strip() not in _allowed_content_types:
+            return Response(
+                {'detail': 'Tipo de contenido no permitido. Use text/csv.', 'codigo_error': 'FILE_TYPE_INVALID'},
+                status=400,
+            )
         # H-CICLO23-07: limitar tamaño del CSV para evitar que un archivo
         # masivo agote memoria del worker WSGI o consuma demasiado tiempo.
         if csv_file.size > _CSV_MAX_SIZE_BYTES:
