@@ -5,7 +5,6 @@ Sprint 1: RegisterView
 Sprint 2: ProfileView, AddressViewSet, ChangePasswordView
 Sprint 3: Password reset, email verification, admin user management
 Sprint 4: DeactivateAccountView (UC-AUTH-16)
-Sprint 5: LogoutAllSessionsView (logout all devices)
 """
 # stdlib + Django
 from django.contrib.auth import get_user_model
@@ -60,13 +59,7 @@ class RegisterView(APIView):
         tags=['auth'],
     )
     def post(self, request):
-        # UC-AUTH-01 Alt-A: cuando el email ya existe en BD, el flujo se
-        # ramifica segun users_user.deactivated_reason. La respuesta
-        # publica es ambigua en A.2/A.3 (no filtra estado de cuenta)
-        # pero explicita en A.1 (cuenta activa) por necesidad UX.
         email = (request.data.get('email') or '').lower().strip()
-        # audit-log-eventos-auth-register DEC-ALR-2: emit ATTEMPT
-        # SIEMPRE para signal de account enumeration probes.
         audit_log_auth(
             None, AuthEvent.ACTION_REGISTER_ATTEMPT, request,
             extra={'email_present': bool(email)},
@@ -80,9 +73,7 @@ class RegisterView(APIView):
                  'user_id': existing.pk},
                 status=201,
             )
-            # Alt-A.1: cuenta activa -> indicar al usuario que use login.
             if existing.is_active:
-                # DEC-ALR-3: REGISTER_FAIL sin leak (reason generico).
                 audit_log_auth(
                     None, AuthEvent.ACTION_REGISTER_FAIL, request,
                     reason='email_invalid',
@@ -92,27 +83,17 @@ class RegisterView(APIView):
                         'Esa cuenta ya esta registrada. Inicia sesion '
                         'o recupera tu contrasena si la olvidaste.'
                     ]},
-                    status=400,
+                    status=409,
                 )
-            # Alt-A.2: inactiva reactivable (unverified o self_deleted)
-            # -> generar token + reenviar email. Mismo response shape que
-            # una cuenta nueva para no filtrar el estado.
-            # DEC-ALR-5: NO emit REGISTER_SUCCESS (no se crea user nuevo).
             if existing.deactivated_reason in User.DEACTIVATION_REASONS_REACTIVABLE_BY_EMAIL:
                 plain = create_verification_token(existing)
                 send_verification_email(existing, plain)
                 return CREATED_RESPONSE
-            # Alt-A.3: suspendida por admin (o motivo desconocido) ->
-            # no enviar email, retornar response indistinguible.
             return CREATED_RESPONSE
 
-        # Camino estandar: email no existe, crear cuenta nueva.
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
-            # DEC-ALR-4: REGISTER_SUCCESS convive con
-            # UserDeactivationEvent(source='register') ya
-            # existente en RegisterSerializer.save().
             audit_log_auth(
                 user, AuthEvent.ACTION_REGISTER_SUCCESS, request,
             )
@@ -121,8 +102,6 @@ class RegisterView(APIView):
                  'user_id': user.pk},
                 status=201,
             )
-        # DEC-ALR-3: reason = primer field error name + '_invalid'
-        # (sin leak del value ni del error message completo).
         first_field = next(iter(serializer.errors.keys()), 'unknown')
         audit_log_auth(
             None, AuthEvent.ACTION_REGISTER_FAIL, request,
@@ -195,8 +174,6 @@ class AddressViewSet(ModelViewSet):
     throttle_scope = 'addresses'
     serializer_class = AddressSerializer
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
-    # queryset estatico requerido por drf-spectacular para inferir el tipo del path param.
-    # get_queryset() lo sobreescribe en runtime para filtrar por usuario.
     queryset = Address.objects.none()
 
     def get_queryset(self):
@@ -206,7 +183,6 @@ class AddressViewSet(ModelViewSet):
         serializer.save()
 
     def _do_destroy(self, request, *args, **kwargs):
-        """Al eliminar la default, promover la siguiente como default."""
         addr = self.get_object()
         was_default = addr.is_default
         addr_id = addr.pk
@@ -295,7 +271,7 @@ class AddressViewSet(ModelViewSet):
     def set_default(self, request, pk=None):
         addr = self.get_object()
         addr.is_default = True
-        addr.save()  # el save() del modelo desmarca las demas atomicamente
+        addr.save()
         audit_log_auth(request.user, AuthEvent.ACTION_ADDRESS_DEFAULT, request,
                        extra={'address_id': addr.pk})
         return Response(self.get_serializer(addr).data, status=200)
@@ -403,7 +379,7 @@ class PasswordResetRequestView(APIView):
             plain = create_password_reset_token(user)
             send_password_reset_email(user, plain)
         except User.DoesNotExist:
-            pass  # Silencioso — no revela si el email existe
+            pass
 
         return Response(
             {'message': 'Si ese email esta registrado, recibiras las instrucciones.'}
@@ -487,8 +463,6 @@ class EmailVerifyView(APIView):
         with transaction.atomic():
             user = token_obj.user
             user.is_active = True
-            # GAP-3 cierre: limpiar la causa al reactivar para que el
-            # estado de la cuenta sea consistente despues del click.
             user.deactivated_reason = None
             user.deactivated_at = None
             user.save(update_fields=[
@@ -522,16 +496,11 @@ class ResendVerificationView(APIView):
         email = serializer.validated_data['email']
         try:
             user = User.objects.get(email__iexact=email, is_active=False)
-            # UC-AUTH-01 Alt-A.3: cuentas suspendidas por admin NO se
-            # reactivan por email. UC-AUTH-14 es el unico camino.
-            # El mensaje al cliente es identico al caso DoesNotExist
-            # para no filtrar el estado de la cuenta.
             if user.deactivated_reason in User.DEACTIVATION_REASONS_REACTIVABLE_BY_EMAIL:
                 plain = create_verification_token(user)
                 send_verification_email(user, plain)
-            # else: silencio deliberado (suspended).
         except User.DoesNotExist:
-            pass  # Silencioso
+            pass
 
         return Response(
             {'message': 'Si ese email esta pendiente de verificacion, recibiras un nuevo enlace.'}
@@ -544,16 +513,7 @@ class DeactivateAccountSerializer(drf_serializers.Serializer):
 
 
 class DeactivateAccountView(APIView):
-    """POST /api/v1/auth/me/deactivate/ — UC-AUTH-16 (Dar de Baja la Propia Cuenta).
-
-    Soft-delete logico iniciado por el propio usuario. Pone
-    is_active=False y registra la causa (self_deleted) y el
-    timestamp. Invalida refresh tokens activos.
-
-    Postcondiciones: la cuenta puede reactivarse via
-    UC-AUTH-01 Alt-A.2 (re-registro con mismo email -> reenvio
-    de email de verificacion) o via UC-AUTH-14 (admin).
-    """
+    """POST /api/v1/auth/me/deactivate/ — UC-AUTH-16 (Dar de Baja la Propia Cuenta)."""
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
@@ -574,10 +534,6 @@ class DeactivateAccountView(APIView):
         tags=['auth'],
     )
     def post(self, request):
-        # Rate-limit por user.pk para evitar abuso de sesion robada
-        # repitiendo intentos hasta acertar la password. La key se hashea
-        # internamente; el prefijo "deactivate:" la separa del bucket de
-        # password reset.
         if not check_rate_limit(
             f'deactivate:{request.user.pk}',
             max_requests=5, window=3600,
@@ -602,8 +558,6 @@ class DeactivateAccountView(APIView):
             user.save(update_fields=[
                 'is_active', 'deactivated_reason', 'deactivated_at',
             ])
-            # Invalidar tokens pendientes para que enlaces viejos no
-            # sirvan tras la baja. used_at = NOW marca como consumido.
             now = timezone.now()
             EmailVerificationToken.objects.filter(
                 user=user, used_at__isnull=True,
@@ -612,33 +566,12 @@ class DeactivateAccountView(APIView):
                 user=user, used_at__isnull=True,
             ).update(used_at=now)
             invalidate_all_sessions(user)
-            # FU-4: politica de limpieza en self-delete.
-            # Se ELIMINAN fisicamente los datos volatiles que no tienen
-            # relevancia fiscal y que el usuario probablemente prefiere
-            # que no persistan tras la baja:
-            #   - cart_cart + cart_cart_item (carrito activo)
-            #   - cart_saved_cart + cart_saved_cart_item (carritos guardados)
-            #   - wishlist_item (hereda SoftDeleteModel — hard_delete()
-            #     fuerza borrado fisico, no soft)
-            #   - search_history_entry (historial personal de busquedas)
-            #   - notifications_preference (preferencias personales)
-            #
-            # Se CONSERVAN (transaccionales/fiscales):
-            #   - orders_order + relacionados (audit fiscal)
-            #   - payments_payment, refunds, gateway_event
-            #   - returns_*, support_ticket_* (audit cliente)
-            #   - users_address (referenciado desde orders_order_address
-            #     snapshot, conservar la fila original facilita lookup)
-            #   - users_deactivation_event (audit append-only)
             Cart.objects.filter(user=user).delete()
             SavedCart.objects.filter(user=user).delete()
-            # WishlistItem.all_objects + hard_delete: bypassa el
-            # soft-delete del modelo (queremos borrado fisico).
             for item in WishlistItem.all_objects.filter(user=user):
                 item.hard_delete()
             SearchEntry.objects.filter(user=user).delete()
             NotificationPreference.objects.filter(user=user).delete()
-            # GAP 10: audit log del evento (append-only).
             UserDeactivationEvent.objects.create(
                 user=user,
                 reason=User.DEACTIVATION_SELF_DELETED,
@@ -647,46 +580,3 @@ class DeactivateAccountView(APIView):
             )
 
         return Response({'message': 'Tu cuenta ha sido dada de baja.'}, status=200)
-
-
-# ─── Sprint 5 ─────────────────────────────────────────────────────────
-
-
-class LogoutAllSessionsView(APIView):
-    """POST /api/v1/auth/logout-all/ — Cerrar todas las sesiones activas.
-
-    Invalida todos los refresh tokens outstanding del usuario autenticado.
-    Util para cerrar sesion en todos los dispositivos desde SecurityPage.
-    Reutiliza invalidate_all_sessions() ya usada en ChangePasswordView
-    y DeactivateAccountView.
-    """
-    permission_classes = [IsAuthenticated]
-
-    @extend_schema(
-        summary='Cerrar todas las sesiones activas',
-        description=(
-            'Invalida todos los refresh tokens outstanding del usuario. '
-            'El access token actual sigue siendo valido hasta su TTL natural, '
-            'pero no puede renovarse. Equivale a logout en todos los dispositivos.'
-        ),
-        request=None,
-        responses={
-            200: OpenApiResponse(description='Sesiones invalidadas.'),
-            401: OpenApiResponse(description='No autenticado.'),
-        },
-        tags=['auth'],
-    )
-    def post(self, request):
-        invalidate_all_sessions(request.user)
-        return Response({'detail': 'Sesiones cerradas en todos los dispositivos.'}, status=200)
-
-
-# AdminUserPagination definicion canonica vive en admin_views.py
-# (donde AdminUserViewSet la usa). Aqui solo quedaba huerfana.
-
-
-# AdminUserListView eliminado (era codigo muerto): no estaba registrado
-# en urlpatterns. El endpoint GET /api/v1/admin/users/ lo sirve
-# AdminUserViewSet en admin_views.py via router DefaultRouter.
-# La logica de filtros (incluido el nuevo ?deactivated_reason=) vive
-# alli — ver admin_views.AdminUserViewSet.get_queryset.

@@ -43,17 +43,17 @@ class RegisterSerializer(serializers.Serializer):
     FR-AUTH-01.02: validar formato
     FR-AUTH-01.03: unicidad con mensaje ambiguo
     FR-AUTH-01.04: is_active=False
+
+    Request: { first_name, last_name, email, password, password_confirm,
+               terms_accepted }
+    El username se auto-genera del email (email[:150]).
     """
-    username         = serializers.CharField(min_length=3, max_length=150)
+    first_name       = serializers.CharField(max_length=150, required=False, default='', allow_blank=True)
+    last_name        = serializers.CharField(max_length=150, required=False, default='', allow_blank=True)
     email            = serializers.EmailField()
     password         = serializers.CharField(write_only=True, min_length=8)
     password_confirm = serializers.CharField(write_only=True)
-
-    def validate_username(self, value):
-        value = value.strip()
-        if User.objects.filter(username__iexact=value).exists():
-            raise serializers.ValidationError(AMBIGUOUS_MSG)
-        return value
+    terms_accepted   = serializers.BooleanField()
 
     def validate_email(self, value):
         # UC-AUTH-01 refinado: la deteccion de email existente vive en
@@ -65,6 +65,13 @@ class RegisterSerializer(serializers.Serializer):
         validate_password(value)
         return value
 
+    def validate_terms_accepted(self, value):
+        if not value:
+            raise serializers.ValidationError(
+                'Debes aceptar los terminos y condiciones para registrarte.'
+            )
+        return value
+
     def validate(self, attrs):
         if attrs['password'] != attrs['password_confirm']:
             raise serializers.ValidationError(
@@ -72,34 +79,42 @@ class RegisterSerializer(serializers.Serializer):
             )
         return attrs
 
+    @staticmethod
+    def _generate_username(email: str) -> str:
+        base = email[:150]
+        if not User.objects.filter(username__iexact=base).exists():
+            return base
+        i = 1
+        while True:
+            candidate = f"{email[:147]}_{i}"
+            if not User.objects.filter(username__iexact=candidate).exists():
+                return candidate
+            i += 1
+
     def create(self, validated_data):
         validated_data.pop('password_confirm')
+        validated_data.pop('terms_accepted', None)
+        first_name = validated_data.pop('first_name', '')
+        last_name  = validated_data.pop('last_name', '')
+        email      = validated_data['email']
+        username   = self._generate_username(email)
         user = User.objects.create_user(
-            username=validated_data['username'],
-            email=validated_data['email'],
+            username=username,
+            email=email,
             password=validated_data['password'],
+            first_name=first_name,
+            last_name=last_name,
             is_active=False,
         )
-        # UC-AUTH-01 + GAP-3 cierre: distinguir la causa de is_active=False
-        # para que UC-AUTH-01 Alt-A.2 (re-registro reactivable via email)
-        # pueda separarse de UC-AUTH-13 (suspendida por admin).
         user.deactivated_reason = User.DEACTIVATION_UNVERIFIED
         user.deactivated_at = timezone.now()
         user.save(update_fields=['deactivated_reason', 'deactivated_at'])
-        # GAP 10: audit log de la transicion (cuenta nueva == is_active=False).
         UserDeactivationEvent.objects.create(
             user=user,
             reason=User.DEACTIVATION_UNVERIFIED,
             source=UserDeactivationEvent.SOURCE_REGISTER,
             actor=None,
         )
-        # FR-AUTH-01.05 + UC-AUTH-10: envio de email de verificacion.
-        # Antes vivia en apps.users.signals.send_email_verification_on_register
-        # (signal post_save). Inline-eado para eliminar el unico import
-        # lazy real en apps.users.apps.py def ready() — fan-out 1-a-1
-        # disfrazado de signal es codigo mas opaco que llamada directa.
-        # El envio se difiere a post-commit por la misma razon historica:
-        # evitar deadlocks en transacciones de tests con MySQL.
         user_id = user.pk
 
         def _send_verification():
@@ -108,8 +123,6 @@ class RegisterSerializer(serializers.Serializer):
                 plain = create_verification_token(u)
                 send_verification_email(u, plain)
             except User.DoesNotExist:
-                # silent OK: usuario eliminado entre save y on_commit.
-                # No retry — no hay a quien enviar. DEC-DOC-008.
                 logger.info(
                     'verification email skipped: user_id=%s removed '
                     'before on_commit', user_id,
@@ -128,7 +141,6 @@ class AddressSerializer(serializers.ModelSerializer):
         model = Address
         fields = [
             'id', 'alias', 'recipient_name', 'street',
-            # DEC-AUM-03 (UC-AUTH-07 D-01-07): campos MX agregados.
             'exterior_number', 'interior_number', 'neighborhood',
             'city', 'state', 'zip_code', 'country',
             'phone', 'is_default',
@@ -139,12 +151,6 @@ class AddressSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         user = request.user if request else None
         if user and not self.instance:
-            # apps.settings_app es lazy-import: settings_app importa cosas
-            # de apps.users (via FK al User model), entonces top-level
-            # genera import circular durante el arranque de Django.
-            # max_addresses_per_user fue eliminado de SiteSettings; usar
-            # Address.MAX_PER_USER directamente (Address ya esta importado
-            # al top de este modulo).
             max_addr = Address.MAX_PER_USER
             count = Address.objects.filter(user=user).count()
             if count >= max_addr:
@@ -209,16 +215,8 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
         }
 
     def validate_avatar(self, value):
-        """
-        FR-AUTH-06.04: valida formato y contenido del avatar.
-        Intenta abrir con Pillow para detectar archivos falsos.
-        Limite de tamaño desde SiteSettings.avatar_max_size_mb (P3-04).
-        """
         if value is None:
             return value
-        # apps.settings_app es lazy-import por riesgo circular (ver
-        # validate() arriba). avatar_max_size_mb fue eliminado de
-        # SiteSettings — constante 5MB.
         max_mb = 5
         if value.size > max_mb * 1024 * 1024:
             raise serializers.ValidationError(
@@ -250,9 +248,7 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
 
         elif avatar_file is not None:
             img = Image.open(avatar_file)
-            # Redimensionar si supera 800x800 (FR-AUTH-06.04)
             img.thumbnail((800, 800), Image.LANCZOS)
-            # Convertir a RGB (WebP no soporta RGBA en algunos casos)
             if img.mode in ('RGBA', 'P'):
                 img = img.convert('RGB')
             buf = io.BytesIO()
@@ -262,7 +258,6 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
             ts = int(time.time())
             filename = f'user_{instance.pk}_{ts}.webp'
 
-            # Eliminar avatar anterior
             if instance.avatar:
                 instance.avatar.delete(save=False)
 
@@ -301,7 +296,7 @@ class ChangePasswordSerializer(serializers.Serializer):
         if attrs['new_password'] == attrs['current_password']:
             raise serializers.ValidationError(
                 'La nueva contrasena debe ser diferente a la actual.'
-            )  # non_field_errors — allows PASSWORD_NOT_CHANGED code in view
+            )
         return attrs
 
     def save(self, **kwargs):
@@ -309,15 +304,7 @@ class ChangePasswordSerializer(serializers.Serializer):
         request = self.context['request']
         user.set_password(self.validated_data['new_password'])
         user.save(update_fields=['password'])
-        # DEC-AUM-01: UC-AUTH-08 PARTE 8.2 + paso 12 requieren
-        # invalidar sesiones activas tras cambio de password
-        # (vector account-takeover si se omite). Helper reusado
-        # del mismo modulo (mismo patron que PasswordResetConfirm +
-        # DeactivateAccount).
         invalidate_all_sessions(user)
-        # T-119 D-02 iter 20 (UC-AUTH-08 AC-06 audit log):
-        # registrar evento PASSWORD_CHANGE. Antes el cambio era
-        # silencioso (sin trazabilidad para forense / GDPR).
         audit_log_auth(user, AuthEvent.ACTION_PASSWORD_CHANGE, request)
         return user
 
@@ -375,9 +362,6 @@ class AdminUserListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'username', 'email', 'full_name',
             'is_active', 'is_staff', 'date_joined', 'last_login',
-            # GAP-3 cierre (UC-AUTH-12/13/14/16): admin distingue las
-            # tres causas de is_active=False para decidir si invocar
-            # UC-AUTH-14 (reactivar) o esperar a UC-AUTH-01 Alt-A.2.
             'deactivated_reason', 'deactivated_at',
         ]
         read_only_fields = fields
