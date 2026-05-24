@@ -429,6 +429,7 @@ def _count_active_carts(product):
     try:
         return CartItem.objects.filter(product=product).count()
     except Exception:
+        logger.warning('_count_active_carts failed for product %s', product.pk, exc_info=True)
         return 0
 
 
@@ -436,6 +437,7 @@ def _count_wishlist_items(product):
     try:
         return WishlistItem.objects.filter(product=product).count()
     except Exception:
+        logger.warning('_count_wishlist_items failed for product %s', product.pk, exc_info=True)
         return 0
 
 

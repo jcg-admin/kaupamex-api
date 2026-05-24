@@ -1,6 +1,7 @@
 """
 Views — apps.logistics (P-10 / UC-LOG-01..09).
 """
+import logging
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import status
@@ -8,6 +9,8 @@ from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+logger = logging.getLogger('apps')
 
 from apps.orders.models import Order
 from .models import Courier, ShipmentEvent, ShipmentGuide
@@ -41,7 +44,7 @@ class LogisticsPanelView(_AdminOnly, APIView):
                 entry['recipient_name'] = addr.recipient_name
                 entry['city'] = addr.city
             except Exception:
-                pass
+                logger.warning('Order %s has no address record', order.id)
             pending_pickup.append(entry)
 
         guide_qs = ShipmentGuide.objects.filter(is_deleted=False).exclude(
