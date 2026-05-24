@@ -17,6 +17,7 @@ from rest_framework import status
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from apps.core.email_executor import dispatch_email
 from .models import ContactMessage
@@ -36,6 +37,10 @@ def _get_message(message_id):
 class ContactMessageCreateView(APIView):
     """POST /api/v1/contact/ — UC-COM-01."""
     permission_classes = [AllowAny]
+    # H-CICLO26-01: throttle_scope sin throttle_classes es silenciosamente
+    # ignorado por DRF — ScopedRateThrottle es quien lee el scope y aplica
+    # el rate configurado en DEFAULT_THROTTLE_RATES['contact'] = '5/hour'.
+    throttle_classes = [ScopedRateThrottle]
     throttle_scope = 'contact'
 
     @extend_schema(

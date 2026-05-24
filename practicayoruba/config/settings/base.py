@@ -157,6 +157,11 @@ REST_FRAMEWORK = {
         # 20/hour anón y 60/hour usuario reducen la ventana de brute-force
         # a menos de 1 código/3-min para anónimos.
         'voucher_apply':       '20/hour',
+        # H-CICLO26-02: scopes para endpoints públicos de newsletter.
+        # subscribe: evita spam de suscripciones y flooding de email.
+        # newsletter_confirm: evita enumeración de tokens de confirmación.
+        'newsletter_subscribe': '10/hour',
+        'newsletter_confirm':   '20/hour',
     },
 }
 
