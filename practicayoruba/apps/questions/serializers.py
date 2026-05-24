@@ -31,7 +31,7 @@ class PublicQuestionItemSerializer(serializers.ModelSerializer):
 class PublicQuestionCreateSerializer(serializers.Serializer):
     """UC-QST-01 — public ask body."""
 
-    body = serializers.CharField(min_length=3)
+    body = serializers.CharField(min_length=3, max_length=5000)
     asker_name = serializers.CharField(
         required=False, allow_blank=True, max_length=120,
     )
@@ -71,7 +71,7 @@ class AdminQuestionItemSerializer(serializers.ModelSerializer):
 class AdminAnswerSerializer(serializers.Serializer):
     """UC-QST-04 — admin answer body."""
 
-    answer_body = serializers.CharField(min_length=3)
+    answer_body = serializers.CharField(min_length=3, max_length=5000)
 
 
 # Aliases for view compatibility

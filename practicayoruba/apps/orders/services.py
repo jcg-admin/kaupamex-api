@@ -48,6 +48,16 @@ def cancel_order(order, reason: str = '', cancelled_by=None, cancelable_statuses
         )
 
     with transaction.atomic():
+        # H-API-35: re-verificar el estado bajo lock para prevenir
+        # que dos cancelaciones concurrentes restauren el stock dos veces.
+        if not Order.objects.select_for_update().filter(
+            pk=order.pk, status__in=_cancelable
+        ).exists():
+            raise ValueError(
+                f'La orden {order.order_number} ya no es cancelable '
+                f'(cancelada por request concurrente).'
+            )
+
         # 1. Cancelar la orden
         order.status              = 'CANCELLED'
         order.cancellation_reason = reason

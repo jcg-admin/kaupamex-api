@@ -271,9 +271,9 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
 
 class ChangePasswordSerializer(serializers.Serializer):
     """UC-AUTH-08: Cambiar contrasena del comprador autenticado."""
-    current_password     = serializers.CharField(write_only=True)
-    new_password         = serializers.CharField(write_only=True, min_length=8)
-    new_password_confirm = serializers.CharField(write_only=True)
+    current_password     = serializers.CharField(write_only=True, max_length=128)
+    new_password         = serializers.CharField(write_only=True, min_length=8, max_length=128)
+    new_password_confirm = serializers.CharField(write_only=True, max_length=128)
 
     def validate_current_password(self, value):
         user = self.context['request'].user
@@ -322,8 +322,8 @@ class PasswordResetRequestSerializer(serializers.Serializer):
 class PasswordResetConfirmSerializer(serializers.Serializer):
     """UC-AUTH-09 Fase 2: confirmar token y establecer nueva contrasena."""
     token                = serializers.CharField(write_only=True, max_length=200)
-    new_password         = serializers.CharField(write_only=True, min_length=8)
-    new_password_confirm = serializers.CharField(write_only=True)
+    new_password         = serializers.CharField(write_only=True, min_length=8, max_length=128)
+    new_password_confirm = serializers.CharField(write_only=True, max_length=128)
 
     def validate_new_password(self, value):
         try:
