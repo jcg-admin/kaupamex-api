@@ -87,6 +87,7 @@ class PaymentGatewaySerializer(serializers.ModelSerializer):
         instance = super().update(instance, validated_data)
         if creds_raw is not None:
             instance.set_credentials(creds_raw)
+            instance.verified_at = None
             instance.save(update_fields=['credentials', 'verified_at'])
         return instance
 
