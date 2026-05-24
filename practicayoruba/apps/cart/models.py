@@ -12,6 +12,7 @@ import uuid
 from decimal import Decimal
 from django.conf import settings
 from django.db import models, transaction
+from django.db.models import Q
 from django.core.validators import MinValueValidator
 from apps.core.models import TimeStampedModel
 from apps.settings_app.models import SiteSettings
@@ -128,9 +129,23 @@ class CartItem(TimeStampedModel):
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
 
     class Meta:
-        db_table        = 'cart_cart_item'
-        unique_together = [('cart', 'variant')]
-        verbose_name    = 'Item de carrito'
+        db_table     = 'cart_cart_item'
+        verbose_name = 'Item de carrito'
+        constraints  = [
+            # Productos con variante: (cart, variant) único.
+            models.UniqueConstraint(
+                fields=['cart', 'variant'],
+                condition=Q(variant__isnull=False),
+                name='unique_cart_variant',
+            ),
+            # Productos sin variante: NULL != NULL en SQL — unique_together
+            # no protegía este caso. Restricción explícita sobre (cart, product).
+            models.UniqueConstraint(
+                fields=['cart', 'product'],
+                condition=Q(variant__isnull=True),
+                name='unique_cart_product_no_variant',
+            ),
+        ]
 
     def __str__(self):
         label = self.variant.option.label if self.variant else self.product.name

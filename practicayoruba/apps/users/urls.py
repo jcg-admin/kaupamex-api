@@ -25,6 +25,6 @@ urlpatterns = [
     path('resend-verification/',     ResendVerificationView.as_view(),    name='resend-verification'),
     # UC-AUTH-16: auto soft-delete por el usuario autenticado.
     path('me/deactivate/',           DeactivateAccountView.as_view(),     name='me-deactivate'),
-    # UC-AUTH: cerrar todas las sesiones activas (logout all devices).
-    path('logout-all/',              LogoutAllSessionsView.as_view(),     name='logout-all'),
+    # UC-AUTH-18: cerrar todas las sesiones activas.
+    path('logout-all/',              LogoutAllSessionsView.as_view(),      name='logout-all'),
 ]

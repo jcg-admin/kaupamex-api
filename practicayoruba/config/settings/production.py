@@ -1,6 +1,9 @@
 from .base import *
 from decouple import config  # importación explícita — no depender del * de base.py
 
+# Sobreescribe el default inseguro de base.py — falla explícitamente si no está configurada.
+SECRET_KEY = config('SECRET_KEY')
+
 DEBUG = False
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
