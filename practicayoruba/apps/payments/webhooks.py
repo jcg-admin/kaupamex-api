@@ -251,13 +251,14 @@ class MercadoPagoWebhookView(APIView):
                 )
         elif gw_result.status == 'rejected':
             if payment:
-                payment.status = Payment.STATUS_FAILED
-                payment.save(update_fields=['status'])
-                PaymentGatewayEvent.objects.create(
-                    payment=payment,
-                    event_type=PaymentGatewayEvent.EVENT_PAYMENT_FAILED,
-                    raw_body=json.dumps({'gateway_payment_id': payment_id}),
-                )
+                with transaction.atomic():
+                    payment.status = Payment.STATUS_FAILED
+                    payment.save(update_fields=['status'])
+                    PaymentGatewayEvent.objects.create(
+                        payment=payment,
+                        event_type=PaymentGatewayEvent.EVENT_PAYMENT_FAILED,
+                        raw_body=json.dumps({'gateway_payment_id': payment_id}),
+                    )
 
         return Response({'status': 'processed'}, status=200)
 
@@ -439,12 +440,13 @@ class PayPalWebhookView(APIView):
                 gateway_payment_id=capture_id, gateway='PAYPAL'
             ).first()
             if payment:
-                payment.status = Payment.STATUS_FAILED
-                payment.save(update_fields=['status'])
-                PaymentGatewayEvent.objects.create(
-                    payment=payment,
-                    event_type=PaymentGatewayEvent.EVENT_PAYMENT_FAILED,
-                    raw_body=raw_body,
-                )
+                with transaction.atomic():
+                    payment.status = Payment.STATUS_FAILED
+                    payment.save(update_fields=['status'])
+                    PaymentGatewayEvent.objects.create(
+                        payment=payment,
+                        event_type=PaymentGatewayEvent.EVENT_PAYMENT_FAILED,
+                        raw_body=raw_body,
+                    )
 
         return Response({'status': 'processed', 'event_type': event_type}, status=200)

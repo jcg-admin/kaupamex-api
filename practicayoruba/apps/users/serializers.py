@@ -321,7 +321,7 @@ class PasswordResetRequestSerializer(serializers.Serializer):
 
 class PasswordResetConfirmSerializer(serializers.Serializer):
     """UC-AUTH-09 Fase 2: confirmar token y establecer nueva contrasena."""
-    token                = serializers.CharField(write_only=True)
+    token                = serializers.CharField(write_only=True, max_length=200)
     new_password         = serializers.CharField(write_only=True, min_length=8)
     new_password_confirm = serializers.CharField(write_only=True)
 
@@ -342,7 +342,7 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
 
 class EmailVerificationSerializer(serializers.Serializer):
     """UC-AUTH-10: verificar email con token del enlace."""
-    token = serializers.CharField()
+    token = serializers.CharField(max_length=200)
 
 
 class ResendVerificationSerializer(serializers.Serializer):
