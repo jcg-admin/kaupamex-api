@@ -67,8 +67,11 @@ class InventoryDashboardView(_AdminOnly, APIView):
         status_filter = STATUS_ALIAS.get(status_filter_raw, status_filter_raw) if status_filter_raw else None
 
         items, threshold = _build_dashboard_items(status_filter)
-        page      = int(request.query_params.get('page', 1))
-        page_size = int(request.query_params.get('page_size', 50))
+        try:
+            page      = max(1, int(request.query_params.get('page', 1)))
+            page_size = max(1, min(200, int(request.query_params.get('page_size', 50))))
+        except (ValueError, TypeError):
+            raise ValidationError({'detail': 'page y page_size deben ser enteros validos.'})
         total     = len(items)
         total_pages = max(1, math.ceil(total / page_size)) if total else 1
         page_items = items[(page - 1) * page_size: page * page_size]

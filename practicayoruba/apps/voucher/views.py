@@ -220,7 +220,10 @@ class VoucherViewSet(ModelViewSet):
             resp['Content-Disposition'] = 'attachment; filename="vouchers_report.csv"'
             return resp
 
-        page = int(request.query_params.get('page', 1))
+        try:
+            page = max(1, int(request.query_params.get('page', 1)))
+        except (ValueError, TypeError):
+            raise ValidationError({'page': 'Debe ser un entero valido.'})
         page_size = 20
         start = (page - 1) * page_size
         end   = start + page_size

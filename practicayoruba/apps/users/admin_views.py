@@ -242,7 +242,11 @@ class AuditLogView(APIView):
     def get(self, request):
         event_type = request.query_params.get('event_type')
         user_id    = request.query_params.get('user_id')
-        page       = max(1, int(request.query_params.get('page', 1)))
+        try:
+            page = max(1, int(request.query_params.get('page', 1)))
+        except (ValueError, TypeError):
+            from rest_framework.exceptions import ValidationError as DRFValidationError
+            raise DRFValidationError({'page': 'Debe ser un entero valido.'})
         page_size  = self._PAGE_SIZE
 
         rows = []
