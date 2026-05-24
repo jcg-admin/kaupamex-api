@@ -465,7 +465,7 @@ class ExpressCheckoutView(APIView):
 
                 cart.items.all().delete()
                 cart.voucher = None
-                cart.save(update_fields=['voucher'])
+                cart.save(update_fields=['voucher', 'updated_at'])
 
         except InsufficientStockError as exc:
             return Response({'detail': str(exc), 'codigo_error': 'INSUFFICIENT_STOCK'}, status=409)

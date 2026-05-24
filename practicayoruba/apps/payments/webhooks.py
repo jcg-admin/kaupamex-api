@@ -235,7 +235,7 @@ class MercadoPagoWebhookView(APIView):
         # Actualizar gateway_payment_id si aún no lo tiene
         if payment and not payment.gateway_payment_id:
             payment.gateway_payment_id = payment_id
-            payment.save(update_fields=['gateway_payment_id'])
+            payment.save(update_fields=['gateway_payment_id', 'updated_at'])
 
         # Procesar según el estado
         if gw_result.status == 'approved':
@@ -254,7 +254,7 @@ class MercadoPagoWebhookView(APIView):
             if payment:
                 with transaction.atomic():
                     payment.status = Payment.STATUS_FAILED
-                    payment.save(update_fields=['status'])
+                    payment.save(update_fields=['status', 'updated_at'])
                     PaymentGatewayEvent.objects.create(
                         payment=payment,
                         event_type=PaymentGatewayEvent.EVENT_PAYMENT_FAILED,
@@ -389,7 +389,7 @@ class PayPalWebhookView(APIView):
                 capture_result = pp_gateway.capture_order(paypal_order_id)
                 capture_id     = capture_result['capture_id']
                 payment.gateway_payment_id = capture_id
-                payment.save(update_fields=['gateway_payment_id'])
+                payment.save(update_fields=['gateway_payment_id', 'updated_at'])
             except Exception as exc:
                 # DEC-BC-06: 500 — fallo interno al capturar. PayPal
                 # hace backoff en 5xx y reintenta el webhook.
@@ -415,7 +415,7 @@ class PayPalWebhookView(APIView):
                     ).first()
                     if payment:
                         payment.gateway_payment_id = capture_id
-                        payment.save(update_fields=['gateway_payment_id'])
+                        payment.save(update_fields=['gateway_payment_id', 'updated_at'])
 
             if payment:
                 PaymentGatewayEvent.objects.create(
@@ -443,7 +443,7 @@ class PayPalWebhookView(APIView):
             if payment:
                 with transaction.atomic():
                     payment.status = Payment.STATUS_FAILED
-                    payment.save(update_fields=['status'])
+                    payment.save(update_fields=['status', 'updated_at'])
                     PaymentGatewayEvent.objects.create(
                         payment=payment,
                         event_type=PaymentGatewayEvent.EVENT_PAYMENT_FAILED,
