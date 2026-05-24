@@ -21,12 +21,13 @@ from django.db import transaction
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import status
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import NotFound, ValidationError as DRFValidationError
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.orders.models import Order
 from apps.payments.models import Payment, Refund
 from .models import ReturnHistoryEntry, ReturnItem, ReturnRequest
 from .serializers import (
@@ -91,6 +92,23 @@ class ReturnListCreateView(APIView):
         reason = data['reason']
         description = data['description']
         items_data = data.get('items', [])
+
+        # H-API-29: validar que la orden pertenece al usuario autenticado.
+        # Sin este check un usuario podia crear devoluciones para ordenes ajenas.
+        try:
+            order = Order.objects.get(pk=order_id, user=request.user)
+        except Order.DoesNotExist:
+            raise DRFValidationError({
+                'order_id': 'Orden no encontrada.',
+                'codigo_error': 'ORDER_NOT_FOUND',
+            })
+
+        # H-API-31: solo se permiten devoluciones sobre ordenes ENTREGADAS.
+        if order.status != Order.STATUS_DELIVERED:
+            raise DRFValidationError({
+                'order_id': 'Solo se pueden solicitar devoluciones para ordenes entregadas.',
+                'codigo_error': 'ORDER_NOT_DELIVERED',
+            })
 
         # UC-RET-01 idempotency: check for overlapping pending requests
         # DEC-RET-03: if items are provided, check item-level overlap

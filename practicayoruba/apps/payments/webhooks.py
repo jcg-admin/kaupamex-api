@@ -95,24 +95,25 @@ def _process_payment_approval(gateway_payment_id: str, gateway: str, amount: Dec
     FR-PAY-03.02, FR-PAY-04.01 (H-PAY-005).
     """
 
-    payment = (
-        Payment.objects
-        .select_related('order')
-        .filter(gateway_payment_id=gateway_payment_id, gateway=gateway)
-        .first()
-    )
-    if not payment:
-        logger.warning(
-            'Webhook %s: no se encontró Payment con gateway_payment_id=%s',
-            gateway, gateway_payment_id,
-        )
-        return None
-
-    if payment.status == Payment.STATUS_APPROVED:
-        logger.info('Webhook %s: pago %s ya estaba APPROVED — idempotente', gateway, gateway_payment_id)
-        return payment
-
     with transaction.atomic():
+        payment = (
+            Payment.objects
+            .select_for_update()
+            .select_related('order')
+            .filter(gateway_payment_id=gateway_payment_id, gateway=gateway)
+            .first()
+        )
+        if not payment:
+            logger.warning(
+                'Webhook %s: no se encontró Payment con gateway_payment_id=%s',
+                gateway, gateway_payment_id,
+            )
+            return None
+
+        if payment.status == Payment.STATUS_APPROVED:
+            logger.info('Webhook %s: pago %s ya estaba APPROVED — idempotente', gateway, gateway_payment_id)
+            return payment
+
         payment.status = Payment.STATUS_APPROVED
         if amount:
             payment.amount = amount

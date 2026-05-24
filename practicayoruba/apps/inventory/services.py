@@ -55,25 +55,26 @@ def _maybe_create_alert(product, variant, new_stock: int) -> None:
         return
 
     cutoff = timezone.now() - timedelta(hours=24)
-    already = StockAlert.objects.filter(
-        product=product, resolved=False, created_at__gte=cutoff
-    )
-    if variant:
-        already = already.filter(variant=variant)
-    if already.exists():
-        return
+    with transaction.atomic():
+        already = StockAlert.objects.select_for_update().filter(
+            product=product, resolved=False, created_at__gte=cutoff
+        )
+        if variant:
+            already = already.filter(variant=variant)
+        if already.exists():
+            return
 
-    StockAlert.objects.create(
-        product=product,
-        variant=variant,
-        stock_at_alert=new_stock,
-    )
-    logger.info(
-        'StockAlert creada: %s%s stock=%d umbral=%d',
-        product.sku,
-        f'/{variant.option.label}' if variant else '',
-        new_stock, threshold,
-    )
+        StockAlert.objects.create(
+            product=product,
+            variant=variant,
+            stock_at_alert=new_stock,
+        )
+        logger.info(
+            'StockAlert creada: %s%s stock=%d umbral=%d',
+            product.sku,
+            f'/{variant.option.label}' if variant else '',
+            new_stock, threshold,
+        )
 
 
 class InventoryService:

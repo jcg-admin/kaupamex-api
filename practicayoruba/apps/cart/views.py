@@ -71,7 +71,10 @@ class CartView(APIView):
     def post(self, request):
         product_id = request.data.get('product_id')
         variant_id = request.data.get('variant_id')
-        quantity   = int(request.data.get('quantity', 1))
+        try:
+            quantity = int(request.data.get('quantity', 1))
+        except (ValueError, TypeError):
+            raise ValidationError({'quantity': 'Debe ser un entero valido.'})
 
         if not product_id:
             raise ValidationError({'product_id': 'Requerido.'})
@@ -124,7 +127,10 @@ class CartItemListView(APIView):
     def post(self, request):
         product_id = request.data.get('product_id')
         variant_id = request.data.get('variant_id')
-        quantity   = int(request.data.get('quantity', 1))
+        try:
+            quantity = int(request.data.get('quantity', 1))
+        except (ValueError, TypeError):
+            raise ValidationError({'quantity': 'Debe ser un entero valido.'})
 
         if not product_id:
             raise ValidationError({'product_id': 'Requerido.'})
@@ -209,7 +215,10 @@ class CartItemDetailView(APIView):
         qty  = request.data.get('quantity')
         if qty is None:
             raise ValidationError({'quantity': 'Requerido.'})
-        qty = int(qty)
+        try:
+            qty = int(qty)
+        except (ValueError, TypeError):
+            raise ValidationError({'quantity': 'Debe ser un entero valido.'})
         if qty < 1:
             raise ValidationError({'quantity': 'Debe ser >= 1.'})
         if item.product.stock is not None and qty > item.product.stock:
