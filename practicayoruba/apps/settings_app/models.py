@@ -13,6 +13,7 @@ H-INH-004: estos 4 modelos solo tenían updated_at — se agrega created_at.
 import logging
 from decimal import Decimal
 from django.conf import settings
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, MaxValueValidator, RegexValidator
 from django.db import models
@@ -103,6 +104,14 @@ class SiteSettings(TimeStampedModel):
         if self.pk is None and SiteSettings.objects.exists():
             raise ValidationError('SiteSettings is a singleton; only one record is allowed.')
 
+    # H-CICLO25-02: clave y TTL de la caché del singleton.
+    # Cualquier llamada a get_current() reutiliza el valor cacheado en lugar
+    # de ejecutar SELECT cada vez.  save() invalida la clave para que un cambio
+    # del admin en producción sea visible en la siguiente petición (no requiere
+    # reinicio del proceso WSGI).
+    _CACHE_KEY = 'settings_app:site_settings:singleton'
+    _CACHE_TTL = 300  # 5 minutos
+
     def save(self, *args, **kwargs):
         # Fijar pk=1 para reforzar el singleton a nivel de almacenamiento.
         if self.pk is None and SiteSettings.objects.exists():
@@ -110,6 +119,9 @@ class SiteSettings(TimeStampedModel):
         if self.pk is None:
             self.pk = 1
         super().save(*args, **kwargs)
+        # H-CICLO25-02: invalidar la caché tras cada save() para que los
+        # cambios del admin se reflejen de inmediato sin reiniciar WSGI.
+        cache.delete(self._CACHE_KEY)
 
     @classmethod
     def get_or_create_defaults(cls) -> 'SiteSettings':
@@ -119,8 +131,18 @@ class SiteSettings(TimeStampedModel):
 
     @classmethod
     def get_current(cls) -> 'SiteSettings':
-        """Alias retrocompatible — usar get_or_create_defaults en código nuevo."""
-        return cls.get_or_create_defaults()
+        """
+        Alias retrocompatible — usar get_or_create_defaults en código nuevo.
+
+        H-CICLO25-02: consulta la caché (DatabaseCache) antes de ir a la BD.
+        TTL = 5 min. La caché se invalida en save() para que los cambios del
+        admin sean efectivos sin reiniciar el proceso WSGI.
+        """
+        obj = cache.get(cls._CACHE_KEY)
+        if obj is None:
+            obj = cls.get_or_create_defaults()
+            cache.set(cls._CACHE_KEY, obj, cls._CACHE_TTL)
+        return obj
 
 
 class PaymentGateway(TimeStampedModel):

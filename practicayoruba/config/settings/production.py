@@ -9,6 +9,14 @@ SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SECURE_SSL_REDIRECT = True
 
+# H-CICLO25-01: activar explícitamente el middleware de Django que emite
+# "X-Content-Type-Options: nosniff".  SecurityMiddleware lo respeta solo
+# cuando esta bandera es True — el default de Django es False, por lo que
+# sin este ajuste ningún response de la API incluye el header, abriendo la
+# puerta a ataques de MIME-type sniffing (p.ej. subida de avatar .png que
+# el browser re-interpreta como script ejecutable).
+SECURE_CONTENT_TYPE_NOSNIFF = True
+
 # H-CICLO20-03: HSTS via Django SecurityMiddleware además del header de
 # Apache. Garantiza que el header se emita aunque la petición llegue a
 # Django sin pasar por mod_headers (p.ej. proxies internos, health checks
