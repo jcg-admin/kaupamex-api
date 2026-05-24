@@ -1,249 +1,308 @@
 """
 Views — apps.inventory (P-06 / UC-INV-01..05).
-
-Admin:
-  GET  /api/v1/admin/inventory/dashboard/        UC-INV-01 resumen stock.
-  POST /api/v1/admin/inventory/<id>/adjust/      UC-INV-02 ajuste manual.
-  POST /api/v1/admin/inventory/<id>/variants/<vid>/adjust/  UC-INV-02 variante.
-  GET  /api/v1/admin/inventory/<id>/variants/<vid>/movements/ UC-INV-03 historial.
-  GET  /api/v1/admin/inventory/alerts/           UC-INV-04 alertas de stock bajo.
-  POST /api/v1/admin/inventory/import/           UC-INV-05 importar productos CSV.
-  GET  /api/v1/admin/inventory/import/<job_id>/status/  UC-INV-05 estado.
-  GET  /api/v1/admin/inventory/import/<job_id>/report/  UC-INV-05 reporte.
 """
+import csv
+import io
+import logging
+import math
+
 from django.db import transaction
+from django.http import HttpResponse
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from apps.catalogue.models import Product
+
+from apps.catalogue.models import Category, Product
 from apps.chartsize.models import ProductVariant
+from apps.settings_app.models import SiteSettings
 from .models import ImportJob, StockAlert, StockMovement
 from .serializers import (
-    ImportJobSerializer,
-    StockAdjustSerializer,
-    StockAlertSerializer,
-    StockMovementSerializer,
+    StockMovementSerializer, StockAlertSerializer, StockAdjustSerializer,
+    VariantAdjustNewQuantitySerializer,
 )
-from .tasks import run_product_import
+from .services import InventoryService, _get_stock_status
 
-
+logger = logging.getLogger('apps')
 
 
 class _AdminOnly:
     permission_classes = [IsAuthenticated, IsAdminUser]
 
 
-class InventoryDashboardView(_AdminOnly, APIView):
-    """GET /api/v1/admin/inventory/dashboard/ — UC-INV-01."""
-
-    @extend_schema(
-        summary='Resumen de stock (UC-INV-01)',
-        tags=['inventory'],
-        responses={200: None},
-    )
-    def get(self, request):
-        products = Product.objects.filter(is_active=True).prefetch_related('variants')
-        data = []
-        for p in products:
-            variants = p.variants.all()
-            total_stock = sum(v.stock for v in variants)
-            low_stock   = [v for v in variants if 0 < v.stock <= (v.low_stock_threshold or 5)]
-            out_of_stock = [v for v in variants if v.stock == 0]
-            data.append({
-                'product_id':    p.id,
-                'product_name':  p.name,
-                'total_stock':   total_stock,
-                'variants_count': len(variants),
-                'low_stock_count': len(low_stock),
-                'out_of_stock_count': len(out_of_stock),
+def _build_dashboard_items(status_filter=None):
+    threshold = SiteSettings.get_current().min_stock_threshold
+    items = []
+    for p in Product.objects.prefetch_related('variants__option').all():
+        variants = list(p.variants.all())
+        if variants:
+            for v in variants:
+                st = _get_stock_status(v.stock, threshold)
+                if status_filter and st != status_filter:
+                    continue
+                items.append({
+                    'product_id': p.id, 'product_name': p.name, 'sku': p.sku,
+                    'variant_id': v.id, 'variant_label': v.option.label if v.option else None,
+                    'stock': v.stock, 'status': st, 'threshold': threshold,
+                })
+        else:
+            st = _get_stock_status(p.stock, threshold)
+            if status_filter and st != status_filter:
+                continue
+            items.append({
+                'product_id': p.id, 'product_name': p.name, 'sku': p.sku,
+                'variant_id': None, 'variant_label': None,
+                'stock': p.stock, 'status': st, 'threshold': threshold,
             })
-        return Response({'products': data, 'total_products': len(data)})
+    return items, threshold
+
+
+class InventoryDashboardView(_AdminOnly, APIView):
+    @extend_schema(summary='Dashboard de inventario (UC-INV-01)', tags=['inventory'], responses={200: None})
+    def get(self, request):
+        STATUS_ALIAS = {'LOW': 'BAJO', 'OUT': 'AGOTADO'}
+        status_filter_raw = request.query_params.get('status')
+        status_filter = STATUS_ALIAS.get(status_filter_raw, status_filter_raw) if status_filter_raw else None
+
+        items, threshold = _build_dashboard_items(status_filter)
+        page      = int(request.query_params.get('page', 1))
+        page_size = int(request.query_params.get('page_size', 50))
+        total     = len(items)
+        total_pages = max(1, math.ceil(total / page_size)) if total else 1
+        page_items = items[(page - 1) * page_size: page * page_size]
+
+        all_items, _ = _build_dashboard_items(None)
+        summary = {
+            'normal': sum(1 for r in all_items if r['status'] == 'NORMAL'),
+            'low':    sum(1 for r in all_items if r['status'] == 'BAJO'),
+            'out':    sum(1 for r in all_items if r['status'] == 'AGOTADO'),
+            'total':  len(all_items),
+        }
+        return Response({
+            'results': page_items, 'summary': summary,
+            'pagination': {'page': page, 'page_size': page_size, 'total_pages': total_pages, 'total': total},
+        })
 
 
 class StockAdjustView(_AdminOnly, APIView):
-    """POST /api/v1/admin/inventory/<id>/adjust/ — UC-INV-02 (producto completo)."""
-
-    @extend_schema(
-        summary='Ajuste manual de stock de producto (UC-INV-02)',
-        request=StockAdjustSerializer,
-        tags=['inventory'],
-        responses={200: None, 400: None, 404: None},
-    )
+    @extend_schema(summary='Ajuste manual de stock de producto (UC-INV-04)', request=StockAdjustSerializer,
+                   tags=['inventory'], responses={201: None, 400: None, 404: None})
     @transaction.atomic
-    def post(self, request, product_id):
+    def post(self, request, product_pk):
         try:
-            product = Product.objects.get(pk=product_id)
+            product = Product.objects.get(pk=product_pk)
         except Product.DoesNotExist:
-            raise NotFound({'detail': 'Producto no encontrado.',
-                            'codigo_error': 'PRODUCT_NOT_FOUND'})
-
+            raise NotFound({'detail': 'Producto no encontrado.', 'codigo_error': 'PRODUCT_NOT_FOUND'})
         ser = StockAdjustSerializer(data=request.data)
-        ser.is_valid(raise_exception=True)
+        if not ser.is_valid():
+            return Response(ser.errors, status=400)
         data = ser.validated_data
-
-        # Aplica el ajuste a todas las variantes o solo la especificada
-        variants = product.variants.all()
-        if not variants.exists():
-            raise ValidationError({'detail': 'El producto no tiene variantes.',
-                                    'codigo_error': 'NO_VARIANTS'})
-
-        movements = []
-        for variant in variants:
-            old_stock = variant.stock
-            if data['adjustment_type'] == 'absolute':
-                variant.stock = data['quantity']
-            else:
-                variant.stock = max(0, variant.stock + data['quantity'])
-            variant.save(update_fields=['stock'])
-            movements.append(StockMovement(
-                variant=variant,
-                quantity_delta=variant.stock - old_stock,
-                reason=data.get('reason', ''),
-                performed_by=request.user,
-            ))
-        StockMovement.objects.bulk_create(movements)
-
-        return Response({'detail': f'Stock ajustado para {len(movements)} variante(s).'})
+        delta = data['delta']
+        new_stock = product.stock + delta
+        if new_stock < 0:
+            return Response({'detail': 'El ajuste resultaría en stock negativo.', 'codigo_error': 'STOCK_NEGATIVO'}, status=400)
+        stock_before = product.stock
+        product.stock = new_stock
+        product.save(update_fields=['stock'])
+        mov = StockMovement.objects.create(
+            product=product, variant=None, delta=delta,
+            stock_before=stock_before, stock_after=new_stock,
+            movement_type=StockMovement.TYPE_ADJUSTMENT,
+            notes=data.get('notes', ''), reason=data.get('reason', ''),
+            reference=f'ADMIN:{request.user.pk}', created_by=request.user,
+        )
+        return Response({'detail': 'Stock ajustado.', 'new_stock': new_stock, 'stock_before': stock_before,
+                         'delta': delta, 'reason': mov.reason, 'movement_id': mov.pk}, status=201)
 
 
 class VariantStockAdjustView(_AdminOnly, APIView):
-    """POST /api/v1/admin/inventory/<pid>/variants/<vid>/adjust/ — UC-INV-02."""
-
-    @extend_schema(
-        summary='Ajuste manual de stock de variante (UC-INV-02)',
-        request=StockAdjustSerializer,
-        tags=['inventory'],
-        responses={200: None, 400: None, 404: None},
-    )
+    @extend_schema(summary='Ajuste manual de stock de variante (UC-INV-04)', tags=['inventory'],
+                   responses={201: None, 400: None, 422: None, 404: None})
     @transaction.atomic
-    def post(self, request, product_id, variant_id):
+    def post(self, request, variant_pk):
         try:
-            variant = ProductVariant.objects.get(pk=variant_id, product_id=product_id)
+            variant = ProductVariant.objects.select_related('product', 'option').get(pk=variant_pk)
         except ProductVariant.DoesNotExist:
-            raise NotFound({'detail': 'Variante no encontrada.',
-                            'codigo_error': 'VARIANT_NOT_FOUND'})
+            raise NotFound({'detail': 'Variante no encontrada.', 'codigo_error': 'VARIANT_NOT_FOUND'})
+        product = variant.product
+        data = request.data
 
-        ser = StockAdjustSerializer(data=request.data)
-        ser.is_valid(raise_exception=True)
-        data = ser.validated_data
-
-        old_stock = variant.stock
-        if data['adjustment_type'] == 'absolute':
-            variant.stock = data['quantity']
+        if 'new_quantity' in data:
+            ser = VariantAdjustNewQuantitySerializer(data=data)
+            if not ser.is_valid():
+                return Response(ser.errors, status=400)
+            vdata = ser.validated_data
+            new_quantity = vdata['new_quantity']
+            if new_quantity < 0:
+                return Response({'detail': 'El stock no puede ser negativo.',
+                                 'codigo_error': 'NEGATIVE_STOCK_NOT_ALLOWED'}, status=422)
+            stock_before = variant.stock
+            delta = new_quantity - stock_before
+            variant.stock = new_quantity
+            variant.save(update_fields=['stock'])
+            notes_text = f"{vdata['reason']}: {vdata.get('observations', '')}" if vdata.get('observations') else vdata['reason']
+            mov = StockMovement.objects.create(
+                product=product, variant=variant, delta=delta,
+                stock_before=stock_before, stock_after=new_quantity,
+                movement_type=StockMovement.TYPE_ADJUSTMENT,
+                reason=vdata['reason'], notes=notes_text,
+                reference=f'ADMIN:{request.user.pk}', created_by=request.user,
+            )
+            return Response({'variant_id': variant.pk, 'previous_stock': stock_before,
+                             'new_stock': new_quantity, 'delta': delta, 'movement_id': mov.pk}, status=201)
         else:
-            variant.stock = max(0, variant.stock + data['quantity'])
-        variant.save(update_fields=['stock'])
-
-        StockMovement.objects.create(
-            variant=variant,
-            quantity_delta=variant.stock - old_stock,
-            reason=data.get('reason', ''),
-            performed_by=request.user,
-        )
-        return Response({'detail': 'Stock ajustado.', 'new_stock': variant.stock})
+            ser = StockAdjustSerializer(data=data)
+            if not ser.is_valid():
+                return Response(ser.errors, status=400)
+            vdata = ser.validated_data
+            delta = vdata['delta']
+            new_stock = variant.stock + delta
+            if new_stock < 0:
+                return Response({'detail': 'El ajuste resultaría en stock negativo.', 'codigo_error': 'STOCK_NEGATIVO'}, status=400)
+            stock_before = variant.stock
+            variant.stock = new_stock
+            variant.save(update_fields=['stock'])
+            mov = StockMovement.objects.create(
+                product=product, variant=variant, delta=delta,
+                stock_before=stock_before, stock_after=new_stock,
+                movement_type=StockMovement.TYPE_ADJUSTMENT,
+                notes=vdata.get('notes', ''), reason=vdata.get('reason', ''),
+                reference=f'ADMIN:{request.user.pk}', created_by=request.user,
+            )
+            return Response({'detail': 'Stock ajustado.', 'new_stock': new_stock,
+                             'stock_before': stock_before, 'delta': delta,
+                             'reason': mov.reason, 'movement_id': mov.pk}, status=201)
 
 
 class VariantMovementsView(_AdminOnly, APIView):
-    """GET /api/v1/admin/inventory/<pid>/variants/<vid>/movements/ — UC-INV-03."""
-
-    @extend_schema(
-        summary='Historial de movimientos de stock (UC-INV-03)',
-        tags=['inventory'],
-        responses={200: StockMovementSerializer(many=True)},
-    )
-    def get(self, request, product_id, variant_id):
+    @extend_schema(summary='Historial de movimientos de stock (UC-INV-03)', tags=['inventory'],
+                   responses={200: StockMovementSerializer(many=True)})
+    def get(self, request, variant_pk):
         try:
-            variant = ProductVariant.objects.get(pk=variant_id, product_id=product_id)
+            variant = ProductVariant.objects.get(pk=variant_pk)
         except ProductVariant.DoesNotExist:
-            raise NotFound({'detail': 'Variante no encontrada.',
-                            'codigo_error': 'VARIANT_NOT_FOUND'})
-        movements = StockMovement.objects.filter(variant=variant).order_by('-created_at')
-        return Response(StockMovementSerializer(movements, many=True).data)
+            raise NotFound({'detail': 'Variante no encontrada.', 'codigo_error': 'VARIANT_NOT_FOUND'})
+        movements = StockMovement.objects.filter(variant=variant).select_related('product', 'variant__option').order_by('-created_at')
+        results = [{'id': m.pk, 'delta': m.delta, 'stock_after': m.stock_after, 'stock_before': m.stock_before,
+                    'movement_type': m.movement_type, 'reason': m.reason, 'notes': m.notes, 'created_at': m.created_at}
+                   for m in movements]
+        return Response({'results': results})
 
 
 class StockAlertListView(_AdminOnly, APIView):
-    """GET /api/v1/admin/inventory/alerts/ — UC-INV-04."""
-
-    @extend_schema(
-        summary='Alertas de stock bajo (UC-INV-04)',
-        tags=['inventory'],
-        responses={200: StockAlertSerializer(many=True)},
-    )
+    @extend_schema(summary='Alertas de stock bajo (UC-INV-02)', tags=['inventory'],
+                   responses={200: StockAlertSerializer(many=True)})
     def get(self, request):
-        alerts = StockAlert.objects.filter(is_resolved=False).select_related(
-            'variant__product'
-        ).order_by('-created_at')
+        alerts = StockAlert.objects.filter(resolved=False).select_related('variant__option', 'product').order_by('-created_at')
         return Response(StockAlertSerializer(alerts, many=True).data)
 
 
-class ProductImportView(_AdminOnly, APIView):
-    """POST /api/v1/admin/inventory/import/ — UC-INV-05."""
+_IMPORT_ERROR_REPORTS: dict[str, list] = {}
 
-    @extend_schema(
-        summary='Importar productos desde CSV (UC-INV-05)',
-        tags=['inventory'],
-        responses={202: ImportJobSerializer, 400: None},
-    )
+
+def _process_import_csv(file_obj, initial_state: str, admin_user) -> dict:
+    REQUIRED_HEADERS = {'name', 'sku', 'base_price', 'category_slug'}
+    try:
+        content = file_obj.read()
+        reader = csv.DictReader(io.TextIOWrapper(io.BytesIO(content), encoding='utf-8'))
+        headers = set(reader.fieldnames or [])
+    except Exception:
+        raise ValidationError({'detail': 'No se pudo leer el archivo CSV.', 'codigo_error': 'CSV_READ_ERROR'})
+
+    if not REQUIRED_HEADERS <= headers:
+        missing = REQUIRED_HEADERS - headers
+        return None, {'status_code': 422, 'detail': f'Encabezados inválidos. Faltan: {missing}', 'codigo_error': 'CSV_HEADER_INVALID'}
+
+    is_active = is_published = (initial_state == 'ACTIVO')
+    rows = list(reader)
+    created = failed = 0
+    error_report = []
+
+    for i, row in enumerate(rows, start=2):
+        try:
+            sku = row.get('sku', '').strip()
+            name = row.get('name', '').strip()
+            base_price = row.get('base_price', '').strip()
+            category_slug = row.get('category_slug', '').strip()
+            if not sku:
+                raise ValueError('SKU vacío')
+            from decimal import Decimal, InvalidOperation
+            try:
+                price = Decimal(base_price)
+            except (InvalidOperation, ValueError):
+                raise ValueError(f'Precio inválido: {base_price!r}')
+            try:
+                category = Category.objects.get(slug=category_slug)
+            except Category.DoesNotExist:
+                raise ValueError(f'Categoría no encontrada: {category_slug!r}')
+            if Product.objects.filter(sku=sku).exists():
+                raise ValueError(f'SKU duplicado: {sku!r}')
+            Product.objects.create(
+                name=name, slug=sku.lower().replace(' ', '-'), sku=sku,
+                description='', price=price, category=category,
+                is_active=is_active, is_published=is_published,
+            )
+            created += 1
+        except Exception as exc:
+            failed += 1
+            error_report.append({'row': i, 'field': _guess_error_field(exc), 'reason': str(exc)})
+
+    return {'created': created, 'failed': failed, 'products_created': created,
+            'products_failed': failed, 'error_report': error_report}, None
+
+
+def _guess_error_field(exc) -> str:
+    msg = str(exc).lower()
+    for kw, field in [('sku', 'sku'), ('precio', 'base_price'), ('price', 'base_price'),
+                      ('categor', 'category_slug'), ('category_slug', 'category_slug'), ('name', 'name')]:
+        if kw in msg:
+            return field
+    return 'unknown'
+
+
+class ProductImportView(_AdminOnly, APIView):
+    @extend_schema(summary='Importar productos desde CSV (UC-INV-05)', tags=['inventory'],
+                   responses={200: None, 400: None, 422: None})
     def post(self, request):
         csv_file = request.FILES.get('file')
         if not csv_file:
-            raise ValidationError({'detail': 'El archivo CSV es requerido.',
-                                    'codigo_error': 'FILE_REQUIRED'})
-        if not csv_file.name.endswith('.csv'):
-            raise ValidationError({'detail': 'El archivo debe ser CSV.',
-                                    'codigo_error': 'INVALID_FILE_TYPE'})
-
-        job = ImportJob.objects.create(
-            uploaded_by=request.user,
-            status=ImportJob.STATUS_PENDING,
-        )
-        job.file.save(csv_file.name, csv_file, save=True)
-
-        # Trigger async task
-        run_product_import(job.id)
-
-        return Response(ImportJobSerializer(job).data, status=status.HTTP_202_ACCEPTED)
+            return Response({'detail': 'El archivo CSV es requerido.', 'codigo_error': 'FILE_REQUIRED'}, status=400)
+        result, error = _process_import_csv(csv_file, request.data.get('initial_state', 'BORRADOR'), request.user)
+        if error:
+            return Response({'detail': error['detail'], 'codigo_error': error['codigo_error']}, status=error['status_code'])
+        download_url = None
+        if result['error_report']:
+            import uuid
+            report_id = str(uuid.uuid4())
+            _IMPORT_ERROR_REPORTS[report_id] = result['error_report']
+            download_url = request.build_absolute_uri(f'/api/v1/admin/inventory/import-reports/{report_id}.csv')
+        result['download_url'] = download_url
+        return Response(result, status=200)
 
 
 class ProductImportStatusView(_AdminOnly, APIView):
-    """GET /api/v1/admin/inventory/import/<job_id>/status/ — UC-INV-05."""
-
-    @extend_schema(
-        summary='Estado de importación de productos (UC-INV-05)',
-        tags=['inventory'],
-        responses={200: ImportJobSerializer, 404: None},
-    )
+    @extend_schema(summary='Estado de importación (UC-INV-05)', tags=['inventory'], responses={200: None, 404: None})
     def get(self, request, job_id):
         try:
-            job = ImportJob.objects.get(pk=job_id)
-        except ImportJob.DoesNotExist:
-            raise NotFound({'detail': 'Job no encontrado.',
-                            'codigo_error': 'JOB_NOT_FOUND'})
-        return Response(ImportJobSerializer(job).data)
+            job = ImportJob.objects.get(pk=int(job_id))
+        except (ImportJob.DoesNotExist, ValueError, TypeError):
+            raise NotFound({'detail': 'Job no encontrado.', 'codigo_error': 'JOB_NOT_FOUND'})
+        return Response({'id': job.id, 'status': job.status, 'total_rows': job.total_rows,
+                         'imported_rows': job.imported_rows, 'failed_rows': job.failed_rows, 'created_at': job.created_at})
 
 
 class ProductImportReportView(_AdminOnly, APIView):
-    """GET /api/v1/admin/inventory/import/<job_id>/report/ — UC-INV-05."""
-
-    @extend_schema(
-        summary='Reporte de importación de productos (UC-INV-05)',
-        tags=['inventory'],
-        responses={200: None, 404: None},
-    )
-    def get(self, request, job_id):
-        try:
-            job = ImportJob.objects.get(pk=job_id)
-        except ImportJob.DoesNotExist:
-            raise NotFound({'detail': 'Job no encontrado.',
-                            'codigo_error': 'JOB_NOT_FOUND'})
-        return Response({
-            'job_id': job.id,
-            'status': job.status,
-            'total_rows': job.total_rows,
-            'imported_rows': job.imported_rows,
-            'failed_rows': job.failed_rows,
-            'errors': job.errors or [],
-        })
+    @extend_schema(summary='Descarga CSV de errores de importación', tags=['inventory'], responses={200: None, 404: None})
+    def get(self, request, report_id):
+        rows = _IMPORT_ERROR_REPORTS.get(report_id)
+        if rows is None:
+            return Response({'detail': 'Reporte no encontrado.', 'codigo_error': 'REPORT_NOT_FOUND'}, status=404)
+        buf = io.StringIO()
+        writer = csv.DictWriter(buf, fieldnames=['row', 'field', 'reason'])
+        writer.writeheader()
+        writer.writerows(rows)
+        response = HttpResponse(buf.getvalue(), content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="import-errors-{report_id}.csv"'
+        return response
