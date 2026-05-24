@@ -214,7 +214,7 @@ class AdminReturnListView(_AdminOnly, APIView):
     def get(self, request):
         status_filter = request.query_params.get('status')
         qs = ReturnRequest.objects.all().select_related('user').prefetch_related(
-            'items', 'history_entries'
+            'items', 'history_entries__actor'
         ).order_by('-created_at')
         if status_filter:
             qs = qs.filter(status=status_filter)
