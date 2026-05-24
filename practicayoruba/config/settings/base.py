@@ -4,7 +4,7 @@ from decouple import config, Csv
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-SECRET_KEY = config('SECRET_KEY', default='django-insecure-CHANGE-ME')
+SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=False, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
 
@@ -15,6 +15,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
@@ -47,6 +48,7 @@ AUTH_USER_MODEL = 'users.User'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -266,6 +268,12 @@ SPECTACULAR_SETTINGS = {
             'apps.notifications.models.ManualNotification.RecipientType.choices',
     },
 }
+
+# CORS — origins must be set explicitly via env var in each environment.
+# Empty default means all cross-origin requests are rejected unless overridden
+# (e.g., development.py sets CORS_ALLOWED_ORIGINS for localhost).
+CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='', cast=Csv())
+CORS_ALLOW_CREDENTIALS = True
 
 # H-09: ensure logs directory exists on fresh checkouts before RotatingFileHandler
 # tries to open the file. Using mkdir(parents=True, exist_ok=True) is idempotent

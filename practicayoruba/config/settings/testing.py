@@ -62,7 +62,7 @@ SIMPLE_JWT = {
 }
 
 # ALLOWED_HOSTS para pruebas
-ALLOWED_HOSTS = ['testserver', 'localhost', '127.0.0.1', '*']
+ALLOWED_HOSTS = ['testserver', 'localhost', '127.0.0.1']
 
 # Sin logs en consola durante tests
 LOGGING = {

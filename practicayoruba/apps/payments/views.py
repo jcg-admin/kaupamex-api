@@ -10,8 +10,10 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from django.db.models import F
 from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from apps.orders.proxy_models import DeliveredOrder
+from apps.voucher.models import Voucher, VoucherUsage
 from .models import Payment, Payment as PaymentModel
 from .serializers import InitiatePaymentSerializer, InitiatePaymentResponseSerializer, InstallmentPlansResponseSerializer, PaymentSerializer, PaymentReturnSerializer, CheckoutEligibilitySerializer, ExpressCheckoutSerializer, RefundRequestSerializer, RefundSerializer, RetryEligibilitySerializer, PaymentStatusSerializer as PSS, RefundRequestSerializer as RRS
 from .services import initiate_payment, handle_gateway_return, get_installment_plans, get_payment_status, get_payment_history, execute_refund, get_retry_eligibility
@@ -440,6 +442,24 @@ class ExpressCheckoutView(APIView):
                     street=addr_data['street'], city=addr_data['city'],
                     state=addr_data['state'], zip_code=addr_data['zip_code'],
                 )
+
+                # Increment voucher usage atomically (mirrors CheckoutView behaviour)
+                if cart.voucher_id:
+                    voucher_locked = (
+                        Voucher.objects.select_for_update()
+                        .get(pk=cart.voucher_id)
+                    )
+                    if (voucher_locked.max_uses is not None
+                            and voucher_locked.current_uses >= voucher_locked.max_uses):
+                        raise ValidationError({
+                            'detail': f'Voucher {voucher_locked.code} agotado.',
+                            'codigo_error': 'VOUCHER_EXHAUSTED',
+                        })
+                    Voucher.objects.filter(pk=cart.voucher_id).update(
+                        current_uses=F('current_uses') + 1
+                    )
+                    VoucherUsage.objects.create(
+                        user=request.user, voucher_id=cart.voucher_id)
 
                 cart.items.all().delete()
                 cart.voucher = None

@@ -17,6 +17,7 @@ Admin:
 """
 from decimal import Decimal
 from django.db.models import Q
+from django.db import transaction
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import status
@@ -437,29 +438,29 @@ class AdminReturnRefundView(_AdminOnly, APIView):
                 status=status.HTTP_422_UNPROCESSABLE_ENTITY,
             )
 
-        # Create Refund record
-        Refund.objects.create(
-            payment=payment,
-            amount=amount,
-            gateway_refund_id=refund_result.refund_id,
-            status=Refund.STATUS_APPROVED,
-        )
+        # All DB writes are atomic: gateway already processed, so any write failure
+        # must not leave a partial state (payment updated but no Refund record, etc.)
+        with transaction.atomic():
+            Refund.objects.create(
+                payment=payment,
+                amount=amount,
+                gateway_refund_id=refund_result.refund_id,
+                status=Refund.STATUS_APPROVED,
+            )
 
-        # Update payment status
-        payment.status = Payment.STATUS_REFUNDED
-        payment.save(update_fields=['status', 'updated_at'])
+            payment.status = Payment.STATUS_REFUNDED
+            payment.save(update_fields=['status', 'updated_at'])
 
-        # Update return request
-        ret.status = ReturnRequest.Status.REFUNDED
-        ret.refund_amount = amount
-        ret.refund_at = timezone.now()
-        ret.save(update_fields=['status', 'refund_amount', 'refund_at', 'updated_at'])
+            ret.status = ReturnRequest.Status.REFUNDED
+            ret.refund_amount = amount
+            ret.refund_at = timezone.now()
+            ret.save(update_fields=['status', 'refund_amount', 'refund_at', 'updated_at'])
 
-        ReturnHistoryEntry.objects.create(
-            return_request=ret,
-            status_to=ReturnRequest.Status.REFUNDED,
-            actor=request.user,
-            justification=f'Reembolso de {amount} procesado.',
-        )
+            ReturnHistoryEntry.objects.create(
+                return_request=ret,
+                status_to=ReturnRequest.Status.REFUNDED,
+                actor=request.user,
+                justification=f'Reembolso de {amount} procesado.',
+            )
 
         return Response(ReturnRequestAdminSerializer(ret).data)

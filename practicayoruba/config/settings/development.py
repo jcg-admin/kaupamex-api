@@ -30,3 +30,10 @@ EMAIL_HOST_PASSWORD = ''
 # URL base del frontend para construir los enlaces en los emails de
 # verificación de cuenta y recuperación de contraseña.
 FRONTEND_URL = 'http://localhost:3001'
+
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:3001',
+]

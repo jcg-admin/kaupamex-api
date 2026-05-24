@@ -244,6 +244,7 @@ class CartSaveView(APIView):
         if not items.exists():
             raise ValidationError({'detail': 'El carrito está vacío.', 'codigo_error': 'EMPTY_CART'})
 
+        saved_count = items.count()
         with transaction.atomic():
             saved, _ = SavedCart.objects.get_or_create(user=request.user)
             saved.items.all().delete()
@@ -256,7 +257,7 @@ class CartSaveView(APIView):
                 )
             cart.items.all().delete()
 
-        return Response({'detail': 'Carrito guardado.', 'saved_count': items.count()})
+        return Response({'detail': 'Carrito guardado.', 'saved_count': saved_count})
 
 
 class CartMergeView(APIView):
