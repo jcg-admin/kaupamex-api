@@ -50,13 +50,6 @@ class VoucherSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     {'discount_pct': 'Requerido y entre 0.01 y 100 para tipo PERCENTAGE.'})
 
-        # Validar inmutabilidad si hay usos (UC-PRO-02)
-        if self.instance and self.instance.current_uses > 0:
-            for campo in ('code', 'voucher_type'):
-                if campo in data:
-                    raise serializers.ValidationError(
-                        {campo: f'El campo "{campo}" es inmutable cuando el voucher ya tiene usos.',
-                         'codigo_error': 'FIELD_IMMUTABLE_WHILE_USED'})
         return data
 
 

@@ -14,8 +14,6 @@ from .base import *
 
 DEBUG = False
 
-# Conexion DB QA — mismo patron que base.py: socket preferido,
-# TCP fallback. Ver proc-ejecutar-pruebas.rst.
 _DB_QA_OPTIONS = {
     'charset': 'utf8mb4',
     'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
@@ -57,16 +55,13 @@ PASSWORD_HASHERS = [
 # Sin throttling en tests
 REST_FRAMEWORK['DEFAULT_THROTTLE_CLASSES'] = []
 
-# JWT — clave de firma exclusiva para tests (>=32 bytes para evitar
-# InsecureKeyLengthWarning emitido por PyJWT cuando la clave HMAC-SHA256
-# tiene menos de 32 bytes). En produccion la clave proviene de variables
-# de entorno y debe ser larga; aqui forzamos un valor seguro determinista.
+# JWT — clave de firma exclusiva para tests
 SIMPLE_JWT = {
     **SIMPLE_JWT,
     'SIGNING_KEY': 'testing-signing-key-please-do-not-use-in-production-0123456789',
 }
 
-# ALLOWED_HOSTS para pruebas — pytest-django usa 'testserver' por defecto
+# ALLOWED_HOSTS para pruebas
 ALLOWED_HOSTS = ['testserver', 'localhost', '127.0.0.1', '*']
 
 # Sin logs en consola durante tests
@@ -80,15 +75,15 @@ LOGGING = {
 # Email — locmem para tests (django.core.mail.outbox)
 EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 FRONTEND_URL = "http://localhost:3001"
+# dispatch_email usa ThreadPoolExecutor; en tests debe ser sincrono para
+# que mail.outbox este poblado cuando el test asserta (race condition).
+DISPATCH_EMAIL_SYNC = True
 
 # MySQL en testing — evitar deadlocks por conexiones persistentes
-DATABASES['default']['CONN_MAX_AGE'] = 0  # Nueva conexión por request
+DATABASES['default']['CONN_MAX_AGE'] = 0
 DATABASES['default']['OPTIONS']['connect_timeout'] = 10
 
-# Cache — LocMemCache en tests (no requiere tabla en BD, no comparte entre
-# procesos, pero es suficiente para verificar el comportamiento funcional).
-# El DatabaseCache de base.py se sobrescribe aquí para evitar que los tests
-# dependan de que la tabla cache_table exista en practicayoruba_qa.
+# Cache — LocMemCache en tests
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',

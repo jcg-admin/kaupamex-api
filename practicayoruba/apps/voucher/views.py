@@ -56,7 +56,6 @@ class VoucherViewSet(ModelViewSet):
         old = {f: getattr(self.get_object(), f)
                for f in serializer.validated_data}
         instance = serializer.save()
-        # Registrar cambios en VoucherChangeLog (UC-PRO-02)
         changes = {}
         for field, new_val in serializer.validated_data.items():
             before = old.get(field)
@@ -70,19 +69,7 @@ class VoucherViewSet(ModelViewSet):
             )
 
     def perform_destroy(self, instance):
-        """Soft delete (UC-PRO-03 + DEC-DOC-007).
-
-        Coexisten dos semánticas:
-        - ``is_active=False`` + ``deactivated_at`` / ``deactivated_by``:
-          desactivacion de NEGOCIO (UC-PRO-03). El reporte UC-PRO-04
-          sigue listandolo.
-        - ``is_deleted=True`` + ``deleted_at``: borrado LOGICO de
-          SISTEMA. Lo excluye del manager por defecto pero queda en
-          ``Voucher.all_objects`` para auditoria.
-
-        Ambos campos se aplican aquí: un DELETE HTTP representa una
-        desactivacion de cupon (no usable + no listable).
-        """
+        """Soft delete (UC-PRO-03 + DEC-DOC-007)."""
         VoucherChangeLog.objects.create(
             voucher=instance,
             changed_by=self.request.user,
@@ -106,13 +93,16 @@ class VoucherViewSet(ModelViewSet):
         tags=['vouchers'],
     )
     def activate(self, request, pk=None):
-        voucher = self.get_object()
-        if voucher.is_active:
+        from django.shortcuts import get_object_or_404 as _get404
+        voucher = _get404(Voucher.all_objects, pk=pk)
+        if voucher.is_active and not voucher.is_deleted:
             return Response({'detail': 'El voucher ya está activo.'}, status=400)
         voucher.is_active      = True
+        voucher.is_deleted      = False
+        voucher.deleted_at      = None
         voucher.deactivated_at = None
         voucher.deactivated_by = None
-        voucher.save(update_fields=['is_active', 'deactivated_at', 'deactivated_by'])
+        voucher.save(update_fields=['is_active', 'is_deleted', 'deleted_at', 'deactivated_at', 'deactivated_by'])
         return Response(VoucherSerializer(voucher).data)
 
     @action(detail=True, methods=['post'], url_path='deactivate')
@@ -255,6 +245,17 @@ class VoucherViewSet(ModelViewSet):
     @extend_schema(summary='Editar voucher (PATCH)', tags=['vouchers'],
                    responses={200: VoucherSerializer, 400: None})
     def partial_update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.current_uses > 0:
+            for campo in ('code', 'voucher_type'):
+                if campo in request.data:
+                    return Response(
+                        {
+                            'detail': f'El campo "{campo}" es inmutable cuando el voucher ya tiene usos.',
+                            'codigo_error': 'FIELD_IMMUTABLE_WHILE_USED',
+                        },
+                        status=400,
+                    )
         kwargs['partial'] = True
         return super().update(request, *args, **kwargs)
 

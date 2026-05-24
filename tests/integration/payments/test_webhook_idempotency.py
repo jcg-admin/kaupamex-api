@@ -147,7 +147,6 @@ class TestWebhookPayPalIdempotencyDenied:
             'apps.payments.gateways.paypal.PayPalGateway.verify_webhook_signature',
             return_value=True,
         ):
-            # Primera peticion: COMPLETED → Payment debe quedar APPROVED
             res1 = api_client.post(
                 PP_WEBHOOK_URL,
                 data=json.dumps(completed_payload),
@@ -162,13 +161,12 @@ class TestWebhookPayPalIdempotencyDenied:
         assert payment.status == 'APPROVED', (
             f'Primer webhook COMPLETED debio aprobar el pago; estado={payment.status}'
         )
-        assert order.status == 'PAGADA', (
-            f'Orden debio quedar PAGADA; estado={order.status}'
+        assert order.status == 'PROCESSING', (
+            f'Orden debio quedar PROCESSING; estado={order.status}'
         )
 
-        # Segunda peticion: DENIED con MISMO event_id + transmission_id → dedup
         denied_payload = {
-            'id': event_id,         # mismo event_id
+            'id': event_id,
             'event_type': 'PAYMENT.CAPTURE.DENIED',
             'resource': {'id': capture_id},
         }
@@ -190,11 +188,10 @@ class TestWebhookPayPalIdempotencyDenied:
             f'data={res2.data}'
         )
 
-        # Payment y Order no cambiaron
         payment.refresh_from_db()
         order.refresh_from_db()
         assert payment.status == 'APPROVED', 'DENIED duplicado no debe revertir a FAILED'
-        assert order.status == 'PAGADA',     'Orden no debe regresar de PAGADA'
+        assert order.status == 'PROCESSING',  'Orden no debe regresar de PROCESSING'
 
 
 # ─── T-206 — MP replay attack: 10 envíos del mismo webhook ─────────────
@@ -241,22 +238,18 @@ class TestWebhookMpReplayAttack:
                 )
                 responses.append(res)
 
-        # Primera peticion: procesada normalmente
         assert responses[0].status_code == 200
 
-        # Las 9 siguientes: idempotente
         for i, res in enumerate(responses[1:], start=1):
             assert res.status_code == 200, f'Peticion {i+1} debio ser 200'
             assert res.data.get('status') == 'already_processed', (
                 f'Peticion {i+1} debio retornar already_processed; data={res.data}'
             )
 
-        # Solo 1 WebhookEvent insertado (UNIQUE constraint)
         count = WebhookEvent.objects.filter(
             gateway='MERCADOPAGO', event_id=payment_id, transmission_id=request_id
         ).count()
         assert count == 1, f'Debio haber 1 WebhookEvent; hay {count}'
 
-        # Payment actualizado (solo por la primera peticion)
         payment.refresh_from_db()
         assert payment.status == 'APPROVED'

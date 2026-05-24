@@ -2,6 +2,7 @@
 import pytest
 from decimal import Decimal
 from apps.catalogue.models import Category, Product
+from apps.orders.models import ShippingZone
 from apps.orders.signals import order_created
 
 pytestmark = pytest.mark.integration
@@ -35,7 +36,15 @@ def prod_sig(db, cat_sig):
 
 
 @pytest.fixture
-def cart_sig(auth_client, prod_sig):
+def zone_sig(db):
+    zone, _ = ShippingZone.objects.get_or_create(
+        zip_code_prefix='06', defaults={'name': 'Ciudad de México', 'is_active': True},
+    )
+    return zone
+
+
+@pytest.fixture
+def cart_sig(auth_client, prod_sig, zone_sig):
     auth_client.post(ITEMS_URL, {'product_id': prod_sig.pk, 'quantity': 1}, format='json')
     return auth_client
 
