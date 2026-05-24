@@ -151,6 +151,12 @@ REST_FRAMEWORK = {
         'contact':             '5/hour',
         'addresses':           '30/hour',
         'change_password':     '5/hour',   # D-04-08
+        # H-CICLO22-03: scope dedicado para CartVoucherView.
+        # El endpoint revela existencia del voucher (VOUCHER_NOT_FOUND vs
+        # validación fallida), lo que habilita enumeración de códigos.
+        # 20/hour anón y 60/hour usuario reducen la ventana de brute-force
+        # a menos de 1 código/3-min para anónimos.
+        'voucher_apply':       '20/hour',
     },
 }
 

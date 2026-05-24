@@ -182,7 +182,19 @@ class MercadoPagoWebhookView(APIView):
         if event_type != 'payment' or not payment_id:
             return Response({'status': 'ignored', 'type': event_type}, status=200)
 
-        # DEC-BC-04: dedup via WebhookEvent antes de procesar.
+        # H-CICLO22-01: verificar firma ANTES del dedup.
+        # El orden anterior (dedup → firma) permitía que un atacante con un
+        # payment_id conocido enviara un webhook falso, registrándolo en
+        # WebhookEvent y marcándolo como already_processed. El webhook
+        # legítimo de MP llegaría después y sería descartado silenciosamente
+        # con 200 idempotente, bloqueando la confirmación del pago.
+        # Solución: rechazar con 401 cualquier webhook con firma inválida
+        # ANTES de persistir el evento en la tabla de dedup.
+        if not _verify_mp_signature(request, payment_id, request_id):
+            logger.warning('MP webhook: firma inválida para payment_id=%s', payment_id)
+            return Response({'status': 'invalid_signature'}, status=401)
+
+        # DEC-BC-04: dedup via WebhookEvent solo después de validar la firma.
         # transaction.atomic() crea un savepoint: el IntegrityError solo
         # revierte el savepoint, no la transacción de test ni la de la vista.
         try:
@@ -196,11 +208,6 @@ class MercadoPagoWebhookView(APIView):
         except IntegrityError:
             logger.info('MP webhook: evento duplicado payment_id=%s — 200 idempotente', payment_id)
             return Response({'status': 'already_processed'}, status=200)
-
-        # Verificar firma (FR-PAY-03.01)
-        if not _verify_mp_signature(request, payment_id, request_id):
-            logger.warning('MP webhook: firma inválida para payment_id=%s', payment_id)
-            return Response({'status': 'invalid_signature'}, status=401)
 
         # Consultar estado definitivo al gateway (paso 6 del flujo)
         try:

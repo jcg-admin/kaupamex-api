@@ -16,6 +16,7 @@ from rest_framework import status
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from apps.catalogue.models import Product
 from apps.chartsize.models import ProductVariant
@@ -354,6 +355,13 @@ class CartVoucherView(APIView):
     DELETE /api/v1/cart/voucher/ — quitar voucher del carrito.
     """
     permission_classes = [AllowAny]
+    # H-CICLO22-03: throttle dedicado para el endpoint de aplicar voucher.
+    # Sin throttle específico el endpoint, al retornar VOUCHER_NOT_FOUND,
+    # revelaba existencia de códigos y habilitaba enumeración brute-force.
+    # El scope 'voucher_apply' (20/hour anón) limita la ventana de ataque
+    # a <1 intento cada 3 minutos para clientes no autenticados.
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope   = 'voucher_apply'
 
     @extend_schema(
         summary='Aplicar voucher al carrito (UC-CART-06)',
