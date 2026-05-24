@@ -1,3 +1,411 @@
-"""\nSerializers — apps.catalogue\n\nProductListSerializer: para listas compactas (index, search results).\nProductDetailSerializer: para el detalle completo de un producto.\nProductSearchSerializer: para el endpoint de búsqueda avanzada.\nCategoryWithCountSerializer: para el árbol de categorías con conteo.\n"""\nfrom decimal import Decimal\nfrom django.db.models import Avg, Q\nfrom django.utils import timezone\nfrom rest_framework import serializers\nfrom .models import Category, Product, ProductImage, ProductDiscount, ProductPriceHistory, SearchHistory\n\n\nTAX_RATE = Decimal('0.16')  # 16% IVA\n\n\ndef _get_active_discount(product):\n    \"\"\"Return the active ProductDiscount or None.\"\"\"\n    now = timezone.now()\n    return (\n        ProductDiscount.objects\n        .filter(\n            product=product,\n            is_active=True,\n            valid_from__lte=now,\n        )\n        .filter(Q(valid_until__isnull=True) | Q(valid_until__gte=now))\n        .order_by('-created_at')\n        .first()\n    )\n\n\ndef _get_sale_price(product):\n    \"\"\"Return discounted price string if an active discount exists, else None.\"\"\"\n    discount = _get_active_discount(product)\n    return str(discount.discounted_price) if discount else None\n\n\ndef _discount_block(product):\n    \"\"\"Build discount dict or None for use in serializers.\"\"\"\n    discount = _get_active_discount(product)\n    if discount is None:\n        return None\n    return {\n        'pct': float(discount.discount_pct),\n        'original_price': float(product.price),\n        'discounted_price': float(discount.discounted_price),\n        'valid_from': discount.valid_from,\n        'valid_until': discount.valid_until,\n    }\n\n\ndef _availability(product):\n    \"\"\"Return IN_STOCK or OUT_OF_STOCK.\"\"\"\n    return 'IN_STOCK' if product.stock > 0 else 'OUT_OF_STOCK'\n\n\ndef _price_with_tax(product):\n    \"\"\"Return price including 16% IVA.\"\"\"\n    return float(product.price * (1 + TAX_RATE))\n\n\nclass ProductImageSerializer(serializers.ModelSerializer):\n    image_url = serializers.SerializerMethodField()\n    image     = serializers.SerializerMethodField()\n\n    class Meta:\n        model  = ProductImage\n        fields = ['id', 'image_url', 'image', 'alt_text', 'is_cover', 'order']\n\n    def get_image_url(self, obj):\n        request = self.context.get('request')\n        if obj.image and request:\n            return request.build_absolute_uri(obj.image.url)\n        return obj.image.url if obj.image else None\n\n    def get_image(self, obj):\n        return self.get_image_url(obj)\n\n\nclass CategorySerializer(serializers.ModelSerializer):\n    class Meta:\n        model  = Category\n        fields = ['id', 'name', 'slug', 'parent']\n\n\nclass ProductListSerializer(serializers.ModelSerializer):\n    cover_image_url  = serializers.SerializerMethodField()\n    category_name    = serializers.CharField(source='category.name', read_only=True)\n    sale_price       = serializers.SerializerMethodField()\n    base_price       = serializers.DecimalField(source='price', max_digits=10, decimal_places=2, read_only=True)\n    price_with_tax   = serializers.SerializerMethodField()\n    image            = serializers.SerializerMethodField()\n    main_image       = serializers.SerializerMethodField()\n    availability     = serializers.SerializerMethodField()\n    variants_available = serializers.SerializerMethodField()\n    discount         = serializers.SerializerMethodField()\n\n    class Meta:\n        model  = Product\n        fields = [\n            'id', 'name', 'slug', 'sku', 'base_price', 'price_with_tax',\n            'sale_price', 'category_name', 'cover_image_url',\n            'image', 'main_image',\n            'is_active', 'is_published', 'is_featured',\n            'availability', 'variants_available', 'discount',\n            'stock',\n        ]\n\n    def get_sale_price(self, obj):\n        return _get_sale_price(obj)\n\n    def get_price_with_tax(self, obj):\n        return _price_with_tax(obj)\n\n    def _get_cover_image(self, obj):\n        cover = obj.images.filter(is_cover=True).first()\n        if not cover:\n            cover = obj.images.first()\n        return cover\n\n    def get_cover_image_url(self, obj):\n        request = self.context.get('request')\n        cover = self._get_cover_image(obj)\n        if cover and cover.image:\n            return request.build_absolute_uri(cover.image.url) if request else cover.image.url\n        return None\n\n    def get_image(self, obj):\n        request = self.context.get('request')\n        cover = self._get_cover_image(obj)\n        if cover and cover.image:\n            return request.build_absolute_uri(cover.image.url) if request else cover.image.url\n        return None\n\n    def get_main_image(self, obj):\n        request = self.context.get('request')\n        cover = self._get_cover_image(obj)\n        if cover and cover.image:\n            return request.build_absolute_uri(cover.image.url) if request else cover.image.url\n        return None\n\n    def get_availability(self, obj):\n        return _availability(obj)\n\n    def get_variants_available(self, obj):\n        return obj.variants.filter(is_active=True).exists()\n\n    def get_discount(self, obj):\n        return _discount_block(obj)\n\n\nclass ProductDetailSerializer(serializers.ModelSerializer):\n    images          = ProductImageSerializer(many=True, read_only=True)\n    category        = CategorySerializer(read_only=True)\n    sale_price      = serializers.SerializerMethodField()\n    base_price      = serializers.DecimalField(source='price', max_digits=10, decimal_places=2, read_only=True)\n    price_with_tax  = serializers.SerializerMethodField()\n    availability    = serializers.SerializerMethodField()\n    discount        = serializers.SerializerMethodField()\n    reviews_summary = serializers.SerializerMethodField()\n    questions_count = serializers.SerializerMethodField()\n    related_products = serializers.SerializerMethodField()\n    variants        = serializers.SerializerMethodField()\n\n    class Meta:\n        model  = Product\n        fields = [\n            'id', 'name', 'slug', 'sku', 'description', 'short_description',\n            'base_price', 'price_with_tax', 'sale_price',\n            'category', 'images', 'is_active', 'is_published', 'is_featured',\n            'stock', 'availability', 'discount',\n            'reviews_summary', 'questions_count', 'related_products',\n            'variants',\n            'created_at', 'updated_at',\n        ]\n\n    def get_sale_price(self, obj):\n        return _get_sale_price(obj)\n\n    def get_price_with_tax(self, obj):\n        return _price_with_tax(obj)\n\n    def get_availability(self, obj):\n        return _availability(obj)\n\n    def get_discount(self, obj):\n        return _discount_block(obj)\n\n    def get_reviews_summary(self, obj):\n        from apps.reviews.models import Review\n        approved = Review.objects.filter(product=obj, status=Review.STATUS_APPROVED)\n        count = approved.count()\n        avg = approved.aggregate(avg=Avg('rating'))['avg']\n        return {\n            'average_rating': round(float(avg), 1) if avg is not None else None,\n            'total_count': count,\n        }\n\n    def get_questions_count(self, obj):\n        from apps.questions.models import ProductQuestion, QuestionStatus\n        return ProductQuestion.objects.filter(\n            product=obj, status=QuestionStatus.ANSWERED\n        ).count()\n\n    def get_related_products(self, obj):\n        qs = (\n            Product.objects\n            .filter(category=obj.category, is_active=True, is_published=True)\n            .exclude(pk=obj.pk)\n            .order_by('?')[:4]\n        )\n        return ProductListSerializer(qs, many=True, context=self.context).data\n\n    def get_variants(self, obj):\n        from apps.chartsize.serializers import ProductVariantPublicSerializer\n        qs = obj.variants.filter(is_active=True).select_related(\n            'option', 'option__variant_type'\n        ).order_by('option__variant_type__name', 'option__label')\n        return ProductVariantPublicSerializer(qs, many=True).data\n\n\nclass ProductSearchSerializer(serializers.ModelSerializer):\n    cover_image_url  = serializers.SerializerMethodField()\n    category_name    = serializers.CharField(source='category.name', read_only=True)\n    sale_price       = serializers.SerializerMethodField()\n    base_price       = serializers.DecimalField(source='price', max_digits=10, decimal_places=2, read_only=True)\n    price_with_tax   = serializers.SerializerMethodField()\n    highlighted_name = serializers.SerializerMethodField()\n    availability     = serializers.SerializerMethodField()\n    discount         = serializers.SerializerMethodField()\n\n    class Meta:\n        model  = Product\n        fields = [\n            'id', 'name', 'slug', 'sku', 'base_price', 'price_with_tax',\n            'sale_price', 'category_name', 'cover_image_url',\n            'stock', 'availability', 'discount', 'highlighted_name',\n            'is_featured',\n        ]\n\n    def get_sale_price(self, obj):\n        return _get_sale_price(obj)\n\n    def get_price_with_tax(self, obj):\n        return _price_with_tax(obj)\n\n    def get_cover_image_url(self, obj):\n        request = self.context.get('request')\n        cover = obj.images.filter(is_cover=True).first()\n        if not cover:\n            cover = obj.images.first()\n        if cover and cover.image:\n            return request.build_absolute_uri(cover.image.url) if request else cover.image.url\n        return None\n\n    def get_highlighted_name(self, obj):\n        q = self.context.get('search_term', '')\n        if not q:\n            return obj.name\n        import re\n        return re.sub(f'({re.escape(q)})', r'<em>\\1</em>', obj.name, flags=re.IGNORECASE)\n\n    def get_availability(self, obj):\n        return _availability(obj)\n\n    def get_discount(self, obj):\n        return _discount_block(obj)\n\n\nclass CategoryWithCountSerializer(serializers.ModelSerializer):\n    product_count = serializers.SerializerMethodField()\n    children      = serializers.SerializerMethodField()\n\n    class Meta:\n        model  = Category\n        fields = ['id', 'name', 'slug', 'parent', 'product_count', 'children']\n\n    def get_product_count(self, obj):\n        if hasattr(obj, 'product_count'):\n            return obj.product_count\n        return obj.products.filter(is_active=True, is_published=True).count()\n\n    def get_children(self, obj):\n        return CategoryWithCountSerializer(obj.children.all(), many=True).data\n\n\nclass ProductAdminSerializer(serializers.ModelSerializer):\n    images          = ProductImageSerializer(many=True, read_only=True)\n    category        = CategorySerializer(read_only=True)\n    category_id     = serializers.PrimaryKeyRelatedField(\n        source='category', queryset=Category.objects.all(), required=False, allow_null=True,\n    )\n    sale_price      = serializers.SerializerMethodField()\n    base_price      = serializers.DecimalField(\n        source='price', max_digits=10, decimal_places=2, min_value=Decimal('0.01'), required=False,\n    )\n    price_with_tax  = serializers.SerializerMethodField()\n    related_products = serializers.SerializerMethodField()\n    discount        = serializers.SerializerMethodField()\n\n    class Meta:\n        model  = Product\n        fields = [\n            'id', 'name', 'slug', 'sku', 'description', 'short_description',\n            'base_price', 'price_with_tax', 'sale_price',\n            'category', 'category_id', 'images', 'is_active', 'is_published', 'is_featured',\n            'stock', 'discount', 'related_products',\n            'created_at', 'updated_at',\n        ]\n        extra_kwargs = {'slug': {'required': False}, 'name': {'required': True},
-                        'description': {'max_length': 10000}, 'short_description': {'max_length': 500}}\n\n    def validate_sku(self, value):\n        return value.upper() if value else value\n\n    def validate(self, attrs):\n        if not self.instance and 'price' not in attrs:\n            raise serializers.ValidationError({'base_price': 'Este campo es requerido.'})\n        return attrs\n\n    def get_sale_price(self, obj):\n        return _get_sale_price(obj)\n\n    def get_price_with_tax(self, obj):\n        return _price_with_tax(obj)\n\n    def get_related_products(self, obj):\n        return None\n\n    def get_discount(self, obj):\n        return _discount_block(obj)\n\n    def _auto_slug(self, name):\n        from django.utils.text import slugify\n        base = slugify(name)\n        slug = base\n        n = 1\n        while Product.objects.filter(slug=slug).exclude(\n            pk=self.instance.pk if self.instance else None\n        ).exists():\n            slug = f'{base}-{n}'\n            n += 1\n        return slug\n\n    def create(self, validated_data):\n        if 'slug' not in validated_data or not validated_data.get('slug'):\n            validated_data['slug'] = self._auto_slug(validated_data['name'])\n        return super().create(validated_data)\n\n    def update(self, instance, validated_data):\n        return super().update(instance, validated_data)\n\n\nclass AutocompleteSerializer(serializers.ModelSerializer):\n    class Meta:\n        model  = Product\n        fields = ['id', 'name', 'slug']\n\n\nclass SearchHistorySerializer(serializers.ModelSerializer):\n    searched_at = serializers.DateTimeField(source='updated_at', read_only=True)\n\n    class Meta:\n        model  = SearchHistory\n        fields = ['id', 'term', 'searched_at']\n\n\nclass CategoryAdminSerializer(serializers.ModelSerializer):\n    parent_id = serializers.PrimaryKeyRelatedField(\n        source='parent', queryset=Category.objects.all(), required=False, allow_null=True,\n    )\n\n    class Meta:\n        model  = Category\n        fields = ['id', 'name', 'slug', 'description', 'parent', 'parent_id', 'image', 'is_active']\n        extra_kwargs = {'slug': {'required': False}, 'parent': {'read_only': True},
-                        'description': {'max_length': 5000}}\n\n    def validate(self, attrs):\n        new_parent = attrs.get('parent', self.instance.parent if self.instance else None)\n        if self.instance and new_parent is not None:\n            if self.instance.would_create_cycle(new_parent):\n                raise serializers.ValidationError({\n                    'parent_id': 'Esta asignación crearía un ciclo en la jerarquía.',\n                    'codigo_error': 'CYCLE_IN_HIERARCHY',\n                })\n        return attrs\n\n\nclass ProductPriceHistorySerializer(serializers.ModelSerializer):\n    class Meta:\n        model  = ProductPriceHistory\n        fields = ['id', 'old_price', 'new_price', 'source', 'changed_by', 'created_at']\n
+"""
+Serializers — apps.catalogue
+
+ProductListSerializer: para listas compactas (index, search results).
+ProductDetailSerializer: para el detalle completo de un producto.
+ProductSearchSerializer: para el endpoint de búsqueda avanzada.
+CategoryWithCountSerializer: para el árbol de categorías con conteo.
+"""
+from decimal import Decimal
+from django.db.models import Avg, Q
+from django.utils import timezone
+from rest_framework import serializers
+from .models import Category, Product, ProductImage, ProductDiscount, ProductPriceHistory, SearchHistory
+
+
+TAX_RATE = Decimal('0.16')  # 16% IVA
+
+
+def _get_active_discount(product):
+    \"\"\"Return the active ProductDiscount or None.\"\"\"
+    now = timezone.now()
+    return (
+        ProductDiscount.objects
+        .filter(
+            product=product,
+            is_active=True,
+            valid_from__lte=now,
+        )
+        .filter(Q(valid_until__isnull=True) | Q(valid_until__gte=now))
+        .order_by('-created_at')
+        .first()
+    )
+
+
+def _get_sale_price(product):
+    \"\"\"Return discounted price string if an active discount exists, else None.\"\"\"
+    discount = _get_active_discount(product)
+    return str(discount.discounted_price) if discount else None
+
+
+def _discount_block(product):
+    \"\"\"Build discount dict or None for use in serializers.\"\"\"
+    discount = _get_active_discount(product)
+    if discount is None:
+        return None
+    return {
+        'pct': float(discount.discount_pct),
+        'original_price': float(product.price),
+        'discounted_price': float(discount.discounted_price),
+        'valid_from': discount.valid_from,
+        'valid_until': discount.valid_until,
+    }
+
+
+def _availability(product):
+    \"\"\"Return IN_STOCK or OUT_OF_STOCK.\"\"\"
+    return 'IN_STOCK' if product.stock > 0 else 'OUT_OF_STOCK'
+
+
+def _price_with_tax(product):
+    \"\"\"Return price including 16% IVA.\"\"\"
+    return float(product.price * (1 + TAX_RATE))
+
+
+class ProductImageSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+    image     = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = ProductImage
+        fields = ['id', 'image_url', 'image', 'alt_text', 'is_cover', 'order']
+
+    def get_image_url(self, obj):
+        request = self.context.get('request')
+        if obj.image and request:
+            return request.build_absolute_uri(obj.image.url)
+        return obj.image.url if obj.image else None
+
+    def get_image(self, obj):
+        return self.get_image_url(obj)
+
+
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = Category
+        fields = ['id', 'name', 'slug', 'parent']
+
+
+class ProductListSerializer(serializers.ModelSerializer):
+    cover_image_url  = serializers.SerializerMethodField()
+    category_name    = serializers.CharField(source='category.name', read_only=True)
+    sale_price       = serializers.SerializerMethodField()
+    base_price       = serializers.DecimalField(source='price', max_digits=10, decimal_places=2, read_only=True)
+    price_with_tax   = serializers.SerializerMethodField()
+    image            = serializers.SerializerMethodField()
+    main_image       = serializers.SerializerMethodField()
+    availability     = serializers.SerializerMethodField()
+    variants_available = serializers.SerializerMethodField()
+    discount         = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = Product
+        fields = [
+            'id', 'name', 'slug', 'sku', 'base_price', 'price_with_tax',
+            'sale_price', 'category_name', 'cover_image_url',
+            'image', 'main_image',
+            'is_active', 'is_published', 'is_featured',
+            'availability', 'variants_available', 'discount',
+            'stock',
+        ]
+
+    def get_sale_price(self, obj):
+        return _get_sale_price(obj)
+
+    def get_price_with_tax(self, obj):
+        return _price_with_tax(obj)
+
+    def _get_cover_image(self, obj):
+        cover = obj.images.filter(is_cover=True).first()
+        if not cover:
+            cover = obj.images.first()
+        return cover
+
+    def get_cover_image_url(self, obj):
+        request = self.context.get('request')
+        cover = self._get_cover_image(obj)
+        if cover and cover.image:
+            return request.build_absolute_uri(cover.image.url) if request else cover.image.url
+        return None
+
+    def get_image(self, obj):
+        request = self.context.get('request')
+        cover = self._get_cover_image(obj)
+        if cover and cover.image:
+            return request.build_absolute_uri(cover.image.url) if request else cover.image.url
+        return None
+
+    def get_main_image(self, obj):
+        request = self.context.get('request')
+        cover = self._get_cover_image(obj)
+        if cover and cover.image:
+            return request.build_absolute_uri(cover.image.url) if request else cover.image.url
+        return None
+
+    def get_availability(self, obj):
+        return _availability(obj)
+
+    def get_variants_available(self, obj):
+        return obj.variants.filter(is_active=True).exists()
+
+    def get_discount(self, obj):
+        return _discount_block(obj)
+
+
+class ProductDetailSerializer(serializers.ModelSerializer):
+    images          = ProductImageSerializer(many=True, read_only=True)
+    category        = CategorySerializer(read_only=True)
+    sale_price      = serializers.SerializerMethodField()
+    base_price      = serializers.DecimalField(source='price', max_digits=10, decimal_places=2, read_only=True)
+    price_with_tax  = serializers.SerializerMethodField()
+    availability    = serializers.SerializerMethodField()
+    discount        = serializers.SerializerMethodField()
+    reviews_summary = serializers.SerializerMethodField()
+    questions_count = serializers.SerializerMethodField()
+    related_products = serializers.SerializerMethodField()
+    variants        = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = Product
+        fields = [
+            'id', 'name', 'slug', 'sku', 'description', 'short_description',
+            'base_price', 'price_with_tax', 'sale_price',
+            'category', 'images', 'is_active', 'is_published', 'is_featured',
+            'stock', 'availability', 'discount',
+            'reviews_summary', 'questions_count', 'related_products',
+            'variants',
+            'created_at', 'updated_at',
+        ]
+
+    def get_sale_price(self, obj):
+        return _get_sale_price(obj)
+
+    def get_price_with_tax(self, obj):
+        return _price_with_tax(obj)
+
+    def get_availability(self, obj):
+        return _availability(obj)
+
+    def get_discount(self, obj):
+        return _discount_block(obj)
+
+    def get_reviews_summary(self, obj):
+        from apps.reviews.models import Review
+        approved = Review.objects.filter(product=obj, status=Review.STATUS_APPROVED)
+        count = approved.count()
+        avg = approved.aggregate(avg=Avg('rating'))['avg']
+        return {
+            'average_rating': round(float(avg), 1) if avg is not None else None,
+            'total_count': count,
+        }
+
+    def get_questions_count(self, obj):
+        from apps.questions.models import ProductQuestion, QuestionStatus
+        return ProductQuestion.objects.filter(
+            product=obj, status=QuestionStatus.ANSWERED
+        ).count()
+
+    def get_related_products(self, obj):
+        qs = (
+            Product.objects
+            .filter(category=obj.category, is_active=True, is_published=True)
+            .exclude(pk=obj.pk)
+            .order_by('?')[:4]
+        )
+        return ProductListSerializer(qs, many=True, context=self.context).data
+
+    def get_variants(self, obj):
+        from apps.chartsize.serializers import ProductVariantPublicSerializer
+        qs = obj.variants.filter(is_active=True).select_related(
+            'option', 'option__variant_type'
+        ).order_by('option__variant_type__name', 'option__label')
+        return ProductVariantPublicSerializer(qs, many=True).data
+
+
+class ProductSearchSerializer(serializers.ModelSerializer):
+    cover_image_url  = serializers.SerializerMethodField()
+    category_name    = serializers.CharField(source='category.name', read_only=True)
+    sale_price       = serializers.SerializerMethodField()
+    base_price       = serializers.DecimalField(source='price', max_digits=10, decimal_places=2, read_only=True)
+    price_with_tax   = serializers.SerializerMethodField()
+    highlighted_name = serializers.SerializerMethodField()
+    availability     = serializers.SerializerMethodField()
+    discount         = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = Product
+        fields = [
+            'id', 'name', 'slug', 'sku', 'base_price', 'price_with_tax',
+            'sale_price', 'category_name', 'cover_image_url',
+            'stock', 'availability', 'discount', 'highlighted_name',
+            'is_featured',
+        ]
+
+    def get_sale_price(self, obj):
+        return _get_sale_price(obj)
+
+    def get_price_with_tax(self, obj):
+        return _price_with_tax(obj)
+
+    def get_cover_image_url(self, obj):
+        request = self.context.get('request')
+        cover = obj.images.filter(is_cover=True).first()
+        if not cover:
+            cover = obj.images.first()
+        if cover and cover.image:
+            return request.build_absolute_uri(cover.image.url) if request else cover.image.url
+        return None
+
+    def get_highlighted_name(self, obj):
+        q = self.context.get('search_term', '')
+        if not q:
+            return obj.name
+        import re
+        return re.sub(f'({re.escape(q)})', r'<em>\\1</em>', obj.name, flags=re.IGNORECASE)
+
+    def get_availability(self, obj):
+        return _availability(obj)
+
+    def get_discount(self, obj):
+        return _discount_block(obj)
+
+
+class CategoryWithCountSerializer(serializers.ModelSerializer):
+    product_count = serializers.SerializerMethodField()
+    children      = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = Category
+        fields = ['id', 'name', 'slug', 'parent', 'product_count', 'children']
+
+    def get_product_count(self, obj):
+        if hasattr(obj, 'product_count'):
+            return obj.product_count
+        return obj.products.filter(is_active=True, is_published=True).count()
+
+    def get_children(self, obj):
+        return CategoryWithCountSerializer(obj.children.all(), many=True).data
+
+
+class ProductAdminSerializer(serializers.ModelSerializer):
+    images          = ProductImageSerializer(many=True, read_only=True)
+    category        = CategorySerializer(read_only=True)
+    category_id     = serializers.PrimaryKeyRelatedField(
+        source='category', queryset=Category.objects.all(), required=False, allow_null=True,
+    )
+    sale_price      = serializers.SerializerMethodField()
+    base_price      = serializers.DecimalField(
+        source='price', max_digits=10, decimal_places=2, min_value=Decimal('0.01'), required=False,
+    )
+    price_with_tax  = serializers.SerializerMethodField()
+    related_products = serializers.SerializerMethodField()
+    discount        = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = Product
+        fields = [
+            'id', 'name', 'slug', 'sku', 'description', 'short_description',
+            'base_price', 'price_with_tax', 'sale_price',
+            'category', 'category_id', 'images', 'is_active', 'is_published', 'is_featured',
+            'stock', 'discount', 'related_products',
+            'created_at', 'updated_at',
+        ]
+        extra_kwargs = {'slug': {'required': False}, 'name': {'required': True},
+                        'description': {'max_length': 10000}, 'short_description': {'max_length': 500}}
+
+    def validate_sku(self, value):
+        return value.upper() if value else value
+
+    def validate(self, attrs):
+        if not self.instance and 'price' not in attrs:
+            raise serializers.ValidationError({'base_price': 'Este campo es requerido.'})
+        return attrs
+
+    def get_sale_price(self, obj):
+        return _get_sale_price(obj)
+
+    def get_price_with_tax(self, obj):
+        return _price_with_tax(obj)
+
+    def get_related_products(self, obj):
+        return None
+
+    def get_discount(self, obj):
+        return _discount_block(obj)
+
+    def _auto_slug(self, name):
+        from django.utils.text import slugify
+        base = slugify(name)
+        slug = base
+        n = 1
+        while Product.objects.filter(slug=slug).exclude(
+            pk=self.instance.pk if self.instance else None
+        ).exists():
+            slug = f'{base}-{n}'
+            n += 1
+        return slug
+
+    def create(self, validated_data):
+        if 'slug' not in validated_data or not validated_data.get('slug'):
+            validated_data['slug'] = self._auto_slug(validated_data['name'])
+        return super().create(validated_data)
+
+    def validate_slug(self, value):
+        # H-CICLO20-06: validar unicidad del slug en update antes de llegar
+        # al DB. Sin esta validación un slug duplicado causa IntegrityError
+        # (500) en lugar de ValidationError (400) cuando el admin edita un
+        # producto y envía un slug ya ocupado por otro producto.
+        if value:
+            qs = Product.objects.filter(slug=value)
+            if self.instance:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise serializers.ValidationError(
+                    f'El slug "{value}" ya está en uso por otro producto.'
+                )
+        return value
+
+    def update(self, instance, validated_data):
+        return super().update(instance, validated_data)
+
+
+class AutocompleteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = Product
+        fields = ['id', 'name', 'slug']
+
+
+class SearchHistorySerializer(serializers.ModelSerializer):
+    searched_at = serializers.DateTimeField(source='updated_at', read_only=True)
+
+    class Meta:
+        model  = SearchHistory
+        fields = ['id', 'term', 'searched_at']
+
+
+class CategoryAdminSerializer(serializers.ModelSerializer):
+    parent_id = serializers.PrimaryKeyRelatedField(
+        source='parent', queryset=Category.objects.all(), required=False, allow_null=True,
+    )
+
+    class Meta:
+        model  = Category
+        fields = ['id', 'name', 'slug', 'description', 'parent', 'parent_id', 'image', 'is_active']
+        extra_kwargs = {'slug': {'required': False}, 'parent': {'read_only': True},
+                        'description': {'max_length': 5000}}
+
+    def validate(self, attrs):
+        new_parent = attrs.get('parent', self.instance.parent if self.instance else None)
+        if self.instance and new_parent is not None:
+            if self.instance.would_create_cycle(new_parent):
+                raise serializers.ValidationError({
+                    'parent_id': 'Esta asignación crearía un ciclo en la jerarquía.',
+                    'codigo_error': 'CYCLE_IN_HIERARCHY',
+                })
+        return attrs
+
+
+class ProductPriceHistorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = ProductPriceHistory
+        fields = ['id', 'old_price', 'new_price', 'source', 'changed_by', 'created_at']

@@ -297,28 +297,55 @@ class CartMergeView(APIView):
 
         auth_cart, _ = Cart.objects.get_or_create(user=request.user)
 
+        skipped = []
         with transaction.atomic():
             for anon_item in anon_cart.items.select_related('product', 'variant').all():
+                # H-CICLO20-02: validar disponibilidad de stock antes de
+                # fusionar cada ítem del carrito anónimo. Ítems sin stock
+                # suficiente se omiten (no se fusionan) y se reportan al
+                # caller para que el UI informe al usuario.
+                available = (
+                    anon_item.variant.stock
+                    if anon_item.variant
+                    else anon_item.product.stock
+                )
+                if available is not None and available <= 0:
+                    skipped.append({
+                        'product_id': anon_item.product.pk,
+                        'product_name': anon_item.product.name,
+                        'reason': 'OUT_OF_STOCK',
+                    })
+                    continue
+
                 existing = CartItem.objects.filter(
                     cart=auth_cart,
                     product=anon_item.product,
                     variant=anon_item.variant,
                 ).first()
                 if existing:
-                    existing.quantity += anon_item.quantity
+                    new_qty = existing.quantity + anon_item.quantity
+                    if available is not None and new_qty > available:
+                        new_qty = available
+                    existing.quantity = new_qty
                     existing.unit_price = anon_item.unit_price
                     existing.save(update_fields=['quantity', 'unit_price', 'updated_at'])
                 else:
+                    merge_qty = anon_item.quantity
+                    if available is not None and merge_qty > available:
+                        merge_qty = available
                     CartItem.objects.create(
                         cart=auth_cart,
                         product=anon_item.product,
                         variant=anon_item.variant,
-                        quantity=anon_item.quantity,
+                        quantity=merge_qty,
                         unit_price=anon_item.unit_price,
                     )
             anon_cart.delete()
 
-        return Response(CartSerializer(auth_cart).data)
+        resp_data = CartSerializer(auth_cart).data
+        if skipped:
+            resp_data['merge_skipped'] = skipped
+        return Response(resp_data)
 
 
 class CartVoucherView(APIView):

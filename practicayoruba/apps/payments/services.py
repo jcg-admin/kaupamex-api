@@ -192,6 +192,11 @@ def execute_refund(
     Ejecuta un reembolso sobre un Payment aprobado.
     UC-PAY-07 (FR-PAY-07.02), UC-PAY-09.
 
+    H-CICLO20-01: select_for_update() dentro de atomic re-lee el Payment
+    antes de calcular el saldo reembolsable. Previene race condition donde
+    dos admins concurrentes pasaban el chequeo de estado y emitían dos
+    reembolsos al gateway para el mismo pago.
+
     :param payment: instancia Payment con status=APPROVED
     :param amount: Decimal o None (None = reembolso total)
     :param reason: motivo del reembolso
@@ -202,42 +207,50 @@ def execute_refund(
     :raises RuntimeError: si el gateway falla
     """
 
-    if payment.status not in (
-        PaymentModel.STATUS_APPROVED,
-        PaymentModel.STATUS_PARTIALLY_REFUNDED,
-    ):
-        raise ValueError(
-            f'El pago no es reembolsable (estado: {payment.status}). '
-            f'Solo los pagos en estado APPROVED o PARTIALLY_REFUNDED '
-            f'pueden reembolsarse.'
-        )
-
-    already_refunded = (
-        Refund.objects.filter(
-            payment=payment, status=Refund.STATUS_APPROVED,
-        ).aggregate(total=DjSum('amount'))['total'] or Decimal('0')
-    )
-    remaining = payment.amount - already_refunded
-    refund_amount = amount if amount is not None else remaining
-    if refund_amount <= Decimal('0') or refund_amount > remaining:
-        raise ValueError(
-            f'El monto de reembolso ({refund_amount}) debe ser mayor que 0 '
-            f'y no superar el saldo reembolsable ({remaining}) del pago '
-            f'(total {payment.amount}, ya reembolsado {already_refunded}).'
-        )
-
-    if gateway is None:
-        gateway = _get_gateway(payment.gateway)
-
-    # Ejecutar el reembolso en el gateway
-    result = gateway.refund(
-        gateway_payment_id=payment.gateway_payment_id,
-        amount=refund_amount,
-    )
-
+    # H-CICLO20-01: adquirir lock sobre el Payment dentro de un bloque
+    # atomic para serializar solicitudes concurrentes de reembolso.
+    # La validación de estado y el cálculo de saldo reembolsable se hacen
+    # sobre la instancia bloqueada para evitar doble-reembolso.
     with transaction.atomic():
+        locked_payment = Payment.objects.select_for_update().get(pk=payment.pk)
+
+        if locked_payment.status not in (
+            PaymentModel.STATUS_APPROVED,
+            PaymentModel.STATUS_PARTIALLY_REFUNDED,
+        ):
+            raise ValueError(
+                f'El pago no es reembolsable (estado: {locked_payment.status}). '
+                f'Solo los pagos en estado APPROVED o PARTIALLY_REFUNDED '
+                f'pueden reembolsarse.'
+            )
+
+        already_refunded = (
+            Refund.objects.filter(
+                payment=locked_payment, status=Refund.STATUS_APPROVED,
+            ).aggregate(total=DjSum('amount'))['total'] or Decimal('0')
+        )
+        remaining = locked_payment.amount - already_refunded
+        refund_amount = amount if amount is not None else remaining
+        if refund_amount <= Decimal('0') or refund_amount > remaining:
+            raise ValueError(
+                f'El monto de reembolso ({refund_amount}) debe ser mayor que 0 '
+                f'y no superar el saldo reembolsable ({remaining}) del pago '
+                f'(total {locked_payment.amount}, ya reembolsado {already_refunded}).'
+            )
+
+        if gateway is None:
+            gateway = _get_gateway(locked_payment.gateway)
+
+        # Ejecutar el reembolso en el gateway (fuera del punto de lectura
+        # pero dentro del atomic; si el gateway falla la transacción se
+        # revierte y no se crea el Refund en BD).
+        result = gateway.refund(
+            gateway_payment_id=locked_payment.gateway_payment_id,
+            amount=refund_amount,
+        )
+
         refund = Refund.objects.create(
-            payment=payment,
+            payment=locked_payment,
             amount=refund_amount,
             reason=reason,
             gateway_refund_id=result.refund_id,
@@ -248,24 +261,24 @@ def execute_refund(
         # Actualizar estado del Payment
         total_refunded = (
             Refund.objects.filter(
-                payment=payment, status=Refund.STATUS_APPROVED
+                payment=locked_payment, status=Refund.STATUS_APPROVED
             ).aggregate(total=DjSum('amount'))['total'] or Decimal('0')
         )
 
-        if total_refunded >= payment.amount:
-            payment.status = PaymentModel.STATUS_REFUNDED
+        if total_refunded >= locked_payment.amount:
+            locked_payment.status = PaymentModel.STATUS_REFUNDED
         else:
-            payment.status = PaymentModel.STATUS_PARTIALLY_REFUNDED
-        payment.save(update_fields=['status', 'updated_at'])
+            locked_payment.status = PaymentModel.STATUS_PARTIALLY_REFUNDED
+        locked_payment.save(update_fields=['status', 'updated_at'])
         notify_refund_processed(
-            order=payment.order,
-            user=payment.order.user,
+            order=locked_payment.order,
+            user=locked_payment.order.user,
             amount_refunded=refund_amount,
         )
 
     logging.getLogger('apps').info(
         'Reembolso ejecutado: payment=%s amount=%s refund_id=%s',
-        payment.pk, refund_amount, result.refund_id,
+        locked_payment.pk, refund_amount, result.refund_id,
     )
     return refund
 

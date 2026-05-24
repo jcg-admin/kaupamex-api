@@ -9,6 +9,14 @@ SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SECURE_SSL_REDIRECT = True
 
+# H-CICLO20-03: HSTS via Django SecurityMiddleware además del header de
+# Apache. Garantiza que el header se emita aunque la petición llegue a
+# Django sin pasar por mod_headers (p.ej. proxies internos, health checks
+# directos al puerto WSGI). Valor alineado con el max-age del vhost Apache.
+SECURE_HSTS_SECONDS = 31536000          # 1 año
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+
 # --- Proxy SSL (Apache + mod_wsgi) -------------------------------------
 # Apache termina SSL y reenvía a Django via HTTP interno.
 # Sin este header, SECURE_SSL_REDIRECT=True produce un bucle infinito
