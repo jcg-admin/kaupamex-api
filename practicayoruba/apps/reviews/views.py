@@ -94,8 +94,12 @@ class ProductReviewsView(APIView):
         rating_breakdown = {str(i): breakdown.get(i, 0) for i in range(1, 6)}
 
         # Pagination
-        page_size = int(request.query_params.get('page_size', 10))
-        page_num = int(request.query_params.get('page', 1))
+        try:
+            page_size = max(1, min(100, int(request.query_params.get('page_size', 10))))
+            page_num = max(1, int(request.query_params.get('page', 1)))
+        except (ValueError, TypeError):
+            raise ValidationError({'detail': 'page_size y page deben ser enteros.',
+                                   'codigo_error': 'INVALID_PAGINATION'})
         items = list(approved)
         count = len(items)
         pages = max(1, -(-count // page_size))  # ceil division
