@@ -3,6 +3,7 @@ Serializers — apps.returns.
 
 Cumplen los contratos JSON declarados en UC-RET-01..06 (PARTE 7C).
 """
+from decimal import Decimal
 from rest_framework import serializers
 from .models import ReturnHistoryEntry, ReturnItem, ReturnRequest
 
@@ -191,7 +192,7 @@ class ReturnRefundSerializer(serializers.Serializer):
     """UC-RET-06 — registra reembolso."""
 
     amount = serializers.DecimalField(
-        max_digits=10, decimal_places=2, min_value=0,
+        max_digits=10, decimal_places=2, min_value=Decimal('0.01'),
     )
 
 

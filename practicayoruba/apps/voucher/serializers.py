@@ -35,6 +35,13 @@ class VoucherSerializer(serializers.ModelSerializer):
     def validate_code(self, value):
         return value.upper()
 
+    def validate_max_uses(self, value):
+        # H-VOU-01: max_uses=0 agotaría el voucher inmediatamente — sin sentido.
+        if value is not None and value < 1:
+            raise serializers.ValidationError(
+                'max_uses debe ser al menos 1, o null para usos ilimitados.')
+        return value
+
     def validate(self, data):
         vtype = data.get('voucher_type') or (self.instance.voucher_type if self.instance else None)
 
@@ -49,6 +56,13 @@ class VoucherSerializer(serializers.ModelSerializer):
             if not pct or not (0 < pct <= 100):
                 raise serializers.ValidationError(
                     {'discount_pct': 'Requerido y entre 0.01 y 100 para tipo PERCENTAGE.'})
+
+        # H-VOU-02: valid_until debe ser posterior a valid_from.
+        valid_from  = data.get('valid_from')  or (self.instance.valid_from  if self.instance else None)
+        valid_until = data.get('valid_until') or (self.instance.valid_until if self.instance else None)
+        if valid_from and valid_until and valid_until <= valid_from:
+            raise serializers.ValidationError(
+                {'valid_until': 'valid_until debe ser posterior a valid_from.'})
 
         return data
 

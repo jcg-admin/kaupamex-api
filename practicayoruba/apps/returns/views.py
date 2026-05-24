@@ -27,7 +27,7 @@ from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.orders.models import Order
+from apps.orders.models import Order, OrderItem
 from apps.payments.models import Payment, Refund
 from apps.payments.services import execute_refund
 from .models import ReturnHistoryEntry, ReturnItem, ReturnRequest
@@ -110,6 +110,33 @@ class ReturnListCreateView(APIView):
                 'order_id': 'Solo se pueden solicitar devoluciones para ordenes entregadas.',
                 'codigo_error': 'ORDER_NOT_DELIVERED',
             })
+
+        # H-RET-QTY: validar que la cantidad devuelta no exceda la comprada.
+        # Sin este check un comprador podía declarar devolver 9999 unidades
+        # de un producto que compró 1. Se coteja contra OrderItem por product.
+        if items_data:
+            # Construir mapa product_id→quantity_purchased desde la orden
+            purchased_qtys = {
+                oi.product_id: oi.quantity
+                for oi in OrderItem.objects.filter(order_id=order_id)
+            }
+            for item_data in items_data:
+                pid = item_data['product_id']
+                requested_qty = item_data.get('quantity', 1)
+                purchased_qty = purchased_qtys.get(pid)
+                if purchased_qty is None:
+                    raise DRFValidationError({
+                        'items': f'El producto {pid} no pertenece a esta orden.',
+                        'codigo_error': 'PRODUCT_NOT_IN_ORDER',
+                    })
+                if requested_qty > purchased_qty:
+                    raise DRFValidationError({
+                        'items': (
+                            f'La cantidad solicitada ({requested_qty}) para el '
+                            f'producto {pid} excede la cantidad comprada ({purchased_qty}).'
+                        ),
+                        'codigo_error': 'QUANTITY_EXCEEDS_PURCHASED',
+                    })
 
         # UC-RET-01 idempotency: check for overlapping pending requests
         # DEC-RET-03: if items are provided, check item-level overlap

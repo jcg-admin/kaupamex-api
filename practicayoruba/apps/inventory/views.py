@@ -202,9 +202,6 @@ class StockAlertListView(_AdminOnly, APIView):
         return Response(StockAlertSerializer(alerts, many=True).data)
 
 
-_IMPORT_ERROR_REPORTS: dict[str, list] = {}
-
-
 def _process_import_csv(file_obj, initial_state: str, admin_user) -> dict:
     REQUIRED_HEADERS = {'name', 'sku', 'base_price', 'category_slug'}
     try:
@@ -275,12 +272,25 @@ class ProductImportView(_AdminOnly, APIView):
         result, error = _process_import_csv(csv_file, request.data.get('initial_state', 'BORRADOR'), request.user)
         if error:
             return Response({'detail': error['detail'], 'codigo_error': error['codigo_error']}, status=error['status_code'])
+
+        # H-INV-RPT: Persistir el reporte de errores en la BD (ImportJob.errors)
+        # para que sea accesible entre procesos WSGI y no se pierda al reiniciar.
+        # El dict de módulo _IMPORT_ERROR_REPORTS era volátil: en producción con
+        # múltiples workers/procesos, el reporte se perdía inmediatamente.
         download_url = None
         if result['error_report']:
-            import uuid
-            report_id = str(uuid.uuid4())
-            _IMPORT_ERROR_REPORTS[report_id] = result['error_report']
-            download_url = request.build_absolute_uri(f'/api/v1/admin/inventory/import-reports/{report_id}.csv')
+            job = ImportJob.objects.create(
+                uploaded_by=request.user,
+                file=csv_file,
+                status=ImportJob.STATUS_DONE,
+                total_rows=result['created'] + result['failed'],
+                imported_rows=result['created'],
+                failed_rows=result['failed'],
+                errors=result['error_report'],
+            )
+            download_url = request.build_absolute_uri(
+                f'/api/v1/admin/inventory/import-reports/{job.pk}.csv'
+            )
         result['download_url'] = download_url
         return Response(result, status=200)
 
@@ -299,9 +309,13 @@ class ProductImportStatusView(_AdminOnly, APIView):
 class ProductImportReportView(_AdminOnly, APIView):
     @extend_schema(summary='Descarga CSV de errores de importación', tags=['inventory'], responses={200: None, 404: None})
     def get(self, request, report_id):
-        rows = _IMPORT_ERROR_REPORTS.get(report_id)
-        if rows is None:
+        # H-INV-RPT: Leer el reporte de errores desde la BD (ImportJob.errors)
+        # en lugar del dict de módulo efímero que se perdía entre workers WSGI.
+        try:
+            job = ImportJob.objects.get(pk=int(report_id))
+        except (ImportJob.DoesNotExist, ValueError, TypeError):
             return Response({'detail': 'Reporte no encontrado.', 'codigo_error': 'REPORT_NOT_FOUND'}, status=404)
+        rows = job.errors or []
         buf = io.StringIO()
         writer = csv.DictWriter(buf, fieldnames=['row', 'field', 'reason'])
         writer.writeheader()

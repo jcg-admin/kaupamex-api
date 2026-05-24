@@ -202,7 +202,10 @@ class PaymentGateway(TimeStampedModel):
 class ShippingMethod(TimeStampedModel):
     """Método de envío disponible. UC-CFG-02."""
     name           = models.CharField(max_length=100)
-    cost           = models.DecimalField(max_digits=10, decimal_places=2)
+    cost           = models.DecimalField(
+                       max_digits=10, decimal_places=2,
+                       validators=[MinValueValidator(Decimal('0'))],
+                       help_text='Costo de envío. 0 = gratis.')
     estimated_days = models.PositiveSmallIntegerField()
     is_active      = models.BooleanField(default=True, db_index=True)
     free_threshold = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
