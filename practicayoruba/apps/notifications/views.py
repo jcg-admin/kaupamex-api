@@ -344,12 +344,22 @@ class AdminManualNotificationCreateView(APIView):
             )
 
             if user_ids:
-                dispatch_manual_fanout(
-                    list(user_ids),
-                    subject,
-                    message,
-                    NotificationType.PROMOTION,
-                )
+                from django.conf import settings as _cfg
+                threshold = getattr(_cfg, 'MANUAL_FANOUT_ASYNC_THRESHOLD', 50)
+                if len(user_ids) > threshold:
+                    dispatch_manual_fanout.delay(
+                        list(user_ids),
+                        subject,
+                        message,
+                        NotificationType.PROMOTION,
+                    )
+                else:
+                    dispatch_manual_fanout(
+                        list(user_ids),
+                        subject,
+                        message,
+                        NotificationType.PROMOTION,
+                    )
 
         return Response(
             ManualNotificationResponseSerializer(manual).data,

@@ -20,23 +20,25 @@ def _generate_order_number() -> str:
 
 class Order(TimeStampedModel, SoftDeleteModel):
     """Orden de compra. Hereda SoftDeleteModel (DEC-DOC-007)."""
-    STATUS_PENDING        = 'PENDING'
-    STATUS_PROCESSING     = 'PROCESSING'
-    STATUS_IN_PREPARATION = 'IN_PREPARATION'
-    STATUS_SHIPPED        = 'SHIPPED'
-    STATUS_DELIVERED      = 'DELIVERED'
-    STATUS_CANCELLED      = 'CANCELLED'
-    STATUS_REFUNDED       = 'REFUNDED'
-    STATUS_PAGADA         = 'PAGADA'
+    STATUS_PENDING              = 'PENDING'
+    STATUS_PROCESSING           = 'PROCESSING'
+    STATUS_IN_PREPARATION       = 'IN_PREPARATION'
+    STATUS_SHIPPED              = 'SHIPPED'
+    STATUS_DELIVERED            = 'DELIVERED'
+    STATUS_CANCELLED            = 'CANCELLED'
+    STATUS_CANCELLED_BY_TIMEOUT = 'CANCELLED_TIMEOUT'
+    STATUS_REFUNDED             = 'REFUNDED'
+    STATUS_PAGADA               = 'PAGADA'
     STATUSES = [
-        (STATUS_PENDING,        'Pendiente de pago'),
-        (STATUS_PROCESSING,     'Procesando pago'),
-        (STATUS_PAGADA,         'Pagada'),
-        (STATUS_IN_PREPARATION, 'En preparación'),
-        (STATUS_SHIPPED,        'Enviado'),
-        (STATUS_DELIVERED,      'Entregado'),
-        (STATUS_CANCELLED,      'Cancelado'),
-        (STATUS_REFUNDED,       'Reembolsado'),
+        (STATUS_PENDING,              'Pendiente de pago'),
+        (STATUS_PROCESSING,           'Procesando pago'),
+        (STATUS_PAGADA,               'Pagada'),
+        (STATUS_IN_PREPARATION,       'En preparación'),
+        (STATUS_SHIPPED,              'Enviado'),
+        (STATUS_DELIVERED,            'Entregado'),
+        (STATUS_CANCELLED,            'Cancelado'),
+        (STATUS_CANCELLED_BY_TIMEOUT, 'Cancelado por timeout'),
+        (STATUS_REFUNDED,             'Reembolsado'),
     ]
 
     order_number    = models.CharField(max_length=20, unique=True, db_index=True)
