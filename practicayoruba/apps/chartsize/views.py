@@ -53,6 +53,37 @@ class VariantDetailView(APIView):
         return Response(ProductVariantPublicSerializer(variants, many=True).data)
 
 
+class VariantSingleView(APIView):
+    """
+    GET /api/v1/catalogue/<slug>/variants/<pk>/ — UC-CHT-01 validate single variant.
+    """
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        summary='Validar variante individual del producto (UC-CHT-01)',
+        tags=['variants'],
+        responses={200: ProductVariantPublicSerializer, 404: None},
+    )
+    def get(self, request, slug, pk):
+        try:
+            product = Product.objects.get(slug=slug, is_active=True)
+        except Product.DoesNotExist:
+            raise NotFound({
+                'detail': 'Producto no encontrado.',
+                'codigo_error': 'PRODUCT_NOT_FOUND',
+            })
+        try:
+            variant = ProductVariant.objects.select_related(
+                'option', 'option__variant_type'
+            ).get(pk=pk, product=product)
+        except ProductVariant.DoesNotExist:
+            raise NotFound({
+                'detail': 'Variante no encontrada.',
+                'codigo_error': 'VARIANT_NOT_FOUND',
+            })
+        return Response(ProductVariantPublicSerializer(variant).data)
+
+
 class ProductVariantAdminViewSet(ModelViewSet):
     """
     Admin CRUD for product variants — UC-CHT-02.
@@ -94,9 +125,33 @@ class ProductVariantAdminViewSet(ModelViewSet):
         return super().update(request, *args, **kwargs)
 
     @extend_schema(summary='Eliminar variante (admin)', tags=['variants'],
-                   responses={204: None})
+                   responses={204: None, 400: None})
     def destroy(self, request, *args, **kwargs):
-        return super().destroy(request, *args, **kwargs)
+        from apps.cart.models import CartItem
+        from apps.orders.models import Order, OrderItem
+        variant = self.get_object()
+        if CartItem.objects.filter(variant=variant).exists():
+            raise ValidationError({
+                'codigo_error': 'VARIANT_WITH_CART_ITEMS',
+                'detail': 'No se puede eliminar una variante con ítems en carritos activos.',
+            })
+        # H-ORD-005: proteger variante si tiene OrderItems en órdenes activas
+        active_statuses = [
+            Order.STATUS_PENDING, Order.STATUS_PROCESSING,
+            Order.STATUS_IN_PREPARATION, Order.STATUS_SHIPPED,
+        ]
+        if OrderItem.objects.filter(
+            variant=variant, order__status__in=active_statuses
+        ).exists():
+            raise ValidationError({
+                'codigo_error': 'VARIANT_WITH_ACTIVE_ORDERS',
+                'detail': 'No se puede eliminar una variante con órdenes activas.',
+            })
+        # Soft-delete: deactivate and zero out stock
+        variant.is_active = False
+        variant.stock = 0
+        variant.save(update_fields=['is_active', 'stock'])
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class VariantTypeAdminViewSet(ModelViewSet):
@@ -137,33 +192,57 @@ class VariantTypeAdminViewSet(ModelViewSet):
 
 class VariantPriceAdminView(APIView):
     """
-    PATCH /api/v1/admin/variants/<pk>/price/ — UC-CHT-04.
-    Adjust the price_override of a variant.
+    PUT    /api/v1/admin/variants/<variant_pk>/price/ — UC-CHT-04 set price override.
+    DELETE /api/v1/admin/variants/<variant_pk>/price/ — UC-CHT-04 clear price override.
     """
     permission_classes = [IsAuthenticated, IsAdminUser]
 
-    @extend_schema(
-        summary='Ajustar precio de variante (UC-CHT-04)',
-        tags=['variants'],
-        responses={200: ProductVariantAdminSerializer, 400: None, 404: None},
-    )
-    def patch(self, request, pk):
+    def _get_variant(self, variant_pk):
         try:
-            variant = ProductVariant.objects.get(pk=pk)
+            return ProductVariant.objects.get(pk=variant_pk)
         except ProductVariant.DoesNotExist:
             raise NotFound({
                 'detail': 'Variante no encontrada.',
                 'codigo_error': 'VARIANT_NOT_FOUND',
             })
 
-        price_override = request.data.get('price_override')
-        if price_override is None:
+    @extend_schema(
+        summary='Ajustar precio de variante (UC-CHT-04)',
+        tags=['variants'],
+        responses={200: ProductVariantAdminSerializer, 400: None, 404: None},
+    )
+    def put(self, request, variant_pk):
+        variant = self._get_variant(variant_pk)
+        price = request.data.get('price')
+        if price is None:
             raise ValidationError({
-                'detail': 'price_override es requerido.',
+                'detail': 'price es requerido.',
                 'codigo_error': 'PRICE_REQUIRED',
             })
+        from decimal import Decimal as _Decimal, InvalidOperation
+        try:
+            price_decimal = _Decimal(str(price))
+        except (InvalidOperation, TypeError):
+            raise ValidationError({'price': 'Valor numérico inválido.'})
+        if price_decimal <= _Decimal('0'):
+            raise ValidationError({'price': 'El precio debe ser mayor que cero.'})
 
-        variant.price_override = price_override
+        variant.price_override = price_decimal
         variant.save(update_fields=['price_override'])
 
         return Response(ProductVariantAdminSerializer(variant).data)
+
+    @extend_schema(
+        summary='Limpiar precio diferenciado de variante (UC-CHT-04)',
+        tags=['variants'],
+        responses={200: ProductVariantAdminSerializer, 404: None},
+    )
+    def delete(self, request, variant_pk):
+        variant = self._get_variant(variant_pk)
+        variant.price_override = None
+        variant.save(update_fields=['price_override'])
+        return Response(ProductVariantAdminSerializer(variant).data)
+
+    # Keep PATCH for backwards compatibility
+    def patch(self, request, variant_pk):
+        return self.put(request, variant_pk)

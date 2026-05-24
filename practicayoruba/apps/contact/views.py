@@ -11,9 +11,10 @@ Admin:
   POST /api/v1/admin/contact/<id>/reply/      — UC-COM-03 reply via email.
 """
 from django.conf import settings
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -22,23 +23,32 @@ from .models import ContactMessage
 from .serializers import ContactMessageSerializer, ContactMessageAdminSerializer
 
 
+def _get_message(message_id):
+    try:
+        return ContactMessage.objects.get(pk=message_id)
+    except ContactMessage.DoesNotExist:
+        raise NotFound({
+            'detail': 'Mensaje no encontrado.',
+            'codigo_error': 'MESSAGE_NOT_FOUND',
+        })
 
 
 class ContactMessageCreateView(APIView):
     """POST /api/v1/contact/ — UC-COM-01."""
     permission_classes = [AllowAny]
+    throttle_scope = 'contact'
 
     @extend_schema(
         summary='Enviar mensaje de contacto (UC-COM-01)',
         request=ContactMessageSerializer,
         tags=['contact'],
-        responses={201: ContactMessageSerializer},
+        responses={201: ContactMessageAdminSerializer},
     )
     def post(self, request):
         ser = ContactMessageSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         msg = ser.save()
-        return Response(ContactMessageSerializer(msg).data, status=status.HTTP_201_CREATED)
+        return Response(ContactMessageAdminSerializer(msg).data, status=status.HTTP_201_CREATED)
 
 
 class _AdminOnly:
@@ -55,7 +65,7 @@ class AdminContactMessageListView(_AdminOnly, APIView):
     )
     def get(self, request):
         qs = ContactMessage.objects.all().order_by('-created_at')
-        return Response(ContactMessageAdminSerializer(qs, many=True).data)
+        return Response({'results': ContactMessageAdminSerializer(qs, many=True).data})
 
 
 class AdminContactMessageDetailView(_AdminOnly, APIView):
@@ -66,14 +76,8 @@ class AdminContactMessageDetailView(_AdminOnly, APIView):
         tags=['contact'],
         responses={200: ContactMessageAdminSerializer, 404: None},
     )
-    def get(self, request, pk):
-        try:
-            msg = ContactMessage.objects.get(pk=pk)
-        except ContactMessage.DoesNotExist:
-            raise NotFound({
-                'detail': 'Mensaje no encontrado.',
-                'codigo_error': 'MESSAGE_NOT_FOUND',
-            })
+    def get(self, request, message_id):
+        msg = _get_message(message_id)
         return Response(ContactMessageAdminSerializer(msg).data)
 
 
@@ -85,16 +89,10 @@ class AdminContactMessageMarkReadView(_AdminOnly, APIView):
         tags=['contact'],
         responses={200: ContactMessageAdminSerializer, 404: None},
     )
-    def post(self, request, pk):
-        try:
-            msg = ContactMessage.objects.get(pk=pk)
-        except ContactMessage.DoesNotExist:
-            raise NotFound({
-                'detail': 'Mensaje no encontrado.',
-                'codigo_error': 'MESSAGE_NOT_FOUND',
-            })
-        msg.is_read = True
-        msg.save(update_fields=['is_read'])
+    def post(self, request, message_id):
+        msg = _get_message(message_id)
+        msg.read = True
+        msg.save(update_fields=['read'])
         return Response(ContactMessageAdminSerializer(msg).data)
 
 
@@ -104,24 +102,17 @@ class AdminContactMessageReplyView(_AdminOnly, APIView):
     @extend_schema(
         summary='Responder mensaje de contacto por email (UC-COM-03)',
         tags=['contact'],
-        responses={200: None, 400: None, 404: None},
+        responses={200: ContactMessageAdminSerializer, 400: None, 404: None},
     )
-    def post(self, request, pk):
-        try:
-            msg = ContactMessage.objects.get(pk=pk)
-        except ContactMessage.DoesNotExist:
-            raise NotFound({
-                'detail': 'Mensaje no encontrado.',
-                'codigo_error': 'MESSAGE_NOT_FOUND',
-            })
+    def post(self, request, message_id):
+        msg = _get_message(message_id)
 
         reply_body = (request.data.get('reply_body') or '').strip()
         if not reply_body:
-            return Response(
-                {'detail': 'El cuerpo de la respuesta es requerido.',
-                 'codigo_error': 'BODY_REQUIRED'},
-                status=400,
-            )
+            raise ValidationError({
+                'detail': 'El cuerpo de la respuesta es requerido.',
+                'codigo_error': 'BODY_REQUIRED',
+            })
 
         dispatch_email(
             subject=f'Re: {msg.subject}',
@@ -130,7 +121,10 @@ class AdminContactMessageReplyView(_AdminOnly, APIView):
             recipient_list=[msg.email],
         )
 
-        msg.is_read = True
-        msg.save(update_fields=['is_read'])
+        msg.read = True
+        msg.replied = True
+        msg.reply_body = reply_body
+        msg.reply_sent_at = timezone.now()
+        msg.save(update_fields=['read', 'replied', 'reply_body', 'reply_sent_at'])
 
-        return Response({'detail': 'Respuesta enviada.'})
+        return Response(ContactMessageAdminSerializer(msg).data)

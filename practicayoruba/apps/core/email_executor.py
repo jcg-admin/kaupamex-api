@@ -35,8 +35,15 @@ def dispatch_email(subject, message, from_email, recipient_list, **kwargs):
     para reintento automatico por send_pending_emails.
 
     No acepta fail_silently — los errores siempre se registran y persisten.
+
+    En entornos de test (DISPATCH_EMAIL_SYNC=True) el envio es sincrono
+    para que mail.outbox este poblado al momento de la asercion.
     """
+    from django.conf import settings as _settings
     kwargs.pop('fail_silently', None)
+    if getattr(_settings, 'DISPATCH_EMAIL_SYNC', False):
+        _send_mail(subject, message, from_email, recipient_list, **kwargs)
+        return None
     future = _pool.submit(_send_mail, subject, message, from_email, recipient_list, **kwargs)
     future.add_done_callback(
         lambda f: _persist_if_failed(f, subject, message, from_email, recipient_list)

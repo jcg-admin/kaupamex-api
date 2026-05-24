@@ -43,6 +43,7 @@ class CartItemSerializer(serializers.ModelSerializer):
         changed_ids = self.context.get('changed_ids', set())
         if changed_ids:
             return obj.pk in changed_ids
+        # Fallback: comparar con precio vigente
         return obj.current_price() != obj.unit_price
 
 

@@ -30,7 +30,7 @@ urlpatterns = [
     # UC-CHT-04 — differentiated price endpoint consumed by UI
     path(
         'variants/<int:variant_pk>/price/',
-        VariantPriceAdminView.as_view(),
+        VariantPriceAdminView.as_view(http_method_names=['get', 'put', 'patch', 'delete', 'head', 'options']),
         name='admin-variant-price',
     ),
 ]
