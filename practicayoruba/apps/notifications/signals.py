@@ -18,8 +18,12 @@ UC-NOT-08: SupportTicket.post_save(created=False) — transicion a CLOSED.
 transaction.on_commit en service.py garantiza email solo si la
 transaccion que disparo el post_save commiteo.
 """
+import logging
+
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
+
+logger = logging.getLogger('apps')
 
 from apps.orders.models import Order, OrderValue
 from apps.payments.models import Refund
@@ -42,8 +46,15 @@ def _order_value_created(sender, instance, created, **kwargs):
     """Dispara UC-NOT-01 cuando el snapshot financiero de la orden se crea."""
     if not created:
         return
-    order = instance.order
-    notify_order_created(order, order.user, instance.total)
+    try:
+        order = instance.order
+        # order.user is None for guest checkouts — notify_order_created handles None
+        notify_order_created(order, order.user, instance.total)
+    except Exception:
+        logger.warning(
+            '_order_value_created: notificacion fallida para OrderValue %s',
+            instance.pk, exc_info=True,
+        )
 
 
 # ── UC-NOT-02: Order status transition ────────────────────────────
@@ -116,8 +127,14 @@ def _refund_created(sender, instance, created, **kwargs):
         return
     if instance.status != Refund.STATUS_APPROVED:
         return
-    order = instance.payment.order
-    notify_refund_processed(order, order.user, instance.amount)
+    try:
+        order = instance.payment.order
+        notify_refund_processed(order, order.user, instance.amount)
+    except Exception:
+        logger.warning(
+            '_refund_created: notificacion fallida para Refund %s',
+            instance.pk, exc_info=True,
+        )
 
 
 # ── UC-NOT-08: SupportTicket → CLOSED ────────────────────────────

@@ -1,7 +1,5 @@
-"""\nCelery tasks — apps.inventory (UC-SYS-03).\n"""
+"""Inventory tasks — apps.inventory (UC-SYS-03)."""
 import logging
-
-from celery import shared_task
 
 from apps.settings_app.models import SiteSettings
 from apps.catalogue.models import Product
@@ -11,7 +9,6 @@ from .services import _maybe_create_alert
 logger = logging.getLogger('apps')
 
 
-@shared_task(name='inventory.scan_low_stock')
 def scan_low_stock():
     threshold = SiteSettings.get_current().min_stock_threshold
     count = 0
