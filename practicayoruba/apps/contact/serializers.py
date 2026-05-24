@@ -38,7 +38,7 @@ class ContactMessageListItemSerializer(serializers.ModelSerializer):
 class ContactMessageReplySerializer(serializers.Serializer):
     """UC-COM-03 — admin reply body."""
 
-    reply_body = serializers.CharField(min_length=3)
+    reply_body = serializers.CharField(min_length=3, max_length=5000)
 
 
 # Aliases for view compatibility
