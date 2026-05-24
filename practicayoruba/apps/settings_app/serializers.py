@@ -12,9 +12,12 @@ from .models import SiteSettings, PaymentGateway, ShippingMethod
 class SiteSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model  = SiteSettings
+        # Excluding deprecated fields: currency, site_name, order_timeout_minutes, max_return_days
+        # (removed per migration 0008_sync_model_drift / DEC-DOC-005)
         fields = [
-            'id', 'iva_rate', 'payment_timeout_minutes',
-            'min_stock_threshold', 'free_shipping_threshold',
+            'id', 'iva_rate',
+            'payment_timeout_minutes', 'min_stock_threshold',
+            'free_shipping_threshold',
             'support_email', 'phone', 'address', 'social_links',
             'updated_at',
         ]

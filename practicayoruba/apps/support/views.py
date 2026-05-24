@@ -13,7 +13,6 @@ Admin endpoints:
   GET    /api/v1/admin/support/tickets/           UC-SUPP-05 queue
 """
 from datetime import timedelta
-from django.db import transaction as db_transaction
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -26,7 +25,7 @@ from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from .models import SupportTicket, SupportTicketReply
-from .serializers import SupportTicketCloseSerializer, SupportTicketCreateResponseSerializer, SupportTicketCreateSerializer, SupportTicketDetailSerializer, SupportTicketListSerializer, SupportTicketReplyCreateSerializer, SupportTicketReplySerializer
+from .serializers import AdminSupportTicketListSerializer, SupportTicketCloseSerializer, SupportTicketCreateResponseSerializer, SupportTicketCreateSerializer, SupportTicketDetailSerializer, SupportTicketListSerializer, SupportTicketReplyCreateSerializer, SupportTicketReplySerializer
 
 
 
@@ -61,7 +60,7 @@ def _get_ticket_for_user(ticket_id, user):
     return ticket
 
 
-# ──────────────────────────── UC-SUPP-01 / UC-SUPP-02 ────
+# ────────────────────────────── UC-SUPP-01 / UC-SUPP-02 ──────────────────
 class SupportTicketListCreateView(APIView):
     """POST crear ticket / GET listar tickets propios del comprador."""
 
@@ -150,7 +149,7 @@ class SupportTicketDetailView(APIView):
         )
 
 
-# ────────────────────────────── UC-SUPP-03 ───────────────────
+# ────────────────────────────── UC-SUPP-03 ───────────────────────────────────────
 class SupportTicketReplyView(APIView):
     """POST /api/v1/support/tickets/{id}/replies/."""
 
@@ -199,7 +198,7 @@ class SupportTicketReplyView(APIView):
         )
 
 
-# ────────────────────────────── UC-SUPP-04 ───────────────────
+# ────────────────────────────── UC-SUPP-04 ───────────────────────────────────────
 class SupportTicketCloseView(APIView):
     """POST /api/v1/support/tickets/{id}/close/."""
 
@@ -236,29 +235,25 @@ class SupportTicketCloseView(APIView):
         serializer.is_valid(raise_exception=True)
         reason = serializer.validated_data.get('reason') or ''
 
-        closed_by_staff = request.user.is_staff
-        with db_transaction.atomic():
-            # Signal pre_save captura _old_status; post_save disparara UC-NOT-08.
-            ticket._closed_by_staff = closed_by_staff
-            ticket.status = SupportTicket.Status.CLOSED
-            ticket.save(update_fields=['status', 'updated_at'])
+        ticket.status = SupportTicket.Status.CLOSED
+        ticket.save(update_fields=['status', 'updated_at'])
 
-            body = reason or (
-                'El staff cerro este ticket.' if closed_by_staff
-                else 'El comprador marco este ticket como resuelto.'
-            )
-            SupportTicketReply.objects.create(
-                ticket=ticket,
-                author=request.user,
-                body=body,
-                is_internal_note=False,
-            )
+        body = reason or (
+            'El staff cerro este ticket.' if request.user.is_staff
+            else 'El comprador marco este ticket como resuelto.'
+        )
+        SupportTicketReply.objects.create(
+            ticket=ticket,
+            author=request.user,
+            body=body,
+            is_internal_note=False,
+        )
 
         return Response({
             'ticket_id': ticket.pk,
             'status': ticket.status,
             'closed_at': ticket.updated_at,
-            'closed_by': 'ADMIN' if closed_by_staff else 'BUYER',
+            'closed_by': 'ADMIN' if request.user.is_staff else 'BUYER',
         })
 
 
@@ -300,12 +295,11 @@ class SupportTicketReopenView(APIView):
         })
 
 
-# ────────────────────────────── UC-SUPP-05 ───────────────────
-class AdminSupportTicketListView(ListAPIView):
+# ────────────────────────────── UC-SUPP-05 ─────────────────────────────────────────
+class AdminSupportTicketListView(APIView):
     """GET /api/v1/admin/support/tickets/ — admin queue."""
 
     permission_classes = [IsAuthenticated, IsAdminUser]
-    serializer_class = SupportTicketListSerializer
 
     @extend_schema(
         summary='Bandeja de tickets (admin)',
@@ -317,12 +311,14 @@ class AdminSupportTicketListView(ListAPIView):
             OpenApiParameter('created_from', str, required=False),
             OpenApiParameter('created_to', str, required=False),
             OpenApiParameter('assigned_to', int, required=False),
+            OpenApiParameter('q', str, required=False, description='Search by email/subject'),
         ],
-        responses={200: SupportTicketListSerializer(many=True)},
+        responses={200: AdminSupportTicketListSerializer(many=True)},
     )
-    def get_queryset(self):
-        qs = SupportTicket.objects.all()
-        params = self.request.query_params
+    def get(self, request):
+        from django.db.models import Count, Q
+        qs = SupportTicket.objects.all().annotate(replies_count=Count('replies'))
+        params = request.query_params
         if params.get('status'):
             qs = qs.filter(status=params['status'])
         if params.get('priority'):
@@ -335,4 +331,26 @@ class AdminSupportTicketListView(ListAPIView):
             qs = qs.filter(created_at__lte=params['created_to'])
         if params.get('assigned_to'):
             qs = qs.filter(user_id=params['assigned_to'])
-        return qs
+        q = (params.get('q') or '').strip()
+        if q:
+            qs = qs.filter(
+                Q(user__email__icontains=q) | Q(subject__icontains=q)
+            )
+        qs = qs.select_related('user').order_by('created_at')
+
+        # Metrics (global, not filtered)
+        all_tickets = SupportTicket.objects.all()
+        metrics = {
+            'open':           all_tickets.filter(status='OPEN').count(),
+            'in_progress':    all_tickets.filter(status='IN_PROGRESS').count(),
+            'awaiting_user':  all_tickets.filter(status='AWAITING_USER').count(),
+            'resolved':       all_tickets.filter(status='RESOLVED').count(),
+            'closed':         all_tickets.filter(status='CLOSED').count(),
+        }
+
+        items = list(qs)
+        return Response({
+            'count': len(items),
+            'results': AdminSupportTicketListSerializer(items, many=True).data,
+            'metrics': metrics,
+        })

@@ -124,6 +124,10 @@ class AdminUserViewSet(ModelViewSet):
                 Q(username__icontains=search) | Q(email__icontains=search) |
                 Q(first_name__icontains=search) | Q(last_name__icontains=search)
             )
+        # UC-AUTH-11 + GAP-3: el admin filtra por motivo concreto de
+        # inactividad para decidir el camino correcto (suspended
+        # requiere UC-AUTH-14; unverified/self_deleted esperan
+        # UC-AUTH-01 Alt-A.2).
         deactivated_reason = self.request.query_params.get('deactivated_reason')
         if is_active is not None:
             qs = qs.filter(is_active=(is_active.lower() == 'true'))
@@ -178,12 +182,16 @@ class AdminUserViewSet(ModelViewSet):
             )
         with transaction.atomic():
             target.is_active = False
+            # GAP-3 cierre: registrar la causa explicita para que
+            # ResendVerificationView no reactive por email (UC-AUTH-01
+            # Alt-A.3). Solo UC-AUTH-14 restaura cuentas suspendidas.
             target.deactivated_reason = User.DEACTIVATION_SUSPENDED
             target.deactivated_at = timezone.now()
             target.save(update_fields=[
                 'is_active', 'deactivated_reason', 'deactivated_at',
             ])
             invalidate_all_sessions(target)
+            # GAP 10: audit log del evento (append-only).
             UserDeactivationEvent.objects.create(
                 user=target,
                 reason=User.DEACTIVATION_SUSPENDED,
@@ -203,6 +211,7 @@ class AdminUserViewSet(ModelViewSet):
         _require_admin(request.user)
         target = self.get_object()
         target.is_active = True
+        # Limpiar la causa para que el estado quede consistente.
         target.deactivated_reason = None
         target.deactivated_at = None
         target.save(update_fields=[
@@ -229,7 +238,6 @@ class AuditLogView(APIView):
             OpenApiParameter('page',       int, description='Número de página'),
         ],
         tags=['admin'],
-        responses={200: None},
     )
     def get(self, request):
         event_type = request.query_params.get('event_type')
