@@ -18,6 +18,7 @@ from rest_framework import status
 from rest_framework.exceptions import NotFound
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from .models import NewsletterCampaign, NewsletterSubscriber, SubscriberStatus
@@ -33,6 +34,10 @@ from .serializers import (
 class NewsletterSubscribeView(APIView):
     """POST /api/v1/newsletter/subscribe/ — UC-NEW-01."""
     permission_classes = [AllowAny]
+    # H-CICLO26-02: throttle para evitar flooding de suscripciones y envíos
+    # masivos de emails de confirmación desde una IP.
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'newsletter_subscribe'
 
     @extend_schema(
         summary='Suscribirse al newsletter (UC-NEW-01)',
@@ -95,6 +100,9 @@ def _send_confirmation_email(email: str, token: str) -> None:
 class NewsletterConfirmView(APIView):
     """POST /api/v1/newsletter/confirm/<token>/ — UC-NEW-01 double opt-in."""
     permission_classes = [AllowAny]
+    # H-CICLO26-02: throttle para limitar intentos de fuerza bruta sobre tokens.
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'newsletter_confirm'
 
     @extend_schema(
         summary='Confirmar suscripción al newsletter (UC-NEW-01)',
