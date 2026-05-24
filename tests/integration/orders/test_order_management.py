@@ -263,6 +263,26 @@ class TestCancelarOrden:
         assert payment.status == 'REFUNDED'
         assert Refund.objects.filter(payment=payment).exists()
 
+    def test_cancelar_orden_pagada(self, auth_client, user, prod_ord, db):
+        """H-ORD-S01 regression: orden en estado PAGADA es cancelable por el comprador.
+
+        PAGADA = pago confirmado por webhook pero aún no en preparación.
+        Debe incluirse en CANCELABLE_STATUSES para evitar que el comprador
+        quede atrapado con una orden pagada que no puede cancelar.
+        """
+        order = _create_full_order(user, prod_ord, status='PAGADA')
+        res = auth_client.post(
+            CANCEL_URL(order.order_number),
+            {'reason': 'Cambié de opinión'},
+            format='json',
+        )
+        assert res.status_code == 200, res.json()
+        assert res.json()['status'] == 'CANCELLED'
+        order.refresh_from_db()
+        assert order.status == 'CANCELLED'
+        assert order.cancellation_reason == 'Cambié de opinión'
+        assert order.cancelled_at is not None
+
     def test_cancelar_rnf_sec_003_orden_ajena_retorna_404(
         self, auth_client, prod_ord, db
     ):

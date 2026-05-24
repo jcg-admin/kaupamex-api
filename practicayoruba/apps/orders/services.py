@@ -10,8 +10,7 @@ from decimal import Decimal
 from django.db import transaction
 from django.utils import timezone
 from apps.inventory.services import InventoryService
-from apps.inventory.proxy_models import CancellationMovement
-from .models import OrderAddress
+from .models import Order, OrderAddress
 from apps.payments.services import execute_refund
 from apps.settings_app.models import ShippingMethod
 
