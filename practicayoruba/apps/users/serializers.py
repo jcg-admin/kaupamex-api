@@ -51,8 +51,8 @@ class RegisterSerializer(serializers.Serializer):
     first_name       = serializers.CharField(max_length=150, required=False, default='', allow_blank=True)
     last_name        = serializers.CharField(max_length=150, required=False, default='', allow_blank=True)
     email            = serializers.EmailField()
-    password         = serializers.CharField(write_only=True, min_length=8)
-    password_confirm = serializers.CharField(write_only=True)
+    password         = serializers.CharField(write_only=True, min_length=8, max_length=128)
+    password_confirm = serializers.CharField(write_only=True, max_length=128)
     terms_accepted   = serializers.BooleanField()
 
     def validate_email(self, value):

@@ -46,11 +46,11 @@ class ManualNotificationCreateSerializer(serializers.Serializer):
         choices=ManualNotification.RecipientType.choices,
     )
     recipient_identifier = serializers.CharField(
-        required=False, allow_blank=True, default='',
+        required=False, allow_blank=True, default='', max_length=254,
     )
     product_id = serializers.IntegerField(required=False, allow_null=True)
     subject = serializers.CharField(min_length=3, max_length=200)
-    message = serializers.CharField(min_length=3)
+    message = serializers.CharField(min_length=3, max_length=10000)
 
     def validate(self, attrs):
         recipient_type = attrs.get('recipient_type')
