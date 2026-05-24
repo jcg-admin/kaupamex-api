@@ -29,6 +29,7 @@ from rest_framework.views import APIView
 
 from apps.orders.models import Order
 from apps.payments.models import Payment, Refund
+from apps.payments.services import execute_refund
 from .models import ReturnHistoryEntry, ReturnItem, ReturnRequest
 from .serializers import (
     ReturnRequestAdminSerializer,
@@ -422,11 +423,11 @@ class AdminReturnRefundView(_AdminOnly, APIView):
         # Check if already refunded (after state change)
         amount = ser.validated_data['amount']
 
-        # Find the payment for this order
+        # H-RET-R01: include PARTIALLY_REFUNDED so second partial refunds work.
         try:
             payment = Payment.objects.filter(
                 order_id=ret.order_id,
-                status=Payment.STATUS_APPROVED,
+                status__in=[Payment.STATUS_APPROVED, Payment.STATUS_PARTIALLY_REFUNDED],
             ).latest('created_at')
         except Payment.DoesNotExist:
             return Response(
@@ -435,40 +436,29 @@ class AdminReturnRefundView(_AdminOnly, APIView):
                 status=status.HTTP_422_UNPROCESSABLE_ENTITY,
             )
 
-        # Execute gateway refund
-        from apps.payments.gateways.mercadopago import MercadoPagoGateway
-        from apps.payments.gateways.paypal import PayPalGateway
-
+        # H-RET-R01: delegate to execute_refund() which handles partial vs full
+        # refund status, creates the Refund record, and notifies atomically.
+        # Direct gateway call + unconditional STATUS_REFUNDED was incorrect.
         try:
-            if payment.gateway == Payment.GATEWAY_MERCADOPAGO:
-                gateway = MercadoPagoGateway()
-            else:
-                gateway = PayPalGateway()
-
-            refund_result = gateway.refund(
-                gateway_payment_id=payment.gateway_payment_id,
+            execute_refund(
+                payment=payment,
                 amount=amount,
+                reason=f'Devolución #{ret.pk} aprobada por admin',
+                initiated_by=request.user,
             )
-        except Exception as exc:
+        except ValueError as exc:
+            return Response(
+                {'detail': str(exc), 'error_code': 'PAYMENT_NOT_REFUNDABLE'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except RuntimeError as exc:
             return Response(
                 {'detail': f'Error al procesar el reembolso: {exc}',
                  'error_code': 'GATEWAY_ERROR'},
                 status=status.HTTP_422_UNPROCESSABLE_ENTITY,
             )
 
-        # All DB writes are atomic: gateway already processed, so any write failure
-        # must not leave a partial state (payment updated but no Refund record, etc.)
         with transaction.atomic():
-            Refund.objects.create(
-                payment=payment,
-                amount=amount,
-                gateway_refund_id=refund_result.refund_id,
-                status=Refund.STATUS_APPROVED,
-            )
-
-            payment.status = Payment.STATUS_REFUNDED
-            payment.save(update_fields=['status', 'updated_at'])
-
             ret.status = ReturnRequest.Status.REFUNDED
             ret.refund_amount = amount
             ret.refund_at = timezone.now()
