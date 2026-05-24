@@ -360,8 +360,17 @@ class ProductAdminSerializer(serializers.ModelSerializer):
         return _discount_block(obj)
 
     def _auto_slug(self, name):
+        import uuid
         from django.utils.text import slugify
         base = slugify(name)
+        # H-CICLO24-06: slugify() retorna cadena vacía para nombres que solo
+        # contienen caracteres no-ASCII sin transliteración (p.ej. caracteres
+        # CJK, emojis, cadenas solo con símbolos como "!!!"). En ese caso,
+        # un slug vacío causaría IntegrityError por violación del NOT NULL +
+        # UNIQUE en la columna, y el bucle while quedaría en estado indefinido
+        # (slug='' siempre existiría). Se genera un fallback con prefijo + uuid.
+        if not base:
+            base = f'producto-{uuid.uuid4().hex[:8]}'
         slug = base
         n = 1
         while Product.objects.filter(slug=slug).exclude(
