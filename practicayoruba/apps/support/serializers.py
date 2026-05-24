@@ -23,7 +23,7 @@ class SupportTicketCreateSerializer(serializers.Serializer):
     """
 
     subject = serializers.CharField(min_length=5, max_length=150)
-    body = serializers.CharField(min_length=10)
+    body = serializers.CharField(min_length=10, max_length=10000)
     category = serializers.ChoiceField(
         choices=SupportTicket.Category.choices,
         required=False,
@@ -145,7 +145,7 @@ class SupportTicketDetailSerializer(serializers.ModelSerializer):
 class SupportTicketReplyCreateSerializer(serializers.Serializer):
     """UC-SUPP-03 — reply create request."""
 
-    body = serializers.CharField(min_length=10)
+    body = serializers.CharField(min_length=10, max_length=10000)
     is_internal_note = serializers.BooleanField(required=False, default=False)
 
 
