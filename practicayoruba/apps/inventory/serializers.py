@@ -44,7 +44,7 @@ class StockAlertSerializer(serializers.ModelSerializer):
 
 class StockAdjustSerializer(serializers.Serializer):
     delta = serializers.IntegerField()
-    notes = serializers.CharField(required=False, default='', allow_blank=True)
+    notes = serializers.CharField(required=False, default='', allow_blank=True, max_length=500)
 
 
 ADJUSTMENT_REASONS = [

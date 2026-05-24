@@ -139,7 +139,7 @@ class CheckoutSerializer(serializers.Serializer):
     guest_email        = serializers.EmailField(required=False, allow_null=True)
     address            = OrderAddressInputSerializer()
     shipping_method_id = serializers.IntegerField(required=False, allow_null=True)
-    notes              = serializers.CharField(required=False, default='', allow_blank=True)
+    notes              = serializers.CharField(required=False, default='', allow_blank=True, max_length=1000)
 
     def validate_address(self, value):
         """DEC-BC-18: reject zip_code not covered by any active ShippingZone."""
@@ -161,7 +161,7 @@ class CheckoutSerializer(serializers.Serializer):
 class CancelOrderSerializer(serializers.Serializer):
     """POST /api/v1/orders/<order_number>/cancel/ — UC-ORD-04."""
     reason = serializers.CharField(
-        required=False, default='', allow_blank=True,
+        required=False, default='', allow_blank=True, max_length=500,
         help_text='Motivo de la cancelación (opcional, visible al comprador).',
     )
 

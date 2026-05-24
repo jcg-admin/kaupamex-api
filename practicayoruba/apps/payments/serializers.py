@@ -65,9 +65,9 @@ class InstallmentPlansResponseSerializer(serializers.Serializer):
 
 class PaymentReturnSerializer(serializers.Serializer):
     """Query params del retorno del gateway — GET /api/v1/payments/<order>/return/"""
-    status             = serializers.CharField(required=False, default='pending')
-    payment_id         = serializers.CharField(required=False, allow_blank=True)
-    external_reference = serializers.CharField(required=False, allow_blank=True)
+    status             = serializers.CharField(required=False, default='pending', max_length=50)
+    payment_id         = serializers.CharField(required=False, allow_blank=True, max_length=100)
+    external_reference = serializers.CharField(required=False, allow_blank=True, max_length=100)
 
 
 class CheckoutEligibilitySerializer(serializers.Serializer):
@@ -84,7 +84,7 @@ class CheckoutEligibilitySerializer(serializers.Serializer):
 class ExpressCheckoutSerializer(serializers.Serializer):
     """POST /api/v1/checkout/express/ — UC-ORD-01-EXT."""
     notes        = serializers.CharField(
-        required=False, default='', allow_blank=True,
+        required=False, default='', allow_blank=True, max_length=1000,
     )
     installments = serializers.IntegerField(
         default=1, min_value=1,
@@ -111,7 +111,7 @@ class RefundRequestSerializer(serializers.Serializer):
         help_text='Monto a reembolsar. Null o ausente = reembolso total.',
     )
     reason = serializers.CharField(
-        required=False, default='', allow_blank=True,
+        required=False, default='', allow_blank=True, max_length=500,
         help_text='Motivo del reembolso.',
     )
 
