@@ -5,7 +5,7 @@ UC-ORD-01: Checkout, UC-ORD-02..06: Gestión del comprador (Sprint 18)
 import json as _json
 import uuid
 from decimal import Decimal
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.db.models import F
 from apps.voucher.models import Voucher, VoucherUsage
 from .signals import order_created as order_created_signal
@@ -244,6 +244,11 @@ class CheckoutView(APIView):
         except InsufficientStockError as exc:
             return Response({'detail': str(exc),
                              'codigo_error': 'INSUFFICIENT_STOCK'}, status=409)
+        except IntegrityError:
+            return Response({
+                'detail': 'Este voucher ya fue utilizado en tu cuenta.',
+                'codigo_error': 'VOUCHER_ALREADY_USED',
+            }, status=409)
 
         audit_log_business(
             user if user and user.is_authenticated else None,

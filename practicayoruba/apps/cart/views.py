@@ -19,7 +19,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from apps.catalogue.models import Product
 from apps.chartsize.models import ProductVariant
-from apps.voucher.models import Voucher
+from apps.voucher.models import Voucher, VoucherUsage
 from .models import Cart, CartItem, SavedCart, SavedCartItem
 from .serializers import CartSerializer, SavedCartSerializer
 
@@ -343,6 +343,14 @@ class CartVoucherView(APIView):
                 'detail': f'Voucher no aplicable: {error_code}',
                 'codigo_error': error_code,
             })
+
+        # Single-use-per-user enforcement (DEC-BC-10)
+        if request.user.is_authenticated:
+            if VoucherUsage.objects.filter(user=request.user, voucher=voucher).exists():
+                raise ValidationError({
+                    'detail': 'Ya has utilizado este voucher.',
+                    'codigo_error': 'VOUCHER_ALREADY_USED',
+                })
 
         # If cart already has a voucher, reject with 409 (DEC-BC-20)
         if cart.voucher_id is not None:
