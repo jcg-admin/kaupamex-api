@@ -73,7 +73,7 @@ class ReturnListCreateView(APIView):
     def get(self, request):
         qs = ReturnRequest.objects.filter(
             user=request.user
-        ).prefetch_related('items', 'history_entries').order_by('-created_at')
+        ).prefetch_related('items', 'history_entries__actor').order_by('-created_at')
         serializer = ReturnRequestSerializer(qs, many=True)
         return Response({'results': serializer.data})
 

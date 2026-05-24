@@ -52,8 +52,14 @@ def _get_ticket_for_user(ticket_id, user):
     Devuelve el ticket si pertenece al user o si el user es staff.
     Si no existe o pertenece a otro comprador -> Http404
     (RNF-SEC-003: no revelar la existencia del ticket).
+
+    H-CICLO18-03: select_related('user') + prefetch_related('replies__author')
+    previenen N+1 queries al serializar el hilo de conversacion y el campo
+    buyer (SupportTicketDetailSerializer).
     """
-    qs = SupportTicket.objects.all()
+    qs = SupportTicket.objects.select_related('user').prefetch_related(
+        'replies__author'
+    )
     ticket = get_object_or_404(qs, pk=ticket_id)
     if not user.is_staff and ticket.user_id != user.id:
         raise Http404

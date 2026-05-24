@@ -60,6 +60,7 @@ class ProductQuestionsView(APIView):
                 status=QuestionStatus.ANSWERED,
             )
             .exclude(answer_body='')
+            .select_related('asker_user')
             .order_by('-created_at')
         )
         return Response({'results': PublicQuestionItemSerializer(qs, many=True).data})
