@@ -117,7 +117,7 @@ class InventoryService:
                         )
                     stock_before = v.stock
                     v.stock -= quantity
-                    v.save(update_fields=['stock'])
+                    v.save(update_fields=['stock', 'updated_at'])
                     stock_after = v.stock
                 else:
                     p = Product.objects.select_for_update().get(pk=product.pk)
@@ -127,7 +127,7 @@ class InventoryService:
                         )
                     stock_before = p.stock
                     p.stock -= quantity
-                    p.save(update_fields=['stock'])
+                    p.save(update_fields=['stock', 'updated_at'])
                     stock_after = p.stock
 
                 mov = StockMovement.objects.create(
@@ -171,13 +171,13 @@ class InventoryService:
                     v = ProductVariant.objects.select_for_update().get(pk=variant.pk)
                     stock_before = v.stock
                     v.stock += quantity
-                    v.save(update_fields=['stock'])
+                    v.save(update_fields=['stock', 'updated_at'])
                     stock_after = v.stock
                 else:
                     p = Product.objects.select_for_update().get(pk=product.pk)
                     stock_before = p.stock
                     p.stock += quantity
-                    p.save(update_fields=['stock'])
+                    p.save(update_fields=['stock', 'updated_at'])
                     stock_after = p.stock
 
                 mov = StockMovement.objects.create(

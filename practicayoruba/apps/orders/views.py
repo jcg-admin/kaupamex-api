@@ -235,7 +235,7 @@ class CheckoutView(APIView):
                 # g. Vaciar carrito
                 cart.items.all().delete()
                 cart.voucher = None
-                cart.save(update_fields=['voucher'])
+                cart.save(update_fields=['voucher', 'updated_at'])
 
                 # UC-NOT-01: notificacion in-app + email de confirmacion.
                 # on_commit garantiza despacho solo si la transaccion commitea.

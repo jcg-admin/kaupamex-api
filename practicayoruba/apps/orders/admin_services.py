@@ -61,7 +61,7 @@ def transition_order_status(order, new_status: str, admin_user, notes: str = '')
 
         previous = locked.status
         locked.status = new_status
-        locked.save(update_fields=['status'])
+        locked.save(update_fields=['status', 'updated_at'])
 
         OrderStatusLog.objects.create(
             order=locked,
@@ -122,7 +122,7 @@ def admin_cancel_order(order, reason: str, admin_user):
 
         # Registrar quién (admin) canceló
         locked.admin_cancelled_by = admin_user
-        locked.save(update_fields=['admin_cancelled_by'])
+        locked.save(update_fields=['admin_cancelled_by', 'updated_at'])
 
         OrderStatusLog.objects.create(
             order=locked,

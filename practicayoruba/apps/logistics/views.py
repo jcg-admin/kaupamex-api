@@ -92,7 +92,7 @@ class CourierDetailView(_AdminOnly, APIView):
     def delete(self, request, pk):
         courier = self._get(pk)
         courier.is_active = False
-        courier.save(update_fields=['is_active'])
+        courier.save(update_fields=['is_active', 'updated_at'])
         return Response({'deactivated': True})
 
 
@@ -113,7 +113,7 @@ class ShipmentGuideListCreateView(_AdminOnly, APIView):
             tracking_number=data['tracking_number'], notes=data.get('notes', ''),
         )
         order.status = Order.STATUS_SHIPPED
-        order.save(update_fields=['status'])
+        order.save(update_fields=['status', 'updated_at'])
         return Response(ShipmentGuideSerializer(guide).data, status=201)
 
 
@@ -158,7 +158,7 @@ class ConfirmDeliveryView(_AdminOnly, APIView):
         guide.delivered_at = timezone.now()
         guide.save(update_fields=['status', 'delivered_at', 'updated_at'])
         guide.order.status = Order.STATUS_DELIVERED
-        guide.order.save(update_fields=['status'])
+        guide.order.save(update_fields=['status', 'updated_at'])
         return Response({'status': guide.status, 'already_delivered': False,
                          'tracking_number': guide.tracking_number, 'delivered_at': guide.delivered_at})
 

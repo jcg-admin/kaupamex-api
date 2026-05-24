@@ -83,7 +83,7 @@ class VoucherViewSet(ModelViewSet):
         instance.deleted_at     = now
         instance.save(update_fields=[
             'is_active', 'deactivated_at', 'deactivated_by',
-            'is_deleted', 'deleted_at',
+            'is_deleted', 'deleted_at', 'updated_at',
         ])
 
     @action(detail=True, methods=['post'], url_path='activate')
@@ -102,7 +102,7 @@ class VoucherViewSet(ModelViewSet):
         voucher.deleted_at      = None
         voucher.deactivated_at = None
         voucher.deactivated_by = None
-        voucher.save(update_fields=['is_active', 'is_deleted', 'deleted_at', 'deactivated_at', 'deactivated_by'])
+        voucher.save(update_fields=['is_active', 'is_deleted', 'deleted_at', 'deactivated_at', 'deactivated_by', 'updated_at'])
         return Response(VoucherSerializer(voucher).data)
 
     @action(detail=True, methods=['post'], url_path='deactivate')
@@ -128,7 +128,7 @@ class VoucherViewSet(ModelViewSet):
         voucher.is_active      = False
         voucher.deactivated_at = timezone.now()
         voucher.deactivated_by = request.user
-        voucher.save(update_fields=['is_active', 'deactivated_at', 'deactivated_by'])
+        voucher.save(update_fields=['is_active', 'deactivated_at', 'deactivated_by', 'updated_at'])
         VoucherChangeLog.objects.create(
             voucher=voucher,
             changed_by=request.user,

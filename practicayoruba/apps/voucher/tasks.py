@@ -37,7 +37,7 @@ def expire_vouchers():
                 continue
             updated.is_active = False
             updated.deactivated_at = now
-            updated.save(update_fields=['is_active', 'deactivated_at'])
+            updated.save(update_fields=['is_active', 'deactivated_at', 'updated_at'])
             VoucherChangeLog.objects.create(
                 voucher=updated,
                 changed_by=None,

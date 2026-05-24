@@ -215,7 +215,7 @@ class AddressViewSet(ModelViewSet):
             next_addr = Address.objects.filter(user=request.user).order_by('-pk').first()
             if next_addr:
                 next_addr.is_default = True
-                next_addr.save(update_fields=['is_default'])
+                next_addr.save(update_fields=['is_default', 'updated_at'])
         audit_log_auth(request.user, AuthEvent.ACTION_ADDRESS_DELETED, request,
                        extra={'address_id': addr_id})
         return Response(status=204)
@@ -442,7 +442,7 @@ class PasswordResetConfirmView(APIView):
             user.set_password(serializer.validated_data['new_password'])
             user.save(update_fields=['password'])
             token_obj.used_at = timezone.now()
-            token_obj.save(update_fields=['used_at'])
+            token_obj.save(update_fields=['used_at', 'updated_at'])
             invalidate_all_sessions(user)
 
         return Response({'message': 'Contrasena restablecida exitosamente. Inicia sesion.'})
@@ -495,7 +495,7 @@ class EmailVerifyView(APIView):
                 'is_active', 'deactivated_reason', 'deactivated_at',
             ])
             token_obj.used_at = timezone.now()
-            token_obj.save(update_fields=['used_at'])
+            token_obj.save(update_fields=['used_at', 'updated_at'])
 
         return Response({'message': 'Cuenta activada exitosamente. Puedes iniciar sesion.'})
 

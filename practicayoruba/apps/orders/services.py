@@ -63,7 +63,7 @@ def cancel_order(order, reason: str = '', cancelled_by=None, cancelable_statuses
         order.status              = 'CANCELLED'
         order.cancellation_reason = reason
         order.cancelled_at        = timezone.now()
-        order.save(update_fields=['status', 'cancellation_reason', 'cancelled_at'])
+        order.save(update_fields=['status', 'cancellation_reason', 'cancelled_at', 'updated_at'])
 
         # 2. Restaurar stock — UC-INV-03
         stock_items = [
@@ -188,10 +188,10 @@ def update_shipping_method(order, shipping_method_id: int):
         # H-ORD-007: total = subtotal_neto + tax + shipping
         value.shipping_cost = new_shipping_cost
         value.total         = neto + value.tax + new_shipping_cost
-        value.save(update_fields=['shipping_cost', 'total'])
+        value.save(update_fields=['shipping_cost', 'total', 'updated_at'])
 
         order.shipping_method = new_method
-        order.save(update_fields=['shipping_method'])
+        order.save(update_fields=['shipping_method', 'updated_at'])
 
     logger.info(
         'Método de envío actualizado para orden %s → %s ($%s)',

@@ -145,7 +145,7 @@ class AdminQuestionAnswerView(_AdminOnly, APIView):
         question.status = QuestionStatus.ANSWERED
         question.answered_at = timezone.now()
         question.answered_by = request.user
-        question.save(update_fields=['answer_body', 'status', 'answered_at', 'answered_by'])
+        question.save(update_fields=['answer_body', 'status', 'answered_at', 'answered_by', 'updated_at'])
         return Response(AdminQuestionItemSerializer(question).data)
 
 
@@ -173,7 +173,7 @@ class AdminQuestionApproveView(_AdminOnly, APIView):
             )
 
         question.status = QuestionStatus.ANSWERED
-        question.save(update_fields=['status'])
+        question.save(update_fields=['status', 'updated_at'])
         return Response(AdminQuestionItemSerializer(question).data)
 
 
@@ -192,5 +192,5 @@ class AdminQuestionRejectView(_AdminOnly, APIView):
             raise NotFound({'detail': 'Pregunta no encontrada.',
                             'codigo_error': 'QUESTION_NOT_FOUND'})
         question.status = QuestionStatus.REJECTED
-        question.save(update_fields=['status'])
+        question.save(update_fields=['status', 'updated_at'])
         return Response(AdminQuestionItemSerializer(question).data)

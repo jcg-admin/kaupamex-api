@@ -44,7 +44,7 @@ def cancel_timeout_orders():
             order.status              = Order.STATUS_CANCELLED_BY_TIMEOUT
             order.cancellation_reason = 'TIMEOUT'
             order.cancelled_at        = now
-            order.save(update_fields=['status', 'cancellation_reason', 'cancelled_at'])
+            order.save(update_fields=['status', 'cancellation_reason', 'cancelled_at', 'updated_at'])
             OrderStatusLog.objects.create(
                 order=order,
                 previous_status=Order.STATUS_PENDING,
