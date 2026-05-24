@@ -23,6 +23,7 @@ from apps.cart.models import Cart
 from rest_framework.test import APIRequestFactory
 from rest_framework.request import Request
 from django.db import transaction as db_transaction
+from django.utils import timezone
 from apps.inventory.services import InventoryService, InsufficientStockError
 from apps.orders.views import CheckoutView
 from apps.orders.serializers import CheckoutSerializer, OrderSerializer
@@ -456,7 +457,8 @@ class ExpressCheckoutView(APIView):
                             'codigo_error': 'VOUCHER_EXHAUSTED',
                         })
                     Voucher.objects.filter(pk=cart.voucher_id).update(
-                        current_uses=F('current_uses') + 1
+                        current_uses=F('current_uses') + 1,
+                        updated_at=timezone.now(),
                     )
                     VoucherUsage.objects.create(
                         user=request.user, voucher_id=cart.voucher_id)

@@ -192,7 +192,7 @@ class WishlistMoveToCartView(APIView):
             if existing:
                 existing.quantity += 1
                 existing.unit_price = unit_price
-                existing.save(update_fields=['quantity', 'unit_price'])
+                existing.save(update_fields=['quantity', 'unit_price', 'updated_at'])
                 cart_item_id = existing.pk
             else:
                 cart_item = CartItem.objects.create(

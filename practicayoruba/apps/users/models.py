@@ -9,6 +9,7 @@ import time
 
 from django.contrib.auth.models import AbstractUser
 from django.db import models, transaction
+from django.utils import timezone
 from apps.core.models import SoftDeleteModel, TimeStampedModel
 
 
@@ -207,7 +208,7 @@ class Address(TimeStampedModel, SoftDeleteModel):
             with transaction.atomic():
                 Address.objects.filter(
                     user=self.user, is_default=True
-                ).exclude(pk=self.pk).update(is_default=False)
+                ).exclude(pk=self.pk).update(is_default=False, updated_at=timezone.now())
                 super().save(*args, **kwargs)
         else:
             super().save(*args, **kwargs)

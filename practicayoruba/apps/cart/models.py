@@ -104,10 +104,10 @@ class Cart(TimeStampedModel):
                         if other_item.variant
                         else other_item.product.price
                     )
-                    existing.save(update_fields=['quantity', 'unit_price'])
+                    existing.save(update_fields=['quantity', 'unit_price', 'updated_at'])
                 else:
                     other_item.cart = self
-                    other_item.save(update_fields=['cart'])
+                    other_item.save(update_fields=['cart', 'updated_at'])
             other_cart.delete()
 
 

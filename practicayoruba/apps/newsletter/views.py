@@ -54,7 +54,7 @@ class NewsletterSubscribeView(APIView):
                 sub.status = SubscriberStatus.PENDING
                 sub.confirmation_token = confirm_token
                 sub.unsubscribed_at = None
-                sub.save(update_fields=['status', 'confirmation_token', 'unsubscribed_at'])
+                sub.save(update_fields=['status', 'confirmation_token', 'unsubscribed_at', 'updated_at'])
                 _send_confirmation_email(email, confirm_token)
                 return Response(
                     SubscriberListItemSerializer(sub).data,
@@ -125,7 +125,7 @@ class NewsletterConfirmView(APIView):
         sub.status = SubscriberStatus.CONFIRMED
         sub.confirmed_at = timezone.now()
         sub.confirmation_token = None
-        sub.save(update_fields=['status', 'confirmed_at', 'confirmation_token'])
+        sub.save(update_fields=['status', 'confirmed_at', 'confirmation_token', 'updated_at'])
 
         return Response(SubscriberListItemSerializer(sub).data)
 
@@ -162,7 +162,7 @@ class NewsletterUnsubscribeView(APIView):
 
         sub.status = SubscriberStatus.UNSUBSCRIBED
         sub.unsubscribed_at = timezone.now()
-        sub.save(update_fields=['status', 'unsubscribed_at'])
+        sub.save(update_fields=['status', 'unsubscribed_at', 'updated_at'])
         return Response(SubscriberListItemSerializer(sub).data)
 
 
@@ -203,7 +203,7 @@ class AdminSubscriberForceUnsubscribeView(_AdminOnly, APIView):
                             'error_code': 'SUBSCRIBER_NOT_FOUND'})
         sub.status = SubscriberStatus.UNSUBSCRIBED
         sub.unsubscribed_at = timezone.now()
-        sub.save(update_fields=['status', 'unsubscribed_at'])
+        sub.save(update_fields=['status', 'unsubscribed_at', 'updated_at'])
         return Response(SubscriberListItemSerializer(sub).data)
 
 

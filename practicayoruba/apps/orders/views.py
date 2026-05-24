@@ -6,6 +6,7 @@ import json as _json
 import uuid
 from decimal import Decimal
 from django.db import transaction, IntegrityError
+from django.utils import timezone
 from django.db.models import F
 from apps.voucher.models import Voucher, VoucherUsage
 from .signals import order_created as order_created_signal
@@ -225,7 +226,8 @@ class CheckoutView(APIView):
                             f'{voucher_locked.max_uses}.'
                         )
                     Voucher.objects.filter(pk=cart.voucher_id).update(
-                        current_uses=F('current_uses') + 1
+                        current_uses=F('current_uses') + 1,
+                        updated_at=timezone.now(),
                     )
                     # DEC-BC-10: registrar uso por usuario para single-use validation.
                     if user:

@@ -322,7 +322,7 @@ class StaticPagePublishView(APIView):
         if is_immediate:
             StaticPageVersion.objects.filter(
                 page=page, status=StaticPageVersion.STATUS_PUBLISHED
-            ).update(status=StaticPageVersion.STATUS_ARCHIVED)
+            ).update(status=StaticPageVersion.STATUS_ARCHIVED, updated_at=timezone.now())
 
         last = page.versions.order_by('-version').first()
         next_version = (last.version + 1) if last else 1
@@ -359,7 +359,7 @@ class StaticPageRestoreView(APIView):
         page = old.page
         StaticPageVersion.objects.filter(
             page=page, status=StaticPageVersion.STATUS_PUBLISHED
-        ).update(status=StaticPageVersion.STATUS_ARCHIVED)
+        ).update(status=StaticPageVersion.STATUS_ARCHIVED, updated_at=timezone.now())
 
         last = page.versions.order_by('-version').first()
         next_version = last.version + 1

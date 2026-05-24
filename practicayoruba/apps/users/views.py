@@ -607,10 +607,10 @@ class DeactivateAccountView(APIView):
             now = timezone.now()
             EmailVerificationToken.objects.filter(
                 user=user, used_at__isnull=True,
-            ).update(used_at=now)
+            ).update(used_at=now, updated_at=now)
             PasswordResetToken.objects.filter(
                 user=user, used_at__isnull=True,
-            ).update(used_at=now)
+            ).update(used_at=now, updated_at=now)
             invalidate_all_sessions(user)
             # FU-4: politica de limpieza en self-delete.
             # Se ELIMINAN fisicamente los datos volatiles que no tienen

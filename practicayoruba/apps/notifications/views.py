@@ -17,6 +17,7 @@ Identifiers + JSON keys in English (DEC-DOC-005).
 """
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.utils import timezone
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema, inline_serializer
@@ -115,7 +116,7 @@ class NotificationMarkAllReadView(APIView):
     def post(self, request):
         updated = Notification.objects.filter(
             user=request.user, read=False,
-        ).update(read=True)
+        ).update(read=True, updated_at=timezone.now())
         return Response({'updated': updated})
 
 

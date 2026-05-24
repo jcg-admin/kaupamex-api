@@ -97,7 +97,7 @@ class CartView(APIView):
             if not created_item:
                 item.quantity += quantity
                 item.unit_price = unit_price
-                item.save(update_fields=['quantity', 'unit_price'])
+                item.save(update_fields=['quantity', 'unit_price', 'updated_at'])
 
         return Response(CartSerializer(cart).data)
 
@@ -190,7 +190,7 @@ class CartItemListView(APIView):
                                            'quantity': 'Stock insuficiente.'})
                 item.quantity = new_qty
                 item.unit_price = unit_price
-                item.save(update_fields=['quantity', 'unit_price'])
+                item.save(update_fields=['quantity', 'unit_price', 'updated_at'])
 
         resp_status = status.HTTP_201_CREATED if created_item else status.HTTP_200_OK
         resp = Response(CartSerializer(cart).data, status=resp_status)
@@ -231,7 +231,7 @@ class CartItemDetailView(APIView):
             raise ValidationError({'codigo_error': 'INSUFFICIENT_STOCK',
                                    'quantity': 'Stock insuficiente.'})
         item.quantity = qty
-        item.save(update_fields=['quantity'])
+        item.save(update_fields=['quantity', 'updated_at'])
         cart, _, _ = _get_or_create_cart(request)
         return Response(CartSerializer(cart).data)
 
@@ -307,7 +307,7 @@ class CartMergeView(APIView):
                 if existing:
                     existing.quantity += anon_item.quantity
                     existing.unit_price = anon_item.unit_price
-                    existing.save(update_fields=['quantity', 'unit_price'])
+                    existing.save(update_fields=['quantity', 'unit_price', 'updated_at'])
                 else:
                     CartItem.objects.create(
                         cart=auth_cart,
@@ -377,7 +377,7 @@ class CartVoucherView(APIView):
             }, status=409)
 
         cart.voucher = voucher
-        cart.save(update_fields=['voucher'])
+        cart.save(update_fields=['voucher', 'updated_at'])
 
         discount = voucher.calculate_discount(cart_total)
         return Response({
@@ -400,5 +400,5 @@ class CartVoucherView(APIView):
                 'codigo_error': 'NO_ACTIVE_VOUCHER',
             })
         cart.voucher = None
-        cart.save(update_fields=['voucher'])
+        cart.save(update_fields=['voucher', 'updated_at'])
         return Response(CartSerializer(cart).data)

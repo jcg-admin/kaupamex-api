@@ -340,7 +340,7 @@ class ReviewHelpfulVoteView(APIView):
 
         with transaction.atomic():
             ReviewHelpfulVote.objects.create(user=request.user, review=review)
-            Review.objects.filter(pk=review.pk).update(helpful_count=F('helpful_count') + 1)
+            Review.objects.filter(pk=review.pk).update(helpful_count=F('helpful_count') + 1, updated_at=timezone.now())
 
         review.refresh_from_db(fields=['helpful_count'])
         return Response({'helpful_count': review.helpful_count})
