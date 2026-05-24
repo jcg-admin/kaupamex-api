@@ -166,7 +166,7 @@ class ConfirmDeliveryView(_AdminOnly, APIView):
 class CancelGuideView(_AdminOnly, APIView):
     def post(self, request, pk):
         try:
-            guide = ShipmentGuide.objects.select_related('order').get(pk=pk)
+            guide = ShipmentGuide.objects.select_related('order').get(pk=pk, is_deleted=False)
         except ShipmentGuide.DoesNotExist:
             return Response({'detail': 'Guía no encontrada.', 'codigo_error': 'SHIPMENT_GUIDE_NOT_FOUND'}, status=404)
         if guide.status == ShipmentGuide.STATUS_DELIVERED:
@@ -174,8 +174,9 @@ class CancelGuideView(_AdminOnly, APIView):
         if guide.status == ShipmentGuide.STATUS_CANCELLED:
             return Response({'detail': 'La guía ya está cancelada.', 'codigo_error': 'SHIPMENT_GUIDE_ALREADY_CANCELLED'}, status=400)
         guide.status = ShipmentGuide.STATUS_CANCELLED
-        guide.delete()
-        guide.save(update_fields=['status'])
+        guide.is_deleted = True
+        guide.deleted_at = timezone.now()
+        guide.save(update_fields=['status', 'is_deleted', 'deleted_at', 'updated_at'])
         return Response({'cancelled': True, 'tracking_number': guide.tracking_number})
 
 

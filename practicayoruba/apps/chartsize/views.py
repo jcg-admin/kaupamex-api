@@ -38,7 +38,7 @@ class VariantDetailView(APIView):
     )
     def get(self, request, product_id):
         try:
-            product = Product.objects.get(pk=product_id)
+            product = Product.objects.get(pk=product_id, is_active=True, is_published=True)
         except Product.DoesNotExist:
             raise NotFound({
                 'detail': 'Producto no encontrado.',

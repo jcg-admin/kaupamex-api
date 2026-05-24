@@ -42,13 +42,13 @@ class ContactMessageCreateView(APIView):
         summary='Enviar mensaje de contacto (UC-COM-01)',
         request=ContactMessageSerializer,
         tags=['contact'],
-        responses={201: ContactMessageAdminSerializer},
+        responses={201: ContactMessageSerializer},
     )
     def post(self, request):
         ser = ContactMessageSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         msg = ser.save()
-        return Response(ContactMessageAdminSerializer(msg).data, status=status.HTTP_201_CREATED)
+        return Response(ContactMessageSerializer(msg).data, status=status.HTTP_201_CREATED)
 
 
 class _AdminOnly:
