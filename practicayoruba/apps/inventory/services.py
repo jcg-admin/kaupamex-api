@@ -213,7 +213,7 @@ class InventoryService:
                         f'El ajuste resultaría en stock negativo ({new_stock}).'
                     )
                 v.stock = new_stock
-                v.save(update_fields=['stock'])
+                v.save(update_fields=['stock', 'updated_at'])
                 stock_after = new_stock
             else:
                 p = Product.objects.select_for_update().get(pk=product.pk)
@@ -224,7 +224,7 @@ class InventoryService:
                         f'El ajuste resultaría en stock negativo ({new_stock}).'
                     )
                 p.stock = new_stock
-                p.save(update_fields=['stock'])
+                p.save(update_fields=['stock', 'updated_at'])
                 stock_after = new_stock
 
             reference = f'ADMIN:{created_by.pk}' if created_by else 'ADMIN'

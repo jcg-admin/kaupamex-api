@@ -351,7 +351,7 @@ class CategoryAdminViewSet(ModelViewSet):
                 'codigo_error': 'CATEGORY_HAS_PRODUCTS',
             })
         instance.is_active = False
-        instance.save(update_fields=['is_active'])
+        instance.save(update_fields=['is_active', 'updated_at'])
         self._invalidate_category_cache()
 
     def perform_create(self, serializer):
@@ -462,7 +462,7 @@ class ProductDeactivateAction:
             return Response(impact, status=200)
         product.is_active = False
         product.is_published = False
-        product.save(update_fields=['is_active', 'is_published'])
+        product.save(update_fields=['is_active', 'is_published', 'updated_at'])
         cache.delete(f'product:{product.pk}:detail')
         cache.delete(CATEGORY_TREE_CACHE_KEY)
         return Response({**impact, 'is_active': False, 'message': 'Producto desactivado correctamente.'}, status=200)
@@ -517,7 +517,7 @@ class ProductAdminViewSet(ProductDeactivateAction, ModelViewSet):
         instance.is_published = False
         instance.is_deleted = True
         instance.deleted_at = timezone.now()
-        instance.save(update_fields=['is_active', 'is_published', 'is_deleted', 'deleted_at'])
+        instance.save(update_fields=['is_active', 'is_published', 'is_deleted', 'deleted_at', 'updated_at'])
         cache.delete(f'product:{instance.pk}:detail')
         cache.delete(CATEGORY_TREE_CACHE_KEY)
 

@@ -127,7 +127,7 @@ class PaymentGatewayViewSet(ModelViewSet):
 
             if ok:
                 instance.verified_at = timezone.now()
-                instance.save(update_fields=['verified_at'])
+                instance.save(update_fields=['verified_at', 'updated_at'])
         except Exception:
             logger.warning(
                 'post-save gateway verify failed gw=%s (EX-02 FR)',
@@ -162,7 +162,7 @@ class PaymentGatewayViewSet(ModelViewSet):
 
         if ok:
             instance.verified_at = timezone.now()
-            instance.save(update_fields=['verified_at'])
+            instance.save(update_fields=['verified_at', 'updated_at'])
             return Response({'detail': 'Gateway verificado correctamente.',
                              'verified_at': instance.verified_at})
         return Response({
@@ -203,7 +203,7 @@ class ShippingMethodViewSet(ModelViewSet):
                 'codigo_error': 'METHOD_WITH_ACTIVE_ORDERS',
             })
         instance.is_active = False
-        instance.save(update_fields=['is_active'])
+        instance.save(update_fields=['is_active', 'updated_at'])
 
     @extend_schema(summary='Listar métodos de envío', tags=['config'],
                    responses={200: ShippingMethodSerializer(many=True)})

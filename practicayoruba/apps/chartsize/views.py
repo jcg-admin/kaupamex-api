@@ -150,7 +150,7 @@ class ProductVariantAdminViewSet(ModelViewSet):
         # Soft-delete: deactivate and zero out stock
         variant.is_active = False
         variant.stock = 0
-        variant.save(update_fields=['is_active', 'stock'])
+        variant.save(update_fields=['is_active', 'stock', 'updated_at'])
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -228,7 +228,7 @@ class VariantPriceAdminView(APIView):
             raise ValidationError({'price': 'El precio debe ser mayor que cero.'})
 
         variant.price_override = price_decimal
-        variant.save(update_fields=['price_override'])
+        variant.save(update_fields=['price_override', 'updated_at'])
 
         return Response(ProductVariantAdminSerializer(variant).data)
 
@@ -240,7 +240,7 @@ class VariantPriceAdminView(APIView):
     def delete(self, request, variant_pk):
         variant = self._get_variant(variant_pk)
         variant.price_override = None
-        variant.save(update_fields=['price_override'])
+        variant.save(update_fields=['price_override', 'updated_at'])
         return Response(ProductVariantAdminSerializer(variant).data)
 
     # Keep PATCH for backwards compatibility

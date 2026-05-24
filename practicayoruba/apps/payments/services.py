@@ -161,7 +161,7 @@ def handle_gateway_return(order_number: str, mp_payment_id: str | None, status: 
     if status == 'approved' and mp_payment_id:
         payment.gateway_payment_id = mp_payment_id
         payment.status             = Payment.STATUS_APPROVED
-        payment.save(update_fields=['gateway_payment_id', 'status'])
+        payment.save(update_fields=['gateway_payment_id', 'status', 'updated_at'])
         logger.info(
             'Pago aprobado en retorno: orden=%s payment_id=%s',
             order_number, mp_payment_id,
@@ -256,7 +256,7 @@ def execute_refund(
             payment.status = PaymentModel.STATUS_REFUNDED
         else:
             payment.status = PaymentModel.STATUS_PARTIALLY_REFUNDED
-        payment.save(update_fields=['status'])
+        payment.save(update_fields=['status', 'updated_at'])
         notify_refund_processed(
             order=payment.order,
             user=payment.order.user,

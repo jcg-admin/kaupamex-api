@@ -108,7 +108,7 @@ class StockAdjustView(_AdminOnly, APIView):
             return Response({'detail': 'El ajuste resultaría en stock negativo.', 'codigo_error': 'STOCK_NEGATIVO'}, status=400)
         stock_before = product.stock
         product.stock = new_stock
-        product.save(update_fields=['stock'])
+        product.save(update_fields=['stock', 'updated_at'])
         mov = StockMovement.objects.create(
             product=product, variant=None, delta=delta,
             stock_before=stock_before, stock_after=new_stock,
@@ -144,7 +144,7 @@ class VariantStockAdjustView(_AdminOnly, APIView):
             stock_before = variant.stock
             delta = new_quantity - stock_before
             variant.stock = new_quantity
-            variant.save(update_fields=['stock'])
+            variant.save(update_fields=['stock', 'updated_at'])
             notes_text = f"{vdata['reason']}: {vdata.get('observations', '')}" if vdata.get('observations') else vdata['reason']
             mov = StockMovement.objects.create(
                 product=product, variant=variant, delta=delta,
@@ -166,7 +166,7 @@ class VariantStockAdjustView(_AdminOnly, APIView):
                 return Response({'detail': 'El ajuste resultaría en stock negativo.', 'codigo_error': 'STOCK_NEGATIVO'}, status=400)
             stock_before = variant.stock
             variant.stock = new_stock
-            variant.save(update_fields=['stock'])
+            variant.save(update_fields=['stock', 'updated_at'])
             mov = StockMovement.objects.create(
                 product=product, variant=variant, delta=delta,
                 stock_before=stock_before, stock_after=new_stock,

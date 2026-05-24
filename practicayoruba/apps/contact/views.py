@@ -92,7 +92,7 @@ class AdminContactMessageMarkReadView(_AdminOnly, APIView):
     def post(self, request, message_id):
         msg = _get_message(message_id)
         msg.read = True
-        msg.save(update_fields=['read'])
+        msg.save(update_fields=['read', 'updated_at'])
         return Response(ContactMessageAdminSerializer(msg).data)
 
 
@@ -125,6 +125,6 @@ class AdminContactMessageReplyView(_AdminOnly, APIView):
         msg.replied = True
         msg.reply_body = reply_body
         msg.reply_sent_at = timezone.now()
-        msg.save(update_fields=['read', 'replied', 'reply_body', 'reply_sent_at'])
+        msg.save(update_fields=['read', 'replied', 'reply_body', 'reply_sent_at', 'updated_at'])
 
         return Response(ContactMessageAdminSerializer(msg).data)

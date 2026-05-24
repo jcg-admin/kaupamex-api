@@ -79,7 +79,7 @@ class PaymentGatewaySerializer(serializers.ModelSerializer):
         instance = super().create(validated_data)
         if creds_raw:
             instance.set_credentials(creds_raw)
-            instance.save(update_fields=['credentials'])
+            instance.save(update_fields=['credentials', 'updated_at'])
         return instance
 
     def update(self, instance, validated_data):
@@ -88,7 +88,7 @@ class PaymentGatewaySerializer(serializers.ModelSerializer):
         if creds_raw is not None:
             instance.set_credentials(creds_raw)
             instance.verified_at = None
-            instance.save(update_fields=['credentials', 'verified_at'])
+            instance.save(update_fields=['credentials', 'verified_at', 'updated_at'])
         return instance
 
 
