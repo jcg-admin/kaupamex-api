@@ -5,7 +5,7 @@ from .views import (
     PaymentGatewayViewSet, ShippingMethodViewSet,
     StaticPageAdminListView, StaticPageAdminDetailView,
     StaticPagePublishView, StaticPageRestoreView,
-    SiteSettingsView,
+    AdminSiteSettingsView,
 )
 
 app_name = 'admin_settings'
@@ -16,7 +16,7 @@ router.register(r'shipping-methods', ShippingMethodViewSet,  basename='admin-shi
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('settings/',                                          SiteSettingsView.as_view(),          name='settings'),
+    path('settings/',                                          AdminSiteSettingsView.as_view(),     name='settings'),
     path('pages/',                                             StaticPageAdminListView.as_view(),   name='page-list'),
     path('pages/<slug:slug>/',                                 StaticPageAdminDetailView.as_view(), name='page-detail'),
     path('pages/<slug:slug>/publish/',                         StaticPagePublishView.as_view(),     name='page-publish'),

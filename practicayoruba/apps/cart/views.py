@@ -136,7 +136,6 @@ class CartItemListView(APIView):
         has_variants = ProductVariant.objects.filter(product=product, is_active=True).exists()
 
         if variant_id:
-            # Try to find variant — inactive or unknown → 404 VARIANT_UNAVAILABLE
             try:
                 variant = ProductVariant.objects.get(pk=variant_id, product=product)
             except ProductVariant.DoesNotExist:
@@ -149,13 +148,11 @@ class CartItemListView(APIView):
                     {'detail': 'Variante no disponible.', 'codigo_error': 'VARIANT_UNAVAILABLE'},
                     status=status.HTTP_404_NOT_FOUND,
                 )
-            # Variant with no stock → 409 VARIANT_OUT_OF_STOCK
             if variant.stock <= 0:
                 return Response(
                     {'detail': 'Variante sin stock.', 'codigo_error': 'VARIANT_OUT_OF_STOCK'},
                     status=status.HTTP_409_CONFLICT,
                 )
-            # Quantity exceeds variant stock → 409 VARIANT_OUT_OF_STOCK
             if quantity > variant.stock:
                 return Response(
                     {'detail': 'Variante sin stock suficiente.', 'codigo_error': 'VARIANT_OUT_OF_STOCK'},
@@ -351,7 +348,7 @@ class CartVoucherView(APIView):
             from rest_framework import status as _status
             from rest_framework.response import Response as _Response
             return _Response({
-                'detail': 'El carrito ya tiene un voucher aplicado. Elimínelo primero.',
+                'detail': 'El carrito ya tiene un voucher aplicado. Elímínelo primero.',
                 'codigo_error': 'VOUCHER_ALREADY_APPLIED',
             }, status=409)
 

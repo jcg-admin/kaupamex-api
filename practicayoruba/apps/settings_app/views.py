@@ -21,7 +21,7 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from django.core.cache import cache
 from .models import SiteSettings, PaymentGateway, ShippingMethod, StaticPage, StaticPageVersion
-from .serializers import SiteSettingsSerializer, PaymentGatewaySerializer, ShippingMethodSerializer
+from .serializers import SiteSettingsSerializer, SiteSettingsAdminSerializer, PaymentGatewaySerializer, ShippingMethodSerializer
 from .gateway_connector import connector
 from rest_framework import serializers as drf_serializers
 from apps.orders.proxy_models import ActiveOrder
@@ -32,6 +32,9 @@ logger = logging.getLogger(__name__)
 
 
 class SiteSettingsView(APIView):
+    """
+    /api/v1/config/settings/ — excludes deprecated fields (DEC-DOC-005).
+    """
     permission_classes = [IsAuthenticated, IsAdminUser]
 
     @extend_schema(
@@ -57,6 +60,35 @@ class SiteSettingsView(APIView):
         return Response(serializer.data)
 
 
+class AdminSiteSettingsView(APIView):
+    """
+    /api/v1/admin/settings/ — includes all fields including legacy ones (UC-ADM-04).
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    @extend_schema(
+        summary='Obtener configuración global (admin)',
+        responses={200: SiteSettingsAdminSerializer},
+        tags=['config'],
+    )
+    def get(self, request):
+        settings = SiteSettings.get_current()
+        return Response(SiteSettingsAdminSerializer(settings).data)
+
+    @extend_schema(
+        summary='Actualizar configuración global (admin)',
+        request=SiteSettingsAdminSerializer,
+        responses={200: SiteSettingsAdminSerializer},
+        tags=['config'],
+    )
+    def patch(self, request):
+        settings = SiteSettings.get_current()
+        serializer = SiteSettingsAdminSerializer(settings, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+
 # =============================================================================
 # Sprint 8 — UC-CFG-01: Gateways de pago
 # =============================================================================
@@ -77,14 +109,12 @@ class PaymentGatewayViewSet(ModelViewSet):
     http_method_names  = ['get', 'post', 'patch', 'head', 'options']
 
     def perform_update(self, serializer):
-        """Si se envían credenciales nuevas, verificar conectividad."""
         creds_raw = self.request.data.get('credentials_raw')
         instance = serializer.save()
         if creds_raw:
             self._verify_and_mark(instance, creds_raw)
 
     def _verify_and_mark(self, instance: PaymentGateway, creds: dict):
-        """Verifica conectividad y actualiza verified_at si OK."""
         try:
             if instance.gateway == PaymentGateway.GATEWAY_MERCADOPAGO:
                 ok = connector.verify_mercadopago(creds.get('access_token', ''))
@@ -99,9 +129,6 @@ class PaymentGatewayViewSet(ModelViewSet):
                 instance.verified_at = timezone.now()
                 instance.save(update_fields=['verified_at'])
         except Exception:
-            # silent OK because EX-02 del FR: el guardado no se bloquea
-            # ante fallo de red, pero el incidente queda loggeado para
-            # operaciones. DEC-DOC-008.
             logger.warning(
                 'post-save gateway verify failed gw=%s (EX-02 FR)',
                 getattr(instance, 'gateway', '?'), exc_info=True,
@@ -117,7 +144,6 @@ class PaymentGatewayViewSet(ModelViewSet):
         tags=['config'],
     )
     def verify(self, request, pk=None):
-        """POST /api/v1/admin/gateways/<pk>/verify/ — verifica con credenciales actuales."""
         instance = self.get_object()
         creds = instance.get_credentials()
         if not creds:
@@ -158,7 +184,6 @@ class ShippingMethodViewSet(ModelViewSet):
     DELETE /api/v1/admin/shipping-methods/<pk>/  — desactivar (soft delete)
 
     UC-CFG-02 (FR-CFG-02.02).
-    Proteccion de ordenes activas: resuelto via ActiveOrder proxy (H-ORD-005).
     """
     permission_classes = [IsAuthenticated, IsAdminUser]
     serializer_class   = ShippingMethodSerializer
@@ -166,10 +191,6 @@ class ShippingMethodViewSet(ModelViewSet):
     http_method_names  = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
     def perform_destroy(self, instance):
-        """
-        Soft delete: is_active=False.
-        Sprint 14: verificar ordenes en estado PENDING/PROCESSING.
-        """
         active_orders = ActiveOrder.objects.filter(
             shipping_method=instance,
         ).count()
@@ -245,9 +266,6 @@ class StaticPageAdminListView(APIView):
     """
     GET /api/v1/admin/pages/ — listar páginas estáticas.
     UC-CFG-04 (FR-CFG-04.02).
-
-    Split de StaticPageAdminView (D-032 T-6): el detail se separo en
-    StaticPageAdminDetailView para evitar colision de operationId.
     """
     permission_classes = [IsAuthenticated, IsAdminUser]
     serializer_class = StaticPageSerializer
@@ -301,13 +319,11 @@ class StaticPagePublishView(APIView):
         publish_at = s.validated_data.get('publish_at')
         is_immediate = not publish_at
 
-        # Archivar versión activa si existe
         if is_immediate:
             StaticPageVersion.objects.filter(
                 page=page, status=StaticPageVersion.STATUS_PUBLISHED
             ).update(status=StaticPageVersion.STATUS_ARCHIVED)
 
-        # Calcular siguiente número de versión
         last = page.versions.order_by('-version').first()
         next_version = (last.version + 1) if last else 1
 
@@ -341,7 +357,6 @@ class StaticPageRestoreView(APIView):
             return Response({'detail': 'Versión no encontrada.'}, status=404)
 
         page = old.page
-        # Archivar la actual
         StaticPageVersion.objects.filter(
             page=page, status=StaticPageVersion.STATUS_PUBLISHED
         ).update(status=StaticPageVersion.STATUS_ARCHIVED)
