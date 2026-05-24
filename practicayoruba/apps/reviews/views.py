@@ -58,22 +58,59 @@ class ProductReviewsView(APIView):
                 'codigo_error': 'PRODUCT_NOT_FOUND',
             })
 
+        rating_filter = request.query_params.get('rating')
+        if rating_filter is not None:
+            try:
+                rating_int = int(rating_filter)
+                if rating_int not in range(1, 6):
+                    raise ValueError
+            except ValueError:
+                raise ValidationError({
+                    'detail': 'rating debe ser un entero entre 1 y 5.',
+                    'codigo_error': 'RATING_INVALID',
+                })
+
+        sort_by = request.query_params.get('sort', 'recent')
+
         approved = Review.objects.filter(
             product=product, status=Review.STATUS_APPROVED,
-        ).select_related('user').order_by('-created_at')
+        ).select_related('user')
 
-        ratings = list(approved.values_list('rating', flat=True))
-        total = len(ratings)
-        avg = round(sum(ratings) / total, 2) if total else 0.0
-        breakdown = Counter(ratings)
+        if rating_filter is not None:
+            approved = approved.filter(rating=rating_int)
+
+        if sort_by == 'helpful':
+            approved = approved.order_by('-helpful_count', '-created_at')
+        else:
+            approved = approved.order_by('-created_at')
+
+        ratings_all = list(
+            Review.objects.filter(product=product, status=Review.STATUS_APPROVED)
+            .values_list('rating', flat=True)
+        )
+        total_all = len(ratings_all)
+        avg = round(sum(ratings_all) / total_all, 2) if total_all else 0.0
+        breakdown = Counter(ratings_all)
         rating_breakdown = {str(i): breakdown.get(i, 0) for i in range(1, 6)}
+
+        # Pagination
+        page_size = int(request.query_params.get('page_size', 10))
+        page_num = int(request.query_params.get('page', 1))
+        items = list(approved)
+        count = len(items)
+        pages = max(1, -(-count // page_size))  # ceil division
+        start = (page_num - 1) * page_size
+        end = start + page_size
 
         return Response({
             'product_id': product.id,
             'average_rating': avg,
-            'total_reviews': total,
+            'total_reviews': total_all,
             'rating_breakdown': rating_breakdown,
-            'results': ReviewPublicSerializer(approved, many=True).data,
+            'count': count,
+            'page': page_num,
+            'pages': pages,
+            'results': ReviewPublicSerializer(items[start:end], many=True).data,
         })
 
     @extend_schema(
@@ -96,6 +133,7 @@ class ProductReviewsView(APIView):
         ser.is_valid(raise_exception=True)
         data = ser.validated_data
 
+        # Order ownership check + product purchased.
         try:
             order = Order.objects.get(pk=data['order_id'])
         except Order.DoesNotExist:
@@ -108,10 +146,14 @@ class ProductReviewsView(APIView):
                 'detail': 'No puedes reseñar productos que no compraste.',
                 'codigo_error': 'PRODUCT_NOT_PURCHASED',
             })
+        # UC-REV-01 PRE-01 + FR-REV-01.02 (T-118 D-01 CRITICA):
+        # solo se permite resenar productos de ordenes ENTREGADAS. Antes
+        # cualquier estado (PENDING/PROCESSING/SHIPPED) era aceptado =
+        # vector reseñas pre-entrega.
         if order.status != Order.STATUS_DELIVERED:
             raise PermissionDenied({
                 'detail': (
-                    'Solo se pueden reseñar productos de ordenes '
+                    'Solo se pueden resenar productos de ordenes '
                     f'entregadas. Estado actual: {order.status}.'
                 ),
                 'codigo_error': 'ORDER_NOT_DELIVERED',
@@ -280,12 +322,21 @@ class ReviewHelpfulVoteView(APIView):
         except Review.DoesNotExist:
             raise NotFound({'detail': 'Reseña no encontrada.', 'codigo_error': 'REVIEW_NOT_FOUND'})
 
-        try:
-            with transaction.atomic():
-                ReviewHelpfulVote.objects.create(user=request.user, review=review)
-                Review.objects.filter(pk=review.pk).update(helpful_count=F('helpful_count') + 1)
-        except IntegrityError:
-            pass  # already voted — idempotent
+        if review.user_id == request.user.id:
+            raise ValidationError({
+                'detail': 'No puedes votar tu propia reseña.',
+                'codigo_error': 'CANNOT_VOTE_OWN_REVIEW',
+            })
+
+        if ReviewHelpfulVote.objects.filter(user=request.user, review=review).exists():
+            raise ValidationError({
+                'detail': 'Ya votaste esta reseña.',
+                'codigo_error': 'VOTE_DUPLICATE',
+            })
+
+        with transaction.atomic():
+            ReviewHelpfulVote.objects.create(user=request.user, review=review)
+            Review.objects.filter(pk=review.pk).update(helpful_count=F('helpful_count') + 1)
 
         review.refresh_from_db(fields=['helpful_count'])
         return Response({'helpful_count': review.helpful_count})
