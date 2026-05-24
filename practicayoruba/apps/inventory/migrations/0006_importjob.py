@@ -16,61 +16,28 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="ImportJob",
             fields=[
-                (
-                    "id",
-                    models.BigAutoField(
-                        auto_created=True,
-                        primary_key=True,
-                        serialize=False,
-                        verbose_name="ID",
-                    ),
-                ),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("file", models.FileField(upload_to="inventory/imports/")),
-                (
-                    "status",
-                    models.CharField(
-                        choices=[
-                            ("PENDING", "Pendiente"),
-                            ("RUNNING", "En proceso"),
-                            ("DONE", "Completado"),
-                            ("FAILED", "Fallido"),
-                        ],
-                        db_index=True,
-                        default="PENDING",
-                        max_length=10,
-                    ),
-                ),
+                ("status", models.CharField(
+                    choices=[("PENDING", "Pendiente"),("RUNNING", "En proceso"),("DONE", "Completado"),("FAILED", "Fallido")],
+                    db_index=True, default="PENDING", max_length=10,
+                )),
                 ("total_rows", models.IntegerField(default=0)),
                 ("imported_rows", models.IntegerField(default=0)),
                 ("failed_rows", models.IntegerField(default=0)),
                 ("errors", models.JSONField(blank=True, null=True)),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
-                (
-                    "uploaded_by",
-                    models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE,
-                        related_name="import_jobs",
-                        to=settings.AUTH_USER_MODEL,
-                    ),
-                ),
+                ("uploaded_by", models.ForeignKey(
+                    on_delete=django.db.models.deletion.CASCADE,
+                    related_name="import_jobs",
+                    to=settings.AUTH_USER_MODEL,
+                )),
             ],
-            options={
-                "verbose_name": "Import job",
-                "db_table": "inventory_import_job",
-                "ordering": ["-created_at"],
-            },
+            options={"verbose_name": "Import job", "db_table": "inventory_import_job", "ordering": ["-created_at"]},
         ),
-        migrations.DeleteModel(
-            name="AdjustmentMovement",
-        ),
-        migrations.DeleteModel(
-            name="CancellationMovement",
-        ),
-        migrations.DeleteModel(
-            name="ImportMovement",
-        ),
-        migrations.DeleteModel(
-            name="SaleMovement",
-        ),
+        migrations.DeleteModel(name="AdjustmentMovement"),
+        migrations.DeleteModel(name="CancellationMovement"),
+        migrations.DeleteModel(name="ImportMovement"),
+        migrations.DeleteModel(name="SaleMovement"),
     ]

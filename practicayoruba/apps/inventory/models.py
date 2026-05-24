@@ -1,27 +1,10 @@
-"""
-Models — apps.inventory
-Sprint 10 — UC-INV-01, UC-INV-02
-
-Refactorizado en sprint de infraestructura: herencia-modelos-django
-  StockMovement → TimeStampedModel con override de created_at (DEC-003:
-                  db_index=True se mantiene por volumen de la tabla)
-  StockAlert    → TimeStampedModel con override de created_at (idem)
-"""
+"""\nModels — apps.inventory\nSprint 10 — UC-INV-01, UC-INV-02\n"""
 from django.conf import settings
 from django.db import models
 from apps.core.models import TimeStampedModel
 
 
-
 class StockMovement(TimeStampedModel):
-    """
-    Registro de cada cambio de stock. UC-INV-02, UC-INV-03, UC-INV-04.
-    delta negativo = decremento (SALE), positivo = incremento.
-
-    created_at overrideado con db_index=True (DEC-003): la tabla de
-    movimientos es de alto volumen y se filtra/ordena frecuentemente
-    por fecha de creación.
-    """
     TYPE_SALE         = 'SALE'
     TYPE_CANCELLATION = 'CANCELLATION'
     TYPE_ADJUSTMENT   = 'ADJUSTMENT'
@@ -33,8 +16,6 @@ class StockMovement(TimeStampedModel):
         (TYPE_IMPORT,       'Importacion CSV'),
     ]
 
-    # DEC-003: override del campo base para mantener el db_index
-    # que ya existe en la BD (migración 0001).
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     variant       = models.ForeignKey(
@@ -42,8 +23,7 @@ class StockMovement(TimeStampedModel):
         on_delete=models.SET_NULL, related_name='stock_movements',
     )
     product       = models.ForeignKey(
-        'catalogue.Product', on_delete=models.CASCADE,
-        related_name='stock_movements',
+        'catalogue.Product', on_delete=models.CASCADE, related_name='stock_movements',
     )
     delta         = models.IntegerField()
     stock_before  = models.IntegerField(null=True, blank=True)
@@ -67,11 +47,6 @@ class StockMovement(TimeStampedModel):
 
 
 class StockAlert(TimeStampedModel):
-    """
-    Alerta de stock bajo o agotado. UC-INV-02 (FR-INV-02.02).
-    created_at overrideado con db_index=True (DEC-003).
-    """
-    # DEC-003: override del campo base para mantener el db_index
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     variant        = models.ForeignKey(
@@ -79,8 +54,7 @@ class StockAlert(TimeStampedModel):
         on_delete=models.SET_NULL, related_name='stock_alerts',
     )
     product        = models.ForeignKey(
-        'catalogue.Product', on_delete=models.CASCADE,
-        related_name='stock_alerts',
+        'catalogue.Product', on_delete=models.CASCADE, related_name='stock_alerts',
     )
     stock_at_alert = models.PositiveIntegerField()
     resolved       = models.BooleanField(default=False, db_index=True)
@@ -96,7 +70,6 @@ class StockAlert(TimeStampedModel):
 
 
 class ImportJob(models.Model):
-    """UC-INV-05: job de importación de productos desde CSV."""
     STATUS_PENDING  = 'PENDING'
     STATUS_RUNNING  = 'RUNNING'
     STATUS_DONE     = 'DONE'
@@ -109,8 +82,7 @@ class ImportJob(models.Model):
     ]
 
     uploaded_by   = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
-        related_name='import_jobs',
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='import_jobs',
     )
     file          = models.FileField(upload_to='inventory/imports/')
     status        = models.CharField(max_length=10, choices=STATUSES, default=STATUS_PENDING, db_index=True)
