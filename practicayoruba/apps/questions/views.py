@@ -39,8 +39,12 @@ class ProductQuestionsView(APIView):
     permission_classes = [AllowAny]
 
     def _get_product(self, product_id):
+        # H-CICLO23-03: filtrar sólo productos activos y publicados.
+        # Sin este filtro, cualquiera podría listar preguntas de productos
+        # inactivos o enviar preguntas a productos que ya no existen
+        # públicamente, pudiendo crear ruido en la cola de moderación.
         try:
-            return Product.objects.get(pk=product_id)
+            return Product.objects.get(pk=product_id, is_active=True, is_published=True)
         except Product.DoesNotExist:
             raise NotFound({'detail': 'Producto no encontrado.',
                             'codigo_error': 'PRODUCT_NOT_FOUND'})
@@ -137,6 +141,19 @@ class AdminQuestionAnswerView(_AdminOnly, APIView):
         except ProductQuestion.DoesNotExist:
             raise NotFound({'detail': 'Pregunta no encontrada.',
                             'codigo_error': 'QUESTION_NOT_FOUND'})
+
+        # H-CICLO23-02: prevenir sobre-escritura de respuesta ya publicada.
+        # Una pregunta en estado ANSWERED ya tiene respuesta visible para el
+        # comprador; permitir re-responder sin restricción puede reemplazar
+        # contenido aprobado por un error de moderador. Si es necesario
+        # corregir la respuesta, primero se rechaza la pregunta y luego se
+        # vuelve a responder.
+        if question.status == QuestionStatus.ANSWERED and question.answer_body:
+            return Response(
+                {'detail': 'La pregunta ya tiene una respuesta publicada.',
+                 'codigo_error': 'QUESTION_ALREADY_ANSWERED'},
+                status=status.HTTP_409_CONFLICT,
+            )
 
         ser = AdminAnswerSerializer(data=request.data)
         ser.is_valid(raise_exception=True)

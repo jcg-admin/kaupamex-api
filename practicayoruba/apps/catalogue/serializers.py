@@ -301,13 +301,29 @@ class ProductAdminSerializer(serializers.ModelSerializer):
     related_products = serializers.SerializerMethodField()
     discount        = serializers.SerializerMethodField()
 
+    # H-CICLO23-05: campo virtual `status` para compatibilidad con el formulario
+    # del admin de UI. El formulario envía `status: 'PUBLICADO'|'BORRADOR'` pero
+    # el modelo almacena `is_active` + `is_published`. Sin este campo el valor
+    # enviado por la UI era ignorado silenciosamente por DRF, dejando el producto
+    # siempre en BORRADOR (is_published=False) sin importar lo que el admin elija.
+    #
+    # Mapeo:
+    #   PUBLICADO → is_active=True, is_published=True
+    #   BORRADOR  → is_active=True, is_published=False  (default)
+    status = serializers.ChoiceField(
+        choices=['PUBLICADO', 'BORRADOR'],
+        required=False,
+        write_only=True,
+        help_text='PUBLICADO activa el producto y lo publica; BORRADOR lo mantiene inactivo.',
+    )
+
     class Meta:
         model  = Product
         fields = [
             'id', 'name', 'slug', 'sku', 'description', 'short_description',
             'base_price', 'price_with_tax', 'sale_price',
             'category', 'category_id', 'images', 'is_active', 'is_published', 'is_featured',
-            'stock', 'discount', 'related_products',
+            'stock', 'status', 'discount', 'related_products',
             'created_at', 'updated_at',
         ]
         extra_kwargs = {'slug': {'required': False}, 'name': {'required': True},
@@ -319,6 +335,16 @@ class ProductAdminSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         if not self.instance and 'price' not in attrs:
             raise serializers.ValidationError({'base_price': 'Este campo es requerido.'})
+        # H-CICLO23-05: expandir `status` virtual a `is_active` / `is_published`
+        # antes de llegar a create/update. DRF no sabe nada de `status`
+        # en el modelo, así que hay que convertirlo aquí.
+        status_value = attrs.pop('status', None)
+        if status_value == 'PUBLICADO':
+            attrs['is_active'] = True
+            attrs['is_published'] = True
+        elif status_value == 'BORRADOR':
+            attrs['is_active'] = True
+            attrs['is_published'] = False
         return attrs
 
     def get_sale_price(self, obj):

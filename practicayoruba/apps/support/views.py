@@ -316,7 +316,7 @@ class AdminSupportTicketListView(APIView):
             OpenApiParameter('category', str, required=False),
             OpenApiParameter('created_from', str, required=False),
             OpenApiParameter('created_to', str, required=False),
-            OpenApiParameter('assigned_to', int, required=False),
+            OpenApiParameter('user_id', int, required=False, description='Filtrar por ID del comprador propietario del ticket'),
             OpenApiParameter('q', str, required=False, description='Search by email/subject'),
         ],
         responses={200: AdminSupportTicketListSerializer(many=True)},
@@ -335,8 +335,12 @@ class AdminSupportTicketListView(APIView):
             qs = qs.filter(created_at__gte=params['created_from'])
         if params.get('created_to'):
             qs = qs.filter(created_at__lte=params['created_to'])
-        if params.get('assigned_to'):
-            qs = qs.filter(user_id=params['assigned_to'])
+        # H-CICLO23-04: el parámetro se renombra a `user_id` para reflejar
+        # que filtra por el comprador propietario del ticket (SupportTicket.user).
+        # El nombre anterior `assigned_to` era engañoso: el modelo no tiene
+        # campo de asignación a staff.
+        if params.get('user_id'):
+            qs = qs.filter(user_id=params['user_id'])
         q = (params.get('q') or '').strip()
         if q:
             qs = qs.filter(

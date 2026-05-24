@@ -78,6 +78,18 @@ class ShipmentGuideCreateSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         order = attrs['order']
+        # H-CICLO23-01: verificar que la orden está en estado IN_PREPARATION
+        # antes de crear guía. Crear una guía para una orden PENDING/PROCESSING
+        # o ya DELIVERED/CANCELLED es un error de negocio silencioso que deja
+        # la orden en estado incoherente.
+        if order.status != Order.STATUS_IN_PREPARATION:
+            raise serializers.ValidationError({
+                'detail': (
+                    f'La orden debe estar en estado IN_PREPARATION para crear '
+                    f'una guía de envío. Estado actual: {order.status}.'
+                ),
+                'codigo_error': 'ORDER_NOT_IN_PREPARATION',
+            })
         if ShipmentGuide.all_objects.filter(order=order, is_deleted=False).exists():
             raise serializers.ValidationError({
                 'detail': 'La orden ya tiene una guia de envio activa.',

@@ -262,6 +262,9 @@ def _guess_error_field(exc) -> str:
     return 'unknown'
 
 
+_CSV_MAX_SIZE_BYTES = 5 * 1024 * 1024  # 5 MB — UC-INV-05
+
+
 class ProductImportView(_AdminOnly, APIView):
     @extend_schema(summary='Importar productos desde CSV (UC-INV-05)', tags=['inventory'],
                    responses={200: None, 400: None, 422: None})
@@ -269,6 +272,19 @@ class ProductImportView(_AdminOnly, APIView):
         csv_file = request.FILES.get('file')
         if not csv_file:
             return Response({'detail': 'El archivo CSV es requerido.', 'codigo_error': 'FILE_REQUIRED'}, status=400)
+        # H-CICLO23-07: limitar tamaño del CSV para evitar que un archivo
+        # masivo agote memoria del worker WSGI o consuma demasiado tiempo.
+        if csv_file.size > _CSV_MAX_SIZE_BYTES:
+            return Response(
+                {
+                    'detail': (
+                        f'El archivo supera el límite de '
+                        f'{_CSV_MAX_SIZE_BYTES // (1024 * 1024)} MB.'
+                    ),
+                    'codigo_error': 'FILE_TOO_LARGE',
+                },
+                status=400,
+            )
         result, error = _process_import_csv(csv_file, request.data.get('initial_state', 'BORRADOR'), request.user)
         if error:
             return Response({'detail': error['detail'], 'codigo_error': error['codigo_error']}, status=error['status_code'])
