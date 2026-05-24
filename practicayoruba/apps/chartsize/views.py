@@ -66,7 +66,7 @@ class VariantSingleView(APIView):
     )
     def get(self, request, slug, pk):
         try:
-            product = Product.objects.get(slug=slug, is_active=True)
+            product = Product.objects.get(slug=slug, is_active=True, is_published=True)
         except Product.DoesNotExist:
             raise NotFound({
                 'detail': 'Producto no encontrado.',
