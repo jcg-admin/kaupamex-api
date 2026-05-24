@@ -392,9 +392,29 @@ class ExpressCheckoutView(APIView):
         if insufficient:
             return Response({'detail': 'Stock insuficiente.', 'codigo_error': 'INSUFFICIENT_STOCK', 'items': insufficient}, status=409)
 
+        # H-CICLO21-05a: usar get_object_or_404 con is_active=True para
+        # cerrar la TOCTOU race entre _check_express_eligibility() y aquí.
+        # Si el método fue desactivado en ese intervalo, retorna 404 en
+        # lugar de DoesNotExist sin capturar.
         settings_obj = SiteSettings.get_current()
         iva_rate = settings_obj.iva_rate
-        shipping = ShippingMethod.objects.get(pk=shipping_id)
+        shipping = get_object_or_404(ShippingMethod, pk=shipping_id, is_active=True)
+
+        # H-CICLO21-05b: validar cobertura de zona de envío para la dirección
+        # predeterminada (el CheckoutView lo hace; ExpressCheckout lo omitía).
+        zip_code = addr.get('zip_code', '')
+        if zip_code:
+            from apps.orders.models import ShippingZone
+            all_prefixes = list(
+                ShippingZone.objects.filter(is_active=True)
+                .values_list('zip_code_prefix', flat=True)
+            )
+            if not any(zip_code.startswith(p) for p in all_prefixes):
+                raise ValidationError({
+                    'detail': 'El código postal de tu dirección predeterminada no está cubierto por ninguna zona de envío.',
+                    'codigo_error': 'ZONE_NOT_COVERED',
+                })
+
         subtotal_for_shipping = cart.get_subtotal() - cart.get_discount()
         shipping_cost = Dec('0.00')
         if shipping.free_threshold is None or subtotal_for_shipping < shipping.free_threshold:

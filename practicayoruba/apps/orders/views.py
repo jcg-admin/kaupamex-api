@@ -123,18 +123,12 @@ class CheckoutView(APIView):
                              'codigo_error': 'INSUFFICIENT_STOCK',
                              'items': insufficient}, status=409)
 
-        # 3b. DEC-BC-18: validar cobertura de zona de envío.
-        zip_code = data.get('address', {}).get('zip_code', '')
-        if zip_code:
-            prefixes = [zip_code[:i] for i in range(1, min(6, len(zip_code) + 1))]
-            covered = ShippingZone.objects.filter(
-                is_active=True, zip_code_prefix__in=prefixes
-            ).exists()
-            if not covered:
-                raise ValidationError({
-                    'address': {'zip_code': 'Código postal no cubierto.'},
-                    'codigo_error': 'ZONE_NOT_COVERED',
-                })
+        # 3b. DEC-BC-18: validación de cobertura de zona de envío delegada al
+        # CheckoutSerializer.validate_address() (ejecutado en s.is_valid() arriba).
+        # El bloque de validación redundante que existía aquí se eliminó en
+        # H-CICLO21-04: la doble consulta a ShippingZone era código muerto
+        # porque el serializer ya rechazaba zip_codes no cubiertos antes de
+        # llegar a esta sección.
 
         # 4. Transacción atómica: decrement + crear orden
         settings_obj = SiteSettings.get_current()
