@@ -8,6 +8,7 @@ Invocada por management command cancel_timeout_orders (cron cada 5 min).
 import logging
 from datetime import timedelta
 
+from django.db import transaction
 from django.utils import timezone
 
 from .models import Order, OrderStatusLog
@@ -20,26 +21,38 @@ ORDER_PAYMENT_TIMEOUT_MINUTES = 30
 def cancel_timeout_orders():
     """UC-SYS-01: cancela ordenes PENDING por timeout de pago."""
     cutoff = timezone.now() - timedelta(minutes=ORDER_PAYMENT_TIMEOUT_MINUTES)
-    pending = Order.objects.filter(
-        status=Order.STATUS_PENDING,
-        created_at__lt=cutoff,
+    # Collect IDs first; iterate outside any lock.
+    pending_ids = list(
+        Order.objects.filter(
+            status=Order.STATUS_PENDING,
+            created_at__lt=cutoff,
+        ).values_list('id', flat=True)
     )
     now = timezone.now()
     count = 0
-    for order in pending.iterator():
-        prev_status = order.status
-        order.status             = Order.STATUS_CANCELLED_BY_TIMEOUT
-        order.cancellation_reason = 'TIMEOUT'
-        order.cancelled_at        = now
-        order.save(update_fields=['status', 'cancellation_reason', 'cancelled_at'])
-        OrderStatusLog.objects.create(
-            order=order,
-            previous_status=prev_status,
-            new_status=Order.STATUS_CANCELLED_BY_TIMEOUT,
-            changed_by=None,
-            notes='Cancelacion automatica por timeout de pago.',
-        )
-        count += 1
+    for order_id in pending_ids:
+        # H-TASKS-01: re-verificar bajo lock para evitar sobreescribir
+        # una orden que ya transitó a PAGADA (pago llegó después del query).
+        with transaction.atomic():
+            order = (
+                Order.objects.select_for_update()
+                .filter(pk=order_id, status=Order.STATUS_PENDING)
+                .first()
+            )
+            if order is None:
+                continue
+            order.status              = Order.STATUS_CANCELLED_BY_TIMEOUT
+            order.cancellation_reason = 'TIMEOUT'
+            order.cancelled_at        = now
+            order.save(update_fields=['status', 'cancellation_reason', 'cancelled_at'])
+            OrderStatusLog.objects.create(
+                order=order,
+                previous_status=Order.STATUS_PENDING,
+                new_status=Order.STATUS_CANCELLED_BY_TIMEOUT,
+                changed_by=None,
+                notes='Cancelacion automatica por timeout de pago.',
+            )
+            count += 1
     if count:
         logger.info('cancel_timeout_orders: %d ordenes canceladas.', count)
     return count

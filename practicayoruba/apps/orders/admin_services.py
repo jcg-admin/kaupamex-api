@@ -19,16 +19,19 @@ from apps.settings_app.models import SiteSettings
 logger = logging.getLogger('apps')
 
 # H-ADM-002: Máquina de estados real (FRs usan nombres inexistentes)
+# H-ORD-S01: PAGADA añadida — pago confirmado, admin debe poder avanzar o cancelar.
 ALLOWED_TRANSITIONS = {
     'PENDING':        ['PROCESSING', 'CANCELLED'],
-    'PROCESSING':     ['IN_PREPARATION', 'CANCELLED'],
+    'PROCESSING':     ['PAGADA', 'IN_PREPARATION', 'CANCELLED'],
+    'PAGADA':         ['IN_PREPARATION', 'CANCELLED'],
     'IN_PREPARATION': ['SHIPPED'],
     'SHIPPED':        ['DELIVERED'],
     # DELIVERED, CANCELLED, REFUNDED → terminales sin transiciones
 }
 
 # H-ADM-005: El admin puede cancelar más estados que el comprador
-ADMIN_CANCELABLE_STATUSES = ['PENDING', 'PROCESSING', 'IN_PREPARATION']
+# H-ORD-S01: PAGADA añadida — refund aplica igual que en PROCESSING.
+ADMIN_CANCELABLE_STATUSES = ['PENDING', 'PROCESSING', 'PAGADA', 'IN_PREPARATION']
 
 
 def transition_order_status(order, new_status: str, admin_user, notes: str = ''):
