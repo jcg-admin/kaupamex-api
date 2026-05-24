@@ -78,7 +78,13 @@ def _order_status_changed(sender, instance, created, **kwargs):
         return
     old = getattr(instance, '_old_status', None)
     if old is not None and old != instance.status:
-        notify_order_status_changed(instance, instance.status)
+        try:
+            notify_order_status_changed(instance, instance.status)
+        except Exception:
+            logger.warning(
+                '_order_status_changed: notificacion fallida para Order %s',
+                instance.pk, exc_info=True,
+            )
 
 
 # ── UC-NOT-04: ReturnRequest → APPROVED / REJECTED ─────────────────
@@ -110,12 +116,18 @@ def _return_status_changed(sender, instance, created, **kwargs):
     except Order.DoesNotExist:
         return
 
-    notify_return_processed(
-        order,
-        instance.user,
-        instance.status,
-        instance.rejection_reason or None,
-    )
+    try:
+        notify_return_processed(
+            order,
+            instance.user,
+            instance.status,
+            instance.rejection_reason or None,
+        )
+    except Exception:
+        logger.warning(
+            '_return_status_changed: notificacion fallida para ReturnRequest %s',
+            instance.pk, exc_info=True,
+        )
 
 
 # ── UC-NOT-05: Refund created with APPROVED status ─────────────────
@@ -164,4 +176,10 @@ def _support_ticket_closed(sender, instance, created, **kwargs):
     # closed_by_staff: la vista de cierre manual setea _closed_by_staff;
     # el management command no lo setea, se asume staff (auto-close).
     closed_by_staff = getattr(instance, '_closed_by_staff', True)
-    notify_support_closed(instance, instance.user, closed_by_staff=closed_by_staff)
+    try:
+        notify_support_closed(instance, instance.user, closed_by_staff=closed_by_staff)
+    except Exception:
+        logger.warning(
+            '_support_ticket_closed: notificacion fallida para SupportTicket %s',
+            instance.pk, exc_info=True,
+        )
