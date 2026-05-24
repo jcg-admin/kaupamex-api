@@ -183,7 +183,12 @@ class CartItemListView(APIView):
                 defaults={'quantity': quantity, 'unit_price': unit_price},
             )
             if not created_item:
-                item.quantity += quantity
+                new_qty = item.quantity + quantity
+                avail = variant.stock if variant else product.stock
+                if avail is not None and new_qty > avail:
+                    raise ValidationError({'codigo_error': 'INSUFFICIENT_STOCK',
+                                           'quantity': 'Stock insuficiente.'})
+                item.quantity = new_qty
                 item.unit_price = unit_price
                 item.save(update_fields=['quantity', 'unit_price'])
 
@@ -221,7 +226,8 @@ class CartItemDetailView(APIView):
             raise ValidationError({'quantity': 'Debe ser un entero valido.'})
         if qty < 1:
             raise ValidationError({'quantity': 'Debe ser >= 1.'})
-        if item.product.stock is not None and qty > item.product.stock:
+        stock = item.variant.stock if item.variant else item.product.stock
+        if stock is not None and qty > stock:
             raise ValidationError({'codigo_error': 'INSUFFICIENT_STOCK',
                                    'quantity': 'Stock insuficiente.'})
         item.quantity = qty

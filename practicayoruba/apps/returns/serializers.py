@@ -48,7 +48,7 @@ class ReturnCreateSerializer(serializers.Serializer):
 
     order_id = serializers.IntegerField(min_value=1)
     reason = serializers.ChoiceField(choices=ReturnRequest.Reason.choices)
-    description = serializers.CharField(min_length=20)
+    description = serializers.CharField(min_length=20, max_length=10000)
     items = ReturnItemInputSerializer(many=True, required=False)
 
 
@@ -153,7 +153,7 @@ class AdminReturnDetailSerializer(ReturnDetailSerializer):
 class ReturnApproveSerializer(serializers.Serializer):
     """UC-RET-02 approve."""
 
-    justification = serializers.CharField(min_length=10)
+    justification = serializers.CharField(min_length=10, max_length=5000)
     approved_items = serializers.ListField(
         child=serializers.IntegerField(min_value=1),
         required=False,
@@ -164,13 +164,13 @@ class ReturnApproveSerializer(serializers.Serializer):
 class ReturnRejectSerializer(serializers.Serializer):
     """UC-RET-02 reject."""
 
-    justification = serializers.CharField(min_length=10)
+    justification = serializers.CharField(min_length=10, max_length=5000)
 
 
 class ReturnInfoRequestSerializer(serializers.Serializer):
     """UC-RET-02 Alt B — request info."""
 
-    message = serializers.CharField(min_length=10)
+    message = serializers.CharField(min_length=10, max_length=5000)
 
 
 # ────────────────────────────── UC-RET-03 (reception) ──────────────────────────────
