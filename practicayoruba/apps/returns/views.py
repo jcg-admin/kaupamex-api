@@ -178,64 +178,68 @@ class ReturnListCreateView(APIView):
 
         # UC-RET-01 idempotency: check for overlapping pending requests
         # DEC-RET-03: if items are provided, check item-level overlap
-        existing_qs = ReturnRequest.objects.filter(
-            user=request.user,
-            order_id=order_id,
-            status__in=[
-                ReturnRequest.Status.PENDING_REVIEW,
-                ReturnRequest.Status.INFO_REQUESTED,
-            ],
-        )
-
-        if items_data:
-            # Check for item-level overlap with existing pending requests
-            incoming_product_ids = {item['product_id'] for item in items_data}
-            overlapping = False
-            for existing in existing_qs:
-                existing_product_ids = set(
-                    existing.items.values_list('product_id', flat=True)
-                )
-                if existing_product_ids & incoming_product_ids:
-                    overlapping = True
-                    break
-            if overlapping:
-                return Response(
-                    {'detail': 'Ya existe una solicitud pendiente con items solapados.',
-                     'error_code': 'REQUEST_ALREADY_EXISTS'},
-                    status=status.HTTP_409_CONFLICT,
-                )
-        else:
-            # No items: any pending request for same order is a duplicate
-            if existing_qs.exists():
-                return Response(
-                    {'detail': 'Ya existe una solicitud pendiente para esta orden.',
-                     'error_code': 'REQUEST_ALREADY_EXISTS'},
-                    status=status.HTTP_409_CONFLICT,
-                )
-
-        ret = ReturnRequest.objects.create(
-            user=request.user,
-            order_id=order_id,
-            reason=reason,
-            description=description,
-            status=ReturnRequest.Status.PENDING_REVIEW,
-        )
-
-        # Create items if provided
-        for item_data in items_data:
-            ReturnItem.objects.create(
-                return_request=ret,
-                product_id=item_data['product_id'],
-                quantity=item_data.get('quantity', 1),
+        # H-CICLO61-01: wrap dedup check + create in a single atomic block
+        # with select_for_update() so two concurrent POST requests for the
+        # same order cannot both pass the check and both create a return.
+        with transaction.atomic():
+            existing_qs = ReturnRequest.objects.select_for_update().filter(
+                user=request.user,
+                order_id=order_id,
+                status__in=[
+                    ReturnRequest.Status.PENDING_REVIEW,
+                    ReturnRequest.Status.INFO_REQUESTED,
+                ],
             )
 
-        # Create history entry
-        ReturnHistoryEntry.objects.create(
-            return_request=ret,
-            status_to=ReturnRequest.Status.PENDING_REVIEW,
-            actor=request.user,
-            justification='Solicitud creada por el comprador.',
-        )
+            if items_data:
+                # Check for item-level overlap with existing pending requests
+                incoming_product_ids = {item['product_id'] for item in items_data}
+                overlapping = False
+                for existing in existing_qs:
+                    existing_product_ids = set(
+                        existing.items.values_list('product_id', flat=True)
+                    )
+                    if existing_product_ids & incoming_product_ids:
+                        overlapping = True
+                        break
+                if overlapping:
+                    return Response(
+                        {'detail': 'Ya existe una solicitud pendiente con items solapados.',
+                         'error_code': 'REQUEST_ALREADY_EXISTS'},
+                        status=status.HTTP_409_CONFLICT,
+                    )
+            else:
+                # No items: any pending request for same order is a duplicate
+                if existing_qs.exists():
+                    return Response(
+                        {'detail': 'Ya existe una solicitud pendiente para esta orden.',
+                         'error_code': 'REQUEST_ALREADY_EXISTS'},
+                        status=status.HTTP_409_CONFLICT,
+                    )
+
+            ret = ReturnRequest.objects.create(
+                user=request.user,
+                order_id=order_id,
+                reason=reason,
+                description=description,
+                status=ReturnRequest.Status.PENDING_REVIEW,
+            )
+
+            # Create items if provided
+            for item_data in items_data:
+                ReturnItem.objects.create(
+                    return_request=ret,
+                    product_id=item_data['product_id'],
+                    quantity=item_data.get('quantity', 1),
+                )
+
+            # Create history entry
+            ReturnHistoryEntry.objects.create(
+                return_request=ret,
+                status_to=ReturnRequest.Status.PENDING_REVIEW,
+                actor=request.user,
+                justification='Solicitud creada por el comprador.',
+            )
 
         # Re-fetch con prefetch para evitar N+1 en ReturnRequestSerializer
         # (accede a items y history_entries__actor).
