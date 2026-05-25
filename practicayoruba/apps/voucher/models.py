@@ -10,7 +10,7 @@ from decimal import Decimal
 from django.conf import settings
 from django.db import models
 from apps.core.models import SoftDeleteModel, TimeStampedModel
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
 
 
@@ -57,7 +57,8 @@ class Voucher(TimeStampedModel, SoftDeleteModel):
     discount_pct        = models.DecimalField(
                               max_digits=5, decimal_places=2,
                               null=True, blank=True,
-                              validators=[MinValueValidator(Decimal('0.01'))],
+                              validators=[MinValueValidator(Decimal('0.01')),
+                                          MaxValueValidator(Decimal('100.00'))],
                               verbose_name='Porcentaje de descuento',
                               help_text='Porcentaje a descontar (0.01-100). Solo para tipo PERCENTAGE.')
     max_discount        = models.DecimalField(
