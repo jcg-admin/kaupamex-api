@@ -20,6 +20,7 @@ from rest_framework import status
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from apps.catalogue.models import Product
 from apps.orders.models import Order
@@ -43,6 +44,15 @@ class ProductReviewsView(APIView):
         if self.request.method == 'POST':
             return [IsAuthenticated()]
         return [AllowAny()]
+
+    def get_throttles(self):
+        # UC-REV-02: throttle solo en POST para prevenir spam de reseñas.
+        # H-CICLO29-02: sin throttle cualquier usuario autenticado podía
+        # spamear el endpoint con distintos order_id.
+        if self.request.method == 'POST':
+            self.throttle_scope = 'review_create'
+            return [ScopedRateThrottle()]
+        return []
 
     @extend_schema(
         summary='List approved reviews for product (UC-REV-01).',

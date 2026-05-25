@@ -28,7 +28,6 @@ from .serializers import CancelOrderSerializer, CheckoutSerializer, OrderListSer
 from django.db.models import Prefetch
 from apps.catalogue.models import ProductImage
 from .services import OrderNotEditableError, ShippingMethodNotAvailableError, cancel_order, update_order_address, update_shipping_method
-from apps.notifications.service import notify_order_created
 
 
 
@@ -233,9 +232,12 @@ class CheckoutView(APIView):
                 cart.voucher = None
                 cart.save(update_fields=['voucher', 'updated_at'])
 
-                # UC-NOT-01: notificacion in-app + email de confirmacion.
-                # on_commit garantiza despacho solo si la transaccion commitea.
-                notify_order_created(order, user, total)
+                # UC-NOT-01: la notificacion de confirmacion (in-app + email)
+                # es disparada por el signal _order_value_created en
+                # apps/notifications/signals.py cuando OrderValue.objects.create()
+                # commitea. Llamarla aqui tambien causaba DOBLE notificacion
+                # (dos emails + dos in-app) por checkout. Eliminado en
+                # H-CICLO29-01.
 
         except InsufficientStockError as exc:
             return Response({'detail': str(exc),

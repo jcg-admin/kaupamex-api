@@ -6,9 +6,17 @@ from django.utils import timezone
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import status
 from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+
+class ShipmentGuidePagination(PageNumberPagination):
+    """Paginacion para listado de guias de envio — H-CICLO29-03."""
+    page_size             = 25
+    page_size_query_param = 'page_size'
+    max_page_size         = 100
 
 logger = logging.getLogger('apps')
 
@@ -101,7 +109,11 @@ class ShipmentGuideListCreateView(_AdminOnly, APIView):
         qs = ShipmentGuide.objects.filter(is_deleted=False).select_related('order', 'courier').order_by('-created_at')
         if request.query_params.get('order_id'):
             qs = qs.filter(order_id=request.query_params['order_id'])
-        return Response(ShipmentGuideSerializer(qs, many=True).data)
+        # H-CICLO29-03: sin paginacion este endpoint podia retornar todas
+        # las guias del sistema en una sola respuesta. Paginado a 25/pagina.
+        paginator = ShipmentGuidePagination()
+        page = paginator.paginate_queryset(qs, request)
+        return paginator.get_paginated_response(ShipmentGuideSerializer(page, many=True).data)
 
     def post(self, request):
         ser = ShipmentGuideCreateSerializer(data=request.data)

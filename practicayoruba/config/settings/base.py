@@ -162,6 +162,11 @@ REST_FRAMEWORK = {
         # newsletter_confirm: evita enumeración de tokens de confirmación.
         'newsletter_subscribe': '10/hour',
         'newsletter_confirm':   '20/hour',
+        # H-CICLO29-02: throttle para creacion de reseñas (UC-REV-02).
+        # Sin este scope cualquier usuario autenticado podia spamear el
+        # endpoint con distintos order_id. 10/hour permite resenar varios
+        # productos de pedidos distintos sin limitar el uso legitimo.
+        'review_create':        '10/hour',
     },
 }
 
