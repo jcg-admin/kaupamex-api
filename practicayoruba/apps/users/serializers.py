@@ -282,6 +282,10 @@ class ChangePasswordSerializer(serializers.Serializer):
         return value
 
     def validate_new_password(self, value):
+        if not value.strip():
+            raise serializers.ValidationError(
+                'La contrasena no puede ser solo espacios en blanco.'
+            )
         try:
             validate_password(value, self.context['request'].user)
         except DjangoValidationError as e:

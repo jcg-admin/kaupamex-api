@@ -446,13 +446,24 @@ class ProductAdminSerializer(serializers.ModelSerializer):
         # pass the uniqueness loop with the same candidate slug and then one
         # will hit IntegrityError.  Retry once with a fresh uuid-suffixed slug
         # to handle this without surfacing a 500 to the caller.
+        # H-CICLO59-01: the retry only fixes slug conflicts.  If the original
+        # IntegrityError was caused by a duplicate SKU (concurrent request that
+        # slipped past the view-level _check_sku_unique() TOCTOU window), the
+        # retry will raise again on the same SKU constraint.  Catch that second
+        # IntegrityError and surface it as a 400 ValidationError instead of a
+        # 500 Internal Server Error.
         try:
             return super().create(validated_data)
         except IntegrityError:
             validated_data['slug'] = (
                 f"{validated_data['slug']}-{uuid.uuid4().hex[:6]}"
             )
-            return super().create(validated_data)
+            try:
+                return super().create(validated_data)
+            except IntegrityError:
+                raise serializers.ValidationError(
+                    {'sku': 'Ya existe un producto con ese SKU (conflicto concurrente).'}
+                )
 
     def validate_slug(self, value):
         # H-CICLO20-06: validar unicidad del slug en update antes de llegar
