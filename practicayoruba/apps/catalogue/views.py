@@ -540,6 +540,23 @@ class ProductAdminViewSet(ProductDeactivateAction, ModelViewSet):
             return paginator.get_paginated_response(ProductPriceHistorySerializer(page, many=True).data)
         return Response({'count': qs.count(), 'results': ProductPriceHistorySerializer(qs, many=True).data})
 
+    @action(detail=True, methods=['post'], url_path='toggle-featured')
+    @extend_schema(
+        summary='Destacar / quitar destacado de un producto',
+        description=(
+            'Alterna el campo is_featured del producto. '
+            'H-CICLO30-03: el endpoint faltaba; el UI llamaba POST y recibía 404.'
+        ),
+        responses={200: ProductAdminSerializer},
+        tags=['admin-catalogue'],
+    )
+    def toggle_featured(self, request, pk=None):
+        product = self.get_object()
+        product.is_featured = not product.is_featured
+        product.save(update_fields=['is_featured', 'updated_at'])
+        cache.delete(f'product:{product.pk}:detail')
+        return Response(self.get_serializer(product).data)
+
 
 PRICE_SYNC_CACHE_TTL = 600
 
@@ -640,14 +657,29 @@ class ProductPriceSyncConfirmView(APIView):
         product_ids = [row['product_id'] for row in validas]
         products = {p.pk: p for p in Product.objects.filter(pk__in=product_ids)}
         updated = []
+        # H-CICLO30-02: el bulk_update anterior omitía crear entradas en
+        # ProductPriceHistory, dejando sin rastro de auditoría los cambios
+        # masivos de precio. Se crea una entrada por cada producto afectado.
+        history_entries = []
         with transaction.atomic():
             for row in validas:
                 p = products.get(row['product_id'])
                 if not p:
                     continue
+                old_price = p.price
                 p.price = Decimal(row['new_price'])
                 updated.append(p)
+                if p.price != old_price:
+                    history_entries.append(ProductPriceHistory(
+                        product=p,
+                        old_price=old_price,
+                        new_price=p.price,
+                        source=ProductPriceHistory.PRICE_SYNC,
+                        changed_by=request.user,
+                    ))
             Product.objects.bulk_update(updated, ['price'])
+            if history_entries:
+                ProductPriceHistory.objects.bulk_create(history_entries)
         cache.delete_many([f'product:{p.pk}:detail' for p in updated])
         cache.delete(f'price_sync:{session_id}')
         _logger.info('price_sync: %d productos actualizados por %s', len(updated), request.user.username)
