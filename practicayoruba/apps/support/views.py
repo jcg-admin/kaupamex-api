@@ -13,6 +13,7 @@ Admin endpoints:
   GET    /api/v1/admin/support/tickets/           UC-SUPP-05 queue
 """
 from datetime import timedelta
+from django.db.models import Count, Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -322,7 +323,6 @@ class AdminSupportTicketListView(APIView):
         responses={200: AdminSupportTicketListSerializer(many=True)},
     )
     def get(self, request):
-        from django.db.models import Count, Q
         qs = SupportTicket.objects.all().annotate(replies_count=Count('replies'))
         params = request.query_params
         if params.get('status'):

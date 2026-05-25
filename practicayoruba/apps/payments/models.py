@@ -119,7 +119,10 @@ class Refund(TimeStampedModel):
         verbose_name = 'Reembolso'
 
     def __str__(self):
-        return f'Reembolso {self.amount} — {self.payment.order.order_number}'
+        # H-CICLO44-02: usar payment_id/order_id en lugar de traversar
+        # self.payment.order.order_number para evitar 2 queries FK en
+        # listados del admin (N+1).
+        return f'Reembolso {self.amount} — payment_id={self.payment_id}'
 
 
 class PaymentGatewayEvent(TimeStampedModel):
@@ -157,7 +160,10 @@ class PaymentGatewayEvent(TimeStampedModel):
         verbose_name = 'Evento del gateway'
 
     def __str__(self):
-        return f'{self.event_type} — {self.payment.order.order_number}'
+        # H-CICLO44-02: usar payment_id en lugar de traversar
+        # self.payment.order.order_number para evitar 2 queries FK en
+        # listados del admin (N+1).
+        return f'{self.event_type} — payment_id={self.payment_id}'
 
 
 class WebhookEvent(models.Model):

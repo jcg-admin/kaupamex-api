@@ -6,6 +6,7 @@ UC-CHT-02: Editar variante de talla/precio (admin)
 UC-CHT-03: Gestionar tipos de variante (admin)
 UC-CHT-04: Ajustar precio individual de variante (admin)
 """
+from decimal import Decimal as _Decimal, InvalidOperation
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import status
 from rest_framework.exceptions import NotFound, ValidationError
@@ -13,7 +14,9 @@ from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
+from apps.cart.models import CartItem
 from apps.catalogue.models import Product
+from apps.orders.models import Order, OrderItem
 from .models import ProductVariant, VariantType
 from .serializers import (
     ProductVariantAdminSerializer,
@@ -127,8 +130,6 @@ class ProductVariantAdminViewSet(ModelViewSet):
     @extend_schema(summary='Eliminar variante (admin)', tags=['variants'],
                    responses={204: None, 400: None})
     def destroy(self, request, *args, **kwargs):
-        from apps.cart.models import CartItem
-        from apps.orders.models import Order, OrderItem
         variant = self.get_object()
         if CartItem.objects.filter(variant=variant).exists():
             raise ValidationError({
@@ -183,7 +184,6 @@ class VariantTypeAdminViewSet(ModelViewSet):
         product_pk = self.kwargs.get('product_pk')
         if product_pk:
             try:
-                from apps.catalogue.models import Product
                 ctx['product'] = Product.objects.get(pk=product_pk)
             except (Product.DoesNotExist, ValueError):
                 pass
@@ -240,7 +240,6 @@ class VariantPriceAdminView(APIView):
                 'detail': 'price es requerido.',
                 'codigo_error': 'PRICE_REQUIRED',
             })
-        from decimal import Decimal as _Decimal, InvalidOperation
         try:
             price_decimal = _Decimal(str(price))
         except (InvalidOperation, TypeError):

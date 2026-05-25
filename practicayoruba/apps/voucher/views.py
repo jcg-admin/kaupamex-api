@@ -8,6 +8,7 @@ UC-PRO-04: Reporte de Uso
 import csv
 import io
 from decimal import Decimal as PyDecimal
+from django.shortcuts import get_object_or_404 as _get404
 
 from django.db.models import (
     Count, DecimalField as DjDecimalField, IntegerField,
@@ -93,7 +94,6 @@ class VoucherViewSet(ModelViewSet):
         tags=['vouchers'],
     )
     def activate(self, request, pk=None):
-        from django.shortcuts import get_object_or_404 as _get404
         voucher = _get404(Voucher.all_objects, pk=pk)
         if voucher.is_active and not voucher.is_deleted:
             return Response({'detail': 'El voucher ya está activo.'}, status=400)

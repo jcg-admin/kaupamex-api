@@ -685,6 +685,10 @@ class ProductPriceSyncConfirmView(APIView):
         # ProductPriceHistory, dejando sin rastro de auditoría los cambios
         # masivos de precio. Se crea una entrada por cada producto afectado.
         history_entries = []
+        # H-CICLO44-01: bulk_update bypasses auto_now=True — setear updated_at
+        # explicitamente en cada objeto antes de llamar a bulk_update para que
+        # el campo refleje el momento real de la actualizacion masiva de precios.
+        now = timezone.now()
         with transaction.atomic():
             for row in validas:
                 p = products.get(row['product_id'])
@@ -692,6 +696,7 @@ class ProductPriceSyncConfirmView(APIView):
                     continue
                 old_price = p.price
                 p.price = Decimal(row['new_price'])
+                p.updated_at = now
                 updated.append(p)
                 if p.price != old_price:
                     history_entries.append(ProductPriceHistory(
@@ -701,7 +706,7 @@ class ProductPriceSyncConfirmView(APIView):
                         source=ProductPriceHistory.PRICE_SYNC,
                         changed_by=request.user,
                     ))
-            Product.objects.bulk_update(updated, ['price'])
+            Product.objects.bulk_update(updated, ['price', 'updated_at'])
             if history_entries:
                 ProductPriceHistory.objects.bulk_create(history_entries)
         cache.delete_many([f'product:{p.pk}:detail' for p in updated])

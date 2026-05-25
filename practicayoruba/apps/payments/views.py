@@ -11,7 +11,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.db.models import F
-from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress, ShippingZone
 from apps.orders.proxy_models import DeliveredOrder
 from apps.voucher.models import Voucher, VoucherUsage
 from .models import Payment, Payment as PaymentModel
@@ -404,7 +404,6 @@ class ExpressCheckoutView(APIView):
         # predeterminada (el CheckoutView lo hace; ExpressCheckout lo omitía).
         zip_code = addr.get('zip_code', '')
         if zip_code:
-            from apps.orders.models import ShippingZone
             all_prefixes = list(
                 ShippingZone.objects.filter(is_active=True)
                 .values_list('zip_code_prefix', flat=True)

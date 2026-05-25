@@ -14,6 +14,7 @@ Spanish business error codes per DEC-DOC-006. Audit log per RNF-AUDIT-001.
 """
 from collections import Counter
 from django.db import IntegrityError, transaction
+from django.db.models import F
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
@@ -24,7 +25,7 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from apps.catalogue.models import Product
 from apps.orders.models import Order
-from .models import Review, ReviewModerationLog
+from .models import Review, ReviewHelpfulVote, ReviewModerationLog
 from .serializers import ReviewAdminSerializer, ReviewCreateSerializer, ReviewPublicSerializer
 
 
@@ -328,9 +329,6 @@ class ReviewHelpfulVoteView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, product_id, pk):
-        from django.db.models import F
-        from .models import ReviewHelpfulVote
-
         try:
             review = Review.objects.get(pk=pk, product_id=product_id, status=Review.STATUS_APPROVED)
         except Review.DoesNotExist:

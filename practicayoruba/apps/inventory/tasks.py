@@ -1,9 +1,12 @@
 """Inventory tasks — apps.inventory (UC-SYS-03)."""
+import csv
+import io
 import logging
 
-from apps.settings_app.models import SiteSettings
-from apps.catalogue.models import Product
+from apps.catalogue.models import Category, Product
 from apps.chartsize.models import ProductVariant
+from apps.settings_app.models import SiteSettings
+from .models import ImportJob
 from .services import _maybe_create_alert
 
 logger = logging.getLogger('apps')
@@ -29,11 +32,6 @@ def scan_low_stock():
 
 def run_product_import(job_id: int) -> None:
     """UC-INV-05: proceso síncrono de importación CSV (sin broker)."""
-    import csv
-    import io
-    from .models import ImportJob
-    from apps.catalogue.models import Category, Product
-
     try:
         job = ImportJob.objects.get(pk=job_id)
     except ImportJob.DoesNotExist:

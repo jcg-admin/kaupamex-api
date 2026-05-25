@@ -18,6 +18,7 @@ from decimal import Decimal
 from django.core.cache import cache
 from django.db import transaction
 from django.http import HttpResponse
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 from drf_spectacular.types import OpenApiTypes
 from rest_framework import serializers
@@ -48,14 +49,18 @@ def _apply_session(session_id):
     product_ids = [row['product_id'] for row in validas]
     products = {p.pk: p for p in Product.objects.filter(pk__in=product_ids)}
     updated = []
+    # H-CICLO44-01: bulk_update bypassa auto_now=True — setear updated_at
+    # explicitamente en cada objeto antes de bulk_update.
+    now = timezone.now()
     with transaction.atomic():
         for row in validas:
             p = products.get(row['product_id'])
             if not p:
                 continue
             p.price = Decimal(row['new_price'])
+            p.updated_at = now
             updated.append(p)
-        Product.objects.bulk_update(updated, ['price'])
+        Product.objects.bulk_update(updated, ['price', 'updated_at'])
     cache.delete(f'price_sync:{session_id}')
     cache.delete_many([f'product:{p.pk}:detail' for p in updated])
     return updated

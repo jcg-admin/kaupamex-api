@@ -9,6 +9,7 @@ UC-CART-05: Fusionar carrito anónimo con cuenta
 UC-CART-06: Aplicar voucher al carrito
 """
 from decimal import Decimal
+from uuid import uuid4
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema, OpenApiParameter
@@ -38,7 +39,6 @@ def _get_or_create_cart(request):
         return cart, created, True
     token = request.META.get('HTTP_X_CART_TOKEN')
     if not token:
-        from uuid import uuid4
         token = str(uuid4())
         created = True
     else:
