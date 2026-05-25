@@ -64,6 +64,18 @@ class VoucherSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {'valid_until': 'valid_until debe ser posterior a valid_from.'})
 
+        # H-VOU-03: valid_until no puede estar en el pasado.
+        # Sin esta validación un admin puede crear un voucher con valid_until
+        # ya vencido; el voucher aparece como EXPIRED inmediatamente y nunca
+        # puede ser usado, pero sigue contaminando el listado de cupones activos.
+        # Solo se aplica cuando valid_until se envía explícitamente en la
+        # petición (no heredado del instance) para no bloquear lecturas/PATCHs
+        # que no toquen el campo.
+        if 'valid_until' in data and data['valid_until'] is not None:
+            if data['valid_until'] <= timezone.now():
+                raise serializers.ValidationError(
+                    {'valid_until': 'valid_until debe ser una fecha futura.'})
+
         return data
 
 
