@@ -8,6 +8,8 @@ Sprint 4: DeactivateAccountView (UC-AUTH-16)
 Sprint 5: LogoutAllSessionsView (UC-AUTH-18)
 """
 # stdlib + Django
+import logging
+
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Q
@@ -37,6 +39,7 @@ from .tokens_email import check_rate_limit, create_password_reset_token, create_
 
 
 User = get_user_model()
+logger = logging.getLogger('apps')
 
 
 class RegisterView(APIView):
@@ -476,6 +479,7 @@ class EmailVerifyView(APIView):
                 status=400,
             )
         except Exception:
+            logger.error('EmailVerifyView: error inesperado al validar token', exc_info=True)
             return Response(
                 {'error_code': 'SERVER_ERROR', 'detail': 'Error interno al verificar el token.'},
                 status=500,

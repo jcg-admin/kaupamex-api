@@ -10,6 +10,7 @@ import io
 from decimal import Decimal as PyDecimal
 from django.shortcuts import get_object_or_404 as _get404
 
+from django.db import transaction
 from django.db.models import (
     Count, DecimalField as DjDecimalField, IntegerField,
     OuterRef, Subquery, Sum,
@@ -94,15 +95,16 @@ class VoucherViewSet(ModelViewSet):
         tags=['vouchers'],
     )
     def activate(self, request, pk=None):
-        voucher = _get404(Voucher.all_objects, pk=pk)
-        if voucher.is_active and not voucher.is_deleted:
-            return Response({'detail': 'El voucher ya está activo.'}, status=400)
-        voucher.is_active      = True
-        voucher.is_deleted      = False
-        voucher.deleted_at      = None
-        voucher.deactivated_at = None
-        voucher.deactivated_by = None
-        voucher.save(update_fields=['is_active', 'is_deleted', 'deleted_at', 'deactivated_at', 'deactivated_by', 'updated_at'])
+        with transaction.atomic():
+            voucher = Voucher.all_objects.select_for_update().get(pk=pk)
+            if voucher.is_active and not voucher.is_deleted:
+                return Response({'detail': 'El voucher ya está activo.'}, status=400)
+            voucher.is_active      = True
+            voucher.is_deleted      = False
+            voucher.deleted_at      = None
+            voucher.deactivated_at = None
+            voucher.deactivated_by = None
+            voucher.save(update_fields=['is_active', 'is_deleted', 'deleted_at', 'deactivated_at', 'deactivated_by', 'updated_at'])
         return Response(VoucherSerializer(voucher).data)
 
     @action(detail=True, methods=['post'], url_path='deactivate')
@@ -258,19 +260,24 @@ class VoucherViewSet(ModelViewSet):
     @extend_schema(summary='Editar voucher (PATCH)', tags=['vouchers'],
                    responses={200: VoucherSerializer, 400: None})
     def partial_update(self, request, *args, **kwargs):
-        instance = self.get_object()
-        if instance.current_uses > 0:
-            for campo in ('code', 'voucher_type'):
-                if campo in request.data:
-                    return Response(
-                        {
-                            'detail': f'El campo "{campo}" es inmutable cuando el voucher ya tiene usos.',
-                            'codigo_error': 'FIELD_IMMUTABLE_WHILE_USED',
-                        },
-                        status=400,
-                    )
-        kwargs['partial'] = True
-        return super().update(request, *args, **kwargs)
+        # select_for_update inside atomic prevents a concurrent apply_voucher
+        # from incrementing current_uses between our read and the final save,
+        # which would otherwise allow mutating `code`/`voucher_type` on a
+        # voucher that already has uses (TOCTOU race).
+        with transaction.atomic():
+            instance = Voucher.objects.select_for_update().get(pk=self.get_object().pk)
+            if instance.current_uses > 0:
+                for campo in ('code', 'voucher_type'):
+                    if campo in request.data:
+                        return Response(
+                            {
+                                'detail': f'El campo "{campo}" es inmutable cuando el voucher ya tiene usos.',
+                                'codigo_error': 'FIELD_IMMUTABLE_WHILE_USED',
+                            },
+                            status=400,
+                        )
+            kwargs['partial'] = True
+            return super().update(request, *args, **kwargs)
 
     @extend_schema(
         summary='Desactivar voucher',

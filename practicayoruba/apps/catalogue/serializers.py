@@ -6,6 +6,7 @@ ProductDetailSerializer: para el detalle completo de un producto.
 ProductSearchSerializer: para el endpoint de búsqueda avanzada.
 CategoryWithCountSerializer: para el árbol de categorías con conteo.
 """
+import os
 import re
 import uuid
 from decimal import Decimal
@@ -466,6 +467,11 @@ class SearchHistorySerializer(serializers.ModelSerializer):
         fields = ['id', 'term', 'searched_at']
 
 
+_CATEGORY_IMAGE_MAX_MB = 5
+_CATEGORY_IMAGE_ALLOWED_TYPES = {'image/jpeg', 'image/png', 'image/webp', 'image/gif'}
+_CATEGORY_IMAGE_ALLOWED_EXTS = {'.jpg', '.jpeg', '.png', '.webp', '.gif'}
+
+
 class CategoryAdminSerializer(serializers.ModelSerializer):
     parent_id = serializers.PrimaryKeyRelatedField(
         source='parent', queryset=Category.objects.all(), required=False, allow_null=True,
@@ -476,6 +482,28 @@ class CategoryAdminSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'slug', 'description', 'parent', 'parent_id', 'image', 'is_active']
         extra_kwargs = {'slug': {'required': False}, 'parent': {'read_only': True},
                         'description': {'max_length': 5000}}
+
+    def validate_image(self, value):
+        """Validate category image size and content-type."""
+        if value is None:
+            return value
+        if value.size > _CATEGORY_IMAGE_MAX_MB * 1024 * 1024:
+            raise serializers.ValidationError(
+                f'La imagen no puede superar {_CATEGORY_IMAGE_MAX_MB} MB.'
+            )
+        ext = os.path.splitext(value.name or '')[1].lower()
+        if ext not in _CATEGORY_IMAGE_ALLOWED_EXTS:
+            raise serializers.ValidationError(
+                f'Extensión no permitida: {ext or "(sin extensión)"}. '
+                f'Usa JPEG, PNG, WebP o GIF.'
+            )
+        content_type = getattr(value, 'content_type', '') or ''
+        if content_type and content_type.split(';')[0].strip() not in _CATEGORY_IMAGE_ALLOWED_TYPES:
+            raise serializers.ValidationError(
+                f'Tipo de contenido no permitido: {content_type}. '
+                f'Usa image/jpeg, image/png, image/webp o image/gif.'
+            )
+        return value
 
     def validate(self, attrs):
         new_parent = attrs.get('parent', self.instance.parent if self.instance else None)
