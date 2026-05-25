@@ -493,6 +493,12 @@ class ProductAdminSerializer(serializers.ModelSerializer):
         return value
 
     def update(self, instance, validated_data):
+        # H-CICLO70-06: slug must be immutable after creation.  Changing a
+        # product slug breaks all existing bookmarks, shared links and any
+        # external system that cached the URL.  Strip slug from PATCH/PUT
+        # payloads so the backend silently ignores it even if a client sends
+        # it.  Creation still generates a slug via _auto_slug().
+        validated_data.pop('slug', None)
         return super().update(instance, validated_data)
 
 
