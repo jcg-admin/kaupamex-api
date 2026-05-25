@@ -167,6 +167,16 @@ class VoucherViewSet(ModelViewSet):
         date_from = request.query_params.get('date_from')
         date_to   = request.query_params.get('date_to')
 
+        # H-CICLO27-02: validar que date_from <= date_to antes de filtrar.
+        # Sin esta validación, date_from > date_to produce queries vacías
+        # silenciosas: orders_count=0 para todos los vouchers, sin error
+        # visible. El admin podría interpretar erróneamente que no hubo usos.
+        if date_from and date_to and date_from > date_to:
+            raise ValidationError({
+                'date_from': 'date_from no puede ser posterior a date_to.',
+                'codigo_error': 'INVALID_DATE_RANGE',
+            })
+
         orders_base = Order.objects.filter(voucher_code=OuterRef('code'))
         if date_from:
             orders_base = orders_base.filter(created_at__date__gte=date_from)
