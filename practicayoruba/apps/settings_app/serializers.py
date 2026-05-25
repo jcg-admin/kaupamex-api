@@ -23,6 +23,24 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'updated_at']
 
+    def validate_social_links(self, value):
+        if not isinstance(value, dict):
+            raise serializers.ValidationError(
+                'social_links debe ser un objeto JSON (dict).'
+            )
+        allowed_keys = {'facebook', 'instagram', 'twitter', 'youtube', 'tiktok', 'whatsapp'}
+        for key, url in value.items():
+            if key not in allowed_keys:
+                raise serializers.ValidationError(
+                    f'Clave no permitida: "{key}". '
+                    f'Claves validas: {sorted(allowed_keys)}.'
+                )
+            if not isinstance(url, str):
+                raise serializers.ValidationError(
+                    f'El valor de "{key}" debe ser una cadena de texto.'
+                )
+        return value
+
 
 class SiteSettingsAdminSerializer(serializers.ModelSerializer):
     """
@@ -47,6 +65,24 @@ class SiteSettingsAdminSerializer(serializers.ModelSerializer):
             'updated_at',
         ]
         read_only_fields = ['id', 'updated_at']
+
+    def validate_social_links(self, value):
+        if not isinstance(value, dict):
+            raise serializers.ValidationError(
+                'social_links debe ser un objeto JSON (dict).'
+            )
+        allowed_keys = {'facebook', 'instagram', 'twitter', 'youtube', 'tiktok', 'whatsapp'}
+        for key, url in value.items():
+            if key not in allowed_keys:
+                raise serializers.ValidationError(
+                    f'Clave no permitida: "{key}". '
+                    f'Claves validas: {sorted(allowed_keys)}.'
+                )
+            if not isinstance(url, str):
+                raise serializers.ValidationError(
+                    f'El valor de "{key}" debe ser una cadena de texto.'
+                )
+        return value
 
 
 # =============================================================================

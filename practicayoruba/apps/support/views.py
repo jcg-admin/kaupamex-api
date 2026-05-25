@@ -13,6 +13,7 @@ Admin endpoints:
   GET    /api/v1/admin/support/tickets/           UC-SUPP-05 queue
 """
 from datetime import timedelta
+from django.db import transaction
 from django.db.models import Count, Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404
@@ -188,19 +189,20 @@ class SupportTicketReplyView(APIView):
                 status=status.HTTP_409_CONFLICT,
             )
 
-        reply = SupportTicketReply.objects.create(
-            ticket=ticket,
-            author=request.user,
-            body=payload['body'],
-            is_internal_note=is_internal,
-        )
+        with transaction.atomic():
+            reply = SupportTicketReply.objects.create(
+                ticket=ticket,
+                author=request.user,
+                body=payload['body'],
+                is_internal_note=is_internal,
+            )
 
-        if not is_internal:
-            if request.user.is_staff:
-                ticket.status = SupportTicket.Status.AWAITING_USER
-            else:
-                ticket.status = SupportTicket.Status.IN_PROGRESS
-            ticket.save(update_fields=['status', 'updated_at'])
+            if not is_internal:
+                if request.user.is_staff:
+                    ticket.status = SupportTicket.Status.AWAITING_USER
+                else:
+                    ticket.status = SupportTicket.Status.IN_PROGRESS
+                ticket.save(update_fields=['status', 'updated_at'])
 
         return Response(
             SupportTicketReplySerializer(reply).data,
@@ -245,19 +247,20 @@ class SupportTicketCloseView(APIView):
         serializer.is_valid(raise_exception=True)
         reason = serializer.validated_data.get('reason') or ''
 
-        ticket.status = SupportTicket.Status.CLOSED
-        ticket.save(update_fields=['status', 'updated_at'])
-
         body = reason or (
             'El staff cerro este ticket.' if request.user.is_staff
             else 'El comprador marco este ticket como resuelto.'
         )
-        SupportTicketReply.objects.create(
-            ticket=ticket,
-            author=request.user,
-            body=body,
-            is_internal_note=False,
-        )
+        with transaction.atomic():
+            ticket.status = SupportTicket.Status.CLOSED
+            ticket.save(update_fields=['status', 'updated_at'])
+
+            SupportTicketReply.objects.create(
+                ticket=ticket,
+                author=request.user,
+                body=body,
+                is_internal_note=False,
+            )
 
         return Response({
             'ticket_id': ticket.pk,
