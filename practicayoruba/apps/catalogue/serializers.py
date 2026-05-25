@@ -11,6 +11,7 @@ import random
 import re
 import uuid
 from decimal import Decimal
+from django.db import IntegrityError
 from django.db.models import Avg, Q
 from django.utils import timezone
 from django.utils.text import slugify
@@ -440,7 +441,18 @@ class ProductAdminSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         if 'slug' not in validated_data or not validated_data.get('slug'):
             validated_data['slug'] = self._auto_slug(validated_data['name'])
-        return super().create(validated_data)
+        # H-CICLO56-03: guard against the TOCTOU race between _auto_slug's
+        # .exists() check and the INSERT.  Two concurrent requests may both
+        # pass the uniqueness loop with the same candidate slug and then one
+        # will hit IntegrityError.  Retry once with a fresh uuid-suffixed slug
+        # to handle this without surfacing a 500 to the caller.
+        try:
+            return super().create(validated_data)
+        except IntegrityError:
+            validated_data['slug'] = (
+                f"{validated_data['slug']}-{uuid.uuid4().hex[:6]}"
+            )
+            return super().create(validated_data)
 
     def validate_slug(self, value):
         # H-CICLO20-06: validar unicidad del slug en update antes de llegar
