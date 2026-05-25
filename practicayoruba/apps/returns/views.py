@@ -16,7 +16,7 @@ Admin:
   POST /api/v1/admin/returns/<id>/refund/     UC-RET-06
 """
 from decimal import Decimal
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Sum
 from django.db import transaction
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema, OpenApiParameter
@@ -152,11 +152,25 @@ class ReturnListCreateView(APIView):
         # H-RET-QTY: validar que la cantidad devuelta no exceda la comprada.
         # Sin este check un comprador podía declarar devolver 9999 unidades
         # de un producto que compró 1. Se coteja contra OrderItem por product.
+        # H-CICLO65-01: también se acumula lo ya devuelto en solicitudes
+        # anteriores no rechazadas para evitar que el usuario envíe dos
+        # devoluciones parciales que sumen más de la cantidad comprada.
         if items_data:
             # Construir mapa product_id→quantity_purchased desde la orden
             purchased_qtys = {
                 oi.product_id: oi.quantity
                 for oi in OrderItem.objects.filter(order_id=order_id)
+            }
+            # Cantidad ya solicitada en otras devoluciones no rechazadas
+            # (PENDING_REVIEW, INFO_REQUESTED, APPROVED, RECEIVED, REFUNDED)
+            already_returned_map = {
+                row['product_id']: row['total']
+                for row in ReturnItem.objects.filter(
+                    return_request__order_id=order_id,
+                    return_request__user=request.user,
+                ).exclude(
+                    return_request__status=ReturnRequest.Status.REJECTED,
+                ).values('product_id').annotate(total=Sum('quantity'))
             }
             for item_data in items_data:
                 pid = item_data['product_id']
@@ -167,11 +181,14 @@ class ReturnListCreateView(APIView):
                         'items': f'El producto {pid} no pertenece a esta orden.',
                         'codigo_error': 'PRODUCT_NOT_IN_ORDER',
                     })
-                if requested_qty > purchased_qty:
+                already_qty = already_returned_map.get(pid, 0)
+                if requested_qty + already_qty > purchased_qty:
                     raise DRFValidationError({
                         'items': (
                             f'La cantidad solicitada ({requested_qty}) para el '
-                            f'producto {pid} excede la cantidad comprada ({purchased_qty}).'
+                            f'producto {pid} excede el limite disponible para '
+                            f'devolucion (comprado: {purchased_qty}, '
+                            f'ya devuelto/en proceso: {already_qty}).'
                         ),
                         'codigo_error': 'QUANTITY_EXCEEDS_PURCHASED',
                     })
