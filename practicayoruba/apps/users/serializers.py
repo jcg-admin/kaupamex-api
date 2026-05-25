@@ -203,6 +203,12 @@ class ProfileSerializer(serializers.ModelSerializer):
 
 ALLOWED_IMAGE_TYPES = {'image/jpeg', 'image/png', 'image/webp', 'JPEG', 'PNG', 'WEBP'}
 
+# H-CICLO67-01: phone format validator — accepts optional leading +, then
+# 7–15 digits (E.164-compatible without strict country-code enforcement).
+# Allows the separator characters space, hyphen and parentheses that
+# international numbers commonly include (e.g. +52 (55) 1234-5678).
+_PHONE_RE = r'^\+?[\d\s\-\(\)]{7,20}$'
+
 class UpdateProfileSerializer(serializers.ModelSerializer):
     """UC-AUTH-06: Actualiza campos de perfil. Email y username no editables."""
     remove_avatar = serializers.BooleanField(write_only=True, required=False, default=False)
@@ -213,6 +219,18 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'avatar': {'required': False, 'allow_null': True},
         }
+
+    def validate_phone(self, value):
+        """H-CICLO67-01: reject phone strings that do not match E.164-like format."""
+        import re
+        if value is None or value == '':
+            return value
+        if not re.match(_PHONE_RE, value):
+            raise serializers.ValidationError(
+                'Formato de teléfono inválido. Usa dígitos, +, espacios, '
+                'guiones o paréntesis (7–20 caracteres).'
+            )
+        return value
 
     def validate_avatar(self, value):
         if value is None:
