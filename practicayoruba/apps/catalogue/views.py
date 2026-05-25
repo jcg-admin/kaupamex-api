@@ -479,6 +479,13 @@ class ProductAdminViewSet(ProductDeactivateAction, ModelViewSet):
     serializer_class   = ProductAdminSerializer
     queryset           = Product.objects.select_related('category').order_by('-created_at')
     http_method_names  = ['get', 'post', 'patch', 'delete', 'head', 'options']
+    # H-CICLO38-02: CatalogueListView (buyer) usa CataloguePagination
+    # (page_size=20). Sin pagination_class, ProductAdminViewSet devuelve
+    # TODOS los productos como lista plana — N consultas, respuesta
+    # potencialmente enorme en producción con cientos de productos.
+    # adminSlice.fetchAdminProducts ya tolera ambos formatos (results ?? payload)
+    # por lo que añadir paginación es retrocompatible para el frontend.
+    pagination_class   = CataloguePagination
 
     def _check_sku_unique(self, sku, exclude_pk=None):
         if not sku:

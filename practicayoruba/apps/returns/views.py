@@ -89,25 +89,31 @@ class ReturnListCreateView(APIView):
             return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = ser.validated_data
-        order_id = data['order_id']
+        order_number = data['order_number']
         reason = data['reason']
         description = data['description']
         items_data = data.get('items', [])
 
         # H-API-29: validar que la orden pertenece al usuario autenticado.
         # Sin este check un usuario podia crear devoluciones para ordenes ajenas.
+        # H-CICLO38-01: lookup por order_number (identificador visible al
+        # comprador) en lugar del PK interno. La UI siempre muestra/enlaza
+        # order_number; usar el PK requeria que el comprador conociera el
+        # ID interno de BD, lo cual nunca fue expuesto en la interfaz.
         try:
-            order = Order.objects.get(pk=order_id, user=request.user)
+            order = Order.objects.get(order_number=order_number, user=request.user)
         except Order.DoesNotExist:
             raise DRFValidationError({
-                'order_id': 'Orden no encontrada.',
+                'order_number': 'Orden no encontrada.',
                 'codigo_error': 'ORDER_NOT_FOUND',
             })
+
+        order_id = order.pk
 
         # H-API-31: solo se permiten devoluciones sobre ordenes ENTREGADAS.
         if order.status != Order.STATUS_DELIVERED:
             raise DRFValidationError({
-                'order_id': 'Solo se pueden solicitar devoluciones para ordenes entregadas.',
+                'order_number': 'Solo se pueden solicitar devoluciones para ordenes entregadas.',
                 'codigo_error': 'ORDER_NOT_DELIVERED',
             })
 
@@ -118,7 +124,7 @@ class ReturnListCreateView(APIView):
         delivery_ts = order.updated_at
         if delivery_ts and (timezone.now() - delivery_ts).days > RETURN_WINDOW_DAYS:
             raise DRFValidationError({
-                'order_id': (
+                'order_number': (
                     f'El plazo para solicitar devolución ({RETURN_WINDOW_DAYS} días '
                     f'desde la entrega) ha expirado.'
                 ),
@@ -263,13 +269,17 @@ class AdminReturnListView(_AdminOnly, APIView):
         results = ReturnRequestAdminSerializer(qs, many=True).data
 
         # Build metrics
+        # H-CICLO38-03: incluir `pendiente_info` (INFO_REQUESTED) para que
+        # AdminReturnsPage pueda mostrar el contador correcto. Antes faltaba
+        # esta clave y el UI siempre mostraba 0 en "Pendiente de información".
         all_qs = ReturnRequest.objects.all()
         metrics = {
-            'pendientes': all_qs.filter(status=ReturnRequest.Status.PENDING_REVIEW).count(),
-            'aprobadas': all_qs.filter(status=ReturnRequest.Status.APPROVED).count(),
-            'rechazadas': all_qs.filter(status=ReturnRequest.Status.REJECTED).count(),
-            'recibidas': all_qs.filter(status=ReturnRequest.Status.RECEIVED).count(),
-            'reembolsadas': all_qs.filter(status=ReturnRequest.Status.REFUNDED).count(),
+            'pendientes':     all_qs.filter(status=ReturnRequest.Status.PENDING_REVIEW).count(),
+            'aprobadas':      all_qs.filter(status=ReturnRequest.Status.APPROVED).count(),
+            'rechazadas':     all_qs.filter(status=ReturnRequest.Status.REJECTED).count(),
+            'recibidas':      all_qs.filter(status=ReturnRequest.Status.RECEIVED).count(),
+            'reembolsadas':   all_qs.filter(status=ReturnRequest.Status.REFUNDED).count(),
+            'pendiente_info': all_qs.filter(status=ReturnRequest.Status.INFO_REQUESTED).count(),
         }
 
         return Response({'results': results, 'metrics': metrics})

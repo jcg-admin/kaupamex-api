@@ -45,9 +45,14 @@ class ReturnHistoryEntrySerializer(serializers.ModelSerializer):
 
 # ────────────────────────────── UC-RET-01 (create) ───────────────────────────
 class ReturnCreateSerializer(serializers.Serializer):
-    """UC-RET-01 — request body."""
+    """UC-RET-01 — request body.
 
-    order_id = serializers.IntegerField(min_value=1)
+    Acepta ``order_number`` (el identificador visible al comprador, p.ej.
+    'PY-AB12CD34') en lugar del PK interno. El lookup por order_number
+    ocurre en la view; el serializer solo valida formato.
+    """
+
+    order_number = serializers.CharField(min_length=1, max_length=20)
     reason = serializers.ChoiceField(choices=ReturnRequest.Reason.choices)
     description = serializers.CharField(min_length=20, max_length=10000)
     items = ReturnItemInputSerializer(many=True, required=False)
