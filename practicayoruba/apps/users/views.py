@@ -265,11 +265,15 @@ class AddressViewSet(ModelViewSet):
         tags=['auth'],
     )
     def partial_update(self, request, *args, **kwargs):
-        response = super().partial_update(request, *args, **kwargs)
-        if response.status_code == 200:
-            audit_log_auth(request.user, AuthEvent.ACTION_ADDRESS_UPDATED, request,
-                           extra={'address_id': self.get_object().pk})
-        return response
+        obj = self.get_object()
+        serializer = self.get_serializer(obj, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        if getattr(obj, '_prefetched_objects_cache', None):
+            obj._prefetched_objects_cache = {}
+        audit_log_auth(request.user, AuthEvent.ACTION_ADDRESS_UPDATED, request,
+                       extra={'address_id': obj.pk})
+        return Response(serializer.data)
 
     @extend_schema(
         summary='Eliminar direccion de envio',

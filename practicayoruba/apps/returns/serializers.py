@@ -55,7 +55,7 @@ class ReturnCreateSerializer(serializers.Serializer):
     order_number = serializers.CharField(min_length=1, max_length=20)
     reason = serializers.ChoiceField(choices=ReturnRequest.Reason.choices)
     description = serializers.CharField(min_length=20, max_length=10000)
-    items = ReturnItemInputSerializer(many=True, required=False)
+    items = ReturnItemInputSerializer(many=True, required=False, allow_empty=False)
 
 
 # ────────────────────────────── UC-RET-04 (buyer list/detail) ────────────────────────

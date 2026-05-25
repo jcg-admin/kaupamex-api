@@ -55,7 +55,7 @@ class VoucherViewSet(ModelViewSet):
         )
 
     def perform_update(self, serializer):
-        old = {f: getattr(self.get_object(), f)
+        old = {f: getattr(serializer.instance, f)
                for f in serializer.validated_data}
         instance = serializer.save()
         changes = {}

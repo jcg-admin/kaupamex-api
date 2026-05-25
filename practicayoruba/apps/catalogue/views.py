@@ -532,9 +532,8 @@ class ProductAdminViewSet(ProductDeactivateAction, ModelViewSet):
         serializer.save()
 
     def perform_update(self, serializer):
-        instance = self.get_object()
-        old_price = instance.price
-        old_category_pk = instance.category_id
+        old_price = serializer.instance.price
+        old_category_pk = serializer.instance.category_id
         updated = serializer.save()
         if updated.category_id != old_category_pk:
             cache.delete(CATEGORY_TREE_CACHE_KEY)
