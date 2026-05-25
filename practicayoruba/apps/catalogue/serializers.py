@@ -16,10 +16,8 @@ from rest_framework import serializers
 from apps.chartsize.serializers import ProductVariantPublicSerializer
 from apps.questions.models import ProductQuestion, QuestionStatus
 from apps.reviews.models import Review
+from apps.settings_app.models import SiteSettings
 from .models import Category, Product, ProductImage, ProductDiscount, ProductPriceHistory, SearchHistory
-
-
-TAX_RATE = Decimal('0.16')  # 16% IVA
 
 
 def _get_active_discount(product):
@@ -66,10 +64,19 @@ def _availability(product):
 
 
 def _price_with_tax(product):
-    """Return price including 16% IVA as Decimal string (no float rounding errors)."""
+    """Return price including IVA as Decimal string (no float rounding errors).
+
+    H-CICLO49-01: usa SiteSettings.get_current().iva_rate en lugar de la
+    constante TAX_RATE = Decimal('0.16') hardcodeada. Si el admin cambia
+    la tasa IVA en Configuracion del sitio, el precio_con_IVA del catalogo
+    queda desincronizado con el precio de las variantes (chartsize serializers
+    usan SiteSettings). La inconsistencia producir discrepancias visibles en
+    comparadores de precios. Se delega al mismo origen de verdad.
+    """
     # H-CICLO48-04: Decimal * Decimal evita los errores de punto flotante que
     # producen valores como 1159.9999999999998 en lugar de 1160.00.
-    return str((product.price * (1 + TAX_RATE)).quantize(Decimal('0.01')))
+    iva = SiteSettings.get_current().iva_rate
+    return str((product.price * (1 + iva)).quantize(Decimal('0.01')))
 
 
 class ProductImageSerializer(serializers.ModelSerializer):

@@ -22,7 +22,7 @@ from apps.settings_app.models import ShippingMethod, SiteSettings
 from apps.cart.models import Cart
 from rest_framework.test import APIRequestFactory
 from rest_framework.request import Request
-from django.db import transaction as db_transaction
+from django.db import transaction as db_transaction, IntegrityError
 from django.utils import timezone
 from apps.inventory.services import InventoryService, InsufficientStockError
 from apps.orders.views import CheckoutView
@@ -488,6 +488,16 @@ class ExpressCheckoutView(APIView):
 
         except InsufficientStockError as exc:
             return Response({'detail': str(exc), 'codigo_error': 'INSUFFICIENT_STOCK'}, status=409)
+        except IntegrityError:
+            # H-CICLO49-02: VoucherUsage tiene unique_together=(user, voucher).
+            # En una condicion de carrera (dos requests concurrentes con el mismo
+            # voucher y usuario) el segundo INSERT lanza IntegrityError desde la
+            # BD. Sin este bloque except el error escala a 500. Se devuelve 409
+            # alineando con el comportamiento de CheckoutView (orders/views.py).
+            return Response({
+                'detail': 'Este voucher ya fue utilizado en tu cuenta.',
+                'codigo_error': 'VOUCHER_ALREADY_USED',
+            }, status=409)
 
         return Response(OrderSerializer(order).data, status=201)
 
