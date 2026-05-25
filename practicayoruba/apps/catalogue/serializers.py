@@ -358,6 +358,8 @@ class ProductAdminSerializer(serializers.ModelSerializer):
     related_products = serializers.SerializerMethodField()
     discount        = serializers.SerializerMethodField()
 
+    stock = serializers.IntegerField(min_value=0, required=False)
+
     # H-CICLO23-05: campo virtual `status` para compatibilidad con el formulario
     # del admin de UI. El formulario envía `status: 'PUBLICADO'|'BORRADOR'` pero
     # el modelo almacena `is_active` + `is_published`. Sin este campo el valor

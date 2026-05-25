@@ -79,8 +79,7 @@ class RegisterView(APIView):
 
         if existing is not None:
             CREATED_RESPONSE = Response(
-                {'message': 'Cuenta creada. Revisa tu email para activarla.',
-                 'user_id': existing.pk},
+                {'message': 'Cuenta creada. Revisa tu email para activarla.'},
                 status=201,
             )
             # Alt-A.1: cuenta activa -> 409 Conflict (UC-AUTH-01 FR-AUTH-01.03).
@@ -120,8 +119,7 @@ class RegisterView(APIView):
                 user, AuthEvent.ACTION_REGISTER_SUCCESS, request,
             )
             return Response(
-                {'message': 'Cuenta creada. Revisa tu email para activarla.',
-                 'user_id': user.pk},
+                {'message': 'Cuenta creada. Revisa tu email para activarla.'},
                 status=201,
             )
         # DEC-ALR-3: reason = primer field error name + '_invalid'

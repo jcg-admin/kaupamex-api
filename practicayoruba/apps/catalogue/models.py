@@ -88,7 +88,7 @@ class Product(TimeStampedModel, SoftDeleteModel):
         Category, on_delete=models.PROTECT, related_name='products',
     )
     price             = models.DecimalField(max_digits=10, decimal_places=2)
-    stock             = models.IntegerField(default=0)
+    stock             = models.IntegerField(default=0, validators=[MinValueValidator(0)])
     is_active         = models.BooleanField(default=True, db_index=True)
     is_published      = models.BooleanField(default=False, db_index=True)
     is_featured       = models.BooleanField(default=False, db_index=True)
