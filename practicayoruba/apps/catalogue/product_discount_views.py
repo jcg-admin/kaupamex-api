@@ -89,11 +89,25 @@ class ProductDiscountListCreateView(APIView):
                 status=status.HTTP_422_UNPROCESSABLE_ENTITY,
             )
 
-        now = timezone.now()
-        active_qs = ProductDiscount.objects.filter(
-            product=product, is_active=True, valid_from__lte=now,
-        ).filter(Q(valid_until__isnull=True) | Q(valid_until__gte=now))
-        if active_qs.exists():
+        # Reject if a new discount's date range overlaps any existing
+        # active (or future) discount for the same product.
+        # The check covers both currently-active and future discounts so
+        # two FUTURE records cannot be stacked and simultaneously become
+        # CURRENT when their valid_from arrives.
+        new_from  = data['valid_from']
+        new_until = data.get('valid_until')  # None means open-ended
+
+        overlap_qs = ProductDiscount.objects.filter(
+            product=product, is_active=True,
+        ).filter(
+            # Existing discount has not yet expired (or is open-ended)
+            Q(valid_until__isnull=True) | Q(valid_until__gt=new_from),
+        )
+        if new_until is not None:
+            # New discount ends at some point — only overlaps exist that
+            # start before new_until.
+            overlap_qs = overlap_qs.filter(valid_from__lt=new_until)
+        if overlap_qs.exists():
             return Response(
                 {'error_code': 'ACTIVE_DISCOUNT_EXISTS',
                  'detail': 'An active discount already exists for this product.'},
@@ -154,6 +168,24 @@ class ProductDiscountDetailView(APIView):
                     status=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 )
             return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+
+        # Overlap check: only run when dates are being changed.
+        if 'valid_from' in serializer.validated_data or 'valid_until' in serializer.validated_data:
+            upd_from  = serializer.validated_data.get('valid_from', instance.valid_from)
+            upd_until = serializer.validated_data.get('valid_until', instance.valid_until)
+            overlap_qs = ProductDiscount.objects.filter(
+                product=instance.product, is_active=True,
+            ).exclude(pk=instance.pk).filter(
+                Q(valid_until__isnull=True) | Q(valid_until__gt=upd_from),
+            )
+            if upd_until is not None:
+                overlap_qs = overlap_qs.filter(valid_from__lt=upd_until)
+            if overlap_qs.exists():
+                return Response(
+                    {'error_code': 'ACTIVE_DISCOUNT_EXISTS',
+                     'detail': 'An active discount already exists for this product.'},
+                    status=status.HTTP_409_CONFLICT,
+                )
 
         for field, value in serializer.validated_data.items():
             setattr(instance, field, value)
