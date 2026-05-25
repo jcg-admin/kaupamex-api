@@ -117,12 +117,21 @@ class RefundRequestSerializer(serializers.Serializer):
 
 
 class RefundSerializer(serializers.ModelSerializer):
+    """Buyer-facing refund representation. Does not expose gateway internals."""
+
     payment_id = serializers.IntegerField(source='payment.pk', read_only=True)
 
     class Meta:
         model  = Refund
-        fields = ['id', 'payment_id', 'amount', 'reason',
-                  'gateway_refund_id', 'status', 'created_at']
+        fields = ['id', 'payment_id', 'amount', 'reason', 'status', 'created_at']
+        read_only_fields = fields
+
+
+class AdminRefundSerializer(RefundSerializer):
+    """Admin-only refund representation. Includes gateway_refund_id."""
+
+    class Meta(RefundSerializer.Meta):
+        fields = RefundSerializer.Meta.fields + ['gateway_refund_id']
         read_only_fields = fields
 
 

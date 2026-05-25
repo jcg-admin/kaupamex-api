@@ -15,7 +15,7 @@ from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress, Shipp
 from apps.orders.proxy_models import DeliveredOrder
 from apps.voucher.models import Voucher, VoucherUsage
 from .models import Payment, Payment as PaymentModel
-from .serializers import InitiatePaymentSerializer, InitiatePaymentResponseSerializer, InstallmentPlansResponseSerializer, PaymentSerializer, PaymentReturnSerializer, CheckoutEligibilitySerializer, ExpressCheckoutSerializer, RefundRequestSerializer, RefundSerializer, RetryEligibilitySerializer, PaymentStatusSerializer as PSS, RefundRequestSerializer as RRS
+from .serializers import InitiatePaymentSerializer, InitiatePaymentResponseSerializer, InstallmentPlansResponseSerializer, PaymentSerializer, PaymentReturnSerializer, CheckoutEligibilitySerializer, ExpressCheckoutSerializer, RefundRequestSerializer, RefundSerializer, AdminRefundSerializer, RetryEligibilitySerializer, PaymentStatusSerializer as PSS, RefundRequestSerializer as RRS
 from .services import initiate_payment, handle_gateway_return, get_installment_plans, get_payment_status, get_payment_history, execute_refund, get_retry_eligibility
 from apps.users.models import Address
 from apps.settings_app.models import ShippingMethod, SiteSettings
@@ -698,7 +698,7 @@ class AdminRefundView(APIView):
         ),
         request=RefundRequestSerializer,
         responses={
-            201: RefundSerializer,
+            201: AdminRefundSerializer,
             400: OpenApiResponse(description='Pago no reembolsable.'),
             404: OpenApiResponse(description='Payment no encontrado.'),
             503: OpenApiResponse(description='Gateway no disponible.'),
@@ -726,4 +726,4 @@ class AdminRefundView(APIView):
             return Response({'detail': str(exc), 'codigo_error': 'GATEWAY_UNAVAILABLE'},
                             status=503)
 
-        return Response(RefundSerializer(refund).data, status=201)
+        return Response(AdminRefundSerializer(refund).data, status=201)
