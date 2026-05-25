@@ -9,15 +9,25 @@ from .models import ProductQuestion, QuestionStatus
 
 
 class PublicQuestionItemSerializer(serializers.ModelSerializer):
-    """UC-QST-02 — public listing item (approved + answered only)."""
+    """UC-QST-02 — public listing item (approved + answered only).
+
+    H-CICLO37-04: ProductQuestionsListPage.jsx accede a ``q.answer.body``
+    (objeto anidado) pero el serializer sólo exponía el campo plano
+    ``answer_body``. La condicion ``q.answer &&`` siempre era falsy →
+    las respuestas de admin nunca se renderizaban. Se agrega el campo
+    ``answer`` como SerializerMethodField con la estructura anidada
+    que espera la UI.
+    """
 
     asker_name = serializers.SerializerMethodField()
+    answer     = serializers.SerializerMethodField()
 
     class Meta:
         model = ProductQuestion
         fields = [
             'id', 'product', 'asker_name', 'body', 'status',
             'answer_body', 'answered_at', 'created_at',
+            'answer',
         ]
         read_only_fields = fields
 
@@ -26,6 +36,17 @@ class PublicQuestionItemSerializer(serializers.ModelSerializer):
         if obj.asker_user_id and not obj.asker_name:
             return obj.asker_user.username if obj.asker_user else 'Usuario'
         return obj.asker_name or 'Anonimo'
+
+    def get_answer(self, obj):
+        """Objeto anidado {body, answered_at} que consume la UI.
+        Retorna None si la pregunta no tiene respuesta (UC-QST-02).
+        """
+        if not obj.answer_body:
+            return None
+        return {
+            'body':        obj.answer_body,
+            'answered_at': obj.answered_at,
+        }
 
 
 class PublicQuestionCreateSerializer(serializers.Serializer):
