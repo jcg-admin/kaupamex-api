@@ -191,7 +191,7 @@ def build_dashboard_payload() -> dict:
 
     today_qs = Order.objects.filter(
         created_at__gte=today_start,
-    ).exclude(status='CANCELLED')
+    ).exclude(status__in=['CANCELLED', 'CANCELLED_TIMEOUT'])  # H-CICLO28-01
     today_agg = OrderValue.objects.filter(order__in=today_qs).aggregate(
         revenue=Sum('total'), order_count=Count('id'),
     )
@@ -202,7 +202,7 @@ def build_dashboard_payload() -> dict:
     trend_rows = (
         OrderValue.objects.filter(
             order__created_at__gte=trend_start,
-        ).exclude(order__status='CANCELLED')
+        ).exclude(order__status__in=['CANCELLED', 'CANCELLED_TIMEOUT'])  # H-CICLO28-01
         .annotate(day=TruncDate('order__created_at'))
         .values('day')
         .annotate(revenue=Sum('total'), orders=Count('id'))
@@ -220,7 +220,7 @@ def build_dashboard_payload() -> dict:
     top_products_rows = (
         OrderItem.objects
         .filter(order__created_at__gte=trend_start)
-        .exclude(order__status='CANCELLED')
+        .exclude(order__status__in=['CANCELLED', 'CANCELLED_TIMEOUT'])  # H-CICLO28-01
         .values('product_id', 'product_name', 'sku')
         .annotate(units_sold=Sum('quantity'))
         .order_by('-units_sold')[:5]
@@ -281,7 +281,7 @@ def build_rfm_payload(period_days: int, segment_filter: str | None = None) -> di
             order__created_at__gte=start, order__created_at__lte=end,
             order__user__isnull=False,
         )
-        .exclude(order__status='CANCELLED')
+        .exclude(order__status__in=['CANCELLED', 'CANCELLED_TIMEOUT'])  # H-CICLO28-02
         .values(
             'order__user_id',
             user_email=F('order__user__email'),
@@ -347,7 +347,7 @@ def count_export_rows(slug: str, days: int) -> int:
             OrderValue.objects.filter(
                 order__created_at__gte=start, order__created_at__lte=end,
                 order__user__isnull=False,
-            ).exclude(order__status='CANCELLED')
+            ).exclude(order__status__in=['CANCELLED', 'CANCELLED_TIMEOUT'])  # H-CICLO28-02
             .values('order__user_id').distinct().count()
         )
     return 0  # dashboard and unknowns are always small
