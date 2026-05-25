@@ -55,12 +55,19 @@ class PublicQuestionCreateSerializer(serializers.Serializer):
 
 
 class AdminQuestionItemSerializer(serializers.ModelSerializer):
-    """UC-QST-03 — admin queue item."""
+    """UC-QST-03 — admin queue item.
+
+    H-CICLO36-04: product era un PK entero (FK sin nested serializer).
+    La UI accedía q.product.name → undefined. Se expone product_name
+    como campo plano adicional para el panel admin.
+    """
+
+    product_name = serializers.CharField(source='product.name', read_only=True)
 
     class Meta:
         model = ProductQuestion
         fields = [
-            'id', 'product', 'asker_user', 'asker_name', 'asker_email',
+            'id', 'product', 'product_name', 'asker_user', 'asker_name', 'asker_email',
             'body', 'status',
             'answer_body', 'answered_at', 'answered_by',
             'created_at',
