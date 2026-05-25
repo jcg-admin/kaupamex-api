@@ -488,7 +488,11 @@ class ProductDeactivateAction:
 class ProductAdminViewSet(ProductDeactivateAction, ModelViewSet):
     permission_classes = [IsAuthenticated, IsAdminUser]
     serializer_class   = ProductAdminSerializer
-    queryset           = Product.objects.select_related('category').order_by('-created_at')
+    # H-CICLO47-01: prefetch_related('images') evita N+1 al serializar con
+    # ProductAdminSerializer, que expone el campo `images` (many=True).
+    # Sin el prefetch, cada llamada a create/partial_update/list dispara
+    # 1 query extra por producto para cargar las imágenes asociadas.
+    queryset           = Product.objects.select_related('category').prefetch_related('images').order_by('-created_at')
     http_method_names  = ['get', 'post', 'patch', 'delete', 'head', 'options']
     # H-CICLO38-02: CatalogueListView (buyer) usa CataloguePagination
     # (page_size=20). Sin pagination_class, ProductAdminViewSet devuelve
