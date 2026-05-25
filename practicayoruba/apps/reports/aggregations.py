@@ -21,24 +21,28 @@ from apps.support.models import SupportTicket
 # ────────────────────────── Period parsing ─────────────────────────────────
 
 DEFAULT_PERIOD_DAYS = 30
+MAX_PERIOD_DAYS = 366  # ~1 year — prevents multi-year DoS queries
 
 
 def parse_period(value: str | None) -> int:
     """
     Parse a period string like '7d', '30d', '90d', '12m'.
     Returns the number of days. Falls back to DEFAULT_PERIOD_DAYS.
+    Capped at MAX_PERIOD_DAYS to prevent DoS via huge date ranges.
     """
     if not value:
         return DEFAULT_PERIOD_DAYS
     value = value.strip().lower()
     try:
         if value.endswith('d'):
-            return max(1, int(value[:-1]))
-        if value.endswith('m'):
-            return max(1, int(value[:-1]) * 30)
-        return max(1, int(value))
+            days = max(1, int(value[:-1]))
+        elif value.endswith('m'):
+            days = max(1, int(value[:-1]) * 30)
+        else:
+            days = max(1, int(value))
     except (ValueError, TypeError):
         return DEFAULT_PERIOD_DAYS
+    return min(days, MAX_PERIOD_DAYS)
 
 
 def period_window(days: int):
