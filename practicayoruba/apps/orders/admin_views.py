@@ -179,7 +179,16 @@ class AdminOrderStatusUpdateView(APIView):
                 status=400,
             )
 
-        order.refresh_from_db()
+        # Re-fetch con select_related/prefetch completo para evitar N+1 al
+        # serializar: AdminOrderSerializer accede a items, value, address,
+        # shipping_method y user (campos que OrderSerializer/AdminOrderSerializer
+        # consumen).
+        order = (
+            Order.objects
+            .select_related('value', 'address', 'shipping_method', 'user')
+            .prefetch_related('items')
+            .get(pk=order.pk)
+        )
         return Response(AdminOrderSerializer(order).data)
 
 
@@ -245,7 +254,15 @@ class AdminOrderCancelView(APIView):
                 status=503,
             )
 
-        order.refresh_from_db()
+        # Re-fetch con select_related/prefetch completo para evitar N+1 al
+        # serializar con AdminOrderSerializer (accede a items, value, address,
+        # shipping_method, user).
+        order = (
+            Order.objects
+            .select_related('value', 'address', 'shipping_method', 'user')
+            .prefetch_related('items')
+            .get(pk=order.pk)
+        )
         return Response(AdminOrderSerializer(order).data)
 
 

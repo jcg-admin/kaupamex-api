@@ -475,7 +475,14 @@ class OrderCancelView(APIView):
             extra={'order_number': order.order_number,
                    'reason': s.validated_data.get('reason', '')},
         )
-        order.refresh_from_db()
+        # Re-fetch con select_related/prefetch para evitar N+1 al serializar.
+        # OrderSerializer accede a items, value, address, shipping_method.
+        order = (
+            Order.objects
+            .select_related('value', 'address', 'shipping_method')
+            .prefetch_related('items')
+            .get(pk=order.pk)
+        )
         return Response(OrderSerializer(order).data)
 
 
@@ -529,7 +536,13 @@ class OrderAddressUpdateView(APIView):
                 status=400,
             )
 
-        order.refresh_from_db()
+        # Re-fetch con select_related/prefetch para evitar N+1 al serializar.
+        order = (
+            Order.objects
+            .select_related('value', 'address', 'shipping_method')
+            .prefetch_related('items')
+            .get(pk=order.pk)
+        )
         return Response(OrderSerializer(order).data)
 
 
@@ -591,5 +604,11 @@ class OrderShippingUpdateView(APIView):
                 status=400,
             )
 
-        order.refresh_from_db()
+        # Re-fetch con select_related/prefetch para evitar N+1 al serializar.
+        order = (
+            Order.objects
+            .select_related('value', 'address', 'shipping_method')
+            .prefetch_related('items')
+            .get(pk=order.pk)
+        )
         return Response(OrderSerializer(order).data)
