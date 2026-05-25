@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'apps.reviews',
     'apps.search_history',
     'apps.static_content',
+    'apps.backups',
 ]
 
 AUTH_USER_MODEL = 'users.User'

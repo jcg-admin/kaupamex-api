@@ -81,6 +81,8 @@ urlpatterns = [
                                       namespace='catalogue_browse_product')),
     path('api/v1/admin/',     include('apps.catalogue.browse_admin_urls',
                                       namespace='catalogue_browse_admin')),
+    path('api/v1/admin/',     include('apps.backups.admin_urls',
+                                      namespace='admin_backups')),
 
     # ─── Orders bajo /api/v1/orders/ (DEC-ORD-01: alineado con UI productiva
     #     y convencion REST estandar; antes era catch-all en /api/v1/).
