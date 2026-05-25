@@ -126,6 +126,10 @@ class ShipmentGuideListCreateView(_AdminOnly, APIView):
         )
         order.status = Order.STATUS_SHIPPED
         order.save(update_fields=['status', 'updated_at'])
+        # H-CICLO46-02: re-fetch guide with select_related to avoid N+1 when
+        # ShipmentGuideSerializer accesses guide.order.order_number (source FK)
+        # and guide.courier (nested CourierSerializer).
+        guide = ShipmentGuide.objects.select_related('order', 'courier').get(pk=guide.pk)
         return Response(ShipmentGuideSerializer(guide).data, status=201)
 
 

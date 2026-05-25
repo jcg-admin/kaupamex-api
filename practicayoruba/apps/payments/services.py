@@ -15,7 +15,7 @@ from .gateways.base import BaseGateway
 from .gateways.mercadopago import MercadoPagoGateway
 from .models import Payment, PaymentGatewayEvent, Payment as PaymentModel, Refund
 from .gateways.paypal import PayPalGateway
-from django.db.models import Sum as DjSum
+from django.db.models import F, Sum as DjSum
 from apps.settings_app.models import PaymentGateway
 from apps.orders.models import Order
 
@@ -319,13 +319,18 @@ def get_payment_history(order_number: str, user) -> list | None:
     except Order.DoesNotExist:
         return None
 
+    # H-CICLO46-03: order_number field (documented in PaymentSerializer) was
+    # missing from the .values() projection.  The frontend reads each
+    # payment's order reference for display; returning it avoids the caller
+    # having to derive it from the URL parameter.
     return list(
         PaymentModel.objects.filter(order=order)
+        .annotate(order_number=F('order__order_number'))
         .order_by('-created_at')
         .values(
             'id', 'gateway', 'status', 'amount',
             'installments', 'preference_id', 'gateway_payment_id',
-            'created_at', 'updated_at',
+            'created_at', 'updated_at', 'order_number',
         )
     )
 

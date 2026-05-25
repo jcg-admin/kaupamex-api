@@ -47,6 +47,25 @@ def _get_or_create_cart(request):
     return cart, created, False
 
 
+def _prefetch_cart(cart):
+    """
+    Re-fetches the cart with prefetch_related to avoid N+1 queries when
+    CartSerializer iterates cart.items and accesses product.name/slug/sku
+    and variant.option.label.  CartItemSerializer touches:
+      - item.product.name, .slug, .sku  → select_related('product')
+      - item.variant.option.label        → select_related('variant__option')
+      - item.variant.sku                 → select_related('variant')
+    Without this re-fetch every CartSerializer(cart).data call fires
+    1 + 3 × len(items) extra queries (N+1).
+    H-CICLO46-01.
+    """
+    return (
+        Cart.objects
+        .prefetch_related('items__product', 'items__variant__option')
+        .get(pk=cart.pk)
+    )
+
+
 class CartView(APIView):
     """
     GET    /api/v1/cart/  — UC-CART-01 ver carrito activo.
@@ -64,7 +83,7 @@ class CartView(APIView):
     )
     def get(self, request):
         cart, _, _ = _get_or_create_cart(request)
-        return Response(CartSerializer(cart).data)
+        return Response(CartSerializer(_prefetch_cart(cart)).data)
 
     @extend_schema(
         summary='Agregar ítem al carrito (UC-CART-02)',
@@ -102,7 +121,7 @@ class CartView(APIView):
                 item.unit_price = unit_price
                 item.save(update_fields=['quantity', 'unit_price', 'updated_at'])
 
-        return Response(CartSerializer(cart).data)
+        return Response(CartSerializer(_prefetch_cart(cart)).data)
 
     @extend_schema(summary='Vaciar carrito (UC-CART-03)', tags=['cart'],
                    responses={204: None})
@@ -125,7 +144,7 @@ class CartItemListView(APIView):
                    responses={200: CartSerializer})
     def get(self, request):
         cart, _, _ = _get_or_create_cart(request)
-        return Response(CartSerializer(cart).data)
+        return Response(CartSerializer(_prefetch_cart(cart)).data)
 
     @extend_schema(summary='Agregar ítem al carrito (UC-CART-02)', tags=['cart'],
                    responses={201: CartSerializer, 200: CartSerializer, 400: None})
@@ -198,7 +217,7 @@ class CartItemListView(APIView):
                 item.save(update_fields=['quantity', 'unit_price', 'updated_at'])
 
         resp_status = status.HTTP_201_CREATED if created_item else status.HTTP_200_OK
-        resp = Response(CartSerializer(cart).data, status=resp_status)
+        resp = Response(CartSerializer(_prefetch_cart(cart)).data, status=resp_status)
         if not request.user.is_authenticated:
             resp['X-Cart-Token'] = str(cart.cart_token)
         return resp
@@ -240,7 +259,7 @@ class CartItemDetailView(APIView):
         item.quantity = qty
         item.save(update_fields=['quantity', 'updated_at'])
         cart, _, _ = _get_or_create_cart(request)
-        return Response(CartSerializer(cart).data)
+        return Response(CartSerializer(_prefetch_cart(cart)).data)
 
     @extend_schema(summary='Eliminar ítem del carrito (UC-CART-03)', tags=['cart'],
                    responses={200: CartSerializer})
@@ -248,7 +267,7 @@ class CartItemDetailView(APIView):
         item = self._get_item(request, pk)
         item.delete()
         cart, _, _ = _get_or_create_cart(request)
-        return Response(CartSerializer(cart).data)
+        return Response(CartSerializer(_prefetch_cart(cart)).data)
 
 
 class CartSaveView(APIView):
@@ -300,7 +319,7 @@ class CartMergeView(APIView):
             anon_cart = Cart.objects.get(cart_token=token, user__isnull=True)
         except Cart.DoesNotExist:
             auth_cart, _ = Cart.objects.get_or_create(user=request.user)
-            return Response(CartSerializer(auth_cart).data)
+            return Response(CartSerializer(_prefetch_cart(auth_cart)).data)
 
         auth_cart, _ = Cart.objects.get_or_create(user=request.user)
 
@@ -349,7 +368,7 @@ class CartMergeView(APIView):
                     )
             anon_cart.delete()
 
-        resp_data = CartSerializer(auth_cart).data
+        resp_data = CartSerializer(_prefetch_cart(auth_cart)).data
         if skipped:
             resp_data['merge_skipped'] = skipped
         return Response(resp_data)
@@ -420,7 +439,7 @@ class CartVoucherView(APIView):
 
         discount = voucher.calculate_discount(cart_total)
         return Response({
-            **CartSerializer(cart).data,
+            **CartSerializer(_prefetch_cart(cart)).data,
             'voucher_code': voucher.code,
             'voucher_discount': str(discount),
             'total_after_discount': str(cart_total - discount),
@@ -440,4 +459,4 @@ class CartVoucherView(APIView):
             })
         cart.voucher = None
         cart.save(update_fields=['voucher', 'updated_at'])
-        return Response(CartSerializer(cart).data)
+        return Response(CartSerializer(_prefetch_cart(cart)).data)
