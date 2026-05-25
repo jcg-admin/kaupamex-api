@@ -41,7 +41,7 @@ def run_product_import(job_id: int) -> None:
         return
 
     job.status = ImportJob.STATUS_RUNNING
-    job.save(update_fields=['status'])
+    job.save(update_fields=['status', 'updated_at'])
 
     errors = []
     imported = 0
@@ -80,4 +80,4 @@ def run_product_import(job_id: int) -> None:
         job.status = ImportJob.STATUS_FAILED
         job.errors = [{'row': 0, 'error': str(exc)}]
 
-    job.save(update_fields=['status', 'total_rows', 'imported_rows', 'failed_rows', 'errors'])
+    job.save(update_fields=['status', 'total_rows', 'imported_rows', 'failed_rows', 'errors', 'updated_at'])
