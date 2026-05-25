@@ -245,12 +245,25 @@ class InventoryService:
         Verifica disponibilidad de stock sin modificarlo.
         Retorna lista de items insuficientes (vacia si todos estan OK).
         Usado por el checkout (Sprint 14) antes de procesar el pago.
+
+        H-CICLO42-02: incluye verificacion de product.is_active y
+        product.is_published. Sin esta guardia un producto desactivado
+        podia atravesar el checkout con stock ficticiamente "disponible".
         """
         insufficient = []
         for item in items:
             product  = item['product']
             variant  = item.get('variant')
             quantity = item['quantity']
+            # Producto desactivado o no publicado — tratar como stock 0.
+            if not (product.is_active and product.is_published):
+                insufficient.append({
+                    'sku':       product.sku,
+                    'variant':   variant.option.label if variant else None,
+                    'available': 0,
+                    'requested': quantity,
+                })
+                continue
             available = variant.stock if variant else product.stock
             if available < quantity:
                 insufficient.append({

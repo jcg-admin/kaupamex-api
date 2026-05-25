@@ -160,8 +160,14 @@ REST_FRAMEWORK = {
         # H-CICLO26-02: scopes para endpoints públicos de newsletter.
         # subscribe: evita spam de suscripciones y flooding de email.
         # newsletter_confirm: evita enumeración de tokens de confirmación.
-        'newsletter_subscribe': '10/hour',
-        'newsletter_confirm':   '20/hour',
+        'newsletter_subscribe':   '10/hour',
+        'newsletter_confirm':     '20/hour',
+        # H-CICLO42-03: scope para baja de newsletter. Sin throttle el
+        # endpoint permite enumeracion de tokens y bajas masivas automatizadas.
+        'newsletter_unsubscribe': '10/hour',
+        # H-CICLO42-04: scope para envio de preguntas publicas (UC-QST-01).
+        # Sin throttle, cualquier visitante podia inundar la cola de moderacion.
+        'question_ask':           '10/hour',
         # H-CICLO29-02: throttle para creacion de reseñas (UC-REV-02).
         # Sin este scope cualquier usuario autenticado podia spamear el
         # endpoint con distintos order_id. 10/hour permite resenar varios

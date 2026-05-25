@@ -160,6 +160,11 @@ class CartItem(TimeStampedModel):
         return self.product.price
 
     def is_available(self) -> bool:
+        # H-CICLO42-01: verificar is_active e is_published del producto antes
+        # de evaluar el stock. Sin esta guardia, un producto desactivado aparece
+        # como disponible en el carrito y puede llegar al checkout.
+        if not (self.product.is_active and self.product.is_published):
+            return False
         if self.variant:
             return self.variant.is_available() and self.variant.stock >= self.quantity
         return self.product.stock >= self.quantity

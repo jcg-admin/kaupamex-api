@@ -17,6 +17,7 @@ from rest_framework import status
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from apps.catalogue.models import Product
 from .models import ProductQuestion, QuestionStatus
@@ -37,6 +38,12 @@ class ProductQuestionsView(APIView):
     POST /api/v1/products/<product_id>/questions/ — UC-QST-01 ask
     """
     permission_classes = [AllowAny]
+    # H-CICLO42-04: throttle para el POST de preguntas publicas. Sin limite
+    # cualquier visitante puede inundar la cola de moderacion del admin.
+    # El GET no tiene throttle_scope pero hereda AnonRateThrottle del
+    # DEFAULT_THROTTLE_CLASSES global (anon: 100/hour).
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope   = 'question_ask'
 
     def _get_product(self, product_id):
         # H-CICLO23-03: filtrar sólo productos activos y publicados.

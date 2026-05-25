@@ -141,6 +141,11 @@ class NewsletterConfirmView(APIView):
 class NewsletterUnsubscribeView(APIView):
     """POST /api/v1/newsletter/unsubscribe/ — UC-NEW-02."""
     permission_classes = [AllowAny]
+    # H-CICLO42-03: throttle para limitar intentos de baja masiva/abusiva
+    # o enumeracion de tokens. El scope newsletter_unsubscribe (10/hour)
+    # es equivalente al de subscribe para mantener la simetria de limites.
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope   = 'newsletter_unsubscribe'
 
     @extend_schema(
         summary='Cancelar suscripción al newsletter (UC-NEW-02)',
