@@ -31,9 +31,11 @@ class ProductVariantSerializer(serializers.ModelSerializer):
     def get_effective_price(self, obj) -> str:
         return str(obj.effective_price())
 
-    def get_price_with_tax(self, obj) -> float:
+    def get_price_with_tax(self, obj) -> str:
+        # H-CICLO48-05: Decimal * Decimal evita errores de punto flotante en
+        # precios con IVA (ej. 1159.9999999999998 en vez de 1160.00).
         iva = SiteSettings.get_current().iva_rate
-        return round(float(obj.effective_price()) * (1 + float(iva)), 2)
+        return str((obj.effective_price() * (1 + iva)).quantize(Decimal('0.01')))
 
     def get_is_available(self, obj) -> bool:
         return obj.is_available()
@@ -112,9 +114,11 @@ class ProductVariantAdminSerializer(serializers.ModelSerializer):
     def get_effective_price(self, obj) -> str:
         return str(obj.effective_price())
 
-    def get_price_with_tax(self, obj) -> float:
+    def get_price_with_tax(self, obj) -> str:
+        # H-CICLO48-05: Decimal * Decimal evita errores de punto flotante en
+        # precios con IVA (ej. 1159.9999999999998 en vez de 1160.00).
         iva = SiteSettings.get_current().iva_rate
-        return round(float(obj.effective_price()) * (1 + float(iva)), 2)
+        return str((obj.effective_price() * (1 + iva)).quantize(Decimal('0.01')))
 
     def validate_price_override(self, value):
         """FR-CHT-04.02: precio diferenciado debe ser > 0 (no 0, no negativo)."""
@@ -144,9 +148,11 @@ class ProductVariantPublicSerializer(serializers.ModelSerializer):
     def get_effective_price(self, obj) -> str:
         return str(obj.effective_price())
 
-    def get_price_with_tax(self, obj) -> float:
+    def get_price_with_tax(self, obj) -> str:
+        # H-CICLO48-05: Decimal * Decimal evita errores de punto flotante en
+        # precios con IVA (ej. 1159.9999999999998 en vez de 1160.00).
         iva = SiteSettings.get_current().iva_rate
-        return round(float(obj.effective_price()) * (1 + float(iva)), 2)
+        return str((obj.effective_price() * (1 + iva)).quantize(Decimal('0.01')))
 
     def get_is_available(self, obj) -> bool:
         return obj.is_active and obj.stock > 0

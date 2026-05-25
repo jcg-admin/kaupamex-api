@@ -130,7 +130,10 @@ class AdminQuestionsListView(_AdminOnly, APIView):
         else:
             qs = ProductQuestion.objects.all()
 
-        qs = qs.select_related('product').order_by('created_at')
+        # H-CICLO48-03: AdminQuestionItemSerializer accede a product.name,
+        # asker_user (username) y answered_by. Sin select_related se generan
+        # N+1 queries por cada pregunta en la cola. Se agregan las tres FKs.
+        qs = qs.select_related('product', 'asker_user', 'answered_by').order_by('created_at')
         return Response({'results': AdminQuestionItemSerializer(qs, many=True).data})
 
 

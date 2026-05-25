@@ -49,10 +49,12 @@ def _discount_block(product):
     discount = _get_active_discount(product)
     if discount is None:
         return None
+    # H-CICLO48-04: usar str() sobre Decimal en lugar de float() evita
+    # errores de punto flotante en precios (ej. 1999.9999999 en vez de 2000).
     return {
-        'pct': float(discount.discount_pct),
-        'original_price': float(product.price),
-        'discounted_price': float(discount.discounted_price),
+        'pct': str(discount.discount_pct),
+        'original_price': str(product.price),
+        'discounted_price': str(discount.discounted_price),
         'valid_from': discount.valid_from,
         'valid_until': discount.valid_until,
     }
@@ -64,8 +66,10 @@ def _availability(product):
 
 
 def _price_with_tax(product):
-    """Return price including 16% IVA."""
-    return float(product.price * (1 + TAX_RATE))
+    """Return price including 16% IVA as Decimal string (no float rounding errors)."""
+    # H-CICLO48-04: Decimal * Decimal evita los errores de punto flotante que
+    # producen valores como 1159.9999999999998 en lugar de 1160.00.
+    return str((product.price * (1 + TAX_RATE)).quantize(Decimal('0.01')))
 
 
 class ProductImageSerializer(serializers.ModelSerializer):

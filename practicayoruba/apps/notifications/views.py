@@ -46,7 +46,11 @@ class NotificationListView(APIView):
         responses=NotificationSerializer(many=True),
     )
     def get(self, request):
-        qs = Notification.objects.filter(user=request.user)
+        # H-CICLO48-02: order_by('-created_at') garantiza orden determinista.
+        # El modelo tiene Meta.ordering=['-created_at'] pero reliar en el
+        # ordering de Meta con queryset.filter() puede perderse tras un
+        # .values() u otras operaciones de combinacion. Se explicita aqui.
+        qs = Notification.objects.filter(user=request.user).order_by('-created_at')
         data = NotificationSerializer(qs, many=True).data
         return Response({'results': data})
 

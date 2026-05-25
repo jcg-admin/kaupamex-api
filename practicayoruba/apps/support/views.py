@@ -79,7 +79,10 @@ class SupportTicketListCreateView(APIView):
         responses=SupportTicketListSerializer(many=True),
     )
     def get(self, request):
-        qs = SupportTicket.objects.filter(user=request.user)
+        # H-CICLO48-01: order_by evita resultados no deterministos entre
+        # paginas. Sin el ordering el DB puede retornar el mismo ticket en
+        # pagina 1 y pagina 2 si el plan de ejecucion cambia entre requests.
+        qs = SupportTicket.objects.filter(user=request.user).order_by('-created_at')
         return Response(SupportTicketListSerializer(qs, many=True).data)
 
     @extend_schema(
