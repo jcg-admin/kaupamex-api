@@ -195,6 +195,10 @@ class ProductReviewsView(APIView):
                 'codigo_error': 'REVIEW_DUPLICATE',
             })
 
+        # Re-fetch con select_related para evitar N+1: ReviewAdminSerializer
+        # accede a review.user, review.product y review.order.
+        review = Review.objects.select_related('user', 'product', 'order').get(pk=review.pk)
+
         return Response(
             ReviewAdminSerializer(review).data,
             status=status.HTTP_201_CREATED,
@@ -242,7 +246,9 @@ class ReviewApproveView(_AdminOnly, APIView):
     @transaction.atomic
     def post(self, request, pk):
         try:
-            review = Review.objects.select_for_update().get(pk=pk)
+            review = Review.objects.select_related(
+                'user', 'product', 'order'
+            ).select_for_update().get(pk=pk)
         except Review.DoesNotExist:
             raise NotFound({
                 'detail': 'Reseña no encontrada.',
@@ -286,7 +292,9 @@ class ReviewRejectView(_AdminOnly, APIView):
     @transaction.atomic
     def post(self, request, pk):
         try:
-            review = Review.objects.select_for_update().get(pk=pk)
+            review = Review.objects.select_related(
+                'user', 'product', 'order'
+            ).select_for_update().get(pk=pk)
         except Review.DoesNotExist:
             raise NotFound({
                 'detail': 'Reseña no encontrada.',

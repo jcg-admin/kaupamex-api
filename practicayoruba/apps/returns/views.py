@@ -44,8 +44,12 @@ from .serializers import (
 
 
 def _get_return_or_404(pk):
+    """Fetch ReturnRequest con select_related/prefetch para evitar N+1 al
+    serializar con ReturnRequestAdminSerializer (user, items, history)."""
     try:
-        return ReturnRequest.objects.get(pk=pk)
+        return ReturnRequest.objects.select_related('user').prefetch_related(
+            'items', 'history_entries__actor'
+        ).get(pk=pk)
     except ReturnRequest.DoesNotExist:
         raise NotFound({'detail': 'Devolución no encontrada.',
                         'error_code': 'RETURN_NOT_FOUND'})
@@ -218,6 +222,12 @@ class ReturnListCreateView(APIView):
             actor=request.user,
             justification='Solicitud creada por el comprador.',
         )
+
+        # Re-fetch con prefetch para evitar N+1 en ReturnRequestSerializer
+        # (accede a items y history_entries__actor).
+        ret = ReturnRequest.objects.prefetch_related(
+            'items', 'history_entries__actor'
+        ).get(pk=ret.pk)
 
         return Response(
             ReturnRequestSerializer(ret).data,
