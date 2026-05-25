@@ -30,12 +30,27 @@ class WishlistProductNestedSerializer(drf_serializers.ModelSerializer):
 
 
 class WishlistItemSerializer(ModelSerializer):
+    """H-CICLO37-03: WishlistPage.jsx accede a campos planos como
+    ``product_name``, ``image_url``, ``category_name``, ``orisha_name``,
+    ``is_available`` y ``stock``, pero el serializer sólo exponía el
+    objeto anidado ``product`` y el string ``availability``. Se agregan
+    los campos planos necesarios como SerializerMethodFields para que
+    la UI pueda renderizar correctamente sin errores de undefined.
+    """
+
     product       = WishlistProductNestedSerializer(read_only=True)
     variant_label = SerializerMethodField()
     current_price = SerializerMethodField()
     price_dropped = SerializerMethodField()
     price_drop_percent = SerializerMethodField()
     availability  = SerializerMethodField()
+    # Flat aliases requeridos por WishlistPage.jsx
+    product_name  = SerializerMethodField()
+    image_url     = SerializerMethodField()
+    category_name = SerializerMethodField()
+    orisha_name   = SerializerMethodField()
+    is_available  = SerializerMethodField()
+    stock         = SerializerMethodField()
 
     class Meta:
         model  = WishlistItem
@@ -44,6 +59,8 @@ class WishlistItemSerializer(ModelSerializer):
             'price_at_add', 'current_price',
             'price_dropped', 'price_drop_percent',
             'availability', 'created_at',
+            'product_name', 'image_url', 'category_name',
+            'orisha_name', 'is_available', 'stock',
         ]
 
     def get_variant_label(self, obj):
@@ -64,6 +81,35 @@ class WishlistItemSerializer(ModelSerializer):
     def get_availability(self, obj):
         return 'IN_STOCK' if obj.is_available else 'OUT_OF_STOCK'
 
+    def get_product_name(self, obj):
+        return obj.product.name
+
+    def get_image_url(self, obj):
+        request = self.context.get('request')
+        cover = obj.product.images.filter(is_cover=True).first()
+        if cover is None:
+            cover = obj.product.images.first()
+        if cover is None:
+            return None
+        url = cover.image.url
+        if request:
+            return request.build_absolute_uri(url)
+        return url
+
+    def get_category_name(self, obj):
+        return getattr(obj.product.category, 'name', None)
+
+    def get_orisha_name(self, obj):
+        # El modelo Product no tiene campo orisha; se retorna None para
+        # que la UI omita la etiqueta silenciosamente via &&.
+        return None
+
+    def get_is_available(self, obj):
+        return obj.is_available
+
+    def get_stock(self, obj):
+        return obj.product.stock
+
 
 class WishlistView(APIView):
     """
@@ -77,7 +123,8 @@ class WishlistView(APIView):
     def get(self, request):
         qs = (WishlistItem.objects
               .filter(user=request.user)
-              .select_related('product', 'variant__option'))
+              .select_related('product', 'product__category', 'variant__option')
+              .prefetch_related('product__images'))
 
         avail_filter = request.query_params.get('availability')
         if avail_filter:
