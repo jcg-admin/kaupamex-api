@@ -515,7 +515,20 @@ _CATEGORY_IMAGE_ALLOWED_TYPES = {'image/jpeg', 'image/png', 'image/webp', 'image
 _CATEGORY_IMAGE_ALLOWED_EXTS = {'.jpg', '.jpeg', '.png', '.webp', '.gif'}
 
 
+class _ParentStubSerializer(serializers.ModelSerializer):
+    """Minimal representation of a parent category for admin list/detail."""
+    class Meta:
+        model  = Category
+        fields = ['id', 'name']
+
+
 class CategoryAdminSerializer(serializers.ModelSerializer):
+    # H-CICLO67-03: `parent` was serialized as a raw PK integer (read_only FK).
+    # AdminCategoriesPage.jsx reads `c.parent?.name` to display the parent
+    # category name in the table — a plain integer has no `.name` property so
+    # the column always rendered `—`.  Replace with a nested stub that exposes
+    # {id, name}, keeping `parent_id` as the write-side writable FK field.
+    parent = _ParentStubSerializer(read_only=True)
     parent_id = serializers.PrimaryKeyRelatedField(
         source='parent', queryset=Category.objects.all(), required=False, allow_null=True,
     )
@@ -523,7 +536,7 @@ class CategoryAdminSerializer(serializers.ModelSerializer):
     class Meta:
         model  = Category
         fields = ['id', 'name', 'slug', 'description', 'parent', 'parent_id', 'image', 'is_active']
-        extra_kwargs = {'slug': {'required': False}, 'parent': {'read_only': True},
+        extra_kwargs = {'slug': {'required': False},
                         'description': {'max_length': 5000}}
 
     def validate_image(self, value):
