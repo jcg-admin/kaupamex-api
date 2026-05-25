@@ -93,7 +93,7 @@ class OrderListSerializer(serializers.ModelSerializer):
         model  = Order
         fields = [
             'order_number', 'status', 'status_display',
-            'created_at', 'total', 'items_count', 'thumbnail_url',
+            'created_at', 'updated_at', 'total', 'items_count', 'thumbnail_url',
         ]
 
     def get_items_count(self, obj):
