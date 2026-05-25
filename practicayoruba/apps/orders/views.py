@@ -263,6 +263,14 @@ class CheckoutView(APIView):
         # DEC-BC-19: señal order_created para notificaciones/hooks downstream.
         order_created_signal.send(sender=Order, order=order)
 
+        # Re-fetch con select_related/prefetch para evitar N+1 al serializar:
+        # OrderSerializer accede a items, value, address y shipping_method.
+        order = (
+            Order.objects
+            .select_related('value', 'address', 'shipping_method')
+            .prefetch_related('items')
+            .get(pk=order.pk)
+        )
         response_data = OrderSerializer(order).data
 
         # DEC-BC-03: guardar respuesta para idempotencia futura.
