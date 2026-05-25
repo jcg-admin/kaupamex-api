@@ -67,7 +67,14 @@ class InventoryDashboardView(_AdminOnly, APIView):
         status_filter_raw = request.query_params.get('status')
         status_filter = STATUS_ALIAS.get(status_filter_raw, status_filter_raw) if status_filter_raw else None
 
-        items, threshold = _build_dashboard_items(status_filter)
+        all_items, threshold = _build_dashboard_items(None)
+        summary = {
+            'normal': sum(1 for r in all_items if r['status'] == 'NORMAL'),
+            'low':    sum(1 for r in all_items if r['status'] == 'BAJO'),
+            'out':    sum(1 for r in all_items if r['status'] == 'AGOTADO'),
+            'total':  len(all_items),
+        }
+        items = [r for r in all_items if not status_filter or r['status'] == status_filter]
         try:
             page      = max(1, int(request.query_params.get('page', 1)))
             page_size = max(1, min(200, int(request.query_params.get('page_size', 50))))
@@ -76,14 +83,6 @@ class InventoryDashboardView(_AdminOnly, APIView):
         total     = len(items)
         total_pages = max(1, math.ceil(total / page_size)) if total else 1
         page_items = items[(page - 1) * page_size: page * page_size]
-
-        all_items, _ = _build_dashboard_items(None)
-        summary = {
-            'normal': sum(1 for r in all_items if r['status'] == 'NORMAL'),
-            'low':    sum(1 for r in all_items if r['status'] == 'BAJO'),
-            'out':    sum(1 for r in all_items if r['status'] == 'AGOTADO'),
-            'total':  len(all_items),
-        }
         return Response({
             'results': page_items, 'summary': summary,
             'pagination': {'page': page, 'page_size': page_size, 'total_pages': total_pages, 'total': total},

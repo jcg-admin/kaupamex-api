@@ -154,9 +154,11 @@ class CatalogueListView(ListAPIView):
 
     def get_queryset(self):
         # H-CICLO31-04: prefetch images para evitar N+1 en ProductListSerializer.
+        # API-1/API-2: prefetch discounts y variants para evitar N+1 en
+        # _get_active_discount y get_variants_available.
         qs = (Product.objects.filter(is_active=True, is_published=True)
               .select_related('category')
-              .prefetch_related('images'))
+              .prefetch_related('images', 'discounts', 'variants'))
         category_slug = self.request.query_params.get('category')
         if category_slug:
             pks = _get_category_descendants(category_slug)
@@ -245,9 +247,11 @@ class ProductSearchView(ListAPIView):
     def list(self, request, *args, **kwargs):
         q = _validate_query(request.query_params.get('q', ''))
         # H-CICLO31-04: prefetch images para evitar N+1 en ProductSearchSerializer.
+        # API-1/API-2: prefetch discounts y variants para evitar N+1 en
+        # _get_active_discount y get_variants_available.
         qs = (Product.objects.filter(is_active=True, is_published=True)
               .select_related('category')
-              .prefetch_related('images'))
+              .prefetch_related('images', 'discounts', 'variants'))
         qs = _fulltext_search(qs, q)
         if request.query_params.get('category'):
             qs = qs.filter(category_id=request.query_params['category'])
@@ -490,9 +494,9 @@ class ProductAdminViewSet(ProductDeactivateAction, ModelViewSet):
     serializer_class   = ProductAdminSerializer
     # H-CICLO47-01: prefetch_related('images') evita N+1 al serializar con
     # ProductAdminSerializer, que expone el campo `images` (many=True).
-    # Sin el prefetch, cada llamada a create/partial_update/list dispara
-    # 1 query extra por producto para cargar las imágenes asociadas.
-    queryset           = Product.objects.select_related('category').prefetch_related('images').order_by('-created_at')
+    # API-1/API-2: prefetch discounts y variants para evitar N+1 en
+    # _get_active_discount y get_variants_available.
+    queryset           = Product.objects.select_related('category').prefetch_related('images', 'discounts', 'variants').order_by('-created_at')
     http_method_names  = ['get', 'post', 'patch', 'delete', 'head', 'options']
     # H-CICLO38-02: CatalogueListView (buyer) usa CataloguePagination
     # (page_size=20). Sin pagination_class, ProductAdminViewSet devuelve

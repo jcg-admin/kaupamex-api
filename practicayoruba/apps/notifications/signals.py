@@ -62,6 +62,10 @@ def _order_value_created(sender, instance, created, **kwargs):
 @receiver(pre_save, sender=Order)
 def _cache_order_old_status(sender, instance, **kwargs):
     """Captura status anterior para detectar transicion en post_save."""
+    update_fields = kwargs.get('update_fields')
+    if update_fields is not None and 'status' not in update_fields:
+        instance._old_status = getattr(instance, '_old_status', None)
+        return
     if instance.pk:
         try:
             instance._old_status = Order.objects.get(pk=instance.pk).status
@@ -91,6 +95,10 @@ def _order_status_changed(sender, instance, created, **kwargs):
 
 @receiver(pre_save, sender=ReturnRequest)
 def _cache_return_old_status(sender, instance, **kwargs):
+    update_fields = kwargs.get('update_fields')
+    if update_fields is not None and 'status' not in update_fields:
+        instance._old_status = getattr(instance, '_old_status', None)
+        return
     if instance.pk:
         try:
             instance._old_status = ReturnRequest.objects.get(pk=instance.pk).status
@@ -154,6 +162,10 @@ def _refund_created(sender, instance, created, **kwargs):
 @receiver(pre_save, sender=SupportTicket)
 def _cache_ticket_old_status(sender, instance, **kwargs):
     """Captura status anterior para detectar transicion a CLOSED."""
+    update_fields = kwargs.get('update_fields')
+    if update_fields is not None and 'status' not in update_fields:
+        instance._old_status = getattr(instance, '_old_status', None)
+        return
     if instance.pk:
         try:
             instance._old_status = SupportTicket.objects.get(pk=instance.pk).status

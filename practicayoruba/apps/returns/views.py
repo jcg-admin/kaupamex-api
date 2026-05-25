@@ -16,7 +16,7 @@ Admin:
   POST /api/v1/admin/returns/<id>/refund/     UC-RET-06
 """
 from decimal import Decimal
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.db import transaction
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema, OpenApiParameter
@@ -278,19 +278,18 @@ class AdminReturnListView(_AdminOnly, APIView):
 
         results = ReturnRequestAdminSerializer(qs, many=True).data
 
-        # Build metrics
+        # Build metrics — single aggregate query instead of 6 separate COUNTs.
         # H-CICLO38-03: incluir `pendiente_info` (INFO_REQUESTED) para que
-        # AdminReturnsPage pueda mostrar el contador correcto. Antes faltaba
-        # esta clave y el UI siempre mostraba 0 en "Pendiente de información".
-        all_qs = ReturnRequest.objects.all()
-        metrics = {
-            'pendientes':     all_qs.filter(status=ReturnRequest.Status.PENDING_REVIEW).count(),
-            'aprobadas':      all_qs.filter(status=ReturnRequest.Status.APPROVED).count(),
-            'rechazadas':     all_qs.filter(status=ReturnRequest.Status.REJECTED).count(),
-            'recibidas':      all_qs.filter(status=ReturnRequest.Status.RECEIVED).count(),
-            'reembolsadas':   all_qs.filter(status=ReturnRequest.Status.REFUNDED).count(),
-            'pendiente_info': all_qs.filter(status=ReturnRequest.Status.INFO_REQUESTED).count(),
-        }
+        # AdminReturnsPage pueda mostrar el contador correcto.
+        counts = ReturnRequest.objects.aggregate(
+            pendientes=Count('id', filter=Q(status=ReturnRequest.Status.PENDING_REVIEW)),
+            aprobadas=Count('id', filter=Q(status=ReturnRequest.Status.APPROVED)),
+            rechazadas=Count('id', filter=Q(status=ReturnRequest.Status.REJECTED)),
+            recibidas=Count('id', filter=Q(status=ReturnRequest.Status.RECEIVED)),
+            reembolsadas=Count('id', filter=Q(status=ReturnRequest.Status.REFUNDED)),
+            pendiente_info=Count('id', filter=Q(status=ReturnRequest.Status.INFO_REQUESTED)),
+        )
+        metrics = counts
 
         return Response({'results': results, 'metrics': metrics})
 

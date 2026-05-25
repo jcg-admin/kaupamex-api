@@ -21,8 +21,21 @@ from .models import Category, Product, ProductImage, ProductDiscount, ProductPri
 
 
 def _get_active_discount(product):
-    """Return the active ProductDiscount or None."""
+    """Return the active ProductDiscount or None.
+
+    Reads from the prefetch cache when 'discounts' has been prefetched,
+    avoiding an extra query per product in list views (API-1).
+    """
     now = timezone.now()
+    cache = getattr(product, '_prefetched_objects_cache', {})
+    if 'discounts' in cache:
+        candidates = [
+            d for d in cache['discounts']
+            if d.is_active
+            and d.valid_from <= now
+            and (d.valid_until is None or d.valid_until >= now)
+        ]
+        return max(candidates, key=lambda d: d.created_at, default=None)
     return (
         ProductDiscount.objects
         .filter(
@@ -175,6 +188,9 @@ class ProductListSerializer(serializers.ModelSerializer):
         return _availability(obj)
 
     def get_variants_available(self, obj):
+        cache = getattr(obj, '_prefetched_objects_cache', {})
+        if 'variants' in cache:
+            return any(v.is_active for v in cache['variants'])
         return obj.variants.filter(is_active=True).exists()
 
     def get_discount(self, obj):
@@ -237,6 +253,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             Product.objects
             .filter(category=obj.category, is_active=True, is_published=True)
             .exclude(pk=obj.pk)
+            .prefetch_related('images', 'discounts', 'variants')
             .order_by('?')[:4]
         )
         return ProductListSerializer(qs, many=True, context=self.context).data
