@@ -168,6 +168,27 @@ class VariantTypeAdminViewSet(ModelViewSet):
     queryset           = VariantType.objects.all().order_by('name')
     http_method_names  = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        product_pk = self.kwargs.get('product_pk')
+        if product_pk:
+            qs = qs.filter(product_id=product_pk)
+        return qs
+
+    def get_serializer_context(self):
+        """H-CICLO27-04: pasar product al contexto del serializer para que
+        validate_name() pueda verificar unicidad de nombre por producto y
+        devolver ValidationError 400 en lugar de IntegrityError 500."""
+        ctx = super().get_serializer_context()
+        product_pk = self.kwargs.get('product_pk')
+        if product_pk:
+            try:
+                from apps.catalogue.models import Product
+                ctx['product'] = Product.objects.get(pk=product_pk)
+            except (Product.DoesNotExist, ValueError):
+                pass
+        return ctx
+
     @extend_schema(summary='Listar tipos de variante (admin)', tags=['variants'],
                    responses={200: VariantTypeSerializer(many=True)})
     def list(self, request, *args, **kwargs):

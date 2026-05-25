@@ -147,7 +147,7 @@ def build_top_sellers_payload(
     rows = (
         OrderItem.objects
         .filter(order__created_at__gte=start, order__created_at__lte=end)
-        .exclude(order__status='CANCELLED')
+        .exclude(order__status__in=['CANCELLED', 'CANCELLED_TIMEOUT'])  # H-CICLO27-03: alinear con build_sales_payload
         .values('product_id', 'product_name', 'sku')
         .annotate(units_sold=Sum('quantity'), revenue=Sum('subtotal'))
         .order_by(order_field)[:limit]
@@ -167,7 +167,7 @@ def build_top_sellers_payload(
     inactive_with_sales = (
         OrderItem.objects
         .filter(order__created_at__gte=start, order__created_at__lte=end)
-        .exclude(order__status='CANCELLED')
+        .exclude(order__status__in=['CANCELLED', 'CANCELLED_TIMEOUT'])
         .filter(product__is_active=False)
         .values('product_id').distinct().count()
     )
@@ -339,7 +339,7 @@ def count_export_rows(slug: str, days: int) -> int:
         return (
             OrderItem.objects
             .filter(order__created_at__gte=start, order__created_at__lte=end)
-            .exclude(order__status='CANCELLED')
+            .exclude(order__status__in=['CANCELLED', 'CANCELLED_TIMEOUT'])
             .values('product_id').distinct().count()
         )
     if slug == 'customers-rfm':

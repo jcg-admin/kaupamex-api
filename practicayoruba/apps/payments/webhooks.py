@@ -314,25 +314,15 @@ class PayPalWebhookView(APIView):
         paypal_event_id = data.get('id', '')
         transmission_id = request.META.get('HTTP_PAYPAL_TRANSMISSION_ID', '')
 
-        # DEC-BC-04: dedup via WebhookEvent antes de verificar firma.
-        # transaction.atomic() crea savepoint para aislar el IntegrityError.
-        if paypal_event_id:
-            try:
-                with transaction.atomic():
-                    WebhookEvent.objects.create(
-                        gateway='PAYPAL',
-                        event_id=paypal_event_id,
-                        transmission_id=transmission_id,
-                        raw_body=raw_body,
-                    )
-            except IntegrityError:
-                logger.info(
-                    'PayPal webhook: evento duplicado id=%s — 200 idempotente',
-                    paypal_event_id,
-                )
-                return Response({'status': 'already_processed'}, status=200)
-
-        # Verificar firma consultando PayPal (H-PAY-003)
+        # H-CICLO27-01: verificar firma ANTES del dedup.
+        # El orden anterior (dedup → firma) permitía que un atacante con un
+        # event_id conocido enviara un webhook falso, registrándolo en
+        # WebhookEvent y marcándolo como already_processed. El webhook
+        # legítimo de PayPal llegaría después y sería descartado
+        # silenciosamente con 200 idempotente, bloqueando la confirmación
+        # del pago. Mismo patrón que H-CICLO22-01 aplicado al webhook de MP.
+        # Solución: rechazar con 401 cualquier webhook con firma inválida
+        # ANTES de persistir el evento en la tabla de dedup.
         try:
             pp_gateway = PayPalGateway()
             headers = {
@@ -354,6 +344,24 @@ class PayPalWebhookView(APIView):
         if not is_valid:
             logger.warning('PayPal webhook: firma inválida para event_type=%s', event_type)
             return Response({'status': 'invalid_signature'}, status=401)
+
+        # DEC-BC-04: dedup via WebhookEvent solo después de validar la firma.
+        # transaction.atomic() crea savepoint para aislar el IntegrityError.
+        if paypal_event_id:
+            try:
+                with transaction.atomic():
+                    WebhookEvent.objects.create(
+                        gateway='PAYPAL',
+                        event_id=paypal_event_id,
+                        transmission_id=transmission_id,
+                        raw_body=raw_body,
+                    )
+            except IntegrityError:
+                logger.info(
+                    'PayPal webhook: evento duplicado id=%s — 200 idempotente',
+                    paypal_event_id,
+                )
+                return Response({'status': 'already_processed'}, status=200)
 
         # Ignorar eventos no relevantes (responder 200 de todas formas)
         relevant = {
