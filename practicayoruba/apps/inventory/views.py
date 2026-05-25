@@ -220,6 +220,9 @@ def _process_import_csv(file_obj, initial_state: str, admin_user) -> dict:
     created = failed = 0
     error_report = []
 
+    # Validate all rows first so we can abort the whole import atomically
+    # if any row is invalid (H-CICLO72-02: no partial imports).
+    to_create = []
     for i, row in enumerate(rows, start=2):
         try:
             sku = row.get('sku', '').strip()
@@ -238,17 +241,24 @@ def _process_import_csv(file_obj, initial_state: str, admin_user) -> dict:
                 raise ValueError(f'Categoría no encontrada: {category_slug!r}')
             if Product.objects.filter(sku=sku).exists():
                 raise ValueError(f'SKU duplicado: {sku!r}')
-            Product.objects.create(
-                name=name, slug=sku.lower().replace(' ', '-'), sku=sku,
-                description='', price=price, category=category,
-                is_active=is_active, is_published=is_published,
-            )
+            to_create.append((i, name, sku, price, category))
             created += 1
         except Exception as exc:
             failed += 1
             error_report.append({'row': i, 'field': _guess_error_field(exc), 'reason': str(exc)})
 
-    return {'created': created, 'failed': failed, 'products_created': created,
+    # Only persist if every row passed validation — all-or-nothing semantics.
+    if not error_report:
+        with transaction.atomic():
+            for _i, name, sku, price, category in to_create:
+                Product.objects.create(
+                    name=name, slug=sku.lower().replace(' ', '-'), sku=sku,
+                    description='', price=price, category=category,
+                    is_active=is_active, is_published=is_published,
+                )
+
+    return {'created': created if not error_report else 0,
+            'failed': failed, 'products_created': created if not error_report else 0,
             'products_failed': failed, 'error_report': error_report}, None
 
 

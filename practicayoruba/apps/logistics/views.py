@@ -120,6 +120,17 @@ class ShipmentGuideListCreateView(_AdminOnly, APIView):
         ser.is_valid(raise_exception=True)
         data = ser.validated_data
         order = data['order']
+
+        # H-CICLO72-03: prevent duplicate active guides for the same order.
+        if ShipmentGuide.objects.filter(order=order, is_deleted=False).exists():
+            return Response(
+                {
+                    'detail': 'Ya existe una guía de envío activa para esta orden.',
+                    'codigo_error': 'GUIDE_ALREADY_EXISTS',
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+
         guide = ShipmentGuide.objects.create(
             order=order, courier=data['courier'],
             tracking_number=data['tracking_number'], notes=data.get('notes', ''),
