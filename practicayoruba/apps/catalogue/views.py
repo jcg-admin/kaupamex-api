@@ -254,7 +254,11 @@ class ProductSearchView(ListAPIView):
               .prefetch_related('images', 'discounts', 'variants'))
         qs = _fulltext_search(qs, q)
         if request.query_params.get('category'):
-            qs = qs.filter(category_id=request.query_params['category'])
+            try:
+                category_pk = int(request.query_params['category'])
+            except (ValueError, TypeError):
+                raise ValidationError({'category': 'El ID de categoría debe ser un entero.'})
+            qs = qs.filter(category_id=category_pk)
         price_min = request.query_params.get('price_min')
         if price_min:
             try:
