@@ -11,6 +11,7 @@ Admin:
   POST /api/v1/admin/contact/<id>/reply/      — UC-COM-03 reply via email.
 """
 from django.conf import settings
+from django.db import transaction
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
@@ -110,8 +111,6 @@ class AdminContactMessageReplyView(_AdminOnly, APIView):
         responses={200: ContactMessageAdminSerializer, 400: None, 404: None},
     )
     def post(self, request, message_id):
-        msg = _get_message(message_id)
-
         reply_body = (request.data.get('reply_body') or '').strip()
         if not reply_body:
             raise ValidationError({
@@ -119,17 +118,35 @@ class AdminContactMessageReplyView(_AdminOnly, APIView):
                 'codigo_error': 'BODY_REQUIRED',
             })
 
+        with transaction.atomic():
+            try:
+                msg = ContactMessage.objects.select_for_update().get(pk=message_id)
+            except ContactMessage.DoesNotExist:
+                raise NotFound({
+                    'detail': 'Mensaje no encontrado.',
+                    'codigo_error': 'MESSAGE_NOT_FOUND',
+                })
+
+            if msg.replied:
+                return Response(
+                    {
+                        'detail': 'El mensaje ya fue respondido.',
+                        'codigo_error': 'MESSAGE_ALREADY_REPLIED',
+                    },
+                    status=status.HTTP_409_CONFLICT,
+                )
+
+            msg.read = True
+            msg.replied = True
+            msg.reply_body = reply_body
+            msg.reply_sent_at = timezone.now()
+            msg.save(update_fields=['read', 'replied', 'reply_body', 'reply_sent_at', 'updated_at'])
+
         dispatch_email(
             subject=f'Re: {msg.subject}',
             message=reply_body,
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[msg.email],
         )
-
-        msg.read = True
-        msg.replied = True
-        msg.reply_body = reply_body
-        msg.reply_sent_at = timezone.now()
-        msg.save(update_fields=['read', 'replied', 'reply_body', 'reply_sent_at', 'updated_at'])
 
         return Response(ContactMessageAdminSerializer(msg).data)
