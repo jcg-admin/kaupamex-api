@@ -405,6 +405,18 @@ class ProductAdminSerializer(serializers.ModelSerializer):
         elif status_value == 'BORRADOR':
             attrs['is_active'] = True
             attrs['is_published'] = False
+        # H-CICLO62-01: impedir publicar un producto sin imágenes.
+        # Un producto publicado sin imagen aparece con imagen rota en el
+        # catálogo (cover_image=None). La validación se aplica tanto al
+        # path status='PUBLICADO' como a is_published=True directo.
+        publishing = attrs.get('is_published', False)
+        if publishing and self.instance and not self.instance.images.exists():
+            raise serializers.ValidationError({
+                'is_published': (
+                    'No se puede publicar un producto sin imágenes. '
+                    'Sube al menos una imagen antes de publicar.'
+                ),
+            })
         return attrs
 
     def get_sale_price(self, obj):

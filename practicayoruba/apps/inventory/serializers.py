@@ -53,6 +53,16 @@ class StockAdjustSerializer(serializers.Serializer):
     reason = serializers.ChoiceField(choices=ADJUSTMENT_REASONS, required=True)
     notes  = serializers.CharField(required=False, default='', allow_blank=True, max_length=500)
 
+    def validate_delta(self, value):
+        # H-CICLO62-02: delta=0 crearía un StockMovement sin efecto real,
+        # contaminando el historial de auditoría con movimientos nulos.
+        if value == 0:
+            raise serializers.ValidationError(
+                'El delta no puede ser cero. Usa un valor positivo (entrada) '
+                'o negativo (salida/corrección).'
+            )
+        return value
+
 
 class ImportJobSerializer(serializers.ModelSerializer):
     class Meta:
