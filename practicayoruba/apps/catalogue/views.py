@@ -153,7 +153,10 @@ class CatalogueListView(ListAPIView):
     filter_backends    = [CatalogueOrderingFilter]
 
     def get_queryset(self):
-        qs = Product.objects.filter(is_active=True, is_published=True).select_related('category')
+        # H-CICLO31-04: prefetch images para evitar N+1 en ProductListSerializer.
+        qs = (Product.objects.filter(is_active=True, is_published=True)
+              .select_related('category')
+              .prefetch_related('images'))
         category_slug = self.request.query_params.get('category')
         if category_slug:
             pks = _get_category_descendants(category_slug)
@@ -230,7 +233,10 @@ class ProductSearchView(ListAPIView):
 
     def list(self, request, *args, **kwargs):
         q = _validate_query(request.query_params.get('q', ''))
-        qs = Product.objects.filter(is_active=True, is_published=True).select_related('category')
+        # H-CICLO31-04: prefetch images para evitar N+1 en ProductSearchSerializer.
+        qs = (Product.objects.filter(is_active=True, is_published=True)
+              .select_related('category')
+              .prefetch_related('images'))
         qs = _fulltext_search(qs, q)
         if request.query_params.get('category'):
             qs = qs.filter(category_id=request.query_params['category'])

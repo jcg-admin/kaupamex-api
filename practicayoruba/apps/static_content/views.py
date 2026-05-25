@@ -23,6 +23,9 @@ class _AdminOnly:
     serializer_class = StaticContentSerializer
 
 
+_BODY_MAX_LENGTH = 102_400   # 100 KB — H-CICLO31-02: limitar contenido de página estática.
+
+
 class StaticContentListView(_AdminOnly, APIView):
     @extend_schema(summary='List static content pages.',
                    tags=['static-content'],
@@ -43,6 +46,13 @@ class StaticContentListView(_AdminOnly, APIView):
             raise ValidationError({
                 'detail': 'slug y title son requeridos.',
                 'codigo_error': 'REQUIRED_FIELDS_MISSING',
+            })
+        # H-CICLO31-02: sin límite, un admin podría publicar una página con
+        # decenas de MB de contenido, saturando la BD y la respuesta HTTP.
+        if len(body) > _BODY_MAX_LENGTH:
+            raise ValidationError({
+                'detail': f'body no puede superar {_BODY_MAX_LENGTH} caracteres.',
+                'codigo_error': 'BODY_TOO_LONG',
             })
         if StaticContent.objects.filter(slug=slug).exists():
             raise ValidationError({
@@ -91,6 +101,12 @@ class StaticContentDetailView(_AdminOnly, APIView):
             raise ValidationError({
                 'detail': 'title no puede ser vacio.',
                 'codigo_error': 'TITLE_REQUIRED',
+            })
+        # H-CICLO31-02: mismo límite que en POST para prevenir cuerpos masivos.
+        if len(body) > _BODY_MAX_LENGTH:
+            raise ValidationError({
+                'detail': f'body no puede superar {_BODY_MAX_LENGTH} caracteres.',
+                'codigo_error': 'BODY_TOO_LONG',
             })
 
         content.version += 1

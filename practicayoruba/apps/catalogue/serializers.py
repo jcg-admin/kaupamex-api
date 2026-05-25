@@ -116,6 +116,18 @@ class ProductListSerializer(serializers.ModelSerializer):
         return _price_with_tax(obj)
 
     def _get_cover_image(self, obj):
+        # H-CICLO31-04: evitar N+1 usando el prefetch `images` cuando la vista
+        # ya hizo prefetch_related('images'). La llamada a obj.images.filter(…)
+        # dispara 1 query por producto en listas; con el prefetch en memoria solo
+        # se itera la lista en Python.
+        prefetched = getattr(obj, '_prefetched_objects_cache', {}).get('images')
+        if prefetched is not None:
+            images_list = list(prefetched)
+            cover = next((img for img in images_list if img.is_cover), None)
+            if not cover and images_list:
+                cover = images_list[0]
+            return cover
+        # Fallback para acceso unitario (detail view): query directa.
         cover = obj.images.filter(is_cover=True).first()
         if not cover:
             cover = obj.images.first()
@@ -249,9 +261,17 @@ class ProductSearchSerializer(serializers.ModelSerializer):
 
     def get_cover_image_url(self, obj):
         request = self.context.get('request')
-        cover = obj.images.filter(is_cover=True).first()
-        if not cover:
-            cover = obj.images.first()
+        # H-CICLO31-04: mismo patrón anti-N+1 que ProductListSerializer.
+        prefetched = getattr(obj, '_prefetched_objects_cache', {}).get('images')
+        if prefetched is not None:
+            images_list = list(prefetched)
+            cover = next((img for img in images_list if img.is_cover), None)
+            if not cover and images_list:
+                cover = images_list[0]
+        else:
+            cover = obj.images.filter(is_cover=True).first()
+            if not cover:
+                cover = obj.images.first()
         if cover and cover.image:
             return request.build_absolute_uri(cover.image.url) if request else cover.image.url
         return None
