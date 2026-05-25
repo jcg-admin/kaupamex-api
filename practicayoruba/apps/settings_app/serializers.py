@@ -24,6 +24,31 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'updated_at']
 
 
+class SiteSettingsAdminSerializer(serializers.ModelSerializer):
+    """
+    H-CICLO40-07: AdminSiteSettingsView importaba SiteSettingsAdminSerializer
+    que no existia en serializers.py, rompiendo la importacion del modulo y
+    levantando ImportError en cada peticion al endpoint /admin/settings/.
+    El serializer admin incluye todos los campos del modelo (incluidos los
+    campos legacy que el serializer publico excluye) para que el admin pueda
+    gestionar la configuracion completa del sistema (UC-ADM-04).
+    """
+
+    class Meta:
+        model  = SiteSettings
+        fields = [
+            'id',
+            'site_name', 'currency',
+            'iva_rate',
+            'payment_timeout_minutes', 'order_timeout_minutes',
+            'max_return_days', 'min_stock_threshold',
+            'free_shipping_threshold',
+            'support_email', 'phone', 'address', 'social_links',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'updated_at']
+
+
 # =============================================================================
 # Sprint 8 — UC-CFG-01: Gateways de pago
 # =============================================================================

@@ -37,11 +37,19 @@ class AdminUserDetailSerializer(AdminUserListSerializer):
     """UC-AUTH-12: perfil completo de usuario para el administrador."""
     profile_completeness = drf_serializers.SerializerMethodField()
     address_count        = drf_serializers.SerializerMethodField()
+    # H-CICLO40-04: AdminUserDetailPage.jsx lee addresses (list), recent_orders,
+    # lifetime_value. Se añaden estos campos para que el detalle de usuario
+    # no muestre siempre "Sin direcciones / Sin pedidos / $0".
+    addresses            = drf_serializers.SerializerMethodField()
+    recent_orders        = drf_serializers.SerializerMethodField()
+    lifetime_value       = drf_serializers.SerializerMethodField()
 
     class Meta(AdminUserListSerializer.Meta):
+        # first_name, last_name ya vienen del base AdminUserListSerializer
         fields = AdminUserListSerializer.Meta.fields + [
-            'first_name', 'last_name', 'phone',
+            'phone',
             'profile_completeness', 'address_count',
+            'addresses', 'recent_orders', 'lifetime_value',
         ]
 
     def get_profile_completeness(self, obj) -> int:
@@ -49,6 +57,62 @@ class AdminUserDetailSerializer(AdminUserListSerializer):
 
     def get_address_count(self, obj) -> int:
         return obj.addresses.count()
+
+    def get_addresses(self, obj) -> list:
+        from apps.users.serializers import AddressSerializer
+        qs = obj.addresses.order_by('-is_default', 'alias')
+        return AddressSerializer(qs, many=True).data
+
+    def get_recent_orders(self, obj) -> list:
+        from apps.orders.models import Order
+        STATUS_LABEL = {
+            'PENDING': 'Pendiente',
+            'PROCESSING': 'En proceso',
+            'SHIPPED': 'Enviado',
+            'DELIVERED': 'Entregado',
+            'CANCELLED': 'Cancelado',
+            'CANCELLED_TIMEOUT': 'Cancelado (timeout)',
+            'REFUNDED': 'Reembolsado',
+        }
+        STATUS_TONE = {
+            'DELIVERED': 'lime',
+            'CANCELLED': 'vino',
+            'CANCELLED_TIMEOUT': 'vino',
+            'REFUNDED': 'vino',
+            'SHIPPED': 'bronze',
+            'PROCESSING': 'bronze',
+            'PENDING': 'muted',
+        }
+        qs = (
+            Order.objects.filter(user=obj)
+            .prefetch_related('items')
+            .order_by('-created_at')[:5]
+        )
+        result = []
+        for order in qs:
+            v = getattr(order, 'value', None)
+            total = str(v.total) if v else '0.00'
+            result.append({
+                'order_number': order.order_number,
+                'created_at': order.created_at.isoformat(),
+                'item_count': order.items.count(),
+                'total': total,
+                'status': order.status,
+                'status_label': STATUS_LABEL.get(order.status, order.status),
+                'tone': STATUS_TONE.get(order.status, 'muted'),
+            })
+        return result
+
+    def get_lifetime_value(self, obj) -> str:
+        from django.db.models import Sum
+        from decimal import Decimal
+        from apps.orders.models import OrderValue
+        agg = OrderValue.objects.filter(
+            order__user=obj,
+        ).exclude(
+            order__status__in=['CANCELLED', 'CANCELLED_TIMEOUT'],
+        ).aggregate(total=Sum('total'))
+        return str(agg['total'] or Decimal('0.00'))
 
 
 class AdminCreateUserSerializer(drf_serializers.Serializer):

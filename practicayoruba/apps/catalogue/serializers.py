@@ -17,7 +17,7 @@ TAX_RATE = Decimal('0.16')  # 16% IVA
 
 
 def _get_active_discount(product):
-    \"\"\"Return the active ProductDiscount or None.\"\"\"
+    """Return the active ProductDiscount or None."""
     now = timezone.now()
     return (
         ProductDiscount.objects
@@ -33,13 +33,13 @@ def _get_active_discount(product):
 
 
 def _get_sale_price(product):
-    \"\"\"Return discounted price string if an active discount exists, else None.\"\"\"
+    """Return discounted price string if an active discount exists, else None."""
     discount = _get_active_discount(product)
     return str(discount.discounted_price) if discount else None
 
 
 def _discount_block(product):
-    \"\"\"Build discount dict or None for use in serializers.\"\"\"
+    """Build discount dict or None for use in serializers."""
     discount = _get_active_discount(product)
     if discount is None:
         return None
@@ -53,12 +53,12 @@ def _discount_block(product):
 
 
 def _availability(product):
-    \"\"\"Return IN_STOCK or OUT_OF_STOCK.\"\"\"
+    """Return IN_STOCK or OUT_OF_STOCK."""
     return 'IN_STOCK' if product.stock > 0 else 'OUT_OF_STOCK'
 
 
 def _price_with_tax(product):
-    \"\"\"Return price including 16% IVA.\"\"\"
+    """Return price including 16% IVA."""
     return float(product.price * (1 + TAX_RATE))
 
 

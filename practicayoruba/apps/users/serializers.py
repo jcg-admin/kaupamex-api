@@ -355,13 +355,24 @@ class ResendVerificationSerializer(serializers.Serializer):
 
 class AdminUserListSerializer(serializers.ModelSerializer):
     """UC-AUTH-11: datos del usuario para el listado del admin."""
-    full_name = serializers.SerializerMethodField()
+    full_name      = serializers.SerializerMethodField()
+    # H-CICLO40-03: UI lee is_admin, email_verified, order_count, avatar_url,
+    # first_name, last_name. El serializer anterior solo exponía is_staff y
+    # full_name (concatenacion). Se añaden los campos necesarios para que
+    # AdminUsersPage.jsx y AdminUserDetailPage.jsx rendericen correctamente.
+    is_admin       = serializers.BooleanField(source='is_superuser', read_only=True)
+    email_verified = serializers.SerializerMethodField()
+    order_count    = serializers.SerializerMethodField()
+    avatar_url     = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = [
             'id', 'username', 'email', 'full_name',
-            'is_active', 'is_staff', 'date_joined', 'last_login',
+            'first_name', 'last_name',
+            'is_active', 'is_staff', 'is_admin',
+            'email_verified', 'order_count', 'avatar_url',
+            'date_joined', 'last_login',
             'deactivated_reason', 'deactivated_at',
         ]
         read_only_fields = fields
@@ -369,3 +380,19 @@ class AdminUserListSerializer(serializers.ModelSerializer):
     @extend_schema_field(OpenApiTypes.STR)
     def get_full_name(self, obj):
         return obj.get_full_name()
+
+    @extend_schema_field(OpenApiTypes.BOOL)
+    def get_email_verified(self, obj):
+        # La cuenta está verificada cuando is_active=True y la causa de
+        # inactividad no es 'unverified'. Si is_active=True y
+        # deactivated_reason es None, el email está verificado.
+        return obj.is_active and obj.deactivated_reason != obj.DEACTIVATION_UNVERIFIED
+
+    @extend_schema_field(OpenApiTypes.INT)
+    def get_order_count(self, obj):
+        return obj.orders.count()
+
+    @extend_schema_field(OpenApiTypes.URI)
+    def get_avatar_url(self, obj):
+        request = self.context.get('request')
+        return obj.get_avatar_url(request)
