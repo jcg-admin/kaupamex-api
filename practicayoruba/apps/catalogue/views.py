@@ -211,7 +211,18 @@ class ProductDetailView(RetrieveAPIView):
     lookup_field       = 'slug'
 
     def get_queryset(self):
-        return Product.objects.filter(is_active=True, is_published=True).select_related('category')
+        # H-CICLO39-01: prefetch images para evitar N+1 en ProductDetailSerializer.
+        # ProductDetailSerializer expone `images` (many=True) y llama
+        # get_related_products() que instancia ProductListSerializer en 4
+        # productos adicionales — cada uno accede a obj.images sin prefetch.
+        # Sin prefetch_related('images') la vista dispara 1 + 4 = 5 queries
+        # extra de imágenes por cada llamada a GET /api/v1/products/<slug>/.
+        return (
+            Product.objects
+            .filter(is_active=True, is_published=True)
+            .select_related('category')
+            .prefetch_related('images')
+        )
 
     @extend_schema(summary='Ver detalle de producto', responses={200: ProductDetailSerializer, 404: None}, tags=['catalogue'])
     def get(self, request, *args, **kwargs):
