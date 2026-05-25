@@ -42,15 +42,16 @@ class StockAlertSerializer(serializers.ModelSerializer):
         return obj.variant.option.label if obj.variant else None
 
 
-class StockAdjustSerializer(serializers.Serializer):
-    delta = serializers.IntegerField()
-    notes = serializers.CharField(required=False, default='', allow_blank=True, max_length=500)
-
-
 ADJUSTMENT_REASONS = [
     'CONTEO_FISICO', 'MERMA', 'ROBO',
     'DEVOLUCION', 'DESCONTINUADO', 'OTRO',
 ]
+
+
+class StockAdjustSerializer(serializers.Serializer):
+    delta  = serializers.IntegerField()
+    reason = serializers.ChoiceField(choices=ADJUSTMENT_REASONS, required=True)
+    notes  = serializers.CharField(required=False, default='', allow_blank=True, max_length=500)
 
 
 class ImportJobSerializer(serializers.ModelSerializer):

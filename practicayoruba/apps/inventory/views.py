@@ -95,7 +95,7 @@ class StockAdjustView(_AdminOnly, APIView):
     @transaction.atomic
     def post(self, request, product_pk):
         try:
-            product = Product.objects.get(pk=product_pk)
+            product = Product.objects.select_for_update().get(pk=product_pk)
         except Product.DoesNotExist:
             raise NotFound({'detail': 'Producto no encontrado.', 'codigo_error': 'PRODUCT_NOT_FOUND'})
         ser = StockAdjustSerializer(data=request.data)
@@ -126,7 +126,7 @@ class VariantStockAdjustView(_AdminOnly, APIView):
     @transaction.atomic
     def post(self, request, variant_pk):
         try:
-            variant = ProductVariant.objects.select_related('product', 'option').get(pk=variant_pk)
+            variant = ProductVariant.objects.select_related('product', 'option').select_for_update().get(pk=variant_pk)
         except ProductVariant.DoesNotExist:
             raise NotFound({'detail': 'Variante no encontrada.', 'codigo_error': 'VARIANT_NOT_FOUND'})
         product = variant.product

@@ -111,6 +111,20 @@ class ReturnListCreateView(APIView):
                 'codigo_error': 'ORDER_NOT_DELIVERED',
             })
 
+        # H-CICLO34-03: límite de 30 días desde la entrega para solicitar devolución.
+        # updated_at refleja el momento en que la orden pasó a DELIVERED ya que es
+        # el último cambio de estado de la misma.
+        RETURN_WINDOW_DAYS = 30
+        delivery_ts = order.updated_at
+        if delivery_ts and (timezone.now() - delivery_ts).days > RETURN_WINDOW_DAYS:
+            raise DRFValidationError({
+                'order_id': (
+                    f'El plazo para solicitar devolución ({RETURN_WINDOW_DAYS} días '
+                    f'desde la entrega) ha expirado.'
+                ),
+                'codigo_error': 'RETURN_WINDOW_EXPIRED',
+            })
+
         # H-RET-QTY: validar que la cantidad devuelta no exceda la comprada.
         # Sin este check un comprador podía declarar devolver 9999 unidades
         # de un producto que compró 1. Se coteja contra OrderItem por product.
