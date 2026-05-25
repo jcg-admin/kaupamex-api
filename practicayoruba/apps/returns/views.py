@@ -62,6 +62,12 @@ def _invalid_state_response(message='Estado inválido.', error_code='INVALID_STA
     )
 
 
+class ReturnPagination(PageNumberPagination):
+    page_size             = 20
+    page_size_query_param = 'page_size'
+    max_page_size         = 100
+
+
 class ReturnListCreateView(APIView):
     """
     GET  /api/v1/returns/ — UC-RET-04 list own returns.
@@ -75,9 +81,17 @@ class ReturnListCreateView(APIView):
         responses={200: ReturnRequestSerializer(many=True)},
     )
     def get(self, request):
+        # H-CICLO56-05: paginate BEFORE prefetch so Django evaluates only the
+        # current page's rows, not every return for the user.  Using prefetch on
+        # an un-sliced queryset would load ALL rows before any slicing occurs.
         qs = ReturnRequest.objects.filter(
             user=request.user
         ).prefetch_related('items', 'history_entries__actor').order_by('-created_at')
+        paginator = ReturnPagination()
+        page = paginator.paginate_queryset(qs, request)
+        if page is not None:
+            serializer = ReturnRequestSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
         serializer = ReturnRequestSerializer(qs, many=True)
         return Response({'results': serializer.data})
 
@@ -270,13 +284,13 @@ class AdminReturnListView(_AdminOnly, APIView):
     )
     def get(self, request):
         status_filter = request.query_params.get('status')
+        # H-CICLO56-05: paginate BEFORE prefetch to avoid loading the full
+        # returns table into memory on large datasets.
         qs = ReturnRequest.objects.all().select_related('user').prefetch_related(
             'items', 'history_entries__actor'
         ).order_by('-created_at')
         if status_filter:
             qs = qs.filter(status=status_filter)
-
-        results = ReturnRequestAdminSerializer(qs, many=True).data
 
         # Build metrics — single aggregate query instead of 6 separate COUNTs.
         # H-CICLO38-03: incluir `pendiente_info` (INFO_REQUESTED) para que
@@ -291,6 +305,15 @@ class AdminReturnListView(_AdminOnly, APIView):
         )
         metrics = counts
 
+        paginator = ReturnPagination()
+        page = paginator.paginate_queryset(qs, request)
+        if page is not None:
+            results = ReturnRequestAdminSerializer(page, many=True).data
+            response = paginator.get_paginated_response(results)
+            response.data['metrics'] = metrics
+            return response
+
+        results = ReturnRequestAdminSerializer(qs, many=True).data
         return Response({'results': results, 'metrics': metrics})
 
 
@@ -343,6 +366,9 @@ class AdminReturnApproveView(_AdminOnly, APIView):
             justification=justification,
         )
 
+        # H-CICLO56-02: re-fetch after mutation so the serializer sees the new
+        # history entry instead of the stale prefetch cache from _get_return_or_404.
+        ret = _get_return_or_404(return_id)
         return Response(ReturnRequestAdminSerializer(ret).data)
 
 
@@ -378,6 +404,8 @@ class AdminReturnRejectView(_AdminOnly, APIView):
             justification=justification,
         )
 
+        # H-CICLO56-02: re-fetch after mutation to avoid stale prefetch cache.
+        ret = _get_return_or_404(return_id)
         return Response(ReturnRequestAdminSerializer(ret).data)
 
 
@@ -412,6 +440,8 @@ class AdminReturnRequestInfoView(_AdminOnly, APIView):
             justification=message,
         )
 
+        # H-CICLO56-02: re-fetch after mutation to avoid stale prefetch cache.
+        ret = _get_return_or_404(return_id)
         return Response(ReturnRequestAdminSerializer(ret).data)
 
 
@@ -447,6 +477,8 @@ class AdminReturnReceptionView(_AdminOnly, APIView):
             justification=ser.validated_data.get('observations', ''),
         )
 
+        # H-CICLO56-02: re-fetch after mutation to avoid stale prefetch cache.
+        ret = _get_return_or_404(return_id)
         return Response(ReturnRequestAdminSerializer(ret).data)
 
 
@@ -531,4 +563,6 @@ class AdminReturnRefundView(_AdminOnly, APIView):
                 justification=f'Reembolso de {amount} procesado.',
             )
 
+        # H-CICLO56-02: re-fetch after mutation to avoid stale prefetch cache.
+        ret = _get_return_or_404(return_id)
         return Response(ReturnRequestAdminSerializer(ret).data)
