@@ -18,7 +18,6 @@ from .gateways.paypal import PayPalGateway
 from django.db.models import Sum as DjSum
 from apps.settings_app.models import PaymentGateway
 from apps.orders.models import Order
-from apps.notifications.service import notify_refund_processed
 
 
 
@@ -270,11 +269,10 @@ def execute_refund(
         else:
             locked_payment.status = PaymentModel.STATUS_PARTIALLY_REFUNDED
         locked_payment.save(update_fields=['status', 'updated_at'])
-        notify_refund_processed(
-            order=locked_payment.order,
-            user=locked_payment.order.user,
-            amount_refunded=refund_amount,
-        )
+        # UC-NOT-05: la notificacion es disparada automaticamente por la
+        # signal _refund_created (notifications/signals.py) al hacer
+        # Refund.objects.create(..., status=STATUS_APPROVED) arriba.
+        # Llamarla aqui ademas causaba doble envio. Bug detectado en ciclo 43.
 
     logging.getLogger('apps').info(
         'Reembolso ejecutado: payment=%s amount=%s refund_id=%s',

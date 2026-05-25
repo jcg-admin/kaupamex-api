@@ -16,6 +16,7 @@ from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import NotFound
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
@@ -183,6 +184,15 @@ class _AdminOnly:
     permission_classes = [IsAuthenticated, IsAdminUser]
 
 
+class SubscriberPagination(PageNumberPagination):
+    """H-CICLO43-03: paginacion para listado admin de suscriptores.
+    Sin paginacion, devolver todos los suscriptores en una sola respuesta
+    puede suponer miles de filas y un timeout/OOM en produccion."""
+    page_size            = 50
+    page_size_query_param = 'page_size'
+    max_page_size        = 200
+
+
 class AdminSubscriberListView(_AdminOnly, APIView):
     """GET /api/v1/admin/newsletter/subscribers/ — UC-NEW-03."""
 
@@ -196,8 +206,10 @@ class AdminSubscriberListView(_AdminOnly, APIView):
         status_filter = request.query_params.get('status')
         if status_filter:
             qs = qs.filter(status=status_filter)
-        serialized = SubscriberListItemSerializer(qs, many=True)
-        return Response({'results': serialized.data})
+        paginator = SubscriberPagination()
+        page = paginator.paginate_queryset(qs, request)
+        serialized = SubscriberListItemSerializer(page, many=True)
+        return paginator.get_paginated_response(serialized.data)
 
 
 class AdminSubscriberForceUnsubscribeView(_AdminOnly, APIView):

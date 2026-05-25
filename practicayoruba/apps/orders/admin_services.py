@@ -10,7 +10,6 @@ from django.db import transaction
 from django.utils import timezone
 from .models import OrderStatusLog, Order
 from .services import cancel_order
-from apps.notifications.service import notify_order_status_changed
 from django.db.models import Count, Sum, Q
 from datetime import timedelta
 from apps.payments.models import Payment
@@ -71,8 +70,11 @@ def transition_order_status(order, new_status: str, admin_user, notes: str = '')
             notes=notes,
         )
 
-        # UC-NOT-02: notificacion in-app + email de cambio de estado.
-        notify_order_status_changed(locked, new_status)
+        # UC-NOT-02: la notificacion es disparada automaticamente por la
+        # signal _order_status_changed (notifications/signals.py) al hacer
+        # locked.save() arriba. Llamarla aqui ademas causaba doble envio
+        # (una notificacion in-app + email por la signal Y otro por esta
+        # linea). Bug detectado en ciclo 43.
 
     logger.info(
         'Orden %s: %s → %s (admin=%s)',

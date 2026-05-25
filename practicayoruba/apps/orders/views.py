@@ -18,6 +18,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from apps.cart.models import Cart, CartItem
 from apps.cart.views import _get_or_create_cart
@@ -50,6 +51,8 @@ class CheckoutView(APIView):
     5. Retornar la orden creada.
     """
     permission_classes = [AllowAny]
+    throttle_classes   = [ScopedRateThrottle]
+    throttle_scope     = 'checkout'
 
     @extend_schema(
         summary='Crear orden desde carrito (checkout)',

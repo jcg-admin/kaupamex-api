@@ -173,6 +173,16 @@ REST_FRAMEWORK = {
         # endpoint con distintos order_id. 10/hour permite resenar varios
         # productos de pedidos distintos sin limitar el uso legitimo.
         'review_create':        '10/hour',
+        # H-CICLO43-01: throttle para CheckoutView (AllowAny, POST crea orden).
+        # Sin throttle un atacante puede crear ordenes masivas bloqueando stock
+        # y saturando la BD. 20/hour permite completar compras legitimas
+        # (incluso invitados con varios intentos) sin abrir vector de abuso.
+        'checkout':             '20/hour',
+        # H-CICLO43-02: throttle para CartView/CartItemListView/CartItemDetailView.
+        # Endpoints publicos (invitados y autenticados); sin throttle permiten
+        # flooding del carrito. 120/hour cubre uso intensivo del SPA sin
+        # restringir la experiencia de compra normal.
+        'cart':                 '120/hour',
     },
 }
 

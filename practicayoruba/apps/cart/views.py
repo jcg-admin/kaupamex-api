@@ -54,6 +54,8 @@ class CartView(APIView):
     DELETE /api/v1/cart/  — vaciar carrito (eliminar todos los ítems).
     """
     permission_classes = [AllowAny]
+    throttle_classes   = [ScopedRateThrottle]
+    throttle_scope     = 'cart'
 
     @extend_schema(
         summary='Ver carrito activo (UC-CART-01)',
@@ -116,6 +118,8 @@ class CartItemListView(APIView):
     POST /api/v1/cart/items/ — UC-CART-02 agregar ítem (201 create / 200 merge).
     """
     permission_classes = [AllowAny]
+    throttle_classes   = [ScopedRateThrottle]
+    throttle_scope     = 'cart'
 
     @extend_schema(summary='Listar items del carrito', tags=['cart'],
                    responses={200: CartSerializer})
@@ -206,6 +210,8 @@ class CartItemDetailView(APIView):
     DELETE /api/v1/cart/items/<item_id>/ — eliminar ítem (UC-CART-03)
     """
     permission_classes = [AllowAny]
+    throttle_classes   = [ScopedRateThrottle]
+    throttle_scope     = 'cart'
 
     def _get_item(self, request, pk):
         cart, _, _ = _get_or_create_cart(request)
