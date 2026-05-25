@@ -7,6 +7,7 @@ ProductSearchSerializer: para el endpoint de búsqueda avanzada.
 CategoryWithCountSerializer: para el árbol de categorías con conteo.
 """
 import os
+import random
 import re
 import uuid
 from decimal import Decimal
@@ -250,13 +251,18 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         ).count()
 
     def get_related_products(self, obj):
-        qs = (
+        # order_by('?') triggers a full-table filesort on MariaDB — too slow on
+        # large catalogs.  Instead, fetch a slightly larger deterministic pool
+        # and shuffle at the application level (O(n) Python vs O(n log n) SQL).
+        pool = list(
             Product.objects
             .filter(category=obj.category, is_active=True, is_published=True)
             .exclude(pk=obj.pk)
             .prefetch_related('images', 'discounts', 'variants')
-            .order_by('?')[:4]
+            .order_by('-id')[:20]
         )
+        random.shuffle(pool)
+        qs = pool[:4]
         return ProductListSerializer(qs, many=True, context=self.context).data
 
     def get_variants(self, obj):
