@@ -6,10 +6,16 @@ ProductDetailSerializer: para el detalle completo de un producto.
 ProductSearchSerializer: para el endpoint de búsqueda avanzada.
 CategoryWithCountSerializer: para el árbol de categorías con conteo.
 """
+import re
+import uuid
 from decimal import Decimal
 from django.db.models import Avg, Q
 from django.utils import timezone
+from django.utils.text import slugify
 from rest_framework import serializers
+from apps.chartsize.serializers import ProductVariantPublicSerializer
+from apps.questions.models import ProductQuestion, QuestionStatus
+from apps.reviews.models import Review
 from .models import Category, Product, ProductImage, ProductDiscount, ProductPriceHistory, SearchHistory
 
 
@@ -202,7 +208,6 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         return _discount_block(obj)
 
     def get_reviews_summary(self, obj):
-        from apps.reviews.models import Review
         approved = Review.objects.filter(product=obj, status=Review.STATUS_APPROVED)
         count = approved.count()
         avg = approved.aggregate(avg=Avg('rating'))['avg']
@@ -212,7 +217,6 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         }
 
     def get_questions_count(self, obj):
-        from apps.questions.models import ProductQuestion, QuestionStatus
         return ProductQuestion.objects.filter(
             product=obj, status=QuestionStatus.ANSWERED
         ).count()
@@ -227,7 +231,6 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         return ProductListSerializer(qs, many=True, context=self.context).data
 
     def get_variants(self, obj):
-        from apps.chartsize.serializers import ProductVariantPublicSerializer
         qs = obj.variants.filter(is_active=True).select_related(
             'option', 'option__variant_type'
         ).order_by('option__variant_type__name', 'option__label')
@@ -280,7 +283,6 @@ class ProductSearchSerializer(serializers.ModelSerializer):
         q = self.context.get('search_term', '')
         if not q:
             return obj.name
-        import re
         return re.sub(f'({re.escape(q)})', r'<em>\\1</em>', obj.name, flags=re.IGNORECASE)
 
     def get_availability(self, obj):
@@ -380,8 +382,6 @@ class ProductAdminSerializer(serializers.ModelSerializer):
         return _discount_block(obj)
 
     def _auto_slug(self, name):
-        import uuid
-        from django.utils.text import slugify
         base = slugify(name)
         # H-CICLO24-06: slugify() retorna cadena vacía para nombres que solo
         # contienen caracteres no-ASCII sin transliteración (p.ej. caracteres

@@ -410,9 +410,7 @@ class CartVoucherView(APIView):
 
         # If cart already has a voucher, reject with 409 (DEC-BC-20)
         if cart.voucher_id is not None:
-            from rest_framework import status as _status
-            from rest_framework.response import Response as _Response
-            return _Response({
+            return Response({
                 'detail': 'El carrito ya tiene un voucher aplicado. Elímínelo primero.',
                 'codigo_error': 'VOUCHER_ALREADY_APPLIED',
             }, status=409)

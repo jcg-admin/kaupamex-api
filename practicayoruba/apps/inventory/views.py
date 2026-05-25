@@ -5,6 +5,7 @@ import csv
 import io
 import logging
 import math
+from decimal import Decimal, InvalidOperation
 
 from django.db import transaction
 from django.http import HttpResponse
@@ -228,7 +229,6 @@ def _process_import_csv(file_obj, initial_state: str, admin_user) -> dict:
             category_slug = row.get('category_slug', '').strip()
             if not sku:
                 raise ValueError('SKU vacío')
-            from decimal import Decimal, InvalidOperation
             try:
                 price = Decimal(base_price)
             except (InvalidOperation, ValueError):

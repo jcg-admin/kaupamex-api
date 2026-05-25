@@ -18,6 +18,7 @@ UCs afectados: UC-NOT-01..05, UC-USR-02, UC-USR-04, UC-COM-01, UC-NEW-04.
 import logging
 from concurrent.futures import ThreadPoolExecutor
 
+from django.conf import settings as _settings
 from django.core.mail import send_mail as _send_mail
 
 from apps.notifications.models import EmailTask
@@ -39,7 +40,6 @@ def dispatch_email(subject, message, from_email, recipient_list, **kwargs):
     En entornos de test (DISPATCH_EMAIL_SYNC=True) el envio es sincrono
     para que mail.outbox este poblado al momento de la asercion.
     """
-    from django.conf import settings as _settings
     kwargs.pop('fail_silently', None)
     if getattr(_settings, 'DISPATCH_EMAIL_SYNC', False):
         _send_mail(subject, message, from_email, recipient_list, **kwargs)

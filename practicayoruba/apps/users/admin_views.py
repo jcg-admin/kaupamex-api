@@ -2,22 +2,24 @@
 admin_views.py — apps.users
 Sprint 4 — UC-AUTH-12/13/14/15: gestión de usuarios por el administrador.
 """
+from decimal import Decimal
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.utils import timezone
 from rest_framework import serializers as drf_serializers
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError as DRFValidationError
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from drf_spectacular.utils import extend_schema, OpenApiParameter
+from apps.orders.models import Order, OrderValue
 from .models import AuthEvent, BusinessEvent, UserDeactivationEvent
-from .serializers import AdminUserListSerializer
+from .serializers import AddressSerializer, AdminUserListSerializer
 from .tokens_email import invalidate_all_sessions
 
 import rest_framework.pagination
@@ -59,12 +61,10 @@ class AdminUserDetailSerializer(AdminUserListSerializer):
         return obj.addresses.count()
 
     def get_addresses(self, obj) -> list:
-        from apps.users.serializers import AddressSerializer
         qs = obj.addresses.order_by('-is_default', 'alias')
         return AddressSerializer(qs, many=True).data
 
     def get_recent_orders(self, obj) -> list:
-        from apps.orders.models import Order
         STATUS_LABEL = {
             'PENDING': 'Pendiente',
             'PROCESSING': 'En proceso',
@@ -104,9 +104,6 @@ class AdminUserDetailSerializer(AdminUserListSerializer):
         return result
 
     def get_lifetime_value(self, obj) -> str:
-        from django.db.models import Sum
-        from decimal import Decimal
-        from apps.orders.models import OrderValue
         agg = OrderValue.objects.filter(
             order__user=obj,
         ).exclude(
@@ -309,7 +306,6 @@ class AuditLogView(APIView):
         try:
             page = max(1, int(request.query_params.get('page', 1)))
         except (ValueError, TypeError):
-            from rest_framework.exceptions import ValidationError as DRFValidationError
             raise DRFValidationError({'page': 'Debe ser un entero valido.'})
         page_size  = self._PAGE_SIZE
 
