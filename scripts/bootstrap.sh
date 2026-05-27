@@ -270,6 +270,47 @@ phase_migrations() {
 }
 
 # =============================================================================
+phase_seed() {
+    log_header "Fase 5c/6 — Seed de usuarios E2E (opcional)"
+
+    local python="${PROJECT_ROOT}/.venv/bin/python3"
+    local manage="${PROJECT_ROOT}/practicayoruba/manage.py"
+    local env_file="${PROJECT_ROOT}/practicayoruba/.env"
+
+    if ! exists_file "$manage"; then
+        log_warn "  manage.py no encontrado — seed omitido"
+        return 0
+    fi
+
+    if ! exists_file "$env_file"; then
+        log_warn "  .env no encontrado — seed omitido"
+        return 0
+    fi
+
+    # Cargar .env en el entorno del proceso para que manage.py
+    # pueda leer ADMIN_PASSWORD / QA_BUYER_PASSWORD via os.environ.
+    # set -a exporta todas las variables; set +a detiene la exportacion.
+    set -a
+    # shellcheck source=/dev/null
+    source "$env_file"
+    set +a
+
+    if [[ -z "${ADMIN_PASSWORD:-}" || -z "${QA_BUYER_PASSWORD:-}" ]]; then
+        log_warn "  ADMIN_PASSWORD / QA_BUYER_PASSWORD no definidos en .env"
+        log_warn "  Seed de usuarios omitido — para ejecutar manualmente:"
+        log_warn "    cd practicayoruba"
+        log_warn "    python manage.py create_seed_users"
+        return 0
+    fi
+
+    DJANGO_SETTINGS_MODULE=config.settings.development \
+    PYTHONPATH="${PROJECT_ROOT}/practicayoruba" \
+    "$python" "$manage" create_seed_users 2>&1 | tail -5 \
+        && log_success "  Seed de usuarios E2E completado" \
+        || log_warn "  create_seed_users fallo — ejecutar manualmente"
+}
+
+# =============================================================================
 phase_verify() {
     log_header "Fase 6/6 — Verificacion del entorno"
     bash "${SCRIPT_DIR}/provisioners/system/check_tools.sh" || \
@@ -302,6 +343,8 @@ main() {
     fi
     echo ""
     phase_migrations
+    echo ""
+    phase_seed
     echo ""
     phase_verify
 
@@ -387,8 +430,11 @@ main() {
     log_info "Siguientes pasos:"
     log_info "  source .venv/bin/activate"
     log_info "  cd practicayoruba"
-    log_info "  python manage.py createsuperuser"
     log_info "  python manage.py runserver"
+    log_info ""
+    log_info "Si el seed E2E no se ejecuto automaticamente (ADMIN_PASSWORD"
+    log_info "no definido en .env), ejecutar manualmente:"
+    log_info "  python manage.py create_seed_users"
     echo ""
     log_info "Para verificar el entorno:"
     log_info "  bash scripts/provisioners/system/check_tools.sh"
