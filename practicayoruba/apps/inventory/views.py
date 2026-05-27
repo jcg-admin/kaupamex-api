@@ -187,6 +187,13 @@ class VariantStockAdjustView(_AdminOnly, APIView):
                              'reason': mov.reason, 'movement_id': mov.pk}, status=201)
 
 
+class VariantMovementsPagination(PageNumberPagination):
+    """H-CICLO83-01: paginar movimientos de variante para evitar respuesta sin limite."""
+    page_size             = 50
+    page_size_query_param = 'page_size'
+    max_page_size         = 200
+
+
 class VariantMovementsView(_AdminOnly, APIView):
     @extend_schema(summary='Historial de movimientos de stock (UC-INV-03)', tags=['inventory'],
                    responses={200: StockMovementSerializer(many=True)})
@@ -195,10 +202,31 @@ class VariantMovementsView(_AdminOnly, APIView):
             variant = ProductVariant.objects.get(pk=variant_pk)
         except ProductVariant.DoesNotExist:
             raise NotFound({'detail': 'Variante no encontrada.', 'codigo_error': 'VARIANT_NOT_FOUND'})
-        movements = StockMovement.objects.filter(variant=variant).select_related('product', 'variant__option').order_by('-created_at')
-        results = [{'id': m.pk, 'delta': m.delta, 'stock_after': m.stock_after, 'stock_before': m.stock_before,
-                    'movement_type': m.movement_type, 'reason': m.reason, 'notes': m.notes, 'created_at': m.created_at}
-                   for m in movements]
+        movements = (
+            StockMovement.objects
+            .filter(variant=variant)
+            .select_related('product', 'variant__option')
+            .order_by('-created_at')
+        )
+        # H-CICLO83-01: paginar para evitar OOM en variantes con muchos
+        # movimientos. Sin paginacion un producto de alta rotacion puede
+        # tener miles de filas y la respuesta agota memoria del worker.
+        paginator = VariantMovementsPagination()
+        page = paginator.paginate_queryset(movements, request)
+        if page is not None:
+            results = [
+                {'id': m.pk, 'delta': m.delta, 'stock_after': m.stock_after,
+                 'stock_before': m.stock_before, 'movement_type': m.movement_type,
+                 'reason': m.reason, 'notes': m.notes, 'created_at': m.created_at}
+                for m in page
+            ]
+            return paginator.get_paginated_response(results)
+        results = [
+            {'id': m.pk, 'delta': m.delta, 'stock_after': m.stock_after,
+             'stock_before': m.stock_before, 'movement_type': m.movement_type,
+             'reason': m.reason, 'notes': m.notes, 'created_at': m.created_at}
+            for m in movements
+        ]
         return Response({'results': results})
 
 
