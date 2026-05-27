@@ -66,6 +66,14 @@ class AdminOrderListView(APIView):
         if order_number := params.get('order_number'):
             qs = qs.filter(order_number__icontains=order_number)
         if status := params.get('status'):
+            # H-CICLO98-01: validate status against Order.STATUSES choices to
+            # return 400 instead of silently returning an empty queryset.
+            valid_statuses = {s[0] for s in Order.STATUSES}
+            if status not in valid_statuses:
+                raise ValidationError({
+                    'status': f'Estado inválido. Opciones válidas: {sorted(valid_statuses)}',
+                    'codigo_error': 'INVALID_STATUS',
+                })
             qs = qs.filter(status=status)
         if email := params.get('email'):
             qs = qs.filter(
