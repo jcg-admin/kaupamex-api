@@ -11,7 +11,10 @@ Admin:
   POST /api/v1/admin/newsletter/subscribers/<id>/unsubscribe/        UC-NEW-03
   POST /api/v1/admin/newsletter/campaigns/                           UC-NEW-04
 """
+from datetime import timedelta
+
 from django.core import mail, signing
+from django.db import transaction
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
@@ -232,14 +235,27 @@ class AdminSubscriberForceUnsubscribeView(_AdminOnly, APIView):
         return Response(SubscriberListItemSerializer(sub).data)
 
 
+_CAMPAIGN_DEDUP_WINDOW = timedelta(minutes=10)
+
+
 class AdminCampaignCreateView(_AdminOnly, APIView):
-    """POST /api/v1/admin/newsletter/campaigns/ — UC-NEW-04."""
+    """POST /api/v1/admin/newsletter/campaigns/ — UC-NEW-04.
+
+    H-CICLO78-01: guarda de idempotencia contra doble envio.
+    Un segundo POST identico (mismo subject + body + audience_filter)
+    dentro de la ventana de deduplicacion (_CAMPAIGN_DEDUP_WINDOW)
+    retorna 409 con error_code CAMPAIGN_ALREADY_SENT en lugar de crear
+    una segunda campana y enviar los emails de nuevo.
+    La comprobacion se hace dentro de transaction.atomic() con
+    select_for_update() para evitar la race condition en envios
+    concurrentes desde distintos procesos WSGI.
+    """
 
     @extend_schema(
         summary='Crear campaña de newsletter (UC-NEW-04)',
         request=CampaignCreateSerializer,
         tags=['newsletter'],
-        responses={201: CampaignResponseSerializer, 400: None},
+        responses={201: CampaignResponseSerializer, 400: None, 409: None},
     )
     def post(self, request):
         ser = CampaignCreateSerializer(data=request.data)
@@ -247,19 +263,50 @@ class AdminCampaignCreateView(_AdminOnly, APIView):
         vdata = ser.validated_data
 
         audience_filter = vdata.get('audience_filter', SubscriberStatus.CONFIRMED)
-        recipients = list(
-            NewsletterSubscriber.objects.filter(status=audience_filter)
-            .values_list('email', flat=True)
-        )
+        subject = vdata['subject']
+        body = vdata['body']
 
-        campaign = NewsletterCampaign.objects.create(
-            sender=request.user,
-            subject=vdata['subject'],
-            body=vdata['body'],
-            audience_filter=audience_filter,
-            recipients_count=len(recipients),
-            sent_at=timezone.now() if recipients else None,
-        )
+        with transaction.atomic():
+            # H-CICLO78-01: duplicate guard — lock rows to prevent concurrent
+            # double-send from multiple WSGI processes.
+            cutoff = timezone.now() - _CAMPAIGN_DEDUP_WINDOW
+            existing = (
+                NewsletterCampaign.objects
+                .select_for_update()
+                .filter(
+                    subject=subject,
+                    body=body,
+                    audience_filter=audience_filter,
+                    created_at__gte=cutoff,
+                )
+                .first()
+            )
+            if existing:
+                return Response(
+                    {
+                        'detail': (
+                            'Esta campaña ya fue enviada recientemente. '
+                            'Espera al menos 10 minutos antes de reenviar.'
+                        ),
+                        'error_code': 'CAMPAIGN_ALREADY_SENT',
+                        'campaign_id': existing.pk,
+                    },
+                    status=status.HTTP_409_CONFLICT,
+                )
+
+            recipients = list(
+                NewsletterSubscriber.objects.filter(status=audience_filter)
+                .values_list('email', flat=True)
+            )
+
+            campaign = NewsletterCampaign.objects.create(
+                sender=request.user,
+                subject=subject,
+                body=body,
+                audience_filter=audience_filter,
+                recipients_count=len(recipients),
+                sent_at=timezone.now() if recipients else None,
+            )
 
         if recipients:
             for recipient_email in recipients:
