@@ -14,6 +14,7 @@ from django.db.models import Count, Sum, Q
 from datetime import timedelta
 from apps.payments.models import Payment
 from apps.settings_app.models import SiteSettings
+from apps.logistics.models import ShipmentGuide
 
 logger = logging.getLogger('apps')
 
@@ -57,6 +58,21 @@ def transition_order_status(order, new_status: str, admin_user, notes: str = '')
                 f"Transiciones válidas desde {locked.status!r}: "
                 f"{allowed or ['ninguna (estado terminal)']}"
             )
+
+        # UC-LOG guard: an order cannot be marked SHIPPED unless it has an
+        # active ShipmentGuide.  Without this check an admin can set SHIPPED
+        # on an order that has no tracking number, leaving the buyer unable
+        # to track the parcel and breaking the logistics audit trail.
+        if new_status == 'SHIPPED':
+            has_guide = ShipmentGuide.objects.filter(
+                order=locked, is_deleted=False,
+            ).exists()
+            if not has_guide:
+                raise ValueError(
+                    "La orden no puede marcarse como SHIPPED sin una guía de "
+                    "envío activa. Crea la guía en /api/v1/admin/logistics/ "
+                    "antes de avanzar este estado."
+                )
 
         previous = locked.status
         locked.status = new_status
