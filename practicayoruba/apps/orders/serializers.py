@@ -45,8 +45,14 @@ class OrderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model  = Order
+        # H-CICLO79-03: 'id' eliminado. El PK entero auto-incremental
+        # es secuencial y permite enumerar todas las ordenes del sistema
+        # (viola la convencion de no exponer PKs a compradores, aplicada
+        # tambien en H-CICLO76-01 para payments). 'order_number' (UUID-
+        # derivado, no secuencial) es el identificador publico correcto
+        # y ya es el unico campo que usan las rutas y el frontend.
         fields = [
-            'id', 'order_number', 'status', 'status_display',
+            'order_number', 'status', 'status_display',
             'user', 'guest_email', 'shipping_method_name',
             'voucher_code', 'voucher_discount', 'notes',
             'items', 'value', 'address',

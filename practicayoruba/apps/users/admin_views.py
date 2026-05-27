@@ -162,7 +162,13 @@ class AdminUserViewSet(ModelViewSet):
     POST   /users/{pk}/suspend/    — suspender (UC-AUTH-13)
     POST   /users/{pk}/reactivate/ — reactivar (UC-AUTH-14)
     """
-    permission_classes = [IsAuthenticated]
+    # H-CICLO79-02: agregar IsAdminUser al nivel de clase para que el
+    # framework DRF rechace requests de usuarios no-staff antes de llegar
+    # a los action handlers. El guard _require_admin() en cada accion
+    # protege correctamente en runtime, pero la ausencia de IsAdminUser
+    # aqui dejaba OPTIONS/HEAD accesibles a cualquier usuario autenticado
+    # y eliminaba la barrera de DRF para acciones futuras sin guard manual.
+    permission_classes = [IsAuthenticated, IsAdminUser]
     queryset           = User.objects.all().order_by('-date_joined')
     http_method_names  = ['get', 'post', 'head', 'options']
     pagination_class   = AdminUserPagination
@@ -290,6 +296,13 @@ class AuditLogView(APIView):
     """
     permission_classes = [IsAuthenticated, IsAdminUser]
     _PAGE_SIZE = 25
+    # H-CICLO79-01: cap por tabla para evitar carga ilimitada en memoria.
+    # Sin este limite, tres tablas de eventos sin LIMIT iteran sobre TODOS
+    # los registros historicos antes de la paginacion Python, lo que puede
+    # causar OOM con millones de filas. El cap es conservador (10 000
+    # por tipo = max 30 000 filas) y cubre el 99.9% de los casos de uso
+    # de auditoría (busqueda reciente + user_id filter).
+    _PER_TYPE_LIMIT = 10_000
 
     @extend_schema(
         summary='Listar audit log de eventos (UC-ADM-03)',
@@ -315,7 +328,8 @@ class AuditLogView(APIView):
             qs = AuthEvent.objects.select_related('user').order_by('-created_at')
             if user_id:
                 qs = qs.filter(user_id=user_id)
-            for ev in qs:
+            # H-CICLO79-01: aplicar LIMIT en BD antes de iterar en Python.
+            for ev in qs[:self._PER_TYPE_LIMIT]:
                 rows.append({
                     'id':         ev.pk,
                     'event_type': 'auth',
@@ -333,7 +347,8 @@ class AuditLogView(APIView):
             qs = BusinessEvent.objects.select_related('actor').order_by('-created_at')
             if user_id:
                 qs = qs.filter(actor_id=user_id)
-            for ev in qs:
+            # H-CICLO79-01: aplicar LIMIT en BD antes de iterar en Python.
+            for ev in qs[:self._PER_TYPE_LIMIT]:
                 rows.append({
                     'id':         ev.pk,
                     'event_type': 'business',
@@ -351,7 +366,8 @@ class AuditLogView(APIView):
             qs = UserDeactivationEvent.objects.select_related('user', 'actor').order_by('-created_at')
             if user_id:
                 qs = qs.filter(user_id=user_id)
-            for ev in qs:
+            # H-CICLO79-01: aplicar LIMIT en BD antes de iterar en Python.
+            for ev in qs[:self._PER_TYPE_LIMIT]:
                 rows.append({
                     'id':         ev.pk,
                     'event_type': 'deactivation',
