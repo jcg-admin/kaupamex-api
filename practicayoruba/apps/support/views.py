@@ -332,6 +332,16 @@ class AdminSupportTicketListView(APIView):
         qs = SupportTicket.objects.all().annotate(replies_count=Count('replies'))
         params = request.query_params
         if params.get('status'):
+            valid_statuses = {s.value for s in SupportTicket.Status}
+            if params['status'] not in valid_statuses:
+                return Response(
+                    {
+                        'detail': f"Status inválido: '{params['status']}'.",
+                        'codigo_error': 'INVALID_STATUS',
+                        'valores_validos': sorted(valid_statuses),
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             qs = qs.filter(status=params['status'])
         if params.get('priority'):
             qs = qs.filter(priority=params['priority'])
