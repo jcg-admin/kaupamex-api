@@ -234,7 +234,7 @@ class WishlistMoveToCartView(APIView):
         remove = request.data.get('remove_from_wishlist', True)
 
         with transaction.atomic():
-            existing = CartItem.objects.filter(
+            existing = CartItem.objects.select_for_update().filter(
                 cart=cart, variant=item.variant,
                 product=item.product,
             ).first()
