@@ -109,8 +109,15 @@ class PaymentGatewayViewSet(ModelViewSet):
     http_method_names  = ['get', 'post', 'patch', 'head', 'options']
 
     def perform_update(self, serializer):
+        # H-CICLO104-04: adquirir lock sobre el PaymentGateway dentro de
+        # atomic() antes de guardar credenciales. Sin select_for_update() dos
+        # admins concurrentes podrian guardar credenciales distintas y la
+        # verificacion post-save marcar erroneamente el gateway como verificado
+        # con las credenciales del primer request, no del segundo.
         creds_raw = self.request.data.get('credentials_raw')
-        instance = serializer.save()
+        with transaction.atomic():
+            PaymentGateway.objects.select_for_update().get(pk=serializer.instance.pk)
+            instance = serializer.save()
         if creds_raw:
             self._verify_and_mark(instance, creds_raw)
 

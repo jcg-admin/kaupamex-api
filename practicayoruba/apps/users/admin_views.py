@@ -248,13 +248,20 @@ class AdminUserViewSet(ModelViewSet):
     @action(detail=True, methods=['post'], url_path='suspend')
     def suspend(self, request, pk=None):
         _require_admin(request.user)
-        target = self.get_object()
-        if target.pk == request.user.pk:
-            return Response(
-                {'detail': 'Un administrador no puede suspenderse a sí mismo.'},
-                status=400,
-            )
+        # H-CICLO104-01: adquirir lock sobre el User dentro del atomic para
+        # serializar solicitudes concurrentes de suspension. Sin
+        # select_for_update() dos admins podrian pasar simultaneamente el
+        # chequeo self-suspend y escribir estado inconsistente.
         with transaction.atomic():
+            try:
+                target = User.objects.select_for_update().get(pk=pk)
+            except User.DoesNotExist:
+                return Response({'detail': 'No encontrado.'}, status=404)
+            if target.pk == request.user.pk:
+                return Response(
+                    {'detail': 'Un administrador no puede suspenderse a sí mismo.'},
+                    status=400,
+                )
             target.is_active = False
             # GAP-3 cierre: registrar la causa explicita para que
             # ResendVerificationView no reactive por email (UC-AUTH-01

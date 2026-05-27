@@ -9,6 +9,7 @@ from decimal import Decimal, InvalidOperation
 
 from django.db import transaction
 from django.http import HttpResponse
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import NotFound, ValidationError
@@ -249,6 +250,52 @@ class StockAlertListView(_AdminOnly, APIView):
                 StockAlertSerializer(page, many=True).data
             )
         return Response(StockAlertSerializer(alerts, many=True).data)
+
+
+class StockAlertResolveView(_AdminOnly, APIView):
+    """
+    POST /api/v1/admin/inventory/alerts/<pk>/resolve/
+    Marca una alerta de stock como resuelta.
+    UC-INV-02 (accion de resolucion manual).
+
+    H-CICLO104-03: select_for_update() + atomic() previene que dos admins
+    resuelvan la misma alerta concurrentemente y guarden resolved_at
+    diferente. La alerta se registra en StockMovement como pista de
+    auditoria (type=TYPE_ADJUSTMENT con notes=ALERT_RESOLVED).
+    """
+    @extend_schema(
+        summary='Resolver alerta de stock (UC-INV-02)',
+        tags=['inventory'],
+        responses={200: StockAlertSerializer, 404: None},
+    )
+    @transaction.atomic
+    def post(self, request, pk):
+        try:
+            alert = StockAlert.objects.select_for_update().get(pk=pk)
+        except StockAlert.DoesNotExist:
+            raise NotFound({'detail': 'Alerta no encontrada.', 'codigo_error': 'ALERT_NOT_FOUND'})
+        if alert.resolved:
+            return Response(StockAlertSerializer(alert).data)
+        alert.resolved = True
+        alert.resolved_at = timezone.now()
+        alert.save(update_fields=['resolved', 'resolved_at'])
+        # Audit trail: StockMovement con delta=0 solo para traza — se usa
+        # notes para identificar el origen. El delta se deja en 0 para que
+        # no altere inventario; la razon CONTEO_FISICO es la mas apropiada
+        # segun el enum de ADJUSTMENT_REASONS para una resolucion manual.
+        StockMovement.objects.create(
+            product=alert.product,
+            variant=alert.variant,
+            delta=0,
+            stock_before=alert.stock_at_alert,
+            stock_after=alert.stock_at_alert,
+            movement_type=StockMovement.TYPE_ADJUSTMENT,
+            reason='CONTEO_FISICO',
+            notes=f'ALERT_RESOLVED:alert_id={alert.pk}',
+            reference=f'ADMIN:{request.user.pk}',
+            created_by=request.user,
+        )
+        return Response(StockAlertSerializer(alert).data)
 
 
 def _process_import_csv(file_obj, initial_state: str, admin_user) -> dict:

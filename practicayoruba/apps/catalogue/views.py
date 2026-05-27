@@ -388,13 +388,31 @@ class CategoryAdminViewSet(ModelViewSet):
         return Response(self.get_serializer(instance).data)
 
     def _deactivate_category(self, instance):
-        if instance.products.filter(is_active=True).exists():
-            raise ValidationError({
-                'detail': 'No se puede desactivar una categoria con productos activos.',
-                'codigo_error': 'CATEGORY_HAS_PRODUCTS',
-            })
-        instance.is_active = False
-        instance.save(update_fields=['is_active', 'updated_at'])
+        # H-CICLO104-02: envolver en transaction.atomic() + select_for_update()
+        # para serializar solicitudes concurrentes y evitar que dos admins
+        # desactiven la misma categoria simultaneamente con estado inconsistente.
+        # Ademas verificar productos activos en TODAS las subcategorias (no solo
+        # las directas): un arbol de categorias puede tener productos en
+        # descendientes que quedaban activos si solo se revisaba el nivel raiz.
+        with transaction.atomic():
+            locked = Category.objects.select_for_update().get(pk=instance.pk)
+            all_desc_ids = locked.get_descendants_ids()
+            if Product.objects.filter(
+                category_id__in=all_desc_ids, is_active=True
+            ).exists():
+                raise ValidationError({
+                    'detail': (
+                        'No se puede desactivar una categoria (o sus subcategorias) '
+                        'que tenga productos activos.'
+                    ),
+                    'codigo_error': 'CATEGORY_HAS_PRODUCTS',
+                })
+            # Soft-desactivar tambien todos los descendientes para que el arbol
+            # quede consistente (padre inactivo => hijos inactivos).
+            Category.objects.filter(id__in=all_desc_ids).update(
+                is_active=False, updated_at=timezone.now()
+            )
+        instance.refresh_from_db()
         self._invalidate_category_cache()
 
     def perform_create(self, serializer):

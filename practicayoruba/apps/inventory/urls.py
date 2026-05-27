@@ -1,6 +1,6 @@
 """Admin URLs — apps.inventory (Sprint 10 + UI contract 2026-05)."""
 from django.urls import path
-from .views import InventoryDashboardView, StockAdjustView, VariantStockAdjustView, VariantMovementsView, StockAlertListView, ProductImportView, ProductImportStatusView, ProductImportReportView
+from .views import InventoryDashboardView, StockAdjustView, VariantStockAdjustView, VariantMovementsView, StockAlertListView, StockAlertResolveView, ProductImportView, ProductImportStatusView, ProductImportReportView
 
 app_name = 'admin_inventory'
 
@@ -9,6 +9,8 @@ urlpatterns = [
          InventoryDashboardView.as_view(), name='dashboard'),
     path('inventory/alerts/',
          StockAlertListView.as_view(), name='alert-list'),
+    path('inventory/alerts/<int:pk>/resolve/',
+         StockAlertResolveView.as_view(), name='alert-resolve'),
 
     # URLs específicas de variante (UI contract UC-INV-02..04)
     # — DEBEN ir antes del <int:product_pk> catch para no chocar.
