@@ -11,7 +11,7 @@ import pytest
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
 from apps.catalogue.models import Category, Product
-from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress, ShippingZone
 from apps.settings_app.models import PaymentGateway, ShippingMethod
 from apps.payments.models import Payment, PaymentGatewayEvent
 from apps.users.models import Address
@@ -415,6 +415,7 @@ class TestCheckoutExpress:
         ShippingMethod.objects.create(
             name='Estándar', cost=Decimal('80'), estimated_days=5, is_active=True
         )
+        ShippingZone.objects.create(name='CDMX', zip_code_prefix='06', is_active=True)
         Address.objects.create(
             user=user, alias='Casa',
             recipient_name='Test User', street='Reforma 100',
@@ -443,6 +444,7 @@ class TestCheckoutExpress:
         ShippingMethod.objects.create(
             name='Estándar', cost=Decimal('80'), estimated_days=5, is_active=True
         )
+        ShippingZone.objects.create(name='CDMX', zip_code_prefix='06', is_active=True)
         Address.objects.create(
             user=user, alias='Casa',
             recipient_name='Test', street='Calle',
