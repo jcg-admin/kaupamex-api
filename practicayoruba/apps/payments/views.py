@@ -736,8 +736,42 @@ class AdminRefundView(APIView):
 
 
 # =============================================================================
-# UC-PAY-11 — AdminPaymentListView
+# UC-PAY-11 — AdminPaymentDetailView + AdminPaymentListView
 # =============================================================================
+
+class AdminPaymentDetailView(APIView):
+    """
+    GET /api/v1/admin/payments/<payment_id>/
+    Detalle de un pago individual para el admin.
+    H-CICLO81-03: AdminPaymentListView existia pero no habia endpoint de
+    detalle — el admin podia listar pagos pero no consultar uno por PK,
+    impidiendo drill-down desde la lista de pagos en el panel.
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    @extend_schema(
+        summary='Detalle de pago (admin)',
+        description=(
+            'Retorna el detalle completo de un Payment por su PK. '
+            'No requiere filtro de propietario (admin ve todos los pagos). '
+            'H-CICLO81-03: endpoint faltante — AdminPaymentListView existia '
+            'sin su endpoint de detalle correspondiente.'
+        ),
+        responses={
+            200: PaymentSerializer,
+            404: OpenApiResponse(description='Payment no encontrado.'),
+        },
+        tags=['payments-admin'],
+    )
+    def get(self, request, payment_id):
+        payment = get_object_or_404(
+            PaymentModel.objects.select_related('order'),
+            pk=payment_id,
+        )
+        return Response(PaymentSerializer(payment).data)
+
+
+
 
 class AdminPaymentListView(APIView):
     """

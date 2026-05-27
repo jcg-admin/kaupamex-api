@@ -34,6 +34,16 @@ SECURE_HSTS_PRELOAD = True
 # (ver config/apache/practicayoruba-https.conf en PracticaYoruba-server)
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
+# H-CICLO81-02: habilitar USE_X_FORWARDED_HOST para que Django use el
+# header X-Forwarded-Host enviado por Apache en lugar del hostname interno
+# del servidor WSGI. Sin este flag request.build_absolute_uri() genera URLs
+# con el hostname interno (ej. 127.0.0.1) en lugar del dominio publico,
+# rompiendo los download_url de importacion de inventario y cualquier
+# enlace absoluto construido por la API. Apache debe enviar el header:
+#   RequestHeader set X-Forwarded-Host "%{HTTP_HOST}s"
+# (ya documentado en practicayoruba-https.conf).
+USE_X_FORWARDED_HOST = True
+
 # --- Archivos estáticos -------------------------------------------------
 # STATIC_ROOT es requerido en producción para que collectstatic funcione.
 # Apache sirve /static/ directamente desde este directorio.

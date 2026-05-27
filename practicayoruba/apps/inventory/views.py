@@ -365,7 +365,14 @@ class ProductImportStatusView(_AdminOnly, APIView):
     @extend_schema(summary='Estado de importación (UC-INV-05)', tags=['inventory'], responses={200: None, 404: None})
     def get(self, request, job_id):
         try:
-            job = ImportJob.objects.get(pk=int(job_id))
+            # H-CICLO81-01: filtrar por uploaded_by para evitar IDOR entre
+            # admins. Sin el filtro cualquier admin puede consultar el job de
+            # otro admin conociendo su PK secuencial. Los superusuarios pueden
+            # ver todos los jobs (necesario para soporte y depuracion).
+            qs = ImportJob.objects
+            if not request.user.is_superuser:
+                qs = qs.filter(uploaded_by=request.user)
+            job = qs.get(pk=int(job_id))
         except (ImportJob.DoesNotExist, ValueError, TypeError):
             raise NotFound({'detail': 'Job no encontrado.', 'codigo_error': 'JOB_NOT_FOUND'})
         return Response({'id': job.id, 'status': job.status, 'total_rows': job.total_rows,
