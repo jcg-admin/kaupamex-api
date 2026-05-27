@@ -40,6 +40,17 @@ class AdminQuestionPagination(PageNumberPagination):
     max_page_size         = 200
 
 
+class PublicQuestionPagination(PageNumberPagination):
+    """H-CICLO120-01: paginar listado publico de preguntas.
+    Sin paginacion un producto con muchas Q&A respondidas retorna toda
+    la tabla en un solo response, causando OOM en el worker y freeze
+    en el cliente. page_size conservador (20) apropiado para el frontend.
+    """
+    page_size             = 20
+    page_size_query_param = 'page_size'
+    max_page_size         = 100
+
+
 class ProductQuestionsView(APIView):
     """
     GET  /api/v1/products/<product_id>/questions/ — UC-QST-01 public list
@@ -82,6 +93,15 @@ class ProductQuestionsView(APIView):
             .select_related('asker_user')
             .order_by('-created_at')
         )
+        # H-CICLO120-01: paginar listado publico. Sin paginacion un producto
+        # con cientos de Q&A retorna toda la tabla en un solo response,
+        # causando OOM en el worker y freeze en el UI del comprador.
+        paginator = PublicQuestionPagination()
+        page = paginator.paginate_queryset(qs, request)
+        if page is not None:
+            return paginator.get_paginated_response(
+                PublicQuestionItemSerializer(page, many=True).data
+            )
         return Response({'results': PublicQuestionItemSerializer(qs, many=True).data})
 
     @extend_schema(
