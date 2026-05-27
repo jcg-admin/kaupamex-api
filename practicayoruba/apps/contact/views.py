@@ -16,6 +16,7 @@ from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
@@ -23,6 +24,12 @@ from rest_framework.views import APIView
 from apps.core.email_executor import dispatch_email
 from .models import ContactMessage
 from .serializers import ContactMessageSerializer, ContactMessageAdminSerializer
+
+
+class _ContactMessagePagination(PageNumberPagination):
+    page_size             = 25
+    page_size_query_param = 'page_size'
+    max_page_size         = 100
 
 
 def _get_message(message_id):
@@ -71,6 +78,16 @@ class AdminContactMessageListView(_AdminOnly, APIView):
     )
     def get(self, request):
         qs = ContactMessage.objects.all().order_by('-created_at')
+        # H-CICLO76-09: paginate to avoid OOM on large contact message tables.
+        # An unbounded queryset could load thousands of rows into memory on a
+        # single request.  25 per page is consistent with other admin list
+        # views (AdminUserPagination, ReturnPagination).
+        paginator = _ContactMessagePagination()
+        page = paginator.paginate_queryset(qs, request)
+        if page is not None:
+            return paginator.get_paginated_response(
+                ContactMessageAdminSerializer(page, many=True).data
+            )
         return Response({'results': ContactMessageAdminSerializer(qs, many=True).data})
 
 
