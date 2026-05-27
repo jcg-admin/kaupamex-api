@@ -180,6 +180,10 @@ class OrderStatusLog(TimeStampedModel):
     )
     notes           = models.TextField(blank=True, default='')
 
+    # DEC-003: override para db_index en tabla de historial — queries de
+    # historial ordenadas por created_at son frecuentes en el admin.
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
     class Meta:
         db_table     = 'orders_status_log'
         ordering     = ['-created_at']
