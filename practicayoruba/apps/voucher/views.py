@@ -24,12 +24,22 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.generics import ListAPIView
 from apps.orders.models import Order
 from .models import Voucher, VoucherChangeLog
 from .serializers import VoucherSerializer, VoucherReportSerializer
 
+
+class _VoucherPagination(PageNumberPagination):
+    """H-CICLO106-01: paginar listado de vouchers para evitar respuesta sin
+    limite en tiendas con muchos cupones. Sin pagination_class el endpoint
+    GET /api/v1/admin/vouchers/ devuelve la tabla completa en un solo response,
+    agotando memoria del worker WSGI y bloqueando paginacion en el UI."""
+    page_size             = 50
+    page_size_query_param = 'page_size'
+    max_page_size         = 200
 
 
 class VoucherViewSet(ModelViewSet):
@@ -45,6 +55,10 @@ class VoucherViewSet(ModelViewSet):
     serializer_class   = VoucherSerializer
     queryset           = Voucher.objects.all().order_by('-created_at')
     http_method_names  = ['get', 'post', 'patch', 'delete', 'head', 'options']
+    # H-CICLO106-01: agregar paginacion al listado de admin para evitar OOM
+    # en tiendas con muchas campanas de cupones. page_size=50 cubre el caso
+    # de uso normal (la mayoria de tiendas tiene <50 cupones activos).
+    pagination_class   = _VoucherPagination
 
     def perform_create(self, serializer):
         instance = serializer.save(created_by=self.request.user)
