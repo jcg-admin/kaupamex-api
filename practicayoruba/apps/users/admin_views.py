@@ -284,13 +284,33 @@ class AdminUserViewSet(ModelViewSet):
     def reactivate(self, request, pk=None):
         _require_admin(request.user)
         target = self.get_object()
-        target.is_active = True
-        # Limpiar la causa para que el estado quede consistente.
-        target.deactivated_reason = None
-        target.deactivated_at = None
-        target.save(update_fields=[
-            'is_active', 'deactivated_reason', 'deactivated_at',
-        ])
+        with transaction.atomic():
+            target.is_active = True
+            # Limpiar la causa para que el estado quede consistente.
+            target.deactivated_reason = None
+            target.deactivated_at = None
+            target.save(update_fields=[
+                'is_active', 'deactivated_reason', 'deactivated_at',
+            ])
+            # H-CICLO103-01: audit log de reactivacion (append-only, simetrico
+            # con suspend). Sin este registro, el audit log mostraba
+            # suspensiones pero nunca las reactivaciones correspondientes,
+            # dejando el historial de la cuenta incompleto para compliance.
+            # BusinessEvent.action no tiene una constante ADMIN_REACTIVATE:
+            # se escribe directamente el string (max_length=20, sin constraint
+            # DB — solo choices=). El atomic() envuelve el save + on_commit.
+            from apps.users.audit import audit_log_business
+            audit_log_business(
+                request.user,
+                'ADMIN_REACTIVATE',
+                request,
+                target_type='user',
+                target_id=target.pk,
+                extra={
+                    'target_username': target.username,
+                    'note': request.data.get('note', '')[:255],
+                },
+            )
         return Response({'message': f'Cuenta de {target.username} reactivada.'})
 
 
