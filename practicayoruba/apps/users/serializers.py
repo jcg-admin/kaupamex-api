@@ -412,6 +412,14 @@ class AdminUserListSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(OpenApiTypes.INT)
     def get_order_count(self, obj):
+        # H-CICLO88-01: prefer annotated value from AdminUserViewSet.
+        # get_queryset() annotates order_count_db via Count('orders'),
+        # so we read that attribute and only fall back to a live COUNT
+        # when the serializer is used outside the admin list view
+        # (e.g. in create/retrieve where the annotation may be absent).
+        annotated = getattr(obj, 'order_count_db', None)
+        if annotated is not None:
+            return annotated
         return obj.orders.count()
 
     @extend_schema_field(OpenApiTypes.URI)

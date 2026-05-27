@@ -23,6 +23,7 @@ from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema, inline_serializer
 from rest_framework import fields as rf_fields
 from rest_framework import status
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from apps.orders.models import OrderItem
 from rest_framework.response import Response
@@ -34,6 +35,20 @@ from .serializers import ManualNotificationCreateSerializer, ManualNotificationR
 
 
 
+class _NotificationPagination(PageNumberPagination):
+    """H-CICLO88-02: paginar bandeja para evitar respuesta sin limite."""
+    page_size             = 50
+    page_size_query_param = 'page_size'
+    max_page_size         = 200
+
+
+# Hard cap: ante un admin que envie notificaciones masivas a un usuario
+# concreto el endpoint devuelve como maximo este numero de filas.
+# Protege al frontend y al worker WSGI frente a bandejas con miles
+# de mensajes (UC-NOT-01 DoS via admin manual fanout).
+_INBOX_CAP = 500
+
+
 # ────────────────────────────── UC-NOT-01 ────────────────────────────────
 class NotificationListView(APIView):
     """GET /api/v1/notifications/."""
@@ -43,6 +58,10 @@ class NotificationListView(APIView):
     @extend_schema(
         summary='Listar notificaciones del usuario',
         tags=['notifications'],
+        parameters=[
+            OpenApiParameter('page',      int, description='Numero de pagina.'),
+            OpenApiParameter('page_size', int, description='Resultados por pagina (max 200).'),
+        ],
         responses=NotificationSerializer(many=True),
     )
     def get(self, request):
@@ -50,7 +69,20 @@ class NotificationListView(APIView):
         # El modelo tiene Meta.ordering=['-created_at'] pero reliar en el
         # ordering de Meta con queryset.filter() puede perderse tras un
         # .values() u otras operaciones de combinacion. Se explicita aqui.
-        qs = Notification.objects.filter(user=request.user).order_by('-created_at')
+        # H-CICLO88-02: limitar a _INBOX_CAP filas antes de paginar para
+        # evitar que un admin que envie notificaciones masivas a un usuario
+        # cause OOM al serializar miles de objetos en un solo response.
+        qs = (
+            Notification.objects
+            .filter(user=request.user)
+            .order_by('-created_at')[:_INBOX_CAP]
+        )
+        paginator = _NotificationPagination()
+        page = paginator.paginate_queryset(qs, request)
+        if page is not None:
+            return paginator.get_paginated_response(
+                NotificationSerializer(page, many=True).data
+            )
         data = NotificationSerializer(qs, many=True).data
         return Response({'results': data})
 

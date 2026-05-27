@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
-from django.db.models import Q, Sum
+from django.db.models import Count, Q, Sum
 from django.utils import timezone
 from rest_framework import serializers as drf_serializers
 from rest_framework.decorators import action
@@ -182,7 +182,14 @@ class AdminUserViewSet(ModelViewSet):
 
     def get_queryset(self):
         _require_admin(self.request.user)
-        qs = User.objects.all().order_by('-date_joined')
+        # H-CICLO88-01: annotate order count to avoid N+1 in list view.
+        # AdminUserListSerializer.get_order_count previously called
+        # obj.orders.count() per row — one COUNT query per user.
+        # Using annotate(order_count_db=Count('orders')) reduces this to
+        # a single query with a GROUP BY.
+        qs = User.objects.annotate(
+            order_count_db=Count('orders'),
+        ).order_by('-date_joined')
         search   = self.request.query_params.get('search')
         is_active = self.request.query_params.get('is_active')
         is_staff  = self.request.query_params.get('is_staff')
