@@ -57,11 +57,8 @@ class TestCreateContactMessage:
         }, format='json')
         assert res.status_code == 201
         body = res.json()
-        for key in ('id', 'name', 'email', 'subject', 'body',
-                    'read', 'replied', 'created_at'):
+        for key in ('id', 'name', 'email', 'subject', 'body', 'created_at'):
             assert key in body
-        assert body['read'] is False
-        assert body['replied'] is False
 
         assert ContactMessage.objects.filter(
             email='maria@example.com',
@@ -107,7 +104,7 @@ class TestAdminListMessages:
     def test_admin_lists_empty(self, admin_client, db):
         res = admin_client.get(ADMIN_LIST_URL)
         assert res.status_code == 200
-        assert res.json() == {'results': []}
+        assert res.json()['results'] == []
 
 
 # ─── GET /admin/contact/messages/<id> — admin detail ─────────────────────

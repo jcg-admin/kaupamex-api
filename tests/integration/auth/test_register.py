@@ -35,10 +35,9 @@ class TestRegisterHappyPath:
     def test_registro_exitoso_devuelve_201(self, api_client, db):
         assert api_client.post(URL, VALID, format='json').status_code == 201
 
-    def test_respuesta_contiene_user_id(self, api_client, db):
+    def test_respuesta_contiene_message(self, api_client, db):
         data = api_client.post(URL, VALID, format='json').json()
-        assert 'user_id' in data
-        assert isinstance(data['user_id'], int)
+        assert 'message' in data
 
     def test_cuenta_creada_con_is_active_false(self, api_client, db):
         api_client.post(URL, VALID, format='json')

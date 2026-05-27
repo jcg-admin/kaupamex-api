@@ -329,6 +329,8 @@ def _process_import_csv(file_obj, initial_state: str, admin_user) -> dict:
                 raise ValueError('SKU vacío')
             try:
                 price = Decimal(base_price)
+                if price.is_nan() or price.is_infinite():
+                    raise InvalidOperation
             except (InvalidOperation, ValueError):
                 raise ValueError(f'Precio inválido: {base_price!r}')
             try:

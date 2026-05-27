@@ -17,6 +17,7 @@ UC-INV-05: POST /api/v1/admin/inventory/import/ accepting initial_state
             download_url}. 422 ENCABEZADO_CSV_INVALIDO when headers wrong.
 """
 import csv, io, pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
 from decimal import Decimal
 from apps.catalogue.models import Category, Product
 from apps.chartsize.models import VariantType, VariantOption, ProductVariant
@@ -70,7 +71,7 @@ def _make_csv(rows, headers=None):
     for row in rows:
         w.writerow(row)
     buf.seek(0)
-    return io.BytesIO(buf.read().encode('utf-8'))
+    return SimpleUploadedFile('test.csv', buf.read().encode('utf-8'), content_type='text/csv')
 
 
 # =============================================================================

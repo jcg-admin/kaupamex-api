@@ -92,9 +92,9 @@ class TestProductListSerializerDEC14:
         )
         item = self._get_item(api_client, prod_dec14)
         assert item['discount'] is not None
-        assert item['discount']['pct'] == pytest.approx(20.0)
+        assert Decimal(str(item['discount']['pct'])) == Decimal('20.00')
         assert 'discounted_price' in item['discount']
-        assert item['discount']['discounted_price'] == pytest.approx(200.0, rel=1e-2)
+        assert abs(Decimal(str(item['discount']['discounted_price'])) - Decimal('200.00')) < Decimal('0.01')
 
     def test_discount_null_con_descuento_expirado(self, api_client, prod_dec14):
         ProductDiscount.objects.create(

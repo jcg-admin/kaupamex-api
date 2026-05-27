@@ -167,7 +167,7 @@ class TestAdminQueue:
         )
         r = admin_client.get(ADMIN_QUEUE_URL + '?status=PENDING_MODERATION')
         assert r.status_code == 200
-        ids = [row['id'] for row in r.json()]
+        ids = [row['id'] for row in r.json()['results']]
         assert r1.id in ids
 
     def test_approve_idempotente_y_audita(

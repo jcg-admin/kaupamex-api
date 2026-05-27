@@ -6,6 +6,7 @@ UC-INV-04: Manual delta adjustment
 UC-INV-05: Import products from CSV
 """
 import csv, io, pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
 from decimal import Decimal
 from apps.catalogue.models import Category, Product
 from apps.chartsize.models import VariantType, VariantOption, ProductVariant
@@ -66,7 +67,7 @@ def _make_csv(rows, headers=None):
     for row in rows:
         w.writerow(row)
     buf.seek(0)
-    return io.BytesIO(buf.read().encode('utf-8'))
+    return SimpleUploadedFile('test.csv', buf.read().encode('utf-8'), content_type='text/csv')
 
 
 # =============================================================================
@@ -81,7 +82,7 @@ class TestAjusteDelta:
         """Delta +5 sobre stock=10 → 15."""
         res = admin_client.post(
             f'{INV_URL}{product_s11.pk}/adjust/',
-            {'delta': 5, 'notes': 'Recepción proveedor'},
+            {'delta': 5, 'reason': 'CONTEO_FISICO', 'notes': 'Recepción proveedor'},
             format='json',
         )
         assert res.status_code == 201
@@ -94,7 +95,7 @@ class TestAjusteDelta:
         """Delta -3 sobre stock=10 → 7."""
         res = admin_client.post(
             f'{INV_URL}{product_s11.pk}/adjust/',
-            {'delta': -3, 'notes': 'Merma'},
+            {'delta': -3, 'reason': 'MERMA', 'notes': 'Merma'},
             format='json',
         )
         assert res.status_code == 201
@@ -107,7 +108,7 @@ class TestAjusteDelta:
         """Delta -20 sobre stock=10 → -10 → rechazado."""
         res = admin_client.post(
             f'{INV_URL}{product_s11.pk}/adjust/',
-            {'delta': -20},
+            {'delta': -20, 'reason': 'CONTEO_FISICO'},
             format='json',
         )
         assert res.status_code == 400
@@ -121,7 +122,7 @@ class TestAjusteDelta:
         """Delta +4 sobre variant.stock=6 → 10."""
         res = admin_client.post(
             f'{INV_URL}variants/{variant_s11.pk}/adjust/',
-            {'delta': 4, 'notes': 'Entrada almacen'},
+            {'delta': 4, 'reason': 'CONTEO_FISICO', 'notes': 'Entrada almacen'},
             format='json',
         )
         assert res.status_code == 201
@@ -134,7 +135,7 @@ class TestAjusteDelta:
         """FR-INV-04.02: referencia = ADMIN:<pk>."""
         admin_client.post(
             f'{INV_URL}{product_s11.pk}/adjust/',
-            {'delta': 1, 'notes': 'Test'},
+            {'delta': 1, 'reason': 'CONTEO_FISICO', 'notes': 'Test'},
             format='json',
         )
         mov = StockMovement.objects.filter(
@@ -144,16 +145,16 @@ class TestAjusteDelta:
         assert mov.reference.startswith('ADMIN:')
         assert mov.notes == 'Test'
 
-    def test_ajuste_cero_permitido(self, admin_client, product_s11, db):
-        """Delta 0 es válido (registra un movimiento sin cambio)."""
+    def test_ajuste_cero_rechazado(self, admin_client, product_s11, db):
+        """Delta 0 es inválido — H-CICLO62-02: crearía StockMovement sin efecto."""
         res = admin_client.post(
             f'{INV_URL}{product_s11.pk}/adjust/',
-            {'delta': 0},
+            {'delta': 0, 'reason': 'CONTEO_FISICO'},
             format='json',
         )
-        assert res.status_code == 201
+        assert res.status_code == 400
         product_s11.refresh_from_db()
-        assert product_s11.stock == 10
+        assert product_s11.stock == 10  # sin cambio
 
 
 # =============================================================================
@@ -315,7 +316,7 @@ class TestImportarProductosCSV:
     def test_filas_validas_e_invalidas_mixtas(
         self, admin_client, cat_s11, db
     ):
-        """Filas válidas se crean; inválidas van a errors sin bloquear las demás."""
+        """H-CICLO72-02: all-or-nothing — si hay filas inválidas, nada se crea."""
         rows = [
             {'name': 'OK 1', 'sku': 'MIX-001',
              'base_price': '500.00', 'category_slug': cat_s11.slug},
@@ -327,7 +328,7 @@ class TestImportarProductosCSV:
         res = admin_client.post(IMPORT_URL,
             {'file': _make_csv(rows)}, format='multipart')
         assert res.status_code == 200
-        assert res.json()['created'] == 2
+        assert res.json()['created'] == 0
         assert res.json()['failed'] == 1
 
     def test_polling_job_no_encontrado(self, admin_client, db):

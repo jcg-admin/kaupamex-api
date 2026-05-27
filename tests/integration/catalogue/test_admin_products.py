@@ -300,8 +300,12 @@ class TestEditarProductoAdmin:
         assert res.json()['name'] == original_name
 
     def test_publicar_producto(self, admin_client, product_sopera, db):
+        from apps.catalogue.models import ProductImage
         product_sopera.is_published = False
         product_sopera.save()
+        ProductImage.objects.create(
+            product=product_sopera, image='products/images/test.jpg',
+        )
         res = admin_client.patch(
             f'{ADMIN_PROD_URL}{product_sopera.pk}/',
             {'is_published': True},

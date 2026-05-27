@@ -116,8 +116,8 @@ class TestProductListSerializerShape:
         item = r.json()['results'][0]
         d = item['discount']
         assert d is not None
-        assert d['pct'] == 15.0
-        assert d['discounted_price'] < float(product.price)
+        assert Decimal(str(d['pct'])) == Decimal('15.00')
+        assert Decimal(str(d['discounted_price'])) < product.price
 
     def test_listado_discount_excluye_expirado(self, api_client, product, expired_discount):
         r = api_client.get(CATALOGUE_URL)
@@ -162,13 +162,13 @@ class TestProductDetailDiscount:
 
     def test_detalle_discount_pct_correcto(self, api_client, product, active_discount):
         r = api_client.get(f'{CATALOGUE_URL}{product.slug}/')
-        assert r.json()['discount']['pct'] == 15.0
+        assert Decimal(str(r.json()['discount']['pct'])) == Decimal('15.00')
 
     def test_detalle_discount_discounted_price_correcto(self, api_client, product, active_discount):
         r = api_client.get(f'{CATALOGUE_URL}{product.slug}/')
         d = r.json()['discount']
-        expected = round(float(product.price) * 0.85, 2)
-        assert abs(d['discounted_price'] - expected) < 0.01
+        expected = (product.price * Decimal('0.85')).quantize(Decimal('0.01'))
+        assert abs(Decimal(str(d['discounted_price'])) - expected) < Decimal('0.01')
 
     def test_detalle_discount_excluye_expirado(self, api_client, product, expired_discount):
         r = api_client.get(f'{CATALOGUE_URL}{product.slug}/')

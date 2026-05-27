@@ -452,13 +452,19 @@ class TestAplicarCupon:
         assert res.json()['codigo_error'] == 'NO_ACTIVE_VOUCHER'
 
     def test_reemplazar_voucher_existente(self, cart_con_item, voucher_fixed, voucher_pct, db):
-        """FR-CART-04.02 Escenario 4: reemplaza voucher A por B."""
+        """DEC-BC-20: aplicar un segundo voucher cuando ya hay uno activo retorna 409.
+        El flujo correcto es DELETE + POST (remover primero, luego aplicar el nuevo)."""
         client, _ = cart_con_item
         client.post(VOUCHER_APPLY_URL, {'code': 'FIXED50'}, format='json')
+        # Second apply rejected — must remove first
         res = client.post(VOUCHER_APPLY_URL, {'code': 'PCT15'}, format='json')
-        assert res.status_code == 200
-        # PCT15 tope $100 > FIXED50 $50 en este caso
-        assert Decimal(res.json()['totals']['discount']) == Decimal('100.00')
+        assert res.status_code == 409
+        assert res.json()['codigo_error'] == 'VOUCHER_ALREADY_APPLIED'
+        # Remove FIXED50 and apply PCT15 succeeds
+        client.delete(VOUCHER_APPLY_URL)
+        res2 = client.post(VOUCHER_APPLY_URL, {'code': 'PCT15'}, format='json')
+        assert res2.status_code == 200
+        assert Decimal(res2.json()['totals']['discount']) == Decimal('100.00')
 
 
 # =============================================================================

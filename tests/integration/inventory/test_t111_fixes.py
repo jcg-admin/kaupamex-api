@@ -119,7 +119,7 @@ class TestStockBefore:
 
     def test_adjust_reason_en_respuesta_api(self, admin_client, active_product, db):
         url = INV_PRODUCT_ADJUST_URL.format(pk=active_product.pk)
-        resp = admin_client.post(url, {'delta': 1, 'notes': 'api test'}, format='json')
+        resp = admin_client.post(url, {'delta': 1, 'reason': 'CONTEO_FISICO', 'notes': 'api test'}, format='json')
         assert resp.status_code == 201
         assert 'stock_before' in resp.data
         assert 'reason' in resp.data
@@ -147,7 +147,7 @@ class TestDescontinuadoAjuste:
     ):
         url = INV_PRODUCT_ADJUST_URL.format(pk=inactive_product.pk)
         resp = admin_client.post(
-            url, {'delta': -2, 'notes': 'ajuste DESCONTINUADO'}, format='json'
+            url, {'delta': -2, 'reason': 'DESCONTINUADO', 'notes': 'ajuste DESCONTINUADO'}, format='json'
         )
         assert resp.status_code == 201
         inactive_product.refresh_from_db()

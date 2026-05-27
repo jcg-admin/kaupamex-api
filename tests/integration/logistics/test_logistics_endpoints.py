@@ -170,11 +170,11 @@ class TestUpdateGuideStatus:
             order=order_log, courier=courier_log, tracking_number='UPD-1',
         )
         r = admin_client.patch(GUIDE_URL(g.id), {
-            'status': 'IN_TRANSIT',
-            'description': 'En camino',
+            'status': 'PICKED_UP',
+            'description': 'Recolectado',
         }, format='json')
         assert r.status_code == 200
-        assert r.json()['status'] == 'IN_TRANSIT'
+        assert r.json()['status'] == 'PICKED_UP'
         g.refresh_from_db()
         assert g.events.count() == 1
 

@@ -71,6 +71,6 @@ class ImportJobSerializer(serializers.ModelSerializer):
 
 
 class VariantAdjustNewQuantitySerializer(serializers.Serializer):
-    new_quantity = serializers.IntegerField(required=True, min_value=0)
+    new_quantity = serializers.IntegerField(required=True)
     reason       = serializers.ChoiceField(choices=ADJUSTMENT_REASONS, required=True)
     observations = serializers.CharField(required=False, default='', allow_blank=True, max_length=500)
