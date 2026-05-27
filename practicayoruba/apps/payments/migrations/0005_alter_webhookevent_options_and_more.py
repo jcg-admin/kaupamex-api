@@ -14,9 +14,22 @@ class Migration(migrations.Migration):
             name="webhookevent",
             options={"verbose_name": "Webhook event"},
         ),
-        migrations.RemoveConstraint(
-            model_name="webhookevent",
-            name="unique_webhook_event",
+        # State has "unique_webhook_event" (from 0003_webhook_event Branch A).
+        # DB has "payments_webhook_event_gwy_eid_tid_uniq" (from 0003_webhookevent Branch B).
+        # Must separate ops to drop the index that actually exists in the DB.
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    sql="ALTER TABLE `payments_webhook_event` DROP INDEX IF EXISTS `payments_webhook_event_gwy_eid_tid_uniq`",
+                    reverse_sql="ALTER TABLE `payments_webhook_event` ADD UNIQUE INDEX `payments_webhook_event_gwy_eid_tid_uniq` (`gateway`, `event_id`, `transmission_id`)",
+                ),
+            ],
+            state_operations=[
+                migrations.RemoveConstraint(
+                    model_name="webhookevent",
+                    name="unique_webhook_event",
+                ),
+            ],
         ),
         migrations.AlterField(
             model_name="webhookevent",
