@@ -120,22 +120,28 @@ class VoucherViewSet(ModelViewSet):
         tags=['vouchers'],
     )
     def deactivate(self, request, pk=None):
-        voucher = self.get_object()
-        if not voucher.is_active:
-            return Response(
-                {'detail': 'El voucher ya está inactivo.',
-                 'codigo_error': 'VOUCHER_ALREADY_INACTIVE'},
-                status=400,
+        # H-CICLO105-01: wrap in transaction.atomic + select_for_update to
+        # prevent a race where two concurrent POST /deactivate/ requests both
+        # pass the is_active guard before either commits, resulting in a
+        # duplicate VoucherChangeLog entry and a non-atomic status flip.
+        # Mirrors the pattern already applied to activate() (H-CICLO51-01).
+        with transaction.atomic():
+            voucher = Voucher.all_objects.select_for_update().get(pk=pk)
+            if not voucher.is_active:
+                return Response(
+                    {'detail': 'El voucher ya está inactivo.',
+                     'codigo_error': 'VOUCHER_ALREADY_INACTIVE'},
+                    status=400,
+                )
+            voucher.is_active      = False
+            voucher.deactivated_at = timezone.now()
+            voucher.deactivated_by = request.user
+            voucher.save(update_fields=['is_active', 'deactivated_at', 'deactivated_by', 'updated_at'])
+            VoucherChangeLog.objects.create(
+                voucher=voucher,
+                changed_by=request.user,
+                changes={'action': 'deactivated', 'code': voucher.code},
             )
-        voucher.is_active      = False
-        voucher.deactivated_at = timezone.now()
-        voucher.deactivated_by = request.user
-        voucher.save(update_fields=['is_active', 'deactivated_at', 'deactivated_by', 'updated_at'])
-        VoucherChangeLog.objects.create(
-            voucher=voucher,
-            changed_by=request.user,
-            changes={'action': 'deactivated', 'code': voucher.code},
-        )
         return Response(VoucherSerializer(voucher).data)
 
     @action(detail=False, methods=['get'], url_path='report')
