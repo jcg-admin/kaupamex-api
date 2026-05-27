@@ -108,6 +108,21 @@ class CartView(APIView):
         if variant_id:
             variant = get_object_or_404(ProductVariant, pk=variant_id, product=product)
 
+        # H-CICLO121-01: CartView.post() lacked any stock check — a client
+        # could add arbitrary quantities via POST /api/v1/cart/ without the
+        # guard present in CartItemListView.post(). Validate stock before
+        # entering the atomic block and again inside it (double-check pattern)
+        # to handle concurrent requests.
+        available = variant.stock if variant else product.stock
+        if available is not None and available <= 0:
+            return Response(
+                {'detail': 'Producto sin stock.', 'codigo_error': 'OUT_OF_STOCK'},
+                status=status.HTTP_409_CONFLICT,
+            )
+        if available is not None and quantity > available:
+            raise ValidationError({'codigo_error': 'INSUFFICIENT_STOCK',
+                                   'quantity': 'Stock insuficiente.'})
+
         unit_price = variant.effective_price() if variant else product.price
 
         cart, _, _ = _get_or_create_cart(request)
@@ -117,7 +132,12 @@ class CartView(APIView):
                 defaults={'quantity': quantity, 'unit_price': unit_price},
             )
             if not created_item:
-                item.quantity += quantity
+                new_qty = item.quantity + quantity
+                avail = variant.stock if variant else product.stock
+                if avail is not None and new_qty > avail:
+                    raise ValidationError({'codigo_error': 'INSUFFICIENT_STOCK',
+                                           'quantity': 'Stock insuficiente.'})
+                item.quantity = new_qty
                 item.unit_price = unit_price
                 item.save(update_fields=['quantity', 'unit_price', 'updated_at'])
 
