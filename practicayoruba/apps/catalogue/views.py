@@ -186,6 +186,13 @@ class CatalogueListView(ListAPIView):
                 qs = qs.filter(price__lte=val)
             except InvalidOperation:
                 raise ValidationError({'price_max': 'Valor numérico inválido.'})
+        # H-CICLO110-02: aplicar filtro in_stock aqui. Anteriormente solo
+        # ProductSearchView aplicaba el filtro; CatalogueListView lo
+        # registraba en filters_applied pero no filtraba el queryset, de
+        # modo que ?in_stock=true devolvía productos sin stock junto con
+        # la clave "in_stock": true en la respuesta — resultado incoherente.
+        if self.request.query_params.get('in_stock', '').lower() == 'true':
+            qs = qs.filter(stock__gt=0)
         return qs
 
     def list(self, request, *args, **kwargs):

@@ -127,28 +127,25 @@ def admin_cancel_order(order, reason: str, admin_user):
                 f'{ADMIN_CANCELABLE_STATUSES}.'
             )
 
-        previous = locked.status
         # Reutilizar cancel_order de Sprint 18 (restaura stock + reembolso)
-        # pero con los estados admin-cancelables. cancel_order opera sobre
-        # la instancia bloqueada dentro del mismo atomic.
+        # con los estados admin-cancelables. cancel_order ya crea un
+        # OrderStatusLog internamente (previous_status + new_status +
+        # changed_by + notes). Crear una segunda entrada aquí era duplicado
+        # (H-CICLO110-01): cada cancelación admin producía dos filas en
+        # el historial — una con notes=reason y otra con notes='[ADMIN] reason'.
+        # Se elimina el segundo create; el prefijo [ADMIN] se propaga
+        # via admin_reason para que el log único sea identificable.
+        admin_reason = f'[ADMIN] {reason}'
         cancel_order(
             order=locked,
-            reason=reason,
+            reason=admin_reason,
             cancelled_by=admin_user,
             cancelable_statuses=ADMIN_CANCELABLE_STATUSES,
         )
 
-        # Registrar quién (admin) canceló
+        # Registrar quién (admin) canceló en el campo dedicado de la orden.
         locked.admin_cancelled_by = admin_user
         locked.save(update_fields=['admin_cancelled_by', 'updated_at'])
-
-        OrderStatusLog.objects.create(
-            order=locked,
-            previous_status=previous,
-            new_status='CANCELLED',
-            changed_by=admin_user,
-            notes=f'[ADMIN] {reason}',
-        )
 
     return locked
 
