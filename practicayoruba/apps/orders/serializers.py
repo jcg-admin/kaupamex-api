@@ -42,6 +42,12 @@ class OrderSerializer(serializers.ModelSerializer):
     address              = OrderAddressSerializer(read_only=True)
     shipping_method_name = serializers.SerializerMethodField()
     status_display       = serializers.SerializerMethodField()
+    # H-CICLO104-07: incluir status_logs en la respuesta del comprador para
+    # que OrderDetailPage.jsx pueda mostrar las fechas reales de cada paso
+    # en el timeline de seguimiento. Sin este campo el Timeline siempre
+    # mostraba "pendiente" en todos los pasos porque (order.status_logs || [])
+    # retornaba lista vacia al no estar presente en la respuesta.
+    status_logs          = OrderStatusLogSerializer(many=True, read_only=True)
 
     class Meta:
         model  = Order
@@ -55,7 +61,7 @@ class OrderSerializer(serializers.ModelSerializer):
             'order_number', 'status', 'status_display',
             'user', 'guest_email', 'shipping_method_name',
             'voucher_code', 'voucher_discount', 'notes',
-            'items', 'value', 'address',
+            'items', 'value', 'address', 'status_logs',
             'created_at', 'cancelled_at', 'cancellation_reason',
         ]
 

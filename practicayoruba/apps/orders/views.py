@@ -396,7 +396,10 @@ class OrderDetailView(APIView):
             Order.objects
             .filter(order_number=order_number, user=request.user)
             .select_related('value', 'address', 'shipping_method')
-            .prefetch_related('items')
+            # H-CICLO104-07: prefetch status_logs so OrderSerializer can
+            # include them without N+1; OrderDetailPage.jsx uses them for
+            # the timeline step dates.
+            .prefetch_related('items', 'status_logs__changed_by')
             .first()
         )
         if not order:
