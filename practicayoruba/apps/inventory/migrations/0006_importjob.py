@@ -9,6 +9,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("inventory", "0005_stockmovement_stock_before_reason"),
+        ("users", "0001_squashed_0007_user_deactivation_event"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

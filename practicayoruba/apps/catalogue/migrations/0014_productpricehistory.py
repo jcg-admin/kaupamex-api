@@ -10,6 +10,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("catalogue", "0013_alter_productimage_created_at"),
+        ("users", "0001_squashed_0007_user_deactivation_event"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

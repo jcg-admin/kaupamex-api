@@ -13,6 +13,7 @@ class Migration(migrations.Migration):
             "wishlist",
             "0001_squashed_0004_wishlistitem_deleted_at_wishlistitem_is_deleted",
         ),
+        ("users", "0001_squashed_0007_user_deactivation_event"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

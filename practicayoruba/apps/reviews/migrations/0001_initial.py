@@ -13,6 +13,7 @@ class Migration(migrations.Migration):
     dependencies = [
         ("catalogue", "0012_productdiscount_softdelete"),
         ("orders", "0007_order_deleted_at_order_is_deleted"),
+        ("users", "0001_squashed_0007_user_deactivation_event"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

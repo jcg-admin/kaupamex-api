@@ -26,6 +26,7 @@ class Migration(migrations.Migration):
         ("catalogue", "0008_fix_postgres_fields_to_mariadb"),
         ("chartsize", "0001_initial"),
         ("settings_app", "0004_sitesettings_contact_staticpage"),
+        ("users", "0001_squashed_0007_user_deactivation_event"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

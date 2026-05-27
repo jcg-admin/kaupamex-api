@@ -8,6 +8,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('reviews', '0002_alter_review_reject_reason'),
+        ("users", "0001_squashed_0007_user_deactivation_event"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
