@@ -13,11 +13,18 @@ from django.db.models import Q
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from .models import Product, ProductDiscount
 from .product_discount_serializers import ProductDiscountCreateSerializer, ProductDiscountSerializer, ProductDiscountUpdateSerializer
+
+
+class ProductDiscountPagination(PageNumberPagination):
+    page_size             = 25
+    page_size_query_param = 'page_size'
+    max_page_size         = 100
 
 
 
@@ -56,12 +63,15 @@ class ProductDiscountListCreateView(APIView):
         tags=['product-discounts'],
     )
     def get(self, request):
-        qs = ProductDiscount.objects.select_related('product').all()
+        qs = ProductDiscount.objects.select_related('product').all().order_by('-created_at')
         status_filter = request.query_params.get('status')
         if status_filter:
             qs = _filter_by_status(qs, status_filter.upper())
-        data = ProductDiscountSerializer(qs, many=True).data
-        return Response({'results': data})
+        paginator = ProductDiscountPagination()
+        page = paginator.paginate_queryset(qs, request)
+        if page is not None:
+            return paginator.get_paginated_response(ProductDiscountSerializer(page, many=True).data)
+        return Response({'results': ProductDiscountSerializer(qs, many=True).data})
 
     @extend_schema(
         summary='Create product discount (UC-DASH-01)',
@@ -187,9 +197,10 @@ class ProductDiscountDetailView(APIView):
                     status=status.HTTP_409_CONFLICT,
                 )
 
+        changed_fields = list(serializer.validated_data.keys())
         for field, value in serializer.validated_data.items():
             setattr(instance, field, value)
-        instance.save()
+        instance.save(update_fields=changed_fields + ['updated_at'])
         return Response(ProductDiscountSerializer(instance).data)
 
 

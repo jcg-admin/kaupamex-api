@@ -73,7 +73,6 @@ class InitiatePaymentView(APIView):
         installments  = s.validated_data['installments']
         gateway_type  = s.validated_data.get('gateway', 'MERCADOPAGO')
 
-        # Buscar la orden — solo el dueño puede pagarla.
         # DEC-BC-11 (2026-05-21): permission_classes = [IsAuthenticated]
         # garantiza request.user.is_authenticated. La rama else previa
         # (Order.objects.get sin filtro user=) era codigo muerto +
@@ -83,30 +82,41 @@ class InitiatePaymentView(APIView):
         # UC-PAY-01 D-09 + D-14). Codigo muerto eliminado para cerrar
         # el vector latente y mantener la invariante "solo el dueno
         # paga" como propiedad estructural.
+        #
+        # DEC-BC-22: select_for_update() dentro de atomic serializa requests
+        # concurrentes al mismo order_number. Sin el lock, dos POST concurrentes
+        # pueden ambos pasar la validacion de PENDING, crear dos preferencias en
+        # el gateway y dos filas Payment — duplicando el intento de cobro.
+        # La llamada al gateway (IO de red) queda dentro del atomic intencionalmente:
+        # es la unica forma de garantizar la invariante "un solo Payment en vuelo
+        # por orden PENDING" sin una columna de estado intermedio adicional.
         try:
-            order = Order.objects.select_related('value').get(
-                order_number=order_number,
-                user=request.user,
-            )
-        except Order.DoesNotExist:
-            raise ValidationError({
-                'order_number': f'Orden {order_number!r} no encontrada.',
-                'codigo_error': 'ORDER_NOT_FOUND',
-            })
+            with db_transaction.atomic():
+                try:
+                    order = Order.objects.select_related('value').select_for_update().get(
+                        order_number=order_number,
+                        user=request.user,
+                    )
+                except Order.DoesNotExist:
+                    raise ValidationError({
+                        'order_number': f'Orden {order_number!r} no encontrada.',
+                        'codigo_error': 'ORDER_NOT_FOUND',
+                    })
 
-        if order.status != Order.STATUS_PENDING:
-            raise ValidationError({
-                'detail': f'La orden no está en estado PENDING (estado: {order.status}).',
-                'codigo_error': 'ORDER_NOT_PAYABLE',
-            })
+                if order.status != Order.STATUS_PENDING:
+                    raise ValidationError({
+                        'detail': f'La orden no está en estado PENDING (estado: {order.status}).',
+                        'codigo_error': 'ORDER_NOT_PAYABLE',
+                    })
 
-        try:
-            payment, checkout_url = initiate_payment(
-                order=order,
-                request=request,
-                installments=installments,
-                gateway_type=gateway_type,
-            )
+                payment, checkout_url = initiate_payment(
+                    order=order,
+                    request=request,
+                    installments=installments,
+                    gateway_type=gateway_type,
+                )
+        except ValidationError:
+            raise
         except ValueError as exc:
             raise ValidationError({'detail': str(exc), 'codigo_error': 'GATEWAY_CONFIG_ERROR'})
         except RuntimeError as exc:
