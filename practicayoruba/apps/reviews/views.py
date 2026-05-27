@@ -19,6 +19,7 @@ from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
@@ -209,6 +210,13 @@ class ProductReviewsView(APIView):
 # Admin — moderation queue + approve / reject
 # =============================================================================
 
+class _AdminReviewPagination(PageNumberPagination):
+    """H-CICLO90-01: paginar cola de moderacion de resenas para evitar OOM."""
+    page_size = 50
+    page_size_query_param = 'page_size'
+    max_page_size = 200
+
+
 class _AdminOnly:
     permission_classes = [IsAuthenticated, IsAdminUser]
     serializer_class = ReviewAdminSerializer
@@ -234,7 +242,16 @@ class ReviewAdminListView(_AdminOnly, APIView):
             .select_related('user', 'product', 'order')
             .order_by('created_at')  # FIFO
         )
-        return Response(ReviewAdminSerializer(qs, many=True).data)
+        # H-CICLO90-01: paginar para evitar OOM en tiendas con cola de
+        # moderacion grande. Patron identico a AdminQuestionsListView
+        # (H-CICLO84-02) y AdminSupportTicketListView (H-CICLO89-01).
+        paginator = _AdminReviewPagination()
+        page = paginator.paginate_queryset(qs, request)
+        if page is not None:
+            return paginator.get_paginated_response(
+                ReviewAdminSerializer(page, many=True).data
+            )
+        return Response({'results': ReviewAdminSerializer(qs, many=True).data})
 
 
 class ReviewApproveView(_AdminOnly, APIView):

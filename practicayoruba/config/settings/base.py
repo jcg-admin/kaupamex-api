@@ -184,6 +184,12 @@ REST_FRAMEWORK = {
         # flooding del carrito. 120/hour cubre uso intensivo del SPA sin
         # restringir la experiencia de compra normal.
         'cart':                 '120/hour',
+        # H-CICLO90-02: throttle para PaymentReturnView (AllowAny).
+        # Sin throttle un atacante puede llamar el endpoint con order_numbers
+        # arbitrarios y crear PaymentGatewayEvent rows en cada peticion, saturando
+        # la BD de auditoria. 60/hour cubre el caso de uso legítimo (el gateway
+        # redirige al comprador una sola vez por pago).
+        'payment_return':       '60/hour',
     },
 }
 

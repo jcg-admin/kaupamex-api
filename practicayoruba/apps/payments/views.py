@@ -9,6 +9,7 @@ from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParamet
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from django.db.models import F
 from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress, ShippingZone
@@ -143,6 +144,10 @@ class PaymentReturnView(APIView):
     Siempre retorna HTTP 200 — el frontend debe verificar el status del pago.
     """
     permission_classes = [AllowAny]
+    # H-CICLO90-02: throttle para evitar que un atacante cree PaymentGatewayEvent
+    # rows ilimitados llamando este endpoint con order_numbers arbitrarios.
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope   = 'payment_return'
 
     @extend_schema(
         summary='Retorno del gateway de pago',
