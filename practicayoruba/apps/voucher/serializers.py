@@ -104,13 +104,24 @@ class VoucherReportSerializer(serializers.ModelSerializer):
         return VoucherSerializer().get_status(obj)
 
     def get_roi(self, obj):
+        # H-CICLO112-02: usar Decimal en lugar de float() para la division
+        # monetaria ROI = revenue / discount. float() sobre Decimal introduce
+        # error de punto flotante en datos monetarios (p.ej. 0.30000000000000004
+        # en lugar de 0.30), violando la politica "Decimal para calculos
+        # monetarios, nunca float". Se convierte a Decimal, se divide con
+        # precision completa y se redondea a 2 decimales antes de retornar
+        # como str para que el serializer lo trate correctamente.
         disc = getattr(obj, 'total_discount_given', None)
         rev  = getattr(obj, 'total_revenue_with_voucher', None)
         if not disc:
             return None
         try:
-            return round(float(rev or 0) / float(disc), 2)
-        except (ZeroDivisionError, TypeError):
+            disc_d = Decimal(str(disc))
+            rev_d  = Decimal(str(rev or 0))
+            if disc_d == 0:
+                return None
+            return float((rev_d / disc_d).quantize(Decimal('0.01')))
+        except (ZeroDivisionError, TypeError, Exception):
             return None
 
 

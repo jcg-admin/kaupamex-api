@@ -408,34 +408,45 @@ class CartVoucherView(APIView):
 
         cart, _, _ = _get_or_create_cart(request)
 
-        cart_total = sum(
-            item.unit_price * item.quantity for item in cart.items.all()
-        )
+        # H-CICLO112-01: wrap the check-then-act sequence in a single
+        # atomic block with select_for_update() on the cart to prevent
+        # two concurrent POST requests from both passing the
+        # VoucherUsage.exists() guard and the cart.voucher_id is None
+        # guard before either commits, resulting in one voucher applied
+        # twice (both writes succeed, last writer wins silently).
+        # select_for_update serializes concurrent requests for the same
+        # cart row so only one proceeds through the guards at a time.
+        with transaction.atomic():
+            cart = Cart.objects.select_for_update().get(pk=cart.pk)
 
-        error_code = voucher.validate_for_cart(cart_total, request.user)
-        if error_code:
-            raise ValidationError({
-                'detail': f'Voucher no aplicable: {error_code}',
-                'codigo_error': error_code,
-            })
+            cart_total = sum(
+                item.unit_price * item.quantity for item in cart.items.all()
+            )
 
-        # Single-use-per-user enforcement (DEC-BC-10)
-        if request.user.is_authenticated:
-            if VoucherUsage.objects.filter(user=request.user, voucher=voucher).exists():
+            error_code = voucher.validate_for_cart(cart_total, request.user)
+            if error_code:
                 raise ValidationError({
-                    'detail': 'Ya has utilizado este voucher.',
-                    'codigo_error': 'VOUCHER_ALREADY_USED',
+                    'detail': f'Voucher no aplicable: {error_code}',
+                    'codigo_error': error_code,
                 })
 
-        # If cart already has a voucher, reject with 409 (DEC-BC-20)
-        if cart.voucher_id is not None:
-            return Response({
-                'detail': 'El carrito ya tiene un voucher aplicado. Elímínelo primero.',
-                'codigo_error': 'VOUCHER_ALREADY_APPLIED',
-            }, status=409)
+            # Single-use-per-user enforcement (DEC-BC-10)
+            if request.user.is_authenticated:
+                if VoucherUsage.objects.filter(user=request.user, voucher=voucher).exists():
+                    raise ValidationError({
+                        'detail': 'Ya has utilizado este voucher.',
+                        'codigo_error': 'VOUCHER_ALREADY_USED',
+                    })
 
-        cart.voucher = voucher
-        cart.save(update_fields=['voucher', 'updated_at'])
+            # If cart already has a voucher, reject with 409 (DEC-BC-20)
+            if cart.voucher_id is not None:
+                return Response({
+                    'detail': 'El carrito ya tiene un voucher aplicado. Elímínelo primero.',
+                    'codigo_error': 'VOUCHER_ALREADY_APPLIED',
+                }, status=409)
+
+            cart.voucher = voucher
+            cart.save(update_fields=['voucher', 'updated_at'])
 
         discount = voucher.calculate_discount(cart_total)
         return Response({
