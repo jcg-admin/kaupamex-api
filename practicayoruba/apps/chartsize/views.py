@@ -106,6 +106,15 @@ class ProductVariantAdminViewSet(ModelViewSet):
 
     def get_queryset(self):
         qs = super().get_queryset()
+        # H-CICLO99-01: product_pk comes from the URL path kwarg when the
+        # ViewSet is mounted at /api/v1/admin/products/<product_pk>/variants/.
+        # Previously only ?product= query param was checked, so the path-based
+        # filter was silently ignored and the list action returned ALL variants
+        # across all products when accessed via the canonical nested URL.
+        product_pk = self.kwargs.get('product_pk')
+        if product_pk:
+            qs = qs.filter(product_id=product_pk)
+            return qs
         product_id = self.request.query_params.get('product')
         if product_id:
             qs = qs.filter(product_id=product_id)
