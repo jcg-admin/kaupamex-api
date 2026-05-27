@@ -1,5 +1,5 @@
 from .base import *
-from decouple import config  # importación explícita — no depender del * de base.py
+from decouple import config, Csv  # importación explícita — no depender del * de base.py
 
 # Sobreescribe el default inseguro de base.py — falla explícitamente si no está configurada.
 SECRET_KEY = config('SECRET_KEY')
@@ -52,6 +52,18 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 #   RequestHeader set X-Forwarded-Host "%{HTTP_HOST}s"
 # (ya documentado en practicayoruba-https.conf).
 USE_X_FORWARDED_HOST = True
+
+# --- Hosts permitidos -------------------------------------------------------
+# base.py define ALLOWED_HOSTS con default 'localhost,127.0.0.1'.
+# init-env.sh copia ese default al .env sin incluir el dominio público.
+# Apache pasa Host: <dominio> a Django → DisallowedHost → HTTP 400.
+# Sobreescribir con un default de producción que incluye practicayoruba.mx.
+# Si el .env tiene ALLOWED_HOSTS explícito, decouple lo usa en su lugar.
+ALLOWED_HOSTS = config(
+    'ALLOWED_HOSTS',
+    default='practicayoruba.mx,localhost,127.0.0.1',
+    cast=Csv(),
+)
 
 # --- UI React (SPA) ----------------------------------------------------
 # Ruta al build de producción del UI (resultado de: npm run build).
