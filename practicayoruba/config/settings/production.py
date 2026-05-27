@@ -53,12 +53,6 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 # (ya documentado en practicayoruba-https.conf).
 USE_X_FORWARDED_HOST = True
 
-# --- Archivos estáticos -------------------------------------------------
-# STATIC_ROOT es requerido en producción para que collectstatic funcione.
-# Apache sirve /static/ directamente desde este directorio.
-# Ejecutar tras cada deploy: python manage.py collectstatic --noinput
-STATIC_ROOT = BASE_DIR / 'staticfiles'
-
 # --- UI React (SPA) ----------------------------------------------------
 # Ruta al build de producción del UI (resultado de: npm run build).
 # Usada por la vista serve_spa en config/urls.py para servir index.html.
@@ -70,7 +64,7 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 # ``if getattr(settings, 'UI_DIST', None):``).
 #
 # Configurar en ``practicayoruba/.env`` la ruta real:
-#   UI_DIST=/srv/repos/ecom/ui/dist   (WSL2 canónico)
+#   UI_DIST=/srv/repos/ecom/e-comerce-ui/dist   (WSL2 canónico)
 UI_DIST = config('UI_DIST', default='')
 
 # --- Email -----------------------------------------------------------------

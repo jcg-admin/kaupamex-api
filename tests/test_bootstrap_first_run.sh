@@ -182,7 +182,7 @@ fi
 # ----------------------------------------------------------------------------
 
 # H-UID-1: .env.example documenta UI_DIST con default WSL2
-if grep -qE '^UI_DIST=/srv/repos/ecom/ui/dist' "$PROJECT_ROOT/practicayoruba/.env.example"; then
+if grep -qE '^UI_DIST=/srv/repos/ecom/e-comerce-ui/dist' "$PROJECT_ROOT/practicayoruba/.env.example"; then
     pass ".env.example documenta UI_DIST con default WSL2 (H-UID-1)"
 else
     fail ".env.example NO documenta UI_DIST (H-UID-1 regresion)"
