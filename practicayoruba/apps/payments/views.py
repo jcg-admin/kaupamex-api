@@ -733,3 +733,143 @@ class AdminRefundView(APIView):
                             status=503)
 
         return Response(AdminRefundSerializer(refund).data, status=201)
+
+
+# =============================================================================
+# UC-PAY-11 — AdminPaymentListView
+# =============================================================================
+
+class AdminPaymentListView(APIView):
+    """
+    GET /api/v1/admin/payments/
+    Lista paginada de pagos para el admin con filtros y totales.
+    UC-PAY-11.
+
+    Filtros: ?status=, ?gateway=, ?from=YYYY-MM-DD, ?to=YYYY-MM-DD.
+    Respuesta: { count, results: Payment[], totals: {approved, refunded, net} }.
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    @extend_schema(
+        summary='Listado de transacciones de pago (admin, UC-PAY-11)',
+        description=(
+            'Lista paginada de todos los pagos. '
+            'Filtros: status, gateway, from (YYYY-MM-DD), to (YYYY-MM-DD). '
+            'Incluye totales del periodo: approved, refunded y net.'
+        ),
+        parameters=[
+            OpenApiParameter('status',  str, required=False,
+                             description='PENDING|APPROVED|FAILED|REFUNDED|PARTIALLY_REFUNDED|CANCELLED'),
+            OpenApiParameter('gateway', str, required=False,
+                             description='MERCADOPAGO|PAYPAL'),
+            OpenApiParameter('from',    str, required=False,
+                             description='Fecha inicio rango (YYYY-MM-DD).'),
+            OpenApiParameter('to',      str, required=False,
+                             description='Fecha fin rango (YYYY-MM-DD).'),
+            OpenApiParameter('page',    int, required=False),
+        ],
+        responses={200: PaymentSerializer(many=True)},
+        tags=['payments-admin'],
+    )
+    def get(self, request):
+        from django.db.models import Sum, Q
+        from decimal import Decimal as _Dec
+        from datetime import date as _date
+
+        qs = (
+            Payment.objects.select_related('order')
+            .order_by('-created_at')
+        )
+
+        # --- filters ---
+        status_param  = request.query_params.get('status')
+        gateway_param = request.query_params.get('gateway')
+        from_param    = request.query_params.get('from')
+        to_param      = request.query_params.get('to')
+
+        valid_statuses = {s[0] for s in Payment.STATUSES}
+        if status_param:
+            if status_param not in valid_statuses:
+                raise ValidationError({
+                    'status': f"'{status_param}' no es un estado válido.",
+                    'codigo_error': 'INVALID_STATUS',
+                    'valores_validos': list(valid_statuses),
+                })
+            qs = qs.filter(status=status_param)
+
+        valid_gateways = {g[0] for g in Payment.GATEWAYS}
+        if gateway_param:
+            if gateway_param.upper() not in valid_gateways:
+                raise ValidationError({
+                    'gateway': f"'{gateway_param}' no es un gateway válido.",
+                    'codigo_error': 'INVALID_GATEWAY',
+                    'valores_validos': list(valid_gateways),
+                })
+            qs = qs.filter(gateway=gateway_param.upper())
+
+        if from_param:
+            try:
+                _date.fromisoformat(from_param)
+            except ValueError:
+                raise ValidationError({
+                    'from': 'Formato de fecha inválido. Use YYYY-MM-DD.',
+                    'codigo_error': 'INVALID_DATE_FORMAT',
+                })
+            qs = qs.filter(created_at__date__gte=from_param)
+
+        if to_param:
+            try:
+                _date.fromisoformat(to_param)
+            except ValueError:
+                raise ValidationError({
+                    'to': 'Formato de fecha inválido. Use YYYY-MM-DD.',
+                    'codigo_error': 'INVALID_DATE_FORMAT',
+                })
+            qs = qs.filter(created_at__date__lte=to_param)
+
+        if from_param and to_param and from_param > to_param:
+            raise ValidationError({
+                'from': 'La fecha de inicio no puede ser posterior a la fecha de fin.',
+                'codigo_error': 'INVALID_DATE_RANGE',
+            })
+
+        # --- totals over filtered queryset ---
+        agg = qs.aggregate(
+            approved=Sum(
+                'amount',
+                filter=Q(status=Payment.STATUS_APPROVED),
+            ),
+            refunded=Sum(
+                'amount',
+                filter=Q(status__in=[
+                    Payment.STATUS_REFUNDED,
+                    Payment.STATUS_PARTIALLY_REFUNDED,
+                ]),
+            ),
+        )
+        approved_total = agg['approved'] or _Dec('0.00')
+        refunded_total = agg['refunded'] or _Dec('0.00')
+        totals = {
+            'approved': approved_total,
+            'refunded': refunded_total,
+            'net':      approved_total - refunded_total,
+        }
+
+        # --- pagination ---
+        from rest_framework.pagination import PageNumberPagination
+        paginator = PageNumberPagination()
+        paginator.page_size             = 25
+        paginator.page_size_query_param = 'page_size'
+        paginator.max_page_size         = 100
+        page = paginator.paginate_queryset(qs, request)
+        if page is not None:
+            response = paginator.get_paginated_response(
+                PaymentSerializer(page, many=True).data
+            )
+            response.data['totals'] = totals
+            return response
+        return Response({
+            'count':   qs.count(),
+            'results': PaymentSerializer(qs, many=True).data,
+            'totals':  totals,
+        })

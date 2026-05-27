@@ -168,13 +168,22 @@ class CatalogueListView(ListAPIView):
         price_min = self.request.query_params.get('price_min')
         if price_min:
             try:
-                qs = qs.filter(price__gte=Decimal(price_min))
+                val = Decimal(price_min)
+                # H-CICLO80-04: reject negative prices — Decimal() accepts
+                # them silently and produces nonsensical filter results.
+                if val < 0:
+                    raise ValidationError({'price_min': 'El precio mínimo no puede ser negativo.'})
+                qs = qs.filter(price__gte=val)
             except InvalidOperation:
                 raise ValidationError({'price_min': 'Valor numérico inválido.'})
         price_max = self.request.query_params.get('price_max')
         if price_max:
             try:
-                qs = qs.filter(price__lte=Decimal(price_max))
+                val = Decimal(price_max)
+                # H-CICLO80-04: reject negative prices.
+                if val < 0:
+                    raise ValidationError({'price_max': 'El precio máximo no puede ser negativo.'})
+                qs = qs.filter(price__lte=val)
             except InvalidOperation:
                 raise ValidationError({'price_max': 'Valor numérico inválido.'})
         return qs
@@ -262,13 +271,22 @@ class ProductSearchView(ListAPIView):
         price_min = request.query_params.get('price_min')
         if price_min:
             try:
-                qs = qs.filter(price__gte=Decimal(price_min))
+                val = Decimal(price_min)
+                # H-CICLO80-04: reject negative prices — same fix as
+                # CatalogueListView.get_queryset().
+                if val < 0:
+                    raise ValidationError({'price_min': 'El precio mínimo no puede ser negativo.'})
+                qs = qs.filter(price__gte=val)
             except InvalidOperation:
                 raise ValidationError({'price_min': 'Valor numérico inválido.'})
         price_max = request.query_params.get('price_max')
         if price_max:
             try:
-                qs = qs.filter(price__lte=Decimal(price_max))
+                val = Decimal(price_max)
+                # H-CICLO80-04: reject negative prices.
+                if val < 0:
+                    raise ValidationError({'price_max': 'El precio máximo no puede ser negativo.'})
+                qs = qs.filter(price__lte=val)
             except InvalidOperation:
                 raise ValidationError({'price_max': 'Valor numérico inválido.'})
         if request.query_params.get('in_stock', '').lower() == 'true':

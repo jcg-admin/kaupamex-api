@@ -445,23 +445,32 @@ class AdminReturnRequestInfoView(_AdminOnly, APIView):
         if not ser.is_valid():
             return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        ret = _get_return_or_404(return_id)
-        if ret.status != ReturnRequest.Status.PENDING_REVIEW:
-            return _invalid_state_response(
-                'Solo se puede solicitar información para devoluciones en estado PENDING_REVIEW.',
-                'INVALID_STATE',
-            )
-
         message = ser.validated_data['message']
-        ret.status = ReturnRequest.Status.INFO_REQUESTED
-        ret.save(update_fields=['status', 'updated_at'])
+        # H-CICLO80-02: wrap state check + mutation + history entry in a
+        # single atomic block with select_for_update. Previously the state
+        # check, save(), and history INSERT were separate operations: two
+        # concurrent requests could both pass the check and double-request;
+        # a failure between save() and the history INSERT left the return in
+        # INFO_REQUESTED state without a history record (partial mutation).
+        with transaction.atomic():
+            ret = ReturnRequest.objects.select_for_update().get(
+                pk=return_id
+            )
+            if ret.status != ReturnRequest.Status.PENDING_REVIEW:
+                return _invalid_state_response(
+                    'Solo se puede solicitar información para devoluciones'
+                    ' en estado PENDING_REVIEW.',
+                    'INVALID_STATE',
+                )
+            ret.status = ReturnRequest.Status.INFO_REQUESTED
+            ret.save(update_fields=['status', 'updated_at'])
 
-        ReturnHistoryEntry.objects.create(
-            return_request=ret,
-            status_to=ReturnRequest.Status.INFO_REQUESTED,
-            actor=request.user,
-            justification=message,
-        )
+            ReturnHistoryEntry.objects.create(
+                return_request=ret,
+                status_to=ReturnRequest.Status.INFO_REQUESTED,
+                actor=request.user,
+                justification=message,
+            )
 
         # H-CICLO56-02: re-fetch after mutation to avoid stale prefetch cache.
         ret = _get_return_or_404(return_id)

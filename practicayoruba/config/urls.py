@@ -83,6 +83,10 @@ urlpatterns = [
                                       namespace='catalogue_browse_admin')),
     path('api/v1/admin/',     include('apps.backups.admin_urls',
                                       namespace='admin_backups')),
+    # H-CICLO80-01: AdminPaymentListView registrada — faltaba el endpoint
+    # UC-PAY-11 /api/v1/admin/payments/ que el UI consulta via useAdminPayments.
+    path('api/v1/admin/',     include('apps.payments.admin_urls',
+                                      namespace='admin_payments')),
 
     # ─── Orders bajo /api/v1/orders/ (DEC-ORD-01: alineado con UI productiva
     #     y convencion REST estandar; antes era catch-all en /api/v1/).

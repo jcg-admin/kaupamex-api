@@ -12,6 +12,7 @@ from django.http import HttpResponse
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -31,6 +32,13 @@ logger = logging.getLogger('apps')
 
 class _AdminOnly:
     permission_classes = [IsAuthenticated, IsAdminUser]
+
+
+class StockAlertPagination(PageNumberPagination):
+    """H-CICLO80-03: paginar alertas para evitar respuesta sin limite."""
+    page_size             = 50
+    page_size_query_param = 'page_size'
+    max_page_size         = 200
 
 
 def _build_dashboard_items(status_filter=None):
@@ -198,7 +206,20 @@ class StockAlertListView(_AdminOnly, APIView):
     @extend_schema(summary='Alertas de stock bajo (UC-INV-02)', tags=['inventory'],
                    responses={200: StockAlertSerializer(many=True)})
     def get(self, request):
-        alerts = StockAlert.objects.filter(resolved=False).select_related('variant__option', 'product').order_by('-created_at')
+        # H-CICLO80-03: paginate stock alerts. Without pagination a warehouse
+        # with hundreds of SKUs below threshold returns the full table in one
+        # response, wasting memory and bandwidth on every dashboard poll.
+        alerts = (
+            StockAlert.objects.filter(resolved=False)
+            .select_related('variant__option', 'product')
+            .order_by('-created_at')
+        )
+        paginator = StockAlertPagination()
+        page = paginator.paginate_queryset(alerts, request)
+        if page is not None:
+            return paginator.get_paginated_response(
+                StockAlertSerializer(page, many=True).data
+            )
         return Response(StockAlertSerializer(alerts, many=True).data)
 
 
