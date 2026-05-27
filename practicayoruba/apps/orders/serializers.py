@@ -2,7 +2,7 @@
 from decimal import Decimal
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
-from .models import Order, OrderItem, OrderValue, OrderAddress, ShippingZone
+from .models import Order, OrderItem, OrderValue, OrderAddress, ShippingZone, OrderStatusLog
 
 
 class OrderAddressSerializer(serializers.ModelSerializer):
@@ -66,18 +66,43 @@ class OrderSerializer(serializers.ModelSerializer):
         return obj.get_status_display()
 
 
+class OrderStatusLogSerializer(serializers.ModelSerializer):
+    """H-CICLO101-API-01: expose status_logs in AdminOrderSerializer so the
+    admin panel can display the full state-transition audit trail."""
+    changed_by_username = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = OrderStatusLog
+        fields = [
+            'id', 'previous_status', 'new_status', 'notes',
+            'changed_by_username', 'created_at',
+        ]
+
+    def get_changed_by_username(self, obj) -> str | None:
+        return obj.changed_by.username if obj.changed_by_id else None
+
+
 class AdminOrderSerializer(OrderSerializer):
     """UC-ORD-09 (DEC-AOQ-02): subclass para vistas admin que expone
     user_email + user_username derivados del FK. La UI admin antes
     consumia ``order.user?.email`` -> undefined porque ``user`` era
     PK entero. Reuso del patron de AdminReturnListSerializer (returns)
-    sin tocar OrderSerializer base usado por endpoints buyer."""
+    sin tocar OrderSerializer base usado por endpoints buyer.
+
+    H-CICLO101-API-01: agrega status_logs para que el panel admin
+    muestre el historial de transiciones de estado de la orden."""
 
     user_email    = serializers.SerializerMethodField()
     user_username = serializers.SerializerMethodField()
+    # H-CICLO101-API-01: status_logs exposes the full state-transition
+    # audit trail.  AdminOrderDetailView already prefetch_related(
+    # 'status_logs__changed_by') so no extra queries are added here.
+    status_logs   = OrderStatusLogSerializer(many=True, read_only=True)
 
     class Meta(OrderSerializer.Meta):
-        fields = OrderSerializer.Meta.fields + ['user_email', 'user_username']
+        fields = OrderSerializer.Meta.fields + [
+            'user_email', 'user_username', 'status_logs',
+        ]
 
     def get_user_email(self, obj) -> str | None:
         return obj.user.email if obj.user_id else None
