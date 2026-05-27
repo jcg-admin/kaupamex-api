@@ -357,11 +357,20 @@ class AuditLogView(APIView):
     )
     def get(self, request):
         event_type = request.query_params.get('event_type')
-        user_id    = request.query_params.get('user_id')
+        raw_user_id = request.query_params.get('user_id')
         try:
             page = max(1, int(request.query_params.get('page', 1)))
         except (ValueError, TypeError):
             raise DRFValidationError({'page': 'Debe ser un entero valido.'})
+        # H-CICLO125-01: validate user_id as integer before passing to ORM.
+        # filter(user_id="abc") on an integer FK raises unhandled ValueError
+        # (500). Convert here with the same try/except pattern used for page.
+        user_id = None
+        if raw_user_id:
+            try:
+                user_id = int(raw_user_id)
+            except (ValueError, TypeError):
+                raise DRFValidationError({'user_id': 'Debe ser un entero valido.'})
         page_size  = self._PAGE_SIZE
 
         rows = []

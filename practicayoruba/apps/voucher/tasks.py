@@ -30,8 +30,13 @@ def expire_vouchers():
     count = 0
     for voucher_id in expired_ids:
         with transaction.atomic():
+            # H-CICLO125-02: re-check valid_until__lt=now inside the lock.
+            # The initial list is fetched without locking; if an admin
+            # extends valid_until between the list fetch and this lock
+            # acquisition, the voucher would be wrongly expired. Adding
+            # the date guard here closes the TOCTOU window.
             updated = Voucher.objects.filter(
-                pk=voucher_id, is_active=True
+                pk=voucher_id, is_active=True, valid_until__lt=now
             ).select_for_update(skip_locked=True).first()
             if updated is None:
                 continue
