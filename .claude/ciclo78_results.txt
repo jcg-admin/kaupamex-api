@@ -1,0 +1,27 @@
+CICLO 78 — RESULTADOS
+
+H-CICLO78-01: newsletter/CampaignCreateView — BUG: doble POST creaba dos campanas y enviaba emails dos veces a todos los suscriptores; no habia guarda de idempotencia ni throttle. Fix: transaction.atomic() + select_for_update() + ventana de deduplicacion 10 min; 409 CAMPAIGN_ALREADY_SENT en reenvio. — f84a2e4
+
+H-CICLO78-02: users/DeleteAccountView — CLEAN: invalidate_all_sessions() se llama dentro de transaction.atomic(); blacklistea todos los refresh tokens (simplejwt OutstandingToken) del usuario. — N/A
+
+H-CICLO78-03: payments/PaymentStatusView — CLEAN: get_payment_status() filtra por user=user; imposible leer estado de otro comprador (IDOR prevenido). — N/A
+
+H-CICLO78-04: orders/views.py CheckoutView — BUG: usaba ci.unit_price (precio guardado al add-to-cart) en lugar del precio vigente. Si el admin cambiaba el precio entre add-to-cart y checkout, el pedido se creaba al precio viejo. Fix: usar ci.current_price(). — b2a411d
+
+H-CICLO78-05: redux/slices/checkoutSlice.js — BUG: initialState.address usaba first_name/last_name/postal_code que no coinciden con OrderAddressInputSerializer (recipient_name/zip_code). Fix: alinear a los nombres del API. — cb31cef (ui)
+
+H-CICLO78-06: inventory/views.py ProductImportView — CLEAN: errores de SKU duplicado se reportan por fila en error_report; all-or-nothing atomico. — N/A
+
+H-CICLO78-07: core/settings — CLEAN: login tiene rate limiting por IP (5 intentos/15 min); register/password_reset/email_verify tienen throttle_scope. — N/A
+
+H-CICLO78-08: support/models.py SupportTicket — CLEAN: serializer limita body a max_length=10000. — N/A
+
+H-CICLO78-09: chartsize variantes — CLEAN: price > 0 validado en vista y serializer; stock es PositiveIntegerField (min_value=0). — N/A
+
+H-CICLO78-10: logistics/models.py ShipmentGuide — BUG: tracking_number tenia UNIQUE global; couriers independientes pueden emitir el mismo numero. Fix: UniqueConstraint(courier, tracking_number) + migracion 0003. — 5d87327
+
+Total bugs corregidos: 4
+Commits api: f84a2e4, b2a411d, 5d87327
+Commits ui: cb31cef
+Rama api: 5d87327
+Rama ui: cb31cef
