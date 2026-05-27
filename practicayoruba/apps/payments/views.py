@@ -49,6 +49,13 @@ class InitiatePaymentView(APIView):
     Las credenciales del gateway NUNCA aparecen en la respuesta (BR-009).
     """
     permission_classes = [IsAuthenticated]
+    # H-CICLO108-05: throttle per-user to prevent repeated gateway preference
+    # creation bursts. Without this limit a buyer (or a stolen token holder)
+    # can hammer the endpoint, creating dozens of MercadoPago preferences for
+    # the same order number and consuming gateway API quota. The select_for_update
+    # lock serialises concurrent requests but does not cap total attempts.
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope   = 'initiate_payment'
 
     @extend_schema(
         summary='Iniciar pago con MercadoPago',
@@ -457,15 +464,22 @@ class ExpressCheckoutView(APIView):
 
                 subtotal = Dec('0.00')
                 for ci in cart_items:
-                    label    = ci.variant.option.label if ci.variant else ''
-                    sku      = ci.variant.sku if ci.variant else ci.product.sku
-                    item_sub = ci.unit_price * ci.quantity
-                    subtotal += item_sub
+                    label      = ci.variant.option.label if ci.variant else ''
+                    sku        = ci.variant.sku if ci.variant else ci.product.sku
+                    # H-CICLO108-06: use current_price() (live price) instead of
+                    # ci.unit_price (cached price at add-to-cart time). CheckoutView
+                    # already uses current_price() per H-CICLO78-04. ExpressCheckout
+                    # had the same TOCTOU window: if the admin changed a price between
+                    # add-to-cart and express checkout, the order snapshot would record
+                    # the stale price, causing a revenue discrepancy.
+                    live_price = ci.current_price()
+                    item_sub   = live_price * ci.quantity
+                    subtotal  += item_sub
                     OrderItem.objects.create(
                         order=order, variant=ci.variant,
                         product_name=ci.product.name,
                         variant_label=label, sku=sku,
-                        unit_price=ci.unit_price, quantity=ci.quantity, subtotal=item_sub,
+                        unit_price=live_price, quantity=ci.quantity, subtotal=item_sub,
                     )
 
                 net   = subtotal - voucher_discount

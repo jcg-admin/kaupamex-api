@@ -190,6 +190,11 @@ REST_FRAMEWORK = {
         # la BD de auditoria. 60/hour cubre el caso de uso legítimo (el gateway
         # redirige al comprador una sola vez por pago).
         'payment_return':       '60/hour',
+        # H-CICLO108-05: throttle para InitiatePaymentView (IsAuthenticated).
+        # Sin throttle un comprador (o un token robado) puede crear docenas de
+        # preferencias en el gateway para la misma orden, consumiendo cuota de API.
+        # 20/hour cubre reintentos legítimos sin abrir vector de abuso.
+        'initiate_payment':     '20/hour',
     },
 }
 

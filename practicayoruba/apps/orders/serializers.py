@@ -35,6 +35,29 @@ class OrderItemSerializer(serializers.ModelSerializer):
                   'unit_price','quantity','subtotal']
 
 
+class OrderStatusLogSerializer(serializers.ModelSerializer):
+    """H-CICLO101-API-01: expose status_logs in AdminOrderSerializer so the
+    admin panel can display the full state-transition audit trail.
+
+    H-CICLO108-01: moved above OrderSerializer so the forward reference
+    OrderStatusLogSerializer(many=True, ...) in OrderSerializer.status_logs
+    resolves at class-body evaluation time. Defining it after OrderSerializer
+    caused a NameError that prevented the entire serializers module from
+    importing, breaking every order endpoint at startup.
+    """
+    changed_by_username = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = OrderStatusLog
+        fields = [
+            'id', 'previous_status', 'new_status', 'notes',
+            'changed_by_username', 'created_at',
+        ]
+
+    def get_changed_by_username(self, obj) -> str | None:
+        return obj.changed_by.username if obj.changed_by_id else None
+
+
 class OrderSerializer(serializers.ModelSerializer):
     """Detalle completo de una orden — UC-ORD-02."""
     items                = OrderItemSerializer(many=True, read_only=True)
@@ -72,22 +95,6 @@ class OrderSerializer(serializers.ModelSerializer):
         return obj.get_status_display()
 
 
-class OrderStatusLogSerializer(serializers.ModelSerializer):
-    """H-CICLO101-API-01: expose status_logs in AdminOrderSerializer so the
-    admin panel can display the full state-transition audit trail."""
-    changed_by_username = serializers.SerializerMethodField()
-
-    class Meta:
-        model  = OrderStatusLog
-        fields = [
-            'id', 'previous_status', 'new_status', 'notes',
-            'changed_by_username', 'created_at',
-        ]
-
-    def get_changed_by_username(self, obj) -> str | None:
-        return obj.changed_by.username if obj.changed_by_id else None
-
-
 class AdminOrderSerializer(OrderSerializer):
     """UC-ORD-09 (DEC-AOQ-02): subclass para vistas admin que expone
     user_email + user_username derivados del FK. La UI admin antes
@@ -100,14 +107,15 @@ class AdminOrderSerializer(OrderSerializer):
 
     user_email    = serializers.SerializerMethodField()
     user_username = serializers.SerializerMethodField()
-    # H-CICLO101-API-01: status_logs exposes the full state-transition
-    # audit trail.  AdminOrderDetailView already prefetch_related(
-    # 'status_logs__changed_by') so no extra queries are added here.
-    status_logs   = OrderStatusLogSerializer(many=True, read_only=True)
+    # H-CICLO108-01: status_logs is now declared in OrderSerializer (base),
+    # so it is already present in OrderSerializer.Meta.fields. Removing the
+    # redundant re-declaration and the duplicate 'status_logs' entry from
+    # this subclass prevents DRF from listing the field twice in the schema
+    # and avoids the double serialization that occurred before.
 
     class Meta(OrderSerializer.Meta):
         fields = OrderSerializer.Meta.fields + [
-            'user_email', 'user_username', 'status_logs',
+            'user_email', 'user_username',
         ]
 
     def get_user_email(self, obj) -> str | None:
