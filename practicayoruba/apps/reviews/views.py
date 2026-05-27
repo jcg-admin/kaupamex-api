@@ -365,15 +365,26 @@ class ReviewHelpfulVoteView(APIView):
                 'codigo_error': 'CANNOT_VOTE_OWN_REVIEW',
             })
 
-        if ReviewHelpfulVote.objects.filter(user=request.user, review=review).exists():
+        # H-CICLO111-03: mover el chequeo de duplicado DENTRO del atomic y
+        # capturar IntegrityError como defensa en profundidad. Sin esto, dos
+        # requests concurrentes pueden pasar el .exists() simultáneamente y
+        # el segundo create() lanza IntegrityError no capturado (500). El
+        # unique_together de ReviewHelpfulVote garantiza integridad en BD,
+        # pero el manejo de error faltaba en la capa de vista.
+        try:
+            with transaction.atomic():
+                if ReviewHelpfulVote.objects.filter(user=request.user, review=review).exists():
+                    raise ValidationError({
+                        'detail': 'Ya votaste esta reseña.',
+                        'codigo_error': 'VOTE_DUPLICATE',
+                    })
+                ReviewHelpfulVote.objects.create(user=request.user, review=review)
+                Review.objects.filter(pk=review.pk).update(helpful_count=F('helpful_count') + 1, updated_at=timezone.now())
+        except IntegrityError:
             raise ValidationError({
                 'detail': 'Ya votaste esta reseña.',
                 'codigo_error': 'VOTE_DUPLICATE',
             })
-
-        with transaction.atomic():
-            ReviewHelpfulVote.objects.create(user=request.user, review=review)
-            Review.objects.filter(pk=review.pk).update(helpful_count=F('helpful_count') + 1, updated_at=timezone.now())
 
         review.refresh_from_db(fields=['helpful_count'])
         return Response({'helpful_count': review.helpful_count})

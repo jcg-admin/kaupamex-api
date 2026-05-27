@@ -303,15 +303,25 @@ class SupportTicketReopenView(APIView):
         },
     )
     def post(self, request, ticket_id):
-        ticket = _get_ticket_for_user(ticket_id, request.user)
-        if ticket.status != SupportTicket.Status.CLOSED:
-            return Response(
-                {'error_code': 'TICKET_NOT_CLOSED',
-                 'detail': 'Solo se pueden reabrir tickets cerrados.'},
-                status=status.HTTP_409_CONFLICT,
-            )
-        ticket.status = SupportTicket.Status.OPEN
-        ticket.save(update_fields=['status', 'updated_at'])
+        # H-CICLO111-02: envolver en transaction.atomic() para serializar
+        # reaperturas concurrentes del mismo ticket. Sin atomic, dos requests
+        # simultáneos pasan el chequeo status==CLOSED y ambos ejecutan el
+        # save(), produciendo doble transición y potencial estado inconsistente.
+        with transaction.atomic():
+            ticket = SupportTicket.objects.select_for_update().filter(
+                pk=ticket_id
+            ).select_related('user').first()
+            if ticket is None or (not request.user.is_staff and ticket.user_id != request.user.id):
+                from django.http import Http404
+                raise Http404
+            if ticket.status != SupportTicket.Status.CLOSED:
+                return Response(
+                    {'error_code': 'TICKET_NOT_CLOSED',
+                     'detail': 'Solo se pueden reabrir tickets cerrados.'},
+                    status=status.HTTP_409_CONFLICT,
+                )
+            ticket.status = SupportTicket.Status.OPEN
+            ticket.save(update_fields=['status', 'updated_at'])
         return Response({
             'ticket_id': ticket.pk,
             'status': ticket.status,

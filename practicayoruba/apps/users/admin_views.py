@@ -290,8 +290,16 @@ class AdminUserViewSet(ModelViewSet):
     @action(detail=True, methods=['post'], url_path='reactivate')
     def reactivate(self, request, pk=None):
         _require_admin(request.user)
-        target = self.get_object()
+        # H-CICLO111-01: adquirir lock sobre el User DENTRO del atomic para
+        # serializar solicitudes concurrentes de reactivacion. El patron es
+        # identico a suspend() (H-CICLO104-01). self.get_object() fuera de
+        # atomic() no aplica select_for_update, por lo que dos admins podian
+        # pasar el check y escribir estados inconsistentes concurrentemente.
         with transaction.atomic():
+            try:
+                target = User.objects.select_for_update().get(pk=pk)
+            except User.DoesNotExist:
+                return Response({'detail': 'No encontrado.'}, status=404)
             target.is_active = True
             # Limpiar la causa para que el estado quede consistente.
             target.deactivated_reason = None
