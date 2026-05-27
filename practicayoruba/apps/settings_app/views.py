@@ -319,25 +319,33 @@ class StaticPagePublishView(APIView):
         publish_at = s.validated_data.get('publish_at')
         is_immediate = not publish_at
 
-        if is_immediate:
-            StaticPageVersion.objects.filter(
-                page=page, status=StaticPageVersion.STATUS_PUBLISHED
-            ).update(status=StaticPageVersion.STATUS_ARCHIVED, updated_at=timezone.now())
+        # H-CICLO92-01: envolver en transaction.atomic() + select_for_update()
+        # sobre la pagina para serializar peticiones concurrentes al mismo slug.
+        # Sin esto dos requests concurrentes computan el mismo next_version y
+        # uno falla con IntegrityError no capturado (unique_together(page,version)).
+        with transaction.atomic():
+            # Re-fetch with lock so no concurrent publish wins the same version.
+            page = StaticPage.objects.select_for_update().get(pk=page.pk)
 
-        last = page.versions.order_by('-version').first()
-        next_version = (last.version + 1) if last else 1
+            if is_immediate:
+                StaticPageVersion.objects.filter(
+                    page=page, status=StaticPageVersion.STATUS_PUBLISHED
+                ).update(status=StaticPageVersion.STATUS_ARCHIVED, updated_at=timezone.now())
 
-        new_status = (StaticPageVersion.STATUS_PUBLISHED
-                      if is_immediate else StaticPageVersion.STATUS_DRAFT)
+            last = page.versions.order_by('-version').first()
+            next_version = (last.version + 1) if last else 1
 
-        version = StaticPageVersion.objects.create(
-            page=page,
-            version=next_version,
-            content=s.validated_data['content'],
-            status=new_status,
-            created_by=request.user,
-            publish_at=publish_at,
-        )
+            new_status = (StaticPageVersion.STATUS_PUBLISHED
+                          if is_immediate else StaticPageVersion.STATUS_DRAFT)
+
+            version = StaticPageVersion.objects.create(
+                page=page,
+                version=next_version,
+                content=s.validated_data['content'],
+                status=new_status,
+                created_by=request.user,
+                publish_at=publish_at,
+            )
         return Response(StaticPageVersionSerializer(version).data, status=201)
 
 
@@ -350,25 +358,29 @@ class StaticPageRestoreView(APIView):
                    responses={201: StaticPageVersionSerializer})
     def post(self, request, slug, version):
         try:
-            old = StaticPageVersion.objects.get(
+            old = StaticPageVersion.objects.select_related('page').get(
                 page__slug=slug, version=version
             )
         except StaticPageVersion.DoesNotExist:
             return Response({'detail': 'Versión no encontrada.'}, status=404)
 
-        page = old.page
-        StaticPageVersion.objects.filter(
-            page=page, status=StaticPageVersion.STATUS_PUBLISHED
-        ).update(status=StaticPageVersion.STATUS_ARCHIVED, updated_at=timezone.now())
+        # H-CICLO92-01: mismo patron que StaticPagePublishView — proteger el
+        # calculo de next_version con select_for_update + transaction.atomic().
+        with transaction.atomic():
+            page = StaticPage.objects.select_for_update().get(pk=old.page_id)
 
-        last = page.versions.order_by('-version').first()
-        next_version = last.version + 1
+            StaticPageVersion.objects.filter(
+                page=page, status=StaticPageVersion.STATUS_PUBLISHED
+            ).update(status=StaticPageVersion.STATUS_ARCHIVED, updated_at=timezone.now())
 
-        restored = StaticPageVersion.objects.create(
-            page=page,
-            version=next_version,
-            content=old.content,
-            status=StaticPageVersion.STATUS_PUBLISHED,
-            created_by=request.user,
-        )
+            last = page.versions.order_by('-version').first()
+            next_version = last.version + 1
+
+            restored = StaticPageVersion.objects.create(
+                page=page,
+                version=next_version,
+                content=old.content,
+                status=StaticPageVersion.STATUS_PUBLISHED,
+                created_by=request.user,
+            )
         return Response(StaticPageVersionSerializer(restored).data, status=201)
