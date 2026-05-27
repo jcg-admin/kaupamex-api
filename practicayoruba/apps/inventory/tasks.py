@@ -2,6 +2,7 @@
 import csv
 import io
 import logging
+from decimal import Decimal, InvalidOperation
 
 from apps.catalogue.models import Category, Product
 from apps.chartsize.models import ProductVariant
@@ -55,12 +56,22 @@ def run_product_import(job_id: int) -> None:
             try:
                 category_slug = (row.get('category') or '').strip()
                 category = Category.objects.filter(slug=category_slug).first() if category_slug else None
+                # H-CICLO91-01: convertir price a Decimal antes de asignarlo.
+                # row.get('price', 0) devuelve una cadena CSV o el entero 0;
+                # pasar cualquiera de los dos directamente a un DecimalField
+                # viola la regla de proyecto "Decimal siempre para monetario"
+                # y puede causar InvalidOperation silencioso en ciertos valores.
+                raw_price = (row.get('price') or '').strip()
+                try:
+                    price = Decimal(raw_price) if raw_price else Decimal('0.00')
+                except InvalidOperation:
+                    raise ValueError(f'Precio invalido: {raw_price!r}')
                 Product.objects.update_or_create(
                     sku=row['sku'].strip(),
                     defaults={
                         'name':        row.get('name', '').strip(),
                         'description': row.get('description', '').strip(),
-                        'price':       row.get('price', 0),
+                        'price':       price,
                         'category':    category,
                         'is_active':   True,
                     },
