@@ -122,22 +122,38 @@ class ShipmentGuideListCreateView(_AdminOnly, APIView):
         data = ser.validated_data
         order = data['order']
 
-        # H-CICLO72-03: prevent duplicate active guides for the same order.
-        if ShipmentGuide.objects.filter(order=order, is_deleted=False).exists():
-            return Response(
-                {
-                    'detail': 'Ya existe una guía de envío activa para esta orden.',
-                    'codigo_error': 'GUIDE_ALREADY_EXISTS',
-                },
-                status=status.HTTP_409_CONFLICT,
+        # H-CICLO110-04: envolver la dedup check + guide create + order save
+        # en un bloque atomic con select_for_update para evitar dos requests
+        # concurrentes que ambos pasen el filtro GUIDE_ALREADY_EXISTS y creen
+        # dos guías para la misma orden. También se crea OrderStatusLog para
+        # la transición →SHIPPED, que antes quedaba sin registro de auditoría.
+        with transaction.atomic():
+            order_locked = Order.objects.select_for_update().get(pk=order.pk)
+            # H-CICLO72-03: prevent duplicate active guides for the same order.
+            if ShipmentGuide.objects.filter(order=order_locked, is_deleted=False).exists():
+                return Response(
+                    {
+                        'detail': 'Ya existe una guía de envío activa para esta orden.',
+                        'codigo_error': 'GUIDE_ALREADY_EXISTS',
+                    },
+                    status=status.HTTP_409_CONFLICT,
+                )
+
+            previous_status = order_locked.status
+            guide = ShipmentGuide.objects.create(
+                order=order_locked, courier=data['courier'],
+                tracking_number=data['tracking_number'], notes=data.get('notes', ''),
+            )
+            order_locked.status = Order.STATUS_SHIPPED
+            order_locked.save(update_fields=['status', 'updated_at'])
+            OrderStatusLog.objects.create(
+                order=order_locked,
+                previous_status=previous_status,
+                new_status=Order.STATUS_SHIPPED,
+                changed_by=request.user,
+                notes=f'Guía de envío creada: {data["tracking_number"]}',
             )
 
-        guide = ShipmentGuide.objects.create(
-            order=order, courier=data['courier'],
-            tracking_number=data['tracking_number'], notes=data.get('notes', ''),
-        )
-        order.status = Order.STATUS_SHIPPED
-        order.save(update_fields=['status', 'updated_at'])
         # H-CICLO46-02: re-fetch guide with select_related to avoid N+1 when
         # ShipmentGuideSerializer accesses guide.order.order_number (source FK)
         # and guide.courier (nested CourierSerializer).
