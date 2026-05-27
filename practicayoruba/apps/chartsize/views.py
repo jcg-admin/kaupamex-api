@@ -217,6 +217,19 @@ class VariantTypeAdminViewSet(ModelViewSet):
     @extend_schema(summary='Eliminar tipo de variante (admin)', tags=['variants'],
                    responses={204: None})
     def destroy(self, request, *args, **kwargs):
+        # H-CICLO100-01: SoftDeleteModel.delete() marks VariantType as
+        # is_deleted=True but does NOT cascade to child VariantOption rows
+        # because soft-delete bypasses the DB-level CASCADE constraint.
+        # Without this guard, VariantOptions whose variant_type is deleted
+        # remain visible (is_deleted=False) as orphans, breaking listing
+        # and assignment flows that filter options via the active manager.
+        # Solution: soft-delete all child options before deleting the type.
+        instance = self.get_object()
+        from django.utils import timezone as _tz
+        now = _tz.now()
+        instance.options.filter(is_deleted=False).update(
+            is_deleted=True, deleted_at=now,
+        )
         return super().destroy(request, *args, **kwargs)
 
 
