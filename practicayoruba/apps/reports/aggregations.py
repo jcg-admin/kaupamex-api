@@ -83,7 +83,10 @@ def build_sales_payload(period_days: int) -> dict:
     def pct_delta(curr, prev):
         if prev == 0:
             return None
-        return float((Decimal(curr) - Decimal(prev)) / Decimal(prev) * 100)
+        return round(
+            (Decimal(curr) - Decimal(prev)) / Decimal(prev) * Decimal('100'),
+            4,
+        )
 
     series_rows = (
         OrderValue.objects.filter(order__in=qs)
@@ -171,7 +174,7 @@ def build_top_sellers_payload(
         {
             **r,
             'revenue': str(r['revenue']),
-            'share_pct': round(float(r['revenue'] / total_revenue * 100), 2)
+            'share_pct': round(r['revenue'] / total_revenue * Decimal('100'), 2)
             if total_revenue else None,
         }
         for r in raw_results
@@ -187,8 +190,8 @@ def build_top_sellers_payload(
     )
     inactive_no_sales = max(0, total_inactive - inactive_with_sales)
     inactive_no_sales_pct = (
-        float(inactive_no_sales) / total_inactive * 100
-        if total_inactive else 0.0
+        round(Decimal(inactive_no_sales) / Decimal(total_inactive) * Decimal('100'), 2)
+        if total_inactive else Decimal('0.00')
     )
     return {
         'results': results,
