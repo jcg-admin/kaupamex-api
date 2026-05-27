@@ -582,10 +582,14 @@ class AdminReturnRefundView(_AdminOnly, APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         except RuntimeError as exc:
+            # H-CICLO89-02: el gateway externo fallo — usar 502 Bad Gateway
+            # (no 422 Unprocessable Entity). 422 indica errores de validacion
+            # del cliente; un fallo del gateway es un error del upstream, que
+            # RFC 7231 describe como 502.
             return Response(
                 {'detail': f'Error al procesar el reembolso: {exc}',
                  'error_code': 'GATEWAY_ERROR'},
-                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status=status.HTTP_502_BAD_GATEWAY,
             )
 
         with transaction.atomic():

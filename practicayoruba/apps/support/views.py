@@ -23,6 +23,7 @@ from rest_framework import fields as rf_fields
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.generics import ListAPIView
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -35,6 +36,16 @@ HIGH_PRIORITY_CATEGORIES = {
     SupportTicket.Category.URGENT,
     SupportTicket.Category.FRAUD,
 }
+
+
+class _AdminTicketPagination(PageNumberPagination):
+    """H-CICLO89-01: paginacion para la cola admin de tickets de soporte.
+    Sin paginacion, la vista cargaba todos los tickets en memoria con
+    list(qs), lo que produce OOM en instancias con muchos tickets.
+    """
+    page_size = 50
+    page_size_query_param = 'page_size'
+    max_page_size = 200
 
 # UC-SUPP-01 AC-03: ventana de deteccion de tickets duplicados. Si el
 # comprador ya tiene un ticket abierto con la misma categoria + orden
@@ -373,6 +384,17 @@ class AdminSupportTicketListView(APIView):
             'resolved':       all_tickets.filter(status='RESOLVED').count(),
             'closed':         all_tickets.filter(status='CLOSED').count(),
         }
+
+        # H-CICLO89-01: paginar la cola admin para evitar OOM en instalaciones
+        # con muchos tickets. El `list(qs)` anterior cargaba todos los tickets
+        # en memoria en una sola respuesta.
+        paginator = _AdminTicketPagination()
+        page = paginator.paginate_queryset(qs, request)
+        if page is not None:
+            data = AdminSupportTicketListSerializer(page, many=True).data
+            paginated = paginator.get_paginated_response(data)
+            paginated.data['metrics'] = metrics
+            return paginated
 
         items = list(qs)
         return Response({
