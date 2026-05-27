@@ -259,6 +259,14 @@ phase_migrations() {
     "$python" "$manage" migrate 2>&1 | tail -5 \
         && log_success "Migraciones aplicadas" \
         || log_warn "Migraciones con errores — revisa el output"
+
+    log_header "Fase 5b/6 — Static files"
+    DJANGO_SETTINGS_MODULE=config.settings.development \
+    PYTHONPATH="${PROJECT_ROOT}/practicayoruba" \
+    "$python" "$manage" collectstatic --noinput \
+        2>&1 | tail -3 \
+        && log_success "collectstatic OK" \
+        || log_warn "collectstatic fallo — ejecutar manualmente"
 }
 
 # =============================================================================
