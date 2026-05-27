@@ -47,6 +47,17 @@ class _AdminTicketPagination(PageNumberPagination):
     page_size_query_param = 'page_size'
     max_page_size = 200
 
+
+class _BuyerTicketPagination(PageNumberPagination):
+    """H-CICLO117-02: paginacion para el listado de tickets del comprador.
+    Sin paginacion, SupportTicketListCreateView.get() serializaba todos
+    los tickets del usuario en una sola respuesta; usuarios con muchos
+    tickets producian respuestas lentas y consumo de memoria innecesario.
+    """
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
 # UC-SUPP-01 AC-03: ventana de deteccion de tickets duplicados. Si el
 # comprador ya tiene un ticket abierto con la misma categoria + orden
 # en los ultimos 1440 minutos (24h), el nuevo POST se rechaza con
@@ -94,7 +105,16 @@ class SupportTicketListCreateView(APIView):
         # H-CICLO48-01: order_by evita resultados no deterministos entre
         # paginas. Sin el ordering el DB puede retornar el mismo ticket en
         # pagina 1 y pagina 2 si el plan de ejecucion cambia entre requests.
+        # H-CICLO117-02: paginar el listado para evitar serializar todos
+        # los tickets en memoria. Sin paginacion, compradores con muchos
+        # tickets producian respuestas lentas y alto consumo de RAM.
         qs = SupportTicket.objects.filter(user=request.user).order_by('-created_at')
+        paginator = _BuyerTicketPagination()
+        page = paginator.paginate_queryset(qs, request)
+        if page is not None:
+            return paginator.get_paginated_response(
+                SupportTicketListSerializer(page, many=True).data
+            )
         return Response(SupportTicketListSerializer(qs, many=True).data)
 
     @extend_schema(

@@ -106,14 +106,18 @@ class ProductReviewsView(APIView):
         rating_breakdown = {str(i): breakdown.get(i, 0) for i in range(1, 6)}
 
         # Pagination
+        # H-CICLO117-01: usar count() + slicing en DB en lugar de list()
+        # completo. El list() anterior cargaba TODAS las reseñas aprobadas en
+        # memoria antes de paginear; en productos con miles de reseñas esto
+        # producía consumo O(N) por request. El fix evalúa solo la página
+        # solicitada directamente en la BD.
         try:
             page_size = max(1, min(100, int(request.query_params.get('page_size', 10))))
             page_num = max(1, int(request.query_params.get('page', 1)))
         except (ValueError, TypeError):
             raise ValidationError({'detail': 'page_size y page deben ser enteros.',
                                    'codigo_error': 'INVALID_PAGINATION'})
-        items = list(approved)
-        count = len(items)
+        count = approved.count()
         pages = max(1, -(-count // page_size))  # ceil division
         start = (page_num - 1) * page_size
         end = start + page_size
@@ -126,7 +130,7 @@ class ProductReviewsView(APIView):
             'count': count,
             'page': page_num,
             'pages': pages,
-            'results': ReviewPublicSerializer(items[start:end], many=True).data,
+            'results': ReviewPublicSerializer(approved[start:end], many=True).data,
         })
 
     @extend_schema(
