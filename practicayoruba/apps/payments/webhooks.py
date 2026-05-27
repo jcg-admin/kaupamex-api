@@ -88,11 +88,25 @@ def _verify_mp_signature(request, payment_id: str, request_id: str) -> bool:
     return hmac.compare_digest(expected, v1)
 
 
-def _process_payment_approval(gateway_payment_id: str, gateway: str, amount: Decimal | None = None) -> Payment | None:
+def _process_payment_approval(
+    gateway_payment_id: str, gateway: str, amount: Decimal | None = None
+) -> tuple[Payment | None, bool]:
     """
     Actualiza Payment y Order cuando el pago es aprobado.
     Idempotente: si el Payment ya es APPROVED, no cambia nada.
     FR-PAY-03.02, FR-PAY-04.01 (H-PAY-005).
+
+    Retorna (payment, newly_approved) donde:
+      - payment: instancia Payment o None si no se encontro.
+      - newly_approved: True si la transicion ocurrio en esta llamada,
+        False si el Payment ya estaba APPROVED (llamada idempotente).
+
+    H-CICLO87-02: antes la funcion retornaba ``payment`` en ambos casos
+    (nueva aprobacion e idempotente). Los callers creaban siempre un
+    PaymentGatewayEvent EVENT_PAYMENT_APPROVED sin distinguir si el pago
+    realmente se aprobo en esta llamada. Con webhooks con diferentes
+    X-Request-ID (reintentos normales del gateway), cada reintento
+    insertaba un EVENT_PAYMENT_APPROVED adicional en auditoria.
     """
 
     with transaction.atomic():
@@ -108,11 +122,11 @@ def _process_payment_approval(gateway_payment_id: str, gateway: str, amount: Dec
                 'Webhook %s: no se encontró Payment con gateway_payment_id=%s',
                 gateway, gateway_payment_id,
             )
-            return None
+            return None, False
 
         if payment.status == Payment.STATUS_APPROVED:
             logger.info('Webhook %s: pago %s ya estaba APPROVED — idempotente', gateway, gateway_payment_id)
-            return payment
+            return payment, False
 
         payment.status = Payment.STATUS_APPROVED
         if amount:
@@ -129,7 +143,7 @@ def _process_payment_approval(gateway_payment_id: str, gateway: str, amount: Dec
                 order.order_number, gateway,
             )
 
-    return payment
+    return payment, True
 
 
 # =============================================================================
@@ -246,12 +260,16 @@ class MercadoPagoWebhookView(APIView):
 
         # Procesar según el estado
         if gw_result.status == 'approved':
-            result = _process_payment_approval(
+            result, newly_approved = _process_payment_approval(
                 gateway_payment_id=payment_id,
                 gateway='MERCADOPAGO',
                 amount=gw_result.amount,
             )
-            if payment and result:
+            # H-CICLO87-02: solo crear EVENT_PAYMENT_APPROVED cuando la
+            # transicion ocurrio en esta llamada (newly_approved=True).
+            # En llamadas idempotentes (pago ya APPROVED) no se duplica
+            # el registro de auditoria.
+            if payment and result and newly_approved:
                 PaymentGatewayEvent.objects.create(
                     payment=result,
                     event_type=PaymentGatewayEvent.EVENT_PAYMENT_APPROVED,
@@ -438,12 +456,13 @@ class PayPalWebhookView(APIView):
                     event_type=PaymentGatewayEvent.EVENT_WEBHOOK_RECEIVED,
                     raw_body=raw_body,
                 )
-                result = _process_payment_approval(
+                result, newly_approved = _process_payment_approval(
                     gateway_payment_id=capture_id,
                     gateway='PAYPAL',
                     amount=amount,
                 )
-                if result:
+                # H-CICLO87-02: solo auditar si la aprobacion ocurrio ahora.
+                if result and newly_approved:
                     PaymentGatewayEvent.objects.create(
                         payment=result,
                         event_type=PaymentGatewayEvent.EVENT_PAYMENT_APPROVED,
