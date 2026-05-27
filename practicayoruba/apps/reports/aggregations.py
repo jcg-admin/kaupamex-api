@@ -156,15 +156,25 @@ def build_top_sellers_payload(
         .annotate(units_sold=Sum('quantity'), revenue=Sum('subtotal'))
         .order_by(order_field)[:limit]
     )
-    results = [
+    raw_results = [
         {
             'product_id': r['product_id'],
             'product_name': r['product_name'],
             'sku': r['sku'],
             'units_sold': r['units_sold'] or 0,
-            'revenue': str(r['revenue'] or Decimal('0.00')),
+            'revenue': r['revenue'] or Decimal('0.00'),
         }
         for r in rows
+    ]
+    total_revenue = sum(r['revenue'] for r in raw_results) or Decimal('0.00')
+    results = [
+        {
+            **r,
+            'revenue': str(r['revenue']),
+            'share_pct': round(float(r['revenue'] / total_revenue * 100), 2)
+            if total_revenue else None,
+        }
+        for r in raw_results
     ]
 
     total_inactive = Product.objects.filter(is_active=False).count()

@@ -231,6 +231,8 @@ class WishlistMoveToCartView(APIView):
         cart, _, _ = _get_or_create_cart(request)
         unit_price = item.current_price
 
+        remove = request.data.get('remove_from_wishlist', True)
+
         with transaction.atomic():
             existing = CartItem.objects.filter(
                 cart=cart, variant=item.variant,
@@ -248,9 +250,8 @@ class WishlistMoveToCartView(APIView):
                 )
                 cart_item_id = cart_item.pk
 
-        remove = request.data.get('remove_from_wishlist', True)
-        if remove:
-            item.delete()
+            if remove:
+                item.delete()
 
         return Response({
             'wishlist_item_id': pk,
