@@ -38,8 +38,13 @@ class InitiatePaymentSerializer(serializers.Serializer):
 
 
 class InitiatePaymentResponseSerializer(serializers.Serializer):
-    """Respuesta de POST /api/v1/payments/initiate/."""
-    payment_id   = serializers.IntegerField()
+    """Respuesta de POST /api/v1/payments/initiate/.
+
+    payment_id is deprecated (always null).  Use order_number to poll
+    /payments/<order_number>/status/ — RNF-SEC-001 forbids exposing
+    sequential internal PKs.
+    """
+    payment_id   = serializers.IntegerField(allow_null=True, required=False)
     checkout_url = serializers.URLField(
         help_text='URL de la interfaz de pago del gateway. El frontend redirige al comprador aquí.',
     )

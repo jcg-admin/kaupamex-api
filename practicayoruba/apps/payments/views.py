@@ -114,9 +114,15 @@ class InitiatePaymentView(APIView):
                 status=503,
             )
 
+        # BR-009 / RNF-SEC-001: never expose sequential internal PKs to
+        # buyers.  payment.pk is an auto-increment integer that lets a
+        # malicious client enumerate all payment records.  The order_number
+        # (non-sequential, UUID-derived) already uniquely identifies the
+        # payment context and is all the UI needs to poll /status/ or
+        # /return/.  payment_id removed from the response.
         return Response(
             InitiatePaymentResponseSerializer({
-                'payment_id':   payment.pk,
+                'payment_id':   None,
                 'checkout_url': checkout_url,
                 'order_number': order.order_number,
                 'amount':       payment.amount,
