@@ -215,7 +215,7 @@ def build_dashboard_payload() -> dict:
     today_revenue = today_agg['revenue'] or Decimal('0.00')
     today_orders = today_agg['order_count'] or 0
 
-    trend_start = now - timedelta(days=7)
+    trend_start = now - timedelta(days=30)
     trend_rows = (
         OrderValue.objects.filter(
             order__created_at__gte=trend_start,
