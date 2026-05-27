@@ -2,6 +2,7 @@
 Views — apps.logistics (P-10 / UC-LOG-01..09).
 """
 import logging
+from django.db import transaction
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import status
@@ -20,7 +21,7 @@ class ShipmentGuidePagination(PageNumberPagination):
 
 logger = logging.getLogger('apps')
 
-from apps.orders.models import Order
+from apps.orders.models import Order, OrderStatusLog
 from .models import Courier, ShipmentEvent, ShipmentGuide
 from .serializers import (
     BuyerShipmentGuideSerializer, CourierCreateUpdateSerializer, CourierSerializer,
@@ -213,13 +214,36 @@ class ConfirmDeliveryView(_AdminOnly, APIView):
             return Response({'detail': 'Guía cancelada.', 'codigo_error': 'SHIPMENT_GUIDE_CANCELLED'}, status=400)
         if guide.status == ShipmentGuide.STATUS_DELIVERED:
             return Response({'status': guide.status, 'already_delivered': True, 'tracking_number': guide.tracking_number})
-        guide.status = ShipmentGuide.STATUS_DELIVERED
-        guide.delivered_at = timezone.now()
-        guide.save(update_fields=['status', 'delivered_at', 'updated_at'])
-        guide.order.status = Order.STATUS_DELIVERED
-        guide.order.save(update_fields=['status', 'updated_at'])
-        return Response({'status': guide.status, 'already_delivered': False,
-                         'tracking_number': guide.tracking_number, 'delivered_at': guide.delivered_at})
+        # H-CICLO110-04: envolver guide.save + order.save en un bloque atomic
+        # con select_for_update para prevenir:
+        # (a) inconsistencia si el primer save commitea y el segundo falla
+        #     (guide=DELIVERED pero order≠DELIVERED o viceversa).
+        # (b) dos admins confirmando la misma guia concurrentemente, creando
+        #     dos OrderStatusLog SHIPPED→DELIVERED.
+        # Ademas se crea OrderStatusLog para la transicion SHIPPED→DELIVERED,
+        # que antes quedaba sin entrada de auditoria.
+        with transaction.atomic():
+            guide_locked = ShipmentGuide.objects.select_for_update().select_related('order').get(pk=pk)
+            if guide_locked.status == ShipmentGuide.STATUS_DELIVERED:
+                return Response({'status': guide_locked.status, 'already_delivered': True,
+                                 'tracking_number': guide_locked.tracking_number})
+            previous_order_status = guide_locked.order.status
+            now = timezone.now()
+            guide_locked.status = ShipmentGuide.STATUS_DELIVERED
+            guide_locked.delivered_at = now
+            guide_locked.save(update_fields=['status', 'delivered_at', 'updated_at'])
+            guide_locked.order.status = Order.STATUS_DELIVERED
+            guide_locked.order.save(update_fields=['status', 'updated_at'])
+            OrderStatusLog.objects.create(
+                order=guide_locked.order,
+                previous_status=previous_order_status,
+                new_status=Order.STATUS_DELIVERED,
+                changed_by=request.user,
+                notes=f'Entrega confirmada via guia #{guide_locked.pk} ({guide_locked.tracking_number})',
+            )
+        return Response({'status': guide_locked.status, 'already_delivered': False,
+                         'tracking_number': guide_locked.tracking_number,
+                         'delivered_at': guide_locked.delivered_at})
 
 
 class CancelGuideView(_AdminOnly, APIView):
