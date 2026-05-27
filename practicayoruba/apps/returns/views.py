@@ -490,24 +490,30 @@ class AdminReturnReceptionView(_AdminOnly, APIView):
         if not ser.is_valid():
             return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        ret = _get_return_or_404(return_id)
-        if ret.status != ReturnRequest.Status.APPROVED:
-            return Response(
-                {'detail': 'Solo se puede registrar recepción para devoluciones APPROVED.',
-                 'error_code': 'REQUEST_NOT_APPROVED'},
-                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        # H-CICLO86-01: wrap state-check + save + history in a single atomic
+        # block with select_for_update.  Without the lock, two concurrent POST
+        # requests both pass the APPROVED check, then both call ret.save() and
+        # both insert a ReturnHistoryEntry for RECEIVED — duplicate mutation.
+        # Pattern mirrors AdminReturnRequestInfoView (H-CICLO80-02).
+        with transaction.atomic():
+            ret = ReturnRequest.objects.select_for_update().get(pk=return_id)
+            if ret.status != ReturnRequest.Status.APPROVED:
+                return Response(
+                    {'detail': 'Solo se puede registrar recepción para devoluciones APPROVED.',
+                     'error_code': 'REQUEST_NOT_APPROVED'},
+                    status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                )
+
+            ret.status = ReturnRequest.Status.RECEIVED
+            ret.received_at = timezone.now()
+            ret.save(update_fields=['status', 'received_at', 'updated_at'])
+
+            ReturnHistoryEntry.objects.create(
+                return_request=ret,
+                status_to=ReturnRequest.Status.RECEIVED,
+                actor=request.user,
+                justification=ser.validated_data.get('observations', ''),
             )
-
-        ret.status = ReturnRequest.Status.RECEIVED
-        ret.received_at = timezone.now()
-        ret.save(update_fields=['status', 'received_at', 'updated_at'])
-
-        ReturnHistoryEntry.objects.create(
-            return_request=ret,
-            status_to=ReturnRequest.Status.RECEIVED,
-            actor=request.user,
-            justification=ser.validated_data.get('observations', ''),
-        )
 
         # H-CICLO56-02: re-fetch after mutation to avoid stale prefetch cache.
         ret = _get_return_or_404(return_id)
