@@ -60,7 +60,14 @@ class ShipmentGuide(TimeStampedModel, SoftDeleteModel):
     courier         = models.ForeignKey(
         Courier, on_delete=models.PROTECT, related_name='guides',
     )
-    tracking_number = models.CharField(max_length=80, unique=True, db_index=True)
+    # H-CICLO78-10: tracking_number must be unique per courier, not globally.
+    # Different couriers (DHL, Estafeta, FedEx) independently generate tracking
+    # numbers and may issue the same number string. A global UNIQUE constraint
+    # would reject the second guide as a duplicate even though
+    # (DHL, "12345") and (Estafeta, "12345") are distinct shipments.
+    # Uniqueness is enforced via unique_together = ('courier', 'tracking_number')
+    # in Meta, and a db_index on tracking_number alone is retained for fast lookups.
+    tracking_number = models.CharField(max_length=80, db_index=True)
     status          = models.CharField(
         max_length=20, choices=STATUSES,
         default=STATUS_CREATED, db_index=True,
@@ -73,6 +80,14 @@ class ShipmentGuide(TimeStampedModel, SoftDeleteModel):
         db_table     = 'logistics_shipment_guide'
         ordering     = ['-created_at']
         verbose_name = 'Guia de envio'
+        # H-CICLO78-10: uniqueness per courier — same tracking number is valid
+        # for different carriers (each carrier has its own numbering space).
+        constraints = [
+            models.UniqueConstraint(
+                fields=['courier', 'tracking_number'],
+                name='unique_tracking_per_courier',
+            ),
+        ]
 
     def __str__(self):
         return f'{self.tracking_number} ({self.courier.code})'
