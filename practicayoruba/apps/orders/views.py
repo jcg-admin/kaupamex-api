@@ -172,19 +172,26 @@ class CheckoutView(APIView):
                 )
 
                 # c. Crear OrderItems (snapshot BR-005)
+                # H-CICLO78-04: usar ci.current_price() en lugar de
+                # ci.unit_price para garantizar que el snapshot capture el
+                # precio vigente al momento del checkout y no el precio
+                # que tenia el item cuando se agrego al carrito (que puede
+                # haber cambiado si el admin modifico el precio del producto
+                # entre el add-to-cart y el checkout).
                 subtotal = Decimal('0.00')
                 for ci in cart_items:
-                    label     = ci.variant.option.label if ci.variant else ''
-                    sku       = ci.variant.sku if ci.variant else ci.product.sku
-                    item_sub  = ci.unit_price * ci.quantity
-                    subtotal += item_sub
+                    label      = ci.variant.option.label if ci.variant else ''
+                    sku        = ci.variant.sku if ci.variant else ci.product.sku
+                    live_price = ci.current_price()
+                    item_sub   = live_price * ci.quantity
+                    subtotal  += item_sub
                     OrderItem.objects.create(
                         order=order,
                         variant=ci.variant,
                         product_name=ci.product.name,
                         variant_label=label,
                         sku=sku,
-                        unit_price=ci.unit_price,
+                        unit_price=live_price,
                         quantity=ci.quantity,
                         subtotal=item_sub,
                     )
