@@ -377,15 +377,16 @@ class AdminReturnApproveView(_AdminOnly, APIView):
             )
 
         justification = ser.validated_data['justification']
-        ret.status = ReturnRequest.Status.APPROVED
-        ret.save(update_fields=['status', 'updated_at'])
+        with transaction.atomic():
+            ret.status = ReturnRequest.Status.APPROVED
+            ret.save(update_fields=['status', 'updated_at'])
 
-        ReturnHistoryEntry.objects.create(
-            return_request=ret,
-            status_to=ReturnRequest.Status.APPROVED,
-            actor=request.user,
-            justification=justification,
-        )
+            ReturnHistoryEntry.objects.create(
+                return_request=ret,
+                status_to=ReturnRequest.Status.APPROVED,
+                actor=request.user,
+                justification=justification,
+            )
 
         # H-CICLO56-02: re-fetch after mutation so the serializer sees the new
         # history entry instead of the stale prefetch cache from _get_return_or_404.
@@ -414,16 +415,17 @@ class AdminReturnRejectView(_AdminOnly, APIView):
             )
 
         justification = ser.validated_data['justification']
-        ret.rejection_reason = justification
-        ret.status = ReturnRequest.Status.REJECTED
-        ret.save(update_fields=['status', 'rejection_reason', 'updated_at'])
+        with transaction.atomic():
+            ret.rejection_reason = justification
+            ret.status = ReturnRequest.Status.REJECTED
+            ret.save(update_fields=['status', 'rejection_reason', 'updated_at'])
 
-        ReturnHistoryEntry.objects.create(
-            return_request=ret,
-            status_to=ReturnRequest.Status.REJECTED,
-            actor=request.user,
-            justification=justification,
-        )
+            ReturnHistoryEntry.objects.create(
+                return_request=ret,
+                status_to=ReturnRequest.Status.REJECTED,
+                actor=request.user,
+                justification=justification,
+            )
 
         # H-CICLO56-02: re-fetch after mutation to avoid stale prefetch cache.
         ret = _get_return_or_404(return_id)
