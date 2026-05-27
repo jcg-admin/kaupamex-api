@@ -15,6 +15,7 @@ from django.utils import timezone
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import status
 from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
@@ -30,6 +31,13 @@ from .serializers import (
 
 
 VALID_STATUSES = {s[0] for s in QuestionStatus.choices}
+
+
+class AdminQuestionPagination(PageNumberPagination):
+    """H-CICLO84-02: paginar cola de preguntas admin para evitar OOM."""
+    page_size             = 50
+    page_size_query_param = 'page_size'
+    max_page_size         = 200
 
 
 class ProductQuestionsView(APIView):
@@ -134,6 +142,15 @@ class AdminQuestionsListView(_AdminOnly, APIView):
         # asker_user (username) y answered_by. Sin select_related se generan
         # N+1 queries por cada pregunta en la cola. Se agregan las tres FKs.
         qs = qs.select_related('product', 'asker_user', 'answered_by').order_by('created_at')
+        # H-CICLO84-02: paginar la cola de admin. Sin paginacion una tienda
+        # con cientos de preguntas acumuladas retorna toda la tabla en una
+        # sola respuesta, agotando memoria del worker y ancho de banda.
+        paginator = AdminQuestionPagination()
+        page = paginator.paginate_queryset(qs, request)
+        if page is not None:
+            return paginator.get_paginated_response(
+                AdminQuestionItemSerializer(page, many=True).data
+            )
         return Response({'results': AdminQuestionItemSerializer(qs, many=True).data})
 
 

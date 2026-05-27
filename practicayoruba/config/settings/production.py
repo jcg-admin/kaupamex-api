@@ -100,3 +100,13 @@ EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 # enlaces de verificación de cuenta y recuperación de contraseña.
 # Debe coincidir con el dominio público de la aplicación.
 FRONTEND_URL = config('FRONTEND_URL', default='https://practicayoruba.mx')
+
+# H-CICLO84-03: elevar nivel de log a WARNING en produccion.
+# base.py define ambos loggers en INFO, lo que es apropiado para
+# desarrollo pero excesivo en produccion: cada peticion HTTP, cada
+# query lenta y cada operacion de negocio genera una entrada en el
+# archivo rotativo, llenando disco y exponiendo rutas internas,
+# parametros y patrones de uso en los logs. WARNING suprime mensajes
+# informativos y preserva solo advertencias y errores.
+LOGGING['loggers']['django']['level'] = 'WARNING'
+LOGGING['loggers']['apps']['level']   = 'WARNING'

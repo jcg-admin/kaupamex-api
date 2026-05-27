@@ -581,11 +581,21 @@ class ProductAdminViewSet(ProductDeactivateAction, ModelViewSet):
             )
 
     def perform_destroy(self, instance):
-        instance.is_active = False
-        instance.is_published = False
-        instance.is_deleted = True
-        instance.deleted_at = timezone.now()
-        instance.save(update_fields=['is_active', 'is_published', 'is_deleted', 'deleted_at', 'updated_at'])
+        from django.db import transaction as _tx
+        with _tx.atomic():
+            instance.is_active = False
+            instance.is_published = False
+            instance.is_deleted = True
+            instance.deleted_at = timezone.now()
+            instance.save(update_fields=['is_active', 'is_published', 'is_deleted', 'deleted_at', 'updated_at'])
+            # H-CICLO84-01: limpiar CartItems y WishlistItems huerfanos.
+            # Antes del fix, hacer soft-delete de un producto dejaba filas
+            # en cart_cart_item y wishlist_item apuntando a un producto
+            # is_deleted=True. Esos registros nunca se limpiaban: el carrito
+            # mostraba items "fantasma" y la wishlist retenia referencias
+            # invalidas hasta que el usuario las eliminara manualmente.
+            CartItem.objects.filter(product=instance).delete()
+            WishlistItem.objects.filter(product=instance).delete()
         cache.delete(f'product:{instance.pk}:detail')
         cache.delete(CATEGORY_TREE_CACHE_KEY)
 
