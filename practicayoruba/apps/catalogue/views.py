@@ -701,7 +701,7 @@ class ProductPriceSyncView(APIView):
             validas.append({
                 'sku': sku, 'product_id': product.pk, 'product_name': product.name,
                 'old_price': str(product.price), 'new_price': str(new_price),
-                'diff_pct': round(float((new_price - product.price) / product.price * 100), 2),
+                'diff_pct': float(((new_price - product.price) / product.price * Decimal('100')).quantize(Decimal('0.01'))),
             })
         return validas, invalidas
 
@@ -713,7 +713,10 @@ class ProductPriceSyncView(APIView):
             qs = qs.filter(price__gte=price_min)
         if price_max:
             qs = qs.filter(price__lte=price_max)
-        multiplier = Decimal(str(1 + pct / 100))
+        # H-CICLO114-02: pct ya llega como Decimal desde el caller; usar
+        # Decimal aritmética pura para evitar float→Decimal precision loss.
+        pct_d = Decimal(str(pct)) if not isinstance(pct, Decimal) else pct
+        multiplier = Decimal('1') + pct_d / Decimal('100')
         return [{
             'sku': p.sku, 'product_id': p.pk, 'product_name': p.name,
             'old_price': str(p.price),
@@ -726,8 +729,11 @@ class ProductPriceSyncView(APIView):
         mode = request.data.get('mode', 'csv')
         if mode == 'percentage':
             try:
-                pct = float(request.data.get('pct', 0))
-            except (TypeError, ValueError):
+                # H-CICLO114-02: usar Decimal para pct desde el origen para que
+                # _apply_percentage construya el multiplicador sin perdida de
+                # precision por conversion float→Decimal.
+                pct = Decimal(str(request.data.get('pct', 0)))
+            except Exception:
                 return Response({'detail': 'pct debe ser un número.'}, status=400)
             validas, invalidas = self._apply_percentage(
                 pct, request.data.get('category_id'),
