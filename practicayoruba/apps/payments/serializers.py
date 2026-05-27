@@ -18,6 +18,27 @@ class PaymentSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class AdminPaymentSerializer(PaymentSerializer):
+    """Admin-only payment representation.
+
+    Extends the public PaymentSerializer with order context fields that
+    the admin panel needs to display without a separate order request:
+    order_status and user_email.  Using the public PaymentSerializer in
+    AdminPaymentDetailView left the admin panel without these fields,
+    forcing the UI to either show blanks or issue an extra request.
+    """
+
+    order_status = serializers.CharField(source='order.status', read_only=True)
+    user_email   = serializers.SerializerMethodField()
+
+    class Meta(PaymentSerializer.Meta):
+        fields = PaymentSerializer.Meta.fields + ['order_status', 'user_email']
+        read_only_fields = fields
+
+    def get_user_email(self, obj) -> str | None:
+        return obj.order.user.email if obj.order.user_id else obj.order.guest_email
+
+
 class InitiatePaymentSerializer(serializers.Serializer):
     """POST /api/v1/payments/initiate/ — UC-PAY-01 (MP) y UC-PAY-02 (PayPal)."""
     GATEWAY_CHOICES = [('MERCADOPAGO', 'MercadoPago'), ('PAYPAL', 'PayPal')]

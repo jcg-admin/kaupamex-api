@@ -147,6 +147,25 @@ class ShipmentGuideListCreateView(_AdminOnly, APIView):
 class ShipmentGuideDetailView(_AdminOnly, APIView):
     VALID_STATUSES = {s[0] for s in ShipmentGuide.STATUSES}
 
+    # H-CICLO82-02: maquina de estados de guias de envio.
+    # Sin esta tabla cualquier status valido podia setearse desde
+    # cualquier estado anterior — p.ej. CREATED → DELIVERED sin
+    # pasar por IN_TRANSIT, lo que rompe el historial de eventos y
+    # la logica de ConfirmDeliveryView.
+    ALLOWED_TRANSITIONS = {
+        ShipmentGuide.STATUS_CREATED:    [ShipmentGuide.STATUS_PICKED_UP,
+                                          ShipmentGuide.STATUS_CANCELLED],
+        ShipmentGuide.STATUS_PICKED_UP:  [ShipmentGuide.STATUS_IN_TRANSIT,
+                                          ShipmentGuide.STATUS_INCIDENT,
+                                          ShipmentGuide.STATUS_CANCELLED],
+        ShipmentGuide.STATUS_IN_TRANSIT: [ShipmentGuide.STATUS_DELIVERED,
+                                          ShipmentGuide.STATUS_INCIDENT,
+                                          ShipmentGuide.STATUS_CANCELLED],
+        ShipmentGuide.STATUS_INCIDENT:   [ShipmentGuide.STATUS_IN_TRANSIT,
+                                          ShipmentGuide.STATUS_CANCELLED],
+        # DELIVERED y CANCELLED son terminales — sin transiciones permitidas.
+    }
+
     def _get_guide(self, pk):
         try:
             return ShipmentGuide.objects.select_related('order', 'courier').get(pk=pk, is_deleted=False)
@@ -161,6 +180,19 @@ class ShipmentGuideDetailView(_AdminOnly, APIView):
         new_status = request.data.get('status')
         if not new_status or new_status not in self.VALID_STATUSES:
             return Response({'detail': f'Estado inválido: {new_status!r}.', 'codigo_error': 'STATUS_INVALID'}, status=400)
+        # H-CICLO82-02: validar transicion contra la maquina de estados.
+        allowed = self.ALLOWED_TRANSITIONS.get(guide.status, [])
+        if new_status not in allowed:
+            return Response(
+                {
+                    'detail': (
+                        f'Transición no permitida: {guide.status} → {new_status}. '
+                        f'Transiciones válidas: {allowed or ["ninguna (estado terminal)"]}'
+                    ),
+                    'codigo_error': 'INVALID_STATUS_TRANSITION',
+                },
+                status=400,
+            )
         guide.status = new_status
         guide.save(update_fields=['status', 'updated_at'])
         ShipmentEvent.objects.create(

@@ -24,6 +24,14 @@ from .serializers import BackupRecordSerializer
 
 logger = logging.getLogger('apps')
 
+# H-CICLO82-03: lock en proceso para serializar peticiones concurrentes de
+# backup. Sin este lock, N POST simultaneos a /backups/trigger/ lanzan N
+# threads de backup_db.sh al mismo tiempo, corrompiendo el dump (escrituras
+# concurrentes sobre el mismo archivo de destino) y saturando I/O del VPS.
+# Un threading.Lock es suficiente porque el proceso Django es un unico proceso
+# (mod_wsgi/WSGI — no Celery, no workers separados).
+_BACKUP_LOCK = threading.Lock()
+
 # Path to the DB backup script relative to the repo root.
 # Adjust if the repos are co-located differently in production.
 _BACKUP_SCRIPT = os.path.join(
@@ -103,10 +111,29 @@ class AdminBackupTriggerView(APIView):
         tags=['admin-backups'],
     )
     def post(self, request):
+        # H-CICLO82-03: rechazar si ya hay un backup en curso.
+        # _BACKUP_LOCK.acquire(blocking=False) devuelve False inmediatamente
+        # si el lock ya esta tomado (backup activo), evitando N threads
+        # simultaneos de backup_db.sh.
+        if not _BACKUP_LOCK.acquire(blocking=False):
+            return Response(
+                {
+                    'detail': 'Ya hay un backup en curso. Intenta de nuevo cuando finalice.',
+                    'codigo_error': 'BACKUP_IN_PROGRESS',
+                },
+                status=409,
+            )
         record = BackupRecord.objects.create(type=BackupRecord.TYPE_MANUAL)
+
+        def _run_and_release(record_pk: int) -> None:
+            try:
+                _run_backup(record_pk)
+            finally:
+                _BACKUP_LOCK.release()
+
         # Run in a background thread — no Celery/Redis per project constraints.
         t = threading.Thread(
-            target=_run_backup, args=(record.pk,), daemon=True
+            target=_run_and_release, args=(record.pk,), daemon=True
         )
         t.start()
         return Response(

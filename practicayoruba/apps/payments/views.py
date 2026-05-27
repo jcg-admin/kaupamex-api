@@ -15,7 +15,7 @@ from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress, Shipp
 from apps.orders.proxy_models import DeliveredOrder
 from apps.voucher.models import Voucher, VoucherUsage
 from .models import Payment, Payment as PaymentModel
-from .serializers import InitiatePaymentSerializer, InitiatePaymentResponseSerializer, InstallmentPlansResponseSerializer, PaymentSerializer, PaymentReturnSerializer, CheckoutEligibilitySerializer, ExpressCheckoutSerializer, RefundRequestSerializer, RefundSerializer, AdminRefundSerializer, RetryEligibilitySerializer, PaymentStatusSerializer as PSS, RefundRequestSerializer as RRS
+from .serializers import InitiatePaymentSerializer, InitiatePaymentResponseSerializer, InstallmentPlansResponseSerializer, PaymentSerializer, AdminPaymentSerializer, PaymentReturnSerializer, CheckoutEligibilitySerializer, ExpressCheckoutSerializer, RefundRequestSerializer, RefundSerializer, AdminRefundSerializer, RetryEligibilitySerializer, PaymentStatusSerializer as PSS, RefundRequestSerializer as RRS
 from .services import initiate_payment, handle_gateway_return, get_installment_plans, get_payment_status, get_payment_history, execute_refund, get_retry_eligibility
 from apps.users.models import Address
 from apps.settings_app.models import ShippingMethod, SiteSettings
@@ -755,20 +755,22 @@ class AdminPaymentDetailView(APIView):
             'Retorna el detalle completo de un Payment por su PK. '
             'No requiere filtro de propietario (admin ve todos los pagos). '
             'H-CICLO81-03: endpoint faltante — AdminPaymentListView existia '
-            'sin su endpoint de detalle correspondiente.'
+            'sin su endpoint de detalle correspondiente. '
+            'H-CICLO82-01: usa AdminPaymentSerializer (incluye order_status '
+            'y user_email) en lugar del PaymentSerializer publico.'
         ),
         responses={
-            200: PaymentSerializer,
+            200: AdminPaymentSerializer,
             404: OpenApiResponse(description='Payment no encontrado.'),
         },
         tags=['payments-admin'],
     )
     def get(self, request, payment_id):
         payment = get_object_or_404(
-            PaymentModel.objects.select_related('order'),
+            PaymentModel.objects.select_related('order', 'order__user'),
             pk=payment_id,
         )
-        return Response(PaymentSerializer(payment).data)
+        return Response(AdminPaymentSerializer(payment).data)
 
 
 
@@ -802,7 +804,7 @@ class AdminPaymentListView(APIView):
                              description='Fecha fin rango (YYYY-MM-DD).'),
             OpenApiParameter('page',    int, required=False),
         ],
-        responses={200: PaymentSerializer(many=True)},
+        responses={200: AdminPaymentSerializer(many=True)},
         tags=['payments-admin'],
     )
     def get(self, request):
@@ -811,7 +813,7 @@ class AdminPaymentListView(APIView):
         from datetime import date as _date
 
         qs = (
-            Payment.objects.select_related('order')
+            Payment.objects.select_related('order', 'order__user')
             .order_by('-created_at')
         )
 
@@ -898,12 +900,12 @@ class AdminPaymentListView(APIView):
         page = paginator.paginate_queryset(qs, request)
         if page is not None:
             response = paginator.get_paginated_response(
-                PaymentSerializer(page, many=True).data
+                AdminPaymentSerializer(page, many=True).data
             )
             response.data['totals'] = totals
             return response
         return Response({
             'count':   qs.count(),
-            'results': PaymentSerializer(qs, many=True).data,
+            'results': AdminPaymentSerializer(qs, many=True).data,
             'totals':  totals,
         })

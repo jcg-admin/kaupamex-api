@@ -5,9 +5,18 @@ from decouple import config  # importación explícita — no depender del * de 
 SECRET_KEY = config('SECRET_KEY')
 
 DEBUG = False
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-SECURE_SSL_REDIRECT = True
+SESSION_COOKIE_SECURE   = True
+SESSION_COOKIE_HTTPONLY = True   # default de Django pero se fija explicitamente
+CSRF_COOKIE_SECURE      = True
+# H-CICLO82-04: Django default de CSRF_COOKIE_HTTPONLY es False, lo que
+# permite que JavaScript lea la cookie CSRF via document.cookie.  Para una
+# API DRF con JWT (sin formularios Django) la cookie CSRF no necesita ser
+# legible por JS — el valor se transmite solo en el header X-CSRFToken que
+# el browser incluye automaticamente desde la cookie HttpOnly en requests
+# cross-origin con credentials. Marcarla HttpOnly cierra el vector de robo
+# de token CSRF via XSS.
+CSRF_COOKIE_HTTPONLY    = True
+SECURE_SSL_REDIRECT     = True
 
 # H-CICLO25-01: activar explícitamente el middleware de Django que emite
 # "X-Content-Type-Options: nosniff".  SecurityMiddleware lo respeta solo
