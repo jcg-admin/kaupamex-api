@@ -569,13 +569,34 @@ class AdminReturnRefundView(_AdminOnly, APIView):
         # H-RET-R01: delegate to execute_refund() which handles partial vs full
         # refund status, creates the Refund record, and notifies atomically.
         # Direct gateway call + unconditional STATUS_REFUNDED was incorrect.
+        #
+        # H-CICLO109-01: envolver execute_refund + ret.save() + history en un
+        # único bloque atomic. Anteriormente execute_refund se llamaba fuera
+        # de la transacción que actualizaba ret.status: si el gateway
+        # procesaba el reembolso (dinero enviado) y luego ret.save() fallaba,
+        # el dinero quedaba reembolsado pero el ReturnRequest permanecía en
+        # APPROVED/RECEIVED; el guard de idempotencia (refund_at is None) no
+        # lo detectaba, permitiendo un segundo reembolso en el siguiente request.
         try:
-            execute_refund(
-                payment=payment,
-                amount=amount,
-                reason=f'Devolución #{ret.pk} aprobada por admin',
-                initiated_by=request.user,
-            )
+            with transaction.atomic():
+                execute_refund(
+                    payment=payment,
+                    amount=amount,
+                    reason=f'Devolución #{ret.pk} aprobada por admin',
+                    initiated_by=request.user,
+                )
+
+                ret.status = ReturnRequest.Status.REFUNDED
+                ret.refund_amount = amount
+                ret.refund_at = timezone.now()
+                ret.save(update_fields=['status', 'refund_amount', 'refund_at', 'updated_at'])
+
+                ReturnHistoryEntry.objects.create(
+                    return_request=ret,
+                    status_to=ReturnRequest.Status.REFUNDED,
+                    actor=request.user,
+                    justification=f'Reembolso de {amount} procesado.',
+                )
         except ValueError as exc:
             return Response(
                 {'detail': str(exc), 'error_code': 'PAYMENT_NOT_REFUNDABLE'},
@@ -590,19 +611,6 @@ class AdminReturnRefundView(_AdminOnly, APIView):
                 {'detail': f'Error al procesar el reembolso: {exc}',
                  'error_code': 'GATEWAY_ERROR'},
                 status=status.HTTP_502_BAD_GATEWAY,
-            )
-
-        with transaction.atomic():
-            ret.status = ReturnRequest.Status.REFUNDED
-            ret.refund_amount = amount
-            ret.refund_at = timezone.now()
-            ret.save(update_fields=['status', 'refund_amount', 'refund_at', 'updated_at'])
-
-            ReturnHistoryEntry.objects.create(
-                return_request=ret,
-                status_to=ReturnRequest.Status.REFUNDED,
-                actor=request.user,
-                justification=f'Reembolso de {amount} procesado.',
             )
 
         # H-CICLO56-02: re-fetch after mutation to avoid stale prefetch cache.
