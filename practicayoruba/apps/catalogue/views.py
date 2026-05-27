@@ -376,6 +376,9 @@ class CategoryAdminViewSet(ModelViewSet):
     serializer_class   = CategoryAdminSerializer
     queryset           = Category.objects.all().order_by('name')
     http_method_names  = ['get', 'post', 'patch', 'delete', 'head', 'options']
+    # H-CICLO104-02b: paginar la lista de categorias para evitar respuesta
+    # sin limite si el catalogo crece a cientos de categorias.
+    pagination_class   = CataloguePagination
 
     def perform_destroy(self, instance):
         self._deactivate_category(instance)
