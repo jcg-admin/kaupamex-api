@@ -168,7 +168,15 @@ def validate_verification_token(plain: str):
     if obj.user.is_active:
         return None  # idempotente — ya estaba activa
     if obj.used_at is not None:
-        return None  # ya usada pero cuenta activa
+        # Token consumido pero cuenta sigue inactiva (p.ej. invalidado
+        # por DeactivateAccountView). Indicar claramente que el token no
+        # es reutilizable y el usuario debe solicitar uno nuevo.
+        # H-CICLO115-03: antes retornaba None, lo que el caller interpretaba
+        # como "cuenta ya activa" — mensaje falso que atrapaba al usuario.
+        raise _token_error(
+            'TOKEN_ALREADY_USED',
+            'Este enlace ya fue utilizado. Solicita un nuevo enlace de verificacion.',
+        )
     if obj.expires_at < timezone.now():
         raise _token_error('TOKEN_EXPIRED', 'El enlace de verificacion ha expirado. Solicita uno nuevo.')
     return obj
