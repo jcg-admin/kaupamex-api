@@ -10,7 +10,7 @@ from decimal import Decimal
 from django.db import transaction
 from django.utils import timezone
 from apps.inventory.services import InventoryService
-from .models import Order, OrderAddress
+from .models import Order, OrderAddress, OrderStatusLog
 from apps.payments.services import execute_refund
 from apps.settings_app.models import ShippingMethod
 
@@ -59,10 +59,20 @@ def cancel_order(order, reason: str = '', cancelled_by=None, cancelable_statuses
             )
 
         # 1. Cancelar la orden
+        previous_status           = order.status
         order.status              = 'CANCELLED'
         order.cancellation_reason = reason
         order.cancelled_at        = timezone.now()
         order.save(update_fields=['status', 'cancellation_reason', 'cancelled_at', 'updated_at'])
+
+        # Registrar transición en el log de auditoría — UC-ORD-04
+        OrderStatusLog.objects.create(
+            order=order,
+            previous_status=previous_status,
+            new_status='CANCELLED',
+            changed_by=cancelled_by,
+            notes=reason,
+        )
 
         # 2. Restaurar stock — UC-INV-03
         stock_items = [
