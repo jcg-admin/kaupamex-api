@@ -413,8 +413,23 @@ def _build_category_tree_with_counts():
         Product.objects.filter(is_active=True, is_published=True)
         .values('category_id').annotate(n=Count('id')).values_list('category_id', 'n')
     )
-    all_cats = list(Category.objects.filter(is_active=True).prefetch_related('children').order_by('name'))
+    all_cats = list(Category.objects.filter(is_active=True).order_by('name'))
     cat_map = {c.pk: c for c in all_cats}
+
+    # H-CICLO77-01: populate prefetch cache for every category in cat_map so
+    # that CategoryWithCountSerializer.get_children() can call
+    # obj.children.all() at any depth without hitting the database.
+    # Previously, prefetch_related('children') only populated the cache on
+    # the root-level objects; child objects at depth 2+ had no cache entry,
+    # causing N+1 queries for each grandchild lookup on cache miss.
+    children_by_parent = {}
+    for c in all_cats:
+        if c.parent_id is not None:
+            children_by_parent.setdefault(c.parent_id, []).append(c)
+    for c in all_cats:
+        c._prefetched_objects_cache = getattr(c, '_prefetched_objects_cache', {})
+        c._prefetched_objects_cache['children'] = children_by_parent.get(c.pk, [])
+
     accumulated = {c.pk: direct_counts.get(c.pk, 0) for c in all_cats}
 
     def _accumulate(cat_pk):
