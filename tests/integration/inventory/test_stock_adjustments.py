@@ -11,7 +11,7 @@ from decimal import Decimal
 from apps.catalogue.models import Category, Product
 from apps.chartsize.models import VariantType, VariantOption, ProductVariant
 from apps.inventory.models import StockMovement
-from apps.inventory.services import InventoryService
+from apps.inventory.services import InventoryService, InsufficientStockError
 
 pytestmark = pytest.mark.integration
 
@@ -82,7 +82,7 @@ class TestAjusteDelta:
         """Delta +5 sobre stock=10 → 15."""
         res = admin_client.post(
             f'{INV_URL}{product_s11.pk}/adjust/',
-            {'delta': 5, 'reason': 'CONTEO_FISICO', 'notes': 'Recepción proveedor'},
+            {'delta': 5, 'reason': 'PHYSICAL_COUNT', 'notes': 'Recepción proveedor'},
             format='json',
         )
         assert res.status_code == 201
@@ -95,7 +95,7 @@ class TestAjusteDelta:
         """Delta -3 sobre stock=10 → 7."""
         res = admin_client.post(
             f'{INV_URL}{product_s11.pk}/adjust/',
-            {'delta': -3, 'reason': 'MERMA', 'notes': 'Merma'},
+            {'delta': -3, 'reason': 'LOSS', 'notes': 'Merma'},
             format='json',
         )
         assert res.status_code == 201
@@ -108,7 +108,7 @@ class TestAjusteDelta:
         """Delta -20 sobre stock=10 → -10 → rechazado."""
         res = admin_client.post(
             f'{INV_URL}{product_s11.pk}/adjust/',
-            {'delta': -20, 'reason': 'CONTEO_FISICO'},
+            {'delta': -20, 'reason': 'PHYSICAL_COUNT'},
             format='json',
         )
         assert res.status_code == 400
@@ -122,7 +122,7 @@ class TestAjusteDelta:
         """Delta +4 sobre variant.stock=6 → 10."""
         res = admin_client.post(
             f'{INV_URL}variants/{variant_s11.pk}/adjust/',
-            {'delta': 4, 'reason': 'CONTEO_FISICO', 'notes': 'Entrada almacen'},
+            {'delta': 4, 'reason': 'PHYSICAL_COUNT', 'notes': 'Entrada almacen'},
             format='json',
         )
         assert res.status_code == 201
@@ -135,7 +135,7 @@ class TestAjusteDelta:
         """FR-INV-04.02: referencia = ADMIN:<pk>."""
         admin_client.post(
             f'{INV_URL}{product_s11.pk}/adjust/',
-            {'delta': 1, 'reason': 'CONTEO_FISICO', 'notes': 'Test'},
+            {'delta': 1, 'reason': 'PHYSICAL_COUNT', 'notes': 'Test'},
             format='json',
         )
         mov = StockMovement.objects.filter(
@@ -149,7 +149,7 @@ class TestAjusteDelta:
         """Delta 0 es inválido — H-CICLO62-02: crearía StockMovement sin efecto."""
         res = admin_client.post(
             f'{INV_URL}{product_s11.pk}/adjust/',
-            {'delta': 0, 'reason': 'CONTEO_FISICO'},
+            {'delta': 0, 'reason': 'PHYSICAL_COUNT'},
             format='json',
         )
         assert res.status_code == 400
@@ -340,3 +340,109 @@ class TestImportarProductosCSV:
     def test_import_csv_sin_archivo_retorna_400(self, admin_client, db):
         res = admin_client.post(IMPORT_URL, {}, format='multipart')
         assert res.status_code == 400
+
+
+# =============================================================================
+# UC-INV-04 EX-02 — Guardia de stock en InventoryService.decrement()
+# =============================================================================
+
+class TestDecrementGuard:
+    """
+    UC-INV-04 EX-02: InventoryService.decrement() lanza InsufficientStockError
+    cuando la cantidad solicitada supera el stock disponible.
+    La excepcion lleva .available con el stock real para que la vista
+    pueda incluirlo en la respuesta 409.
+    """
+
+    def test_decrement_stock_suficiente_reduce_stock(self, product_s11, db):
+        """Camino feliz: decrement con stock suficiente funciona."""
+        movs = InventoryService.decrement(
+            [{'product': product_s11, 'variant': None, 'quantity': 3}],
+            reference='TEST-OK',
+        )
+        product_s11.refresh_from_db()
+        assert product_s11.stock == 7
+        assert len(movs) == 1
+        assert movs[0].delta == -3
+
+    def test_decrement_stock_exacto_reduce_a_cero(self, product_s11, db):
+        """stock == quantity: decrement lleva stock a cero, sin excepcion."""
+        movs = InventoryService.decrement(
+            [{'product': product_s11, 'variant': None, 'quantity': 10}],
+            reference='TEST-ZERO',
+        )
+        product_s11.refresh_from_db()
+        assert product_s11.stock == 0
+        assert len(movs) == 1
+
+    def test_decrement_stock_cero_lanza_insufficient_stock_error(
+        self, product_s11, db
+    ):
+        """stock=0, quantity=1 → InsufficientStockError con available=0."""
+        product_s11.stock = 0
+        product_s11.save()
+        with pytest.raises(InsufficientStockError) as exc_info:
+            InventoryService.decrement(
+                [{'product': product_s11, 'variant': None, 'quantity': 1}],
+                reference='TEST-ZERO-GUARD',
+            )
+        assert exc_info.value.available == 0
+        # Stock no debe haber cambiado
+        product_s11.refresh_from_db()
+        assert product_s11.stock == 0
+
+    def test_decrement_cantidad_mayor_que_stock_lanza_error(
+        self, product_s11, db
+    ):
+        """stock=5, quantity=10 → InsufficientStockError con available=5."""
+        product_s11.stock = 5
+        product_s11.save()
+        with pytest.raises(InsufficientStockError) as exc_info:
+            InventoryService.decrement(
+                [{'product': product_s11, 'variant': None, 'quantity': 10}],
+                reference='TEST-INSUF',
+            )
+        assert exc_info.value.available == 5
+        assert exc_info.value.requested == 10
+        # Rollback: stock sin cambio
+        product_s11.refresh_from_db()
+        assert product_s11.stock == 5
+
+    def test_decrement_variante_stock_insuficiente_lanza_error(
+        self, product_s11, variant_s11, db
+    ):
+        """Variante con stock=6, quantity=7 → InsufficientStockError."""
+        with pytest.raises(InsufficientStockError) as exc_info:
+            InventoryService.decrement(
+                [{'product': product_s11, 'variant': variant_s11, 'quantity': 7}],
+                reference='TEST-VAR-INSUF',
+            )
+        assert exc_info.value.available == 6
+        variant_s11.refresh_from_db()
+        assert variant_s11.stock == 6  # rollback
+
+    def test_decrement_multiples_items_rollback_total(
+        self, product_s11, variant_s11, db
+    ):
+        """
+        Si el segundo item falla, el primero tambien hace rollback
+        (atomicidad de la transaccion).
+        """
+        product_s11.stock = 10
+        product_s11.save()
+        variant_s11.stock = 2
+        variant_s11.save()
+
+        with pytest.raises(InsufficientStockError):
+            InventoryService.decrement(
+                [
+                    {'product': product_s11, 'variant': None, 'quantity': 3},
+                    {'product': product_s11, 'variant': variant_s11, 'quantity': 5},
+                ],
+                reference='TEST-ROLLBACK',
+            )
+
+        product_s11.refresh_from_db()
+        variant_s11.refresh_from_db()
+        assert product_s11.stock == 10   # rollback del primer item
+        assert variant_s11.stock == 2    # sin cambio

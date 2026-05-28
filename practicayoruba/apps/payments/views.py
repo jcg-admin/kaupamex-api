@@ -522,7 +522,8 @@ class ExpressCheckoutView(APIView):
                 cart.save(update_fields=['voucher', 'updated_at'])
 
         except InsufficientStockError as exc:
-            return Response({'detail': str(exc), 'codigo_error': 'INSUFFICIENT_STOCK'}, status=409)
+            return Response({'detail': str(exc), 'codigo_error': 'INSUFFICIENT_STOCK',
+                             'stock_disponible': exc.available}, status=409)
         except IntegrityError:
             # H-CICLO49-02: VoucherUsage tiene unique_together=(user, voucher).
             # En una condicion de carrera (dos requests concurrentes con el mismo

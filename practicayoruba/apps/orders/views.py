@@ -251,7 +251,8 @@ class CheckoutView(APIView):
 
         except InsufficientStockError as exc:
             return Response({'detail': str(exc),
-                             'codigo_error': 'INSUFFICIENT_STOCK'}, status=409)
+                             'codigo_error': 'INSUFFICIENT_STOCK',
+                             'stock_disponible': exc.available}, status=409)
         except IntegrityError:
             return Response({
                 'detail': 'Este voucher ya fue utilizado en tu cuenta.',
