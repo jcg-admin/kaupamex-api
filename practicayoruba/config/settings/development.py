@@ -18,7 +18,7 @@ SECURE_SSL_REDIRECT = False
 # Mailpit intercepta todos los emails y los expone en http://localhost:8025.
 # No envía a internet — el desarrollador puede verificar asunto, destinatario
 # y cuerpo del email en la UI web de Mailpit.
-# Arrancar Mailpit: ver server/scripts/start_smtp.sh
+# Arrancar Mailpit: sudo bash provisioners/smtp/setup_mailpit.sh
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = '127.0.0.1'
 EMAIL_PORT = 1025
