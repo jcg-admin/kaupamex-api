@@ -1,18 +1,28 @@
 """Serializers — apps.reviews (P-14)."""
 from rest_framework import serializers
-from .models import Review
+from .models import Review, ReviewImage
 
+
+
+class ReviewImageSerializer(serializers.ModelSerializer):
+    """UC-REV-02 cap6 — imagen adjunta a una reseña."""
+
+    class Meta:
+        model            = ReviewImage
+        fields           = ['id', 'image', 'created_at']
+        read_only_fields = ['id', 'created_at']
 
 
 class ReviewPublicSerializer(serializers.ModelSerializer):
     """Public listing — only APPROVED reviews exposed."""
     user_display = serializers.SerializerMethodField()
+    images       = ReviewImageSerializer(many=True, read_only=True)
 
     class Meta:
         model  = Review
         fields = [
             'id', 'rating', 'title', 'body',
-            'user_display', 'created_at', 'helpful_count',
+            'user_display', 'created_at', 'helpful_count', 'images',
         ]
 
     def get_user_display(self, obj):

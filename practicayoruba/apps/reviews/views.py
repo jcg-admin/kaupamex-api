@@ -15,19 +15,24 @@ Spanish business error codes per DEC-DOC-006. Audit log per RNF-AUDIT-001.
 from collections import Counter
 from django.db import IntegrityError, transaction
 from django.db.models import F
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema
-from rest_framework import status
+from rest_framework import generics, status
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from apps.catalogue.models import Product
 from apps.orders.models import Order
-from .models import Review, ReviewHelpfulVote, ReviewModerationLog
-from .serializers import ReviewAdminSerializer, ReviewCreateSerializer, ReviewPublicSerializer, ReviewUpdateSerializer
+from .models import Review, ReviewHelpfulVote, ReviewImage, ReviewModerationLog
+from .serializers import (
+    ReviewAdminSerializer, ReviewCreateSerializer, ReviewImageSerializer,
+    ReviewPublicSerializer, ReviewUpdateSerializer,
+)
 
 
 
@@ -246,6 +251,33 @@ class ReviewUpdateView(APIView):
         ser.is_valid(raise_exception=True)
         review = ser.update(review, ser.validated_data)
         return Response(ReviewAdminSerializer(review).data)
+
+
+# =============================================================================
+# Buyer — add photo to own review (UC-REV-02 cap6)
+# =============================================================================
+
+class ReviewImageCreateView(generics.CreateAPIView):
+    """UC-REV-02 cap6 — author adds photo to own review (max 3)."""
+    permission_classes = [IsAuthenticated]
+    serializer_class   = ReviewImageSerializer
+    parser_classes     = [MultiPartParser, FormParser]
+
+    def get_review(self):
+        review = get_object_or_404(
+            Review,
+            pk=self.kwargs['pk'],
+            product_id=self.kwargs['product_id'],
+        )
+        if review.user_id != self.request.user.id:
+            raise PermissionDenied({'codigo_error': 'REVIEW_NOT_OWNER'})
+        return review
+
+    def perform_create(self, serializer):
+        review = self.get_review()
+        if review.images.count() >= 3:
+            raise ValidationError({'codigo_error': 'REVIEW_MAX_IMAGES_REACHED'})
+        serializer.save(review=review)
 
 
 # =============================================================================

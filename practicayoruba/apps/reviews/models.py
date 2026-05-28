@@ -139,3 +139,19 @@ class ReviewHelpfulVote(TimeStampedModel):
 
     def __str__(self):
         return f'{self.user.username} -> review#{self.review_id}'
+
+
+class ReviewImage(models.Model):
+    """
+    Foto adjunta a una reseña (UC-REV-02 cap6).
+
+    Mismo patron de almacenamiento que ProductImage (ImageField local,
+    MEDIA_ROOT). Maximo 3 imagenes por reseña — validado en la vista.
+    """
+    review     = models.ForeignKey(Review, on_delete=models.CASCADE, related_name='images')
+    image      = models.ImageField(upload_to='reviews/images/')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'reviews_image'
+        ordering = ['created_at']

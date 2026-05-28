@@ -722,3 +722,85 @@ class TestBuyerEditReview:
         )
         assert r.status_code == 400
         assert r.json()['codigo_error'] == 'REVIEW_NOT_EDITABLE'
+
+
+IMAGES_URL = lambda pid, pk: f'/api/v1/products/{pid}/reviews/{pk}/images/'
+
+
+def _make_png():
+    """Return a minimal in-memory PNG as BytesIO (no Pillow required)."""
+    import io
+    from PIL import Image as PILImage
+    buf = io.BytesIO()
+    PILImage.new('RGB', (10, 10), color='red').save(buf, format='PNG')
+    buf.seek(0)
+    buf.name = 'test.png'
+    return buf
+
+
+class TestReviewImages:
+    """UC-REV-02 cap6 — photos on reviews."""
+
+    @pytest.fixture
+    def pending_review(self, db, user, prod_rev, order_user_with_product):
+        return Review.objects.create(
+            user=user, product=prod_rev, order=order_user_with_product,
+            rating=5, title='Great', body='Really great product',
+            status=Review.STATUS_PENDING,
+        )
+
+    def test_add_image_to_review(self, auth_client, prod_rev, pending_review, db):
+        """UC-REV-02 cap6: author can add image to own review."""
+        res = auth_client.post(
+            IMAGES_URL(prod_rev.id, pending_review.id),
+            {'image': _make_png()},
+            format='multipart',
+        )
+        assert res.status_code == 201
+        data = res.json()
+        assert 'id' in data
+        assert 'image' in data
+
+    def test_add_image_not_owner_returns_403(
+        self, prod_rev, pending_review, api_client, db,
+    ):
+        """Non-owner cannot add image."""
+        other = get_user_model().objects.create_user(
+            username='otherimguser', email='other_img@rev.com', password='x',
+        )
+        from rest_framework_simplejwt.tokens import RefreshToken
+        refresh = RefreshToken.for_user(other)
+        api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {refresh.access_token}')
+        res = api_client.post(
+            IMAGES_URL(prod_rev.id, pending_review.id),
+            {'image': _make_png()},
+            format='multipart',
+        )
+        assert res.status_code == 403
+        assert res.json()['codigo_error'] == 'REVIEW_NOT_OWNER'
+
+    def test_max_3_images_returns_400(self, auth_client, prod_rev, pending_review, db):
+        """UC-REV-02 cap6: max 3 images per review enforced."""
+        for _ in range(3):
+            auth_client.post(
+                IMAGES_URL(prod_rev.id, pending_review.id),
+                {'image': _make_png()},
+                format='multipart',
+            )
+        # 4th image must be rejected.
+        res = auth_client.post(
+            IMAGES_URL(prod_rev.id, pending_review.id),
+            {'image': _make_png()},
+            format='multipart',
+        )
+        assert res.status_code == 400
+        assert res.json()['codigo_error'] == 'REVIEW_MAX_IMAGES_REACHED'
+
+    def test_unauthenticated_returns_401(self, api_client, prod_rev, pending_review, db):
+        """Unauthenticated request is rejected."""
+        res = api_client.post(
+            IMAGES_URL(prod_rev.id, pending_review.id),
+            {'image': _make_png()},
+            format='multipart',
+        )
+        assert res.status_code == 401
