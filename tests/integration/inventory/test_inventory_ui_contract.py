@@ -188,7 +188,7 @@ class TestAdjustNewQuantity:
         url = f'{INV_URL}variants/{variant_ui.pk}/adjust/'
         res = admin_client.post(url, {
             'new_quantity': 25,
-            'reason': 'CONTEO_FISICO',
+            'reason': 'PHYSICAL_COUNT',
             'observations': 'Inventario semestral',
         }, format='json')
         assert res.status_code == 201, res.content
@@ -207,7 +207,7 @@ class TestAdjustNewQuantity:
         url = f'{INV_URL}variants/{variant_ui.pk}/adjust/'
         res = admin_client.post(url, {
             'new_quantity': -5,
-            'reason': 'MERMA',
+            'reason': 'LOSS',
         }, format='json')
         assert res.status_code == 422
         # T-111.1 anti-soft-on-tests (canon EN): codigo ya retorna
@@ -220,7 +220,7 @@ class TestAdjustNewQuantity:
         url = f'{INV_URL}variants/{variant_ui.pk}/adjust/'
         res = admin_client.post(url, {
             'new_quantity': 4,
-            'reason': 'MERMA',
+            'reason': 'LOSS',
             'observations': 'Producto danado',
         }, format='json')
         assert res.status_code == 201
@@ -241,7 +241,7 @@ class TestAdjustNewQuantity:
         url = f'{INV_URL}variants/{variant_ui.pk}/adjust/'
         admin_client.post(url, {
             'new_quantity': 20,
-            'reason': 'CONTEO_FISICO',
+            'reason': 'PHYSICAL_COUNT',
             'observations': 'Auditoria',
         }, format='json')
         mov = StockMovement.objects.filter(
@@ -249,7 +249,7 @@ class TestAdjustNewQuantity:
         ).latest('created_at')
         # reason is stored in notes (free-text) or in a dedicated field; both ok
         notes = mov.notes
-        assert 'CONTEO_FISICO' in notes or 'Auditoria' in notes
+        assert 'PHYSICAL_COUNT' in notes or 'Auditoria' in notes
 
 
 # =============================================================================

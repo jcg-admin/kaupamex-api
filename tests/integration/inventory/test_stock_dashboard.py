@@ -282,7 +282,7 @@ class TestAjusteManual:
     ):
         res = admin_client.post(
             f'{INV_URL}{product_s10.pk}/adjust/',
-            {'delta': 15, 'reason': 'CONTEO_FISICO', 'notes': 'Inventario físico'},
+            {'delta': 15, 'reason': 'PHYSICAL_COUNT', 'notes': 'Inventario físico'},
             format='json',
         )
         assert res.status_code == 201
@@ -294,7 +294,7 @@ class TestAjusteManual:
     ):
         res = admin_client.post(
             f'{INV_URL}variants/{variant_s10.pk}/adjust/',
-            {'delta': 7, 'reason': 'CONTEO_FISICO'},
+            {'delta': 7, 'reason': 'PHYSICAL_COUNT'},
             format='json',
         )
         assert res.status_code == 201
@@ -306,7 +306,7 @@ class TestAjusteManual:
     ):
         res = admin_client.post(
             f'{INV_URL}{product_s10.pk}/adjust/',
-            {'delta': -20, 'reason': 'CONTEO_FISICO'},
+            {'delta': -20, 'reason': 'PHYSICAL_COUNT'},
             format='json',
         )
         assert res.status_code == 400

@@ -290,7 +290,7 @@ class StockAlertResolveView(_AdminOnly, APIView):
             stock_before=alert.stock_at_alert,
             stock_after=alert.stock_at_alert,
             movement_type=StockMovement.TYPE_ADJUSTMENT,
-            reason='CONTEO_FISICO',
+            reason='PHYSICAL_COUNT',
             notes=f'ALERT_RESOLVED:alert_id={alert.pk}',
             reference=f'ADMIN:{request.user.pk}',
             created_by=request.user,

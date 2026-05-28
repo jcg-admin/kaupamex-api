@@ -200,7 +200,7 @@ class InventoryService:
         delta negativo = salida / corrección a la baja.
         Si stock_actual + delta < 0 → lanza ValueError.
         Referencia de auditoría: ADMIN:<created_by.pk>.
-        reason: código estructurado del motivo (CONTEO_FISICO, MERMA, etc.).
+        reason: código estructurado del motivo (PHYSICAL_COUNT, LOSS, etc.).
         """
 
         with transaction.atomic():

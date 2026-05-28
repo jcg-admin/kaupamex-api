@@ -43,8 +43,8 @@ class StockAlertSerializer(serializers.ModelSerializer):
 
 
 ADJUSTMENT_REASONS = [
-    'CONTEO_FISICO', 'MERMA', 'ROBO',
-    'DEVOLUCION', 'DESCONTINUADO', 'OTRO',
+    'PHYSICAL_COUNT', 'LOSS', 'THEFT',
+    'RETURN', 'DISCONTINUED', 'OTHER',
 ]
 
 

@@ -105,7 +105,7 @@ class TestStockBefore:
         active_product.save()
         mov = InventoryService.adjust(
             product=active_product, variant=None,
-            delta=-5, notes='ajuste test', reason='MERMA',
+            delta=-5, notes='ajuste test', reason='LOSS',
         )
         assert mov.stock_before == 20
         assert mov.stock_after == 15
@@ -113,13 +113,13 @@ class TestStockBefore:
     def test_adjust_guarda_reason_estructurado(self, active_product, db):
         mov = InventoryService.adjust(
             product=active_product, variant=None,
-            delta=2, reason='CONTEO_FISICO',
+            delta=2, reason='PHYSICAL_COUNT',
         )
-        assert mov.reason == 'CONTEO_FISICO'
+        assert mov.reason == 'PHYSICAL_COUNT'
 
     def test_adjust_reason_en_respuesta_api(self, admin_client, active_product, db):
         url = INV_PRODUCT_ADJUST_URL.format(pk=active_product.pk)
-        resp = admin_client.post(url, {'delta': 1, 'reason': 'CONTEO_FISICO', 'notes': 'api test'}, format='json')
+        resp = admin_client.post(url, {'delta': 1, 'reason': 'PHYSICAL_COUNT', 'notes': 'api test'}, format='json')
         assert resp.status_code == 201
         assert 'stock_before' in resp.data
         assert 'reason' in resp.data
@@ -129,11 +129,11 @@ class TestStockBefore:
         active_variant.save()
         mov = InventoryService.adjust(
             product=active_product, variant=active_variant,
-            delta=-2, reason='ROBO',
+            delta=-2, reason='THEFT',
         )
         assert mov.stock_before == 7
         assert mov.stock_after == 5
-        assert mov.reason == 'ROBO'
+        assert mov.reason == 'THEFT'
 
 
 # =============================================================================
@@ -147,7 +147,7 @@ class TestDescontinuadoAjuste:
     ):
         url = INV_PRODUCT_ADJUST_URL.format(pk=inactive_product.pk)
         resp = admin_client.post(
-            url, {'delta': -2, 'reason': 'DESCONTINUADO', 'notes': 'ajuste DESCONTINUADO'}, format='json'
+            url, {'delta': -2, 'reason': 'DISCONTINUED', 'notes': 'ajuste DESCONTINUADO'}, format='json'
         )
         assert resp.status_code == 201
         inactive_product.refresh_from_db()
@@ -159,7 +159,7 @@ class TestDescontinuadoAjuste:
         url = INV_VARIANT_ADJUST_URL.format(pk=inactive_variant.pk)
         resp = admin_client.post(
             url,
-            {'new_quantity': 1, 'reason': 'DESCONTINUADO', 'observations': ''},
+            {'new_quantity': 1, 'reason': 'DISCONTINUED', 'observations': ''},
             format='json',
         )
         assert resp.status_code == 201
