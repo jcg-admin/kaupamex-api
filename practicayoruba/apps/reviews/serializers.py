@@ -40,3 +40,16 @@ class ReviewCreateSerializer(serializers.Serializer):
     rating   = serializers.IntegerField(min_value=1, max_value=5)
     title    = serializers.CharField(max_length=120)
     body     = serializers.CharField(max_length=2000)
+
+
+class ReviewUpdateSerializer(serializers.Serializer):
+    """UC-REV-01 Alt B — buyer edits their own pending review."""
+    rating = serializers.IntegerField(min_value=1, max_value=5, required=False)
+    title  = serializers.CharField(max_length=120, required=False)
+    body   = serializers.CharField(max_length=2000, min_length=10, required=False)
+
+    def update(self, instance, validated_data):
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save(update_fields=list(validated_data.keys()) + ['updated_at'])
+        return instance

@@ -27,7 +27,7 @@ from rest_framework.views import APIView
 from apps.catalogue.models import Product
 from apps.orders.models import Order
 from .models import Review, ReviewHelpfulVote, ReviewModerationLog
-from .serializers import ReviewAdminSerializer, ReviewCreateSerializer, ReviewPublicSerializer
+from .serializers import ReviewAdminSerializer, ReviewCreateSerializer, ReviewPublicSerializer, ReviewUpdateSerializer
 
 
 
@@ -208,6 +208,44 @@ class ProductReviewsView(APIView):
             ReviewAdminSerializer(review).data,
             status=status.HTTP_201_CREATED,
         )
+
+
+# =============================================================================
+# Buyer — edit own pending review (UC-REV-01 Alt B)
+# =============================================================================
+
+class ReviewUpdateView(APIView):
+    """
+    PATCH /api/v1/products/<product_id>/reviews/<pk>/edit/
+
+    UC-REV-01 Alt B: buyer edits their own review while it is still
+    PENDING_MODERATION. Fields: rating, title, body (all optional).
+    Returns 403 if caller does not own the review; 400 if the review
+    has already been approved or rejected.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, product_id, pk):
+        try:
+            review = Review.objects.select_related('user', 'product', 'order').get(
+                pk=pk, product_id=product_id,
+            )
+        except Review.DoesNotExist:
+            raise NotFound({
+                'detail': 'Reseña no encontrada.',
+                'codigo_error': 'REVIEW_NOT_FOUND',
+            })
+
+        if review.user_id != request.user.id:
+            raise PermissionDenied({'codigo_error': 'REVIEW_NOT_OWNER'})
+
+        if review.status != Review.STATUS_PENDING:
+            raise ValidationError({'codigo_error': 'REVIEW_NOT_EDITABLE'})
+
+        ser = ReviewUpdateSerializer(data=request.data, partial=True)
+        ser.is_valid(raise_exception=True)
+        review = ser.update(review, ser.validated_data)
+        return Response(ReviewAdminSerializer(review).data)
 
 
 # =============================================================================

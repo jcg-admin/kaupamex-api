@@ -17,6 +17,7 @@ ADMIN_QUEUE_URL     = '/api/v1/admin/reviews/'
 APPROVE_URL         = lambda pk: f'/api/v1/admin/reviews/{pk}/approve/'
 REJECT_URL          = lambda pk: f'/api/v1/admin/reviews/{pk}/reject/'
 HELPFUL_URL         = lambda pid, pk: f'/api/v1/products/{pid}/reviews/{pk}/helpful/'
+EDIT_URL            = lambda pid, pk: f'/api/v1/products/{pid}/reviews/{pk}/edit/'
 
 
 @pytest.fixture
@@ -615,3 +616,109 @@ class TestAdminModerationGuards:
         )
         assert r.status_code == 404
         assert r.json()['codigo_error'] == 'REVIEW_NOT_FOUND'
+
+
+# =============================================================================
+# UC-REV-01 Alt B — buyer edits their own pending review
+# =============================================================================
+
+class TestBuyerEditReview:
+    """UC-REV-01 Alt B — PATCH edit endpoint for pending reviews."""
+
+    @pytest.fixture
+    def pending_review(self, db, user, prod_rev, order_user_with_product):
+        return Review.objects.create(
+            user=user, product=prod_rev, order=order_user_with_product,
+            rating=3, title='Titulo original', body='Cuerpo original largo',
+            status=Review.STATUS_PENDING,
+        )
+
+    @pytest.fixture
+    def approved_review(self, db, user, prod_rev, order_user_with_product):
+        return Review.objects.create(
+            user=user, product=prod_rev, order=order_user_with_product,
+            rating=5, title='Aprobada', body='Cuerpo aprobado largo',
+            status=Review.STATUS_APPROVED,
+        )
+
+    @pytest.fixture
+    def rejected_review(self, db, user, prod_rev, order_user_with_product):
+        return Review.objects.create(
+            user=user, product=prod_rev, order=order_user_with_product,
+            rating=1, title='Rechazada', body='Cuerpo rechazado largo',
+            status=Review.STATUS_REJECTED,
+            reject_reason='SPAM',
+        )
+
+    def test_buyer_can_edit_pending_review(
+        self, auth_client, prod_rev, pending_review, db,
+    ):
+        """PATCH own pending review returns 200 with updated fields."""
+        r = auth_client.patch(
+            EDIT_URL(prod_rev.id, pending_review.id),
+            {'rating': 5, 'title': 'Nuevo titulo', 'body': 'Cuerpo actualizado extenso'},
+            format='json',
+        )
+        assert r.status_code == 200
+        data = r.json()
+        assert data['rating'] == 5
+        assert data['title'] == 'Nuevo titulo'
+        assert data['body'] == 'Cuerpo actualizado extenso'
+        assert data['status'] == Review.STATUS_PENDING
+
+        pending_review.refresh_from_db()
+        assert pending_review.rating == 5
+        assert pending_review.title == 'Nuevo titulo'
+
+    def test_buyer_cannot_edit_other_users_review(
+        self, api_client, prod_rev, db, order_user_with_product,
+    ):
+        """403 REVIEW_NOT_OWNER when editing another user's review."""
+        other = get_user_model().objects.create_user(
+            username='other_edit', email='otheredit@rev.com', password='x',
+        )
+        o_other = Order.objects.create(user=other, status='DELIVERED')
+        review = Review.objects.create(
+            user=other, product=prod_rev, order=o_other,
+            rating=2, title='Otro', body='Cuerpo de otro usuario largo',
+            status=Review.STATUS_PENDING,
+        )
+        # Authenticate as a different user (re-use the `user` fixture via
+        # creating a fresh user here and logging in manually).
+        attacker = get_user_model().objects.create_user(
+            username='attacker_edit', email='attacker@rev.com', password='x',
+        )
+        from rest_framework_simplejwt.tokens import RefreshToken as RT
+        refresh = RT.for_user(attacker)
+        api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {refresh.access_token}')
+        r = api_client.patch(
+            EDIT_URL(prod_rev.id, review.id),
+            {'rating': 5},
+            format='json',
+        )
+        assert r.status_code == 403
+        assert r.json()['codigo_error'] == 'REVIEW_NOT_OWNER'
+
+    def test_buyer_cannot_edit_approved_review(
+        self, auth_client, prod_rev, approved_review, db,
+    ):
+        """400 REVIEW_NOT_EDITABLE when review is APPROVED."""
+        r = auth_client.patch(
+            EDIT_URL(prod_rev.id, approved_review.id),
+            {'rating': 4},
+            format='json',
+        )
+        assert r.status_code == 400
+        assert r.json()['codigo_error'] == 'REVIEW_NOT_EDITABLE'
+
+    def test_buyer_cannot_edit_rejected_review(
+        self, auth_client, prod_rev, rejected_review, db,
+    ):
+        """400 REVIEW_NOT_EDITABLE when review is REJECTED."""
+        r = auth_client.patch(
+            EDIT_URL(prod_rev.id, rejected_review.id),
+            {'rating': 4},
+            format='json',
+        )
+        assert r.status_code == 400
+        assert r.json()['codigo_error'] == 'REVIEW_NOT_EDITABLE'
