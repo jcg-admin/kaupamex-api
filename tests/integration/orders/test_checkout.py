@@ -242,3 +242,45 @@ class TestShippingMethodProtection:
         res = admin_client.delete(f'/api/v1/admin/shipping-methods/{shipping.pk}/')
         assert res.status_code == 400
         assert res.json()['codigo_error'] == 'METHOD_WITH_ACTIVE_ORDERS'
+
+
+# =============================================================================
+# P-22 — UC-ORD-01 RNF-PERF: checkout P95 800ms SLO
+# =============================================================================
+
+class TestCheckoutP95SLO:
+    """UC-ORD-01 RNF-PERF: checkout must complete in <800ms at P95."""
+
+    def test_checkout_p95_slo_800ms(
+        self, auth_client, prod_ord, zone_cdmx, db,
+    ):
+        """UC-ORD-01 RNF-PERF: end-to-end checkout wall-clock must be <800ms.
+
+        Runs 5 sequential checkouts on fresh products and asserts every
+        request finishes within the 800ms budget.  This per-request guard
+        catches obvious regressions; a true P95 would need many more samples
+        but is impractical in a synchronous test suite.
+        """
+        import time
+
+        for i in range(5):
+            p = Product.objects.create(
+                name=f'SLO Prod {i}', slug=f'slo-prod-{i}', sku=f'SLO-{i:03d}',
+                category=prod_ord.category, price=Decimal('100.00'), stock=5,
+                is_active=True, is_published=True,
+            )
+            auth_client.post(
+                ITEMS_URL, {'product_id': p.pk, 'quantity': 1}, format='json',
+            )
+
+            start = time.monotonic()
+            res = auth_client.post(CHECKOUT_URL, {'address': ADDR}, format='json')
+            elapsed_ms = (time.monotonic() - start) * 1000
+
+            assert res.status_code == 201, (
+                f'Iteration {i}: checkout failed with {res.status_code}: {res.json()}'
+            )
+            assert elapsed_ms < 800, (
+                f'UC-ORD-01 RNF-PERF: iteration {i} took {elapsed_ms:.0f}ms, '
+                f'exceeds 800ms P95 SLO'
+            )

@@ -348,3 +348,270 @@ class TestReviewHelpfulVote:
         review_data = r.json()['results'][0]
         assert 'helpful_count' in review_data
         assert review_data['helpful_count'] == 1
+
+
+# =============================================================================
+# P-21 — Gap coverage: ACs without test assertions
+# =============================================================================
+
+class TestRatingFilterAndSorting:
+    """UC-REV-01 — rating filter excludes non-matching; helpful sort orders correctly."""
+
+    def _make_order(self, db, user):
+        o = Order.objects.create(user=user, status='DELIVERED')
+        OrderValue.objects.create(
+            order=o, subtotal=Decimal('100'), tax=Decimal('0'),
+            shipping_cost=Decimal('0'), total=Decimal('100'),
+        )
+        OrderAddress.objects.create(
+            order=o, recipient_name='X', street='Y', city='Z',
+            state='Z', zip_code='00000',
+        )
+        return o
+
+    def test_rating_filter_excludes_other_ratings(
+        self, api_client, prod_rev, user, db,
+    ):
+        """Filter ?rating=3 must exclude reviews with rating != 3."""
+        u2 = get_user_model().objects.create_user(
+            username='u_filter2', email='uf2@rev.com', password='x',
+        )
+        o1 = self._make_order(db, user)
+        OrderItem.objects.create(
+            order=o1, product=prod_rev, product_name=prod_rev.name,
+            sku=prod_rev.sku, unit_price=Decimal('100'), quantity=1,
+            subtotal=Decimal('100'),
+        )
+        o2 = self._make_order(db, u2)
+        Review.objects.create(
+            user=user, product=prod_rev, order=o1,
+            rating=3, title='Tres', body='cuerpo',
+            status=Review.STATUS_APPROVED,
+        )
+        Review.objects.create(
+            user=u2, product=prod_rev, order=o2,
+            rating=5, title='Cinco', body='cuerpo',
+            status=Review.STATUS_APPROVED,
+        )
+        r = api_client.get(PRODUCT_REVIEWS_URL(prod_rev.id), {'rating': '3'})
+        assert r.status_code == 200
+        results = r.json()['results']
+        assert len(results) == 1
+        assert results[0]['rating'] == 3
+
+    def test_sort_helpful_orders_by_helpful_count_desc(
+        self, api_client, admin_auth_client, prod_rev, user, db,
+    ):
+        """?sort=helpful must put the review with more votes first."""
+        u2 = get_user_model().objects.create_user(
+            username='u_sort2', email='usort2@rev.com', password='x',
+        )
+        o1 = self._make_order(db, user)
+        OrderItem.objects.create(
+            order=o1, product=prod_rev, product_name=prod_rev.name,
+            sku=prod_rev.sku, unit_price=Decimal('100'), quantity=1,
+            subtotal=Decimal('100'),
+        )
+        o2 = self._make_order(db, u2)
+        rev_low = Review.objects.create(
+            user=user, product=prod_rev, order=o1,
+            rating=4, title='Low', body='cuerpo',
+            status=Review.STATUS_APPROVED,
+            helpful_count=0,
+        )
+        rev_high = Review.objects.create(
+            user=u2, product=prod_rev, order=o2,
+            rating=5, title='High', body='cuerpo',
+            status=Review.STATUS_APPROVED,
+            helpful_count=5,
+        )
+        r = api_client.get(PRODUCT_REVIEWS_URL(prod_rev.id), {'sort': 'helpful'})
+        assert r.status_code == 200
+        results = r.json()['results']
+        assert len(results) == 2
+        assert results[0]['id'] == rev_high.id
+
+    def test_pagination_second_page_slices_correctly(
+        self, api_client, prod_rev, user, db,
+    ):
+        """Page 2 with page_size=1 should return the second-oldest approved review."""
+        u2 = get_user_model().objects.create_user(
+            username='u_page2', email='upage2@rev.com', password='x',
+        )
+        o1 = self._make_order(db, user)
+        OrderItem.objects.create(
+            order=o1, product=prod_rev, product_name=prod_rev.name,
+            sku=prod_rev.sku, unit_price=Decimal('100'), quantity=1,
+            subtotal=Decimal('100'),
+        )
+        o2 = self._make_order(db, u2)
+        rev1 = Review.objects.create(
+            user=user, product=prod_rev, order=o1,
+            rating=4, title='First', body='cuerpo',
+            status=Review.STATUS_APPROVED,
+        )
+        rev2 = Review.objects.create(
+            user=u2, product=prod_rev, order=o2,
+            rating=5, title='Second', body='cuerpo',
+            status=Review.STATUS_APPROVED,
+        )
+        r = api_client.get(
+            PRODUCT_REVIEWS_URL(prod_rev.id), {'page_size': '1', 'page': '2'},
+        )
+        assert r.status_code == 200
+        data = r.json()
+        assert data['pages'] == 2
+        assert len(data['results']) == 1
+
+    def test_pagination_invalid_page_size_returns_400(
+        self, api_client, prod_rev, db,
+    ):
+        r = api_client.get(
+            PRODUCT_REVIEWS_URL(prod_rev.id), {'page_size': 'abc'},
+        )
+        assert r.status_code == 400
+        assert r.json()['codigo_error'] == 'INVALID_PAGINATION'
+
+
+class TestCreateReviewEdgeCases:
+    """UC-REV-01/02 edge cases not covered by baseline tests."""
+
+    def test_product_not_in_order_returns_403(
+        self, auth_client, user, prod_rev, cat_rev, db,
+    ):
+        """Order is delivered but the reviewed product was not in it."""
+        other_prod = Product.objects.create(
+            name='Otro Prod', slug='otro-prod-p21', sku='REV-OTHER-01',
+            category=cat_rev, price=Decimal('50'), stock=5,
+            is_active=True, is_published=True,
+        )
+        o = Order.objects.create(user=user, status='DELIVERED')
+        # order only contains other_prod, not prod_rev
+        OrderItem.objects.create(
+            order=o, product=other_prod, product_name=other_prod.name,
+            sku=other_prod.sku, unit_price=Decimal('50'), quantity=1,
+            subtotal=Decimal('50'),
+        )
+        OrderValue.objects.create(
+            order=o, subtotal=Decimal('50'), tax=Decimal('0'),
+            shipping_cost=Decimal('0'), total=Decimal('50'),
+        )
+        OrderAddress.objects.create(
+            order=o, recipient_name='X', street='Y', city='Z',
+            state='Z', zip_code='00000',
+        )
+        r = auth_client.post(PRODUCT_REVIEWS_URL(prod_rev.id), {
+            'order_id': o.id, 'rating': 4, 'title': 'X', 'body': 'X',
+        }, format='json')
+        assert r.status_code == 403
+        assert r.json()['codigo_error'] == 'PRODUCT_NOT_PURCHASED'
+
+    def test_order_not_found_returns_404(
+        self, auth_client, prod_rev, db,
+    ):
+        r = auth_client.post(PRODUCT_REVIEWS_URL(prod_rev.id), {
+            'order_id': 999999, 'rating': 4, 'title': 'X', 'body': 'X',
+        }, format='json')
+        assert r.status_code == 404
+        assert r.json()['codigo_error'] == 'ORDER_NOT_FOUND'
+
+
+class TestAdminModerationGuards:
+    """UC-REV-03 — state-machine guards not covered by baseline."""
+
+    @pytest.fixture
+    def pending_review(self, db, user, prod_rev, order_user_with_product):
+        return Review.objects.create(
+            user=user, product=prod_rev, order=order_user_with_product,
+            rating=3, title='Pend', body='cuerpo',
+            status=Review.STATUS_PENDING,
+        )
+
+    @pytest.fixture
+    def approved_review(self, db, user, prod_rev, order_user_with_product):
+        return Review.objects.create(
+            user=user, product=prod_rev, order=order_user_with_product,
+            rating=5, title='Aprov', body='cuerpo',
+            status=Review.STATUS_APPROVED,
+        )
+
+    @pytest.fixture
+    def rejected_review(self, db, user, prod_rev, order_user_with_product):
+        return Review.objects.create(
+            user=user, product=prod_rev, order=order_user_with_product,
+            rating=1, title='Rej', body='cuerpo',
+            status=Review.STATUS_REJECTED,
+            reject_reason='SPAM',
+        )
+
+    def test_approve_rejected_review_returns_400(
+        self, admin_client, rejected_review, db,
+    ):
+        """Cannot approve a review that was already rejected."""
+        r = admin_client.post(APPROVE_URL(rejected_review.id), {}, format='json')
+        assert r.status_code == 400
+        assert r.json()['codigo_error'] == 'REVIEW_ALREADY_REJECTED'
+
+    def test_reject_approved_review_returns_400(
+        self, admin_client, approved_review, db,
+    ):
+        """Cannot reject a review that was already approved."""
+        r = admin_client.post(
+            REJECT_URL(approved_review.id), {'reason': 'SPAM'}, format='json',
+        )
+        assert r.status_code == 400
+        assert r.json()['codigo_error'] == 'REVIEW_ALREADY_APPROVED'
+
+    def test_approve_nonexistent_review_returns_404(
+        self, admin_client, db,
+    ):
+        r = admin_client.post(APPROVE_URL(999999), {}, format='json')
+        assert r.status_code == 404
+        assert r.json()['codigo_error'] == 'REVIEW_NOT_FOUND'
+
+    def test_reject_nonexistent_review_returns_404(
+        self, admin_client, db,
+    ):
+        r = admin_client.post(
+            REJECT_URL(999999), {'reason': 'SPAM'}, format='json',
+        )
+        assert r.status_code == 404
+        assert r.json()['codigo_error'] == 'REVIEW_NOT_FOUND'
+
+    def test_admin_queue_invalid_status_returns_400(
+        self, admin_client, db,
+    ):
+        r = admin_client.get(ADMIN_QUEUE_URL + '?status=INVALID_STATUS')
+        assert r.status_code == 400
+        assert r.json()['codigo_error'] == 'STATUS_INVALID'
+
+    def test_admin_queue_approved_status_returns_approved_only(
+        self, admin_client, user, prod_rev, order_user_with_product, db,
+    ):
+        """?status=APPROVED queue returns only approved reviews."""
+        Review.objects.create(
+            user=user, product=prod_rev, order=order_user_with_product,
+            rating=5, title='App', body='cuerpo',
+            status=Review.STATUS_APPROVED,
+        )
+        r = admin_client.get(ADMIN_QUEUE_URL + '?status=APPROVED')
+        assert r.status_code == 200
+        results = r.json()['results']
+        assert all(rev['status'] == 'APPROVED' for rev in results)
+
+    def test_reject_without_reason_returns_400(
+        self, admin_client, pending_review, db,
+    ):
+        """Omitting reason entirely must return REASON_INVALID."""
+        r = admin_client.post(REJECT_URL(pending_review.id), {}, format='json')
+        assert r.status_code == 400
+        assert r.json()['codigo_error'] == 'REASON_INVALID'
+
+    def test_helpful_vote_on_nonexistent_review_returns_404(
+        self, admin_auth_client, prod_rev, db,
+    ):
+        r = admin_auth_client.post(
+            HELPFUL_URL(prod_rev.id, 999999), {}, format='json',
+        )
+        assert r.status_code == 404
+        assert r.json()['codigo_error'] == 'REVIEW_NOT_FOUND'
