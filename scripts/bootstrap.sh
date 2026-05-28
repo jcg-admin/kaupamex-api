@@ -311,6 +311,41 @@ phase_seed() {
 }
 
 # =============================================================================
+phase_seed_catalog() {
+    log_header "Fase 5d/6 — Seed de catálogo E2E (opcional)"
+
+    local python="${PROJECT_ROOT}/.venv/bin/python3"
+    local manage="${PROJECT_ROOT}/practicayoruba/manage.py"
+    local env_file="${PROJECT_ROOT}/practicayoruba/.env"
+
+    if ! exists_file "$manage"; then
+        log_warn "  manage.py no encontrado — seed de catálogo omitido"
+        return 0
+    fi
+
+    if ! exists_file "$env_file"; then
+        log_warn "  .env no encontrado — seed de catálogo omitido"
+        return 0
+    fi
+
+    # SECRET_KEY requerida por Fernet (PaymentGateway.set_credentials).
+    # Sourcea el .env para que Django la encuentre en os.environ.
+    set -a
+    # shellcheck source=/dev/null
+    source "$env_file"
+    set +a
+
+    DJANGO_SETTINGS_MODULE=config.settings.development \
+    PYTHONPATH="${PROJECT_ROOT}/practicayoruba" \
+    "$python" "$manage" create_seed_catalog 2>&1 | tail -10 \
+        && log_success "  Seed de catálogo E2E completado" \
+        || {
+            log_warn "  create_seed_catalog falló — ejecutar manualmente:"
+            log_warn "    cd practicayoruba && python manage.py create_seed_catalog"
+        }
+}
+
+# =============================================================================
 phase_verify() {
     log_header "Fase 6/6 — Verificacion del entorno"
     bash "${SCRIPT_DIR}/provisioners/system/check_tools.sh" || \
@@ -345,6 +380,8 @@ main() {
     phase_migrations
     echo ""
     phase_seed
+    echo ""
+    phase_seed_catalog
     echo ""
     phase_verify
 
