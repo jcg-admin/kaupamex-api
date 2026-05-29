@@ -28,11 +28,11 @@ class Order(TimeStampedModel, SoftDeleteModel):
     STATUS_CANCELLED            = 'CANCELLED'
     STATUS_CANCELLED_BY_TIMEOUT = 'CANCELLED_TIMEOUT'
     STATUS_REFUNDED             = 'REFUNDED'
-    STATUS_PAGADA               = 'PAGADA'
+    STATUS_PAID                 = 'PAID'
     STATUSES = [
         (STATUS_PENDING,              'Pendiente de pago'),
         (STATUS_PROCESSING,           'Procesando pago'),
-        (STATUS_PAGADA,               'Pagada'),
+        (STATUS_PAID,                 'Pagado'),
         (STATUS_IN_PREPARATION,       'En preparación'),
         (STATUS_SHIPPED,              'Enviado'),
         (STATUS_DELIVERED,            'Entregado'),

@@ -32,7 +32,7 @@ def cancel_timeout_orders():
     count = 0
     for order_id in pending_ids:
         # H-TASKS-01: re-verificar bajo lock para evitar sobreescribir
-        # una orden que ya transitó a PAGADA (pago llegó después del query).
+        # una orden que ya transitó a PAID (pago llegó después del query).
         with transaction.atomic():
             order = (
                 Order.objects.select_for_update()

@@ -264,13 +264,13 @@ class TestCancelarOrden:
         assert Refund.objects.filter(payment=payment).exists()
 
     def test_cancelar_orden_pagada(self, auth_client, user, prod_ord, db):
-        """H-ORD-S01 regression: orden en estado PAGADA es cancelable por el comprador.
+        """H-ORD-S01 regression: orden en estado PAID es cancelable por el comprador.
 
-        PAGADA = pago confirmado por webhook pero aún no en preparación.
+        PAID = pago confirmado por webhook pero aún no en preparación.
         Debe incluirse en CANCELABLE_STATUSES para evitar que el comprador
         quede atrapado con una orden pagada que no puede cancelar.
         """
-        order = _create_full_order(user, prod_ord, status='PAGADA')
+        order = _create_full_order(user, prod_ord, status='PAID')
         res = auth_client.post(
             CANCEL_URL(order.order_number),
             {'reason': 'Cambié de opinión'},

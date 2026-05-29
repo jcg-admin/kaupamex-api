@@ -19,9 +19,9 @@ logger = logging.getLogger('apps')
 
 # ─── Estados que permiten cada operación ────────────────────────────────────
 # H-ORD-002: mapeo FR→modelo (PENDING_PAYMENT→PENDING, PAYMENT_CONFIRMED→PROCESSING)
-# H-ORD-S01: PAGADA debe incluirse — pago confirmado pero aún no en preparación.
-CANCELABLE_STATUSES = ['PENDING', 'PROCESSING', 'PAGADA']
-EDITABLE_STATUSES   = ['PENDING', 'PROCESSING', 'PAGADA', 'IN_PREPARATION']  # dirección y envío
+# H-ORD-S01: PAID debe incluirse — pago confirmado pero aún no en preparación.
+CANCELABLE_STATUSES = ['PENDING', 'PROCESSING', 'PAID']
+EDITABLE_STATUSES   = ['PENDING', 'PROCESSING', 'PAID', 'IN_PREPARATION']  # dirección y envío
 
 
 def cancel_order(order, reason: str = '', cancelled_by=None, cancelable_statuses=None):

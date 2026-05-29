@@ -161,8 +161,8 @@ class TestWebhookPayPalIdempotencyDenied:
         assert payment.status == 'APPROVED', (
             f'Primer webhook COMPLETED debio aprobar el pago; estado={payment.status}'
         )
-        assert order.status == 'PAGADA', (
-            f'Orden debio quedar PAGADA (DEC-BC-12); estado={order.status}'
+        assert order.status == 'PAID', (
+            f'Orden debio quedar PAID (DEC-BC-12); estado={order.status}'
         )
 
         denied_payload = {
@@ -191,7 +191,7 @@ class TestWebhookPayPalIdempotencyDenied:
         payment.refresh_from_db()
         order.refresh_from_db()
         assert payment.status == 'APPROVED', 'DENIED duplicado no debe revertir a FAILED'
-        assert order.status == 'PAGADA', 'Orden no debe regresar de PAGADA (DEC-BC-12)'
+        assert order.status == 'PAID', 'Orden no debe regresar de PAID (DEC-BC-12)'
 
 
 # ─── T-206 — MP replay attack: 10 envíos del mismo webhook ─────────────

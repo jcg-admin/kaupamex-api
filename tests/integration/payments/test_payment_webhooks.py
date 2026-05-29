@@ -77,7 +77,7 @@ class TestMercadoPagoWebhook:
     def test_webhook_pago_aprobado_actualiza_payment_y_orden(
         self, api_client, orden_processing_mp, mp_gateway_wh, db
     ):
-        """FR-PAY-03.02: pago aprobado → Payment=APPROVED, Order=PAGADA (DEC-BC-12)."""
+        """FR-PAY-03.02: pago aprobado → Payment=APPROVED, Order=PAID (DEC-BC-12)."""
         order, payment = orden_processing_mp
         ts         = '1715000000'
         request_id = 'REQ-TEST-123'
@@ -106,7 +106,7 @@ class TestMercadoPagoWebhook:
         payment.refresh_from_db()
         order.refresh_from_db()
         assert payment.status == 'APPROVED'
-        assert order.status == 'PAGADA'  # DEC-BC-12: aprobado → PAGADA
+        assert order.status == 'PAID'  # DEC-BC-12: aprobado → PAID
 
     def test_webhook_firma_invalida_retorna_401(
         self, api_client, orden_processing_mp, mp_gateway_wh, db
@@ -346,7 +346,7 @@ class TestPayPalWebhook:
     def test_webhook_paypal_capture_completed(
         self, api_client, orden_paypal_wh, db
     ):
-        """UC-PAY-04: PAYMENT.CAPTURE.COMPLETED → Payment=APPROVED, Order=PAGADA (DEC-BC-12)."""
+        """UC-PAY-04: PAYMENT.CAPTURE.COMPLETED → Payment=APPROVED, Order=PAID (DEC-BC-12)."""
         order, payment = orden_paypal_wh
 
         payload = {
@@ -378,7 +378,7 @@ class TestPayPalWebhook:
         payment.refresh_from_db()
         order.refresh_from_db()
         assert payment.status == 'APPROVED'
-        assert order.status == 'PAGADA'  # DEC-BC-12
+        assert order.status == 'PAID'  # DEC-BC-12
 
     def test_webhook_paypal_firma_invalida_retorna_401(
         self, api_client, db

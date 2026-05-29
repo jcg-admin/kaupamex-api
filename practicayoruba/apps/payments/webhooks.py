@@ -133,13 +133,13 @@ def _process_payment_approval(
             payment.amount = amount
         payment.save(update_fields=['status', 'amount', 'updated_at'])
 
-        # DEC-BC-12: Order → PAGADA cuando pago aprobado (confirma pago recibido).
+        # DEC-BC-12: Order → PAID cuando pago aprobado (confirma pago recibido).
         order = payment.order
         if order.status in (Order.STATUS_PENDING, Order.STATUS_PROCESSING):
-            order.status = Order.STATUS_PAGADA
+            order.status = Order.STATUS_PAID
             order.save(update_fields=['status', 'updated_at'])
             logger.info(
-                'Orden %s → PAGADA tras pago aprobado (%s)',
+                'Orden %s → PAID tras pago aprobado (%s)',
                 order.order_number, gateway,
             )
 

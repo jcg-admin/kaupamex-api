@@ -19,19 +19,19 @@ from apps.logistics.models import ShipmentGuide
 logger = logging.getLogger('apps')
 
 # H-ADM-002: Máquina de estados real (FRs usan nombres inexistentes)
-# H-ORD-S01: PAGADA añadida — pago confirmado, admin debe poder avanzar o cancelar.
+# H-ORD-S01: PAID añadida — pago confirmado, admin debe poder avanzar o cancelar.
 ALLOWED_TRANSITIONS = {
     'PENDING':        ['PROCESSING', 'CANCELLED'],
-    'PROCESSING':     ['PAGADA', 'IN_PREPARATION', 'CANCELLED'],
-    'PAGADA':         ['IN_PREPARATION', 'CANCELLED'],
+    'PROCESSING':     ['PAID', 'IN_PREPARATION', 'CANCELLED'],
+    'PAID':           ['IN_PREPARATION', 'CANCELLED'],
     'IN_PREPARATION': ['SHIPPED'],
     'SHIPPED':        ['DELIVERED'],
     # DELIVERED, CANCELLED, REFUNDED → terminales sin transiciones
 }
 
 # H-ADM-005: El admin puede cancelar más estados que el comprador
-# H-ORD-S01: PAGADA añadida — refund aplica igual que en PROCESSING.
-ADMIN_CANCELABLE_STATUSES = ['PENDING', 'PROCESSING', 'PAGADA', 'IN_PREPARATION']
+# H-ORD-S01: PAID included — refund applies same as PROCESSING.
+ADMIN_CANCELABLE_STATUSES = ['PENDING', 'PROCESSING', 'PAID', 'IN_PREPARATION']
 
 
 def transition_order_status(order, new_status: str, admin_user, notes: str = ''):
