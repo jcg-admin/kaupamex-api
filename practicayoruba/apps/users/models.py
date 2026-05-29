@@ -407,19 +407,22 @@ class BusinessEvent(TimeStampedModel):
     forensics. target_type + target_id en lugar de
     GenericForeignKey por simplicidad (DEC-CC-4).
     """
-    ACTION_ORDER_CREATED    = "ORDER_CREATED"
-    ACTION_ORDER_CANCELLED  = "ORDER_CANCELLED"
-    ACTION_RETURN_REQUESTED = "RETURN_REQUESTED"
-    ACTION_RETURN_RESOLVED  = "RETURN_RESOLVED"
+    ACTION_ORDER_CREATED          = "ORDER_CREATED"
+    ACTION_ORDER_CANCELLED        = "ORDER_CANCELLED"
+    ACTION_RETURN_REQUESTED       = "RETURN_REQUESTED"
+    ACTION_RETURN_RESOLVED        = "RETURN_RESOLVED"
+    ACTION_STOCK_ADJUSTED_TO_ZERO = "STOCK_ADJUSTED_TO_ZERO"
     ACTION_CHOICES = [
-        (ACTION_ORDER_CREATED,    "Order creada"),
-        (ACTION_ORDER_CANCELLED,  "Order cancelada"),
-        (ACTION_RETURN_REQUESTED, "Return solicitada"),
-        (ACTION_RETURN_RESOLVED,  "Return resuelta"),
+        (ACTION_ORDER_CREATED,          "Order creada"),
+        (ACTION_ORDER_CANCELLED,        "Order cancelada"),
+        (ACTION_RETURN_REQUESTED,       "Return solicitada"),
+        (ACTION_RETURN_RESOLVED,        "Return resuelta"),
+        (ACTION_STOCK_ADJUSTED_TO_ZERO, "Stock ajustado a cero"),
     ]
 
-    TARGET_ORDER  = "order"
-    TARGET_RETURN = "return"
+    TARGET_ORDER   = "order"
+    TARGET_RETURN  = "return"
+    TARGET_VARIANT = "variant"
 
     actor       = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True,

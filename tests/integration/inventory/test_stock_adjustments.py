@@ -12,11 +12,15 @@ from apps.catalogue.models import Category, Product
 from apps.chartsize.models import VariantType, VariantOption, ProductVariant
 from apps.inventory.models import StockMovement
 from apps.inventory.services import InventoryService, InsufficientStockError
+from apps.orders.models import Order, OrderItem
+from apps.users.models import BusinessEvent
 
 pytestmark = pytest.mark.integration
 
-INV_URL       = '/api/v1/admin/inventory/'
-IMPORT_URL    = '/api/v1/admin/inventory/import/'
+INV_URL          = '/api/v1/admin/inventory/'
+IMPORT_URL       = '/api/v1/admin/inventory/import/'
+ZERO_CHECK_URL   = '/api/v1/admin/inventory/variants/{pk}/zero-stock-check/'
+VARIANT_ADJ_URL  = '/api/v1/admin/inventory/variants/{pk}/adjust/'
 
 
 @pytest.fixture
@@ -446,3 +450,163 @@ class TestDecrementGuard:
         variant_s11.refresh_from_db()
         assert product_s11.stock == 10   # rollback del primer item
         assert variant_s11.stock == 2    # sin cambio
+
+
+# =============================================================================
+# UC-INV-04 EX-02 — Guard two-round para ajuste a cero (ADR-011)
+# =============================================================================
+
+class TestZeroStockGuard:
+    """
+    UC-INV-04 EX-02: two-round guard cuando stock de variante se ajusta a cero.
+    Round 1 detecta órdenes PENDING/PROCESSING (Group 1, daño real).
+    Round 2 escribe BusinessEvent (AC-06 / RNF-AUDIT-001) cuando new_quantity=0.
+    """
+
+    def _make_order_with_item(self, db, variant, order_status, quantity=1):
+        order = Order.objects.create(status=order_status)
+        OrderItem.objects.create(
+            order=order,
+            variant=variant,
+            product_name='Test',
+            sku=variant.product.sku,
+            unit_price=Decimal('100.00'),
+            quantity=quantity,
+            subtotal=Decimal('100.00') * quantity,
+        )
+        return order
+
+    # --- Round 1 ---
+
+    def test_round1_sin_ordenes_retorna_requires_confirmation_false(
+        self, admin_client, variant_s11, db
+    ):
+        res = admin_client.get(ZERO_CHECK_URL.format(pk=variant_s11.pk))
+        assert res.status_code == 200
+        data = res.json()
+        assert data['active_orders'] == []
+        assert data['requires_confirmation'] is False
+
+    def test_round1_orden_pending_retorna_requires_confirmation_true(
+        self, admin_client, variant_s11, db
+    ):
+        self._make_order_with_item(db, variant_s11, Order.STATUS_PENDING, quantity=2)
+        res = admin_client.get(ZERO_CHECK_URL.format(pk=variant_s11.pk))
+        assert res.status_code == 200
+        data = res.json()
+        assert len(data['active_orders']) == 1
+        assert data['active_orders'][0]['status'] == Order.STATUS_PENDING
+        assert data['active_orders'][0]['quantity'] == 2
+        assert data['requires_confirmation'] is True
+
+    def test_round1_orden_processing_retorna_requires_confirmation_true(
+        self, admin_client, variant_s11, db
+    ):
+        self._make_order_with_item(db, variant_s11, Order.STATUS_PROCESSING)
+        res = admin_client.get(ZERO_CHECK_URL.format(pk=variant_s11.pk))
+        assert res.status_code == 200
+        data = res.json()
+        assert len(data['active_orders']) == 1
+        assert data['requires_confirmation'] is True
+
+    def test_round1_ordenes_paid_excluidas_group2(
+        self, admin_client, variant_s11, db
+    ):
+        """PAID ya decrementó stock — no es Group 1, no activa el guard."""
+        self._make_order_with_item(db, variant_s11, Order.STATUS_PAID)
+        res = admin_client.get(ZERO_CHECK_URL.format(pk=variant_s11.pk))
+        assert res.status_code == 200
+        data = res.json()
+        assert data['active_orders'] == []
+        assert data['requires_confirmation'] is False
+
+    def test_round1_ordenes_shipped_excluidas_group2(
+        self, admin_client, variant_s11, db
+    ):
+        """SHIPPED ya decrementó stock — no es Group 1."""
+        self._make_order_with_item(db, variant_s11, Order.STATUS_SHIPPED)
+        res = admin_client.get(ZERO_CHECK_URL.format(pk=variant_s11.pk))
+        assert res.status_code == 200
+        data = res.json()
+        assert data['active_orders'] == []
+        assert data['requires_confirmation'] is False
+
+    def test_round1_variante_no_encontrada_retorna_404(
+        self, admin_client, db
+    ):
+        res = admin_client.get(ZERO_CHECK_URL.format(pk=99999))
+        assert res.status_code == 404
+        assert res.json()['codigo_error'] == 'VARIANT_NOT_FOUND'
+
+    def test_round1_sin_auth_retorna_401(self, api_client, variant_s11, db):
+        res = api_client.get(ZERO_CHECK_URL.format(pk=variant_s11.pk))
+        assert res.status_code == 401
+
+    # --- Round 2 ---
+
+    def test_round2_ajuste_a_cero_escribe_business_event(
+        self, admin_client, admin_user, variant_s11, db
+    ):
+        res = admin_client.post(
+            VARIANT_ADJ_URL.format(pk=variant_s11.pk),
+            {'new_quantity': 0, 'reason': 'PHYSICAL_COUNT'},
+            format='json',
+        )
+        assert res.status_code == 201
+        variant_s11.refresh_from_db()
+        assert variant_s11.stock == 0
+        ev = BusinessEvent.objects.filter(
+            action=BusinessEvent.ACTION_STOCK_ADJUSTED_TO_ZERO,
+            target_type=BusinessEvent.TARGET_VARIANT,
+            target_id=variant_s11.pk,
+        ).first()
+        assert ev is not None
+        assert ev.actor_id == admin_user.pk
+
+    def test_round2_ajuste_no_cero_no_escribe_business_event(
+        self, admin_client, variant_s11, db
+    ):
+        before = BusinessEvent.objects.filter(
+            action=BusinessEvent.ACTION_STOCK_ADJUSTED_TO_ZERO
+        ).count()
+        res = admin_client.post(
+            VARIANT_ADJ_URL.format(pk=variant_s11.pk),
+            {'new_quantity': 3, 'reason': 'PHYSICAL_COUNT'},
+            format='json',
+        )
+        assert res.status_code == 201
+        assert BusinessEvent.objects.filter(
+            action=BusinessEvent.ACTION_STOCK_ADJUSTED_TO_ZERO
+        ).count() == before
+
+    def test_round2_business_event_contiene_ordenes_en_riesgo(
+        self, admin_client, variant_s11, db
+    ):
+        """extra_json registra las órdenes en riesgo al momento del ajuste (AC-06)."""
+        self._make_order_with_item(db, variant_s11, Order.STATUS_PENDING, quantity=3)
+        res = admin_client.post(
+            VARIANT_ADJ_URL.format(pk=variant_s11.pk),
+            {'new_quantity': 0, 'reason': 'LOSS'},
+            format='json',
+        )
+        assert res.status_code == 201
+        ev = BusinessEvent.objects.filter(
+            action=BusinessEvent.ACTION_STOCK_ADJUSTED_TO_ZERO,
+            target_id=variant_s11.pk,
+        ).first()
+        assert ev is not None
+        assert len(ev.extra_json['orders_at_risk']) == 1
+        assert ev.extra_json['orders_at_risk'][0]['quantity'] == 3
+
+    def test_round2_happy_path_no_rompe_ajuste_existente(
+        self, admin_client, variant_s11, db
+    ):
+        """El happy path del ajuste (no a cero) sigue funcionando sin cambios."""
+        res = admin_client.post(
+            VARIANT_ADJ_URL.format(pk=variant_s11.pk),
+            {'new_quantity': 10, 'reason': 'PHYSICAL_COUNT'},
+            format='json',
+        )
+        assert res.status_code == 201
+        variant_s11.refresh_from_db()
+        assert variant_s11.stock == 10

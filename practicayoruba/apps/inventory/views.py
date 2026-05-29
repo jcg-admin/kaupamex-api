@@ -20,7 +20,9 @@ from rest_framework.views import APIView
 
 from apps.catalogue.models import Category, Product
 from apps.chartsize.models import ProductVariant
+from apps.orders.models import Order, OrderItem
 from apps.settings_app.models import SiteSettings
+from apps.users.models import BusinessEvent
 from .models import ImportJob, StockAlert, StockMovement
 from .serializers import (
     StockMovementSerializer, StockAlertSerializer, StockAdjustSerializer,
@@ -162,6 +164,30 @@ class VariantStockAdjustView(_AdminOnly, APIView):
                 reason=vdata['reason'], notes=notes_text,
                 reference=f'ADMIN:{request.user.pk}', created_by=request.user,
             )
+            if new_quantity == 0:
+                # AC-06 / RNF-AUDIT-001: capture at-risk orders in the same
+                # transaction so the audit record reflects the exact state
+                # at the moment stock was zeroed (ADR-011 round 2).
+                at_risk = list(
+                    OrderItem.objects
+                    .filter(variant_id=variant.pk, order__status__in=_AT_RISK_STATUSES)
+                    .select_related('order')
+                    .values('order_id', 'order__order_number', 'order__status', 'quantity')
+                )
+                BusinessEvent.objects.create(
+                    actor=request.user,
+                    action=BusinessEvent.ACTION_STOCK_ADJUSTED_TO_ZERO,
+                    target_type=BusinessEvent.TARGET_VARIANT,
+                    target_id=variant.pk,
+                    ip_addr=request.META.get('REMOTE_ADDR'),
+                    extra_json={
+                        'variant_id':    variant.pk,
+                        'product_id':    product.pk,
+                        'stock_before':  stock_before,
+                        'movement_id':   mov.pk,
+                        'orders_at_risk': at_risk,
+                    },
+                )
             return Response({'variant_id': variant.pk, 'previous_stock': stock_before,
                              'new_stock': new_quantity, 'delta': delta, 'movement_id': mov.pk}, status=201)
         else:
@@ -186,6 +212,47 @@ class VariantStockAdjustView(_AdminOnly, APIView):
             return Response({'detail': 'Stock ajustado.', 'new_stock': new_stock,
                              'stock_before': stock_before, 'delta': delta,
                              'reason': mov.reason, 'movement_id': mov.pk}, status=201)
+
+
+_AT_RISK_STATUSES = [Order.STATUS_PENDING, Order.STATUS_PROCESSING]
+
+
+class ZeroStockCheckView(_AdminOnly, APIView):
+    """
+    Round 1 del guard two-round (ADR-011 / UC-INV-04 EX-02).
+    Detecta órdenes PENDING/PROCESSING que referencian esta variante —
+    las únicas cuyo decremento futuro fallaría si stock llega a 0.
+    COSMIC: 1E + 1R(variant) + 1R(OrderItem) + 1X = 4 CFP.
+    """
+    @extend_schema(
+        summary='Guard check: órdenes en riesgo al ajustar variante a cero (UC-INV-04 EX-02 Round 1)',
+        tags=['inventory'],
+        responses={200: None, 404: None},
+    )
+    def get(self, request, variant_pk):
+        try:
+            variant = ProductVariant.objects.get(pk=variant_pk)
+        except ProductVariant.DoesNotExist:
+            raise NotFound({'detail': 'Variante no encontrada.', 'codigo_error': 'VARIANT_NOT_FOUND'})
+
+        risk_items = (
+            OrderItem.objects
+            .filter(variant_id=variant.pk, order__status__in=_AT_RISK_STATUSES)
+            .select_related('order')
+        )
+        active_orders = [
+            {
+                'order_id':     item.order_id,
+                'order_number': item.order.order_number,
+                'status':       item.order.status,
+                'quantity':     item.quantity,
+            }
+            for item in risk_items
+        ]
+        return Response({
+            'active_orders':          active_orders,
+            'requires_confirmation':  bool(active_orders),
+        })
 
 
 class VariantMovementsPagination(PageNumberPagination):
