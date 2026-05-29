@@ -116,3 +116,12 @@ FRONTEND_URL = config('FRONTEND_URL', default='https://practicayoruba.mx')
 # informativos y preserva solo advertencias y errores.
 LOGGING['loggers']['django']['level'] = 'WARNING'
 LOGGING['loggers']['apps']['level']   = 'WARNING'
+
+# --- Media (uploads de usuario) --------------------------------------------
+# base.py usa BASE_DIR/'media' (dentro del árbol del repo) — correcto en
+# dev/test. En producción los uploads de usuario deben vivir fuera del
+# árbol versionado: un git clean o re-clone no debe borrar fotos subidas.
+# RF-2 (alcance-agregar-fotos-reviews): acción de deploy requerida:
+#   sudo mkdir -p /srv/data/practicayoruba/media
+#   sudo chown www-data:www-data /srv/data/practicayoruba/media
+MEDIA_ROOT = Path('/srv/data/practicayoruba/media')
