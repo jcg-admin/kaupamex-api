@@ -273,6 +273,23 @@ class AttributeValue(TimeStampedModel):
     def __str__(self):
         return f'{self.axis.name}: {self.value}'
 
+    def would_create_cycle(self, new_parent) -> bool:
+        """
+        Returns True if assigning new_parent would create a cycle in the
+        value hierarchy. Used before setting self.parent to reject invalid
+        assignments (e.g. Yemayá → parent Mayelewo → parent Yemayá).
+        """
+        if new_parent is None:
+            return False
+        if new_parent.pk == self.pk:
+            return True
+        ancestor = new_parent
+        while ancestor.parent_id is not None:
+            if ancestor.parent_id == self.pk:
+                return True
+            ancestor = ancestor.parent
+        return False
+
 
 class ProductAttribute(models.Model):
     """Asociación Product ↔ AttributeValue. ADR-012 EJE 2."""
