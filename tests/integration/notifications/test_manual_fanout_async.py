@@ -30,8 +30,8 @@ def _create_buyers(n):
         sku='SKU-SYNC-FANOUT',
         price=Decimal('10.00'),
         stock=100,
-        category=category,
     )
+    product.categories.add(category)
     User = get_user_model()
     user_ids = []
     for i in range(n):

@@ -121,7 +121,8 @@ class CategorySerializer(serializers.ModelSerializer):
 
 class ProductListSerializer(serializers.ModelSerializer):
     cover_image_url  = serializers.SerializerMethodField()
-    category_name    = serializers.CharField(source='category.name', read_only=True)
+    # UC-CAT-13: M2M — return first category name for UI backwards compat.
+    category_name    = serializers.SerializerMethodField()
     sale_price       = serializers.SerializerMethodField()
     base_price       = serializers.DecimalField(source='price', max_digits=10, decimal_places=2, read_only=True)
     price_with_tax   = serializers.SerializerMethodField()
@@ -141,6 +142,14 @@ class ProductListSerializer(serializers.ModelSerializer):
             'availability', 'variants_available', 'discount',
             'stock',
         ]
+
+    def get_category_name(self, obj):
+        prefetched = getattr(obj, '_prefetched_objects_cache', {}).get('categories')
+        if prefetched is not None:
+            cats = list(prefetched)
+            return cats[0].name if cats else None
+        first = obj.categories.order_by('id').first()
+        return first.name if first else None
 
     def get_sale_price(self, obj):
         return _get_sale_price(obj)
@@ -202,7 +211,7 @@ class ProductListSerializer(serializers.ModelSerializer):
 
 class ProductDetailSerializer(serializers.ModelSerializer):
     images          = ProductImageSerializer(many=True, read_only=True)
-    category        = CategorySerializer(read_only=True)
+    categories      = CategorySerializer(many=True, read_only=True)
     sale_price      = serializers.SerializerMethodField()
     base_price      = serializers.DecimalField(source='price', max_digits=10, decimal_places=2, read_only=True)
     price_with_tax  = serializers.SerializerMethodField()
@@ -218,7 +227,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'slug', 'sku', 'description', 'short_description',
             'base_price', 'price_with_tax', 'sale_price',
-            'category', 'images', 'is_active', 'is_published', 'is_featured',
+            'categories', 'images', 'is_active', 'is_published', 'is_featured',
             'stock', 'availability', 'discount',
             'reviews_summary', 'questions_count', 'related_products',
             'variants',
@@ -255,12 +264,14 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         # order_by('?') triggers a full-table filesort on MariaDB — too slow on
         # large catalogs.  Instead, fetch a slightly larger deterministic pool
         # and shuffle at the application level (O(n) Python vs O(n log n) SQL).
+        # UC-CAT-13: filter by shared categories (any overlap) instead of single FK.
         pool = list(
             Product.objects
-            .filter(category=obj.category, is_active=True, is_published=True)
+            .filter(categories__in=obj.categories.all(), is_active=True, is_published=True)
             .exclude(pk=obj.pk)
-            .prefetch_related('images', 'discounts', 'variants')
-            .order_by('-id')[:20]
+            .prefetch_related('images', 'discounts', 'variants', 'categories')
+            .order_by('-id')
+            .distinct()[:20]
         )
         random.shuffle(pool)
         qs = pool[:4]
@@ -275,7 +286,8 @@ class ProductDetailSerializer(serializers.ModelSerializer):
 
 class ProductSearchSerializer(serializers.ModelSerializer):
     cover_image_url  = serializers.SerializerMethodField()
-    category_name    = serializers.CharField(source='category.name', read_only=True)
+    # UC-CAT-13: M2M — return first category name for UI backwards compat.
+    category_name    = serializers.SerializerMethodField()
     sale_price       = serializers.SerializerMethodField()
     base_price       = serializers.DecimalField(source='price', max_digits=10, decimal_places=2, read_only=True)
     price_with_tax   = serializers.SerializerMethodField()
@@ -291,6 +303,14 @@ class ProductSearchSerializer(serializers.ModelSerializer):
             'stock', 'availability', 'discount', 'highlighted_name',
             'is_featured',
         ]
+
+    def get_category_name(self, obj):
+        prefetched = getattr(obj, '_prefetched_objects_cache', {}).get('categories')
+        if prefetched is not None:
+            cats = list(prefetched)
+            return cats[0].name if cats else None
+        first = obj.categories.order_by('id').first()
+        return first.name if first else None
 
     def get_sale_price(self, obj):
         return _get_sale_price(obj)
@@ -347,9 +367,10 @@ class CategoryWithCountSerializer(serializers.ModelSerializer):
 
 class ProductAdminSerializer(serializers.ModelSerializer):
     images          = ProductImageSerializer(many=True, read_only=True)
-    category        = CategorySerializer(read_only=True)
-    category_id     = serializers.PrimaryKeyRelatedField(
-        source='category', queryset=Category.objects.all(), required=False, allow_null=True,
+    categories      = CategorySerializer(many=True, read_only=True)
+    # UC-CAT-13: write via category_ids (list of PKs); read via categories (list of objects).
+    category_ids    = serializers.PrimaryKeyRelatedField(
+        source='categories', many=True, queryset=Category.objects.all(), required=False,
     )
     sale_price      = serializers.SerializerMethodField()
     base_price      = serializers.DecimalField(
@@ -382,7 +403,7 @@ class ProductAdminSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'slug', 'sku', 'description', 'short_description',
             'base_price', 'price_with_tax', 'sale_price',
-            'category', 'category_id', 'images', 'is_active', 'is_published', 'is_featured',
+            'categories', 'category_ids', 'images', 'is_active', 'is_published', 'is_featured',
             'stock', 'status', 'discount', 'related_products',
             'created_at', 'updated_at',
         ]

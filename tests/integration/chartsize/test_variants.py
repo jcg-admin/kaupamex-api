@@ -24,12 +24,14 @@ def cat_soperas(db):
 
 @pytest.fixture
 def product_s9(db, cat_soperas):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Sopera Yemaya S9', slug='sopera-s9', sku='S9-YEM-001',
-        description='Sopera sagrada', category=cat_soperas,
+        description='Sopera sagrada',
         price=Decimal('2500.00'), stock=0,
         is_active=True, is_published=True,
     )
+    _p.categories.add(cat_soperas)
+    return _p
 
 
 @pytest.fixture

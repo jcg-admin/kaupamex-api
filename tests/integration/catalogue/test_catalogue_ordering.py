@@ -26,21 +26,27 @@ def products(db, cat):
     p1 = Product.objects.create(
         name='Ache', slug='ache', sku='ACHE-001',
         description='d', short_description='d',
-        category=cat, price=Decimal('100.00'), stock=5,
+        price=Decimal('100.00'), stock=5,
         is_active=True, is_published=True,
     )
+    p1.categories.add(cat)
+    p1.categories.add(cat)
     p2 = Product.objects.create(
         name='Bata', slug='bata', sku='BATA-002',
         description='d', short_description='d',
-        category=cat, price=Decimal('300.00'), stock=3,
+        price=Decimal('300.00'), stock=3,
         is_active=True, is_published=True,
     )
+    p2.categories.add(cat)
+    p2.categories.add(cat)
     p3 = Product.objects.create(
         name='Clave', slug='clave', sku='CLAV-003',
         description='d', short_description='d',
-        category=cat, price=Decimal('200.00'), stock=2,
+        price=Decimal('200.00'), stock=2,
         is_active=True, is_published=True,
     )
+    p3.categories.add(cat)
+    p3.categories.add(cat)
     # auto_now_add bypassed via update() for deterministic date ordering
     Product.objects.filter(pk=p1.pk).update(created_at=now - timedelta(days=2))
     Product.objects.filter(pk=p2.pk).update(created_at=now - timedelta(days=1))

@@ -33,12 +33,14 @@ def cat_ord(db):
 
 @pytest.fixture
 def prod_ord(db, cat_ord):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Collar Yoruba Test', slug='collar-yoruba-test', sku='ORD-CY-001',
-        description='', category=cat_ord,
+        description='',
         price=Decimal('1500.00'), stock=10,
         is_active=True, is_published=True,
     )
+    _p.categories.add(cat_ord)
+    return _p
 
 
 def _create_full_order(user, prod, status='PENDING', n_items=1):

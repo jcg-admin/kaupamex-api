@@ -137,9 +137,11 @@ class TestStockMovementProxies:
         cat = Category.objects.create(name='CP', slug='cp', is_active=True)
         p = Product.objects.create(
             name='PP', slug='pp', sku='PP-001', description='',
-            category=cat, price=Decimal('100'), stock=10,
+            price=Decimal('100'), stock=10,
             is_active=True, is_published=True,
         )
+        p.categories.add(cat)
+        p.categories.add(cat)
         StockMovement.objects.create(
             product=p, delta=-2, stock_after=8,
             movement_type=StockMovement.TYPE_SALE,

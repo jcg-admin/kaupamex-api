@@ -20,16 +20,17 @@ def category(db):
 def products(db, category):
     prods = []
     for i in range(5):
-        prods.append(Product.objects.create(
+        _p = Product.objects.create(
             name=f'Collar Oshun {i}',
             slug=f'collar-oshun-{i}',
             sku=f'COLLAR-{i:03}',
             description='Collar sagrado',
-            category=category,
             price=Decimal('1250.00'),
             is_active=True,
             is_published=True,
-        ))
+        )
+        _p.categories.add(category)
+        prods.append(_p)
     return prods
 
 
@@ -48,7 +49,7 @@ class TestCatalogueList:
     def test_catalogo_solo_muestra_activos_y_publicados(self, api_client, products, category, db):
         Product.objects.create(
             name='Inactivo', slug='inactivo', sku='INACT-001',
-            description='', category=category,
+            description='',
             price=Decimal('100.00'), is_active=False, is_published=True,
         )
         r = api_client.get(CATALOGUE_URL)
@@ -71,10 +72,10 @@ class TestCatalogueList:
 
     def test_ordenamiento_por_precio_ascendente(self, api_client, category, db):
         Product.objects.create(name='Barato', slug='barato', sku='BAR-001',
-                               description='', category=category,
+                               description='',
                                price=Decimal('100.00'), is_active=True, is_published=True)
         Product.objects.create(name='Caro', slug='caro', sku='CAR-001',
-                               description='', category=category,
+                               description='',
                                price=Decimal('9000.00'), is_active=True, is_published=True)
         r = api_client.get(CATALOGUE_URL, {'ordering': 'price'})
         prices = [p['base_price'] for p in r.json()['results']]
@@ -83,9 +84,10 @@ class TestCatalogueList:
     def test_producto_inactivo_no_aparece(self, api_client, category, db):
         p = Product.objects.create(
             name='Borrador', slug='borrador', sku='BOR-001',
-            description='', category=category,
+            description='',
             price=Decimal('500.00'), is_active=False, is_published=True,
         )
+        p.categories.add(category)
         r = api_client.get(CATALOGUE_URL)
         slugs = [item['slug'] for item in r.json()['results']]
         assert 'borrador' not in slugs

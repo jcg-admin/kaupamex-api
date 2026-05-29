@@ -416,11 +416,12 @@ def _process_import_csv(file_obj, initial_state: str, admin_user) -> dict:
     if not error_report:
         with transaction.atomic():
             for _i, name, sku, price, category in to_create:
-                Product.objects.create(
+                _p = Product.objects.create(
                     name=name, slug=sku.lower().replace(' ', '-'), sku=sku,
-                    description='', price=price, category=category,
+                    description='', price=price,
                     is_active=is_active, is_published=is_published,
                 )
+                _p.categories.add(category)
 
     return {'created': created if not error_report else 0,
             'failed': failed, 'products_created': created if not error_report else 0,

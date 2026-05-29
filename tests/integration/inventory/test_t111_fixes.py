@@ -25,22 +25,26 @@ def cat(db):
 
 @pytest.fixture
 def active_product(db, cat):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Prod Activo', slug='prod-activo-t111', sku='T111-ACT',
-        description='', category=cat,
+        description='',
         price=Decimal('100.00'), stock=20,
         is_active=True, is_published=True,
     )
+    _p.categories.add(cat)
+    return _p
 
 
 @pytest.fixture
 def inactive_product(db, cat):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Prod DESCONTINUADO', slug='prod-desc-t111', sku='T111-DESC',
-        description='', category=cat,
+        description='',
         price=Decimal('100.00'), stock=5,
         is_active=False, is_published=False,
     )
+    _p.categories.add(cat)
+    return _p
 
 
 @pytest.fixture

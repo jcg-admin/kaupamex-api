@@ -27,12 +27,14 @@ def cat_pp(db):
 
 @pytest.fixture
 def prod_pp(db, cat_pp):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Collar Yoruba', slug='collar-yoruba', sku='PP-CY-001',
-        description='', category=cat_pp,
+        description='',
         price=Decimal('800.00'), stock=5,
         is_active=True, is_published=True,
     )
+    _p.categories.add(cat_pp)
+    return _p
 
 
 @pytest.fixture

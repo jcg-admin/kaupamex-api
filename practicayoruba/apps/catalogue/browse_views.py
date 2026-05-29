@@ -60,17 +60,19 @@ class RelatedProductsView(APIView):
 
         related = (
             Product.objects.filter(
-                category=product.category,
+                categories__in=product.categories.all(),
                 is_active=True, is_published=True,
             )
             .exclude(pk=product.pk)
-            .select_related('category')
-            .order_by('-is_featured', '-created_at')[:8]
+            .prefetch_related('categories', 'images', 'discounts', 'variants')
+            .order_by('-is_featured', '-created_at')
+            .distinct()[:8]
         )
         data = ProductListSerializer(related, many=True).data
+        first_cat = product.categories.order_by('id').first()
         return Response({
             'product_id': product.id,
-            'category_id': product.category_id,
+            'category_id': first_cat.pk if first_cat else None,
             'results': data,
         })
 
@@ -124,20 +126,20 @@ class CatalogueSearchView(APIView):
 
         qs = Product.objects.filter(
             is_active=True, is_published=True,
-        ).select_related('category')
+        ).prefetch_related('categories', 'images', 'discounts', 'variants')
         qs = _fulltext_search(qs, q)
 
         category_slug = request.query_params.get('category')
         if category_slug:
             try:
                 cat_id = int(category_slug)
-                qs = qs.filter(category_id=cat_id)
+                qs = qs.filter(categories__id=cat_id).distinct()
             except (TypeError, ValueError):
                 pks = _get_category_descendants(category_slug)
                 if not pks:
                     qs = qs.none()
                 else:
-                    qs = qs.filter(category_id__in=pks)
+                    qs = qs.filter(categories__in=pks).distinct()
 
         for key in ('price_min', 'price_max'):
             raw = request.query_params.get(key)

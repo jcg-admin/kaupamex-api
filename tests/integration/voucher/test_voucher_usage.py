@@ -58,12 +58,14 @@ def cat_vou(db):
 
 @pytest.fixture
 def product_vou(db, cat_vou):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Producto Voucher', slug='prod-vou', sku='VOU-001',
-        description='', category=cat_vou,
+        description='',
         price=Decimal('200.00'), stock=10,
         is_active=True, is_published=True,
     )
+    _p.categories.add(cat_vou)
+    return _p
 
 
 class TestVoucherAlreadyApplied:

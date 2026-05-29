@@ -33,10 +33,11 @@ def orden_processing_mp(db, user, cat_wh):
 
     prod = Product.objects.create(
         name='Pulso Orula', slug='pulso-orula', sku='WH-PO-001',
-        description='', category=cat_wh,
+        description='',
         price=Decimal('600.00'), stock=10,
         is_active=True, is_published=True,
     )
+    prod.categories.add(cat_wh)
     order = Order.objects.create(user=user, status='PENDING')
     OrderItem.objects.create(
         order=order, product_name=prod.name, sku=prod.sku,
@@ -319,10 +320,11 @@ class TestPayPalWebhook:
 
         prod = Product.objects.create(
             name='Azabache', slug='azabache-wh', sku='WH-AZ-001',
-            description='', category=cat_wh,
+            description='',
             price=Decimal('400.00'), stock=5,
             is_active=True, is_published=True,
         )
+        prod.categories.add(cat_wh)
         order = Order.objects.create(user=user, status='PENDING')
         OrderItem.objects.create(
             order=order, product_name=prod.name, sku=prod.sku,

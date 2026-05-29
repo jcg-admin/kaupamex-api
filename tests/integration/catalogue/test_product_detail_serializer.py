@@ -28,19 +28,20 @@ def cat(db):
 
 @pytest.fixture
 def product(db, cat):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Elekes Shango',
         slug='elekes-shango',
         sku='SHANGO-ELK',
         description='Elekes tradicionales de Shango.',
         short_description='Elekes Shango.',
-        category=cat,
         price=Decimal('950.00'),
         stock=8,
         is_active=True,
         is_published=True,
         is_featured=True,
     )
+    _p.categories.add(cat)
+    return _p
 
 
 @pytest.fixture

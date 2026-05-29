@@ -27,11 +27,13 @@ def cat_rev(db):
 
 @pytest.fixture
 def prod_rev(db, cat_rev):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Producto Rev', slug='producto-rev', sku='REV-001',
-        category=cat_rev, price=Decimal('100'), stock=10,
+        price=Decimal('100'), stock=10,
         is_active=True, is_published=True,
     )
+    _p.categories.add(cat_rev)
+    return _p
 
 
 @pytest.fixture
@@ -483,9 +485,11 @@ class TestCreateReviewEdgeCases:
         """Order is delivered but the reviewed product was not in it."""
         other_prod = Product.objects.create(
             name='Otro Prod', slug='otro-prod-p21', sku='REV-OTHER-01',
-            category=cat_rev, price=Decimal('50'), stock=5,
+            price=Decimal('50'), stock=5,
             is_active=True, is_published=True,
         )
+        other_prod.categories.add(cat_rev)
+        other_prod.categories.add(cat_rev)
         o = Order.objects.create(user=user, status='DELIVERED')
         # order only contains other_prod, not prod_rev
         OrderItem.objects.create(

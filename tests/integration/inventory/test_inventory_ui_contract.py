@@ -41,12 +41,14 @@ def cat_ui(db):
 
 @pytest.fixture
 def product_ui(db, cat_ui):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Prod UI', slug='prod-ui', sku='UI-001',
-        description='', category=cat_ui,
+        description='',
         price=Decimal('500.00'), stock=10,
         is_active=True, is_published=True,
     )
+    _p.categories.add(cat_ui)
+    return _p
 
 
 @pytest.fixture

@@ -157,14 +157,13 @@ class CatalogueListView(ListAPIView):
         # API-1/API-2: prefetch discounts y variants para evitar N+1 en
         # _get_active_discount y get_variants_available.
         qs = (Product.objects.filter(is_active=True, is_published=True)
-              .select_related('category')
-              .prefetch_related('images', 'discounts', 'variants'))
+              .prefetch_related('categories', 'images', 'discounts', 'variants'))
         category_slug = self.request.query_params.get('category')
         if category_slug:
             pks = _get_category_descendants(category_slug)
             if not pks:
                 return Product.objects.none()
-            qs = qs.filter(category_id__in=pks)
+            qs = qs.filter(categories__in=pks).distinct()
         price_min = self.request.query_params.get('price_min')
         if price_min:
             try:
@@ -238,8 +237,7 @@ class ProductDetailView(RetrieveAPIView):
         return (
             Product.objects
             .filter(is_active=True, is_published=True)
-            .select_related('category')
-            .prefetch_related('images')
+            .prefetch_related('categories', 'images')
         )
 
     @extend_schema(summary='Ver detalle de producto', responses={200: ProductDetailSerializer, 404: None}, tags=['catalogue'])
@@ -266,15 +264,14 @@ class ProductSearchView(ListAPIView):
         # API-1/API-2: prefetch discounts y variants para evitar N+1 en
         # _get_active_discount y get_variants_available.
         qs = (Product.objects.filter(is_active=True, is_published=True)
-              .select_related('category')
-              .prefetch_related('images', 'discounts', 'variants'))
+              .prefetch_related('categories', 'images', 'discounts', 'variants'))
         qs = _fulltext_search(qs, q)
         if request.query_params.get('category'):
             try:
                 category_pk = int(request.query_params['category'])
             except (ValueError, TypeError):
                 raise ValidationError({'category': 'El ID de categoría debe ser un entero.'})
-            qs = qs.filter(category_id=category_pk)
+            qs = qs.filter(categories__id=category_pk).distinct()
         price_min = request.query_params.get('price_min')
         if price_min:
             try:
@@ -408,7 +405,7 @@ class CategoryAdminViewSet(ModelViewSet):
             locked = Category.objects.select_for_update().get(pk=instance.pk)
             all_desc_ids = locked.get_descendants_ids()
             if Product.objects.filter(
-                category_id__in=all_desc_ids, is_active=True
+                categories__in=all_desc_ids, is_active=True
             ).exists():
                 raise ValidationError({
                     'detail': (
@@ -457,7 +454,7 @@ class CategoryAdminViewSet(ModelViewSet):
 def _build_category_tree_with_counts():
     direct_counts = dict(
         Product.objects.filter(is_active=True, is_published=True)
-        .values('category_id').annotate(n=Count('id')).values_list('category_id', 'n')
+        .values('categories').annotate(n=Count('id')).values_list('categories', 'n')
     )
     all_cats = list(Category.objects.filter(is_active=True).order_by('name'))
     cat_map = {c.pk: c for c in all_cats}
@@ -561,7 +558,7 @@ class ProductAdminViewSet(ProductDeactivateAction, ModelViewSet):
     # ProductAdminSerializer, que expone el campo `images` (many=True).
     # API-1/API-2: prefetch discounts y variants para evitar N+1 en
     # _get_active_discount y get_variants_available.
-    queryset           = Product.objects.select_related('category').prefetch_related('images', 'discounts', 'variants').order_by('-created_at')
+    queryset           = Product.objects.prefetch_related('categories', 'images', 'discounts', 'variants').order_by('-created_at')
     http_method_names  = ['get', 'post', 'patch', 'delete', 'head', 'options']
     # H-CICLO38-02: CatalogueListView (buyer) usa CataloguePagination
     # (page_size=20). Sin pagination_class, ProductAdminViewSet devuelve
@@ -598,15 +595,14 @@ class ProductAdminViewSet(ProductDeactivateAction, ModelViewSet):
 
     def perform_update(self, serializer):
         old_price = serializer.instance.price
-        old_category_pk = serializer.instance.category_id
         updated = serializer.save()
-        if updated.category_id != old_category_pk:
-            cache.delete(CATEGORY_TREE_CACHE_KEY)
         if updated.price != old_price:
             ProductPriceHistory.objects.create(
                 product=updated, old_price=old_price, new_price=updated.price,
                 source=ProductPriceHistory.MANUAL, changed_by=self.request.user,
             )
+        if 'categories' in serializer.validated_data:
+            cache.delete(CATEGORY_TREE_CACHE_KEY)
 
     def perform_destroy(self, instance):
         from django.db import transaction as _tx
@@ -708,7 +704,7 @@ class ProductPriceSyncView(APIView):
     def _apply_percentage(self, pct, category_id=None, price_min=None, price_max=None):
         qs = Product.objects.filter(is_active=True).only('id', 'sku', 'price', 'name')
         if category_id:
-            qs = qs.filter(category_id=category_id)
+            qs = qs.filter(categories__id=category_id).distinct()
         if price_min:
             qs = qs.filter(price__gte=price_min)
         if price_max:

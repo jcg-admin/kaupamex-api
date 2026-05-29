@@ -97,7 +97,8 @@ class WishlistItemSerializer(ModelSerializer):
         return url
 
     def get_category_name(self, obj):
-        return getattr(obj.product.category, 'name', None)
+        first = obj.product.categories.order_by('id').first()
+        return first.name if first else None
 
     def get_orisha_name(self, obj):
         # El modelo Product no tiene campo orisha; se retorna None para
@@ -123,8 +124,8 @@ class WishlistView(APIView):
     def get(self, request):
         qs = (WishlistItem.objects
               .filter(user=request.user)
-              .select_related('product', 'product__category', 'variant__option')
-              .prefetch_related('product__images'))
+              .select_related('product', 'variant__option')
+              .prefetch_related('product__categories', 'product__images'))
 
         avail_filter = request.query_params.get('availability')
         if avail_filter:

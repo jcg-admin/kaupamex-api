@@ -26,22 +26,26 @@ def cat(db):
 
 @pytest.fixture
 def product_a(db, cat):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Producto A', slug='producto-a-t109', sku='T109-A',
-        description='', category=cat,
+        description='',
         price=Decimal('100.00'), stock=5,
         is_active=True, is_published=True,
     )
+    _p.categories.add(cat)
+    return _p
 
 
 @pytest.fixture
 def product_b(db, cat):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Producto B', slug='producto-b-t109', sku='T109-B',
-        description='', category=cat,
+        description='',
         price=Decimal('200.00'), stock=3,
         is_active=True, is_published=True,
     )
+    _p.categories.add(cat)
+    return _p
 
 
 # =============================================================================

@@ -15,6 +15,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils import timezone
 from apps.core.models import SoftDeleteModel, TimeStampedModel
+from apps.catalogue.utils import category_upload_path, product_image_upload_path
 
 
 
@@ -28,7 +29,7 @@ class Category(TimeStampedModel):
         'self', null=True, blank=True,
         on_delete=models.SET_NULL, related_name='children',
     )
-    image       = models.ImageField(upload_to='categories/', null=True, blank=True)
+    image       = models.ImageField(upload_to=category_upload_path, null=True, blank=True)
     is_active   = models.BooleanField(default=True, db_index=True)
 
     class Meta:
@@ -84,8 +85,8 @@ class Product(TimeStampedModel, SoftDeleteModel):
     sku               = models.CharField(max_length=50, unique=True, db_index=True)
     description       = models.TextField(blank=True, default='')
     short_description = models.TextField(max_length=300, blank=True, default='')
-    category          = models.ForeignKey(
-        Category, on_delete=models.PROTECT, related_name='products',
+    categories        = models.ManyToManyField(
+        Category, related_name='products', blank=False,
     )
     price             = models.DecimalField(max_digits=10, decimal_places=2)
     stock             = models.IntegerField(default=0, validators=[MinValueValidator(0)])
@@ -236,7 +237,7 @@ class ProductDiscount(TimeStampedModel, SoftDeleteModel):
 class ProductImage(TimeStampedModel):
     """Imagen asociada a un producto. UC-CAT-09."""
     product  = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
-    image    = models.ImageField(upload_to='products/images/')
+    image    = models.ImageField(upload_to=product_image_upload_path)
     alt_text = models.CharField(max_length=200, blank=True, default='')
     order    = models.PositiveSmallIntegerField(default=0)
     is_cover = models.BooleanField(default=False)

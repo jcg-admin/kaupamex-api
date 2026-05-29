@@ -36,66 +36,70 @@ def cat_pulseras(db):
 
 @pytest.fixture
 def product_oshun(db, cat_collares):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Collar Oshun dorado',
         slug='collar-oshun-dorado',
         sku='OSHUN-001',
         description='Collar sagrado de Oshun para atraer el amor y la prosperidad.',
         short_description='Collar de Oshun dorado.',
-        category=cat_collares,
         price=Decimal('1250.00'),
         stock=10,
         is_active=True,
         is_published=True,
     )
+    _p.categories.add(cat_collares)
+    return _p
 
 
 @pytest.fixture
 def product_yemaya(db, cat_pulseras):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Pulsera Yemaya azul',
         slug='pulsera-yemaya-azul',
         sku='YEMAYA-001',
         description='Pulsera de Yemaya para la proteccion del hogar.',
         short_description='Pulsera de Yemaya.',
-        category=cat_pulseras,
         price=Decimal('450.00'),
         stock=5,
         is_active=True,
         is_published=True,
     )
+    _p.categories.add(cat_pulseras)
+    return _p
 
 
 @pytest.fixture
 def product_sin_stock(db, cat_collares):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Collar Shango rojo',
         slug='collar-shango-rojo',
         sku='SHANGO-001',
         description='Collar de Shango.',
         short_description='Collar de Shango.',
-        category=cat_collares,
         price=Decimal('980.00'),
         stock=0,
         is_active=True,
         is_published=True,
     )
+    _p.categories.add(cat_collares)
+    return _p
 
 
 @pytest.fixture
 def product_inactivo(db, cat_collares):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Collar inactivo',
         slug='collar-inactivo',
         sku='INACTIVO-001',
         description='Producto inactivo.',
         short_description='.',
-        category=cat_collares,
         price=Decimal('100.00'),
         stock=5,
         is_active=False,
         is_published=True,
     )
+    _p.categories.add(cat_collares)
+    return _p
 
 
 # =============================================================================
@@ -116,7 +120,7 @@ class TestProductoDetalle:
             'description', 'short_description',
             'base_price', 'price_with_tax',
             'stock', 'availability',
-            'category', 'images', 'discount',
+            'categories', 'images', 'discount',
         ]:
             assert campo in data, f'Falta campo: {campo}'
 
@@ -130,13 +134,14 @@ class TestProductoDetalle:
         data = r.json()
         assert float(data['price_with_tax']) > float(data['base_price'])
 
-    def test_detalle_retorna_categoria_como_objeto(self, api_client, product_oshun):
+    def test_detalle_retorna_categorias_como_lista(self, api_client, product_oshun):
         r = api_client.get(f'{CATALOGUE_URL}{product_oshun.slug}/')
         data = r.json()
-        assert isinstance(data['category'], dict)
-        assert 'id' in data['category']
-        assert 'name' in data['category']
-        assert 'slug' in data['category']
+        assert isinstance(data['categories'], list)
+        assert len(data['categories']) >= 1
+        assert 'id' in data['categories'][0]
+        assert 'name' in data['categories'][0]
+        assert 'slug' in data['categories'][0]
 
     def test_detalle_availability_con_stock_es_IN_STOCK(self, api_client, product_oshun):
         r = api_client.get(f'{CATALOGUE_URL}{product_oshun.slug}/')

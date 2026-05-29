@@ -27,12 +27,14 @@ def cat_adm(db):
 
 @pytest.fixture
 def prod_adm(db, cat_adm):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Elekes Admin', slug='elekes-admin', sku='ADM-001',
-        description='', category=cat_adm,
+        description='',
         price=Decimal('900.00'), stock=10,
         is_active=True, is_published=True,
     )
+    _p.categories.add(cat_adm)
+    return _p
 
 
 def _make_order(user, prod, status='PENDING'):

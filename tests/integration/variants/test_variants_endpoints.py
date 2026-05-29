@@ -34,12 +34,14 @@ def cat_v(db):
 
 @pytest.fixture
 def product_v(db, cat_v):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Yemaya Sopera', slug='yemaya-sopera-v', sku='V-YEM-001',
-        description='Orisha sopera', category=cat_v,
+        description='Orisha sopera',
         price=Decimal('2000.00'), stock=0,
         is_active=True, is_published=True,
     )
+    _p.categories.add(cat_v)
+    return _p
 
 
 @pytest.fixture

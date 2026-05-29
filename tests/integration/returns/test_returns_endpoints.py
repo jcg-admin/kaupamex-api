@@ -47,20 +47,24 @@ def category(db):
 
 @pytest.fixture
 def prod1(db, category):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='ProdRet1', slug='prod-ret-1', sku='RET-001',
-        description='', category=category,
+        description='',
         price=Decimal('100.00'), stock=10, is_active=True, is_published=True,
     )
+    _p.categories.add(category)
+    return _p
 
 
 @pytest.fixture
 def prod2(db, category):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='ProdRet2', slug='prod-ret-2', sku='RET-002',
-        description='', category=category,
+        description='',
         price=Decimal('200.00'), stock=5, is_active=True, is_published=True,
     )
+    _p.categories.add(category)
+    return _p
 
 
 @pytest.fixture

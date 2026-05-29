@@ -166,11 +166,12 @@ class Command(BaseCommand):
                 'short_description': nombre[:300],
                 'price': precio,
                 'stock': 1,
-                'category': category,
                 'is_active': True,
                 'is_published': True,
             },
         )
+        # UC-CAT-13: M2M — assign category after save (can't pass to create()).
+        product.categories.add(category)
         if created:
             stats['prod_created'] += 1
         else:

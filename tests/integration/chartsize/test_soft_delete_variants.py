@@ -21,10 +21,12 @@ pytestmark = pytest.mark.integration
 def variant_chain(db):
     cat = Category.objects.create(name='Cat CHT', slug='cat-cht')
     product = Product.objects.create(
-        category=cat, name='Variant Prod', slug='variant-prod',
+        name='Variant Prod', slug='variant-prod',
         sku='VAR-001', price=Decimal('50.00'), stock=10,
         is_active=True, is_published=True,
     )
+    product.categories.add(cat)
+    product.categories.add(cat)
     vt = VariantType.objects.create(product=product, name='Tamaño', is_active=True)
     vo = VariantOption.objects.create(variant_type=vt, label='Grande', is_active=True)
     pv = ProductVariant.objects.create(

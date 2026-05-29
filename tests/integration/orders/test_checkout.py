@@ -41,12 +41,14 @@ def cat_ord(db):
 
 @pytest.fixture
 def prod_ord(db, cat_ord):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Prod Ord', slug='prod-ord', sku='ORD-001',
-        description='', category=cat_ord,
+        description='',
         price=Decimal('500.00'), stock=10,
         is_active=True, is_published=True,
     )
+    _p.categories.add(cat_ord)
+    return _p
 
 
 @pytest.fixture
@@ -266,9 +268,12 @@ class TestCheckoutP95SLO:
         for i in range(5):
             p = Product.objects.create(
                 name=f'SLO Prod {i}', slug=f'slo-prod-{i}', sku=f'SLO-{i:03d}',
-                category=prod_ord.category, price=Decimal('100.00'), stock=5,
+                price=Decimal('100.00'), stock=5,
                 is_active=True, is_published=True,
             )
+            _cat = prod_ord.categories.first()
+            if _cat:
+                p.categories.add(_cat)
             auth_client.post(
                 ITEMS_URL, {'product_id': p.pk, 'quantity': 1}, format='json',
             )

@@ -20,18 +20,20 @@ def cat(db):
 
 @pytest.fixture
 def products(db, cat):
-    Product.objects.create(
+    _p1 = Product.objects.create(
         name='Prod A', slug='prod-a', sku='PA-001',
         description='d', short_description='d',
-        category=cat, price=Decimal('50.00'), stock=5,
+        price=Decimal('50.00'), stock=5,
         is_active=True, is_published=True,
     )
-    Product.objects.create(
+    _p1.categories.add(cat)
+    _p2 = Product.objects.create(
         name='Prod B', slug='prod-b', sku='PB-002',
         description='d', short_description='d',
-        category=cat, price=Decimal('200.00'), stock=0,
+        price=Decimal('200.00'), stock=0,
         is_active=True, is_published=True,
     )
+    _p2.categories.add(cat)
 
 
 class TestCatalogueActiveFilters:

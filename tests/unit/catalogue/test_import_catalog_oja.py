@@ -218,13 +218,13 @@ class TestImportCatalogOjaProduct:
         call_command('import_catalog_oja', catalog_dir=str(catalog_dir))
 
         product = Product.objects.get(slug='collar-azul')
-        assert product.category.slug == 'collares-y-pulseras'
+        assert product.categories.first().slug == 'collares-y-pulseras'
 
     def test_producto_enseres_asignado_a_ingredientes_rituales(self, db, catalog_dir):
         call_command('import_catalog_oja', catalog_dir=str(catalog_dir))
 
         product = Product.objects.get(slug='aceite-oya')
-        assert product.category.slug == 'ingredientes-rituales'
+        assert product.categories.first().slug == 'ingredientes-rituales'
 
     def test_producto_idempotente(self, db, catalog_dir):
         call_command('import_catalog_oja', catalog_dir=str(catalog_dir))

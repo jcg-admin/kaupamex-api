@@ -40,12 +40,14 @@ def cat_s13(db):
 
 @pytest.fixture
 def product_s13(db, cat_s13):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Prod S13', slug='prod-s13', sku='S13-001',
-        description='', category=cat_s13,
+        description='',
         price=Decimal('1000.00'), stock=10,
         is_active=True, is_published=True,
     )
+    _p.categories.add(cat_s13)
+    return _p
 
 
 @pytest.fixture

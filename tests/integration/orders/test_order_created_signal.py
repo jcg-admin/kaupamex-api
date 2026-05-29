@@ -27,12 +27,14 @@ def cat_sig(db):
 
 @pytest.fixture
 def prod_sig(db, cat_sig):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Prod Sig', slug='prod-sig', sku='SIG-001',
-        description='', category=cat_sig,
+        description='',
         price=Decimal('100.00'), stock=10,
         is_active=True, is_published=True,
     )
+    _p.categories.add(cat_sig)
+    return _p
 
 
 @pytest.fixture

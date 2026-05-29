@@ -52,10 +52,12 @@ class TestSoftDeleteOnProduct:
     def test_delete_marks_soft_and_hides_from_default_manager(self):
         cat = Category.objects.create(name='Cat soft', slug='cat-soft')
         product = Product.objects.create(
-            category=cat, name='Soft Delete Subject',
+            name='Soft Delete Subject',
             slug='soft-delete-subject', price=10,
             stock=1, is_active=True,
         )
+        product.categories.add(cat)
+        product.categories.add(cat)
         pk = product.pk
         product.delete()
 
@@ -70,10 +72,12 @@ class TestSoftDeleteOnProduct:
     def test_restore_reverts_soft_delete(self):
         cat = Category.objects.create(name='Cat restore', slug='cat-restore')
         product = Product.objects.create(
-            category=cat, name='Restore Subject',
+            name='Restore Subject',
             slug='restore-subject', price=10, stock=1,
             is_active=True,
         )
+        product.categories.add(cat)
+        product.categories.add(cat)
         product.delete()
         ghost = Product.all_objects.get(pk=product.pk)
         ghost.restore()
@@ -83,10 +87,12 @@ class TestSoftDeleteOnProduct:
     def test_hard_delete_actually_removes_row(self):
         cat = Category.objects.create(name='Cat hard', slug='cat-hard')
         product = Product.objects.create(
-            category=cat, name='Hard Delete Subject',
+            name='Hard Delete Subject',
             slug='hard-delete-subject', price=10, stock=1,
             is_active=True,
         )
+        product.categories.add(cat)
+        product.categories.add(cat)
         pk = product.pk
         product.hard_delete()
         assert not Product.all_objects.filter(pk=pk).exists()

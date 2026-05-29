@@ -148,13 +148,14 @@ def _upsert_product(category):
         defaults={
             'name': _PROD_NAME,
             'slug': _PROD_SLUG,
-            'category': category,
             'price': _PROD_PRICE,
             'stock': _PROD_STOCK,
             'is_active': True,
             'is_published': True,
         },
     )
+    # UC-CAT-13: M2M — assign category after save.
+    product.categories.add(category)
     return product, created
 
 

@@ -47,32 +47,38 @@ def cat_pulseras(db):
 
 @pytest.fixture
 def product_collar(db, cat_collares):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Collar Yemaya', slug='collar-yemaya', sku='YEM-001',
-        description='Collar sagrado', category=cat_collares,
+        description='Collar sagrado',
         price=Decimal('1200.00'), stock=5,
         is_active=True, is_published=True,
     )
+    _p.categories.add(cat_collares)
+    return _p
 
 
 @pytest.fixture
 def product_collar_oshun(db, cat_collares_oshun):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Collar Oshun dorado', slug='collar-oshun-dorado', sku='OSH-001',
-        description='Collar de Oshun', category=cat_collares_oshun,
+        description='Collar de Oshun',
         price=Decimal('1500.00'), stock=3,
         is_active=True, is_published=True,
     )
+    _p.categories.add(cat_collares_oshun)
+    return _p
 
 
 @pytest.fixture
 def product_pulsera(db, cat_pulseras):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Pulsera Elegua', slug='pulsera-elegua', sku='ELE-001',
-        description='Pulsera de Elegua', category=cat_pulseras,
+        description='Pulsera de Elegua',
         price=Decimal('450.00'), stock=10,
         is_active=True, is_published=True,
     )
+    _p.categories.add(cat_pulseras)
+    return _p
 
 
 @pytest.fixture
@@ -110,7 +116,7 @@ class TestAutocomplete:
     def test_autocomplete_no_incluye_no_publicados(self, api_client, cat_collares, db):
         Product.objects.create(
             name='Collar Secreto', slug='collar-secreto', sku='SEC-001',
-            description='', category=cat_collares,
+            description='',
             price=Decimal('100.00'), stock=1,
             is_active=True, is_published=False,
         )
@@ -122,7 +128,7 @@ class TestAutocomplete:
         for i in range(8):
             Product.objects.create(
                 name=f'Collar Extra {i}', slug=f'collar-extra-{i}', sku=f'EXT-{i:03}',
-                description='', category=cat_collares, price=Decimal('100.00'),
+                description='', price=Decimal('100.00'),
                 stock=1, is_active=True, is_published=True,
             )
         res = api_client.get(AUTOCOMPLETE_URL, {'q': 'Collar'})

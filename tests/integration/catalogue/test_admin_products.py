@@ -44,12 +44,14 @@ def cat_pulseras(db):
 
 @pytest.fixture
 def product_sopera(db, cat_soperas):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Sopera Yemaya', slug='sopera-yemaya', sku='SOP-YEM-001',
-        description='Sopera sagrada de Yemaya', category=cat_soperas,
+        description='Sopera sagrada de Yemaya',
         price=Decimal('3200.00'), stock=2,
         is_active=True, is_published=True,
     )
+    _p.categories.add(cat_soperas)
+    return _p
 
 
 @pytest.fixture
@@ -57,23 +59,27 @@ def products_soperas(db, cat_soperas):
     """5 productos en cat_soperas para testear related."""
     prods = []
     for i in range(5):
-        prods.append(Product.objects.create(
+        _p = Product.objects.create(
             name=f'Sopera Orisha {i}', slug=f'sopera-orisha-{i}', sku=f'SOP-{i:03}',
-            description='', category=cat_soperas,
+            description='',
             price=Decimal('2000.00'), stock=1,
             is_active=True, is_published=True,
-        ))
+        )
+        _p.categories.add(cat_soperas)
+        prods.append(_p)
     return prods
 
 
 @pytest.fixture
 def product_pulsera(db, cat_pulseras):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Pulsera Elegua', slug='pulsera-elegua-s7', sku='PUL-ELE-001',
-        description='Pulsera sagrada de Elegua', category=cat_pulseras,
+        description='Pulsera sagrada de Elegua',
         price=Decimal('480.00'), stock=10,
         is_active=True, is_published=True,
     )
+    _p.categories.add(cat_pulseras)
+    return _p
 
 
 # =============================================================================
@@ -119,7 +125,7 @@ class TestProductosRelacionados:
     ):
         Product.objects.create(
             name='Inactivo', slug='inactivo-rel', sku='INACT-001',
-            description='', category=cat_soperas,
+            description='',
             price=Decimal('100.00'), stock=0,
             is_active=False, is_published=False,
         )
@@ -172,12 +178,13 @@ class TestCategoryTree:
         self, api_client, cat_soperas, cat_soperas_grandes, db
     ):
         """FR-CAT-08.02: product_count del padre incluye productos de subcategorías."""
-        Product.objects.create(
+        _p = Product.objects.create(
             name='Sopera Grande X', slug='sopera-grande-x', sku='SGX-001',
-            description='', category=cat_soperas_grandes,
+            description='',
             price=Decimal('5000.00'), stock=1,
             is_active=True, is_published=True,
         )
+        _p.categories.add(cat_soperas_grandes)
         cache.delete('categories:tree')
         res = api_client.get(CATEGORIES_URL)
         assert res.status_code == 200
@@ -246,7 +253,7 @@ class TestCrearProductoAdmin:
     ):
         res = admin_client.post(ADMIN_PROD_URL, {
             'name': 'Test', 'sku': 'TST-999',
-            'category_id': 99999,
+            'category_ids': [99999],
             'base_price': '100.00',
         }, format='json')
         assert res.status_code == 400
@@ -321,7 +328,7 @@ class TestEditarProductoAdmin:
         cache.set('categories:tree', [{'nombre': 'stale'}], 3600)
         admin_client.patch(
             f'{ADMIN_PROD_URL}{product_sopera.pk}/',
-            {'category_id': cat_pulseras.pk},
+            {'category_ids': [cat_pulseras.pk]},
             format='json',
         )
         assert cache.get('categories:tree') is None
@@ -406,7 +413,7 @@ class TestProductAdminSerializerSlug:
     def test_slug_con_colision_agrega_sufijo(self, cat_soperas, db):
         Product.objects.create(
             name='Collar X', slug='collar-x', sku='CX-001',
-            description='', category=cat_soperas,
+            description='',
             price=Decimal('100.00'), stock=0,
             is_active=True, is_published=False,
         )

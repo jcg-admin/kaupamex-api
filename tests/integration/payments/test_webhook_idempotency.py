@@ -45,10 +45,11 @@ def order_mp_pending(db, user, cat_idem):
     """Orden PENDING con Payment MP listo para webhook."""
     prod = Product.objects.create(
         name='Idolo', slug='idolo-idem', sku='IDEM-001',
-        description='', category=cat_idem,
+        description='',
         price=Decimal('500.00'), stock=5,
         is_active=True, is_published=True,
     )
+    prod.categories.add(cat_idem)
     order = Order.objects.create(user=user, status='PENDING')
     OrderItem.objects.create(
         order=order, product_name=prod.name, sku=prod.sku,
@@ -77,10 +78,11 @@ def order_paypal_pending(db, user, cat_idem):
     """Orden PENDING con Payment PayPal listo para webhook."""
     prod = Product.objects.create(
         name='Collar PayPal', slug='collar-paypal-idem', sku='IDEM-PP-001',
-        description='', category=cat_idem,
+        description='',
         price=Decimal('400.00'), stock=5,
         is_active=True, is_published=True,
     )
+    prod.categories.add(cat_idem)
     order = Order.objects.create(user=user, status='PENDING')
     OrderItem.objects.create(
         order=order, product_name=prod.name, sku=prod.sku,

@@ -19,12 +19,14 @@ def cat_vch(db):
 
 @pytest.fixture
 def prod_vch(db, cat_vch):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Prod Vch', slug='prod-vch', sku='VCH-001',
-        description='', category=cat_vch,
+        description='',
         price=Decimal('300.00'), stock=10,
         is_active=True, is_published=True,
     )
+    _p.categories.add(cat_vch)
+    return _p
 
 
 @pytest.fixture

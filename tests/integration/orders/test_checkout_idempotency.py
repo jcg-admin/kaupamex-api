@@ -47,12 +47,14 @@ def cat_idem_co(db):
 
 @pytest.fixture
 def prod_idem_co(db, cat_idem_co):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Prod Idem CO', slug='prod-idem-co', sku='IDEM-CO-001',
-        description='', category=cat_idem_co,
+        description='',
         price=Decimal('300.00'), stock=10,
         is_active=True, is_published=True,
     )
+    _p.categories.add(cat_idem_co)
+    return _p
 
 
 @pytest.fixture

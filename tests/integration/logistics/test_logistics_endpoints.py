@@ -35,11 +35,13 @@ def cat_log(db):
 
 @pytest.fixture
 def prod_log(db, cat_log):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Pulsera Yoruba', slug='pulsera-yoruba', sku='LOG-PY-001',
-        category=cat_log, price=Decimal('500.00'), stock=10,
+        price=Decimal('500.00'), stock=10,
         is_active=True, is_published=True,
     )
+    _p.categories.add(cat_log)
+    return _p
 
 
 @pytest.fixture

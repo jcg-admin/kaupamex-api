@@ -21,17 +21,18 @@ def cat_dec14(db):
 
 @pytest.fixture
 def prod_dec14(cat_dec14, db):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Collar Orula DEC14',
         slug='collar-orula-dec14',
         sku='DEC14-001',
-        category=cat_dec14,
         price=Decimal('250.00'),
         stock=5,
         is_active=True,
         is_published=True,
         is_featured=True,
     )
+    _p.categories.add(cat_dec14)
+    return _p
 
 
 class TestProductListSerializerDEC14:
@@ -63,9 +64,11 @@ class TestProductListSerializerDEC14:
     def test_availability_out_of_stock(self, api_client, cat_dec14, db):
         p = Product.objects.create(
             name='Sin Stock DEC14', slug='sin-stock-dec14', sku='DEC14-002',
-            category=cat_dec14, price=Decimal('100.00'),
+            price=Decimal('100.00'),
             stock=0, is_active=True, is_published=True,
         )
+        p.categories.add(cat_dec14)
+        p.categories.add(cat_dec14)
         r = api_client.get(CATALOGUE_URL)
         results = r.json().get('results', [])
         item = next((i for i in results if i['id'] == p.id), None)
