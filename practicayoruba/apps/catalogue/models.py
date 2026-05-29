@@ -234,6 +234,68 @@ class ProductDiscount(TimeStampedModel, SoftDeleteModel):
         return (original * factor).quantize(Decimal('0.01'))
 
 
+class AttributeAxis(TimeStampedModel):
+    """Eje de clasificación de atributos: Orisha, Color, Material, etc. ADR-012 EJE 2."""
+    name          = models.CharField(max_length=100, unique=True)
+    slug          = models.SlugField(unique=True)
+    is_filterable = models.BooleanField(default=True)
+    display_order = models.IntegerField(default=0)
+    is_active     = models.BooleanField(default=True, db_index=True)
+
+    class Meta:
+        db_table = 'catalogue_attribute_axis'
+        ordering = ['display_order', 'name']
+        verbose_name = 'Eje de atributo'
+
+    def __str__(self):
+        return self.name
+
+
+class AttributeValue(TimeStampedModel):
+    """Valor de un eje de atributo. Jerarquía opcional vía parent (ej. Yemayá → caminos)."""
+    axis          = models.ForeignKey(
+        AttributeAxis, on_delete=models.CASCADE, related_name='values',
+    )
+    value         = models.CharField(max_length=100)
+    slug          = models.SlugField()
+    parent        = models.ForeignKey(
+        'self', null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='children',
+    )
+    display_order = models.IntegerField(default=0)
+
+    class Meta:
+        db_table        = 'catalogue_attribute_value'
+        unique_together = [('axis', 'value'), ('axis', 'slug')]
+        ordering        = ['axis', 'display_order', 'value']
+        verbose_name    = 'Valor de atributo'
+
+    def __str__(self):
+        return f'{self.axis.name}: {self.value}'
+
+
+class ProductAttribute(models.Model):
+    """Asociación Product ↔ AttributeValue. ADR-012 EJE 2."""
+    product = models.ForeignKey(
+        Product, on_delete=models.CASCADE, related_name='attributes',
+    )
+    value   = models.ForeignKey(
+        AttributeValue, on_delete=models.CASCADE, related_name='products',
+    )
+
+    class Meta:
+        db_table        = 'catalogue_product_attribute'
+        unique_together = [('product', 'value')]
+        indexes = [
+            models.Index(fields=['value']),
+            models.Index(fields=['product', 'value']),
+        ]
+        verbose_name = 'Atributo de producto'
+
+    def __str__(self):
+        return f'{self.product.sku} — {self.value}'
+
+
 class ProductImage(TimeStampedModel):
     """Imagen asociada a un producto. UC-CAT-09."""
     product  = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
