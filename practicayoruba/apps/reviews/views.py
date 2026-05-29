@@ -91,7 +91,7 @@ class ProductReviewsView(APIView):
 
         approved = Review.objects.filter(
             product=product, status=Review.STATUS_APPROVED,
-        ).select_related('user')
+        ).select_related('user').prefetch_related('images')
 
         if rating_filter is not None:
             approved = approved.filter(rating=rating_int)
