@@ -119,7 +119,10 @@ class Refund(TimeStampedModel):
         verbose_name = 'Reembolso'
 
     def __str__(self):
-        return f'Reembolso {self.amount} — {self.payment.order.order_number}'
+        # H-CICLO44-02: usar payment_id/order_id en lugar de traversar
+        # self.payment.order.order_number para evitar 2 queries FK en
+        # listados del admin (N+1).
+        return f'Reembolso {self.amount} — payment_id={self.payment_id}'
 
 
 class PaymentGatewayEvent(TimeStampedModel):
@@ -157,4 +160,28 @@ class PaymentGatewayEvent(TimeStampedModel):
         verbose_name = 'Evento del gateway'
 
     def __str__(self):
-        return f'{self.event_type} — {self.payment.order.order_number}'
+        # H-CICLO44-02: usar payment_id en lugar de traversar
+        # self.payment.order.order_number para evitar 2 queries FK en
+        # listados del admin (N+1).
+        return f'{self.event_type} — payment_id={self.payment_id}'
+
+
+class WebhookEvent(models.Model):
+    """
+    Registro dedup para idempotencia de webhooks entrantes. DEC-BC-04.
+    UNIQUE(gateway, event_id, transmission_id) previene doble procesamiento.
+    INSERT falla con IntegrityError si el evento ya fue procesado.
+    """
+    gateway         = models.CharField(max_length=20)
+    event_id        = models.CharField(max_length=100)
+    transmission_id = models.CharField(max_length=100, blank=True, default='')
+    raw_body        = models.TextField()
+    processed_at    = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table        = 'payments_webhook_event'
+        unique_together = [('gateway', 'event_id', 'transmission_id')]
+        verbose_name    = 'Webhook event'
+
+    def __str__(self):
+        return f'{self.gateway}/{self.event_id}'

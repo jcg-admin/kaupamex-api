@@ -16,10 +16,12 @@ pytestmark = pytest.mark.integration
 def question(db):
     cat = Category.objects.create(name='Cat Q', slug='cat-q')
     product = Product.objects.create(
-        category=cat, name='Q Product', slug='q-product',
+        name='Q Product', slug='q-product',
         sku='Q-001', price=Decimal('10.00'), stock=1,
         is_active=True, is_published=True,
     )
+    product.categories.add(cat)
+    product.categories.add(cat)
     return ProductQuestion.objects.create(
         product=product,
         asker_name='Anon',

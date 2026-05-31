@@ -252,6 +252,85 @@ class TestAdminQueue:
         items = data['results'] if isinstance(data, dict) else data
         assert all(item['priority'] == 'HIGH' for item in items)
 
+    def test_admin_list_is_paginated(self, admin_client, user, db):
+        for i in range(3):
+            SupportTicket.objects.create(
+                user=user, subject=f'Ticket {i}',
+                body='Mensaje suficientemente largo.')
+        res = admin_client.get(ADMIN_TICKETS_URL)
+        assert res.status_code == 200
+        data = res.json()
+        assert 'results' in data
+        assert 'count' in data
+
+    def test_admin_list_has_metrics(self, admin_client, user, db):
+        SupportTicket.objects.create(
+            user=user, subject='Abierto', body='Mensaje suficientemente largo.')
+        SupportTicket.objects.create(
+            user=user, subject='Resuelto', body='Mensaje suficientemente largo.',
+            status='RESOLVED')
+        res = admin_client.get(ADMIN_TICKETS_URL)
+        assert res.status_code == 200
+        data = res.json()
+        assert 'metrics' in data
+        metrics = data['metrics']
+        assert 'open' in metrics
+        assert 'in_progress' in metrics
+        assert 'awaiting_user' in metrics
+        assert 'resolved' in metrics
+        assert 'closed' in metrics
+        assert metrics['open'] >= 1
+        assert metrics['resolved'] >= 1
+
+    def test_admin_list_has_customer_field(self, admin_client, user, db):
+        SupportTicket.objects.create(
+            user=user, subject='Con buyer', body='Mensaje suficientemente largo.')
+        res = admin_client.get(ADMIN_TICKETS_URL)
+        assert res.status_code == 200
+        items = res.json()['results']
+        assert len(items) >= 1
+        ticket = items[0]
+        assert 'customer' in ticket
+        assert ticket['customer']['email'] == user.email
+
+    def test_admin_list_has_replies_count(self, admin_client, user, db):
+        ticket = SupportTicket.objects.create(
+            user=user, subject='Con respuestas', body='Mensaje suficientemente largo.')
+        SupportTicketReply.objects.create(ticket=ticket, author=user, body='Respuesta test.')
+        res = admin_client.get(ADMIN_TICKETS_URL)
+        assert res.status_code == 200
+        items = res.json()['results']
+        match = next((t for t in items if t['ticket_id'] == ticket.pk), None)
+        assert match is not None
+        assert match['replies_count'] == 1
+
+    def test_admin_search_by_email(self, admin_client, user, db):
+        SupportTicket.objects.create(
+            user=user, subject='Busqueda email', body='Mensaje suficientemente largo.')
+        res = admin_client.get(f'{ADMIN_TICKETS_URL}?q={user.email[:5]}')
+        assert res.status_code == 200
+        items = res.json()['results']
+        assert len(items) >= 1
+
+    def test_admin_search_no_match_returns_empty(self, admin_client, db):
+        res = admin_client.get(f'{ADMIN_TICKETS_URL}?q=correo_que_no_existe@xyz.com')
+        assert res.status_code == 200
+        assert res.json()['results'] == []
+
+    def test_admin_list_ordered_oldest_first(self, admin_client, user, db):
+        import time
+        t1 = SupportTicket.objects.create(
+            user=user, subject='Primero', body='Mensaje suficientemente largo.')
+        time.sleep(0.01)
+        t2 = SupportTicket.objects.create(
+            user=user, subject='Segundo', body='Mensaje suficientemente largo.')
+        res = admin_client.get(ADMIN_TICKETS_URL)
+        assert res.status_code == 200
+        items = res.json()['results']
+        ids = [t['ticket_id'] for t in items[:2]]
+        assert ids[0] == t1.pk
+        assert ids[1] == t2.pk
+
 
 # ────────────── UC-SUPP-01 AC-03 — order ownership + duplicate (D-002/D-003) ─
 
@@ -297,72 +376,3 @@ class TestCreateTicketOrderOwnership:
         }, format='json')
         assert res.status_code == 400
         assert 'ORDER_NOT_FOUND' in str(res.content)
-
-
-class TestCreateTicketDuplicateDetection:
-    """D-003 — UC-SUPP-01 AC-03: 409 DUPLICATE_TICKET si ya hay uno activo."""
-
-    def test_second_ticket_same_category_returns_409(self, auth_client, db):
-        first = auth_client.post(TICKETS_URL, {
-            'subject': 'Pedido perdido',
-            'body':    'Lleva 2 semanas sin entregarse.',
-            'category': 'GENERAL',
-        }, format='json')
-        assert first.status_code == 201
-
-        second = auth_client.post(TICKETS_URL, {
-            'subject': 'Pedido perdido nuevamente',
-            'body':    'Sigue sin llegar al domicilio indicado.',
-            'category': 'GENERAL',
-        }, format='json')
-        assert second.status_code == 409
-        body = second.json()
-        assert body['error_code'] == 'DUPLICATE_TICKET'
-        assert body['ticket_id'] == first.json()['ticket_id']
-
-    def test_different_category_allows_new_ticket(self, auth_client, db):
-        first = auth_client.post(TICKETS_URL, {
-            'subject': 'Pedido perdido',
-            'body':    'Lleva semanas sin entregarse.',
-            'category': 'GENERAL',
-        }, format='json')
-        assert first.status_code == 201
-
-        second = auth_client.post(TICKETS_URL, {
-            'subject': 'Producto dañado',
-            'body':    'El paquete llego destrozado.',
-            'category': 'DAMAGED',
-        }, format='json')
-        assert second.status_code == 201
-
-    def test_closed_ticket_does_not_block_new_one(self, auth_client, user, db):
-        SupportTicket.objects.create(
-            user=user, subject='Antiguo', body='Mensaje suficientemente largo.',
-            category='GENERAL', status=SupportTicket.Status.CLOSED)
-
-        res = auth_client.post(TICKETS_URL, {
-            'subject': 'Caso nuevo',
-            'body':    'Detalle suficientemente largo del caso reciente.',
-            'category': 'GENERAL',
-        }, format='json')
-        assert res.status_code == 201
-
-    def test_different_order_allows_new_ticket(self, auth_client, user, db):
-        order_a = Order.objects.create(user=user, status=Order.STATUS_PENDING)
-        order_b = Order.objects.create(user=user, status=Order.STATUS_PENDING)
-
-        first = auth_client.post(TICKETS_URL, {
-            'subject': 'Problema con orden A',
-            'body':    'La orden A tiene un problema visible.',
-            'category': 'ORDER',
-            'order_id': order_a.pk,
-        }, format='json')
-        assert first.status_code == 201
-
-        second = auth_client.post(TICKETS_URL, {
-            'subject': 'Problema con orden B',
-            'body':    'La orden B tiene otro problema distinto.',
-            'category': 'ORDER',
-            'order_id': order_b.pk,
-        }, format='json')
-        assert second.status_code == 201

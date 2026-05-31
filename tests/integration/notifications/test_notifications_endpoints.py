@@ -57,13 +57,13 @@ class TestListNotifications:
         assert len(body['results']) == 1
         item = body['results'][0]
         assert item['subject'] == 'Mio'
-        for key in ('id', 'type', 'subject', 'body', 'read', 'created_at'):
+        for key in ('id', 'type', 'subject', 'body', 'is_read', 'created_at'):
             assert key in item
 
     def test_returns_empty_results_when_none(self, auth_client, db):
         res = auth_client.get(LIST_URL)
         assert res.status_code == 200
-        assert res.json() == {'results': []}
+        assert res.json()['results'] == []
 
 
 # ─── GET /unread-count ───────────────────────────────────────────────────

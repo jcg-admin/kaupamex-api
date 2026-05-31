@@ -33,10 +33,11 @@ def orden_processing_mp(db, user, cat_wh):
 
     prod = Product.objects.create(
         name='Pulso Orula', slug='pulso-orula', sku='WH-PO-001',
-        description='', category=cat_wh,
+        description='',
         price=Decimal('600.00'), stock=10,
         is_active=True, is_published=True,
     )
+    prod.categories.add(cat_wh)
     order = Order.objects.create(user=user, status='PENDING')
     OrderItem.objects.create(
         order=order, product_name=prod.name, sku=prod.sku,
@@ -77,7 +78,7 @@ class TestMercadoPagoWebhook:
     def test_webhook_pago_aprobado_actualiza_payment_y_orden(
         self, api_client, orden_processing_mp, mp_gateway_wh, db
     ):
-        """FR-PAY-03.02: pago aprobado → Payment=APPROVED, Order=PROCESSING."""
+        """FR-PAY-03.02: pago aprobado → Payment=APPROVED, Order=PAID (DEC-BC-12)."""
         order, payment = orden_processing_mp
         ts         = '1715000000'
         request_id = 'REQ-TEST-123'
@@ -106,7 +107,7 @@ class TestMercadoPagoWebhook:
         payment.refresh_from_db()
         order.refresh_from_db()
         assert payment.status == 'APPROVED'
-        assert order.status == 'PROCESSING'  # H-PAY-002: no PAYMENT_CONFIRMED
+        assert order.status == 'PAID'  # DEC-BC-12: aprobado → PAID
 
     def test_webhook_firma_invalida_retorna_401(
         self, api_client, orden_processing_mp, mp_gateway_wh, db
@@ -319,10 +320,11 @@ class TestPayPalWebhook:
 
         prod = Product.objects.create(
             name='Azabache', slug='azabache-wh', sku='WH-AZ-001',
-            description='', category=cat_wh,
+            description='',
             price=Decimal('400.00'), stock=5,
             is_active=True, is_published=True,
         )
+        prod.categories.add(cat_wh)
         order = Order.objects.create(user=user, status='PENDING')
         OrderItem.objects.create(
             order=order, product_name=prod.name, sku=prod.sku,
@@ -346,7 +348,7 @@ class TestPayPalWebhook:
     def test_webhook_paypal_capture_completed(
         self, api_client, orden_paypal_wh, db
     ):
-        """UC-PAY-04: PAYMENT.CAPTURE.COMPLETED → Payment=APPROVED, Order=PROCESSING."""
+        """UC-PAY-04: PAYMENT.CAPTURE.COMPLETED → Payment=APPROVED, Order=PAID (DEC-BC-12)."""
         order, payment = orden_paypal_wh
 
         payload = {
@@ -378,7 +380,7 @@ class TestPayPalWebhook:
         payment.refresh_from_db()
         order.refresh_from_db()
         assert payment.status == 'APPROVED'
-        assert order.status == 'PROCESSING'
+        assert order.status == 'PAID'  # DEC-BC-12
 
     def test_webhook_paypal_firma_invalida_retorna_401(
         self, api_client, db

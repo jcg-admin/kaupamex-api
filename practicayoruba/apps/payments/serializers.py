@@ -18,6 +18,27 @@ class PaymentSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class AdminPaymentSerializer(PaymentSerializer):
+    """Admin-only payment representation.
+
+    Extends the public PaymentSerializer with order context fields that
+    the admin panel needs to display without a separate order request:
+    order_status and user_email.  Using the public PaymentSerializer in
+    AdminPaymentDetailView left the admin panel without these fields,
+    forcing the UI to either show blanks or issue an extra request.
+    """
+
+    order_status = serializers.CharField(source='order.status', read_only=True)
+    user_email   = serializers.SerializerMethodField()
+
+    class Meta(PaymentSerializer.Meta):
+        fields = PaymentSerializer.Meta.fields + ['order_status', 'user_email']
+        read_only_fields = fields
+
+    def get_user_email(self, obj) -> str | None:
+        return obj.order.user.email if obj.order.user_id else obj.order.guest_email
+
+
 class InitiatePaymentSerializer(serializers.Serializer):
     """POST /api/v1/payments/initiate/ — UC-PAY-01 (MP) y UC-PAY-02 (PayPal)."""
     GATEWAY_CHOICES = [('MERCADOPAGO', 'MercadoPago'), ('PAYPAL', 'PayPal')]
@@ -38,8 +59,13 @@ class InitiatePaymentSerializer(serializers.Serializer):
 
 
 class InitiatePaymentResponseSerializer(serializers.Serializer):
-    """Respuesta de POST /api/v1/payments/initiate/."""
-    payment_id   = serializers.IntegerField()
+    """Respuesta de POST /api/v1/payments/initiate/.
+
+    payment_id is deprecated (always null).  Use order_number to poll
+    /payments/<order_number>/status/ — RNF-SEC-001 forbids exposing
+    sequential internal PKs.
+    """
+    payment_id   = serializers.IntegerField(allow_null=True, required=False)
     checkout_url = serializers.URLField(
         help_text='URL de la interfaz de pago del gateway. El frontend redirige al comprador aquí.',
     )
@@ -65,9 +91,9 @@ class InstallmentPlansResponseSerializer(serializers.Serializer):
 
 class PaymentReturnSerializer(serializers.Serializer):
     """Query params del retorno del gateway — GET /api/v1/payments/<order>/return/"""
-    status             = serializers.CharField(required=False, default='pending')
-    payment_id         = serializers.CharField(required=False, allow_blank=True)
-    external_reference = serializers.CharField(required=False, allow_blank=True)
+    status             = serializers.CharField(required=False, default='pending', max_length=50)
+    payment_id         = serializers.CharField(required=False, allow_blank=True, max_length=100)
+    external_reference = serializers.CharField(required=False, allow_blank=True, max_length=100)
 
 
 class CheckoutEligibilitySerializer(serializers.Serializer):
@@ -84,7 +110,7 @@ class CheckoutEligibilitySerializer(serializers.Serializer):
 class ExpressCheckoutSerializer(serializers.Serializer):
     """POST /api/v1/checkout/express/ — UC-ORD-01-EXT."""
     notes        = serializers.CharField(
-        required=False, default='', allow_blank=True,
+        required=False, default='', allow_blank=True, max_length=1000,
     )
     installments = serializers.IntegerField(
         default=1, min_value=1,
@@ -111,18 +137,27 @@ class RefundRequestSerializer(serializers.Serializer):
         help_text='Monto a reembolsar. Null o ausente = reembolso total.',
     )
     reason = serializers.CharField(
-        required=False, default='', allow_blank=True,
+        required=False, default='', allow_blank=True, max_length=500,
         help_text='Motivo del reembolso.',
     )
 
 
 class RefundSerializer(serializers.ModelSerializer):
+    """Buyer-facing refund representation. Does not expose gateway internals."""
+
     payment_id = serializers.IntegerField(source='payment.pk', read_only=True)
 
     class Meta:
         model  = Refund
-        fields = ['id', 'payment_id', 'amount', 'reason',
-                  'gateway_refund_id', 'status', 'created_at']
+        fields = ['id', 'payment_id', 'amount', 'reason', 'status', 'created_at']
+        read_only_fields = fields
+
+
+class AdminRefundSerializer(RefundSerializer):
+    """Admin-only refund representation. Includes gateway_refund_id."""
+
+    class Meta(RefundSerializer.Meta):
+        fields = RefundSerializer.Meta.fields + ['gateway_refund_id']
         read_only_fields = fields
 
 

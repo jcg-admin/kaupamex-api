@@ -10,8 +10,7 @@ from decimal import Decimal
 from django.db import transaction
 from django.utils import timezone
 from apps.inventory.services import InventoryService
-from apps.inventory.proxy_models import CancellationMovement
-from .models import OrderAddress
+from .models import Order, OrderAddress, OrderStatusLog
 from apps.payments.services import execute_refund
 from apps.settings_app.models import ShippingMethod
 
@@ -20,8 +19,9 @@ logger = logging.getLogger('apps')
 
 # ─── Estados que permiten cada operación ────────────────────────────────────
 # H-ORD-002: mapeo FR→modelo (PENDING_PAYMENT→PENDING, PAYMENT_CONFIRMED→PROCESSING)
-CANCELABLE_STATUSES = ['PENDING', 'PROCESSING']
-EDITABLE_STATUSES   = ['PENDING', 'PROCESSING', 'IN_PREPARATION']  # dirección y envío
+# H-ORD-S01: PAID debe incluirse — pago confirmado pero aún no en preparación.
+CANCELABLE_STATUSES = ['PENDING', 'PROCESSING', 'PAID']
+EDITABLE_STATUSES   = ['PENDING', 'PROCESSING', 'PAID', 'IN_PREPARATION']  # dirección y envío
 
 
 def cancel_order(order, reason: str = '', cancelled_by=None, cancelable_statuses=None):
@@ -48,11 +48,31 @@ def cancel_order(order, reason: str = '', cancelled_by=None, cancelable_statuses
         )
 
     with transaction.atomic():
+        # H-API-35: re-verificar el estado bajo lock para prevenir
+        # que dos cancelaciones concurrentes restauren el stock dos veces.
+        if not Order.objects.select_for_update().filter(
+            pk=order.pk, status__in=_cancelable
+        ).exists():
+            raise ValueError(
+                f'La orden {order.order_number} ya no es cancelable '
+                f'(cancelada por request concurrente).'
+            )
+
         # 1. Cancelar la orden
+        previous_status           = order.status
         order.status              = 'CANCELLED'
         order.cancellation_reason = reason
         order.cancelled_at        = timezone.now()
-        order.save(update_fields=['status', 'cancellation_reason', 'cancelled_at'])
+        order.save(update_fields=['status', 'cancellation_reason', 'cancelled_at', 'updated_at'])
+
+        # Registrar transición en el log de auditoría — UC-ORD-04
+        OrderStatusLog.objects.create(
+            order=order,
+            previous_status=previous_status,
+            new_status='CANCELLED',
+            changed_by=cancelled_by,
+            notes=reason,
+        )
 
         # 2. Restaurar stock — UC-INV-03
         stock_items = [
@@ -177,10 +197,10 @@ def update_shipping_method(order, shipping_method_id: int):
         # H-ORD-007: total = subtotal_neto + tax + shipping
         value.shipping_cost = new_shipping_cost
         value.total         = neto + value.tax + new_shipping_cost
-        value.save(update_fields=['shipping_cost', 'total'])
+        value.save(update_fields=['shipping_cost', 'total', 'updated_at'])
 
         order.shipping_method = new_method
-        order.save(update_fields=['shipping_method'])
+        order.save(update_fields=['shipping_method', 'updated_at'])
 
     logger.info(
         'Método de envío actualizado para orden %s → %s ($%s)',

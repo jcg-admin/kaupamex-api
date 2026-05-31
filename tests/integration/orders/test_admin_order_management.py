@@ -27,12 +27,14 @@ def cat_adm(db):
 
 @pytest.fixture
 def prod_adm(db, cat_adm):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Elekes Admin', slug='elekes-admin', sku='ADM-001',
-        description='', category=cat_adm,
+        description='',
         price=Decimal('900.00'), stock=10,
         is_active=True, is_published=True,
     )
+    _p.categories.add(cat_adm)
+    return _p
 
 
 def _make_order(user, prod, status='PENDING'):
@@ -209,9 +211,15 @@ class TestTransicionEstadoAdmin:
         self, admin_client, user, prod_adm, db
     ):
         """Flujo feliz completo: PENDING → PROCESSING → IN_PREPARATION → SHIPPED → DELIVERED."""
+        from apps.logistics.models import Courier, ShipmentGuide
         order = _make_order(user, prod_adm, 'PENDING')
+        courier = Courier.objects.create(name='DHL Test', code='DHL', is_active=True)
 
         for new_status in ['PROCESSING', 'IN_PREPARATION', 'SHIPPED', 'DELIVERED']:
+            if new_status == 'SHIPPED':
+                ShipmentGuide.objects.create(
+                    order=order, courier=courier, tracking_number='TEST-SHIP-001',
+                )
             res = admin_client.patch(
                 ADMIN_STATUS_URL(order.order_number),
                 {'new_status': new_status},

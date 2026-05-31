@@ -17,6 +17,7 @@ UC-INV-05: POST /api/v1/admin/inventory/import/ accepting initial_state
             download_url}. 422 ENCABEZADO_CSV_INVALIDO when headers wrong.
 """
 import csv, io, pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
 from decimal import Decimal
 from apps.catalogue.models import Category, Product
 from apps.chartsize.models import VariantType, VariantOption, ProductVariant
@@ -40,12 +41,14 @@ def cat_ui(db):
 
 @pytest.fixture
 def product_ui(db, cat_ui):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Prod UI', slug='prod-ui', sku='UI-001',
-        description='', category=cat_ui,
+        description='',
         price=Decimal('500.00'), stock=10,
         is_active=True, is_published=True,
     )
+    _p.categories.add(cat_ui)
+    return _p
 
 
 @pytest.fixture
@@ -70,7 +73,7 @@ def _make_csv(rows, headers=None):
     for row in rows:
         w.writerow(row)
     buf.seek(0)
-    return io.BytesIO(buf.read().encode('utf-8'))
+    return SimpleUploadedFile('test.csv', buf.read().encode('utf-8'), content_type='text/csv')
 
 
 # =============================================================================
@@ -187,7 +190,7 @@ class TestAdjustNewQuantity:
         url = f'{INV_URL}variants/{variant_ui.pk}/adjust/'
         res = admin_client.post(url, {
             'new_quantity': 25,
-            'reason': 'CONTEO_FISICO',
+            'reason': 'PHYSICAL_COUNT',
             'observations': 'Inventario semestral',
         }, format='json')
         assert res.status_code == 201, res.content
@@ -206,7 +209,7 @@ class TestAdjustNewQuantity:
         url = f'{INV_URL}variants/{variant_ui.pk}/adjust/'
         res = admin_client.post(url, {
             'new_quantity': -5,
-            'reason': 'MERMA',
+            'reason': 'LOSS',
         }, format='json')
         assert res.status_code == 422
         # T-111.1 anti-soft-on-tests (canon EN): codigo ya retorna
@@ -219,7 +222,7 @@ class TestAdjustNewQuantity:
         url = f'{INV_URL}variants/{variant_ui.pk}/adjust/'
         res = admin_client.post(url, {
             'new_quantity': 4,
-            'reason': 'MERMA',
+            'reason': 'LOSS',
             'observations': 'Producto danado',
         }, format='json')
         assert res.status_code == 201
@@ -240,7 +243,7 @@ class TestAdjustNewQuantity:
         url = f'{INV_URL}variants/{variant_ui.pk}/adjust/'
         admin_client.post(url, {
             'new_quantity': 20,
-            'reason': 'CONTEO_FISICO',
+            'reason': 'PHYSICAL_COUNT',
             'observations': 'Auditoria',
         }, format='json')
         mov = StockMovement.objects.filter(
@@ -248,7 +251,7 @@ class TestAdjustNewQuantity:
         ).latest('created_at')
         # reason is stored in notes (free-text) or in a dedicated field; both ok
         notes = mov.notes
-        assert 'CONTEO_FISICO' in notes or 'Auditoria' in notes
+        assert 'PHYSICAL_COUNT' in notes or 'Auditoria' in notes
 
 
 # =============================================================================

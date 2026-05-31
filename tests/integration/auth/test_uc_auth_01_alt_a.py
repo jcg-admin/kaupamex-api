@@ -19,10 +19,10 @@ pytestmark = pytest.mark.api
 URL = '/api/v1/auth/register/'
 
 NEW_REGISTRATION = {
-    'username':         'rebote',
     'email':            'rebote@practicayoruba.mx',
     'password':         'Yoruba2026!',
     'password_confirm': 'Yoruba2026!',
+    'terms_accepted':   True,
 }
 
 
@@ -84,9 +84,9 @@ def suspended_user(db):
 class TestAltA1CuentaActiva:
     """Email registrado y is_active=True."""
 
-    def test_responde_400(self, api_client, active_user):
+    def test_responde_409(self, api_client, active_user):
         r = api_client.post(URL, NEW_REGISTRATION, format='json')
-        assert r.status_code == 400
+        assert r.status_code == 409
 
     def test_mensaje_indica_que_inicie_sesion(self, api_client, active_user):
         r = api_client.post(URL, NEW_REGISTRATION, format='json')

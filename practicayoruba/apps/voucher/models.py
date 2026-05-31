@@ -10,7 +10,7 @@ from decimal import Decimal
 from django.conf import settings
 from django.db import models
 from apps.core.models import SoftDeleteModel, TimeStampedModel
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
 
 
@@ -57,7 +57,8 @@ class Voucher(TimeStampedModel, SoftDeleteModel):
     discount_pct        = models.DecimalField(
                               max_digits=5, decimal_places=2,
                               null=True, blank=True,
-                              validators=[MinValueValidator(Decimal('0.01'))],
+                              validators=[MinValueValidator(Decimal('0.01')),
+                                          MaxValueValidator(Decimal('100.00'))],
                               verbose_name='Porcentaje de descuento',
                               help_text='Porcentaje a descontar (0.01-100). Solo para tipo PERCENTAGE.')
     max_discount        = models.DecimalField(
@@ -163,6 +164,32 @@ class Voucher(TimeStampedModel, SoftDeleteModel):
             return raw.quantize(Decimal('0.01'))
         # FREE_SHIPPING
         return Decimal('0.00')
+
+
+class VoucherUsage(models.Model):
+    """
+    Registro de uso de voucher por usuario. DEC-BC-10.
+    UNIQUE(user, voucher) garantiza single-use per user.
+    """
+    user    = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='voucher_usages',
+    )
+    voucher = models.ForeignKey(
+        Voucher,
+        on_delete=models.CASCADE,
+        related_name='usages',
+    )
+    used_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table        = 'voucher_usage'
+        unique_together = [('user', 'voucher')]
+        verbose_name    = 'Voucher usage'
+
+    def __str__(self):
+        return f'{self.user_id} / {self.voucher.code}'
 
 
 class VoucherChangeLog(TimeStampedModel):

@@ -9,11 +9,18 @@ from .models import ManualNotification, Notification, NotificationPreference, No
 
 
 class NotificationSerializer(serializers.ModelSerializer):
-    """UC-NOT-01..05 — item del buzon."""
+    """UC-NOT-01..05 — item del buzon.
+
+    H-CICLO37-01: el modelo usa el campo ``read`` pero la UI accede a
+    ``is_read``. Se expone como ``is_read`` via source para alinear el
+    contrato JSON con lo que consume NotificationsPage.jsx.
+    """
+
+    is_read = serializers.BooleanField(source='read', read_only=True)
 
     class Meta:
         model = Notification
-        fields = ['id', 'type', 'subject', 'body', 'read', 'created_at']
+        fields = ['id', 'type', 'subject', 'body', 'is_read', 'created_at']
         read_only_fields = fields
 
 
@@ -46,11 +53,11 @@ class ManualNotificationCreateSerializer(serializers.Serializer):
         choices=ManualNotification.RecipientType.choices,
     )
     recipient_identifier = serializers.CharField(
-        required=False, allow_blank=True, default='',
+        required=False, allow_blank=True, default='', max_length=254,
     )
     product_id = serializers.IntegerField(required=False, allow_null=True)
     subject = serializers.CharField(min_length=3, max_length=200)
-    message = serializers.CharField(min_length=3)
+    message = serializers.CharField(min_length=3, max_length=10000)
 
     def validate(self, attrs):
         recipient_type = attrs.get('recipient_type')

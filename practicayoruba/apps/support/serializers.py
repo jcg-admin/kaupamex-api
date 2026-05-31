@@ -9,6 +9,7 @@ from apps.orders.models import Order
 
 
 
+
 class SupportTicketCreateSerializer(serializers.Serializer):
     """
     UC-SUPP-01 — request body.
@@ -22,7 +23,7 @@ class SupportTicketCreateSerializer(serializers.Serializer):
     """
 
     subject = serializers.CharField(min_length=5, max_length=150)
-    body = serializers.CharField(min_length=10)
+    body = serializers.CharField(min_length=10, max_length=10000)
     category = serializers.ChoiceField(
         choices=SupportTicket.Category.choices,
         required=False,
@@ -123,8 +124,11 @@ class SupportTicketDetailSerializer(serializers.ModelSerializer):
         return SupportTicketReplySerializer(qs, many=True).data
 
     def get_available_actions(self, obj) -> list:
-        if obj.status == SupportTicket.Status.CLOSED:
+        s = SupportTicket.Status
+        if obj.status == s.CLOSED:
             return ['REOPEN']
+        if obj.status == s.RESOLVED:
+            return ['CLOSE', 'REOPEN']
         return ['REPLY', 'CLOSE']
 
     def get_buyer(self, obj) -> dict | None:
@@ -141,7 +145,7 @@ class SupportTicketDetailSerializer(serializers.ModelSerializer):
 class SupportTicketReplyCreateSerializer(serializers.Serializer):
     """UC-SUPP-03 — reply create request."""
 
-    body = serializers.CharField(min_length=10)
+    body = serializers.CharField(min_length=10, max_length=10000)
     is_internal_note = serializers.BooleanField(required=False, default=False)
 
 
@@ -149,3 +153,27 @@ class SupportTicketCloseSerializer(serializers.Serializer):
     """UC-SUPP-04 — close ticket request."""
 
     reason = serializers.CharField(required=False, allow_blank=True, max_length=300)
+
+
+class AdminSupportTicketListSerializer(serializers.ModelSerializer):
+    """UC-SUPP-05 — admin queue list item: includes buyer info and reply count."""
+
+    ticket_id     = serializers.IntegerField(source='pk', read_only=True)
+    customer      = serializers.SerializerMethodField()
+    replies_count = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = SupportTicket
+        fields = [
+            'ticket_id', 'subject', 'status', 'priority',
+            'category', 'order_id', 'created_at', 'updated_at',
+            'customer', 'replies_count',
+        ]
+        read_only_fields = fields
+
+    def get_customer(self, obj) -> dict | None:
+        u = obj.user
+        if u is None:
+            return None
+        name = f"{u.first_name} {u.last_name}".strip() or u.email
+        return {'id': u.pk, 'name': name, 'email': u.email}

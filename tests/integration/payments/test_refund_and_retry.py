@@ -31,12 +31,14 @@ def cat_ref(db):
 
 @pytest.fixture
 def prod_ref(db, cat_ref):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Mano Orula', slug='mano-orula', sku='REF-001',
-        description='', category=cat_ref,
+        description='',
         price=Decimal('3600.00'), stock=5,
         is_active=True, is_published=True,
     )
+    _p.categories.add(cat_ref)
+    return _p
 
 
 def _make_order_with_payment(user, prod, gateway='MERCADOPAGO', status='APPROVED'):

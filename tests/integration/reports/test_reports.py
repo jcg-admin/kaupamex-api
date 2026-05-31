@@ -36,22 +36,26 @@ def category(db):
 
 @pytest.fixture
 def product(db, category):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Rep Prod', slug='rep-prod', sku='REP-001',
-        description='', category=category,
+        description='',
         price=Decimal('500.00'), stock=10,
         is_active=True, is_published=True,
     )
+    _p.categories.add(category)
+    return _p
 
 
 @pytest.fixture
 def product_b(db, category):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Rep Prod B', slug='rep-prod-b', sku='REP-002',
-        description='', category=category,
+        description='',
         price=Decimal('300.00'), stock=5,
         is_active=True, is_published=True,
     )
+    _p.categories.add(category)
+    return _p
 
 
 @pytest.fixture
@@ -165,6 +169,22 @@ class TestTopSellers:
         rows = res.json()['results']
         assert len(rows) == 1
 
+    def test_top_sellers_limit_capped_at_50(self, admin_client, product, buyer):
+        # D-08: UC-REP-02 declares max 50; limit=100 must be silently capped.
+        _make_order(buyer, product, qty=1)
+        res = admin_client.get(f'{BASE}top-sellers/?period=30d&limit=100')
+        assert res.status_code == 200
+        assert len(res.json()['results']) <= 50
+
+    def test_top_sellers_sort_ingresos(self, admin_client, product, product_b, buyer):
+        # D-09: sort=INGRESOS orders by revenue desc.
+        _make_order(buyer, product, qty=1)    # revenue 500
+        _make_order(buyer, product_b, qty=5)  # revenue 1500
+        res = admin_client.get(f'{BASE}top-sellers/?period=30d&sort=INGRESOS')
+        assert res.status_code == 200
+        rows = res.json()['results']
+        assert rows[0]['product_id'] == product_b.pk  # higher revenue first
+
     def test_top_sellers_requires_admin(self, auth_client, db):
         res = auth_client.get(f'{BASE}top-sellers/?period=30d')
         assert res.status_code in (401, 403)
@@ -266,12 +286,21 @@ class TestExport:
         res = admin_client.get(f'{BASE}sales/export/?format=xml')
         assert res.status_code == 400
 
-    def test_export_pdf_returns_200(self, admin_client, product, buyer):
+    def test_export_pdf_returns_501(self, admin_client, product, buyer):
+        # D-20: PDF export returns 501 until a real renderer is implemented.
         _make_order(buyer, product)
         res = admin_client.get(f'{BASE}sales/export/?period=30d&format=pdf')
-        # PDF support may be minimal (text/plain placeholder is OK as long as 200)
+        assert res.status_code == 501
+        assert res.json()['error_code'] == 'ASYNC_EXPORT_NOT_AVAILABLE'
+
+    def test_export_csv_sales_sort_ingresos(self, admin_client, product, buyer):
+        # D-09: sort=INGRESOS accepted in export without error.
+        _make_order(buyer, product)
+        res = admin_client.get(
+            f'{BASE}top-sellers/export/?period=30d&format=csv&sort=INGRESOS'
+        )
         assert res.status_code == 200
-        assert 'attachment' in res['Content-Disposition']
+        assert 'text/csv' in res['Content-Type']
 
     def test_export_requires_admin(self, auth_client, db):
         res = auth_client.get(f'{BASE}sales/export/?format=csv')

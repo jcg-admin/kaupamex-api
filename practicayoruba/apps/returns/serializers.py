@@ -3,12 +3,13 @@ Serializers — apps.returns.
 
 Cumplen los contratos JSON declarados en UC-RET-01..06 (PARTE 7C).
 """
+from decimal import Decimal
 from rest_framework import serializers
 from .models import ReturnHistoryEntry, ReturnItem, ReturnRequest
 
 
 
-# ────────────────────────────── Items ────────────────────────────────────
+# ────────────────────────────── Items ──────────────────────────────────────────
 class ReturnItemSerializer(serializers.ModelSerializer):
     """Representacion ligera de un ReturnItem."""
 
@@ -25,7 +26,7 @@ class ReturnItemInputSerializer(serializers.Serializer):
     quantity = serializers.IntegerField(min_value=1, required=False, default=1)
 
 
-# ────────────────────────────── Historial ────────────────────────────────
+# ────────────────────────────── Historial ────────────────────────────────────
 class ReturnHistoryEntrySerializer(serializers.ModelSerializer):
     """Historial de cambios de estado expuesto por UC-RET-04."""
 
@@ -42,17 +43,22 @@ class ReturnHistoryEntrySerializer(serializers.ModelSerializer):
         return 'ADMIN' if obj.actor.is_staff else 'BUYER'
 
 
-# ────────────────────────────── UC-RET-01 (create) ───────────────────────
+# ────────────────────────────── UC-RET-01 (create) ───────────────────────────
 class ReturnCreateSerializer(serializers.Serializer):
-    """UC-RET-01 — request body."""
+    """UC-RET-01 — request body.
 
-    order_id = serializers.IntegerField(min_value=1)
+    Acepta ``order_number`` (el identificador visible al comprador, p.ej.
+    'PY-AB12CD34') en lugar del PK interno. El lookup por order_number
+    ocurre en la view; el serializer solo valida formato.
+    """
+
+    order_number = serializers.CharField(min_length=1, max_length=20)
     reason = serializers.ChoiceField(choices=ReturnRequest.Reason.choices)
-    description = serializers.CharField(min_length=20)
-    items = ReturnItemInputSerializer(many=True, required=False)
+    description = serializers.CharField(min_length=20, max_length=10000)
+    items = ReturnItemInputSerializer(many=True, required=False, allow_empty=False)
 
 
-# ────────────────────────────── UC-RET-04 (buyer list/detail) ────────────
+# ────────────────────────────── UC-RET-04 (buyer list/detail) ────────────────────────
 class ReturnListSerializer(serializers.ModelSerializer):
     """UC-RET-04 — listado de devoluciones del comprador."""
 
@@ -89,7 +95,7 @@ class ReturnDetailSerializer(serializers.ModelSerializer):
         return ReturnHistoryEntrySerializer(qs, many=True).data
 
 
-# ────────────────────────────── UC-RET-05 (admin queue) ──────────────────
+# ────────────────────────────── UC-RET-05 (admin queue) ───────────────────────────
 class AdminReturnListSerializer(serializers.ModelSerializer):
     """UC-RET-05 — fila de la bandeja admin con datos del comprador."""
 
@@ -149,11 +155,11 @@ class AdminReturnDetailSerializer(ReturnDetailSerializer):
         return getattr(obj.user, 'username', None)
 
 
-# ────────────────────────────── UC-RET-02 (admin decisions) ──────────────
+# ────────────────────────────── UC-RET-02 (admin decisions) ──────────────────────────
 class ReturnApproveSerializer(serializers.Serializer):
     """UC-RET-02 approve."""
 
-    justification = serializers.CharField(min_length=10)
+    justification = serializers.CharField(min_length=10, max_length=5000)
     approved_items = serializers.ListField(
         child=serializers.IntegerField(min_value=1),
         required=False,
@@ -164,16 +170,16 @@ class ReturnApproveSerializer(serializers.Serializer):
 class ReturnRejectSerializer(serializers.Serializer):
     """UC-RET-02 reject."""
 
-    justification = serializers.CharField(min_length=10)
+    justification = serializers.CharField(min_length=10, max_length=5000)
 
 
 class ReturnInfoRequestSerializer(serializers.Serializer):
     """UC-RET-02 Alt B — request info."""
 
-    message = serializers.CharField(min_length=10)
+    message = serializers.CharField(min_length=10, max_length=5000)
 
 
-# ────────────────────────────── UC-RET-03 (reception) ────────────────────
+# ────────────────────────────── UC-RET-03 (reception) ──────────────────────────────
 class ReturnReceptionSerializer(serializers.Serializer):
     """UC-RET-03 — registra recepcion."""
 
@@ -186,10 +192,30 @@ class ReturnReceptionSerializer(serializers.Serializer):
     )
 
 
-# ────────────────────────────── UC-RET-06 (refund) ───────────────────────
+# ────────────────────────────── UC-RET-06 (refund) ───────────────────────────────────
 class ReturnRefundSerializer(serializers.Serializer):
     """UC-RET-06 — registra reembolso."""
 
     amount = serializers.DecimalField(
-        max_digits=10, decimal_places=2, min_value=0,
+        max_digits=10, decimal_places=2, min_value=Decimal('0.01'),
     )
+
+
+# ──────────────────── aliases para compatibilidad con views ────────────────────────
+ReturnRequestSerializer = ReturnDetailSerializer
+
+
+class ReturnRequestAdminSerializer(AdminReturnListSerializer):
+    """Admin detail view — extends list serializer with items and history."""
+    items   = ReturnItemSerializer(many=True, read_only=True)
+    history = serializers.SerializerMethodField()
+
+    class Meta(AdminReturnListSerializer.Meta):
+        fields = AdminReturnListSerializer.Meta.fields + [
+            'items', 'history', 'rejection_reason', 'description',
+            'refund_at', 'refund_amount',
+        ]
+
+    def get_history(self, obj) -> list:
+        qs = obj.history_entries.all().order_by('-created_at')
+        return ReturnHistoryEntrySerializer(qs, many=True).data

@@ -23,15 +23,20 @@ class _AdminOnly:
     serializer_class = StaticContentSerializer
 
 
+_BODY_MAX_LENGTH = 102_400   # 100 KB — H-CICLO31-02: limitar contenido de página estática.
+
+
 class StaticContentListView(_AdminOnly, APIView):
     @extend_schema(summary='List static content pages.',
                    tags=['static-content'],
-                   operation_id='admin_static_content_list')
+                   operation_id='admin_static_content_list',
+                   responses={200: StaticContentSerializer(many=True)})
     def get(self, request):
         qs = StaticContent.objects.all().prefetch_related('versions')
         return Response(StaticContentSerializer(qs, many=True).data)
 
-    @extend_schema(summary='Create static content page.', tags=['static-content'])
+    @extend_schema(summary='Create static content page.', tags=['static-content'],
+                   responses={201: StaticContentSerializer})
     @transaction.atomic
     def post(self, request):
         slug = (request.data.get('slug') or '').strip()
@@ -41,6 +46,13 @@ class StaticContentListView(_AdminOnly, APIView):
             raise ValidationError({
                 'detail': 'slug y title son requeridos.',
                 'codigo_error': 'REQUIRED_FIELDS_MISSING',
+            })
+        # H-CICLO31-02: sin límite, un admin podría publicar una página con
+        # decenas de MB de contenido, saturando la BD y la respuesta HTTP.
+        if len(body) > _BODY_MAX_LENGTH:
+            raise ValidationError({
+                'detail': f'body no puede superar {_BODY_MAX_LENGTH} caracteres.',
+                'codigo_error': 'BODY_TOO_LONG',
             })
         if StaticContent.objects.filter(slug=slug).exists():
             raise ValidationError({
@@ -62,7 +74,8 @@ class StaticContentListView(_AdminOnly, APIView):
 class StaticContentDetailView(_AdminOnly, APIView):
     @extend_schema(summary='Retrieve static content page.',
                    tags=['static-content'],
-                   operation_id='admin_static_content_retrieve')
+                   operation_id='admin_static_content_retrieve',
+                   responses={200: StaticContentSerializer, 404: None})
     def get(self, request, slug):
         try:
             content = StaticContent.objects.prefetch_related('versions').get(slug=slug)
@@ -72,7 +85,8 @@ class StaticContentDetailView(_AdminOnly, APIView):
         return Response(StaticContentSerializer(content).data)
 
     @extend_schema(summary='Edit static content page (bumps version).',
-                   tags=['static-content'])
+                   tags=['static-content'],
+                   responses={200: StaticContentSerializer, 404: None})
     @transaction.atomic
     def patch(self, request, slug):
         try:
@@ -87,6 +101,12 @@ class StaticContentDetailView(_AdminOnly, APIView):
             raise ValidationError({
                 'detail': 'title no puede ser vacio.',
                 'codigo_error': 'TITLE_REQUIRED',
+            })
+        # H-CICLO31-02: mismo límite que en POST para prevenir cuerpos masivos.
+        if len(body) > _BODY_MAX_LENGTH:
+            raise ValidationError({
+                'detail': f'body no puede superar {_BODY_MAX_LENGTH} caracteres.',
+                'codigo_error': 'BODY_TOO_LONG',
             })
 
         content.version += 1

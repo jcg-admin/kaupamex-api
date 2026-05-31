@@ -12,13 +12,77 @@ from .models import SiteSettings, PaymentGateway, ShippingMethod
 class SiteSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model  = SiteSettings
+        # Excluding deprecated fields: currency, site_name, order_timeout_minutes, max_return_days
+        # (removed per migration 0008_sync_model_drift / DEC-DOC-005)
         fields = [
-            'id', 'iva_rate', 'payment_timeout_minutes',
-            'min_stock_threshold', 'free_shipping_threshold',
+            'id', 'iva_rate',
+            'payment_timeout_minutes', 'min_stock_threshold',
+            'free_shipping_threshold',
             'support_email', 'phone', 'address', 'social_links',
             'updated_at',
         ]
         read_only_fields = ['id', 'updated_at']
+
+    def validate_social_links(self, value):
+        if not isinstance(value, dict):
+            raise serializers.ValidationError(
+                'social_links debe ser un objeto JSON (dict).'
+            )
+        allowed_keys = {'facebook', 'instagram', 'twitter', 'youtube', 'tiktok', 'whatsapp'}
+        for key, url in value.items():
+            if key not in allowed_keys:
+                raise serializers.ValidationError(
+                    f'Clave no permitida: "{key}". '
+                    f'Claves validas: {sorted(allowed_keys)}.'
+                )
+            if not isinstance(url, str):
+                raise serializers.ValidationError(
+                    f'El valor de "{key}" debe ser una cadena de texto.'
+                )
+        return value
+
+
+class SiteSettingsAdminSerializer(serializers.ModelSerializer):
+    """
+    H-CICLO40-07: AdminSiteSettingsView importaba SiteSettingsAdminSerializer
+    que no existia en serializers.py, rompiendo la importacion del modulo y
+    levantando ImportError en cada peticion al endpoint /admin/settings/.
+    El serializer admin incluye todos los campos del modelo (incluidos los
+    campos legacy que el serializer publico excluye) para que el admin pueda
+    gestionar la configuracion completa del sistema (UC-ADM-04).
+    """
+
+    class Meta:
+        model  = SiteSettings
+        fields = [
+            'id',
+            'site_name', 'currency',
+            'iva_rate',
+            'payment_timeout_minutes', 'order_timeout_minutes',
+            'max_return_days', 'min_stock_threshold',
+            'free_shipping_threshold',
+            'support_email', 'phone', 'address', 'social_links',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'updated_at']
+
+    def validate_social_links(self, value):
+        if not isinstance(value, dict):
+            raise serializers.ValidationError(
+                'social_links debe ser un objeto JSON (dict).'
+            )
+        allowed_keys = {'facebook', 'instagram', 'twitter', 'youtube', 'tiktok', 'whatsapp'}
+        for key, url in value.items():
+            if key not in allowed_keys:
+                raise serializers.ValidationError(
+                    f'Clave no permitida: "{key}". '
+                    f'Claves validas: {sorted(allowed_keys)}.'
+                )
+            if not isinstance(url, str):
+                raise serializers.ValidationError(
+                    f'El valor de "{key}" debe ser una cadena de texto.'
+                )
+        return value
 
 
 # =============================================================================
@@ -76,7 +140,7 @@ class PaymentGatewaySerializer(serializers.ModelSerializer):
         instance = super().create(validated_data)
         if creds_raw:
             instance.set_credentials(creds_raw)
-            instance.save(update_fields=['credentials'])
+            instance.save(update_fields=['credentials', 'updated_at'])
         return instance
 
     def update(self, instance, validated_data):
@@ -84,7 +148,8 @@ class PaymentGatewaySerializer(serializers.ModelSerializer):
         instance = super().update(instance, validated_data)
         if creds_raw is not None:
             instance.set_credentials(creds_raw)
-            instance.save(update_fields=['credentials', 'verified_at'])
+            instance.verified_at = None
+            instance.save(update_fields=['credentials', 'verified_at', 'updated_at'])
         return instance
 
 

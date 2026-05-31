@@ -29,22 +29,26 @@ def cat_s12(db):
 
 @pytest.fixture
 def product_sin_variante(db, cat_s12):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Prod Sin Variante', slug='prod-sin-var-s12', sku='S12-SV-001',
-        description='', category=cat_s12,
+        description='',
         price=Decimal('800.00'), stock=10,
         is_active=True, is_published=True,
     )
+    _p.categories.add(cat_s12)
+    return _p
 
 
 @pytest.fixture
 def product_con_variante(db, cat_s12):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Prod Con Variante', slug='prod-con-var-s12', sku='S12-CV-001',
-        description='', category=cat_s12,
+        description='',
         price=Decimal('1200.00'), stock=0,
         is_active=True, is_published=True,
     )
+    _p.categories.add(cat_s12)
+    return _p
 
 
 @pytest.fixture

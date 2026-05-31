@@ -32,12 +32,14 @@ def category(db):
 
 @pytest.fixture
 def product(db, category):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Prodq', slug='prodq', sku='Q-001',
-        description='', category=category,
+        description='',
         price=Decimal('100.00'), stock=10,
         is_active=True, is_published=True,
     )
+    _p.categories.add(category)
+    return _p
 
 
 def _q_url(product_id):
@@ -137,7 +139,7 @@ class TestPublicList:
     def test_list_returns_empty_when_none(self, api_client, product, db):
         res = api_client.get(_q_url(product.pk))
         assert res.status_code == 200
-        assert res.json() == {'results': []}
+        assert res.json()['results'] == []
 
     def test_list_404_for_unknown_product(self, api_client, db):
         res = api_client.get(_q_url(999999))
@@ -147,7 +149,7 @@ class TestPublicList:
         _make_question(product, status='ANSWERED', body='Q1', answer_body='')
         res = api_client.get(_q_url(product.pk))
         assert res.status_code == 200
-        assert res.json() == {'results': []}
+        assert res.json()['results'] == []
 
 
 # ─── GET /admin/questions — admin queue ──────────────────────────────────

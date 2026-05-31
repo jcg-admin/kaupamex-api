@@ -1,187 +1,261 @@
 """
-Views — apps.questions (UC-QST-01..04).
+Views — apps.questions (P-11 / UC-QST-01..04).
 
-Public endpoints:
-  POST /api/v1/products/<id>/questions/                    public ask
-  GET  /api/v1/products/<id>/questions/                    public list (approved only)
+Public:
+  POST /api/v1/products/<product_id>/questions/ — UC-QST-01 ask
+  GET  /api/v1/products/<product_id>/questions/ — UC-QST-01 public list (ANSWERED only)
 
-Admin endpoints:
-  GET  /api/v1/admin/questions/?status=...                 admin queue
-  POST /api/v1/admin/questions/<id>/answer/                admin answer
-  POST /api/v1/admin/questions/<id>/approve/               admin approve
-  POST /api/v1/admin/questions/<id>/reject/                admin reject
-
-JSON keys + identifiers in English (DEC-DOC-005).
+Admin:
+  GET  /api/v1/admin/questions/                           UC-QST-03 queue
+  POST /api/v1/admin/questions/<question_id>/answer/      UC-QST-02
+  POST /api/v1/admin/questions/<question_id>/approve/     UC-QST-04
+  POST /api/v1/admin/questions/<question_id>/reject/      UC-QST-04
 """
-from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import status
+from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from apps.catalogue.models import Product
 from .models import ProductQuestion, QuestionStatus
-from .serializers import AdminAnswerSerializer, AdminQuestionItemSerializer, PublicQuestionCreateSerializer, PublicQuestionItemSerializer
+from .serializers import (
+    PublicQuestionItemSerializer,
+    PublicQuestionCreateSerializer,
+    AdminQuestionItemSerializer,
+    AdminAnswerSerializer,
+)
 
 
+VALID_STATUSES = {s[0] for s in QuestionStatus.choices}
 
 
-# ── public ────────────────────────────────────────────────────────────
+class AdminQuestionPagination(PageNumberPagination):
+    """H-CICLO84-02: paginar cola de preguntas admin para evitar OOM."""
+    page_size             = 50
+    page_size_query_param = 'page_size'
+    max_page_size         = 200
+
+
+class PublicQuestionPagination(PageNumberPagination):
+    """H-CICLO120-01: paginar listado publico de preguntas.
+    Sin paginacion un producto con muchas Q&A respondidas retorna toda
+    la tabla en un solo response, causando OOM en el worker y freeze
+    en el cliente. page_size conservador (20) apropiado para el frontend.
+    """
+    page_size             = 20
+    page_size_query_param = 'page_size'
+    max_page_size         = 100
+
+
 class ProductQuestionsView(APIView):
-    """GET/POST /api/v1/products/<product_id>/questions/."""
+    """
+    GET  /api/v1/products/<product_id>/questions/ — UC-QST-01 public list
+    POST /api/v1/products/<product_id>/questions/ — UC-QST-01 ask
+    """
+    permission_classes = [AllowAny]
+    # H-CICLO42-04: throttle para el POST de preguntas publicas. Sin limite
+    # cualquier visitante puede inundar la cola de moderacion del admin.
+    # El GET no tiene throttle_scope pero hereda AnonRateThrottle del
+    # DEFAULT_THROTTLE_CLASSES global (anon: 100/hour).
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope   = 'question_ask'
 
-    serializer_class = PublicQuestionItemSerializer
-
-    def get_permissions(self):
-        # GET es publico; POST requiere AllowAny (anon o autenticado).
-        return [AllowAny()]
+    def _get_product(self, product_id):
+        # H-CICLO23-03: filtrar sólo productos activos y publicados.
+        # Sin este filtro, cualquiera podría listar preguntas de productos
+        # inactivos o enviar preguntas a productos que ya no existen
+        # públicamente, pudiendo crear ruido en la cola de moderación.
+        try:
+            return Product.objects.get(pk=product_id, is_active=True, is_published=True)
+        except Product.DoesNotExist:
+            raise NotFound({'detail': 'Producto no encontrado.',
+                            'codigo_error': 'PRODUCT_NOT_FOUND'})
 
     @extend_schema(
-        summary='Listar preguntas publicas de un producto',
+        summary='Listar preguntas públicas del producto (UC-QST-01)',
         tags=['questions'],
-        responses=PublicQuestionItemSerializer(many=True),
+        responses={200: PublicQuestionItemSerializer(many=True)},
     )
     def get(self, request, product_id):
-        get_object_or_404(Product, pk=product_id)
+        product = self._get_product(product_id)
+        # Public: only ANSWERED with non-empty answer_body
         qs = (
             ProductQuestion.objects
             .filter(
-                product_id=product_id,
+                product=product,
                 status=QuestionStatus.ANSWERED,
             )
             .exclude(answer_body='')
+            .select_related('asker_user')
+            .order_by('-created_at')
         )
-        data = PublicQuestionItemSerializer(qs, many=True).data
-        return Response({'results': data})
+        # H-CICLO120-01: paginar listado publico. Sin paginacion un producto
+        # con cientos de Q&A retorna toda la tabla en un solo response,
+        # causando OOM en el worker y freeze en el UI del comprador.
+        paginator = PublicQuestionPagination()
+        page = paginator.paginate_queryset(qs, request)
+        if page is not None:
+            return paginator.get_paginated_response(
+                PublicQuestionItemSerializer(page, many=True).data
+            )
+        return Response({'results': PublicQuestionItemSerializer(qs, many=True).data})
 
     @extend_schema(
-        summary='Crear pregunta de producto',
+        summary='Enviar pregunta sobre el producto (UC-QST-01)',
         tags=['questions'],
-        request=PublicQuestionCreateSerializer,
+        responses={201: PublicQuestionItemSerializer, 400: None},
     )
     def post(self, request, product_id):
-        # 404 first: el contrato dice que un producto desconocido devuelve
-        # 404 aunque el body no sea valido.
-        product = get_object_or_404(Product, pk=product_id)
-        serializer = PublicQuestionCreateSerializer(
-            data=request.data, context={'request': request},
-        )
-        serializer.is_valid(raise_exception=True)
-        payload = serializer.validated_data
+        product = self._get_product(product_id)
 
-        user = request.user if request.user.is_authenticated else None
+        ser = PublicQuestionCreateSerializer(data=request.data, context={'request': request})
+        ser.is_valid(raise_exception=True)
+        vdata = ser.validated_data
+
         question = ProductQuestion.objects.create(
             product=product,
-            asker_user=user,
-            asker_name=payload.get('asker_name', '') or '',
-            asker_email=payload.get('asker_email', '') or '',
-            body=payload['body'],
+            body=vdata['body'],
+            asker_name=vdata.get('asker_name', ''),
+            asker_email=vdata.get('asker_email', ''),
+            asker_user=request.user if request.user.is_authenticated else None,
             status=QuestionStatus.PENDING,
         )
         return Response(
-            {
-                'id': question.pk,
-                'product': product.pk,
-                'body': question.body,
-                'status': question.status,
-                'created_at': question.created_at,
-            },
+            PublicQuestionItemSerializer(question).data,
             status=status.HTTP_201_CREATED,
         )
 
 
-# ── admin ─────────────────────────────────────────────────────────────
-class AdminQuestionsListView(APIView):
-    """GET /api/v1/admin/questions/."""
-
+class _AdminOnly:
     permission_classes = [IsAuthenticated, IsAdminUser]
 
+
+class AdminQuestionsListView(_AdminOnly, APIView):
+    """GET /api/v1/admin/questions/ — UC-QST-03 cola de moderación."""
+
     @extend_schema(
-        summary='Listar preguntas para moderacion',
+        summary='Cola de preguntas (UC-QST-03)',
+        parameters=[OpenApiParameter('status', str, required=False)],
         tags=['questions'],
-        parameters=[
-            OpenApiParameter('status', str, required=False),
-        ],
-        responses=AdminQuestionItemSerializer(many=True),
+        responses={200: AdminQuestionItemSerializer(many=True)},
     )
     def get(self, request):
-        qs = ProductQuestion.objects.all()
         status_filter = request.query_params.get('status')
-        if status_filter:
-            valid = {c[0] for c in QuestionStatus.choices}
-            if status_filter not in valid:
+
+        if status_filter is not None:
+            if status_filter not in VALID_STATUSES:
                 return Response(
-                    {'error_code': 'INVALID_STATUS',
-                     'detail': 'status invalido.'},
+                    {'detail': f'Estado inválido: {status_filter!r}.',
+                     'codigo_error': 'INVALID_STATUS',
+                     'valid_statuses': list(VALID_STATUSES)},
                     status=400,
                 )
-            qs = qs.filter(status=status_filter)
-        data = AdminQuestionItemSerializer(qs, many=True).data
-        return Response({'results': data})
+            qs = ProductQuestion.objects.filter(status=status_filter)
+        else:
+            qs = ProductQuestion.objects.all()
+
+        # H-CICLO48-03: AdminQuestionItemSerializer accede a product.name,
+        # asker_user (username) y answered_by. Sin select_related se generan
+        # N+1 queries por cada pregunta en la cola. Se agregan las tres FKs.
+        qs = qs.select_related('product', 'asker_user', 'answered_by').order_by('created_at')
+        # H-CICLO84-02: paginar la cola de admin. Sin paginacion una tienda
+        # con cientos de preguntas acumuladas retorna toda la tabla en una
+        # sola respuesta, agotando memoria del worker y ancho de banda.
+        paginator = AdminQuestionPagination()
+        page = paginator.paginate_queryset(qs, request)
+        if page is not None:
+            return paginator.get_paginated_response(
+                AdminQuestionItemSerializer(page, many=True).data
+            )
+        return Response({'results': AdminQuestionItemSerializer(qs, many=True).data})
 
 
-class AdminQuestionAnswerView(APIView):
-    """POST /api/v1/admin/questions/<id>/answer/."""
-
-    permission_classes = [IsAuthenticated, IsAdminUser]
+class AdminQuestionAnswerView(_AdminOnly, APIView):
+    """POST /api/v1/admin/questions/<question_id>/answer/ — UC-QST-02 responder."""
 
     @extend_schema(
-        summary='Responder pregunta',
+        summary='Responder pregunta (UC-QST-02)',
         tags=['questions'],
-        request=AdminAnswerSerializer,
-        responses=AdminQuestionItemSerializer,
+        responses={200: AdminQuestionItemSerializer, 400: None, 404: None},
     )
     def post(self, request, question_id):
-        question = get_object_or_404(ProductQuestion, pk=question_id)
-        serializer = AdminAnswerSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        question.answer_body = serializer.validated_data['answer_body']
+        try:
+            question = ProductQuestion.objects.get(pk=question_id)
+        except ProductQuestion.DoesNotExist:
+            raise NotFound({'detail': 'Pregunta no encontrada.',
+                            'codigo_error': 'QUESTION_NOT_FOUND'})
+
+        # H-CICLO23-02: prevenir sobre-escritura de respuesta ya publicada.
+        # Una pregunta en estado ANSWERED ya tiene respuesta visible para el
+        # comprador; permitir re-responder sin restricción puede reemplazar
+        # contenido aprobado por un error de moderador. Si es necesario
+        # corregir la respuesta, primero se rechaza la pregunta y luego se
+        # vuelve a responder.
+        if question.status == QuestionStatus.ANSWERED and question.answer_body:
+            return Response(
+                {'detail': 'La pregunta ya tiene una respuesta publicada.',
+                 'codigo_error': 'QUESTION_ALREADY_ANSWERED'},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        ser = AdminAnswerSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        answer_body = ser.validated_data['answer_body']
+
+        question.answer_body = answer_body
+        question.status = QuestionStatus.ANSWERED
         question.answered_at = timezone.now()
         question.answered_by = request.user
-        question.status = QuestionStatus.ANSWERED
-        question.save(update_fields=[
-            'answer_body', 'answered_at', 'answered_by',
-            'status', 'updated_at',
-        ])
+        question.save(update_fields=['answer_body', 'status', 'answered_at', 'answered_by', 'updated_at'])
         return Response(AdminQuestionItemSerializer(question).data)
 
 
-class AdminQuestionApproveView(APIView):
-    """POST /api/v1/admin/questions/<id>/approve/."""
-
-    permission_classes = [IsAuthenticated, IsAdminUser]
-    serializer_class = AdminQuestionItemSerializer
+class AdminQuestionApproveView(_AdminOnly, APIView):
+    """POST /api/v1/admin/questions/<question_id>/approve/ — UC-QST-04."""
 
     @extend_schema(
-        summary='Aprobar pregunta respondida',
+        summary='Aprobar pregunta (UC-QST-04)',
         tags=['questions'],
+        responses={200: AdminQuestionItemSerializer, 409: None, 404: None},
     )
     def post(self, request, question_id):
-        question = get_object_or_404(ProductQuestion, pk=question_id)
+        try:
+            question = ProductQuestion.objects.get(pk=question_id)
+        except ProductQuestion.DoesNotExist:
+            raise NotFound({'detail': 'Pregunta no encontrada.',
+                            'codigo_error': 'QUESTION_NOT_FOUND'})
+
+        # Cannot approve without an answer
         if not question.answer_body:
             return Response(
-                {'error_code': 'NOT_ANSWERED',
-                 'detail': 'La pregunta no tiene respuesta.'},
-                status=409,
+                {'detail': 'No se puede aprobar sin respuesta.',
+                 'codigo_error': 'NO_ANSWER_BODY'},
+                status=status.HTTP_409_CONFLICT,
             )
+
         question.status = QuestionStatus.ANSWERED
         question.save(update_fields=['status', 'updated_at'])
-        return Response({'id': question.pk, 'status': question.status})
+        return Response(AdminQuestionItemSerializer(question).data)
 
 
-class AdminQuestionRejectView(APIView):
-    """POST /api/v1/admin/questions/<id>/reject/."""
-
-    permission_classes = [IsAuthenticated, IsAdminUser]
-    serializer_class = AdminQuestionItemSerializer
+class AdminQuestionRejectView(_AdminOnly, APIView):
+    """POST /api/v1/admin/questions/<question_id>/reject/ — UC-QST-04."""
 
     @extend_schema(
-        summary='Rechazar pregunta',
+        summary='Rechazar pregunta (UC-QST-04)',
         tags=['questions'],
+        responses={200: AdminQuestionItemSerializer, 404: None},
     )
     def post(self, request, question_id):
-        question = get_object_or_404(ProductQuestion, pk=question_id)
+        try:
+            question = ProductQuestion.objects.get(pk=question_id)
+        except ProductQuestion.DoesNotExist:
+            raise NotFound({'detail': 'Pregunta no encontrada.',
+                            'codigo_error': 'QUESTION_NOT_FOUND'})
         question.status = QuestionStatus.REJECTED
         question.save(update_fields=['status', 'updated_at'])
-        return Response({'id': question.pk, 'status': question.status})
+        return Response(AdminQuestionItemSerializer(question).data)

@@ -5,3 +5,7 @@ class NotificationsConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'apps.notifications'
     verbose_name = 'Notificaciones'
+
+    def ready(self):
+        import apps.notifications.handlers  # noqa: F401 — connect signal receivers
+        import apps.notifications.signals   # noqa: F401 — connect post_save receivers

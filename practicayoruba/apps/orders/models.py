@@ -20,21 +20,25 @@ def _generate_order_number() -> str:
 
 class Order(TimeStampedModel, SoftDeleteModel):
     """Orden de compra. Hereda SoftDeleteModel (DEC-DOC-007)."""
-    STATUS_PENDING        = 'PENDING'
-    STATUS_PROCESSING     = 'PROCESSING'
-    STATUS_IN_PREPARATION = 'IN_PREPARATION'
-    STATUS_SHIPPED        = 'SHIPPED'
-    STATUS_DELIVERED      = 'DELIVERED'
-    STATUS_CANCELLED      = 'CANCELLED'
-    STATUS_REFUNDED       = 'REFUNDED'
+    STATUS_PENDING              = 'PENDING'
+    STATUS_PROCESSING           = 'PROCESSING'
+    STATUS_IN_PREPARATION       = 'IN_PREPARATION'
+    STATUS_SHIPPED              = 'SHIPPED'
+    STATUS_DELIVERED            = 'DELIVERED'
+    STATUS_CANCELLED            = 'CANCELLED'
+    STATUS_CANCELLED_BY_TIMEOUT = 'CANCELLED_TIMEOUT'
+    STATUS_REFUNDED             = 'REFUNDED'
+    STATUS_PAID                 = 'PAID'
     STATUSES = [
-        (STATUS_PENDING,        'Pendiente de pago'),
-        (STATUS_PROCESSING,     'Procesando pago'),
-        (STATUS_IN_PREPARATION, 'En preparación'),
-        (STATUS_SHIPPED,        'Enviado'),
-        (STATUS_DELIVERED,      'Entregado'),
-        (STATUS_CANCELLED,      'Cancelado'),
-        (STATUS_REFUNDED,       'Reembolsado'),
+        (STATUS_PENDING,              'Pendiente de pago'),
+        (STATUS_PROCESSING,           'Procesando pago'),
+        (STATUS_PAID,                 'Pagado'),
+        (STATUS_IN_PREPARATION,       'En preparación'),
+        (STATUS_SHIPPED,              'Enviado'),
+        (STATUS_DELIVERED,            'Entregado'),
+        (STATUS_CANCELLED,            'Cancelado'),
+        (STATUS_CANCELLED_BY_TIMEOUT, 'Cancelado por timeout'),
+        (STATUS_REFUNDED,             'Reembolsado'),
     ]
 
     order_number    = models.CharField(max_length=20, unique=True, db_index=True)
@@ -176,6 +180,10 @@ class OrderStatusLog(TimeStampedModel):
     )
     notes           = models.TextField(blank=True, default='')
 
+    # DEC-003: override para db_index en tabla de historial — queries de
+    # historial ordenadas por created_at son frecuentes en el admin.
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
     class Meta:
         db_table     = 'orders_status_log'
         ordering     = ['-created_at']
@@ -186,3 +194,43 @@ class OrderStatusLog(TimeStampedModel):
             f'{self.order.order_number}: '
             f'{self.previous_status} → {self.new_status}'
         )
+
+
+class CheckoutAttempt(models.Model):
+    """
+    Caché de respuestas de checkout para idempotencia. DEC-BC-03.
+    UNIQUE(user, idempotency_key) previene doble orden con la misma clave.
+    """
+    user            = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='checkout_attempts',
+    )
+    idempotency_key = models.CharField(max_length=100)
+    response_json   = models.TextField(default='')
+    created_at      = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table        = 'orders_checkout_attempt'
+        unique_together = [('user', 'idempotency_key')]
+        verbose_name    = 'Checkout attempt'
+
+    def __str__(self):
+        return f'{self.user_id}/{self.idempotency_key}'
+
+
+class ShippingZone(models.Model):
+    """
+    Zona de envío cubierta. DEC-BC-18.
+    zip_code_prefix es el inicio del código postal cubierto (1-5 dígitos).
+    Ejemplo: "44" cubre todos los CP que empiezan con "44" (Guadalajara, JAL).
+    """
+    name            = models.CharField(max_length=100)
+    zip_code_prefix = models.CharField(max_length=5, db_index=True)
+    is_active       = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'orders_shipping_zone'
+
+    def __str__(self):
+        return f'{self.name} ({self.zip_code_prefix})'

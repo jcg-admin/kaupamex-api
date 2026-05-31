@@ -33,11 +33,13 @@ def cat_browse(db):
 
 @pytest.fixture
 def prod_browse(db, cat_browse):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Yoruba Sample', slug='yoruba-sample', sku='BR-001',
-        category=cat_browse, price=Decimal('100'), stock=5,
+        price=Decimal('100'), stock=5,
         is_active=True, is_published=True,
     )
+    _p.categories.add(cat_browse)
+    return _p
 
 
 class TestRelatedProducts:
@@ -45,9 +47,11 @@ class TestRelatedProducts:
     def test_related_misma_categoria(self, api_client, cat_browse, prod_browse, db):
         p2 = Product.objects.create(
             name='Otro', slug='otro-yoruba', sku='BR-002',
-            category=cat_browse, price=Decimal('100'), stock=1,
+            price=Decimal('100'), stock=1,
             is_active=True, is_published=True,
         )
+        p2.categories.add(cat_browse)
+        p2.categories.add(cat_browse)
         r = api_client.get(f'/api/v1/products/{prod_browse.slug}/related/')
         assert r.status_code == 200
         data = r.json()

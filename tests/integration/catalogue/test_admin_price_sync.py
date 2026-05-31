@@ -24,22 +24,26 @@ def cat_soperas(db):
 
 @pytest.fixture
 def product_activo(db, cat_soperas):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Sopera Yemaya S8', slug='sopera-yemaya-s8', sku='S8-YEM-001',
-        description='', category=cat_soperas,
+        description='',
         price=Decimal('3200.00'), stock=7,
         is_active=True, is_published=True,
     )
+    _p.categories.add(cat_soperas)
+    return _p
 
 
 @pytest.fixture
 def product_sin_stock(db, cat_soperas):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Producto Sin Stock', slug='sin-stock-s8', sku='S8-NST-001',
-        description='', category=cat_soperas,
+        description='',
         price=Decimal('1000.00'), stock=0,
         is_active=True, is_published=True,
     )
+    _p.categories.add(cat_soperas)
+    return _p
 
 
 def _make_csv(rows):

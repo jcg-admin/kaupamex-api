@@ -3,7 +3,9 @@ Vistas Admin — apps.orders
 Sprint 19 — UC-ORD-07, UC-ORD-08, UC-ORD-09, UC-ORD-10
 """
 import logging
+from datetime import date as dt_date
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -64,15 +66,46 @@ class AdminOrderListView(APIView):
         if order_number := params.get('order_number'):
             qs = qs.filter(order_number__icontains=order_number)
         if status := params.get('status'):
+            # H-CICLO98-01: validate status against Order.STATUSES choices to
+            # return 400 instead of silently returning an empty queryset.
+            valid_statuses = {s[0] for s in Order.STATUSES}
+            if status not in valid_statuses:
+                raise ValidationError({
+                    'status': f'Estado inválido. Opciones válidas: {sorted(valid_statuses)}',
+                    'codigo_error': 'INVALID_STATUS',
+                })
             qs = qs.filter(status=status)
         if email := params.get('email'):
             qs = qs.filter(
                 Q(user__email__icontains=email) |
                 Q(guest_email__icontains=email)
             )
-        if date_from := params.get('date_from'):
+        date_from = params.get('date_from') or None
+        date_to   = params.get('date_to') or None
+        if date_from:
+            try:
+                dt_date.fromisoformat(date_from)
+            except ValueError:
+                raise ValidationError({
+                    'date_from': 'Formato inválido. Use YYYY-MM-DD.',
+                    'codigo_error': 'INVALID_DATE_FORMAT',
+                })
+        if date_to:
+            try:
+                dt_date.fromisoformat(date_to)
+            except ValueError:
+                raise ValidationError({
+                    'date_to': 'Formato inválido. Use YYYY-MM-DD.',
+                    'codigo_error': 'INVALID_DATE_FORMAT',
+                })
+        if date_from and date_to and date_from > date_to:
+            raise ValidationError({
+                'date_from': 'date_from no puede ser posterior a date_to.',
+                'codigo_error': 'INVALID_DATE_RANGE',
+            })
+        if date_from:
             qs = qs.filter(created_at__date__gte=date_from)
-        if date_to := params.get('date_to'):
+        if date_to:
             qs = qs.filter(created_at__date__lte=date_to)
 
         paginator = AdminOrderPagination()
@@ -179,7 +212,16 @@ class AdminOrderStatusUpdateView(APIView):
                 status=400,
             )
 
-        order.refresh_from_db()
+        # Re-fetch con select_related/prefetch completo para evitar N+1 al
+        # serializar: AdminOrderSerializer accede a items, value, address,
+        # shipping_method y user (campos que OrderSerializer/AdminOrderSerializer
+        # consumen).
+        order = (
+            Order.objects
+            .select_related('value', 'address', 'shipping_method', 'user')
+            .prefetch_related('items')
+            .get(pk=order.pk)
+        )
         return Response(AdminOrderSerializer(order).data)
 
 
@@ -245,7 +287,15 @@ class AdminOrderCancelView(APIView):
                 status=503,
             )
 
-        order.refresh_from_db()
+        # Re-fetch con select_related/prefetch completo para evitar N+1 al
+        # serializar con AdminOrderSerializer (accede a items, value, address,
+        # shipping_method, user).
+        order = (
+            Order.objects
+            .select_related('value', 'address', 'shipping_method', 'user')
+            .prefetch_related('items')
+            .get(pk=order.pk)
+        )
         return Response(AdminOrderSerializer(order).data)
 
 

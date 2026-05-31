@@ -1,6 +1,6 @@
 """
 service.py — apps.notifications
-Servicios de notificacion transaccional. UC-NOT-01..05.
+Servicios de notificacion transaccional. UC-NOT-01..05, UC-NOT-08.
 
 Cada funcion `notify_*` hace dos cosas:
 1. Crea la Notification in-app (debe llamarse dentro de transaction.atomic).
@@ -19,6 +19,7 @@ from .emails import (
     send_shipping_update_email,
     send_return_processed_email,
     send_refund_email,
+    send_support_closed_email,
 )
 
 
@@ -59,8 +60,8 @@ def notify_order_status_changed(order, new_status):
     Solo notifica estados relevantes (FR-NOT-02.02).
     """
     notify_statuses = {
-        'PAYMENT_CONFIRMED', 'IN_PREPARATION', 'SHIPPED',
-        'DELIVERED', 'CANCELLED', 'CANCELLED_TIMEOUT',
+        'PROCESSING', 'IN_PREPARATION', 'SHIPPED',
+        'DELIVERED', 'CANCELLED', 'REFUNDED',
     }
     if new_status not in notify_statuses:
         return
@@ -70,12 +71,12 @@ def notify_order_status_changed(order, new_status):
         return
 
     _labels = {
-        'PAYMENT_CONFIRMED': 'Pago confirmado',
-        'IN_PREPARATION':    'Pedido en preparacion',
-        'SHIPPED':           'Pedido enviado',
-        'DELIVERED':         'Pedido entregado',
-        'CANCELLED':         'Orden cancelada',
-        'CANCELLED_TIMEOUT': 'Orden cancelada por tiempo agotado',
+        'PROCESSING':      'Pago en proceso',
+        'IN_PREPARATION':  'Pedido en preparacion',
+        'SHIPPED':         'Pedido enviado',
+        'DELIVERED':       'Pedido entregado',
+        'CANCELLED':       'Orden cancelada',
+        'REFUNDED':        'Orden reembolsada',
     }
     label = _labels.get(new_status, new_status)
 
@@ -184,5 +185,47 @@ def notify_refund_processed(order, user, amount_refunded):
         transaction.on_commit(
             lambda: send_refund_email(
                 user_email, name, order_num, amount,
+            )
+        )
+
+
+def notify_support_closed(ticket, user, closed_by_staff=False):
+    """
+    UC-NOT-08: notificacion de cierre de ticket de soporte.
+    Llamar dentro de transaction.atomic() post-transicion a CLOSED.
+    Funciona para cierre manual (staff o buyer) y cierre automatico.
+    """
+    if not user or not getattr(user, 'pk', None):
+        return
+
+    if closed_by_staff:
+        subject = f'Ticket #{ticket.pk} resuelto — Soporte'
+        body = (
+            f'Nuestro equipo ha marcado tu ticket #{ticket.pk} '
+            f'"{ticket.subject}" como resuelto.'
+        )
+    else:
+        subject = f'Ticket #{ticket.pk} cerrado'
+        body = (
+            f'Tu ticket #{ticket.pk} "{ticket.subject}" '
+            f'ha sido cerrado.'
+        )
+
+    Notification.objects.create(
+        user=user,
+        type=NotificationType.SUPPORT_UPDATE,
+        subject=subject,
+        body=body,
+    )
+
+    if user.email:
+        user_email   = user.email
+        name         = user.first_name or user.username
+        ticket_id    = ticket.pk
+        ticket_subj  = ticket.subject
+        by_staff     = closed_by_staff
+        transaction.on_commit(
+            lambda: send_support_closed_email(
+                user_email, name, ticket_id, ticket_subj, by_staff,
             )
         )

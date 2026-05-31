@@ -4,7 +4,7 @@ from decouple import config, Csv
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-SECRET_KEY = config('SECRET_KEY', default='django-insecure-CHANGE-ME')
+SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=False, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
 
@@ -15,6 +15,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
@@ -41,12 +42,14 @@ INSTALLED_APPS = [
     'apps.reviews',
     'apps.search_history',
     'apps.static_content',
+    'apps.backups',
 ]
 
 AUTH_USER_MODEL = 'users.User'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -110,6 +113,7 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
@@ -147,6 +151,51 @@ REST_FRAMEWORK = {
         'email_verify':        '10/hour',
         'resend_verification': '3/hour',
         'contact':             '5/hour',
+        'addresses':           '30/hour',
+        'change_password':     '5/hour',   # D-04-08
+        # H-CICLO22-03: scope dedicado para CartVoucherView.
+        # El endpoint revela existencia del voucher (VOUCHER_NOT_FOUND vs
+        # validación fallida), lo que habilita enumeración de códigos.
+        # 20/hour anón y 60/hour usuario reducen la ventana de brute-force
+        # a menos de 1 código/3-min para anónimos.
+        'voucher_apply':       '20/hour',
+        # H-CICLO26-02: scopes para endpoints públicos de newsletter.
+        # subscribe: evita spam de suscripciones y flooding de email.
+        # newsletter_confirm: evita enumeración de tokens de confirmación.
+        'newsletter_subscribe':   '10/hour',
+        'newsletter_confirm':     '20/hour',
+        # H-CICLO42-03: scope para baja de newsletter. Sin throttle el
+        # endpoint permite enumeracion de tokens y bajas masivas automatizadas.
+        'newsletter_unsubscribe': '10/hour',
+        # H-CICLO42-04: scope para envio de preguntas publicas (UC-QST-01).
+        # Sin throttle, cualquier visitante podia inundar la cola de moderacion.
+        'question_ask':           '10/hour',
+        # H-CICLO29-02: throttle para creacion de reseñas (UC-REV-02).
+        # Sin este scope cualquier usuario autenticado podia spamear el
+        # endpoint con distintos order_id. 10/hour permite resenar varios
+        # productos de pedidos distintos sin limitar el uso legitimo.
+        'review_create':        '10/hour',
+        # H-CICLO43-01: throttle para CheckoutView (AllowAny, POST crea orden).
+        # Sin throttle un atacante puede crear ordenes masivas bloqueando stock
+        # y saturando la BD. 20/hour permite completar compras legitimas
+        # (incluso invitados con varios intentos) sin abrir vector de abuso.
+        'checkout':             '20/hour',
+        # H-CICLO43-02: throttle para CartView/CartItemListView/CartItemDetailView.
+        # Endpoints publicos (invitados y autenticados); sin throttle permiten
+        # flooding del carrito. 120/hour cubre uso intensivo del SPA sin
+        # restringir la experiencia de compra normal.
+        'cart':                 '120/hour',
+        # H-CICLO90-02: throttle para PaymentReturnView (AllowAny).
+        # Sin throttle un atacante puede llamar el endpoint con order_numbers
+        # arbitrarios y crear PaymentGatewayEvent rows en cada peticion, saturando
+        # la BD de auditoria. 60/hour cubre el caso de uso legítimo (el gateway
+        # redirige al comprador una sola vez por pago).
+        'payment_return':       '60/hour',
+        # H-CICLO108-05: throttle para InitiatePaymentView (IsAuthenticated).
+        # Sin throttle un comprador (o un token robado) puede crear docenas de
+        # preferencias en el gateway para la misma orden, consumiendo cuota de API.
+        # 20/hour cubre reintentos legítimos sin abrir vector de abuso.
+        'initiate_payment':     '20/hour',
     },
 }
 
@@ -265,6 +314,12 @@ SPECTACULAR_SETTINGS = {
     },
 }
 
+# CORS — origins must be set explicitly via env var in each environment.
+# Empty default means all cross-origin requests are rejected unless overridden
+# (e.g., development.py sets CORS_ALLOWED_ORIGINS for localhost).
+CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='', cast=Csv())
+CORS_ALLOW_CREDENTIALS = True
+
 # H-09: ensure logs directory exists on fresh checkouts before RotatingFileHandler
 # tries to open the file. Using mkdir(parents=True, exist_ok=True) is idempotent
 # and keeps the existing deployment assumption (logs live under BASE_DIR/logs).
@@ -289,34 +344,9 @@ LOGGING = {
     },
 }
 
-# ───────────────────────────── Celery (D-004) ────────────────────────────
-# Broker opcional. Si `REDIS_URL` no esta definido el sistema funciona en
-# modo eager (todas las tasks se ejecutan inline) — adecuado para dev y
-# tests. En produccion se setea REDIS_URL para activar fanout asincrono
-# de notificaciones manuales (apps.notifications.tasks.dispatch_manual_fanout).
-CELERY_BROKER_URL = config(
-    'CELERY_BROKER_URL',
-    default=config('REDIS_URL', default='memory://'),
-)
-CELERY_RESULT_BACKEND = config('CELERY_RESULT_BACKEND', default='cache+memory://')
-CELERY_TASK_ALWAYS_EAGER = config(
-    'CELERY_TASK_ALWAYS_EAGER', default=True, cast=bool,
-)
-CELERY_TASK_EAGER_PROPAGATES = True
-CELERY_ACCEPT_CONTENT = ['json']
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_SERIALIZER = 'json'
-
-# Umbral a partir del cual el fanout de notificaciones manuales se
-# despacha asincronamente (D-004). >100 destinatarios -> Celery;
-# <=100 -> ejecucion sincrona en proceso.
-MANUAL_FANOUT_ASYNC_THRESHOLD = config(
-    'MANUAL_FANOUT_ASYNC_THRESHOLD', default=100, cast=int,
-)
-
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 
-# Cache — DatabaseCache (Sprint 6)
+# Cache — DatabaseCache (cnst-arquitectura T4/T5).
 # UC-SRCH-02 (autocomplete) usa la clave "autocomplete:<prefijo>" con TTL 60s.
 # UC-CAT-08 (árbol de categorías) usará la clave "categories:tree" con TTL 300s.
 # La tabla se crea con: python manage.py createcachetable

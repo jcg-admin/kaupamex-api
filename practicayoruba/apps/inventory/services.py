@@ -55,25 +55,26 @@ def _maybe_create_alert(product, variant, new_stock: int) -> None:
         return
 
     cutoff = timezone.now() - timedelta(hours=24)
-    already = StockAlert.objects.filter(
-        product=product, resolved=False, created_at__gte=cutoff
-    )
-    if variant:
-        already = already.filter(variant=variant)
-    if already.exists():
-        return
+    with transaction.atomic():
+        already = StockAlert.objects.select_for_update().filter(
+            product=product, resolved=False, created_at__gte=cutoff
+        )
+        if variant:
+            already = already.filter(variant=variant)
+        if already.exists():
+            return
 
-    StockAlert.objects.create(
-        product=product,
-        variant=variant,
-        stock_at_alert=new_stock,
-    )
-    logger.info(
-        'StockAlert creada: %s%s stock=%d umbral=%d',
-        product.sku,
-        f'/{variant.option.label}' if variant else '',
-        new_stock, threshold,
-    )
+        StockAlert.objects.create(
+            product=product,
+            variant=variant,
+            stock_at_alert=new_stock,
+        )
+        logger.info(
+            'StockAlert creada: %s%s stock=%d umbral=%d',
+            product.sku,
+            f'/{variant.option.label}' if variant else '',
+            new_stock, threshold,
+        )
 
 
 class InventoryService:
@@ -114,8 +115,9 @@ class InventoryService:
                         raise InsufficientStockError(
                             product.sku, v.option.label, v.stock, quantity
                         )
+                    stock_before = v.stock
                     v.stock -= quantity
-                    v.save(update_fields=['stock'])
+                    v.save(update_fields=['stock', 'updated_at'])
                     stock_after = v.stock
                 else:
                     p = Product.objects.select_for_update().get(pk=product.pk)
@@ -123,13 +125,15 @@ class InventoryService:
                         raise InsufficientStockError(
                             p.sku, None, p.stock, quantity
                         )
+                    stock_before = p.stock
                     p.stock -= quantity
-                    p.save(update_fields=['stock'])
+                    p.save(update_fields=['stock', 'updated_at'])
                     stock_after = p.stock
 
                 mov = StockMovement.objects.create(
                     product=product, variant=variant,
-                    delta=-quantity, stock_after=stock_after,
+                    delta=-quantity, stock_before=stock_before,
+                    stock_after=stock_after,
                     movement_type=StockMovement.TYPE_SALE,
                     reference=reference, created_by=created_by,
                 )
@@ -165,18 +169,21 @@ class InventoryService:
 
                 if variant:
                     v = ProductVariant.objects.select_for_update().get(pk=variant.pk)
+                    stock_before = v.stock
                     v.stock += quantity
-                    v.save(update_fields=['stock'])
+                    v.save(update_fields=['stock', 'updated_at'])
                     stock_after = v.stock
                 else:
                     p = Product.objects.select_for_update().get(pk=product.pk)
+                    stock_before = p.stock
                     p.stock += quantity
-                    p.save(update_fields=['stock'])
+                    p.save(update_fields=['stock', 'updated_at'])
                     stock_after = p.stock
 
                 mov = StockMovement.objects.create(
                     product=product, variant=variant,
-                    delta=+quantity, stock_after=stock_after,
+                    delta=+quantity, stock_before=stock_before,
+                    stock_after=stock_after,
                     movement_type=StockMovement.TYPE_CANCELLATION,
                     reference=reference, created_by=created_by,
                 )
@@ -186,43 +193,48 @@ class InventoryService:
 
     @staticmethod
     def adjust(product, variant=None, delta: int = 0,
-               notes: str = '', created_by=None):
+               notes: str = '', reason: str = '', created_by=None):
         """
         Ajuste manual de stock por delta. UC-INV-04 (FR-INV-04.02).
         delta positivo = entrada de mercancía.
         delta negativo = salida / corrección a la baja.
         Si stock_actual + delta < 0 → lanza ValueError.
         Referencia de auditoría: ADMIN:<created_by.pk>.
+        reason: código estructurado del motivo (PHYSICAL_COUNT, LOSS, etc.).
         """
 
         with transaction.atomic():
             if variant:
                 v = ProductVariant.objects.select_for_update().get(pk=variant.pk)
+                stock_before = v.stock
                 new_stock = v.stock + delta
                 if new_stock < 0:
                     raise ValueError(
                         f'El ajuste resultaría en stock negativo ({new_stock}).'
                     )
                 v.stock = new_stock
-                v.save(update_fields=['stock'])
+                v.save(update_fields=['stock', 'updated_at'])
                 stock_after = new_stock
             else:
                 p = Product.objects.select_for_update().get(pk=product.pk)
+                stock_before = p.stock
                 new_stock = p.stock + delta
                 if new_stock < 0:
                     raise ValueError(
                         f'El ajuste resultaría en stock negativo ({new_stock}).'
                     )
                 p.stock = new_stock
-                p.save(update_fields=['stock'])
+                p.save(update_fields=['stock', 'updated_at'])
                 stock_after = new_stock
 
             reference = f'ADMIN:{created_by.pk}' if created_by else 'ADMIN'
             mov = StockMovement.objects.create(
                 product=product, variant=variant,
-                delta=delta, stock_after=stock_after,
+                delta=delta, stock_before=stock_before,
+                stock_after=stock_after,
                 movement_type=StockMovement.TYPE_ADJUSTMENT,
-                reference=reference, notes=notes, created_by=created_by,
+                reason=reason, reference=reference,
+                notes=notes, created_by=created_by,
             )
             _maybe_create_alert(product, variant, stock_after)
             return mov
@@ -233,12 +245,25 @@ class InventoryService:
         Verifica disponibilidad de stock sin modificarlo.
         Retorna lista de items insuficientes (vacia si todos estan OK).
         Usado por el checkout (Sprint 14) antes de procesar el pago.
+
+        H-CICLO42-02: incluye verificacion de product.is_active y
+        product.is_published. Sin esta guardia un producto desactivado
+        podia atravesar el checkout con stock ficticiamente "disponible".
         """
         insufficient = []
         for item in items:
             product  = item['product']
             variant  = item.get('variant')
             quantity = item['quantity']
+            # Producto desactivado o no publicado — tratar como stock 0.
+            if not (product.is_active and product.is_published):
+                insufficient.append({
+                    'sku':       product.sku,
+                    'variant':   variant.option.label if variant else None,
+                    'available': 0,
+                    'requested': quantity,
+                })
+                continue
             available = variant.stock if variant else product.stock
             if available < quantity:
                 insufficient.append({

@@ -32,10 +32,11 @@ def orden_con_pago(db, user, cat_hist):
 
     prod = Product.objects.create(
         name='Ide Orula', slug='ide-orula', sku='HIST-001',
-        description='', category=cat_hist,
+        description='',
         price=Decimal('2400.00'), stock=3,
         is_active=True, is_published=True,
     )
+    prod.categories.add(cat_hist)
     order = Order.objects.create(user=user, status='PROCESSING')
     OrderItem.objects.create(
         order=order, product_name=prod.name, sku=prod.sku,
@@ -65,10 +66,11 @@ def orden_con_historial(db, user, cat_hist):
 
     prod = Product.objects.create(
         name='Elekes Orula', slug='elekes-hist', sku='HIST-002',
-        description='', category=cat_hist,
+        description='',
         price=Decimal('1200.00'), stock=5,
         is_active=True, is_published=True,
     )
+    prod.categories.add(cat_hist)
     order = Order.objects.create(user=user, status='PROCESSING')
     OrderItem.objects.create(
         order=order, product_name=prod.name, sku=prod.sku,
@@ -123,9 +125,10 @@ class TestEstadoPago:
     ):
         prod = Product.objects.create(
             name='PNoP', slug='pnop', sku='HIST-NP',
-            description='', category=cat_hist,
+            description='',
             price=Decimal('100'), stock=1, is_active=True, is_published=True,
         )
+        prod.categories.add(cat_hist)
         order = Order.objects.create(user=user, status='PENDING')
         OrderValue.objects.create(
             order=order, subtotal=Decimal('100'), tax=Decimal('13.79'),

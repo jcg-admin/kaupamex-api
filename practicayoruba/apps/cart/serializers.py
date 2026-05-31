@@ -81,3 +81,11 @@ class SavedCartItemSerializer(serializers.ModelSerializer):
     class Meta:
         model  = SavedCartItem
         fields = ['id', 'product_name', 'quantity', 'price_at_save']
+
+
+class SavedCartSerializer(serializers.ModelSerializer):
+    items = SavedCartItemSerializer(many=True, read_only=True)
+
+    class Meta:
+        model  = SavedCart
+        fields = ['id', 'items', 'created_at', 'updated_at']

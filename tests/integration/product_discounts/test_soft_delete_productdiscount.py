@@ -18,10 +18,12 @@ pytestmark = pytest.mark.integration
 def discount(db, admin_user):
     cat = Category.objects.create(name='Cat PD', slug='cat-pd')
     product = Product.objects.create(
-        category=cat, name='PD Prod', slug='pd-prod',
+        name='PD Prod', slug='pd-prod',
         sku='PD-001', price=Decimal('100.00'), stock=1,
         is_active=True, is_published=True,
     )
+    product.categories.add(cat)
+    product.categories.add(cat)
     return ProductDiscount.objects.create(
         product=product,
         discount_pct=Decimal('10.00'),

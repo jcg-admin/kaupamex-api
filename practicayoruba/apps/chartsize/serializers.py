@@ -31,9 +31,11 @@ class ProductVariantSerializer(serializers.ModelSerializer):
     def get_effective_price(self, obj) -> str:
         return str(obj.effective_price())
 
-    def get_price_with_tax(self, obj) -> float:
+    def get_price_with_tax(self, obj) -> str:
+        # H-CICLO48-05: Decimal * Decimal evita errores de punto flotante en
+        # precios con IVA (ej. 1159.9999999999998 en vez de 1160.00).
         iva = SiteSettings.get_current().iva_rate
-        return round(float(obj.effective_price()) * (1 + float(iva)), 2)
+        return str((obj.effective_price() * (1 + iva)).quantize(Decimal('0.01')))
 
     def get_is_available(self, obj) -> bool:
         return obj.is_available()
@@ -45,6 +47,28 @@ class VariantOptionAdminSerializer(serializers.ModelSerializer):
         model  = VariantOption
         fields = ['id', 'label', 'slug', 'is_active', 'order']
         extra_kwargs = {'slug': {'required': False, 'allow_blank': True}}
+
+
+class VariantTypeSerializer(serializers.ModelSerializer):
+    """Tipo de variante — vista pública/admin básica."""
+    options = VariantOptionAdminSerializer(many=True, read_only=True)
+
+    class Meta:
+        model  = VariantType
+        fields = ['id', 'name', 'is_active', 'order', 'options']
+
+    def validate_name(self, value):
+        product = self.context.get('product')
+        if not product:
+            return value
+        qs = VariantType.objects.filter(product=product, name=value)
+        if self.instance:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError(
+                f'Este producto ya tiene un tipo de variante llamado "{value}".'
+            )
+        return value
 
 
 class VariantTypeAdminSerializer(serializers.ModelSerializer):
@@ -90,9 +114,11 @@ class ProductVariantAdminSerializer(serializers.ModelSerializer):
     def get_effective_price(self, obj) -> str:
         return str(obj.effective_price())
 
-    def get_price_with_tax(self, obj) -> float:
+    def get_price_with_tax(self, obj) -> str:
+        # H-CICLO48-05: Decimal * Decimal evita errores de punto flotante en
+        # precios con IVA (ej. 1159.9999999999998 en vez de 1160.00).
         iva = SiteSettings.get_current().iva_rate
-        return round(float(obj.effective_price()) * (1 + float(iva)), 2)
+        return str((obj.effective_price() * (1 + iva)).quantize(Decimal('0.01')))
 
     def validate_price_override(self, value):
         """FR-CHT-04.02: precio diferenciado debe ser > 0 (no 0, no negativo)."""
@@ -101,3 +127,32 @@ class ProductVariantAdminSerializer(serializers.ModelSerializer):
                 'El precio diferenciado debe ser mayor que cero.'
             )
         return value
+
+
+class ProductVariantPublicSerializer(serializers.ModelSerializer):
+    """UC-CHT-01: variante pública para endpoints de catálogo (read-only)."""
+    label           = serializers.CharField(source='option.label', read_only=True)
+    slug            = serializers.CharField(source='option.slug',  read_only=True)
+    effective_price = serializers.SerializerMethodField()
+    price_with_tax  = serializers.SerializerMethodField()
+    is_available    = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = ProductVariant
+        fields = [
+            'id', 'label', 'slug', 'sku_suffix',
+            'stock', 'is_active', 'is_available',
+            'effective_price', 'price_with_tax',
+        ]
+
+    def get_effective_price(self, obj) -> str:
+        return str(obj.effective_price())
+
+    def get_price_with_tax(self, obj) -> str:
+        # H-CICLO48-05: Decimal * Decimal evita errores de punto flotante en
+        # precios con IVA (ej. 1159.9999999999998 en vez de 1160.00).
+        iva = SiteSettings.get_current().iva_rate
+        return str((obj.effective_price() * (1 + iva)).quantize(Decimal('0.01')))
+
+    def get_is_available(self, obj) -> bool:
+        return obj.is_active and obj.stock > 0

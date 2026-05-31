@@ -18,6 +18,7 @@ import hashlib
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import update_last_login
 from django.core.cache import cache
+from drf_spectacular.utils import extend_schema, OpenApiResponse
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.response import Response
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
@@ -30,7 +31,7 @@ from .models import AuthEvent
 
 User = get_user_model()
 
-# ─── Constantes de rate limiting ──────────────────────────────────────
+# ─── Constantes de rate limiting ──────────────────────────────────────────────
 MAX_FAILED_ATTEMPTS = 5
 LOCKOUT_WINDOW      = 15 * 60   # 15 minutos en segundos
 LOCKOUT_DURATION    = 15 * 60   # 15 minutos de bloqueo
@@ -140,6 +141,20 @@ class PYTokenObtainPairView(TokenObtainPairView):
                   else AuthEvent.ACTION_LOGIN_FAIL)
         audit_log_auth(user, action, request, reason=reason)
 
+    @extend_schema(
+        summary='Login — obtener par de tokens JWT',
+        description=(
+            'FR-AUTH-02.01: rate limiting 5 intentos / 15 min por IP. '
+            'FR-AUTH-02.15: objeto user incluido en la respuesta. '
+            'Emite AuthEvent LOGIN_SUCCESS / LOGIN_FAIL.'
+        ),
+        responses={
+            200: OpenApiResponse(description='Access + refresh tokens con objeto user.'),
+            401: OpenApiResponse(description='Credenciales inválidas o email no verificado.'),
+            429: OpenApiResponse(description='Rate limit — demasiados intentos fallidos.'),
+        },
+        tags=['auth'],
+    )
     def post(self, request, *args, **kwargs):
         ip = get_client_ip(request)
 
@@ -187,7 +202,7 @@ class PYTokenObtainPairView(TokenObtainPairView):
         return response
 
 
-# ─── Refresh con validacion is_active (D-26) ──────────────────────────
+# ─── Refresh con validacion is_active (D-26) ──────────────────────────────────
 
 
 class PYTokenRefreshSerializer(TokenRefreshSerializer):
@@ -252,7 +267,7 @@ class PYTokenRefreshView(TokenRefreshView):
     serializer_class = PYTokenRefreshSerializer
 
 
-# ─── Logout audit (D-19) ───────────────────────────────────────────────
+# ─── Logout audit (D-19) ───────────────────────────────────────────────────
 
 
 class PYTokenBlacklistView(TokenBlacklistView):
@@ -260,6 +275,16 @@ class PYTokenBlacklistView(TokenBlacklistView):
     Subclase de TokenBlacklistView que emite AuthEvent.ACTION_LOGOUT
     tras el blacklist exitoso del refresh. D-19 del audit T-102.
     """
+    @extend_schema(
+        summary='Logout — blacklistear refresh token',
+        description='D-19: emite AuthEvent.ACTION_LOGOUT tras blacklist exitoso.',
+        responses={
+            200: OpenApiResponse(description='Refresh token invalidado.'),
+            400: OpenApiResponse(description='Token inválido o ya blacklisteado.'),
+            401: OpenApiResponse(description='No autenticado.'),
+        },
+        tags=['auth'],
+    )
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
         if 200 <= response.status_code < 300:

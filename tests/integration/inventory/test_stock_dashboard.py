@@ -30,12 +30,14 @@ def cat_s10(db):
 
 @pytest.fixture
 def product_s10(db, cat_s10):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Prod S10', slug='prod-s10', sku='S10-001',
-        description='', category=cat_s10,
+        description='',
         price=Decimal('500.00'), stock=10,
         is_active=True, is_published=True,
     )
+    _p.categories.add(cat_s10)
+    return _p
 
 
 @pytest.fixture
@@ -282,7 +284,7 @@ class TestAjusteManual:
     ):
         res = admin_client.post(
             f'{INV_URL}{product_s10.pk}/adjust/',
-            {'delta': 15, 'notes': 'Inventario físico'},
+            {'delta': 15, 'reason': 'PHYSICAL_COUNT', 'notes': 'Inventario físico'},
             format='json',
         )
         assert res.status_code == 201
@@ -294,7 +296,7 @@ class TestAjusteManual:
     ):
         res = admin_client.post(
             f'{INV_URL}variants/{variant_s10.pk}/adjust/',
-            {'delta': 7},
+            {'delta': 7, 'reason': 'PHYSICAL_COUNT'},
             format='json',
         )
         assert res.status_code == 201
@@ -306,7 +308,7 @@ class TestAjusteManual:
     ):
         res = admin_client.post(
             f'{INV_URL}{product_s10.pk}/adjust/',
-            {'delta': -20},
+            {'delta': -20, 'reason': 'PHYSICAL_COUNT'},
             format='json',
         )
         assert res.status_code == 400

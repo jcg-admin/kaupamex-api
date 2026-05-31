@@ -36,8 +36,8 @@ class ShipmentGuideSerializer(serializers.ModelSerializer):
         model  = ShipmentGuide
         fields = [
             'id', 'order', 'order_number', 'courier', 'courier_id',
-            'tracking_number', 'status', 'delivered_at', 'notes',
-            'created_at', 'last_event',
+            'tracking_number', 'status', 'delivered_at', 'estimated_delivery',
+            'notes', 'created_at', 'last_event',
         ]
         read_only_fields = ['delivered_at', 'created_at']
 
@@ -78,9 +78,51 @@ class ShipmentGuideCreateSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         order = attrs['order']
+        # H-CICLO23-01: verificar que la orden está en estado IN_PREPARATION
+        # antes de crear guía. Crear una guía para una orden PENDING/PROCESSING
+        # o ya DELIVERED/CANCELLED es un error de negocio silencioso que deja
+        # la orden en estado incoherente.
+        if order.status != Order.STATUS_IN_PREPARATION:
+            raise serializers.ValidationError({
+                'detail': (
+                    f'La orden debe estar en estado IN_PREPARATION para crear '
+                    f'una guía de envío. Estado actual: {order.status}.'
+                ),
+                'codigo_error': 'ORDER_NOT_IN_PREPARATION',
+            })
         if ShipmentGuide.all_objects.filter(order=order, is_deleted=False).exists():
             raise serializers.ValidationError({
                 'detail': 'La orden ya tiene una guia de envio activa.',
                 'codigo_error': 'SHIPMENT_GUIDE_DUPLICATE',
             })
         return attrs
+
+
+class CourierCreateUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = Courier
+        fields = ['name', 'code', 'tracking_url_template', 'is_active']
+
+
+class BuyerShipmentGuideSerializer(serializers.ModelSerializer):
+    courier_name = serializers.CharField(source='courier.name', read_only=True)
+    tracking_url = serializers.SerializerMethodField()
+    last_event   = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = ShipmentGuide
+        fields = [
+            'tracking_number', 'status', 'estimated_delivery',
+            'delivered_at', 'courier_name', 'tracking_url', 'last_event',
+        ]
+        read_only_fields = fields
+
+    def get_tracking_url(self, obj) -> str | None:
+        tpl = obj.courier.tracking_url_template
+        if not tpl or not obj.tracking_number:
+            return None
+        return tpl.replace('{tracking_number}', obj.tracking_number)
+
+    def get_last_event(self, obj) -> dict | None:
+        ev = obj.events.order_by('-occurred_at').first()
+        return ShipmentEventSerializer(ev).data if ev else None

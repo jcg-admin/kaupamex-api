@@ -6,16 +6,21 @@ UC-INV-04: Manual delta adjustment
 UC-INV-05: Import products from CSV
 """
 import csv, io, pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
 from decimal import Decimal
 from apps.catalogue.models import Category, Product
 from apps.chartsize.models import VariantType, VariantOption, ProductVariant
 from apps.inventory.models import StockMovement
-from apps.inventory.services import InventoryService
+from apps.inventory.services import InventoryService, InsufficientStockError
+from apps.orders.models import Order, OrderItem
+from apps.users.models import BusinessEvent
 
 pytestmark = pytest.mark.integration
 
-INV_URL       = '/api/v1/admin/inventory/'
-IMPORT_URL    = '/api/v1/admin/inventory/import/'
+INV_URL          = '/api/v1/admin/inventory/'
+IMPORT_URL       = '/api/v1/admin/inventory/import/'
+ZERO_CHECK_URL   = '/api/v1/admin/inventory/variants/{pk}/zero-stock-check/'
+VARIANT_ADJ_URL  = '/api/v1/admin/inventory/variants/{pk}/adjust/'
 
 
 @pytest.fixture
@@ -27,12 +32,14 @@ def cat_s11(db):
 
 @pytest.fixture
 def product_s11(db, cat_s11):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Prod S11', slug='prod-s11', sku='S11-001',
-        description='', category=cat_s11,
+        description='',
         price=Decimal('600.00'), stock=10,
         is_active=True, is_published=True,
     )
+    _p.categories.add(cat_s11)
+    return _p
 
 
 @pytest.fixture
@@ -66,7 +73,7 @@ def _make_csv(rows, headers=None):
     for row in rows:
         w.writerow(row)
     buf.seek(0)
-    return io.BytesIO(buf.read().encode('utf-8'))
+    return SimpleUploadedFile('test.csv', buf.read().encode('utf-8'), content_type='text/csv')
 
 
 # =============================================================================
@@ -81,7 +88,7 @@ class TestAjusteDelta:
         """Delta +5 sobre stock=10 → 15."""
         res = admin_client.post(
             f'{INV_URL}{product_s11.pk}/adjust/',
-            {'delta': 5, 'notes': 'Recepción proveedor'},
+            {'delta': 5, 'reason': 'PHYSICAL_COUNT', 'notes': 'Recepción proveedor'},
             format='json',
         )
         assert res.status_code == 201
@@ -94,7 +101,7 @@ class TestAjusteDelta:
         """Delta -3 sobre stock=10 → 7."""
         res = admin_client.post(
             f'{INV_URL}{product_s11.pk}/adjust/',
-            {'delta': -3, 'notes': 'Merma'},
+            {'delta': -3, 'reason': 'LOSS', 'notes': 'Merma'},
             format='json',
         )
         assert res.status_code == 201
@@ -107,7 +114,7 @@ class TestAjusteDelta:
         """Delta -20 sobre stock=10 → -10 → rechazado."""
         res = admin_client.post(
             f'{INV_URL}{product_s11.pk}/adjust/',
-            {'delta': -20},
+            {'delta': -20, 'reason': 'PHYSICAL_COUNT'},
             format='json',
         )
         assert res.status_code == 400
@@ -121,7 +128,7 @@ class TestAjusteDelta:
         """Delta +4 sobre variant.stock=6 → 10."""
         res = admin_client.post(
             f'{INV_URL}variants/{variant_s11.pk}/adjust/',
-            {'delta': 4, 'notes': 'Entrada almacen'},
+            {'delta': 4, 'reason': 'PHYSICAL_COUNT', 'notes': 'Entrada almacen'},
             format='json',
         )
         assert res.status_code == 201
@@ -134,7 +141,7 @@ class TestAjusteDelta:
         """FR-INV-04.02: referencia = ADMIN:<pk>."""
         admin_client.post(
             f'{INV_URL}{product_s11.pk}/adjust/',
-            {'delta': 1, 'notes': 'Test'},
+            {'delta': 1, 'reason': 'PHYSICAL_COUNT', 'notes': 'Test'},
             format='json',
         )
         mov = StockMovement.objects.filter(
@@ -144,16 +151,16 @@ class TestAjusteDelta:
         assert mov.reference.startswith('ADMIN:')
         assert mov.notes == 'Test'
 
-    def test_ajuste_cero_permitido(self, admin_client, product_s11, db):
-        """Delta 0 es válido (registra un movimiento sin cambio)."""
+    def test_ajuste_cero_rechazado(self, admin_client, product_s11, db):
+        """Delta 0 es inválido — H-CICLO62-02: crearía StockMovement sin efecto."""
         res = admin_client.post(
             f'{INV_URL}{product_s11.pk}/adjust/',
-            {'delta': 0},
+            {'delta': 0, 'reason': 'PHYSICAL_COUNT'},
             format='json',
         )
-        assert res.status_code == 201
+        assert res.status_code == 400
         product_s11.refresh_from_db()
-        assert product_s11.stock == 10
+        assert product_s11.stock == 10  # sin cambio
 
 
 # =============================================================================
@@ -315,7 +322,7 @@ class TestImportarProductosCSV:
     def test_filas_validas_e_invalidas_mixtas(
         self, admin_client, cat_s11, db
     ):
-        """Filas válidas se crean; inválidas van a errors sin bloquear las demás."""
+        """H-CICLO72-02: all-or-nothing — si hay filas inválidas, nada se crea."""
         rows = [
             {'name': 'OK 1', 'sku': 'MIX-001',
              'base_price': '500.00', 'category_slug': cat_s11.slug},
@@ -327,7 +334,7 @@ class TestImportarProductosCSV:
         res = admin_client.post(IMPORT_URL,
             {'file': _make_csv(rows)}, format='multipart')
         assert res.status_code == 200
-        assert res.json()['created'] == 2
+        assert res.json()['created'] == 0
         assert res.json()['failed'] == 1
 
     def test_polling_job_no_encontrado(self, admin_client, db):
@@ -339,3 +346,269 @@ class TestImportarProductosCSV:
     def test_import_csv_sin_archivo_retorna_400(self, admin_client, db):
         res = admin_client.post(IMPORT_URL, {}, format='multipart')
         assert res.status_code == 400
+
+
+# =============================================================================
+# UC-INV-04 EX-02 — Guardia de stock en InventoryService.decrement()
+# =============================================================================
+
+class TestDecrementGuard:
+    """
+    UC-INV-04 EX-02: InventoryService.decrement() lanza InsufficientStockError
+    cuando la cantidad solicitada supera el stock disponible.
+    La excepcion lleva .available con el stock real para que la vista
+    pueda incluirlo en la respuesta 409.
+    """
+
+    def test_decrement_stock_suficiente_reduce_stock(self, product_s11, db):
+        """Camino feliz: decrement con stock suficiente funciona."""
+        movs = InventoryService.decrement(
+            [{'product': product_s11, 'variant': None, 'quantity': 3}],
+            reference='TEST-OK',
+        )
+        product_s11.refresh_from_db()
+        assert product_s11.stock == 7
+        assert len(movs) == 1
+        assert movs[0].delta == -3
+
+    def test_decrement_stock_exacto_reduce_a_cero(self, product_s11, db):
+        """stock == quantity: decrement lleva stock a cero, sin excepcion."""
+        movs = InventoryService.decrement(
+            [{'product': product_s11, 'variant': None, 'quantity': 10}],
+            reference='TEST-ZERO',
+        )
+        product_s11.refresh_from_db()
+        assert product_s11.stock == 0
+        assert len(movs) == 1
+
+    def test_decrement_stock_cero_lanza_insufficient_stock_error(
+        self, product_s11, db
+    ):
+        """stock=0, quantity=1 → InsufficientStockError con available=0."""
+        product_s11.stock = 0
+        product_s11.save()
+        with pytest.raises(InsufficientStockError) as exc_info:
+            InventoryService.decrement(
+                [{'product': product_s11, 'variant': None, 'quantity': 1}],
+                reference='TEST-ZERO-GUARD',
+            )
+        assert exc_info.value.available == 0
+        # Stock no debe haber cambiado
+        product_s11.refresh_from_db()
+        assert product_s11.stock == 0
+
+    def test_decrement_cantidad_mayor_que_stock_lanza_error(
+        self, product_s11, db
+    ):
+        """stock=5, quantity=10 → InsufficientStockError con available=5."""
+        product_s11.stock = 5
+        product_s11.save()
+        with pytest.raises(InsufficientStockError) as exc_info:
+            InventoryService.decrement(
+                [{'product': product_s11, 'variant': None, 'quantity': 10}],
+                reference='TEST-INSUF',
+            )
+        assert exc_info.value.available == 5
+        assert exc_info.value.requested == 10
+        # Rollback: stock sin cambio
+        product_s11.refresh_from_db()
+        assert product_s11.stock == 5
+
+    def test_decrement_variante_stock_insuficiente_lanza_error(
+        self, product_s11, variant_s11, db
+    ):
+        """Variante con stock=6, quantity=7 → InsufficientStockError."""
+        with pytest.raises(InsufficientStockError) as exc_info:
+            InventoryService.decrement(
+                [{'product': product_s11, 'variant': variant_s11, 'quantity': 7}],
+                reference='TEST-VAR-INSUF',
+            )
+        assert exc_info.value.available == 6
+        variant_s11.refresh_from_db()
+        assert variant_s11.stock == 6  # rollback
+
+    def test_decrement_multiples_items_rollback_total(
+        self, product_s11, variant_s11, db
+    ):
+        """
+        Si el segundo item falla, el primero tambien hace rollback
+        (atomicidad de la transaccion).
+        """
+        product_s11.stock = 10
+        product_s11.save()
+        variant_s11.stock = 2
+        variant_s11.save()
+
+        with pytest.raises(InsufficientStockError):
+            InventoryService.decrement(
+                [
+                    {'product': product_s11, 'variant': None, 'quantity': 3},
+                    {'product': product_s11, 'variant': variant_s11, 'quantity': 5},
+                ],
+                reference='TEST-ROLLBACK',
+            )
+
+        product_s11.refresh_from_db()
+        variant_s11.refresh_from_db()
+        assert product_s11.stock == 10   # rollback del primer item
+        assert variant_s11.stock == 2    # sin cambio
+
+
+# =============================================================================
+# UC-INV-04 EX-02 — Guard two-round para ajuste a cero (ADR-011)
+# =============================================================================
+
+class TestZeroStockGuard:
+    """
+    UC-INV-04 EX-02: two-round guard cuando stock de variante se ajusta a cero.
+    Round 1 detecta órdenes PENDING/PROCESSING (Group 1, daño real).
+    Round 2 escribe BusinessEvent (AC-06 / RNF-AUDIT-001) cuando new_quantity=0.
+    """
+
+    def _make_order_with_item(self, db, variant, order_status, quantity=1):
+        order = Order.objects.create(status=order_status)
+        OrderItem.objects.create(
+            order=order,
+            variant=variant,
+            product_name='Test',
+            sku=variant.product.sku,
+            unit_price=Decimal('100.00'),
+            quantity=quantity,
+            subtotal=Decimal('100.00') * quantity,
+        )
+        return order
+
+    # --- Round 1 ---
+
+    def test_round1_sin_ordenes_retorna_requires_confirmation_false(
+        self, admin_client, variant_s11, db
+    ):
+        res = admin_client.get(ZERO_CHECK_URL.format(pk=variant_s11.pk))
+        assert res.status_code == 200
+        data = res.json()
+        assert data['active_orders'] == []
+        assert data['requires_confirmation'] is False
+
+    def test_round1_orden_pending_retorna_requires_confirmation_true(
+        self, admin_client, variant_s11, db
+    ):
+        self._make_order_with_item(db, variant_s11, Order.STATUS_PENDING, quantity=2)
+        res = admin_client.get(ZERO_CHECK_URL.format(pk=variant_s11.pk))
+        assert res.status_code == 200
+        data = res.json()
+        assert len(data['active_orders']) == 1
+        assert data['active_orders'][0]['status'] == Order.STATUS_PENDING
+        assert data['active_orders'][0]['quantity'] == 2
+        assert data['requires_confirmation'] is True
+
+    def test_round1_orden_processing_retorna_requires_confirmation_true(
+        self, admin_client, variant_s11, db
+    ):
+        self._make_order_with_item(db, variant_s11, Order.STATUS_PROCESSING)
+        res = admin_client.get(ZERO_CHECK_URL.format(pk=variant_s11.pk))
+        assert res.status_code == 200
+        data = res.json()
+        assert len(data['active_orders']) == 1
+        assert data['requires_confirmation'] is True
+
+    def test_round1_ordenes_paid_excluidas_group2(
+        self, admin_client, variant_s11, db
+    ):
+        """PAID ya decrementó stock — no es Group 1, no activa el guard."""
+        self._make_order_with_item(db, variant_s11, Order.STATUS_PAID)
+        res = admin_client.get(ZERO_CHECK_URL.format(pk=variant_s11.pk))
+        assert res.status_code == 200
+        data = res.json()
+        assert data['active_orders'] == []
+        assert data['requires_confirmation'] is False
+
+    def test_round1_ordenes_shipped_excluidas_group2(
+        self, admin_client, variant_s11, db
+    ):
+        """SHIPPED ya decrementó stock — no es Group 1."""
+        self._make_order_with_item(db, variant_s11, Order.STATUS_SHIPPED)
+        res = admin_client.get(ZERO_CHECK_URL.format(pk=variant_s11.pk))
+        assert res.status_code == 200
+        data = res.json()
+        assert data['active_orders'] == []
+        assert data['requires_confirmation'] is False
+
+    def test_round1_variante_no_encontrada_retorna_404(
+        self, admin_client, db
+    ):
+        res = admin_client.get(ZERO_CHECK_URL.format(pk=99999))
+        assert res.status_code == 404
+        assert res.json()['codigo_error'] == 'VARIANT_NOT_FOUND'
+
+    def test_round1_sin_auth_retorna_401(self, api_client, variant_s11, db):
+        res = api_client.get(ZERO_CHECK_URL.format(pk=variant_s11.pk))
+        assert res.status_code == 401
+
+    # --- Round 2 ---
+
+    def test_round2_ajuste_a_cero_escribe_business_event(
+        self, admin_client, admin_user, variant_s11, db
+    ):
+        res = admin_client.post(
+            VARIANT_ADJ_URL.format(pk=variant_s11.pk),
+            {'new_quantity': 0, 'reason': 'PHYSICAL_COUNT'},
+            format='json',
+        )
+        assert res.status_code == 201
+        variant_s11.refresh_from_db()
+        assert variant_s11.stock == 0
+        ev = BusinessEvent.objects.filter(
+            action=BusinessEvent.ACTION_STOCK_ADJUSTED_TO_ZERO,
+            target_type=BusinessEvent.TARGET_VARIANT,
+            target_id=variant_s11.pk,
+        ).first()
+        assert ev is not None
+        assert ev.actor_id == admin_user.pk
+
+    def test_round2_ajuste_no_cero_no_escribe_business_event(
+        self, admin_client, variant_s11, db
+    ):
+        before = BusinessEvent.objects.filter(
+            action=BusinessEvent.ACTION_STOCK_ADJUSTED_TO_ZERO
+        ).count()
+        res = admin_client.post(
+            VARIANT_ADJ_URL.format(pk=variant_s11.pk),
+            {'new_quantity': 3, 'reason': 'PHYSICAL_COUNT'},
+            format='json',
+        )
+        assert res.status_code == 201
+        assert BusinessEvent.objects.filter(
+            action=BusinessEvent.ACTION_STOCK_ADJUSTED_TO_ZERO
+        ).count() == before
+
+    def test_round2_business_event_contiene_ordenes_en_riesgo(
+        self, admin_client, variant_s11, db
+    ):
+        """extra_json registra las órdenes en riesgo al momento del ajuste (AC-06)."""
+        self._make_order_with_item(db, variant_s11, Order.STATUS_PENDING, quantity=3)
+        res = admin_client.post(
+            VARIANT_ADJ_URL.format(pk=variant_s11.pk),
+            {'new_quantity': 0, 'reason': 'LOSS'},
+            format='json',
+        )
+        assert res.status_code == 201
+        ev = BusinessEvent.objects.filter(
+            action=BusinessEvent.ACTION_STOCK_ADJUSTED_TO_ZERO,
+            target_id=variant_s11.pk,
+        ).first()
+        assert ev is not None
+        assert len(ev.extra_json['orders_at_risk']) == 1
+        assert ev.extra_json['orders_at_risk'][0]['quantity'] == 3
+
+    def test_round2_happy_path_no_rompe_ajuste_existente(
+        self, admin_client, variant_s11, db
+    ):
+        """El happy path del ajuste (no a cero) sigue funcionando sin cambios."""
+        res = admin_client.post(
+            VARIANT_ADJ_URL.format(pk=variant_s11.pk),
+            {'new_quantity': 10, 'reason': 'PHYSICAL_COUNT'},
+            format='json',
+        )
+        assert res.status_code == 201
+        variant_s11.refresh_from_db()
+        assert variant_s11.stock == 10

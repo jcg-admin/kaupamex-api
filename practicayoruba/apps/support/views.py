@@ -13,18 +13,22 @@ Admin endpoints:
   GET    /api/v1/admin/support/tickets/           UC-SUPP-05 queue
 """
 from datetime import timedelta
+from django.db import transaction
+from django.db.models import Count, Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from drf_spectacular.utils import extend_schema, OpenApiParameter
+from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiParameter
+from rest_framework import fields as rf_fields
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.generics import ListAPIView
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from .models import SupportTicket, SupportTicketReply
-from .serializers import SupportTicketCloseSerializer, SupportTicketCreateResponseSerializer, SupportTicketCreateSerializer, SupportTicketDetailSerializer, SupportTicketListSerializer, SupportTicketReplyCreateSerializer, SupportTicketReplySerializer
+from .serializers import AdminSupportTicketListSerializer, SupportTicketCloseSerializer, SupportTicketCreateResponseSerializer, SupportTicketCreateSerializer, SupportTicketDetailSerializer, SupportTicketListSerializer, SupportTicketReplyCreateSerializer, SupportTicketReplySerializer
 
 
 
@@ -32,6 +36,27 @@ HIGH_PRIORITY_CATEGORIES = {
     SupportTicket.Category.URGENT,
     SupportTicket.Category.FRAUD,
 }
+
+
+class _AdminTicketPagination(PageNumberPagination):
+    """H-CICLO89-01: paginacion para la cola admin de tickets de soporte.
+    Sin paginacion, la vista cargaba todos los tickets en memoria con
+    list(qs), lo que produce OOM en instancias con muchos tickets.
+    """
+    page_size = 50
+    page_size_query_param = 'page_size'
+    max_page_size = 200
+
+
+class _BuyerTicketPagination(PageNumberPagination):
+    """H-CICLO117-02: paginacion para el listado de tickets del comprador.
+    Sin paginacion, SupportTicketListCreateView.get() serializaba todos
+    los tickets del usuario en una sola respuesta; usuarios con muchos
+    tickets producian respuestas lentas y consumo de memoria innecesario.
+    """
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 
 # UC-SUPP-01 AC-03: ventana de deteccion de tickets duplicados. Si el
 # comprador ya tiene un ticket abierto con la misma categoria + orden
@@ -51,8 +76,14 @@ def _get_ticket_for_user(ticket_id, user):
     Devuelve el ticket si pertenece al user o si el user es staff.
     Si no existe o pertenece a otro comprador -> Http404
     (RNF-SEC-003: no revelar la existencia del ticket).
+
+    H-CICLO18-03: select_related('user') + prefetch_related('replies__author')
+    previenen N+1 queries al serializar el hilo de conversacion y el campo
+    buyer (SupportTicketDetailSerializer).
     """
-    qs = SupportTicket.objects.all()
+    qs = SupportTicket.objects.select_related('user').prefetch_related(
+        'replies__author'
+    )
     ticket = get_object_or_404(qs, pk=ticket_id)
     if not user.is_staff and ticket.user_id != user.id:
         raise Http404
@@ -71,7 +102,19 @@ class SupportTicketListCreateView(APIView):
         responses=SupportTicketListSerializer(many=True),
     )
     def get(self, request):
-        qs = SupportTicket.objects.filter(user=request.user)
+        # H-CICLO48-01: order_by evita resultados no deterministos entre
+        # paginas. Sin el ordering el DB puede retornar el mismo ticket en
+        # pagina 1 y pagina 2 si el plan de ejecucion cambia entre requests.
+        # H-CICLO117-02: paginar el listado para evitar serializar todos
+        # los tickets en memoria. Sin paginacion, compradores con muchos
+        # tickets producian respuestas lentas y alto consumo de RAM.
+        qs = SupportTicket.objects.filter(user=request.user).order_by('-created_at')
+        paginator = _BuyerTicketPagination()
+        page = paginator.paginate_queryset(qs, request)
+        if page is not None:
+            return paginator.get_paginated_response(
+                SupportTicketListSerializer(page, many=True).data
+            )
         return Response(SupportTicketListSerializer(qs, many=True).data)
 
     @extend_schema(
@@ -148,7 +191,7 @@ class SupportTicketDetailView(APIView):
         )
 
 
-# ────────────────────────────── UC-SUPP-03 ───────────────────────────────
+# ────────────────────────────── UC-SUPP-03 ───────────────────────────────────────
 class SupportTicketReplyView(APIView):
     """POST /api/v1/support/tickets/{id}/replies/."""
 
@@ -177,19 +220,20 @@ class SupportTicketReplyView(APIView):
                 status=status.HTTP_409_CONFLICT,
             )
 
-        reply = SupportTicketReply.objects.create(
-            ticket=ticket,
-            author=request.user,
-            body=payload['body'],
-            is_internal_note=is_internal,
-        )
+        with transaction.atomic():
+            reply = SupportTicketReply.objects.create(
+                ticket=ticket,
+                author=request.user,
+                body=payload['body'],
+                is_internal_note=is_internal,
+            )
 
-        if not is_internal:
-            if request.user.is_staff:
-                ticket.status = SupportTicket.Status.AWAITING_USER
-            else:
-                ticket.status = SupportTicket.Status.IN_PROGRESS
-            ticket.save(update_fields=['status', 'updated_at'])
+            if not is_internal:
+                if request.user.is_staff:
+                    ticket.status = SupportTicket.Status.AWAITING_USER
+                else:
+                    ticket.status = SupportTicket.Status.IN_PROGRESS
+                ticket.save(update_fields=['status', 'updated_at'])
 
         return Response(
             SupportTicketReplySerializer(reply).data,
@@ -197,7 +241,7 @@ class SupportTicketReplyView(APIView):
         )
 
 
-# ────────────────────────────── UC-SUPP-04 ───────────────────────────────
+# ────────────────────────────── UC-SUPP-04 ───────────────────────────────────────
 class SupportTicketCloseView(APIView):
     """POST /api/v1/support/tickets/{id}/close/."""
 
@@ -208,6 +252,18 @@ class SupportTicketCloseView(APIView):
         summary='Cerrar ticket',
         tags=['support'],
         request=SupportTicketCloseSerializer,
+        responses={
+            200: inline_serializer(
+                name='TicketCloseResponse',
+                fields={
+                    'ticket_id': rf_fields.IntegerField(),
+                    'status': rf_fields.CharField(),
+                    'closed_at': rf_fields.DateTimeField(),
+                    'closed_by': rf_fields.CharField(),
+                },
+            ),
+            409: None,
+        },
     )
     def post(self, request, ticket_id):
         ticket = _get_ticket_for_user(ticket_id, request.user)
@@ -222,19 +278,20 @@ class SupportTicketCloseView(APIView):
         serializer.is_valid(raise_exception=True)
         reason = serializer.validated_data.get('reason') or ''
 
-        ticket.status = SupportTicket.Status.CLOSED
-        ticket.save(update_fields=['status', 'updated_at'])
-
         body = reason or (
             'El staff cerro este ticket.' if request.user.is_staff
             else 'El comprador marco este ticket como resuelto.'
         )
-        SupportTicketReply.objects.create(
-            ticket=ticket,
-            author=request.user,
-            body=body,
-            is_internal_note=False,
-        )
+        with transaction.atomic():
+            ticket.status = SupportTicket.Status.CLOSED
+            ticket.save(update_fields=['status', 'updated_at'])
+
+            SupportTicketReply.objects.create(
+                ticket=ticket,
+                author=request.user,
+                body=body,
+                is_internal_note=False,
+            )
 
         return Response({
             'ticket_id': ticket.pk,
@@ -253,17 +310,38 @@ class SupportTicketReopenView(APIView):
     @extend_schema(
         summary='Reabrir ticket',
         tags=['support'],
+        responses={
+            200: inline_serializer(
+                name='TicketReopenResponse',
+                fields={
+                    'ticket_id': rf_fields.IntegerField(),
+                    'status': rf_fields.CharField(),
+                    'reopened_at': rf_fields.DateTimeField(),
+                },
+            ),
+            409: None,
+        },
     )
     def post(self, request, ticket_id):
-        ticket = _get_ticket_for_user(ticket_id, request.user)
-        if ticket.status != SupportTicket.Status.CLOSED:
-            return Response(
-                {'error_code': 'TICKET_NOT_CLOSED',
-                 'detail': 'Solo se pueden reabrir tickets cerrados.'},
-                status=status.HTTP_409_CONFLICT,
-            )
-        ticket.status = SupportTicket.Status.OPEN
-        ticket.save(update_fields=['status', 'updated_at'])
+        # H-CICLO111-02: envolver en transaction.atomic() para serializar
+        # reaperturas concurrentes del mismo ticket. Sin atomic, dos requests
+        # simultáneos pasan el chequeo status==CLOSED y ambos ejecutan el
+        # save(), produciendo doble transición y potencial estado inconsistente.
+        with transaction.atomic():
+            ticket = SupportTicket.objects.select_for_update().filter(
+                pk=ticket_id
+            ).select_related('user').first()
+            if ticket is None or (not request.user.is_staff and ticket.user_id != request.user.id):
+                from django.http import Http404
+                raise Http404
+            if ticket.status != SupportTicket.Status.CLOSED:
+                return Response(
+                    {'error_code': 'TICKET_NOT_CLOSED',
+                     'detail': 'Solo se pueden reabrir tickets cerrados.'},
+                    status=status.HTTP_409_CONFLICT,
+                )
+            ticket.status = SupportTicket.Status.OPEN
+            ticket.save(update_fields=['status', 'updated_at'])
         return Response({
             'ticket_id': ticket.pk,
             'status': ticket.status,
@@ -271,12 +349,11 @@ class SupportTicketReopenView(APIView):
         })
 
 
-# ────────────────────────────── UC-SUPP-05 ───────────────────────────────
-class AdminSupportTicketListView(ListAPIView):
+# ────────────────────────────── UC-SUPP-05 ─────────────────────────────────────────
+class AdminSupportTicketListView(APIView):
     """GET /api/v1/admin/support/tickets/ — admin queue."""
 
     permission_classes = [IsAuthenticated, IsAdminUser]
-    serializer_class = SupportTicketListSerializer
 
     @extend_schema(
         summary='Bandeja de tickets (admin)',
@@ -287,13 +364,25 @@ class AdminSupportTicketListView(ListAPIView):
             OpenApiParameter('category', str, required=False),
             OpenApiParameter('created_from', str, required=False),
             OpenApiParameter('created_to', str, required=False),
-            OpenApiParameter('assigned_to', int, required=False),
+            OpenApiParameter('user_id', int, required=False, description='Filtrar por ID del comprador propietario del ticket'),
+            OpenApiParameter('q', str, required=False, description='Search by email/subject'),
         ],
+        responses={200: AdminSupportTicketListSerializer(many=True)},
     )
-    def get_queryset(self):
-        qs = SupportTicket.objects.all()
-        params = self.request.query_params
+    def get(self, request):
+        qs = SupportTicket.objects.all().annotate(replies_count=Count('replies'))
+        params = request.query_params
         if params.get('status'):
+            valid_statuses = {s.value for s in SupportTicket.Status}
+            if params['status'] not in valid_statuses:
+                return Response(
+                    {
+                        'detail': f"Status inválido: '{params['status']}'.",
+                        'codigo_error': 'INVALID_STATUS',
+                        'valores_validos': sorted(valid_statuses),
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             qs = qs.filter(status=params['status'])
         if params.get('priority'):
             qs = qs.filter(priority=params['priority'])
@@ -303,6 +392,43 @@ class AdminSupportTicketListView(ListAPIView):
             qs = qs.filter(created_at__gte=params['created_from'])
         if params.get('created_to'):
             qs = qs.filter(created_at__lte=params['created_to'])
-        if params.get('assigned_to'):
-            qs = qs.filter(user_id=params['assigned_to'])
-        return qs
+        # H-CICLO23-04: el parámetro se renombra a `user_id` para reflejar
+        # que filtra por el comprador propietario del ticket (SupportTicket.user).
+        # El nombre anterior `assigned_to` era engañoso: el modelo no tiene
+        # campo de asignación a staff.
+        if params.get('user_id'):
+            qs = qs.filter(user_id=params['user_id'])
+        q = (params.get('q') or '').strip()
+        if q:
+            qs = qs.filter(
+                Q(user__email__icontains=q) | Q(subject__icontains=q)
+            )
+        qs = qs.select_related('user').order_by('created_at')
+
+        # Metrics (global, not filtered)
+        all_tickets = SupportTicket.objects.all()
+        metrics = {
+            'open':           all_tickets.filter(status='OPEN').count(),
+            'in_progress':    all_tickets.filter(status='IN_PROGRESS').count(),
+            'awaiting_user':  all_tickets.filter(status='AWAITING_USER').count(),
+            'resolved':       all_tickets.filter(status='RESOLVED').count(),
+            'closed':         all_tickets.filter(status='CLOSED').count(),
+        }
+
+        # H-CICLO89-01: paginar la cola admin para evitar OOM en instalaciones
+        # con muchos tickets. El `list(qs)` anterior cargaba todos los tickets
+        # en memoria en una sola respuesta.
+        paginator = _AdminTicketPagination()
+        page = paginator.paginate_queryset(qs, request)
+        if page is not None:
+            data = AdminSupportTicketListSerializer(page, many=True).data
+            paginated = paginator.get_paginated_response(data)
+            paginated.data['metrics'] = metrics
+            return paginated
+
+        items = list(qs)
+        return Response({
+            'count': len(items),
+            'results': AdminSupportTicketListSerializer(items, many=True).data,
+            'metrics': metrics,
+        })

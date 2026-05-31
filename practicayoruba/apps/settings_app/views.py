@@ -21,7 +21,7 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from django.core.cache import cache
 from .models import SiteSettings, PaymentGateway, ShippingMethod, StaticPage, StaticPageVersion
-from .serializers import SiteSettingsSerializer, PaymentGatewaySerializer, ShippingMethodSerializer
+from .serializers import SiteSettingsSerializer, SiteSettingsAdminSerializer, PaymentGatewaySerializer, ShippingMethodSerializer
 from .gateway_connector import connector
 from rest_framework import serializers as drf_serializers
 from apps.orders.proxy_models import ActiveOrder
@@ -32,6 +32,9 @@ logger = logging.getLogger(__name__)
 
 
 class SiteSettingsView(APIView):
+    """
+    /api/v1/config/settings/ — excludes deprecated fields (DEC-DOC-005).
+    """
     permission_classes = [IsAuthenticated, IsAdminUser]
 
     @extend_schema(
@@ -57,6 +60,35 @@ class SiteSettingsView(APIView):
         return Response(serializer.data)
 
 
+class AdminSiteSettingsView(APIView):
+    """
+    /api/v1/admin/settings/ — includes all fields including legacy ones (UC-ADM-04).
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    @extend_schema(
+        summary='Obtener configuración global (admin)',
+        responses={200: SiteSettingsAdminSerializer},
+        tags=['config'],
+    )
+    def get(self, request):
+        settings = SiteSettings.get_current()
+        return Response(SiteSettingsAdminSerializer(settings).data)
+
+    @extend_schema(
+        summary='Actualizar configuración global (admin)',
+        request=SiteSettingsAdminSerializer,
+        responses={200: SiteSettingsAdminSerializer},
+        tags=['config'],
+    )
+    def patch(self, request):
+        settings = SiteSettings.get_current()
+        serializer = SiteSettingsAdminSerializer(settings, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+
 # =============================================================================
 # Sprint 8 — UC-CFG-01: Gateways de pago
 # =============================================================================
@@ -77,14 +109,19 @@ class PaymentGatewayViewSet(ModelViewSet):
     http_method_names  = ['get', 'post', 'patch', 'head', 'options']
 
     def perform_update(self, serializer):
-        """Si se envían credenciales nuevas, verificar conectividad."""
+        # H-CICLO104-04: adquirir lock sobre el PaymentGateway dentro de
+        # atomic() antes de guardar credenciales. Sin select_for_update() dos
+        # admins concurrentes podrian guardar credenciales distintas y la
+        # verificacion post-save marcar erroneamente el gateway como verificado
+        # con las credenciales del primer request, no del segundo.
         creds_raw = self.request.data.get('credentials_raw')
-        instance = serializer.save()
+        with transaction.atomic():
+            PaymentGateway.objects.select_for_update().get(pk=serializer.instance.pk)
+            instance = serializer.save()
         if creds_raw:
             self._verify_and_mark(instance, creds_raw)
 
     def _verify_and_mark(self, instance: PaymentGateway, creds: dict):
-        """Verifica conectividad y actualiza verified_at si OK."""
         try:
             if instance.gateway == PaymentGateway.GATEWAY_MERCADOPAGO:
                 ok = connector.verify_mercadopago(creds.get('access_token', ''))
@@ -97,11 +134,8 @@ class PaymentGatewayViewSet(ModelViewSet):
 
             if ok:
                 instance.verified_at = timezone.now()
-                instance.save(update_fields=['verified_at'])
+                instance.save(update_fields=['verified_at', 'updated_at'])
         except Exception:
-            # silent OK because EX-02 del FR: el guardado no se bloquea
-            # ante fallo de red, pero el incidente queda loggeado para
-            # operaciones. DEC-DOC-008.
             logger.warning(
                 'post-save gateway verify failed gw=%s (EX-02 FR)',
                 getattr(instance, 'gateway', '?'), exc_info=True,
@@ -117,7 +151,6 @@ class PaymentGatewayViewSet(ModelViewSet):
         tags=['config'],
     )
     def verify(self, request, pk=None):
-        """POST /api/v1/admin/gateways/<pk>/verify/ — verifica con credenciales actuales."""
         instance = self.get_object()
         creds = instance.get_credentials()
         if not creds:
@@ -136,7 +169,7 @@ class PaymentGatewayViewSet(ModelViewSet):
 
         if ok:
             instance.verified_at = timezone.now()
-            instance.save(update_fields=['verified_at'])
+            instance.save(update_fields=['verified_at', 'updated_at'])
             return Response({'detail': 'Gateway verificado correctamente.',
                              'verified_at': instance.verified_at})
         return Response({
@@ -158,7 +191,6 @@ class ShippingMethodViewSet(ModelViewSet):
     DELETE /api/v1/admin/shipping-methods/<pk>/  — desactivar (soft delete)
 
     UC-CFG-02 (FR-CFG-02.02).
-    Proteccion de ordenes activas: resuelto via ActiveOrder proxy (H-ORD-005).
     """
     permission_classes = [IsAuthenticated, IsAdminUser]
     serializer_class   = ShippingMethodSerializer
@@ -166,10 +198,6 @@ class ShippingMethodViewSet(ModelViewSet):
     http_method_names  = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
     def perform_destroy(self, instance):
-        """
-        Soft delete: is_active=False.
-        Sprint 14: verificar ordenes en estado PENDING/PROCESSING.
-        """
         active_orders = ActiveOrder.objects.filter(
             shipping_method=instance,
         ).count()
@@ -182,17 +210,20 @@ class ShippingMethodViewSet(ModelViewSet):
                 'codigo_error': 'METHOD_WITH_ACTIVE_ORDERS',
             })
         instance.is_active = False
-        instance.save(update_fields=['is_active'])
+        instance.save(update_fields=['is_active', 'updated_at'])
 
-    @extend_schema(summary='Listar métodos de envío', tags=['config'])
+    @extend_schema(summary='Listar métodos de envío', tags=['config'],
+                   responses={200: ShippingMethodSerializer(many=True)})
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
-    @extend_schema(summary='Crear método de envío', tags=['config'])
+    @extend_schema(summary='Crear método de envío', tags=['config'],
+                   responses={201: ShippingMethodSerializer})
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
 
-    @extend_schema(summary='Editar método de envío', tags=['config'])
+    @extend_schema(summary='Editar método de envío', tags=['config'],
+                   responses={200: ShippingMethodSerializer})
     def partial_update(self, request, *args, **kwargs):
         kwargs['partial'] = True
         return super().update(request, *args, **kwargs)
@@ -242,15 +273,13 @@ class StaticPageAdminListView(APIView):
     """
     GET /api/v1/admin/pages/ — listar páginas estáticas.
     UC-CFG-04 (FR-CFG-04.02).
-
-    Split de StaticPageAdminView (D-032 T-6): el detail se separo en
-    StaticPageAdminDetailView para evitar colision de operationId.
     """
     permission_classes = [IsAuthenticated, IsAdminUser]
     serializer_class = StaticPageSerializer
 
     @extend_schema(summary='Listar páginas estáticas', tags=['config'],
-                   operation_id='admin_pages_list')
+                   operation_id='admin_pages_list',
+                   responses={200: StaticPageSerializer(many=True)})
     def get(self, request):
         pages = StaticPage.objects.all()
         return Response(StaticPageSerializer(pages, many=True).data)
@@ -265,7 +294,8 @@ class StaticPageAdminDetailView(APIView):
     serializer_class = StaticPageSerializer
 
     @extend_schema(summary='Detalle de página estática', tags=['config'],
-                   operation_id='admin_pages_retrieve')
+                   operation_id='admin_pages_retrieve',
+                   responses={200: StaticPageSerializer})
     def get(self, request, slug):
         try:
             page = StaticPage.objects.prefetch_related('versions').get(slug=slug)
@@ -283,7 +313,8 @@ class StaticPagePublishView(APIView):
     permission_classes = [IsAuthenticated, IsAdminUser]
     serializer_class = StaticPagePublishSerializer
 
-    @extend_schema(summary='Publicar nueva versión de página estática', tags=['config'])
+    @extend_schema(summary='Publicar nueva versión de página estática', tags=['config'],
+                   responses={201: StaticPageVersionSerializer})
     def post(self, request, slug):
         page, _ = StaticPage.objects.get_or_create(
             slug=slug,
@@ -295,27 +326,33 @@ class StaticPagePublishView(APIView):
         publish_at = s.validated_data.get('publish_at')
         is_immediate = not publish_at
 
-        # Archivar versión activa si existe
-        if is_immediate:
-            StaticPageVersion.objects.filter(
-                page=page, status=StaticPageVersion.STATUS_PUBLISHED
-            ).update(status=StaticPageVersion.STATUS_ARCHIVED)
+        # H-CICLO92-01: envolver en transaction.atomic() + select_for_update()
+        # sobre la pagina para serializar peticiones concurrentes al mismo slug.
+        # Sin esto dos requests concurrentes computan el mismo next_version y
+        # uno falla con IntegrityError no capturado (unique_together(page,version)).
+        with transaction.atomic():
+            # Re-fetch with lock so no concurrent publish wins the same version.
+            page = StaticPage.objects.select_for_update().get(pk=page.pk)
 
-        # Calcular siguiente número de versión
-        last = page.versions.order_by('-version').first()
-        next_version = (last.version + 1) if last else 1
+            if is_immediate:
+                StaticPageVersion.objects.filter(
+                    page=page, status=StaticPageVersion.STATUS_PUBLISHED
+                ).update(status=StaticPageVersion.STATUS_ARCHIVED, updated_at=timezone.now())
 
-        new_status = (StaticPageVersion.STATUS_PUBLISHED
-                      if is_immediate else StaticPageVersion.STATUS_DRAFT)
+            last = page.versions.order_by('-version').first()
+            next_version = (last.version + 1) if last else 1
 
-        version = StaticPageVersion.objects.create(
-            page=page,
-            version=next_version,
-            content=s.validated_data['content'],
-            status=new_status,
-            created_by=request.user,
-            publish_at=publish_at,
-        )
+            new_status = (StaticPageVersion.STATUS_PUBLISHED
+                          if is_immediate else StaticPageVersion.STATUS_DRAFT)
+
+            version = StaticPageVersion.objects.create(
+                page=page,
+                version=next_version,
+                content=s.validated_data['content'],
+                status=new_status,
+                created_by=request.user,
+                publish_at=publish_at,
+            )
         return Response(StaticPageVersionSerializer(version).data, status=201)
 
 
@@ -324,29 +361,33 @@ class StaticPageRestoreView(APIView):
     permission_classes = [IsAuthenticated, IsAdminUser]
     serializer_class = StaticPageVersionSerializer
 
-    @extend_schema(summary='Revertir a versión anterior', tags=['config'])
+    @extend_schema(summary='Revertir a versión anterior', tags=['config'],
+                   responses={201: StaticPageVersionSerializer})
     def post(self, request, slug, version):
         try:
-            old = StaticPageVersion.objects.get(
+            old = StaticPageVersion.objects.select_related('page').get(
                 page__slug=slug, version=version
             )
         except StaticPageVersion.DoesNotExist:
             return Response({'detail': 'Versión no encontrada.'}, status=404)
 
-        page = old.page
-        # Archivar la actual
-        StaticPageVersion.objects.filter(
-            page=page, status=StaticPageVersion.STATUS_PUBLISHED
-        ).update(status=StaticPageVersion.STATUS_ARCHIVED)
+        # H-CICLO92-01: mismo patron que StaticPagePublishView — proteger el
+        # calculo de next_version con select_for_update + transaction.atomic().
+        with transaction.atomic():
+            page = StaticPage.objects.select_for_update().get(pk=old.page_id)
 
-        last = page.versions.order_by('-version').first()
-        next_version = last.version + 1
+            StaticPageVersion.objects.filter(
+                page=page, status=StaticPageVersion.STATUS_PUBLISHED
+            ).update(status=StaticPageVersion.STATUS_ARCHIVED, updated_at=timezone.now())
 
-        restored = StaticPageVersion.objects.create(
-            page=page,
-            version=next_version,
-            content=old.content,
-            status=StaticPageVersion.STATUS_PUBLISHED,
-            created_by=request.user,
-        )
+            last = page.versions.order_by('-version').first()
+            next_version = last.version + 1
+
+            restored = StaticPageVersion.objects.create(
+                page=page,
+                version=next_version,
+                content=old.content,
+                status=StaticPageVersion.STATUS_PUBLISHED,
+                created_by=request.user,
+            )
         return Response(StaticPageVersionSerializer(restored).data, status=201)

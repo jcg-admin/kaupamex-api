@@ -2,11 +2,14 @@
 Views — apps.orders
 UC-ORD-01: Checkout, UC-ORD-02..06: Gestión del comprador (Sprint 18)
 """
+import json as _json
 import uuid
 from decimal import Decimal
-from django.db import transaction
+from django.db import transaction, IntegrityError
+from django.utils import timezone
 from django.db.models import F
-from apps.voucher.models import Voucher
+from apps.voucher.models import Voucher, VoucherUsage
+from .signals import order_created as order_created_signal
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from apps.users.audit import audit_log_business
@@ -15,17 +18,17 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from apps.cart.models import Cart, CartItem
 from apps.cart.views import _get_or_create_cart
 from apps.inventory.services import InventoryService, InsufficientStockError
 from apps.settings_app.models import SiteSettings, ShippingMethod
-from .models import Order, OrderItem, OrderValue, OrderAddress
+from .models import CheckoutAttempt, Order, OrderItem, OrderValue, OrderAddress, ShippingZone
 from .serializers import CancelOrderSerializer, CheckoutSerializer, OrderListSerializer, OrderSerializer, UpdateAddressSerializer, UpdateShippingSerializer
 from django.db.models import Prefetch
 from apps.catalogue.models import ProductImage
 from .services import OrderNotEditableError, ShippingMethodNotAvailableError, cancel_order, update_order_address, update_shipping_method
-from apps.notifications.service import notify_order_created
 
 
 
@@ -48,6 +51,8 @@ class CheckoutView(APIView):
     5. Retornar la orden creada.
     """
     permission_classes = [AllowAny]
+    throttle_classes   = [ScopedRateThrottle]
+    throttle_scope     = 'checkout'
 
     @extend_schema(
         summary='Crear orden desde carrito (checkout)',
@@ -67,6 +72,18 @@ class CheckoutView(APIView):
         tags=['orders'],
     )
     def post(self, request):
+        # DEC-BC-03: Idempotency-Key — retorna respuesta cacheada si existe.
+        idempotency_key = request.headers.get('Idempotency-Key')
+        if idempotency_key and request.user and request.user.is_authenticated:
+            try:
+                attempt = CheckoutAttempt.objects.get(
+                    user=request.user,
+                    idempotency_key=idempotency_key,
+                )
+                return Response(_json.loads(attempt.response_json), status=201)
+            except CheckoutAttempt.DoesNotExist:
+                pass
+
         s = CheckoutSerializer(data=request.data)
         s.is_valid(raise_exception=True)
         data = s.validated_data
@@ -108,6 +125,13 @@ class CheckoutView(APIView):
                              'codigo_error': 'INSUFFICIENT_STOCK',
                              'items': insufficient}, status=409)
 
+        # 3b. DEC-BC-18: validación de cobertura de zona de envío delegada al
+        # CheckoutSerializer.validate_address() (ejecutado en s.is_valid() arriba).
+        # El bloque de validación redundante que existía aquí se eliminó en
+        # H-CICLO21-04: la doble consulta a ShippingZone era código muerto
+        # porque el serializer ya rechazaba zip_codes no cubiertos antes de
+        # llegar a esta sección.
+
         # 4. Transacción atómica: decrement + crear orden
         settings_obj = SiteSettings.get_current()
         iva_rate = settings_obj.iva_rate
@@ -148,19 +172,26 @@ class CheckoutView(APIView):
                 )
 
                 # c. Crear OrderItems (snapshot BR-005)
+                # H-CICLO78-04: usar ci.current_price() en lugar de
+                # ci.unit_price para garantizar que el snapshot capture el
+                # precio vigente al momento del checkout y no el precio
+                # que tenia el item cuando se agrego al carrito (que puede
+                # haber cambiado si el admin modifico el precio del producto
+                # entre el add-to-cart y el checkout).
                 subtotal = Decimal('0.00')
                 for ci in cart_items:
-                    label     = ci.variant.option.label if ci.variant else ''
-                    sku       = ci.variant.sku if ci.variant else ci.product.sku
-                    item_sub  = ci.unit_price * ci.quantity
-                    subtotal += item_sub
+                    label      = ci.variant.option.label if ci.variant else ''
+                    sku        = ci.variant.sku if ci.variant else ci.product.sku
+                    live_price = ci.current_price()
+                    item_sub   = live_price * ci.quantity
+                    subtotal  += item_sub
                     OrderItem.objects.create(
                         order=order,
                         variant=ci.variant,
                         product_name=ci.product.name,
                         variant_label=label,
                         sku=sku,
-                        unit_price=ci.unit_price,
+                        unit_price=live_price,
                         quantity=ci.quantity,
                         subtotal=item_sub,
                     )
@@ -198,21 +229,35 @@ class CheckoutView(APIView):
                             f'{voucher_locked.max_uses}.'
                         )
                     Voucher.objects.filter(pk=cart.voucher_id).update(
-                        current_uses=F('current_uses') + 1
+                        current_uses=F('current_uses') + 1,
+                        updated_at=timezone.now(),
                     )
+                    # DEC-BC-10: registrar uso por usuario para single-use validation.
+                    if user:
+                        VoucherUsage.objects.create(
+                            user=user, voucher_id=cart.voucher_id)
 
                 # g. Vaciar carrito
                 cart.items.all().delete()
                 cart.voucher = None
-                cart.save(update_fields=['voucher'])
+                cart.save(update_fields=['voucher', 'updated_at'])
 
-                # UC-NOT-01: notificacion in-app + email de confirmacion.
-                # on_commit garantiza despacho solo si la transaccion commitea.
-                notify_order_created(order, user, total)
+                # UC-NOT-01: la notificacion de confirmacion (in-app + email)
+                # es disparada por el signal _order_value_created en
+                # apps/notifications/signals.py cuando OrderValue.objects.create()
+                # commitea. Llamarla aqui tambien causaba DOBLE notificacion
+                # (dos emails + dos in-app) por checkout. Eliminado en
+                # H-CICLO29-01.
 
         except InsufficientStockError as exc:
             return Response({'detail': str(exc),
-                             'codigo_error': 'INSUFFICIENT_STOCK'}, status=409)
+                             'codigo_error': 'INSUFFICIENT_STOCK',
+                             'stock_disponible': exc.available}, status=409)
+        except IntegrityError:
+            return Response({
+                'detail': 'Este voucher ya fue utilizado en tu cuenta.',
+                'codigo_error': 'VOUCHER_ALREADY_USED',
+            }, status=409)
 
         audit_log_business(
             user if user and user.is_authenticated else None,
@@ -222,7 +267,29 @@ class CheckoutView(APIView):
             target_id=order.pk,
             extra={'order_number': order.order_number},
         )
-        return Response(OrderSerializer(order).data, status=201)
+
+        # DEC-BC-19: señal order_created para notificaciones/hooks downstream.
+        order_created_signal.send(sender=Order, order=order)
+
+        # Re-fetch con select_related/prefetch para evitar N+1 al serializar:
+        # OrderSerializer accede a items, value, address y shipping_method.
+        order = (
+            Order.objects
+            .select_related('value', 'address', 'shipping_method')
+            .prefetch_related('items')
+            .get(pk=order.pk)
+        )
+        response_data = OrderSerializer(order).data
+
+        # DEC-BC-03: guardar respuesta para idempotencia futura.
+        if idempotency_key and user:
+            CheckoutAttempt.objects.create(
+                user=user,
+                idempotency_key=idempotency_key,
+                response_json=_json.dumps(response_data),
+            )
+
+        return Response(response_data, status=201)
 
 
 # =============================================================================
@@ -330,7 +397,10 @@ class OrderDetailView(APIView):
             Order.objects
             .filter(order_number=order_number, user=request.user)
             .select_related('value', 'address', 'shipping_method')
-            .prefetch_related('items')
+            # H-CICLO104-07: prefetch status_logs so OrderSerializer can
+            # include them without N+1; OrderDetailPage.jsx uses them for
+            # the timeline step dates.
+            .prefetch_related('items', 'status_logs__changed_by')
             .first()
         )
         if not order:
@@ -416,7 +486,14 @@ class OrderCancelView(APIView):
             extra={'order_number': order.order_number,
                    'reason': s.validated_data.get('reason', '')},
         )
-        order.refresh_from_db()
+        # Re-fetch con select_related/prefetch para evitar N+1 al serializar.
+        # OrderSerializer accede a items, value, address, shipping_method.
+        order = (
+            Order.objects
+            .select_related('value', 'address', 'shipping_method')
+            .prefetch_related('items')
+            .get(pk=order.pk)
+        )
         return Response(OrderSerializer(order).data)
 
 
@@ -470,7 +547,13 @@ class OrderAddressUpdateView(APIView):
                 status=400,
             )
 
-        order.refresh_from_db()
+        # Re-fetch con select_related/prefetch para evitar N+1 al serializar.
+        order = (
+            Order.objects
+            .select_related('value', 'address', 'shipping_method')
+            .prefetch_related('items')
+            .get(pk=order.pk)
+        )
         return Response(OrderSerializer(order).data)
 
 
@@ -532,5 +615,11 @@ class OrderShippingUpdateView(APIView):
                 status=400,
             )
 
-        order.refresh_from_db()
+        # Re-fetch con select_related/prefetch para evitar N+1 al serializar.
+        order = (
+            Order.objects
+            .select_related('value', 'address', 'shipping_method')
+            .prefetch_related('items')
+            .get(pk=order.pk)
+        )
         return Response(OrderSerializer(order).data)

@@ -5,8 +5,11 @@ Sprint 1: RegisterView
 Sprint 2: ProfileView, AddressViewSet, ChangePasswordView
 Sprint 3: Password reset, email verification, admin user management
 Sprint 4: DeactivateAccountView (UC-AUTH-16)
+Sprint 5: LogoutAllSessionsView (UC-AUTH-18)
 """
 # stdlib + Django
+import logging
+
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Q
@@ -36,6 +39,7 @@ from .tokens_email import check_rate_limit, create_password_reset_token, create_
 
 
 User = get_user_model()
+logger = logging.getLogger('apps')
 
 
 class RegisterView(APIView):
@@ -75,11 +79,10 @@ class RegisterView(APIView):
 
         if existing is not None:
             CREATED_RESPONSE = Response(
-                {'message': 'Cuenta creada. Revisa tu email para activarla.',
-                 'user_id': existing.pk},
+                {'message': 'Cuenta creada. Revisa tu email para activarla.'},
                 status=201,
             )
-            # Alt-A.1: cuenta activa -> indicar al usuario que use login.
+            # Alt-A.1: cuenta activa -> 409 Conflict (UC-AUTH-01 FR-AUTH-01.03).
             if existing.is_active:
                 # DEC-ALR-3: REGISTER_FAIL sin leak (reason generico).
                 audit_log_auth(
@@ -91,7 +94,7 @@ class RegisterView(APIView):
                         'Esa cuenta ya esta registrada. Inicia sesion '
                         'o recupera tu contrasena si la olvidaste.'
                     ]},
-                    status=400,
+                    status=409,
                 )
             # Alt-A.2: inactiva reactivable (unverified o self_deleted)
             # -> generar token + reenviar email. Mismo response shape que
@@ -116,8 +119,7 @@ class RegisterView(APIView):
                 user, AuthEvent.ACTION_REGISTER_SUCCESS, request,
             )
             return Response(
-                {'message': 'Cuenta creada. Revisa tu email para activarla.',
-                 'user_id': user.pk},
+                {'message': 'Cuenta creada. Revisa tu email para activarla.'},
                 status=201,
             )
         # DEC-ALR-3: reason = primer field error name + '_invalid'
@@ -190,6 +192,8 @@ class AddressViewSet(ModelViewSet):
     DELETE /addresses/{id}/ — eliminar una direccion propia
     """
     permission_classes = [IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'addresses'
     serializer_class = AddressSerializer
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
     # queryset estatico requerido por drf-spectacular para inferir el tipo del path param.
@@ -206,12 +210,15 @@ class AddressViewSet(ModelViewSet):
         """Al eliminar la default, promover la siguiente como default."""
         addr = self.get_object()
         was_default = addr.is_default
+        addr_id = addr.pk
         addr.delete()
         if was_default:
-            next_addr = Address.objects.filter(user=request.user).first()
+            next_addr = Address.objects.filter(user=request.user).order_by('-pk').first()
             if next_addr:
                 next_addr.is_default = True
-                next_addr.save(update_fields=['is_default'])
+                next_addr.save(update_fields=['is_default', 'updated_at'])
+        audit_log_auth(request.user, AuthEvent.ACTION_ADDRESS_DELETED, request,
+                       extra={'address_id': addr_id})
         return Response(status=204)
 
     @extend_schema(
@@ -237,9 +244,15 @@ class AddressViewSet(ModelViewSet):
         if not serializer.is_valid():
             errors = serializer.errors
             if any('limite_direcciones' in str(e) for e in errors.values()):
-                return Response(errors, status=422)
+                msg = errors.get('non_field_errors', ['Limite de direcciones alcanzado.'])[0]
+                return Response(
+                    {'error_code': 'ADDRESS_LIMIT_EXCEEDED', 'detail': str(msg)},
+                    status=422,
+                )
             return Response(errors, status=400)
         self.perform_create(serializer)
+        audit_log_auth(request.user, AuthEvent.ACTION_ADDRESS_CREATED, request,
+                       extra={'address_id': serializer.instance.pk})
         return Response(serializer.data, status=201)
 
     @extend_schema(
@@ -250,7 +263,15 @@ class AddressViewSet(ModelViewSet):
         tags=['auth'],
     )
     def partial_update(self, request, *args, **kwargs):
-        return super().partial_update(request, *args, **kwargs)
+        obj = self.get_object()
+        serializer = self.get_serializer(obj, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        if getattr(obj, '_prefetched_objects_cache', None):
+            obj._prefetched_objects_cache = {}
+        audit_log_auth(request.user, AuthEvent.ACTION_ADDRESS_UPDATED, request,
+                       extra={'address_id': obj.pk})
+        return Response(serializer.data)
 
     @extend_schema(
         summary='Eliminar direccion de envio',
@@ -280,12 +301,16 @@ class AddressViewSet(ModelViewSet):
         addr = self.get_object()
         addr.is_default = True
         addr.save()  # el save() del modelo desmarca las demas atomicamente
+        audit_log_auth(request.user, AuthEvent.ACTION_ADDRESS_DEFAULT, request,
+                       extra={'address_id': addr.pk})
         return Response(self.get_serializer(addr).data, status=200)
 
 
 class ChangePasswordView(APIView):
     """POST /api/v1/auth/change-password/ — UC-AUTH-08."""
     permission_classes = [IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "change_password"
 
     @extend_schema(
         summary='Cambiar contrasena',
@@ -312,11 +337,36 @@ class ChangePasswordView(APIView):
         )
         if serializer.is_valid():
             serializer.save()
-            return Response({'message': 'Contrasena actualizada exitosamente.'})
-        return Response(serializer.errors, status=400)
+            return Response({'detail': 'Password changed successfully.'})
+        errors = serializer.errors
+        if 'current_password' in errors:
+            return Response(
+                {'error_code': 'CURRENT_PASSWORD_INCORRECT',
+                 'detail': str(errors['current_password'][0])},
+                status=400,
+            )
+        if 'non_field_errors' in errors:
+            return Response(
+                {'error_code': 'PASSWORD_NOT_CHANGED',
+                 'detail': str(errors['non_field_errors'][0])},
+                status=400,
+            )
+        if 'new_password' in errors:
+            return Response(
+                {'error_code': 'INVALID_PASSWORD',
+                 'detail': str(errors['new_password'][0])},
+                status=400,
+            )
+        if 'new_password_confirm' in errors:
+            return Response(
+                {'error_code': 'PASSWORDS_DO_NOT_MATCH',
+                 'detail': str(errors['new_password_confirm'][0])},
+                status=400,
+            )
+        return Response({'error_code': 'INVALID_PAYLOAD', 'detail': str(errors)}, status=400)
 
 
-# ─── Sprint 3 ─────────────────────────────────────────────────────────
+# ─── Sprint 3 ──────────────────────────────────────────────────────
 
 
 class PasswordResetRequestView(APIView):
@@ -397,7 +447,7 @@ class PasswordResetConfirmView(APIView):
             user.set_password(serializer.validated_data['new_password'])
             user.save(update_fields=['password'])
             token_obj.used_at = timezone.now()
-            token_obj.save(update_fields=['used_at'])
+            token_obj.save(update_fields=['used_at', 'updated_at'])
             invalidate_all_sessions(user)
 
         return Response({'message': 'Contrasena restablecida exitosamente. Inicia sesion.'})
@@ -426,7 +476,16 @@ class EmailVerifyView(APIView):
         try:
             token_obj = validate_verification_token(serializer.validated_data['token'])
         except ValueError as e:
-            return Response({'token': str(e)}, status=400)
+            return Response(
+                {'error_code': getattr(e, 'error_code', 'TOKEN_INVALID'), 'detail': str(e)},
+                status=400,
+            )
+        except Exception:
+            logger.error('EmailVerifyView: error inesperado al validar token', exc_info=True)
+            return Response(
+                {'error_code': 'SERVER_ERROR', 'detail': 'Error interno al verificar el token.'},
+                status=500,
+            )
 
         if token_obj is None:
             return Response({'message': 'Tu cuenta ya esta activa. Puedes iniciar sesion.'})
@@ -442,7 +501,7 @@ class EmailVerifyView(APIView):
                 'is_active', 'deactivated_reason', 'deactivated_at',
             ])
             token_obj.used_at = timezone.now()
-            token_obj.save(update_fields=['used_at'])
+            token_obj.save(update_fields=['used_at', 'updated_at'])
 
         return Response({'message': 'Cuenta activada exitosamente. Puedes iniciar sesion.'})
 
@@ -554,10 +613,10 @@ class DeactivateAccountView(APIView):
             now = timezone.now()
             EmailVerificationToken.objects.filter(
                 user=user, used_at__isnull=True,
-            ).update(used_at=now)
+            ).update(used_at=now, updated_at=now)
             PasswordResetToken.objects.filter(
                 user=user, used_at__isnull=True,
-            ).update(used_at=now)
+            ).update(used_at=now, updated_at=now)
             invalidate_all_sessions(user)
             # FU-4: politica de limpieza en self-delete.
             # Se ELIMINAN fisicamente los datos volatiles que no tienen
@@ -594,6 +653,35 @@ class DeactivateAccountView(APIView):
             )
 
         return Response({'message': 'Tu cuenta ha sido dada de baja.'}, status=200)
+
+
+class LogoutAllSessionsView(APIView):
+    """POST /api/v1/auth/logout-all/ — UC-AUTH-18 (Cerrar todas las sesiones).
+
+    Invalida todos los refresh tokens activos del usuario autenticado.
+    El access token actual sigue siendo valido hasta su expiracion (JWT
+    sin estado), pero ningun refresh token podra generar un nuevo access
+    token desde ese momento.
+    """
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary='Cerrar todas las sesiones activas (UC-AUTH-18)',
+        description=(
+            'Invalida todos los refresh tokens activos del usuario. '
+            'El access token actual expira naturalmente. '
+            'Util cuando el usuario sospecha acceso no autorizado.'
+        ),
+        request=None,
+        responses={
+            200: OpenApiResponse(description='Todas las sesiones cerradas.'),
+            401: OpenApiResponse(description='No autenticado.'),
+        },
+        tags=['auth'],
+    )
+    def post(self, request):
+        invalidate_all_sessions(request.user)
+        return Response({'message': 'Todas las sesiones han sido cerradas.'}, status=200)
 
 
 # AdminUserPagination definicion canonica vive en admin_views.py

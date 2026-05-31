@@ -19,7 +19,8 @@ from decimal import Decimal
 from unittest.mock import MagicMock, patch
 import pytest
 from django.utils import timezone
-from apps.orders.models import Order
+from apps.catalogue.models import Category, Product
+from apps.orders.models import Order, OrderItem
 from apps.payments.models import Payment
 from apps.returns.models import ReturnHistoryEntry, ReturnRequest
 from apps.settings_app.models import PaymentGateway
@@ -30,12 +31,59 @@ RETURNS_URL = '/api/v1/returns/'
 ADMIN_RETURNS_URL = '/api/v1/admin/returns/'
 
 
-def _valid_payload(order_id=12345, reason='DAMAGED_PRODUCT'):
+def _valid_payload(order_number='PY-PLACEHOLDER', reason='DAMAGED_PRODUCT'):
     return {
-        'order_id': order_id,
+        'order_number': order_number,
         'reason': reason,
         'description': 'El producto llego con la pantalla rota irreparable.',
     }
+
+
+# ─── fixtures locales ─────────────────────────────────────────────────────────
+@pytest.fixture
+def category(db):
+    return Category.objects.create(name='Catret', slug='catret', is_active=True)
+
+
+@pytest.fixture
+def prod1(db, category):
+    _p = Product.objects.create(
+        name='ProdRet1', slug='prod-ret-1', sku='RET-001',
+        description='',
+        price=Decimal('100.00'), stock=10, is_active=True, is_published=True,
+    )
+    _p.categories.add(category)
+    return _p
+
+
+@pytest.fixture
+def prod2(db, category):
+    _p = Product.objects.create(
+        name='ProdRet2', slug='prod-ret-2', sku='RET-002',
+        description='',
+        price=Decimal('200.00'), stock=5, is_active=True, is_published=True,
+    )
+    _p.categories.add(category)
+    return _p
+
+
+@pytest.fixture
+def delivered_order(db, user):
+    return Order.objects.create(user=user, status=Order.STATUS_DELIVERED)
+
+
+@pytest.fixture
+def delivered_order_with_items(db, user, prod1, prod2):
+    order = Order.objects.create(user=user, status=Order.STATUS_DELIVERED)
+    OrderItem.objects.create(
+        order=order, product=prod1, product_name=prod1.name, sku=prod1.sku,
+        unit_price=prod1.price, quantity=2, subtotal=prod1.price * 2,
+    )
+    OrderItem.objects.create(
+        order=order, product=prod2, product_name=prod2.name, sku=prod2.sku,
+        unit_price=prod2.price, quantity=2, subtotal=prod2.price * 2,
+    )
+    return order
 
 
 # ────────────────────────────── UC-RET-01 ────────────────────────────────
@@ -44,12 +92,16 @@ class TestCreateReturn:
         res = api_client.post(RETURNS_URL, _valid_payload(), format='json')
         assert res.status_code == 401
 
-    def test_create_returns_201_with_pending_review(self, auth_client, db):
-        res = auth_client.post(RETURNS_URL, _valid_payload(), format='json')
+    def test_create_returns_201_with_pending_review(
+        self, auth_client, delivered_order, db,
+    ):
+        res = auth_client.post(
+            RETURNS_URL, _valid_payload(delivered_order.order_number), format='json',
+        )
         assert res.status_code == 201
         body = res.json()
         assert body['status'] == 'PENDING_REVIEW'
-        assert body['order_id'] == 12345
+        assert body['order_id'] == delivered_order.pk
         assert body['reason'] == 'DAMAGED_PRODUCT'
         assert 'id' in body
         assert 'history' in body
@@ -67,50 +119,60 @@ class TestCreateReturn:
         res = auth_client.post(RETURNS_URL, payload, format='json')
         assert res.status_code == 400
 
-    def test_duplicate_pending_request_returns_409(self, auth_client, db):
-        first = auth_client.post(RETURNS_URL, _valid_payload(), format='json')
+    def test_duplicate_pending_request_returns_409(
+        self, auth_client, delivered_order, db,
+    ):
+        first = auth_client.post(
+            RETURNS_URL, _valid_payload(delivered_order.order_number), format='json',
+        )
         assert first.status_code == 201
-        second = auth_client.post(RETURNS_URL, _valid_payload(), format='json')
+        second = auth_client.post(
+            RETURNS_URL, _valid_payload(delivered_order.order_number), format='json',
+        )
         assert second.status_code == 409
         assert second.json()['error_code'] == 'REQUEST_ALREADY_EXISTS'
 
-    def test_create_with_items(self, auth_client, db):
-        payload = _valid_payload()
+    def test_create_with_items(
+        self, auth_client, delivered_order_with_items, prod1, prod2, db,
+    ):
+        payload = _valid_payload(delivered_order_with_items.order_number)
         payload['items'] = [
-            {'product_id': 101, 'quantity': 1},
-            {'product_id': 202, 'quantity': 2},
+            {'product_id': prod1.pk, 'quantity': 1},
+            {'product_id': prod2.pk, 'quantity': 2},
         ]
         res = auth_client.post(RETURNS_URL, payload, format='json')
         assert res.status_code == 201
         body = res.json()
         assert len(body['items']) == 2
 
-    def test_create_different_items_same_order(self, auth_client, db):
+    def test_create_different_items_same_order(
+        self, auth_client, delivered_order_with_items, prod1, prod2, db,
+    ):
         """UC-RET-01 D-05 (DEC-RET-03): items distintos de la misma orden
         no chocan en idempotencia. Antes de DEC-RET-03 el segundo fallaba
         con REQUEST_ALREADY_EXISTS."""
-        payload_a = _valid_payload()
-        payload_a['items'] = [{'product_id': 101, 'quantity': 1}]
+        payload_a = _valid_payload(delivered_order_with_items.order_number)
+        payload_a['items'] = [{'product_id': prod1.pk, 'quantity': 1}]
         first = auth_client.post(RETURNS_URL, payload_a, format='json')
         assert first.status_code == 201, first.content
-        payload_b = _valid_payload()
-        payload_b['items'] = [{'product_id': 202, 'quantity': 1}]
+        payload_b = _valid_payload(delivered_order_with_items.order_number)
+        payload_b['items'] = [{'product_id': prod2.pk, 'quantity': 1}]
         second = auth_client.post(RETURNS_URL, payload_b, format='json')
         assert second.status_code == 201, second.content
 
     def test_create_overlapping_items_same_order_returns_409(
-        self, auth_client, db,
+        self, auth_client, delivered_order_with_items, prod1, prod2, db,
     ):
         """UC-RET-01 D-05 (DEC-RET-03): items que se solapan con una
         solicitud pendiente bloquean con 409."""
-        payload_a = _valid_payload()
-        payload_a['items'] = [{'product_id': 101, 'quantity': 1}]
+        payload_a = _valid_payload(delivered_order_with_items.order_number)
+        payload_a['items'] = [{'product_id': prod1.pk, 'quantity': 1}]
         first = auth_client.post(RETURNS_URL, payload_a, format='json')
         assert first.status_code == 201, first.content
-        payload_b = _valid_payload()
+        payload_b = _valid_payload(delivered_order_with_items.order_number)
         payload_b['items'] = [
-            {'product_id': 101, 'quantity': 1},
-            {'product_id': 999, 'quantity': 1},
+            {'product_id': prod1.pk, 'quantity': 1},
+            {'product_id': prod2.pk, 'quantity': 1},
         ]
         second = auth_client.post(RETURNS_URL, payload_b, format='json')
         assert second.status_code == 409

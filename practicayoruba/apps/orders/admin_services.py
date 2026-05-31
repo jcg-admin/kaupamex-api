@@ -10,25 +10,28 @@ from django.db import transaction
 from django.utils import timezone
 from .models import OrderStatusLog, Order
 from .services import cancel_order
-from apps.notifications.service import notify_order_status_changed
 from django.db.models import Count, Sum, Q
 from datetime import timedelta
 from apps.payments.models import Payment
 from apps.settings_app.models import SiteSettings
+from apps.logistics.models import ShipmentGuide
 
 logger = logging.getLogger('apps')
 
 # H-ADM-002: Máquina de estados real (FRs usan nombres inexistentes)
+# H-ORD-S01: PAID añadida — pago confirmado, admin debe poder avanzar o cancelar.
 ALLOWED_TRANSITIONS = {
     'PENDING':        ['PROCESSING', 'CANCELLED'],
-    'PROCESSING':     ['IN_PREPARATION', 'CANCELLED'],
+    'PROCESSING':     ['PAID', 'IN_PREPARATION', 'CANCELLED'],
+    'PAID':           ['IN_PREPARATION', 'CANCELLED'],
     'IN_PREPARATION': ['SHIPPED'],
     'SHIPPED':        ['DELIVERED'],
     # DELIVERED, CANCELLED, REFUNDED → terminales sin transiciones
 }
 
 # H-ADM-005: El admin puede cancelar más estados que el comprador
-ADMIN_CANCELABLE_STATUSES = ['PENDING', 'PROCESSING', 'IN_PREPARATION']
+# H-ORD-S01: PAID included — refund applies same as PROCESSING.
+ADMIN_CANCELABLE_STATUSES = ['PENDING', 'PROCESSING', 'PAID', 'IN_PREPARATION']
 
 
 def transition_order_status(order, new_status: str, admin_user, notes: str = ''):
@@ -56,9 +59,24 @@ def transition_order_status(order, new_status: str, admin_user, notes: str = '')
                 f"{allowed or ['ninguna (estado terminal)']}"
             )
 
+        # UC-LOG guard: an order cannot be marked SHIPPED unless it has an
+        # active ShipmentGuide.  Without this check an admin can set SHIPPED
+        # on an order that has no tracking number, leaving the buyer unable
+        # to track the parcel and breaking the logistics audit trail.
+        if new_status == 'SHIPPED':
+            has_guide = ShipmentGuide.objects.filter(
+                order=locked, is_deleted=False,
+            ).exists()
+            if not has_guide:
+                raise ValueError(
+                    "La orden no puede marcarse como SHIPPED sin una guía de "
+                    "envío activa. Crea la guía en /api/v1/admin/logistics/ "
+                    "antes de avanzar este estado."
+                )
+
         previous = locked.status
         locked.status = new_status
-        locked.save(update_fields=['status'])
+        locked.save(update_fields=['status', 'updated_at'])
 
         OrderStatusLog.objects.create(
             order=locked,
@@ -68,8 +86,11 @@ def transition_order_status(order, new_status: str, admin_user, notes: str = '')
             notes=notes,
         )
 
-        # UC-NOT-02: notificacion in-app + email de cambio de estado.
-        notify_order_status_changed(locked, new_status)
+        # UC-NOT-02: la notificacion es disparada automaticamente por la
+        # signal _order_status_changed (notifications/signals.py) al hacer
+        # locked.save() arriba. Llamarla aqui ademas causaba doble envio
+        # (una notificacion in-app + email por la signal Y otro por esta
+        # linea). Bug detectado en ciclo 43.
 
     logger.info(
         'Orden %s: %s → %s (admin=%s)',
@@ -106,28 +127,25 @@ def admin_cancel_order(order, reason: str, admin_user):
                 f'{ADMIN_CANCELABLE_STATUSES}.'
             )
 
-        previous = locked.status
         # Reutilizar cancel_order de Sprint 18 (restaura stock + reembolso)
-        # pero con los estados admin-cancelables. cancel_order opera sobre
-        # la instancia bloqueada dentro del mismo atomic.
+        # con los estados admin-cancelables. cancel_order ya crea un
+        # OrderStatusLog internamente (previous_status + new_status +
+        # changed_by + notes). Crear una segunda entrada aquí era duplicado
+        # (H-CICLO110-01): cada cancelación admin producía dos filas en
+        # el historial — una con notes=reason y otra con notes='[ADMIN] reason'.
+        # Se elimina el segundo create; el prefijo [ADMIN] se propaga
+        # via admin_reason para que el log único sea identificable.
+        admin_reason = f'[ADMIN] {reason}'
         cancel_order(
             order=locked,
-            reason=reason,
+            reason=admin_reason,
             cancelled_by=admin_user,
             cancelable_statuses=ADMIN_CANCELABLE_STATUSES,
         )
 
-        # Registrar quién (admin) canceló
+        # Registrar quién (admin) canceló en el campo dedicado de la orden.
         locked.admin_cancelled_by = admin_user
-        locked.save(update_fields=['admin_cancelled_by'])
-
-        OrderStatusLog.objects.create(
-            order=locked,
-            previous_status=previous,
-            new_status='CANCELLED',
-            changed_by=admin_user,
-            notes=f'[ADMIN] {reason}',
-        )
+        locked.save(update_fields=['admin_cancelled_by', 'updated_at'])
 
     return locked
 

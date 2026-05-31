@@ -9,18 +9,22 @@ from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParamet
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
-from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from django.db.models import F
+from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress, ShippingZone
 from apps.orders.proxy_models import DeliveredOrder
+from apps.voucher.models import Voucher, VoucherUsage
 from .models import Payment, Payment as PaymentModel
-from .serializers import InitiatePaymentSerializer, InitiatePaymentResponseSerializer, InstallmentPlansResponseSerializer, PaymentSerializer, PaymentReturnSerializer, CheckoutEligibilitySerializer, ExpressCheckoutSerializer, RefundRequestSerializer, RefundSerializer, RetryEligibilitySerializer, PaymentStatusSerializer as PSS, RefundRequestSerializer as RRS
+from .serializers import InitiatePaymentSerializer, InitiatePaymentResponseSerializer, InstallmentPlansResponseSerializer, PaymentSerializer, AdminPaymentSerializer, PaymentReturnSerializer, CheckoutEligibilitySerializer, ExpressCheckoutSerializer, RefundRequestSerializer, RefundSerializer, AdminRefundSerializer, RetryEligibilitySerializer, PaymentStatusSerializer as PSS, RefundRequestSerializer as RRS
 from .services import initiate_payment, handle_gateway_return, get_installment_plans, get_payment_status, get_payment_history, execute_refund, get_retry_eligibility
 from apps.users.models import Address
 from apps.settings_app.models import ShippingMethod, SiteSettings
 from apps.cart.models import Cart
 from rest_framework.test import APIRequestFactory
 from rest_framework.request import Request
-from django.db import transaction as db_transaction
+from django.db import transaction as db_transaction, IntegrityError
+from django.utils import timezone
 from apps.inventory.services import InventoryService, InsufficientStockError
 from apps.orders.views import CheckoutView
 from apps.orders.serializers import CheckoutSerializer, OrderSerializer
@@ -45,6 +49,13 @@ class InitiatePaymentView(APIView):
     Las credenciales del gateway NUNCA aparecen en la respuesta (BR-009).
     """
     permission_classes = [IsAuthenticated]
+    # H-CICLO108-05: throttle per-user to prevent repeated gateway preference
+    # creation bursts. Without this limit a buyer (or a stolen token holder)
+    # can hammer the endpoint, creating dozens of MercadoPago preferences for
+    # the same order number and consuming gateway API quota. The select_for_update
+    # lock serialises concurrent requests but does not cap total attempts.
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope   = 'initiate_payment'
 
     @extend_schema(
         summary='Iniciar pago con MercadoPago',
@@ -69,7 +80,6 @@ class InitiatePaymentView(APIView):
         installments  = s.validated_data['installments']
         gateway_type  = s.validated_data.get('gateway', 'MERCADOPAGO')
 
-        # Buscar la orden — solo el dueño puede pagarla.
         # DEC-BC-11 (2026-05-21): permission_classes = [IsAuthenticated]
         # garantiza request.user.is_authenticated. La rama else previa
         # (Order.objects.get sin filtro user=) era codigo muerto +
@@ -79,30 +89,41 @@ class InitiatePaymentView(APIView):
         # UC-PAY-01 D-09 + D-14). Codigo muerto eliminado para cerrar
         # el vector latente y mantener la invariante "solo el dueno
         # paga" como propiedad estructural.
+        #
+        # DEC-BC-22: select_for_update() dentro de atomic serializa requests
+        # concurrentes al mismo order_number. Sin el lock, dos POST concurrentes
+        # pueden ambos pasar la validacion de PENDING, crear dos preferencias en
+        # el gateway y dos filas Payment — duplicando el intento de cobro.
+        # La llamada al gateway (IO de red) queda dentro del atomic intencionalmente:
+        # es la unica forma de garantizar la invariante "un solo Payment en vuelo
+        # por orden PENDING" sin una columna de estado intermedio adicional.
         try:
-            order = Order.objects.select_related('value').get(
-                order_number=order_number,
-                user=request.user,
-            )
-        except Order.DoesNotExist:
-            raise ValidationError({
-                'order_number': f'Orden {order_number!r} no encontrada.',
-                'codigo_error': 'ORDER_NOT_FOUND',
-            })
+            with db_transaction.atomic():
+                try:
+                    order = Order.objects.select_related('value').select_for_update().get(
+                        order_number=order_number,
+                        user=request.user,
+                    )
+                except Order.DoesNotExist:
+                    raise ValidationError({
+                        'order_number': f'Orden {order_number!r} no encontrada.',
+                        'codigo_error': 'ORDER_NOT_FOUND',
+                    })
 
-        if order.status != Order.STATUS_PENDING:
-            raise ValidationError({
-                'detail': f'La orden no está en estado PENDING (estado: {order.status}).',
-                'codigo_error': 'ORDER_NOT_PAYABLE',
-            })
+                if order.status != Order.STATUS_PENDING:
+                    raise ValidationError({
+                        'detail': f'La orden no está en estado PENDING (estado: {order.status}).',
+                        'codigo_error': 'ORDER_NOT_PAYABLE',
+                    })
 
-        try:
-            payment, checkout_url = initiate_payment(
-                order=order,
-                request=request,
-                installments=installments,
-                gateway_type=gateway_type,
-            )
+                payment, checkout_url = initiate_payment(
+                    order=order,
+                    request=request,
+                    installments=installments,
+                    gateway_type=gateway_type,
+                )
+        except ValidationError:
+            raise
         except ValueError as exc:
             raise ValidationError({'detail': str(exc), 'codigo_error': 'GATEWAY_CONFIG_ERROR'})
         except RuntimeError as exc:
@@ -111,9 +132,15 @@ class InitiatePaymentView(APIView):
                 status=503,
             )
 
+        # BR-009 / RNF-SEC-001: never expose sequential internal PKs to
+        # buyers.  payment.pk is an auto-increment integer that lets a
+        # malicious client enumerate all payment records.  The order_number
+        # (non-sequential, UUID-derived) already uniquely identifies the
+        # payment context and is all the UI needs to poll /status/ or
+        # /return/.  payment_id removed from the response.
         return Response(
             InitiatePaymentResponseSerializer({
-                'payment_id':   payment.pk,
+                'payment_id':   None,
                 'checkout_url': checkout_url,
                 'order_number': order.order_number,
                 'amount':       payment.amount,
@@ -134,6 +161,10 @@ class PaymentReturnView(APIView):
     Siempre retorna HTTP 200 — el frontend debe verificar el status del pago.
     """
     permission_classes = [AllowAny]
+    # H-CICLO90-02: throttle para evitar que un atacante cree PaymentGatewayEvent
+    # rows ilimitados llamando este endpoint con order_numbers arbitrarios.
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope   = 'payment_return'
 
     @extend_schema(
         summary='Retorno del gateway de pago',
@@ -389,9 +420,28 @@ class ExpressCheckoutView(APIView):
         if insufficient:
             return Response({'detail': 'Stock insuficiente.', 'codigo_error': 'INSUFFICIENT_STOCK', 'items': insufficient}, status=409)
 
+        # H-CICLO21-05a: usar get_object_or_404 con is_active=True para
+        # cerrar la TOCTOU race entre _check_express_eligibility() y aquí.
+        # Si el método fue desactivado en ese intervalo, retorna 404 en
+        # lugar de DoesNotExist sin capturar.
         settings_obj = SiteSettings.get_current()
         iva_rate = settings_obj.iva_rate
-        shipping = ShippingMethod.objects.get(pk=shipping_id)
+        shipping = get_object_or_404(ShippingMethod, pk=shipping_id, is_active=True)
+
+        # H-CICLO21-05b: validar cobertura de zona de envío para la dirección
+        # predeterminada (el CheckoutView lo hace; ExpressCheckout lo omitía).
+        zip_code = addr.get('zip_code', '')
+        if zip_code:
+            all_prefixes = list(
+                ShippingZone.objects.filter(is_active=True)
+                .values_list('zip_code_prefix', flat=True)
+            )
+            if not any(zip_code.startswith(p) for p in all_prefixes):
+                raise ValidationError({
+                    'detail': 'El código postal de tu dirección predeterminada no está cubierto por ninguna zona de envío.',
+                    'codigo_error': 'ZONE_NOT_COVERED',
+                })
+
         subtotal_for_shipping = cart.get_subtotal() - cart.get_discount()
         shipping_cost = Dec('0.00')
         if shipping.free_threshold is None or subtotal_for_shipping < shipping.free_threshold:
@@ -414,15 +464,22 @@ class ExpressCheckoutView(APIView):
 
                 subtotal = Dec('0.00')
                 for ci in cart_items:
-                    label    = ci.variant.option.label if ci.variant else ''
-                    sku      = ci.variant.sku if ci.variant else ci.product.sku
-                    item_sub = ci.unit_price * ci.quantity
-                    subtotal += item_sub
+                    label      = ci.variant.option.label if ci.variant else ''
+                    sku        = ci.variant.sku if ci.variant else ci.product.sku
+                    # H-CICLO108-06: use current_price() (live price) instead of
+                    # ci.unit_price (cached price at add-to-cart time). CheckoutView
+                    # already uses current_price() per H-CICLO78-04. ExpressCheckout
+                    # had the same TOCTOU window: if the admin changed a price between
+                    # add-to-cart and express checkout, the order snapshot would record
+                    # the stale price, causing a revenue discrepancy.
+                    live_price = ci.current_price()
+                    item_sub   = live_price * ci.quantity
+                    subtotal  += item_sub
                     OrderItem.objects.create(
                         order=order, variant=ci.variant,
                         product_name=ci.product.name,
                         variant_label=label, sku=sku,
-                        unit_price=ci.unit_price, quantity=ci.quantity, subtotal=item_sub,
+                        unit_price=live_price, quantity=ci.quantity, subtotal=item_sub,
                     )
 
                 net   = subtotal - voucher_discount
@@ -441,12 +498,42 @@ class ExpressCheckoutView(APIView):
                     state=addr_data['state'], zip_code=addr_data['zip_code'],
                 )
 
+                # Increment voucher usage atomically (mirrors CheckoutView behaviour)
+                if cart.voucher_id:
+                    voucher_locked = (
+                        Voucher.objects.select_for_update()
+                        .get(pk=cart.voucher_id)
+                    )
+                    if (voucher_locked.max_uses is not None
+                            and voucher_locked.current_uses >= voucher_locked.max_uses):
+                        raise ValidationError({
+                            'detail': f'Voucher {voucher_locked.code} agotado.',
+                            'codigo_error': 'VOUCHER_EXHAUSTED',
+                        })
+                    Voucher.objects.filter(pk=cart.voucher_id).update(
+                        current_uses=F('current_uses') + 1,
+                        updated_at=timezone.now(),
+                    )
+                    VoucherUsage.objects.create(
+                        user=request.user, voucher_id=cart.voucher_id)
+
                 cart.items.all().delete()
                 cart.voucher = None
-                cart.save(update_fields=['voucher'])
+                cart.save(update_fields=['voucher', 'updated_at'])
 
         except InsufficientStockError as exc:
-            return Response({'detail': str(exc), 'codigo_error': 'INSUFFICIENT_STOCK'}, status=409)
+            return Response({'detail': str(exc), 'codigo_error': 'INSUFFICIENT_STOCK',
+                             'stock_disponible': exc.available}, status=409)
+        except IntegrityError:
+            # H-CICLO49-02: VoucherUsage tiene unique_together=(user, voucher).
+            # En una condicion de carrera (dos requests concurrentes con el mismo
+            # voucher y usuario) el segundo INSERT lanza IntegrityError desde la
+            # BD. Sin este bloque except el error escala a 500. Se devuelve 409
+            # alineando con el comportamiento de CheckoutView (orders/views.py).
+            return Response({
+                'detail': 'Este voucher ya fue utilizado en tu cuenta.',
+                'codigo_error': 'VOUCHER_ALREADY_USED',
+            }, status=409)
 
         return Response(OrderSerializer(order).data, status=201)
 
@@ -647,7 +734,7 @@ class AdminRefundView(APIView):
         ),
         request=RefundRequestSerializer,
         responses={
-            201: RefundSerializer,
+            201: AdminRefundSerializer,
             400: OpenApiResponse(description='Pago no reembolsable.'),
             404: OpenApiResponse(description='Payment no encontrado.'),
             503: OpenApiResponse(description='Gateway no disponible.'),
@@ -675,4 +762,180 @@ class AdminRefundView(APIView):
             return Response({'detail': str(exc), 'codigo_error': 'GATEWAY_UNAVAILABLE'},
                             status=503)
 
-        return Response(RefundSerializer(refund).data, status=201)
+        return Response(AdminRefundSerializer(refund).data, status=201)
+
+
+# =============================================================================
+# UC-PAY-11 — AdminPaymentDetailView + AdminPaymentListView
+# =============================================================================
+
+class AdminPaymentDetailView(APIView):
+    """
+    GET /api/v1/admin/payments/<payment_id>/
+    Detalle de un pago individual para el admin.
+    H-CICLO81-03: AdminPaymentListView existia pero no habia endpoint de
+    detalle — el admin podia listar pagos pero no consultar uno por PK,
+    impidiendo drill-down desde la lista de pagos en el panel.
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    @extend_schema(
+        summary='Detalle de pago (admin)',
+        description=(
+            'Retorna el detalle completo de un Payment por su PK. '
+            'No requiere filtro de propietario (admin ve todos los pagos). '
+            'H-CICLO81-03: endpoint faltante — AdminPaymentListView existia '
+            'sin su endpoint de detalle correspondiente. '
+            'H-CICLO82-01: usa AdminPaymentSerializer (incluye order_status '
+            'y user_email) en lugar del PaymentSerializer publico.'
+        ),
+        responses={
+            200: AdminPaymentSerializer,
+            404: OpenApiResponse(description='Payment no encontrado.'),
+        },
+        tags=['payments-admin'],
+    )
+    def get(self, request, payment_id):
+        payment = get_object_or_404(
+            PaymentModel.objects.select_related('order', 'order__user'),
+            pk=payment_id,
+        )
+        return Response(AdminPaymentSerializer(payment).data)
+
+
+
+
+class AdminPaymentListView(APIView):
+    """
+    GET /api/v1/admin/payments/
+    Lista paginada de pagos para el admin con filtros y totales.
+    UC-PAY-11.
+
+    Filtros: ?status=, ?gateway=, ?from=YYYY-MM-DD, ?to=YYYY-MM-DD.
+    Respuesta: { count, results: Payment[], totals: {approved, refunded, net} }.
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    @extend_schema(
+        summary='Listado de transacciones de pago (admin, UC-PAY-11)',
+        description=(
+            'Lista paginada de todos los pagos. '
+            'Filtros: status, gateway, from (YYYY-MM-DD), to (YYYY-MM-DD). '
+            'Incluye totales del periodo: approved, refunded y net.'
+        ),
+        parameters=[
+            OpenApiParameter('status',  str, required=False,
+                             description='PENDING|APPROVED|FAILED|REFUNDED|PARTIALLY_REFUNDED|CANCELLED'),
+            OpenApiParameter('gateway', str, required=False,
+                             description='MERCADOPAGO|PAYPAL'),
+            OpenApiParameter('from',    str, required=False,
+                             description='Fecha inicio rango (YYYY-MM-DD).'),
+            OpenApiParameter('to',      str, required=False,
+                             description='Fecha fin rango (YYYY-MM-DD).'),
+            OpenApiParameter('page',    int, required=False),
+        ],
+        responses={200: AdminPaymentSerializer(many=True)},
+        tags=['payments-admin'],
+    )
+    def get(self, request):
+        from django.db.models import Sum, Q
+        from decimal import Decimal as _Dec
+        from datetime import date as _date
+
+        qs = (
+            Payment.objects.select_related('order', 'order__user')
+            .order_by('-created_at')
+        )
+
+        # --- filters ---
+        status_param  = request.query_params.get('status')
+        gateway_param = request.query_params.get('gateway')
+        from_param    = request.query_params.get('from')
+        to_param      = request.query_params.get('to')
+
+        valid_statuses = {s[0] for s in Payment.STATUSES}
+        if status_param:
+            if status_param not in valid_statuses:
+                raise ValidationError({
+                    'status': f"'{status_param}' no es un estado válido.",
+                    'codigo_error': 'INVALID_STATUS',
+                    'valores_validos': list(valid_statuses),
+                })
+            qs = qs.filter(status=status_param)
+
+        valid_gateways = {g[0] for g in Payment.GATEWAYS}
+        if gateway_param:
+            if gateway_param.upper() not in valid_gateways:
+                raise ValidationError({
+                    'gateway': f"'{gateway_param}' no es un gateway válido.",
+                    'codigo_error': 'INVALID_GATEWAY',
+                    'valores_validos': list(valid_gateways),
+                })
+            qs = qs.filter(gateway=gateway_param.upper())
+
+        if from_param:
+            try:
+                _date.fromisoformat(from_param)
+            except ValueError:
+                raise ValidationError({
+                    'from': 'Formato de fecha inválido. Use YYYY-MM-DD.',
+                    'codigo_error': 'INVALID_DATE_FORMAT',
+                })
+            qs = qs.filter(created_at__date__gte=from_param)
+
+        if to_param:
+            try:
+                _date.fromisoformat(to_param)
+            except ValueError:
+                raise ValidationError({
+                    'to': 'Formato de fecha inválido. Use YYYY-MM-DD.',
+                    'codigo_error': 'INVALID_DATE_FORMAT',
+                })
+            qs = qs.filter(created_at__date__lte=to_param)
+
+        if from_param and to_param and from_param > to_param:
+            raise ValidationError({
+                'from': 'La fecha de inicio no puede ser posterior a la fecha de fin.',
+                'codigo_error': 'INVALID_DATE_RANGE',
+            })
+
+        # --- totals over filtered queryset ---
+        agg = qs.aggregate(
+            approved=Sum(
+                'amount',
+                filter=Q(status=Payment.STATUS_APPROVED),
+            ),
+            refunded=Sum(
+                'amount',
+                filter=Q(status__in=[
+                    Payment.STATUS_REFUNDED,
+                    Payment.STATUS_PARTIALLY_REFUNDED,
+                ]),
+            ),
+        )
+        approved_total = agg['approved'] or _Dec('0.00')
+        refunded_total = agg['refunded'] or _Dec('0.00')
+        totals = {
+            'approved': approved_total,
+            'refunded': refunded_total,
+            'net':      approved_total - refunded_total,
+        }
+
+        # --- pagination ---
+        from rest_framework.pagination import PageNumberPagination
+        paginator = PageNumberPagination()
+        paginator.page_size             = 25
+        paginator.page_size_query_param = 'page_size'
+        paginator.max_page_size         = 100
+        page = paginator.paginate_queryset(qs, request)
+        if page is not None:
+            response = paginator.get_paginated_response(
+                AdminPaymentSerializer(page, many=True).data
+            )
+            response.data['totals'] = totals
+            return response
+        return Response({
+            'count':   qs.count(),
+            'results': AdminPaymentSerializer(qs, many=True).data,
+            'totals':  totals,
+        })

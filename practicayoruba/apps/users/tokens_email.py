@@ -15,7 +15,7 @@ from datetime import timedelta
 from django.core.cache import cache
 from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
 from rest_framework_simplejwt.tokens import RefreshToken
-from django.core.mail import send_mail
+from apps.core.email_executor import dispatch_email
 from django.conf import settings
 from django.utils import timezone
 from .models import PasswordResetToken, EmailVerificationToken
@@ -32,7 +32,7 @@ def _hash_token(plain: str) -> str:
     return hashlib.sha256(plain.encode()).hexdigest()
 
 
-# ─── Password Reset ──────────────────────────────────────────────────
+# ─── Password Reset ──────────────────────────────────────────────────────
 
 def check_rate_limit(email: str, max_requests: int = 3, window: int = 3600) -> bool:
     """
@@ -62,7 +62,7 @@ def create_password_reset_token(user) -> str:
 
 def send_password_reset_email(user, plain_token: str):
     reset_url = f"{getattr(settings, 'FRONTEND_URL', 'http://localhost:3001')}/auth/reset-password/?token={plain_token}"
-    send_mail(
+    dispatch_email(
         subject='Recupera tu contrasena — PracticaYoruba',
         message=(
             f'Hola {user.first_name or user.username},\n\n'
@@ -74,7 +74,6 @@ def send_password_reset_email(user, plain_token: str):
         ),
         from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@practicayoruba.mx'),
         recipient_list=[user.email],
-        fail_silently=True,
     )
 
 
@@ -113,7 +112,7 @@ def invalidate_all_sessions(user):
             )
 
 
-# ─── Email Verification ───────────────────────────────────────────────
+# ─── Email Verification ───────────────────────────────────────────────────
 
 def create_verification_token(user) -> str:
     """
@@ -134,7 +133,7 @@ def send_verification_email(user, plain_token: str):
         f"{getattr(settings, 'FRONTEND_URL', 'http://localhost:3001')}"
         f"/verificar-email/?token={plain_token}"
     )
-    send_mail(
+    dispatch_email(
         subject='Activa tu cuenta — PracticaYoruba',
         message=(
             f'Hola {user.first_name or user.username},\n\n'
@@ -145,26 +144,39 @@ def send_verification_email(user, plain_token: str):
         ),
         from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@practicayoruba.mx'),
         recipient_list=[user.email],
-        fail_silently=True,
     )
+
+
+def _token_error(code: str, message: str) -> ValueError:
+    e = ValueError(message)
+    e.error_code = code  # type: ignore[attr-defined]
+    return e
 
 
 def validate_verification_token(plain: str):
     """
     Valida el token de verificacion de email.
     Retorna el EmailVerificationToken si es valido.
-    Lanza ValueError si es invalido o expirado.
+    Lanza ValueError (con .error_code) si es invalido o expirado.
     Si la cuenta ya esta activa, retorna None (idempotente).
     """
     token_hash = _hash_token(plain)
     try:
         obj = EmailVerificationToken.objects.get(token_hash=token_hash)
     except EmailVerificationToken.DoesNotExist:
-        raise ValueError('Token de verificacion invalido.')
+        raise _token_error('TOKEN_INVALID', 'Token de verificacion invalido.')
     if obj.user.is_active:
         return None  # idempotente — ya estaba activa
     if obj.used_at is not None:
-        return None  # ya usada pero cuenta activa
+        # Token consumido pero cuenta sigue inactiva (p.ej. invalidado
+        # por DeactivateAccountView). Indicar claramente que el token no
+        # es reutilizable y el usuario debe solicitar uno nuevo.
+        # H-CICLO115-03: antes retornaba None, lo que el caller interpretaba
+        # como "cuenta ya activa" — mensaje falso que atrapaba al usuario.
+        raise _token_error(
+            'TOKEN_ALREADY_USED',
+            'Este enlace ya fue utilizado. Solicita un nuevo enlace de verificacion.',
+        )
     if obj.expires_at < timezone.now():
-        raise ValueError('El enlace de verificacion ha expirado. Solicita uno nuevo.')
+        raise _token_error('TOKEN_EXPIRED', 'El enlace de verificacion ha expirado. Solicita uno nuevo.')
     return obj

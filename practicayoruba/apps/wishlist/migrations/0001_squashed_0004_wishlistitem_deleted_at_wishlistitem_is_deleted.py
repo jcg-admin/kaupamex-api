@@ -21,6 +21,7 @@ class Migration(migrations.Migration):
         ("catalogue", "0007_sync_model_drift"),
         ("chartsize", "0001_initial"),
         ("chartsize", "0003_sync_model_drift"),
+        ("users", "0001_squashed_0007_user_deactivation_event"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

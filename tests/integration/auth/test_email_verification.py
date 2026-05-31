@@ -44,6 +44,7 @@ class TestEmailVerification:
     def test_token_invalido_retorna_400(self, api_client, db):
         r = api_client.post(VERIFY_URL, {'token': 'token-falso-xyz'}, format='json')
         assert r.status_code == 400
+        assert r.json().get('error_code') == 'TOKEN_INVALID'
 
     def test_token_ya_usado_retorna_200_idempotente(self, api_client, inactive_user, db):
         """FR-AUTH-10.02: si la cuenta ya esta activa, 200 (idempotente)."""

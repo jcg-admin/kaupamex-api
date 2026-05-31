@@ -1,0 +1,49 @@
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+    """
+    T-119 merge-safe: ShippingZone may already exist from 0011_shipping_zone
+    (Branch A). Use SeparateDatabaseAndState so the state is updated without
+    failing when the table is already present.
+    """
+
+    dependencies = [
+        ("orders", "0008_alter_orderaddress_created_at_and_more"),
+    ]
+
+    operations = [
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    sql="""
+                        CREATE TABLE IF NOT EXISTS `orders_shipping_zone` (
+                            `id` integer AUTO_INCREMENT NOT NULL PRIMARY KEY,
+                            `name` varchar(100) NOT NULL,
+                            `zip_code_prefix` varchar(5) NOT NULL,
+                            `is_active` bool NOT NULL
+                        )
+                    """,
+                    reverse_sql="DROP TABLE IF EXISTS `orders_shipping_zone`",
+                ),
+                migrations.RunSQL(
+                    sql="CREATE INDEX IF NOT EXISTS `orders_shipping_zone_zip_b_idx` ON `orders_shipping_zone` (`zip_code_prefix`)",
+                    reverse_sql="DROP INDEX IF EXISTS `orders_shipping_zone_zip_b_idx` ON `orders_shipping_zone`",
+                ),
+            ],
+            state_operations=[
+                migrations.CreateModel(
+                    name='ShippingZone',
+                    fields=[
+                        ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                        ('name', models.CharField(max_length=100)),
+                        ('zip_code_prefix', models.CharField(db_index=True, max_length=5)),
+                        ('is_active', models.BooleanField(default=True)),
+                    ],
+                    options={
+                        'db_table': 'orders_shipping_zone',
+                    },
+                ),
+            ],
+        ),
+    ]

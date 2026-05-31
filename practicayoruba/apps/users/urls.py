@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import RegisterView, ProfileView, AddressViewSet, ChangePasswordView, PasswordResetRequestView, PasswordResetConfirmView, EmailVerifyView, ResendVerificationView, DeactivateAccountView
+from .views import RegisterView, ProfileView, AddressViewSet, ChangePasswordView, PasswordResetRequestView, PasswordResetConfirmView, EmailVerifyView, ResendVerificationView, DeactivateAccountView, LogoutAllSessionsView
 from .tokens import PYTokenObtainPairView, PYTokenRefreshView, PYTokenBlacklistView
 
 app_name = 'users'
@@ -25,4 +25,6 @@ urlpatterns = [
     path('resend-verification/',     ResendVerificationView.as_view(),    name='resend-verification'),
     # UC-AUTH-16: auto soft-delete por el usuario autenticado.
     path('me/deactivate/',           DeactivateAccountView.as_view(),     name='me-deactivate'),
+    # UC-AUTH-18: cerrar todas las sesiones activas.
+    path('logout-all/',              LogoutAllSessionsView.as_view(),      name='logout-all'),
 ]

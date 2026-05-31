@@ -17,7 +17,7 @@ class SubscribeSerializer(serializers.Serializer):
 class UnsubscribeSerializer(serializers.Serializer):
     """UC-NEW-02 — public unsubscribe by signed token."""
 
-    token = serializers.CharField(min_length=8, max_length=64)
+    token = serializers.CharField(min_length=8, max_length=200)
 
 
 class SubscriberListItemSerializer(serializers.ModelSerializer):
@@ -36,7 +36,7 @@ class CampaignCreateSerializer(serializers.Serializer):
     """UC-NEW-04 — admin create/send campaign."""
 
     subject = serializers.CharField(min_length=3, max_length=200)
-    body = serializers.CharField(min_length=3)
+    body = serializers.CharField(min_length=3, max_length=50000)
     audience_filter = serializers.ChoiceField(
         choices=SubscriberStatus.choices,
         default=SubscriberStatus.CONFIRMED,
@@ -54,3 +54,9 @@ class CampaignResponseSerializer(serializers.ModelSerializer):
             'recipients_count', 'sent_at',
         ]
         read_only_fields = fields
+
+
+# Alias for view compatibility
+NewsletterSubscribeSerializer = SubscribeSerializer
+NewsletterSubscriberAdminSerializer = SubscriberListItemSerializer
+NewsletterCampaignSerializer = CampaignResponseSerializer

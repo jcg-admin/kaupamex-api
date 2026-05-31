@@ -146,4 +146,8 @@ class SoftDeleteModel(models.Model):
         """Revierte el soft delete."""
         self.is_deleted = False
         self.deleted_at = None
-        self.save(update_fields=['is_deleted', 'deleted_at'])
+        self.save(
+            update_fields=['is_deleted', 'deleted_at', 'updated_at']
+            if hasattr(self, 'updated_at')
+            else ['is_deleted', 'deleted_at'],
+        )

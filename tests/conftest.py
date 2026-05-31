@@ -176,3 +176,159 @@ def mariadb_keepalive(db):
     if not _mariadb_alive():
         _restart_mariadb()
     yield
+
+
+# ─── DB Objects — SPs, funciones y vistas (H-DB-01) ─────────────────────────
+# Cuando pytest-django recrea practicayoruba_qa, los objetos SQL instalados
+# manualmente (SPs, funciones, vistas) desaparecen. Este fixture los reinstala
+# automáticamente al inicio de la sesión de tests si no existen.
+# Orden OBLIGATORIO por dependencias: funciones → vistas → SPs.
+
+# conftest.py está en tests/ (hijo directo del repo e-comerce-api/).
+# e-comerce-db es hermano de e-comerce-api/ en /home/user/.
+_REPOS_ROOT  = _REPO_ROOT.parent                          # /home/user
+_DB_OBJETOS  = _REPOS_ROOT / 'e-comerce-db' / 'provisioners' / 'mariadb' / 'objetos'
+
+# Orden de instalación: (tipo, nombre_objeto, path_relativo_desde_objetos)
+_DB_OBJECTS_ORDERED = [
+    # Funciones (sin dependencias entre sí)
+    ('function', 'fn_price_with_tax',           'funciones/fn_price_with_tax.sql'),
+    ('function', 'fn_qualifies_free_shipping',   'funciones/fn_qualifies_free_shipping.sql'),
+    ('function', 'fn_stock_status',              'funciones/fn_stock_status.sql'),
+    # Vistas — v_published_catalog primero (otras vistas pueden depender de ella)
+    ('view',     'v_published_catalog',          'vistas/v_published_catalog.sql'),
+    ('view',     'v_featured_products',          'vistas/v_featured_products.sql'),
+    ('view',     'v_low_stock',                  'vistas/v_low_stock.sql'),
+    # Stored Procedures
+    ('procedure', 'sp_rpt_catalog_by_category',  'sps/sp_rpt_catalog_by_category.sql'),
+    ('procedure', 'sp_rpt_catalog_summary',      'sps/sp_rpt_catalog_summary.sql'),
+    ('procedure', 'sp_rpt_low_stock',            'sps/sp_rpt_low_stock.sql'),
+]
+
+
+def _db_object_exists(cursor, db_name: str, obj_type: str, obj_name: str) -> bool:
+    """Verifica si un SP, función o vista existe en la BD."""
+    if obj_type == 'procedure':
+        cursor.execute(
+            'SHOW PROCEDURE STATUS WHERE Db = %s AND Name = %s',
+            [db_name, obj_name],
+        )
+        return cursor.fetchone() is not None
+    elif obj_type == 'function':
+        cursor.execute(
+            'SHOW FUNCTION STATUS WHERE Db = %s AND Name = %s',
+            [db_name, obj_name],
+        )
+        return cursor.fetchone() is not None
+    elif obj_type == 'view':
+        cursor.execute(
+            'SELECT COUNT(*) FROM information_schema.VIEWS '
+            'WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s',
+            [db_name, obj_name],
+        )
+        row = cursor.fetchone()
+        return bool(row and row[0])
+    return False
+
+
+def _run_sql_file(sql_path: Path, db_settings: dict) -> bool:
+    """
+    Ejecuta un archivo SQL usando el cliente mariadb.
+    Usa MYSQL_PWD para no exponer la contraseña en la línea de comandos.
+    Retorna True si tuvo éxito.
+    """
+    env = {'MYSQL_PWD': db_settings.get('PASSWORD', '')}
+
+    cmd = ['mariadb', '--batch']
+
+    # Conexión — socket Unix tiene prioridad si está configurado
+    unix_socket = db_settings.get('OPTIONS', {}).get('unix_socket', '')
+    if unix_socket:
+        cmd += [f'--socket={unix_socket}']
+    else:
+        host = db_settings.get('HOST', '127.0.0.1')
+        port = str(db_settings.get('PORT', '3306'))
+        cmd += [f'--host={host}', f'--port={port}']
+
+    cmd += [
+        f'--user={db_settings.get("USER", "root")}',
+        db_settings.get('NAME', ''),
+    ]
+
+    try:
+        with open(sql_path, 'r', encoding='utf-8') as fh:
+            sql_content = fh.read()
+        result = subprocess.run(
+            cmd,
+            input=sql_content.encode('utf-8'),
+            capture_output=True,
+            timeout=30,
+            env={**__import__('os').environ, **env},
+        )
+        if result.returncode != 0:
+            stderr = result.stderr.decode('utf-8', errors='replace')[:500]
+            warnings.warn(
+                f'db_objects_setup: error ejecutando {sql_path.name}: {stderr}',
+                RuntimeWarning,
+                stacklevel=2,
+            )
+            return False
+        return True
+    except Exception as exc:
+        warnings.warn(
+            f'db_objects_setup: excepción ejecutando {sql_path.name}: {exc}',
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        return False
+
+
+@pytest.fixture(scope='session', autouse=True)
+def db_objects_setup(django_db_setup, django_db_blocker):
+    """
+    Instala SPs, funciones y vistas en practicayoruba_qa si no existen.
+
+    H-DB-01: cuando pytest-django recrea la BD con --create-db, los objetos
+    SQL instalados manualmente desaparecen. Este fixture los reinstala
+    automáticamente al comienzo de cada sesión de tests.
+
+    Orden: funciones → vistas (v_published_catalog primero) → SPs.
+    """
+    if not _DB_OBJETOS.exists():
+        warnings.warn(
+            f'db_objects_setup: directorio e-comerce-db no encontrado en '
+            f'{_DB_OBJETOS}. Los tests que dependen de SPs/funciones/vistas '
+            f'pueden fallar.',
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        return
+
+    from django.db import connection
+
+    db_settings = connection.settings_dict
+    db_name     = db_settings.get('NAME', '')
+
+    with django_db_blocker.unblock():
+        with connection.cursor() as cursor:
+            for obj_type, obj_name, rel_path in _DB_OBJECTS_ORDERED:
+                sql_path = _DB_OBJETOS / rel_path
+                if not sql_path.exists():
+                    warnings.warn(
+                        f'db_objects_setup: SQL no encontrado: {sql_path}',
+                        RuntimeWarning,
+                        stacklevel=2,
+                    )
+                    continue
+
+                if _db_object_exists(cursor, db_name, obj_type, obj_name):
+                    continue  # ya instalado — no reinstalar
+
+                success = _run_sql_file(sql_path, db_settings)
+                if not success:
+                    warnings.warn(
+                        f'db_objects_setup: falló la instalación de {obj_name} '
+                        f'({obj_type}). Tests dependientes pueden fallar.',
+                        RuntimeWarning,
+                        stacklevel=2,
+                    )

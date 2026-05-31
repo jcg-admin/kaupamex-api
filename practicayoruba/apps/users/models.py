@@ -9,6 +9,7 @@ import time
 
 from django.contrib.auth.models import AbstractUser
 from django.db import models, transaction
+from django.utils import timezone
 from apps.core.models import SoftDeleteModel, TimeStampedModel
 
 
@@ -207,7 +208,7 @@ class Address(TimeStampedModel, SoftDeleteModel):
             with transaction.atomic():
                 Address.objects.filter(
                     user=self.user, is_default=True
-                ).exclude(pk=self.pk).update(is_default=False)
+                ).exclude(pk=self.pk).update(is_default=False, updated_at=timezone.now())
                 super().save(*args, **kwargs)
         else:
             super().save(*args, **kwargs)
@@ -344,6 +345,11 @@ class AuthEvent(TimeStampedModel):
     ACTION_REGISTER_FAIL     = "REGISTER_FAIL"
     # T-119 D-02 iter 20 (UC-AUTH-08 AC-06 audit log universal):
     ACTION_PASSWORD_CHANGE   = "PASSWORD_CHANGE"
+    # D-04-07 (hardening-addresses): audit log CRUD + set-default.
+    ACTION_ADDRESS_CREATED   = "ADDRESS_CREATED"
+    ACTION_ADDRESS_UPDATED   = "ADDRESS_UPDATED"
+    ACTION_ADDRESS_DELETED   = "ADDRESS_DELETED"
+    ACTION_ADDRESS_DEFAULT   = "ADDRESS_DEFAULT"
     ACTION_CHOICES = [
         (ACTION_LOGIN_SUCCESS,    "Login exitoso"),
         (ACTION_LOGIN_FAIL,       "Login fallido"),
@@ -354,6 +360,10 @@ class AuthEvent(TimeStampedModel):
         (ACTION_REGISTER_SUCCESS, "Registro exitoso"),
         (ACTION_REGISTER_FAIL,    "Registro fallido"),
         (ACTION_PASSWORD_CHANGE,  "Cambio de contrasena"),
+        (ACTION_ADDRESS_CREATED,  "Direccion creada"),
+        (ACTION_ADDRESS_UPDATED,  "Direccion actualizada"),
+        (ACTION_ADDRESS_DELETED,  "Direccion eliminada"),
+        (ACTION_ADDRESS_DEFAULT,  "Direccion predeterminada"),
     ]
 
     REASON_BAD_CREDS        = "BAD_CREDS"
@@ -397,19 +407,22 @@ class BusinessEvent(TimeStampedModel):
     forensics. target_type + target_id en lugar de
     GenericForeignKey por simplicidad (DEC-CC-4).
     """
-    ACTION_ORDER_CREATED    = "ORDER_CREATED"
-    ACTION_ORDER_CANCELLED  = "ORDER_CANCELLED"
-    ACTION_RETURN_REQUESTED = "RETURN_REQUESTED"
-    ACTION_RETURN_RESOLVED  = "RETURN_RESOLVED"
+    ACTION_ORDER_CREATED          = "ORDER_CREATED"
+    ACTION_ORDER_CANCELLED        = "ORDER_CANCELLED"
+    ACTION_RETURN_REQUESTED       = "RETURN_REQUESTED"
+    ACTION_RETURN_RESOLVED        = "RETURN_RESOLVED"
+    ACTION_STOCK_ADJUSTED_TO_ZERO = "STOCK_ADJUSTED_TO_ZERO"
     ACTION_CHOICES = [
-        (ACTION_ORDER_CREATED,    "Order creada"),
-        (ACTION_ORDER_CANCELLED,  "Order cancelada"),
-        (ACTION_RETURN_REQUESTED, "Return solicitada"),
-        (ACTION_RETURN_RESOLVED,  "Return resuelta"),
+        (ACTION_ORDER_CREATED,          "Order creada"),
+        (ACTION_ORDER_CANCELLED,        "Order cancelada"),
+        (ACTION_RETURN_REQUESTED,       "Return solicitada"),
+        (ACTION_RETURN_RESOLVED,        "Return resuelta"),
+        (ACTION_STOCK_ADJUSTED_TO_ZERO, "Stock ajustado a cero"),
     ]
 
-    TARGET_ORDER  = "order"
-    TARGET_RETURN = "return"
+    TARGET_ORDER   = "order"
+    TARGET_RETURN  = "return"
+    TARGET_VARIANT = "variant"
 
     actor       = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True,
@@ -432,4 +445,3 @@ class BusinessEvent(TimeStampedModel):
     def __str__(self):
         a = self.actor.username if self.actor_id else "system"
         return f"BusinessEvent[{a}] {self.action} {self.target_type}#{self.target_id}"
-

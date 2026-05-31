@@ -8,7 +8,11 @@ UC-SRCH-01: Full-text search with MariaDB FULLTEXT
 """
 import pytest
 from decimal import Decimal
+from django.contrib.auth import get_user_model
 from apps.catalogue.models import Category, Product
+from apps.reviews.models import Review
+from apps.questions.models import ProductQuestion, QuestionStatus
+from apps.orders.models import Order
 
 pytestmark = pytest.mark.integration
 
@@ -32,66 +36,70 @@ def cat_pulseras(db):
 
 @pytest.fixture
 def product_oshun(db, cat_collares):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Collar Oshun dorado',
         slug='collar-oshun-dorado',
         sku='OSHUN-001',
         description='Collar sagrado de Oshun para atraer el amor y la prosperidad.',
         short_description='Collar de Oshun dorado.',
-        category=cat_collares,
         price=Decimal('1250.00'),
         stock=10,
         is_active=True,
         is_published=True,
     )
+    _p.categories.add(cat_collares)
+    return _p
 
 
 @pytest.fixture
 def product_yemaya(db, cat_pulseras):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Pulsera Yemaya azul',
         slug='pulsera-yemaya-azul',
         sku='YEMAYA-001',
         description='Pulsera de Yemaya para la proteccion del hogar.',
         short_description='Pulsera de Yemaya.',
-        category=cat_pulseras,
         price=Decimal('450.00'),
         stock=5,
         is_active=True,
         is_published=True,
     )
+    _p.categories.add(cat_pulseras)
+    return _p
 
 
 @pytest.fixture
 def product_sin_stock(db, cat_collares):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Collar Shango rojo',
         slug='collar-shango-rojo',
         sku='SHANGO-001',
         description='Collar de Shango.',
         short_description='Collar de Shango.',
-        category=cat_collares,
         price=Decimal('980.00'),
         stock=0,
         is_active=True,
         is_published=True,
     )
+    _p.categories.add(cat_collares)
+    return _p
 
 
 @pytest.fixture
 def product_inactivo(db, cat_collares):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Collar inactivo',
         slug='collar-inactivo',
         sku='INACTIVO-001',
         description='Producto inactivo.',
         short_description='.',
-        category=cat_collares,
         price=Decimal('100.00'),
         stock=5,
         is_active=False,
         is_published=True,
     )
+    _p.categories.add(cat_collares)
+    return _p
 
 
 # =============================================================================
@@ -112,7 +120,7 @@ class TestProductoDetalle:
             'description', 'short_description',
             'base_price', 'price_with_tax',
             'stock', 'availability',
-            'category', 'images', 'discount',
+            'categories', 'images', 'discount',
         ]:
             assert campo in data, f'Falta campo: {campo}'
 
@@ -126,13 +134,14 @@ class TestProductoDetalle:
         data = r.json()
         assert float(data['price_with_tax']) > float(data['base_price'])
 
-    def test_detalle_retorna_categoria_como_objeto(self, api_client, product_oshun):
+    def test_detalle_retorna_categorias_como_lista(self, api_client, product_oshun):
         r = api_client.get(f'{CATALOGUE_URL}{product_oshun.slug}/')
         data = r.json()
-        assert isinstance(data['category'], dict)
-        assert 'id' in data['category']
-        assert 'name' in data['category']
-        assert 'slug' in data['category']
+        assert isinstance(data['categories'], list)
+        assert len(data['categories']) >= 1
+        assert 'id' in data['categories'][0]
+        assert 'name' in data['categories'][0]
+        assert 'slug' in data['categories'][0]
 
     def test_detalle_availability_con_stock_es_IN_STOCK(self, api_client, product_oshun):
         r = api_client.get(f'{CATALOGUE_URL}{product_oshun.slug}/')
@@ -161,6 +170,70 @@ class TestProductoDetalle:
     def test_detalle_es_publico_sin_autenticar(self, api_client, product_oshun):
         r = api_client.get(f'{CATALOGUE_URL}{product_oshun.slug}/')
         assert r.status_code == 200
+
+    def test_detalle_contiene_reviews_summary(self, api_client, product_oshun):
+        r = api_client.get(f'{CATALOGUE_URL}{product_oshun.slug}/')
+        data = r.json()
+        assert 'reviews_summary' in data
+        rs = data['reviews_summary']
+        assert 'average_rating' in rs
+        assert 'total_count' in rs
+
+    def test_detalle_reviews_summary_sin_resenas(self, api_client, product_oshun):
+        r = api_client.get(f'{CATALOGUE_URL}{product_oshun.slug}/')
+        rs = r.json()['reviews_summary']
+        assert rs['average_rating'] is None
+        assert rs['total_count'] == 0
+
+    def test_detalle_reviews_summary_agrega_aprobadas(self, api_client, db, product_oshun):
+        User = get_user_model()
+        u = User.objects.create_user(username='rev_user', password='X', email='r@x.com')
+        order = Order.objects.create(user=u, status=Order.STATUS_DELIVERED)
+        Review.objects.create(
+            user=u, product=product_oshun, order=order,
+            rating=4, title='Bien', body='Producto bueno.',
+            status=Review.STATUS_APPROVED,
+        )
+        r = api_client.get(f'{CATALOGUE_URL}{product_oshun.slug}/')
+        rs = r.json()['reviews_summary']
+        assert rs['total_count'] == 1
+        assert rs['average_rating'] == 4.0
+
+    def test_detalle_reviews_summary_excluye_pendientes(self, api_client, db, product_oshun):
+        User = get_user_model()
+        u = User.objects.create_user(username='rev_user2', password='X', email='r2@x.com')
+        order = Order.objects.create(user=u, status=Order.STATUS_DELIVERED)
+        Review.objects.create(
+            user=u, product=product_oshun, order=order,
+            rating=5, title='Excelente', body='Muy bueno.',
+            status=Review.STATUS_PENDING,
+        )
+        r = api_client.get(f'{CATALOGUE_URL}{product_oshun.slug}/')
+        rs = r.json()['reviews_summary']
+        assert rs['total_count'] == 0
+        assert rs['average_rating'] is None
+
+    def test_detalle_contiene_questions_count(self, api_client, product_oshun):
+        r = api_client.get(f'{CATALOGUE_URL}{product_oshun.slug}/')
+        data = r.json()
+        assert 'questions_count' in data
+        assert isinstance(data['questions_count'], int)
+
+    def test_detalle_questions_count_sin_preguntas(self, api_client, product_oshun):
+        r = api_client.get(f'{CATALOGUE_URL}{product_oshun.slug}/')
+        assert r.json()['questions_count'] == 0
+
+    def test_detalle_questions_count_solo_respondidas(self, api_client, db, product_oshun):
+        ProductQuestion.objects.create(
+            product=product_oshun, body='¿Cuántos quedan?',
+            status=QuestionStatus.ANSWERED, answer_body='Quedan 10.',
+        )
+        ProductQuestion.objects.create(
+            product=product_oshun, body='¿Es original?',
+            status=QuestionStatus.PENDING, answer_body='',
+        )
+        r = api_client.get(f'{CATALOGUE_URL}{product_oshun.slug}/')
+        assert r.json()['questions_count'] == 1
 
 
 # =============================================================================

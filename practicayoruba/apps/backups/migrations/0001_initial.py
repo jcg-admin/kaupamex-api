@@ -1,0 +1,41 @@
+"""Initial migration — apps.backups."""
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    initial = True
+
+    dependencies = []
+
+    operations = [
+        migrations.CreateModel(
+            name='BackupRecord',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True,
+                                           serialize=False, verbose_name='ID')),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('updated_at', models.DateTimeField(auto_now=True)),
+                ('type', models.CharField(
+                    choices=[('AUTO', 'Automático'), ('MANUAL', 'Manual')],
+                    default='AUTO', max_length=10)),
+                ('status', models.CharField(
+                    choices=[('PENDING', 'Pendiente'), ('OK', 'Completado'),
+                             ('ERROR', 'Error')],
+                    default='PENDING', max_length=10)),
+                ('filename',     models.CharField(blank=True, default='',
+                                                   max_length=255)),
+                ('size_bytes',   models.PositiveBigIntegerField(blank=True,
+                                                                null=True)),
+                ('download_url', models.URLField(blank=True, default='',
+                                                  max_length=500)),
+                ('error_detail', models.TextField(blank=True, default='')),
+            ],
+            options={
+                'verbose_name': 'Backup',
+                'verbose_name_plural': 'Backups',
+                'db_table': 'backup_record',
+                'ordering': ['-created_at'],
+            },
+        ),
+    ]

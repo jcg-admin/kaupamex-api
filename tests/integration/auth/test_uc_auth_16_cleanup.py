@@ -32,11 +32,13 @@ URL = '/api/v1/auth/me/deactivate/'
 def product(db):
     """Producto + variante mínimos para wishlist/cart tests."""
     cat = Category.objects.create(name='Test', slug='test')
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Test Product', slug='test-p',
-        price=Decimal('100'), category=cat,
+        price=Decimal('100'),
         is_active=True,
     )
+    _p.categories.add(cat)
+    return _p
 
 
 class TestSelfDeleteEliminaCartActivo:

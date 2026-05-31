@@ -7,7 +7,7 @@ import pytest
 from decimal import Decimal
 from apps.catalogue.models import Category, Product
 from apps.settings_app.models import ShippingMethod
-from apps.orders.models import Order, OrderValue, OrderAddress
+from apps.orders.models import Order, OrderValue, OrderAddress, ShippingZone
 from apps.cart.models import CartItem
 from apps.voucher.models import Voucher
 from django.utils import timezone
@@ -27,22 +27,32 @@ ADDR = {
 
 
 @pytest.fixture
+def zone_cdmx(db):
+    zone, _ = ShippingZone.objects.get_or_create(
+        zip_code_prefix='06', defaults={'name': 'Ciudad de México', 'is_active': True}
+    )
+    return zone
+
+
+@pytest.fixture
 def cat_ord(db):
     return Category.objects.create(name='Cat Ord', slug='cat-ord', is_active=True)
 
 
 @pytest.fixture
 def prod_ord(db, cat_ord):
-    return Product.objects.create(
+    _p = Product.objects.create(
         name='Prod Ord', slug='prod-ord', sku='ORD-001',
-        description='', category=cat_ord,
+        description='',
         price=Decimal('500.00'), stock=10,
         is_active=True, is_published=True,
     )
+    _p.categories.add(cat_ord)
+    return _p
 
 
 @pytest.fixture
-def cart_con_item_auth(auth_client, prod_ord):
+def cart_con_item_auth(auth_client, prod_ord, zone_cdmx):
     auth_client.post(ITEMS_URL, {
         'product_id': prod_ord.pk, 'quantity': 2,
     }, format='json')
@@ -118,11 +128,11 @@ class TestCheckout:
         assert res.status_code == 201
         assert Decimal(res.json()['value']['shipping_cost']) == Decimal('80.00')
 
-    def test_checkout_carrito_vacio_retorna_400(self, auth_client, db):
+    def test_checkout_carrito_vacio_retorna_400(self, auth_client, zone_cdmx, db):
         res = auth_client.post(CHECKOUT_URL, {'address': ADDR}, format='json')
         assert res.status_code in (400, 404)
 
-    def test_checkout_anonimo(self, api_client, prod_ord, db):
+    def test_checkout_anonimo(self, api_client, prod_ord, zone_cdmx, db):
         """BR-011: visitante anónimo puede hacer checkout."""
         add_res = api_client.post(ITEMS_URL, {
             'product_id': prod_ord.pk, 'quantity': 1,
@@ -138,7 +148,7 @@ class TestCheckout:
         assert res.json()['guest_email'] == 'invitado@test.mx'
 
     def test_checkout_anonimo_sin_guest_email_retorna_400(
-        self, api_client, prod_ord, db
+        self, api_client, prod_ord, zone_cdmx, db
     ):
         add_res = api_client.post(ITEMS_URL, {
             'product_id': prod_ord.pk, 'quantity': 1,
@@ -153,7 +163,7 @@ class TestCheckout:
         assert res.json()['codigo_error'] == 'GUEST_EMAIL_REQUIRED'
 
     def test_checkout_stock_insuficiente_retorna_409(
-        self, auth_client, prod_ord, db
+        self, auth_client, prod_ord, zone_cdmx, db
     ):
         prod_ord.stock = 1
         prod_ord.save()
@@ -171,7 +181,7 @@ class TestCheckout:
         assert prod_ord.stock == 0
 
     def test_checkout_con_voucher_aplica_descuento(
-        self, auth_client, prod_ord, db, admin_user
+        self, auth_client, prod_ord, zone_cdmx, db, admin_user
     ):
         v = Voucher.objects.create(
             code='PROMO100', voucher_type='FIXED',
@@ -188,7 +198,7 @@ class TestCheckout:
         assert res.json()['voucher_code'] == 'PROMO100'
 
     def test_checkout_incrementa_voucher_current_uses(
-        self, auth_client, prod_ord, db, admin_user,
+        self, auth_client, prod_ord, zone_cdmx, db, admin_user,
     ):
         """T-115 D-01 CRITICA (implementar-current-uses-increment):
         verificar que el campo Voucher.current_uses se incrementa
@@ -234,3 +244,48 @@ class TestShippingMethodProtection:
         res = admin_client.delete(f'/api/v1/admin/shipping-methods/{shipping.pk}/')
         assert res.status_code == 400
         assert res.json()['codigo_error'] == 'METHOD_WITH_ACTIVE_ORDERS'
+
+
+# =============================================================================
+# P-22 — UC-ORD-01 RNF-PERF: checkout P95 800ms SLO
+# =============================================================================
+
+class TestCheckoutP95SLO:
+    """UC-ORD-01 RNF-PERF: checkout must complete in <800ms at P95."""
+
+    def test_checkout_p95_slo_800ms(
+        self, auth_client, prod_ord, zone_cdmx, db,
+    ):
+        """UC-ORD-01 RNF-PERF: end-to-end checkout wall-clock must be <800ms.
+
+        Runs 5 sequential checkouts on fresh products and asserts every
+        request finishes within the 800ms budget.  This per-request guard
+        catches obvious regressions; a true P95 would need many more samples
+        but is impractical in a synchronous test suite.
+        """
+        import time
+
+        for i in range(5):
+            p = Product.objects.create(
+                name=f'SLO Prod {i}', slug=f'slo-prod-{i}', sku=f'SLO-{i:03d}',
+                price=Decimal('100.00'), stock=5,
+                is_active=True, is_published=True,
+            )
+            _cat = prod_ord.categories.first()
+            if _cat:
+                p.categories.add(_cat)
+            auth_client.post(
+                ITEMS_URL, {'product_id': p.pk, 'quantity': 1}, format='json',
+            )
+
+            start = time.monotonic()
+            res = auth_client.post(CHECKOUT_URL, {'address': ADDR}, format='json')
+            elapsed_ms = (time.monotonic() - start) * 1000
+
+            assert res.status_code == 201, (
+                f'Iteration {i}: checkout failed with {res.status_code}: {res.json()}'
+            )
+            assert elapsed_ms < 800, (
+                f'UC-ORD-01 RNF-PERF: iteration {i} took {elapsed_ms:.0f}ms, '
+                f'exceeds 800ms P95 SLO'
+            )

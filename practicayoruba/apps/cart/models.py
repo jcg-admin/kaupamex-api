@@ -12,6 +12,7 @@ import uuid
 from decimal import Decimal
 from django.conf import settings
 from django.db import models, transaction
+from django.db.models import Q
 from django.core.validators import MinValueValidator
 from apps.core.models import TimeStampedModel
 from apps.settings_app.models import SiteSettings
@@ -103,10 +104,10 @@ class Cart(TimeStampedModel):
                         if other_item.variant
                         else other_item.product.price
                     )
-                    existing.save(update_fields=['quantity', 'unit_price'])
+                    existing.save(update_fields=['quantity', 'unit_price', 'updated_at'])
                 else:
                     other_item.cart = self
-                    other_item.save(update_fields=['cart'])
+                    other_item.save(update_fields=['cart', 'updated_at'])
             other_cart.delete()
 
 
@@ -128,9 +129,23 @@ class CartItem(TimeStampedModel):
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
 
     class Meta:
-        db_table        = 'cart_cart_item'
-        unique_together = [('cart', 'variant')]
-        verbose_name    = 'Item de carrito'
+        db_table     = 'cart_cart_item'
+        verbose_name = 'Item de carrito'
+        constraints  = [
+            # Productos con variante: (cart, variant) único.
+            models.UniqueConstraint(
+                fields=['cart', 'variant'],
+                condition=Q(variant__isnull=False),
+                name='unique_cart_variant',
+            ),
+            # Productos sin variante: NULL != NULL en SQL — unique_together
+            # no protegía este caso. Restricción explícita sobre (cart, product).
+            models.UniqueConstraint(
+                fields=['cart', 'product'],
+                condition=Q(variant__isnull=True),
+                name='unique_cart_product_no_variant',
+            ),
+        ]
 
     def __str__(self):
         label = self.variant.option.label if self.variant else self.product.name
@@ -145,6 +160,11 @@ class CartItem(TimeStampedModel):
         return self.product.price
 
     def is_available(self) -> bool:
+        # H-CICLO42-01: verificar is_active e is_published del producto antes
+        # de evaluar el stock. Sin esta guardia, un producto desactivado aparece
+        # como disponible en el carrito y puede llegar al checkout.
+        if not (self.product.is_active and self.product.is_published):
+            return False
         if self.variant:
             return self.variant.is_available() and self.variant.stock >= self.quantity
         return self.product.stock >= self.quantity

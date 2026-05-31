@@ -15,13 +15,15 @@ Admin endpoints (UC-NOT-07):
 
 Identifiers + JSON keys in English (DEC-DOC-005).
 """
-from django.conf import settings as dj_settings
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.utils import timezone
 from django.http import Http404
 from django.shortcuts import get_object_or_404
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema, inline_serializer
+from rest_framework import fields as rf_fields
 from rest_framework import status
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from apps.orders.models import OrderItem
 from rest_framework.response import Response
@@ -33,6 +35,20 @@ from .serializers import ManualNotificationCreateSerializer, ManualNotificationR
 
 
 
+class _NotificationPagination(PageNumberPagination):
+    """H-CICLO88-02: paginar bandeja para evitar respuesta sin limite."""
+    page_size             = 50
+    page_size_query_param = 'page_size'
+    max_page_size         = 200
+
+
+# Hard cap: ante un admin que envie notificaciones masivas a un usuario
+# concreto el endpoint devuelve como maximo este numero de filas.
+# Protege al frontend y al worker WSGI frente a bandejas con miles
+# de mensajes (UC-NOT-01 DoS via admin manual fanout).
+_INBOX_CAP = 500
+
+
 # ────────────────────────────── UC-NOT-01 ────────────────────────────────
 class NotificationListView(APIView):
     """GET /api/v1/notifications/."""
@@ -42,10 +58,31 @@ class NotificationListView(APIView):
     @extend_schema(
         summary='Listar notificaciones del usuario',
         tags=['notifications'],
+        parameters=[
+            OpenApiParameter('page',      int, description='Numero de pagina.'),
+            OpenApiParameter('page_size', int, description='Resultados por pagina (max 200).'),
+        ],
         responses=NotificationSerializer(many=True),
     )
     def get(self, request):
-        qs = Notification.objects.filter(user=request.user)
+        # H-CICLO48-02: order_by('-created_at') garantiza orden determinista.
+        # El modelo tiene Meta.ordering=['-created_at'] pero reliar en el
+        # ordering de Meta con queryset.filter() puede perderse tras un
+        # .values() u otras operaciones de combinacion. Se explicita aqui.
+        # H-CICLO88-02: limitar a _INBOX_CAP filas antes de paginar para
+        # evitar que un admin que envie notificaciones masivas a un usuario
+        # cause OOM al serializar miles de objetos en un solo response.
+        qs = (
+            Notification.objects
+            .filter(user=request.user)
+            .order_by('-created_at')[:_INBOX_CAP]
+        )
+        paginator = _NotificationPagination()
+        page = paginator.paginate_queryset(qs, request)
+        if page is not None:
+            return paginator.get_paginated_response(
+                NotificationSerializer(page, many=True).data
+            )
         data = NotificationSerializer(qs, many=True).data
         return Response({'results': data})
 
@@ -60,6 +97,10 @@ class NotificationUnreadCountView(APIView):
     @extend_schema(
         summary='Contar notificaciones no leidas',
         tags=['notifications'],
+        responses={200: inline_serializer(
+            name='UnreadCountResponse',
+            fields={'count': rf_fields.IntegerField()},
+        )},
     )
     def get(self, request):
         count = Notification.objects.filter(
@@ -78,6 +119,10 @@ class NotificationMarkReadView(APIView):
     @extend_schema(
         summary='Marcar notificacion como leida',
         tags=['notifications'],
+        responses={200: inline_serializer(
+            name='NotificationReadResponse',
+            fields={'id': rf_fields.IntegerField(), 'read': rf_fields.BooleanField()},
+        )},
     )
     def post(self, request, notification_id):
         notif = get_object_or_404(Notification, pk=notification_id)
@@ -99,11 +144,15 @@ class NotificationMarkAllReadView(APIView):
     @extend_schema(
         summary='Marcar todas las notificaciones como leidas',
         tags=['notifications'],
+        responses={200: inline_serializer(
+            name='MarkAllReadResponse',
+            fields={'updated': rf_fields.IntegerField()},
+        )},
     )
     def post(self, request):
         updated = Notification.objects.filter(
             user=request.user, read=False,
-        ).update(read=True)
+        ).update(read=True, updated_at=timezone.now())
         return Response({'updated': updated})
 
 
@@ -251,6 +300,10 @@ class AdminAudienceCountView(APIView):
             OpenApiParameter('recipient_identifier', str, required=False),
             OpenApiParameter('product_id', int, required=False),
         ],
+        responses={200: inline_serializer(
+            name='AudienceCountResponse',
+            fields={'count': rf_fields.IntegerField()},
+        )},
     )
     def get(self, request):
         params = request.query_params
@@ -327,47 +380,18 @@ class AdminManualNotificationCreateView(APIView):
                 ),
             )
 
-            # D-004: fanout sincrono para audiencias chicas (preserva el
-            # comportamiento previo, mantiene los tests existentes verdes
-            # y evita la latencia de despachar a Celery para 1-N usuarios).
-            # Para audiencias grandes (>threshold) se despacha al broker
-            # para no bloquear la request. En tests, el override
-            # CELERY_TASK_ALWAYS_EAGER=True hace que .delay() ejecute en
-            # proceso, eliminando la dependencia de redis.
-            threshold = getattr(
-                dj_settings, 'MANUAL_FANOUT_ASYNC_THRESHOLD', 100,
-            )
             if user_ids:
-                if len(user_ids) > threshold:
-                    dispatch_manual_fanout.delay(
-                        list(user_ids),
-                        subject,
-                        message,
-                        NotificationType.PROMOTION,
-                    )
-                else:
-                    # Camino sincrono (logica original conservada).
-                    disabled = set(
-                        NotificationPreference.objects
-                        .filter(
-                            user_id__in=user_ids,
-                            type=NotificationType.PROMOTION,
-                            enabled=False,
-                        )
-                        .values_list('user_id', flat=True)
-                    )
-                    to_create = [
-                        Notification(
-                            user_id=uid,
-                            type=NotificationType.PROMOTION,
-                            subject=subject,
-                            body=message,
-                        )
-                        for uid in user_ids
-                        if uid not in disabled
-                    ]
-                    if to_create:
-                        Notification.objects.bulk_create(to_create)
+                # H-CICLO18-05: dispatch_manual_fanout es una funcion plana
+                # (sin Celery, cnst-arquitectura T6). Llamar .delay() sobre
+                # una funcion sin decorador @shared_task lanza AttributeError
+                # para audiencias > MANUAL_FANOUT_ASYNC_THRESHOLD. Se elimina
+                # la bifurcacion sync/async — siempre se llama directamente.
+                dispatch_manual_fanout(
+                    list(user_ids),
+                    subject,
+                    message,
+                    NotificationType.PROMOTION,
+                )
 
         return Response(
             ManualNotificationResponseSerializer(manual).data,

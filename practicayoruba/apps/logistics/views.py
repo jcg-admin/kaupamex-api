@@ -1,272 +1,293 @@
 """
-Views — apps.logistics (P-13 / UC-LOG-01..09).
-
-Endpoints (all admin-only — RNF-SEC-003):
-  GET    /api/v1/logistics/                           Panel (groups A + B).
-  GET    /api/v1/logistics/couriers/                  List active couriers.
-  POST   /api/v1/logistics/guides/                    Create shipment guide.
-  PATCH  /api/v1/logistics/guides/<pk>/               Update status.
-  POST   /api/v1/logistics/guides/<pk>/confirm-delivery/ Idempotent.
-
-English identifiers + JSON keys (DEC-DOC-005).
-Spanish business error codes (DEC-DOC-006).
+Views — apps.logistics (P-10 / UC-LOG-01..09).
 """
+import logging
 from django.db import transaction
 from django.utils import timezone
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import status
 from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from apps.orders.models import Order
+
+
+class ShipmentGuidePagination(PageNumberPagination):
+    """Paginacion para listado de guias de envio — H-CICLO29-03."""
+    page_size             = 25
+    page_size_query_param = 'page_size'
+    max_page_size         = 100
+
+logger = logging.getLogger('apps')
+
+from apps.orders.models import Order, OrderStatusLog
 from .models import Courier, ShipmentEvent, ShipmentGuide
-from .serializers import CourierSerializer, ShipmentEventSerializer, ShipmentGuideCreateSerializer, ShipmentGuideSerializer
-from apps.notifications.service import notify_shipping_updated
-
-
+from .serializers import (
+    BuyerShipmentGuideSerializer, CourierCreateUpdateSerializer, CourierSerializer,
+    ShipmentGuideCreateSerializer, ShipmentGuideSerializer,
+)
 
 
 class _AdminOnly:
     permission_classes = [IsAuthenticated, IsAdminUser]
-    serializer_class = ShipmentGuideSerializer
 
-
-# =============================================================================
-# GET /api/v1/logistics/  — panel
-# =============================================================================
 
 class LogisticsPanelView(_AdminOnly, APIView):
-    @extend_schema(
-        summary='Logistics panel (group A + B).',
-        parameters=[OpenApiParameter('courier_id', int, required=False)],
-        tags=['logistics'],
-    )
+    @extend_schema(summary='Panel logístico (UC-LOG-01)', tags=['logistics'], responses={200: None})
     def get(self, request):
-        courier_id = request.query_params.get('courier_id')
-
-        # Group A: paid orders WITHOUT shipment guide.
-        paid_statuses = [
-            Order.STATUS_PROCESSING,
-            Order.STATUS_IN_PREPARATION,
-        ]
-        # The "paid" criterion: orders past PENDING that don't have a guide.
-        group_a_qs = (
-            Order.objects.filter(status__in=paid_statuses)
-            .exclude(shipment_guide__isnull=False)
-            .order_by('-created_at')
-        )
-
-        # Group B: active guides (not DELIVERED / CANCELLED).
-        active_statuses = [
-            ShipmentGuide.STATUS_CREATED,
-            ShipmentGuide.STATUS_PICKED_UP,
-            ShipmentGuide.STATUS_IN_TRANSIT,
-            ShipmentGuide.STATUS_INCIDENT,
-        ]
-        group_b_qs = (
-            ShipmentGuide.objects.filter(status__in=active_statuses)
-            .select_related('order', 'courier')
-            .prefetch_related('events')
-            .order_by('-created_at')
-        )
-        if courier_id:
+        courier_id_raw = request.query_params.get('courier_id')
+        courier_filter = None
+        if courier_id_raw is not None:
             try:
-                cid = int(courier_id)
-            except (TypeError, ValueError):
-                raise ValidationError({
-                    'detail': 'courier_id invalido.',
-                    'codigo_error': 'COURIER_ID_INVALID',
-                })
-            group_b_qs = group_b_qs.filter(courier_id=cid)
+                courier_filter = int(courier_id_raw)
+            except ValueError:
+                return Response({'detail': 'courier_id inválido.', 'codigo_error': 'COURIER_ID_INVALID'}, status=400)
 
-        group_a = [
-            {
-                'order_id': o.id,
-                'order_number': o.order_number,
-                'status': o.status,
-                'created_at': o.created_at,
-            }
-            for o in group_a_qs
-        ]
-        group_b = ShipmentGuideSerializer(group_b_qs, many=True).data
+        group_a_qs = Order.objects.filter(status=Order.STATUS_IN_PREPARATION).select_related('address').prefetch_related('items')
+        pending_pickup = []
+        for order in group_a_qs:
+            entry = {'order_id': order.id, 'order_number': order.order_number, 'status': order.status}
+            try:
+                addr = order.address
+                entry['recipient_name'] = addr.recipient_name
+                entry['city'] = addr.city
+            except Exception:
+                logger.warning('Order %s has no address record', order.id)
+            pending_pickup.append(entry)
 
-        return Response({
-            'pending_pickup':  group_a,   # group A — UI label
-            'in_transit':      group_b,   # group B — UI label
-            'group_a_count':   len(group_a),
-            'group_b_count':   len(group_b),
-        })
+        guide_qs = ShipmentGuide.objects.filter(is_deleted=False).exclude(
+            status=ShipmentGuide.STATUS_DELIVERED,
+        ).exclude(status=ShipmentGuide.STATUS_CANCELLED).select_related('order', 'courier')
+        if courier_filter:
+            guide_qs = guide_qs.filter(courier_id=courier_filter)
+
+        in_transit = []
+        for guide in guide_qs:
+            in_transit.append({
+                'guide_id': guide.id, 'tracking_number': guide.tracking_number,
+                'order_id': guide.order_id, 'order_number': guide.order.order_number,
+                'courier_code': guide.courier.code, 'status': guide.status,
+            })
+
+        return Response({'group_a_count': len(pending_pickup), 'group_b_count': len(in_transit),
+                         'pending_pickup': pending_pickup, 'in_transit': in_transit})
 
 
-# =============================================================================
-# GET /api/v1/logistics/couriers/
-# =============================================================================
-
-class CourierListView(_AdminOnly, APIView):
-    @extend_schema(summary='List active couriers.', tags=['logistics'])
+class CourierListCreateView(_AdminOnly, APIView):
     def get(self, request):
-        qs = Courier.objects.filter(is_active=True)
-        return Response(CourierSerializer(qs, many=True).data)
+        return Response(CourierSerializer(Courier.objects.all().order_by('name'), many=True).data)
+
+    def post(self, request):
+        ser = CourierCreateUpdateSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        return Response(CourierSerializer(ser.save()).data, status=201)
 
 
-# =============================================================================
-# POST /api/v1/logistics/guides/  — create
-# =============================================================================
+class CourierDetailView(_AdminOnly, APIView):
+    def _get(self, pk):
+        try:
+            return Courier.objects.get(pk=pk)
+        except Courier.DoesNotExist:
+            raise NotFound({'detail': 'Courier no encontrado.', 'codigo_error': 'COURIER_NOT_FOUND'})
+
+    def patch(self, request, pk):
+        courier = self._get(pk)
+        ser = CourierCreateUpdateSerializer(courier, data=request.data, partial=True)
+        ser.is_valid(raise_exception=True)
+        ser.save()
+        return Response(CourierSerializer(courier).data)
+
+    def delete(self, request, pk):
+        courier = self._get(pk)
+        courier.is_active = False
+        courier.save(update_fields=['is_active', 'updated_at'])
+        return Response({'deactivated': True})
+
 
 class ShipmentGuideListCreateView(_AdminOnly, APIView):
-    @extend_schema(summary='List shipment guides.', tags=['logistics'],
-                   operation_id='logistics_guides_list')
     def get(self, request):
-        qs = ShipmentGuide.objects.select_related('order', 'courier').order_by('-created_at')
-        return Response(ShipmentGuideSerializer(qs, many=True).data)
+        qs = ShipmentGuide.objects.filter(is_deleted=False).select_related('order', 'courier').order_by('-created_at')
+        if request.query_params.get('order_id'):
+            qs = qs.filter(order_id=request.query_params['order_id'])
+        # H-CICLO29-03: sin paginacion este endpoint podia retornar todas
+        # las guias del sistema en una sola respuesta. Paginado a 25/pagina.
+        paginator = ShipmentGuidePagination()
+        page = paginator.paginate_queryset(qs, request)
+        return paginator.get_paginated_response(ShipmentGuideSerializer(page, many=True).data)
 
-    @extend_schema(
-        summary='Create shipment guide.',
-        request=ShipmentGuideCreateSerializer,
-        responses={201: ShipmentGuideSerializer},
-        tags=['logistics'],
-    )
-    @transaction.atomic
     def post(self, request):
         ser = ShipmentGuideCreateSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
-        guide = ser.save()
-        ShipmentEvent.objects.create(
-            guide=guide,
-            status=guide.status,
-            description='Guia creada.',
-            occurred_at=timezone.now(),
-            recorded_by=request.user if request.user.is_authenticated else None,
-        )
-        notify_shipping_updated(
-            order=guide.order,
-            user=guide.order.user,
-            tracking_number=guide.tracking_number,
-            event_description='Guia creada.',
-        )
-        return Response(
-            ShipmentGuideSerializer(guide).data, status=status.HTTP_201_CREATED,
-        )
+        data = ser.validated_data
+        order = data['order']
 
+        # H-CICLO110-04: envolver la dedup check + guide create + order save
+        # en un bloque atomic con select_for_update para evitar dos requests
+        # concurrentes que ambos pasen el filtro GUIDE_ALREADY_EXISTS y creen
+        # dos guías para la misma orden. También se crea OrderStatusLog para
+        # la transición →SHIPPED, que antes quedaba sin registro de auditoría.
+        with transaction.atomic():
+            order_locked = Order.objects.select_for_update().get(pk=order.pk)
+            # H-CICLO72-03: prevent duplicate active guides for the same order.
+            if ShipmentGuide.objects.filter(order=order_locked, is_deleted=False).exists():
+                return Response(
+                    {
+                        'detail': 'Ya existe una guía de envío activa para esta orden.',
+                        'codigo_error': 'GUIDE_ALREADY_EXISTS',
+                    },
+                    status=status.HTTP_409_CONFLICT,
+                )
 
-# =============================================================================
-# PATCH /api/v1/logistics/guides/<pk>/  — update status
-# =============================================================================
+            previous_status = order_locked.status
+            guide = ShipmentGuide.objects.create(
+                order=order_locked, courier=data['courier'],
+                tracking_number=data['tracking_number'], notes=data.get('notes', ''),
+            )
+            order_locked.status = Order.STATUS_SHIPPED
+            order_locked.save(update_fields=['status', 'updated_at'])
+            OrderStatusLog.objects.create(
+                order=order_locked,
+                previous_status=previous_status,
+                new_status=Order.STATUS_SHIPPED,
+                changed_by=request.user,
+                notes=f'Guía de envío creada: {data["tracking_number"]}',
+            )
+
+        # H-CICLO46-02: re-fetch guide with select_related to avoid N+1 when
+        # ShipmentGuideSerializer accesses guide.order.order_number (source FK)
+        # and guide.courier (nested CourierSerializer).
+        guide = ShipmentGuide.objects.select_related('order', 'courier').get(pk=guide.pk)
+        return Response(ShipmentGuideSerializer(guide).data, status=201)
+
 
 class ShipmentGuideDetailView(_AdminOnly, APIView):
-    @extend_schema(summary='Shipment guide detail.', tags=['logistics'],
-                   operation_id='logistics_guides_retrieve')
+    VALID_STATUSES = {s[0] for s in ShipmentGuide.STATUSES}
+
+    # H-CICLO82-02: maquina de estados de guias de envio.
+    # Sin esta tabla cualquier status valido podia setearse desde
+    # cualquier estado anterior — p.ej. CREATED → DELIVERED sin
+    # pasar por IN_TRANSIT, lo que rompe el historial de eventos y
+    # la logica de ConfirmDeliveryView.
+    ALLOWED_TRANSITIONS = {
+        ShipmentGuide.STATUS_CREATED:    [ShipmentGuide.STATUS_PICKED_UP,
+                                          ShipmentGuide.STATUS_CANCELLED],
+        ShipmentGuide.STATUS_PICKED_UP:  [ShipmentGuide.STATUS_IN_TRANSIT,
+                                          ShipmentGuide.STATUS_INCIDENT,
+                                          ShipmentGuide.STATUS_CANCELLED],
+        ShipmentGuide.STATUS_IN_TRANSIT: [ShipmentGuide.STATUS_DELIVERED,
+                                          ShipmentGuide.STATUS_INCIDENT,
+                                          ShipmentGuide.STATUS_CANCELLED],
+        ShipmentGuide.STATUS_INCIDENT:   [ShipmentGuide.STATUS_IN_TRANSIT,
+                                          ShipmentGuide.STATUS_CANCELLED],
+        # DELIVERED y CANCELLED son terminales — sin transiciones permitidas.
+    }
+
+    def _get_guide(self, pk):
+        try:
+            return ShipmentGuide.objects.select_related('order', 'courier').get(pk=pk, is_deleted=False)
+        except ShipmentGuide.DoesNotExist:
+            raise NotFound({'detail': 'Guía no encontrada.', 'codigo_error': 'SHIPMENT_GUIDE_NOT_FOUND'})
+
     def get(self, request, pk):
-        try:
-            guide = ShipmentGuide.objects.select_related('order', 'courier').get(pk=pk)
-        except ShipmentGuide.DoesNotExist:
-            raise NotFound({'detail': 'Guia no encontrada.',
-                            'codigo_error': 'SHIPMENT_GUIDE_NOT_FOUND'})
-        data = ShipmentGuideSerializer(guide).data
-        data['events'] = ShipmentEventSerializer(guide.events.all(), many=True).data
-        return Response(data)
+        return Response(ShipmentGuideSerializer(self._get_guide(pk)).data)
 
-    @extend_schema(
-        summary='Update shipment status.',
-        tags=['logistics'],
-    )
-    @transaction.atomic
     def patch(self, request, pk):
-        try:
-            guide = ShipmentGuide.objects.select_for_update().get(pk=pk)
-        except ShipmentGuide.DoesNotExist:
-            raise NotFound({'detail': 'Guia no encontrada.',
-                            'codigo_error': 'SHIPMENT_GUIDE_NOT_FOUND'})
-
+        guide = self._get_guide(pk)
         new_status = request.data.get('status')
-        if not new_status:
-            raise ValidationError({
-                'detail': 'status requerido.',
-                'codigo_error': 'STATUS_REQUIRED',
-            })
-        valid_codes = {code for code, _ in ShipmentGuide.STATUSES}
-        if new_status not in valid_codes:
-            raise ValidationError({
-                'detail': f'status invalido: {new_status}.',
-                'codigo_error': 'STATUS_INVALID',
-            })
-
-        description = (request.data.get('description') or '').strip()
+        if not new_status or new_status not in self.VALID_STATUSES:
+            return Response({'detail': f'Estado inválido: {new_status!r}.', 'codigo_error': 'STATUS_INVALID'}, status=400)
+        # H-CICLO82-02: validar transicion contra la maquina de estados.
+        allowed = self.ALLOWED_TRANSITIONS.get(guide.status, [])
+        if new_status not in allowed:
+            return Response(
+                {
+                    'detail': (
+                        f'Transición no permitida: {guide.status} → {new_status}. '
+                        f'Transiciones válidas: {allowed or ["ninguna (estado terminal)"]}'
+                    ),
+                    'codigo_error': 'INVALID_STATUS_TRANSITION',
+                },
+                status=400,
+            )
         guide.status = new_status
-        if new_status == ShipmentGuide.STATUS_DELIVERED and not guide.delivered_at:
-            guide.delivered_at = timezone.now()
-        guide.save(update_fields=['status', 'delivered_at', 'updated_at'])
-
+        guide.save(update_fields=['status', 'updated_at'])
         ShipmentEvent.objects.create(
-            guide=guide,
-            status=new_status,
-            description=description,
-            occurred_at=timezone.now(),
-            recorded_by=request.user if request.user.is_authenticated else None,
+            guide=guide, status=new_status,
+            description=request.data.get('description', ''),
+            occurred_at=timezone.now(), recorded_by=request.user,
         )
-        notify_shipping_updated(
-            order=guide.order,
-            user=guide.order.user,
-            tracking_number=guide.tracking_number,
-            event_description=description or f'Estado actualizado a: {new_status}.',
-        )
-
         return Response(ShipmentGuideSerializer(guide).data)
 
 
-# =============================================================================
-# POST /api/v1/logistics/guides/<pk>/confirm-delivery/  — UC-LOG-05
-# =============================================================================
-
 class ConfirmDeliveryView(_AdminOnly, APIView):
-    @extend_schema(
-        summary='Confirm delivery (UC-LOG-05). Idempotent.',
-        tags=['logistics'],
-    )
-    @transaction.atomic
     def post(self, request, pk):
         try:
-            guide = ShipmentGuide.objects.select_for_update().get(pk=pk)
+            guide = ShipmentGuide.objects.select_related('order').get(pk=pk, is_deleted=False)
         except ShipmentGuide.DoesNotExist:
-            raise NotFound({
-                'detail': 'Guia no encontrada.',
-                'codigo_error': 'SHIPMENT_GUIDE_NOT_FOUND',
-            })
-
+            return Response({'detail': 'Guía no encontrada.', 'codigo_error': 'SHIPMENT_GUIDE_NOT_FOUND'}, status=404)
         if guide.status == ShipmentGuide.STATUS_CANCELLED:
-            raise ValidationError({
-                'detail': 'No se puede confirmar la entrega de una guia cancelada.',
-                'codigo_error': 'SHIPMENT_GUIDE_CANCELLED',
-            })
-
-        already = guide.status == ShipmentGuide.STATUS_DELIVERED
-        if not already:
-            guide.status = ShipmentGuide.STATUS_DELIVERED
-            guide.delivered_at = timezone.now()
-            guide.save(update_fields=['status', 'delivered_at', 'updated_at'])
-            ShipmentEvent.objects.create(
-                guide=guide,
-                status=ShipmentGuide.STATUS_DELIVERED,
-                description='Entrega confirmada.',
-                occurred_at=guide.delivered_at,
-                recorded_by=request.user if request.user.is_authenticated else None,
+            return Response({'detail': 'Guía cancelada.', 'codigo_error': 'SHIPMENT_GUIDE_CANCELLED'}, status=400)
+        if guide.status == ShipmentGuide.STATUS_DELIVERED:
+            return Response({'status': guide.status, 'already_delivered': True, 'tracking_number': guide.tracking_number})
+        # H-CICLO110-04: envolver guide.save + order.save en un bloque atomic
+        # con select_for_update para prevenir:
+        # (a) inconsistencia si el primer save commitea y el segundo falla
+        #     (guide=DELIVERED pero order≠DELIVERED o viceversa).
+        # (b) dos admins confirmando la misma guia concurrentemente, creando
+        #     dos OrderStatusLog SHIPPED→DELIVERED.
+        # Ademas se crea OrderStatusLog para la transicion SHIPPED→DELIVERED,
+        # que antes quedaba sin entrada de auditoria.
+        with transaction.atomic():
+            guide_locked = ShipmentGuide.objects.select_for_update().select_related('order').get(pk=pk)
+            if guide_locked.status == ShipmentGuide.STATUS_DELIVERED:
+                return Response({'status': guide_locked.status, 'already_delivered': True,
+                                 'tracking_number': guide_locked.tracking_number})
+            previous_order_status = guide_locked.order.status
+            now = timezone.now()
+            guide_locked.status = ShipmentGuide.STATUS_DELIVERED
+            guide_locked.delivered_at = now
+            guide_locked.save(update_fields=['status', 'delivered_at', 'updated_at'])
+            guide_locked.order.status = Order.STATUS_DELIVERED
+            guide_locked.order.save(update_fields=['status', 'updated_at'])
+            OrderStatusLog.objects.create(
+                order=guide_locked.order,
+                previous_status=previous_order_status,
+                new_status=Order.STATUS_DELIVERED,
+                changed_by=request.user,
+                notes=f'Entrega confirmada via guia #{guide_locked.pk} ({guide_locked.tracking_number})',
             )
-            notify_shipping_updated(
-                order=guide.order,
-                user=guide.order.user,
-                tracking_number=guide.tracking_number,
-                event_description='Entrega confirmada.',
-            )
-            # Sync order status (best effort).
-            order = guide.order
-            if order.status != Order.STATUS_DELIVERED:
-                order.status = Order.STATUS_DELIVERED
-                order.save(update_fields=['status', 'updated_at'])
+        return Response({'status': guide_locked.status, 'already_delivered': False,
+                         'tracking_number': guide_locked.tracking_number,
+                         'delivered_at': guide_locked.delivered_at})
 
-        return Response({
-            'id': guide.id,
-            'status': guide.status,
-            'delivered_at': guide.delivered_at,
-            'already_delivered': already,
-        })
+
+class CancelGuideView(_AdminOnly, APIView):
+    def post(self, request, pk):
+        try:
+            guide = ShipmentGuide.objects.select_related('order').get(pk=pk, is_deleted=False)
+        except ShipmentGuide.DoesNotExist:
+            return Response({'detail': 'Guía no encontrada.', 'codigo_error': 'SHIPMENT_GUIDE_NOT_FOUND'}, status=404)
+        if guide.status == ShipmentGuide.STATUS_DELIVERED:
+            return Response({'detail': 'No se puede cancelar una guía entregada.', 'codigo_error': 'SHIPMENT_GUIDE_DELIVERED'}, status=400)
+        if guide.status == ShipmentGuide.STATUS_CANCELLED:
+            return Response({'detail': 'La guía ya está cancelada.', 'codigo_error': 'SHIPMENT_GUIDE_ALREADY_CANCELLED'}, status=400)
+        guide.status = ShipmentGuide.STATUS_CANCELLED
+        guide.is_deleted = True
+        guide.deleted_at = timezone.now()
+        guide.save(update_fields=['status', 'is_deleted', 'deleted_at', 'updated_at'])
+        return Response({'cancelled': True, 'tracking_number': guide.tracking_number})
+
+
+class BuyerGuideView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, order_id):
+        try:
+            order = Order.objects.get(pk=order_id, user=request.user)
+        except Order.DoesNotExist:
+            return Response({'detail': 'Orden no encontrada.', 'codigo_error': 'ORDER_NOT_FOUND'}, status=404)
+        guide = ShipmentGuide.objects.filter(order=order, is_deleted=False).select_related('courier').first()
+        if not guide:
+            return Response({'detail': 'Guía de envío no disponible.', 'codigo_error': 'SHIPMENT_GUIDE_NOT_FOUND'}, status=404)
+        return Response(BuyerShipmentGuideSerializer(guide, context={'request': request}).data)

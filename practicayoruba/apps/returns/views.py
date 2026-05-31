@@ -1,486 +1,618 @@
 """
-Views — apps.returns (UC-RET-01..06).
+Views — apps.returns (P-12 / UC-RET-01..06).
 
-User endpoints:
-  POST   /api/v1/returns/                          UC-RET-01 create
-  GET    /api/v1/returns/                          UC-RET-04 list own
-  GET    /api/v1/returns/{id}/                     UC-RET-04 detail own
+Buyer:
+  POST /api/v1/returns/                   UC-RET-01 create
+  GET  /api/v1/returns/                   UC-RET-04 list own
+  GET  /api/v1/returns/<id>/              UC-RET-04 detail
 
-Admin endpoints:
-  GET    /api/v1/admin/returns/                    UC-RET-05 queue + metrics
-  GET    /api/v1/admin/returns/{id}/               admin detail
-  POST   /api/v1/admin/returns/{id}/approve/       UC-RET-02 approve
-  POST   /api/v1/admin/returns/{id}/reject/        UC-RET-02 reject
-  POST   /api/v1/admin/returns/{id}/request-info/  UC-RET-02 Alt B
-  POST   /api/v1/admin/returns/{id}/reception/     UC-RET-03 register reception
-  POST   /api/v1/admin/returns/{id}/refund/        UC-RET-06 process refund
+Admin:
+  GET  /api/v1/admin/returns/             UC-RET-05 queue
+  GET  /api/v1/admin/returns/<id>/        UC-RET-05 detail
+  POST /api/v1/admin/returns/<id>/approve/    UC-RET-02
+  POST /api/v1/admin/returns/<id>/reject/     UC-RET-02
+  POST /api/v1/admin/returns/<id>/request-info/ UC-RET-02
+  POST /api/v1/admin/returns/<id>/reception/  UC-RET-03
+  POST /api/v1/admin/returns/<id>/refund/     UC-RET-06
 """
+from decimal import Decimal
+from django.db.models import Count, Q, Sum
 from django.db import transaction
-from django.db.models import Count
-from django.http import Http404
-from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import status
-from rest_framework.generics import ListAPIView
+from rest_framework.exceptions import NotFound, ValidationError as DRFValidationError
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from apps.users.audit import audit_log_business
-from apps.users.models import BusinessEvent
-from apps.orders.models import Order as OrderModel
-from apps.payments.models import Payment
+
+from apps.orders.models import Order, OrderItem
+from apps.payments.models import Payment, Refund
 from apps.payments.services import execute_refund
 from .models import ReturnHistoryEntry, ReturnItem, ReturnRequest
-from .serializers import AdminReturnDetailSerializer, AdminReturnListSerializer, ReturnApproveSerializer, ReturnCreateSerializer, ReturnDetailSerializer, ReturnInfoRequestSerializer, ReturnListSerializer, ReturnReceptionSerializer, ReturnRefundSerializer, ReturnRejectSerializer
-from apps.notifications.service import notify_return_processed
+from .serializers import (
+    ReturnRequestAdminSerializer,
+    ReturnRequestSerializer,
+    ReturnCreateSerializer,
+    ReturnReceptionSerializer,
+    ReturnRefundSerializer,
+    ReturnApproveSerializer,
+    ReturnRejectSerializer,
+    ReturnInfoRequestSerializer,
+)
 
 
-
-def _get_own_return(return_id, user):
-    """
-    Devuelve la solicitud si pertenece al user (o si user.is_staff).
-    Si no existe o pertenece a otro comprador -> Http404 (RNF-SEC-003).
-    """
-    qs = ReturnRequest.objects.all()
-    obj = get_object_or_404(qs, pk=return_id)
-    if not user.is_staff and obj.user_id != user.id:
-        raise Http404
-    return obj
-
-
-def _get_admin_return(return_id):
-    return get_object_or_404(ReturnRequest.objects.all(), pk=return_id)
+def _get_return_or_404(pk):
+    """Fetch ReturnRequest con select_related/prefetch para evitar N+1 al
+    serializar con ReturnRequestAdminSerializer (user, items, history)."""
+    try:
+        return ReturnRequest.objects.select_related('user').prefetch_related(
+            'items', 'history_entries__actor'
+        ).get(pk=pk)
+    except ReturnRequest.DoesNotExist:
+        raise NotFound({'detail': 'Devolución no encontrada.',
+                        'error_code': 'RETURN_NOT_FOUND'})
 
 
-def _record_history(return_request, status_to, actor, justification=''):
-    return ReturnHistoryEntry.objects.create(
-        return_request=return_request,
-        status_to=status_to,
-        actor=actor,
-        justification=justification or '',
+def _invalid_state_response(message='Estado inválido.', error_code='INVALID_STATE'):
+    return Response(
+        {'detail': message, 'error_code': error_code},
+        status=status.HTTP_422_UNPROCESSABLE_ENTITY,
     )
 
 
-# ────────────────────────────── UC-RET-01 / UC-RET-04 ────────────────────
-class ReturnListCreateView(APIView):
-    """POST crear solicitud / GET listar devoluciones del comprador."""
+class ReturnPagination(PageNumberPagination):
+    page_size             = 20
+    page_size_query_param = 'page_size'
+    max_page_size         = 100
 
+
+class ReturnListCreateView(APIView):
+    """
+    GET  /api/v1/returns/ — UC-RET-04 list own returns.
+    POST /api/v1/returns/ — UC-RET-01 create return request.
+    """
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
-        summary='Listar mis devoluciones',
+        summary='Listar mis devoluciones (UC-RET-04)',
         tags=['returns'],
-        responses=ReturnListSerializer(many=True),
+        responses={200: ReturnRequestSerializer(many=True)},
     )
     def get(self, request):
-        qs = ReturnRequest.objects.filter(user=request.user)
-        return Response(ReturnListSerializer(qs, many=True).data)
+        # H-CICLO56-05: paginate BEFORE prefetch so Django evaluates only the
+        # current page's rows, not every return for the user.  Using prefetch on
+        # an un-sliced queryset would load ALL rows before any slicing occurs.
+        qs = ReturnRequest.objects.filter(
+            user=request.user
+        ).prefetch_related('items', 'history_entries__actor').order_by('-created_at')
+        paginator = ReturnPagination()
+        page = paginator.paginate_queryset(qs, request)
+        if page is not None:
+            serializer = ReturnRequestSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+        serializer = ReturnRequestSerializer(qs, many=True)
+        return Response({'results': serializer.data})
 
     @extend_schema(
-        summary='Solicitar devolucion',
-        tags=['returns'],
+        summary='Solicitar devolución (UC-RET-01)',
         request=ReturnCreateSerializer,
-        responses={201: ReturnDetailSerializer},
+        tags=['returns'],
+        responses={201: ReturnRequestSerializer, 400: None, 409: None},
     )
     def post(self, request):
-        serializer = ReturnCreateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        payload = serializer.validated_data
+        ser = ReturnCreateSerializer(data=request.data)
+        if not ser.is_valid():
+            return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        # Idempotencia: AC-05 UC-RET-01 - (user, order_id, item_id).
-        # Permite solicitar devolucion de items distintos de la misma orden,
-        # bloqueando solo si los items se solapan con una solicitud pendiente
-        # existente. Sin items en ninguna parte, se trata como colision por
-        # orden (caso conservador).
-        pending_qs = ReturnRequest.objects.filter(
-            user=request.user,
-            order_id=payload['order_id'],
-            status=ReturnRequest.Status.PENDING_REVIEW,
-        )
-        incoming_product_ids = {
-            item['product_id'] for item in payload.get('items') or []
-        }
-        conflict = False
-        if not incoming_product_ids:
-            conflict = pending_qs.exists()
-        else:
-            conflict = ReturnItem.objects.filter(
-                return_request__in=pending_qs,
-                product_id__in=incoming_product_ids,
-            ).exists()
-        if conflict:
-            return Response(
-                {'error_code': 'REQUEST_ALREADY_EXISTS',
-                 'detail': 'Ya existe una solicitud pendiente para esa orden y items.'},
-                status=status.HTTP_409_CONFLICT,
+        data = ser.validated_data
+        order_number = data['order_number']
+        reason = data['reason']
+        description = data['description']
+        items_data = data.get('items', [])
+
+        # H-API-29: validar que la orden pertenece al usuario autenticado.
+        # Sin este check un usuario podia crear devoluciones para ordenes ajenas.
+        # H-CICLO38-01: lookup por order_number (identificador visible al
+        # comprador) en lugar del PK interno. La UI siempre muestra/enlaza
+        # order_number; usar el PK requeria que el comprador conociera el
+        # ID interno de BD, lo cual nunca fue expuesto en la interfaz.
+        try:
+            order = Order.objects.get(order_number=order_number, user=request.user)
+        except Order.DoesNotExist:
+            raise DRFValidationError({
+                'order_number': 'Orden no encontrada.',
+                'codigo_error': 'ORDER_NOT_FOUND',
+            })
+
+        order_id = order.pk
+
+        # H-API-31: solo se permiten devoluciones sobre ordenes ENTREGADAS.
+        if order.status != Order.STATUS_DELIVERED:
+            raise DRFValidationError({
+                'order_number': 'Solo se pueden solicitar devoluciones para ordenes entregadas.',
+                'codigo_error': 'ORDER_NOT_DELIVERED',
+            })
+
+        # H-CICLO34-03: límite de 30 días desde la entrega para solicitar devolución.
+        # updated_at refleja el momento en que la orden pasó a DELIVERED ya que es
+        # el último cambio de estado de la misma.
+        RETURN_WINDOW_DAYS = 30
+        delivery_ts = order.updated_at
+        if delivery_ts and (timezone.now() - delivery_ts).days > RETURN_WINDOW_DAYS:
+            raise DRFValidationError({
+                'order_number': (
+                    f'El plazo para solicitar devolución ({RETURN_WINDOW_DAYS} días '
+                    f'desde la entrega) ha expirado.'
+                ),
+                'codigo_error': 'RETURN_WINDOW_EXPIRED',
+            })
+
+        # H-RET-QTY: validar que la cantidad devuelta no exceda la comprada.
+        # Sin este check un comprador podía declarar devolver 9999 unidades
+        # de un producto que compró 1. Se coteja contra OrderItem por product.
+        # H-CICLO65-01: también se acumula lo ya devuelto en solicitudes
+        # anteriores no rechazadas para evitar que el usuario envíe dos
+        # devoluciones parciales que sumen más de la cantidad comprada.
+        if items_data:
+            # Construir mapa product_id→quantity_purchased desde la orden
+            purchased_qtys = {
+                oi.product_id: oi.quantity
+                for oi in OrderItem.objects.filter(order_id=order_id)
+            }
+            # Cantidad ya solicitada en otras devoluciones no rechazadas
+            # (PENDING_REVIEW, INFO_REQUESTED, APPROVED, RECEIVED, REFUNDED)
+            already_returned_map = {
+                row['product_id']: row['total']
+                for row in ReturnItem.objects.filter(
+                    return_request__order_id=order_id,
+                    return_request__user=request.user,
+                ).exclude(
+                    return_request__status=ReturnRequest.Status.REJECTED,
+                ).values('product_id').annotate(total=Sum('quantity'))
+            }
+            for item_data in items_data:
+                pid = item_data['product_id']
+                requested_qty = item_data.get('quantity', 1)
+                purchased_qty = purchased_qtys.get(pid)
+                if purchased_qty is None:
+                    raise DRFValidationError({
+                        'items': f'El producto {pid} no pertenece a esta orden.',
+                        'codigo_error': 'PRODUCT_NOT_IN_ORDER',
+                    })
+                already_qty = already_returned_map.get(pid, 0)
+                if requested_qty + already_qty > purchased_qty:
+                    raise DRFValidationError({
+                        'items': (
+                            f'La cantidad solicitada ({requested_qty}) para el '
+                            f'producto {pid} excede el limite disponible para '
+                            f'devolucion (comprado: {purchased_qty}, '
+                            f'ya devuelto/en proceso: {already_qty}).'
+                        ),
+                        'codigo_error': 'QUANTITY_EXCEEDS_PURCHASED',
+                    })
+
+        # UC-RET-01 idempotency: check for overlapping pending requests
+        # DEC-RET-03: if items are provided, check item-level overlap
+        # H-CICLO61-01: wrap dedup check + create in a single atomic block
+        # with select_for_update() so two concurrent POST requests for the
+        # same order cannot both pass the check and both create a return.
+        with transaction.atomic():
+            existing_qs = ReturnRequest.objects.select_for_update().filter(
+                user=request.user,
+                order_id=order_id,
+                status__in=[
+                    ReturnRequest.Status.PENDING_REVIEW,
+                    ReturnRequest.Status.INFO_REQUESTED,
+                ],
             )
 
-        ret = ReturnRequest.objects.create(
-            user=request.user,
-            order_id=payload['order_id'],
-            reason=payload['reason'],
-            description=payload['description'],
-        )
-        for item in payload.get('items', []) or []:
-            ReturnItem.objects.create(
+            if items_data:
+                # Check for item-level overlap with existing pending requests
+                incoming_product_ids = {item['product_id'] for item in items_data}
+                overlapping = False
+                for existing in existing_qs:
+                    existing_product_ids = set(
+                        existing.items.values_list('product_id', flat=True)
+                    )
+                    if existing_product_ids & incoming_product_ids:
+                        overlapping = True
+                        break
+                if overlapping:
+                    return Response(
+                        {'detail': 'Ya existe una solicitud pendiente con items solapados.',
+                         'error_code': 'REQUEST_ALREADY_EXISTS'},
+                        status=status.HTTP_409_CONFLICT,
+                    )
+            else:
+                # No items: any pending request for same order is a duplicate
+                if existing_qs.exists():
+                    return Response(
+                        {'detail': 'Ya existe una solicitud pendiente para esta orden.',
+                         'error_code': 'REQUEST_ALREADY_EXISTS'},
+                        status=status.HTTP_409_CONFLICT,
+                    )
+
+            ret = ReturnRequest.objects.create(
+                user=request.user,
+                order_id=order_id,
+                reason=reason,
+                description=description,
+                status=ReturnRequest.Status.PENDING_REVIEW,
+            )
+
+            # Create items if provided
+            for item_data in items_data:
+                ReturnItem.objects.create(
+                    return_request=ret,
+                    product_id=item_data['product_id'],
+                    quantity=item_data.get('quantity', 1),
+                )
+
+            # Create history entry
+            ReturnHistoryEntry.objects.create(
                 return_request=ret,
-                product_id=item['product_id'],
-                quantity=item.get('quantity', 1),
+                status_to=ReturnRequest.Status.PENDING_REVIEW,
+                actor=request.user,
+                justification='Solicitud creada por el comprador.',
             )
-        _record_history(
-            ret, ReturnRequest.Status.PENDING_REVIEW, request.user,
-            justification='Solicitud creada por el comprador.',
-        )
-        audit_log_business(
-            request.user, BusinessEvent.ACTION_RETURN_REQUESTED, request,
-            target_type=BusinessEvent.TARGET_RETURN, target_id=ret.pk,
-            extra={'order_id': payload['order_id'], 'reason': payload['reason']},
-        )
+
+        # Re-fetch con prefetch para evitar N+1 en ReturnRequestSerializer
+        # (accede a items y history_entries__actor).
+        ret = ReturnRequest.objects.prefetch_related(
+            'items', 'history_entries__actor'
+        ).get(pk=ret.pk)
+
         return Response(
-            ReturnDetailSerializer(ret).data,
+            ReturnRequestSerializer(ret).data,
             status=status.HTTP_201_CREATED,
         )
 
 
 class ReturnDetailView(APIView):
-    """GET detalle de devolucion propia (o cualquiera si is_staff)."""
-
+    """GET /api/v1/returns/<id>/ — UC-RET-04 detail."""
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
-        summary='Detalle de devolucion (comprador)',
+        summary='Detalle de devolución (UC-RET-04)',
         tags=['returns'],
-        responses=ReturnDetailSerializer,
+        responses={200: ReturnRequestSerializer, 404: None},
     )
     def get(self, request, return_id):
-        ret = _get_own_return(return_id, request.user)
-        return Response(ReturnDetailSerializer(ret).data)
+        try:
+            ret = ReturnRequest.objects.prefetch_related(
+                'items', 'history_entries__actor'
+            ).get(pk=return_id, user=request.user)
+        except ReturnRequest.DoesNotExist:
+            raise NotFound({'detail': 'Devolución no encontrada.',
+                            'error_code': 'RETURN_NOT_FOUND'})
+        return Response(ReturnRequestSerializer(ret).data)
 
 
-# ────────────────────────────── UC-RET-05 ────────────────────────────────
-ADMIN_ACTIVE_STATUSES = (
-    ReturnRequest.Status.PENDING_REVIEW,
-    ReturnRequest.Status.INFO_REQUESTED,
-    ReturnRequest.Status.APPROVED,
-    ReturnRequest.Status.RECEIVED,
-)
-
-
-class AdminReturnListView(ListAPIView):
-    """UC-RET-05 — bandeja admin con bloque metrics."""
-
+class _AdminOnly:
     permission_classes = [IsAuthenticated, IsAdminUser]
-    serializer_class = AdminReturnListSerializer
+
+
+class AdminReturnListView(_AdminOnly, APIView):
+    """GET /api/v1/admin/returns/ — UC-RET-05."""
 
     @extend_schema(
-        summary='Bandeja de devoluciones (admin)',
+        summary='Cola de devoluciones (admin) (UC-RET-05)',
+        parameters=[OpenApiParameter('status', str, required=False)],
         tags=['returns'],
-        parameters=[
-            OpenApiParameter('status', str, required=False),
-        ],
+        responses={200: ReturnRequestAdminSerializer(many=True)},
     )
-    def list(self, request, *args, **kwargs):
-        qs = ReturnRequest.objects.all().order_by('created_at')
+    def get(self, request):
         status_filter = request.query_params.get('status')
+        # H-CICLO56-05: paginate BEFORE prefetch to avoid loading the full
+        # returns table into memory on large datasets.
+        qs = ReturnRequest.objects.all().select_related('user').prefetch_related(
+            'items', 'history_entries__actor'
+        ).order_by('-created_at')
         if status_filter:
             qs = qs.filter(status=status_filter)
 
-        metrics_qs = (
-            ReturnRequest.objects.values('status').annotate(total=Count('id'))
+        # Build metrics — single aggregate query instead of 6 separate COUNTs.
+        # H-CICLO38-03: incluir `pendiente_info` (INFO_REQUESTED) para que
+        # AdminReturnsPage pueda mostrar el contador correcto.
+        counts = ReturnRequest.objects.aggregate(
+            pendientes=Count('id', filter=Q(status=ReturnRequest.Status.PENDING_REVIEW)),
+            aprobadas=Count('id', filter=Q(status=ReturnRequest.Status.APPROVED)),
+            rechazadas=Count('id', filter=Q(status=ReturnRequest.Status.REJECTED)),
+            recibidas=Count('id', filter=Q(status=ReturnRequest.Status.RECEIVED)),
+            reembolsadas=Count('id', filter=Q(status=ReturnRequest.Status.REFUNDED)),
+            pendiente_info=Count('id', filter=Q(status=ReturnRequest.Status.INFO_REQUESTED)),
         )
-        counts = {row['status']: row['total'] for row in metrics_qs}
-        metrics = {
-            'pendientes': counts.get(ReturnRequest.Status.PENDING_REVIEW, 0),
-            'aprobadas': counts.get(ReturnRequest.Status.APPROVED, 0),
-            'pendiente_info': counts.get(ReturnRequest.Status.INFO_REQUESTED, 0),
-            'recibidas': counts.get(ReturnRequest.Status.RECEIVED, 0),
-            'rechazadas': counts.get(ReturnRequest.Status.REJECTED, 0),
-            'reembolsadas': counts.get(ReturnRequest.Status.REFUNDED, 0),
-        }
-        results = AdminReturnListSerializer(qs, many=True).data
+        metrics = counts
+
+        paginator = ReturnPagination()
+        page = paginator.paginate_queryset(qs, request)
+        if page is not None:
+            results = ReturnRequestAdminSerializer(page, many=True).data
+            response = paginator.get_paginated_response(results)
+            response.data['metrics'] = metrics
+            return response
+
+        results = ReturnRequestAdminSerializer(qs, many=True).data
         return Response({'results': results, 'metrics': metrics})
 
-    def get_queryset(self):  # pragma: no cover (overridden by list)
-        return ReturnRequest.objects.all()
 
-
-class AdminReturnDetailView(APIView):
-    """Detalle admin extendido."""
-
-    permission_classes = [IsAuthenticated, IsAdminUser]
+class AdminReturnDetailView(_AdminOnly, APIView):
+    """GET /api/v1/admin/returns/<return_id>/ — UC-RET-05 detail."""
 
     @extend_schema(
-        summary='Detalle de devolucion (admin)',
+        summary='Detalle de devolución (admin) (UC-RET-05)',
         tags=['returns'],
-        responses=AdminReturnDetailSerializer,
+        responses={200: ReturnRequestAdminSerializer, 404: None},
     )
     def get(self, request, return_id):
-        ret = _get_admin_return(return_id)
-        return Response(AdminReturnDetailSerializer(ret).data)
+        try:
+            ret = ReturnRequest.objects.select_related('user').prefetch_related(
+                'items', 'history_entries__actor'
+            ).get(pk=return_id)
+        except ReturnRequest.DoesNotExist:
+            raise NotFound({'detail': 'Devolución no encontrada.', 'error_code': 'RETURN_NOT_FOUND'})
+        return Response(ReturnRequestAdminSerializer(ret).data)
 
 
-# ────────────────────────────── UC-RET-02 actions ────────────────────────
-class AdminReturnApproveView(APIView):
-    """POST /admin/returns/{id}/approve/ — UC-RET-02 aprobar."""
-
-    permission_classes = [IsAuthenticated, IsAdminUser]
+class AdminReturnApproveView(_AdminOnly, APIView):
+    """POST /api/v1/admin/returns/<id>/approve/ — UC-RET-02."""
 
     @extend_schema(
-        summary='Aprobar solicitud de devolucion',
+        summary='Aprobar devolución (UC-RET-02)',
         tags=['returns'],
-        request=ReturnApproveSerializer,
-        responses=AdminReturnDetailSerializer,
+        responses={200: ReturnRequestAdminSerializer, 422: None, 404: None},
     )
     def post(self, request, return_id):
-        ret = _get_admin_return(return_id)
-        if ret.status not in (
-            ReturnRequest.Status.PENDING_REVIEW,
-            ReturnRequest.Status.INFO_REQUESTED,
-        ):
-            return Response(
-                {'error_code': 'INVALID_STATE',
-                 'detail': 'La solicitud no esta en un estado revisable.'},
-                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        ser = ReturnApproveSerializer(data=request.data)
+        if not ser.is_valid():
+            return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        ret = _get_return_or_404(return_id)
+        if ret.status != ReturnRequest.Status.PENDING_REVIEW:
+            return _invalid_state_response(
+                'Solo se pueden aprobar devoluciones en estado PENDING_REVIEW.',
+                'INVALID_STATE',
             )
-        serializer = ReturnApproveSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+
+        justification = ser.validated_data['justification']
         with transaction.atomic():
             ret.status = ReturnRequest.Status.APPROVED
-            ret.rejection_reason = ''
-            ret.save(update_fields=['status', 'rejection_reason', 'updated_at'])
-            _record_history(
-                ret, ReturnRequest.Status.APPROVED, request.user,
-                justification=serializer.validated_data['justification'],
-            )
-            audit_log_business(
-                request.user, BusinessEvent.ACTION_RETURN_RESOLVED, request,
-                target_type=BusinessEvent.TARGET_RETURN, target_id=ret.pk,
-                extra={'resolution': 'APPROVED'},
-            )
-            ret_order = OrderModel.objects.filter(pk=ret.order_id).first()
-            if ret_order:
-                notify_return_processed(
-                    order=ret_order,
-                    user=ret.user,
-                    return_status='APPROVED',
-                    reason=None,
-                )
-        return Response(AdminReturnDetailSerializer(ret).data)
+            ret.save(update_fields=['status', 'updated_at'])
 
-
-class AdminReturnRejectView(APIView):
-    """POST /admin/returns/{id}/reject/ — UC-RET-02 rechazar."""
-
-    permission_classes = [IsAuthenticated, IsAdminUser]
-
-    @extend_schema(
-        summary='Rechazar solicitud de devolucion',
-        tags=['returns'],
-        request=ReturnRejectSerializer,
-        responses=AdminReturnDetailSerializer,
-    )
-    def post(self, request, return_id):
-        ret = _get_admin_return(return_id)
-        if ret.status not in (
-            ReturnRequest.Status.PENDING_REVIEW,
-            ReturnRequest.Status.INFO_REQUESTED,
-        ):
-            return Response(
-                {'error_code': 'INVALID_STATE',
-                 'detail': 'La solicitud no esta en un estado revisable.'},
-                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            )
-        serializer = ReturnRejectSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        justification = serializer.validated_data['justification']
-        with transaction.atomic():
-            ret.status = ReturnRequest.Status.REJECTED
-            ret.rejection_reason = justification
-            ret.save(update_fields=['status', 'rejection_reason', 'updated_at'])
-            _record_history(
-                ret, ReturnRequest.Status.REJECTED, request.user,
+            ReturnHistoryEntry.objects.create(
+                return_request=ret,
+                status_to=ReturnRequest.Status.APPROVED,
+                actor=request.user,
                 justification=justification,
             )
-            audit_log_business(
-                request.user, BusinessEvent.ACTION_RETURN_RESOLVED, request,
-                target_type=BusinessEvent.TARGET_RETURN, target_id=ret.pk,
-                extra={'resolution': 'REJECTED'},
-            )
-            ret_order = OrderModel.objects.filter(pk=ret.order_id).first()
-            if ret_order:
-                notify_return_processed(
-                    order=ret_order,
-                    user=ret.user,
-                    return_status='REJECTED',
-                    reason=justification,
-                )
-        return Response(AdminReturnDetailSerializer(ret).data)
+
+        # H-CICLO56-02: re-fetch after mutation so the serializer sees the new
+        # history entry instead of the stale prefetch cache from _get_return_or_404.
+        ret = _get_return_or_404(return_id)
+        return Response(ReturnRequestAdminSerializer(ret).data)
 
 
-class AdminReturnRequestInfoView(APIView):
-    """POST /admin/returns/{id}/request-info/ — UC-RET-02 Alt B."""
-
-    permission_classes = [IsAuthenticated, IsAdminUser]
+class AdminReturnRejectView(_AdminOnly, APIView):
+    """POST /api/v1/admin/returns/<id>/reject/ — UC-RET-02."""
 
     @extend_schema(
-        summary='Solicitar informacion adicional al comprador',
+        summary='Rechazar devolución (UC-RET-02)',
         tags=['returns'],
-        request=ReturnInfoRequestSerializer,
-        responses=AdminReturnDetailSerializer,
+        responses={200: ReturnRequestAdminSerializer, 422: None, 404: None},
     )
     def post(self, request, return_id):
-        ret = _get_admin_return(return_id)
+        ser = ReturnRejectSerializer(data=request.data)
+        if not ser.is_valid():
+            return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        ret = _get_return_or_404(return_id)
         if ret.status != ReturnRequest.Status.PENDING_REVIEW:
-            return Response(
-                {'error_code': 'INVALID_STATE',
-                 'detail': 'Solo se puede pedir info a solicitudes pendientes.'},
-                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            return _invalid_state_response(
+                'Solo se pueden rechazar devoluciones en estado PENDING_REVIEW.',
+                'INVALID_STATE',
             )
-        serializer = ReturnInfoRequestSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        message = serializer.validated_data['message']
-        ret.status = ReturnRequest.Status.INFO_REQUESTED
-        ret.save(update_fields=['status', 'updated_at'])
-        _record_history(
-            ret, ReturnRequest.Status.INFO_REQUESTED, request.user,
-            justification=message,
-        )
-        return Response(AdminReturnDetailSerializer(ret).data)
+
+        justification = ser.validated_data['justification']
+        with transaction.atomic():
+            ret.rejection_reason = justification
+            ret.status = ReturnRequest.Status.REJECTED
+            ret.save(update_fields=['status', 'rejection_reason', 'updated_at'])
+
+            ReturnHistoryEntry.objects.create(
+                return_request=ret,
+                status_to=ReturnRequest.Status.REJECTED,
+                actor=request.user,
+                justification=justification,
+            )
+
+        # H-CICLO56-02: re-fetch after mutation to avoid stale prefetch cache.
+        ret = _get_return_or_404(return_id)
+        return Response(ReturnRequestAdminSerializer(ret).data)
 
 
-# ────────────────────────────── UC-RET-03 reception ──────────────────────
-class AdminReturnReceptionView(APIView):
-    """POST /admin/returns/{id}/reception/ — UC-RET-03 recepcion fisica."""
-
-    permission_classes = [IsAuthenticated, IsAdminUser]
+class AdminReturnRequestInfoView(_AdminOnly, APIView):
+    """POST /api/v1/admin/returns/<id>/request-info/ — UC-RET-02 Alt B."""
 
     @extend_schema(
-        summary='Registrar recepcion fisica del producto',
+        summary='Solicitar información adicional (UC-RET-02)',
         tags=['returns'],
-        request=ReturnReceptionSerializer,
-        responses=AdminReturnDetailSerializer,
+        responses={200: ReturnRequestAdminSerializer, 422: None, 404: None},
     )
     def post(self, request, return_id):
-        ret = _get_admin_return(return_id)
-        if ret.status != ReturnRequest.Status.APPROVED:
-            return Response(
-                {'error_code': 'REQUEST_NOT_APPROVED',
-                 'detail': 'La solicitud debe estar APPROVED para registrar '
-                           'recepcion.'},
-                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        ser = ReturnInfoRequestSerializer(data=request.data)
+        if not ser.is_valid():
+            return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        message = ser.validated_data['message']
+        # H-CICLO80-02: wrap state check + mutation + history entry in a
+        # single atomic block with select_for_update. Previously the state
+        # check, save(), and history INSERT were separate operations: two
+        # concurrent requests could both pass the check and double-request;
+        # a failure between save() and the history INSERT left the return in
+        # INFO_REQUESTED state without a history record (partial mutation).
+        with transaction.atomic():
+            ret = ReturnRequest.objects.select_for_update().get(
+                pk=return_id
             )
-        if ret.received_at is not None:
-            return Response(
-                {'error_code': 'INVALID_STATE',
-                 'detail': 'La recepcion ya fue registrada.'},
-                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            if ret.status != ReturnRequest.Status.PENDING_REVIEW:
+                return _invalid_state_response(
+                    'Solo se puede solicitar información para devoluciones'
+                    ' en estado PENDING_REVIEW.',
+                    'INVALID_STATE',
+                )
+            ret.status = ReturnRequest.Status.INFO_REQUESTED
+            ret.save(update_fields=['status', 'updated_at'])
+
+            ReturnHistoryEntry.objects.create(
+                return_request=ret,
+                status_to=ReturnRequest.Status.INFO_REQUESTED,
+                actor=request.user,
+                justification=message,
             )
 
-        serializer = ReturnReceptionSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
-        ret.received_at = data.get('received_at') or timezone.now()
-        ret.status = ReturnRequest.Status.RECEIVED
-        ret.save(update_fields=['received_at', 'status', 'updated_at'])
-
-        # Persistir condicion del producto en cada item (UC-RET-03 AC-04).
-        condition = data['product_condition']
-        ret.items.update(product_condition=condition)
-
-        notes = data.get('observations') or ''
-        justification = f'product_condition={condition}'
-        if notes:
-            justification = f'{justification}; notes={notes}'
-        _record_history(
-            ret, ReturnRequest.Status.RECEIVED, request.user,
-            justification=justification,
-        )
-        return Response(AdminReturnDetailSerializer(ret).data)
+        # H-CICLO56-02: re-fetch after mutation to avoid stale prefetch cache.
+        ret = _get_return_or_404(return_id)
+        return Response(ReturnRequestAdminSerializer(ret).data)
 
 
-# ────────────────────────────── UC-RET-06 refund ─────────────────────────
-class AdminReturnRefundView(APIView):
-    """POST /admin/returns/{id}/refund/ — UC-RET-06 procesar reembolso."""
-
-    permission_classes = [IsAuthenticated, IsAdminUser]
+class AdminReturnReceptionView(_AdminOnly, APIView):
+    """POST /api/v1/admin/returns/<id>/reception/ — UC-RET-03."""
 
     @extend_schema(
-        summary='Procesar reembolso de devolucion',
+        summary='Registrar recepción física del producto (UC-RET-03)',
         tags=['returns'],
-        request=ReturnRefundSerializer,
-        responses=AdminReturnDetailSerializer,
+        responses={200: ReturnRequestAdminSerializer, 422: None, 404: None},
     )
     def post(self, request, return_id):
-        ret = _get_admin_return(return_id)
-        if ret.refund_at is not None:
+        ser = ReturnReceptionSerializer(data=request.data)
+        if not ser.is_valid():
+            return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        # H-CICLO86-01: wrap state-check + save + history in a single atomic
+        # block with select_for_update.  Without the lock, two concurrent POST
+        # requests both pass the APPROVED check, then both call ret.save() and
+        # both insert a ReturnHistoryEntry for RECEIVED — duplicate mutation.
+        # Pattern mirrors AdminReturnRequestInfoView (H-CICLO80-02).
+        with transaction.atomic():
+            ret = ReturnRequest.objects.select_for_update().get(pk=return_id)
+            if ret.status != ReturnRequest.Status.APPROVED:
+                return Response(
+                    {'detail': 'Solo se puede registrar recepción para devoluciones APPROVED.',
+                     'error_code': 'REQUEST_NOT_APPROVED'},
+                    status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                )
+
+            ret.status = ReturnRequest.Status.RECEIVED
+            ret.received_at = timezone.now()
+            ret.save(update_fields=['status', 'received_at', 'updated_at'])
+
+            ReturnHistoryEntry.objects.create(
+                return_request=ret,
+                status_to=ReturnRequest.Status.RECEIVED,
+                actor=request.user,
+                justification=ser.validated_data.get('observations', ''),
+            )
+
+        # H-CICLO56-02: re-fetch after mutation to avoid stale prefetch cache.
+        ret = _get_return_or_404(return_id)
+        return Response(ReturnRequestAdminSerializer(ret).data)
+
+
+class AdminReturnRefundView(_AdminOnly, APIView):
+    """POST /api/v1/admin/returns/<id>/refund/ — UC-RET-06."""
+
+    @extend_schema(
+        summary='Procesar reembolso (UC-RET-06)',
+        tags=['returns'],
+        responses={200: ReturnRequestAdminSerializer, 422: None, 409: None, 404: None},
+    )
+    def post(self, request, return_id):
+        ser = ReturnRefundSerializer(data=request.data)
+        if not ser.is_valid():
+            return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        ret = _get_return_or_404(return_id)
+
+        # Idempotency check — runs before general state check
+        if ret.status == ReturnRequest.Status.REFUNDED or ret.refund_at is not None:
             return Response(
-                {'error_code': 'REFUND_ALREADY_PROCESSED',
-                 'detail': 'Ya se proceso el reembolso para esta solicitud.'},
+                {'detail': 'El reembolso ya fue procesado.',
+                 'error_code': 'REFUND_ALREADY_PROCESSED'},
                 status=status.HTTP_409_CONFLICT,
             )
-        if ret.status not in (
-            ReturnRequest.Status.APPROVED,
-            ReturnRequest.Status.RECEIVED,
-        ):
-            return Response(
-                {'error_code': 'INVALID_STATE',
-                 'detail': 'La solicitud no esta lista para reembolso.'},
-                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+
+        # Must be in APPROVED status to refund
+        if ret.status not in (ReturnRequest.Status.APPROVED, ReturnRequest.Status.RECEIVED):
+            return _invalid_state_response(
+                'Solo se puede reembolsar una devolución en estado APPROVED o RECEIVED.',
+                'INVALID_STATE',
             )
 
-        serializer = ReturnRefundSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        amount = serializer.validated_data['amount']
+        # Check if already refunded (after state change)
+        amount = ser.validated_data['amount']
 
-        payment = (
-            Payment.objects
-            .filter(
-                order_id=ret.order_id,
-                status__in=(
-                    Payment.STATUS_APPROVED,
-                    Payment.STATUS_PARTIALLY_REFUNDED,
-                ),
-            )
-            .order_by('-id')
-            .first()
-        )
-        if payment is None:
-            return Response(
-                {'error_code': 'PAYMENT_NOT_FOUND',
-                 'detail': 'No hay un pago reembolsable asociado a esta orden.'},
-                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            )
-
+        # H-RET-R01: include PARTIALLY_REFUNDED so second partial refunds work.
         try:
-            refund = execute_refund(
-                payment=payment,
-                amount=amount,
-                reason=f'ReturnRequest #{ret.pk}',
-                initiated_by=request.user,
+            payment = Payment.objects.filter(
+                order_id=ret.order_id,
+                status__in=[Payment.STATUS_APPROVED, Payment.STATUS_PARTIALLY_REFUNDED],
+            ).latest('created_at')
+        except Payment.DoesNotExist:
+            return Response(
+                {'detail': 'No se encontró un pago aprobado para esta orden.',
+                 'error_code': 'PAYMENT_NOT_FOUND'},
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
             )
+
+        # H-RET-R01: delegate to execute_refund() which handles partial vs full
+        # refund status, creates the Refund record, and notifies atomically.
+        # Direct gateway call + unconditional STATUS_REFUNDED was incorrect.
+        #
+        # H-CICLO109-01: envolver execute_refund + ret.save() + history en un
+        # único bloque atomic. Anteriormente execute_refund se llamaba fuera
+        # de la transacción que actualizaba ret.status: si el gateway
+        # procesaba el reembolso (dinero enviado) y luego ret.save() fallaba,
+        # el dinero quedaba reembolsado pero el ReturnRequest permanecía en
+        # APPROVED/RECEIVED; el guard de idempotencia (refund_at is None) no
+        # lo detectaba, permitiendo un segundo reembolso en el siguiente request.
+        try:
+            with transaction.atomic():
+                execute_refund(
+                    payment=payment,
+                    amount=amount,
+                    reason=f'Devolución #{ret.pk} aprobada por admin',
+                    initiated_by=request.user,
+                )
+
+                ret.status = ReturnRequest.Status.REFUNDED
+                ret.refund_amount = amount
+                ret.refund_at = timezone.now()
+                ret.save(update_fields=['status', 'refund_amount', 'refund_at', 'updated_at'])
+
+                ReturnHistoryEntry.objects.create(
+                    return_request=ret,
+                    status_to=ReturnRequest.Status.REFUNDED,
+                    actor=request.user,
+                    justification=f'Reembolso de {amount} procesado.',
+                )
         except ValueError as exc:
             return Response(
-                {'error_code': 'INVALID_REFUND_AMOUNT', 'detail': str(exc)},
-                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                {'detail': str(exc), 'error_code': 'PAYMENT_NOT_REFUNDABLE'},
+                status=status.HTTP_400_BAD_REQUEST,
             )
         except RuntimeError as exc:
+            # H-CICLO89-02: el gateway externo fallo — usar 502 Bad Gateway
+            # (no 422 Unprocessable Entity). 422 indica errores de validacion
+            # del cliente; un fallo del gateway es un error del upstream, que
+            # RFC 7231 describe como 502.
             return Response(
-                {'error_code': 'GATEWAY_ERROR', 'detail': str(exc)},
+                {'detail': f'Error al procesar el reembolso: {exc}',
+                 'error_code': 'GATEWAY_ERROR'},
                 status=status.HTTP_502_BAD_GATEWAY,
             )
 
-        ret.refund_amount = refund.amount
-        ret.refund_at = timezone.now()
-        ret.status = ReturnRequest.Status.REFUNDED
-        ret.save(update_fields=[
-            'refund_amount', 'refund_at', 'status', 'updated_at',
-        ])
-        _record_history(
-            ret, ReturnRequest.Status.REFUNDED, request.user,
-            justification=(
-                f'Reembolso procesado por {refund.amount} '
-                f'(gateway_refund_id={refund.gateway_refund_id}).'
-            ),
-        )
-        return Response(AdminReturnDetailSerializer(ret).data)
+        # H-CICLO56-02: re-fetch after mutation to avoid stale prefetch cache.
+        ret = _get_return_or_404(return_id)
+        return Response(ReturnRequestAdminSerializer(ret).data)

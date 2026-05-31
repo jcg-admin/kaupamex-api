@@ -15,10 +15,9 @@ from .gateways.base import BaseGateway
 from .gateways.mercadopago import MercadoPagoGateway
 from .models import Payment, PaymentGatewayEvent, Payment as PaymentModel, Refund
 from .gateways.paypal import PayPalGateway
-from django.db.models import Sum as DjSum
+from django.db.models import F, Sum as DjSum
 from apps.settings_app.models import PaymentGateway
 from apps.orders.models import Order
-from apps.notifications.service import notify_refund_processed
 
 
 
@@ -161,7 +160,7 @@ def handle_gateway_return(order_number: str, mp_payment_id: str | None, status: 
     if status == 'approved' and mp_payment_id:
         payment.gateway_payment_id = mp_payment_id
         payment.status             = Payment.STATUS_APPROVED
-        payment.save(update_fields=['gateway_payment_id', 'status'])
+        payment.save(update_fields=['gateway_payment_id', 'status', 'updated_at'])
         logger.info(
             'Pago aprobado en retorno: orden=%s payment_id=%s',
             order_number, mp_payment_id,
@@ -192,6 +191,11 @@ def execute_refund(
     Ejecuta un reembolso sobre un Payment aprobado.
     UC-PAY-07 (FR-PAY-07.02), UC-PAY-09.
 
+    H-CICLO20-01: select_for_update() dentro de atomic re-lee el Payment
+    antes de calcular el saldo reembolsable. Previene race condition donde
+    dos admins concurrentes pasaban el chequeo de estado y emitían dos
+    reembolsos al gateway para el mismo pago.
+
     :param payment: instancia Payment con status=APPROVED
     :param amount: Decimal o None (None = reembolso total)
     :param reason: motivo del reembolso
@@ -202,42 +206,50 @@ def execute_refund(
     :raises RuntimeError: si el gateway falla
     """
 
-    if payment.status not in (
-        PaymentModel.STATUS_APPROVED,
-        PaymentModel.STATUS_PARTIALLY_REFUNDED,
-    ):
-        raise ValueError(
-            f'El pago no es reembolsable (estado: {payment.status}). '
-            f'Solo los pagos en estado APPROVED o PARTIALLY_REFUNDED '
-            f'pueden reembolsarse.'
-        )
-
-    already_refunded = (
-        Refund.objects.filter(
-            payment=payment, status=Refund.STATUS_APPROVED,
-        ).aggregate(total=DjSum('amount'))['total'] or Decimal('0')
-    )
-    remaining = payment.amount - already_refunded
-    refund_amount = amount if amount is not None else remaining
-    if refund_amount <= Decimal('0') or refund_amount > remaining:
-        raise ValueError(
-            f'El monto de reembolso ({refund_amount}) debe ser mayor que 0 '
-            f'y no superar el saldo reembolsable ({remaining}) del pago '
-            f'(total {payment.amount}, ya reembolsado {already_refunded}).'
-        )
-
-    if gateway is None:
-        gateway = _get_gateway(payment.gateway)
-
-    # Ejecutar el reembolso en el gateway
-    result = gateway.refund(
-        gateway_payment_id=payment.gateway_payment_id,
-        amount=refund_amount,
-    )
-
+    # H-CICLO20-01: adquirir lock sobre el Payment dentro de un bloque
+    # atomic para serializar solicitudes concurrentes de reembolso.
+    # La validación de estado y el cálculo de saldo reembolsable se hacen
+    # sobre la instancia bloqueada para evitar doble-reembolso.
     with transaction.atomic():
+        locked_payment = Payment.objects.select_for_update().get(pk=payment.pk)
+
+        if locked_payment.status not in (
+            PaymentModel.STATUS_APPROVED,
+            PaymentModel.STATUS_PARTIALLY_REFUNDED,
+        ):
+            raise ValueError(
+                f'El pago no es reembolsable (estado: {locked_payment.status}). '
+                f'Solo los pagos en estado APPROVED o PARTIALLY_REFUNDED '
+                f'pueden reembolsarse.'
+            )
+
+        already_refunded = (
+            Refund.objects.filter(
+                payment=locked_payment, status=Refund.STATUS_APPROVED,
+            ).aggregate(total=DjSum('amount'))['total'] or Decimal('0')
+        )
+        remaining = locked_payment.amount - already_refunded
+        refund_amount = amount if amount is not None else remaining
+        if refund_amount <= Decimal('0') or refund_amount > remaining:
+            raise ValueError(
+                f'El monto de reembolso ({refund_amount}) debe ser mayor que 0 '
+                f'y no superar el saldo reembolsable ({remaining}) del pago '
+                f'(total {locked_payment.amount}, ya reembolsado {already_refunded}).'
+            )
+
+        if gateway is None:
+            gateway = _get_gateway(locked_payment.gateway)
+
+        # Ejecutar el reembolso en el gateway (fuera del punto de lectura
+        # pero dentro del atomic; si el gateway falla la transacción se
+        # revierte y no se crea el Refund en BD).
+        result = gateway.refund(
+            gateway_payment_id=locked_payment.gateway_payment_id,
+            amount=refund_amount,
+        )
+
         refund = Refund.objects.create(
-            payment=payment,
+            payment=locked_payment,
             amount=refund_amount,
             reason=reason,
             gateway_refund_id=result.refund_id,
@@ -248,24 +260,23 @@ def execute_refund(
         # Actualizar estado del Payment
         total_refunded = (
             Refund.objects.filter(
-                payment=payment, status=Refund.STATUS_APPROVED
+                payment=locked_payment, status=Refund.STATUS_APPROVED
             ).aggregate(total=DjSum('amount'))['total'] or Decimal('0')
         )
 
-        if total_refunded >= payment.amount:
-            payment.status = PaymentModel.STATUS_REFUNDED
+        if total_refunded >= locked_payment.amount:
+            locked_payment.status = PaymentModel.STATUS_REFUNDED
         else:
-            payment.status = PaymentModel.STATUS_PARTIALLY_REFUNDED
-        payment.save(update_fields=['status'])
-        notify_refund_processed(
-            order=payment.order,
-            user=payment.order.user,
-            amount_refunded=refund_amount,
-        )
+            locked_payment.status = PaymentModel.STATUS_PARTIALLY_REFUNDED
+        locked_payment.save(update_fields=['status', 'updated_at'])
+        # UC-NOT-05: la notificacion es disparada automaticamente por la
+        # signal _refund_created (notifications/signals.py) al hacer
+        # Refund.objects.create(..., status=STATUS_APPROVED) arriba.
+        # Llamarla aqui ademas causaba doble envio. Bug detectado en ciclo 43.
 
     logging.getLogger('apps').info(
         'Reembolso ejecutado: payment=%s amount=%s refund_id=%s',
-        payment.pk, refund_amount, result.refund_id,
+        locked_payment.pk, refund_amount, result.refund_id,
     )
     return refund
 
@@ -308,13 +319,18 @@ def get_payment_history(order_number: str, user) -> list | None:
     except Order.DoesNotExist:
         return None
 
+    # H-CICLO46-03: order_number field (documented in PaymentSerializer) was
+    # missing from the .values() projection.  The frontend reads each
+    # payment's order reference for display; returning it avoids the caller
+    # having to derive it from the URL parameter.
     return list(
         PaymentModel.objects.filter(order=order)
+        .annotate(order_number=F('order__order_number'))
         .order_by('-created_at')
         .values(
             'id', 'gateway', 'status', 'amount',
             'installments', 'preference_id', 'gateway_payment_id',
-            'created_at', 'updated_at',
+            'created_at', 'updated_at', 'order_number',
         )
     )
 

@@ -21,24 +21,28 @@ from apps.support.models import SupportTicket
 # ────────────────────────── Period parsing ─────────────────────────────────
 
 DEFAULT_PERIOD_DAYS = 30
+MAX_PERIOD_DAYS = 366  # ~1 year — prevents multi-year DoS queries
 
 
 def parse_period(value: str | None) -> int:
     """
     Parse a period string like '7d', '30d', '90d', '12m'.
     Returns the number of days. Falls back to DEFAULT_PERIOD_DAYS.
+    Capped at MAX_PERIOD_DAYS to prevent DoS via huge date ranges.
     """
     if not value:
         return DEFAULT_PERIOD_DAYS
     value = value.strip().lower()
     try:
         if value.endswith('d'):
-            return max(1, int(value[:-1]))
-        if value.endswith('m'):
-            return max(1, int(value[:-1]) * 30)
-        return max(1, int(value))
+            days = max(1, int(value[:-1]))
+        elif value.endswith('m'):
+            days = max(1, int(value[:-1]) * 30)
+        else:
+            days = max(1, int(value))
     except (ValueError, TypeError):
         return DEFAULT_PERIOD_DAYS
+    return min(days, MAX_PERIOD_DAYS)
 
 
 def period_window(days: int):
@@ -57,7 +61,7 @@ def build_sales_payload(period_days: int) -> dict:
 
     qs = Order.objects.filter(
         created_at__gte=start, created_at__lte=end,
-    ).exclude(status='CANCELLED')
+    ).exclude(status__in=['CANCELLED', 'CANCELLED_TIMEOUT'])  # D-03
 
     totals_agg = OrderValue.objects.filter(order__in=qs).aggregate(
         revenue=Sum('total'),
@@ -68,7 +72,7 @@ def build_sales_payload(period_days: int) -> dict:
 
     prev_qs = Order.objects.filter(
         created_at__gte=prev_start, created_at__lt=prev_end,
-    ).exclude(status='CANCELLED')
+    ).exclude(status__in=['CANCELLED', 'CANCELLED_TIMEOUT'])
     prev_agg = OrderValue.objects.filter(order__in=prev_qs).aggregate(
         revenue=Sum('total'),
         order_count=Count('id'),
@@ -79,7 +83,10 @@ def build_sales_payload(period_days: int) -> dict:
     def pct_delta(curr, prev):
         if prev == 0:
             return None
-        return float((Decimal(curr) - Decimal(prev)) / Decimal(prev) * 100)
+        return round(
+            (Decimal(curr) - Decimal(prev)) / Decimal(prev) * Decimal('100'),
+            4,
+        )
 
     series_rows = (
         OrderValue.objects.filter(order__in=qs)
@@ -137,41 +144,54 @@ def build_sales_payload(period_days: int) -> dict:
 
 # ────────────────────────── UC-REP-02 top sellers ──────────────────────────
 
-def build_top_sellers_payload(period_days: int, limit: int = 10) -> dict:
-
+def build_top_sellers_payload(
+    period_days: int, limit: int = 10, sort_by: str = 'UNIDADES',
+) -> dict:
+    # D-09: sort_by 'UNIDADES' (default) or 'INGRESOS'.
     start, end = period_window(period_days)
+    order_field = '-revenue' if sort_by == 'INGRESOS' else '-units_sold'
 
     rows = (
         OrderItem.objects
         .filter(order__created_at__gte=start, order__created_at__lte=end)
-        .exclude(order__status='CANCELLED')
+        .exclude(order__status__in=['CANCELLED', 'CANCELLED_TIMEOUT'])  # H-CICLO27-03: alinear con build_sales_payload
         .values('product_id', 'product_name', 'sku')
         .annotate(units_sold=Sum('quantity'), revenue=Sum('subtotal'))
-        .order_by('-units_sold')[:limit]
+        .order_by(order_field)[:limit]
     )
-    results = [
+    raw_results = [
         {
             'product_id': r['product_id'],
             'product_name': r['product_name'],
             'sku': r['sku'],
             'units_sold': r['units_sold'] or 0,
-            'revenue': str(r['revenue'] or Decimal('0.00')),
+            'revenue': r['revenue'] or Decimal('0.00'),
         }
         for r in rows
+    ]
+    total_revenue = sum(r['revenue'] for r in raw_results) or Decimal('0.00')
+    results = [
+        {
+            **r,
+            'revenue': str(r['revenue']),
+            'share_pct': round(r['revenue'] / total_revenue * Decimal('100'), 2)
+            if total_revenue else None,
+        }
+        for r in raw_results
     ]
 
     total_inactive = Product.objects.filter(is_active=False).count()
     inactive_with_sales = (
         OrderItem.objects
         .filter(order__created_at__gte=start, order__created_at__lte=end)
-        .exclude(order__status='CANCELLED')
+        .exclude(order__status__in=['CANCELLED', 'CANCELLED_TIMEOUT'])
         .filter(product__is_active=False)
         .values('product_id').distinct().count()
     )
     inactive_no_sales = max(0, total_inactive - inactive_with_sales)
     inactive_no_sales_pct = (
-        float(inactive_no_sales) / total_inactive * 100
-        if total_inactive else 0.0
+        round(Decimal(inactive_no_sales) / Decimal(total_inactive) * Decimal('100'), 2)
+        if total_inactive else Decimal('0.00')
     )
     return {
         'results': results,
@@ -188,18 +208,18 @@ def build_dashboard_payload() -> dict:
 
     today_qs = Order.objects.filter(
         created_at__gte=today_start,
-    ).exclude(status='CANCELLED')
+    ).exclude(status__in=['CANCELLED', 'CANCELLED_TIMEOUT'])  # H-CICLO28-01
     today_agg = OrderValue.objects.filter(order__in=today_qs).aggregate(
         revenue=Sum('total'), order_count=Count('id'),
     )
     today_revenue = today_agg['revenue'] or Decimal('0.00')
     today_orders = today_agg['order_count'] or 0
 
-    trend_start = now - timedelta(days=7)
+    trend_start = now - timedelta(days=30)
     trend_rows = (
         OrderValue.objects.filter(
             order__created_at__gte=trend_start,
-        ).exclude(order__status='CANCELLED')
+        ).exclude(order__status__in=['CANCELLED', 'CANCELLED_TIMEOUT'])  # H-CICLO28-01
         .annotate(day=TruncDate('order__created_at'))
         .values('day')
         .annotate(revenue=Sum('total'), orders=Count('id'))
@@ -217,7 +237,7 @@ def build_dashboard_payload() -> dict:
     top_products_rows = (
         OrderItem.objects
         .filter(order__created_at__gte=trend_start)
-        .exclude(order__status='CANCELLED')
+        .exclude(order__status__in=['CANCELLED', 'CANCELLED_TIMEOUT'])  # H-CICLO28-01
         .values('product_id', 'product_name', 'sku')
         .annotate(units_sold=Sum('quantity'))
         .order_by('-units_sold')[:5]
@@ -278,7 +298,7 @@ def build_rfm_payload(period_days: int, segment_filter: str | None = None) -> di
             order__created_at__gte=start, order__created_at__lte=end,
             order__user__isnull=False,
         )
-        .exclude(order__status='CANCELLED')
+        .exclude(order__status__in=['CANCELLED', 'CANCELLED_TIMEOUT'])  # H-CICLO28-02
         .values(
             'order__user_id',
             user_email=F('order__user__email'),
@@ -318,6 +338,36 @@ def build_rfm_payload(period_days: int, segment_filter: str | None = None) -> di
             'total_monetary': str(total_monetary),
         },
     }
+
+
+# ────────────────────────── D-19 async threshold helper ───────────────────
+
+
+def count_export_rows(slug: str, days: int) -> int:
+    """Fast row count to gate the async export threshold (D-19)."""
+    start, end = period_window(days)
+    if slug == 'sales':
+        return (
+            OrderValue.objects.filter(
+                order__created_at__gte=start, order__created_at__lte=end,
+            ).exclude(order__status__in=['CANCELLED', 'CANCELLED_TIMEOUT']).count()
+        )
+    if slug == 'top-sellers':
+        return (
+            OrderItem.objects
+            .filter(order__created_at__gte=start, order__created_at__lte=end)
+            .exclude(order__status__in=['CANCELLED', 'CANCELLED_TIMEOUT'])
+            .values('product_id').distinct().count()
+        )
+    if slug == 'customers-rfm':
+        return (
+            OrderValue.objects.filter(
+                order__created_at__gte=start, order__created_at__lte=end,
+                order__user__isnull=False,
+            ).exclude(order__status__in=['CANCELLED', 'CANCELLED_TIMEOUT'])  # H-CICLO28-02
+            .values('order__user_id').distinct().count()
+        )
+    return 0  # dashboard and unknowns are always small
 
 
 # `Max` import — placed at the bottom to avoid shadowing the module-level
