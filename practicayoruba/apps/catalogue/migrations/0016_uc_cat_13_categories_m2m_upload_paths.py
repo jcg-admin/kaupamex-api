@@ -14,12 +14,18 @@ def forward_copy_category_to_m2m(apps, schema_editor):
     Runs AFTER AddField creates the join table and BEFORE RemoveField drops
     category_id. Preserves 100% of category assignments (no data loss).
     """
-    schema_editor.execute("""
-        INSERT IGNORE INTO catalogue_product_categories (product_id, category_id)
-        SELECT id, category_id
-        FROM catalogue_product
-        WHERE category_id IS NOT NULL
-    """)
+    # DML (INSERT), not DDL: run via a cursor, NOT schema_editor.execute().
+    # schema_editor.execute() carries a guard that raises
+    # TransactionManagementError inside an atomic block on databases that
+    # can't roll back DDL (MariaDB/MySQL) -- even for plain DML. A cursor
+    # has no such guard and is the correct API for data statements.
+    with schema_editor.connection.cursor() as cursor:
+        cursor.execute("""
+            INSERT IGNORE INTO catalogue_product_categories (product_id, category_id)
+            SELECT id, category_id
+            FROM catalogue_product
+            WHERE category_id IS NOT NULL
+        """)
 
 
 def backward_copy_m2m_to_category(apps, schema_editor):
@@ -46,18 +52,33 @@ def backward_copy_m2m_to_category(apps, schema_editor):
     Runs AFTER RemoveField^-1 re-adds category_id (nullable) and BEFORE
     AddField^-1 drops the M2M join table — both columns/tables present.
     """
-    schema_editor.execute("""
-        UPDATE catalogue_product p
-        JOIN (
-            SELECT product_id, MIN(category_id) AS cat_id
-            FROM catalogue_product_categories
-            GROUP BY product_id
-        ) pc ON pc.product_id = p.id
-        SET p.category_id = pc.cat_id
-    """)
+    # DML (UPDATE) via cursor, NOT schema_editor.execute() — same reason as
+    # the forward function: the schema_editor guard rejects any execute()
+    # inside an atomic block on MariaDB.
+    with schema_editor.connection.cursor() as cursor:
+        cursor.execute("""
+            UPDATE catalogue_product p
+            JOIN (
+                SELECT product_id, MIN(category_id) AS cat_id
+                FROM catalogue_product_categories
+                GROUP BY product_id
+            ) pc ON pc.product_id = p.id
+            SET p.category_id = pc.cat_id
+        """)
 
 
 class Migration(migrations.Migration):
+
+    # MariaDB no puede envolver DDL (AddField/RemoveField) + RunPython en una
+    # transaccion reversible (can_rollback_ddl=False). Con atomic=True (default),
+    # Django envuelve el RunPython en su propia transaccion y el guard de
+    # schema_editor.execute dispara TransactionManagementError en un build
+    # from-scratch (lo que hace pytest con --create-db). atomic=False aplica
+    # cada operacion por separado; el commit implicito del DDL ya no choca con
+    # el RunPython. En MariaDB el DDL ya hacia commit implicito tambien en
+    # produccion, asi que la secuencia de operaciones es identica; atomic=False
+    # solo lo hace explicito en vez de abortar en un esquema nuevo. (H-API-01)
+    atomic = False
 
     dependencies = [
         ("catalogue", "0015_alter_product_stock"),
