@@ -138,9 +138,10 @@ phase_python() {
     }
 
     local venv_dir="${PROJECT_ROOT}/.venv"
-    local requirements="${PROJECT_ROOT}/requirements/development.txt"
-
-    setup_venv "$venv_dir" "$requirements"
+    # Deps: pyproject.toml + uv.lock via `uv sync` (setup_venv lo detecta y
+    # prefiere). El 2do arg (requirements legacy) queda vacio a proposito:
+    # la fuente unica de verdad es pyproject.toml. D-031/H-14.
+    setup_venv "$venv_dir" ""
 
     "${venv_dir}/bin/python3" -c "import MySQLdb" 2>/dev/null \
         && log_success "mysqlclient OK" \

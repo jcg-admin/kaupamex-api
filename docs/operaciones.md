@@ -7,12 +7,10 @@ Runbook de operaciones para PracticaYoruba-api.
 ## Setup del entorno de desarrollo (una vez)
 
 ```bash
-# 1. Clonar y configurar
+# 1. Clonar y configurar (uv crea .venv desde pyproject.toml + uv.lock)
 git clone <repo>
 cd e-comerce-api
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements/development.txt
+uv sync
 
 # 2. Variables de entorno
 cp practicayoruba/.env.example practicayoruba/.env
@@ -20,17 +18,17 @@ cp practicayoruba/.env.example practicayoruba/.env
 
 # 3. Aplicar migraciones
 cd practicayoruba
-python manage.py migrate
+uv run python manage.py migrate
 
 # 4. Aplicar migraciones en el schema QA (para pytest)
 DJANGO_SETTINGS_MODULE=config.settings.testing \
-  python manage.py migrate
+  uv run python manage.py migrate
 
 # 5. Crear superusuario (opcional)
-python manage.py createsuperuser
+uv run python manage.py createsuperuser
 
 # 6. Levantar el servidor
-python manage.py runserver
+uv run python manage.py runserver
 ```
 
 Para entornos Ubuntu con MariaDB gestionado localmente (todo en una máquina):

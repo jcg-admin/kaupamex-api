@@ -35,12 +35,27 @@ install_apt_packages() {
 
 setup_venv() {
     local venv_dir="$1" requirements="$2"
+    local project_root; project_root="$(dirname "$venv_dir")"
 
     # D-031 / H-14: el equipo usa uv como gestor de toolchain Python.
     # Detectar e instalar idempotentemente si falta. Caer a pip si la
     # instalacion de uv falla (sin red, --skip-update, etc.).
     _ensure_uv_installed || true
 
+    # Modelo-proyecto uv: si existe pyproject.toml, esa es la fuente unica
+    # de verdad (reemplaza requirements/*.txt). `uv sync` crea el .venv y lo
+    # deja identico a uv.lock (reproducible). Es la ruta canonica del API.
+    if exists_file "${project_root}/pyproject.toml" && command_exists uv; then
+        log_info "Sincronizando entorno con uv sync (pyproject.toml + uv.lock)..."
+        if ( cd "$project_root" && uv sync --quiet ); then
+            log_success "uv sync OK (.venv reproducible desde uv.lock)"
+        else
+            log_warn "uv sync fallo — revisa pyproject.toml / uv.lock / red"
+        fi
+        return
+    fi
+
+    # Fallback legacy (sin pyproject.toml): crear venv + instalar requirements.
     if exists_dir "$venv_dir"; then
         log_info "Entorno virtual ya existe: ${venv_dir}"
     else

@@ -1,3 +1,8 @@
+# LEGACY / EN RETIRO — iniciativa migrar-api-a-uv-pyproject (T-012).
+# Fuente UNICA de verdad de las dependencias: ../pyproject.toml + ../uv.lock.
+# Instalar SIEMPRE con `uv sync` (NUNCA `pip install -r`: dispara PEP 668).
+# Este archivo se conserva por referencias historicas y se retira tras
+# validar `uv sync` en WSL. D-031/H-14.
 Django==5.0.1
 python-decouple==3.8
 djangorestframework==3.14.0

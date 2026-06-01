@@ -72,7 +72,7 @@ check_venv() {
         venv_dir="${PROJECT_ROOT}/venv"
         warn "venv legacy en ${venv_dir} — convencion actual es .venv"
     else
-        warn "venv no existe — ejecuta: uv venv .venv  (o python3 -m venv .venv)"
+        warn "venv no existe — ejecuta: uv sync  (crea .venv desde pyproject.toml + uv.lock)"
         return
     fi
 

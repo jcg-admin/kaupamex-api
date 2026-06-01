@@ -6,31 +6,32 @@ Backend eCommerce — Django REST Framework + MariaDB + JWT.
 
 - Python 3.11 o superior
 - MariaDB 11.8 corriendo localmente
-- `pip` disponible en el PATH
+- `uv` (gestor de toolchain Python — D-031/H-14). Instalar:
+  `curl -LsSf https://astral.sh/uv/install.sh | sh`
 
 ## Setup
 
 ```bash
-# 1. Crear y activar entorno virtual
-python3 -m venv venv
-source venv/bin/activate        # Linux / macOS
-# source venv/Scripts/activate  # Windows Git Bash
+# 1. Crear el .venv e instalar dependencias desde pyproject.toml + uv.lock
+#    (uv sync es reproducible y nunca toca el Python del sistema → sin PEP 668)
+uv sync
 
-# 2. Instalar dependencias de desarrollo
-pip install -r requirements/development.txt
-
-# 3. Configurar variables de entorno
+# 2. Configurar variables de entorno
 cp practicayoruba/.env.example practicayoruba/.env
 # Editar practicayoruba/.env con las credenciales de MariaDB
 
-# 4. Aplicar migraciones y crear superusuario
+# 3. Aplicar migraciones y crear superusuario
 cd practicayoruba
-python manage.py migrate
-python manage.py createsuperuser
+uv run python manage.py migrate
+uv run python manage.py createsuperuser
 
-# 5. Levantar el servidor de desarrollo
-python manage.py runserver
+# 4. Levantar el servidor de desarrollo
+uv run python manage.py runserver
 ```
+
+`uv run <cmd>` ejecuta dentro del `.venv` gestionado por uv (fija el
+intérprete; no requiere `source .venv/bin/activate`). Para correr los
+tests: `uv run pytest`.
 
 Para entornos Ubuntu con MariaDB gestionado por el proyecto:
 
@@ -121,7 +122,9 @@ practicayoruba/
       production.py
     urls.py
   manage.py
-requirements/
+pyproject.toml      deps canonicas ([project] + grupo dev) — fuente unica
+uv.lock             grafo congelado (uv sync lo aplica)
+requirements/       LEGACY (derivado de pyproject; en retiro, T-012)
   base.txt          Django, DRF, simplejwt, mysqlclient, Pillow
   development.txt   + pytest, pytest-django, factory-boy
 scripts/
