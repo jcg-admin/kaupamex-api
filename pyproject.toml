@@ -1,0 +1,51 @@
+[project]
+name = "practicayoruba-api"
+version = "0.1.0"
+description = "PracticaYoruba — API REST (Django + DRF)"
+requires-python = ">=3.11,<3.14"
+authors = [
+    {name = "Equipo PracticaYoruba", email = "dev@practicayoruba.mx"}
+]
+license = {text = "Confidential"}
+
+# Fuente unica de verdad de las dependencias del API (reemplaza
+# requirements/base.txt). uv.lock congela el grafo para reproducibilidad.
+# Para actualizar una version: cambiarla aqui, `uv lock --upgrade-package X`,
+# validar y commitear el nuevo lock. D-031/H-14: uv en todos los submodulos.
+dependencies = [
+    # Core Django + DRF
+    "Django==5.0.1",
+    "djangorestframework==3.14.0",
+    "djangorestframework-simplejwt==5.3.1",
+    "drf-spectacular==0.27.0",
+    # Configuracion (.env tolerante a sin-comillas; ver diagnostico-env)
+    "python-decouple==3.8",
+    # Base de datos
+    "mysqlclient==2.2.1",
+    # Imagenes / media
+    "Pillow==10.2.0",
+    # Seguridad
+    "cryptography>=42.0.0",
+    # Pagos
+    "mercadopago>=2.2.0",
+    # CORS
+    "django-cors-headers==4.3.1",
+]
+
+[dependency-groups]
+# Grupo de desarrollo (reemplaza el extra de requirements/development.txt).
+# Produccion: `uv sync --no-dev`. Desarrollo/tests: `uv sync` (incluye dev).
+dev = [
+    "django-extensions==3.2.3",
+    "pytest==7.4.4",
+    "pytest-django==4.7.0",
+    "factory-boy==3.3.0",
+]
+
+[tool.uv]
+# native-tls: usa el store de certificados del sistema (igual que docs).
+native-tls = true
+# package = false: el API es una aplicacion Django (codigo bajo
+# practicayoruba/), no un paquete distribuible. uv gestiona el entorno y
+# las dependencias pero NO intenta construir el proyecto como wheel.
+package = false
