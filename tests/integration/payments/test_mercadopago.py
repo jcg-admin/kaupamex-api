@@ -417,7 +417,10 @@ class TestCheckoutExpress:
         ShippingMethod.objects.create(
             name='Estándar', cost=Decimal('80'), estimated_days=5, is_active=True
         )
-        ShippingZone.objects.create(name='CDMX', zip_code_prefix='06', is_active=True)
+        # H-API-07: el seed ya provee la zona '06' activa y zip_code_prefix es
+        # UNIQUE -> get_or_create (idempotente), no create (que chocaria).
+        ShippingZone.objects.get_or_create(
+            zip_code_prefix='06', defaults={'name': 'CDMX', 'is_active': True})
         Address.objects.create(
             user=user, alias='Casa',
             recipient_name='Test User', street='Reforma 100',
@@ -446,7 +449,10 @@ class TestCheckoutExpress:
         ShippingMethod.objects.create(
             name='Estándar', cost=Decimal('80'), estimated_days=5, is_active=True
         )
-        ShippingZone.objects.create(name='CDMX', zip_code_prefix='06', is_active=True)
+        # H-API-07: el seed ya provee la zona '06' activa y zip_code_prefix es
+        # UNIQUE -> get_or_create (idempotente), no create (que chocaria).
+        ShippingZone.objects.get_or_create(
+            zip_code_prefix='06', defaults={'name': 'CDMX', 'is_active': True})
         Address.objects.create(
             user=user, alias='Casa',
             recipient_name='Test', street='Calle',
