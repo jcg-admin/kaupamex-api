@@ -82,7 +82,7 @@ class CheckoutView(APIView):
                 )
                 return Response(_json.loads(attempt.response_json), status=201)
             except CheckoutAttempt.DoesNotExist:
-                pass
+                pass  # silent OK because no hay intento previo: el checkout sigue su flujo normal
 
         s = CheckoutSerializer(data=request.data)
         s.is_valid(raise_exception=True)

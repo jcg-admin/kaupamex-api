@@ -408,7 +408,7 @@ class PasswordResetRequestView(APIView):
             plain = create_password_reset_token(user)
             send_password_reset_email(user, plain)
         except User.DoesNotExist:
-            pass  # Silencioso — no revela si el email existe
+            pass  # silent OK because no revela si el email existe (anti-enumeracion)
 
         return Response(
             {'message': 'Si ese email esta registrado, recibiras las instrucciones.'}
@@ -537,7 +537,7 @@ class ResendVerificationView(APIView):
                 send_verification_email(user, plain)
             # else: silencio deliberado (suspended).
         except User.DoesNotExist:
-            pass  # Silencioso
+            pass  # silent OK because no revela el estado de la cuenta (anti-enumeracion)
 
         return Response(
             {'message': 'Si ese email esta pendiente de verificacion, recibiras un nuevo enlace.'}

@@ -239,8 +239,8 @@ class PYTokenRefreshSerializer(TokenRefreshSerializer):
             try:
                 refresh.blacklist()
             except Exception:
-                # blacklist puede fallar si el token ya esta en
-                # blacklist (idempotente). Aceptable.
+                # silent OK because blacklist puede fallar si el token
+                # ya esta en blacklist (idempotente). Aceptable.
                 pass
             # D-25 audit log: refresh fallido por user inactivo.
             audit_log_auth(

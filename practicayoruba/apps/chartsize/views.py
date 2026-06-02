@@ -195,7 +195,7 @@ class VariantTypeAdminViewSet(ModelViewSet):
             try:
                 ctx['product'] = Product.objects.get(pk=product_pk)
             except (Product.DoesNotExist, ValueError):
-                pass
+                pass  # silent OK because el product del contexto es opcional; se valida aguas abajo (400 no 500)
         return ctx
 
     @extend_schema(summary='Listar tipos de variante (admin)', tags=['variants'],

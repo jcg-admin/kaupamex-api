@@ -60,6 +60,18 @@ if [[ "${#STAGED_PY[@]}" -gt 0 ]]; then
     fi
 fi
 
+# ─── Gate 3: silencios de excepción justificados (AC uc-sys-06) ──────────────
+# Todo ``except: pass`` / ``...`` debe llevar ``# silent OK because <razon>``.
+# Script: scripts/check_silent_oks.py.
+if [[ "${#STAGED_PY[@]}" -gt 0 ]]; then
+    SILENT_CHECKER="$REPO_ROOT/scripts/check_silent_oks.py"
+    if [[ ! -f "$SILENT_CHECKER" ]]; then
+        echo "pre-commit: $SILENT_CHECKER no encontrado — skip silent-OK gate" >&2
+    else
+        python3 "$SILENT_CHECKER" "${STAGED_PY[@]}" || EXIT_CODE=1
+    fi
+fi
+
 if [[ "$EXIT_CODE" -ne 0 ]]; then
     echo "" >&2
     echo "pre-commit: gates fallaron. Corrige los problemas o usa" >&2

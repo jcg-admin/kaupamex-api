@@ -22,6 +22,13 @@ check-lazy:
 check-lazy-ci:
 	python3 scripts/check_no_lazy_imports.py
 
+# Silencios de excepción justificados (AC uc-sys-06) — soft / CI.
+check-silent:
+	python3 scripts/check_silent_oks.py || true
+
+check-silent-ci:
+	python3 scripts/check_silent_oks.py
+
 # Canon-idioma soft — imprime hallazgos pero retorna exit 0.
 check-canon:
 	python3 ../docs/scripts/check_canon_idioma.py --repo-root .. --soft
