@@ -2,7 +2,7 @@
 #
 # Targets para ejecucion local y en pipelines de CI futuros.
 # Mantiene paridad con ui/package.json scripts equivalentes.
-.PHONY: help check-lazy check-lazy-ci check-canon check-canon-ci test test-coverage install-hooks
+.PHONY: help check-lazy check-lazy-ci check-canon check-canon-ci test test-coverage install-hooks db-up ci-test ci-test-fast
 
 help:
 	@echo 'Targets:'
@@ -13,6 +13,9 @@ help:
 	@echo '  make test              Pytest suite completa'
 	@echo '  make test-coverage     Pytest con coverage'
 	@echo '  make install-hooks     Activar .githooks/ via core.hooksPath'
+	@echo '  make db-up             Arranca MariaDB via el script de db (socket)'
+	@echo '  make ci-test           db-up + pytest suite completa (--reuse-db)'
+	@echo '  make ci-test-fast      db-up + subset de humo cart/ (--reuse-db)'
 
 # Audit local — imprime hallazgos pero no falla (para inspeccion manual).
 check-lazy:
@@ -45,3 +48,22 @@ test-coverage:
 
 install-hooks:
 	bash scripts/install-hooks.sh
+
+# --- Coordinacion CI/CD: db + api ---------------------------------------
+
+# Arranca MariaDB (idempotente) via el script del submodulo db.
+# DB_DIR permite override; fallback a ../db y luego a la ruta absoluta
+# conocida del contenedor.
+db-up:
+	@DB_DIR="$${DB_DIR:-../db}"; \
+	if [ ! -d "$$DB_DIR" ]; then DB_DIR=/home/user/e-comerce-db; fi; \
+	echo "db-up: usando DB_DIR=$$DB_DIR"; \
+	bash "$$DB_DIR/scripts/start_db.sh"
+
+# Suite completa contra MariaDB real (--reuse-db: no recrea schema).
+ci-test: db-up
+	uv run pytest --reuse-db -q
+
+# Subset rapido de humo (cart/) — smoke test de CI.
+ci-test-fast: db-up
+	uv run pytest tests/integration/cart/ -q --reuse-db

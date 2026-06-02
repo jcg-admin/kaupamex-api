@@ -34,14 +34,24 @@ Interpretación:
 
 ## Estado conocido de este entorno
 
-Gate ejecutado el 2026-05-29 en el runner cloud de este repo:
+**Actualizado 2026-06-02** (el estado de 2026-05-29 quedó obsoleto). Gate
+ejecutado hoy en el contenedor:
 
 ```
-unix_socket: <NONE>
+unix_socket: /run/mysqld/mysqld.sock
+HOST: 127.0.0.1 PORT: 3306
 ```
 
-TCP fallback activo. Los tests de integración corren contra MariaDB en `127.0.0.1:3306`
-(MariaDB iniciado con `mariadbd --tmpdir=/tmp`). Esto es correcto en este entorno.
+**Socket activo** (`DB_QA_SOCKET` seteada). Tras `bash db/scripts/start_db.sh`,
+MariaDB 11.8 levanta por socket y `uv run pytest --reuse-db` corre verde
+(26 cart tests, 7.40s). El contenedor SÍ puede correr tests db+api por
+socket — ver la regla del superproyecto
+`.claude/rules/contenedor-corre-db-api-tests.md`.
+
+> Histórico (2026-05-29): el gate daba `unix_socket: <NONE>` (TCP fallback).
+> Ya no aplica. **Gotcha del contenedor:** el `TMPDIR` del entorno
+> (`/tmp/claude-0`) no es escribible por `mysql` → InnoDB aborta (Errcode
+> 13); `start_db.sh` ya pasa `--tmpdir=/tmp` para evitarlo (db@f8b32ba).
 
 ## Regla de diagnóstico
 

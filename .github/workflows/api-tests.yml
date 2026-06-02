@@ -1,0 +1,86 @@
+# GitHub Actions — api tests (db + api) — SKELETON greenfield.
+#
+# Estado: SKELETON. No se pudo ejecutar en el entorno del agente (no hay
+# runner de GitHub disponible). VALIDAR en el primer push: revisar logs
+# del job, ajustar nombres de schema/usuario y los TODO marcados abajo.
+#
+# Estrategia de DB: usa `services: mariadb:11.8` (TCP en 127.0.0.1:3306).
+# En CI el fallback TCP es el comportamiento esperado (DB_QA_SOCKET sin
+# setear), igual que en el runner cloud de este repo. Ver
+# .claude/rules/db-conexion-socket.md.
+#
+# Alternativa (no usada aqui): levantar la DB con el script del submodulo
+# db `bash db/scripts/start_db.sh` via socket. Requiere checkout del
+# submodulo db; el service container es mas simple para CI.
+
+name: api-tests
+
+on:
+  push:
+    branches:
+      - claude/gallant-bohr-ualw6   # TODO: ampliar a develop/main al estabilizar
+  pull_request:
+    branches:
+      - claude/gallant-bohr-ualw6   # TODO: idem
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      mariadb:
+        image: mariadb:11.8
+        env:
+          # Crea el schema y el usuario de QA al arrancar el contenedor.
+          MARIADB_DATABASE: practicayoruba_qa
+          MARIADB_USER: django_user
+          # TODO: mover a secreto real del repo (GitHub Secrets) en vez de
+          # hardcodear. Por ahora coincide con el default de testing.py.
+          MARIADB_PASSWORD: ${{ secrets.DB_QA_PASSWORD || 'django_pass' }}
+          MARIADB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD || 'root_pass' }}
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      # testing.py lee estos via python-decouple (config(...)).
+      # Sin DB_QA_SOCKET => fallback TCP a 127.0.0.1:3306 (el service).
+      DJANGO_SETTINGS_MODULE: config.settings.testing
+      PYTHONPATH: practicayoruba
+      DB_QA_NAME: practicayoruba_qa
+      DB_QA_USER: django_user
+      DB_QA_PASSWORD: ${{ secrets.DB_QA_PASSWORD || 'django_pass' }}
+      DB_QA_HOST: 127.0.0.1
+      DB_QA_PORT: 3306
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        # TODO: si se decide usar el script del submodulo db en vez del
+        # service container, agregar `with: { submodules: recursive }`
+        # y un step `bash db/scripts/start_db.sh`.
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        # TODO: pinear version de uv si se requiere reproducibilidad estricta.
+
+      - name: Set up Python
+        run: uv python install
+
+      - name: Install deps
+        run: uv sync
+
+      # TODO (seed real): si la suite requiere datos semilla de catalogo,
+      # agregar aqui `uv run python manage.py loaddata <fixture>` o ejecutar
+      # el seed de db (db/provisioners/mariadb/seed_catalogo.sql). La suite
+      # de integracion actual crea sus datos via factory-boy, por lo que el
+      # seed puede no ser necesario — VALIDAR en el primer push.
+
+      - name: Run tests
+        run: uv run pytest --create-db -q
+        # --create-db: recrea el schema desde migraciones (greenfield CI,
+        # no reusa estado entre runs).
