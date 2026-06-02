@@ -57,11 +57,15 @@ ZONES = [
 
 
 def seed_zones(apps, schema_editor):
+    # Idempotente por prefijo (H-API-07). get_or_create evita duplicados en
+    # re-aplicaciones y respeta el invariante unique(zip_code_prefix). Si dos
+    # entradas comparten prefijo (p.ej. '91' Veracruz/Xalapa), gana la primera.
+    # Seed canonico unico: 0012_seed_shipping_zones quedo como no-op.
     ShippingZone = apps.get_model("orders", "ShippingZone")
-    ShippingZone.objects.bulk_create([
-        ShippingZone(name=name, zip_code_prefix=prefix, is_active=True)
-        for name, prefix in ZONES
-    ])
+    for name, prefix in ZONES:
+        ShippingZone.objects.get_or_create(
+            zip_code_prefix=prefix, defaults={"name": name, "is_active": True},
+        )
 
 
 def unseed_zones(apps, schema_editor):

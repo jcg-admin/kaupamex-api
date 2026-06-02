@@ -33,16 +33,18 @@ ZONES = [
 
 
 def seed_zones(apps, schema_editor):
-    ShippingZone = apps.get_model('orders', 'ShippingZone')
-    ShippingZone.objects.bulk_create([
-        ShippingZone(name=name, zip_code_prefix=prefix, is_active=True)
-        for name, prefix in ZONES
-    ])
+    # NO-OP (H-API-07): esta migracion era un SEED DUPLICADO de
+    # 0010_seed_shipping_zones (mal merge: ramas 0009/0011 paralelas). Sembrar
+    # de nuevo creaba 2 zonas por prefijo -> MultipleObjectsReturned. El seed
+    # canonico e idempotente es 0010. Aqui no se siembra nada. La lista ZONES
+    # se conserva solo como referencia historica del contenido duplicado.
+    return
 
 
 def unseed_zones(apps, schema_editor):
-    ShippingZone = apps.get_model('orders', 'ShippingZone')
-    ShippingZone.objects.all().delete()
+    # NO-OP: el reverse de un seed que ya no siembra no debe borrar zonas
+    # (las creo 0010). Borrarlas aqui destruiria datos legitimos.
+    return
 
 
 class Migration(migrations.Migration):

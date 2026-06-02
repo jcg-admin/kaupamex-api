@@ -226,7 +226,9 @@ class ShippingZone(models.Model):
     Ejemplo: "44" cubre todos los CP que empiezan con "44" (Guadalajara, JAL).
     """
     name            = models.CharField(max_length=100)
-    zip_code_prefix = models.CharField(max_length=5, db_index=True)
+    # Invariante (decision Nestor 2026-06-02): UNA zona por prefijo. unique=True
+    # crea indice, asi que reemplaza al db_index. Ver H-API-07.
+    zip_code_prefix = models.CharField(max_length=5, unique=True)
     is_active       = models.BooleanField(default=True)
 
     class Meta:

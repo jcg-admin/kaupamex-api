@@ -35,8 +35,18 @@ ADDR_NOT_COVERED = {
 }
 
 
+@pytest.fixture(autouse=True)
+def _isolate_zones(db):
+    # H-API-07: las migraciones siembran ShippingZone (28 zonas, incl. '06')
+    # y zip_code_prefix es UNIQUE. Estos tests validan la logica de cobertura
+    # controlando la tabla, asi que parten de tabla vacia. Es dentro de la
+    # transaccion del test -> se revierte al terminar (no afecta a otros).
+    ShippingZone.objects.all().delete()
+    yield
+
+
 @pytest.fixture
-def zone(db):
+def zone(_isolate_zones):
     return ShippingZone.objects.create(
         name='Ciudad de México', zip_code_prefix='06', is_active=True,
     )
