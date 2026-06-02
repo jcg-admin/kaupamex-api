@@ -8,8 +8,8 @@ authors = [
 ]
 license = {text = "Confidential"}
 
-# Fuente unica de verdad de las dependencias del API (reemplaza
-# requirements/base.txt). uv.lock congela el grafo para reproducibilidad.
+# Fuente unica de verdad de las dependencias del API. uv.lock congela el
+# grafo para reproducibilidad.
 # Para actualizar una version: cambiarla aqui, `uv lock --upgrade-package X`,
 # validar y commitear el nuevo lock. D-031/H-14: uv en todos los submodulos.
 dependencies = [
@@ -33,7 +33,7 @@ dependencies = [
 ]
 
 [dependency-groups]
-# Grupo de desarrollo (reemplaza el extra de requirements/development.txt).
+# Grupo de desarrollo: pytest + factory-boy + django-extensions.
 # Produccion: `uv sync --no-dev`. Desarrollo/tests: `uv sync` (incluye dev).
 dev = [
     "django-extensions==3.2.3",

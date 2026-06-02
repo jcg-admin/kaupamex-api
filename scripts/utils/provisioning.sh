@@ -43,7 +43,7 @@ setup_venv() {
     _ensure_uv_installed || true
 
     # Modelo-proyecto uv: si existe pyproject.toml, esa es la fuente unica
-    # de verdad (reemplaza requirements/*.txt). `uv sync` crea el .venv y lo
+    # de verdad de las dependencias. `uv sync` crea el .venv y lo
     # deja identico a uv.lock (reproducible). Es la ruta canonica del API.
     if exists_file "${project_root}/pyproject.toml" && command_exists uv; then
         log_info "Sincronizando entorno con uv sync (pyproject.toml + uv.lock)..."

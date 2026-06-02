@@ -1,8 +1,0 @@
-# LEGACY / EN RETIRO — iniciativa migrar-api-a-uv-pyproject (T-012).
-# Fuente UNICA de verdad: ../pyproject.toml (grupo `dev`) + ../uv.lock.
-# Instalar SIEMPRE con `uv sync` (NUNCA `pip install -r`).
--r base.txt
-django-extensions==3.2.3
-pytest==7.4.4
-pytest-django==4.7.0
-factory-boy==3.3.0

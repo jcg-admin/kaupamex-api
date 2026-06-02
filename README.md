@@ -124,9 +124,6 @@ practicayoruba/
   manage.py
 pyproject.toml      deps canonicas ([project] + grupo dev) — fuente unica
 uv.lock             grafo congelado (uv sync lo aplica)
-requirements/       LEGACY (derivado de pyproject; en retiro, T-012)
-  base.txt          Django, DRF, simplejwt, mysqlclient, Pillow
-  development.txt   + pytest, pytest-django, factory-boy
 scripts/
   bootstrap.sh      setup completo para Ubuntu con MariaDB
 ```
