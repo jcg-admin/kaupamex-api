@@ -45,12 +45,17 @@ def _make_category(name='Test Cat', slug='test-cat'):
 
 def _make_product(category, name, sku, stock, price=Decimal('100.00'),
                   is_active=True, is_published=True, is_featured=False):
-    return Product.objects.create(
+    # UC-CAT-13 (migration 0016): Product.category (FK) fue reemplazado por
+    # Product.categories (M2M). El producto se crea sin categoria y se asocia
+    # via el M2M. (H-API-03)
+    product = Product.objects.create(
         name=name, slug=f'slug-{sku}', sku=sku,
-        price=price, stock=stock, category=category,
+        price=price, stock=stock,
         is_active=is_active, is_published=is_published,
         is_featured=is_featured,
     )
+    product.categories.add(category)
+    return product
 
 
 def _ensure_site_settings(min_stock_threshold=5):

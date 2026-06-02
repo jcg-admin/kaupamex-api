@@ -122,6 +122,10 @@ class TestCreateSeedUsersMissingVars:
         for k, v in env.items():
             monkeypatch.setenv(k, v)
         monkeypatch.delenv('ADMIN_PASSWORD', raising=False)
+        # El comando lee de os.environ Y de .env (decouple). Neutralizar el
+        # fallback decouple para simular "ausente en TODO el entorno", no solo
+        # en os.environ — si no, el .env del repo provee el valor. (H-API-04)
+        monkeypatch.setattr('decouple.config', lambda option, default=None, **kw: default)
 
         with pytest.raises(CommandError) as exc_info:
             call_command('create_seed_users')
@@ -134,6 +138,7 @@ class TestCreateSeedUsersMissingVars:
         monkeypatch.delenv('ADMIN_EMAIL', raising=False)
         monkeypatch.delenv('ADMIN_USERNAME', raising=False)
         monkeypatch.delenv('QA_BUYER_EMAIL', raising=False)
+        monkeypatch.setattr('decouple.config', lambda option, default=None, **kw: default)
 
         with pytest.raises(CommandError) as exc_info:
             call_command('create_seed_users')

@@ -2,6 +2,8 @@
 conftest.py — Fixtures globales para PracticaYoruba API tests.
 BD: practicayoruba_qa (config.settings.testing)
 """
+import os
+import shutil
 import subprocess
 import time
 from pathlib import Path
@@ -116,14 +118,30 @@ def clear_rate_limit_cache():
 
 
 def _mariadb_alive() -> bool:
-    try:
-        r = subprocess.run(
-            ['mysqladmin', 'ping', '--silent', '--host=127.0.0.1', '--port=3306'],
-            capture_output=True, timeout=5
+    # D-028: en MariaDB 11.x el binario es 'mariadb-admin' (NO 'mysqladmin').
+    # Resolver el que exista. NO silenciar la ausencia de AMBOS: sin binario el
+    # keepalive trataria una BD sana como caida y correria db_qa_setup + 30s de
+    # sleep en CADA test (error silencioso). Se avisa fuerte en vez de mentir.
+    admin_bin = shutil.which('mariadb-admin') or shutil.which('mysqladmin')
+    if admin_bin is None:
+        warnings.warn(
+            "mariadb_keepalive: ni 'mariadb-admin' ni 'mysqladmin' en PATH "
+            "(D-028) — no se puede verificar el estado de MariaDB.",
+            RuntimeWarning, stacklevel=2,
         )
-        return r.returncode == 0
-    except Exception:
         return False
+    # Ping por socket (canonico, ADR-008) con fallback a TCP.
+    socket_path = os.environ.get('DB_QA_SOCKET', '') or '/run/mysqld/mysqld.sock'
+    for cmd in (
+        [admin_bin, 'ping', '--silent', f'--socket={socket_path}'],
+        [admin_bin, 'ping', '--silent', '--host=127.0.0.1', '--port=3306'],
+    ):
+        try:
+            if subprocess.run(cmd, capture_output=True, timeout=5).returncode == 0:
+                return True
+        except Exception:
+            continue
+    return False
 
 
 def _restart_mariadb() -> bool:

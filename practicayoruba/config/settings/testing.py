@@ -14,6 +14,13 @@ from .base import *
 
 DEBUG = False
 
+# MEDIA_ROOT aislado a un tmpdir: los tests que suben/guardan archivos
+# (inventory import, reviews images, catalogue import) NO deben escribir al
+# media/ del repo — no es hermetico y depende de permisos del FS (el usuario
+# 'develop' no puede escribir el media/ del repo). (H-API-02)
+import tempfile
+MEDIA_ROOT = tempfile.mkdtemp(prefix='pyqa-media-')
+
 _DB_QA_OPTIONS = {
     'charset': 'utf8mb4',
     'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
