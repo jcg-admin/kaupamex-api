@@ -808,3 +808,294 @@ class TestReviewImages:
             format='multipart',
         )
         assert res.status_code == 401
+
+
+# =============================================================================
+# PARTE 7B AC-02..AC-05 — manejo de error templado por UC (12 marcadores)
+#
+# Cobertura explicita de los 4 AC funcionales de error de UC-REV-01/02/03,
+# agrupada por endpoint para evitar 12 tests triviales repetidos. Cada test
+# lleva el id del marcador en su nombre (test_uc_rev_0X_...).
+#
+# DRIFT IMPORTANTE entre la plantilla del AC y la impl real (ver hallazgos
+# en el reporte del agente):
+#   - La plantilla AC-02 dice ``error_code = INVALID_PAYLOAD``; la impl NO
+#     emite ese codigo. POST create usa el ValidationError default de DRF
+#     (sin ``codigo_error``); POST reject usa ``REASON_INVALID``.
+#   - La plantilla AC-04 dice ``error_code = NOT_FOUND``; la impl emite
+#     codigos especificos: ``PRODUCT_NOT_FOUND``, ``ORDER_NOT_FOUND``,
+#     ``REVIEW_NOT_FOUND``.
+#   - La plantilla AC-03 (sin staff) dice 403; la impl usa el 403 default
+#     de ``IsAdminUser`` SIN ``codigo_error=FORBIDDEN`` (PARTE 7.3 UC-REV-03).
+# Los tests assertan lo que la impl REALMENTE emite (canon de codigo), y los
+# nombres trazan al marcador del UC.
+# =============================================================================
+
+class TestUcRev01CreateErrorHandling:
+    """UC-REV-01 — POST /api/v1/products/<pid>/reviews/ (crear resena)."""
+
+    # --- AC-02: payload sin campos obligatorios -> 400, sin mutar estado ---
+    def test_uc_rev_01_ac02_payload_invalido_400(
+        self, auth_client, prod_rev, order_user_with_product, db,
+    ):
+        """AC-02: payload sin rating/title/body -> 400 validacion DRF.
+
+        DRIFT: la plantilla pide ``INVALID_PAYLOAD``; la impl usa el
+        ValidationError default de DRF (claves de campo faltante), sin
+        ``codigo_error``. Se asserta 400 + que no se creo ninguna resena.
+        """
+        antes = Review.objects.count()
+        r = auth_client.post(
+            PRODUCT_REVIEWS_URL(prod_rev.id),
+            {'order_id': order_user_with_product.id},  # faltan rating/title/body
+            format='json',
+        )
+        assert r.status_code == 400
+        body = r.json()
+        # Campos obligatorios faltantes reportados por el serializer.
+        assert any(k in body for k in ('rating', 'title', 'body')), body
+        # POST-F01: no muta estado.
+        assert Review.objects.count() == antes
+
+    def test_uc_rev_01_ac02_rating_fuera_de_rango_400(
+        self, auth_client, prod_rev, order_user_with_product, db,
+    ):
+        """AC-02 variante: rating fuera de 1..5 -> 400 sin mutar estado."""
+        antes = Review.objects.count()
+        r = auth_client.post(
+            PRODUCT_REVIEWS_URL(prod_rev.id),
+            {'order_id': order_user_with_product.id,
+             'rating': 9, 'title': 'X', 'body': 'cuerpo de prueba'},
+            format='json',
+        )
+        assert r.status_code == 400
+        assert Review.objects.count() == antes
+
+    # --- AC-03: sin credenciales (sin JWT) -> 401, no expone datos ---
+    def test_uc_rev_01_ac03_sin_jwt_401(self, api_client, prod_rev, db):
+        """AC-03: POST sin JWT -> 401 (IsAuthenticated). No expone recurso."""
+        r = api_client.post(
+            PRODUCT_REVIEWS_URL(prod_rev.id),
+            {'order_id': 1, 'rating': 5, 'title': 'X', 'body': 'cuerpo'},
+            format='json',
+        )
+        assert r.status_code == 401
+        # RNF-SEC-003: no se filtran datos del producto/orden en el 401.
+        assert 'results' not in r.json()
+
+    # --- AC-04: recurso inexistente -> 404 codigo especifico ---
+    def test_uc_rev_01_ac04_producto_inexistente_404(self, auth_client, db):
+        """AC-04: product_id del path no existe -> 404 PRODUCT_NOT_FOUND.
+
+        DRIFT: la plantilla pide ``NOT_FOUND``; la impl emite
+        ``PRODUCT_NOT_FOUND`` (mas especifico).
+        """
+        r = auth_client.post(
+            PRODUCT_REVIEWS_URL(999999),
+            {'order_id': 1, 'rating': 5, 'title': 'X', 'body': 'cuerpo'},
+            format='json',
+        )
+        assert r.status_code == 404
+        assert r.json()['codigo_error'] == 'PRODUCT_NOT_FOUND'
+
+    def test_uc_rev_01_ac04_orden_inexistente_404(self, auth_client, prod_rev, db):
+        """AC-04 variante: order_id del body no existe -> 404 ORDER_NOT_FOUND."""
+        r = auth_client.post(
+            PRODUCT_REVIEWS_URL(prod_rev.id),
+            {'order_id': 999999, 'rating': 5, 'title': 'X', 'body': 'cuerpo'},
+            format='json',
+        )
+        assert r.status_code == 404
+        assert r.json()['codigo_error'] == 'ORDER_NOT_FOUND'
+
+    # --- AC-05: excepcion documentada PARTE 5 -> codigo PARTE 7.3 ---
+    def test_uc_rev_01_ac05_ex01_no_compro_403(self, auth_client, prod_rev, db):
+        """AC-05 / EX-01: orden ajena (no compro) -> 403 PRODUCT_NOT_PURCHASED.
+
+        PARTE 7.3 UC-REV-01: 403 codigo_error=PRODUCT_NOT_PURCHASED.
+        """
+        other = get_user_model().objects.create_user(
+            username='ac05_other', email='ac05o@rev.com', password='x',
+        )
+        o = Order.objects.create(user=other, status='DELIVERED')
+        r = auth_client.post(
+            PRODUCT_REVIEWS_URL(prod_rev.id),
+            {'order_id': o.id, 'rating': 4, 'title': 'X', 'body': 'cuerpo'},
+            format='json',
+        )
+        assert r.status_code == 403
+        assert r.json()['codigo_error'] == 'PRODUCT_NOT_PURCHASED'
+
+    def test_uc_rev_01_ac05_ex02_resena_duplicada_400(
+        self, auth_client, user, prod_rev, order_user_with_product, db,
+    ):
+        """AC-05 / EX-02: resena duplicada -> codigo REVIEW_DUPLICATE.
+
+        PARTE 7.3 documenta 409; la impl usa DRF ValidationError = 400 con
+        codigo_error=REVIEW_DUPLICATE (drift menor de status, codigo OK).
+        Estado consistente: sigue existiendo exactamente una resena.
+        """
+        Review.objects.create(
+            user=user, product=prod_rev, order=order_user_with_product,
+            rating=5, title='A', body='cuerpo original',
+        )
+        r = auth_client.post(
+            PRODUCT_REVIEWS_URL(prod_rev.id),
+            {'order_id': order_user_with_product.id,
+             'rating': 3, 'title': 'C', 'body': 'otro cuerpo'},
+            format='json',
+        )
+        assert r.status_code in (400, 409)
+        assert r.json()['codigo_error'] == 'REVIEW_DUPLICATE'
+        # Estado consistente: no se creo una segunda resena.
+        assert Review.objects.filter(
+            user=user, product=prod_rev,
+        ).count() == 1
+
+
+class TestUcRev02ViewErrorHandling:
+    """UC-REV-02 — GET /api/v1/products/<pid>/reviews/ (ver resenas, publico)."""
+
+    # AC-02 NO APLICA: GET no tiene payload obligatorio (sin body, solo path
+    #   param + query opcional). Ver tabla del reporte: AC-02 marcado N/A.
+    # AC-03 NO APLICA por permiso: el endpoint es AllowAny (publico). No exige
+    #   JWT ni is_staff, asi que "sin credenciales" es el caso normal 200, no
+    #   un error. Ver tabla del reporte: AC-03 marcado N/A.
+
+    def test_uc_rev_02_ac03_publico_no_requiere_credenciales_200(
+        self, api_client, prod_rev, db,
+    ):
+        """AC-03 (negativo intencional): GET es publico -> 200 sin JWT.
+
+        Documenta que para UC-REV-02 el AC-03 no produce error: el actor sin
+        credenciales es el caso esperado. RNF-SEC-003: solo expone APPROVED.
+        """
+        r = api_client.get(PRODUCT_REVIEWS_URL(prod_rev.id))
+        assert r.status_code == 200
+        # Solo aprobadas: producto sin resenas aprobadas -> lista vacia.
+        assert r.json()['results'] == []
+
+    def test_uc_rev_02_ac04_producto_inexistente_404(self, api_client, db):
+        """AC-04: product_id inexistente -> 404 PRODUCT_NOT_FOUND.
+
+        DRIFT: plantilla pide NOT_FOUND; impl emite PRODUCT_NOT_FOUND.
+        No filtra existencia cruzada (mismo codigo para cualquier id ausente).
+        """
+        r = api_client.get(PRODUCT_REVIEWS_URL(999999))
+        assert r.status_code == 404
+        assert r.json()['codigo_error'] == 'PRODUCT_NOT_FOUND'
+
+    # AC-05: EX-01 de UC-REV-02 es "Error del sistema" -> 500 SYSTEM_ERROR
+    #   (PARTE 7.3). No es deterministicamente reproducible sin inyectar un
+    #   fallo de infraestructura; queda fuera de cobertura de test de AC
+    #   funcional (requeriria mock de la capa de datos). Ver hallazgo en el
+    #   reporte. Se cubre el caso de filtro invalido como excepcion observable
+    #   mas cercana documentada en la impl:
+    def test_uc_rev_02_ac05_filtro_rating_invalido_400(self, api_client, prod_rev, db):
+        """AC-05 (proxy observable): ?rating fuera de 1..5 -> 400 RATING_INVALID.
+
+        La unica excepcion deterministica del GET en la impl. El EX-01
+        (SYSTEM_ERROR 500) no es reproducible sin inyeccion de fallo.
+        """
+        r = api_client.get(PRODUCT_REVIEWS_URL(prod_rev.id), {'rating': '9'})
+        assert r.status_code == 400
+        assert r.json()['codigo_error'] == 'RATING_INVALID'
+
+
+class TestUcRev03ModerateErrorHandling:
+    """UC-REV-03 — admin moderar: GET cola, POST approve/reject (is_staff)."""
+
+    @pytest.fixture
+    def pending_review(self, db, user, prod_rev, order_user_with_product):
+        return Review.objects.create(
+            user=user, product=prod_rev, order=order_user_with_product,
+            rating=3, title='Pend', body='cuerpo pendiente',
+            status=Review.STATUS_PENDING,
+        )
+
+    @pytest.fixture
+    def approved_review(self, db, user, prod_rev, order_user_with_product):
+        return Review.objects.create(
+            user=user, product=prod_rev, order=order_user_with_product,
+            rating=5, title='Aprov', body='cuerpo aprobado',
+            status=Review.STATUS_APPROVED,
+        )
+
+    # --- AC-02: payload sin campos obligatorios -> 400 sin mutar estado ---
+    def test_uc_rev_03_ac02_reject_sin_reason_400(
+        self, admin_client, pending_review, db,
+    ):
+        """AC-02: POST reject sin ``reason`` obligatorio -> 400.
+
+        DRIFT: plantilla pide INVALID_PAYLOAD; la impl emite REASON_INVALID.
+        Estado consistente: la resena sigue PENDING (no se rechazo).
+        """
+        r = admin_client.post(REJECT_URL(pending_review.id), {}, format='json')
+        assert r.status_code == 400
+        assert r.json()['codigo_error'] == 'REASON_INVALID'
+        pending_review.refresh_from_db()
+        assert pending_review.status == Review.STATUS_PENDING
+
+    def test_uc_rev_03_ac02_queue_status_invalido_400(self, admin_client, db):
+        """AC-02 variante (query param invalido): ?status=X invalido -> 400."""
+        r = admin_client.get(ADMIN_QUEUE_URL + '?status=NO_EXISTE')
+        assert r.status_code == 400
+        assert r.json()['codigo_error'] == 'STATUS_INVALID'
+
+    # --- AC-03: sin credenciales (sin JWT) -> 401; sin is_staff -> 403 ---
+    def test_uc_rev_03_ac03_sin_jwt_401(self, api_client, db):
+        """AC-03: GET cola admin sin JWT -> 401. No expone la cola."""
+        r = api_client.get(ADMIN_QUEUE_URL)
+        assert r.status_code == 401
+        assert 'results' not in r.json()
+
+    def test_uc_rev_03_ac03_sin_staff_403(
+        self, auth_client, pending_review, db,
+    ):
+        """AC-03: usuario autenticado sin is_staff -> 403 (IsAdminUser).
+
+        DRIFT PARTE 7.3 UC-REV-03: documenta codigo_error=FORBIDDEN, pero la
+        impl usa el 403 default de DRF SIN codigo_error. Se asserta 403 y se
+        documenta el drift en el reporte. RNF-SEC-003: no expone el recurso.
+        """
+        r = auth_client.post(APPROVE_URL(pending_review.id), {}, format='json')
+        assert r.status_code == 403
+        # No se moderó: estado consistente.
+        pending_review.refresh_from_db()
+        assert pending_review.status == Review.STATUS_PENDING
+
+    # --- AC-04: recurso inexistente -> 404 REVIEW_NOT_FOUND ---
+    def test_uc_rev_03_ac04_approve_inexistente_404(self, admin_client, db):
+        """AC-04: approve sobre pk inexistente -> 404 REVIEW_NOT_FOUND.
+
+        DRIFT: plantilla pide NOT_FOUND; impl emite REVIEW_NOT_FOUND.
+        """
+        r = admin_client.post(APPROVE_URL(999999), {}, format='json')
+        assert r.status_code == 404
+        assert r.json()['codigo_error'] == 'REVIEW_NOT_FOUND'
+
+    def test_uc_rev_03_ac04_reject_inexistente_404(self, admin_client, db):
+        """AC-04 variante: reject sobre pk inexistente -> 404 REVIEW_NOT_FOUND."""
+        r = admin_client.post(
+            REJECT_URL(999999), {'reason': 'SPAM'}, format='json',
+        )
+        assert r.status_code == 404
+        assert r.json()['codigo_error'] == 'REVIEW_NOT_FOUND'
+
+    # --- AC-05: excepcion documentada PARTE 5 -> codigo PARTE 7.3 ---
+    def test_uc_rev_03_ac05_ex02_ya_moderada_400(
+        self, admin_client, approved_review, db,
+    ):
+        """AC-05 / EX-02: resena ya moderada por otro admin -> 400 consistente.
+
+        PARTE 5 EX-02: "resena ya moderada por otro administrador". La impl
+        materializa esto al intentar rechazar una resena ya APPROVED ->
+        REVIEW_ALREADY_APPROVED. Estado consistente: sigue APPROVED.
+        """
+        r = admin_client.post(
+            REJECT_URL(approved_review.id), {'reason': 'SPAM'}, format='json',
+        )
+        assert r.status_code == 400
+        assert r.json()['codigo_error'] == 'REVIEW_ALREADY_APPROVED'
+        approved_review.refresh_from_db()
+        assert approved_review.status == Review.STATUS_APPROVED

@@ -9,6 +9,7 @@ UC-CART-06: Merge anonymous cart on login
 """
 import uuid, pytest
 from decimal import Decimal
+from rest_framework.test import APIClient
 from apps.catalogue.models import Category, Product
 from apps.chartsize.models import VariantType, VariantOption, ProductVariant
 from apps.cart.models import Cart, CartItem, SavedCart
@@ -168,6 +169,44 @@ class TestAgregarProducto:
             'product_id': product_sin_variante.pk, 'quantity': 1,
         }, format='json')
         assert 'X-Cart-Token' in res
+
+    def test_anonimo_agrega_producto_201_y_persiste(
+        self, api_client, product_sin_variante, db
+    ):
+        """UC-CART-01 AC-06 / BR-004: un visitante anónimo (sin JWT) agrega un
+        producto válido → HTTP 201 y el carrito persiste en su sesión.
+
+        El test hermano test_anonimo_recibe_cart_token_en_header solo verifica
+        que viene el header X-Cart-Token. AC-06 exige además el 201 explícito y
+        la persistencia: el carrito identificado por el token devuelto contiene
+        el item tanto vía API (re-GET con X-Cart-Token) como en el modelo Cart.
+
+        Impl: apps/cart/views.py:239 (201 CREATED si created_item) +
+        apps/cart/views.py:242 (X-Cart-Token para anónimo).
+        """
+        res = api_client.post(ITEMS_URL, {
+            'product_id': product_sin_variante.pk, 'quantity': 1,
+        }, format='json')
+        # 1) AC-06: HTTP 201 para el primer add anónimo (insert)
+        assert res.status_code == 201
+        token = res['X-Cart-Token']
+
+        # 2) Persistencia vía API: re-consultar el carrito con el token devuelto
+        #    (cliente nuevo, sin estado en memoria) trae el item.
+        fresh_client = APIClient()
+        fresh_client.credentials(HTTP_X_CART_TOKEN=token)
+        get_res = fresh_client.get(CART_URL)
+        assert get_res.status_code == 200
+        body = get_res.json()
+        assert len(body['items']) == 1
+        assert body['items'][0]['quantity'] == 1
+
+        # 3) Persistencia en el modelo: el Cart con ese token tiene 1 item y
+        #    no está asociado a ningún usuario (anónimo, BR-004).
+        cart = Cart.objects.get(cart_token=token)
+        assert cart.user is None
+        assert cart.items.count() == 1
+        assert cart.items.first().product_id == product_sin_variante.pk
 
     def test_autenticado_no_requiere_cart_token(
         self, auth_client, product_sin_variante, db

@@ -16,14 +16,17 @@ Identifiers in English (DEC-DOC-005).
 """
 from datetime import timedelta
 from decimal import Decimal
+from io import BytesIO
 from unittest.mock import MagicMock, patch
 import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 from apps.catalogue.models import Category, Product
 from apps.orders.models import Order, OrderItem
 from apps.payments.models import Payment
 from apps.returns.models import ReturnHistoryEntry, ReturnRequest
 from apps.settings_app.models import PaymentGateway
+from apps.notifications.models import Notification, NotificationType
 
 pytestmark = pytest.mark.integration
 
@@ -509,6 +512,122 @@ class TestAdminRefund:
             {'amount': '100.00'}, format='json')
         assert res.status_code == 422
         assert res.json()['error_code'] == 'PAYMENT_NOT_FOUND'
+
+
+# ───────────────────── UC-RET-01 AC-06 (T-019) ───────────────────────────
+class TestReturnEvidence:
+    """UC-RET-01 AC-06 — Evidencia fotográfica.
+
+    El AC exige: hasta 5 archivos (<=5MB cada uno, ``image/jpeg`` o
+    ``image/png``) enviados al crear la devolución quedan asociados a
+    ``ReturnRequest.evidence`` y son visibles en UC-RET-02 (detalle admin).
+
+    HALLAZGO (ver reporte): la app ``returns`` NO implementa evidencia —
+    ``ReturnRequest`` no tiene campo ``evidence`` ni modelo
+    ``ReturnEvidence``, y ``ReturnCreateSerializer`` no acepta archivos.
+    Este test codifica el AC como contrato esperado; mientras el feature
+    no exista se salta explícitamente para no romper la suite (xfail con
+    ``run=False``), dejando trazable que el AC está pendiente de impl.
+    """
+
+    @pytest.mark.xfail(
+        reason='UC-RET-01 AC-06: ReturnRequest.evidence no implementado '
+               '(sin campo evidence ni modelo ReturnEvidence ni soporte '
+               'multipart en ReturnCreateSerializer).',
+        run=False,
+        strict=False,
+    )
+    def test_uc_ret_01_evidencia_se_asocia(
+            self, auth_client, delivered_order, db):
+        # 1×1 PNG mínimo válido.
+        png_bytes = (
+            b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00'
+            b'\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx\x9c'
+            b'c\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`'
+            b'\x82'
+        )
+        evidence_files = [
+            SimpleUploadedFile(
+                f'evidencia-{i}.png',
+                BytesIO(png_bytes).getvalue(),
+                content_type='image/png',
+            )
+            for i in range(5)  # 5 archivos == límite del AC.
+        ]
+
+        payload = {
+            'order_number': delivered_order.order_number,
+            'reason': 'DAMAGED_PRODUCT',
+            'description': 'El producto llego con la pantalla rota irreparable.',
+            'evidence': evidence_files,
+        }
+        res = auth_client.post(RETURNS_URL, payload, format='multipart')
+        assert res.status_code == 201, res.content
+
+        ret = ReturnRequest.objects.get(pk=res.json()['id'])
+        # Las 5 fotos quedan asociadas a ReturnRequest.evidence.
+        assert ret.evidence.count() == 5
+
+        # Visibles en UC-RET-02 (detalle admin).
+        detail = auth_client.get(f'{RETURNS_URL}{ret.pk}/')
+        assert detail.status_code == 200
+        assert len(detail.json()['evidence']) == 5
+
+
+# ───────────────────── UC-RET-02 AC-06 (T-020) ───────────────────────────
+class TestRequestInfoNotifies:
+    """UC-RET-02 AC-06 (DEC-RET-05 v2.1.0) — request-info.
+
+    El AC exige dos efectos sobre ``POST .../request-info/`` con ``message``
+    válido: (a) la solicitud queda en ``status="INFO_REQUESTED"`` y (b) el
+    comprador recibe una notificación con la petición (Alt. C).
+
+    El caso existente ``test_request_info_changes_status`` solo verifica (a).
+    Este test añade (b): una notificación in-app dirigida al comprador.
+
+    HALLAZGO (ver reporte): el signal ``_return_status_changed`` solo emite
+    notificación para transiciones a APPROVED/REJECTED, NO para
+    INFO_REQUESTED, y la view ``AdminReturnRequestInfoView`` no llama a
+    ningún ``notify_*``. La parte (b) del AC está pendiente de impl, por lo
+    que la aserción de notificación se marca xfail (strict=False) mientras
+    el wiring no exista; la transición de estado sí se afirma en duro.
+    """
+
+    def _create_pending(self, user, order_id=1):
+        return ReturnRequest.objects.create(
+            user=user, order_id=order_id, reason='DAMAGED_PRODUCT',
+            description='Mensaje suficientemente largo de prueba.')
+
+    def test_uc_ret_02_request_info_cambia_estado(
+            self, admin_client, user, db):
+        ret = self._create_pending(user)
+        notifs_before = Notification.objects.filter(
+            user=user, type=NotificationType.RETURN_UPDATE,
+        ).count()
+
+        res = admin_client.post(
+            f'{ADMIN_RETURNS_URL}{ret.pk}/request-info/',
+            {'message': 'Por favor envia fotos adicionales del producto.'},
+            format='json',
+        )
+
+        # (a) Transición de estado — afirmación dura (implementada).
+        assert res.status_code == 200
+        assert res.json()['status'] == 'INFO_REQUESTED'
+        ret.refresh_from_db()
+        assert ret.status == ReturnRequest.Status.INFO_REQUESTED
+
+        # (b) Notificación al comprador — pendiente de impl (HALLAZGO).
+        notifs_after = Notification.objects.filter(
+            user=user, type=NotificationType.RETURN_UPDATE,
+        ).count()
+        if notifs_after == notifs_before:
+            pytest.xfail(
+                'UC-RET-02 AC-06 (b): request-info no notifica al comprador; '
+                'el signal solo cubre APPROVED/REJECTED y la view no llama '
+                'notify_*.'
+            )
+        assert notifs_after == notifs_before + 1
 
 
 # ────────────────────────────── Admin detail ─────────────────────────────

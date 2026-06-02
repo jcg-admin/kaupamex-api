@@ -11,9 +11,20 @@ UC-SUPP-05  GET    /api/v1/admin/support/tickets/               admin queue
 
 Identifiers in English (DEC-DOC-005).
 """
+from datetime import timedelta
+
 import pytest
+from django.contrib.auth import get_user_model
+from django.core.management import call_command
+from django.test import TestCase
+from django.utils import timezone
+
 from apps.support.models import SupportTicket, SupportTicketReply
+from apps.support.management.commands.auto_close_support_tickets import (
+    AUTO_CLOSE_DAYS,
+)
 from apps.orders.models import Order
+from apps.notifications.models import Notification, NotificationType
 
 pytestmark = pytest.mark.integration
 
@@ -376,3 +387,100 @@ class TestCreateTicketOrderOwnership:
         }, format='json')
         assert res.status_code == 400
         assert 'ORDER_NOT_FOUND' in str(res.content)
+
+
+# ───────────────────── UC-SUPP-03 AC-06 (T-017) ──────────────────────────
+class TestReplyOwnershipIsolation:
+    """UC-SUPP-03 AC-06 — Aislamiento por dueño (RNF-SEC-003).
+
+    Refuerza el caso existente ``test_reply_to_other_user_ticket_returns_404``
+    (que usa ``admin_user`` como dueño ajeno, un staff que de todos modos
+    haría bypass de la verificación de propiedad). Aquí ambos actores son
+    compradores reales sin ``is_staff``: comprador A (``user`` /
+    ``auth_client``) y comprador B (``auth_user``). El AC exige que A no
+    pueda revelar siquiera la existencia del ticket de B (404, no 403) y
+    que no se cree ningún reply.
+    """
+
+    def test_uc_supp_03_responder_ticket_ajeno_404(
+            self, auth_client, user, auth_user, db):
+        # auth_user es un segundo comprador NO-staff (comprador B).
+        assert auth_user.is_staff is False
+        ticket_b = SupportTicket.objects.create(
+            user=auth_user,
+            subject='Ticket del comprador B',
+            body='Mensaje original del ticket del comprador B.',
+        )
+        replies_before = SupportTicketReply.objects.filter(
+            ticket=ticket_b).count()
+
+        # Comprador A (auth_client) intenta responder al ticket de B.
+        res = auth_client.post(
+            f'{TICKETS_URL}{ticket_b.pk}/replies/',
+            {'body': 'Intento de respuesta al ticket ajeno del comprador B.'},
+            format='json',
+        )
+
+        # RNF-SEC-003: 404 (no revelar existencia), no 403.
+        assert res.status_code == 404
+        # No se crea el reply.
+        assert SupportTicketReply.objects.filter(
+            ticket=ticket_b).count() == replies_before
+
+
+# ───────────────────── UC-SUPP-04 AC-06 (T-018) ──────────────────────────
+class CierreIdempotenteAutoCloseTest(TestCase):
+    """UC-SUPP-04 AC-06 — Cierre idempotente del job de auto-cierre.
+
+    El job ``auto_close_support_tickets`` ejecutado dos veces sobre el
+    mismo ticket ya ``CLOSED`` NO debe enviar una segunda notificación al
+    comprador (RNF Confiabilidad). Se usa ``TestCase`` (no pytest plano)
+    porque el assert requiere ``captureOnCommitCallbacks`` para ejecutar
+    el ``transaction.on_commit`` que dispara la notificación.
+
+    El caso existente en ``apps/support/tests_uc_not_08.py`` solo corre el
+    comando UNA vez y cuenta 1 notificación; la dimensión de idempotencia
+    (correr 2× sin doble notificación) no estaba cubierta.
+    """
+
+    def setUp(self):
+        User = get_user_model()
+        self.buyer = User.objects.create_user(
+            username='buyer_supp04_t018',
+            email='buyer-supp04-t018@practicayoruba.mx',
+            password='BuyerPass123!',
+        )
+
+    def _stale_awaiting_ticket(self):
+        ticket = SupportTicket.objects.create(
+            user=self.buyer,
+            subject='Ticket pendiente de respuesta del usuario',
+            body='Mensaje original; el staff respondió y espera al usuario.',
+            status=SupportTicket.Status.AWAITING_USER,
+        )
+        stale_time = timezone.now() - timedelta(days=AUTO_CLOSE_DAYS + 1)
+        SupportTicket.objects.filter(pk=ticket.pk).update(updated_at=stale_time)
+        ticket.refresh_from_db()
+        return ticket
+
+    def test_uc_supp_04_cierre_idempotente_sin_doble_notificacion(self):
+        ticket = self._stale_awaiting_ticket()
+
+        # Primera ejecución: cierra el ticket y notifica al comprador.
+        with self.captureOnCommitCallbacks(execute=True):
+            call_command('auto_close_support_tickets')
+        ticket.refresh_from_db()
+        self.assertEqual(ticket.status, SupportTicket.Status.CLOSED)
+        notifs_after_first = Notification.objects.filter(
+            user=self.buyer, type=NotificationType.SUPPORT_UPDATE,
+        ).count()
+        self.assertEqual(notifs_after_first, 1)
+
+        # Segunda ejecución sobre el mismo ticket ya CLOSED: idempotente,
+        # sin segunda notificación.
+        with self.captureOnCommitCallbacks(execute=True):
+            call_command('auto_close_support_tickets')
+        notifs_after_second = Notification.objects.filter(
+            user=self.buyer, type=NotificationType.SUPPORT_UPDATE,
+        ).count()
+        self.assertEqual(notifs_after_second, 1)

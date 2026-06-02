@@ -350,6 +350,49 @@ class TestCuotasMSI:
         payment = Payment.objects.get(order=orden_pendiente)
         assert payment.installments == 3
 
+    @pytest.mark.xfail(
+        strict=True,
+        reason=(
+            'HALLAZGO H-API-AMOUNT-MISMATCH: UC-PAY-01 AC-06 (AMOUNT_MISMATCH) '
+            'NO está implementado. apps/payments/services.py:initiate_payment '
+            'solo valida order.status == PENDING (services.py:80) y snapshotea '
+            'amount=order.value.total (services.py:104) sin comparar contra un '
+            'monto esperado del checkout. grep "AMOUNT_MISMATCH" en practicayoruba/ '
+            'y tests/ = 0 hits. No hay HTTP 422 ni error_code AMOUNT_MISMATCH.'
+        ),
+    )
+    def test_amount_mismatch_retorna_422(
+        self, auth_client, orden_pendiente, mp_gateway_activo, mock_mp_sdk, db
+    ):
+        """UC-PAY-01 AC-06: si el monto de la orden cambió entre el cálculo del
+        checkout y la creación de la preferencia → HTTP 422 con
+        error_code = AMOUNT_MISMATCH.
+
+        Simula el drift: tras crear la orden PENDING, su OrderValue.total cambia
+        (p.ej. recálculo de impuestos/envío por el cliente) antes de iniciar el
+        pago. El backend debería detectar la divergencia y rechazar con 422.
+
+        ESTADO: xfail(strict) — la validación AMOUNT_MISMATCH no existe en el
+        código (ver reason). Cuando se implemente AC-06, quitar el marcador
+        xfail y este test debe pasar en verde.
+        """
+        # Drift del monto: el OrderValue.total cambia respecto al snapshot del
+        # checkout, simulando recálculo entre el checkout y la preferencia.
+        orden_pendiente.value.total = Decimal('9999.00')
+        orden_pendiente.value.save(update_fields=['total'])
+
+        res = auth_client.post(INITIATE_URL, {
+            'order_number': orden_pendiente.order_number,
+            # AC-06: el cliente envía el monto que vio en el checkout; el backend
+            # lo contrasta con el total recalculado de la orden.
+            'expected_amount': '3000.00',
+        }, format='json')
+        assert res.status_code == 422, (
+            f'Esperado 422 AMOUNT_MISMATCH (AC-06), recibido {res.status_code}: '
+            f'{res.json() if hasattr(res, "json") else res.content}'
+        )
+        assert res.json().get('error_code') == 'AMOUNT_MISMATCH'
+
 
 # =============================================================================
 # UC-ORD-01-EXT — Checkout Express
