@@ -552,7 +552,11 @@ class TestReturnEvidence:
             'order_number': delivered_order.order_number,
             'reason': 'DAMAGED_PRODUCT',
             'description': 'El producto llego con la pantalla rota irreparable.',
-            'evidence': evidence_files,
+            # Clave ``photos`` — la que emite la UI real
+            # (returnsSlice.createReturnRequest arma FormData con
+            # form.append('photos', file)). Se persisten en la relacion
+            # ``evidence`` (verificada abajo).
+            'photos': evidence_files,
         }
         res = auth_client.post(RETURNS_URL, payload, format='multipart')
         assert res.status_code == 201, res.content

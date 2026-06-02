@@ -77,7 +77,11 @@ class ReturnCreateSerializer(serializers.Serializer):
     description = serializers.CharField(min_length=20, max_length=10000)
     items = ReturnItemInputSerializer(many=True, required=False, allow_empty=False)
     # UC-RET-01 AC-06: hasta 5 imagenes (JPEG/PNG, <=5MB) via multipart.
-    evidence = serializers.ListField(
+    # La clave es ``photos`` para alinear con el contrato que ya emite la
+    # UI (``ReturnCreatePage`` / ``returnsSlice.createReturnRequest`` arma
+    # un ``FormData`` con ``form.append('photos', file)``). Se persisten en
+    # la relacion ``ReturnRequest.evidence`` (ver el modelo y el detalle).
+    photos = serializers.ListField(
         child=serializers.ImageField(),
         required=False,
         write_only=True,
@@ -85,7 +89,7 @@ class ReturnCreateSerializer(serializers.Serializer):
         help_text='Hasta 5 imagenes (image/jpeg|png, <=5MB cada una).',
     )
 
-    def validate_evidence(self, files):
+    def validate_photos(self, files):
         for f in files:
             if getattr(f, 'size', 0) > EVIDENCE_MAX_BYTES:
                 raise serializers.ValidationError(

@@ -261,7 +261,9 @@ class ReturnListCreateView(APIView):
 
             # UC-RET-01 AC-06: asociar la evidencia fotografica (JPEG/PNG,
             # <=5MB, <=5 archivos — validados en ReturnCreateSerializer).
-            for image in data.get('evidence', []):
+            # La UI las envia bajo la clave ``photos``; se persisten en la
+            # relacion ``evidence``.
+            for image in data.get('photos', []):
                 ReturnEvidence.objects.create(return_request=ret, image=image)
 
         # Re-fetch con prefetch para evitar N+1 en ReturnRequestSerializer
