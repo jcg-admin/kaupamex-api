@@ -443,6 +443,11 @@ dev = [
     { name = "pytest" },
     { name = "pytest-django" },
 ]
+test = [
+    { name = "factory-boy" },
+    { name = "pytest" },
+    { name = "pytest-django" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -461,6 +466,11 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "django-extensions", specifier = "==3.2.3" },
+    { name = "factory-boy", specifier = "==3.3.0" },
+    { name = "pytest", specifier = "==7.4.4" },
+    { name = "pytest-django", specifier = "==4.7.0" },
+]
+test = [
     { name = "factory-boy", specifier = "==3.3.0" },
     { name = "pytest", specifier = "==7.4.4" },
     { name = "pytest-django", specifier = "==4.7.0" },

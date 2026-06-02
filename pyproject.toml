@@ -33,13 +33,21 @@ dependencies = [
 ]
 
 [dependency-groups]
-# Grupo de desarrollo: pytest + factory-boy + django-extensions.
-# Produccion: `uv sync --no-dev`. Desarrollo/tests: `uv sync` (incluye dev).
-dev = [
-    "django-extensions==3.2.3",
+# Tres estados de instalacion (PEP 735), una sola fuente de verdad:
+#   produccion : `uv sync --no-dev`                       -> solo [project].dependencies
+#   test (CI)  : `uv sync --no-default-groups --group test` -> base + runners de prueba
+#   desarrollo : `uv sync`                                 -> base + dev (dev incluye test + tooling)
+# Nota: `--only-group test` NO sirve para CI: excluye las deps base
+# (Django, DRF, mysqlclient) y la suite no arrancaria.
+test = [
     "pytest==7.4.4",
     "pytest-django==4.7.0",
     "factory-boy==3.3.0",
+]
+dev = [
+    # Herramientas de desarrollo (shell_plus, graph_models, etc.) + todo test.
+    "django-extensions==3.2.3",
+    {include-group = "test"},
 ]
 
 [tool.uv]
