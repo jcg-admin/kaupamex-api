@@ -79,6 +79,7 @@ class InitiatePaymentView(APIView):
         order_number = s.validated_data['order_number']
         installments  = s.validated_data['installments']
         gateway_type  = s.validated_data.get('gateway', 'MERCADOPAGO')
+        expected_amount = s.validated_data.get('expected_amount')
 
         # DEC-BC-11 (2026-05-21): permission_classes = [IsAuthenticated]
         # garantiza request.user.is_authenticated. La rama else previa
@@ -115,6 +116,25 @@ class InitiatePaymentView(APIView):
                         'detail': f'La orden no está en estado PENDING (estado: {order.status}).',
                         'codigo_error': 'ORDER_NOT_PAYABLE',
                     })
+
+                # UC-PAY-01 AC-06: si el cliente envió el monto que vio en el
+                # checkout y difiere del total recalculado de la orden (drift
+                # de impuestos/envío entre checkout y preferencia), rechazar
+                # con 422 AMOUNT_MISMATCH en lugar de cobrar un monto distinto
+                # al que el comprador autorizó.
+                if (expected_amount is not None
+                        and expected_amount != order.value.total):
+                    return Response(
+                        {
+                            'detail': (
+                                'El monto cambió desde el checkout '
+                                f'(esperado: {expected_amount}, '
+                                f'actual: {order.value.total}).'
+                            ),
+                            'codigo_error': 'AMOUNT_MISMATCH',
+                        },
+                        status=422,
+                    )
 
                 payment, checkout_url = initiate_payment(
                     order=order,

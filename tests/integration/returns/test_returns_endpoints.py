@@ -530,13 +530,6 @@ class TestReturnEvidence:
     ``run=False``), dejando trazable que el AC está pendiente de impl.
     """
 
-    @pytest.mark.xfail(
-        reason='UC-RET-01 AC-06: ReturnRequest.evidence no implementado '
-               '(sin campo evidence ni modelo ReturnEvidence ni soporte '
-               'multipart en ReturnCreateSerializer).',
-        run=False,
-        strict=False,
-    )
     def test_uc_ret_01_evidencia_se_asocia(
             self, auth_client, delivered_order, db):
         # 1×1 PNG mínimo válido.

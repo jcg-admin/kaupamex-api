@@ -162,6 +162,30 @@ def notify_return_processed(order, user, return_status, reason=None):
         )
 
 
+def notify_return_info_requested(user, message, order_number=None):
+    """UC-RET-02 AC-06 (b): notifica al comprador que el admin solicito
+    informacion adicional sobre su devolucion.
+
+    A diferencia de ``notify_return_processed``, no depende de un objeto
+    ``Order`` cargado: la peticion la dispara el admin desde el endpoint
+    request-info y el comprador debe enterarse aunque el snapshot de la
+    orden no se resuelva. Llamar dentro de ``transaction.atomic()``.
+    """
+    if not user or not getattr(user, 'pk', None):
+        return
+
+    suffix = f' — #{order_number}' if order_number else ''
+    Notification.objects.create(
+        user=user,
+        type=NotificationType.RETURN_UPDATE,
+        subject=f'Informacion adicional solicitada{suffix}',
+        body=(
+            message
+            or 'El equipo solicito informacion adicional sobre tu devolucion.'
+        ),
+    )
+
+
 def notify_refund_processed(order, user, amount_refunded):
     """
     UC-NOT-05: notificacion de reembolso procesado.

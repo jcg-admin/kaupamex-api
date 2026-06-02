@@ -5,7 +5,17 @@ Cumplen los contratos JSON declarados en UC-RET-01..06 (PARTE 7C).
 """
 from decimal import Decimal
 from rest_framework import serializers
-from .models import ReturnHistoryEntry, ReturnItem, ReturnRequest
+from .models import (
+    ReturnEvidence,
+    ReturnHistoryEntry,
+    ReturnItem,
+    ReturnRequest,
+)
+
+# UC-RET-01 AC-06: limites de evidencia fotografica.
+EVIDENCE_MAX_FILES = 5
+EVIDENCE_MAX_BYTES = 5 * 1024 * 1024  # 5 MB por archivo.
+EVIDENCE_ALLOWED_CONTENT_TYPES = {'image/jpeg', 'image/png'}
 
 
 
@@ -43,6 +53,16 @@ class ReturnHistoryEntrySerializer(serializers.ModelSerializer):
         return 'ADMIN' if obj.actor.is_staff else 'BUYER'
 
 
+# ────────────────────────────── Evidencia (UC-RET-01 AC-06) ──────────────────
+class ReturnEvidenceSerializer(serializers.ModelSerializer):
+    """Evidencia fotografica asociada a una devolucion (solo lectura)."""
+
+    class Meta:
+        model = ReturnEvidence
+        fields = ['id', 'image', 'created_at']
+        read_only_fields = fields
+
+
 # ────────────────────────────── UC-RET-01 (create) ───────────────────────────
 class ReturnCreateSerializer(serializers.Serializer):
     """UC-RET-01 — request body.
@@ -56,6 +76,28 @@ class ReturnCreateSerializer(serializers.Serializer):
     reason = serializers.ChoiceField(choices=ReturnRequest.Reason.choices)
     description = serializers.CharField(min_length=20, max_length=10000)
     items = ReturnItemInputSerializer(many=True, required=False, allow_empty=False)
+    # UC-RET-01 AC-06: hasta 5 imagenes (JPEG/PNG, <=5MB) via multipart.
+    evidence = serializers.ListField(
+        child=serializers.ImageField(),
+        required=False,
+        write_only=True,
+        max_length=EVIDENCE_MAX_FILES,
+        help_text='Hasta 5 imagenes (image/jpeg|png, <=5MB cada una).',
+    )
+
+    def validate_evidence(self, files):
+        for f in files:
+            if getattr(f, 'size', 0) > EVIDENCE_MAX_BYTES:
+                raise serializers.ValidationError(
+                    f'Cada archivo debe pesar <= 5MB (recibido {f.size} bytes).'
+                )
+            content_type = getattr(f, 'content_type', None)
+            if content_type and content_type not in EVIDENCE_ALLOWED_CONTENT_TYPES:
+                raise serializers.ValidationError(
+                    f'Tipo no permitido ({content_type}); solo image/jpeg o '
+                    f'image/png.'
+                )
+        return files
 
 
 # ────────────────────────────── UC-RET-04 (buyer list/detail) ────────────────────────
@@ -77,6 +119,7 @@ class ReturnDetailSerializer(serializers.ModelSerializer):
 
     items = ReturnItemSerializer(many=True, read_only=True)
     history = serializers.SerializerMethodField()
+    evidence = ReturnEvidenceSerializer(many=True, read_only=True)
 
     class Meta:
         model = ReturnRequest
@@ -84,7 +127,7 @@ class ReturnDetailSerializer(serializers.ModelSerializer):
             'id', 'order_id', 'reason', 'description', 'status',
             'refund_amount', 'refund_at', 'received_at',
             'rejection_reason', 'created_at', 'updated_at',
-            'items', 'history',
+            'items', 'history', 'evidence',
         ]
         read_only_fields = fields
 

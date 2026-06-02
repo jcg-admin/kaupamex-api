@@ -56,6 +56,12 @@ class InitiatePaymentSerializer(serializers.Serializer):
         default=1, min_value=1,
         help_text='Número de cuotas MSI. Solo aplica para MERCADOPAGO. 1 = contado.',
     )
+    expected_amount = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False,
+        help_text='UC-PAY-01 AC-06: monto visto por el cliente en el checkout. '
+                  'Si difiere del total recalculado de la orden → 422 '
+                  'AMOUNT_MISMATCH.',
+    )
 
 
 class InitiatePaymentResponseSerializer(serializers.Serializer):

@@ -127,3 +127,34 @@ class ReturnHistoryEntry(TimeStampedModel):
             f'History#{self.pk} return={self.return_request_id} '
             f'-> {self.status_to}'
         )
+
+
+def return_evidence_upload_path(instance, filename):
+    """UC-RET-01 AC-06: ruta de la evidencia fotografica de la devolucion."""
+    return f'returns/evidence/{instance.return_request_id}/{filename}'
+
+
+class ReturnEvidence(TimeStampedModel):
+    """Evidencia fotografica adjunta a una solicitud de devolucion.
+
+    UC-RET-01 AC-06: el comprador adjunta hasta 5 imagenes (JPEG/PNG,
+    <=5MB) al crear la devolucion; quedan asociadas via
+    ``related_name='evidence'`` y son visibles en el detalle
+    (UC-RET-02 / UC-RET-04).
+    """
+
+    return_request = models.ForeignKey(
+        ReturnRequest,
+        on_delete=models.CASCADE,
+        related_name='evidence',
+    )
+    image = models.ImageField(upload_to=return_evidence_upload_path)
+
+    class Meta:
+        db_table = 'return_evidence'
+        ordering = ['created_at']
+        verbose_name = 'Evidencia de devolucion'
+        verbose_name_plural = 'Evidencias de devolucion'
+
+    def __str__(self):
+        return f'ReturnEvidence#{self.pk} return={self.return_request_id}'

@@ -30,7 +30,8 @@ from rest_framework.views import APIView
 from apps.orders.models import Order, OrderItem
 from apps.payments.models import Payment, Refund
 from apps.payments.services import execute_refund
-from .models import ReturnHistoryEntry, ReturnItem, ReturnRequest
+from apps.notifications.service import notify_return_info_requested
+from .models import ReturnEvidence, ReturnHistoryEntry, ReturnItem, ReturnRequest
 from .serializers import (
     ReturnRequestAdminSerializer,
     ReturnRequestSerializer,
@@ -258,10 +259,15 @@ class ReturnListCreateView(APIView):
                 justification='Solicitud creada por el comprador.',
             )
 
+            # UC-RET-01 AC-06: asociar la evidencia fotografica (JPEG/PNG,
+            # <=5MB, <=5 archivos — validados en ReturnCreateSerializer).
+            for image in data.get('evidence', []):
+                ReturnEvidence.objects.create(return_request=ret, image=image)
+
         # Re-fetch con prefetch para evitar N+1 en ReturnRequestSerializer
-        # (accede a items y history_entries__actor).
+        # (accede a items, history_entries__actor y evidence).
         ret = ReturnRequest.objects.prefetch_related(
-            'items', 'history_entries__actor'
+            'items', 'history_entries__actor', 'evidence'
         ).get(pk=ret.pk)
 
         return Response(
@@ -282,7 +288,7 @@ class ReturnDetailView(APIView):
     def get(self, request, return_id):
         try:
             ret = ReturnRequest.objects.prefetch_related(
-                'items', 'history_entries__actor'
+                'items', 'history_entries__actor', 'evidence'
             ).get(pk=return_id, user=request.user)
         except ReturnRequest.DoesNotExist:
             raise NotFound({'detail': 'Devolución no encontrada.',
@@ -471,6 +477,12 @@ class AdminReturnRequestInfoView(_AdminOnly, APIView):
                 actor=request.user,
                 justification=message,
             )
+
+            # UC-RET-02 AC-06 (b): notificar al comprador la peticion de
+            # informacion adicional. Se hace a nivel de endpoint (no via el
+            # signal de cambio de estado) porque es la accion del admin la
+            # que dispara el aviso, y no depende de resolver el Order.
+            notify_return_info_requested(ret.user, message)
 
         # H-CICLO56-02: re-fetch after mutation to avoid stale prefetch cache.
         ret = _get_return_or_404(return_id)
