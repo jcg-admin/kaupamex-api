@@ -89,6 +89,12 @@ class Product(TimeStampedModel, SoftDeleteModel):
         Category, related_name='products', blank=False,
     )
     price             = models.DecimalField(max_digits=10, decimal_places=2)
+    # Costo unitario — dato sensible de negocio. Solo se expone vía serializers
+    # admin; NUNCA en la API pública de catálogo (ver Gestión de costos).
+    cost              = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True,
+        validators=[MinValueValidator(Decimal('0'))],
+    )
     stock             = models.IntegerField(default=0, validators=[MinValueValidator(0)])
     is_active         = models.BooleanField(default=True, db_index=True)
     is_published      = models.BooleanField(default=False, db_index=True)
@@ -104,6 +110,23 @@ class Product(TimeStampedModel, SoftDeleteModel):
 
     def __str__(self):
         return self.name
+
+    @property
+    def margin(self):
+        """Margen bruto unitario: ``price - cost`` (sobre el precio base, no
+        el precio con descuento). Retorna ``None`` si ``cost`` es nulo."""
+        if self.cost is None:
+            return None
+        return self.price - self.cost
+
+    @property
+    def margin_pct(self):
+        """Margen porcentual: ``(price - cost) / price * 100`` sobre el precio
+        base. Retorna ``None`` si ``cost`` es nulo o ``price`` es cero
+        (guarda contra división por cero)."""
+        if self.cost is None or not self.price:
+            return None
+        return (self.price - self.cost) / self.price * Decimal('100')
 
 
 class SearchHistory(TimeStampedModel):

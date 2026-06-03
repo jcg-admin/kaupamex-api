@@ -380,6 +380,19 @@ class ProductAdminSerializer(serializers.ModelSerializer):
     related_products = serializers.SerializerMethodField()
     discount        = serializers.SerializerMethodField()
 
+    # Gestión de costos — dato sensible: SOLO en el serializer admin.
+    # `cost` es escribible; `margin`/`margin_pct` son read-only (calculados).
+    cost            = serializers.DecimalField(
+        max_digits=10, decimal_places=2, min_value=Decimal('0'),
+        required=False, allow_null=True,
+    )
+    margin          = serializers.DecimalField(
+        max_digits=10, decimal_places=2, read_only=True,
+    )
+    margin_pct      = serializers.DecimalField(
+        max_digits=10, decimal_places=2, read_only=True,
+    )
+
     stock = serializers.IntegerField(min_value=0, required=False)
 
     # H-CICLO23-05: campo virtual `status` para compatibilidad con el formulario
@@ -403,6 +416,7 @@ class ProductAdminSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'slug', 'sku', 'description', 'short_description',
             'base_price', 'price_with_tax', 'sale_price',
+            'cost', 'margin', 'margin_pct',
             'categories', 'category_ids', 'images', 'is_active', 'is_published', 'is_featured',
             'stock', 'status', 'discount', 'related_products',
             'created_at', 'updated_at',
