@@ -95,6 +95,28 @@ class SiteSettings(TimeStampedModel):
         validators=[MinValueValidator(Decimal('0'))],
     )
 
+    # — Programa de referidos (UC-PRO-05) —
+    referral_active = models.BooleanField(
+        default=False,
+        help_text='Si el programa de referidos esta activo (UC-PRO-05 PRE-02).',
+    )
+    referral_welcome_discount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal('50.00'),
+        validators=[MinValueValidator(Decimal('0.01'))],
+        help_text='Descuento fijo del voucher de bienvenida emitido al nuevo '
+                  'comprador que canjea un codigo referral (UC-PRO-05 Subflujo B).',
+    )
+    referral_reward_discount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal('50.00'),
+        validators=[MinValueValidator(Decimal('0.01'))],
+        help_text='Descuento fijo del voucher de recompensa emitido al referidor '
+                  'cuando el referido completa su primera compra (UC-PRO-05 Subflujo C).',
+    )
+
     # — Contacto (UC-CFG-05) —
     support_email = models.EmailField(max_length=254, blank=True, default='')
     phone         = models.CharField(max_length=30, blank=True, default='')

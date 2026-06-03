@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'apps.search_history',
     'apps.static_content',
     'apps.backups',
+    'apps.referral',
 ]
 
 AUTH_USER_MODEL = 'users.User'

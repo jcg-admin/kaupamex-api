@@ -38,10 +38,12 @@ class Voucher(TimeStampedModel, SoftDeleteModel):
     TYPE_FIXED        = 'FIXED'
     TYPE_PERCENTAGE   = 'PERCENTAGE'
     TYPE_FREE_SHIPPING = 'FREE_SHIPPING'
+    TYPE_REFERRAL     = 'REFERRAL'
     TYPES = [
         (TYPE_FIXED,         'Descuento fijo'),
         (TYPE_PERCENTAGE,    'Porcentaje'),
         (TYPE_FREE_SHIPPING, 'Envio gratis'),
+        (TYPE_REFERRAL,      'Codigo referral'),
     ]
 
     code                = models.CharField(max_length=50, unique=True,
