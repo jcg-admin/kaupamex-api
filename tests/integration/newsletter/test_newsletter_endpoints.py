@@ -262,6 +262,33 @@ class TestAdminCreateCampaign:
         assert 'dos@example.com' in targets
         assert 'pendiente@example.com' not in targets
 
+    def test_campaign_enqueues_via_dispatch_email_not_inline(self, admin_client, db):
+        """UC-NEW-04: el envío de campaña ENCOLA vía dispatch_email
+        (cola async EmailTask + cron), NO un loop síncrono de
+        mail.send_mail en el request. Se verifica que la view invoca
+        dispatch_email una vez por destinatario CONFIRMED."""
+        _make_subscriber('uno@example.com', status='CONFIRMED')
+        _make_subscriber('dos@example.com', status='CONFIRMED')
+        _make_subscriber('pendiente@example.com', status='PENDING')
+
+        with patch('apps.newsletter.views.dispatch_email') as mock_dispatch:
+            res = admin_client.post(ADMIN_CAMPAIGN_URL, {
+                'subject': 'Campaña async',
+                'body': 'Hola, esto se encola.',
+            }, format='json')
+
+        assert res.status_code == 201
+        # Un dispatch_email por destinatario CONFIRMED (2), ninguno para PENDING.
+        assert mock_dispatch.call_count == 2
+        queued = []
+        for call in mock_dispatch.call_args_list:
+            queued.extend(call.kwargs['recipient_list'])
+        assert 'uno@example.com' in queued
+        assert 'dos@example.com' in queued
+        assert 'pendiente@example.com' not in queued
+        # El contrato HTTP responde inmediatamente con la campaña creada.
+        assert res.json()['recipients_count'] == 2
+
     def test_subject_and_body_required(self, admin_client, db):
         res = admin_client.post(ADMIN_CAMPAIGN_URL, {}, format='json')
         assert res.status_code == 400

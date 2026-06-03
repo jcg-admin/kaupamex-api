@@ -25,6 +25,8 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
+from apps.core.email_executor import dispatch_email
+
 from .models import NewsletterCampaign, NewsletterSubscriber, SubscriberStatus
 from .serializers import (
     CampaignCreateSerializer,
@@ -308,15 +310,19 @@ class AdminCampaignCreateView(_AdminOnly, APIView):
                 sent_at=timezone.now() if recipients else None,
             )
 
-        if recipients:
-            for recipient_email in recipients:
-                mail.send_mail(
-                    subject=campaign.subject,
-                    message=campaign.body,
-                    from_email='newsletter@practicayoruba.mx',
-                    recipient_list=[recipient_email],
-                    fail_silently=True,
-                )
+        # UC-NEW-04: el envío real se encola de forma ASÍNCRONA vía
+        # dispatch_email (thread pool + EmailTask queue / cron
+        # send_pending_emails), igual que COM-03/notifications. El request
+        # NO bloquea en un loop síncrono de SMTP; la respuesta HTTP es
+        # inmediata y el envío lo realiza la cola. Se encola un email por
+        # destinatario para que el reintento por EmailTask sea por-destino.
+        for recipient_email in recipients:
+            dispatch_email(
+                subject=campaign.subject,
+                message=campaign.body,
+                from_email='newsletter@practicayoruba.mx',
+                recipient_list=[recipient_email],
+            )
 
         return Response(
             CampaignResponseSerializer(campaign).data,
