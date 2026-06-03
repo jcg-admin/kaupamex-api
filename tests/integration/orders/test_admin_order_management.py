@@ -6,6 +6,7 @@ Nombre descriptivo: dominio y perspectiva, no número de sprint.
 import pytest
 from decimal import Decimal
 from apps.catalogue.models import Category, Product
+from apps.logistics.models import Courier, ShipmentGuide
 from apps.orders.admin_services import transition_order_status
 from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress, OrderStatusLog
 from django.contrib.auth import get_user_model
@@ -211,7 +212,6 @@ class TestTransicionEstadoAdmin:
         self, admin_client, user, prod_adm, db
     ):
         """Flujo feliz completo: PENDING → PROCESSING → IN_PREPARATION → SHIPPED → DELIVERED."""
-        from apps.logistics.models import Courier, ShipmentGuide
         order = _make_order(user, prod_adm, 'PENDING')
         courier = Courier.objects.create(name='DHL Test', code='DHL', is_active=True)
 

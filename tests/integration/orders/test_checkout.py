@@ -3,6 +3,8 @@ Tests — Checkout and order creation (UC-ORD-01)
 
 UC-ORD-01: Create order from cart (checkout)
 """
+import time
+
 import pytest
 from decimal import Decimal
 from apps.catalogue.models import Category, Product
@@ -345,8 +347,6 @@ class TestCheckoutP95SLO:
         catches obvious regressions; a true P95 would need many more samples
         but is impractical in a synchronous test suite.
         """
-        import time
-
         for i in range(5):
             p = Product.objects.create(
                 name=f'SLO Prod {i}', slug=f'slo-prod-{i}', sku=f'SLO-{i:03d}',

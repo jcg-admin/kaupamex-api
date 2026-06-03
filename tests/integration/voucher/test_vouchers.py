@@ -9,9 +9,11 @@ UC-CART-04: Apply discount coupon to cart
 """
 import pytest
 from decimal import Decimal
+from django.contrib.auth import get_user_model
 from django.utils import timezone
-from datetime import timedelta
+from datetime import date, timedelta
 from apps.catalogue.models import Category, Product
+from apps.orders.models import Order, OrderValue
 from apps.voucher.models import Voucher, VoucherChangeLog
 from apps.voucher.serializers import VoucherSerializer
 
@@ -295,8 +297,6 @@ class TestReporteVouchers:
     def test_reporte_roi_incluye_aggregates_cuando_hay_ordenes(
         self, admin_client, voucher_fixed, db, admin_user
     ):
-        from apps.orders.models import Order, OrderValue
-        from django.contrib.auth import get_user_model
         User = get_user_model()
         buyer = User.objects.create_user(
             username='buyer_roi_test', password='pass',
@@ -329,9 +329,6 @@ class TestReporteVouchers:
     def test_reporte_filtro_date_from(
         self, admin_client, voucher_fixed, db, admin_user
     ):
-        from apps.orders.models import Order, OrderValue
-        from django.contrib.auth import get_user_model
-        from datetime import date, timedelta
         User = get_user_model()
         buyer = User.objects.create_user(
             username='buyer_datefrom_test', password='pass',
@@ -515,7 +512,6 @@ class TestVoucherChangeLogCreate:
         }
         r = admin_client.post('/api/v1/admin/vouchers/', payload, format='json')
         assert r.status_code == 201
-        from apps.voucher.models import VoucherChangeLog
         assert VoucherChangeLog.objects.filter(
             voucher__code='LOG-CREATE-001',
             changes__action='created',
@@ -526,7 +522,6 @@ class TestVoucherChangeLogDelete:
     """D-03: VoucherChangeLog emitted on DELETE."""
 
     def test_delete_voucher_emits_change_log(self, admin_client, db):
-        from apps.voucher.models import Voucher, VoucherChangeLog
         v = Voucher.objects.create(
             code='LOG-DEL-001', voucher_type='FIXED',
             discount_value='10.00', valid_from='2020-01-01T00:00:00Z',
@@ -552,8 +547,6 @@ class TestVoucherReportPagination:
         assert 'pages' in data
 
     def test_report_filters_by_status(self, admin_client, db):
-        from apps.voucher.models import Voucher
-        from django.utils import timezone
         Voucher.objects.create(
             code='RPT-ACTIVE-001', voucher_type='FIXED',
             discount_value='10.00',

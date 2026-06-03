@@ -15,7 +15,7 @@ from unittest.mock import patch
 
 from apps.catalogue.models import Category, Product
 from apps.inventory.services import InventoryService
-from apps.orders.models import ShippingZone
+from apps.orders.models import Order, ShippingZone
 from apps.voucher.models import Voucher, VoucherUsage
 from apps.cart.models import Cart
 
@@ -104,8 +104,6 @@ class TestVoucherUsageCreatedOnCheckout:
         Hacer checkout con voucher aplicado incrementa current_uses
         y crea VoucherUsage(user, voucher).
         """
-        from apps.orders.models import Order
-        from apps.inventory.services import InventoryService
 
         # Agregar item y aplicar voucher
         auth_client.post(ITEMS_URL, {'product_id': product_vou.pk, 'quantity': 1})

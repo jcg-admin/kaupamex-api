@@ -268,8 +268,7 @@ class TestCancelGuide:
                               {'reason': 'Cliente cancelo'}, format='json')
         assert r.status_code == 200
         assert r.json()['cancelled'] is True
-        from apps.logistics.models import ShipmentGuide as SG
-        assert SG.all_objects.filter(id=g.id, is_deleted=True).exists()
+        assert ShipmentGuide.all_objects.filter(id=g.id, is_deleted=True).exists()
 
     def test_no_cancela_guia_entregada(
         self, admin_client, order_log, courier_log, db,

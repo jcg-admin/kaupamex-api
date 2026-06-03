@@ -8,7 +8,7 @@ UC-CAT-10: Edit product (admin)
 """
 import pytest
 from decimal import Decimal
-from apps.catalogue.models import Category, Product
+from apps.catalogue.models import Category, Product, ProductImage
 from apps.orders.models import Order, OrderItem
 from django.core.cache import cache
 from apps.catalogue.serializers import ProductAdminSerializer
@@ -307,7 +307,6 @@ class TestEditarProductoAdmin:
         assert res.json()['name'] == original_name
 
     def test_publicar_producto(self, admin_client, product_sopera, db):
-        from apps.catalogue.models import ProductImage
         product_sopera.is_published = False
         product_sopera.save()
         ProductImage.objects.create(

@@ -1,11 +1,14 @@
 """
 Integration tests — P-14 reviews endpoints (UC-REV-01..03).
 """
+import io
 from decimal import Decimal
 from apps.catalogue.models import Category, Product
 from apps.orders.models import Order, OrderAddress, OrderItem, OrderValue
 from apps.reviews.models import Review, ReviewHelpfulVote, ReviewModerationLog
 from django.contrib.auth import get_user_model
+from rest_framework_simplejwt.tokens import RefreshToken
+from PIL import Image as PILImage
 
 import pytest
 
@@ -692,8 +695,7 @@ class TestBuyerEditReview:
         attacker = get_user_model().objects.create_user(
             username='attacker_edit', email='attacker@rev.com', password='x',
         )
-        from rest_framework_simplejwt.tokens import RefreshToken as RT
-        refresh = RT.for_user(attacker)
+        refresh = RefreshToken.for_user(attacker)
         api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {refresh.access_token}')
         r = api_client.patch(
             EDIT_URL(prod_rev.id, review.id),
@@ -733,8 +735,6 @@ IMAGES_URL = lambda pid, pk: f'/api/v1/products/{pid}/reviews/{pk}/images/'
 
 def _make_png():
     """Return a minimal in-memory PNG as BytesIO (no Pillow required)."""
-    import io
-    from PIL import Image as PILImage
     buf = io.BytesIO()
     PILImage.new('RGB', (10, 10), color='red').save(buf, format='PNG')
     buf.seek(0)
@@ -772,7 +772,6 @@ class TestReviewImages:
         other = get_user_model().objects.create_user(
             username='otherimguser', email='other_img@rev.com', password='x',
         )
-        from rest_framework_simplejwt.tokens import RefreshToken
         refresh = RefreshToken.for_user(other)
         api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {refresh.access_token}')
         res = api_client.post(

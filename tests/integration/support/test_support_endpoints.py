@@ -11,6 +11,7 @@ UC-SUPP-05  GET    /api/v1/admin/support/tickets/               admin queue
 
 Identifiers in English (DEC-DOC-005).
 """
+import time
 from datetime import timedelta
 
 import pytest
@@ -329,7 +330,6 @@ class TestAdminQueue:
         assert res.json()['results'] == []
 
     def test_admin_list_ordered_oldest_first(self, admin_client, user, db):
-        import time
         t1 = SupportTicket.objects.create(
             user=user, subject='Primero', body='Mensaje suficientemente largo.')
         time.sleep(0.01)

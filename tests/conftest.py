@@ -8,6 +8,7 @@ import subprocess
 import time
 from pathlib import Path
 from django.contrib.auth import get_user_model
+from django.db import connection
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.cache import cache
@@ -321,8 +322,6 @@ def db_objects_setup(django_db_setup, django_db_blocker):
             stacklevel=2,
         )
         return
-
-    from django.db import connection
 
     db_settings = connection.settings_dict
     db_name     = db_settings.get('NAME', '')
