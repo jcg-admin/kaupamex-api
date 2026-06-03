@@ -47,6 +47,12 @@ class AdminUserDetailSerializer(AdminUserListSerializer):
     addresses            = drf_serializers.SerializerMethodField()
     recent_orders        = drf_serializers.SerializerMethodField()
     lifetime_value       = drf_serializers.SerializerMethodField()
+    # H-UI-02: UC-ADM-02 — el formulario de permisos necesita pre-cargar los
+    # grupos actuales del usuario. Sin esto, el POST a /permissions/ con
+    # ``groups`` hace ``.set()`` (reemplaza todo) a ciegas, con riesgo de
+    # borrar grupos que el admin no quiso tocar. Se expone como lista de ids
+    # (lo que /permissions/ espera) más sus nombres para mostrar en el UI.
+    groups               = drf_serializers.SerializerMethodField()
 
     class Meta(AdminUserListSerializer.Meta):
         # first_name, last_name ya vienen del base AdminUserListSerializer
@@ -54,6 +60,13 @@ class AdminUserDetailSerializer(AdminUserListSerializer):
             'phone',
             'profile_completeness', 'address_count',
             'addresses', 'recent_orders', 'lifetime_value',
+            'groups',
+        ]
+
+    def get_groups(self, obj) -> list:
+        return [
+            {'id': g.pk, 'name': g.name}
+            for g in obj.groups.all().order_by('name')
         ]
 
     def get_profile_completeness(self, obj) -> int:

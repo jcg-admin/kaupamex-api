@@ -42,6 +42,21 @@ class TestAdminUserDetail:
         r = admin_auth_client.get(f'{USERS_URL}99999/')
         assert r.status_code == 404
 
+    def test_detalle_expone_groups_del_usuario(self, admin_auth_client, target_user, db):
+        # H-UI-02 / UC-ADM-02: el detalle debe devolver los grupos actuales
+        # (ids + nombres) para que el form de permisos los pre-cargue antes
+        # del POST a /permissions/ (que hace .set() y reemplaza todo).
+        g1 = Group.objects.create(name='editores')
+        g2 = Group.objects.create(name='soporte')
+        target_user.groups.set([g1.pk, g2.pk])
+
+        r = admin_auth_client.get(f'{USERS_URL}{target_user.pk}/')
+        assert r.status_code == 200
+        data = r.json()
+        assert 'groups' in data
+        returned = {(g['id'], g['name']) for g in data['groups']}
+        assert returned == {(g1.pk, 'editores'), (g2.pk, 'soporte')}
+
 
 class TestAdminSuspendUser:
 
