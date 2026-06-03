@@ -3,7 +3,8 @@ from decimal import Decimal
 from django.db import IntegrityError, transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from drf_spectacular.utils import extend_schema, inline_serializer
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema, extend_schema_field, inline_serializer
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
@@ -64,27 +65,34 @@ class WishlistItemSerializer(ModelSerializer):
             'orisha_name', 'is_available', 'stock',
         ]
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_variant_label(self, obj):
         return obj.variant.option.label if obj.variant else None
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_current_price(self, obj):
         return str(obj.current_price)
 
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_price_dropped(self, obj):
         return obj.current_price < obj.price_at_add
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_price_drop_percent(self, obj):
         if obj.price_at_add and obj.current_price < obj.price_at_add:
             pct = (1 - obj.current_price / obj.price_at_add) * 100
             return round(float(pct))
         return 0
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_availability(self, obj):
         return 'IN_STOCK' if obj.is_available else 'OUT_OF_STOCK'
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_product_name(self, obj):
         return obj.product.name
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_image_url(self, obj):
         request = self.context.get('request')
         cover = obj.product.images.filter(is_cover=True).first()
@@ -97,18 +105,22 @@ class WishlistItemSerializer(ModelSerializer):
             return request.build_absolute_uri(url)
         return url
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_category_name(self, obj):
         first = obj.product.categories.order_by('id').first()
         return first.name if first else None
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_orisha_name(self, obj):
         # El modelo Product no tiene campo orisha; se retorna None para
         # que la UI omita la etiqueta silenciosamente via &&.
         return None
 
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_is_available(self, obj):
         return obj.is_available
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_stock(self, obj):
         return obj.product.stock
 

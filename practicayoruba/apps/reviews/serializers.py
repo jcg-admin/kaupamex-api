@@ -1,4 +1,6 @@
 """Serializers — apps.reviews (P-14)."""
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from .models import Review, ReviewImage
 
@@ -25,6 +27,7 @@ class ReviewPublicSerializer(serializers.ModelSerializer):
             'user_display', 'created_at', 'helpful_count', 'images',
         ]
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_user_display(self, obj):
         full = obj.user.get_full_name() if obj.user_id else ''
         return full or (obj.user.username if obj.user_id else 'Anonimo')

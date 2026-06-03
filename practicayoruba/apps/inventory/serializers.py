@@ -1,4 +1,6 @@
 """Serializers — apps.inventory (Sprint 10)."""
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from apps.settings_app.models import SiteSettings
 from .models import ImportJob, StockMovement, StockAlert
@@ -26,6 +28,7 @@ class StockMovementSerializer(serializers.ModelSerializer):
                   'stock_before', 'stock_after',
                   'movement_type', 'reason', 'reference', 'notes', 'created_at']
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_variant_label(self, obj):
         return obj.variant.option.label if obj.variant else None
 
@@ -38,6 +41,7 @@ class StockAlertSerializer(serializers.ModelSerializer):
         model  = StockAlert
         fields = ['id', 'product_sku', 'variant_label', 'stock_at_alert', 'resolved', 'created_at']
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_variant_label(self, obj):
         return obj.variant.option.label if obj.variant else None
 

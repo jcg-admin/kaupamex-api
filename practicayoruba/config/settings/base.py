@@ -325,6 +325,16 @@ SPECTACULAR_SETTINGS = {
         # que aparece en serializers diferentes con choice set identico
         'AudienceFilterEnum':
             'apps.notifications.models.ManualNotification.RecipientType',
+        # `type` field collision: NotificationType es el unico choice set
+        # de un campo llamado `type` que necesita nombre estable.
+        'NotificationTypeEnum':
+            'apps.notifications.models.NotificationType',
+        # `reason` field collision: dos choice sets distintos comparten el
+        # nombre de campo `reason` — devolucion vs ajuste de inventario.
+        'ReturnReasonEnum':
+            'apps.returns.models.ReturnRequest.Reason',
+        'StockAdjustmentReasonEnum':
+            'apps.inventory.serializers.ADJUSTMENT_REASONS',
     },
 }
 

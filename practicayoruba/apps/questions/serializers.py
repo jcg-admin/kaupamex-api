@@ -3,6 +3,8 @@ Serializers — apps.questions.
 
 JSON keys in English (DEC-DOC-005).
 """
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from .models import ProductQuestion, QuestionStatus
 
@@ -37,6 +39,7 @@ class PublicQuestionItemSerializer(serializers.ModelSerializer):
             return obj.asker_user.username if obj.asker_user else 'Usuario'
         return obj.asker_name or 'Anonimo'
 
+    @extend_schema_field(OpenApiTypes.OBJECT)
     def get_answer(self, obj):
         """Objeto anidado {body, answered_at} que consume la UI.
         Retorna None si la pregunta no tiene respuesta (UC-QST-02).

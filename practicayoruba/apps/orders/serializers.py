@@ -1,5 +1,7 @@
 """Serializers — apps.orders (Sprint 14)."""
 from decimal import Decimal
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from .models import Order, OrderItem, OrderValue, OrderAddress, ShippingZone, OrderStatusLog
@@ -141,6 +143,7 @@ class OrderListSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at', 'total', 'items_count', 'thumbnail_url',
         ]
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_items_count(self, obj):
         # Evitar N+1: usa _items_prefetched si está disponible
         items = getattr(obj, '_items_prefetched', None)
@@ -148,6 +151,7 @@ class OrderListSerializer(serializers.ModelSerializer):
             return len(items)
         return obj.items.count()
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_thumbnail_url(self, obj):
         # H-ORD-003: imagen del primer item, resuelta en tiempo de consulta
         items = getattr(obj, '_items_prefetched', None) or list(obj.items.all())

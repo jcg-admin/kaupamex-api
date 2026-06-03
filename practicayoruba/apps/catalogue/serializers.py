@@ -15,6 +15,8 @@ from django.db import IntegrityError
 from django.db.models import Avg, Q
 from django.utils import timezone
 from django.utils.text import slugify
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from apps.chartsize.serializers import ProductVariantPublicSerializer
 from apps.questions.models import ProductQuestion, QuestionStatus
@@ -103,12 +105,14 @@ class ProductImageSerializer(serializers.ModelSerializer):
         model  = ProductImage
         fields = ['id', 'image_url', 'image', 'alt_text', 'is_cover', 'order']
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_image_url(self, obj):
         request = self.context.get('request')
         if obj.image and request:
             return request.build_absolute_uri(obj.image.url)
         return obj.image.url if obj.image else None
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_image(self, obj):
         return self.get_image_url(obj)
 
@@ -143,6 +147,7 @@ class ProductListSerializer(serializers.ModelSerializer):
             'stock',
         ]
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_category_name(self, obj):
         prefetched = getattr(obj, '_prefetched_objects_cache', {}).get('categories')
         if prefetched is not None:
@@ -151,9 +156,11 @@ class ProductListSerializer(serializers.ModelSerializer):
         first = obj.categories.order_by('id').first()
         return first.name if first else None
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_sale_price(self, obj):
         return _get_sale_price(obj)
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_price_with_tax(self, obj):
         return _price_with_tax(obj)
 
@@ -175,6 +182,7 @@ class ProductListSerializer(serializers.ModelSerializer):
             cover = obj.images.first()
         return cover
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_cover_image_url(self, obj):
         request = self.context.get('request')
         cover = self._get_cover_image(obj)
@@ -182,6 +190,7 @@ class ProductListSerializer(serializers.ModelSerializer):
             return request.build_absolute_uri(cover.image.url) if request else cover.image.url
         return None
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_image(self, obj):
         request = self.context.get('request')
         cover = self._get_cover_image(obj)
@@ -189,6 +198,7 @@ class ProductListSerializer(serializers.ModelSerializer):
             return request.build_absolute_uri(cover.image.url) if request else cover.image.url
         return None
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_main_image(self, obj):
         request = self.context.get('request')
         cover = self._get_cover_image(obj)
@@ -196,15 +206,18 @@ class ProductListSerializer(serializers.ModelSerializer):
             return request.build_absolute_uri(cover.image.url) if request else cover.image.url
         return None
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_availability(self, obj):
         return _availability(obj)
 
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_variants_available(self, obj):
         cache = getattr(obj, '_prefetched_objects_cache', {})
         if 'variants' in cache:
             return any(v.is_active for v in cache['variants'])
         return obj.variants.filter(is_active=True).exists()
 
+    @extend_schema_field(OpenApiTypes.OBJECT)
     def get_discount(self, obj):
         return _discount_block(obj)
 
@@ -234,18 +247,23 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at',
         ]
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_sale_price(self, obj):
         return _get_sale_price(obj)
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_price_with_tax(self, obj):
         return _price_with_tax(obj)
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_availability(self, obj):
         return _availability(obj)
 
+    @extend_schema_field(OpenApiTypes.OBJECT)
     def get_discount(self, obj):
         return _discount_block(obj)
 
+    @extend_schema_field(OpenApiTypes.OBJECT)
     def get_reviews_summary(self, obj):
         approved = Review.objects.filter(product=obj, status=Review.STATUS_APPROVED)
         count = approved.count()
@@ -255,11 +273,13 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             'total_count': count,
         }
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_questions_count(self, obj):
         return ProductQuestion.objects.filter(
             product=obj, status=QuestionStatus.ANSWERED
         ).count()
 
+    @extend_schema_field(OpenApiTypes.OBJECT)
     def get_related_products(self, obj):
         # order_by('?') triggers a full-table filesort on MariaDB — too slow on
         # large catalogs.  Instead, fetch a slightly larger deterministic pool
@@ -277,6 +297,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         qs = pool[:4]
         return ProductListSerializer(qs, many=True, context=self.context).data
 
+    @extend_schema_field(OpenApiTypes.OBJECT)
     def get_variants(self, obj):
         qs = obj.variants.filter(is_active=True).select_related(
             'option', 'option__variant_type'
@@ -304,6 +325,7 @@ class ProductSearchSerializer(serializers.ModelSerializer):
             'is_featured',
         ]
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_category_name(self, obj):
         prefetched = getattr(obj, '_prefetched_objects_cache', {}).get('categories')
         if prefetched is not None:
@@ -312,12 +334,15 @@ class ProductSearchSerializer(serializers.ModelSerializer):
         first = obj.categories.order_by('id').first()
         return first.name if first else None
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_sale_price(self, obj):
         return _get_sale_price(obj)
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_price_with_tax(self, obj):
         return _price_with_tax(obj)
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_cover_image_url(self, obj):
         request = self.context.get('request')
         # H-CICLO31-04: mismo patrón anti-N+1 que ProductListSerializer.
@@ -335,15 +360,18 @@ class ProductSearchSerializer(serializers.ModelSerializer):
             return request.build_absolute_uri(cover.image.url) if request else cover.image.url
         return None
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_highlighted_name(self, obj):
         q = self.context.get('search_term', '')
         if not q:
             return obj.name
         return re.sub(f'({re.escape(q)})', r'<em>\\1</em>', obj.name, flags=re.IGNORECASE)
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_availability(self, obj):
         return _availability(obj)
 
+    @extend_schema_field(OpenApiTypes.OBJECT)
     def get_discount(self, obj):
         return _discount_block(obj)
 
@@ -356,11 +384,13 @@ class CategoryWithCountSerializer(serializers.ModelSerializer):
         model  = Category
         fields = ['id', 'name', 'slug', 'parent', 'product_count', 'children']
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_product_count(self, obj):
         if hasattr(obj, 'product_count'):
             return obj.product_count
         return obj.products.filter(is_active=True, is_published=True).count()
 
+    @extend_schema_field(OpenApiTypes.OBJECT)
     def get_children(self, obj):
         return CategoryWithCountSerializer(obj.children.all(), many=True).data
 
@@ -454,15 +484,19 @@ class ProductAdminSerializer(serializers.ModelSerializer):
             })
         return attrs
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_sale_price(self, obj):
         return _get_sale_price(obj)
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_price_with_tax(self, obj):
         return _price_with_tax(obj)
 
+    @extend_schema_field(OpenApiTypes.OBJECT)
     def get_related_products(self, obj):
         return None
 
+    @extend_schema_field(OpenApiTypes.OBJECT)
     def get_discount(self, obj):
         return _discount_block(obj)
 
