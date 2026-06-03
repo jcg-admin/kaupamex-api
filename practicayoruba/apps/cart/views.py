@@ -12,8 +12,8 @@ from decimal import Decimal
 from uuid import uuid4
 from django.db import transaction
 from django.shortcuts import get_object_or_404
-from drf_spectacular.utils import extend_schema, OpenApiParameter
-from rest_framework import status
+from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiParameter
+from rest_framework import serializers, status
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -22,8 +22,12 @@ from rest_framework.views import APIView
 from apps.catalogue.models import Product
 from apps.chartsize.models import ProductVariant
 from apps.voucher.models import Voucher, VoucherUsage
+from config.schema import error_response
 from .models import Cart, CartItem, SavedCart, SavedCartItem
-from .serializers import CartSerializer, SavedCartSerializer
+from .serializers import (
+    AddItemSerializer, CartSerializer, MergeCartSerializer, SavedCartSerializer,
+    UpdateItemSerializer,
+)
 
 
 
@@ -88,7 +92,10 @@ class CartView(APIView):
     @extend_schema(
         summary='Agregar ítem al carrito (UC-CART-02)',
         tags=['cart'],
-        responses={200: CartSerializer, 400: None},
+        request=AddItemSerializer,
+        responses={200: CartSerializer,
+                   400: error_response('Datos inválidos'),
+                   409: error_response('Producto sin stock')},
     )
     def post(self, request):
         product_id = request.data.get('product_id')
@@ -167,7 +174,11 @@ class CartItemListView(APIView):
         return Response(CartSerializer(_prefetch_cart(cart)).data)
 
     @extend_schema(summary='Agregar ítem al carrito (UC-CART-02)', tags=['cart'],
-                   responses={201: CartSerializer, 200: CartSerializer, 400: None})
+                   request=AddItemSerializer,
+                   responses={201: CartSerializer, 200: CartSerializer,
+                              400: error_response('Datos inválidos'),
+                              404: error_response('Variante no disponible'),
+                              409: error_response('Sin stock suficiente')})
     def post(self, request):
         product_id = request.data.get('product_id')
         variant_id = request.data.get('variant_id')
@@ -260,7 +271,10 @@ class CartItemDetailView(APIView):
             raise NotFound({'detail': 'Item no encontrado.', 'codigo_error': 'ITEM_NOT_FOUND'})
 
     @extend_schema(summary='Actualizar cantidad de ítem (UC-CART-02)', tags=['cart'],
-                   responses={200: CartSerializer, 400: None})
+                   request=UpdateItemSerializer,
+                   responses={200: CartSerializer,
+                              400: error_response('Datos inválidos'),
+                              404: error_response('Item no encontrado')})
     def patch(self, request, pk):
         item = self._get_item(request, pk)
         qty  = request.data.get('quantity')
@@ -297,7 +311,12 @@ class CartSaveView(APIView):
     @extend_schema(
         summary='Guardar carrito para después (UC-CART-04)',
         tags=['cart'],
-        responses={200: None},
+        request=None,
+        responses={200: inline_serializer(
+            'CartSaveResponse',
+            {'detail': serializers.CharField(),
+             'saved_count': serializers.IntegerField()}),
+            400: error_response('El carrito está vacío')},
     )
     def post(self, request):
         cart, _, _ = _get_or_create_cart(request)
@@ -328,7 +347,9 @@ class CartMergeView(APIView):
     @extend_schema(
         summary='Fusionar carrito anónimo con cuenta autenticada (UC-CART-05)',
         tags=['cart'],
-        responses={200: CartSerializer},
+        request=MergeCartSerializer,
+        responses={200: CartSerializer,
+                   400: error_response('cart_token requerido')},
     )
     def post(self, request):
         token = request.data.get('cart_token')
@@ -411,7 +432,12 @@ class CartVoucherView(APIView):
     @extend_schema(
         summary='Aplicar voucher al carrito (UC-CART-06)',
         tags=['cart'],
-        responses={200: CartSerializer, 400: None, 409: None},
+        request=inline_serializer('CartVoucherApplyRequest', {
+            'code': serializers.CharField(),
+        }),
+        responses={200: CartSerializer,
+                   400: error_response('Voucher inválido o no aplicable'),
+                   409: error_response('Voucher ya utilizado')},
     )
     def post(self, request):
         code = (request.data.get('code') or '').strip().upper()

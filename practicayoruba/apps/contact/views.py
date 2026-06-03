@@ -22,8 +22,12 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from apps.core.email_executor import dispatch_email
+from config.schema import error_response
 from .models import ContactMessage
-from .serializers import ContactMessageSerializer, ContactMessageAdminSerializer
+from .serializers import (
+    ContactMessageAdminSerializer, ContactMessageReplySerializer,
+    ContactMessageSerializer,
+)
 
 
 class _ContactMessagePagination(PageNumberPagination):
@@ -110,7 +114,9 @@ class AdminContactMessageMarkReadView(_AdminOnly, APIView):
     @extend_schema(
         summary='Marcar mensaje como leído (UC-COM-03)',
         tags=['contact'],
-        responses={200: ContactMessageAdminSerializer, 404: None},
+        request=None,
+        responses={200: ContactMessageAdminSerializer,
+                   404: error_response('Mensaje no encontrado')},
     )
     def post(self, request, message_id):
         msg = _get_message(message_id)
@@ -125,7 +131,10 @@ class AdminContactMessageReplyView(_AdminOnly, APIView):
     @extend_schema(
         summary='Responder mensaje de contacto por email (UC-COM-03)',
         tags=['contact'],
-        responses={200: ContactMessageAdminSerializer, 400: None, 404: None},
+        request=ContactMessageReplySerializer,
+        responses={200: ContactMessageAdminSerializer,
+                   400: error_response('Cuerpo de la respuesta requerido'),
+                   404: error_response('Mensaje no encontrado')},
     )
     def post(self, request, message_id):
         reply_body = (request.data.get('reply_body') or '').strip()

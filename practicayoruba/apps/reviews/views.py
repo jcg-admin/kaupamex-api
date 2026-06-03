@@ -17,8 +17,8 @@ from django.db import IntegrityError, transaction
 from django.db.models import F
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from drf_spectacular.utils import OpenApiParameter, extend_schema
-from rest_framework import generics, status
+from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serializer
+from rest_framework import generics, serializers, status
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.parsers import FormParser, MultiPartParser
@@ -29,6 +29,7 @@ from rest_framework.views import APIView
 from apps.catalogue.models import Product
 from apps.orders.models import Order
 from .models import Review, ReviewHelpfulVote, ReviewImage, ReviewModerationLog
+from config.schema import error_response
 from .serializers import (
     ReviewAdminSerializer, ReviewCreateSerializer, ReviewImageSerializer,
     ReviewPublicSerializer, ReviewUpdateSerializer,
@@ -230,6 +231,13 @@ class ReviewUpdateView(APIView):
     """
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary='Editar reseña propia pendiente (UC-REV-01 Alt B)', tags=['reviews'],
+        request=ReviewUpdateSerializer,
+        responses={200: ReviewAdminSerializer,
+                   400: error_response('Reseña no editable'),
+                   403: error_response('No eres el dueño de la reseña'),
+                   404: error_response('Reseña no encontrada')})
     def patch(self, request, product_id, pk):
         try:
             review = Review.objects.select_related('user', 'product', 'order').get(
@@ -427,6 +435,14 @@ class ReviewHelpfulVoteView(APIView):
     """POST /api/v1/products/<product_id>/reviews/<pk>/helpful/ — UC-REV-02."""
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary='Votar reseña como útil (UC-REV-02)', tags=['reviews'],
+        request=None,
+        responses={200: inline_serializer(
+            'ReviewHelpfulVoteResponse',
+            {'helpful_count': serializers.IntegerField()}),
+            400: error_response('Voto duplicado o voto sobre reseña propia'),
+            404: error_response('Reseña no encontrada')})
     def post(self, request, product_id, pk):
         try:
             review = Review.objects.get(pk=pk, product_id=product_id, status=Review.STATUS_APPROVED)

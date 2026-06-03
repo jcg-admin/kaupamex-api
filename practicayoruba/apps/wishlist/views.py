@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.db import IntegrityError, transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
@@ -15,6 +15,7 @@ from apps.chartsize.models import ProductVariant
 from .models import WishlistItem
 from apps.cart.views import _get_or_create_cart
 from apps.cart.models import CartItem
+from config.schema import error_response
 from rest_framework import serializers as drf_serializers
 
 
@@ -146,7 +147,13 @@ class WishlistView(APIView):
         })
 
     @extend_schema(summary='Agregar producto a lista de deseos', tags=['wishlist'],
-                   responses={201: WishlistItemSerializer, 409: None})
+                   request=inline_serializer('WishlistAddRequest', {
+                       'product_id': drf_serializers.IntegerField(),
+                       'variant_id': drf_serializers.IntegerField(required=False),
+                   }),
+                   responses={201: WishlistItemSerializer,
+                              400: error_response('Datos inválidos'),
+                              409: error_response('El producto ya está en la lista')})
     def post(self, request):
         product_id = request.data.get('product_id')
         variant_id = request.data.get('variant_id')
@@ -218,7 +225,13 @@ class WishlistMoveToCartView(APIView):
     @extend_schema(
         summary='Mover producto de wishlist al carrito',
         tags=['wishlist'],
-        responses={200: None},
+        request=inline_serializer('WishlistMoveToCartRequest', {
+            'remove_from_wishlist': drf_serializers.BooleanField(
+                required=False, default=True),
+        }),
+        responses={200: None,
+                   404: error_response('Item no encontrado'),
+                   409: error_response('Producto no disponible')},
     )
     def post(self, request, pk):
         item = get_object_or_404(WishlistItem, pk=pk, user=request.user)

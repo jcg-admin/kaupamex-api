@@ -9,8 +9,8 @@ UC-CHT-04: Ajustar precio individual de variante (admin)
 from decimal import Decimal as _Decimal, InvalidOperation
 
 from django.utils import timezone
-from drf_spectacular.utils import extend_schema, OpenApiParameter
-from rest_framework import status
+from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiParameter
+from rest_framework import serializers, status
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
@@ -19,6 +19,7 @@ from rest_framework.viewsets import ModelViewSet
 from apps.cart.models import CartItem
 from apps.catalogue.models import Product
 from apps.orders.models import Order, OrderItem
+from config.schema import error_response
 from .models import ProductVariant, VariantType
 from .serializers import (
     ProductVariantAdminSerializer,
@@ -253,7 +254,12 @@ class VariantPriceAdminView(APIView):
     @extend_schema(
         summary='Ajustar precio de variante (UC-CHT-04)',
         tags=['variants'],
-        responses={200: ProductVariantAdminSerializer, 400: None, 404: None},
+        request=inline_serializer('VariantPriceRequest', {
+            'price': serializers.DecimalField(max_digits=10, decimal_places=2),
+        }),
+        responses={200: ProductVariantAdminSerializer,
+                   400: error_response('Precio inválido'),
+                   404: error_response('Variante no encontrada')},
     )
     def put(self, request, variant_pk):
         variant = self._get_variant(variant_pk)
@@ -287,5 +293,15 @@ class VariantPriceAdminView(APIView):
         return Response(ProductVariantAdminSerializer(variant).data)
 
     # Keep PATCH for backwards compatibility
+    @extend_schema(
+        summary='Ajustar precio de variante (UC-CHT-04, alias PATCH)',
+        tags=['variants'],
+        request=inline_serializer('VariantPricePatchRequest', {
+            'price': serializers.DecimalField(max_digits=10, decimal_places=2),
+        }),
+        responses={200: ProductVariantAdminSerializer,
+                   400: error_response('Precio inválido'),
+                   404: error_response('Variante no encontrada')},
+    )
     def patch(self, request, variant_pk):
         return self.put(request, variant_pk)

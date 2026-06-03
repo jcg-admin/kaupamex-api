@@ -17,7 +17,7 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
-from drf_spectacular.utils import extend_schema, OpenApiParameter
+from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiParameter
 from apps.orders.models import Order, OrderValue
 from .audit import audit_log_business
 from .models import AuthEvent, BusinessEvent, UserDeactivationEvent
@@ -478,6 +478,20 @@ class AuditLogView(APIView):
             OpenApiParameter('page',       int, description='Número de página'),
         ],
         tags=['admin'],
+        responses={200: inline_serializer('AuditLogPage', {
+            'count':   drf_serializers.IntegerField(),
+            'page':    drf_serializers.IntegerField(),
+            'pages':   drf_serializers.IntegerField(),
+            'results': inline_serializer('AuditLogEntry', {
+                'id':         drf_serializers.IntegerField(),
+                'event_type': drf_serializers.CharField(),
+                'user_id':    drf_serializers.IntegerField(allow_null=True),
+                'username':   drf_serializers.CharField(),
+                'action':     drf_serializers.CharField(),
+                'created_at': drf_serializers.CharField(),
+                'extra':      drf_serializers.DictField(),
+            }, many=True),
+        })},
     )
     def get(self, request):
         event_type = request.query_params.get('event_type')

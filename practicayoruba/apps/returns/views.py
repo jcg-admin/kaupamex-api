@@ -31,6 +31,7 @@ from apps.orders.models import Order, OrderItem
 from apps.payments.models import Payment, Refund
 from apps.payments.services import execute_refund
 from apps.notifications.service import notify_return_info_requested
+from config.schema import error_response
 from .models import ReturnEvidence, ReturnHistoryEntry, ReturnItem, ReturnRequest
 from .serializers import (
     ReturnRequestAdminSerializer,
@@ -370,7 +371,10 @@ class AdminReturnApproveView(_AdminOnly, APIView):
     @extend_schema(
         summary='Aprobar devolución (UC-RET-02)',
         tags=['returns'],
-        responses={200: ReturnRequestAdminSerializer, 422: None, 404: None},
+        request=ReturnApproveSerializer,
+        responses={200: ReturnRequestAdminSerializer,
+                   404: error_response('Devolución no encontrada'),
+                   422: error_response('Estado inválido para aprobar')},
     )
     def post(self, request, return_id):
         ser = ReturnApproveSerializer(data=request.data)
@@ -408,7 +412,10 @@ class AdminReturnRejectView(_AdminOnly, APIView):
     @extend_schema(
         summary='Rechazar devolución (UC-RET-02)',
         tags=['returns'],
-        responses={200: ReturnRequestAdminSerializer, 422: None, 404: None},
+        request=ReturnRejectSerializer,
+        responses={200: ReturnRequestAdminSerializer,
+                   404: error_response('Devolución no encontrada'),
+                   422: error_response('Estado inválido para rechazar')},
     )
     def post(self, request, return_id):
         ser = ReturnRejectSerializer(data=request.data)
@@ -446,7 +453,10 @@ class AdminReturnRequestInfoView(_AdminOnly, APIView):
     @extend_schema(
         summary='Solicitar información adicional (UC-RET-02)',
         tags=['returns'],
-        responses={200: ReturnRequestAdminSerializer, 422: None, 404: None},
+        request=ReturnInfoRequestSerializer,
+        responses={200: ReturnRequestAdminSerializer,
+                   404: error_response('Devolución no encontrada'),
+                   422: error_response('Estado inválido para solicitar información')},
     )
     def post(self, request, return_id):
         ser = ReturnInfoRequestSerializer(data=request.data)
@@ -497,7 +507,10 @@ class AdminReturnReceptionView(_AdminOnly, APIView):
     @extend_schema(
         summary='Registrar recepción física del producto (UC-RET-03)',
         tags=['returns'],
-        responses={200: ReturnRequestAdminSerializer, 422: None, 404: None},
+        request=ReturnReceptionSerializer,
+        responses={200: ReturnRequestAdminSerializer,
+                   404: error_response('Devolución no encontrada'),
+                   422: error_response('Estado inválido para recepción')},
     )
     def post(self, request, return_id):
         ser = ReturnReceptionSerializer(data=request.data)
@@ -540,7 +553,11 @@ class AdminReturnRefundView(_AdminOnly, APIView):
     @extend_schema(
         summary='Procesar reembolso (UC-RET-06)',
         tags=['returns'],
-        responses={200: ReturnRequestAdminSerializer, 422: None, 409: None, 404: None},
+        request=ReturnRefundSerializer,
+        responses={200: ReturnRequestAdminSerializer,
+                   404: error_response('Devolución no encontrada'),
+                   409: error_response('El reembolso ya fue procesado'),
+                   422: error_response('Estado inválido para reembolso')},
     )
     def post(self, request, return_id):
         ser = ReturnRefundSerializer(data=request.data)

@@ -26,6 +26,7 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from apps.core.email_executor import dispatch_email
+from config.schema import error_response
 
 from .models import NewsletterCampaign, NewsletterSubscriber, SubscriberStatus
 from .serializers import (
@@ -113,7 +114,10 @@ class NewsletterConfirmView(APIView):
     @extend_schema(
         summary='Confirmar suscripción al newsletter (UC-NEW-01)',
         tags=['newsletter'],
-        responses={200: None, 400: None, 404: None},
+        request=None,
+        responses={200: None,
+                   400: error_response('Token expirado'),
+                   404: error_response('Token inválido')},
     )
     def post(self, request, token):
         # Validate token signature
@@ -223,7 +227,9 @@ class AdminSubscriberForceUnsubscribeView(_AdminOnly, APIView):
     @extend_schema(
         summary='Dar de baja suscriptor (admin) (UC-NEW-03)',
         tags=['newsletter'],
-        responses={200: None, 404: None},
+        request=None,
+        responses={200: SubscriberListItemSerializer,
+                   404: error_response('Suscriptor no encontrado')},
     )
     def post(self, request, subscriber_id):
         try:

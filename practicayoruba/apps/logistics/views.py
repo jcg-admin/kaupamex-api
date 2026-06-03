@@ -5,8 +5,8 @@ import logging
 from datetime import timedelta
 from django.db import transaction
 from django.utils import timezone
-from drf_spectacular.utils import extend_schema, OpenApiParameter
-from rest_framework import status
+from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiParameter
+from rest_framework import serializers, status
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
@@ -23,6 +23,7 @@ class ShipmentGuidePagination(PageNumberPagination):
 logger = logging.getLogger('apps')
 
 from apps.orders.models import Order, OrderStatusLog
+from config.schema import error_response
 from .models import Courier, ShipmentEvent, ShipmentGuide
 from .serializers import (
     BuyerShipmentGuideSerializer, CourierCreateUpdateSerializer, CourierSerializer,
@@ -76,9 +77,14 @@ class LogisticsPanelView(_AdminOnly, APIView):
 
 
 class CourierListCreateView(_AdminOnly, APIView):
+    @extend_schema(summary='Listar couriers', tags=['logistics'],
+                   responses={200: CourierSerializer(many=True)})
     def get(self, request):
         return Response(CourierSerializer(Courier.objects.all().order_by('name'), many=True).data)
 
+    @extend_schema(summary='Crear courier', tags=['logistics'],
+                   request=CourierCreateUpdateSerializer,
+                   responses={201: CourierSerializer, 400: error_response('Datos inválidos')})
     def post(self, request):
         ser = CourierCreateUpdateSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
@@ -92,6 +98,11 @@ class CourierDetailView(_AdminOnly, APIView):
         except Courier.DoesNotExist:
             raise NotFound({'detail': 'Courier no encontrado.', 'codigo_error': 'COURIER_NOT_FOUND'})
 
+    @extend_schema(summary='Actualizar courier', tags=['logistics'],
+                   request=CourierCreateUpdateSerializer,
+                   responses={200: CourierSerializer,
+                              400: error_response('Datos inválidos'),
+                              404: error_response('Courier no encontrado')})
     def patch(self, request, pk):
         courier = self._get(pk)
         ser = CourierCreateUpdateSerializer(courier, data=request.data, partial=True)
@@ -99,6 +110,12 @@ class CourierDetailView(_AdminOnly, APIView):
         ser.save()
         return Response(CourierSerializer(courier).data)
 
+    @extend_schema(summary='Desactivar courier', tags=['logistics'],
+                   request=None,
+                   responses={200: inline_serializer(
+                       'CourierDeactivateResponse',
+                       {'deactivated': serializers.BooleanField()}),
+                       404: error_response('Courier no encontrado')})
     def delete(self, request, pk):
         courier = self._get(pk)
         courier.is_active = False
@@ -107,6 +124,8 @@ class CourierDetailView(_AdminOnly, APIView):
 
 
 class ShipmentGuideListCreateView(_AdminOnly, APIView):
+    @extend_schema(summary='Listar guías de envío', tags=['logistics'],
+                   responses={200: ShipmentGuideSerializer(many=True)})
     def get(self, request):
         qs = ShipmentGuide.objects.filter(is_deleted=False).select_related('order', 'courier').order_by('-created_at')
         if request.query_params.get('order_id'):
@@ -117,6 +136,11 @@ class ShipmentGuideListCreateView(_AdminOnly, APIView):
         page = paginator.paginate_queryset(qs, request)
         return paginator.get_paginated_response(ShipmentGuideSerializer(page, many=True).data)
 
+    @extend_schema(summary='Crear guía de envío', tags=['logistics'],
+                   request=ShipmentGuideCreateSerializer,
+                   responses={201: ShipmentGuideSerializer,
+                              400: error_response('Datos inválidos'),
+                              409: error_response('Ya existe una guía activa para la orden')})
     def post(self, request):
         ser = ShipmentGuideCreateSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
@@ -190,9 +214,17 @@ class ShipmentGuideDetailView(_AdminOnly, APIView):
         except ShipmentGuide.DoesNotExist:
             raise NotFound({'detail': 'Guía no encontrada.', 'codigo_error': 'SHIPMENT_GUIDE_NOT_FOUND'})
 
+    @extend_schema(summary='Detalle de guía de envío', tags=['logistics'],
+                   responses={200: ShipmentGuideSerializer,
+                              404: error_response('Guía no encontrada')})
     def get(self, request, pk):
         return Response(ShipmentGuideSerializer(self._get_guide(pk)).data)
 
+    @extend_schema(summary='Actualizar guía (rastreo o estado)', tags=['logistics'],
+                   request=ShipmentGuideSerializer,
+                   responses={200: ShipmentGuideSerializer,
+                              400: error_response('Estado o rastreo inválido'),
+                              404: error_response('Guía no encontrada')})
     def patch(self, request, pk):
         guide = self._get_guide(pk)
         # UC-LOG-02: el PATCH soporta dos operaciones independientes —
@@ -289,6 +321,16 @@ class ShipmentGuideDetailView(_AdminOnly, APIView):
 
 
 class ConfirmDeliveryView(_AdminOnly, APIView):
+    @extend_schema(summary='Confirmar entrega de guía', tags=['logistics'],
+                   request=None,
+                   responses={200: inline_serializer(
+                       'ConfirmDeliveryResponse',
+                       {'status': serializers.CharField(),
+                        'already_delivered': serializers.BooleanField(),
+                        'tracking_number': serializers.CharField(),
+                        'delivered_at': serializers.DateTimeField(required=False)}),
+                       400: error_response('Guía cancelada'),
+                       404: error_response('Guía no encontrada')})
     def post(self, request, pk):
         try:
             guide = ShipmentGuide.objects.select_related('order').get(pk=pk, is_deleted=False)
@@ -331,6 +373,14 @@ class ConfirmDeliveryView(_AdminOnly, APIView):
 
 
 class CancelGuideView(_AdminOnly, APIView):
+    @extend_schema(summary='Cancelar guía de envío', tags=['logistics'],
+                   request=None,
+                   responses={200: inline_serializer(
+                       'CancelGuideResponse',
+                       {'cancelled': serializers.BooleanField(),
+                        'tracking_number': serializers.CharField()}),
+                       400: error_response('Guía entregada o ya cancelada'),
+                       404: error_response('Guía no encontrada')})
     def post(self, request, pk):
         try:
             guide = ShipmentGuide.objects.select_related('order').get(pk=pk, is_deleted=False)
@@ -350,6 +400,9 @@ class CancelGuideView(_AdminOnly, APIView):
 class BuyerGuideView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(summary='Guía de envío del comprador (UC-LOG-06)', tags=['logistics'],
+                   responses={200: BuyerShipmentGuideSerializer,
+                              404: error_response('Orden o guía no encontrada')})
     def get(self, request, order_id):
         try:
             order = Order.objects.get(pk=order_id, user=request.user)
@@ -383,7 +436,17 @@ class BuyerReportIncidentView(APIView):
         ShipmentGuide.STATUS_INCIDENT,
     }
 
-    @extend_schema(summary='Reportar problema de envío (UC-LOG-07)', tags=['logistics'], responses={201: None})
+    @extend_schema(
+        summary='Reportar problema de envío (UC-LOG-07)', tags=['logistics'],
+        request=inline_serializer('BuyerReportIncidentRequest', {
+            'problem_type': serializers.ChoiceField(
+                choices=sorted(PROBLEM_TYPES)),
+            'description': serializers.CharField(min_length=MIN_DESCRIPTION_LEN),
+        }),
+        responses={201: None,
+                   400: error_response('Payload inválido'),
+                   404: error_response('Orden o guía no encontrada'),
+                   409: error_response('Envío no despachado o reporte reciente existente')})
     def post(self, request, order_id):
         try:
             order = Order.objects.get(pk=order_id, user=request.user)

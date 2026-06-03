@@ -10,8 +10,8 @@ from decimal import Decimal, InvalidOperation
 from django.db import transaction
 from django.http import HttpResponse
 from django.utils import timezone
-from drf_spectacular.utils import extend_schema
-from rest_framework import status
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers, status
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
@@ -29,6 +29,7 @@ from .serializers import (
     VariantAdjustNewQuantitySerializer,
 )
 from .services import InventoryService, _get_stock_status
+from config.schema import error_response
 
 logger = logging.getLogger('apps')
 
@@ -133,7 +134,18 @@ class StockAdjustView(_AdminOnly, APIView):
 
 class VariantStockAdjustView(_AdminOnly, APIView):
     @extend_schema(summary='Ajuste manual de stock de variante (UC-INV-04)', tags=['inventory'],
-                   responses={201: None, 400: None, 422: None, 404: None})
+                   request=VariantAdjustNewQuantitySerializer,
+                   responses={201: inline_serializer(
+                       'VariantStockAdjustResponse',
+                       {'detail': serializers.CharField(),
+                        'new_stock': serializers.IntegerField(),
+                        'stock_before': serializers.IntegerField(),
+                        'delta': serializers.IntegerField(),
+                        'reason': serializers.CharField(),
+                        'movement_id': serializers.IntegerField()}),
+                       400: error_response('Datos inválidos'),
+                       404: error_response('Variante no encontrada'),
+                       422: error_response('Stock negativo no permitido')})
     @transaction.atomic
     def post(self, request, variant_pk):
         try:
@@ -333,7 +345,9 @@ class StockAlertResolveView(_AdminOnly, APIView):
     @extend_schema(
         summary='Resolver alerta de stock (UC-INV-02)',
         tags=['inventory'],
-        responses={200: StockAlertSerializer, 404: None},
+        request=None,
+        responses={200: StockAlertSerializer,
+                   404: error_response('Alerta no encontrada')},
     )
     @transaction.atomic
     def post(self, request, pk):
@@ -442,7 +456,12 @@ _CSV_MAX_SIZE_BYTES = 5 * 1024 * 1024  # 5 MB — UC-INV-05
 
 class ProductImportView(_AdminOnly, APIView):
     @extend_schema(summary='Importar productos desde CSV (UC-INV-05)', tags=['inventory'],
-                   responses={200: None, 400: None, 422: None})
+                   request=inline_serializer('ProductImportRequest', {
+                       'file': serializers.FileField(),
+                   }),
+                   responses={200: None,
+                              400: error_response('Archivo inválido'),
+                              422: error_response('Error de procesamiento del CSV')})
     def post(self, request):
         csv_file = request.FILES.get('file')
         if not csv_file:

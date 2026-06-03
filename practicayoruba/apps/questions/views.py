@@ -21,6 +21,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from apps.catalogue.models import Product
+from config.schema import error_response
 from .models import ProductQuestion, QuestionStatus
 from .serializers import (
     PublicQuestionItemSerializer,
@@ -107,7 +108,10 @@ class ProductQuestionsView(APIView):
     @extend_schema(
         summary='Enviar pregunta sobre el producto (UC-QST-01)',
         tags=['questions'],
-        responses={201: PublicQuestionItemSerializer, 400: None},
+        request=PublicQuestionCreateSerializer,
+        responses={201: PublicQuestionItemSerializer,
+                   400: error_response('Datos inválidos'),
+                   404: error_response('Producto no encontrado')},
     )
     def post(self, request, product_id):
         product = self._get_product(product_id)
@@ -180,7 +184,11 @@ class AdminQuestionAnswerView(_AdminOnly, APIView):
     @extend_schema(
         summary='Responder pregunta (UC-QST-02)',
         tags=['questions'],
-        responses={200: AdminQuestionItemSerializer, 400: None, 404: None},
+        request=AdminAnswerSerializer,
+        responses={200: AdminQuestionItemSerializer,
+                   400: error_response('Datos inválidos'),
+                   404: error_response('Pregunta no encontrada'),
+                   409: error_response('La pregunta ya tiene respuesta publicada')},
     )
     def post(self, request, question_id):
         try:
@@ -220,7 +228,10 @@ class AdminQuestionApproveView(_AdminOnly, APIView):
     @extend_schema(
         summary='Aprobar pregunta (UC-QST-04)',
         tags=['questions'],
-        responses={200: AdminQuestionItemSerializer, 409: None, 404: None},
+        request=None,
+        responses={200: AdminQuestionItemSerializer,
+                   404: error_response('Pregunta no encontrada'),
+                   409: error_response('No se puede aprobar sin respuesta')},
     )
     def post(self, request, question_id):
         try:
@@ -248,7 +259,9 @@ class AdminQuestionRejectView(_AdminOnly, APIView):
     @extend_schema(
         summary='Rechazar pregunta (UC-QST-04)',
         tags=['questions'],
-        responses={200: AdminQuestionItemSerializer, 404: None},
+        request=None,
+        responses={200: AdminQuestionItemSerializer,
+                   404: error_response('Pregunta no encontrada')},
     )
     def post(self, request, question_id):
         try:
