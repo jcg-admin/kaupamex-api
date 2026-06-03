@@ -42,6 +42,28 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
         return value
 
 
+class PublicSiteSettingsSerializer(serializers.ModelSerializer):
+    """
+    US-1.1 (closes ERR-14): storefront-safe subset of SiteSettings exposed
+    through the public (unauthenticated) endpoint.
+
+    Explicit field allowlist — deliberately does NOT reuse the admin/config
+    serializer so that no contact, identity, referral or secret field can
+    leak through GET /api/v1/config/public-settings/. Any new field added to
+    SiteSettings must be opted-in here explicitly to become public.
+    """
+
+    class Meta:
+        model  = SiteSettings
+        fields = [
+            'iva_rate',
+            'free_shipping_threshold',
+            'payment_timeout_minutes',
+            'min_stock_threshold',
+        ]
+        read_only_fields = fields
+
+
 class SiteSettingsAdminSerializer(serializers.ModelSerializer):
     """
     H-CICLO40-07: AdminSiteSettingsView importaba SiteSettingsAdminSerializer

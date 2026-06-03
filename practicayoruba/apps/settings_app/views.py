@@ -15,13 +15,13 @@ from django.http import HttpResponse
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from django.core.cache import cache
 from .models import SiteSettings, PaymentGateway, ShippingMethod, StaticPage, StaticPageVersion
-from .serializers import SiteSettingsSerializer, SiteSettingsAdminSerializer, PaymentGatewaySerializer, ShippingMethodSerializer
+from .serializers import SiteSettingsSerializer, SiteSettingsAdminSerializer, PublicSiteSettingsSerializer, PaymentGatewaySerializer, ShippingMethodSerializer
 from .gateway_connector import connector
 from rest_framework import serializers as drf_serializers
 from apps.orders.proxy_models import ActiveOrder
@@ -58,6 +58,33 @@ class SiteSettingsView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+
+
+class PublicSiteSettingsView(APIView):
+    """
+    GET /api/v1/config/public-settings/ — public read-only storefront subset.
+
+    US-1.1 (closes ERR-14): the storefront needs a handful of settings
+    (tax rate, free-shipping threshold, payment timeout, low-stock threshold)
+    without an admin session. This endpoint is unauthenticated and exposes
+    ONLY the allowlist defined in PublicSiteSettingsSerializer — never any
+    admin, contact, referral or secret field. Read-only (no write methods).
+    """
+    permission_classes = [AllowAny]
+    serializer_class    = PublicSiteSettingsSerializer
+    # The singleton settings change rarely; allow short-lived public caching.
+    CACHE_MAX_AGE = 300
+
+    @extend_schema(
+        summary='Obtener configuración pública del sitio',
+        responses={200: PublicSiteSettingsSerializer},
+        tags=['config'],
+    )
+    def get(self, request):
+        settings = SiteSettings.get_current()
+        response = Response(PublicSiteSettingsSerializer(settings).data)
+        response['Cache-Control'] = f'public, max-age={self.CACHE_MAX_AGE}'
+        return response
 
 
 class AdminSiteSettingsView(APIView):
