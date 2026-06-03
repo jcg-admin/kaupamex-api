@@ -405,6 +405,119 @@ class TestUpdateTrackingNumber:
         assert r.json()['status'] == 'PICKED_UP'
 
 
+class TestBuyerReportIncident:
+    """UC-LOG-07 — el comprador dueño reporta un problema de su envío."""
+
+    INCIDENT_URL = lambda self, oid: f'/api/v1/logistics/buyer/order/{oid}/incident/'
+
+    def test_comprador_reporta_problema(
+        self, auth_client, order_log, courier_log, db,
+    ):
+        g = ShipmentGuide.objects.create(
+            order=order_log, courier=courier_log, tracking_number='INC-1',
+            status=ShipmentGuide.STATUS_IN_TRANSIT,
+        )
+        r = auth_client.post(self.INCIDENT_URL(order_log.id), {
+            'problem_type': 'NOT_RECEIVED',
+            'description': 'No he recibido mi paquete y ya pasaron 10 dias.',
+        }, format='json')
+        assert r.status_code == 201
+        data = r.json()
+        assert data['status'] == 'RECIBIDO'
+        assert data['problem_type'] == 'NOT_RECEIVED'
+        g.refresh_from_db()
+        assert g.status == ShipmentGuide.STATUS_INCIDENT
+        assert g.events.filter(status=ShipmentGuide.STATUS_INCIDENT).exists()
+
+    def test_no_dueno_recibe_404(
+        self, admin_client, order_log, courier_log, db,
+    ):
+        # admin_client está autenticado como un usuario distinto al dueño.
+        ShipmentGuide.objects.create(
+            order=order_log, courier=courier_log, tracking_number='INC-2',
+            status=ShipmentGuide.STATUS_IN_TRANSIT,
+        )
+        r = admin_client.post(self.INCIDENT_URL(order_log.id), {
+            'problem_type': 'DELAY',
+            'description': 'El paquete lleva mucho tiempo sin avanzar la verdad.',
+        }, format='json')
+        assert r.status_code == 404
+        assert r.json()['codigo_error'] == 'ORDER_NOT_FOUND'
+
+    def test_anonimo_recibe_401(self, api_client, order_log, db):
+        r = api_client.post(self.INCIDENT_URL(order_log.id), {
+            'problem_type': 'DELAY', 'description': 'x' * 25,
+        }, format='json')
+        assert r.status_code == 401
+
+    def test_problem_type_invalido_400(
+        self, auth_client, order_log, courier_log, db,
+    ):
+        ShipmentGuide.objects.create(
+            order=order_log, courier=courier_log, tracking_number='INC-3',
+            status=ShipmentGuide.STATUS_IN_TRANSIT,
+        )
+        r = auth_client.post(self.INCIDENT_URL(order_log.id), {
+            'problem_type': 'NOPE',
+            'description': 'Descripcion suficientemente larga para pasar.',
+        }, format='json')
+        assert r.status_code == 400
+        assert r.json()['codigo_error'] == 'INVALID_PAYLOAD'
+
+    def test_descripcion_corta_400(
+        self, auth_client, order_log, courier_log, db,
+    ):
+        ShipmentGuide.objects.create(
+            order=order_log, courier=courier_log, tracking_number='INC-4',
+            status=ShipmentGuide.STATUS_IN_TRANSIT,
+        )
+        r = auth_client.post(self.INCIDENT_URL(order_log.id), {
+            'problem_type': 'DELAY', 'description': 'corto',
+        }, format='json')
+        assert r.status_code == 400
+        assert r.json()['codigo_error'] == 'INVALID_PAYLOAD'
+
+    def test_envio_no_despachado_409(
+        self, auth_client, order_log, courier_log, db,
+    ):
+        # EX-02: guía en CREATED (paquete no ha salido).
+        ShipmentGuide.objects.create(
+            order=order_log, courier=courier_log, tracking_number='INC-5',
+            status=ShipmentGuide.STATUS_CREATED,
+        )
+        r = auth_client.post(self.INCIDENT_URL(order_log.id), {
+            'problem_type': 'NOT_RECEIVED',
+            'description': 'No me ha llegado nada todavia por favor revisen.',
+        }, format='json')
+        assert r.status_code == 409
+        assert r.json()['codigo_error'] == 'SHIPMENT_NOT_DISPATCHED'
+
+    def test_reporte_duplicado_reciente_409(
+        self, auth_client, order_log, courier_log, db,
+    ):
+        ShipmentGuide.objects.create(
+            order=order_log, courier=courier_log, tracking_number='INC-6',
+            status=ShipmentGuide.STATUS_IN_TRANSIT,
+        )
+        body = {
+            'problem_type': 'DELAY',
+            'description': 'El envio lleva semanas sin novedad alguna ya.',
+        }
+        r1 = auth_client.post(self.INCIDENT_URL(order_log.id), body, format='json')
+        assert r1.status_code == 201
+        r2 = auth_client.post(self.INCIDENT_URL(order_log.id), body, format='json')
+        assert r2.status_code == 409
+        assert r2.json()['codigo_error'] == 'RECENT_REPORT_EXISTS'
+
+    def test_sin_guia_404(self, auth_client, order_log, db):
+        r = auth_client.post(self.INCIDENT_URL(order_log.id), {
+            'problem_type': 'DELAY',
+            'description': 'No tengo guia pero quiero reportar algo igual.',
+        }, format='json')
+        assert r.status_code == 404
+        assert r.json()['codigo_error'] == 'SHIPMENT_GUIDE_NOT_FOUND'
+
+
 class TestBuyerGuide:
     """UC-LOG-03: buyer sees shipment guide for own order."""
 

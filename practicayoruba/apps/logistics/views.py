@@ -2,6 +2,7 @@
 Views — apps.logistics (P-10 / UC-LOG-01..09).
 """
 import logging
+from datetime import timedelta
 from django.db import transaction
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema, OpenApiParameter
@@ -359,3 +360,109 @@ class BuyerGuideView(APIView):
             return Response({'detail': 'Guía de envío no disponible.', 'codigo_error': 'SHIPMENT_GUIDE_NOT_FOUND'}, status=404)
         return Response(BuyerShipmentGuideSerializer(guide, context={'request': request}).data)
 
+
+class BuyerReportIncidentView(APIView):
+    """UC-LOG-07: el comprador dueño reporta un problema de su envío.
+
+    El reporte se materializa como (a) la guía pasa a estado INCIDENT y
+    (b) un ShipmentEvent append-only que conserva el tipo de problema y la
+    descripción del comprador (POST-01). Sigue el patrón owner-scoped de
+    BuyerGuideView: la orden debe pertenecer al usuario autenticado o se
+    devuelve 404 ORDER_NOT_FOUND (EX-01, RNF-SEC-003: no revela existencia).
+    """
+    permission_classes = [IsAuthenticated]
+
+    PROBLEM_TYPES = {'NOT_RECEIVED', 'DAMAGED_PRODUCT', 'WRONG_DELIVERY', 'DELAY'}
+    MIN_DESCRIPTION_LEN = 20
+    # Estados desde los que tiene sentido reportar un problema de envío: el
+    # paquete ya salió (EX-02 rechaza reportar antes de que el envío avance).
+    REPORTABLE_STATUSES = {
+        ShipmentGuide.STATUS_PICKED_UP,
+        ShipmentGuide.STATUS_IN_TRANSIT,
+        ShipmentGuide.STATUS_DELIVERED,
+        ShipmentGuide.STATUS_INCIDENT,
+    }
+
+    @extend_schema(summary='Reportar problema de envío (UC-LOG-07)', tags=['logistics'], responses={201: None})
+    def post(self, request, order_id):
+        try:
+            order = Order.objects.get(pk=order_id, user=request.user)
+        except Order.DoesNotExist:
+            return Response({'detail': 'Orden no encontrada.', 'codigo_error': 'ORDER_NOT_FOUND'}, status=404)
+
+        guide = ShipmentGuide.objects.filter(order=order, is_deleted=False).select_related('order').first()
+        if not guide:
+            return Response(
+                {'detail': 'Guía de envío no disponible.', 'codigo_error': 'SHIPMENT_GUIDE_NOT_FOUND'},
+                status=404,
+            )
+
+        problem_type = (request.data.get('problem_type') or '').strip()
+        if problem_type not in self.PROBLEM_TYPES:
+            return Response(
+                {
+                    'detail': f'problem_type inválido. Valores: {sorted(self.PROBLEM_TYPES)}.',
+                    'codigo_error': 'INVALID_PAYLOAD',
+                },
+                status=400,
+            )
+        description = (request.data.get('description') or '').strip()
+        if len(description) < self.MIN_DESCRIPTION_LEN:
+            return Response(
+                {
+                    'detail': f'description requiere al menos {self.MIN_DESCRIPTION_LEN} caracteres.',
+                    'codigo_error': 'INVALID_PAYLOAD',
+                },
+                status=400,
+            )
+
+        # EX-02: el paquete no ha salido aún → no se puede reportar problema de envío.
+        if guide.status not in self.REPORTABLE_STATUSES:
+            return Response(
+                {
+                    'detail': (
+                        'No se puede reportar un problema de envío si el paquete no ha salido. '
+                        f'Estado actual de la guía: {guide.status}.'
+                    ),
+                    'codigo_error': 'SHIPMENT_NOT_DISPATCHED',
+                },
+                status=409,
+            )
+
+        # 409 RECENT_REPORT_EXISTS: evitar reportes duplicados recientes del comprador.
+        recent_cutoff = timezone.now() - timedelta(hours=24)
+        if guide.events.filter(
+            status=ShipmentGuide.STATUS_INCIDENT,
+            recorded_by=request.user,
+            created_at__gte=recent_cutoff,
+        ).exists():
+            return Response(
+                {
+                    'detail': 'Ya existe un reporte reciente para este envío.',
+                    'codigo_error': 'RECENT_REPORT_EXISTS',
+                },
+                status=409,
+            )
+
+        with transaction.atomic():
+            guide_locked = ShipmentGuide.objects.select_for_update().get(pk=guide.pk)
+            now = timezone.now()
+            if guide_locked.status != ShipmentGuide.STATUS_INCIDENT:
+                guide_locked.status = ShipmentGuide.STATUS_INCIDENT
+                guide_locked.save(update_fields=['status', 'updated_at'])
+            event = ShipmentEvent.objects.create(
+                guide=guide_locked,
+                status=ShipmentGuide.STATUS_INCIDENT,
+                description=f'[{problem_type}] {description}',
+                occurred_at=now, recorded_by=request.user,
+            )
+
+        return Response(
+            {
+                'report_id': event.id,
+                'status': 'RECIBIDO',
+                'problem_type': problem_type,
+                'estimated_response_days': 3,
+            },
+            status=201,
+        )
