@@ -180,7 +180,7 @@ class TestCreateProductDiscount:
             'valid_until': _future(days=5).isoformat(),
         }, format='json')
         assert res.status_code == 409
-        assert res.json()['error_code'] == 'ACTIVE_DISCOUNT_EXISTS'
+        assert res.json()['codigo_error'] == 'ACTIVE_DISCOUNT_EXISTS'
 
     def test_create_unknown_product_returns_422(self, admin_client, db):
         res = admin_client.post(URL, {
@@ -189,7 +189,7 @@ class TestCreateProductDiscount:
             'valid_from': _past(days=1).isoformat(),
         }, format='json')
         assert res.status_code == 422
-        assert res.json()['error_code'] == 'PRODUCT_UNAVAILABLE'
+        assert res.json()['codigo_error'] == 'PRODUCT_UNAVAILABLE'
 
     def test_create_inactive_product_returns_422(self, admin_client, product):
         product.is_active = False
@@ -200,7 +200,7 @@ class TestCreateProductDiscount:
             'valid_from': _past(days=1).isoformat(),
         }, format='json')
         assert res.status_code == 422
-        assert res.json()['error_code'] == 'PRODUCT_UNAVAILABLE'
+        assert res.json()['codigo_error'] == 'PRODUCT_UNAVAILABLE'
 
     def test_create_invalid_pct_returns_400(self, admin_client, product):
         res = admin_client.post(URL, {
@@ -248,12 +248,12 @@ class TestEditProductDiscount:
             format='json',
         )
         assert res.status_code == 422
-        assert res.json()['error_code'] == 'INVALID_DATE_RANGE'
+        assert res.json()['codigo_error'] == 'INVALID_DATE_RANGE'
 
     def test_patch_unknown_returns_404(self, admin_client, db):
         res = admin_client.patch(f'{URL}999999/', {'discount_pct': '10'}, format='json')
         assert res.status_code == 404
-        assert res.json()['error_code'] == 'DISCOUNT_NOT_APPLICABLE'
+        assert res.json()['codigo_error'] == 'DISCOUNT_NOT_APPLICABLE'
 
     def test_patch_cannot_change_product(self, admin_client, current_discount, product_b):
         """product_id is immutable."""
@@ -293,7 +293,7 @@ class TestDeactivateProductDiscount:
         current_discount.save()
         res = admin_client.post(f'{URL}{current_discount.pk}/deactivate/')
         assert res.status_code == 409
-        assert res.json()['error_code'] == 'DISCOUNT_ALREADY_INACTIVE'
+        assert res.json()['codigo_error'] == 'DISCOUNT_ALREADY_INACTIVE'
 
     def test_deactivate_unknown_returns_404(self, admin_client, db):
         res = admin_client.post(f'{URL}999999/deactivate/')

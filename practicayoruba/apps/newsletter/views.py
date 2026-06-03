@@ -121,18 +121,18 @@ class NewsletterConfirmView(APIView):
             )
         except signing.SignatureExpired:
             return Response(
-                {'detail': 'Token expirado.', 'error_code': 'TOKEN_EXPIRED'},
+                {'detail': 'Token expirado.', 'codigo_error': 'TOKEN_EXPIRED'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         except signing.BadSignature:
-            raise NotFound({'detail': 'Token inválido.', 'error_code': 'INVALID_TOKEN'})
+            raise NotFound({'detail': 'Token inválido.', 'codigo_error': 'INVALID_TOKEN'})
 
         # Token is valid; find subscriber by confirmation_token
         sub = NewsletterSubscriber.objects.filter(
             email=email, confirmation_token=token,
         ).first()
         if not sub:
-            raise NotFound({'detail': 'Token no encontrado.', 'error_code': 'INVALID_TOKEN'})
+            raise NotFound({'detail': 'Token no encontrado.', 'codigo_error': 'INVALID_TOKEN'})
 
         sub.status = SubscriberStatus.CONFIRMED
         sub.confirmed_at = timezone.now()
@@ -167,15 +167,15 @@ class NewsletterUnsubscribeView(APIView):
             signing.loads(token, salt='newsletter-unsub', max_age=30 * 86400)
         except signing.SignatureExpired:
             return Response(
-                {'detail': 'Token expirado.', 'error_code': 'TOKEN_EXPIRED'},
+                {'detail': 'Token expirado.', 'codigo_error': 'TOKEN_EXPIRED'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         except signing.BadSignature:
-            raise NotFound({'detail': 'Token inválido.', 'error_code': 'INVALID_TOKEN'})
+            raise NotFound({'detail': 'Token inválido.', 'codigo_error': 'INVALID_TOKEN'})
 
         sub = NewsletterSubscriber.objects.filter(unsubscribe_token=token).first()
         if not sub:
-            raise NotFound({'detail': 'Token no encontrado.', 'error_code': 'INVALID_TOKEN'})
+            raise NotFound({'detail': 'Token no encontrado.', 'codigo_error': 'INVALID_TOKEN'})
 
         sub.status = SubscriberStatus.UNSUBSCRIBED
         sub.unsubscribed_at = timezone.now()
@@ -228,7 +228,7 @@ class AdminSubscriberForceUnsubscribeView(_AdminOnly, APIView):
             sub = NewsletterSubscriber.objects.get(pk=subscriber_id)
         except NewsletterSubscriber.DoesNotExist:
             raise NotFound({'detail': 'Suscriptor no encontrado.',
-                            'error_code': 'SUBSCRIBER_NOT_FOUND'})
+                            'codigo_error': 'SUBSCRIBER_NOT_FOUND'})
         sub.status = SubscriberStatus.UNSUBSCRIBED
         sub.unsubscribed_at = timezone.now()
         sub.save(update_fields=['status', 'unsubscribed_at', 'updated_at'])
@@ -244,7 +244,7 @@ class AdminCampaignCreateView(_AdminOnly, APIView):
     H-CICLO78-01: guarda de idempotencia contra doble envio.
     Un segundo POST identico (mismo subject + body + audience_filter)
     dentro de la ventana de deduplicacion (_CAMPAIGN_DEDUP_WINDOW)
-    retorna 409 con error_code CAMPAIGN_ALREADY_SENT en lugar de crear
+    retorna 409 con codigo_error CAMPAIGN_ALREADY_SENT en lugar de crear
     una segunda campana y enviar los emails de nuevo.
     La comprobacion se hace dentro de transaction.atomic() con
     select_for_update() para evitar la race condition en envios
@@ -288,7 +288,7 @@ class AdminCampaignCreateView(_AdminOnly, APIView):
                             'Esta campaña ya fue enviada recientemente. '
                             'Espera al menos 10 minutos antes de reenviar.'
                         ),
-                        'error_code': 'CAMPAIGN_ALREADY_SENT',
+                        'codigo_error': 'CAMPAIGN_ALREADY_SENT',
                         'campaign_id': existing.pk,
                     },
                     status=status.HTTP_409_CONFLICT,

@@ -88,13 +88,13 @@ class ProductDiscountListCreateView(APIView):
             product = Product.objects.get(pk=data['product_id'])
         except Product.DoesNotExist:
             return Response(
-                {'error_code': 'PRODUCT_UNAVAILABLE',
+                {'codigo_error': 'PRODUCT_UNAVAILABLE',
                  'detail': 'Product not found.'},
                 status=status.HTTP_422_UNPROCESSABLE_ENTITY,
             )
         if not product.is_active:
             return Response(
-                {'error_code': 'PRODUCT_UNAVAILABLE',
+                {'codigo_error': 'PRODUCT_UNAVAILABLE',
                  'detail': 'Product is inactive.'},
                 status=status.HTTP_422_UNPROCESSABLE_ENTITY,
             )
@@ -119,7 +119,7 @@ class ProductDiscountListCreateView(APIView):
             overlap_qs = overlap_qs.filter(valid_from__lt=new_until)
         if overlap_qs.exists():
             return Response(
-                {'error_code': 'ACTIVE_DISCOUNT_EXISTS',
+                {'codigo_error': 'ACTIVE_DISCOUNT_EXISTS',
                  'detail': 'An active discount already exists for this product.'},
                 status=status.HTTP_409_CONFLICT,
             )
@@ -159,7 +159,7 @@ class ProductDiscountDetailView(APIView):
         instance = self._get_or_404(pk)
         if instance is None:
             return Response(
-                {'error_code': 'DISCOUNT_NOT_APPLICABLE',
+                {'codigo_error': 'DISCOUNT_NOT_APPLICABLE',
                  'detail': 'Discount not found.'},
                 status=status.HTTP_404_NOT_FOUND,
             )
@@ -173,7 +173,7 @@ class ProductDiscountDetailView(APIView):
             errors = serializer.errors
             if any('INVALID_DATE_RANGE' in str(v) for v in errors.values()):
                 return Response(
-                    {'error_code': 'INVALID_DATE_RANGE',
+                    {'codigo_error': 'INVALID_DATE_RANGE',
                      'detail': 'Invalid date range.'},
                     status=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 )
@@ -192,7 +192,7 @@ class ProductDiscountDetailView(APIView):
                 overlap_qs = overlap_qs.filter(valid_from__lt=upd_until)
             if overlap_qs.exists():
                 return Response(
-                    {'error_code': 'ACTIVE_DISCOUNT_EXISTS',
+                    {'codigo_error': 'ACTIVE_DISCOUNT_EXISTS',
                      'detail': 'An active discount already exists for this product.'},
                     status=status.HTTP_409_CONFLICT,
                 )
@@ -220,13 +220,13 @@ class ProductDiscountDeactivateView(APIView):
             instance = ProductDiscount.objects.select_related('product').get(pk=pk)
         except ProductDiscount.DoesNotExist:
             return Response(
-                {'error_code': 'DISCOUNT_NOT_APPLICABLE',
+                {'codigo_error': 'DISCOUNT_NOT_APPLICABLE',
                  'detail': 'Discount not found.'},
                 status=status.HTTP_404_NOT_FOUND,
             )
         if not instance.is_active:
             return Response(
-                {'error_code': 'DISCOUNT_ALREADY_INACTIVE',
+                {'codigo_error': 'DISCOUNT_ALREADY_INACTIVE',
                  'detail': 'Discount is already inactive.'},
                 status=status.HTTP_409_CONFLICT,
             )

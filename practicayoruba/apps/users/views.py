@@ -246,7 +246,7 @@ class AddressViewSet(ModelViewSet):
             if any('limite_direcciones' in str(e) for e in errors.values()):
                 msg = errors.get('non_field_errors', ['Limite de direcciones alcanzado.'])[0]
                 return Response(
-                    {'error_code': 'ADDRESS_LIMIT_EXCEEDED', 'detail': str(msg)},
+                    {'codigo_error': 'ADDRESS_LIMIT_EXCEEDED', 'detail': str(msg)},
                     status=422,
                 )
             return Response(errors, status=400)
@@ -341,29 +341,29 @@ class ChangePasswordView(APIView):
         errors = serializer.errors
         if 'current_password' in errors:
             return Response(
-                {'error_code': 'CURRENT_PASSWORD_INCORRECT',
+                {'codigo_error': 'CURRENT_PASSWORD_INCORRECT',
                  'detail': str(errors['current_password'][0])},
                 status=400,
             )
         if 'non_field_errors' in errors:
             return Response(
-                {'error_code': 'PASSWORD_NOT_CHANGED',
+                {'codigo_error': 'PASSWORD_NOT_CHANGED',
                  'detail': str(errors['non_field_errors'][0])},
                 status=400,
             )
         if 'new_password' in errors:
             return Response(
-                {'error_code': 'INVALID_PASSWORD',
+                {'codigo_error': 'INVALID_PASSWORD',
                  'detail': str(errors['new_password'][0])},
                 status=400,
             )
         if 'new_password_confirm' in errors:
             return Response(
-                {'error_code': 'PASSWORDS_DO_NOT_MATCH',
+                {'codigo_error': 'PASSWORDS_DO_NOT_MATCH',
                  'detail': str(errors['new_password_confirm'][0])},
                 status=400,
             )
-        return Response({'error_code': 'INVALID_PAYLOAD', 'detail': str(errors)}, status=400)
+        return Response({'codigo_error': 'INVALID_PAYLOAD', 'detail': str(errors)}, status=400)
 
 
 # ─── Sprint 3 ──────────────────────────────────────────────────────
@@ -477,13 +477,13 @@ class EmailVerifyView(APIView):
             token_obj = validate_verification_token(serializer.validated_data['token'])
         except ValueError as e:
             return Response(
-                {'error_code': getattr(e, 'error_code', 'TOKEN_INVALID'), 'detail': str(e)},
+                {'codigo_error': getattr(e, 'error_code', 'TOKEN_INVALID'), 'detail': str(e)},
                 status=400,
             )
         except Exception:
             logger.error('EmailVerifyView: error inesperado al validar token', exc_info=True)
             return Response(
-                {'error_code': 'SERVER_ERROR', 'detail': 'Error interno al verificar el token.'},
+                {'codigo_error': 'SERVER_ERROR', 'detail': 'Error interno al verificar el token.'},
                 status=500,
             )
 

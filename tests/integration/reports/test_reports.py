@@ -291,7 +291,7 @@ class TestExport:
         _make_order(buyer, product)
         res = admin_client.get(f'{BASE}sales/export/?period=30d&format=pdf')
         assert res.status_code == 501
-        assert res.json()['error_code'] == 'ASYNC_EXPORT_NOT_AVAILABLE'
+        assert res.json()['codigo_error'] == 'ASYNC_EXPORT_NOT_AVAILABLE'
 
     def test_export_csv_sales_sort_ingresos(self, admin_client, product, buyer):
         # D-09: sort=INGRESOS accepted in export without error.

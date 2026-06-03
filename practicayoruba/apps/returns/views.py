@@ -53,12 +53,12 @@ def _get_return_or_404(pk):
         ).get(pk=pk)
     except ReturnRequest.DoesNotExist:
         raise NotFound({'detail': 'Devolución no encontrada.',
-                        'error_code': 'RETURN_NOT_FOUND'})
+                        'codigo_error': 'RETURN_NOT_FOUND'})
 
 
 def _invalid_state_response(message='Estado inválido.', error_code='INVALID_STATE'):
     return Response(
-        {'detail': message, 'error_code': error_code},
+        {'detail': message, 'codigo_error': error_code},
         status=status.HTTP_422_UNPROCESSABLE_ENTITY,
     )
 
@@ -223,7 +223,7 @@ class ReturnListCreateView(APIView):
                 if overlapping:
                     return Response(
                         {'detail': 'Ya existe una solicitud pendiente con items solapados.',
-                         'error_code': 'REQUEST_ALREADY_EXISTS'},
+                         'codigo_error': 'REQUEST_ALREADY_EXISTS'},
                         status=status.HTTP_409_CONFLICT,
                     )
             else:
@@ -231,7 +231,7 @@ class ReturnListCreateView(APIView):
                 if existing_qs.exists():
                     return Response(
                         {'detail': 'Ya existe una solicitud pendiente para esta orden.',
-                         'error_code': 'REQUEST_ALREADY_EXISTS'},
+                         'codigo_error': 'REQUEST_ALREADY_EXISTS'},
                         status=status.HTTP_409_CONFLICT,
                     )
 
@@ -294,7 +294,7 @@ class ReturnDetailView(APIView):
             ).get(pk=return_id, user=request.user)
         except ReturnRequest.DoesNotExist:
             raise NotFound({'detail': 'Devolución no encontrada.',
-                            'error_code': 'RETURN_NOT_FOUND'})
+                            'codigo_error': 'RETURN_NOT_FOUND'})
         return Response(ReturnRequestSerializer(ret).data)
 
 
@@ -360,7 +360,7 @@ class AdminReturnDetailView(_AdminOnly, APIView):
                 'items', 'history_entries__actor'
             ).get(pk=return_id)
         except ReturnRequest.DoesNotExist:
-            raise NotFound({'detail': 'Devolución no encontrada.', 'error_code': 'RETURN_NOT_FOUND'})
+            raise NotFound({'detail': 'Devolución no encontrada.', 'codigo_error': 'RETURN_NOT_FOUND'})
         return Response(ReturnRequestAdminSerializer(ret).data)
 
 
@@ -514,7 +514,7 @@ class AdminReturnReceptionView(_AdminOnly, APIView):
             if ret.status != ReturnRequest.Status.APPROVED:
                 return Response(
                     {'detail': 'Solo se puede registrar recepción para devoluciones APPROVED.',
-                     'error_code': 'REQUEST_NOT_APPROVED'},
+                     'codigo_error': 'REQUEST_NOT_APPROVED'},
                     status=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 )
 
@@ -553,7 +553,7 @@ class AdminReturnRefundView(_AdminOnly, APIView):
         if ret.status == ReturnRequest.Status.REFUNDED or ret.refund_at is not None:
             return Response(
                 {'detail': 'El reembolso ya fue procesado.',
-                 'error_code': 'REFUND_ALREADY_PROCESSED'},
+                 'codigo_error': 'REFUND_ALREADY_PROCESSED'},
                 status=status.HTTP_409_CONFLICT,
             )
 
@@ -576,7 +576,7 @@ class AdminReturnRefundView(_AdminOnly, APIView):
         except Payment.DoesNotExist:
             return Response(
                 {'detail': 'No se encontró un pago aprobado para esta orden.',
-                 'error_code': 'PAYMENT_NOT_FOUND'},
+                 'codigo_error': 'PAYMENT_NOT_FOUND'},
                 status=status.HTTP_422_UNPROCESSABLE_ENTITY,
             )
 
@@ -613,7 +613,7 @@ class AdminReturnRefundView(_AdminOnly, APIView):
                 )
         except ValueError as exc:
             return Response(
-                {'detail': str(exc), 'error_code': 'PAYMENT_NOT_REFUNDABLE'},
+                {'detail': str(exc), 'codigo_error': 'PAYMENT_NOT_REFUNDABLE'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         except RuntimeError as exc:
@@ -623,7 +623,7 @@ class AdminReturnRefundView(_AdminOnly, APIView):
             # RFC 7231 describe como 502.
             return Response(
                 {'detail': f'Error al procesar el reembolso: {exc}',
-                 'error_code': 'GATEWAY_ERROR'},
+                 'codigo_error': 'GATEWAY_ERROR'},
                 status=status.HTTP_502_BAD_GATEWAY,
             )
 

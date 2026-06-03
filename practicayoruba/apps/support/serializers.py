@@ -45,7 +45,7 @@ class SupportTicketCreateSerializer(serializers.Serializer):
         # Import diferido para evitar ciclos en apps cargando.
         if not Order.objects.filter(pk=value, user=request.user).exists():
             raise serializers.ValidationError({
-                'error_code': 'ORDER_NOT_FOUND',
+                'codigo_error': 'ORDER_NOT_FOUND',
                 'detail':     'La orden no existe o no pertenece al comprador.',
             })
         return value

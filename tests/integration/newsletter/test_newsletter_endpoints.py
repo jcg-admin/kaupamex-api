@@ -100,7 +100,7 @@ class TestConfirmSubscription:
     def test_confirm_invalid_token_returns_404(self, api_client, db):
         res = api_client.post(CONFIRM_URL.format('not-a-valid-signed-token'), format='json')
         assert res.status_code == 404
-        assert res.json()['error_code'] == 'INVALID_TOKEN'
+        assert res.json()['codigo_error'] == 'INVALID_TOKEN'
 
     def test_confirm_expired_token_returns_400(self, api_client, db):
         email = 'expire@example.com'
@@ -115,7 +115,7 @@ class TestConfirmSubscription:
 
         res = api_client.post(CONFIRM_URL.format(expired_token), format='json')
         assert res.status_code == 400
-        assert res.json()['error_code'] == 'TOKEN_EXPIRED'
+        assert res.json()['codigo_error'] == 'TOKEN_EXPIRED'
 
     def test_confirm_already_confirmed_idempotent(self, api_client, db):
         email = 'already@example.com'
@@ -146,7 +146,7 @@ class TestUnsubscribe:
                               {'token': 'no-existe-este-token-12345678'},
                               format='json')
         assert res.status_code == 404
-        assert res.json()['error_code'] == 'INVALID_TOKEN'
+        assert res.json()['codigo_error'] == 'INVALID_TOKEN'
 
     def test_expired_token_returns_400(self, api_client, db):
         past = time.time() - 31 * 24 * 3600  # 31 days ago — beyond 30d TTL
@@ -158,7 +158,7 @@ class TestUnsubscribe:
 
         res = api_client.post(UNSUB_URL, {'token': expired_token}, format='json')
         assert res.status_code == 400
-        assert res.json()['error_code'] == 'TOKEN_EXPIRED'
+        assert res.json()['codigo_error'] == 'TOKEN_EXPIRED'
 
     def test_valid_token_unsubscribes(self, api_client, db):
         sub = _make_subscriber('out@example.com', status='CONFIRMED')

@@ -209,21 +209,21 @@ class ReportExportView(APIView):
     def get(self, request, slug):
         if slug not in EXPORTERS:
             return Response(
-                {'error_code': 'REPORT_UNAVAILABLE',
+                {'codigo_error': 'REPORT_UNAVAILABLE',
                  'detail': f'Unknown report: {slug}.'},
                 status=status.HTTP_404_NOT_FOUND,
             )
         fmt = (request.query_params.get('format') or 'csv').lower()
         if fmt not in ('csv', 'pdf'):
             return Response(
-                {'error_code': 'FORMAT_NOT_SUPPORTED',
+                {'codigo_error': 'FORMAT_NOT_SUPPORTED',
                  'detail': f'Unsupported format: {fmt}.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         # D-20: PDF export not yet implemented (DEC-REP-01).
         if fmt == 'pdf':
             return Response(
-                {'error_code': 'ASYNC_EXPORT_NOT_AVAILABLE',
+                {'codigo_error': 'ASYNC_EXPORT_NOT_AVAILABLE',
                  'detail': 'PDF export is not yet implemented.'},
                 status=status.HTTP_501_NOT_IMPLEMENTED,
             )
@@ -235,7 +235,7 @@ class ReportExportView(APIView):
         if row_count > _EXPORT_ASYNC_THRESHOLD:
             return Response(
                 {
-                    'error_code': 'ASYNC_EXPORT_NOT_AVAILABLE',
+                    'codigo_error': 'ASYNC_EXPORT_NOT_AVAILABLE',
                     'detail': (
                         f'Export has {row_count} rows which exceeds the '
                         f'{_EXPORT_ASYNC_THRESHOLD}-row limit. '
@@ -269,7 +269,7 @@ class ReportExportView(APIView):
         response = exporter(payload, fmt)
         if response is None:
             return Response(
-                {'error_code': 'FORMAT_NOT_SUPPORTED'},
+                {'codigo_error': 'FORMAT_NOT_SUPPORTED'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         return response

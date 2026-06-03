@@ -317,7 +317,7 @@ class AdminAudienceCountView(APIView):
         }
         if recipient_type not in valid_types:
             return Response(
-                {'error_code': 'INVALID_RECIPIENT_TYPE',
+                {'codigo_error': 'INVALID_RECIPIENT_TYPE',
                  'detail': 'recipient_type invalido.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
@@ -328,7 +328,7 @@ class AdminAudienceCountView(APIView):
                 product_id = int(product_id_raw)
             except (TypeError, ValueError):
                 return Response(
-                    {'error_code': 'INVALID_PRODUCT_ID',
+                    {'codigo_error': 'INVALID_PRODUCT_ID',
                      'detail': 'product_id debe ser entero.'},
                     status=status.HTTP_400_BAD_REQUEST,
                 )

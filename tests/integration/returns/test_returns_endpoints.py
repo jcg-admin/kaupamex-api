@@ -133,7 +133,7 @@ class TestCreateReturn:
             RETURNS_URL, _valid_payload(delivered_order.order_number), format='json',
         )
         assert second.status_code == 409
-        assert second.json()['error_code'] == 'REQUEST_ALREADY_EXISTS'
+        assert second.json()['codigo_error'] == 'REQUEST_ALREADY_EXISTS'
 
     def test_create_with_items(
         self, auth_client, delivered_order_with_items, prod1, prod2, db,
@@ -179,7 +179,7 @@ class TestCreateReturn:
         ]
         second = auth_client.post(RETURNS_URL, payload_b, format='json')
         assert second.status_code == 409
-        assert second.json()['error_code'] == 'REQUEST_ALREADY_EXISTS'
+        assert second.json()['codigo_error'] == 'REQUEST_ALREADY_EXISTS'
 
 
 # ────────────────────────────── UC-RET-04 ────────────────────────────────
@@ -338,7 +338,7 @@ class TestAdminApproveReject:
             f'{ADMIN_RETURNS_URL}{ret.pk}/approve/',
             {'justification': 'Intento de doble aprobacion.'}, format='json')
         assert res.status_code == 422
-        assert res.json()['error_code'] == 'INVALID_STATE'
+        assert res.json()['codigo_error'] == 'INVALID_STATE'
 
     def test_request_info_changes_status(self, admin_client, user, db):
         ret = self._create_pending(user)
@@ -376,7 +376,7 @@ class TestAdminReception:
             f'{ADMIN_RETURNS_URL}{ret.pk}/reception/',
             {'product_condition': 'GOOD_CONDITION'}, format='json')
         assert res.status_code == 422
-        assert res.json()['error_code'] == 'REQUEST_NOT_APPROVED'
+        assert res.json()['codigo_error'] == 'REQUEST_NOT_APPROVED'
 
     def test_reception_records_state(self, admin_client, user, db):
         ret = self._create_approved(user)
@@ -497,7 +497,7 @@ class TestAdminRefund:
             f'{ADMIN_RETURNS_URL}{ret.pk}/refund/',
             {'amount': '100.00'}, format='json')
         assert second.status_code == 409
-        assert second.json()['error_code'] == 'REFUND_ALREADY_PROCESSED'
+        assert second.json()['codigo_error'] == 'REFUND_ALREADY_PROCESSED'
 
     def test_refund_without_payment_returns_422(
         self, admin_client, user, db,
@@ -511,7 +511,7 @@ class TestAdminRefund:
             f'{ADMIN_RETURNS_URL}{ret.pk}/refund/',
             {'amount': '100.00'}, format='json')
         assert res.status_code == 422
-        assert res.json()['error_code'] == 'PAYMENT_NOT_FOUND'
+        assert res.json()['codigo_error'] == 'PAYMENT_NOT_FOUND'
 
 
 # ───────────────────── UC-RET-01 AC-06 (T-019) ───────────────────────────

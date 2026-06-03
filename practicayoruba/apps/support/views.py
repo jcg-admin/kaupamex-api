@@ -151,7 +151,7 @@ class SupportTicketListCreateView(APIView):
         if existing is not None:
             return Response(
                 {
-                    'error_code': 'DUPLICATE_TICKET',
+                    'codigo_error': 'DUPLICATE_TICKET',
                     'detail':     'Ya tienes un ticket abierto con esta categoria.',
                     'ticket_id':  existing.pk,
                 },
@@ -215,7 +215,7 @@ class SupportTicketReplyView(APIView):
 
         if ticket.status == SupportTicket.Status.CLOSED:
             return Response(
-                {'error_code': 'TICKET_CLOSED',
+                {'codigo_error': 'TICKET_CLOSED',
                  'detail': 'No se puede responder un ticket cerrado.'},
                 status=status.HTTP_409_CONFLICT,
             )
@@ -269,7 +269,7 @@ class SupportTicketCloseView(APIView):
         ticket = _get_ticket_for_user(ticket_id, request.user)
         if ticket.status == SupportTicket.Status.CLOSED:
             return Response(
-                {'error_code': 'TICKET_ALREADY_CLOSED',
+                {'codigo_error': 'TICKET_ALREADY_CLOSED',
                  'detail': 'El ticket ya esta cerrado.'},
                 status=status.HTTP_409_CONFLICT,
             )
@@ -336,7 +336,7 @@ class SupportTicketReopenView(APIView):
                 raise Http404
             if ticket.status != SupportTicket.Status.CLOSED:
                 return Response(
-                    {'error_code': 'TICKET_NOT_CLOSED',
+                    {'codigo_error': 'TICKET_NOT_CLOSED',
                      'detail': 'Solo se pueden reabrir tickets cerrados.'},
                     status=status.HTTP_409_CONFLICT,
                 )

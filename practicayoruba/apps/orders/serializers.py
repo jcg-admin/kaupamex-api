@@ -196,7 +196,7 @@ class CheckoutSerializer(serializers.Serializer):
         if not any(zip_code.startswith(p) for p in prefixes):
             raise ValidationError({
                 'zip_code': 'El código postal no está cubierto por ninguna zona de envío.',
-                'error_code': 'ZONE_NOT_COVERED',
+                'codigo_error': 'ZONE_NOT_COVERED',
             })
         return value
 
