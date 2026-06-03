@@ -4,6 +4,7 @@ Sprint 4 — UC-AUTH-12/13/14/15: gestión de usuarios por el administrador.
 """
 from decimal import Decimal
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
@@ -18,6 +19,7 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from apps.orders.models import Order, OrderValue
+from .audit import audit_log_business
 from .models import AuthEvent, BusinessEvent, UserDeactivationEvent
 from .serializers import AddressSerializer, AdminUserListSerializer
 from .tokens_email import invalidate_all_sessions
@@ -150,6 +152,31 @@ class AdminCreateUserSerializer(drf_serializers.Serializer):
 def _require_admin(user):
     if not user.is_staff:
         raise PermissionDenied('Solo administradores pueden acceder.')
+
+
+class AdminPermissionsSerializer(drf_serializers.Serializer):
+    """UC-ADM-02: edición de permisos de un usuario por el administrador.
+
+    Todos los campos son opcionales; solo se aplican los presentes en el
+    payload (edición parcial). ``groups`` es la lista de ids de Group a
+    asignar (reemplaza el set actual). Las claves de error usan ``codigo_error``
+    (canon, DEC-DOC-005)."""
+    is_staff     = drf_serializers.BooleanField(required=False)
+    is_superuser = drf_serializers.BooleanField(required=False)
+    groups       = drf_serializers.ListField(
+        child=drf_serializers.IntegerField(), required=False,
+    )
+
+    def validate_groups(self, value):
+        existing = set(
+            Group.objects.filter(pk__in=value).values_list('pk', flat=True)
+        )
+        missing = [g for g in value if g not in existing]
+        if missing:
+            raise drf_serializers.ValidationError(
+                f'Grupos inexistentes: {missing}.'
+            )
+        return value
 
 
 class AdminUserViewSet(ModelViewSet):
@@ -314,7 +341,6 @@ class AdminUserViewSet(ModelViewSet):
             # BusinessEvent.action no tiene una constante ADMIN_REACTIVATE:
             # se escribe directamente el string (max_length=20, sin constraint
             # DB — solo choices=). El atomic() envuelve el save + on_commit.
-            from apps.users.audit import audit_log_business
             audit_log_business(
                 request.user,
                 'ADMIN_REACTIVATE',
@@ -327,6 +353,91 @@ class AdminUserViewSet(ModelViewSet):
                 },
             )
         return Response({'message': f'Cuenta de {target.username} reactivada.'})
+
+    @extend_schema(
+        summary='Editar permisos de usuario (UC-ADM-02)',
+        request=AdminPermissionsSerializer,
+        responses={200: AdminUserDetailSerializer, 400: None, 403: None, 404: None},
+        tags=['admin'],
+    )
+    @action(detail=True, methods=['post'], url_path='permissions')
+    def permissions(self, request, pk=None):
+        """UC-ADM-02: editar is_staff / is_superuser / groups de un usuario.
+
+        POST (no PATCH) para ser consistente con suspend/reactivate — el
+        viewset no expone PATCH (http_method_names sin patch). Guard espejo
+        del self-suspend: un admin no puede quitarse a sí mismo is_superuser
+        ni is_staff (evita auto-lockout del panel admin). El cambio se audita
+        vía la infra de eventos existente (BusinessEvent / audit_log_business).
+        """
+        _require_admin(request.user)
+
+        ser = AdminPermissionsSerializer(data=request.data)
+        if not ser.is_valid():
+            return Response(
+                {'detail': 'Payload inválido.',
+                 'codigo_error': 'INVALID_PAYLOAD',
+                 'errors': ser.errors},
+                status=400,
+            )
+        vdata = ser.validated_data
+
+        with transaction.atomic():
+            try:
+                target = User.objects.select_for_update().get(pk=pk)
+            except User.DoesNotExist:
+                return Response({'detail': 'No encontrado.',
+                                 'codigo_error': 'USER_NOT_FOUND'}, status=404)
+
+            is_self = target.pk == request.user.pk
+            # Guard espejo del self-suspend: un admin no puede degradarse a sí
+            # mismo (quitarse is_superuser o is_staff), lo que lo dejaría sin
+            # acceso al panel admin.
+            if is_self and vdata.get('is_superuser') is False:
+                return Response(
+                    {'detail': 'Un administrador no puede quitarse a sí mismo '
+                               'el rol de superusuario.',
+                     'codigo_error': 'CANNOT_DEMOTE_SELF'},
+                    status=400,
+                )
+            if is_self and vdata.get('is_staff') is False:
+                return Response(
+                    {'detail': 'Un administrador no puede quitarse a sí mismo '
+                               'el acceso de staff.',
+                     'codigo_error': 'CANNOT_DEMOTE_SELF'},
+                    status=400,
+                )
+
+            changed = {}
+            if 'is_staff' in vdata:
+                target.is_staff = vdata['is_staff']
+                changed['is_staff'] = vdata['is_staff']
+            if 'is_superuser' in vdata:
+                target.is_superuser = vdata['is_superuser']
+                changed['is_superuser'] = vdata['is_superuser']
+            if changed:
+                target.save(update_fields=list(changed.keys()))
+            if 'groups' in vdata:
+                target.groups.set(vdata['groups'])
+                changed['groups'] = vdata['groups']
+
+            # Auditoría del cambio con la infra existente. BusinessEvent.action
+            # no tiene constante ADMIN_PERMISSIONS_CHANGED: se escribe el string
+            # directo (max_length=30, choices sin constraint DB), mismo patrón
+            # que ADMIN_REACTIVATE en reactivate().
+            audit_log_business(
+                request.user,
+                'ADMIN_PERMISSIONS_CHANGED',
+                request,
+                target_type='user',
+                target_id=target.pk,
+                extra={
+                    'target_username': target.username,
+                    'changes': changed,
+                },
+            )
+
+        return Response(AdminUserDetailSerializer(target).data)
 
 
 class AuditLogView(APIView):

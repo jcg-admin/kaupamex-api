@@ -4,7 +4,9 @@ UC-AUTH-12 (ver perfil), UC-AUTH-13 (suspender),
 UC-AUTH-14 (reactivar), UC-AUTH-15 (crear admin)
 """
 import pytest
+from apps.users.models import BusinessEvent
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from rest_framework_simplejwt.tokens import RefreshToken
 
 pytestmark = pytest.mark.integration
@@ -125,3 +127,115 @@ class TestAdminCreateAdmin:
             'password': 'HackPass123!',
         }, format='json')
         assert r.status_code == 403
+
+
+class TestAdminEditPermissions:
+    """UC-ADM-02: POST /api/v1/admin/users/<pk>/permissions/"""
+
+    def _url(self, pk):
+        return f'{USERS_URL}{pk}/permissions/'
+
+    def test_admin_puede_promover_a_staff_y_superuser(self, admin_auth_client, target_user, db):
+        r = admin_auth_client.post(
+            self._url(target_user.pk),
+            {'is_staff': True, 'is_superuser': True},
+            format='json',
+        )
+        assert r.status_code == 200
+        target_user.refresh_from_db()
+        assert target_user.is_staff is True
+        assert target_user.is_superuser is True
+
+    def test_admin_puede_asignar_groups(self, admin_auth_client, target_user, db):
+        g1 = Group.objects.create(name='editores')
+        g2 = Group.objects.create(name='soporte')
+        r = admin_auth_client.post(
+            self._url(target_user.pk),
+            {'groups': [g1.pk, g2.pk]},
+            format='json',
+        )
+        assert r.status_code == 200
+        assert set(target_user.groups.values_list('pk', flat=True)) == {g1.pk, g2.pk}
+
+    def test_cambio_se_audita_en_business_event(
+        self, admin_auth_client, target_user, admin_user, db,
+        django_capture_on_commit_callbacks,
+    ):
+        # audit_log_business emite el BusinessEvent vía transaction.on_commit
+        # (DEC-CC-2); en el atomic-rollback default del test los callbacks no
+        # disparan, así que se capturan/ejecutan explícitamente.
+        with django_capture_on_commit_callbacks(execute=True):
+            admin_auth_client.post(
+                self._url(target_user.pk),
+                {'is_staff': True},
+                format='json',
+            )
+        ev = BusinessEvent.objects.filter(
+            action='ADMIN_PERMISSIONS_CHANGED',
+            target_type='user',
+            target_id=target_user.pk,
+        ).first()
+        assert ev is not None
+        assert ev.actor_id == admin_user.pk
+        assert ev.extra_json['changes']['is_staff'] is True
+
+    def test_admin_no_puede_quitarse_superuser_a_si_mismo(self, admin_auth_client, admin_user, db):
+        admin_user.is_superuser = True
+        admin_user.save(update_fields=['is_superuser'])
+        r = admin_auth_client.post(
+            self._url(admin_user.pk),
+            {'is_superuser': False},
+            format='json',
+        )
+        assert r.status_code == 400
+        assert r.json()['codigo_error'] == 'CANNOT_DEMOTE_SELF'
+        admin_user.refresh_from_db()
+        assert admin_user.is_superuser is True
+
+    def test_admin_no_puede_quitarse_staff_a_si_mismo(self, admin_auth_client, admin_user, db):
+        r = admin_auth_client.post(
+            self._url(admin_user.pk),
+            {'is_staff': False},
+            format='json',
+        )
+        assert r.status_code == 400
+        assert r.json()['codigo_error'] == 'CANNOT_DEMOTE_SELF'
+        admin_user.refresh_from_db()
+        assert admin_user.is_staff is True
+
+    def test_comprador_no_puede_editar_permisos(self, auth_client, target_user, db):
+        r = auth_client.post(
+            self._url(target_user.pk),
+            {'is_staff': True},
+            format='json',
+        )
+        assert r.status_code == 403
+        target_user.refresh_from_db()
+        assert target_user.is_staff is False
+
+    def test_payload_invalido_retorna_400(self, admin_auth_client, target_user, db):
+        r = admin_auth_client.post(
+            self._url(target_user.pk),
+            {'is_staff': 'no-es-bool', 'groups': [999999]},
+            format='json',
+        )
+        assert r.status_code == 400
+        assert r.json()['codigo_error'] == 'INVALID_PAYLOAD'
+
+    def test_grupo_inexistente_retorna_400(self, admin_auth_client, target_user, db):
+        r = admin_auth_client.post(
+            self._url(target_user.pk),
+            {'groups': [424242]},
+            format='json',
+        )
+        assert r.status_code == 400
+        assert r.json()['codigo_error'] == 'INVALID_PAYLOAD'
+
+    def test_usuario_inexistente_retorna_404(self, admin_auth_client, db):
+        r = admin_auth_client.post(
+            self._url(999999),
+            {'is_staff': True},
+            format='json',
+        )
+        assert r.status_code == 404
+        assert r.json()['codigo_error'] == 'USER_NOT_FOUND'
