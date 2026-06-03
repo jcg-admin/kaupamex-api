@@ -7,6 +7,7 @@ from .views import (
     CourierDetailView, CourierListCreateView, LogisticsPanelView,
     ShipmentGuideDetailView, ShipmentGuideListCreateView,
 )
+from .webhooks import CourierWebhookView
 
 app_name = 'logistics'
 
@@ -25,4 +26,7 @@ urlpatterns = [
     # /guides/<pk>/incidents/ con auth staff — drift documentado como hallazgo:
     # PARTE 2/6 del UC exigen que el ACTOR sea el comprador dueño, no staff.
     path('buyer/order/<int:order_id>/incident/', BuyerReportIncidentView.as_view(),    name='buyer-report-incident'),
+    # LOG-04 (US-1.2 / DEC-LOOP-05): webhook de estado del courier. AllowAny,
+    # autenticado por firma HMAC con el secreto compartido del courier.
+    path('webhook/courier/',                    CourierWebhookView.as_view(),          name='courier-webhook'),
 ]

@@ -12,10 +12,16 @@ Entities:
 English identifiers per DEC-DOC-005. Business codes Spanish per
 DEC-DOC-006 (raised in views, not in models).
 """
+import base64
+import hashlib
+import hmac
+import logging
+from cryptography.fernet import Fernet
 from django.conf import settings
 from django.db import models
 from apps.core.models import SoftDeleteModel, TimeStampedModel
 
+logger = logging.getLogger('apps')
 
 
 class Courier(TimeStampedModel):
@@ -27,6 +33,15 @@ class Courier(TimeStampedModel):
         help_text='URL template with {tracking_number} placeholder.',
     )
     is_active   = models.BooleanField(default=True, db_index=True)
+    # LOG-04 (US-1.2 / DEC-LOOP-05): shared secret used to verify the HMAC
+    # signature of courier status webhooks. Stored Fernet-encrypted (same
+    # pattern as apps.settings_app.PaymentGateway.credentials, DEC-DOC-008) —
+    # never in plaintext. Empty/unset means the courier cannot send webhooks
+    # and any incoming webhook for it is rejected fail-closed.
+    webhook_secret = models.BinaryField(
+        null=True, blank=True,
+        help_text='Per-courier webhook secret, Fernet-encrypted (LOG-04).',
+    )
 
     class Meta:
         db_table     = 'logistics_courier'
@@ -35,6 +50,55 @@ class Courier(TimeStampedModel):
 
     def __str__(self):
         return self.name
+
+    @staticmethod
+    def _fernet_key() -> bytes:
+        raw = settings.SECRET_KEY.encode()
+        digest = hashlib.sha256(raw).digest()
+        return base64.urlsafe_b64encode(digest)
+
+    def set_webhook_secret(self, plaintext: str) -> None:
+        """Encrypt and store the shared webhook secret for this courier."""
+        if not plaintext:
+            self.webhook_secret = None
+            return
+        f = Fernet(self._fernet_key())
+        self.webhook_secret = f.encrypt(plaintext.encode())
+
+    def get_webhook_secret(self) -> str | None:
+        """Decrypt and return the webhook secret, or None if unset/invalid."""
+        if not self.webhook_secret:
+            return None
+        try:
+            f = Fernet(self._fernet_key())
+            return f.decrypt(bytes(self.webhook_secret)).decode()
+        except Exception:
+            # Loud-log: secret no descifrable (SECRET_KEY rotada o blob
+            # corrupto). Sin secret legible, los webhooks de este courier
+            # se rechazan fail-closed. Operaciones debe verlo. DEC-DOC-008.
+            logger.warning(
+                'Courier.get_webhook_secret: decrypt failed code=%s',
+                getattr(self, 'code', '?'), exc_info=True,
+            )
+            return None
+
+    def verify_webhook_signature(self, raw_body: bytes, signature: str) -> bool:
+        """Verify an HMAC-SHA256 hex signature over raw_body (LOG-04).
+
+        Fail-closed: missing signature or missing/unreadable secret -> False.
+        Constant-time comparison to prevent timing attacks.
+        """
+        if not signature:
+            return False
+        secret = self.get_webhook_secret()
+        if not secret:
+            logger.error(
+                'Courier webhook: secret no configurado code=%s — rechazando',
+                getattr(self, 'code', '?'),
+            )
+            return False
+        expected = hmac.new(secret.encode(), raw_body, hashlib.sha256).hexdigest()
+        return hmac.compare_digest(expected, signature)
 
 
 class ShipmentGuide(TimeStampedModel, SoftDeleteModel):
