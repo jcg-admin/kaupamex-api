@@ -30,6 +30,7 @@ dependencies = [
     "mercadopago>=2.2.0",
     # CORS
     "django-cors-headers==4.3.1",
+    "xlsxwriter>=3.2.9",
 ]
 
 [dependency-groups]

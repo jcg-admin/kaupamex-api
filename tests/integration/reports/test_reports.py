@@ -286,12 +286,47 @@ class TestExport:
         res = admin_client.get(f'{BASE}sales/export/?format=xml')
         assert res.status_code == 400
 
-    def test_export_pdf_returns_501(self, admin_client, product, buyer):
-        # D-20: PDF export returns 501 until a real renderer is implemented.
+    def test_export_pdf_returns_real_pdf(self, admin_client, product, buyer):
+        # UC-RPT-04/UC-REP-05: PDF export now renders server-side via the
+        # libharu helper (ADR-017). Was 501 (D-20) before this initiative.
         _make_order(buyer, product)
         res = admin_client.get(f'{BASE}sales/export/?period=30d&format=pdf')
-        assert res.status_code == 501
-        assert res.json()['codigo_error'] == 'ASYNC_EXPORT_NOT_AVAILABLE'
+        assert res.status_code == 200
+        assert 'application/pdf' in res['Content-Type']
+        assert 'attachment' in res['Content-Disposition']
+        assert '.pdf' in res['Content-Disposition']
+        # Real PDF, not the old text placeholder: starts with the PDF magic.
+        body = b''.join(res.streaming_content) if res.streaming else res.content
+        assert body.startswith(b'%PDF')
+
+    def test_export_sales_xlsx(self, admin_client, product, buyer):
+        # UC-RPT-04/UC-REP-05: XLSX export via xlsxwriter.
+        _make_order(buyer, product)
+        res = admin_client.get(f'{BASE}sales/export/?period=30d&format=xlsx')
+        assert res.status_code == 200
+        assert (
+            'spreadsheetml.sheet' in res['Content-Type']
+        )
+        assert 'attachment' in res['Content-Disposition']
+        assert '.xlsx' in res['Content-Disposition']
+        # Real XLSX is a ZIP container: starts with the PK magic bytes.
+        body = b''.join(res.streaming_content) if res.streaming else res.content
+        assert body.startswith(b'PK')
+
+    def test_export_top_sellers_pdf(self, admin_client, product, product_b, buyer):
+        _make_order(buyer, product, qty=5)
+        _make_order(buyer, product_b, qty=1)
+        res = admin_client.get(f'{BASE}top-sellers/export/?period=30d&format=pdf')
+        assert res.status_code == 200
+        assert 'application/pdf' in res['Content-Type']
+        body = b''.join(res.streaming_content) if res.streaming else res.content
+        assert body.startswith(b'%PDF')
+
+    def test_export_top_sellers_xlsx(self, admin_client, product, buyer):
+        _make_order(buyer, product)
+        res = admin_client.get(f'{BASE}top-sellers/export/?period=30d&format=xlsx')
+        assert res.status_code == 200
+        assert 'spreadsheetml.sheet' in res['Content-Type']
 
     def test_export_csv_sales_sort_ingresos(self, admin_client, product, buyer):
         # D-09: sort=INGRESOS accepted in export without error.

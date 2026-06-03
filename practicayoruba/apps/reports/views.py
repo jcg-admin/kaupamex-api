@@ -30,6 +30,7 @@ from .aggregations import (
     build_top_sellers_payload, count_export_rows, parse_period,
 )
 from .exports import EXPORTERS
+from .pdf_report import PdfGenerationError
 from .sp_helpers import call_sp
 
 # D-19: async export for >5000 rows not yet implemented (DEC-REP-01).
@@ -73,6 +74,16 @@ class _CSVRenderer(BaseRenderer):
 class _PDFRenderer(BaseRenderer):
     media_type = 'application/pdf'
     format = 'pdf'
+
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        return data if isinstance(data, (bytes, str)) else str(data)
+
+
+class _XLSXRenderer(BaseRenderer):
+    media_type = (
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    format = 'xlsx'
 
     def render(self, data, accepted_media_type=None, renderer_context=None):
         return data if isinstance(data, (bytes, str)) else str(data)
@@ -187,20 +198,21 @@ class ReportExportView(APIView):
     # negotiator that ignores the query param. The view itself returns
     # a streaming HTTP response and handles format validation explicitly.
     content_negotiation_class = _PassthroughNegotiator
-    renderer_classes = [JSONRenderer, _CSVRenderer, _PDFRenderer]
+    renderer_classes = [JSONRenderer, _CSVRenderer, _XLSXRenderer, _PDFRenderer]
 
     @extend_schema(
         summary='Export a report (UC-REP-05)',
         parameters=[
             OpenApiParameter(name='format', required=False, type=str,
-                             description='csv|pdf (default csv)'),
+                             description='csv|xlsx|pdf (default csv)'),
             OpenApiParameter(name='period', required=False, type=str),
             OpenApiParameter(name='limit', required=False, type=int),
             OpenApiParameter(name='segment', required=False, type=str),
         ],
         tags=['reports'],
         responses={
-            200: OpenApiResponse(description='CSV file.', response=OpenApiTypes.BINARY),
+            200: OpenApiResponse(description='CSV/XLSX/PDF file.',
+                                 response=OpenApiTypes.BINARY),
             400: None,
             404: None,
             501: None,
@@ -214,18 +226,11 @@ class ReportExportView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
         fmt = (request.query_params.get('format') or 'csv').lower()
-        if fmt not in ('csv', 'pdf'):
+        if fmt not in ('csv', 'xlsx', 'pdf'):
             return Response(
                 {'codigo_error': 'FORMAT_NOT_SUPPORTED',
                  'detail': f'Unsupported format: {fmt}.'},
                 status=status.HTTP_400_BAD_REQUEST,
-            )
-        # D-20: PDF export not yet implemented (DEC-REP-01).
-        if fmt == 'pdf':
-            return Response(
-                {'codigo_error': 'ASYNC_EXPORT_NOT_AVAILABLE',
-                 'detail': 'PDF export is not yet implemented.'},
-                status=status.HTTP_501_NOT_IMPLEMENTED,
             )
 
         days = parse_period(request.query_params.get('period'))
@@ -266,7 +271,15 @@ class ReportExportView(APIView):
             payload = {}
 
         exporter = EXPORTERS[slug]
-        response = exporter(payload, fmt)
+        try:
+            response = exporter(payload, fmt)
+        except PdfGenerationError as exc:
+            # The libharu helper failed/missing (ADR-017 out-of-process render).
+            return Response(
+                {'codigo_error': 'EXPORT_RENDER_FAILED',
+                 'detail': f'PDF rendering failed: {exc}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
         if response is None:
             return Response(
                 {'codigo_error': 'FORMAT_NOT_SUPPORTED'},
