@@ -68,6 +68,10 @@ class ShipmentGuide(TimeStampedModel, SoftDeleteModel):
     # Uniqueness is enforced via unique_together = ('courier', 'tracking_number')
     # in Meta, and a db_index on tracking_number alone is retained for fast lookups.
     tracking_number = models.CharField(max_length=80, db_index=True)
+    # UC-LOG-02 PARTE 7.1 / Alt B: optional direct tracking URL provided by the
+    # courier. When set, takes precedence over the courier's URL template so the
+    # buyer (UC-LOG-03) sees the exact link the courier supplied.
+    tracking_url    = models.URLField(max_length=500, blank=True, default='')
     status          = models.CharField(
         max_length=20, choices=STATUSES,
         default=STATUS_CREATED, db_index=True,

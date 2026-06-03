@@ -332,6 +332,79 @@ class TestCourierCRUD:
         assert r.json()['codigo_error'] == 'COURIER_NOT_FOUND'
 
 
+class TestUpdateTrackingNumber:
+    """UC-LOG-02 — registrar/actualizar el número de rastreo tras crear la guía."""
+
+    def test_admin_actualiza_tracking_number(
+        self, admin_client, order_log, courier_log, db,
+    ):
+        g = ShipmentGuide.objects.create(
+            order=order_log, courier=courier_log, tracking_number='TRK-OLD',
+        )
+        r = admin_client.patch(GUIDE_URL(g.id), {
+            'tracking_number': 'TRK-NEW',
+            'tracking_url': 'https://estafeta.com/track?n=TRK-NEW',
+        }, format='json')
+        assert r.status_code == 200
+        data = r.json()
+        assert data['tracking_number'] == 'TRK-NEW'
+        assert data['tracking_url'] == 'https://estafeta.com/track?n=TRK-NEW'
+        g.refresh_from_db()
+        assert g.tracking_number == 'TRK-NEW'
+        # Alt C: el historial conserva el numero anterior vía ShipmentEvent.
+        assert g.events.filter(description__contains="'TRK-OLD'").exists()
+
+    def test_actualizar_tracking_requiere_admin_403(
+        self, auth_client, order_log, courier_log, db,
+    ):
+        g = ShipmentGuide.objects.create(
+            order=order_log, courier=courier_log, tracking_number='TRK-AUTH',
+        )
+        r = auth_client.patch(GUIDE_URL(g.id), {'tracking_number': 'X'}, format='json')
+        assert r.status_code == 403
+
+    def test_tracking_number_vacio_emite_codigo_error(
+        self, admin_client, order_log, courier_log, db,
+    ):
+        g = ShipmentGuide.objects.create(
+            order=order_log, courier=courier_log, tracking_number='TRK-VAL',
+        )
+        r = admin_client.patch(GUIDE_URL(g.id), {'tracking_number': '   '}, format='json')
+        assert r.status_code == 400
+        assert r.json()['codigo_error'] == 'TRACKING_REQUIRED'
+
+    def test_tracking_duplicado_advierte_pero_permite(
+        self, admin_client, order_log, courier_log, prod_log, user, db,
+    ):
+        # EX-02: otra guía activa (de OTRO courier) ya tiene el número → warning
+        # pero permite. Nota: la unicidad es per-courier (unique_tracking_per_courier),
+        # así que el duplicado reachable es cross-courier.
+        c2 = Courier.objects.create(name='DHL-dup', code='DHLD')
+        o2 = Order.objects.create(user=user, status=Order.STATUS_IN_PREPARATION)
+        ShipmentGuide.objects.create(
+            order=o2, courier=c2, tracking_number='DUP-TRK',
+        )
+        g = ShipmentGuide.objects.create(
+            order=order_log, courier=courier_log, tracking_number='TRK-ORIG',
+        )
+        r = admin_client.patch(GUIDE_URL(g.id), {'tracking_number': 'DUP-TRK'}, format='json')
+        assert r.status_code == 200
+        assert 'warning' in r.json()
+        g.refresh_from_db()
+        assert g.tracking_number == 'DUP-TRK'
+
+    def test_actualizar_status_sigue_funcionando(
+        self, admin_client, order_log, courier_log, db,
+    ):
+        # Regresión: el PATCH de status no se rompe con la rama de tracking.
+        g = ShipmentGuide.objects.create(
+            order=order_log, courier=courier_log, tracking_number='TRK-STS',
+        )
+        r = admin_client.patch(GUIDE_URL(g.id), {'status': 'PICKED_UP'}, format='json')
+        assert r.status_code == 200
+        assert r.json()['status'] == 'PICKED_UP'
+
+
 class TestBuyerGuide:
     """UC-LOG-03: buyer sees shipment guide for own order."""
 

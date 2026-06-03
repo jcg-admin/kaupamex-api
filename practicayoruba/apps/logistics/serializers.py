@@ -36,8 +36,8 @@ class ShipmentGuideSerializer(serializers.ModelSerializer):
         model  = ShipmentGuide
         fields = [
             'id', 'order', 'order_number', 'courier', 'courier_id',
-            'tracking_number', 'status', 'delivered_at', 'estimated_delivery',
-            'notes', 'created_at', 'last_event',
+            'tracking_number', 'tracking_url', 'status', 'delivered_at',
+            'estimated_delivery', 'notes', 'created_at', 'last_event',
         ]
         read_only_fields = ['delivered_at', 'created_at']
 
@@ -118,6 +118,10 @@ class BuyerShipmentGuideSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_tracking_url(self, obj) -> str | None:
+        # UC-LOG-02 Alt B: una URL directa registrada en la guia tiene
+        # precedencia sobre el template del courier.
+        if obj.tracking_url:
+            return obj.tracking_url
         tpl = obj.courier.tracking_url_template
         if not tpl or not obj.tracking_number:
             return None

@@ -194,6 +194,73 @@ class ShipmentGuideDetailView(_AdminOnly, APIView):
 
     def patch(self, request, pk):
         guide = self._get_guide(pk)
+        # UC-LOG-02: el PATCH soporta dos operaciones independientes —
+        #   (a) actualizar el numero/URL de rastreo (UC-LOG-02 flujo principal +
+        #       Alt A/B/C), y
+        #   (b) avanzar el status segun la maquina de estados (UC-LOG-04/05).
+        # Si la peticion trae 'tracking_number'/'tracking_url' pero no 'status',
+        # se trata como registro de rastreo. Si trae 'status', se aplica la
+        # transicion de estado (comportamiento previo, intacto).
+        has_status = 'status' in request.data
+        has_tracking = 'tracking_number' in request.data or 'tracking_url' in request.data
+
+        if has_tracking and not has_status:
+            return self._update_tracking(request, guide)
+
+        return self._update_status(request, guide)
+
+    def _update_tracking(self, request, guide):
+        """UC-LOG-02: registrar/actualizar el numero de rastreo y la URL.
+
+        EX-01 (formato invalido): se rechaza un tracking_number vacio; el resto
+        de formatos se permite (el admin puede forzarlo).
+        EX-02 (numero ya registrado en otra guia): se advierte vía el campo
+        ``warning`` en la respuesta pero la operacion se permite (el admin
+        confirma con ``confirm_duplicate=true`` si quiere silenciar el aviso).
+        """
+        update_fields = ['updated_at']
+        warning = None
+        previous_tracking = guide.tracking_number
+
+        if 'tracking_number' in request.data:
+            new_tracking = (request.data.get('tracking_number') or '').strip()
+            if not new_tracking:
+                return Response(
+                    {'detail': 'tracking_number requerido.', 'codigo_error': 'TRACKING_REQUIRED'},
+                    status=400,
+                )
+            # EX-02: mismo numero en otra guia activa (excluyendo esta).
+            dup = ShipmentGuide.objects.filter(
+                tracking_number=new_tracking, is_deleted=False,
+            ).exclude(pk=guide.pk).exists()
+            if dup and not request.data.get('confirm_duplicate'):
+                warning = (
+                    f'El numero de rastreo {new_tracking!r} ya existe en otra guia activa. '
+                    f'Reenvie con confirm_duplicate=true para registrarlo de todos modos.'
+                )
+            guide.tracking_number = new_tracking
+            update_fields.append('tracking_number')
+
+        if 'tracking_url' in request.data:
+            guide.tracking_url = (request.data.get('tracking_url') or '').strip()
+            update_fields.append('tracking_url')
+
+        guide.save(update_fields=update_fields)
+        # Auditoria del cambio (Alt C: el historial conserva el numero anterior).
+        ShipmentEvent.objects.create(
+            guide=guide, status=guide.status,
+            description=(
+                f'Rastreo actualizado: {previous_tracking!r} → {guide.tracking_number!r}.'
+                + (f' URL: {guide.tracking_url}' if guide.tracking_url else '')
+            ),
+            occurred_at=timezone.now(), recorded_by=request.user,
+        )
+        data = ShipmentGuideSerializer(guide).data
+        if warning:
+            data['warning'] = warning
+        return Response(data)
+
+    def _update_status(self, request, guide):
         new_status = request.data.get('status')
         if not new_status or new_status not in self.VALID_STATUSES:
             return Response({'detail': f'Estado inválido: {new_status!r}.', 'codigo_error': 'STATUS_INVALID'}, status=400)
@@ -291,3 +358,4 @@ class BuyerGuideView(APIView):
         if not guide:
             return Response({'detail': 'Guía de envío no disponible.', 'codigo_error': 'SHIPMENT_GUIDE_NOT_FOUND'}, status=404)
         return Response(BuyerShipmentGuideSerializer(guide, context={'request': request}).data)
+
