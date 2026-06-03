@@ -9,11 +9,13 @@ class StockMovement(TimeStampedModel):
     TYPE_CANCELLATION = 'CANCELLATION'
     TYPE_ADJUSTMENT   = 'ADJUSTMENT'
     TYPE_IMPORT       = 'IMPORT'
+    TYPE_RESTOCK      = 'RESTOCK'
     TYPES = [
         (TYPE_SALE,         'Venta'),
         (TYPE_CANCELLATION, 'Cancelacion'),
         (TYPE_ADJUSTMENT,   'Ajuste manual'),
         (TYPE_IMPORT,       'Importacion CSV'),
+        (TYPE_RESTOCK,      'Entrada de stock'),
     ]
 
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)

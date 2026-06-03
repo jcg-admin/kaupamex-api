@@ -77,10 +77,80 @@ def _maybe_create_alert(product, variant, new_stock: int) -> None:
         )
 
 
+def _resolve_open_alerts(product, variant, new_stock: int) -> None:
+    """
+    Resuelve las StockAlert abiertas del producto/variante cuando el stock
+    vuelve a estar por encima del umbral tras una entrada de mercancia.
+    Mirror de la deduplicacion de _maybe_create_alert. UC-INV (restock).
+    """
+    threshold = SiteSettings.get_current().min_stock_threshold
+    if new_stock <= threshold:
+        return
+
+    with transaction.atomic():
+        open_alerts = StockAlert.objects.select_for_update().filter(
+            product=product, resolved=False,
+        )
+        if variant:
+            open_alerts = open_alerts.filter(variant=variant)
+        else:
+            open_alerts = open_alerts.filter(variant__isnull=True)
+        for alert in open_alerts:
+            alert.resolved = True
+            alert.resolved_at = timezone.now()
+            alert.save(update_fields=['resolved', 'resolved_at'])
+
+
 class InventoryService:
     """
     Servicio de inventario. Todas las operaciones son atomicas.
     """
+
+    @staticmethod
+    def restock(product, variant=None, quantity: int = 0,
+                reference: str = '', notes: str = '', created_by=None):
+        """
+        Entrada de stock (restock / reabastecimiento). UC-INV.
+
+        Incrementa el stock de la variante (o producto) en `quantity`,
+        registra un StockMovement de tipo RESTOCK con delta=+quantity y la
+        referencia de compra, y resuelve cualquier StockAlert abierta si el
+        stock supera el umbral.
+
+        A diferencia de adjust(), restock SIEMPRE es una entrada positiva
+        ligada a una recepcion de mercancia (reference = orden de compra).
+
+        quantity debe ser > 0 — en caso contrario lanza ValueError.
+        Usa SELECT FOR UPDATE para prevenir condiciones de carrera (BR-004).
+        """
+        if quantity <= 0:
+            raise ValueError(
+                f'La cantidad de entrada debe ser positiva (recibido: {quantity}).'
+            )
+
+        with transaction.atomic():
+            if variant:
+                v = ProductVariant.objects.select_for_update().get(pk=variant.pk)
+                stock_before = v.stock
+                v.stock += quantity
+                v.save(update_fields=['stock', 'updated_at'])
+                stock_after = v.stock
+            else:
+                p = Product.objects.select_for_update().get(pk=product.pk)
+                stock_before = p.stock
+                p.stock += quantity
+                p.save(update_fields=['stock', 'updated_at'])
+                stock_after = p.stock
+
+            mov = StockMovement.objects.create(
+                product=product, variant=variant,
+                delta=quantity, stock_before=stock_before,
+                stock_after=stock_after,
+                movement_type=StockMovement.TYPE_RESTOCK,
+                reference=reference, notes=notes, created_by=created_by,
+            )
+            _resolve_open_alerts(product, variant, stock_after)
+            return mov
 
     @staticmethod
     def decrement(items, reference: str = '', created_by=None) -> list:

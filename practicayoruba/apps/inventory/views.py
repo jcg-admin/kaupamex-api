@@ -26,7 +26,7 @@ from apps.users.models import BusinessEvent
 from .models import ImportJob, StockAlert, StockMovement
 from .serializers import (
     StockMovementSerializer, StockAlertSerializer, StockAdjustSerializer,
-    VariantAdjustNewQuantitySerializer,
+    VariantAdjustNewQuantitySerializer, RestockSerializer,
 )
 from .services import InventoryService, _get_stock_status
 from config.schema import error_response
@@ -224,6 +224,59 @@ class VariantStockAdjustView(_AdminOnly, APIView):
             return Response({'detail': 'Stock ajustado.', 'new_stock': new_stock,
                              'stock_before': stock_before, 'delta': delta,
                              'reason': mov.reason, 'movement_id': mov.pk}, status=201)
+
+
+class VariantRestockView(_AdminOnly, APIView):
+    """
+    POST /api/v1/admin/inventory/variants/<variant_pk>/restock/
+
+    Entrada de stock (reabastecimiento). UC-INV. A diferencia del ajuste
+    manual (UC-INV-04), restock siempre es una entrada positiva ligada a una
+    referencia de compra y registra un StockMovement de tipo RESTOCK.
+    """
+    @extend_schema(
+        summary='Entrada de stock de variante (UC-INV)',
+        tags=['inventory'],
+        request=RestockSerializer,
+        responses={201: inline_serializer(
+            'VariantRestockResponse',
+            {'detail': serializers.CharField(),
+             'variant_id': serializers.IntegerField(),
+             'stock_before': serializers.IntegerField(),
+             'new_stock': serializers.IntegerField(),
+             'delta': serializers.IntegerField(),
+             'reference': serializers.CharField(),
+             'movement_id': serializers.IntegerField()}),
+            400: error_response('Cantidad inválida'),
+            404: error_response('Variante no encontrada')})
+    def post(self, request, variant_pk):
+        ser = RestockSerializer(data=request.data)
+        if not ser.is_valid():
+            return Response(
+                {'detail': 'La cantidad de entrada debe ser un entero positivo.',
+                 'codigo_error': 'INVALID_QUANTITY'},
+                status=400,
+            )
+        data = ser.validated_data
+        try:
+            variant = ProductVariant.objects.select_related('product', 'option').get(pk=variant_pk)
+        except ProductVariant.DoesNotExist:
+            raise NotFound({'detail': 'Variante no encontrada.', 'codigo_error': 'VARIANT_NOT_FOUND'})
+
+        mov = InventoryService.restock(
+            product=variant.product, variant=variant,
+            quantity=data['quantity'], reference=data.get('reference', ''),
+            notes=data.get('notes', ''), created_by=request.user,
+        )
+        return Response({
+            'detail': 'Entrada de stock registrada.',
+            'variant_id': variant.pk,
+            'stock_before': mov.stock_before,
+            'new_stock': mov.stock_after,
+            'delta': mov.delta,
+            'reference': mov.reference,
+            'movement_id': mov.pk,
+        }, status=201)
 
 
 _AT_RISK_STATUSES = [Order.STATUS_PENDING, Order.STATUS_PROCESSING]

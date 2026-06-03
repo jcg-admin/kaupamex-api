@@ -2,7 +2,7 @@
 from django.urls import path
 from .views import (
     InventoryDashboardView, StockAdjustView, VariantStockAdjustView,
-    VariantMovementsView, ZeroStockCheckView,
+    VariantRestockView, VariantMovementsView, ZeroStockCheckView,
     StockAlertListView, StockAlertResolveView,
     ProductImportView, ProductImportStatusView, ProductImportReportView,
 )
@@ -23,6 +23,8 @@ urlpatterns = [
          ZeroStockCheckView.as_view(), name='variant-zero-stock-check'),
     path('inventory/variants/<int:variant_pk>/adjust/',
          VariantStockAdjustView.as_view(), name='variant-adjust'),
+    path('inventory/variants/<int:variant_pk>/restock/',
+         VariantRestockView.as_view(), name='variant-restock'),
     path('inventory/variants/<int:variant_pk>/movements/',
          VariantMovementsView.as_view(), name='variant-movements'),
 

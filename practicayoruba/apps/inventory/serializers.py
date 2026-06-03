@@ -74,3 +74,20 @@ class VariantAdjustNewQuantitySerializer(serializers.Serializer):
     new_quantity = serializers.IntegerField(required=True)
     reason       = serializers.ChoiceField(choices=ADJUSTMENT_REASONS, required=True)
     observations = serializers.CharField(required=False, default='', allow_blank=True, max_length=500)
+
+
+class RestockSerializer(serializers.Serializer):
+    """Entrada de stock (UC-INV). quantity siempre positiva."""
+    quantity  = serializers.IntegerField(required=True)
+    reference = serializers.CharField(required=False, default='', allow_blank=True, max_length=50)
+    notes     = serializers.CharField(required=False, default='', allow_blank=True, max_length=500)
+
+    def validate_quantity(self, value):
+        # UC-INV: la entrada de stock debe ser estrictamente positiva. Una
+        # cantidad <= 0 no es un reabastecimiento — usar el ajuste manual
+        # (UC-INV-04) para correcciones a la baja.
+        if value <= 0:
+            raise serializers.ValidationError(
+                'La cantidad de entrada debe ser un entero positivo.'
+            )
+        return value
