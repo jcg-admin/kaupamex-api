@@ -15,7 +15,16 @@ SP-backed endpoints (implementar-endpoints-db-rpt sucesora):
 
 Identifiers + JSON keys in English (DEC-DOC-005).
 """
+import logging
+import os
+import tempfile
+import threading
+
+from datetime import timedelta
+
+from django.core import signing
 from django.core.cache import cache
+from django.http import FileResponse
 from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
@@ -30,11 +39,110 @@ from .aggregations import (
     build_top_sellers_payload, count_export_rows, parse_period,
 )
 from .exports import EXPORTERS
+from .models import ExportJob
 from .pdf_report import PdfGenerationError
+from .serializers import ExportJobSerializer
 from .sp_helpers import call_sp
 
-# D-19: async export for >5000 rows not yet implemented (DEC-REP-01).
+logger = logging.getLogger('apps')
+
+# D-19: rows>5000 take the async branch (DEC-REP-01). The project has no
+# Celery/Redis, so the long export runs in a threading.Thread worker (same
+# no-Celery pattern as apps.backups) and the file is fetched later via a
+# signed, time-limited download URL.
 _EXPORT_ASYNC_THRESHOLD = 5000
+
+# Signed download links are valid for ~1h (FR-RPT-04.02 esc 2-4).
+_DOWNLOAD_MAX_AGE_SECONDS = 3600
+_DOWNLOAD_SALT = 'apps.reports.export-download'
+
+_EXPORT_CONTENT_TYPES = {
+    'csv': 'text/csv',
+    'xlsx': ('application/vnd.openxmlformats-officedocument'
+             '.spreadsheetml.sheet'),
+    'pdf': 'application/pdf',
+}
+
+
+def _sign_job_token(job_pk: int) -> str:
+    """Return a signed, timestamped token that authorizes downloading a job."""
+    return signing.TimestampSigner(salt=_DOWNLOAD_SALT).sign(str(job_pk))
+
+
+def _unsign_job_token(token: str):
+    """Validate a download token. Return the job pk or None if invalid/expired."""
+    try:
+        raw = signing.TimestampSigner(salt=_DOWNLOAD_SALT).unsign(
+            token, max_age=_DOWNLOAD_MAX_AGE_SECONDS,
+        )
+        return int(raw)
+    except (signing.BadSignature, signing.SignatureExpired, ValueError):
+        return None
+
+
+def _build_export_payload(slug: str, params: dict):
+    """Reproduce the synchronous serialization for a given report slug."""
+    days = params.get('days', 30)
+    if slug == 'sales':
+        return build_sales_payload(days)
+    if slug == 'top-sellers':
+        limit = max(1, min(int(params.get('limit', 10)), 50))
+        sort_by = (params.get('sort') or 'UNIDADES').upper()
+        if sort_by not in ('UNIDADES', 'INGRESOS'):
+            sort_by = 'UNIDADES'
+        return build_top_sellers_payload(days, limit, sort_by=sort_by)
+    if slug == 'customers-rfm':
+        return build_rfm_payload(days, params.get('segment') or None)
+    if slug == 'dashboard':
+        return build_dashboard_payload()
+    return {}
+
+
+def _run_export_job(job_pk: int) -> None:
+    """Worker — generate the export file and update the ExportJob record.
+
+    Reuses the synchronous CSV/XLSX/PDF code paths (EXPORTERS) and persists
+    the rendered bytes to a temp file so the admin can download it later.
+    Runnable synchronously for tests (mirrors apps.backups._run_backup).
+    """
+    try:
+        ExportJob.objects.filter(pk=job_pk).update(
+            status=ExportJob.STATUS_RUNNING,
+        )
+        job = ExportJob.objects.get(pk=job_pk)
+        slug = job.params.get('slug')
+        fmt = (job.params.get('format') or 'csv').lower()
+        payload = _build_export_payload(slug, job.params)
+        exporter = EXPORTERS[slug]
+        response = exporter(payload, fmt)
+        if response is None:
+            raise ValueError(f'Unsupported export format: {fmt}')
+        # Both StreamingHttpResponse and HttpResponse expose their bytes;
+        # join streaming chunks to a single bytes blob.
+        if getattr(response, 'streaming', False):
+            content = b''.join(
+                c if isinstance(c, bytes) else c.encode('utf-8')
+                for c in response.streaming_content
+            )
+        else:
+            content = response.content
+        fd, path = tempfile.mkstemp(prefix=f'export-{slug}-', suffix=f'.{fmt}')
+        with os.fdopen(fd, 'wb') as fh:
+            fh.write(content)
+        ExportJob.objects.filter(pk=job_pk).update(
+            status=ExportJob.STATUS_DONE,
+            file_path=path,
+            expires_at=timezone.now() + timedelta(
+                seconds=_DOWNLOAD_MAX_AGE_SECONDS,
+            ),
+        )
+        logger.info('ExportJob #%d completado: %s', job_pk, path)
+    except Exception as exc:
+        ExportJob.objects.filter(pk=job_pk).update(
+            status=ExportJob.STATUS_ERROR,
+            error_detail=str(exc)[:1000],
+        )
+        logger.exception('ExportJob #%d falló.', job_pk)
 
 
 def _sp_response(sp_name: str) -> Response:
@@ -213,9 +321,12 @@ class ReportExportView(APIView):
         responses={
             200: OpenApiResponse(description='CSV/XLSX/PDF file.',
                                  response=OpenApiTypes.BINARY),
+            202: OpenApiResponse(
+                description='Async export enqueued (rows>5000); poll the '
+                            'job status endpoint for the download URL.',
+                response=OpenApiTypes.OBJECT),
             400: None,
             404: None,
-            501: None,
         },
     )
     def get(self, request, slug):
@@ -235,19 +346,27 @@ class ReportExportView(APIView):
 
         days = parse_period(request.query_params.get('period'))
 
-        # D-19: async export for large datasets not yet implemented (DEC-REP-01).
+        # D-19: rows>5000 take the async branch (DEC-REP-01). No Celery/Redis,
+        # so generate the file in a threading.Thread worker and return 202
+        # immediately with a job id; the admin polls the status endpoint and
+        # downloads via a signed, time-limited URL.
         row_count = count_export_rows(slug, days)
         if row_count > _EXPORT_ASYNC_THRESHOLD:
+            params = {'slug': slug, 'format': fmt, 'days': days}
+            if slug == 'top-sellers':
+                params['limit'] = request.query_params.get('limit', 10)
+                params['sort'] = request.query_params.get('sort') or 'UNIDADES'
+            elif slug == 'customers-rfm':
+                params['segment'] = request.query_params.get('segment') or None
+            job = ExportJob.objects.create(
+                requested_by=request.user, params=params,
+            )
+            threading.Thread(
+                target=_run_export_job, args=(job.pk,), daemon=True,
+            ).start()
             return Response(
-                {
-                    'codigo_error': 'ASYNC_EXPORT_NOT_AVAILABLE',
-                    'detail': (
-                        f'Export has {row_count} rows which exceeds the '
-                        f'{_EXPORT_ASYNC_THRESHOLD}-row limit. '
-                        'Async export is not yet implemented.'
-                    ),
-                },
-                status=status.HTTP_501_NOT_IMPLEMENTED,
+                {'job_id': job.pk, 'status': job.status},
+                status=status.HTTP_202_ACCEPTED,
             )
 
         if slug == 'sales':
@@ -285,6 +404,106 @@ class ReportExportView(APIView):
                 {'codigo_error': 'FORMAT_NOT_SUPPORTED'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        return response
+
+
+# ─── D-19 async export — job status + signed download ───────────────────
+
+
+class ExportJobStatusView(_AdminMixin, APIView):
+    """GET /reports/export/jobs/<id>/ — status of an async export (D-19).
+
+    Only the admin who requested the job may read it. When the job is DONE,
+    the response includes a signed, time-limited (~1h) download URL.
+    """
+
+    @extend_schema(
+        summary='Async export job status (UC-REP-05, D-19)',
+        tags=['reports'],
+        responses={200: ExportJobSerializer},
+    )
+    def get(self, request, job_id):
+        try:
+            job = ExportJob.objects.get(pk=job_id)
+        except ExportJob.DoesNotExist:
+            return Response(
+                {'codigo_error': 'EXPORT_JOB_NOT_FOUND',
+                 'detail': f'Unknown export job: {job_id}.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        if job.requested_by_id != request.user.id:
+            # Do not leak another admin's job existence.
+            return Response(
+                {'codigo_error': 'EXPORT_JOB_NOT_FOUND',
+                 'detail': f'Unknown export job: {job_id}.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        download_url = None
+        if job.status == ExportJob.STATUS_DONE and job.file_path:
+            token = _sign_job_token(job.pk)
+            download_url = request.build_absolute_uri(
+                f'/api/v1/admin/reports/export/download/{token}/'
+            )
+        serializer = ExportJobSerializer(
+            job, context={'download_url': download_url},
+        )
+        return Response(serializer.data)
+
+
+class ExportDownloadView(_AdminMixin, APIView):
+    """GET /reports/export/download/<token>/ — stream a generated export.
+
+    The token is a signed TimestampSigner value (max_age 1h). The requesting
+    admin must own the job; otherwise the file is not served.
+    """
+
+    @extend_schema(
+        summary='Download a generated async export (UC-REP-05, D-19)',
+        tags=['reports'],
+        responses={
+            200: OpenApiResponse(description='CSV/XLSX/PDF file.',
+                                 response=OpenApiTypes.BINARY),
+            400: None,
+            403: None,
+            404: None,
+        },
+    )
+    def get(self, request, token):
+        job_pk = _unsign_job_token(token)
+        if job_pk is None:
+            return Response(
+                {'codigo_error': 'DOWNLOAD_TOKEN_INVALID',
+                 'detail': 'The download link is invalid or has expired.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            job = ExportJob.objects.get(pk=job_pk)
+        except ExportJob.DoesNotExist:
+            return Response(
+                {'codigo_error': 'EXPORT_JOB_NOT_FOUND',
+                 'detail': f'Unknown export job: {job_pk}.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        if job.requested_by_id != request.user.id:
+            return Response(
+                {'codigo_error': 'EXPORT_DOWNLOAD_FORBIDDEN',
+                 'detail': 'You may not download this export.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        if job.status != ExportJob.STATUS_DONE or not job.file_path \
+                or not os.path.exists(job.file_path):
+            return Response(
+                {'codigo_error': 'EXPORT_FILE_UNAVAILABLE',
+                 'detail': 'The export file is not available.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        fmt = (job.params.get('format') or 'csv').lower()
+        content_type = _EXPORT_CONTENT_TYPES.get(fmt, 'application/octet-stream')
+        filename = os.path.basename(job.file_path)
+        response = FileResponse(
+            open(job.file_path, 'rb'), content_type=content_type,
+        )
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
 
 

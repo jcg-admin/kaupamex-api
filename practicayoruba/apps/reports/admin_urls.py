@@ -7,7 +7,7 @@ Mounted in config/urls.py:
 DEC-DOC-005: English identifiers.
 """
 from django.urls import path
-from .views import CatalogByCategoryReportView, CatalogSummaryReportView, CustomersRFMReportView, DashboardReportView, LowStockReportView, ReportExportView, SalesReportView, TopSellersReportView
+from .views import CatalogByCategoryReportView, CatalogSummaryReportView, CustomersRFMReportView, DashboardReportView, ExportDownloadView, ExportJobStatusView, LowStockReportView, ReportExportView, SalesReportView, TopSellersReportView
 
 
 app_name = 'admin_reports'
@@ -30,6 +30,13 @@ urlpatterns = [
     path('reports/catalog-summary/',
          CatalogSummaryReportView.as_view(),
          name='reports-catalog-summary'),
+    # D-19 async export — job status + signed download. MUST precede the
+    # <slug:slug>/export/ catch-all so 'jobs'/'download' are not captured
+    # as a report slug.
+    path('reports/export/jobs/<int:job_id>/',
+         ExportJobStatusView.as_view(), name='reports-export-job'),
+    path('reports/export/download/<str:token>/',
+         ExportDownloadView.as_view(), name='reports-export-download'),
     # UC-REP-05 export — slug is one of: sales|top-sellers|customers-rfm|dashboard
     # NOTE: catch-all <slug:slug>/export/ debe ir DESPUES de los paths
     # especificos arriba (DEC-DBR-02 — paths SP especificos preceden).
