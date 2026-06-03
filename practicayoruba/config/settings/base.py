@@ -277,6 +277,16 @@ SPECTACULAR_SETTINGS = {
     # propio choice set. Sin overrides drf-spectacular auto-resuelve
     # con sufijos hex (StatusFc3Enum, Gateway409Enum) — feo en clientes
     # generados. Cada entrada mapea EnumName -> path al choice set.
+    #
+    # IMPORTANTE: drf-spectacular resuelve estos paths con
+    # deep_import_string, que solo soporta UN getattr extra tras el
+    # ultimo modulo importable. Para una TextChoices ANIDADA en un modelo
+    # (Model.Status) hay que apuntar a la CLASE (...Model.Status), NO a
+    # ...Model.Status.choices (eso requiere dos getattr y resuelve a None
+    # -> 'unable to load choice override' + duplication issues). El
+    # resolver materializa .choices solo cuando el objeto es subclase de
+    # Choices. Para una TextChoices a NIVEL DE MODULO (SubscriberStatus)
+    # ambas formas funcionan; se mantiene .choices por legibilidad.
     'ENUM_NAME_OVERRIDES': {
         # status fields (mas de un modelo usa este nombre de campo)
         'OrderStatusEnum':
@@ -292,15 +302,15 @@ SPECTACULAR_SETTINGS = {
         'StaticPageVersionStatusEnum':
             'apps.settings_app.models.StaticPageVersion.STATUS_CHOICES',
         'NotificationStatusEnum':
-            'apps.notifications.models.ManualNotification.Status.choices',
+            'apps.notifications.models.ManualNotification.Status',
         'NewsletterSubscriberStatusEnum':
             'apps.newsletter.models.SubscriberStatus.choices',
         'QuestionStatusEnum':
             'apps.questions.models.QuestionStatus.choices',
         'SupportTicketStatusEnum':
-            'apps.support.models.SupportTicket.Status.choices',
+            'apps.support.models.SupportTicket.Status',
         'ReturnRequestStatusEnum':
-            'apps.returns.models.ReturnRequest.Status.choices',
+            'apps.returns.models.ReturnRequest.Status',
         # gateway fields (Payment vs PaymentGateway tienen choice sets
         # diferentes — el segundo agrega TEST sandbox)
         'PaymentGatewayChoiceEnum':
@@ -310,7 +320,7 @@ SPECTACULAR_SETTINGS = {
         # AudienceFilterEnum: alias para ManualNotification.RecipientType
         # que aparece en serializers diferentes con choice set identico
         'AudienceFilterEnum':
-            'apps.notifications.models.ManualNotification.RecipientType.choices',
+            'apps.notifications.models.ManualNotification.RecipientType',
     },
 }
 
