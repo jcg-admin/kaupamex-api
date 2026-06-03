@@ -231,6 +231,39 @@ def test_ac05_payload_totals_match_order_value(db, buyer):
     assert payload['payment']['status']  # método/estado de pago presentes
 
 
+def test_ac05_payload_sin_logo_degrada_a_vacio(db, buyer):
+    # H-API-PAY10-01: sin logo el seam debe devolver logo_path vacío
+    # (el helper lo trata como "sin logo").
+    order = _make_paid_order(buyer)
+    site = SiteSettings.get_current()
+    assert not site.logo  # ImageField vacío por defecto
+
+    payload = build_receipt_payload(
+        order=order, value=order.value, items=list(order.items.all()),
+        address=order.address, payment=order.payments.first(), site=site,
+    )
+    assert payload['issuer']['logo_path'] == ''
+
+
+def test_ac05_payload_incluye_logo_path_cuando_hay_logo(db, buyer):
+    # H-API-PAY10-01: si SiteSettings tiene logo, el seam debe pasar su
+    # path absoluto en el payload (UC-PAY-10 AC-05). No es necesario
+    # rasterizar — basta con que build_receipt_payload propague el path.
+    order = _make_paid_order(buyer)
+    site = SiteSettings.get_current()
+    # Asociar un nombre de archivo al ImageField; .path resuelve contra
+    # MEDIA_ROOT sin requerir un archivo físico en disco.
+    site.logo.name = 'settings/logo/practicayoruba.png'
+
+    payload = build_receipt_payload(
+        order=order, value=order.value, items=list(order.items.all()),
+        address=order.address, payment=order.payments.first(), site=site,
+    )
+    logo_path = payload['issuer']['logo_path']
+    assert logo_path  # no vacío
+    assert logo_path.endswith('settings/logo/practicayoruba.png')
+
+
 # ---------------------------------------------------------------------------
 # Sanity: el helper compilado existe en el entorno (ADR-017 gate)
 # ---------------------------------------------------------------------------

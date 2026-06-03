@@ -48,9 +48,9 @@ def build_receipt_payload(order, value, items, address, payment, site) -> dict:
         'address':   (site.address if site else '') or '',
         'email':     (site.support_email if site else '') or '',
         'phone':     (site.phone if site else '') or '',
-        # SiteSettings has no logo field yet (see hallazgo H-API-PAY10-01).
-        # The helper treats an empty logo_path as "no logo". When a logo field
-        # is added, populate logo_path with its absolute filesystem path.
+        # H-API-PAY10-01: SiteSettings.logo (ImageField) feeds the receipt
+        # logo. The helper treats an empty logo_path as "no logo", so an
+        # unset logo degrades gracefully.
         'logo_path': _resolve_logo_path(site),
     }
 
@@ -102,9 +102,9 @@ def _resolve_logo_path(site) -> str:
     """
     Resolve the issuer logo to an absolute PNG path for the helper.
 
-    SiteSettings currently has no logo field (H-API-PAY10-01). Returns '' so
-    the receipt is generated without a logo. Kept as a seam so REP-05/LOG-10
-    and a future logo field plug in here without touching the helper.
+    H-API-PAY10-01: reads SiteSettings.logo (ImageField). Returns '' when no
+    logo is set so the receipt is generated without a logo. Kept as a seam so
+    REP-05/LOG-10 plug in here without touching the helper.
     """
     logo = getattr(site, 'logo', None) if site else None
     if not logo:
