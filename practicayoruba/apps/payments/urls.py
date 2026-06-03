@@ -1,6 +1,6 @@
 """URLs — apps.payments (Sprint 15)."""
 from django.urls import path
-from .views import InitiatePaymentView, PaymentReturnView, InstallmentPlansView, PaymentStatusView, PaymentHistoryView, RefundView, RetryEligibilityView, AdminRefundView
+from .views import InitiatePaymentView, PaymentReturnView, InstallmentPlansView, PaymentStatusView, PaymentHistoryView, RefundView, RetryEligibilityView, AdminRefundView, ReceiptPdfView
 from .webhooks import MercadoPagoWebhookView, PayPalWebhookView
 
 app_name = 'payments'
@@ -28,6 +28,9 @@ urlpatterns = [
     # UC-PAY-08 — elegibilidad de reintento
     path('<str:order_number>/retry-eligibility/',
          RetryEligibilityView.as_view(), name='retry-eligibility'),
+    # UC-PAY-10 — recibo en PDF
+    path('<str:order_number>/receipt/',
+         ReceiptPdfView.as_view(), name='receipt'),
     # UC-PAY-09 — reembolso admin (nota: también en admin_urls)
     path('admin/<int:payment_id>/refund/',
          AdminRefundView.as_view(), name='admin-refund'),

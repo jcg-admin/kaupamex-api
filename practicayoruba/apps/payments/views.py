@@ -4,6 +4,7 @@ Sprint 15 — UC-PAY-01, UC-PAY-01-EXT, UC-ORD-01-EXT
 """
 import logging
 from decimal import Decimal, Decimal as Dec
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from rest_framework.exceptions import ValidationError
@@ -28,6 +29,9 @@ from django.utils import timezone
 from apps.inventory.services import InventoryService, InsufficientStockError
 from apps.orders.views import CheckoutView
 from apps.orders.serializers import CheckoutSerializer, OrderSerializer
+from apps.users.audit import audit_log_business
+from apps.users.models import BusinessEvent
+from .pdf_receipt import build_receipt_payload, render_receipt_pdf, PdfGenerationError
 
 
 
@@ -214,6 +218,124 @@ class PaymentReturnView(APIView):
             return Response({'detail': 'Pago no encontrado.', 'status': 'not_found'}, status=200)
 
         return Response(PaymentSerializer(payment).data, status=200)
+
+
+# =============================================================================
+# UC-PAY-10 — Generar Recibo de Compra en PDF
+# =============================================================================
+
+# Estados de orden que cuentan como "pagada" para emitir recibo (PRE-02).
+_PAID_ORDER_STATUSES = frozenset({
+    Order.STATUS_PAID,
+    Order.STATUS_PROCESSING,
+    Order.STATUS_IN_PREPARATION,
+    Order.STATUS_SHIPPED,
+    Order.STATUS_DELIVERED,
+})
+
+
+class ReceiptPdfView(APIView):
+    """
+    GET /api/v1/payments/<order_number>/receipt/
+    Genera y descarga el recibo en PDF de una orden pagada. UC-PAY-10.
+
+    Auth JWT; accesible por el dueño de la orden o por un admin (is_staff).
+    El recibo no se persiste: se regenera idempotentemente desde los
+    snapshots inmutables de la orden (BR-005).
+    """
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary='Descargar recibo de compra en PDF (UC-PAY-10)',
+        description=(
+            'Genera el recibo en PDF de una orden pagada con libharu '
+            '(ADR-017): logotipo + emisor, comprador, número de orden y fecha, '
+            'tabla de ítems, totales (subtotal, IVA, envío, descuento, total) '
+            'y método/estado de pago. Dueño de la orden o is_staff. '
+            'Devuelve application/pdf adjunto.'
+        ),
+        parameters=[OpenApiParameter('order_number', str, location='path')],
+        responses={
+            200: OpenApiResponse(description='application/pdf (recibo).'),
+            403: OpenApiResponse(description='No es dueño ni admin (FORBIDDEN).'),
+            404: OpenApiResponse(description='Orden inexistente (NOT_FOUND).'),
+            409: OpenApiResponse(description='Orden no pagada (ORDER_NOT_PAID).'),
+            500: OpenApiResponse(description='Fallo del generador (PDF_GENERATION_FAILED).'),
+        },
+        tags=['payments'],
+    )
+    def get(self, request, order_number):
+        # EX-01: orden inexistente → 404 NOT_FOUND. select_related para cargar
+        # los snapshots financieros y de dirección en una sola consulta.
+        order = (
+            Order.objects.select_related('value', 'address')
+            .filter(order_number=order_number)
+            .first()
+        )
+        if order is None:
+            return Response(
+                {'detail': 'Orden no encontrada.', 'codigo_error': 'NOT_FOUND'},
+                status=404,
+            )
+
+        # EX-02: solicitante no dueño ni admin → 403 FORBIDDEN.
+        is_owner = order.user_id is not None and order.user_id == request.user.pk
+        if not (is_owner or request.user.is_staff):
+            return Response(
+                {'detail': 'No tienes permiso sobre esta orden.',
+                 'codigo_error': 'FORBIDDEN'},
+                status=403,
+            )
+
+        # EX-03: orden no pagada → 409 ORDER_NOT_PAID.
+        if order.status not in _PAID_ORDER_STATUSES:
+            return Response(
+                {'detail': 'La orden no está pagada.',
+                 'codigo_error': 'ORDER_NOT_PAID'},
+                status=409,
+            )
+
+        items = list(order.items.all())
+        value = getattr(order, 'value', None)
+        address = getattr(order, 'address', None)
+        payment = (
+            Payment.objects.filter(order=order, status=Payment.STATUS_APPROVED)
+            .order_by('-created_at').first()
+        )
+        site = SiteSettings.get_current()
+
+        payload = build_receipt_payload(
+            order=order, value=value, items=items,
+            address=address, payment=payment, site=site,
+        )
+
+        # EX-04: fallo del helper → 500 PDF_GENERATION_FAILED, sin PDF corrupto.
+        try:
+            pdf_bytes = render_receipt_pdf(payload)
+        except PdfGenerationError as exc:
+            logger.error('UC-PAY-10 PDF generation failed for %s: %s',
+                         order_number, exc)
+            return Response(
+                {'detail': 'No se pudo generar el recibo.',
+                 'codigo_error': 'PDF_GENERATION_FAILED'},
+                status=500,
+            )
+
+        # POST-02: auditoría RECIBO_PDF_GENERADO (actor + order + timestamp).
+        audit_log_business(
+            actor=request.user,
+            action=BusinessEvent.ACTION_RECIBO_PDF_GENERADO,
+            request=request,
+            target_type=BusinessEvent.TARGET_ORDER,
+            target_id=order.pk,
+            extra={'order_number': order.order_number},
+        )
+
+        response = HttpResponse(pdf_bytes, content_type='application/pdf')
+        response['Content-Disposition'] = (
+            f'attachment; filename="recibo-{order.order_number}.pdf"'
+        )
+        return response
 
 
 # =============================================================================

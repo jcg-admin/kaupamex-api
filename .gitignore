@@ -11,3 +11,5 @@ venv/
 htmlcov/
 .venv/
 /practicayoruba/staticfiles/
+# Compiled PDF helper (built per-environment by the server provisioner; ADR-017)
+/practicayoruba/tools/pdf/pdf_receipt
