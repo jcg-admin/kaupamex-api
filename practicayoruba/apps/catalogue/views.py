@@ -605,8 +605,7 @@ class ProductAdminViewSet(ProductDeactivateAction, ModelViewSet):
             cache.delete(CATEGORY_TREE_CACHE_KEY)
 
     def perform_destroy(self, instance):
-        from django.db import transaction as _tx
-        with _tx.atomic():
+        with transaction.atomic():
             instance.is_active = False
             instance.is_published = False
             instance.is_deleted = True

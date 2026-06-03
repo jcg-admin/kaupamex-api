@@ -7,6 +7,8 @@ UC-CHT-03: Gestionar tipos de variante (admin)
 UC-CHT-04: Ajustar precio individual de variante (admin)
 """
 from decimal import Decimal as _Decimal, InvalidOperation
+
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import status
 from rest_framework.exceptions import NotFound, ValidationError
@@ -225,8 +227,7 @@ class VariantTypeAdminViewSet(ModelViewSet):
         # and assignment flows that filter options via the active manager.
         # Solution: soft-delete all child options before deleting the type.
         instance = self.get_object()
-        from django.utils import timezone as _tz
-        now = _tz.now()
+        now = timezone.now()
         instance.options.filter(is_deleted=False).update(
             is_deleted=True, deleted_at=now,
         )

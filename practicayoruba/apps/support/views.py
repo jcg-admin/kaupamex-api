@@ -332,7 +332,6 @@ class SupportTicketReopenView(APIView):
                 pk=ticket_id
             ).select_related('user').first()
             if ticket is None or (not request.user.is_staff and ticket.user_id != request.user.id):
-                from django.http import Http404
                 raise Http404
             if ticket.status != SupportTicket.Status.CLOSED:
                 return Response(

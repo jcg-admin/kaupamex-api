@@ -26,6 +26,7 @@ Uso:
 """
 import os
 
+import decouple
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
@@ -50,9 +51,11 @@ def _read_var(name):
     if val:
         return val
     try:
-        from decouple import config as _config, UndefinedValueError
-        return _config(name, default=None)
-    except (ImportError, Exception):
+        # Acceso via modulo (no `from decouple import config`) para que el
+        # fallback se resuelva en cada llamada y los tests puedan parchear
+        # `decouple.config` con monkeypatch (H-API-04).
+        return decouple.config(name, default=None)
+    except Exception:
         return None
 
 

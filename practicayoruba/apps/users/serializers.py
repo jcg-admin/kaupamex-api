@@ -7,6 +7,7 @@ Sprint 2: ProfileSerializer, UpdateProfileSerializer,
 """
 import io
 import logging
+import re
 import time
 
 from django.contrib.auth import get_user_model
@@ -222,7 +223,6 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
 
     def validate_phone(self, value):
         """H-CICLO67-01: reject phone strings that do not match E.164-like format."""
-        import re
         if value is None or value == '':
             return value
         if not re.match(_PHONE_RE, value):

@@ -3,16 +3,18 @@ Views — apps.payments
 Sprint 15 — UC-PAY-01, UC-PAY-01-EXT, UC-ORD-01-EXT
 """
 import logging
+from datetime import date
 from decimal import Decimal, Decimal as Dec
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from rest_framework.exceptions import ValidationError
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
-from django.db.models import F
+from django.db.models import F, Q, Sum
 from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress, ShippingZone
 from apps.orders.proxy_models import DeliveredOrder
 from apps.voucher.models import Voucher, VoucherUsage
@@ -980,10 +982,6 @@ class AdminPaymentListView(APIView):
         tags=['payments-admin'],
     )
     def get(self, request):
-        from django.db.models import Sum, Q
-        from decimal import Decimal as _Dec
-        from datetime import date as _date
-
         qs = (
             Payment.objects.select_related('order', 'order__user')
             .order_by('-created_at')
@@ -1017,7 +1015,7 @@ class AdminPaymentListView(APIView):
 
         if from_param:
             try:
-                _date.fromisoformat(from_param)
+                date.fromisoformat(from_param)
             except ValueError:
                 raise ValidationError({
                     'from': 'Formato de fecha inválido. Use YYYY-MM-DD.',
@@ -1027,7 +1025,7 @@ class AdminPaymentListView(APIView):
 
         if to_param:
             try:
-                _date.fromisoformat(to_param)
+                date.fromisoformat(to_param)
             except ValueError:
                 raise ValidationError({
                     'to': 'Formato de fecha inválido. Use YYYY-MM-DD.',
@@ -1055,8 +1053,8 @@ class AdminPaymentListView(APIView):
                 ]),
             ),
         )
-        approved_total = agg['approved'] or _Dec('0.00')
-        refunded_total = agg['refunded'] or _Dec('0.00')
+        approved_total = agg['approved'] or Decimal('0.00')
+        refunded_total = agg['refunded'] or Decimal('0.00')
         totals = {
             'approved': approved_total,
             'refunded': refunded_total,
@@ -1064,7 +1062,6 @@ class AdminPaymentListView(APIView):
         }
 
         # --- pagination ---
-        from rest_framework.pagination import PageNumberPagination
         paginator = PageNumberPagination()
         paginator.page_size             = 25
         paginator.page_size_query_param = 'page_size'
