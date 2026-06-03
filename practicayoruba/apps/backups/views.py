@@ -13,16 +13,47 @@ import os
 import subprocess
 import threading
 
+from django.conf import settings
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.core.email_executor import dispatch_email
 from .models import BackupRecord
 from .serializers import BackupRecordSerializer
 
 logger = logging.getLogger('apps')
+
+
+def _notify_backup_failed(record_pk: int, error_detail: str) -> None:
+    """
+    UC-ADM-05: alerta por email cuando un backup on-demand falla.
+
+    Usa dispatch_email (patrón síncrono del proyecto, sin Celery): si el SMTP
+    falla, la alerta se persiste en EmailTask y send_pending_emails la
+    reintenta con backoff — los reintentos del propio envío salen gratis.
+    No re-lanza: una falla al notificar no debe enmascarar la falla del backup.
+    """
+    recipient = getattr(settings, 'BACKUP_ALERT_EMAIL', '')
+    if not recipient:
+        logger.warning('Backup #%d falló pero BACKUP_ALERT_EMAIL no está '
+                       'configurado — no se envió alerta.', record_pk)
+        return
+    try:
+        dispatch_email(
+            subject=f'[PracticaYoruba] Backup #{record_pk} falló',
+            message=(
+                f'El backup on-demand #{record_pk} terminó en error.\n\n'
+                f'Detalle:\n{error_detail}'
+            ),
+            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None),
+            recipient_list=[recipient],
+        )
+    except Exception:
+        logger.exception('No se pudo despachar la alerta de backup fallido #%d.',
+                         record_pk)
 
 # H-CICLO82-03: lock en proceso para serializar peticiones concurrentes de
 # backup. Sin este lock, N POST simultaneos a /backups/trigger/ lanzan N
@@ -64,12 +95,15 @@ def _run_backup(record_pk: int) -> None:
                 error_detail=err,
             )
             logger.error('Backup #%d error: %s', record_pk, err)
+            _notify_backup_failed(record_pk, err)
     except Exception as exc:
+        err = str(exc)[:1000]
         BackupRecord.objects.filter(pk=record_pk).update(
             status=BackupRecord.STATUS_ERROR,
-            error_detail=str(exc)[:1000],
+            error_detail=err,
         )
         logger.exception('Backup #%d excepcion inesperada.', record_pk)
+        _notify_backup_failed(record_pk, err)
 
 
 class BackupPagination(PageNumberPagination):

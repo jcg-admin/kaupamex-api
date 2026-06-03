@@ -121,6 +121,10 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # Sobrescribir en production.py via decouple si se necesita otro valor.
 DEFAULT_FROM_EMAIL = 'noreply@practicayoruba.mx'
 
+# Destinatario de alertas operativas (UC-ADM-05: backup fallido). El backup
+# on-demand notifica a esta dirección cuando backup_db.sh termina en error.
+BACKUP_ALERT_EMAIL = config('BACKUP_ALERT_EMAIL', default='admin@practicayoruba.mx')
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
