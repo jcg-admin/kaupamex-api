@@ -302,6 +302,17 @@ class AdminUserViewSet(ModelViewSet):
                     {'detail': 'Un administrador no puede suspenderse a sí mismo.'},
                     status=400,
                 )
+            # UC-AUTH-13 PRE-04 / EX-03 (Protección de superusuario): las
+            # cuentas is_superuser=True no pueden suspenderse desde el
+            # backoffice — solo se gestionan desde la consola del servidor.
+            # PARTE 7.3 → 403 / codigo_error = ACCOUNT_PROTECTED.
+            if target.is_superuser:
+                return Response(
+                    {'detail': 'No se puede suspender una cuenta de '
+                               'superusuario desde el backoffice.',
+                     'codigo_error': 'ACCOUNT_PROTECTED'},
+                    status=403,
+                )
             target.is_active = False
             # GAP-3 cierre: registrar la causa explicita para que
             # ResendVerificationView no reactive por email (UC-AUTH-01

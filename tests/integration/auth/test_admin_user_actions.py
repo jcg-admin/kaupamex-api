@@ -22,6 +22,15 @@ def target_user(db):
     )
 
 
+@pytest.fixture
+def superuser_target(db):
+    return get_user_model().objects.create_user(
+        username='superusertarget', email='super@test.mx',
+        password='Pass123!', is_active=True,
+        is_staff=True, is_superuser=True,
+    )
+
+
 class TestAdminUserDetail:
 
     def test_admin_puede_ver_perfil_de_usuario(self, admin_auth_client, target_user, db):
@@ -82,6 +91,24 @@ class TestAdminSuspendUser:
     def test_admin_no_puede_suspenderse_a_si_mismo(self, admin_auth_client, admin_user, db):
         r = admin_auth_client.post(f'{USERS_URL}{admin_user.pk}/suspend/')
         assert r.status_code == 400
+
+    def test_suspender_superusuario_es_rechazado(
+        self, admin_auth_client, superuser_target, db
+    ):
+        # UC-AUTH-13 PRE-04 / EX-03 / PARTE 6 (Protección de superusuario):
+        # una cuenta is_superuser=True no puede suspenderse desde el
+        # backoffice. PARTE 7.3 → 403 / codigo_error = ACCOUNT_PROTECTED.
+        r = admin_auth_client.post(f'{USERS_URL}{superuser_target.pk}/suspend/')
+        assert r.status_code == 403
+        assert r.json().get('codigo_error') == 'ACCOUNT_PROTECTED'
+
+    def test_suspender_superusuario_no_muta_estado(
+        self, admin_auth_client, superuser_target, db
+    ):
+        # POST-F01: is_active conserva el valor True tras el rechazo.
+        admin_auth_client.post(f'{USERS_URL}{superuser_target.pk}/suspend/')
+        superuser_target.refresh_from_db()
+        assert superuser_target.is_active is True
 
 
 class TestAdminReactivateUser:
