@@ -181,11 +181,11 @@ fi
 # Iniciativa configurar-ui-dist-en-deploy (H-UID-1, H-UID-2)
 # ----------------------------------------------------------------------------
 
-# H-UID-1: .env.example documenta UI_DIST con default WSL2
-if grep -qE '^UI_DIST=/srv/repos/ecom/e-comerce-ui/dist' "$PROJECT_ROOT/practicayoruba/.env.example"; then
-    pass ".env.example documenta UI_DIST con default WSL2 (H-UID-1)"
+# H-UID-1: .env.example documenta UI_DIST con path OVHCloud (produccion)
+if grep -qE '^UI_DIST=/opt/practicayoruba/ui/dist' "$PROJECT_ROOT/practicayoruba/.env.example"; then
+    pass ".env.example documenta UI_DIST con path OVHCloud (H-UID-1)"
 else
-    fail ".env.example NO documenta UI_DIST (H-UID-1 regresion)"
+    fail ".env.example NO documenta UI_DIST OVHCloud (H-UID-1 regresion)"
 fi
 
 # H-UID-2: production.py default es '' (centinela), NO el path obsoleto /opt/...
