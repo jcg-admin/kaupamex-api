@@ -76,7 +76,7 @@ ALLOWED_HOSTS = config(
 # ``if getattr(settings, 'UI_DIST', None):``).
 #
 # Configurar en ``practicayoruba/.env`` la ruta real:
-#   UI_DIST=/srv/repos/ecom/e-comerce-ui/dist   (WSL2 canónico)
+#   UI_DIST=/srv/repos/ecom/e-commerce-ui/dist   (WSL2 canónico)
 UI_DIST = config('UI_DIST', default='')
 
 # --- Email -----------------------------------------------------------------
