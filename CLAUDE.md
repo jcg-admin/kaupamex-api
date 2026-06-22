@@ -18,13 +18,17 @@ La gobernanza vive en el superproyecto, no aquí:
   `no-lazy-imports.md`, `test-execution-protocol.md`, etc.
 - **`.claude/rules/db-conexion-socket.md`** (local) — gate ejecutable de la
   conexión a DB por socket vs TCP.
+- **`.claude/rules/commit-conventions.md`** (local) — estilo Tim Pope +
+  autor obligatorio (`Nestor Monroy`). Sin Conventional Commits.
+- **`.claude/rules/git-workflow.md`** (local) — flujo de ramas: siempre
+  `feature/…` → PR → `develop`. Nunca push directo a `develop`/`main`.
 
 ## Stack (verificado en `pyproject.toml`)
 
 - Python `>=3.11,<3.14`
 - Django `5.0.1`, djangorestframework `3.14.0`,
   djangorestframework-simplejwt `5.3.1`, drf-spectacular `0.27.0`
-- mysqlclient `2.2.1`, python-decouple `3.8`, Pillow `10.2.0`,
+- mysqlclient `2.2.1`, python-decouple `3.8`, Pillow `>=10.3.0`,
   mercadopago `>=2.2.0`, django-cors-headers `4.3.1`
 - Test group: pytest `7.4.4`, pytest-django `4.7.0`, factory-boy `3.3.0`
 - uv: `package = false` (app Django, no wheel)
