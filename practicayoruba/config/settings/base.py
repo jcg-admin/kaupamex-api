@@ -89,6 +89,23 @@ _DB_SOCKET = config('DB_SOCKET', default='')
 if _DB_SOCKET:
     _DB_OPTIONS['unix_socket'] = _DB_SOCKET
 
+# SSL — conexión remota con require_secure_transport=ON (producción OVH).
+# DB_SSL_CA: ruta al CA bundle; vacío = CAs del sistema (válido para
+# certs Let's Encrypt ya que son de autoridad pública confiada).
+# DB_SSL_MODE: REQUIRED | VERIFY_CA | VERIFY_IDENTITY (vacío = sin SSL).
+# Cuando alguno de los dos está seteado, mysqlclient negocia TLS.
+# Valores para producción OVH (VM1 → VM3 interno):
+#   DB_HOST=192.168.100.30  DB_SSL_MODE=REQUIRED  DB_SSL_CA=
+_DB_SSL_MODE = config('DB_SSL_MODE', default='')
+_DB_SSL_CA   = config('DB_SSL_CA',   default='')
+if _DB_SSL_MODE or _DB_SSL_CA:
+    _ssl_opts = {}
+    if _DB_SSL_CA:
+        _ssl_opts['ca'] = _DB_SSL_CA
+    _DB_OPTIONS['ssl'] = _ssl_opts
+    if _DB_SSL_MODE:
+        _DB_OPTIONS['ssl_mode'] = _DB_SSL_MODE
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',

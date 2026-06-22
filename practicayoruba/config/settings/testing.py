@@ -29,6 +29,16 @@ _DB_QA_SOCKET = config('DB_QA_SOCKET', default='')
 if _DB_QA_SOCKET:
     _DB_QA_OPTIONS['unix_socket'] = _DB_QA_SOCKET
 
+_DB_QA_SSL_MODE = config('DB_QA_SSL_MODE', default='')
+_DB_QA_SSL_CA   = config('DB_QA_SSL_CA',   default='')
+if _DB_QA_SSL_MODE or _DB_QA_SSL_CA:
+    _qa_ssl_opts = {}
+    if _DB_QA_SSL_CA:
+        _qa_ssl_opts['ca'] = _DB_QA_SSL_CA
+    _DB_QA_OPTIONS['ssl'] = _qa_ssl_opts
+    if _DB_QA_SSL_MODE:
+        _DB_QA_OPTIONS['ssl_mode'] = _DB_QA_SSL_MODE
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
