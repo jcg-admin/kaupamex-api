@@ -24,7 +24,7 @@ dependencies = [
     "mysqlclient==2.2.1",
     "certifi>=2024.0.0",
     # Imagenes / media
-    "Pillow==10.2.0",
+    "Pillow>=10.3.0",
     # Seguridad
     "cryptography>=42.0.0",
     # Pagos
