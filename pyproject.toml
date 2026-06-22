@@ -22,6 +22,7 @@ dependencies = [
     "python-decouple==3.8",
     # Base de datos
     "mysqlclient==2.2.1",
+    "certifi>=2024.0.0",
     # Imagenes / media
     "Pillow==10.2.0",
     # Seguridad

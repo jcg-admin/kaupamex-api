@@ -10,6 +10,8 @@ Arranque de MariaDB en entornos sin systemd:
     --pid-file=/run/mysqld/mysqld.pid --bind-address=127.0.0.1 \\
     --port=3306" &> /tmp/mariadbd.log &
 """
+import certifi
+import tempfile
 from .base import *
 
 DEBUG = False
@@ -18,10 +20,12 @@ DEBUG = False
 # (inventory import, reviews images, catalogue import) NO deben escribir al
 # media/ del repo — no es hermetico y depende de permisos del FS (el usuario
 # 'develop' no puede escribir el media/ del repo). (H-API-02)
-import tempfile
 MEDIA_ROOT = tempfile.mkdtemp(prefix='pyqa-media-')
 
 _DB_QA_OPTIONS = {
+    'ssl': {
+        'ca': certifi.where(),  # Bundle CAs publico — valido para Let's Encrypt
+    },
     'charset': 'utf8mb4',
     'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
 }
@@ -29,23 +33,13 @@ _DB_QA_SOCKET = config('DB_QA_SOCKET', default='')
 if _DB_QA_SOCKET:
     _DB_QA_OPTIONS['unix_socket'] = _DB_QA_SOCKET
 
-_DB_QA_SSL_MODE = config('DB_QA_SSL_MODE', default='')
-_DB_QA_SSL_CA   = config('DB_QA_SSL_CA',   default='')
-if _DB_QA_SSL_MODE or _DB_QA_SSL_CA:
-    _qa_ssl_opts = {}
-    if _DB_QA_SSL_CA:
-        _qa_ssl_opts['ca'] = _DB_QA_SSL_CA
-    _DB_QA_OPTIONS['ssl'] = _qa_ssl_opts
-    if _DB_QA_SSL_MODE:
-        _DB_QA_OPTIONS['ssl_mode'] = _DB_QA_SSL_MODE
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME':     config('DB_QA_NAME',     default='practicayoruba_qa'),
-        'USER':     config('DB_QA_USER',     default='django_user'),
-        'PASSWORD': config('DB_QA_PASSWORD', default='django_pass'),
-        'HOST':     config('DB_QA_HOST',     default='127.0.0.1'),
+        'USER':     config('DB_QA_USER',     default='practicayoruba_app'),
+        'PASSWORD': config('DB_QA_PASSWORD', default=''),
+        'HOST':     config('DB_QA_HOST',     default='db.practicayoruba.com'),
         'PORT':     config('DB_QA_PORT',     default='3306'),
         'OPTIONS': _DB_QA_OPTIONS,
         'TEST': {

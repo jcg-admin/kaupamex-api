@@ -1,6 +1,7 @@
 from pathlib import Path
 from datetime import timedelta
 from decouple import config, Csv
+import certifi
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -75,13 +76,14 @@ TEMPLATES = [{
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-# Conexion DB — socket Unix preferido (convencion del proyecto:
-# "se tienen que conectar x socket"). Si DB_SOCKET esta seteada,
-# Django/mysqlclient ignora HOST/PORT y usa el socket directamente.
-# Fallback TCP cuando DB_SOCKET no esta seteada (CI runners
-# remotos, conexion cross-host). Ver
-# docs/source/normativa/procedimientos/proc-ejecutar-pruebas.rst.
+# Conexion DB — socket Unix preferido en dev local (si DB_SOCKET está
+# seteada, mysqlclient ignora HOST/PORT). En produccion OVH (VM1→VM3)
+# se usa TCP con SSL obligatorio (require_secure_transport=ON en VM3).
+# Ver docs/source/normativa/procedimientos/proc-ejecutar-pruebas.rst.
 _DB_OPTIONS = {
+    'ssl': {
+        'ca': certifi.where(),  # Bundle CAs publico — valido para Let's Encrypt
+    },
     'charset': 'utf8mb4',
     'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
 }
@@ -89,30 +91,13 @@ _DB_SOCKET = config('DB_SOCKET', default='')
 if _DB_SOCKET:
     _DB_OPTIONS['unix_socket'] = _DB_SOCKET
 
-# SSL — conexión remota con require_secure_transport=ON (producción OVH).
-# DB_SSL_CA: ruta al CA bundle; vacío = CAs del sistema (válido para
-# certs Let's Encrypt ya que son de autoridad pública confiada).
-# DB_SSL_MODE: REQUIRED | VERIFY_CA | VERIFY_IDENTITY (vacío = sin SSL).
-# Cuando alguno de los dos está seteado, mysqlclient negocia TLS.
-# Valores para producción OVH (VM1 → VM3 interno):
-#   DB_HOST=192.168.100.30  DB_SSL_MODE=REQUIRED  DB_SSL_CA=
-_DB_SSL_MODE = config('DB_SSL_MODE', default='')
-_DB_SSL_CA   = config('DB_SSL_CA',   default='')
-if _DB_SSL_MODE or _DB_SSL_CA:
-    _ssl_opts = {}
-    if _DB_SSL_CA:
-        _ssl_opts['ca'] = _DB_SSL_CA
-    _DB_OPTIONS['ssl'] = _ssl_opts
-    if _DB_SSL_MODE:
-        _DB_OPTIONS['ssl_mode'] = _DB_SSL_MODE
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': config('DB_NAME', default='practicayoruba_db'),
-        'USER': config('DB_USER', default='django_user'),
-        'PASSWORD': config('DB_PASSWORD', default='django_pass'),
-        'HOST': config('DB_HOST', default='127.0.0.1'),
+        'USER': config('DB_USER', default='practicayoruba_app'),
+        'PASSWORD': config('DB_PASSWORD', default=''),
+        'HOST': config('DB_HOST', default='db.practicayoruba.com'),
         'PORT': config('DB_PORT', default='3306'),
         'OPTIONS': _DB_OPTIONS,
     }
