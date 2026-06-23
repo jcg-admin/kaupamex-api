@@ -25,7 +25,7 @@ La gobernanza vive en el superproyecto, no aquí:
 
 ## Stack (verificado en `pyproject.toml`)
 
-- Python `>=3.12,<3.14`
+- Python `>=3.12,<3.15`
 - Django `6.0.5`, djangorestframework `3.16.1`,
   djangorestframework-simplejwt `5.5.1`, drf-spectacular `0.29.0`
 - mysqlclient `2.2.1`, python-decouple `3.8`, Pillow `>=10.3.0`,
