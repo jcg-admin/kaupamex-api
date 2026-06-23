@@ -395,6 +395,6 @@ CACHES = {
 # La unicidad se garantiza a nivel de aplicación:
 #   - CartItem: get_or_create() dentro de transaction.atomic()
 #   - WishlistItem: pre-check + captura de IntegrityError → 409
-# suppress_warnings en class Meta no existe en Django 5.0.1 (introducido
-# en 5.2) — usar SILENCED_SYSTEM_CHECKS como mecanismo correcto.
+# suppress_warnings en class Meta no está disponible en Django 6.0.5;
+# SILENCED_SYSTEM_CHECKS sigue siendo el mecanismo correcto.
 SILENCED_SYSTEM_CHECKS = ['models.W036']
