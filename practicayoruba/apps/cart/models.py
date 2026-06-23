@@ -136,8 +136,8 @@ class CartItem(TimeStampedModel):
         # nivel de aplicación: CartView.post() y CartItemListView.post()
         # usan get_or_create(cart, product, variant) dentro de
         # transaction.atomic(), lo que hace imposible crear duplicados.
-        # W036 silenciado intencionalmente — decisión registrada T-DEV-3.
-        suppress_warnings = ['models.W036']
+        # W036 silenciado via SILENCED_SYSTEM_CHECKS en base.py (T-DEV-3).
+        # suppress_warnings no existe en Django 5.0.1 — introducido en 5.2.
         constraints       = [
             # Productos con variante: (cart, variant) único.
             models.UniqueConstraint(

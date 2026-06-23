@@ -45,8 +45,8 @@ class WishlistItem(TimeStampedModel, SoftDeleteModel):
         # nivel de aplicación: WishlistView.post() hace pre-check con
         # all_objects.filter(user, product, variant) y captura IntegrityError
         # como fallback contra race conditions, retornando 409 en ambos casos.
-        # W036 silenciado intencionalmente — decisión registrada T-DEV-4.
-        suppress_warnings = ['models.W036']
+        # W036 silenciado via SILENCED_SYSTEM_CHECKS en base.py (T-DEV-4).
+        # suppress_warnings no existe en Django 5.0.1 — introducido en 5.2.
         constraints = [
             models.UniqueConstraint(
                 fields=['user', 'product', 'variant'],
