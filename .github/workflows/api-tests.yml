@@ -18,10 +18,12 @@ name: api-tests
 on:
   push:
     branches:
-      - claude/gallant-bohr-ualw6   # TODO: ampliar a develop/main al estabilizar
+      - develop
+      - main
   pull_request:
     branches:
-      - claude/gallant-bohr-ualw6   # TODO: idem
+      - develop
+      - main
 
 jobs:
   test:
