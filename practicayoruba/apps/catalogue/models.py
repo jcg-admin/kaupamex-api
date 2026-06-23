@@ -145,10 +145,15 @@ class SearchHistory(TimeStampedModel):
     term = models.CharField(max_length=200)
 
     class Meta:
-        db_table        = 'catalogue_search_history'
-        unique_together = [('user', 'term')]
-        ordering        = ['-updated_at']
-        verbose_name    = 'Historial de búsqueda'
+        db_table     = 'catalogue_search_history'
+        constraints  = [
+            models.UniqueConstraint(
+                fields=['user', 'term'],
+                name='unique_search_history_user_term',
+            )
+        ]
+        ordering     = ['-updated_at']
+        verbose_name = 'Historial de búsqueda'
 
     def __str__(self):
         return f'{self.user.username}: "{self.term}"'
@@ -288,10 +293,19 @@ class AttributeValue(TimeStampedModel):
     display_order = models.IntegerField(default=0)
 
     class Meta:
-        db_table        = 'catalogue_attribute_value'
-        unique_together = [('axis', 'value'), ('axis', 'slug')]
-        ordering        = ['axis', 'display_order', 'value']
-        verbose_name    = 'Valor de atributo'
+        db_table     = 'catalogue_attribute_value'
+        constraints  = [
+            models.UniqueConstraint(
+                fields=['axis', 'value'],
+                name='unique_attribute_value_axis_value',
+            ),
+            models.UniqueConstraint(
+                fields=['axis', 'slug'],
+                name='unique_attribute_value_axis_slug',
+            ),
+        ]
+        ordering     = ['axis', 'display_order', 'value']
+        verbose_name = 'Valor de atributo'
 
     def __str__(self):
         return f'{self.axis.name}: {self.value}'
@@ -324,9 +338,14 @@ class ProductAttribute(models.Model):
     )
 
     class Meta:
-        db_table        = 'catalogue_product_attribute'
-        unique_together = [('product', 'value')]
-        indexes = [
+        db_table     = 'catalogue_product_attribute'
+        constraints  = [
+            models.UniqueConstraint(
+                fields=['product', 'value'],
+                name='unique_product_attribute',
+            )
+        ]
+        indexes      = [
             models.Index(fields=['value']),
             models.Index(fields=['product', 'value']),
         ]

@@ -211,9 +211,14 @@ class CheckoutAttempt(models.Model):
     created_at      = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table        = 'orders_checkout_attempt'
-        unique_together = [('user', 'idempotency_key')]
-        verbose_name    = 'Checkout attempt'
+        db_table     = 'orders_checkout_attempt'
+        constraints  = [
+            models.UniqueConstraint(
+                fields=['user', 'idempotency_key'],
+                name='unique_checkout_attempt',
+            )
+        ]
+        verbose_name = 'Checkout attempt'
 
     def __str__(self):
         return f'{self.user_id}/{self.idempotency_key}'

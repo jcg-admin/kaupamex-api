@@ -37,7 +37,12 @@ class VariantType(TimeStampedModel, SoftDeleteModel):
     class Meta:
         db_table     = 'chartsize_variant_type'
         ordering     = ['order', 'name']
-        unique_together = [('product', 'name')]
+        constraints  = [
+            models.UniqueConstraint(
+                fields=['product', 'name'],
+                name='unique_variant_type_product_name',
+            )
+        ]
         verbose_name = 'Tipo de variante'
 
     def __str__(self):
@@ -65,10 +70,19 @@ class VariantOption(TimeStampedModel, SoftDeleteModel):
     order    = models.PositiveSmallIntegerField(default=0, db_index=True)
 
     class Meta:
-        db_table        = 'chartsize_variant_option'
-        ordering        = ['order', 'label']
-        unique_together = [('variant_type', 'label'), ('variant_type', 'slug')]
-        verbose_name    = 'Opcion de variante'
+        db_table     = 'chartsize_variant_option'
+        ordering     = ['order', 'label']
+        constraints  = [
+            models.UniqueConstraint(
+                fields=['variant_type', 'label'],
+                name='unique_variant_option_type_label',
+            ),
+            models.UniqueConstraint(
+                fields=['variant_type', 'slug'],
+                name='unique_variant_option_type_slug',
+            ),
+        ]
+        verbose_name = 'Opcion de variante'
 
     def __str__(self):
         return f'{self.variant_type.name}: {self.label}'

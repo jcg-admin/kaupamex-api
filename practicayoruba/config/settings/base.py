@@ -389,3 +389,12 @@ CACHES = {
         },
     }
 }
+
+# W036: MariaDB no soporta UniqueConstraint con condition=.
+# Afecta CartItem (T-DEV-3) y WishlistItem (T-DEV-4).
+# La unicidad se garantiza a nivel de aplicación:
+#   - CartItem: get_or_create() dentro de transaction.atomic()
+#   - WishlistItem: pre-check + captura de IntegrityError → 409
+# suppress_warnings en class Meta no existe en Django 5.0.1 (introducido
+# en 5.2) — usar SILENCED_SYSTEM_CHECKS como mecanismo correcto.
+SILENCED_SYSTEM_CHECKS = ['models.W036']

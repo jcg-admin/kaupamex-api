@@ -186,9 +186,14 @@ class VoucherUsage(models.Model):
     used_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table        = 'voucher_usage'
-        unique_together = [('user', 'voucher')]
-        verbose_name    = 'Voucher usage'
+        db_table     = 'voucher_usage'
+        constraints  = [
+            models.UniqueConstraint(
+                fields=['user', 'voucher'],
+                name='unique_voucher_usage',
+            )
+        ]
+        verbose_name = 'Voucher usage'
 
     def __str__(self):
         return f'{self.user_id} / {self.voucher.code}'

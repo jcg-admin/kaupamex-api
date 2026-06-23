@@ -77,10 +77,15 @@ class Review(TimeStampedModel, SoftDeleteModel):
     helpful_count = models.PositiveIntegerField(default=0, db_index=True)
 
     class Meta:
-        db_table        = 'reviews_review'
-        unique_together = [('user', 'product')]
-        ordering        = ['-created_at']
-        verbose_name    = 'Reseña'
+        db_table     = 'reviews_review'
+        constraints  = [
+            models.UniqueConstraint(
+                fields=['user', 'product'],
+                name='unique_review_user_product',
+            )
+        ]
+        ordering     = ['-created_at']
+        verbose_name = 'Reseña'
 
     def __str__(self):
         return f'{self.user.username} → {self.product.name} ({self.rating}/5)'
@@ -133,9 +138,14 @@ class ReviewHelpfulVote(TimeStampedModel):
     )
 
     class Meta:
-        db_table        = 'reviews_helpful_vote'
-        unique_together = [('user', 'review')]
-        verbose_name    = 'Voto util'
+        db_table     = 'reviews_helpful_vote'
+        constraints  = [
+            models.UniqueConstraint(
+                fields=['user', 'review'],
+                name='unique_helpful_vote_user_review',
+            )
+        ]
+        verbose_name = 'Voto util'
 
     def __str__(self):
         return f'{self.user.username} -> review#{self.review_id}'

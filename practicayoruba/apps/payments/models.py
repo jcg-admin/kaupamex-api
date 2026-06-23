@@ -179,9 +179,14 @@ class WebhookEvent(models.Model):
     processed_at    = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table        = 'payments_webhook_event'
-        unique_together = [('gateway', 'event_id', 'transmission_id')]
-        verbose_name    = 'Webhook event'
+        db_table     = 'payments_webhook_event'
+        constraints  = [
+            models.UniqueConstraint(
+                fields=['gateway', 'event_id', 'transmission_id'],
+                name='unique_webhook_event',
+            )
+        ]
+        verbose_name = 'Webhook event'
 
     def __str__(self):
         return f'{self.gateway}/{self.event_id}'

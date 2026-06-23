@@ -87,10 +87,15 @@ class NotificationPreference(TimeStampedModel):
     enabled = models.BooleanField(default=True)
 
     class Meta:
-        db_table = 'notifications_preference'
-        unique_together = [('user', 'type')]
-        verbose_name = 'Preferencia de notificacion'
-        verbose_name_plural = 'Preferencias de notificacion'
+        db_table             = 'notifications_preference'
+        constraints          = [
+            models.UniqueConstraint(
+                fields=['user', 'type'],
+                name='unique_notification_preference',
+            )
+        ]
+        verbose_name         = 'Preferencia de notificacion'
+        verbose_name_plural  = 'Preferencias de notificacion'
 
     def __str__(self):
         return f'{self.user_id}:{self.type}={self.enabled}'
