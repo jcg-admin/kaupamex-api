@@ -53,8 +53,8 @@ dev = [
 ]
 
 [tool.uv]
-# native-tls: usa el store de certificados del sistema (igual que docs).
-native-tls = true
+# system-certs: usa el store de certificados del sistema.
+system-certs = true
 # package = false: el API es una aplicacion Django (codigo bajo
 # practicayoruba/), no un paquete distribuible. uv gestiona el entorno y
 # las dependencias pero NO intenta construir el proyecto como wheel.
