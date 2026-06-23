@@ -53,6 +53,9 @@ jobs:
       # Sin DB_QA_SOCKET => fallback TCP a 127.0.0.1:3306 (el service).
       DJANGO_SETTINGS_MODULE: config.settings.testing
       PYTHONPATH: practicayoruba
+      # base.py:8 hace config('SECRET_KEY') sin default => obligatorio.
+      # Valor de CI no sensible; en prod va por GitHub Secrets.
+      SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY || 'ci-insecure-key-not-for-production' }}
       DB_QA_NAME: practicayoruba_qa
       DB_QA_USER: django_user
       DB_QA_PASSWORD: ${{ secrets.DB_QA_PASSWORD || 'django_pass' }}
