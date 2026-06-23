@@ -61,6 +61,10 @@ jobs:
       DB_QA_PASSWORD: ${{ secrets.DB_QA_PASSWORD || 'django_pass' }}
       DB_QA_HOST: 127.0.0.1
       DB_QA_PORT: 3306
+      # El service container MariaDB usa cert self-signed; el cliente no debe
+      # verificar TLS contra CAs publicas (testing.py lo lee). Sin esto:
+      # OperationalError 2026 'SSL ... certificate verify failed'.
+      DB_QA_SSL_MODE: DISABLED
 
     steps:
       - name: Checkout

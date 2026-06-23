@@ -23,12 +23,18 @@ DEBUG = False
 MEDIA_ROOT = tempfile.mkdtemp(prefix='pyqa-media-')
 
 _DB_QA_OPTIONS = {
-    'ssl': {
-        'ca': certifi.where(),  # Bundle CAs publico — valido para Let's Encrypt
-    },
     'charset': 'utf8mb4',
     'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
 }
+# SSL: por defecto se verifica el cert del server contra CAs publicas
+# (certifi), valido para la DB productiva (Let's Encrypt). En CI la DB es un
+# service container con cert self-signed; DB_QA_SSL_MODE=DISABLED apaga TLS
+# para ese entorno sin afectar local (socket) ni produccion (TCP+SSL).
+_DB_QA_SSL_MODE = config('DB_QA_SSL_MODE', default='')
+if _DB_QA_SSL_MODE:
+    _DB_QA_OPTIONS['ssl_mode'] = _DB_QA_SSL_MODE
+else:
+    _DB_QA_OPTIONS['ssl'] = {'ca': certifi.where()}
 _DB_QA_SOCKET = config('DB_QA_SOCKET', default='')
 if _DB_QA_SOCKET:
     _DB_QA_OPTIONS['unix_socket'] = _DB_QA_SOCKET
