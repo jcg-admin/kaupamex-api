@@ -1,7 +1,7 @@
 # CLAUDE.md — api (cheat-sheet local)
 
 Submódulo `api` del monorepo PracticaYoruba (repo GitHub `jcg-admin/e-commerce-api`).
-Backend Django 5 + DRF, gestionado con `uv`, tests con pytest contra MariaDB.
+Backend Django 6 + DRF, gestionado con `uv`, tests con pytest contra MariaDB.
 El producto se llama **PracticaYoruba** dentro del código (schemas
 `practicayoruba_db` / `practicayoruba_qa`; usuario `django_user`).
 
@@ -25,11 +25,11 @@ La gobernanza vive en el superproyecto, no aquí:
 
 ## Stack (verificado en `pyproject.toml`)
 
-- Python `>=3.11,<3.14`
-- Django `5.0.1`, djangorestframework `3.14.0`,
-  djangorestframework-simplejwt `5.3.1`, drf-spectacular `0.27.0`
+- Python `>=3.12,<3.14`
+- Django `6.0.5`, djangorestframework `3.16.1`,
+  djangorestframework-simplejwt `5.5.1`, drf-spectacular `0.29.0`
 - mysqlclient `2.2.1`, python-decouple `3.8`, Pillow `>=10.3.0`,
-  mercadopago `>=2.2.0`, django-cors-headers `4.3.1`
+  mercadopago `>=2.2.0`, django-cors-headers `4.9.0`
 - Test group: pytest `7.4.4`, pytest-django `4.7.0`, factory-boy `3.3.0`
 - uv: `package = false` (app Django, no wheel)
 

@@ -16,8 +16,8 @@ dependencies = [
     # Core Django + DRF
     "Django==6.0.5",
     "djangorestframework==3.16.1",
-    "djangorestframework-simplejwt==5.3.1",
-    "drf-spectacular==0.27.0",
+    "djangorestframework-simplejwt==5.5.1",
+    "drf-spectacular==0.29.0",
     # Configuracion (.env tolerante a sin-comillas; ver diagnostico-env)
     "python-decouple==3.8",
     # Base de datos
@@ -30,7 +30,7 @@ dependencies = [
     # Pagos
     "mercadopago>=2.2.0",
     # CORS
-    "django-cors-headers==4.3.1",
+    "django-cors-headers==4.9.0",
     "xlsxwriter>=3.2.9",
 ]
 
