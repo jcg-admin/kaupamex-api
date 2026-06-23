@@ -40,6 +40,7 @@ class WishlistItem(TimeStampedModel, SoftDeleteModel):
         # Reemplazado por dos UniqueConstraint condicionales (igual que CartItem):
         #   - con variante: (user, product, variant) cuando variant IS NOT NULL
         #   - sin variante: (user, product) cuando variant IS NULL
+        suppress_warnings = ['models.W036']
         constraints = [
             models.UniqueConstraint(
                 fields=['user', 'product', 'variant'],

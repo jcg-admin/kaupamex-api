@@ -129,9 +129,10 @@ class CartItem(TimeStampedModel):
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
 
     class Meta:
-        db_table     = 'cart_cart_item'
-        verbose_name = 'Item de carrito'
-        constraints  = [
+        db_table          = 'cart_cart_item'
+        verbose_name      = 'Item de carrito'
+        suppress_warnings = ['models.W036']
+        constraints       = [
             # Productos con variante: (cart, variant) único.
             models.UniqueConstraint(
                 fields=['cart', 'variant'],
