@@ -42,7 +42,12 @@ class StaticContentVersion(TimeStampedModel):
     )
 
     class Meta:
-        db_table        = 'static_content_version'
-        unique_together = [('content', 'version')]
-        ordering        = ['-version']
-        verbose_name    = 'Version de contenido'
+        db_table     = 'static_content_version'
+        constraints  = [
+            models.UniqueConstraint(
+                fields=['content', 'version'],
+                name='unique_static_content_version',
+            )
+        ]
+        ordering     = ['-version']
+        verbose_name = 'Version de contenido'

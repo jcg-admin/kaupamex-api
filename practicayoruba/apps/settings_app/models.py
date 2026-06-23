@@ -329,10 +329,15 @@ class StaticPageVersion(TimeStampedModel):
     publish_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        db_table        = 'settings_static_page_version'
-        unique_together = [('page', 'version')]
-        ordering        = ['-version']
-        verbose_name    = 'Versión de página estática'
+        db_table     = 'settings_static_page_version'
+        constraints  = [
+            models.UniqueConstraint(
+                fields=['page', 'version'],
+                name='unique_static_page_version',
+            )
+        ]
+        ordering     = ['-version']
+        verbose_name = 'Versión de página estática'
 
     def __str__(self):
         return f'{self.page.slug} v{self.version} ({self.status})'

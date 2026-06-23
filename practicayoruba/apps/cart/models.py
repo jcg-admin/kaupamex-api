@@ -208,9 +208,14 @@ class SavedCartItem(TimeStampedModel):
     price_at_save = models.DecimalField(max_digits=10, decimal_places=2)
 
     class Meta:
-        db_table        = 'cart_saved_cart_item'
-        unique_together = [('saved_cart', 'product')]
-        verbose_name    = 'Item guardado'
+        db_table     = 'cart_saved_cart_item'
+        constraints  = [
+            models.UniqueConstraint(
+                fields=['saved_cart', 'product'],
+                name='unique_saved_cart_item',
+            )
+        ]
+        verbose_name = 'Item guardado'
 
     def __str__(self):
         return f'{self.product.name} ×{self.quantity}'
