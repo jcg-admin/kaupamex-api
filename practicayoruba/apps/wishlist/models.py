@@ -40,6 +40,13 @@ class WishlistItem(TimeStampedModel, SoftDeleteModel):
         # Reemplazado por dos UniqueConstraint condicionales (igual que CartItem):
         #   - con variante: (user, product, variant) cuando variant IS NOT NULL
         #   - sin variante: (user, product) cuando variant IS NULL
+        # MariaDB no soporta UniqueConstraint con condition (W036) — la
+        # constraint no existe a nivel de BD. La unicidad se garantiza a
+        # nivel de aplicación: WishlistView.post() hace pre-check con
+        # all_objects.filter(user, product, variant) y captura IntegrityError
+        # como fallback contra race conditions, retornando 409 en ambos casos.
+        # W036 silenciado intencionalmente — decisión registrada T-DEV-4.
+        suppress_warnings = ['models.W036']
         constraints = [
             models.UniqueConstraint(
                 fields=['user', 'product', 'variant'],

@@ -129,9 +129,16 @@ class CartItem(TimeStampedModel):
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
 
     class Meta:
-        db_table     = 'cart_cart_item'
-        verbose_name = 'Item de carrito'
-        constraints  = [
+        db_table          = 'cart_cart_item'
+        verbose_name      = 'Item de carrito'
+        # MariaDB no soporta UniqueConstraint con condition (W036) — la
+        # constraint no existe a nivel de BD. La unicidad se garantiza a
+        # nivel de aplicación: CartView.post() y CartItemListView.post()
+        # usan get_or_create(cart, product, variant) dentro de
+        # transaction.atomic(), lo que hace imposible crear duplicados.
+        # W036 silenciado intencionalmente — decisión registrada T-DEV-3.
+        suppress_warnings = ['models.W036']
+        constraints       = [
             # Productos con variante: (cart, variant) único.
             models.UniqueConstraint(
                 fields=['cart', 'variant'],
