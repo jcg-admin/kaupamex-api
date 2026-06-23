@@ -124,4 +124,4 @@ LOGGING['loggers']['apps']['level']   = 'WARNING'
 # RF-2 (alcance-agregar-fotos-reviews): acción de deploy requerida:
 #   sudo mkdir -p /opt/practicayoruba/media
 #   sudo chown www-data:www-data /opt/practicayoruba/media
-MEDIA_ROOT = Path(config('MEDIA_ROOT'))
+MEDIA_ROOT = Path(config('MEDIA_ROOT', default='/opt/practicayoruba/media'))
