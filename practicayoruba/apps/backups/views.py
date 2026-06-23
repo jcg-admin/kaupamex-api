@@ -67,8 +67,8 @@ _BACKUP_LOCK = threading.Lock()
 # Adjust if the repos are co-located differently in production.
 _BACKUP_SCRIPT = os.path.join(
     os.path.dirname(__file__),          # apps/backups/
-    '..', '..', '..', '..',            # up to e-comerce-api/
-    '..', 'e-comerce-db',              # sibling repo
+    '..', '..', '..', '..',            # up to e-commerce-api/
+    '..', 'e-commerce-db',              # sibling repo
     'scripts', 'backup_db.sh',
 )
 _BACKUP_SCRIPT = os.path.normpath(_BACKUP_SCRIPT)

@@ -130,7 +130,7 @@ def serve_spa(request):
     if not os.path.isfile(index_path):
         raise Http404(
             f'UI build no encontrado en {index_path}. '
-            f'Ejecuta: npm run build en e-comerce-ui'
+            f'Ejecuta: npm run build en e-commerce-ui'
         )
     return FileResponse(open(index_path, 'rb'), content_type='text/html')
 

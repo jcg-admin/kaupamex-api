@@ -1,6 +1,6 @@
 CICLO75_RESULTS:
-- H-CICLO75-01 [MEDIA]: AdminSupportTicketListView status filter not validated — invalid status silently returned empty queryset instead of 400. Fixed with validation against SupportTicket.Status choices. (e-comerce-api@80ae946)
-- H-CICLO75-02 [MEDIA]: AdminOrderListView date_from/date_to filters not validated — invalid date formats and date_from > date_to were silently accepted, producing empty results. Fixed with date format validation and range check. (e-comerce-api@c6828e5)
+- H-CICLO75-01 [MEDIA]: AdminSupportTicketListView status filter not validated — invalid status silently returned empty queryset instead of 400. Fixed with validation against SupportTicket.Status choices. (e-commerce-api@80ae946)
+- H-CICLO75-02 [MEDIA]: AdminOrderListView date_from/date_to filters not validated — invalid date formats and date_from > date_to were silently accepted, producing empty results. Fixed with date format validation and range check. (e-commerce-api@c6828e5)
 - H-CICLO75-03: clean — ChangeEmailView does not exist; no email change feature present (users/views.py)
 - H-CICLO75-04: clean — PaymentGatewayViewSet credential rotation does not log old credentials in plaintext; credentials stored encrypted via Fernet, no logger.* calls on old values (settings_app/views.py)
 - H-CICLO75-05: clean — AdminOrderListView has no CSV export; date_from/date_to now validated (fixed in H-CICLO75-02)
@@ -11,4 +11,4 @@ CICLO75_RESULTS:
 - H-CICLO75-10 [BAJA/design-gap]: VoucherViewSet.deactivate() sets is_active=False on the voucher but does NOT notify or invalidate carts that currently have the voucher applied. Those carts will fail at checkout with VOUCHER_EXHAUSTED or validation error. Design gap, no crash, no fix applied per spec.
 - H-CICLO75-11: clean — ShipmentGuideListCreateView shows all guides to all admins (no per-admin filter); this is by design for a shared logistics panel (IsAdminUser shared scope)
 
-COMMITS: e-comerce-api@80ae946, e-comerce-api@c6828e5
+COMMITS: e-commerce-api@80ae946, e-commerce-api@c6828e5

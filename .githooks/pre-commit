@@ -7,7 +7,7 @@
 # message; este pre-commit valida contenido de los .py staged.
 #
 # Activacion:
-#   cd /home/user/e-comerce/api
+#   cd /home/user/e-commerce/api
 #   git config core.hooksPath .githooks
 #
 # Gates activos:

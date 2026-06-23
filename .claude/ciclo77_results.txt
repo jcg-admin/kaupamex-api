@@ -6,7 +6,7 @@ CICLO77_RESULTS:
   2+ no tenían cache, causando una query DB por categoría en cada cache miss.
   Corregido: se construye children_by_parent desde all_cats y se popula
   _prefetched_objects_cache['children'] en TODOS los objetos antes de
-  serializar. (e-comerce-api@4168210)
+  serializar. (e-commerce-api@4168210)
 
 - H-CICLO77-02: clean — no bug found
   OrderAddressUpdateView acepta campos de dirección en texto plano (sin
@@ -44,4 +44,4 @@ CICLO77_RESULTS:
   No existe BulkPriceUpdateView en inventory. InventoryDashboardView
   limita page_size a max 200 via min(200, ...).
 
-COMMITS: e-comerce-api@4168210
+COMMITS: e-commerce-api@4168210
