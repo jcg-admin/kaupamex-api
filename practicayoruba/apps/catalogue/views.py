@@ -1,6 +1,8 @@
 import csv
 import io
 import uuid
+from pathlib import Path
+from django.conf import settings
 from django.http import HttpResponse
 from django.db import transaction, connection
 from django.db.models import Q, Count
@@ -18,9 +20,9 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
-from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
+from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiParameter, OpenApiResponse
 from drf_spectacular.types import OpenApiTypes
-from .models import Category, Product, SearchHistory
+from .models import Category, Product, ProductImage, SearchHistory
 from .serializers import (
     ProductListSerializer, ProductDetailSerializer, ProductSearchSerializer,
     AutocompleteSerializer, SearchHistorySerializer, CategoryAdminSerializer,
@@ -814,3 +816,189 @@ class ProductPriceSyncTemplateView(APIView):
         for p in Product.objects.filter(is_active=True).only('sku', 'name', 'price').order_by('sku'):
             writer.writerow([p.sku, p.name, str(p.price)])
         return response
+
+
+# ─── Catalog CSV Import (UC-CAT-IMPORT) ──────────────────────────────────────
+
+_CATALOG_CSV_MAX_SIZE = 5 * 1024 * 1024  # 5 MB
+
+_CATALOG_ALLOWED_CONTENT_TYPES = {
+    'text/csv', 'text/plain', 'application/csv', 'application/vnd.ms-excel',
+}
+
+
+def _process_catalog_csv(file_obj, admin_user):
+    """
+    Parse and persist a catalog CSV with optional image references.
+
+    CSV columns: name, sku, base_price, category_slug, [description], [image_files]
+    image_files: semicolon-separated filenames pre-staged at MEDIA_ROOT/products/images/.
+
+    Products are persisted atomically (all-or-nothing). Image files that don't
+    exist on disk produce a warning but do not block import.
+
+    Returns (result_dict, None) on success or (None, error_dict) on failure.
+    """
+    REQUIRED_HEADERS = {'name', 'sku', 'base_price', 'category_slug'}
+    try:
+        content = file_obj.read()
+        reader = csv.DictReader(io.TextIOWrapper(io.BytesIO(content), encoding='utf-8'))
+        headers = set(reader.fieldnames or [])
+    except UnicodeDecodeError:
+        return None, {
+            'status_code': 400,
+            'detail': 'El archivo debe estar codificado en UTF-8.',
+            'codigo_error': 'CSV_ENCODING_ERROR',
+        }
+    except Exception:
+        return None, {
+            'status_code': 400,
+            'detail': 'No se pudo leer el archivo CSV.',
+            'codigo_error': 'CSV_READ_ERROR',
+        }
+
+    if not REQUIRED_HEADERS <= headers:
+        missing = sorted(REQUIRED_HEADERS - headers)
+        return None, {
+            'status_code': 422,
+            'detail': f'Encabezados inválidos. Faltan: {missing}',
+            'codigo_error': 'CSV_INVALID_HEADERS',
+        }
+
+    media_images = Path(settings.MEDIA_ROOT) / 'products' / 'images'
+    to_create = []
+    error_report = []
+
+    for i, row in enumerate(list(reader), start=2):
+        try:
+            sku = row.get('sku', '').strip()
+            name = row.get('name', '').strip()
+            base_price = row.get('base_price', '').strip()
+            category_slug = row.get('category_slug', '').strip()
+            if not sku:
+                raise ValueError('SKU vacío')
+            if not name:
+                raise ValueError('name vacío')
+            if not category_slug:
+                raise ValueError('category_slug vacío')
+            try:
+                price = Decimal(base_price)
+                if price.is_nan() or price.is_infinite():
+                    raise InvalidOperation
+            except (InvalidOperation, ValueError):
+                raise ValueError(f'Precio inválido: {base_price!r}')
+            description = row.get('description', '').strip()
+            raw_images = row.get('image_files', '').strip()
+            image_files = [f.strip() for f in raw_images.split(';') if f.strip()] if raw_images else []
+            to_create.append((i, name, sku, price, category_slug, description, image_files))
+        except Exception as exc:
+            error_report.append({'row': i, 'reason': str(exc)})
+
+    if error_report:
+        return None, {
+            'status_code': 422,
+            'detail': 'Errores de validación en el CSV.',
+            'codigo_error': 'CSV_ROW_ERRORS',
+            'errors': error_report,
+        }
+
+    created = updated = 0
+    warnings = []
+
+    with transaction.atomic():
+        for row_num, name, sku, price, cat_slug, desc, images in to_create:
+            cat, _ = Category.objects.get_or_create(
+                slug=cat_slug,
+                defaults={'name': cat_slug, 'is_active': True},
+            )
+            product, was_created = Product.objects.update_or_create(
+                sku=sku,
+                defaults={
+                    'name': name,
+                    'slug': sku.lower().replace(' ', '-'),
+                    'description': desc,
+                    'price': price,
+                    'is_active': True,
+                    'is_published': True,
+                    'stock': 1,
+                },
+            )
+            product.categories.add(cat)
+            if was_created:
+                created += 1
+            else:
+                updated += 1
+
+            for idx, filename in enumerate(images):
+                if not (media_images / filename).exists():
+                    warnings.append(
+                        f'Fila {row_num}: imagen no encontrada en MEDIA_ROOT: {filename}'
+                    )
+                ProductImage.objects.update_or_create(
+                    product=product,
+                    order=idx,
+                    defaults={
+                        'image': f'products/images/{filename}',
+                        'alt_text': name[:200],
+                        'is_cover': idx == 0,
+                    },
+                )
+
+    return {'creados': created, 'actualizados': updated, 'advertencias': warnings}, None
+
+
+class CatalogImportCSVView(APIView):
+    """Importar catálogo (productos + imágenes) desde CSV. UC-CAT-IMPORT."""
+
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    @extend_schema(
+        summary='Importar catálogo con imágenes desde CSV',
+        tags=['admin-catalogue'],
+        request=inline_serializer('CatalogImportRequest', {
+            'file': rf_serializers.FileField(),
+        }),
+        responses={
+            201: inline_serializer('CatalogImportResponse', {
+                'creados': rf_serializers.IntegerField(),
+                'actualizados': rf_serializers.IntegerField(),
+                'advertencias': rf_serializers.ListField(child=rf_serializers.CharField()),
+            }),
+            400: None,
+            422: None,
+        },
+    )
+    def post(self, request):
+        csv_file = request.FILES.get('file')
+        if not csv_file:
+            return Response(
+                {'detail': 'El archivo CSV es requerido.', 'codigo_error': 'FILE_REQUIRED'},
+                status=400,
+            )
+        file_name = csv_file.name or ''
+        if not file_name.lower().endswith('.csv'):
+            return Response(
+                {'detail': 'Solo se admiten archivos .csv.', 'codigo_error': 'FILE_TYPE_INVALID'},
+                status=400,
+            )
+        ct = (csv_file.content_type or '').split(';')[0].strip()
+        if ct and ct not in _CATALOG_ALLOWED_CONTENT_TYPES:
+            return Response(
+                {'detail': 'Tipo de contenido no permitido. Use text/csv.', 'codigo_error': 'FILE_TYPE_INVALID'},
+                status=400,
+            )
+        if csv_file.size > _CATALOG_CSV_MAX_SIZE:
+            return Response(
+                {
+                    'detail': f'El archivo supera el límite de {_CATALOG_CSV_MAX_SIZE // (1024 * 1024)} MB.',
+                    'codigo_error': 'FILE_TOO_LARGE',
+                },
+                status=400,
+            )
+        result, error = _process_catalog_csv(csv_file, request.user)
+        if error:
+            return Response(
+                {'detail': error['detail'], 'codigo_error': error['codigo_error']},
+                status=error['status_code'],
+            )
+        return Response(result, status=201)
