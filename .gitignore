@@ -14,3 +14,5 @@ htmlcov/
 # Compiled PDF helpers (built per-environment by the server provisioner; ADR-017)
 /practicayoruba/tools/pdf/pdf_receipt
 /practicayoruba/tools/pdf/pdf_report
+# pytest-last-failed output
+test-results/
