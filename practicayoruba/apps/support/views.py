@@ -249,7 +249,8 @@ class SupportTicketCloseView(APIView):
     serializer_class = SupportTicketCloseSerializer
 
     @extend_schema(
-        summary='Cerrar ticket',
+        summary='[DEPRECATED → PATCH /api/v2/support/tickets/<id>/status/] Cerrar ticket',
+        deprecated=True,
         tags=['support'],
         request=SupportTicketCloseSerializer,
         responses={
@@ -308,7 +309,8 @@ class SupportTicketReopenView(APIView):
     serializer_class = SupportTicketDetailSerializer
 
     @extend_schema(
-        summary='Reabrir ticket',
+        summary='[DEPRECATED → PATCH /api/v2/support/tickets/<id>/status/] Reabrir ticket',
+        deprecated=True,
         tags=['support'],
         responses={
             200: inline_serializer(

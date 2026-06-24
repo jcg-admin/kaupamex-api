@@ -426,7 +426,8 @@ class OrderCancelView(APIView):
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
-        summary='Cancelar una orden',
+        summary='[DEPRECATED → /api/v2/orders/<n>/cancellations/] Cancelar una orden',
+        deprecated=True,
         description=(
             'Cancela una orden en estado PENDING o PROCESSING. '
             'Restaura el stock de todos los ítems. '
@@ -507,7 +508,8 @@ class OrderAddressUpdateView(APIView):
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
-        summary='Actualizar dirección de entrega',
+        summary='[DEPRECATED → /api/v2/orders/<n>/shipping-address/] Actualizar dirección de entrega',
+        deprecated=True,
         description=(
             'Actualiza la dirección de entrega de una orden. '
             'Solo posible antes de que se cree la guía de envío '
@@ -568,7 +570,8 @@ class OrderShippingUpdateView(APIView):
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
-        summary='Cambiar método de envío',
+        summary='[DEPRECATED → /api/v2/orders/<n>/shipping-method/] Cambiar método de envío',
+        deprecated=True,
         description=(
             'Cambia el método de envío de la orden y recalcula el total. '
             'Solo posible antes del envío (PENDING, PROCESSING, IN_PREPARATION). '

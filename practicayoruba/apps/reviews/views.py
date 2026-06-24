@@ -232,7 +232,8 @@ class ReviewUpdateView(APIView):
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
-        summary='Editar reseña propia pendiente (UC-REV-01 Alt B)', tags=['reviews'],
+        summary='[DEPRECATED → /api/v2/products/<id>/reviews/<pk>/] Editar reseña propia pendiente (UC-REV-01 Alt B)',
+        deprecated=True, tags=['reviews'],
         request=ReviewUpdateSerializer,
         responses={200: ReviewAdminSerializer,
                    400: error_response('Reseña no editable'),
@@ -338,7 +339,8 @@ class ReviewAdminListView(_AdminOnly, APIView):
 
 class ReviewApproveView(_AdminOnly, APIView):
     @extend_schema(
-        summary='Approve review (idempotent).',
+        summary='[DEPRECATED → PATCH /api/v2/admin/reviews/<pk>/status/] Approve review (idempotent).',
+        deprecated=True,
         tags=['reviews'],
         responses={200: ReviewAdminSerializer, 400: None, 404: None},
     )
@@ -384,7 +386,8 @@ class ReviewRejectView(_AdminOnly, APIView):
     VALID_REASONS = {code for code, _ in Review.REJECT_REASONS}
 
     @extend_schema(
-        summary='Reject review with reason.',
+        summary='[DEPRECATED → PATCH /api/v2/admin/reviews/<pk>/status/] Reject review with reason.',
+        deprecated=True,
         tags=['reviews'],
         responses={200: ReviewAdminSerializer, 400: None, 404: None},
     )

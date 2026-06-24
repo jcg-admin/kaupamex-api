@@ -369,7 +369,8 @@ class AdminReturnApproveView(_AdminOnly, APIView):
     """POST /api/v1/admin/returns/<id>/approve/ — UC-RET-02."""
 
     @extend_schema(
-        summary='Aprobar devolución (UC-RET-02)',
+        summary='[DEPRECATED → PATCH /api/v2/admin/return-requests/<id>/status/] Aprobar devolución (UC-RET-02)',
+        deprecated=True,
         tags=['returns'],
         request=ReturnApproveSerializer,
         responses={200: ReturnRequestAdminSerializer,
@@ -410,7 +411,8 @@ class AdminReturnRejectView(_AdminOnly, APIView):
     """POST /api/v1/admin/returns/<id>/reject/ — UC-RET-02."""
 
     @extend_schema(
-        summary='Rechazar devolución (UC-RET-02)',
+        summary='[DEPRECATED → PATCH /api/v2/admin/return-requests/<id>/status/] Rechazar devolución (UC-RET-02)',
+        deprecated=True,
         tags=['returns'],
         request=ReturnRejectSerializer,
         responses={200: ReturnRequestAdminSerializer,
@@ -451,7 +453,8 @@ class AdminReturnRequestInfoView(_AdminOnly, APIView):
     """POST /api/v1/admin/returns/<id>/request-info/ — UC-RET-02 Alt B."""
 
     @extend_schema(
-        summary='Solicitar información adicional (UC-RET-02)',
+        summary='[DEPRECATED → PATCH /api/v2/admin/return-requests/<id>/status/] Solicitar información adicional (UC-RET-02)',
+        deprecated=True,
         tags=['returns'],
         request=ReturnInfoRequestSerializer,
         responses={200: ReturnRequestAdminSerializer,
@@ -505,7 +508,8 @@ class AdminReturnReceptionView(_AdminOnly, APIView):
     """POST /api/v1/admin/returns/<id>/reception/ — UC-RET-03."""
 
     @extend_schema(
-        summary='Registrar recepción física del producto (UC-RET-03)',
+        summary='[DEPRECATED → POST /api/v2/admin/return-requests/<id>/receptions/] Registrar recepción física del producto (UC-RET-03)',
+        deprecated=True,
         tags=['returns'],
         request=ReturnReceptionSerializer,
         responses={200: ReturnRequestAdminSerializer,
@@ -551,7 +555,8 @@ class AdminReturnRefundView(_AdminOnly, APIView):
     """POST /api/v1/admin/returns/<id>/refund/ — UC-RET-06."""
 
     @extend_schema(
-        summary='Procesar reembolso (UC-RET-06)',
+        summary='[DEPRECATED → POST /api/v2/admin/return-requests/<id>/refunds/] Procesar reembolso (UC-RET-06)',
+        deprecated=True,
         tags=['returns'],
         request=ReturnRefundSerializer,
         responses={200: ReturnRequestAdminSerializer,
