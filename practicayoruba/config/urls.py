@@ -92,6 +92,12 @@ urlpatterns = [
     # ─── Orders bajo /api/v1/orders/ (DEC-ORD-01: alineado con UI productiva
     #     y convencion REST estandar; antes era catch-all en /api/v1/).
     path('api/v1/orders/',   include('apps.orders.urls',       namespace='orders')),
+
+    # ─── API v2 (F1: superficie unificada de productos) ────────────────────────
+    # chartsize_v2 ANTES de catalogue_v2: más específico (/products/<slug>/variants/)
+    # debe resolverse antes del catch-all de catalogue_v2 (/products/<slug>/).
+    path('api/v2/products/', include('apps.chartsize.urls_v2',  namespace='chartsize_v2')),
+    path('api/v2/',          include('apps.catalogue.urls_v2',  namespace='catalogue_v2')),
 ]
 
 
