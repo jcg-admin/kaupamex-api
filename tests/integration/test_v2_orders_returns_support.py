@@ -219,3 +219,45 @@ class TestSupportTicketStatusV2:
         url = V1_SUPPORT_CLOSE_URL.format(id=ticket.pk)
         r = api_client.post(url, {})
         assert r.status_code == 401
+
+
+# ─── Orders v2 — GET list + POST checkout (GAP-I3) ──────────────────────────
+
+class TestOrderCollectionV2:
+
+    def test_get_list_requires_auth(self, api_client):
+        r = api_client.get(V2_ORDERS_BASE)
+        assert r.status_code == 401
+
+    def test_get_list_authenticated_returns_200(self, auth_client, db):
+        r = auth_client.get(V2_ORDERS_BASE)
+        assert r.status_code == 200
+
+    def test_post_anonymous_returns_400(self, api_client, db):
+        r = api_client.post(V2_ORDERS_BASE, {}, content_type='application/json')
+        assert r.status_code == 400
+
+    def test_post_authenticated_empty_cart_returns_400(self, auth_client, db):
+        r = auth_client.post(V2_ORDERS_BASE, {}, content_type='application/json')
+        assert r.status_code == 400
+
+    def test_v1_orders_list_still_works(self, auth_client, db):
+        r = auth_client.get('/api/v1/orders/')
+        assert r.status_code == 200
+
+
+# ─── Reviews v2 — helpful-votes (GAP-I2) ─────────────────────────────────────
+
+V1_HELPFUL_URL = '/api/v1/products/{pid}/reviews/{pk}/helpful/'
+V2_HELPFUL_VOTES_URL = '/api/v2/products/{pid}/reviews/{pk}/helpful-votes/'
+
+
+class TestReviewHelpfulVotesV2:
+
+    def test_v2_url_resolves_and_requires_auth(self, api_client):
+        r = api_client.post(V2_HELPFUL_VOTES_URL.format(pid=1, pk=1), {})
+        assert r.status_code == 401
+
+    def test_v1_helpful_still_works(self, api_client):
+        r = api_client.post(V1_HELPFUL_URL.format(pid=1, pk=1), {})
+        assert r.status_code == 401

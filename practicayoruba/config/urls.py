@@ -104,6 +104,8 @@ urlpatterns = [
     path('api/v2/wishlist/',       include('apps.wishlist.urls_v2',       namespace='wishlist_v2')),
     path('api/v2/account/',        include('apps.referral.urls_v2',       namespace='referral_v2')),
     path('api/v2/notifications/',  include('apps.notifications.urls_v2',  namespace='notifications_v2')),
+    path('api/v2/admin/',          include('apps.notifications.admin_notifications_v2',
+                                           namespace='admin_notifications_v2')),
 
     # ─── API v2 (F3: orders, returns, reviews, questions, support) ──────────────
     path('api/v2/orders/',                include('apps.orders.urls_v2',            namespace='orders_v2')),

@@ -265,3 +265,24 @@ class TestNotificationMarkReadV2:
         url = V1_NOTIF_READ_URL.format(pk=notif.pk)
         res = auth_client.post(url)
         assert res.status_code == 200
+
+
+# ─── Admin Notifications v2 (GAP-I1) ────────────────────────────────────────
+
+V2_ADMIN_NOTIFICATIONS_URL = '/api/v2/admin/notifications/'
+V1_ADMIN_NOTIFICATIONS_URL = '/api/v1/admin/notifications/manual/'
+
+
+class TestAdminNotificationsV2:
+
+    def test_unauthenticated_returns_401(self, api_client):
+        r = api_client.post(V2_ADMIN_NOTIFICATIONS_URL, {})
+        assert r.status_code == 401
+
+    def test_non_admin_returns_403(self, auth_client):
+        r = auth_client.post(V2_ADMIN_NOTIFICATIONS_URL, {})
+        assert r.status_code == 403
+
+    def test_v1_admin_manual_still_works(self, api_client):
+        r = api_client.post(V1_ADMIN_NOTIFICATIONS_URL, {})
+        assert r.status_code == 401

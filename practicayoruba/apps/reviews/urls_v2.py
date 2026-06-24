@@ -13,6 +13,6 @@ urlpatterns = [
     path('<int:product_id>/reviews/', ProductReviewsView.as_view(), name='product-reviews'),
     # Tier B: /edit/ suffix removed — PATCH /products/<id>/reviews/<pk>/
     path('<int:product_id>/reviews/<int:pk>/', ReviewUpdateView.as_view(), name='review-detail'),
-    path('<int:product_id>/reviews/<int:pk>/helpful/', ReviewHelpfulVoteView.as_view(), name='review-helpful'),
+    path('<int:product_id>/reviews/<int:pk>/helpful-votes/', ReviewHelpfulVoteView.as_view(), name='review-helpful-votes'),
     path('<int:product_id>/reviews/<int:pk>/images/', ReviewImageCreateView.as_view(), name='review-images'),
 ]

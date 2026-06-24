@@ -4,14 +4,14 @@ from .views import (
     OrderAddressUpdateView,
     OrderCancelView,
     OrderDetailView,
-    OrderListView,
     OrderShippingUpdateView,
 )
+from .views_v2 import OrderCollectionV2View
 
 app_name = 'orders_v2'
 
 urlpatterns = [
-    path('', OrderListView.as_view(), name='order-list'),
+    path('', OrderCollectionV2View.as_view(), name='order-collection'),
     path('<str:order_number>/', OrderDetailView.as_view(), name='order-detail'),
     # Tier A renames
     path('<str:order_number>/cancellations/', OrderCancelView.as_view(), name='order-cancellations'),
