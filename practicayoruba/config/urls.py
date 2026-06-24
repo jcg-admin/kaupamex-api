@@ -132,6 +132,10 @@ urlpatterns = [
     path('api/v2/admin/',      include('apps.reports.admin_urls_v2',       namespace='admin_reports_v2')),
     path('api/v2/auth/',       include('apps.users.auth_urls_v2',          namespace='auth_v2')),
 
+    # ─── API v2 (F6: payments + checkout) ─────────────────────────────────────
+    path('api/v2/payments/', include('apps.payments.urls_v2',                    namespace='payments_v2')),
+    path('api/v2/checkout/', include(('apps.payments.checkout_urls', 'checkout'), namespace='checkout_v2')),
+
     # ─── API v2 (§4 same-path passthrough: remaining apps not yet in v2) ────
     # These keep the same URL structure — only prefix changes from v1 to v2.
     # DEC-V2-05 sancionados (login, register, refresh, logout, change-password)
