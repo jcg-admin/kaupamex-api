@@ -149,6 +149,21 @@ urlpatterns = [
     path('api/v2/admin/',   include(('apps.payments.admin_urls', 'admin_payments'),                   namespace='admin_payments_v2')),
     path('api/v2/admin/',   include(('apps.catalogue.browse_admin_urls', 'catalogue_browse_admin'),   namespace='catalogue_browse_admin_v2')),
     path('api/v2/',         include(('apps.catalogue.browse_public_urls', 'catalogue_browse_public'), namespace='catalogue_browse_public_v2')),
+    # Catalogue admin CRUD (products/, categories/, product-discounts/ list/create)
+    # Tier B-overridden paths (product-discounts/<pk>/ PATCH) are shadowed by
+    # admin_catalogue_v2 above which resolves first.
+    path('api/v2/admin/',   include(('apps.catalogue.admin_urls', 'admin_catalogue'),                  namespace='admin_catalogue_pt')),
+    # Inventory list (/inventory/) and movements (/inventory/variants/<pk>/movements/)
+    # not yet ported to urls_v2; admin_inventory_v2 (line 121) handles the rest.
+    path('api/v2/admin/',   include(('apps.inventory.urls', 'admin_inventory'),                        namespace='admin_inventory_pt')),
+    # Search history — no v2-specific URL file; same endpoints at v2.
+    path('api/v2/search/',  include(('apps.search_history.urls', 'search_history'),                    namespace='search_history_v2')),
+    # Logistics panel dashboard (GET /api/v2/logistics/) not yet in urls_v2
+    # (urls_v2 uses /api/v2/shipments/ for the REST surface).
+    path('api/v2/logistics/', include(('apps.logistics.urls', 'logistics'),                            namespace='logistics_pt')),
+    # Reports fetch endpoints (sales, top-sellers, dashboard, customers-rfm…)
+    # not yet ported to admin_urls_v2 (which only has the Tier A export rename).
+    path('api/v2/admin/',   include(('apps.reports.admin_urls', 'admin_reports'),                      namespace='admin_reports_pt')),
 ]
 
 
