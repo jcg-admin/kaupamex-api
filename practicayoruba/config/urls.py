@@ -120,6 +120,17 @@ urlpatterns = [
     # ─── API v2 (F4: inventory admin + catalogue admin) ───────────────────────
     path('api/v2/admin/inventory/', include('apps.inventory.urls_v2',       namespace='admin_inventory_v2')),
     path('api/v2/admin/',           include('apps.catalogue.admin_urls_v2', namespace='admin_catalogue_v2')),
+
+    # ─── API v2 (F5: logistics/shipments, newsletter, contact, pages, backups,
+    #             reports, auth §2.1) ────────────────────────────────────────
+    path('api/v2/',            include('apps.logistics.urls_v2',           namespace='logistics_v2')),
+    path('api/v2/newsletter/', include('apps.newsletter.urls_v2',          namespace='newsletter_v2')),
+    path('api/v2/admin/',      include('apps.newsletter.admin_urls_v2',    namespace='admin_newsletter_v2')),
+    path('api/v2/admin/',      include('apps.contact.admin_urls_v2',       namespace='admin_contact_v2')),
+    path('api/v2/admin/',      include('apps.settings_app.admin_urls_v2',  namespace='admin_settings_v2')),
+    path('api/v2/admin/',      include('apps.backups.admin_urls_v2',       namespace='admin_backups_v2')),
+    path('api/v2/admin/',      include('apps.reports.admin_urls_v2',       namespace='admin_reports_v2')),
+    path('api/v2/auth/',       include('apps.users.auth_urls_v2',          namespace='auth_v2')),
 ]
 
 
