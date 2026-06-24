@@ -210,7 +210,8 @@ class CatalogueListView(ListAPIView):
                          'filters_applied': active_filters, 'results': serializer.data})
 
     @extend_schema(
-        summary='Ver catálogo de productos',
+        summary='[DEPRECATED → /api/v2/products/] Ver catálogo de productos',
+        deprecated=True,
         parameters=[
             OpenApiParameter('category', str),
             OpenApiParameter('price_min', OpenApiTypes.DECIMAL),
@@ -242,7 +243,12 @@ class ProductDetailView(RetrieveAPIView):
             .prefetch_related('categories', 'images')
         )
 
-    @extend_schema(summary='Ver detalle de producto', responses={200: ProductDetailSerializer, 404: None}, tags=['catalogue'])
+    @extend_schema(
+        summary='[DEPRECATED → /api/v2/products/<slug>/] Ver detalle de producto',
+        deprecated=True,
+        responses={200: ProductDetailSerializer, 404: None},
+        tags=['catalogue'],
+    )
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
 
@@ -311,7 +317,8 @@ class ProductSearchView(ListAPIView):
                          'active_filters': active_filters, 'results': serializer.data})
 
     @extend_schema(
-        summary='Buscar productos',
+        summary='[DEPRECATED → /api/v2/products/?q=] Buscar productos',
+        deprecated=True,
         parameters=[
             OpenApiParameter('q', str, required=True),
             OpenApiParameter('category', OpenApiTypes.INT),
@@ -330,7 +337,8 @@ class AutocompleteView(APIView):
     permission_classes = [AllowAny]
 
     @extend_schema(
-        summary='Autocomplete de productos',
+        summary='[DEPRECATED → /api/v2/products/?q=&autocomplete=1] Autocomplete',
+        deprecated=True,
         parameters=[OpenApiParameter('q', str, required=True)],
         responses={200: AutocompleteSerializer(many=True)},
         tags=['catalogue'],
@@ -496,7 +504,8 @@ class CategoryListView(APIView):
     permission_classes = [AllowAny]
 
     @extend_schema(
-        summary='Árbol de categorías del catálogo',
+        summary='[DEPRECATED → /api/v2/categories/] Árbol de categorías',
+        deprecated=True,
         responses={200: CategoryWithCountSerializer(many=True)},
         tags=['catalogue'],
     )
