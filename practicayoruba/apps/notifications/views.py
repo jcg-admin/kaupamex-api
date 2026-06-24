@@ -117,7 +117,8 @@ class NotificationMarkReadView(APIView):
     serializer_class = NotificationSerializer
 
     @extend_schema(
-        summary='Marcar notificacion como leida',
+        summary='[DEPRECATED → PATCH /api/v2/notifications/<pk>/] Marcar notificacion como leida',
+        deprecated=True,
         tags=['notifications'],
         responses={200: inline_serializer(
             name='NotificationReadResponse',
@@ -142,7 +143,8 @@ class NotificationMarkAllReadView(APIView):
     serializer_class = NotificationSerializer
 
     @extend_schema(
-        summary='Marcar todas las notificaciones como leidas',
+        summary='[DEPRECATED → PATCH /api/v2/notifications/] Marcar todas las notificaciones como leidas',
+        deprecated=True,
         tags=['notifications'],
         responses={200: inline_serializer(
             name='MarkAllReadResponse',

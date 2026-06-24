@@ -309,7 +309,8 @@ class CartSaveView(APIView):
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
-        summary='Guardar carrito para después (UC-CART-04)',
+        summary='[DEPRECATED → /api/v2/cart/snapshots/] Guardar carrito para después (UC-CART-04)',
+        deprecated=True,
         tags=['cart'],
         request=None,
         responses={200: inline_serializer(
@@ -345,7 +346,8 @@ class CartMergeView(APIView):
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
-        summary='Fusionar carrito anónimo con cuenta autenticada (UC-CART-05)',
+        summary='[DEPRECATED → /api/v2/cart/merges/] Fusionar carrito anónimo con cuenta autenticada (UC-CART-05)',
+        deprecated=True,
         tags=['cart'],
         request=MergeCartSerializer,
         responses={200: CartSerializer,

@@ -235,7 +235,8 @@ class WishlistMoveToCartView(APIView):
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
-        summary='Mover producto de wishlist al carrito',
+        summary='[DEPRECATED → /api/v2/wishlist/<pk>/cart-transfers/] Mover producto de wishlist al carrito',
+        deprecated=True,
         tags=['wishlist'],
         request=inline_serializer('WishlistMoveToCartRequest', {
             'remove_from_wishlist': drf_serializers.BooleanField(
