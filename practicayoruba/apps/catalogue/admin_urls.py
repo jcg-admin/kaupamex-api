@@ -5,7 +5,11 @@ Montado en config/urls.py como: path('api/v1/admin/', include('apps.catalogue.ad
 """
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import CategoryAdminViewSet, ProductAdminViewSet, ProductPriceSyncView, ProductPriceSyncConfirmView, ProductPriceSyncTemplateView
+from .views import (
+    CategoryAdminViewSet, ProductAdminViewSet,
+    ProductPriceSyncView, ProductPriceSyncConfirmView, ProductPriceSyncTemplateView,
+    CatalogImportCSVView,
+)
 from .product_discount_views import ProductDiscountDeactivateView, ProductDiscountDetailView, ProductDiscountListCreateView
 
 app_name = 'admin_catalogue'
@@ -16,6 +20,9 @@ router.register(r'products',   ProductAdminViewSet,  basename='admin-product')
 
 urlpatterns = [
     # ─── URLs específicas PRIMERO — antes del router (evita que el router capture) ───
+    path('catalogue/import-csv/',
+         CatalogImportCSVView.as_view(),
+         name='catalogue-import-csv'),
     path('products/price-sync/',
          ProductPriceSyncView.as_view(),         name='price-sync'),
     path('products/price-sync/confirm/',
