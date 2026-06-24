@@ -131,6 +131,24 @@ urlpatterns = [
     path('api/v2/admin/',      include('apps.backups.admin_urls_v2',       namespace='admin_backups_v2')),
     path('api/v2/admin/',      include('apps.reports.admin_urls_v2',       namespace='admin_reports_v2')),
     path('api/v2/auth/',       include('apps.users.auth_urls_v2',          namespace='auth_v2')),
+
+    # ─── API v2 (§4 same-path passthrough: remaining apps not yet in v2) ────
+    # These keep the same URL structure — only prefix changes from v1 to v2.
+    # DEC-V2-05 sancionados (login, register, refresh, logout, change-password)
+    # appear here via users.urls — correct behaviour (same at both v1 and v2).
+    # F6 (payments initiate/checkout) excluded — those are Tier B.
+    path('api/v2/auth/',    include(('apps.users.urls', 'users'),                                      namespace='users_v2_pt')),
+    path('api/v2/config/',  include(('apps.settings_app.urls', 'settings_app'),                       namespace='settings_v2')),
+    path('api/v2/admin/',   include(('apps.users.admin_urls', 'admin_users'),                         namespace='admin_users_v2')),
+    path('api/v2/admin/',   include(('apps.voucher.urls', 'admin_voucher'),                           namespace='admin_voucher_v2')),
+    path('api/v2/admin/',   include(('apps.orders.admin_urls', 'admin_orders'),                       namespace='admin_orders_v2')),
+    path('api/v2/admin/',   include(('apps.support.admin_urls', 'admin_support'),                     namespace='admin_support_v2')),
+    path('api/v2/contact/', include(('apps.contact.urls', 'contact'),                                 namespace='contact_v2')),
+    path('api/v2/admin/',   include(('apps.static_content.admin_urls', 'admin_static_content'),      namespace='admin_static_content_v2')),
+    path('api/v2/admin/',   include(('apps.chartsize.admin_urls', 'admin_chartsize'),                 namespace='admin_chartsize_v2')),
+    path('api/v2/admin/',   include(('apps.payments.admin_urls', 'admin_payments'),                   namespace='admin_payments_v2')),
+    path('api/v2/admin/',   include(('apps.catalogue.browse_admin_urls', 'catalogue_browse_admin'),   namespace='catalogue_browse_admin_v2')),
+    path('api/v2/',         include(('apps.catalogue.browse_public_urls', 'catalogue_browse_public'), namespace='catalogue_browse_public_v2')),
 ]
 
 
