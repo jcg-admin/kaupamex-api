@@ -98,6 +98,12 @@ urlpatterns = [
     # debe resolverse antes del catch-all de catalogue_v2 (/products/<slug>/).
     path('api/v2/products/', include('apps.chartsize.urls_v2',  namespace='chartsize_v2')),
     path('api/v2/',          include('apps.catalogue.urls_v2',  namespace='catalogue_v2')),
+
+    # ─── API v2 (F2: cart, wishlist, referral, notifications) ───────────────────
+    path('api/v2/cart/',           include('apps.cart.urls_v2',          namespace='cart_v2')),
+    path('api/v2/wishlist/',       include('apps.wishlist.urls_v2',       namespace='wishlist_v2')),
+    path('api/v2/account/',        include('apps.referral.urls_v2',       namespace='referral_v2')),
+    path('api/v2/notifications/',  include('apps.notifications.urls_v2',  namespace='notifications_v2')),
 ]
 
 
