@@ -89,7 +89,19 @@ jobs:
       # de integracion actual crea sus datos via factory-boy, por lo que el
       # seed puede no ser necesario — VALIDAR en el primer push.
 
+      - name: Build PDF helper (ADR-017)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libhpdf-dev
+          make -C practicayoruba/tools/pdf
+        # UC-PAY-10 / UC-REP-05: las vistas invocan pdf_receipt/pdf_report
+        # via subprocess; sin compilar => 500 PDF_GENERATION_FAILED.
+
       - name: Run tests
-        run: uv run pytest --create-db -q
-        # --create-db: recrea el schema desde migraciones (greenfield CI,
-        # no reusa estado entre runs).
+        run: >-
+          uv run pytest --create-db -q
+          --ignore=tests/integration/reports/test_db_rpt_endpoints.py
+        # --create-db: recrea el schema desde migraciones (greenfield CI).
+        # --ignore: los tests sp_rpt_* requieren los stored procedures de
+        # e-commerce-db (no provisionados en CI). Re-incluir cuando se
+        # provisionen los SP (ver migrar-urls-rest-v2 / auditar-endpoints-api).
