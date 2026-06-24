@@ -1,0 +1,18 @@
+"""URLs v2 — apps.reviews public (F3 migrar-urls-rest-v2)."""
+from django.urls import path
+from .views import (
+    ProductReviewsView,
+    ReviewHelpfulVoteView,
+    ReviewImageCreateView,
+    ReviewUpdateView,
+)
+
+app_name = 'reviews_v2'
+
+urlpatterns = [
+    path('<int:product_id>/reviews/', ProductReviewsView.as_view(), name='product-reviews'),
+    # Tier B: /edit/ suffix removed — PATCH /products/<id>/reviews/<pk>/
+    path('<int:product_id>/reviews/<int:pk>/', ReviewUpdateView.as_view(), name='review-detail'),
+    path('<int:product_id>/reviews/<int:pk>/helpful/', ReviewHelpfulVoteView.as_view(), name='review-helpful'),
+    path('<int:product_id>/reviews/<int:pk>/images/', ReviewImageCreateView.as_view(), name='review-images'),
+]
