@@ -116,6 +116,10 @@ urlpatterns = [
     path('api/v2/products/',              include('apps.questions.urls_v2',         namespace='questions_v2')),
     path('api/v2/admin/',                 include('apps.questions.admin_urls_v2',   namespace='admin_questions_v2')),
     path('api/v2/support/',               include('apps.support.urls_v2',           namespace='support_v2')),
+
+    # ─── API v2 (F4: inventory admin + catalogue admin) ───────────────────────
+    path('api/v2/admin/inventory/', include('apps.inventory.urls_v2',       namespace='admin_inventory_v2')),
+    path('api/v2/admin/',           include('apps.catalogue.admin_urls_v2', namespace='admin_catalogue_v2')),
 ]
 
 
