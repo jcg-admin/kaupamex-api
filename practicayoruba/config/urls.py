@@ -65,7 +65,7 @@ urlpatterns = [
 
     # ─── API v2 (F5: logistics/shipments, newsletter, contact, pages, backups,
     #             reports, auth §2.1) ────────────────────────────────────────
-    path('api/v2/',            include('apps.logistics.urls_v2',           namespace='logistics_v2')),
+    path('api/v2/',            include(('apps.logistics.urls', 'logistics'), namespace='logistics_v2')),
     path('api/v2/newsletter/', include('apps.newsletter.urls_v2',          namespace='newsletter_v2')),
     path('api/v2/admin/',      include('apps.newsletter.admin_urls_v2',    namespace='admin_newsletter_v2')),
     path('api/v2/admin/',      include('apps.contact.admin_urls_v2',       namespace='admin_contact_v2')),
@@ -112,9 +112,6 @@ urlpatterns = [
     path('api/v2/admin/',   include(('apps.contact.admin_urls', 'admin_contact'),                     namespace='admin_contact_pt')),
     # Search history — no v2-specific URL file; same endpoints at v2.
     path('api/v2/search/',  include(('apps.search_history.urls', 'search_history'),                    namespace='search_history_v2')),
-    # Logistics panel dashboard (GET /api/v2/logistics/) not yet in urls_v2
-    # (urls_v2 uses /api/v2/shipments/ for the REST surface).
-    path('api/v2/logistics/', include(('apps.logistics.urls', 'logistics'),                            namespace='logistics_pt')),
     # Reports fetch endpoints (sales, top-sellers, dashboard, customers-rfm…)
     # not yet ported to admin_urls_v2 (which only has the Tier A export rename).
     path('api/v2/admin/',   include(('apps.reports.admin_urls', 'admin_reports'),                      namespace='admin_reports_pt')),
