@@ -1,14 +1,19 @@
-"""URLs — apps.cart (Sprint 12)."""
+"""
+URLs — apps.cart (F8 consolidation).
+
+Mounted in config/urls.py:
+  path('api/v2/cart/', include(('apps.cart.urls', 'cart'), namespace='cart_v2'))
+"""
 from django.urls import path
 from .views import CartView, CartItemListView, CartItemDetailView, CartSaveView, CartMergeView, CartVoucherView
 
 app_name = 'cart'
 
 urlpatterns = [
-    path('',              CartView.as_view(),             name='cart'),
-    path('items/',        CartItemListView.as_view(),     name='cart-items'),
+    path('', CartView.as_view(), name='cart'),
+    path('items/', CartItemListView.as_view(), name='cart-items'),
     path('items/<int:pk>/', CartItemDetailView.as_view(), name='cart-item-detail'),
-    path('save/',         CartSaveView.as_view(),         name='cart-save'),
-    path('merge/',        CartMergeView.as_view(),        name='cart-merge'),
-    path('voucher/',      CartVoucherView.as_view(),      name='cart-voucher'),
+    path('snapshots/', CartSaveView.as_view(), name='cart-snapshots'),
+    path('merges/', CartMergeView.as_view(), name='cart-merges'),
+    path('voucher/', CartVoucherView.as_view(), name='cart-voucher'),
 ]

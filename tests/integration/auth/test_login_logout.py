@@ -3,14 +3,14 @@ Tests de integración — UC-AUTH-02: Login y UC-AUTH-03: Logout
 TDD: RED
 
 UC-AUTH-02:
-  POST /api/v1/auth/login/
+  POST /api/v2/auth/login/
   Request:  { username, password }
   Response 200: { access, refresh, user: { id, username, email, is_staff } }
   Response 401: credenciales inválidas
   Response 400: cuenta inactiva
 
 UC-AUTH-03:
-  POST /api/v1/auth/logout/
+  POST /api/v2/auth/logout/
   Request:  { refresh }
   Response 200: { detail: 'Sesion cerrada.' }
   Response 401: sin autenticacion
@@ -24,8 +24,8 @@ from django.core.cache import cache
 
 pytestmark = pytest.mark.api
 
-LOGIN_URL  = '/api/v1/auth/login/'
-LOGOUT_URL = '/api/v1/auth/logout/'
+LOGIN_URL  = '/api/v2/auth/login/'
+LOGOUT_URL = '/api/v2/auth/logout/'
 
 
 class TestLoginHappyPath:
@@ -109,7 +109,7 @@ class TestLogout:
 
         # Intentar renovar con el refresh invalidado
         api_client.credentials()
-        refresh_r = api_client.post('/api/v1/auth/refresh/', {'refresh': tokens['refresh']}, format='json')
+        refresh_r = api_client.post('/api/v2/auth/refresh/', {'refresh': tokens['refresh']}, format='json')
         assert refresh_r.status_code == 401
 
 
@@ -120,7 +120,7 @@ class TestLoginAuditCorrections:
 
     def test_login_normaliza_username_a_minusculas(self, api_client, user, db):
         """FR-AUTH-02.07: username en mayúsculas debe encontrar la cuenta."""
-        r = api_client.post('/api/v1/auth/login/', {
+        r = api_client.post('/api/v2/auth/login/', {
             'username': user.username.upper(),
             'password': 'TestPass123!',
         }, format='json')
@@ -128,7 +128,7 @@ class TestLoginAuditCorrections:
 
     def test_login_retorna_objeto_user(self, api_client, user, db):
         """FR-AUTH-02.15: la respuesta debe incluir objeto 'user' con datos básicos."""
-        r = api_client.post('/api/v1/auth/login/', {
+        r = api_client.post('/api/v2/auth/login/', {
             'username': user.username,
             'password': 'TestPass123!',
         }, format='json')
@@ -150,7 +150,7 @@ class TestLoginAuditCorrections:
             username='sinverif', email='sinverif@test.mx',
             password='TestPass123!', is_active=False,
         )
-        r = api_client.post('/api/v1/auth/login/', {
+        r = api_client.post('/api/v2/auth/login/', {
             'username': 'sinverif',
             'password': 'TestPass123!',
         }, format='json')
@@ -175,26 +175,26 @@ class TestLoginRateLimit:
         cache.clear()
         payload = {'username': user.username, 'password': 'MalPassword!'}
         for _ in range(5):
-            api_client.post('/api/v1/auth/login/', payload, format='json')
-        r = api_client.post('/api/v1/auth/login/', payload, format='json')
+            api_client.post('/api/v2/auth/login/', payload, format='json')
+        r = api_client.post('/api/v2/auth/login/', payload, format='json')
         assert r.status_code == 429
 
     def test_login_exitoso_restablece_el_contador(self, api_client, user, db):
         """FR-AUTH-02.14: login exitoso limpia el contador de la IP."""
         cache.clear()
         for _ in range(3):
-            api_client.post('/api/v1/auth/login/', {
+            api_client.post('/api/v2/auth/login/', {
                 'username': user.username, 'password': 'MalPassword!'
             }, format='json')
-        api_client.post('/api/v1/auth/login/', {
+        api_client.post('/api/v2/auth/login/', {
             'username': user.username, 'password': 'TestPass123!'
         }, format='json')
         # Despues del exito, intentos fallidos ya no bloquean
         for _ in range(5):
-            api_client.post('/api/v1/auth/login/', {
+            api_client.post('/api/v2/auth/login/', {
                 'username': user.username, 'password': 'MalPassword!'
             }, format='json')
-        r = api_client.post('/api/v1/auth/login/', {
+        r = api_client.post('/api/v2/auth/login/', {
             'username': user.username, 'password': 'MalPassword!'
         }, format='json')
         assert r.status_code == 429  # nuevo ciclo de 5 intentos
@@ -203,10 +203,10 @@ class TestLoginRateLimit:
         """FR-AUTH-02.01: la respuesta debe incluir Retry-After."""
         cache.clear()
         for _ in range(6):
-            api_client.post('/api/v1/auth/login/', {
+            api_client.post('/api/v2/auth/login/', {
                 'username': user.username, 'password': 'MalPassword!'
             }, format='json')
-        r = api_client.post('/api/v1/auth/login/', {
+        r = api_client.post('/api/v2/auth/login/', {
             'username': user.username, 'password': 'MalPassword!'
         }, format='json')
         assert 'Retry-After' in r.headers or 'retry_after' in r.json()

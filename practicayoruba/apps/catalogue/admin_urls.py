@@ -1,16 +1,18 @@
 """
-Admin URLs — apps.catalogue (Sprint 6)
+Admin URLs — apps.catalogue (Sprint 6, F8 consolidation).
 UC-CAT-06: CRUD de categorías para administradores.
 Montado en config/urls.py como: path('api/v1/admin/', include('apps.catalogue.admin_urls'))
 """
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
+from .admin_views import PriceSyncsV2View, ProductDiscountStatusV2View
+from .price_sync_views import PriceSyncTemplateView
 from .views import (
     CategoryAdminViewSet, ProductAdminViewSet,
     ProductPriceSyncView, ProductPriceSyncConfirmView, ProductPriceSyncTemplateView,
     CatalogImportCSVView,
 )
-from .product_discount_views import ProductDiscountDeactivateView, ProductDiscountDetailView, ProductDiscountListCreateView
+from .product_discount_views import ProductDiscountDeactivateView, ProductDiscountListCreateView
 
 app_name = 'admin_catalogue'
 
@@ -34,11 +36,17 @@ urlpatterns = [
          ProductDiscountListCreateView.as_view(),
          name='product-discount-list-create'),
     path('product-discounts/<int:pk>/',
-         ProductDiscountDetailView.as_view(),
+         ProductDiscountStatusV2View.as_view(),
          name='product-discount-detail'),
     path('product-discounts/<int:pk>/deactivate/',
          ProductDiscountDeactivateView.as_view(),
          name='product-discount-deactivate'),
+    # ─── F8 consolidation: v2 admin paths ───────────────────────────────────────────
+    path('products/imports/', CatalogImportCSVView.as_view(), name='catalogue-imports'),
+    path('price-syncs/template.csv', PriceSyncTemplateView.as_view(), name='price-syncs-template'),
+    path('price-syncs/', PriceSyncsV2View.as_view(), name='price-syncs'),
+    path('products/price-syncs/', ProductPriceSyncView.as_view(), name='products-price-syncs'),
+    path('products/price-syncs/confirmations/', ProductPriceSyncConfirmView.as_view(), name='products-price-syncs-confirm'),
     # ─── Router LAST ────────────────────────────────────────────────────────────────
     path('', include(router.urls)),
 ]

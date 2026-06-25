@@ -8,8 +8,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 pytestmark = pytest.mark.integration
 
-CHANGE_URL = '/api/v1/auth/change-password/'
-REFRESH_URL = '/api/v1/auth/refresh/'
+CHANGE_URL = '/api/v2/auth/change-password/'
+REFRESH_URL = '/api/v2/auth/refresh/'
 
 
 class TestChangePassword:

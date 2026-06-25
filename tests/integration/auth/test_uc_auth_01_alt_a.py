@@ -16,7 +16,7 @@ from django.contrib.auth import get_user_model
 
 pytestmark = pytest.mark.api
 
-URL = '/api/v1/auth/register/'
+URL = '/api/v2/auth/register/'
 
 NEW_REGISTRATION = {
     'email':            'rebote@practicayoruba.mx',

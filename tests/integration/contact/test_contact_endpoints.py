@@ -2,13 +2,13 @@
 Tests — Contact endpoints (UC-COM-01..03)
 
 Public:
-  POST /api/v1/contact/messages/                          create message
+  POST /api/v2/contact/messages/                          create message
 
 Admin:
-  GET  /api/v1/admin/contact/messages/                    inbox
-  GET  /api/v1/admin/contact/messages/<id>/               detail
-  POST /api/v1/admin/contact/messages/<id>/read/          mark as read
-  POST /api/v1/admin/contact/messages/<id>/reply/         send reply
+  GET  /api/v2/admin/contact/messages/                    inbox
+  GET  /api/v2/admin/contact/messages/<id>/               detail
+  POST /api/v2/admin/contact/messages/<id>/read/          mark as read
+  POST /api/v2/admin/contact/messages/<id>/reply/         send reply
 
 JSON keys + identifiers in English (DEC-DOC-005).
 """
@@ -18,20 +18,20 @@ from django.core import mail
 
 pytestmark = pytest.mark.integration
 
-CREATE_URL = '/api/v1/contact/messages/'
-ADMIN_LIST_URL = '/api/v1/admin/contact/messages/'
+CREATE_URL = '/api/v2/contact/messages/'
+ADMIN_LIST_URL = '/api/v2/admin/contact/messages/'
 
 
 def _admin_detail_url(pk):
-    return f'/api/v1/admin/contact/messages/{pk}/'
+    return f'/api/v2/admin/contact/messages/{pk}/'
 
 
 def _admin_read_url(pk):
-    return f'/api/v1/admin/contact/messages/{pk}/read/'
+    return f'/api/v2/admin/contact/messages/{pk}/read/'
 
 
 def _admin_reply_url(pk):
-    return f'/api/v1/admin/contact/messages/{pk}/reply/'
+    return f'/api/v2/admin/contact/messages/{pk}/reply/'
 
 
 def _make_message(**kwargs):

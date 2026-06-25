@@ -1,7 +1,7 @@
 """
 Tests de integración — UC-AUTH-01: Registrar Cuenta
 
-POST /api/v1/auth/register/
+POST /api/v2/auth/register/
 Request:  { first_name, last_name, email, password, password_confirm, terms_accepted }
 Response 201: { message, user_id }
 Response 400: errores de validacion (formato, contrasena, terms_accepted)
@@ -18,7 +18,7 @@ from django.contrib.auth import get_user_model
 
 pytestmark = pytest.mark.api
 
-URL = '/api/v1/auth/register/'
+URL = '/api/v2/auth/register/'
 
 VALID = {
     'first_name':     'Comprador',

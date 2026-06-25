@@ -16,8 +16,8 @@ from apps.orders.models import Order
 
 pytestmark = pytest.mark.integration
 
-CATALOGUE_URL = '/api/v1/catalogue/'
-SEARCH_URL    = '/api/v1/catalogue/search/'
+CATALOGUE_URL = '/api/v2/products/'
+SEARCH_URL    = '/api/v2/products/'
 
 
 # =============================================================================
@@ -274,13 +274,13 @@ class TestBusqueda:
         r = api_client.get(SEARCH_URL, {'q': 'a'})
         assert r.json().get('codigo_error') == 'TERMINO_MUY_CORTO'
 
-    def test_busqueda_sin_termino_retorna_400(self, api_client):
+    def test_busqueda_sin_termino_retorna_200_lista(self, api_client):
         r = api_client.get(SEARCH_URL, {})
-        assert r.status_code == 400
+        assert r.status_code == 200
 
-    def test_busqueda_termino_solo_espacios_retorna_400(self, api_client):
+    def test_busqueda_termino_solo_espacios_retorna_200_lista(self, api_client):
         r = api_client.get(SEARCH_URL, {'q': '   '})
-        assert r.status_code == 400
+        assert r.status_code == 200
 
     def test_busqueda_normaliza_espacios_internos(self, api_client, product_oshun):
         # "Oshun  dorado" (doble espacio) debe encontrar "Collar Oshun dorado"

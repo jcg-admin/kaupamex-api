@@ -1,31 +1,24 @@
-"""URLs — apps.orders (UC-ORD-01..06)."""
+"""
+URLs — apps.orders (F8 consolidation).
+
+Mounted in config/urls.py:
+  path('api/v2/orders/', include(('apps.orders.urls', 'orders'), namespace='orders_v2'))
+"""
 from django.urls import path
-from .views import CheckoutView, OrderListView, OrderDetailView, OrderCancelView, OrderAddressUpdateView, OrderShippingUpdateView
+from .views import (
+    OrderAddressUpdateView,
+    OrderCancelView,
+    OrderCollectionV2View,
+    OrderDetailView,
+    OrderShippingUpdateView,
+)
 
 app_name = 'orders'
 
 urlpatterns = [
-    # UC-ORD-01 — Checkout
-    path('checkout/',
-         CheckoutView.as_view(), name='checkout'),
-
-    # UC-ORD-03 — Listado paginado de órdenes del usuario
-    path('',
-         OrderListView.as_view(), name='order-list'),
-
-    # UC-ORD-02 — Detalle de orden
-    path('<str:order_number>/',
-         OrderDetailView.as_view(), name='order-detail'),
-
-    # UC-ORD-04 — Cancelar orden
-    path('<str:order_number>/cancel/',
-         OrderCancelView.as_view(), name='order-cancel'),
-
-    # UC-ORD-05 — Editar dirección
-    path('<str:order_number>/address/',
-         OrderAddressUpdateView.as_view(), name='order-address'),
-
-    # UC-ORD-06 — Cambiar método de envío
-    path('<str:order_number>/shipping/',
-         OrderShippingUpdateView.as_view(), name='order-shipping'),
+    path('', OrderCollectionV2View.as_view(), name='order-collection'),
+    path('<str:order_number>/', OrderDetailView.as_view(), name='order-detail'),
+    path('<str:order_number>/cancellations/', OrderCancelView.as_view(), name='order-cancellations'),
+    path('<str:order_number>/shipping-address/', OrderAddressUpdateView.as_view(), name='order-shipping-address'),
+    path('<str:order_number>/shipping-method/', OrderShippingUpdateView.as_view(), name='order-shipping-method'),
 ]

@@ -15,8 +15,8 @@ from apps.voucher.models import Voucher
 from django.utils import timezone
 pytestmark = pytest.mark.integration
 
-CHECKOUT_URL = '/api/v1/orders/checkout/'
-ITEMS_URL    = '/api/v1/cart/items/'
+CHECKOUT_URL = '/api/v2/orders/'
+ITEMS_URL    = '/api/v2/cart/items/'
 
 ADDR = {
     'recipient_name': 'Test User',
@@ -192,7 +192,7 @@ class TestCheckout:
             is_active=True, min_order_amount=Decimal('0'), created_by=admin_user,
         )
         auth_client.post(ITEMS_URL, {'product_id': prod_ord.pk, 'quantity': 1}, format='json')
-        auth_client.post('/api/v1/cart/voucher/', {'code': 'PROMO100'}, format='json')
+        auth_client.post('/api/v2/cart/voucher/', {'code': 'PROMO100'}, format='json')
         res = auth_client.post(CHECKOUT_URL, {'address': ADDR}, format='json')
         assert res.status_code == 201
         assert Decimal(res.json()['value']['discount']) == Decimal('100.00')
@@ -215,7 +215,7 @@ class TestCheckout:
             max_uses=2, current_uses=0, created_by=admin_user,
         )
         auth_client.post(ITEMS_URL, {'product_id': prod_ord.pk, 'quantity': 1}, format='json')
-        auth_client.post('/api/v1/cart/voucher/', {'code': 'LIMIT1'}, format='json')
+        auth_client.post('/api/v2/cart/voucher/', {'code': 'LIMIT1'}, format='json')
         res = auth_client.post(CHECKOUT_URL, {'address': ADDR}, format='json')
         assert res.status_code == 201
         v.refresh_from_db()
@@ -325,7 +325,7 @@ class TestShippingMethodProtection:
             order=o, recipient_name='Test', street='St',
             city='CDMX', state='CMX', zip_code='06600'
         )
-        res = admin_client.delete(f'/api/v1/admin/shipping-methods/{shipping.pk}/')
+        res = admin_client.delete(f'/api/v2/admin/shipping-methods/{shipping.pk}/')
         assert res.status_code == 400
         assert res.json()['codigo_error'] == 'METHOD_WITH_ACTIVE_ORDERS'
 

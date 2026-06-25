@@ -15,9 +15,9 @@ from django.contrib.auth import get_user_model
 
 pytestmark = pytest.mark.integration
 
-REFUND_URL       = lambda o: f'/api/v1/payments/{o}/refund/'
-ADMIN_REFUND_URL = lambda pid: f'/api/v1/payments/admin/{pid}/refund/'
-INITIATE_URL     = '/api/v1/payments/initiate/'
+REFUND_URL       = lambda o: f'/api/v2/payments/{o}/refund/'
+ADMIN_REFUND_URL = lambda pid: f'/api/v2/payments/admin/{pid}/refund/'
+INITIATE_URL     = '/api/v2/payments/initiate/'
 
 
 # ---------------------------------------------------------------------------

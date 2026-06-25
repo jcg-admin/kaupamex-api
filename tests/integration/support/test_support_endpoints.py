@@ -1,13 +1,13 @@
 """
 Tests — Support tickets (UC-SUPP-01..05)
 
-UC-SUPP-01  POST   /api/v1/support/tickets/                     create ticket
-UC-SUPP-02  GET    /api/v1/support/tickets/                     list user tickets
-UC-SUPP-02  GET    /api/v1/support/tickets/{id}/                ticket detail
-UC-SUPP-03  POST   /api/v1/support/tickets/{id}/replies/        add reply
-UC-SUPP-04  POST   /api/v1/support/tickets/{id}/close/          close ticket
-UC-SUPP-04  POST   /api/v1/support/tickets/{id}/reopen/         reopen ticket
-UC-SUPP-05  GET    /api/v1/admin/support/tickets/               admin queue
+UC-SUPP-01  POST   /api/v2/support/tickets/                     create ticket
+UC-SUPP-02  GET    /api/v2/support/tickets/                     list user tickets
+UC-SUPP-02  GET    /api/v2/support/tickets/{id}/                ticket detail
+UC-SUPP-03  POST   /api/v2/support/tickets/{id}/replies/        add reply
+UC-SUPP-04  POST   /api/v2/support/tickets/{id}/close/          close ticket
+UC-SUPP-04  POST   /api/v2/support/tickets/{id}/reopen/         reopen ticket
+UC-SUPP-05  GET    /api/v2/admin/support/tickets/               admin queue
 
 Identifiers in English (DEC-DOC-005).
 """
@@ -29,8 +29,8 @@ from apps.notifications.models import Notification, NotificationType
 
 pytestmark = pytest.mark.integration
 
-TICKETS_URL = '/api/v1/support/tickets/'
-ADMIN_TICKETS_URL = '/api/v1/admin/support/tickets/'
+TICKETS_URL = '/api/v2/support/tickets/'
+ADMIN_TICKETS_URL = '/api/v2/admin/support/tickets/'
 
 
 # ────────────────────────────── UC-SUPP-01 ────────────────────────────────
@@ -189,7 +189,8 @@ class TestCloseReopen:
     def test_buyer_can_close_own_ticket(self, auth_client, user, db):
         t = SupportTicket.objects.create(
             user=user, subject='Cerrar', body='Mensaje original del ticket.')
-        res = auth_client.post(f'{TICKETS_URL}{t.pk}/close/', {}, format='json')
+        res = auth_client.patch(
+            f'{TICKETS_URL}{t.pk}/status/', {'action': 'close'}, format='json')
         assert res.status_code == 200
         assert res.json()['status'] == 'CLOSED'
 
@@ -197,27 +198,31 @@ class TestCloseReopen:
         t = SupportTicket.objects.create(
             user=user, subject='Cerrar', body='Mensaje original del ticket.',
             status='CLOSED')
-        res = auth_client.post(f'{TICKETS_URL}{t.pk}/close/', {}, format='json')
+        res = auth_client.patch(
+            f'{TICKETS_URL}{t.pk}/status/', {'action': 'close'}, format='json')
         assert res.status_code == 409
 
     def test_close_other_user_ticket_returns_404(self, auth_client, admin_user, db):
         t = SupportTicket.objects.create(
             user=admin_user, subject='Ajeno', body='Mensaje original del ticket.')
-        res = auth_client.post(f'{TICKETS_URL}{t.pk}/close/', {}, format='json')
+        res = auth_client.patch(
+            f'{TICKETS_URL}{t.pk}/status/', {'action': 'close'}, format='json')
         assert res.status_code == 404
 
     def test_reopen_closed_ticket(self, auth_client, user, db):
         t = SupportTicket.objects.create(
             user=user, subject='Reabrir', body='Mensaje original del ticket.',
             status='CLOSED')
-        res = auth_client.post(f'{TICKETS_URL}{t.pk}/reopen/', {}, format='json')
+        res = auth_client.patch(
+            f'{TICKETS_URL}{t.pk}/status/', {'action': 'reopen'}, format='json')
         assert res.status_code == 200
         assert res.json()['status'] == 'OPEN'
 
     def test_reopen_open_ticket_returns_409(self, auth_client, user, db):
         t = SupportTicket.objects.create(
             user=user, subject='Reabrir', body='Mensaje original del ticket.')
-        res = auth_client.post(f'{TICKETS_URL}{t.pk}/reopen/', {}, format='json')
+        res = auth_client.patch(
+            f'{TICKETS_URL}{t.pk}/status/', {'action': 'reopen'}, format='json')
         assert res.status_code == 409
 
 

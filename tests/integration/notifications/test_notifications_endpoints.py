@@ -2,16 +2,16 @@
 Tests — Notifications endpoints (UC-NOT-01..07)
 
 Reads:
-  GET  /api/v1/notifications/                    list
-  GET  /api/v1/notifications/unread-count/       unread count
-  GET  /api/v1/notifications/preferences/        list preferences
-  GET  /api/v1/admin/notifications/audience-count/ audience size
+  GET   /api/v2/notifications/                      list
+  GET   /api/v2/notifications/unread-count/         unread count
+  GET   /api/v2/notifications/preferences/          list preferences
+  GET   /api/v2/admin/notifications/audience-count/ audience size
 
 Mutations:
-  POST /api/v1/notifications/{id}/read/          mark one as read
-  POST /api/v1/notifications/read-all/           mark all as read
-  PUT  /api/v1/notifications/preferences/        update preferences
-  POST /api/v1/admin/notifications/manual/       send manual
+  PATCH /api/v2/notifications/<pk>/             mark one as read
+  PATCH /api/v2/notifications/                  mark all as read
+  PUT   /api/v2/notifications/preferences/      update preferences
+  POST  /api/v2/admin/notifications/            send manual
 
 JSON keys + identifiers in English (DEC-DOC-005).
 """
@@ -20,12 +20,11 @@ from apps.notifications.models import Notification, NotificationPreference
 
 pytestmark = pytest.mark.integration
 
-LIST_URL = '/api/v1/notifications/'
-UNREAD_COUNT_URL = '/api/v1/notifications/unread-count/'
-READ_ALL_URL = '/api/v1/notifications/read-all/'
-PREFERENCES_URL = '/api/v1/notifications/preferences/'
-ADMIN_AUDIENCE_URL = '/api/v1/admin/notifications/audience-count/'
-ADMIN_MANUAL_URL = '/api/v1/admin/notifications/manual/'
+LIST_URL = '/api/v2/notifications/'
+UNREAD_COUNT_URL = '/api/v2/notifications/unread-count/'
+PREFERENCES_URL = '/api/v2/notifications/preferences/'
+ADMIN_AUDIENCE_URL = '/api/v2/admin/notifications/audience-count/'
+ADMIN_MANUAL_URL = '/api/v2/admin/notifications/'
 
 
 # ─── helpers ─────────────────────────────────────────────────────────────
@@ -86,37 +85,37 @@ class TestUnreadCount:
 class TestMarkRead:
     def test_requires_auth(self, api_client, user, db):
         notif = _make_notification(user)
-        res = api_client.post(f'{LIST_URL}{notif.pk}/read/')
+        res = api_client.patch(f'{LIST_URL}{notif.pk}/')
         assert res.status_code == 401
 
     def test_marks_own_notification_as_read(self, auth_client, user, db):
         notif = _make_notification(user, read=False)
-        res = auth_client.post(f'{LIST_URL}{notif.pk}/read/')
+        res = auth_client.patch(f'{LIST_URL}{notif.pk}/')
         assert res.status_code == 200
         notif.refresh_from_db()
         assert notif.read is True
 
     def test_returns_404_for_other_user(self, auth_client, admin_user, db):
         notif = _make_notification(admin_user)
-        res = auth_client.post(f'{LIST_URL}{notif.pk}/read/')
+        res = auth_client.patch(f'{LIST_URL}{notif.pk}/')
         assert res.status_code == 404
 
     def test_returns_404_for_missing(self, auth_client, db):
-        res = auth_client.post(f'{LIST_URL}999999/read/')
+        res = auth_client.patch(f'{LIST_URL}999999/')
         assert res.status_code == 404
 
 
-# ─── POST /read-all ──────────────────────────────────────────────────────
+# ─── PATCH / (mark all read) ─────────────────────────────────────────────
 class TestMarkAllRead:
     def test_requires_auth(self, api_client, db):
-        res = api_client.post(READ_ALL_URL)
+        res = api_client.patch(LIST_URL)
         assert res.status_code == 401
 
     def test_marks_all_user_notifications_as_read(self, auth_client, user, admin_user, db):
         _make_notification(user, read=False)
         _make_notification(user, read=False)
         other = _make_notification(admin_user, read=False)
-        res = auth_client.post(READ_ALL_URL)
+        res = auth_client.patch(LIST_URL)
         assert res.status_code == 200
         assert res.json()['updated'] == 2
 

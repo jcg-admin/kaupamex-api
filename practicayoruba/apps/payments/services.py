@@ -46,9 +46,9 @@ def _build_back_urls(order_number: str, base_url: str) -> dict:
     base_url = scheme + host, ej: 'https://api.practicayoruba.mx'
     """
     return {
-        'success': f'{base_url}/api/v1/payments/{order_number}/return/?status=approved',
-        'failure': f'{base_url}/api/v1/payments/{order_number}/return/?status=rejected',
-        'pending': f'{base_url}/api/v1/payments/{order_number}/return/?status=pending',
+        'success': f'{base_url}/api/v2/payments/{order_number}/return/?status=approved',
+        'failure': f'{base_url}/api/v2/payments/{order_number}/return/?status=rejected',
+        'pending': f'{base_url}/api/v2/payments/{order_number}/return/?status=pending',
     }
 
 

@@ -16,7 +16,7 @@ pytestmark = [pytest.mark.integration, pytest.mark.django_db(transaction=True)]
 
 
 class TestLoginAuditEvent:
-    """POST /api/v1/auth/login/ emite LOGIN_SUCCESS o LOGIN_FAIL."""
+    """POST /api/v2/auth/login/ emite LOGIN_SUCCESS o LOGIN_FAIL."""
 
     def test_login_exitoso_emite_login_success(self, api_client, user):
         url = reverse('users:login')
@@ -59,7 +59,7 @@ class TestLoginAuditEvent:
 
 
 class TestLogoutAuditEvent:
-    """POST /api/v1/auth/logout/ emite LOGOUT."""
+    """POST /api/v2/auth/logout/ emite LOGOUT."""
 
     def test_logout_emite_logout(self, api_client, user):
         refresh = RefreshToken.for_user(user)
@@ -74,7 +74,7 @@ class TestLogoutAuditEvent:
 
 
 class TestRefreshAuditEvent:
-    """POST /api/v1/auth/refresh/ emite REFRESH_SUCCESS o REFRESH_FAIL."""
+    """POST /api/v2/auth/refresh/ emite REFRESH_SUCCESS o REFRESH_FAIL."""
 
     def test_refresh_exitoso_emite_refresh_success(self, api_client, user):
         refresh = RefreshToken.for_user(user)

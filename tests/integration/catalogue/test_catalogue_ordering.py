@@ -12,7 +12,7 @@ from apps.catalogue.models import Category, Product
 
 pytestmark = pytest.mark.integration
 
-CATALOGUE_URL = '/api/v1/catalogue/'
+CATALOGUE_URL = '/api/v2/products/'
 
 
 @pytest.fixture

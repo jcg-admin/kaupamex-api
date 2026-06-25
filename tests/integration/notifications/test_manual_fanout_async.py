@@ -16,7 +16,7 @@ from apps.orders.models import Order, OrderItem
 import pytest
 
 
-ADMIN_MANUAL_URL = '/api/v1/admin/notifications/manual/'
+ADMIN_MANUAL_URL = '/api/v2/admin/notifications/'
 
 
 def _create_buyers(n):

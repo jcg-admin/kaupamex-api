@@ -1,26 +1,17 @@
 """
-URLs — apps.reviews (public side, mounted at /api/v1/products/).
+URLs — apps.reviews public (F8 consolidation).
+
+Mounted in config/urls.py:
+  path('api/v2/products/', include(('apps.reviews.urls', 'reviews'), namespace='reviews_v2'))
 """
 from django.urls import path
-from .views import (
-    ProductReviewsView, ReviewHelpfulVoteView,
-    ReviewImageCreateView, ReviewUpdateView,
-)
-
+from .views import ProductReviewsView, ReviewHelpfulVoteView, ReviewImageCreateView, ReviewUpdateView
 
 app_name = 'reviews'
 
 urlpatterns = [
-    path('<int:product_id>/reviews/',
-         ProductReviewsView.as_view(),
-         name='product-reviews'),
-    path('<int:product_id>/reviews/<int:pk>/helpful/',
-         ReviewHelpfulVoteView.as_view(),
-         name='review-helpful'),
-    path('<int:product_id>/reviews/<int:pk>/edit/',
-         ReviewUpdateView.as_view(),
-         name='review-edit'),
-    path('<int:product_id>/reviews/<int:pk>/images/',
-         ReviewImageCreateView.as_view(),
-         name='review-image-create'),
+    path('<int:product_id>/reviews/', ProductReviewsView.as_view(), name='product-reviews'),
+    path('<int:product_id>/reviews/<int:pk>/', ReviewUpdateView.as_view(), name='review-detail'),
+    path('<int:product_id>/reviews/<int:pk>/helpful-votes/', ReviewHelpfulVoteView.as_view(), name='review-helpful-votes'),
+    path('<int:product_id>/reviews/<int:pk>/images/', ReviewImageCreateView.as_view(), name='review-images'),
 ]

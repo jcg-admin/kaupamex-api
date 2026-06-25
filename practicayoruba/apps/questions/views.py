@@ -182,7 +182,8 @@ class AdminQuestionAnswerView(_AdminOnly, APIView):
     """POST /api/v1/admin/questions/<question_id>/answer/ — UC-QST-02 responder."""
 
     @extend_schema(
-        summary='Responder pregunta (UC-QST-02)',
+        summary='[DEPRECATED → POST /api/v2/admin/questions/<id>/answers/] Responder pregunta (UC-QST-02)',
+        deprecated=True,
         tags=['questions'],
         request=AdminAnswerSerializer,
         responses={200: AdminQuestionItemSerializer,
@@ -226,7 +227,8 @@ class AdminQuestionApproveView(_AdminOnly, APIView):
     """POST /api/v1/admin/questions/<question_id>/approve/ — UC-QST-04."""
 
     @extend_schema(
-        summary='Aprobar pregunta (UC-QST-04)',
+        summary='[DEPRECATED → PATCH /api/v2/admin/questions/<id>/status/] Aprobar pregunta (UC-QST-04)',
+        deprecated=True,
         tags=['questions'],
         request=None,
         responses={200: AdminQuestionItemSerializer,
@@ -257,7 +259,8 @@ class AdminQuestionRejectView(_AdminOnly, APIView):
     """POST /api/v1/admin/questions/<question_id>/reject/ — UC-QST-04."""
 
     @extend_schema(
-        summary='Rechazar pregunta (UC-QST-04)',
+        summary='[DEPRECATED → PATCH /api/v2/admin/questions/<id>/status/] Rechazar pregunta (UC-QST-04)',
+        deprecated=True,
         tags=['questions'],
         request=None,
         responses={200: AdminQuestionItemSerializer,
@@ -272,3 +275,23 @@ class AdminQuestionRejectView(_AdminOnly, APIView):
         question.status = QuestionStatus.REJECTED
         question.save(update_fields=['status', 'updated_at'])
         return Response(AdminQuestionItemSerializer(question).data)
+
+
+class QuestionStatusV2View(APIView):
+    """PATCH /api/v2/admin/questions/<id>/status/ — Tier B."""
+
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def patch(self, request, question_id):
+        action = (request.data.get('action') or '').strip()
+        if action == 'approve':
+            return AdminQuestionApproveView().post(request, question_id)
+        if action == 'reject':
+            return AdminQuestionRejectView().post(request, question_id)
+        return Response(
+            {
+                'detail': "action debe ser 'approve' o 'reject'.",
+                'codigo_error': 'INVALID_ACTION',
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )

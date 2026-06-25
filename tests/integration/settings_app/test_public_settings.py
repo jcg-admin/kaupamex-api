@@ -1,7 +1,7 @@
 """
 Tests de integracion — Public SiteSettings (US-1.1, closes ERR-14)
 
-GET /api/v1/config/public-settings/ — public read-only storefront subset.
+GET /api/v2/config/public-settings/ — public read-only storefront subset.
 No auth required; exposes ONLY the storefront-safe fields and NEVER any
 admin/secret field.
 """
@@ -10,7 +10,7 @@ from apps.settings_app.models import SiteSettings
 
 pytestmark = pytest.mark.integration
 
-PUBLIC_SETTINGS_URL = '/api/v1/config/public-settings/'
+PUBLIC_SETTINGS_URL = '/api/v2/config/public-settings/'
 
 # Exact storefront-safe allowlist returned by the public endpoint.
 ALLOWED_FIELDS = {

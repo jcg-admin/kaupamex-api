@@ -426,7 +426,8 @@ class OrderCancelView(APIView):
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
-        summary='Cancelar una orden',
+        summary='[DEPRECATED → /api/v2/orders/<n>/cancellations/] Cancelar una orden',
+        deprecated=True,
         description=(
             'Cancela una orden en estado PENDING o PROCESSING. '
             'Restaura el stock de todos los ítems. '
@@ -507,7 +508,8 @@ class OrderAddressUpdateView(APIView):
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
-        summary='Actualizar dirección de entrega',
+        summary='[DEPRECATED → /api/v2/orders/<n>/shipping-address/] Actualizar dirección de entrega',
+        deprecated=True,
         description=(
             'Actualiza la dirección de entrega de una orden. '
             'Solo posible antes de que se cree la guía de envío '
@@ -568,7 +570,8 @@ class OrderShippingUpdateView(APIView):
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
-        summary='Cambiar método de envío',
+        summary='[DEPRECATED → /api/v2/orders/<n>/shipping-method/] Cambiar método de envío',
+        deprecated=True,
         description=(
             'Cambia el método de envío de la orden y recalcula el total. '
             'Solo posible antes del envío (PENDING, PROCESSING, IN_PREPARATION). '
@@ -623,3 +626,32 @@ class OrderShippingUpdateView(APIView):
             .get(pk=order.pk)
         )
         return Response(OrderSerializer(order).data)
+
+
+class OrderCollectionV2View(APIView):
+    """
+    GET  /api/v2/orders/ — historial de ordenes del usuario (UC-ORD-03).
+    POST /api/v2/orders/ — crear orden desde carrito / checkout (UC-ORD-01).
+
+    Tier B (mapeo §2.2): coleccion REST canonica unificada. En v1 el
+    checkout estaba en /api/v1/checkout/ (ruta separada); v2 lo ubica
+    en POST /orders/ siguiendo la convencion REST de coleccion.
+    GET requiere auth; POST acepta anonimos con throttle checkout.
+    """
+
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [AllowAny()]
+        return [IsAuthenticated()]
+
+    def get_throttles(self):
+        if self.request.method == 'POST':
+            self.throttle_scope = 'checkout'
+            return [ScopedRateThrottle()]
+        return []
+
+    def get(self, request, *args, **kwargs):
+        return OrderListView().get(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        return CheckoutView().post(request)

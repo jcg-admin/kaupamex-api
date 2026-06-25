@@ -11,7 +11,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 pytestmark = pytest.mark.integration
 
-USERS_URL = '/api/v1/admin/users/'
+USERS_URL = '/api/v2/admin/users/'
 
 
 @pytest.fixture
@@ -81,7 +81,7 @@ class TestAdminSuspendUser:
     def test_suspender_invalida_sesiones(self, admin_auth_client, target_user, db, api_client):
         refresh = str(RefreshToken.for_user(target_user))
         admin_auth_client.post(f'{USERS_URL}{target_user.pk}/suspend/')
-        r = api_client.post('/api/v1/auth/refresh/', {'refresh': refresh}, format='json')
+        r = api_client.post('/api/v2/auth/refresh/', {'refresh': refresh}, format='json')
         assert r.status_code == 401
 
     def test_comprador_no_puede_suspender(self, auth_client, target_user, db):
@@ -172,7 +172,7 @@ class TestAdminCreateAdmin:
 
 
 class TestAdminEditPermissions:
-    """UC-ADM-02: POST /api/v1/admin/users/<pk>/permissions/"""
+    """UC-ADM-02: POST /api/v2/admin/users/<pk>/permissions/"""
 
     def _url(self, pk):
         return f'{USERS_URL}{pk}/permissions/'

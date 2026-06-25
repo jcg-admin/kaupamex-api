@@ -1,32 +1,83 @@
 """
-URLs — apps.logistics (P-13).
+URLs — apps.logistics.
+
+Mounted in config/urls.py:
+  path('api/v2/',          include(('apps.logistics.urls', 'logistics'),
+                                   namespace='logistics_v2'))
+  path('api/v1/logistics/', include('apps.logistics.webhook_urls'))
 """
 from django.urls import path
+
 from .views import (
-    BuyerGuideView, BuyerReportIncidentView, CancelGuideView, ConfirmDeliveryView,
-    CourierDetailView, CourierListCreateView, LogisticsPanelView,
-    ShipmentGuideDetailView, ShipmentGuideListCreateView,
+    BuyerGuideView,
+    BuyerOrderShipmentV2View,
+    BuyerReportIncidentView,
+    CancelGuideView,
+    ConfirmDeliveryView,
+    CourierDetailView,
+    CourierListCreateView,
+    LogisticsPanelView,
+    ShipmentCancellationV2View,
+    ShipmentDeliveryV2View,
+    ShipmentDetailV2View,
+    ShipmentGuideDetailView,
+    ShipmentGuideListCreateView,
+    ShipmentListCreateV2View,
+    ShipmentProblemReportV2View,
 )
-from .webhooks import CourierWebhookView
 
 app_name = 'logistics'
 
 urlpatterns = [
-    path('',                                    LogisticsPanelView.as_view(),          name='panel'),
-    path('couriers/',                           CourierListCreateView.as_view(),       name='couriers'),
-    path('couriers/<int:pk>/',                  CourierDetailView.as_view(),           name='courier-detail'),
-    path('guides/',                             ShipmentGuideListCreateView.as_view(), name='guides-list-create'),
-    path('guides/<int:pk>/',                    ShipmentGuideDetailView.as_view(),     name='guide-detail'),
-    path('guides/<int:pk>/cancel/',             CancelGuideView.as_view(),             name='guide-cancel'),
-    path('guides/<int:pk>/confirm-delivery/',   ConfirmDeliveryView.as_view(),         name='confirm-delivery'),
-    path('buyer/order/<int:order_id>/guide/',   BuyerGuideView.as_view(),              name='buyer-guide'),
-    # UC-LOG-07: el comprador dueño reporta un problema de su envío. Ruta
-    # order-scoped consistente con buyer-guide (la propiedad se verifica por
-    # Order.user). El contrato del UC (PARTE 7C) menciona
-    # /guides/<pk>/incidents/ con auth staff — drift documentado como hallazgo:
-    # PARTE 2/6 del UC exigen que el ACTOR sea el comprador dueño, no staff.
-    path('buyer/order/<int:order_id>/incident/', BuyerReportIncidentView.as_view(),    name='buyer-report-incident'),
-    # LOG-04 (US-1.2 / DEC-LOOP-05): webhook de estado del courier. AllowAny,
-    # autenticado por firma HMAC con el secreto compartido del courier.
-    path('webhook/courier/',                    CourierWebhookView.as_view(),          name='courier-webhook'),
+    # v2 canonical shipment API (F5 §1.3)
+    path('shipments/',
+         ShipmentListCreateV2View.as_view(),
+         name='shipments'),
+    path('shipments/<int:pk>/',
+         ShipmentDetailV2View.as_view(),
+         name='shipment-detail'),
+    path('shipments/<int:pk>/cancellations/',
+         ShipmentCancellationV2View.as_view(),
+         name='shipment-cancel'),
+    path('shipments/<int:pk>/deliveries/',
+         ShipmentDeliveryV2View.as_view(),
+         name='shipment-deliver'),
+    path('orders/<int:order_id>/shipment/',
+         BuyerOrderShipmentV2View.as_view(),
+         name='order-shipment'),
+    path('shipments/<int:pk>/problem-reports/',
+         ShipmentProblemReportV2View.as_view(),
+         name='shipment-problem-report'),
+
+    # Admin & buyer logistics panel (formerly mounted via passthrough)
+    path('logistics/',
+         LogisticsPanelView.as_view(),
+         name='panel'),
+    path('logistics/couriers/',
+         CourierListCreateView.as_view(),
+         name='couriers'),
+    path('logistics/couriers/<int:pk>/',
+         CourierDetailView.as_view(),
+         name='courier-detail'),
+    path('logistics/guides/',
+         ShipmentGuideListCreateView.as_view(),
+         name='guides-list-create'),
+    path('logistics/guides/<int:pk>/',
+         ShipmentGuideDetailView.as_view(),
+         name='guide-detail'),
+    path('logistics/guides/<int:pk>/cancel/',
+         CancelGuideView.as_view(),
+         name='guide-cancel'),
+    path('logistics/guides/<int:pk>/cancellations/',
+         CancelGuideView.as_view(),
+         name='guide-cancellations'),
+    path('logistics/guides/<int:pk>/confirm-delivery/',
+         ConfirmDeliveryView.as_view(),
+         name='confirm-delivery'),
+    path('logistics/buyer/order/<int:order_id>/guide/',
+         BuyerGuideView.as_view(),
+         name='buyer-guide'),
+    path('logistics/buyer/order/<int:order_id>/incident/',
+         BuyerReportIncidentView.as_view(),
+         name='buyer-report-incident'),
 ]

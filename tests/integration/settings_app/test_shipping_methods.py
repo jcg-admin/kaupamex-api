@@ -1,7 +1,7 @@
 """
 Tests — Metodos de envio admin (UC-CFG-02).
 
-CRUD sobre /api/v1/admin/shipping-methods/ — ShippingMethodViewSet
+CRUD sobre /api/v2/admin/shipping-methods/ — ShippingMethodViewSet
 (apps/settings_app/views.py). Cubre: exito (crear/listar/editar/soft-delete),
 permisos (anon 401, comprador 403) y validacion de error con ``codigo_error``
 (soft-delete bloqueado por ordenes activas).
@@ -14,8 +14,8 @@ from apps.settings_app.models import ShippingMethod
 
 pytestmark = pytest.mark.integration
 
-LIST_URL   = '/api/v1/admin/shipping-methods/'
-DETAIL_URL = lambda pk: f'/api/v1/admin/shipping-methods/{pk}/'
+LIST_URL   = '/api/v2/admin/shipping-methods/'
+DETAIL_URL = lambda pk: f'/api/v2/admin/shipping-methods/{pk}/'
 
 
 @pytest.fixture

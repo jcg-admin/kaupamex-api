@@ -25,7 +25,7 @@ from apps.reports.models import ExportJob
 
 pytestmark = pytest.mark.integration
 
-BASE = '/api/v1/admin/reports/'
+BASE = '/api/v2/admin/reports/'
 
 
 def _jobs_url(job_id):

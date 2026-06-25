@@ -1,6 +1,6 @@
 """
 Tests de integracion — ProductListSerializer DEC-BC-14
-T-403: verifica que GET /api/v1/catalogue/ expone los 5 campos de DEC-BC-14:
+T-403: verifica que GET /api/v2/catalogue/ expone los 5 campos de DEC-BC-14:
   image, discount, variants_available, is_featured, availability.
 """
 import pytest
@@ -11,7 +11,7 @@ from apps.catalogue.models import Category, Product, ProductDiscount
 
 pytestmark = pytest.mark.integration
 
-CATALOGUE_URL = '/api/v1/catalogue/'
+CATALOGUE_URL = '/api/v2/products/'
 
 
 @pytest.fixture

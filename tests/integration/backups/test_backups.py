@@ -1,8 +1,8 @@
 """
 Tests — Backup on-demand admin (UC-ADM-05).
 
-  GET  /api/v1/admin/backups/          AdminBackupListView
-  POST /api/v1/admin/backups/trigger/  AdminBackupTriggerView
+  GET  /api/v2/admin/backups/          AdminBackupListView
+  POST /api/v2/admin/backups/trigger/  AdminBackupTriggerView
 
 Cubre: permisos (anon 401, comprador 403), listado/estado, creacion del
 BackupRecord (status PENDING), lock de concurrencia (segundo trigger ->
@@ -24,8 +24,8 @@ from apps.backups.models import BackupRecord
 
 pytestmark = pytest.mark.integration
 
-LIST_URL    = '/api/v1/admin/backups/'
-TRIGGER_URL = '/api/v1/admin/backups/trigger/'
+LIST_URL    = '/api/v2/admin/backups/'
+TRIGGER_URL = '/api/v2/admin/backups/trigger/'
 
 
 @pytest.fixture(autouse=True)

@@ -9,7 +9,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 pytestmark = pytest.mark.integration
 
-ADDR_URL = '/api/v1/auth/addresses/'
+ADDR_URL = '/api/v2/auth/addresses/'
 
 VALID_ADDR = {
     'alias': 'Casa',

@@ -16,8 +16,8 @@ from apps.orders.signals import order_created
 
 pytestmark = pytest.mark.integration
 
-CHECKOUT_URL = '/api/v1/orders/checkout/'
-ITEMS_URL    = '/api/v1/cart/items/'
+CHECKOUT_URL = '/api/v2/orders/'
+ITEMS_URL    = '/api/v2/cart/items/'
 
 ADDR = {
     'recipient_name': 'Signal Test',

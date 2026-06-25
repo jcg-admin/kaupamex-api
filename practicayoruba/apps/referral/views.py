@@ -68,7 +68,8 @@ class RedeemReferralView(APIView):
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
-        summary='Canjear codigo referral (UC-PRO-05 Subflujo B)',
+        summary='[DEPRECATED → /api/v2/account/referral/redemptions/] Canjear codigo referral (UC-PRO-05 Subflujo B)',
+        deprecated=True,
         request=RedeemReferralSerializer,
         responses={
             201: OpenApiResponse(description='Relacion de referido creada en estado PENDING.'),

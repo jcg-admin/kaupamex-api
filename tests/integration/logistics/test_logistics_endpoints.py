@@ -2,11 +2,11 @@
 Integration tests — P-13 logistics endpoints (UC-LOG-01..09).
 
 Endpoints under test:
-  GET    /api/v1/logistics/
-  GET    /api/v1/logistics/couriers/
-  POST   /api/v1/logistics/guides/
-  PATCH  /api/v1/logistics/guides/<pk>/
-  POST   /api/v1/logistics/guides/<pk>/confirm-delivery/
+  GET    /api/v2/logistics/
+  GET    /api/v2/logistics/couriers/
+  POST   /api/v2/logistics/guides/
+  PATCH  /api/v2/logistics/guides/<pk>/
+  POST   /api/v2/logistics/guides/<pk>/confirm-delivery/
 
 English JSON keys per DEC-DOC-005. Spanish business codes per DEC-DOC-006.
 """
@@ -21,11 +21,11 @@ import pytest
 pytestmark = pytest.mark.integration
 
 
-PANEL_URL    = '/api/v1/logistics/'
-COURIER_URL  = '/api/v1/logistics/couriers/'
-GUIDES_URL   = '/api/v1/logistics/guides/'
-CONFIRM_URL  = lambda pk: f'/api/v1/logistics/guides/{pk}/confirm-delivery/'
-GUIDE_URL    = lambda pk: f'/api/v1/logistics/guides/{pk}/'
+PANEL_URL    = '/api/v2/logistics/'
+COURIER_URL  = '/api/v2/logistics/couriers/'
+GUIDES_URL   = '/api/v2/logistics/guides/'
+CONFIRM_URL  = lambda pk: f'/api/v2/logistics/guides/{pk}/confirm-delivery/'
+GUIDE_URL    = lambda pk: f'/api/v2/logistics/guides/{pk}/'
 
 
 @pytest.fixture
@@ -264,7 +264,7 @@ class TestCancelGuide:
         g = ShipmentGuide.objects.create(
             order=order_log, courier=courier_log, tracking_number='CAN-001',
         )
-        r = admin_client.post(f'/api/v1/logistics/guides/{g.id}/cancel/',
+        r = admin_client.post(f'/api/v2/logistics/guides/{g.id}/cancellations/',
                               {'reason': 'Cliente cancelo'}, format='json')
         assert r.status_code == 200
         assert r.json()['cancelled'] is True
@@ -277,7 +277,7 @@ class TestCancelGuide:
             order=order_log, courier=courier_log, tracking_number='CAN-002',
             status=ShipmentGuide.STATUS_DELIVERED,
         )
-        r = admin_client.post(f'/api/v1/logistics/guides/{g.id}/cancel/', {}, format='json')
+        r = admin_client.post(f'/api/v2/logistics/guides/{g.id}/cancellations/', {}, format='json')
         assert r.status_code == 400
         assert r.json()['codigo_error'] == 'SHIPMENT_GUIDE_DELIVERED'
 
@@ -288,12 +288,12 @@ class TestCancelGuide:
             order=order_log, courier=courier_log, tracking_number='CAN-003',
             status=ShipmentGuide.STATUS_CANCELLED,
         )
-        r = admin_client.post(f'/api/v1/logistics/guides/{g.id}/cancel/', {}, format='json')
+        r = admin_client.post(f'/api/v2/logistics/guides/{g.id}/cancellations/', {}, format='json')
         assert r.status_code == 400
         assert r.json()['codigo_error'] == 'SHIPMENT_GUIDE_ALREADY_CANCELLED'
 
     def test_cancela_guia_404_loud(self, admin_client, db):
-        r = admin_client.post('/api/v1/logistics/guides/999999/cancel/', {}, format='json')
+        r = admin_client.post('/api/v2/logistics/guides/999999/cancellations/', {}, format='json')
         assert r.status_code == 404
         assert r.json()['codigo_error'] == 'SHIPMENT_GUIDE_NOT_FOUND'
 
@@ -302,7 +302,7 @@ class TestCourierCRUD:
     """UC-LOG-06 CRUD couriers."""
 
     def test_admin_crea_courier(self, admin_client, db):
-        r = admin_client.post('/api/v1/logistics/couriers/', {
+        r = admin_client.post('/api/v2/logistics/couriers/', {
             'name': 'FedEx', 'code': 'FDX',
             'tracking_url_template': 'https://fedex.com/track?trk={tracking_number}',
             'is_active': True,
@@ -312,7 +312,7 @@ class TestCourierCRUD:
 
     def test_admin_actualiza_courier(self, admin_client, courier_log, db):
         r = admin_client.patch(
-            f'/api/v1/logistics/couriers/{courier_log.id}/',
+            f'/api/v2/logistics/couriers/{courier_log.id}/',
             {'is_active': False},
             format='json',
         )
@@ -320,14 +320,14 @@ class TestCourierCRUD:
         assert r.json()['is_active'] is False
 
     def test_admin_desactiva_courier(self, admin_client, courier_log, db):
-        r = admin_client.delete(f'/api/v1/logistics/couriers/{courier_log.id}/')
+        r = admin_client.delete(f'/api/v2/logistics/couriers/{courier_log.id}/')
         assert r.status_code == 200
         assert r.json()['deactivated'] is True
         courier_log.refresh_from_db()
         assert courier_log.is_active is False
 
     def test_courier_no_encontrado_loud_404(self, admin_client, db):
-        r = admin_client.patch('/api/v1/logistics/couriers/999999/', {'name': 'X'}, format='json')
+        r = admin_client.patch('/api/v2/logistics/couriers/999999/', {'name': 'X'}, format='json')
         assert r.status_code == 404
         assert r.json()['codigo_error'] == 'COURIER_NOT_FOUND'
 
@@ -408,7 +408,7 @@ class TestUpdateTrackingNumber:
 class TestBuyerReportIncident:
     """UC-LOG-07 — el comprador dueño reporta un problema de su envío."""
 
-    INCIDENT_URL = lambda self, oid: f'/api/v1/logistics/buyer/order/{oid}/incident/'
+    INCIDENT_URL = lambda self, oid: f'/api/v2/logistics/buyer/order/{oid}/incident/'
 
     def test_comprador_reporta_problema(
         self, auth_client, order_log, courier_log, db,
@@ -527,7 +527,7 @@ class TestBuyerGuide:
         ShipmentGuide.objects.create(
             order=order_log, courier=courier_log, tracking_number='BYR-001',
         )
-        r = auth_client.get(f'/api/v1/logistics/buyer/order/{order_log.id}/guide/')
+        r = auth_client.get(f'/api/v2/logistics/buyer/order/{order_log.id}/guide/')
         assert r.status_code == 200
         data = r.json()
         assert data['tracking_number'] == 'BYR-001'
@@ -538,11 +538,11 @@ class TestBuyerGuide:
             order=order_log, courier=courier_log, tracking_number='BYR-002',
         )
         # admin_client is authenticated as a different user (admin, not order_log.user)
-        r = admin_client.get(f'/api/v1/logistics/buyer/order/{order_log.id}/guide/')
+        r = admin_client.get(f'/api/v2/logistics/buyer/order/{order_log.id}/guide/')
         assert r.status_code == 404
         assert r.json()['codigo_error'] == 'ORDER_NOT_FOUND'
 
     def test_comprador_sin_guia_recibe_404(self, auth_client, order_log, db):
-        r = auth_client.get(f'/api/v1/logistics/buyer/order/{order_log.id}/guide/')
+        r = auth_client.get(f'/api/v2/logistics/buyer/order/{order_log.id}/guide/')
         assert r.status_code == 404
         assert r.json()['codigo_error'] == 'SHIPMENT_GUIDE_NOT_FOUND'

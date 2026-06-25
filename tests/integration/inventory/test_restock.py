@@ -20,7 +20,7 @@ from apps.inventory.services import InventoryService
 
 pytestmark = pytest.mark.integration
 
-RESTOCK_URL = '/api/v1/admin/inventory/variants/{pk}/restock/'
+RESTOCK_URL = '/api/v2/admin/inventory/variants/{pk}/restock/'
 
 
 @pytest.fixture
@@ -115,7 +115,7 @@ class TestRestockService:
 
 
 # =============================================================================
-# Endpoint — POST /api/v1/admin/inventory/variants/<pk>/restock/
+# Endpoint — POST /api/v2/admin/inventory/variants/<pk>/restock/
 # =============================================================================
 
 class TestRestockEndpoint:

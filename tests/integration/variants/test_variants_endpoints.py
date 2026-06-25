@@ -2,13 +2,13 @@
 Tests — Variants endpoints consumed by UI UC-CHT-01..04.
 
 UC-CHT-01: Product detail exposes variants[].
-UC-CHT-02: POST /api/v1/cart/items/ accepts variant_id and maps the
+UC-CHT-02: POST /api/v2/cart/items/ accepts variant_id and maps the
            three contract error codes (VARIANTE_REQUERIDA 400,
            VARIANTE_SIN_STOCK 409, VARIANTE_NO_DISPONIBLE 404).
 UC-CHT-03: Admin list/create/toggle variants under
-           /api/v1/admin/products/<id>/variants/.
+           /api/v2/admin/products/<id>/variants/.
 UC-CHT-04: Set/clear differentiated price on
-           /api/v1/admin/variants/<id>/price/.
+           /api/v2/admin/variants/<id>/price/.
 """
 import pytest
 from decimal import Decimal
@@ -17,10 +17,10 @@ from apps.chartsize.models import VariantType, VariantOption, ProductVariant
 
 pytestmark = pytest.mark.integration
 
-CATALOGUE_URL  = '/api/v1/catalogue/'
-CART_ITEMS_URL = '/api/v1/cart/items/'
-ADMIN_PROD_URL = '/api/v1/admin/products/'
-ADMIN_VAR_URL  = '/api/v1/admin/variants/'
+CATALOGUE_URL  = '/api/v2/products/'
+CART_ITEMS_URL = '/api/v2/cart/items/'
+ADMIN_PROD_URL = '/api/v2/admin/products/'
+ADMIN_VAR_URL  = '/api/v2/admin/variants/'
 
 
 # ---------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 """
 Tests — CatalogImportCSVView (UC-CAT-IMPORT)
 
-POST /api/v1/admin/catalogue/import-csv/
+POST /api/v2/admin/catalogue/import-csv/
 Cabecera CSV: name, sku, base_price, category_slug, [description], [image_files]
 image_files: filenames separados por ';', pre-staged en MEDIA_ROOT/products/images/
 
@@ -19,7 +19,7 @@ from apps.catalogue.models import Category, Product, ProductImage
 
 pytestmark = pytest.mark.integration
 
-IMPORT_URL = '/api/v1/admin/catalogue/import-csv/'
+IMPORT_URL = '/api/v2/admin/catalogue/import-csv/'
 
 
 # ---------------------------------------------------------------------------

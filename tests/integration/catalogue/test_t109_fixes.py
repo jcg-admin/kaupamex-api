@@ -10,9 +10,9 @@ from apps.catalogue.models import Category, Product, ProductPriceHistory
 
 pytestmark = pytest.mark.integration
 
-ADMIN_PROD_URL = '/api/v1/admin/products/'
-PRICE_SYNC_URL = '/api/v1/admin/products/price-sync/'
-PRICE_SYNC_CONFIRM_URL = '/api/v1/admin/products/price-sync/confirm/'
+ADMIN_PROD_URL = '/api/v2/admin/products/'
+PRICE_SYNC_URL = '/api/v2/admin/products/price-sync/'
+PRICE_SYNC_CONFIRM_URL = '/api/v2/admin/products/price-sync/confirm/'
 
 
 # =============================================================================

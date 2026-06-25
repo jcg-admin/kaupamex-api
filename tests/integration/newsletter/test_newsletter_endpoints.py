@@ -2,14 +2,14 @@
 Tests — Newsletter endpoints (UC-NEW-01..04)
 
 Public:
-  POST /api/v1/newsletter/subscribe/
-  POST /api/v1/newsletter/confirm/<token>/
-  POST /api/v1/newsletter/unsubscribe/
+  POST /api/v2/newsletter/subscribe/
+  POST /api/v2/newsletter/subscriptions/confirmations/<token>/
+  POST /api/v2/newsletter/unsubscribe/
 
 Admin:
-  GET  /api/v1/admin/newsletter/subscribers/
-  POST /api/v1/admin/newsletter/subscribers/<id>/unsubscribe/
-  POST /api/v1/admin/newsletter/campaigns/
+  GET  /api/v2/admin/newsletter/subscribers/
+  POST /api/v2/admin/newsletter/subscribers/<id>/unsubscribe/
+  POST /api/v2/admin/newsletter/campaigns/
 
 JSON keys + identifiers in English (DEC-DOC-005).
 """
@@ -22,15 +22,15 @@ from django.core import mail, signing
 
 pytestmark = pytest.mark.integration
 
-SUBSCRIBE_URL = '/api/v1/newsletter/subscribe/'
-CONFIRM_URL = '/api/v1/newsletter/confirm/{}/'
-UNSUB_URL = '/api/v1/newsletter/unsubscribe/'
-ADMIN_LIST_URL = '/api/v1/admin/newsletter/subscribers/'
-ADMIN_CAMPAIGN_URL = '/api/v1/admin/newsletter/campaigns/'
+SUBSCRIBE_URL = '/api/v2/newsletter/subscriptions/'
+CONFIRM_URL = '/api/v2/newsletter/subscriptions/confirmations/'
+UNSUB_URL = '/api/v2/newsletter/subscriptions/'
+ADMIN_LIST_URL = '/api/v2/admin/newsletter/subscribers/'
+ADMIN_CAMPAIGN_URL = '/api/v2/admin/newsletter/campaigns/'
 
 
 def _admin_force_unsub_url(pk):
-    return f'/api/v1/admin/newsletter/subscribers/{pk}/unsubscribe/'
+    return f'/api/v2/admin/newsletter/subscribers/{pk}/unsubscribe/'
 
 
 def _make_subscriber(email='sub@example.com', status='CONFIRMED'):
@@ -75,7 +75,7 @@ class TestSubscribe:
         assert res.json()['status'] == 'PENDING'
 
 
-# ─── POST /newsletter/confirm/<token> ────────────────────────────────────
+# ─── POST /newsletter/subscriptions/confirmations/<token> ────────────────────────────────────
 class TestConfirmSubscription:
     def test_confirm_valid_token(self, api_client, db):
         email = 'pending@example.com'
@@ -86,7 +86,7 @@ class TestConfirmSubscription:
             confirmation_token=token,
         )
 
-        res = api_client.post(CONFIRM_URL.format(token), format='json')
+        res = api_client.post(CONFIRM_URL, {'token': token}, format='json')
         assert res.status_code == 200
         body = res.json()
         assert body['status'] == 'CONFIRMED'
@@ -97,9 +97,9 @@ class TestConfirmSubscription:
         assert sub.confirmed_at is not None
         assert sub.confirmation_token is None
 
-    def test_confirm_invalid_token_returns_404(self, api_client, db):
-        res = api_client.post(CONFIRM_URL.format('not-a-valid-signed-token'), format='json')
-        assert res.status_code == 404
+    def test_confirm_invalid_token_returns_400(self, api_client, db):
+        res = api_client.post(CONFIRM_URL, {'token': 'not-a-valid-signed-token'}, format='json')
+        assert res.status_code == 400
         assert res.json()['codigo_error'] == 'INVALID_TOKEN'
 
     def test_confirm_expired_token_returns_400(self, api_client, db):
@@ -113,7 +113,7 @@ class TestConfirmSubscription:
             confirmation_token=expired_token,
         )
 
-        res = api_client.post(CONFIRM_URL.format(expired_token), format='json')
+        res = api_client.post(CONFIRM_URL, {'token': expired_token}, format='json')
         assert res.status_code == 400
         assert res.json()['codigo_error'] == 'TOKEN_EXPIRED'
 
@@ -125,9 +125,9 @@ class TestConfirmSubscription:
             status='CONFIRMED',
             confirmation_token=None,
         )
-        # Token signature is valid but confirmation_token cleared — returns 404
-        res = api_client.post(CONFIRM_URL.format(token), format='json')
-        assert res.status_code == 404
+        # Token signature is valid but confirmation_token cleared — returns 400
+        res = api_client.post(CONFIRM_URL, {'token': token}, format='json')
+        assert res.status_code == 400
 
     def test_confirm_subscribe_sends_confirmation_email(self, api_client, db):
         mail.outbox.clear()
@@ -142,9 +142,9 @@ class TestConfirmSubscription:
 # ─── POST /newsletter/unsubscribe ────────────────────────────────────────
 class TestUnsubscribe:
     def test_invalid_token_returns_404(self, api_client, db):
-        res = api_client.post(UNSUB_URL,
-                              {'token': 'no-existe-este-token-12345678'},
-                              format='json')
+        res = api_client.delete(UNSUB_URL,
+                                data={'token': 'no-existe-este-token-12345678'},
+                                format='json')
         assert res.status_code == 404
         assert res.json()['codigo_error'] == 'INVALID_TOKEN'
 
@@ -156,15 +156,15 @@ class TestUnsubscribe:
         sub.unsubscribe_token = expired_token
         sub.save(update_fields=['unsubscribe_token'])
 
-        res = api_client.post(UNSUB_URL, {'token': expired_token}, format='json')
+        res = api_client.delete(UNSUB_URL, data={'token': expired_token}, format='json')
         assert res.status_code == 400
         assert res.json()['codigo_error'] == 'TOKEN_EXPIRED'
 
     def test_valid_token_unsubscribes(self, api_client, db):
         sub = _make_subscriber('out@example.com', status='CONFIRMED')
-        res = api_client.post(UNSUB_URL,
-                              {'token': sub.unsubscribe_token},
-                              format='json')
+        res = api_client.delete(UNSUB_URL,
+                                data={'token': sub.unsubscribe_token},
+                                format='json')
         assert res.status_code == 200
         body = res.json()
         assert body['status'] == 'UNSUBSCRIBED'
@@ -174,7 +174,7 @@ class TestUnsubscribe:
         assert sub.unsubscribed_at is not None
 
     def test_token_required(self, api_client, db):
-        res = api_client.post(UNSUB_URL, {}, format='json')
+        res = api_client.delete(UNSUB_URL, data={}, format='json')
         assert res.status_code == 400
 
 

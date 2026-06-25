@@ -2,14 +2,14 @@
 Tests — Product Questions endpoints (UC-QST-01..04)
 
 Public:
-  POST /api/v1/products/<id>/questions/                    public ask
-  GET  /api/v1/products/<id>/questions/                    public list (approved only)
+  POST /api/v2/products/<id>/questions/                    public ask
+  GET  /api/v2/products/<id>/questions/                    public list (approved only)
 
 Admin:
-  GET  /api/v1/admin/questions/?status=PENDING|ANSWERED|REJECTED
-  POST /api/v1/admin/questions/<id>/answer/
-  POST /api/v1/admin/questions/<id>/approve/
-  POST /api/v1/admin/questions/<id>/reject/
+  GET  /api/v2/admin/questions/?status=PENDING|ANSWERED|REJECTED
+  POST /api/v2/admin/questions/<id>/answer/
+  POST /api/v2/admin/questions/<id>/approve/
+  POST /api/v2/admin/questions/<id>/reject/
 
 JSON keys + identifiers in English (DEC-DOC-005).
 """
@@ -43,11 +43,11 @@ def product(db, category):
 
 
 def _q_url(product_id):
-    return f'/api/v1/products/{product_id}/questions/'
+    return f'/api/v2/products/{product_id}/questions/'
 
 
 def _admin_list_url(suffix=''):
-    return f'/api/v1/admin/questions/{suffix}'
+    return f'/api/v2/admin/questions/{suffix}'
 
 
 def _make_question(product, **kwargs):
@@ -188,13 +188,13 @@ class TestAdminQueue:
 class TestAdminAnswer:
     def test_requires_staff(self, auth_client, product, db):
         q = _make_question(product)
-        res = auth_client.post(_admin_list_url(f'{q.pk}/answer/'),
+        res = auth_client.post(_admin_list_url(f'{q.pk}/answers/'),
                                {'answer_body': 'Hola'}, format='json')
         assert res.status_code == 403
 
     def test_admin_answers_question(self, admin_client, product, db):
         q = _make_question(product, status='PENDING')
-        res = admin_client.post(_admin_list_url(f'{q.pk}/answer/'),
+        res = admin_client.post(_admin_list_url(f'{q.pk}/answers/'),
                                 {'answer_body': 'Si, hay verde.'},
                                 format='json')
         assert res.status_code == 200
@@ -208,7 +208,7 @@ class TestAdminAnswer:
 
     def test_answer_body_required(self, admin_client, product, db):
         q = _make_question(product)
-        res = admin_client.post(_admin_list_url(f'{q.pk}/answer/'),
+        res = admin_client.post(_admin_list_url(f'{q.pk}/answers/'),
                                 {}, format='json')
         assert res.status_code == 400
 
@@ -217,19 +217,19 @@ class TestAdminAnswer:
 class TestAdminApprove:
     def test_requires_staff(self, auth_client, product, db):
         q = _make_question(product)
-        res = auth_client.post(_admin_list_url(f'{q.pk}/approve/'))
+        res = auth_client.patch(_admin_list_url(f'{q.pk}/status/'), {'action': 'approve'}, format='json')
         assert res.status_code == 403
 
     def test_approve_without_answer_returns_409(self, admin_client, product, db):
         q = _make_question(product, status='PENDING', answer_body='')
-        res = admin_client.post(_admin_list_url(f'{q.pk}/approve/'))
+        res = admin_client.patch(_admin_list_url(f'{q.pk}/status/'), {'action': 'approve'}, format='json')
         assert res.status_code == 409
 
     def test_approve_answered_question(self, admin_client, product, db):
         q = _make_question(
             product, status='PENDING', answer_body='Respuesta lista.',
         )
-        res = admin_client.post(_admin_list_url(f'{q.pk}/approve/'))
+        res = admin_client.patch(_admin_list_url(f'{q.pk}/status/'), {'action': 'approve'}, format='json')
         assert res.status_code == 200
         assert res.json()['status'] == 'ANSWERED'
 
@@ -238,12 +238,12 @@ class TestAdminApprove:
 class TestAdminReject:
     def test_requires_staff(self, auth_client, product, db):
         q = _make_question(product)
-        res = auth_client.post(_admin_list_url(f'{q.pk}/reject/'))
+        res = auth_client.patch(_admin_list_url(f'{q.pk}/status/'), {'action': 'reject'}, format='json')
         assert res.status_code == 403
 
     def test_admin_rejects_question(self, admin_client, product, db):
         q = _make_question(product, status='PENDING')
-        res = admin_client.post(_admin_list_url(f'{q.pk}/reject/'))
+        res = admin_client.patch(_admin_list_url(f'{q.pk}/status/'), {'action': 'reject'}, format='json')
         assert res.status_code == 200
         assert res.json()['status'] == 'REJECTED'
         q.refresh_from_db()

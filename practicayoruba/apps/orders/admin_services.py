@@ -70,7 +70,7 @@ def transition_order_status(order, new_status: str, admin_user, notes: str = '')
             if not has_guide:
                 raise ValueError(
                     "La orden no puede marcarse como SHIPPED sin una guía de "
-                    "envío activa. Crea la guía en /api/v1/admin/logistics/ "
+                    "envío activa. Crea la guía en /api/v2/logistics/guides/ "
                     "antes de avanzar este estado."
                 )
 

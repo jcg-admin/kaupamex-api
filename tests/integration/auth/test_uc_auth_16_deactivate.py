@@ -1,7 +1,7 @@
 """
 Tests de integracion — UC-AUTH-16: Dar de Baja la Propia Cuenta.
 
-POST /api/v1/auth/me/deactivate/
+POST /api/v2/auth/me/deactivate/
 Request:  { password }
 Response 200: { message }
 Response 400: contrasena incorrecta o payload invalido
@@ -24,7 +24,7 @@ from apps.users.models import EmailVerificationToken, PasswordResetToken
 
 pytestmark = pytest.mark.api
 
-URL = '/api/v1/auth/me/deactivate/'
+URL = '/api/v2/auth/me/deactivate/'
 
 
 class TestDeactivateHappyPath:
