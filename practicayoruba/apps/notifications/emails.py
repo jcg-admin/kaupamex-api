@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 def _from_email():
-    return getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@practicayoruba.mx')
+    return getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@practicayoruba.com')
 
 
 def _frontend_url():
