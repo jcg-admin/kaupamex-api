@@ -13,6 +13,7 @@ Admin:
 """
 from datetime import timedelta
 
+from django.conf import settings
 from django.core import mail, signing
 from django.db import transaction
 from django.utils import timezone
@@ -94,11 +95,11 @@ class NewsletterSubscribeView(APIView):
 
 def _send_confirmation_email(email: str, token: str) -> None:
     """Send double opt-in confirmation email."""
-    confirm_url = f'https://practicayoruba.mx/confirmar-newsletter/{token}/'
+    confirm_url = f'https://practicayoruba.com/confirmar-newsletter/{token}/'
     mail.send_mail(
         subject='Confirma tu suscripción al Newsletter',
         message=f'Haz click para confirmar: {confirm_url}',
-        from_email='newsletter@practicayoruba.mx',
+        from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=[email],
         fail_silently=True,
     )
@@ -326,7 +327,7 @@ class AdminCampaignCreateView(_AdminOnly, APIView):
             dispatch_email(
                 subject=campaign.subject,
                 message=campaign.body,
-                from_email='newsletter@practicayoruba.mx',
+                from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[recipient_email],
             )
 
