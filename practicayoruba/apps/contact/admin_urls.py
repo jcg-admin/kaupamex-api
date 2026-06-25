@@ -1,7 +1,6 @@
 """Admin URLs — apps.contact (UC-COM-02..03, F8 consolidation)."""
 from django.urls import path
 from .views import (
-    AdminContactMessageDetailView,
     AdminContactMessageListView,
     AdminContactMessageMarkReadView,
     AdminContactMessageReplyView,
@@ -17,17 +16,14 @@ urlpatterns = [
          AdminContactMessageListView.as_view(),
          name='admin-list'),
     path('contact/messages/<int:message_id>/',
-         AdminContactMessageDetailView.as_view(),
-         name='admin-detail'),
+         AdminContactMessageV2View.as_view(),
+         name='message-detail'),
     path('contact/messages/<int:message_id>/read/',
          AdminContactMessageMarkReadView.as_view(),
          name='admin-mark-read'),
     path('contact/messages/<int:message_id>/reply/',
          AdminContactMessageReplyView.as_view(),
          name='admin-reply'),
-    path('contact/messages/<int:message_id>/',
-         AdminContactMessageV2View.as_view(),
-         name='message-detail'),
     path('contact/messages/<int:message_id>/replies/',
          AdminContactMessageReplyV2View.as_view(),
          name='message-reply'),
