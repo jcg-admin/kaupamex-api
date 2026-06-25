@@ -72,7 +72,7 @@ def send_password_reset_email(user, plain_token: str):
             f'Si no solicitaste esto, ignora este mensaje.\n\n'
             f'— Equipo PracticaYoruba'
         ),
-        from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@practicayoruba.mx'),
+        from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@practicayoruba.com'),
         recipient_list=[user.email],
     )
 
@@ -142,7 +142,7 @@ def send_verification_email(user, plain_token: str):
             f'Si no te registraste en PracticaYoruba, ignora este mensaje.\n\n'
             f'— Equipo PracticaYoruba'
         ),
-        from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@practicayoruba.mx'),
+        from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@practicayoruba.com'),
         recipient_list=[user.email],
     )
 

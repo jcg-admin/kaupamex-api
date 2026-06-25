@@ -43,7 +43,7 @@ def _get_default_gateway() -> BaseGateway:
 def _build_back_urls(order_number: str, base_url: str) -> dict:
     """
     Construye las URLs de retorno del gateway.
-    base_url = scheme + host, ej: 'https://api.practicayoruba.mx'
+    base_url = scheme + host, ej: 'https://api.practicayoruba.com'
     """
     return {
         'success': f'{base_url}/api/v2/payments/{order_number}/return/?status=approved',

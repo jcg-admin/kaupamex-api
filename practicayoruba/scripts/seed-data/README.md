@@ -34,7 +34,7 @@ from django.contrib.auth import get_user_model
 U = get_user_model()
 u, _ = U.objects.get_or_create(
     username='admin',
-    defaults={'email': 'admin@practicayoruba.mx',
+    defaults={'email': 'admin@practicayoruba.com',
               'is_superuser': True, 'is_staff': True})
 u.is_superuser = u.is_staff = u.is_active = True
 u.set_password('Adm1n!PracticaYoruba')

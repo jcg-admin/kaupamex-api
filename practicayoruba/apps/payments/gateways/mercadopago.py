@@ -92,7 +92,7 @@ class MercadoPagoGateway(BaseGateway):
         # Email del comprador (autenticado o invitado)
         payer_email = (
             order.user.email if order.user
-            else order.guest_email or 'guest@practicayoruba.mx'
+            else order.guest_email or 'guest@practicayoruba.com'
         )
 
         preference_data = {
