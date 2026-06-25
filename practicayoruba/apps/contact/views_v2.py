@@ -9,16 +9,19 @@ from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .views import AdminContactMessageMarkReadView, AdminContactMessageReplyView
+from .views import AdminContactMessageDetailView, AdminContactMessageMarkReadView, AdminContactMessageReplyView
 
 
 class AdminContactMessageV2View(APIView):
-    """PATCH /api/v2/admin/contact/messages/<id>/ — Tier B.
+    """GET/PATCH /api/v2/admin/contact/messages/<id>/ — Tier B.
 
-    v1 had a dedicated POST /messages/<id>/read/ endpoint.
-    v2 accepts PATCH with {"is_read": true} on the base resource URL.
+    GET  — return message detail (delegates to AdminContactMessageDetailView).
+    PATCH — accepts {"is_read": true} to mark as read (v1 used POST /read/).
     """
     permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def get(self, request, message_id):
+        return AdminContactMessageDetailView().get(request, message_id=message_id)
 
     def patch(self, request, message_id):
         if not request.data.get('is_read'):

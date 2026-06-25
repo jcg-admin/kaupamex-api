@@ -12,7 +12,7 @@ from apps.users.models import Address
 
 pytestmark = pytest.mark.integration
 
-PROFILE_URL = '/api/v1/auth/profile/'
+PROFILE_URL = '/api/v2/auth/profile/'
 
 
 def make_image_bytes(fmt='PNG', size=(100, 100), color=(100, 149, 237)):
@@ -23,7 +23,7 @@ def make_image_bytes(fmt='PNG', size=(100, 100), color=(100, 149, 237)):
     return buf.getvalue()
 
 
-# ── GET /api/v1/auth/profile/ ─────────────────────────────────────────
+# ── GET /api/v2/auth/profile/ ─────────────────────────────────────────
 
 class TestProfileGet:
 
@@ -114,7 +114,7 @@ class TestProfileGet:
         assert 'password' not in r.json()
 
 
-# ── PATCH /api/v1/auth/profile/ ───────────────────────────────────────
+# ── PATCH /api/v2/auth/profile/ ───────────────────────────────────────
 
 class TestProfileUpdate:
 

@@ -2,11 +2,8 @@
 Tests de integracion — API v2 F5: logistics, newsletter, contact,
 settings/pages, backups, reports, auth §2.1
 
-Verifica los endpoints /api/v2/ para el bloque F5. Solo checks de
-autenticacion y coexistencia v1/v2 para los Tier A. Los Tier B
-se prueban con su logica especifica donde aplica.
-
-F5 no elimina v1; verifica doble-corrida.
+Verifica los endpoints /api/v2/ para el bloque F5. F7 elimino
+la coexistencia v1/v2 — los tests de doble-corrida se removieron.
 """
 import pytest
 from unittest.mock import patch
@@ -34,14 +31,6 @@ V2_AUTH_PWD_CONFIRM  = '/api/v2/auth/password-resets/confirm/'
 V2_AUTH_ME           = '/api/v2/auth/me/'
 V2_AUTH_SESSIONS     = '/api/v2/auth/sessions/'
 
-# ─── URLs v1 (dual-run check) ────────────────────────────────────────────────
-V1_SHIPMENTS_GUIDES = '/api/v1/logistics/guides/'
-V1_NEWSLETTER_SUB   = '/api/v1/newsletter/subscribe/'
-V1_AUTH_VERIFY      = '/api/v1/auth/verify-email/'
-V1_AUTH_PWD_RESET   = '/api/v1/auth/password-reset/'
-V1_AUTH_DEACTIVATE  = '/api/v1/auth/me/deactivate/'
-V1_AUTH_LOGOUT_ALL  = '/api/v1/auth/logout-all/'
-
 
 # ─── Logistics / Shipments ───────────────────────────────────────────────────
 
@@ -56,10 +45,6 @@ class TestShipmentsV2Auth:
 
     def test_list_admin_200(self, admin_client):
         r = admin_client.get(V2_SHIPMENTS)
-        assert r.status_code == 200
-
-    def test_v1_guides_still_works(self, admin_client):
-        r = admin_client.get(V1_SHIPMENTS_GUIDES)
         assert r.status_code == 200
 
     def test_detail_unauthenticated_401(self, api_client):
@@ -131,13 +116,6 @@ class TestNewsletterSubscriptionsV2:
         assert r.status_code == 200
         sub.refresh_from_db()
         assert sub.status == 'CONFIRMED'
-
-    def test_v1_subscribe_still_works(self, api_client, db):
-        with patch('apps.newsletter.views._send_confirmation_email'):
-            r = api_client.post(V1_NEWSLETTER_SUB,
-                                {'email': 'v1still@example.com'},
-                                format='json')
-        assert r.status_code == 201
 
 
 class TestAdminNewsletterV2:
@@ -255,10 +233,6 @@ class TestAuthV2EmailVerifications:
                             format='json')
         assert r.status_code == 400
 
-    def test_v1_verify_email_still_works(self, api_client, db):
-        r = api_client.post(V1_AUTH_VERIFY, {'token': 'x'}, format='json')
-        assert r.status_code == 400
-
 
 class TestAuthV2PasswordResets:
     def test_request_missing_email_400(self, api_client, db):
@@ -276,20 +250,10 @@ class TestAuthV2PasswordResets:
         r = api_client.post(V2_AUTH_PWD_CONFIRM, {}, format='json')
         assert r.status_code == 400
 
-    def test_v1_password_reset_still_works(self, api_client, db):
-        r = api_client.post(V1_AUTH_PWD_RESET,
-                            {'email': 'nobody@example.com'},
-                            format='json')
-        assert r.status_code == 200
-
 
 class TestAuthV2Me:
     def test_delete_unauthenticated_401(self, api_client):
         r = api_client.delete(V2_AUTH_ME)
-        assert r.status_code == 401
-
-    def test_v1_deactivate_still_works_401_unauth(self, api_client):
-        r = api_client.post(V1_AUTH_DEACTIVATE, {})
         assert r.status_code == 401
 
 
@@ -302,6 +266,3 @@ class TestAuthV2Sessions:
         r = auth_client.delete(V2_AUTH_SESSIONS)
         assert r.status_code == 200
 
-    def test_v1_logout_all_still_works_401_unauth(self, api_client):
-        r = api_client.post(V1_AUTH_LOGOUT_ALL, {})
-        assert r.status_code == 401

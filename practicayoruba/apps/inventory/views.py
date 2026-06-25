@@ -572,7 +572,7 @@ class ProductImportView(_AdminOnly, APIView):
                 errors=result['error_report'],
             )
             download_url = request.build_absolute_uri(
-                f'/api/v1/admin/inventory/import-reports/{job.pk}.csv'
+                f'/api/v2/admin/inventory/import-reports/{job.pk}.csv'
             )
         result['download_url'] = download_url
         return Response(result, status=200)

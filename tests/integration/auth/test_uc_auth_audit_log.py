@@ -15,7 +15,7 @@ class TestEventOnRegister:
     """Cuenta nueva -> evento source='register', actor=None."""
 
     def test_register_crea_evento_unverified(self, api_client, db):
-        api_client.post('/api/v1/auth/register/', {
+        api_client.post('/api/v2/auth/register/', {
             'email': 'newev@practicayoruba.mx',
             'password': 'Yoruba2026!',
             'password_confirm': 'Yoruba2026!',
@@ -34,7 +34,7 @@ class TestEventOnSelfDeactivate:
 
     def test_self_deactivate_crea_evento(self, auth_client, user):
         auth_client.post(
-            '/api/v1/auth/me/deactivate/',
+            '/api/v2/auth/me/deactivate/',
             {'password': 'TestPass123!'},
             format='json',
         )
@@ -60,7 +60,7 @@ class TestEventOnAdminSuspend:
 
     def test_admin_suspend_crea_evento(self, admin_auth_client, admin_user, target_user):
         admin_auth_client.post(
-            f'/api/v1/admin/users/{target_user.pk}/suspend/',
+            f'/api/v2/admin/users/{target_user.pk}/suspend/',
         )
         events = UserDeactivationEvent.objects.filter(user=target_user)
         assert events.count() == 1
@@ -73,7 +73,7 @@ class TestEventOnAdminSuspend:
         self, admin_auth_client, admin_user, target_user,
     ):
         admin_auth_client.post(
-            f'/api/v1/admin/users/{target_user.pk}/suspend/',
+            f'/api/v2/admin/users/{target_user.pk}/suspend/',
             {'note': 'usuario reporto fraude'},
             format='json',
         )
@@ -94,9 +94,9 @@ class TestEventOrdering:
     def test_dos_suspensiones_consecutivas_crean_dos_eventos(
         self, admin_auth_client, target,
     ):
-        admin_auth_client.post(f'/api/v1/admin/users/{target.pk}/suspend/')
-        admin_auth_client.post(f'/api/v1/admin/users/{target.pk}/reactivate/')
-        admin_auth_client.post(f'/api/v1/admin/users/{target.pk}/suspend/')
+        admin_auth_client.post(f'/api/v2/admin/users/{target.pk}/suspend/')
+        admin_auth_client.post(f'/api/v2/admin/users/{target.pk}/reactivate/')
+        admin_auth_client.post(f'/api/v2/admin/users/{target.pk}/suspend/')
         events = UserDeactivationEvent.objects.filter(user=target).order_by('created_at')
         # 2 events de suspend (la reactivate NO se loguea aqui).
         assert events.count() == 2

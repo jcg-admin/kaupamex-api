@@ -17,10 +17,10 @@ from apps.users.models import BusinessEvent
 
 pytestmark = pytest.mark.integration
 
-INV_URL          = '/api/v1/admin/inventory/'
-IMPORT_URL       = '/api/v1/admin/inventory/import/'
-ZERO_CHECK_URL   = '/api/v1/admin/inventory/variants/{pk}/zero-stock-check/'
-VARIANT_ADJ_URL  = '/api/v1/admin/inventory/variants/{pk}/adjust/'
+INV_URL          = '/api/v2/admin/inventory/'
+IMPORT_URL       = '/api/v2/admin/inventory/imports/'
+ZERO_CHECK_URL   = '/api/v2/admin/inventory/variants/{pk}/zero-stock-check/'
+VARIANT_ADJ_URL  = '/api/v2/admin/inventory/variants/{pk}/adjust/'
 
 
 @pytest.fixture

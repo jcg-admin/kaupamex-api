@@ -8,8 +8,8 @@ from apps.voucher.models import Voucher
 
 pytestmark = pytest.mark.integration
 
-VOUCHER_URL = '/api/v1/cart/voucher/'
-ITEMS_URL   = '/api/v1/cart/items/'
+VOUCHER_URL = '/api/v2/cart/voucher/'
+ITEMS_URL   = '/api/v2/cart/items/'
 
 
 @pytest.fixture

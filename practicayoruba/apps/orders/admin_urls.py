@@ -22,4 +22,8 @@ urlpatterns = [
     # UC-ORD-08 — Cancelar orden
     path('orders/<str:order_number>/cancel/',
          AdminOrderCancelView.as_view(), name='admin-order-cancel'),
+
+    # v2 rename: cancel/ → cancellations/
+    path('orders/<str:order_number>/cancellations/',
+         AdminOrderCancelView.as_view(), name='admin-order-cancellations'),
 ]

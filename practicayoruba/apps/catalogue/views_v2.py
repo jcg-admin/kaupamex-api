@@ -139,6 +139,7 @@ class ProductListV2View(CatalogueListView):
             serializer = ProductSearchSerializer(page, many=True, context=self.get_serializer_context())
             response = self.get_paginated_response(serializer.data)
             response.data['active_filters'] = active_filters
+            response.data['normalized_query'] = q
             return response
         serializer = ProductSearchSerializer(qs, many=True, context=self.get_serializer_context())
         return Response({
@@ -146,5 +147,6 @@ class ProductListV2View(CatalogueListView):
             'next': None,
             'previous': None,
             'active_filters': active_filters,
+            'normalized_query': q,
             'results': serializer.data,
         })

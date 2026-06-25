@@ -22,7 +22,7 @@ import pytest
 
 pytestmark = pytest.mark.integration
 
-BASE = '/api/v1/admin/reports/'
+BASE = '/api/v2/admin/reports/'
 
 
 def _now():

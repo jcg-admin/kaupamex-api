@@ -442,7 +442,7 @@ class ExportJobStatusView(_AdminMixin, APIView):
         if job.status == ExportJob.STATUS_DONE and job.file_path:
             token = _sign_job_token(job.pk)
             download_url = request.build_absolute_uri(
-                f'/api/v1/admin/reports/export/download/{token}/'
+                f'/api/v2/admin/reports/export/download/{token}/'
             )
         serializer = ExportJobSerializer(
             job, context={'download_url': download_url},

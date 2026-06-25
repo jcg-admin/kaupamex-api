@@ -11,8 +11,8 @@ import re
 
 pytestmark = pytest.mark.integration
 
-REQUEST_URL = '/api/v1/auth/password-reset/'
-CONFIRM_URL = '/api/v1/auth/password-reset/confirm/'
+REQUEST_URL = '/api/v2/auth/password-reset/'
+CONFIRM_URL = '/api/v2/auth/password-reset/confirm/'
 
 
 @pytest.fixture
@@ -134,5 +134,5 @@ class TestPasswordResetConfirm:
             'new_password_confirm': 'NuevoPass456@',
         }, format='json')
         # Verificar que el refresh anterior queda en blacklist
-        r = api_client.post('/api/v1/auth/refresh/', {'refresh': refresh_str}, format='json')
+        r = api_client.post('/api/v2/auth/refresh/', {'refresh': refresh_str}, format='json')
         assert r.status_code == 401

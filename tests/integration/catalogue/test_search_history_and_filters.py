@@ -16,11 +16,11 @@ import time
 
 pytestmark = pytest.mark.integration
 
-CATALOGUE_URL    = '/api/v1/catalogue/'
-AUTOCOMPLETE_URL = '/api/v1/catalogue/autocomplete/'
-SEARCH_URL       = '/api/v1/catalogue/search/'
-HISTORY_URL      = '/api/v1/catalogue/search/history/'
-CATEGORIES_URL   = '/api/v1/admin/categories/'
+CATALOGUE_URL    = '/api/v2/products/'
+AUTOCOMPLETE_URL = '/api/v2/products/'
+SEARCH_URL       = '/api/v2/products/'
+HISTORY_URL      = '/api/v2/search/history/'
+CATEGORIES_URL   = '/api/v2/admin/categories/'
 
 
 # =============================================================================
@@ -96,18 +96,18 @@ def auth_client_user(api_client, user):
 class TestAutocomplete:
 
     def test_autocomplete_retorna_200_sin_autenticar(self, api_client, db):
-        res = api_client.get(AUTOCOMPLETE_URL, {'q': 'co'})
+        res = api_client.get(AUTOCOMPLETE_URL, {'q': 'co', 'autocomplete': '1'})
         assert res.status_code == 200
 
     def test_autocomplete_retorna_lista_vacia_si_prefijo_corto(self, api_client, db):
-        res = api_client.get(AUTOCOMPLETE_URL, {'q': 'c'})
+        res = api_client.get(AUTOCOMPLETE_URL, {'q': 'c', 'autocomplete': '1'})
         assert res.status_code == 200
         assert res.json() == []
 
     def test_autocomplete_retorna_productos_por_prefijo(
         self, api_client, product_collar, product_pulsera, db
     ):
-        res = api_client.get(AUTOCOMPLETE_URL, {'q': 'colla'})
+        res = api_client.get(AUTOCOMPLETE_URL, {'q': 'colla', 'autocomplete': '1'})
         assert res.status_code == 200
         data = res.json()
         assert len(data) >= 1
@@ -120,7 +120,7 @@ class TestAutocomplete:
             price=Decimal('100.00'), stock=1,
             is_active=True, is_published=False,
         )
-        res = api_client.get(AUTOCOMPLETE_URL, {'q': 'Collar S'})
+        res = api_client.get(AUTOCOMPLETE_URL, {'q': 'Collar S', 'autocomplete': '1'})
         slugs = [p['slug'] for p in res.json()]
         assert 'collar-secreto' not in slugs
 
@@ -131,22 +131,22 @@ class TestAutocomplete:
                 description='', price=Decimal('100.00'),
                 stock=1, is_active=True, is_published=True,
             )
-        res = api_client.get(AUTOCOMPLETE_URL, {'q': 'Collar'})
+        res = api_client.get(AUTOCOMPLETE_URL, {'q': 'Collar', 'autocomplete': '1'})
         assert len(res.json()) <= 5
 
     def test_autocomplete_usa_cache(self, api_client, product_collar, db):
         """TST-FR-SRCH-02.01 Escenario 2: segunda llamada viene del cache."""
         # Primer request — llena cache
-        api_client.get(AUTOCOMPLETE_URL, {'q': 'Collar'})
+        api_client.get(AUTOCOMPLETE_URL, {'q': 'Collar', 'autocomplete': '1'})
         cache_key = 'autocomplete:collar'
         cached = cache.get(cache_key)
         assert cached is not None, "El cache debe haberse llenado tras el primer request"
         # Segundo request — mismo resultado
-        res2 = api_client.get(AUTOCOMPLETE_URL, {'q': 'Collar'})
+        res2 = api_client.get(AUTOCOMPLETE_URL, {'q': 'Collar', 'autocomplete': '1'})
         assert res2.status_code == 200
 
     def test_autocomplete_retorna_campos_correctos(self, api_client, product_collar, db):
-        res = api_client.get(AUTOCOMPLETE_URL, {'q': 'Collar'})
+        res = api_client.get(AUTOCOMPLETE_URL, {'q': 'Collar', 'autocomplete': '1'})
         item = res.json()[0]
         assert 'id' in item
         assert 'name' in item

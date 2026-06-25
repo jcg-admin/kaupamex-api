@@ -20,7 +20,7 @@ from apps.chartsize.models import VariantType, VariantOption, ProductVariant
 from apps.wishlist.models import WishlistItem
 pytestmark = pytest.mark.integration
 
-WISH_URL = '/api/v1/wishlist/'
+WISH_URL = '/api/v2/wishlist/'
 
 
 @pytest.fixture
@@ -188,7 +188,7 @@ class TestWishlist:
         """D-06 UC-WISH-03: respuesta compacta {wishlist_item_id, cart_item_id, moved_at}."""
         res = auth_client.post(WISH_URL, {'product_id': prod_s14.pk}, format='json')
         item_id = res.json()['id']
-        move_res = auth_client.post(f'{WISH_URL}{item_id}/move-to-cart/', format='json')
+        move_res = auth_client.post(f'{WISH_URL}{item_id}/cart-transfers/', format='json')
         assert move_res.status_code == 200
         data = move_res.json()
         assert 'wishlist_item_id' in data
@@ -203,7 +203,7 @@ class TestWishlist:
         res = auth_client.post(WISH_URL, {'product_id': prod_s14.pk}, format='json')
         item_id = res.json()['id']
         auth_client.post(
-            f'{WISH_URL}{item_id}/move-to-cart/',
+            f'{WISH_URL}{item_id}/cart-transfers/',
             {'remove_from_wishlist': False}, format='json')
         assert len(auth_client.get(WISH_URL).json()['results']) == 1
 
@@ -213,6 +213,6 @@ class TestWishlist:
         prod_s14.save()
         res = auth_client.post(WISH_URL, {'product_id': prod_s14.pk}, format='json')
         item_id = res.json()['id']
-        move_res = auth_client.post(f'{WISH_URL}{item_id}/move-to-cart/', format='json')
+        move_res = auth_client.post(f'{WISH_URL}{item_id}/cart-transfers/', format='json')
         assert move_res.status_code == 409
         assert move_res.json()['codigo_error'] == 'PRODUCT_OUT_OF_STOCK'

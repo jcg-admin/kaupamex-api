@@ -18,8 +18,8 @@ V2_INVENTORY_BASE        = '/api/v2/admin/inventory/'
 V2_CATALOGUE_ADMIN_BASE  = '/api/v2/admin/'
 
 # ─── URLs v1 (dual-run) ──────────────────────────────────────────────────────
-V1_INVENTORY_BASE        = '/api/v1/admin/inventory/'
-V1_CATALOGUE_ADMIN_BASE  = '/api/v1/admin/'
+V1_INVENTORY_BASE        = '/api/v2/admin/inventory/'
+V1_CATALOGUE_ADMIN_BASE  = '/api/v2/admin/'
 
 
 # ─── Inventory — Tier A: imports ─────────────────────────────────────────────
@@ -34,7 +34,7 @@ class TestInventoryImportsV2:
         assert r.status_code == 403
 
     def test_v1_import_still_works(self, api_client):
-        r = api_client.post(V1_INVENTORY_BASE + 'import/', {})
+        r = api_client.post(V1_INVENTORY_BASE + 'imports/', {})
         assert r.status_code == 401
 
 

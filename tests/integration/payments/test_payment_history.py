@@ -16,9 +16,9 @@ import django.utils.timezone as tz
 
 pytestmark = pytest.mark.integration
 
-STATUS_URL   = lambda o: f'/api/v1/payments/{o}/status/'
-HISTORY_URL  = lambda o: f'/api/v1/payments/{o}/history/'
-RETRY_URL    = lambda o: f'/api/v1/payments/{o}/retry-eligibility/'
+STATUS_URL   = lambda o: f'/api/v2/payments/{o}/status/'
+HISTORY_URL  = lambda o: f'/api/v2/payments/{o}/history/'
+RETRY_URL    = lambda o: f'/api/v2/payments/{o}/retry-eligibility/'
 
 
 @pytest.fixture

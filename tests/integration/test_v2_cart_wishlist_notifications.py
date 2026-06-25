@@ -31,12 +31,12 @@ V2_REDEMPTIONS_URL = '/api/v2/account/referral/redemptions/'
 V2_NOTIF_URL       = '/api/v2/notifications/'
 
 # ─── URLs v1 (dual-run) ──────────────────────────────────────────────────────
-V1_CART_SAVE_URL       = '/api/v1/cart/save/'
-V1_CART_MERGE_URL      = '/api/v1/cart/merge/'
-V1_WISH_MOVE_URL       = '/api/v1/wishlist/{pk}/move-to-cart/'
-V1_REFERRAL_REDEEM_URL = '/api/v1/account/referral/redeem/'
-V1_NOTIF_READ_ALL_URL  = '/api/v1/notifications/read-all/'
-V1_NOTIF_READ_URL      = '/api/v1/notifications/{pk}/read/'
+V1_CART_SAVE_URL       = '/api/v2/cart/snapshots/'
+V1_CART_MERGE_URL      = '/api/v2/cart/merges/'
+V1_WISH_MOVE_URL       = '/api/v2/wishlist/{pk}/move-to-cart/'
+V1_REFERRAL_REDEEM_URL = '/api/v2/account/referral/redemptions/'
+V1_NOTIF_READ_ALL_URL  = '/api/v2/notifications/read-all/'
+V1_NOTIF_READ_URL      = '/api/v2/notifications/{pk}/read/'
 
 
 # ─── Fixtures ────────────────────────────────────────────────────────────────
@@ -162,8 +162,8 @@ class TestWishlistCartTransfersV2:
         res = auth_client.post(url)
         assert res.status_code == 404
 
-    def test_v1_move_to_cart_still_works(self, auth_client, wishlist_item, db):
-        url = V1_WISH_MOVE_URL.format(pk=wishlist_item.pk)
+    def test_v2_cart_transfers_works(self, auth_client, wishlist_item, db):
+        url = f'/api/v2/wishlist/{wishlist_item.pk}/cart-transfers/'
         res = auth_client.post(url, {'remove_from_wishlist': False}, format='json')
         assert res.status_code == 200
 
@@ -222,9 +222,9 @@ class TestNotificationsBulkReadV2:
         assert res.status_code == 200
         assert res.json()['updated'] == 0
 
-    def test_v1_read_all_still_works(self, auth_client, user, db):
+    def test_v2_bulk_read_via_patch_works(self, auth_client, user, db):
         _make_notification(user)
-        res = auth_client.post(V1_NOTIF_READ_ALL_URL)
+        res = auth_client.patch(V2_NOTIF_URL)
         assert res.status_code == 200
 
 
@@ -260,17 +260,17 @@ class TestNotificationMarkReadV2:
         res = auth_client.patch(url)
         assert res.status_code == 404
 
-    def test_v1_mark_read_still_works(self, auth_client, user, db):
+    def test_v2_patch_mark_read_works(self, auth_client, user, db):
         notif = _make_notification(user)
-        url = V1_NOTIF_READ_URL.format(pk=notif.pk)
-        res = auth_client.post(url)
+        url = f'{V2_NOTIF_URL}{notif.pk}/'
+        res = auth_client.patch(url)
         assert res.status_code == 200
 
 
 # ─── Admin Notifications v2 (GAP-I1) ────────────────────────────────────────
 
 V2_ADMIN_NOTIFICATIONS_URL = '/api/v2/admin/notifications/'
-V1_ADMIN_NOTIFICATIONS_URL = '/api/v1/admin/notifications/manual/'
+V1_ADMIN_NOTIFICATIONS_URL = '/api/v2/admin/notifications/manual/'
 
 
 class TestAdminNotificationsV2:
@@ -283,6 +283,6 @@ class TestAdminNotificationsV2:
         r = auth_client.post(V2_ADMIN_NOTIFICATIONS_URL, {})
         assert r.status_code == 403
 
-    def test_v1_admin_manual_still_works(self, api_client):
-        r = api_client.post(V1_ADMIN_NOTIFICATIONS_URL, {})
+    def test_v2_admin_notifications_requires_auth(self, api_client):
+        r = api_client.post(V2_ADMIN_NOTIFICATIONS_URL, {})
         assert r.status_code == 401

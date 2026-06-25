@@ -17,10 +17,10 @@ from apps.users.models import User
 
 pytestmark = pytest.mark.integration
 
-CART_URL  = '/api/v1/cart/'
-ITEMS_URL = '/api/v1/cart/items/'
-SAVE_URL  = '/api/v1/cart/save/'
-MERGE_URL = '/api/v1/cart/merge/'
+CART_URL  = '/api/v2/cart/'
+ITEMS_URL = '/api/v2/cart/items/'
+SAVE_URL  = '/api/v2/cart/snapshots/'
+MERGE_URL = '/api/v2/cart/merges/'
 
 
 @pytest.fixture
@@ -457,7 +457,7 @@ class TestProteccionVarianteConCartItems:
             unit_price=variant_s12.effective_price(),
         )
         res = admin_client.delete(
-            f'/api/v1/admin/products/{product_con_variante.pk}/variants/{variant_s12.pk}/'
+            f'/api/v2/admin/products/{product_con_variante.pk}/variants/{variant_s12.pk}/'
         )
         assert res.status_code == 400
         assert res.json()['codigo_error'] == 'VARIANT_WITH_CART_ITEMS'
@@ -466,6 +466,6 @@ class TestProteccionVarianteConCartItems:
         self, admin_client, product_con_variante, variant_s12, db
     ):
         res = admin_client.delete(
-            f'/api/v1/admin/products/{product_con_variante.pk}/variants/{variant_s12.pk}/'
+            f'/api/v2/admin/products/{product_con_variante.pk}/variants/{variant_s12.pk}/'
         )
         assert res.status_code == 204

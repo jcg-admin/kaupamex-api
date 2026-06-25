@@ -17,7 +17,7 @@ from apps.payments.gateways.base import BaseGateway
 
 pytestmark = pytest.mark.integration
 
-INITIATE_URL = '/api/v1/payments/initiate/'
+INITIATE_URL = '/api/v2/payments/initiate/'
 
 
 @pytest.fixture

@@ -15,12 +15,12 @@ import pytest
 pytestmark = pytest.mark.integration
 
 
-PRODUCT_REVIEWS_URL = lambda pid: f'/api/v1/products/{pid}/reviews/'
-ADMIN_QUEUE_URL     = '/api/v1/admin/reviews/'
-APPROVE_URL         = lambda pk: f'/api/v1/admin/reviews/{pk}/approve/'
-REJECT_URL          = lambda pk: f'/api/v1/admin/reviews/{pk}/reject/'
-HELPFUL_URL         = lambda pid, pk: f'/api/v1/products/{pid}/reviews/{pk}/helpful/'
-EDIT_URL            = lambda pid, pk: f'/api/v1/products/{pid}/reviews/{pk}/edit/'
+PRODUCT_REVIEWS_URL = lambda pid: f'/api/v2/products/{pid}/reviews/'
+ADMIN_QUEUE_URL     = '/api/v2/admin/reviews/'
+APPROVE_URL         = lambda pk: f'/api/v2/admin/reviews/{pk}/status/'
+REJECT_URL          = lambda pk: f'/api/v2/admin/reviews/{pk}/status/'
+HELPFUL_URL         = lambda pid, pk: f'/api/v2/products/{pid}/reviews/{pk}/helpful-votes/'
+EDIT_URL            = lambda pid, pk: f'/api/v2/products/{pid}/reviews/{pk}/'
 
 
 @pytest.fixture
@@ -184,12 +184,12 @@ class TestAdminQueue:
             rating=5, title='1', body='1',
         )
         # Primera aprobacion.
-        r = admin_client.post(APPROVE_URL(rev.id), {}, format='json')
+        r = admin_client.patch(APPROVE_URL(rev.id), {'action': 'approve'}, format='json')
         assert r.status_code == 200
         assert r.json()['status'] == 'APPROVED'
         assert r.json()['already_approved'] is False
         # Segunda aprobacion — idempotente.
-        r2 = admin_client.post(APPROVE_URL(rev.id), {}, format='json')
+        r2 = admin_client.patch(APPROVE_URL(rev.id), {'action': 'approve'}, format='json')
         assert r2.status_code == 200
         assert r2.json()['already_approved'] is True
         # Audit log exactamente una entrada.
@@ -205,7 +205,7 @@ class TestAdminQueue:
             user=user, product=prod_rev, order=order_user_with_product,
             rating=1, title='no', body='no',
         )
-        r = admin_client.post(REJECT_URL(rev.id), {'reason': 'SPAM'}, format='json')
+        r = admin_client.patch(REJECT_URL(rev.id), {'action': 'reject', 'reason': 'SPAM'}, format='json')
         assert r.status_code == 200
         assert r.json()['status'] == 'REJECTED'
         assert r.json()['reject_reason'] == 'SPAM'
@@ -221,7 +221,7 @@ class TestAdminQueue:
             user=user, product=prod_rev, order=order_user_with_product,
             rating=1, title='no', body='no',
         )
-        r = admin_client.post(REJECT_URL(rev.id), {'reason': 'NOPE'}, format='json')
+        r = admin_client.patch(REJECT_URL(rev.id), {'action': 'reject', 'reason': 'NOPE'}, format='json')
         assert r.status_code == 400
         # Canon EN (T-118 alineamiento + anti-soft-on-tests): codigo ya
         # retorna REASON_INVALID. Antes el test era outlier ES.
@@ -234,7 +234,7 @@ class TestAdminQueue:
             user=user, product=prod_rev, order=order_user_with_product,
             rating=5, title='ok', body='ok',
         )
-        r = auth_client.post(APPROVE_URL(rev.id), {}, format='json')
+        r = auth_client.patch(APPROVE_URL(rev.id), {'action': 'approve'}, format='json')
         assert r.status_code == 403
 
 
@@ -556,7 +556,7 @@ class TestAdminModerationGuards:
         self, admin_client, rejected_review, db,
     ):
         """Cannot approve a review that was already rejected."""
-        r = admin_client.post(APPROVE_URL(rejected_review.id), {}, format='json')
+        r = admin_client.patch(APPROVE_URL(rejected_review.id), {'action': 'approve'}, format='json')
         assert r.status_code == 400
         assert r.json()['codigo_error'] == 'REVIEW_ALREADY_REJECTED'
 
@@ -564,8 +564,8 @@ class TestAdminModerationGuards:
         self, admin_client, approved_review, db,
     ):
         """Cannot reject a review that was already approved."""
-        r = admin_client.post(
-            REJECT_URL(approved_review.id), {'reason': 'SPAM'}, format='json',
+        r = admin_client.patch(
+            REJECT_URL(approved_review.id), {'action': 'reject', 'reason': 'SPAM'}, format='json',
         )
         assert r.status_code == 400
         assert r.json()['codigo_error'] == 'REVIEW_ALREADY_APPROVED'
@@ -573,15 +573,15 @@ class TestAdminModerationGuards:
     def test_approve_nonexistent_review_returns_404(
         self, admin_client, db,
     ):
-        r = admin_client.post(APPROVE_URL(999999), {}, format='json')
+        r = admin_client.patch(APPROVE_URL(999999), {'action': 'approve'}, format='json')
         assert r.status_code == 404
         assert r.json()['codigo_error'] == 'REVIEW_NOT_FOUND'
 
     def test_reject_nonexistent_review_returns_404(
         self, admin_client, db,
     ):
-        r = admin_client.post(
-            REJECT_URL(999999), {'reason': 'SPAM'}, format='json',
+        r = admin_client.patch(
+            REJECT_URL(999999), {'action': 'reject', 'reason': 'SPAM'}, format='json',
         )
         assert r.status_code == 404
         assert r.json()['codigo_error'] == 'REVIEW_NOT_FOUND'
@@ -611,7 +611,7 @@ class TestAdminModerationGuards:
         self, admin_client, pending_review, db,
     ):
         """Omitting reason entirely must return REASON_INVALID."""
-        r = admin_client.post(REJECT_URL(pending_review.id), {}, format='json')
+        r = admin_client.patch(REJECT_URL(pending_review.id), {'action': 'reject'}, format='json')
         assert r.status_code == 400
         assert r.json()['codigo_error'] == 'REASON_INVALID'
 
@@ -730,7 +730,7 @@ class TestBuyerEditReview:
         assert r.json()['codigo_error'] == 'REVIEW_NOT_EDITABLE'
 
 
-IMAGES_URL = lambda pid, pk: f'/api/v1/products/{pid}/reviews/{pk}/images/'
+IMAGES_URL = lambda pid, pk: f'/api/v2/products/{pid}/reviews/{pk}/images/'
 
 
 def _make_png():
@@ -831,7 +831,7 @@ class TestReviewImages:
 # =============================================================================
 
 class TestUcRev01CreateErrorHandling:
-    """UC-REV-01 — POST /api/v1/products/<pid>/reviews/ (crear resena)."""
+    """UC-REV-01 — POST /api/v2/products/<pid>/reviews/ (crear resena)."""
 
     # --- AC-02: payload sin campos obligatorios -> 400, sin mutar estado ---
     def test_uc_rev_01_ac02_payload_invalido_400(
@@ -953,7 +953,7 @@ class TestUcRev01CreateErrorHandling:
 
 
 class TestUcRev02ViewErrorHandling:
-    """UC-REV-02 — GET /api/v1/products/<pid>/reviews/ (ver resenas, publico)."""
+    """UC-REV-02 — GET /api/v2/products/<pid>/reviews/ (ver resenas, publico)."""
 
     # AC-02 NO APLICA: GET no tiene payload obligatorio (sin body, solo path
     #   param + query opcional). Ver tabla del reporte: AC-02 marcado N/A.
@@ -1029,7 +1029,7 @@ class TestUcRev03ModerateErrorHandling:
         DRIFT: plantilla pide INVALID_PAYLOAD; la impl emite REASON_INVALID.
         Estado consistente: la resena sigue PENDING (no se rechazo).
         """
-        r = admin_client.post(REJECT_URL(pending_review.id), {}, format='json')
+        r = admin_client.patch(REJECT_URL(pending_review.id), {'action': 'reject'}, format='json')
         assert r.status_code == 400
         assert r.json()['codigo_error'] == 'REASON_INVALID'
         pending_review.refresh_from_db()
@@ -1057,7 +1057,7 @@ class TestUcRev03ModerateErrorHandling:
         impl usa el 403 default de DRF SIN codigo_error. Se asserta 403 y se
         documenta el drift en el reporte. RNF-SEC-003: no expone el recurso.
         """
-        r = auth_client.post(APPROVE_URL(pending_review.id), {}, format='json')
+        r = auth_client.patch(APPROVE_URL(pending_review.id), {'action': 'approve'}, format='json')
         assert r.status_code == 403
         # No se moderó: estado consistente.
         pending_review.refresh_from_db()
@@ -1069,14 +1069,14 @@ class TestUcRev03ModerateErrorHandling:
 
         DRIFT: plantilla pide NOT_FOUND; impl emite REVIEW_NOT_FOUND.
         """
-        r = admin_client.post(APPROVE_URL(999999), {}, format='json')
+        r = admin_client.patch(APPROVE_URL(999999), {'action': 'approve'}, format='json')
         assert r.status_code == 404
         assert r.json()['codigo_error'] == 'REVIEW_NOT_FOUND'
 
     def test_uc_rev_03_ac04_reject_inexistente_404(self, admin_client, db):
         """AC-04 variante: reject sobre pk inexistente -> 404 REVIEW_NOT_FOUND."""
-        r = admin_client.post(
-            REJECT_URL(999999), {'reason': 'SPAM'}, format='json',
+        r = admin_client.patch(
+            REJECT_URL(999999), {'action': 'reject', 'reason': 'SPAM'}, format='json',
         )
         assert r.status_code == 404
         assert r.json()['codigo_error'] == 'REVIEW_NOT_FOUND'
@@ -1091,8 +1091,8 @@ class TestUcRev03ModerateErrorHandling:
         materializa esto al intentar rechazar una resena ya APPROVED ->
         REVIEW_ALREADY_APPROVED. Estado consistente: sigue APPROVED.
         """
-        r = admin_client.post(
-            REJECT_URL(approved_review.id), {'reason': 'SPAM'}, format='json',
+        r = admin_client.patch(
+            REJECT_URL(approved_review.id), {'action': 'reject', 'reason': 'SPAM'}, format='json',
         )
         assert r.status_code == 400
         assert r.json()['codigo_error'] == 'REVIEW_ALREADY_APPROVED'

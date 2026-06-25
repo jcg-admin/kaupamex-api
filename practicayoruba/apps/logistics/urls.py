@@ -17,7 +17,8 @@ urlpatterns = [
     path('couriers/<int:pk>/',                  CourierDetailView.as_view(),           name='courier-detail'),
     path('guides/',                             ShipmentGuideListCreateView.as_view(), name='guides-list-create'),
     path('guides/<int:pk>/',                    ShipmentGuideDetailView.as_view(),     name='guide-detail'),
-    path('guides/<int:pk>/cancel/',             CancelGuideView.as_view(),             name='guide-cancel'),
+    path('guides/<int:pk>/cancel/',              CancelGuideView.as_view(),             name='guide-cancel'),
+    path('guides/<int:pk>/cancellations/',       CancelGuideView.as_view(),             name='guide-cancellations'),
     path('guides/<int:pk>/confirm-delivery/',   ConfirmDeliveryView.as_view(),         name='confirm-delivery'),
     path('buyer/order/<int:order_id>/guide/',   BuyerGuideView.as_view(),              name='buyer-guide'),
     # UC-LOG-07: el comprador dueño reporta un problema de su envío. Ruta

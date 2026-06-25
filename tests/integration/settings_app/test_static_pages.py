@@ -2,10 +2,10 @@
 Tests — Paginas estaticas versionadas admin (UC-CFG-04).
 
 Endpoints de settings_app (distintos del app static_content ya cubierto):
-  GET  /api/v1/admin/pages/                              StaticPageAdminListView
-  GET  /api/v1/admin/pages/<slug>/                       StaticPageAdminDetailView
-  POST /api/v1/admin/pages/<slug>/publish/               StaticPagePublishView
-  POST /api/v1/admin/pages/<slug>/versions/<v>/restore/  StaticPageRestoreView
+  GET  /api/v2/admin/pages/                              StaticPageAdminListView
+  GET  /api/v2/admin/pages/<slug>/                       StaticPageAdminDetailView
+  POST /api/v2/admin/pages/<slug>/publish/               StaticPagePublishView
+  POST /api/v2/admin/pages/<slug>/versions/<v>/restore/  StaticPageRestoreView
 
 Cubre exito (publicar/listar/detalle/restaurar con versionado), permisos
 (anon 401, comprador 403) y error (slug/version inexistente 404).
@@ -16,10 +16,10 @@ from apps.settings_app.models import StaticPage, StaticPageVersion
 
 pytestmark = pytest.mark.integration
 
-LIST_URL       = '/api/v1/admin/pages/'
-DETAIL_URL     = lambda slug: f'/api/v1/admin/pages/{slug}/'
-PUBLISH_URL    = lambda slug: f'/api/v1/admin/pages/{slug}/publish/'
-RESTORE_URL    = lambda slug, v: f'/api/v1/admin/pages/{slug}/versions/{v}/restore/'
+LIST_URL       = '/api/v2/admin/pages/'
+DETAIL_URL     = lambda slug: f'/api/v2/admin/pages/{slug}/'
+PUBLISH_URL    = lambda slug: f'/api/v2/admin/pages/{slug}/publish/'
+RESTORE_URL    = lambda slug, v: f'/api/v2/admin/pages/{slug}/versions/{v}/restore/'
 
 
 class TestStaticPagesAdmin:

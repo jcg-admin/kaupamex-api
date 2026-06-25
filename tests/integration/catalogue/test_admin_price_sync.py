@@ -11,10 +11,10 @@ from django.core.cache import cache
 
 pytestmark = pytest.mark.integration
 
-ADMIN_PROD_URL    = '/api/v1/admin/products/'
-PRICE_SYNC_URL    = '/api/v1/admin/products/price-sync/'
-PRICE_CONFIRM_URL = '/api/v1/admin/products/price-sync/confirm/'
-PRICE_TMPL_URL    = '/api/v1/admin/products/price-sync/template/'
+ADMIN_PROD_URL    = '/api/v2/admin/products/'
+PRICE_SYNC_URL    = '/api/v2/admin/products/price-sync/'
+PRICE_CONFIRM_URL = '/api/v2/admin/products/price-sync/confirm/'
+PRICE_TMPL_URL    = '/api/v2/admin/products/price-sync/template/'
 
 
 @pytest.fixture

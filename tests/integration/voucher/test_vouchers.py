@@ -19,10 +19,10 @@ from apps.voucher.serializers import VoucherSerializer
 
 pytestmark = pytest.mark.integration
 
-VOUCHERS_URL = '/api/v1/admin/vouchers/'
-CART_URL     = '/api/v1/cart/'
-ITEMS_URL    = '/api/v1/cart/items/'
-VOUCHER_APPLY_URL = '/api/v1/cart/voucher/'
+VOUCHERS_URL = '/api/v2/admin/vouchers/'
+CART_URL     = '/api/v2/cart/'
+ITEMS_URL    = '/api/v2/cart/items/'
+VOUCHER_APPLY_URL = '/api/v2/cart/voucher/'
 
 
 def _now():
@@ -510,7 +510,7 @@ class TestVoucherChangeLogCreate:
             'valid_from': '2020-01-01T00:00:00Z',
             'max_uses': 10,
         }
-        r = admin_client.post('/api/v1/admin/vouchers/', payload, format='json')
+        r = admin_client.post('/api/v2/admin/vouchers/', payload, format='json')
         assert r.status_code == 201
         assert VoucherChangeLog.objects.filter(
             voucher__code='LOG-CREATE-001',
@@ -526,7 +526,7 @@ class TestVoucherChangeLogDelete:
             code='LOG-DEL-001', voucher_type='FIXED',
             discount_value='10.00', valid_from='2020-01-01T00:00:00Z',
         )
-        r = admin_client.delete(f'/api/v1/admin/vouchers/{v.id}/')
+        r = admin_client.delete(f'/api/v2/admin/vouchers/{v.id}/')
         assert r.status_code == 204
         assert VoucherChangeLog.objects.filter(
             voucher_id=v.id,
@@ -538,7 +538,7 @@ class TestVoucherReportPagination:
     """D-09: Report supports pagination and status filter."""
 
     def test_report_returns_paginated_structure(self, admin_client, db):
-        r = admin_client.get('/api/v1/admin/vouchers/report/')
+        r = admin_client.get('/api/v2/admin/vouchers/report/')
         assert r.status_code == 200
         data = r.json()
         assert 'count' in data
@@ -553,7 +553,7 @@ class TestVoucherReportPagination:
             valid_from=timezone.now(),
             is_active=True,
         )
-        r = admin_client.get('/api/v1/admin/vouchers/report/?status=ACTIVE')
+        r = admin_client.get('/api/v2/admin/vouchers/report/?status=ACTIVE')
         assert r.status_code == 200
         results = r.json()['results']
         for item in results:

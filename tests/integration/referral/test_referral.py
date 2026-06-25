@@ -6,8 +6,8 @@ Subflujo B: el nuevo comprador usa el codigo (redeem).
 Subflujo C: el referidor recibe su recompensa al primer pedido del referido.
 
 Endpoints:
-    GET  /api/v1/account/referral/         — codigo + stats del usuario autenticado
-    POST /api/v1/account/referral/redeem/  — canjear un codigo referral
+    GET  /api/v2/account/referral/         — codigo + stats del usuario autenticado
+    POST /api/v2/account/referral/redeem/  — canjear un codigo referral
 
 Convenciones del proyecto:
     - Clave de error: ``codigo_error`` (no ``error_code``).
@@ -30,8 +30,8 @@ from apps.voucher.models import Voucher
 
 pytestmark = pytest.mark.integration
 
-REFERRAL_URL = '/api/v1/account/referral/'
-REDEEM_URL = '/api/v1/account/referral/redeem/'
+REFERRAL_URL = '/api/v2/account/referral/'
+REDEEM_URL = '/api/v2/account/referral/redemptions/'
 
 User = get_user_model()
 

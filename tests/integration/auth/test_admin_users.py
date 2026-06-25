@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 
 pytestmark = pytest.mark.integration
 
-USERS_URL = '/api/v1/admin/users/'
+USERS_URL = '/api/v2/admin/users/'
 
 
 @pytest.fixture

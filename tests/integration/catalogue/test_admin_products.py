@@ -15,9 +15,9 @@ from apps.catalogue.serializers import ProductAdminSerializer
 
 pytestmark = pytest.mark.integration
 
-CATALOGUE_URL  = '/api/v1/catalogue/'
-CATEGORIES_URL = '/api/v1/catalogue/categories/'
-ADMIN_PROD_URL = '/api/v1/admin/products/'
+CATALOGUE_URL  = '/api/v2/products/'
+CATEGORIES_URL = '/api/v2/categories/'
+ADMIN_PROD_URL = '/api/v2/admin/products/'
 
 
 # =============================================================================

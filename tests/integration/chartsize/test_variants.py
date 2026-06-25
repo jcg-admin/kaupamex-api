@@ -13,8 +13,8 @@ from apps.chartsize.models import VariantType, VariantOption, ProductVariant
 
 pytestmark = pytest.mark.integration
 
-CATALOGUE_URL  = '/api/v1/catalogue/'
-ADMIN_PROD_URL = '/api/v1/admin/products/'
+CATALOGUE_URL  = '/api/v2/products/'
+ADMIN_PROD_URL = '/api/v2/admin/products/'
 
 
 @pytest.fixture

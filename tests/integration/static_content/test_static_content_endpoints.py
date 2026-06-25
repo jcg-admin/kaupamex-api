@@ -6,8 +6,8 @@ import pytest
 pytestmark = pytest.mark.integration
 
 
-LIST_URL   = '/api/v1/admin/static-content/'
-DETAIL_URL = lambda slug: f'/api/v1/admin/static-content/{slug}/'
+LIST_URL   = '/api/v2/admin/static-content/'
+DETAIL_URL = lambda slug: f'/api/v2/admin/static-content/{slug}/'
 
 
 class TestStaticContent:

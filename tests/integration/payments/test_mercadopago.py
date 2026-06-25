@@ -19,10 +19,10 @@ from apps.cart.models import CartItem
 
 pytestmark = pytest.mark.integration
 
-INITIATE_URL    = '/api/v1/payments/initiate/'
-INSTALLMENT_URL = '/api/v1/payments/installments/'
-ELIGIBILITY_URL = '/api/v1/checkout/eligibility/'
-EXPRESS_URL     = '/api/v1/checkout/express/'
+INITIATE_URL    = '/api/v2/payments/initiate/'
+INSTALLMENT_URL = '/api/v2/payments/installments/'
+ELIGIBILITY_URL = '/api/v2/checkout/eligibility/'
+EXPRESS_URL     = '/api/v2/checkout/express/'
 
 
 # =============================================================================
@@ -267,7 +267,7 @@ class TestIniciarPago:
             'order_number': orden_pendiente.order_number,
         }, format='json')
 
-        return_url = f'/api/v1/payments/{orden_pendiente.order_number}/return/'
+        return_url = f'/api/v2/payments/{orden_pendiente.order_number}/return/'
         res = auth_client.get(return_url, {
             'status': 'approved',
             'payment_id': '12345678',
@@ -284,7 +284,7 @@ class TestIniciarPago:
             'order_number': orden_pendiente.order_number,
         }, format='json')
 
-        return_url = f'/api/v1/payments/{orden_pendiente.order_number}/return/'
+        return_url = f'/api/v2/payments/{orden_pendiente.order_number}/return/'
         auth_client.get(return_url, {'status': 'pending'})
 
         payment = Payment.objects.get(order=orden_pendiente)
@@ -433,7 +433,7 @@ class TestCheckoutExpress:
         self, auth_client, prod_s15, db
     ):
         """Sin órdenes previas → no elegible para express checkout."""
-        auth_client.post('/api/v1/cart/items/', {
+        auth_client.post('/api/v2/cart/items/', {
             'product_id': prod_s15.pk, 'quantity': 1,
         }, format='json')
         res = auth_client.post(EXPRESS_URL, {}, format='json')
@@ -463,7 +463,7 @@ class TestCheckoutExpress:
         # Agregar producto al carrito
         prod_s15.stock = 10
         prod_s15.save()
-        auth_client.post('/api/v1/cart/items/', {
+        auth_client.post('/api/v2/cart/items/', {
             'product_id': prod_s15.pk, 'quantity': 1,
         }, format='json')
 
@@ -492,7 +492,7 @@ class TestCheckoutExpress:
         )
         Order.objects.create(user=user, status='DELIVERED')
 
-        auth_client.post('/api/v1/cart/items/', {
+        auth_client.post('/api/v2/cart/items/', {
             'product_id': prod_s15.pk, 'quantity': 1,
         }, format='json')
 

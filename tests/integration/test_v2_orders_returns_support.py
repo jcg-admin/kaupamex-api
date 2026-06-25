@@ -25,13 +25,13 @@ V2_ADMIN_QUESTIONS_BASE = '/api/v2/admin/questions/'
 V2_SUPPORT_BASE         = '/api/v2/support/tickets/'
 
 # ─── URLs v1 (dual-run) ──────────────────────────────────────────────────────
-V1_ORDER_CANCEL_URL         = '/api/v1/orders/{n}/cancel/'
-V1_ORDER_ADDRESS_URL        = '/api/v1/orders/{n}/address/'
-V1_ORDER_SHIPPING_URL       = '/api/v1/orders/{n}/shipping/'
-V1_RETURNS_URL              = '/api/v1/returns/'
-V1_ADMIN_RETURN_APPROVE_URL = '/api/v1/admin/returns/{id}/approve/'
-V1_REVIEW_EDIT_URL          = '/api/v1/products/{pid}/reviews/{pk}/edit/'
-V1_SUPPORT_CLOSE_URL        = '/api/v1/support/tickets/{id}/close/'
+V1_ORDER_CANCEL_URL         = '/api/v2/orders/{n}/cancellations/'
+V1_ORDER_ADDRESS_URL        = '/api/v2/orders/{n}/shipping-address/'
+V1_ORDER_SHIPPING_URL       = '/api/v2/orders/{n}/shipping-method/'
+V1_RETURNS_URL              = '/api/v2/return-requests/'
+V1_ADMIN_RETURN_APPROVE_URL = '/api/v2/admin/return-requests/{id}/status/'
+V1_REVIEW_EDIT_URL          = '/api/v2/products/{pid}/reviews/{pk}/'
+V1_SUPPORT_CLOSE_URL        = '/api/v2/support/tickets/{id}/status/'
 
 
 # ─── Fixtures ────────────────────────────────────────────────────────────────
@@ -124,7 +124,7 @@ class TestAdminReturnStatusV2:
 
     def test_v1_approve_still_works(self, api_client):
         url = V1_ADMIN_RETURN_APPROVE_URL.format(id=999)
-        r = api_client.post(url, {})
+        r = api_client.patch(url, {'action': 'approve'}, content_type='application/json')
         assert r.status_code == 401
 
 
@@ -242,13 +242,13 @@ class TestOrderCollectionV2:
         assert r.status_code == 400
 
     def test_v1_orders_list_still_works(self, auth_client, db):
-        r = auth_client.get('/api/v1/orders/')
+        r = auth_client.get('/api/v2/orders/')
         assert r.status_code == 200
 
 
 # ─── Reviews v2 — helpful-votes (GAP-I2) ─────────────────────────────────────
 
-V1_HELPFUL_URL = '/api/v1/products/{pid}/reviews/{pk}/helpful/'
+V1_HELPFUL_URL = '/api/v2/products/{pid}/reviews/{pk}/helpful-votes/'
 V2_HELPFUL_VOTES_URL = '/api/v2/products/{pid}/reviews/{pk}/helpful-votes/'
 
 

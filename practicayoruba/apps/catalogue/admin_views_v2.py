@@ -9,7 +9,7 @@ from .price_sync_views import (
     PriceSyncPreviewCSVView,
     PriceSyncPreviewPercentageView,
 )
-from .product_discount_views import ProductDiscountDeactivateView
+from .product_discount_views import ProductDiscountDeactivateView, ProductDiscountDetailView
 
 _PRICE_SYNC_HANDLERS = {
     ('preview', 'csv'):        PriceSyncPreviewCSVView,
@@ -23,19 +23,23 @@ class ProductDiscountStatusV2View(APIView):
     """
     PATCH /api/v2/admin/product-discounts/<pk>/
 
-    Tier B: POST /deactivate/ → PATCH con {active: false}.
-    Unico valor aceptado: active=false (o "false"/"0").
+    Unified edit endpoint (UC-DASH-03 + Tier B deactivation).
+
+    - {active: false}  → deactivate (replaces POST /deactivate/)
+    - {discount_pct, valid_from, valid_until, …} → partial update
     """
     permission_classes = [IsAuthenticated, IsAdminUser]
 
     def patch(self, request, pk):
         active = request.data.get('active')
-        if active is not False and str(active).lower() not in ('false', '0'):
+        if active is not None:
+            if active is False or str(active).lower() in ('false', '0'):
+                return ProductDiscountDeactivateView().post(request, pk)
             return Response(
                 {'detail': 'Solo se acepta active=false.', 'codigo_error': 'INVALID_ACTION'},
                 status=400,
             )
-        return ProductDiscountDeactivateView().post(request, pk)
+        return ProductDiscountDetailView().patch(request, pk)
 
 
 class PriceSyncsV2View(APIView):

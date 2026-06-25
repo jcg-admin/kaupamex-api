@@ -4,9 +4,9 @@ Tests de integracion — Endpoints JWT de autenticacion.
 TDD: documentan el contrato de la API de auth antes de agregar logica adicional.
 
 Endpoints cubiertos:
-  POST /api/v1/auth/login/
-  POST /api/v1/auth/refresh/
-  POST /api/v1/auth/logout/
+  POST /api/v2/auth/login/
+  POST /api/v2/auth/refresh/
+  POST /api/v2/auth/logout/
 
 BD: practicayoruba_qa
 """
@@ -18,7 +18,7 @@ pytestmark = pytest.mark.integration
 
 
 class TestLoginEndpoint:
-    """POST /api/v1/auth/login/ — obtiene access + refresh token."""
+    """POST /api/v2/auth/login/ — obtiene access + refresh token."""
 
     def test_login_con_credenciales_validas_retorna_200(self, api_client, user):
         url = reverse('users:login')
@@ -73,7 +73,7 @@ class TestLoginEndpoint:
 
 
 class TestRefreshEndpoint:
-    """POST /api/v1/auth/refresh/ — renueva el access token."""
+    """POST /api/v2/auth/refresh/ — renueva el access token."""
 
     def test_refresh_con_token_valido_retorna_200(self, api_client, user):
         refresh = RefreshToken.for_user(user)
@@ -96,7 +96,7 @@ class TestRefreshEndpoint:
 
 
 class TestLogoutEndpoint:
-    """POST /api/v1/auth/logout/ — invalida el refresh token."""
+    """POST /api/v2/auth/logout/ — invalida el refresh token."""
 
     def test_logout_con_refresh_valido_retorna_200(self, api_client, user):
         refresh = RefreshToken.for_user(user)
@@ -125,7 +125,7 @@ class TestLogoutEndpoint:
 
 class TestRefreshValidatesIsActive:
     """
-    POST /api/v1/auth/refresh/ — valida user.is_active (D-26).
+    POST /api/v2/auth/refresh/ — valida user.is_active (D-26).
     Cierra refresh-validar-user-activo. Antes del fix, un usuario
     suspendido (UC-AUTH-13) o self-deleted (UC-AUTH-16) seguia
     renovando hasta 7 dias (refresh TTL).

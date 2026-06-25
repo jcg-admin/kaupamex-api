@@ -1,13 +1,13 @@
 """
 Tests de integracion — Admin SiteSettings (UC-ADM-04)
-T-119: SiteSettingsView — GET/PATCH /api/v1/admin/settings/
+T-119: SiteSettingsView — GET/PATCH /api/v2/admin/settings/
 """
 import pytest
 from apps.settings_app.models import SiteSettings
 
 pytestmark = pytest.mark.integration
 
-SETTINGS_URL = '/api/v1/admin/settings/'
+SETTINGS_URL = '/api/v2/admin/settings/'
 
 
 @pytest.fixture

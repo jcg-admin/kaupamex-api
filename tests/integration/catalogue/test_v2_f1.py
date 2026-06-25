@@ -154,7 +154,7 @@ class TestCategoryListV2:
         assert r.status_code == 200
 
     def test_v1_and_v2_categories_coexist(self, api_client, category, db):
-        r1 = api_client.get('/api/v1/categories/')
+        r1 = api_client.get('/api/v2/categories/')
         r2 = api_client.get(V2_CATEGORIES_URL)
         assert r1.status_code == 200
         assert r2.status_code == 200

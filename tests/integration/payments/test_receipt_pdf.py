@@ -29,7 +29,7 @@ from apps.users.models import BusinessEvent
 
 pytestmark = pytest.mark.integration
 
-RECEIPT_URL = lambda o: f'/api/v1/payments/{o}/receipt/'
+RECEIPT_URL = lambda o: f'/api/v2/payments/{o}/receipt/'
 
 
 # ---------------------------------------------------------------------------

@@ -14,8 +14,8 @@ from apps.inventory.services import InventoryService
 
 pytestmark = pytest.mark.integration
 
-INV_VARIANT_ADJUST_URL = '/api/v1/admin/inventory/variants/{pk}/adjust/'
-INV_PRODUCT_ADJUST_URL = '/api/v1/admin/inventory/{pk}/adjust/'
+INV_VARIANT_ADJUST_URL = '/api/v2/admin/inventory/variants/{pk}/adjust/'
+INV_PRODUCT_ADJUST_URL = '/api/v2/admin/inventory/{pk}/adjust/'
 
 
 @pytest.fixture

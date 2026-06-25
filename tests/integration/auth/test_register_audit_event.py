@@ -11,7 +11,7 @@ from apps.users.models import AuthEvent
 pytestmark = [pytest.mark.integration, pytest.mark.django_db(transaction=True)]
 
 
-URL = '/api/v1/auth/register/'
+URL = '/api/v2/auth/register/'
 
 
 class TestRegisterAuditEvent:

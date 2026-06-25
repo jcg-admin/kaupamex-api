@@ -10,9 +10,9 @@ from apps.users.tokens_email import create_verification_token
 
 pytestmark = pytest.mark.integration
 
-VERIFY_URL  = '/api/v1/auth/verify-email/'
-RESEND_URL  = '/api/v1/auth/resend-verification/'
-REGISTER_URL = '/api/v1/auth/register/'
+VERIFY_URL  = '/api/v2/auth/verify-email/'
+RESEND_URL  = '/api/v2/auth/resend-verification/'
+REGISTER_URL = '/api/v2/auth/register/'
 
 
 @pytest.fixture
@@ -77,7 +77,7 @@ class TestEmailVerification:
 
     def test_login_cuenta_no_verificada_da_error_diferenciado(self, api_client, inactive_user, db):
         """FR-AUTH-02.09: mensaje diferenciado tras verificacion pendiente."""
-        r = api_client.post('/api/v1/auth/login/', {
+        r = api_client.post('/api/v2/auth/login/', {
             'username': inactive_user.username,
             'password': 'TestPass123!',
         }, format='json')
@@ -87,7 +87,7 @@ class TestEmailVerification:
     def test_login_cuenta_verificada_funciona(self, api_client, inactive_user, db):
         plain = create_verification_token(inactive_user)
         api_client.post(VERIFY_URL, {'token': plain}, format='json')
-        r = api_client.post('/api/v1/auth/login/', {
+        r = api_client.post('/api/v2/auth/login/', {
             'username': inactive_user.username,
             'password': 'TestPass123!',
         }, format='json')

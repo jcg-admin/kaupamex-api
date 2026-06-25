@@ -1,16 +1,16 @@
 """
 Tests — Returns endpoints (UC-RET-01..06).
 
-UC-RET-01  POST   /api/v1/returns/                          create
-UC-RET-04  GET    /api/v1/returns/                          list own
-UC-RET-04  GET    /api/v1/returns/{id}/                     detail own
-UC-RET-05  GET    /api/v1/admin/returns/                    admin queue + metrics
-           GET    /api/v1/admin/returns/{id}/               admin detail
-UC-RET-02  POST   /api/v1/admin/returns/{id}/approve/       approve
-UC-RET-02  POST   /api/v1/admin/returns/{id}/reject/        reject
-UC-RET-02  POST   /api/v1/admin/returns/{id}/request-info/  request info
-UC-RET-03  POST   /api/v1/admin/returns/{id}/reception/     reception
-UC-RET-06  POST   /api/v1/admin/returns/{id}/refund/        refund
+UC-RET-01  POST   /api/v2/returns/                          create
+UC-RET-04  GET    /api/v2/returns/                          list own
+UC-RET-04  GET    /api/v2/returns/{id}/                     detail own
+UC-RET-05  GET    /api/v2/admin/returns/                    admin queue + metrics
+           GET    /api/v2/admin/returns/{id}/               admin detail
+UC-RET-02  POST   /api/v2/admin/returns/{id}/approve/       approve
+UC-RET-02  POST   /api/v2/admin/returns/{id}/reject/        reject
+UC-RET-02  POST   /api/v2/admin/returns/{id}/request-info/  request info
+UC-RET-03  POST   /api/v2/admin/returns/{id}/reception/     reception
+UC-RET-06  POST   /api/v2/admin/returns/{id}/refund/        refund
 
 Identifiers in English (DEC-DOC-005).
 """
@@ -30,8 +30,8 @@ from apps.notifications.models import Notification, NotificationType
 
 pytestmark = pytest.mark.integration
 
-RETURNS_URL = '/api/v1/returns/'
-ADMIN_RETURNS_URL = '/api/v1/admin/returns/'
+RETURNS_URL = '/api/v2/return-requests/'
+ADMIN_RETURNS_URL = '/api/v2/admin/return-requests/'
 
 
 def _valid_payload(order_number='PY-PLACEHOLDER', reason='DAMAGED_PRODUCT'):
@@ -304,16 +304,16 @@ class TestAdminApproveReject:
 
     def test_non_admin_cannot_approve(self, auth_client, user, db):
         ret = self._create_pending(user)
-        res = auth_client.post(
-            f'{ADMIN_RETURNS_URL}{ret.pk}/approve/',
-            {'justification': 'Procede el reembolso.'}, format='json')
+        res = auth_client.patch(
+            f'{ADMIN_RETURNS_URL}{ret.pk}/status/',
+            {'action': 'approve', 'justification': 'Procede el reembolso.'}, format='json')
         assert res.status_code == 403
 
     def test_admin_approve_changes_status(self, admin_client, user, db):
         ret = self._create_pending(user)
-        res = admin_client.post(
-            f'{ADMIN_RETURNS_URL}{ret.pk}/approve/',
-            {'justification': 'Procede el reembolso por dano.'},
+        res = admin_client.patch(
+            f'{ADMIN_RETURNS_URL}{ret.pk}/status/',
+            {'action': 'approve', 'justification': 'Procede el reembolso por dano.'},
             format='json')
         assert res.status_code == 200
         assert res.json()['status'] == 'APPROVED'
@@ -321,9 +321,9 @@ class TestAdminApproveReject:
     def test_admin_reject_changes_status_and_records_reason(
             self, admin_client, user, db):
         ret = self._create_pending(user)
-        res = admin_client.post(
-            f'{ADMIN_RETURNS_URL}{ret.pk}/reject/',
-            {'justification': 'Sin evidencia suficiente del dano reclamado.'},
+        res = admin_client.patch(
+            f'{ADMIN_RETURNS_URL}{ret.pk}/status/',
+            {'action': 'reject', 'justification': 'Sin evidencia suficiente del dano reclamado.'},
             format='json')
         assert res.status_code == 200
         body = res.json()
@@ -334,17 +334,17 @@ class TestAdminApproveReject:
         ret = self._create_pending(user)
         ret.status = 'APPROVED'
         ret.save()
-        res = admin_client.post(
-            f'{ADMIN_RETURNS_URL}{ret.pk}/approve/',
-            {'justification': 'Intento de doble aprobacion.'}, format='json')
+        res = admin_client.patch(
+            f'{ADMIN_RETURNS_URL}{ret.pk}/status/',
+            {'action': 'approve', 'justification': 'Intento de doble aprobacion.'}, format='json')
         assert res.status_code == 422
         assert res.json()['codigo_error'] == 'INVALID_STATE'
 
     def test_request_info_changes_status(self, admin_client, user, db):
         ret = self._create_pending(user)
-        res = admin_client.post(
-            f'{ADMIN_RETURNS_URL}{ret.pk}/request-info/',
-            {'message': 'Por favor envia fotos adicionales del producto.'},
+        res = admin_client.patch(
+            f'{ADMIN_RETURNS_URL}{ret.pk}/status/',
+            {'action': 'request_info', 'message': 'Por favor envia fotos adicionales del producto.'},
             format='json')
         assert res.status_code == 200
         assert res.json()['status'] == 'INFO_REQUESTED'
@@ -353,9 +353,9 @@ class TestAdminApproveReject:
         ret = self._create_pending(user)
         ret.status = 'APPROVED'
         ret.save()
-        res = admin_client.post(
-            f'{ADMIN_RETURNS_URL}{ret.pk}/request-info/',
-            {'message': 'Necesito mas informacion del producto.'},
+        res = admin_client.patch(
+            f'{ADMIN_RETURNS_URL}{ret.pk}/status/',
+            {'action': 'request_info', 'message': 'Necesito mas informacion del producto.'},
             format='json')
         assert res.status_code == 422
 
@@ -373,7 +373,7 @@ class TestAdminReception:
             user=user, order_id=1, reason='OTHER',
             description='Mensaje suficientemente largo de prueba.')
         res = admin_client.post(
-            f'{ADMIN_RETURNS_URL}{ret.pk}/reception/',
+            f'{ADMIN_RETURNS_URL}{ret.pk}/receptions/',
             {'product_condition': 'GOOD_CONDITION'}, format='json')
         assert res.status_code == 422
         assert res.json()['codigo_error'] == 'REQUEST_NOT_APPROVED'
@@ -381,7 +381,7 @@ class TestAdminReception:
     def test_reception_records_state(self, admin_client, user, db):
         ret = self._create_approved(user)
         res = admin_client.post(
-            f'{ADMIN_RETURNS_URL}{ret.pk}/reception/',
+            f'{ADMIN_RETURNS_URL}{ret.pk}/receptions/',
             {'product_condition': 'GOOD_CONDITION',
              'observations': 'Producto sin abrir.'},
             format='json')
@@ -393,12 +393,12 @@ class TestAdminReception:
     def test_reception_idempotent(self, admin_client, user, db):
         ret = self._create_approved(user)
         first = admin_client.post(
-            f'{ADMIN_RETURNS_URL}{ret.pk}/reception/',
+            f'{ADMIN_RETURNS_URL}{ret.pk}/receptions/',
             {'product_condition': 'GOOD_CONDITION'}, format='json')
         assert first.status_code == 200
         # ahora esta en RECEIVED — un segundo POST debe fallar 422.
         second = admin_client.post(
-            f'{ADMIN_RETURNS_URL}{ret.pk}/reception/',
+            f'{ADMIN_RETURNS_URL}{ret.pk}/receptions/',
             {'product_condition': 'GOOD_CONDITION'}, format='json')
         assert second.status_code == 422
 
@@ -460,7 +460,7 @@ class TestAdminRefund:
             user, payment_amount=Decimal('1234.50'),
         )
         res = admin_client.post(
-            f'{ADMIN_RETURNS_URL}{ret.pk}/refund/',
+            f'{ADMIN_RETURNS_URL}{ret.pk}/refunds/',
             {'amount': '1234.50'}, format='json')
         assert res.status_code == 200, res.content
         body = res.json()
@@ -479,7 +479,7 @@ class TestAdminRefund:
             description='Mensaje suficientemente largo de prueba.',
             status='REJECTED')
         res = admin_client.post(
-            f'{ADMIN_RETURNS_URL}{ret.pk}/refund/',
+            f'{ADMIN_RETURNS_URL}{ret.pk}/refunds/',
             {'amount': '100.00'}, format='json')
         assert res.status_code == 422
 
@@ -490,11 +490,11 @@ class TestAdminRefund:
             user, payment_amount=Decimal('500.00'),
         )
         first = admin_client.post(
-            f'{ADMIN_RETURNS_URL}{ret.pk}/refund/',
+            f'{ADMIN_RETURNS_URL}{ret.pk}/refunds/',
             {'amount': '100.00'}, format='json')
         assert first.status_code == 200, first.content
         second = admin_client.post(
-            f'{ADMIN_RETURNS_URL}{ret.pk}/refund/',
+            f'{ADMIN_RETURNS_URL}{ret.pk}/refunds/',
             {'amount': '100.00'}, format='json')
         assert second.status_code == 409
         assert second.json()['codigo_error'] == 'REFUND_ALREADY_PROCESSED'
@@ -508,7 +508,7 @@ class TestAdminRefund:
             description='Mensaje suficientemente largo de prueba.',
             status='APPROVED')
         res = admin_client.post(
-            f'{ADMIN_RETURNS_URL}{ret.pk}/refund/',
+            f'{ADMIN_RETURNS_URL}{ret.pk}/refunds/',
             {'amount': '100.00'}, format='json')
         assert res.status_code == 422
         assert res.json()['codigo_error'] == 'PAYMENT_NOT_FOUND'
@@ -602,9 +602,9 @@ class TestRequestInfoNotifies:
             user=user, type=NotificationType.RETURN_UPDATE,
         ).count()
 
-        res = admin_client.post(
-            f'{ADMIN_RETURNS_URL}{ret.pk}/request-info/',
-            {'message': 'Por favor envia fotos adicionales del producto.'},
+        res = admin_client.patch(
+            f'{ADMIN_RETURNS_URL}{ret.pk}/status/',
+            {'action': 'request_info', 'message': 'Por favor envia fotos adicionales del producto.'},
             format='json',
         )
 

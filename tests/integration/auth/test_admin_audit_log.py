@@ -1,6 +1,6 @@
 """
 Tests de integracion — Audit Log admin (UC-ADM-03)
-T-119: AuditLogView — GET /api/v1/admin/audit-log/
+T-119: AuditLogView — GET /api/v2/admin/audit-log/
 """
 import pytest
 from django.contrib.auth import get_user_model
@@ -8,7 +8,7 @@ from apps.users.models import AuthEvent, BusinessEvent, UserDeactivationEvent
 
 pytestmark = pytest.mark.integration
 
-AUDIT_LOG_URL = '/api/v1/admin/audit-log/'
+AUDIT_LOG_URL = '/api/v2/admin/audit-log/'
 
 User = get_user_model()
 

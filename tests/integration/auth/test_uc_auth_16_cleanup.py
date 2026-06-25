@@ -25,7 +25,7 @@ from apps.users.models import Address, UserDeactivationEvent
 
 pytestmark = pytest.mark.api
 
-URL = '/api/v1/auth/me/deactivate/'
+URL = '/api/v2/auth/me/deactivate/'
 
 
 @pytest.fixture

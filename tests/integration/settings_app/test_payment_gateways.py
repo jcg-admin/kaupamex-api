@@ -11,8 +11,8 @@ from apps.settings_app.gateway_connector import GatewayConnector
 
 pytestmark = pytest.mark.integration
 
-GATEWAYS_URL  = '/api/v1/admin/gateways/'
-SHIPPING_URL  = '/api/v1/admin/shipping-methods/'
+GATEWAYS_URL  = '/api/v2/admin/gateways/'
+SHIPPING_URL  = '/api/v2/admin/shipping-methods/'
 
 
 # =============================================================================
