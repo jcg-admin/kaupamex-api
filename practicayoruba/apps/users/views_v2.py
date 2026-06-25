@@ -7,7 +7,7 @@ Tier B: EmailVerificationV2View — merges verify + resend into one endpoint
 Tier B: DeactivateMeV2View — DELETE /auth/me/ (v1 used POST /me/deactivate/).
 Tier B: DeleteSessionsV2View — DELETE /auth/sessions/ (v1 used POST /logout-all/).
 """
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
 
 from .views import (
@@ -56,6 +56,7 @@ class DeactivateMeV2View(APIView):
 
     v1 used POST /auth/me/deactivate/; v2 uses DELETE /auth/me/.
     """
+    permission_classes = [IsAuthenticated]
 
     def delete(self, request):
         return DeactivateAccountView().post(request)
@@ -66,6 +67,7 @@ class DeleteSessionsV2View(APIView):
 
     v1 used POST /auth/logout-all/; v2 uses DELETE /auth/sessions/.
     """
+    permission_classes = [IsAuthenticated]
 
     def delete(self, request):
         return LogoutAllSessionsView().post(request)

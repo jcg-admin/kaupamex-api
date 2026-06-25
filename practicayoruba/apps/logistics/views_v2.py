@@ -62,6 +62,7 @@ class ShipmentDeliveryV2View(APIView):
 
 class BuyerOrderShipmentV2View(APIView):
     """GET /api/v2/orders/<order_id>/shipment/ — Tier A."""
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, order_id):
         return BuyerGuideView().get(request, order_id)

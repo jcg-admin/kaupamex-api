@@ -10,13 +10,12 @@ Uses catalogue.SearchHistory as the backing model (same model populated
 by the search view via _record_history_async).
 """
 from drf_spectacular.utils import extend_schema
-from rest_framework import status
+from rest_framework import serializers, status
 from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from apps.catalogue.models import SearchHistory
-from rest_framework import serializers
 
 
 class _SearchHistorySerializer(serializers.ModelSerializer):

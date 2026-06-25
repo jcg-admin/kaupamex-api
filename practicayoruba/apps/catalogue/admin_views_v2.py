@@ -33,7 +33,7 @@ class ProductDiscountStatusV2View(APIView):
     def patch(self, request, pk):
         active = request.data.get('active')
         if active is not None:
-            if active is False or str(active).lower() in ('false', '0'):
+            if active is False or str(active).lower() == 'false':
                 return ProductDiscountDeactivateView().post(request, pk)
             return Response(
                 {'detail': 'Solo se acepta active=false.', 'codigo_error': 'INVALID_ACTION'},
