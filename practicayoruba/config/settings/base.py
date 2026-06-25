@@ -219,8 +219,8 @@ SPECTACULAR_SETTINGS = {
     'TITLE': 'PracticaYoruba API',
     'DESCRIPTION': (
         'API REST de PracticaYoruba — plataforma e-commerce de productos Yoruba.\n\n'
-        'Autenticación: JWT Bearer token via POST /api/v1/auth/login/\n'
-        'Todos los endpoints bajo el prefijo /api/v1/'
+        'Autenticación: JWT Bearer token via POST /api/v2/auth/login/\n'
+        'Todos los endpoints bajo el prefijo /api/v2/'
     ),
     'VERSION': '1.0.0',
     'CONTACT': {

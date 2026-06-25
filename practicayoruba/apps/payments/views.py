@@ -546,7 +546,7 @@ class ExpressCheckoutView(APIView):
 
         # Crear el request interno con los datos del express
         factory = APIRequestFactory()
-        inner_request = factory.post('/api/v1/checkout/', checkout_data, format='json')
+        inner_request = factory.post('/api/v2/checkout/', checkout_data, format='json')
         inner_request.user = request.user
         inner_request.auth = request.auth
         inner_request._request = request._request
