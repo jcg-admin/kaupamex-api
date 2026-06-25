@@ -122,11 +122,11 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 # Dirección remitente por defecto para todos los emails del sistema.
 # Sobrescribir en production.py via decouple si se necesita otro valor.
-DEFAULT_FROM_EMAIL = 'noreply@practicayoruba.mx'
+DEFAULT_FROM_EMAIL = 'noreply@practicayoruba.com'
 
 # Destinatario de alertas operativas (UC-ADM-05: backup fallido). El backup
 # on-demand notifica a esta dirección cuando backup_db.sh termina en error.
-BACKUP_ALERT_EMAIL = config('BACKUP_ALERT_EMAIL', default='admin@practicayoruba.mx')
+BACKUP_ALERT_EMAIL = config('BACKUP_ALERT_EMAIL', default='admin@practicayoruba.com')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -225,7 +225,7 @@ SPECTACULAR_SETTINGS = {
     'VERSION': '1.0.0',
     'CONTACT': {
         'name': 'Equipo PracticaYoruba',
-        'email': 'dev@practicayoruba.mx',
+        'email': 'dev@practicayoruba.com',
     },
     'LICENSE': {'name': 'Propietario'},
 
