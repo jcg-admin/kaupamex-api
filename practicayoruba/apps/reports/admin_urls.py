@@ -1,5 +1,5 @@
 """
-Admin URLs — apps.reports
+Admin URLs — apps.reports (F8 consolidation).
 
 Mounted in config/urls.py:
   path('api/v1/admin/', include('apps.reports.admin_urls', namespace='admin_reports'))
@@ -21,7 +21,6 @@ urlpatterns = [
          DashboardReportView.as_view(), name='reports-dashboard'),
     path('reports/customers-rfm/',
          CustomersRFMReportView.as_view(), name='reports-customers-rfm'),
-    # UC-DB-RPT-01/02/03 — SP-backed (implementar-endpoints-db-rpt sucesora)
     path('reports/catalog-by-category/',
          CatalogByCategoryReportView.as_view(),
          name='reports-catalog-by-category'),
@@ -30,16 +29,12 @@ urlpatterns = [
     path('reports/catalog-summary/',
          CatalogSummaryReportView.as_view(),
          name='reports-catalog-summary'),
-    # D-19 async export — job status + signed download. MUST precede the
-    # <slug:slug>/export/ catch-all so 'jobs'/'download' are not captured
-    # as a report slug.
     path('reports/export/jobs/<int:job_id>/',
          ExportJobStatusView.as_view(), name='reports-export-job'),
     path('reports/export/download/<str:token>/',
          ExportDownloadView.as_view(), name='reports-export-download'),
-    # UC-REP-05 export — slug is one of: sales|top-sellers|customers-rfm|dashboard
-    # NOTE: catch-all <slug:slug>/export/ debe ir DESPUES de los paths
-    # especificos arriba (DEC-DBR-02 — paths SP especificos preceden).
+    path('reports/<slug:slug>/exports/',
+         ReportExportView.as_view(), name='report-exports'),
     path('reports/<slug:slug>/export/',
          ReportExportView.as_view(), name='reports-export'),
 ]

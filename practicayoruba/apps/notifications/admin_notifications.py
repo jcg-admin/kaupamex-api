@@ -1,8 +1,8 @@
-"""Admin URLs v2 — apps.notifications (F2 + F6 migrar-urls-rest-v2)."""
+"""Admin URLs — apps.notifications (F8 consolidation)."""
 from django.urls import path
 from .views import AdminAudienceCountView, AdminManualNotificationCreateView
 
-app_name = 'admin_notifications_v2'
+app_name = 'admin_notifications'
 
 urlpatterns = [
     path('notifications/audience-count/',

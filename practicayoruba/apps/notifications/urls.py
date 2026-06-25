@@ -1,24 +1,26 @@
-"""URLs — apps.notifications (user endpoints)."""
+"""URLs — apps.notifications (user endpoints, F8 consolidation)."""
 from django.urls import path
-from .views import NotificationListView, NotificationMarkAllReadView, NotificationMarkReadView, NotificationPreferencesView, NotificationUnreadCountView
+from .views import (
+    NotificationListV2View,
+    NotificationMarkReadV2View,
+    NotificationUnreadCountView,
+    NotificationPreferencesView,
+)
 
 
 app_name = 'notifications'
 
 urlpatterns = [
     path('',
-         NotificationListView.as_view(),
+         NotificationListV2View.as_view(),
          name='list'),
     path('unread-count/',
          NotificationUnreadCountView.as_view(),
          name='unread-count'),
-    path('read-all/',
-         NotificationMarkAllReadView.as_view(),
-         name='read-all'),
     path('preferences/',
          NotificationPreferencesView.as_view(),
          name='preferences'),
-    path('<int:notification_id>/read/',
-         NotificationMarkReadView.as_view(),
-         name='mark-read'),
+    path('<int:pk>/',
+         NotificationMarkReadV2View.as_view(),
+         name='notification-detail'),
 ]

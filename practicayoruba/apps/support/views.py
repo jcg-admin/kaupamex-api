@@ -433,3 +433,23 @@ class AdminSupportTicketListView(APIView):
             'results': AdminSupportTicketListSerializer(items, many=True).data,
             'metrics': metrics,
         })
+
+
+class SupportTicketStatusV2View(APIView):
+    """PATCH /api/v2/support/tickets/<id>/status/ — Tier B."""
+
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, ticket_id):
+        action = (request.data.get('action') or '').strip()
+        if action == 'close':
+            return SupportTicketCloseView().post(request, ticket_id)
+        if action == 'reopen':
+            return SupportTicketReopenView().post(request, ticket_id)
+        return Response(
+            {
+                'detail': "action debe ser 'close' o 'reopen'.",
+                'codigo_error': 'INVALID_ACTION',
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )

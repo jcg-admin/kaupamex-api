@@ -1,4 +1,4 @@
-"""Admin views v2 — apps.catalogue (F4 migrar-urls-rest-v2)."""
+"""Admin views — apps.catalogue (F8 consolidation)."""
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -24,9 +24,8 @@ class ProductDiscountStatusV2View(APIView):
     PATCH /api/v2/admin/product-discounts/<pk>/
 
     Unified edit endpoint (UC-DASH-03 + Tier B deactivation).
-
-    - {active: false}  → deactivate (replaces POST /deactivate/)
-    - {discount_pct, valid_from, valid_until, …} → partial update
+    - {active: false}  → deactivate
+    - {discount_pct, ...} → partial update
     """
     permission_classes = [IsAuthenticated, IsAdminUser]
 
@@ -46,11 +45,8 @@ class PriceSyncsV2View(APIView):
     """
     POST /api/v2/admin/price-syncs/
 
-    Tier B: consolida los cuatro endpoints v1 de price-sync en uno solo.
-    El body debe incluir:
-      type: "preview" | "apply"
-      mode: "csv" | "percentage"
-    Los parametros adicionales (file, pct, session_id) siguen igual.
+    Consolidates four v1 price-sync endpoints.
+    Body must include type ('preview'|'apply') and mode ('csv'|'percentage').
     """
     permission_classes = [IsAuthenticated, IsAdminUser]
 

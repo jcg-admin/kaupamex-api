@@ -481,3 +481,23 @@ class ReviewHelpfulVoteView(APIView):
 
         review.refresh_from_db(fields=['helpful_count'])
         return Response({'helpful_count': review.helpful_count})
+
+
+class ReviewStatusV2View(APIView):
+    """PATCH /api/v2/admin/reviews/<pk>/status/ — Tier B."""
+
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def patch(self, request, pk):
+        action = (request.data.get('action') or '').strip()
+        if action == 'approve':
+            return ReviewApproveView().post(request, pk)
+        if action == 'reject':
+            return ReviewRejectView().post(request, pk)
+        return Response(
+            {
+                'detail': "action debe ser 'approve' o 'reject'.",
+                'codigo_error': 'INVALID_ACTION',
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )

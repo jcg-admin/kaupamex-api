@@ -1,6 +1,13 @@
-"""URLs — apps.support."""
+"""URLs — apps.support (F8 consolidation)."""
 from django.urls import path
-from .views import SupportTicketCloseView, SupportTicketDetailView, SupportTicketListCreateView, SupportTicketReopenView, SupportTicketReplyView
+from .views import (
+    SupportTicketCloseView,
+    SupportTicketDetailView,
+    SupportTicketListCreateView,
+    SupportTicketReopenView,
+    SupportTicketReplyView,
+    SupportTicketStatusV2View,
+)
 
 
 app_name = 'support'
@@ -21,4 +28,6 @@ urlpatterns = [
     path('tickets/<int:ticket_id>/reopen/',
          SupportTicketReopenView.as_view(),
          name='ticket-reopen'),
+    path('tickets/<int:ticket_id>/status/',
+         SupportTicketStatusV2View.as_view(), name='ticket-status'),
 ]

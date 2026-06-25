@@ -652,3 +652,25 @@ class AdminReturnRefundView(_AdminOnly, APIView):
         # H-CICLO56-02: re-fetch after mutation to avoid stale prefetch cache.
         ret = _get_return_or_404(return_id)
         return Response(ReturnRequestAdminSerializer(ret).data)
+
+
+class ReturnStatusV2View(APIView):
+    """PATCH /api/v2/admin/return-requests/<id>/status/ — Tier B."""
+
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def patch(self, request, return_id):
+        action = (request.data.get('action') or '').strip()
+        if action == 'approve':
+            return AdminReturnApproveView().post(request, return_id)
+        if action == 'reject':
+            return AdminReturnRejectView().post(request, return_id)
+        if action == 'request_info':
+            return AdminReturnRequestInfoView().post(request, return_id)
+        return Response(
+            {
+                'detail': "action debe ser 'approve', 'reject' o 'request_info'.",
+                'codigo_error': 'INVALID_ACTION',
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )

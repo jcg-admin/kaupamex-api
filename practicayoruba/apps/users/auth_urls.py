@@ -1,8 +1,8 @@
 """
-Auth URLs v2 — apps.users §2.1 F5.
+Auth URLs v2 — apps.users §2.1 F5 (F8 consolidation).
 
 Mounted in config/urls.py:
-  path('api/v2/auth/', include('apps.users.auth_urls_v2', namespace='auth_v2'))
+  path('api/v2/auth/', include(('apps.users.auth_urls', 'auth'), namespace='auth_v2'))
 
 Only renames from §2.1. DEC-V2-05 sancionados (login, register, logout,
 refresh, change-password) are excluded — they stay at their original path
@@ -10,7 +10,7 @@ in both v1 and v2.
 """
 from django.urls import path
 
-from .views_v2 import (
+from .views import (
     DeactivateMeV2View,
     DeleteSessionsV2View,
     EmailVerificationV2View,
@@ -18,7 +18,7 @@ from .views_v2 import (
     PasswordResetV2View,
 )
 
-app_name = 'auth_v2'
+app_name = 'auth'
 
 urlpatterns = [
     path('email-verifications/',

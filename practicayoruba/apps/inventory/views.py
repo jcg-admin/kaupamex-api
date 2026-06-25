@@ -613,3 +613,64 @@ class ProductImportReportView(_AdminOnly, APIView):
         response = HttpResponse(buf.getvalue(), content_type='text/csv')
         response['Content-Disposition'] = f'attachment; filename="import-errors-{report_id}.csv"'
         return response
+
+
+_VALID_ALERT_ACTIONS = {'resolve'}
+
+
+class StockAdjustV2View(APIView):
+    """
+    PATCH /api/v2/admin/inventory/<product_pk>/
+
+    Tier B: POST /adjust/ → PATCH directo sobre el recurso.
+    Delega la logica de negocio a StockAdjustView.post().
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def patch(self, request, product_pk):
+        return StockAdjustView().post(request, product_pk)
+
+
+class VariantStockV2View(APIView):
+    """
+    PATCH /api/v2/admin/inventory/variants/<variant_pk>/
+
+    Tier B: POST /adjust/ → PATCH sobre la variante.
+    Delega a VariantStockAdjustView.post().
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def patch(self, request, variant_pk):
+        return VariantStockAdjustView().post(request, variant_pk)
+
+
+class VariantRestocksV2View(APIView):
+    """
+    POST /api/v2/admin/inventory/variants/<variant_pk>/restocks/
+
+    Tier A rename: /restock/ → /restocks/ (plural canonico REST).
+    Delega a VariantRestockView.post().
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def post(self, request, variant_pk):
+        return VariantRestockView().post(request, variant_pk)
+
+
+class StockAlertStatusV2View(APIView):
+    """
+    PATCH /api/v2/admin/inventory/alerts/<pk>/
+
+    Tier B: POST /alerts/<pk>/resolve/ → PATCH con {action: resolve}.
+    Solo la accion 'resolve' esta soportada en esta version.
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def patch(self, request, pk):
+        action = request.data.get('action')
+        if action not in _VALID_ALERT_ACTIONS:
+            return Response(
+                {'detail': 'Accion no valida.', 'codigo_error': 'INVALID_ACTION'},
+                status=400,
+            )
+        return StockAlertResolveView().post(request, pk)

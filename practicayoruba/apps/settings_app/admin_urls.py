@@ -1,4 +1,4 @@
-"""Admin URLs — apps.settings_app (Sprint 8, T-119)"""
+"""Admin URLs — apps.settings_app (Sprint 8, T-119, F8 consolidation)"""
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
@@ -6,6 +6,7 @@ from .views import (
     StaticPageAdminListView, StaticPageAdminDetailView,
     StaticPagePublishView, StaticPageRestoreView,
     AdminSiteSettingsView,
+    StaticPageStatusV2View, StaticPageRestorationV2View,
 )
 
 app_name = 'admin_settings'
@@ -21,4 +22,8 @@ urlpatterns = [
     path('pages/<slug:slug>/',                                 StaticPageAdminDetailView.as_view(), name='page-detail'),
     path('pages/<slug:slug>/publish/',                         StaticPagePublishView.as_view(),     name='page-publish'),
     path('pages/<slug:slug>/versions/<int:version>/restore/',  StaticPageRestoreView.as_view(),     name='page-restore'),
+    path('pages/<slug:slug>/status/',
+         StaticPageStatusV2View.as_view(), name='page-status'),
+    path('pages/<slug:slug>/restorations/',
+         StaticPageRestorationV2View.as_view(), name='page-restoration'),
 ]

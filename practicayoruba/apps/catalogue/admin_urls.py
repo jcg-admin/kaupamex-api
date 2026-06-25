@@ -1,10 +1,12 @@
 """
-Admin URLs — apps.catalogue (Sprint 6)
+Admin URLs — apps.catalogue (Sprint 6, F8 consolidation).
 UC-CAT-06: CRUD de categorías para administradores.
 Montado en config/urls.py como: path('api/v1/admin/', include('apps.catalogue.admin_urls'))
 """
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
+from .admin_views import PriceSyncsV2View, ProductDiscountStatusV2View
+from .price_sync_views import PriceSyncTemplateView
 from .views import (
     CategoryAdminViewSet, ProductAdminViewSet,
     ProductPriceSyncView, ProductPriceSyncConfirmView, ProductPriceSyncTemplateView,
@@ -39,6 +41,13 @@ urlpatterns = [
     path('product-discounts/<int:pk>/deactivate/',
          ProductDiscountDeactivateView.as_view(),
          name='product-discount-deactivate'),
+    # ─── F8 consolidation: v2 admin paths ───────────────────────────────────────────
+    path('products/imports/', CatalogImportCSVView.as_view(), name='catalogue-imports'),
+    path('price-syncs/template.csv', PriceSyncTemplateView.as_view(), name='price-syncs-template'),
+    path('price-syncs/', PriceSyncsV2View.as_view(), name='price-syncs'),
+    path('products/price-syncs/', ProductPriceSyncView.as_view(), name='products-price-syncs'),
+    path('products/price-syncs/confirmations/', ProductPriceSyncConfirmView.as_view(), name='products-price-syncs-confirm'),
+    path('product-discounts/<int:pk>/', ProductDiscountStatusV2View.as_view(), name='product-discount-status'),
     # ─── Router LAST ────────────────────────────────────────────────────────────────
     path('', include(router.urls)),
 ]
