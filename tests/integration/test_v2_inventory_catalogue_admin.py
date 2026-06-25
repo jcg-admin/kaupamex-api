@@ -159,19 +159,19 @@ class TestCatalogueImportsV2:
         assert r.status_code == 401
 
 
-# ─── Catalogue admin — Tier B: products price-syncs ──────────────────────────
+# ─── Catalogue admin — Tier B: price-syncs (canonical v2) ───────────────────
 
 class TestProductPriceSyncsV2:
     def test_unauthenticated_returns_401(self, api_client):
         r = api_client.post(
-            V2_CATALOGUE_ADMIN_BASE + 'products/price-syncs/', {},
+            V2_CATALOGUE_ADMIN_BASE + 'price-syncs/', {},
             content_type='application/json',
         )
         assert r.status_code == 401
 
     def test_non_admin_returns_403(self, auth_client):
         r = auth_client.post(
-            V2_CATALOGUE_ADMIN_BASE + 'products/price-syncs/', {},
+            V2_CATALOGUE_ADMIN_BASE + 'price-syncs/', {},
             content_type='application/json',
         )
         assert r.status_code == 403

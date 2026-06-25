@@ -45,8 +45,6 @@ urlpatterns = [
     path('products/imports/', CatalogImportCSVView.as_view(), name='catalogue-imports'),
     path('price-syncs/template.csv', PriceSyncTemplateView.as_view(), name='price-syncs-template'),
     path('price-syncs/', PriceSyncsV2View.as_view(), name='price-syncs'),
-    path('products/price-syncs/', ProductPriceSyncView.as_view(), name='products-price-syncs'),
-    path('products/price-syncs/confirmations/', ProductPriceSyncConfirmView.as_view(), name='products-price-syncs-confirm'),
     # ─── Router LAST ────────────────────────────────────────────────────────────────
     path('', include(router.urls)),
 ]
