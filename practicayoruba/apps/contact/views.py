@@ -174,6 +174,7 @@ class AdminContactMessageReplyView(_AdminOnly, APIView):
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[msg.email],
         )
+        return Response(ContactMessageAdminSerializer(msg).data)
 
 
 class AdminContactMessageV2View(APIView):
