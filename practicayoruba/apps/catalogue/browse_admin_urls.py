@@ -1,23 +1,12 @@
-from django.urls import path
-from .price_sync_views import PriceSyncApplyCSVView, PriceSyncApplyPercentageView, PriceSyncPreviewCSVView, PriceSyncPreviewPercentageView, PriceSyncTemplateView
+"""
+Admin browse URLs — apps.catalogue (F7 cleanup).
 
+All price-sync v1-compat paths (preview-csv, apply-csv, preview-percentage,
+apply-percentage, template.csv) are consolidated into PriceSyncsV2View at
+/api/v2/admin/price-syncs/ with type+mode body params.
 
+This file is kept for the namespace binding in config/urls.py.
+"""
 app_name = 'catalogue_browse_admin'
 
-urlpatterns = [
-    path('price-sync/preview-csv/',
-         PriceSyncPreviewCSVView.as_view(),
-         name='price-sync-preview-csv'),
-    path('price-sync/apply-csv/',
-         PriceSyncApplyCSVView.as_view(),
-         name='price-sync-apply-csv'),
-    path('price-sync/preview-percentage/',
-         PriceSyncPreviewPercentageView.as_view(),
-         name='price-sync-preview-percentage'),
-    path('price-sync/apply-percentage/',
-         PriceSyncApplyPercentageView.as_view(),
-         name='price-sync-apply-percentage'),
-    path('price-sync/template.csv',
-         PriceSyncTemplateView.as_view(),
-         name='price-sync-template-csv'),
-]
+urlpatterns = []

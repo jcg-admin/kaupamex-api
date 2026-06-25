@@ -20,7 +20,7 @@ from apps.inventory.services import InventoryService
 
 pytestmark = pytest.mark.integration
 
-RESTOCK_URL = '/api/v2/admin/inventory/variants/{pk}/restock/'
+RESTOCK_URL = '/api/v2/admin/inventory/variants/{pk}/restocks/'
 
 
 @pytest.fixture

@@ -19,11 +19,7 @@ urlpatterns = [
     path('orders/<str:order_number>/status/',
          AdminOrderStatusUpdateView.as_view(), name='admin-order-status'),
 
-    # UC-ORD-08 — Cancelar orden
-    path('orders/<str:order_number>/cancel/',
-         AdminOrderCancelView.as_view(), name='admin-order-cancel'),
-
-    # v2 rename: cancel/ → cancellations/
+    # UC-ORD-08 — Cancelar orden (v2 canonical: resource noun)
     path('orders/<str:order_number>/cancellations/',
          AdminOrderCancelView.as_view(), name='admin-order-cancellations'),
 ]

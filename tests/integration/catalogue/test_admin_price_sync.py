@@ -12,9 +12,8 @@ from django.core.cache import cache
 pytestmark = pytest.mark.integration
 
 ADMIN_PROD_URL    = '/api/v2/admin/products/'
-PRICE_SYNC_URL    = '/api/v2/admin/products/price-sync/'
-PRICE_CONFIRM_URL = '/api/v2/admin/products/price-sync/confirm/'
-PRICE_TMPL_URL    = '/api/v2/admin/products/price-sync/template/'
+PRICE_SYNC_URL    = '/api/v2/admin/price-syncs/'
+PRICE_TMPL_URL    = '/api/v2/admin/price-syncs/template.csv'
 
 
 @pytest.fixture
@@ -150,7 +149,7 @@ class TestSincronizarPreciosCSV:
         csv_file = _make_csv([(product_activo.sku, '3500.00')])
         res = admin_client.post(
             PRICE_SYNC_URL,
-            {'file': csv_file},
+            {'file': csv_file, 'type': 'preview', 'mode': 'csv'},
             format='multipart',
         )
         assert res.status_code == 200
@@ -161,25 +160,25 @@ class TestSincronizarPreciosCSV:
 
     def test_csv_sku_no_encontrado_va_a_errores(self, admin_client, db):
         csv_file = _make_csv([('NO-EXISTE-SKU', '100.00')])
-        res = admin_client.post(PRICE_SYNC_URL, {'file': csv_file}, format='multipart')
+        res = admin_client.post(PRICE_SYNC_URL, {'file': csv_file, 'type': 'preview', 'mode': 'csv'}, format='multipart')
         assert res.status_code == 200
         assert res.json()['valid_count'] == 0
         assert res.json()['invalid_count'] == 1
 
     def test_csv_precio_invalido_va_a_errores(self, admin_client, product_activo, db):
         csv_file = _make_csv([(product_activo.sku, 'no-es-numero')])
-        res = admin_client.post(PRICE_SYNC_URL, {'file': csv_file}, format='multipart')
+        res = admin_client.post(PRICE_SYNC_URL, {'file': csv_file, 'type': 'preview', 'mode': 'csv'}, format='multipart')
         assert res.status_code == 200
         assert res.json()['invalid_count'] == 1
 
     def test_confirm_aplica_los_cambios(self, admin_client, product_activo, db):
         csv_file = _make_csv([(product_activo.sku, '4000.00')])
         preview = admin_client.post(
-            PRICE_SYNC_URL, {'file': csv_file}, format='multipart'
+            PRICE_SYNC_URL, {'file': csv_file, 'type': 'preview', 'mode': 'csv'}, format='multipart'
         )
         session_id = preview.json()['session_id']
         confirm = admin_client.post(
-            PRICE_CONFIRM_URL, {'session_id': session_id}, format='json'
+            PRICE_SYNC_URL, {'session_id': session_id, 'type': 'apply', 'mode': 'csv'}, format='json'
         )
         assert confirm.status_code == 200
         assert confirm.json()['updated_count'] == 1
@@ -189,20 +188,20 @@ class TestSincronizarPreciosCSV:
     def test_confirm_purga_cache_ficha(self, admin_client, product_activo, db):
         cache.set(f'product:{product_activo.pk}:detail', {'old': True}, 300)
         csv_file = _make_csv([(product_activo.sku, '4100.00')])
-        preview = admin_client.post(PRICE_SYNC_URL, {'file': csv_file}, format='multipart')
+        preview = admin_client.post(PRICE_SYNC_URL, {'file': csv_file, 'type': 'preview', 'mode': 'csv'}, format='multipart')
         admin_client.post(
-            PRICE_CONFIRM_URL,
-            {'session_id': preview.json()['session_id']}, format='json'
+            PRICE_SYNC_URL,
+            {'session_id': preview.json()['session_id'], 'type': 'apply', 'mode': 'csv'}, format='json'
         )
         assert cache.get(f'product:{product_activo.pk}:detail') is None
 
     def test_confirm_sin_session_id_retorna_400(self, admin_client, db):
-        res = admin_client.post(PRICE_CONFIRM_URL, {}, format='json')
+        res = admin_client.post(PRICE_SYNC_URL, {'type': 'apply', 'mode': 'csv'}, format='json')
         assert res.status_code == 400
 
     def test_confirm_session_expirada_retorna_400(self, admin_client, db):
         res = admin_client.post(
-            PRICE_CONFIRM_URL, {'session_id': 'uuid-que-no-existe'}, format='json'
+            PRICE_SYNC_URL, {'session_id': 'uuid-que-no-existe', 'type': 'apply', 'mode': 'csv'}, format='json'
         )
         assert res.status_code == 400
         # T-109-B anti-soft-on-tests (canon EN).
@@ -221,7 +220,7 @@ class TestSincronizarPreciosCSV:
 
     def test_upload_sin_auth_retorna_401(self, api_client, db):
         csv_file = _make_csv([('X', '100')])
-        res = api_client.post(PRICE_SYNC_URL, {'file': csv_file}, format='multipart')
+        res = api_client.post(PRICE_SYNC_URL, {'file': csv_file, 'type': 'preview', 'mode': 'csv'}, format='multipart')
         assert res.status_code == 401
 
 
@@ -237,7 +236,7 @@ class TestAjustePorcentual:
         """10% sobre 3200 = 3520."""
         res = admin_client.post(
             PRICE_SYNC_URL,
-            {'mode': 'percentage', 'pct': '10'},
+            {'type': 'preview', 'mode': 'percentage', 'pct': '10'},
             format='json'
         )
         assert res.status_code == 200
@@ -250,7 +249,7 @@ class TestAjustePorcentual:
     ):
         res = admin_client.post(
             PRICE_SYNC_URL,
-            {'mode': 'percentage', 'pct': '-5'},
+            {'type': 'preview', 'mode': 'percentage', 'pct': '-5'},
             format='json'
         )
         assert res.status_code == 200
@@ -260,7 +259,7 @@ class TestAjustePorcentual:
     def test_ajuste_pct_invalido_retorna_400(self, admin_client, db):
         res = admin_client.post(
             PRICE_SYNC_URL,
-            {'mode': 'percentage', 'pct': 'abc'},
+            {'type': 'preview', 'mode': 'percentage', 'pct': 'abc'},
             format='json'
         )
         assert res.status_code == 400

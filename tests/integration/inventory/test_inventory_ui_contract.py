@@ -187,8 +187,8 @@ class TestAdjustNewQuantity:
     def test_adjust_with_new_quantity_returns_english_keys(
         self, admin_client, product_ui, variant_ui, db
     ):
-        url = f'{INV_URL}variants/{variant_ui.pk}/adjust/'
-        res = admin_client.post(url, {
+        url = f'{INV_URL}variants/{variant_ui.pk}/'
+        res = admin_client.patch(url, {
             'new_quantity': 25,
             'reason': 'PHYSICAL_COUNT',
             'observations': 'Inventario semestral',
@@ -206,8 +206,8 @@ class TestAdjustNewQuantity:
     def test_adjust_negative_new_quantity_returns_422(
         self, admin_client, variant_ui, db
     ):
-        url = f'{INV_URL}variants/{variant_ui.pk}/adjust/'
-        res = admin_client.post(url, {
+        url = f'{INV_URL}variants/{variant_ui.pk}/'
+        res = admin_client.patch(url, {
             'new_quantity': -5,
             'reason': 'LOSS',
         }, format='json')
@@ -219,8 +219,8 @@ class TestAdjustNewQuantity:
     def test_adjust_decreases_stock_correctly(
         self, admin_client, variant_ui, db
     ):
-        url = f'{INV_URL}variants/{variant_ui.pk}/adjust/'
-        res = admin_client.post(url, {
+        url = f'{INV_URL}variants/{variant_ui.pk}/'
+        res = admin_client.patch(url, {
             'new_quantity': 4,
             'reason': 'LOSS',
             'observations': 'Producto danado',
@@ -233,15 +233,15 @@ class TestAdjustNewQuantity:
     def test_adjust_missing_reason_returns_400(
         self, admin_client, variant_ui, db
     ):
-        url = f'{INV_URL}variants/{variant_ui.pk}/adjust/'
-        res = admin_client.post(url, {'new_quantity': 5}, format='json')
+        url = f'{INV_URL}variants/{variant_ui.pk}/'
+        res = admin_client.patch(url, {'new_quantity': 5}, format='json')
         assert res.status_code == 400
 
     def test_adjust_records_stock_movement_with_reason(
         self, admin_client, variant_ui, db
     ):
-        url = f'{INV_URL}variants/{variant_ui.pk}/adjust/'
-        admin_client.post(url, {
+        url = f'{INV_URL}variants/{variant_ui.pk}/'
+        admin_client.patch(url, {
             'new_quantity': 20,
             'reason': 'PHYSICAL_COUNT',
             'observations': 'Auditoria',
