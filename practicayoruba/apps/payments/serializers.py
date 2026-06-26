@@ -40,7 +40,13 @@ class AdminPaymentSerializer(PaymentSerializer):
 
 
 class InitiatePaymentSerializer(serializers.Serializer):
-    """POST /api/v1/payments/initiate/ — UC-PAY-01 (MP) y UC-PAY-02 (PayPal)."""
+    """POST /api/v2/payments/initiate/ (deprecated) — use /mercadopago/ instead.
+
+    Generic endpoint kept for UI backwards-compat (OBS-U1). Accepts an
+    explicit `gateway` field in the body. New integrations should use the
+    gateway-specific URL (/mercadopago/) where the gateway is implied.
+    PayPal endpoint is not exposed — see DEC-PAY-01 in payments/urls.py.
+    """
     GATEWAY_CHOICES = [('MERCADOPAGO', 'MercadoPago'), ('PAYPAL', 'PayPal')]
 
     order_number  = serializers.CharField(
@@ -55,6 +61,29 @@ class InitiatePaymentSerializer(serializers.Serializer):
     installments  = serializers.IntegerField(
         default=1, min_value=1,
         help_text='Número de cuotas MSI. Solo aplica para MERCADOPAGO. 1 = contado.',
+    )
+    expected_amount = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False,
+        help_text='UC-PAY-01 AC-06: monto visto por el cliente en el checkout. '
+                  'Si difiere del total recalculado de la orden → 422 '
+                  'AMOUNT_MISMATCH.',
+    )
+
+
+class MercadoPagoInitiateSerializer(serializers.Serializer):
+    """POST /api/v2/payments/mercadopago/ — UC-PAY-01 (F6 Tier B, GAP-I1).
+
+    Gateway-specific endpoint: MercadoPago is implied by the URL so the
+    `gateway` field is absent. Preferred over the generic /initiate/ for
+    new integrations.
+    """
+    order_number  = serializers.CharField(
+        max_length=20,
+        help_text='Número de orden a pagar (PY-XXXXXXXX).',
+    )
+    installments  = serializers.IntegerField(
+        default=1, min_value=1,
+        help_text='Número de cuotas MSI. 1 = contado (sin interés).',
     )
     expected_amount = serializers.DecimalField(
         max_digits=10, decimal_places=2, required=False,

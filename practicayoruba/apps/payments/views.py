@@ -19,7 +19,7 @@ from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress, Shipp
 from apps.orders.proxy_models import DeliveredOrder
 from apps.voucher.models import Voucher, VoucherUsage
 from .models import Payment, Payment as PaymentModel
-from .serializers import InitiatePaymentSerializer, InitiatePaymentResponseSerializer, InstallmentPlansResponseSerializer, PaymentSerializer, AdminPaymentSerializer, PaymentReturnSerializer, CheckoutEligibilitySerializer, ExpressCheckoutSerializer, RefundRequestSerializer, RefundSerializer, AdminRefundSerializer, RetryEligibilitySerializer, PaymentStatusSerializer as PSS, RefundRequestSerializer as RRS
+from .serializers import InitiatePaymentSerializer, MercadoPagoInitiateSerializer, InitiatePaymentResponseSerializer, InstallmentPlansResponseSerializer, PaymentSerializer, AdminPaymentSerializer, PaymentReturnSerializer, CheckoutEligibilitySerializer, ExpressCheckoutSerializer, RefundRequestSerializer, RefundSerializer, AdminRefundSerializer, RetryEligibilitySerializer, PaymentStatusSerializer as PSS, RefundRequestSerializer as RRS
 from .services import initiate_payment, handle_gateway_return, get_installment_plans, get_payment_status, get_payment_history, execute_refund, get_retry_eligibility
 from apps.users.models import Address
 from apps.settings_app.models import ShippingMethod, SiteSettings
@@ -47,7 +47,7 @@ logger = logging.getLogger('apps')
 
 class InitiatePaymentView(APIView):
     """
-    POST /api/v1/payments/initiate/
+    POST /api/v2/payments/initiate/ (deprecated — use /mercadopago/ instead)
     Crea la preferencia de pago en el gateway y retorna la URL de checkout.
     UC-PAY-01 (FR-PAY-01.01, FR-PAY-01.02).
 
@@ -64,16 +64,19 @@ class InitiatePaymentView(APIView):
     throttle_scope   = 'initiate_payment'
 
     @extend_schema(
-        summary='Iniciar pago con MercadoPago',
+        summary='[Deprecated] Iniciar pago (endpoint genérico)',
         description=(
-            'Crea una preferencia de pago en MercadoPago y retorna la URL '
-            'de checkout. El frontend redirige al comprador a esa URL. '
+            'DEPRECATED — usar /api/v2/payments/mercadopago/ en su lugar (OBS-U1). '
+            'Crea una preferencia de pago en el gateway indicado por el campo '
+            '`gateway` del body y retorna la URL de checkout. '
             'Las credenciales del gateway no aparecen en la respuesta (BR-009).'
         ),
+        deprecated=True,
         request=InitiatePaymentSerializer,
         responses={
             201: InitiatePaymentResponseSerializer,
             400: OpenApiResponse(description='Orden no encontrada o no en estado PENDING.'),
+            422: OpenApiResponse(description='Monto cambió desde el checkout (AMOUNT_MISMATCH).'),
             503: OpenApiResponse(description='Gateway de pago no disponible.'),
         },
         tags=['payments'],
@@ -81,12 +84,15 @@ class InitiatePaymentView(APIView):
     def post(self, request):
         s = InitiatePaymentSerializer(data=request.data)
         s.is_valid(raise_exception=True)
+        return self._run_initiate(
+            request=request,
+            order_number=s.validated_data['order_number'],
+            installments=s.validated_data['installments'],
+            gateway_type=s.validated_data.get('gateway', 'MERCADOPAGO'),
+            expected_amount=s.validated_data.get('expected_amount'),
+        )
 
-        order_number = s.validated_data['order_number']
-        installments  = s.validated_data['installments']
-        gateway_type  = s.validated_data.get('gateway', 'MERCADOPAGO')
-        expected_amount = s.validated_data.get('expected_amount')
-
+    def _run_initiate(self, request, order_number, installments, gateway_type, expected_amount):
         # DEC-BC-11 (2026-05-21): permission_classes = [IsAuthenticated]
         # garantiza request.user.is_authenticated. La rama else previa
         # (Order.objects.get sin filtro user=) era codigo muerto +
@@ -173,6 +179,42 @@ class InitiatePaymentView(APIView):
                 'installments': payment.installments,
             }).data,
             status=201,
+        )
+
+
+class MercadoPagoInitiateView(InitiatePaymentView):
+    """
+    POST /api/v2/payments/mercadopago/
+    Crea una preferencia de pago en MercadoPago y retorna la URL de checkout.
+    UC-PAY-01 (F6 Tier B, GAP-I1). El gateway queda implícito en la URL.
+    """
+
+    @extend_schema(
+        summary='Iniciar pago con MercadoPago',
+        description=(
+            'Crea una preferencia de pago en MercadoPago y retorna la URL '
+            'de checkout. El gateway está implícito en la URL — no se envía '
+            'el campo `gateway` en el body. UC-PAY-01 (F6 Tier B). '
+            'Las credenciales del gateway no aparecen en la respuesta (BR-009).'
+        ),
+        request=MercadoPagoInitiateSerializer,
+        responses={
+            201: InitiatePaymentResponseSerializer,
+            400: OpenApiResponse(description='Orden no encontrada o no en estado PENDING.'),
+            422: OpenApiResponse(description='Monto cambió desde el checkout (AMOUNT_MISMATCH).'),
+            503: OpenApiResponse(description='Gateway de pago no disponible.'),
+        },
+        tags=['payments'],
+    )
+    def post(self, request):
+        s = MercadoPagoInitiateSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        return self._run_initiate(
+            request=request,
+            order_number=s.validated_data['order_number'],
+            installments=s.validated_data['installments'],
+            gateway_type='MERCADOPAGO',
+            expected_amount=s.validated_data.get('expected_amount'),
         )
 
 
