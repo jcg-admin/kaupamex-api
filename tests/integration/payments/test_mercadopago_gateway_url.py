@@ -10,6 +10,7 @@ import json
 import pytest
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
+from decouple import config
 from apps.catalogue.models import Category, Product
 from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from apps.settings_app.models import PaymentGateway
@@ -72,8 +73,8 @@ def mp_gateway(db, admin_user):
         is_active=True,
     )
     gw.set_credentials({
-        'access_token': 'TEST-ACCESS-TOKEN-FAKE',
-        'public_key':   'TEST-PUBLIC-KEY-FAKE',
+        'access_token': config('MP_TEST_ACCESS_TOKEN', default='TEST-ACCESS-TOKEN-FAKE'),
+        'public_key':   config('MP_TEST_PUBLIC_KEY',   default='TEST-PUBLIC-KEY-FAKE'),
     })
     gw.save()
     return gw
