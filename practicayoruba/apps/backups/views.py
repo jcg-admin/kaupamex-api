@@ -1,8 +1,8 @@
 """
 Views — apps.backups (UC-ADM-05).
 
-GET  /api/v1/admin/backups/          — list backup history
-POST /api/v1/admin/backups/trigger/  — trigger an on-demand backup
+GET  /api/v1/admin/backups/  — list backup history
+POST /api/v1/admin/backups/  — trigger an on-demand backup
 
 The actual dump is performed by db/scripts/backup_db.sh (run via
 subprocess in a background thread so the HTTP response is immediate).
@@ -113,7 +113,7 @@ class BackupPagination(PageNumberPagination):
 
 
 class AdminBackupListView(APIView):
-    """GET /api/v1/admin/backups/ — UC-ADM-05."""
+    """GET/POST /api/v1/admin/backups/ — UC-ADM-05."""
     permission_classes = [IsAuthenticated, IsAdminUser]
 
     @extend_schema(
@@ -130,11 +130,6 @@ class AdminBackupListView(APIView):
                 BackupRecordSerializer(page, many=True).data
             )
         return Response(BackupRecordSerializer(qs, many=True).data)
-
-
-class AdminBackupTriggerView(APIView):
-    """POST /api/v1/admin/backups/trigger/ — UC-ADM-05."""
-    permission_classes = [IsAuthenticated, IsAdminUser]
 
     @extend_schema(
         summary='Disparar backup manual on-demand (UC-ADM-05)',
