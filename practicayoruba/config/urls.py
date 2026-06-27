@@ -89,6 +89,12 @@ urlpatterns = [
     path('api/v1/admin/',     include('apps.payments.admin_urls',
                                       namespace='admin_payments')),
 
+    # --- API v2 — Checkout API (ADR-018) ---
+    # Solo endpoints nuevos de pago en sitio. Los webhooks siguen en v1
+    # por DEC-V2-02: /api/v1/payments/webhooks/* permanecen en v1 SIEMPRE.
+    path('api/v2/payments/', include('apps.payments.v2_urls',
+                                     namespace='payments_v2')),
+
     # ─── Orders bajo /api/v1/orders/ (DEC-ORD-01: alineado con UI productiva
     #     y convencion REST estandar; antes era catch-all en /api/v1/).
     path('api/v1/orders/',   include('apps.orders.urls',       namespace='orders')),

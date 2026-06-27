@@ -8,7 +8,7 @@ BR-009: las credenciales NUNCA pasan al frontend.
 import json
 import logging
 from decimal import Decimal, Decimal as Dec
-from .base import BaseGateway, PreferenceResult, InstallmentPlan, PaymentVerification, RefundResult
+from .base import BaseGateway, PreferenceResult, InstallmentPlan, PaymentVerification, RefundResult, PaymentResult
 from apps.settings_app.models import PaymentGateway
 
 import mercadopago
@@ -185,6 +185,70 @@ class MercadoPagoGateway(BaseGateway):
             installments=data.get('installments', 1),
         )
 
+
+    def create_payment(
+        self,
+        order,
+        token: str,
+        installments: int = 1,
+        payment_method_id: str = '',
+        issuer_id: str = '',
+        payer_email: str = '',
+        payer_identification_type: str = '',
+        payer_identification_number: str = '',
+    ) -> PaymentResult:
+        """
+        Crea un pago con Checkout API (pago en sitio, sin redirección).
+        ADR-018: elegido sobre Checkout Pro para UX transparente.
+
+        El token viene del CardForm de MercadoPago.js en el frontend y
+        caduca en 7 minutos. El backend lo usa una sola vez aquí.
+        """
+        sdk = _get_sdk()
+
+        payer_email_resolved = (
+            payer_email
+            or (order.user.email if order.user else None)
+            or order.guest_email
+            or 'guest@practicayoruba.mx'
+        )
+
+        payment_data = {
+            'transaction_amount': float(order.value.total),
+            'token':              token,
+            'installments':       installments,
+            'payment_method_id':  payment_method_id,
+            'external_reference': order.order_number,
+            'payer': {
+                'email': payer_email_resolved,
+            },
+        }
+
+        if issuer_id:
+            payment_data['issuer_id'] = issuer_id
+
+        if payer_identification_type and payer_identification_number:
+            payment_data['payer']['identification'] = {
+                'type':   payer_identification_type,
+                'number': payer_identification_number,
+            }
+
+        response = sdk.payment().create(payment_data)
+
+        if response['status'] not in (200, 201):
+            body = response.get('response', {})
+            msg  = body.get('message', str(response))
+            logger.error('MercadoPago Checkout API error: %s', msg)
+            raise RuntimeError(f'Error al procesar pago en MercadoPago: {msg}')
+
+        data = response['response']
+        return PaymentResult(
+            gateway_payment_id = str(data['id']),
+            status             = MP_STATUS_MAP.get(data.get('status', 'pending'), 'pending'),
+            status_detail      = data.get('status_detail', ''),
+            amount             = Decimal(str(data.get('transaction_amount', order.value.total))),
+            installments       = data.get('installments', installments),
+        )
 
     def refund(self, gateway_payment_id: str, amount) -> 'RefundResult':
         """

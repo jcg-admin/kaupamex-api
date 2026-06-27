@@ -377,3 +377,121 @@ def _get_available_gateways() -> list:
         PaymentGateway.objects.filter(is_active=True)
         .values_list('gateway', flat=True)
     )
+
+
+def get_mp_public_key() -> str:
+    """
+    Retorna la public_key de MercadoPago para el frontend.
+    BR-009: solo la public_key puede ir al frontend; el access_token nunca.
+    """
+    try:
+        gateway = PaymentGateway.objects.get(
+            gateway=PaymentGateway.GATEWAY_MERCADOPAGO,
+            is_active=True,
+        )
+        creds      = gateway.get_credentials()
+        public_key = creds.get('public_key', '')
+        if not public_key:
+            raise ValueError(
+                'public_key no configurada en PaymentGateway MERCADOPAGO. '
+                'Agrega public_key en UC-CFG-01.'
+            )
+        return public_key
+    except PaymentGateway.DoesNotExist:
+        raise ValueError('No existe un PaymentGateway activo para MERCADOPAGO.')
+
+
+def initiate_checkout_api_payment(
+    order,
+    token: str,
+    installments: int = 1,
+    payment_method_id: str = '',
+    issuer_id: str = '',
+    payer_email: str = '',
+    payer_identification_type: str = '',
+    payer_identification_number: str = '',
+    gateway: BaseGateway = None,
+):
+    """
+    Inicia un pago con Checkout API (pago en sitio, sin redirección).
+    ADR-018: Checkout API elegido sobre Checkout Pro para UX transparente.
+
+    A diferencia de initiate_payment() (Checkout Pro), la respuesta de MP
+    es síncrona: el estado approved/rejected/pending se conoce de inmediato.
+    Si el pago es aprobado, la Order se actualiza a STATUS_PAID aquí;
+    el webhook posterior (DEC-V2-02) actúa como confirmación idempotente.
+
+    :param order: instancia Order en estado PENDING
+    :param token: token del CardForm de MP.js (caduca en 7 min, un solo uso)
+    :param installments: número de cuotas (1 = contado)
+    :param payment_method_id: brand/tipo de tarjeta ('visa', 'master', …)
+    :param issuer_id: ID del banco emisor (mejora tasa de aprobación)
+    :param payer_email: email del pagador (fallback: order.user/guest_email)
+    :param payer_identification_type: tipo de doc ('CURP', 'RFC', …)
+    :param payer_identification_number: número de documento
+    :param gateway: BaseGateway opcional (None usa MercadoPagoGateway)
+    :returns: (Payment, PaymentResult) — Payment guardado y resultado de MP
+    :raises ValueError: si la orden no está en PENDING
+    :raises RuntimeError: si el gateway falla (propagado al caller)
+    """
+    if order.status != Order.STATUS_PENDING:
+        raise ValueError(
+            f'La orden {order.order_number} no está en PENDING '
+            f'(estado actual: {order.status}).'
+        )
+
+    if gateway is None:
+        gateway = MercadoPagoGateway()
+
+    result = gateway.create_payment(
+        order=order,
+        token=token,
+        installments=installments,
+        payment_method_id=payment_method_id,
+        issuer_id=issuer_id,
+        payer_email=payer_email,
+        payer_identification_type=payer_identification_type,
+        payer_identification_number=payer_identification_number,
+    )
+
+    if result.status == 'approved':
+        payment_status = Payment.STATUS_APPROVED
+        event_type     = PaymentGatewayEvent.EVENT_PAYMENT_APPROVED
+    elif result.status == 'rejected':
+        payment_status = Payment.STATUS_FAILED
+        event_type     = PaymentGatewayEvent.EVENT_PAYMENT_FAILED
+    else:
+        # pending / in_process — PENDING permite reintento
+        payment_status = Payment.STATUS_PENDING
+        event_type     = PaymentGatewayEvent.EVENT_PREFERENCE_CREATED
+
+    with transaction.atomic():
+        payment = Payment.objects.create(
+            order=order,
+            gateway=Payment.GATEWAY_MERCADOPAGO,
+            gateway_payment_id=result.gateway_payment_id,
+            status=payment_status,
+            amount=result.amount,
+            installments=result.installments,
+        )
+        PaymentGatewayEvent.objects.create(
+            payment=payment,
+            event_type=event_type,
+            raw_body=json.dumps({
+                'source':             'checkout_api',
+                'gateway_payment_id': result.gateway_payment_id,
+                'status':             result.status,
+                'status_detail':      result.status_detail,
+            }),
+        )
+
+        if result.status == 'approved':
+            order.status = Order.STATUS_PAID
+            order.save(update_fields=['status', 'updated_at'])
+
+    logger.info(
+        'Checkout API pago: orden=%s payment_id=%s status=%s detail=%s',
+        order.order_number, result.gateway_payment_id,
+        result.status, result.status_detail,
+    )
+    return payment, result

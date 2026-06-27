@@ -19,8 +19,8 @@ from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress, Shipp
 from apps.orders.proxy_models import DeliveredOrder
 from apps.voucher.models import Voucher, VoucherUsage
 from .models import Payment, Payment as PaymentModel
-from .serializers import InitiatePaymentSerializer, InitiatePaymentResponseSerializer, InstallmentPlansResponseSerializer, PaymentSerializer, AdminPaymentSerializer, PaymentReturnSerializer, CheckoutEligibilitySerializer, ExpressCheckoutSerializer, RefundRequestSerializer, RefundSerializer, AdminRefundSerializer, RetryEligibilitySerializer, PaymentStatusSerializer as PSS, RefundRequestSerializer as RRS
-from .services import initiate_payment, handle_gateway_return, get_installment_plans, get_payment_status, get_payment_history, execute_refund, get_retry_eligibility
+from .serializers import InitiatePaymentSerializer, InitiatePaymentResponseSerializer, InstallmentPlansResponseSerializer, PaymentSerializer, AdminPaymentSerializer, PaymentReturnSerializer, CheckoutEligibilitySerializer, ExpressCheckoutSerializer, RefundRequestSerializer, RefundSerializer, AdminRefundSerializer, RetryEligibilitySerializer, PaymentStatusSerializer as PSS, RefundRequestSerializer as RRS, CheckoutApiPaymentSerializer, CheckoutApiResponseSerializer, MpPublicKeySerializer
+from .services import initiate_payment, handle_gateway_return, get_installment_plans, get_payment_status, get_payment_history, execute_refund, get_retry_eligibility, initiate_checkout_api_payment, get_mp_public_key
 from apps.users.models import Address
 from apps.settings_app.models import ShippingMethod, SiteSettings
 from apps.cart.models import Cart
@@ -1078,3 +1078,137 @@ class AdminPaymentListView(APIView):
             'results': AdminPaymentSerializer(qs, many=True).data,
             'totals':  totals,
         })
+
+
+# =============================================================================
+# API v2 — Checkout API (ADR-018, pago en sitio sin redirección)
+# =============================================================================
+
+class CheckoutApiPaymentView(APIView):
+    """
+    POST /api/v2/payments/initiate/
+    Procesa un pago con MercadoPago Checkout API (pago en sitio).
+    ADR-018: Checkout API sobre Checkout Pro para UX transparente.
+
+    El frontend tokeniza la tarjeta con CardForm (MP.js) y envía el token
+    aquí. El backend llama al SDK de MP, obtiene la respuesta síncrona y
+    retorna approved/rejected/pending sin redirección.
+    BR-009: las credenciales del gateway NUNCA aparecen en la respuesta.
+    DEC-BC-22: select_for_update() previene doble pago concurrente.
+    """
+    permission_classes = [IsAuthenticated]
+    throttle_classes   = [ScopedRateThrottle]
+    throttle_scope     = 'initiate_payment'
+
+    @extend_schema(
+        request=CheckoutApiPaymentSerializer,
+        responses={
+            201: CheckoutApiResponseSerializer,
+            200: CheckoutApiResponseSerializer,
+            400: OpenApiResponse(description='Serializer inválido'),
+            404: OpenApiResponse(description='Orden no encontrada o no es del usuario'),
+            422: OpenApiResponse(description='AMOUNT_MISMATCH o estado de orden inválido'),
+            502: OpenApiResponse(description='Error del gateway MercadoPago'),
+        },
+        summary='Crear pago con Checkout API',
+        description=(
+            'Procesa un pago en sitio usando MercadoPago Checkout API. '
+            'Requiere el token generado por CardForm en el frontend. '
+            'La respuesta es síncrona: no hay redirección.'
+        ),
+    )
+    def post(self, request):
+        serializer = CheckoutApiPaymentSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        data = serializer.validated_data
+
+        with db_transaction.atomic():
+            try:
+                order = (
+                    Order.objects
+                    .select_for_update()
+                    .get(
+                        order_number=data['order_number'],
+                        user=request.user,
+                        status=Order.STATUS_PENDING,
+                    )
+                )
+            except Order.DoesNotExist:
+                return Response(
+                    {'codigo_error': 'ORDER_NOT_FOUND'},
+                    status=404,
+                )
+
+            if 'expected_amount' in data and data['expected_amount'] is not None:
+                order_total = order.value.total
+                if abs(data['expected_amount'] - order_total) > Decimal('0.01'):
+                    return Response(
+                        {
+                            'codigo_error': 'AMOUNT_MISMATCH',
+                            'expected':     str(data['expected_amount']),
+                            'actual':       str(order_total),
+                        },
+                        status=422,
+                    )
+
+            try:
+                payment, result = initiate_checkout_api_payment(
+                    order=order,
+                    token=data['token'],
+                    installments=data.get('installments', 1),
+                    payment_method_id=data.get('payment_method_id', ''),
+                    issuer_id=data.get('issuer_id', ''),
+                    payer_email=data.get('payer_email', ''),
+                    payer_identification_type=data.get('payer_identification_type', ''),
+                    payer_identification_number=data.get('payer_identification_number', ''),
+                )
+            except ValueError as exc:
+                return Response(
+                    {'codigo_error': 'PAYMENT_ERROR', 'detail': str(exc)},
+                    status=422,
+                )
+            except RuntimeError as exc:
+                return Response(
+                    {'codigo_error': 'GATEWAY_ERROR', 'detail': str(exc)},
+                    status=502,
+                )
+
+        response_data = {
+            'payment_id':          payment.pk,
+            'gateway_payment_id':  result.gateway_payment_id,
+            'status':              result.status,
+            'status_detail':       result.status_detail,
+            'order_number':        order.order_number,
+            'amount':              str(result.amount),
+            'installments':        result.installments,
+        }
+        http_status = 201 if result.status == 'approved' else 200
+        return Response(response_data, status=http_status)
+
+
+class MpPublicKeyView(APIView):
+    """
+    GET /api/v2/payments/public-key/
+    Retorna la public_key de MercadoPago para inicializar MP.js en el frontend.
+    BR-009: la public_key SÍ puede ir al frontend; el access_token NUNCA.
+    """
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        responses={
+            200: MpPublicKeySerializer,
+            503: OpenApiResponse(description='Gateway no configurado'),
+        },
+        summary='Obtener public key de MercadoPago',
+    )
+    def get(self, request):
+        try:
+            public_key = get_mp_public_key()
+        except ValueError as exc:
+            return Response(
+                {'codigo_error': 'GATEWAY_NOT_CONFIGURED', 'detail': str(exc)},
+                status=503,
+            )
+        return Response({'public_key': public_key})

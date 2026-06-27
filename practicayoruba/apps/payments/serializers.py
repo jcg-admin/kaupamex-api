@@ -177,3 +177,74 @@ class RetryEligibilitySerializer(serializers.Serializer):
         child=serializers.CharField(), allow_null=True)
     reason               = serializers.CharField(allow_null=True)
     codigo_error         = serializers.CharField(allow_null=True)
+
+
+# =============================================================================
+# Checkout API v2 — ADR-018 (pago en sitio sin redirección)
+# =============================================================================
+
+class CheckoutApiPaymentSerializer(serializers.Serializer):
+    """POST /api/v2/payments/initiate/ — Checkout API (ADR-018).
+
+    El token viene del CardForm de MercadoPago.js y caduca en 7 minutos.
+    BR-009: el token es de un solo uso y solo se envía al backend.
+    """
+    order_number    = serializers.CharField(max_length=20)
+    token           = serializers.CharField(
+        max_length=255,
+        help_text='Token de tarjeta generado por CardForm (caduca en 7 min).',
+    )
+    installments    = serializers.IntegerField(
+        default=1, min_value=1,
+        help_text='Número de cuotas. 1 = contado.',
+    )
+    payment_method_id = serializers.CharField(
+        max_length=50,
+        help_text='Brand/tipo de tarjeta ("visa", "master", …). '
+                  'Retornado por CardForm.getCardFormData().',
+    )
+    issuer_id       = serializers.CharField(
+        max_length=50, required=False, allow_blank=True,
+        help_text='ID del banco emisor. Opcional pero mejora la tasa de aprobación.',
+    )
+    payer_email     = serializers.EmailField(
+        required=False, allow_blank=True,
+        help_text='Email del pagador. Fallback: email del usuario autenticado.',
+    )
+    payer_identification_type = serializers.CharField(
+        max_length=20, required=False, allow_blank=True,
+        help_text='Tipo de documento ("CURP", "RFC", …).',
+    )
+    payer_identification_number = serializers.CharField(
+        max_length=50, required=False, allow_blank=True,
+        help_text='Número de documento del pagador.',
+    )
+    expected_amount = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False,
+        help_text='Monto visto por el cliente. Si difiere del total → 422 AMOUNT_MISMATCH.',
+    )
+
+
+class CheckoutApiResponseSerializer(serializers.Serializer):
+    """Respuesta de POST /api/v2/payments/initiate/ — Checkout API."""
+    payment_id          = serializers.IntegerField(allow_null=True)
+    gateway_payment_id  = serializers.CharField(
+        help_text='ID del pago en MercadoPago.',
+    )
+    status              = serializers.CharField(
+        help_text='Estado MP: approved | rejected | pending | in_process.',
+    )
+    status_detail       = serializers.CharField(
+        help_text='Detalle: accredited, cc_rejected_insufficient_amount, etc.',
+    )
+    order_number        = serializers.CharField()
+    amount              = serializers.DecimalField(max_digits=10, decimal_places=2)
+    installments        = serializers.IntegerField()
+
+
+class MpPublicKeySerializer(serializers.Serializer):
+    """Respuesta de GET /api/v2/payments/public-key/."""
+    public_key = serializers.CharField(
+        help_text='Public key de MercadoPago para inicializar MP.js en el frontend. '
+                  'BR-009: esta clave SÍ puede ir al frontend; el access_token NUNCA.',
+    )
