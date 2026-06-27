@@ -46,4 +46,11 @@ urlpatterns = [
          ProductImportStatusView.as_view(), name='product-import-status'),
     path('inventory/import-reports/<str:report_id>.csv',
          ProductImportReportView.as_view(), name='product-import-report'),
+    # REST-style aliases matching UI expectations (no /adjust/ suffix)
+    path('inventory/variants/<int:variant_pk>/',
+         VariantStockAdjustView.as_view(), name='variant-adjust-alias'),
+    path('inventory/imports/',
+         ProductImportView.as_view(), name='product-import-plural'),
+    path('inventory/<int:product_pk>/',
+         StockAdjustView.as_view(), name='product-adjust-alias'),
 ]

@@ -9,11 +9,17 @@ from .views import (
     NewsletterSubscribeView,
     NewsletterConfirmView,
     NewsletterUnsubscribeView,
+    NewsletterSubscriptionView,
 )
 
 app_name = 'newsletter_v2'
 
 urlpatterns = [
+    # REST-style alias: POST (subscribe) + DELETE (unsubscribe) at /subscriptions/
+    path('subscriptions/',
+         NewsletterSubscriptionView.as_view(),
+         name='subscriptions'),
+    # Legacy-style paths (same views, preserved for backwards compat)
     path('subscribe/',
          NewsletterSubscribeView.as_view(),
          name='subscribe'),

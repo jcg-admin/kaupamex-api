@@ -96,7 +96,7 @@ class AdminContactMessageListView(_AdminOnly, APIView):
 
 
 class AdminContactMessageDetailView(_AdminOnly, APIView):
-    """GET /api/v1/admin/contact/<id>/ — UC-COM-03 detail."""
+    """GET + PATCH /api/v1/admin/contact/<id>/ — UC-COM-03 detail / mark-read."""
 
     @extend_schema(
         summary='Detalle de mensaje de contacto (UC-COM-03)',
@@ -105,6 +105,20 @@ class AdminContactMessageDetailView(_AdminOnly, APIView):
     )
     def get(self, request, message_id):
         msg = _get_message(message_id)
+        return Response(ContactMessageAdminSerializer(msg).data)
+
+    @extend_schema(
+        summary='Marcar mensaje como leído via PATCH (UC-COM-02)',
+        tags=['contact'],
+        request=None,
+        responses={200: ContactMessageAdminSerializer,
+                   404: error_response('Mensaje no encontrado')},
+    )
+    def patch(self, request, message_id):
+        msg = _get_message(message_id)
+        if request.data.get('is_read') is True:
+            msg.read = True
+            msg.save(update_fields=['read', 'updated_at'])
         return Response(ContactMessageAdminSerializer(msg).data)
 
 

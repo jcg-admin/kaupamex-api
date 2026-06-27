@@ -17,10 +17,10 @@ from .views import (
 app_name = 'orders_v2'
 
 urlpatterns = [
-    path('checkout/',                       CheckoutView.as_view(),             name='checkout'),
-    path('',                                OrderListView.as_view(),             name='order-list'),
-    path('<str:order_number>/cancel/',      OrderCancelView.as_view(),           name='order-cancel'),
-    path('<str:order_number>/address/',     OrderAddressUpdateView.as_view(),    name='order-address'),
-    path('<str:order_number>/shipping/',    OrderShippingUpdateView.as_view(),   name='order-shipping'),
-    path('<str:order_number>/',             OrderDetailView.as_view(),           name='order-detail'),
+    path('checkout/',                             CheckoutView.as_view(),             name='checkout'),
+    path('',                                      OrderListView.as_view(),             name='order-list'),
+    path('<str:order_number>/cancellations/',      OrderCancelView.as_view(),           name='order-cancel'),
+    path('<str:order_number>/shipping-address/',   OrderAddressUpdateView.as_view(),    name='order-address'),
+    path('<str:order_number>/shipping-method/',    OrderShippingUpdateView.as_view(),   name='order-shipping'),
+    path('<str:order_number>/',                    OrderDetailView.as_view(),           name='order-detail'),
 ]

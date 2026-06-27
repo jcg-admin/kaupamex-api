@@ -246,6 +246,90 @@ class AdminSubscriberForceUnsubscribeView(_AdminOnly, APIView):
 _CAMPAIGN_DEDUP_WINDOW = timedelta(minutes=10)
 
 
+class NewsletterSubscriptionView(APIView):
+    """
+    POST   /api/v2/newsletter/subscriptions/ — UC-NEW-01 subscribe
+    DELETE /api/v2/newsletter/subscriptions/ — UC-NEW-02 unsubscribe via token
+
+    REST-style alias combining subscribe (POST) and unsubscribe (DELETE)
+    at the same resource URL. Mirrors the logic of NewsletterSubscribeView
+    and NewsletterUnsubscribeView respectively.
+    """
+    permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'newsletter_subscribe'
+
+    def post(self, request):
+        ser = SubscribeSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        email = ser.validated_data['email']
+        try:
+            sub = NewsletterSubscriber.objects.get(email=email)
+            if sub.status == SubscriberStatus.UNSUBSCRIBED:
+                confirm_token = signing.dumps(email, salt='newsletter-confirm')
+                sub.status = SubscriberStatus.PENDING
+                sub.confirmation_token = confirm_token
+                sub.unsubscribed_at = None
+                sub.save(update_fields=['status', 'confirmation_token', 'unsubscribed_at', 'updated_at'])
+                _send_confirmation_email(email, confirm_token)
+                return Response(SubscriberListItemSerializer(sub).data, status=status.HTTP_200_OK)
+            return Response(SubscriberListItemSerializer(sub).data, status=status.HTTP_200_OK)
+        except NewsletterSubscriber.DoesNotExist:
+            confirm_token = signing.dumps(email, salt='newsletter-confirm')
+            sub = NewsletterSubscriber.objects.create(
+                email=email, status=SubscriberStatus.PENDING, confirmation_token=confirm_token,
+            )
+            _send_confirmation_email(email, confirm_token)
+            return Response(SubscriberListItemSerializer(sub).data, status=status.HTTP_201_CREATED)
+
+    def delete(self, request):
+        ser = UnsubscribeSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        token = ser.validated_data['token']
+        try:
+            signing.loads(token, salt='newsletter-unsub', max_age=30 * 86400)
+        except signing.SignatureExpired:
+            return Response(
+                {'detail': 'Token expirado.', 'codigo_error': 'TOKEN_EXPIRED'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except signing.BadSignature:
+            raise NotFound({'detail': 'Token inválido.', 'codigo_error': 'INVALID_TOKEN'})
+        sub = NewsletterSubscriber.objects.filter(unsubscribe_token=token).first()
+        if not sub:
+            raise NotFound({'detail': 'Token no encontrado.', 'codigo_error': 'INVALID_TOKEN'})
+        sub.status = SubscriberStatus.UNSUBSCRIBED
+        sub.unsubscribed_at = timezone.now()
+        sub.save(update_fields=['status', 'unsubscribed_at', 'updated_at'])
+        return Response(SubscriberListItemSerializer(sub).data)
+
+
+class AdminSubscriberSubscriptionDeleteView(_AdminOnly, APIView):
+    """DELETE /api/v2/admin/newsletter/subscribers/<id>/subscription/ — UC-NEW-03.
+
+    REST-style alias for AdminSubscriberForceUnsubscribeView at /unsubscribe/.
+    The UI (F5 Tier B) uses DELETE to /subscription/ instead of POST /unsubscribe/.
+    """
+
+    @extend_schema(
+        summary='Dar de baja suscriptor via DELETE (admin) (UC-NEW-03)',
+        tags=['newsletter'],
+        request=None,
+        responses={200: SubscriberListItemSerializer,
+                   404: error_response('Suscriptor no encontrado')},
+    )
+    def delete(self, request, subscriber_id):
+        try:
+            sub = NewsletterSubscriber.objects.get(pk=subscriber_id)
+        except NewsletterSubscriber.DoesNotExist:
+            raise NotFound({'detail': 'Suscriptor no encontrado.',
+                            'codigo_error': 'SUBSCRIBER_NOT_FOUND'})
+        sub.status = SubscriberStatus.UNSUBSCRIBED
+        sub.unsubscribed_at = timezone.now()
+        sub.save(update_fields=['status', 'unsubscribed_at', 'updated_at'])
+        return Response(SubscriberListItemSerializer(sub).data)
+
+
 class AdminCampaignCreateView(_AdminOnly, APIView):
     """POST /api/v1/admin/newsletter/campaigns/ — UC-NEW-04.
 
