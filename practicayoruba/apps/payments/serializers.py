@@ -1,7 +1,7 @@
 """Serializers — apps.payments (Sprint 15). Compatible con drf-spectacular."""
 from decimal import Decimal
 from rest_framework import serializers
-from .models import Payment, Refund, PaymentGatewayEvent, SavedCard
+from .models import Payment, Refund, Chargeback, PaymentGatewayEvent, SavedCard
 from .gateways.mercadopago import NON_CARD_METHOD_IDS
 
 
@@ -165,6 +165,18 @@ class AdminRefundSerializer(RefundSerializer):
 
     class Meta(RefundSerializer.Meta):
         fields = RefundSerializer.Meta.fields + ['gateway_refund_id']
+        read_only_fields = fields
+
+
+class ChargebackSerializer(serializers.ModelSerializer):
+    """Admin chargeback representation. T-17-B, T-17-C."""
+
+    class Meta:
+        model  = Chargeback
+        fields = [
+            'id', 'gateway_chargeback_id', 'gateway_payment_id',
+            'amount', 'status', 'reason_code', 'description', 'created_at',
+        ]
         read_only_fields = fields
 
 

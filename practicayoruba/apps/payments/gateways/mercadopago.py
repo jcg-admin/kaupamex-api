@@ -474,3 +474,17 @@ class MercadoPagoGateway(BaseGateway):
             status='approved',
             amount=Dec(str(data.get('amount', amount or 0))),
         )
+
+    def get_chargeback(self, chargeback_id: str) -> dict:
+        """
+        Obtiene el detalle de un contracargo por su ID. T-17.
+        Retorna el dict completo de respuesta del SDK (response + status).
+        """
+        sdk = _get_sdk()
+        response = sdk.chargeback().get(chargeback_id)
+        if response.get('status') not in (200, 201):
+            body = response.get('response', {})
+            msg  = body.get('message', str(response))
+            logger.error('MercadoPago chargeback get error: %s', msg)
+            raise RuntimeError(f'Error al obtener contracargo: {msg}')
+        return response

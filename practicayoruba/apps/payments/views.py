@@ -18,8 +18,8 @@ from django.db.models import F, Q, Sum
 from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress, ShippingZone
 from apps.orders.proxy_models import DeliveredOrder
 from apps.voucher.models import Voucher, VoucherUsage
-from .models import Payment, Payment as PaymentModel, Refund, SavedCard
-from .serializers import InitiatePaymentSerializer, InitiatePaymentResponseSerializer, InstallmentPlansResponseSerializer, PaymentSerializer, AdminPaymentSerializer, PaymentReturnSerializer, CheckoutEligibilitySerializer, ExpressCheckoutSerializer, RefundRequestSerializer, RefundSerializer, AdminRefundSerializer, RetryEligibilitySerializer, PaymentStatusSerializer as PSS, RefundRequestSerializer as RRS, CheckoutApiPaymentSerializer, CheckoutApiResponseSerializer, MpPublicKeySerializer, MpSaveCardSerializer, MpCardSerializer, MpUpdateCardSerializer
+from .models import Payment, Payment as PaymentModel, Refund, Chargeback, SavedCard
+from .serializers import InitiatePaymentSerializer, InitiatePaymentResponseSerializer, InstallmentPlansResponseSerializer, PaymentSerializer, AdminPaymentSerializer, PaymentReturnSerializer, CheckoutEligibilitySerializer, ExpressCheckoutSerializer, RefundRequestSerializer, RefundSerializer, AdminRefundSerializer, ChargebackSerializer, RetryEligibilitySerializer, PaymentStatusSerializer as PSS, RefundRequestSerializer as RRS, CheckoutApiPaymentSerializer, CheckoutApiResponseSerializer, MpPublicKeySerializer, MpSaveCardSerializer, MpCardSerializer, MpUpdateCardSerializer
 from .services import initiate_payment, handle_gateway_return, get_installment_plans, get_payment_status, get_payment_history, execute_refund, get_retry_eligibility, initiate_checkout_api_payment, get_mp_public_key, get_or_create_mp_customer
 from apps.notifications.emails import send_card_verification_email
 from .gateways.mercadopago import MercadoPagoGateway
@@ -927,6 +927,46 @@ class AdminPaymentRefundsListView(APIView):
         payment = get_object_or_404(PaymentModel, pk=payment_id)
         refunds = Refund.objects.filter(payment=payment).order_by('-created_at')
         return Response(AdminRefundSerializer(refunds, many=True).data)
+
+
+class AdminChargebackListView(APIView):
+    """
+    GET /api/v1/admin/chargebacks/
+    Lista todos los contracargos. Filtrable por ?status=. T-17-B.
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    @extend_schema(
+        summary='Listado de contracargos (admin)',
+        responses={200: ChargebackSerializer(many=True)},
+        tags=['payments-admin'],
+    )
+    def get(self, request):
+        qs = Chargeback.objects.all().order_by('-created_at')
+        status_filter = request.query_params.get('status')
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+        return Response(ChargebackSerializer(qs, many=True).data)
+
+
+class AdminChargebackDetailView(APIView):
+    """
+    GET /api/v1/admin/chargebacks/<id>/
+    Detalle de un contracargo individual. T-17-C.
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    @extend_schema(
+        summary='Detalle de contracargo (admin)',
+        responses={
+            200: ChargebackSerializer,
+            404: OpenApiResponse(description='Contracargo no encontrado.'),
+        },
+        tags=['payments-admin'],
+    )
+    def get(self, request, chargeback_id):
+        cb = get_object_or_404(Chargeback, pk=chargeback_id)
+        return Response(ChargebackSerializer(cb).data)
 
 
 # =============================================================================
