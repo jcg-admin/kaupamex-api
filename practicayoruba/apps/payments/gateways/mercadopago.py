@@ -412,6 +412,40 @@ class MercadoPagoGateway(BaseGateway):
             raise RuntimeError(f'Error al eliminar tarjeta de MercadoPago: {msg}')
         return response['response']
 
+    def get_payment_methods(self) -> list:
+        """
+        Lista los métodos de pago disponibles en MP.
+        GET /v1/payment_methods
+        Filtra a los tipos relevantes: credit_card, debit_card, ticket,
+        bank_transfer, account_money.
+        BR-009: no expone access_token — solo datos públicos del método.
+        """
+        sdk = _get_sdk()
+        resp = sdk.payment_methods().list_all()
+
+        if resp.get('status') != 200:
+            logger.warning('MP get_payment_methods error: %s', resp)
+            return []
+
+        RELEVANT_TYPES = frozenset({
+            'credit_card', 'debit_card', 'ticket', 'bank_transfer', 'account_money',
+        })
+
+        methods = []
+        for m in resp.get('response', []):
+            if m.get('payment_type_id') in RELEVANT_TYPES and m.get('status') == 'active':
+                methods.append({
+                    'id':                 m.get('id', ''),
+                    'name':               m.get('name', ''),
+                    'payment_type_id':    m.get('payment_type_id', ''),
+                    'thumbnail':          m.get('thumbnail', ''),
+                    'secure_thumbnail':   m.get('secure_thumbnail', ''),
+                    'min_allowed_amount': m.get('min_allowed_amount', 0),
+                    'max_allowed_amount': m.get('max_allowed_amount', 0),
+                    'accreditation_time': m.get('accreditation_time', 0),
+                })
+        return methods
+
     def refund(self, gateway_payment_id: str, amount) -> 'RefundResult':
         """
         Ejecuta un reembolso en MercadoPago. UC-PAY-07 (FR-PAY-07.02).

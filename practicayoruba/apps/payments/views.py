@@ -1435,6 +1435,27 @@ class MpCustomerCardDetailView(APIView):
         return Response(status=204)
 
 
+class MpPaymentMethodsView(APIView):
+    """
+    GET /api/v2/payments/methods/
+    Retorna la lista de métodos de pago disponibles de MercadoPago.
+    Incluye tarjetas, OXXO, SPEI, Paycash, cajeros, Cuenta MP.
+    BR-009: solo devuelve datos públicos (id, nombre, tipo, thumbnail).
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            gateway = MercadoPagoGateway()
+            methods = gateway.get_payment_methods()
+        except ValueError as exc:
+            return Response(
+                {'codigo_error': 'GATEWAY_NOT_CONFIGURED', 'detail': str(exc)},
+                status=503,
+            )
+        return Response(methods)
+
+
 class MpCardVerifyView(APIView):
     """
     GET /api/v2/payments/cards/verify/{token}/

@@ -275,7 +275,10 @@ class MercadoPagoWebhookView(APIView):
                     event_type=PaymentGatewayEvent.EVENT_PAYMENT_APPROVED,
                     raw_body=json.dumps({'gateway_payment_id': payment_id}),
                 )
-        elif gw_result.status == 'rejected':
+        elif gw_result.status in ('rejected', 'cancelled'):
+            # 'cancelled' ocurre cuando el voucher de un método no-tarjeta
+            # (OXXO, Paycash, cajero, SPEI) vence sin haber sido pagado.
+            # Tratamos como FAILED para que la orden quede disponible para retry.
             if payment:
                 with transaction.atomic():
                     payment.status = Payment.STATUS_FAILED
@@ -283,7 +286,10 @@ class MercadoPagoWebhookView(APIView):
                     PaymentGatewayEvent.objects.create(
                         payment=payment,
                         event_type=PaymentGatewayEvent.EVENT_PAYMENT_FAILED,
-                        raw_body=json.dumps({'gateway_payment_id': payment_id}),
+                        raw_body=json.dumps({
+                            'gateway_payment_id': payment_id,
+                            'mp_status': gw_result.status,
+                        }),
                     )
 
         return Response({'status': 'processed'}, status=200)

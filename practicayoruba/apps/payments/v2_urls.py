@@ -13,6 +13,7 @@ from .views import (
     MpCustomerCardsView,
     MpCustomerCardDetailView,
     MpCardVerifyView,
+    MpPaymentMethodsView,
 )
 
 app_name = 'payments_v2'
@@ -21,6 +22,7 @@ urlpatterns = [
     path('initiate/',                       CheckoutApiPaymentView.as_view(),    name='checkout-api-initiate'),
     path('public-key/',                     MpPublicKeyView.as_view(),           name='mp-public-key'),
     path('customer/',                       MpCustomerView.as_view(),            name='mp-customer'),
+    path('methods/',                        MpPaymentMethodsView.as_view(),      name='mp-payment-methods'),
     path('cards/',                          MpCustomerCardsView.as_view(),       name='mp-cards'),
     path('cards/<str:card_id>/',            MpCustomerCardDetailView.as_view(),  name='mp-card-detail'),
     path('cards/verify/<str:token>/',       MpCardVerifyView.as_view(),          name='mp-card-verify'),
