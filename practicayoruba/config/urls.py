@@ -95,6 +95,43 @@ urlpatterns = [
     path('api/v2/payments/', include('apps.payments.v2_urls',
                                      namespace='payments_v2')),
 
+    # --- API v2 — Catalogue (M-02) ---
+    path('api/v2/catalogue/', include('apps.catalogue.v2_urls',
+                                      namespace='catalogue_v2')),
+    path('api/v2/admin/',     include('apps.catalogue.v2_admin_urls',
+                                      namespace='admin_catalogue_v2')),
+
+    # --- API v2 — Orders (M-03) ---
+    path('api/v2/orders/',    include('apps.orders.v2_urls',
+                                      namespace='orders_v2')),
+    path('api/v2/admin/',     include('apps.orders.v2_admin_urls',
+                                      namespace='admin_orders_v2')),
+
+    # --- API v2 — Inventory (M-04) ---
+    path('api/v2/admin/',     include('apps.inventory.v2_admin_urls',
+                                      namespace='admin_inventory_v2')),
+
+    # --- API v2 — Support, Returns, Newsletter, Contact, Logistics (M-05) ---
+    path('api/v2/support/',    include('apps.support.v2_urls',
+                                       namespace='support_v2')),
+    path('api/v2/admin/',      include('apps.support.v2_admin_urls',
+                                       namespace='admin_support_v2')),
+    path('api/v2/returns/',    include('apps.returns.v2_urls',
+                                       namespace='returns_v2')),
+    path('api/v2/admin/',      include('apps.returns.v2_admin_urls',
+                                       namespace='admin_returns_v2')),
+    path('api/v2/newsletter/', include('apps.newsletter.v2_urls',
+                                       namespace='newsletter_v2')),
+    path('api/v2/admin/',      include('apps.newsletter.v2_admin_urls',
+                                       namespace='admin_newsletter_v2')),
+    path('api/v2/contact/',    include('apps.contact.v2_urls',
+                                       namespace='contact_v2')),
+    path('api/v2/admin/',      include('apps.contact.v2_admin_urls',
+                                       namespace='admin_contact_v2')),
+    # DEC-V2-02: logistics webhook stays on v1; only non-webhook routes move
+    path('api/v2/logistics/',  include('apps.logistics.v2_urls',
+                                       namespace='logistics_v2')),
+
     # ─── Orders bajo /api/v1/orders/ (DEC-ORD-01: alineado con UI productiva
     #     y convencion REST estandar; antes era catch-all en /api/v1/).
     path('api/v1/orders/',   include('apps.orders.urls',       namespace='orders')),
