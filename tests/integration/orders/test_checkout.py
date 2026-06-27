@@ -15,7 +15,7 @@ from apps.voucher.models import Voucher
 from django.utils import timezone
 pytestmark = pytest.mark.integration
 
-CHECKOUT_URL = '/api/v1/orders/checkout/'
+CHECKOUT_URL = '/api/v2/orders/checkout/'
 ITEMS_URL    = '/api/v1/cart/items/'
 
 ADDR = {

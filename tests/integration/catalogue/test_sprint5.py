@@ -11,8 +11,8 @@ from apps.catalogue.models import Category, Product
 
 pytestmark = pytest.mark.integration
 
-CATALOGUE_URL = '/api/v1/catalogue/'
-SEARCH_URL    = '/api/v1/catalogue/search/'
+CATALOGUE_URL = '/api/v2/catalogue/'
+SEARCH_URL    = '/api/v2/catalogue/search/'
 
 
 # =============================================================================

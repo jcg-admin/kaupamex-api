@@ -1,13 +1,13 @@
 """
 Tests — Support tickets (UC-SUPP-01..05)
 
-UC-SUPP-01  POST   /api/v1/support/tickets/                     create ticket
-UC-SUPP-02  GET    /api/v1/support/tickets/                     list user tickets
-UC-SUPP-02  GET    /api/v1/support/tickets/{id}/                ticket detail
-UC-SUPP-03  POST   /api/v1/support/tickets/{id}/replies/        add reply
-UC-SUPP-04  POST   /api/v1/support/tickets/{id}/close/          close ticket
-UC-SUPP-04  POST   /api/v1/support/tickets/{id}/reopen/         reopen ticket
-UC-SUPP-05  GET    /api/v1/admin/support/tickets/               admin queue
+UC-SUPP-01  POST   /api/v2/support/tickets/                     create ticket
+UC-SUPP-02  GET    /api/v2/support/tickets/                     list user tickets
+UC-SUPP-02  GET    /api/v2/support/tickets/{id}/                ticket detail
+UC-SUPP-03  POST   /api/v2/support/tickets/{id}/replies/        add reply
+UC-SUPP-04  POST   /api/v2/support/tickets/{id}/close/          close ticket
+UC-SUPP-04  POST   /api/v2/support/tickets/{id}/reopen/         reopen ticket
+UC-SUPP-05  GET    /api/v2/admin/support/tickets/               admin queue
 
 Identifiers in English (DEC-DOC-005).
 """
@@ -29,8 +29,8 @@ from apps.notifications.models import Notification, NotificationType
 
 pytestmark = pytest.mark.integration
 
-TICKETS_URL = '/api/v1/support/tickets/'
-ADMIN_TICKETS_URL = '/api/v1/admin/support/tickets/'
+TICKETS_URL = '/api/v2/support/tickets/'
+ADMIN_TICKETS_URL = '/api/v2/admin/support/tickets/'
 
 
 # ────────────────────────────── UC-SUPP-01 ────────────────────────────────

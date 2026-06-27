@@ -17,7 +17,7 @@ import pytest
 
 pytestmark = pytest.mark.integration
 
-URL = '/api/v1/admin/product-discounts/'
+URL = '/api/v2/admin/product-discounts/'
 
 
 def _now():

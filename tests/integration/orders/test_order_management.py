@@ -15,11 +15,11 @@ from apps.chartsize.models import VariantType, VariantOption, ProductVariant
 
 pytestmark = pytest.mark.integration
 
-ORDERS_URL  = '/api/v1/orders/'
-DETAIL_URL  = lambda o: f'/api/v1/orders/{o}/'
-CANCEL_URL  = lambda o: f'/api/v1/orders/{o}/cancel/'
-ADDRESS_URL = lambda o: f'/api/v1/orders/{o}/address/'
-SHIPPING_URL= lambda o: f'/api/v1/orders/{o}/shipping/'
+ORDERS_URL  = '/api/v2/orders/'
+DETAIL_URL  = lambda o: f'/api/v2/orders/{o}/'
+CANCEL_URL  = lambda o: f'/api/v2/orders/{o}/cancellations/'
+ADDRESS_URL = lambda o: f'/api/v2/orders/{o}/shipping-address/'
+SHIPPING_URL= lambda o: f'/api/v2/orders/{o}/shipping-method/'
 
 
 # ---------------------------------------------------------------------------
@@ -456,5 +456,5 @@ class TestProteccionVariantesOrdenes:
             city='CDMX', state='CMX', zip_code='06600',
         )
 
-        res = admin_client.delete(f'/api/v1/admin/products/{prod_ord.pk}/variants/{variant.pk}/')
+        res = admin_client.delete(f'/api/v2/admin/products/{prod_ord.pk}/variants/{variant.pk}/')
         assert res.status_code == 400

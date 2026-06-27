@@ -14,11 +14,11 @@ from apps.settings_app.models import SiteSettings
 
 pytestmark = pytest.mark.integration
 
-ADMIN_LIST_URL       = '/api/v1/admin/orders/'
-ADMIN_DETAIL_URL     = lambda o: f'/api/v1/admin/orders/{o}/'
-ADMIN_STATUS_URL     = lambda o: f'/api/v1/admin/orders/{o}/status/'
-ADMIN_CANCEL_URL     = lambda o: f'/api/v1/admin/orders/{o}/cancel/'
-ADMIN_DASHBOARD_URL  = '/api/v1/admin/dashboard/'
+ADMIN_LIST_URL       = '/api/v2/admin/orders/'
+ADMIN_DETAIL_URL     = lambda o: f'/api/v2/admin/orders/{o}/'
+ADMIN_STATUS_URL     = lambda o: f'/api/v2/admin/orders/{o}/status/'
+ADMIN_CANCEL_URL     = lambda o: f'/api/v2/admin/orders/{o}/cancel/'
+ADMIN_DASHBOARD_URL  = '/api/v2/admin/dashboard/'
 
 
 @pytest.fixture

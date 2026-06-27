@@ -31,110 +31,92 @@ urlpatterns = [
         name='redoc',
     ),
 
-    # --- API v1 ---
+    # --- API v1 — auth + config (DEC-V2-05: auth stays on v1 forever) ---
     path('api/v1/auth/',      include('apps.users.urls')),
-    path('api/v1/config/',    include('apps.settings_app.urls', namespace='settings_app')),
-    path('api/v1/admin/',     include('apps.users.admin_urls', namespace='admin_users')),
-    path('api/v1/admin/',     include('apps.catalogue.admin_urls', namespace='admin_catalogue')),
-    path('api/v1/admin/',     include('apps.settings_app.admin_urls', namespace='admin_settings')),
-    path('api/v1/admin/',     include('apps.inventory.urls',         namespace='admin_inventory')),
-    # ─── URLs específicas PRIMERO (antes del catch-all /api/v1/) ────────────────
+    path('api/v1/config/',    include('apps.settings_app.urls',        namespace='settings_app')),
+    path('api/v1/admin/',     include('apps.users.admin_urls',         namespace='admin_users')),
+    path('api/v1/admin/',     include('apps.settings_app.admin_urls',  namespace='admin_settings')),
+
+    # --- API v1 — cart, voucher, referral, wishlist, payments ---
     path('api/v1/cart/',      include('apps.cart.urls',        namespace='cart')),
     path('api/v1/admin/',     include('apps.voucher.urls',     namespace='admin_voucher')),
     path('api/v1/account/',   include('apps.referral.urls',    namespace='referral')),
     path('api/v1/wishlist/',  include('apps.wishlist.urls',    namespace='wishlist')),
     path('api/v1/payments/', include('apps.payments.urls',     namespace='payments')),
     path('api/v1/checkout/', include('apps.payments.checkout_urls')),
-    # P-17 browse overrides must precede apps.catalogue.urls so /api/v1/catalogue/search/
-    # resolves to the new wrapper (normalized_query, persists to apps.search_history).
-    path('api/v1/',           include('apps.catalogue.browse_public_urls',
-                                      namespace='catalogue_browse_public')),
-    path('api/v1/catalogue/', include('apps.catalogue.urls',   namespace='catalogue')),
+
+    # --- API v1 — catalogue (chartsize + browse_product only; main catalogue moved to v2) ---
     path('api/v1/catalogue/', include('apps.chartsize.urls',   namespace='chartsize')),
     path('api/v1/admin/',     include('apps.chartsize.admin_urls', namespace='admin_chartsize')),
-    path('api/v1/admin/',    include('apps.orders.admin_urls')),
-    path('api/v1/support/',   include('apps.support.urls',          namespace='support')),
-    path('api/v1/admin/',     include('apps.support.admin_urls',    namespace='admin_support')),
-    path('api/v1/returns/',   include('apps.returns.urls',          namespace='returns')),
-    path('api/v1/admin/',     include('apps.returns.admin_urls',    namespace='admin_returns')),
-    path('api/v1/notifications/', include('apps.notifications.urls', namespace='notifications')),
-    path('api/v1/admin/',     include('apps.notifications.admin_urls', namespace='admin_notifications')),
-    path('api/v1/contact/',   include('apps.contact.urls',          namespace='contact')),
-    path('api/v1/admin/',     include('apps.contact.admin_urls',    namespace='admin_contact')),
-    path('api/v1/newsletter/', include('apps.newsletter.urls',      namespace='newsletter')),
-    path('api/v1/admin/',     include('apps.newsletter.admin_urls', namespace='admin_newsletter')),
-    path('api/v1/products/',  include('apps.questions.urls',        namespace='questions')),
-    path('api/v1/admin/',     include('apps.questions.admin_urls',  namespace='admin_questions')),
-    path('api/v1/admin/',     include('apps.reports.admin_urls',    namespace='admin_reports')),
-
-    # ─── P-13 logistics + UC-CFG-04 static content ─────────────────────────────
-    path('api/v1/logistics/', include('apps.logistics.urls',        namespace='logistics')),
-    path('api/v1/admin/',     include('apps.static_content.admin_urls',
-                                      namespace='admin_static_content')),
-
-    # ─── P-14 reviews ──────────────────────────────────────────────────────────
-    path('api/v1/products/',  include('apps.reviews.urls',          namespace='reviews')),
-    path('api/v1/admin/',     include('apps.reviews.admin_urls',    namespace='admin_reviews')),
-
-    # ─── P-17 catalogue browse + search history ────────────────────────────────
-    path('api/v1/search/',    include('apps.search_history.urls',   namespace='search_history')),
     path('api/v1/products/',  include('apps.catalogue.browse_product_urls',
                                       namespace='catalogue_browse_product')),
-    path('api/v1/admin/',     include('apps.catalogue.browse_admin_urls',
-                                      namespace='catalogue_browse_admin')),
-    path('api/v1/admin/',     include('apps.backups.admin_urls',
-                                      namespace='admin_backups')),
-    # H-CICLO80-01: AdminPaymentListView registrada — faltaba el endpoint
-    # UC-PAY-11 /api/v1/admin/payments/ que el UI consulta via useAdminPayments.
-    path('api/v1/admin/',     include('apps.payments.admin_urls',
-                                      namespace='admin_payments')),
 
-    # --- API v2 — Checkout API (ADR-018) ---
-    # Solo endpoints nuevos de pago en sitio. Los webhooks siguen en v1
-    # por DEC-V2-02: /api/v1/payments/webhooks/* permanecen en v1 SIEMPRE.
+    # --- API v1 — notifications, questions, reports, static content, reviews, search, backups ---
+    path('api/v1/notifications/', include('apps.notifications.urls',    namespace='notifications')),
+    path('api/v1/admin/',     include('apps.notifications.admin_urls',  namespace='admin_notifications')),
+    path('api/v1/products/',  include('apps.questions.urls',            namespace='questions')),
+    path('api/v1/admin/',     include('apps.questions.admin_urls',      namespace='admin_questions')),
+    path('api/v1/admin/',     include('apps.reports.admin_urls',        namespace='admin_reports')),
+    path('api/v1/admin/',     include('apps.static_content.admin_urls', namespace='admin_static_content')),
+    path('api/v1/products/',  include('apps.reviews.urls',              namespace='reviews')),
+    path('api/v1/admin/',     include('apps.reviews.admin_urls',        namespace='admin_reviews')),
+    path('api/v1/search/',    include('apps.search_history.urls',       namespace='search_history')),
+    path('api/v1/admin/',     include('apps.backups.admin_urls',        namespace='admin_backups')),
+    path('api/v1/admin/',     include('apps.payments.admin_urls',       namespace='admin_payments')),
+
+    # --- API v1 — logistics webhook (DEC-V2-02: stays on v1 FOREVER) ---
+    path('api/v1/logistics/', include('apps.logistics.webhook_urls')),
+
+    # --- API v2 — Payments (ADR-018 Checkout API; webhooks stay on v1 per DEC-V2-02) ---
     path('api/v2/payments/', include('apps.payments.v2_urls',
                                      namespace='payments_v2')),
 
     # --- API v2 — Catalogue (M-02) ---
-    path('api/v2/catalogue/', include('apps.catalogue.v2_urls',
+    path('api/v2/catalogue/', include('apps.catalogue.urls',
                                       namespace='catalogue_v2')),
-    path('api/v2/admin/',     include('apps.catalogue.v2_admin_urls',
+    path('api/v2/admin/',     include('apps.catalogue.admin_urls',
                                       namespace='admin_catalogue_v2')),
+    # chartsize: nested variants + price under /api/v2/admin/products/ and /variants/
+    path('api/v2/admin/',     include('apps.chartsize.admin_urls',
+                                      namespace='admin_chartsize_v2')),
 
     # --- API v2 — Orders (M-03) ---
-    path('api/v2/orders/',    include('apps.orders.v2_urls',
+    path('api/v2/orders/',    include('apps.orders.urls',
                                       namespace='orders_v2')),
-    path('api/v2/admin/',     include('apps.orders.v2_admin_urls',
+    path('api/v2/admin/',     include('apps.orders.admin_urls',
                                       namespace='admin_orders_v2')),
 
     # --- API v2 — Inventory (M-04) ---
-    path('api/v2/admin/',     include('apps.inventory.v2_admin_urls',
+    path('api/v2/admin/',     include('apps.inventory.urls',
                                       namespace='admin_inventory_v2')),
 
-    # --- API v2 — Support, Returns, Newsletter, Contact, Logistics (M-05) ---
-    path('api/v2/support/',    include('apps.support.v2_urls',
+    # --- API v2 — Support (M-05) ---
+    path('api/v2/support/',    include('apps.support.urls',
                                        namespace='support_v2')),
-    path('api/v2/admin/',      include('apps.support.v2_admin_urls',
+    path('api/v2/admin/',      include('apps.support.admin_urls',
                                        namespace='admin_support_v2')),
-    path('api/v2/return-requests/', include('apps.returns.v2_urls',
-                                            namespace='returns_v2')),
-    path('api/v2/admin/',      include('apps.returns.v2_admin_urls',
-                                       namespace='admin_returns_v2')),
-    path('api/v2/newsletter/', include('apps.newsletter.v2_urls',
-                                       namespace='newsletter_v2')),
-    path('api/v2/admin/',      include('apps.newsletter.v2_admin_urls',
-                                       namespace='admin_newsletter_v2')),
-    path('api/v2/contact/',    include('apps.contact.v2_urls',
-                                       namespace='contact_v2')),
-    path('api/v2/admin/',      include('apps.contact.v2_admin_urls',
-                                       namespace='admin_contact_v2')),
-    # DEC-V2-02: logistics webhook stays on v1; only non-webhook routes move
-    path('api/v2/logistics/',  include('apps.logistics.v2_urls',
-                                       namespace='logistics_v2')),
 
-    # ─── Orders bajo /api/v1/orders/ (DEC-ORD-01: alineado con UI productiva
-    #     y convencion REST estandar; antes era catch-all en /api/v1/).
-    path('api/v1/orders/',   include('apps.orders.urls',       namespace='orders')),
+    # --- API v2 — Returns (M-05) ---
+    path('api/v2/return-requests/', include('apps.returns.urls',
+                                            namespace='returns_v2')),
+    path('api/v2/admin/',      include('apps.returns.admin_urls',
+                                       namespace='admin_returns_v2')),
+
+    # --- API v2 — Newsletter (M-05) ---
+    path('api/v2/newsletter/', include('apps.newsletter.urls',
+                                       namespace='newsletter_v2')),
+    path('api/v2/admin/',      include('apps.newsletter.admin_urls',
+                                       namespace='admin_newsletter_v2')),
+
+    # --- API v2 — Contact (M-05) ---
+    path('api/v2/contact/',    include('apps.contact.urls',
+                                       namespace='contact_v2')),
+    path('api/v2/admin/',      include('apps.contact.admin_urls',
+                                       namespace='admin_contact_v2')),
+
+    # --- API v2 — Logistics (M-05; webhook excluded per DEC-V2-02) ---
+    path('api/v2/logistics/',  include('apps.logistics.urls',
+                                       namespace='logistics_v2')),
 ]
 
 
@@ -182,5 +164,3 @@ if getattr(settings, 'UI_DIST', None):
     urlpatterns += [
         re_path(r'^(?!api/|admin/|static/|media/|.*\.(?:js|css|map|ico|png|jpg|svg|woff2?|ttf|eot)).*$', serve_spa),
     ]
-
-

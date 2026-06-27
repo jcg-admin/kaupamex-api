@@ -1,11 +1,9 @@
-"""URLs — apps.returns (comprador, /api/v1/returns/)."""
 from django.urls import path
-from .views import ReturnDetailView, ReturnListCreateView
+from .views import ReturnListCreateView, ReturnDetailView
 
-
-app_name = 'returns'
+app_name = 'returns_v2'
 
 urlpatterns = [
-    path('', ReturnListCreateView.as_view(), name='list-create'),
-    path('<int:return_id>/', ReturnDetailView.as_view(), name='detail'),
+    path('',                      ReturnListCreateView.as_view(), name='list-create'),
+    path('<int:return_id>/',       ReturnDetailView.as_view(),     name='detail'),
 ]

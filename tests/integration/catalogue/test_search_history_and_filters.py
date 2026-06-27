@@ -16,11 +16,11 @@ import time
 
 pytestmark = pytest.mark.integration
 
-CATALOGUE_URL    = '/api/v1/catalogue/'
-AUTOCOMPLETE_URL = '/api/v1/catalogue/autocomplete/'
-SEARCH_URL       = '/api/v1/catalogue/search/'
-HISTORY_URL      = '/api/v1/catalogue/search/history/'
-CATEGORIES_URL   = '/api/v1/admin/categories/'
+CATALOGUE_URL    = '/api/v2/catalogue/'
+AUTOCOMPLETE_URL = '/api/v2/catalogue/autocomplete/'
+SEARCH_URL       = '/api/v2/catalogue/search/'
+HISTORY_URL      = '/api/v2/catalogue/search/history/'
+CATEGORIES_URL   = '/api/v2/admin/categories/'
 
 
 # =============================================================================

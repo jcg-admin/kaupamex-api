@@ -4,14 +4,14 @@ Tests — Inventory endpoints matching the UI UC-INV-01..05 contract.
 These tests cover the new English-keyed JSON contract requested by the
 UI agent for end-to-end integration:
 
-UC-INV-01: GET /api/v1/admin/inventory/ with status=NORMAL|LOW|OUT
+UC-INV-01: GET /api/v2/admin/inventory/ with status=NORMAL|LOW|OUT
            plus summary{normal,low,out} and pagination.
-UC-INV-02/03: GET /api/v1/admin/inventory/variants/<id>/movements/.
-UC-INV-04: POST /api/v1/admin/inventory/variants/<id>/adjust/
+UC-INV-02/03: GET /api/v2/admin/inventory/variants/<id>/movements/.
+UC-INV-04: POST /api/v2/admin/inventory/variants/<id>/adjust/
            with {new_quantity, reason, observations} and English response
            keys {previous_stock, new_stock, delta, movement_id, variant_id}.
            422 STOCK_NEGATIVO_NO_PERMITIDO on negative new_quantity.
-UC-INV-05: POST /api/v1/admin/inventory/import/ accepting initial_state
+UC-INV-05: POST /api/v2/admin/inventory/import/ accepting initial_state
            and returning English response keys
            {products_created, products_failed, error_report:[{row,field,reason}],
             download_url}. 422 ENCABEZADO_CSV_INVALIDO when headers wrong.
@@ -28,8 +28,8 @@ from urllib.parse import urlparse
 
 pytestmark = pytest.mark.integration
 
-INV_URL    = '/api/v1/admin/inventory/'
-IMPORT_URL = '/api/v1/admin/inventory/import/'
+INV_URL    = '/api/v2/admin/inventory/'
+IMPORT_URL = '/api/v2/admin/inventory/import/'
 
 
 @pytest.fixture
@@ -407,7 +407,7 @@ class TestImportReportDownload:
 
     def test_download_unknown_report_returns_404(self, admin_client, db):
         res = admin_client.get(
-            '/api/v1/admin/inventory/import-reports/no-existe.csv'
+            '/api/v2/admin/inventory/import-reports/no-existe.csv'
         )
         assert res.status_code == 404
         # T-111.1 anti-soft-on-tests (canon EN).
@@ -415,6 +415,6 @@ class TestImportReportDownload:
 
     def test_download_requires_auth(self, api_client, db):
         res = api_client.get(
-            '/api/v1/admin/inventory/import-reports/whatever.csv'
+            '/api/v2/admin/inventory/import-reports/whatever.csv'
         )
         assert res.status_code == 401

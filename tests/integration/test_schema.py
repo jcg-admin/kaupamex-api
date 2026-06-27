@@ -171,7 +171,7 @@ class TestSchemaOrdersPayments:
     T-003: Endpoints de órdenes y pagos presentes en schema.
 
     H-SCHEMA-02: El checkout principal (UC-ORD-01) está en
-    /api/v1/orders/checkout/ (apps.orders.urls). El prefijo
+    /api/v2/orders/checkout/ (apps.orders.urls). El prefijo
     /api/v1/checkout/ corresponde a apps.payments.checkout_urls
     que solo tiene eligibility y express (UC-ORD-01-EXT).
 
@@ -184,17 +184,17 @@ class TestSchemaOrdersPayments:
         return api_client.get('/api/schema/?format=json').json()['paths']
 
     def test_orders_list_en_schema(self, api_client, db):
-        assert '/api/v1/orders/' in self._paths(api_client, db)
+        assert '/api/v2/orders/' in self._paths(api_client, db)
 
     def test_orders_checkout_en_schema(self, api_client, db):
-        # H-SCHEMA-02: checkout principal en /api/v1/orders/checkout/
-        assert '/api/v1/orders/checkout/' in self._paths(api_client, db)
+        # H-SCHEMA-02: checkout principal en /api/v2/orders/checkout/
+        assert '/api/v2/orders/checkout/' in self._paths(api_client, db)
 
     def test_orders_detail_en_schema(self, api_client, db):
-        assert '/api/v1/orders/{order_number}/' in self._paths(api_client, db)
+        assert '/api/v2/orders/{order_number}/' in self._paths(api_client, db)
 
     def test_orders_cancel_en_schema(self, api_client, db):
-        assert '/api/v1/orders/{order_number}/cancel/' in self._paths(api_client, db)
+        assert '/api/v2/orders/{order_number}/cancellations/' in self._paths(api_client, db)
 
     def test_checkout_express_en_schema(self, api_client, db):
         # H-SCHEMA-02: checkout express en /api/v1/checkout/ (checkout_urls)
@@ -216,12 +216,12 @@ class TestSchemaCatalogue:
 
     H-SCHEMA-03: Hay dos endpoints 'categories':
     - /api/v1/categories/ — CategoryTreeView (browse_public_urls, montado en api/v1/)
-    - /api/v1/catalogue/categories/ — CategoryListView (catalogue/urls.py)
+    - /api/v2/catalogue/categories/ — CategoryListView (catalogue/urls.py)
     Ambos son válidos y coexisten; se verifican los dos.
 
-    browse_public_urls también provee /api/v1/catalogue/search/
+    browse_public_urls también provee /api/v2/catalogue/search/
     (CatalogueSearchView, wrapper P-17 con normalized_query).
-    catalogue/urls.py provee /api/v1/catalogue/search/
+    catalogue/urls.py provee /api/v2/catalogue/search/
     (ProductSearchView, versión legacy). drf-spectacular puede
     colapsar ambos en una sola entrada o mostrar la primera únicamente.
     """
@@ -231,23 +231,23 @@ class TestSchemaCatalogue:
         return api_client.get('/api/schema/?format=json').json()['paths']
 
     def test_catalogue_list_en_schema(self, api_client, db):
-        assert '/api/v1/catalogue/' in self._paths(api_client, db)
+        assert '/api/v2/catalogue/' in self._paths(api_client, db)
 
     def test_catalogue_search_en_schema(self, api_client, db):
-        assert '/api/v1/catalogue/search/' in self._paths(api_client, db)
+        assert '/api/v2/catalogue/search/' in self._paths(api_client, db)
 
     def test_catalogue_product_detail_en_schema(self, api_client, db):
-        assert '/api/v1/catalogue/{slug}/' in self._paths(api_client, db)
+        assert '/api/v2/catalogue/{slug}/' in self._paths(api_client, db)
 
     def test_categories_browse_en_schema(self, api_client, db):
         # H-SCHEMA-03: CategoryTreeView en /api/v1/categories/ (browse_public)
-        assert '/api/v1/categories/' in self._paths(api_client, db)
+        assert '/api/v2/catalogue/categories/tree/' in self._paths(api_client, db)
 
     def test_product_related_en_schema(self, api_client, db):
         assert '/api/v1/products/{slug}/related/' in self._paths(api_client, db)
 
     def test_catalogue_autocomplete_en_schema(self, api_client, db):
-        assert '/api/v1/catalogue/autocomplete/' in self._paths(api_client, db)
+        assert '/api/v2/catalogue/autocomplete/' in self._paths(api_client, db)
 
 
 class TestSchemaReviewsQuestions:
@@ -282,8 +282,8 @@ class TestSchemaInventoryLogisticsVoucher:
     """
     T-006: Endpoints de inventario, logística y vouchers.
 
-    Inventory montado en /api/v1/admin/inventory/ (apps.inventory.urls).
-    Logistics montado en /api/v1/logistics/ (apps.logistics.urls).
+    Inventory montado en /api/v2/admin/inventory/ (apps.inventory.urls).
+    Logistics montado en /api/v2/logistics/ (apps.logistics.urls).
     Voucher router montado en /api/v1/admin/vouchers/ (apps.voucher.urls).
     """
     pytestmark = pytest.mark.schema
@@ -292,19 +292,19 @@ class TestSchemaInventoryLogisticsVoucher:
         return api_client.get('/api/schema/?format=json').json()['paths']
 
     def test_inventory_dashboard_en_schema(self, api_client, db):
-        assert '/api/v1/admin/inventory/' in self._paths(api_client, db)
+        assert '/api/v2/admin/inventory/' in self._paths(api_client, db)
 
     def test_inventory_alerts_en_schema(self, api_client, db):
-        assert '/api/v1/admin/inventory/alerts/' in self._paths(api_client, db)
+        assert '/api/v2/admin/inventory/alerts/' in self._paths(api_client, db)
 
     def test_logistics_panel_en_schema(self, api_client, db):
-        assert '/api/v1/logistics/' in self._paths(api_client, db)
+        assert '/api/v2/logistics/' in self._paths(api_client, db)
 
     def test_logistics_guides_en_schema(self, api_client, db):
-        assert '/api/v1/logistics/guides/' in self._paths(api_client, db)
+        assert '/api/v2/logistics/guides/' in self._paths(api_client, db)
 
     def test_logistics_confirm_delivery_en_schema(self, api_client, db):
-        assert '/api/v1/logistics/guides/{id}/confirm-delivery/' in self._paths(api_client, db)
+        assert '/api/v2/logistics/guides/{id}/confirm-delivery/' in self._paths(api_client, db)
 
     def test_vouchers_list_en_schema(self, api_client, db):
         assert '/api/v1/admin/vouchers/' in self._paths(api_client, db)
@@ -318,11 +318,11 @@ class TestSchemaSupportReturnsNewsletter:
     T-007: Endpoints de soporte, devoluciones, contacto, newsletter
     y notificaciones.
 
-    H-SCHEMA-04: Contact endpoint es /api/v1/contact/messages/
-    (ContactMessageCreateView con path 'messages/'), NO /api/v1/contact/.
+    H-SCHEMA-04: Contact endpoint es /api/v2/contact/messages/
+    (ContactMessageCreateView con path 'messages/'), NO /api/v2/contact/.
 
     H-SCHEMA-05: Newsletter confirm token en path variable:
-    /api/v1/newsletter/confirm/{token}/ (str param).
+    /api/v2/newsletter/confirm/{token}/ (str param).
     """
     pytestmark = pytest.mark.schema
 
@@ -330,27 +330,27 @@ class TestSchemaSupportReturnsNewsletter:
         return api_client.get('/api/schema/?format=json').json()['paths']
 
     def test_support_tickets_en_schema(self, api_client, db):
-        assert '/api/v1/support/tickets/' in self._paths(api_client, db)
+        assert '/api/v2/support/tickets/' in self._paths(api_client, db)
 
     def test_support_ticket_close_en_schema(self, api_client, db):
-        assert '/api/v1/support/tickets/{ticket_id}/close/' in self._paths(api_client, db)
+        assert '/api/v2/support/tickets/{ticket_id}/close/' in self._paths(api_client, db)
 
     def test_returns_en_schema(self, api_client, db):
-        assert '/api/v1/returns/' in self._paths(api_client, db)
+        assert '/api/v2/return-requests/' in self._paths(api_client, db)
 
     def test_returns_detail_en_schema(self, api_client, db):
-        assert '/api/v1/returns/{return_id}/' in self._paths(api_client, db)
+        assert '/api/v2/return-requests/{return_id}/' in self._paths(api_client, db)
 
     def test_contact_messages_en_schema(self, api_client, db):
-        # H-SCHEMA-04: path es /messages/ dentro de /api/v1/contact/
-        assert '/api/v1/contact/messages/' in self._paths(api_client, db)
+        # H-SCHEMA-04: path es /messages/ dentro de /api/v2/contact/
+        assert '/api/v2/contact/messages/' in self._paths(api_client, db)
 
     def test_newsletter_subscribe_en_schema(self, api_client, db):
-        assert '/api/v1/newsletter/subscribe/' in self._paths(api_client, db)
+        assert '/api/v2/newsletter/subscribe/' in self._paths(api_client, db)
 
     def test_newsletter_confirm_en_schema(self, api_client, db):
         # H-SCHEMA-05: token es path param str
-        assert '/api/v1/newsletter/confirm/{token}/' in self._paths(api_client, db)
+        assert '/api/v2/newsletter/confirm/{token}/' in self._paths(api_client, db)
 
     def test_notifications_en_schema(self, api_client, db):
         assert '/api/v1/notifications/' in self._paths(api_client, db)
@@ -378,10 +378,10 @@ class TestSchemaAdminEndpoints:
         assert '/api/v1/admin/users/{id}/' in self._paths(api_client, db)
 
     def test_admin_orders_en_schema(self, api_client, db):
-        assert '/api/v1/admin/orders/' in self._paths(api_client, db)
+        assert '/api/v2/admin/orders/' in self._paths(api_client, db)
 
     def test_admin_order_detail_en_schema(self, api_client, db):
-        assert '/api/v1/admin/orders/{order_number}/' in self._paths(api_client, db)
+        assert '/api/v2/admin/orders/{order_number}/' in self._paths(api_client, db)
 
     def test_admin_reviews_en_schema(self, api_client, db):
         assert '/api/v1/admin/reviews/' in self._paths(api_client, db)
@@ -405,4 +405,4 @@ class TestSchemaAdminEndpoints:
         assert '/api/v1/admin/questions/{question_id}/approve/' in self._paths(api_client, db)
 
     def test_admin_dashboard_en_schema(self, api_client, db):
-        assert '/api/v1/admin/dashboard/' in self._paths(api_client, db)
+        assert '/api/v2/admin/dashboard/' in self._paths(api_client, db)

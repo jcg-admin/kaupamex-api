@@ -1,16 +1,16 @@
 """
 Tests — Returns endpoints (UC-RET-01..06).
 
-UC-RET-01  POST   /api/v1/returns/                          create
-UC-RET-04  GET    /api/v1/returns/                          list own
-UC-RET-04  GET    /api/v1/returns/{id}/                     detail own
-UC-RET-05  GET    /api/v1/admin/returns/                    admin queue + metrics
-           GET    /api/v1/admin/returns/{id}/               admin detail
-UC-RET-02  POST   /api/v1/admin/returns/{id}/approve/       approve
-UC-RET-02  POST   /api/v1/admin/returns/{id}/reject/        reject
-UC-RET-02  POST   /api/v1/admin/returns/{id}/request-info/  request info
-UC-RET-03  POST   /api/v1/admin/returns/{id}/reception/     reception
-UC-RET-06  POST   /api/v1/admin/returns/{id}/refund/        refund
+UC-RET-01  POST   /api/v2/return-requests/                          create
+UC-RET-04  GET    /api/v2/return-requests/                          list own
+UC-RET-04  GET    /api/v2/return-requests/{id}/                     detail own
+UC-RET-05  GET    /api/v2/admin/return-requests/                    admin queue + metrics
+           GET    /api/v2/admin/return-requests/{id}/               admin detail
+UC-RET-02  POST   /api/v2/admin/return-requests/{id}/approve/       approve
+UC-RET-02  POST   /api/v2/admin/return-requests/{id}/reject/        reject
+UC-RET-02  POST   /api/v2/admin/return-requests/{id}/request-info/  request info
+UC-RET-03  POST   /api/v2/admin/return-requests/{id}/reception/     reception
+UC-RET-06  POST   /api/v2/admin/return-requests/{id}/refund/        refund
 
 Identifiers in English (DEC-DOC-005).
 """
@@ -30,8 +30,8 @@ from apps.notifications.models import Notification, NotificationType
 
 pytestmark = pytest.mark.integration
 
-RETURNS_URL = '/api/v1/returns/'
-ADMIN_RETURNS_URL = '/api/v1/admin/returns/'
+RETURNS_URL = '/api/v2/return-requests/'
+ADMIN_RETURNS_URL = '/api/v2/admin/return-requests/'
 
 
 def _valid_payload(order_number='PY-PLACEHOLDER', reason='DAMAGED_PRODUCT'):

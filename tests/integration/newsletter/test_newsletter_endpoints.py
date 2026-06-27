@@ -2,14 +2,14 @@
 Tests — Newsletter endpoints (UC-NEW-01..04)
 
 Public:
-  POST /api/v1/newsletter/subscribe/
-  POST /api/v1/newsletter/confirm/<token>/
-  POST /api/v1/newsletter/unsubscribe/
+  POST /api/v2/newsletter/subscribe/
+  POST /api/v2/newsletter/confirm/<token>/
+  POST /api/v2/newsletter/unsubscribe/
 
 Admin:
-  GET  /api/v1/admin/newsletter/subscribers/
-  POST /api/v1/admin/newsletter/subscribers/<id>/unsubscribe/
-  POST /api/v1/admin/newsletter/campaigns/
+  GET  /api/v2/admin/newsletter/subscribers/
+  POST /api/v2/admin/newsletter/subscribers/<id>/unsubscribe/
+  POST /api/v2/admin/newsletter/campaigns/
 
 JSON keys + identifiers in English (DEC-DOC-005).
 """
@@ -22,15 +22,15 @@ from django.core import mail, signing
 
 pytestmark = pytest.mark.integration
 
-SUBSCRIBE_URL = '/api/v1/newsletter/subscribe/'
-CONFIRM_URL = '/api/v1/newsletter/confirm/{}/'
-UNSUB_URL = '/api/v1/newsletter/unsubscribe/'
-ADMIN_LIST_URL = '/api/v1/admin/newsletter/subscribers/'
-ADMIN_CAMPAIGN_URL = '/api/v1/admin/newsletter/campaigns/'
+SUBSCRIBE_URL = '/api/v2/newsletter/subscribe/'
+CONFIRM_URL = '/api/v2/newsletter/confirm/{}/'
+UNSUB_URL = '/api/v2/newsletter/unsubscribe/'
+ADMIN_LIST_URL = '/api/v2/admin/newsletter/subscribers/'
+ADMIN_CAMPAIGN_URL = '/api/v2/admin/newsletter/campaigns/'
 
 
 def _admin_force_unsub_url(pk):
-    return f'/api/v1/admin/newsletter/subscribers/{pk}/unsubscribe/'
+    return f'/api/v2/admin/newsletter/subscribers/{pk}/unsubscribe/'
 
 
 def _make_subscriber(email='sub@example.com', status='CONFIRMED'):

@@ -1,11 +1,18 @@
-"""URLs — apps.newsletter (public endpoints)."""
 from django.urls import path
-from .views import NewsletterConfirmView, NewsletterSubscribeView, NewsletterUnsubscribeView
+from .views import (
+    NewsletterSubscribeView,
+    NewsletterConfirmView,
+    NewsletterUnsubscribeView,
+    NewsletterSubscriptionView,
+)
 
-
-app_name = 'newsletter'
+app_name = 'newsletter_v2'
 
 urlpatterns = [
+    # REST-style: POST (subscribe) + DELETE (unsubscribe) at /subscriptions/
+    path('subscriptions/',
+         NewsletterSubscriptionView.as_view(),
+         name='subscriptions'),
     path('subscribe/',
          NewsletterSubscribeView.as_view(),
          name='subscribe'),

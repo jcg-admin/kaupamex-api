@@ -125,7 +125,7 @@ class TestVoucherUsageCreatedOnCheckout:
         # Mock InventoryService para no depender de stock
         with patch.object(InventoryService, 'check_availability', return_value=[]), \
              patch.object(InventoryService, 'decrement', return_value=None):
-            res = auth_client.post('/api/v1/orders/checkout/', checkout_data, format='json')
+            res = auth_client.post('/api/v2/orders/checkout/', checkout_data, format='json')
 
         assert res.status_code == 201, f'Checkout fallo: {res.data}'
 

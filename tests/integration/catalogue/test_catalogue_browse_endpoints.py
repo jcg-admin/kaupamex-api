@@ -6,12 +6,12 @@ required by the UI:
 
   GET  /api/v1/products/<slug>/related/
   GET  /api/v1/categories/
-  GET  /api/v1/catalogue/search/?q=&category=&price_min=&price_max=&page=
-  POST /api/v1/admin/price-sync/preview-csv/
-  POST /api/v1/admin/price-sync/apply-csv/
-  POST /api/v1/admin/price-sync/preview-percentage/
-  POST /api/v1/admin/price-sync/apply-percentage/
-  GET  /api/v1/admin/price-sync/template.csv
+  GET  /api/v2/catalogue/search/?q=&category=&price_min=&price_max=&page=
+  POST /api/v2/admin/price-sync/preview-csv/
+  POST /api/v2/admin/price-sync/apply-csv/
+  POST /api/v2/admin/price-sync/preview-percentage/
+  POST /api/v2/admin/price-sync/apply-percentage/
+  GET  /api/v2/admin/price-sync/template.csv
 """
 import io
 from decimal import Decimal
@@ -68,7 +68,7 @@ class TestRelatedProducts:
 class TestCategoryTree:
 
     def test_categorias_publicas(self, api_client, cat_browse, prod_browse, db):
-        r = api_client.get('/api/v1/categories/')
+        r = api_client.get('/api/v2/catalogue/categories/tree/')
         assert r.status_code == 200
         slugs = {c['slug'] for c in r.json()}
         assert 'browse' in slugs
@@ -79,7 +79,7 @@ class TestCatalogueSearchWrapper:
     def test_search_devuelve_normalized_query(
         self, api_client, prod_browse, db,
     ):
-        r = api_client.get('/api/v1/catalogue/search/?q=  Yoruba  Sample  ')
+        r = api_client.get('/api/v2/catalogue/search/?q=  Yoruba  Sample  ')
         assert r.status_code == 200
         body = r.json()
         assert body['normalized_query'] == 'Yoruba Sample'
@@ -87,7 +87,7 @@ class TestCatalogueSearchWrapper:
     def test_search_persiste_history_para_auth(
         self, auth_client, user, prod_browse, db,
     ):
-        r = auth_client.get('/api/v1/catalogue/search/?q=yoruba')
+        r = auth_client.get('/api/v2/catalogue/search/?q=yoruba')
         assert r.status_code == 200
         assert SearchEntry.objects.filter(user=user, normalized_query='yoruba').exists()
 
@@ -95,7 +95,7 @@ class TestCatalogueSearchWrapper:
 class TestPriceSyncAliases:
 
     def test_template_csv(self, admin_client, prod_browse, db):
-        r = admin_client.get('/api/v1/admin/price-sync/template.csv')
+        r = admin_client.get('/api/v2/admin/price-sync/template.csv')
         assert r.status_code == 200
         assert r['Content-Type'].startswith('text/csv')
         body = r.content.decode('utf-8-sig')
@@ -103,7 +103,7 @@ class TestPriceSyncAliases:
 
     def test_preview_percentage_y_apply(self, admin_client, prod_browse, db):
         r = admin_client.post(
-            '/api/v1/admin/price-sync/preview-percentage/',
+            '/api/v2/admin/price-sync/preview-percentage/',
             {'pct': 10}, format='json',
         )
         assert r.status_code == 200
@@ -112,7 +112,7 @@ class TestPriceSyncAliases:
         sid = data['session_id']
 
         r2 = admin_client.post(
-            '/api/v1/admin/price-sync/apply-percentage/',
+            '/api/v2/admin/price-sync/apply-percentage/',
             {'session_id': sid}, format='json',
         )
         assert r2.status_code == 200
@@ -124,7 +124,7 @@ class TestPriceSyncAliases:
             'p.csv', csv.encode('utf-8'), content_type='text/csv',
         )
         r = admin_client.post(
-            '/api/v1/admin/price-sync/preview-csv/',
+            '/api/v2/admin/price-sync/preview-csv/',
             {'file': upload}, format='multipart',
         )
         assert r.status_code == 200
@@ -133,7 +133,7 @@ class TestPriceSyncAliases:
         sid = data['session_id']
 
         r2 = admin_client.post(
-            '/api/v1/admin/price-sync/apply-csv/',
+            '/api/v2/admin/price-sync/apply-csv/',
             {'session_id': sid}, format='json',
         )
         assert r2.status_code == 200
@@ -142,7 +142,7 @@ class TestPriceSyncAliases:
 
     def test_apply_sesion_expirada_loud(self, admin_client, db):
         r = admin_client.post(
-            '/api/v1/admin/price-sync/apply-csv/',
+            '/api/v2/admin/price-sync/apply-csv/',
             {'session_id': 'ghost'}, format='json',
         )
         assert r.status_code == 400
@@ -151,12 +151,12 @@ class TestPriceSyncAliases:
 
     def test_preview_csv_requires_file(self, admin_client, db):
         r = admin_client.post(
-            '/api/v1/admin/price-sync/preview-csv/', {}, format='multipart',
+            '/api/v2/admin/price-sync/preview-csv/', {}, format='multipart',
         )
         assert r.status_code == 400
         # T-109-B anti-soft-on-tests (canon EN).
         assert r.json()['codigo_error'] == 'CSV_REQUIRED'
 
     def test_anon_recibe_401(self, api_client, db):
-        r = api_client.get('/api/v1/admin/price-sync/template.csv')
+        r = api_client.get('/api/v2/admin/price-sync/template.csv')
         assert r.status_code == 401
