@@ -1,6 +1,6 @@
 """Admin URLs — apps.payments (UC-PAY-11)."""
 from django.urls import path
-from .views import AdminPaymentDetailView, AdminPaymentListView, AdminRefundView
+from .views import AdminPaymentDetailView, AdminPaymentListView, AdminRefundView, AdminPaymentRefundsListView
 
 app_name = 'admin_payments'
 
@@ -13,4 +13,7 @@ urlpatterns = [
     # UC-PAY-09 — reembolso manual desde panel admin
     path('payments/<int:payment_id>/refund/',
          AdminRefundView.as_view(), name='refund'),
+    # T-16-D — listado de reembolsos previos de un pago
+    path('payments/<int:payment_id>/refunds/',
+         AdminPaymentRefundsListView.as_view(), name='refunds-list'),
 ]

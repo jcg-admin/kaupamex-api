@@ -18,7 +18,7 @@ from django.db.models import F, Q, Sum
 from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress, ShippingZone
 from apps.orders.proxy_models import DeliveredOrder
 from apps.voucher.models import Voucher, VoucherUsage
-from .models import Payment, Payment as PaymentModel, SavedCard
+from .models import Payment, Payment as PaymentModel, Refund, SavedCard
 from .serializers import InitiatePaymentSerializer, InitiatePaymentResponseSerializer, InstallmentPlansResponseSerializer, PaymentSerializer, AdminPaymentSerializer, PaymentReturnSerializer, CheckoutEligibilitySerializer, ExpressCheckoutSerializer, RefundRequestSerializer, RefundSerializer, AdminRefundSerializer, RetryEligibilitySerializer, PaymentStatusSerializer as PSS, RefundRequestSerializer as RRS, CheckoutApiPaymentSerializer, CheckoutApiResponseSerializer, MpPublicKeySerializer, MpSaveCardSerializer, MpCardSerializer, MpUpdateCardSerializer
 from .services import initiate_payment, handle_gateway_return, get_installment_plans, get_payment_status, get_payment_history, execute_refund, get_retry_eligibility, initiate_checkout_api_payment, get_mp_public_key, get_or_create_mp_customer
 from apps.notifications.emails import send_card_verification_email
@@ -909,6 +909,24 @@ class AdminRefundView(APIView):
                             status=503)
 
         return Response(AdminRefundSerializer(refund).data, status=201)
+
+
+class AdminPaymentRefundsListView(APIView):
+    """
+    GET /api/v1/admin/payments/<payment_id>/refunds/
+    Lista todos los reembolsos de un pago. T-16-D, UC-PAY-09.
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    @extend_schema(
+        summary='Reembolsos de un pago (admin)',
+        responses={200: AdminRefundSerializer(many=True)},
+        tags=['payments-admin'],
+    )
+    def get(self, request, payment_id):
+        payment = get_object_or_404(PaymentModel, pk=payment_id)
+        refunds = Refund.objects.filter(payment=payment).order_by('-created_at')
+        return Response(AdminRefundSerializer(refunds, many=True).data)
 
 
 # =============================================================================
