@@ -48,12 +48,20 @@ class PaymentResult:
 
     A diferencia de PreferenceResult (Checkout Pro), aquí el estado
     del pago se conoce de inmediato: no hay redirección ni webhook posterior.
+
+    Campos para métodos no-tarjeta (OXXO, SPEI, cajero):
+      external_resource_url — URL del voucher/barcode (OXXO, Paycash, cajeros)
+      date_of_expiration    — fecha límite de pago ISO-8601 (OXXO, SPEI, cajeros)
+      transaction_data      — dict con CLABE (SPEI) o datos de barcode (ATM/OXXO)
     """
     gateway_payment_id: str
     status:             str   # 'approved' | 'rejected' | 'pending' | 'in_process'
     status_detail:      str   # 'accredited' | 'cc_rejected_*' | etc.
     amount:             Decimal
     installments:       int = 1
+    external_resource_url: str = ''
+    date_of_expiration:    str = ''
+    transaction_data:      dict = None
 
 
 class BaseGateway(ABC):

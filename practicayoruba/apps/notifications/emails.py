@@ -160,3 +160,34 @@ def send_support_closed_email(user_email, user_name, ticket_id, ticket_subject, 
         from_email=_from_email(),
         recipient_list=[user_email],
     )
+
+
+def send_card_verification_email(user_email, user_name, verification_token, last_four):
+    """
+    Envía el email de verificación cuando un usuario guarda una nueva tarjeta.
+
+    El enlace contiene el verification_token de un solo uso. Al hacer clic,
+    el backend cambia SavedCard.status de pending_verification a active.
+    El token expira implícitamente cuando la tarjeta es activada o eliminada.
+    """
+    verify_url = f'{_frontend_url()}/account/cards/verify/{verification_token}'
+    subject = 'Activa tu tarjeta guardada — PracticaYoruba'
+    message = (
+        f'Hola {user_name},\n\n'
+        f'Recibimos una solicitud para guardar la tarjeta terminada en {last_four} '
+        f'en tu cuenta de PracticaYoruba.\n\n'
+        f'Para activarla y usarla en tus próximos pagos, haz clic en el '
+        f'siguiente enlace:\n\n'
+        f'  {verify_url}\n\n'
+        f'Si no reconoces esta acción, ignora este mensaje. Tu tarjeta no '
+        f'será activada y puedes continuar usando tu cuenta con normalidad.\n\n'
+        f'Por seguridad, este enlace es de un solo uso. Una vez activada la '
+        f'tarjeta, el enlace dejará de funcionar.\n\n'
+        f'— Equipo PracticaYoruba'
+    )
+    dispatch_email(
+        subject=subject,
+        message=message,
+        from_email=_from_email(),
+        recipient_list=[user_email],
+    )

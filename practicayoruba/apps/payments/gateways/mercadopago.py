@@ -16,6 +16,13 @@ import mercadopago
 
 logger = logging.getLogger('apps')
 
+# Métodos de pago que NO requieren token de tarjeta ni número de cuotas.
+# Para estos la API de MP usa payer.email + monto + payment_method_id solamente.
+NON_CARD_METHOD_IDS = frozenset({
+    'oxxo', 'clabe', 'paycash', 'banamex', 'serfin', 'bancomer',
+    'account_money', 'consumer_credits',
+})
+
 # Mapeo de estados de MP al vocabulario interno
 MP_STATUS_MAP = {
     'approved':   'approved',
@@ -231,7 +238,7 @@ class MercadoPagoGateway(BaseGateway):
     def create_payment(
         self,
         order,
-        token: str,
+        token: str = '',
         installments: int = 1,
         payment_method_id: str = '',
         issuer_id: str = '',
@@ -244,8 +251,9 @@ class MercadoPagoGateway(BaseGateway):
         Crea un pago con Checkout API (pago en sitio, sin redirección).
         ADR-018: elegido sobre Checkout Pro para UX transparente.
 
-        El token viene del CardForm de MercadoPago.js en el frontend y
-        caduca en 7 minutos. El backend lo usa una sola vez aquí.
+        Para métodos de tarjeta: token (obligatorio) + installments.
+        Para métodos no-tarjeta (OXXO, SPEI, cajero, etc.): solo email +
+        payment_method_id. El token y cuotas se omiten del payload.
         """
         sdk = _get_sdk()
 
@@ -256,10 +264,10 @@ class MercadoPagoGateway(BaseGateway):
             or 'guest@practicayoruba.mx'
         )
 
+        is_non_card = payment_method_id in NON_CARD_METHOD_IDS
+
         payment_data = {
             'transaction_amount': float(order.value.total),
-            'token':              token,
-            'installments':       installments,
             'payment_method_id':  payment_method_id,
             'external_reference': order.order_number,
             'payer': {
@@ -267,10 +275,14 @@ class MercadoPagoGateway(BaseGateway):
             },
         }
 
+        if not is_non_card:
+            payment_data['token']        = token
+            payment_data['installments'] = installments
+
         if customer_id:
             payment_data['payer']['id'] = customer_id
 
-        if issuer_id:
+        if issuer_id and not is_non_card:
             payment_data['issuer_id'] = issuer_id
 
         if payer_identification_type and payer_identification_number:
@@ -288,13 +300,117 @@ class MercadoPagoGateway(BaseGateway):
             raise RuntimeError(f'Error al procesar pago en MercadoPago: {msg}')
 
         data = response['response']
-        return PaymentResult(
-            gateway_payment_id = str(data['id']),
-            status             = MP_STATUS_MAP.get(data.get('status', 'pending'), 'pending'),
-            status_detail      = data.get('status_detail', ''),
-            amount             = Decimal(str(data.get('transaction_amount', order.value.total))),
-            installments       = data.get('installments', installments),
+
+        # Extraer campos específicos de métodos no-tarjeta
+        transaction_details = data.get('transaction_details') or {}
+        transaction_data    = data.get('transaction_data') or {}
+
+        external_resource_url = (
+            transaction_details.get('external_resource_url', '')
+            or data.get('external_resource_url', '')
         )
+        date_of_expiration = data.get('date_of_expiration', '')
+
+        return PaymentResult(
+            gateway_payment_id    = str(data['id']),
+            status                = MP_STATUS_MAP.get(data.get('status', 'pending'), 'pending'),
+            status_detail         = data.get('status_detail', ''),
+            amount                = Decimal(str(data.get('transaction_amount', order.value.total))),
+            installments          = data.get('installments', installments),
+            external_resource_url = external_resource_url,
+            date_of_expiration    = date_of_expiration,
+            transaction_data      = transaction_data if transaction_data else None,
+        )
+
+    # -------------------------------------------------------------------------
+    # Card CRUD — Customer Cards API
+    # -------------------------------------------------------------------------
+
+    def save_card(self, customer_id: str, token: str) -> dict:
+        """
+        Guarda una tarjeta para un customer existente.
+        POST /v1/customers/{customer_id}/cards
+        Retorna el dict completo de la tarjeta creada.
+        Raises RuntimeError si MP responde con error.
+        """
+        sdk = _get_sdk()
+        response = sdk.card().create(customer_id, {'token': token})
+        if response.get('status') not in (200, 201):
+            body = response.get('response', {})
+            msg  = body.get('message', str(response))
+            logger.error('MP save_card error (customer=%s): %s', customer_id, msg)
+            raise RuntimeError(f'Error al guardar tarjeta en MercadoPago: {msg}')
+        return response['response']
+
+    def get_customer_cards(self, customer_id: str) -> list:
+        """
+        Lista las tarjetas de un customer.
+        GET /v1/customers/{customer_id}/cards
+        Retorna lista de dicts de tarjeta (puede ser vacía).
+        """
+        sdk = _get_sdk()
+        response = sdk.card().all(customer_id)
+        if response.get('status') != 200:
+            body = response.get('response', {})
+            msg  = body.get('message', str(response))
+            logger.error('MP get_customer_cards error (customer=%s): %s', customer_id, msg)
+            raise RuntimeError(f'Error al obtener tarjetas de MercadoPago: {msg}')
+        return response['response']
+
+    def get_customer_card(self, customer_id: str, card_id: str) -> dict:
+        """
+        Obtiene una tarjeta específica de un customer.
+        GET /v1/customers/{customer_id}/cards/{id}
+        Raises RuntimeError si no se encuentra o hay error de MP.
+        """
+        sdk = _get_sdk()
+        response = sdk.card().get(customer_id, card_id)
+        if response.get('status') != 200:
+            body = response.get('response', {})
+            msg  = body.get('message', str(response))
+            logger.error(
+                'MP get_customer_card error (customer=%s, card=%s): %s',
+                customer_id, card_id, msg,
+            )
+            raise RuntimeError(f'Error al obtener tarjeta de MercadoPago: {msg}')
+        return response['response']
+
+    def update_customer_card(self, customer_id: str, card_id: str, data: dict) -> dict:
+        """
+        Actualiza datos de una tarjeta (vencimiento, titular).
+        PUT /v1/customers/{customer_id}/cards/{id}
+        Raises RuntimeError si MP responde con error.
+        """
+        sdk = _get_sdk()
+        response = sdk.card().update(customer_id, card_id, data)
+        if response.get('status') not in (200, 201):
+            body = response.get('response', {})
+            msg  = body.get('message', str(response))
+            logger.error(
+                'MP update_customer_card error (customer=%s, card=%s): %s',
+                customer_id, card_id, msg,
+            )
+            raise RuntimeError(f'Error al actualizar tarjeta en MercadoPago: {msg}')
+        return response['response']
+
+    def delete_customer_card(self, customer_id: str, card_id: str) -> dict:
+        """
+        Elimina una tarjeta de un customer.
+        DELETE /v1/customers/{customer_id}/cards/{id}
+        Retorna el dict de la tarjeta eliminada.
+        Raises RuntimeError si MP responde con error.
+        """
+        sdk = _get_sdk()
+        response = sdk.card().delete(customer_id, card_id)
+        if response.get('status') != 200:
+            body = response.get('response', {})
+            msg  = body.get('message', str(response))
+            logger.error(
+                'MP delete_customer_card error (customer=%s, card=%s): %s',
+                customer_id, card_id, msg,
+            )
+            raise RuntimeError(f'Error al eliminar tarjeta de MercadoPago: {msg}')
+        return response['response']
 
     def refund(self, gateway_payment_id: str, amount) -> 'RefundResult':
         """

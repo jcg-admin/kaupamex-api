@@ -435,7 +435,7 @@ def get_or_create_mp_customer(user):
 
 def initiate_checkout_api_payment(
     order,
-    token: str,
+    token: str = '',
     installments: int = 1,
     payment_method_id: str = '',
     issuer_id: str = '',
@@ -454,9 +454,10 @@ def initiate_checkout_api_payment(
     el webhook posterior (DEC-V2-02) actúa como confirmación idempotente.
 
     :param order: instancia Order en estado PENDING
-    :param token: token del CardForm de MP.js (caduca en 7 min, un solo uso)
+    :param token: token del CardForm de MP.js (caduca en 7 min, un solo uso).
+                  Vacío para métodos no-tarjeta (OXXO, SPEI, cajeros).
     :param installments: número de cuotas (1 = contado)
-    :param payment_method_id: brand/tipo de tarjeta ('visa', 'master', …)
+    :param payment_method_id: método: 'visa', 'master', 'oxxo', 'clabe', etc.
     :param issuer_id: ID del banco emisor (mejora tasa de aprobación)
     :param payer_email: email del pagador (fallback: order.user/guest_email)
     :param payer_identification_type: tipo de doc ('CURP', 'RFC', …)
