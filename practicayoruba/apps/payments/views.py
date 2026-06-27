@@ -19,7 +19,7 @@ from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress, Shipp
 from apps.orders.proxy_models import DeliveredOrder
 from apps.voucher.models import Voucher, VoucherUsage
 from .models import Payment, Payment as PaymentModel, Refund, Chargeback, SavedCard
-from .serializers import InitiatePaymentSerializer, InitiatePaymentResponseSerializer, InstallmentPlansResponseSerializer, PaymentSerializer, AdminPaymentSerializer, PaymentReturnSerializer, CheckoutEligibilitySerializer, ExpressCheckoutSerializer, RefundRequestSerializer, RefundSerializer, AdminRefundSerializer, ChargebackSerializer, RetryEligibilitySerializer, PaymentStatusSerializer as PSS, RefundRequestSerializer as RRS, CheckoutApiPaymentSerializer, CheckoutApiResponseSerializer, MpPublicKeySerializer, MpSaveCardSerializer, MpCardSerializer, MpUpdateCardSerializer
+from .serializers import InitiatePaymentSerializer, InitiatePaymentResponseSerializer, InstallmentPlansResponseSerializer, PaymentSerializer, AdminPaymentSerializer, PaymentReturnSerializer, CheckoutEligibilitySerializer, ExpressCheckoutSerializer, RefundRequestSerializer, RefundSerializer, AdminRefundSerializer, ChargebackSerializer, RetryEligibilitySerializer, PaymentStatusSerializer as PSS, RefundRequestSerializer as RRS, CheckoutApiPaymentSerializer, CheckoutApiResponseSerializer, MpPublicKeySerializer, MpSaveCardSerializer, MpCardSerializer, MpUpdateCardSerializer, ZeroDollarAuthSerializer
 from .services import initiate_payment, handle_gateway_return, get_installment_plans, get_payment_status, get_payment_history, execute_refund, get_retry_eligibility, initiate_checkout_api_payment, get_mp_public_key, get_or_create_mp_customer
 from apps.notifications.emails import send_card_verification_email
 from .gateways.mercadopago import MercadoPagoGateway
@@ -1594,3 +1594,34 @@ class MpCardVerifyView(APIView):
             'last_four_digits': card.last_four_digits,
             'status':           card.status,
         })
+
+
+class ZeroDollarAuthView(APIView):
+    """
+    POST /api/v2/payments/cards/validate/
+    Valida una tarjeta sin cargo real usando Zero Dollar Auth (T-15).
+    Crea un pago en MP con amount=0 y capture=False para verificar
+    que la tarjeta es válida antes de guardarla. BR-009: access_token
+    nunca sale del backend.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = ZeroDollarAuthSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        data = serializer.validated_data
+        try:
+            result = MercadoPagoGateway().zero_dollar_auth(
+                token=data['token'],
+                payment_method_id=data['payment_method_id'],
+                payer_email=request.user.email,
+            )
+        except RuntimeError as exc:
+            return Response(
+                {'codigo_error': 'GATEWAY_ERROR', 'detail': str(exc)},
+                status=502,
+            )
+
+        return Response({'valid': result.get('status') == 'approved'})

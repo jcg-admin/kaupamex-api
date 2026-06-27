@@ -503,3 +503,29 @@ class MercadoPagoGateway(BaseGateway):
             logger.error('MercadoPago cancel payment error: %s', msg)
             raise RuntimeError(f'Error al cancelar pago en MercadoPago: {msg}')
         return response
+
+    def zero_dollar_auth(
+        self,
+        token: str,
+        payment_method_id: str,
+        payer_email: str,
+    ) -> dict:
+        """
+        Valida una tarjeta sin cargo real (T-15).
+        Crea un pago con amount=0 y capture=False; MP verifica la tarjeta
+        sin débito. Retorna la respuesta cruda del SDK (incluye 'status').
+        """
+        sdk = _get_sdk()
+        response = sdk.payment().create({
+            'token':              token,
+            'transaction_amount': 0,
+            'payment_method_id':  payment_method_id,
+            'capture':            False,
+            'payer':              {'email': payer_email},
+        })
+        if response.get('status') not in (200, 201):
+            body = response.get('response', {})
+            msg  = body.get('message', str(response))
+            logger.error('MercadoPago zero-dollar auth error: %s', msg)
+            raise RuntimeError(f'Error al validar tarjeta en MercadoPago: {msg}')
+        return response['response']

@@ -14,6 +14,7 @@ from .views import (
     MpCustomerCardDetailView,
     MpCardVerifyView,
     MpPaymentMethodsView,
+    ZeroDollarAuthView,
 )
 
 app_name = 'payments_v2'
@@ -24,6 +25,7 @@ urlpatterns = [
     path('customer/',                       MpCustomerView.as_view(),            name='mp-customer'),
     path('methods/',                        MpPaymentMethodsView.as_view(),      name='mp-payment-methods'),
     path('cards/',                          MpCustomerCardsView.as_view(),       name='mp-cards'),
+    path('cards/validate/',                 ZeroDollarAuthView.as_view(),        name='mp-card-validate'),
     path('cards/<str:card_id>/',            MpCustomerCardDetailView.as_view(),  name='mp-card-detail'),
     path('cards/verify/<str:token>/',       MpCardVerifyView.as_view(),          name='mp-card-verify'),
 ]

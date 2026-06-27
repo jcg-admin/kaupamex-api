@@ -337,3 +337,9 @@ class MpUpdateCardSerializer(serializers.Serializer):
                 'Debe proporcionar al menos un campo para actualizar.'
             )
         return attrs
+
+
+class ZeroDollarAuthSerializer(serializers.Serializer):
+    """POST /api/v2/payments/cards/validate/ — T-15 Zero Dollar Auth."""
+    token             = serializers.CharField(max_length=255)
+    payment_method_id = serializers.CharField(max_length=50)
