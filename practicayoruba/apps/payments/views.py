@@ -1212,3 +1212,19 @@ class MpPublicKeyView(APIView):
                 status=503,
             )
         return Response({'public_key': public_key})
+
+
+class MpCustomerView(APIView):
+    """
+    GET /api/v2/payments/customer/
+    Retorna si el usuario autenticado tiene un customer_id de MercadoPago.
+    BR-009: access_token NUNCA en la respuesta.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        customer_id = request.user.mp_customer_id or ''
+        return Response({
+            'has_customer':   bool(customer_id),
+            'mp_customer_id': customer_id,
+        })

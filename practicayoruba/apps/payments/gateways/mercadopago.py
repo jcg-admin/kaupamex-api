@@ -186,6 +186,48 @@ class MercadoPagoGateway(BaseGateway):
         )
 
 
+    def search_customer_by_email(self, email: str):
+        """
+        Busca un customer en MP por email.
+        Retorna el customer_id string o None si no existe o hay error.
+        """
+        sdk = _get_sdk()
+        response = sdk.customer().search({'email': email})
+        if response.get('status') != 200:
+            return None
+        results = response['response'].get('results', [])
+        if results:
+            return results[0]['id']
+        return None
+
+    def create_customer(self, email: str, first_name: str = '', last_name: str = '') -> str:
+        """
+        Crea un customer en MP y retorna el customer_id.
+        Raises RuntimeError si MP responde con error.
+        """
+        sdk = _get_sdk()
+        payload = {
+            'email':      email,
+            'first_name': first_name,
+            'last_name':  last_name,
+        }
+        response = sdk.customer().create(payload)
+        if response.get('status') != 201:
+            body = response.get('response', {})
+            msg = body.get('message', str(response))
+            raise RuntimeError(f'Error al crear customer en MercadoPago: {msg}')
+        return response['response']['id']
+
+    def get_or_create_customer(self, email: str, first_name: str = '', last_name: str = '') -> str:
+        """
+        Busca customer existente o crea uno nuevo. Evita el error 101 de MP
+        (duplicado) buscando primero. Retorna el customer_id.
+        """
+        existing = self.search_customer_by_email(email)
+        if existing:
+            return existing
+        return self.create_customer(email, first_name, last_name)
+
     def create_payment(
         self,
         order,
@@ -196,6 +238,7 @@ class MercadoPagoGateway(BaseGateway):
         payer_email: str = '',
         payer_identification_type: str = '',
         payer_identification_number: str = '',
+        customer_id: str = '',
     ) -> PaymentResult:
         """
         Crea un pago con Checkout API (pago en sitio, sin redirección).
@@ -223,6 +266,9 @@ class MercadoPagoGateway(BaseGateway):
                 'email': payer_email_resolved,
             },
         }
+
+        if customer_id:
+            payment_data['payer']['id'] = customer_id
 
         if issuer_id:
             payment_data['issuer_id'] = issuer_id

@@ -6,11 +6,12 @@ Registradas en config/urls.py bajo api/v2/payments/.
 DEC-V2-02: los webhooks permanecen en /api/v1/payments/webhooks/* (v1 para siempre).
 """
 from django.urls import path
-from .views import CheckoutApiPaymentView, MpPublicKeyView
+from .views import CheckoutApiPaymentView, MpPublicKeyView, MpCustomerView
 
 app_name = 'payments_v2'
 
 urlpatterns = [
     path('initiate/',   CheckoutApiPaymentView.as_view(), name='checkout-api-initiate'),
     path('public-key/', MpPublicKeyView.as_view(),        name='mp-public-key'),
+    path('customer/',   MpCustomerView.as_view(),         name='mp-customer'),
 ]

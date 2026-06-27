@@ -401,6 +401,38 @@ def get_mp_public_key() -> str:
         raise ValueError('No existe un PaymentGateway activo para MERCADOPAGO.')
 
 
+def get_or_create_mp_customer(user):
+    """
+    Obtiene o crea el customer de MercadoPago para el user dado.
+
+    - Retorna None si user es None (guest checkout).
+    - Retorna el mp_customer_id cacheado en user si ya existe.
+    - Llama al gateway para crear/buscar el customer, guarda el ID en
+      user.mp_customer_id y lo retorna.
+    - Atrapa cualquier excepción del gateway y retorna None (no bloquea el pago).
+    """
+    if user is None:
+        return None
+    if user.mp_customer_id:
+        return user.mp_customer_id
+    try:
+        gateway = MercadoPagoGateway()
+        customer_id = gateway.get_or_create_customer(
+            email=user.email,
+            first_name=user.first_name or '',
+            last_name=user.last_name or '',
+        )
+        user.mp_customer_id = customer_id
+        user.save(update_fields=['mp_customer_id'])
+        return customer_id
+    except Exception as exc:
+        logger.warning(
+            'MP customer lookup/create failed for user %s: %s',
+            getattr(user, 'pk', None), exc,
+        )
+        return None
+
+
 def initiate_checkout_api_payment(
     order,
     token: str,
@@ -443,6 +475,8 @@ def initiate_checkout_api_payment(
     if gateway is None:
         gateway = MercadoPagoGateway()
 
+    customer_id = get_or_create_mp_customer(order.user)
+
     result = gateway.create_payment(
         order=order,
         token=token,
@@ -452,6 +486,7 @@ def initiate_checkout_api_payment(
         payer_email=payer_email,
         payer_identification_type=payer_identification_type,
         payer_identification_number=payer_identification_number,
+        customer_id=customer_id or '',
     )
 
     if result.status == 'approved':
