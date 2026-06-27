@@ -488,3 +488,18 @@ class MercadoPagoGateway(BaseGateway):
             logger.error('MercadoPago chargeback get error: %s', msg)
             raise RuntimeError(f'Error al obtener contracargo: {msg}')
         return response
+
+    def cancel_payment(self, gateway_payment_id: str) -> dict:
+        """
+        Cancela un pago pendiente en MercadoPago. T-CAN.
+        Solo funciona para pagos con status pending/in_process en MP.
+        Retorna el dict completo de respuesta del SDK.
+        """
+        sdk = _get_sdk()
+        response = sdk.payment().update(gateway_payment_id, {'status': 'cancelled'})
+        if response.get('status') not in (200, 201):
+            body = response.get('response', {})
+            msg  = body.get('message', str(response))
+            logger.error('MercadoPago cancel payment error: %s', msg)
+            raise RuntimeError(f'Error al cancelar pago en MercadoPago: {msg}')
+        return response

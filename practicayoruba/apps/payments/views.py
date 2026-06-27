@@ -969,6 +969,50 @@ class AdminChargebackDetailView(APIView):
         return Response(ChargebackSerializer(cb).data)
 
 
+class AdminCancelPaymentView(APIView):
+    """
+    POST /api/v1/admin/payments/<payment_id>/cancel/
+    El admin cancela proactivamente un pago pendiente. T-CAN.
+    Solo pagos con status PENDING son cancelables.
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    CANCELLABLE_STATUSES = {PaymentModel.STATUS_PENDING}
+
+    @extend_schema(
+        summary='Cancelar pago pendiente (admin)',
+        responses={
+            200: AdminPaymentSerializer,
+            400: OpenApiResponse(description='Pago no cancelable.'),
+            404: OpenApiResponse(description='Payment no encontrado.'),
+            503: OpenApiResponse(description='Gateway no disponible.'),
+        },
+        tags=['payments-admin'],
+    )
+    def post(self, request, payment_id):
+        payment = get_object_or_404(PaymentModel, pk=payment_id)
+
+        if payment.status not in self.CANCELLABLE_STATUSES:
+            return Response(
+                {'detail': 'El pago no está en estado cancelable.',
+                 'codigo_error': 'PAYMENT_NOT_CANCELLABLE'},
+                status=400,
+            )
+
+        try:
+            MercadoPagoGateway().cancel_payment(payment.gateway_payment_id)
+        except RuntimeError as exc:
+            return Response(
+                {'detail': str(exc), 'codigo_error': 'GATEWAY_UNAVAILABLE'},
+                status=503,
+            )
+
+        payment.status = PaymentModel.STATUS_CANCELLED
+        payment.save(update_fields=['status', 'updated_at'])
+
+        return Response(AdminPaymentSerializer(payment).data)
+
+
 # =============================================================================
 # UC-PAY-11 — AdminPaymentDetailView + AdminPaymentListView
 # =============================================================================

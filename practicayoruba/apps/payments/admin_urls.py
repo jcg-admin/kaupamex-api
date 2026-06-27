@@ -4,6 +4,7 @@ from .views import (
     AdminPaymentDetailView, AdminPaymentListView,
     AdminRefundView, AdminPaymentRefundsListView,
     AdminChargebackListView, AdminChargebackDetailView,
+    AdminCancelPaymentView,
 )
 
 app_name = 'admin_payments'
@@ -20,6 +21,9 @@ urlpatterns = [
     # T-16-D — listado de reembolsos previos de un pago
     path('payments/<int:payment_id>/refunds/',
          AdminPaymentRefundsListView.as_view(), name='refunds-list'),
+    # T-CAN — cancelación proactiva de pago pendiente
+    path('payments/<int:payment_id>/cancel/',
+         AdminCancelPaymentView.as_view(), name='cancel'),
     # T-17-B — listado de contracargos
     path('chargebacks/',
          AdminChargebackListView.as_view(), name='chargebacks-list'),
