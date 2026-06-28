@@ -270,7 +270,7 @@ class TestSchemaReviewsQuestions:
         assert '/api/v1/products/{product_id}/reviews/{id}/helpful/' in self._paths(api_client, db)
 
     def test_product_questions_en_schema(self, api_client, db):
-        assert '/api/v1/products/{product_id}/questions/' in self._paths(api_client, db)
+        assert '/api/v2/products/{product_id}/questions/' in self._paths(api_client, db)
 
     def test_search_history_en_schema(self, api_client, db):
         assert '/api/v2/search/history/' in self._paths(api_client, db)
@@ -400,10 +400,10 @@ class TestSchemaAdminEndpoints:
         assert '/api/v1/admin/settings/' in self._paths(api_client, db)
 
     def test_admin_questions_en_schema(self, api_client, db):
-        assert '/api/v1/admin/questions/' in self._paths(api_client, db)
+        assert '/api/v2/admin/questions/' in self._paths(api_client, db)
 
     def test_admin_question_approve_en_schema(self, api_client, db):
-        assert '/api/v1/admin/questions/{question_id}/approve/' in self._paths(api_client, db)
+        assert '/api/v2/admin/questions/{question_id}/approve/' in self._paths(api_client, db)
 
     def test_admin_dashboard_en_schema(self, api_client, db):
         assert '/api/v2/admin/dashboard/' in self._paths(api_client, db)

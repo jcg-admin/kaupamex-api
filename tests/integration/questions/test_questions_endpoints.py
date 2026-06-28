@@ -2,14 +2,14 @@
 Tests — Product Questions endpoints (UC-QST-01..04)
 
 Public:
-  POST /api/v1/products/<id>/questions/                    public ask
-  GET  /api/v1/products/<id>/questions/                    public list (approved only)
+  POST /api/v2/products/<id>/questions/                    public ask
+  GET  /api/v2/products/<id>/questions/                    public list (approved only)
 
 Admin:
-  GET  /api/v1/admin/questions/?status=PENDING|ANSWERED|REJECTED
-  POST /api/v1/admin/questions/<id>/answer/
-  POST /api/v1/admin/questions/<id>/approve/
-  POST /api/v1/admin/questions/<id>/reject/
+  GET  /api/v2/admin/questions/?status=PENDING|ANSWERED|REJECTED
+  POST /api/v2/admin/questions/<id>/answer/
+  POST /api/v2/admin/questions/<id>/approve/
+  POST /api/v2/admin/questions/<id>/reject/
 
 JSON keys + identifiers in English (DEC-DOC-005).
 """
@@ -43,11 +43,11 @@ def product(db, category):
 
 
 def _q_url(product_id):
-    return f'/api/v1/products/{product_id}/questions/'
+    return f'/api/v2/products/{product_id}/questions/'
 
 
 def _admin_list_url(suffix=''):
-    return f'/api/v1/admin/questions/{suffix}'
+    return f'/api/v2/admin/questions/{suffix}'
 
 
 def _make_question(product, **kwargs):

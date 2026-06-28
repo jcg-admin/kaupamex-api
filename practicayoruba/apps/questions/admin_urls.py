@@ -3,7 +3,7 @@ from django.urls import path
 from .views import AdminQuestionAnswerView, AdminQuestionApproveView, AdminQuestionRejectView, AdminQuestionsListView
 
 
-app_name = 'admin_questions'
+app_name = 'admin_questions_v2'
 
 urlpatterns = [
     path('questions/',
