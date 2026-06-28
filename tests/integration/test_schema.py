@@ -362,9 +362,9 @@ class TestSchemaAdminEndpoints:
     T-008: Endpoints admin representativos de cada dominio.
 
     Users admin usa DefaultRouter (AdminUserViewSet) — genera
-    /api/v1/admin/users/ y /api/v1/admin/users/{id}/.
+    /api/v2/admin/users/ y /api/v2/admin/users/{id}/.
     Las custom actions (suspend, reactivate, make-admin) generan
-    /api/v1/admin/users/{id}/suspend/ etc. si el ViewSet las declara.
+    /api/v2/admin/users/{id}/suspend/ etc. si el ViewSet las declara.
     Orders admin usa <str:order_number> — schema genera {order_number}.
     """
     pytestmark = pytest.mark.schema
@@ -373,10 +373,10 @@ class TestSchemaAdminEndpoints:
         return api_client.get('/api/schema/?format=json').json()['paths']
 
     def test_admin_users_en_schema(self, api_client, db):
-        assert '/api/v1/admin/users/' in self._paths(api_client, db)
+        assert '/api/v2/admin/users/' in self._paths(api_client, db)
 
     def test_admin_user_detail_en_schema(self, api_client, db):
-        assert '/api/v1/admin/users/{id}/' in self._paths(api_client, db)
+        assert '/api/v2/admin/users/{id}/' in self._paths(api_client, db)
 
     def test_admin_orders_en_schema(self, api_client, db):
         assert '/api/v2/admin/orders/' in self._paths(api_client, db)

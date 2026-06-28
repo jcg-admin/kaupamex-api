@@ -36,7 +36,8 @@ urlpatterns = [
     # --- API v2 — auth (M-20, ADDITIVE: v1 stays active per DEC-V2-05) ---
     path('api/v2/auth/',      include('apps.users.v2_urls', namespace='users_v2')),
     path('api/v1/config/',    include('apps.settings_app.urls',        namespace='settings_app')),
-    path('api/v1/admin/',     include('apps.users.admin_urls',         namespace='admin_users')),
+    # --- API v2 — Users admin (M-21) ---
+    path('api/v2/admin/',     include('apps.users.admin_urls',         namespace='admin_users_v2')),
     path('api/v1/admin/',     include('apps.settings_app.admin_urls',  namespace='admin_settings')),
 
     # --- API v1 — voucher, referral, wishlist, payments ---

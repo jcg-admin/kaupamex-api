@@ -11,7 +11,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 pytestmark = pytest.mark.integration
 
-USERS_URL = '/api/v1/admin/users/'
+USERS_URL = '/api/v2/admin/users/'
 
 
 @pytest.fixture
@@ -172,7 +172,7 @@ class TestAdminCreateAdmin:
 
 
 class TestAdminEditPermissions:
-    """UC-ADM-02: POST /api/v1/admin/users/<pk>/permissions/"""
+    """UC-ADM-02: POST /api/v2/admin/users/<pk>/permissions/"""
 
     def _url(self, pk):
         return f'{USERS_URL}{pk}/permissions/'

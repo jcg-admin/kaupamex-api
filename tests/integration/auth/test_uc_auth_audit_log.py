@@ -60,7 +60,7 @@ class TestEventOnAdminSuspend:
 
     def test_admin_suspend_crea_evento(self, admin_auth_client, admin_user, target_user):
         admin_auth_client.post(
-            f'/api/v1/admin/users/{target_user.pk}/suspend/',
+            f'/api/v2/admin/users/{target_user.pk}/suspend/',
         )
         events = UserDeactivationEvent.objects.filter(user=target_user)
         assert events.count() == 1
@@ -73,7 +73,7 @@ class TestEventOnAdminSuspend:
         self, admin_auth_client, admin_user, target_user,
     ):
         admin_auth_client.post(
-            f'/api/v1/admin/users/{target_user.pk}/suspend/',
+            f'/api/v2/admin/users/{target_user.pk}/suspend/',
             {'note': 'usuario reporto fraude'},
             format='json',
         )
@@ -94,9 +94,9 @@ class TestEventOrdering:
     def test_dos_suspensiones_consecutivas_crean_dos_eventos(
         self, admin_auth_client, target,
     ):
-        admin_auth_client.post(f'/api/v1/admin/users/{target.pk}/suspend/')
-        admin_auth_client.post(f'/api/v1/admin/users/{target.pk}/reactivate/')
-        admin_auth_client.post(f'/api/v1/admin/users/{target.pk}/suspend/')
+        admin_auth_client.post(f'/api/v2/admin/users/{target.pk}/suspend/')
+        admin_auth_client.post(f'/api/v2/admin/users/{target.pk}/reactivate/')
+        admin_auth_client.post(f'/api/v2/admin/users/{target.pk}/suspend/')
         events = UserDeactivationEvent.objects.filter(user=target).order_by('created_at')
         # 2 events de suspend (la reactivate NO se loguea aqui).
         assert events.count() == 2
