@@ -197,3 +197,10 @@ class ShippingMethodSerializer(serializers.ModelSerializer):
         if value < 1:
             raise serializers.ValidationError('El tiempo estimado debe ser al menos 1 dia habil.')
         return value
+
+
+class PublicShippingMethodSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = ShippingMethod
+        fields = ['id', 'name', 'cost', 'estimated_days', 'free_threshold']
+        read_only_fields = fields

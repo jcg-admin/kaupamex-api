@@ -17,11 +17,12 @@ from drf_spectacular.utils import extend_schema, OpenApiResponse
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
+from rest_framework.generics import ListAPIView
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from django.core.cache import cache
 from .models import SiteSettings, PaymentGateway, ShippingMethod, StaticPage, StaticPageVersion
-from .serializers import SiteSettingsSerializer, SiteSettingsAdminSerializer, PublicSiteSettingsSerializer, PaymentGatewaySerializer, ShippingMethodSerializer
+from .serializers import SiteSettingsSerializer, SiteSettingsAdminSerializer, PublicSiteSettingsSerializer, PaymentGatewaySerializer, ShippingMethodSerializer, PublicShippingMethodSerializer
 from .gateway_connector import connector
 from rest_framework import serializers as drf_serializers
 from apps.orders.proxy_models import ActiveOrder
@@ -262,6 +263,20 @@ class ShippingMethodViewSet(ModelViewSet):
     )
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
+
+
+class ShippingMethodListPublicView(ListAPIView):
+    """
+    GET /api/v2/shipping-methods/ — lista los métodos de envío activos
+    para compradores (sin autenticación, GAP-C1).
+    """
+    permission_classes = [AllowAny]
+    serializer_class   = PublicShippingMethodSerializer
+    queryset           = ShippingMethod.objects.filter(is_active=True).order_by('cost', 'name')
+
+    @extend_schema(summary='Listar métodos de envío activos', tags=['shipping'])
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
 
 
 # =============================================================================

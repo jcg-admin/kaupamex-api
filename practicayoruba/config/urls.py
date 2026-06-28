@@ -117,6 +117,10 @@ urlpatterns = [
     # --- API v2 — Logistics (M-05; webhook excluded per DEC-V2-02) ---
     path('api/v2/logistics/',  include('apps.logistics.urls',
                                        namespace='logistics_v2')),
+
+    # --- API v2 — Shipping methods public endpoint (GAP-C1) ---
+    path('api/v2/shipping-methods/', include('apps.settings_app.public_urls',
+                                             namespace='public_shipping')),
 ]
 
 
