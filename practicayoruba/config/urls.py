@@ -40,8 +40,8 @@ urlpatterns = [
     path('api/v2/admin/',     include('apps.users.admin_urls',         namespace='admin_users_v2')),
     path('api/v1/admin/',     include('apps.settings_app.admin_urls',  namespace='admin_settings')),
 
-    # --- API v1 — voucher, referral, wishlist, payments ---
-    path('api/v1/admin/',     include('apps.voucher.urls',     namespace='admin_voucher')),
+    # --- API v2 — Voucher (M-15) ---
+    path('api/v2/admin/',     include('apps.voucher.urls',     namespace='admin_voucher_v2')),
     path('api/v2/account/',   include('apps.referral.urls',    namespace='referral_v2')),
     path('api/v2/wishlist/',  include('apps.wishlist.urls',    namespace='wishlist_v2')),
     # DEC-V2-02: webhooks stay on v1 forever

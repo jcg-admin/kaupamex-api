@@ -285,7 +285,7 @@ class TestSchemaInventoryLogisticsVoucher:
 
     Inventory montado en /api/v2/admin/inventory/ (apps.inventory.urls).
     Logistics montado en /api/v2/logistics/ (apps.logistics.urls).
-    Voucher router montado en /api/v1/admin/vouchers/ (apps.voucher.urls).
+    Voucher router montado en /api/v2/admin/vouchers/ (apps.voucher.urls).
     """
     pytestmark = pytest.mark.schema
 
@@ -308,10 +308,10 @@ class TestSchemaInventoryLogisticsVoucher:
         assert '/api/v2/logistics/guides/{id}/confirm-delivery/' in self._paths(api_client, db)
 
     def test_vouchers_list_en_schema(self, api_client, db):
-        assert '/api/v1/admin/vouchers/' in self._paths(api_client, db)
+        assert '/api/v2/admin/vouchers/' in self._paths(api_client, db)
 
     def test_voucher_detail_en_schema(self, api_client, db):
-        assert '/api/v1/admin/vouchers/{id}/' in self._paths(api_client, db)
+        assert '/api/v2/admin/vouchers/{id}/' in self._paths(api_client, db)
 
 
 class TestSchemaSupportReturnsNewsletter:
