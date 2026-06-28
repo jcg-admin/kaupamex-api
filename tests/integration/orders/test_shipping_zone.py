@@ -14,7 +14,7 @@ from apps.settings_app.models import ShippingMethod
 pytestmark = pytest.mark.integration
 
 CHECKOUT_URL = '/api/v2/orders/checkout/'
-ITEMS_URL    = '/api/v1/cart/items/'
+ITEMS_URL    = '/api/v2/cart/items/'
 
 ADDR_COVERED = {
     'recipient_name': 'Ana Torres',

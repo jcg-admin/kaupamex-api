@@ -145,16 +145,16 @@ class TestSchemaCartWishlist:
         return api_client.get('/api/schema/?format=json').json()['paths']
 
     def test_cart_en_schema(self, api_client, db):
-        assert '/api/v1/cart/' in self._paths(api_client, db)
+        assert '/api/v2/cart/' in self._paths(api_client, db)
 
     def test_cart_items_en_schema(self, api_client, db):
-        assert '/api/v1/cart/items/' in self._paths(api_client, db)
+        assert '/api/v2/cart/items/' in self._paths(api_client, db)
 
     def test_cart_item_detail_en_schema(self, api_client, db):
-        assert '/api/v1/cart/items/{id}/' in self._paths(api_client, db)
+        assert '/api/v2/cart/items/{id}/' in self._paths(api_client, db)
 
     def test_cart_voucher_en_schema(self, api_client, db):
-        assert '/api/v1/cart/voucher/' in self._paths(api_client, db)
+        assert '/api/v2/cart/voucher/' in self._paths(api_client, db)
 
     def test_wishlist_en_schema(self, api_client, db):
         assert '/api/v1/wishlist/' in self._paths(api_client, db)

@@ -20,9 +20,9 @@ from apps.voucher.serializers import VoucherSerializer
 pytestmark = pytest.mark.integration
 
 VOUCHERS_URL = '/api/v1/admin/vouchers/'
-CART_URL     = '/api/v1/cart/'
-ITEMS_URL    = '/api/v1/cart/items/'
-VOUCHER_APPLY_URL = '/api/v1/cart/voucher/'
+CART_URL     = '/api/v2/cart/'
+ITEMS_URL    = '/api/v2/cart/items/'
+VOUCHER_APPLY_URL = '/api/v2/cart/voucher/'
 
 
 def _now():

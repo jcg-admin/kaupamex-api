@@ -17,10 +17,10 @@ from apps.users.models import User
 
 pytestmark = pytest.mark.integration
 
-CART_URL  = '/api/v1/cart/'
-ITEMS_URL = '/api/v1/cart/items/'
-SAVE_URL  = '/api/v1/cart/save/'
-MERGE_URL = '/api/v1/cart/merge/'
+CART_URL  = '/api/v2/cart/'
+ITEMS_URL = '/api/v2/cart/items/'
+SAVE_URL  = '/api/v2/cart/snapshots/'
+MERGE_URL = '/api/v2/cart/merges/'
 
 
 @pytest.fixture

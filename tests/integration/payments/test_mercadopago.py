@@ -433,7 +433,7 @@ class TestCheckoutExpress:
         self, auth_client, prod_s15, db
     ):
         """Sin órdenes previas → no elegible para express checkout."""
-        auth_client.post('/api/v1/cart/items/', {
+        auth_client.post('/api/v2/cart/items/', {
             'product_id': prod_s15.pk, 'quantity': 1,
         }, format='json')
         res = auth_client.post(EXPRESS_URL, {}, format='json')
@@ -463,7 +463,7 @@ class TestCheckoutExpress:
         # Agregar producto al carrito
         prod_s15.stock = 10
         prod_s15.save()
-        auth_client.post('/api/v1/cart/items/', {
+        auth_client.post('/api/v2/cart/items/', {
             'product_id': prod_s15.pk, 'quantity': 1,
         }, format='json')
 
@@ -492,7 +492,7 @@ class TestCheckoutExpress:
         )
         Order.objects.create(user=user, status='DELIVERED')
 
-        auth_client.post('/api/v1/cart/items/', {
+        auth_client.post('/api/v2/cart/items/', {
             'product_id': prod_s15.pk, 'quantity': 1,
         }, format='json')
 

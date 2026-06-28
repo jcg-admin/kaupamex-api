@@ -21,8 +21,8 @@ from apps.cart.models import Cart
 
 pytestmark = pytest.mark.integration
 
-VOUCHER_APPLY_URL = '/api/v1/cart/voucher/'
-ITEMS_URL         = '/api/v1/cart/items/'
+VOUCHER_APPLY_URL = '/api/v2/cart/voucher/'
+ITEMS_URL         = '/api/v2/cart/items/'
 
 
 def _future(**kw):
