@@ -30,8 +30,8 @@ from apps.voucher.models import Voucher
 
 pytestmark = pytest.mark.integration
 
-REFERRAL_URL = '/api/v1/account/referral/'
-REDEEM_URL = '/api/v1/account/referral/redeem/'
+REFERRAL_URL = '/api/v2/account/referral/'
+REDEEM_URL = '/api/v2/account/referral/redeem/'
 
 User = get_user_model()
 
