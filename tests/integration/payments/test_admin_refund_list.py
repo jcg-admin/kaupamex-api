@@ -1,7 +1,7 @@
 """
 Tests — Listado de reembolsos por pago (T-16-D, UC-PAY-09).
 
-GET /api/v1/admin/payments/<id>/refunds/ — AdminPaymentRefundsListView.
+GET /api/v2/admin/payments/<id>/refunds/ — AdminPaymentRefundsListView.
 Cubre: lista completa, pago sin reembolsos, permisos (401/403), 404.
 """
 import pytest
@@ -12,7 +12,7 @@ from apps.payments.models import Payment, Refund
 
 pytestmark = pytest.mark.integration
 
-REFUNDS_URL = lambda pid: f'/api/v1/admin/payments/{pid}/refunds/'
+REFUNDS_URL = lambda pid: f'/api/v2/admin/payments/{pid}/refunds/'
 
 
 def _make_payment(user, amount='500.00', status='APPROVED', gateway_payment_id='MP-001'):

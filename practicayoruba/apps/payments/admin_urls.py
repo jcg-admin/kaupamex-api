@@ -1,4 +1,4 @@
-"""Admin URLs — apps.payments (UC-PAY-11)."""
+"""Admin URLs — apps.payments (UC-PAY-11). Montado bajo /api/v2/admin/."""
 from django.urls import path
 from .views import (
     AdminPaymentDetailView, AdminPaymentListView,
@@ -7,7 +7,7 @@ from .views import (
     AdminCancelPaymentView,
 )
 
-app_name = 'admin_payments'
+app_name = 'admin_payments_v2'
 
 urlpatterns = [
     # UC-PAY-11 — listado de transacciones para el admin

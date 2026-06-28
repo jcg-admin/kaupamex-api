@@ -1,8 +1,8 @@
 """
 Tests — Listado y detalle de contracargos admin (T-17-B, T-17-C).
 
-GET /api/v1/admin/chargebacks/        — AdminChargebackListView
-GET /api/v1/admin/chargebacks/<id>/   — AdminChargebackDetailView
+GET /api/v2/admin/chargebacks/        — AdminChargebackListView
+GET /api/v2/admin/chargebacks/<id>/   — AdminChargebackDetailView
 Cubre: lista, detalle, filtro por payment, 401, 403, 404.
 """
 import pytest
@@ -13,8 +13,8 @@ from apps.payments.models import Payment, Chargeback
 
 pytestmark = pytest.mark.integration
 
-LIST_URL   = '/api/v1/admin/chargebacks/'
-DETAIL_URL = lambda cid: f'/api/v1/admin/chargebacks/{cid}/'
+LIST_URL   = '/api/v2/admin/chargebacks/'
+DETAIL_URL = lambda cid: f'/api/v2/admin/chargebacks/{cid}/'
 
 
 def _make_payment(user, amount='500.00', gateway_payment_id='MP-CB-L001'):

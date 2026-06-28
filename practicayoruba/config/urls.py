@@ -62,7 +62,6 @@ urlpatterns = [
     path('api/v1/admin/',     include('apps.reviews.admin_urls',        namespace='admin_reviews')),
     path('api/v2/search/',    include('apps.search_history.urls',       namespace='search_history_v2')),
     path('api/v1/admin/',     include('apps.backups.admin_urls',        namespace='admin_backups')),
-    path('api/v1/admin/',     include('apps.payments.admin_urls',       namespace='admin_payments')),
 
     # --- API v1 — logistics webhook (DEC-V2-02: stays on v1 FOREVER) ---
     path('api/v1/logistics/', include('apps.logistics.webhook_urls')),
@@ -74,6 +73,10 @@ urlpatterns = [
     # --- API v2 — Payments (ADR-018 Checkout API; webhooks stay on v1 per DEC-V2-02) ---
     path('api/v2/payments/', include('apps.payments.v2_urls',
                                      namespace='payments_v2')),
+
+    # --- API v2 — Payments admin (M-11) ---
+    path('api/v2/admin/',   include('apps.payments.admin_urls',
+                                    namespace='admin_payments_v2')),
 
     # --- API v2 — Catalogue (M-02) ---
     path('api/v2/catalogue/', include('apps.catalogue.urls',

@@ -1,7 +1,7 @@
 """
 Tests — Listado de pagos admin (UC-PAY-11).
 
-GET /api/v1/admin/payments/ — AdminPaymentListView (apps/payments/views.py).
+GET /api/v2/admin/payments/ — AdminPaymentListView (apps/payments/views.py).
 Cubre: exito (lista + totales + paginacion), filtros (status, gateway,
 rango de fechas), permisos (anon 401, comprador 403) y errores con
 ``codigo_error`` (status/gateway/fecha invalidos, rango invertido).
@@ -16,7 +16,7 @@ from apps.payments.models import Payment
 
 pytestmark = pytest.mark.integration
 
-LIST_URL = '/api/v1/admin/payments/'
+LIST_URL = '/api/v2/admin/payments/'
 
 
 def _make_order(user, sku, total):

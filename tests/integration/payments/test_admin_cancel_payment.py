@@ -1,7 +1,7 @@
 """
 Tests — Cancelación proactiva de pago (T-CAN).
 
-POST /api/v1/admin/payments/<id>/cancel/  — AdminCancelPaymentView
+POST /api/v2/admin/payments/<id>/cancel/  — AdminCancelPaymentView
 Cubre: cancel ok, pago no cancelable, 404, 401, 403, error de gateway.
 """
 import pytest
@@ -13,7 +13,7 @@ from apps.payments.models import Payment
 
 pytestmark = pytest.mark.integration
 
-CANCEL_URL = lambda pid: f'/api/v1/admin/payments/{pid}/cancel/'
+CANCEL_URL = lambda pid: f'/api/v2/admin/payments/{pid}/cancel/'
 
 
 def _make_payment(user, status=Payment.STATUS_PENDING, gateway_payment_id='MP-CAN-001'):
