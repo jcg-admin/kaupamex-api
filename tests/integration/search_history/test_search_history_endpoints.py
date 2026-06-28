@@ -8,8 +8,8 @@ from django.contrib.auth import get_user_model
 pytestmark = pytest.mark.integration
 
 
-LIST_URL   = '/api/v1/search/history/'
-DETAIL_URL = lambda pk: f'/api/v1/search/history/{pk}/'
+LIST_URL   = '/api/v2/search/history/'
+DETAIL_URL = lambda pk: f'/api/v2/search/history/{pk}/'
 
 
 @pytest.fixture

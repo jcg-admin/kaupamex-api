@@ -59,7 +59,7 @@ urlpatterns = [
     path('api/v1/admin/',     include('apps.static_content.admin_urls', namespace='admin_static_content')),
     path('api/v1/products/',  include('apps.reviews.urls',              namespace='reviews')),
     path('api/v1/admin/',     include('apps.reviews.admin_urls',        namespace='admin_reviews')),
-    path('api/v1/search/',    include('apps.search_history.urls',       namespace='search_history')),
+    path('api/v2/search/',    include('apps.search_history.urls',       namespace='search_history_v2')),
     path('api/v1/admin/',     include('apps.backups.admin_urls',        namespace='admin_backups')),
     path('api/v1/admin/',     include('apps.payments.admin_urls',       namespace='admin_payments')),
 

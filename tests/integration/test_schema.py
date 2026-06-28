@@ -255,7 +255,7 @@ class TestSchemaReviewsQuestions:
     T-005: Endpoints de reviews, preguntas e historial de búsqueda.
 
     Todos montados bajo /api/v1/products/ con product_id int.
-    Search history montado bajo /api/v1/search/.
+    Search history montado bajo /api/v2/search/.
     """
     pytestmark = pytest.mark.schema
 
@@ -272,10 +272,10 @@ class TestSchemaReviewsQuestions:
         assert '/api/v1/products/{product_id}/questions/' in self._paths(api_client, db)
 
     def test_search_history_en_schema(self, api_client, db):
-        assert '/api/v1/search/history/' in self._paths(api_client, db)
+        assert '/api/v2/search/history/' in self._paths(api_client, db)
 
     def test_search_history_detail_en_schema(self, api_client, db):
-        assert '/api/v1/search/history/{id}/' in self._paths(api_client, db)
+        assert '/api/v2/search/history/{id}/' in self._paths(api_client, db)
 
 
 class TestSchemaInventoryLogisticsVoucher:
