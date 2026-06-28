@@ -40,7 +40,7 @@ urlpatterns = [
     # --- API v1 — voucher, referral, wishlist, payments ---
     path('api/v1/admin/',     include('apps.voucher.urls',     namespace='admin_voucher')),
     path('api/v1/account/',   include('apps.referral.urls',    namespace='referral')),
-    path('api/v1/wishlist/',  include('apps.wishlist.urls',    namespace='wishlist')),
+    path('api/v2/wishlist/',  include('apps.wishlist.urls',    namespace='wishlist_v2')),
     path('api/v1/payments/', include('apps.payments.urls',     namespace='payments')),
     path('api/v1/checkout/', include('apps.payments.checkout_urls')),
 

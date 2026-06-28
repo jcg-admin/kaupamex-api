@@ -157,13 +157,13 @@ class TestSchemaCartWishlist:
         assert '/api/v2/cart/voucher/' in self._paths(api_client, db)
 
     def test_wishlist_en_schema(self, api_client, db):
-        assert '/api/v1/wishlist/' in self._paths(api_client, db)
+        assert '/api/v2/wishlist/' in self._paths(api_client, db)
 
     def test_wishlist_item_en_schema(self, api_client, db):
-        assert '/api/v1/wishlist/{id}/' in self._paths(api_client, db)
+        assert '/api/v2/wishlist/{id}/' in self._paths(api_client, db)
 
     def test_wishlist_move_to_cart_en_schema(self, api_client, db):
-        assert '/api/v1/wishlist/{id}/move-to-cart/' in self._paths(api_client, db)
+        assert '/api/v2/wishlist/{id}/move-to-cart/' in self._paths(api_client, db)
 
 
 class TestSchemaOrdersPayments:

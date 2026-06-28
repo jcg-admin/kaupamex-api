@@ -20,7 +20,7 @@ from apps.chartsize.models import VariantType, VariantOption, ProductVariant
 from apps.wishlist.models import WishlistItem
 pytestmark = pytest.mark.integration
 
-WISH_URL = '/api/v1/wishlist/'
+WISH_URL = '/api/v2/wishlist/'
 
 
 @pytest.fixture
