@@ -16,7 +16,7 @@ from apps.settings_app.models import SiteSettings
 
 pytestmark = pytest.mark.integration
 
-BASE = '/api/v1/admin/reports/'
+BASE = '/api/v2/admin/reports/'
 
 CATALOG_BY_CATEGORY_COLUMNS = {
     'category_id', 'category', 'category_slug',

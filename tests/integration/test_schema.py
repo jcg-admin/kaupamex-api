@@ -391,10 +391,10 @@ class TestSchemaAdminEndpoints:
         assert '/api/v2/admin/reviews/{id}/approve/' in self._paths(api_client, db)
 
     def test_admin_reports_sales_en_schema(self, api_client, db):
-        assert '/api/v1/admin/reports/sales/' in self._paths(api_client, db)
+        assert '/api/v2/admin/reports/sales/' in self._paths(api_client, db)
 
     def test_admin_reports_dashboard_en_schema(self, api_client, db):
-        assert '/api/v1/admin/reports/dashboard/' in self._paths(api_client, db)
+        assert '/api/v2/admin/reports/dashboard/' in self._paths(api_client, db)
 
     def test_admin_settings_en_schema(self, api_client, db):
         assert '/api/v2/admin/settings/' in self._paths(api_client, db)

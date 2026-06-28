@@ -62,13 +62,16 @@ urlpatterns = [
     # --- API v2 — Questions (M-12) ---
     path('api/v2/products/',  include('apps.questions.urls',            namespace='questions_v2')),
     path('api/v2/admin/',     include('apps.questions.admin_urls',      namespace='admin_questions_v2')),
-    path('api/v1/admin/',     include('apps.reports.admin_urls',        namespace='admin_reports')),
-    path('api/v1/admin/',     include('apps.static_content.admin_urls', namespace='admin_static_content')),
+    # --- API v2 — Reports (M-17; DEC-DBR-02: catch-all last) ---
+    path('api/v2/admin/',     include('apps.reports.admin_urls',        namespace='admin_reports_v2')),
+    # --- API v2 — Static content (M-18) ---
+    path('api/v2/admin/',     include('apps.static_content.admin_urls', namespace='admin_static_content_v2')),
     # --- API v2 — Reviews (M-13) ---
     path('api/v2/products/',  include('apps.reviews.urls',              namespace='reviews_v2')),
     path('api/v2/admin/',     include('apps.reviews.admin_urls',        namespace='admin_reviews_v2')),
     path('api/v2/search/',    include('apps.search_history.urls',       namespace='search_history_v2')),
-    path('api/v1/admin/',     include('apps.backups.admin_urls',        namespace='admin_backups')),
+    # --- API v2 — Backups (M-19) ---
+    path('api/v2/admin/',     include('apps.backups.admin_urls',        namespace='admin_backups_v2')),
 
     # --- API v1 — logistics webhook (DEC-V2-02: stays on v1 FOREVER) ---
     path('api/v1/logistics/', include('apps.logistics.webhook_urls')),
