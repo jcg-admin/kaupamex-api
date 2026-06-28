@@ -325,7 +325,7 @@ class TestShippingMethodProtection:
             order=o, recipient_name='Test', street='St',
             city='CDMX', state='CMX', zip_code='06600'
         )
-        res = admin_client.delete(f'/api/v1/admin/shipping-methods/{shipping.pk}/')
+        res = admin_client.delete(f'/api/v2/admin/shipping-methods/{shipping.pk}/')
         assert res.status_code == 400
         assert res.json()['codigo_error'] == 'METHOD_WITH_ACTIVE_ORDERS'
 

@@ -52,7 +52,7 @@ class TestSchemaEndpoint:
     def test_schema_contiene_endpoint_config(self, api_client, db):
         r = api_client.get('/api/schema/?format=json')
         paths = r.json()['paths']
-        assert '/api/v1/config/settings/' in paths
+        assert '/api/v2/config/settings/' in paths
 
     def test_schema_register_tiene_request_body(self, api_client, db):
         r = api_client.get('/api/schema/?format=json')
@@ -61,7 +61,7 @@ class TestSchemaEndpoint:
 
     def test_schema_config_settings_patch_tiene_request(self, api_client, db):
         r = api_client.get('/api/schema/?format=json')
-        settings = r.json()['paths']['/api/v1/config/settings/']['patch']
+        settings = r.json()['paths']['/api/v2/config/settings/']['patch']
         assert 'requestBody' in settings
 
     def test_schema_tiene_esquema_jwt(self, api_client, db):
@@ -397,7 +397,7 @@ class TestSchemaAdminEndpoints:
         assert '/api/v1/admin/reports/dashboard/' in self._paths(api_client, db)
 
     def test_admin_settings_en_schema(self, api_client, db):
-        assert '/api/v1/admin/settings/' in self._paths(api_client, db)
+        assert '/api/v2/admin/settings/' in self._paths(api_client, db)
 
     def test_admin_questions_en_schema(self, api_client, db):
         assert '/api/v2/admin/questions/' in self._paths(api_client, db)

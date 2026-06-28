@@ -19,8 +19,8 @@ pytestmark = pytest.mark.integration
 
 INV_URL      = '/api/v2/admin/inventory/'
 ALERTS_URL   = '/api/v2/admin/inventory/alerts/'
-SETTINGS_URL = '/api/v1/config/settings/'
-PAGES_URL    = '/api/v1/admin/pages/'
+SETTINGS_URL = '/api/v2/config/settings/'
+PAGES_URL    = '/api/v2/admin/pages/'
 
 
 @pytest.fixture
