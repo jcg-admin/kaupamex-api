@@ -264,10 +264,10 @@ class TestSchemaReviewsQuestions:
         return api_client.get('/api/schema/?format=json').json()['paths']
 
     def test_product_reviews_en_schema(self, api_client, db):
-        assert '/api/v1/products/{product_id}/reviews/' in self._paths(api_client, db)
+        assert '/api/v2/products/{product_id}/reviews/' in self._paths(api_client, db)
 
     def test_product_review_helpful_en_schema(self, api_client, db):
-        assert '/api/v1/products/{product_id}/reviews/{id}/helpful/' in self._paths(api_client, db)
+        assert '/api/v2/products/{product_id}/reviews/{id}/helpful/' in self._paths(api_client, db)
 
     def test_product_questions_en_schema(self, api_client, db):
         assert '/api/v2/products/{product_id}/questions/' in self._paths(api_client, db)
@@ -385,10 +385,10 @@ class TestSchemaAdminEndpoints:
         assert '/api/v2/admin/orders/{order_number}/' in self._paths(api_client, db)
 
     def test_admin_reviews_en_schema(self, api_client, db):
-        assert '/api/v1/admin/reviews/' in self._paths(api_client, db)
+        assert '/api/v2/admin/reviews/' in self._paths(api_client, db)
 
     def test_admin_review_approve_en_schema(self, api_client, db):
-        assert '/api/v1/admin/reviews/{id}/approve/' in self._paths(api_client, db)
+        assert '/api/v2/admin/reviews/{id}/approve/' in self._paths(api_client, db)
 
     def test_admin_reports_sales_en_schema(self, api_client, db):
         assert '/api/v1/admin/reports/sales/' in self._paths(api_client, db)

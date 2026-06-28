@@ -15,12 +15,12 @@ import pytest
 pytestmark = pytest.mark.integration
 
 
-PRODUCT_REVIEWS_URL = lambda pid: f'/api/v1/products/{pid}/reviews/'
-ADMIN_QUEUE_URL     = '/api/v1/admin/reviews/'
-APPROVE_URL         = lambda pk: f'/api/v1/admin/reviews/{pk}/approve/'
-REJECT_URL          = lambda pk: f'/api/v1/admin/reviews/{pk}/reject/'
-HELPFUL_URL         = lambda pid, pk: f'/api/v1/products/{pid}/reviews/{pk}/helpful/'
-EDIT_URL            = lambda pid, pk: f'/api/v1/products/{pid}/reviews/{pk}/edit/'
+PRODUCT_REVIEWS_URL = lambda pid: f'/api/v2/products/{pid}/reviews/'
+ADMIN_QUEUE_URL     = '/api/v2/admin/reviews/'
+APPROVE_URL         = lambda pk: f'/api/v2/admin/reviews/{pk}/approve/'
+REJECT_URL          = lambda pk: f'/api/v2/admin/reviews/{pk}/reject/'
+HELPFUL_URL         = lambda pid, pk: f'/api/v2/products/{pid}/reviews/{pk}/helpful/'
+EDIT_URL            = lambda pid, pk: f'/api/v2/products/{pid}/reviews/{pk}/edit/'
 
 
 @pytest.fixture
@@ -730,7 +730,7 @@ class TestBuyerEditReview:
         assert r.json()['codigo_error'] == 'REVIEW_NOT_EDITABLE'
 
 
-IMAGES_URL = lambda pid, pk: f'/api/v1/products/{pid}/reviews/{pk}/images/'
+IMAGES_URL = lambda pid, pk: f'/api/v2/products/{pid}/reviews/{pk}/images/'
 
 
 def _make_png():

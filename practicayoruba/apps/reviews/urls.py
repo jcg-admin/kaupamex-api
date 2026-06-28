@@ -8,7 +8,7 @@ from .views import (
 )
 
 
-app_name = 'reviews'
+app_name = 'reviews_v2'
 
 urlpatterns = [
     path('<int:product_id>/reviews/',

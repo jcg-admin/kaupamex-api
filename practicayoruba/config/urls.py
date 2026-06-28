@@ -63,8 +63,9 @@ urlpatterns = [
     path('api/v2/admin/',     include('apps.questions.admin_urls',      namespace='admin_questions_v2')),
     path('api/v1/admin/',     include('apps.reports.admin_urls',        namespace='admin_reports')),
     path('api/v1/admin/',     include('apps.static_content.admin_urls', namespace='admin_static_content')),
-    path('api/v1/products/',  include('apps.reviews.urls',              namespace='reviews')),
-    path('api/v1/admin/',     include('apps.reviews.admin_urls',        namespace='admin_reviews')),
+    # --- API v2 — Reviews (M-13) ---
+    path('api/v2/products/',  include('apps.reviews.urls',              namespace='reviews_v2')),
+    path('api/v2/admin/',     include('apps.reviews.admin_urls',        namespace='admin_reviews_v2')),
     path('api/v2/search/',    include('apps.search_history.urls',       namespace='search_history_v2')),
     path('api/v1/admin/',     include('apps.backups.admin_urls',        namespace='admin_backups')),
 

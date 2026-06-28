@@ -5,7 +5,7 @@ from django.urls import path
 from .views import ReviewAdminListView, ReviewApproveView, ReviewRejectView
 
 
-app_name = 'admin_reviews'
+app_name = 'admin_reviews_v2'
 
 urlpatterns = [
     path('reviews/',              ReviewAdminListView.as_view(),
