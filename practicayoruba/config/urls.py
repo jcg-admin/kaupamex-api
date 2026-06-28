@@ -41,8 +41,9 @@ urlpatterns = [
     path('api/v1/admin/',     include('apps.voucher.urls',     namespace='admin_voucher')),
     path('api/v2/account/',   include('apps.referral.urls',    namespace='referral_v2')),
     path('api/v2/wishlist/',  include('apps.wishlist.urls',    namespace='wishlist_v2')),
-    path('api/v1/payments/', include('apps.payments.urls',     namespace='payments')),
-    path('api/v1/checkout/', include('apps.payments.checkout_urls')),
+    # DEC-V2-02: webhooks stay on v1 forever
+    path('api/v1/payments/', include('apps.payments.webhook_urls')),
+    path('api/v2/checkout/', include('apps.payments.checkout_urls')),
 
     # --- API v1 — catalogue (chartsize + browse_product only; main catalogue moved to v2) ---
     path('api/v1/catalogue/', include('apps.chartsize.urls',   namespace='chartsize')),

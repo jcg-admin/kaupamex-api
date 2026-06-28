@@ -20,9 +20,9 @@ from apps.cart.models import CartItem
 pytestmark = pytest.mark.integration
 
 INITIATE_URL    = '/api/v1/payments/initiate/'
-INSTALLMENT_URL = '/api/v1/payments/installments/'
-ELIGIBILITY_URL = '/api/v1/checkout/eligibility/'
-EXPRESS_URL     = '/api/v1/checkout/express/'
+INSTALLMENT_URL = '/api/v2/payments/installments/'
+ELIGIBILITY_URL = '/api/v2/checkout/eligibility/'
+EXPRESS_URL     = '/api/v2/checkout/express/'
 
 
 # =============================================================================
@@ -267,7 +267,7 @@ class TestIniciarPago:
             'order_number': orden_pendiente.order_number,
         }, format='json')
 
-        return_url = f'/api/v1/payments/{orden_pendiente.order_number}/return/'
+        return_url = f'/api/v2/payments/{orden_pendiente.order_number}/return/'
         res = auth_client.get(return_url, {
             'status': 'approved',
             'payment_id': '12345678',
@@ -284,7 +284,7 @@ class TestIniciarPago:
             'order_number': orden_pendiente.order_number,
         }, format='json')
 
-        return_url = f'/api/v1/payments/{orden_pendiente.order_number}/return/'
+        return_url = f'/api/v2/payments/{orden_pendiente.order_number}/return/'
         auth_client.get(return_url, {'status': 'pending'})
 
         payment = Payment.objects.get(order=orden_pendiente)

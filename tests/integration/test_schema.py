@@ -172,8 +172,8 @@ class TestSchemaOrdersPayments:
 
     H-SCHEMA-02: El checkout principal (UC-ORD-01) está en
     /api/v2/orders/checkout/ (apps.orders.urls). El prefijo
-    /api/v1/checkout/ corresponde a apps.payments.checkout_urls
-    que solo tiene eligibility y express (UC-ORD-01-EXT).
+    /api/v2/checkout/ corresponde a apps.payments.checkout_urls
+    que solo tiene eligibility y express (UC-ORD-01-EXT, M-10).
 
     Orders usan <str:order_number> — schema genera {order_number}.
     Payments usan <str:order_number> — schema genera {order_number}.
@@ -197,17 +197,18 @@ class TestSchemaOrdersPayments:
         assert '/api/v2/orders/{order_number}/cancellations/' in self._paths(api_client, db)
 
     def test_checkout_express_en_schema(self, api_client, db):
-        # H-SCHEMA-02: checkout express en /api/v1/checkout/ (checkout_urls)
-        assert '/api/v1/checkout/express/' in self._paths(api_client, db)
+        # H-SCHEMA-02: checkout express en /api/v2/checkout/ (M-10)
+        assert '/api/v2/checkout/express/' in self._paths(api_client, db)
 
     def test_payments_initiate_en_schema(self, api_client, db):
+        # Legacy initiate (redirect flow) stays on v1 until v1 sunset
         assert '/api/v1/payments/initiate/' in self._paths(api_client, db)
 
     def test_payments_status_en_schema(self, api_client, db):
-        assert '/api/v1/payments/{order_number}/status/' in self._paths(api_client, db)
+        assert '/api/v2/payments/{order_number}/status/' in self._paths(api_client, db)
 
     def test_payments_history_en_schema(self, api_client, db):
-        assert '/api/v1/payments/{order_number}/history/' in self._paths(api_client, db)
+        assert '/api/v2/payments/{order_number}/history/' in self._paths(api_client, db)
 
 
 class TestSchemaCatalogue:
