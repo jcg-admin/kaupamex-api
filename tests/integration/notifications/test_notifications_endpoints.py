@@ -2,16 +2,16 @@
 Tests — Notifications endpoints (UC-NOT-01..07)
 
 Reads:
-  GET  /api/v1/notifications/                    list
-  GET  /api/v1/notifications/unread-count/       unread count
-  GET  /api/v1/notifications/preferences/        list preferences
-  GET  /api/v1/admin/notifications/audience-count/ audience size
+  GET  /api/v2/notifications/                    list
+  GET  /api/v2/notifications/unread-count/       unread count
+  GET  /api/v2/notifications/preferences/        list preferences
+  GET  /api/v2/admin/notifications/audience-count/ audience size
 
 Mutations:
-  POST /api/v1/notifications/{id}/read/          mark one as read
-  POST /api/v1/notifications/read-all/           mark all as read
-  PUT  /api/v1/notifications/preferences/        update preferences
-  POST /api/v1/admin/notifications/manual/       send manual
+  POST /api/v2/notifications/{id}/read/          mark one as read
+  POST /api/v2/notifications/read-all/           mark all as read
+  PUT  /api/v2/notifications/preferences/        update preferences
+  POST /api/v2/admin/notifications/manual/       send manual
 
 JSON keys + identifiers in English (DEC-DOC-005).
 """
@@ -20,12 +20,12 @@ from apps.notifications.models import Notification, NotificationPreference
 
 pytestmark = pytest.mark.integration
 
-LIST_URL = '/api/v1/notifications/'
-UNREAD_COUNT_URL = '/api/v1/notifications/unread-count/'
-READ_ALL_URL = '/api/v1/notifications/read-all/'
-PREFERENCES_URL = '/api/v1/notifications/preferences/'
-ADMIN_AUDIENCE_URL = '/api/v1/admin/notifications/audience-count/'
-ADMIN_MANUAL_URL = '/api/v1/admin/notifications/manual/'
+LIST_URL = '/api/v2/notifications/'
+UNREAD_COUNT_URL = '/api/v2/notifications/unread-count/'
+READ_ALL_URL = '/api/v2/notifications/read-all/'
+PREFERENCES_URL = '/api/v2/notifications/preferences/'
+ADMIN_AUDIENCE_URL = '/api/v2/admin/notifications/audience-count/'
+ADMIN_MANUAL_URL = '/api/v2/admin/notifications/manual/'
 
 
 # ─── helpers ─────────────────────────────────────────────────────────────

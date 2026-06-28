@@ -3,7 +3,7 @@ from django.urls import path
 from .views import NotificationListView, NotificationMarkAllReadView, NotificationMarkReadView, NotificationPreferencesView, NotificationUnreadCountView
 
 
-app_name = 'notifications'
+app_name = 'notifications_v2'
 
 urlpatterns = [
     path('',

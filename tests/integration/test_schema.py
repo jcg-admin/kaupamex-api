@@ -354,7 +354,7 @@ class TestSchemaSupportReturnsNewsletter:
         assert '/api/v2/newsletter/confirm/{token}/' in self._paths(api_client, db)
 
     def test_notifications_en_schema(self, api_client, db):
-        assert '/api/v1/notifications/' in self._paths(api_client, db)
+        assert '/api/v2/notifications/' in self._paths(api_client, db)
 
 
 class TestSchemaAdminEndpoints:
