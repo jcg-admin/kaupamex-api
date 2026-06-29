@@ -1,12 +1,9 @@
+"""Public browse URLs — apps.catalogue (search endpoint, M-06 Fase 2)."""
 from django.urls import path
-from .browse_views import CatalogueSearchView, CategoryTreeView
-
+from .browse_views import CatalogueSearchView
 
 app_name = 'catalogue_browse_public'
 
 urlpatterns = [
-    path('categories/',        CategoryTreeView.as_view(),
-         name='categories'),
-    path('catalogue/search/',  CatalogueSearchView.as_view(),
-         name='catalogue-search'),
+    path('catalogue/search/', CatalogueSearchView.as_view(), name='catalogue-search'),
 ]

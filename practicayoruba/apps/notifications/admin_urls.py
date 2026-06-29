@@ -3,7 +3,7 @@ from django.urls import path
 from .views import AdminAudienceCountView, AdminManualNotificationCreateView
 
 
-app_name = 'admin_notifications'
+app_name = 'admin_notifications_v2'
 
 urlpatterns = [
     path('notifications/audience-count/',

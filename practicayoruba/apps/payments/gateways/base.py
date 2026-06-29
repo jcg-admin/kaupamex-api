@@ -42,6 +42,28 @@ class RefundResult:
     amount:    Decimal
 
 
+@dataclass
+class PaymentResult:
+    """Resultado de crear un pago con Checkout API (respuesta síncrona).
+
+    A diferencia de PreferenceResult (Checkout Pro), aquí el estado
+    del pago se conoce de inmediato: no hay redirección ni webhook posterior.
+
+    Campos para métodos no-tarjeta (OXXO, SPEI, cajero):
+      external_resource_url — URL del voucher/barcode (OXXO, Paycash, cajeros)
+      date_of_expiration    — fecha límite de pago ISO-8601 (OXXO, SPEI, cajeros)
+      transaction_data      — dict con CLABE (SPEI) o datos de barcode (ATM/OXXO)
+    """
+    gateway_payment_id: str
+    status:             str   # 'approved' | 'rejected' | 'pending' | 'in_process'
+    status_detail:      str   # 'accredited' | 'cc_rejected_*' | etc.
+    amount:             Decimal
+    installments:       int = 1
+    external_resource_url: str = ''
+    date_of_expiration:    str = ''
+    transaction_data:      dict = None
+
+
 class BaseGateway(ABC):
     """
     Interfaz abstracta del Strategy Pattern para gateways de pago.
@@ -90,6 +112,37 @@ class BaseGateway(ABC):
         :param amount: monto de la orden
         :returns: lista de InstallmentPlan (vacía si no hay planes)
         """
+
+    def create_payment(
+        self,
+        order,
+        token: str,
+        installments: int = 1,
+        payment_method_id: str = '',
+        issuer_id: str = '',
+        payer_email: str = '',
+        payer_identification_type: str = '',
+        payer_identification_number: str = '',
+    ) -> 'PaymentResult':
+        """
+        Crea un pago con Checkout API (pago en sitio, sin redirección).
+        ADR-018: solo MercadoPagoGateway implementa este método.
+        PayPalGateway usa create_preference() (Checkout Pro con redirección).
+
+        :param order: instancia Order en estado PENDING
+        :param token: token de CardForm de MercadoPago.js (caduca en 7 min)
+        :param installments: número de cuotas (1 = contado)
+        :param payment_method_id: brand/tipo de tarjeta ('visa', 'master', …)
+        :param issuer_id: ID del banco emisor (mejora tasa de aprobación)
+        :param payer_email: email del pagador
+        :param payer_identification_type: tipo de doc ('CURP', 'RFC', …)
+        :param payer_identification_number: número de documento
+        :raises NotImplementedError: si el gateway no soporta Checkout API
+        """
+        raise NotImplementedError(
+            f'{self.__class__.__name__} no soporta Checkout API. '
+            'Usa create_preference() para pagos con redirección (Checkout Pro).'
+        )
 
     @abstractmethod
     def verify_payment(

@@ -1,15 +1,15 @@
 """
 Tests — Backup on-demand admin (UC-ADM-05).
 
-  GET  /api/v2/admin/backups/          AdminBackupListView
-  POST /api/v2/admin/backups/trigger/  AdminBackupTriggerView
+  GET  /api/v2/admin/backups/  AdminBackupListView (historial)
+  POST /api/v2/admin/backups/  AdminBackupListView (trigger on-demand)
 
 Cubre: permisos (anon 401, comprador 403), listado/estado, creacion del
 BackupRecord (status PENDING), lock de concurrencia (segundo trigger ->
 409 BACKUP_IN_PROGRESS), la logica del worker _run_backup (OK / ERROR), y
 la notificacion email-on-fail (_notify_backup_failed).
 
-El POST trigger lanza _run_backup en un thread daemon. Para mantener los
+El POST lanza _run_backup en un thread daemon. Para mantener los
 tests deterministas, el worker (_run_backup) y la alerta se prueban
 directamente; el endpoint se prueba parcheando _run_backup para no tocar
 el script real ni la BD desde el thread.
@@ -25,7 +25,7 @@ from apps.backups.models import BackupRecord
 pytestmark = pytest.mark.integration
 
 LIST_URL    = '/api/v2/admin/backups/'
-TRIGGER_URL = '/api/v2/admin/backups/trigger/'
+TRIGGER_URL = '/api/v2/admin/backups/'
 
 
 @pytest.fixture(autouse=True)

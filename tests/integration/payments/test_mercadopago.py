@@ -10,6 +10,7 @@ import uuid
 import pytest
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
+from decouple import config
 from apps.catalogue.models import Category, Product
 from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress, ShippingZone
 from apps.settings_app.models import PaymentGateway, ShippingMethod
@@ -19,7 +20,7 @@ from apps.cart.models import CartItem
 
 pytestmark = pytest.mark.integration
 
-INITIATE_URL    = '/api/v2/payments/initiate/'
+INITIATE_URL    = '/api/v1/payments/initiate/'
 INSTALLMENT_URL = '/api/v2/payments/installments/'
 ELIGIBILITY_URL = '/api/v2/checkout/eligibility/'
 EXPRESS_URL     = '/api/v2/checkout/express/'
@@ -79,8 +80,8 @@ def mp_gateway_activo(db, admin_user):
         is_active=True,
     )
     gw.set_credentials({
-        'access_token': 'TEST-ACCESS-TOKEN-FAKE',
-        'public_key':   'TEST-PUBLIC-KEY-FAKE',
+        'access_token': config('MP_TEST_ACCESS_TOKEN', default='TEST-ACCESS-TOKEN-FAKE'),
+        'public_key':   config('MP_TEST_PUBLIC_KEY',   default='TEST-PUBLIC-KEY-FAKE'),
     })
     gw.save()
     return gw

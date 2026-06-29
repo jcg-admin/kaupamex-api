@@ -10,7 +10,7 @@ from django.urls import path
 from .views import CatalogByCategoryReportView, CatalogSummaryReportView, CustomersRFMReportView, DashboardReportView, ExportDownloadView, ExportJobStatusView, LowStockReportView, ReportExportView, SalesReportView, TopSellersReportView
 
 
-app_name = 'admin_reports'
+app_name = 'admin_reports_v2'
 
 urlpatterns = [
     path('reports/sales/',

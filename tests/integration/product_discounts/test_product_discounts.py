@@ -279,7 +279,9 @@ class TestEditProductDiscount:
 class TestDeactivateProductDiscount:
 
     def test_deactivate_returns_200(self, admin_client, current_discount):
-        res = admin_client.post(f'{URL}{current_discount.pk}/deactivate/')
+        res = admin_client.patch(
+            f'{URL}{current_discount.pk}/', {'active': False}, format='json'
+        )
         assert res.status_code == 200
         body = res.json()
         assert body['is_active'] is False
@@ -291,20 +293,24 @@ class TestDeactivateProductDiscount:
     def test_deactivate_already_inactive_returns_409(self, admin_client, current_discount):
         current_discount.is_active = False
         current_discount.save()
-        res = admin_client.post(f'{URL}{current_discount.pk}/deactivate/')
+        res = admin_client.patch(
+            f'{URL}{current_discount.pk}/', {'active': False}, format='json'
+        )
         assert res.status_code == 409
         assert res.json()['codigo_error'] == 'DISCOUNT_ALREADY_INACTIVE'
 
     def test_deactivate_unknown_returns_404(self, admin_client, db):
-        res = admin_client.post(f'{URL}999999/deactivate/')
+        res = admin_client.patch(f'{URL}999999/', {'active': False}, format='json')
         assert res.status_code == 404
 
     def test_deactivate_requires_admin(self, auth_client, current_discount):
-        res = auth_client.post(f'{URL}{current_discount.pk}/deactivate/')
+        res = auth_client.patch(
+            f'{URL}{current_discount.pk}/', {'active': False}, format='json'
+        )
         assert res.status_code in (401, 403)
 
     def test_after_deactivate_can_create_new(self, admin_client, current_discount, product):
-        admin_client.post(f'{URL}{current_discount.pk}/deactivate/')
+        admin_client.patch(f'{URL}{current_discount.pk}/', {'active': False}, format='json')
         res = admin_client.post(URL, {
             'product_id': product.pk,
             'discount_pct': '5.00',

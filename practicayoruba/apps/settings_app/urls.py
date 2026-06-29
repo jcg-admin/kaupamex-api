@@ -6,7 +6,7 @@ Sprint 8: /api/v1/admin/gateways/ y /api/v1/admin/shipping-methods/
 from django.urls import path
 from .views import SiteSettingsView, PublicSiteSettingsView
 
-app_name = 'settings_app'
+app_name = 'settings_app_v2'
 
 urlpatterns = [
     path('settings/', SiteSettingsView.as_view(), name='site-settings'),

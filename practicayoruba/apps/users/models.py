@@ -69,6 +69,11 @@ class User(AbstractUser):
         verbose_name='Fecha de desactivacion',
         help_text='Timestamp del cambio is_active True -> False.',
     )
+    mp_customer_id = models.CharField(
+        max_length=100, blank=True, default='',
+        verbose_name='ID cliente MercadoPago',
+        help_text='ID del customer en MP para guardar tarjetas. BR-009.',
+    )
 
     class Meta:
         db_table = 'users_user'

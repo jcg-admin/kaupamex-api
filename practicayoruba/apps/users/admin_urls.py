@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .admin_views import AdminUserViewSet, AuditLogView
 
-app_name = 'admin_users'
+app_name = 'admin_users_v2'
 
 router = DefaultRouter()
 router.register(r'users', AdminUserViewSet, basename='admin-user')
