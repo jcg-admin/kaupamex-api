@@ -1,40 +1,51 @@
 """Admin URLs — apps.inventory (Sprint 10 + UI contract 2026-05)."""
 from django.urls import path
 from .views import (
-    InventoryDashboardView, StockAdjustView, VariantStockAdjustView,
-    VariantRestockView, VariantMovementsView, ZeroStockCheckView,
-    StockAlertListView, StockAlertResolveView,
-    ProductImportView, ProductImportStatusView, ProductImportReportView,
+    InventoryDashboardView,
+    VariantMovementsView,
+    StockAlertListView,
+    StockAdjustV2View,
+    VariantStockV2View,
+    VariantRestocksV2View,
+    StockAlertStatusV2View,
+    ZeroStockCheckView,
+    ProductImportView,
+    ProductImportStatusView,
+    ProductImportReportView,
 )
 
 app_name = 'admin_inventory'
 
 urlpatterns = [
+    # ─── Read-only / dashboard ───────────────────────────────────────────────
     path('inventory/',
          InventoryDashboardView.as_view(), name='dashboard'),
     path('inventory/alerts/',
          StockAlertListView.as_view(), name='alert-list'),
-    path('inventory/alerts/<int:pk>/resolve/',
-         StockAlertResolveView.as_view(), name='alert-resolve'),
-
-    # URLs específicas de variante (UI contract UC-INV-02..04)
-    # — DEBEN ir antes del <int:product_pk> catch para no chocar.
-    path('inventory/variants/<int:variant_pk>/zero-stock-check/',
-         ZeroStockCheckView.as_view(), name='variant-zero-stock-check'),
-    path('inventory/variants/<int:variant_pk>/adjust/',
-         VariantStockAdjustView.as_view(), name='variant-adjust'),
-    path('inventory/variants/<int:variant_pk>/restock/',
-         VariantRestockView.as_view(), name='variant-restock'),
     path('inventory/variants/<int:variant_pk>/movements/',
          VariantMovementsView.as_view(), name='variant-movements'),
 
-    path('inventory/<int:product_pk>/adjust/',
-         StockAdjustView.as_view(), name='product-adjust'),
-    path('inventory/import/',
-         ProductImportView.as_view(), name='product-import'),
-    path('inventory/import/<str:job_id>/',
-         ProductImportStatusView.as_view(), name='product-import-status'),
-    # D-006 — UC-INV-05 Alt C: descarga CSV del error_report.
+    # ─── v2 canonical: imports ───────────────────────────────────────────────
+    path('inventory/imports/',
+         ProductImportView.as_view(), name='inventory-imports'),
+    path('inventory/imports/<str:job_id>/',
+         ProductImportStatusView.as_view(), name='inventory-import-status'),
     path('inventory/import-reports/<str:report_id>.csv',
-         ProductImportReportView.as_view(), name='product-import-report'),
+         ProductImportReportView.as_view(), name='inventory-import-report'),
+
+    # ─── v2 canonical: alert status ──────────────────────────────────────────
+    path('inventory/alerts/<int:pk>/',
+         StockAlertStatusV2View.as_view(), name='alert-status'),
+
+    # ─── v2 canonical: variant-specific (more specific before generic) ───────
+    path('inventory/variants/<int:variant_pk>/zero-stock/',
+         ZeroStockCheckView.as_view(), name='variant-zero-stock'),
+    path('inventory/variants/<int:variant_pk>/restocks/',
+         VariantRestocksV2View.as_view(), name='variant-restocks'),
+    path('inventory/variants/<int:variant_pk>/',
+         VariantStockV2View.as_view(), name='variant-adjust'),
+
+    # ─── v2 canonical: product adjust ────────────────────────────────────────
+    path('inventory/<int:product_pk>/',
+         StockAdjustV2View.as_view(), name='product-adjust'),
 ]

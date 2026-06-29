@@ -14,8 +14,8 @@ from apps.inventory.services import InventoryService
 
 pytestmark = pytest.mark.integration
 
-INV_VARIANT_ADJUST_URL = '/api/v2/admin/inventory/variants/{pk}/adjust/'
-INV_PRODUCT_ADJUST_URL = '/api/v2/admin/inventory/{pk}/adjust/'
+INV_VARIANT_ADJUST_URL = '/api/v2/admin/inventory/variants/{pk}/'
+INV_PRODUCT_ADJUST_URL = '/api/v2/admin/inventory/{pk}/'
 
 
 @pytest.fixture
@@ -123,7 +123,7 @@ class TestStockBefore:
 
     def test_adjust_reason_en_respuesta_api(self, admin_client, active_product, db):
         url = INV_PRODUCT_ADJUST_URL.format(pk=active_product.pk)
-        resp = admin_client.post(url, {'delta': 1, 'reason': 'PHYSICAL_COUNT', 'notes': 'api test'}, format='json')
+        resp = admin_client.patch(url, {'delta': 1, 'reason': 'PHYSICAL_COUNT', 'notes': 'api test'}, format='json')
         assert resp.status_code == 201
         assert 'stock_before' in resp.data
         assert 'reason' in resp.data
@@ -150,7 +150,7 @@ class TestDescontinuadoAjuste:
         self, admin_client, inactive_product, db
     ):
         url = INV_PRODUCT_ADJUST_URL.format(pk=inactive_product.pk)
-        resp = admin_client.post(
+        resp = admin_client.patch(
             url, {'delta': -2, 'reason': 'DISCONTINUED', 'notes': 'ajuste DESCONTINUADO'}, format='json'
         )
         assert resp.status_code == 201
@@ -161,7 +161,7 @@ class TestDescontinuadoAjuste:
         self, admin_client, inactive_variant, active_product, db
     ):
         url = INV_VARIANT_ADJUST_URL.format(pk=inactive_variant.pk)
-        resp = admin_client.post(
+        resp = admin_client.patch(
             url,
             {'new_quantity': 1, 'reason': 'DISCONTINUED', 'observations': ''},
             format='json',

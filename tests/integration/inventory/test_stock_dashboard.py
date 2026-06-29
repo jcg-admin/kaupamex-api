@@ -102,7 +102,7 @@ class TestContenidoEstatico:
         assert res.status_code == 401
 
     def test_publicar_pagina_crea_version(self, admin_client, db):
-        res = admin_client.post(f'{PAGES_URL}about/publish/', {
+        res = admin_client.patch(f'{PAGES_URL}about/status/', {
             'content': '<h1>Sobre nosotros</h1><p>Yoruba desde 2024.</p>'
         }, format='json')
         assert res.status_code == 201
@@ -111,16 +111,16 @@ class TestContenidoEstatico:
         assert data['status'] == 'PUBLISHED'
 
     def test_segunda_publicacion_incrementa_version(self, admin_client, db):
-        admin_client.post(f'{PAGES_URL}about/publish/',
+        admin_client.patch(f'{PAGES_URL}about/status/',
             {'content': 'v1'}, format='json')
-        res = admin_client.post(f'{PAGES_URL}about/publish/',
+        res = admin_client.patch(f'{PAGES_URL}about/status/',
             {'content': 'v2'}, format='json')
         assert res.json()['version'] == 2
 
     def test_segunda_publicacion_archiva_anterior(self, admin_client, db):
-        admin_client.post(f'{PAGES_URL}terms/publish/',
+        admin_client.patch(f'{PAGES_URL}terms/status/',
             {'content': 'v1'}, format='json')
-        admin_client.post(f'{PAGES_URL}terms/publish/',
+        admin_client.patch(f'{PAGES_URL}terms/status/',
             {'content': 'v2'}, format='json')
         archived = StaticPageVersion.objects.filter(
             page__slug='terms', status='ARCHIVED'
@@ -128,15 +128,15 @@ class TestContenidoEstatico:
         assert archived.count() == 1
 
     def test_revertir_a_version_anterior(self, admin_client, db):
-        admin_client.post(f'{PAGES_URL}faq/publish/', {'content': 'v1'}, format='json')
-        admin_client.post(f'{PAGES_URL}faq/publish/', {'content': 'v2'}, format='json')
-        res = admin_client.post(f'{PAGES_URL}faq/versions/1/restore/')
+        admin_client.patch(f'{PAGES_URL}faq/status/', {'content': 'v1'}, format='json')
+        admin_client.patch(f'{PAGES_URL}faq/status/', {'content': 'v2'}, format='json')
+        res = admin_client.post(f'{PAGES_URL}faq/restorations/', {'version': 1}, format='json')
         assert res.status_code == 201
         assert res.json()['version'] == 3
         assert res.json()['status'] == 'PUBLISHED'
 
     def test_ver_pagina_con_version_actual(self, admin_client, db):
-        admin_client.post(f'{PAGES_URL}privacy/publish/',
+        admin_client.patch(f'{PAGES_URL}privacy/status/',
             {'content': 'Privacidad'}, format='json')
         res = admin_client.get(f'{PAGES_URL}privacy/')
         assert res.status_code == 200
@@ -282,8 +282,8 @@ class TestAjusteManual:
     def test_ajuste_producto_sin_variante(
         self, admin_client, product_s10, db
     ):
-        res = admin_client.post(
-            f'{INV_URL}{product_s10.pk}/adjust/',
+        res = admin_client.patch(
+            f'{INV_URL}{product_s10.pk}/',
             {'delta': 15, 'reason': 'PHYSICAL_COUNT', 'notes': 'Inventario físico'},
             format='json',
         )
@@ -294,8 +294,8 @@ class TestAjusteManual:
     def test_ajuste_variante(
         self, admin_client, product_s10, variant_s10, db
     ):
-        res = admin_client.post(
-            f'{INV_URL}variants/{variant_s10.pk}/adjust/',
+        res = admin_client.patch(
+            f'{INV_URL}variants/{variant_s10.pk}/',
             {'delta': 7, 'reason': 'PHYSICAL_COUNT'},
             format='json',
         )
@@ -306,8 +306,8 @@ class TestAjusteManual:
     def test_ajuste_stock_negativo_retorna_400(
         self, admin_client, product_s10, db
     ):
-        res = admin_client.post(
-            f'{INV_URL}{product_s10.pk}/adjust/',
+        res = admin_client.patch(
+            f'{INV_URL}{product_s10.pk}/',
             {'delta': -20, 'reason': 'PHYSICAL_COUNT'},
             format='json',
         )
