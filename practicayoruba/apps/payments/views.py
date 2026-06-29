@@ -18,9 +18,26 @@ from django.db.models import F, Q, Sum
 from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress, ShippingZone
 from apps.orders.proxy_models import DeliveredOrder
 from apps.voucher.models import Voucher, VoucherUsage
-from .models import Payment, Payment as PaymentModel, Refund, Chargeback
-from .serializers import InitiatePaymentSerializer, MercadoPagoInitiateSerializer, InitiatePaymentResponseSerializer, InstallmentPlansResponseSerializer, PaymentSerializer, AdminPaymentSerializer, PaymentReturnSerializer, CheckoutEligibilitySerializer, ExpressCheckoutSerializer, RefundRequestSerializer, RefundSerializer, AdminRefundSerializer, RetryEligibilitySerializer, PaymentStatusSerializer as PSS, RefundRequestSerializer as RRS, ChargebackSerializer
-from .services import initiate_payment, handle_gateway_return, get_installment_plans, get_payment_status, get_payment_history, execute_refund, get_retry_eligibility
+from .models import Payment, Payment as PaymentModel, Refund, Chargeback, SavedCard
+from .serializers import (
+    InitiatePaymentSerializer, MercadoPagoInitiateSerializer,
+    InitiatePaymentResponseSerializer, InstallmentPlansResponseSerializer,
+    PaymentSerializer, AdminPaymentSerializer, PaymentReturnSerializer,
+    CheckoutEligibilitySerializer, ExpressCheckoutSerializer,
+    RefundRequestSerializer, RefundSerializer, AdminRefundSerializer,
+    RetryEligibilitySerializer, PaymentStatusSerializer as PSS,
+    RefundRequestSerializer as RRS, ChargebackSerializer,
+    CheckoutApiPaymentSerializer, CheckoutApiResponseSerializer,
+    MpPublicKeySerializer, MpSaveCardSerializer, MpUpdateCardSerializer,
+    ZeroDollarAuthSerializer,
+)
+from .services import (
+    initiate_payment, handle_gateway_return, get_installment_plans,
+    get_payment_status, get_payment_history, execute_refund, get_retry_eligibility,
+    initiate_checkout_api_payment, get_mp_public_key, get_or_create_mp_customer,
+)
+from apps.notifications.emails import send_card_verification_email
+from .gateways.mercadopago import MercadoPagoGateway
 from apps.users.models import Address
 from apps.settings_app.models import ShippingMethod, SiteSettings
 from apps.cart.models import Cart
@@ -1169,12 +1186,21 @@ class AdminCancelPaymentView(APIView):
         if payment.status != Payment.STATUS_PENDING:
             return Response(
                 {'detail': 'Solo se pueden cancelar pagos en estado PENDING.',
-                 'codigo_error': 'PAYMENT_NOT_CANCELABLE'},
+                 'codigo_error': 'PAYMENT_NOT_CANCELLABLE'},
                 status=400,
+            )
+        try:
+            gateway = MercadoPagoGateway()
+            gateway.cancel_payment(payment.gateway_payment_id)
+        except Exception:
+            return Response(
+                {'detail': 'El gateway no pudo cancelar el pago.',
+                 'codigo_error': 'GATEWAY_UNAVAILABLE'},
+                status=503,
             )
         payment.status = Payment.STATUS_CANCELLED
         payment.save(update_fields=['status', 'updated_at'])
-        return Response({'detail': 'Pago cancelado.', 'payment_id': payment.pk})
+        return Response(AdminPaymentSerializer(payment).data)
 
 
 # =============================================================================
@@ -1195,15 +1221,9 @@ class AdminChargebackListView(APIView):
     )
     def get(self, request):
         qs = Chargeback.objects.select_related('payment').order_by('-created_at')
-        paginator = PageNumberPagination()
-        paginator.page_size = 25
-        paginator.page_size_query_param = 'page_size'
-        paginator.max_page_size = 100
-        page = paginator.paginate_queryset(qs, request)
-        if page is not None:
-            return paginator.get_paginated_response(
-                ChargebackSerializer(page, many=True).data
-            )
+        status = request.query_params.get('status')
+        if status:
+            qs = qs.filter(status=status)
         return Response(ChargebackSerializer(qs, many=True).data)
 
 
@@ -1225,3 +1245,423 @@ class AdminChargebackDetailView(APIView):
     def get(self, request, chargeback_id):
         chargeback = get_object_or_404(Chargeback, pk=chargeback_id)
         return Response(ChargebackSerializer(chargeback).data)
+
+
+# =============================================================================
+# API v2 — Checkout API (ADR-018, pago en sitio sin redirección)
+# =============================================================================
+
+class CheckoutApiPaymentView(APIView):
+    """
+    POST /api/v2/payments/initiate/
+    Procesa un pago con MercadoPago Checkout API (pago en sitio).
+    ADR-018: Checkout API sobre Checkout Pro para UX transparente.
+    BR-009: las credenciales del gateway NUNCA aparecen en la respuesta.
+    DEC-BC-22: select_for_update() previene doble pago concurrente.
+    """
+    permission_classes = [IsAuthenticated]
+    throttle_classes   = [ScopedRateThrottle]
+    throttle_scope     = 'initiate_payment'
+
+    @extend_schema(
+        request=CheckoutApiPaymentSerializer,
+        responses={
+            201: CheckoutApiResponseSerializer,
+            200: CheckoutApiResponseSerializer,
+            400: OpenApiResponse(description='Serializer inválido'),
+            404: OpenApiResponse(description='Orden no encontrada o no es del usuario'),
+            422: OpenApiResponse(description='AMOUNT_MISMATCH o estado de orden inválido'),
+            502: OpenApiResponse(description='Error del gateway MercadoPago'),
+        },
+        summary='Crear pago con Checkout API',
+    )
+    def post(self, request):
+        serializer = CheckoutApiPaymentSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        data = serializer.validated_data
+
+        with db_transaction.atomic():
+            try:
+                order = (
+                    Order.objects
+                    .select_for_update()
+                    .get(
+                        order_number=data['order_number'],
+                        user=request.user,
+                        status=Order.STATUS_PENDING,
+                    )
+                )
+            except Order.DoesNotExist:
+                return Response(
+                    {'codigo_error': 'ORDER_NOT_FOUND'},
+                    status=404,
+                )
+
+            if 'expected_amount' in data and data['expected_amount'] is not None:
+                order_total = order.value.total
+                if abs(data['expected_amount'] - order_total) > Decimal('0.01'):
+                    return Response(
+                        {
+                            'codigo_error': 'AMOUNT_MISMATCH',
+                            'expected':     str(data['expected_amount']),
+                            'actual':       str(order_total),
+                        },
+                        status=422,
+                    )
+
+            try:
+                payment, result = initiate_checkout_api_payment(
+                    order=order,
+                    token=data.get('token', ''),
+                    installments=data.get('installments', 1),
+                    payment_method_id=data.get('payment_method_id', ''),
+                    issuer_id=data.get('issuer_id', ''),
+                    payer_email=data.get('payer_email', ''),
+                    payer_identification_type=data.get('payer_identification_type', ''),
+                    payer_identification_number=data.get('payer_identification_number', ''),
+                )
+            except ValueError as exc:
+                return Response(
+                    {'codigo_error': 'PAYMENT_ERROR', 'detail': str(exc)},
+                    status=422,
+                )
+            except RuntimeError as exc:
+                return Response(
+                    {'codigo_error': 'GATEWAY_ERROR', 'detail': str(exc)},
+                    status=502,
+                )
+
+        response_data = {
+            'payment_id':            payment.pk,
+            'gateway_payment_id':    result.gateway_payment_id,
+            'status':                result.status,
+            'status_detail':         result.status_detail,
+            'order_number':          order.order_number,
+            'amount':                str(result.amount),
+            'installments':          result.installments,
+            'external_resource_url': result.external_resource_url or '',
+            'date_of_expiration':    result.date_of_expiration or '',
+            'transaction_data':      result.transaction_data,
+        }
+        http_status = 201 if result.status == 'approved' else 200
+        return Response(response_data, status=http_status)
+
+
+class MpPublicKeyView(APIView):
+    """
+    GET /api/v2/payments/public-key/
+    Retorna la public_key de MercadoPago para inicializar MP.js en el frontend.
+    BR-009: la public_key SÍ puede ir al frontend; el access_token NUNCA.
+    """
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        responses={
+            200: MpPublicKeySerializer,
+            503: OpenApiResponse(description='Gateway no configurado'),
+        },
+        summary='Obtener public key de MercadoPago',
+    )
+    def get(self, request):
+        try:
+            public_key = get_mp_public_key()
+        except ValueError as exc:
+            return Response(
+                {'codigo_error': 'GATEWAY_NOT_CONFIGURED', 'detail': str(exc)},
+                status=503,
+            )
+        return Response({'public_key': public_key})
+
+
+class MpCustomerView(APIView):
+    """
+    GET /api/v2/payments/customer/
+    Retorna si el usuario autenticado tiene un customer_id de MercadoPago.
+    BR-009: access_token NUNCA en la respuesta.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        customer_id = request.user.mp_customer_id or ''
+        return Response({
+            'has_customer':   bool(customer_id),
+            'mp_customer_id': customer_id,
+        })
+
+
+class MpCustomerCardsView(APIView):
+    """
+    GET  /api/v2/payments/cards/  — lista tarjetas activas del usuario.
+    POST /api/v2/payments/cards/  — guarda nueva tarjeta con verificación por email.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        cards = SavedCard.objects.filter(
+            user=request.user,
+            status=SavedCard.STATUS_ACTIVE,
+        )
+        data = [
+            {
+                'id':               c.mp_card_id,
+                'last_four_digits': c.last_four_digits,
+                'first_six_digits': c.first_six_digits,
+                'expiration_month': c.expiration_month,
+                'expiration_year':  c.expiration_year,
+                'payment_method_id': c.payment_method_id,
+                'cardholder_name':  c.cardholder_name,
+                'status':           c.status,
+            }
+            for c in cards
+        ]
+        return Response(data)
+
+    def post(self, request):
+        serializer = MpSaveCardSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        token = serializer.validated_data['token']
+
+        customer_id = get_or_create_mp_customer(request.user)
+        if not customer_id:
+            return Response(
+                {'codigo_error': 'MP_CUSTOMER_ERROR',
+                 'detail': 'No se pudo obtener o crear el customer de MercadoPago.'},
+                status=502,
+            )
+
+        try:
+            gateway = MercadoPagoGateway()
+            card_data = gateway.save_card(customer_id, token)
+        except RuntimeError as exc:
+            return Response(
+                {'codigo_error': 'GATEWAY_ERROR', 'detail': str(exc)},
+                status=502,
+            )
+
+        saved_card, created = SavedCard.objects.get_or_create(
+            user=request.user,
+            mp_card_id=str(card_data['id']),
+            defaults={
+                'mp_customer_id':   customer_id,
+                'last_four_digits': card_data.get('last_four_digits', ''),
+                'first_six_digits': card_data.get('first_six_digits', ''),
+                'expiration_month': card_data.get('expiration_month', 0),
+                'expiration_year':  card_data.get('expiration_year', 0),
+                'payment_method_id': (
+                    card_data.get('payment_method', {}).get('id', '')
+                    if card_data.get('payment_method') else ''
+                ),
+                'cardholder_name':  (
+                    card_data.get('cardholder', {}).get('name', '')
+                    if card_data.get('cardholder') else ''
+                ),
+            },
+        )
+
+        if created:
+            user = request.user
+            user_name = getattr(user, 'first_name', '') or user.email
+            send_card_verification_email(
+                user_email=user.email,
+                user_name=user_name,
+                verification_token=saved_card.verification_token,
+                last_four=saved_card.last_four_digits,
+            )
+
+        return Response(
+            {
+                'id':               saved_card.mp_card_id,
+                'last_four_digits': saved_card.last_four_digits,
+                'status':           saved_card.status,
+                'verification_sent': created,
+            },
+            status=201 if created else 200,
+        )
+
+
+class MpCustomerCardDetailView(APIView):
+    """
+    GET    /api/v2/payments/cards/{card_id}/  — detalle de tarjeta activa.
+    PUT    /api/v2/payments/cards/{card_id}/  — actualiza vencimiento/titular.
+    DELETE /api/v2/payments/cards/{card_id}/  — elimina la tarjeta.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def _get_saved_card(self, request, card_id):
+        try:
+            return SavedCard.objects.get(
+                user=request.user,
+                mp_card_id=card_id,
+                status__in=[SavedCard.STATUS_ACTIVE, SavedCard.STATUS_PENDING],
+            )
+        except SavedCard.DoesNotExist:
+            return None
+
+    def get(self, request, card_id):
+        saved = self._get_saved_card(request, card_id)
+        if not saved:
+            return Response({'codigo_error': 'CARD_NOT_FOUND'}, status=404)
+        return Response({
+            'id':               saved.mp_card_id,
+            'last_four_digits': saved.last_four_digits,
+            'first_six_digits': saved.first_six_digits,
+            'expiration_month': saved.expiration_month,
+            'expiration_year':  saved.expiration_year,
+            'payment_method_id': saved.payment_method_id,
+            'cardholder_name':  saved.cardholder_name,
+            'status':           saved.status,
+        })
+
+    def put(self, request, card_id):
+        saved = self._get_saved_card(request, card_id)
+        if not saved:
+            return Response({'codigo_error': 'CARD_NOT_FOUND'}, status=404)
+
+        serializer = MpUpdateCardSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        mp_payload = {}
+        if 'expiration_month' in serializer.validated_data:
+            mp_payload['expiration_month'] = serializer.validated_data['expiration_month']
+        if 'expiration_year' in serializer.validated_data:
+            mp_payload['expiration_year'] = serializer.validated_data['expiration_year']
+        if 'cardholder_name' in serializer.validated_data:
+            mp_payload['cardholder'] = {'name': serializer.validated_data['cardholder_name']}
+
+        try:
+            gateway = MercadoPagoGateway()
+            gateway.update_customer_card(saved.mp_customer_id, card_id, mp_payload)
+        except RuntimeError as exc:
+            return Response(
+                {'codigo_error': 'GATEWAY_ERROR', 'detail': str(exc)},
+                status=502,
+            )
+
+        update_fields = []
+        if 'expiration_month' in serializer.validated_data:
+            saved.expiration_month = serializer.validated_data['expiration_month']
+            update_fields.append('expiration_month')
+        if 'expiration_year' in serializer.validated_data:
+            saved.expiration_year = serializer.validated_data['expiration_year']
+            update_fields.append('expiration_year')
+        if 'cardholder_name' in serializer.validated_data:
+            saved.cardholder_name = serializer.validated_data['cardholder_name']
+            update_fields.append('cardholder_name')
+        if update_fields:
+            update_fields.append('updated_at')
+            saved.save(update_fields=update_fields)
+
+        return Response({
+            'id':               saved.mp_card_id,
+            'last_four_digits': saved.last_four_digits,
+            'expiration_month': saved.expiration_month,
+            'expiration_year':  saved.expiration_year,
+            'cardholder_name':  saved.cardholder_name,
+            'status':           saved.status,
+        })
+
+    def delete(self, request, card_id):
+        saved = self._get_saved_card(request, card_id)
+        if not saved:
+            return Response({'codigo_error': 'CARD_NOT_FOUND'}, status=404)
+
+        try:
+            gateway = MercadoPagoGateway()
+            gateway.delete_customer_card(saved.mp_customer_id, card_id)
+        except RuntimeError as exc:
+            return Response(
+                {'codigo_error': 'GATEWAY_ERROR', 'detail': str(exc)},
+                status=502,
+            )
+
+        saved.status = SavedCard.STATUS_DELETED
+        saved.save(update_fields=['status', 'updated_at'])
+        return Response(status=204)
+
+
+class MpPaymentMethodsView(APIView):
+    """
+    GET /api/v2/payments/methods/
+    Retorna la lista de métodos de pago disponibles de MercadoPago.
+    BR-009: solo devuelve datos públicos (id, nombre, tipo, thumbnail).
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            gateway = MercadoPagoGateway()
+            methods = gateway.get_payment_methods()
+        except ValueError as exc:
+            return Response(
+                {'codigo_error': 'GATEWAY_NOT_CONFIGURED', 'detail': str(exc)},
+                status=503,
+            )
+        return Response(methods)
+
+
+class MpCardVerifyView(APIView):
+    """
+    GET /api/v2/payments/cards/verify/{token}/
+    Activa una tarjeta guardada cuando el usuario hace clic en el enlace
+    del email de verificación. Idempotente.
+    """
+    permission_classes = []
+
+    def get(self, request, token):
+        try:
+            card = SavedCard.objects.get(verification_token=token)
+        except SavedCard.DoesNotExist:
+            return Response(
+                {'codigo_error': 'TOKEN_INVALID', 'detail': 'Enlace inválido o ya usado.'},
+                status=404,
+            )
+
+        if card.status == SavedCard.STATUS_DELETED:
+            return Response(
+                {'codigo_error': 'CARD_DELETED', 'detail': 'La tarjeta fue eliminada.'},
+                status=410,
+            )
+
+        if card.status != SavedCard.STATUS_ACTIVE:
+            card.status = SavedCard.STATUS_ACTIVE
+            card.save(update_fields=['status', 'updated_at'])
+
+        return Response({
+            'message':          '¡Tu tarjeta ha sido activada exitosamente!',
+            'last_four_digits': card.last_four_digits,
+            'status':           card.status,
+        })
+
+
+class ZeroDollarAuthView(APIView):
+    """
+    POST /api/v2/payments/cards/validate/
+    Valida una tarjeta sin cargo real usando Zero Dollar Auth (T-15).
+    BR-009: access_token nunca sale del backend.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = ZeroDollarAuthSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        data = serializer.validated_data
+        try:
+            result = MercadoPagoGateway().zero_dollar_auth(
+                token=data['token'],
+                payment_method_id=data['payment_method_id'],
+                payer_email=request.user.email,
+            )
+        except RuntimeError as exc:
+            return Response(
+                {'codigo_error': 'GATEWAY_ERROR', 'detail': str(exc)},
+                status=502,
+            )
+
+        return Response({'valid': result.get('status') == 'approved'})

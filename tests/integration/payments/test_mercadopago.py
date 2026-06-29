@@ -20,7 +20,7 @@ from apps.cart.models import CartItem
 
 pytestmark = pytest.mark.integration
 
-INITIATE_URL    = '/api/v2/payments/initiate/'
+INITIATE_URL    = '/api/v1/payments/initiate/'
 INSTALLMENT_URL = '/api/v2/payments/installments/'
 ELIGIBILITY_URL = '/api/v2/checkout/eligibility/'
 EXPRESS_URL     = '/api/v2/checkout/express/'
