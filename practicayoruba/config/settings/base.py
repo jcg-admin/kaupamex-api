@@ -128,6 +128,14 @@ DEFAULT_FROM_EMAIL = 'noreply@practicayoruba.com'
 # on-demand notifica a esta dirección cuando backup_db.sh termina en error.
 BACKUP_ALERT_EMAIL = config('BACKUP_ALERT_EMAIL', default='admin@practicayoruba.com')
 
+# Buzones por propósito en VM2 (Postfix + Cyrus). Los emails transaccionales
+# (auth, órdenes, devoluciones, soporte) salen de DEFAULT_FROM_EMAIL (noreply@).
+# Contacto y newsletter usan su buzón monitoreado para que la conversación
+# llegue a un humano y las respuestas no caigan en un buzón no-reply.
+CONTACT_FROM_EMAIL = config('CONTACT_FROM_EMAIL', default='hola@practicayoruba.com')
+CONTACT_NOTIFY_EMAIL = config('CONTACT_NOTIFY_EMAIL', default='hola@practicayoruba.com')
+NEWSLETTER_FROM_EMAIL = config('NEWSLETTER_FROM_EMAIL', default='newsletter@practicayoruba.com')
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
@@ -225,7 +233,7 @@ SPECTACULAR_SETTINGS = {
     'VERSION': '1.0.0',
     'CONTACT': {
         'name': 'Equipo PracticaYoruba',
-        'email': 'dev@practicayoruba.com',
+        'email': 'hola@practicayoruba.com',
     },
     'LICENSE': {'name': 'Propietario'},
 
