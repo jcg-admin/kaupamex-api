@@ -65,6 +65,20 @@ class ContactMessageCreateView(APIView):
         ser = ContactMessageSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         msg = ser.save()
+        # UC-COM-01: avisar al equipo en el buzón de contacto (hola@) en cuanto
+        # entra un mensaje; antes el mensaje quedaba solo en el panel admin sin
+        # notificación. El envío es asíncrono y reintentable (EmailTask) para no
+        # bloquear la respuesta pública ni perder el aviso si el SMTP falla.
+        dispatch_email(
+            subject=f'Nuevo mensaje de contacto: {msg.subject}',
+            message=(
+                f'De: {msg.name} <{msg.email}>\n'
+                f'Teléfono: {msg.phone or "—"}\n\n'
+                f'{msg.body}'
+            ),
+            from_email=settings.CONTACT_FROM_EMAIL,
+            recipient_list=[settings.CONTACT_NOTIFY_EMAIL],
+        )
         return Response(ContactMessageSerializer(msg).data, status=status.HTTP_201_CREATED)
 
 
@@ -185,7 +199,7 @@ class AdminContactMessageReplyView(_AdminOnly, APIView):
         dispatch_email(
             subject=f'Re: {msg.subject}',
             message=reply_body,
-            from_email=settings.DEFAULT_FROM_EMAIL,
+            from_email=settings.CONTACT_FROM_EMAIL,
             recipient_list=[msg.email],
         )
         return Response(ContactMessageAdminSerializer(msg).data)

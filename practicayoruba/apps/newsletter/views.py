@@ -99,7 +99,7 @@ def _send_confirmation_email(email: str, token: str) -> None:
     mail.send_mail(
         subject='Confirma tu suscripción al Newsletter',
         message=f'Haz click para confirmar: {confirm_url}',
-        from_email=settings.DEFAULT_FROM_EMAIL,
+        from_email=settings.NEWSLETTER_FROM_EMAIL,
         recipient_list=[email],
         fail_silently=True,
     )
@@ -411,7 +411,7 @@ class AdminCampaignCreateView(_AdminOnly, APIView):
             dispatch_email(
                 subject=campaign.subject,
                 message=campaign.body,
-                from_email=settings.DEFAULT_FROM_EMAIL,
+                from_email=settings.NEWSLETTER_FROM_EMAIL,
                 recipient_list=[recipient_email],
             )
 
@@ -444,7 +444,6 @@ class NewsletterConfirmV2View(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        from rest_framework.exceptions import NotFound
         token = (request.data.get('token') or '').strip()
         if not token:
             return Response(

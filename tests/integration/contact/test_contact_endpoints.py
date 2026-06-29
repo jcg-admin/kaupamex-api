@@ -64,6 +64,27 @@ class TestCreateContactMessage:
             email='maria@example.com',
         ).count() == 1
 
+    def test_create_notifies_contact_mailbox(self, api_client, db, settings):
+        # UC-COM-01: el alta pública avisa al equipo en el buzón de contacto
+        # (hola@) con el remitente en el cuerpo, sin filtrarlo al campo From.
+        mail.outbox.clear()
+        res = api_client.post(CREATE_URL, {
+            'name': 'Maria',
+            'email': 'maria@example.com',
+            'subject': 'Pregunta sobre envios',
+            'body': 'Hacen envios a Veracruz?',
+        }, format='json')
+        assert res.status_code == 201
+        notices = [
+            m for m in mail.outbox
+            if settings.CONTACT_NOTIFY_EMAIL in m.to
+        ]
+        assert len(notices) == 1
+        notice = notices[0]
+        assert notice.from_email == settings.CONTACT_FROM_EMAIL
+        assert 'maria@example.com' in notice.body
+        assert 'Hacen envios a Veracruz?' in notice.body
+
     def test_email_is_required(self, api_client, db):
         res = api_client.post(CREATE_URL, {
             'name': 'X',
