@@ -2,8 +2,8 @@
 from django.urls import path
 from .views import (
     AdminCampaignCreateView,
+    AdminSubscriberForceUnsubscribeView,
     AdminSubscriberListView,
-    AdminSubscriberUnsubscribeV2View,
 )
 
 
@@ -16,7 +16,7 @@ urlpatterns = [
     path('newsletter/campaigns/',
          AdminCampaignCreateView.as_view(),
          name='admin-campaign-create'),
-    path('newsletter/subscribers/<int:subscriber_id>/subscription/',
-         AdminSubscriberUnsubscribeV2View.as_view(),
-         name='subscriber-subscription'),
+    path('newsletter/subscribers/<int:subscriber_id>/unsubscribe/',
+         AdminSubscriberForceUnsubscribeView.as_view(),
+         name='subscriber-unsubscribe'),
 ]

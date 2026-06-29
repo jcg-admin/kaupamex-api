@@ -2,6 +2,7 @@
 from django.urls import path
 from .views import (
     AdminContactMessageListView,
+    AdminContactMessageMarkReadView,
     AdminContactMessageV2View,
     AdminContactMessageReplyV2View,
 )
@@ -16,7 +17,10 @@ urlpatterns = [
     path('contact/messages/<int:message_id>/',
          AdminContactMessageV2View.as_view(),
          name='message-detail'),
-    path('contact/messages/<int:message_id>/replies/',
+    path('contact/messages/<int:message_id>/read/',
+         AdminContactMessageMarkReadView.as_view(),
+         name='message-read'),
+    path('contact/messages/<int:message_id>/reply/',
          AdminContactMessageReplyV2View.as_view(),
          name='message-reply'),
 ]
