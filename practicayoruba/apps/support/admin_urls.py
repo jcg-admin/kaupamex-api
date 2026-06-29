@@ -1,9 +1,7 @@
-"""Admin URLs — apps.support (UC-SUPP-05)."""
 from django.urls import path
 from .views import AdminSupportTicketListView
 
-
-app_name = 'admin_support'
+app_name = 'admin_support_v2'
 
 urlpatterns = [
     path('support/tickets/',

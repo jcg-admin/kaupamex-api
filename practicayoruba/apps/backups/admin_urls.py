@@ -9,7 +9,7 @@ Mounted in config/urls.py under api/v2/admin/:
 from django.urls import path
 from .views import AdminBackupListView
 
-app_name = 'admin_backups'
+app_name = 'admin_backups_v2'
 
 urlpatterns = [
     path('backups/', AdminBackupListView.as_view(), name='backup-list'),

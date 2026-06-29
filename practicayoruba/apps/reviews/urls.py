@@ -7,7 +7,7 @@ Mounted in config/urls.py:
 from django.urls import path
 from .views import ProductReviewsView, ReviewHelpfulVoteView, ReviewImageCreateView, ReviewUpdateView
 
-app_name = 'reviews'
+app_name = 'reviews_v2'
 
 urlpatterns = [
     path('<int:product_id>/reviews/', ProductReviewsView.as_view(), name='product-reviews'),

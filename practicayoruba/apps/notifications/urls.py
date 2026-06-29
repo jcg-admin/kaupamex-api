@@ -8,7 +8,7 @@ from .views import (
 )
 
 
-app_name = 'notifications'
+app_name = 'notifications_v2'
 
 urlpatterns = [
     path('',

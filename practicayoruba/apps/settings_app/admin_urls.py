@@ -8,7 +8,7 @@ from .views import (
     StaticPageStatusV2View, StaticPageRestorationV2View,
 )
 
-app_name = 'admin_settings'
+app_name = 'admin_settings_v2'
 
 router = DefaultRouter()
 router.register(r'gateways',         PaymentGatewayViewSet,  basename='admin-gateway')

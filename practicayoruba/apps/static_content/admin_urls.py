@@ -9,7 +9,7 @@ from django.urls import path
 from .views import StaticContentDetailView, StaticContentListView
 
 
-app_name = 'admin_static_content'
+app_name = 'admin_static_content_v2'
 
 urlpatterns = [
     path('static-content/',          StaticContentListView.as_view(),

@@ -7,7 +7,7 @@ from .views import (
 )
 
 
-app_name = 'admin_questions'
+app_name = 'admin_questions_v2'
 
 urlpatterns = [
     path('questions/',

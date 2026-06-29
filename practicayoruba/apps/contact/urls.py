@@ -1,9 +1,7 @@
-"""URLs — apps.contact (public endpoints)."""
 from django.urls import path
 from .views import ContactMessageCreateView
 
-
-app_name = 'contact'
+app_name = 'contact_v2'
 
 urlpatterns = [
     path('messages/',
