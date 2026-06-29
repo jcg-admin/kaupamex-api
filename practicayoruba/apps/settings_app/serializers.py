@@ -188,6 +188,17 @@ class ShippingMethodSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'updated_at']
 
+
+class PublicShippingMethodSerializer(serializers.ModelSerializer):
+    """Read-only projection for the buyer-facing /api/v2/shipping-methods/ endpoint.
+
+    Omits admin-only fields: is_active, zones, updated_at.
+    """
+    class Meta:
+        model  = ShippingMethod
+        fields = ['id', 'name', 'cost', 'estimated_days', 'free_threshold']
+        read_only_fields = fields
+
     def validate_cost(self, value):
         if value < Decimal('0.00'):
             raise serializers.ValidationError('El costo no puede ser negativo.')
