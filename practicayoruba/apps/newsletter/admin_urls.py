@@ -4,6 +4,7 @@ from .views import (
     AdminCampaignCreateView,
     AdminSubscriberForceUnsubscribeView,
     AdminSubscriberListView,
+    AdminSubscriberSubscriptionDeleteView,
 )
 
 
@@ -19,4 +20,7 @@ urlpatterns = [
     path('newsletter/subscribers/<int:subscriber_id>/unsubscribe/',
          AdminSubscriberForceUnsubscribeView.as_view(),
          name='subscriber-unsubscribe'),
+    path('newsletter/subscribers/<int:subscriber_id>/subscription/',
+         AdminSubscriberSubscriptionDeleteView.as_view(),
+         name='subscriber-subscription'),
 ]

@@ -23,4 +23,7 @@ urlpatterns = [
     path('contact/messages/<int:message_id>/reply/',
          AdminContactMessageReplyV2View.as_view(),
          name='message-reply'),
+    path('contact/messages/<int:message_id>/replies/',
+         AdminContactMessageReplyV2View.as_view(),
+         name='message-replies'),
 ]
