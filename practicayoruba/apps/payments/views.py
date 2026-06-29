@@ -18,8 +18,8 @@ from django.db.models import F, Q, Sum
 from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress, ShippingZone
 from apps.orders.proxy_models import DeliveredOrder
 from apps.voucher.models import Voucher, VoucherUsage
-from .models import Payment, Payment as PaymentModel
-from .serializers import InitiatePaymentSerializer, MercadoPagoInitiateSerializer, InitiatePaymentResponseSerializer, InstallmentPlansResponseSerializer, PaymentSerializer, AdminPaymentSerializer, PaymentReturnSerializer, CheckoutEligibilitySerializer, ExpressCheckoutSerializer, RefundRequestSerializer, RefundSerializer, AdminRefundSerializer, RetryEligibilitySerializer, PaymentStatusSerializer as PSS, RefundRequestSerializer as RRS
+from .models import Payment, Payment as PaymentModel, Refund, Chargeback
+from .serializers import InitiatePaymentSerializer, MercadoPagoInitiateSerializer, InitiatePaymentResponseSerializer, InstallmentPlansResponseSerializer, PaymentSerializer, AdminPaymentSerializer, PaymentReturnSerializer, CheckoutEligibilitySerializer, ExpressCheckoutSerializer, RefundRequestSerializer, RefundSerializer, AdminRefundSerializer, RetryEligibilitySerializer, PaymentStatusSerializer as PSS, RefundRequestSerializer as RRS, ChargebackSerializer
 from .services import initiate_payment, handle_gateway_return, get_installment_plans, get_payment_status, get_payment_history, execute_refund, get_retry_eligibility
 from apps.users.models import Address
 from apps.settings_app.models import ShippingMethod, SiteSettings
@@ -1120,3 +1120,108 @@ class AdminPaymentListView(APIView):
             'results': AdminPaymentSerializer(qs, many=True).data,
             'totals':  totals,
         })
+
+
+# =============================================================================
+# T-16-D — AdminPaymentRefundsListView
+# =============================================================================
+
+class AdminPaymentRefundsListView(APIView):
+    """
+    GET /api/v2/admin/payments/<payment_id>/refunds/
+    Lista todos los reembolsos de un pago específico. T-16-D.
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    @extend_schema(
+        summary='Listado de reembolsos de un pago (admin)',
+        responses={200: AdminRefundSerializer(many=True)},
+        tags=['payments-admin'],
+    )
+    def get(self, request, payment_id):
+        payment = get_object_or_404(PaymentModel, pk=payment_id)
+        refunds = Refund.objects.filter(payment=payment).order_by('-created_at')
+        return Response(AdminRefundSerializer(refunds, many=True).data)
+
+
+# =============================================================================
+# T-CAN — AdminCancelPaymentView
+# =============================================================================
+
+class AdminCancelPaymentView(APIView):
+    """
+    POST /api/v2/admin/payments/<payment_id>/cancel/
+    El admin cancela proactivamente un pago pendiente. T-CAN.
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    @extend_schema(
+        summary='Cancelar pago pendiente (admin)',
+        responses={
+            200: OpenApiResponse(description='Pago cancelado.'),
+            400: OpenApiResponse(description='El pago no está en estado cancelable.'),
+            404: OpenApiResponse(description='Payment no encontrado.'),
+        },
+        tags=['payments-admin'],
+    )
+    def post(self, request, payment_id):
+        payment = get_object_or_404(PaymentModel, pk=payment_id)
+        if payment.status != Payment.STATUS_PENDING:
+            return Response(
+                {'detail': 'Solo se pueden cancelar pagos en estado PENDING.',
+                 'codigo_error': 'PAYMENT_NOT_CANCELABLE'},
+                status=400,
+            )
+        payment.status = Payment.STATUS_CANCELLED
+        payment.save(update_fields=['status', 'updated_at'])
+        return Response({'detail': 'Pago cancelado.', 'payment_id': payment.pk})
+
+
+# =============================================================================
+# T-17-B / T-17-C — AdminChargebackListView / AdminChargebackDetailView
+# =============================================================================
+
+class AdminChargebackListView(APIView):
+    """
+    GET /api/v2/admin/chargebacks/
+    Lista todos los contracargos registrados. T-17-B.
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    @extend_schema(
+        summary='Listado de contracargos (admin)',
+        responses={200: ChargebackSerializer(many=True)},
+        tags=['payments-admin'],
+    )
+    def get(self, request):
+        qs = Chargeback.objects.select_related('payment').order_by('-created_at')
+        paginator = PageNumberPagination()
+        paginator.page_size = 25
+        paginator.page_size_query_param = 'page_size'
+        paginator.max_page_size = 100
+        page = paginator.paginate_queryset(qs, request)
+        if page is not None:
+            return paginator.get_paginated_response(
+                ChargebackSerializer(page, many=True).data
+            )
+        return Response(ChargebackSerializer(qs, many=True).data)
+
+
+class AdminChargebackDetailView(APIView):
+    """
+    GET /api/v2/admin/chargebacks/<chargeback_id>/
+    Detalle de un contracargo individual. T-17-C.
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    @extend_schema(
+        summary='Detalle de contracargo (admin)',
+        responses={
+            200: ChargebackSerializer,
+            404: OpenApiResponse(description='Contracargo no encontrado.'),
+        },
+        tags=['payments-admin'],
+    )
+    def get(self, request, chargeback_id):
+        chargeback = get_object_or_404(Chargeback, pk=chargeback_id)
+        return Response(ChargebackSerializer(chargeback).data)
