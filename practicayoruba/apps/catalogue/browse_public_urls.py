@@ -1,10 +1,9 @@
-"""
-Public browse URLs — apps.catalogue (namespace placeholder).
+"""Public browse URLs — apps.catalogue (search endpoint, M-06 Fase 2)."""
+from django.urls import path
+from .browse_views import CatalogueSearchView
 
-Routes are consolidated in apps.catalogue.urls (catalogue_v2 namespace).
-This module exists to satisfy the catalogue_browse_public_v2 namespace
-binding in config/urls.py.
-"""
 app_name = 'catalogue_browse_public'
 
-urlpatterns = []
+urlpatterns = [
+    path('catalogue/search/', CatalogueSearchView.as_view(), name='catalogue-search'),
+]
