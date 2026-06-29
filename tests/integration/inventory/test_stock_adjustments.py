@@ -19,8 +19,8 @@ pytestmark = pytest.mark.integration
 
 INV_URL          = '/api/v2/admin/inventory/'
 IMPORT_URL       = '/api/v2/admin/inventory/imports/'
-ZERO_CHECK_URL   = '/api/v2/admin/inventory/variants/{pk}/zero-stock-check/'
-VARIANT_ADJ_URL  = '/api/v2/admin/inventory/variants/{pk}/adjust/'
+ZERO_CHECK_URL   = '/api/v2/admin/inventory/variants/{pk}/zero-stock/'
+VARIANT_ADJ_URL  = '/api/v2/admin/inventory/variants/{pk}/'
 
 
 @pytest.fixture
@@ -86,8 +86,8 @@ class TestAjusteDelta:
         self, admin_client, product_s11, db
     ):
         """Delta +5 sobre stock=10 → 15."""
-        res = admin_client.post(
-            f'{INV_URL}{product_s11.pk}/adjust/',
+        res = admin_client.patch(
+            f'{INV_URL}{product_s11.pk}/',
             {'delta': 5, 'reason': 'PHYSICAL_COUNT', 'notes': 'Recepción proveedor'},
             format='json',
         )
@@ -99,8 +99,8 @@ class TestAjusteDelta:
         self, admin_client, product_s11, db
     ):
         """Delta -3 sobre stock=10 → 7."""
-        res = admin_client.post(
-            f'{INV_URL}{product_s11.pk}/adjust/',
+        res = admin_client.patch(
+            f'{INV_URL}{product_s11.pk}/',
             {'delta': -3, 'reason': 'LOSS', 'notes': 'Merma'},
             format='json',
         )
@@ -112,8 +112,8 @@ class TestAjusteDelta:
         self, admin_client, product_s11, db
     ):
         """Delta -20 sobre stock=10 → -10 → rechazado."""
-        res = admin_client.post(
-            f'{INV_URL}{product_s11.pk}/adjust/',
+        res = admin_client.patch(
+            f'{INV_URL}{product_s11.pk}/',
             {'delta': -20, 'reason': 'PHYSICAL_COUNT'},
             format='json',
         )
@@ -126,8 +126,8 @@ class TestAjusteDelta:
         self, admin_client, product_s11, variant_s11, db
     ):
         """Delta +4 sobre variant.stock=6 → 10."""
-        res = admin_client.post(
-            f'{INV_URL}variants/{variant_s11.pk}/adjust/',
+        res = admin_client.patch(
+            f'{INV_URL}variants/{variant_s11.pk}/',
             {'delta': 4, 'reason': 'PHYSICAL_COUNT', 'notes': 'Entrada almacen'},
             format='json',
         )
@@ -139,8 +139,8 @@ class TestAjusteDelta:
         self, admin_client, admin_user, product_s11, db
     ):
         """FR-INV-04.02: referencia = ADMIN:<pk>."""
-        admin_client.post(
-            f'{INV_URL}{product_s11.pk}/adjust/',
+        admin_client.patch(
+            f'{INV_URL}{product_s11.pk}/',
             {'delta': 1, 'reason': 'PHYSICAL_COUNT', 'notes': 'Test'},
             format='json',
         )
@@ -153,8 +153,8 @@ class TestAjusteDelta:
 
     def test_ajuste_cero_rechazado(self, admin_client, product_s11, db):
         """Delta 0 es inválido — H-CICLO62-02: crearía StockMovement sin efecto."""
-        res = admin_client.post(
-            f'{INV_URL}{product_s11.pk}/adjust/',
+        res = admin_client.patch(
+            f'{INV_URL}{product_s11.pk}/',
             {'delta': 0, 'reason': 'PHYSICAL_COUNT'},
             format='json',
         )
@@ -549,7 +549,7 @@ class TestZeroStockGuard:
     def test_round2_ajuste_a_cero_escribe_business_event(
         self, admin_client, admin_user, variant_s11, db
     ):
-        res = admin_client.post(
+        res = admin_client.patch(
             VARIANT_ADJ_URL.format(pk=variant_s11.pk),
             {'new_quantity': 0, 'reason': 'PHYSICAL_COUNT'},
             format='json',
@@ -571,7 +571,7 @@ class TestZeroStockGuard:
         before = BusinessEvent.objects.filter(
             action=BusinessEvent.ACTION_STOCK_ADJUSTED_TO_ZERO
         ).count()
-        res = admin_client.post(
+        res = admin_client.patch(
             VARIANT_ADJ_URL.format(pk=variant_s11.pk),
             {'new_quantity': 3, 'reason': 'PHYSICAL_COUNT'},
             format='json',
@@ -586,7 +586,7 @@ class TestZeroStockGuard:
     ):
         """extra_json registra las órdenes en riesgo al momento del ajuste (AC-06)."""
         self._make_order_with_item(db, variant_s11, Order.STATUS_PENDING, quantity=3)
-        res = admin_client.post(
+        res = admin_client.patch(
             VARIANT_ADJ_URL.format(pk=variant_s11.pk),
             {'new_quantity': 0, 'reason': 'LOSS'},
             format='json',
@@ -604,7 +604,7 @@ class TestZeroStockGuard:
         self, admin_client, variant_s11, db
     ):
         """El happy path del ajuste (no a cero) sigue funcionando sin cambios."""
-        res = admin_client.post(
+        res = admin_client.patch(
             VARIANT_ADJ_URL.format(pk=variant_s11.pk),
             {'new_quantity': 10, 'reason': 'PHYSICAL_COUNT'},
             format='json',

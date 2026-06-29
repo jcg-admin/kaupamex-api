@@ -113,7 +113,11 @@ class BackupPagination(PageNumberPagination):
 
 
 class AdminBackupListView(APIView):
-    """GET /api/v1/admin/backups/ — UC-ADM-05."""
+    """GET|POST /api/v2/admin/backups/ — UC-ADM-05.
+
+    GET  → historial paginado de backups.
+    POST → disparar backup manual on-demand (canónico v2; reemplaza trigger/).
+    """
     permission_classes = [IsAuthenticated, IsAdminUser]
 
     @extend_schema(
@@ -131,11 +135,6 @@ class AdminBackupListView(APIView):
             )
         return Response(BackupRecordSerializer(qs, many=True).data)
 
-
-class AdminBackupTriggerView(APIView):
-    """POST /api/v1/admin/backups/trigger/ — UC-ADM-05."""
-    permission_classes = [IsAuthenticated, IsAdminUser]
-
     @extend_schema(
         summary='Disparar backup manual on-demand (UC-ADM-05)',
         request=None,
@@ -146,9 +145,6 @@ class AdminBackupTriggerView(APIView):
     )
     def post(self, request):
         # H-CICLO82-03: rechazar si ya hay un backup en curso.
-        # _BACKUP_LOCK.acquire(blocking=False) devuelve False inmediatamente
-        # si el lock ya esta tomado (backup activo), evitando N threads
-        # simultaneos de backup_db.sh.
         if not _BACKUP_LOCK.acquire(blocking=False):
             return Response(
                 {
@@ -165,7 +161,6 @@ class AdminBackupTriggerView(APIView):
             finally:
                 _BACKUP_LOCK.release()
 
-        # Run in a background thread — no Celery/Redis per project constraints.
         t = threading.Thread(
             target=_run_and_release, args=(record.pk,), daemon=True
         )

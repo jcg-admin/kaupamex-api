@@ -87,7 +87,8 @@ urlpatterns = [
     # appear here via users.urls — correct behaviour (same at both v1 and v2).
     # F6 (payments initiate/checkout) excluded — those are Tier B.
     path('api/v2/auth/',    include(('apps.users.urls', 'users'),                                      namespace='users_v2_pt')),
-    path('api/v2/config/',  include(('apps.settings_app.urls', 'settings_app'),                       namespace='settings_v2')),
+    path('api/v2/config/',         include(('apps.settings_app.urls', 'settings_app'),          namespace='settings_v2')),
+    path('api/v2/shipping-methods/', include(('apps.settings_app.public_urls', 'public_shipping'), namespace='public_shipping_v2')),
     path('api/v2/admin/',   include(('apps.users.admin_urls', 'admin_users'),                         namespace='admin_users_v2')),
     path('api/v2/admin/',   include(('apps.voucher.urls', 'admin_voucher'),                           namespace='admin_voucher_v2')),
     path('api/v2/admin/',   include(('apps.orders.admin_urls', 'admin_orders'),                       namespace='admin_orders_v2')),

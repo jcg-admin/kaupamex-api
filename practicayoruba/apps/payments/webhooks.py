@@ -24,7 +24,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.db import IntegrityError
-from .models import Payment, PaymentGatewayEvent, WebhookEvent
+from .models import Payment, PaymentGatewayEvent, WebhookEvent, Chargeback
 from apps.settings_app.models import PaymentGateway as PGModel
 from django.db import transaction
 from .gateways.mercadopago import MercadoPagoGateway
@@ -188,11 +188,15 @@ class MercadoPagoWebhookView(APIView):
             logger.warning('MP webhook: payload no es JSON válido')
             return Response({'status': 'invalid_json'}, status=400)
 
-        # Solo procesar notificaciones de tipo 'payment'
+        # Solo procesar notificaciones de tipo 'payment' o 'chargebacks'
         event_type   = data.get('type', '')
-        payment_id   = str(data.get('data', {}).get('id', ''))
+        resource_id  = str(data.get('data', {}).get('id', ''))
         request_id   = request.META.get('HTTP_X_REQUEST_ID', '')
 
+        if event_type == 'chargebacks' and resource_id:
+            return self._handle_chargeback(data, resource_id)
+
+        payment_id = resource_id
         if event_type != 'payment' or not payment_id:
             return Response({'status': 'ignored', 'type': event_type}, status=200)
 
@@ -275,7 +279,10 @@ class MercadoPagoWebhookView(APIView):
                     event_type=PaymentGatewayEvent.EVENT_PAYMENT_APPROVED,
                     raw_body=json.dumps({'gateway_payment_id': payment_id}),
                 )
-        elif gw_result.status == 'rejected':
+        elif gw_result.status in ('rejected', 'cancelled'):
+            # 'cancelled' ocurre cuando el voucher de un método no-tarjeta
+            # (OXXO, Paycash, cajero, SPEI) vence sin haber sido pagado.
+            # Tratamos como FAILED para que la orden quede disponible para retry.
             if payment:
                 with transaction.atomic():
                     payment.status = Payment.STATUS_FAILED
@@ -283,10 +290,66 @@ class MercadoPagoWebhookView(APIView):
                     PaymentGatewayEvent.objects.create(
                         payment=payment,
                         event_type=PaymentGatewayEvent.EVENT_PAYMENT_FAILED,
-                        raw_body=json.dumps({'gateway_payment_id': payment_id}),
+                        raw_body=json.dumps({
+                            'gateway_payment_id': payment_id,
+                            'mp_status': gw_result.status,
+                        }),
                     )
 
         return Response({'status': 'processed'}, status=200)
+
+    def _handle_chargeback(self, data: dict, chargeback_id: str):
+        """
+        Procesa un webhook de contracargo de MercadoPago. T-17-A.
+        Crea o actualiza el registro Chargeback en DB.
+        Siempre retorna 200 para que MP no reintente.
+        """
+        gateway_payment_id = str(data.get('payment_id', ''))
+        try:
+            cb_data = MercadoPagoGateway().get_chargeback(chargeback_id)
+            cb_resp = cb_data.get('response', {})
+        except Exception as exc:
+            logger.error('MP chargeback webhook: error consultando chargeback %s: %s', chargeback_id, exc)
+            return Response({'status': 'gateway_error'}, status=200)
+
+        payment = Payment.objects.filter(
+            gateway_payment_id=gateway_payment_id, gateway='MERCADOPAGO',
+        ).first()
+
+        status_map = {
+            'pending':   Chargeback.STATUS_PENDING,
+            'lost':      Chargeback.STATUS_LOST,
+            'won':       Chargeback.STATUS_WON,
+            'cancelled': Chargeback.STATUS_CANCELLED,
+            'closed':    Chargeback.STATUS_CLOSED,
+        }
+        mp_status    = cb_resp.get('status', 'pending')
+        cb_status    = status_map.get(mp_status, Chargeback.STATUS_PENDING)
+        amount       = cb_resp.get('amount', 0)
+        reason_code  = cb_resp.get('reason_code', '')
+        description  = cb_resp.get('description', '')
+        gw_payment   = str(cb_resp.get('payment_id', gateway_payment_id))
+
+        with transaction.atomic():
+            cb, created = Chargeback.objects.get_or_create(
+                gateway_chargeback_id=chargeback_id,
+                defaults={
+                    'payment':            payment,
+                    'gateway_payment_id': gw_payment,
+                    'amount':             amount,
+                    'status':             cb_status,
+                    'reason_code':        reason_code,
+                    'description':        description,
+                },
+            )
+            if not created:
+                cb.status      = cb_status
+                cb.description = description
+                cb.save(update_fields=['status', 'description', 'updated_at'])
+
+        action = 'created' if created else 'updated'
+        logger.info('MP chargeback webhook: %s chargeback_id=%s status=%s', action, chargeback_id, cb_status)
+        return Response({'status': 'processed', 'chargeback': action}, status=200)
 
 
 # =============================================================================

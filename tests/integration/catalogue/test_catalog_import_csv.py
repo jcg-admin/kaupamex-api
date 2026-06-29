@@ -19,7 +19,7 @@ from apps.catalogue.models import Category, Product, ProductImage
 
 pytestmark = pytest.mark.integration
 
-IMPORT_URL = '/api/v2/admin/catalogue/import-csv/'
+IMPORT_URL = '/api/v2/admin/products/imports/'
 
 
 # ---------------------------------------------------------------------------

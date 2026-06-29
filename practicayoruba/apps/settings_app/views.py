@@ -279,6 +279,10 @@ class ShippingMethodListPublicView(ListAPIView):
     serializer_class   = PublicShippingMethodSerializer
     queryset           = ShippingMethod.objects.filter(is_active=True).order_by('cost', 'name')
 
+    @extend_schema(summary='Listar métodos de envío activos', tags=['shipping'])
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
 
 # =============================================================================
 # Sprint 10 — UC-CFG-04: Contenido estático con versionado

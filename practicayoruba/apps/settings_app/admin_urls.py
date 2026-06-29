@@ -4,12 +4,12 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     PaymentGatewayViewSet, ShippingMethodViewSet,
     StaticPageAdminListView, StaticPageAdminDetailView,
-    StaticPagePublishView, StaticPageRestoreView,
     AdminSiteSettingsView,
+    StaticPagePublishView, StaticPageRestoreView,
     StaticPageStatusV2View, StaticPageRestorationV2View,
 )
 
-app_name = 'admin_settings'
+app_name = 'admin_settings_v2'
 
 router = DefaultRouter()
 router.register(r'gateways',         PaymentGatewayViewSet,  basename='admin-gateway')
@@ -17,13 +17,15 @@ router.register(r'shipping-methods', ShippingMethodViewSet,  basename='admin-shi
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('settings/',                                          AdminSiteSettingsView.as_view(),     name='settings'),
-    path('pages/',                                             StaticPageAdminListView.as_view(),   name='page-list'),
-    path('pages/<slug:slug>/',                                 StaticPageAdminDetailView.as_view(), name='page-detail'),
-    path('pages/<slug:slug>/publish/',                         StaticPagePublishView.as_view(),     name='page-publish'),
-    path('pages/<slug:slug>/versions/<int:version>/restore/',  StaticPageRestoreView.as_view(),     name='page-restore'),
+    path('settings/',                AdminSiteSettingsView.as_view(),     name='settings'),
+    path('pages/',                   StaticPageAdminListView.as_view(),   name='page-list'),
+    path('pages/<slug:slug>/',       StaticPageAdminDetailView.as_view(), name='page-detail'),
+    path('pages/<slug:slug>/publish/',
+         StaticPagePublishView.as_view(), name='page-publish'),
     path('pages/<slug:slug>/status/',
          StaticPageStatusV2View.as_view(), name='page-status'),
+    path('pages/<slug:slug>/versions/<int:version>/restore/',
+         StaticPageRestoreView.as_view(), name='page-restore-v1'),
     path('pages/<slug:slug>/restorations/',
-         StaticPageRestorationV2View.as_view(), name='page-restoration'),
+         StaticPageRestorationV2View.as_view(), name='page-restore'),
 ]

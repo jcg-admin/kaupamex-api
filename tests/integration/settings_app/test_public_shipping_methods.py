@@ -81,3 +81,7 @@ class TestPublicShippingMethods:
         r = api_client.get(URL)
         assert r.status_code == 200
         assert r.json() == []
+
+    def test_post_not_allowed(self, api_client):
+        r = api_client.post(URL, {})
+        assert r.status_code == 405
