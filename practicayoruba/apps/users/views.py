@@ -102,7 +102,9 @@ class RegisterView(APIView):
             # DEC-ALR-5: NO emit REGISTER_SUCCESS (no se crea user nuevo).
             if existing.deactivated_reason in User.DEACTIVATION_REASONS_REACTIVABLE_BY_EMAIL:
                 plain = create_verification_token(existing)
-                send_verification_email(existing, plain)
+                send_verification_email(
+                    existing, plain, next_path=request.data.get('next', ''),
+                )
                 return CREATED_RESPONSE
             # Alt-A.3: suspendida por admin (o motivo desconocido) ->
             # no enviar email, retornar response indistinguible.
@@ -534,7 +536,9 @@ class ResendVerificationView(APIView):
             # para no filtrar el estado de la cuenta.
             if user.deactivated_reason in User.DEACTIVATION_REASONS_REACTIVABLE_BY_EMAIL:
                 plain = create_verification_token(user)
-                send_verification_email(user, plain)
+                send_verification_email(
+                    user, plain, next_path=request.data.get('next', ''),
+                )
             # else: silencio deliberado (suspended).
         except User.DoesNotExist:
             pass  # silent OK because no revela el estado de la cuenta (anti-enumeracion)
