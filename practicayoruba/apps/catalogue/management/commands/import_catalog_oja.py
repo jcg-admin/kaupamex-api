@@ -3,7 +3,7 @@ import_catalog_oja — importa el catálogo real de OJA Yoruba.
 
 Lee /tmp/catalogo/oja/productos/ (o --catalog-dir) y crea/actualiza:
   - Category     : 8 categorías basadas en las carpetas del catálogo
-  - Product      : 256 productos con is_published=True, stock=1
+  - Product      : 256 productos con is_published=True, stock=10 al crear
   - ProductImage : hasta 322 imágenes copiadas a MEDIA_ROOT/products/images/
 
 Idempotente: update_or_create / get_or_create en todos los modelos.
@@ -13,7 +13,7 @@ Decisiones aprobadas (DEC-OJA-01..05):
   DEC-OJA-01: usa settings.MEDIA_ROOT (lee del .env del entorno)
   DEC-OJA-02: SKU = 'OJA-' + slug[:40]
   DEC-OJA-03: no importa ProductDiscount (solo precio_actual)
-  DEC-OJA-04: stock=1 en todos los productos (stock_disponible es NULL)
+  DEC-OJA-04: stock=10 al CREAR (DEC-STF-01); re-import no pisa el stock
   DEC-OJA-05: trunca descripcion en 'Recibelo:' o 'Valoraciones'
 
 Uso:
@@ -157,18 +157,23 @@ class Command(BaseCommand):
             stats['img_created'] += len(imagenes)
             return
 
+        # 'stock' va solo en create_defaults: se fija al CREAR el producto
+        # y NO se toca en re-imports. Antes estaba en defaults y pisaba el
+        # stock en cada corrida, deshaciendo cualquier ajuste de inventario
+        # (DEC-STF-01: stock inicial 10; el re-import debe preservar el real).
+        common = {
+            'name': nombre,
+            'sku': sku,
+            'description': descripcion,
+            'short_description': nombre[:300],
+            'price': precio,
+            'is_active': True,
+            'is_published': True,
+        }
         product, created = Product.objects.update_or_create(
             slug=slug,
-            defaults={
-                'name': nombre,
-                'sku': sku,
-                'description': descripcion,
-                'short_description': nombre[:300],
-                'price': precio,
-                'stock': 1,
-                'is_active': True,
-                'is_published': True,
-            },
+            defaults=common,
+            create_defaults={**common, 'stock': 10},
         )
         # UC-CAT-13: M2M — assign category after save (can't pass to create()).
         product.categories.add(category)

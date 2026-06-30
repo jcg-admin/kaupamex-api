@@ -188,11 +188,23 @@ class TestImportCatalogOjaProduct:
         product = Product.objects.get(slug='collar-centavos')
         assert product.price == Decimal('3835.15')
 
-    def test_stock_es_uno(self, db, catalog_dir):
+    def test_stock_inicial_diez(self, db, catalog_dir):
         call_command('import_catalog_oja', catalog_dir=str(catalog_dir))
 
         product = Product.objects.get(slug='collar-azul')
-        assert product.stock == 1
+        assert product.stock == 10
+
+    def test_reimport_no_pisa_stock(self, db, catalog_dir):
+        """Un re-import debe preservar el stock ajustado, no resetearlo."""
+        call_command('import_catalog_oja', catalog_dir=str(catalog_dir))
+        product = Product.objects.get(slug='collar-azul')
+        product.stock = 3
+        product.save(update_fields=['stock'])
+
+        call_command('import_catalog_oja', catalog_dir=str(catalog_dir))
+
+        product.refresh_from_db()
+        assert product.stock == 3
 
     def test_producto_activo_y_publicado(self, db, catalog_dir):
         call_command('import_catalog_oja', catalog_dir=str(catalog_dir))
