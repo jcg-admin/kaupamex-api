@@ -47,7 +47,8 @@ class TestCatalogueActiveFilters:
         r = api_client.get(CATALOGUE_URL, {'category': 'ache'})
         assert r.status_code == 200
         data = r.json()
-        assert data['filters_applied']['category'] == 'ache'
+        # T-11/DEC-STF-11: category siempre se refleja como lista (multi).
+        assert data['filters_applied']['category'] == ['ache']
 
     def test_price_min_filter_reflected(self, api_client, products):
         r = api_client.get(CATALOGUE_URL, {'price_min': '100'})
@@ -69,7 +70,7 @@ class TestCatalogueActiveFilters:
         })
         assert r.status_code == 200
         fa = r.json()['filters_applied']
-        assert fa['category'] == 'ache'
+        assert fa['category'] == ['ache']
         assert fa['price_min'] == '10'
         assert fa['price_max'] == '300'
 

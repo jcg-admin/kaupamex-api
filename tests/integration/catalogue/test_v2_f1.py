@@ -92,9 +92,13 @@ class TestProductSearchV2:
         r = api_client.get(V2_PRODUCTS_URL, {'q': 'x'})
         assert r.status_code == 400
 
-    def test_search_invalid_category_returns_400(self, api_client, products, db):
-        r = api_client.get(V2_PRODUCTS_URL, {'q': 'eleke', 'category': 'not-an-int'})
-        assert r.status_code == 400
+    def test_search_nonexistent_category_returns_empty(self, api_client, products, db):
+        # T-11/DEC-STF-11: busqueda filtra por slug (no por ID). Un slug
+        # inexistente ya no es 400 ("debe ser entero"); devuelve 200 vacio,
+        # igual que el modo lista.
+        r = api_client.get(V2_PRODUCTS_URL, {'q': 'eleke', 'category': 'no-existe'})
+        assert r.status_code == 200
+        assert r.json()['count'] == 0
 
     def test_search_price_filter_applied(self, api_client, db, category):
         Product.objects.create(
