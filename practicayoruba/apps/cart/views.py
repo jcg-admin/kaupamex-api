@@ -4,9 +4,9 @@ Views — apps.cart (Sprint 6)
 UC-CART-01: Ver carrito activo
 UC-CART-02: Agregar ítem al carrito
 UC-CART-03: Eliminar ítem del carrito
-UC-CART-04: Guardar carrito para después
-UC-CART-05: Fusionar carrito anónimo con cuenta
-UC-CART-06: Aplicar voucher al carrito
+UC-CART-04: Aplicar voucher al carrito
+UC-CART-05: Guardar carrito para después
+UC-CART-06: Sincronizar carrito anónimo con cuenta
 """
 from decimal import Decimal
 from uuid import uuid4
@@ -305,11 +305,11 @@ class CartItemDetailView(APIView):
 
 
 class CartSaveView(APIView):
-    """POST /api/v1/cart/save/ — UC-CART-04 guardar carrito."""
+    """POST /api/v1/cart/save/ — UC-CART-05 guardar carrito."""
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
-        summary='[DEPRECATED → /api/v2/cart/snapshots/] Guardar carrito para después (UC-CART-04)',
+        summary='[DEPRECATED → /api/v2/cart/snapshots/] Guardar carrito para después (UC-CART-05)',
         deprecated=True,
         tags=['cart'],
         request=None,
@@ -342,11 +342,11 @@ class CartSaveView(APIView):
 
 
 class CartMergeView(APIView):
-    """POST /api/v1/cart/merge/ — UC-CART-05 fusionar carrito anónimo."""
+    """POST /api/v1/cart/merge/ — UC-CART-06 fusionar carrito anónimo."""
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
-        summary='[DEPRECATED → /api/v2/cart/merges/] Fusionar carrito anónimo con cuenta autenticada (UC-CART-05)',
+        summary='[DEPRECATED → /api/v2/cart/merges/] Fusionar carrito anónimo con cuenta autenticada (UC-CART-06)',
         deprecated=True,
         tags=['cart'],
         request=MergeCartSerializer,
@@ -419,7 +419,7 @@ class CartMergeView(APIView):
 
 class CartVoucherView(APIView):
     """
-    POST   /api/v1/cart/voucher/ — UC-CART-06 aplicar voucher al carrito.
+    POST   /api/v1/cart/voucher/ — UC-CART-04 aplicar voucher al carrito.
     DELETE /api/v1/cart/voucher/ — quitar voucher del carrito.
     """
     permission_classes = [AllowAny]
@@ -432,7 +432,7 @@ class CartVoucherView(APIView):
     throttle_scope   = 'voucher_apply'
 
     @extend_schema(
-        summary='Aplicar voucher al carrito (UC-CART-06)',
+        summary='Aplicar voucher al carrito (UC-CART-04)',
         tags=['cart'],
         request=inline_serializer('CartVoucherApplyRequest', {
             'code': serializers.CharField(),
