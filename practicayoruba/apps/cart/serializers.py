@@ -14,14 +14,25 @@ class CartItemSerializer(serializers.ModelSerializer):
     available_stock = serializers.SerializerMethodField()
     is_available  = serializers.SerializerMethodField()
     price_changed = serializers.SerializerMethodField()
+    image_url     = serializers.SerializerMethodField()
 
     class Meta:
         model  = CartItem
         fields = [
             'id', 'product_name', 'product_slug', 'variant_label', 'sku',
             'quantity', 'unit_price', 'subtotal',
-            'available_stock', 'is_available', 'price_changed',
+            'available_stock', 'is_available', 'price_changed', 'image_url',
         ]
+
+    def get_image_url(self, obj) -> str | None:
+        """Cover del producto para mostrar la miniatura en el carrito/checkout.
+        El UI lee item.image_url; sin esto la bolsa salia sin imagenes."""
+        cover = (obj.product.images.filter(is_cover=True).first()
+                 or obj.product.images.first())
+        if not (cover and cover.image):
+            return None
+        request = self.context.get('request')
+        return request.build_absolute_uri(cover.image.url) if request else cover.image.url
 
     def get_variant_label(self, obj) -> str | None:
         return obj.variant.option.label if obj.variant else None
