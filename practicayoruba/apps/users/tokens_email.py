@@ -131,7 +131,7 @@ def create_verification_token(user) -> str:
 def send_verification_email(user, plain_token: str):
     verify_url = (
         f"{getattr(settings, 'FRONTEND_URL', 'http://localhost:3001')}"
-        f"/verificar-email/?token={plain_token}"
+        f"/auth/verify-email?token={plain_token}"
     )
     dispatch_email(
         subject='Activa tu cuenta — PracticaYoruba',

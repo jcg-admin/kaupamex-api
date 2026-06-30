@@ -98,6 +98,9 @@ urlpatterns = [
     path('api/v2/admin/',   include(('apps.payments.admin_urls', 'admin_payments'),                   namespace='admin_payments_v2')),
     path('api/v2/admin/',   include(('apps.catalogue.browse_admin_urls', 'catalogue_browse_admin'),   namespace='catalogue_browse_admin_v2')),
     path('api/v2/',         include(('apps.catalogue.browse_public_urls', 'catalogue_browse_public'), namespace='catalogue_browse_public_v2')),
+    # Compat storefront: el UI consume /api/v2/catalogue/* (lista/detalle/categorias).
+    # DEBE ir DESPUES de browse_public_urls para no capturar 'catalogue/search/'.
+    path('api/v2/catalogue/', include(('apps.catalogue.compat_urls', 'catalogue_compat'), namespace='catalogue_compat_v2')),
     # Chartsize admin (variants) after catalogue CRUD so POST /api/v2/admin/products/
     # resolves to ProductAdminViewSet, not chartsize DefaultRouter root (GET-only).
     path('api/v2/admin/',   include(('apps.chartsize.admin_urls', 'admin_chartsize'),                 namespace='admin_chartsize_v2')),

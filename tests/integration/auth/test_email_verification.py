@@ -6,7 +6,7 @@ import pytest
 from django.core import mail
 from django.contrib.auth import get_user_model
 from apps.users.models import EmailVerificationToken
-from apps.users.tokens_email import create_verification_token
+from apps.users.tokens_email import create_verification_token, send_verification_email
 
 pytestmark = pytest.mark.integration
 
@@ -65,6 +65,23 @@ class TestEmailVerification:
         plain = create_verification_token(u)
         assert EmailVerificationToken.objects.filter(user=u, used_at__isnull=True).exists()
         assert len(plain) > 0
+
+    def test_email_apunta_a_la_ruta_real_del_front(self, db, settings):
+        """El enlace del correo debe usar la ruta del SPA (/auth/verify-email)
+        con el token en query string; un path distinto cae en el 404 del
+        router. El path viejo /verificar-email/ no debe reaparecer."""
+        settings.FRONTEND_URL = 'https://practicayoruba.com'
+        User = get_user_model()
+        u = User.objects.create_user(
+            username='linkuser', email='linkuser@test.mx',
+            password='TestPass123!', is_active=False,
+        )
+        mail.outbox.clear()
+        send_verification_email(u, 'TOKEN123')
+        assert len(mail.outbox) == 1
+        body = mail.outbox[0].body
+        assert 'https://practicayoruba.com/auth/verify-email?token=TOKEN123' in body
+        assert '/verificar-email/' not in body
 
     def test_resend_usuario_no_verificado_retorna_200(self, api_client, inactive_user, db):
         r = api_client.post(RESEND_URL, {'email': inactive_user.email}, format='json')
