@@ -278,7 +278,7 @@ class TestBusquedaFiltrosAvanzados:
     def test_filtro_por_categoria(
         self, api_client, product_oshun, product_yemaya, cat_collares
     ):
-        r = api_client.get(SEARCH_URL, {'q': 'collar', 'category': cat_collares.id})
+        r = api_client.get(SEARCH_URL, {'q': 'collar', 'category': cat_collares.slug})
         nombres = [p['name'] for p in r.json()['results']]
         assert any('Oshun' in n for n in nombres)
         assert not any('Yemaya' in n for n in nombres)

@@ -99,10 +99,28 @@ def _get_category_descendants(slug: str) -> set:
     return root.get_descendants_ids()
 
 
-def _build_active_filters(params: dict) -> dict:
+def _resolve_category_pks(slugs):
+    """Une los PKs (con descendientes) de una lista de slugs de categoria.
+
+    T-11 / DEC-STF-11: el filtro de categoria acepta multiples valores
+    (?category=a&category=b). Retorna None si no se pidio ninguna categoria;
+    un set vacio si se pidieron slugs pero ninguno existe/activo — en ese caso
+    el caller debe devolver un queryset vacio (no "todos").
+    """
+    slugs = [s for s in (slugs or []) if s]
+    if not slugs:
+        return None
+    pks = set()
+    for slug in slugs:
+        pks |= _get_category_descendants(slug)
+    return pks
+
+
+def _build_active_filters(params) -> dict:
     active = {}
-    if params.get('category'):
-        active['category'] = params['category']
+    categories = [c for c in params.getlist('category') if c]
+    if categories:
+        active['category'] = categories
     if params.get('price_min'):
         active['price_min'] = params['price_min']
     if params.get('price_max'):
@@ -160,12 +178,11 @@ class CatalogueListView(ListAPIView):
         # _get_active_discount y get_variants_available.
         qs = (Product.objects.filter(is_active=True, is_published=True)
               .prefetch_related('categories', 'images', 'discounts', 'variants'))
-        category_slug = self.request.query_params.get('category')
-        if category_slug:
-            pks = _get_category_descendants(category_slug)
-            if not pks:
+        cat_pks = _resolve_category_pks(self.request.query_params.getlist('category'))
+        if cat_pks is not None:
+            if not cat_pks:
                 return Product.objects.none()
-            qs = qs.filter(categories__in=pks).distinct()
+            qs = qs.filter(categories__in=cat_pks).distinct()
         price_min = self.request.query_params.get('price_min')
         if price_min:
             try:
@@ -1031,7 +1048,7 @@ class ProductListV2View(CatalogueListView):
                 'Add &autocomplete=1 for prefix suggestions.'
             )),
             OpenApiParameter('autocomplete', OpenApiTypes.BOOL, description='Return autocomplete suggestions for ?q=.'),
-            OpenApiParameter('category', str, description='Category slug (list mode) or integer ID (search mode).'),
+            OpenApiParameter('category', str, description='Category slug; repeatable (?category=a&category=b) to filter by several categories (union, includes descendants).'),
             OpenApiParameter('price_min', OpenApiTypes.DECIMAL),
             OpenApiParameter('price_max', OpenApiTypes.DECIMAL),
             OpenApiParameter('ordering', str),
@@ -1085,13 +1102,12 @@ class ProductListV2View(CatalogueListView):
             .prefetch_related('categories', 'images', 'discounts', 'variants')
         )
         qs = _fulltext_search(qs, q)
-        category = request.query_params.get('category')
-        if category:
-            try:
-                cat_pk = int(category)
-            except (ValueError, TypeError):
-                raise ValidationError({'category': 'El ID de categoría debe ser un entero.'})
-            qs = qs.filter(categories__id=cat_pk).distinct()
+        # T-11 / DEC-STF-11: el modo busqueda acepta los mismos slugs que el
+        # modo lista (antes exigia un ID entero — inconsistente con el resto
+        # del catalogo y con el UI, que siempre usa slugs). Multi-categoria.
+        cat_pks = _resolve_category_pks(request.query_params.getlist('category'))
+        if cat_pks is not None:
+            qs = qs.filter(categories__in=cat_pks).distinct() if cat_pks else qs.none()
         price_min = request.query_params.get('price_min')
         if price_min:
             try:

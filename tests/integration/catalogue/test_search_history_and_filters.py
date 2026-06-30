@@ -10,6 +10,7 @@ UC-CAT-06: Manage catalogue categories (admin)
 import pytest
 from decimal import Decimal
 from apps.catalogue.models import Category, Product, SearchHistory
+from apps.catalogue.views import _resolve_category_pks
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.cache import cache
 import time
@@ -280,6 +281,42 @@ class TestFiltroPorCategoria:
         res = api_client.get(CATALOGUE_URL, {'category': 'collares'})
         slugs = [p['slug'] for p in res.json()['results']]
         assert 'pulsera-elegua' not in slugs
+
+    def test_multi_categoria_une_resultados(
+        self, api_client, product_collar, product_pulsera, product_collar_oshun, db
+    ):
+        """T-11/DEC-STF-11: ?category=collares&category=pulseras une ambas
+        categorias (mas descendientes de cada una)."""
+        res = api_client.get(CATALOGUE_URL, {'category': ['collares', 'pulseras']})
+        assert res.status_code == 200
+        slugs = [p['slug'] for p in res.json()['results']]
+        assert 'collar-yemaya' in slugs        # de collares
+        assert 'collar-oshun-dorado' in slugs  # descendiente de collares
+        assert 'pulsera-elegua' in slugs       # de pulseras
+
+    def test_multi_categoria_refleja_lista_en_filters_applied(
+        self, api_client, product_collar, product_pulsera, db
+    ):
+        res = api_client.get(CATALOGUE_URL, {'category': ['collares', 'pulseras']})
+        assert res.json()['filters_applied']['category'] == ['collares', 'pulseras']
+
+    def test_resolve_category_pks_une_slugs_y_descendientes(
+        self, cat_collares, cat_collares_oshun, cat_pulseras, db
+    ):
+        """T-11/DEC-STF-11: la resolucion de slugs multiples (pieza compartida
+        por modo lista y busqueda) une los PKs de cada slug e incluye los
+        descendientes. El modo busqueda usa el MISMO helper; su test de
+        endpoint depende del indice fulltext (no testeable con filas no
+        committeadas en este entorno), por eso aqui se valida el helper."""
+        pks = _resolve_category_pks(['collares', 'pulseras'])
+        assert cat_collares.pk in pks
+        assert cat_collares_oshun.pk in pks   # descendiente de collares
+        assert cat_pulseras.pk in pks
+
+    def test_resolve_category_pks_casos_borde(self, cat_collares, db):
+        assert _resolve_category_pks([]) is None          # sin categoria -> None
+        assert _resolve_category_pks(['']) is None         # vacios se ignoran
+        assert _resolve_category_pks(['no-existe']) == set()  # slug inexistente
 
 
 # =============================================================================
