@@ -12,6 +12,7 @@ import hashlib
 import logging
 import secrets
 from datetime import timedelta
+from urllib.parse import quote
 from django.core.cache import cache
 from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -128,11 +129,24 @@ def create_verification_token(user) -> str:
     return plain
 
 
-def send_verification_email(user, plain_token: str):
+def _safe_internal_path(raw) -> str:
+    """Guard anti open-redirect (equivalente a is_safe_url): solo rutas
+    internas (un solo '/', sin '//', ':' ni backslash)."""
+    if not isinstance(raw, str) or not raw.startswith('/'):
+        return ''
+    if raw.startswith('//') or ':' in raw or '\\' in raw:
+        return ''
+    return raw
+
+
+def send_verification_email(user, plain_token: str, next_path: str = ''):
     verify_url = (
         f"{getattr(settings, 'FRONTEND_URL', 'http://localhost:3001')}"
         f"/auth/verify-email?token={plain_token}"
     )
+    safe_next = _safe_internal_path(next_path)
+    if safe_next:
+        verify_url += f"&next={quote(safe_next, safe='/')}"
     dispatch_email(
         subject='Activa tu cuenta — PracticaYoruba',
         message=(

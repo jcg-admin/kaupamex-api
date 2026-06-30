@@ -55,6 +55,10 @@ class RegisterSerializer(serializers.Serializer):
     password         = serializers.CharField(write_only=True, min_length=8, max_length=128, trim_whitespace=False)
     password_confirm = serializers.CharField(write_only=True, max_length=128, trim_whitespace=False)
     terms_accepted   = serializers.BooleanField()
+    # DEC-STF-AUTH-NEXT: destino post-verificacion (ruta interna). Se agrega al
+    # link del email para que el redirect sobreviva el round-trip. Opcional.
+    next             = serializers.CharField(required=False, allow_blank=True,
+                                             write_only=True, max_length=500)
 
     def validate_email(self, value):
         # UC-AUTH-01 refinado: la deteccion de email existente vive en
@@ -95,6 +99,7 @@ class RegisterSerializer(serializers.Serializer):
     def create(self, validated_data):
         validated_data.pop('password_confirm')
         validated_data.pop('terms_accepted', None)
+        next_path  = validated_data.pop('next', '') or ''
         first_name = validated_data.pop('first_name', '')
         last_name  = validated_data.pop('last_name', '')
         email      = validated_data['email']
@@ -122,7 +127,7 @@ class RegisterSerializer(serializers.Serializer):
             try:
                 u = User.objects.get(pk=user_id)
                 plain = create_verification_token(u)
-                send_verification_email(u, plain)
+                send_verification_email(u, plain, next_path=next_path)
             except User.DoesNotExist:
                 logger.info(
                     'verification email skipped: user_id=%s removed '
