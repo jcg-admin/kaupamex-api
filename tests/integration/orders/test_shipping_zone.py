@@ -1,15 +1,18 @@
 """
-Tests — ShippingZone validation in CheckoutSerializer (DEC-BC-18)
+Tests — ShippingZone ya NO bloquea el checkout (DEC-BC-18 revertida 2026-07-01)
 
-T-505: ShippingZone table + CheckoutSerializer.validate_address rejects
-       uncovered zip_code with error_code ZONE_NOT_COVERED.
-T-506: Integration test — checkout with uncovered postal_code -> 400.
+Antes: CheckoutSerializer.validate_address rechazaba un zip_code no cubierto por
+ninguna ShippingZone activa (error ZONE_NOT_COVERED, 400).
+
+Ahora: el costo de envío se deriva del ShippingMethod elegido, no de la zona, y
+la dirección es responsabilidad del comprador (el front pide confirmación antes
+de pagar). Un C.P. fuera de zona NO debe rechazar el checkout. Estos tests
+verifican esa nueva política: ``ZONE_NOT_COVERED`` no aparece, con o sin zonas.
 """
 import pytest
 from decimal import Decimal
 from apps.catalogue.models import Category, Product
 from apps.orders.models import ShippingZone
-from apps.settings_app.models import ShippingMethod
 
 pytestmark = pytest.mark.integration
 
@@ -37,10 +40,8 @@ ADDR_NOT_COVERED = {
 
 @pytest.fixture(autouse=True)
 def _isolate_zones(db):
-    # H-API-07: las migraciones siembran ShippingZone (28 zonas, incl. '06')
-    # y zip_code_prefix es UNIQUE. Estos tests validan la logica de cobertura
-    # controlando la tabla, asi que parten de tabla vacia. Es dentro de la
-    # transaccion del test -> se revierte al terminar (no afecta a otros).
+    # Las migraciones siembran ShippingZone; estos tests controlan la tabla.
+    # Es dentro de la transacción del test -> se revierte al terminar.
     ShippingZone.objects.all().delete()
     yield
 
@@ -75,32 +76,27 @@ def cart_with_item(auth_client, prod_sz):
     return auth_client
 
 
-class TestShippingZoneValidation:
+def _no_zone_error(response):
+    """El checkout no debe rechazarse por cobertura de zona."""
+    return 'ZONE_NOT_COVERED' not in str(response.json())
 
-    def test_uncovered_zip_returns_400(self, cart_with_item, zone):
+
+class TestShippingZoneNoLongerGatesCheckout:
+
+    def test_uncovered_zip_not_blocked_by_zone(self, cart_with_item, zone):
         r = cart_with_item.post(CHECKOUT_URL, {'address': ADDR_NOT_COVERED}, format='json')
-        assert r.status_code == 400
+        assert _no_zone_error(r)
 
-    def test_uncovered_zip_error_code(self, cart_with_item, zone):
-        r = cart_with_item.post(CHECKOUT_URL, {'address': ADDR_NOT_COVERED}, format='json')
-        data = r.json()
-        assert 'ZONE_NOT_COVERED' in str(data)
-
-    def test_covered_zip_passes_zone_check(self, cart_with_item, zone):
+    def test_covered_zip_not_blocked(self, cart_with_item, zone):
         r = cart_with_item.post(CHECKOUT_URL, {'address': ADDR_COVERED}, format='json')
-        # May fail for other reasons (cart state etc) but NOT due to zone check
-        assert r.status_code != 400 or 'ZONE_NOT_COVERED' not in str(r.json())
+        assert _no_zone_error(r)
 
-    def test_no_active_zones_rejects_all(self, cart_with_item, db):
+    def test_no_active_zones_does_not_block(self, cart_with_item, db):
         ShippingZone.objects.all().delete()
         r = cart_with_item.post(CHECKOUT_URL, {'address': ADDR_COVERED}, format='json')
-        assert r.status_code == 400
-        assert 'ZONE_NOT_COVERED' in str(r.json())
+        assert _no_zone_error(r)
 
-    def test_inactive_zone_not_counted(self, cart_with_item, db):
-        ShippingZone.objects.create(
-            name='Inactiva', zip_code_prefix='06', is_active=False,
-        )
-        r = cart_with_item.post(CHECKOUT_URL, {'address': ADDR_COVERED}, format='json')
-        assert r.status_code == 400
-        assert 'ZONE_NOT_COVERED' in str(r.json())
+    def test_inactive_zone_does_not_block(self, cart_with_item, db):
+        ShippingZone.objects.create(name='Inactiva', zip_code_prefix='06', is_active=False)
+        r = cart_with_item.post(CHECKOUT_URL, {'address': ADDR_NOT_COVERED}, format='json')
+        assert _no_zone_error(r)
