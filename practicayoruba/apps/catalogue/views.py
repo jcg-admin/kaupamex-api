@@ -476,7 +476,7 @@ class CategoryAdminViewSet(ModelViewSet):
     @extend_schema(
         summary='Reordenar categorías hermanas',
         description=(
-            'UC-ADM-01: recibe {"parent": <id|null>, "order": [id, ...]} con los '
+            'UC-CAT-15: recibe {"parent": <id|null>, "order": [id, ...]} con los '
             'IDs de las categorías hijas de `parent` en el nuevo orden y persiste '
             'Category.order = índice. Reordena solo entre hermanos del mismo padre; '
             'mover a otro padre se hace con PATCH parent_id (con validación de ciclo).'
@@ -730,7 +730,7 @@ class ProductAdminViewSet(ProductDeactivateAction, ModelViewSet):
     @extend_schema(
         summary='Reordenar imágenes de un producto',
         description=(
-            'UC-ADM-05: recibe {"order": [id, id, ...]} con los IDs de imagen '
+            'UC-CAT-16: recibe {"order": [id, id, ...]} con los IDs de imagen '
             'en el nuevo orden y persiste ProductImage.order = índice. El campo '
             'order ya existía (Meta.ordering=[order, id]); faltaba el endpoint '
             'para persistir un reordenamiento por drag-and-drop desde el admin.'
@@ -766,7 +766,7 @@ class ProductAdminViewSet(ProductDeactivateAction, ModelViewSet):
     @extend_schema(
         summary='Editar metadata de imágenes en lote (FieldArray)',
         description=(
-            'UC-ADM-06: recibe {"images": [{"id", "alt_text"?, "is_cover"?}, ...]} '
+            'UC-CAT-17: recibe {"images": [{"id", "alt_text"?, "is_cover"?}, ...]} '
             'y actualiza en lote la metadata de las imágenes del producto, como un '
             'FieldArray editable en el admin. NO sube archivos (eso es multipart '
             'aparte por imagen); edita el set existente y mantiene la invariante '

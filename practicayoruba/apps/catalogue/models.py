@@ -31,7 +31,7 @@ class Category(TimeStampedModel):
     )
     image       = models.ImageField(upload_to=category_upload_path, null=True, blank=True)
     is_active   = models.BooleanField(default=True, db_index=True)
-    # UC-ADM-01: orden entre hermanos (mismo parent) para el editor de árbol.
+    # UC-CAT-15: orden entre hermanos (mismo parent) para el editor de árbol.
     order       = models.PositiveSmallIntegerField(default=0)
 
     class Meta:
