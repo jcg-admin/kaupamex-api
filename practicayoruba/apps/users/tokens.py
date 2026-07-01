@@ -15,7 +15,7 @@ PYTokenRefreshView: refresh con validacion is_active.
   window hasta 7 dias). Ver DEC-REF-1..4.
 """
 import hashlib
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, login as django_login
 from django.contrib.auth.models import update_last_login
 from django.core.cache import cache
 from drf_spectacular.utils import extend_schema, OpenApiResponse
@@ -194,6 +194,18 @@ class PYTokenObtainPairView(TokenObtainPairView):
             user_id = (response.data or {}).get('user', {}).get('id')
             user = User.objects.filter(pk=user_id).first() if user_id else None
             self._audit_login(request, success=True, user=user)
+            # ADR-018 (DEC-STF-AUTH-COOKIE): ademas del JWT, se establece la
+            # sesion de servidor. SessionMiddleware pone la cookie HttpOnly, de
+            # modo que la sesion sobrevive a recargas de pagina (el token en
+            # memoria del SPA se pierde, la cookie no). Aditivo: no altera la
+            # respuesta JWT existente. El backend se pasa explicito porque el
+            # user se autentico via el serializer de SimpleJWT, no via un
+            # backend de django.contrib.auth.
+            if user is not None:
+                django_login(
+                    request, user,
+                    backend='django.contrib.auth.backends.ModelBackend',
+                )
         elif response.status_code in (400, 401):
             record_failed_attempt(ip)
             self._audit_login(request, success=False,

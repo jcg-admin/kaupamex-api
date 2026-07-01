@@ -7,14 +7,25 @@ SECRET_KEY = config('SECRET_KEY')
 DEBUG = False
 SESSION_COOKIE_SECURE   = True
 SESSION_COOKIE_HTTPONLY = True   # default de Django pero se fija explicitamente
+# ADR-018 (DEC-STF-AUTH-COOKIE) — endurecimiento de la cookie de sesion en
+# produccion (HTTPS). El prefijo __Host- exige Secure + Path=/ + sin Domain,
+# que ya se cumplen (SESSION_COOKIE_SECURE=True, PATH='/' y DOMAIN=None por
+# default). SameSite=Strict: el SPA es mismo origin, asi que sus XHR a /api
+# siguen enviando la cookie; solo se bloquea en navegaciones cross-site.
+# NOTA de deploy: renombrar la cookie invalida las sesiones actuales
+# (los usuarios reinician sesion una vez). En dev/base la cookie sigue siendo
+# "sessionid" + SameSite=Lax (sin HTTPS no aplica __Host-/Secure).
+SESSION_COOKIE_NAME     = '__Host-sessionid'
+SESSION_COOKIE_SAMESITE = 'Strict'
 CSRF_COOKIE_SECURE      = True
-# H-CICLO82-04: Django default de CSRF_COOKIE_HTTPONLY es False, lo que
-# permite que JavaScript lea la cookie CSRF via document.cookie.  Para una
-# API DRF con JWT (sin formularios Django) la cookie CSRF no necesita ser
-# legible por JS — el valor se transmite solo en el header X-CSRFToken que
-# el browser incluye automaticamente desde la cookie HttpOnly en requests
-# cross-origin con credentials. Marcarla HttpOnly cierra el vector de robo
-# de token CSRF via XSS.
+# H-CICLO82-04 — SUPERSEDED para el modo sesion (ADR-018, DEC-STF-AUTH-CSRF).
+# base.py fija CSRF_USE_SESSIONS=True (Opcion B): el secreto CSRF vive en la
+# sesion de servidor y NO se emite cookie CSRF. Por tanto CSRF_COOKIE_HTTPONLY
+# (y CSRF_COOKIE_SECURE) son inertes: no hay cookie que marcar. Se conservan
+# por defensa en profundidad si algun dia se desactivara CSRF_USE_SESSIONS.
+# El comentario historico ademas tenia un error tecnico: el browser NO copia
+# la cookie CSRF a X-CSRFToken; eso lo hace JS. Ver el analisis
+# analisis-csrf-cookie-httponly-sesion / analisis-csrf-mecanismo-nativo-django-drf.
 CSRF_COOKIE_HTTPONLY    = True
 SECURE_SSL_REDIRECT     = True
 

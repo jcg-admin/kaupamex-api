@@ -7,7 +7,6 @@ import pytest
 from PIL import Image
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib.auth import get_user_model
-from rest_framework_simplejwt.tokens import RefreshToken
 from apps.users.models import Address
 
 pytestmark = pytest.mark.integration
@@ -63,7 +62,7 @@ class TestProfileGet:
             username='empty', email='empty@test.mx', password='Pass123!',
             first_name='', last_name='', phone='',
         )
-        api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {RefreshToken.for_user(u).access_token}')
+        api_client.force_login(u)
         r = api_client.get(PROFILE_URL)
         assert r.json()['profile_completeness'] == 0
         assert 'first_name' in r.json()['pending_fields']
@@ -92,7 +91,7 @@ class TestProfileGet:
         User = get_user_model()
         u1 = User.objects.create_user(username='u1', email='u1@test.mx', password='Pass123!')
         u2 = User.objects.create_user(username='u2', email='u2@test.mx', password='Pass123!')
-        api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {RefreshToken.for_user(u1).access_token}')
+        api_client.force_login(u1)
         r = api_client.get(PROFILE_URL)
         assert r.json()['username'] == 'u1'
         assert r.json()['email'] == 'u1@test.mx'

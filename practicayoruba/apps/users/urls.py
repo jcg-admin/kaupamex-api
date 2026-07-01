@@ -2,6 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import RegisterView, ProfileView, AddressViewSet, ChangePasswordView, PasswordResetRequestView, PasswordResetConfirmView, EmailVerifyView, ResendVerificationView, DeactivateAccountView, LogoutAllSessionsView
 from .tokens import PYTokenObtainPairView, PYTokenRefreshView, PYTokenBlacklistView
+from .session_views import SessionStatusView, SessionLogoutView
 
 app_name = 'users'
 
@@ -14,6 +15,9 @@ urlpatterns = [
     path('login/',           PYTokenObtainPairView.as_view(), name='login'),
     path('refresh/',         PYTokenRefreshView.as_view(),   name='token-refresh'),
     path('logout/',          PYTokenBlacklistView.as_view(), name='logout'),
+    # ADR-018 (DEC-STF-AUTH-COOKIE): sesion de servidor aditiva.
+    path('session/',         SessionStatusView.as_view(),    name='session-status'),
+    path('session/logout/',  SessionLogoutView.as_view(),    name='session-logout'),
     # Sprint 2
     path('profile/',         ProfileView.as_view(),          name='profile'),
     path('change-password/', ChangePasswordView.as_view(),   name='change-password'),

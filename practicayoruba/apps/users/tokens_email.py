@@ -13,6 +13,7 @@ import logging
 import secrets
 from datetime import timedelta
 from urllib.parse import quote
+from django.contrib.sessions.models import Session
 from django.core.cache import cache
 from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -97,9 +98,36 @@ def validate_password_reset_token(plain: str):
 
 
 def invalidate_all_sessions(user):
+    """Cierra todas las sesiones activas del usuario (logout-all / baja).
+
+    Tras la migracion a sesion de servidor (ADR-018), la auth del web vive en
+    ``django_session``, no en tokens JWT. Para forzar re-login hay que **borrar
+    las filas de sesion** del usuario, no solo blacklistear refresh tokens.
+
+    Django no indexa ``django_session`` por usuario, asi que se recorren las
+    sesiones no expiradas y se borran las cuyo ``_auth_user_id`` coincide. La
+    tabla la mantiene acotada ``clearsessions`` (cron), por lo que el recorrido
+    es sobre sesiones vivas.
+
+    Se conserva el blacklist de refresh tokens JWT (dormidos hoy; utiles si en
+    el futuro se re-habilita JWT para movil): asi la baja tambien invalida
+    cualquier token emitido antes de la migracion o por un cliente movil.
     """
-    DT-S2-03: invalida todos los refresh tokens activos del usuario.
-    """
+    # 1) Sesiones de servidor (auth web actual).
+    uid = str(user.pk)
+    for session in Session.objects.filter(expire_date__gte=timezone.now()):
+        try:
+            if session.get_decoded().get('_auth_user_id') == uid:
+                session.delete()
+        except Exception:
+            # Loud-log (no re-raise): una sesion corrupta no debe frenar el
+            # borrado del resto. DEC-DOC-008.
+            logger.warning(
+                'session decode/delete failed user_id=%s session_key=%s',
+                user.pk, session.session_key, exc_info=True,
+            )
+
+    # 2) Refresh tokens JWT (dormidos; back-compat / movil futuro).
     for token in OutstandingToken.objects.filter(user=user):
         try:
             RefreshToken(token.token).blacklist()

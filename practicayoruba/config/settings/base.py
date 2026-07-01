@@ -51,6 +51,11 @@ AUTH_USER_MODEL = 'users.User'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # CookieGovernanceMiddleware va sobre Session/CSRF: su process_response
+    # (orden inverso) corre despues de que aquellas ponen sus cookies, para
+    # observarlas/gobernarlas. Fase 1 = auditoria (COOKIE_GOVERNANCE_ENFORCE
+    # por defecto False). Ver iniciativa migrar-auth-sesion-cookie-httponly.
+    'apps.core.middleware.cookie_governance.CookieGovernanceMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -140,7 +145,18 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        # ADR-018 — migracion completa a sesion de servidor (web).
+        # La UNICA auth por defecto es la cookie de sesion HttpOnly, exenta
+        # de token CSRF: la defensa CSRF es SameSite=Strict + prefijo __Host-
+        # (la cookie no viaja cross-site, que es el vector de CSRF). Esto
+        # arregla el incidente en que las mutaciones por sesion pedian
+        # X-CSRFToken y el SPA, tras recargar (JWT en memoria perdido), no lo
+        # tenia -> 403 -> logout. Ver analisis-incidente-csrf-mutaciones.
+        #
+        # JWT (SimpleJWT) queda INSTALADO pero fuera del default: el login aun
+        # emite tokens (dormidos). Para una futura app movil basta re-anadir
+        # 'rest_framework_simplejwt.authentication.JWTAuthentication' aqui.
+        'apps.users.authentication.CsrfExemptSessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -227,7 +243,8 @@ SPECTACULAR_SETTINGS = {
     'TITLE': 'PracticaYoruba API',
     'DESCRIPTION': (
         'API REST de PracticaYoruba — plataforma e-commerce de productos Yoruba.\n\n'
-        'Autenticación: JWT Bearer token via POST /api/v2/auth/login/\n'
+        'Autenticación: sesión de servidor (cookie HttpOnly) via '
+        'POST /api/v2/auth/login/\n'
         'Todos los endpoints bajo el prefijo /api/v2/'
     ),
     'VERSION': '1.0.0',
@@ -282,6 +299,9 @@ SPECTACULAR_SETTINGS = {
     'PREPROCESSING_HOOKS': [
         # Elimina endpoints duplicados con sufijo {format} (ej: /products.json)
         'drf_spectacular.hooks.preprocess_exclude_path_format',
+        # OCP: importa los schema.py de las apps para registrar sus
+        # OpenApiAuthenticationExtension (cookieAuth, ADR-018) ANTES de generar.
+        'config.spectacular_hooks.register_app_schema_extensions',
     ],
 
     # --- Enums ---
@@ -376,10 +396,25 @@ LOGGING = {
     'loggers': {
         'django': {'handlers': ['console', 'file'], 'level': 'INFO'},
         'apps':   {'handlers': ['console', 'file'], 'level': 'INFO'},
+        # Veredictos del CookieGovernanceMiddleware (modo auditoria, ADR-018).
+        'cookie_governance': {'handlers': ['console', 'file'], 'level': 'INFO'},
     },
 }
 
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+
+# Auth por sesion (ADR-018, DEC-STF-AUTH-COOKIE) — sesion como unica auth web.
+# La cookie de sesion es HttpOnly y SameSite=Lax (mismo origin en dev via el
+# proxy de webpack y en prod mismo dominio). El endurecimiento a __Host- +
+# Secure + SameSite=Strict vive en production.py; ese SameSite=Strict es la
+# defensa CSRF que reemplaza al token (ver DEFAULT_AUTHENTICATION_CLASSES).
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+
+# CSRF: NO se usa token CSRF. La auth por sesion esta exenta
+# (CsrfExemptSessionAuthentication) y la defensa CSRF es SameSite=Strict +
+# __Host- de la cookie de sesion. Por eso NO se define CSRF_USE_SESSIONS ni se
+# emite cookie/token CSRF: no hay plumbing de token que el SPA deba mantener.
 
 # Cache — DatabaseCache (cnst-arquitectura T4/T5).
 # UC-SRCH-02 (autocomplete) usa la clave "autocomplete:<prefijo>" con TTL 60s.

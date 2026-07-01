@@ -54,8 +54,7 @@ def referrer(db):
 
 @pytest.fixture
 def referrer_client(api_client, referrer):
-    refresh = RefreshToken.for_user(referrer)
-    api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {refresh.access_token}')
+    api_client.force_login(referrer)
     return api_client
 
 
@@ -118,7 +117,7 @@ class TestReferralRedeem:
         referee = User.objects.create_user(
             username='referee', email='referee@x.mx', password='RefeePass123!')
         client = APIClient()
-        client.credentials(HTTP_AUTHORIZATION=f'Bearer {RefreshToken.for_user(referee).access_token}')
+        client.force_login(referee)
 
         res = client.post(REDEEM_URL, {'code': rc.code}, format='json')
         assert res.status_code == 201, res.content
@@ -144,7 +143,7 @@ class TestReferralRedeem:
         Voucher.objects.filter(code=rc.code).update(is_active=False)
         referee = User.objects.create_user(username='ref2', email='ref2@x.mx', password='Ref2Pass123!')
         client = APIClient()
-        client.credentials(HTTP_AUTHORIZATION=f'Bearer {RefreshToken.for_user(referee).access_token}')
+        client.force_login(referee)
         res = client.post(REDEEM_URL, {'code': rc.code}, format='json')
         assert res.status_code == 422
         assert res.data['codigo_error'] == 'VOUCHER_INACTIVE'
@@ -163,7 +162,7 @@ class TestReferralRedeem:
         rc = ReferralCode.get_or_create_for_user(referrer)
         referee = User.objects.create_user(username='ref3', email='ref3@x.mx', password='Ref3Pass123!')
         client = APIClient()
-        client.credentials(HTTP_AUTHORIZATION=f'Bearer {RefreshToken.for_user(referee).access_token}')
+        client.force_login(referee)
         assert client.post(REDEEM_URL, {'code': rc.code}, format='json').status_code == 201
         res = client.post(REDEEM_URL, {'code': rc.code}, format='json')
         assert res.status_code == 409
