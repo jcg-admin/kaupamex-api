@@ -20,6 +20,7 @@ from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, Ou
 from rest_framework_simplejwt.tokens import RefreshToken
 from apps.core.email_executor import dispatch_email
 from django.conf import settings
+from django.template.loader import render_to_string
 from django.utils import timezone
 from .models import PasswordResetToken, EmailVerificationToken
 
@@ -65,10 +66,16 @@ def create_password_reset_token(user) -> str:
 
 def send_password_reset_email(user, plain_token: str):
     reset_url = f"{getattr(settings, 'FRONTEND_URL', 'http://localhost:3001')}/auth/reset-password/?token={plain_token}"
+    nombre = user.first_name or user.username
+    html_body = render_to_string('emails/reset_password.html', {
+        'nombre': nombre,
+        'reset_url': reset_url,
+        'ttl_hours': RESET_TTL_HOURS,
+    })
     dispatch_email(
         subject='Recupera tu contrasena — PracticaYoruba',
         message=(
-            f'Hola {user.first_name or user.username},\n\n'
+            f'Hola {nombre},\n\n'
             f'Recibimos una solicitud para recuperar la contrasena de tu cuenta.\n'
             f'Sigue este enlace (valido por {RESET_TTL_HOURS} hora):\n\n'
             f'{reset_url}\n\n'
@@ -77,6 +84,7 @@ def send_password_reset_email(user, plain_token: str):
         ),
         from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@practicayoruba.com'),
         recipient_list=[user.email],
+        html_message=html_body,
     )
 
 
@@ -187,10 +195,16 @@ def send_verification_email(user, plain_token: str, next_path: str = ''):
     safe_next = _safe_internal_path(next_path)
     if safe_next:
         verify_url += f"&next={quote(safe_next, safe='/')}"
+    nombre = user.first_name or user.username
+    html_body = render_to_string('emails/verify_account.html', {
+        'nombre': nombre,
+        'verify_url': verify_url,
+        'ttl_hours': VERIFY_TTL_HOURS,
+    })
     dispatch_email(
         subject='Activa tu cuenta — PracticaYoruba',
         message=(
-            f'Hola {user.first_name or user.username},\n\n'
+            f'Hola {nombre},\n\n'
             f'Activa tu cuenta siguiendo este enlace (valido por {VERIFY_TTL_HOURS} horas):\n\n'
             f'{verify_url}\n\n'
             f'Si no te registraste en PracticaYoruba, ignora este mensaje.\n\n'
@@ -198,6 +212,7 @@ def send_verification_email(user, plain_token: str, next_path: str = ''):
         ),
         from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@practicayoruba.com'),
         recipient_list=[user.email],
+        html_message=html_body,
     )
 
 

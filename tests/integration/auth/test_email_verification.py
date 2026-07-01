@@ -102,6 +102,27 @@ class TestEmailVerification:
         assert 'https://practicayoruba.com/auth/verify-email?token=TOKEN123' in body
         assert '/verificar-email/' not in body
 
+    def test_email_verificacion_incluye_alternativa_html(self, db, settings):
+        """Fase 11: el correo es multipart texto+HTML. Django ``send_mail`` con
+        ``html_message`` adjunta la alternativa nativamente (sin
+        ``EmailMultiAlternatives``). El HTML debe traer el enlace y la marca."""
+        settings.FRONTEND_URL = 'https://practicayoruba.com'
+        User = get_user_model()
+        u = User.objects.create_user(
+            username='htmluser', email='htmluser@test.mx',
+            password='TestPass123!', is_active=False,
+        )
+        mail.outbox.clear()
+        send_verification_email(u, 'TOKENHTML')
+        assert len(mail.outbox) == 1
+        alts = mail.outbox[0].alternatives
+        assert len(alts) == 1
+        html, mime = alts[0]
+        assert mime == 'text/html'
+        assert 'https://practicayoruba.com/auth/verify-email?token=TOKENHTML' in html
+        assert 'PracticaYoruba' in html
+        assert 'Activar mi cuenta' in html
+
     def test_resend_usuario_no_verificado_retorna_200(self, api_client, inactive_user, db):
         r = api_client.post(RESEND_URL, {'email': inactive_user.email}, format='json')
         assert r.status_code == 200
