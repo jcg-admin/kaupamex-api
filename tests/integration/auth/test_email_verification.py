@@ -41,6 +41,19 @@ class TestEmailVerification:
         inactive_user.refresh_from_db()
         assert inactive_user.is_active is True
 
+    def test_verificar_inicia_sesion_automaticamente(self, api_client, inactive_user, db):
+        """UX (ADR-018): tras verificar, el usuario queda logueado por sesion
+        (django_login) para aterrizar en 'next' sin re-loguearse a mano."""
+        plain = create_verification_token(inactive_user)
+        r = api_client.post(VERIFY_URL, {'token': plain}, format='json')
+        assert r.status_code == 200
+        assert 'sessionid' in r.cookies          # la respuesta establece la sesion
+        # Una peticion posterior (solo cookie, sin credenciales) queda autenticada.
+        api_client.credentials()
+        prof = api_client.get('/api/v2/auth/profile/')
+        assert prof.status_code == 200
+        assert prof.json()['email'] == inactive_user.email
+
     def test_token_invalido_retorna_400(self, api_client, db):
         r = api_client.post(VERIFY_URL, {'token': 'token-falso-xyz'}, format='json')
         assert r.status_code == 400
