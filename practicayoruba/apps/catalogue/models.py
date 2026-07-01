@@ -31,10 +31,12 @@ class Category(TimeStampedModel):
     )
     image       = models.ImageField(upload_to=category_upload_path, null=True, blank=True)
     is_active   = models.BooleanField(default=True, db_index=True)
+    # UC-ADM-01: orden entre hermanos (mismo parent) para el editor de árbol.
+    order       = models.PositiveSmallIntegerField(default=0)
 
     class Meta:
         db_table     = 'catalogue_category'
-        ordering     = ['name']
+        ordering     = ['order', 'name']
         verbose_name = 'Categoría'
 
     def __str__(self):

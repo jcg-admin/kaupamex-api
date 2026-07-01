@@ -478,3 +478,61 @@ class TestReorderImages:
         product, imgs = product_con_imagenes
         res = api_client.post(self._url(product), {'order': [i.id for i in imgs]}, format='json')
         assert res.status_code in (401, 403)
+
+
+# =============================================================================
+# UC-ADM-01 — Reordenar categorías hermanas (editor de árbol)
+# =============================================================================
+
+ADMIN_CAT_URL = '/api/v2/admin/categories/'
+
+
+@pytest.fixture
+def cat_arbol(db):
+    root = Category.objects.create(name='Raiz', slug='raiz', is_active=True)
+    hijos = [
+        Category.objects.create(name=f'Hijo{i}', slug=f'hijo{i}', parent=root, order=i)
+        for i in range(3)
+    ]
+    return root, hijos
+
+
+class TestReorderCategories:
+    def test_reorder_persiste_orden_entre_hermanos(self, admin_client, cat_arbol, db):
+        root, hijos = cat_arbol
+        new_order = [hijos[2].id, hijos[0].id, hijos[1].id]
+        res = admin_client.post(
+            f'{ADMIN_CAT_URL}reorder/', {'parent': root.id, 'order': new_order}, format='json')
+        assert res.status_code == 200
+        for c in hijos:
+            c.refresh_from_db()
+        assert hijos[2].order == 0
+        assert hijos[0].order == 1
+        assert hijos[1].order == 2
+
+    def test_reorder_rechaza_ids_de_otro_padre(self, admin_client, cat_arbol, cat_pulseras, db):
+        root, hijos = cat_arbol
+        res = admin_client.post(
+            f'{ADMIN_CAT_URL}reorder/',
+            {'parent': root.id, 'order': [hijos[0].id, hijos[1].id, cat_pulseras.id]},
+            format='json')
+        assert res.status_code == 400
+        assert res.json().get('codigo_error') == 'ORDER_IDS_NO_COINCIDEN'
+
+    def test_reorder_raices_con_parent_null(self, admin_client, db):
+        r1 = Category.objects.create(name='R1', slug='r1', order=0)
+        r2 = Category.objects.create(name='R2', slug='r2', order=1)
+        res = admin_client.post(
+            f'{ADMIN_CAT_URL}reorder/', {'parent': None, 'order': [r2.id, r1.id]}, format='json')
+        assert res.status_code == 200
+        r1.refresh_from_db()
+        r2.refresh_from_db()
+        assert r2.order == 0
+        assert r1.order == 1
+
+    def test_reorder_requiere_admin(self, api_client, cat_arbol, db):
+        root, hijos = cat_arbol
+        res = api_client.post(
+            f'{ADMIN_CAT_URL}reorder/',
+            {'parent': root.id, 'order': [c.id for c in hijos]}, format='json')
+        assert res.status_code in (401, 403)

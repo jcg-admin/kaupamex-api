@@ -473,6 +473,46 @@ class CategoryAdminViewSet(ModelViewSet):
         kwargs['partial'] = True
         return super().update(request, *args, **kwargs)
 
+    @extend_schema(
+        summary='Reordenar categorías hermanas',
+        description=(
+            'UC-ADM-01: recibe {"parent": <id|null>, "order": [id, ...]} con los '
+            'IDs de las categorías hijas de `parent` en el nuevo orden y persiste '
+            'Category.order = índice. Reordena solo entre hermanos del mismo padre; '
+            'mover a otro padre se hace con PATCH parent_id (con validación de ciclo).'
+        ),
+        responses={200: None, 400: None},
+        tags=['admin-catalogue'],
+    )
+    @action(detail=False, methods=['post'], url_path='reorder')
+    def reorder(self, request):
+        parent_id = request.data.get('parent')
+        ids = request.data.get('order')
+        if not isinstance(ids, list) or not ids:
+            return Response(
+                {'detail': 'Se requiere "order": lista no vacía de IDs de categoría.',
+                 'codigo_error': 'ORDER_INVALIDO'},
+                status=400,
+            )
+        siblings = set(
+            Category.objects.filter(parent_id=parent_id).values_list('id', flat=True)
+        )
+        # Reorden completo entre hermanos: el set enviado debe coincidir con los
+        # hijos del padre indicado (sin faltantes, extras ni duplicados).
+        if set(ids) != siblings or len(ids) != len(siblings):
+            return Response(
+                {'detail': 'Los IDs no coinciden con las categorías hijas de ese padre.',
+                 'codigo_error': 'ORDER_IDS_NO_COINCIDEN'},
+                status=400,
+            )
+        with transaction.atomic():
+            for index, cat_id in enumerate(ids):
+                Category.objects.filter(pk=cat_id, parent_id=parent_id).update(
+                    order=index, updated_at=timezone.now(),
+                )
+        self._invalidate_category_cache()
+        return Response({'detail': 'Orden actualizado.', 'count': len(ids)})
+
     @extend_schema(summary='Desactivar categoría (soft delete)', responses={204: None, 400: None}, tags=['admin-catalogue'])
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)

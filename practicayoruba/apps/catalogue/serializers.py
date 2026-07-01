@@ -610,7 +610,7 @@ class CategoryAdminSerializer(serializers.ModelSerializer):
 
     class Meta:
         model  = Category
-        fields = ['id', 'name', 'slug', 'description', 'parent', 'parent_id', 'image', 'is_active']
+        fields = ['id', 'name', 'slug', 'description', 'parent', 'parent_id', 'image', 'is_active', 'order']
         extra_kwargs = {'slug': {'required': False},
                         'description': {'max_length': 5000}}
 
