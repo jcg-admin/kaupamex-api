@@ -686,6 +686,42 @@ class ProductAdminViewSet(ProductDeactivateAction, ModelViewSet):
         cache.delete(f'product:{product.pk}:detail')
         return Response(self.get_serializer(product).data)
 
+    @action(detail=True, methods=['post'], url_path='reorder-images')
+    @extend_schema(
+        summary='Reordenar imágenes de un producto',
+        description=(
+            'UC-ADM-05: recibe {"order": [id, id, ...]} con los IDs de imagen '
+            'en el nuevo orden y persiste ProductImage.order = índice. El campo '
+            'order ya existía (Meta.ordering=[order, id]); faltaba el endpoint '
+            'para persistir un reordenamiento por drag-and-drop desde el admin.'
+        ),
+        responses={200: ProductAdminSerializer},
+        tags=['admin-catalogue'],
+    )
+    def reorder_images(self, request, pk=None):
+        product = self.get_object()
+        ids = request.data.get('order')
+        if not isinstance(ids, list) or not ids:
+            return Response(
+                {'detail': 'Se requiere "order": lista no vacía de IDs de imagen.',
+                 'codigo_error': 'ORDER_INVALIDO'},
+                status=400,
+            )
+        image_ids = set(product.images.values_list('id', flat=True))
+        # Reorden completo: el set enviado debe coincidir exactamente con las
+        # imágenes del producto (sin faltantes, extras ni duplicados).
+        if set(ids) != image_ids or len(ids) != len(image_ids):
+            return Response(
+                {'detail': 'Los IDs no coinciden con las imágenes del producto.',
+                 'codigo_error': 'ORDER_IDS_NO_COINCIDEN'},
+                status=400,
+            )
+        with transaction.atomic():
+            for index, image_id in enumerate(ids):
+                ProductImage.objects.filter(pk=image_id, product=product).update(order=index)
+        cache.delete(f'product:{product.pk}:detail')
+        return Response(self.get_serializer(product).data)
+
 
 PRICE_SYNC_CACHE_TTL = 600
 
