@@ -480,6 +480,75 @@ class TestReorderImages:
         assert res.status_code in (401, 403)
 
 
+class TestUpdateImages:
+    """UC-ADM-06 — FieldArray de metadata de imágenes (alt_text, is_cover)."""
+
+    def _url(self, product):
+        return f'{ADMIN_PROD_URL}{product.id}/images/'
+
+    def test_edita_alt_text_en_lote(self, admin_client, product_con_imagenes, db):
+        product, imgs = product_con_imagenes
+        res = admin_client.patch(self._url(product), {'images': [
+            {'id': imgs[0].id, 'alt_text': 'Sopera frontal'},
+            {'id': imgs[1].id, 'alt_text': 'Sopera lateral'},
+        ]}, format='json')
+        assert res.status_code == 200
+        imgs[0].refresh_from_db(); imgs[1].refresh_from_db()
+        assert imgs[0].alt_text == 'Sopera frontal'
+        assert imgs[1].alt_text == 'Sopera lateral'
+
+    def test_marcar_portada_desmarca_las_demas(self, admin_client, product_con_imagenes, db):
+        product, imgs = product_con_imagenes
+        imgs[0].is_cover = True; imgs[0].save(update_fields=['is_cover'])
+        res = admin_client.patch(self._url(product), {'images': [
+            {'id': imgs[2].id, 'is_cover': True},
+        ]}, format='json')
+        assert res.status_code == 200
+        for img in imgs:
+            img.refresh_from_db()
+        assert imgs[2].is_cover is True
+        assert imgs[0].is_cover is False
+        assert product.images.filter(is_cover=True).count() == 1
+
+    def test_rechaza_multiples_portadas(self, admin_client, product_con_imagenes, db):
+        product, imgs = product_con_imagenes
+        res = admin_client.patch(self._url(product), {'images': [
+            {'id': imgs[0].id, 'is_cover': True},
+            {'id': imgs[1].id, 'is_cover': True},
+        ]}, format='json')
+        assert res.status_code == 400
+        assert res.json().get('codigo_error') == 'MULTIPLES_PORTADAS'
+
+    def test_rechaza_imagen_de_otro_producto(self, admin_client, product_con_imagenes, db):
+        product, imgs = product_con_imagenes
+        res = admin_client.patch(self._url(product), {'images': [
+            {'id': 999999, 'alt_text': 'x'},
+        ]}, format='json')
+        assert res.status_code == 400
+        assert res.json().get('codigo_error') == 'IMAGE_NO_PERTENECE'
+
+    def test_rechaza_item_sin_id(self, admin_client, product_con_imagenes, db):
+        product, _ = product_con_imagenes
+        res = admin_client.patch(self._url(product), {'images': [
+            {'alt_text': 'sin id'},
+        ]}, format='json')
+        assert res.status_code == 400
+        assert res.json().get('codigo_error') == 'IMAGE_ITEM_INVALIDO'
+
+    def test_requiere_lista_no_vacia(self, admin_client, product_con_imagenes, db):
+        product, _ = product_con_imagenes
+        res = admin_client.patch(self._url(product), {'images': []}, format='json')
+        assert res.status_code == 400
+        assert res.json().get('codigo_error') == 'IMAGES_INVALIDO'
+
+    def test_requiere_admin(self, api_client, product_con_imagenes, db):
+        product, imgs = product_con_imagenes
+        res = api_client.patch(self._url(product), {'images': [
+            {'id': imgs[0].id, 'alt_text': 'x'},
+        ]}, format='json')
+        assert res.status_code in (401, 403)
+
+
 # =============================================================================
 # UC-ADM-01 — Reordenar categorías hermanas (editor de árbol)
 # =============================================================================

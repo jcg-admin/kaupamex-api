@@ -762,6 +762,74 @@ class ProductAdminViewSet(ProductDeactivateAction, ModelViewSet):
         cache.delete(f'product:{product.pk}:detail')
         return Response(self.get_serializer(product).data)
 
+    @action(detail=True, methods=['patch'], url_path='images')
+    @extend_schema(
+        summary='Editar metadata de imágenes en lote (FieldArray)',
+        description=(
+            'UC-ADM-06: recibe {"images": [{"id", "alt_text"?, "is_cover"?}, ...]} '
+            'y actualiza en lote la metadata de las imágenes del producto, como un '
+            'FieldArray editable en el admin. NO sube archivos (eso es multipart '
+            'aparte por imagen); edita el set existente y mantiene la invariante '
+            'de una sola portada (is_cover). El orden se gestiona en reorder-images.'
+        ),
+        responses={200: ProductAdminSerializer},
+        tags=['admin-catalogue'],
+    )
+    def update_images(self, request, pk=None):
+        product = self.get_object()
+        items = request.data.get('images')
+        if not isinstance(items, list) or not items:
+            return Response(
+                {'detail': 'Se requiere "images": lista no vacía de {id, ...}.',
+                 'codigo_error': 'IMAGES_INVALIDO'},
+                status=400,
+            )
+        image_ids = set(product.images.values_list('id', flat=True))
+        sent_ids, covers = [], 0
+        for it in items:
+            if not isinstance(it, dict) or 'id' not in it:
+                return Response(
+                    {'detail': 'Cada item requiere "id".',
+                     'codigo_error': 'IMAGE_ITEM_INVALIDO'},
+                    status=400,
+                )
+            if it['id'] not in image_ids:
+                return Response(
+                    {'detail': f'La imagen {it["id"]} no pertenece al producto.',
+                     'codigo_error': 'IMAGE_NO_PERTENECE'},
+                    status=400,
+                )
+            sent_ids.append(it['id'])
+            if it.get('is_cover') is True:
+                covers += 1
+        if len(set(sent_ids)) != len(sent_ids):
+            return Response(
+                {'detail': 'IDs de imagen duplicados en el payload.',
+                 'codigo_error': 'IMAGE_IDS_DUPLICADOS'},
+                status=400,
+            )
+        if covers > 1:
+            return Response(
+                {'detail': 'Solo una imagen puede ser portada (is_cover).',
+                 'codigo_error': 'MULTIPLES_PORTADAS'},
+                status=400,
+            )
+        with transaction.atomic():
+            for it in items:
+                fields = {}
+                if 'alt_text' in it:
+                    fields['alt_text'] = (it.get('alt_text') or '')[:200]
+                if 'is_cover' in it:
+                    fields['is_cover'] = bool(it.get('is_cover'))
+                if fields:
+                    ProductImage.objects.filter(pk=it['id'], product=product).update(**fields)
+            # Invariante: al marcar una portada, desmarcar las demás.
+            cover_id = next((it['id'] for it in items if it.get('is_cover') is True), None)
+            if cover_id is not None:
+                product.images.exclude(pk=cover_id).update(is_cover=False)
+        cache.delete(f'product:{product.pk}:detail')
+        return Response(self.get_serializer(product).data)
+
 
 PRICE_SYNC_CACHE_TTL = 600
 
