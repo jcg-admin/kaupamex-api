@@ -72,25 +72,28 @@ def api_client():
 
 @pytest.fixture
 def auth_client(api_client, user):
-    """Cliente REST autenticado con JWT."""
-    refresh = RefreshToken.for_user(user)
-    api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {refresh.access_token}')
+    """Cliente REST autenticado por sesion de servidor (ADR-018).
+
+    Tras la migracion a sesion (Opcion 3), la auth del web es la cookie de
+    sesion, no JWT Bearer. ``force_login`` establece la sesion; el Bearer ya no
+    lo lee el default auth (SessionAuthentication). Los tests de JWT dedicados
+    (``test_jwt_endpoints``) siguen usando su propio flujo.
+    """
+    api_client.force_login(user)
     return api_client
 
 
 @pytest.fixture
 def admin_client(api_client, admin_user):
-    """Cliente REST autenticado como admin."""
-    refresh = RefreshToken.for_user(admin_user)
-    api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {refresh.access_token}')
+    """Cliente REST autenticado como admin por sesion de servidor."""
+    api_client.force_login(admin_user)
     return api_client
 
 
 @pytest.fixture
 def admin_auth_client(api_client, admin_user):
-    """Cliente REST autenticado como administrador."""
-    refresh = RefreshToken.for_user(admin_user)
-    api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {refresh.access_token}')
+    """Cliente REST autenticado como administrador por sesion de servidor."""
+    api_client.force_login(admin_user)
     return api_client
 
 

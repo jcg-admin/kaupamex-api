@@ -5,7 +5,6 @@ UC-AUTH-07: Gestionar Direcciones de Envio
 import pytest
 from django.contrib.auth import get_user_model
 from apps.users.models import Address
-from rest_framework_simplejwt.tokens import RefreshToken
 
 pytestmark = pytest.mark.integration
 
@@ -42,7 +41,7 @@ class TestAddressList:
         u1 = User.objects.create_user(username='u1', email='u1@test.mx', password='Pass123!')
         u2 = User.objects.create_user(username='u2', email='u2@test.mx', password='Pass123!')
         Address.objects.create(user=u2, **VALID_ADDR)
-        api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {RefreshToken.for_user(u1).access_token}')
+        api_client.force_login(u1)
         r = api_client.get(ADDR_URL)
         assert r.json() == []
 
@@ -130,7 +129,7 @@ class TestAddressUpdate:
         u1 = User.objects.create_user(username='u1b', email='u1b@test.mx', password='Pass123!')
         u2 = User.objects.create_user(username='u2b', email='u2b@test.mx', password='Pass123!')
         addr = Address.objects.create(user=u2, **VALID_ADDR)
-        api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {RefreshToken.for_user(u1).access_token}')
+        api_client.force_login(u1)
         r = api_client.patch(f'{ADDR_URL}{addr.pk}/', {'alias': 'Hack'}, format='json')
         assert r.status_code == 404
 
@@ -154,6 +153,6 @@ class TestAddressDelete:
         u1 = User.objects.create_user(username='u1c', email='u1c@test.mx', password='Pass123!')
         u2 = User.objects.create_user(username='u2c', email='u2c@test.mx', password='Pass123!')
         addr = Address.objects.create(user=u2, **VALID_ADDR)
-        api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {RefreshToken.for_user(u1).access_token}')
+        api_client.force_login(u1)
         r = api_client.delete(f'{ADDR_URL}{addr.pk}/')
         assert r.status_code == 404

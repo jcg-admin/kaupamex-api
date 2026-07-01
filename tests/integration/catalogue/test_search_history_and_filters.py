@@ -84,9 +84,8 @@ def product_pulsera(db, cat_pulseras):
 
 @pytest.fixture
 def auth_client_user(api_client, user):
-    """Cliente autenticado con JWT — comprador regular."""
-    refresh = RefreshToken.for_user(user)
-    api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {refresh.access_token}')
+    """Cliente autenticado por sesion de servidor — comprador regular."""
+    api_client.force_login(user)
     return api_client
 
 

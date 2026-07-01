@@ -64,10 +64,13 @@ class TestSchemaEndpoint:
         settings = r.json()['paths']['/api/v2/config/settings/']['patch']
         assert 'requestBody' in settings
 
-    def test_schema_tiene_esquema_jwt(self, api_client, db):
+    def test_schema_tiene_esquema_sesion(self, api_client, db):
+        # ADR-018: la auth por defecto es la sesion (cookie). El esquema
+        # OpenAPI debe documentar cookieAuth (no jwtAuth) — ver
+        # CsrfExemptSessionScheme en apps.users.schema.
         r = api_client.get('/api/schema/?format=json')
         schemas = r.json().get('components', {}).get('securitySchemes', {})
-        assert 'jwtAuth' in schemas
+        assert 'cookieAuth' in schemas
 
 
 class TestSwaggerUI:

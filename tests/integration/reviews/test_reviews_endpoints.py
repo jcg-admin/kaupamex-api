@@ -695,8 +695,7 @@ class TestBuyerEditReview:
         attacker = get_user_model().objects.create_user(
             username='attacker_edit', email='attacker@rev.com', password='x',
         )
-        refresh = RefreshToken.for_user(attacker)
-        api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {refresh.access_token}')
+        api_client.force_login(attacker)
         r = api_client.patch(
             EDIT_URL(prod_rev.id, review.id),
             {'rating': 5},
@@ -772,8 +771,7 @@ class TestReviewImages:
         other = get_user_model().objects.create_user(
             username='otherimguser', email='other_img@rev.com', password='x',
         )
-        refresh = RefreshToken.for_user(other)
-        api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {refresh.access_token}')
+        api_client.force_login(other)
         res = api_client.post(
             IMAGES_URL(prod_rev.id, pending_review.id),
             {'image': _make_png()},

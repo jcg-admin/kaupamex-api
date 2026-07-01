@@ -41,6 +41,37 @@ from django.apps import apps
 logger = logging.getLogger(__name__)
 
 
+def _import_app_schema_modules():
+    """Importa el modulo ``schema`` de cada app propia (si existe).
+
+    Importarlo ejecuta sus definiciones de nivel de modulo, lo que registra
+    como efecto secundario cualquier ``OpenApiAuthenticationExtension`` /
+    serializer/view extension declarada ahi (drf-spectacular las auto-registra
+    via ``__init_subclass__`` al definirse la clase).
+    """
+    for app_config in apps.get_app_configs():
+        if not app_config.name.startswith('apps.'):
+            continue  # solo apps propias del proyecto
+        try:
+            importlib.import_module(f'{app_config.name}.schema')
+        except ModuleNotFoundError:
+            continue
+
+
+def register_app_schema_extensions(endpoints, **kwargs):
+    """PREPROCESSING hook — registra las extensiones de cada ``schema.py``.
+
+    La resolucion del ``securityScheme`` (y de las serializer/view extensions)
+    ocurre DURANTE la generacion del esquema, no en postprocesamiento. Si los
+    ``schema.py`` se importan solo despues (como hace ``collect_app_tags``),
+    ``CsrfExemptSessionScheme`` no esta registrado a tiempo y drf-spectacular
+    emite "could not resolve authenticator" dejando el esquema sin
+    ``cookieAuth`` (ADR-018). Este hook fuerza esos imports antes de generar.
+    """
+    _import_app_schema_modules()
+    return endpoints
+
+
 def collect_app_tags(result, generator, **kwargs):
     """
     Agrega al schema los tags declarados en cada schema.py de las apps.

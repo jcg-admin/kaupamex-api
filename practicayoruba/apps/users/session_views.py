@@ -1,19 +1,17 @@
 """Vistas de sesion de servidor (ADR-018, DEC-STF-AUTH-COOKIE).
 
-Aditivas sobre el login JWT. Permiten que el SPA:
-  - al arrancar (o tras recargar), consulte el estado de sesion. Como el
-    navegador manda la cookie ``sessionid`` sola, la sesion se **restaura** sin
-    depender del token JWT en memoria (que la recarga pierde);
-  - obtenga el token CSRF (Opcion B, ``CSRF_USE_SESSIONS``) para las mutaciones
-    autenticadas por sesion;
-  - cierre la sesion de servidor.
+Tras la migracion completa (analisis-incidente-csrf-mutaciones, Opcion 3),
+la sesion de servidor es la **unica** auth del SPA. Estas vistas permiten:
 
-No retiran el flujo JWT existente.
+  - al arrancar (o tras recargar), consultar el estado de sesion. El navegador
+    manda la cookie ``sessionid`` sola, asi que la sesion se **restaura** sin
+    depender de ningun token en memoria (que la recarga perderia);
+  - cerrar la sesion de servidor.
+
+No hay token CSRF: la defensa CSRF es ``SameSite=Strict`` + prefijo ``__Host-``
+de la cookie de sesion (ver ``CsrfExemptSessionAuthentication`` y base.py).
 """
 from django.contrib.auth import logout as django_logout
-from django.middleware.csrf import get_token
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import ensure_csrf_cookie
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -21,7 +19,7 @@ from rest_framework.views import APIView
 
 
 def _user_payload(user):
-    """Mismo shape que el objeto ``user`` del login JWT (FR-AUTH-02.15)."""
+    """Mismo shape que el objeto ``user`` del login (FR-AUTH-02.15)."""
     return {
         'id':         user.pk,
         'username':   user.username,
@@ -34,32 +32,29 @@ def _user_payload(user):
 
 
 class SessionStatusView(APIView):
-    """``GET`` — estado de la sesion + siembra del token CSRF.
+    """``GET`` — estado de la sesion de servidor.
 
     Accesible sin autenticacion: devuelve ``isAuthenticated=false`` para
-    anonimos. ``@ensure_csrf_cookie`` fuerza que el secreto CSRF quede en la
-    sesion; ``get_token`` entrega el token enmascarado en el cuerpo para que el
-    SPA lo mande en ``X-CSRFToken``.
+    anonimos. Ya no siembra ni entrega token CSRF (la defensa CSRF es
+    ``SameSite=Strict``); el SPA solo necesita saber si hay sesion + el user.
     """
     permission_classes = [AllowAny]
 
     @extend_schema(
-        summary='Estado de sesion de servidor + token CSRF',
+        summary='Estado de sesion de servidor',
         description=(
             'Devuelve si hay sesion activa (cookie HttpOnly) y el objeto user. '
-            'Incluye csrfToken para mutaciones autenticadas por sesion (ADR-018).'
+            'Auth unica del SPA tras la migracion a sesion (ADR-018).'
         ),
         responses={200: OpenApiResponse(description='Estado de sesion.')},
         tags=['auth'],
     )
-    @method_decorator(ensure_csrf_cookie)
     def get(self, request):
         user = request.user
         authenticated = bool(user and user.is_authenticated)
         return Response({
             'isAuthenticated': authenticated,
             'user': _user_payload(user) if authenticated else None,
-            'csrfToken': get_token(request),
         })
 
 

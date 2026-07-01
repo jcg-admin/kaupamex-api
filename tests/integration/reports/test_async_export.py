@@ -167,10 +167,14 @@ class TestExportDownloadToken:
         job.refresh_from_db()
         try:
             token = reports_views._sign_job_token(job.pk)
-            # Token older than max_age (1h) must be rejected.
+            # Token older than max_age (1h) must be rejected. Se simula la
+            # expiracion parcheando _unsign_job_token (devuelve None ante
+            # SignatureExpired). NOTA: no se parchea TimestampSigner.unsign
+            # global porque la auth por sesion (ADR-018) tambien firma/verifica
+            # la cookie con signing; parchearlo corromperia la sesion y la
+            # peticion daria 401 en vez de probar el rechazo del token.
             with mock.patch.object(
-                signing.TimestampSigner, 'unsign',
-                side_effect=signing.SignatureExpired('expired'),
+                reports_views, '_unsign_job_token', return_value=None,
             ):
                 res = admin_client.get(_download_url(token))
             assert res.status_code in (400, 404)

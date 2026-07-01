@@ -52,9 +52,23 @@ SPECTACULAR_TAGS = [
 
 
 
+from drf_spectacular.authentication import SessionScheme
 from drf_spectacular.extensions import OpenApiSerializerExtension, OpenApiViewExtension
 from drf_spectacular.utils import inline_serializer, extend_schema, OpenApiResponse
 from rest_framework import serializers
+
+
+class CsrfExemptSessionScheme(SessionScheme):
+    """Documenta la auth por sesion (ADR-018) en el esquema OpenAPI.
+
+    Tras la migracion, ``CsrfExemptSessionAuthentication`` es la auth por
+    defecto. drf-spectacular no resuelve subclases de ``SessionAuthentication``
+    automaticamente (solo la clase exacta), asi que sin esta extension el
+    esquema quedaba SIN ``securityScheme`` y emitia un warning por cada vista.
+    Reutiliza el ``SessionScheme`` built-in (produce ``cookieAuth``).
+    """
+    target_class = 'apps.users.authentication.CsrfExemptSessionAuthentication'
+    name = 'cookieAuth'
 
 
 class PYTokenObtainPairSerializerExtension(OpenApiSerializerExtension):

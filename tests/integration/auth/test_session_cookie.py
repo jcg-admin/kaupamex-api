@@ -1,9 +1,10 @@
-"""Tests de integracion — sesion de servidor aditiva (ADR-018).
+"""Tests de integracion — sesion de servidor como auth unica (ADR-018).
 
-Verifican que, ademas del JWT, el login establece una **sesion de servidor**
-(cookie HttpOnly) de modo que la sesion persiste sin el token en memoria, y que
-el endpoint de estado de sesion la reporta. Cierra el problema del ADR-018:
-"la sesion se pierde en cualquier carga completa de pagina".
+Verifican que el login establece una **sesion de servidor** (cookie HttpOnly)
+de modo que la sesion persiste sin ningun token en memoria, y que el endpoint
+de estado de sesion la reporta. Cierra el problema del ADR-018: "la sesion se
+pierde en cualquier carga completa de pagina". Tras la migracion (Opcion 3) ya
+no se emite token CSRF: la defensa CSRF es SameSite=Strict + __Host-.
 """
 import pytest
 
@@ -16,13 +17,14 @@ SESSION_LOGOUT_URL = '/api/v2/auth/session/logout/'
 
 class TestSessionStatusAnon:
 
-    def test_anonimo_no_autenticado_y_trae_csrf(self, api_client, db):
+    def test_anonimo_no_autenticado(self, api_client, db):
         r = api_client.get(SESSION_URL)
         assert r.status_code == 200
         data = r.json()
         assert data['isAuthenticated'] is False
         assert data['user'] is None
-        assert data['csrfToken']
+        # Ya no se entrega token CSRF (migracion Opcion 3).
+        assert 'csrfToken' not in data
 
 
 class TestSessionEstablecidaEnLogin:
