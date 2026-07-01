@@ -59,13 +59,19 @@ class TestEmailVerification:
         assert r.status_code == 400
         assert r.json().get('codigo_error') == 'TOKEN_INVALID'
 
-    def test_token_ya_usado_retorna_200_idempotente(self, api_client, inactive_user, db):
-        """FR-AUTH-10.02: si la cuenta ya esta activa, 200 (idempotente)."""
+    def test_token_ya_usado_es_single_use(self, api_client, inactive_user, db):
+        """Postmortem verify-token-reuso: el 2o clic al enlace de verificacion
+        NO debe dar exito idempotente, sino ``TOKEN_ALREADY_USED`` (single-use,
+        alineado con el reset de contrasena)."""
         plain = create_verification_token(inactive_user)
-        api_client.post(VERIFY_URL, {'token': plain}, format='json')
+        first = api_client.post(VERIFY_URL, {'token': plain}, format='json')
+        assert first.status_code == 200          # 1er clic activa
         inactive_user.refresh_from_db()
-        r = api_client.post(VERIFY_URL, {'token': plain}, format='json')
-        assert r.status_code == 200
+        assert inactive_user.is_active is True
+        api_client.credentials()                 # limpia la sesion auto-login
+        second = api_client.post(VERIFY_URL, {'token': plain}, format='json')
+        assert second.status_code == 400
+        assert second.json().get('codigo_error') == 'TOKEN_ALREADY_USED'
 
     def test_verificacion_token_se_crea_al_registrar(self, api_client, db):
         """FR-AUTH-01.05: al crear usuario inactivo se genera token de verificacion."""
@@ -95,6 +101,27 @@ class TestEmailVerification:
         body = mail.outbox[0].body
         assert 'https://practicayoruba.com/auth/verify-email?token=TOKEN123' in body
         assert '/verificar-email/' not in body
+
+    def test_email_verificacion_incluye_alternativa_html(self, db, settings):
+        """Fase 11: el correo es multipart texto+HTML. Django ``send_mail`` con
+        ``html_message`` adjunta la alternativa nativamente (sin
+        ``EmailMultiAlternatives``). El HTML debe traer el enlace y la marca."""
+        settings.FRONTEND_URL = 'https://practicayoruba.com'
+        User = get_user_model()
+        u = User.objects.create_user(
+            username='htmluser', email='htmluser@test.mx',
+            password='TestPass123!', is_active=False,
+        )
+        mail.outbox.clear()
+        send_verification_email(u, 'TOKENHTML')
+        assert len(mail.outbox) == 1
+        alts = mail.outbox[0].alternatives
+        assert len(alts) == 1
+        html, mime = alts[0]
+        assert mime == 'text/html'
+        assert 'https://practicayoruba.com/auth/verify-email?token=TOKENHTML' in html
+        assert 'PracticaYoruba' in html
+        assert 'Activar mi cuenta' in html
 
     def test_resend_usuario_no_verificado_retorna_200(self, api_client, inactive_user, db):
         r = api_client.post(RESEND_URL, {'email': inactive_user.email}, format='json')
