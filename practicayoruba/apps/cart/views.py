@@ -41,13 +41,21 @@ def _get_or_create_cart(request):
     if request.user.is_authenticated:
         cart, created = Cart.objects.get_or_create(user=request.user)
         return cart, created, True
-    token = request.META.get('HTTP_X_CART_TOKEN')
+    # H-CART-01 Fase 2: preferir la cookie httpOnly (durable entre recargas y
+    # pestañas) sobre el header X-Cart-Token (memory-only, back-compat).
+    token = request.COOKIES.get('cart_token') or request.META.get('HTTP_X_CART_TOKEN')
     if not token:
         token = str(uuid4())
         created = True
     else:
         created = False
     cart, _ = Cart.objects.get_or_create(cart_token=token)
+    # Señal para CartCookieMiddleware: fija/renueva la cookie con este token.
+    # OJO: la vista recibe el Request de DRF (wrapper); el middleware ve el
+    # HttpRequest de Django subyacente. Hay que marcar el request nativo
+    # (``_request``) para que el middleware lea la señal.
+    django_request = getattr(request, '_request', request)
+    django_request._anon_cart_token = str(cart.cart_token)
     return cart, created, False
 
 
