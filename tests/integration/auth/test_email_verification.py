@@ -59,13 +59,19 @@ class TestEmailVerification:
         assert r.status_code == 400
         assert r.json().get('codigo_error') == 'TOKEN_INVALID'
 
-    def test_token_ya_usado_retorna_200_idempotente(self, api_client, inactive_user, db):
-        """FR-AUTH-10.02: si la cuenta ya esta activa, 200 (idempotente)."""
+    def test_token_ya_usado_es_single_use(self, api_client, inactive_user, db):
+        """Postmortem verify-token-reuso: el 2o clic al enlace de verificacion
+        NO debe dar exito idempotente, sino ``TOKEN_ALREADY_USED`` (single-use,
+        alineado con el reset de contrasena)."""
         plain = create_verification_token(inactive_user)
-        api_client.post(VERIFY_URL, {'token': plain}, format='json')
+        first = api_client.post(VERIFY_URL, {'token': plain}, format='json')
+        assert first.status_code == 200          # 1er clic activa
         inactive_user.refresh_from_db()
-        r = api_client.post(VERIFY_URL, {'token': plain}, format='json')
-        assert r.status_code == 200
+        assert inactive_user.is_active is True
+        api_client.credentials()                 # limpia la sesion auto-login
+        second = api_client.post(VERIFY_URL, {'token': plain}, format='json')
+        assert second.status_code == 400
+        assert second.json().get('codigo_error') == 'TOKEN_ALREADY_USED'
 
     def test_verificacion_token_se_crea_al_registrar(self, api_client, db):
         """FR-AUTH-01.05: al crear usuario inactivo se genera token de verificacion."""

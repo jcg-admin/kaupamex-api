@@ -209,28 +209,32 @@ def _token_error(code: str, message: str) -> ValueError:
 
 def validate_verification_token(plain: str):
     """
-    Valida el token de verificacion de email.
-    Retorna el EmailVerificationToken si es valido.
-    Lanza ValueError (con .error_code) si es invalido o expirado.
-    Si la cuenta ya esta activa, retorna None (idempotente).
+    Valida el token de verificacion de email — **single-use estricto**.
+    Retorna el EmailVerificationToken si es valido y sin usar.
+    Lanza ValueError (con .error_code) si es invalido, ya usado o expirado.
+
+    Postmortem verify-token-reuso (2026-07-01): el orden de las comprobaciones
+    ponia ``is_active`` ANTES de ``used_at``, asi que el 2o clic caia en la rama
+    idempotente ("ya activa" -> exito) en vez de "enlace ya utilizado" — a
+    diferencia del reset de contrasena, que si es single-use. Se reordena para
+    evaluar ``used_at`` (y expiracion) PRIMERO, alineando la semantica con el
+    reset: un enlace ya consumido devuelve ``TOKEN_ALREADY_USED``.
     """
     token_hash = _hash_token(plain)
     try:
         obj = EmailVerificationToken.objects.get(token_hash=token_hash)
     except EmailVerificationToken.DoesNotExist:
         raise _token_error('TOKEN_INVALID', 'Token de verificacion invalido.')
-    if obj.user.is_active:
-        return None  # idempotente — ya estaba activa
     if obj.used_at is not None:
-        # Token consumido pero cuenta sigue inactiva (p.ej. invalidado
-        # por DeactivateAccountView). Indicar claramente que el token no
-        # es reutilizable y el usuario debe solicitar uno nuevo.
-        # H-CICLO115-03: antes retornaba None, lo que el caller interpretaba
-        # como "cuenta ya activa" — mensaje falso que atrapaba al usuario.
+        # Single-use: un enlace ya usado no se reutiliza (2o clic incluido).
         raise _token_error(
             'TOKEN_ALREADY_USED',
-            'Este enlace ya fue utilizado. Solicita un nuevo enlace de verificacion.',
+            'Este enlace ya fue utilizado. Si tu cuenta ya esta activa, inicia sesion.',
         )
     if obj.expires_at < timezone.now():
         raise _token_error('TOKEN_EXPIRED', 'El enlace de verificacion ha expirado. Solicita uno nuevo.')
+    if obj.user.is_active:
+        # Token sin usar pero cuenta ya activa (p.ej. activada por otra via):
+        # idempotente, no hay nada que activar.
+        return None
     return obj
