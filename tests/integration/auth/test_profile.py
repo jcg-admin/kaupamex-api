@@ -131,6 +131,16 @@ class TestProfileUpdate:
         user.refresh_from_db()
         assert user.phone == '5559876543'
 
+    def test_telefono_no_mx_rechazado(self, auth_client, user, db):
+        """H-PROF-01: el perfil comparte la validación MX del checkout — un
+        teléfono con +52/espacios/guiones o != 10 dígitos se rechaza (400)."""
+        original = user.phone
+        for bad in ['+52 55 1234 5678', '55-1234-5678', '12345', '123456789012']:
+            r = auth_client.patch(PROFILE_URL, {'phone': bad}, format='json')
+            assert r.status_code == 400, f'{bad!r} debió rechazarse'
+        user.refresh_from_db()
+        assert user.phone == original
+
     def test_no_puede_cambiar_email(self, auth_client, user, db):
         original_email = user.email
         r = auth_client.patch(PROFILE_URL, {'email': 'nuevo@test.mx'}, format='json')
