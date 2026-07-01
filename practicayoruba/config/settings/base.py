@@ -145,7 +145,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
+        # JWT sigue siendo primario (back-compat). SessionAuthentication se
+        # anade de forma aditiva (ADR-018): tras una recarga el token en
+        # memoria se pierde, pero la cookie de sesion HttpOnly reautentica.
+        # Si JWT resuelve, DRF no invoca SessionAuthentication (ni su CSRF).
         'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -381,10 +386,25 @@ LOGGING = {
     'loggers': {
         'django': {'handlers': ['console', 'file'], 'level': 'INFO'},
         'apps':   {'handlers': ['console', 'file'], 'level': 'INFO'},
+        # Veredictos del CookieGovernanceMiddleware (modo auditoria, ADR-018).
+        'cookie_governance': {'handlers': ['console', 'file'], 'level': 'INFO'},
     },
 }
 
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+
+# Auth por sesion (ADR-018, DEC-STF-AUTH-COOKIE) — aditivo sobre JWT.
+# La cookie de sesion es HttpOnly y SameSite=Lax (mismo origin en dev via el
+# proxy de webpack y en prod mismo dominio). El endurecimiento a __Host- +
+# Secure vive en production.py. SameSite=Strict se evalua en el hardening.
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+
+# CSRF Opcion B (ADR-018, DEC-STF-AUTH-CSRF): el secreto CSRF vive en la sesion
+# de servidor; NO se emite cookie CSRF. El SPA obtiene el token del cuerpo de
+# /api/v2/auth/session/ (get_token) y lo manda en X-CSRFToken. Asi el conflicto
+# CSRF_COOKIE_HTTPONLY (H-CICLO82-04) queda sin objeto: no hay cookie que marcar.
+CSRF_USE_SESSIONS = True
 
 # Cache — DatabaseCache (cnst-arquitectura T4/T5).
 # UC-SRCH-02 (autocomplete) usa la clave "autocomplete:<prefijo>" con TTL 60s.
