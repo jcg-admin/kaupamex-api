@@ -429,7 +429,7 @@ class TestProductAdminSerializerSlug:
 
 
 # =============================================================================
-# UC-ADM-05 — Reordenar imágenes de producto (drag-and-drop persistente)
+# UC-CAT-16 — Reordenar imágenes de producto (drag-and-drop persistente)
 # =============================================================================
 
 @pytest.fixture
@@ -481,7 +481,7 @@ class TestReorderImages:
 
 
 class TestUpdateImages:
-    """UC-ADM-06 — FieldArray de metadata de imágenes (alt_text, is_cover)."""
+    """UC-CAT-17 — FieldArray de metadata de imágenes (alt_text, is_cover)."""
 
     def _url(self, product):
         return f'{ADMIN_PROD_URL}{product.id}/images/'
@@ -550,7 +550,7 @@ class TestUpdateImages:
 
 
 # =============================================================================
-# UC-ADM-01 — Reordenar categorías hermanas (editor de árbol)
+# UC-CAT-15 — Reordenar categorías hermanas (editor de árbol)
 # =============================================================================
 
 ADMIN_CAT_URL = '/api/v2/admin/categories/'
