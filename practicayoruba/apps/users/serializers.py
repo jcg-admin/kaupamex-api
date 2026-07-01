@@ -10,7 +10,7 @@ import logging
 import re
 import time
 
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, update_session_auth_hash
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.files.base import ContentFile
@@ -331,7 +331,12 @@ class ChangePasswordSerializer(serializers.Serializer):
         request = self.context['request']
         user.set_password(self.validated_data['new_password'])
         user.save(update_fields=['password'])
-        invalidate_all_sessions(user)
+        # CR-3 (ADR-018 hotfix): quien cambia su contrasena conserva SU sesion.
+        # update_session_auth_hash cicla la clave y refresca el hash de auth de
+        # la sesion en curso (patron nativo Django); luego se revocan las DEMAS
+        # sesiones del usuario, excluyendo la actual por su session_key.
+        update_session_auth_hash(request, user)
+        invalidate_all_sessions(user, keep_session_key=request.session.session_key)
         audit_log_auth(user, AuthEvent.ACTION_PASSWORD_CHANGE, request)
         return user
 
