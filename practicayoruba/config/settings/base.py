@@ -51,6 +51,11 @@ AUTH_USER_MODEL = 'users.User'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # CookieGovernanceMiddleware va sobre Session/CSRF: su process_response
+    # (orden inverso) corre despues de que aquellas ponen sus cookies, para
+    # observarlas/gobernarlas. Fase 1 = auditoria (COOKIE_GOVERNANCE_ENFORCE
+    # por defecto False). Ver iniciativa migrar-auth-sesion-cookie-httponly.
+    'apps.core.middleware.cookie_governance.CookieGovernanceMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
