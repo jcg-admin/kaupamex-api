@@ -10,6 +10,7 @@ pytestmark = pytest.mark.integration
 
 CHANGE_URL = '/api/v2/auth/change-password/'
 REFRESH_URL = '/api/v2/auth/refresh/'
+PROFILE_URL = '/api/v2/auth/profile/'
 
 
 class TestChangePassword:
@@ -131,3 +132,56 @@ class TestChangePassword:
             f'PASSWORD_CHANGE debio emitirse, encontrado: '
             f'{[e.action for e in AuthEvent.objects.filter(user=user)]}'
         )
+
+    # ─── CR-3 (ADR-018 hotfix): la sesion actual NO debe cerrarse ──────────
+
+    def test_change_password_conserva_sesion_actual(self, auth_client, db):
+        """CR-3: quien cambia su contrasena conserva su sesion (patron
+        nativo update_session_auth_hash); antes invalidate_all_sessions
+        borraba tambien la sesion en curso -> logout inmediato."""
+        assert auth_client.get(PROFILE_URL).status_code == 200
+        r = auth_client.post(CHANGE_URL, {
+            'current_password': 'TestPass123!',
+            'new_password': 'NuevoPass456@',
+            'new_password_confirm': 'NuevoPass456@',
+        }, format='json')
+        assert r.status_code == 200
+        # La MISMA sesion sigue autenticada tras el cambio.
+        assert auth_client.get(PROFILE_URL).status_code == 200
+
+    def test_change_password_cierra_las_otras_sesiones(self, user, db):
+        """CR-3: las OTRAS sesiones del usuario si se cierran (revocacion),
+        solo se preserva la del request en curso."""
+        from rest_framework.test import APIClient
+        c_actual = APIClient()
+        c_actual.force_login(user)
+        c_otra = APIClient()
+        c_otra.force_login(user)
+        assert c_otra.get(PROFILE_URL).status_code == 200
+
+        r = c_actual.post(CHANGE_URL, {
+            'current_password': 'TestPass123!',
+            'new_password': 'NuevoPass456@',
+            'new_password_confirm': 'NuevoPass456@',
+        }, format='json')
+        assert r.status_code == 200
+
+        assert c_actual.get(PROFILE_URL).status_code == 200   # sobrevive
+        assert c_otra.get(PROFILE_URL).status_code == 401      # revocada
+
+    # ─── CR-4 (ADR-018 hotfix): sin ruido al reintentar tokens ya negros ───
+
+    def test_invalidate_all_sessions_sin_ruido_de_tokens_blacklisteados(
+        self, user, db, caplog,
+    ):
+        """CR-4: invalidate_all_sessions no debe loguear tracebacks al
+        toparse con OutstandingToken que ya estan en BlacklistedToken
+        (rotacion previa)."""
+        import logging
+        from apps.users.tokens_email import invalidate_all_sessions
+        rt = RefreshToken.for_user(user)
+        rt.blacklist()  # queda en BlacklistedToken
+        caplog.clear()
+        with caplog.at_level(logging.WARNING):
+            invalidate_all_sessions(user)
+        assert 'blacklist refresh token failed' not in caplog.text
