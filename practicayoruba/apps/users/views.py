@@ -10,7 +10,7 @@ Sprint 5: LogoutAllSessionsView (UC-AUTH-18)
 # stdlib + Django
 import logging
 
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, login as django_login
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
@@ -505,7 +505,29 @@ class EmailVerifyView(APIView):
             token_obj.used_at = timezone.now()
             token_obj.save(update_fields=['used_at', 'updated_at'])
 
-        return Response({'message': 'Cuenta activada exitosamente. Puedes iniciar sesion.'})
+        # UX (ADR-018): auto-login por sesion tras verificar. Hacer clic en el
+        # enlace de un solo uso prueba control del correo = control de la cuenta
+        # (mismo nivel de confianza que el reset de contrasena), asi que se
+        # establece la sesion y el SPA aterriza en 'next' sin re-loguearse. El
+        # backend se pasa explicito porque el user no se autentico via un backend
+        # de auth (se valido por el token del email).
+        django_login(
+            request, user,
+            backend='django.contrib.auth.backends.ModelBackend',
+        )
+        return Response({
+            'message': 'Cuenta activada exitosamente.',
+            'isAuthenticated': True,
+            'user': {
+                'id':         user.pk,
+                'username':   user.username,
+                'email':      user.email,
+                'first_name': user.first_name,
+                'last_name':  user.last_name,
+                'is_staff':   user.is_staff,
+                'avatar_url': user.get_avatar_url(),
+            },
+        })
 
 
 class ResendVerificationView(APIView):
