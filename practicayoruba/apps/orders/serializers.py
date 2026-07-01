@@ -5,7 +5,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
-from .models import Order, OrderItem, OrderValue, OrderAddress, ShippingZone, OrderStatusLog
+from .models import Order, OrderItem, OrderValue, OrderAddress, OrderStatusLog
 
 
 # Validación MX (hardening-checkout-envio-mexico): Teléfono y C.P. son
@@ -225,19 +225,13 @@ class CheckoutSerializer(serializers.Serializer):
     shipping_method_id = serializers.IntegerField(required=False, allow_null=True)
     notes              = serializers.CharField(required=False, default='', allow_blank=True, max_length=1000)
 
-    def validate_address(self, value):
-        """DEC-BC-18: reject zip_code not covered by any active ShippingZone."""
-        zip_code = value.get('zip_code', '')
-        prefixes = list(
-            ShippingZone.objects.filter(is_active=True)
-            .values_list('zip_code_prefix', flat=True)
-        )
-        if not any(zip_code.startswith(p) for p in prefixes):
-            raise ValidationError({
-                'zip_code': 'El código postal no está cubierto por ninguna zona de envío.',
-                'codigo_error': 'ZONE_NOT_COVERED',
-            })
-        return value
+    # DEC-BC-18 revertida (2026-07-01): el C.P. fuera de zona de envío ya NO
+    # bloquea el checkout. El costo de envío se deriva del ShippingMethod
+    # elegido, no de la ShippingZone, así que el gate solo generaba fricción
+    # (un C.P. válido pero fuera de las zonas sembradas rechazaba la compra).
+    # La dirección es responsabilidad del comprador; el front pide una
+    # confirmación explícita antes de pagar. Se mantiene la validación de
+    # formato de C.P. (5 dígitos) y teléfono (10) en OrderAddressInputSerializer.
 
 
 # ─── Sprint 18 — serializers de edición ────────────────────────────────────────────
