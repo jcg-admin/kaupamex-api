@@ -426,3 +426,55 @@ class TestProductAdminSerializerSlug:
         assert s.is_valid(), s.errors
         instance = s.save()
         assert instance.slug == 'collar-x-1'
+
+
+# =============================================================================
+# UC-ADM-05 — Reordenar imágenes de producto (drag-and-drop persistente)
+# =============================================================================
+
+@pytest.fixture
+def product_con_imagenes(db, product_sopera):
+    imgs = [
+        ProductImage.objects.create(product=product_sopera, image=f'img{i}.jpg', order=i)
+        for i in range(3)
+    ]
+    return product_sopera, imgs
+
+
+class TestReorderImages:
+    def _url(self, product):
+        return f'{ADMIN_PROD_URL}{product.id}/reorder-images/'
+
+    def test_reorder_persiste_el_nuevo_orden(self, admin_client, product_con_imagenes, db):
+        product, imgs = product_con_imagenes
+        new_order = [imgs[2].id, imgs[0].id, imgs[1].id]
+        res = admin_client.post(self._url(product), {'order': new_order}, format='json')
+        assert res.status_code == 200
+        for img in imgs:
+            img.refresh_from_db()
+        assert imgs[2].order == 0
+        assert imgs[0].order == 1
+        assert imgs[1].order == 2
+
+    def test_reorder_rechaza_ids_que_no_pertenecen(self, admin_client, product_con_imagenes, db):
+        product, imgs = product_con_imagenes
+        res = admin_client.post(self._url(product), {'order': [imgs[0].id, 999999]}, format='json')
+        assert res.status_code == 400
+        assert res.json().get('codigo_error') == 'ORDER_IDS_NO_COINCIDEN'
+
+    def test_reorder_rechaza_lista_incompleta(self, admin_client, product_con_imagenes, db):
+        product, imgs = product_con_imagenes
+        res = admin_client.post(self._url(product), {'order': [imgs[0].id]}, format='json')
+        assert res.status_code == 400
+        assert res.json().get('codigo_error') == 'ORDER_IDS_NO_COINCIDEN'
+
+    def test_reorder_requiere_lista_no_vacia(self, admin_client, product_con_imagenes, db):
+        product, _ = product_con_imagenes
+        res = admin_client.post(self._url(product), {'order': 'nope'}, format='json')
+        assert res.status_code == 400
+        assert res.json().get('codigo_error') == 'ORDER_INVALIDO'
+
+    def test_reorder_requiere_admin(self, api_client, product_con_imagenes, db):
+        product, imgs = product_con_imagenes
+        res = api_client.post(self._url(product), {'order': [i.id for i in imgs]}, format='json')
+        assert res.status_code in (401, 403)
