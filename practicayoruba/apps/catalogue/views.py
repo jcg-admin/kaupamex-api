@@ -473,6 +473,46 @@ class CategoryAdminViewSet(ModelViewSet):
         kwargs['partial'] = True
         return super().update(request, *args, **kwargs)
 
+    @extend_schema(
+        summary='Reordenar categorías hermanas',
+        description=(
+            'UC-ADM-01: recibe {"parent": <id|null>, "order": [id, ...]} con los '
+            'IDs de las categorías hijas de `parent` en el nuevo orden y persiste '
+            'Category.order = índice. Reordena solo entre hermanos del mismo padre; '
+            'mover a otro padre se hace con PATCH parent_id (con validación de ciclo).'
+        ),
+        responses={200: None, 400: None},
+        tags=['admin-catalogue'],
+    )
+    @action(detail=False, methods=['post'], url_path='reorder')
+    def reorder(self, request):
+        parent_id = request.data.get('parent')
+        ids = request.data.get('order')
+        if not isinstance(ids, list) or not ids:
+            return Response(
+                {'detail': 'Se requiere "order": lista no vacía de IDs de categoría.',
+                 'codigo_error': 'ORDER_INVALIDO'},
+                status=400,
+            )
+        siblings = set(
+            Category.objects.filter(parent_id=parent_id).values_list('id', flat=True)
+        )
+        # Reorden completo entre hermanos: el set enviado debe coincidir con los
+        # hijos del padre indicado (sin faltantes, extras ni duplicados).
+        if set(ids) != siblings or len(ids) != len(siblings):
+            return Response(
+                {'detail': 'Los IDs no coinciden con las categorías hijas de ese padre.',
+                 'codigo_error': 'ORDER_IDS_NO_COINCIDEN'},
+                status=400,
+            )
+        with transaction.atomic():
+            for index, cat_id in enumerate(ids):
+                Category.objects.filter(pk=cat_id, parent_id=parent_id).update(
+                    order=index, updated_at=timezone.now(),
+                )
+        self._invalidate_category_cache()
+        return Response({'detail': 'Orden actualizado.', 'count': len(ids)})
+
     @extend_schema(summary='Desactivar categoría (soft delete)', responses={204: None, 400: None}, tags=['admin-catalogue'])
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
@@ -719,6 +759,74 @@ class ProductAdminViewSet(ProductDeactivateAction, ModelViewSet):
         with transaction.atomic():
             for index, image_id in enumerate(ids):
                 ProductImage.objects.filter(pk=image_id, product=product).update(order=index)
+        cache.delete(f'product:{product.pk}:detail')
+        return Response(self.get_serializer(product).data)
+
+    @action(detail=True, methods=['patch'], url_path='images')
+    @extend_schema(
+        summary='Editar metadata de imágenes en lote (FieldArray)',
+        description=(
+            'UC-ADM-06: recibe {"images": [{"id", "alt_text"?, "is_cover"?}, ...]} '
+            'y actualiza en lote la metadata de las imágenes del producto, como un '
+            'FieldArray editable en el admin. NO sube archivos (eso es multipart '
+            'aparte por imagen); edita el set existente y mantiene la invariante '
+            'de una sola portada (is_cover). El orden se gestiona en reorder-images.'
+        ),
+        responses={200: ProductAdminSerializer},
+        tags=['admin-catalogue'],
+    )
+    def update_images(self, request, pk=None):
+        product = self.get_object()
+        items = request.data.get('images')
+        if not isinstance(items, list) or not items:
+            return Response(
+                {'detail': 'Se requiere "images": lista no vacía de {id, ...}.',
+                 'codigo_error': 'IMAGES_INVALIDO'},
+                status=400,
+            )
+        image_ids = set(product.images.values_list('id', flat=True))
+        sent_ids, covers = [], 0
+        for it in items:
+            if not isinstance(it, dict) or 'id' not in it:
+                return Response(
+                    {'detail': 'Cada item requiere "id".',
+                     'codigo_error': 'IMAGE_ITEM_INVALIDO'},
+                    status=400,
+                )
+            if it['id'] not in image_ids:
+                return Response(
+                    {'detail': f'La imagen {it["id"]} no pertenece al producto.',
+                     'codigo_error': 'IMAGE_NO_PERTENECE'},
+                    status=400,
+                )
+            sent_ids.append(it['id'])
+            if it.get('is_cover') is True:
+                covers += 1
+        if len(set(sent_ids)) != len(sent_ids):
+            return Response(
+                {'detail': 'IDs de imagen duplicados en el payload.',
+                 'codigo_error': 'IMAGE_IDS_DUPLICADOS'},
+                status=400,
+            )
+        if covers > 1:
+            return Response(
+                {'detail': 'Solo una imagen puede ser portada (is_cover).',
+                 'codigo_error': 'MULTIPLES_PORTADAS'},
+                status=400,
+            )
+        with transaction.atomic():
+            for it in items:
+                fields = {}
+                if 'alt_text' in it:
+                    fields['alt_text'] = (it.get('alt_text') or '')[:200]
+                if 'is_cover' in it:
+                    fields['is_cover'] = bool(it.get('is_cover'))
+                if fields:
+                    ProductImage.objects.filter(pk=it['id'], product=product).update(**fields)
+            # Invariante: al marcar una portada, desmarcar las demás.
+            cover_id = next((it['id'] for it in items if it.get('is_cover') is True), None)
+            if cover_id is not None:
+                product.images.exclude(pk=cover_id).update(is_cover=False)
         cache.delete(f'product:{product.pk}:detail')
         return Response(self.get_serializer(product).data)
 

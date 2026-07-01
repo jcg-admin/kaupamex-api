@@ -34,6 +34,11 @@ COOKIE_REGISTER = {
     'csrftoken': {'category': 'necessary'},
     '__Host-csrftoken': {'category': 'necessary'},
     CONSENT_COOKIE: {'category': 'necessary'},
+    # H-CART-01 Fase 2: cookie funcional del carrito. No identifica a la
+    # persona por si sola y es indispensable para el servicio de tienda
+    # solicitado -> exenta de consentimiento (LFPDPPP/GDPR). httpOnly, la
+    # emite CartCookieMiddleware.
+    'cart_token': {'category': 'necessary'},
 }
 
 

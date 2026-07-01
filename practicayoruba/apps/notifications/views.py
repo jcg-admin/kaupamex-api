@@ -182,8 +182,36 @@ def _build_preference_rows(user):
     return rows
 
 
+def _upsert_preference(user, type_value, enabled):
+    """Fija ``enabled`` para (user, type) de forma tolerante a duplicados.
+
+    H-NOT-01: ``update_or_create`` usa ``get()`` internamente y lanza
+    ``MultipleObjectsReturned`` -> 500 si existen filas duplicadas de
+    (user, type). Eso NO puede pasar mientras la UniqueConstraint
+    ``unique_notification_preference`` esté activa (migración 0004), pero un
+    entorno con la constraint ausente (drift de esquema) sí las permitiría, y
+    entonces el GET tolera el duplicado (colapsa en un dict) mientras el PUT
+    revienta — exactamente el síntoma "500 al guardar, pero la página carga".
+
+    Este upsert es robusto sin importar el estado del esquema: colapsa
+    cualquier duplicado preexistente a una sola fila coherente.
+    """
+    qs = NotificationPreference.objects.filter(user=user, type=type_value)
+    pref = qs.first()
+    if pref is None:
+        NotificationPreference.objects.create(
+            user=user, type=type_value, enabled=enabled,
+        )
+        return
+    # Colapsa duplicados residuales (si los hubiera) a la fila canónica.
+    qs.exclude(pk=pref.pk).delete()
+    if pref.enabled != enabled:
+        pref.enabled = enabled
+        pref.save(update_fields=['enabled'])
+
+
 class NotificationPreferencesView(APIView):
-    """GET/PUT /api/v1/notifications/preferences/."""
+    """GET/PUT /api/v2/notifications/preferences/."""
 
     permission_classes = [IsAuthenticated]
 
@@ -217,11 +245,7 @@ class NotificationPreferencesView(APIView):
                     if item['enabled'] is False:
                         skipped_mandatory.append(type_value)
                     continue
-                NotificationPreference.objects.update_or_create(
-                    user=request.user,
-                    type=type_value,
-                    defaults={'enabled': item['enabled']},
-                )
+                _upsert_preference(request.user, type_value, item['enabled'])
 
         rows = _build_preference_rows(request.user)
         return Response({

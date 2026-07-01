@@ -202,6 +202,40 @@ class TestUpdatePreferences:
         }, format='json')
         assert res.status_code == 400
 
+    def test_disable_promotion_and_support_together(self, auth_client, user, db):
+        """H-NOT-01: deshabilitar Promociones + Actualizaciones de soporte a la
+        vez debe devolver 200 (era el flujo que reportaba 500 en prod)."""
+        res = auth_client.put(PREFERENCES_URL, {
+            'preferences': [
+                {'type': 'PROMOTION', 'enabled': False},
+                {'type': 'SUPPORT_UPDATE', 'enabled': False},
+            ],
+        }, format='json')
+        assert res.status_code == 200
+        by_type = {r['type']: r for r in res.json()['results']}
+        assert by_type['PROMOTION']['enabled'] is False
+        assert by_type['SUPPORT_UPDATE']['enabled'] is False
+        assert NotificationPreference.objects.filter(
+            user=user, type='PROMOTION', enabled=False,
+        ).exists()
+        assert NotificationPreference.objects.filter(
+            user=user, type='SUPPORT_UPDATE', enabled=False,
+        ).exists()
+
+    def test_resave_is_idempotent(self, auth_client, user, db):
+        """H-NOT-01: reguardar la misma preferencia no duplica filas ni rompe
+        (el upsert tolerante actualiza en sitio, no crea una segunda fila)."""
+        payload = {'preferences': [{'type': 'PROMOTION', 'enabled': False}]}
+        assert auth_client.put(PREFERENCES_URL, payload, format='json').status_code == 200
+        # segundo guardado: toggle de vuelta a True, sobre la fila existente
+        res = auth_client.put(PREFERENCES_URL, {
+            'preferences': [{'type': 'PROMOTION', 'enabled': True}],
+        }, format='json')
+        assert res.status_code == 200
+        rows = NotificationPreference.objects.filter(user=user, type='PROMOTION')
+        assert rows.count() == 1
+        assert rows.first().enabled is True
+
 
 # ─── GET /admin/audience-count ───────────────────────────────────────────
 class TestAdminAudienceCount:

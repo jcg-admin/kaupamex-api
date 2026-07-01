@@ -63,6 +63,10 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # H-CART-01 Fase 2: fija la cookie httpOnly cart_token para carritos
+    # anonimos. Va por DEBAJO de CookieGovernanceMiddleware para que el
+    # process_response de aquel (orden inverso) observe la cookie de carrito.
+    'apps.cart.middleware.CartCookieMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'

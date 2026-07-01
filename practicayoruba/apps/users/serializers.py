@@ -7,7 +7,6 @@ Sprint 2: ProfileSerializer, UpdateProfileSerializer,
 """
 import io
 import logging
-import re
 import time
 
 from django.contrib.auth import get_user_model, update_session_auth_hash
@@ -21,6 +20,7 @@ from PIL import Image
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from apps.settings_app.models import SiteSettings
+from apps.orders.serializers import validate_mx_phone
 from .audit import audit_log_auth
 from .models import Address, AuthEvent, UserDeactivationEvent
 from .tokens_email import invalidate_all_sessions
@@ -209,11 +209,6 @@ class ProfileSerializer(serializers.ModelSerializer):
 
 ALLOWED_IMAGE_TYPES = {'image/jpeg', 'image/png', 'image/webp', 'JPEG', 'PNG', 'WEBP'}
 
-# H-CICLO67-01: phone format validator — accepts optional leading +, then
-# 7–15 digits (E.164-compatible without strict country-code enforcement).
-# Allows the separator characters space, hyphen and parentheses that
-# international numbers commonly include (e.g. +52 (55) 1234-5678).
-_PHONE_RE = r'^\+?[\d\s\-\(\)]{7,20}$'
 
 class UpdateProfileSerializer(serializers.ModelSerializer):
     """UC-AUTH-06: Actualiza campos de perfil. Email y username no editables."""
@@ -227,15 +222,12 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
         }
 
     def validate_phone(self, value):
-        """H-CICLO67-01: reject phone strings that do not match E.164-like format."""
-        if value is None or value == '':
-            return value
-        if not re.match(_PHONE_RE, value):
-            raise serializers.ValidationError(
-                'Formato de teléfono inválido. Usa dígitos, +, espacios, '
-                'guiones o paréntesis (7–20 caracteres).'
-            )
-        return value
+        """H-PROF-01: el teléfono del perfil comparte la validación del checkout
+        (MX 10 dígitos exactos, ``validate_mx_phone``). Antes aceptaba un
+        formato E.164 laxo (H-CICLO67-01), lo que permitía guardar en el perfil
+        un teléfono que el checkout luego rechazaba. Reusar el mismo validador
+        garantiza que ambos flujos queden en sync."""
+        return validate_mx_phone(value)
 
     def validate_avatar(self, value):
         if value is None:

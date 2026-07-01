@@ -478,3 +478,130 @@ class TestReorderImages:
         product, imgs = product_con_imagenes
         res = api_client.post(self._url(product), {'order': [i.id for i in imgs]}, format='json')
         assert res.status_code in (401, 403)
+
+
+class TestUpdateImages:
+    """UC-ADM-06 — FieldArray de metadata de imágenes (alt_text, is_cover)."""
+
+    def _url(self, product):
+        return f'{ADMIN_PROD_URL}{product.id}/images/'
+
+    def test_edita_alt_text_en_lote(self, admin_client, product_con_imagenes, db):
+        product, imgs = product_con_imagenes
+        res = admin_client.patch(self._url(product), {'images': [
+            {'id': imgs[0].id, 'alt_text': 'Sopera frontal'},
+            {'id': imgs[1].id, 'alt_text': 'Sopera lateral'},
+        ]}, format='json')
+        assert res.status_code == 200
+        imgs[0].refresh_from_db(); imgs[1].refresh_from_db()
+        assert imgs[0].alt_text == 'Sopera frontal'
+        assert imgs[1].alt_text == 'Sopera lateral'
+
+    def test_marcar_portada_desmarca_las_demas(self, admin_client, product_con_imagenes, db):
+        product, imgs = product_con_imagenes
+        imgs[0].is_cover = True; imgs[0].save(update_fields=['is_cover'])
+        res = admin_client.patch(self._url(product), {'images': [
+            {'id': imgs[2].id, 'is_cover': True},
+        ]}, format='json')
+        assert res.status_code == 200
+        for img in imgs:
+            img.refresh_from_db()
+        assert imgs[2].is_cover is True
+        assert imgs[0].is_cover is False
+        assert product.images.filter(is_cover=True).count() == 1
+
+    def test_rechaza_multiples_portadas(self, admin_client, product_con_imagenes, db):
+        product, imgs = product_con_imagenes
+        res = admin_client.patch(self._url(product), {'images': [
+            {'id': imgs[0].id, 'is_cover': True},
+            {'id': imgs[1].id, 'is_cover': True},
+        ]}, format='json')
+        assert res.status_code == 400
+        assert res.json().get('codigo_error') == 'MULTIPLES_PORTADAS'
+
+    def test_rechaza_imagen_de_otro_producto(self, admin_client, product_con_imagenes, db):
+        product, imgs = product_con_imagenes
+        res = admin_client.patch(self._url(product), {'images': [
+            {'id': 999999, 'alt_text': 'x'},
+        ]}, format='json')
+        assert res.status_code == 400
+        assert res.json().get('codigo_error') == 'IMAGE_NO_PERTENECE'
+
+    def test_rechaza_item_sin_id(self, admin_client, product_con_imagenes, db):
+        product, _ = product_con_imagenes
+        res = admin_client.patch(self._url(product), {'images': [
+            {'alt_text': 'sin id'},
+        ]}, format='json')
+        assert res.status_code == 400
+        assert res.json().get('codigo_error') == 'IMAGE_ITEM_INVALIDO'
+
+    def test_requiere_lista_no_vacia(self, admin_client, product_con_imagenes, db):
+        product, _ = product_con_imagenes
+        res = admin_client.patch(self._url(product), {'images': []}, format='json')
+        assert res.status_code == 400
+        assert res.json().get('codigo_error') == 'IMAGES_INVALIDO'
+
+    def test_requiere_admin(self, api_client, product_con_imagenes, db):
+        product, imgs = product_con_imagenes
+        res = api_client.patch(self._url(product), {'images': [
+            {'id': imgs[0].id, 'alt_text': 'x'},
+        ]}, format='json')
+        assert res.status_code in (401, 403)
+
+
+# =============================================================================
+# UC-ADM-01 — Reordenar categorías hermanas (editor de árbol)
+# =============================================================================
+
+ADMIN_CAT_URL = '/api/v2/admin/categories/'
+
+
+@pytest.fixture
+def cat_arbol(db):
+    root = Category.objects.create(name='Raiz', slug='raiz', is_active=True)
+    hijos = [
+        Category.objects.create(name=f'Hijo{i}', slug=f'hijo{i}', parent=root, order=i)
+        for i in range(3)
+    ]
+    return root, hijos
+
+
+class TestReorderCategories:
+    def test_reorder_persiste_orden_entre_hermanos(self, admin_client, cat_arbol, db):
+        root, hijos = cat_arbol
+        new_order = [hijos[2].id, hijos[0].id, hijos[1].id]
+        res = admin_client.post(
+            f'{ADMIN_CAT_URL}reorder/', {'parent': root.id, 'order': new_order}, format='json')
+        assert res.status_code == 200
+        for c in hijos:
+            c.refresh_from_db()
+        assert hijos[2].order == 0
+        assert hijos[0].order == 1
+        assert hijos[1].order == 2
+
+    def test_reorder_rechaza_ids_de_otro_padre(self, admin_client, cat_arbol, cat_pulseras, db):
+        root, hijos = cat_arbol
+        res = admin_client.post(
+            f'{ADMIN_CAT_URL}reorder/',
+            {'parent': root.id, 'order': [hijos[0].id, hijos[1].id, cat_pulseras.id]},
+            format='json')
+        assert res.status_code == 400
+        assert res.json().get('codigo_error') == 'ORDER_IDS_NO_COINCIDEN'
+
+    def test_reorder_raices_con_parent_null(self, admin_client, db):
+        r1 = Category.objects.create(name='R1', slug='r1', order=0)
+        r2 = Category.objects.create(name='R2', slug='r2', order=1)
+        res = admin_client.post(
+            f'{ADMIN_CAT_URL}reorder/', {'parent': None, 'order': [r2.id, r1.id]}, format='json')
+        assert res.status_code == 200
+        r1.refresh_from_db()
+        r2.refresh_from_db()
+        assert r2.order == 0
+        assert r1.order == 1
+
+    def test_reorder_requiere_admin(self, api_client, cat_arbol, db):
+        root, hijos = cat_arbol
+        res = api_client.post(
+            f'{ADMIN_CAT_URL}reorder/',
+            {'parent': root.id, 'order': [c.id for c in hijos]}, format='json')
+        assert res.status_code in (401, 403)
