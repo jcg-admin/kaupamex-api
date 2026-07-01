@@ -216,3 +216,35 @@ class TestWishlist:
         move_res = auth_client.post(f'{WISH_URL}{item_id}/cart-transfers/', format='json')
         assert move_res.status_code == 409
         assert move_res.json()['codigo_error'] == 'PRODUCT_OUT_OF_STOCK'
+
+    def test_move_without_stock_preserves_item(self, auth_client, prod_s14, db):
+        """H-004: tras el 409 por falta de stock el item sigue en la wishlist.
+
+        El código falla antes de tocar el item; sin esta verificación el
+        test previo sólo comprobaba el status, no el estado post-operación.
+        """
+        prod_s14.stock = 0
+        prod_s14.save()
+        res = auth_client.post(WISH_URL, {'product_id': prod_s14.pk}, format='json')
+        item_id = res.json()['id']
+        move_res = auth_client.post(f'{WISH_URL}{item_id}/cart-transfers/', format='json')
+        assert move_res.status_code == 409
+        listing = auth_client.get(WISH_URL).json()['results']
+        assert len(listing) == 1
+        assert listing[0]['id'] == item_id
+
+    def test_re_add_after_move_to_cart(self, auth_client, prod_s14, db):
+        """H-005: mover al carrito elimina el item; re-agregarlo vuelve a funcionar.
+
+        Caso realista: el comprador mueve una pieza, se arrepiente y la
+        vuelve a guardar. El move (keep_in_wishlist por defecto) la borra;
+        el re-add debe reactivar la fila y dejar la lista con un item.
+        """
+        res1 = auth_client.post(WISH_URL, {'product_id': prod_s14.pk}, format='json')
+        item_id_1 = res1.json()['id']
+        auth_client.post(f'{WISH_URL}{item_id_1}/cart-transfers/', format='json')
+        assert auth_client.get(WISH_URL).json()['results'] == []
+
+        res2 = auth_client.post(WISH_URL, {'product_id': prod_s14.pk}, format='json')
+        assert res2.status_code == 201
+        assert len(auth_client.get(WISH_URL).json()['results']) == 1
