@@ -9,6 +9,7 @@ Sprint 5: LogoutAllSessionsView (UC-AUTH-18)
 """
 # stdlib + Django
 import logging
+import uuid
 
 from django.contrib.auth import get_user_model, login as django_login
 from django.db import transaction
@@ -40,6 +41,34 @@ from .tokens_email import check_rate_limit, create_password_reset_token, create_
 
 User = get_user_model()
 logger = logging.getLogger('apps')
+
+
+def _merge_anon_cart_into_user(user, cart_token):
+    """H-CART-01: fusiona el carrito anónimo (cart_token) en el carrito del
+    usuario recién registrado.
+
+    El X-Cart-Token es memory-only en el cliente (DEC-BC-07) y se pierde cuando
+    el enlace de activación del email abre una carga de página nueva. Asociando
+    el carrito anónimo a la cuenta AQUÍ (en el registro, cuando el token aún
+    existe), los productos sobreviven a la verificación por email y siguen en el
+    carrito tras el auto-login.
+    """
+    if not cart_token:
+        return
+    try:
+        token = uuid.UUID(str(cart_token))
+    except (ValueError, TypeError, AttributeError):
+        return
+    anon = Cart.objects.filter(cart_token=token, user__isnull=True).first()
+    if anon is None:
+        return
+    try:
+        user_cart, _ = Cart.objects.get_or_create(user=user)
+        user_cart.merge(anon)
+    except Exception:
+        # Loud-log sin re-raise (DEC-DOC-008): una falla al fusionar el carrito
+        # no debe romper el registro, que es la operación crítica.
+        logger.warning('anon cart merge on register failed user_id=%s', user.pk, exc_info=True)
 
 
 class RegisterView(APIView):
@@ -105,6 +134,7 @@ class RegisterView(APIView):
                 send_verification_email(
                     existing, plain, next_path=request.data.get('next', ''),
                 )
+                _merge_anon_cart_into_user(existing, request.data.get('cart_token'))
                 return CREATED_RESPONSE
             # Alt-A.3: suspendida por admin (o motivo desconocido) ->
             # no enviar email, retornar response indistinguible.
@@ -114,6 +144,9 @@ class RegisterView(APIView):
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
+            # H-CART-01: fusionar el carrito anónimo en la cuenta nueva mientras
+            # el cart_token aún existe (se pierde al abrir el enlace de email).
+            _merge_anon_cart_into_user(user, request.data.get('cart_token'))
             # DEC-ALR-4: REGISTER_SUCCESS convive con
             # UserDeactivationEvent(source='register') ya
             # existente en RegisterSerializer.save().
