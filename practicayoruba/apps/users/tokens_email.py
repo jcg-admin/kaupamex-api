@@ -15,7 +15,8 @@ from datetime import timedelta
 from urllib.parse import quote
 from django.contrib.sessions.models import Session
 from django.core.cache import cache
-from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 from rest_framework_simplejwt.tokens import RefreshToken
 from apps.core.email_executor import dispatch_email
 from django.conf import settings
@@ -97,12 +98,17 @@ def validate_password_reset_token(plain: str):
     return obj
 
 
-def invalidate_all_sessions(user):
-    """Cierra todas las sesiones activas del usuario (logout-all / baja).
+def invalidate_all_sessions(user, keep_session_key=None):
+    """Cierra las sesiones activas del usuario (logout-all / baja / cambio pass).
 
     Tras la migracion a sesion de servidor (ADR-018), la auth del web vive en
     ``django_session``, no en tokens JWT. Para forzar re-login hay que **borrar
     las filas de sesion** del usuario, no solo blacklistear refresh tokens.
+
+    ``keep_session_key`` preserva **la sesion en curso** (CR-3): en cambio de
+    contrasena, quien lo ejecuta debe conservar su propia sesion (patron nativo
+    ``update_session_auth_hash``), no auto-desloguearse. En reset / logout-all /
+    self-delete se pasa ``None`` y se borran todas.
 
     Django no indexa ``django_session`` por usuario, asi que se recorren las
     sesiones no expiradas y se borran las cuyo ``_auth_user_id`` coincide. La
@@ -116,6 +122,8 @@ def invalidate_all_sessions(user):
     # 1) Sesiones de servidor (auth web actual).
     uid = str(user.pk)
     for session in Session.objects.filter(expire_date__gte=timezone.now()):
+        if keep_session_key and session.session_key == keep_session_key:
+            continue  # CR-3: preservar la sesion del request en curso.
         try:
             if session.get_decoded().get('_auth_user_id') == uid:
                 session.delete()
@@ -127,18 +135,22 @@ def invalidate_all_sessions(user):
                 user.pk, session.session_key, exc_info=True,
             )
 
-    # 2) Refresh tokens JWT (dormidos; back-compat / movil futuro).
-    for token in OutstandingToken.objects.filter(user=user):
+    # 2) Refresh tokens JWT (dormidos; back-compat / movil futuro). CR-4: se
+    # excluyen los que ya estan en blacklist (rotacion previa con
+    # ROTATE_REFRESH_TOKENS): re-blacklistearlos lanza TokenError y ensuciaba
+    # el log con un traceback por token en cada invocacion.
+    already_black = set(
+        BlacklistedToken.objects.filter(token__user=user)
+        .values_list('token_id', flat=True)
+    )
+    for token in OutstandingToken.objects.filter(user=user).exclude(id__in=already_black):
         try:
             RefreshToken(token.token).blacklist()
-        except Exception:
-            # Loud-log (no re-raise): el loop debe seguir invalidando
-            # el resto de tokens aunque uno este corrupto/duplicado.
-            # DEC-DOC-008.
-            logger.warning(
-                'blacklist refresh token failed user_id=%s token_id=%s',
-                user.pk, token.id, exc_info=True,
-            )
+        except TokenError:
+            # silent OK because el token expiro o quedo invalido entre el
+            # filtro y el blacklist (carrera benigna); no hay nada que
+            # invalidar. DEC-DOC-008.
+            continue
 
 
 # ─── Email Verification ───────────────────────────────────────────────────

@@ -10,22 +10,27 @@ SESSION_COOKIE_HTTPONLY = True   # default de Django pero se fija explicitamente
 # ADR-018 (DEC-STF-AUTH-COOKIE) — endurecimiento de la cookie de sesion en
 # produccion (HTTPS). El prefijo __Host- exige Secure + Path=/ + sin Domain,
 # que ya se cumplen (SESSION_COOKIE_SECURE=True, PATH='/' y DOMAIN=None por
-# default). SameSite=Strict: el SPA es mismo origin, asi que sus XHR a /api
-# siguen enviando la cookie; solo se bloquea en navegaciones cross-site.
-# NOTA de deploy: renombrar la cookie invalida las sesiones actuales
+# default). NOTA de deploy: renombrar la cookie invalida las sesiones actuales
 # (los usuarios reinician sesion una vez). En dev/base la cookie sigue siendo
-# "sessionid" + SameSite=Lax (sin HTTPS no aplica __Host-/Secure).
+# "sessionid" (sin HTTPS no aplica __Host-/Secure).
 SESSION_COOKIE_NAME     = '__Host-sessionid'
-SESSION_COOKIE_SAMESITE = 'Strict'
+# CR-5 (ADR-018 hotfix): SameSite=Lax, NO Strict. Con Strict, entrar al SPA por
+# un link EXTERNO con sesion viva (email de reset/verify, resultado de buscador)
+# hace que el navegador OMITA la cookie en esa navegacion top-level cross-site
+# -> primer render anonimo / 401 que la UI presenta como "sesion expiro". Los
+# XHR same-origin del SPA no cambian entre Lax y Strict. Lax sigue cubriendo el
+# CSRF real porque TODAS las mutaciones son XHR POST/PATCH/DELETE (un sitio
+# ajeno no puede forzar la cookie en un POST cross-site). GUARDRAIL que acompaña
+# a Lax: no exponer endpoints que MUTEN estado por GET.
+SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SECURE      = True
-# H-CICLO82-04 — SUPERSEDED para el modo sesion (ADR-018, DEC-STF-AUTH-CSRF).
-# base.py fija CSRF_USE_SESSIONS=True (Opcion B): el secreto CSRF vive en la
-# sesion de servidor y NO se emite cookie CSRF. Por tanto CSRF_COOKIE_HTTPONLY
-# (y CSRF_COOKIE_SECURE) son inertes: no hay cookie que marcar. Se conservan
-# por defensa en profundidad si algun dia se desactivara CSRF_USE_SESSIONS.
-# El comentario historico ademas tenia un error tecnico: el browser NO copia
-# la cookie CSRF a X-CSRFToken; eso lo hace JS. Ver el analisis
-# analisis-csrf-cookie-httponly-sesion / analisis-csrf-mecanismo-nativo-django-drf.
+# ADR-018 (DEC-STF-AUTH-CSRF) — NO hay token CSRF: la auth de sesion es exenta
+# (CsrfExemptSessionAuthentication) y la defensa CSRF es SameSite + __Host-. Ya
+# NO se define CSRF_USE_SESSIONS (el comentario previo que decia que base.py lo
+# fijaba quedo obsoleto tras la migracion completa). Django todavia emite una
+# cookie ``csrftoken`` en el login (rotate_token de auth.login), pero es INERTE
+# para las vistas DRF (exentas de CSRF); CSRF_COOKIE_HTTPONLY/SECURE solo la
+# endurecen por defensa en profundidad. Ver analisis-incidente-csrf-mutaciones.
 CSRF_COOKIE_HTTPONLY    = True
 SECURE_SSL_REDIRECT     = True
 
