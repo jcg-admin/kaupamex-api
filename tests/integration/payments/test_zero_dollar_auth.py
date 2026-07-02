@@ -11,6 +11,8 @@ si MP devuelve status="approved" o cualquier otro estado.
 import pytest
 from unittest.mock import patch, MagicMock
 
+from apps.payments.gateways.mercadopago import MercadoPagoGateway
+
 pytestmark = pytest.mark.integration
 
 VALIDATE_URL = '/api/v2/payments/cards/validate/'
@@ -21,7 +23,6 @@ VALIDATE_URL = '/api/v2/payments/cards/validate/'
 # ---------------------------------------------------------------------------
 class TestZeroDollarAuthGateway:
     def _make_gateway(self):
-        from apps.payments.gateways.mercadopago import MercadoPagoGateway
         gw = MercadoPagoGateway.__new__(MercadoPagoGateway)
         return gw
 

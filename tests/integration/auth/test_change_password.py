@@ -2,8 +2,12 @@
 Tests de integracion — Cambio de contrasena
 UC-AUTH-08: Cambiar Contrasena
 """
+import logging
+
 import pytest
 from apps.users.models import AuthEvent
+from apps.users.tokens_email import invalidate_all_sessions
+from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
 pytestmark = pytest.mark.integration
@@ -152,7 +156,6 @@ class TestChangePassword:
     def test_change_password_cierra_las_otras_sesiones(self, user, db):
         """CR-3: las OTRAS sesiones del usuario si se cierran (revocacion),
         solo se preserva la del request en curso."""
-        from rest_framework.test import APIClient
         c_actual = APIClient()
         c_actual.force_login(user)
         c_otra = APIClient()
@@ -177,8 +180,6 @@ class TestChangePassword:
         """CR-4: invalidate_all_sessions no debe loguear tracebacks al
         toparse con OutstandingToken que ya estan en BlacklistedToken
         (rotacion previa)."""
-        import logging
-        from apps.users.tokens_email import invalidate_all_sessions
         rt = RefreshToken.for_user(user)
         rt.blacklist()  # queda en BlacklistedToken
         caplog.clear()
