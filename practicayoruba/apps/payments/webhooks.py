@@ -11,8 +11,6 @@ Diseño:
   - La idempotencia está garantizada por unique(gateway_payment_id) en BD.
   - Order.status → PROCESSING cuando pago aprobado (H-PAY-002).
 """
-import hashlib
-import hmac
 import json
 import logging
 from decimal import Decimal
@@ -23,6 +21,7 @@ from rest_framework import serializers
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from mercadopago.webhook import WebhookSignatureValidator, InvalidWebhookSignatureError
 from django.db import IntegrityError
 from .models import Payment, PaymentGatewayEvent, WebhookEvent, Chargeback
 from apps.settings_app.models import PaymentGateway as PGModel
@@ -51,41 +50,41 @@ def _get_mp_client_secret() -> str | None:
         return None
 
 
-def _verify_mp_signature(request, payment_id: str, request_id: str) -> bool:
+def _verify_mp_signature(request, data_id: str) -> bool:
     """
-    Verifica la firma HMAC-SHA256 de un webhook de MercadoPago.
-    FR-PAY-03.01 (H-PAY-004).
-    Algoritmo: HMAC-SHA256(client_secret, 'id:{pid};request-id:{rid};ts:{ts}')
+    Verifica la firma del webhook de MercadoPago con el validador oficial del
+    SDK (``mercadopago.webhook.WebhookSignatureValidator``). FR-PAY-03.01.
+
+    El validador arma el manifest ``id:{data.id};request-id:{x-request-id};ts:{ts}``
+    con las reglas correctas de MP: toma el ``data.id`` del **query param**, lo
+    pasa a minúsculas, y **omite** los segmentos ausentes antes del HMAC
+    (F-WH-01/02/03). Comparación en tiempo constante (anti-timing).
+
+    ``data_id``: se toma del query param ``data.id`` (spec de MP); si no viene en
+    el query, se usa el valor recibido (body) como respaldo.
+
+    NOTA (F-WH-07): NO se pasa ``tolerance_seconds`` a propósito — MP reintenta
+    la entrega cada 15 min reusando el ``ts`` original, así que una tolerancia
+    corta rechazaría reintentos legítimos. El replay lo neutralizan el dedup
+    (``WebhookEvent``) y ``verify_payment``.
     """
-    signature_header = request.META.get('HTTP_X_SIGNATURE', '')
-    if not signature_header:
-        return False
+    x_signature  = request.META.get('HTTP_X_SIGNATURE')
+    x_request_id = request.META.get('HTTP_X_REQUEST_ID')
+    data_id_q    = request.GET.get('data.id') or data_id
 
-    # Parsear ts y v1 del header: "ts=1234;v1=abcdef..."
-    parts = dict(p.split('=', 1) for p in signature_header.split(';') if '=' in p)
-    ts = parts.get('ts', '')
-    v1 = parts.get('v1', '')
-    if not ts or not v1:
-        return False
-
-    client_secret = _get_mp_client_secret()
-    if not client_secret:
-        # DEC-BC-01 (2026-05-21): fail-closed por seguridad. La rama
-        # historica "return True" abria un vector de fraude (cualquiera
-        # podia simular `payment.approved`). El system check en apps.py
-        # bloquea el deploy si DEBUG=False y no hay client_secret.
+    secret = _get_mp_client_secret()
+    if not secret:
+        # DEC-BC-01 (2026-05-21): fail-closed. Sin secret, rechazar todo webhook
+        # (la rama histórica "return True" abría fraude). El system check
+        # payments.E001 bloquea el deploy si DEBUG=False y falta el secret.
         logger.error('MP webhook: client_secret no configurado — rechazando webhook')
         return False
 
-    manifest = f'id:{payment_id};request-id:{request_id};ts:{ts}'
-    expected = hmac.new(
-        client_secret.encode(),
-        manifest.encode(),
-        hashlib.sha256,
-    ).hexdigest()
-
-    # Comparación en tiempo constante para prevenir timing attacks
-    return hmac.compare_digest(expected, v1)
+    try:
+        WebhookSignatureValidator.validate(x_signature, x_request_id, data_id_q, secret)
+        return True
+    except InvalidWebhookSignatureError:
+        return False
 
 
 def _process_payment_approval(
@@ -194,6 +193,11 @@ class MercadoPagoWebhookView(APIView):
         request_id   = request.META.get('HTTP_X_REQUEST_ID', '')
 
         if event_type == 'chargebacks' and resource_id:
+            # F-WH-08: verificar la firma también en contracargos ANTES de
+            # procesar (antes se procesaba sin autenticar → webhook forjable).
+            if not _verify_mp_signature(request, resource_id):
+                logger.warning('MP webhook: firma inválida para chargeback=%s', resource_id)
+                return Response({'status': 'invalid_signature'}, status=401)
             return self._handle_chargeback(data, resource_id)
 
         payment_id = resource_id
@@ -208,7 +212,7 @@ class MercadoPagoWebhookView(APIView):
         # con 200 idempotente, bloqueando la confirmación del pago.
         # Solución: rechazar con 401 cualquier webhook con firma inválida
         # ANTES de persistir el evento en la tabla de dedup.
-        if not _verify_mp_signature(request, payment_id, request_id):
+        if not _verify_mp_signature(request, payment_id):
             logger.warning('MP webhook: firma inválida para payment_id=%s', payment_id)
             return Response({'status': 'invalid_signature'}, status=401)
 

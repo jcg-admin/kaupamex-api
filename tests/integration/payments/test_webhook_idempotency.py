@@ -107,7 +107,15 @@ def order_paypal_pending(db, user, cat_idem):
 
 
 def _mp_signature(secret: str, payment_id: str, request_id: str, ts: str) -> str:
-    manifest = f'id:{payment_id};request-id:{request_id};ts:{ts}'
+    # Replica el manifest del SDK MercadoPago (WebhookSignatureValidator):
+    # data.id en minúsculas, segmentos separados por ';' y ';' final.
+    parts = []
+    if payment_id:
+        parts.append(f'id:{str(payment_id).lower()}')
+    if request_id:
+        parts.append(f'request-id:{request_id}')
+    parts.append(f'ts:{ts}')
+    manifest = ';'.join(parts) + ';'
     return hmac.new(secret.encode(), manifest.encode(), hashlib.sha256).hexdigest()
 
 
@@ -213,7 +221,7 @@ class TestWebhookMpReplayAttack:
         request_id  = 'RQ-REPLAY-001'
         ts          = '1716422400'
         sig         = _mp_signature(secret, payment_id, request_id, ts)
-        sig_header  = f'ts={ts};v1={sig}'
+        sig_header  = f'ts={ts},v1={sig}'
 
         payload = json.dumps({
             'type': 'payment',
