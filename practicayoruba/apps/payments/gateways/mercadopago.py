@@ -34,6 +34,72 @@ MP_STATUS_MAP = {
 }
 
 
+def _split_payer_name(order) -> tuple[str, str]:
+    """
+    Deriva (first_name, last_name) del comprador. Prefiere el nombre de la
+    cuenta (order.user); si no, parte el recipient_name de la dirección.
+    """
+    user = getattr(order, 'user', None)
+    if user and (user.first_name or user.last_name):
+        return user.first_name or '', user.last_name or ''
+    addr = getattr(order, 'address', None)
+    full = (getattr(addr, 'recipient_name', '') or '').strip()
+    if not full:
+        return '', ''
+    parts = full.split()
+    if len(parts) == 1:
+        return parts[0], ''
+    return parts[0], ' '.join(parts[1:])
+
+
+def _build_additional_info(order) -> dict:
+    """
+    Construye additional_info para la Payments API de MercadoPago.
+
+    Calidad de integración (Payment Approval + Security): enviar items,
+    datos del payer y dirección de envío da más señales al motor
+    antifraude de MP, mejora la tasa de aprobación y sube el score de
+    calidad de la integración. Solo incluye llaves con datos reales.
+    """
+    info: dict = {}
+
+    items = [
+        {
+            'id':         str(item.pk),
+            'title':      item.product_name,
+            'quantity':   item.quantity,
+            'unit_price': float(item.unit_price),
+        }
+        for item in order.items.all()
+    ]
+    if items:
+        info['items'] = items
+
+    first, last = _split_payer_name(order)
+    addr = getattr(order, 'address', None)
+    payer: dict = {}
+    if first:
+        payer['first_name'] = first
+    if last:
+        payer['last_name'] = last
+    if addr and addr.phone:
+        payer['phone'] = {'number': addr.phone}
+    if payer:
+        info['payer'] = payer
+
+    if addr:
+        info['shipments'] = {
+            'receiver_address': {
+                'zip_code':    addr.zip_code,
+                'street_name': addr.street,
+                'city_name':   addr.city,
+                'state_name':  addr.state,
+            },
+        }
+
+    return info
+
+
 def _get_sdk() -> mercadopago.SDK:
     """
     Instancia el SDK de MP con el access_token descifrado en memoria.
@@ -274,6 +340,12 @@ class MercadoPagoGateway(BaseGateway):
                 'email': payer_email_resolved,
             },
         }
+
+        # Calidad de integración MP (Payment Approval + Security): enviar
+        # items, datos del comprador y dirección de envío.
+        additional_info = _build_additional_info(order)
+        if additional_info:
+            payment_data['additional_info'] = additional_info
 
         if not is_non_card:
             payment_data['token']        = token
