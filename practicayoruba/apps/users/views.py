@@ -739,8 +739,15 @@ class LogoutAllSessionsView(APIView):
         tags=['auth'],
     )
     def post(self, request):
-        invalidate_all_sessions(request.user)
-        return Response({'message': 'Todas las sesiones han sido cerradas.'}, status=200)
+        # H-09: preservar la sesion en curso — el contrato de la UI es
+        # "cerrar todas las sesiones EXCEPTO la actual" (SecurityPage).
+        # Sin keep_session_key se borraba tambien la del propio llamador.
+        invalidate_all_sessions(
+            request.user, keep_session_key=request.session.session_key,
+        )
+        return Response(
+            {'message': 'Se cerraron las demas sesiones.'}, status=200,
+        )
 
 
 # AdminUserPagination definicion canonica vive en admin_views.py
