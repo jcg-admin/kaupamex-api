@@ -12,9 +12,15 @@ from drf_spectacular.views import (
     SpectacularRedocView,
 )
 
-urlpatterns = [
-    path('admin/', admin.site.urls),
+# Seguridad (H-11): el admin nativo de Django se monta SOLO cuando
+# DJANGO_ADMIN_ENABLED (default = DEBUG). En produccion queda apagado para no
+# exponer /admin/ como login de fuerza bruta; el backoffice real es el admin
+# React + DRF /api/v2/admin/. Ver reportes-agentes-admin (H-11).
+_admin_urls = (
+    [path('admin/', admin.site.urls)] if settings.DJANGO_ADMIN_ENABLED else []
+)
 
+urlpatterns = _admin_urls + [
     # --- OpenAPI Schema (JSON/YAML) ---
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
 
