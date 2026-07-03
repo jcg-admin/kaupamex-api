@@ -449,6 +449,24 @@ class TestBuyerReportIncident:
         assert g.status == ShipmentGuide.STATUS_INCIDENT
         assert g.events.filter(status=ShipmentGuide.STATUS_INCIDENT).exists()
 
+    def test_comprador_reporta_problema_por_order_number(
+        self, auth_client, order_log, courier_log, db,
+    ):
+        # La UI usa order_number (no conoce el PK).
+        ShipmentGuide.objects.create(
+            order=order_log, courier=courier_log, tracking_number='INC-NUM-1',
+            status=ShipmentGuide.STATUS_IN_TRANSIT,
+        )
+        r = auth_client.post(
+            f'/api/v2/logistics/buyer/orders/{order_log.order_number}/incident/',
+            {
+                'problem_type': 'DAMAGED_PRODUCT',
+                'description': 'El paquete llegó con el producto roto por dentro.',
+            }, format='json',
+        )
+        assert r.status_code == 201
+        assert r.json()['problem_type'] == 'DAMAGED_PRODUCT'
+
     def test_no_dueno_recibe_404(
         self, admin_client, order_log, courier_log, db,
     ):

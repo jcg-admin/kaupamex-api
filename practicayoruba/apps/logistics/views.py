@@ -463,9 +463,12 @@ class BuyerReportIncidentView(APIView):
                    400: error_response('Payload inválido'),
                    404: error_response('Orden o guía no encontrada'),
                    409: error_response('Envío no despachado o reporte reciente existente')})
-    def post(self, request, order_id):
+    def post(self, request, order_id=None, order_number=None):
+        # La UI del comprador usa order_number (el PK entero se oculta); se
+        # acepta cualquiera de los dos, siempre scoped al usuario.
+        lookup = {'pk': order_id} if order_id is not None else {'order_number': order_number}
         try:
-            order = Order.objects.get(pk=order_id, user=request.user)
+            order = Order.objects.get(user=request.user, **lookup)
         except Order.DoesNotExist:
             return Response({'detail': 'Orden no encontrada.', 'codigo_error': 'ORDER_NOT_FOUND'}, status=404)
 

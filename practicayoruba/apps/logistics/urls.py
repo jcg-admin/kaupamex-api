@@ -85,4 +85,7 @@ urlpatterns = [
     path('logistics/buyer/order/<int:order_id>/incident/',
          BuyerReportIncidentView.as_view(),
          name='buyer-report-incident'),
+    path('logistics/buyer/orders/<str:order_number>/incident/',
+         BuyerReportIncidentView.as_view(),
+         name='buyer-report-incident-by-number'),
 ]
