@@ -400,18 +400,34 @@ class CancelGuideView(_AdminOnly, APIView):
 class BuyerGuideView(APIView):
     permission_classes = [IsAuthenticated]
 
-    @extend_schema(summary='Guía de envío del comprador (UC-LOG-06)', tags=['logistics'],
-                   responses={200: BuyerShipmentGuideSerializer,
-                              404: error_response('Orden o guía no encontrada')})
-    def get(self, request, order_id):
+    def _guide_response(self, request, order_lookup):
+        """order_lookup: dict con pk o order_number, siempre scoped al usuario."""
         try:
-            order = Order.objects.get(pk=order_id, user=request.user)
+            order = Order.objects.get(user=request.user, **order_lookup)
         except Order.DoesNotExist:
             return Response({'detail': 'Orden no encontrada.', 'codigo_error': 'ORDER_NOT_FOUND'}, status=404)
         guide = ShipmentGuide.objects.filter(order=order, is_deleted=False).select_related('courier').first()
         if not guide:
             return Response({'detail': 'Guía de envío no disponible.', 'codigo_error': 'SHIPMENT_GUIDE_NOT_FOUND'}, status=404)
         return Response(BuyerShipmentGuideSerializer(guide, context={'request': request}).data)
+
+    @extend_schema(summary='Guía de envío del comprador (UC-LOG-06)', tags=['logistics'],
+                   responses={200: BuyerShipmentGuideSerializer,
+                              404: error_response('Orden o guía no encontrada')})
+    def get(self, request, order_id):
+        return self._guide_response(request, {'pk': order_id})
+
+
+class BuyerGuideByNumberView(BuyerGuideView):
+    """UC-LOG-06 por order_number: la UI del comprador conoce el order_number
+    (no el PK entero, oculto por diseño), así que expone la misma guía por su
+    identificador público."""
+
+    @extend_schema(summary='Guía de envío del comprador por order_number', tags=['logistics'],
+                   responses={200: BuyerShipmentGuideSerializer,
+                              404: error_response('Orden o guía no encontrada')})
+    def get(self, request, order_number):
+        return self._guide_response(request, {'order_number': order_number})
 
 
 class BuyerReportIncidentView(APIView):

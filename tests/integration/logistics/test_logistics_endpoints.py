@@ -553,6 +553,19 @@ class TestBuyerGuide:
         assert data['tracking_number'] == 'BYR-001'
         assert 'courier_name' in data
 
+    def test_comprador_ve_su_guia_por_order_number(
+        self, auth_client, order_log, courier_log, db,
+    ):
+        # La UI del comprador consulta por order_number (no conoce el PK).
+        ShipmentGuide.objects.create(
+            order=order_log, courier=courier_log, tracking_number='BYR-NUM-001',
+        )
+        r = auth_client.get(
+            f'/api/v2/logistics/buyer/orders/{order_log.order_number}/guide/'
+        )
+        assert r.status_code == 200
+        assert r.json()['tracking_number'] == 'BYR-NUM-001'
+
     def test_comprador_no_ve_orden_ajena(self, admin_client, order_log, courier_log, db):
         ShipmentGuide.objects.create(
             order=order_log, courier=courier_log, tracking_number='BYR-002',

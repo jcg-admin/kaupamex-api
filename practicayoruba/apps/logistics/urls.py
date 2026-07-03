@@ -10,6 +10,7 @@ from django.urls import path
 
 from .views import (
     BuyerGuideView,
+    BuyerGuideByNumberView,
     BuyerOrderShipmentV2View,
     BuyerReportIncidentView,
     CancelGuideView,
@@ -77,6 +78,10 @@ urlpatterns = [
     path('logistics/buyer/order/<int:order_id>/guide/',
          BuyerGuideView.as_view(),
          name='buyer-guide'),
+    # Variante por order_number (identificador público que conoce la UI).
+    path('logistics/buyer/orders/<str:order_number>/guide/',
+         BuyerGuideByNumberView.as_view(),
+         name='buyer-guide-by-number'),
     path('logistics/buyer/order/<int:order_id>/incident/',
          BuyerReportIncidentView.as_view(),
          name='buyer-report-incident'),
