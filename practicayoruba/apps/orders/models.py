@@ -235,6 +235,21 @@ class ShippingZone(models.Model):
     # crea indice, asi que reemplaza al db_index. Ver H-API-07.
     zip_code_prefix = models.CharField(max_length=5, unique=True)
     is_active       = models.BooleanField(default=True)
+    # H-12: catálogo de tiempos de entrega por zona. Ventana min/max de días
+    # hábiles y costo opcional (vacío = usar el del método de envío). Nullable
+    # para no forzar valores en zonas ya sembradas.
+    estimated_days_min = models.PositiveSmallIntegerField(
+        null=True, blank=True,
+        validators=[MinValueValidator(1)],
+        help_text='Días hábiles mínimos de entrega en la zona.')
+    estimated_days_max = models.PositiveSmallIntegerField(
+        null=True, blank=True,
+        validators=[MinValueValidator(1)],
+        help_text='Días hábiles máximos de entrega en la zona.')
+    cost               = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True,
+        validators=[MinValueValidator(Decimal('0'))],
+        help_text='Costo de envío específico de la zona. Vacío = usar el del método.')
 
     class Meta:
         db_table = 'orders_shipping_zone'

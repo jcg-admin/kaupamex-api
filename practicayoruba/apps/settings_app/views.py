@@ -25,10 +25,12 @@ from .models import SiteSettings, PaymentGateway, ShippingMethod, StaticPage, St
 from .serializers import (
     SiteSettingsSerializer, SiteSettingsAdminSerializer, PublicSiteSettingsSerializer,
     PaymentGatewaySerializer, ShippingMethodSerializer, PublicShippingMethodSerializer,
+    ShippingZoneSerializer, PublicShippingZoneSerializer,
 )
 from .gateway_connector import connector
 from rest_framework import serializers as drf_serializers
 from apps.orders.proxy_models import ActiveOrder
+from apps.orders.models import ShippingZone
 
 logger = logging.getLogger(__name__)
 
@@ -266,6 +268,63 @@ class ShippingMethodViewSet(ModelViewSet):
     )
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
+
+
+class ShippingZoneViewSet(ModelViewSet):
+    """
+    Admin CRUD del catálogo de zonas de envío + tiempos de entrega (H-12).
+
+    GET    /api/v2/admin/shipping-zones/       — listar zonas (activas e inactivas)
+    POST   /api/v2/admin/shipping-zones/       — crear zona
+    PATCH  /api/v2/admin/shipping-zones/<pk>/  — editar zona
+    DELETE /api/v2/admin/shipping-zones/<pk>/  — desactivar (soft delete)
+
+    Simétrico a ShippingMethodViewSet. Delete es soft (is_active=False) para
+    no romper referencias históricas de cobertura por CP.
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class   = ShippingZoneSerializer
+    queryset           = ShippingZone.objects.all().order_by('zip_code_prefix', 'name')
+    http_method_names  = ['get', 'post', 'patch', 'delete', 'head', 'options']
+
+    def perform_destroy(self, instance):
+        instance.is_active = False
+        instance.save(update_fields=['is_active'])
+
+    @extend_schema(summary='Listar zonas de envío', tags=['config'],
+                   responses={200: ShippingZoneSerializer(many=True)})
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @extend_schema(summary='Crear zona de envío', tags=['config'],
+                   responses={201: ShippingZoneSerializer})
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+
+    @extend_schema(summary='Editar zona de envío', tags=['config'],
+                   responses={200: ShippingZoneSerializer})
+    def partial_update(self, request, *args, **kwargs):
+        kwargs['partial'] = True
+        return super().update(request, *args, **kwargs)
+
+    @extend_schema(summary='Desactivar zona de envío', responses={204: None}, tags=['config'])
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
+
+
+class ShippingZoneListPublicView(ListAPIView):
+    """GET /api/v2/shipping-zones/ — lista pública de zonas activas (H-12).
+
+    Sin autenticación. El storefront puede consultar la ventana de entrega
+    (min/max días) por prefijo de CP para mostrar ETA en checkout.
+    """
+    permission_classes = [AllowAny]
+    serializer_class   = PublicShippingZoneSerializer
+    queryset           = ShippingZone.objects.filter(is_active=True).order_by('zip_code_prefix', 'name')
+
+    @extend_schema(summary='Listar zonas de envío activas', tags=['shipping'])
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
 
 
 class ShippingMethodListPublicView(ListAPIView):

@@ -6,6 +6,7 @@ Sprint 8:  PaymentGatewaySerializer, ShippingMethodSerializer
 """
 from decimal import Decimal
 from rest_framework import serializers
+from apps.orders.models import ShippingZone
 from .models import SiteSettings, PaymentGateway, ShippingMethod
 
 
@@ -207,4 +208,39 @@ class PublicShippingMethodSerializer(serializers.ModelSerializer):
     class Meta:
         model  = ShippingMethod
         fields = ['id', 'name', 'cost', 'estimated_days', 'free_threshold']
+        read_only_fields = fields
+
+
+class ShippingZoneSerializer(serializers.ModelSerializer):
+    """Admin CRUD del catálogo de zonas + tiempos de entrega (H-12)."""
+    class Meta:
+        model  = ShippingZone
+        fields = [
+            'id', 'name', 'zip_code_prefix', 'is_active',
+            'estimated_days_min', 'estimated_days_max', 'cost',
+        ]
+        read_only_fields = ['id']
+
+    def validate(self, attrs):
+        # El máximo no puede ser menor que el mínimo cuando ambos están dados.
+        lo = attrs.get('estimated_days_min',
+                       getattr(self.instance, 'estimated_days_min', None))
+        hi = attrs.get('estimated_days_max',
+                       getattr(self.instance, 'estimated_days_max', None))
+        if lo is not None and hi is not None and hi < lo:
+            raise serializers.ValidationError({
+                'estimated_days_max':
+                    'El máximo de días no puede ser menor que el mínimo.',
+            })
+        return attrs
+
+
+class PublicShippingZoneSerializer(serializers.ModelSerializer):
+    """Proyección pública read-only del catálogo de zonas (/api/v2/shipping-zones/)."""
+    class Meta:
+        model  = ShippingZone
+        fields = [
+            'id', 'name', 'zip_code_prefix',
+            'estimated_days_min', 'estimated_days_max', 'cost',
+        ]
         read_only_fields = fields
