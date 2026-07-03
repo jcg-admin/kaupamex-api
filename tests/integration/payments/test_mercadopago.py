@@ -499,3 +499,53 @@ class TestCheckoutExpress:
 
         auth_client.post(EXPRESS_URL, {}, format='json')
         assert CartItem.objects.filter(product=prod_s15).count() == 0
+
+
+# =============================================================================
+# additional_info en la preferencia (Checkout Pro) — calidad de integracion
+# =============================================================================
+
+class TestPreferencePayerEnrichment:
+    """create_preference debe enviar payer enriquecido + shipments a MP."""
+
+    def _capture_preference(self, order):
+        from apps.payments.gateways.mercadopago import MercadoPagoGateway
+        gw = MercadoPagoGateway.__new__(MercadoPagoGateway)
+        captured = {}
+        sdk = MagicMock()
+
+        def _create(payload):
+            captured['payload'] = payload
+            return {
+                'status': 201,
+                'response': {
+                    'id': 'PREF-ENRICH-1',
+                    'init_point': 'https://www.mercadopago.com.mx/redirect?pref_id=PREF-ENRICH-1',
+                },
+            }
+
+        sdk.preference.return_value.create.side_effect = _create
+        with patch('apps.payments.gateways.mercadopago._get_sdk', return_value=sdk):
+            gw.create_preference(
+                order,
+                back_urls={'success': 'https://x/s', 'failure': 'https://x/f',
+                           'pending': 'https://x/p'},
+            )
+        return captured['payload']
+
+    def test_preference_payer_incluye_nombre(self, orden_pendiente, db):
+        payer = self._capture_preference(orden_pendiente)['payer']
+        assert payer['email']   # el email se conserva
+        assert payer['name'] == 'Test'
+        assert payer['surname'] == 'User'
+
+    def test_preference_payer_incluye_direccion(self, orden_pendiente, db):
+        payer = self._capture_preference(orden_pendiente)['payer']
+        assert payer['address']['zip_code'] == '06600'
+        assert payer['address']['street_name'] == 'Av. Reforma 100'
+
+    def test_preference_incluye_shipments(self, orden_pendiente, db):
+        payload = self._capture_preference(orden_pendiente)
+        addr = payload['shipments']['receiver_address']
+        assert addr['zip_code'] == '06600'
+        assert addr['city_name'] == 'CDMX'

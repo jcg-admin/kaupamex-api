@@ -388,3 +388,60 @@ class TestMpPublicKey:
         body_str = json.dumps(res.json())
         assert 'TEST-ACCESS-TOKEN-V2-FAKE' not in body_str
         assert 'access_token' not in body_str
+
+
+# =============================================================================
+# additional_info — calidad de integracion MercadoPago
+# (Payment Approval + Security: enviar datos del comprador mejora la
+#  aprobacion y alimenta el motor antifraude de MP)
+# =============================================================================
+
+class TestCheckoutApiAdditionalInfo:
+    """El pago debe enviar additional_info (items, payer, envio) a MP."""
+
+    def _make_gateway(self):
+        from apps.payments.gateways.mercadopago import MercadoPagoGateway
+        return MercadoPagoGateway.__new__(MercadoPagoGateway)
+
+    def _capture_payload(self, order):
+        captured = {}
+        sdk = MagicMock()
+
+        def _create(payload):
+            captured['payload'] = payload
+            return {
+                'status': 201,
+                'response': {
+                    'id': 77001, 'status': 'approved',
+                    'status_detail': 'accredited',
+                    'transaction_amount': 3000.00, 'installments': 1,
+                },
+            }
+
+        sdk.payment.return_value.create.side_effect = _create
+        with patch('apps.payments.gateways.mercadopago._get_sdk', return_value=sdk):
+            self._make_gateway().create_payment(
+                order, token=_VALID_TOKEN,
+                payment_method_id=_VALID_PAYMENT_METHOD, installments=1,
+            )
+        return captured['payload']
+
+    def test_envia_additional_info_con_items(self, orden_v2, db):
+        payload = self._capture_payload(orden_v2)
+        ai = payload.get('additional_info')
+        assert ai, 'additional_info debe enviarse a MP'
+        assert ai['items'][0]['title'] == 'Prod V2'
+        assert ai['items'][0]['quantity'] == 2
+        assert ai['items'][0]['unit_price'] == 1500.00
+
+    def test_envia_additional_info_con_payer_nombre(self, orden_v2, db):
+        ai = self._capture_payload(orden_v2)['additional_info']
+        assert ai['payer']['first_name'] == 'Test'
+        assert ai['payer']['last_name'] == 'User'
+
+    def test_envia_additional_info_con_direccion_envio(self, orden_v2, db):
+        ai = self._capture_payload(orden_v2)['additional_info']
+        addr = ai['shipments']['receiver_address']
+        assert addr['zip_code'] == '06600'
+        assert addr['city_name'] == 'CDMX'
+        assert addr['street_name'] == 'Av. Reforma 1'

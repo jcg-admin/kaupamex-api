@@ -69,7 +69,16 @@ def mp_gateway_wh(db):
 
 
 def _make_mp_signature(client_secret: str, payment_id: str, request_id: str, ts: str) -> str:
-    manifest = f'id:{payment_id};request-id:{request_id};ts:{ts}'
+    # Replica EXACTA del manifest del SDK oficial (WebhookSignatureValidator):
+    # data.id en minúsculas, segmentos ausentes omitidos, trailing ';'.
+    # El header x-signature usa coma ('ts=..,v1=..'), no ';'.
+    parts = []
+    if payment_id:
+        parts.append(f'id:{str(payment_id).lower()}')
+    if request_id:
+        parts.append(f'request-id:{request_id}')
+    parts.append(f'ts:{ts}')
+    manifest = ';'.join(parts) + ';'
     return hmac.new(client_secret.encode(), manifest.encode(), hashlib.sha256).hexdigest()
 
 
@@ -99,7 +108,7 @@ class TestMercadoPagoWebhook:
                 data=json.dumps({'type': 'payment', 'data': {'id': 'MP-PAY-999'},
                                  'external_reference': order.order_number}),
                 content_type='application/json',
-                HTTP_X_SIGNATURE=f'ts={ts};v1={signature}',
+                HTTP_X_SIGNATURE=f'ts={ts},v1={signature}',
                 HTTP_X_REQUEST_ID=request_id,
             )
 
@@ -118,7 +127,7 @@ class TestMercadoPagoWebhook:
             MP_WEBHOOK_URL,
             data=json.dumps({'type': 'payment', 'data': {'id': 'MP-PAY-999'}}),
             content_type='application/json',
-            HTTP_X_SIGNATURE='ts=1234;v1=firma-invalida-falsa',
+            HTTP_X_SIGNATURE='ts=1234,v1=firma-invalida-falsa',
             HTTP_X_REQUEST_ID='req-1',
         )
         assert res.status_code == 401
@@ -150,7 +159,7 @@ class TestMercadoPagoWebhook:
                 MP_WEBHOOK_URL,
                 data=json.dumps({'type': 'payment', 'data': {'id': 'MP-PAY-999'}}),
                 content_type='application/json',
-                HTTP_X_SIGNATURE=f'ts={ts};v1={signature}',
+                HTTP_X_SIGNATURE=f'ts={ts},v1={signature}',
                 HTTP_X_REQUEST_ID=req_id,
             )
 
@@ -180,7 +189,7 @@ class TestMercadoPagoWebhook:
                 MP_WEBHOOK_URL,
                 data=json.dumps({'type': 'payment', 'data': {'id': 'MP-PAY-999'}}),
                 content_type='application/json',
-                HTTP_X_SIGNATURE=f'ts={ts};v1={sig}',
+                HTTP_X_SIGNATURE=f'ts={ts},v1={sig}',
                 HTTP_X_REQUEST_ID=req_id,
             )
 
@@ -196,7 +205,7 @@ class TestMercadoPagoWebhook:
             MP_WEBHOOK_URL,
             data=json.dumps({'type': 'merchant_order', 'data': {'id': '1'}}),
             content_type='application/json',
-            HTTP_X_SIGNATURE='ts=1;v1=x',
+            HTTP_X_SIGNATURE='ts=1,v1=x',
         )
         assert res.status_code in (200, 401)  # ignorado o firma inválida
 
@@ -215,7 +224,7 @@ class TestMercadoPagoWebhook:
             MP_WEBHOOK_URL,
             data=json.dumps({'type': 'payment', 'data': {'id': 'MP-PAY-999'}}),
             content_type='application/json',
-            HTTP_X_SIGNATURE='ts=1;v1=anything',
+            HTTP_X_SIGNATURE='ts=1,v1=anything',
             HTTP_X_REQUEST_ID='req-no-secret',
         )
         assert res.status_code == 401, (
@@ -294,7 +303,7 @@ class TestMercadoPagoWebhook:
                 MP_WEBHOOK_URL,
                 data=json.dumps({'type': 'payment', 'data': {'id': 'MP-PAY-999'}}),
                 content_type='application/json',
-                HTTP_X_SIGNATURE=f'ts={ts};v1={signature}',
+                HTTP_X_SIGNATURE=f'ts={ts},v1={signature}',
                 HTTP_X_REQUEST_ID=req_id,
             )
 

@@ -34,6 +34,103 @@ MP_STATUS_MAP = {
 }
 
 
+def _split_payer_name(order) -> tuple[str, str]:
+    """
+    Deriva (first_name, last_name) del comprador. Prefiere el nombre de la
+    cuenta (order.user); si no, parte el recipient_name de la dirección.
+    """
+    user = getattr(order, 'user', None)
+    if user and (user.first_name or user.last_name):
+        return user.first_name or '', user.last_name or ''
+    addr = getattr(order, 'address', None)
+    full = (getattr(addr, 'recipient_name', '') or '').strip()
+    if not full:
+        return '', ''
+    parts = full.split()
+    if len(parts) == 1:
+        return parts[0], ''
+    return parts[0], ' '.join(parts[1:])
+
+
+def _build_preference_payer(order, email: str) -> dict:
+    """
+    Arma el ``payer`` de una preferencia de Checkout Pro. A diferencia de la
+    Payments API (first_name/last_name, phone.number), la preferencia usa
+    ``name``/``surname`` y ``address`` {zip_code, street_name}. Solo agrega
+    llaves con datos reales; el email siempre va.
+    """
+    payer: dict = {'email': email}
+    first, last = _split_payer_name(order)
+    if first:
+        payer['name'] = first
+    if last:
+        payer['surname'] = last
+    addr = getattr(order, 'address', None)
+    if addr:
+        if addr.phone:
+            payer['phone'] = {'number': addr.phone}
+        payer['address'] = {
+            'zip_code':    addr.zip_code,
+            'street_name': addr.street,
+        }
+    return payer
+
+
+def _build_receiver_address(order) -> dict | None:
+    """receiver_address para shipments (compartido preferencia + pago)."""
+    addr = getattr(order, 'address', None)
+    if not addr:
+        return None
+    return {
+        'zip_code':    addr.zip_code,
+        'street_name': addr.street,
+        'city_name':   addr.city,
+        'state_name':  addr.state,
+    }
+
+
+def _build_additional_info(order) -> dict:
+    """
+    Construye additional_info para la Payments API de MercadoPago.
+
+    Calidad de integración (Payment Approval + Security): enviar items,
+    datos del payer y dirección de envío da más señales al motor
+    antifraude de MP, mejora la tasa de aprobación y sube el score de
+    calidad de la integración. Solo incluye llaves con datos reales.
+    """
+    info: dict = {}
+
+    items = [
+        {
+            'id':         str(item.pk),
+            'title':      item.product_name,
+            'quantity':   item.quantity,
+            'unit_price': float(item.unit_price),
+        }
+        for item in order.items.all()
+    ]
+    if items:
+        info['items'] = items
+
+    first, last = _split_payer_name(order)
+    addr = getattr(order, 'address', None)
+    payer: dict = {}
+    if first:
+        payer['first_name'] = first
+    if last:
+        payer['last_name'] = last
+    if addr and addr.phone:
+        payer['phone'] = {'number': addr.phone}
+    if payer:
+        info['payer'] = payer
+
+    receiver = _build_receiver_address(order)
+    if receiver:
+        info['shipments'] = {'receiver_address': receiver}
+
+    return info
+
+
 def _get_sdk() -> mercadopago.SDK:
     """
     Instancia el SDK de MP con el access_token descifrado en memoria.
@@ -104,11 +201,17 @@ class MercadoPagoGateway(BaseGateway):
 
         preference_data = {
             'items':              items,
-            'payer':              {'email': payer_email},
+            'payer':              _build_preference_payer(order, payer_email),
             'back_urls':          back_urls,
             'auto_return':        'approved',
             'external_reference': order.order_number,
         }
+
+        # Calidad de integración MP: dirección de envío da señales al motor
+        # antifraude y mejora la aprobación.
+        receiver = _build_receiver_address(order)
+        if receiver:
+            preference_data['shipments'] = {'receiver_address': receiver}
 
         # UC-PAY-01-EXT: agregar configuración de cuotas si se pidió MSI
         if installments > 1:
@@ -274,6 +377,12 @@ class MercadoPagoGateway(BaseGateway):
                 'email': payer_email_resolved,
             },
         }
+
+        # Calidad de integración MP (Payment Approval + Security): enviar
+        # items, datos del comprador y dirección de envío.
+        additional_info = _build_additional_info(order)
+        if additional_info:
+            payment_data['additional_info'] = additional_info
 
         if not is_non_card:
             payment_data['token']        = token
