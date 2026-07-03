@@ -148,6 +148,26 @@ class TestCreateShipmentGuide:
         assert data['tracking_number'] == 'TRK-NEW-001'
         assert data['status'] == 'CREATED'
 
+    def test_admin_crea_guia_por_order_number(self, admin_client, order_log, courier_log, db):
+        # La UI del admin usa order_number (el PK entero se oculta,
+        # H-CICLO79-03), así que el serializer debe aceptar order_number.
+        payload = {
+            'order_number': order_log.order_number,
+            'courier_id': courier_log.id,
+            'tracking_number': 'TRK-BYNUM-001',
+        }
+        r = admin_client.post(GUIDES_URL, payload, format='json')
+        assert r.status_code == 201
+        assert r.json()['tracking_number'] == 'TRK-BYNUM-001'
+
+    def test_crea_guia_sin_orden_emite_order_required(self, admin_client, courier_log, db):
+        r = admin_client.post(GUIDES_URL, {
+            'courier_id': courier_log.id,
+            'tracking_number': 'TRK-NOORDER',
+        }, format='json')
+        assert r.status_code == 400
+        assert 'ORDER_REQUIRED' in str(r.json())
+
     def test_tracking_duplicado_emite_codigo_error_loud(
         self, admin_client, order_log, courier_log, db
     ):
