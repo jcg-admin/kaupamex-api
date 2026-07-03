@@ -52,6 +52,43 @@ def _split_payer_name(order) -> tuple[str, str]:
     return parts[0], ' '.join(parts[1:])
 
 
+def _build_preference_payer(order, email: str) -> dict:
+    """
+    Arma el ``payer`` de una preferencia de Checkout Pro. A diferencia de la
+    Payments API (first_name/last_name, phone.number), la preferencia usa
+    ``name``/``surname`` y ``address`` {zip_code, street_name}. Solo agrega
+    llaves con datos reales; el email siempre va.
+    """
+    payer: dict = {'email': email}
+    first, last = _split_payer_name(order)
+    if first:
+        payer['name'] = first
+    if last:
+        payer['surname'] = last
+    addr = getattr(order, 'address', None)
+    if addr:
+        if addr.phone:
+            payer['phone'] = {'number': addr.phone}
+        payer['address'] = {
+            'zip_code':    addr.zip_code,
+            'street_name': addr.street,
+        }
+    return payer
+
+
+def _build_receiver_address(order) -> dict | None:
+    """receiver_address para shipments (compartido preferencia + pago)."""
+    addr = getattr(order, 'address', None)
+    if not addr:
+        return None
+    return {
+        'zip_code':    addr.zip_code,
+        'street_name': addr.street,
+        'city_name':   addr.city,
+        'state_name':  addr.state,
+    }
+
+
 def _build_additional_info(order) -> dict:
     """
     Construye additional_info para la Payments API de MercadoPago.
@@ -87,15 +124,9 @@ def _build_additional_info(order) -> dict:
     if payer:
         info['payer'] = payer
 
-    if addr:
-        info['shipments'] = {
-            'receiver_address': {
-                'zip_code':    addr.zip_code,
-                'street_name': addr.street,
-                'city_name':   addr.city,
-                'state_name':  addr.state,
-            },
-        }
+    receiver = _build_receiver_address(order)
+    if receiver:
+        info['shipments'] = {'receiver_address': receiver}
 
     return info
 
@@ -170,11 +201,17 @@ class MercadoPagoGateway(BaseGateway):
 
         preference_data = {
             'items':              items,
-            'payer':              {'email': payer_email},
+            'payer':              _build_preference_payer(order, payer_email),
             'back_urls':          back_urls,
             'auto_return':        'approved',
             'external_reference': order.order_number,
         }
+
+        # Calidad de integración MP: dirección de envío da señales al motor
+        # antifraude y mejora la aprobación.
+        receiver = _build_receiver_address(order)
+        if receiver:
+            preference_data['shipments'] = {'receiver_address': receiver}
 
         # UC-PAY-01-EXT: agregar configuración de cuotas si se pidió MSI
         if installments > 1:
