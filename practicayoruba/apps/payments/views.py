@@ -5,8 +5,9 @@ Sprint 15 — UC-PAY-01, UC-PAY-01-EXT, UC-ORD-01-EXT
 import logging
 from datetime import date
 from decimal import Decimal, Decimal as Dec
+from django.conf import settings
 from django.http import HttpResponse
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from rest_framework.exceptions import ValidationError
 from rest_framework.pagination import PageNumberPagination
@@ -254,31 +255,44 @@ class PaymentReturnView(APIView):
     @extend_schema(
         summary='Retorno del gateway de pago',
         description=(
-            'MP redirige al comprador aquí tras el pago. '
+            'MP redirige el navegador del comprador aquí tras el pago. '
             'El estado definitivo llega via webhook (Sprint 16). '
-            'Retorna siempre 200 — el frontend verifica payment.status.'
+            'Responde 302 hacia el storefront (SPA); el frontend '
+            'verifica payment.status en la página destino.'
         ),
         parameters=[
             OpenApiParameter('order_number', str, location='path'),
             OpenApiParameter('status', str, description='Estado indicado por MP'),
             OpenApiParameter('payment_id', str, description='ID del pago en MP'),
         ],
-        responses={200: PaymentSerializer},
+        responses={302: None},
         tags=['payments'],
     )
     def get(self, request, order_number):
+        # P-02: este endpoint recibe el NAVEGADOR del comprador (no una llamada
+        # máquina-a-máquina). Antes devolvía JSON, así que "Volver a la tienda"
+        # dejaba al usuario viendo un Response crudo en el host de la API. Ahora
+        # actualiza el Payment si MP confirmó algo y redirige (302) al storefront.
+        # Las back_urls de MP deben seguir apuntando a la API (se construyen con
+        # request.get_host()), por eso el redirect ocurre aquí, no en el gateway.
         s = PaymentReturnSerializer(data=request.query_params)
         s.is_valid(raise_exception=True)
 
-        payment = handle_gateway_return(
+        status = s.validated_data.get('status', 'pending')
+        handle_gateway_return(
             order_number=order_number,
             mp_payment_id=s.validated_data.get('payment_id') or request.query_params.get('payment_id'),
-            status=s.validated_data.get('status', 'pending'),
+            status=status,
         )
-        if not payment:
-            return Response({'detail': 'Pago no encontrado.', 'status': 'not_found'}, status=200)
 
-        return Response(PaymentSerializer(payment).data, status=200)
+        base = settings.FRONTEND_URL.rstrip('/')
+        if status == 'approved':
+            target = f'{base}/order/{order_number}/confirmation'
+        elif status == 'rejected':
+            target = f'{base}/order/{order_number}/payment-failed'
+        else:  # pending / in_process — página que hace polling del status real
+            target = f'{base}/checkout/payment-return/{order_number}'
+        return redirect(target)
 
 
 # =============================================================================

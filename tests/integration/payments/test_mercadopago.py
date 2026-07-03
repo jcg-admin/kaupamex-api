@@ -273,7 +273,12 @@ class TestIniciarPago:
             'status': 'approved',
             'payment_id': '12345678',
         })
-        assert res.status_code == 200
+        # P-02: el retorno redirige (302) el navegador al storefront en vez de
+        # devolver JSON; el efecto sobre el Payment se conserva.
+        assert res.status_code == 302
+        assert res['Location'].endswith(
+            f'/order/{orden_pendiente.order_number}/confirmation'
+        )
         payment = Payment.objects.get(order=orden_pendiente)
         assert payment.status == 'APPROVED'
         assert payment.gateway_payment_id == '12345678'
@@ -286,10 +291,33 @@ class TestIniciarPago:
         }, format='json')
 
         return_url = f'/api/v2/payments/{orden_pendiente.order_number}/return/'
-        auth_client.get(return_url, {'status': 'pending'})
+        res = auth_client.get(return_url, {'status': 'pending'})
 
+        # P-02: pending redirige a la página de verificación (polling), sin
+        # alterar el status del Payment.
+        assert res.status_code == 302
+        assert res['Location'].endswith(
+            f'/checkout/payment-return/{orden_pendiente.order_number}'
+        )
         payment = Payment.objects.get(order=orden_pendiente)
         assert payment.status == 'PENDING'
+
+    def test_retorno_gateway_rechazado_redirige_a_payment_failed(
+        self, auth_client, orden_pendiente, mp_gateway_activo, mock_mp_sdk, db
+    ):
+        # P-02: al rechazar la tarjeta, "Volver a la tienda" debe llevar al
+        # storefront (payment-failed), no a un JSON crudo del host de la API.
+        auth_client.post(INITIATE_URL, {
+            'order_number': orden_pendiente.order_number,
+        }, format='json')
+
+        return_url = f'/api/v2/payments/{orden_pendiente.order_number}/return/'
+        res = auth_client.get(return_url, {'status': 'rejected'})
+
+        assert res.status_code == 302
+        assert res['Location'].endswith(
+            f'/order/{orden_pendiente.order_number}/payment-failed'
+        )
 
 
 # =============================================================================
