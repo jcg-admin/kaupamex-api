@@ -238,7 +238,7 @@ class MercadoPagoInitiateView(InitiatePaymentView):
 
 class PaymentReturnView(APIView):
     """
-    GET /api/v1/payments/<order_number>/return/
+    GET /api/v2/payments/<order_number>/return/
     Recibe el retorno del comprador desde el gateway.
     UC-PAY-01 paso 10.
 
@@ -311,7 +311,7 @@ _PAID_ORDER_STATUSES = frozenset({
 
 class ReceiptPdfView(APIView):
     """
-    GET /api/v1/payments/<order_number>/receipt/
+    GET /api/v2/payments/<order_number>/receipt/
     Genera y descarga el recibo en PDF de una orden pagada. UC-PAY-10.
 
     Auth JWT; accesible por el dueño de la orden o por un admin (is_staff).
@@ -419,7 +419,7 @@ class ReceiptPdfView(APIView):
 
 class InstallmentPlansView(APIView):
     """
-    GET /api/v1/payments/installments/?order_number=xxx
+    GET /api/v2/payments/installments/?order_number=xxx
     Consulta los planes de cuotas MSI disponibles para el monto de la orden.
     UC-PAY-01-EXT (FR-PAY-01-EXT.01).
     """
@@ -534,7 +534,7 @@ def _check_express_eligibility(user) -> dict:
 
 class CheckoutEligibilityView(APIView):
     """
-    GET /api/v1/checkout/eligibility/
+    GET /api/v2/checkout/eligibility/
     Verifica si el comprador es elegible para checkout express.
     UC-ORD-01-EXT (FR-ORD-01-EXT.01).
     """
@@ -557,7 +557,7 @@ class CheckoutEligibilityView(APIView):
 
 class ExpressCheckoutView(APIView):
     """
-    POST /api/v1/checkout/express/
+    POST /api/v2/checkout/express/
     Crea una orden directamente con la dirección y método de envío predeterminados.
     UC-ORD-01-EXT (FR-ORD-01-EXT.02).
     """
@@ -761,7 +761,7 @@ class ExpressCheckoutView(APIView):
 
 class PaymentStatusView(APIView):
     """
-    GET /api/v1/payments/<order_number>/status/
+    GET /api/v2/payments/<order_number>/status/
     Retorna el estado del pago más reciente de la orden.
     UC-PAY-05 (FR-PAY-05.02).
     RNF-SEC-003 (H-REF-006): 404 si no existe O pertenece a otro user.
@@ -795,7 +795,7 @@ class PaymentStatusView(APIView):
 
 class PaymentHistoryView(APIView):
     """
-    GET /api/v1/payments/<order_number>/history/
+    GET /api/v2/payments/<order_number>/history/
     Retorna todos los pagos de una orden ordenados por -created_at.
     UC-PAY-06. RNF-SEC-003.
     """
@@ -827,7 +827,7 @@ class PaymentHistoryView(APIView):
 
 class RefundView(APIView):
     """
-    POST /api/v1/payments/<order_number>/refund/
+    POST /api/v2/payments/<order_number>/refund/
     Solicita un reembolso sobre el pago aprobado de la orden.
     UC-PAY-07 (FR-PAY-07.02).
     El comprador puede solicitar el reembolso si la orden fue cancelada.
@@ -896,7 +896,7 @@ class RefundView(APIView):
 
 class RetryEligibilityView(APIView):
     """
-    GET /api/v1/payments/<order_number>/retry-eligibility/
+    GET /api/v2/payments/<order_number>/retry-eligibility/
     Verifica si la orden es elegible para reintentar el pago.
     UC-PAY-08 (FR-PAY-08.01). H-REF-004: condición real = Order.status=PENDING.
     """

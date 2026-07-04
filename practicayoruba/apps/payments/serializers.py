@@ -119,21 +119,21 @@ class InstallmentPlanSerializer(serializers.Serializer):
 
 
 class InstallmentPlansResponseSerializer(serializers.Serializer):
-    """Respuesta de GET /api/v1/payments/installments/"""
+    """Respuesta de GET /api/v2/payments/installments/"""
     order_number = serializers.CharField()
     amount       = serializers.DecimalField(max_digits=10, decimal_places=2)
     plans        = InstallmentPlanSerializer(many=True)
 
 
 class PaymentReturnSerializer(serializers.Serializer):
-    """Query params del retorno del gateway — GET /api/v1/payments/<order>/return/"""
+    """Query params del retorno del gateway — GET /api/v2/payments/<order>/return/"""
     status             = serializers.CharField(required=False, default='pending', max_length=50)
     payment_id         = serializers.CharField(required=False, allow_blank=True, max_length=100)
     external_reference = serializers.CharField(required=False, allow_blank=True, max_length=100)
 
 
 class CheckoutEligibilitySerializer(serializers.Serializer):
-    """Respuesta de GET /api/v1/checkout/eligibility/"""
+    """Respuesta de GET /api/v2/checkout/eligibility/"""
     express_available    = serializers.BooleanField()
     reason               = serializers.CharField(allow_null=True)
     default_address      = serializers.DictField(allow_null=True)
@@ -144,7 +144,7 @@ class CheckoutEligibilitySerializer(serializers.Serializer):
 
 
 class ExpressCheckoutSerializer(serializers.Serializer):
-    """POST /api/v1/checkout/express/ — UC-ORD-01-EXT."""
+    """POST /api/v2/checkout/express/ — UC-ORD-01-EXT."""
     notes        = serializers.CharField(
         required=False, default='', allow_blank=True, max_length=1000,
     )
@@ -155,7 +155,7 @@ class ExpressCheckoutSerializer(serializers.Serializer):
 
 
 class PaymentStatusSerializer(serializers.Serializer):
-    """Respuesta de GET /api/v1/payments/<order>/status/ — UC-PAY-05."""
+    """Respuesta de GET /api/v2/payments/<order>/status/ — UC-PAY-05."""
     order_number    = serializers.CharField()
     order_status    = serializers.CharField()
     payment_status  = serializers.CharField()
@@ -166,7 +166,7 @@ class PaymentStatusSerializer(serializers.Serializer):
 
 
 class RefundRequestSerializer(serializers.Serializer):
-    """POST /api/v1/payments/<order>/refund/ — UC-PAY-07."""
+    """POST /api/v2/payments/<order>/refund/ — UC-PAY-07."""
     amount = serializers.DecimalField(
         max_digits=10, decimal_places=2,
         required=False, allow_null=True,
@@ -210,7 +210,7 @@ class ChargebackSerializer(serializers.ModelSerializer):
 
 
 class RetryEligibilitySerializer(serializers.Serializer):
-    """Respuesta de GET /api/v1/payments/<order>/retry-eligibility/ — UC-PAY-08."""
+    """Respuesta de GET /api/v2/payments/<order>/retry-eligibility/ — UC-PAY-08."""
     eligible             = serializers.BooleanField()
     order_number         = serializers.CharField(allow_null=True)
     order_status         = serializers.CharField(allow_null=True)
