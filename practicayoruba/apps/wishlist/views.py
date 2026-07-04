@@ -1,13 +1,14 @@
 """Views — apps.wishlist (Sprint 14)."""
 from decimal import Decimal
 from django.db import IntegrityError, transaction
+from django.db.models import Count
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema, extend_schema_field, inline_serializer
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.serializers import ModelSerializer, SerializerMethodField
 from rest_framework.views import APIView
@@ -285,3 +286,40 @@ class WishlistMoveToCartView(APIView):
             'cart_item_id': cart_item_id,
             'moved_at': timezone.now().isoformat(),
         }, status=200)
+
+
+class WishlistAggregateView(APIView):
+    """
+    UC-WISH-04 (H-08): agregacion de wishlists para marketing (admin).
+
+    Cuenta, por producto, cuantas veces aparece en listas de deseos y cuantos
+    usuarios distintos lo desean. Solo agregados **anonimos**: no expone la
+    identidad de los compradores (BR-013). El manager por defecto de
+    WishlistItem excluye los soft-deleted.
+    """
+    permission_classes = [IsAdminUser]
+
+    @extend_schema(
+        summary='Agregado de wishlist para marketing (admin)',
+        tags=['admin-wishlist'],
+    )
+    def get(self, request):
+        rows = (
+            WishlistItem.objects
+            .values('product_id', 'product__name')
+            .annotate(
+                times_wishlisted=Count('id'),
+                distinct_users=Count('user', distinct=True),
+            )
+            .order_by('-times_wishlisted', 'product__name')
+        )
+        data = [
+            {
+                'product_id':       r['product_id'],
+                'name':             r['product__name'],
+                'times_wishlisted': r['times_wishlisted'],
+                'distinct_users':   r['distinct_users'],
+            }
+            for r in rows
+        ]
+        return Response({'results': data, 'count': len(data)})
