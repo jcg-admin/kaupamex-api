@@ -15,16 +15,6 @@ Explain what and why, not how (the diff already shows how).
 -->
 
 
-#### AI assistance disclosure (required)
-
-<!-- Select exactly ONE. -->
-
-- [ ] No AI tools were used in preparing this PR.
-- [ ] AI tools were used; I have disclosed which ones below and fully reviewed and verified their output.
-
-<!-- If used, name the tool(s) here: -->
-
-
 #### Checklist
 
 - [ ] Commits follow the Tim Pope style: imperative subject (<= 50 chars, capitalized, no trailing period), body wrapped at 72 explaining what and why. No Conventional Commits.
