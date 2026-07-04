@@ -14,8 +14,8 @@ el sistema:
 ```bash
 GIT_AUTHOR_NAME="Nestor Monroy"
 GIT_AUTHOR_EMAIL="46802445+NestorMonroy@users.noreply.github.com"
-GIT_COMMITTER_NAME="Nestor Monroy"
-GIT_COMMITTER_EMAIL="46802445+NestorMonroy@users.noreply.github.com"
+GIT_COMMITTER_NAME="jcg-admin"
+GIT_COMMITTER_EMAIL="169318663+jcg-admin@users.noreply.github.com"
 ```
 
 Pasar las cuatro variables antes de cada `git commit`:
@@ -23,8 +23,8 @@ Pasar las cuatro variables antes de cada `git commit`:
 ```bash
 GIT_AUTHOR_NAME="Nestor Monroy" \
 GIT_AUTHOR_EMAIL="46802445+NestorMonroy@users.noreply.github.com" \
-GIT_COMMITTER_NAME="Nestor Monroy" \
-GIT_COMMITTER_EMAIL="46802445+NestorMonroy@users.noreply.github.com" \
+GIT_COMMITTER_NAME="jcg-admin" \
+GIT_COMMITTER_EMAIL="169318663+jcg-admin@users.noreply.github.com" \
 git commit -m "..."
 ```
 

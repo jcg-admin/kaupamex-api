@@ -1,0 +1,19 @@
+<!-- PARTE COSMIC — añadir al final del UC/FUR, SIN modificar las partes existentes -->
+
+## COSMIC Format — {UC-ID}
+
+- **Capa / FSM:** {ui|api|db|server}
+- **Usuario funcional:** {actor}
+- **Evento desencadenante:** {trigger}
+- **Estado:** {Medición estándar | [ESTIMACIÓN TEMPRANA]}
+
+| Paso | Sub-proceso (descripción del FUR) | FU | OOI | Tipo | CFP | FUR fuente |
+|------|-----------------------------------|----|-----|------|-----|------------|
+| 1 | {…} | {usuario funcional} | {object of interest} | E | 1 | {paso UC} |
+| 2 | {…} | … | … | R | 1 | … |
+| … | … | … | … | X/W | 1 | … |
+
+**Total CFP del proceso:** {N}  (≥2 — Regla 10c)
+
+> Reglas: 1 movimiento = 1 grupo de datos = 1 CFP · (tipo,grupo) una vez por proceso ·
+> manipulación incluida en el movimiento. Ver `references/data-movements.md`.

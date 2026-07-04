@@ -1,0 +1,12 @@
+# COSMIC Measurement Strategy — {proyecto/scope}
+
+- **Propósito de la medición:** {por qué se mide}
+- **Scope:** {qué software/capa/versión entra}
+- **Capa (FSM):** {una sola — Principio 6}
+- **Usuarios funcionales:** {lista}
+- **Boundary:** {entre el software y sus usuarios funcionales}
+- **Nivel de granularidad:** {1 proceso funcional = 1 evento desencadenante / caso de uso elemental}
+- **Fuente de FUR:** {casos de uso / requirements-spec — fuente exclusiva, Regla 3}
+- **Método:** {estándar movimiento-a-movimiento | early sizing + técnica}
+
+> Salida esperada: tabla COSMIC Format por proceso + total CFP por capa.
