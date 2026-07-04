@@ -162,6 +162,25 @@ def send_support_closed_email(user_email, user_name, ticket_id, ticket_subject, 
     )
 
 
+def send_support_created_email(user_email, user_name, ticket_id, ticket_subject):
+    """UC-SUPP-01 (POST-02/7.2): confirmacion de creacion de ticket al comprador."""
+    subject = f'Ticket de soporte #{ticket_id} creado — PracticaYoruba'
+    message = (
+        f'Hola {user_name},\n\n'
+        f'Recibimos tu ticket #{ticket_id} "{ticket_subject}". Nuestro equipo '
+        f'de soporte lo revisara y te respondera a la brevedad.\n\n'
+        f'Puedes seguir la conversacion en:\n'
+        f'{_frontend_url()}/support/tickets/{ticket_id}\n\n'
+        f'— Equipo PracticaYoruba'
+    )
+    dispatch_email(
+        subject=subject,
+        message=message,
+        from_email=_from_email(),
+        recipient_list=[user_email],
+    )
+
+
 def send_card_verification_email(user_email, user_name, verification_token, last_four):
     """
     Envía el email de verificación cuando un usuario guarda una nueva tarjeta.

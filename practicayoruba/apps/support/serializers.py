@@ -30,6 +30,14 @@ class SupportTicketCreateSerializer(serializers.Serializer):
         default=SupportTicket.Category.GENERAL,
     )
     order_id = serializers.IntegerField(required=False, allow_null=True)
+    # H-18: la lista de ordenes del comprador solo expone `order_number` (el PK
+    # entero se retiro deliberadamente, H-CICLO79-03), asi que la UI no puede
+    # mandar `order_id`. Se acepta `order_number` y se resuelve al PK aqui, con
+    # el mismo aislamiento por usuario. `order_id` sigue aceptandose por
+    # compatibilidad; si vienen ambos, gana el que resuelva a una orden valida.
+    order_number = serializers.CharField(
+        required=False, allow_null=True, allow_blank=True, max_length=20,
+    )
     priority = serializers.ChoiceField(
         choices=SupportTicket.Priority.choices,
         required=False,
@@ -42,7 +50,6 @@ class SupportTicketCreateSerializer(serializers.Serializer):
         request = self.context.get('request')
         if request is None or not getattr(request.user, 'is_authenticated', False):
             return value  # las views protegen con IsAuthenticated
-        # Import diferido para evitar ciclos en apps cargando.
         if not Order.objects.filter(pk=value, user=request.user).exists():
             raise serializers.ValidationError({
                 'codigo_error': 'ORDER_NOT_FOUND',
