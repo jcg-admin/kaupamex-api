@@ -1,0 +1,67 @@
+name: Bug report
+description: An endpoint or backend behaviour is not working correctly.
+labels: ["type:bug"]
+
+body:
+  - type: textarea
+    attributes:
+      label: Describe the bug
+      description: >-
+        A clear and concise description of the problem, including the expected
+        behaviour and what actually happened.
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: Affected endpoint or app
+      description: >-
+        The route (e.g. ``POST /api/v2/payments/initiate/``) and/or the Django
+        app (e.g. ``apps.cart``).
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: How to reproduce
+      description: >-
+        Steps to reproduce with the smallest possible input. Prefer a failing
+        test or a curl call with the request payload; include the expected vs
+        actual response.
+      placeholder: |
+        ```bash
+        $ uv run pytest tests/integration/... -q --reuse-db
+        $ # or a request:
+        $ curl -sS -X POST http://localhost:8000/api/v2/... -d '{...}'
+        $ # expected: ... / actual: ...
+        ```
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: Status code and error key observed
+      description: >-
+        HTTP status and the ``codigo_error`` value in the response body, if any.
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Environment
+      render: text
+      description: >-
+        Python/Django versions, settings module (development/testing/
+        production), and DB connection (socket vs TCP). MariaDB is the canonical
+        engine; never SQLite.
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: >-
+        Any other context: related issue or PR, decision (DEC-...), finding
+        (F-NN), UC (UC-...), or logs.
+    validations:
+      required: false
