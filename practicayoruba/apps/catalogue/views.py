@@ -636,6 +636,31 @@ class ProductAdminViewSet(ProductDeactivateAction, ModelViewSet):
     # por lo que añadir paginación es retrocompatible para el frontend.
     pagination_class   = CataloguePagination
 
+    def get_queryset(self):
+        """Aplica los filtros de listado del panel admin.
+
+        H-ADMIN-FILTER: antes esta vista solo declaraba un ``queryset``
+        estático sin ``get_queryset`` ni filter backends, así que los chips
+        "Publicados" / "Borradores" / "Sin stock" y la caja de búsqueda del UI
+        (``?filter=`` y ``?search=``) se ignoraban por completo: cualquier
+        filtro devolvía el catálogo entero. El manager por defecto ya excluye
+        ``is_deleted=True`` (SoftDeleteModel); los productos solo desactivados
+        (``is_active=False``) sí aparecen y se reactivan vía ``activate``.
+        """
+        qs = super().get_queryset()
+        params = self.request.query_params
+        estado = params.get('filter', 'all')
+        if estado == 'published':
+            qs = qs.filter(is_published=True)
+        elif estado == 'draft':
+            qs = qs.filter(is_published=False)
+        elif estado == 'out_of_stock':
+            qs = qs.filter(stock__lte=0)
+        search = (params.get('search') or '').strip()
+        if search:
+            qs = qs.filter(Q(name__icontains=search) | Q(sku__icontains=search))
+        return qs
+
     def _check_sku_unique(self, sku, exclude_pk=None):
         if not sku:
             return False
@@ -697,6 +722,34 @@ class ProductAdminViewSet(ProductDeactivateAction, ModelViewSet):
     @extend_schema(summary='Desactivar producto (soft delete)', responses={204: None}, tags=['admin-catalogue'])
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
+
+    @action(detail=True, methods=['post'], url_path='activate')
+    @extend_schema(
+        summary='Reactivar producto (revertir desactivación)',
+        description=(
+            'H-ADMIN-RESTORE: el UI ofrecía "Reactivar producto" '
+            '(AdminProductEditPage) y despachaba POST '
+            '/api/v2/admin/products/:id/activate/, pero la ruta no existía: solo '
+            'estaba deactivate. El botón pegaba a un endpoint inexistente y '
+            'devolvía 404 ("Request failed / not found"). Este endpoint es la '
+            'contraparte de deactivate: vuelve a marcar is_active=True. La '
+            'publicación (is_published) queda como estaba — se controla aparte.'
+        ),
+        responses={200: ProductAdminSerializer, 400: OpenApiResponse(description='Ya activo.')},
+        tags=['admin-catalogue'],
+    )
+    def activate(self, request, pk=None):
+        product = self.get_object()
+        if product.is_active:
+            return Response(
+                {'detail': 'El producto ya está activo.', 'codigo_error': 'PRODUCTO_YA_ACTIVO'},
+                status=400,
+            )
+        product.is_active = True
+        product.save(update_fields=['is_active', 'updated_at'])
+        cache.delete(f'product:{product.pk}:detail')
+        cache.delete(CATEGORY_TREE_CACHE_KEY)
+        return Response(self.get_serializer(product).data)
 
     @action(detail=True, methods=['get'], url_path='price-history')
     @extend_schema(summary='Historial de precios del producto', tags=['admin-catalogue'])
