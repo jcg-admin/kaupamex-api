@@ -18,6 +18,7 @@ import hashlib
 from django.contrib.auth import get_user_model, login as django_login
 from django.contrib.auth.models import update_last_login
 from django.core.cache import cache
+from .session_tracking import record_user_session
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.response import Response
@@ -206,6 +207,8 @@ class PYTokenObtainPairView(TokenObtainPairView):
                     request, user,
                     backend='django.contrib.auth.backends.ModelBackend',
                 )
+                # UC-AUTH-17 (H-16): registra la sesion (IP/dispositivo).
+                record_user_session(request, user)
         elif response.status_code in (400, 401):
             record_failed_attempt(ip)
             self._audit_login(request, success=False,
