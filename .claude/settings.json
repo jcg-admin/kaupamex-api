@@ -1,0 +1,60 @@
+{
+  "effortLevel": "medium",
+  "env": {
+    "CLAUDE_STREAM_IDLE_TIMEOUT_MS": "420000",
+    "CLAUDE_CODE_EFFORT_LEVEL": "medium"
+  },
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Write(/.claude/references/**)",
+      "Bash(bash .claude/scripts/*)",
+      "Bash(bash .claude/skills/*/scripts/*)",
+      "Bash(bash scripts/*)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git commit -m *)",
+      "Bash(git push *)",
+      "Bash(git push -u *)",
+      "Bash(git status)",
+      "Bash(git log *)",
+      "Bash(git diff *)",
+      "Bash(git fetch *)",
+      "Bash(git branch *)",
+      "Bash(date *)",
+      "Bash(mkdir *)",
+      "Bash(ls *)",
+      "Bash(echo *)",
+      "Bash(uv run pytest *)",
+      "Bash(uv run *)",
+      "Bash(python3 scripts/*)",
+      "Bash(make check-lazy*)",
+      "Bash(make check-canon*)",
+      "Bash(make ci-test*)",
+      "Bash(make test*)",
+      "Bash(make help)"
+    ],
+    "ask": [
+      "Edit(/.claude/scripts/*.sh)",
+      "Edit(/.claude/settings.json)"
+    ],
+    "deny": [
+      "Bash(git push --force *)",
+      "Bash(git push --force-with-lease *)",
+      "Bash(git reset --hard *)",
+      "Bash(rm -rf *)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/scripts/lint-agents.py || true"
+          }
+        ]
+      }
+    ]
+  }
+}
