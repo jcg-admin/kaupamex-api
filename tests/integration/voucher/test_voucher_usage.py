@@ -16,6 +16,7 @@ from unittest.mock import patch
 from apps.catalogue.models import Category, Product
 from apps.inventory.services import InventoryService
 from apps.orders.models import Order, ShippingZone
+from apps.settings_app.models import ShippingMethod
 from apps.voucher.models import Voucher, VoucherUsage
 from apps.cart.models import Cart
 
@@ -111,6 +112,10 @@ class TestVoucherUsageCreatedOnCheckout:
 
         initial_uses = Voucher.objects.get(pk=voucher_single.pk).current_uses
 
+        # DEC-BC-25: el checkout exige un método de envío activo.
+        ship = ShippingMethod.objects.create(
+            name='Estándar', cost=Decimal('0.00'), estimated_days=5, is_active=True)
+
         checkout_data = {
             'address': {
                 'recipient_name': 'Test',
@@ -120,6 +125,7 @@ class TestVoucherUsageCreatedOnCheckout:
                 'zip_code': '06600',
                 'country': 'MX',
             },
+            'shipping_method_id': ship.pk,
         }
 
         # Mock InventoryService para no depender de stock

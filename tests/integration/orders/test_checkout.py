@@ -67,13 +67,23 @@ def shipping(db):
         name='Estándar', cost=Decimal('80.00'), estimated_days=5, is_active=True)
 
 
+@pytest.fixture
+def shipping_gratis(db):
+    """Método de envío gratis (cost=0). DEC-BC-25 hace obligatorio el método
+    en el checkout; los tests que asiertan totales/IVA sin costo de envío usan
+    este fixture para mantener shipping_cost=0 sin cambiar sus aserciones."""
+    return ShippingMethod.objects.create(
+        name='Gratis', cost=Decimal('0.00'), estimated_days=7, is_active=True)
+
+
 class TestCheckout:
 
     def test_checkout_autenticado(
-        self, cart_con_item_auth, prod_ord, db
+        self, cart_con_item_auth, prod_ord, shipping_gratis, db
     ):
         res = cart_con_item_auth.post(CHECKOUT_URL, {
             'address': ADDR,
+            'shipping_method_id': shipping_gratis.pk,
         }, format='json')
         assert res.status_code == 201
         data = res.json()
@@ -84,11 +94,14 @@ class TestCheckout:
         assert data['items'][0]['product_name'] == 'Prod Ord'
 
     def test_checkout_crea_snapshot_inmutable_br005(
-        self, cart_con_item_auth, prod_ord, db
+        self, cart_con_item_auth, prod_ord, shipping_gratis, db
     ):
         """BR-005: unit_price del OrderItem = precio al momento del checkout."""
         original_price = prod_ord.price
-        res = cart_con_item_auth.post(CHECKOUT_URL, {'address': ADDR}, format='json')
+        res = cart_con_item_auth.post(
+            CHECKOUT_URL,
+            {'address': ADDR, 'shipping_method_id': shipping_gratis.pk},
+            format='json')
         assert res.status_code == 201
         item_price = Decimal(res.json()['items'][0]['unit_price'])
         assert item_price == original_price
@@ -99,22 +112,31 @@ class TestCheckout:
         assert order.items.first().unit_price == original_price
 
     def test_checkout_decrementa_stock(
-        self, cart_con_item_auth, prod_ord, db
+        self, cart_con_item_auth, prod_ord, shipping_gratis, db
     ):
-        cart_con_item_auth.post(CHECKOUT_URL, {'address': ADDR}, format='json')
+        cart_con_item_auth.post(
+            CHECKOUT_URL,
+            {'address': ADDR, 'shipping_method_id': shipping_gratis.pk},
+            format='json')
         prod_ord.refresh_from_db()
         assert prod_ord.stock == 8  # 10 - 2
 
     def test_checkout_vacia_el_carrito(
-        self, cart_con_item_auth, db
+        self, cart_con_item_auth, shipping_gratis, db
     ):
-        cart_con_item_auth.post(CHECKOUT_URL, {'address': ADDR}, format='json')
+        cart_con_item_auth.post(
+            CHECKOUT_URL,
+            {'address': ADDR, 'shipping_method_id': shipping_gratis.pk},
+            format='json')
         assert CartItem.objects.count() == 0
 
     def test_checkout_crea_ordervalue(
-        self, cart_con_item_auth, prod_ord, db
+        self, cart_con_item_auth, prod_ord, shipping_gratis, db
     ):
-        res = cart_con_item_auth.post(CHECKOUT_URL, {'address': ADDR}, format='json')
+        res = cart_con_item_auth.post(
+            CHECKOUT_URL,
+            {'address': ADDR, 'shipping_method_id': shipping_gratis.pk},
+            format='json')
         value = res.json()['value']
         assert Decimal(value['subtotal']) == Decimal('1000.00')  # 500 * 2
         assert 'tax' in value
@@ -130,11 +152,39 @@ class TestCheckout:
         assert res.status_code == 201
         assert Decimal(res.json()['value']['shipping_cost']) == Decimal('80.00')
 
+    def test_checkout_sin_metodo_envio_retorna_400(
+        self, cart_con_item_auth, prod_ord, db
+    ):
+        """DEC-BC-25: el checkout exige un método de envío. Sin él, 400 con
+        codigo_error SHIPPING_METHOD_REQUIRED (antes se permitía crear la
+        orden sin método ni costo de envío)."""
+        res = cart_con_item_auth.post(CHECKOUT_URL, {'address': ADDR}, format='json')
+        assert res.status_code == 400
+        assert res.json()['codigo_error'] == 'SHIPPING_METHOD_REQUIRED'
+        # No debe crearse ninguna orden.
+        assert Order.objects.count() == 0
+
+    def test_checkout_metodo_envio_inactivo_retorna_400(
+        self, cart_con_item_auth, prod_ord, db
+    ):
+        """DEC-BC-25: un shipping_method_id que no existe o está inactivo se
+        rechaza con SHIPPING_METHOD_UNAVAILABLE."""
+        inactivo = ShippingMethod.objects.create(
+            name='Descontinuado', cost=Decimal('50.00'),
+            estimated_days=5, is_active=False)
+        res = cart_con_item_auth.post(CHECKOUT_URL, {
+            'address': ADDR,
+            'shipping_method_id': inactivo.pk,
+        }, format='json')
+        assert res.status_code == 400
+        assert res.json()['codigo_error'] == 'SHIPPING_METHOD_UNAVAILABLE'
+        assert Order.objects.count() == 0
+
     def test_checkout_carrito_vacio_retorna_400(self, auth_client, zone_cdmx, db):
         res = auth_client.post(CHECKOUT_URL, {'address': ADDR}, format='json')
         assert res.status_code in (400, 404)
 
-    def test_checkout_anonimo(self, api_client, prod_ord, zone_cdmx, db):
+    def test_checkout_anonimo(self, api_client, prod_ord, zone_cdmx, shipping_gratis, db):
         """BR-011: visitante anónimo puede hacer checkout."""
         add_res = api_client.post(ITEMS_URL, {
             'product_id': prod_ord.pk, 'quantity': 1,
@@ -145,6 +195,7 @@ class TestCheckout:
             'cart_token': cart_token,
             'guest_email': 'invitado@test.mx',
             'address': ADDR,
+            'shipping_method_id': shipping_gratis.pk,
         }, format='json')
         assert res.status_code == 201
         assert res.json()['guest_email'] == 'invitado@test.mx'
@@ -183,7 +234,7 @@ class TestCheckout:
         assert prod_ord.stock == 0
 
     def test_checkout_con_voucher_aplica_descuento(
-        self, auth_client, prod_ord, zone_cdmx, db, admin_user
+        self, auth_client, prod_ord, zone_cdmx, shipping_gratis, db, admin_user
     ):
         v = Voucher.objects.create(
             code='PROMO100', voucher_type='FIXED',
@@ -193,14 +244,17 @@ class TestCheckout:
         )
         auth_client.post(ITEMS_URL, {'product_id': prod_ord.pk, 'quantity': 1}, format='json')
         auth_client.post('/api/v2/cart/voucher/', {'code': 'PROMO100'}, format='json')
-        res = auth_client.post(CHECKOUT_URL, {'address': ADDR}, format='json')
+        res = auth_client.post(
+            CHECKOUT_URL,
+            {'address': ADDR, 'shipping_method_id': shipping_gratis.pk},
+            format='json')
         assert res.status_code == 201
         assert Decimal(res.json()['value']['discount']) == Decimal('100.00')
         assert Decimal(res.json()['value']['total']) == Decimal('400.00')
         assert res.json()['voucher_code'] == 'PROMO100'
 
     def test_checkout_incrementa_voucher_current_uses(
-        self, auth_client, prod_ord, zone_cdmx, db, admin_user,
+        self, auth_client, prod_ord, zone_cdmx, shipping_gratis, db, admin_user,
     ):
         """T-115 D-01 CRITICA (implementar-current-uses-increment):
         verificar que el campo Voucher.current_uses se incrementa
@@ -216,7 +270,10 @@ class TestCheckout:
         )
         auth_client.post(ITEMS_URL, {'product_id': prod_ord.pk, 'quantity': 1}, format='json')
         auth_client.post('/api/v2/cart/voucher/', {'code': 'LIMIT1'}, format='json')
-        res = auth_client.post(CHECKOUT_URL, {'address': ADDR}, format='json')
+        res = auth_client.post(
+            CHECKOUT_URL,
+            {'address': ADDR, 'shipping_method_id': shipping_gratis.pk},
+            format='json')
         assert res.status_code == 201
         v.refresh_from_db()
         assert v.current_uses == 1, (
@@ -226,7 +283,7 @@ class TestCheckout:
 
 
     def test_idempotency_key_no_duplica_orden(
-        self, cart_con_item_auth, prod_ord, db
+        self, cart_con_item_auth, prod_ord, shipping_gratis, db
     ):
         """UC-ORD-01 AC-06: dos POST con el mismo Idempotency-Key crean UNA
         sola orden; el segundo devuelve el mismo order_number.
@@ -240,8 +297,9 @@ class TestCheckout:
         orden, mismo order_number). El mismatch de codigo se reporta aparte.
         """
         key = 'idem-key-ac06-001'
+        payload = {'address': ADDR, 'shipping_method_id': shipping_gratis.pk}
         first = cart_con_item_auth.post(
-            CHECKOUT_URL, {'address': ADDR}, format='json',
+            CHECKOUT_URL, payload, format='json',
             HTTP_IDEMPOTENCY_KEY=key,
         )
         assert first.status_code == 201
@@ -249,7 +307,7 @@ class TestCheckout:
 
         # Segundo POST con la misma clave: no debe crear otra orden.
         second = cart_con_item_auth.post(
-            CHECKOUT_URL, {'address': ADDR}, format='json',
+            CHECKOUT_URL, payload, format='json',
             HTTP_IDEMPOTENCY_KEY=key,
         )
         assert second.json()['order_number'] == first_number
@@ -258,7 +316,7 @@ class TestCheckout:
         assert Order.objects.count() == 1
 
     def test_iva_y_total_se_calculan_en_servidor(
-        self, cart_con_item_auth, prod_ord, db
+        self, cart_con_item_auth, prod_ord, shipping_gratis, db
     ):
         """UC-ORD-01 AC-07 (BR-002): el IVA y el total se calculan en el
         servidor; el cliente nunca define ``total`` en el request.
@@ -280,9 +338,12 @@ class TestCheckout:
         afirmacion verificable del AC (calculo server-side, cliente no
         define total) SI se cumple y es lo que asierta este test.
         """
-        # El cliente NO envia 'total' ni 'tax' — solo la direccion.
+        # El cliente NO envia 'total' ni 'tax' — solo la direccion y el método
+        # de envío (obligatorio, gratis para no alterar el cálculo del total).
         res = cart_con_item_auth.post(
-            CHECKOUT_URL, {'address': ADDR}, format='json',
+            CHECKOUT_URL,
+            {'address': ADDR, 'shipping_method_id': shipping_gratis.pk},
+            format='json',
         )
         assert res.status_code == 201
         value = res.json()['value']
@@ -338,7 +399,7 @@ class TestCheckoutP95SLO:
     """UC-ORD-01 RNF-PERF: checkout must complete in <800ms at P95."""
 
     def test_checkout_p95_slo_800ms(
-        self, auth_client, prod_ord, zone_cdmx, db,
+        self, auth_client, prod_ord, zone_cdmx, shipping_gratis, db,
     ):
         """UC-ORD-01 RNF-PERF: end-to-end checkout wall-clock must be <800ms.
 
@@ -361,7 +422,10 @@ class TestCheckoutP95SLO:
             )
 
             start = time.monotonic()
-            res = auth_client.post(CHECKOUT_URL, {'address': ADDR}, format='json')
+            res = auth_client.post(
+                CHECKOUT_URL,
+                {'address': ADDR, 'shipping_method_id': shipping_gratis.pk},
+                format='json')
             elapsed_ms = (time.monotonic() - start) * 1000
 
             assert res.status_code == 201, (

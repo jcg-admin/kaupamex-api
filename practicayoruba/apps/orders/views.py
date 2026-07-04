@@ -136,17 +136,31 @@ class CheckoutView(APIView):
         settings_obj = SiteSettings.get_current()
         iva_rate = settings_obj.iva_rate
 
-        # Método de envío
-        shipping_method = None
-        shipping_cost   = Decimal('0.00')
-        if data.get('shipping_method_id'):
-            shipping_method = get_object_or_404(
-                ShippingMethod, pk=data['shipping_method_id'], is_active=True)
-            # free_threshold
-            subtotal_for_shipping = cart.get_subtotal() - cart.get_discount()
-            if (shipping_method.free_threshold is None or
-                    subtotal_for_shipping < shipping_method.free_threshold):
-                shipping_cost = shipping_method.cost
+        # Método de envío — OBLIGATORIO (DEC-BC-25). Antes era opcional: una
+        # orden podía crearse sin método ni costo de envío, y en producción
+        # (sin ShippingMethod activos sembrados) el comprador veía "No hay
+        # métodos de envío disponibles" y aun así podía confirmar, generando
+        # órdenes sin envío. El front ahora bloquea el submit sin método y el
+        # back valida como defensa en profundidad.
+        shipping_method_id = data.get('shipping_method_id')
+        if not shipping_method_id:
+            raise ValidationError(
+                {'shipping_method_id': 'Selecciona un método de envío.',
+                 'codigo_error': 'SHIPPING_METHOD_REQUIRED'})
+        try:
+            shipping_method = ShippingMethod.objects.get(
+                pk=shipping_method_id, is_active=True)
+        except ShippingMethod.DoesNotExist:
+            raise ValidationError(
+                {'shipping_method_id':
+                 'El método de envío no existe o está inactivo.',
+                 'codigo_error': 'SHIPPING_METHOD_UNAVAILABLE'})
+        # free_threshold: si el subtotal alcanza el umbral, el envío es gratis.
+        shipping_cost = Decimal('0.00')
+        subtotal_for_shipping = cart.get_subtotal() - cart.get_discount()
+        if (shipping_method.free_threshold is None or
+                subtotal_for_shipping < shipping_method.free_threshold):
+            shipping_cost = shipping_method.cost
 
         try:
             with transaction.atomic():

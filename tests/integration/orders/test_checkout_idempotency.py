@@ -14,6 +14,7 @@ from unittest.mock import patch
 from apps.catalogue.models import Category, Product
 from apps.inventory.services import InventoryService
 from apps.orders.models import Order, CheckoutAttempt, ShippingZone
+from apps.settings_app.models import ShippingMethod
 
 pytestmark = pytest.mark.integration
 
@@ -58,6 +59,13 @@ def prod_idem_co(db, cat_idem_co):
 
 
 @pytest.fixture
+def ship_idem(db):
+    """DEC-BC-25: el checkout exige un método de envío activo."""
+    return ShippingMethod.objects.create(
+        name='Estándar', cost=Decimal('0.00'), estimated_days=5, is_active=True)
+
+
+@pytest.fixture
 def client_with_item(auth_client, prod_idem_co, zone_cdmx):
     auth_client.post(ITEMS_URL, {'product_id': prod_idem_co.pk, 'quantity': 1}, format='json')
     return auth_client
@@ -66,7 +74,7 @@ def client_with_item(auth_client, prod_idem_co, zone_cdmx):
 class TestCheckoutIdempotency:
 
     def test_double_post_same_key_creates_one_order(
-        self, client_with_item, user, prod_idem_co, db
+        self, client_with_item, user, prod_idem_co, ship_idem, db
     ):
         """
         T-603: dos POSTs con el mismo Idempotency-Key retornan el mismo
@@ -75,7 +83,7 @@ class TestCheckoutIdempotency:
         with patch.object(InventoryService, 'check_availability', return_value=[]), \
              patch.object(InventoryService, 'decrement', return_value=None):
             res1 = client_with_item.post(
-                CHECKOUT_URL, {'address': ADDR}, format='json',
+                CHECKOUT_URL, {'address': ADDR, 'shipping_method_id': ship_idem.pk}, format='json',
                 HTTP_IDEMPOTENCY_KEY=IDEMPOTENCY_KEY,
             )
 
@@ -87,7 +95,7 @@ class TestCheckoutIdempotency:
         with patch.object(InventoryService, 'check_availability', return_value=[]), \
              patch.object(InventoryService, 'decrement', return_value=None):
             res2 = client_with_item.post(
-                CHECKOUT_URL, {'address': ADDR}, format='json',
+                CHECKOUT_URL, {'address': ADDR, 'shipping_method_id': ship_idem.pk}, format='json',
                 HTTP_IDEMPOTENCY_KEY=IDEMPOTENCY_KEY,
             )
 
@@ -110,7 +118,7 @@ class TestCheckoutIdempotency:
         )
 
     def test_double_post_same_key_decrements_stock_once(
-        self, client_with_item, user, prod_idem_co, db
+        self, client_with_item, user, prod_idem_co, ship_idem, db
     ):
         """
         T-603b: el stock solo se decrementa en el primer POST;
@@ -122,7 +130,7 @@ class TestCheckoutIdempotency:
             InventoryService, 'decrement', return_value=None
         ) as mock_decrement:
             client_with_item.post(
-                CHECKOUT_URL, {'address': ADDR}, format='json',
+                CHECKOUT_URL, {'address': ADDR, 'shipping_method_id': ship_idem.pk}, format='json',
                 HTTP_IDEMPOTENCY_KEY=IDEMPOTENCY_KEY + '-stock',
             )
 
@@ -136,7 +144,7 @@ class TestCheckoutIdempotency:
             InventoryService, 'decrement', return_value=None
         ) as mock_decrement2:
             client_with_item.post(
-                CHECKOUT_URL, {'address': ADDR}, format='json',
+                CHECKOUT_URL, {'address': ADDR, 'shipping_method_id': ship_idem.pk}, format='json',
                 HTTP_IDEMPOTENCY_KEY=IDEMPOTENCY_KEY + '-stock',
             )
 

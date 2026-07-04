@@ -3,6 +3,7 @@ import pytest
 from decimal import Decimal
 from apps.catalogue.models import Category, Product
 from apps.orders.models import ShippingZone
+from apps.settings_app.models import ShippingMethod
 from apps.orders.signals import order_created
 
 pytestmark = pytest.mark.integration
@@ -51,39 +52,55 @@ def cart_sig(auth_client, prod_sig, zone_sig):
     return auth_client
 
 
+@pytest.fixture
+def ship_sig(db):
+    """DEC-BC-25: el checkout exige un método de envío activo."""
+    return ShippingMethod.objects.create(
+        name='Estándar', cost=Decimal('0.00'), estimated_days=5, is_active=True)
+
+
 class TestOrderCreatedSignal:
 
-    def test_signal_fires_on_checkout(self, cart_sig, db):
+    def test_signal_fires_on_checkout(self, cart_sig, ship_sig, db):
         calls = []
         def capture(**kwargs):
             calls.append(kwargs)
         order_created.connect(capture)
         try:
-            r = cart_sig.post(CHECKOUT_URL, {'address': ADDR}, format='json')
+            r = cart_sig.post(
+                CHECKOUT_URL,
+                {'address': ADDR, 'shipping_method_id': ship_sig.pk},
+                format='json')
             assert r.status_code == 201
             assert len(calls) == 1
         finally:
             order_created.disconnect(capture)
 
-    def test_signal_carries_order(self, cart_sig, db):
+    def test_signal_carries_order(self, cart_sig, ship_sig, db):
         received = {}
         def capture(**kwargs):
             received.update(kwargs)
         order_created.connect(capture)
         try:
-            cart_sig.post(CHECKOUT_URL, {'address': ADDR}, format='json')
+            cart_sig.post(
+                CHECKOUT_URL,
+                {'address': ADDR, 'shipping_method_id': ship_sig.pk},
+                format='json')
             assert 'order' in received
             assert received['order'].order_number.startswith('PY-')
         finally:
             order_created.disconnect(capture)
 
-    def test_signal_fires_exactly_once(self, cart_sig, db):
+    def test_signal_fires_exactly_once(self, cart_sig, ship_sig, db):
         calls = []
         def capture(**kwargs):
             calls.append(kwargs)
         order_created.connect(capture)
         try:
-            r = cart_sig.post(CHECKOUT_URL, {'address': ADDR}, format='json')
+            r = cart_sig.post(
+                CHECKOUT_URL,
+                {'address': ADDR, 'shipping_method_id': ship_sig.pk},
+                format='json')
             assert r.status_code == 201
             assert len(calls) == 1
         finally:
