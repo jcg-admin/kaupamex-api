@@ -51,6 +51,7 @@ urlpatterns = _admin_urls + [
     # ─── API v2 (F2: cart, wishlist, referral, notifications) ───────────────────
     path('api/v2/cart/',           include(('apps.cart.urls', 'cart'),                       namespace='cart_v2')),
     path('api/v2/wishlist/',       include(('apps.wishlist.urls', 'wishlist'),               namespace='wishlist_v2')),
+    path('api/v2/admin/',          include(('apps.wishlist.admin_urls', 'admin_wishlist'),   namespace='admin_wishlist_v2')),
     path('api/v2/account/',        include(('apps.referral.urls', 'referral'),               namespace='referral_v2')),
     path('api/v2/notifications/',  include(('apps.notifications.urls', 'notifications'),     namespace='notifications_v2')),
     path('api/v2/admin/',          include(('apps.notifications.admin_notifications', 'admin_notifications'),

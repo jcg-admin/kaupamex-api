@@ -66,10 +66,29 @@ class OrderValueSerializer(serializers.ModelSerializer):
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
+    # H-13: el detalle del pedido no mostraba imágenes porque el serializer no
+    # exponía ningún campo de imagen; el UI leía item.image_url (siempre
+    # undefined). Se resuelve la portada del producto original (best-effort):
+    # OrderItem.product es FK nullable (SET_NULL si el producto se eliminó), así
+    # que puede ser null — en ese caso el UI cae al placeholder. Mismo patrón
+    # que CartItemSerializer.get_image_url.
+    image_url = serializers.SerializerMethodField()
+
     class Meta:
         model  = OrderItem
         fields = ['id','product_name','variant_label','sku',
-                  'unit_price','quantity','subtotal']
+                  'unit_price','quantity','subtotal','image_url']
+
+    @extend_schema_field(OpenApiTypes.URI)
+    def get_image_url(self, obj) -> str | None:
+        if not obj.product_id:
+            return None
+        cover = (obj.product.images.filter(is_cover=True).first()
+                 or obj.product.images.first())
+        if not (cover and cover.image):
+            return None
+        request = self.context.get('request')
+        return request.build_absolute_uri(cover.image.url) if request else cover.image.url
 
 
 class OrderStatusLogSerializer(serializers.ModelSerializer):

@@ -27,6 +27,8 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from apps.notifications.service import notify_support_created
+from apps.orders.models import Order
 from .models import SupportTicket, SupportTicketReply
 from .serializers import AdminSupportTicketListSerializer, SupportTicketCloseSerializer, SupportTicketCreateResponseSerializer, SupportTicketCreateSerializer, SupportTicketDetailSerializer, SupportTicketListSerializer, SupportTicketReplyCreateSerializer, SupportTicketReplySerializer
 
@@ -130,6 +132,25 @@ class SupportTicketListCreateView(APIView):
         serializer.is_valid(raise_exception=True)
         payload = serializer.validated_data
 
+        # H-18: la UI solo conoce order_number (el PK no se expone en la lista de
+        # ordenes). Se resuelve aqui al order_id del comprador, con el mismo
+        # aislamiento y clave de error escalar que el resto de la vista
+        # (RNF-SEC-003: mismo error si no existe o es ajena).
+        order_number = (payload.pop('order_number', None) or '').strip()
+        if order_number and not payload.get('order_id'):
+            order = Order.objects.filter(
+                order_number=order_number, user=request.user,
+            ).only('pk').first()
+            if order is None:
+                return Response(
+                    {
+                        'codigo_error': 'ORDER_NOT_FOUND',
+                        'detail':     'La orden no existe o no pertenece al comprador.',
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            payload['order_id'] = order.pk
+
         category = payload.get('category', SupportTicket.Category.GENERAL)
         priority = payload.get('priority', SupportTicket.Priority.NORMAL)
         if category in HIGH_PRIORITY_CATEGORIES:
@@ -158,14 +179,19 @@ class SupportTicketListCreateView(APIView):
                 status=status.HTTP_409_CONFLICT,
             )
 
-        ticket = SupportTicket.objects.create(
-            user=request.user,
-            subject=payload['subject'],
-            body=payload['body'],
-            category=category,
-            priority=priority,
-            order_id=payload.get('order_id'),
-        )
+        with transaction.atomic():
+            ticket = SupportTicket.objects.create(
+                user=request.user,
+                subject=payload['subject'],
+                body=payload['body'],
+                category=category,
+                priority=priority,
+                order_id=payload.get('order_id'),
+            )
+            # H-18: confirmar al comprador (in-app + email on_commit). Antes la
+            # creacion no notificaba nada, contra UC-SUPP-01 POST-02/7.2.
+            notify_support_created(ticket, request.user)
+
         return Response(
             SupportTicketCreateResponseSerializer(ticket).data,
             status=status.HTTP_201_CREATED,

@@ -453,3 +453,30 @@ class BusinessEvent(TimeStampedModel):
     def __str__(self):
         a = self.actor.username if self.actor_id else "system"
         return f"BusinessEvent[{a}] {self.action} {self.target_type}#{self.target_id}"
+
+
+class UserSession(models.Model):
+    """UC-AUTH-17 (H-16): registro de sesiones activas del comprador.
+
+    El SPA usa sesion de servidor (cookie ``sessionid``, ``django_session``);
+    Django no guarda IP ni dispositivo por sesion. Este modelo augmenta cada
+    sesion con esa metadata (poblado tras ``django_login``) para poder
+    listarlas y cerrarlas por dispositivo. ``session_key`` enlaza con la fila
+    de ``django_session``; al revocar se borra esa fila (invalida la sesion).
+    """
+    user          = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="active_sessions",
+    )
+    session_key   = models.CharField(max_length=40, unique=True, db_index=True)
+    ip_address    = models.GenericIPAddressField(null=True, blank=True)
+    user_agent    = models.CharField(max_length=400, blank=True, default="")
+    created_at    = models.DateTimeField(auto_now_add=True)
+    last_activity = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "users_user_session"
+        ordering = ["-last_activity"]
+        indexes = [models.Index(fields=["user", "-last_activity"])]
+
+    def __str__(self):
+        return f"UserSession[{self.user.username}] {self.session_key[:8]}…"

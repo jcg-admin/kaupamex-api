@@ -17,6 +17,7 @@ from .views import (
     PasswordResetConfirmV2View,
     PasswordResetV2View,
 )
+from .session_views import SessionListView, SessionRevokeView
 
 app_name = 'auth'
 
@@ -36,4 +37,11 @@ urlpatterns = [
     path('sessions/',
          DeleteSessionsV2View.as_view(),
          name='sessions-delete'),
+    # UC-AUTH-17 (H-16): listar sesiones activas + cerrar una específica.
+    path('sessions/active/',
+         SessionListView.as_view(),
+         name='sessions-list'),
+    path('sessions/<int:pk>/revoke/',
+         SessionRevokeView.as_view(),
+         name='sessions-revoke'),
 ]

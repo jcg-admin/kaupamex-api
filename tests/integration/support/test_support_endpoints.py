@@ -54,6 +54,42 @@ class TestCreateTicket:
         assert 'ticket_id' in body
         assert 'created_at' in body
 
+    def test_create_ticket_with_order_number_resolves(self, auth_client, user, db):
+        # H-18: la UI solo conoce order_number (el PK no se expone). El
+        # serializer debe resolverlo al order_id del comprador.
+        order = Order.objects.create(
+            user=user, order_number='PY-SUP00001', status='DELIVERED',
+        )
+        res = auth_client.post(TICKETS_URL, {
+            'subject': 'Problema con mi pedido',
+            'body': 'El producto llegó incompleto, falta una pieza.',
+            'category': 'ORDER',
+            'order_number': 'PY-SUP00001',
+        }, format='json')
+        assert res.status_code == 201, res.content
+        assert res.json()['order_id'] == order.pk
+
+    def test_create_ticket_unknown_order_number_returns_400(self, auth_client, user, db):
+        res = auth_client.post(TICKETS_URL, {
+            'subject': 'Problema con mi pedido',
+            'body': 'El producto llegó incompleto, falta una pieza.',
+            'category': 'ORDER',
+            'order_number': 'PY-NOEXISTE9',
+        }, format='json')
+        assert res.status_code == 400
+        assert res.json().get('codigo_error') == 'ORDER_NOT_FOUND'
+
+    def test_create_ticket_notifies_buyer(self, auth_client, user, db):
+        # H-18: crear un ticket ahora avisa al comprador (in-app + email).
+        res = auth_client.post(TICKETS_URL, {
+            'subject': 'Consulta general de prueba',
+            'body': 'Quisiera saber más sobre los envíos a mi zona.',
+        }, format='json')
+        assert res.status_code == 201
+        assert Notification.objects.filter(
+            user=user, type=NotificationType.SUPPORT_UPDATE,
+        ).exists()
+
     def test_subject_too_short_returns_400(self, auth_client, db):
         res = auth_client.post(TICKETS_URL, {
             'subject': 'abc',

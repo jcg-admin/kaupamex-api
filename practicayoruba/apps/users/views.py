@@ -21,6 +21,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
+
+from .session_tracking import record_user_session
 from .audit import audit_log_auth
 from rest_framework.viewsets import ModelViewSet
 from drf_spectacular.types import OpenApiTypes as OAT
@@ -548,6 +550,8 @@ class EmailVerifyView(APIView):
             request, user,
             backend='django.contrib.auth.backends.ModelBackend',
         )
+        # UC-AUTH-17 (H-16): registra la sesion (IP/dispositivo).
+        record_user_session(request, user)
         return Response({
             'message': 'Cuenta activada exitosamente.',
             'isAuthenticated': True,

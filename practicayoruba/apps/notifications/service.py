@@ -20,6 +20,7 @@ from .emails import (
     send_return_processed_email,
     send_refund_email,
     send_support_closed_email,
+    send_support_created_email,
 )
 
 
@@ -251,5 +252,40 @@ def notify_support_closed(ticket, user, closed_by_staff=False):
         transaction.on_commit(
             lambda: send_support_closed_email(
                 user_email, name, ticket_id, ticket_subj, by_staff,
+            )
+        )
+
+
+def notify_support_created(ticket, user):
+    """
+    UC-SUPP-01 (POST-02/7.2): confirmacion de creacion de ticket de soporte.
+    Llamar dentro de transaction.atomic() tras crear el ticket. Crea la
+    Notification in-app y despacha el email de confirmacion al comprador
+    (via on_commit; solo se envia si la transaccion commitea).
+
+    H-18: antes la creacion de un ticket no notificaba nada; el UC exige el
+    aviso al comprador (y al equipo). Aqui se cubre el aviso al comprador.
+    """
+    if not user or not getattr(user, 'pk', None):
+        return
+
+    Notification.objects.create(
+        user=user,
+        type=NotificationType.SUPPORT_UPDATE,
+        subject=f'Ticket #{ticket.pk} creado',
+        body=(
+            f'Recibimos tu ticket #{ticket.pk} "{ticket.subject}". '
+            f'Nuestro equipo te respondera a la brevedad.'
+        ),
+    )
+
+    if user.email:
+        user_email   = user.email
+        name         = user.first_name or user.username
+        ticket_id    = ticket.pk
+        ticket_subj  = ticket.subject
+        transaction.on_commit(
+            lambda: send_support_created_email(
+                user_email, name, ticket_id, ticket_subj,
             )
         )
