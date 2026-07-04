@@ -155,12 +155,23 @@ class CheckoutView(APIView):
                 {'shipping_method_id':
                  'El método de envío no existe o está inactivo.',
                  'codigo_error': 'SHIPPING_METHOD_UNAVAILABLE'})
-        # free_threshold: si el subtotal alcanza el umbral, el envío es gratis.
+        # G-ENV-01: costo y umbral de envío GRATIS derivados de la ZONA del C.P.
+        # cuando la zona los define, con fallback al método. Permite el modelo
+        # tipo competidor (CDMX/Edomex gratis desde $800; nacional desde $1,300)
+        # sin depender de un único umbral global.
+        zip_code = (data.get('address') or {}).get('zip_code', '')
+        zone = ShippingZone.resolve_for_zip(zip_code)
+        effective_cost = (
+            zone.cost if (zone and zone.cost is not None)
+            else shipping_method.cost)
+        effective_free_threshold = (
+            zone.free_threshold if (zone and zone.free_threshold is not None)
+            else shipping_method.free_threshold)
         shipping_cost = Decimal('0.00')
         subtotal_for_shipping = cart.get_subtotal() - cart.get_discount()
-        if (shipping_method.free_threshold is None or
-                subtotal_for_shipping < shipping_method.free_threshold):
-            shipping_cost = shipping_method.cost
+        if (effective_free_threshold is None or
+                subtotal_for_shipping < effective_free_threshold):
+            shipping_cost = effective_cost
 
         try:
             with transaction.atomic():

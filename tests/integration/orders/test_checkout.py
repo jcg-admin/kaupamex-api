@@ -391,6 +391,55 @@ class TestShippingMethodProtection:
         assert res.json()['codigo_error'] == 'METHOD_WITH_ACTIVE_ORDERS'
 
 
+class TestZoneFreeShipping:
+    """G-ENV-01: el umbral y el costo de envío gratis se derivan de la ZONA del
+    C.P. cuando la zona los define, con fallback al método de envío. Modelo tipo
+    competidor: CDMX/Edomex gratis desde $800; nacional desde $1,300."""
+
+    def _set_zone(self, **defaults):
+        # C.P. de ADDR = '06600' → prefijo '06'. update_or_create respeta el
+        # invariante UNA zona por prefijo (unique) y sobreescribe la sembrada.
+        ShippingZone.objects.update_or_create(
+            zip_code_prefix='06',
+            defaults={'name': 'Zona test', 'is_active': True, **defaults})
+
+    def test_zona_umbral_gratis_aplica(self, cart_con_item_auth, shipping, db):
+        # subtotal = 1000 (2×500). Zona con umbral 800 → envío GRATIS aunque el
+        # método no tenga umbral (free_threshold None → normalmente cobraría).
+        self._set_zone(free_threshold=Decimal('800.00'), cost=Decimal('50.00'))
+        res = cart_con_item_auth.post(CHECKOUT_URL, {
+            'address': ADDR, 'shipping_method_id': shipping.pk}, format='json')
+        assert res.status_code == 201
+        assert Decimal(res.json()['value']['shipping_cost']) == Decimal('0.00')
+
+    def test_zona_bajo_umbral_cobra_costo_de_zona(self, cart_con_item_auth, shipping, db):
+        # subtotal 1000 < umbral 1300 → cobra, y usa el costo de la ZONA (50),
+        # no el del método (80).
+        self._set_zone(free_threshold=Decimal('1300.00'), cost=Decimal('50.00'))
+        res = cart_con_item_auth.post(CHECKOUT_URL, {
+            'address': ADDR, 'shipping_method_id': shipping.pk}, format='json')
+        assert res.status_code == 201
+        assert Decimal(res.json()['value']['shipping_cost']) == Decimal('50.00')
+
+    def test_sin_umbral_ni_costo_de_zona_cae_al_metodo(self, cart_con_item_auth, shipping, db):
+        # Zona sin umbral ni costo → fallback al método: free_threshold None →
+        # cobra el costo del método (80).
+        self._set_zone(free_threshold=None, cost=None)
+        res = cart_con_item_auth.post(CHECKOUT_URL, {
+            'address': ADDR, 'shipping_method_id': shipping.pk}, format='json')
+        assert res.status_code == 201
+        assert Decimal(res.json()['value']['shipping_cost']) == Decimal('80.00')
+
+    def test_resolve_for_zip_prefijo_mas_largo_gana(self, db):
+        ShippingZone.objects.update_or_create(
+            zip_code_prefix='06', defaults={'name': 'CDMX', 'is_active': True})
+        ShippingZone.objects.update_or_create(
+            zip_code_prefix='066', defaults={'name': 'Cuauhtémoc', 'is_active': True})
+        assert ShippingZone.resolve_for_zip('06600').zip_code_prefix == '066'
+        assert ShippingZone.resolve_for_zip('99000') is None
+        assert ShippingZone.resolve_for_zip('') is None
+
+
 # =============================================================================
 # P-22 — UC-ORD-01 RNF-PERF: checkout P95 800ms SLO
 # =============================================================================
