@@ -2,7 +2,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
-    PaymentGatewayViewSet, ShippingMethodViewSet,
+    PaymentGatewayViewSet, ShippingMethodViewSet, ShippingZoneViewSet,
     StaticPageAdminListView, StaticPageAdminDetailView,
     AdminSiteSettingsView,
     StaticPagePublishView, StaticPageRestoreView,
@@ -14,6 +14,7 @@ app_name = 'admin_settings_v2'
 router = DefaultRouter()
 router.register(r'gateways',         PaymentGatewayViewSet,  basename='admin-gateway')
 router.register(r'shipping-methods', ShippingMethodViewSet,  basename='admin-shipping')
+router.register(r'shipping-zones',   ShippingZoneViewSet,    basename='admin-shipping-zone')
 
 urlpatterns = [
     path('', include(router.urls)),

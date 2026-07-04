@@ -186,6 +186,32 @@ class ShipmentGuideListCreateView(_AdminOnly, APIView):
         return Response(ShipmentGuideSerializer(guide).data, status=201)
 
 
+class AdminOrderGuideView(_AdminOnly, APIView):
+    """GET la guía de envío de una orden por order_number (admin).
+
+    La UI admin conoce el order_number, no el pk de la guía; este endpoint le
+    permite cargar la guía existente (con su id) para luego actualizar estado
+    o rastreo vía ShipmentGuideDetailView. 404 si la orden no tiene guía.
+    """
+
+    @extend_schema(summary='Guía de envío de una orden (admin)', tags=['logistics'],
+                   responses={200: ShipmentGuideSerializer,
+                              404: error_response('Orden o guía no encontrada')})
+    def get(self, request, order_number):
+        guide = (
+            ShipmentGuide.objects
+            .select_related('order', 'courier')
+            .filter(order__order_number=order_number, is_deleted=False)
+            .first()
+        )
+        if not guide:
+            return Response(
+                {'detail': 'La orden no tiene guía de envío.', 'codigo_error': 'SHIPMENT_GUIDE_NOT_FOUND'},
+                status=404,
+            )
+        return Response(ShipmentGuideSerializer(guide).data)
+
+
 class ShipmentGuideDetailView(_AdminOnly, APIView):
     VALID_STATUSES = {s[0] for s in ShipmentGuide.STATUSES}
 
@@ -400,18 +426,34 @@ class CancelGuideView(_AdminOnly, APIView):
 class BuyerGuideView(APIView):
     permission_classes = [IsAuthenticated]
 
-    @extend_schema(summary='Guía de envío del comprador (UC-LOG-06)', tags=['logistics'],
-                   responses={200: BuyerShipmentGuideSerializer,
-                              404: error_response('Orden o guía no encontrada')})
-    def get(self, request, order_id):
+    def _guide_response(self, request, order_lookup):
+        """order_lookup: dict con pk o order_number, siempre scoped al usuario."""
         try:
-            order = Order.objects.get(pk=order_id, user=request.user)
+            order = Order.objects.get(user=request.user, **order_lookup)
         except Order.DoesNotExist:
             return Response({'detail': 'Orden no encontrada.', 'codigo_error': 'ORDER_NOT_FOUND'}, status=404)
         guide = ShipmentGuide.objects.filter(order=order, is_deleted=False).select_related('courier').first()
         if not guide:
             return Response({'detail': 'Guía de envío no disponible.', 'codigo_error': 'SHIPMENT_GUIDE_NOT_FOUND'}, status=404)
         return Response(BuyerShipmentGuideSerializer(guide, context={'request': request}).data)
+
+    @extend_schema(summary='Guía de envío del comprador (UC-LOG-06)', tags=['logistics'],
+                   responses={200: BuyerShipmentGuideSerializer,
+                              404: error_response('Orden o guía no encontrada')})
+    def get(self, request, order_id):
+        return self._guide_response(request, {'pk': order_id})
+
+
+class BuyerGuideByNumberView(BuyerGuideView):
+    """UC-LOG-06 por order_number: la UI del comprador conoce el order_number
+    (no el PK entero, oculto por diseño), así que expone la misma guía por su
+    identificador público."""
+
+    @extend_schema(summary='Guía de envío del comprador por order_number', tags=['logistics'],
+                   responses={200: BuyerShipmentGuideSerializer,
+                              404: error_response('Orden o guía no encontrada')})
+    def get(self, request, order_number):
+        return self._guide_response(request, {'order_number': order_number})
 
 
 class BuyerReportIncidentView(APIView):
@@ -447,9 +489,12 @@ class BuyerReportIncidentView(APIView):
                    400: error_response('Payload inválido'),
                    404: error_response('Orden o guía no encontrada'),
                    409: error_response('Envío no despachado o reporte reciente existente')})
-    def post(self, request, order_id):
+    def post(self, request, order_id=None, order_number=None):
+        # La UI del comprador usa order_number (el PK entero se oculta); se
+        # acepta cualquiera de los dos, siempre scoped al usuario.
+        lookup = {'pk': order_id} if order_id is not None else {'order_number': order_number}
         try:
-            order = Order.objects.get(pk=order_id, user=request.user)
+            order = Order.objects.get(user=request.user, **lookup)
         except Order.DoesNotExist:
             return Response({'detail': 'Orden no encontrada.', 'codigo_error': 'ORDER_NOT_FOUND'}, status=404)
 

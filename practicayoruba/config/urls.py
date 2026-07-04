@@ -5,16 +5,22 @@ from django.contrib import admin
 from django.http import FileResponse, Http404
 from django.urls import path, include, re_path
 
-from apps.settings_app.views import ShippingMethodListPublicView
+from apps.settings_app.views import ShippingMethodListPublicView, ShippingZoneListPublicView
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularSwaggerView,
     SpectacularRedocView,
 )
 
-urlpatterns = [
-    path('admin/', admin.site.urls),
+# Seguridad (H-11): el admin nativo de Django se monta SOLO cuando
+# DJANGO_ADMIN_ENABLED (default = DEBUG). En produccion queda apagado para no
+# exponer /admin/ como login de fuerza bruta; el backoffice real es el admin
+# React + DRF /api/v2/admin/. Ver reportes-agentes-admin (H-11).
+_admin_urls = (
+    [path('admin/', admin.site.urls)] if settings.DJANGO_ADMIN_ENABLED else []
+)
 
+urlpatterns = _admin_urls + [
     # --- OpenAPI Schema (JSON/YAML) ---
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
 
@@ -80,6 +86,8 @@ urlpatterns = [
     path('api/v2/checkout/', include(('apps.payments.checkout_urls', 'checkout'), namespace='checkout_v2')),
     # GAP-C1: public shipping methods for checkout (unauthenticated)
     path('api/v2/shipping-methods/', ShippingMethodListPublicView.as_view(), name='public-shipping-methods'),
+    # H-12: public shipping zones + delivery-time catalog (unauthenticated)
+    path('api/v2/shipping-zones/', ShippingZoneListPublicView.as_view(), name='public-shipping-zones'),
 
     # ─── API v2 (§4 same-path passthrough: remaining apps not yet in v2) ────
     # These keep the same URL structure — only prefix changes from v1 to v2.

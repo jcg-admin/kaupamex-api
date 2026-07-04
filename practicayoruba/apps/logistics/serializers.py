@@ -47,8 +47,17 @@ class ShipmentGuideSerializer(serializers.ModelSerializer):
 
 
 class ShipmentGuideCreateSerializer(serializers.ModelSerializer):
-    order_id   = serializers.PrimaryKeyRelatedField(
+    # La orden se puede identificar por su PK (order_id) o por su identificador
+    # público order_number. El resto del admin usa order_number (el PK entero se
+    # oculta a propósito, H-CICLO79-03), así que la UI envía order_number; se
+    # mantiene order_id por compatibilidad. Ambos mapean a source='order'.
+    order_id     = serializers.PrimaryKeyRelatedField(
         queryset=Order.objects.all(), source='order', write_only=True,
+        required=False,
+    )
+    order_number = serializers.SlugRelatedField(
+        slug_field='order_number', queryset=Order.objects.all(),
+        source='order', write_only=True, required=False,
     )
     courier_id = serializers.PrimaryKeyRelatedField(
         queryset=Courier.objects.filter(is_active=True),
@@ -60,7 +69,7 @@ class ShipmentGuideCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model  = ShipmentGuide
-        fields = ['order_id', 'courier_id', 'tracking_number', 'notes']
+        fields = ['order_id', 'order_number', 'courier_id', 'tracking_number', 'notes']
 
     def validate_tracking_number(self, value):
         value = (value or '').strip()
@@ -77,7 +86,12 @@ class ShipmentGuideCreateSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, attrs):
-        order = attrs['order']
+        order = attrs.get('order')
+        if order is None:
+            raise serializers.ValidationError({
+                'detail': 'Debe indicar order_id u order_number.',
+                'codigo_error': 'ORDER_REQUIRED',
+            })
         # H-CICLO23-01: verificar que la orden está en estado IN_PREPARATION
         # antes de crear guía. Crear una guía para una orden PENDING/PROCESSING
         # o ya DELIVERED/CANCELLED es un error de negocio silencioso que deja

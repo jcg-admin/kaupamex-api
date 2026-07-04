@@ -148,6 +148,43 @@ class TestCreateShipmentGuide:
         assert data['tracking_number'] == 'TRK-NEW-001'
         assert data['status'] == 'CREATED'
 
+    def test_admin_crea_guia_por_order_number(self, admin_client, order_log, courier_log, db):
+        # La UI del admin usa order_number (el PK entero se oculta,
+        # H-CICLO79-03), así que el serializer debe aceptar order_number.
+        payload = {
+            'order_number': order_log.order_number,
+            'courier_id': courier_log.id,
+            'tracking_number': 'TRK-BYNUM-001',
+        }
+        r = admin_client.post(GUIDES_URL, payload, format='json')
+        assert r.status_code == 201
+        assert r.json()['tracking_number'] == 'TRK-BYNUM-001'
+
+    def test_admin_obtiene_guia_por_order_number(self, admin_client, order_log, courier_log, db):
+        ShipmentGuide.objects.create(
+            order=order_log, courier=courier_log, tracking_number='ADM-GET-1',
+        )
+        r = admin_client.get(
+            f'/api/v2/logistics/admin/orders/{order_log.order_number}/guide/'
+        )
+        assert r.status_code == 200
+        assert r.json()['tracking_number'] == 'ADM-GET-1'
+
+    def test_admin_orden_sin_guia_404(self, admin_client, order_log, db):
+        r = admin_client.get(
+            f'/api/v2/logistics/admin/orders/{order_log.order_number}/guide/'
+        )
+        assert r.status_code == 404
+        assert r.json()['codigo_error'] == 'SHIPMENT_GUIDE_NOT_FOUND'
+
+    def test_crea_guia_sin_orden_emite_order_required(self, admin_client, courier_log, db):
+        r = admin_client.post(GUIDES_URL, {
+            'courier_id': courier_log.id,
+            'tracking_number': 'TRK-NOORDER',
+        }, format='json')
+        assert r.status_code == 400
+        assert 'ORDER_REQUIRED' in str(r.json())
+
     def test_tracking_duplicado_emite_codigo_error_loud(
         self, admin_client, order_log, courier_log, db
     ):
@@ -429,6 +466,24 @@ class TestBuyerReportIncident:
         assert g.status == ShipmentGuide.STATUS_INCIDENT
         assert g.events.filter(status=ShipmentGuide.STATUS_INCIDENT).exists()
 
+    def test_comprador_reporta_problema_por_order_number(
+        self, auth_client, order_log, courier_log, db,
+    ):
+        # La UI usa order_number (no conoce el PK).
+        ShipmentGuide.objects.create(
+            order=order_log, courier=courier_log, tracking_number='INC-NUM-1',
+            status=ShipmentGuide.STATUS_IN_TRANSIT,
+        )
+        r = auth_client.post(
+            f'/api/v2/logistics/buyer/orders/{order_log.order_number}/incident/',
+            {
+                'problem_type': 'DAMAGED_PRODUCT',
+                'description': 'El paquete llegó con el producto roto por dentro.',
+            }, format='json',
+        )
+        assert r.status_code == 201
+        assert r.json()['problem_type'] == 'DAMAGED_PRODUCT'
+
     def test_no_dueno_recibe_404(
         self, admin_client, order_log, courier_log, db,
     ):
@@ -532,6 +587,19 @@ class TestBuyerGuide:
         data = r.json()
         assert data['tracking_number'] == 'BYR-001'
         assert 'courier_name' in data
+
+    def test_comprador_ve_su_guia_por_order_number(
+        self, auth_client, order_log, courier_log, db,
+    ):
+        # La UI del comprador consulta por order_number (no conoce el PK).
+        ShipmentGuide.objects.create(
+            order=order_log, courier=courier_log, tracking_number='BYR-NUM-001',
+        )
+        r = auth_client.get(
+            f'/api/v2/logistics/buyer/orders/{order_log.order_number}/guide/'
+        )
+        assert r.status_code == 200
+        assert r.json()['tracking_number'] == 'BYR-NUM-001'
 
     def test_comprador_no_ve_orden_ajena(self, admin_client, order_log, courier_log, db):
         ShipmentGuide.objects.create(

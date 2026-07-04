@@ -7,6 +7,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=False, cast=bool)
+
+# Seguridad (H-11): el admin nativo de Django se monta SOLO si esta bandera
+# esta activa. Default = DEBUG -> en produccion (DEBUG=False) queda APAGADO y
+# no expone un login de fuerza bruta en /admin/. El backoffice del producto es
+# el admin React + DRF (/api/v2/admin/), no el admin de Django.
+DJANGO_ADMIN_ENABLED = config('DJANGO_ADMIN_ENABLED', default=DEBUG, cast=bool)
+
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
 
 INSTALLED_APPS = [
