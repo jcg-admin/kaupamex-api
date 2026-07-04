@@ -218,6 +218,7 @@ class ShippingZoneSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'zip_code_prefix', 'is_active',
             'estimated_days_min', 'estimated_days_max', 'cost',
+            'free_threshold',
         ]
         read_only_fields = ['id']
 
@@ -242,5 +243,6 @@ class PublicShippingZoneSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'zip_code_prefix',
             'estimated_days_min', 'estimated_days_max', 'cost',
+            'free_threshold',
         ]
         read_only_fields = fields

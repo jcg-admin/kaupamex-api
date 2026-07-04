@@ -12,6 +12,7 @@ from unittest.mock import patch, MagicMock
 from apps.catalogue.models import Category, Product
 from apps.inventory.services import InventoryService
 from apps.orders.models import ShippingZone
+from apps.settings_app.models import ShippingMethod
 from apps.orders.signals import order_created
 
 pytestmark = pytest.mark.integration
@@ -64,13 +65,19 @@ class TestOrderCreatedSignal:
         """
         handler = MagicMock()
         order_created.connect(handler)
+        # DEC-BC-25: el checkout exige un método de envío activo.
+        ship = ShippingMethod.objects.create(
+            name='Estándar', cost=Decimal('0.00'), estimated_days=5, is_active=True)
 
         try:
             auth_client.post(ITEMS_URL, {'product_id': prod_sig.pk, 'quantity': 1}, format='json')
 
             with patch.object(InventoryService, 'check_availability', return_value=[]), \
                  patch.object(InventoryService, 'decrement', return_value=None):
-                res = auth_client.post(CHECKOUT_URL, {'address': ADDR}, format='json')
+                res = auth_client.post(
+                    CHECKOUT_URL,
+                    {'address': ADDR, 'shipping_method_id': ship.pk},
+                    format='json')
 
             assert res.status_code == 201, f'Checkout fallo: {res.data}'
 
