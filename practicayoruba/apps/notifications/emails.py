@@ -7,10 +7,25 @@ para cumplir POST-F01 (fallo siempre registrado, nunca silenciado).
 """
 import logging
 from django.conf import settings
+from django.template.loader import render_to_string
 
 from apps.core.email_executor import dispatch_email
 
 logger = logging.getLogger(__name__)
+
+
+def _render_transactional(heading, paragraphs, button_label=None,
+                          button_url=None, preheader=None):
+    """T-K: renderiza el correo transaccional HTML (emails/transactional.html,
+    que extiende base.html) para tener un diseño nativo consistente con los
+    correos de auth (reset/verify). Devuelve el HTML listo para html_message."""
+    return render_to_string('emails/transactional.html', {
+        'heading':      heading,
+        'paragraphs':   paragraphs,
+        'button_label': button_label,
+        'button_url':   button_url,
+        'preheader':    preheader or heading,
+    })
 
 
 def _from_email():
@@ -22,22 +37,36 @@ def _frontend_url():
 
 
 def send_order_confirmation_email(user_email, user_name, order_number, order_total):
-    """UC-NOT-01: confirmacion de orden creada."""
+    """UC-NOT-01: confirmacion de orden creada (HTML nativo, T-K)."""
     subject = f'Orden confirmada #{order_number} — PracticaYoruba'
+    order_url = f'{_frontend_url()}/account/orders/{order_number}'
     message = (
         f'Hola {user_name},\n\n'
         f'Recibimos tu orden #{order_number}. '
         f'El total de tu compra es ${order_total}.\n\n'
         f'Puedes ver el estado en:\n'
-        f'{_frontend_url()}/account/orders/{order_number}\n\n'
+        f'{order_url}\n\n'
         f'Te notificaremos cuando tu pedido sea procesado.\n\n'
         f'— Equipo PracticaYoruba'
+    )
+    html_body = _render_transactional(
+        heading=f'Orden confirmada #{order_number}',
+        paragraphs=[
+            f'Hola {user_name},',
+            f'Recibimos tu orden #{order_number}. El total de tu compra es '
+            f'${order_total}.',
+            'Te notificaremos cuando tu pedido sea procesado.',
+        ],
+        button_label='Ver mi pedido',
+        button_url=order_url,
+        preheader=f'Recibimos tu orden #{order_number}.',
     )
     dispatch_email(
         subject=subject,
         message=message,
         from_email=_from_email(),
         recipient_list=[user_email],
+        html_message=html_body,
     )
 
 
@@ -163,21 +192,34 @@ def send_support_closed_email(user_email, user_name, ticket_id, ticket_subject, 
 
 
 def send_support_created_email(user_email, user_name, ticket_id, ticket_subject):
-    """UC-SUPP-01 (POST-02/7.2): confirmacion de creacion de ticket al comprador."""
+    """UC-SUPP-01 (POST-02/7.2): confirmacion de creacion de ticket (HTML nativo, T-K)."""
     subject = f'Ticket de soporte #{ticket_id} creado — PracticaYoruba'
+    ticket_url = f'{_frontend_url()}/support/tickets/{ticket_id}'
     message = (
         f'Hola {user_name},\n\n'
         f'Recibimos tu ticket #{ticket_id} "{ticket_subject}". Nuestro equipo '
         f'de soporte lo revisara y te respondera a la brevedad.\n\n'
         f'Puedes seguir la conversacion en:\n'
-        f'{_frontend_url()}/support/tickets/{ticket_id}\n\n'
+        f'{ticket_url}\n\n'
         f'— Equipo PracticaYoruba'
+    )
+    html_body = _render_transactional(
+        heading=f'Ticket #{ticket_id} creado',
+        paragraphs=[
+            f'Hola {user_name},',
+            f'Recibimos tu ticket #{ticket_id} "{ticket_subject}". Nuestro '
+            f'equipo de soporte lo revisará y te responderá a la brevedad.',
+        ],
+        button_label='Ver mi ticket',
+        button_url=ticket_url,
+        preheader=f'Recibimos tu ticket #{ticket_id}.',
     )
     dispatch_email(
         subject=subject,
         message=message,
         from_email=_from_email(),
         recipient_list=[user_email],
+        html_message=html_body,
     )
 
 
