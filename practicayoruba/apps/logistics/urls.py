@@ -9,6 +9,7 @@ Mounted in config/urls.py:
 from django.urls import path
 
 from .views import (
+    AdminOrderGuideView,
     BuyerGuideView,
     BuyerGuideByNumberView,
     BuyerOrderShipmentV2View,
@@ -66,6 +67,9 @@ urlpatterns = [
     path('logistics/guides/<int:pk>/',
          ShipmentGuideDetailView.as_view(),
          name='guide-detail'),
+    path('logistics/admin/orders/<str:order_number>/guide/',
+         AdminOrderGuideView.as_view(),
+         name='admin-order-guide'),
     path('logistics/guides/<int:pk>/cancel/',
          CancelGuideView.as_view(),
          name='guide-cancel'),

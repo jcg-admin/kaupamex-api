@@ -160,6 +160,23 @@ class TestCreateShipmentGuide:
         assert r.status_code == 201
         assert r.json()['tracking_number'] == 'TRK-BYNUM-001'
 
+    def test_admin_obtiene_guia_por_order_number(self, admin_client, order_log, courier_log, db):
+        ShipmentGuide.objects.create(
+            order=order_log, courier=courier_log, tracking_number='ADM-GET-1',
+        )
+        r = admin_client.get(
+            f'/api/v2/logistics/admin/orders/{order_log.order_number}/guide/'
+        )
+        assert r.status_code == 200
+        assert r.json()['tracking_number'] == 'ADM-GET-1'
+
+    def test_admin_orden_sin_guia_404(self, admin_client, order_log, db):
+        r = admin_client.get(
+            f'/api/v2/logistics/admin/orders/{order_log.order_number}/guide/'
+        )
+        assert r.status_code == 404
+        assert r.json()['codigo_error'] == 'SHIPMENT_GUIDE_NOT_FOUND'
+
     def test_crea_guia_sin_orden_emite_order_required(self, admin_client, courier_log, db):
         r = admin_client.post(GUIDES_URL, {
             'courier_id': courier_log.id,

@@ -186,6 +186,32 @@ class ShipmentGuideListCreateView(_AdminOnly, APIView):
         return Response(ShipmentGuideSerializer(guide).data, status=201)
 
 
+class AdminOrderGuideView(_AdminOnly, APIView):
+    """GET la guía de envío de una orden por order_number (admin).
+
+    La UI admin conoce el order_number, no el pk de la guía; este endpoint le
+    permite cargar la guía existente (con su id) para luego actualizar estado
+    o rastreo vía ShipmentGuideDetailView. 404 si la orden no tiene guía.
+    """
+
+    @extend_schema(summary='Guía de envío de una orden (admin)', tags=['logistics'],
+                   responses={200: ShipmentGuideSerializer,
+                              404: error_response('Orden o guía no encontrada')})
+    def get(self, request, order_number):
+        guide = (
+            ShipmentGuide.objects
+            .select_related('order', 'courier')
+            .filter(order__order_number=order_number, is_deleted=False)
+            .first()
+        )
+        if not guide:
+            return Response(
+                {'detail': 'La orden no tiene guía de envío.', 'codigo_error': 'SHIPMENT_GUIDE_NOT_FOUND'},
+                status=404,
+            )
+        return Response(ShipmentGuideSerializer(guide).data)
+
+
 class ShipmentGuideDetailView(_AdminOnly, APIView):
     VALID_STATUSES = {s[0] for s in ShipmentGuide.STATUSES}
 
