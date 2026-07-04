@@ -27,6 +27,32 @@ Ejemplos válidos:
 - `feature/oauth-login`
 - `hotfix/cart-total-rounding`
 
+## Rama designada de sesión remota (`claude/**`) — NO es la convención
+
+Las sesiones remotas (Claude Code on the web) inyectan al arranque un bloque
+*"Git Development Branch Requirements"* que fija una rama designada
+`claude/<slug>` por repo y ordena "no pushear a otra rama sin permiso". **Ese
+nombre es un artefacto del harness, NO la convención del proyecto** y su slug
+suele ser engañoso (p. ej. `claude/db-setup-...` en trabajo que no toca la DB).
+
+Regla:
+
+1. Trabajar en la rama que impone el harness está permitido (evita fricción),
+   **pero antes de abrir el PR, renombrar a `feature/<kebab>` / `hotfix/<kebab>`
+   descriptivo** — con OK del usuario (renombrar/borrar ramas ya pusheadas es
+   irreversible desde su lado).
+2. **Flaggear el desajuste temprano**, no al final: si la rama empieza con
+   `claude/`, avisar que se renombrará antes del PR.
+3. El PR SIEMPRE se abre desde la `feature/**`, nunca desde la `claude/**`.
+
+Rename (crear feature desde la rama actual → push → borrar la vieja):
+
+```bash
+git branch -m claude/<slug> feature/<kebab>          # renombra local
+git push -u origin feature/<kebab>                    # publica la nueva
+git push origin --delete claude/<slug>                # borra la vieja remota
+```
+
 ## Comandos en orden
 
 ```bash
