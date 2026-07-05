@@ -11,6 +11,7 @@ from datetime import timedelta
 from django.db import transaction
 from django.utils import timezone
 
+from apps.inventory.services import InventoryService
 from .models import Order, OrderStatusLog
 
 logger = logging.getLogger('apps')
@@ -52,6 +53,29 @@ def cancel_timeout_orders():
                 changed_by=None,
                 notes='Cancelacion automatica por timeout de pago.',
             )
+
+            # UC-SYS-01 POST-02 / BR-016: el stock se decrementa al crear la
+            # orden (checkout), asi que una cancelacion por timeout DEBE
+            # restaurarlo — simetrico con la cancelacion manual (UC-ORD-04).
+            # restore es idempotente por (reference=order_number, product,
+            # variant), evitando doble restauracion.
+            stock_items = [
+                {'product': item.product,
+                 'variant': item.variant,
+                 'quantity': item.quantity}
+                for item in order.items.select_related('product', 'variant').all()
+                if item.product
+            ]
+            if stock_items:
+                InventoryService.restore(
+                    items=stock_items,
+                    reference=order.order_number,
+                    created_by=None,
+                )
+                logger.info(
+                    'cancel_timeout_orders: stock restaurado orden %s (%d items).',
+                    order.order_number, len(stock_items),
+                )
             count += 1
     if count:
         logger.info('cancel_timeout_orders: %d ordenes canceladas.', count)
