@@ -15,7 +15,7 @@ JSON keys + identifiers in English (DEC-DOC-005).
 """
 from decimal import Decimal
 from apps.catalogue.models import Category, Product
-from apps.questions.models import ProductQuestion
+from apps.questions.models import ProductQuestion, QuestionModerationLog
 
 import pytest
 
@@ -233,18 +233,75 @@ class TestAdminApprove:
         assert res.status_code == 200
         assert res.json()['status'] == 'ANSWERED'
 
+    def test_approve_persists_moderation_log(self, admin_client, product, db):
+        # UC-QST-04: toda decision de moderacion queda en auditoria.
+        q = _make_question(product, status='PENDING', answer_body='Lista.')
+        admin_client.patch(_admin_list_url(f'{q.pk}/status/'), {'action': 'approve'}, format='json')
+        log = QuestionModerationLog.objects.get(question=q)
+        assert log.action == QuestionModerationLog.APPROVE
+        assert log.moderated_by is not None
+
+    def test_approve_with_edited_body_sets_answer(self, admin_client, product, db):
+        # UC-QST-04 (linea 184): el admin puede editar/traducir la respuesta
+        # antes de aprobar. Una pregunta sin respuesta se aprueba si llega
+        # edited_body.
+        q = _make_question(product, status='PENDING', answer_body='')
+        res = admin_client.patch(
+            _admin_list_url(f'{q.pk}/status/'),
+            {'action': 'approve', 'edited_body': 'Respuesta traducida.'},
+            format='json',
+        )
+        assert res.status_code == 200
+        q.refresh_from_db()
+        assert q.answer_body == 'Respuesta traducida.'
+        assert q.status == 'ANSWERED'
+
 
 # ─── POST /admin/questions/<id>/reject ───────────────────────────────────
 class TestAdminReject:
     def test_requires_staff(self, auth_client, product, db):
         q = _make_question(product)
-        res = auth_client.patch(_admin_list_url(f'{q.pk}/status/'), {'action': 'reject'}, format='json')
+        res = auth_client.patch(_admin_list_url(f'{q.pk}/status/'),
+                                {'action': 'reject', 'reason': 'spam'}, format='json')
         assert res.status_code == 403
 
     def test_admin_rejects_question(self, admin_client, product, db):
         q = _make_question(product, status='PENDING')
-        res = admin_client.patch(_admin_list_url(f'{q.pk}/status/'), {'action': 'reject'}, format='json')
+        res = admin_client.patch(_admin_list_url(f'{q.pk}/status/'),
+                                 {'action': 'reject', 'reason': 'idioma no soportado'},
+                                 format='json')
         assert res.status_code == 200
         assert res.json()['status'] == 'REJECTED'
         q.refresh_from_db()
         assert q.status == 'REJECTED'
+
+    def test_reject_without_reason_returns_400(self, admin_client, product, db):
+        # UC-QST-04: el motivo es requerido al rechazar.
+        q = _make_question(product, status='PENDING')
+        res = admin_client.patch(_admin_list_url(f'{q.pk}/status/'),
+                                 {'action': 'reject'}, format='json')
+        assert res.status_code == 400
+        assert res.json()['codigo_error'] == 'MISSING_REASON'
+
+    def test_reject_persists_moderation_log(self, admin_client, product, db):
+        # UC-QST-04: el motivo del rechazo queda en auditoria (quien + cuando).
+        q = _make_question(product, status='PENDING')
+        admin_client.patch(_admin_list_url(f'{q.pk}/status/'),
+                           {'action': 'reject', 'reason': 'idioma no soportado'},
+                           format='json')
+        log = QuestionModerationLog.objects.get(question=q)
+        assert log.action == QuestionModerationLog.REJECT
+        assert log.reason == 'idioma no soportado'
+        assert log.moderated_by is not None
+
+    def test_reject_status_based_ui_payload(self, admin_client, product, db):
+        # La UI envia {status: 'REJECTED', reason}; el v2 debe aceptarlo
+        # (contrato real, no solo {action}).
+        q = _make_question(product, status='PENDING')
+        res = admin_client.patch(_admin_list_url(f'{q.pk}/status/'),
+                                 {'status': 'REJECTED', 'reason': 'INAPPROPRIATE'},
+                                 format='json')
+        assert res.status_code == 200
+        q.refresh_from_db()
+        assert q.status == 'REJECTED'
+        assert QuestionModerationLog.objects.filter(question=q).count() == 1

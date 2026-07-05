@@ -22,7 +22,7 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from apps.catalogue.models import Product
 from config.schema import error_response
-from .models import ProductQuestion, QuestionStatus
+from .models import ProductQuestion, QuestionModerationLog, QuestionStatus
 from .serializers import (
     PublicQuestionItemSerializer,
     PublicQuestionCreateSerializer,
@@ -242,6 +242,17 @@ class AdminQuestionApproveView(_AdminOnly, APIView):
             raise NotFound({'detail': 'Pregunta no encontrada.',
                             'codigo_error': 'QUESTION_NOT_FOUND'})
 
+        # UC-QST-04: el admin puede editar/traducir la respuesta antes de
+        # aprobar (``edited_body``). Si llega, reemplaza ``answer_body``.
+        edited_body = (request.data.get('edited_body') or '').strip()
+        update_fields = ['status', 'updated_at']
+        if edited_body:
+            question.answer_body = edited_body
+            question.answered_at = timezone.now()
+            if request.user.is_authenticated:
+                question.answered_by = request.user
+            update_fields += ['answer_body', 'answered_at', 'answered_by']
+
         # Cannot approve without an answer
         if not question.answer_body:
             return Response(
@@ -251,7 +262,12 @@ class AdminQuestionApproveView(_AdminOnly, APIView):
             )
 
         question.status = QuestionStatus.ANSWERED
-        question.save(update_fields=['status', 'updated_at'])
+        question.save(update_fields=update_fields)
+        QuestionModerationLog.objects.create(
+            question=question,
+            action=QuestionModerationLog.APPROVE,
+            moderated_by=request.user if request.user.is_authenticated else None,
+        )
         return Response(AdminQuestionItemSerializer(question).data)
 
 
@@ -272,8 +288,24 @@ class AdminQuestionRejectView(_AdminOnly, APIView):
         except ProductQuestion.DoesNotExist:
             raise NotFound({'detail': 'Pregunta no encontrada.',
                             'codigo_error': 'QUESTION_NOT_FOUND'})
+
+        # UC-QST-04: el motivo es requerido al rechazar y queda en auditoria.
+        reason = (request.data.get('reason') or '').strip()
+        if not reason:
+            return Response(
+                {'detail': 'El motivo de rechazo es requerido.',
+                 'codigo_error': 'MISSING_REASON'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         question.status = QuestionStatus.REJECTED
         question.save(update_fields=['status', 'updated_at'])
+        QuestionModerationLog.objects.create(
+            question=question,
+            action=QuestionModerationLog.REJECT,
+            reason=reason,
+            moderated_by=request.user if request.user.is_authenticated else None,
+        )
         return Response(AdminQuestionItemSerializer(question).data)
 
 
@@ -284,6 +316,12 @@ class QuestionStatusV2View(APIView):
 
     def patch(self, request, question_id):
         action = (request.data.get('action') or '').strip()
+        if not action:
+            # Back-compat: la UI envia payload status-based
+            # (``{status: 'APPROVED'|'REJECTED'}``), no ``action``.
+            status_val = (request.data.get('status') or '').strip().upper()
+            action = {'APPROVED': 'approve',
+                      'REJECTED': 'reject'}.get(status_val, '')
         if action == 'approve':
             return AdminQuestionApproveView().post(request, question_id)
         if action == 'reject':
