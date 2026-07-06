@@ -491,7 +491,7 @@ class CategoryAdminViewSet(ModelViewSet):
         if not isinstance(ids, list) or not ids:
             return Response(
                 {'detail': 'Se requiere "order": lista no vacía de IDs de categoría.',
-                 'codigo_error': 'ORDER_INVALIDO'},
+                 'codigo_error': 'ORDER_INVALID'},
                 status=400,
             )
         siblings = set(
@@ -797,7 +797,7 @@ class ProductAdminViewSet(ProductDeactivateAction, ModelViewSet):
         if not isinstance(ids, list) or not ids:
             return Response(
                 {'detail': 'Se requiere "order": lista no vacía de IDs de imagen.',
-                 'codigo_error': 'ORDER_INVALIDO'},
+                 'codigo_error': 'ORDER_INVALID'},
                 status=400,
             )
         image_ids = set(product.images.values_list('id', flat=True))
@@ -834,7 +834,7 @@ class ProductAdminViewSet(ProductDeactivateAction, ModelViewSet):
         if not isinstance(items, list) or not items:
             return Response(
                 {'detail': 'Se requiere "images": lista no vacía de {id, ...}.',
-                 'codigo_error': 'IMAGES_INVALIDO'},
+                 'codigo_error': 'IMAGES_INVALID'},
                 status=400,
             )
         image_ids = set(product.images.values_list('id', flat=True))
@@ -843,7 +843,7 @@ class ProductAdminViewSet(ProductDeactivateAction, ModelViewSet):
             if not isinstance(it, dict) or 'id' not in it:
                 return Response(
                     {'detail': 'Cada item requiere "id".',
-                     'codigo_error': 'IMAGE_ITEM_INVALIDO'},
+                     'codigo_error': 'IMAGE_ITEM_INVALID'},
                     status=400,
                 )
             if it['id'] not in image_ids:

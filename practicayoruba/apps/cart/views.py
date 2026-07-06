@@ -344,7 +344,6 @@ class CartSaveView(APIView):
                     quantity=item.quantity,
                     price_at_save=item.unit_price,
                 )
-            cart.items.all().delete()
 
         return Response({'detail': 'Carrito guardado.', 'saved_count': saved_count})
 

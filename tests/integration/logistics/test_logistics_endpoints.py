@@ -460,7 +460,7 @@ class TestBuyerReportIncident:
         }, format='json')
         assert r.status_code == 201
         data = r.json()
-        assert data['status'] == 'RECIBIDO'
+        assert data['status'] == 'RECEIVED'
         assert data['problem_type'] == 'NOT_RECEIVED'
         g.refresh_from_db()
         assert g.status == ShipmentGuide.STATUS_INCIDENT

@@ -12,7 +12,7 @@ from decimal import Decimal
 from django.contrib.auth import get_user_model
 from apps.catalogue.models import Category, Product
 from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
-from apps.payments.models import Payment
+from apps.payments.models import Payment, Refund
 
 pytestmark = pytest.mark.integration
 
@@ -57,6 +57,11 @@ def payments_dataset(db, user):
         order=o2, gateway='PAYPAL', preference_id='PREF-B',
         gateway_payment_id='PP-B', status='REFUNDED', amount=Decimal('500.00'),
     )
+    # El monto reembolsado real vive en Refund (PAY-11), no en Payment.amount.
+    Refund.objects.create(
+        payment=p_refunded, amount=Decimal('500.00'),
+        status=Refund.STATUS_APPROVED,
+    )
     o3 = _make_order(user, 'PAY-C', Decimal('250.00'))
     p_failed = Payment.objects.create(
         order=o3, gateway='MERCADOPAGO', preference_id='PREF-C',
@@ -89,6 +94,42 @@ class TestAdminPaymentList:
         assert Decimal(str(data['totals']['approved'])) == Decimal('1000.00')
         assert Decimal(str(data['totals']['refunded'])) == Decimal('500.00')
         assert Decimal(str(data['totals']['net'])) == Decimal('500.00')
+
+    def test_refunded_usa_monto_de_refund_no_de_payment(
+        self, admin_client, user, db
+    ):
+        # PAY-11: un pago PARTIALLY_REFUNDED de 1000 con un Refund de 300 debe
+        # contar 300 en 'refunded', no 1000 (Payment.amount es el total).
+        order = _make_order(user, 'PAY-PARTIAL', Decimal('1000.00'))
+        payment = Payment.objects.create(
+            order=order, gateway='MERCADOPAGO', preference_id='PREF-PR',
+            gateway_payment_id='MP-PR', status='PARTIALLY_REFUNDED',
+            amount=Decimal('1000.00'),
+        )
+        Refund.objects.create(
+            payment=payment, amount=Decimal('300.00'),
+            status=Refund.STATUS_APPROVED,
+        )
+        r = admin_client.get(LIST_URL)
+        totals = r.json()['totals']
+        assert Decimal(str(totals['refunded'])) == Decimal('300.00')
+
+    def test_refunded_ignora_refunds_no_aprobados(
+        self, admin_client, user, db
+    ):
+        # Un Refund PENDING/FAILED no cuenta en 'refunded'.
+        order = _make_order(user, 'PAY-PEND', Decimal('400.00'))
+        payment = Payment.objects.create(
+            order=order, gateway='MERCADOPAGO', preference_id='PREF-PE',
+            gateway_payment_id='MP-PE', status='APPROVED',
+            amount=Decimal('400.00'),
+        )
+        Refund.objects.create(
+            payment=payment, amount=Decimal('400.00'),
+            status=Refund.STATUS_PENDING,
+        )
+        r = admin_client.get(LIST_URL)
+        assert Decimal(str(r.json()['totals']['refunded'])) == Decimal('0.00')
 
     def test_serializer_incluye_campos_admin(self, admin_client, payments_dataset):
         r = admin_client.get(LIST_URL)

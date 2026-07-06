@@ -21,6 +21,7 @@ from rest_framework.generics import ListAPIView
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from django.core.cache import cache
+from apps.users.audit import audit_log_business
 from .models import SiteSettings, PaymentGateway, ShippingMethod, StaticPage, StaticPageVersion
 from .serializers import (
     SiteSettingsSerializer, SiteSettingsAdminSerializer, PublicSiteSettingsSerializer,
@@ -119,6 +120,21 @@ class AdminSiteSettingsView(APIView):
         serializer = SiteSettingsAdminSerializer(settings, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        # H-API-NN: sin este BusinessEvent, un cambio de configuracion
+        # global es invisible en el audit log de UC-ADM-03 (AuditLogView
+        # combina AuthEvent + BusinessEvent + UserDeactivationEvent).
+        # BusinessEvent.action no tiene una constante ADMIN_SETTINGS_UPDATED:
+        # se escribe el string directo (max_length=30, choices sin
+        # constraint DB), mismo patron que ADMIN_REACTIVATE y
+        # ADMIN_PERMISSIONS_CHANGED en apps.users.admin_views.
+        audit_log_business(
+            request.user,
+            'ADMIN_SETTINGS_UPDATED',
+            request,
+            target_type='site_settings',
+            target_id=settings.pk,
+            extra={'changes': list(serializer.validated_data.keys())},
+        )
         return Response(serializer.data)
 
 

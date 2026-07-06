@@ -2,6 +2,7 @@
 from django.urls import path
 from .views import (
     AdminCampaignCreateView,
+    AdminSubscriberExportCSVView,
     AdminSubscriberForceUnsubscribeView,
     AdminSubscriberListView,
     AdminSubscriberSubscriptionDeleteView,
@@ -14,6 +15,9 @@ urlpatterns = [
     path('newsletter/subscribers/',
          AdminSubscriberListView.as_view(),
          name='admin-subscriber-list'),
+    path('newsletter/subscribers/export/',
+         AdminSubscriberExportCSVView.as_view(),
+         name='admin-subscriber-export'),
     path('newsletter/campaigns/',
          AdminCampaignCreateView.as_view(),
          name='admin-campaign-create'),

@@ -568,7 +568,7 @@ class BuyerReportIncidentView(APIView):
         return Response(
             {
                 'report_id': event.id,
-                'status': 'RECIBIDO',
+                'status': 'RECEIVED',
                 'problem_type': problem_type,
                 'estimated_response_days': 3,
             },

@@ -1,9 +1,9 @@
 ```yml
 type: Principio Rector de Proyecto
 category: Gobierno — analisis antes de ejecucion
-version: 1.0.0
+version: 1.1.0
 created_at: 2026-05-21 14:40:00
-updated_at: 2026-05-21 14:40:00
+updated_at: 2026-07-05 01:23:35
 applies_to: e-comerce v1.0.0+
 source_canonical: docs/source/normativa/principios/principio-rector-rup-arquitectura.rst
 ```
@@ -145,6 +145,34 @@ Agent(description="sweep capa 7 quality", ...)
 
 # INCORRECTO — N llamadas secuenciales sin razon de dependencia
 ```
+
+### Clausula 7 — Coexistencia y fronteras de marcos
+
+El proyecto es multi-metodologia: cada iniciativa declara su `flow:`
+(rup, scrum, kanban, pm, pdca, tdd, o sin metodologia anclada) en la
+metadata de su `alcance`. Los marcos **se componen, no se sustituyen**: el
+`flow:` declarado gobierna DENTRO de la iniciativa; los ejes transversales
+(medicion COSMIC donde hay FUR, agenda por sprint/Milestone, codigo TDD) la
+envuelven sin gobernarla.
+
+Fronteras de aplicacion (cuando un marco deja de aplicar):
+
+- **RUP** es rector para el trabajo *design-heavy* (Elaboration: UC + vistas
+  Kruchten antes de construir; ver `docs-design-first-rup.md`).
+- **Scrum/Kanban** gobiernan solo el flow de ejecucion iterativa/continua;
+  una iniciativa con otro `flow:` declarado NO queda sujeta a sus ceremonias.
+- **COSMIC** aplica solo donde hay FUR medible; fuera de FSM (bugs, db,
+  server) la salida es una talla alterna (S/M/L), no forzar CFP.
+- **PMBOK** no se "sale": queda subsumido en los 12 stages THYROX.
+
+**Accion al salirse de un marco:** re-analizar (Clausula 1 — prevalece el
+analisis actual), re-declarar el `flow:` de la iniciativa, o abrir una
+sub-iniciativa explicita (Clausula 4). Forzar un marco fuera de su frontera
+—o declarar una iniciativa "bajo marco X" cuando sus artefactos no lo
+reflejan— es una variante del anti-patron de la Clausula 5 y esta prohibido.
+Si una iniciativa se pide bajo un `flow:` (ej. RUP para la pasarela de
+pagos) pero sus artefactos no lo reflejan, la divergencia es estado
+incorrecto heredado (Clausula 2): se corrige antes de continuar.
 
 ### Condicion necesaria
 

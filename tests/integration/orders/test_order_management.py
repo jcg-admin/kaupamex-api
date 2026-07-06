@@ -350,6 +350,32 @@ class TestEditarDireccion:
         }, format='json')
         assert res.status_code == 404
 
+    def test_editar_direccion_registra_auditoria(
+        self, auth_client, user, prod_ord, db
+    ):
+        """H-API-05 (T-005/ORD-05): cada edición de dirección deja un
+        OrderStatusLog — antes update_order_address solo hacía logger.info,
+        sin ningún rastro auditable en la orden."""
+        order = _create_full_order(user, prod_ord, status='PENDING')
+        logs_before = order.status_logs.count()
+
+        res = auth_client.patch(ADDRESS_URL(order.order_number), {
+            'recipient_name': 'Nuevo Destinatario',
+            'street':         'Calle Nueva 999',
+            'city':           'Guadalajara',
+            'state':          'Jalisco',
+            'zip_code':       '44100',
+        }, format='json')
+
+        assert res.status_code == 200
+        assert order.status_logs.count() == logs_before + 1
+        log = order.status_logs.order_by('-created_at').first()
+        assert log.changed_by_id == user.id
+        # No hay transición de estado real — se usa el mismo patrón de
+        # OrderStatusLog que cancel_order, sin cambiar Order.status.
+        assert log.previous_status == log.new_status == order.status
+        assert 'Guadalajara' in log.notes
+
 
 # =============================================================================
 # UC-ORD-06 — Cambiar método de envío
@@ -404,6 +430,22 @@ class TestCambiarMetodoEnvio:
         assert res.status_code == 409
         assert res.json()['codigo_error'] == 'ORDER_NOT_EDITABLE'
 
+    def test_cambiar_envio_pagada_no_permitido(
+        self, auth_client, user, prod_ord, shipping_methods, db
+    ):
+        """D-3 (UC-ORD-06 v2.2.0): cambiar el método de envío en una orden
+        ya PAGADA recalcularía el total sin conciliar el pago capturado
+        (cobro/reembolso no implementado) -> se rechaza con 409
+        ORDER_NOT_EDITABLE. El cambio solo se permite en estados pre-pago
+        (PENDING/PROCESSING)."""
+        for paid_status in ('PAID', 'IN_PREPARATION'):
+            order = _create_full_order(user, prod_ord, status=paid_status)
+            res = auth_client.patch(SHIPPING_URL(order.order_number), {
+                'shipping_method_id': shipping_methods['standard'].pk,
+            }, format='json')
+            assert res.status_code == 409, paid_status
+            assert res.json()['codigo_error'] == 'ORDER_NOT_EDITABLE', paid_status
+
     def test_cambiar_envio_inexistente_retorna_400(
         self, auth_client, user, prod_ord, db
     ):
@@ -415,6 +457,33 @@ class TestCambiarMetodoEnvio:
         }, format='json')
         assert res.status_code == 400
         assert res.json()['codigo_error'] == 'SHIPPING_METHOD_NOT_AVAILABLE'
+
+    def test_cambiar_envio_registra_auditoria(
+        self, auth_client, user, prod_ord, shipping_methods, db
+    ):
+        """H-API-06 (T-007-audit/ORD-06): cada cambio de método de envío
+        deja un OrderStatusLog — antes update_shipping_method solo hacía
+        logger.info, sin ningún rastro auditable en la orden. D-3 resuelto:
+        el cambio solo se permite pre-pago (aquí PENDING), donde el recálculo
+        del total precede a la captura del pago (sin conciliación pendiente)."""
+        order = _create_full_order(user, prod_ord, status='PENDING')
+        order.shipping_method = shipping_methods['express']
+        order.shipping_method.save()
+        order.save()
+        logs_before = order.status_logs.count()
+
+        res = auth_client.patch(SHIPPING_URL(order.order_number), {
+            'shipping_method_id': shipping_methods['standard'].pk,
+        }, format='json')
+
+        assert res.status_code == 200
+        assert order.status_logs.count() == logs_before + 1
+        log = order.status_logs.order_by('-created_at').first()
+        assert log.changed_by_id == user.id
+        # No hay transición de estado real — se usa el mismo patrón de
+        # OrderStatusLog que cancel_order, sin cambiar Order.status.
+        assert log.previous_status == log.new_status == order.status
+        assert shipping_methods['standard'].name in log.notes
 
 
 # =============================================================================

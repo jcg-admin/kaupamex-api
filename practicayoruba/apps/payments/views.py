@@ -1113,21 +1113,17 @@ class AdminPaymentListView(APIView):
             })
 
         # --- totals over filtered queryset ---
-        agg = qs.aggregate(
-            approved=Sum(
-                'amount',
-                filter=Q(status=Payment.STATUS_APPROVED),
-            ),
-            refunded=Sum(
-                'amount',
-                filter=Q(status__in=[
-                    Payment.STATUS_REFUNDED,
-                    Payment.STATUS_PARTIALLY_REFUNDED,
-                ]),
-            ),
-        )
-        approved_total = agg['approved'] or Decimal('0.00')
-        refunded_total = agg['refunded'] or Decimal('0.00')
+        approved_total = qs.aggregate(
+            t=Sum('amount', filter=Q(status=Payment.STATUS_APPROVED)),
+        )['t'] or Decimal('0.00')
+        # PAY-11: el monto reembolsado real vive en ``Refund.amount`` (uno por
+        # reembolso), NO en ``Payment.amount`` — que para PARTIALLY_REFUNDED es
+        # el total original del pago y sobre-cuenta el reembolso. Sumar los
+        # ``Refund`` APPROVED de los pagos del queryset filtrado.
+        refunded_total = Refund.objects.filter(
+            status=Refund.STATUS_APPROVED,
+            payment__in=qs.values('pk'),
+        ).aggregate(t=Sum('amount'))['t'] or Decimal('0.00')
         totals = {
             'approved': approved_total,
             'refunded': refunded_total,

@@ -1,7 +1,7 @@
 ```yml
 type: Contexto Persistente
 version: 4.0.0
-updated_at: 2026-05-22 15:44:37
+updated_at: 2026-07-05 08:12:48
 ```
 
 # CLAUDE.md — e-comerce
@@ -258,7 +258,7 @@ submodulos:   [api, db, docs, server, ui]            # Cada uno tiene su gestion
 | **ÉPICA N** | Iniciativa de trabajo del proyecto — número secuencial global. Cada WP ocupa una ÉPICA. Antes llamado "FASE N" (retrocompat). | ÉPICA 39: plugin-distribution · ÉPICA 40: multi-methodology |
 | **Stage N** | Etapa del ciclo THYROX dentro de un WP (1-DISCOVER … 12-STANDARDIZE). Se reinicia en cada ÉPICA. Antes llamado "Phase N". | ÉPICA 40 está en Stage 5: STRATEGY |
 | **WP** | Work package — directorio `docs/source/gestion/pm/<submodulo>/iniciativas/<slug>/` que contiene todos los artefactos de una ÉPICA | `docs/source/gestion/pm/docs/iniciativas/corregir-warnings-build-sphinx/` |
-| **flow** | Metodología activa dentro de un WP (pdca, dmaic, pmbok, babok, rup, rm) | `flow: pdca` en now.md |
+| **flow** | Metodología declarada por iniciativa en la clave `:flow:` del `alcance` (rup, scrum, kanban, tdd, pm, pdca, dmaic, lean, babok, bpa, cp, pps, sp, rm, ninguno; ver `metadata-standards.md`, DEC-R-01) | `:flow: rup` en el `.. meta::` del `alcance` |
 | **methodology_step** | Paso actual de la metodología activa, con prefijo namespace | `pdca:do`, `dmaic:analyze`, `pm:executing` |
 | **SP-NNN** | Stopping Point — punto de parada explícito definido en el Stopping Point Manifest de Stage 1 | SP-06: gate 6→7, esperar aprobación humana |
 

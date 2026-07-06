@@ -11,11 +11,16 @@ User endpoints:
 
 Admin endpoints:
   GET    /api/v1/admin/support/tickets/           UC-SUPP-05 queue
+  GET    /api/v1/admin/support/tickets/export/    UC-SUPP-05 CSV export
 """
+import csv
+import io
 from datetime import timedelta
 from django.db import transaction
-from django.db.models import Count, Q
-from django.http import Http404
+from django.db.models import (
+    Avg, Count, DurationField, ExpressionWrapper, F, OuterRef, Q, Subquery,
+)
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiParameter
@@ -90,6 +95,68 @@ def _get_ticket_for_user(ticket_id, user):
     if not user.is_staff and ticket.user_id != user.id:
         raise Http404
     return ticket
+
+
+def _annotate_first_response(qs):
+    """Anota ``first_response_at``: created_at de la primera respuesta de
+    staff no interna de cada ticket. UC-SUPP-05 (T-009) — metrica de
+    tiempo-medio-de-primera-respuesta y columna de export CSV.
+
+    Una nota interna (``is_internal_note=True``) o una respuesta del propio
+    comprador no cuentan como primera respuesta: la metrica mide cuanto
+    tarda el equipo de soporte en contestarle al comprador.
+    """
+    first_staff_reply_qs = (
+        SupportTicketReply.objects
+        .filter(
+            ticket=OuterRef('pk'),
+            author__is_staff=True,
+            is_internal_note=False,
+        )
+        .order_by('created_at')
+        .values('created_at')[:1]
+    )
+    return qs.annotate(first_response_at=Subquery(first_staff_reply_qs))
+
+
+def _apply_admin_filters(qs, params):
+    """Aplica los filtros de la cola admin de tickets (UC-SUPP-05) sobre
+    ``qs``. Compartido entre ``AdminSupportTicketListView`` (JSON paginado)
+    y ``AdminSupportTicketExportCSVView`` (CSV completo) para que ambos
+    endpoints filtren exactamente igual.
+
+    Devuelve ``(queryset, None)`` o ``(None, Response)`` si el filtro de
+    status es invalido.
+    """
+    if params.get('status'):
+        valid_statuses = {s.value for s in SupportTicket.Status}
+        if params['status'] not in valid_statuses:
+            return None, Response(
+                {
+                    'detail': f"Status inválido: '{params['status']}'.",
+                    'codigo_error': 'INVALID_STATUS',
+                    'valores_validos': sorted(valid_statuses),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        qs = qs.filter(status=params['status'])
+    if params.get('priority'):
+        qs = qs.filter(priority=params['priority'])
+    if params.get('category'):
+        qs = qs.filter(category=params['category'])
+    if params.get('created_from'):
+        qs = qs.filter(created_at__gte=params['created_from'])
+    if params.get('created_to'):
+        qs = qs.filter(created_at__lte=params['created_to'])
+    # H-CICLO23-04: `user_id` filtra por el comprador propietario del ticket.
+    if params.get('user_id'):
+        qs = qs.filter(user_id=params['user_id'])
+    q = (params.get('q') or '').strip()
+    if q:
+        qs = qs.filter(
+            Q(user__email__icontains=q) | Q(subject__icontains=q)
+        )
+    return qs, None
 
 
 # ────────────────────────────── UC-SUPP-01 / UC-SUPP-02 ──────────────────
@@ -398,48 +465,39 @@ class AdminSupportTicketListView(APIView):
     )
     def get(self, request):
         qs = SupportTicket.objects.all().annotate(replies_count=Count('replies'))
-        params = request.query_params
-        if params.get('status'):
-            valid_statuses = {s.value for s in SupportTicket.Status}
-            if params['status'] not in valid_statuses:
-                return Response(
-                    {
-                        'detail': f"Status inválido: '{params['status']}'.",
-                        'codigo_error': 'INVALID_STATUS',
-                        'valores_validos': sorted(valid_statuses),
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            qs = qs.filter(status=params['status'])
-        if params.get('priority'):
-            qs = qs.filter(priority=params['priority'])
-        if params.get('category'):
-            qs = qs.filter(category=params['category'])
-        if params.get('created_from'):
-            qs = qs.filter(created_at__gte=params['created_from'])
-        if params.get('created_to'):
-            qs = qs.filter(created_at__lte=params['created_to'])
-        # H-CICLO23-04: el parámetro se renombra a `user_id` para reflejar
-        # que filtra por el comprador propietario del ticket (SupportTicket.user).
-        # El nombre anterior `assigned_to` era engañoso: el modelo no tiene
-        # campo de asignación a staff.
-        if params.get('user_id'):
-            qs = qs.filter(user_id=params['user_id'])
-        q = (params.get('q') or '').strip()
-        if q:
-            qs = qs.filter(
-                Q(user__email__icontains=q) | Q(subject__icontains=q)
-            )
+        qs, error = _apply_admin_filters(qs, request.query_params)
+        if error is not None:
+            return error
         qs = qs.select_related('user').order_by('created_at')
 
         # Metrics (global, not filtered)
         all_tickets = SupportTicket.objects.all()
+        # T-009 (SUPP-05): tiempo-medio-de-primera-respuesta. Promedio, via
+        # agregacion de Django (Avg sobre una expresion de duracion), del
+        # tiempo entre la apertura del ticket y su primera respuesta de staff
+        # no interna. Tickets sin ninguna respuesta de staff se excluyen del
+        # promedio (first_response_at es NULL para ellos).
+        avg_first_response = (
+            _annotate_first_response(all_tickets)
+            .filter(first_response_at__isnull=False)
+            .annotate(
+                response_time=ExpressionWrapper(
+                    F('first_response_at') - F('created_at'),
+                    output_field=DurationField(),
+                )
+            )
+            .aggregate(avg=Avg('response_time'))['avg']
+        )
         metrics = {
             'open':           all_tickets.filter(status='OPEN').count(),
             'in_progress':    all_tickets.filter(status='IN_PROGRESS').count(),
             'awaiting_user':  all_tickets.filter(status='AWAITING_USER').count(),
             'resolved':       all_tickets.filter(status='RESOLVED').count(),
             'closed':         all_tickets.filter(status='CLOSED').count(),
+            'avg_first_response_minutes': (
+                round(avg_first_response.total_seconds() / 60, 2)
+                if avg_first_response is not None else None
+            ),
         }
 
         # H-CICLO89-01: paginar la cola admin para evitar OOM en instalaciones
@@ -459,6 +517,64 @@ class AdminSupportTicketListView(APIView):
             'results': AdminSupportTicketListSerializer(items, many=True).data,
             'metrics': metrics,
         })
+
+
+class AdminSupportTicketExportCSVView(APIView):
+    """GET /api/v1/admin/support/tickets/export/ — export CSV. T-009 (SUPP-05).
+
+    Exporta la cola completa de tickets (mismos filtros que
+    ``AdminSupportTicketListView``, sin paginar) como ``text/csv``. Antes de
+    este commit no existia ningun export en support (``grep csv`` = 0).
+    """
+
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    @extend_schema(
+        summary='Exportar tickets de soporte a CSV (admin)',
+        tags=['support'],
+        parameters=[
+            OpenApiParameter('status', str, required=False),
+            OpenApiParameter('priority', str, required=False),
+            OpenApiParameter('category', str, required=False),
+            OpenApiParameter('created_from', str, required=False),
+            OpenApiParameter('created_to', str, required=False),
+            OpenApiParameter('user_id', int, required=False, description='Filtrar por ID del comprador propietario del ticket'),
+            OpenApiParameter('q', str, required=False, description='Search by email/subject'),
+        ],
+    )
+    def get(self, request):
+        qs = SupportTicket.objects.all()
+        qs, error = _apply_admin_filters(qs, request.query_params)
+        if error is not None:
+            return error
+        qs = _annotate_first_response(qs).select_related('user').order_by(
+            'created_at'
+        )
+
+        buf = io.StringIO()
+        writer = csv.writer(buf)
+        writer.writerow([
+            'id', 'asunto', 'estado', 'prioridad', 'categoria',
+            'comprador_email', 'created_at', 'primera_respuesta',
+        ])
+        for ticket in qs:
+            writer.writerow([
+                ticket.pk,
+                ticket.subject,
+                ticket.status,
+                ticket.priority,
+                ticket.category,
+                ticket.user.email if ticket.user_id else '',
+                ticket.created_at.isoformat(),
+                ticket.first_response_at.isoformat()
+                if ticket.first_response_at else '',
+            ])
+
+        response = HttpResponse(buf.getvalue(), content_type='text/csv')
+        response['Content-Disposition'] = (
+            'attachment; filename="support_tickets.csv"'
+        )
+        return response
 
 
 class SupportTicketStatusV2View(APIView):
