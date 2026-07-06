@@ -567,7 +567,7 @@ class OrderAddressUpdateView(APIView):
         s.is_valid(raise_exception=True)
 
         try:
-            update_order_address(order, s.validated_data)
+            update_order_address(order, s.validated_data, changed_by=request.user)
         except ValueError as exc:
             return Response(
                 {'detail': str(exc), 'codigo_error': 'ADDRESS_NOT_EDITABLE'},
@@ -628,7 +628,10 @@ class OrderShippingUpdateView(APIView):
         s.is_valid(raise_exception=True)
 
         try:
-            update_shipping_method(order, s.validated_data['shipping_method_id'])
+            update_shipping_method(
+                order, s.validated_data['shipping_method_id'],
+                changed_by=request.user,
+            )
         except OrderNotEditableError as exc:
             # UC-ORD-06 PARTE 7.3 (DEC-ORD-04): 409 ORDER_NOT_EDITABLE.
             return Response(

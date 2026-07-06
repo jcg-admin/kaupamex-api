@@ -122,12 +122,22 @@ def cancel_order(order, reason: str = '', cancelled_by=None, cancelable_statuses
     return order
 
 
-def update_order_address(order, address_data: dict):
+def _format_address(address) -> str:
+    return f'{address.street}, {address.city}, {address.state} {address.zip_code}'
+
+
+def update_order_address(order, address_data: dict, changed_by=None):
     """
     Actualiza la dirección de entrega de una orden.
     UC-ORD-05 (FR-ORD-05.02).
 
     Solo posible en estados: PENDING, PROCESSING, IN_PREPARATION.
+
+    H-API-05: deja un registro de auditoría (OrderStatusLog) por cada
+    edición, siguiendo el mismo patrón que cancel_order — sin transición
+    real de Order.status (previous_status == new_status), porque editar
+    la dirección no cambia el estado de la orden.
+
     :raises ValueError: si la orden no permite editar la dirección.
     """
 
@@ -139,12 +149,25 @@ def update_order_address(order, address_data: dict):
 
     try:
         address = order.address
+        previous_summary = _format_address(address)
     except OrderAddress.DoesNotExist:
         address = OrderAddress(order=order)
+        previous_summary = '(sin dirección previa)'
 
     for field, value in address_data.items():
         setattr(address, field, value)
     address.save()
+
+    OrderStatusLog.objects.create(
+        order=order,
+        previous_status=order.status,
+        new_status=order.status,
+        changed_by=changed_by,
+        notes=(
+            f'Dirección actualizada: {previous_summary} → '
+            f'{_format_address(address)}'
+        ),
+    )
 
     logger.info('Dirección actualizada para orden %s', order.order_number)
     return address
@@ -158,13 +181,18 @@ class ShippingMethodNotAvailableError(ValueError):
     """UC-ORD-06: el shipping_method indicado no existe o esta inactivo."""
 
 
-def update_shipping_method(order, shipping_method_id: int):
+def update_shipping_method(order, shipping_method_id: int, changed_by=None):
     """
     Cambia el método de envío y recalcula el total.
     UC-ORD-06 (FR-ORD-06.02) v2.1.0 (DEC-ORD-04).
 
     Solo posible en estados: PENDING, PROCESSING, IN_PREPARATION.
     Recalcula: OrderValue.shipping_cost y OrderValue.total.
+
+    H-API-06: deja un registro de auditoría (OrderStatusLog) por cada
+    cambio, siguiendo el mismo patrón que cancel_order — sin transición
+    real de Order.status (previous_status == new_status). El cobro o
+    reembolso de la diferencia de costo queda fuera de scope (D-3).
 
     :raises OrderNotEditableError: si la orden no permite cambiar el envío.
     :raises ShippingMethodNotAvailableError: si el método no existe o está inactivo.
@@ -182,6 +210,8 @@ def update_shipping_method(order, shipping_method_id: int):
         raise ShippingMethodNotAvailableError(
             f'El método de envío {shipping_method_id} no existe o está inactivo.'
         )
+
+    previous_method = order.shipping_method
 
     with transaction.atomic():
         value = order.value
@@ -201,6 +231,18 @@ def update_shipping_method(order, shipping_method_id: int):
 
         order.shipping_method = new_method
         order.save(update_fields=['shipping_method', 'updated_at'])
+
+        OrderStatusLog.objects.create(
+            order=order,
+            previous_status=order.status,
+            new_status=order.status,
+            changed_by=changed_by,
+            notes=(
+                f'Método de envío actualizado: '
+                f'{previous_method.name if previous_method else "(sin método previo)"} '
+                f'→ {new_method.name} (${new_shipping_cost})'
+            ),
+        )
 
     logger.info(
         'Método de envío actualizado para orden %s → %s ($%s)',
