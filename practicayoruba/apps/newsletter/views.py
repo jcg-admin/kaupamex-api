@@ -392,6 +392,18 @@ class AdminCampaignCreateView(_AdminOnly, APIView):
                 .values_list('email', flat=True)
             )
 
+            if not recipients:
+                return Response(
+                    {
+                        'detail': (
+                            'El segmento seleccionado no tiene '
+                            'destinatarios activos.'
+                        ),
+                        'codigo_error': 'NO_RECIPIENTS',
+                    },
+                    status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                )
+
             campaign = NewsletterCampaign.objects.create(
                 sender=request.user,
                 subject=subject,

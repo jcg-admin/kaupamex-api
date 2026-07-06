@@ -293,10 +293,12 @@ class TestAdminCreateCampaign:
         res = admin_client.post(ADMIN_CAMPAIGN_URL, {}, format='json')
         assert res.status_code == 400
 
-    def test_empty_audience_creates_with_zero_recipients(self, admin_client, db):
+    def test_empty_audience_rejected_no_recipients(self, admin_client, db):
+        # UC-NEW-04 (D-4): un segmento sin destinatarios se rechaza con
+        # 422 NO_RECIPIENTS en lugar de crear una campana no-op.
         res = admin_client.post(ADMIN_CAMPAIGN_URL, {
             'subject': 'Promo de junio',
             'body': 'Sin destinatarios todavia.',
         }, format='json')
-        assert res.status_code == 201
-        assert res.json()['recipients_count'] == 0
+        assert res.status_code == 422
+        assert res.json()['codigo_error'] == 'NO_RECIPIENTS'
