@@ -11,6 +11,8 @@ UC-SUPP-05  GET    /api/v2/admin/support/tickets/               admin queue
 
 Identifiers in English (DEC-DOC-005).
 """
+import csv
+import io
 import time
 from datetime import timedelta
 
@@ -382,6 +384,138 @@ class TestAdminQueue:
         ids = [t['ticket_id'] for t in items[:2]]
         assert ids[0] == t1.pk
         assert ids[1] == t2.pk
+
+
+# ────────────── SUPP-05 (T-009) — metrica tiempo-primera-respuesta ────────
+class TestAdminFirstResponseMetric:
+    """UC-SUPP-05 — promedio de tiempo hasta la primera respuesta de staff.
+
+    Backlog: `grep csv` = 0 en support antes de este commit; tampoco existia
+    ninguna metrica de tiempo-primera-respuesta en ``AdminSupportTicketListView``
+    (practicayoruba/apps/support/views.py:435-443, solo conteos por status).
+    """
+
+    def _create_ticket_with_reply(self, user, admin_user, *, ticket_created_at,
+                                   reply_created_at, subject):
+        ticket = SupportTicket.objects.create(
+            user=user, subject=subject, body='Mensaje suficientemente largo.')
+        SupportTicket.objects.filter(pk=ticket.pk).update(
+            created_at=ticket_created_at)
+        reply = SupportTicketReply.objects.create(
+            ticket=ticket, author=admin_user, body='Respuesta de soporte.')
+        SupportTicketReply.objects.filter(pk=reply.pk).update(
+            created_at=reply_created_at)
+        return ticket
+
+    def test_avg_first_response_minutes_computes_correct_average(
+        self, admin_client, admin_user, user, db,
+    ):
+        t0 = timezone.now() - timedelta(days=1)
+        # Ticket rapido: 10 minutos hasta la primera respuesta de staff.
+        self._create_ticket_with_reply(
+            user, admin_user,
+            ticket_created_at=t0, reply_created_at=t0 + timedelta(minutes=10),
+            subject='Rapido',
+        )
+        # Ticket lento: 30 minutos hasta la primera respuesta de staff.
+        self._create_ticket_with_reply(
+            user, admin_user,
+            ticket_created_at=t0, reply_created_at=t0 + timedelta(minutes=30),
+            subject='Lento',
+        )
+        # Ticket sin respuesta: no debe contarse en el promedio.
+        SupportTicket.objects.create(
+            user=user, subject='Sin respuesta',
+            body='Mensaje suficientemente largo.')
+
+        res = admin_client.get(ADMIN_TICKETS_URL)
+        assert res.status_code == 200
+        metrics = res.json()['metrics']
+        assert 'avg_first_response_minutes' in metrics
+        # (10 + 30) / 2 = 20.0
+        assert metrics['avg_first_response_minutes'] == 20.0
+
+    def test_avg_first_response_minutes_none_when_no_replies(
+        self, admin_client, user, db,
+    ):
+        SupportTicket.objects.create(
+            user=user, subject='Sin respuesta',
+            body='Mensaje suficientemente largo.')
+        res = admin_client.get(ADMIN_TICKETS_URL)
+        assert res.status_code == 200
+        assert res.json()['metrics']['avg_first_response_minutes'] is None
+
+    def test_buyer_only_reply_does_not_count_as_first_response(
+        self, admin_client, user, db,
+    ):
+        # Una respuesta del propio comprador (no staff) no cuenta como
+        # primera respuesta — la metrica mide tiempo de respuesta de soporte.
+        ticket = SupportTicket.objects.create(
+            user=user, subject='Solo comprador',
+            body='Mensaje suficientemente largo.')
+        SupportTicketReply.objects.create(
+            ticket=ticket, author=user, body='Sigo esperando respuesta.')
+        res = admin_client.get(ADMIN_TICKETS_URL)
+        assert res.status_code == 200
+        assert res.json()['metrics']['avg_first_response_minutes'] is None
+
+
+# ────────────── SUPP-05 (T-009) — export CSV de tickets ───────────────────
+class TestAdminExportCSV:
+    """UC-SUPP-05 — export CSV de la cola admin de tickets."""
+
+    ADMIN_EXPORT_URL = f'{ADMIN_TICKETS_URL}export/'
+
+    def test_export_requires_admin(self, auth_client, db):
+        res = auth_client.get(self.ADMIN_EXPORT_URL)
+        assert res.status_code == 403
+
+    def test_export_returns_csv_content_type(self, admin_client, user, db):
+        SupportTicket.objects.create(
+            user=user, subject='Exportable',
+            body='Mensaje suficientemente largo.')
+        res = admin_client.get(self.ADMIN_EXPORT_URL)
+        assert res.status_code == 200
+        assert res['Content-Type'].startswith('text/csv')
+        assert 'attachment' in res['Content-Disposition']
+
+    def test_export_rows_match_tickets(self, admin_client, user, admin_user, db):
+        t0 = timezone.now() - timedelta(days=1)
+        ticket = SupportTicket.objects.create(
+            user=user, subject='Con respuesta',
+            body='Mensaje suficientemente largo.')
+        SupportTicket.objects.filter(pk=ticket.pk).update(created_at=t0)
+        reply = SupportTicketReply.objects.create(
+            ticket=ticket, author=admin_user, body='Respuesta de soporte.')
+        SupportTicketReply.objects.filter(pk=reply.pk).update(
+            created_at=t0 + timedelta(minutes=15))
+
+        res = admin_client.get(self.ADMIN_EXPORT_URL)
+        assert res.status_code == 200
+        rows = list(csv.reader(io.StringIO(res.content.decode('utf-8'))))
+        header, data_rows = rows[0], rows[1:]
+        assert header == [
+            'id', 'asunto', 'estado', 'prioridad', 'categoria',
+            'comprador_email', 'created_at', 'primera_respuesta',
+        ]
+        match = next(r for r in data_rows if r[0] == str(ticket.pk))
+        assert match[1] == 'Con respuesta'
+        assert match[2] == 'OPEN'
+        assert match[5] == user.email
+        assert match[7] != ''   # primera_respuesta poblada
+
+    def test_export_respects_status_filter(self, admin_client, user, db):
+        SupportTicket.objects.create(
+            user=user, subject='Abierto',
+            body='Mensaje suficientemente largo.')
+        SupportTicket.objects.create(
+            user=user, subject='Cerrado', status='CLOSED',
+            body='Mensaje suficientemente largo.')
+        res = admin_client.get(f'{self.ADMIN_EXPORT_URL}?status=CLOSED')
+        assert res.status_code == 200
+        rows = list(csv.reader(io.StringIO(res.content.decode('utf-8'))))
+        subjects = [r[1] for r in rows[1:]]
+        assert subjects == ['Cerrado']
 
 
 # ────────────── UC-SUPP-01 AC-03 — order ownership + duplicate (D-002/D-003) ─
