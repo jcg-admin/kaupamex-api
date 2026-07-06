@@ -21,7 +21,13 @@ logger = logging.getLogger('apps')
 # H-ORD-002: mapeo FR→modelo (PENDING_PAYMENT→PENDING, PAYMENT_CONFIRMED→PROCESSING)
 # H-ORD-S01: PAID debe incluirse — pago confirmado pero aún no en preparación.
 CANCELABLE_STATUSES = ['PENDING', 'PROCESSING', 'PAID']
-EDITABLE_STATUSES   = ['PENDING', 'PROCESSING', 'PAID', 'IN_PREPARATION']  # dirección y envío
+EDITABLE_STATUSES   = ['PENDING', 'PROCESSING', 'PAID', 'IN_PREPARATION']  # dirección
+# D-3 (UC-ORD-06): cambiar el método de envío recalcula el total; en una orden
+# ya pagada (PAID/IN_PREPARATION) eso deja el pago capturado sin conciliar
+# (cobro/reembolso de la diferencia no implementado). Se restringe a estados
+# PRE-pago (pago aún no confirmado — el webhook transiciona PENDING/PROCESSING
+# → PAID), de modo que el recálculo siempre precede a la captura del pago.
+SHIPPING_METHOD_EDITABLE_STATUSES = ['PENDING', 'PROCESSING']
 
 
 def cancel_order(order, reason: str = '', cancelled_by=None, cancelable_statuses=None):
@@ -184,21 +190,27 @@ class ShippingMethodNotAvailableError(ValueError):
 def update_shipping_method(order, shipping_method_id: int, changed_by=None):
     """
     Cambia el método de envío y recalcula el total.
-    UC-ORD-06 (FR-ORD-06.02) v2.1.0 (DEC-ORD-04).
+    UC-ORD-06 (FR-ORD-06.02) v2.2.0 (DEC-ORD-04).
 
-    Solo posible en estados: PENDING, PROCESSING, IN_PREPARATION.
-    Recalcula: OrderValue.shipping_cost y OrderValue.total.
+    Solo posible en estados PRE-pago: PENDING, PROCESSING
+    (SHIPPING_METHOD_EDITABLE_STATUSES). Recalcula OrderValue.shipping_cost
+    y OrderValue.total.
 
     H-API-06: deja un registro de auditoría (OrderStatusLog) por cada
     cambio, siguiendo el mismo patrón que cancel_order — sin transición
-    real de Order.status (previous_status == new_status). El cobro o
-    reembolso de la diferencia de costo queda fuera de scope (D-3).
+    real de Order.status (previous_status == new_status).
+
+    D-3 (resuelto — rechazar post-pago): en una orden PAID/IN_PREPARATION
+    el pago ya está capturado; recalcular el total sin cobrar/reembolsar la
+    diferencia dejaría el pago sin conciliar. Por eso el cambio se rechaza
+    con OrderNotEditableError en esos estados. La conciliación automática
+    (cobro/reembolso vía pasarela) sería una sub-iniciativa futura.
 
     :raises OrderNotEditableError: si la orden no permite cambiar el envío.
     :raises ShippingMethodNotAvailableError: si el método no existe o está inactivo.
     """
 
-    if order.status not in EDITABLE_STATUSES:
+    if order.status not in SHIPPING_METHOD_EDITABLE_STATUSES:
         raise OrderNotEditableError(
             f'La orden {order.order_number} no permite cambiar el método '
             f'de envío (estado: {order.status}).'

@@ -430,6 +430,22 @@ class TestCambiarMetodoEnvio:
         assert res.status_code == 409
         assert res.json()['codigo_error'] == 'ORDER_NOT_EDITABLE'
 
+    def test_cambiar_envio_pagada_no_permitido(
+        self, auth_client, user, prod_ord, shipping_methods, db
+    ):
+        """D-3 (UC-ORD-06 v2.2.0): cambiar el método de envío en una orden
+        ya PAGADA recalcularía el total sin conciliar el pago capturado
+        (cobro/reembolso no implementado) -> se rechaza con 409
+        ORDER_NOT_EDITABLE. El cambio solo se permite en estados pre-pago
+        (PENDING/PROCESSING)."""
+        for paid_status in ('PAID', 'IN_PREPARATION'):
+            order = _create_full_order(user, prod_ord, status=paid_status)
+            res = auth_client.patch(SHIPPING_URL(order.order_number), {
+                'shipping_method_id': shipping_methods['standard'].pk,
+            }, format='json')
+            assert res.status_code == 409, paid_status
+            assert res.json()['codigo_error'] == 'ORDER_NOT_EDITABLE', paid_status
+
     def test_cambiar_envio_inexistente_retorna_400(
         self, auth_client, user, prod_ord, db
     ):
@@ -447,8 +463,9 @@ class TestCambiarMetodoEnvio:
     ):
         """H-API-06 (T-007-audit/ORD-06): cada cambio de método de envío
         deja un OrderStatusLog — antes update_shipping_method solo hacía
-        logger.info, sin ningún rastro auditable en la orden. El cobro o
-        reembolso de la diferencia queda fuera de scope (D-3)."""
+        logger.info, sin ningún rastro auditable en la orden. D-3 resuelto:
+        el cambio solo se permite pre-pago (aquí PENDING), donde el recálculo
+        del total precede a la captura del pago (sin conciliación pendiente)."""
         order = _create_full_order(user, prod_ord, status='PENDING')
         order.shipping_method = shipping_methods['express']
         order.shipping_method.save()
