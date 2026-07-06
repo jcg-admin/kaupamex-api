@@ -207,6 +207,41 @@ class TestAdminListSubscribers:
         assert rows[0]['email'] == 'c@example.com'
 
 
+# ─── GET /admin/newsletter/subscribers/export ────────────────────────────
+class TestAdminExportSubscribersCSV:
+    """T-010 (UC-NEW-03 Alt C): export CSV de suscriptores (email + fecha)."""
+
+    EXPORT_URL = '/api/v2/admin/newsletter/subscribers/export/'
+
+    def test_requires_auth(self, api_client, db):
+        assert api_client.get(self.EXPORT_URL).status_code == 401
+
+    def test_requires_staff(self, auth_client, db):
+        assert auth_client.get(self.EXPORT_URL).status_code == 403
+
+    def test_admin_exports_csv(self, admin_client, db):
+        _make_subscriber('x@example.com', status='CONFIRMED')
+        _make_subscriber('y@example.com', status='PENDING')
+        res = admin_client.get(self.EXPORT_URL)
+        assert res.status_code == 200
+        assert res['Content-Type'] == 'text/csv'
+        assert 'attachment' in res['Content-Disposition']
+        assert 'newsletter_subscribers.csv' in res['Content-Disposition']
+        body = res.content.decode()
+        assert body.splitlines()[0] == 'email,estado,fecha_suscripcion'
+        assert 'x@example.com' in body
+        assert 'y@example.com' in body
+
+    def test_admin_export_filter_by_status(self, admin_client, db):
+        _make_subscriber('keep@example.com', status='CONFIRMED')
+        _make_subscriber('drop@example.com', status='PENDING')
+        res = admin_client.get(self.EXPORT_URL + '?status=CONFIRMED')
+        assert res.status_code == 200
+        body = res.content.decode()
+        assert 'keep@example.com' in body
+        assert 'drop@example.com' not in body
+
+
 # ─── POST /admin/newsletter/subscribers/<id>/unsubscribe ─────────────────
 class TestAdminForceUnsubscribe:
     def test_requires_staff(self, auth_client, db):

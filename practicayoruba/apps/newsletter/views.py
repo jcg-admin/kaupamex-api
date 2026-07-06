@@ -11,13 +11,16 @@ Admin:
   POST /api/v1/admin/newsletter/subscribers/<id>/unsubscribe/        UC-NEW-03
   POST /api/v1/admin/newsletter/campaigns/                           UC-NEW-04
 """
+import csv
+import io
 from datetime import timedelta
 
 from django.conf import settings
 from django.core import mail, signing
 from django.db import transaction
+from django.http import HttpResponse
 from django.utils import timezone
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.exceptions import NotFound
 from rest_framework.pagination import PageNumberPagination
@@ -220,6 +223,43 @@ class AdminSubscriberListView(_AdminOnly, APIView):
         page = paginator.paginate_queryset(qs, request)
         serialized = SubscriberListItemSerializer(page, many=True)
         return paginator.get_paginated_response(serialized.data)
+
+
+class AdminSubscriberExportCSVView(_AdminOnly, APIView):
+    """GET /api/v1/admin/newsletter/subscribers/export/ — UC-NEW-03 (T-010).
+
+    Exporta la lista de suscriptores como ``text/csv`` con los datos mínimos
+    GDPR (Alt C del UC): email, estado y fecha de suscripción. Reusa el filtro
+    ``status`` del listado (``AdminSubscriberListView``) pero sin paginar.
+    Antes de T-010 no existía ningún export en newsletter (``grep csv`` = 0).
+    Mismo patrón que ``support.AdminSupportTicketExportCSVView`` (T-009).
+    """
+
+    @extend_schema(
+        summary='Exportar suscriptores a CSV (UC-NEW-03)',
+        tags=['newsletter'],
+        parameters=[
+            OpenApiParameter('status', str, required=False,
+                             description='PENDING / CONFIRMED / UNSUBSCRIBED'),
+        ],
+    )
+    def get(self, request):
+        qs = NewsletterSubscriber.objects.all().order_by('created_at')
+        status_filter = request.query_params.get('status')
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+
+        buf = io.StringIO()
+        writer = csv.writer(buf)
+        writer.writerow(['email', 'estado', 'fecha_suscripcion'])
+        for sub in qs.iterator():
+            writer.writerow([sub.email, sub.status, sub.created_at.isoformat()])
+
+        response = HttpResponse(buf.getvalue(), content_type='text/csv')
+        response['Content-Disposition'] = (
+            'attachment; filename="newsletter_subscribers.csv"'
+        )
+        return response
 
 
 class AdminSubscriberForceUnsubscribeView(_AdminOnly, APIView):
