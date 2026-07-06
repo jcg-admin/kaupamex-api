@@ -472,7 +472,7 @@ class TestReorderImages:
         product, _ = product_con_imagenes
         res = admin_client.post(self._url(product), {'order': 'nope'}, format='json')
         assert res.status_code == 400
-        assert res.json().get('codigo_error') == 'ORDER_INVALIDO'
+        assert res.json().get('codigo_error') == 'ORDER_INVALID'
 
     def test_reorder_requiere_admin(self, api_client, product_con_imagenes, db):
         product, imgs = product_con_imagenes
@@ -533,13 +533,13 @@ class TestUpdateImages:
             {'alt_text': 'sin id'},
         ]}, format='json')
         assert res.status_code == 400
-        assert res.json().get('codigo_error') == 'IMAGE_ITEM_INVALIDO'
+        assert res.json().get('codigo_error') == 'IMAGE_ITEM_INVALID'
 
     def test_requiere_lista_no_vacia(self, admin_client, product_con_imagenes, db):
         product, _ = product_con_imagenes
         res = admin_client.patch(self._url(product), {'images': []}, format='json')
         assert res.status_code == 400
-        assert res.json().get('codigo_error') == 'IMAGES_INVALIDO'
+        assert res.json().get('codigo_error') == 'IMAGES_INVALID'
 
     def test_requiere_admin(self, api_client, product_con_imagenes, db):
         product, imgs = product_con_imagenes
