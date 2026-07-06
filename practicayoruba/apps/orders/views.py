@@ -23,9 +23,10 @@ from rest_framework.views import APIView
 from apps.cart.models import Cart, CartItem
 from apps.cart.views import _get_or_create_cart
 from apps.inventory.services import InventoryService, InsufficientStockError
-from apps.settings_app.models import SiteSettings, ShippingMethod
-from .models import CheckoutAttempt, Order, OrderItem, OrderValue, OrderAddress, ShippingZone
+from apps.settings_app.models import SiteSettings
+from .models import CheckoutAttempt, Order, OrderItem, OrderValue, OrderAddress
 from .serializers import CancelOrderSerializer, CheckoutSerializer, OrderListSerializer, OrderSerializer, UpdateAddressSerializer, UpdateShippingSerializer
+from .shipping import resolve_shipping_quote
 from django.db.models import Prefetch
 from apps.catalogue.models import ProductImage
 from .services import OrderNotEditableError, ShippingMethodNotAvailableError, cancel_order, update_order_address, update_shipping_method
@@ -136,42 +137,19 @@ class CheckoutView(APIView):
         settings_obj = SiteSettings.get_current()
         iva_rate = settings_obj.iva_rate
 
-        # Método de envío — OBLIGATORIO (DEC-BC-25). Antes era opcional: una
-        # orden podía crearse sin método ni costo de envío, y en producción
-        # (sin ShippingMethod activos sembrados) el comprador veía "No hay
-        # métodos de envío disponibles" y aun así podía confirmar, generando
-        # órdenes sin envío. El front ahora bloquea el submit sin método y el
-        # back valida como defensa en profundidad.
-        shipping_method_id = data.get('shipping_method_id')
-        if not shipping_method_id:
-            raise ValidationError(
-                {'shipping_method_id': 'Selecciona un método de envío.',
-                 'codigo_error': 'SHIPPING_METHOD_REQUIRED'})
-        try:
-            shipping_method = ShippingMethod.objects.get(
-                pk=shipping_method_id, is_active=True)
-        except ShippingMethod.DoesNotExist:
-            raise ValidationError(
-                {'shipping_method_id':
-                 'El método de envío no existe o está inactivo.',
-                 'codigo_error': 'SHIPPING_METHOD_UNAVAILABLE'})
-        # G-ENV-01: costo y umbral de envío GRATIS derivados de la ZONA del C.P.
-        # cuando la zona los define, con fallback al método. Permite el modelo
-        # tipo competidor (CDMX/Edomex gratis desde $800; nacional desde $1,300)
-        # sin depender de un único umbral global.
+        # Envío GRATIS siempre (decisión de producto — REVIERTE DEC-BC-25). El
+        # comprador NUNCA selecciona método de envío: el envío lo configura el
+        # admin y el costo se deriva automáticamente por zona (C.P.) vía
+        # resolve_shipping_quote, hoy Decimal('0.00'). La orden se crea sin
+        # ShippingMethod (Order.shipping_method es nullable). El único punto de
+        # extensión (cobro bajo-umbral, PENDIENTE) vive en apps.orders.shipping:
+        # el checkout consume el ShippingQuote y no cambia cuando se agregue la
+        # rama de cobro (open-closed). Si el payload trae shipping_method_id se
+        # ignora — el comprador ya no elige método.
         zip_code = (data.get('address') or {}).get('zip_code', '')
-        zone = ShippingZone.resolve_for_zip(zip_code)
-        effective_cost = (
-            zone.cost if (zone and zone.cost is not None)
-            else shipping_method.cost)
-        effective_free_threshold = (
-            zone.free_threshold if (zone and zone.free_threshold is not None)
-            else shipping_method.free_threshold)
-        shipping_cost = Decimal('0.00')
         subtotal_for_shipping = cart.get_subtotal() - cart.get_discount()
-        if (effective_free_threshold is None or
-                subtotal_for_shipping < effective_free_threshold):
-            shipping_cost = effective_cost
+        quote = resolve_shipping_quote(zip_code, subtotal_for_shipping)
+        shipping_cost = quote.cost
 
         try:
             with transaction.atomic():
@@ -190,7 +168,7 @@ class CheckoutView(APIView):
                 order = Order.objects.create(
                     user=user,
                     guest_email=guest_email,
-                    shipping_method=shipping_method,
+                    shipping_method=None,
                     voucher_code=voucher_code,
                     voucher_discount=voucher_discount,
                     notes=data.get('notes', ''),

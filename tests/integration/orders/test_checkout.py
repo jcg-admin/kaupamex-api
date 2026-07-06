@@ -142,43 +142,57 @@ class TestCheckout:
         assert 'tax' in value
         assert 'total' in value
 
-    def test_checkout_con_metodo_envio(
+    def test_checkout_envio_gratis_siempre_cdmx(
+        self, cart_con_item_auth, db
+    ):
+        """Envío GRATIS siempre (REVIERTE DEC-BC-25): el comprador no elige
+        método; shipping_cost == 0 para un C.P. de CDMX (06600)."""
+        res = cart_con_item_auth.post(CHECKOUT_URL, {
+            'address': ADDR,
+        }, format='json')
+        assert res.status_code == 201
+        assert Decimal(res.json()['value']['shipping_cost']) == Decimal('0.00')
+
+    def test_checkout_envio_gratis_cp_nacional(
+        self, cart_con_item_auth, db
+    ):
+        """Envío GRATIS también para un C.P. nacional sin zona sembrada
+        (Monterrey 64000): la política es gratis sin importar la zona."""
+        addr_nacional = {**ADDR, 'city': 'Monterrey',
+                         'state': 'Nuevo Leon', 'zip_code': '64000'}
+        res = cart_con_item_auth.post(CHECKOUT_URL, {
+            'address': addr_nacional,
+        }, format='json')
+        assert res.status_code == 201
+        assert Decimal(res.json()['value']['shipping_cost']) == Decimal('0.00')
+
+    def test_checkout_sin_shipping_method_id_crea_orden(
+        self, cart_con_item_auth, prod_ord, db
+    ):
+        """REVIERTE DEC-BC-25: el checkout ya NO exige shipping_method_id. El
+        comprador nunca selecciona método; la orden se crea gratis y sin
+        ShippingMethod asociado (antes esto daba 400 SHIPPING_METHOD_REQUIRED)."""
+        res = cart_con_item_auth.post(CHECKOUT_URL, {'address': ADDR}, format='json')
+        assert res.status_code == 201
+        assert Decimal(res.json()['value']['shipping_cost']) == Decimal('0.00')
+        order = Order.objects.get(order_number=res.json()['order_number'])
+        assert order.shipping_method is None
+
+    def test_checkout_ignora_shipping_method_id_del_payload(
         self, cart_con_item_auth, shipping, db
     ):
+        """REVIERTE DEC-BC-25: si el payload aún trae un shipping_method_id
+        (método con cost=80), el back lo IGNORA — el comprador no elige método.
+        La orden se crea gratis y sin ShippingMethod asociado (antes esto
+        derivaba shipping_cost=80 del método)."""
         res = cart_con_item_auth.post(CHECKOUT_URL, {
             'address': ADDR,
             'shipping_method_id': shipping.pk,
         }, format='json')
         assert res.status_code == 201
-        assert Decimal(res.json()['value']['shipping_cost']) == Decimal('80.00')
-
-    def test_checkout_sin_metodo_envio_retorna_400(
-        self, cart_con_item_auth, prod_ord, db
-    ):
-        """DEC-BC-25: el checkout exige un método de envío. Sin él, 400 con
-        codigo_error SHIPPING_METHOD_REQUIRED (antes se permitía crear la
-        orden sin método ni costo de envío)."""
-        res = cart_con_item_auth.post(CHECKOUT_URL, {'address': ADDR}, format='json')
-        assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'SHIPPING_METHOD_REQUIRED'
-        # No debe crearse ninguna orden.
-        assert Order.objects.count() == 0
-
-    def test_checkout_metodo_envio_inactivo_retorna_400(
-        self, cart_con_item_auth, prod_ord, db
-    ):
-        """DEC-BC-25: un shipping_method_id que no existe o está inactivo se
-        rechaza con SHIPPING_METHOD_UNAVAILABLE."""
-        inactivo = ShippingMethod.objects.create(
-            name='Descontinuado', cost=Decimal('50.00'),
-            estimated_days=5, is_active=False)
-        res = cart_con_item_auth.post(CHECKOUT_URL, {
-            'address': ADDR,
-            'shipping_method_id': inactivo.pk,
-        }, format='json')
-        assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'SHIPPING_METHOD_UNAVAILABLE'
-        assert Order.objects.count() == 0
+        assert Decimal(res.json()['value']['shipping_cost']) == Decimal('0.00')
+        order = Order.objects.get(order_number=res.json()['order_number'])
+        assert order.shipping_method is None
 
     def test_checkout_carrito_vacio_retorna_400(self, auth_client, zone_cdmx, db):
         res = auth_client.post(CHECKOUT_URL, {'address': ADDR}, format='json')
@@ -392,9 +406,10 @@ class TestShippingMethodProtection:
 
 
 class TestZoneFreeShipping:
-    """G-ENV-01: el umbral y el costo de envío gratis se derivan de la ZONA del
-    C.P. cuando la zona los define, con fallback al método de envío. Modelo tipo
-    competidor: CDMX/Edomex gratis desde $800; nacional desde $1,300."""
+    """Envío GRATIS siempre (REVIERTE DEC-BC-25 y la derivación de costo por
+    zona G-ENV-01): el comprador no elige método y el costo es 0 sin importar
+    el umbral/costo de la zona ni el subtotal. El cobro bajo-umbral es el punto
+    de extensión PENDIENTE (apps.orders.shipping), aún no implementado."""
 
     def _set_zone(self, **defaults):
         # C.P. de ADDR = '06600' → prefijo '06'. update_or_create respeta el
@@ -403,32 +418,30 @@ class TestZoneFreeShipping:
             zip_code_prefix='06',
             defaults={'name': 'Zona test', 'is_active': True, **defaults})
 
-    def test_zona_umbral_gratis_aplica(self, cart_con_item_auth, shipping, db):
-        # subtotal = 1000 (2×500). Zona con umbral 800 → envío GRATIS aunque el
-        # método no tenga umbral (free_threshold None → normalmente cobraría).
+    def test_zona_con_umbral_es_gratis(self, cart_con_item_auth, db):
+        # subtotal = 1000 (2×500) ≥ umbral 800 → gratis. Bajo la nueva política
+        # esto es gratis de todos modos (envío gratis siempre).
         self._set_zone(free_threshold=Decimal('800.00'), cost=Decimal('50.00'))
-        res = cart_con_item_auth.post(CHECKOUT_URL, {
-            'address': ADDR, 'shipping_method_id': shipping.pk}, format='json')
+        res = cart_con_item_auth.post(CHECKOUT_URL, {'address': ADDR}, format='json')
         assert res.status_code == 201
         assert Decimal(res.json()['value']['shipping_cost']) == Decimal('0.00')
 
-    def test_zona_bajo_umbral_cobra_costo_de_zona(self, cart_con_item_auth, shipping, db):
-        # subtotal 1000 < umbral 1300 → cobra, y usa el costo de la ZONA (50),
-        # no el del método (80).
+    def test_zona_bajo_umbral_sigue_gratis(self, cart_con_item_auth, db):
+        # subtotal 1000 < umbral 1300: bajo el modelo G-ENV-01 anterior esto
+        # cobraba el costo de zona (50). REVERTIDO: sigue GRATIS (0). El cobro
+        # bajo-umbral es el punto de extensión PENDIENTE (open-closed).
         self._set_zone(free_threshold=Decimal('1300.00'), cost=Decimal('50.00'))
-        res = cart_con_item_auth.post(CHECKOUT_URL, {
-            'address': ADDR, 'shipping_method_id': shipping.pk}, format='json')
+        res = cart_con_item_auth.post(CHECKOUT_URL, {'address': ADDR}, format='json')
         assert res.status_code == 201
-        assert Decimal(res.json()['value']['shipping_cost']) == Decimal('50.00')
+        assert Decimal(res.json()['value']['shipping_cost']) == Decimal('0.00')
 
-    def test_sin_umbral_ni_costo_de_zona_cae_al_metodo(self, cart_con_item_auth, shipping, db):
-        # Zona sin umbral ni costo → fallback al método: free_threshold None →
-        # cobra el costo del método (80).
+    def test_sin_metodo_seleccionado_sigue_gratis(self, cart_con_item_auth, db):
+        # Zona sin umbral ni costo y sin método en el payload: gratis. Antes
+        # (G-ENV-01) caía al costo del método (80); ya no hay método que elegir.
         self._set_zone(free_threshold=None, cost=None)
-        res = cart_con_item_auth.post(CHECKOUT_URL, {
-            'address': ADDR, 'shipping_method_id': shipping.pk}, format='json')
+        res = cart_con_item_auth.post(CHECKOUT_URL, {'address': ADDR}, format='json')
         assert res.status_code == 201
-        assert Decimal(res.json()['value']['shipping_cost']) == Decimal('80.00')
+        assert Decimal(res.json()['value']['shipping_cost']) == Decimal('0.00')
 
     def test_resolve_for_zip_prefijo_mas_largo_gana(self, db):
         ShippingZone.objects.update_or_create(
