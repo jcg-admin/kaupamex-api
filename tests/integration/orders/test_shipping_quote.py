@@ -13,6 +13,20 @@ from apps.orders.shipping import ShippingQuote, resolve_shipping_quote
 pytestmark = pytest.mark.integration
 
 
+@pytest.fixture(autouse=True)
+def _tabla_zonas_vacia(db):
+    """Aísla del seed de zonas (migración de datos 0012_seed_shipping_zones).
+
+    Las migraciones de datos siembran C.P. reales (01, 06, 066, 44, 64, …).
+    Sin limpiar, el resolver hace longest-prefix match contra el seed (p. ej.
+    '06600' matchea la zona sembrada '066' antes que la '06' que crea el test),
+    y los tests que crean un prefijo ya sembrado chocan con la unique de
+    ``zip_code_prefix`` (migración 0017). El delete lo revierte la transacción
+    del fixture ``db`` de pytest-django, así que otros módulos ven el seed.
+    """
+    ShippingZone.objects.all().delete()
+
+
 class TestResolveShippingQuote:
 
     def test_quote_es_gratis_con_zona(self, db):
