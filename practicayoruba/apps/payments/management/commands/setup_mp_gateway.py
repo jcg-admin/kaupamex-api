@@ -53,6 +53,12 @@ def _read_first(*names):
 class Command(BaseCommand):
     help = 'Crea o actualiza el PaymentGateway de MercadoPago con credenciales de .env'
 
+    # No correr los system checks: en producción (DEBUG=False) el check
+    # payments.E001 falla cuando aún no existe el gateway — el estado
+    # exacto que este comando viene a resolver (chicken-and-egg). Sin esto,
+    # bootstrappear el gateway en una VM nueva exigiría --skip-checks.
+    requires_system_checks = []
+
     def add_arguments(self, parser):
         parser.add_argument(
             '--dry-run',
@@ -84,9 +90,14 @@ class Command(BaseCommand):
         if client_secret:
             credentials['client_secret'] = client_secret
 
-        self.stdout.write(f'modo:         {modo}')
-        self.stdout.write(f'access_token: {access_token[:20]}…')
-        self.stdout.write(f'public_key:   {public_key[:20]}…')
+        # No imprimir ningún fragmento del token (ni prefijo): solo modo +
+        # últimos 4 enmascarados (BR-009 / RNF-SEC-002). El modo ya se
+        # imprime aparte, así que el prefijo del token no aporta nada.
+        def _mask(v):
+            return ('****' + v[-4:]) if v and len(v) > 4 else '****'
+        self.stdout.write(f'modo:          {modo}')
+        self.stdout.write(f'access_token:  {_mask(access_token)}')
+        self.stdout.write(f'public_key:    {_mask(public_key)}')
         self.stdout.write(
             f'client_secret: {"configurado" if client_secret else "<AUSENTE>"}'
         )
