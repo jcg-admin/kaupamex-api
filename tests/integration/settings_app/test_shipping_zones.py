@@ -17,6 +17,20 @@ DETAIL_URL = lambda pk: f'/api/v2/admin/shipping-zones/{pk}/'
 PUBLIC_URL = '/api/v2/shipping-zones/'
 
 
+@pytest.fixture(autouse=True)
+def _tabla_zonas_vacia(db):
+    """Aísla del seed de zonas (migración de datos 0012_seed_shipping_zones).
+
+    Las migraciones de datos siembran C.P. reales (01, 06, 44, 64, …); sin
+    limpiar, crear un prefijo ya sembrado choca con la unique de
+    ``zip_code_prefix`` (migración 0017) y ``64000`` deja de ser "sin zona".
+    El delete lo revierte la transacción del fixture ``db`` de pytest-django,
+    así que otros módulos siguen viendo el seed. Corre antes de ``zona`` por
+    ser autouse.
+    """
+    ShippingZone.objects.all().delete()
+
+
 @pytest.fixture
 def zona(db):
     return ShippingZone.objects.create(
