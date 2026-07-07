@@ -569,6 +569,13 @@ class OrderShippingUpdateView(APIView):
     UC-ORD-06 (FR-ORD-06.02).
     Solo posible en PENDING, PROCESSING, IN_PREPARATION.
     H-ORD-007: recalcula total = neto + tax + nuevo_shipping_cost.
+
+    DEPRECADO (2026-07-07): el comprador NUNCA elige método de envío — el
+    envío se deriva por zona y es GRATIS (open-closed; supersede
+    DEC-BC-19/DEC-BC-25, ver UC-ORD-01 v2.2.0 y UC-ORD-06 marcado deprecado).
+    "Cambiar el método de envío" como acción del comprador ya no aplica. El
+    endpoint se conserva (no se elimina) marcado deprecado; su retiro efectivo
+    queda para una iniciativa dedicada.
     """
     permission_classes = [IsAuthenticated]
 

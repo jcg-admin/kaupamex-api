@@ -192,6 +192,11 @@ def update_shipping_method(order, shipping_method_id: int, changed_by=None):
     Cambia el método de envío y recalcula el total.
     UC-ORD-06 (FR-ORD-06.02) v2.2.0 (DEC-ORD-04).
 
+    DEPRECADO (2026-07-07): el comprador ya no elige método de envío (el envío
+    se deriva por zona, GRATIS open-closed; supersede DEC-BC-19/DEC-BC-25). Se
+    conserva el servicio marcado deprecado; su retiro efectivo queda para una
+    iniciativa dedicada.
+
     Solo posible en estados PRE-pago: PENDING, PROCESSING
     (SHIPPING_METHOD_EDITABLE_STATUSES). Recalcula OrderValue.shipping_cost
     y OrderValue.total.
