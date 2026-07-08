@@ -131,6 +131,120 @@ def _build_additional_info(order) -> dict:
     return info
 
 
+# Tipos de payment_method de Orders que llevan token + cuotas (tarjeta).
+CARD_PAYMENT_TYPES = frozenset({'credit_card', 'debit_card'})
+
+
+def _amount_str(value) -> str:
+    """Formatea un importe como string con 2 decimales.
+
+    El Orders API exige los importes como **string** (``"12.90"``), no como
+    número — enviar float puede perder precisión o ser rechazado.
+    """
+    return str(Decimal(str(value)).quantize(Decimal('0.01')))
+
+
+def _build_order_payment_method(
+    payment_method_id: str,
+    payment_type: str,
+    token: str = '',
+    installments: int = 1,
+    statement_descriptor: str = '',
+) -> dict:
+    """Arma el bloque ``payment_method`` de una transacción Orders.
+
+    El discriminante es ``type`` (credit_card/debit_card/ticket/bank_transfer).
+    Tarjeta lleva ``token`` + ``installments`` (+ ``statement_descriptor``
+    opcional); no-tarjeta (OXXO/SPEI) los omite.
+    """
+    pm = {'id': payment_method_id, 'type': payment_type}
+    if payment_type in CARD_PAYMENT_TYPES:
+        pm['token'] = token
+        pm['installments'] = installments
+        if statement_descriptor:
+            pm['statement_descriptor'] = statement_descriptor
+    return pm
+
+
+def _build_order_payload(
+    order,
+    *,
+    payment_method_id: str,
+    payment_type: str,
+    token: str = '',
+    installments: int = 1,
+    payer_email: str = '',
+    payer_identification_type: str = '',
+    payer_identification_number: str = '',
+    statement_descriptor: str = '',
+    three_ds_validation: str = 'on_fraud_risk',
+) -> dict:
+    """Construye el payload de ``POST /v1/orders`` (Orders API).
+
+    Estructura PROVEN de la colección Postman
+    (analisis-postman-inferencias-modelo-datos-orders): ``type: online``,
+    importes **string**, ``transactions.payments[]`` con el discriminante
+    ``payment_method.type``, ``processing_mode``/``capture_mode`` automatic
+    (DEC-ORD-02), ``payer``/``items`` inline.
+
+    ``three_ds_validation`` = ``on_fraud_risk`` (DEC-ORD-02): dispara el 3DS
+    solo ante riesgo. La **ubicación exacta** de la clave de config 3DS en el
+    request se confirma en T-202 (smoke sandbox); se aísla en ``config`` del
+    payment para poder ajustarla sin tocar el resto del payload.
+
+    Función pura: no hace red; determinística desde ``order``.
+    """
+    total = _amount_str(order.value.total)
+
+    payment_method = _build_order_payment_method(
+        payment_method_id, payment_type, token, installments, statement_descriptor,
+    )
+    if three_ds_validation and payment_type in CARD_PAYMENT_TYPES:
+        payment_method['config'] = {
+            'online': {'transaction_security': {'validation': three_ds_validation}},
+        }
+
+    email_resolved = (
+        payer_email
+        or (order.user.email if order.user else '')
+        or getattr(order, 'guest_email', '')
+        or 'guest@practicayoruba.mx'
+    )
+    payer = {'email': email_resolved}
+    if payer_identification_type and payer_identification_number:
+        payer['identification'] = {
+            'type':   payer_identification_type,
+            'number': payer_identification_number,
+        }
+
+    payload = {
+        'type':               'online',
+        'external_reference':  order.order_number,
+        'total_amount':        total,
+        'processing_mode':     'automatic',
+        'capture_mode':        'automatic',
+        'transactions': {
+            'payments': [
+                {'amount': total, 'payment_method': payment_method},
+            ],
+        },
+        'payer': payer,
+    }
+
+    # items inline (reusa additional_info; importes a string).
+    info = _build_additional_info(order)
+    items = info.get('items')
+    if items:
+        payload['items'] = [
+            {**it, 'unit_price': _amount_str(it['unit_price'])} for it in items
+        ]
+    shipments = info.get('shipments')
+    if shipments:
+        payload['shipments'] = shipments
+
+    return payload
+
+
 def _get_sdk() -> mercadopago.SDK:
     """
     Instancia el SDK de MP con el access_token descifrado en memoria.
