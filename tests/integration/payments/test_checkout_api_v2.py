@@ -16,6 +16,7 @@ from apps.catalogue.models import Category, Product
 from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from apps.settings_app.models import PaymentGateway
 from apps.payments.models import Payment, PaymentGatewayEvent
+from apps.payments.gateways.mercadopago import MercadoPagoGateway
 
 pytestmark = pytest.mark.integration
 
@@ -84,20 +85,53 @@ def mp_gw(db, admin_user):
     return gw
 
 
+# Traducción del estado "interno" que piden los tests -> ``status`` del pago
+# anidado en la respuesta del Orders API (migración DEC-ORD-01). El
+# ``status_detail`` se preserva tal cual lo pasa el test (motivo de rechazo,
+# etc.); solo el ``status`` de Orders se deriva del estado interno.
+# ``pending`` -> ``action_required`` porque ``processing`` mapea a ``in_process``
+# en orders_status.map_order_payment_status, no a ``pending``.
+_ORDERS_STATUS_BY_INTERNAL = {
+    'approved':   'processed',
+    'rejected':   'failed',
+    'pending':    'action_required',
+    'in_process': 'processing',
+}
+
+
 def _make_mp_payment_mock(status='approved', status_detail='accredited',
                           mp_status_code=201, amount=3000.00, installments=1):
-    """Devuelve un mock del SDK de MP configurado para payment().create()."""
+    """Devuelve un mock del SDK de MP configurado para order().create().
+
+    Migrado a Orders API: create_payment ahora llama sdk.order().create y lee
+    el pago anidado en transactions.payments[0]. El parámetro ``status`` sigue
+    siendo el estado interno esperado; se traduce al ``status`` de Orders y el
+    ``status_detail`` se pasa sin cambios.
+    """
+    o_status = _ORDERS_STATUS_BY_INTERNAL.get(status, 'processed')
+    o_detail = status_detail
     mock_mp = MagicMock()
     sdk = MagicMock()
     mock_mp.SDK.return_value = sdk
-    sdk.payment.return_value.create.return_value = {
+    sdk.order.return_value.create.return_value = {
         'status': mp_status_code,
         'response': {
-            'id':                 99001,
-            'status':             status,
-            'status_detail':      status_detail,
-            'transaction_amount': amount,
-            'installments':       installments,
+            'id':     'ORD99001',
+            'status': o_status,
+            'transactions': {
+                'payments': [
+                    {
+                        'id':            99001,
+                        'status':        o_status,
+                        'status_detail': o_detail,
+                        'amount':        str(amount),
+                        'payment_method': {
+                            'id': 'visa', 'type': 'credit_card',
+                            'installments': installments,
+                        },
+                    }
+                ]
+            },
         },
     }
     return mock_mp
@@ -397,51 +431,60 @@ class TestMpPublicKey:
 # =============================================================================
 
 class TestCheckoutApiAdditionalInfo:
-    """El pago debe enviar additional_info (items, payer, envio) a MP."""
+    """El pago debe enviar items/payer/envío inline en el payload Orders.
+
+    Migrado de Payments API ``additional_info`` a Orders API inline
+    (``items``/``payer``/``shipments`` a nivel de order) — DEC-ORD-01. Las
+    señales antifraude del comprador (nombre, teléfono, dirección) se preservan.
+    """
 
     def _make_gateway(self):
-        from apps.payments.gateways.mercadopago import MercadoPagoGateway
         return MercadoPagoGateway.__new__(MercadoPagoGateway)
 
     def _capture_payload(self, order):
         captured = {}
         sdk = MagicMock()
 
-        def _create(payload):
+        def _create(payload, request_options=None):
             captured['payload'] = payload
             return {
                 'status': 201,
                 'response': {
-                    'id': 77001, 'status': 'approved',
-                    'status_detail': 'accredited',
-                    'transaction_amount': 3000.00, 'installments': 1,
+                    'id': 'ORD77001', 'status': 'processed',
+                    'transactions': {'payments': [{
+                        'id': 77001, 'status': 'processed',
+                        'status_detail': 'accredited', 'amount': '3000.00',
+                        'payment_method': {'id': 'visa', 'type': 'credit_card',
+                                           'installments': 1},
+                    }]},
                 },
             }
 
-        sdk.payment.return_value.create.side_effect = _create
+        sdk.order.return_value.create.side_effect = _create
         with patch('apps.payments.gateways.mercadopago._get_sdk', return_value=sdk):
             self._make_gateway().create_payment(
                 order, token=_VALID_TOKEN,
-                payment_method_id=_VALID_PAYMENT_METHOD, installments=1,
+                payment_method_id=_VALID_PAYMENT_METHOD,
+                payment_type='credit_card', installments=1,
             )
         return captured['payload']
 
-    def test_envia_additional_info_con_items(self, orden_v2, db):
+    def test_envia_items_inline(self, orden_v2, db):
         payload = self._capture_payload(orden_v2)
-        ai = payload.get('additional_info')
-        assert ai, 'additional_info debe enviarse a MP'
-        assert ai['items'][0]['title'] == 'Prod V2'
-        assert ai['items'][0]['quantity'] == 2
-        assert ai['items'][0]['unit_price'] == 1500.00
+        items = payload.get('items')
+        assert items, 'items debe enviarse inline a Orders'
+        assert items[0]['title'] == 'Prod V2'
+        assert items[0]['quantity'] == 2
+        # Orders exige importes string
+        assert items[0]['unit_price'] == '1500.00'
 
-    def test_envia_additional_info_con_payer_nombre(self, orden_v2, db):
-        ai = self._capture_payload(orden_v2)['additional_info']
-        assert ai['payer']['first_name'] == 'Test'
-        assert ai['payer']['last_name'] == 'User'
+    def test_envia_payer_nombre(self, orden_v2, db):
+        payer = self._capture_payload(orden_v2)['payer']
+        assert payer['first_name'] == 'Test'
+        assert payer['last_name'] == 'User'
 
-    def test_envia_additional_info_con_direccion_envio(self, orden_v2, db):
-        ai = self._capture_payload(orden_v2)['additional_info']
-        addr = ai['shipments']['receiver_address']
+    def test_envia_direccion_envio(self, orden_v2, db):
+        addr = self._capture_payload(orden_v2)['shipments']['receiver_address']
         assert addr['zip_code'] == '06600'
         assert addr['city_name'] == 'CDMX'
         assert addr['street_name'] == 'Av. Reforma 1'

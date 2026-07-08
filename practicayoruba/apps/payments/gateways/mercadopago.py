@@ -7,11 +7,14 @@ BR-009: las credenciales NUNCA pasan al frontend.
 """
 import json
 import logging
+import uuid
 from decimal import Decimal, Decimal as Dec
 from .base import BaseGateway, PreferenceResult, InstallmentPlan, PaymentVerification, RefundResult, PaymentResult
+from .orders_status import map_order_payment_status
 from apps.settings_app.models import PaymentGateway
 
 import mercadopago
+from mercadopago.config.request_options import RequestOptions
 
 
 logger = logging.getLogger('apps')
@@ -134,6 +137,31 @@ def _build_additional_info(order) -> dict:
 # Tipos de payment_method de Orders que llevan token + cuotas (tarjeta).
 CARD_PAYMENT_TYPES = frozenset({'credit_card', 'debit_card'})
 
+# Mapeo id no-tarjeta -> ``payment_method.type`` de Orders.
+# [INFERRED] por analogía (Pix/Boleto/PSE); se verifica en T-002 contra sandbox.
+_NON_CARD_TYPE_BY_ID = {
+    'oxxo':             'ticket',
+    'paycash':          'ticket',
+    'banamex':          'ticket',
+    'serfin':           'ticket',
+    'bancomer':         'ticket',
+    'clabe':            'bank_transfer',
+    'account_money':    'account_money',
+    'consumer_credits': 'consumer_credits',
+}
+
+
+def _derive_payment_type(payment_method_id: str, is_non_card: bool) -> str:
+    """Deriva el ``payment_method.type`` de Orders desde el id.
+
+    Fallback cuando el frontend no envía el ``type`` (T-203 lo enviará). Para
+    tarjeta asume ``credit_card`` (el débito debe declararse explícito). Para
+    no-tarjeta usa el mapa ``[INFERRED]`` (T-002 lo verifica).
+    """
+    if is_non_card:
+        return _NON_CARD_TYPE_BY_ID.get(payment_method_id, 'ticket')
+    return 'credit_card'
+
 
 def _amount_str(value) -> str:
     """Formatea un importe como string con 2 decimales.
@@ -217,6 +245,17 @@ def _build_order_payload(
             'number': payer_identification_number,
         }
 
+    # items/payer/shipments inline (reusa additional_info; importes a string).
+    info = _build_additional_info(order)
+
+    # Señales antifraude del comprador (nombre/teléfono) en el ``payer`` de la
+    # order — preserva la enriquecimiento de aprobación de la Payments API
+    # (additional_info.payer) que Orders acepta inline en ``payer``.
+    info_payer = info.get('payer') or {}
+    for key in ('first_name', 'last_name', 'phone'):
+        if info_payer.get(key):
+            payer[key] = info_payer[key]
+
     payload = {
         'type':               'online',
         'external_reference':  order.order_number,
@@ -231,8 +270,6 @@ def _build_order_payload(
         'payer': payer,
     }
 
-    # items inline (reusa additional_info; importes a string).
-    info = _build_additional_info(order)
     items = info.get('items')
     if items:
         payload['items'] = [
@@ -463,91 +500,78 @@ class MercadoPagoGateway(BaseGateway):
         payer_identification_type: str = '',
         payer_identification_number: str = '',
         customer_id: str = '',
+        payment_type: str = '',
     ) -> PaymentResult:
         """
-        Crea un pago con Checkout API (pago en sitio, sin redirección).
-        ADR-018: elegido sobre Checkout Pro para UX transparente.
+        Crea un pago con Checkout API **Orders** (``POST /v1/orders``, pago en
+        sitio sin redirección). Migrado del Payments API (DEC-ORD-01/02/03): MP
+        restringió ``/v1/payments`` legacy (401 cause 7) y empuja a Orders.
 
-        Para métodos de tarjeta: token (obligatorio) + installments.
-        Para métodos no-tarjeta (OXXO, SPEI, cajero, etc.): solo email +
-        payment_method_id. El token y cuotas se omiten del payload.
+        Para tarjeta: ``token`` (obligatorio) + ``installments`` +
+        ``payment_type`` (credit_card/debit_card). Para no-tarjeta (OXXO/SPEI):
+        solo email + ``payment_method_id`` (el ``type`` se deriva).
         """
         sdk = _get_sdk()
 
-        payer_email_resolved = (
-            payer_email
-            or (order.user.email if order.user else None)
-            or order.guest_email
-            or 'guest@practicayoruba.mx'
+        is_non_card = payment_method_id in NON_CARD_METHOD_IDS
+        resolved_type = payment_type or _derive_payment_type(payment_method_id, is_non_card)
+
+        payload = _build_order_payload(
+            order,
+            payment_method_id=payment_method_id,
+            payment_type=resolved_type,
+            token=token,
+            installments=installments,
+            payer_email=payer_email,
+            payer_identification_type=payer_identification_type,
+            payer_identification_number=payer_identification_number,
         )
 
-        is_non_card = payment_method_id in NON_CARD_METHOD_IDS
+        # X-Idempotency-Key por intento de pago (DEC-ORD-02): un UUID nuevo por
+        # llamada protege contra doble-submit del MISMO request sin bloquear un
+        # reintento legítimo. customer_id se conserva en la firma para el flujo
+        # futuro de saved-card; NO se envía junto al token de un solo uso.
+        request_options = RequestOptions()
+        request_options.custom_headers = {'X-Idempotency-Key': uuid.uuid4().hex}
 
-        payment_data = {
-            'transaction_amount': float(order.value.total),
-            'payment_method_id':  payment_method_id,
-            'external_reference': order.order_number,
-            'payer': {
-                'email': payer_email_resolved,
-            },
-        }
-
-        # Calidad de integración MP (Payment Approval + Security): enviar
-        # items, datos del comprador y dirección de envío.
-        additional_info = _build_additional_info(order)
-        if additional_info:
-            payment_data['additional_info'] = additional_info
-
-        if not is_non_card:
-            payment_data['token']        = token
-            payment_data['installments'] = installments
-
-        # NO enviar payer.id junto al token de un solo uso del CardForm: MP
-        # interpreta token+payer.id como cobro a una TARJETA GUARDADA de ese
-        # customer y busca el token en sus cards → "Card Token not found" para
-        # un token nuevo. El customer se sigue creando/cacheando en el User
-        # (get_or_create_mp_customer) para la Cards API; solo se omite del
-        # payload de este pago. customer_id se conserva en la firma para el
-        # flujo futuro de saved-card (payer.type='customer' + card token).
-
-        if issuer_id and not is_non_card:
-            payment_data['issuer_id'] = issuer_id
-
-        if payer_identification_type and payer_identification_number:
-            payment_data['payer']['identification'] = {
-                'type':   payer_identification_type,
-                'number': payer_identification_number,
-            }
-
-        response = sdk.payment().create(payment_data)
+        response = sdk.order().create(payload, request_options=request_options)
 
         if response['status'] not in (200, 201):
             body = response.get('response', {})
             msg  = body.get('message', str(response))
-            logger.error('MercadoPago Checkout API error: %s', msg)
+            logger.error('MercadoPago Orders API error: %s', msg)
             raise RuntimeError(f'Error al procesar pago en MercadoPago: {msg}')
 
         data = response['response']
 
-        # Extraer campos específicos de métodos no-tarjeta
-        transaction_details = data.get('transaction_details') or {}
-        transaction_data    = data.get('transaction_data') or {}
+        # El pago vive en transactions.payments[0]; el id de la order (ORD) y el
+        # del pago (PAY) se persisten por separado (DEC-ORD-03).
+        payments = (data.get('transactions') or {}).get('payments') or []
+        pay = payments[0] if payments else {}
+        pay_method = pay.get('payment_method') or {}
 
+        pay_status = pay.get('status') or data.get('status', '')
+        pay_detail = pay.get('status_detail') or data.get('status_detail', '')
+
+        # Campos de voucher (no-tarjeta): OXXO/SPEI exponen la URL/expiración en
+        # el payment_method anidado. Best-effort; T-501 lo refina tras T-002.
         external_resource_url = (
-            transaction_details.get('external_resource_url', '')
+            pay_method.get('ticket_url', '')
+            or pay_method.get('external_resource_url', '')
             or data.get('external_resource_url', '')
         )
-        date_of_expiration = data.get('date_of_expiration', '')
+        date_of_expiration = pay.get('date_of_expiration', '') or data.get('expiration_time', '')
 
         return PaymentResult(
-            gateway_payment_id    = str(data['id']),
-            status                = MP_STATUS_MAP.get(data.get('status', 'pending'), 'pending'),
-            status_detail         = data.get('status_detail', ''),
-            amount                = Decimal(str(data.get('transaction_amount', order.value.total))),
-            installments          = data.get('installments', installments),
+            gateway_payment_id    = str(pay.get('id') or ''),
+            mp_order_id           = str(data.get('id') or ''),
+            status                = map_order_payment_status(pay_status, pay_detail),
+            status_detail         = pay_detail,
+            amount                = Decimal(str(pay.get('amount') or order.value.total)),
+            installments          = pay_method.get('installments', installments),
             external_resource_url = external_resource_url,
             date_of_expiration    = date_of_expiration,
-            transaction_data      = transaction_data if transaction_data else None,
+            transaction_data      = pay_method if is_non_card and pay_method else None,
         )
 
     # -------------------------------------------------------------------------

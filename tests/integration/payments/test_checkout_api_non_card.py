@@ -103,6 +103,47 @@ def _mp_response(payment_method_id, status='pending',
     return resp
 
 
+def _orders_nc_resp(order_id, pay_id, payment_type,
+                    pay_status='action_required',
+                    pay_detail='waiting_payment',
+                    external_resource_url='', date_of_expiration='',
+                    extra_method=None):
+    """Respuesta Orders API (POST /v1/orders) para un pago no-tarjeta.
+
+    El voucher/CLABE vive en ``transactions.payments[0].payment_method``
+    (best-effort del cableado T-201b; ``create_payment`` lee ``ticket_url`` /
+    ``external_resource_url`` de ahi y expone ``payment_method`` como
+    ``transaction_data``).
+    """
+    payment_method = {
+        'id': payment_type,
+        'type': payment_type,
+        'ticket_url': external_resource_url,
+        'external_resource_url': external_resource_url,
+    }
+    if extra_method:
+        payment_method.update(extra_method)
+    order_status = 'processed' if pay_status == 'processed' else 'action_required'
+    return {
+        'status': 201,
+        'response': {
+            'id': order_id,
+            'status': order_status,
+            'status_detail': pay_detail,
+            'transactions': {
+                'payments': [{
+                    'id': pay_id,
+                    'status': pay_status,
+                    'status_detail': pay_detail,
+                    'amount': '500.00',
+                    'date_of_expiration': date_of_expiration,
+                    'payment_method': payment_method,
+                }],
+            },
+        },
+    }
+
+
 # =============================================================================
 # Tests — OXXO
 # =============================================================================
@@ -110,22 +151,11 @@ def _mp_response(payment_method_id, status='pending',
 @pytest.mark.django_db
 def test_oxxo_payment_no_token_required(auth_client, orden_nc, mp_gw_nc):
     mp_mock = MagicMock()
-    mp_resp = {
-        'status': 201,
-        'response': {
-            'id': '111222333',
-            'status': 'pending',
-            'status_detail': 'pending_waiting_payment',
-            'transaction_amount': 500.00,
-            'installments': 1,
-            'date_of_expiration': '2026-07-04T23:59:59.000-06:00',
-            'transaction_details': {
-                'external_resource_url': 'https://www.mercadopago.com/mlm/payments/ticket/123',
-            },
-            'transaction_data': {},
-        },
-    }
-    mp_mock.payment.return_value.create.return_value = mp_resp
+    mp_mock.order.return_value.create.return_value = _orders_nc_resp(
+        'ORD111222333', 'PAY111222333', 'ticket',
+        external_resource_url='https://www.mercadopago.com/mlm/payments/ticket/123',
+        date_of_expiration='2026-07-04T23:59:59.000-06:00',
+    )
 
     with patch('apps.payments.gateways.mercadopago._get_sdk', return_value=mp_mock):
         resp = auth_client.post(INITIATE_V2_URL, {
@@ -145,20 +175,11 @@ def test_oxxo_payment_no_token_required(auth_client, orden_nc, mp_gw_nc):
 def test_oxxo_token_in_request_is_ignored_gracefully(auth_client, orden_nc, mp_gw_nc):
     """Enviar token con método oxxo no debe romper la validación."""
     mp_mock = MagicMock()
-    mp_resp = {
-        'status': 201,
-        'response': {
-            'id': '444555666',
-            'status': 'pending',
-            'status_detail': 'pending_waiting_payment',
-            'transaction_amount': 500.00,
-            'installments': 1,
-            'date_of_expiration': '2026-07-04T23:59:59.000-06:00',
-            'transaction_details': {'external_resource_url': 'https://mp.com/ticket/x'},
-            'transaction_data': {},
-        },
-    }
-    mp_mock.payment.return_value.create.return_value = mp_resp
+    mp_mock.order.return_value.create.return_value = _orders_nc_resp(
+        'ORD444555666', 'PAY444555666', 'ticket',
+        external_resource_url='https://mp.com/ticket/x',
+        date_of_expiration='2026-07-04T23:59:59.000-06:00',
+    )
 
     with patch('apps.payments.gateways.mercadopago._get_sdk', return_value=mp_mock):
         resp = auth_client.post(INITIATE_V2_URL, {
@@ -177,31 +198,23 @@ def test_oxxo_token_in_request_is_ignored_gracefully(auth_client, orden_nc, mp_g
 @pytest.mark.django_db
 def test_spei_returns_clabe_in_transaction_data(auth_client, orden_nc, mp_gw_nc):
     mp_mock = MagicMock()
-    mp_resp = {
-        'status': 201,
-        'response': {
-            'id': '777888999',
-            'status': 'pending',
-            'status_detail': 'pending_waiting_transfer',
-            'transaction_amount': 500.00,
-            'installments': 1,
-            'date_of_expiration': '2026-07-01T23:59:59.000-06:00',
-            'transaction_details': {'external_resource_url': ''},
-            'transaction_data': {
-                'bank_transfer_id': 123456,
-                'transaction_id':   654321,
-                'financial_institution': '90646',
-                'bank_info': {
-                    'origin': {'name': 'STP'},
-                    'destination': {
-                        'name': 'MercadoPago',
-                        'account_id': 'CLABE123456789012345678',
-                    },
+    mp_mock.order.return_value.create.return_value = _orders_nc_resp(
+        'ORD777888999', 'PAY777888999', 'bank_transfer',
+        pay_detail='waiting_transfer',
+        date_of_expiration='2026-07-01T23:59:59.000-06:00',
+        extra_method={
+            'bank_transfer_id': 123456,
+            'transaction_id':   654321,
+            'financial_institution': '90646',
+            'bank_info': {
+                'origin': {'name': 'STP'},
+                'destination': {
+                    'name': 'MercadoPago',
+                    'account_id': 'CLABE123456789012345678',
                 },
             },
         },
-    }
-    mp_mock.payment.return_value.create.return_value = mp_resp
+    )
 
     with patch('apps.payments.gateways.mercadopago._get_sdk', return_value=mp_mock):
         resp = auth_client.post(INITIATE_V2_URL, {
@@ -234,22 +247,11 @@ def test_card_method_without_token_returns_400(auth_client, orden_nc, mp_gw_nc):
 @pytest.mark.django_db
 def test_paycash_payment_no_token(auth_client, orden_nc, mp_gw_nc):
     mp_mock = MagicMock()
-    mp_resp = {
-        'status': 201,
-        'response': {
-            'id': '321654987',
-            'status': 'pending',
-            'status_detail': 'pending_waiting_payment',
-            'transaction_amount': 500.00,
-            'installments': 1,
-            'date_of_expiration': '2026-07-05T23:59:59.000-06:00',
-            'transaction_details': {
-                'external_resource_url': 'https://www.mercadopago.com/mlm/payments/ticket/456',
-            },
-            'transaction_data': {},
-        },
-    }
-    mp_mock.payment.return_value.create.return_value = mp_resp
+    mp_mock.order.return_value.create.return_value = _orders_nc_resp(
+        'ORD321654987', 'PAY321654987', 'ticket',
+        external_resource_url='https://www.mercadopago.com/mlm/payments/ticket/456',
+        date_of_expiration='2026-07-05T23:59:59.000-06:00',
+    )
 
     with patch('apps.payments.gateways.mercadopago._get_sdk', return_value=mp_mock):
         resp = auth_client.post(INITIATE_V2_URL, {
@@ -264,22 +266,11 @@ def test_paycash_payment_no_token(auth_client, orden_nc, mp_gw_nc):
 @pytest.mark.django_db
 def test_bancomer_atm_no_token(auth_client, orden_nc, mp_gw_nc):
     mp_mock = MagicMock()
-    mp_resp = {
-        'status': 201,
-        'response': {
-            'id': '159753486',
-            'status': 'pending',
-            'status_detail': 'pending_waiting_payment',
-            'transaction_amount': 500.00,
-            'installments': 1,
-            'date_of_expiration': '2026-07-05T23:59:59.000-06:00',
-            'transaction_details': {
-                'external_resource_url': 'https://www.mercadopago.com/mlm/payments/atm/789',
-            },
-            'transaction_data': {},
-        },
-    }
-    mp_mock.payment.return_value.create.return_value = mp_resp
+    mp_mock.order.return_value.create.return_value = _orders_nc_resp(
+        'ORD159753486', 'PAY159753486', 'bank_transfer',
+        external_resource_url='https://www.mercadopago.com/mlm/payments/atm/789',
+        date_of_expiration='2026-07-05T23:59:59.000-06:00',
+    )
 
     with patch('apps.payments.gateways.mercadopago._get_sdk', return_value=mp_mock):
         resp = auth_client.post(INITIATE_V2_URL, {
@@ -295,20 +286,10 @@ def test_bancomer_atm_no_token(auth_client, orden_nc, mp_gw_nc):
 def test_account_money_no_token(auth_client, orden_nc, mp_gw_nc):
     """Cuenta Mercado Pago: pago instantáneo sin token."""
     mp_mock = MagicMock()
-    mp_resp = {
-        'status': 201,
-        'response': {
-            'id': '246813579',
-            'status': 'approved',
-            'status_detail': 'accredited',
-            'transaction_amount': 500.00,
-            'installments': 1,
-            'date_of_expiration': '',
-            'transaction_details': {'external_resource_url': ''},
-            'transaction_data': {},
-        },
-    }
-    mp_mock.payment.return_value.create.return_value = mp_resp
+    mp_mock.order.return_value.create.return_value = _orders_nc_resp(
+        'ORD246813579', 'PAY246813579', 'account_money',
+        pay_status='processed', pay_detail='accredited',
+    )
 
     with patch('apps.payments.gateways.mercadopago._get_sdk', return_value=mp_mock):
         resp = auth_client.post(INITIATE_V2_URL, {

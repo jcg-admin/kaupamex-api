@@ -121,15 +121,26 @@ def _make_full_mp_mock(
         'response': {'id': customer_id} if customer_create_http == 201 else {'message': 'error'},
     }
 
-    # payment().create()
-    sdk.payment.return_value.create.return_value = {
+    # order().create() — Orders API (DEC-ORD-01); create_payment migrado.
+    # El estado interno ('approved'/'rejected'/'pending') se traduce al status
+    # de Orders del pago anidado en transactions.payments[0].
+    _orders_status = {
+        'approved': 'processed', 'rejected': 'failed',
+        'pending': 'action_required', 'in_process': 'processing',
+    }.get(payment_status, 'processed')
+    sdk.order.return_value.create.return_value = {
         'status': payment_http,
         'response': {
-            'id':                 88001,
-            'status':             payment_status,
-            'status_detail':      payment_detail,
-            'transaction_amount': 1000.00,
-            'installments':       1,
+            'id':     'ORD88001',
+            'status': _orders_status,
+            'transactions': {'payments': [{
+                'id':            88001,
+                'status':        _orders_status,
+                'status_detail': payment_detail,
+                'amount':        '1000.00',
+                'payment_method': {'id': 'visa', 'type': 'credit_card',
+                                   'installments': 1},
+            }]},
         },
     }
 
@@ -314,9 +325,9 @@ class TestCheckoutApiCustomerIntegration:
             }, format='json')
 
         sdk = mock.SDK.return_value
-        payment_call = sdk.payment.return_value.create.call_args[0][0]
-        assert 'id' not in payment_call['payer']
-        assert payment_call['payer'].get('email')
+        order_call = sdk.order.return_value.create.call_args[0][0]
+        assert 'id' not in order_call['payer']
+        assert order_call['payer'].get('email')
 
     def test_customer_failure_does_not_block_payment(
         self, auth_client, orden, mp_gw, db
@@ -326,12 +337,16 @@ class TestCheckoutApiCustomerIntegration:
         sdk = MagicMock()
         mock_mp.SDK.return_value = sdk
         sdk.customer.return_value.search.side_effect = Exception('timeout')
-        sdk.payment.return_value.create.return_value = {
+        sdk.order.return_value.create.return_value = {
             'status': 201,
             'response': {
-                'id': 88001, 'status': 'approved',
-                'status_detail': 'accredited',
-                'transaction_amount': 1000.00, 'installments': 1,
+                'id': 'ORD88001', 'status': 'processed',
+                'transactions': {'payments': [{
+                    'id': 88001, 'status': 'processed',
+                    'status_detail': 'accredited', 'amount': '1000.00',
+                    'payment_method': {'id': 'visa', 'type': 'credit_card',
+                                       'installments': 1},
+                }]},
             },
         }
         with patch('apps.payments.gateways.mercadopago.mercadopago', mock_mp):

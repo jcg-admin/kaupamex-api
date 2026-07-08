@@ -62,6 +62,7 @@ class PaymentResult:
     external_resource_url: str = ''
     date_of_expiration:    str = ''
     transaction_data:      dict = None
+    mp_order_id:           str = ''   # ORD... del Orders API (DEC-ORD-03); '' en Payments-legacy
 
 
 class BaseGateway(ABC):

@@ -442,6 +442,7 @@ def initiate_checkout_api_payment(
     payer_email: str = '',
     payer_identification_type: str = '',
     payer_identification_number: str = '',
+    payment_type: str = '',
     gateway: BaseGateway = None,
 ):
     """
@@ -488,6 +489,7 @@ def initiate_checkout_api_payment(
         payer_identification_type=payer_identification_type,
         payer_identification_number=payer_identification_number,
         customer_id=customer_id or '',
+        payment_type=payment_type,
     )
 
     if result.status == 'approved':
@@ -506,6 +508,7 @@ def initiate_checkout_api_payment(
             order=order,
             gateway=Payment.GATEWAY_MERCADOPAGO,
             gateway_payment_id=result.gateway_payment_id,
+            mp_order_id=result.mp_order_id,
             status=payment_status,
             amount=result.amount,
             installments=result.installments,
