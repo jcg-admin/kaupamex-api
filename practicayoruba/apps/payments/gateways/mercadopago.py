@@ -388,8 +388,13 @@ class MercadoPagoGateway(BaseGateway):
             payment_data['token']        = token
             payment_data['installments'] = installments
 
-        if customer_id:
-            payment_data['payer']['id'] = customer_id
+        # NO enviar payer.id junto al token de un solo uso del CardForm: MP
+        # interpreta token+payer.id como cobro a una TARJETA GUARDADA de ese
+        # customer y busca el token en sus cards → "Card Token not found" para
+        # un token nuevo. El customer se sigue creando/cacheando en el User
+        # (get_or_create_mp_customer) para la Cards API; solo se omite del
+        # payload de este pago. customer_id se conserva en la firma para el
+        # flujo futuro de saved-card (payer.type='customer' + card token).
 
         if issuer_id and not is_non_card:
             payment_data['issuer_id'] = issuer_id
