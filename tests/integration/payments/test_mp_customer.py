@@ -291,10 +291,16 @@ class TestCheckoutApiCustomerIntegration:
         user.refresh_from_db()
         assert user.mp_customer_id == _MP_CUSTOMER_ID
 
-    def test_customer_id_passed_to_mp_payment(
+    def test_one_time_token_payment_omits_payer_id(
         self, auth_client, orden, mp_gw, user, db
     ):
-        """El customer_id llega en el payer del pago a MP."""
+        """payer.id NO se envía junto al token de un solo uso del CardForm.
+
+        MP interpreta token + payer.id como cobro a una tarjeta guardada del
+        customer y busca el token en sus cards → "Card Token not found" para un
+        token nuevo. El pago con token de CardForm debe mandar token + email,
+        sin payer.id.
+        """
         user.mp_customer_id = ''
         user.save(update_fields=['mp_customer_id'])
 
@@ -309,7 +315,8 @@ class TestCheckoutApiCustomerIntegration:
 
         sdk = mock.SDK.return_value
         payment_call = sdk.payment.return_value.create.call_args[0][0]
-        assert payment_call['payer']['id'] == _MP_CUSTOMER_ID
+        assert 'id' not in payment_call['payer']
+        assert payment_call['payer'].get('email')
 
     def test_customer_failure_does_not_block_payment(
         self, auth_client, orden, mp_gw, db
