@@ -227,10 +227,16 @@ def _build_order_payload(
     payment_method = _build_order_payment_method(
         payment_method_id, payment_type, token, installments, statement_descriptor,
     )
-    if three_ds_validation and payment_type in CARD_PAYMENT_TYPES:
-        payment_method['config'] = {
-            'online': {'transaction_security': {'validation': three_ds_validation}},
-        }
+    # 3DS (DEC-ORD-02, on_fraud_risk): el Orders API **no acepta** una clave de
+    # config 3DS explícita en el create — verificado contra el sandbox (T-202,
+    # H-ORD-07): ``payment_method.config``, ``config.payment_method.
+    # three_d_secure_mode``, ``payments[].three_d_secure_mode`` y
+    # ``payment_method.three_d_secure_mode`` devuelven todas
+    # ``400 unsupported_properties``. El motor antifraude de MP aplica el 3DS
+    # automáticamente según riesgo (== on_fraud_risk); cuando lo dispara, el
+    # pago vuelve ``action_required``/``pending_challenge`` y lo maneja
+    # verify_order/webhook/UI. Por eso NO se emite ninguna clave de config aquí.
+    # ``three_ds_validation`` se conserva en la firma por retrocompatibilidad.
 
     email_resolved = (
         payer_email
@@ -634,13 +640,24 @@ class MercadoPagoGateway(BaseGateway):
 
         response = sdk.order().create(payload, request_options=request_options)
 
-        if response['status'] not in (200, 201):
-            body = response.get('response', {})
-            msg  = body.get('message', str(response))
+        http = response.get('status')
+        raw  = response.get('response') or {}
+
+        # HTTP 402 = pago RECHAZADO por el emisor (no un error de gateway):
+        # el Orders API devuelve la order completa bajo ``response.data`` con
+        # ``status: failed`` + ``status_detail`` (p. ej. insufficient_amount).
+        # Verificado contra el sandbox (T-202, H-ORD-09): tratarlo como un
+        # PaymentResult ``rejected`` — NO ``raise`` — para que la vista devuelva
+        # 200 con el motivo, no 502 GATEWAY_ERROR.
+        if http == 402 and isinstance(raw.get('data'), dict):
+            data = raw['data']
+        elif http in (200, 201):
+            data = raw
+        else:
+            # 400 (validación), 401 (auth), 5xx: error real de integración/gateway.
+            msg = raw.get('message') or str(raw.get('errors') or response)
             logger.error('MercadoPago Orders API error: %s', msg)
             raise RuntimeError(f'Error al procesar pago en MercadoPago: {msg}')
-
-        data = response['response']
 
         # El pago vive en transactions.payments[0]; el id de la order (ORD) y el
         # del pago (PAY) se persisten por separado (DEC-ORD-03).

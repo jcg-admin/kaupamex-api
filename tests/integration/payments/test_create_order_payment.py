@@ -109,3 +109,33 @@ class TestCreateOrderPayment:
                 MercadoPagoGateway().create_payment(
                     order=order, token='TKN', payment_method_id='visa', payment_type='credit_card',
                 )
+
+    def test_declined_402_returns_rejected_not_raises(self, user, db):
+        """H-ORD-09 (T-202): un rechazo del emisor llega como HTTP 402 con la
+        order bajo response.data (status=failed). Debe mapearse a
+        PaymentResult rejected, NO lanzar RuntimeError (si no, la vista daría
+        502 en vez de 200 con el motivo)."""
+        order = _make_order(user)
+        mock_sdk = MagicMock()
+        mock_sdk.order.return_value.create.return_value = {
+            'status': 402,
+            'response': {
+                'errors': [{'code': 'failed', 'message': 'The following transactions failed'}],
+                'data': {
+                    'id': 'ORDFAIL01', 'status': 'failed', 'status_detail': 'failed',
+                    'transactions': {'payments': [{
+                        'id': 'PAYFAIL01', 'status': 'failed',
+                        'status_detail': 'insufficient_amount', 'amount': '200.00',
+                        'payment_method': {'id': 'master', 'type': 'credit_card', 'installments': 1},
+                    }]},
+                },
+            },
+        }
+        with patch('apps.payments.gateways.mercadopago._get_sdk', return_value=mock_sdk):
+            result = MercadoPagoGateway().create_payment(
+                order=order, token='TKN', payment_method_id='master', payment_type='credit_card',
+            )
+        assert result.status == 'rejected'
+        assert result.status_detail == 'insufficient_amount'
+        assert result.gateway_payment_id == 'PAYFAIL01'
+        assert result.mp_order_id == 'ORDFAIL01'

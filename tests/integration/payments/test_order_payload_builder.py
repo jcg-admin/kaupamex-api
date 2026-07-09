@@ -84,11 +84,18 @@ class TestBuildOrderPayload:
         assert isinstance(p['transactions']['payments'][0]['amount'], str)
         assert isinstance(p['items'][0]['unit_price'], str)
 
-    def test_3ds_on_fraud_risk_present_for_card(self, user, db):
+    def test_no_explicit_3ds_config_key_for_card(self, user, db):
+        """H-ORD-07 (T-202): el Orders API rechaza toda clave de config 3DS en
+        el create (400 unsupported_properties). El 3DS on_fraud_risk (DEC-ORD-02)
+        lo aplica MP automáticamente por riesgo — el payload NO debe emitir
+        ``config`` ni ``three_d_secure_mode`` en ningún nivel."""
         order = _make_order(user)
         p = _build_order_payload(order, payment_method_id='visa', payment_type='credit_card', token='T')
-        validation = p['transactions']['payments'][0]['payment_method']['config']['online']['transaction_security']['validation']
-        assert validation == 'on_fraud_risk'
+        pm = p['transactions']['payments'][0]['payment_method']
+        assert 'config' not in pm
+        assert 'three_d_secure_mode' not in pm
+        assert 'config' not in p                     # sin config a nivel order
+        assert 'three_d_secure_mode' not in p['transactions']['payments'][0]
 
     def test_non_card_has_no_3ds_no_token(self, user, db):
         order = _make_order(user)
