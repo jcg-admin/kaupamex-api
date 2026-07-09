@@ -59,7 +59,11 @@ EXPECTED_MP_STATUS = {
 }
 
 _CARD_TOKENS_URL = 'https://api.mercadopago.com/v1/card_tokens?public_key={pk}'
-_SANDBOX_EMAIL = 'mp-sandbox-charge@practicayoruba.mx'
+# El Orders API sandbox exige que el email del pagador termine en
+# '@testuser.com' (H-ORD-08, verificado en T-202); en producción va el email
+# real del comprador. Solo el smoke corre contra sandbox, así que el dominio
+# de prueba vive aquí, no en el builder de producción.
+_SANDBOX_EMAIL = 'mp-sandbox-charge@testuser.com'
 
 
 def _get_active_gateway():

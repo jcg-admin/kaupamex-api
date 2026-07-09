@@ -1201,7 +1201,13 @@ class AdminCancelPaymentView(APIView):
             )
         try:
             gateway = MercadoPagoGateway()
-            gateway.cancel_payment(payment.gateway_payment_id)
+            # Migración Orders (T-502): un pago creado por Orders (con
+            # ``mp_order_id``) se cancela por el Orders API (``cancel_order``);
+            # los legacy siguen por ``cancel_payment`` (/v1/payments).
+            if getattr(payment, 'mp_order_id', ''):
+                gateway.cancel_order(payment.mp_order_id)
+            else:
+                gateway.cancel_payment(payment.gateway_payment_id)
         except Exception:
             return Response(
                 {'detail': 'El gateway no pudo cancelar el pago.',

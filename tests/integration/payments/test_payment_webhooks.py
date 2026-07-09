@@ -118,6 +118,52 @@ class TestMercadoPagoWebhook:
         assert payment.status == 'APPROVED'
         assert order.status == 'PAID'  # DEC-BC-12: aprobado → PAID
 
+    def test_webhook_tipo_order_aprobado_actualiza_payment(
+        self, api_client, orden_processing_mp, mp_gateway_wh, db
+    ):
+        """T-302: notificación ``type: order`` (data.id = ORD) verifica via
+        Orders API el PAY anidado y aprueba el Payment/Order."""
+        order, payment = orden_processing_mp
+        payment.mp_order_id = 'ORD-WH-1'
+        payment.gateway_payment_id = 'PAY-WH-1'
+        payment.save(update_fields=['mp_order_id', 'gateway_payment_id'])
+
+        ts         = '1715000010'
+        request_id = 'REQ-ORD-1'
+        signature  = _make_mp_signature('TEST-SECRET', 'ORD-WH-1', request_id, ts)
+
+        with patch('apps.payments.gateways.mercadopago.mercadopago') as mock_mp:
+            sdk = MagicMock()
+            mock_mp.SDK.return_value = sdk
+            sdk.order.return_value.get.return_value = {
+                'status': 200,
+                'response': {
+                    'id': 'ORD-WH-1', 'status': 'processed', 'total_amount': '600.00',
+                    'transactions': {'payments': [{
+                        'id': 'PAY-WH-1', 'status': 'processed',
+                        'status_detail': 'accredited', 'amount': '600.00',
+                        'payment_method': {'id': 'visa', 'type': 'credit_card',
+                                           'installments': 1},
+                    }]},
+                },
+            }
+            res = api_client.post(
+                MP_WEBHOOK_URL,
+                data=json.dumps({'type': 'order', 'data': {'id': 'ORD-WH-1'},
+                                 'external_reference': order.order_number}),
+                content_type='application/json',
+                HTTP_X_SIGNATURE=f'ts={ts},v1={signature}',
+                HTTP_X_REQUEST_ID=request_id,
+            )
+
+        assert res.status_code == 200, res.data
+        payment.refresh_from_db()
+        order.refresh_from_db()
+        assert payment.status == 'APPROVED'
+        assert order.status == 'PAID'
+        # usó el Orders API para la verificación, no el Payments API
+        sdk.order.return_value.get.assert_called_once_with('ORD-WH-1')
+
     def test_webhook_firma_invalida_retorna_401(
         self, api_client, orden_processing_mp, mp_gateway_wh, db
     ):

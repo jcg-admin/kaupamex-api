@@ -7,14 +7,34 @@ BR-009: las credenciales NUNCA pasan al frontend.
 """
 import json
 import logging
+import uuid
 from decimal import Decimal, Decimal as Dec
 from .base import BaseGateway, PreferenceResult, InstallmentPlan, PaymentVerification, RefundResult, PaymentResult
+from .orders_status import map_order_payment_status
 from apps.settings_app.models import PaymentGateway
 
 import mercadopago
+from mercadopago.config.request_options import RequestOptions
 
 
 logger = logging.getLogger('apps')
+
+# T-502 — Retiro por fases del Payments API legacy (``/v1/payments``).
+# Fase 1: instrumentar los code-paths que aún llaman ``sdk.payment()`` /
+# ``sdk.refund()`` con un marcador **greppeable** en logs de producción, para
+# tener evidencia real de tráfico residual ANTES de borrar el código (la
+# migración de creación/refund/cancel/verify a Orders ya está hecha; estos
+# paths solo deberían activarse con pagos legacy pre-migración o save-card).
+# Criterio de borrado: ``grep LEGACY_PAYMENTS_API`` en 0 durante la ventana de
+# observación (ver plan de retiro en el progreso de la iniciativa).
+_LEGACY_MARKER = 'LEGACY_PAYMENTS_API'
+
+
+def _log_legacy_payments_api(method: str, **ctx) -> None:
+    """Emite un WARNING greppeable cada vez que se usa el Payments API legacy."""
+    detail = ' '.join(f'{k}={v}' for k, v in ctx.items())
+    logger.warning('%s method=%s %s', _LEGACY_MARKER, method, detail)
+
 
 # Métodos de pago que NO requieren token de tarjeta ni número de cuotas.
 # Para estos la API de MP usa payer.email + monto + payment_method_id solamente.
@@ -129,6 +149,160 @@ def _build_additional_info(order) -> dict:
         info['shipments'] = {'receiver_address': receiver}
 
     return info
+
+
+# Tipos de payment_method de Orders que llevan token + cuotas (tarjeta).
+CARD_PAYMENT_TYPES = frozenset({'credit_card', 'debit_card'})
+
+# Mapeo id no-tarjeta -> ``payment_method.type`` de Orders.
+# [INFERRED] por analogía (Pix/Boleto/PSE); se verifica en T-002 contra sandbox.
+_NON_CARD_TYPE_BY_ID = {
+    'oxxo':             'ticket',
+    'paycash':          'ticket',
+    'banamex':          'ticket',
+    'serfin':           'ticket',
+    'bancomer':         'ticket',
+    'clabe':            'bank_transfer',
+    'account_money':    'account_money',
+    'consumer_credits': 'consumer_credits',
+}
+
+
+def _derive_payment_type(payment_method_id: str, is_non_card: bool) -> str:
+    """Deriva el ``payment_method.type`` de Orders desde el id.
+
+    Fallback cuando el frontend no envía el ``type`` (T-203 lo enviará). Para
+    tarjeta asume ``credit_card`` (el débito debe declararse explícito). Para
+    no-tarjeta usa el mapa ``[INFERRED]`` (T-002 lo verifica).
+    """
+    if is_non_card:
+        return _NON_CARD_TYPE_BY_ID.get(payment_method_id, 'ticket')
+    return 'credit_card'
+
+
+def _amount_str(value) -> str:
+    """Formatea un importe como string con 2 decimales.
+
+    El Orders API exige los importes como **string** (``"12.90"``), no como
+    número — enviar float puede perder precisión o ser rechazado.
+    """
+    return str(Decimal(str(value)).quantize(Decimal('0.01')))
+
+
+def _build_order_payment_method(
+    payment_method_id: str,
+    payment_type: str,
+    token: str = '',
+    installments: int = 1,
+    statement_descriptor: str = '',
+) -> dict:
+    """Arma el bloque ``payment_method`` de una transacción Orders.
+
+    El discriminante es ``type`` (credit_card/debit_card/ticket/bank_transfer).
+    Tarjeta lleva ``token`` + ``installments`` (+ ``statement_descriptor``
+    opcional); no-tarjeta (OXXO/SPEI) los omite.
+    """
+    pm = {'id': payment_method_id, 'type': payment_type}
+    if payment_type in CARD_PAYMENT_TYPES:
+        pm['token'] = token
+        pm['installments'] = installments
+        if statement_descriptor:
+            pm['statement_descriptor'] = statement_descriptor
+    return pm
+
+
+def _build_order_payload(
+    order,
+    *,
+    payment_method_id: str,
+    payment_type: str,
+    token: str = '',
+    installments: int = 1,
+    payer_email: str = '',
+    payer_identification_type: str = '',
+    payer_identification_number: str = '',
+    statement_descriptor: str = '',
+    three_ds_validation: str = 'on_fraud_risk',
+) -> dict:
+    """Construye el payload de ``POST /v1/orders`` (Orders API).
+
+    Estructura PROVEN de la colección Postman
+    (analisis-postman-inferencias-modelo-datos-orders): ``type: online``,
+    importes **string**, ``transactions.payments[]`` con el discriminante
+    ``payment_method.type``, ``processing_mode``/``capture_mode`` automatic
+    (DEC-ORD-02), ``payer``/``items`` inline.
+
+    ``three_ds_validation`` = ``on_fraud_risk`` (DEC-ORD-02): dispara el 3DS
+    solo ante riesgo. La **ubicación exacta** de la clave de config 3DS en el
+    request se confirma en T-202 (smoke sandbox); se aísla en ``config`` del
+    payment para poder ajustarla sin tocar el resto del payload.
+
+    Función pura: no hace red; determinística desde ``order``.
+    """
+    total = _amount_str(order.value.total)
+
+    payment_method = _build_order_payment_method(
+        payment_method_id, payment_type, token, installments, statement_descriptor,
+    )
+    # 3DS (DEC-ORD-02, on_fraud_risk): el Orders API **no acepta** una clave de
+    # config 3DS explícita en el create — verificado contra el sandbox (T-202,
+    # H-ORD-07): ``payment_method.config``, ``config.payment_method.
+    # three_d_secure_mode``, ``payments[].three_d_secure_mode`` y
+    # ``payment_method.three_d_secure_mode`` devuelven todas
+    # ``400 unsupported_properties``. El motor antifraude de MP aplica el 3DS
+    # automáticamente según riesgo (== on_fraud_risk); cuando lo dispara, el
+    # pago vuelve ``action_required``/``pending_challenge`` y lo maneja
+    # verify_order/webhook/UI. Por eso NO se emite ninguna clave de config aquí.
+    # ``three_ds_validation`` se conserva en la firma por retrocompatibilidad.
+
+    email_resolved = (
+        payer_email
+        or (order.user.email if order.user else '')
+        or getattr(order, 'guest_email', '')
+        or 'guest@practicayoruba.mx'
+    )
+    payer = {'email': email_resolved}
+    if payer_identification_type and payer_identification_number:
+        payer['identification'] = {
+            'type':   payer_identification_type,
+            'number': payer_identification_number,
+        }
+
+    # items/payer/shipments inline (reusa additional_info; importes a string).
+    info = _build_additional_info(order)
+
+    # Señales antifraude del comprador (nombre/teléfono) en el ``payer`` de la
+    # order — preserva la enriquecimiento de aprobación de la Payments API
+    # (additional_info.payer) que Orders acepta inline en ``payer``.
+    info_payer = info.get('payer') or {}
+    for key in ('first_name', 'last_name', 'phone'):
+        if info_payer.get(key):
+            payer[key] = info_payer[key]
+
+    payload = {
+        'type':               'online',
+        'external_reference':  order.order_number,
+        'total_amount':        total,
+        'processing_mode':     'automatic',
+        'capture_mode':        'automatic',
+        'transactions': {
+            'payments': [
+                {'amount': total, 'payment_method': payment_method},
+            ],
+        },
+        'payer': payer,
+    }
+
+    items = info.get('items')
+    if items:
+        payload['items'] = [
+            {**it, 'unit_price': _amount_str(it['unit_price'])} for it in items
+        ]
+    shipments = info.get('shipments')
+    if shipments:
+        payload['shipments'] = shipments
+
+    return payload
 
 
 def _get_sdk() -> mercadopago.SDK:
@@ -273,9 +447,12 @@ class MercadoPagoGateway(BaseGateway):
 
     def verify_payment(self, payment_id: str) -> PaymentVerification:
         """
-        Verifica el estado de un pago en MP.
-        Se usa en el retorno del comprador y en el webhook (Sprint 16).
+        Verifica el estado de un pago en MP (Payments API **legacy**).
+
+        DEPRECADO (T-502): para pagos migrados a Orders usar ``verify_order``.
+        Solo se conserva para webhooks ``type: payment`` de pagos legacy.
         """
+        _log_legacy_payments_api('verify_payment', payment_id=payment_id)
         sdk  = _get_sdk()
         resp = sdk.payment().get(payment_id)
 
@@ -295,6 +472,104 @@ class MercadoPagoGateway(BaseGateway):
             installments=data.get('installments', 1),
         )
 
+    # -------------------------------------------------------------------------
+    # Orders API — operaciones sobre el recurso Order (DEC-ORD-01)
+    # mp_order_id (ORD...) es la clave; el pago vive en transactions.payments[0].
+    # -------------------------------------------------------------------------
+
+    def verify_order(self, mp_order_id: str) -> PaymentVerification:
+        """Verifica el estado de una Order — GET ``/v1/orders/{id}`` (T-301).
+
+        Reemplaza el polling del Payments API para pagos migrados a Orders: lee
+        el pago anidado en ``transactions.payments[0]`` y mapea su ``status``
+        con ``orders_status`` (processed→approved, action_required→pending…),
+        no con ``MP_STATUS_MAP`` legacy que caía todo a ``pending``.
+        """
+        sdk  = _get_sdk()
+        resp = sdk.order().get(mp_order_id)
+
+        if resp.get('status') != 200:
+            logger.error('MercadoPago verify order error: %s', resp)
+            return PaymentVerification(
+                gateway_payment_id=None,
+                status='pending',
+                amount=None,
+            )
+
+        data     = resp['response']
+        payments = (data.get('transactions') or {}).get('payments') or []
+        pay      = payments[0] if payments else {}
+        pay_method = pay.get('payment_method') or {}
+        return PaymentVerification(
+            gateway_payment_id=str(pay.get('id') or ''),
+            status=map_order_payment_status(
+                pay.get('status') or data.get('status', ''),
+                pay.get('status_detail', ''),
+            ),
+            amount=Decimal(str(pay.get('amount') or data.get('total_amount') or 0)),
+            installments=pay_method.get('installments', 1),
+        )
+
+    def cancel_order(self, mp_order_id: str) -> dict:
+        """Cancela una Order — POST ``/v1/orders/{id}/cancel`` (T-401).
+
+        Válido para orders aún no procesadas (``created``/``action_required``).
+        Retorna la respuesta cruda del SDK. Raises ``RuntimeError`` en error.
+        """
+        sdk = _get_sdk()
+        response = sdk.order().cancel(mp_order_id)
+        if response.get('status') not in (200, 201):
+            body = response.get('response', {})
+            msg  = body.get('message', str(response))
+            logger.error('MercadoPago cancel order error: %s', msg)
+            raise RuntimeError(f'Error al cancelar la order en MercadoPago: {msg}')
+        return response
+
+    def refund_order(self, mp_order_id: str, payment_id: str = '', amount=None) -> RefundResult:
+        """Reembolso via Orders API — ``/v1/orders/{id}/refund`` (T-402).
+
+        Total (sin body) o parcial (``transactions[] = {id, amount}``). El
+        importe va como **string** (Orders exige string). Usa el
+        ``refund_transaction`` del SDK oficial.
+        """
+        sdk  = _get_sdk()
+        body = None
+        if amount is not None:
+            body = {'transactions': [{'id': payment_id, 'amount': _amount_str(amount)}]}
+
+        response = sdk.order().refund_transaction(mp_order_id, body)
+        if response.get('status') not in (200, 201):
+            err = response.get('response', {})
+            msg = err.get('message', str(response))
+            logger.error('MercadoPago refund order error: %s', msg)
+            raise RuntimeError(f'Error al reembolsar la order en MercadoPago: {msg}')
+
+        data = response['response']
+        # El refund vive en transactions.refunds[0] (Orders) o al top-level según
+        # la forma de respuesta; se toma el primer id disponible.
+        refunds = (data.get('transactions') or {}).get('refunds') or []
+        refund  = refunds[0] if refunds else data
+        return RefundResult(
+            refund_id=str(refund.get('id', '')),
+            status='approved',
+            amount=Dec(str(refund.get('amount', amount or 0))),
+        )
+
+    def search_order(self, external_reference: str) -> dict:
+        """Busca orders por ``external_reference`` (order_number) — T-403.
+
+        Reconciliación cuando se pierde el webhook (rescate N2): recupera el
+        estado real de la order desde MP. Retorna el ``response`` del SDK (dict
+        con ``results``); ``{}`` si MP responde con error (best-effort).
+        """
+        sdk = _get_sdk()
+        response = sdk.order().search(filters={'external_reference': external_reference})
+        if response.get('status') != 200:
+            body = response.get('response', {})
+            msg  = body.get('message', str(response))
+            logger.error('MercadoPago search order error: %s', msg)
+            return {}
+        return response['response']
 
     def search_customer_by_email(self, email: str):
         """
@@ -349,91 +624,89 @@ class MercadoPagoGateway(BaseGateway):
         payer_identification_type: str = '',
         payer_identification_number: str = '',
         customer_id: str = '',
+        payment_type: str = '',
     ) -> PaymentResult:
         """
-        Crea un pago con Checkout API (pago en sitio, sin redirección).
-        ADR-018: elegido sobre Checkout Pro para UX transparente.
+        Crea un pago con Checkout API **Orders** (``POST /v1/orders``, pago en
+        sitio sin redirección). Migrado del Payments API (DEC-ORD-01/02/03): MP
+        restringió ``/v1/payments`` legacy (401 cause 7) y empuja a Orders.
 
-        Para métodos de tarjeta: token (obligatorio) + installments.
-        Para métodos no-tarjeta (OXXO, SPEI, cajero, etc.): solo email +
-        payment_method_id. El token y cuotas se omiten del payload.
+        Para tarjeta: ``token`` (obligatorio) + ``installments`` +
+        ``payment_type`` (credit_card/debit_card). Para no-tarjeta (OXXO/SPEI):
+        solo email + ``payment_method_id`` (el ``type`` se deriva).
         """
         sdk = _get_sdk()
 
-        payer_email_resolved = (
-            payer_email
-            or (order.user.email if order.user else None)
-            or order.guest_email
-            or 'guest@practicayoruba.mx'
+        is_non_card = payment_method_id in NON_CARD_METHOD_IDS
+        resolved_type = payment_type or _derive_payment_type(payment_method_id, is_non_card)
+
+        payload = _build_order_payload(
+            order,
+            payment_method_id=payment_method_id,
+            payment_type=resolved_type,
+            token=token,
+            installments=installments,
+            payer_email=payer_email,
+            payer_identification_type=payer_identification_type,
+            payer_identification_number=payer_identification_number,
         )
 
-        is_non_card = payment_method_id in NON_CARD_METHOD_IDS
+        # X-Idempotency-Key por intento de pago (DEC-ORD-02): un UUID nuevo por
+        # llamada protege contra doble-submit del MISMO request sin bloquear un
+        # reintento legítimo. customer_id se conserva en la firma para el flujo
+        # futuro de saved-card; NO se envía junto al token de un solo uso.
+        request_options = RequestOptions()
+        request_options.custom_headers = {'X-Idempotency-Key': uuid.uuid4().hex}
 
-        payment_data = {
-            'transaction_amount': float(order.value.total),
-            'payment_method_id':  payment_method_id,
-            'external_reference': order.order_number,
-            'payer': {
-                'email': payer_email_resolved,
-            },
-        }
+        response = sdk.order().create(payload, request_options=request_options)
 
-        # Calidad de integración MP (Payment Approval + Security): enviar
-        # items, datos del comprador y dirección de envío.
-        additional_info = _build_additional_info(order)
-        if additional_info:
-            payment_data['additional_info'] = additional_info
+        http = response.get('status')
+        raw  = response.get('response') or {}
 
-        if not is_non_card:
-            payment_data['token']        = token
-            payment_data['installments'] = installments
-
-        # NO enviar payer.id junto al token de un solo uso del CardForm: MP
-        # interpreta token+payer.id como cobro a una TARJETA GUARDADA de ese
-        # customer y busca el token en sus cards → "Card Token not found" para
-        # un token nuevo. El customer se sigue creando/cacheando en el User
-        # (get_or_create_mp_customer) para la Cards API; solo se omite del
-        # payload de este pago. customer_id se conserva en la firma para el
-        # flujo futuro de saved-card (payer.type='customer' + card token).
-
-        if issuer_id and not is_non_card:
-            payment_data['issuer_id'] = issuer_id
-
-        if payer_identification_type and payer_identification_number:
-            payment_data['payer']['identification'] = {
-                'type':   payer_identification_type,
-                'number': payer_identification_number,
-            }
-
-        response = sdk.payment().create(payment_data)
-
-        if response['status'] not in (200, 201):
-            body = response.get('response', {})
-            msg  = body.get('message', str(response))
-            logger.error('MercadoPago Checkout API error: %s', msg)
+        # HTTP 402 = pago RECHAZADO por el emisor (no un error de gateway):
+        # el Orders API devuelve la order completa bajo ``response.data`` con
+        # ``status: failed`` + ``status_detail`` (p. ej. insufficient_amount).
+        # Verificado contra el sandbox (T-202, H-ORD-09): tratarlo como un
+        # PaymentResult ``rejected`` — NO ``raise`` — para que la vista devuelva
+        # 200 con el motivo, no 502 GATEWAY_ERROR.
+        if http == 402 and isinstance(raw.get('data'), dict):
+            data = raw['data']
+        elif http in (200, 201):
+            data = raw
+        else:
+            # 400 (validación), 401 (auth), 5xx: error real de integración/gateway.
+            msg = raw.get('message') or str(raw.get('errors') or response)
+            logger.error('MercadoPago Orders API error: %s', msg)
             raise RuntimeError(f'Error al procesar pago en MercadoPago: {msg}')
 
-        data = response['response']
+        # El pago vive en transactions.payments[0]; el id de la order (ORD) y el
+        # del pago (PAY) se persisten por separado (DEC-ORD-03).
+        payments = (data.get('transactions') or {}).get('payments') or []
+        pay = payments[0] if payments else {}
+        pay_method = pay.get('payment_method') or {}
 
-        # Extraer campos específicos de métodos no-tarjeta
-        transaction_details = data.get('transaction_details') or {}
-        transaction_data    = data.get('transaction_data') or {}
+        pay_status = pay.get('status') or data.get('status', '')
+        pay_detail = pay.get('status_detail') or data.get('status_detail', '')
 
+        # Campos de voucher (no-tarjeta): OXXO/SPEI exponen la URL/expiración en
+        # el payment_method anidado. Best-effort; T-501 lo refina tras T-002.
         external_resource_url = (
-            transaction_details.get('external_resource_url', '')
+            pay_method.get('ticket_url', '')
+            or pay_method.get('external_resource_url', '')
             or data.get('external_resource_url', '')
         )
-        date_of_expiration = data.get('date_of_expiration', '')
+        date_of_expiration = pay.get('date_of_expiration', '') or data.get('expiration_time', '')
 
         return PaymentResult(
-            gateway_payment_id    = str(data['id']),
-            status                = MP_STATUS_MAP.get(data.get('status', 'pending'), 'pending'),
-            status_detail         = data.get('status_detail', ''),
-            amount                = Decimal(str(data.get('transaction_amount', order.value.total))),
-            installments          = data.get('installments', installments),
+            gateway_payment_id    = str(pay.get('id') or ''),
+            mp_order_id           = str(data.get('id') or ''),
+            status                = map_order_payment_status(pay_status, pay_detail),
+            status_detail         = pay_detail,
+            amount                = Decimal(str(pay.get('amount') or order.value.total)),
+            installments          = pay_method.get('installments', installments),
             external_resource_url = external_resource_url,
             date_of_expiration    = date_of_expiration,
-            transaction_data      = transaction_data if transaction_data else None,
+            transaction_data      = pay_method if is_non_card and pay_method else None,
         )
 
     # -------------------------------------------------------------------------
@@ -562,13 +835,14 @@ class MercadoPagoGateway(BaseGateway):
 
     def refund(self, gateway_payment_id: str, amount) -> 'RefundResult':
         """
-        Ejecuta un reembolso en MercadoPago. UC-PAY-07 (FR-PAY-07.02).
-        H-REF-002: usa sdk.refund().create() del SDK oficial.
+        Ejecuta un reembolso en MercadoPago (Payments API **legacy**).
+        UC-PAY-07 (FR-PAY-07.02). H-REF-002: usa sdk.refund().create().
 
-        MercadoPago acepta reembolso total (sin monto) o parcial (con monto).
-        Retorna el refund_id de MP para guardarlo en Refund.gateway_refund_id.
+        DEPRECADO (T-502): para pagos Orders usar ``refund_order``
+        (``services.refund`` ya ramifica por ``mp_order_id``). Solo pagos
+        legacy pre-migración deberían llegar aquí.
         """
-
+        _log_legacy_payments_api('refund', gateway_payment_id=gateway_payment_id)
         sdk = _get_sdk()
         payload = {}
         if amount is not None:
@@ -605,10 +879,12 @@ class MercadoPagoGateway(BaseGateway):
 
     def cancel_payment(self, gateway_payment_id: str) -> dict:
         """
-        Cancela un pago pendiente en MercadoPago. T-CAN.
-        Solo funciona para pagos con status pending/in_process en MP.
-        Retorna el dict completo de respuesta del SDK.
+        Cancela un pago pendiente en MercadoPago (Payments API **legacy**). T-CAN.
+
+        DEPRECADO (T-502): para pagos Orders usar ``cancel_order`` (la vista de
+        cancelación ya ramifica por ``mp_order_id``). Solo pagos legacy llegan aquí.
         """
+        _log_legacy_payments_api('cancel_payment', gateway_payment_id=gateway_payment_id)
         sdk = _get_sdk()
         response = sdk.payment().update(gateway_payment_id, {'status': 'cancelled'})
         if response.get('status') not in (200, 201):
@@ -628,7 +904,13 @@ class MercadoPagoGateway(BaseGateway):
         Valida una tarjeta sin cargo real (T-15).
         Crea un pago con amount=0 y capture=False; MP verifica la tarjeta
         sin débito. Retorna la respuesta cruda del SDK (incluye 'status').
+
+        DEPRECADO (T-502): usa el Payments API legacy (``/v1/payments``).
+        La migración a Orders API no cubre save-card / validación 0-dólar;
+        cada invocación queda instrumentada con LEGACY_PAYMENTS_API para la
+        ventana de observación previa al retiro del endpoint legacy.
         """
+        _log_legacy_payments_api('zero_dollar_auth', payment_method_id=payment_method_id)
         sdk = _get_sdk()
         response = sdk.payment().create({
             'token':              token,

@@ -54,7 +54,13 @@ class Payment(TimeStampedModel):
     gateway           = models.CharField(max_length=20, choices=GATEWAYS, db_index=True)
     gateway_payment_id = models.CharField(
         max_length=200, null=True, blank=True, unique=True,
-        help_text='ID del pago confirmado por el gateway. Null hasta el webhook.',
+        help_text='ID del pago confirmado por el gateway. Null hasta el webhook. '
+                  'En Orders API guarda el PAY... anidado (transactions.payments[].id).',
+    )
+    mp_order_id       = models.CharField(
+        max_length=200, null=True, blank=True, db_index=True,
+        help_text='ID del recurso Order de MercadoPago (ORD...). Solo Orders API '
+                  '(DEC-ORD-03); null para Payments-legacy y PayPal.',
     )
     preference_id     = models.CharField(
         max_length=200, null=True, blank=True,

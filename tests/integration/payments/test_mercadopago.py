@@ -15,6 +15,7 @@ from apps.catalogue.models import Category, Product
 from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress, ShippingZone
 from apps.settings_app.models import PaymentGateway, ShippingMethod
 from apps.payments.models import Payment, PaymentGatewayEvent
+from apps.payments.gateways.mercadopago import MercadoPagoGateway
 from apps.users.models import Address
 from apps.cart.models import CartItem
 
@@ -537,7 +538,6 @@ class TestPreferencePayerEnrichment:
     """create_preference debe enviar payer enriquecido + shipments a MP."""
 
     def _capture_preference(self, order):
-        from apps.payments.gateways.mercadopago import MercadoPagoGateway
         gw = MercadoPagoGateway.__new__(MercadoPagoGateway)
         captured = {}
         sdk = MagicMock()
