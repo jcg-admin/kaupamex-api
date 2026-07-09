@@ -243,10 +243,22 @@ def execute_refund(
         # Ejecutar el reembolso en el gateway (fuera del punto de lectura
         # pero dentro del atomic; si el gateway falla la transacción se
         # revierte y no se crea el Refund en BD).
-        result = gateway.refund(
-            gateway_payment_id=locked_payment.gateway_payment_id,
-            amount=refund_amount,
-        )
+        # Migración Orders (T-502): un pago creado por Orders (tiene
+        # ``mp_order_id``) se reembolsa por el Orders API (``refund_order``), no
+        # por el Payments API legacy — el ``PAY`` id no es reembolsable por
+        # ``/v1/payments`` en un pago Orders. Los pagos legacy (sin
+        # ``mp_order_id``) y otros gateways siguen por ``refund``.
+        if getattr(locked_payment, 'mp_order_id', '') and hasattr(gateway, 'refund_order'):
+            result = gateway.refund_order(
+                mp_order_id=locked_payment.mp_order_id,
+                payment_id=locked_payment.gateway_payment_id,
+                amount=refund_amount,
+            )
+        else:
+            result = gateway.refund(
+                gateway_payment_id=locked_payment.gateway_payment_id,
+                amount=refund_amount,
+            )
 
         refund = Refund.objects.create(
             payment=locked_payment,

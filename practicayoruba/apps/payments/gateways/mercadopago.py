@@ -19,6 +19,23 @@ from mercadopago.config.request_options import RequestOptions
 
 logger = logging.getLogger('apps')
 
+# T-502 — Retiro por fases del Payments API legacy (``/v1/payments``).
+# Fase 1: instrumentar los code-paths que aún llaman ``sdk.payment()`` /
+# ``sdk.refund()`` con un marcador **greppeable** en logs de producción, para
+# tener evidencia real de tráfico residual ANTES de borrar el código (la
+# migración de creación/refund/cancel/verify a Orders ya está hecha; estos
+# paths solo deberían activarse con pagos legacy pre-migración o save-card).
+# Criterio de borrado: ``grep LEGACY_PAYMENTS_API`` en 0 durante la ventana de
+# observación (ver plan de retiro en el progreso de la iniciativa).
+_LEGACY_MARKER = 'LEGACY_PAYMENTS_API'
+
+
+def _log_legacy_payments_api(method: str, **ctx) -> None:
+    """Emite un WARNING greppeable cada vez que se usa el Payments API legacy."""
+    detail = ' '.join(f'{k}={v}' for k, v in ctx.items())
+    logger.warning('%s method=%s %s', _LEGACY_MARKER, method, detail)
+
+
 # Métodos de pago que NO requieren token de tarjeta ni número de cuotas.
 # Para estos la API de MP usa payer.email + monto + payment_method_id solamente.
 NON_CARD_METHOD_IDS = frozenset({
@@ -430,9 +447,12 @@ class MercadoPagoGateway(BaseGateway):
 
     def verify_payment(self, payment_id: str) -> PaymentVerification:
         """
-        Verifica el estado de un pago en MP.
-        Se usa en el retorno del comprador y en el webhook (Sprint 16).
+        Verifica el estado de un pago en MP (Payments API **legacy**).
+
+        DEPRECADO (T-502): para pagos migrados a Orders usar ``verify_order``.
+        Solo se conserva para webhooks ``type: payment`` de pagos legacy.
         """
+        _log_legacy_payments_api('verify_payment', payment_id=payment_id)
         sdk  = _get_sdk()
         resp = sdk.payment().get(payment_id)
 
@@ -815,13 +835,14 @@ class MercadoPagoGateway(BaseGateway):
 
     def refund(self, gateway_payment_id: str, amount) -> 'RefundResult':
         """
-        Ejecuta un reembolso en MercadoPago. UC-PAY-07 (FR-PAY-07.02).
-        H-REF-002: usa sdk.refund().create() del SDK oficial.
+        Ejecuta un reembolso en MercadoPago (Payments API **legacy**).
+        UC-PAY-07 (FR-PAY-07.02). H-REF-002: usa sdk.refund().create().
 
-        MercadoPago acepta reembolso total (sin monto) o parcial (con monto).
-        Retorna el refund_id de MP para guardarlo en Refund.gateway_refund_id.
+        DEPRECADO (T-502): para pagos Orders usar ``refund_order``
+        (``services.refund`` ya ramifica por ``mp_order_id``). Solo pagos
+        legacy pre-migración deberían llegar aquí.
         """
-
+        _log_legacy_payments_api('refund', gateway_payment_id=gateway_payment_id)
         sdk = _get_sdk()
         payload = {}
         if amount is not None:
@@ -858,10 +879,12 @@ class MercadoPagoGateway(BaseGateway):
 
     def cancel_payment(self, gateway_payment_id: str) -> dict:
         """
-        Cancela un pago pendiente en MercadoPago. T-CAN.
-        Solo funciona para pagos con status pending/in_process en MP.
-        Retorna el dict completo de respuesta del SDK.
+        Cancela un pago pendiente en MercadoPago (Payments API **legacy**). T-CAN.
+
+        DEPRECADO (T-502): para pagos Orders usar ``cancel_order`` (la vista de
+        cancelación ya ramifica por ``mp_order_id``). Solo pagos legacy llegan aquí.
         """
+        _log_legacy_payments_api('cancel_payment', gateway_payment_id=gateway_payment_id)
         sdk = _get_sdk()
         response = sdk.payment().update(gateway_payment_id, {'status': 'cancelled'})
         if response.get('status') not in (200, 201):
@@ -881,7 +904,13 @@ class MercadoPagoGateway(BaseGateway):
         Valida una tarjeta sin cargo real (T-15).
         Crea un pago con amount=0 y capture=False; MP verifica la tarjeta
         sin débito. Retorna la respuesta cruda del SDK (incluye 'status').
+
+        DEPRECADO (T-502): usa el Payments API legacy (``/v1/payments``).
+        La migración a Orders API no cubre save-card / validación 0-dólar;
+        cada invocación queda instrumentada con LEGACY_PAYMENTS_API para la
+        ventana de observación previa al retiro del endpoint legacy.
         """
+        _log_legacy_payments_api('zero_dollar_auth', payment_method_id=payment_method_id)
         sdk = _get_sdk()
         response = sdk.payment().create({
             'token':              token,
