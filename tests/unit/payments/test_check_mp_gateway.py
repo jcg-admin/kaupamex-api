@@ -10,6 +10,8 @@ Verifican que el diagnóstico:
 
 BD: practicayoruba_qa (config.settings.testing).
 """
+import json
+
 import pytest
 from django.core.management import call_command
 
@@ -153,3 +155,94 @@ class TestCheckMpGatewayPing:
             call_command('check_mp_gateway', '--ping')
         assert exc.value.code == 1
         assert 'ping falló' in capsys.readouterr().err
+
+
+class _FakeHTTPResponse:
+    def __init__(self, body):
+        self._body = body
+
+    def read(self):
+        return json.dumps(self._body).encode()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+
+class _FakePayment:
+    def __init__(self, resp):
+        self._resp = resp
+
+    def create(self, data):
+        return self._resp
+
+
+class _FakeSDKPayment:
+    def __init__(self, resp):
+        self._resp = resp
+
+    def payment(self):
+        return _FakePayment(self._resp)
+
+
+def _patch_pairing(monkeypatch, payment_resp, token_body=None):
+    """Mockea la tokenización (urlopen) y el cobro (SDK.payment().create)."""
+    token_body = token_body if token_body is not None else {
+        'id': 'card_tok_fake', 'status': 'active'}
+    monkeypatch.setattr(
+        'urllib.request.urlopen',
+        lambda req, timeout=None: _FakeHTTPResponse(token_body))
+    monkeypatch.setattr(
+        'mercadopago.SDK', lambda token: _FakeSDKPayment(payment_resp))
+
+
+class TestCheckMpGatewayVerifyPairing:
+    def test_pairing_mismatch_blocks(self, db, capsys, monkeypatch):
+        # public_key crea token, pero el access_token es de otra app → 2006.
+        _make_gateway({
+            'access_token': _SANDBOX_TOKEN,
+            'public_key': _PUBLIC_KEY,
+        })
+        _patch_pairing(monkeypatch, {
+            'status': 400,
+            'response': {
+                'message': 'Card Token not found',
+                'cause': [{'code': 2006, 'description': 'Card Token not found'}],
+            },
+        })
+        with pytest.raises(SystemExit) as exc:
+            call_command('check_mp_gateway', '--verify-pairing')
+        assert exc.value.code == 1
+        captured = capsys.readouterr()
+        assert 'aplicaciones MP distintas' in captured.err
+        assert '2006' in (captured.out + captured.err)
+
+    def test_pairing_match_passes(self, db, capsys, monkeypatch):
+        # El access_token SÍ encuentra el token (pago creado, aun rechazado).
+        _make_gateway({
+            'access_token': _SANDBOX_TOKEN,
+            'public_key': _PUBLIC_KEY,
+        })
+        _patch_pairing(monkeypatch, {
+            'status': 201,
+            'response': {'status': 'rejected', 'id': 999},
+        })
+        call_command('check_mp_gateway', '--verify-pairing')  # no SystemExit
+        out = capsys.readouterr().out
+        assert 'pairing OK' in out
+        assert 'listo para cobrar' in out.lower()
+
+    def test_pairing_public_key_cannot_tokenize_blocks(
+            self, db, capsys, monkeypatch):
+        # public_key no devuelve token → no se puede emparejar.
+        _make_gateway({
+            'access_token': _SANDBOX_TOKEN,
+            'public_key': _PUBLIC_KEY,
+        })
+        _patch_pairing(monkeypatch, {'status': 201, 'response': {}},
+                       token_body={'status': 'error'})
+        with pytest.raises(SystemExit) as exc:
+            call_command('check_mp_gateway', '--verify-pairing')
+        assert exc.value.code == 1
