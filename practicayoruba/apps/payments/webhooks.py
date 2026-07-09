@@ -200,8 +200,15 @@ class MercadoPagoWebhookView(APIView):
                 return Response({'status': 'invalid_signature'}, status=401)
             return self._handle_chargeback(data, resource_id)
 
+        # T-302: MP notifica los cobros migrados a Orders con ``type: order``
+        # y ``data.id`` = ``ORD...``; los legacy siguen llegando como
+        # ``type: payment`` con ``data.id`` = payment id. Ambos se procesan por
+        # el mismo camino; solo cambia la consulta al gateway (verify_order vs
+        # verify_payment) y el lookup del Payment (mp_order_id vs
+        # gateway_payment_id).
+        is_order   = event_type == 'order'
         payment_id = resource_id
-        if event_type != 'payment' or not payment_id:
+        if event_type not in ('payment', 'order') or not payment_id:
             return Response({'status': 'ignored', 'type': event_type}, status=200)
 
         # H-CICLO22-01: verificar firma ANTES del dedup.
@@ -231,15 +238,22 @@ class MercadoPagoWebhookView(APIView):
             logger.info('MP webhook: evento duplicado payment_id=%s — 200 idempotente', payment_id)
             return Response({'status': 'already_processed'}, status=200)
 
-        # Consultar estado definitivo al gateway (paso 6 del flujo)
+        # Consultar estado definitivo al gateway (paso 6 del flujo).
+        # ``order`` → verify_order(ORD) devuelve el PAY anidado; ``payment`` →
+        # verify_payment(payment_id) legacy.
         try:
-            gw_result = MercadoPagoGateway().verify_payment(payment_id)
+            gw = MercadoPagoGateway()
+            gw_result = gw.verify_order(payment_id) if is_order else gw.verify_payment(payment_id)
         except Exception as exc:
             # DEC-BC-06: 503 (Service Unavailable) indica gateway externo
             # caido. MP hace exponential backoff en 5xx y reintenta el
             # webhook — el evento no se pierde.
             logger.error('MP webhook: error consultando estado: %s', exc)
             return Response({'status': 'gateway_error'}, status=503)
+
+        # Para orders, el ``data.id`` es la ORD; el PAY (para matchear el
+        # Payment y procesar la aprobación) sale de la consulta a Orders.
+        pay_gpi = (gw_result.gateway_payment_id or payment_id) if is_order else payment_id
 
         # Registrar evento de auditoría
         payment = (
@@ -248,10 +262,15 @@ class MercadoPagoWebhookView(APIView):
             .filter(order__order_number=data.get('external_reference', ''))
             .first()
         )
-        # Si no encontramos por order_number, buscar por gateway_payment_id
+        # Si no encontramos por order_number: en orders buscamos por mp_order_id
+        # (ORD), en legacy por gateway_payment_id (payment id).
+        if not payment and is_order:
+            payment = Payment.objects.filter(
+                mp_order_id=payment_id, gateway='MERCADOPAGO'
+            ).first()
         if not payment:
             payment = Payment.objects.filter(
-                gateway_payment_id=payment_id, gateway='MERCADOPAGO'
+                gateway_payment_id=pay_gpi, gateway='MERCADOPAGO'
             ).first()
 
         if payment:
@@ -261,15 +280,23 @@ class MercadoPagoWebhookView(APIView):
                 raw_body=raw_body,
             )
 
-        # Actualizar gateway_payment_id si aún no lo tiene
-        if payment and not payment.gateway_payment_id:
-            payment.gateway_payment_id = payment_id
-            payment.save(update_fields=['gateway_payment_id', 'updated_at'])
+        # Actualizar gateway_payment_id / mp_order_id si aún no los tiene
+        if payment:
+            update_fields = []
+            if not payment.gateway_payment_id and pay_gpi:
+                payment.gateway_payment_id = pay_gpi
+                update_fields.append('gateway_payment_id')
+            if is_order and not payment.mp_order_id:
+                payment.mp_order_id = payment_id
+                update_fields.append('mp_order_id')
+            if update_fields:
+                update_fields.append('updated_at')
+                payment.save(update_fields=update_fields)
 
         # Procesar según el estado
         if gw_result.status == 'approved':
             result, newly_approved = _process_payment_approval(
-                gateway_payment_id=payment_id,
+                gateway_payment_id=pay_gpi,
                 gateway='MERCADOPAGO',
                 amount=gw_result.amount,
             )

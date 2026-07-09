@@ -446,6 +446,104 @@ class MercadoPagoGateway(BaseGateway):
             installments=data.get('installments', 1),
         )
 
+    # -------------------------------------------------------------------------
+    # Orders API — operaciones sobre el recurso Order (DEC-ORD-01)
+    # mp_order_id (ORD...) es la clave; el pago vive en transactions.payments[0].
+    # -------------------------------------------------------------------------
+
+    def verify_order(self, mp_order_id: str) -> PaymentVerification:
+        """Verifica el estado de una Order — GET ``/v1/orders/{id}`` (T-301).
+
+        Reemplaza el polling del Payments API para pagos migrados a Orders: lee
+        el pago anidado en ``transactions.payments[0]`` y mapea su ``status``
+        con ``orders_status`` (processed→approved, action_required→pending…),
+        no con ``MP_STATUS_MAP`` legacy que caía todo a ``pending``.
+        """
+        sdk  = _get_sdk()
+        resp = sdk.order().get(mp_order_id)
+
+        if resp.get('status') != 200:
+            logger.error('MercadoPago verify order error: %s', resp)
+            return PaymentVerification(
+                gateway_payment_id=None,
+                status='pending',
+                amount=None,
+            )
+
+        data     = resp['response']
+        payments = (data.get('transactions') or {}).get('payments') or []
+        pay      = payments[0] if payments else {}
+        pay_method = pay.get('payment_method') or {}
+        return PaymentVerification(
+            gateway_payment_id=str(pay.get('id') or ''),
+            status=map_order_payment_status(
+                pay.get('status') or data.get('status', ''),
+                pay.get('status_detail', ''),
+            ),
+            amount=Decimal(str(pay.get('amount') or data.get('total_amount') or 0)),
+            installments=pay_method.get('installments', 1),
+        )
+
+    def cancel_order(self, mp_order_id: str) -> dict:
+        """Cancela una Order — POST ``/v1/orders/{id}/cancel`` (T-401).
+
+        Válido para orders aún no procesadas (``created``/``action_required``).
+        Retorna la respuesta cruda del SDK. Raises ``RuntimeError`` en error.
+        """
+        sdk = _get_sdk()
+        response = sdk.order().cancel(mp_order_id)
+        if response.get('status') not in (200, 201):
+            body = response.get('response', {})
+            msg  = body.get('message', str(response))
+            logger.error('MercadoPago cancel order error: %s', msg)
+            raise RuntimeError(f'Error al cancelar la order en MercadoPago: {msg}')
+        return response
+
+    def refund_order(self, mp_order_id: str, payment_id: str = '', amount=None) -> RefundResult:
+        """Reembolso via Orders API — ``/v1/orders/{id}/refund`` (T-402).
+
+        Total (sin body) o parcial (``transactions[] = {id, amount}``). El
+        importe va como **string** (Orders exige string). Usa el
+        ``refund_transaction`` del SDK oficial.
+        """
+        sdk  = _get_sdk()
+        body = None
+        if amount is not None:
+            body = {'transactions': [{'id': payment_id, 'amount': _amount_str(amount)}]}
+
+        response = sdk.order().refund_transaction(mp_order_id, body)
+        if response.get('status') not in (200, 201):
+            err = response.get('response', {})
+            msg = err.get('message', str(response))
+            logger.error('MercadoPago refund order error: %s', msg)
+            raise RuntimeError(f'Error al reembolsar la order en MercadoPago: {msg}')
+
+        data = response['response']
+        # El refund vive en transactions.refunds[0] (Orders) o al top-level según
+        # la forma de respuesta; se toma el primer id disponible.
+        refunds = (data.get('transactions') or {}).get('refunds') or []
+        refund  = refunds[0] if refunds else data
+        return RefundResult(
+            refund_id=str(refund.get('id', '')),
+            status='approved',
+            amount=Dec(str(refund.get('amount', amount or 0))),
+        )
+
+    def search_order(self, external_reference: str) -> dict:
+        """Busca orders por ``external_reference`` (order_number) — T-403.
+
+        Reconciliación cuando se pierde el webhook (rescate N2): recupera el
+        estado real de la order desde MP. Retorna el ``response`` del SDK (dict
+        con ``results``); ``{}`` si MP responde con error (best-effort).
+        """
+        sdk = _get_sdk()
+        response = sdk.order().search(filters={'external_reference': external_reference})
+        if response.get('status') != 200:
+            body = response.get('response', {})
+            msg  = body.get('message', str(response))
+            logger.error('MercadoPago search order error: %s', msg)
+            return {}
+        return response['response']
 
     def search_customer_by_email(self, email: str):
         """
