@@ -58,6 +58,10 @@ AUTH_USER_MODEL = 'users.User'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # RequestLogMiddleware (DEC-LOG-02): cobertura universal request->DB. Va
+    # cerca del tope para medir la duracion completa; su process_response corre
+    # tras get_response, cuando request.user y resolver_match ya estan puestos.
+    'apps.core.middleware.request_log.RequestLogMiddleware',
     # CookieGovernanceMiddleware va sobre Session/CSRF: su process_response
     # (orden inverso) corre despues de que aquellas ponen sus cookies, para
     # observarlas/gobernarlas. Fase 1 = auditoria (COOKIE_GOVERNANCE_ENFORCE
