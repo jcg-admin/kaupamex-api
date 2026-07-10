@@ -10,6 +10,7 @@ import time
 from django.contrib.auth.models import AbstractUser
 from django.db import models, transaction
 from django.utils import timezone
+from apps.core.logging_context import get_correlation_id
 from apps.core.models import SoftDeleteModel, TimeStampedModel
 
 
@@ -441,6 +442,10 @@ class BusinessEvent(TimeStampedModel):
     target_id   = models.PositiveIntegerField(null=True, blank=True)
     ip_addr     = models.GenericIPAddressField(null=True, blank=True)
     extra_json  = models.JSONField(null=True, blank=True)
+    # SOL-011 (DEC-LOG-07): une este evento de negocio con RequestLog / AppLog de
+    # la misma request. Se autopopula desde el contexto de logging en save(); es
+    # vacio para eventos emitidos fuera de un request (management commands, cron).
+    correlation_id = models.CharField(max_length=32, db_index=True, blank=True, default="")
 
     class Meta:
         db_table = "users_business_event"
@@ -449,6 +454,13 @@ class BusinessEvent(TimeStampedModel):
             models.Index(fields=["action", "-created_at"]),
             models.Index(fields=["target_type", "target_id"]),
         ]
+
+    def save(self, *args, **kwargs):
+        # DEC-LOG-07: sella el correlation_id de la request en curso si el
+        # llamador no lo fijo explicitamente. No pisa un valor ya provisto.
+        if not self.correlation_id:
+            self.correlation_id = get_correlation_id() or ""
+        super().save(*args, **kwargs)
 
     def __str__(self):
         a = self.actor.username if self.actor_id else "system"
