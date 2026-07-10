@@ -180,6 +180,10 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.JSONRenderer',
     ],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    # SOL-011 / ADR-019: envuelve el handler de DRF para sellar exception_class
+    # + error_detail (scrubbed) en RequestLog sin cambiar el cuerpo de error
+    # (conserva la clave canonica ``codigo_error``). No bloqueante (DEC-LOG-04).
+    'EXCEPTION_HANDLER': 'apps.core.exception_handling.custom_exception_handler',
     # DEC-THR-1 (hardening-throttle-endpoints-publicos):
     # Defense in depth contra brute-force/spam en endpoints
     # publicos. Rates conservadores por scope sensible.

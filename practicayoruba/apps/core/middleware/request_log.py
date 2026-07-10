@@ -9,7 +9,11 @@ sin query string (evita tokens/PII en parametros).
 """
 import time
 
-from apps.core.logging_context import clear_correlation_id, new_correlation_id
+from apps.core.logging_context import (
+    clear_correlation_id,
+    get_request_error,
+    new_correlation_id,
+)
 from apps.core.models import RequestLog
 
 
@@ -46,6 +50,10 @@ class RequestLogMiddleware:
         match = getattr(request, 'resolver_match', None)
         if match is not None:
             view_name = match.view_name or ''
+        # Campos de error (ADR-019): el custom_exception_handler de DRF sella la
+        # clase de excepcion + el detalle (ya scrubbed) en el contexto; se
+        # persisten solo cuando hubo excepcion (status_code >= 400).
+        err = get_request_error() or {}
         RequestLog.objects.create(
             correlation_id=cid,
             method=(request.method or '')[:10],
@@ -56,6 +64,8 @@ class RequestLogMiddleware:
             duration_ms=duration_ms,
             ip=self._client_ip(request),
             user_agent=request.META.get('HTTP_USER_AGENT', ''),
+            exception_class=(err.get('exception_class') or '')[:255],
+            error_detail=err.get('error_detail') or '',
         )
 
     @staticmethod
