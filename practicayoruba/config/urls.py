@@ -49,6 +49,8 @@ urlpatterns = _admin_urls + [
     path('api/v2/',          include(('apps.catalogue.urls', 'catalogue'), namespace='catalogue_v2')),
 
     # ─── API v2 (F2: cart, wishlist, referral, notifications) ───────────────────
+    # SOL-011 T-06: logs tecnicos read-only (UC-ADM-06, DEC-LOG-08 revisada).
+    path('api/v2/admin/',          include(('apps.core.admin_urls', 'admin_core'),           namespace='admin_core_v2')),
     path('api/v2/cart/',           include(('apps.cart.urls', 'cart'),                       namespace='cart_v2')),
     path('api/v2/wishlist/',       include(('apps.wishlist.urls', 'wishlist'),               namespace='wishlist_v2')),
     path('api/v2/admin/',          include(('apps.wishlist.admin_urls', 'admin_wishlist'),   namespace='admin_wishlist_v2')),
