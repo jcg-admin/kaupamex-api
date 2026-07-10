@@ -407,10 +407,17 @@ LOGGING = {
             'maxBytes': 1024 * 1024 * 10,
             'backupCount': 3,
         },
+        # SOL-011 (DEC-LOG-02): persiste logger.* + django.request (5xx) a la
+        # tabla AppLog via DatabaseLogHandler. PII-safe (scrubber Nivel 1),
+        # no bloqueante y anti-recursion (se excluye django.db). testing.py
+        # sobreescribe LOGGING con NullHandler, asi que este handler NO corre
+        # durante la suite (el handler se prueba directamente).
+        'db': {'class': 'apps.core.logging_handlers.DatabaseLogHandler',
+               'level': 'INFO'},
     },
     'loggers': {
-        'django': {'handlers': ['console', 'file'], 'level': 'INFO'},
-        'apps':   {'handlers': ['console', 'file'], 'level': 'INFO'},
+        'django': {'handlers': ['console', 'file', 'db'], 'level': 'INFO'},
+        'apps':   {'handlers': ['console', 'file', 'db'], 'level': 'INFO'},
         # Veredictos del CookieGovernanceMiddleware (modo auditoria, ADR-018).
         'cookie_governance': {'handlers': ['console', 'file'], 'level': 'INFO'},
     },

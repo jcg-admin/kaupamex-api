@@ -191,3 +191,47 @@ class RequestLog(TimeStampedModel):
 
     def __str__(self):
         return f'{self.method} {self.path} -> {self.status_code} ({self.correlation_id})'
+
+
+class AppLog(TimeStampedModel):
+    """
+    Log a nivel handler (DEC-LOG-01): recibe lo que rutea ``LOGGING`` a traves de
+    ``DatabaseLogHandler`` — los ``logger.*`` del codigo y ``django.request``
+    (5xx). Adaptado de ``StatusLog`` de django-db-logger 0.1.13 (MIT) sobre un
+    modelo propio PII-safe (DEC-LOG-06). ``msg`` y ``trace`` ya vienen redactados
+    por el ``PIIScrubber`` de Nivel 1 (DEC-LOG-03); no se persiste PII de Nivel 2
+    (el usuario se referencia via el ``RequestLog`` de la misma request). Se une a
+    ``RequestLog`` / ``BusinessEvent`` por ``correlation_id`` (DEC-LOG-07);
+    ``correlation_id`` es vacio fuera de un request (management commands). Alta
+    rotacion: retencion 14 d (INFO/DEBUG) / 90 d (WARNING/ERROR) via
+    ``purge_logs`` (DEC-LOG-05).
+    """
+    LEVEL_DEBUG = 'DEBUG'
+    LEVEL_INFO = 'INFO'
+    LEVEL_WARNING = 'WARNING'
+    LEVEL_ERROR = 'ERROR'
+    LEVEL_CRITICAL = 'CRITICAL'
+    LEVEL_CHOICES = [
+        (LEVEL_DEBUG, 'Debug'),
+        (LEVEL_INFO, 'Info'),
+        (LEVEL_WARNING, 'Warning'),
+        (LEVEL_ERROR, 'Error'),
+        (LEVEL_CRITICAL, 'Critical'),
+    ]
+
+    logger_name = models.CharField(max_length=255, db_index=True)
+    level = models.CharField(max_length=20, choices=LEVEL_CHOICES, db_index=True)
+    msg = models.TextField(blank=True, default='')
+    trace = models.TextField(blank=True, default='')
+    correlation_id = models.CharField(max_length=32, db_index=True, blank=True, default='')
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'App Log'
+        verbose_name_plural = 'App Logs'
+        indexes = [
+            models.Index(fields=['-created_at'], name='applog_created_idx'),
+        ]
+
+    def __str__(self):
+        return f'{self.level} {self.logger_name}: {self.msg[:60]}'
