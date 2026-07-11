@@ -11,7 +11,7 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models, transaction
 from django.utils import timezone
 from apps.core.logging_context import get_correlation_id
-from apps.core.models import SoftDeleteModel, TimeStampedModel
+from apps.core.models import AppendOnlyModel, SoftDeleteModel, TimeStampedModel
 
 
 
@@ -403,7 +403,7 @@ class AuthEvent(TimeStampedModel):
 
 
 
-class BusinessEvent(TimeStampedModel):
+class BusinessEvent(AppendOnlyModel):
     """
     Audit trail de eventos business cross-cutting (orders,
     returns) — distinto de AuthEvent (auth flow). Sucesora
@@ -412,6 +412,13 @@ class BusinessEvent(TimeStampedModel):
     Patron similar: append-only, PII safe, indexed for
     forensics. target_type + target_id en lugar de
     GenericForeignKey por simplicidad (DEC-CC-4).
+
+    Inmutabilidad impuesta a nivel de modelo (SOL-011 T-10, DEC-LOG-10):
+    hereda de AppendOnlyModel — el INSERT inicial (siempre via
+    ``objects.create()``) es permitido, pero un UPDATE de instancia o un
+    ``delete()`` de instancia lanzan PermissionError. El ``save()`` de abajo
+    conserva el auto-stamp de correlation_id (DEC-LOG-07) y delega en
+    ``super().save()`` (AppendOnlyModel), que aplica el guard.
     """
     ACTION_ORDER_CREATED          = "ORDER_CREATED"
     ACTION_ORDER_CANCELLED        = "ORDER_CANCELLED"
