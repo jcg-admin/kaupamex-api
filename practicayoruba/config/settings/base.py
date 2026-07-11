@@ -101,12 +101,20 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # se usa TCP con SSL obligatorio (require_secure_transport=ON en VM3).
 # Ver docs/source/normativa/procedimientos/proc-ejecutar-pruebas.rst.
 _DB_OPTIONS = {
-    'ssl': {
-        'ca': certifi.where(),  # Bundle CAs publico — valido para Let's Encrypt
-    },
     'charset': 'utf8mb4',
     'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
 }
+# SSL: por defecto verifica el cert del server contra CAs publicas (certifi),
+# valido para la DB productiva (Let's Encrypt; VM3 TCP + require_secure_transport).
+# DB_SSL_MODE=DISABLED apaga TLS para entornos con cert self-signed o socket
+# local (contenedor/CI) sin afectar produccion. Paridad con testing.py
+# (DB_QA_SSL_MODE): antes 'ssl' estaba hardcodeado y rompia el socket local con
+# "certificate verify failed" (H-API-LOG-04).
+_DB_SSL_MODE = config('DB_SSL_MODE', default='')
+if _DB_SSL_MODE:
+    _DB_OPTIONS['ssl_mode'] = _DB_SSL_MODE
+else:
+    _DB_OPTIONS['ssl'] = {'ca': certifi.where()}
 _DB_SOCKET = config('DB_SOCKET', default='')
 if _DB_SOCKET:
     _DB_OPTIONS['unix_socket'] = _DB_SOCKET
