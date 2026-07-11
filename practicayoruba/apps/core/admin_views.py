@@ -17,6 +17,7 @@ revisada, ADR-019). ``GET /api/v2/admin/logs/`` sirve ``RequestLog`` (default) y
 - Filtros por query params + paginado a nivel DB (LIMIT/OFFSET).
 - Nivel 0 preservado (DEC-LOG-06): DRF es framework, no un modulo de dominio.
 """
+from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.exceptions import ValidationError as DRFValidationError
@@ -106,6 +107,11 @@ class AdminLogsView(APIView):
         dt = parse_datetime(raw)
         if dt is None:
             raise DRFValidationError({key: 'Fecha ISO 8601 invalida.'})
+        # USE_TZ activo: un ISO sin offset llega naive; comparar naive contra
+        # created_at (aware) lanza RuntimeWarning y es ambiguo. Lo anclamos a la
+        # zona activa (H-API-LOG: filtro from/to naive bajo USE_TZ).
+        if timezone.is_naive(dt):
+            dt = timezone.make_aware(dt)
         return dt
 
     # --- RequestLog ---

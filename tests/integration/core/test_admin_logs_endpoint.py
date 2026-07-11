@@ -102,3 +102,62 @@ def test_pagination(admin_client):
     assert body['pages'] == 3
     assert body['page'] == 2
     assert len(body['results']) == 10
+
+
+def test_filter_path(admin_client):
+    _seed_requestlogs()
+    resp = admin_client.get(URL, {'path': '/a'})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body['count'] == 1
+    assert body['results'][0]['path'] == '/a'
+
+
+def test_filter_status_exact(admin_client):
+    _seed_requestlogs()
+    resp = admin_client.get(URL, {'status': 500})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body['count'] == 1
+    assert body['results'][0]['status_code'] == 500
+
+
+def test_filter_from_to_range(admin_client):
+    _seed_requestlogs()
+    # rango amplio → incluye ambos
+    wide = admin_client.get(URL, {'from': '2000-01-01T00:00:00',
+                                  'to': '2100-01-01T00:00:00'})
+    assert wide.json()['count'] == 2
+    # from en el futuro → ninguno (created_at < from)
+    future = admin_client.get(URL, {'from': '2100-01-01T00:00:00'})
+    assert future.json()['count'] == 0
+    # to en el pasado → ninguno (created_at > to)
+    past = admin_client.get(URL, {'to': '2000-01-01T00:00:00'})
+    assert past.json()['count'] == 0
+
+
+def test_invalid_status_400(admin_client):
+    _seed_requestlogs()
+    resp = admin_client.get(URL, {'status': 'abc'})
+    assert resp.status_code == 400
+    assert 'status' in resp.json()
+
+
+def test_invalid_status_min_400(admin_client):
+    _seed_requestlogs()
+    resp = admin_client.get(URL, {'status_min': 'xyz'})
+    assert resp.status_code == 400
+    assert 'status_min' in resp.json()
+
+
+def test_invalid_from_iso_400(admin_client):
+    _seed_requestlogs()
+    resp = admin_client.get(URL, {'from': 'not-a-date'})
+    assert resp.status_code == 400
+    assert 'from' in resp.json()
+
+
+def test_invalid_source_400(admin_client):
+    resp = admin_client.get(URL, {'source': 'bogus'})
+    assert resp.status_code == 400
+    assert 'source' in resp.json()
