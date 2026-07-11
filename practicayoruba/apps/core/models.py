@@ -46,6 +46,36 @@ class TimeStampedModel(models.Model):
         get_latest_by = 'created_at'
 
 
+class AppendOnlyModel(TimeStampedModel):
+    """
+    Base abstracta append-only para logs (SOL-011, DEC-LOG-05). Impone la
+    inmutabilidad a nivel de modelo, no solo por docstring o por el endpoint
+    read-only (405): permite el INSERT inicial pero prohibe el UPDATE de
+    instancia (``save`` sobre una fila ya persistida -> ``PermissionError``) y
+    el DELETE de instancia (``obj.delete()`` -> ``PermissionError``).
+
+    La purga por retencion (``purge_logs``) usa ``QuerySet.delete()`` en bulk,
+    que NO invoca el ``delete()`` de instancia — por eso la retencion sigue
+    funcionando sin excepcion. Precedente adaptado de CNST-009 (otro proyecto):
+    un log de auditoria/tecnico que se puede editar o borrar puntualmente no es
+    prueba fiable.
+    """
+
+    class Meta:
+        abstract = True
+
+    def save(self, *args, **kwargs):
+        if not self._state.adding:
+            raise PermissionError(
+                f'{type(self).__name__} es append-only: UPDATE no permitido')
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise PermissionError(
+            f'{type(self).__name__} es append-only: DELETE de instancia no '
+            f'permitido (usar purga bulk por retencion)')
+
+
 class SoftDeleteQuerySet(models.QuerySet):
     """
     QuerySet con metodo ``delete`` que aplica soft delete:
@@ -154,7 +184,7 @@ class SoftDeleteModel(models.Model):
         )
 
 
-class RequestLog(TimeStampedModel):
+class RequestLog(AppendOnlyModel):
     """
     Log universal a nivel request (DEC-LOG-01): una fila por cada request HTTP,
     con cobertura de todos los endpoints via RequestLogMiddleware. PII-safe
@@ -193,7 +223,7 @@ class RequestLog(TimeStampedModel):
         return f'{self.method} {self.path} -> {self.status_code} ({self.correlation_id})'
 
 
-class AppLog(TimeStampedModel):
+class AppLog(AppendOnlyModel):
     """
     Log a nivel handler (DEC-LOG-01): recibe lo que rutea ``LOGGING`` a traves de
     ``DatabaseLogHandler`` — los ``logger.*`` del codigo y ``django.request``
