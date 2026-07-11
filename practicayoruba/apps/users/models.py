@@ -425,14 +425,14 @@ class BusinessEvent(AppendOnlyModel):
     ACTION_RETURN_REQUESTED       = "RETURN_REQUESTED"
     ACTION_RETURN_RESOLVED        = "RETURN_RESOLVED"
     ACTION_STOCK_ADJUSTED_TO_ZERO = "STOCK_ADJUSTED_TO_ZERO"
-    ACTION_RECIBO_PDF_GENERADO    = "RECIBO_PDF_GENERADO"
+    ACTION_RECEIPT_PDF_GENERATED  = "RECEIPT_PDF_GENERATED"
     ACTION_CHOICES = [
         (ACTION_ORDER_CREATED,          "Order creada"),
         (ACTION_ORDER_CANCELLED,        "Order cancelada"),
         (ACTION_RETURN_REQUESTED,       "Return solicitada"),
         (ACTION_RETURN_RESOLVED,        "Return resuelta"),
         (ACTION_STOCK_ADJUSTED_TO_ZERO, "Stock ajustado a cero"),
-        (ACTION_RECIBO_PDF_GENERADO,    "Recibo PDF generado"),
+        (ACTION_RECEIPT_PDF_GENERATED,  "Receipt PDF generado"),
     ]
 
     TARGET_ORDER   = "order"

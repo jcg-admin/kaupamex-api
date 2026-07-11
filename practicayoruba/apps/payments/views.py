@@ -396,10 +396,10 @@ class ReceiptPdfView(APIView):
                 status=500,
             )
 
-        # POST-02: auditoría RECIBO_PDF_GENERADO (actor + order + timestamp).
+        # POST-02: auditoría RECEIPT_PDF_GENERATED (actor + order + timestamp).
         audit_log_business(
             actor=request.user,
-            action=BusinessEvent.ACTION_RECIBO_PDF_GENERADO,
+            action=BusinessEvent.ACTION_RECEIPT_PDF_GENERATED,
             request=request,
             target_type=BusinessEvent.TARGET_ORDER,
             target_id=order.pk,
