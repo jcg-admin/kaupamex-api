@@ -120,10 +120,18 @@ class Command(BaseCommand):
 
 
 def _upsert_admin(vals):
+    # username = email: el login autentica por USERNAME_FIELD ('username') y
+    # el formulario SPA (type="email") manda el email como username. El
+    # registro real hace username=email[:150] (serializers.py:_generate_username),
+    # asi que un seed con username=handle NO puede loguearse por la SPA. Se
+    # espeja produccion: username == email. Lookup por email para migrar
+    # idempotentemente filas seed viejas (username='admin'). ADMIN_USERNAME
+    # queda solo como etiqueta de .env (no participa del login).
+    email = vals['ADMIN_EMAIL']
     user, created = User.objects.update_or_create(
-        username=vals['ADMIN_USERNAME'],
+        email=email,
         defaults={
-            'email': vals['ADMIN_EMAIL'],
+            'username': email,
             'is_staff': True,
             'is_superuser': True,
             'is_active': True,
@@ -137,10 +145,13 @@ def _upsert_admin(vals):
 
 
 def _upsert_qa_buyer(vals):
+    # username = email (mismo motivo que _upsert_admin): el comprador seed
+    # debe loguearse por la SPA igual que un comprador registrado.
+    email = vals['QA_BUYER_EMAIL']
     user, created = User.objects.update_or_create(
-        username=QA_BUYER_USERNAME,
+        email=email,
         defaults={
-            'email': vals['QA_BUYER_EMAIL'],
+            'username': email,
             'is_staff': False,
             'is_superuser': False,
             'is_active': True,
