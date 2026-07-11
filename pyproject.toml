@@ -53,8 +53,11 @@ dev = [
 ]
 
 [tool.uv]
-# system-certs: usa el store de certificados del sistema.
-system-certs = true
+# native-tls: usa el store de certificados nativo del sistema operativo
+# (rustls-native-certs) en vez del bundle propio de uv. Campo válido de uv;
+# reemplaza al inexistente `system-certs`, que uv ignoraba emitiendo
+# "unknown field `system-certs`" en cada `uv run`. Equivale a UV_NATIVE_TLS=1.
+native-tls = true
 # package = false: el API es una aplicacion Django (codigo bajo
 # practicayoruba/), no un paquete distribuible. uv gestiona el entorno y
 # las dependencias pero NO intenta construir el proyecto como wheel.
