@@ -19,7 +19,6 @@ REGISTER_URL = '/api/v2/auth/register/'
 def inactive_user(db):
     User = get_user_model()
     return User.objects.create_user(
-        username='unverifuser',
         email='unverified@practicayoruba.mx',
         password='TestPass123!',
         is_active=False,
@@ -77,7 +76,7 @@ class TestEmailVerification:
         """FR-AUTH-01.05: al crear usuario inactivo se genera token de verificacion."""
         User = get_user_model()
         u = User.objects.create_user(
-            username='newuser2', email='newuser2@test.mx',
+            email='newuser2@test.mx',
             password='TestPass123!', is_active=False,
         )
         # Crear token manualmente (igual que lo haría la señal en prod)
@@ -92,7 +91,7 @@ class TestEmailVerification:
         settings.FRONTEND_URL = 'https://practicayoruba.com'
         User = get_user_model()
         u = User.objects.create_user(
-            username='linkuser', email='linkuser@test.mx',
+            email='linkuser@test.mx',
             password='TestPass123!', is_active=False,
         )
         mail.outbox.clear()
@@ -109,7 +108,7 @@ class TestEmailVerification:
         settings.FRONTEND_URL = 'https://practicayoruba.com'
         User = get_user_model()
         u = User.objects.create_user(
-            username='htmluser', email='htmluser@test.mx',
+            email='htmluser@test.mx',
             password='TestPass123!', is_active=False,
         )
         mail.outbox.clear()
@@ -135,7 +134,7 @@ class TestEmailVerification:
     def test_login_cuenta_no_verificada_da_error_diferenciado(self, api_client, inactive_user, db):
         """FR-AUTH-02.09: mensaje diferenciado tras verificacion pendiente."""
         r = api_client.post('/api/v2/auth/login/', {
-            'username': inactive_user.username,
+            'email': inactive_user.email,
             'password': 'TestPass123!',
         }, format='json')
         assert r.status_code == 401
@@ -145,7 +144,7 @@ class TestEmailVerification:
         plain = create_verification_token(inactive_user)
         api_client.post(VERIFY_URL, {'token': plain}, format='json')
         r = api_client.post('/api/v2/auth/login/', {
-            'username': inactive_user.username,
+            'email': inactive_user.email,
             'password': 'TestPass123!',
         }, format='json')
         assert r.status_code == 200

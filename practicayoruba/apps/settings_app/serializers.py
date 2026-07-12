@@ -7,7 +7,9 @@ Sprint 8:  PaymentGatewaySerializer, ShippingMethodSerializer
 from decimal import Decimal
 from rest_framework import serializers
 from apps.orders.models import ShippingZone
-from .models import SiteSettings, PaymentGateway, ShippingMethod
+from apps.orders.delivery import delivery_estimate_dict
+from apps.geo.models import CatalogPostalCode
+from .models import SiteSettings, PaymentGateway, ShippingMethod, Banner
 
 
 class SiteSettingsSerializer(serializers.ModelSerializer):
@@ -212,15 +214,47 @@ class PublicShippingMethodSerializer(serializers.ModelSerializer):
 
 
 class ShippingZoneSerializer(serializers.ModelSerializer):
-    """Admin CRUD del catálogo de zonas + tiempos de entrega (H-12)."""
+    """Admin CRUD del catálogo de zonas + tiempos de entrega (H-12).
+
+    Relación con SEPOMEX (``apps.geo.CatalogPostalCode``): el ``zip_code_prefix``
+    de una zona se ancla al catálogo oficial de códigos postales — se valida que
+    el prefijo cubra ≥1 CP real y se expone ``coverage`` (estados + nº de
+    asentamientos que abarca) para que el admin vea qué cubre antes de guardar.
+    """
+    coverage = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model  = ShippingZone
         fields = [
             'id', 'name', 'zip_code_prefix', 'is_active',
             'estimated_days_min', 'estimated_days_max', 'cost',
-            'free_threshold',
+            'free_threshold', 'coverage',
         ]
-        read_only_fields = ['id']
+        read_only_fields = ['id', 'coverage']
+
+    def get_coverage(self, obj):
+        """Cobertura SEPOMEX del prefijo: estados + nº de asentamientos."""
+        qs = CatalogPostalCode.objects.filter(
+            country='MX', postal_code__startswith=obj.zip_code_prefix)
+        states = list(
+            qs.values_list('state', flat=True).distinct().order_by('state')[:20])
+        return {'settlement_count': qs.count(), 'states': states}
+
+    def validate_zip_code_prefix(self, value):
+        """Ancla el prefijo a SEPOMEX: debe cubrir ≥1 CP mexicano real.
+
+        Graceful: si el catálogo SEPOMEX aún no está cargado (dev/test sin el
+        loader T-206), se omite la validación para no bloquear — la relación
+        aplica cuando hay datos oficiales contra los cuales validar.
+        """
+        catalog = CatalogPostalCode.objects.filter(country='MX')
+        if catalog.exists() and not catalog.filter(
+                postal_code__startswith=value).exists():
+            raise serializers.ValidationError(
+                f'El prefijo «{value}» no corresponde a ningún código postal '
+                f'mexicano en el catálogo SEPOMEX.'
+            )
+        return value
 
     def validate(self, attrs):
         # El máximo no puede ser menor que el mínimo cuando ambos están dados.
@@ -237,12 +271,58 @@ class ShippingZoneSerializer(serializers.ModelSerializer):
 
 
 class PublicShippingZoneSerializer(serializers.ModelSerializer):
-    """Proyección pública read-only del catálogo de zonas (/api/v2/shipping-zones/)."""
+    """Proyección pública read-only del catálogo de zonas (/api/v2/shipping-zones/).
+
+    Incluye ``delivery_estimate`` (G-ENV-02): la ventana de fechas "Recíbelo"
+    calculada con la regla de corte 11:00 + días hábiles sin domingo. Depende de
+    ``now`` (no cacheable) — es una estimación viva para el storefront."""
+    delivery_estimate = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model  = ShippingZone
         fields = [
             'id', 'name', 'zip_code_prefix',
             'estimated_days_min', 'estimated_days_max', 'cost',
-            'free_threshold',
+            'free_threshold', 'delivery_estimate',
         ]
+        read_only_fields = fields
+
+    def get_delivery_estimate(self, obj):
+        return delivery_estimate_dict(obj)
+
+
+class _BannerImageUrlMixin:
+    """image_url absoluto si hay request en contexto; '' si no hay imagen."""
+
+    def get_image_url(self, obj):
+        if not obj.image:
+            return ''
+        url = obj.image.url
+        request = self.context.get('request')
+        return request.build_absolute_uri(url) if request else url
+
+
+class BannerSerializer(_BannerImageUrlMixin, serializers.ModelSerializer):
+    """Serializer admin del catálogo de banners (UC-CFG-06, G-CFG-01).
+
+    Expone ``image_url`` (lectura) además del ``image`` de subida (escritura)
+    para el formulario del panel admin."""
+    image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = Banner
+        fields = ['id', 'image', 'image_url', 'placement', 'title', 'alt_text',
+                  'link_url', 'is_active', 'order', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'image_url', 'created_at', 'updated_at']
+        extra_kwargs = {'image': {'write_only': True}}
+
+
+class PublicBannerSerializer(_BannerImageUrlMixin, serializers.ModelSerializer):
+    """Proyección pública read-only del banner (storefront)."""
+    image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = Banner
+        fields = ['id', 'image_url', 'placement', 'title', 'alt_text',
+                  'link_url', 'order']
         read_only_fields = fields

@@ -94,7 +94,7 @@ def transition_order_status(order, new_status: str, admin_user, notes: str = '')
 
     logger.info(
         'Orden %s: %s → %s (admin=%s)',
-        locked.order_number, previous, new_status, admin_user.username,
+        locked.order_number, previous, new_status, admin_user.email,
     )
     return locked
 

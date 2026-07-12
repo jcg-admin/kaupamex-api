@@ -187,7 +187,7 @@ class TestProductoDetalle:
 
     def test_detalle_reviews_summary_agrega_aprobadas(self, api_client, db, product_oshun):
         User = get_user_model()
-        u = User.objects.create_user(username='rev_user', password='X', email='r@x.com')
+        u = User.objects.create_user(password='X', email='r@x.com')
         order = Order.objects.create(user=u, status=Order.STATUS_DELIVERED)
         Review.objects.create(
             user=u, product=product_oshun, order=order,
@@ -201,7 +201,7 @@ class TestProductoDetalle:
 
     def test_detalle_reviews_summary_excluye_pendientes(self, api_client, db, product_oshun):
         User = get_user_model()
-        u = User.objects.create_user(username='rev_user2', password='X', email='r2@x.com')
+        u = User.objects.create_user(password='X', email='r2@x.com')
         order = Order.objects.create(user=u, status=Order.STATUS_DELIVERED)
         Review.objects.create(
             user=u, product=product_oshun, order=order,

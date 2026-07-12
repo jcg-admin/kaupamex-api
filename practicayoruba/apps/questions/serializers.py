@@ -36,7 +36,7 @@ class PublicQuestionItemSerializer(serializers.ModelSerializer):
     def get_asker_name(self, obj) -> str:
         # Anonimo si no se provee nombre.
         if obj.asker_user_id and not obj.asker_name:
-            return obj.asker_user.username if obj.asker_user else 'Usuario'
+            return obj.asker_user.email if obj.asker_user else 'Usuario'
         return obj.asker_name or 'Anonimo'
 
     @extend_schema_field(OpenApiTypes.OBJECT)

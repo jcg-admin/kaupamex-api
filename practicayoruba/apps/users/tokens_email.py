@@ -66,7 +66,7 @@ def create_password_reset_token(user) -> str:
 
 def send_password_reset_email(user, plain_token: str):
     reset_url = f"{getattr(settings, 'FRONTEND_URL', 'http://localhost:3001')}/auth/reset-password/?token={plain_token}"
-    nombre = user.first_name or user.username
+    nombre = user.first_name or user.email
     html_body = render_to_string('emails/reset_password.html', {
         'nombre': nombre,
         'reset_url': reset_url,
@@ -195,7 +195,7 @@ def send_verification_email(user, plain_token: str, next_path: str = ''):
     safe_next = _safe_internal_path(next_path)
     if safe_next:
         verify_url += f"&next={quote(safe_next, safe='/')}"
-    nombre = user.first_name or user.username
+    nombre = user.first_name or user.email
     html_body = render_to_string('emails/verify_account.html', {
         'nombre': nombre,
         'verify_url': verify_url,

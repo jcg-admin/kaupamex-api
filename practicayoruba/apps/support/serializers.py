@@ -5,6 +5,7 @@ Cumplen los contratos JSON declarados en UC-SUPP-01..05 (PARTE 7C).
 """
 from rest_framework import serializers
 from .models import SupportTicket, SupportTicketReply
+from apps.authz.services import is_superadmin
 from apps.orders.models import Order
 
 
@@ -102,7 +103,7 @@ class SupportTicketReplySerializer(serializers.ModelSerializer):
     def get_author(self, obj) -> str:
         if obj.author is None:
             return 'SYSTEM'
-        return 'ADMIN' if obj.author.is_staff else 'BUYER'
+        return 'ADMIN' if is_superadmin(obj.author) else 'BUYER'
 
 
 class SupportTicketDetailSerializer(serializers.ModelSerializer):
@@ -124,7 +125,7 @@ class SupportTicketDetailSerializer(serializers.ModelSerializer):
 
     def get_replies(self, obj) -> list:
         request = self.context.get('request')
-        is_staff = bool(request and request.user.is_authenticated and request.user.is_staff)
+        is_staff = bool(request and request.user.is_authenticated and is_superadmin(request.user))
         qs = obj.replies.all().order_by('created_at')
         if not is_staff:
             qs = qs.filter(is_internal_note=False)
@@ -140,7 +141,7 @@ class SupportTicketDetailSerializer(serializers.ModelSerializer):
 
     def get_buyer(self, obj) -> dict | None:
         request = self.context.get('request')
-        if not (request and request.user.is_authenticated and request.user.is_staff):
+        if not (request and request.user.is_authenticated and is_superadmin(request.user)):
             return None
         return {
             'id': obj.user_id,

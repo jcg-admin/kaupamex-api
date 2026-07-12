@@ -12,7 +12,8 @@ from django.utils import timezone
 from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiParameter
 from rest_framework import serializers, status
 from rest_framework.exceptions import NotFound, ValidationError
-from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from apps.authz.permissions import HasCapability
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
@@ -100,7 +101,8 @@ class ProductVariantAdminViewSet(ModelViewSet):
     PATCH  /api/v1/admin/variants/<pk>/      update
     DELETE /api/v1/admin/variants/<pk>/      delete
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'catalogue.manage'
     serializer_class   = ProductVariantAdminSerializer
     queryset           = ProductVariant.objects.all().select_related(
         'product', 'option', 'option__variant_type'
@@ -176,7 +178,8 @@ class VariantTypeAdminViewSet(ModelViewSet):
     PATCH  /api/v1/admin/variant-types/<pk>/      update
     DELETE /api/v1/admin/variant-types/<pk>/      delete
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'catalogue.manage'
     serializer_class   = VariantTypeSerializer
     queryset           = VariantType.objects.all().order_by('name')
     http_method_names  = ['get', 'post', 'patch', 'delete', 'head', 'options']
@@ -240,7 +243,8 @@ class VariantPriceAdminView(APIView):
     PUT    /api/v1/admin/variants/<variant_pk>/price/ — UC-CHT-04 set price override.
     DELETE /api/v1/admin/variants/<variant_pk>/price/ — UC-CHT-04 clear price override.
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'catalogue.manage'
 
     def _get_variant(self, variant_pk):
         try:

@@ -17,7 +17,7 @@ class StaticContentVersionSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(OpenApiTypes.STR)
     def get_changed_by_username(self, obj):
-        return obj.changed_by.username if obj.changed_by_id else None
+        return obj.changed_by.email if obj.changed_by_id else None
 
 
 class StaticContentSerializer(serializers.ModelSerializer):

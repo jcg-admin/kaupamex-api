@@ -9,7 +9,7 @@ Cubre los criterios de aceptación AC-01..AC-04 del contrato:
 
 Adicional:
 - admin (is_staff) puede descargar el recibo de una orden ajena (Alternativa A).
-- la auditoría RECIBO_PDF_GENERADO queda registrada (POST-02 / AC-06).
+- la auditoría RECEIPT_PDF_GENERATED queda registrada (POST-02 / AC-06).
 - totales del PDF derivan de OrderValue (AC-05, vía payload del helper).
 
 El helper C (tools/pdf/pdf_receipt) debe estar compilado en el entorno
@@ -40,7 +40,6 @@ RECEIPT_URL = lambda o: f'/api/v2/payments/{o}/receipt/'
 def buyer(db):
     User = get_user_model()
     return User.objects.create_user(
-        username='buyer-pay10',
         email='buyer-pay10@practicayoruba.mx',
         password='BuyerPass123!',
     )
@@ -50,7 +49,6 @@ def buyer(db):
 def other_user(db):
     User = get_user_model()
     return User.objects.create_user(
-        username='other-pay10',
         email='other-pay10@practicayoruba.mx',
         password='OtherPass123!',
     )
@@ -112,7 +110,7 @@ def test_ac01_owner_paid_order_returns_pdf(api_client, buyer):
 def test_ac01_audit_event_recorded(
     api_client, buyer, django_capture_on_commit_callbacks,
 ):
-    """AC-06 / POST-02: queda registro RECIBO_PDF_GENERADO.
+    """AC-06 / POST-02: queda registro RECEIPT_PDF_GENERATED.
 
     audit_log_business emite el BusinessEvent vía transaction.on_commit
     (DEC-CC-2); en el atomic-rollback default del test los callbacks no
@@ -126,7 +124,7 @@ def test_ac01_audit_event_recorded(
     assert resp.status_code == 200
 
     ev = BusinessEvent.objects.filter(
-        action=BusinessEvent.ACTION_RECIBO_PDF_GENERADO,
+        action=BusinessEvent.ACTION_RECEIPT_PDF_GENERATED,
         target_type=BusinessEvent.TARGET_ORDER,
         target_id=order.pk,
     ).first()
@@ -151,7 +149,7 @@ def test_ac02_unpaid_order_returns_409(api_client, buyer):
     assert resp.json()['codigo_error'] == 'ORDER_NOT_PAID'
     # No se generó auditoría de recibo.
     assert not BusinessEvent.objects.filter(
-        action=BusinessEvent.ACTION_RECIBO_PDF_GENERADO,
+        action=BusinessEvent.ACTION_RECEIPT_PDF_GENERATED,
         target_id=order.pk,
     ).exists()
 

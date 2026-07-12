@@ -341,3 +341,37 @@ class StaticPageVersion(TimeStampedModel):
 
     def __str__(self):
         return f'{self.page.slug} v{self.version} ({self.status})'
+
+
+class Banner(TimeStampedModel):
+    """Contenido visual gestionable de la portada (UC-CFG-06, G-CFG-01).
+
+    Un solo modelo para el hero de portada y las franjas promocionales,
+    distinguidos por ``placement`` (evita duplicar CRUD para campos idénticos).
+    El storefront lee los activos por placement vía
+    ``GET /api/v2/config/banners/?placement=HERO`` (público); el admin los
+    gestiona (CRUD + reorder) con la capacidad ``banners.manage``.
+    """
+
+    class Placement(models.TextChoices):
+        HERO        = 'HERO', 'Hero de portada'
+        PROMO_STRIP = 'PROMO_STRIP', 'Franja promocional'
+
+    image      = models.ImageField(upload_to='banners/%Y/%m/', verbose_name='Imagen')
+    placement  = models.CharField(max_length=20, choices=Placement.choices,
+                                  db_index=True, verbose_name='Ubicación')
+    title      = models.CharField(max_length=200, blank=True, default='', verbose_name='Título')
+    alt_text   = models.CharField(max_length=200, verbose_name='Texto alternativo')
+    link_url   = models.URLField(blank=True, default='', verbose_name='Enlace')
+    is_active  = models.BooleanField(default=True, db_index=True, verbose_name='Activo')
+    order      = models.PositiveSmallIntegerField(default=0, verbose_name='Orden')
+
+    class Meta:
+        db_table     = 'settings_banner'
+        ordering     = ['placement', 'order', 'id']
+        verbose_name = 'Banner'
+        verbose_name_plural = 'Banners'
+        indexes = [models.Index(fields=['placement', 'is_active', 'order'])]
+
+    def __str__(self):
+        return f'{self.placement} #{self.order} ({self.alt_text})'

@@ -14,7 +14,9 @@ from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers, status
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
+from apps.authz.permissions import HasCapability
+from apps.authz.services import is_superadmin
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -35,7 +37,8 @@ logger = logging.getLogger('apps')
 
 
 class _AdminOnly:
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'inventory.manage'
 
 
 class StockAlertPagination(PageNumberPagination):
@@ -586,8 +589,9 @@ class ProductImportStatusView(_AdminOnly, APIView):
             # admins. Sin el filtro cualquier admin puede consultar el job de
             # otro admin conociendo su PK secuencial. Los superusuarios pueden
             # ver todos los jobs (necesario para soporte y depuracion).
+            # Party/authz (T-201): "superusuario" = titular del rol superadmin.
             qs = ImportJob.objects
-            if not request.user.is_superuser:
+            if not is_superadmin(request.user):
                 qs = qs.filter(uploaded_by=request.user)
             job = qs.get(pk=int(job_id))
         except (ImportJob.DoesNotExist, ValueError, TypeError):
@@ -625,7 +629,8 @@ class StockAdjustV2View(APIView):
     Tier B: POST /adjust/ → PATCH directo sobre el recurso.
     Delega la logica de negocio a StockAdjustView.post().
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'inventory.manage'
 
     def patch(self, request, product_pk):
         return StockAdjustView().post(request, product_pk)
@@ -638,7 +643,8 @@ class VariantStockV2View(APIView):
     Tier B: POST /adjust/ → PATCH sobre la variante.
     Delega a VariantStockAdjustView.post().
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'inventory.manage'
 
     def patch(self, request, variant_pk):
         return VariantStockAdjustView().post(request, variant_pk)
@@ -651,7 +657,8 @@ class VariantRestocksV2View(APIView):
     Tier A rename: /restock/ → /restocks/ (plural canonico REST).
     Delega a VariantRestockView.post().
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'inventory.manage'
 
     def post(self, request, variant_pk):
         return VariantRestockView().post(request, variant_pk)
@@ -664,7 +671,8 @@ class StockAlertStatusV2View(APIView):
     Tier B: POST /alerts/<pk>/resolve/ → PATCH con {action: resolve}.
     Solo la accion 'resolve' esta soportada en esta version.
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'inventory.manage'
 
     def patch(self, request, pk):
         action = request.data.get('action')

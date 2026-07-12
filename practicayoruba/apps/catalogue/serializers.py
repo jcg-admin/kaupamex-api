@@ -448,7 +448,7 @@ class ProductAdminSerializer(serializers.ModelSerializer):
             'base_price', 'price_with_tax', 'sale_price',
             'cost', 'margin', 'margin_pct',
             'categories', 'category_ids', 'images', 'is_active', 'is_published', 'is_featured',
-            'stock', 'status', 'discount', 'related_products',
+            'stock', 'weight_kg', 'status', 'discount', 'related_products',
             'created_at', 'updated_at',
         ]
         extra_kwargs = {'slug': {'required': False}, 'name': {'required': True},

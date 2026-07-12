@@ -24,7 +24,8 @@ from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema,
 from rest_framework import fields as rf_fields
 from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
+from apps.authz.permissions import HasCapability
 from apps.orders.models import OrderItem
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -266,11 +267,8 @@ def _compute_audience_count(recipient_type, recipient_identifier, product_id):
     if recipient_type == ManualNotification.RecipientType.USER:
         if not recipient_identifier:
             return 0
+        # Party (T-201): el identificador de usuario es el email (no username).
         return User.objects.filter(
-            is_active=True,
-        ).filter(
-            username=recipient_identifier,
-        ).count() or User.objects.filter(
             is_active=True, email=recipient_identifier,
         ).count()
 
@@ -292,13 +290,10 @@ def _resolve_audience_user_ids(recipient_type, recipient_identifier, product_id)
     """Devuelve la lista de user_ids destinatarios."""
     User = get_user_model()
     if recipient_type == ManualNotification.RecipientType.USER:
-        qs = User.objects.filter(is_active=True).filter(
-            username=recipient_identifier,
+        # Party (T-201): el identificador de usuario es el email (no username).
+        qs = User.objects.filter(
+            is_active=True, email=recipient_identifier,
         )
-        if not qs.exists():
-            qs = User.objects.filter(
-                is_active=True, email=recipient_identifier,
-            )
         return list(qs.values_list('id', flat=True))
 
     if recipient_type == ManualNotification.RecipientType.PRODUCT_BUYERS:
@@ -315,7 +310,8 @@ def _resolve_audience_user_ids(recipient_type, recipient_identifier, product_id)
 class AdminAudienceCountView(APIView):
     """GET /api/v1/admin/notifications/audience-count/."""
 
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'notifications.manage'
     serializer_class = ManualNotificationCreateSerializer
 
     @extend_schema(
@@ -368,7 +364,8 @@ class AdminAudienceCountView(APIView):
 class AdminManualNotificationCreateView(APIView):
     """POST /api/v1/admin/notifications/manual/."""
 
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'notifications.manage'
 
     @extend_schema(
         summary='Enviar notificacion manual',

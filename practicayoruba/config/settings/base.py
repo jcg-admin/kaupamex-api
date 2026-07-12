@@ -52,12 +52,18 @@ INSTALLED_APPS = [
     'apps.static_content',
     'apps.backups',
     'apps.referral',
+    'apps.geo',
+    'apps.authz',
 ]
 
-AUTH_USER_MODEL = 'users.User'
+AUTH_USER_MODEL = 'users.IdentityUser'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # RequestLogMiddleware (DEC-LOG-02): cobertura universal request->DB. Va
+    # cerca del tope para medir la duracion completa; su process_response corre
+    # tras get_response, cuando request.user y resolver_match ya estan puestos.
+    'apps.core.middleware.request_log.RequestLogMiddleware',
     # CookieGovernanceMiddleware va sobre Session/CSRF: su process_response
     # (orden inverso) corre despues de que aquellas ponen sus cookies, para
     # observarlas/gobernarlas. Fase 1 = auditoria (COOKIE_GOVERNANCE_ENFORCE
@@ -97,12 +103,20 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # se usa TCP con SSL obligatorio (require_secure_transport=ON en VM3).
 # Ver docs/source/normativa/procedimientos/proc-ejecutar-pruebas.rst.
 _DB_OPTIONS = {
-    'ssl': {
-        'ca': certifi.where(),  # Bundle CAs publico — valido para Let's Encrypt
-    },
     'charset': 'utf8mb4',
     'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
 }
+# SSL: por defecto verifica el cert del server contra CAs publicas (certifi),
+# valido para la DB productiva (Let's Encrypt; VM3 TCP + require_secure_transport).
+# DB_SSL_MODE=DISABLED apaga TLS para entornos con cert self-signed o socket
+# local (contenedor/CI) sin afectar produccion. Paridad con testing.py
+# (DB_QA_SSL_MODE): antes 'ssl' estaba hardcodeado y rompia el socket local con
+# "certificate verify failed" (H-API-LOG-04).
+_DB_SSL_MODE = config('DB_SSL_MODE', default='')
+if _DB_SSL_MODE:
+    _DB_OPTIONS['ssl_mode'] = _DB_SSL_MODE
+else:
+    _DB_OPTIONS['ssl'] = {'ca': certifi.where()}
 _DB_SOCKET = config('DB_SOCKET', default='')
 if _DB_SOCKET:
     _DB_OPTIONS['unix_socket'] = _DB_SOCKET
@@ -176,6 +190,10 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.JSONRenderer',
     ],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    # SOL-011 / ADR-019: envuelve el handler de DRF para sellar exception_class
+    # + error_detail (scrubbed) en RequestLog sin cambiar el cuerpo de error
+    # (conserva la clave canonica ``codigo_error``). No bloqueante (DEC-LOG-04).
+    'EXCEPTION_HANDLER': 'apps.core.exception_handling.custom_exception_handler',
     # DEC-THR-1 (hardening-throttle-endpoints-publicos):
     # Defense in depth contra brute-force/spam en endpoints
     # publicos. Rates conservadores por scope sensible.
@@ -403,10 +421,17 @@ LOGGING = {
             'maxBytes': 1024 * 1024 * 10,
             'backupCount': 3,
         },
+        # SOL-011 (DEC-LOG-02): persiste logger.* + django.request (5xx) a la
+        # tabla AppLog via DatabaseLogHandler. PII-safe (scrubber Nivel 1),
+        # no bloqueante y anti-recursion (se excluye django.db). testing.py
+        # sobreescribe LOGGING con NullHandler, asi que este handler NO corre
+        # durante la suite (el handler se prueba directamente).
+        'db': {'class': 'apps.core.logging_handlers.DatabaseLogHandler',
+               'level': 'INFO'},
     },
     'loggers': {
-        'django': {'handlers': ['console', 'file'], 'level': 'INFO'},
-        'apps':   {'handlers': ['console', 'file'], 'level': 'INFO'},
+        'django': {'handlers': ['console', 'file', 'db'], 'level': 'INFO'},
+        'apps':   {'handlers': ['console', 'file', 'db'], 'level': 'INFO'},
         # Veredictos del CookieGovernanceMiddleware (modo auditoria, ADR-018).
         'cookie_governance': {'handlers': ['console', 'file'], 'level': 'INFO'},
     },

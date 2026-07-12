@@ -20,6 +20,7 @@ from cryptography.fernet import Fernet
 from django.conf import settings
 from django.db import models
 from apps.core.models import SoftDeleteModel, TimeStampedModel
+from apps.logistics.offers import RateCard
 
 logger = logging.getLogger('apps')
 
@@ -187,3 +188,67 @@ class ShipmentEvent(TimeStampedModel):
 
     def __str__(self):
         return f'{self.guide.tracking_number}: {self.status} @ {self.occurred_at:%Y-%m-%d %H:%M}'
+
+
+class CarrierRateCard(TimeStampedModel):
+    """Catálogo de tarifas + reglas de una paquetería para el motor de
+    cotización (apps.logistics.offers). Separado de ``Courier`` (que modela
+    tracking/webhooks) por responsabilidad única: aquí vive el pricing y las
+    reglas de elegibilidad. Un ``Courier`` sin rate card no se cotiza.
+
+    Reglas ``null`` = sin límite. Dimensiones por eje (para "cualquier dimensión
+    ≤ N" se fija el mismo N en los tres). Costo = base + por_kg × peso_total.
+    """
+    ENV_LOW    = 'low'
+    ENV_MEDIUM = 'medium'
+    ENV_HIGH   = 'high'
+    ENV_CHOICES = [(ENV_LOW, 'Baja'), (ENV_MEDIUM, 'Media'), (ENV_HIGH, 'Alta')]
+
+    courier = models.OneToOneField(
+        Courier, on_delete=models.CASCADE, related_name='rate_card')
+    base_cost   = models.DecimalField(max_digits=10, decimal_places=2)
+    cost_per_kg = models.DecimalField(max_digits=10, decimal_places=2)
+    transit_days = models.PositiveSmallIntegerField()
+    environmental = models.CharField(
+        max_length=6, choices=ENV_CHOICES, default=ENV_MEDIUM,
+        help_text='Rating ambiental (mayor es mejor en el ranking).')
+
+    max_package_weight_kg = models.DecimalField(
+        max_digits=8, decimal_places=2, null=True, blank=True)
+    max_length_cm = models.DecimalField(
+        max_digits=8, decimal_places=2, null=True, blank=True)
+    max_width_cm  = models.DecimalField(
+        max_digits=8, decimal_places=2, null=True, blank=True)
+    max_height_cm = models.DecimalField(
+        max_digits=8, decimal_places=2, null=True, blank=True)
+    max_total_value = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True)
+    max_total_weight_kg = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True)
+    allows_hazardous = models.BooleanField(default=False)
+
+    is_active = models.BooleanField(default=True, db_index=True)
+
+    class Meta:
+        db_table     = 'logistics_carrier_rate_card'
+        verbose_name = 'Tarifa de paqueteria'
+
+    def __str__(self):
+        return f'RateCard({self.courier.name})'
+
+    def to_rate_card(self):
+        """Proyección al dataclass puro ``offers.RateCard``."""
+        return RateCard(
+            carrier=self.courier.name,
+            base_cost=self.base_cost,
+            cost_per_kg=self.cost_per_kg,
+            transit_days=self.transit_days,
+            environmental=self.environmental,
+            max_package_weight_kg=self.max_package_weight_kg,
+            max_length_cm=self.max_length_cm,
+            max_width_cm=self.max_width_cm,
+            max_height_cm=self.max_height_cm,
+            max_total_value=self.max_total_value,
+            max_total_weight_kg=self.max_total_weight_kg,
+            allows_hazardous=self.allows_hazardous,
+        )

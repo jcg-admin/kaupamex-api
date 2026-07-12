@@ -22,7 +22,8 @@ from django.utils import timezone
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 from drf_spectacular.types import OpenApiTypes
 from rest_framework import serializers
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
+from apps.authz.permissions import HasCapability
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from .models import Product, ProductPriceHistory
@@ -32,7 +33,8 @@ from .views import ProductPriceSyncView, PRICE_SYNC_CACHE_TTL
 
 
 class _AdminOnly:
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'catalogue.manage'
     serializer_class = serializers.Serializer
 
 

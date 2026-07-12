@@ -10,7 +10,9 @@ from django.db import transaction
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import NotFound, ValidationError
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
+
+from apps.authz.permissions import HasCapability
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from .models import StaticContent, StaticContentVersion
@@ -19,7 +21,8 @@ from .serializers import StaticContentSerializer
 
 
 class _AdminOnly:
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'content.manage'
     serializer_class = StaticContentSerializer
 
 

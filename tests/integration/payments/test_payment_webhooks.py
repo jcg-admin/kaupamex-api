@@ -12,6 +12,7 @@ from decimal import Decimal
 from unittest.mock import patch, MagicMock
 from apps.catalogue.models import Category, Product
 from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from django.core.checks.registry import registry
 from apps.payments.checks import check_mercadopago_client_secret
 from apps.payments.models import Payment
 from apps.settings_app.models import PaymentGateway
@@ -306,6 +307,20 @@ class TestMercadoPagoWebhook:
         errors = check_mercadopago_client_secret(app_configs=None)
         assert errors == [], (
             f'En DEBUG=True no deberia emitir errores, recibido: {errors}'
+        )
+
+    def test_e001_is_deploy_only_check(self):
+        """H-API-CHK-01: E001 es un *deployment check* — sólo corre en
+        ``manage.py check --deploy``, NO en cada comando (makemigrations/
+        migrate/tests). Así un gate de deploy no bloquea comandos normales
+        en entornos sin PaymentGateway sembrado.
+        """
+        assert check_mercadopago_client_secret in registry.deployment_checks, (
+            'check_mercadopago_client_secret debe estar en deployment_checks '
+            '(registrado con deploy=True), no en el registro normal.'
+        )
+        assert check_mercadopago_client_secret not in registry.registered_checks, (
+            'No debe correr como check normal: bloquearía makemigrations/migrate.'
         )
 
     def test_mp_webhook_invalid_json_returns_400(self, api_client, db):

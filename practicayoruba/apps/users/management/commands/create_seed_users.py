@@ -31,6 +31,9 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
+from apps.authz.models import Role, RoleAssignment
+from apps.authz.services import SUPERADMIN_ROLE_CODE
+
 
 User = get_user_model()
 
@@ -107,25 +110,26 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(
             'Admin    : {} <{}> — {}'.format(
-                admin.username, admin.email,
+                admin.email, admin.email,
                 'creado' if admin_created else 'actualizado',
             )
         ))
         self.stdout.write(self.style.SUCCESS(
             'QA Buyer : {} <{}> — {}'.format(
-                buyer.username, buyer.email,
+                buyer.email, buyer.email,
                 'creado' if buyer_created else 'actualizado',
             )
         ))
 
 
 def _upsert_admin(vals):
+    # Party (T-201): email es el identificador (USERNAME_FIELD). ``is_staff``/
+    # ``is_superuser`` ya no existen — el acceso admin se otorga con el rol
+    # ``superadmin`` de apps.authz (DEC-01=B). Lookup por email; idempotente.
+    email = vals['ADMIN_EMAIL']
     user, created = User.objects.update_or_create(
-        username=vals['ADMIN_USERNAME'],
+        email=email,
         defaults={
-            'email': vals['ADMIN_EMAIL'],
-            'is_staff': True,
-            'is_superuser': True,
             'is_active': True,
             'deactivated_reason': None,
             'deactivated_at': None,
@@ -133,16 +137,19 @@ def _upsert_admin(vals):
     )
     user.set_password(vals['ADMIN_PASSWORD'])
     user.save(update_fields=['password'])
+    role, _ = Role.objects.get_or_create(
+        code=SUPERADMIN_ROLE_CODE, defaults={'name': 'Superadministrador'},
+    )
+    RoleAssignment.objects.get_or_create(user=user, role=role)
     return user, created
 
 
 def _upsert_qa_buyer(vals):
+    # Comprador seed: identidad party sin rol admin (email es el identificador).
+    email = vals['QA_BUYER_EMAIL']
     user, created = User.objects.update_or_create(
-        username=QA_BUYER_USERNAME,
+        email=email,
         defaults={
-            'email': vals['QA_BUYER_EMAIL'],
-            'is_staff': False,
-            'is_superuser': False,
             'is_active': True,
             'deactivated_reason': None,
             'deactivated_at': None,

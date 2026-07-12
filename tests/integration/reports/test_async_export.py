@@ -132,8 +132,8 @@ class TestExportJobStatusEndpoint:
         # A different admin owns the job → requesting admin cannot see it.
         User = ExportJob._meta.get_field('requested_by').related_model
         other = User.objects.create_user(
-            username='otheradmin', email='other@practicayoruba.mx',
-            password='OtherPass123!', is_staff=True,
+            email='other@practicayoruba.mx',
+            password='OtherPass123!',
         )
         job = ExportJob.objects.create(
             requested_by=other,
@@ -185,8 +185,8 @@ class TestExportDownloadToken:
     def test_download_non_owner_forbidden(self, admin_client, db, admin_user):
         User = ExportJob._meta.get_field('requested_by').related_model
         other = User.objects.create_user(
-            username='otheradmin2', email='other2@practicayoruba.mx',
-            password='OtherPass123!', is_staff=True,
+            email='other2@practicayoruba.mx',
+            password='OtherPass123!',
         )
         job = ExportJob.objects.create(
             requested_by=other,

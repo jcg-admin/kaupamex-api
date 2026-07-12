@@ -25,6 +25,7 @@ from .views import (
     ShipmentGuideDetailView,
     ShipmentGuideListCreateView,
     ShipmentListCreateV2View,
+    ShipmentOffersView,
     ShipmentProblemReportV2View,
 )
 
@@ -35,6 +36,9 @@ urlpatterns = [
     path('shipments/',
          ShipmentListCreateV2View.as_view(),
          name='shipments'),
+    path('shipping-offers/',
+         ShipmentOffersView.as_view(),
+         name='shipping-offers'),
     path('shipments/<int:pk>/',
          ShipmentDetailV2View.as_view(),
          name='shipment-detail'),

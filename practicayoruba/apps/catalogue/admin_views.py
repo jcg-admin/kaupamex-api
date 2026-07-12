@@ -1,5 +1,6 @@
 """Admin views — apps.catalogue (F8 consolidation)."""
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
+from apps.authz.permissions import HasCapability
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -27,7 +28,8 @@ class ProductDiscountStatusV2View(APIView):
     - {active: false}  → deactivate
     - {discount_pct, ...} → partial update
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'catalogue.manage'
 
     def patch(self, request, pk):
         active = request.data.get('active')
@@ -48,7 +50,8 @@ class PriceSyncsV2View(APIView):
     Consolidates four v1 price-sync endpoints.
     Body must include type ('preview'|'apply') and mode ('csv'|'percentage').
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'catalogue.manage'
 
     def post(self, request):
         type_ = request.data.get('type')

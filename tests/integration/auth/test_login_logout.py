@@ -31,17 +31,17 @@ LOGOUT_URL = '/api/v2/auth/logout/'
 class TestLoginHappyPath:
 
     def test_login_exitoso_retorna_200(self, api_client, user):
-        r = api_client.post(LOGIN_URL, {'username': user.username, 'password': 'TestPass123!'}, format='json')
+        r = api_client.post(LOGIN_URL, {'email': user.email, 'password': 'TestPass123!'}, format='json')
         assert r.status_code == 200
 
     def test_respuesta_contiene_access_y_refresh(self, api_client, user):
-        r = api_client.post(LOGIN_URL, {'username': user.username, 'password': 'TestPass123!'}, format='json')
+        r = api_client.post(LOGIN_URL, {'email': user.email, 'password': 'TestPass123!'}, format='json')
         data = r.json()
         assert 'access' in data
         assert 'refresh' in data
 
     def test_respuesta_contiene_datos_del_usuario(self, api_client, user):
-        r = api_client.post(LOGIN_URL, {'username': user.username, 'password': 'TestPass123!'}, format='json')
+        r = api_client.post(LOGIN_URL, {'email': user.email, 'password': 'TestPass123!'}, format='json')
         # simplejwt retorna los campos del token — verificar que el access es un JWT valido
         data = r.json()
         assert data['access']
@@ -49,24 +49,24 @@ class TestLoginHappyPath:
         assert len(data['access'].split('.')) == 3
 
     def test_admin_login_exitoso(self, api_client, admin_user):
-        r = api_client.post(LOGIN_URL, {'username': admin_user.username, 'password': 'AdminPass123!'}, format='json')
+        r = api_client.post(LOGIN_URL, {'email': admin_user.email, 'password': 'AdminPass123!'}, format='json')
         assert r.status_code == 200
 
 
 class TestLoginFail:
 
     def test_credenciales_incorrectas_retorna_401(self, api_client, user):
-        r = api_client.post(LOGIN_URL, {'username': user.username, 'password': 'WrongPass!'}, format='json')
+        r = api_client.post(LOGIN_URL, {'email': user.email, 'password': 'WrongPass!'}, format='json')
         assert r.status_code == 401
 
     def test_usuario_inexistente_retorna_401(self, api_client, db):
-        r = api_client.post(LOGIN_URL, {'username': 'noexiste', 'password': 'Pass1234!'}, format='json')
+        r = api_client.post(LOGIN_URL, {'email': 'noexiste@x.mx', 'password': 'Pass1234!'}, format='json')
         assert r.status_code == 401
 
     def test_cuenta_inactiva_retorna_401(self, api_client, db):
         User = get_user_model()
-        user = User.objects.create_user(username='inactivo', password='Pass1234!', is_active=False)
-        r = api_client.post(LOGIN_URL, {'username': 'inactivo', 'password': 'Pass1234!'}, format='json')
+        user = User.objects.create_user(email='inactivo@test.mx', password='Pass1234!', is_active=False)
+        r = api_client.post(LOGIN_URL, {'email': 'inactivo@test.mx', 'password': 'Pass1234!'}, format='json')
         assert r.status_code == 401
 
     def test_campos_vacios_retorna_400(self, api_client, db):
@@ -80,7 +80,7 @@ class TestLogout:
         # Primero hacer login para obtener tokens
         login_r = api_client.post(
             LOGIN_URL,
-            {'username': user.username, 'password': 'TestPass123!'},
+            {'email': user.email, 'password': 'TestPass123!'},
             format='json',
         )
         refresh = login_r.json()['refresh']
@@ -98,7 +98,7 @@ class TestLogout:
         """FR-AUTH-03: token en blacklist no puede renovar sesion."""
         login_r = api_client.post(
             LOGIN_URL,
-            {'username': user.username, 'password': 'TestPass123!'},
+            {'email': user.email, 'password': 'TestPass123!'},
             format='json',
         )
         tokens = login_r.json()
@@ -121,7 +121,7 @@ class TestLoginAuditCorrections:
     def test_login_normaliza_username_a_minusculas(self, api_client, user, db):
         """FR-AUTH-02.07: username en mayúsculas debe encontrar la cuenta."""
         r = api_client.post('/api/v2/auth/login/', {
-            'username': user.username.upper(),
+            'email': user.email.upper(),
             'password': 'TestPass123!',
         }, format='json')
         assert r.status_code == 200
@@ -129,14 +129,14 @@ class TestLoginAuditCorrections:
     def test_login_retorna_objeto_user(self, api_client, user, db):
         """FR-AUTH-02.15: la respuesta debe incluir objeto 'user' con datos básicos."""
         r = api_client.post('/api/v2/auth/login/', {
-            'username': user.username,
+            'email': user.email,
             'password': 'TestPass123!',
         }, format='json')
         assert r.status_code == 200
         data = r.json()
         assert 'user' in data
         assert data['user']['id'] == user.pk
-        assert data['user']['username'] == user.username
+        assert data['user']['username'] == user.email
         assert data['user']['email'] == user.email
         assert 'is_staff' in data['user']
         assert 'avatar_url' in data['user']
@@ -147,11 +147,11 @@ class TestLoginAuditCorrections:
         """FR-AUTH-02.09: email no verificado debe retornar mensaje diferenciado."""
         User = get_user_model()
         u = User.objects.create_user(
-            username='sinverif', email='sinverif@test.mx',
+            email='sinverif@test.mx',
             password='TestPass123!', is_active=False,
         )
         r = api_client.post('/api/v2/auth/login/', {
-            'username': 'sinverif',
+            'email': 'sinverif@test.mx',
             'password': 'TestPass123!',
         }, format='json')
         assert r.status_code == 401
@@ -173,7 +173,7 @@ class TestLoginRateLimit:
 
     def test_5_intentos_fallidos_bloquean_la_ip(self, api_client, user, db):
         cache.clear()
-        payload = {'username': user.username, 'password': 'MalPassword!'}
+        payload = {'email': user.email, 'password': 'MalPassword!'}
         for _ in range(5):
             api_client.post('/api/v2/auth/login/', payload, format='json')
         r = api_client.post('/api/v2/auth/login/', payload, format='json')
@@ -184,18 +184,18 @@ class TestLoginRateLimit:
         cache.clear()
         for _ in range(3):
             api_client.post('/api/v2/auth/login/', {
-                'username': user.username, 'password': 'MalPassword!'
+                'email': user.email, 'password': 'MalPassword!'
             }, format='json')
         api_client.post('/api/v2/auth/login/', {
-            'username': user.username, 'password': 'TestPass123!'
+            'email': user.email, 'password': 'TestPass123!'
         }, format='json')
         # Despues del exito, intentos fallidos ya no bloquean
         for _ in range(5):
             api_client.post('/api/v2/auth/login/', {
-                'username': user.username, 'password': 'MalPassword!'
+                'email': user.email, 'password': 'MalPassword!'
             }, format='json')
         r = api_client.post('/api/v2/auth/login/', {
-            'username': user.username, 'password': 'MalPassword!'
+            'email': user.email, 'password': 'MalPassword!'
         }, format='json')
         assert r.status_code == 429  # nuevo ciclo de 5 intentos
 
@@ -204,9 +204,9 @@ class TestLoginRateLimit:
         cache.clear()
         for _ in range(6):
             api_client.post('/api/v2/auth/login/', {
-                'username': user.username, 'password': 'MalPassword!'
+                'email': user.email, 'password': 'MalPassword!'
             }, format='json')
         r = api_client.post('/api/v2/auth/login/', {
-            'username': user.username, 'password': 'MalPassword!'
+            'email': user.email, 'password': 'MalPassword!'
         }, format='json')
         assert 'Retry-After' in r.headers or 'retry_after' in r.json()

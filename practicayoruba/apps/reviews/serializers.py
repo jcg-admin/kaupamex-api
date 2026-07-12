@@ -30,11 +30,11 @@ class ReviewPublicSerializer(serializers.ModelSerializer):
     @extend_schema_field(OpenApiTypes.STR)
     def get_user_display(self, obj):
         full = obj.user.get_full_name() if obj.user_id else ''
-        return full or (obj.user.username if obj.user_id else 'Anonimo')
+        return full or (obj.user.email if obj.user_id else 'Anonimo')
 
 
 class ReviewAdminSerializer(serializers.ModelSerializer):
-    user_username    = serializers.CharField(source='user.username', read_only=True)
+    user_username    = serializers.CharField(source='user.email', read_only=True)
     product_id       = serializers.IntegerField(source='product.id', read_only=True)
     product_name     = serializers.CharField(source='product.name', read_only=True)
     order_number     = serializers.CharField(source='order.order_number', read_only=True)

@@ -24,7 +24,8 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.exceptions import NotFound
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from apps.authz.permissions import HasCapability
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
@@ -194,7 +195,8 @@ class NewsletterUnsubscribeView(APIView):
 
 
 class _AdminOnly:
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'newsletter.manage'
 
 
 class SubscriberPagination(PageNumberPagination):
@@ -516,7 +518,8 @@ class AdminSubscriberUnsubscribeV2View(APIView):
 
     v1 used POST /admin/newsletter/subscribers/<id>/unsubscribe/; v2 uses DELETE.
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'newsletter.manage'
 
     def delete(self, request, subscriber_id):
         return AdminSubscriberForceUnsubscribeView().post(

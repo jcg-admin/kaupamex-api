@@ -8,6 +8,9 @@ from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.core.management.base import CommandError
 
+from apps.authz.models import RoleAssignment
+from apps.authz.services import SUPERADMIN_ROLE_CODE
+
 pytestmark = pytest.mark.unit
 
 User = get_user_model()
@@ -30,10 +33,12 @@ class TestCreateSeedUsersAdmin:
 
         call_command('create_seed_users')
 
-        admin = User.objects.get(username='admin')
+        # H-E2E-03: username == email (el login SPA autentica por username y
+        # el form manda el email; el seed debe espejar el registro real).
+        admin = User.objects.get(email='admin@practicayoruba.mx')
         assert admin.email == 'admin@practicayoruba.mx'
-        assert admin.is_staff is True
-        assert admin.is_superuser is True
+        assert RoleAssignment.objects.filter(
+            user=admin, role__code=SUPERADMIN_ROLE_CODE).exists()
         assert admin.is_active is True
         assert admin.deactivated_reason is None
         assert admin.deactivated_at is None
@@ -44,7 +49,7 @@ class TestCreateSeedUsersAdmin:
 
         call_command('create_seed_users')
 
-        admin = User.objects.get(username='admin')
+        admin = User.objects.get(email='admin@practicayoruba.mx')
         assert admin.password != _VALID_ENV['ADMIN_PASSWORD']
         assert admin.check_password(_VALID_ENV['ADMIN_PASSWORD']) is True
 
@@ -58,10 +63,10 @@ class TestCreateSeedUsersQABuyer:
 
         call_command('create_seed_users')
 
-        buyer = User.objects.get(username='qabuyer')
+        buyer = User.objects.get(email='qabuyer@practicayoruba.mx')
         assert buyer.email == 'qabuyer@practicayoruba.mx'
-        assert buyer.is_staff is False
-        assert buyer.is_superuser is False
+        assert not RoleAssignment.objects.filter(
+            user=buyer, role__code=SUPERADMIN_ROLE_CODE).exists()
         assert buyer.is_active is True
         assert buyer.deactivated_reason is None
         assert buyer.deactivated_at is None
@@ -72,7 +77,7 @@ class TestCreateSeedUsersQABuyer:
 
         call_command('create_seed_users')
 
-        buyer = User.objects.get(username='qabuyer')
+        buyer = User.objects.get(email='qabuyer@practicayoruba.mx')
         assert buyer.check_password(_VALID_ENV['QA_BUYER_PASSWORD']) is True
 
 
@@ -87,17 +92,18 @@ class TestCreateSeedUsersIdempotent:
         # Segunda llamada no debe levantar excepción
         call_command('create_seed_users')
 
-    def test_second_call_updates_email(self, db, monkeypatch):
+    def test_second_call_no_duplicate_keeps_username_email(self, db, monkeypatch):
+        # H-E2E-03: el seed se identifica por email (username == email). Una
+        # segunda corrida con el mismo email NO duplica y conserva la invariante.
         for k, v in _VALID_ENV.items():
             monkeypatch.setenv(k, v)
 
         call_command('create_seed_users')
-
-        monkeypatch.setenv('ADMIN_EMAIL', 'admin2@practicayoruba.mx')
         call_command('create_seed_users')
 
-        admin = User.objects.get(username='admin')
-        assert admin.email == 'admin2@practicayoruba.mx'
+        admins = User.objects.filter(email='admin@practicayoruba.mx')
+        assert admins.count() == 1
+        assert admins.first().email == 'admin@practicayoruba.mx'
 
     def test_idempotent_keeps_is_active_true(self, db, monkeypatch):
         for k, v in _VALID_ENV.items():
@@ -105,12 +111,12 @@ class TestCreateSeedUsersIdempotent:
 
         call_command('create_seed_users')
         # Simulación: alguien desactiva el admin manualmente
-        User.objects.filter(username='admin').update(is_active=False)
+        User.objects.filter(email='admin@practicayoruba.mx').update(is_active=False)
 
         # Segunda llamada reactiva la cuenta
         call_command('create_seed_users')
 
-        admin = User.objects.get(username='admin')
+        admin = User.objects.get(email='admin@practicayoruba.mx')
         assert admin.is_active is True
 
 
@@ -157,5 +163,5 @@ class TestCreateSeedUsersDryRun:
 
         call_command('create_seed_users', dry_run=True)
 
-        assert not User.objects.filter(username='admin').exists()
-        assert not User.objects.filter(username='qabuyer').exists()
+        assert not User.objects.filter(email='admin@practicayoruba.mx').exists()
+        assert not User.objects.filter(email='qabuyer@practicayoruba.mx').exists()

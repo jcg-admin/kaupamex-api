@@ -16,7 +16,9 @@ import threading
 from django.conf import settings
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated
+
+from apps.authz.permissions import HasCapability
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -118,7 +120,8 @@ class AdminBackupListView(APIView):
     GET  → historial paginado de backups.
     POST → disparar backup manual on-demand (canónico v2; reemplaza trigger/).
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'backups.manage'
 
     @extend_schema(
         summary='Listar historial de backups (UC-ADM-05)',

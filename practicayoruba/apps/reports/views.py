@@ -29,7 +29,8 @@ from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from rest_framework import serializers, status, exceptions
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
+from apps.authz.permissions import HasCapability
 from rest_framework.negotiation import DefaultContentNegotiation
 from rest_framework.renderers import BaseRenderer, JSONRenderer
 from rest_framework.response import Response
@@ -199,7 +200,8 @@ class _XLSXRenderer(BaseRenderer):
 
 
 class _AdminMixin:
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'reports.view'
     serializer_class = serializers.Serializer
 
 
@@ -298,7 +300,8 @@ class CustomersRFMReportView(_AdminMixin, APIView):
 
 
 class ReportExportView(APIView):
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'reports.view'
     serializer_class = serializers.Serializer
     # DRF normally interprets ?format= as a renderer selector and raises
     # Http404 if no renderer matches. The export contract uses ?format=

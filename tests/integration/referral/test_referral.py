@@ -16,6 +16,7 @@ Convenciones del proyecto:
 import re
 import pytest
 from django.contrib.auth import get_user_model
+from apps.users.models import Person
 from django.utils import timezone
 from datetime import timedelta
 
@@ -46,10 +47,13 @@ def referral_enabled(db):
 
 @pytest.fixture
 def referrer(db):
-    return User.objects.create_user(
-        username='referrer', email='referrer@practicayoruba.mx',
-        password='RefPass123!', first_name='Ref', last_name='Errer',
+    # Party (T-201): nombre vive en Person; create_user solo toma email+password.
+    user = User.objects.create_user(
+        email='referrer@practicayoruba.mx',
+        password='RefPass123!',
     )
+    Person.objects.create(identity=user, first_name='Ref', last_name='Errer')
+    return user
 
 
 @pytest.fixture
@@ -79,8 +83,8 @@ class TestReferralCodeGeneration:
         assert ReferralCode.objects.filter(user=referrer).count() == 1
 
     def test_codes_are_unique_across_users(self, db, referral_enabled):
-        u1 = User.objects.create_user(username='u1', email='u1@x.mx', password='P1ass123!')
-        u2 = User.objects.create_user(username='u2', email='u2@x.mx', password='P2ass123!')
+        u1 = User.objects.create_user(email='u1@x.mx', password='P1ass123!')
+        u2 = User.objects.create_user(email='u2@x.mx', password='P2ass123!')
         c1 = ReferralCode.get_or_create_for_user(u1).code
         c2 = ReferralCode.get_or_create_for_user(u2).code
         assert c1 != c2
@@ -115,7 +119,7 @@ class TestReferralRedeem:
     ):
         rc = ReferralCode.get_or_create_for_user(referrer)
         referee = User.objects.create_user(
-            username='referee', email='referee@x.mx', password='RefeePass123!')
+            email='referee@x.mx', password='RefeePass123!')
         client = APIClient()
         client.force_login(referee)
 
@@ -141,7 +145,7 @@ class TestReferralRedeem:
     def test_redeem_inactive_code_rejected(self, db, referral_enabled, referrer):
         rc = ReferralCode.get_or_create_for_user(referrer)
         Voucher.objects.filter(code=rc.code).update(is_active=False)
-        referee = User.objects.create_user(username='ref2', email='ref2@x.mx', password='Ref2Pass123!')
+        referee = User.objects.create_user(email='ref2@x.mx', password='Ref2Pass123!')
         client = APIClient()
         client.force_login(referee)
         res = client.post(REDEEM_URL, {'code': rc.code}, format='json')
@@ -160,7 +164,7 @@ class TestReferralRedeem:
 
     def test_redeem_twice_rejected(self, db, referral_enabled, referrer):
         rc = ReferralCode.get_or_create_for_user(referrer)
-        referee = User.objects.create_user(username='ref3', email='ref3@x.mx', password='Ref3Pass123!')
+        referee = User.objects.create_user(email='ref3@x.mx', password='Ref3Pass123!')
         client = APIClient()
         client.force_login(referee)
         assert client.post(REDEEM_URL, {'code': rc.code}, format='json').status_code == 201
@@ -182,7 +186,7 @@ class TestReferralReward:
     def test_first_paid_order_completes_referral_and_rewards_referrer(
         self, db, referral_enabled, referrer
     ):
-        referee = User.objects.create_user(username='refc', email='refc@x.mx', password='RefcPass123!')
+        referee = User.objects.create_user(email='refc@x.mx', password='RefcPass123!')
         ref = self._make_referral(referrer, referee)
         order = Order.objects.create(user=referee, status=Order.STATUS_PAID)
 
@@ -197,7 +201,7 @@ class TestReferralReward:
         ).exists()
 
     def test_unpaid_order_does_not_complete_referral(self, db, referral_enabled, referrer):
-        referee = User.objects.create_user(username='refd', email='refd@x.mx', password='RefdPass123!')
+        referee = User.objects.create_user(email='refd@x.mx', password='RefdPass123!')
         ref = self._make_referral(referrer, referee)
         order = Order.objects.create(user=referee, status=Order.STATUS_PENDING)
 
@@ -207,7 +211,7 @@ class TestReferralReward:
         assert ref.status == Referral.STATUS_PENDING
 
     def test_completion_is_idempotent(self, db, referral_enabled, referrer):
-        referee = User.objects.create_user(username='refe', email='refe@x.mx', password='RefePass123!')
+        referee = User.objects.create_user(email='refe@x.mx', password='RefePass123!')
         ref = self._make_referral(referrer, referee)
         order = Order.objects.create(user=referee, status=Order.STATUS_DELIVERED)
 

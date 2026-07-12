@@ -148,7 +148,7 @@ class TestEstadoPago:
         """RNF-SEC-003: nunca 403, siempre 404 aunque la orden exista."""
         User = get_user_model()
         other = User.objects.create_user(
-            username='other_hist', email='other_h@test.com', password='pass'
+            email='other_h@test.com', password='pass'
         )
         order = Order.objects.create(user=other, status='PENDING')
         res = auth_client.get(STATUS_URL(order.order_number))
@@ -191,7 +191,7 @@ class TestHistorialPagos:
         """RNF-SEC-003: orden de otro usuario → 404."""
         User = get_user_model()
         other = User.objects.create_user(
-            username='other_hist2', email='o2@test.com', password='pass'
+            email='o2@test.com', password='pass'
         )
         order = Order.objects.create(user=other, status='PENDING')
         res = auth_client.get(HISTORY_URL(order.order_number))

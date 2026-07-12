@@ -63,7 +63,7 @@ class WishlistItem(TimeStampedModel, SoftDeleteModel):
 
     def __str__(self):
         label = self.variant.option.label if self.variant else self.product.name
-        return f'{self.user.username} → {self.product.name} ({label})'
+        return f'{self.user.email} → {self.product.name} ({label})'
 
     @property
     def current_price(self) -> Decimal:

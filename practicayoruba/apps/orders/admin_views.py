@@ -6,7 +6,8 @@ import logging
 from datetime import date as dt_date
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from rest_framework.exceptions import ValidationError
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated
+from apps.authz.permissions import HasCapability
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
@@ -33,7 +34,8 @@ class AdminOrderListView(APIView):
     UC-ORD-09 (FR-ORD-09.02). Paginado a 20 por página.
     Filtros: order_number, status, email, date_from, date_to.
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'orders.manage'
 
     @extend_schema(
         summary='Listar y filtrar órdenes (admin)',
@@ -119,7 +121,8 @@ class AdminOrderDetailView(APIView):
     Detalle completo de cualquier orden para admin.
     UC-ORD-07. Sin restricción de propietario (admin ve todo).
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'orders.manage'
 
     @extend_schema(
         summary='Detalle de orden (admin)',
@@ -155,7 +158,8 @@ class AdminOrderStatusUpdateView(APIView):
     UC-ORD-07 (FR-ORD-07.02). Crea OrderStatusLog en cada transición.
     H-ADM-002: valida contra ALLOWED_TRANSITIONS con nombres reales del modelo.
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'orders.manage'
 
     @extend_schema(
         summary='Cambiar estado de orden (admin)',
@@ -233,7 +237,8 @@ class AdminOrderCancelView(APIView):
     H-ADM-005: admin puede cancelar PENDING, PROCESSING, IN_PREPARATION.
     Motivo obligatorio — mínimo 10 caracteres.
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'orders.manage'
 
     @extend_schema(
         summary='Cancelar orden (admin)',
@@ -306,7 +311,8 @@ class AdminDashboardView(APIView):
     UC-ORD-10. Retorna 4 bloques en una sola respuesta.
     H-ADM-004: usa SiteSettings.payment_timeout_minutes para alertas.
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'orders.manage'
 
     @extend_schema(
         summary='Dashboard transaccional (admin)',

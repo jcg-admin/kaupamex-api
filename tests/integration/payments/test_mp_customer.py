@@ -17,7 +17,7 @@ from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from apps.payments.gateways.mercadopago import MercadoPagoGateway
 from apps.payments.services import get_or_create_mp_customer
 from apps.settings_app.models import PaymentGateway
-from apps.users.models import User as UserModel
+from apps.users.models import IdentityUser as UserModel
 
 pytestmark = pytest.mark.integration
 

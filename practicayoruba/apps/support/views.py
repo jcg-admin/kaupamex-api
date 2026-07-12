@@ -29,7 +29,9 @@ from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.generics import ListAPIView
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
+from apps.authz.permissions import HasCapability
+from apps.authz.services import SUPERADMIN_ROLE_CODE, is_superadmin
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from apps.notifications.service import notify_support_created
@@ -92,7 +94,7 @@ def _get_ticket_for_user(ticket_id, user):
         'replies__author'
     )
     ticket = get_object_or_404(qs, pk=ticket_id)
-    if not user.is_staff and ticket.user_id != user.id:
+    if not is_superadmin(user) and ticket.user_id != user.id:
         raise Http404
     return ticket
 
@@ -106,11 +108,13 @@ def _annotate_first_response(qs):
     comprador no cuentan como primera respuesta: la metrica mide cuanto
     tarda el equipo de soporte en contestarle al comprador.
     """
+    # Party/authz (T-201): "staff reply" = respuesta cuyo autor tiene el rol
+    # superadmin (no hay is_staff nativo).
     first_staff_reply_qs = (
         SupportTicketReply.objects
         .filter(
             ticket=OuterRef('pk'),
-            author__is_staff=True,
+            author__role_assignments__role__code=SUPERADMIN_ROLE_CODE,
             is_internal_note=False,
         )
         .order_by('created_at')
@@ -303,7 +307,7 @@ class SupportTicketReplyView(APIView):
         payload = serializer.validated_data
 
         is_internal = payload.get('is_internal_note', False)
-        if is_internal and not request.user.is_staff:
+        if is_internal and not is_superadmin(request.user):
             raise PermissionDenied('Solo staff puede crear notas internas.')
 
         if ticket.status == SupportTicket.Status.CLOSED:
@@ -322,7 +326,7 @@ class SupportTicketReplyView(APIView):
             )
 
             if not is_internal:
-                if request.user.is_staff:
+                if is_superadmin(request.user):
                     ticket.status = SupportTicket.Status.AWAITING_USER
                 else:
                     ticket.status = SupportTicket.Status.IN_PROGRESS
@@ -373,7 +377,7 @@ class SupportTicketCloseView(APIView):
         reason = serializer.validated_data.get('reason') or ''
 
         body = reason or (
-            'El staff cerro este ticket.' if request.user.is_staff
+            'El staff cerro este ticket.' if is_superadmin(request.user)
             else 'El comprador marco este ticket como resuelto.'
         )
         with transaction.atomic():
@@ -391,7 +395,7 @@ class SupportTicketCloseView(APIView):
             'ticket_id': ticket.pk,
             'status': ticket.status,
             'closed_at': ticket.updated_at,
-            'closed_by': 'ADMIN' if request.user.is_staff else 'BUYER',
+            'closed_by': 'ADMIN' if is_superadmin(request.user) else 'BUYER',
         })
 
 
@@ -426,7 +430,7 @@ class SupportTicketReopenView(APIView):
             ticket = SupportTicket.objects.select_for_update().filter(
                 pk=ticket_id
             ).select_related('user').first()
-            if ticket is None or (not request.user.is_staff and ticket.user_id != request.user.id):
+            if ticket is None or (not is_superadmin(request.user) and ticket.user_id != request.user.id):
                 raise Http404
             if ticket.status != SupportTicket.Status.CLOSED:
                 return Response(
@@ -447,7 +451,8 @@ class SupportTicketReopenView(APIView):
 class AdminSupportTicketListView(APIView):
     """GET /api/v1/admin/support/tickets/ — admin queue."""
 
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'support.manage'
 
     @extend_schema(
         summary='Bandeja de tickets (admin)',
@@ -527,7 +532,8 @@ class AdminSupportTicketExportCSVView(APIView):
     este commit no existia ningun export en support (``grep csv`` = 0).
     """
 
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'support.manage'
 
     @extend_schema(
         summary='Exportar tickets de soporte a CSV (admin)',

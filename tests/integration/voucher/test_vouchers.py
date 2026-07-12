@@ -299,7 +299,7 @@ class TestReporteVouchers:
     ):
         User = get_user_model()
         buyer = User.objects.create_user(
-            username='buyer_roi_test', password='pass',
+            password='pass',
             email='buyer_roi@test.com',
         )
         order = Order.objects.create(
@@ -331,7 +331,7 @@ class TestReporteVouchers:
     ):
         User = get_user_model()
         buyer = User.objects.create_user(
-            username='buyer_datefrom_test', password='pass',
+            password='pass',
             email='buyer_datefrom@test.com',
         )
         order = Order.objects.create(

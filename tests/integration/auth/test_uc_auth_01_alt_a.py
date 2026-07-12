@@ -29,7 +29,6 @@ NEW_REGISTRATION = {
 @pytest.fixture
 def active_user(db):
     return get_user_model().objects.create_user(
-        username='activo',
         email='rebote@practicayoruba.mx',
         password='Old123!',
         is_active=True,
@@ -40,7 +39,6 @@ def active_user(db):
 def unverified_user(db):
     User = get_user_model()
     u = User.objects.create_user(
-        username='unverif',
         email='rebote@practicayoruba.mx',
         password='Old123!',
         is_active=False,
@@ -55,7 +53,6 @@ def unverified_user(db):
 def self_deleted_user(db):
     User = get_user_model()
     u = User.objects.create_user(
-        username='exuser',
         email='rebote@practicayoruba.mx',
         password='Old123!',
         is_active=False,
@@ -70,7 +67,6 @@ def self_deleted_user(db):
 def suspended_user(db):
     User = get_user_model()
     u = User.objects.create_user(
-        username='suspended',
         email='rebote@practicayoruba.mx',
         password='Old123!',
         is_active=False,

@@ -15,18 +15,20 @@ from django.http import HttpResponse
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from apps.authz.permissions import HasCapability
 from rest_framework.response import Response
 from rest_framework.generics import ListAPIView
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from django.core.cache import cache
 from apps.users.audit import audit_log_business
-from .models import SiteSettings, PaymentGateway, ShippingMethod, StaticPage, StaticPageVersion
+from .models import SiteSettings, PaymentGateway, ShippingMethod, StaticPage, StaticPageVersion, Banner
 from .serializers import (
     SiteSettingsSerializer, SiteSettingsAdminSerializer, PublicSiteSettingsSerializer,
     PaymentGatewaySerializer, ShippingMethodSerializer, PublicShippingMethodSerializer,
     ShippingZoneSerializer, PublicShippingZoneSerializer,
+    BannerSerializer, PublicBannerSerializer,
 )
 from .gateway_connector import connector
 from rest_framework import serializers as drf_serializers
@@ -42,7 +44,8 @@ class SiteSettingsView(APIView):
     """
     /api/v1/config/settings/ — excludes deprecated fields (DEC-DOC-005).
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'settings.manage'
 
     @extend_schema(
         summary='Obtener configuración global',
@@ -98,7 +101,8 @@ class AdminSiteSettingsView(APIView):
     """
     /api/v1/admin/settings/ — includes all fields including legacy ones (UC-ADM-04).
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'settings.manage'
 
     @extend_schema(
         summary='Obtener configuración global (admin)',
@@ -152,7 +156,8 @@ class PaymentGatewayViewSet(ModelViewSet):
 
     UC-CFG-01 (FR-CFG-01.02).
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'settings.manage'
     serializer_class   = PaymentGatewaySerializer
     queryset           = PaymentGateway.objects.all().order_by('gateway')
     http_method_names  = ['get', 'post', 'patch', 'head', 'options']
@@ -241,7 +246,8 @@ class ShippingMethodViewSet(ModelViewSet):
 
     UC-CFG-02 (FR-CFG-02.02).
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'settings.manage'
     serializer_class   = ShippingMethodSerializer
     queryset           = ShippingMethod.objects.all().order_by('cost', 'name')
     http_method_names  = ['get', 'post', 'patch', 'delete', 'head', 'options']
@@ -298,7 +304,8 @@ class ShippingZoneViewSet(ModelViewSet):
     Simétrico a ShippingMethodViewSet. Delete es soft (is_active=False) para
     no romper referencias históricas de cobertura por CP.
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'settings.manage'
     serializer_class   = ShippingZoneSerializer
     queryset           = ShippingZone.objects.all().order_by('zip_code_prefix', 'name')
     http_method_names  = ['get', 'post', 'patch', 'delete', 'head', 'options']
@@ -359,6 +366,119 @@ class ShippingMethodListPublicView(ListAPIView):
         return super().get(request, *args, **kwargs)
 
 
+class BannerViewSet(ModelViewSet):
+    """Admin CRUD del catálogo de banners de portada (UC-CFG-06, G-CFG-01).
+
+    GET    /api/v2/admin/banners/            — listar (todos, activos e inactivos)
+    POST   /api/v2/admin/banners/            — crear
+    GET    /api/v2/admin/banners/<pk>/       — ver
+    PATCH  /api/v2/admin/banners/<pk>/       — editar
+    DELETE /api/v2/admin/banners/<pk>/       — eliminar (hard delete)
+    POST   /api/v2/admin/banners/reorder/    — reordenar por placement
+
+    Un único modelo ``Banner`` con ``placement`` (HERO / PROMO_STRIP). El
+    storefront lee los activos por placement en el endpoint público.
+    """
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'banners.manage'
+    serializer_class   = BannerSerializer
+    queryset           = Banner.objects.all()
+    http_method_names  = ['get', 'post', 'patch', 'delete', 'head', 'options']
+
+    def get_queryset(self):
+        qs = Banner.objects.all()
+        placement = self.request.query_params.get('placement')
+        if placement:
+            qs = qs.filter(placement=placement)
+        return qs
+
+    @extend_schema(summary='Listar banners', tags=['config'],
+                   responses={200: BannerSerializer(many=True)})
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @extend_schema(summary='Crear banner', tags=['config'],
+                   responses={201: BannerSerializer})
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+
+    @extend_schema(summary='Editar banner', tags=['config'],
+                   responses={200: BannerSerializer})
+    def partial_update(self, request, *args, **kwargs):
+        kwargs['partial'] = True
+        return super().update(request, *args, **kwargs)
+
+    @extend_schema(summary='Eliminar banner', responses={204: None}, tags=['config'])
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
+
+    @extend_schema(
+        summary='Reordenar banners por placement',
+        request={'application/json': {'type': 'object', 'properties': {
+            'order': {'type': 'array', 'items': {'type': 'integer'}}}}},
+        responses={200: BannerSerializer(many=True)},
+        tags=['config'],
+    )
+    @action(detail=False, methods=['post'], url_path='reorder')
+    def reorder(self, request):
+        """POST {'order': [id1, id2, ...]} → asigna ``order`` = índice.
+
+        Todos los ids deben existir y pertenecer al mismo ``placement`` (no se
+        mezclan HERO y PROMO_STRIP en una sola reordenación).
+        """
+        ids = request.data.get('order')
+        if not isinstance(ids, list) or not ids:
+            raise ValidationError({
+                'detail': 'Se requiere "order": lista no vacía de ids.',
+                'codigo_error': 'INVALID_REORDER_PAYLOAD',
+            })
+        banners = list(Banner.objects.filter(pk__in=ids))
+        found_ids = {b.pk for b in banners}
+        missing = [i for i in ids if i not in found_ids]
+        if missing:
+            raise ValidationError({
+                'detail': f'Banners inexistentes: {missing}.',
+                'codigo_error': 'BANNER_NOT_FOUND',
+            })
+        placements = {b.placement for b in banners}
+        if len(placements) > 1:
+            raise ValidationError({
+                'detail': 'No se pueden reordenar banners de distinto placement.',
+                'codigo_error': 'MIXED_PLACEMENT_REORDER',
+            })
+        by_id = {b.pk: b for b in banners}
+        with transaction.atomic():
+            for index, banner_id in enumerate(ids):
+                banner = by_id[banner_id]
+                banner.order = index
+                banner.save(update_fields=['order', 'updated_at'])
+        result = Banner.objects.filter(pk__in=ids).order_by('order', 'id')
+        serializer = self.get_serializer(result, many=True)
+        return Response(serializer.data)
+
+
+class PublicBannerListView(ListAPIView):
+    """GET /api/v2/config/banners/?placement=HERO — banners activos (storefront).
+
+    Sin autenticación. Filtra por ``placement`` (query param opcional) y sólo
+    devuelve ``is_active=True``, ordenados por ``order``. Proyección pública sin
+    campos admin.
+    """
+    permission_classes = [AllowAny]
+    serializer_class   = PublicBannerSerializer
+
+    def get_queryset(self):
+        qs = Banner.objects.filter(is_active=True)
+        placement = self.request.query_params.get('placement')
+        if placement:
+            qs = qs.filter(placement=placement)
+        return qs.order_by('placement', 'order', 'id')
+
+    @extend_schema(summary='Listar banners activos', tags=['config'])
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+
 # =============================================================================
 # Sprint 10 — UC-CFG-04: Contenido estático con versionado
 # =============================================================================
@@ -367,7 +487,7 @@ class ShippingMethodListPublicView(ListAPIView):
 
 class StaticPageVersionSerializer(drf_serializers.ModelSerializer):
     created_by_username = drf_serializers.CharField(
-        source='created_by.username', read_only=True, default=None
+        source='created_by.email', read_only=True, default=None
     )
     class Meta:
         model  = StaticPageVersion
@@ -396,7 +516,8 @@ class StaticPageAdminListView(APIView):
     GET /api/v1/admin/pages/ — listar páginas estáticas.
     UC-CFG-04 (FR-CFG-04.02).
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'settings.manage'
     serializer_class = StaticPageSerializer
 
     @extend_schema(summary='Listar páginas estáticas', tags=['config'],
@@ -412,7 +533,8 @@ class StaticPageAdminDetailView(APIView):
     GET /api/v1/admin/pages/<slug>/ — detalle con versión activa.
     UC-CFG-04 (FR-CFG-04.02).
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'settings.manage'
     serializer_class = StaticPageSerializer
 
     @extend_schema(summary='Detalle de página estática', tags=['config'],
@@ -430,9 +552,49 @@ class StaticPageAdminDetailView(APIView):
 StaticPageAdminView = StaticPageAdminListView
 
 
+class PublicStaticPageSerializer(drf_serializers.ModelSerializer):
+    """Proyección pública read-only: sólo el contenido de la versión PUBLISHED."""
+    content      = drf_serializers.SerializerMethodField()
+    slug_display = drf_serializers.CharField(source='get_slug_display', read_only=True)
+
+    class Meta:
+        model  = StaticPage
+        fields = ['slug', 'slug_display', 'title', 'content', 'updated_at']
+        read_only_fields = fields
+
+    def get_content(self, obj):
+        version = obj.current_version  # property: última versión PUBLISHED
+        return version.content if version else ''
+
+
+class PublicStaticPageView(APIView):
+    """
+    GET /api/v2/config/pages/<slug>/ — contenido público de una página estática.
+    UC-CFG-04 (H-UI-CFG04-01): expone la versión PUBLISHED para que el
+    storefront (/info/:slug) consuma lo que el admin edita, en lugar de un
+    módulo hardcodeado. 404 si la página no existe o no tiene versión
+    publicada — el frontend cae a su contenido por defecto.
+    """
+    permission_classes = [AllowAny]
+    serializer_class = PublicStaticPageSerializer
+
+    @extend_schema(summary='Contenido público de página estática', tags=['config'],
+                   operation_id='public_pages_retrieve',
+                   responses={200: PublicStaticPageSerializer})
+    def get(self, request, slug):
+        try:
+            page = StaticPage.objects.prefetch_related('versions').get(slug=slug)
+        except StaticPage.DoesNotExist:
+            return Response({'detail': 'Página no encontrada.'}, status=404)
+        if page.current_version is None:
+            return Response({'detail': 'Página sin versión publicada.'}, status=404)
+        return Response(PublicStaticPageSerializer(page).data)
+
+
 class StaticPagePublishView(APIView):
     """POST /api/v1/admin/pages/<slug>/publish/ — publicar nueva versión."""
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'settings.manage'
     serializer_class = StaticPagePublishSerializer
 
     @extend_schema(summary='Publicar nueva versión de página estática', tags=['config'],
@@ -480,7 +642,8 @@ class StaticPagePublishView(APIView):
 
 class StaticPageRestoreView(APIView):
     """POST /api/v1/admin/pages/<slug>/versions/<version>/restore/"""
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'settings.manage'
     serializer_class = StaticPageVersionSerializer
 
     @extend_schema(summary='Revertir a versión anterior', tags=['config'],
@@ -520,7 +683,8 @@ class StaticPageStatusV2View(APIView):
 
     v1 used POST /pages/<slug>/publish/; v2 uses PATCH /pages/<slug>/status/.
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'settings.manage'
 
     def patch(self, request, slug):
         return StaticPagePublishView().post(request, slug=slug)
@@ -532,7 +696,8 @@ class StaticPageRestorationV2View(APIView):
     v1 had version number in URL path (/versions/<v>/restore/).
     v2 takes version from request body: {"version": N}.
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'settings.manage'
 
     def post(self, request, slug):
         version_raw = request.data.get('version')

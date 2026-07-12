@@ -76,6 +76,27 @@ def shipping_gratis(db):
         name='Gratis', cost=Decimal('0.00'), estimated_days=7, is_active=True)
 
 
+@pytest.fixture
+def zone_nacional(db):
+    """Zona nacional (prefijo 64, Monterrey) con costo y umbral EXPLÍCITOS.
+
+    G-ENV-04: el costo por zona lo siembra la migración 0003, pero ese seed
+    sólo existe en una DB fresca (``--create-db``); con ``--reuse-db`` la QA
+    compartida puede no tenerlo. Para que el test sea determinista en ambos
+    entornos, fija ``cost``/``free_threshold`` en la zona en vez de depender
+    del seed ambiental (mismo criterio que ``zone_cdmx``, pero con valores
+    explícitos: nacional $199, gratis desde $1300)."""
+    zone, _ = ShippingZone.objects.get_or_create(
+        zip_code_prefix='64',
+        defaults={'name': 'Nacional (Monterrey)', 'is_active': True},
+    )
+    zone.cost = Decimal('199.00')
+    zone.free_threshold = Decimal('1300.00')
+    zone.is_active = True
+    zone.save(update_fields=['cost', 'free_threshold', 'is_active'])
+    return zone
+
+
 class TestCheckout:
 
     def test_checkout_autenticado(
@@ -153,18 +174,20 @@ class TestCheckout:
         assert res.status_code == 201
         assert Decimal(res.json()['value']['shipping_cost']) == Decimal('0.00')
 
-    def test_checkout_envio_gratis_cp_nacional(
-        self, cart_con_item_auth, db
+    def test_checkout_envio_nacional_cobra_bajo_umbral(
+        self, cart_con_item_auth, zone_nacional, db
     ):
-        """Envío GRATIS también para un C.P. nacional sin zona sembrada
-        (Monterrey 64000): la política es gratis sin importar la zona."""
+        """G-ENV-04: retirado el "envío gratis siempre". Un C.P. nacional
+        (Monterrey 64000) con subtotal $1000 (< umbral nacional $1300) cobra
+        el costo de zona nacional ($199). El comprador no elige método; el
+        costo se deriva del C.P. de destino."""
         addr_nacional = {**ADDR, 'city': 'Monterrey',
                          'state': 'Nuevo Leon', 'zip_code': '64000'}
         res = cart_con_item_auth.post(CHECKOUT_URL, {
             'address': addr_nacional,
         }, format='json')
         assert res.status_code == 201
-        assert Decimal(res.json()['value']['shipping_cost']) == Decimal('0.00')
+        assert Decimal(res.json()['value']['shipping_cost']) == Decimal('199.00')
 
     def test_checkout_sin_shipping_method_id_crea_orden(
         self, cart_con_item_auth, prod_ord, db
@@ -256,7 +279,11 @@ class TestCheckout:
             valid_from=timezone.now() - __import__('datetime').timedelta(days=1),
             is_active=True, min_order_amount=Decimal('0'), created_by=admin_user,
         )
-        auth_client.post(ITEMS_URL, {'product_id': prod_ord.pk, 'quantity': 1}, format='json')
+        # G-ENV-04: el envío ya no es gratis por defecto. Se usa subtotal
+        # $1000 (2 × $500), ≥ umbral metro $800 (C.P. 06600 CDMX) → envío
+        # gratis por umbral, de modo que el total queda desacoplado del costo
+        # de envío y verifica solo el descuento: 1000 - 100 = 900.
+        auth_client.post(ITEMS_URL, {'product_id': prod_ord.pk, 'quantity': 2}, format='json')
         auth_client.post('/api/v2/cart/voucher/', {'code': 'PROMO100'}, format='json')
         res = auth_client.post(
             CHECKOUT_URL,
@@ -264,7 +291,8 @@ class TestCheckout:
             format='json')
         assert res.status_code == 201
         assert Decimal(res.json()['value']['discount']) == Decimal('100.00')
-        assert Decimal(res.json()['value']['total']) == Decimal('400.00')
+        assert Decimal(res.json()['value']['shipping_cost']) == Decimal('0.00')
+        assert Decimal(res.json()['value']['total']) == Decimal('900.00')
         assert res.json()['voucher_code'] == 'PROMO100'
 
     def test_checkout_incrementa_voucher_current_uses(
@@ -406,10 +434,10 @@ class TestShippingMethodProtection:
 
 
 class TestZoneFreeShipping:
-    """Envío GRATIS siempre (REVIERTE DEC-BC-25 y la derivación de costo por
-    zona G-ENV-01): el comprador no elige método y el costo es 0 sin importar
-    el umbral/costo de la zona ni el subtotal. El cobro bajo-umbral es el punto
-    de extensión PENDIENTE (apps.orders.shipping), aún no implementado."""
+    """Costo manual por zona con umbral de envío gratis (G-ENV-04): el
+    comprador no elige método; el admin fija ``cost``/``free_threshold`` por
+    zona. Umbral alcanzado o zona sin ``cost`` → gratis; bajo umbral con
+    ``cost`` → cobra el costo manual. Ver ``apps.orders.shipping``."""
 
     def _set_zone(self, **defaults):
         # C.P. de ADDR = '06600' → prefijo '06'. update_or_create respeta el
@@ -419,21 +447,20 @@ class TestZoneFreeShipping:
             defaults={'name': 'Zona test', 'is_active': True, **defaults})
 
     def test_zona_con_umbral_es_gratis(self, cart_con_item_auth, db):
-        # subtotal = 1000 (2×500) ≥ umbral 800 → gratis. Bajo la nueva política
-        # esto es gratis de todos modos (envío gratis siempre).
+        # subtotal = 1000 (2×500) ≥ umbral 800 → gratis (umbral alcanzado),
+        # aunque la zona tenga cost=50 (G-ENV-04).
         self._set_zone(free_threshold=Decimal('800.00'), cost=Decimal('50.00'))
         res = cart_con_item_auth.post(CHECKOUT_URL, {'address': ADDR}, format='json')
         assert res.status_code == 201
         assert Decimal(res.json()['value']['shipping_cost']) == Decimal('0.00')
 
-    def test_zona_bajo_umbral_sigue_gratis(self, cart_con_item_auth, db):
-        # subtotal 1000 < umbral 1300: bajo el modelo G-ENV-01 anterior esto
-        # cobraba el costo de zona (50). REVERTIDO: sigue GRATIS (0). El cobro
-        # bajo-umbral es el punto de extensión PENDIENTE (open-closed).
+    def test_zona_bajo_umbral_cobra_costo(self, cart_con_item_auth, db):
+        # subtotal 1000 < umbral 1300 y la zona tiene cost=50 → cobra 50.00
+        # (G-ENV-04: costo manual por zona bajo el umbral de envío gratis).
         self._set_zone(free_threshold=Decimal('1300.00'), cost=Decimal('50.00'))
         res = cart_con_item_auth.post(CHECKOUT_URL, {'address': ADDR}, format='json')
         assert res.status_code == 201
-        assert Decimal(res.json()['value']['shipping_cost']) == Decimal('0.00')
+        assert Decimal(res.json()['value']['shipping_cost']) == Decimal('50.00')
 
     def test_sin_metodo_seleccionado_sigue_gratis(self, cart_con_item_auth, db):
         # Zona sin umbral ni costo y sin método en el payload: gratis. Antes

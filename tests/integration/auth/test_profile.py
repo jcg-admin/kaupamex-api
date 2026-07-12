@@ -7,7 +7,7 @@ import pytest
 from PIL import Image
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib.auth import get_user_model
-from apps.users.models import Address
+from apps.users.models import Address, Person
 
 pytestmark = pytest.mark.integration
 
@@ -37,7 +37,6 @@ class TestProfileGet:
     def test_perfil_contiene_campos_basicos(self, auth_client, user, db):
         r = auth_client.get(PROFILE_URL)
         data = r.json()
-        assert data['username'] == user.username
         assert data['email'] == user.email
         assert 'first_name' in data
         assert 'last_name' in data
@@ -58,20 +57,17 @@ class TestProfileGet:
 
     def test_completeness_usuario_sin_opcionales(self, api_client, db):
         User = get_user_model()
-        u = User.objects.create_user(
-            username='empty', email='empty@test.mx', password='Pass123!',
-            first_name='', last_name='', phone='',
-        )
+        u = User.objects.create_user(email='empty@test.mx', password='Pass123!')
         api_client.force_login(u)
         r = api_client.get(PROFILE_URL)
         assert r.json()['profile_completeness'] == 0
         assert 'first_name' in r.json()['pending_fields']
 
     def test_completeness_usuario_completo(self, auth_client, user, db):
-        user.first_name = 'Demo'
-        user.last_name = 'Yoruba'
-        user.phone = '5551234567'
-        user.save()
+        Person.objects.update_or_create(
+            identity=user,
+            defaults={'first_name': 'Demo', 'last_name': 'Yoruba', 'phone': '5551234567'},
+        )
         # Crear una direccion para el usuario
         Address.objects.create(
             user=user, alias='Casa', recipient_name='Demo Yoruba',
@@ -89,11 +85,10 @@ class TestProfileGet:
 
     def test_aislamiento_datos(self, api_client, db):
         User = get_user_model()
-        u1 = User.objects.create_user(username='u1', email='u1@test.mx', password='Pass123!')
-        u2 = User.objects.create_user(username='u2', email='u2@test.mx', password='Pass123!')
+        u1 = User.objects.create_user(email='u1@test.mx', password='Pass123!')
+        User.objects.create_user(email='u2@test.mx', password='Pass123!')
         api_client.force_login(u1)
         r = api_client.get(PROFILE_URL)
-        assert r.json()['username'] == 'u1'
         assert r.json()['email'] == 'u1@test.mx'
 
     def test_avatar_url_es_none_sin_avatar(self, auth_client, db):
@@ -147,20 +142,13 @@ class TestProfileUpdate:
         user.refresh_from_db()
         assert user.email == original_email
 
-    def test_no_puede_cambiar_username(self, auth_client, user, db):
-        original_username = user.username
-        auth_client.patch(PROFILE_URL, {'username': 'nuevouser'}, format='json')
-        user.refresh_from_db()
-        assert user.username == original_username
-
     def test_avatar_jpeg_valido_aceptado(self, auth_client, user, db, settings, tmp_path):
         settings.MEDIA_ROOT = str(tmp_path)
         img_bytes = make_image_bytes('JPEG')
         avatar = SimpleUploadedFile('test.jpg', img_bytes, content_type='image/jpeg')
         r = auth_client.patch(PROFILE_URL, {'avatar': avatar}, format='multipart')
         assert r.status_code == 200
-        user.refresh_from_db()
-        assert user.avatar
+        assert Person.objects.get(identity=user).avatar
 
     def test_avatar_formato_invalido_retorna_400(self, auth_client, db):
         fake_file = SimpleUploadedFile('mal.jpg', b'not an image', content_type='image/jpeg')
@@ -183,8 +171,7 @@ class TestProfileUpdate:
         assert r.status_code == 200
 
     def test_completeness_aumenta_al_completar_campo(self, auth_client, user, db):
-        user.first_name = ''
-        user.save()
+        Person.objects.update_or_create(identity=user, defaults={'first_name': ''})
         r1 = auth_client.get(PROFILE_URL)
         completeness_antes = r1.json()['profile_completeness']
         auth_client.patch(PROFILE_URL, {'first_name': 'Nombre'}, format='json')

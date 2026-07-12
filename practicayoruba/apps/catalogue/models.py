@@ -98,6 +98,14 @@ class Product(TimeStampedModel, SoftDeleteModel):
         validators=[MinValueValidator(Decimal('0'))],
     )
     stock             = models.IntegerField(default=0, validators=[MinValueValidator(0)])
+    # G-ENV-04: peso físico en kg para la cotización de envío por peso
+    # (apps.logistics.offers: costo = base + $/kg × peso_total). Nullable:
+    # los productos existentes no cargan peso hasta que el admin lo fije; el
+    # checkout cae al costo plano por zona cuando el peso no está disponible.
+    weight_kg         = models.DecimalField(
+        max_digits=8, decimal_places=3, null=True, blank=True,
+        validators=[MinValueValidator(Decimal('0'))],
+        help_text='Peso en kg para cotización de envío por peso (vacío = usar costo por zona).')
     is_active         = models.BooleanField(default=True, db_index=True)
     is_published      = models.BooleanField(default=False, db_index=True)
     is_featured       = models.BooleanField(default=False, db_index=True)
@@ -158,7 +166,7 @@ class SearchHistory(TimeStampedModel):
         verbose_name = 'Historial de búsqueda'
 
     def __str__(self):
-        return f'{self.user.username}: "{self.term}"'
+        return f'{self.user.email}: "{self.term}"'
 
     @classmethod
     def record(cls, user, term: str) -> None:

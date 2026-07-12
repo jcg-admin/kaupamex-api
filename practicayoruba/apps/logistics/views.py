@@ -9,7 +9,8 @@ from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiParam
 from rest_framework import serializers, status
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
+from apps.authz.permissions import HasCapability
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -24,15 +25,18 @@ logger = logging.getLogger('apps')
 
 from apps.orders.models import Order, OrderStatusLog
 from config.schema import error_response
-from .models import Courier, ShipmentEvent, ShipmentGuide
+from .models import CarrierRateCard, Courier, ShipmentEvent, ShipmentGuide
+from .offers import build_offers
 from .serializers import (
     BuyerShipmentGuideSerializer, CourierCreateUpdateSerializer, CourierSerializer,
     ShipmentGuideCreateSerializer, ShipmentGuideSerializer,
+    ShipmentOfferRequestSerializer,
 )
 
 
 class _AdminOnly:
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'logistics.manage'
 
 
 class LogisticsPanelView(_AdminOnly, APIView):
@@ -580,7 +584,8 @@ class BuyerReportIncidentView(APIView):
 
 class ShipmentListCreateV2View(APIView):
     """GET|POST /api/v2/shipments/ — Tier A."""
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'logistics.manage'
 
     def get(self, request):
         return ShipmentGuideListCreateView().get(request)
@@ -591,7 +596,8 @@ class ShipmentListCreateV2View(APIView):
 
 class ShipmentDetailV2View(APIView):
     """GET|PATCH /api/v2/shipments/<pk>/ — Tier A."""
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'logistics.manage'
 
     def get(self, request, pk):
         return ShipmentGuideDetailView().get(request, pk)
@@ -602,7 +608,8 @@ class ShipmentDetailV2View(APIView):
 
 class ShipmentCancellationV2View(APIView):
     """POST /api/v2/shipments/<pk>/cancellations/ — Tier A."""
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'logistics.manage'
 
     def post(self, request, pk):
         return CancelGuideView().post(request, pk)
@@ -610,7 +617,8 @@ class ShipmentCancellationV2View(APIView):
 
 class ShipmentDeliveryV2View(APIView):
     """POST /api/v2/shipments/<pk>/deliveries/ — Tier A."""
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'logistics.manage'
 
     def post(self, request, pk):
         return ConfirmDeliveryView().post(request, pk)
@@ -643,3 +651,38 @@ class ShipmentProblemReportV2View(APIView):
                 {'detail': 'Envío no encontrado.', 'codigo_error': 'SHIPMENT_GUIDE_NOT_FOUND'}
             )
         return BuyerReportIncidentView().post(request, guide.order_id)
+
+
+class ShipmentOffersView(_AdminOnly, APIView):
+    """POST /api/v2/shipping-offers — motor de cotización de paqueterías.
+
+    Recibe un envío (paquetes con dimensiones/peso/valor/peligrosidad),
+    evalúa cada paquetería activa (``CarrierRateCard``) contra sus reglas
+    de elegibilidad y devuelve las **elegibles** rankeadas (costo asc →
+    tránsito asc → ambiental desc) más las **inelegibles** con el motivo.
+
+    **Sólo admin** (``logistics.manage``). La elección de paquetería
+    (DHL/FedEx/…) es una decisión del administrador, NO del comprador: el
+    comprador nunca ve la lista de paqueterías, sólo el costo final de envío
+    (por peso o por zona) que resuelve el checkout. Este endpoint expone la
+    lista rankeada para la operación/administración. Validación DRF → HTTP 400.
+    """
+
+    @extend_schema(
+        summary='Cotizar paqueterías para un envío (Shipment Offer API, admin)',
+        tags=['logistics'],
+        request=ShipmentOfferRequestSerializer,
+        responses={200: None, 400: None},
+    )
+    def post(self, request):
+        serializer = ShipmentOfferRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        packages = serializer.validated_data['packages']
+
+        rate_cards = [
+            rc.to_rate_card()
+            for rc in CarrierRateCard.objects.filter(is_active=True)
+                                             .select_related('courier')
+        ]
+        result = build_offers(packages, rate_cards)
+        return Response(result, status=status.HTTP_200_OK)

@@ -28,4 +28,4 @@ class SearchEntry(TimeStampedModel):
         verbose_name = 'Entrada de historial de busqueda'
 
     def __str__(self):
-        return f'{self.user.username}: {self.normalized_query!r}'
+        return f'{self.user.email}: {self.normalized_query!r}'

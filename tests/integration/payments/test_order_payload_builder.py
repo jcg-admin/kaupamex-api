@@ -14,6 +14,7 @@ from apps.payments.gateways.mercadopago import (
     _build_order_payload,
     _build_order_payment_method,
     _amount_str,
+    _money_number,
 )
 
 pytestmark = pytest.mark.integration
@@ -41,6 +42,33 @@ class TestAmountStr:
         assert _amount_str(Decimal('12.9')) == '12.90'
         assert _amount_str('200') == '200.00'
         assert _amount_str(Decimal('12.905')) == '12.90'  # quantize floor
+
+
+class TestMoneyNumber:
+    """_money_number: importe->float con 2 decimales, sin artefacto IEEE-754.
+
+    Mitiga el error de coma flotante descrito por el estándar IEEE 754:
+    valores como 0.1 no son representables en binario, así que operar en
+    float acumula error. Cuantizando a 2 decimales ANTES de cruzar a float
+    el valor que llega a la pasarela es siempre un importe monetario limpio.
+    """
+    def test_two_decimals_number(self):
+        assert _money_number(Decimal('12.9')) == 12.90
+        assert _money_number('200') == 200.0
+        assert _money_number(Decimal('12.905')) == 12.90  # HALF_EVEN
+
+    def test_neutraliza_artefacto_de_coma_flotante(self):
+        # 0.1 sumado 3 veces en float da 0.30000000000000004 (IEEE-754).
+        contaminado = 0.1 + 0.1 + 0.1        # 0.30000000000000004
+        assert contaminado != 0.30           # el defecto existe
+        assert _money_number(Decimal('0.1') * 3) == 0.30   # Decimal exacto
+        assert _money_number(contaminado) == 0.30          # cuantizado limpio
+
+    def test_coincide_con_amount_str(self):
+        # Ambos helpers redondean idéntico; sólo difiere el tipo de salida.
+        for v in ['19.99', '0.1', '12.905', '200', '1234.5']:
+            assert str(_money_number(v)) == _amount_str(v) or \
+                   f'{_money_number(v):.2f}' == _amount_str(v)
 
 
 class TestPaymentMethodBlock:

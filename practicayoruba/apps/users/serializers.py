@@ -22,7 +22,8 @@ from drf_spectacular.utils import extend_schema_field
 from apps.settings_app.models import SiteSettings
 from apps.orders.serializers import validate_mx_phone
 from .audit import audit_log_auth
-from .models import Address, AuthEvent, UserDeactivationEvent
+from apps.authz.services import is_superadmin
+from .models import Address, AuthEvent, Person, UserDeactivationEvent
 from .tokens_email import invalidate_all_sessions
 from .tokens_email import create_verification_token, send_verification_email
 
@@ -84,18 +85,6 @@ class RegisterSerializer(serializers.Serializer):
             )
         return attrs
 
-    @staticmethod
-    def _generate_username(email: str) -> str:
-        base = email[:150]
-        if not User.objects.filter(username__iexact=base).exists():
-            return base
-        i = 1
-        while True:
-            candidate = f"{email[:147]}_{i}"
-            if not User.objects.filter(username__iexact=candidate).exists():
-                return candidate
-            i += 1
-
     def create(self, validated_data):
         validated_data.pop('password_confirm')
         validated_data.pop('terms_accepted', None)
@@ -103,14 +92,16 @@ class RegisterSerializer(serializers.Serializer):
         first_name = validated_data.pop('first_name', '')
         last_name  = validated_data.pop('last_name', '')
         email      = validated_data['email']
-        username   = self._generate_username(email)
+        # Party (T-201): la identidad es sólo email + credenciales; el nombre
+        # vive en Person. Ya no se auto-genera username (email es el
+        # identificador único, USERNAME_FIELD).
         user = User.objects.create_user(
-            username=username,
             email=email,
             password=validated_data['password'],
-            first_name=first_name,
-            last_name=last_name,
             is_active=False,
+        )
+        Person.objects.create(
+            identity=user, first_name=first_name, last_name=last_name,
         )
         user.deactivated_reason = User.DEACTIVATION_UNVERIFIED
         user.deactivated_at = timezone.now()
@@ -183,10 +174,18 @@ class ProfileSerializer(serializers.ModelSerializer):
     profile_completeness = serializers.SerializerMethodField()
     pending_fields      = serializers.SerializerMethodField()
 
+    # Party (T-201): first_name/last_name/phone son properties de solo lectura
+    # que delegan a Person; se declaran explícitas para que ModelSerializer no
+    # dependa de campos en IdentityUser. ``username`` se retira (email es el
+    # identificador).
+    first_name = serializers.CharField(read_only=True)
+    last_name  = serializers.CharField(read_only=True)
+    phone      = serializers.CharField(read_only=True)
+
     class Meta:
         model = User
         fields = [
-            'id', 'username', 'email',
+            'id', 'email',
             'first_name', 'last_name', 'phone',
             'avatar_url', 'date_joined',
             'profile_completeness', 'pending_fields',
@@ -210,18 +209,20 @@ class ProfileSerializer(serializers.ModelSerializer):
 ALLOWED_IMAGE_TYPES = {'image/jpeg', 'image/png', 'image/webp', 'JPEG', 'PNG', 'WEBP'}
 
 
-class UpdateProfileSerializer(serializers.ModelSerializer):
-    """UC-AUTH-06: Actualiza campos de perfil. Email y username no editables."""
+class UpdateProfileSerializer(serializers.Serializer):
+    """UC-AUTH-06: Actualiza campos de perfil. Email no editable.
+
+    Party (T-201): nombre/teléfono/avatar viven en ``Person``; este serializer
+    escribe sobre el ``Person`` de la identidad (lo crea si falta)."""
+    first_name    = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    last_name     = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    phone         = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    avatar        = serializers.ImageField(required=False, allow_null=True)
     remove_avatar = serializers.BooleanField(write_only=True, required=False, default=False)
 
-    class Meta:
-        model = User
-        fields = ['first_name', 'last_name', 'phone', 'avatar', 'remove_avatar']
-        extra_kwargs = {
-            'avatar': {'required': False, 'allow_null': True},
-        }
-
     def validate_phone(self, value):
+        if not value:
+            return value
         """H-PROF-01: el teléfono del perfil comparte la validación del checkout
         (MX 10 dígitos exactos, ``validate_mx_phone``). Antes aceptaba un
         formato E.164 laxo (H-CICLO67-01), lo que permitía guardar en el perfil
@@ -254,12 +255,14 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
         return value
 
     def update(self, instance, validated_data):
+        # instance es la IdentityUser; el perfil humano vive en Person.
+        person, _ = Person.objects.get_or_create(identity=instance)
         remove = validated_data.pop('remove_avatar', False)
         avatar_file = validated_data.pop('avatar', None)
 
-        if remove and instance.avatar:
-            instance.avatar.delete(save=False)
-            instance.avatar = None
+        if remove and person.avatar:
+            person.avatar.delete(save=False)
+            person.avatar = None
 
         elif avatar_file is not None:
             img = Image.open(avatar_file)
@@ -271,16 +274,16 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
             buf.seek(0)
 
             ts = int(time.time())
-            filename = f'user_{instance.pk}_{ts}.webp'
+            filename = f'person_{person.pk}_{ts}.webp'
 
-            if instance.avatar:
-                instance.avatar.delete(save=False)
+            if person.avatar:
+                person.avatar.delete(save=False)
 
-            instance.avatar.save(filename, ContentFile(buf.read()), save=False)
+            person.avatar.save(filename, ContentFile(buf.read()), save=False)
 
         for attr, val in validated_data.items():
-            setattr(instance, attr, val)
-        instance.save()
+            setattr(person, attr, val)
+        person.save()
         return instance
 
 
@@ -384,7 +387,12 @@ class AdminUserListSerializer(serializers.ModelSerializer):
     # first_name, last_name. El serializer anterior solo exponía is_staff y
     # full_name (concatenacion). Se añaden los campos necesarios para que
     # AdminUsersPage.jsx y AdminUserDetailPage.jsx rendericen correctamente.
-    is_admin       = serializers.BooleanField(source='is_superuser', read_only=True)
+    # Party/authz (T-201): is_staff/is_superuser ya no existen. ``is_admin`` =
+    # titular del rol superadmin (resolver). first_name/last_name son properties
+    # que delegan a Person.
+    is_admin       = serializers.SerializerMethodField()
+    first_name     = serializers.CharField(read_only=True)
+    last_name      = serializers.CharField(read_only=True)
     email_verified = serializers.SerializerMethodField()
     order_count    = serializers.SerializerMethodField()
     avatar_url     = serializers.SerializerMethodField()
@@ -392,14 +400,18 @@ class AdminUserListSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'id', 'username', 'email', 'full_name',
+            'id', 'email', 'full_name',
             'first_name', 'last_name',
-            'is_active', 'is_staff', 'is_admin',
+            'is_active', 'is_admin',
             'email_verified', 'order_count', 'avatar_url',
             'date_joined', 'last_login',
             'deactivated_reason', 'deactivated_at',
         ]
         read_only_fields = fields
+
+    @extend_schema_field(OpenApiTypes.BOOL)
+    def get_is_admin(self, obj):
+        return is_superadmin(obj)
 
     @extend_schema_field(OpenApiTypes.STR)
     def get_full_name(self, obj):

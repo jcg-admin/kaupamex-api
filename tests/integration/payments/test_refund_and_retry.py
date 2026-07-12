@@ -175,7 +175,7 @@ class TestReembolsoComprador:
         """RNF-SEC-003: orden de otro usuario → 404, nunca 403."""
         User = get_user_model()
         other = User.objects.create_user(
-            username='other_ref', email='other_r@test.com', password='pass'
+            email='other_r@test.com', password='pass'
         )
         order, _ = _make_order_with_payment(other, prod_ref)
         res = auth_client.post(REFUND_URL(order.order_number), {}, format='json')

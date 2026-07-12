@@ -16,6 +16,8 @@ PYTokenRefreshView: refresh con validacion is_active.
 """
 import hashlib
 from django.contrib.auth import get_user_model, login as django_login
+
+from apps.authz.services import is_superadmin
 from django.contrib.auth.models import update_last_login
 from django.core.cache import cache
 from .session_tracking import record_user_session
@@ -88,7 +90,9 @@ class PYTokenObtainPairSerializer(TokenObtainPairSerializer):
 
         # FR-AUTH-02.09 — detectar email no verificado
         try:
-            user = User.objects.get(username__iexact=username)
+            # Party (T-201): el identificador es email (USERNAME_FIELD); ``username``
+            # aquí es el valor del credential (el email normalizado).
+            user = User.objects.get(email__iexact=username)
             if not user.is_active and user.has_usable_password():
                 raise AuthenticationFailed(
                     detail={
@@ -120,11 +124,11 @@ class PYTokenObtainPairSerializer(TokenObtainPairSerializer):
         user = self.user
         data['user'] = {
             'id':         user.pk,
-            'username':   user.username,
+            'username':   user.email,
             'email':      user.email,
             'first_name': user.first_name,
             'last_name':  user.last_name,
-            'is_staff':   user.is_staff,
+            'is_staff':   is_superadmin(user),
             'avatar_url': user.get_avatar_url(),
         }
         return data

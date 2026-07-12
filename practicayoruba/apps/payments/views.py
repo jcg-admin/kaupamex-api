@@ -11,7 +11,9 @@ from django.shortcuts import get_object_or_404, redirect
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from rest_framework.exceptions import ValidationError
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from apps.authz.permissions import HasCapability
+from apps.authz.services import is_superadmin
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
@@ -355,7 +357,7 @@ class ReceiptPdfView(APIView):
 
         # EX-02: solicitante no dueño ni admin → 403 FORBIDDEN.
         is_owner = order.user_id is not None and order.user_id == request.user.pk
-        if not (is_owner or request.user.is_staff):
+        if not (is_owner or is_superadmin(request.user)):
             return Response(
                 {'detail': 'No tienes permiso sobre esta orden.',
                  'codigo_error': 'FORBIDDEN'},
@@ -396,10 +398,10 @@ class ReceiptPdfView(APIView):
                 status=500,
             )
 
-        # POST-02: auditoría RECIBO_PDF_GENERADO (actor + order + timestamp).
+        # POST-02: auditoría RECEIPT_PDF_GENERATED (actor + order + timestamp).
         audit_log_business(
             actor=request.user,
-            action=BusinessEvent.ACTION_RECIBO_PDF_GENERADO,
+            action=BusinessEvent.ACTION_RECEIPT_PDF_GENERATED,
             request=request,
             target_type=BusinessEvent.TARGET_ORDER,
             target_id=order.pk,
@@ -940,7 +942,8 @@ class AdminRefundView(APIView):
     El admin inicia manualmente un reembolso sobre un pago aprobado.
     UC-PAY-09.
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'payments.manage'
 
     @extend_schema(
         summary='Reembolso manual (admin)',
@@ -994,7 +997,8 @@ class AdminPaymentDetailView(APIView):
     detalle — el admin podia listar pagos pero no consultar uno por PK,
     impidiendo drill-down desde la lista de pagos en el panel.
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'payments.manage'
 
     @extend_schema(
         summary='Detalle de pago (admin)',
@@ -1031,7 +1035,8 @@ class AdminPaymentListView(APIView):
     Filtros: ?status=, ?gateway=, ?from=YYYY-MM-DD, ?to=YYYY-MM-DD.
     Respuesta: { count, results: Payment[], totals: {approved, refunded, net} }.
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'payments.manage'
 
     @extend_schema(
         summary='Listado de transacciones de pago (admin, UC-PAY-11)',
@@ -1158,7 +1163,8 @@ class AdminPaymentRefundsListView(APIView):
     GET /api/v2/admin/payments/<payment_id>/refunds/
     Lista todos los reembolsos de un pago específico. T-16-D.
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'payments.manage'
 
     @extend_schema(
         summary='Listado de reembolsos de un pago (admin)',
@@ -1180,7 +1186,8 @@ class AdminCancelPaymentView(APIView):
     POST /api/v2/admin/payments/<payment_id>/cancel/
     El admin cancela proactivamente un pago pendiente. T-CAN.
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'payments.manage'
 
     @extend_schema(
         summary='Cancelar pago pendiente (admin)',
@@ -1228,7 +1235,8 @@ class AdminChargebackListView(APIView):
     GET /api/v2/admin/chargebacks/
     Lista todos los contracargos registrados. T-17-B.
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'payments.manage'
 
     @extend_schema(
         summary='Listado de contracargos (admin)',
@@ -1248,7 +1256,8 @@ class AdminChargebackDetailView(APIView):
     GET /api/v2/admin/chargebacks/<chargeback_id>/
     Detalle de un contracargo individual. T-17-C.
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'payments.manage'
 
     @extend_schema(
         summary='Detalle de contracargo (admin)',

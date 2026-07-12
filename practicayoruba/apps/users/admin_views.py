@@ -4,7 +4,6 @@ Sprint 4 — UC-AUTH-12/13/14/15: gestión de usuarios por el administrador.
 """
 from decimal import Decimal
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Group
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
@@ -13,11 +12,16 @@ from django.utils import timezone
 from rest_framework import serializers as drf_serializers
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError as DRFValidationError
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiParameter
+from apps.authz.models import Role, RoleAssignment
+from apps.authz.permissions import HasCapability
+from apps.authz.services import (
+    SUPERADMIN_ROLE_CODE, has_capability, invalidate_capabilities, is_superadmin,
+)
 from apps.orders.models import Order, OrderValue
 from .audit import audit_log_business
 from .models import AuthEvent, BusinessEvent, UserDeactivationEvent
@@ -47,12 +51,12 @@ class AdminUserDetailSerializer(AdminUserListSerializer):
     addresses            = drf_serializers.SerializerMethodField()
     recent_orders        = drf_serializers.SerializerMethodField()
     lifetime_value       = drf_serializers.SerializerMethodField()
-    # H-UI-02: UC-ADM-02 — el formulario de permisos necesita pre-cargar los
-    # grupos actuales del usuario. Sin esto, el POST a /permissions/ con
-    # ``groups`` hace ``.set()`` (reemplaza todo) a ciegas, con riesgo de
-    # borrar grupos que el admin no quiso tocar. Se expone como lista de ids
-    # (lo que /permissions/ espera) más sus nombres para mostrar en el UI.
-    groups               = drf_serializers.SerializerMethodField()
+    # H-UI-02 / T-201 (party+authz): UC-ADM-02 — el formulario de permisos
+    # pre-carga los roles authz vigentes del usuario. Party/authz (DEC-01=B):
+    # los ``Group`` nativos ya no existen; el acceso admin se otorga con
+    # ``RoleAssignment`` (indirect entitlement). Se expone como lista de ids
+    # (lo que /permissions/ espera) más código/nombre para mostrar en el UI.
+    roles                = drf_serializers.SerializerMethodField()
 
     class Meta(AdminUserListSerializer.Meta):
         # first_name, last_name ya vienen del base AdminUserListSerializer
@@ -60,13 +64,13 @@ class AdminUserDetailSerializer(AdminUserListSerializer):
             'phone',
             'profile_completeness', 'address_count',
             'addresses', 'recent_orders', 'lifetime_value',
-            'groups',
+            'roles',
         ]
 
-    def get_groups(self, obj) -> list:
+    def get_roles(self, obj) -> list:
         return [
-            {'id': g.pk, 'name': g.name}
-            for g in obj.groups.all().order_by('name')
+            {'id': ra.role_id, 'code': ra.role.code, 'name': ra.role.name}
+            for ra in obj.role_assignments.select_related('role').order_by('role__code')
         ]
 
     def get_profile_completeness(self, obj) -> int:
@@ -128,16 +132,13 @@ class AdminUserDetailSerializer(AdminUserListSerializer):
 
 
 class AdminCreateUserSerializer(drf_serializers.Serializer):
-    """UC-AUTH-15: crear usuario administrador."""
-    username = drf_serializers.CharField(min_length=3, max_length=150)
+    """UC-AUTH-15: crear usuario administrador.
+
+    Party/authz (T-201, DEC-01=B): la identidad es sólo ``email`` + password
+    (sin ``username``/``is_staff`` nativos). El acceso admin se otorga
+    asignando el rol ``superadmin`` de apps.authz."""
     email    = drf_serializers.EmailField()
     password = drf_serializers.CharField(write_only=True, min_length=8)
-
-    def validate_username(self, value):
-        value = value.strip()
-        if User.objects.filter(username__iexact=value).exists():
-            raise drf_serializers.ValidationError('El nombre de usuario ya existe.')
-        return value
 
     def validate_email(self, value):
         value = value.lower().strip()
@@ -153,41 +154,46 @@ class AdminCreateUserSerializer(drf_serializers.Serializer):
         return value
 
     def create(self, validated_data):
-        return User.objects.create_user(
-            username=validated_data['username'],
+        user = User.objects.create_user(
             email=validated_data['email'],
             password=validated_data['password'],
-            is_staff=True,
-            is_active=True,
         )
+        role, _ = Role.objects.get_or_create(
+            code=SUPERADMIN_ROLE_CODE, defaults={'name': 'Superadministrador'},
+        )
+        RoleAssignment.objects.get_or_create(user=user, role=role)
+        return user
 
 
 def _require_admin(user):
-    if not user.is_staff:
+    # Party/authz (DEC-01=B): ``is_staff`` ya no existe. La barrera admin
+    # mínima del módulo de usuarios es la capacidad ``users.view`` (el
+    # superadmin la satisface por bypass). Defensa en profundidad sobre el
+    # ``HasCapability`` a nivel de clase.
+    if not has_capability(user, 'users.view'):
         raise PermissionDenied('Solo administradores pueden acceder.')
 
 
 class AdminPermissionsSerializer(drf_serializers.Serializer):
-    """UC-ADM-02: edición de permisos de un usuario por el administrador.
+    """UC-ADM-02: asignación de roles authz de un usuario por el administrador.
 
-    Todos los campos son opcionales; solo se aplican los presentes en el
-    payload (edición parcial). ``groups`` es la lista de ids de Group a
-    asignar (reemplaza el set actual). Las claves de error usan ``codigo_error``
-    (canon, DEC-DOC-005)."""
-    is_staff     = drf_serializers.BooleanField(required=False)
-    is_superuser = drf_serializers.BooleanField(required=False)
-    groups       = drf_serializers.ListField(
+    Party/authz (T-201, DEC-01=B): los ``Group``/``is_staff``/``is_superuser``
+    nativos ya no existen. El permiso admin es un ``RoleAssignment`` (indirect
+    entitlement). ``roles`` es la lista de ids de Role a asignar (reemplaza el
+    set actual). Campo opcional (edición parcial). Las claves de error usan
+    ``codigo_error`` (canon, DEC-DOC-005)."""
+    roles = drf_serializers.ListField(
         child=drf_serializers.IntegerField(), required=False,
     )
 
-    def validate_groups(self, value):
+    def validate_roles(self, value):
         existing = set(
-            Group.objects.filter(pk__in=value).values_list('pk', flat=True)
+            Role.objects.filter(pk__in=value).values_list('pk', flat=True)
         )
-        missing = [g for g in value if g not in existing]
+        missing = [r for r in value if r not in existing]
         if missing:
             raise drf_serializers.ValidationError(
-                f'Grupos inexistentes: {missing}.'
+                f'Roles inexistentes: {missing}.'
             )
         return value
 
@@ -202,13 +208,21 @@ class AdminUserViewSet(ModelViewSet):
     POST   /users/{pk}/suspend/    — suspender (UC-AUTH-13)
     POST   /users/{pk}/reactivate/ — reactivar (UC-AUTH-14)
     """
-    # H-CICLO79-02: agregar IsAdminUser al nivel de clase para que el
-    # framework DRF rechace requests de usuarios no-staff antes de llegar
-    # a los action handlers. El guard _require_admin() en cada accion
-    # protege correctamente en runtime, pero la ausencia de IsAdminUser
-    # aqui dejaba OPTIONS/HEAD accesibles a cualquier usuario autenticado
-    # y eliminaba la barrera de DRF para acciones futuras sin guard manual.
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    # H-CICLO79-02 / T-201: barrera authz a nivel de clase. ``HasCapability``
+    # rechaza requests sin la capacidad requerida antes de llegar a los
+    # handlers (incl. OPTIONS/HEAD). ``permission_map`` resuelve por acción;
+    # ``required_capability`` es el fallback (incl. @actions sin entrada en el
+    # mapa) — cierra el trap H-API-AUTHZ-04.
+    permission_classes = [IsAuthenticated, HasCapability]
+    permission_map     = {
+        'list':       'users.view',
+        'retrieve':   'users.view',
+        'create':     'users.manage',
+        'suspend':    'users.manage',
+        'reactivate': 'users.manage',
+        'permissions': 'permissions.manage',
+    }
+    required_capability = 'users.manage'
     queryset           = User.objects.all().order_by('-date_joined')
     http_method_names  = ['get', 'post', 'head', 'options']
     pagination_class   = AdminUserPagination
@@ -232,11 +246,13 @@ class AdminUserViewSet(ModelViewSet):
         ).order_by('-date_joined')
         search   = self.request.query_params.get('search')
         is_active = self.request.query_params.get('is_active')
-        is_staff  = self.request.query_params.get('is_staff')
+        is_admin  = self.request.query_params.get('is_admin')
         if search:
+            # Party (T-201): ``username`` ya no existe; nombre vive en Person.
             qs = qs.filter(
-                Q(username__icontains=search) | Q(email__icontains=search) |
-                Q(first_name__icontains=search) | Q(last_name__icontains=search)
+                Q(email__icontains=search) |
+                Q(person__first_name__icontains=search) |
+                Q(person__last_name__icontains=search)
             )
         # UC-AUTH-11 + GAP-3: el admin filtra por motivo concreto de
         # inactividad para decidir el camino correcto (suspended
@@ -245,8 +261,13 @@ class AdminUserViewSet(ModelViewSet):
         deactivated_reason = self.request.query_params.get('deactivated_reason')
         if is_active is not None:
             qs = qs.filter(is_active=(is_active.lower() == 'true'))
-        if is_staff is not None:
-            qs = qs.filter(is_staff=(is_staff.lower() == 'true'))
+        if is_admin is not None:
+            # Party/authz: "admin" = titular del rol superadmin (no is_staff).
+            has_superadmin = Q(role_assignments__role__code=SUPERADMIN_ROLE_CODE)
+            if is_admin.lower() == 'true':
+                qs = qs.filter(has_superadmin).distinct()
+            else:
+                qs = qs.exclude(has_superadmin)
         if deactivated_reason:
             qs = qs.filter(deactivated_reason=deactivated_reason)
         return qs
@@ -303,10 +324,11 @@ class AdminUserViewSet(ModelViewSet):
                     status=400,
                 )
             # UC-AUTH-13 PRE-04 / EX-03 (Protección de superusuario): las
-            # cuentas is_superuser=True no pueden suspenderse desde el
-            # backoffice — solo se gestionan desde la consola del servidor.
+            # cuentas superadmin no pueden suspenderse desde el backoffice —
+            # solo se gestionan desde la consola del servidor. Party/authz
+            # (DEC-01=B): "superusuario" = titular del rol superadmin.
             # PARTE 7.3 → 403 / codigo_error = ACCOUNT_PROTECTED.
-            if target.is_superuser:
+            if is_superadmin(target):
                 return Response(
                     {'detail': 'No se puede suspender una cuenta de '
                                'superusuario desde el backoffice.',
@@ -331,7 +353,7 @@ class AdminUserViewSet(ModelViewSet):
                 actor=request.user,
                 note=request.data.get('note', '')[:255],
             )
-        return Response({'message': f'Cuenta de {target.username} suspendida.'})
+        return Response({'message': f'Cuenta de {target.email} suspendida.'})
 
     @extend_schema(
         summary='Reactivar cuenta de usuario (UC-AUTH-14)',
@@ -372,11 +394,11 @@ class AdminUserViewSet(ModelViewSet):
                 target_type='user',
                 target_id=target.pk,
                 extra={
-                    'target_username': target.username,
+                    'target_username': target.email,
                     'note': request.data.get('note', '')[:255],
                 },
             )
-        return Response({'message': f'Cuenta de {target.username} reactivada.'})
+        return Response({'message': f'Cuenta de {target.email} reactivada.'})
 
     @extend_schema(
         summary='Editar permisos de usuario (UC-ADM-02)',
@@ -386,13 +408,15 @@ class AdminUserViewSet(ModelViewSet):
     )
     @action(detail=True, methods=['post'], url_path='permissions')
     def permissions(self, request, pk=None):
-        """UC-ADM-02: editar is_staff / is_superuser / groups de un usuario.
+        """UC-ADM-02: asignar los roles authz de un usuario.
 
-        POST (no PATCH) para ser consistente con suspend/reactivate — el
-        viewset no expone PATCH (http_method_names sin patch). Guard espejo
-        del self-suspend: un admin no puede quitarse a sí mismo is_superuser
-        ni is_staff (evita auto-lockout del panel admin). El cambio se audita
-        vía la infra de eventos existente (BusinessEvent / audit_log_business).
+        Party/authz (T-201, DEC-01=B): los ``is_staff``/``is_superuser``/
+        ``groups`` nativos ya no existen. El acceso admin es un
+        ``RoleAssignment`` (indirect entitlement); ``roles`` reemplaza el set
+        actual. POST (no PATCH) para ser consistente con suspend/reactivate.
+        Guard espejo del self-suspend: un admin no puede quitarse a sí mismo el
+        rol ``superadmin`` (evita auto-lockout del panel). El cambio se audita
+        (BusinessEvent) y purga la cache de capacidades del usuario afectado.
         """
         _require_admin(request.user)
 
@@ -414,52 +438,83 @@ class AdminUserViewSet(ModelViewSet):
                                  'codigo_error': 'USER_NOT_FOUND'}, status=404)
 
             is_self = target.pk == request.user.pk
+            role_ids = vdata.get('roles')
+
             # Guard espejo del self-suspend: un admin no puede degradarse a sí
-            # mismo (quitarse is_superuser o is_staff), lo que lo dejaría sin
-            # acceso al panel admin.
-            if is_self and vdata.get('is_superuser') is False:
-                return Response(
-                    {'detail': 'Un administrador no puede quitarse a sí mismo '
-                               'el rol de superusuario.',
-                     'codigo_error': 'CANNOT_DEMOTE_SELF'},
-                    status=400,
+            # mismo (quitarse el rol superadmin), lo que lo dejaría sin acceso
+            # al panel admin.
+            if is_self and role_ids is not None and is_superadmin(target):
+                superadmin_id = (
+                    Role.objects.filter(code=SUPERADMIN_ROLE_CODE)
+                    .values_list('pk', flat=True).first()
                 )
-            if is_self and vdata.get('is_staff') is False:
-                return Response(
-                    {'detail': 'Un administrador no puede quitarse a sí mismo '
-                               'el acceso de staff.',
-                     'codigo_error': 'CANNOT_DEMOTE_SELF'},
-                    status=400,
+                if superadmin_id is not None and superadmin_id not in role_ids:
+                    return Response(
+                        {'detail': 'Un administrador no puede quitarse a sí '
+                                   'mismo el rol de superusuario.',
+                         'codigo_error': 'CANNOT_DEMOTE_SELF'},
+                        status=400,
+                    )
+
+            # Contención de escalada de privilegios (G-PERM-01 / H-API-AUTHZ):
+            # un admin que NO es superadmin no puede CAMBIAR la membresía del
+            # rol superadmin de ningún usuario (ni concederla —auto-promoción—
+            # ni revocarla —neutralizar al superadmin—), aunque tenga
+            # ``permissions.manage`` y adivine el id del rol. El superadmin sí
+            # puede (test_admin_puede_promover_a_superadmin). Simétrico con el
+            # filtro del catálogo en AdminRoleListView.
+            if role_ids is not None and not is_superadmin(request.user):
+                superadmin_id = (
+                    Role.objects.filter(code=SUPERADMIN_ROLE_CODE)
+                    .values_list('pk', flat=True).first()
                 )
+                if superadmin_id is not None:
+                    would_have = superadmin_id in set(role_ids)
+                    if would_have != is_superadmin(target):
+                        return Response(
+                            {'detail': 'Solo un superadministrador puede '
+                                       'conceder o revocar el rol de '
+                                       'superusuario.',
+                             'codigo_error': 'CANNOT_GRANT_SUPERADMIN'},
+                            status=403,
+                        )
 
             changed = {}
-            if 'is_staff' in vdata:
-                target.is_staff = vdata['is_staff']
-                changed['is_staff'] = vdata['is_staff']
-            if 'is_superuser' in vdata:
-                target.is_superuser = vdata['is_superuser']
-                changed['is_superuser'] = vdata['is_superuser']
-            if changed:
-                target.save(update_fields=list(changed.keys()))
-            if 'groups' in vdata:
-                target.groups.set(vdata['groups'])
-                changed['groups'] = vdata['groups']
+            if role_ids is not None:
+                # Reconciliar el set de RoleAssignment: agregar los que faltan,
+                # borrar los sobrantes (equivalente a ``groups.set()``).
+                desired = set(role_ids)
+                current = set(
+                    RoleAssignment.objects
+                    .filter(user=target).values_list('role_id', flat=True)
+                )
+                for rid in desired - current:
+                    RoleAssignment.objects.get_or_create(
+                        user=target, role_id=rid,
+                        defaults={'assigned_by': request.user},
+                    )
+                RoleAssignment.objects.filter(
+                    user=target, role_id__in=(current - desired),
+                ).delete()
+                changed['roles'] = sorted(desired)
 
-            # Auditoría del cambio con la infra existente. BusinessEvent.action
-            # no tiene constante ADMIN_PERMISSIONS_CHANGED: se escribe el string
-            # directo (max_length=30, choices sin constraint DB), mismo patrón
-            # que ADMIN_REACTIVATE en reactivate().
-            audit_log_business(
-                request.user,
-                'ADMIN_PERMISSIONS_CHANGED',
-                request,
-                target_type='user',
-                target_id=target.pk,
-                extra={
-                    'target_username': target.username,
-                    'changes': changed,
-                },
-            )
+            if changed:
+                # Purgar la cache de capacidades del afectado (roles mutados).
+                invalidate_capabilities(target.pk)
+                # Auditoría con la infra existente. BusinessEvent.action no
+                # tiene constante ADMIN_PERMISSIONS_CHANGED: string directo,
+                # mismo patrón que ADMIN_REACTIVATE en reactivate().
+                audit_log_business(
+                    request.user,
+                    'ADMIN_PERMISSIONS_CHANGED',
+                    request,
+                    target_type='user',
+                    target_id=target.pk,
+                    extra={
+                        'target_username': target.email,
+                        'changes': changed,
+                    },
+                )
 
         return Response(AdminUserDetailSerializer(target).data)
 
@@ -471,7 +526,8 @@ class AuditLogView(APIView):
     GET /api/v1/admin/audit-log/
     Filtros: ?event_type=auth|business|deactivation  ?user_id=<pk>
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'audit.view'
     _PAGE_SIZE = 25
     # H-CICLO79-01: cap por tabla para evitar carga ilimitada en memoria.
     # Sin este limite, tres tablas de eventos sin LIMIT iteran sobre TODOS
@@ -534,7 +590,7 @@ class AuditLogView(APIView):
                     'id':         ev.pk,
                     'event_type': 'auth',
                     'user_id':    ev.user_id,
-                    'username':   ev.user.username if ev.user_id else None,
+                    'username':   ev.user.email if ev.user_id else None,
                     'action':     ev.action,
                     'created_at': ev.created_at.isoformat(),
                     'extra':      {
@@ -553,7 +609,7 @@ class AuditLogView(APIView):
                     'id':         ev.pk,
                     'event_type': 'business',
                     'user_id':    ev.actor_id,
-                    'username':   ev.actor.username if ev.actor_id else None,
+                    'username':   ev.actor.email if ev.actor_id else None,
                     'action':     ev.action,
                     'created_at': ev.created_at.isoformat(),
                     'extra':      {
@@ -572,12 +628,12 @@ class AuditLogView(APIView):
                     'id':         ev.pk,
                     'event_type': 'deactivation',
                     'user_id':    ev.user_id,
-                    'username':   ev.user.username,
+                    'username':   ev.user.email,
                     'action':     ev.reason,
                     'created_at': ev.created_at.isoformat(),
                     'extra':      {
                         'source': ev.source,
-                        'actor':  ev.actor.username if ev.actor_id else None,
+                        'actor':  ev.actor.email if ev.actor_id else None,
                     },
                 })
 

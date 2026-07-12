@@ -14,7 +14,7 @@ USERS_URL = '/api/v2/admin/users/'
 def sample_users(db):
     User = get_user_model()
     users = [
-        User.objects.create_user(username=f'buyer{i}', email=f'buyer{i}@test.mx',
+        User.objects.create_user(email=f'buyer{i}@test.mx',
                                  password='Pass123!', is_active=(i % 2 == 0))
         for i in range(5)
     ]
@@ -42,10 +42,11 @@ class TestAdminUserList:
         assert 'results' in data
         assert isinstance(data['results'], list)
 
-    def test_busqueda_por_username(self, admin_auth_client, sample_users, db):
+    def test_busqueda_por_email(self, admin_auth_client, sample_users, db):
+        # Party (T-201): username ya no existe; la búsqueda matchea email.
         r = admin_auth_client.get(USERS_URL, {'search': 'buyer0'})
         results = r.json()['results']
-        assert any('buyer0' in u['username'] for u in results)
+        assert any('buyer0' in u['email'] for u in results)
 
     def test_filtro_is_active(self, admin_auth_client, sample_users, db):
         r = admin_auth_client.get(USERS_URL, {'is_active': 'true'})
@@ -53,7 +54,9 @@ class TestAdminUserList:
             assert u['is_active'] is True
 
     def test_campos_retornados(self, admin_auth_client, sample_users, db):
+        # Party/authz (T-201): username/is_staff ya no existen; el listado
+        # expone email + is_admin (titular del rol superadmin).
         r = admin_auth_client.get(USERS_URL)
         user = r.json()['results'][0]
-        for field in ['id', 'username', 'email', 'is_active', 'is_staff', 'date_joined']:
+        for field in ['id', 'email', 'is_active', 'is_admin', 'date_joined']:
             assert field in user

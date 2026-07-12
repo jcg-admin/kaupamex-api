@@ -49,6 +49,8 @@ urlpatterns = _admin_urls + [
     path('api/v2/',          include(('apps.catalogue.urls', 'catalogue'), namespace='catalogue_v2')),
 
     # ─── API v2 (F2: cart, wishlist, referral, notifications) ───────────────────
+    # SOL-011 T-06: logs tecnicos read-only (UC-ADM-06, DEC-LOG-08 revisada).
+    path('api/v2/admin/',          include(('apps.core.admin_urls', 'admin_core'),           namespace='admin_core_v2')),
     path('api/v2/cart/',           include(('apps.cart.urls', 'cart'),                       namespace='cart_v2')),
     path('api/v2/wishlist/',       include(('apps.wishlist.urls', 'wishlist'),               namespace='wishlist_v2')),
     path('api/v2/admin/',          include(('apps.wishlist.admin_urls', 'admin_wishlist'),   namespace='admin_wishlist_v2')),
@@ -81,6 +83,12 @@ urlpatterns = _admin_urls + [
     path('api/v2/admin/',      include(('apps.backups.admin_urls', 'admin_backups'),         namespace='admin_backups_v2')),
     path('api/v2/admin/',      include(('apps.reports.admin_urls', 'admin_reports'),         namespace='admin_reports_v2')),
     path('api/v2/auth/',       include(('apps.users.auth_urls', 'auth'),                     namespace='auth_v2')),
+    # T-214: consulta pública SEPOMEX de CP → asentamientos (autocompletado de direcciones)
+    path('api/v2/geo/',        include(('apps.geo.urls', 'geo'),                             namespace='geo_v2')),
+    # DEC-08/09: capacidades del usuario + menú admin dinámico (podado por capacidad)
+    path('api/v2/authz/',      include(('apps.authz.urls', 'authz'),                         namespace='authz_v2')),
+    # G-PERM-01: catálogo de roles para el selector de /admin/permissions (UC-ADM-02)
+    path('api/v2/admin/',      include(('apps.authz.admin_urls', 'admin_authz'),             namespace='admin_authz_v2')),
 
     # ─── API v2 (F6: payments + checkout) ─────────────────────────────────────
     path('api/v2/payments/', include(('apps.payments.urls', 'payments'),                    namespace='payments_v2')),

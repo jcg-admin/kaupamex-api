@@ -50,10 +50,16 @@ class TestRegisterHappyPath:
         user = get_user_model().objects.get(email='comprador@practicayoruba.mx')
         assert user.email == 'comprador@practicayoruba.mx'
 
-    def test_username_autogenerado_desde_email(self, api_client, db):
+    def test_email_es_el_identificador(self, api_client, db):
+        # Party (T-201): ya no hay username autogenerado; el email ES el
+        # identificador (USERNAME_FIELD). El registro previo (username=email[:150])
+        # confirmaba que username era una copia del email — por eso el swap a
+        # email como identificador único es semánticamente equivalente.
         api_client.post(URL, VALID, format='json')
-        user = get_user_model().objects.get(email=VALID['email'])
-        assert user.username == VALID['email'][:150]
+        User = get_user_model()
+        user = User.objects.get(email=VALID['email'])
+        assert User.USERNAME_FIELD == 'email'
+        assert User.objects.get_by_natural_key(VALID['email']).pk == user.pk
 
     def test_first_name_guardado(self, api_client, db):
         api_client.post(URL, VALID, format='json')
@@ -139,7 +145,7 @@ class TestRegisterMergesAnonCart:
     def test_cart_token_de_otro_usuario_no_se_secuestra(self, api_client, db):
         # Un carrito ya asociado a un usuario no debe fusionarse por token.
         other = get_user_model().objects.create_user(
-            username='dueno', email='dueno@x.mx', password='Yoruba2026!', is_active=True)
+            email='dueno@x.mx', password='Yoruba2026!', is_active=True)
         owned = Cart.objects.create(user=other, cart_token=_uuid.uuid4())
         res = api_client.post(URL, {**VALID, 'cart_token': str(owned.cart_token)}, format='json')
         assert res.status_code == 201
