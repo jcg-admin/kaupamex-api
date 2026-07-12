@@ -32,6 +32,10 @@ CAPABILITIES = [
     ('moderation.view',    'Ver moderación de reseñas',        False),
     ('moderation.manage',  'Moderar reseñas',                  False),
     ('newsletter.manage',  'Gestionar newsletter',             False),
+    ('notifications.view', 'Ver notificaciones (admin)',       False),
+    ('notifications.manage', 'Gestionar notificaciones',       False),
+    ('questions.view',     'Ver preguntas de producto',        False),
+    ('questions.manage',   'Moderar preguntas de producto',    False),
     ('orders.view',        'Ver pedidos',                      False),
     ('orders.manage',      'Gestionar pedidos',                False),
     ('payments.view',      'Ver pagos',                        False),
@@ -56,10 +60,11 @@ _MODULE_NAMES = {
     'audit': 'Auditoría', 'backups': 'Respaldos', 'banners': 'Banners',
     'catalogue': 'Catálogo', 'content': 'Contenido', 'inventory': 'Inventario',
     'invoices': 'Facturas', 'logistics': 'Logística', 'moderation': 'Moderación',
-    'newsletter': 'Newsletter', 'orders': 'Pedidos', 'payments': 'Pagos',
-    'permissions': 'Permisos', 'reports': 'Reportes', 'returns': 'Devoluciones',
-    'seo': 'SEO', 'settings': 'Configuración', 'support': 'Soporte',
-    'users': 'Usuarios', 'vouchers': 'Cupones',
+    'newsletter': 'Newsletter', 'notifications': 'Notificaciones',
+    'orders': 'Pedidos', 'payments': 'Pagos', 'permissions': 'Permisos',
+    'questions': 'Preguntas de producto', 'reports': 'Reportes',
+    'returns': 'Devoluciones', 'seo': 'SEO', 'settings': 'Configuración',
+    'support': 'Soporte', 'users': 'Usuarios', 'vouchers': 'Cupones',
 }
 
 

@@ -134,7 +134,7 @@ class TestEmailVerification:
     def test_login_cuenta_no_verificada_da_error_diferenciado(self, api_client, inactive_user, db):
         """FR-AUTH-02.09: mensaje diferenciado tras verificacion pendiente."""
         r = api_client.post('/api/v2/auth/login/', {
-            'username': inactive_user.email,
+            'email': inactive_user.email,
             'password': 'TestPass123!',
         }, format='json')
         assert r.status_code == 401
@@ -144,7 +144,7 @@ class TestEmailVerification:
         plain = create_verification_token(inactive_user)
         api_client.post(VERIFY_URL, {'token': plain}, format='json')
         r = api_client.post('/api/v2/auth/login/', {
-            'username': inactive_user.email,
+            'email': inactive_user.email,
             'password': 'TestPass123!',
         }, format='json')
         assert r.status_code == 200

@@ -8,7 +8,8 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema, extend_schema_field, inline_serializer
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
+from apps.authz.permissions import HasCapability
 from rest_framework.response import Response
 from rest_framework.serializers import ModelSerializer, SerializerMethodField
 from rest_framework.views import APIView
@@ -297,7 +298,8 @@ class WishlistAggregateView(APIView):
     identidad de los compradores (BR-013). El manager por defecto de
     WishlistItem excluye los soft-deleted.
     """
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'users.view'
 
     @extend_schema(
         summary='Agregado de wishlist para marketing (admin)',

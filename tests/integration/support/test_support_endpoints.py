@@ -22,6 +22,7 @@ from django.core.management import call_command
 from django.test import TestCase
 from django.utils import timezone
 
+from apps.authz.services import is_superadmin
 from apps.support.models import SupportTicket, SupportTicketReply
 from apps.support.management.commands.auto_close_support_tickets import (
     AUTO_CLOSE_DAYS,
@@ -579,8 +580,9 @@ class TestReplyOwnershipIsolation:
 
     def test_uc_supp_03_responder_ticket_ajeno_404(
             self, auth_client, user, auth_user, db):
-        # auth_user es un segundo comprador NO-staff (comprador B).
-        assert auth_user.is_staff is False
+        # auth_user es un segundo comprador NO-admin (comprador B).
+        # Party/authz (T-201): "staff" = titular del rol superadmin.
+        assert is_superadmin(auth_user) is False
         ticket_b = SupportTicket.objects.create(
             user=auth_user,
             subject='Ticket del comprador B',

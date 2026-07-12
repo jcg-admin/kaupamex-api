@@ -16,6 +16,7 @@ Convenciones del proyecto:
 import re
 import pytest
 from django.contrib.auth import get_user_model
+from apps.users.models import Person
 from django.utils import timezone
 from datetime import timedelta
 
@@ -46,10 +47,13 @@ def referral_enabled(db):
 
 @pytest.fixture
 def referrer(db):
-    return User.objects.create_user(
+    # Party (T-201): nombre vive en Person; create_user solo toma email+password.
+    user = User.objects.create_user(
         email='referrer@practicayoruba.mx',
-        password='RefPass123!', first_name='Ref', last_name='Errer',
+        password='RefPass123!',
     )
+    Person.objects.create(identity=user, first_name='Ref', last_name='Errer')
+    return user
 
 
 @pytest.fixture

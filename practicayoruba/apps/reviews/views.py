@@ -22,7 +22,8 @@ from rest_framework import generics, serializers, status
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.parsers import FormParser, MultiPartParser
-from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from apps.authz.permissions import HasCapability
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
@@ -301,7 +302,8 @@ class _AdminReviewPagination(PageNumberPagination):
 
 
 class _AdminOnly:
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'moderation.manage'
     serializer_class = ReviewAdminSerializer
 
 
@@ -486,7 +488,8 @@ class ReviewHelpfulVoteView(APIView):
 class ReviewStatusV2View(APIView):
     """PATCH /api/v2/admin/reviews/<pk>/status/ — Tier B."""
 
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'moderation.manage'
 
     def patch(self, request, pk):
         action = (request.data.get('action') or '').strip()

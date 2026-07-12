@@ -5,6 +5,7 @@ Nombre descriptivo: dominio y perspectiva, no número de sprint.
 """
 import pytest
 from decimal import Decimal
+from apps.authz.services import SUPERADMIN_ROLE_CODE
 from apps.catalogue.models import Category, Product
 from apps.logistics.models import Courier, ShipmentGuide
 from apps.orders.admin_services import transition_order_status
@@ -245,7 +246,11 @@ class TestTransicionEstadoAdmin:
         permitiria PENDING -> PROCESSING. Con select_for_update, A re-lee
         la DB (CANCELLED terminal) y rechaza."""
         User = get_user_model()
-        admin = User.objects.filter(is_staff=True).first()
+        # Party/authz (T-201): el admin es titular del rol superadmin
+        # (el usuario detrás de admin_client). No hay is_staff nativo.
+        admin = User.objects.filter(
+            role_assignments__role__code=SUPERADMIN_ROLE_CODE,
+        ).first()
         # Admin A obtiene la orden en PENDING.
         order_in_memory_A = _make_order(user, prod_adm, 'PENDING')
         # Admin B (simulado) cancela la orden via UPDATE directo (no

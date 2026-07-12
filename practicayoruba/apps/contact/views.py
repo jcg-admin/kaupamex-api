@@ -17,7 +17,8 @@ from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from apps.authz.permissions import HasCapability
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
@@ -83,7 +84,8 @@ class ContactMessageCreateView(APIView):
 
 
 class _AdminOnly:
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'support.manage'
 
 
 class AdminContactMessageListView(_AdminOnly, APIView):
@@ -211,7 +213,8 @@ class AdminContactMessageV2View(APIView):
     GET  — return message detail (delegates to AdminContactMessageDetailView).
     PATCH — accepts {"is_read": true} to mark as read (v1 used POST /read/).
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'support.manage'
 
     def get(self, request, message_id):
         return AdminContactMessageDetailView().get(request, message_id=message_id)
@@ -227,7 +230,8 @@ class AdminContactMessageV2View(APIView):
 
 class AdminContactMessageReplyV2View(APIView):
     """POST /api/v2/admin/contact/messages/<id>/replies/ — Tier A."""
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'support.manage'
 
     def post(self, request, message_id):
         return AdminContactMessageReplyView().post(request, message_id=message_id)

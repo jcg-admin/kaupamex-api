@@ -21,7 +21,7 @@ class TestLoginAuditEvent:
     def test_login_exitoso_emite_login_success(self, api_client, user):
         url = reverse('users:login')
         r = api_client.post(url, {
-            'username': user.email,
+            'email': user.email,
             'password': 'TestPass123!',
         }, format='json')
         assert r.status_code == 200
@@ -34,7 +34,7 @@ class TestLoginAuditEvent:
     def test_login_fallido_emite_login_fail(self, api_client, user):
         url = reverse('users:login')
         r = api_client.post(url, {
-            'username': user.email,
+            'email': user.email,
             'password': 'WrongPassword!',
         }, format='json')
         assert r.status_code == 401
@@ -49,7 +49,7 @@ class TestLoginAuditEvent:
         prev = user.last_login
         url = reverse('users:login')
         r = api_client.post(url, {
-            'username': user.email,
+            'email': user.email,
             'password': 'TestPass123!',
         }, format='json')
         assert r.status_code == 200
@@ -109,7 +109,7 @@ class TestAuditEventPIISafe:
     def test_extra_json_no_contiene_password_ni_token(self, api_client, user):
         url = reverse('users:login')
         r = api_client.post(url, {
-            'username': user.email,
+            'email': user.email,
             'password': 'TestPass123!',
         }, format='json')
         assert r.status_code == 200

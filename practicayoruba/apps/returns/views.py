@@ -23,7 +23,8 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import status
 from rest_framework.exceptions import NotFound, ValidationError as DRFValidationError
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
+from apps.authz.permissions import HasCapability
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -300,7 +301,8 @@ class ReturnDetailView(APIView):
 
 
 class _AdminOnly:
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'returns.manage'
 
 
 class AdminReturnListView(_AdminOnly, APIView):
@@ -657,7 +659,8 @@ class AdminReturnRefundView(_AdminOnly, APIView):
 class ReturnStatusV2View(APIView):
     """PATCH /api/v2/admin/return-requests/<id>/status/ — Tier B."""
 
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'returns.manage'
 
     def patch(self, request, return_id):
         action = (request.data.get('action') or '').strip()

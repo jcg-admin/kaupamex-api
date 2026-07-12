@@ -14,7 +14,8 @@ from rest_framework import serializers as rf_serializers, status
 from rest_framework.exceptions import ValidationError, NotFound
 from rest_framework.decorators import action
 from rest_framework.generics import ListAPIView, RetrieveAPIView
-from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from apps.authz.permissions import HasCapability
 from rest_framework.filters import BaseFilterBackend
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
@@ -403,7 +404,8 @@ class SearchHistoryDetailView(APIView):
 
 
 class CategoryAdminViewSet(ModelViewSet):
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'catalogue.manage'
     serializer_class   = CategoryAdminSerializer
     queryset           = Category.objects.all().order_by('name')
     http_method_names  = ['get', 'post', 'patch', 'delete', 'head', 'options']
@@ -620,7 +622,8 @@ class ProductDeactivateAction:
 
 
 class ProductAdminViewSet(ProductDeactivateAction, ModelViewSet):
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'catalogue.manage'
     serializer_class   = ProductAdminSerializer
     # H-CICLO47-01: prefetch_related('images') evita N+1 al serializar con
     # ProductAdminSerializer, que expone el campo `images` (many=True).
@@ -888,7 +891,8 @@ PRICE_SYNC_CACHE_TTL = 600
 
 
 class ProductPriceSyncView(APIView):
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'catalogue.manage'
     serializer_class = rf_serializers.Serializer
 
     def _parse_csv(self, file_obj):
@@ -974,7 +978,8 @@ class ProductPriceSyncView(APIView):
 
 
 class ProductPriceSyncConfirmView(APIView):
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'catalogue.manage'
     serializer_class = rf_serializers.Serializer
 
     @extend_schema(summary='Confirmar sincronización de precios', responses={200: OpenApiTypes.OBJECT, 400: None}, tags=['admin-catalogue'])
@@ -1024,7 +1029,8 @@ class ProductPriceSyncConfirmView(APIView):
 
 
 class ProductPriceSyncTemplateView(APIView):
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'catalogue.manage'
     serializer_class = rf_serializers.Serializer
 
     @extend_schema(summary='Descargar plantilla CSV de precios',
@@ -1173,7 +1179,8 @@ def _process_catalog_csv(file_obj, admin_user):
 class CatalogImportCSVView(APIView):
     """Importar catálogo (productos + imágenes) desde CSV. UC-CAT-IMPORT."""
 
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'catalogue.manage'
 
     @extend_schema(
         summary='Importar catálogo con imágenes desde CSV',

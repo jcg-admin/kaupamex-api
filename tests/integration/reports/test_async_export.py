@@ -133,7 +133,7 @@ class TestExportJobStatusEndpoint:
         User = ExportJob._meta.get_field('requested_by').related_model
         other = User.objects.create_user(
             email='other@practicayoruba.mx',
-            password='OtherPass123!', is_staff=True,
+            password='OtherPass123!',
         )
         job = ExportJob.objects.create(
             requested_by=other,
@@ -186,7 +186,7 @@ class TestExportDownloadToken:
         User = ExportJob._meta.get_field('requested_by').related_model
         other = User.objects.create_user(
             email='other2@practicayoruba.mx',
-            password='OtherPass123!', is_staff=True,
+            password='OtherPass123!',
         )
         job = ExportJob.objects.create(
             requested_by=other,

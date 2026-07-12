@@ -5,6 +5,7 @@ Cumplen los contratos JSON declarados en UC-RET-01..06 (PARTE 7C).
 """
 from decimal import Decimal
 from rest_framework import serializers
+from apps.authz.services import is_superadmin
 from .models import (
     ReturnEvidence,
     ReturnHistoryEntry,
@@ -50,7 +51,7 @@ class ReturnHistoryEntrySerializer(serializers.ModelSerializer):
     def get_actor(self, obj):
         if obj.actor is None:
             return 'SYSTEM'
-        return 'ADMIN' if obj.actor.is_staff else 'BUYER'
+        return 'ADMIN' if is_superadmin(obj.actor) else 'BUYER'
 
 
 # ────────────────────────────── Evidencia (UC-RET-01 AC-06) ──────────────────
@@ -165,7 +166,8 @@ class AdminReturnListSerializer(serializers.ModelSerializer):
         return getattr(obj.user, 'email', None)
 
     def get_user_username(self, obj) -> str | None:
-        return getattr(obj.user, 'username', None)
+        # Party (T-201): username == email (compat de contrato hasta B3-ui).
+        return getattr(obj.user, 'email', None)
 
     def get_available_action(self, obj) -> str | None:
         """UC-RET-05 PARTE 8.4: accion segun estado."""
@@ -199,7 +201,8 @@ class AdminReturnDetailSerializer(ReturnDetailSerializer):
         return getattr(obj.user, 'email', None)
 
     def get_user_username(self, obj) -> str | None:
-        return getattr(obj.user, 'username', None)
+        # Party (T-201): username == email (compat de contrato hasta B3-ui).
+        return getattr(obj.user, 'email', None)
 
 
 # ────────────────────────────── UC-RET-02 (admin decisions) ──────────────────────────

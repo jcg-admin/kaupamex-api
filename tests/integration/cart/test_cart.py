@@ -359,7 +359,7 @@ class TestGuardarCarrito:
         assert res.json()['saved_count'] == 1
 
     def test_guardar_reemplaza_carrito_guardado_anterior(
-        self, auth_client, product_sin_variante, db
+        self, auth_client, user, product_sin_variante, db
     ):
         auth_client.post(ITEMS_URL, {
             'product_id': product_sin_variante.pk, 'quantity': 1,
@@ -369,12 +369,12 @@ class TestGuardarCarrito:
             'product_id': product_sin_variante.pk, 'quantity': 3,
         }, format='json')
         auth_client.post(SAVE_URL)
-        user = User.objects.get(username='testuser')
+        # Party (T-201): auth_client autentica el fixture ``user`` (por email).
         saved = SavedCart.objects.get(user=user)
         assert saved.items.count() == 1
 
     def test_guardar_preserva_carrito_activo(
-        self, auth_client, product_sin_variante, db
+        self, auth_client, user, product_sin_variante, db
     ):
         # UC-CART-05 POST-03: el carrito de la sesion activa permanece
         # activo tras guardar (no se vacia).
@@ -384,7 +384,7 @@ class TestGuardarCarrito:
         res = auth_client.post(SAVE_URL)
         assert res.status_code == 200
 
-        user = User.objects.get(username='testuser')
+        # Party (T-201): auth_client autentica el fixture ``user`` (por email).
         cart = Cart.objects.get(user=user)
         assert cart.items.count() == 1
         saved = SavedCart.objects.get(user=user)

@@ -15,7 +15,8 @@ from django.http import HttpResponse
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from apps.authz.permissions import HasCapability
 from rest_framework.response import Response
 from rest_framework.generics import ListAPIView
 from rest_framework.views import APIView
@@ -42,7 +43,8 @@ class SiteSettingsView(APIView):
     """
     /api/v1/config/settings/ — excludes deprecated fields (DEC-DOC-005).
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'settings.manage'
 
     @extend_schema(
         summary='Obtener configuración global',
@@ -98,7 +100,8 @@ class AdminSiteSettingsView(APIView):
     """
     /api/v1/admin/settings/ — includes all fields including legacy ones (UC-ADM-04).
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'settings.manage'
 
     @extend_schema(
         summary='Obtener configuración global (admin)',
@@ -152,7 +155,8 @@ class PaymentGatewayViewSet(ModelViewSet):
 
     UC-CFG-01 (FR-CFG-01.02).
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'settings.manage'
     serializer_class   = PaymentGatewaySerializer
     queryset           = PaymentGateway.objects.all().order_by('gateway')
     http_method_names  = ['get', 'post', 'patch', 'head', 'options']
@@ -241,7 +245,8 @@ class ShippingMethodViewSet(ModelViewSet):
 
     UC-CFG-02 (FR-CFG-02.02).
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'settings.manage'
     serializer_class   = ShippingMethodSerializer
     queryset           = ShippingMethod.objects.all().order_by('cost', 'name')
     http_method_names  = ['get', 'post', 'patch', 'delete', 'head', 'options']
@@ -298,7 +303,8 @@ class ShippingZoneViewSet(ModelViewSet):
     Simétrico a ShippingMethodViewSet. Delete es soft (is_active=False) para
     no romper referencias históricas de cobertura por CP.
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'settings.manage'
     serializer_class   = ShippingZoneSerializer
     queryset           = ShippingZone.objects.all().order_by('zip_code_prefix', 'name')
     http_method_names  = ['get', 'post', 'patch', 'delete', 'head', 'options']
@@ -396,7 +402,8 @@ class StaticPageAdminListView(APIView):
     GET /api/v1/admin/pages/ — listar páginas estáticas.
     UC-CFG-04 (FR-CFG-04.02).
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'settings.manage'
     serializer_class = StaticPageSerializer
 
     @extend_schema(summary='Listar páginas estáticas', tags=['config'],
@@ -412,7 +419,8 @@ class StaticPageAdminDetailView(APIView):
     GET /api/v1/admin/pages/<slug>/ — detalle con versión activa.
     UC-CFG-04 (FR-CFG-04.02).
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'settings.manage'
     serializer_class = StaticPageSerializer
 
     @extend_schema(summary='Detalle de página estática', tags=['config'],
@@ -432,7 +440,8 @@ StaticPageAdminView = StaticPageAdminListView
 
 class StaticPagePublishView(APIView):
     """POST /api/v1/admin/pages/<slug>/publish/ — publicar nueva versión."""
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'settings.manage'
     serializer_class = StaticPagePublishSerializer
 
     @extend_schema(summary='Publicar nueva versión de página estática', tags=['config'],
@@ -480,7 +489,8 @@ class StaticPagePublishView(APIView):
 
 class StaticPageRestoreView(APIView):
     """POST /api/v1/admin/pages/<slug>/versions/<version>/restore/"""
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'settings.manage'
     serializer_class = StaticPageVersionSerializer
 
     @extend_schema(summary='Revertir a versión anterior', tags=['config'],
@@ -520,7 +530,8 @@ class StaticPageStatusV2View(APIView):
 
     v1 used POST /pages/<slug>/publish/; v2 uses PATCH /pages/<slug>/status/.
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'settings.manage'
 
     def patch(self, request, slug):
         return StaticPagePublishView().post(request, slug=slug)
@@ -532,7 +543,8 @@ class StaticPageRestorationV2View(APIView):
     v1 had version number in URL path (/versions/<v>/restore/).
     v2 takes version from request body: {"version": N}.
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'settings.manage'
 
     def post(self, request, slug):
         version_raw = request.data.get('version')

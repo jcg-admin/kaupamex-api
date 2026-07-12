@@ -14,7 +14,8 @@ from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
+from apps.authz.permissions import HasCapability
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from .models import Product, ProductDiscount
@@ -49,7 +50,8 @@ def _filter_by_status(qs, status_filter):
 class ProductDiscountListCreateView(APIView):
     """GET and POST /api/v1/admin/product-discounts/."""
 
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'catalogue.manage'
 
     @extend_schema(
         summary='List product discounts (UC-DASH-04)',
@@ -141,7 +143,8 @@ class ProductDiscountListCreateView(APIView):
 class ProductDiscountDetailView(APIView):
     """PATCH /api/v1/admin/product-discounts/<id>/."""
 
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'catalogue.manage'
 
     def _get_or_404(self, pk):
         try:
@@ -207,7 +210,8 @@ class ProductDiscountDetailView(APIView):
 class ProductDiscountDeactivateView(APIView):
     """POST /api/v1/admin/product-discounts/<id>/deactivate/."""
 
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'catalogue.manage'
     serializer_class = ProductDiscountSerializer
 
     @extend_schema(

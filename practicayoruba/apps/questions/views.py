@@ -16,7 +16,8 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import status
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from apps.authz.permissions import HasCapability
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
@@ -135,7 +136,8 @@ class ProductQuestionsView(APIView):
 
 
 class _AdminOnly:
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'questions.manage'
 
 
 class AdminQuestionsListView(_AdminOnly, APIView):
@@ -312,7 +314,8 @@ class AdminQuestionRejectView(_AdminOnly, APIView):
 class QuestionStatusV2View(APIView):
     """PATCH /api/v2/admin/questions/<id>/status/ — Tier B."""
 
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'questions.manage'
 
     def patch(self, request, question_id):
         action = (request.data.get('action') or '').strip()

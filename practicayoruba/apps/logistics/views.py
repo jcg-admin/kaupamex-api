@@ -9,7 +9,8 @@ from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiParam
 from rest_framework import serializers, status
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
+from apps.authz.permissions import HasCapability
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -32,7 +33,8 @@ from .serializers import (
 
 
 class _AdminOnly:
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'logistics.manage'
 
 
 class LogisticsPanelView(_AdminOnly, APIView):
@@ -580,7 +582,8 @@ class BuyerReportIncidentView(APIView):
 
 class ShipmentListCreateV2View(APIView):
     """GET|POST /api/v2/shipments/ — Tier A."""
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'logistics.manage'
 
     def get(self, request):
         return ShipmentGuideListCreateView().get(request)
@@ -591,7 +594,8 @@ class ShipmentListCreateV2View(APIView):
 
 class ShipmentDetailV2View(APIView):
     """GET|PATCH /api/v2/shipments/<pk>/ — Tier A."""
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'logistics.manage'
 
     def get(self, request, pk):
         return ShipmentGuideDetailView().get(request, pk)
@@ -602,7 +606,8 @@ class ShipmentDetailV2View(APIView):
 
 class ShipmentCancellationV2View(APIView):
     """POST /api/v2/shipments/<pk>/cancellations/ — Tier A."""
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'logistics.manage'
 
     def post(self, request, pk):
         return CancelGuideView().post(request, pk)
@@ -610,7 +615,8 @@ class ShipmentCancellationV2View(APIView):
 
 class ShipmentDeliveryV2View(APIView):
     """POST /api/v2/shipments/<pk>/deliveries/ — Tier A."""
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'logistics.manage'
 
     def post(self, request, pk):
         return ConfirmDeliveryView().post(request, pk)
