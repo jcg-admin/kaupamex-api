@@ -76,7 +76,8 @@ class ReturnListCreateView(APIView):
     GET  /api/v1/returns/ — UC-RET-04 list own returns.
     POST /api/v1/returns/ — UC-RET-01 create return request.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.returns'
 
     @extend_schema(
         summary='Listar mis devoluciones (UC-RET-04)',
@@ -282,7 +283,8 @@ class ReturnListCreateView(APIView):
 
 class ReturnDetailView(APIView):
     """GET /api/v1/returns/<id>/ — UC-RET-04 detail."""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.returns'
 
     @extend_schema(
         summary='Detalle de devolución (UC-RET-04)',
