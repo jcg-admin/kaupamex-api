@@ -13,7 +13,7 @@ import factory
 from django.contrib.auth import get_user_model
 
 from apps.authz.models import Role, RoleAssignment
-from apps.authz.services import SUPERADMIN_ROLE_CODE
+from apps.authz.services import SUPERADMIN_ROLE_CODE, assign_buyer_role
 from apps.users.models import EmployeeProfile, Person
 
 User = get_user_model()
@@ -48,6 +48,17 @@ class UserFactory(factory.django.DjangoModelFactory):
         first = kwargs.get('first_name', 'Test')
         last = kwargs.get('last_name', 'User')
         Person.objects.create(identity=self, first_name=first, last_name=last)
+
+    @factory.post_generation
+    def buyer_role(self, create, extracted, **kwargs):
+        """Refleja producción (ADR-020): todo usuario registrado y validado
+        recibe ``comprador``. ``assign_buyer_role`` es tolerante: si el catálogo
+        authz no está sembrado (rol ausente) es no-op, así que no altera los
+        tests que no siembran. En los tests que siembran el rol primero, el
+        usuario queda con las capacidades ``account.*`` como en producción."""
+        if not create:
+            return
+        assign_buyer_role(self)
 
     @classmethod
     def _adjust_kwargs(cls, **kwargs):
