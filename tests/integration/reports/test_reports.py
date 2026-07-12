@@ -14,6 +14,7 @@ from decimal import Decimal
 from django.utils import timezone
 from apps.catalogue.models import Category, Product
 from django.contrib.auth import get_user_model
+from apps.authz.models import Capability, Module, Role, RoleAssignment
 from apps.orders.models import Order, OrderItem, OrderValue
 from apps.payments.models import Payment
 from apps.support.models import SupportTicket
@@ -23,6 +24,29 @@ import pytest
 pytestmark = pytest.mark.integration
 
 BASE = '/api/v2/admin/reports/'
+
+
+def _user_with_caps(email, codes):
+    """Crea un usuario con exactamente las capacidades ``codes`` (dominio
+    reports) vía un rol dedicado. No es superadmin, así que HasCapability se
+    evalúa de verdad (sin bypass)."""
+    module, _ = Module.objects.get_or_create(
+        code='reports', defaults={'name': 'Reportes'},
+    )
+    caps = []
+    for code in codes:
+        cap, _ = Capability.objects.get_or_create(
+            code=code, defaults={'module': module, 'name': code},
+        )
+        caps.append(cap)
+    role, _ = Role.objects.get_or_create(
+        code=f'role_{"_".join(c.replace(".", "_") for c in codes)}',
+        defaults={'name': 'Test reports role'},
+    )
+    role.capabilities.set(caps)
+    u = get_user_model().objects.create_user(email=email, password='TestPass123!')
+    RoleAssignment.objects.create(user=u, role=role)
+    return u
 
 
 def _now():
@@ -298,6 +322,31 @@ class TestExport:
         # Real PDF, not the old text placeholder: starts with the PDF magic.
         body = b''.join(res.streaming_content) if res.streaming else res.content
         assert body.startswith(b'%PDF')
+
+
+# =============================================================================
+# Enforcement — exportar exige reports.export, no basta reports.view (DEC-ENF-01)
+# =============================================================================
+class TestExportRequiresReportsExport:
+    """Ver un reporte (reports.view) y exportarlo (reports.export) son
+    capacidades distintas: exportar es más sensible (extrae datos). Un usuario
+    con SÓLO reports.view recibe 403 al exportar; con reports.export pasa el
+    candado."""
+
+    def test_export_denied_with_only_reports_view(self, api_client, product, buyer, db):
+        _make_order(buyer, product)
+        viewer = _user_with_caps('reports_viewer@practicayoruba.mx', ['reports.view'])
+        api_client.force_login(viewer)
+        res = api_client.get(f'{BASE}sales/export/?period=30d&format=csv')
+        assert res.status_code == 403
+
+    def test_export_allowed_with_reports_export(self, api_client, product, buyer, db):
+        _make_order(buyer, product)
+        exporter = _user_with_caps('reports_exporter@practicayoruba.mx', ['reports.export'])
+        api_client.force_login(exporter)
+        res = api_client.get(f'{BASE}sales/export/?period=30d&format=csv')
+        assert res.status_code == 200
+        assert 'text/csv' in res['Content-Type']
 
     def test_export_sales_xlsx(self, admin_client, product, buyer):
         # UC-RPT-04/UC-REP-05: XLSX export via xlsxwriter.

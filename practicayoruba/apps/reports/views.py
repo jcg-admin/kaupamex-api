@@ -300,8 +300,10 @@ class CustomersRFMReportView(_AdminMixin, APIView):
 
 
 class ReportExportView(APIView):
+    # Generar un export es más sensible que ver el reporte en pantalla:
+    # exige la capacidad dedicada reports.export (DEC-ENF-01), no reports.view.
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'reports.view'
+    required_capability = 'reports.export'
     serializer_class = serializers.Serializer
     # DRF normally interprets ?format= as a renderer selector and raises
     # Http404 if no renderer matches. The export contract uses ?format=
