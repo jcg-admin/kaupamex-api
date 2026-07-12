@@ -456,6 +456,29 @@ class AdminUserViewSet(ModelViewSet):
                         status=400,
                     )
 
+            # Contención de escalada de privilegios (G-PERM-01 / H-API-AUTHZ):
+            # un admin que NO es superadmin no puede CAMBIAR la membresía del
+            # rol superadmin de ningún usuario (ni concederla —auto-promoción—
+            # ni revocarla —neutralizar al superadmin—), aunque tenga
+            # ``permissions.manage`` y adivine el id del rol. El superadmin sí
+            # puede (test_admin_puede_promover_a_superadmin). Simétrico con el
+            # filtro del catálogo en AdminRoleListView.
+            if role_ids is not None and not is_superadmin(request.user):
+                superadmin_id = (
+                    Role.objects.filter(code=SUPERADMIN_ROLE_CODE)
+                    .values_list('pk', flat=True).first()
+                )
+                if superadmin_id is not None:
+                    would_have = superadmin_id in set(role_ids)
+                    if would_have != is_superadmin(target):
+                        return Response(
+                            {'detail': 'Solo un superadministrador puede '
+                                       'conceder o revocar el rol de '
+                                       'superusuario.',
+                             'codigo_error': 'CANNOT_GRANT_SUPERADMIN'},
+                            status=403,
+                        )
+
             changed = {}
             if role_ids is not None:
                 # Reconciliar el set de RoleAssignment: agregar los que faltan,
