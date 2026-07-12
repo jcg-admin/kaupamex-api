@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'apps.static_content',
     'apps.backups',
     'apps.referral',
+    'apps.geo',
 ]
 
 AUTH_USER_MODEL = 'users.User'
