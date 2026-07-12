@@ -108,14 +108,19 @@ def test_superadmin_sees_all_sections(seeded, client):
     client.force_authenticate(u)
     tree = client.get('/api/v2/authz/me/menu/').json()
     labels = [s['label'] for s in tree]
-    assert labels == ['Principal', 'Catálogo', 'Ventas', 'Catálogo social',
-                      'Marketing', 'Clientes', 'Operaciones', 'Sistema',
-                      'Configuración']
+    assert labels == ['Principal', 'Catálogo', 'Ventas', 'Marketing',
+                      'Clientes', 'Operaciones', 'Sistema', 'Configuración']
     # Catálogo tiene sus 5 items visibles para el superadmin.
     catalogo = next(s for s in tree if s['label'] == 'Catálogo')
     assert [i['label'] for i in catalogo['children']] == [
         'Productos', 'Crear Producto', 'Categorías', 'Descuentos',
         'Sincronización de precios']
+    # Reseñas y Preguntas (UGC/moderación para marketing + comportamiento)
+    # viven en Marketing, no en una sección "Catálogo social" aparte.
+    marketing = next(s for s in tree if s['label'] == 'Marketing')
+    assert [i['label'] for i in marketing['children']] == [
+        'Reseñas', 'Preguntas', 'Newsletter', 'Notificaciones',
+        'Listas de deseos']
 
 
 @pytest.mark.django_db

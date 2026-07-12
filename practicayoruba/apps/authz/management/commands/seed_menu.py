@@ -42,14 +42,15 @@ MENU = [
         _leaf('devoluciones', 'Devoluciones', '/admin/returns', 'returns.manage'),
         _leaf('cupones', 'Cupones', '/admin/vouchers', 'vouchers.view'),
     ]),
-    _group('sec-social', 'Catálogo social', [
+    _group('sec-marketing', 'Marketing', [
+        # Reseñas admin = gestión/moderación para marketing + comportamiento
+        # (no la reseña que envía el comprador — eso es storefront). Por eso
+        # vive en Marketing junto al resto de UGC/engagement, no en Catálogo.
         _leaf('resenas', 'Reseñas', '/admin/reviews/moderation', 'moderation.manage'),
         _group('grp-preguntas', 'Preguntas', [
             _leaf('preguntas-moderacion', 'Moderación', '/admin/questions/moderation', 'questions.manage'),
             _leaf('preguntas-responder', 'Responder', '/admin/questions/answer', 'questions.manage'),
         ]),
-    ]),
-    _group('sec-marketing', 'Marketing', [
         _group('grp-newsletter', 'Newsletter', [
             _leaf('newsletter-compose', 'Redactar', '/admin/newsletter/compose', 'newsletter.manage'),
             _leaf('newsletter-subs', 'Suscriptores', '/admin/newsletter/subscribers', 'newsletter.manage'),
@@ -94,10 +95,19 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self._caps = {c.code: c for c in Capability.objects.all()}
         self._n = 0
+        self._seen = set()
         for order, node in enumerate(MENU):
             self._seed(node, parent=None, order=order)
+        # Re-seed autoritativo: podar filas que ya no están en MENU (p.ej. una
+        # sección movida/renombrada). Sin esto, update_or_create deja huérfanos
+        # que aparecerían como secciones vacías. Idempotente: en un árbol ya
+        # sembrado el keyset coincide y no borra nada.
+        stale = MenuItem.objects.exclude(key__in=self._seen)
+        pruned = stale.count()
+        stale.delete()
         self.stdout.write(self.style.SUCCESS(
-            f'{self._n} entradas de menú sembradas (árbol de 3 niveles).'
+            f'{self._n} entradas de menú sembradas (árbol de 3 niveles); '
+            f'{pruned} obsoletas podadas.'
         ))
 
     def _seed(self, node, parent, order):
@@ -115,6 +125,7 @@ class Command(BaseCommand):
             defaults=dict(parent=parent, label=label, route=route, icon='',
                           order=order, required_capability=cap, is_active=True),
         )
+        self._seen.add(key)
         self._n += 1
         for child_order, child in enumerate(children):
             self._seed(child, parent=item, order=child_order)
