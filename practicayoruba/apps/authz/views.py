@@ -30,12 +30,18 @@ class MyCapabilitiesView(APIView):
 
 
 class MyMenuView(APIView):
-    """Árbol de menú admin podado por las capacidades del usuario.
+    """Árbol de menú podado por las capacidades del usuario.
 
     Un item es visible si (a) no requiere capacidad, o (b) el usuario tiene la
     capacidad (superadmin ve todo). Una sección (nivel 0) se descarta si no le
     queda ningún hijo visible — así un usuario de solo-soporte ve únicamente su
     sección.
+
+    ``?audience=admin`` (default) sirve el menú del panel; ``?audience=account``
+    sirve el menú de cuenta del comprador (DEC-AUTHZ-BUYER). Ambos son
+    registro-dirigidos: agregar una entrada es sembrar una fila, sin tocar el
+    UI. Filtrar por audiencia evita que el admin vea ítems de cuenta mezclados
+    (y viceversa).
     """
 
     permission_classes = [IsAuthenticated]
@@ -44,9 +50,15 @@ class MyMenuView(APIView):
         caps = resolve_capabilities(request.user)
         superadmin = is_superadmin(request.user)
 
-        # Cargar todo el árbol activo en una query; armar el índice por parent.
+        audience = request.query_params.get('audience', MenuItem.AUDIENCE_ADMIN)
+        valid_audiences = {c[0] for c in MenuItem.AUDIENCE_CHOICES}
+        if audience not in valid_audiences:
+            audience = MenuItem.AUDIENCE_ADMIN
+
+        # Cargar todo el árbol activo de la audiencia en una query; armar el
+        # índice por parent.
         items = list(
-            MenuItem.objects.filter(is_active=True)
+            MenuItem.objects.filter(is_active=True, audience=audience)
             .select_related('required_capability')
             .order_by('parent_id', 'order', 'id')
         )

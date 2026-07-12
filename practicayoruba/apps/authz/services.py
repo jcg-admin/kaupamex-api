@@ -19,9 +19,13 @@ from django.core.cache import cache
 from django.db.models import Q
 from django.utils import timezone
 
-from apps.authz.models import DirectEntitlement, EntitlementRevocation, RoleAssignment
+from apps.authz.models import DirectEntitlement, EntitlementRevocation, Role, RoleAssignment
 
 SUPERADMIN_ROLE_CODE = 'superadmin'
+# Rol base del comprador (DEC-AUTHZ-BUYER): agrupa las capacidades ``account.*``
+# que gobiernan el menú de cuenta dinámico. Se asigna al registrarse y con el
+# backfill de compradores existentes.
+BUYER_ROLE_CODE = 'comprador'
 # Dominios que exigen capacidad explícita incluso al superadmin (DEC-06).
 _NO_BYPASS_PREFIXES = ('pos.',)
 _CACHE_TTL = 300  # segundos (sin Redis; usa el backend de cache configurado)
@@ -96,3 +100,21 @@ def invalidate_capabilities(user_id):
     """Purga la cache de capacidades de un usuario (llamar tras mutar sus
     roles/grants)."""
     cache.delete(_cache_key(user_id))
+
+
+def assign_buyer_role(user):
+    """Asigna el rol ``comprador`` a ``user`` (idempotente).
+
+    Gobierna el menú de cuenta dinámico (``account.*``). Se llama al registrarse
+    y desde el backfill. **Tolerante:** si el rol no está sembrado (tests sin
+    ``seed_authz``) no hace nada — así no rompe los flujos que crean usuarios
+    sin el catálogo authz. Devuelve True si quedó asignado."""
+    if getattr(user, 'pk', None) is None:
+        return False
+    role = Role.objects.filter(code=BUYER_ROLE_CODE).first()
+    if role is None:
+        return False
+    _, created = RoleAssignment.objects.get_or_create(user=user, role=role)
+    if created:
+        invalidate_capabilities(user.pk)
+    return True
