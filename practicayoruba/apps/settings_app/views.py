@@ -552,6 +552,45 @@ class StaticPageAdminDetailView(APIView):
 StaticPageAdminView = StaticPageAdminListView
 
 
+class PublicStaticPageSerializer(drf_serializers.ModelSerializer):
+    """Proyección pública read-only: sólo el contenido de la versión PUBLISHED."""
+    content      = drf_serializers.SerializerMethodField()
+    slug_display = drf_serializers.CharField(source='get_slug_display', read_only=True)
+
+    class Meta:
+        model  = StaticPage
+        fields = ['slug', 'slug_display', 'title', 'content', 'updated_at']
+        read_only_fields = fields
+
+    def get_content(self, obj):
+        version = obj.current_version  # property: última versión PUBLISHED
+        return version.content if version else ''
+
+
+class PublicStaticPageView(APIView):
+    """
+    GET /api/v2/config/pages/<slug>/ — contenido público de una página estática.
+    UC-CFG-04 (H-UI-CFG04-01): expone la versión PUBLISHED para que el
+    storefront (/info/:slug) consuma lo que el admin edita, en lugar de un
+    módulo hardcodeado. 404 si la página no existe o no tiene versión
+    publicada — el frontend cae a su contenido por defecto.
+    """
+    permission_classes = [AllowAny]
+    serializer_class = PublicStaticPageSerializer
+
+    @extend_schema(summary='Contenido público de página estática', tags=['config'],
+                   operation_id='public_pages_retrieve',
+                   responses={200: PublicStaticPageSerializer})
+    def get(self, request, slug):
+        try:
+            page = StaticPage.objects.prefetch_related('versions').get(slug=slug)
+        except StaticPage.DoesNotExist:
+            return Response({'detail': 'Página no encontrada.'}, status=404)
+        if page.current_version is None:
+            return Response({'detail': 'Página sin versión publicada.'}, status=404)
+        return Response(PublicStaticPageSerializer(page).data)
+
+
 class StaticPagePublishView(APIView):
     """POST /api/v1/admin/pages/<slug>/publish/ — publicar nueva versión."""
     permission_classes = [IsAuthenticated, HasCapability]

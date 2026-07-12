@@ -91,3 +91,39 @@ class TestStaticPagesAdmin:
         admin_client.post(PUBLISH_URL('about'), {'content': 'v1'}, format='json')
         r = admin_client.post(RESTORE_URL('about', 99), format='json')
         assert r.status_code == 404
+
+
+PUBLIC_URL = lambda slug: f'/api/v2/config/pages/{slug}/'
+
+
+class TestStaticPagesPublic:
+    """Endpoint público /api/v2/config/pages/<slug>/ (H-UI-CFG04-01).
+
+    Permite que el storefront /info consuma lo que el admin publica en vez de
+    un módulo hardcodeado. AllowAny; sólo expone la versión PUBLISHED.
+    """
+
+    def test_publico_devuelve_contenido_publicado(self, api_client, admin_client, db):
+        admin_client.post(PUBLISH_URL('faq'), {'content': '<p>Preguntas</p>'}, format='json')
+        r = api_client.get(PUBLIC_URL('faq'))
+        assert r.status_code == 200
+        body = r.json()
+        assert body['slug'] == 'faq'
+        assert body['content'] == '<p>Preguntas</p>'
+        # No filtra campos admin (versiones/estado internos).
+        assert 'current_version' not in body
+
+    def test_publico_es_anonimo(self, api_client, admin_client, db):
+        admin_client.post(PUBLISH_URL('about'), {'content': 'x'}, format='json')
+        # Sin autenticar: 200 (AllowAny), no 401.
+        assert api_client.get(PUBLIC_URL('about')).status_code == 200
+
+    def test_publico_404_sin_pagina(self, api_client, db):
+        assert api_client.get(PUBLIC_URL('terms')).status_code == 404
+
+    def test_publico_404_sin_version_publicada(self, api_client, admin_client, db):
+        # Publica programada (con publish_at futuro) → queda DRAFT, sin PUBLISHED.
+        admin_client.post(PUBLISH_URL('returns'), {
+            'content': 'Devoluciones', 'publish_at': '2999-01-01T00:00:00Z',
+        }, format='json')
+        assert api_client.get(PUBLIC_URL('returns')).status_code == 404
