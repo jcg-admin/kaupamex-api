@@ -66,6 +66,10 @@ CAPABILITIES = [
     ('account.profile',    'Ver mi perfil',                    False),
     ('account.password',   'Cambiar mi contraseña',            False),
     ('account.deactivate', 'Dar de baja mi cuenta',            False),
+    ('account.reviews',    'Ver y escribir mis reseñas',       False),
+    ('account.referral',   'Ver mi programa de referidos',     False),
+    ('account.payments',   'Ver mi historial y tarjetas',      False),
+    ('account.shipments',  'Ver el seguimiento de mis envíos', False),
 ]
 
 _MODULE_NAMES = {
