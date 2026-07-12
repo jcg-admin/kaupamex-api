@@ -14,6 +14,7 @@ from decimal import Decimal
 from apps.catalogue.models import Category, Product
 from apps.orders.models import Order, OrderAddress, OrderItem, OrderValue
 from apps.logistics.models import Courier, ShipmentGuide
+from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 import pytest
@@ -614,3 +615,33 @@ class TestBuyerGuide:
         r = auth_client.get(f'/api/v2/logistics/buyer/order/{order_log.id}/guide/')
         assert r.status_code == 404
         assert r.json()['codigo_error'] == 'SHIPMENT_GUIDE_NOT_FOUND'
+
+
+# ─────────────── Enforcement — account.shipments (DEC-ENF-01) ─────────────────
+
+class TestBuyerShipmentCapabilityGate:
+    """El seguimiento de envíos del comprador exige ``account.shipments``.
+    Un usuario autenticado sin la capacidad (no-comprador) recibe 403 — el
+    candado se evalúa antes del owner-check."""
+
+    def test_buyer_guide_without_shipments_capability_returns_403(
+        self, api_client, order_log, db,
+    ):
+        outsider = get_user_model().objects.create_user(
+            email='no_ship@x.mx', password='NoShipPass123!')
+        api_client.force_login(outsider)
+        r = api_client.get(f'/api/v2/logistics/buyer/order/{order_log.id}/guide/')
+        assert r.status_code == 403
+
+    def test_buyer_incident_without_shipments_capability_returns_403(
+        self, api_client, order_log, db,
+    ):
+        outsider = get_user_model().objects.create_user(
+            email='no_ship2@x.mx', password='NoShip2Pass123!')
+        api_client.force_login(outsider)
+        r = api_client.post(
+            f'/api/v2/logistics/buyer/order/{order_log.id}/incident/',
+            {'problem_type': 'NOT_RECEIVED',
+             'description': 'No he recibido mi paquete tras muchos dias.'},
+            format='json')
+        assert r.status_code == 403

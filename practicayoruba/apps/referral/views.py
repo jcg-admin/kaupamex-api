@@ -10,6 +10,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.authz.permissions import HasCapability
+
 from apps.settings_app.models import SiteSettings
 from .models import ReferralCode, Referral
 from .serializers import ReferralStatusSerializer, RedeemReferralSerializer
@@ -29,7 +31,8 @@ def _not_found_response():
 
 class ReferralView(APIView):
     """GET — codigo referral + estadisticas del comprador autenticado."""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.referral'
 
     @extend_schema(
         summary='Codigo referral del comprador (UC-PRO-05 Subflujo A)',
@@ -65,7 +68,8 @@ class ReferralView(APIView):
 
 class RedeemReferralView(APIView):
     """POST — el referido canjea un codigo referral (UC-PRO-05 Subflujo B)."""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.referral'
 
     @extend_schema(
         summary='[DEPRECATED → /api/v2/account/referral/redemptions/] Canjear codigo referral (UC-PRO-05 Subflujo B)',
