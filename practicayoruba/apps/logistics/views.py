@@ -23,7 +23,6 @@ class ShipmentGuidePagination(PageNumberPagination):
 
 logger = logging.getLogger('apps')
 
-from rest_framework.permissions import AllowAny
 from apps.orders.models import Order, OrderStatusLog
 from config.schema import error_response
 from .models import CarrierRateCard, Courier, ShipmentEvent, ShipmentGuide
@@ -654,7 +653,7 @@ class ShipmentProblemReportV2View(APIView):
         return BuyerReportIncidentView().post(request, guide.order_id)
 
 
-class ShipmentOffersView(APIView):
+class ShipmentOffersView(_AdminOnly, APIView):
     """POST /api/v2/shipping-offers — motor de cotización de paqueterías.
 
     Recibe un envío (paquetes con dimensiones/peso/valor/peligrosidad),
@@ -662,13 +661,15 @@ class ShipmentOffersView(APIView):
     de elegibilidad y devuelve las **elegibles** rankeadas (costo asc →
     tránsito asc → ambiental desc) más las **inelegibles** con el motivo.
 
-    Público (``AllowAny``): es una cotización previa a la compra, no expone
-    datos sensibles ni muta estado. Validación DRF → HTTP 400.
+    **Sólo admin** (``logistics.manage``). La elección de paquetería
+    (DHL/FedEx/…) es una decisión del administrador, NO del comprador: el
+    comprador nunca ve la lista de paqueterías, sólo el costo final de envío
+    (por peso o por zona) que resuelve el checkout. Este endpoint expone la
+    lista rankeada para la operación/administración. Validación DRF → HTTP 400.
     """
-    permission_classes = [AllowAny]
 
     @extend_schema(
-        summary='Cotizar paqueterías para un envío (Shipment Offer API)',
+        summary='Cotizar paqueterías para un envío (Shipment Offer API, admin)',
         tags=['logistics'],
         request=ShipmentOfferRequestSerializer,
         responses={200: None, 400: None},
