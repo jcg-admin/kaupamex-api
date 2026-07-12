@@ -90,6 +90,25 @@ MENU = [
 ]
 
 
+# Menú de CUENTA del comprador (audience='account', DEC-AUTHZ-BUYER). Mismo
+# mecanismo registro-dirigido: cada hoja lleva su capacidad ``account.*`` (rol
+# 'comprador'). Una sola sección 'Mi cuenta'; el UI aplana sus hijos. Agregar
+# una entrada aquí = sembrar una fila, sin tocar AccountLayout.
+ACCOUNT_MENU = [
+    _group('sec-cuenta', 'Mi cuenta', [
+        _leaf('cuenta-resumen', 'Resumen', '/account', 'account.overview'),
+        _leaf('cuenta-pedidos', 'Mis pedidos', '/account/orders', 'account.orders'),
+        _leaf('cuenta-favoritos', 'Mis favoritos', '/account/wishlist', 'account.wishlist'),
+        _leaf('cuenta-devoluciones', 'Mis devoluciones', '/account/returns', 'account.returns'),
+        _leaf('cuenta-soporte', 'Soporte', '/support/tickets', 'account.support'),
+        _leaf('cuenta-notificaciones', 'Notificaciones', '/account/notifications', 'account.notifications'),
+        _leaf('cuenta-perfil', 'Mi perfil', '/account/profile', 'account.profile'),
+        _leaf('cuenta-password', 'Cambiar contraseña', '/account/change-password', 'account.password'),
+        _leaf('cuenta-baja', 'Dar de baja', '/account/deactivate', 'account.deactivate'),
+    ]),
+]
+
+
 class Command(BaseCommand):
     help = 'Siembra el menú admin (authz_menu_item), árbol de 3 niveles, idempotente.'
 
@@ -99,7 +118,11 @@ class Command(BaseCommand):
         self._n = 0
         self._seen = set()
         for order, node in enumerate(MENU):
-            self._seed(node, parent=None, order=order)
+            self._seed(node, parent=None, order=order,
+                       audience=MenuItem.AUDIENCE_ADMIN)
+        for order, node in enumerate(ACCOUNT_MENU):
+            self._seed(node, parent=None, order=order,
+                       audience=MenuItem.AUDIENCE_ACCOUNT)
         # Re-seed autoritativo: podar filas que ya no están en MENU (p.ej. una
         # sección movida/renombrada). Sin esto, update_or_create deja huérfanos
         # que aparecerían como secciones vacías. Idempotente: en un árbol ya
@@ -112,7 +135,7 @@ class Command(BaseCommand):
             f'{pruned} obsoletas podadas.'
         ))
 
-    def _seed(self, node, parent, order):
+    def _seed(self, node, parent, order, audience):
         key, label, route, cap_code, children = node
         cap = None
         if cap_code:
@@ -125,9 +148,10 @@ class Command(BaseCommand):
         item, _ = MenuItem.objects.update_or_create(
             key=key,
             defaults=dict(parent=parent, label=label, route=route, icon='',
-                          order=order, required_capability=cap, is_active=True),
+                          order=order, required_capability=cap, is_active=True,
+                          audience=audience),
         )
         self._seen.add(key)
         self._n += 1
         for child_order, child in enumerate(children):
-            self._seed(child, parent=item, order=child_order)
+            self._seed(child, parent=item, order=child_order, audience=audience)

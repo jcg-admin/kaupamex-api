@@ -12,7 +12,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from apps.authz.models import Capability, Module, Role
-from apps.authz.services import SUPERADMIN_ROLE_CODE
+from apps.authz.services import BUYER_ROLE_CODE, SUPERADMIN_ROLE_CODE
 
 # (code, name, is_sensitive). El dominio (antes del punto) define el Module.
 CAPABILITIES = [
@@ -54,6 +54,18 @@ CAPABILITIES = [
     ('users.manage',       'Gestionar usuarios',               True),
     ('vouchers.view',      'Ver cupones',                      False),
     ('vouchers.manage',    'Gestionar cupones',                False),
+    # ── Dominio 'account' — capacidades del COMPRADOR (DEC-AUTHZ-BUYER) ──
+    # Gobiernan el menú de cuenta dinámico (audience='account'). El rol
+    # 'comprador' las agrupa; se asigna al registrarse. NO son admin.
+    ('account.overview',   'Ver resumen de cuenta',            False),
+    ('account.orders',     'Ver mis pedidos',                  False),
+    ('account.wishlist',   'Ver mis favoritos',                False),
+    ('account.returns',    'Ver mis devoluciones',             False),
+    ('account.support',    'Ver mi soporte',                   False),
+    ('account.notifications', 'Ver mis notificaciones',        False),
+    ('account.profile',    'Ver mi perfil',                    False),
+    ('account.password',   'Cambiar mi contraseña',            False),
+    ('account.deactivate', 'Dar de baja mi cuenta',            False),
 ]
 
 _MODULE_NAMES = {
@@ -65,6 +77,7 @@ _MODULE_NAMES = {
     'questions': 'Preguntas de producto', 'reports': 'Reportes',
     'returns': 'Devoluciones', 'seo': 'SEO', 'settings': 'Configuración',
     'support': 'Soporte', 'users': 'Usuarios', 'vouchers': 'Cupones',
+    'account': 'Mi cuenta',
 }
 
 
@@ -96,7 +109,16 @@ class Command(BaseCommand):
         )
         role.capabilities.set(caps)
 
+        # Rol base del comprador (DEC-AUTHZ-BUYER): agrupa las capacidades
+        # ``account.*`` que gobiernan el menú de cuenta dinámico.
+        buyer_caps = [c for c in caps if c.code.startswith('account.')]
+        buyer_role, _ = Role.objects.get_or_create(
+            code=BUYER_ROLE_CODE, defaults={'name': 'Comprador'},
+        )
+        buyer_role.capabilities.set(buyer_caps)
+
         self.stdout.write(self.style.SUCCESS(
             f'authz seed OK: {len(modules)} módulos, {len(caps)} capacidades, '
-            f'rol {SUPERADMIN_ROLE_CODE} con {role.capabilities.count()} capacidades.'
+            f'rol {SUPERADMIN_ROLE_CODE} con {role.capabilities.count()} y '
+            f'rol {BUYER_ROLE_CODE} con {buyer_role.capabilities.count()}.'
         ))

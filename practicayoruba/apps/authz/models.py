@@ -222,7 +222,26 @@ class MenuItem(TimeStampedModel):
     (:ref:`analisis-enforcement-hascapability-isowner`). El menú solo decide
     **qué se muestra**; el endpoint ``me/menu/`` poda el árbol con
     ``resolve_capabilities`` para no filtrar destinos inaccesibles.
+
+    ``audience`` separa el menú del **panel admin** del menú de **cuenta del
+    comprador** (DEC-AUTHZ-BUYER): ambos son registro-dirigidos y podados por
+    capacidad, pero se sirven por separado (``me/menu/?audience=account``). Así
+    agregar una entrada de cualquiera de los dos menús es sembrar una fila —
+    sin tocar la navegación del UI (que ya no lleva la lista fija ni la
+    negación).
     """
+    AUDIENCE_ADMIN = 'admin'
+    AUDIENCE_ACCOUNT = 'account'
+    AUDIENCE_CHOICES = [
+        (AUDIENCE_ADMIN, 'Panel admin'),
+        (AUDIENCE_ACCOUNT, 'Cuenta del comprador'),
+    ]
+
+    audience = models.CharField(
+        max_length=10, choices=AUDIENCE_CHOICES, default=AUDIENCE_ADMIN,
+        db_index=True, verbose_name='Audiencia',
+        help_text="'admin' = panel; 'account' = menú de cuenta del comprador.",
+    )
     parent = models.ForeignKey(
         'self', on_delete=models.CASCADE, null=True, blank=True,
         related_name='children', verbose_name='Sección padre',

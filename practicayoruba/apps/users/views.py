@@ -34,7 +34,7 @@ from apps.wishlist.models import WishlistItem
 from .models import Address, AuthEvent, EmailVerificationToken, PasswordResetToken, UserDeactivationEvent
 from .serializers import AddressSerializer, ChangePasswordSerializer, EmailVerificationSerializer, PasswordResetConfirmSerializer, PasswordResetRequestSerializer, ProfileSerializer, RegisterSerializer, ResendVerificationSerializer, UpdateProfileSerializer
 from .tokens_email import check_rate_limit, create_password_reset_token, create_verification_token, invalidate_all_sessions, send_password_reset_email, send_verification_email, validate_password_reset_token, validate_verification_token
-from apps.authz.services import is_superadmin
+from apps.authz.services import assign_buyer_role, is_superadmin
 
 # DRF + plugins
 
@@ -147,6 +147,10 @@ class RegisterView(APIView):
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
+            # DEC-AUTHZ-BUYER: asignar el rol 'comprador' para que su menú de
+            # cuenta (dinámico, audience='account') aparezca al iniciar sesión.
+            # Tolerante si authz no está sembrado (no rompe el registro).
+            assign_buyer_role(user)
             # H-CART-01: fusionar el carrito anónimo en la cuenta nueva mientras
             # el cart_token aún existe (se pierde al abrir el enlace de email).
             _merge_anon_cart_into_user(user, request.data.get('cart_token'))
