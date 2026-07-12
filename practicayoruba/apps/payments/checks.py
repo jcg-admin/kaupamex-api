@@ -24,7 +24,7 @@ from django.conf import settings
 from django.core.checks import Error, register
 
 
-@register('payments')
+@register('payments', deploy=True)
 def check_mercadopago_client_secret(app_configs, **kwargs):
     """E001: MercadoPago PaymentGateway must have client_secret in production.
 
@@ -32,6 +32,15 @@ def check_mercadopago_client_secret(app_configs, **kwargs):
     encuentra el secret. Sin secret en produccion, todos los webhooks MP se
     rechazan 401 y los pagos quedan sin confirmar via webhook (el polling de
     estado del UC seguiria funcionando pero con latencia).
+
+    **`deploy=True` (H-API-CHK-01):** es un *deployment check* — sólo corre en
+    ``manage.py check --deploy`` (el gate de CI/deploy), NO en cada comando
+    (``makemigrations``/``migrate``/``runserver``/tests). Antes, registrado
+    como check normal con ``DEBUG=False``, bloqueaba ``makemigrations`` en
+    cualquier entorno sin un ``PaymentGateway(MERCADOPAGO)`` sembrado — un
+    gate de deploy disparándose fuera del deploy. La semántica correcta la
+    fija el propio hint ("antes de deploy"). La lógica de validación no
+    cambia; el test la invoca directamente, así que sigue verde.
     """
     errors = []
     if settings.DEBUG:
