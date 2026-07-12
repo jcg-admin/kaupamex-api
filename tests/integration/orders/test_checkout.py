@@ -406,10 +406,10 @@ class TestShippingMethodProtection:
 
 
 class TestZoneFreeShipping:
-    """Envío GRATIS siempre (REVIERTE DEC-BC-25 y la derivación de costo por
-    zona G-ENV-01): el comprador no elige método y el costo es 0 sin importar
-    el umbral/costo de la zona ni el subtotal. El cobro bajo-umbral es el punto
-    de extensión PENDIENTE (apps.orders.shipping), aún no implementado."""
+    """Costo manual por zona con umbral de envío gratis (G-ENV-04): el
+    comprador no elige método; el admin fija ``cost``/``free_threshold`` por
+    zona. Umbral alcanzado o zona sin ``cost`` → gratis; bajo umbral con
+    ``cost`` → cobra el costo manual. Ver ``apps.orders.shipping``."""
 
     def _set_zone(self, **defaults):
         # C.P. de ADDR = '06600' → prefijo '06'. update_or_create respeta el
@@ -419,21 +419,20 @@ class TestZoneFreeShipping:
             defaults={'name': 'Zona test', 'is_active': True, **defaults})
 
     def test_zona_con_umbral_es_gratis(self, cart_con_item_auth, db):
-        # subtotal = 1000 (2×500) ≥ umbral 800 → gratis. Bajo la nueva política
-        # esto es gratis de todos modos (envío gratis siempre).
+        # subtotal = 1000 (2×500) ≥ umbral 800 → gratis (umbral alcanzado),
+        # aunque la zona tenga cost=50 (G-ENV-04).
         self._set_zone(free_threshold=Decimal('800.00'), cost=Decimal('50.00'))
         res = cart_con_item_auth.post(CHECKOUT_URL, {'address': ADDR}, format='json')
         assert res.status_code == 201
         assert Decimal(res.json()['value']['shipping_cost']) == Decimal('0.00')
 
-    def test_zona_bajo_umbral_sigue_gratis(self, cart_con_item_auth, db):
-        # subtotal 1000 < umbral 1300: bajo el modelo G-ENV-01 anterior esto
-        # cobraba el costo de zona (50). REVERTIDO: sigue GRATIS (0). El cobro
-        # bajo-umbral es el punto de extensión PENDIENTE (open-closed).
+    def test_zona_bajo_umbral_cobra_costo(self, cart_con_item_auth, db):
+        # subtotal 1000 < umbral 1300 y la zona tiene cost=50 → cobra 50.00
+        # (G-ENV-04: costo manual por zona bajo el umbral de envío gratis).
         self._set_zone(free_threshold=Decimal('1300.00'), cost=Decimal('50.00'))
         res = cart_con_item_auth.post(CHECKOUT_URL, {'address': ADDR}, format='json')
         assert res.status_code == 201
-        assert Decimal(res.json()['value']['shipping_cost']) == Decimal('0.00')
+        assert Decimal(res.json()['value']['shipping_cost']) == Decimal('50.00')
 
     def test_sin_metodo_seleccionado_sigue_gratis(self, cart_con_item_auth, db):
         # Zona sin umbral ni costo y sin método en el payload: gratis. Antes

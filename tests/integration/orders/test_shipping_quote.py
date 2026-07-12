@@ -29,15 +29,14 @@ def _tabla_zonas_vacia(db):
 
 class TestResolveShippingQuote:
 
-    def test_quote_es_gratis_con_zona(self, db):
-        """Con zona que cubre el C.P.: cost 0, is_free True y expone la
-        ventana de entrega de la zona."""
+    def test_umbral_alcanzado_es_gratis(self, db):
+        """Zona con costo + umbral; subtotal ≥ umbral → gratis + ventana."""
         zone = ShippingZone.objects.create(
             zip_code_prefix='06', name='Ciudad de México', is_active=True,
             estimated_days_min=2, estimated_days_max=4,
             cost=Decimal('99.00'), free_threshold=Decimal('800.00'),
         )
-        quote = resolve_shipping_quote('06600', Decimal('100.00'))
+        quote = resolve_shipping_quote('06600', Decimal('800.00'))
         assert isinstance(quote, ShippingQuote)
         assert quote.cost == Decimal('0.00')
         assert quote.is_free is True
@@ -45,8 +44,38 @@ class TestResolveShippingQuote:
         assert quote.estimated_days_min == 2
         assert quote.estimated_days_max == 4
 
+    def test_bajo_umbral_cobra_costo_de_zona(self, db):
+        """Zona con costo + umbral; subtotal < umbral → cobra el costo manual."""
+        ShippingZone.objects.create(
+            zip_code_prefix='06', name='CDMX', is_active=True,
+            cost=Decimal('99.00'), free_threshold=Decimal('800.00'),
+        )
+        quote = resolve_shipping_quote('06600', Decimal('100.00'))
+        assert quote.cost == Decimal('99.00')
+        assert quote.is_free is False
+
+    def test_zona_sin_costo_es_gratis(self, db):
+        """Zona sembrada sin ``cost`` (NULL) → gratis (rollout no disruptivo)."""
+        ShippingZone.objects.create(
+            zip_code_prefix='06', name='CDMX', is_active=True,
+            free_threshold=Decimal('800.00'),  # umbral pero sin cost
+        )
+        quote = resolve_shipping_quote('06600', Decimal('10.00'))
+        assert quote.cost == Decimal('0.00')
+        assert quote.is_free is True
+
+    def test_costo_sin_umbral_siempre_cobra(self, db):
+        """Zona con ``cost`` y sin ``free_threshold`` → cobra siempre."""
+        ShippingZone.objects.create(
+            zip_code_prefix='44', name='Guadalajara', is_active=True,
+            cost=Decimal('150.00'),
+        )
+        quote = resolve_shipping_quote('44100', Decimal('5000.00'))
+        assert quote.cost == Decimal('150.00')
+        assert quote.is_free is False
+
     def test_quote_es_gratis_sin_zona(self, db):
-        """C.P. sin zona sembrada: sigue siendo gratis; zona y ventana None."""
+        """C.P. sin zona: gratis; zona y ventana None."""
         quote = resolve_shipping_quote('64000', Decimal('50.00'))
         assert quote.cost == Decimal('0.00')
         assert quote.is_free is True
@@ -54,14 +83,16 @@ class TestResolveShippingQuote:
         assert quote.estimated_days_min is None
         assert quote.estimated_days_max is None
 
-    def test_quote_gratis_ignora_subtotal_bajo(self, db):
-        """El subtotal NO afecta el costo hoy: aun bajo un umbral gratis de
-        zona, el envío es gratis (el cobro bajo-umbral es el punto de
-        extensión PENDIENTE, no implementado)."""
+    def test_umbral_con_subtotal_float_no_falla_por_ieee754(self, db):
+        """Un subtotal float contaminado (0.1+0.2 = 0.30000000000000004) se
+        normaliza a Decimal antes de comparar el umbral — el cobro no depende
+        del artefacto de coma flotante."""
         ShippingZone.objects.create(
             zip_code_prefix='06', name='CDMX', is_active=True,
-            cost=Decimal('99.00'), free_threshold=Decimal('800.00'),
+            cost=Decimal('99.00'), free_threshold=Decimal('0.30'),
         )
-        quote = resolve_shipping_quote('06600', Decimal('10.00'))
+        # 0.1 + 0.2 en float NO es exactamente 0.30, pero tras normalizar
+        # a Decimal('0.30') alcanza el umbral 0.30 → gratis.
+        quote = resolve_shipping_quote('06600', 0.1 + 0.2)
         assert quote.cost == Decimal('0.00')
         assert quote.is_free is True

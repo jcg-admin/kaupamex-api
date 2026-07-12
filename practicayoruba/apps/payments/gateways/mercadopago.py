@@ -125,7 +125,7 @@ def _build_additional_info(order) -> dict:
             'id':         str(item.pk),
             'title':      item.product_name,
             'quantity':   item.quantity,
-            'unit_price': float(item.unit_price),
+            'unit_price': _money_number(item.unit_price),
         }
         for item in order.items.all()
     ]
@@ -187,6 +187,21 @@ def _amount_str(value) -> str:
     número — enviar float puede perder precisión o ser rechazado.
     """
     return str(Decimal(str(value)).quantize(Decimal('0.01')))
+
+
+def _money_number(value) -> float:
+    """Importe como número JSON con **2 decimales exactos**.
+
+    Algunos endpoints del Payments API *legacy* (``unit_price`` de items,
+    ``amount`` de reembolso) exigen número, no string. Cuantizar a 2
+    decimales ANTES de cruzar a ``float`` evita que un artefacto de coma
+    flotante IEEE-754 (p.ej. ``19.989999999999998`` en vez de ``19.99``)
+    llegue a la pasarela. Redondeo igual que :func:`_amount_str`
+    (HALF_EVEN) para que ambos caminos coincidan; sólo cambia el tipo de
+    salida (número vs string). Política del proyecto: Decimal para dinero,
+    nunca float sin cuantizar.
+    """
+    return float(Decimal(str(value)).quantize(Decimal('0.01')))
 
 
 def _build_order_payment_method(
@@ -361,7 +376,7 @@ class MercadoPagoGateway(BaseGateway):
                 'title':       item.product_name,
                 'description': f'{item.variant_label}' if item.variant_label else '',
                 'quantity':    item.quantity,
-                'unit_price':  float(item.unit_price),
+                'unit_price':  _money_number(item.unit_price),
                 'currency_id': 'MXN',
             }
             for item in order.items.all()
@@ -846,7 +861,7 @@ class MercadoPagoGateway(BaseGateway):
         sdk = _get_sdk()
         payload = {}
         if amount is not None:
-            payload['amount'] = float(amount)
+            payload['amount'] = _money_number(amount)
 
         response = sdk.refund().create(gateway_payment_id, payload)
 
