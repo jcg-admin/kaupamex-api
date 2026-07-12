@@ -7,6 +7,7 @@ Sprint 8:  PaymentGatewaySerializer, ShippingMethodSerializer
 from decimal import Decimal
 from rest_framework import serializers
 from apps.orders.models import ShippingZone
+from apps.orders.delivery import delivery_estimate_dict
 from apps.geo.models import CatalogPostalCode
 from .models import SiteSettings, PaymentGateway, ShippingMethod, Banner
 
@@ -270,15 +271,24 @@ class ShippingZoneSerializer(serializers.ModelSerializer):
 
 
 class PublicShippingZoneSerializer(serializers.ModelSerializer):
-    """Proyección pública read-only del catálogo de zonas (/api/v2/shipping-zones/)."""
+    """Proyección pública read-only del catálogo de zonas (/api/v2/shipping-zones/).
+
+    Incluye ``delivery_estimate`` (G-ENV-02): la ventana de fechas "Recíbelo"
+    calculada con la regla de corte 11:00 + días hábiles sin domingo. Depende de
+    ``now`` (no cacheable) — es una estimación viva para el storefront."""
+    delivery_estimate = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model  = ShippingZone
         fields = [
             'id', 'name', 'zip_code_prefix',
             'estimated_days_min', 'estimated_days_max', 'cost',
-            'free_threshold',
+            'free_threshold', 'delivery_estimate',
         ]
         read_only_fields = fields
+
+    def get_delivery_estimate(self, obj):
+        return delivery_estimate_dict(obj)
 
 
 class _BannerImageUrlMixin:
