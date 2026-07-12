@@ -87,6 +87,8 @@ urlpatterns = _admin_urls + [
     path('api/v2/geo/',        include(('apps.geo.urls', 'geo'),                             namespace='geo_v2')),
     # DEC-08/09: capacidades del usuario + menú admin dinámico (podado por capacidad)
     path('api/v2/authz/',      include(('apps.authz.urls', 'authz'),                         namespace='authz_v2')),
+    # G-PERM-01: catálogo de roles para el selector de /admin/permissions (UC-ADM-02)
+    path('api/v2/admin/',      include(('apps.authz.admin_urls', 'admin_authz'),             namespace='admin_authz_v2')),
 
     # ─── API v2 (F6: payments + checkout) ─────────────────────────────────────
     path('api/v2/payments/', include(('apps.payments.urls', 'payments'),                    namespace='payments_v2')),
