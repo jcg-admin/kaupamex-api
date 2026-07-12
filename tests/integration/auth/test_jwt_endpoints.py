@@ -23,7 +23,7 @@ class TestLoginEndpoint:
     def test_login_con_credenciales_validas_retorna_200(self, api_client, user):
         url = reverse('users:login')
         response = api_client.post(url, {
-            'username': user.username,
+            'email': user.email,
             'password': 'TestPass123!'
         }, format='json')
 
@@ -32,7 +32,7 @@ class TestLoginEndpoint:
     def test_login_retorna_access_token(self, api_client, user):
         url = reverse('users:login')
         response = api_client.post(url, {
-            'username': user.username,
+            'email': user.email,
             'password': 'TestPass123!'
         }, format='json')
 
@@ -41,7 +41,7 @@ class TestLoginEndpoint:
     def test_login_retorna_refresh_token(self, api_client, user):
         url = reverse('users:login')
         response = api_client.post(url, {
-            'username': user.username,
+            'email': user.email,
             'password': 'TestPass123!'
         }, format='json')
 
@@ -50,7 +50,7 @@ class TestLoginEndpoint:
     def test_login_con_password_incorrecto_retorna_401(self, api_client, user):
         url = reverse('users:login')
         response = api_client.post(url, {
-            'username': user.username,
+            'email': user.email,
             'password': 'WrongPassword!'
         }, format='json')
 
@@ -59,7 +59,7 @@ class TestLoginEndpoint:
     def test_login_con_usuario_inexistente_retorna_401(self, api_client, db):
         url = reverse('users:login')
         response = api_client.post(url, {
-            'username': 'noexiste',
+            'email': 'noexiste@x.mx',
             'password': 'Pass123!'
         }, format='json')
 

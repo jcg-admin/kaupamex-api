@@ -19,6 +19,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import UserSession
+from apps.authz.services import is_superadmin
 
 
 def _device_label(user_agent):
@@ -59,7 +60,7 @@ def _user_payload(user):
         'email':      user.email,
         'first_name': user.first_name,
         'last_name':  user.last_name,
-        'is_staff':   user.is_staff,
+        'is_staff':   is_superadmin(user),
         'avatar_url': user.get_avatar_url(),
     }
 
