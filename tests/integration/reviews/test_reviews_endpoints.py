@@ -9,6 +9,7 @@ from apps.reviews.models import Review, ReviewHelpfulVote, ReviewModerationLog
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
 from PIL import Image as PILImage
+from tests.factories.user_factory import make_buyer
 
 import pytest
 
@@ -21,6 +22,47 @@ APPROVE_URL         = lambda pk: f'/api/v2/admin/reviews/{pk}/status/'
 REJECT_URL          = lambda pk: f'/api/v2/admin/reviews/{pk}/status/'
 HELPFUL_URL         = lambda pid, pk: f'/api/v2/products/{pid}/reviews/{pk}/helpful-votes/'
 EDIT_URL            = lambda pid, pk: f'/api/v2/products/{pid}/reviews/{pk}/'
+
+
+# ─── Enforcement capacidad-dirigido (ADR-020, DEC-ENF-01: account.reviews) ───
+class TestReviewsCapabilityGate:
+    """Las acciones propias del comprador sobre reseñas (crear, editar, foto,
+    voto útil) exigen ``account.reviews`` además de autenticación. Un usuario
+    autenticado SIN esa capacidad recibe 403 (el ``GET`` de listado sigue
+    público). En producción todo comprador la tiene (ADR-020)."""
+
+    def _authed_without_capability(self, api_client):
+        u = get_user_model().objects.create_user(
+            email='norole-reviews@practicayoruba.mx', password='TestPass123!',
+        )
+        api_client.force_login(u)
+        return u
+
+    def test_create_review_requires_account_reviews(self, api_client, db):
+        self._authed_without_capability(api_client)
+        res = api_client.post(
+            PRODUCT_REVIEWS_URL(999999),
+            {'order_id': 1, 'rating': 5, 'title': 'x', 'body': 'y'},
+            format='json',
+        )
+        assert res.status_code == 403
+
+    def test_helpful_vote_requires_account_reviews(self, api_client, db):
+        self._authed_without_capability(api_client)
+        res = api_client.post(HELPFUL_URL(999999, 999999), format='json')
+        assert res.status_code == 403
+
+    def test_edit_review_requires_account_reviews(self, api_client, db):
+        self._authed_without_capability(api_client)
+        res = api_client.patch(
+            EDIT_URL(999999, 999999), {'rating': 4}, format='json',
+        )
+        assert res.status_code == 403
+
+    def test_public_listing_stays_open(self, api_client, prod_rev, db):
+        # GET de listado NO exige capacidad (sigue público / AllowAny).
+        res = api_client.get(PRODUCT_REVIEWS_URL(prod_rev.id))
+        assert res.status_code == 200
 
 
 @pytest.fixture
@@ -692,9 +734,11 @@ class TestBuyerEditReview:
         )
         # Authenticate as a different user (re-use the `user` fixture via
         # creating a fresh user here and logging in manually).
-        attacker = get_user_model().objects.create_user(
+        # El atacante es otro comprador (account.reviews) — pasa el candado de
+        # capacidad y llega al owner-check, que devuelve REVIEW_NOT_OWNER.
+        attacker = make_buyer(get_user_model().objects.create_user(
             email='attacker@rev.com', password='x',
-        )
+        ))
         api_client.force_login(attacker)
         r = api_client.patch(
             EDIT_URL(prod_rev.id, review.id),
@@ -768,9 +812,11 @@ class TestReviewImages:
         self, prod_rev, pending_review, api_client, db,
     ):
         """Non-owner cannot add image."""
-        other = get_user_model().objects.create_user(
+        # Otro comprador (account.reviews) — pasa el candado y cae en el
+        # owner-check (REVIEW_NOT_OWNER), no en el gate de capacidad.
+        other = make_buyer(get_user_model().objects.create_user(
             email='other_img@rev.com', password='x',
-        )
+        ))
         api_client.force_login(other)
         res = api_client.post(
             IMAGES_URL(prod_rev.id, pending_review.id),

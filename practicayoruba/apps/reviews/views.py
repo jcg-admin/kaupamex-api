@@ -48,10 +48,13 @@ class ProductReviewsView(APIView):
     """GET (public) / POST (auth) /api/v1/products/<product_id>/reviews/."""
 
     serializer_class = ReviewPublicSerializer
+    # Enforcement (ADR-020, DEC-ENF-01): crear reseña es una acción propia del
+    # comprador → exige account.reviews. El GET de listado sigue público.
+    required_capability = 'account.reviews'
 
     def get_permissions(self):
         if self.request.method == 'POST':
-            return [IsAuthenticated()]
+            return [IsAuthenticated(), HasCapability()]
         return [AllowAny()]
 
     def get_throttles(self):
@@ -230,7 +233,8 @@ class ReviewUpdateView(APIView):
     Returns 403 if caller does not own the review; 400 if the review
     has already been approved or rejected.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.reviews'
 
     @extend_schema(
         summary='[DEPRECATED → /api/v2/products/<id>/reviews/<pk>/] Editar reseña propia pendiente (UC-REV-01 Alt B)',
@@ -269,7 +273,8 @@ class ReviewUpdateView(APIView):
 
 class ReviewImageCreateView(generics.CreateAPIView):
     """UC-REV-02 cap6 — author adds photo to own review (max 3)."""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.reviews'
     serializer_class   = ReviewImageSerializer
     parser_classes     = [MultiPartParser, FormParser]
 
@@ -438,7 +443,8 @@ class ReviewRejectView(_AdminOnly, APIView):
 
 class ReviewHelpfulVoteView(APIView):
     """POST /api/v1/products/<product_id>/reviews/<pk>/helpful/ — UC-REV-02."""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.reviews'
 
     @extend_schema(
         summary='Votar reseña como útil (UC-REV-02)', tags=['reviews'],
