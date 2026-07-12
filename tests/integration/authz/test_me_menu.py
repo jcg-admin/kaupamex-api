@@ -120,7 +120,23 @@ def test_superadmin_sees_all_sections(seeded, client):
     marketing = next(s for s in tree if s['label'] == 'Marketing')
     assert [i['label'] for i in marketing['children']] == [
         'Reseñas', 'Preguntas', 'Newsletter', 'Notificaciones',
-        'Listas de deseos']
+        'Listas de deseos', 'Banners de portada']
+
+
+@pytest.mark.django_db
+def test_banners_leaf_gated_by_banners_manage(seeded, client):
+    """Placement invariant: la hoja Banners lleva la misma capacidad que su
+    endpoint enforce (banners.manage). Un usuario banners.manage la ve; el
+    menú nunca muestra un destino que daría 403."""
+    u = _user('mkt@e.com')
+    RoleAssignment.objects.create(user=u, role=_role_with(['banners.manage']))
+    invalidate_capabilities(u.id)
+    client.force_authenticate(u)
+    tree = client.get('/api/v2/authz/me/menu/').json()
+    marketing = next(s for s in tree if s['label'] == 'Marketing')
+    banners = next(i for i in marketing['children']
+                   if i['label'] == 'Banners de portada')
+    assert banners['route'] == '/admin/banners'
 
 
 @pytest.mark.django_db

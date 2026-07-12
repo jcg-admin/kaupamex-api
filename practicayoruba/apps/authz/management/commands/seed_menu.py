@@ -57,6 +57,7 @@ MENU = [
         ]),
         _leaf('notificaciones', 'Notificaciones', '/admin/notifications/compose', 'notifications.manage'),
         _leaf('listas-deseos', 'Listas de deseos', '/admin/marketing/wishlist', 'users.view'),
+        _leaf('banners', 'Banners de portada', '/admin/banners', 'banners.manage'),
     ]),
     _group('sec-clientes', 'Clientes', [
         _leaf('usuarios', 'Usuarios', '/admin/users', 'users.view'),
