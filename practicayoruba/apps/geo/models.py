@@ -65,7 +65,7 @@ class CatalogPostalCode(models.Model):
     city_code = models.CharField(max_length=2, blank=True, default='', verbose_name='Clave de ciudad')
 
     class Meta:
-        db_table = 'catalog_postal_code'
+        db_table = 'geo_catalog_postal_code'
         verbose_name = 'Código postal (SEPOMEX)'
         verbose_name_plural = 'Códigos postales (SEPOMEX)'
         constraints = [
