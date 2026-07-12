@@ -167,7 +167,8 @@ def _apply_admin_filters(qs, params):
 class SupportTicketListCreateView(APIView):
     """POST crear ticket / GET listar tickets propios del comprador."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.support'
 
     @extend_schema(
         summary='Listar mis tickets de soporte',
@@ -272,7 +273,8 @@ class SupportTicketListCreateView(APIView):
 class SupportTicketDetailView(APIView):
     """GET detalle del ticket propio (o cualquiera si is_staff)."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.support'
 
     @extend_schema(
         summary='Detalle de ticket',
@@ -292,7 +294,8 @@ class SupportTicketDetailView(APIView):
 class SupportTicketReplyView(APIView):
     """POST /api/v1/support/tickets/{id}/replies/."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.support'
 
     @extend_schema(
         summary='Responder ticket',
@@ -342,7 +345,8 @@ class SupportTicketReplyView(APIView):
 class SupportTicketCloseView(APIView):
     """POST /api/v1/support/tickets/{id}/close/."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.support'
     serializer_class = SupportTicketCloseSerializer
 
     @extend_schema(
@@ -402,7 +406,8 @@ class SupportTicketCloseView(APIView):
 class SupportTicketReopenView(APIView):
     """POST /api/v1/support/tickets/{id}/reopen/."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.support'
     serializer_class = SupportTicketDetailSerializer
 
     @extend_schema(
@@ -586,7 +591,8 @@ class AdminSupportTicketExportCSVView(APIView):
 class SupportTicketStatusV2View(APIView):
     """PATCH /api/v2/support/tickets/<id>/status/ — Tier B."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.support'
 
     def patch(self, request, ticket_id):
         action = (request.data.get('action') or '').strip()

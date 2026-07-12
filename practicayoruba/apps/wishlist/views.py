@@ -132,7 +132,8 @@ class WishlistView(APIView):
     GET  /api/v1/wishlist/ — ver lista de deseos (UC-WISH-02)
     POST /api/v1/wishlist/ — agregar producto (UC-WISH-01)
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.wishlist'
 
     @extend_schema(summary='Ver lista de deseos', tags=['wishlist'],
                    responses={200: WishlistItemSerializer(many=True)})
@@ -220,7 +221,8 @@ class WishlistItemDetailView(APIView):
     """
     DELETE /api/v1/wishlist/<pk>/ — eliminar item (UC-WISH-02)
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.wishlist'
 
     def _get_item(self, request, pk):
         return get_object_or_404(WishlistItem, pk=pk, user=request.user)
@@ -234,7 +236,8 @@ class WishlistItemDetailView(APIView):
 
 class WishlistMoveToCartView(APIView):
     """POST /api/v1/wishlist/<pk>/move-to-cart/ — UC-WISH-03."""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.wishlist'
 
     @extend_schema(
         summary='[DEPRECATED → /api/v2/wishlist/<pk>/cart-transfers/] Mover producto de wishlist al carrito',

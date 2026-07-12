@@ -8,6 +8,7 @@ from decimal import Decimal
 from apps.catalogue.models import Category, Product
 from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from django.contrib.auth import get_user_model
+from tests.factories.user_factory import make_buyer
 from apps.payments.models import Payment, Refund
 from apps.settings_app.models import PaymentGateway, ShippingMethod
 from unittest.mock import patch, MagicMock
@@ -20,6 +21,39 @@ DETAIL_URL  = lambda o: f'/api/v2/orders/{o}/'
 CANCEL_URL  = lambda o: f'/api/v2/orders/{o}/cancellations/'
 ADDRESS_URL = lambda o: f'/api/v2/orders/{o}/shipping-address/'
 SHIPPING_URL= lambda o: f'/api/v2/orders/{o}/shipping-method/'
+
+
+# ─── Enforcement capacidad-dirigido (ADR-020, DEC-ENF-01: account.orders) ───
+class TestOrdersCapabilityGate:
+    """La gestión de pedidos propios (historial, detalle, cancelar, editar
+    dirección/envío) exige ``account.orders`` además de autenticación. Un
+    usuario autenticado SIN esa capacidad recibe 403. El POST de checkout
+    (crear orden) NO se gatea — sigue AllowAny (guest checkout, DEC-ENF-03)."""
+
+    def _authed_without_capability(self, api_client):
+        u = get_user_model().objects.create_user(
+            email='norole-orders@practicayoruba.mx', password='TestPass123!',
+        )
+        api_client.force_login(u)
+        return u
+
+    def test_history_requires_account_orders(self, api_client, db):
+        self._authed_without_capability(api_client)
+        assert api_client.get(ORDERS_URL).status_code == 403
+
+    def test_detail_requires_account_orders(self, api_client, db):
+        self._authed_without_capability(api_client)
+        assert api_client.get(DETAIL_URL('PY-2026-000999')).status_code == 403
+
+    def test_cancel_requires_account_orders(self, api_client, db):
+        self._authed_without_capability(api_client)
+        assert api_client.post(CANCEL_URL('PY-2026-000999')).status_code == 403
+
+    def test_checkout_post_stays_public(self, api_client, db):
+        # El POST de checkout NO exige account.orders (guest checkout).
+        # Sin carrito válido responde 4xx de negocio, pero NUNCA 403 de capacidad.
+        res = api_client.post(ORDERS_URL, {}, format='json')
+        assert res.status_code != 403
 
 
 # ---------------------------------------------------------------------------
