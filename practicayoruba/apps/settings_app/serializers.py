@@ -7,7 +7,7 @@ Sprint 8:  PaymentGatewaySerializer, ShippingMethodSerializer
 from decimal import Decimal
 from rest_framework import serializers
 from apps.orders.models import ShippingZone
-from .models import SiteSettings, PaymentGateway, ShippingMethod
+from .models import SiteSettings, PaymentGateway, ShippingMethod, Banner
 
 
 class SiteSettingsSerializer(serializers.ModelSerializer):
@@ -245,4 +245,41 @@ class PublicShippingZoneSerializer(serializers.ModelSerializer):
             'estimated_days_min', 'estimated_days_max', 'cost',
             'free_threshold',
         ]
+        read_only_fields = fields
+
+
+class _BannerImageUrlMixin:
+    """image_url absoluto si hay request en contexto; '' si no hay imagen."""
+
+    def get_image_url(self, obj):
+        if not obj.image:
+            return ''
+        url = obj.image.url
+        request = self.context.get('request')
+        return request.build_absolute_uri(url) if request else url
+
+
+class BannerSerializer(_BannerImageUrlMixin, serializers.ModelSerializer):
+    """Serializer admin del catálogo de banners (UC-CFG-06, G-CFG-01).
+
+    Expone ``image_url`` (lectura) además del ``image`` de subida (escritura)
+    para el formulario del panel admin."""
+    image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = Banner
+        fields = ['id', 'image', 'image_url', 'placement', 'title', 'alt_text',
+                  'link_url', 'is_active', 'order', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'image_url', 'created_at', 'updated_at']
+        extra_kwargs = {'image': {'write_only': True}}
+
+
+class PublicBannerSerializer(_BannerImageUrlMixin, serializers.ModelSerializer):
+    """Proyección pública read-only del banner (storefront)."""
+    image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = Banner
+        fields = ['id', 'image_url', 'placement', 'title', 'alt_text',
+                  'link_url', 'order']
         read_only_fields = fields

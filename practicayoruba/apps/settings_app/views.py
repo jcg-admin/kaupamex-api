@@ -23,11 +23,12 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from django.core.cache import cache
 from apps.users.audit import audit_log_business
-from .models import SiteSettings, PaymentGateway, ShippingMethod, StaticPage, StaticPageVersion
+from .models import SiteSettings, PaymentGateway, ShippingMethod, StaticPage, StaticPageVersion, Banner
 from .serializers import (
     SiteSettingsSerializer, SiteSettingsAdminSerializer, PublicSiteSettingsSerializer,
     PaymentGatewaySerializer, ShippingMethodSerializer, PublicShippingMethodSerializer,
     ShippingZoneSerializer, PublicShippingZoneSerializer,
+    BannerSerializer, PublicBannerSerializer,
 )
 from .gateway_connector import connector
 from rest_framework import serializers as drf_serializers
@@ -361,6 +362,119 @@ class ShippingMethodListPublicView(ListAPIView):
     queryset           = ShippingMethod.objects.filter(is_active=True).order_by('cost', 'name')
 
     @extend_schema(summary='Listar métodos de envío activos', tags=['shipping'])
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+
+class BannerViewSet(ModelViewSet):
+    """Admin CRUD del catálogo de banners de portada (UC-CFG-06, G-CFG-01).
+
+    GET    /api/v2/admin/banners/            — listar (todos, activos e inactivos)
+    POST   /api/v2/admin/banners/            — crear
+    GET    /api/v2/admin/banners/<pk>/       — ver
+    PATCH  /api/v2/admin/banners/<pk>/       — editar
+    DELETE /api/v2/admin/banners/<pk>/       — eliminar (hard delete)
+    POST   /api/v2/admin/banners/reorder/    — reordenar por placement
+
+    Un único modelo ``Banner`` con ``placement`` (HERO / PROMO_STRIP). El
+    storefront lee los activos por placement en el endpoint público.
+    """
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'banners.manage'
+    serializer_class   = BannerSerializer
+    queryset           = Banner.objects.all()
+    http_method_names  = ['get', 'post', 'patch', 'delete', 'head', 'options']
+
+    def get_queryset(self):
+        qs = Banner.objects.all()
+        placement = self.request.query_params.get('placement')
+        if placement:
+            qs = qs.filter(placement=placement)
+        return qs
+
+    @extend_schema(summary='Listar banners', tags=['config'],
+                   responses={200: BannerSerializer(many=True)})
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @extend_schema(summary='Crear banner', tags=['config'],
+                   responses={201: BannerSerializer})
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+
+    @extend_schema(summary='Editar banner', tags=['config'],
+                   responses={200: BannerSerializer})
+    def partial_update(self, request, *args, **kwargs):
+        kwargs['partial'] = True
+        return super().update(request, *args, **kwargs)
+
+    @extend_schema(summary='Eliminar banner', responses={204: None}, tags=['config'])
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
+
+    @extend_schema(
+        summary='Reordenar banners por placement',
+        request={'application/json': {'type': 'object', 'properties': {
+            'order': {'type': 'array', 'items': {'type': 'integer'}}}}},
+        responses={200: BannerSerializer(many=True)},
+        tags=['config'],
+    )
+    @action(detail=False, methods=['post'], url_path='reorder')
+    def reorder(self, request):
+        """POST {'order': [id1, id2, ...]} → asigna ``order`` = índice.
+
+        Todos los ids deben existir y pertenecer al mismo ``placement`` (no se
+        mezclan HERO y PROMO_STRIP en una sola reordenación).
+        """
+        ids = request.data.get('order')
+        if not isinstance(ids, list) or not ids:
+            raise ValidationError({
+                'detail': 'Se requiere "order": lista no vacía de ids.',
+                'codigo_error': 'INVALID_REORDER_PAYLOAD',
+            })
+        banners = list(Banner.objects.filter(pk__in=ids))
+        found_ids = {b.pk for b in banners}
+        missing = [i for i in ids if i not in found_ids]
+        if missing:
+            raise ValidationError({
+                'detail': f'Banners inexistentes: {missing}.',
+                'codigo_error': 'BANNER_NOT_FOUND',
+            })
+        placements = {b.placement for b in banners}
+        if len(placements) > 1:
+            raise ValidationError({
+                'detail': 'No se pueden reordenar banners de distinto placement.',
+                'codigo_error': 'MIXED_PLACEMENT_REORDER',
+            })
+        by_id = {b.pk: b for b in banners}
+        with transaction.atomic():
+            for index, banner_id in enumerate(ids):
+                banner = by_id[banner_id]
+                banner.order = index
+                banner.save(update_fields=['order', 'updated_at'])
+        result = Banner.objects.filter(pk__in=ids).order_by('order', 'id')
+        serializer = self.get_serializer(result, many=True)
+        return Response(serializer.data)
+
+
+class PublicBannerListView(ListAPIView):
+    """GET /api/v2/config/banners/?placement=HERO — banners activos (storefront).
+
+    Sin autenticación. Filtra por ``placement`` (query param opcional) y sólo
+    devuelve ``is_active=True``, ordenados por ``order``. Proyección pública sin
+    campos admin.
+    """
+    permission_classes = [AllowAny]
+    serializer_class   = PublicBannerSerializer
+
+    def get_queryset(self):
+        qs = Banner.objects.filter(is_active=True)
+        placement = self.request.query_params.get('placement')
+        if placement:
+            qs = qs.filter(placement=placement)
+        return qs.order_by('placement', 'order', 'id')
+
+    @extend_schema(summary='Listar banners activos', tags=['config'])
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
 

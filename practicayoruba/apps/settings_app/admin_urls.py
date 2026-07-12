@@ -3,6 +3,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     PaymentGatewayViewSet, ShippingMethodViewSet, ShippingZoneViewSet,
+    BannerViewSet,
     StaticPageAdminListView, StaticPageAdminDetailView,
     AdminSiteSettingsView,
     StaticPagePublishView, StaticPageRestoreView,
@@ -15,6 +16,7 @@ router = DefaultRouter()
 router.register(r'gateways',         PaymentGatewayViewSet,  basename='admin-gateway')
 router.register(r'shipping-methods', ShippingMethodViewSet,  basename='admin-shipping')
 router.register(r'shipping-zones',   ShippingZoneViewSet,    basename='admin-shipping-zone')
+router.register(r'banners',          BannerViewSet,          basename='admin-banner')
 
 urlpatterns = [
     path('', include(router.urls)),
