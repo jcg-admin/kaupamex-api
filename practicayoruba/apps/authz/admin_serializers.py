@@ -23,3 +23,17 @@ class AdminRoleSerializer(serializers.ModelSerializer):
         # ``obj.capabilities`` viene prefetch-eado por la vista; se ordena por
         # code para un contrato estable (mismo criterio que me/capabilities).
         return sorted(c.code for c in obj.capabilities.all())
+
+
+class RolePermissionsWriteSerializer(serializers.Serializer):
+    """Input de ``PUT /api/v2/admin/roles/<code>/permissions/`` (UC-ADM-02).
+
+    ``permissions`` es el set COMPLETO de códigos de capacidad que el rol debe
+    tener tras el cambio (reemplaza, no acumula) — mismo criterio ``set()`` que
+    la asignación de roles a usuario. La validación de existencia/activación de
+    cada código y la contención de escalada viven en la vista."""
+
+    permissions = serializers.ListField(
+        child=serializers.CharField(allow_blank=False),
+        allow_empty=True,
+    )
