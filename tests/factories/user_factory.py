@@ -12,6 +12,8 @@ defecto), el ``Person`` asociado. Se aceptan los kwargs legacy
 import factory
 from django.contrib.auth import get_user_model
 
+from apps.authz.models import Role, RoleAssignment
+from apps.authz.services import SUPERADMIN_ROLE_CODE
 from apps.users.models import EmployeeProfile, Person
 
 User = get_user_model()
@@ -76,3 +78,10 @@ class AdminUserFactory(UserFactory):
         if not create:
             return
         EmployeeProfile.objects.create(identity=self)
+        # is_staff ya no existe: el gate admin es una capacidad. Se le asigna el
+        # rol superadmin (bypass del resolver) para que las vistas ``HasCapability``
+        # lo autoricen, replicando la semántica del antiguo ``is_staff=True``.
+        role, _ = Role.objects.get_or_create(
+            code=SUPERADMIN_ROLE_CODE, defaults={'name': 'Superadministrador'},
+        )
+        RoleAssignment.objects.get_or_create(user=self, role=role)

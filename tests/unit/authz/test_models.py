@@ -18,8 +18,8 @@ User = get_user_model()
 
 
 def _user(email='a@e.com', **kw):
-    # Compatible con el modelo actual (username/email); el swap party lo cambia.
-    return User.objects.create(username=email.split('@')[0], email=email, **kw)
+    # Party (T-201): IdentityUser sólo tiene email como identificador.
+    return User.objects.create_user(email=email, password='x', **kw)
 
 
 def _cap(code='orders.refund', **kw):
