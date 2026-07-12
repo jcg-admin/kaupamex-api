@@ -54,7 +54,7 @@ class TestEventOnAdminSuspend:
     @pytest.fixture
     def target_user(self, db):
         return get_user_model().objects.create_user(
-            username='tgt', email='tgt@practicayoruba.mx',
+            email='tgt@practicayoruba.mx',
             password='X', is_active=True,
         )
 
@@ -87,7 +87,7 @@ class TestEventOrdering:
     @pytest.fixture
     def target(self, db):
         return get_user_model().objects.create_user(
-            username='cycle', email='cycle@practicayoruba.mx',
+            email='cycle@practicayoruba.mx',
             password='X', is_active=True,
         )
 

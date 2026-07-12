@@ -87,7 +87,7 @@ class TestDetalleOrden:
     def test_rnf_sec_003_orden_ajena_retorna_404(self, auth_client, prod_ord, db):
         User = get_user_model()
         other = User.objects.create_user(
-            username='other_ord', email='other@ord.com', password='pass'
+            email='other@ord.com', password='pass'
         )
         order = _create_full_order(other, prod_ord)
         res = auth_client.get(DETAIL_URL(order.order_number))
@@ -121,7 +121,7 @@ class TestListadoOrdenes:
     ):
         User = get_user_model()
         other = User.objects.create_user(
-            username='other_list', email='ol@test.com', password='pass'
+            email='ol@test.com', password='pass'
         )
         _create_full_order(user, prod_ord)
         _create_full_order(user, prod_ord)
@@ -290,7 +290,7 @@ class TestCancelarOrden:
     ):
         User = get_user_model()
         other = User.objects.create_user(
-            username='other_cancel', email='oc@test.com', password='pass'
+            email='oc@test.com', password='pass'
         )
         order = _create_full_order(other, prod_ord)
         res = auth_client.post(CANCEL_URL(order.order_number), {}, format='json')
@@ -341,7 +341,7 @@ class TestEditarDireccion:
     def test_editar_direccion_rnf_sec_003(self, auth_client, prod_ord, db):
         User = get_user_model()
         other = User.objects.create_user(
-            username='other_addr', email='oa@test.com', password='pass'
+            email='oa@test.com', password='pass'
         )
         order = _create_full_order(other, prod_ord)
         res = auth_client.patch(ADDRESS_URL(order.order_number), {
@@ -506,7 +506,7 @@ class TestProteccionVariantesOrdenes:
         )
 
         user = User.objects.create_user(
-            username='buyer_var', email='bv@test.com', password='pass'
+            email='bv@test.com', password='pass'
         )
         order = Order.objects.create(user=user, status='PENDING')
         OrderItem.objects.create(

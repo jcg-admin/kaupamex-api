@@ -195,7 +195,7 @@ class TestCheckoutApiOrden:
         self, auth_client, orden_v2, mp_gw, db, django_user_model
     ):
         other = django_user_model.objects.create_user(
-            username='otro', email='otro@test.mx', password='Otro1234!',
+            email='otro@test.mx', password='Otro1234!',
         )
         auth_client.force_authenticate(user=other)
         with patch('apps.payments.gateways.mercadopago.mercadopago',

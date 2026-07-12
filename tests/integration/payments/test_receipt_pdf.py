@@ -40,7 +40,6 @@ RECEIPT_URL = lambda o: f'/api/v2/payments/{o}/receipt/'
 def buyer(db):
     User = get_user_model()
     return User.objects.create_user(
-        username='buyer-pay10',
         email='buyer-pay10@practicayoruba.mx',
         password='BuyerPass123!',
     )
@@ -50,7 +49,6 @@ def buyer(db):
 def other_user(db):
     User = get_user_model()
     return User.objects.create_user(
-        username='other-pay10',
         email='other-pay10@practicayoruba.mx',
         password='OtherPass123!',
     )

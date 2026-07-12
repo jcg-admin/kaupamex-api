@@ -62,7 +62,7 @@ def product_b(db, category):
 def buyer(db):
     User = get_user_model()
     return User.objects.create_user(
-        username='buyer1', email='b1@x.com', password='Pass123!',
+        email='b1@x.com', password='Pass123!',
     )
 
 
@@ -70,7 +70,7 @@ def buyer(db):
 def buyer_b(db):
     User = get_user_model()
     return User.objects.create_user(
-        username='buyer2', email='b2@x.com', password='Pass123!',
+        email='b2@x.com', password='Pass123!',
     )
 
 

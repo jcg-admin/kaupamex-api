@@ -17,7 +17,7 @@ User = get_user_model()
 def audit_data(db, admin_user):
     """Crea registros en los tres modelos de audit log."""
     buyer = User.objects.create_user(
-        username='buyer_audit', email='buyer_audit@test.mx',
+        email='buyer_audit@test.mx',
         password='Pass123!', is_active=True,
     )
     AuthEvent.objects.create(

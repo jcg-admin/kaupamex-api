@@ -38,8 +38,8 @@ class TestAddressList:
 
     def test_solo_ve_sus_propias_direcciones(self, api_client, db):
         User = get_user_model()
-        u1 = User.objects.create_user(username='u1', email='u1@test.mx', password='Pass123!')
-        u2 = User.objects.create_user(username='u2', email='u2@test.mx', password='Pass123!')
+        u1 = User.objects.create_user(email='u1@test.mx', password='Pass123!')
+        u2 = User.objects.create_user(email='u2@test.mx', password='Pass123!')
         Address.objects.create(user=u2, **VALID_ADDR)
         api_client.force_login(u1)
         r = api_client.get(ADDR_URL)
@@ -126,8 +126,8 @@ class TestAddressUpdate:
 
     def test_no_puede_editar_direccion_de_otro_usuario(self, api_client, db):
         User = get_user_model()
-        u1 = User.objects.create_user(username='u1b', email='u1b@test.mx', password='Pass123!')
-        u2 = User.objects.create_user(username='u2b', email='u2b@test.mx', password='Pass123!')
+        u1 = User.objects.create_user(email='u1b@test.mx', password='Pass123!')
+        u2 = User.objects.create_user(email='u2b@test.mx', password='Pass123!')
         addr = Address.objects.create(user=u2, **VALID_ADDR)
         api_client.force_login(u1)
         r = api_client.patch(f'{ADDR_URL}{addr.pk}/', {'alias': 'Hack'}, format='json')
@@ -150,8 +150,8 @@ class TestAddressDelete:
 
     def test_no_puede_eliminar_direccion_de_otro(self, api_client, db):
         User = get_user_model()
-        u1 = User.objects.create_user(username='u1c', email='u1c@test.mx', password='Pass123!')
-        u2 = User.objects.create_user(username='u2c', email='u2c@test.mx', password='Pass123!')
+        u1 = User.objects.create_user(email='u1c@test.mx', password='Pass123!')
+        u2 = User.objects.create_user(email='u2c@test.mx', password='Pass123!')
         addr = Address.objects.create(user=u2, **VALID_ADDR)
         api_client.force_login(u1)
         r = api_client.delete(f'{ADDR_URL}{addr.pk}/')

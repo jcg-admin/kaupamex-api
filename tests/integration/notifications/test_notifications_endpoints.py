@@ -249,7 +249,7 @@ class TestAdminAudienceCount:
 
     def test_user_recipient_count_matches_username(self, admin_client, user, db):
         res = admin_client.get(
-            ADMIN_AUDIENCE_URL + f'?recipient_type=USER&recipient_identifier={user.username}'
+            ADMIN_AUDIENCE_URL + f'?recipient_type=USER&recipient_identifier={user.email}'
         )
         assert res.status_code == 200
         assert res.json() == {'count': 1}
@@ -298,7 +298,7 @@ class TestAdminManualNotification:
     ):
         res = admin_client.post(ADMIN_MANUAL_URL, {
             'recipient_type': 'USER',
-            'recipient_identifier': user.username,
+            'recipient_identifier': user.email,
             'subject': 'Hola directo',
             'message': 'Mensaje directo de prueba.',
         }, format='json')
@@ -337,7 +337,7 @@ class TestAdminManualNotification:
         )
         res = admin_client.post(ADMIN_MANUAL_URL, {
             'recipient_type': 'USER',
-            'recipient_identifier': user.username,
+            'recipient_identifier': user.email,
             'subject': 'Promo bloqueada',
             'message': 'No deberia llegar.',
         }, format='json')

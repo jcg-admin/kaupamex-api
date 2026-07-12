@@ -179,7 +179,7 @@ class TestMercadoPagoGatewayURLErrores:
         self, api_client, django_user_model, orden_mp, mp_gateway, mock_sdk,
     ):
         attacker = django_user_model.objects.create_user(
-            username='attacker_mp', email='attacker_mp@test.mx', password='Attack123!',
+            email='attacker_mp@test.mx', password='Attack123!',
         )
         api_client.force_authenticate(user=attacker)
         res = api_client.post(MP_URL, {'order_number': orden_mp.order_number}, format='json')

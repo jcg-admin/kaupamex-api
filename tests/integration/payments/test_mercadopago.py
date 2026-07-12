@@ -161,7 +161,7 @@ class TestIniciarPago:
         """
         # Crear otro usuario que intentara pagar la orden de `user`
         attacker = django_user_model.objects.create_user(
-            username='attacker', email='attacker@test.mx',
+            email='attacker@test.mx',
             password='AttackPass123!',
         )
         api_client.force_authenticate(user=attacker)

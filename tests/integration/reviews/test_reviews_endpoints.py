@@ -71,7 +71,7 @@ class TestPublicReviewListing:
         )
         # Una pendiente que NO debe aparecer.
         u2 = get_user_model().objects.create_user(
-            username='u2rev', email='u2@rev.com', password='x',
+            email='u2@rev.com', password='x',
         )
         o2 = Order.objects.create(user=u2, status='DELIVERED')
         Review.objects.create(
@@ -110,7 +110,7 @@ class TestCreateReview:
         self, auth_client, prod_rev, db,
     ):
         other = get_user_model().objects.create_user(
-            username='otherrev', email='or@rev.com', password='x',
+            email='or@rev.com', password='x',
         )
         o = Order.objects.create(user=other, status='DELIVERED')
         r = auth_client.post(PRODUCT_REVIEWS_URL(prod_rev.id), {
@@ -380,7 +380,7 @@ class TestRatingFilterAndSorting:
     ):
         """Filter ?rating=3 must exclude reviews with rating != 3."""
         u2 = get_user_model().objects.create_user(
-            username='u_filter2', email='uf2@rev.com', password='x',
+            email='uf2@rev.com', password='x',
         )
         o1 = self._make_order(db, user)
         OrderItem.objects.create(
@@ -410,7 +410,7 @@ class TestRatingFilterAndSorting:
     ):
         """?sort=helpful must put the review with more votes first."""
         u2 = get_user_model().objects.create_user(
-            username='u_sort2', email='usort2@rev.com', password='x',
+            email='usort2@rev.com', password='x',
         )
         o1 = self._make_order(db, user)
         OrderItem.objects.create(
@@ -442,7 +442,7 @@ class TestRatingFilterAndSorting:
     ):
         """Page 2 with page_size=1 should return the second-oldest approved review."""
         u2 = get_user_model().objects.create_user(
-            username='u_page2', email='upage2@rev.com', password='x',
+            email='upage2@rev.com', password='x',
         )
         o1 = self._make_order(db, user)
         OrderItem.objects.create(
@@ -682,7 +682,7 @@ class TestBuyerEditReview:
     ):
         """403 REVIEW_NOT_OWNER when editing another user's review."""
         other = get_user_model().objects.create_user(
-            username='other_edit', email='otheredit@rev.com', password='x',
+            email='otheredit@rev.com', password='x',
         )
         o_other = Order.objects.create(user=other, status='DELIVERED')
         review = Review.objects.create(
@@ -693,7 +693,7 @@ class TestBuyerEditReview:
         # Authenticate as a different user (re-use the `user` fixture via
         # creating a fresh user here and logging in manually).
         attacker = get_user_model().objects.create_user(
-            username='attacker_edit', email='attacker@rev.com', password='x',
+            email='attacker@rev.com', password='x',
         )
         api_client.force_login(attacker)
         r = api_client.patch(
@@ -769,7 +769,7 @@ class TestReviewImages:
     ):
         """Non-owner cannot add image."""
         other = get_user_model().objects.create_user(
-            username='otherimguser', email='other_img@rev.com', password='x',
+            email='other_img@rev.com', password='x',
         )
         api_client.force_login(other)
         res = api_client.post(
@@ -912,7 +912,7 @@ class TestUcRev01CreateErrorHandling:
         PARTE 7.3 UC-REV-01: 403 codigo_error=PRODUCT_NOT_PURCHASED.
         """
         other = get_user_model().objects.create_user(
-            username='ac05_other', email='ac05o@rev.com', password='x',
+            email='ac05o@rev.com', password='x',
         )
         o = Order.objects.create(user=other, status='DELIVERED')
         r = auth_client.post(

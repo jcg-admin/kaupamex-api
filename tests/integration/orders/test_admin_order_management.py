@@ -92,7 +92,7 @@ class TestBuscarOrdenesAdmin:
     ):
         User = get_user_model()
         other = User.objects.create_user(
-            username='other_adm', email='oa@test.com', password='pass'
+            email='oa@test.com', password='pass'
         )
         _make_order(user, prod_adm)
         _make_order(other,     prod_adm)
@@ -147,7 +147,7 @@ class TestBuscarOrdenesAdmin:
         assert results, 'al menos una orden'
         first = results[0]
         assert first['user_email'] == user.email
-        assert first['user_username'] == user.username
+        assert first['user_username'] == user.email
 
 
 # =============================================================================

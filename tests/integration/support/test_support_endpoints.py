@@ -621,7 +621,6 @@ class CierreIdempotenteAutoCloseTest(TestCase):
     def setUp(self):
         User = get_user_model()
         self.buyer = User.objects.create_user(
-            username='buyer_supp04_t018',
             email='buyer-supp04-t018@practicayoruba.mx',
             password='BuyerPass123!',
         )

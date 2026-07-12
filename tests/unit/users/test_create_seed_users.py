@@ -8,6 +8,9 @@ from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.core.management.base import CommandError
 
+from apps.authz.models import RoleAssignment
+from apps.authz.services import SUPERADMIN_ROLE_CODE
+
 pytestmark = pytest.mark.unit
 
 User = get_user_model()
@@ -33,9 +36,9 @@ class TestCreateSeedUsersAdmin:
         # H-E2E-03: username == email (el login SPA autentica por username y
         # el form manda el email; el seed debe espejar el registro real).
         admin = User.objects.get(email='admin@practicayoruba.mx')
-        assert admin.username == 'admin@practicayoruba.mx'
-        assert admin.is_staff is True
-        assert admin.is_superuser is True
+        assert admin.email == 'admin@practicayoruba.mx'
+        assert RoleAssignment.objects.filter(
+            user=admin, role__code=SUPERADMIN_ROLE_CODE).exists()
         assert admin.is_active is True
         assert admin.deactivated_reason is None
         assert admin.deactivated_at is None
@@ -61,9 +64,9 @@ class TestCreateSeedUsersQABuyer:
         call_command('create_seed_users')
 
         buyer = User.objects.get(email='qabuyer@practicayoruba.mx')
-        assert buyer.username == 'qabuyer@practicayoruba.mx'
-        assert buyer.is_staff is False
-        assert buyer.is_superuser is False
+        assert buyer.email == 'qabuyer@practicayoruba.mx'
+        assert not RoleAssignment.objects.filter(
+            user=buyer, role__code=SUPERADMIN_ROLE_CODE).exists()
         assert buyer.is_active is True
         assert buyer.deactivated_reason is None
         assert buyer.deactivated_at is None
@@ -100,7 +103,7 @@ class TestCreateSeedUsersIdempotent:
 
         admins = User.objects.filter(email='admin@practicayoruba.mx')
         assert admins.count() == 1
-        assert admins.first().username == 'admin@practicayoruba.mx'
+        assert admins.first().email == 'admin@practicayoruba.mx'
 
     def test_idempotent_keeps_is_active_true(self, db, monkeypatch):
         for k, v in _VALID_ENV.items():

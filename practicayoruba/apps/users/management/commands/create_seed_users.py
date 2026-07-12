@@ -31,6 +31,9 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
+from apps.authz.models import Role, RoleAssignment
+from apps.authz.services import SUPERADMIN_ROLE_CODE
+
 
 User = get_user_model()
 
@@ -120,20 +123,13 @@ class Command(BaseCommand):
 
 
 def _upsert_admin(vals):
-    # username = email: el login autentica por USERNAME_FIELD ('username') y
-    # el formulario SPA (type="email") manda el email como username. El
-    # registro real hace username=email[:150] (serializers.py:_generate_username),
-    # asi que un seed con username=handle NO puede loguearse por la SPA. Se
-    # espeja produccion: username == email. Lookup por email para migrar
-    # idempotentemente filas seed viejas (username='admin'). ADMIN_USERNAME
-    # queda solo como etiqueta de .env (no participa del login).
+    # Party (T-201): email es el identificador (USERNAME_FIELD). ``is_staff``/
+    # ``is_superuser`` ya no existen — el acceso admin se otorga con el rol
+    # ``superadmin`` de apps.authz (DEC-01=B). Lookup por email; idempotente.
     email = vals['ADMIN_EMAIL']
     user, created = User.objects.update_or_create(
         email=email,
         defaults={
-            'username': email,
-            'is_staff': True,
-            'is_superuser': True,
             'is_active': True,
             'deactivated_reason': None,
             'deactivated_at': None,
@@ -141,19 +137,19 @@ def _upsert_admin(vals):
     )
     user.set_password(vals['ADMIN_PASSWORD'])
     user.save(update_fields=['password'])
+    role, _ = Role.objects.get_or_create(
+        code=SUPERADMIN_ROLE_CODE, defaults={'name': 'Superadministrador'},
+    )
+    RoleAssignment.objects.get_or_create(user=user, role=role)
     return user, created
 
 
 def _upsert_qa_buyer(vals):
-    # username = email (mismo motivo que _upsert_admin): el comprador seed
-    # debe loguearse por la SPA igual que un comprador registrado.
+    # Comprador seed: identidad party sin rol admin (email es el identificador).
     email = vals['QA_BUYER_EMAIL']
     user, created = User.objects.update_or_create(
         email=email,
         defaults={
-            'username': email,
-            'is_staff': False,
-            'is_superuser': False,
             'is_active': True,
             'deactivated_reason': None,
             'deactivated_at': None,

@@ -17,17 +17,17 @@ def users_set(db):
     now = timezone.now()
     return [
         User.objects.create_user(
-            username='unver1', email='u1@x.mx', password='x',
+            email='u1@x.mx', password='x',
             is_active=False, deactivated_reason='unverified',
             deactivated_at=now,
         ),
         User.objects.create_user(
-            username='susp1',  email='s1@x.mx', password='x',
+            email='s1@x.mx', password='x',
             is_active=False, deactivated_reason='suspended',
             deactivated_at=now,
         ),
         User.objects.create_user(
-            username='self1', email='d1@x.mx', password='x',
+            email='d1@x.mx', password='x',
             is_active=False, deactivated_reason='self_deleted',
             deactivated_at=now,
         ),

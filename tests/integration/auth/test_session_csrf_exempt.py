@@ -72,7 +72,7 @@ class TestMutacionPorSesionExentaDeCsrf:
         # 1) login -> setea la cookie de sesion.
         r = csrf_client.post(
             LOGIN_URL,
-            {'username': user.username, 'password': 'TestPass123!'},
+            {'username': user.email, 'password': 'TestPass123!'},
             format='json',
         )
         assert r.status_code == 200

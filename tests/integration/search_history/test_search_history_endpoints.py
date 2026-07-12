@@ -26,7 +26,7 @@ class TestSearchHistory:
 
     def test_lista_solo_propias_20_max(self, auth_client, user, db):
         other = get_user_model().objects.create_user(
-            username='otherSH', email='osh@sh.com', password='x',
+            email='osh@sh.com', password='x',
         )
         SearchHistory.objects.create(user=other, term='ajeno')
         for i in range(25):
@@ -54,7 +54,7 @@ class TestSearchHistory:
 
     def test_delete_ajeno_devuelve_404_loud(self, auth_client, db):
         other = get_user_model().objects.create_user(
-            username='oshd', email='oshd@sh.com', password='x',
+            email='oshd@sh.com', password='x',
         )
         e = SearchHistory.objects.create(user=other, term='x')
         r = auth_client.delete(DETAIL_URL(e.id))

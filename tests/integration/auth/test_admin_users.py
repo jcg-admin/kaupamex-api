@@ -14,7 +14,7 @@ USERS_URL = '/api/v2/admin/users/'
 def sample_users(db):
     User = get_user_model()
     users = [
-        User.objects.create_user(username=f'buyer{i}', email=f'buyer{i}@test.mx',
+        User.objects.create_user(email=f'buyer{i}@test.mx',
                                  password='Pass123!', is_active=(i % 2 == 0))
         for i in range(5)
     ]

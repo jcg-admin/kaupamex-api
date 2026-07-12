@@ -19,7 +19,6 @@ CONFIRM_URL = '/api/v2/auth/password-reset/confirm/'
 def active_user(db):
     User = get_user_model()
     return User.objects.create_user(
-        username='resetuser',
         email='reset@practicayoruba.mx',
         password='OriginalPass123!',
         is_active=True,

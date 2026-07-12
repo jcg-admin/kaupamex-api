@@ -32,7 +32,7 @@ class TestSessionEstablecidaEnLogin:
     def test_login_setea_cookie_de_sesion(self, api_client, user):
         r = api_client.post(
             LOGIN_URL,
-            {'username': user.username, 'password': 'TestPass123!'},
+            {'username': user.email, 'password': 'TestPass123!'},
             format='json',
         )
         assert r.status_code == 200
@@ -43,7 +43,7 @@ class TestSessionEstablecidaEnLogin:
         # Login establece la sesion (la cookie queda en el jar del cliente).
         api_client.post(
             LOGIN_URL,
-            {'username': user.username, 'password': 'TestPass123!'},
+            {'username': user.email, 'password': 'TestPass123!'},
             format='json',
         )
         # Simula la recarga: nueva request SIN Authorization, solo la cookie.
@@ -52,7 +52,7 @@ class TestSessionEstablecidaEnLogin:
         assert r.status_code == 200
         data = r.json()
         assert data['isAuthenticated'] is True
-        assert data['user']['username'] == user.username
+        assert data['user']['username'] == user.email
 
 
 class TestSessionLogout:
@@ -60,7 +60,7 @@ class TestSessionLogout:
     def test_logout_cierra_la_sesion(self, api_client, user):
         api_client.post(
             LOGIN_URL,
-            {'username': user.username, 'password': 'TestPass123!'},
+            {'username': user.email, 'password': 'TestPass123!'},
             format='json',
         )
         api_client.credentials()

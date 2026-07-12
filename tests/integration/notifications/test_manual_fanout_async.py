@@ -36,7 +36,6 @@ def _create_buyers(n):
     user_ids = []
     for i in range(n):
         u = User.objects.create_user(
-            username=f'syncbuyer{i}',
             email=f'syncbuyer{i}@practicayoruba.mx',
             password='Pw123456!',
         )
@@ -62,7 +61,7 @@ class TestManualFanoutSync:
         """POST manual para USER crea ManualNotification y Notification."""
         res = admin_client.post(ADMIN_MANUAL_URL, {
             'recipient_type': 'USER',
-            'recipient_identifier': user.username,
+            'recipient_identifier': user.email,
             'subject': 'Test individual',
             'message': 'Mensaje de prueba.',
         }, format='json')

@@ -17,7 +17,7 @@ USERS_URL = '/api/v2/admin/users/'
 @pytest.fixture
 def target_user(db):
     return get_user_model().objects.create_user(
-        username='targetuser', email='target@test.mx',
+        email='target@test.mx',
         password='Pass123!', is_active=True,
     )
 
@@ -25,7 +25,7 @@ def target_user(db):
 @pytest.fixture
 def superuser_target(db):
     return get_user_model().objects.create_user(
-        username='superusertarget', email='super@test.mx',
+        email='super@test.mx',
         password='Pass123!', is_active=True,
         is_staff=True, is_superuser=True,
     )
@@ -116,7 +116,7 @@ class TestAdminReactivateUser:
     @pytest.fixture
     def inactive_target(self, db):
         return get_user_model().objects.create_user(
-            username='inactiveuser', email='inactive@test.mx',
+            email='inactive@test.mx',
             password='Pass123!', is_active=False,
         )
 
