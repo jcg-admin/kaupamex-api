@@ -123,3 +123,30 @@ def test_seed_menu_is_idempotent(seeded):
     before = MenuItem.objects.count()
     call_command('seed_menu')
     assert MenuItem.objects.count() == before
+
+
+@pytest.mark.django_db
+def test_arbitrary_depth_0_1_2_3(seeded, client):
+    """El árbol es adjacency-list + build recursivo: la profundidad no tiene
+    límite por diseño. Se arma una cadena nivel 0→1→2→3 y el endpoint la
+    devuelve anidada intacta (prueba de que 0/1/2/3/N funciona sin cambios)."""
+    cap = Capability.objects.get(code='settings.manage')
+    n0 = MenuItem.objects.create(key='d0', label='N0', route='', order=90)
+    n1 = MenuItem.objects.create(key='d1', label='N1', route='', order=0, parent=n0)
+    n2 = MenuItem.objects.create(key='d2', label='N2', route='', order=0, parent=n1)
+    MenuItem.objects.create(key='d3', label='N3', route='/admin/system-settings',
+                            order=0, parent=n2, required_capability=cap)
+
+    u = _user('deep@e.com')
+    RoleAssignment.objects.create(user=u, role=_role_with(['settings.manage']))
+    invalidate_capabilities(u.id)
+    client.force_authenticate(u)
+    tree = client.get('/api/v2/authz/me/menu/').json()
+
+    n0node = next(s for s in tree if s['label'] == 'N0')          # nivel 0
+    n1node = n0node['children'][0]                                 # nivel 1
+    n2node = n1node['children'][0]                                 # nivel 2
+    n3node = n2node['children'][0]                                 # nivel 3
+    assert [n1node['label'], n2node['label'], n3node['label']] == ['N1', 'N2', 'N3']
+    assert n3node['route'] == '/admin/system-settings'
+    assert n3node['children'] == []
