@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'apps.backups',
     'apps.referral',
     'apps.geo',
+    'apps.authz',
 ]
 
 AUTH_USER_MODEL = 'users.User'
