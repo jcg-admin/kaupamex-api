@@ -544,6 +544,10 @@ class EmailVerifyView(APIView):
             ])
             token_obj.used_at = timezone.now()
             token_obj.save(update_fields=['used_at', 'updated_at'])
+            # ADR-020: invariante "registrado y validado recibe comprador".
+            # Idempotente/tolerante: garantiza el rol tambien al validar, por si
+            # el registro no lo asigno (rol aun no sembrado, alta por import, etc.).
+            assign_buyer_role(user)
 
         # UX (ADR-018): auto-login por sesion tras verificar. Hacer clic en el
         # enlace de un solo uso prueba control del correo = control de la cuenta
