@@ -56,7 +56,7 @@ INSTALLED_APPS = [
     'apps.authz',
 ]
 
-AUTH_USER_MODEL = 'users.User'
+AUTH_USER_MODEL = 'users.IdentityUser'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
