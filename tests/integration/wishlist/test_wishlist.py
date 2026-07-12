@@ -18,9 +18,22 @@ from decimal import Decimal
 from apps.catalogue.models import Category, Product
 from apps.chartsize.models import VariantType, VariantOption, ProductVariant
 from apps.wishlist.models import WishlistItem
+from django.contrib.auth import get_user_model
+
 pytestmark = pytest.mark.integration
 
 WISH_URL = '/api/v2/wishlist/'
+
+
+class TestWishlistCapabilityGate:
+    """Enforcement (ADR-020, DEC-ENF-01): la lista de favoritos propia exige
+    ``account.wishlist``. Autenticado sin la capacidad → 403."""
+
+    def test_requires_account_wishlist(self, api_client, db):
+        u = get_user_model().objects.create_user(
+            email='norole-wishlist@practicayoruba.mx', password='TestPass123!')
+        api_client.force_login(u)
+        assert api_client.get(WISH_URL).status_code == 403
 
 
 @pytest.fixture

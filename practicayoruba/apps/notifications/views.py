@@ -54,7 +54,8 @@ _INBOX_CAP = 500
 class NotificationListView(APIView):
     """GET /api/v1/notifications/."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.notifications'
 
     @extend_schema(
         summary='Listar notificaciones del usuario',
@@ -92,7 +93,8 @@ class NotificationListView(APIView):
 class NotificationUnreadCountView(APIView):
     """GET /api/v1/notifications/unread-count/."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.notifications'
     serializer_class = NotificationSerializer
 
     @extend_schema(
@@ -114,7 +116,8 @@ class NotificationUnreadCountView(APIView):
 class NotificationMarkReadView(APIView):
     """POST /api/v1/notifications/{id}/read/."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.notifications'
     serializer_class = NotificationSerializer
 
     @extend_schema(
@@ -140,7 +143,8 @@ class NotificationMarkReadView(APIView):
 class NotificationMarkAllReadView(APIView):
     """POST /api/v1/notifications/read-all/."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.notifications'
     serializer_class = NotificationSerializer
 
     @extend_schema(
@@ -214,7 +218,8 @@ def _upsert_preference(user, type_value, enabled):
 class NotificationPreferencesView(APIView):
     """GET/PUT /api/v2/notifications/preferences/."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.notifications'
 
     @extend_schema(
         summary='Listar preferencias de notificacion',
@@ -456,7 +461,8 @@ class NotificationMarkReadV2View(APIView):
     absent — always marks as read for backwards compat with v1 semantics).
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.notifications'
 
     @extend_schema(
         summary='Marcar notificacion como leida (PATCH)',

@@ -18,6 +18,8 @@ JSON keys + identifiers in English (DEC-DOC-005).
 import pytest
 from apps.notifications.models import Notification, NotificationPreference
 
+from django.contrib.auth import get_user_model
+
 pytestmark = pytest.mark.integration
 
 LIST_URL = '/api/v2/notifications/'
@@ -25,6 +27,17 @@ UNREAD_COUNT_URL = '/api/v2/notifications/unread-count/'
 PREFERENCES_URL = '/api/v2/notifications/preferences/'
 ADMIN_AUDIENCE_URL = '/api/v2/admin/notifications/audience-count/'
 ADMIN_MANUAL_URL = '/api/v2/admin/notifications/'
+
+
+class TestNotificationsCapabilityGate:
+    """Enforcement (ADR-020, DEC-ENF-01): las notificaciones propias exigen
+    ``account.notifications``. Autenticado sin la capacidad → 403."""
+
+    def test_requires_account_notifications(self, api_client, db):
+        u = get_user_model().objects.create_user(
+            email='norole-notif@practicayoruba.mx', password='TestPass123!')
+        api_client.force_login(u)
+        assert api_client.get(LIST_URL).status_code == 403
 
 
 # ─── helpers ─────────────────────────────────────────────────────────────

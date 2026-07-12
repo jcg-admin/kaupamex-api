@@ -16,6 +16,7 @@ from apps.users.audit import audit_log_business
 from apps.users.models import BusinessEvent
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from apps.authz.permissions import HasCapability
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
@@ -378,7 +379,8 @@ class OrderDetailView(APIView):
     UC-ORD-02 (FR-ORD-02.02). RNF-SEC-003: filter(order_number, user) → 404.
     Carga anticipada de items, value y address (evita N+1).
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.orders'
 
     @extend_schema(
         summary='Detalle de una orden',
@@ -426,7 +428,8 @@ class OrderCancelView(APIView):
       3. Restaura stock (InventoryService.restore)
       4. Reembolso automático si había Payment aprobado
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.orders'
 
     @extend_schema(
         summary='[DEPRECATED → /api/v2/orders/<n>/cancellations/] Cancelar una orden',
@@ -508,7 +511,8 @@ class OrderAddressUpdateView(APIView):
     UC-ORD-05 (FR-ORD-05.02).
     Solo posible en PENDING, PROCESSING, IN_PREPARATION.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.orders'
 
     @extend_schema(
         summary='[DEPRECATED → /api/v2/orders/<n>/shipping-address/] Actualizar dirección de entrega',
@@ -577,7 +581,8 @@ class OrderShippingUpdateView(APIView):
     endpoint se conserva (no se elimina) marcado deprecado; su retiro efectivo
     queda para una iniciativa dedicada.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.orders'
 
     @extend_schema(
         summary='[DEPRECATED → /api/v2/orders/<n>/shipping-method/] Cambiar método de envío',
@@ -652,10 +657,14 @@ class OrderCollectionV2View(APIView):
     GET requiere auth; POST acepta anonimos con throttle checkout.
     """
 
+    # POST (checkout) queda AllowAny — guest checkout se mantiene (DEC-ENF-03).
+    # GET (historial propio) es gestión de cuenta → exige account.orders.
+    required_capability = 'account.orders'
+
     def get_permissions(self):
         if self.request.method == 'POST':
             return [AllowAny()]
-        return [IsAuthenticated()]
+        return [IsAuthenticated(), HasCapability()]
 
     def get_throttles(self):
         if self.request.method == 'POST':

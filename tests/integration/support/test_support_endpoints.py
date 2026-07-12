@@ -36,6 +36,17 @@ TICKETS_URL = '/api/v2/support/tickets/'
 ADMIN_TICKETS_URL = '/api/v2/admin/support/tickets/'
 
 
+class TestSupportCapabilityGate:
+    """Enforcement (ADR-020, DEC-ENF-01): el soporte propio exige
+    ``account.support``. Autenticado sin la capacidad → 403."""
+
+    def test_requires_account_support(self, api_client, db):
+        u = get_user_model().objects.create_user(
+            email='norole-support@practicayoruba.mx', password='TestPass123!')
+        api_client.force_login(u)
+        assert api_client.get(TICKETS_URL).status_code == 403
+
+
 # ────────────────────────────── UC-SUPP-01 ────────────────────────────────
 class TestCreateTicket:
     def test_requires_auth(self, api_client, db):
