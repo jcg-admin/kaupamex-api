@@ -31,11 +31,25 @@ def _row(**over):
 def test_model_stores_all_15_columns():
     obj = _row()
     obj.refresh_from_db()
+    assert obj.country == 'MX'                       # default país (fuente actual)
     assert obj.postal_code == '01000'
     assert obj.settlement_name == 'San Ángel'      # latin-1 accents preserved
     assert obj.municipality == 'Álvaro Obregón'
     assert obj.zone == CatalogPostalCode.ZONE_URBANO
     assert obj.postal_code_internal_code == ''      # c_CP siempre vacío
+
+
+def test_natural_key_is_scoped_by_country():
+    """El mismo (postal_code, settlement_consecutive_id) puede coexistir en dos
+    países — el catálogo es internacional (envíos internacionales futuros)."""
+    _row(country='MX', postal_code='28001', settlement_consecutive_id='0001',
+         settlement_name='Centro')
+    # Mismo CP+consecutivo, país distinto (ej. España): permitido.
+    _row(country='ES', postal_code='28001', settlement_consecutive_id='0001',
+         settlement_name='Salamanca', municipality='Madrid', state='Madrid',
+         zone='')
+    assert CatalogPostalCode.objects.filter(postal_code='28001').count() == 2
+    assert CatalogPostalCode.objects.filter(country='ES').count() == 1
 
 
 def test_one_cp_maps_to_many_settlements():

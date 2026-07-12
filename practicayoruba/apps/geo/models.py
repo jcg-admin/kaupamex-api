@@ -1,21 +1,29 @@
 """Models — apps.geo
 
-CatalogPostalCode: catálogo nacional de códigos postales de México (SEPOMEX /
-Correos de México). Espejo 1:1 de las 15 columnas oficiales del dataset, con
-los nombres en inglés. Un código postal mapea a N asentamientos (colonias),
-así que la clave natural de una fila es ``(postal_code, settlement_consecutive_id)``
-y la PK es surrogada (SOL-016, DEC-02, H-API-PARTY-01).
+CatalogPostalCode: catálogo **internacional** de códigos postales (una fila por
+asentamiento/localidad dentro de un CP). Es genérico por país (``country``);
+hoy la única fuente cargada es México (SEPOMEX / Correos de México), pero el
+esquema está preparado para integrar otros países en el futuro (envíos
+internacionales) sin cambiar el modelo — cada fuente-país aporta sus filas.
 
-``Address`` (apps.users, party model) referencia una fila de este catálogo
-por su asentamiento concreto; el catálogo también alimenta el trabajo de
-direcciones de envío / zonas.
+Los campos universales (``country``, ``postal_code``, ``settlement_name``,
+``settlement_type``, ``municipality``, ``state``, ``city``, ``zone``) aplican a
+cualquier país. Los campos con prefijo de código (``office_postal_code``,
+``*_code``, ``settlement_consecutive_id``, ``postal_code_internal_code``) son
+**extras de la fuente SEPOMEX (MX)** — quedan en blanco para otras fuentes que
+no los provean. Se conservan para el espejo 1:1 del dataset oficial mexicano.
+
+Un CP mapea a N asentamientos, así que la clave natural es
+``(country, postal_code, settlement_consecutive_id)`` y la PK es surrogada
+(SOL-016, DEC-02, H-API-PARTY-01). ``Address`` (apps.users, party model)
+referencia una fila concreta; el catálogo también alimenta direcciones de envío.
 """
 from django.db import models
 
 
 class CatalogPostalCode(models.Model):
-    """Un asentamiento (colonia) dentro de un código postal — fila del
-    Catálogo Nacional de Códigos Postales (SEPOMEX)."""
+    """Un asentamiento (colonia/localidad) dentro de un código postal, con
+    ámbito por país. Genérico internacional; MX (SEPOMEX) es la fuente actual."""
 
     ZONE_URBANO = 'Urbano'
     ZONE_SEMIURBANO = 'Semiurbano'
@@ -26,12 +34,18 @@ class CatalogPostalCode(models.Model):
         (ZONE_RURAL, 'Rural'),
     ]
 
+    # País (ISO 3166-1 alpha-2). Ámbito de la fila; default MX (fuente actual).
+    country = models.CharField(
+        max_length=2, default='MX', db_index=True,
+        verbose_name='País',
+        help_text='Código ISO 3166-1 alpha-2 del país de la fuente.',
+    )
     # d_codigo — CP del asentamiento (el que referencia address). No único:
-    # un CP tiene N asentamientos.
+    # un CP tiene N asentamientos. Ancho para CPs internacionales (MX=5).
     postal_code = models.CharField(
-        max_length=5, db_index=True,
+        max_length=12, db_index=True,
         verbose_name='Código postal',
-        help_text='CP del asentamiento (SEPOMEX d_codigo).',
+        help_text='CP del asentamiento (MX: SEPOMEX d_codigo).',
     )
     # d_asenta — nombre del asentamiento (colonia).
     settlement_name = models.CharField(max_length=64, verbose_name='Asentamiento')
@@ -59,8 +73,11 @@ class CatalogPostalCode(models.Model):
     municipality_code = models.CharField(max_length=3, verbose_name='Clave de municipio')
     # id_asenta_cpcons — ID consecutivo del asentamiento dentro del CP.
     settlement_consecutive_id = models.CharField(max_length=4, verbose_name='ID consecutivo de asentamiento')
-    # d_zona — zona.
-    zone = models.CharField(max_length=12, choices=ZONE_CHOICES, verbose_name='Zona')
+    # d_zona — zona (MX: Urbano/Semiurbano/Rural). Otros países pueden no tenerla.
+    zone = models.CharField(
+        max_length=12, choices=ZONE_CHOICES, blank=True, default='',
+        verbose_name='Zona',
+    )
     # c_cve_ciudad — clave de la ciudad (puede ir vacío).
     city_code = models.CharField(max_length=2, blank=True, default='', verbose_name='Clave de ciudad')
 
@@ -70,13 +87,14 @@ class CatalogPostalCode(models.Model):
         verbose_name_plural = 'Códigos postales (SEPOMEX)'
         constraints = [
             models.UniqueConstraint(
-                fields=['postal_code', 'settlement_consecutive_id'],
+                fields=['country', 'postal_code', 'settlement_consecutive_id'],
                 name='uq_catalog_postal_code_natural_key',
             ),
         ]
         indexes = [
-            models.Index(fields=['postal_code', 'settlement_name']),
+            models.Index(fields=['country', 'postal_code', 'settlement_name']),
         ]
 
     def __str__(self):
-        return f'{self.postal_code} — {self.settlement_name} ({self.municipality}, {self.state})'
+        return (f'{self.country} {self.postal_code} — {self.settlement_name} '
+                f'({self.municipality}, {self.state})')
