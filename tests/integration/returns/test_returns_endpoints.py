@@ -19,6 +19,7 @@ from decimal import Decimal
 from io import BytesIO
 from unittest.mock import MagicMock, patch
 import pytest
+from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 from apps.catalogue.models import Category, Product
@@ -87,6 +88,36 @@ def delivered_order_with_items(db, user, prod1, prod2):
         unit_price=prod2.price, quantity=2, subtotal=prod2.price * 2,
     )
     return order
+
+
+# ─── Enforcement capacidad-dirigido (ADR-020, DEC-ENF-01: account.returns) ───
+class TestReturnsCapabilityGate:
+    """Los endpoints propios del comprador exigen ``account.returns`` además de
+    autenticación. Un usuario autenticado SIN esa capacidad recibe 403 (no 200
+    ni 401). En producción todo comprador la tiene (ADR-020); aquí se crea un
+    usuario deliberadamente sin el rol para probar el candado."""
+
+    def _authed_without_capability(self, api_client):
+        u = get_user_model().objects.create_user(
+            email='norole-returns@practicayoruba.mx', password='TestPass123!',
+        )
+        api_client.force_login(u)
+        return u
+
+    def test_list_create_requires_account_returns(self, api_client, db):
+        self._authed_without_capability(api_client)
+        res = api_client.post(RETURNS_URL, _valid_payload(), format='json')
+        assert res.status_code == 403
+
+    def test_list_get_requires_account_returns(self, api_client, db):
+        self._authed_without_capability(api_client)
+        res = api_client.get(RETURNS_URL)
+        assert res.status_code == 403
+
+    def test_detail_requires_account_returns(self, api_client, db):
+        self._authed_without_capability(api_client)
+        res = api_client.get(f'{RETURNS_URL}999999/')
+        assert res.status_code == 403
 
 
 # ────────────────────────────── UC-RET-01 ────────────────────────────────
