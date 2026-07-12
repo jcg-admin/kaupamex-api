@@ -9,8 +9,18 @@ import pytest
 from decimal import Decimal
 
 from apps.orders.models import ShippingZone
+from apps.geo.models import CatalogPostalCode
 
 pytestmark = pytest.mark.integration
+
+
+def _cp(postal_code, state, consec):
+    """Crea una fila SEPOMEX mínima para probar la relación zona↔CP."""
+    return CatalogPostalCode.objects.create(
+        country='MX', postal_code=postal_code, settlement_name='Centro',
+        settlement_type='Colonia', municipality='Cuauhtémoc', state=state,
+        settlement_consecutive_id=consec,
+    )
 
 LIST_URL   = '/api/v2/admin/shipping-zones/'
 DETAIL_URL = lambda pk: f'/api/v2/admin/shipping-zones/{pk}/'
@@ -89,6 +99,48 @@ class TestShippingZonesAdmin:
         }, format='json')
         assert r.status_code == 400
         assert 'estimated_days_max' in r.json()
+
+
+class TestShippingZonesSepomex:
+    """Relación catálogo de zonas ↔ SEPOMEX (apps.geo.CatalogPostalCode)."""
+
+    def test_coverage_vacio_sin_sepomex(self, admin_client, zona, db):
+        # Sin datos SEPOMEX cargados, coverage es 0 asentamientos / sin estados,
+        # pero el campo existe (relación expuesta).
+        r = admin_client.get(DETAIL_URL(zona.id))
+        assert r.status_code == 200
+        cov = r.json()['coverage']
+        assert cov == {'settlement_count': 0, 'states': []}
+
+    def test_validacion_omitida_sin_sepomex(self, admin_client, db):
+        # Graceful: catálogo vacío → no se bloquea un prefijo aunque no exista CP.
+        r = admin_client.post(LIST_URL, {
+            'name': 'Sin catálogo', 'zip_code_prefix': '01',
+            'estimated_days_min': 1, 'estimated_days_max': 3,
+        }, format='json')
+        assert r.status_code == 201
+
+    def test_prefijo_valido_con_sepomex(self, admin_client, db):
+        _cp('06000', 'Ciudad de México', '0001')
+        _cp('06010', 'Ciudad de México', '0001')
+        r = admin_client.post(LIST_URL, {
+            'name': 'Centro CDMX', 'zip_code_prefix': '06',
+            'estimated_days_min': 1, 'estimated_days_max': 2,
+        }, format='json')
+        assert r.status_code == 201, r.content
+        cov = r.json()['coverage']
+        assert cov['settlement_count'] == 2
+        assert cov['states'] == ['Ciudad de México']
+
+    def test_prefijo_invalido_con_sepomex(self, admin_client, db):
+        # Con SEPOMEX cargado, un prefijo sin CP real se rechaza.
+        _cp('06000', 'Ciudad de México', '0001')
+        r = admin_client.post(LIST_URL, {
+            'name': 'Fantasma', 'zip_code_prefix': '99',
+            'estimated_days_min': 1, 'estimated_days_max': 2,
+        }, format='json')
+        assert r.status_code == 400
+        assert 'zip_code_prefix' in r.json()
 
 
 class TestShippingZonesPublic:
