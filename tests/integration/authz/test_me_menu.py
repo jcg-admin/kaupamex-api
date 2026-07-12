@@ -140,6 +140,22 @@ def test_banners_leaf_gated_by_banners_manage(seeded, client):
 
 
 @pytest.mark.django_db
+def test_static_content_leaf_gated_by_settings_manage(seeded, client):
+    """UC-CFG-04: la hoja «Contenido estático» lleva settings.manage — la misma
+    capacidad que /api/v2/admin/pages/ enforce. Cierra el gap endpoint↔menu↔UI:
+    el CRUD de páginas existía pero no tenía destino en el menú."""
+    u = _user('cfg@e.com')
+    RoleAssignment.objects.create(user=u, role=_role_with(['settings.manage']))
+    invalidate_capabilities(u.id)
+    client.force_authenticate(u)
+    tree = client.get('/api/v2/authz/me/menu/').json()
+    config = next(s for s in tree if s['label'] == 'Configuración')
+    contenido = next(i for i in config['children']
+                     if i['label'] == 'Contenido estático')
+    assert contenido['route'] == '/admin/content'
+
+
+@pytest.mark.django_db
 def test_seed_menu_is_idempotent(seeded):
     before = MenuItem.objects.count()
     call_command('seed_menu')

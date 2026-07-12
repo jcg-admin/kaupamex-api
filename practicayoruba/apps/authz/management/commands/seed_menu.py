@@ -84,6 +84,7 @@ MENU = [
     _group('sec-configuracion', 'Configuración', [
         _leaf('config', 'Configuración', '/admin/config', 'settings.manage'),
         _leaf('config-sistema', 'Configuración Sistema', '/admin/system-settings', 'settings.manage'),
+        _leaf('contenido-estatico', 'Contenido estático', '/admin/content', 'settings.manage'),
         _leaf('backups', 'Backups', '/admin/backups', 'backups.manage'),
     ]),
 ]
