@@ -4,6 +4,7 @@ Serializers — apps.logistics (P-13).
 English JSON keys per DEC-DOC-005. Business error codes Spanish per
 DEC-DOC-006 — raised in views, not here.
 """
+from decimal import Decimal
 from rest_framework import serializers
 from apps.orders.models import Order
 from .models import Courier, ShipmentEvent, ShipmentGuide
@@ -144,3 +145,26 @@ class BuyerShipmentGuideSerializer(serializers.ModelSerializer):
     def get_last_event(self, obj) -> dict | None:
         ev = obj.events.order_by('-occurred_at').first()
         return ShipmentEventSerializer(ev).data if ev else None
+
+
+# ── Motor de cotización de paqueterías (apps.logistics.offers) ──────────────
+
+class ShipmentPackageInputSerializer(serializers.Serializer):
+    """Un paquete del envío. Dimensiones en cm, peso en kg, valor en la moneda
+    de la tienda. Todos > 0; ``hazardous`` opcional (default False)."""
+    length    = serializers.DecimalField(max_digits=8, decimal_places=2, min_value=Decimal('0.01'))
+    width     = serializers.DecimalField(max_digits=8, decimal_places=2, min_value=Decimal('0.01'))
+    height    = serializers.DecimalField(max_digits=8, decimal_places=2, min_value=Decimal('0.01'))
+    weight    = serializers.DecimalField(max_digits=8, decimal_places=2, min_value=Decimal('0.01'))
+    value     = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal('0'))
+    hazardous = serializers.BooleanField(required=False, default=False)
+
+
+class ShipmentOfferRequestSerializer(serializers.Serializer):
+    """Solicitud de cotización: contacto/direcciones opcionales + paquetes."""
+    contact_name     = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    contact_phone    = serializers.CharField(required=False, allow_blank=True, max_length=20)
+    contact_email    = serializers.EmailField(required=False, allow_blank=True)
+    pickup_address   = serializers.CharField(required=False, allow_blank=True, max_length=255)
+    delivery_address = serializers.CharField(required=False, allow_blank=True, max_length=255)
+    packages = ShipmentPackageInputSerializer(many=True, allow_empty=False)

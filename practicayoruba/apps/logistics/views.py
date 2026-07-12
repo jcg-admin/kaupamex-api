@@ -23,12 +23,15 @@ class ShipmentGuidePagination(PageNumberPagination):
 
 logger = logging.getLogger('apps')
 
+from rest_framework.permissions import AllowAny
 from apps.orders.models import Order, OrderStatusLog
 from config.schema import error_response
-from .models import Courier, ShipmentEvent, ShipmentGuide
+from .models import CarrierRateCard, Courier, ShipmentEvent, ShipmentGuide
+from .offers import build_offers
 from .serializers import (
     BuyerShipmentGuideSerializer, CourierCreateUpdateSerializer, CourierSerializer,
     ShipmentGuideCreateSerializer, ShipmentGuideSerializer,
+    ShipmentOfferRequestSerializer,
 )
 
 
@@ -649,3 +652,36 @@ class ShipmentProblemReportV2View(APIView):
                 {'detail': 'Envío no encontrado.', 'codigo_error': 'SHIPMENT_GUIDE_NOT_FOUND'}
             )
         return BuyerReportIncidentView().post(request, guide.order_id)
+
+
+class ShipmentOffersView(APIView):
+    """POST /api/v2/shipping-offers — motor de cotización de paqueterías.
+
+    Recibe un envío (paquetes con dimensiones/peso/valor/peligrosidad),
+    evalúa cada paquetería activa (``CarrierRateCard``) contra sus reglas
+    de elegibilidad y devuelve las **elegibles** rankeadas (costo asc →
+    tránsito asc → ambiental desc) más las **inelegibles** con el motivo.
+
+    Público (``AllowAny``): es una cotización previa a la compra, no expone
+    datos sensibles ni muta estado. Validación DRF → HTTP 400.
+    """
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        summary='Cotizar paqueterías para un envío (Shipment Offer API)',
+        tags=['logistics'],
+        request=ShipmentOfferRequestSerializer,
+        responses={200: None, 400: None},
+    )
+    def post(self, request):
+        serializer = ShipmentOfferRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        packages = serializer.validated_data['packages']
+
+        rate_cards = [
+            rc.to_rate_card()
+            for rc in CarrierRateCard.objects.filter(is_active=True)
+                                             .select_related('courier')
+        ]
+        result = build_offers(packages, rate_cards)
+        return Response(result, status=status.HTTP_200_OK)
