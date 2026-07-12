@@ -207,3 +207,53 @@ class AuthzEvent(AppendOnlyModel):
     def __str__(self):
         a = self.actor_id or 'anon'
         return f'AuthzEvent[{a}] {self.action} {self.capability_code}'
+
+
+class MenuItem(TimeStampedModel):
+    """Entrada del menú del panel admin (DEC-08/09).
+
+    Proyección UX del catálogo de capacidades: el árbol de navegación se
+    **persiste** (``authz_menu_item``, adjacency list vía ``parent``) y cada
+    entrada se etiqueta con la ``Capability`` requerida para verla. La sección
+    es un ``MenuItem`` de nivel 0 (``parent`` null, sin ``route``); sus hijos
+    llevan la capacidad del dominio.
+
+    NO es autorización: el candado real es ``HasCapability`` en cada vista
+    (:ref:`analisis-enforcement-hascapability-isowner`). El menú solo decide
+    **qué se muestra**; el endpoint ``me/menu/`` poda el árbol con
+    ``resolve_capabilities`` para no filtrar destinos inaccesibles.
+    """
+    parent = models.ForeignKey(
+        'self', on_delete=models.CASCADE, null=True, blank=True,
+        related_name='children', verbose_name='Sección padre',
+        help_text='Null = sección de nivel 0.',
+    )
+    key = models.CharField(
+        max_length=80, unique=True, verbose_name='Clave',
+        help_text='Slug estable del item (para seed idempotente).',
+    )
+    label = models.CharField(max_length=80, verbose_name='Etiqueta')
+    route = models.CharField(
+        max_length=160, blank=True, default='', verbose_name='Ruta SPA',
+        help_text="Ruta del router React (p.ej. '/admin/products'). Vacío en secciones.",
+    )
+    icon = models.CharField(max_length=40, blank=True, default='', verbose_name='Icono')
+    order = models.PositiveIntegerField(default=0, verbose_name='Orden')
+    required_capability = models.ForeignKey(
+        Capability, on_delete=models.PROTECT, null=True, blank=True,
+        related_name='menu_items', verbose_name='Capacidad requerida',
+        help_text='Null = visible para cualquier admin (p.ej. secciones).',
+    )
+    is_active = models.BooleanField(default=True, verbose_name='Activa')
+
+    class Meta:
+        db_table = 'authz_menu_item'
+        verbose_name = 'Entrada de menú'
+        verbose_name_plural = 'Entradas de menú'
+        ordering = ['parent_id', 'order', 'id']
+        indexes = [
+            models.Index(fields=['parent', 'order']),
+        ]
+
+    def __str__(self):
+        return f'{self.key} ({self.label})'

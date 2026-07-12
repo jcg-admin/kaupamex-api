@@ -85,6 +85,8 @@ urlpatterns = _admin_urls + [
     path('api/v2/auth/',       include(('apps.users.auth_urls', 'auth'),                     namespace='auth_v2')),
     # T-214: consulta pública SEPOMEX de CP → asentamientos (autocompletado de direcciones)
     path('api/v2/geo/',        include(('apps.geo.urls', 'geo'),                             namespace='geo_v2')),
+    # DEC-08/09: capacidades del usuario + menú admin dinámico (podado por capacidad)
+    path('api/v2/authz/',      include(('apps.authz.urls', 'authz'),                         namespace='authz_v2')),
 
     # ─── API v2 (F6: payments + checkout) ─────────────────────────────────────
     path('api/v2/payments/', include(('apps.payments.urls', 'payments'),                    namespace='payments_v2')),
