@@ -428,7 +428,8 @@ class CancelGuideView(_AdminOnly, APIView):
 
 
 class BuyerGuideView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.shipments'
 
     def _guide_response(self, request, order_lookup):
         """order_lookup: dict con pk o order_number, siempre scoped al usuario."""
@@ -469,7 +470,8 @@ class BuyerReportIncidentView(APIView):
     BuyerGuideView: la orden debe pertenecer al usuario autenticado o se
     devuelve 404 ORDER_NOT_FOUND (EX-01, RNF-SEC-003: no revela existencia).
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.shipments'
 
     PROBLEM_TYPES = {'NOT_RECEIVED', 'DAMAGED_PRODUCT', 'WRONG_DELIVERY', 'DELAY'}
     MIN_DESCRIPTION_LEN = 20
@@ -626,7 +628,8 @@ class ShipmentDeliveryV2View(APIView):
 
 class BuyerOrderShipmentV2View(APIView):
     """GET /api/v2/orders/<order_id>/shipment/ — Tier A."""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.shipments'
 
     def get(self, request, order_id):
         return BuyerGuideView().get(request, order_id)
@@ -639,7 +642,8 @@ class ShipmentProblemReportV2View(APIView):
     from the guide before delegating. Ownership check (order.user ==
     request.user) happens inside BuyerReportIncidentView (EX-01).
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.shipments'
 
     def post(self, request, pk):
         try:
