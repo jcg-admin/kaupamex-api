@@ -22,6 +22,8 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
+from apps.authz.permissions import HasCapability
+
 from .session_tracking import record_user_session
 from .audit import audit_log_auth
 from rest_framework.viewsets import ModelViewSet
@@ -176,7 +178,8 @@ class RegisterView(APIView):
 
 class ProfileView(APIView):
     """GET/PATCH /api/v1/auth/profile/ — UC-AUTH-05 y UC-AUTH-06."""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.profile'
 
     @extend_schema(
         summary='Ver perfil del comprador',
@@ -233,7 +236,8 @@ class AddressViewSet(ModelViewSet):
     PATCH  /addresses/{id}/ — editar una direccion propia
     DELETE /addresses/{id}/ — eliminar una direccion propia
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.profile'
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = 'addresses'
     serializer_class = AddressSerializer
@@ -350,7 +354,8 @@ class AddressViewSet(ModelViewSet):
 
 class ChangePasswordView(APIView):
     """POST /api/v1/auth/change-password/ — UC-AUTH-08."""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.password'
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "change_password"
 
@@ -632,7 +637,8 @@ class DeactivateAccountView(APIView):
     UC-AUTH-01 Alt-A.2 (re-registro con mismo email -> reenvio
     de email de verificacion) o via UC-AUTH-14 (admin).
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.deactivate'
 
     @extend_schema(
         summary='Dar de baja la propia cuenta (UC-AUTH-16)',
@@ -735,7 +741,8 @@ class LogoutAllSessionsView(APIView):
     sin estado), pero ningun refresh token podra generar un nuevo access
     token desde ese momento.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.profile'
 
     @extend_schema(
         summary='Cerrar todas las sesiones activas (UC-AUTH-18)',
@@ -810,7 +817,8 @@ class DeactivateMeV2View(APIView):
 
     v1 used POST /auth/me/deactivate/; v2 uses DELETE /auth/me/.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.deactivate'
 
     def delete(self, request):
         return DeactivateAccountView().post(request)
@@ -821,7 +829,8 @@ class DeleteSessionsV2View(APIView):
 
     v1 used POST /auth/logout-all/; v2 uses DELETE /auth/sessions/.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.profile'
 
     def delete(self, request):
         return LogoutAllSessionsView().post(request)

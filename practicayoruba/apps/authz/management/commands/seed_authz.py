@@ -121,6 +121,26 @@ class Command(BaseCommand):
         )
         buyer_role.capabilities.set(buyer_caps)
 
+        # Capacidades de "cuenta propia": todo usuario autenticado —incluido
+        # staff no-superadmin, que NO es comprador— gestiona SU propia cuenta
+        # (perfil, contraseña, baja, historial/recibo de pago). Al gatear esos
+        # endpoints con ``account.*`` (DEC-ENF-01) hay que sembrar estas
+        # capacidades en TODOS los roles para no dejar a nadie fuera de su
+        # propia cuenta (decisión ejecutor 2026-07-12). ``add`` es idempotente
+        # y no quita capacidades ya asignadas.
+        self_account_codes = {
+            'account.profile', 'account.password',
+            'account.deactivate', 'account.payments',
+        }
+        self_account_caps = [c for c in caps if c.code in self_account_codes]
+        roles_patched = 0
+        for r in Role.objects.all():
+            r.capabilities.add(*self_account_caps)
+            roles_patched += 1
+
+        self.stdout.write(self.style.SUCCESS(
+            f'authz self-account caps sembradas en {roles_patched} roles.'
+        ))
         self.stdout.write(self.style.SUCCESS(
             f'authz seed OK: {len(modules)} módulos, {len(caps)} capacidades, '
             f'rol {SUPERADMIN_ROLE_CODE} con {role.capabilities.count()} y '

@@ -320,7 +320,8 @@ class ReceiptPdfView(APIView):
     El recibo no se persiste: se regenera idempotentemente desde los
     snapshots inmutables de la orden (BR-005).
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.payments'
 
     @extend_schema(
         summary='Descargar recibo de compra en PDF (UC-PAY-10)',
@@ -801,7 +802,8 @@ class PaymentHistoryView(APIView):
     Retorna todos los pagos de una orden ordenados por -created_at.
     UC-PAY-06. RNF-SEC-003.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'account.payments'
 
     @extend_schema(
         summary='Historial de pagos de una orden',

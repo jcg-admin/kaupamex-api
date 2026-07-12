@@ -3,6 +3,7 @@ Tests de integracion — Direcciones de envio
 UC-AUTH-07: Gestionar Direcciones de Envio
 """
 import pytest
+from tests.factories.user_factory import make_buyer
 from django.contrib.auth import get_user_model
 from apps.users.models import Address
 
@@ -38,7 +39,7 @@ class TestAddressList:
 
     def test_solo_ve_sus_propias_direcciones(self, api_client, db):
         User = get_user_model()
-        u1 = User.objects.create_user(email='u1@test.mx', password='Pass123!')
+        u1 = make_buyer(User.objects.create_user(email='u1@test.mx', password='Pass123!'))
         u2 = User.objects.create_user(email='u2@test.mx', password='Pass123!')
         Address.objects.create(user=u2, **VALID_ADDR)
         api_client.force_login(u1)
@@ -126,7 +127,7 @@ class TestAddressUpdate:
 
     def test_no_puede_editar_direccion_de_otro_usuario(self, api_client, db):
         User = get_user_model()
-        u1 = User.objects.create_user(email='u1b@test.mx', password='Pass123!')
+        u1 = make_buyer(User.objects.create_user(email='u1b@test.mx', password='Pass123!'))
         u2 = User.objects.create_user(email='u2b@test.mx', password='Pass123!')
         addr = Address.objects.create(user=u2, **VALID_ADDR)
         api_client.force_login(u1)
@@ -150,7 +151,7 @@ class TestAddressDelete:
 
     def test_no_puede_eliminar_direccion_de_otro(self, api_client, db):
         User = get_user_model()
-        u1 = User.objects.create_user(email='u1c@test.mx', password='Pass123!')
+        u1 = make_buyer(User.objects.create_user(email='u1c@test.mx', password='Pass123!'))
         u2 = User.objects.create_user(email='u2c@test.mx', password='Pass123!')
         addr = Address.objects.create(user=u2, **VALID_ADDR)
         api_client.force_login(u1)
