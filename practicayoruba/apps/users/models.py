@@ -232,6 +232,13 @@ class IdentityUser(models.Model):
         person = getattr(self, 'person', None)
         return person.last_name if person else ''
 
+    @property
+    def phone(self):
+        """Accesor de solo lectura al teléfono del ``Person`` (ver
+        ``first_name``)."""
+        person = getattr(self, 'person', None)
+        return person.phone if person else ''
+
     def profile_completeness(self):
         """Porcentaje de completitud del perfil (FR-AUTH-05.03). Cinco campos,
         20% cada uno. Valores: 0, 20, 40, 60, 80, 100."""
