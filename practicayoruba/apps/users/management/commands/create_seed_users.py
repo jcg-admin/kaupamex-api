@@ -107,13 +107,13 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(
             'Admin    : {} <{}> — {}'.format(
-                admin.username, admin.email,
+                admin.email, admin.email,
                 'creado' if admin_created else 'actualizado',
             )
         ))
         self.stdout.write(self.style.SUCCESS(
             'QA Buyer : {} <{}> — {}'.format(
-                buyer.username, buyer.email,
+                buyer.email, buyer.email,
                 'creado' if buyer_created else 'actualizado',
             )
         ))

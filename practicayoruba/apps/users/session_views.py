@@ -55,7 +55,7 @@ def _user_payload(user):
     """Mismo shape que el objeto ``user`` del login (FR-AUTH-02.15)."""
     return {
         'id':         user.pk,
-        'username':   user.username,
+        'username':   user.email,
         'email':      user.email,
         'first_name': user.first_name,
         'last_name':  user.last_name,

@@ -88,7 +88,7 @@ class Review(TimeStampedModel, SoftDeleteModel):
         verbose_name = 'Reseña'
 
     def __str__(self):
-        return f'{self.user.username} → {self.product.name} ({self.rating}/5)'
+        return f'{self.user.email} → {self.product.name} ({self.rating}/5)'
 
 
 class ReviewModerationLog(TimeStampedModel):
@@ -148,7 +148,7 @@ class ReviewHelpfulVote(TimeStampedModel):
         verbose_name = 'Voto util'
 
     def __str__(self):
-        return f'{self.user.username} -> review#{self.review_id}'
+        return f'{self.user.email} -> review#{self.review_id}'
 
 
 class ReviewImage(models.Model):

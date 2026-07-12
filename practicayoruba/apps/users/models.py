@@ -217,6 +217,21 @@ class IdentityUser(models.Model):
         person = getattr(self, 'person', None)
         return person.first_name if person else ''
 
+    @property
+    def first_name(self):
+        """Accesor de solo lectura al nombre del ``Person`` (los nombres viven
+        en ``Person``, no en la identidad — party DEC-02/03). Presente por
+        ergonomía: el contrato de usuario de Django expone ``first_name``."""
+        person = getattr(self, 'person', None)
+        return person.first_name if person else ''
+
+    @property
+    def last_name(self):
+        """Accesor de solo lectura al apellido del ``Person`` (ver
+        ``first_name``)."""
+        person = getattr(self, 'person', None)
+        return person.last_name if person else ''
+
     def profile_completeness(self):
         """Porcentaje de completitud del perfil (FR-AUTH-05.03). Cinco campos,
         20% cada uno. Valores: 0, 20, 40, 60, 80, 100."""

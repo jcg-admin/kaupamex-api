@@ -367,7 +367,7 @@ class ShippingMethodListPublicView(ListAPIView):
 
 class StaticPageVersionSerializer(drf_serializers.ModelSerializer):
     created_by_username = drf_serializers.CharField(
-        source='created_by.username', read_only=True, default=None
+        source='created_by.email', read_only=True, default=None
     )
     class Meta:
         model  = StaticPageVersion

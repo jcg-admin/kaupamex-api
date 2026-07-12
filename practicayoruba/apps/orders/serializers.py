@@ -111,7 +111,7 @@ class OrderStatusLogSerializer(serializers.ModelSerializer):
         ]
 
     def get_changed_by_username(self, obj) -> str | None:
-        return obj.changed_by.username if obj.changed_by_id else None
+        return obj.changed_by.email if obj.changed_by_id else None
 
 
 class OrderSerializer(serializers.ModelSerializer):
@@ -178,7 +178,7 @@ class AdminOrderSerializer(OrderSerializer):
         return obj.user.email if obj.user_id else None
 
     def get_user_username(self, obj) -> str | None:
-        return obj.user.username if obj.user_id else None
+        return obj.user.email if obj.user_id else None
 
 
 class OrderListSerializer(serializers.ModelSerializer):

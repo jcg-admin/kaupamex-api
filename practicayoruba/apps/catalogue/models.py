@@ -158,7 +158,7 @@ class SearchHistory(TimeStampedModel):
         verbose_name = 'Historial de búsqueda'
 
     def __str__(self):
-        return f'{self.user.username}: "{self.term}"'
+        return f'{self.user.email}: "{self.term}"'
 
     @classmethod
     def record(cls, user, term: str) -> None:

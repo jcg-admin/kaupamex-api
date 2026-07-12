@@ -22,7 +22,7 @@ from drf_spectacular.utils import extend_schema_field
 from apps.settings_app.models import SiteSettings
 from apps.orders.serializers import validate_mx_phone
 from .audit import audit_log_auth
-from .models import Address, AuthEvent, UserDeactivationEvent
+from .models import Address, AuthEvent, Person, UserDeactivationEvent
 from .tokens_email import invalidate_all_sessions
 from .tokens_email import create_verification_token, send_verification_email
 
@@ -84,18 +84,6 @@ class RegisterSerializer(serializers.Serializer):
             )
         return attrs
 
-    @staticmethod
-    def _generate_username(email: str) -> str:
-        base = email[:150]
-        if not User.objects.filter(username__iexact=base).exists():
-            return base
-        i = 1
-        while True:
-            candidate = f"{email[:147]}_{i}"
-            if not User.objects.filter(username__iexact=candidate).exists():
-                return candidate
-            i += 1
-
     def create(self, validated_data):
         validated_data.pop('password_confirm')
         validated_data.pop('terms_accepted', None)
@@ -103,14 +91,16 @@ class RegisterSerializer(serializers.Serializer):
         first_name = validated_data.pop('first_name', '')
         last_name  = validated_data.pop('last_name', '')
         email      = validated_data['email']
-        username   = self._generate_username(email)
+        # Party (T-201): la identidad es sólo email + credenciales; el nombre
+        # vive en Person. Ya no se auto-genera username (email es el
+        # identificador único, USERNAME_FIELD).
         user = User.objects.create_user(
-            username=username,
             email=email,
             password=validated_data['password'],
-            first_name=first_name,
-            last_name=last_name,
             is_active=False,
+        )
+        Person.objects.create(
+            identity=user, first_name=first_name, last_name=last_name,
         )
         user.deactivated_reason = User.DEACTIVATION_UNVERIFIED
         user.deactivated_at = timezone.now()

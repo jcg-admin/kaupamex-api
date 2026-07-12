@@ -1019,7 +1019,7 @@ class ProductPriceSyncConfirmView(APIView):
                 ProductPriceHistory.objects.bulk_create(history_entries)
         cache.delete_many([f'product:{p.pk}:detail' for p in updated])
         cache.delete(f'price_sync:{session_id}')
-        _logger.info('price_sync: %d productos actualizados por %s', len(updated), request.user.username)
+        _logger.info('price_sync: %d productos actualizados por %s', len(updated), request.user.email)
         return Response({'updated_count': len(updated), 'message': f'{len(updated)} precios actualizados correctamente.'})
 
 

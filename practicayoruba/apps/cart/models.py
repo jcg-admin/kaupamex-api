@@ -49,7 +49,7 @@ class Cart(TimeStampedModel):
 
     def __str__(self):
         if self.user:
-            return f'Cart de {self.user.username}'
+            return f'Cart de {self.user.email}'
         return f'Cart anónimo {self.cart_token}'
 
     def get_subtotal(self) -> Decimal:
@@ -196,7 +196,7 @@ class SavedCart(TimeStampedModel):
         verbose_name = 'Carrito guardado'
 
     def __str__(self):
-        return f'Carrito guardado de {self.user.username}'
+        return f'Carrito guardado de {self.user.email}'
 
 
 class SavedCartItem(TimeStampedModel):

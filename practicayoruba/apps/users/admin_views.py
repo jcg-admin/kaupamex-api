@@ -331,7 +331,7 @@ class AdminUserViewSet(ModelViewSet):
                 actor=request.user,
                 note=request.data.get('note', '')[:255],
             )
-        return Response({'message': f'Cuenta de {target.username} suspendida.'})
+        return Response({'message': f'Cuenta de {target.email} suspendida.'})
 
     @extend_schema(
         summary='Reactivar cuenta de usuario (UC-AUTH-14)',
@@ -372,11 +372,11 @@ class AdminUserViewSet(ModelViewSet):
                 target_type='user',
                 target_id=target.pk,
                 extra={
-                    'target_username': target.username,
+                    'target_username': target.email,
                     'note': request.data.get('note', '')[:255],
                 },
             )
-        return Response({'message': f'Cuenta de {target.username} reactivada.'})
+        return Response({'message': f'Cuenta de {target.email} reactivada.'})
 
     @extend_schema(
         summary='Editar permisos de usuario (UC-ADM-02)',
@@ -456,7 +456,7 @@ class AdminUserViewSet(ModelViewSet):
                 target_type='user',
                 target_id=target.pk,
                 extra={
-                    'target_username': target.username,
+                    'target_username': target.email,
                     'changes': changed,
                 },
             )
@@ -534,7 +534,7 @@ class AuditLogView(APIView):
                     'id':         ev.pk,
                     'event_type': 'auth',
                     'user_id':    ev.user_id,
-                    'username':   ev.user.username if ev.user_id else None,
+                    'username':   ev.user.email if ev.user_id else None,
                     'action':     ev.action,
                     'created_at': ev.created_at.isoformat(),
                     'extra':      {
@@ -553,7 +553,7 @@ class AuditLogView(APIView):
                     'id':         ev.pk,
                     'event_type': 'business',
                     'user_id':    ev.actor_id,
-                    'username':   ev.actor.username if ev.actor_id else None,
+                    'username':   ev.actor.email if ev.actor_id else None,
                     'action':     ev.action,
                     'created_at': ev.created_at.isoformat(),
                     'extra':      {
@@ -572,12 +572,12 @@ class AuditLogView(APIView):
                     'id':         ev.pk,
                     'event_type': 'deactivation',
                     'user_id':    ev.user_id,
-                    'username':   ev.user.username,
+                    'username':   ev.user.email,
                     'action':     ev.reason,
                     'created_at': ev.created_at.isoformat(),
                     'extra':      {
                         'source': ev.source,
-                        'actor':  ev.actor.username if ev.actor_id else None,
+                        'actor':  ev.actor.email if ev.actor_id else None,
                     },
                 })
 
