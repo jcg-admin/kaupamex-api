@@ -4,7 +4,10 @@ UC-AUTH-10 + FR-AUTH-01.05 (envio en registro)
 """
 import pytest
 from django.core import mail
+from django.core.management import call_command
 from django.contrib.auth import get_user_model
+from apps.authz.models import RoleAssignment
+from apps.authz.services import BUYER_ROLE_CODE
 from apps.users.models import EmailVerificationToken
 from apps.users.tokens_email import create_verification_token, send_verification_email
 
@@ -39,6 +42,23 @@ class TestEmailVerification:
         assert r.status_code == 200
         inactive_user.refresh_from_db()
         assert inactive_user.is_active is True
+
+    def test_validar_asigna_rol_comprador(self, api_client, inactive_user, db):
+        """ADR-020: todo usuario registrado y validado recibe ``comprador``.
+
+        Con el catalogo authz sembrado, verificar el email deja el rol
+        ``comprador`` asignado (idempotente, tambien cubre altas que no lo
+        recibieron al registrarse)."""
+        call_command('seed_authz')
+        assert not RoleAssignment.objects.filter(
+            user=inactive_user, role__code=BUYER_ROLE_CODE
+        ).exists()
+        plain = create_verification_token(inactive_user)
+        r = api_client.post(VERIFY_URL, {'token': plain}, format='json')
+        assert r.status_code == 200
+        assert RoleAssignment.objects.filter(
+            user=inactive_user, role__code=BUYER_ROLE_CODE
+        ).exists()
 
     def test_verificar_inicia_sesion_automaticamente(self, api_client, inactive_user, db):
         """UX (ADR-018): tras verificar, el usuario queda logueado por sesion
