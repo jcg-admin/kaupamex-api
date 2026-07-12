@@ -12,11 +12,45 @@ defecto), el ``Person`` asociado. Se aceptan los kwargs legacy
 import factory
 from django.contrib.auth import get_user_model
 
-from apps.authz.models import Role, RoleAssignment
-from apps.authz.services import SUPERADMIN_ROLE_CODE, assign_buyer_role
+from apps.authz.models import Capability, Module, Role, RoleAssignment
+from apps.authz.services import (
+    BUYER_ROLE_CODE, SUPERADMIN_ROLE_CODE, assign_buyer_role,
+    invalidate_capabilities,
+)
+from apps.authz.management.commands.seed_authz import CAPABILITIES
 from apps.users.models import EmployeeProfile, Person
 
 User = get_user_model()
+
+# Capacidades del dominio 'account' (rol comprador), derivadas del catálogo
+# canónico de seed_authz para no duplicar la lista.
+_ACCOUNT_CAPS = [c for c in CAPABILITIES if c[0].startswith('account.')]
+
+
+def make_buyer(user):
+    """Deja a ``user`` como comprador con todas las capacidades ``account.*``,
+    reflejando producción (ADR-020: todo usuario registrado y validado recibe
+    ``comprador``). Siembra sólo el dominio ``account`` (idempotente) — no el
+    catálogo admin — y asigna el rol. Reutilizable por conftest y por los tests
+    que crean usuarios ad-hoc (``other``/``attacker``) que en producción también
+    son compradores."""
+    module, _ = Module.objects.get_or_create(
+        code='account', defaults={'name': 'Mi cuenta'},
+    )
+    caps = []
+    for code, name, sensitive in _ACCOUNT_CAPS:
+        cap, _ = Capability.objects.get_or_create(
+            code=code,
+            defaults={'module': module, 'name': name, 'is_sensitive': sensitive},
+        )
+        caps.append(cap)
+    role, _ = Role.objects.get_or_create(
+        code=BUYER_ROLE_CODE, defaults={'name': 'Comprador'},
+    )
+    role.capabilities.add(*caps)
+    assign_buyer_role(user)
+    invalidate_capabilities(user.pk)
+    return user
 
 
 class UserFactory(factory.django.DjangoModelFactory):
