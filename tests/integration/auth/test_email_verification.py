@@ -63,6 +63,10 @@ class TestEmailVerification:
     def test_verificar_inicia_sesion_automaticamente(self, api_client, inactive_user, db):
         """UX (ADR-018): tras verificar, el usuario queda logueado por sesion
         (django_login) para aterrizar en 'next' sin re-loguearse a mano."""
+        # ADR-020: en producción seed_authz ya corrió, así que al verificar
+        # el usuario recibe 'comprador' (con account.profile) y puede leer su
+        # perfil. Sembrar el catálogo aquí replica ese estado.
+        call_command('seed_authz')
         plain = create_verification_token(inactive_user)
         r = api_client.post(VERIFY_URL, {'token': plain}, format='json')
         assert r.status_code == 200

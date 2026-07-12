@@ -17,6 +17,7 @@ El helper C (tools/pdf/pdf_receipt) debe estar compilado en el entorno
 ejercen end-to-end vía subprocess.
 """
 import pytest
+from tests.factories.user_factory import make_buyer
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
@@ -39,19 +40,19 @@ RECEIPT_URL = lambda o: f'/api/v2/payments/{o}/receipt/'
 @pytest.fixture
 def buyer(db):
     User = get_user_model()
-    return User.objects.create_user(
+    return make_buyer(User.objects.create_user(
         email='buyer-pay10@practicayoruba.mx',
         password='BuyerPass123!',
-    )
+    ))
 
 
 @pytest.fixture
 def other_user(db):
     User = get_user_model()
-    return User.objects.create_user(
+    return make_buyer(User.objects.create_user(
         email='other-pay10@practicayoruba.mx',
         password='OtherPass123!',
-    )
+    ))
 
 
 def _make_paid_order(user, *, status=Order.STATUS_PAID, with_payment=True):

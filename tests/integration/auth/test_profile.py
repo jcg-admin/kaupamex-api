@@ -4,6 +4,7 @@ UC-AUTH-05: Ver Perfil | UC-AUTH-06: Editar Perfil
 """
 import io
 import pytest
+from tests.factories.user_factory import make_buyer
 from PIL import Image
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib.auth import get_user_model
@@ -57,7 +58,7 @@ class TestProfileGet:
 
     def test_completeness_usuario_sin_opcionales(self, api_client, db):
         User = get_user_model()
-        u = User.objects.create_user(email='empty@test.mx', password='Pass123!')
+        u = make_buyer(User.objects.create_user(email='empty@test.mx', password='Pass123!'))
         api_client.force_login(u)
         r = api_client.get(PROFILE_URL)
         assert r.json()['profile_completeness'] == 0
@@ -85,7 +86,7 @@ class TestProfileGet:
 
     def test_aislamiento_datos(self, api_client, db):
         User = get_user_model()
-        u1 = User.objects.create_user(email='u1@test.mx', password='Pass123!')
+        u1 = make_buyer(User.objects.create_user(email='u1@test.mx', password='Pass123!'))
         User.objects.create_user(email='u2@test.mx', password='Pass123!')
         api_client.force_login(u1)
         r = api_client.get(PROFILE_URL)
