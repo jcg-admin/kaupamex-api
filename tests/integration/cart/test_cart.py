@@ -13,7 +13,7 @@ from rest_framework.test import APIClient
 from apps.catalogue.models import Category, Product
 from apps.chartsize.models import VariantType, VariantOption, ProductVariant
 from apps.cart.models import Cart, CartItem, SavedCart
-from apps.users.models import User
+from apps.users.models import IdentityUser as User
 
 pytestmark = pytest.mark.integration
 

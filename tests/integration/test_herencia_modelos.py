@@ -14,7 +14,8 @@ from apps.chartsize.models import VariantType, VariantOption, ProductVariant
 from apps.inventory.models import StockMovement, StockAlert
 from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from apps.settings_app.models import SiteSettings, PaymentGateway, ShippingMethod, StaticPage, StaticPageVersion
-from apps.users.models import Address, PasswordResetToken, EmailVerificationToken, User
+from apps.users.models import Address, PasswordResetToken, EmailVerificationToken
+from apps.users.models import IdentityUser as User
 from apps.voucher.models import Voucher, VoucherChangeLog
 from apps.wishlist.models import WishlistItem
 from apps.catalogue.serializers import SearchHistorySerializer

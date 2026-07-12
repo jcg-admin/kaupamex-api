@@ -13,6 +13,10 @@ from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.cache import cache
 
+from apps.authz.models import Role, RoleAssignment
+from apps.authz.services import SUPERADMIN_ROLE_CODE
+from apps.users.models import EmployeeProfile, Person
+
 import pytest
 import warnings
 
@@ -28,40 +32,40 @@ _DB_QA_SCRIPT = (
 
 @pytest.fixture
 def user(db):
-    """Usuario basico activo."""
+    """Usuario basico activo (party: IdentityUser + Person)."""
     User = get_user_model()
-    return User.objects.create_user(
-        username='testuser',
-        email='test@practicayoruba.mx',
-        password='TestPass123!',
-        first_name='Test',
-        last_name='User',
+    u = User.objects.create_user(
+        email='test@practicayoruba.mx', password='TestPass123!',
     )
+    Person.objects.create(identity=u, first_name='Test', last_name='User')
+    return u
 
 
 @pytest.fixture
 def auth_user(db):
     """Usuario independiente usado en tests de payments y orders."""
     User = get_user_model()
-    return User.objects.create_user(
-        username='authuser',
-        email='auth@practicayoruba.mx',
-        password='AuthPass123!',
-        first_name='Auth',
-        last_name='User',
+    u = User.objects.create_user(
+        email='auth@practicayoruba.mx', password='AuthPass123!',
     )
+    Person.objects.create(identity=u, first_name='Auth', last_name='User')
+    return u
 
 
 @pytest.fixture
 def admin_user(db):
-    """Usuario con permisos de staff."""
+    """Usuario staff. is_staff ya no existe: el acceso admin es una capacidad;
+    se le asigna el rol superadmin (bypass del resolver, DEC-01=B)."""
     User = get_user_model()
-    return User.objects.create_user(
-        username='adminuser',
-        email='admin@practicayoruba.mx',
-        password='AdminPass123!',
-        is_staff=True,
+    u = User.objects.create_user(
+        email='admin@practicayoruba.mx', password='AdminPass123!',
     )
+    EmployeeProfile.objects.create(identity=u)
+    role, _ = Role.objects.get_or_create(
+        code=SUPERADMIN_ROLE_CODE, defaults={'name': 'Superadministrador'},
+    )
+    RoleAssignment.objects.get_or_create(user=u, role=role)
+    return u
 
 
 @pytest.fixture

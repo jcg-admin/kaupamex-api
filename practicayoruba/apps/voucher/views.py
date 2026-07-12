@@ -21,7 +21,9 @@ from django.utils import timezone
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated
+
+from apps.authz.permissions import HasCapability
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
@@ -51,7 +53,14 @@ class VoucherViewSet(ModelViewSet):
     DELETE /api/v1/admin/vouchers/<pk>/   — desactivar (UC-PRO-03)
     POST   /api/v1/admin/vouchers/<pk>/activate/ — reactivar
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    permission_map = {
+        'list': 'vouchers.view', 'retrieve': 'vouchers.view',
+        'report': 'vouchers.view',
+        'create': 'vouchers.manage', 'update': 'vouchers.manage',
+        'partial_update': 'vouchers.manage', 'destroy': 'vouchers.manage',
+        'activate': 'vouchers.manage', 'deactivate': 'vouchers.manage',
+    }
     serializer_class   = VoucherSerializer
     queryset           = Voucher.objects.all().order_by('-created_at')
     http_method_names  = ['get', 'post', 'patch', 'delete', 'head', 'options']

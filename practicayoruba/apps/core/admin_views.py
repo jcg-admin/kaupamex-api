@@ -9,8 +9,8 @@ revisada, ADR-019). ``GET /api/v2/admin/logs/`` sirve ``RequestLog`` (default) y
   deshabilitado en prod). Es el patron ``apps/<app>/admin_urls.py`` del proyecto.
 - **Append-only:** solo ``GET`` — ``APIView`` responde ``405`` a
   ``POST``/``PUT``/``PATCH``/``DELETE`` (FR-ADM-06.03).
-- **Acceso:** ``IsAuthenticated`` + ``IsAdminUser`` → ``403`` sin ``is_staff``
-  (FR-ADM-06.04).
+- **Acceso:** ``IsAuthenticated`` + ``HasCapability`` (``audit.view``) → ``403``
+  sin la capacidad (FR-ADM-06.04). ``is_staff`` ya no existe (party/authz).
 - **PII-safe:** el modelo ya no persiste PII (Nivel 2 se referencia via
   ``user_id``); ``msg`` / ``trace`` / ``error_detail`` vienen scrubbed del
   origen (DEC-LOG-03).
@@ -21,10 +21,11 @@ from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.exceptions import ValidationError as DRFValidationError
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.authz.permissions import HasCapability
 from apps.core.models import AppLog, RequestLog
 
 _DEFAULT_PAGE_SIZE = 25
@@ -35,7 +36,8 @@ _SOURCES = ('requestlog', 'applog')
 class AdminLogsView(APIView):
     """Feed paginado read-only de logs tecnicos (UC-ADM-06)."""
 
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'audit.view'
 
     @extend_schema(
         summary='Listar logs tecnicos (UC-ADM-06)',
