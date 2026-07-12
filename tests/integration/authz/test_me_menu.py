@@ -63,11 +63,33 @@ def test_support_user_sees_only_its_section(seeded, client):
     invalidate_capabilities(u.id)
     client.force_authenticate(u)
     tree = client.get('/api/v2/authz/me/menu/').json()
-    # Solo la sección Clientes sobrevive, con un único hijo visible (Soporte).
+    # Solo la sección Clientes sobrevive; support.manage gatea Soporte y
+    # Mensajes de contacto (ambos support.manage).
     assert [s['label'] for s in tree] == ['Clientes']
     leaves = [i['label'] for i in tree[0]['children']]
-    assert leaves == ['Soporte (Tickets)']
-    assert tree[0]['children'][0]['route'] == '/admin/support'
+    assert leaves == ['Soporte (Tickets)', 'Mensajes de contacto']
+
+
+@pytest.mark.django_db
+def test_level_two_group_is_nested(seeded, client):
+    """Un usuario reports.view ve la sección Operaciones con el agrupador
+    nivel-1 Reportes y sus 4 hijos nivel-2 (los demás items de Operaciones,
+    que requieren otras capacidades, se podan)."""
+    u = _user('rep@e.com')
+    RoleAssignment.objects.create(user=u, role=_role_with(['reports.view']))
+    invalidate_capabilities(u.id)
+    client.force_authenticate(u)
+    tree = client.get('/api/v2/authz/me/menu/').json()
+    labels = [s['label'] for s in tree]
+    # Dashboard (Principal) y Reportes (Operaciones) usan reports.view.
+    assert 'Operaciones' in labels
+    ops = next(s for s in tree if s['label'] == 'Operaciones')
+    # Solo sobrevive el agrupador Reportes (los otros items son de otro dominio).
+    assert [c['label'] for c in ops['children']] == ['Reportes']
+    reportes = ops['children'][0]
+    assert reportes['route'] == ''  # agrupador nivel 1 sin ruta
+    assert [g['label'] for g in reportes['children']] == [
+        'Dashboard', 'Ventas', 'Top sellers', 'Clientes RFM']
 
 
 @pytest.mark.django_db
@@ -86,12 +108,14 @@ def test_superadmin_sees_all_sections(seeded, client):
     client.force_authenticate(u)
     tree = client.get('/api/v2/authz/me/menu/').json()
     labels = [s['label'] for s in tree]
-    assert labels == ['Principal', 'Catálogo', 'Ventas', 'Clientes',
-                      'Operaciones', 'Sistema', 'Configuración']
-    # Catálogo tiene sus 3 items visibles para el superadmin.
+    assert labels == ['Principal', 'Catálogo', 'Ventas', 'Catálogo social',
+                      'Marketing', 'Clientes', 'Operaciones', 'Sistema',
+                      'Configuración']
+    # Catálogo tiene sus 5 items visibles para el superadmin.
     catalogo = next(s for s in tree if s['label'] == 'Catálogo')
     assert [i['label'] for i in catalogo['children']] == [
-        'Productos', 'Crear Producto', 'Categorías']
+        'Productos', 'Crear Producto', 'Categorías', 'Descuentos',
+        'Sincronización de precios']
 
 
 @pytest.mark.django_db
