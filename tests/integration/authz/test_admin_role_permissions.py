@@ -8,8 +8,11 @@ de cada rol. Contención de escalada **por nivel**: un delegado con
 ese sustantivo (y solo las acciones nombradas que posee); el superadmin no tiene
 ese límite y su rol solo lo edita otro superadmin.
 """
+from datetime import timedelta
+
 from apps.authz.models import (
-    AccessLevel, Capability, Module, Role, RoleAssignment, RoleCapability,
+    AccessLevel, Capability, Module, ReauthSession, Role, RoleAssignment,
+    RoleCapability,
 )
 from apps.authz.services import (
     SUPERADMIN_ROLE_CODE, invalidate_capabilities, resolve_capabilities,
@@ -18,6 +21,7 @@ from apps.authz.services import (
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 pytestmark = pytest.mark.integration
@@ -25,6 +29,18 @@ pytestmark = pytest.mark.integration
 User = get_user_model()
 
 CATALOG_URL = '/api/v2/admin/permissions/'
+
+
+def _auth(client, user):
+    """Autentica y siembra una sesión reautenticada (DEC-12): guardar el set de
+    permisos de un rol es una mutación **sensible** (``permissions.full``) que
+    exige re-auth fresca. ``force_authenticate`` no crea sesión Django
+    (``session_key=''``), así que la ventana se siembra para ese key."""
+    client.force_authenticate(user)
+    ReauthSession.objects.update_or_create(
+        user_id=user.pk, session_key='',
+        defaults={'started_at': timezone.now(),
+                  'expires_at': timezone.now() + timedelta(seconds=900)})
 
 
 def _role_url(code):
@@ -75,7 +91,7 @@ def _manager(client):
         [('permissions', AccessLevel.FULL), ('users', AccessLevel.VIEW)],
         code='mgr-role'))
     invalidate_capabilities(u.id)
-    client.force_authenticate(u)
+    _auth(client,u)
     return u
 
 
@@ -84,7 +100,7 @@ def _superadmin(client):
     RoleAssignment.objects.create(
         user=u, role=Role.objects.get(code=SUPERADMIN_ROLE_CODE))
     invalidate_capabilities(u.id)
-    client.force_authenticate(u)
+    _auth(client,u)
     return u
 
 
@@ -101,7 +117,7 @@ def test_catalog_forbidden_without_permissions_full(seeded, client):
     RoleAssignment.objects.create(
         user=u, role=_role_with_levels([('support', AccessLevel.FULL)]))
     invalidate_capabilities(u.id)
-    client.force_authenticate(u)
+    _auth(client,u)
     assert client.get(CATALOG_URL).status_code == 403
 
 
@@ -164,7 +180,7 @@ def test_put_forbidden_without_permissions_full(seeded, client):
     RoleAssignment.objects.create(
         user=u, role=_role_with_levels([('support', AccessLevel.FULL)]))
     invalidate_capabilities(u.id)
-    client.force_authenticate(u)
+    _auth(client,u)
     _role_with_levels([], code='target')
     assert client.put(_role_url('target'), {'permissions': []},
                       format='json').status_code == 403

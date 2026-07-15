@@ -7,13 +7,25 @@ Endpoints del usuario autenticado (nunca ``{usuario_id}`` — evita IDOR):
   capacidades (DEC-08/09). El menú es proyección UX; el candado real sigue
   siendo ``HasCapability`` en cada vista.
 """
+from django.utils import timezone
+from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.authz.models import MenuItem
+from apps.authz.models import AuthzEvent, MenuItem, ReauthSession
 from apps.authz.serializers import MenuItemNodeSerializer
-from apps.authz.services import is_superadmin, resolve_capabilities
+from apps.authz.services import (
+    REAUTH_CAP_CODE,
+    _client_ip,
+    _reauth_ttl,
+    _session_key,
+    audit_authz_event,
+    close_reauth_session,
+    is_superadmin,
+    open_reauth_session,
+    resolve_capabilities,
+)
 
 
 class MyCapabilitiesView(APIView):
@@ -93,3 +105,78 @@ class MyMenuView(APIView):
 
         tree = build(None)
         return Response(MenuItemNodeSerializer(tree, many=True).data)
+
+
+class ReauthSessionView(APIView):
+    """Sesión reautenticada — DEC-12 shape A.
+
+    Confirma la identidad del usuario para operar acciones **sensibles** durante
+    una ventana con TTL. **NO es una elevación de privilegios** (deliberadamente
+    no se llama "sudo"): no otorga poderes nuevos, sólo ratifica intención sobre
+    lo que el Role del usuario ya autoriza.
+
+    - ``GET`` — estado de la reautenticación de la sesión actual (para el contador
+      del SPA): ``{active, expires_at, expires_in}``.
+    - ``POST`` — abre/renueva la ventana re-autenticando con **password**.
+      Éxito → 200 ``{expires_at, expires_in}``; password inválido → 400
+      ``{codigo_error: REAUTH_INVALID_PASSWORD}``.
+    - ``DELETE`` — cierra la ventana (204).
+
+    Re-auth de **password** en v1 (la política MFA ya decidida —
+    :ref:`analisis-mfa-totp-nativo`— añade el step-up TOTP para admins **cuando
+    aterrice la iniciativa MFA**; ``IdentityUser`` aún no tiene device TOTP ni
+    ``require_2fa``, así que aquí el factor es password). La apertura/cierre se
+    auditan en ``AuthzEvent`` (DEC-07). Este endpoint NO se gatea con
+    ``HasCapability`` (sólo ``IsAuthenticated``): es la puerta de la propia
+    re-autenticación.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        obj = (
+            ReauthSession.objects
+            .filter(user=request.user, session_key=_session_key(request),
+                    expires_at__gt=timezone.now())
+            .first()
+        )
+        if obj is None:
+            return Response({'active': False})
+        remaining = int((obj.expires_at - timezone.now()).total_seconds())
+        return Response({
+            'active': True,
+            'expires_at': obj.expires_at.isoformat(),
+            'expires_in': max(remaining, 0),
+        })
+
+    def post(self, request):
+        password = (request.data or {}).get('password') or ''
+        if not password or not request.user.check_password(password):
+            audit_authz_event(
+                request, AuthzEvent.ACTION_DENY, REAUTH_CAP_CODE,
+                {'reason': 'invalid_password'},
+            )
+            return Response(
+                {'detail': 'Contraseña incorrecta.',
+                 'codigo_error': 'REAUTH_INVALID_PASSWORD'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        obj = open_reauth_session(
+            request.user, _session_key(request), _client_ip(request),
+        )
+        audit_authz_event(
+            request, AuthzEvent.ACTION_SENSITIVE_USE, REAUTH_CAP_CODE,
+            {'event': 'reauth_open'},
+        )
+        return Response({
+            'expires_at': obj.expires_at.isoformat(),
+            'expires_in': _reauth_ttl(),
+        })
+
+    def delete(self, request):
+        close_reauth_session(request.user, _session_key(request))
+        audit_authz_event(
+            request, AuthzEvent.ACTION_SENSITIVE_USE, REAUTH_CAP_CODE,
+            {'event': 'reauth_close'},
+        )
+        return Response(status=status.HTTP_204_NO_CONTENT)

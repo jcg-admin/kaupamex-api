@@ -15,14 +15,21 @@ dominio ``pos.*`` que exige capacidad explícita incluso al superadmin
 
 Diseño ratificado en :ref:`analisis-enforcement-hascapability-isowner`.
 """
+from datetime import timedelta
+
+from django.conf import settings
 from django.core.cache import cache
 from django.db.models import Q
 from django.utils import timezone
 
+from apps.authz.exceptions import ReauthRequired
 from apps.authz.models import (
     AccessLevel,
+    AuthzEvent,
+    Capability,
     DirectEntitlement,
     EntitlementRevocation,
+    ReauthSession,
     Role,
     RoleAssignment,
     RoleCapability,
@@ -172,6 +179,180 @@ def invalidate_capabilities(user_id):
     """Purga la cache de capacidades de un usuario (llamar tras mutar sus
     roles/grants)."""
     cache.delete(_cache_key(user_id))
+
+
+# ─── DEC-12 — re-autenticación para acciones sensibles ───────────────────────
+# Verbos CRUD graduados (DEC-11). Si el ``code`` requerido termina en uno de
+# estos, es un sustantivo graduado (``noun.verbo``); si no, es una acción
+# nombrada cuyo propio ``code`` es la capacidad (``platform.provision``).
+_CRUD_VERBS = frozenset({'view', 'create', 'edit', 'full'})
+_SENSITIVE_CACHE_KEY = 'authz:sensitive_codes'
+# Código de auditoría de la re-autenticación (no es una Capability gateada; es la
+# etiqueta del AuthzEvent de apertura/cierre). Deliberadamente NO "sudo".
+REAUTH_CAP_CODE = 'authz.reauth'
+
+
+def _reauth_ttl():
+    """Segundos de vida de una sesión reautenticada (``AUTHZ_REAUTH_TTL``,
+    default 15 min)."""
+    return int(getattr(settings, 'AUTHZ_REAUTH_TTL', 900))
+
+
+def sensitive_codes():
+    """Set de ``Capability.code`` marcados ``is_sensitive`` (cacheado).
+
+    Incluye tanto los sustantivos graduados sensibles (``payments``, ``settings``,
+    …) como las acciones nombradas sensibles (``platform.provision``, …). Se
+    invalida con ``invalidate_sensitive_codes`` tras re-sembrar el catálogo."""
+    cached = cache.get(_SENSITIVE_CACHE_KEY)
+    if cached is not None:
+        return cached
+    codes = set(
+        Capability.objects
+        .filter(is_sensitive=True, is_active=True)
+        .values_list('code', flat=True)
+    )
+    cache.set(_SENSITIVE_CACHE_KEY, codes, _CACHE_TTL)
+    return codes
+
+
+def invalidate_sensitive_codes():
+    """Purga la cache de códigos sensibles (llamar tras re-sembrar el catálogo)."""
+    cache.delete(_SENSITIVE_CACHE_KEY)
+
+
+def code_requires_fresh_session(code, unsafe_method):
+    """True si ejercer ``code`` con este método exige una sesión elevada (DEC-12).
+
+    - Sustantivo graduado (``noun.verbo`` con verbo CRUD): exige frescura sii el
+      **sustantivo** es sensible **y** el método es **mutante** (``unsafe_method``).
+      Leer datos sensibles (``payments.view``) NO exige re-auth — la capacidad ya
+      lo gatea; el re-auth protege la mutación peligrosa.
+    - Acción nombrada (``platform.provision``, ``inventory.adjust``): exige
+      frescura sii el propio ``code`` es sensible (son intrínsecamente mutantes)."""
+    if not code:
+        return False
+    sset = sensitive_codes()
+    noun, sep, verb = code.rpartition('.')
+    if sep and verb in _CRUD_VERBS:
+        return noun in sset and unsafe_method
+    return code in sset
+
+
+def all_capability_codes():
+    """Set de ``Capability.code`` activos sembrados (para validar declaraciones)."""
+    return set(
+        Capability.objects.filter(is_active=True).values_list('code', flat=True)
+    )
+
+
+def unknown_capability_codes(declared_codes):
+    """Códigos declarados en vistas que NO mapean a un ``Capability`` sembrado.
+
+    Adopta la idea de ``assert_valid_permission`` de pretix en data-driven
+    (analisis-mapeo-registro-permisos-pretix-vs-catalogo-db, azúcar #5): un typo
+    en ``required_capability``/``permission_map`` produce un *fail-closed*
+    silencioso (403 perpetuo) que este check destapa ruidosamente.
+
+    Reglas de resolución (mismas que ``resolve_capabilities``): un graded
+    ``noun.verbo`` (verbo CRUD) valida contra el ``noun``; una acción nombrada
+    (``platform.provision``, ``account.profile``) valida contra el code exacto.
+    Devuelve el set de códigos desconocidos (vacío = todo válido)."""
+    seeded = all_capability_codes()
+    unknown = set()
+    for code in declared_codes:
+        if not code:
+            continue
+        noun, sep, verb = code.rpartition('.')
+        if sep and verb in _CRUD_VERBS:
+            if noun not in seeded:
+                unknown.add(code)
+        elif code not in seeded:
+            unknown.add(code)
+    return unknown
+
+
+def _client_ip(request):
+    xff = (request.META.get('HTTP_X_FORWARDED_FOR') or '').split(',')[0].strip()
+    return xff or request.META.get('REMOTE_ADDR') or None
+
+
+def _session_key(request):
+    return getattr(getattr(request, 'session', None), 'session_key', '') or ''
+
+
+def audit_authz_event(request, action, code, extra=None):
+    """Registra un ``AuthzEvent`` (DEC-07) PII-safe. No bloqueante: un fallo del
+    audit jamás rompe la request original (mismo criterio DEC-LOG-04)."""
+    try:
+        actor = getattr(request, 'user', None)
+        if not getattr(actor, 'is_authenticated', False):
+            actor = None
+        AuthzEvent.objects.create(
+            actor=actor,
+            action=action,
+            capability_code=code or '',
+            ip_addr=_client_ip(request),
+            correlation_id=getattr(request, 'correlation_id', '') or '',
+            extra_json=extra,
+        )
+    except Exception:
+        # silent OK because DEC-LOG-04: sellar la auditoría nunca debe romper el
+        # flujo de autorización ni la respuesta al cliente.
+        pass
+
+
+def has_active_reauth_session(user, session_key):
+    """True si ``user`` tiene una sesión reautenticada vigente para
+    ``session_key``."""
+    if not getattr(user, 'is_authenticated', False) or user.pk is None:
+        return False
+    return ReauthSession.objects.filter(
+        user_id=user.pk, session_key=session_key or '',
+        expires_at__gt=timezone.now(),
+    ).exists()
+
+
+def open_reauth_session(user, session_key, ip_addr=None):
+    """Abre (o refresca) la sesión reautenticada de ``user`` para ``session_key``.
+
+    Una fila por ``(user, session_key)``: reabrir renueva ``started_at`` y
+    ``expires_at``. Devuelve la fila."""
+    now = timezone.now()
+    obj, _ = ReauthSession.objects.update_or_create(
+        user_id=user.pk, session_key=session_key or '',
+        defaults={
+            'started_at': now,
+            'expires_at': now + timedelta(seconds=_reauth_ttl()),
+            'ip_addr': ip_addr,
+        },
+    )
+    return obj
+
+
+def close_reauth_session(user, session_key):
+    """Cierra la sesión reautenticada de ``user`` para ``session_key``."""
+    ReauthSession.objects.filter(
+        user_id=user.pk, session_key=session_key or '',
+    ).delete()
+
+
+def assert_session_fresh(request, code, unsafe_method):
+    """Gate DEC-12: si ejercer ``code`` exige re-autenticación y no hay una sesión
+    reautenticada fresca, audita el ``DENY`` y lanza ``ReauthRequired`` (403
+    ``REAUTH_REQUIRED``).
+
+    Invocado desde ``HasCapability.has_permission`` **después** de confirmar la
+    capacidad — data-driven, sin cablear vista por vista. El **superadmin NO está
+    exento**: es la cuenta más privilegiada la que DEC-12 quiere proteger."""
+    if not code_requires_fresh_session(code, unsafe_method):
+        return
+    if has_active_reauth_session(request.user, _session_key(request)):
+        return
+    audit_authz_event(
+        request, AuthzEvent.ACTION_DENY, code, {'reason': 'reauth_required'},
+    )
+    raise ReauthRequired(window_seconds=_reauth_ttl())
 
 
 def assign_buyer_role(user):

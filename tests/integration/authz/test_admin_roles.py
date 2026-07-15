@@ -10,8 +10,11 @@ Contrato: read-only, gateado por ``permissions.full`` (misma capacidad que
 la asignación). Devuelve ``[{id, code, name, capabilities:[{code, level}]}]``
 (DEC-11: sustantivo + nivel).
 """
+from datetime import timedelta
+
 from apps.authz.models import (
-    AccessLevel, Capability, Module, Role, RoleAssignment, RoleCapability,
+    AccessLevel, Capability, Module, ReauthSession, Role, RoleAssignment,
+    RoleCapability,
 )
 from apps.authz.services import (
     SUPERADMIN_ROLE_CODE, invalidate_capabilities, is_superadmin,
@@ -20,6 +23,7 @@ from apps.authz.services import (
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 pytestmark = pytest.mark.integration
@@ -35,6 +39,18 @@ def seeded(db):
 @pytest.fixture
 def client():
     return APIClient()
+
+
+def _auth(client, user):
+    """Autentica y siembra una sesión reautenticada (DEC-12): editar permisos es
+    una mutación **sensible** (``permissions.full``) que exige re-auth fresca.
+    ``force_authenticate`` no crea sesión Django (``session_key=''``), así que la
+    ventana se siembra para ese mismo key."""
+    client.force_authenticate(user)
+    ReauthSession.objects.update_or_create(
+        user_id=user.pk, session_key='',
+        defaults={'started_at': timezone.now(),
+                  'expires_at': timezone.now() + timedelta(seconds=900)})
 
 
 def _user(email):
@@ -70,7 +86,7 @@ def test_forbidden_without_permissions_full(seeded, client):
     RoleAssignment.objects.create(
         user=u, role=_role_with_levels([('support', AccessLevel.FULL)]))
     invalidate_capabilities(u.id)
-    client.force_authenticate(u)
+    _auth(client,u)
     assert client.get('/api/v2/admin/roles/').status_code == 403
 
 
@@ -80,7 +96,7 @@ def test_lists_catalog_for_permissions_manager(seeded, client):
     RoleAssignment.objects.create(
         user=u, role=_role_with_levels([('permissions', AccessLevel.FULL)]))
     invalidate_capabilities(u.id)
-    client.force_authenticate(u)
+    _auth(client,u)
 
     resp = client.get('/api/v2/admin/roles/')
     assert resp.status_code == 200
@@ -108,7 +124,7 @@ def test_superadmin_sees_catalog(seeded, client):
     RoleAssignment.objects.create(
         user=u, role=Role.objects.get(code=SUPERADMIN_ROLE_CODE))
     invalidate_capabilities(u.id)
-    client.force_authenticate(u)
+    _auth(client,u)
     resp = client.get('/api/v2/admin/roles/')
     assert resp.status_code == 200
     codes = [r['code'] for r in resp.json()]
@@ -132,7 +148,7 @@ def test_manager_cannot_grant_superadmin(seeded, client):
     RoleAssignment.objects.create(
         user=mgr, role=_role_with_levels([('permissions', AccessLevel.FULL), ('users', AccessLevel.VIEW)]))
     invalidate_capabilities(mgr.id)
-    client.force_authenticate(mgr)
+    _auth(client,mgr)
 
     target = _user('victim@e.com')
     superadmin_id = Role.objects.get(code=SUPERADMIN_ROLE_CODE).pk
@@ -150,7 +166,7 @@ def test_manager_cannot_revoke_superadmin(seeded, client):
     RoleAssignment.objects.create(
         user=mgr, role=_role_with_levels([('permissions', AccessLevel.FULL), ('users', AccessLevel.VIEW)]))
     invalidate_capabilities(mgr.id)
-    client.force_authenticate(mgr)
+    _auth(client,mgr)
 
     boss = _user('boss@e.com')
     RoleAssignment.objects.create(
@@ -170,7 +186,7 @@ def test_superadmin_can_grant_superadmin(seeded, client):
     RoleAssignment.objects.create(
         user=boss, role=Role.objects.get(code=SUPERADMIN_ROLE_CODE))
     invalidate_capabilities(boss.id)
-    client.force_authenticate(boss)
+    _auth(client,boss)
 
     target = _user('promoted@e.com')
     superadmin_id = Role.objects.get(code=SUPERADMIN_ROLE_CODE).pk

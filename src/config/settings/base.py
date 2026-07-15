@@ -10,6 +10,10 @@ SECRET_KEY = config('SECRET_KEY')
 # Decoupled from SECRET_KEY so rotating SECRET_KEY does NOT lock out
 # every 2FA user (analisis-utilidad-totp-nativa-kaupamex, T-PLT-33).
 MFA_ENCRYPTION_KEY = config('MFA_ENCRYPTION_KEY', default=SECRET_KEY)
+# DEC-12: vida (segundos) de una sesion reautenticada. Dentro de esta ventana
+# las acciones sensibles pasan sin re-teclear password. NO es elevacion de
+# privilegios (no "sudo"): solo confirma identidad. Default 15 min.
+AUTHZ_REAUTH_TTL = config('AUTHZ_REAUTH_TTL', default=900, cast=int)
 DEBUG = config('DEBUG', default=False, cast=bool)
 
 # Seguridad (H-11): el admin nativo de Django se monta SOLO si esta bandera
