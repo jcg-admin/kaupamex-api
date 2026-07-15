@@ -17,7 +17,7 @@ class HasCapability(BasePermission):
 
     La vista declara su capacidad de una de dos formas:
 
-    - ``permission_map = {'list': 'catalogue.view', 'create': 'catalogue.manage'}``
+    - ``permission_map = {'list': 'catalogue.view', 'create': 'catalogue.create'}``
       para ``ViewSet``/``@action`` (se resuelve por ``view.action``); o
     - ``required_capability = 'domain.verb'`` para vistas de una sola acción.
 

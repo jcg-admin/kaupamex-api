@@ -36,7 +36,7 @@ from .serializers import (
 
 class _AdminOnly:
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'logistics.manage'
+    required_capability = 'logistics.edit'
 
 
 class LogisticsPanelView(_AdminOnly, APIView):
@@ -587,7 +587,7 @@ class BuyerReportIncidentView(APIView):
 class ShipmentListCreateV2View(APIView):
     """GET|POST /api/v2/shipments/ — Tier A."""
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'logistics.manage'
+    required_capability = 'logistics.edit'
 
     def get(self, request):
         return ShipmentGuideListCreateView().get(request)
@@ -599,7 +599,7 @@ class ShipmentListCreateV2View(APIView):
 class ShipmentDetailV2View(APIView):
     """GET|PATCH /api/v2/shipments/<pk>/ — Tier A."""
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'logistics.manage'
+    required_capability = 'logistics.edit'
 
     def get(self, request, pk):
         return ShipmentGuideDetailView().get(request, pk)
@@ -611,7 +611,7 @@ class ShipmentDetailV2View(APIView):
 class ShipmentCancellationV2View(APIView):
     """POST /api/v2/shipments/<pk>/cancellations/ — Tier A."""
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'logistics.manage'
+    required_capability = 'logistics.edit'
 
     def post(self, request, pk):
         return CancelGuideView().post(request, pk)
@@ -620,7 +620,7 @@ class ShipmentCancellationV2View(APIView):
 class ShipmentDeliveryV2View(APIView):
     """POST /api/v2/shipments/<pk>/deliveries/ — Tier A."""
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'logistics.manage'
+    required_capability = 'logistics.edit'
 
     def post(self, request, pk):
         return ConfirmDeliveryView().post(request, pk)

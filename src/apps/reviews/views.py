@@ -308,7 +308,7 @@ class _AdminReviewPagination(PageNumberPagination):
 
 class _AdminOnly:
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'moderation.manage'
+    required_capability = 'moderation.edit'
     serializer_class = ReviewAdminSerializer
 
 
@@ -495,7 +495,7 @@ class ReviewStatusV2View(APIView):
     """PATCH /api/v2/admin/reviews/<pk>/status/ — Tier B."""
 
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'moderation.manage'
+    required_capability = 'moderation.edit'
 
     def patch(self, request, pk):
         action = (request.data.get('action') or '').strip()

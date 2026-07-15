@@ -152,6 +152,22 @@ def has_capability(user, code):
     return code in resolve_capabilities(user)
 
 
+def has_level(user, noun, min_level):
+    """True si el usuario posee el sustantivo graduado ``noun`` a nivel
+    ≥ ``min_level`` (DEC-11).
+
+    ``noun`` es un sustantivo sin punto (``catalogue``, ``orders``, …) y
+    ``min_level`` un ``AccessLevel``. El superadmin hace bypass —salvo los
+    dominios de ``_NO_BYPASS_PREFIXES`` (POS), que exigen capacidad explícita
+    incluso al superadmin (DEC-06). Solo aplica a capacidades graduadas; las
+    acciones nombradas (con punto) se consultan con ``has_capability``."""
+    if not noun:
+        return False
+    if is_superadmin(user) and not f'{noun}.'.startswith(_NO_BYPASS_PREFIXES):
+        return True
+    return resolve_capability_levels(user).get(noun, AccessLevel.NONE) >= min_level
+
+
 def invalidate_capabilities(user_id):
     """Purga la cache de capacidades de un usuario (llamar tras mutar sus
     roles/grants)."""

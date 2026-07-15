@@ -457,7 +457,7 @@ class AdminSupportTicketListView(APIView):
     """GET /api/v1/admin/support/tickets/ — admin queue."""
 
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'support.manage'
+    required_capability = 'support.view'
 
     @extend_schema(
         summary='Bandeja de tickets (admin)',
@@ -538,7 +538,7 @@ class AdminSupportTicketExportCSVView(APIView):
     """
 
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'support.manage'
+    required_capability = 'support.view'
 
     @extend_schema(
         summary='Exportar tickets de soporte a CSV (admin)',

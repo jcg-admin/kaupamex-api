@@ -196,7 +196,7 @@ class NewsletterUnsubscribeView(APIView):
 
 class _AdminOnly:
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'newsletter.manage'
+    required_capability = 'newsletter.edit'
 
 
 class SubscriberPagination(PageNumberPagination):
@@ -519,7 +519,7 @@ class AdminSubscriberUnsubscribeV2View(APIView):
     v1 used POST /admin/newsletter/subscribers/<id>/unsubscribe/; v2 uses DELETE.
     """
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'newsletter.manage'
+    required_capability = 'newsletter.edit'
 
     def delete(self, request, subscriber_id):
         return AdminSubscriberForceUnsubscribeView().post(

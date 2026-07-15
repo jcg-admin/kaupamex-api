@@ -22,7 +22,7 @@ from .serializers import StaticContentSerializer
 
 class _AdminOnly:
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'content.manage'
+    required_capability = 'content.edit'
     serializer_class = StaticContentSerializer
 
 

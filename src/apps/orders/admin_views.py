@@ -35,7 +35,7 @@ class AdminOrderListView(APIView):
     Filtros: order_number, status, email, date_from, date_to.
     """
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'orders.manage'
+    required_capability = 'orders.view'
 
     @extend_schema(
         summary='Listar y filtrar órdenes (admin)',
@@ -122,7 +122,7 @@ class AdminOrderDetailView(APIView):
     UC-ORD-07. Sin restricción de propietario (admin ve todo).
     """
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'orders.manage'
+    required_capability = 'orders.view'
 
     @extend_schema(
         summary='Detalle de orden (admin)',
@@ -159,7 +159,7 @@ class AdminOrderStatusUpdateView(APIView):
     H-ADM-002: valida contra ALLOWED_TRANSITIONS con nombres reales del modelo.
     """
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'orders.manage'
+    required_capability = 'orders.edit'
 
     @extend_schema(
         summary='Cambiar estado de orden (admin)',
@@ -238,7 +238,7 @@ class AdminOrderCancelView(APIView):
     Motivo obligatorio — mínimo 10 caracteres.
     """
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'orders.manage'
+    required_capability = 'orders.edit'
 
     @extend_schema(
         summary='Cancelar orden (admin)',
@@ -312,7 +312,7 @@ class AdminDashboardView(APIView):
     H-ADM-004: usa SiteSettings.payment_timeout_minutes para alertas.
     """
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'orders.manage'
+    required_capability = 'orders.view'
 
     @extend_schema(
         summary='Dashboard transaccional (admin)',

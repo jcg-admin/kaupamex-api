@@ -304,7 +304,7 @@ class ReturnDetailView(APIView):
 
 class _AdminOnly:
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'returns.manage'
+    required_capability = 'returns.edit'
 
 
 class AdminReturnListView(_AdminOnly, APIView):
@@ -662,7 +662,7 @@ class ReturnStatusV2View(APIView):
     """PATCH /api/v2/admin/return-requests/<id>/status/ — Tier B."""
 
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'returns.manage'
+    required_capability = 'returns.edit'
 
     def patch(self, request, return_id):
         action = (request.data.get('action') or '').strip()

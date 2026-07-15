@@ -405,7 +405,16 @@ class SearchHistoryDetailView(APIView):
 
 class CategoryAdminViewSet(ModelViewSet):
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'catalogue.manage'
+    permission_map = {
+        'list': 'catalogue.view',
+        'retrieve': 'catalogue.view',
+        'create': 'catalogue.create',
+        'update': 'catalogue.edit',
+        'partial_update': 'catalogue.edit',
+        'destroy': 'catalogue.full',
+        'deactivate': 'catalogue.edit',
+        'reorder': 'catalogue.edit',
+    }
     serializer_class   = CategoryAdminSerializer
     queryset           = Category.objects.all().order_by('name')
     http_method_names  = ['get', 'post', 'patch', 'delete', 'head', 'options']
@@ -623,7 +632,20 @@ class ProductDeactivateAction:
 
 class ProductAdminViewSet(ProductDeactivateAction, ModelViewSet):
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'catalogue.manage'
+    permission_map = {
+        'list': 'catalogue.view',
+        'retrieve': 'catalogue.view',
+        'create': 'catalogue.create',
+        'update': 'catalogue.edit',
+        'partial_update': 'catalogue.edit',
+        'destroy': 'catalogue.full',
+        'deactivate': 'catalogue.edit',
+        'activate': 'catalogue.edit',
+        'price_history': 'catalogue.view',
+        'toggle_featured': 'catalogue.edit',
+        'reorder_images': 'catalogue.edit',
+        'update_images': 'catalogue.edit',
+    }
     serializer_class   = ProductAdminSerializer
     # H-CICLO47-01: prefetch_related('images') evita N+1 al serializar con
     # ProductAdminSerializer, que expone el campo `images` (many=True).
@@ -892,7 +914,7 @@ PRICE_SYNC_CACHE_TTL = 600
 
 class ProductPriceSyncView(APIView):
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'catalogue.manage'
+    required_capability = 'catalogue.edit'
     serializer_class = rf_serializers.Serializer
 
     def _parse_csv(self, file_obj):
@@ -979,7 +1001,7 @@ class ProductPriceSyncView(APIView):
 
 class ProductPriceSyncConfirmView(APIView):
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'catalogue.manage'
+    required_capability = 'catalogue.edit'
     serializer_class = rf_serializers.Serializer
 
     @extend_schema(summary='Confirmar sincronización de precios', responses={200: OpenApiTypes.OBJECT, 400: None}, tags=['admin-catalogue'])
@@ -1030,7 +1052,7 @@ class ProductPriceSyncConfirmView(APIView):
 
 class ProductPriceSyncTemplateView(APIView):
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'catalogue.manage'
+    required_capability = 'catalogue.view'
     serializer_class = rf_serializers.Serializer
 
     @extend_schema(summary='Descargar plantilla CSV de precios',
@@ -1180,7 +1202,7 @@ class CatalogImportCSVView(APIView):
     """Importar catálogo (productos + imágenes) desde CSV. UC-CAT-IMPORT."""
 
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'catalogue.manage'
+    required_capability = 'catalogue.edit'
 
     @extend_schema(
         summary='Importar catálogo con imágenes desde CSV',

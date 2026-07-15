@@ -5,7 +5,10 @@ capacidades del usuario. Verifica: superadmin ve todo; un usuario de solo
 ``support.view`` ve únicamente su sección; sin capacidades el menú es vacío;
 las secciones sin hijos visibles se descartan; requiere autenticación.
 """
-from apps.authz.models import Capability, MenuItem, Role, RoleAssignment
+from apps.authz.models import (
+    AccessLevel, Capability, MenuItem, Module, Role, RoleAssignment,
+    RoleCapability,
+)
 from apps.authz.services import SUPERADMIN_ROLE_CODE, invalidate_capabilities
 
 import pytest
@@ -16,6 +19,12 @@ from rest_framework.test import APIClient
 pytestmark = pytest.mark.integration
 
 User = get_user_model()
+
+# Verbo CRUD → nivel mínimo (DEC-11). ``manage`` es alias legado del tope.
+_VERB_LEVEL = {
+    'view': AccessLevel.VIEW, 'create': AccessLevel.CREATE,
+    'edit': AccessLevel.EDIT, 'full': AccessLevel.FULL,
+}
 
 
 @pytest.fixture
@@ -33,9 +42,25 @@ def _user(email):
     return User.objects.create_user(email=email, password='x')
 
 
+def _grant(role, code, level):
+    module, _ = Module.objects.get_or_create(
+        code=code.split('.', 1)[0], defaults={'name': code})
+    cap, _ = Capability.objects.get_or_create(
+        code=code, defaults={'module': module, 'name': code})
+    RoleCapability.objects.update_or_create(
+        role=role, capability=cap, defaults={'level': level})
+
+
 def _role_with(codes, code='r', name='Rol'):
+    """DEC-11: traduce códigos legados ``X.verbo`` a sustantivo ``X`` al nivel
+    del verbo; las acciones nombradas (verbo no-CRUD) quedan como membresía."""
     role = Role.objects.create(code=code, name=name)
-    role.capabilities.set(Capability.objects.filter(code__in=codes))
+    for c in codes:
+        noun, _, verb = c.partition('.')
+        if verb in _VERB_LEVEL:               # sustantivo graduado
+            _grant(role, noun, _VERB_LEVEL[verb])
+        else:                                  # acción nombrada / sustantivo puro
+            _grant(role, c, AccessLevel.FULL)
     return role
 
 
@@ -48,18 +73,22 @@ def test_requires_auth(seeded, client):
 @pytest.mark.django_db
 def test_capabilities_endpoint_returns_resolved_set(seeded, client):
     u = _user('sup@e.com')
-    RoleAssignment.objects.create(user=u, role=_role_with(['support.manage']))
+    RoleAssignment.objects.create(user=u, role=_role_with(['support.full']))
     invalidate_capabilities(u.id)
     client.force_authenticate(u)
     body = client.get('/api/v2/authz/me/capabilities/').json()
     assert body['is_superadmin'] is False
-    assert body['capabilities'] == ['support.manage']
+    # DEC-11: support@FULL se expande a la escala de verbos (view<create<edit<full).
+    assert body['capabilities'] == [
+        'support.create', 'support.edit', 'support.full',
+        'support.view',
+    ]
 
 
 @pytest.mark.django_db
 def test_support_user_sees_only_its_section(seeded, client):
     u = _user('sup@e.com')
-    RoleAssignment.objects.create(user=u, role=_role_with(['support.manage']))
+    RoleAssignment.objects.create(user=u, role=_role_with(['support.full']))
     invalidate_capabilities(u.id)
     client.force_authenticate(u)
     tree = client.get('/api/v2/authz/me/menu/').json()
@@ -129,7 +158,7 @@ def test_banners_leaf_gated_by_banners_manage(seeded, client):
     endpoint enforce (banners.manage). Un usuario banners.manage la ve; el
     menú nunca muestra un destino que daría 403."""
     u = _user('mkt@e.com')
-    RoleAssignment.objects.create(user=u, role=_role_with(['banners.manage']))
+    RoleAssignment.objects.create(user=u, role=_role_with(['banners.full']))
     invalidate_capabilities(u.id)
     client.force_authenticate(u)
     tree = client.get('/api/v2/authz/me/menu/').json()
@@ -145,7 +174,7 @@ def test_static_content_leaf_gated_by_settings_manage(seeded, client):
     capacidad que /api/v2/admin/pages/ enforce. Cierra el gap endpoint↔menu↔UI:
     el CRUD de páginas existía pero no tenía destino en el menú."""
     u = _user('cfg@e.com')
-    RoleAssignment.objects.create(user=u, role=_role_with(['settings.manage']))
+    RoleAssignment.objects.create(user=u, role=_role_with(['settings.full']))
     invalidate_capabilities(u.id)
     client.force_authenticate(u)
     tree = client.get('/api/v2/authz/me/menu/').json()
@@ -167,7 +196,7 @@ def test_arbitrary_depth_0_1_2_3(seeded, client):
     """El árbol es adjacency-list + build recursivo: la profundidad no tiene
     límite por diseño. Se arma una cadena nivel 0→1→2→3 y el endpoint la
     devuelve anidada intacta (prueba de que 0/1/2/3/N funciona sin cambios)."""
-    cap = Capability.objects.get(code='settings.manage')
+    cap = Capability.objects.get(code='settings')
     n0 = MenuItem.objects.create(key='d0', label='N0', route='', order=90)
     n1 = MenuItem.objects.create(key='d1', label='N1', route='', order=0, parent=n0)
     n2 = MenuItem.objects.create(key='d2', label='N2', route='', order=0, parent=n1)
@@ -175,7 +204,7 @@ def test_arbitrary_depth_0_1_2_3(seeded, client):
                             order=0, parent=n2, required_capability=cap)
 
     u = _user('deep@e.com')
-    RoleAssignment.objects.create(user=u, role=_role_with(['settings.manage']))
+    RoleAssignment.objects.create(user=u, role=_role_with(['settings.full']))
     invalidate_capabilities(u.id)
     client.force_authenticate(u)
     tree = client.get('/api/v2/authz/me/menu/').json()

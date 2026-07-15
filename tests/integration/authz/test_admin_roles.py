@@ -6,10 +6,13 @@ Role). Hasta ahora no existía un endpoint para **listar el catálogo completo**
 de roles disponibles: el selector solo podía leer los roles ya asignados a un
 usuario (``AdminUserDetailSerializer.roles``). Este endpoint cierra ese gap.
 
-Contrato: read-only, gateado por ``permissions.manage`` (misma capacidad que
-la asignación). Devuelve ``[{id, code, name, capabilities:[codes]}]``.
+Contrato: read-only, gateado por ``permissions.full`` (misma capacidad que
+la asignación). Devuelve ``[{id, code, name, capabilities:[{code, level}]}]``
+(DEC-11: sustantivo + nivel).
 """
-from apps.authz.models import Capability, Role, RoleAssignment
+from apps.authz.models import (
+    AccessLevel, Capability, Module, Role, RoleAssignment, RoleCapability,
+)
 from apps.authz.services import (
     SUPERADMIN_ROLE_CODE, invalidate_capabilities, is_superadmin,
 )
@@ -38,9 +41,20 @@ def _user(email):
     return User.objects.create_user(email=email, password='x')
 
 
-def _role_with(codes, code='r', name='Rol'):
+def _grant(role, code, level=AccessLevel.FULL):
+    module, _ = Module.objects.get_or_create(
+        code=code.split('.', 1)[0], defaults={'name': code})
+    cap, _ = Capability.objects.get_or_create(
+        code=code, defaults={'module': module, 'name': code})
+    RoleCapability.objects.update_or_create(
+        role=role, capability=cap, defaults={'level': level})
+    return cap
+
+
+def _role_with_levels(pairs, code='r', name='Rol'):
     role = Role.objects.create(code=code, name=name)
-    role.capabilities.set(Capability.objects.filter(code__in=codes))
+    for c, lvl in pairs:
+        _grant(role, c, lvl)
     return role
 
 
@@ -50,10 +64,11 @@ def test_requires_auth(seeded, client):
 
 
 @pytest.mark.django_db
-def test_forbidden_without_permissions_manage(seeded, client):
-    # Un usuario con otra capacidad (no permissions.manage) recibe 403.
+def test_forbidden_without_permissions_full(seeded, client):
+    # Un usuario con otra capacidad (no permissions@FULL) recibe 403.
     u = _user('sup@e.com')
-    RoleAssignment.objects.create(user=u, role=_role_with(['support.manage']))
+    RoleAssignment.objects.create(
+        user=u, role=_role_with_levels([('support', AccessLevel.FULL)]))
     invalidate_capabilities(u.id)
     client.force_authenticate(u)
     assert client.get('/api/v2/admin/roles/').status_code == 403
@@ -62,7 +77,8 @@ def test_forbidden_without_permissions_manage(seeded, client):
 @pytest.mark.django_db
 def test_lists_catalog_for_permissions_manager(seeded, client):
     u = _user('mgr@e.com')
-    RoleAssignment.objects.create(user=u, role=_role_with(['permissions.manage']))
+    RoleAssignment.objects.create(
+        user=u, role=_role_with_levels([('permissions', AccessLevel.FULL)]))
     invalidate_capabilities(u.id)
     client.force_authenticate(u)
 
@@ -73,17 +89,17 @@ def test_lists_catalog_for_permissions_manager(seeded, client):
     codes = {r['code'] for r in body}
     # El rol 'r' (no privilegiado) aparece en el catálogo...
     assert 'r' in codes
-    # ...pero el rol superadmin NO: un delegado con permissions.manage que no
+    # ...pero el rol superadmin NO: un delegado con permissions@FULL que no
     # es superadmin no debe poder descubrir ni asignar superadmin (contención
     # de escalada de privilegios). Ver test_manager_cannot_grant_superadmin.
     assert SUPERADMIN_ROLE_CODE not in codes
 
     # Contrato por item: id (para el POST de asignación), code, name, y la
-    # lista de capacidades (codes) que agrupa el rol.
+    # lista de capacidades como {code, level} (DEC-11) que agrupa el rol.
     r = next(item for item in body if item['code'] == 'r')
     assert set(r.keys()) == {'id', 'code', 'name', 'capabilities'}
     assert isinstance(r['id'], int)
-    assert r['capabilities'] == ['permissions.manage']
+    assert r['capabilities'] == [{'code': 'permissions', 'level': 'FULL'}]
 
 
 @pytest.mark.django_db
@@ -114,7 +130,7 @@ USERS_URL = '/api/v2/admin/users/'
 def test_manager_cannot_grant_superadmin(seeded, client):
     mgr = _user('mgr@e.com')
     RoleAssignment.objects.create(
-        user=mgr, role=_role_with(['permissions.manage', 'users.view']))
+        user=mgr, role=_role_with_levels([('permissions', AccessLevel.FULL), ('users', AccessLevel.VIEW)]))
     invalidate_capabilities(mgr.id)
     client.force_authenticate(mgr)
 
@@ -132,7 +148,7 @@ def test_manager_cannot_grant_superadmin(seeded, client):
 def test_manager_cannot_revoke_superadmin(seeded, client):
     mgr = _user('mgr@e.com')
     RoleAssignment.objects.create(
-        user=mgr, role=_role_with(['permissions.manage', 'users.view']))
+        user=mgr, role=_role_with_levels([('permissions', AccessLevel.FULL), ('users', AccessLevel.VIEW)]))
     invalidate_capabilities(mgr.id)
     client.force_authenticate(mgr)
 

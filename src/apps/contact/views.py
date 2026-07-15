@@ -85,7 +85,7 @@ class ContactMessageCreateView(APIView):
 
 class _AdminOnly:
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'support.manage'
+    required_capability = 'support.edit'
 
 
 class AdminContactMessageListView(_AdminOnly, APIView):
@@ -214,7 +214,7 @@ class AdminContactMessageV2View(APIView):
     PATCH — accepts {"is_read": true} to mark as read (v1 used POST /read/).
     """
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'support.manage'
+    required_capability = 'support.edit'
 
     def get(self, request, message_id):
         return AdminContactMessageDetailView().get(request, message_id=message_id)
@@ -231,7 +231,7 @@ class AdminContactMessageV2View(APIView):
 class AdminContactMessageReplyV2View(APIView):
     """POST /api/v2/admin/contact/messages/<id>/replies/ — Tier A."""
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'support.manage'
+    required_capability = 'support.edit'
 
     def post(self, request, message_id):
         return AdminContactMessageReplyView().post(request, message_id=message_id)

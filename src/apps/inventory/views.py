@@ -38,7 +38,7 @@ logger = logging.getLogger('apps')
 
 class _AdminOnly:
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'inventory.manage'
+    required_capability = 'inventory.edit'
 
 
 class StockAlertPagination(PageNumberPagination):
@@ -630,7 +630,7 @@ class StockAdjustV2View(APIView):
     Delega la logica de negocio a StockAdjustView.post().
     """
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'inventory.manage'
+    required_capability = 'inventory.edit'
 
     def patch(self, request, product_pk):
         return StockAdjustView().post(request, product_pk)
@@ -644,7 +644,7 @@ class VariantStockV2View(APIView):
     Delega a VariantStockAdjustView.post().
     """
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'inventory.manage'
+    required_capability = 'inventory.edit'
 
     def patch(self, request, variant_pk):
         return VariantStockAdjustView().post(request, variant_pk)
@@ -658,7 +658,7 @@ class VariantRestocksV2View(APIView):
     Delega a VariantRestockView.post().
     """
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'inventory.manage'
+    required_capability = 'inventory.edit'
 
     def post(self, request, variant_pk):
         return VariantRestockView().post(request, variant_pk)
@@ -672,7 +672,7 @@ class StockAlertStatusV2View(APIView):
     Solo la accion 'resolve' esta soportada en esta version.
     """
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'inventory.manage'
+    required_capability = 'inventory.edit'
 
     def patch(self, request, pk):
         action = request.data.get('action')

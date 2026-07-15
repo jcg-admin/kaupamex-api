@@ -945,7 +945,7 @@ class AdminRefundView(APIView):
     UC-PAY-09.
     """
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'payments.manage'
+    required_capability = 'payments.edit'
 
     @extend_schema(
         summary='Reembolso manual (admin)',
@@ -1000,7 +1000,7 @@ class AdminPaymentDetailView(APIView):
     impidiendo drill-down desde la lista de pagos en el panel.
     """
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'payments.manage'
+    required_capability = 'payments.view'
 
     @extend_schema(
         summary='Detalle de pago (admin)',
@@ -1038,7 +1038,7 @@ class AdminPaymentListView(APIView):
     Respuesta: { count, results: Payment[], totals: {approved, refunded, net} }.
     """
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'payments.manage'
+    required_capability = 'payments.view'
 
     @extend_schema(
         summary='Listado de transacciones de pago (admin, UC-PAY-11)',
@@ -1166,7 +1166,7 @@ class AdminPaymentRefundsListView(APIView):
     Lista todos los reembolsos de un pago específico. T-16-D.
     """
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'payments.manage'
+    required_capability = 'payments.view'
 
     @extend_schema(
         summary='Listado de reembolsos de un pago (admin)',
@@ -1189,7 +1189,7 @@ class AdminCancelPaymentView(APIView):
     El admin cancela proactivamente un pago pendiente. T-CAN.
     """
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'payments.manage'
+    required_capability = 'payments.edit'
 
     @extend_schema(
         summary='Cancelar pago pendiente (admin)',
@@ -1238,7 +1238,7 @@ class AdminChargebackListView(APIView):
     Lista todos los contracargos registrados. T-17-B.
     """
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'payments.manage'
+    required_capability = 'payments.view'
 
     @extend_schema(
         summary='Listado de contracargos (admin)',
@@ -1259,7 +1259,7 @@ class AdminChargebackDetailView(APIView):
     Detalle de un contracargo individual. T-17-C.
     """
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'payments.manage'
+    required_capability = 'payments.view'
 
     @extend_schema(
         summary='Detalle de contracargo (admin)',

@@ -34,7 +34,7 @@ from .views import ProductPriceSyncView, PRICE_SYNC_CACHE_TTL
 
 class _AdminOnly:
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'catalogue.manage'
+    required_capability = 'catalogue.edit'
     serializer_class = serializers.Serializer
 
 

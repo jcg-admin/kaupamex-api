@@ -17,14 +17,14 @@ from apps.authz.services import (
     BUYER_ROLE_CODE, SUPERADMIN_ROLE_CODE, assign_buyer_role,
     invalidate_capabilities,
 )
-from apps.authz.management.commands.seed_authz import CAPABILITIES
+from apps.authz.management.commands.seed_authz import NAMED_ACTIONS
 from apps.users.models import EmployeeProfile, Person
 
 User = get_user_model()
 
 # Capacidades del dominio 'account' (rol comprador), derivadas del catálogo
 # canónico de seed_authz para no duplicar la lista.
-_ACCOUNT_CAPS = [c for c in CAPABILITIES if c[0].startswith('account.')]
+_ACCOUNT_CAPS = [c for c in NAMED_ACTIONS if c[0].startswith('account.')]
 
 
 def make_buyer(user):

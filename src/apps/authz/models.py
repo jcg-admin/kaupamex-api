@@ -43,7 +43,7 @@ class AccessLevel(models.IntegerChoices):
     ``NONE`` es el piso (ausencia de nivel). Los niveles son sucesivos: cada uno
     implica los inferiores (EDIT ⇒ CREATE ⇒ VIEW). El verbo de un ``code``
     ``dominio.verbo`` en un call-site expresa el nivel MÍNIMO requerido; se mapea
-    con ``for_verb``. ``manage`` es el alias legado del tope (== FULL).
+    con ``for_verb``.
     """
     NONE = 0, 'Ninguno'
     VIEW = 10, 'Ver'
@@ -59,7 +59,6 @@ class AccessLevel(models.IntegerChoices):
             'create': cls.CREATE,
             'edit': cls.EDIT,
             'full': cls.FULL,
-            'manage': cls.FULL,  # alias legado del tope
         }.get(verb, cls.NONE)
 
     def implied_verbs(self):
@@ -72,7 +71,7 @@ class AccessLevel(models.IntegerChoices):
         if self >= AccessLevel.EDIT:
             verbs.append('edit')
         if self >= AccessLevel.FULL:
-            verbs.extend(['full', 'manage'])  # 'manage' = alias legado
+            verbs.append('full')
         return verbs
 
 

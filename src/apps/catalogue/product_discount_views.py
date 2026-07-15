@@ -51,7 +51,7 @@ class ProductDiscountListCreateView(APIView):
     """GET and POST /api/v1/admin/product-discounts/."""
 
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'catalogue.manage'
+    required_capability = 'catalogue.edit'
 
     @extend_schema(
         summary='List product discounts (UC-DASH-04)',
@@ -144,7 +144,7 @@ class ProductDiscountDetailView(APIView):
     """PATCH /api/v1/admin/product-discounts/<id>/."""
 
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'catalogue.manage'
+    required_capability = 'catalogue.edit'
 
     def _get_or_404(self, pk):
         try:
@@ -211,7 +211,7 @@ class ProductDiscountDeactivateView(APIView):
     """POST /api/v1/admin/product-discounts/<id>/deactivate/."""
 
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'catalogue.manage'
+    required_capability = 'catalogue.edit'
     serializer_class = ProductDiscountSerializer
 
     @extend_schema(

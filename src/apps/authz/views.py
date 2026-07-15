@@ -68,7 +68,12 @@ class MyMenuView(APIView):
 
         def visible(item):
             cap = item.required_capability.code if item.required_capability_id else None
-            return superadmin or cap is None or cap in caps
+            if superadmin or cap is None:
+                return True
+            # DEC-11: un sustantivo (sin punto) gatea el menú por LECTURA
+            # (``noun.view``); una acción nombrada (con punto) por membresía.
+            needed = cap if '.' in cap else f'{cap}.view'
+            return needed in caps
 
         def build(parent_id):
             out = []

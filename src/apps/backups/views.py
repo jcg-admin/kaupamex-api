@@ -121,7 +121,7 @@ class AdminBackupListView(APIView):
     POST → disparar backup manual on-demand (canónico v2; reemplaza trigger/).
     """
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'backups.manage'
+    required_capability = 'backups.edit'
 
     @extend_schema(
         summary='Listar historial de backups (UC-ADM-05)',

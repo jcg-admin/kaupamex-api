@@ -39,8 +39,8 @@ class TestAccessLevelScale:
         assert AccessLevel.for_verb("view") == AccessLevel.VIEW
         assert AccessLevel.for_verb("create") == AccessLevel.CREATE
         assert AccessLevel.for_verb("edit") == AccessLevel.EDIT
-        # legacy ".manage" (old top of the 2-level model) == FULL
-        assert AccessLevel.for_verb("manage") == AccessLevel.FULL
+        # ``manage`` ya no es verbo CRUD: alias legado retirado (DEC-11, sin legado)
+        assert AccessLevel.for_verb("manage") == AccessLevel.NONE
         assert AccessLevel.for_verb("full") == AccessLevel.FULL
 
 
@@ -70,8 +70,8 @@ class TestLevelExpansion:
         user = UserFactory()
         _grant(user, "orders", AccessLevel.VIEW, m)
         assert has_capability(user, "orders.view") is True
-        # VIEW grant does not satisfy a .manage (FULL) requirement
-        assert has_capability(user, "orders.manage") is False
+        # VIEW grant does not satisfy a .full (FULL) requirement
+        assert has_capability(user, "orders.full") is False
 
     def test_levels_map_returns_max_across_roles(self):
         m = Module.objects.create(code="sales", name="Sales")
@@ -86,7 +86,7 @@ class TestLevelExpansion:
         invalidate_capabilities(user.pk)
         # the higher grade wins
         assert resolve_capability_levels(user)["orders"] == AccessLevel.FULL
-        assert has_capability(user, "orders.manage") is True
+        assert has_capability(user, "orders.full") is True
 
 
 class TestNamedActionsUnchanged:

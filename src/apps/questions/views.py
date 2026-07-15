@@ -137,7 +137,7 @@ class ProductQuestionsView(APIView):
 
 class _AdminOnly:
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'questions.manage'
+    required_capability = 'questions.edit'
 
 
 class AdminQuestionsListView(_AdminOnly, APIView):
@@ -315,7 +315,7 @@ class QuestionStatusV2View(APIView):
     """PATCH /api/v2/admin/questions/<id>/status/ — Tier B."""
 
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'questions.manage'
+    required_capability = 'questions.edit'
 
     def patch(self, request, question_id):
         action = (request.data.get('action') or '').strip()

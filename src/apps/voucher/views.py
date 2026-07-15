@@ -57,9 +57,9 @@ class VoucherViewSet(ModelViewSet):
     permission_map = {
         'list': 'vouchers.view', 'retrieve': 'vouchers.view',
         'report': 'vouchers.view',
-        'create': 'vouchers.manage', 'update': 'vouchers.manage',
-        'partial_update': 'vouchers.manage', 'destroy': 'vouchers.manage',
-        'activate': 'vouchers.manage', 'deactivate': 'vouchers.manage',
+        'create': 'vouchers.create', 'update': 'vouchers.edit',
+        'partial_update': 'vouchers.edit', 'destroy': 'vouchers.full',
+        'activate': 'vouchers.edit', 'deactivate': 'vouchers.edit',
     }
     serializer_class   = VoucherSerializer
     queryset           = Voucher.objects.all().order_by('-created_at')

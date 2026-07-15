@@ -316,7 +316,7 @@ class AdminAudienceCountView(APIView):
     """GET /api/v1/admin/notifications/audience-count/."""
 
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'notifications.manage'
+    required_capability = 'notifications.view'
     serializer_class = ManualNotificationCreateSerializer
 
     @extend_schema(
@@ -370,7 +370,7 @@ class AdminManualNotificationCreateView(APIView):
     """POST /api/v1/admin/notifications/manual/."""
 
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'notifications.manage'
+    required_capability = 'notifications.create'
 
     @extend_schema(
         summary='Enviar notificacion manual',

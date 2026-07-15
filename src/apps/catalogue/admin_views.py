@@ -29,7 +29,7 @@ class ProductDiscountStatusV2View(APIView):
     - {discount_pct, ...} → partial update
     """
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'catalogue.manage'
+    required_capability = 'catalogue.edit'
 
     def patch(self, request, pk):
         active = request.data.get('active')
@@ -51,7 +51,7 @@ class PriceSyncsV2View(APIView):
     Body must include type ('preview'|'apply') and mode ('csv'|'percentage').
     """
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'catalogue.manage'
+    required_capability = 'catalogue.edit'
 
     def post(self, request):
         type_ = request.data.get('type')

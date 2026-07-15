@@ -102,7 +102,14 @@ class ProductVariantAdminViewSet(ModelViewSet):
     DELETE /api/v1/admin/variants/<pk>/      delete
     """
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'catalogue.manage'
+    permission_map = {
+        'list': 'catalogue.view',
+        'retrieve': 'catalogue.view',
+        'create': 'catalogue.create',
+        'update': 'catalogue.edit',
+        'partial_update': 'catalogue.edit',
+        'destroy': 'catalogue.full',
+    }
     serializer_class   = ProductVariantAdminSerializer
     queryset           = ProductVariant.objects.all().select_related(
         'product', 'option', 'option__variant_type'
@@ -179,7 +186,14 @@ class VariantTypeAdminViewSet(ModelViewSet):
     DELETE /api/v1/admin/variant-types/<pk>/      delete
     """
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'catalogue.manage'
+    permission_map = {
+        'list': 'catalogue.view',
+        'retrieve': 'catalogue.view',
+        'create': 'catalogue.create',
+        'update': 'catalogue.edit',
+        'partial_update': 'catalogue.edit',
+        'destroy': 'catalogue.full',
+    }
     serializer_class   = VariantTypeSerializer
     queryset           = VariantType.objects.all().order_by('name')
     http_method_names  = ['get', 'post', 'patch', 'delete', 'head', 'options']
@@ -244,7 +258,7 @@ class VariantPriceAdminView(APIView):
     DELETE /api/v1/admin/variants/<variant_pk>/price/ — UC-CHT-04 clear price override.
     """
     permission_classes = [IsAuthenticated, HasCapability]
-    required_capability = 'catalogue.manage'
+    required_capability = 'catalogue.edit'
 
     def _get_variant(self, variant_pk):
         try:

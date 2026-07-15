@@ -217,12 +217,12 @@ class AdminUserViewSet(ModelViewSet):
     permission_map     = {
         'list':       'users.view',
         'retrieve':   'users.view',
-        'create':     'users.manage',
-        'suspend':    'users.manage',
-        'reactivate': 'users.manage',
-        'permissions': 'permissions.manage',
+        'create':     'users.create',
+        'suspend':    'users.edit',
+        'reactivate': 'users.edit',
+        'permissions': 'permissions.full',
     }
-    required_capability = 'users.manage'
+    required_capability = 'users.edit'
     queryset           = User.objects.all().order_by('-date_joined')
     http_method_names  = ['get', 'post', 'head', 'options']
     pagination_class   = AdminUserPagination
