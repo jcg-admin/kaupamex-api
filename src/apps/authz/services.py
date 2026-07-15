@@ -19,7 +19,14 @@ from django.core.cache import cache
 from django.db.models import Q
 from django.utils import timezone
 
-from apps.authz.models import DirectEntitlement, EntitlementRevocation, Role, RoleAssignment
+from apps.authz.models import (
+    AccessLevel,
+    DirectEntitlement,
+    EntitlementRevocation,
+    Role,
+    RoleAssignment,
+    RoleCapability,
+)
 
 SUPERADMIN_ROLE_CODE = 'superadmin'
 # Rol base del comprador (DEC-AUTHZ-BUYER): agrupa las capacidades ``account.*``
@@ -61,14 +68,24 @@ def resolve_capabilities(user):
         return cached
 
     now = timezone.now()
-    unexpired = _unexpired_q(now)
-
-    role_caps = set(
+    role_ids = list(
         RoleAssignment.objects
-        .filter(user_id=user.pk).filter(unexpired)
-        .values_list('role__capabilities__code', flat=True)
+        .filter(user_id=user.pk).filter(_unexpired_q(now))
+        .values_list('role_id', flat=True)
     )
-    role_caps.discard(None)
+
+    # Graded nouns (code sin punto) → nivel máximo entre roles; acciones
+    # nombradas (code con punto, no verbo CRUD) → membresía directa (DEC-11).
+    graded, named = _split_graded_named(
+        RoleCapability.objects
+        .filter(role_id__in=role_ids)
+        .values_list('capability__code', 'level')
+    )
+
+    role_caps = set(named)
+    for noun, level in graded.items():
+        for verb in AccessLevel(level).implied_verbs():
+            role_caps.add(f'{noun}.{verb}')
 
     direct = set(
         DirectEntitlement.objects
@@ -84,6 +101,45 @@ def resolve_capabilities(user):
     caps = (role_caps | direct) - revoked
     cache.set(key, caps, _CACHE_TTL)
     return caps
+
+
+def _split_graded_named(code_level_pairs):
+    """Parte ``(code, level)`` en ``({noun: max_level}, {named_action_code})``.
+
+    ``code`` sin punto → noun graduado; con punto → acción nombrada (membresía).
+    """
+    graded = {}
+    named = set()
+    for code, level in code_level_pairs:
+        if code is None:
+            continue
+        if '.' in code:
+            named.add(code)
+        else:
+            graded[code] = max(graded.get(code, AccessLevel.NONE), level)
+    return graded, named
+
+
+def resolve_capability_levels(user):
+    """``{noun: AccessLevel}`` que el usuario posee vía roles (nivel máximo).
+
+    Solo capacidades graduadas (noun sin punto). Las acciones nombradas no
+    tienen nivel — se consultan con ``has_capability`` por membresía.
+    """
+    if not getattr(user, 'is_authenticated', False) or user.pk is None:
+        return {}
+    now = timezone.now()
+    role_ids = list(
+        RoleAssignment.objects
+        .filter(user_id=user.pk).filter(_unexpired_q(now))
+        .values_list('role_id', flat=True)
+    )
+    graded, _ = _split_graded_named(
+        RoleCapability.objects
+        .filter(role_id__in=role_ids)
+        .values_list('capability__code', 'level')
+    )
+    return {noun: AccessLevel(level) for noun, level in graded.items()}
 
 
 def has_capability(user, code):

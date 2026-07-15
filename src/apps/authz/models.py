@@ -37,6 +37,45 @@ class Module(TimeStampedModel):
         return self.code
 
 
+class AccessLevel(models.IntegerChoices):
+    """Nivel de acceso graduado (DEC-11, modelo NetSuite VIEW<CREATE<EDIT<FULL).
+
+    ``NONE`` es el piso (ausencia de nivel). Los niveles son sucesivos: cada uno
+    implica los inferiores (EDIT ⇒ CREATE ⇒ VIEW). El verbo de un ``code``
+    ``dominio.verbo`` en un call-site expresa el nivel MÍNIMO requerido; se mapea
+    con ``for_verb``. ``manage`` es el alias legado del tope (== FULL).
+    """
+    NONE = 0, 'Ninguno'
+    VIEW = 10, 'Ver'
+    CREATE = 20, 'Crear'
+    EDIT = 30, 'Editar'
+    FULL = 40, 'Total'
+
+    @classmethod
+    def for_verb(cls, verb):
+        """Nivel mínimo que exige un verbo CRUD; ``NONE`` si no es CRUD."""
+        return {
+            'view': cls.VIEW,
+            'create': cls.CREATE,
+            'edit': cls.EDIT,
+            'full': cls.FULL,
+            'manage': cls.FULL,  # alias legado del tope
+        }.get(verb, cls.NONE)
+
+    def implied_verbs(self):
+        """Verbos CRUD que este nivel concede (para expandir noun→noun.verbo)."""
+        verbs = []
+        if self >= AccessLevel.VIEW:
+            verbs.append('view')
+        if self >= AccessLevel.CREATE:
+            verbs.append('create')
+        if self >= AccessLevel.EDIT:
+            verbs.append('edit')
+        if self >= AccessLevel.FULL:
+            verbs.extend(['full', 'manage'])  # 'manage' = alias legado
+        return verbs
+
+
 class Capability(TimeStampedModel):
     """Un permiso atómico. ``code`` = ``dominio.verbo`` (cara técnica); el resto
     es la cara de negocio (un solo registro, sin split lógico/físico)."""
@@ -72,7 +111,8 @@ class Role(TimeStampedModel):
     code = models.SlugField(max_length=50, unique=True, verbose_name='Código')
     name = models.CharField(max_length=100, verbose_name='Nombre')
     capabilities = models.ManyToManyField(
-        Capability, related_name='roles', blank=True, verbose_name='Capacidades',
+        Capability, through='RoleCapability', related_name='roles', blank=True,
+        verbose_name='Capacidades',
     )
 
     class Meta:
@@ -83,6 +123,36 @@ class Role(TimeStampedModel):
 
     def __str__(self):
         return self.code
+
+
+class RoleCapability(TimeStampedModel):
+    """Grade de una capacidad dentro de un rol (through de ``Role.capabilities``,
+    DEC-11). Reemplaza el M2M plano: cada par rol↔capacidad lleva su
+    ``AccessLevel``. Para capacidades de acción nombrada (``code`` con punto que
+    no es verbo CRUD, p.ej. ``account.profile``) el nivel es irrelevante y se
+    guarda ``FULL`` — el resolver las trata por membresía, no por escala."""
+    role = models.ForeignKey(
+        Role, on_delete=models.CASCADE, related_name='role_capabilities',
+        verbose_name='Rol',
+    )
+    capability = models.ForeignKey(
+        Capability, on_delete=models.CASCADE, related_name='role_capabilities',
+        verbose_name='Capacidad',
+    )
+    level = models.IntegerField(
+        choices=AccessLevel.choices, default=AccessLevel.FULL,
+        verbose_name='Nivel de acceso',
+    )
+
+    class Meta:
+        db_table = 'authz_role_capability'
+        verbose_name = 'Capacidad de rol'
+        verbose_name_plural = 'Capacidades de rol'
+        unique_together = [('role', 'capability')]
+        ordering = ['role__code', 'capability__code']
+
+    def __str__(self):
+        return f'{self.role.code}:{self.capability.code}@{self.get_level_display()}'
 
 
 class RoleAssignment(TimeStampedModel):
