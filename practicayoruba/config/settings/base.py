@@ -6,6 +6,10 @@ import certifi
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 SECRET_KEY = config('SECRET_KEY')
+# Dedicated key for MFA/TOTP secret encryption at rest (Fernet).
+# Decoupled from SECRET_KEY so rotating SECRET_KEY does NOT lock out
+# every 2FA user (analisis-utilidad-totp-nativa-kaupamex, T-PLT-33).
+MFA_ENCRYPTION_KEY = config('MFA_ENCRYPTION_KEY', default=SECRET_KEY)
 DEBUG = config('DEBUG', default=False, cast=bool)
 
 # Seguridad (H-11): el admin nativo de Django se monta SOLO si esta bandera

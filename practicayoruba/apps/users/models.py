@@ -23,6 +23,7 @@ from django.utils import timezone
 from django.utils.crypto import salted_hmac
 from apps.core.logging_context import get_correlation_id
 from apps.core.models import AppendOnlyModel, SoftDeleteModel, TimeStampedModel
+from apps.users import mfa
 
 
 def avatar_upload_path(instance, filename):
@@ -652,3 +653,57 @@ class UserSession(models.Model):
 
     def __str__(self):
         return f"UserSession[{self.user.email}] {self.session_key[:8]}…"
+
+
+class MFADevice(TimeStampedModel):
+    """Second-factor device bound to an IdentityUser (native MFA).
+
+    ``device_type=totp`` stores the RFC 6238 secret encrypted at rest in
+    ``data['secret']`` (Fernet, dedicated MFA_ENCRYPTION_KEY). Recovery codes
+    are stored hashed. UC-PLT-08 enrolls the factor; UC-AUTH-02 (route 4.6)
+    consumes it at login. See apps.users.mfa (T-PLT-33).
+    """
+    TOTP = "totp"
+    RECOVERY_CODES = "recovery_codes"
+    WEBAUTHN = "webauthn"
+    DEVICE_TYPE_CHOICES = [
+        (TOTP, "TOTP authenticator app"),
+        (RECOVERY_CODES, "Recovery codes"),
+        (WEBAUTHN, "WebAuthn / passkey"),
+    ]
+
+    user = models.ForeignKey(
+        IdentityUser, on_delete=models.CASCADE, related_name="mfa_devices")
+    device_type = models.CharField(max_length=20, choices=DEVICE_TYPE_CHOICES)
+    data = models.JSONField(default=dict, blank=True)
+    confirmed = models.BooleanField(default=False)
+    last_used_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = "users_mfa_device"
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["user", "confirmed"])]
+
+    def __str__(self):
+        state = "confirmed" if self.confirmed else "unconfirmed"
+        return f"MFADevice[{self.user.email}] {self.device_type} ({state})"
+
+    def set_totp_secret(self, plaintext_secret: str) -> None:
+        """Encrypt and store a TOTP secret (never persisted in clear)."""
+        self.data = {**(self.data or {}), "secret": mfa.encrypt_secret(plaintext_secret)}
+
+    def get_totp_secret(self) -> str:
+        """Decrypt the stored TOTP secret; raises mfa.MfaCryptoError on failure."""
+        blob = (self.data or {}).get("secret")
+        if not blob:
+            raise mfa.MfaCryptoError("MFADevice has no stored secret")
+        return mfa.decrypt_secret(blob)
+
+    def verify_totp(self, code: str) -> bool:
+        """Verify a TOTP code against the (decrypted) secret; stamps last_used."""
+        if self.device_type != self.TOTP:
+            return False
+        ok = mfa.verify_totp(self.get_totp_secret(), code)
+        if ok:
+            self.last_used_at = timezone.now()
+        return ok
