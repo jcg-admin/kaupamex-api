@@ -12,6 +12,7 @@ import base64
 import hashlib
 import hmac
 import os
+import secrets
 import struct
 import time
 from urllib.parse import quote, urlencode
@@ -32,6 +33,27 @@ class MfaCryptoError(Exception):
 def generate_totp_secret(nbytes: int = TOTP_SECRET_BYTES) -> str:
     """Return a fresh base32 TOTP secret (uppercase, unpadded-safe)."""
     return base64.b32encode(os.urandom(nbytes)).decode("ascii")
+
+
+RECOVERY_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"  # no I,O,0,1
+RECOVERY_CODE_GROUP = 5
+
+
+def _recovery_group() -> str:
+    return "".join(secrets.choice(RECOVERY_CODE_ALPHABET)
+                   for _ in range(RECOVERY_CODE_GROUP))
+
+
+def generate_recovery_codes(count: int = 8) -> list[str]:
+    """Return ``count`` unique single-use recovery codes ("xxxxx-xxxxx").
+
+    Alphabet excludes visually ambiguous chars (I/O/0/1). Codes are the
+    plaintext shown once to the user; the device stores only their hashes.
+    """
+    codes: set[str] = set()
+    while len(codes) < count:
+        codes.add(f"{_recovery_group()}-{_recovery_group()}")
+    return list(codes)
 
 
 def _hotp(secret_b32: str, counter: int, digits: int) -> str:

@@ -55,3 +55,22 @@ def test_get_secret_without_data_raises():
     device = MFADevice.objects.create(user=user, device_type=MFADevice.TOTP)
     with pytest.raises(mfa.MfaCryptoError):
         device.get_totp_secret()
+
+
+def test_recovery_codes_hashed_and_single_use():
+    user = UserFactory()
+    codes = mfa.generate_recovery_codes(4)
+    device = MFADevice(user=user, device_type=MFADevice.RECOVERY_CODES)
+    device.set_recovery_codes(codes)
+    device.save()
+
+    stored = MFADevice.objects.get(pk=device.pk)
+    # hashed at rest (no plaintext code stored)
+    assert all(c not in str(stored.data) for c in codes)
+    # first use consumes, second use fails
+    assert stored.consume_recovery_code(codes[0]) is True
+    assert stored.consume_recovery_code(codes[0]) is False
+    # a different code still works
+    assert stored.consume_recovery_code(codes[1]) is True
+    # garbage fails
+    assert stored.consume_recovery_code("zzzzz-zzzzz") is False

@@ -707,3 +707,21 @@ class MFADevice(TimeStampedModel):
         if ok:
             self.last_used_at = timezone.now()
         return ok
+
+    def set_recovery_codes(self, codes: list) -> None:
+        """Store recovery codes hashed at rest (never the plaintext)."""
+        self.data = {**(self.data or {}),
+                     "recovery_hashes": [hashers.make_password(c) for c in codes]}
+
+    def consume_recovery_code(self, code: str) -> bool:
+        """Spend a recovery code once: verify against stored hashes, then
+        remove the matched hash so it cannot be reused. Returns True on match."""
+        hashes = (self.data or {}).get("recovery_hashes", [])
+        for stored in hashes:
+            if hashers.check_password(code, stored):
+                remaining = [h for h in hashes if h != stored]
+                self.data = {**(self.data or {}), "recovery_hashes": remaining}
+                self.last_used_at = timezone.now()
+                self.save(update_fields=["data", "last_used_at", "updated_at"])
+                return True
+        return False

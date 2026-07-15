@@ -63,3 +63,12 @@ class TestMfaCrypto:
     def test_decrypt_garbage_raises(self):
         with pytest.raises(mfa.MfaCryptoError):
             mfa.decrypt_secret("not-a-valid-fernet-token")
+
+
+class TestRecoveryCodes:
+    def test_generate_recovery_codes_shape(self):
+        codes = mfa.generate_recovery_codes(8)
+        assert len(codes) == 8
+        assert len(set(codes)) == 8  # unique
+        for c in codes:
+            assert "-" in c and c.replace("-", "").isalnum()
