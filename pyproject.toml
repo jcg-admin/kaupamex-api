@@ -59,6 +59,6 @@ dev = [
 # "unknown field `system-certs`" en cada `uv run`. Equivale a UV_NATIVE_TLS=1.
 native-tls = true
 # package = false: el API es una aplicacion Django (codigo bajo
-# practicayoruba/), no un paquete distribuible. uv gestiona el entorno y
+# src/), no un paquete distribuible. uv gestiona el entorno y
 # las dependencias pero NO intenta construir el proyecto como wheel.
 package = false

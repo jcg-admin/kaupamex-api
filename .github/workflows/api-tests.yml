@@ -52,7 +52,7 @@ jobs:
       # testing.py lee estos via python-decouple (config(...)).
       # Sin DB_QA_SOCKET => fallback TCP a 127.0.0.1:3306 (el service).
       DJANGO_SETTINGS_MODULE: config.settings.testing
-      PYTHONPATH: practicayoruba
+      PYTHONPATH: src
       # base.py:8 hace config('SECRET_KEY') sin default => obligatorio.
       # Valor de CI no sensible; en prod va por GitHub Secrets.
       SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY || 'ci-insecure-key-not-for-production' }}
@@ -93,7 +93,7 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq libhpdf-dev
-          make -C practicayoruba/tools/pdf
+          make -C src/tools/pdf
         # UC-PAY-10 / UC-REP-05: las vistas invocan pdf_receipt/pdf_report
         # via subprocess; sin compilar => 500 PDF_GENERATION_FAILED.
 

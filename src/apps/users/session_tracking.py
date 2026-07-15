@@ -42,5 +42,7 @@ def record_user_session(request, user):
                 'user_agent': (request.META.get('HTTP_USER_AGENT') or '')[:400],
             },
         )
-    except Exception:  # noqa: BLE001 — nunca romper el login por telemetría
+    except Exception:  # noqa: BLE001
+        # silent OK because session tracking is telemetry: a failure here
+        # must never break the login flow.
         pass

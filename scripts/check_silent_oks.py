@@ -21,7 +21,7 @@ Exit codes:
     1  -- hay 1+ silencios sin ``# silent OK because``.
     2  -- error de parseo (algun archivo no es Python valido).
 
-Alcance: ``practicayoruba/apps/**`` excluyendo ``migrations/``.
+Alcance: ``src/apps/**`` excluyendo ``migrations/``.
 NO requiere dependencias externas — solo stdlib.
 
 Equivalente JS/bash (uc-sys-06 menciona "o equivalente en JS/bash"):
@@ -75,7 +75,7 @@ def check_file(path: pathlib.Path) -> list[str]:
 def iter_targets(argv: list[str]) -> list[pathlib.Path]:
     if argv:
         return [pathlib.Path(a) for a in argv if a.endswith(".py")]
-    root = pathlib.Path(__file__).resolve().parent.parent / "practicayoruba" / "apps"
+    root = pathlib.Path(__file__).resolve().parent.parent / "src" / "apps"
     return [p for p in root.rglob("*.py") if "migrations" not in p.parts]
 
 
