@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'apps.referral',
     'apps.geo',
     'apps.authz',
+    'apps.tenancy',
 ]
 
 AUTH_USER_MODEL = 'users.IdentityUser'
