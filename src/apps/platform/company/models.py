@@ -119,6 +119,115 @@ class Company(TimeStampedModel):
         return codes
 
 
+class Subsidiary(TimeStampedModel):
+    """Entidad legal bajo la ``Company`` (jerarquía OneWorld → root).
+
+    Scope **L3**, NO multi-tenancy: la ``Company`` es el tenant; la subsidiaria
+    es una entidad legal dentro de él. Sirve a la vez como atributo org del
+    empleado y como dimensión de restricción del rol (DIS-03). Frontera MVP:
+    consolidación inter-company, tax nexus y multi-moneda contable quedan FUERA
+    (DIS-02) — sólo subsidiaria como scope + pertenencia.
+    """
+
+    company = models.ForeignKey(
+        Company, on_delete=models.CASCADE, related_name='subsidiaries',
+        verbose_name='Empresa (tenant)',
+    )
+    name = models.CharField(max_length=150, verbose_name='Nombre')
+    parent = models.ForeignKey(
+        'self', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='children', verbose_name='Subsidiaria padre',
+    )
+    country = models.CharField(max_length=2, blank=True, default='', verbose_name='País')
+    base_currency = models.CharField(
+        max_length=3, blank=True, default='MXN', verbose_name='Moneda base',
+    )
+    is_active = models.BooleanField(default=True, verbose_name='Activa')
+
+    class Meta:
+        db_table = 'org_subsidiary'
+        verbose_name = 'Subsidiaria'
+        verbose_name_plural = 'Subsidiarias'
+        ordering = ['company__code', 'name']
+
+    def __str__(self):
+        return self.name
+
+    def clean(self):
+        super().clean()
+        _reject_hierarchy_cycle(self, 'parent', 'SUBSIDIARY_CYCLE')
+
+
+class Department(TimeStampedModel):
+    """Unidad organizativa dentro de una subsidiaria (con sub-departamentos)."""
+
+    subsidiary = models.ForeignKey(
+        Subsidiary, on_delete=models.CASCADE, related_name='departments',
+        verbose_name='Subsidiaria',
+    )
+    name = models.CharField(max_length=150, verbose_name='Nombre')
+    parent = models.ForeignKey(
+        'self', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='children', verbose_name='Departamento padre',
+    )
+    is_active = models.BooleanField(default=True, verbose_name='Activo')
+
+    class Meta:
+        db_table = 'org_department'
+        verbose_name = 'Departamento'
+        verbose_name_plural = 'Departamentos'
+        ordering = ['subsidiary__name', 'name']
+
+    def __str__(self):
+        return self.name
+
+    def clean(self):
+        super().clean()
+        _reject_hierarchy_cycle(self, 'parent', 'DEPARTMENT_CYCLE')
+
+
+class Job(TimeStampedModel):
+    """Catálogo de puestos. El departamento es opcional (puesto transversal)."""
+
+    title = models.CharField(max_length=150, verbose_name='Puesto')
+    department = models.ForeignKey(
+        Department, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='jobs', verbose_name='Departamento',
+    )
+    is_active = models.BooleanField(default=True, verbose_name='Activo')
+
+    class Meta:
+        db_table = 'org_job'
+        verbose_name = 'Puesto'
+        verbose_name_plural = 'Puestos'
+        ordering = ['title']
+
+    def __str__(self):
+        return self.title
+
+
+def _reject_hierarchy_cycle(node, fk_name, error_code):
+    """Rechaza que ``node`` sea su propio ancestro por ``fk_name`` (DIS-04).
+
+    Recorre la cadena de padres; si vuelve a ``node`` (o a sí mismo), lanza
+    ``ValidationError`` con ``error_code`` en inglés (canon ``codigo_error``).
+    Nodos aún sin pk (creación) no pueden cerrar un ciclo salvo auto-padre.
+    """
+    parent = getattr(node, fk_name, None)
+    if parent is None:
+        return
+    if parent.pk is not None and parent.pk == node.pk:
+        raise ValidationError({fk_name: error_code})
+    seen = set()
+    while parent is not None:
+        if parent.pk == node.pk:
+            raise ValidationError({fk_name: error_code})
+        if parent.pk in seen:
+            break
+        seen.add(parent.pk)
+        parent = getattr(parent, fk_name, None)
+
+
 class ModulePrice(TimeStampedModel):
     """Catálogo de tarifas por ``Module`` × ciclo, con vigencia (DEC-T6, S4).
 
