@@ -101,6 +101,43 @@ MODULE_DEPENDS = {
 }
 
 
+# Catálogo L0 de NUESTROS módulos (diseno-catalogo-l0-module-extendido, #179).
+# ``is_application`` = app vendible top-level vs módulo técnico (dependencia
+# interna) — clasificación ESTRUCTURAL (INFERRED, ratificable: es dato editable
+# en runtime). ``category`` = agrupación funcional de catálogo. **``tier`` NO se
+# fija aquí**: el modelo de precios (free/paid por módulo) es GAP 4 / #180
+# (billing L0 abierto); todos quedan en el default ``free`` hasta esa decisión.
+MODULE_CATALOG = {
+    # code:        (is_application, category)  — category = identificador en inglés
+    'catalogue':   (True,  'sales'),
+    'orders':      (True,  'sales'),
+    'payments':    (True,  'sales'),
+    'invoices':    (True,  'sales'),
+    'vouchers':    (True,  'marketing'),
+    'inventory':   (True,  'operations'),
+    'logistics':   (True,  'operations'),
+    'returns':     (True,  'operations'),
+    'finance':     (True,  'finance'),
+    'reports':     (True,  'finance'),
+    'newsletter':  (True,  'marketing'),
+    'support':     (True,  'support'),
+    # Técnicos (no se contratan por separado; dependencia/infra interna):
+    'moderation':  (False, 'support'),
+    'questions':   (False, 'sales'),
+    'banners':     (False, 'marketing'),
+    'content':     (False, 'marketing'),
+    'seo':         (False, 'marketing'),
+    'notifications': (False, 'platform'),
+    'audit':       (False, 'platform'),
+    'backups':     (False, 'platform'),
+    'permissions': (False, 'platform'),
+    'platform':    (False, 'platform'),
+    'settings':    (False, 'platform'),
+    'users':       (False, 'platform'),
+    'account':     (False, 'platform'),
+}
+
+
 class Command(BaseCommand):
     help = 'Siembra módulos, capacidades y el rol superadmin de apps.platform.authz.'
 
@@ -111,6 +148,16 @@ class Command(BaseCommand):
             modules[domain], _ = Module.objects.get_or_create(
                 code=domain, defaults={'name': name},
             )
+
+        # Catálogo L0 (#179): clasifica NUESTROS módulos (is_application +
+        # category). Idempotente; refresca filas ya existentes. ``tier`` se
+        # deja en su default (free) — pricing es GAP 4 / #180.
+        for code, (is_app, category) in MODULE_CATALOG.items():
+            mod = modules[code]
+            if mod.is_application != is_app or mod.category != category:
+                mod.is_application = is_app
+                mod.category = category
+                mod.save(update_fields=['is_application', 'category', 'updated_at'])
 
         # Grafo de dependencias (SOL-085 S3). ``set`` es idempotente.
         for domain, dep_codes in MODULE_DEPENDS.items():
