@@ -81,12 +81,23 @@ def resolve_capabilities(user):
         .values_list('role_id', flat=True)
     )
 
+    # Gate L1-a (DEC-T7 / SOL-085): filtra las capacidades L2 por los módulos
+    # con suscripción activa de la Company del usuario. ``company=None`` (operador
+    # L0 cross-company o usuario sin asignar) → sin gate. Se aplica al origen de
+    # las capacidades (roles + directas); las revocaciones nunca se filtran.
+    company = getattr(user, 'company', None)
+    active_modules = None if company is None else company.active_module_codes(now)
+
+    role_cap_qs = RoleCapability.objects.filter(role_id__in=role_ids)
+    direct_qs = DirectEntitlement.objects.filter(user_id=user.pk)
+    if active_modules is not None:
+        role_cap_qs = role_cap_qs.filter(capability__module__code__in=active_modules)
+        direct_qs = direct_qs.filter(capability__module__code__in=active_modules)
+
     # Graded nouns (code sin punto) → nivel máximo entre roles; acciones
     # nombradas (code con punto, no verbo CRUD) → membresía directa (DEC-11).
     graded, named = _split_graded_named(
-        RoleCapability.objects
-        .filter(role_id__in=role_ids)
-        .values_list('capability__code', 'level')
+        role_cap_qs.values_list('capability__code', 'level')
     )
 
     role_caps = set(named)
@@ -95,9 +106,7 @@ def resolve_capabilities(user):
             role_caps.add(f'{noun}.{verb}')
 
     direct = set(
-        DirectEntitlement.objects
-        .filter(user_id=user.pk)
-        .values_list('capability__code', flat=True)
+        direct_qs.values_list('capability__code', flat=True)
     )
     revoked = set(
         EntitlementRevocation.objects
