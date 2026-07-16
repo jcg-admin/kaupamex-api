@@ -73,10 +73,35 @@ class CompanyModuleSubscriptionSerializer(serializers.ModelSerializer):
         model = CompanyModuleSubscription
         fields = [
             'id', 'company', 'company_code', 'module', 'module_code',
-            'status', 'started_at', 'expires_at', 'price',
+            'status', 'started_at', 'expires_at', 'billing_cycle', 'price',
             'is_active', 'created_at',
         ]
-        read_only_fields = ['id', 'company_code', 'module_code', 'is_active', 'created_at']
+        # ``price`` es DERIVADO: se copia del catálogo ``ModulePrice`` vigente
+        # según ``billing_cycle`` al contratar (DEC-T6, S4) — no lo fija el
+        # cliente, para que un cambio de tarifa no reescriba lo ya cobrado.
+        read_only_fields = [
+            'id', 'company_code', 'module_code', 'price', 'is_active', 'created_at',
+        ]
+
+    def create(self, validated_data):
+        instance = CompanyModuleSubscription(**validated_data)
+        instance.apply_current_price()
+        instance.save()
+        return instance
+
+    def update(self, instance, validated_data):
+        cycle_changed = (
+            'billing_cycle' in validated_data
+            and validated_data['billing_cycle'] != instance.billing_cycle
+        )
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        # Re-copiar el precio solo si cambió el ciclo (re-cotización explícita);
+        # un update que no toca el ciclo NO reescribe el precio congelado.
+        if cycle_changed:
+            instance.apply_current_price()
+        instance.save()
+        return instance
 
     def get_is_active(self, obj):
         return obj.is_active()

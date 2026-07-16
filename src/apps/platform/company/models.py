@@ -119,6 +119,70 @@ class Company(TimeStampedModel):
         return codes
 
 
+class ModulePrice(TimeStampedModel):
+    """Catálogo de tarifas por ``Module`` × ciclo, con vigencia (DEC-T6, S4).
+
+    Versiona tarifas sin mutar histórico: un cambio de precio cierra la fila
+    vigente (``effective_to``) y abre una nueva. Al suscribir, el precio
+    vigente se **copia** a la ``CompanyModuleSubscription`` — el catálogo NO se
+    referencia en vivo (inmutabilidad histórica: cambiar la tarifa no reescribe
+    lo que una company ya paga).
+
+    Los montos son **datos** que el operador L0 (Kaupamex) siembra; este modelo
+    es solo la estructura — no fija precios (pricing = #180).
+    """
+
+    class BillingCycle(models.TextChoices):
+        MONTHLY = 'monthly', 'Mensual'
+        ANNUAL = 'annual', 'Anual'
+
+    module = models.ForeignKey(
+        'authz.Module', on_delete=models.PROTECT, related_name='prices',
+        verbose_name='Módulo',
+    )
+    billing_cycle = models.CharField(
+        max_length=8, choices=BillingCycle.choices, verbose_name='Ciclo de cobro',
+    )
+    price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Precio')
+    currency = models.CharField(max_length=3, default='MXN', verbose_name='Moneda')
+    effective_from = models.DateTimeField(verbose_name='Vigente desde')
+    effective_to = models.DateTimeField(
+        null=True, blank=True, verbose_name='Vigente hasta',
+    )
+
+    class Meta:
+        db_table = 'module_price'
+        verbose_name = 'Tarifa de módulo'
+        verbose_name_plural = 'Tarifas de módulo'
+        ordering = ['module__code', 'billing_cycle', '-effective_from']
+        indexes = [
+            models.Index(fields=['module', 'billing_cycle', 'effective_from']),
+        ]
+
+    def __str__(self):
+        return f'{self.module_id}:{self.billing_cycle}:{self.price}'
+
+    @classmethod
+    def current(cls, module, billing_cycle, at=None):
+        """Tarifa vigente de ``module`` × ``billing_cycle`` en ``at`` (default
+        ahora), o ``None`` si no hay ninguna sembrada/activa.
+
+        Vigente = ``effective_from <= at`` y (``effective_to`` nulo o
+        ``> at``). Ante solapamiento (cambio de tarifa), gana la de
+        ``effective_from`` más reciente (orden del ``Meta``).
+        """
+        if at is None:
+            at = timezone.now()
+        return (
+            cls.objects
+            .filter(module=module, billing_cycle=billing_cycle,
+                    effective_from__lte=at)
+            .filter(models.Q(effective_to__isnull=True) | models.Q(effective_to__gt=at))
+            .order_by('-effective_from')
+            .first()
+        )
+
+
 class CompanyModuleSubscription(TimeStampedModel):
     """Módulo contratado por una company, con vigencia (puerta L1-a)."""
 
@@ -142,7 +206,14 @@ class CompanyModuleSubscription(TimeStampedModel):
     )
     started_at = models.DateTimeField(null=True, blank=True, verbose_name='Inicio')
     expires_at = models.DateTimeField(null=True, blank=True, verbose_name='Expira')
-    # Placeholder de facturación — el modelo de precios sigue abierto (diseño).
+    # Ciclo + precio COPIADOS del catálogo ``ModulePrice`` al suscribir (DEC-T6,
+    # S4). No se referencia el catálogo en vivo: la copia congela lo que la
+    # company paga (inmutabilidad histórica). ``price`` nulo = sin tarifa
+    # sembrada (free) — no un error.
+    billing_cycle = models.CharField(
+        max_length=8, choices=ModulePrice.BillingCycle.choices,
+        blank=True, default='', verbose_name='Ciclo de cobro',
+    )
     price = models.DecimalField(
         max_digits=10, decimal_places=2, null=True, blank=True,
         verbose_name='Precio',
@@ -182,6 +253,19 @@ class CompanyModuleSubscription(TimeStampedModel):
         if not required:
             return set()
         return required - self.company.active_module_codes(now) - {self.module.code}
+
+    def apply_current_price(self, at=None):
+        """Copia la tarifa vigente de ``ModulePrice`` a esta suscripción (S4).
+
+        Usa ``self.billing_cycle`` (elegido al contratar) para elegir la fila.
+        Congela ``price`` — el catálogo NO se referencia en vivo. Si no hay
+        tarifa vigente (módulo sin precio sembrado / free), deja ``price`` en
+        ``None``. No hace ``save()``: el llamador persiste.
+        """
+        if not self.billing_cycle or self.module_id is None:
+            return
+        current = ModulePrice.current(self.module, self.billing_cycle, at=at)
+        self.price = current.price if current is not None else None
 
     def save(self, *args, **kwargs):
         # Gate de activación: una suscripción ACTIVE exige sus dependencias
