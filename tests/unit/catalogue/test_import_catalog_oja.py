@@ -4,7 +4,7 @@ Tests unitarios del management command import_catalog_oja.
 Usa tmp_path (pytest) para crear un catálogo mínimo en disco
 sin tocar /tmp/catalogo/oja/. Tests aislados de filesystem real.
 
-BD: practicayoruba_qa (config.settings.testing)
+BD: kaupamex_qa (config.settings.testing)
 """
 import json
 from decimal import Decimal

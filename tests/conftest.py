@@ -1,6 +1,6 @@
 """
 conftest.py — Fixtures globales para PracticaYoruba API tests.
-BD: practicayoruba_qa (config.settings.testing)
+BD: kaupamex_qa (config.settings.testing)
 """
 import os
 import shutil
@@ -206,7 +206,7 @@ def mariadb_keepalive(db):
 
 
 # ─── DB Objects — SPs, funciones y vistas (H-DB-01) ─────────────────────────
-# Cuando pytest-django recrea practicayoruba_qa, los objetos SQL instalados
+# Cuando pytest-django recrea kaupamex_qa, los objetos SQL instalados
 # manualmente (SPs, funciones, vistas) desaparecen. Este fixture los reinstala
 # automáticamente al inicio de la sesión de tests si no existen.
 # Orden OBLIGATORIO por dependencias: funciones → vistas → SPs.
@@ -313,7 +313,7 @@ def _run_sql_file(sql_path: Path, db_settings: dict) -> bool:
 @pytest.fixture(scope='session', autouse=True)
 def db_objects_setup(django_db_setup, django_db_blocker):
     """
-    Instala SPs, funciones y vistas en practicayoruba_qa si no existen.
+    Instala SPs, funciones y vistas en kaupamex_qa si no existen.
 
     H-DB-01: cuando pytest-django recrea la BD con --create-db, los objetos
     SQL instalados manualmente desaparecen. Este fixture los reinstala

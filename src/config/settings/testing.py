@@ -1,8 +1,9 @@
 """
 Django settings TESTING (QA) — PracticaYoruba API.
 
-BD exclusiva para tests: practicayoruba_qa (MySQL/MariaDB).
-Separada de produccion. pytest apunta aqui via pytest.ini.
+BD exclusiva para tests: ``kaupamex_qa`` (SOL-087), definido en ``src/.env``
+(sin ``default=`` en el código — todo vive en el env). Separada de produccion.
+pytest apunta aqui via pytest.ini.
 
 Arranque de MariaDB en entornos sin systemd:
   nohup su -s /bin/bash mysql -c "/usr/sbin/mariadbd \\
@@ -30,26 +31,28 @@ _DB_QA_OPTIONS = {
 # (certifi), valido para la DB productiva (Let's Encrypt). En CI la DB es un
 # service container con cert self-signed; DB_QA_SSL_MODE=DISABLED apaga TLS
 # para ese entorno sin afectar local (socket) ni produccion (TCP+SSL).
-_DB_QA_SSL_MODE = config('DB_QA_SSL_MODE', default='')
+_DB_QA_SSL_MODE = config('DB_QA_SSL_MODE')
 if _DB_QA_SSL_MODE:
     _DB_QA_OPTIONS['ssl_mode'] = _DB_QA_SSL_MODE
 else:
     _DB_QA_OPTIONS['ssl'] = {'ca': certifi.where()}
-_DB_QA_SOCKET = config('DB_QA_SOCKET', default='')
+_DB_QA_SOCKET = config('DB_QA_SOCKET')
 if _DB_QA_SOCKET:
     _DB_QA_OPTIONS['unix_socket'] = _DB_QA_SOCKET
 
+# Config de conexión QA — SIN ``default=`` (SOL-087): todo vive en ``.env``.
+# El schema de tests es ``kaupamex_qa`` (DB_QA_NAME en ``src/.env``).
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME':     config('DB_QA_NAME',     default='practicayoruba_qa'),
-        'USER':     config('DB_QA_USER',     default='practicayoruba_app'),
-        'PASSWORD': config('DB_QA_PASSWORD', default=''),
-        'HOST':     config('DB_QA_HOST',     default='db.practicayoruba.com'),
-        'PORT':     config('DB_QA_PORT',     default='3306'),
+        'NAME':     config('DB_QA_NAME'),
+        'USER':     config('DB_QA_USER'),
+        'PASSWORD': config('DB_QA_PASSWORD'),
+        'HOST':     config('DB_QA_HOST'),
+        'PORT':     config('DB_QA_PORT'),
         'OPTIONS': _DB_QA_OPTIONS,
         'TEST': {
-            'NAME':      config('DB_QA_NAME', default='practicayoruba_qa'),
+            'NAME':      config('DB_QA_NAME'),
             'CHARSET':   'utf8mb4',
             'COLLATION': 'utf8mb4_unicode_ci',
         },

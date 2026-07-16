@@ -5,7 +5,7 @@ Sucesora: implementar-endpoints-db-rpt (T-114 SPLIT chica).
 Cierra D-26 + D-27 + D-28 del audit T-114.
 
 Anti-soft-on-tests (DEC-DBR-03): tests invocan los SPs reales
-desplegados en practicayoruba_qa via socket Unix. NO se mockean.
+desplegados en kaupamex_qa via socket Unix. NO se mockean.
 """
 from decimal import Decimal
 

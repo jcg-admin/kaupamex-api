@@ -7,7 +7,7 @@ Dos niveles:
   - Integración opt-in (NO corre en CI): cobro real contra MP sandbox.
     Saltado salvo que RUN_MP_SANDBOX=1 y existan las MP_TEST_* en env/.env.
 
-BD: practicayoruba_qa (config.settings.testing).
+BD: kaupamex_qa (config.settings.testing).
 """
 import os
 import hmac

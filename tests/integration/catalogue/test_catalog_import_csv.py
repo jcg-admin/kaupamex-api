@@ -5,7 +5,7 @@ POST /api/v2/admin/catalogue/import-csv/
 Cabecera CSV: name, sku, base_price, category_slug, [description], [image_files]
 image_files: filenames separados por ';', pre-staged en MEDIA_ROOT/products/images/
 
-BD: practicayoruba_qa (config.settings.testing)
+BD: kaupamex_qa (config.settings.testing)
 """
 import csv
 import io

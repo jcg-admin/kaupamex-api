@@ -123,23 +123,28 @@ _DB_OPTIONS = {
 # local (contenedor/CI) sin afectar produccion. Paridad con testing.py
 # (DB_QA_SSL_MODE): antes 'ssl' estaba hardcodeado y rompia el socket local con
 # "certificate verify failed" (H-API-LOG-04).
-_DB_SSL_MODE = config('DB_SSL_MODE', default='')
+_DB_SSL_MODE = config('DB_SSL_MODE')
 if _DB_SSL_MODE:
     _DB_OPTIONS['ssl_mode'] = _DB_SSL_MODE
 else:
     _DB_OPTIONS['ssl'] = {'ca': certifi.where()}
-_DB_SOCKET = config('DB_SOCKET', default='')
+_DB_SOCKET = config('DB_SOCKET')
 if _DB_SOCKET:
     _DB_OPTIONS['unix_socket'] = _DB_SOCKET
 
+# Config de conexión — SIN ``default=`` (SOL-087, directiva ejecutor
+# 2026-07-16): toda la configuración vive en ``.env`` (12-factor). Falla
+# ruidoso si una clave falta, en vez de esconder un valor mágico en el código.
+# La infraestructura la nombra el operador L0 (Kaupamex), no un tenant;
+# practicayoruba queda como fila de la tabla ``company`` (get_founder).
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': config('DB_NAME', default='practicayoruba_db'),
-        'USER': config('DB_USER', default='practicayoruba_app'),
-        'PASSWORD': config('DB_PASSWORD', default=''),
-        'HOST': config('DB_HOST', default='db.practicayoruba.com'),
-        'PORT': config('DB_PORT', default='3306'),
+        'NAME': config('DB_NAME'),
+        'USER': config('DB_USER'),
+        'PASSWORD': config('DB_PASSWORD'),
+        'HOST': config('DB_HOST'),
+        'PORT': config('DB_PORT'),
         'OPTIONS': _DB_OPTIONS,
     }
 }

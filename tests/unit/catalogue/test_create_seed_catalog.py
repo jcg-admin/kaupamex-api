@@ -1,7 +1,7 @@
 """
 Tests unitarios del management command create_seed_catalog.
 
-BD: practicayoruba_qa (config.settings.testing)
+BD: kaupamex_qa (config.settings.testing)
 """
 import pytest
 from django.core.management import call_command

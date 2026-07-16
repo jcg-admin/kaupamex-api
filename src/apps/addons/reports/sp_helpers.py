@@ -21,7 +21,7 @@ def call_sp(sp_name: str, params: list | None = None) -> list[dict]:
 
     Notas:
     - Usa connection.cursor() — respeta la DB activa
-      (config.settings.testing apunta a practicayoruba_qa).
+      (config.settings.testing apunta a kaupamex_qa).
     - El SP debe existir en el schema actual; verificar despliegue via
       ``provisioners/mariadb/deploy_objetos.sh``.
     """

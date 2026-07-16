@@ -8,7 +8,7 @@ Verifican que el diagnóstico:
   - NUNCA imprima el valor completo de un token (solo ****+últimos 4),
   - con --ping consulte el SDK y falle si el token no autentica.
 
-BD: practicayoruba_qa (config.settings.testing).
+BD: kaupamex_qa (config.settings.testing).
 """
 import json
 
