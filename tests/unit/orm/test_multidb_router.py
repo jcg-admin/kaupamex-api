@@ -5,9 +5,14 @@ Registry hace ``self._db = sql_db.db_connect(db_name)`` y ``cursor(readonly)``
 separa primaria/réplica (orm/registry.py:244-249, 1165-1186). En Django la
 conexión por base es ``connections[alias]`` y ese split lectura/escritura son
 ``db_for_read``/``db_for_write``. Lógica pura del router — sin DB.
+
+El plano de control (lo que vive en ``default``) es infraestructura de Django
+(``sessions``, ``contenttypes``), no un modelo aplicativo: ``orm`` no registra
+ninguna entidad. La lista de bases de empresa se descubre de
+``information_schema`` (== ``list_dbs`` de Odoo), no de una tabla.
 """
 from apps.platform.company.context import company_scope, set_current_company
-from apps.platform.orm.routers import CompanyDatabaseRouter, company_db_alias
+from orm.routers import CompanyDatabaseRouter, company_db_alias
 
 
 class _Meta:
@@ -24,8 +29,8 @@ class _Model:
 
 
 DOMAIN = _Model('catalogue', 'product')
-REGISTRY = _Model('orm', 'companydatabase')   # plano de control L0 (app orm)
-SESSION = _Model('sessions', 'session')
+SESSION = _Model('sessions', 'session')       # plano de control (infra Django)
+CONTENTTYPE = _Model('contenttypes', 'contenttype')
 
 router = CompanyDatabaseRouter()
 
@@ -47,17 +52,17 @@ def test_domain_is_fail_closed_without_active_company():
     assert router.db_for_write(DOMAIN) is None
 
 
-def test_control_plane_registry_and_session_go_to_default():
+def test_control_plane_infra_goes_to_default():
     with company_scope(5):
-        assert router.db_for_read(REGISTRY) == 'default'
-        assert router.db_for_write(SESSION) == 'default'
+        assert router.db_for_read(SESSION) == 'default'
+        assert router.db_for_write(CONTENTTYPE) == 'default'
 
 
 def test_allow_migrate_keeps_control_plane_only_in_default():
-    assert router.allow_migrate('default', 'orm', 'companydatabase') is True
-    assert router.allow_migrate('company_5_db', 'orm', 'companydatabase') is False
     assert router.allow_migrate('default', 'sessions', 'session') is True
     assert router.allow_migrate('company_5_db', 'sessions', 'session') is False
+    assert router.allow_migrate('default', 'contenttypes', 'contenttype') is True
+    assert router.allow_migrate('company_5_db', 'contenttypes', 'contenttype') is False
 
 
 def test_allow_migrate_domain_in_company_db_and_default_for_n1():
@@ -69,5 +74,5 @@ def test_allow_migrate_domain_in_company_db_and_default_for_n1():
 def test_allow_relation_only_within_same_alias():
     with company_scope(5):
         assert router.allow_relation(DOMAIN, _Model('orders', 'order')) is True
-        # dominio (company_5_db) vs registro L0 (default) -> distinto alias.
-        assert router.allow_relation(DOMAIN, REGISTRY) is False
+        # dominio (company_5_db) vs infra de control (default) -> distinto alias.
+        assert router.allow_relation(DOMAIN, SESSION) is False

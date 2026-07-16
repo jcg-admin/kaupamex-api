@@ -1,7 +1,8 @@
 """Router multi-DB DB-per-company (SOL-091, Palanca B) — infraestructura ORM.
 
-Hermano de ``apps.platform.company`` (dominio); aquí vive la máquina multi-DB,
-siguiendo la estructura ``orm/`` de Odoo 19 (``odoo/orm/``).
+Paquete ``orm`` top-level (hermano de ``apps``), fiel a ``odoo/orm/`` de Odoo 19
+(hermano de ``addons``): aquí vive la máquina multi-DB, separada del dominio
+(``apps.*``).
 
 Adaptación fiel (``analisis-adaptacion-odoo-multidb``):
 
@@ -30,12 +31,16 @@ from django.db import DEFAULT_DB_ALIAS
 
 from apps.platform.company.context import get_current_company
 
-# Plano de control L0 (vive en 'default'): el registro de bases + apps de infra
-# que NO se particionan por empresa. Todo lo demás (dominio) va a company_<N>_db.
+# Plano de control L0 (vive en 'default'): apps de infra que NO se particionan
+# por empresa. Todo lo demás (dominio) va a company_<N>_db. La lista de bases
+# de empresa NO es un modelo (Odoo la lee de pg_database, no de una tabla
+# aplicativa); en Django la leemos de information_schema (ver
+# ``service.db.list_company_db_names``), así que ``orm`` no registra ninguna
+# entidad y no es INSTALLED_APP.
 _CONTROL_PLANE_APPS = frozenset(getattr(
     settings, 'MULTIDB_CONTROL_PLANE_APPS', ('sessions', 'contenttypes')))
 _CONTROL_PLANE_MODELS = frozenset(m.lower() for m in getattr(
-    settings, 'MULTIDB_CONTROL_PLANE_MODELS', ('orm.companydatabase',)))
+    settings, 'MULTIDB_CONTROL_PLANE_MODELS', ()))
 
 
 def company_db_alias(company_id):
