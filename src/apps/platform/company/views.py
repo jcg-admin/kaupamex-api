@@ -17,6 +17,9 @@ no sustituye a la capacidad.
 
 Identificadores + claves JSON en inglés (DEC-DOC-005).
 """
+from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
+from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
 from apps.platform.authz.models import Module
@@ -27,6 +30,7 @@ from apps.platform.company.models import (
     ModulePrice,
 )
 from apps.platform.company.serializers import (
+    CompanyCreateSerializer,
     CompanyModuleSubscriptionSerializer,
     CompanySerializer,
     ModuleCatalogSerializer,
@@ -70,19 +74,59 @@ class ModulePriceViewSet(CapabilityRequiredMixin, ModelViewSet):
     queryset = ModulePrice.objects.select_related('module').all()
 
 
-class CompanyViewSet(CapabilityRequiredMixin, ReadOnlyModelViewSet):
-    """Directorio de companies para el operador L0 (``list`` + ``retrieve``).
+class CompanyViewSet(CapabilityRequiredMixin, ModelViewSet):
+    """Directorio + ciclo de vida de companies para el operador L0 (UC-PLT-12).
 
-    Fail-closed vía la azúcar ``CapabilityRequiredMixin`` (declara
-    ``[IsAuthenticated, HasCapability]``): sin ``platform.view`` → 403. No
-    expone escritura en esta rebanada (provisión/suspensión llegan en la
-    rebanada de operaciones L0).
+    Least-privilege por acción (``permission_map``): lectura ``platform.view``;
+    escritura (alta + suspender/reactivar) ``platform.provision``. No hay
+    ``update``/``destroy``: el tenant no se edita ni se borra físicamente por
+    esta consola (``PROTECT`` en las FKs hijas; el "cancelado" es un delete
+    lógico vía ``status``). Alta con estado forzado ``trial``.
     """
 
-    required_capability = 'platform.view'
-    serializer_class = CompanySerializer
+    permission_map = {
+        'list': 'platform.view',
+        'retrieve': 'platform.view',
+        'create': 'platform.provision',
+        'suspend': 'platform.provision',
+        'reactivate': 'platform.provision',
+    }
     queryset = Company.objects.all().order_by('code')
-    http_method_names = ['get', 'head', 'options']
+    http_method_names = ['get', 'post', 'head', 'options']
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return CompanyCreateSerializer
+        return CompanySerializer
+
+    @action(detail=True, methods=['post'])
+    def suspend(self, request, pk=None):
+        company = self.get_object()
+        if company.is_system:
+            raise ValidationError({
+                'detail': 'No se puede suspender la company de sistema.',
+                'codigo_error': 'SYSTEM_COMPANY_PROTECTED',
+            })
+        if company.status not in (Company.Status.ACTIVE, Company.Status.TRIAL):
+            raise ValidationError({
+                'detail': 'Solo un tenant activo o en prueba puede suspenderse.',
+                'codigo_error': 'INVALID_STATUS_TRANSITION',
+            })
+        company.status = Company.Status.SUSPENDED
+        company.save(update_fields=['status', 'updated_at'])
+        return Response(CompanySerializer(company).data)
+
+    @action(detail=True, methods=['post'])
+    def reactivate(self, request, pk=None):
+        company = self.get_object()
+        if company.status != Company.Status.SUSPENDED:
+            raise ValidationError({
+                'detail': 'Solo un tenant suspendido puede reactivarse.',
+                'codigo_error': 'INVALID_STATUS_TRANSITION',
+            })
+        company.status = Company.Status.ACTIVE
+        company.save(update_fields=['status', 'updated_at'])
+        return Response(CompanySerializer(company).data)
 
 
 class CompanyModuleSubscriptionViewSet(CapabilityRequiredMixin, ModelViewSet):

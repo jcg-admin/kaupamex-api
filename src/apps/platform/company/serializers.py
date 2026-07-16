@@ -78,6 +78,24 @@ class CompanySerializer(serializers.ModelSerializer):
         return obj.users.count()
 
 
+class CompanyCreateSerializer(serializers.ModelSerializer):
+    """Alta de un tenant desde la consola L0 (UC-PLT-12).
+
+    El estado inicial es SIEMPRE ``trial`` (fijo, no editable en alta —
+    mockup ``consola-tenants``): el operador no puede crear un tenant ya
+    activo. ``code`` es slug único (el ``UniqueValidator`` del modelo lo
+    superficializa como 400 legible).
+    """
+
+    class Meta:
+        model = Company
+        fields = ['id', 'code', 'name', 'billing_email', 'billing_name', 'tax_id']
+
+    def create(self, validated_data):
+        validated_data['status'] = Company.Status.TRIAL
+        return super().create(validated_data)
+
+
 class CompanyModuleSubscriptionSerializer(serializers.ModelSerializer):
     """Asignación de un módulo a una company (consola L0, SOL-085 S4).
 
