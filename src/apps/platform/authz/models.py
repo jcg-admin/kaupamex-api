@@ -228,6 +228,43 @@ class RoleAssignment(TimeStampedModel):
         return f'{self.user_id} → {self.role_id}'
 
 
+class AccessRule(TimeStampedModel):
+    """Regla de acceso a nivel de fila (L3) — motor genérico tipo Odoo ``ir.rule``.
+
+    DEC-KX-02: ``model_label`` + ``role`` (grupo) + ``domain`` (filtro ORM
+    serializable), **editable en runtime**, aplicable a cualquier dimensión
+    (subsidiaria, departamento, ``own``, canal…). Es **aditivo** (concede
+    visibilidad de un subconjunto de filas dentro de la company ya resuelta por
+    L1); no resta permisos concedidos por L2. Reglas de distintos roles del
+    usuario se combinan con **OR** (semántica de grupos de ``ir.rule``). Sin
+    reglas para el modelo → sin restricción. El servicio de aplicación vive en
+    ``apps.platform.authz.record_rules``.
+    """
+    role = models.ForeignKey(
+        Role, on_delete=models.CASCADE, related_name='access_rules', verbose_name='Rol',
+    )
+    model_label = models.CharField(
+        max_length=100, verbose_name='Modelo',
+        help_text="``app_label.model`` en minúsculas, p.ej. ``orders.order``.",
+    )
+    domain = models.JSONField(
+        default=dict, verbose_name='Dominio',
+        help_text="Filtro ORM serializado; los valores ``$user``/``$company`` se "
+                  "resuelven en runtime al pk del usuario / id de su company.",
+    )
+    is_active = models.BooleanField(default=True, verbose_name='Activa')
+
+    class Meta:
+        db_table = 'authz_access_rule'
+        verbose_name = 'Regla de acceso'
+        verbose_name_plural = 'Reglas de acceso'
+        ordering = ['model_label', 'role__code']
+        indexes = [models.Index(fields=['model_label', 'is_active'])]
+
+    def __str__(self):
+        return f'{self.model_label} @ {self.role_id}'
+
+
 class DirectEntitlement(TimeStampedModel):
     """Grant directo positivo usuario↔Capability (direct entitlement, DEC-AUTHZ-01)."""
     user = models.ForeignKey(
