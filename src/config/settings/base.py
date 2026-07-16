@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     'apps.platform.authz',
     'apps.platform.company',
     'apps.addons.finance',
+    'orm',
 ]
 
 AUTH_USER_MODEL = 'users.IdentityUser'
