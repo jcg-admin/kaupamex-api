@@ -5,13 +5,17 @@ Gateado por el recurso graduado ``finance`` (DEC-11): listar/ver = ``finance.vie
 crear/editar/desactivar = ``finance.edit``, borrar = ``finance.full``. Usa la
 azucar de authz (``HasCapability`` + ``permission_map``).
 """
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.viewsets import ModelViewSet
+from rest_framework.response import Response
+from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
 from apps.authz.permissions import HasCapability
 from apps.finance.exceptions import ConceptInUse
-from apps.finance.models import CashConcept
-from apps.finance.serializers import CashConceptSerializer
+from apps.finance.models import CashConcept, GatewaySettlement
+from apps.finance.serializers import (
+    CashConceptSerializer, GatewaySettlementSerializer,
+)
 
 
 class CashConceptViewSet(ModelViewSet):
@@ -44,7 +48,37 @@ class CashConceptViewSet(ModelViewSet):
 
     def perform_destroy(self, instance):
         # Borrado fisico solo si el concepto nunca se uso (UC-FIN-06 EX-03).
-        # Mientras no exista CashMovement, is_used() es False (ver modelo).
+        # is_used() consulta CashMovement (H-API-FIN-01 cerrado).
         if instance.is_used():
             raise ConceptInUse()
         instance.delete()
+
+
+class GatewaySettlementViewSet(ReadOnlyModelViewSet):
+    """Conciliacion de liquidaciones del gateway (UC-FIN-01).
+
+    Listar/ver = ``finance.view``; la accion ``reconcile`` exige la accion SoD
+    ``finance.reconcile`` (segregacion de funciones, DEC-11).
+    """
+    permission_classes = [IsAuthenticated, HasCapability]
+    permission_map = {
+        'list': 'finance.view',
+        'retrieve': 'finance.view',
+        'reconcile': 'finance.reconcile',
+    }
+    serializer_class = GatewaySettlementSerializer
+    queryset = GatewaySettlement.objects.all()
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        status_q = self.request.query_params.get('status')
+        if status_q:
+            qs = qs.filter(status=status_q)
+        return qs
+
+    @action(detail=True, methods=['post'])
+    def reconcile(self, request, pk=None):
+        """Marca la liquidacion como ``reconciled`` (UC-FIN-01)."""
+        settlement = self.get_object()
+        settlement.reconcile()
+        return Response(self.get_serializer(settlement).data)

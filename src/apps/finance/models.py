@@ -70,9 +70,109 @@ class CashConcept(TimeStampedModel):
     def is_used(self):
         """¿El concepto esta referenciado por algun movimiento de caja?
 
-        Placeholder del slice: ``CashMovement`` aun no existe, asi que ningun
-        concepto esta "en uso" todavia. Cuando aterrice ``CashMovement`` esta
-        query pasa a ``self.movements.exists()`` y habilita el gate
-        ``CONCEPT_IN_USE`` del borrado fisico (UC-FIN-06 EX-03).
+        Habilita el gate ``CONCEPT_IN_USE`` del borrado fisico (UC-FIN-06 EX-03):
+        un concepto con al menos un ``CashMovement`` no se puede borrar, solo
+        desactivar. (Cierra H-API-FIN-01.)
         """
-        return False
+        return self.movements.exists()
+
+
+class SettlementStatus(models.TextChoices):
+    """Estado de una liquidacion del gateway (UC-FIN-01)."""
+    IMPORTED = 'imported', 'Importada'
+    VALIDATED = 'validated', 'Validada'
+    RECONCILED = 'reconciled', 'Conciliada'
+
+
+class SettlementLineFlag(models.TextChoices):
+    """Marca por linea de la liquidacion (UC-FIN-01)."""
+    MATCHED = 'matched', 'Cuadrada'
+    DISCREPANT = 'discrepant', 'Discrepante'
+    DUPLICATE = 'duplicate', 'Duplicada'
+
+
+class GatewaySettlement(TimeStampedModel):
+    """Liquidacion del gateway de pago (UC-FIN-01).
+
+    Fuente del **percibido** (base ``settled_at``): ``gross`` bruto, ``fee``
+    comision del gateway, ``net`` neto liberado. Gateway-agnostico via
+    ``adapter`` (MercadoPago hoy es un adaptador).
+    """
+    adapter = models.CharField(max_length=32, verbose_name='Adaptador')
+    gateway_ref = models.CharField(
+        max_length=128, unique=True, verbose_name='Referencia del gateway',
+    )
+    gross = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='Bruto')
+    fee = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='Comision')
+    net = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='Neto')
+    settled_at = models.DateTimeField(verbose_name='Fecha de liberacion')
+    status = models.CharField(
+        max_length=12, choices=SettlementStatus.choices,
+        default=SettlementStatus.IMPORTED, verbose_name='Estado',
+    )
+    payment = models.ForeignKey(
+        'payments.Payment', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='settlements', verbose_name='Pago',
+    )
+
+    class Meta:
+        db_table = 'finance_gateway_settlement'
+        ordering = ['-settled_at']
+        verbose_name = 'Liquidacion del gateway'
+        verbose_name_plural = 'Liquidaciones del gateway'
+
+    def __str__(self):
+        return f'{self.gateway_ref} ({self.status})'
+
+    def reconcile(self):
+        """Marca la liquidacion como conciliada (UC-FIN-01 POST)."""
+        self.status = SettlementStatus.RECONCILED
+        self.save(update_fields=['status', 'updated_at'])
+
+
+class GatewaySettlementLine(TimeStampedModel):
+    """Linea de una liquidacion con su marca de cuadre (UC-FIN-01)."""
+    settlement = models.ForeignKey(
+        GatewaySettlement, on_delete=models.CASCADE, related_name='lines',
+        verbose_name='Liquidacion',
+    )
+    flag = models.CharField(
+        max_length=12, choices=SettlementLineFlag.choices,
+        default=SettlementLineFlag.MATCHED, verbose_name='Marca',
+    )
+    amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='Importe')
+
+    class Meta:
+        db_table = 'finance_gateway_settlement_line'
+        verbose_name = 'Linea de liquidacion'
+        verbose_name_plural = 'Lineas de liquidacion'
+
+
+class CashMovement(TimeStampedModel):
+    """Movimiento de caja individual (ingreso/egreso), clasificado por concepto.
+
+    Ligado a su origen: una liquidacion del gateway (``settlement``) hoy;
+    ``carrier_invoice`` / ``cash_close`` cuando esos modelos aterricen.
+    """
+    concept = models.ForeignKey(
+        CashConcept, on_delete=models.PROTECT, related_name='movements',
+        verbose_name='Concepto',
+    )
+    kind = models.CharField(
+        max_length=8, choices=CashConceptKind.choices, verbose_name='Clase',
+    )
+    amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='Importe')
+    occurred_at = models.DateTimeField(verbose_name='Fecha del movimiento')
+    settlement = models.ForeignKey(
+        GatewaySettlement, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='movements', verbose_name='Liquidacion origen',
+    )
+
+    class Meta:
+        db_table = 'finance_cash_movement'
+        ordering = ['-occurred_at']
+        verbose_name = 'Movimiento de caja'
+        verbose_name_plural = 'Movimientos de caja'
+
+    def __str__(self):
+        return f'{self.concept.code} {self.kind} {self.amount}'

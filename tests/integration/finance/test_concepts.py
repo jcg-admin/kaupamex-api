@@ -10,14 +10,17 @@ Se usa un usuario NO-superadmin con exactamente las capacidades bajo prueba
 para ejercer el resolver real (sin bypass de superadmin), igual que
 ``tests/integration/inventory/test_capability_gate.py``.
 """
+from decimal import Decimal
+
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 
 import pytest
 
 from apps.authz.models import (
     AccessLevel, Capability, Module, Role, RoleAssignment, RoleCapability,
 )
-from apps.finance.models import CashConcept
+from apps.finance.models import CashConcept, CashMovement
 
 pytestmark = pytest.mark.integration
 
@@ -148,3 +151,24 @@ class TestCashConceptCrud:
         items = res.data['results'] if isinstance(res.data, dict) else res.data
         codes = [c['code'] for c in items]
         assert 'EX1' in codes and 'IN1' not in codes
+
+    def test_delete_unused_concept(self, api_client, db):
+        concept = CashConcept.objects.create(code='UNUSED', name='Sin uso', kind='income')
+        admin = _user_with_caps('fin_full@practicayoruba.mx', ['finance.full'])
+        api_client.force_login(admin)
+        res = api_client.delete(f'{CONCEPTS_URL}{concept.id}/')
+        assert res.status_code == 204
+        assert not CashConcept.objects.filter(id=concept.id).exists()
+
+    def test_delete_concept_in_use_conflicts(self, api_client, db):
+        # H-API-FIN-01 cerrado: un concepto con movimiento no se puede borrar.
+        concept = CashConcept.objects.create(code='USED', name='En uso', kind='income')
+        CashMovement.objects.create(
+            concept=concept, kind='income', amount=Decimal('10.00'),
+            occurred_at=timezone.now(),
+        )
+        admin = _user_with_caps('fin_full2@practicayoruba.mx', ['finance.full'])
+        api_client.force_login(admin)
+        res = api_client.delete(f'{CONCEPTS_URL}{concept.id}/')
+        assert res.status_code == 409
+        assert res.data['codigo_error'] == 'CONCEPT_IN_USE'

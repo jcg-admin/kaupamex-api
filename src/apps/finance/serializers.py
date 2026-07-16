@@ -1,8 +1,10 @@
-"""Serializers — apps.finance (UC-FIN-06 CashConcept)."""
+"""Serializers — apps.finance (UC-FIN-06 CashConcept, UC-FIN-01 settlements)."""
 from rest_framework import serializers
 
 from apps.finance.exceptions import DuplicateCode, ImmutableField
-from apps.finance.models import CashConcept
+from apps.finance.models import (
+    CashConcept, GatewaySettlement, GatewaySettlementLine,
+)
 
 
 class CashConceptSerializer(serializers.ModelSerializer):
@@ -39,3 +41,25 @@ class CashConceptSerializer(serializers.ModelSerializer):
                 raise ImmutableField(field)
             validated_data.pop(field, None)
         return super().update(instance, validated_data)
+
+
+class GatewaySettlementLineSerializer(serializers.ModelSerializer):
+    """Linea de una liquidacion (UC-FIN-01)."""
+
+    class Meta:
+        model = GatewaySettlementLine
+        fields = ['id', 'flag', 'amount']
+
+
+class GatewaySettlementSerializer(serializers.ModelSerializer):
+    """Liquidacion del gateway con sus lineas (UC-FIN-01)."""
+    lines = GatewaySettlementLineSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = GatewaySettlement
+        fields = [
+            'id', 'adapter', 'gateway_ref', 'gross', 'fee', 'net',
+            'settled_at', 'status', 'payment', 'lines',
+            'created_at', 'updated_at',
+        ]
+        read_only_fields = ['id', 'status', 'created_at', 'updated_at']
