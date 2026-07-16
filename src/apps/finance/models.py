@@ -11,6 +11,7 @@ CashClose, CarrierInvoice, CashFlowProjection, PeriodClose) llegan en slices
 posteriores del loop.
 """
 from django.db import models
+from django.utils import timezone
 
 from apps.core.models import TimeStampedModel
 
@@ -146,6 +147,47 @@ class GatewaySettlementLine(TimeStampedModel):
         db_table = 'finance_gateway_settlement_line'
         verbose_name = 'Linea de liquidacion'
         verbose_name_plural = 'Lineas de liquidacion'
+
+
+class CarrierInvoiceStatus(models.TextChoices):
+    """Estado del flete por pagar al transportista (UC-FIN-03)."""
+    PAYABLE = 'payable', 'Por pagar'
+    PAID = 'paid', 'Pagado'
+    DISPUTED = 'disputed', 'En disputa'
+
+
+class CarrierInvoice(TimeStampedModel):
+    """Flete por pagar al transportista (UC-FIN-03).
+
+    ``free_shipping_subsidy`` = parte del flete que el negocio subsidia por la
+    politica de envio gratis. ``payable`` -> ``paid`` (o ``disputed``).
+    """
+    carrier = models.CharField(max_length=64, verbose_name='Transportista')
+    gross = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='Importe')
+    free_shipping_subsidy = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        verbose_name='Subsidio envio gratis',
+    )
+    status = models.CharField(
+        max_length=8, choices=CarrierInvoiceStatus.choices,
+        default=CarrierInvoiceStatus.PAYABLE, verbose_name='Estado',
+    )
+    paid_at = models.DateTimeField(null=True, blank=True, verbose_name='Fecha de pago')
+
+    class Meta:
+        db_table = 'finance_carrier_invoice'
+        ordering = ['-created_at']
+        verbose_name = 'Flete por pagar'
+        verbose_name_plural = 'Fletes por pagar'
+
+    def __str__(self):
+        return f'{self.carrier} {self.gross} ({self.status})'
+
+    def pay(self):
+        """Marca el flete como pagado (UC-FIN-03, ``finance.disburse``)."""
+        self.status = CarrierInvoiceStatus.PAID
+        self.paid_at = timezone.now()
+        self.save(update_fields=['status', 'paid_at', 'updated_at'])
 
 
 class CashMovement(TimeStampedModel):

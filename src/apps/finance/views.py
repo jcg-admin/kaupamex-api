@@ -12,9 +12,9 @@ from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
 from apps.authz.permissions import HasCapability
 from apps.finance.exceptions import ConceptInUse
-from apps.finance.models import CashConcept, GatewaySettlement
+from apps.finance.models import CarrierInvoice, CashConcept, GatewaySettlement
 from apps.finance.serializers import (
-    CashConceptSerializer, GatewaySettlementSerializer,
+    CarrierInvoiceSerializer, CashConceptSerializer, GatewaySettlementSerializer,
 )
 
 
@@ -82,3 +82,35 @@ class GatewaySettlementViewSet(ReadOnlyModelViewSet):
         settlement = self.get_object()
         settlement.reconcile()
         return Response(self.get_serializer(settlement).data)
+
+
+class CarrierInvoiceViewSet(ModelViewSet):
+    """Flete por pagar al transportista (UC-FIN-03).
+
+    Listar/ver = ``finance.view``; registrar (``create``) y pagar (``pay``)
+    exigen la accion SoD ``finance.disburse`` (salida de dinero).
+    """
+    permission_classes = [IsAuthenticated, HasCapability]
+    permission_map = {
+        'list': 'finance.view',
+        'retrieve': 'finance.view',
+        'create': 'finance.disburse',
+        'pay': 'finance.disburse',
+    }
+    serializer_class = CarrierInvoiceSerializer
+    queryset = CarrierInvoice.objects.all()
+    http_method_names = ['get', 'post', 'head', 'options']
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        status_q = self.request.query_params.get('status')
+        if status_q:
+            qs = qs.filter(status=status_q)
+        return qs
+
+    @action(detail=True, methods=['post'])
+    def pay(self, request, pk=None):
+        """Marca el flete como ``paid`` (UC-FIN-03, ``finance.disburse``)."""
+        invoice = self.get_object()
+        invoice.pay()
+        return Response(self.get_serializer(invoice).data)

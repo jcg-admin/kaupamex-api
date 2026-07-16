@@ -3,7 +3,7 @@ from rest_framework import serializers
 
 from apps.finance.exceptions import DuplicateCode, ImmutableField
 from apps.finance.models import (
-    CashConcept, GatewaySettlement, GatewaySettlementLine,
+    CarrierInvoice, CashConcept, GatewaySettlement, GatewaySettlementLine,
 )
 
 
@@ -63,3 +63,15 @@ class GatewaySettlementSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'status', 'created_at', 'updated_at']
+
+
+class CarrierInvoiceSerializer(serializers.ModelSerializer):
+    """Flete por pagar al transportista (UC-FIN-03)."""
+
+    class Meta:
+        model = CarrierInvoice
+        fields = [
+            'id', 'carrier', 'gross', 'free_shipping_subsidy',
+            'status', 'paid_at', 'created_at', 'updated_at',
+        ]
+        read_only_fields = ['id', 'status', 'paid_at', 'created_at', 'updated_at']

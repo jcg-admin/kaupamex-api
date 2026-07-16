@@ -9,12 +9,15 @@ paquete ``api``). Primer slice: catalogo de conceptos (UC-FIN-06).
 """
 from rest_framework.routers import DefaultRouter
 
-from apps.finance.views import CashConceptViewSet, GatewaySettlementViewSet
+from apps.finance.views import (
+    CarrierInvoiceViewSet, CashConceptViewSet, GatewaySettlementViewSet,
+)
 
 app_name = 'finance'
 
 router = DefaultRouter()
 router.register('concepts', CashConceptViewSet, basename='concept')
 router.register('reconciliations', GatewaySettlementViewSet, basename='reconciliation')
+router.register('carrier-invoices', CarrierInvoiceViewSet, basename='carrier-invoice')
 
 urlpatterns = router.urls
