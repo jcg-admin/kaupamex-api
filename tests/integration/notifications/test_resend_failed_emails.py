@@ -17,7 +17,7 @@ from django.core import mail
 from django.core.management import call_command
 from django.utils import timezone
 
-from apps.notifications.models import EmailTask
+from apps.modules.notifications.models import EmailTask
 
 pytestmark = pytest.mark.integration
 
@@ -73,7 +73,7 @@ class TestSendPendingEmails:
             def _boom(*a, **k):
                 raise RuntimeError('SMTP down')
             mp.setattr(
-                'apps.notifications.management.commands.send_pending_emails.send_mail',
+                'apps.modules.notifications.management.commands.send_pending_emails.send_mail',
                 _boom,
             )
             _run()
@@ -94,7 +94,7 @@ class TestSendPendingEmails:
             def _boom(*a, **k):
                 raise RuntimeError('SMTP down')
             mp.setattr(
-                'apps.notifications.management.commands.send_pending_emails.send_mail',
+                'apps.modules.notifications.management.commands.send_pending_emails.send_mail',
                 _boom,
             )
             _run()

@@ -5,7 +5,7 @@ UC-AUTH-07: Gestionar Direcciones de Envio
 import pytest
 from tests.factories.user_factory import make_buyer
 from django.contrib.auth import get_user_model
-from apps.users.models import Address
+from apps.modules.users.models import Address
 
 pytestmark = pytest.mark.integration
 

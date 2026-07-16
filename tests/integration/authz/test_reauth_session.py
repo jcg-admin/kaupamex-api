@@ -23,14 +23,14 @@ from django.core.management import call_command
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from apps.authz.models import AuthzEvent, ReauthSession, Role, RoleAssignment
-from apps.authz.services import (
+from apps.platform.authz.models import AuthzEvent, ReauthSession, Role, RoleAssignment
+from apps.platform.authz.services import (
     SUPERADMIN_ROLE_CODE,
     code_requires_fresh_session,
     has_active_reauth_session,
     is_superadmin,
 )
-from apps.users.models import EmployeeProfile
+from apps.modules.users.models import EmployeeProfile
 
 User = get_user_model()
 

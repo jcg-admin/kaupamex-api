@@ -37,33 +37,33 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'drf_spectacular',
     'apps.core',
-    'apps.users',
-    'apps.settings_app',
-    'apps.catalogue',
-    'apps.chartsize',
-    'apps.inventory',
-    'apps.cart',
-    'apps.voucher',
-    'apps.wishlist',
-    'apps.orders',
-    'apps.payments',
-    'apps.support',
-    'apps.returns',
-    'apps.notifications',
-    'apps.contact',
-    'apps.newsletter',
-    'apps.questions',
-    'apps.reports',
-    'apps.logistics',
-    'apps.reviews',
-    'apps.search_history',
-    'apps.static_content',
-    'apps.backups',
-    'apps.referral',
-    'apps.geo',
-    'apps.authz',
-    'apps.company',
-    'apps.finance',
+    'apps.modules.users',
+    'apps.modules.settings_app',
+    'apps.modules.catalogue',
+    'apps.modules.chartsize',
+    'apps.modules.inventory',
+    'apps.modules.cart',
+    'apps.modules.voucher',
+    'apps.modules.wishlist',
+    'apps.modules.orders',
+    'apps.modules.payments',
+    'apps.modules.support',
+    'apps.modules.returns',
+    'apps.modules.notifications',
+    'apps.modules.contact',
+    'apps.modules.newsletter',
+    'apps.modules.questions',
+    'apps.modules.reports',
+    'apps.modules.logistics',
+    'apps.modules.reviews',
+    'apps.modules.search_history',
+    'apps.modules.static_content',
+    'apps.modules.backups',
+    'apps.modules.referral',
+    'apps.modules.geo',
+    'apps.platform.authz',
+    'apps.platform.company',
+    'apps.modules.finance',
 ]
 
 AUTH_USER_MODEL = 'users.IdentityUser'
@@ -84,13 +84,13 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'apps.company.middleware.CompanyContextMiddleware',
+    'apps.platform.company.middleware.CompanyContextMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     # H-CART-01 Fase 2: fija la cookie httpOnly cart_token para carritos
     # anonimos. Va por DEBAJO de CookieGovernanceMiddleware para que el
     # process_response de aquel (orden inverso) observe la cookie de carrito.
-    'apps.cart.middleware.CartCookieMiddleware',
+    'apps.modules.cart.middleware.CartCookieMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -192,7 +192,7 @@ REST_FRAMEWORK = {
         # JWT (SimpleJWT) queda INSTALADO pero fuera del default: el login aun
         # emite tokens (dormidos). Para una futura app movil basta re-anadir
         # 'rest_framework_simplejwt.authentication.JWTAuthentication' aqui.
-        'apps.users.authentication.CsrfExemptSessionAuthentication',
+        'apps.modules.users.authentication.CsrfExemptSessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -365,47 +365,47 @@ SPECTACULAR_SETTINGS = {
     'ENUM_NAME_OVERRIDES': {
         # status fields (mas de un modelo usa este nombre de campo)
         'OrderStatusEnum':
-            'apps.orders.models.Order.STATUSES',
+            'apps.modules.orders.models.Order.STATUSES',
         'PaymentStatusEnum':
-            'apps.payments.models.Payment.STATUSES',
+            'apps.modules.payments.models.Payment.STATUSES',
         'RefundStatusEnum':
-            'apps.payments.models.Refund.STATUSES',
+            'apps.modules.payments.models.Refund.STATUSES',
         'ReviewStatusEnum':
-            'apps.reviews.models.Review.STATUSES',
+            'apps.modules.reviews.models.Review.STATUSES',
         'ShipmentGuideStatusEnum':
-            'apps.logistics.models.ShipmentGuide.STATUSES',
+            'apps.modules.logistics.models.ShipmentGuide.STATUSES',
         'StaticPageVersionStatusEnum':
-            'apps.settings_app.models.StaticPageVersion.STATUS_CHOICES',
+            'apps.modules.settings_app.models.StaticPageVersion.STATUS_CHOICES',
         'NotificationStatusEnum':
-            'apps.notifications.models.ManualNotification.Status',
+            'apps.modules.notifications.models.ManualNotification.Status',
         'NewsletterSubscriberStatusEnum':
-            'apps.newsletter.models.SubscriberStatus.choices',
+            'apps.modules.newsletter.models.SubscriberStatus.choices',
         'QuestionStatusEnum':
-            'apps.questions.models.QuestionStatus.choices',
+            'apps.modules.questions.models.QuestionStatus.choices',
         'SupportTicketStatusEnum':
-            'apps.support.models.SupportTicket.Status',
+            'apps.modules.support.models.SupportTicket.Status',
         'ReturnRequestStatusEnum':
-            'apps.returns.models.ReturnRequest.Status',
+            'apps.modules.returns.models.ReturnRequest.Status',
         # gateway fields (Payment vs PaymentGateway tienen choice sets
         # diferentes — el segundo agrega TEST sandbox)
         'PaymentGatewayChoiceEnum':
-            'apps.payments.models.Payment.GATEWAYS',
+            'apps.modules.payments.models.Payment.GATEWAYS',
         'PaymentGatewayConfigEnum':
-            'apps.settings_app.models.PaymentGateway.GATEWAYS',
+            'apps.modules.settings_app.models.PaymentGateway.GATEWAYS',
         # AudienceFilterEnum: alias para ManualNotification.RecipientType
         # que aparece en serializers diferentes con choice set identico
         'AudienceFilterEnum':
-            'apps.notifications.models.ManualNotification.RecipientType',
+            'apps.modules.notifications.models.ManualNotification.RecipientType',
         # `type` field collision: NotificationType es el unico choice set
         # de un campo llamado `type` que necesita nombre estable.
         'NotificationTypeEnum':
-            'apps.notifications.models.NotificationType',
+            'apps.modules.notifications.models.NotificationType',
         # `reason` field collision: dos choice sets distintos comparten el
         # nombre de campo `reason` — devolucion vs ajuste de inventario.
         'ReturnReasonEnum':
-            'apps.returns.models.ReturnRequest.Reason',
+            'apps.modules.returns.models.ReturnRequest.Reason',
         'StockAdjustmentReasonEnum':
-            'apps.inventory.serializers.ADJUSTMENT_REASONS',
+            'apps.modules.inventory.serializers.ADJUSTMENT_REASONS',
     },
 }
 

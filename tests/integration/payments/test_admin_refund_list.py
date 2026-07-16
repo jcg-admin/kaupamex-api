@@ -7,8 +7,8 @@ Cubre: lista completa, pago sin reembolsos, permisos (401/403), 404.
 import pytest
 from decimal import Decimal
 
-from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
-from apps.payments.models import Payment, Refund
+from apps.modules.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from apps.modules.payments.models import Payment, Refund
 
 pytestmark = pytest.mark.integration
 

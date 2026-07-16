@@ -6,8 +6,8 @@ log de UC-ADM-03 — sin este registro, un cambio de configuracion
 es invisible en /api/v2/admin/audit-log/.
 """
 import pytest
-from apps.settings_app.models import SiteSettings
-from apps.users.models import BusinessEvent
+from apps.modules.settings_app.models import SiteSettings
+from apps.modules.users.models import BusinessEvent
 
 pytestmark = pytest.mark.integration
 

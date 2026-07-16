@@ -8,22 +8,22 @@ que garantizan que el refactoring no rompe nada.
 import pytest
 from decimal import Decimal
 from apps.core.models import TimeStampedModel
-from apps.cart.models import Cart, CartItem, SavedCart, SavedCartItem
-from apps.catalogue.models import Category, Product, SearchHistory, ProductImage
-from apps.chartsize.models import VariantType, VariantOption, ProductVariant
-from apps.inventory.models import StockMovement, StockAlert
-from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
-from apps.settings_app.models import SiteSettings, PaymentGateway, ShippingMethod, StaticPage, StaticPageVersion
-from apps.users.models import Address, PasswordResetToken, EmailVerificationToken
-from apps.users.models import IdentityUser as User
-from apps.voucher.models import Voucher, VoucherChangeLog
-from apps.wishlist.models import WishlistItem
-from apps.catalogue.serializers import SearchHistorySerializer
-from apps.inventory.proxy_models import SaleMovement, CancellationMovement, AdjustmentMovement, ImportMovement
-from apps.orders.proxy_models import PendingOrder, DeliveredOrder, ActiveOrder, CancelledOrder
+from apps.modules.cart.models import Cart, CartItem, SavedCart, SavedCartItem
+from apps.modules.catalogue.models import Category, Product, SearchHistory, ProductImage
+from apps.modules.chartsize.models import VariantType, VariantOption, ProductVariant
+from apps.modules.inventory.models import StockMovement, StockAlert
+from apps.modules.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from apps.modules.settings_app.models import SiteSettings, PaymentGateway, ShippingMethod, StaticPage, StaticPageVersion
+from apps.modules.users.models import Address, PasswordResetToken, EmailVerificationToken
+from apps.modules.users.models import IdentityUser as User
+from apps.modules.voucher.models import Voucher, VoucherChangeLog
+from apps.modules.wishlist.models import WishlistItem
+from apps.modules.catalogue.serializers import SearchHistorySerializer
+from apps.modules.inventory.proxy_models import SaleMovement, CancellationMovement, AdjustmentMovement, ImportMovement
+from apps.modules.orders.proxy_models import PendingOrder, DeliveredOrder, ActiveOrder, CancelledOrder
 from django.utils import timezone
 from datetime import timedelta
-from apps.voucher.proxy_models import FixedVoucher, PercentageVoucher, FreeShippingVoucher
+from apps.modules.voucher.proxy_models import FixedVoucher, PercentageVoucher, FreeShippingVoucher
 
 pytestmark = pytest.mark.integration
 

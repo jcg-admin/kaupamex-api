@@ -23,9 +23,9 @@ from decimal import Decimal
 import pytest
 from django.utils import timezone
 
-from apps.catalogue.models import Category, Product
-from apps.logistics.models import Courier, ShipmentEvent, ShipmentGuide
-from apps.orders.models import Order, OrderAddress, OrderItem, OrderValue
+from apps.modules.catalogue.models import Category, Product
+from apps.modules.logistics.models import Courier, ShipmentEvent, ShipmentGuide
+from apps.modules.orders.models import Order, OrderAddress, OrderItem, OrderValue
 
 pytestmark = pytest.mark.integration
 

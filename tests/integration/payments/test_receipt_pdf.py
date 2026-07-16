@@ -22,11 +22,11 @@ from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 
-from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
-from apps.payments.models import Payment
-from apps.payments.pdf_receipt import HELPER_PATH, build_receipt_payload
-from apps.settings_app.models import SiteSettings
-from apps.users.models import BusinessEvent
+from apps.modules.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from apps.modules.payments.models import Payment
+from apps.modules.payments.pdf_receipt import HELPER_PATH, build_receipt_payload
+from apps.modules.settings_app.models import SiteSettings
+from apps.modules.users.models import BusinessEvent
 
 pytestmark = pytest.mark.integration
 

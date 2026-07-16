@@ -9,8 +9,8 @@ complejo requiere full cart/order setup, validacion en QA.
 import pytest
 from django.urls import reverse
 from rest_framework_simplejwt.tokens import RefreshToken
-from apps.users.audit import audit_log_business
-from apps.users.models import BusinessEvent
+from apps.modules.users.audit import audit_log_business
+from apps.modules.users.models import BusinessEvent
 
 pytestmark = [pytest.mark.integration, pytest.mark.django_db(transaction=True)]
 

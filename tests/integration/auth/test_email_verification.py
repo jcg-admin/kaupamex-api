@@ -6,10 +6,10 @@ import pytest
 from django.core import mail
 from django.core.management import call_command
 from django.contrib.auth import get_user_model
-from apps.authz.models import RoleAssignment
-from apps.authz.services import BUYER_ROLE_CODE
-from apps.users.models import EmailVerificationToken
-from apps.users.tokens_email import create_verification_token, send_verification_email
+from apps.platform.authz.models import RoleAssignment
+from apps.platform.authz.services import BUYER_ROLE_CODE
+from apps.modules.users.models import EmailVerificationToken
+from apps.modules.users.tokens_email import create_verification_token, send_verification_email
 
 pytestmark = pytest.mark.integration
 

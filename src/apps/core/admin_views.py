@@ -25,7 +25,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.authz.permissions import HasCapability
+from apps.platform.authz.permissions import HasCapability
 from apps.core.models import AppLog, RequestLog
 
 _DEFAULT_PAGE_SIZE = 25

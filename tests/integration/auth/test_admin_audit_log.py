@@ -4,7 +4,7 @@ T-119: AuditLogView — GET /api/v2/admin/audit-log/
 """
 import pytest
 from django.contrib.auth import get_user_model
-from apps.users.models import AuthEvent, BusinessEvent, UserDeactivationEvent
+from apps.modules.users.models import AuthEvent, BusinessEvent, UserDeactivationEvent
 
 pytestmark = pytest.mark.integration
 

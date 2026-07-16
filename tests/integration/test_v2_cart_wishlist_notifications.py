@@ -13,10 +13,10 @@ import uuid
 import pytest
 from decimal import Decimal
 
-from apps.catalogue.models import Category, Product
-from apps.cart.models import Cart, CartItem
-from apps.notifications.models import Notification
-from apps.wishlist.models import WishlistItem
+from apps.modules.catalogue.models import Category, Product
+from apps.modules.cart.models import Cart, CartItem
+from apps.modules.notifications.models import Notification
+from apps.modules.wishlist.models import WishlistItem
 
 pytestmark = pytest.mark.integration
 

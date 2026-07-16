@@ -8,8 +8,8 @@ import pytest
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
 
-from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
-from apps.payments.models import Payment
+from apps.modules.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from apps.modules.payments.models import Payment
 
 pytestmark = pytest.mark.integration
 
@@ -42,7 +42,7 @@ class TestAdminCancelPayment:
     def test_cancel_pending_payment(self, admin_client, user, db):
         payment = _make_payment(user, Payment.STATUS_PENDING, 'MP-CAN-001')
         mp_response = {'status': 200, 'response': {'id': 'MP-CAN-001', 'status': 'cancelled'}}
-        with patch('apps.payments.views.MercadoPagoGateway') as MockGW:
+        with patch('apps.modules.payments.views.MercadoPagoGateway') as MockGW:
             MockGW.return_value.cancel_payment.return_value = mp_response
             resp = admin_client.post(CANCEL_URL(payment.pk))
 
@@ -53,7 +53,7 @@ class TestAdminCancelPayment:
     def test_cancel_returns_payment_data(self, admin_client, user, db):
         payment = _make_payment(user, Payment.STATUS_PENDING, 'MP-CAN-002')
         mp_response = {'status': 200, 'response': {'id': 'MP-CAN-002', 'status': 'cancelled'}}
-        with patch('apps.payments.views.MercadoPagoGateway') as MockGW:
+        with patch('apps.modules.payments.views.MercadoPagoGateway') as MockGW:
             MockGW.return_value.cancel_payment.return_value = mp_response
             resp = admin_client.post(CANCEL_URL(payment.pk))
 
@@ -91,7 +91,7 @@ class TestAdminCancelPayment:
 
     def test_gateway_error_returns_503(self, admin_client, user, db):
         payment = _make_payment(user, Payment.STATUS_PENDING, 'MP-CAN-007')
-        with patch('apps.payments.views.MercadoPagoGateway') as MockGW:
+        with patch('apps.modules.payments.views.MercadoPagoGateway') as MockGW:
             MockGW.return_value.cancel_payment.side_effect = RuntimeError('MP gateway down')
             resp = admin_client.post(CANCEL_URL(payment.pk))
 

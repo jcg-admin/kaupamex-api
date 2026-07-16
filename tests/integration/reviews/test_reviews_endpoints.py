@@ -3,9 +3,9 @@ Integration tests — P-14 reviews endpoints (UC-REV-01..03).
 """
 import io
 from decimal import Decimal
-from apps.catalogue.models import Category, Product
-from apps.orders.models import Order, OrderAddress, OrderItem, OrderValue
-from apps.reviews.models import Review, ReviewHelpfulVote, ReviewModerationLog
+from apps.modules.catalogue.models import Category, Product
+from apps.modules.orders.models import Order, OrderAddress, OrderItem, OrderValue
+from apps.modules.reviews.models import Review, ReviewHelpfulVote, ReviewModerationLog
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
 from PIL import Image as PILImage

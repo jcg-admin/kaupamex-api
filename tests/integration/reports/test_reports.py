@@ -12,12 +12,12 @@ DEC-DOC-005: English identifiers and English JSON keys.
 from datetime import timedelta
 from decimal import Decimal
 from django.utils import timezone
-from apps.catalogue.models import Category, Product
+from apps.modules.catalogue.models import Category, Product
 from django.contrib.auth import get_user_model
-from apps.authz.models import Capability, Module, Role, RoleAssignment
-from apps.orders.models import Order, OrderItem, OrderValue
-from apps.payments.models import Payment
-from apps.support.models import SupportTicket
+from apps.platform.authz.models import Capability, Module, Role, RoleAssignment
+from apps.modules.orders.models import Order, OrderItem, OrderValue
+from apps.modules.payments.models import Payment
+from apps.modules.support.models import SupportTicket
 
 import pytest
 

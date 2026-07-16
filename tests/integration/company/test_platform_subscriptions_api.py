@@ -9,8 +9,8 @@ dependencias S3 (``CompanyModuleSubscription.save()``) se superficializa como
 """
 from django.contrib.auth import get_user_model
 
-from apps.authz.models import Capability, Module, Role, RoleAssignment
-from apps.company.models import Company, CompanyModuleSubscription
+from apps.platform.authz.models import Capability, Module, Role, RoleAssignment
+from apps.platform.company.models import Company, CompanyModuleSubscription
 
 import pytest
 

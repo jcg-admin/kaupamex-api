@@ -17,10 +17,10 @@ from django.utils import timezone
 
 import pytest
 
-from apps.authz.models import (
+from apps.platform.authz.models import (
     AccessLevel, Capability, Module, Role, RoleAssignment, RoleCapability,
 )
-from apps.finance.models import CashConcept, CashMovement
+from apps.modules.finance.models import CashConcept, CashMovement
 
 pytestmark = pytest.mark.integration
 

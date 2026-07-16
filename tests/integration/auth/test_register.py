@@ -111,8 +111,8 @@ class TestRegisterUnicidad:
 
 import uuid as _uuid
 from decimal import Decimal
-from apps.cart.models import Cart, CartItem
-from apps.catalogue.models import Product
+from apps.modules.cart.models import Cart, CartItem
+from apps.modules.catalogue.models import Product
 
 
 class TestRegisterMergesAnonCart:

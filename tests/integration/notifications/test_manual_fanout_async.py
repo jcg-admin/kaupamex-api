@@ -9,9 +9,9 @@ from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 
-from apps.catalogue.models import Category, Product
-from apps.notifications.models import ManualNotification, Notification
-from apps.orders.models import Order, OrderItem
+from apps.modules.catalogue.models import Category, Product
+from apps.modules.notifications.models import ManualNotification, Notification
+from apps.modules.orders.models import Order, OrderItem
 
 import pytest
 

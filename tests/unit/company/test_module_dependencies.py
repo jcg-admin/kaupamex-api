@@ -14,8 +14,8 @@ TDD for the Kaupamex platform base loop (design-first -> construction).
 import pytest
 from django.core.exceptions import ValidationError
 
-from apps.authz.models import Module
-from apps.company.models import Company, CompanyModuleSubscription
+from apps.platform.authz.models import Module
+from apps.platform.company.models import Company, CompanyModuleSubscription
 
 pytestmark = pytest.mark.django_db
 

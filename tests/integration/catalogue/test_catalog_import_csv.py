@@ -15,7 +15,7 @@ from pathlib import Path
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from apps.catalogue.models import Category, Product, ProductImage
+from apps.modules.catalogue.models import Category, Product, ProductImage
 
 pytestmark = pytest.mark.integration
 

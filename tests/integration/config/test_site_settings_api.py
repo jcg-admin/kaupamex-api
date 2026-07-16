@@ -15,7 +15,7 @@ Contrato:
 """
 import pytest
 from decimal import Decimal
-from apps.settings_app.models import SiteSettings
+from apps.modules.settings_app.models import SiteSettings
 
 pytestmark = pytest.mark.api
 

@@ -11,8 +11,8 @@ from decimal import Decimal
 
 import pytest
 
-from apps.catalogue.models import Category, Product
-from apps.settings_app.models import SiteSettings
+from apps.modules.catalogue.models import Category, Product
+from apps.modules.settings_app.models import SiteSettings
 
 pytestmark = pytest.mark.integration
 

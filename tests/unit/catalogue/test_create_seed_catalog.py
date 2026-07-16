@@ -7,10 +7,10 @@ import pytest
 from django.core.management import call_command
 from django.core.management.base import CommandError
 
-from apps.catalogue.models import Category, Product
-from apps.chartsize.models import ProductVariant, VariantOption, VariantType
-from apps.orders.models import ShippingZone
-from apps.settings_app.models import PaymentGateway, ShippingMethod
+from apps.modules.catalogue.models import Category, Product
+from apps.modules.chartsize.models import ProductVariant, VariantOption, VariantType
+from apps.modules.orders.models import ShippingZone
+from apps.modules.settings_app.models import PaymentGateway, ShippingMethod
 
 pytestmark = pytest.mark.unit
 

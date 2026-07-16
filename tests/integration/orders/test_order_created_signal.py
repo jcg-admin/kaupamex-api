@@ -1,10 +1,10 @@
 """Tests — order_created signal (DEC-BC-19)."""
 import pytest
 from decimal import Decimal
-from apps.catalogue.models import Category, Product
-from apps.orders.models import ShippingZone
-from apps.settings_app.models import ShippingMethod
-from apps.orders.signals import order_created
+from apps.modules.catalogue.models import Category, Product
+from apps.modules.orders.models import ShippingZone
+from apps.modules.settings_app.models import ShippingMethod
+from apps.modules.orders.signals import order_created
 
 pytestmark = pytest.mark.integration
 

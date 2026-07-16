@@ -9,11 +9,11 @@ import pytest
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
-from apps.payments.gateways.mercadopago import MercadoPagoGateway
+from apps.modules.payments.gateways.mercadopago import MercadoPagoGateway
 
 pytestmark = pytest.mark.integration
 
-_PATCH = 'apps.payments.gateways.mercadopago._get_sdk'
+_PATCH = 'apps.modules.payments.gateways.mercadopago._get_sdk'
 
 
 def _gw():

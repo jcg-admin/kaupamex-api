@@ -10,8 +10,8 @@ reload del api_settings cache de DRF (fragil).
 """
 import pytest
 from django.conf import settings
-from apps.contact.views import ContactMessageCreateView
-from apps.users.views import (
+from apps.modules.contact.views import ContactMessageCreateView
+from apps.modules.users.views import (
     EmailVerifyView, PasswordResetConfirmView, PasswordResetRequestView,
     RegisterView, ResendVerificationView,
 )

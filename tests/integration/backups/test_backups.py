@@ -19,8 +19,8 @@ from unittest import mock
 
 from django.core import mail
 
-from apps.backups import views as backups_views
-from apps.backups.models import BackupRecord
+from apps.modules.backups import views as backups_views
+from apps.modules.backups.models import BackupRecord
 
 pytestmark = pytest.mark.integration
 

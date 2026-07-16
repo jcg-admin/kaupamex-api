@@ -5,7 +5,7 @@ Cada transicion is_active=True -> False debe crear UNA fila en
 users_deactivation_event con (reason, source, actor) consistentes.
 """
 import pytest
-from apps.users.models import UserDeactivationEvent
+from apps.modules.users.models import UserDeactivationEvent
 from django.contrib.auth import get_user_model
 
 pytestmark = pytest.mark.api

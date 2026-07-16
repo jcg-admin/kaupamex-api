@@ -10,9 +10,9 @@ import pytest
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
-from apps.catalogue.models import Category, Product
-from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
-from apps.payments.models import Payment, Refund
+from apps.modules.catalogue.models import Category, Product
+from apps.modules.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from apps.modules.payments.models import Payment, Refund
 
 pytestmark = pytest.mark.integration
 

@@ -7,11 +7,11 @@ import time
 
 import pytest
 from decimal import Decimal
-from apps.catalogue.models import Category, Product
-from apps.settings_app.models import ShippingMethod
-from apps.orders.models import Order, OrderValue, OrderAddress, ShippingZone
-from apps.cart.models import CartItem
-from apps.voucher.models import Voucher
+from apps.modules.catalogue.models import Category, Product
+from apps.modules.settings_app.models import ShippingMethod
+from apps.modules.orders.models import Order, OrderValue, OrderAddress, ShippingZone
+from apps.modules.cart.models import CartItem
+from apps.modules.voucher.models import Voucher
 from django.utils import timezone
 pytestmark = pytest.mark.integration
 
@@ -437,7 +437,7 @@ class TestZoneFreeShipping:
     """Costo manual por zona con umbral de envío gratis (G-ENV-04): el
     comprador no elige método; el admin fija ``cost``/``free_threshold`` por
     zona. Umbral alcanzado o zona sin ``cost`` → gratis; bajo umbral con
-    ``cost`` → cobra el costo manual. Ver ``apps.orders.shipping``."""
+    ``cost`` → cobra el costo manual. Ver ``apps.modules.orders.shipping``."""
 
     def _set_zone(self, **defaults):
         # C.P. de ADDR = '06600' → prefijo '06'. update_or_create respeta el

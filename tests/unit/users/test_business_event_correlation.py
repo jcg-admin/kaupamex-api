@@ -11,7 +11,7 @@ Toca DB (BusinessEvent) → django_db.
 import pytest
 
 from apps.core.logging_context import clear_correlation_id, set_correlation_id
-from apps.users.models import BusinessEvent
+from apps.modules.users.models import BusinessEvent
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 

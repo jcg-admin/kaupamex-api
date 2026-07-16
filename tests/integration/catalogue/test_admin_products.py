@@ -8,10 +8,10 @@ UC-CAT-10: Edit product (admin)
 """
 import pytest
 from decimal import Decimal
-from apps.catalogue.models import Category, Product, ProductImage
-from apps.orders.models import Order, OrderItem
+from apps.modules.catalogue.models import Category, Product, ProductImage
+from apps.modules.orders.models import Order, OrderItem
 from django.core.cache import cache
-from apps.catalogue.serializers import ProductAdminSerializer
+from apps.modules.catalogue.serializers import ProductAdminSerializer
 
 pytestmark = pytest.mark.integration
 

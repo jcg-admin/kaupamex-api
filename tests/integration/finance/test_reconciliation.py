@@ -12,10 +12,10 @@ from django.utils import timezone
 
 import pytest
 
-from apps.authz.models import (
+from apps.platform.authz.models import (
     AccessLevel, Capability, Module, Role, RoleAssignment, RoleCapability,
 )
-from apps.finance.models import GatewaySettlement, SettlementStatus
+from apps.modules.finance.models import GatewaySettlement, SettlementStatus
 
 pytestmark = pytest.mark.integration
 

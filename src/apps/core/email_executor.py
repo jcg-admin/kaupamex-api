@@ -21,7 +21,7 @@ from concurrent.futures import ThreadPoolExecutor
 from django.conf import settings as _settings
 from django.core.mail import send_mail as _send_mail
 
-from apps.notifications.models import EmailTask
+from apps.modules.notifications.models import EmailTask
 
 logger = logging.getLogger(__name__)
 

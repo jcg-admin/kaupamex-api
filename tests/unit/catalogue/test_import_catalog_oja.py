@@ -13,8 +13,8 @@ from pathlib import Path
 import pytest
 from django.core.management import call_command
 
-from apps.catalogue.models import Category, Product, ProductImage
-from apps.catalogue.management.commands.import_catalog_oja import (
+from apps.modules.catalogue.models import Category, Product, ProductImage
+from apps.modules.catalogue.management.commands.import_catalog_oja import (
     _limpiar_descripcion,
     CATEGORIA_NAMES,
     SLUG_OVERRIDES,

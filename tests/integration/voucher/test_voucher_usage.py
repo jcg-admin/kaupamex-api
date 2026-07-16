@@ -13,12 +13,12 @@ from django.utils import timezone
 from datetime import timedelta
 from unittest.mock import patch
 
-from apps.catalogue.models import Category, Product
-from apps.inventory.services import InventoryService
-from apps.orders.models import Order, ShippingZone
-from apps.settings_app.models import ShippingMethod
-from apps.voucher.models import Voucher, VoucherUsage
-from apps.cart.models import Cart
+from apps.modules.catalogue.models import Category, Product
+from apps.modules.inventory.services import InventoryService
+from apps.modules.orders.models import Order, ShippingZone
+from apps.modules.settings_app.models import ShippingMethod
+from apps.modules.voucher.models import Voucher, VoucherUsage
+from apps.modules.cart.models import Cart
 
 pytestmark = pytest.mark.integration
 

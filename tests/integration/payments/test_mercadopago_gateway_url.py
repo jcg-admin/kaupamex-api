@@ -11,10 +11,10 @@ import pytest
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
 from decouple import config
-from apps.catalogue.models import Category, Product
-from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
-from apps.settings_app.models import PaymentGateway
-from apps.payments.models import Payment, PaymentGatewayEvent
+from apps.modules.catalogue.models import Category, Product
+from apps.modules.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from apps.modules.settings_app.models import PaymentGateway
+from apps.modules.payments.models import Payment, PaymentGatewayEvent
 
 pytestmark = pytest.mark.integration
 
@@ -82,7 +82,7 @@ def mp_gateway(db, admin_user):
 
 @pytest.fixture
 def mock_sdk():
-    with patch('apps.payments.gateways.mercadopago.mercadopago') as mock_mp:
+    with patch('apps.modules.payments.gateways.mercadopago.mercadopago') as mock_mp:
         sdk = MagicMock()
         mock_mp.SDK.return_value = sdk
         sdk.preference.return_value.create.return_value = {
@@ -203,7 +203,7 @@ class TestMercadoPagoGatewayURLErrores:
         assert res.json()['codigo_error'] == 'AMOUNT_MISMATCH'
 
     def test_gateway_down_retorna_503(self, auth_client, orden_mp, mp_gateway):
-        with patch('apps.payments.gateways.mercadopago.mercadopago') as mock_mp:
+        with patch('apps.modules.payments.gateways.mercadopago.mercadopago') as mock_mp:
             sdk = MagicMock()
             mock_mp.SDK.return_value = sdk
             sdk.preference.return_value.create.return_value = {

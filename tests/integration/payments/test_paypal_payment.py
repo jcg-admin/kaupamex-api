@@ -8,12 +8,12 @@ import json
 import pytest
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
-from apps.catalogue.models import Category, Product
-from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
-from apps.settings_app.models import PaymentGateway
-from apps.payments.models import Payment
-from apps.payments.gateways.paypal import PayPalGateway
-from apps.payments.gateways.base import BaseGateway
+from apps.modules.catalogue.models import Category, Product
+from apps.modules.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from apps.modules.settings_app.models import PaymentGateway
+from apps.modules.payments.models import Payment
+from apps.modules.payments.gateways.paypal import PayPalGateway
+from apps.modules.payments.gateways.base import BaseGateway
 
 pytestmark = pytest.mark.integration
 
@@ -75,7 +75,7 @@ def paypal_gateway_activo(db):
 @pytest.fixture
 def mock_paypal_api():
     """Mock de todas las llamadas requests a PayPal API."""
-    with patch('apps.payments.gateways.paypal.requests') as mock_req:
+    with patch('apps.modules.payments.gateways.paypal.requests') as mock_req:
         # Token endpoint
         token_resp = MagicMock()
         token_resp.status_code = 200

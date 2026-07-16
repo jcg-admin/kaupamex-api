@@ -9,11 +9,11 @@ UC-CFG-05: Contact data (SiteSettings extended)
 """
 import pytest
 from decimal import Decimal
-from apps.catalogue.models import Category, Product
-from apps.chartsize.models import VariantType, VariantOption, ProductVariant
-from apps.settings_app.models import StaticPageVersion, SiteSettings
-from apps.inventory.services import InventoryService, InsufficientStockError
-from apps.inventory.models import StockAlert
+from apps.modules.catalogue.models import Category, Product
+from apps.modules.chartsize.models import VariantType, VariantOption, ProductVariant
+from apps.modules.settings_app.models import StaticPageVersion, SiteSettings
+from apps.modules.inventory.services import InventoryService, InsufficientStockError
+from apps.modules.inventory.models import StockAlert
 
 pytestmark = pytest.mark.integration
 

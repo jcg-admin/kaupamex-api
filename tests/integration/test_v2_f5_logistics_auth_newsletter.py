@@ -9,8 +9,8 @@ import pytest
 from unittest.mock import patch
 from django.core import signing
 
-from apps.newsletter.models import NewsletterSubscriber
-from apps.settings_app.models import StaticPage
+from apps.modules.newsletter.models import NewsletterSubscriber
+from apps.modules.settings_app.models import StaticPage
 
 pytestmark = pytest.mark.integration
 
@@ -80,7 +80,7 @@ class TestShipmentsV2Auth:
 
 class TestNewsletterSubscriptionsV2:
     def test_subscribe_201(self, api_client, db):
-        with patch('apps.newsletter.views._send_confirmation_email'):
+        with patch('apps.modules.newsletter.views._send_confirmation_email'):
             r = api_client.post(V2_NEWSLETTER_SUBS,
                                 {'email': 'v2test@example.com'},
                                 format='json')

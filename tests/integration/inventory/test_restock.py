@@ -13,10 +13,10 @@ from decimal import Decimal
 
 import pytest
 
-from apps.catalogue.models import Category, Product
-from apps.chartsize.models import VariantType, VariantOption, ProductVariant
-from apps.inventory.models import StockAlert, StockMovement
-from apps.inventory.services import InventoryService
+from apps.modules.catalogue.models import Category, Product
+from apps.modules.chartsize.models import VariantType, VariantOption, ProductVariant
+from apps.modules.inventory.models import StockAlert, StockMovement
+from apps.modules.inventory.services import InventoryService
 
 pytestmark = pytest.mark.integration
 

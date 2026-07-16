@@ -11,7 +11,7 @@ F1 no migra datos ni elimina v1; verifica coexistencia.
 """
 import pytest
 from decimal import Decimal
-from apps.catalogue.models import Category, Product
+from apps.modules.catalogue.models import Category, Product
 
 pytestmark = pytest.mark.integration
 

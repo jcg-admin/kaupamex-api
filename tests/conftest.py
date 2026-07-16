@@ -13,9 +13,9 @@ from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.cache import cache
 
-from apps.authz.models import Role, RoleAssignment
-from apps.authz.services import SUPERADMIN_ROLE_CODE
-from apps.users.models import EmployeeProfile, Person
+from apps.platform.authz.models import Role, RoleAssignment
+from apps.platform.authz.services import SUPERADMIN_ROLE_CODE
+from apps.modules.users.models import EmployeeProfile, Person
 from tests.factories.user_factory import make_buyer  # noqa: F401 (re-export)
 
 import pytest

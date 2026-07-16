@@ -12,11 +12,11 @@ la asignación). Devuelve ``[{id, code, name, capabilities:[{code, level}]}]``
 """
 from datetime import timedelta
 
-from apps.authz.models import (
+from apps.platform.authz.models import (
     AccessLevel, Capability, Module, ReauthSession, Role, RoleAssignment,
     RoleCapability,
 )
-from apps.authz.services import (
+from apps.platform.authz.services import (
     SUPERADMIN_ROLE_CODE, invalidate_capabilities, is_superadmin,
 )
 

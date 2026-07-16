@@ -10,11 +10,11 @@ ese límite y su rol solo lo edita otro superadmin.
 """
 from datetime import timedelta
 
-from apps.authz.models import (
+from apps.platform.authz.models import (
     AccessLevel, Capability, Module, ReauthSession, Role, RoleAssignment,
     RoleCapability,
 )
-from apps.authz.services import (
+from apps.platform.authz.services import (
     SUPERADMIN_ROLE_CODE, invalidate_capabilities, resolve_capabilities,
 )
 

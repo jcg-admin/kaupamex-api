@@ -20,7 +20,7 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import timedelta
-from apps.users.models import EmailVerificationToken, PasswordResetToken
+from apps.modules.users.models import EmailVerificationToken, PasswordResetToken
 
 pytestmark = pytest.mark.api
 

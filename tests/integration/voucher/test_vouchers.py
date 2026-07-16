@@ -12,10 +12,10 @@ from decimal import Decimal
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import date, timedelta
-from apps.catalogue.models import Category, Product
-from apps.orders.models import Order, OrderValue
-from apps.voucher.models import Voucher, VoucherChangeLog
-from apps.voucher.serializers import VoucherSerializer
+from apps.modules.catalogue.models import Category, Product
+from apps.modules.orders.models import Order, OrderValue
+from apps.modules.voucher.models import Voucher, VoucherChangeLog
+from apps.modules.voucher.serializers import VoucherSerializer
 
 pytestmark = pytest.mark.integration
 

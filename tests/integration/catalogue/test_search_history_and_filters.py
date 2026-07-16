@@ -9,8 +9,8 @@ UC-CAT-06: Manage catalogue categories (admin)
 """
 import pytest
 from decimal import Decimal
-from apps.catalogue.models import Category, Product, SearchHistory
-from apps.catalogue.views import _resolve_category_pks
+from apps.modules.catalogue.models import Category, Product, SearchHistory
+from apps.modules.catalogue.views import _resolve_category_pks
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.cache import cache
 import time

@@ -8,10 +8,10 @@ import pytest
 from datetime import timedelta
 from decimal import Decimal
 from django.utils import timezone
-from apps.catalogue.models import Category, Product
-from apps.inventory.models import StockMovement
-from apps.orders.models import Order, OrderItem, OrderStatusLog
-from apps.orders.tasks import cancel_timeout_orders, ORDER_PAYMENT_TIMEOUT_MINUTES
+from apps.modules.catalogue.models import Category, Product
+from apps.modules.inventory.models import StockMovement
+from apps.modules.orders.models import Order, OrderItem, OrderStatusLog
+from apps.modules.orders.tasks import cancel_timeout_orders, ORDER_PAYMENT_TIMEOUT_MINUTES
 
 pytestmark = pytest.mark.django_db
 

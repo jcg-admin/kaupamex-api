@@ -5,13 +5,13 @@ Nombre descriptivo: dominio y perspectiva, no número de sprint.
 """
 import pytest
 from decimal import Decimal
-from apps.authz.services import SUPERADMIN_ROLE_CODE
-from apps.catalogue.models import Category, Product
-from apps.logistics.models import Courier, ShipmentGuide
-from apps.orders.admin_services import transition_order_status
-from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress, OrderStatusLog
+from apps.platform.authz.services import SUPERADMIN_ROLE_CODE
+from apps.modules.catalogue.models import Category, Product
+from apps.modules.logistics.models import Courier, ShipmentGuide
+from apps.modules.orders.admin_services import transition_order_status
+from apps.modules.orders.models import Order, OrderItem, OrderValue, OrderAddress, OrderStatusLog
 from django.contrib.auth import get_user_model
-from apps.settings_app.models import SiteSettings
+from apps.modules.settings_app.models import SiteSettings
 
 pytestmark = pytest.mark.integration
 

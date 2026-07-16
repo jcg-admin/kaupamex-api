@@ -1,4 +1,4 @@
-"""Unit tests for the native TOTP / MFA-crypto utility (apps.users.mfa).
+"""Unit tests for the native TOTP / MFA-crypto utility (apps.modules.users.mfa).
 
 TDD for the Kaupamex base MFA slice (UC-PLT-08 / UC-AUTH-02, T-PLT-33).
 Pure RFC 6238 math + Fernet-at-rest with a dedicated MFA_ENCRYPTION_KEY.
@@ -9,7 +9,7 @@ import base64
 import pytest
 from django.test import override_settings
 
-from apps.users import mfa
+from apps.modules.users import mfa
 
 
 class TestTotpMath:

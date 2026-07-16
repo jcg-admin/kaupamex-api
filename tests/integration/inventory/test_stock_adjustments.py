@@ -8,12 +8,12 @@ UC-INV-05: Import products from CSV
 import csv, io, pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from decimal import Decimal
-from apps.catalogue.models import Category, Product
-from apps.chartsize.models import VariantType, VariantOption, ProductVariant
-from apps.inventory.models import StockMovement
-from apps.inventory.services import InventoryService, InsufficientStockError
-from apps.orders.models import Order, OrderItem
-from apps.users.models import BusinessEvent
+from apps.modules.catalogue.models import Category, Product
+from apps.modules.chartsize.models import VariantType, VariantOption, ProductVariant
+from apps.modules.inventory.models import StockMovement
+from apps.modules.inventory.services import InventoryService, InsufficientStockError
+from apps.modules.orders.models import Order, OrderItem
+from apps.modules.users.models import BusinessEvent
 
 pytestmark = pytest.mark.integration
 
