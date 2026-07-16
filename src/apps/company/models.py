@@ -18,7 +18,25 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
+from apps.company.context import get_current_company
 from apps.core.models import TimeStampedModel
+
+
+class CompanyScopedManager(models.Manager):
+    """Manager de aislamiento de fila L3 (SOL-085). ``for_current_company()``
+    filtra por la ``Company`` del contexto del request, **fail-closed**: sin
+    company en contexto → queryset vacío (denegar por defecto), nunca "todo".
+
+    Requiere que el modelo tenga una FK ``company`` (columna ``company_id``).
+    El acceso cross-company del operador L0 usa el manager por defecto
+    (``objects``), explícito y no ambiguo.
+    """
+
+    def for_current_company(self):
+        company_id = get_current_company()
+        if company_id is None:
+            return self.get_queryset().none()
+        return self.get_queryset().filter(company_id=company_id)
 
 
 class Company(TimeStampedModel):
@@ -93,6 +111,9 @@ class CompanyModuleSubscription(TimeStampedModel):
         max_digits=10, decimal_places=2, null=True, blank=True,
         verbose_name='Precio',
     )
+
+    objects = models.Manager()               # default: cross-company (L0)
+    scoped = CompanyScopedManager()          # L3: fail-closed por company
 
     class Meta:
         db_table = 'company_module_subscription'

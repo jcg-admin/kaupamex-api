@@ -88,6 +88,18 @@ _MODULE_NAMES = {
     'vouchers': 'Cupones', 'account': 'Mi cuenta',
 }
 
+# Grafo de dependencias entre módulos (SOL-085 S3): activar un módulo para una
+# company exige sus ``depends`` activos. Dependencias funcionales reales; sólo
+# se declaran deps directas (transitivamente correcto — ver Module.depends).
+MODULE_DEPENDS = {
+    'inventory': ['catalogue'],              # stock es por producto
+    'orders':    ['catalogue', 'inventory'],  # no hay pedido sin catálogo + stock
+    'payments':  ['orders'],                 # el pago es contra un pedido
+    'invoices':  ['orders'],                 # se factura un pedido
+    'logistics': ['orders'],                 # se envía un pedido
+    'returns':   ['orders'],                 # se devuelve un pedido
+}
+
 
 class Command(BaseCommand):
     help = 'Siembra módulos, capacidades y el rol superadmin de apps.authz.'
@@ -99,6 +111,10 @@ class Command(BaseCommand):
             modules[domain], _ = Module.objects.get_or_create(
                 code=domain, defaults={'name': name},
             )
+
+        # Grafo de dependencias (SOL-085 S3). ``set`` es idempotente.
+        for domain, dep_codes in MODULE_DEPENDS.items():
+            modules[domain].depends.set([modules[d] for d in dep_codes])
 
         caps = []
         # Capacidades CRUD como sustantivo (nivel en RoleCapability).
