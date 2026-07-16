@@ -1,16 +1,15 @@
-"""Models — apps.tenancy (capa L1 de la plataforma Kaupamex).
+"""Models — apps.company (capa L1 de la plataforma Kaupamex).
 
 Diseño: :ref:`analisis-modelo-tenant-l1-foundation` (plataforma-kaupamex).
+Entidad L1 = ``Company`` (DEC-T7; converge Odoo ``res.company`` / NetSuite).
 
-- ``Tenant`` — el cliente/organización que contrata Kaupamex. Raíz L1: **no**
-  tiene FK a la capa L0 (la relación operador↔tenant es operacional, no de
-  datos). Paralelo ``Organizer`` de pretix.
-- ``TenantModuleSubscription`` — qué ``Module`` (``apps.authz``) tiene
-  contratado cada tenant, con vigencia. Es la puerta **L1-a** (módulo activo
-  sí/no) que un slice posterior compondrá con el catálogo L2 (DEC-11) dentro
-  del resolver. Aquí se expone aislada como ``Tenant.active_module_codes()``,
-  sin tocar todavía ``authz.services.resolve_capabilities`` (que aún no conoce
-  el tenant del usuario).
+- ``Company`` — el cliente/organización que contrata Kaupamex. Raíz L1: **no**
+  tiene FK a la capa L0 (la relación operador↔company es operacional, no de
+  datos). Paralelo ``res.company`` de Odoo / ``Organizer`` de pretix.
+- ``CompanyModuleSubscription`` — qué ``Module`` (``apps.authz``) tiene
+  contratado cada company, con vigencia. Es la puerta **L1-a** (módulo activo
+  sí/no) que el resolver compone con el catálogo L2 (DEC-11), expuesta como
+  ``Company.active_module_codes()``.
 
 ``price`` es un placeholder de facturación (valor, no lógica): el modelo de
 precios sigue abierto (pregunta abierta del diseño) y no cambia el esquema.
@@ -21,8 +20,8 @@ from django.utils import timezone
 from apps.core.models import TimeStampedModel
 
 
-class Tenant(TimeStampedModel):
-    """Cliente/organización que contrata la plataforma (raíz L1)."""
+class Company(TimeStampedModel):
+    """Cliente/organización que contrata la plataforma (raíz L1, DEC-T7)."""
 
     class Status(models.TextChoices):
         TRIAL = 'trial', 'En prueba'
@@ -42,9 +41,9 @@ class Tenant(TimeStampedModel):
     tax_id = models.CharField(max_length=30, blank=True, default='', verbose_name='RFC / Tax ID')
 
     class Meta:
-        db_table = 'tenancy_tenant'
-        verbose_name = 'Tenant'
-        verbose_name_plural = 'Tenants'
+        db_table = 'company'
+        verbose_name = 'Empresa'
+        verbose_name_plural = 'Empresas'
         ordering = ['code']
 
     def __str__(self):
@@ -53,8 +52,8 @@ class Tenant(TimeStampedModel):
     def active_module_codes(self, now=None):
         """Set de ``Module.code`` con suscripción **activa** (L1-a).
 
-        Un slice posterior compondrá esto en el resolver:
-        ``caps L2 filtradas por c.module in tenant.active_module_codes()``.
+        El resolver compone esto: ``caps L2 filtradas por
+        c.module in company.active_module_codes()``.
         """
         if now is None:
             now = timezone.now()
@@ -65,8 +64,8 @@ class Tenant(TimeStampedModel):
         return codes
 
 
-class TenantModuleSubscription(TimeStampedModel):
-    """Módulo contratado por un tenant, con vigencia (puerta L1-a)."""
+class CompanyModuleSubscription(TimeStampedModel):
+    """Módulo contratado por una company, con vigencia (puerta L1-a)."""
 
     class Status(models.TextChoices):
         TRIAL = 'trial', 'En prueba'
@@ -74,9 +73,9 @@ class TenantModuleSubscription(TimeStampedModel):
         SUSPENDED = 'suspended', 'Suspendido'
         CANCELLED = 'cancelled', 'Cancelado'
 
-    tenant = models.ForeignKey(
-        Tenant, on_delete=models.CASCADE, related_name='subscriptions',
-        verbose_name='Tenant',
+    company = models.ForeignKey(
+        Company, on_delete=models.CASCADE, related_name='subscriptions',
+        verbose_name='Empresa',
     )
     module = models.ForeignKey(
         'authz.Module', on_delete=models.PROTECT, related_name='subscriptions',
@@ -95,14 +94,14 @@ class TenantModuleSubscription(TimeStampedModel):
     )
 
     class Meta:
-        db_table = 'tenancy_module_subscription'
+        db_table = 'company_module_subscription'
         verbose_name = 'Suscripción de módulo'
         verbose_name_plural = 'Suscripciones de módulo'
-        ordering = ['tenant__code', 'module__code']
-        unique_together = [('tenant', 'module')]
+        ordering = ['company__code', 'module__code']
+        unique_together = [('company', 'module')]
 
     def __str__(self):
-        return f'{self.tenant.code}:{self.module_id}'
+        return f'{self.company.code}:{self.module_id}'
 
     def is_active(self, now=None):
         """True si la suscripción está ``ACTIVE`` y no expiró."""

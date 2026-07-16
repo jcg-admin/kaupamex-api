@@ -1,8 +1,8 @@
-"""Views — apps.tenancy (consola L0 del operador Kaupamex).
+"""Views — apps.company (consola L0 del operador Kaupamex).
 
-Directorio de tenants de solo lectura bajo ``/api/v2/platform/tenants/``
-(UC-PLT-12). El operador L0 (Kaupamex) es **cross-tenant** por definición:
-NO se filtra el queryset por tenant — el operador ve todos los tenants de la
+Directorio de companies L1 de solo lectura bajo ``/api/v2/platform/companies/``
+(UC-PLT-12). El operador L0 (Kaupamex) es **cross-company** por definición:
+NO se filtra el queryset por company — el operador ve todas las companies de la
 plataforma.
 
 **Scope por acción (least-privilege).** La lectura del directorio se gobierna
@@ -21,12 +21,12 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
 from apps.authz.permissions import HasCapability
-from apps.tenancy.models import Tenant
-from apps.tenancy.serializers import TenantSerializer
+from apps.company.models import Company
+from apps.company.serializers import CompanySerializer
 
 
-class TenantViewSet(ReadOnlyModelViewSet):
-    """Directorio de tenants para el operador L0 (``list`` + ``retrieve``).
+class CompanyViewSet(ReadOnlyModelViewSet):
+    """Directorio de companies para el operador L0 (``list`` + ``retrieve``).
 
     Fail-closed vía ``HasCapability``: sin ``platform.provision`` → 403. No
     expone escritura en esta rebanada (provisión/suspensión llegan en la
@@ -35,6 +35,6 @@ class TenantViewSet(ReadOnlyModelViewSet):
 
     permission_classes = [IsAuthenticated, HasCapability]
     required_capability = 'platform.view'
-    serializer_class = TenantSerializer
-    queryset = Tenant.objects.all().order_by('code')
+    serializer_class = CompanySerializer
+    queryset = Company.objects.all().order_by('code')
     http_method_names = ['get', 'head', 'options']

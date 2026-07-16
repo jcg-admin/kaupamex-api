@@ -141,14 +141,14 @@ class IdentityUser(models.Model):
         verbose_name='ID cliente MercadoPago',
         help_text='ID del customer en MP para guardar tarjetas. BR-009.',
     )
-    # Tenant (L1) al que pertenece el usuario. ``null`` = usuario cross-tenant
-    # (operador de plataforma L0: superadmin/platform-operator) o sin asignar.
-    # El filtro L1-a del resolver (apps.tenancy) lo consumirá en una rebanada
-    # posterior; aquí solo se establece el vínculo de esquema. PROTECT: no se
-    # borra un Tenant con usuarios vivos. Diseño: analisis-modelo-tenant-l1-foundation.
-    tenant = models.ForeignKey(
-        'tenancy.Tenant', on_delete=models.PROTECT, null=True, blank=True,
-        related_name='users', verbose_name='Tenant',
+    # Company (L1) a la que pertenece el usuario. ``null`` = usuario cross-
+    # company (operador de plataforma L0: superadmin/platform-operator) o sin
+    # asignar. El gate L1-a del resolver (apps.company) lo consume; aquí solo se
+    # establece el vínculo de esquema. PROTECT: no se borra una Company con
+    # usuarios vivos. Diseño: analisis-modelo-tenant-l1-foundation (DEC-T7).
+    company = models.ForeignKey(
+        'company.Company', on_delete=models.PROTECT, null=True, blank=True,
+        related_name='users', verbose_name='Empresa',
     )
 
     objects = IdentityUserManager()

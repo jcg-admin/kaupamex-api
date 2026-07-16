@@ -62,7 +62,7 @@ INSTALLED_APPS = [
     'apps.referral',
     'apps.geo',
     'apps.authz',
-    'apps.tenancy',
+    'apps.company',
     'apps.finance',
 ]
 

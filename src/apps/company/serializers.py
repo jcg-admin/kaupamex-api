@@ -1,22 +1,23 @@
-"""Serializers — apps.tenancy (consola L0 del operador Kaupamex).
+"""Serializers — apps.company (consola L0 del operador Kaupamex).
 
-Solo lectura del directorio de tenants (UC-PLT-12). El detalle expone el estado
-del tenant + resumen de módulos activos y conteo de usuarios, sin datos
-sensibles de otros tenants (el operador L0 es cross-tenant por definición).
+Solo lectura del directorio de companies L1 (UC-PLT-12). El detalle expone el
+estado de la company + resumen de módulos activos y conteo de usuarios, sin
+datos sensibles de otras companies (el operador L0 es cross-company por
+definición).
 """
 from rest_framework import serializers
 
-from apps.tenancy.models import Tenant
+from apps.company.models import Company
 
 
-class TenantSerializer(serializers.ModelSerializer):
-    """Fila/detalle de un tenant en el directorio del operador (read-only)."""
+class CompanySerializer(serializers.ModelSerializer):
+    """Fila/detalle de una company en el directorio del operador (read-only)."""
 
     active_modules = serializers.SerializerMethodField()
     user_count = serializers.SerializerMethodField()
 
     class Meta:
-        model = Tenant
+        model = Company
         fields = [
             'id', 'code', 'name', 'status',
             'billing_email', 'billing_name', 'tax_id',
