@@ -17,7 +17,14 @@ def _seed():
     call_command('seed_authz')
 
 
-ENGLISH_CATEGORIES = {'sales', 'operations', 'finance', 'marketing', 'support', 'platform'}
+# Familias funcionales ERP (taxonomía NetSuite/Odoo manifest ``category``),
+# no etiquetas planas: Order Management ≠ SCM ≠ Finance ≠ CRM ≠ Employee
+# Management. Employee Management (HR/HCM) es familia futura — ningún módulo
+# actual la ocupa, pero es canónica. Valor = display string en inglés.
+ERP_FAMILIES = {
+    'Order Management', 'Supply Chain Management', 'Finance', 'CRM',
+    'Employee Management', 'Platform',
+}
 
 
 def test_sellable_modules_are_applications():
@@ -26,16 +33,25 @@ def test_sellable_modules_are_applications():
                  'logistics', 'finance', 'reports', 'newsletter', 'support'):
         m = Module.objects.get(code=code)
         assert m.is_application is True, code
-        assert m.category in ENGLISH_CATEGORIES, (code, m.category)
+        assert m.category in ERP_FAMILIES, (code, m.category)
 
 
-def test_all_categories_are_english_identifiers():
-    """Los identificadores de categoría son inglés (canon DEC-DOC-005)."""
+def test_billing_pieces_are_order_management_not_finance():
+    """Facturación/invoices son Order Management, no Finance (PROVEN en
+    ``analisis-ubicacion-modulo-billing-order-management``: el continuo
+    comercial Sales Order → Fulfill → Invoice → Payment → Returns)."""
+    _seed()
+    for code in ('orders', 'payments', 'invoices', 'returns', 'logistics'):
+        assert Module.objects.get(code=code).category == 'Order Management', code
+
+
+def test_all_categories_are_canonical_erp_families():
+    """Toda categoría usada es una familia funcional ERP canónica (inglés)."""
     _seed()
     used = set(
         Module.objects.exclude(category='').values_list('category', flat=True)
     )
-    assert used <= ENGLISH_CATEGORIES, used
+    assert used <= ERP_FAMILIES, used
 
 
 def test_technical_modules_are_not_applications():

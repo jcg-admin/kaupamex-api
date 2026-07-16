@@ -107,34 +107,47 @@ MODULE_DEPENDS = {
 # en runtime). ``category`` = agrupación funcional de catálogo. **``tier`` NO se
 # fija aquí**: el modelo de precios (free/paid por módulo) es GAP 4 / #180
 # (billing L0 abierto); todos quedan en el default ``free`` hasta esa decisión.
+# ``category`` = **familia funcional ERP** (taxonomía NetSuite/Odoo ``__manifest__``),
+# no una etiqueta plana. Los módulos se agrupan por familia (Order Management ≠
+# SCM ≠ Finance ≠ CRM ≠ Employee Management), como ratifican los análisis de
+# referencia de la iniciativa plataforma-kaupamex:
+#   - Order Management = el continuo comercial completo (Sales Order → Fulfill →
+#     Invoice → Payment → Returns), PROVEN en
+#     ``analisis-ubicacion-modulo-billing-order-management`` (facturación e
+#     invoices viven aquí, NO en Finance).
+#   - Employee Management (SuitePeople/HCM) = familia HR, hermana top-level;
+#     futura, ningún módulo actual la ocupa (``analisis-netsuite-modulo-employee-management``).
+# Valor = string display en inglés (contrato del ``category`` de manifest, que
+# en Odoo es "Human Resources"/"Sales", no un slug). El identificador máquina es
+# ``code``. ``tier`` NO se fija aquí (pricing = GAP 4 / #180 — no inventar precios).
 MODULE_CATALOG = {
-    # code:        (is_application, category)  — category = identificador en inglés
-    'catalogue':   (True,  'sales'),
-    'orders':      (True,  'sales'),
-    'payments':    (True,  'sales'),
-    'invoices':    (True,  'sales'),
-    'vouchers':    (True,  'marketing'),
-    'inventory':   (True,  'operations'),
-    'logistics':   (True,  'operations'),
-    'returns':     (True,  'operations'),
-    'finance':     (True,  'finance'),
-    'reports':     (True,  'finance'),
-    'newsletter':  (True,  'marketing'),
-    'support':     (True,  'support'),
+    # code:        (is_application, category)  — category = familia funcional ERP
+    'catalogue':   (True,  'Order Management'),
+    'orders':      (True,  'Order Management'),
+    'payments':    (True,  'Order Management'),
+    'invoices':    (True,  'Order Management'),
+    'vouchers':    (True,  'Order Management'),
+    'inventory':   (True,  'Supply Chain Management'),
+    'logistics':   (True,  'Order Management'),
+    'returns':     (True,  'Order Management'),
+    'finance':     (True,  'Finance'),
+    'reports':     (True,  'Finance'),
+    'newsletter':  (True,  'CRM'),
+    'support':     (True,  'CRM'),
     # Técnicos (no se contratan por separado; dependencia/infra interna):
-    'moderation':  (False, 'support'),
-    'questions':   (False, 'sales'),
-    'banners':     (False, 'marketing'),
-    'content':     (False, 'marketing'),
-    'seo':         (False, 'marketing'),
-    'notifications': (False, 'platform'),
-    'audit':       (False, 'platform'),
-    'backups':     (False, 'platform'),
-    'permissions': (False, 'platform'),
-    'platform':    (False, 'platform'),
-    'settings':    (False, 'platform'),
-    'users':       (False, 'platform'),
-    'account':     (False, 'platform'),
+    'moderation':  (False, 'CRM'),
+    'questions':   (False, 'Order Management'),
+    'banners':     (False, 'CRM'),
+    'content':     (False, 'Platform'),
+    'seo':         (False, 'Platform'),
+    'notifications': (False, 'Platform'),
+    'audit':       (False, 'Platform'),
+    'backups':     (False, 'Platform'),
+    'permissions': (False, 'Platform'),
+    'platform':    (False, 'Platform'),
+    'settings':    (False, 'Platform'),
+    'users':       (False, 'Platform'),
+    'account':     (False, 'Platform'),
 }
 
 

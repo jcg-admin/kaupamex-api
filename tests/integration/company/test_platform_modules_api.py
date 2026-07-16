@@ -39,7 +39,7 @@ class TestPlatformModulesCatalog:
     def test_operator_lists_catalog_with_metadata(self, api_client, db):
         catalogue = Module.objects.create(
             code='catalogue', name='Catálogo', is_application=True,
-            tier=Module.Tier.FREE, category='sales', version='1.0.0',
+            tier=Module.Tier.FREE, category='Order Management', version='1.0.0',
         )
         inventory = Module.objects.create(code='inventory', name='Inventario', is_application=True)
         inventory.depends.set([catalogue])
@@ -52,7 +52,7 @@ class TestPlatformModulesCatalog:
         by_code = {r['code']: r for r in rows}
         assert by_code['catalogue']['is_application'] is True
         assert by_code['catalogue']['tier'] == 'free'
-        assert by_code['catalogue']['category'] == 'sales'
+        assert by_code['catalogue']['category'] == 'Order Management'
         # depends expone los códigos, no los ids.
         assert by_code['inventory']['depends'] == ['catalogue']
 
