@@ -28,6 +28,7 @@ CRUD_NOUNS = [
     ('banners',       False),
     ('catalogue',     False),
     ('content',       False),
+    ('finance',       True),
     ('inventory',     False),
     ('invoices',      True),
     ('logistics',     False),
@@ -67,11 +68,17 @@ NAMED_ACTIONS = [
     ('inventory.import',      'Importar inventario',              True),
     ('reports.export',        'Exportar reportes',                False),
     ('platform.provision',    'Provisionar la plataforma (operador Kaupamex L0)', True),
+    # MOD-028 FINANCE — acciones SoD (segregacion de funciones, UC-FIN-01..08).
+    ('finance.record',        'Registrar movimiento/concepto financiero',  True),
+    ('finance.reconcile',     'Conciliar liquidaciones del gateway',       True),
+    ('finance.disburse',      'Pagar flete / cancelar-reembolsar cobro',   True),
+    ('finance.close',         'Sellar corte de caja / cerrar ejercicio',   True),
 ]
 
 _MODULE_NAMES = {
     'audit': 'Auditoría', 'backups': 'Respaldos', 'banners': 'Banners',
-    'catalogue': 'Catálogo', 'content': 'Contenido', 'inventory': 'Inventario',
+    'catalogue': 'Catálogo', 'content': 'Contenido', 'finance': 'Finanzas',
+    'inventory': 'Inventario',
     'invoices': 'Facturas', 'logistics': 'Logística', 'moderation': 'Moderación',
     'newsletter': 'Newsletter', 'notifications': 'Notificaciones',
     'orders': 'Pedidos', 'payments': 'Pagos', 'permissions': 'Permisos',

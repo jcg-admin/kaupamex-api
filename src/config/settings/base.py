@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     'apps.geo',
     'apps.authz',
     'apps.tenancy',
+    'apps.finance',
 ]
 
 AUTH_USER_MODEL = 'users.IdentityUser'
