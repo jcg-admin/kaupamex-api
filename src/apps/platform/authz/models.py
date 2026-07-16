@@ -23,7 +23,22 @@ from apps.core.models import AppendOnlyModel, TimeStampedModel
 
 
 class Module(TimeStampedModel):
-    """Agrupador de capacidades por dominio funcional (menú/navegación)."""
+    """Agrupador de capacidades por dominio funcional (menú/navegación).
+
+    Además de agrupar capacidades, es el **catálogo L0** de módulos vendibles
+    de Kaupamex (:ref:`diseno-catalogo-l0-module-extendido`). La metadata de
+    catálogo calca el contrato ``__manifest__`` de Odoo: ``is_application``
+    (vendible vs técnico ← ``application``), ``tier`` (free/paid ←
+    ``license``), ``category``/``version``/``description`` y ``auto_install``.
+    El tier de pago vive en la metadata, no en la carpeta (principio Odoo).
+    El precio efectivo por company vive en ``CompanyModuleSubscription.price``.
+    """
+
+    class Tier(models.TextChoices):
+        """Nivel de cobro del módulo (← manifest ``license``: LGPL-3 vs OEEL-1)."""
+        FREE = 'free', 'Gratis'
+        PAID = 'paid', 'De pago'
+
     code = models.SlugField(max_length=50, unique=True, verbose_name='Código')
     name = models.CharField(max_length=100, verbose_name='Nombre')
     is_active = models.BooleanField(default=True, verbose_name='Activo')
@@ -33,6 +48,28 @@ class Module(TimeStampedModel):
     depends = models.ManyToManyField(
         'self', symmetrical=False, related_name='dependents', blank=True,
         verbose_name='Depende de',
+    )
+    # Metadata de catálogo L0 (contrato __manifest__ de Odoo).
+    is_application = models.BooleanField(
+        default=False, verbose_name='App vendible',
+        help_text='Vendible (top-level) vs módulo técnico (dependencia interna).',
+    )
+    tier = models.CharField(
+        max_length=8, choices=Tier.choices, default=Tier.FREE,
+        verbose_name='Tier',
+    )
+    category = models.CharField(
+        max_length=50, blank=True, default='', verbose_name='Categoría',
+    )
+    version = models.CharField(
+        max_length=20, blank=True, default='', verbose_name='Versión',
+    )
+    description = models.TextField(
+        blank=True, default='', verbose_name='Descripción',
+    )
+    auto_install = models.BooleanField(
+        default=False, verbose_name='Auto-instalar',
+        help_text='Se activa solo cuando sus dependencias están presentes.',
     )
 
     class Meta:
