@@ -39,6 +39,16 @@ class CompanyScopedManager(models.Manager):
         return self.get_queryset().filter(company_id=company_id)
 
 
+# Códigos canónicos de companies especiales (SOL-085 S3, lección L-EXT-3).
+# - Founder: primer tenant L1 real (PracticaYoruba); target de backfill de las
+#   filas de dominio existentes al colgar la FK ``company`` (S3).
+# - System: company de datos compartidos de plataforma (``is_system=True``);
+#   los datos globales (SEPOMEX, referencia) cuelgan de aquí, con fallback por
+#   whitelist en el manager scopeado — NO ``company_id`` nullable.
+FOUNDER_COMPANY_CODE = 'practicayoruba'
+SYSTEM_COMPANY_CODE = 'kaupamex_global'
+
+
 class Company(TimeStampedModel):
     """Cliente/organización que contrata la plataforma (raíz L1, DEC-T7)."""
 
@@ -54,6 +64,13 @@ class Company(TimeStampedModel):
         max_length=12, choices=Status.choices, default=Status.TRIAL,
         verbose_name='Estado',
     )
+    # Company de datos compartidos de plataforma (L-EXT-3). Los datos globales
+    # cuelgan de la system company; el manager scopeado hace fallback por
+    # whitelist a ella además de la company activa. NO usar company nullable.
+    is_system = models.BooleanField(
+        default=False, verbose_name='Company de sistema',
+        help_text='Company de datos compartidos de plataforma (L0), no un tenant.',
+    )
     # Datos mínimos de facturación (opcionales hasta activar).
     billing_email = models.EmailField(blank=True, default='', verbose_name='Correo de facturación')
     billing_name = models.CharField(max_length=150, blank=True, default='', verbose_name='Razón social')
@@ -67,6 +84,25 @@ class Company(TimeStampedModel):
 
     def __str__(self):
         return self.code
+
+    @classmethod
+    def get_founder(cls):
+        """Founder company (PracticaYoruba) — target de backfill de S3. Idempotente."""
+        obj, _ = cls.objects.get_or_create(
+            code=FOUNDER_COMPANY_CODE,
+            defaults={'name': 'PracticaYoruba', 'status': cls.Status.ACTIVE},
+        )
+        return obj
+
+    @classmethod
+    def get_system(cls):
+        """System company (datos compartidos de plataforma, L-EXT-3). Idempotente."""
+        obj, _ = cls.objects.get_or_create(
+            code=SYSTEM_COMPANY_CODE,
+            defaults={'name': 'Kaupamex (plataforma)', 'status': cls.Status.ACTIVE,
+                      'is_system': True},
+        )
+        return obj
 
     def active_module_codes(self, now=None):
         """Set de ``Module.code`` con suscripción **activa** (L1-a).
