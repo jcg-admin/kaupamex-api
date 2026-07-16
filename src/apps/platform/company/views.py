@@ -19,12 +19,29 @@ Identificadores + claves JSON en inglés (DEC-DOC-005).
 """
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
+from apps.platform.authz.models import Module
 from apps.platform.authz.permissions import CapabilityRequiredMixin
 from apps.platform.company.models import Company, CompanyModuleSubscription
 from apps.platform.company.serializers import (
     CompanyModuleSubscriptionSerializer,
     CompanySerializer,
+    ModuleCatalogSerializer,
 )
+
+
+class ModuleCatalogViewSet(CapabilityRequiredMixin, ReadOnlyModelViewSet):
+    """Catálogo L0 de módulos (read-only, #179) bajo ``/api/v2/platform/modules/``.
+
+    Lo consume la consola del operador (mockup ``asignar-modulos-kaupamex``)
+    para pintar los módulos contratables con su metadata (``is_application``/
+    ``tier``/``category``/``depends``). Gateado con ``platform.view`` (la
+    escritura del catálogo es del operador Kaupamex, fuera de esta rebanada).
+    """
+
+    required_capability = 'platform.view'
+    serializer_class = ModuleCatalogSerializer
+    queryset = Module.objects.all().prefetch_related('depends').order_by('category', 'code')
+    http_method_names = ['get', 'head', 'options']
 
 
 class CompanyViewSet(CapabilityRequiredMixin, ReadOnlyModelViewSet):

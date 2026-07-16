@@ -7,7 +7,31 @@ definición).
 """
 from rest_framework import serializers
 
+from apps.platform.authz.models import Module
 from apps.platform.company.models import Company, CompanyModuleSubscription
+
+
+class ModuleCatalogSerializer(serializers.ModelSerializer):
+    """Fila del catálogo L0 de módulos (read-only, #179).
+
+    Expone la metadata de catálogo del ``Module`` (contrato ``__manifest__``)
+    que la consola del operador consume para pintar los módulos contratables:
+    ``code``/``name``, ``is_application`` (vendible vs técnico), ``tier``,
+    ``category``, ``version``, ``description``, ``depends`` (por código) e
+    ``is_active``.
+    """
+
+    depends = serializers.SlugRelatedField(
+        slug_field='code', many=True, read_only=True,
+    )
+
+    class Meta:
+        model = Module
+        fields = [
+            'id', 'code', 'name', 'is_application', 'tier', 'category',
+            'version', 'description', 'depends', 'is_active',
+        ]
+        read_only_fields = fields
 
 
 class CompanySerializer(serializers.ModelSerializer):
