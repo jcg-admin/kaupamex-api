@@ -117,6 +117,29 @@ class TestPlatformSubscriptionsGate:
         rows = res.data['results'] if isinstance(res.data, dict) else res.data
         assert any(r['module_code'] == 'catalogue' for r in rows)
 
+    def test_operator_can_filter_subscriptions_by_company(self, api_client, db):
+        """La consola provisiona un tenant a la vez → ``?company=<id>`` acota
+        el listado a una sola company (no mezcla filas de otras)."""
+        acme = Company.objects.create(code='acme', name='Acme')
+        globex = Company.objects.create(code='globex', name='Globex')
+        cat = Module.objects.create(code='catalogue', name='Catálogo')
+        inv = Module.objects.create(code='inventory', name='Inventario')
+        CompanyModuleSubscription.objects.create(
+            company=acme, module=cat,
+            status=CompanyModuleSubscription.Status.ACTIVE,
+        )
+        CompanyModuleSubscription.objects.create(
+            company=globex, module=inv,
+            status=CompanyModuleSubscription.Status.ACTIVE,
+        )
+        viewer = _user_with_caps('l0_filter@practicayoruba.mx', ['platform.view'])
+        api_client.force_login(viewer)
+        res = api_client.get(SUBS_URL, {'company': acme.pk})
+        assert res.status_code == 200
+        rows = res.data['results'] if isinstance(res.data, dict) else res.data
+        assert {r['company_code'] for r in rows} == {'acme'}
+        assert {r['module_code'] for r in rows} == {'catalogue'}
+
     def test_anonymous_is_unauthorized(self, api_client, db):
         res = api_client.get(SUBS_URL)
         assert res.status_code == 401

@@ -108,3 +108,13 @@ class CompanyModuleSubscriptionViewSet(CapabilityRequiredMixin, ModelViewSet):
         .select_related('company', 'module')
         .order_by('company__code', 'module__code')
     )
+
+    def get_queryset(self):
+        # La consola provisiona un tenant a la vez: ``?company=<id>`` acota el
+        # listado a esa company. Sin el filtro se devuelven todas (el operador
+        # L0 es cross-company). ``company`` inválido/ausente → sin filtrar.
+        qs = super().get_queryset()
+        company_id = self.request.query_params.get('company')
+        if company_id:
+            qs = qs.filter(company_id=company_id)
+        return qs
