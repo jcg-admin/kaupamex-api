@@ -14,6 +14,7 @@ Entidad L1 = ``Company`` (DEC-T7; converge Odoo ``res.company`` / NetSuite).
 ``price`` es un placeholder de facturación (valor, no lógica): el modelo de
 precios sigue abierto (pregunta abierta del diseño) y no cambia el esquema.
 """
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
@@ -112,3 +113,30 @@ class CompanyModuleSubscription(TimeStampedModel):
         if now is None:
             now = timezone.now()
         return self.expires_at > now
+
+    def missing_dependencies(self, now=None):
+        """Set de ``Module.code`` que este módulo declara como ``depends`` pero
+        que la company **no** tiene activos (grafo de dependencias, S3).
+
+        Chequeo de deps directas: es transitivamente correcto porque el módulo
+        del que depende no pudo activarse sin las suyas.
+        """
+        required = set(self.module.depends.values_list('code', flat=True))
+        if not required:
+            return set()
+        return required - self.company.active_module_codes(now) - {self.module.code}
+
+    def save(self, *args, **kwargs):
+        # Gate de activación: una suscripción ACTIVE exige sus dependencias
+        # activas (SOL-085 S3). Las no-activas (trial/suspended/cancelled) se
+        # guardan sin chequeo — aún no conceden nada.
+        if self.status == self.Status.ACTIVE:
+            missing = self.missing_dependencies()
+            if missing:
+                raise ValidationError({
+                    'module': (
+                        f"El módulo '{self.module.code}' requiere módulos activos "
+                        f"que la empresa no tiene: {', '.join(sorted(missing))}."
+                    )
+                })
+        super().save(*args, **kwargs)

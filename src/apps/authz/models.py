@@ -27,6 +27,13 @@ class Module(TimeStampedModel):
     code = models.SlugField(max_length=50, unique=True, verbose_name='Código')
     name = models.CharField(max_length=100, verbose_name='Nombre')
     is_active = models.BooleanField(default=True, verbose_name='Activo')
+    # Grafo de dependencias (SOL-085 S3): activar este módulo para una company
+    # exige que sus ``depends`` estén activos (p.ej. pos depende de
+    # inventory+catalogue). No simétrico: A depende de B ≠ B depende de A.
+    depends = models.ManyToManyField(
+        'self', symmetrical=False, related_name='dependents', blank=True,
+        verbose_name='Depende de',
+    )
 
     class Meta:
         db_table = 'authz_module'
