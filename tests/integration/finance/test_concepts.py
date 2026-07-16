@@ -20,7 +20,7 @@ import pytest
 from apps.platform.authz.models import (
     AccessLevel, Capability, Module, Role, RoleAssignment, RoleCapability,
 )
-from apps.modules.finance.models import CashConcept, CashMovement
+from apps.addons.finance.models import CashConcept, CashMovement
 
 pytestmark = pytest.mark.integration
 

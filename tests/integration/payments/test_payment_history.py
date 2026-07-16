@@ -6,12 +6,12 @@ no el número de sprint.
 """
 import pytest
 from decimal import Decimal
-from apps.modules.catalogue.models import Category, Product
-from apps.modules.orders.models import Order, OrderItem, OrderValue, OrderAddress
-from apps.modules.payments.models import Payment
+from apps.addons.catalogue.models import Category, Product
+from apps.addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from apps.addons.payments.models import Payment
 from datetime import timedelta
 from django.contrib.auth import get_user_model
-from apps.modules.settings_app.models import PaymentGateway
+from apps.addons.settings_app.models import PaymentGateway
 import django.utils.timezone as tz
 
 pytestmark = pytest.mark.integration

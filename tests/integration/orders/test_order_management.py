@@ -5,14 +5,14 @@ Nombre descriptivo: dominio, no número de sprint.
 """
 import pytest
 from decimal import Decimal
-from apps.modules.catalogue.models import Category, Product
-from apps.modules.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from apps.addons.catalogue.models import Category, Product
+from apps.addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from django.contrib.auth import get_user_model
 from tests.factories.user_factory import make_buyer
-from apps.modules.payments.models import Payment, Refund
-from apps.modules.settings_app.models import PaymentGateway, ShippingMethod
+from apps.addons.payments.models import Payment, Refund
+from apps.addons.settings_app.models import PaymentGateway, ShippingMethod
 from unittest.mock import patch, MagicMock
-from apps.modules.chartsize.models import VariantType, VariantOption, ProductVariant
+from apps.addons.chartsize.models import VariantType, VariantOption, ProductVariant
 
 pytestmark = pytest.mark.integration
 
@@ -281,7 +281,7 @@ class TestCancelarOrden:
             status='APPROVED', amount=prod_ord.price + Decimal('80'),
         )
 
-        with patch('apps.modules.payments.gateways.mercadopago.mercadopago') as mock_mp:
+        with patch('apps.addons.payments.gateways.mercadopago.mercadopago') as mock_mp:
             sdk = MagicMock()
             mock_mp.SDK.return_value = sdk
             sdk.refund.return_value.create.return_value = {

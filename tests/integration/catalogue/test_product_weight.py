@@ -1,14 +1,14 @@
 """
 Tests — Product.weight_kg (peso para cotización de envío por peso, G-ENV-04).
 
-El peso físico habilita el costo de envío por peso (apps.modules.logistics.offers).
+El peso físico habilita el costo de envío por peso (apps.addons.logistics.offers).
 Nullable: los productos sin peso caen al costo plano por zona en el checkout.
 Sólo el serializer admin lo escribe/expone.
 """
 import pytest
 from decimal import Decimal
-from apps.modules.catalogue.models import Category, Product
-from apps.modules.catalogue.serializers import ProductAdminSerializer
+from apps.addons.catalogue.models import Category, Product
+from apps.addons.catalogue.serializers import ProductAdminSerializer
 
 pytestmark = pytest.mark.integration
 

@@ -15,7 +15,7 @@ import json
 import pytest
 from django.core.management import call_command
 
-from apps.modules.settings_app.models import PaymentGateway
+from apps.addons.settings_app.models import PaymentGateway
 
 pytestmark = pytest.mark.unit
 

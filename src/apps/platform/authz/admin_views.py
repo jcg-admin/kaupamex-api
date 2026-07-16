@@ -30,7 +30,7 @@ from apps.platform.authz.services import (
     SUPERADMIN_ROLE_CODE, invalidate_capabilities, is_superadmin,
     resolve_capabilities, resolve_capability_levels,
 )
-from apps.modules.users.audit import audit_log_business
+from apps.addons.users.audit import audit_log_business
 
 # Gestionar permisos = nivel FULL del sustantivo ``permissions`` (DEC-11).
 PERMISSIONS_MANAGE = 'permissions.full'

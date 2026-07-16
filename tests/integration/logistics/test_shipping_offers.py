@@ -7,7 +7,7 @@ paqueterías elegibles y reporte de inelegibles con motivo.
 English JSON keys per DEC-DOC-005.
 """
 from decimal import Decimal
-from apps.modules.logistics.models import CarrierRateCard, Courier
+from apps.addons.logistics.models import CarrierRateCard, Courier
 
 import pytest
 

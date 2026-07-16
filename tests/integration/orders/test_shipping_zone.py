@@ -11,8 +11,8 @@ verifican esa nueva política: ``ZONE_NOT_COVERED`` no aparece, con o sin zonas.
 """
 import pytest
 from decimal import Decimal
-from apps.modules.catalogue.models import Category, Product
-from apps.modules.orders.models import ShippingZone
+from apps.addons.catalogue.models import Category, Product
+from apps.addons.orders.models import ShippingZone
 
 pytestmark = pytest.mark.integration
 

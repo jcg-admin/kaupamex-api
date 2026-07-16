@@ -9,7 +9,7 @@ BD: practicayoruba_qa
 import pytest
 from django.contrib.auth import get_user_model
 
-from apps.modules.users.models import Person
+from apps.addons.users.models import Person
 
 pytestmark = pytest.mark.unit
 

@@ -14,8 +14,8 @@ Admin:
 JSON keys + identifiers in English (DEC-DOC-005).
 """
 from decimal import Decimal
-from apps.modules.catalogue.models import Category, Product
-from apps.modules.questions.models import ProductQuestion, QuestionModerationLog
+from apps.addons.catalogue.models import Category, Product
+from apps.addons.questions.models import ProductQuestion, QuestionModerationLog
 
 import pytest
 

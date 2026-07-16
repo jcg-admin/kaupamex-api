@@ -16,7 +16,7 @@ Mutations:
 JSON keys + identifiers in English (DEC-DOC-005).
 """
 import pytest
-from apps.modules.notifications.models import Notification, NotificationPreference
+from apps.addons.notifications.models import Notification, NotificationPreference
 
 from django.contrib.auth import get_user_model
 

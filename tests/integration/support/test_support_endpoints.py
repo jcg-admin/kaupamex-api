@@ -23,12 +23,12 @@ from django.test import TestCase
 from django.utils import timezone
 
 from apps.platform.authz.services import is_superadmin
-from apps.modules.support.models import SupportTicket, SupportTicketReply
-from apps.modules.support.management.commands.auto_close_support_tickets import (
+from apps.addons.support.models import SupportTicket, SupportTicketReply
+from apps.addons.support.management.commands.auto_close_support_tickets import (
     AUTO_CLOSE_DAYS,
 )
-from apps.modules.orders.models import Order
-from apps.modules.notifications.models import Notification, NotificationType
+from apps.addons.orders.models import Order
+from apps.addons.notifications.models import Notification, NotificationType
 
 pytestmark = pytest.mark.integration
 

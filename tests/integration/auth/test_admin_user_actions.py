@@ -6,7 +6,7 @@ UC-AUTH-14 (reactivar), UC-AUTH-15 (crear admin)
 import pytest
 from apps.platform.authz.models import Role, RoleAssignment
 from apps.platform.authz.services import SUPERADMIN_ROLE_CODE, is_superadmin
-from apps.modules.users.models import BusinessEvent
+from apps.addons.users.models import BusinessEvent
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
 

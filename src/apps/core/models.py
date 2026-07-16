@@ -191,7 +191,7 @@ class RequestLog(AppendOnlyModel):
     (DEC-LOG-03 nivel 2): el usuario se referencia por FK ``user`` (no se copia
     nombre/email), igual que ``AuthEvent``. La FK usa ``settings.AUTH_USER_MODEL``
     (referencia por string) para preservar ``apps.core`` como nivel 0 sin import
-    de ``apps.modules.users`` (DEC-LOG-06). ``on_delete=SET_NULL`` conserva el log si el
+    de ``apps.addons.users`` (DEC-LOG-06). ``on_delete=SET_NULL`` conserva el log si el
     usuario se borra. Append-only, alta rotacion (retencion 30 dias, DEC-LOG-05).
     Se une a AppLog/BusinessEvent por ``correlation_id`` (DEC-LOG-07).
     """

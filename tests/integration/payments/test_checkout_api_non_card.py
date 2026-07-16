@@ -11,10 +11,10 @@ import pytest
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
 
-from apps.modules.catalogue.models import Category, Product
-from apps.modules.orders.models import Order, OrderItem, OrderValue, OrderAddress
-from apps.modules.settings_app.models import PaymentGateway
-from apps.modules.payments.models import Payment
+from apps.addons.catalogue.models import Category, Product
+from apps.addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from apps.addons.settings_app.models import PaymentGateway
+from apps.addons.payments.models import Payment
 
 pytestmark = pytest.mark.integration
 
@@ -157,7 +157,7 @@ def test_oxxo_payment_no_token_required(auth_client, orden_nc, mp_gw_nc):
         date_of_expiration='2026-07-04T23:59:59.000-06:00',
     )
 
-    with patch('apps.modules.payments.gateways.mercadopago._get_sdk', return_value=mp_mock):
+    with patch('apps.addons.payments.gateways.mercadopago._get_sdk', return_value=mp_mock):
         resp = auth_client.post(INITIATE_V2_URL, {
             'order_number':     orden_nc.order_number,
             'payment_method_id': 'oxxo',
@@ -181,7 +181,7 @@ def test_oxxo_token_in_request_is_ignored_gracefully(auth_client, orden_nc, mp_g
         date_of_expiration='2026-07-04T23:59:59.000-06:00',
     )
 
-    with patch('apps.modules.payments.gateways.mercadopago._get_sdk', return_value=mp_mock):
+    with patch('apps.addons.payments.gateways.mercadopago._get_sdk', return_value=mp_mock):
         resp = auth_client.post(INITIATE_V2_URL, {
             'order_number':     orden_nc.order_number,
             'payment_method_id': 'oxxo',
@@ -216,7 +216,7 @@ def test_spei_returns_clabe_in_transaction_data(auth_client, orden_nc, mp_gw_nc)
         },
     )
 
-    with patch('apps.modules.payments.gateways.mercadopago._get_sdk', return_value=mp_mock):
+    with patch('apps.addons.payments.gateways.mercadopago._get_sdk', return_value=mp_mock):
         resp = auth_client.post(INITIATE_V2_URL, {
             'order_number':     orden_nc.order_number,
             'payment_method_id': 'clabe',
@@ -253,7 +253,7 @@ def test_paycash_payment_no_token(auth_client, orden_nc, mp_gw_nc):
         date_of_expiration='2026-07-05T23:59:59.000-06:00',
     )
 
-    with patch('apps.modules.payments.gateways.mercadopago._get_sdk', return_value=mp_mock):
+    with patch('apps.addons.payments.gateways.mercadopago._get_sdk', return_value=mp_mock):
         resp = auth_client.post(INITIATE_V2_URL, {
             'order_number':     orden_nc.order_number,
             'payment_method_id': 'paycash',
@@ -272,7 +272,7 @@ def test_bancomer_atm_no_token(auth_client, orden_nc, mp_gw_nc):
         date_of_expiration='2026-07-05T23:59:59.000-06:00',
     )
 
-    with patch('apps.modules.payments.gateways.mercadopago._get_sdk', return_value=mp_mock):
+    with patch('apps.addons.payments.gateways.mercadopago._get_sdk', return_value=mp_mock):
         resp = auth_client.post(INITIATE_V2_URL, {
             'order_number':     orden_nc.order_number,
             'payment_method_id': 'bancomer',
@@ -291,7 +291,7 @@ def test_account_money_no_token(auth_client, orden_nc, mp_gw_nc):
         pay_status='processed', pay_detail='accredited',
     )
 
-    with patch('apps.modules.payments.gateways.mercadopago._get_sdk', return_value=mp_mock):
+    with patch('apps.addons.payments.gateways.mercadopago._get_sdk', return_value=mp_mock):
         resp = auth_client.post(INITIATE_V2_URL, {
             'order_number':     orden_nc.order_number,
             'payment_method_id': 'account_money',

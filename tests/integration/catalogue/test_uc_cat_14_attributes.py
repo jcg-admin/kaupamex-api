@@ -11,7 +11,7 @@ CP3 coverage per executor gate:
 import pytest
 from decimal import Decimal
 from django.db import IntegrityError
-from apps.modules.catalogue.models import (
+from apps.addons.catalogue.models import (
     AttributeAxis, AttributeValue, ProductAttribute,
     Category, Product,
 )

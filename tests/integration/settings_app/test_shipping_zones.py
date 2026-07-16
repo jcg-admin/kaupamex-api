@@ -8,8 +8,8 @@ permisos, validación min/max y soft-delete.
 import pytest
 from decimal import Decimal
 
-from apps.modules.orders.models import ShippingZone
-from apps.modules.geo.models import CatalogPostalCode
+from apps.addons.orders.models import ShippingZone
+from apps.addons.geo.models import CatalogPostalCode
 
 pytestmark = pytest.mark.integration
 
@@ -102,7 +102,7 @@ class TestShippingZonesAdmin:
 
 
 class TestShippingZonesSepomex:
-    """Relación catálogo de zonas ↔ SEPOMEX (apps.modules.geo.CatalogPostalCode)."""
+    """Relación catálogo de zonas ↔ SEPOMEX (apps.addons.geo.CatalogPostalCode)."""
 
     def test_coverage_vacio_sin_sepomex(self, admin_client, zona, db):
         # Sin datos SEPOMEX cargados, coverage es 0 asentamientos / sin estados,

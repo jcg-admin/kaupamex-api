@@ -67,7 +67,7 @@ class TestSchemaEndpoint:
     def test_schema_tiene_esquema_sesion(self, api_client, db):
         # ADR-018: la auth por defecto es la sesion (cookie). El esquema
         # OpenAPI debe documentar cookieAuth (no jwtAuth) — ver
-        # CsrfExemptSessionScheme en apps.modules.users.schema.
+        # CsrfExemptSessionScheme en apps.addons.users.schema.
         r = api_client.get('/api/schema/?format=json')
         schemas = r.json().get('components', {}).get('securitySchemes', {})
         assert 'cookieAuth' in schemas
@@ -174,8 +174,8 @@ class TestSchemaOrdersPayments:
     T-003: Endpoints de órdenes y pagos presentes en schema.
 
     H-SCHEMA-02: El checkout principal (UC-ORD-01) está en
-    /api/v2/orders/checkout/ (apps.modules.orders.urls). El prefijo
-    /api/v2/checkout/ corresponde a apps.modules.payments.checkout_urls
+    /api/v2/orders/checkout/ (apps.addons.orders.urls). El prefijo
+    /api/v2/checkout/ corresponde a apps.addons.payments.checkout_urls
     que solo tiene eligibility y express (UC-ORD-01-EXT).
 
     Orders usan <str:order_number> — schema genera {order_number}.
@@ -282,9 +282,9 @@ class TestSchemaInventoryLogisticsVoucher:
     """
     T-006: Endpoints de inventario, logística y vouchers.
 
-    Inventory montado en /api/v2/admin/inventory/ (apps.modules.inventory.urls).
-    Logistics montado en /api/v2/logistics/ (apps.modules.logistics.urls).
-    Voucher router montado en /api/v2/admin/vouchers/ (apps.modules.voucher.urls).
+    Inventory montado en /api/v2/admin/inventory/ (apps.addons.inventory.urls).
+    Logistics montado en /api/v2/logistics/ (apps.addons.logistics.urls).
+    Voucher router montado en /api/v2/admin/vouchers/ (apps.addons.voucher.urls).
     """
     pytestmark = pytest.mark.schema
 

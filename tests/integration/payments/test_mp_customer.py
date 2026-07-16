@@ -12,12 +12,12 @@ import pytest
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
 
-from apps.modules.catalogue.models import Category, Product
-from apps.modules.orders.models import Order, OrderItem, OrderValue, OrderAddress
-from apps.modules.payments.gateways.mercadopago import MercadoPagoGateway
-from apps.modules.payments.services import get_or_create_mp_customer
-from apps.modules.settings_app.models import PaymentGateway
-from apps.modules.users.models import IdentityUser as UserModel
+from apps.addons.catalogue.models import Category, Product
+from apps.addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from apps.addons.payments.gateways.mercadopago import MercadoPagoGateway
+from apps.addons.payments.services import get_or_create_mp_customer
+from apps.addons.settings_app.models import PaymentGateway
+from apps.addons.users.models import IdentityUser as UserModel
 
 pytestmark = pytest.mark.integration
 
@@ -156,7 +156,7 @@ class TestGatewaySearchCustomer:
     def test_found_returns_customer_id(self, mp_gw, db):
         gw = MercadoPagoGateway()
         mock = _make_full_mp_mock(customer_found=True)
-        with patch('apps.modules.payments.gateways.mercadopago.mercadopago', mock):
+        with patch('apps.addons.payments.gateways.mercadopago.mercadopago', mock):
             result = gw.search_customer_by_email('buyer@test.mx')
         assert result == _MP_CUSTOMER_ID
         mock.SDK.return_value.customer.return_value.search.assert_called_once_with(
@@ -166,7 +166,7 @@ class TestGatewaySearchCustomer:
     def test_not_found_returns_none(self, mp_gw, db):
         gw = MercadoPagoGateway()
         mock = _make_full_mp_mock(customer_found=False)
-        with patch('apps.modules.payments.gateways.mercadopago.mercadopago', mock):
+        with patch('apps.addons.payments.gateways.mercadopago.mercadopago', mock):
             result = gw.search_customer_by_email('nobody@test.mx')
         assert result is None
 
@@ -176,7 +176,7 @@ class TestGatewaySearchCustomer:
         sdk     = MagicMock()
         mock_mp.SDK.return_value = sdk
         sdk.customer.return_value.search.return_value = {'status': 500, 'response': {}}
-        with patch('apps.modules.payments.gateways.mercadopago.mercadopago', mock_mp):
+        with patch('apps.addons.payments.gateways.mercadopago.mercadopago', mock_mp):
             result = gw.search_customer_by_email('buyer@test.mx')
         assert result is None
 
@@ -190,7 +190,7 @@ class TestGatewayCreateCustomer:
     def test_success_returns_customer_id(self, mp_gw, db):
         gw = MercadoPagoGateway()
         mock = _make_full_mp_mock(customer_found=False)
-        with patch('apps.modules.payments.gateways.mercadopago.mercadopago', mock):
+        with patch('apps.addons.payments.gateways.mercadopago.mercadopago', mock):
             cid = gw.create_customer('new@test.mx', 'Ana', 'Lopez')
         assert cid == _MP_CUSTOMER_ID
         sdk = mock.SDK.return_value
@@ -202,7 +202,7 @@ class TestGatewayCreateCustomer:
     def test_mp_error_raises_runtime_error(self, mp_gw, db):
         gw = MercadoPagoGateway()
         mock = _make_full_mp_mock(customer_found=False, customer_create_http=400)
-        with patch('apps.modules.payments.gateways.mercadopago.mercadopago', mock):
+        with patch('apps.addons.payments.gateways.mercadopago.mercadopago', mock):
             with pytest.raises(RuntimeError, match='Error al crear customer'):
                 gw.create_customer('bad@test.mx')
 
@@ -216,7 +216,7 @@ class TestGatewayGetOrCreate:
     def test_uses_existing_customer_no_create(self, mp_gw, db):
         gw = MercadoPagoGateway()
         mock = _make_full_mp_mock(customer_found=True)
-        with patch('apps.modules.payments.gateways.mercadopago.mercadopago', mock):
+        with patch('apps.addons.payments.gateways.mercadopago.mercadopago', mock):
             cid = gw.get_or_create_customer('existing@test.mx')
         assert cid == _MP_CUSTOMER_ID
         # create() nunca debe llamarse si ya existe
@@ -225,7 +225,7 @@ class TestGatewayGetOrCreate:
     def test_creates_when_not_found(self, mp_gw, db):
         gw = MercadoPagoGateway()
         mock = _make_full_mp_mock(customer_found=False)
-        with patch('apps.modules.payments.gateways.mercadopago.mercadopago', mock):
+        with patch('apps.addons.payments.gateways.mercadopago.mercadopago', mock):
             cid = gw.get_or_create_customer('new@test.mx', 'Luis', 'Reyes')
         assert cid == _MP_CUSTOMER_ID
         mock.SDK.return_value.customer.return_value.create.assert_called_once()
@@ -245,7 +245,7 @@ class TestGetOrCreateMpCustomerService:
         user.save(update_fields=['mp_customer_id'])
 
         mock = _make_full_mp_mock()
-        with patch('apps.modules.payments.gateways.mercadopago.mercadopago', mock):
+        with patch('apps.addons.payments.gateways.mercadopago.mercadopago', mock):
             result = get_or_create_mp_customer(user)
         assert result == 'CACHED-CUST-ID'
         mock.SDK.return_value.customer.return_value.search.assert_not_called()
@@ -255,7 +255,7 @@ class TestGetOrCreateMpCustomerService:
         user.save(update_fields=['mp_customer_id'])
 
         mock = _make_full_mp_mock(customer_found=False)
-        with patch('apps.modules.payments.gateways.mercadopago.mercadopago', mock):
+        with patch('apps.addons.payments.gateways.mercadopago.mercadopago', mock):
             result = get_or_create_mp_customer(user)
 
         assert result == _MP_CUSTOMER_ID
@@ -271,7 +271,7 @@ class TestGetOrCreateMpCustomerService:
         mock_mp.SDK.return_value = sdk
         sdk.customer.return_value.search.side_effect = Exception('Network error')
 
-        with patch('apps.modules.payments.gateways.mercadopago.mercadopago', mock_mp):
+        with patch('apps.addons.payments.gateways.mercadopago.mercadopago', mock_mp):
             result = get_or_create_mp_customer(user)
 
         assert result is None  # no-op, no excepción
@@ -291,7 +291,7 @@ class TestCheckoutApiCustomerIntegration:
         mock = _make_full_mp_mock(
             payment_status='approved', customer_found=False
         )
-        with patch('apps.modules.payments.gateways.mercadopago.mercadopago', mock):
+        with patch('apps.addons.payments.gateways.mercadopago.mercadopago', mock):
             res = auth_client.post(INITIATE_V2_URL, {
                 'order_number':      orden.order_number,
                 'token':             'TEST-TOKEN-CUST',
@@ -316,7 +316,7 @@ class TestCheckoutApiCustomerIntegration:
         user.save(update_fields=['mp_customer_id'])
 
         mock = _make_full_mp_mock(customer_found=True)
-        with patch('apps.modules.payments.gateways.mercadopago.mercadopago', mock):
+        with patch('apps.addons.payments.gateways.mercadopago.mercadopago', mock):
             auth_client.post(INITIATE_V2_URL, {
                 'order_number':      orden.order_number,
                 'token':             'TEST-TOKEN-CUST',
@@ -349,7 +349,7 @@ class TestCheckoutApiCustomerIntegration:
                 }]},
             },
         }
-        with patch('apps.modules.payments.gateways.mercadopago.mercadopago', mock_mp):
+        with patch('apps.addons.payments.gateways.mercadopago.mercadopago', mock_mp):
             res = auth_client.post(INITIATE_V2_URL, {
                 'order_number':      orden.order_number,
                 'token':             'TEST-TOKEN-CUST',

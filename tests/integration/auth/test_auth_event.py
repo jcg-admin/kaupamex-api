@@ -7,7 +7,7 @@ AuthEvent. last_login se actualiza al hacer login (D-09).
 import pytest
 from django.urls import reverse
 from rest_framework_simplejwt.tokens import RefreshToken
-from apps.modules.users.models import AuthEvent
+from apps.addons.users.models import AuthEvent
 
 # transaction=True para que transaction.on_commit (DEC-AL-4)
 # se ejecute durante el test. Default django_db usa atomic

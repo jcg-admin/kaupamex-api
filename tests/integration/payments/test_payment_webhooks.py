@@ -10,12 +10,12 @@ import json
 import pytest
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
-from apps.modules.catalogue.models import Category, Product
-from apps.modules.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from apps.addons.catalogue.models import Category, Product
+from apps.addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from django.core.checks.registry import registry
-from apps.modules.payments.checks import check_mercadopago_client_secret
-from apps.modules.payments.models import Payment
-from apps.modules.settings_app.models import PaymentGateway
+from apps.addons.payments.checks import check_mercadopago_client_secret
+from apps.addons.payments.models import Payment
+from apps.addons.settings_app.models import PaymentGateway
 
 pytestmark = pytest.mark.integration
 
@@ -94,7 +94,7 @@ class TestMercadoPagoWebhook:
         request_id = 'REQ-TEST-123'
         signature  = _make_mp_signature('TEST-SECRET', 'MP-PAY-999', request_id, ts)
 
-        with patch('apps.modules.payments.gateways.mercadopago.mercadopago') as mock_mp:
+        with patch('apps.addons.payments.gateways.mercadopago.mercadopago') as mock_mp:
             sdk = MagicMock()
             mock_mp.SDK.return_value = sdk
             sdk.payment.return_value.get.return_value = {
@@ -133,7 +133,7 @@ class TestMercadoPagoWebhook:
         request_id = 'REQ-ORD-1'
         signature  = _make_mp_signature('TEST-SECRET', 'ORD-WH-1', request_id, ts)
 
-        with patch('apps.modules.payments.gateways.mercadopago.mercadopago') as mock_mp:
+        with patch('apps.addons.payments.gateways.mercadopago.mercadopago') as mock_mp:
             sdk = MagicMock()
             mock_mp.SDK.return_value = sdk
             sdk.order.return_value.get.return_value = {
@@ -195,7 +195,7 @@ class TestMercadoPagoWebhook:
         req_id    = 'REQ-DUP-456'
         signature = _make_mp_signature('TEST-SECRET', 'MP-PAY-999', req_id, ts)
 
-        with patch('apps.modules.payments.gateways.mercadopago.mercadopago') as mock_mp:
+        with patch('apps.addons.payments.gateways.mercadopago.mercadopago') as mock_mp:
             sdk = MagicMock()
             mock_mp.SDK.return_value = sdk
             sdk.payment.return_value.get.return_value = {
@@ -225,7 +225,7 @@ class TestMercadoPagoWebhook:
         req_id = 'REQ-FAIL-789'
         sig    = _make_mp_signature('TEST-SECRET', 'MP-PAY-999', req_id, ts)
 
-        with patch('apps.modules.payments.gateways.mercadopago.mercadopago') as mock_mp:
+        with patch('apps.addons.payments.gateways.mercadopago.mercadopago') as mock_mp:
             sdk = MagicMock()
             mock_mp.SDK.return_value = sdk
             sdk.payment.return_value.get.return_value = {
@@ -355,7 +355,7 @@ class TestMercadoPagoWebhook:
         signature = _make_mp_signature('TEST-SECRET', 'MP-PAY-999', req_id, ts)
 
         # Mock para forzar excepcion en MercadoPagoGateway().verify_payment
-        with patch('apps.modules.payments.webhooks.MercadoPagoGateway') as mock_cls:
+        with patch('apps.addons.payments.webhooks.MercadoPagoGateway') as mock_cls:
             instance = MagicMock()
             instance.verify_payment.side_effect = Exception('MP API down')
             mock_cls.return_value = instance
@@ -436,7 +436,7 @@ class TestPayPalWebhook:
         payment.save()
 
         with patch(
-            'apps.modules.payments.gateways.paypal.PayPalGateway.verify_webhook_signature',
+            'apps.addons.payments.gateways.paypal.PayPalGateway.verify_webhook_signature',
             return_value=True
         ):
             res = api_client.post(
@@ -456,7 +456,7 @@ class TestPayPalWebhook:
         self, api_client, db
     ):
         with patch(
-            'apps.modules.payments.gateways.paypal.PayPalGateway.verify_webhook_signature',
+            'apps.addons.payments.gateways.paypal.PayPalGateway.verify_webhook_signature',
             return_value=False
         ):
             res = api_client.post(
@@ -471,7 +471,7 @@ class TestPayPalWebhook:
     ):
         """Eventos no relevantes se ignoran con 200."""
         with patch(
-            'apps.modules.payments.gateways.paypal.PayPalGateway.verify_webhook_signature',
+            'apps.addons.payments.gateways.paypal.PayPalGateway.verify_webhook_signature',
             return_value=True
         ):
             res = api_client.post(
@@ -502,7 +502,7 @@ class TestPayPalWebhook:
             },
         }
         with patch(
-            'apps.modules.payments.gateways.paypal.PayPalGateway.verify_webhook_signature',
+            'apps.addons.payments.gateways.paypal.PayPalGateway.verify_webhook_signature',
             return_value=True
         ):
             api_client.post(PP_WEBHOOK_URL,
@@ -535,7 +535,7 @@ class TestPayPalWebhook:
             'resource': {},  # sin 'id'
         }
         with patch(
-            'apps.modules.payments.gateways.paypal.PayPalGateway.verify_webhook_signature',
+            'apps.addons.payments.gateways.paypal.PayPalGateway.verify_webhook_signature',
             return_value=True,
         ):
             res = api_client.post(
@@ -563,7 +563,7 @@ class TestPayPalWebhook:
             'resource': {'id': 'PP-ORDER-INEXISTENTE'},
         }
         with patch(
-            'apps.modules.payments.gateways.paypal.PayPalGateway.verify_webhook_signature',
+            'apps.addons.payments.gateways.paypal.PayPalGateway.verify_webhook_signature',
             return_value=True,
         ):
             res = api_client.post(
@@ -591,10 +591,10 @@ class TestPayPalWebhook:
             'resource': {'id': 'PP-CAP-FAIL'},
         }
         with patch(
-            'apps.modules.payments.gateways.paypal.PayPalGateway.verify_webhook_signature',
+            'apps.addons.payments.gateways.paypal.PayPalGateway.verify_webhook_signature',
             return_value=True,
         ), patch(
-            'apps.modules.payments.gateways.paypal.PayPalGateway.capture_order',
+            'apps.addons.payments.gateways.paypal.PayPalGateway.capture_order',
             side_effect=Exception('PayPal capture API failed'),
         ):
             res = api_client.post(

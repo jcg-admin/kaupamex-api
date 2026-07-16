@@ -8,8 +8,8 @@ producto asociado (FK nullable, SET_NULL si el producto se eliminó).
 """
 import pytest
 
-from apps.modules.orders.serializers import OrderItemSerializer
-from apps.modules.orders.models import Order, OrderItem
+from apps.addons.orders.serializers import OrderItemSerializer
+from apps.addons.orders.models import Order, OrderItem
 
 pytestmark = pytest.mark.integration
 

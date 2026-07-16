@@ -11,7 +11,7 @@ DEC-DOC-005: English identifiers and English JSON keys.
 from datetime import timedelta
 from decimal import Decimal
 from django.utils import timezone
-from apps.modules.catalogue.models import Category, Product, ProductDiscount
+from apps.addons.catalogue.models import Category, Product, ProductDiscount
 
 import pytest
 

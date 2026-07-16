@@ -6,15 +6,15 @@ que requieren fixtures complejas. Verifica que el task delega
 correctamente a _maybe_create_alert.
 """
 from unittest.mock import patch, MagicMock, call
-from apps.modules.inventory.tasks import scan_low_stock
+from apps.addons.inventory.tasks import scan_low_stock
 
 
 class TestScanLowStock:
 
-    @patch('apps.modules.inventory.tasks._maybe_create_alert')
-    @patch('apps.modules.inventory.tasks.ProductVariant')
-    @patch('apps.modules.inventory.tasks.Product')
-    @patch('apps.modules.inventory.tasks.SiteSettings')
+    @patch('apps.addons.inventory.tasks._maybe_create_alert')
+    @patch('apps.addons.inventory.tasks.ProductVariant')
+    @patch('apps.addons.inventory.tasks.Product')
+    @patch('apps.addons.inventory.tasks.SiteSettings')
     def test_llama_alert_para_producto_bajo_umbral(
         self, mock_settings_cls, mock_product_cls, mock_variant_cls, mock_alert
     ):
@@ -32,10 +32,10 @@ class TestScanLowStock:
         mock_alert.assert_called_once_with(mock_product, None, 3)
         assert result >= 1
 
-    @patch('apps.modules.inventory.tasks._maybe_create_alert')
-    @patch('apps.modules.inventory.tasks.ProductVariant')
-    @patch('apps.modules.inventory.tasks.Product')
-    @patch('apps.modules.inventory.tasks.SiteSettings')
+    @patch('apps.addons.inventory.tasks._maybe_create_alert')
+    @patch('apps.addons.inventory.tasks.ProductVariant')
+    @patch('apps.addons.inventory.tasks.Product')
+    @patch('apps.addons.inventory.tasks.SiteSettings')
     def test_llama_alert_para_variante_bajo_umbral(
         self, mock_settings_cls, mock_product_cls, mock_variant_cls, mock_alert
     ):
@@ -56,10 +56,10 @@ class TestScanLowStock:
         mock_alert.assert_called_once_with(mock_variant.product, mock_variant, 2)
         assert result >= 1
 
-    @patch('apps.modules.inventory.tasks._maybe_create_alert')
-    @patch('apps.modules.inventory.tasks.ProductVariant')
-    @patch('apps.modules.inventory.tasks.Product')
-    @patch('apps.modules.inventory.tasks.SiteSettings')
+    @patch('apps.addons.inventory.tasks._maybe_create_alert')
+    @patch('apps.addons.inventory.tasks.ProductVariant')
+    @patch('apps.addons.inventory.tasks.Product')
+    @patch('apps.addons.inventory.tasks.SiteSettings')
     def test_no_llama_alert_cuando_no_hay_bajos(
         self, mock_settings_cls, mock_product_cls, mock_variant_cls, mock_alert
     ):
@@ -75,10 +75,10 @@ class TestScanLowStock:
         mock_alert.assert_not_called()
         assert result == 0
 
-    @patch('apps.modules.inventory.tasks._maybe_create_alert')
-    @patch('apps.modules.inventory.tasks.ProductVariant')
-    @patch('apps.modules.inventory.tasks.Product')
-    @patch('apps.modules.inventory.tasks.SiteSettings')
+    @patch('apps.addons.inventory.tasks._maybe_create_alert')
+    @patch('apps.addons.inventory.tasks.ProductVariant')
+    @patch('apps.addons.inventory.tasks.Product')
+    @patch('apps.addons.inventory.tasks.SiteSettings')
     def test_retorna_conteo_de_items_escaneados(
         self, mock_settings_cls, mock_product_cls, mock_variant_cls, mock_alert
     ):

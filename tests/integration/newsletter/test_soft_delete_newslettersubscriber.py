@@ -1,12 +1,12 @@
 """
-Soft-delete contract tests for apps.modules.newsletter.NewsletterSubscriber (P-04).
+Soft-delete contract tests for apps.addons.newsletter.NewsletterSubscriber (P-04).
 
 DEC-DOC-007: NewsletterSubscriber inherits from SoftDeleteModel. Coexiste
 con la semantica de NEGOCIO (status=UNSUBSCRIBED + unsubscribed_at).
 """
 import pytest
 from django.utils import timezone
-from apps.modules.newsletter.models import NewsletterSubscriber, SubscriberStatus
+from apps.addons.newsletter.models import NewsletterSubscriber, SubscriberStatus
 from apps.core.models import SoftDeleteModel
 
 pytestmark = pytest.mark.integration

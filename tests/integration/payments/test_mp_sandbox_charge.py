@@ -19,10 +19,10 @@ import decouple
 from django.core.management.base import CommandError
 from django.test import Client
 
-from apps.modules.settings_app.models import PaymentGateway
-from apps.modules.orders.models import Order
-from apps.modules.payments.models import Payment, WebhookEvent
-from apps.modules.payments.management.commands.mp_sandbox_charge import (
+from apps.addons.settings_app.models import PaymentGateway
+from apps.addons.orders.models import Order
+from apps.addons.payments.models import Payment, WebhookEvent
+from apps.addons.payments.management.commands.mp_sandbox_charge import (
     run_sandbox_charge, TEST_CARDS, STATUS_NAMES, EXPECTED_MP_STATUS,
 )
 

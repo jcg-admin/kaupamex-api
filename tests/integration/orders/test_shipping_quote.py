@@ -1,5 +1,5 @@
 """
-Tests — resolve_shipping_quote (apps.modules.orders.shipping)
+Tests — resolve_shipping_quote (apps.addons.orders.shipping)
 
 Política vigente (REVIERTE DEC-BC-25): envío GRATIS siempre. El resolver es el
 único punto de extensión (open-closed) del costo de envío del checkout.
@@ -7,8 +7,8 @@ Política vigente (REVIERTE DEC-BC-25): envío GRATIS siempre. El resolver es el
 import pytest
 from decimal import Decimal
 
-from apps.modules.orders.models import ShippingZone
-from apps.modules.orders.shipping import ShippingQuote, resolve_shipping_quote
+from apps.addons.orders.models import ShippingZone
+from apps.addons.orders.shipping import ShippingQuote, resolve_shipping_quote
 
 pytestmark = pytest.mark.integration
 

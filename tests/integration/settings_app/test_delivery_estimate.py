@@ -7,7 +7,7 @@ sin domingo. Se pasa ``now`` explícito (aware, UTC) para fijar el escenario.
 import pytest
 from datetime import datetime, date, timezone as dt_tz
 
-from apps.modules.orders.delivery import (
+from apps.addons.orders.delivery import (
     estimate_delivery_window, delivery_estimate_dict, _add_business_days,
 )
 

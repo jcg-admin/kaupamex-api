@@ -30,7 +30,7 @@ from apps.platform.authz.services import (
     has_active_reauth_session,
     is_superadmin,
 )
-from apps.modules.users.models import EmployeeProfile
+from apps.addons.users.models import EmployeeProfile
 
 User = get_user_model()
 

@@ -8,7 +8,7 @@ from tests.factories.user_factory import make_buyer
 from PIL import Image
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib.auth import get_user_model
-from apps.modules.users.models import Address, Person
+from apps.addons.users.models import Address, Person
 
 pytestmark = pytest.mark.integration
 

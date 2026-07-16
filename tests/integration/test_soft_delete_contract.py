@@ -12,9 +12,9 @@ These tests validate the SoftDeleteModel mixin in apps.core.models:
 """
 import pytest
 from apps.core.models import SoftDeleteModel, SoftDeleteManager, AllObjectsManager
-from apps.modules.catalogue.models import Product, Category
-from apps.modules.orders.models import Order
-from apps.modules.users.models import Address
+from apps.addons.catalogue.models import Product, Category
+from apps.addons.orders.models import Order
+from apps.addons.users.models import Address
 
 pytestmark = pytest.mark.integration
 

@@ -18,7 +18,7 @@ from apps.platform.authz.services import (
     invalidate_capabilities,
 )
 from apps.platform.authz.management.commands.seed_authz import NAMED_ACTIONS
-from apps.modules.users.models import EmployeeProfile, Person
+from apps.addons.users.models import EmployeeProfile, Person
 
 User = get_user_model()
 

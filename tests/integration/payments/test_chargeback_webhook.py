@@ -10,8 +10,8 @@ import pytest
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
 
-from apps.modules.orders.models import Order, OrderItem, OrderValue, OrderAddress
-from apps.modules.payments.models import Payment, Chargeback
+from apps.addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from apps.addons.payments.models import Payment, Chargeback
 
 pytestmark = pytest.mark.integration
 
@@ -69,8 +69,8 @@ class TestChargebackWebhook:
         payload = _chargeback_payload('CB-100', 'MP-CB-001')
         mock_result = _mock_chargeback('CB-100', 'MP-CB-001')
 
-        with patch('apps.modules.payments.webhooks._verify_mp_signature', return_value=True), \
-             patch('apps.modules.payments.webhooks.MercadoPagoGateway') as MockGW:
+        with patch('apps.addons.payments.webhooks._verify_mp_signature', return_value=True), \
+             patch('apps.addons.payments.webhooks.MercadoPagoGateway') as MockGW:
             instance = MockGW.return_value
             instance.get_chargeback.return_value = mock_result
             resp = api_client.post(
@@ -100,8 +100,8 @@ class TestChargebackWebhook:
         payload = _chargeback_payload('CB-200', 'MP-CB-001')
         mock_result = _mock_chargeback('CB-200', 'MP-CB-001')
 
-        with patch('apps.modules.payments.webhooks._verify_mp_signature', return_value=True), \
-             patch('apps.modules.payments.webhooks.MercadoPagoGateway') as MockGW:
+        with patch('apps.addons.payments.webhooks._verify_mp_signature', return_value=True), \
+             patch('apps.addons.payments.webhooks.MercadoPagoGateway') as MockGW:
             instance = MockGW.return_value
             instance.get_chargeback.return_value = mock_result
             resp = api_client.post(
@@ -115,8 +115,8 @@ class TestChargebackWebhook:
         payload = _chargeback_payload('CB-300', 'MP-UNKNOWN')
         mock_result = _mock_chargeback('CB-300', 'MP-UNKNOWN')
 
-        with patch('apps.modules.payments.webhooks._verify_mp_signature', return_value=True), \
-             patch('apps.modules.payments.webhooks.MercadoPagoGateway') as MockGW:
+        with patch('apps.addons.payments.webhooks._verify_mp_signature', return_value=True), \
+             patch('apps.addons.payments.webhooks.MercadoPagoGateway') as MockGW:
             instance = MockGW.return_value
             instance.get_chargeback.return_value = mock_result
             resp = api_client.post(
@@ -138,8 +138,8 @@ class TestChargebackWebhook:
         payload = _chargeback_payload('CB-400', 'MP-CB-001')
         mock_result = _mock_chargeback('CB-400', 'MP-CB-001', status='lost')
 
-        with patch('apps.modules.payments.webhooks._verify_mp_signature', return_value=True), \
-             patch('apps.modules.payments.webhooks.MercadoPagoGateway') as MockGW:
+        with patch('apps.addons.payments.webhooks._verify_mp_signature', return_value=True), \
+             patch('apps.addons.payments.webhooks.MercadoPagoGateway') as MockGW:
             instance = MockGW.return_value
             instance.get_chargeback.return_value = mock_result
             resp = api_client.post(

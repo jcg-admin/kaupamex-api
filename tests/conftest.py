@@ -15,7 +15,7 @@ from django.core.cache import cache
 
 from apps.platform.authz.models import Role, RoleAssignment
 from apps.platform.authz.services import SUPERADMIN_ROLE_CODE
-from apps.modules.users.models import EmployeeProfile, Person
+from apps.addons.users.models import EmployeeProfile, Person
 from tests.factories.user_factory import make_buyer  # noqa: F401 (re-export)
 
 import pytest

@@ -16,12 +16,12 @@ Conserva:
 """
 import pytest
 from decimal import Decimal
-from apps.modules.catalogue.models import Category, Product
-from apps.modules.cart.models import Cart, SavedCart
-from apps.modules.wishlist.models import WishlistItem
-from apps.modules.search_history.models import SearchEntry
-from apps.modules.notifications.models import NotificationPreference
-from apps.modules.users.models import Address, UserDeactivationEvent
+from apps.addons.catalogue.models import Category, Product
+from apps.addons.cart.models import Cart, SavedCart
+from apps.addons.wishlist.models import WishlistItem
+from apps.addons.search_history.models import SearchEntry
+from apps.addons.notifications.models import NotificationPreference
+from apps.addons.users.models import Address, UserDeactivationEvent
 
 pytestmark = pytest.mark.api
 

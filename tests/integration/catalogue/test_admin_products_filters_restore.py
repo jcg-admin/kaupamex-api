@@ -14,7 +14,7 @@ Cubre dos defectos reportados en QA del panel admin:
 """
 import pytest
 from decimal import Decimal
-from apps.modules.catalogue.models import Category, Product
+from apps.addons.catalogue.models import Category, Product
 
 pytestmark = pytest.mark.integration
 

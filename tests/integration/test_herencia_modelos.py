@@ -8,22 +8,22 @@ que garantizan que el refactoring no rompe nada.
 import pytest
 from decimal import Decimal
 from apps.core.models import TimeStampedModel
-from apps.modules.cart.models import Cart, CartItem, SavedCart, SavedCartItem
-from apps.modules.catalogue.models import Category, Product, SearchHistory, ProductImage
-from apps.modules.chartsize.models import VariantType, VariantOption, ProductVariant
-from apps.modules.inventory.models import StockMovement, StockAlert
-from apps.modules.orders.models import Order, OrderItem, OrderValue, OrderAddress
-from apps.modules.settings_app.models import SiteSettings, PaymentGateway, ShippingMethod, StaticPage, StaticPageVersion
-from apps.modules.users.models import Address, PasswordResetToken, EmailVerificationToken
-from apps.modules.users.models import IdentityUser as User
-from apps.modules.voucher.models import Voucher, VoucherChangeLog
-from apps.modules.wishlist.models import WishlistItem
-from apps.modules.catalogue.serializers import SearchHistorySerializer
-from apps.modules.inventory.proxy_models import SaleMovement, CancellationMovement, AdjustmentMovement, ImportMovement
-from apps.modules.orders.proxy_models import PendingOrder, DeliveredOrder, ActiveOrder, CancelledOrder
+from apps.addons.cart.models import Cart, CartItem, SavedCart, SavedCartItem
+from apps.addons.catalogue.models import Category, Product, SearchHistory, ProductImage
+from apps.addons.chartsize.models import VariantType, VariantOption, ProductVariant
+from apps.addons.inventory.models import StockMovement, StockAlert
+from apps.addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from apps.addons.settings_app.models import SiteSettings, PaymentGateway, ShippingMethod, StaticPage, StaticPageVersion
+from apps.addons.users.models import Address, PasswordResetToken, EmailVerificationToken
+from apps.addons.users.models import IdentityUser as User
+from apps.addons.voucher.models import Voucher, VoucherChangeLog
+from apps.addons.wishlist.models import WishlistItem
+from apps.addons.catalogue.serializers import SearchHistorySerializer
+from apps.addons.inventory.proxy_models import SaleMovement, CancellationMovement, AdjustmentMovement, ImportMovement
+from apps.addons.orders.proxy_models import PendingOrder, DeliveredOrder, ActiveOrder, CancelledOrder
 from django.utils import timezone
 from datetime import timedelta
-from apps.modules.voucher.proxy_models import FixedVoucher, PercentageVoucher, FreeShippingVoucher
+from apps.addons.voucher.proxy_models import FixedVoucher, PercentageVoucher, FreeShippingVoucher
 
 pytestmark = pytest.mark.integration
 

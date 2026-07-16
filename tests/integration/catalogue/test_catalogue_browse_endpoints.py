@@ -12,7 +12,7 @@ required by the UI:
 """
 import io
 from decimal import Decimal
-from apps.modules.catalogue.models import Category, Product, SearchHistory
+from apps.addons.catalogue.models import Category, Product, SearchHistory
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 import pytest

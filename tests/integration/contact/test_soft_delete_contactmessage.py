@@ -1,11 +1,11 @@
 """
-Soft-delete contract tests for apps.modules.contact.ContactMessage (P-03).
+Soft-delete contract tests for apps.addons.contact.ContactMessage (P-03).
 
 DEC-DOC-007: ContactMessage inherits from SoftDeleteModel to preserve
 audit trail (PII + commercial contact history).
 """
 import pytest
-from apps.modules.contact.models import ContactMessage
+from apps.addons.contact.models import ContactMessage
 from apps.core.models import SoftDeleteModel
 
 pytestmark = pytest.mark.integration

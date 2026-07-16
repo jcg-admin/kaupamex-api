@@ -8,8 +8,8 @@ UC-CHT-04: Variant-specific pricing
 """
 import pytest
 from decimal import Decimal
-from apps.modules.catalogue.models import Category, Product
-from apps.modules.chartsize.models import VariantType, VariantOption, ProductVariant
+from apps.addons.catalogue.models import Category, Product
+from apps.addons.chartsize.models import VariantType, VariantOption, ProductVariant
 
 pytestmark = pytest.mark.integration
 

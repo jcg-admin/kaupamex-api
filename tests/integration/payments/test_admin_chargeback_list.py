@@ -8,8 +8,8 @@ Cubre: lista, detalle, filtro por payment, 401, 403, 404.
 import pytest
 from decimal import Decimal
 
-from apps.modules.orders.models import Order, OrderItem, OrderValue, OrderAddress
-from apps.modules.payments.models import Payment, Chargeback
+from apps.addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from apps.addons.payments.models import Payment, Chargeback
 
 pytestmark = pytest.mark.integration
 

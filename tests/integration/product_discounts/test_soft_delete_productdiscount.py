@@ -1,12 +1,12 @@
 """
-Soft-delete contract tests for apps.modules.catalogue.ProductDiscount (P-06).
+Soft-delete contract tests for apps.addons.catalogue.ProductDiscount (P-06).
 DEC-DOC-007: el descuento de producto coexiste con la semantica
 ``is_active`` / ``deactivated_at`` (NEGOCIO).
 """
 from datetime import timedelta
 from decimal import Decimal
 from django.utils import timezone
-from apps.modules.catalogue.models import Category, Product, ProductDiscount
+from apps.addons.catalogue.models import Category, Product, ProductDiscount
 from apps.core.models import SoftDeleteModel
 
 import pytest

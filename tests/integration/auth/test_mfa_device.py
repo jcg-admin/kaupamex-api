@@ -5,8 +5,8 @@ Verifies the secret is encrypted at rest and the enroll/confirm/verify cycle.
 """
 import pytest
 
-from apps.modules.users import mfa
-from apps.modules.users.models import MFADevice
+from apps.addons.users import mfa
+from apps.addons.users.models import MFADevice
 from tests.factories.user_factory import UserFactory
 
 pytestmark = pytest.mark.django_db

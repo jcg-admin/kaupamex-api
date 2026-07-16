@@ -11,7 +11,7 @@ Fuente de verdad: analisis-estados-orders-catalogo.rst.
 """
 import pytest
 
-from apps.modules.payments.gateways.orders_status import (
+from apps.addons.payments.gateways.orders_status import (
     APPROVED,
     IN_PROCESS,
     PENDING,
