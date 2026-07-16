@@ -21,11 +21,16 @@ from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
 from apps.platform.authz.models import Module
 from apps.platform.authz.permissions import CapabilityRequiredMixin
-from apps.platform.company.models import Company, CompanyModuleSubscription
+from apps.platform.company.models import (
+    Company,
+    CompanyModuleSubscription,
+    ModulePrice,
+)
 from apps.platform.company.serializers import (
     CompanyModuleSubscriptionSerializer,
     CompanySerializer,
     ModuleCatalogSerializer,
+    ModulePriceSerializer,
 )
 
 
@@ -42,6 +47,27 @@ class ModuleCatalogViewSet(CapabilityRequiredMixin, ReadOnlyModelViewSet):
     serializer_class = ModuleCatalogSerializer
     queryset = Module.objects.all().prefetch_related('depends').order_by('category', 'code')
     http_method_names = ['get', 'head', 'options']
+
+
+class ModulePriceViewSet(CapabilityRequiredMixin, ModelViewSet):
+    """CRUD de tarifas L0 (``ModulePrice``) para el operador Kaupamex (S4).
+
+    Least-privilege por acción: lectura ``platform.view``; escritura (sembrar/
+    versionar tarifas) ``platform.provision``. Es la contraparte del price-copy:
+    lo que el operador siembra aquí es lo que una suscripción congela al
+    contratar (``CompanyModuleSubscription.apply_current_price``).
+    """
+
+    permission_map = {
+        'list': 'platform.view',
+        'retrieve': 'platform.view',
+        'create': 'platform.provision',
+        'update': 'platform.provision',
+        'partial_update': 'platform.provision',
+        'destroy': 'platform.provision',
+    }
+    serializer_class = ModulePriceSerializer
+    queryset = ModulePrice.objects.select_related('module').all()
 
 
 class CompanyViewSet(CapabilityRequiredMixin, ReadOnlyModelViewSet):

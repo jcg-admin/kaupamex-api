@@ -8,7 +8,29 @@ definición).
 from rest_framework import serializers
 
 from apps.platform.authz.models import Module
-from apps.platform.company.models import Company, CompanyModuleSubscription
+from apps.platform.company.models import (
+    Company,
+    CompanyModuleSubscription,
+    ModulePrice,
+)
+
+
+class ModulePriceSerializer(serializers.ModelSerializer):
+    """Tarifa L0 por módulo × ciclo (catálogo de precios, DEC-T6, S4).
+
+    El operador Kaupamex la siembra/versiona; ``module_code`` es de solo
+    lectura para pintar el catálogo sin resolver el id.
+    """
+
+    module_code = serializers.CharField(source='module.code', read_only=True)
+
+    class Meta:
+        model = ModulePrice
+        fields = [
+            'id', 'module', 'module_code', 'billing_cycle', 'price',
+            'currency', 'effective_from', 'effective_to', 'created_at',
+        ]
+        read_only_fields = ['id', 'module_code', 'created_at']
 
 
 class ModuleCatalogSerializer(serializers.ModelSerializer):
