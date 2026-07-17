@@ -10,10 +10,11 @@ SECRET_KEY = config('SECRET_KEY')
 # Decoupled from SECRET_KEY so rotating SECRET_KEY does NOT lock out
 # every 2FA user (analisis-utilidad-totp-nativa-kaupamex, T-PLT-33).
 MFA_ENCRYPTION_KEY = config('MFA_ENCRYPTION_KEY', default=SECRET_KEY)
-# DEC-12: vida (segundos) de una sesion reautenticada. Dentro de esta ventana
-# las acciones sensibles pasan sin re-teclear password. NO es elevacion de
-# privilegios (no "sudo"): solo confirma identidad. Default 15 min.
-AUTHZ_REAUTH_TTL = config('AUTHZ_REAUTH_TTL', default=900, cast=int)
+# DEC-12: vida (segundos) de una sesion reautenticada (elevacion de confianza,
+# NO de privilegios). Migrada a SystemParameter L2 ('authz.reauth_ttl',
+# H-API-CFG-02) — era un tunable operativo global con default= cableado en
+# codigo; ahora editable en caliente sin redeploy. Ver
+# addons.authz.services._reauth_ttl().
 DEBUG = config('DEBUG', default=False, cast=bool)
 
 # Seguridad (H-11): el admin nativo de Django se monta SOLO si esta bandera
@@ -193,14 +194,21 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # Sobrescribir en production.py via decouple si se necesita otro valor.
 DEFAULT_FROM_EMAIL = 'noreply@practicayoruba.com'
 
-# Destinatario de alertas operativas (UC-ADM-05: backup fallido). El backup
-# on-demand notifica a esta dirección cuando backup_db.sh termina en error.
-BACKUP_ALERT_EMAIL = config('BACKUP_ALERT_EMAIL', default='admin@practicayoruba.com')
-
+# Destinatario de alertas operativas (UC-ADM-05: backup fallido). Migrado a
+# SystemParameter L2 ('backup.alert_email', H-API-CFG-01) — tenia default=
+# stale (practicayoruba.com); ahora editable en caliente. Ver
+# addons.backups.views._notify_backup_failed().
+#
 # Buzones por propósito en VM2 (Postfix + Cyrus). Los emails transaccionales
 # (auth, órdenes, devoluciones, soporte) salen de DEFAULT_FROM_EMAIL (noreply@).
 # Contacto y newsletter usan su buzón monitoreado para que la conversación
 # llegue a un humano y las respuestas no caigan en un buzón no-reply.
+# NOTA (H-API-CFG-01, parcial): CONTACT_FROM_EMAIL/CONTACT_NOTIFY_EMAIL/
+# NEWSLETTER_FROM_EMAIL son candidatas L3 (per-empresa, Company/
+# CompanySetting) — SIN migrar en esta slice: L3 aun no tiene hogar (Company
+# no tiene CompanySetting ni campos de contacto/newsletter). Quedan con su
+# default= stale hasta la sub-iniciativa de L3. Ver
+# hallazgos-implementar-systemparameter-l2 (H-CFG-IMPL-10).
 CONTACT_FROM_EMAIL = config('CONTACT_FROM_EMAIL', default='hola@practicayoruba.com')
 CONTACT_NOTIFY_EMAIL = config('CONTACT_NOTIFY_EMAIL', default='hola@practicayoruba.com')
 NEWSLETTER_FROM_EMAIL = config('NEWSLETTER_FROM_EMAIL', default='newsletter@practicayoruba.com')

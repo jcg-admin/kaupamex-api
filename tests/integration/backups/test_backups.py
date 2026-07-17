@@ -21,6 +21,7 @@ from django.core import mail
 
 from addons.backups import views as backups_views
 from addons.backups.models import BackupRecord
+from addons.base.models import _PARAM_CACHE, SystemParameter
 
 pytestmark = pytest.mark.integration
 
@@ -36,6 +37,17 @@ def _free_backup_lock():
     yield
     if backups_views._BACKUP_LOCK.locked():
         backups_views._BACKUP_LOCK.release()
+
+
+@pytest.fixture(autouse=True)
+def _clear_param_cache():
+    """``backup.alert_email`` vive en SystemParameter (L2, H-API-CFG-01); su
+    caché es módulo-nivel (per-proceso), no per-transacción — se limpia entre
+    tests para que el rollback de la transacción de pytest-django se refleje
+    también en las lecturas cacheadas."""
+    _PARAM_CACHE.clear()
+    yield
+    _PARAM_CACHE.clear()
 
 
 class TestBackupEndpoints:
@@ -93,6 +105,15 @@ class TestBackupEndpoints:
 class TestBackupWorker:
     """Logica del worker _run_backup ejecutada sincronamente."""
 
+    @pytest.fixture(autouse=True)
+    def _seed_alert_email(self, db):
+        # ``backup.alert_email`` lo siembra la migracion 0003, pero un test
+        # ``transaction=True`` previo (p.ej. el de aislamiento multi-DB) hace
+        # ``flush`` y borra las filas sembradas sin re-correr la data-migration.
+        # Reseed idempotente para que estos tests no dependan del orden de
+        # ejecucion (eran green solo por correr antes del flush).
+        SystemParameter.seed()
+
     def test_run_backup_ok_marca_status_ok(self, db):
         record = BackupRecord.objects.create(type=BackupRecord.TYPE_MANUAL)
         fake = mock.Mock(returncode=0, stdout='ok', stderr='')
@@ -127,19 +148,45 @@ class TestBackupWorker:
 
 
 class TestBackupFailAlert:
-    """Notificacion email-on-fail aislada (_notify_backup_failed)."""
+    """Notificacion email-on-fail aislada (_notify_backup_failed).
 
-    def test_notifica_a_backup_alert_email(self, db, settings):
-        settings.BACKUP_ALERT_EMAIL = 'ops@practicayoruba.mx'
+    ``BACKUP_ALERT_EMAIL`` migró a ``SystemParameter`` L2
+    (``backup.alert_email``, H-API-CFG-01,
+    :ref:`hallazgos-estrategia-configuracion-kaupamex`): ya no es un setting
+    de Django — se sobreescribe con ``set_param``, no con el fixture
+    ``settings``.
+    """
+
+    def test_notifica_a_backup_alert_email(self, db):
+        SystemParameter.set_param('backup.alert_email', 'ops@kaupamex.com')
         mail.outbox = []
         backups_views._notify_backup_failed(42, 'boom')
         assert len(mail.outbox) == 1
-        assert mail.outbox[0].to == ['ops@practicayoruba.mx']
+        assert mail.outbox[0].to == ['ops@kaupamex.com']
         assert '42' in mail.outbox[0].subject
 
-    def test_sin_destinatario_no_envia_ni_rompe(self, db, settings):
-        settings.BACKUP_ALERT_EMAIL = ''
+    def test_sin_destinatario_no_envia_ni_rompe(self, db):
+        # 'backup.alert_email' está en _DEFAULT_PARAMETERS -> protegida
+        # contra borrado (H-CFG-IMPL-01); no se puede simular "ausente" con
+        # delete. Un valor vacío activa el quirk ``or default`` (H-CFG-IMPL-03)
+        # y get_param cae al default explícito ('') que pasa la vista.
+        SystemParameter.set_param('backup.alert_email', '')
         mail.outbox = []
         # No debe lanzar ni enviar cuando no hay destinatario configurado.
         backups_views._notify_backup_failed(7, 'boom')
         assert len(mail.outbox) == 0
+
+    def test_usa_el_default_sembrado_por_migracion_si_no_se_sobreescribe(self, db):
+        # Sin set_param explícito: debe leer el valor sembrado por la
+        # migración de datos (0003_seed_business_keys), no un default local
+        # ni el viejo ``settings.BACKUP_ALERT_EMAIL``. Reseed idempotente
+        # (== la migración) para no depender de que un test transaction=True
+        # previo no haya hecho flush de la fila sembrada.
+        SystemParameter.seed()
+        mail.outbox = []
+        backups_views._notify_backup_failed(99, 'boom')
+        assert len(mail.outbox) == 1
+        seeded = SystemParameter.get_param('backup.alert_email')
+        assert seeded is not None
+        assert 'practicayoruba.com' not in seeded
+        assert mail.outbox[0].to == [seeded]

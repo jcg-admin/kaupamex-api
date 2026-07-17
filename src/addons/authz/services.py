@@ -17,7 +17,6 @@ Diseño ratificado en :ref:`analisis-enforcement-hascapability-isowner`.
 """
 from datetime import timedelta
 
-from django.conf import settings
 from django.core.cache import cache
 from django.db.models import Q
 from django.utils import timezone
@@ -34,6 +33,7 @@ from addons.authz.models import (
     RoleAssignment,
     RoleCapability,
 )
+from addons.base.models import SystemParameter
 
 SUPERADMIN_ROLE_CODE = 'superadmin'
 # Rol base del comprador (DEC-AUTHZ-BUYER): agrupa las capacidades ``account.*``
@@ -202,9 +202,15 @@ REAUTH_CAP_CODE = 'authz.reauth'
 
 
 def _reauth_ttl():
-    """Segundos de vida de una sesión reautenticada (``AUTHZ_REAUTH_TTL``,
-    default 15 min)."""
-    return int(getattr(settings, 'AUTHZ_REAUTH_TTL', 900))
+    """Segundos de vida de una sesión reautenticada (``authz.reauth_ttl`` en
+    ``SystemParameter``, L2 global; default 15 min).
+
+    Migrado desde ``settings.AUTHZ_REAUTH_TTL`` (H-API-CFG-02,
+    :ref:`hallazgos-estrategia-configuracion-kaupamex`): era un tunable
+    operativo global con ``default=`` cableado en código; ahora vive editable
+    en caliente en L2, sembrado por la migración de datos de ``addons.base``.
+    """
+    return int(SystemParameter.get_param('authz.reauth_ttl', 900))
 
 
 def sensitive_codes():

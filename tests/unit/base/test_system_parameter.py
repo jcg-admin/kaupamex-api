@@ -24,6 +24,17 @@ pytestmark = pytest.mark.django_db
 
 
 @pytest.fixture(autouse=True)
+def _seed_defaults(db):
+    # Reseed idempotente de las claves de ``_DEFAULT_PARAMETERS``: un test
+    # ``transaction=True`` previo (p.ej. el de aislamiento multi-DB SOL-091)
+    # hace ``flush`` de ``system_parameter`` sin re-correr la data-migration,
+    # dejando las filas sembradas ausentes para los tests que siguen. Restaura
+    # el estado que la migración 0002/0003 garantiza en producción, para que
+    # estos tests no dependan del orden de ejecución.
+    SystemParameter.seed()
+
+
+@pytest.fixture(autouse=True)
 def _clear_param_cache():
     """La caché es módulo-nivel (per-proceso, como ``ormcache`` de Odoo); se
     limpia entre tests para aislarlos."""
@@ -158,6 +169,42 @@ class TestSeed:
         _PARAM_CACHE.clear()
         SystemParameter.seed(force=True)
         assert SystemParameter.get_param('database.uuid') != before
+
+
+class TestBusinessKeysL2:
+    """Claves de negocio migradas de ``config.settings.base`` (slice 2,
+    H-API-CFG-01/02, :ref:`hallazgos-estrategia-configuracion-kaupamex`).
+    Sembradas por ``addons.base`` migration ``0003_seed_business_keys``
+    (idéntico patrón idempotente que ``0002``, ver ``_DEFAULT_PARAMETERS``)."""
+
+    def test_authz_reauth_ttl_seeded_with_previous_default(self):
+        # Preserva el valor operativo del viejo AUTHZ_REAUTH_TTL default=900.
+        assert SystemParameter.get_param('authz.reauth_ttl') == '900'
+
+    def test_backup_alert_email_seeded_without_stale_domain(self):
+        # El viejo default cableaba 'admin@practicayoruba.com' (stale tras el
+        # rename L0 a Kaupamex, SOL-087). El nuevo default no debe repetirlo.
+        value = SystemParameter.get_param('backup.alert_email')
+        assert value is not None
+        assert 'practicayoruba.com' not in value
+        assert value.endswith('@kaupamex.com')
+
+    def test_business_keys_are_protected_like_the_original_defaults(self):
+        # Al estar en _DEFAULT_PARAMETERS, el operador L0 puede editar el
+        # VALOR pero no borrar/renombrar la clave (mismo guard que
+        # database.uuid, H-CFG-IMPL-01).
+        p = SystemParameter.objects.get(key='authz.reauth_ttl')
+        with pytest.raises(ValidationError):
+            p.delete()
+        assert SystemParameter.objects.filter(key='authz.reauth_ttl').exists()
+
+    def test_seed_of_business_keys_is_idempotent(self):
+        ttl_before = SystemParameter.get_param('authz.reauth_ttl')
+        email_before = SystemParameter.get_param('backup.alert_email')
+        _PARAM_CACHE.clear()
+        SystemParameter.seed()  # sin force: no debe sobreescribir lo existente
+        assert SystemParameter.get_param('authz.reauth_ttl') == ttl_before
+        assert SystemParameter.get_param('backup.alert_email') == email_before
 
 
 class TestMeta:

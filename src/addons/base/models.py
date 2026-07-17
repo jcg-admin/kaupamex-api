@@ -38,9 +38,20 @@ from django.db import DEFAULT_DB_ALIAS, models
 # líneas 18-25 de ir_config_parameter.py, v19/v18 idénticas). Pertenecer a este
 # dict == estar protegido contra borrado y renombrado. El valor es un callable
 # perezoso (se evalúa al sembrar), fiel a Odoo.
+#
+# ``authz.reauth_ttl`` y ``backup.alert_email`` migran aquí desde
+# ``config.settings.base`` (slice 2 de ``implementar-systemparameter-l2`,
+# cierra el drift H-API-CFG-01/02 de
+# :ref:`hallazgos-estrategia-configuracion-kaupamex`): eran tunables globales
+# con ``default=`` cableado en código (el de ``backup.alert_email`` además
+# stale — ``practicayoruba.com`` tras el rename L0 a Kaupamex, SOL-087). Se
+# preserva el valor operativo previo (900 s) y se corrige el dominio del
+# email a ``kaupamex.com``.
 _DEFAULT_PARAMETERS = {
     'database.uuid': lambda: str(uuid.uuid1()),
     'database.secret': lambda: str(uuid.uuid4()),
+    'authz.reauth_ttl': lambda: '900',
+    'backup.alert_email': lambda: 'admin@kaupamex.com',
 }
 
 # Caché por-proceso, equivalente a ``ormcache('key', cache='stable')`` de Odoo.

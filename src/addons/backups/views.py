@@ -19,6 +19,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 
 from addons.authz.permissions import HasCapability
+from addons.base.models import SystemParameter
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -38,7 +39,11 @@ def _notify_backup_failed(record_pk: int, error_detail: str) -> None:
     reintenta con backoff — los reintentos del propio envío salen gratis.
     No re-lanza: una falla al notificar no debe enmascarar la falla del backup.
     """
-    recipient = getattr(settings, 'BACKUP_ALERT_EMAIL', '')
+    # Migrado desde settings.BACKUP_ALERT_EMAIL (H-API-CFG-01,
+    # :ref:`hallazgos-estrategia-configuracion-kaupamex`): tenía default=
+    # cableado y stale (practicayoruba.com); ahora vive editable en caliente
+    # en SystemParameter (L2, sembrado por addons.base migration 0003).
+    recipient = SystemParameter.get_param('backup.alert_email', '')
     if not recipient:
         logger.warning('Backup #%d falló pero BACKUP_ALERT_EMAIL no está '
                        'configurado — no se envió alerta.', record_pk)
