@@ -26,6 +26,7 @@ from rest_framework.exceptions import NotFound
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from addons.authz.permissions import HasCapability
+from addons.company.models import CompanySetting
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
@@ -41,6 +42,17 @@ from .serializers import (
     SubscriberListItemSerializer,
     UnsubscribeSerializer,
 )
+
+# Buzón de newsletter — L3 per-empresa (SOL-090 slice 3, CompanySetting).
+# Antes era ``settings.NEWSLETTER_FROM_EMAIL`` con ``default=`` cableado. Ese
+# default NO era stale — es la config L1 correcta del tenant founder
+# PracticaYoruba (Kaupamex es L0, no PracticaYoruba); la migración
+# ``company/0006_seed_founder_settings`` lo siembra como su propio
+# ``CompanySetting``. La constante de abajo es el fallback **neutral** (nivel
+# Kaupamex, no de PracticaYoruba) que usa ``get_setting`` cuando no hay
+# empresa en contexto o la empresa activa no fijó su propio buzón — cierra
+# H-CFG-IMPL-10.
+NEWSLETTER_FROM_EMAIL_DEFAULT = 'newsletter@kaupamex.com'
 
 
 class NewsletterSubscribeView(APIView):
@@ -99,11 +111,20 @@ class NewsletterSubscribeView(APIView):
 
 def _send_confirmation_email(email: str, token: str) -> None:
     """Send double opt-in confirmation email."""
-    confirm_url = f'https://practicayoruba.com/confirmar-newsletter/{token}/'
+    # H-CFG-IMPL-11: dominio hardcodeado (practicayoruba.com) reemplazado por
+    # FRONTEND_URL (L1, ``.env``/``kaupamex.conf``) — no es un valor stale
+    # (PracticaYoruba sigue siendo el tenant founder correcto hoy), pero
+    # hardcodearlo aquí duplica lo que FRONTEND_URL ya resuelve por env
+    # (mismo patrón getattr ya usado en addons.users.tokens_email /
+    # addons.notifications.emails) y no serviría a otro tenant futuro.
+    frontend = getattr(settings, 'FRONTEND_URL', 'http://localhost:3001')
+    confirm_url = f'{frontend}/confirmar-newsletter/{token}/'
     mail.send_mail(
         subject='Confirma tu suscripción al Newsletter',
         message=f'Haz click para confirmar: {confirm_url}',
-        from_email=settings.NEWSLETTER_FROM_EMAIL,
+        from_email=CompanySetting.get_setting(
+            'newsletter.from_email', NEWSLETTER_FROM_EMAIL_DEFAULT,
+        ),
         recipient_list=[email],
         fail_silently=True,
     )
@@ -465,7 +486,9 @@ class AdminCampaignCreateView(_AdminOnly, APIView):
             dispatch_email(
                 subject=campaign.subject,
                 message=campaign.body,
-                from_email=settings.NEWSLETTER_FROM_EMAIL,
+                from_email=CompanySetting.get_setting(
+                    'newsletter.from_email', NEWSLETTER_FROM_EMAIL_DEFAULT,
+                ),
                 recipient_list=[recipient_email],
             )
 

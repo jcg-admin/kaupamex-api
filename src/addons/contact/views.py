@@ -10,7 +10,6 @@ Admin:
   POST /api/v1/admin/contact/<id>/mark-read/  — UC-COM-03 mark read.
   POST /api/v1/admin/contact/<id>/reply/      — UC-COM-03 reply via email.
 """
-from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
@@ -19,6 +18,7 @@ from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from addons.authz.permissions import HasCapability
+from addons.company.models import CompanySetting
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
@@ -29,6 +29,19 @@ from .serializers import (
     ContactMessageAdminSerializer, ContactMessageReplySerializer,
     ContactMessageSerializer,
 )
+
+# Buzones de contacto — L3 per-empresa (SOL-090 slice 3, CompanySetting).
+# Antes eran ``settings.CONTACT_FROM_EMAIL``/``CONTACT_NOTIFY_EMAIL`` con
+# ``default=`` cableado. Ese default NO era stale — es la config L1 correcta
+# del tenant founder PracticaYoruba (Kaupamex es L0, no PracticaYoruba); la
+# migración ``company/0006_seed_founder_settings`` lo siembra como su propio
+# ``CompanySetting``. Las constantes de abajo son el fallback **neutral**
+# (nivel Kaupamex, no de PracticaYoruba) que usa ``get_setting`` cuando no
+# hay empresa en contexto (request anónimo, pre resolutor subdominio→company
+# UC-PLT-06) o la empresa activa no fijó su propio buzón — cierra
+# H-CFG-IMPL-10.
+CONTACT_FROM_EMAIL_DEFAULT = 'hola@kaupamex.com'
+CONTACT_NOTIFY_EMAIL_DEFAULT = 'hola@kaupamex.com'
 
 
 class _ContactMessagePagination(PageNumberPagination):
@@ -77,8 +90,12 @@ class ContactMessageCreateView(APIView):
                 f'Teléfono: {msg.phone or "—"}\n\n'
                 f'{msg.body}'
             ),
-            from_email=settings.CONTACT_FROM_EMAIL,
-            recipient_list=[settings.CONTACT_NOTIFY_EMAIL],
+            from_email=CompanySetting.get_setting(
+                'contact.from_email', CONTACT_FROM_EMAIL_DEFAULT,
+            ),
+            recipient_list=[CompanySetting.get_setting(
+                'contact.notify_email', CONTACT_NOTIFY_EMAIL_DEFAULT,
+            )],
         )
         return Response(ContactMessageSerializer(msg).data, status=status.HTTP_201_CREATED)
 
@@ -201,7 +218,9 @@ class AdminContactMessageReplyView(_AdminOnly, APIView):
         dispatch_email(
             subject=f'Re: {msg.subject}',
             message=reply_body,
-            from_email=settings.CONTACT_FROM_EMAIL,
+            from_email=CompanySetting.get_setting(
+                'contact.from_email', CONTACT_FROM_EMAIL_DEFAULT,
+            ),
             recipient_list=[msg.email],
         )
         return Response(ContactMessageAdminSerializer(msg).data)

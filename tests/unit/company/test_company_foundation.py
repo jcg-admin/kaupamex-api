@@ -24,8 +24,14 @@ pytestmark = pytest.mark.django_db
 
 class TestCompanyModel:
     def test_create_and_str(self):
-        t = Company.objects.create(code="practicayoruba", name="PracticaYoruba")
-        assert str(t) == "practicayoruba"
+        # code distinto de FOUNDER_COMPANY_CODE ('practicayoruba'): esa fila
+        # ya existe, sembrada por la migración de datos
+        # company/0006_seed_founder_settings (SOL-090 slice 3) con sus
+        # CompanySetting L3 — este test sólo verifica la creación/str/default
+        # genéricos, no la identidad del tenant founder (ver
+        # test_founder_system_company.py para eso).
+        t = Company.objects.create(code="wonka-basic", name="Wonka")
+        assert str(t) == "wonka-basic"
         # default status is TRIAL (a company is born on trial until activated)
         assert t.status == Company.Status.TRIAL
 

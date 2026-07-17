@@ -203,15 +203,22 @@ DEFAULT_FROM_EMAIL = 'noreply@practicayoruba.com'
 # (auth, órdenes, devoluciones, soporte) salen de DEFAULT_FROM_EMAIL (noreply@).
 # Contacto y newsletter usan su buzón monitoreado para que la conversación
 # llegue a un humano y las respuestas no caigan en un buzón no-reply.
-# NOTA (H-API-CFG-01, parcial): CONTACT_FROM_EMAIL/CONTACT_NOTIFY_EMAIL/
-# NEWSLETTER_FROM_EMAIL son candidatas L3 (per-empresa, Company/
-# CompanySetting) — SIN migrar en esta slice: L3 aun no tiene hogar (Company
-# no tiene CompanySetting ni campos de contacto/newsletter). Quedan con su
-# default= stale hasta la sub-iniciativa de L3. Ver
+#
+# CONTACT_FROM_EMAIL/CONTACT_NOTIFY_EMAIL/NEWSLETTER_FROM_EMAIL migraron a L3
+# (SOL-090 slice 3, ``addons.company.CompanySetting`` — per-empresa, FK
+# ``company`` + ``CompanyScopedManager``): ya NO son settings de Django. Los
+# valores previos (``hola@practicayoruba.com`` / ``newsletter@practicayoruba.
+# com``) NO eran stale — PracticaYoruba es un tenant **L1** (el founder, NO
+# L0/Kaupamex), y esos eran su config correcta de contacto/newsletter. La
+# migración ``company/0006_seed_founder_settings`` los siembra como filas
+# ``CompanySetting`` de PracticaYoruba (founder), no los reemplaza. Los
+# consumidores (``addons.contact.views``, ``addons.newsletter.views``) leen
+# ``CompanySetting.get_setting('contact.from_email', <fallback neutral>)``
+# bajo la empresa activa; el fallback (sin empresa activa o sin fila) SÍ es
+# neutral (nivel Kaupamex, ``*@kaupamex.com``) — PracticaYoruba es solo un
+# tenant entre potencialmente varios. Cierra H-CFG-IMPL-10. Ver
+# addons.company.models.CompanySetting y
 # hallazgos-implementar-systemparameter-l2 (H-CFG-IMPL-10).
-CONTACT_FROM_EMAIL = config('CONTACT_FROM_EMAIL', default='hola@practicayoruba.com')
-CONTACT_NOTIFY_EMAIL = config('CONTACT_NOTIFY_EMAIL', default='hola@practicayoruba.com')
-NEWSLETTER_FROM_EMAIL = config('NEWSLETTER_FROM_EMAIL', default='newsletter@practicayoruba.com')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

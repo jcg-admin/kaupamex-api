@@ -14,6 +14,10 @@ JSON keys + identifiers in English (DEC-DOC-005).
 """
 import pytest
 from addons.contact.models import ContactMessage
+from addons.contact.views import (
+    CONTACT_FROM_EMAIL_DEFAULT,
+    CONTACT_NOTIFY_EMAIL_DEFAULT,
+)
 from django.core import mail
 
 pytestmark = pytest.mark.integration
@@ -64,9 +68,13 @@ class TestCreateContactMessage:
             email='maria@example.com',
         ).count() == 1
 
-    def test_create_notifies_contact_mailbox(self, api_client, db, settings):
+    def test_create_notifies_contact_mailbox(self, api_client, db):
         # UC-COM-01: el alta pública avisa al equipo en el buzón de contacto
         # (hola@) con el remitente en el cuerpo, sin filtrarlo al campo From.
+        # Sin empresa en contexto (request anónimo, pre resolutor
+        # subdominio→company UC-PLT-06), CompanySetting.get_setting cae al
+        # default declarado en el módulo consumidor (SOL-090 slice 3,
+        # H-CFG-IMPL-10) — ya NO son settings de Django.
         mail.outbox.clear()
         res = api_client.post(CREATE_URL, {
             'name': 'Maria',
@@ -77,11 +85,11 @@ class TestCreateContactMessage:
         assert res.status_code == 201
         notices = [
             m for m in mail.outbox
-            if settings.CONTACT_NOTIFY_EMAIL in m.to
+            if CONTACT_NOTIFY_EMAIL_DEFAULT in m.to
         ]
         assert len(notices) == 1
         notice = notices[0]
-        assert notice.from_email == settings.CONTACT_FROM_EMAIL
+        assert notice.from_email == CONTACT_FROM_EMAIL_DEFAULT
         assert 'maria@example.com' in notice.body
         assert 'Hacen envios a Veracruz?' in notice.body
 
