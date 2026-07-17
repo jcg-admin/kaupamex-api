@@ -350,3 +350,47 @@ def rename_database(old_name, new_name, using=DEFAULT_DB_ALIAS):
     duplicate_database(old_name, new_name, using)
     drop_database(old_name, using)
     return new_name
+
+
+def _ensure_alias_registered(name, base_default):
+    """Registra el alias de empresa en ``connections.databases`` si falta.
+
+    Loader **self-contained**: no depende de que el settings-loader
+    (``DATABASE_ROUTERS`` dinámico, T-091-05) esté cableado — clona
+    ``base_default`` cambiando ``NAME`` y lo inyecta en el handler vivo para que
+    ``call_command('migrate', database=name)`` resuelva. Idempotente.
+    """
+    if name not in connections.databases:
+        connections.databases[name] = build_company_alias(base_default, name)
+
+
+def migrate_all_company_databases(names=None, using=DEFAULT_DB_ALIAS):
+    """== ``exp_migrate_databases``: aplica migraciones a N bases de empresa.
+
+    Odoo recrea el ``Registry`` con ``update_module=True`` por cada base y
+    **aborta el loop al primer fallo** (``service/db.py:413-418``). Aquí
+    mejoramos la resiliencia: se acumula el resultado **por base** y **nunca**
+    se aborta ante un fallo parcial — una base rota no impide migrar el resto.
+    El primitivo por base es el mismo ``migrate --database=<alias>`` que
+    ``create_database`` usa una vez.
+
+    ``names=None`` → descubre las bases ``company_<N>_db`` existentes
+    (``list_company_db_names``). Es un **loop autocontenido**: registra el alias
+    de cada base antes de migrarla. Devuelve
+    ``[{'db': name, 'status': 'ok'|'failed', 'error': str|None}, ...]``.
+    """
+    ensure_management_enabled()
+    if names is None:
+        names = list_company_db_names(using)
+    base_default = connections[using].settings_dict
+    results = []
+    for name in names:
+        try:
+            _ensure_alias_registered(name, base_default)
+            call_command('migrate', database=name, run_syncdb=True, verbosity=0)
+            results.append({'db': name, 'status': 'ok', 'error': None})
+        except Exception as exc:  # noqa: BLE001
+            # Acumular por-base y CONTINUAR (mejora sobre el abort de Odoo): el
+            # error queda en el resultado, no se traga en silencio.
+            results.append({'db': name, 'status': 'failed', 'error': str(exc)})
+    return results
