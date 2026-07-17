@@ -171,3 +171,19 @@ class BackupRequired(APIException):
             'detail': 'Ejecuta un respaldo completo del ejercicio antes de sellarlo.',
             'codigo_error': 'BACKUP_REQUIRED',
         })
+
+
+class InvalidPeriod(APIException):
+    """400 ``INVALID_PERIOD`` — periodo mal formado o invertido (UC-FIN-04 EX-02).
+
+    El periodo de disponibilidad debe ser ``YYYY-MM`` con mes ``01..12``.
+    """
+
+    status_code = 400
+    default_code = 'invalid_period'
+
+    def __init__(self):
+        super().__init__(detail={
+            'detail': 'El periodo debe tener el formato YYYY-MM con mes valido.',
+            'codigo_error': 'INVALID_PERIOD',
+        })

@@ -8,9 +8,11 @@ azucar de authz (``HasCapability`` + ``permission_map``).
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
+from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet, ViewSet
+from django.utils import timezone
 
 from addons.authz.permissions import HasCapability
+from addons.finance.availability import AvailabilityQuery
 from addons.finance.exceptions import (
     BackupRequired, CashCloseAlreadyOpen, CashCloseSealed, ConceptInUse,
     OutOfOrderClose, PeriodInvalidState, PeriodOpenMovements,
@@ -331,3 +333,38 @@ class PeriodCloseViewSet(ReadOnlyModelViewSet):
             'sealed': self.get_serializer(sealed).data,
             'next': self.get_serializer(nxt).data if nxt else None,
         }
+
+
+class AvailabilityViewSet(ViewSet):
+    """Disponibilidad caja vs banco (UC-FIN-04), consulta de solo lectura.
+
+    Todos los endpoints exigen ``finance.view`` (DEC-11) y son ``GET``: KPIs
+    (``list``), serie diaria (``series``) y pivote (``pivot``). No es un modelo:
+    la disponibilidad es un **valor derivado** que ``AvailabilityQuery`` agrega
+    del percibido conciliado − egresos + saldo previo. ``period`` = ``YYYY-MM``
+    (por defecto el mes en curso); mal formado → ``INVALID_PERIOD`` (400).
+    """
+    permission_classes = [IsAuthenticated, HasCapability]
+    permission_map = {
+        'list': 'finance.view',
+        'series': 'finance.view',
+        'pivot': 'finance.view',
+    }
+
+    def _query(self, request):
+        period = request.query_params.get('period') or timezone.localtime().strftime('%Y-%m')
+        return AvailabilityQuery(period)
+
+    def list(self, request):
+        """KPIs del periodo (percibido, egresos, saldo actual, mínimo, estado)."""
+        return Response(self._query(request).kpis())
+
+    @action(detail=False, methods=['get'])
+    def series(self, request):
+        """Serie diaria de recaudación caja vs banco (UC-FIN-04 paso 4)."""
+        return Response(self._query(request).series())
+
+    @action(detail=False, methods=['get'])
+    def pivot(self, request):
+        """Pivote concepto x periodo (UC-FIN-04 paso 5)."""
+        return Response(self._query(request).pivot())

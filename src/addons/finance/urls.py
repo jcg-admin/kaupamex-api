@@ -10,8 +10,9 @@ paquete ``api``). Primer slice: catalogo de conceptos (UC-FIN-06).
 from rest_framework.routers import DefaultRouter
 
 from addons.finance.views import (
-    CarrierInvoiceViewSet, CashCloseViewSet, CashConceptViewSet,
-    CashFlowProjectionViewSet, GatewaySettlementViewSet, PeriodCloseViewSet,
+    AvailabilityViewSet, CarrierInvoiceViewSet, CashCloseViewSet,
+    CashConceptViewSet, CashFlowProjectionViewSet, GatewaySettlementViewSet,
+    PeriodCloseViewSet,
 )
 
 app_name = 'finance'
@@ -23,5 +24,6 @@ router.register('carrier-invoices', CarrierInvoiceViewSet, basename='carrier-inv
 router.register('cash-closes', CashCloseViewSet, basename='cash-close')
 router.register('projection', CashFlowProjectionViewSet, basename='projection')
 router.register('period-closes', PeriodCloseViewSet, basename='period-close')
+router.register('availability', AvailabilityViewSet, basename='availability')
 
 urlpatterns = router.urls
