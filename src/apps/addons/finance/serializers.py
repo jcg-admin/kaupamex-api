@@ -3,7 +3,8 @@ from rest_framework import serializers
 
 from apps.addons.finance.exceptions import DuplicateCode, ImmutableField
 from apps.addons.finance.models import (
-    CarrierInvoice, CashConcept, GatewaySettlement, GatewaySettlementLine,
+    CarrierInvoice, CashClose, CashConcept, GatewaySettlement,
+    GatewaySettlementLine,
 )
 
 
@@ -75,3 +76,41 @@ class CarrierInvoiceSerializer(serializers.ModelSerializer):
             'status', 'paid_at', 'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'status', 'paid_at', 'created_at', 'updated_at']
+
+
+class CashCloseSerializer(serializers.ModelSerializer):
+    """Corte de caja diario (UC-FIN-02).
+
+    ``status``, los actores (``prepared_by``/``approved_by``), ``sealed_at``,
+    ``closing_balance`` y ``discrepancy`` son derivados de las acciones
+    (arqueo/approve/seal/reopen), nunca escritos directo por el cliente.
+    """
+
+    class Meta:
+        model = CashClose
+        fields = [
+            'id', 'business_date', 'status', 'opening_balance',
+            'counted_balance', 'closing_balance', 'discrepancy', 'note',
+            'reopen_reason', 'prepared_by', 'approved_by', 'sealed_at',
+            'created_at', 'updated_at',
+        ]
+        read_only_fields = [
+            'id', 'status', 'counted_balance', 'closing_balance', 'discrepancy',
+            'note', 'reopen_reason', 'prepared_by', 'approved_by', 'sealed_at',
+            'created_at', 'updated_at',
+        ]
+
+
+class CashCloseArqueoSerializer(serializers.Serializer):
+    """Cuerpo del arqueo (UC-FIN-02 paso 2): saldo contado fisico."""
+    counted_balance = serializers.DecimalField(max_digits=12, decimal_places=2)
+
+
+class CashCloseApproveSerializer(serializers.Serializer):
+    """Cuerpo de la aprobacion (UC-FIN-02 paso 5): nota opcional de diferencia."""
+    note = serializers.CharField(required=False, allow_blank=True, default='')
+
+
+class CashCloseReopenSerializer(serializers.Serializer):
+    """Cuerpo de la reapertura (UC-FIN-02 Alt B): motivo obligatorio."""
+    reason = serializers.CharField()

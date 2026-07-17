@@ -10,10 +10,25 @@ Entidades restantes del modelo de dominio (GatewaySettlement, CashMovement,
 CashClose, CarrierInvoice, CashFlowProjection, PeriodClose) llegan en slices
 posteriores del loop.
 """
+from datetime import datetime, time, timedelta
+from decimal import Decimal
+
+from django.conf import settings
 from django.db import models
+from django.db.models import Sum
 from django.utils import timezone
 
 from apps.core.models import TimeStampedModel
+
+
+def _day_bounds(business_date):
+    """Rango [inicio, fin) del dia en la tz activa, robusto sin tz-tables MySQL.
+
+    Evita el lookup ``__date`` (que exige las tablas de zona horaria de MySQL
+    cuando ``USE_TZ`` esta activo): filtra por rango de ``DateTimeField``.
+    """
+    start = timezone.make_aware(datetime.combine(business_date, time.min))
+    return start, start + timedelta(days=1)
 
 
 class CashConceptKind(models.TextChoices):
@@ -218,3 +233,149 @@ class CashMovement(TimeStampedModel):
 
     def __str__(self):
         return f'{self.concept.code} {self.kind} {self.amount}'
+
+
+class CashCloseStatus(models.TextChoices):
+    """Estado del corte de caja diario (UC-FIN-02).
+
+    ``open`` -> ``balanced`` (arqueo cuadrado) -> ``sealed`` (aprobado y sellado,
+    inmutable) -> ``reopened`` (reapertura autorizada, vuelve a ``balanced``).
+    """
+    OPEN = 'open', 'Abierto'
+    BALANCED = 'balanced', 'Cuadrado'
+    SEALED = 'sealed', 'Sellado'
+    REOPENED = 'reopened', 'Reabierto'
+
+
+class CashClose(TimeStampedModel):
+    """Corte de caja diario (UC-FIN-02, MOD-028).
+
+    Encadena ``opening_balance`` (saldo del corte sellado anterior) ->
+    ``closing_balance``. La **segregacion de funciones** exige
+    ``prepared_by`` != ``approved_by``: quien prepara el arqueo no puede
+    aprobar/sellar su propio corte. Un ``sealed`` es inmutable; solo
+    ``finance.close`` puede reabrirlo (``reopened``) dejando rastro.
+    """
+    business_date = models.DateField(verbose_name='Fecha de negocio')
+    status = models.CharField(
+        max_length=10, choices=CashCloseStatus.choices,
+        default=CashCloseStatus.OPEN, verbose_name='Estado',
+    )
+    opening_balance = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal('0.00'),
+        verbose_name='Saldo inicial',
+    )
+    counted_balance = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal('0.00'),
+        verbose_name='Saldo contado (arqueo)',
+    )
+    closing_balance = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal('0.00'),
+        verbose_name='Saldo final',
+    )
+    discrepancy = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal('0.00'),
+        verbose_name='Diferencia',
+        help_text='contado - esperado; distinto de 0 = corte con diferencia (Alt A).',
+    )
+    note = models.TextField(
+        blank=True, default='', verbose_name='Nota del aprobador',
+        help_text='Justificacion de la diferencia al aprobar (Alt A).',
+    )
+    reopen_reason = models.TextField(
+        blank=True, default='', verbose_name='Motivo de reapertura',
+    )
+    prepared_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='cash_closes_prepared', verbose_name='Preparado por',
+    )
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='cash_closes_approved', verbose_name='Aprobado por',
+    )
+    sealed_at = models.DateTimeField(null=True, blank=True, verbose_name='Sellado en')
+
+    class Meta:
+        db_table = 'finance_cash_close'
+        ordering = ['-business_date']
+        verbose_name = 'Corte de caja'
+        verbose_name_plural = 'Cortes de caja'
+
+    def __str__(self):
+        return f'CashClose {self.business_date} ({self.status})'
+
+    def expected_balance(self):
+        """Saldo esperado del cierre (UC-FIN-02 paso 3, base percibido).
+
+        ``opening_balance`` + neto de las liquidaciones **conciliadas** del dia
+        - egresos (``CashMovement`` de tipo ``expense``) del dia. La comparacion
+        contra el contado produce la ``discrepancy``.
+        """
+        start, end = _day_bounds(self.business_date)
+        net_income = GatewaySettlement.objects.filter(
+            settled_at__gte=start, settled_at__lt=end,
+            status=SettlementStatus.RECONCILED,
+        ).aggregate(total=Sum('net'))['total'] or Decimal('0.00')
+        expenses = CashMovement.objects.filter(
+            occurred_at__gte=start, occurred_at__lt=end,
+            kind=CashConceptKind.EXPENSE,
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        return self.opening_balance + net_income - expenses
+
+    def has_unreconciled_settlements(self):
+        """¿Quedan liquidaciones del dia sin conciliar? (UC-FIN-02 EX-03).
+
+        Gate previo al sello: no se sella un corte con liquidaciones del periodo
+        que no esten ``reconciled``.
+        """
+        start, end = _day_bounds(self.business_date)
+        return GatewaySettlement.objects.filter(
+            settled_at__gte=start, settled_at__lt=end,
+        ).exclude(status=SettlementStatus.RECONCILED).exists()
+
+    def arqueo(self, counted_balance):
+        """Arma el arqueo y cuadra el corte (UC-FIN-02 pasos 2-3).
+
+        Fija ``counted_balance`` = ``closing_balance``, calcula la
+        ``discrepancy`` contra el esperado y pasa a ``balanced``.
+        """
+        expected = self.expected_balance()
+        self.counted_balance = counted_balance
+        self.closing_balance = counted_balance
+        self.discrepancy = counted_balance - expected
+        self.status = CashCloseStatus.BALANCED
+        self.save(update_fields=[
+            'counted_balance', 'closing_balance', 'discrepancy', 'status',
+            'updated_at',
+        ])
+
+    def approve(self, approver, note=''):
+        """Registra la aprobacion por un segundo usuario (UC-FIN-02 paso 5).
+
+        La validacion SoD (``approver`` != ``prepared_by``) la hace la vista
+        antes de llamar aqui. El corte queda ``balanced`` con ``approved_by``.
+        """
+        self.approved_by = approver
+        if note:
+            self.note = note
+        self.save(update_fields=['approved_by', 'note', 'updated_at'])
+
+    def seal(self):
+        """Sella el corte (UC-FIN-02 paso 6): ``balanced`` -> ``sealed``.
+
+        El sello es inmutable; ``sealed_at`` marca el momento.
+        """
+        self.status = CashCloseStatus.SEALED
+        self.sealed_at = timezone.now()
+        self.save(update_fields=['status', 'sealed_at', 'updated_at'])
+
+    def reopen(self, reason):
+        """Reapertura autorizada (UC-FIN-02 Alt B): ``sealed`` -> ``reopened``.
+
+        Exige ``finance.close`` y motivo; el corte vuelve a ``balanced`` para
+        correccion. Aqui deja el estado ``reopened`` con el ``reason``; el
+        re-cuadre posterior lo devuelve a ``balanced`` via ``arqueo``.
+        """
+        self.status = CashCloseStatus.REOPENED
+        self.reopen_reason = reason
+        self.save(update_fields=['status', 'reopen_reason', 'updated_at'])
