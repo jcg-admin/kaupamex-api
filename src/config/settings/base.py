@@ -36,35 +36,35 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'drf_spectacular',
-    'apps.core',
-    'apps.addons.users',
-    'apps.addons.settings_app',
-    'apps.addons.catalogue',
-    'apps.addons.chartsize',
-    'apps.addons.inventory',
-    'apps.addons.cart',
-    'apps.addons.voucher',
-    'apps.addons.wishlist',
-    'apps.addons.orders',
-    'apps.addons.payments',
-    'apps.addons.support',
-    'apps.addons.returns',
-    'apps.addons.notifications',
-    'apps.addons.contact',
-    'apps.addons.newsletter',
-    'apps.addons.questions',
-    'apps.addons.reports',
-    'apps.addons.logistics',
-    'apps.addons.reviews',
-    'apps.addons.search_history',
-    'apps.addons.static_content',
-    'apps.addons.backups',
-    'apps.addons.referral',
-    'apps.addons.geo',
-    'apps.base',
-    'apps.platform.authz',
-    'apps.platform.company',
-    'apps.addons.finance',
+    'core',
+    'addons.users',
+    'addons.settings_app',
+    'addons.catalogue',
+    'addons.chartsize',
+    'addons.inventory',
+    'addons.cart',
+    'addons.voucher',
+    'addons.wishlist',
+    'addons.orders',
+    'addons.payments',
+    'addons.support',
+    'addons.returns',
+    'addons.notifications',
+    'addons.contact',
+    'addons.newsletter',
+    'addons.questions',
+    'addons.reports',
+    'addons.logistics',
+    'addons.reviews',
+    'addons.search_history',
+    'addons.static_content',
+    'addons.backups',
+    'addons.referral',
+    'addons.geo',
+    'addons.base',
+    'addons.authz',
+    'addons.company',
+    'addons.finance',
 ]
 
 AUTH_USER_MODEL = 'users.IdentityUser'
@@ -74,24 +74,24 @@ MIDDLEWARE = [
     # RequestLogMiddleware (DEC-LOG-02): cobertura universal request->DB. Va
     # cerca del tope para medir la duracion completa; su process_response corre
     # tras get_response, cuando request.user y resolver_match ya estan puestos.
-    'apps.core.middleware.request_log.RequestLogMiddleware',
+    'core.middleware.request_log.RequestLogMiddleware',
     # CookieGovernanceMiddleware va sobre Session/CSRF: su process_response
     # (orden inverso) corre despues de que aquellas ponen sus cookies, para
     # observarlas/gobernarlas. Fase 1 = auditoria (COOKIE_GOVERNANCE_ENFORCE
     # por defecto False). Ver iniciativa migrar-auth-sesion-cookie-httponly.
-    'apps.core.middleware.cookie_governance.CookieGovernanceMiddleware',
+    'core.middleware.cookie_governance.CookieGovernanceMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'apps.platform.company.middleware.CompanyContextMiddleware',
+    'addons.company.middleware.CompanyContextMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     # H-CART-01 Fase 2: fija la cookie httpOnly cart_token para carritos
     # anonimos. Va por DEBAJO de CookieGovernanceMiddleware para que el
     # process_response de aquel (orden inverso) observe la cookie de carrito.
-    'apps.addons.cart.middleware.CartCookieMiddleware',
+    'addons.cart.middleware.CartCookieMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -168,7 +168,7 @@ install_company_aliases(DATABASES, list(_MULTIDB_COMPANY_DBS))
 DATABASE_ROUTERS = ['orm.routers.CompanyDatabaseRouter']
 
 # Plano de control L0 (vive siempre en ``default``, no se particiona por empresa).
-# ``apps.base`` (addon fundacional, ``SystemParameter`` L2 global) es config de
+# ``addons.base`` (addon fundacional, ``SystemParameter`` L2 global) es config de
 # instancia, no per-empresa (SOL-090): debe rutear a ``default`` también bajo N>1.
 MULTIDB_CONTROL_PLANE_APPS = ('sessions', 'contenttypes', 'base')
 
@@ -220,7 +220,7 @@ REST_FRAMEWORK = {
         # JWT (SimpleJWT) queda INSTALADO pero fuera del default: el login aun
         # emite tokens (dormidos). Para una futura app movil basta re-anadir
         # 'rest_framework_simplejwt.authentication.JWTAuthentication' aqui.
-        'apps.addons.users.authentication.CsrfExemptSessionAuthentication',
+        'addons.users.authentication.CsrfExemptSessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -232,7 +232,7 @@ REST_FRAMEWORK = {
     # SOL-011 / ADR-019: envuelve el handler de DRF para sellar exception_class
     # + error_detail (scrubbed) en RequestLog sin cambiar el cuerpo de error
     # (conserva la clave canonica ``codigo_error``). No bloqueante (DEC-LOG-04).
-    'EXCEPTION_HANDLER': 'apps.core.exception_handling.custom_exception_handler',
+    'EXCEPTION_HANDLER': 'core.exception_handling.custom_exception_handler',
     # DEC-THR-1 (hardening-throttle-endpoints-publicos):
     # Defense in depth contra brute-force/spam en endpoints
     # publicos. Rates conservadores por scope sensible.
@@ -393,47 +393,47 @@ SPECTACULAR_SETTINGS = {
     'ENUM_NAME_OVERRIDES': {
         # status fields (mas de un modelo usa este nombre de campo)
         'OrderStatusEnum':
-            'apps.addons.orders.models.Order.STATUSES',
+            'addons.orders.models.Order.STATUSES',
         'PaymentStatusEnum':
-            'apps.addons.payments.models.Payment.STATUSES',
+            'addons.payments.models.Payment.STATUSES',
         'RefundStatusEnum':
-            'apps.addons.payments.models.Refund.STATUSES',
+            'addons.payments.models.Refund.STATUSES',
         'ReviewStatusEnum':
-            'apps.addons.reviews.models.Review.STATUSES',
+            'addons.reviews.models.Review.STATUSES',
         'ShipmentGuideStatusEnum':
-            'apps.addons.logistics.models.ShipmentGuide.STATUSES',
+            'addons.logistics.models.ShipmentGuide.STATUSES',
         'StaticPageVersionStatusEnum':
-            'apps.addons.settings_app.models.StaticPageVersion.STATUS_CHOICES',
+            'addons.settings_app.models.StaticPageVersion.STATUS_CHOICES',
         'NotificationStatusEnum':
-            'apps.addons.notifications.models.ManualNotification.Status',
+            'addons.notifications.models.ManualNotification.Status',
         'NewsletterSubscriberStatusEnum':
-            'apps.addons.newsletter.models.SubscriberStatus.choices',
+            'addons.newsletter.models.SubscriberStatus.choices',
         'QuestionStatusEnum':
-            'apps.addons.questions.models.QuestionStatus.choices',
+            'addons.questions.models.QuestionStatus.choices',
         'SupportTicketStatusEnum':
-            'apps.addons.support.models.SupportTicket.Status',
+            'addons.support.models.SupportTicket.Status',
         'ReturnRequestStatusEnum':
-            'apps.addons.returns.models.ReturnRequest.Status',
+            'addons.returns.models.ReturnRequest.Status',
         # gateway fields (Payment vs PaymentGateway tienen choice sets
         # diferentes — el segundo agrega TEST sandbox)
         'PaymentGatewayChoiceEnum':
-            'apps.addons.payments.models.Payment.GATEWAYS',
+            'addons.payments.models.Payment.GATEWAYS',
         'PaymentGatewayConfigEnum':
-            'apps.addons.settings_app.models.PaymentGateway.GATEWAYS',
+            'addons.settings_app.models.PaymentGateway.GATEWAYS',
         # AudienceFilterEnum: alias para ManualNotification.RecipientType
         # que aparece en serializers diferentes con choice set identico
         'AudienceFilterEnum':
-            'apps.addons.notifications.models.ManualNotification.RecipientType',
+            'addons.notifications.models.ManualNotification.RecipientType',
         # `type` field collision: NotificationType es el unico choice set
         # de un campo llamado `type` que necesita nombre estable.
         'NotificationTypeEnum':
-            'apps.addons.notifications.models.NotificationType',
+            'addons.notifications.models.NotificationType',
         # `reason` field collision: dos choice sets distintos comparten el
         # nombre de campo `reason` — devolucion vs ajuste de inventario.
         'ReturnReasonEnum':
-            'apps.addons.returns.models.ReturnRequest.Reason',
+            'addons.returns.models.ReturnRequest.Reason',
         'StockAdjustmentReasonEnum':
-            'apps.addons.inventory.serializers.ADJUSTMENT_REASONS',
+            'addons.inventory.serializers.ADJUSTMENT_REASONS',
     },
 }
 
@@ -465,7 +465,7 @@ LOGGING = {
         # no bloqueante y anti-recursion (se excluye django.db). testing.py
         # sobreescribe LOGGING con NullHandler, asi que este handler NO corre
         # durante la suite (el handler se prueba directamente).
-        'db': {'class': 'apps.core.logging_handlers.DatabaseLogHandler',
+        'db': {'class': 'core.logging_handlers.DatabaseLogHandler',
                'level': 'INFO'},
     },
     'loggers': {

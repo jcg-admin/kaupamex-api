@@ -16,8 +16,8 @@ import pytest
 from django.db import IntegrityError
 from django.utils import timezone
 
-from apps.platform.authz.models import Module
-from apps.platform.company.models import Company, CompanyModuleSubscription
+from addons.authz.models import Module
+from addons.company.models import Company, CompanyModuleSubscription
 
 pytestmark = pytest.mark.django_db
 

@@ -4,7 +4,7 @@
 direcciones (CP → municipio/estado + lista de colonias). Público (AllowAny):
 la captura de dirección puede ocurrir en checkout anónimo.
 """
-from apps.addons.geo.models import CatalogPostalCode
+from addons.geo.models import CatalogPostalCode
 
 import pytest
 from rest_framework.test import APIClient

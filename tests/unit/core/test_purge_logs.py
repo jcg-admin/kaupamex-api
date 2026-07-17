@@ -17,8 +17,8 @@ import pytest
 from django.core.management import call_command
 from django.utils import timezone
 
-from apps.core.models import AppLog, RequestLog
-from apps.addons.users.models import BusinessEvent
+from core.models import AppLog, RequestLog
+from addons.users.models import BusinessEvent
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 

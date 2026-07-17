@@ -17,7 +17,7 @@ import time
 from unittest.mock import patch
 
 import pytest
-from apps.addons.newsletter.models import NewsletterSubscriber
+from addons.newsletter.models import NewsletterSubscriber
 from django.core import mail, signing
 
 pytestmark = pytest.mark.integration
@@ -306,7 +306,7 @@ class TestAdminCreateCampaign:
         _make_subscriber('dos@example.com', status='CONFIRMED')
         _make_subscriber('pendiente@example.com', status='PENDING')
 
-        with patch('apps.addons.newsletter.views.dispatch_email') as mock_dispatch:
+        with patch('addons.newsletter.views.dispatch_email') as mock_dispatch:
             res = admin_client.post(ADMIN_CAMPAIGN_URL, {
                 'subject': 'Campaña async',
                 'body': 'Hola, esto se encola.',

@@ -10,10 +10,10 @@ from django.contrib.auth import get_user_model
 
 import pytest
 
-from apps.platform.authz.models import (
+from addons.authz.models import (
     AccessLevel, Capability, Module, Role, RoleAssignment, RoleCapability,
 )
-from apps.addons.finance.models import CarrierInvoice, CarrierInvoiceStatus
+from addons.finance.models import CarrierInvoice, CarrierInvoiceStatus
 
 pytestmark = pytest.mark.integration
 

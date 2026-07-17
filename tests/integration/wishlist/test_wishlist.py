@@ -15,9 +15,9 @@ T-104 fixes:
 """
 import pytest
 from decimal import Decimal
-from apps.addons.catalogue.models import Category, Product
-from apps.addons.chartsize.models import VariantType, VariantOption, ProductVariant
-from apps.addons.wishlist.models import WishlistItem
+from addons.catalogue.models import Category, Product
+from addons.chartsize.models import VariantType, VariantOption, ProductVariant
+from addons.wishlist.models import WishlistItem
 from django.contrib.auth import get_user_model
 
 pytestmark = pytest.mark.integration

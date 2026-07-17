@@ -8,7 +8,7 @@ Contrato documentado en:
 """
 import pytest
 from decimal import Decimal
-from apps.addons.settings_app.models import SiteSettings
+from addons.settings_app.models import SiteSettings
 from django.core.exceptions import ValidationError
 
 pytestmark = pytest.mark.unit

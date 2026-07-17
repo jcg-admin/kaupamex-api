@@ -23,11 +23,11 @@ from rest_framework.response import Response
 from rest_framework.test import APIRequestFactory, force_authenticate
 from rest_framework.views import APIView
 
-from apps.platform.authz.models import (
+from addons.authz.models import (
     AccessLevel, Capability, Module, Role, RoleAssignment, RoleCapability,
 )
-from apps.platform.authz.permissions import CapabilityRequiredMixin, require_capability
-from apps.platform.authz.services import unknown_capability_codes
+from addons.authz.permissions import CapabilityRequiredMixin, require_capability
+from addons.authz.services import unknown_capability_codes
 
 User = get_user_model()
 

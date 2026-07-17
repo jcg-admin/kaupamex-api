@@ -10,10 +10,10 @@ UC-CART-06: Merge anonymous cart on login
 import uuid, pytest
 from decimal import Decimal
 from rest_framework.test import APIClient
-from apps.addons.catalogue.models import Category, Product
-from apps.addons.chartsize.models import VariantType, VariantOption, ProductVariant
-from apps.addons.cart.models import Cart, CartItem, SavedCart
-from apps.addons.users.models import IdentityUser as User
+from addons.catalogue.models import Category, Product
+from addons.chartsize.models import VariantType, VariantOption, ProductVariant
+from addons.cart.models import Cart, CartItem, SavedCart
+from addons.users.models import IdentityUser as User
 
 pytestmark = pytest.mark.integration
 

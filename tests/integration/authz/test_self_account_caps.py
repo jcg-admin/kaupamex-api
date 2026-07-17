@@ -6,8 +6,8 @@ sembrar esas capacidades en **todos** los roles para que un usuario no-comprador
 (p. ej. staff no-superadmin) no quede fuera de su propia cuenta
 (decisión ejecutor 2026-07-12).
 """
-from apps.platform.authz.models import Capability, Role, RoleAssignment
-from apps.platform.authz.services import invalidate_capabilities
+from addons.authz.models import Capability, Role, RoleAssignment
+from addons.authz.services import invalidate_capabilities
 
 import pytest
 from django.contrib.auth import get_user_model

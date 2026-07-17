@@ -20,10 +20,10 @@ import pytest
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
-from apps.addons.orders.models import Order
-from apps.addons.payments.models import Payment
-from apps.addons.payments.services import execute_refund
-from apps.addons.payments.gateways.mercadopago import _log_legacy_payments_api
+from addons.orders.models import Order
+from addons.payments.models import Payment
+from addons.payments.services import execute_refund
+from addons.payments.gateways.mercadopago import _log_legacy_payments_api
 
 pytestmark = pytest.mark.integration
 
@@ -85,7 +85,7 @@ class TestCancelRouting:
     def test_routes_to_cancel_order_when_mp_order_id(self, admin_client, user, db):
         pago = _payment(user, mp_order_id='ORD01ABC',
                         status=Payment.STATUS_PENDING)
-        with patch('apps.addons.payments.views.MercadoPagoGateway') as GW:
+        with patch('addons.payments.views.MercadoPagoGateway') as GW:
             gw = GW.return_value
             res = admin_client.post(CANCEL_URL(pago.pk), {}, format='json')
 
@@ -95,7 +95,7 @@ class TestCancelRouting:
 
     def test_routes_to_legacy_when_no_mp_order_id(self, admin_client, user, db):
         pago = _payment(user, mp_order_id='', status=Payment.STATUS_PENDING)
-        with patch('apps.addons.payments.views.MercadoPagoGateway') as GW:
+        with patch('addons.payments.views.MercadoPagoGateway') as GW:
             gw = GW.return_value
             res = admin_client.post(CANCEL_URL(pago.pk), {}, format='json')
 

@@ -1,11 +1,11 @@
 """
-Soft-delete contract tests for apps.addons.questions.ProductQuestion (P-05).
+Soft-delete contract tests for addons.questions.ProductQuestion (P-05).
 DEC-DOC-007.
 """
 from decimal import Decimal
-from apps.addons.catalogue.models import Category, Product
-from apps.addons.questions.models import ProductQuestion
-from apps.core.models import SoftDeleteModel
+from addons.catalogue.models import Category, Product
+from addons.questions.models import ProductQuestion
+from core.models import SoftDeleteModel
 
 import pytest
 

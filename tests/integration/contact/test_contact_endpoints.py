@@ -13,7 +13,7 @@ Admin:
 JSON keys + identifiers in English (DEC-DOC-005).
 """
 import pytest
-from apps.addons.contact.models import ContactMessage
+from addons.contact.models import ContactMessage
 from django.core import mail
 
 pytestmark = pytest.mark.integration

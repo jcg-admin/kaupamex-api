@@ -8,8 +8,8 @@ ya resuelta (L1). Reglas de distintos roles del usuario se combinan con OR
 """
 import pytest
 
-from apps.platform.authz.models import AccessRule, Module, Role, RoleAssignment
-from apps.platform.authz.record_rules import access_q_for, apply_access_rules
+from addons.authz.models import AccessRule, Module, Role, RoleAssignment
+from addons.authz.record_rules import access_q_for, apply_access_rules
 from tests.factories.user_factory import UserFactory
 
 pytestmark = pytest.mark.django_db

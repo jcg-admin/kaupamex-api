@@ -16,18 +16,18 @@ Convenciones del proyecto:
 import re
 import pytest
 from django.contrib.auth import get_user_model
-from apps.addons.users.models import Person
+from addons.users.models import Person
 from django.utils import timezone
 from datetime import timedelta
 
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from apps.addons.orders.models import Order
-from apps.addons.settings_app.models import SiteSettings
-from apps.addons.referral.models import ReferralCode, Referral
-from apps.addons.referral.services import complete_referral_for_order
-from apps.addons.voucher.models import Voucher
+from addons.orders.models import Order
+from addons.settings_app.models import SiteSettings
+from addons.referral.models import ReferralCode, Referral
+from addons.referral.services import complete_referral_for_order
+from addons.voucher.models import Voucher
 from tests.factories.user_factory import make_buyer
 
 pytestmark = pytest.mark.integration

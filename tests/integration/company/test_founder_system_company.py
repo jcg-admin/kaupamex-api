@@ -8,7 +8,7 @@ NO ``company_id`` nullable). Ambos helpers son idempotentes.
 """
 import pytest
 
-from apps.platform.company.models import (
+from addons.company.models import (
     FOUNDER_COMPANY_CODE,
     SYSTEM_COMPANY_CODE,
     Company,

@@ -8,7 +8,7 @@ se fija aquí (no inventar precios). Idempotente: re-ejecutar no cambia nada.
 import pytest
 from django.core.management import call_command
 
-from apps.platform.authz.models import Module
+from addons.authz.models import Module
 
 pytestmark = pytest.mark.django_db
 

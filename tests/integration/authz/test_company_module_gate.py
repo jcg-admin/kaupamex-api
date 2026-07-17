@@ -16,7 +16,7 @@ import datetime
 import pytest
 from django.utils import timezone
 
-from apps.platform.authz.models import (
+from addons.authz.models import (
     AccessLevel,
     Capability,
     DirectEntitlement,
@@ -25,8 +25,8 @@ from apps.platform.authz.models import (
     RoleAssignment,
     RoleCapability,
 )
-from apps.platform.authz.services import invalidate_capabilities, resolve_capabilities
-from apps.platform.company.models import Company, CompanyModuleSubscription
+from addons.authz.services import invalidate_capabilities, resolve_capabilities
+from addons.company.models import Company, CompanyModuleSubscription
 from tests.factories.user_factory import UserFactory
 
 pytestmark = pytest.mark.django_db

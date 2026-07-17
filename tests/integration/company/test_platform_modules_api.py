@@ -9,7 +9,7 @@ from django.contrib.auth import get_user_model
 
 import pytest
 
-from apps.platform.authz.models import Capability, Module, Role, RoleAssignment
+from addons.authz.models import Capability, Module, Role, RoleAssignment
 
 pytestmark = pytest.mark.integration
 

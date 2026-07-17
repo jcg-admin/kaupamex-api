@@ -14,7 +14,7 @@ import pytest
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 
-from apps.base.models import (
+from addons.base.models import (
     _DEFAULT_PARAMETERS,
     _PARAM_CACHE,
     SystemParameter,

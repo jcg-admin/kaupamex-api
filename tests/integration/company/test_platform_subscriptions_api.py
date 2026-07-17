@@ -14,8 +14,8 @@ from decimal import Decimal
 
 from django.utils import timezone
 
-from apps.platform.authz.models import Capability, Module, Role, RoleAssignment
-from apps.platform.company.models import (
+from addons.authz.models import Capability, Module, Role, RoleAssignment
+from addons.company.models import (
     Company,
     CompanyModuleSubscription,
     ModulePrice,

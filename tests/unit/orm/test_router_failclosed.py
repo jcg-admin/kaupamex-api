@@ -9,7 +9,7 @@ automática — se basa en si ``settings.DATABASES`` tiene aliases ``company_*``
 """
 from django.test import override_settings
 
-from apps.platform.company.context import company_scope, set_current_company
+from addons.company.context import company_scope, set_current_company
 from orm.routers import CompanyDatabaseRouter, CompanyContextRequired
 import pytest
 

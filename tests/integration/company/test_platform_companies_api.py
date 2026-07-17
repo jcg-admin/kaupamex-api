@@ -16,8 +16,8 @@ verdad (sin bypass del resolver).
 """
 from django.contrib.auth import get_user_model
 
-from apps.platform.authz.models import Capability, Module, Role, RoleAssignment
-from apps.platform.company.models import Company
+from addons.authz.models import Capability, Module, Role, RoleAssignment
+from addons.company.models import Company
 
 import pytest
 

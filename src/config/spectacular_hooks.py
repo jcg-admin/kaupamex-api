@@ -50,7 +50,7 @@ def _import_app_schema_modules():
     via ``__init_subclass__`` al definirse la clase).
     """
     for app_config in apps.get_app_configs():
-        if not app_config.name.startswith('apps.'):
+        if not app_config.name.startswith(('addons.', 'core')):
             continue  # solo apps propias del proyecto
         try:
             importlib.import_module(f'{app_config.name}.schema')
@@ -85,7 +85,7 @@ def collect_app_tags(result, generator, **kwargs):
     collected = []
 
     for app_config in apps.get_app_configs():
-        if not app_config.name.startswith('apps.'):
+        if not app_config.name.startswith(('addons.', 'core')):
             continue  # solo apps propias del proyecto
 
         try:

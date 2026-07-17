@@ -7,7 +7,7 @@ no en la carpeta (principio PROVEN por Odoo). Enums en inglés (free/paid).
 """
 import pytest
 
-from apps.platform.authz.models import Module
+from addons.authz.models import Module
 
 
 @pytest.mark.django_db

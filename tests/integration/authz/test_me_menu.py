@@ -5,11 +5,11 @@ capacidades del usuario. Verifica: superadmin ve todo; un usuario de solo
 ``support.view`` ve únicamente su sección; sin capacidades el menú es vacío;
 las secciones sin hijos visibles se descartan; requiere autenticación.
 """
-from apps.platform.authz.models import (
+from addons.authz.models import (
     AccessLevel, Capability, MenuItem, Module, Role, RoleAssignment,
     RoleCapability,
 )
-from apps.platform.authz.services import SUPERADMIN_ROLE_CODE, invalidate_capabilities
+from addons.authz.services import SUPERADMIN_ROLE_CODE, invalidate_capabilities
 
 import pytest
 from django.contrib.auth import get_user_model

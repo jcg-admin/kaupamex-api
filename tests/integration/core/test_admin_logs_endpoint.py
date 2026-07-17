@@ -12,7 +12,7 @@ Toca DB → django_db.
 import pytest
 from rest_framework.test import APIClient
 
-from apps.core.models import AppLog, RequestLog
+from core.models import AppLog, RequestLog
 from tests.factories.user_factory import AdminUserFactory, UserFactory
 
 pytestmark = [pytest.mark.integration, pytest.mark.django_db]

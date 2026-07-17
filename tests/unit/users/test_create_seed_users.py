@@ -8,8 +8,8 @@ from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.core.management.base import CommandError
 
-from apps.platform.authz.models import RoleAssignment
-from apps.platform.authz.services import SUPERADMIN_ROLE_CODE
+from addons.authz.models import RoleAssignment
+from addons.authz.services import SUPERADMIN_ROLE_CODE
 
 pytestmark = pytest.mark.unit
 

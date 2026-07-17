@@ -1,5 +1,5 @@
 """
-Soft-delete contract tests for apps.addons.chartsize models (P-07):
+Soft-delete contract tests for addons.chartsize models (P-07):
 - VariantType
 - VariantOption
 - ProductVariant
@@ -8,9 +8,9 @@ DEC-DOC-007: las variantes son referenciadas desde OrderItem/CartItem
 y deben preservar historial.
 """
 from decimal import Decimal
-from apps.addons.catalogue.models import Category, Product
-from apps.addons.chartsize.models import ProductVariant, VariantOption, VariantType
-from apps.core.models import SoftDeleteModel
+from addons.catalogue.models import Category, Product
+from addons.chartsize.models import ProductVariant, VariantOption, VariantType
+from core.models import SoftDeleteModel
 
 import pytest
 

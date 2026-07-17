@@ -9,7 +9,7 @@ BD: kaupamex_qa
 import pytest
 from django.contrib.auth import get_user_model
 
-from apps.addons.users.models import Person
+from addons.users.models import Person
 
 pytestmark = pytest.mark.unit
 

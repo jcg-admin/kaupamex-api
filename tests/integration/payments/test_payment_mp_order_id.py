@@ -8,8 +8,8 @@ gateway_payment_id. Verifica el round-trip real contra MariaDB (kaupamex_qa).
 import pytest
 from decimal import Decimal
 
-from apps.addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
-from apps.addons.payments.models import Payment
+from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from addons.payments.models import Payment
 
 pytestmark = pytest.mark.integration
 

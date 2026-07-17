@@ -6,8 +6,8 @@ UC-CFG-02: Configure shipping methods and costs
 """
 import pytest
 from decimal import Decimal
-from apps.addons.settings_app.models import PaymentGateway, ShippingMethod
-from apps.addons.settings_app.gateway_connector import GatewayConnector
+from addons.settings_app.models import PaymentGateway, ShippingMethod
+from addons.settings_app.gateway_connector import GatewayConnector
 
 pytestmark = pytest.mark.integration
 

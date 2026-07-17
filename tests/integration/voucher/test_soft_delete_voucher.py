@@ -1,5 +1,5 @@
 """
-Soft-delete contract tests for apps.addons.voucher.Voucher (P-01).
+Soft-delete contract tests for addons.voucher.Voucher (P-01).
 
 DEC-DOC-007: Voucher inherits from SoftDeleteModel. Cohabita con
 la semantica de NEGOCIO (is_active + deactivated_at).
@@ -7,8 +7,8 @@ la semantica de NEGOCIO (is_active + deactivated_at).
 from decimal import Decimal
 from datetime import timedelta
 from django.utils import timezone
-from apps.addons.voucher.models import Voucher
-from apps.core.models import SoftDeleteModel
+from addons.voucher.models import Voucher
+from core.models import SoftDeleteModel
 
 import pytest
 

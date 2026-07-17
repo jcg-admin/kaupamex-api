@@ -1,4 +1,4 @@
-"""Tests — apps.addons.geo.CatalogPostalCode + loader load_sepomex (T-202/T-206).
+"""Tests — addons.geo.CatalogPostalCode + loader load_sepomex (T-202/T-206).
 
 Cubre: el modelo mapea las 15 columnas SEPOMEX, la clave natural
 (postal_code, settlement_consecutive_id) es única (un CP -> N colonias), y el
@@ -11,7 +11,7 @@ import pytest
 from django.core.management import call_command
 from django.db import IntegrityError
 
-from apps.addons.geo.models import CatalogPostalCode
+from addons.geo.models import CatalogPostalCode
 
 pytestmark = pytest.mark.django_db
 

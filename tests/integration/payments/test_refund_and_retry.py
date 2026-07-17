@@ -7,10 +7,10 @@ import json
 import pytest
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
-from apps.addons.catalogue.models import Category, Product
-from apps.addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
-from apps.addons.payments.models import Payment, Refund
-from apps.addons.settings_app.models import PaymentGateway
+from addons.catalogue.models import Category, Product
+from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from addons.payments.models import Payment, Refund
+from addons.settings_app.models import PaymentGateway
 from django.contrib.auth import get_user_model
 
 pytestmark = pytest.mark.integration
@@ -77,7 +77,7 @@ def mp_gateway_ref(db):
 @pytest.fixture
 def mock_mp_refund():
     """Mock del SDK de MP para reembolsos."""
-    with patch('apps.addons.payments.gateways.mercadopago.mercadopago') as mock_mp:
+    with patch('addons.payments.gateways.mercadopago.mercadopago') as mock_mp:
         sdk = MagicMock()
         mock_mp.SDK.return_value = sdk
         sdk.refund.return_value.create.return_value = {
@@ -95,7 +95,7 @@ def mock_mp_refund():
 @pytest.fixture
 def mock_mp_sdk_full():
     """Mock completo del SDK de MP (preference + payment + refund)."""
-    with patch('apps.addons.payments.gateways.mercadopago.mercadopago') as mock_mp:
+    with patch('addons.payments.gateways.mercadopago.mercadopago') as mock_mp:
         sdk = MagicMock()
         mock_mp.SDK.return_value = sdk
         sdk.preference.return_value.create.return_value = {
@@ -140,7 +140,7 @@ class TestReembolsoComprador:
         order, payment = _make_order_with_payment(user, prod_ref)
 
         monto_parcial = Decimal('1200.00')
-        with patch('apps.addons.payments.gateways.mercadopago.mercadopago') as mock_mp:
+        with patch('addons.payments.gateways.mercadopago.mercadopago') as mock_mp:
             sdk = MagicMock()
             mock_mp.SDK.return_value = sdk
             sdk.refund.return_value.create.return_value = {
@@ -187,7 +187,7 @@ class TestReembolsoComprador:
     ):
         """FR-PAY-07.02 Escenario 2: gateway no disponible → 503."""
         order, _ = _make_order_with_payment(user, prod_ref)
-        with patch('apps.addons.payments.gateways.mercadopago.mercadopago') as mock_mp:
+        with patch('addons.payments.gateways.mercadopago.mercadopago') as mock_mp:
             sdk = MagicMock()
             mock_mp.SDK.return_value = sdk
             sdk.refund.return_value.create.return_value = {
@@ -312,7 +312,7 @@ class TestReintentoPago:
         token_resp.status_code = 200
         token_resp.json.return_value = {'access_token': 'PP-TOKEN'}
 
-        with patch('apps.addons.payments.gateways.paypal.requests') as mock_req:
+        with patch('addons.payments.gateways.paypal.requests') as mock_req:
             mock_req.post.side_effect = [token_resp, pp_order_resp]
             res = auth_client.post(INITIATE_URL, {
                 'order_number': order.order_number,

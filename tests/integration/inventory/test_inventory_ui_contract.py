@@ -19,11 +19,11 @@ UC-INV-05: POST /api/v2/admin/inventory/import/ accepting initial_state
 import csv, io, pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from decimal import Decimal
-from apps.addons.catalogue.models import Category, Product
-from apps.addons.chartsize.models import VariantType, VariantOption, ProductVariant
-from apps.addons.settings_app.models import SiteSettings
-from apps.addons.inventory.services import InventoryService
-from apps.addons.inventory.models import StockMovement
+from addons.catalogue.models import Category, Product
+from addons.chartsize.models import VariantType, VariantOption, ProductVariant
+from addons.settings_app.models import SiteSettings
+from addons.inventory.services import InventoryService
+from addons.inventory.models import StockMovement
 from urllib.parse import urlparse
 
 pytestmark = pytest.mark.integration

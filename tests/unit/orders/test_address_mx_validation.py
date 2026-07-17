@@ -7,7 +7,7 @@ front (ver iniciativa hardening-checkout-envio-mexico).
 """
 import pytest
 
-from apps.addons.orders.serializers import (
+from addons.orders.serializers import (
     OrderAddressInputSerializer,
     UpdateAddressSerializer,
 )

@@ -1,7 +1,7 @@
 """
 Tests — Signal wiring para notificaciones transaccionales (UC-NOT-01..05)
 
-Verifica que los signal receivers en apps.addons.notifications.signals disparan
+Verifica que los signal receivers en addons.notifications.signals disparan
 las funciones notify_* correctas cuando los modelos de dominio cambian.
 
 on_commit se parchea para ejecutar callbacks inmediatamente (los tests
@@ -11,14 +11,14 @@ import pytest
 from decimal import Decimal
 from unittest.mock import patch
 
-from apps.addons.notifications.models import Notification
-from apps.addons.orders.models import Order, OrderValue
-from apps.addons.payments.models import Payment, Refund
-from apps.addons.returns.models import ReturnRequest
+from addons.notifications.models import Notification
+from addons.orders.models import Order, OrderValue
+from addons.payments.models import Payment, Refund
+from addons.returns.models import ReturnRequest
 
 pytestmark = pytest.mark.integration
 
-_ON_COMMIT_PATH = 'apps.addons.notifications.service.transaction.on_commit'
+_ON_COMMIT_PATH = 'addons.notifications.service.transaction.on_commit'
 
 
 # ── Helpers ─────────────────────────────────────────────────────────────

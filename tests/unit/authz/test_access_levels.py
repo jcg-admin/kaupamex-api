@@ -10,7 +10,7 @@ TDD for the "generar los grupos" slice (T-PLT-31; DEC-11 ratified 2026-07-11).
 """
 import pytest
 
-from apps.platform.authz.models import (
+from addons.authz.models import (
     AccessLevel,
     Capability,
     Module,
@@ -18,7 +18,7 @@ from apps.platform.authz.models import (
     RoleAssignment,
     RoleCapability,
 )
-from apps.platform.authz.services import (
+from addons.authz.services import (
     has_capability,
     invalidate_capabilities,
     resolve_capabilities,

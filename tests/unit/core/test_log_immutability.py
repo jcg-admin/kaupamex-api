@@ -14,7 +14,7 @@ Toca DB -> django_db.
 """
 import pytest
 
-from apps.core.models import AppLog, RequestLog
+from core.models import AppLog, RequestLog
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 

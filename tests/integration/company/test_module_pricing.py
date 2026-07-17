@@ -17,8 +17,8 @@ from django.utils import timezone
 
 import pytest
 
-from apps.platform.authz.models import Module
-from apps.platform.company.models import (
+from addons.authz.models import Module
+from addons.company.models import (
     Company,
     CompanyModuleSubscription,
     ModulePrice,

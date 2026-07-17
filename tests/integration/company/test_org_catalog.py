@@ -1,7 +1,7 @@
 """Org catalog HR-core — Subsidiary / Department / Job (UC-PLT-14, DIS-01/02).
 
 Primera rebanada del módulo Employee Management (familia HR): la estructura
-organizativa del tenant vive junto a ``Company`` (``apps.platform.company``),
+organizativa del tenant vive junto a ``Company`` (``addons.company``),
 no en ``users`` — la dependencia es ``users → platform.company`` (diseño
 :ref:`diseno-modelo-organizacion-hr-core`, DIS-01).
 
@@ -15,7 +15,7 @@ propio padre ni cerrar un ciclo (``SUBSIDIARY_CYCLE`` / ``DEPARTMENT_CYCLE``).
 import pytest
 from django.core.exceptions import ValidationError
 
-from apps.platform.company.models import (
+from addons.company.models import (
     Company,
     Department,
     Job,

@@ -3,8 +3,8 @@ import pytest
 from datetime import timedelta
 from decimal import Decimal
 from django.utils import timezone
-from apps.addons.catalogue.models import Category, Product
-from apps.addons.voucher.models import Voucher
+from addons.catalogue.models import Category, Product
+from addons.voucher.models import Voucher
 
 pytestmark = pytest.mark.integration
 

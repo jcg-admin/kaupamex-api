@@ -12,13 +12,13 @@ defecto), el ``Person`` asociado. Se aceptan los kwargs legacy
 import factory
 from django.contrib.auth import get_user_model
 
-from apps.platform.authz.models import Capability, Module, Role, RoleAssignment
-from apps.platform.authz.services import (
+from addons.authz.models import Capability, Module, Role, RoleAssignment
+from addons.authz.services import (
     BUYER_ROLE_CODE, SUPERADMIN_ROLE_CODE, assign_buyer_role,
     invalidate_capabilities,
 )
-from apps.platform.authz.management.commands.seed_authz import NAMED_ACTIONS
-from apps.addons.users.models import EmployeeProfile, Person
+from addons.authz.management.commands.seed_authz import NAMED_ACTIONS
+from addons.users.models import EmployeeProfile, Person
 
 User = get_user_model()
 
@@ -111,7 +111,7 @@ class AdminUserFactory(UserFactory):
     """Identidad de personal interno (EmployeeProfile).
 
     NOTA: la autorización admin ya NO es un flag ``is_staff``; se resuelve por
-    ``apps.platform.authz`` (Role/Capability, DEC-01=B). Esta factory crea la identidad +
+    ``addons.authz`` (Role/Capability, DEC-01=B). Esta factory crea la identidad +
     EmployeeProfile; la asignación del rol ``superadmin`` u otros la hace el test
     o el seed de authz según lo que verifique.
     """

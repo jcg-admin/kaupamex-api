@@ -13,7 +13,7 @@ permiso correcto SÍ puede gestionar el inventario) y el negativo (sin el
 permiso → 403), sin bypass de superadmin.
 """
 from django.contrib.auth import get_user_model
-from apps.platform.authz.models import (
+from addons.authz.models import (
     AccessLevel, Capability, Module, Role, RoleAssignment, RoleCapability,
 )
 

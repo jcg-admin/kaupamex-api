@@ -11,9 +11,9 @@ Endpoints under test:
 English JSON keys per DEC-DOC-005. Spanish business codes per DEC-DOC-006.
 """
 from decimal import Decimal
-from apps.addons.catalogue.models import Category, Product
-from apps.addons.orders.models import Order, OrderAddress, OrderItem, OrderValue
-from apps.addons.logistics.models import Courier, ShipmentGuide
+from addons.catalogue.models import Category, Product
+from addons.orders.models import Order, OrderAddress, OrderItem, OrderValue
+from addons.logistics.models import Courier, ShipmentGuide
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
