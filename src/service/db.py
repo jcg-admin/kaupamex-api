@@ -74,6 +74,27 @@ def build_company_databases(db_names, base_default):
     return {name: build_company_alias(base_default, name) for name in db_names}
 
 
+def install_company_aliases(databases, names=None, using=DEFAULT_DB_ALIAS):
+    """Loader T-091-05: puebla el dict ``DATABASES`` con un alias por base
+    ``company_<N>_db`` (== ``connection_info_for`` de cada base al boot).
+
+    ``names`` explícito (roster de ``settings``, 12-factor) **no** consulta la
+    DB — safe en el import de ``settings`` (chicken-and-egg con ``connections``;
+    una DB fresca/CI aún no existe). ``names=None`` descubre por
+    ``information_schema`` (``list_company_db_names``): uso **runtime**, no en
+    settings-import. Con roster vacío (N=1) es no-op: ``DATABASES`` queda con
+    ``default``. Idempotente (no re-crea aliases ya presentes). Muta y devuelve
+    el propio ``databases``.
+    """
+    if names is None:
+        names = list_company_db_names(using)
+    base_default = databases[using]
+    for name in names:
+        if name not in databases:
+            databases[name] = build_company_alias(base_default, name)
+    return databases
+
+
 # ---------------------------------------------------------------------------
 # Descubrimiento de bases (== ``service/db.list_dbs`` sobre ``pg_database``)
 # ---------------------------------------------------------------------------

@@ -149,6 +149,23 @@ DATABASES = {
     }
 }
 
+# Multi-DB DB-per-company (SOL-091, T-091-05). Roster EXPLÍCITO de bases de
+# empresa: vacío = N=1 (sólo ``default``). NO se descubre por
+# ``information_schema`` en el import de settings (chicken-and-egg con
+# ``connections``; una DB fresca/CI aún no existe) — el roster es 12-factor y el
+# descubrimiento runtime vive en ``service.db.list_company_db_names``. El
+# ``default=''`` es de un roster opcional (feature-off), no de un secreto de
+# conexión (SOL-087 aplica al bloque ``default`` de arriba).
+from service.db import install_company_aliases  # noqa: E402
+
+_MULTIDB_COMPANY_DBS = config('MULTIDB_COMPANY_DATABASES', default='', cast=Csv())
+install_company_aliases(DATABASES, list(_MULTIDB_COMPANY_DBS))
+
+# Router DB-per-company: enruta dominio→company_<N>_db, control L0→default. El
+# fail-closed duro (dominio sin empresa bajo N>1) se activa solo cuando el roster
+# de arriba puebla aliases ``company_*`` (ver ``orm.routers``).
+DATABASE_ROUTERS = ['orm.routers.CompanyDatabaseRouter']
+
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},

@@ -26,10 +26,27 @@ Adaptación fiel (``analisis-adaptacion-odoo-multidb``):
 
 Ver diseño: ``at-aislamiento-multi-db-per-company`` (D-091-1..5).
 """
+import re
+
 from django.conf import settings
 from django.db import DEFAULT_DB_ALIAS
 
 from apps.platform.company.context import get_current_company
+
+
+class CompanyContextRequired(Exception):
+    """Fail-closed duro (T-091-05): dominio sin empresa activa bajo N>1.
+
+    Bajo multi-DB (hay bases ``company_<N>_db`` configuradas), una operación de
+    dominio sin empresa en contexto **no** puede caer a ``default`` (filtraría
+    los datos de una empresa al plano de control). El wiring convierte ese
+    ``None`` del router en este rechazo explícito. Bajo N=1 (sin bases company)
+    el guard está dormido y se preserva la caída a ``default``.
+    """
+
+
+# Forma canónica del alias de base de empresa (== ``company_db_alias``).
+_COMPANY_ALIAS_RE = re.compile(r'^company_\d+_db$')
 
 # Plano de control L0 (vive en 'default'): apps de infra que NO se particionan
 # por empresa. Todo lo demás (dominio) va a company_<N>_db. La lista de bases
@@ -60,6 +77,16 @@ def _is_control_plane(app_label, model_name):
     return ('%s.%s' % (app_label, model_name or '')).lower() in _CONTROL_PLANE_MODELS
 
 
+def _has_company_databases():
+    """¿Hay bases ``company_<N>_db`` en ``settings.DATABASES``? (N>1).
+
+    Activa el fail-closed automáticamente: en cuanto el loader (T-091-05) puebla
+    aliases ``company_*``, el router deja de tolerar dominio-sin-empresa. En N=1
+    (sólo ``default``) devuelve ``False`` y el guard queda dormido.
+    """
+    return any(_COMPANY_ALIAS_RE.match(alias) for alias in settings.DATABASES)
+
+
 class CompanyDatabaseRouter:
     """Enruta cada modelo a ``default`` (control L0) o ``company_<N>_db`` (dominio)."""
 
@@ -67,16 +94,47 @@ class CompanyDatabaseRouter:
         meta = model._meta
         if _is_control_plane(meta.app_label, meta.model_name):
             return DEFAULT_DB_ALIAS
-        # Dominio: la base de la empresa activa (o None -> Django cae a default,
-        # correcto para N=1; ver F-DJ-01).
-        return company_db_alias(get_current_company())
+        company_id = get_current_company()
+        if company_id is None:
+            # Sin empresa activa -> None (N=1 cae a default; N>1 fail-closed en
+            # ``_route``).
+            return None
+        alias = company_db_alias(company_id)
+        # Degeneración N=1 (H-API-091-06): si la base de la empresa aún NO está
+        # provisionada/registrada en ``settings.DATABASES``, el dominio vive en
+        # ``default`` y el **row-scoping SOL-085** (filtro por columna
+        # ``company_id``) aísla intra-base. El routing DB-per-company sólo activa
+        # cuando la base existe (N>1). Sin este guard, una query bajo
+        # ``company_scope(X)`` en N=1 iría a un alias inexistente y rompería
+        # SOL-085 (regresión observada al cablear ``DATABASE_ROUTERS``).
+        if alias in settings.DATABASES:
+            return alias
+        return None
+
+    def _route(self, model):
+        """``_target`` + guard fail-closed duro para dominio-sin-empresa bajo N>1.
+
+        ``_target`` devuelve ``None`` **sólo** para dominio sin empresa activa
+        (control-plane devuelve ``default``; dominio-con-empresa devuelve su
+        alias). Ese ``None`` cae a ``default``: correcto en N=1, fuga en N>1 →
+        se rechaza.
+        """
+        target = self._target(model)
+        if target is None and _has_company_databases():
+            meta = model._meta
+            raise CompanyContextRequired(
+                'operacion de dominio %s.%s sin empresa activa bajo multi-DB '
+                '(N>1); fijar company_scope antes de leer/escribir'
+                % (meta.app_label, meta.model_name)
+            )
+        return target
 
     def db_for_read(self, model, **hints):
         # Hook de réplica futura (Odoo ``_db_readonly``); hoy = primaria.
-        return self._target(model)
+        return self._route(model)
 
     def db_for_write(self, model, **hints):
-        return self._target(model)
+        return self._route(model)
 
     def allow_relation(self, obj1, obj2, **hints):
         # Sólo relaciones dentro del mismo alias resuelto (sin joins cross-DB,

@@ -11,8 +11,20 @@ El plano de control (lo que vive en ``default``) es infraestructura de Django
 ninguna entidad. La lista de bases de empresa se descubre de
 ``information_schema`` (== ``list_dbs`` de Odoo), no de una tabla.
 """
+from django.test import override_settings
+
 from apps.platform.company.context import company_scope, set_current_company
 from orm.routers import CompanyDatabaseRouter, company_db_alias
+
+# Routing DB-per-company (N>1) sólo activa cuando la base de la empresa está
+# configurada en ``settings.DATABASES``. Bajo N=1 (settings de testing, sin
+# aliases company) el router degenera a ``default`` aunque haya empresa activa,
+# para no romper el row-scoping SOL-085 (H-API-091-06). Los tests que verifican
+# el ruteo a ``company_5_db`` configuran ese alias explícitamente.
+_WITH_COMPANY_5 = {
+    'default': {'ENGINE': 'django.db.backends.mysql', 'NAME': 'kaupamex_db'},
+    'company_5_db': {'ENGINE': 'django.db.backends.mysql', 'NAME': 'company_5_db'},
+}
 
 
 class _Meta:
@@ -40,16 +52,27 @@ def test_company_db_alias_maps_id_to_alias():
     assert company_db_alias(None) is None
 
 
+@override_settings(DATABASES=_WITH_COMPANY_5)
 def test_domain_reads_and_writes_go_to_active_company_db():
+    # Con la base de la empresa provisionada (N>1) el dominio rutea a su base.
     with company_scope(5):
         assert router.db_for_read(DOMAIN) == 'company_5_db'
         assert router.db_for_write(DOMAIN) == 'company_5_db'
 
 
-def test_domain_is_fail_closed_without_active_company():
+def test_domain_without_active_company_returns_none_n1():
+    # N=1 (settings de testing, sin aliases company): sin empresa -> default.
     set_current_company(None)
     assert router.db_for_read(DOMAIN) is None
     assert router.db_for_write(DOMAIN) is None
+
+
+def test_domain_with_active_company_but_unprovisioned_db_degenerates_n1():
+    # N=1 + empresa activa cuya base NO está provisionada: degenera a 'default'
+    # (None) para que el row-scoping SOL-085 aísle por columna (H-API-091-06).
+    with company_scope(5):  # company_5_db NO está en settings de testing
+        assert router.db_for_read(DOMAIN) is None
+        assert router.db_for_write(DOMAIN) is None
 
 
 def test_control_plane_infra_goes_to_default():
@@ -71,6 +94,7 @@ def test_allow_migrate_domain_in_company_db_and_default_for_n1():
     assert router.allow_migrate('default', 'catalogue', 'product') is True
 
 
+@override_settings(DATABASES=_WITH_COMPANY_5)
 def test_allow_relation_only_within_same_alias():
     with company_scope(5):
         assert router.allow_relation(DOMAIN, _Model('orders', 'order')) is True
