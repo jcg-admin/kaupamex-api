@@ -1,7 +1,7 @@
 ```yml
 type: Contexto Persistente
 version: 4.0.0
-updated_at: 2026-07-05 08:12:48
+updated_at: 2026-07-17 19:33:06
 ```
 
 # CLAUDE.md — e-comerce
@@ -17,6 +17,15 @@ updated_at: 2026-07-05 08:12:48
   (`practicayoruba_db`, `practicayoruba_qa`), usuarios (`django_user`
   contra esos schemas), env files (`practicayoruba/.env`), runbooks
   internos, branding del UI ("PracticaYoruba UI"), etc.
+- **Plataforma vs tenant (DEC-KX-05):** el modelo es multi-tenant. El
+  **operador L0** de la plataforma es **Kaupamex** (schemas `kaupamex_*`,
+  `SYSTEM_COMPANY_CODE='kaupamex_global'`); **PracticaYoruba** es el tenant
+  **L1 founder** — el ejemplo/tenant insignia (`FOUNDER_COMPANY_CODE=
+  'practicayoruba'`), **no** el operador de plataforma ni "el producto"
+  como un todo. Los nombres `practicayoruba_*` del codigo son de ese tenant
+  L1. Regla de clasificacion de config: infra/ops → L0 (Kaupamex);
+  per-tenant (contacto, newsletter, remitente transaccional) → L1/L3
+  (`CompanySetting`). Ver DEC-KX-05 (iniciativa `plataforma-kaupamex`).
 
 Una iniciativa cuyo slug contiene `practicayoruba` (ej.
 `crear-practicayoruba-db`, `configurar-red-dmz-practicayoruba-server`)
