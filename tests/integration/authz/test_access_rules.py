@@ -7,6 +7,7 @@ ya resuelta (L1). Reglas de distintos roles del usuario se combinan con OR
 (semántica de grupos de ``ir.rule``); sin reglas → sin restricción.
 """
 import pytest
+from django.db import IntegrityError, transaction
 
 from addons.authz.models import AccessRule, Module, Role, RoleAssignment
 from addons.authz.record_rules import access_q_for, apply_access_rules
@@ -83,3 +84,98 @@ def test_inactive_rule_is_ignored():
     )
     qs = apply_access_rules(Module.objects.filter(code__startswith='off-'), user)
     assert set(qs.values_list('code', flat=True)) == {'off-1', 'off-2'}
+
+
+# ---------------------------------------------------------------------------
+# Paridad ir.rule (SOL-094): operaciones CRUD + reglas globales (AND).
+# ---------------------------------------------------------------------------
+
+
+def test_global_rule_applies_without_role():
+    """Una regla global (``role=None``) aplica aunque el usuario no tenga roles."""
+    user = UserFactory()
+    Module.objects.create(code='g-1', name='1')
+    Module.objects.create(code='g-2', name='2')
+    AccessRule.objects.create(role=None, model_label='authz.module', domain={'code': 'g-1'})
+    qs = apply_access_rules(Module.objects.filter(code__startswith='g-'), user)
+    assert set(qs.values_list('code', flat=True)) == {'g-1'}
+
+
+def test_global_and_role_rule_are_and_combined():
+    """Global (AND) se cruza con la de rol (OR): la fila debe satisfacer ambas."""
+    user = UserFactory()
+    role = Role.objects.create(code='r-ga', name='GA')
+    RoleAssignment.objects.create(user=user, role=role)
+    Module.objects.create(code='ga-keep', name='K', is_active=True)
+    Module.objects.create(code='ga-role-only', name='R', is_active=True)
+    Module.objects.create(code='ga-global-only', name='G', is_active=False)
+    # Global: solo modulos activos. De rol: solo los que empiezan con 'ga-'.
+    AccessRule.objects.create(role=None, model_label='authz.module', domain={'is_active': True})
+    AccessRule.objects.create(role=role, model_label='authz.module', domain={'code__startswith': 'ga-'})
+    qs = apply_access_rules(Module.objects.filter(code__startswith='ga-'), user)
+    # 'ga-global-only' es 'ga-' (pasa rol) pero is_active=False (falla global) → excluido.
+    assert set(qs.values_list('code', flat=True)) == {'ga-keep', 'ga-role-only'}
+
+
+def test_perm_filters_by_mode():
+    """Una regla con ``perm_write=False`` acota lectura pero no escritura."""
+    user = UserFactory()
+    role = Role.objects.create(code='r-pm', name='PM')
+    RoleAssignment.objects.create(user=user, role=role)
+    Module.objects.create(code='pm-1', name='1')
+    Module.objects.create(code='pm-2', name='2')
+    AccessRule.objects.create(
+        role=role, model_label='authz.module', domain={'code': 'pm-1'},
+        perm_read=True, perm_write=False, perm_create=False, perm_unlink=False,
+    )
+    read_qs = apply_access_rules(Module.objects.filter(code__startswith='pm-'), user, mode='read')
+    write_qs = apply_access_rules(Module.objects.filter(code__startswith='pm-'), user, mode='write')
+    assert set(read_qs.values_list('code', flat=True)) == {'pm-1'}          # regla aplica a read
+    assert set(write_qs.values_list('code', flat=True)) == {'pm-1', 'pm-2'}  # sin regla write → sin restricción
+
+
+def test_unlink_mode_uses_perm_unlink():
+    """El modo ``unlink`` (borrar) usa ``perm_unlink`` (paridad ir.rule 'Delete')."""
+    user = UserFactory()
+    role = Role.objects.create(code='r-un', name='UN')
+    RoleAssignment.objects.create(user=user, role=role)
+    Module.objects.create(code='un-1', name='1')
+    Module.objects.create(code='un-2', name='2')
+    AccessRule.objects.create(
+        role=role, model_label='authz.module', domain={'code': 'un-1'},
+        perm_read=False, perm_write=False, perm_create=False, perm_unlink=True,
+    )
+    unlink_qs = apply_access_rules(Module.objects.filter(code__startswith='un-'), user, mode='unlink')
+    read_qs = apply_access_rules(Module.objects.filter(code__startswith='un-'), user, mode='read')
+    assert set(unlink_qs.values_list('code', flat=True)) == {'un-1'}         # aplica a unlink
+    assert set(read_qs.values_list('code', flat=True)) == {'un-1', 'un-2'}   # no aplica a read
+
+
+def test_universal_domain_grants_all():
+    """Regla de dominio universal (``{}``) no restringe — patrón operador L0."""
+    user = UserFactory()
+    role = Role.objects.create(code='r-op', name='OP')
+    RoleAssignment.objects.create(user=user, role=role)
+    Module.objects.create(code='op-1', name='1')
+    Module.objects.create(code='op-2', name='2')
+    AccessRule.objects.create(role=role, model_label='authz.module', domain={})
+    qs = apply_access_rules(Module.objects.filter(code__startswith='op-'), user)
+    assert set(qs.values_list('code', flat=True)) == {'op-1', 'op-2'}
+
+
+def test_invalid_mode_raises():
+    """Un modo fuera de ``AccessRule.MODES`` es un error (paridad ir.rule)."""
+    user = UserFactory()
+    with pytest.raises(ValueError):
+        access_q_for('authz.module', user, mode='delete')
+
+
+def test_at_least_one_perm_constraint():
+    """Una regla sin ninguna operación marcada viola la constraint (ir.rule)."""
+    role = Role.objects.create(code='r-np', name='NP')
+    with pytest.raises(IntegrityError):
+        with transaction.atomic():
+            AccessRule.objects.create(
+                role=role, model_label='authz.module', domain={},
+                perm_read=False, perm_write=False, perm_create=False, perm_unlink=False,
+            )

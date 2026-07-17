@@ -229,19 +229,33 @@ class RoleAssignment(TimeStampedModel):
 
 
 class AccessRule(TimeStampedModel):
-    """Regla de acceso a nivel de fila (L3) — motor genérico tipo Odoo ``ir.rule``.
+    """Regla de acceso a nivel de fila (L3) — paridad ``ir.rule`` de Odoo.
+
+    Adaptado de ``odoo/addons/base/models/ir_rule.py`` (Odoo Community, LGPL-3)
+    — referencia de patrón/comportamiento, reimplementación nativa (SOL-094).
 
     DEC-KX-02: ``model_label`` + ``role`` (grupo) + ``domain`` (filtro ORM
     serializable), **editable en runtime**, aplicable a cualquier dimensión
     (subsidiaria, departamento, ``own``, canal…). Es **aditivo** (concede
     visibilidad de un subconjunto de filas dentro de la company ya resuelta por
-    L1); no resta permisos concedidos por L2. Reglas de distintos roles del
-    usuario se combinan con **OR** (semántica de grupos de ``ir.rule``). Sin
-    reglas para el modelo → sin restricción. El servicio de aplicación vive en
-    ``addons.authz.record_rules``.
+    L1); no resta permisos concedidos por L2.
+
+    Semántica ``ir.rule`` (``ir_rule.py:_compute_domain``): las reglas se
+    filtran por la **operación** pedida (``perm_read``/``perm_write``/
+    ``perm_create``/``perm_unlink``, ``_MODES`` en Odoo); las reglas de **rol**
+    del usuario se combinan con **OR** y las reglas **globales** (``role`` nulo,
+    ``_compute_global = not groups``) con **AND** (obligatorias). Sin reglas para
+    el modelo → sin restricción (el fail-closed lo da L1, no L3). El servicio de
+    aplicación vive en ``addons.authz.record_rules``.
     """
+    # Modos de operación (paridad ``ir_rule.py:_MODES``).
+    MODES = ('read', 'write', 'create', 'unlink')
+
     role = models.ForeignKey(
         Role, on_delete=models.CASCADE, related_name='access_rules', verbose_name='Rol',
+        null=True, blank=True,
+        help_text="Rol al que aplica la regla; **nulo = regla global** "
+                  "(obligatoria, se combina con AND). Paridad ``ir.rule.groups``.",
     )
     model_label = models.CharField(
         max_length=100, verbose_name='Modelo',
@@ -252,6 +266,13 @@ class AccessRule(TimeStampedModel):
         help_text="Filtro ORM serializado; los valores ``$user``/``$company`` se "
                   "resuelven en runtime al pk del usuario / id de su company.",
     )
+    # Operaciones CRUD que la regla concede (paridad ``ir_rule.py:27-30``).
+    # Default True en las cuatro, como Odoo: una regla aplica a todos los modos
+    # salvo que se restrinja explícitamente.
+    perm_read = models.BooleanField(default=True, verbose_name='Leer')
+    perm_write = models.BooleanField(default=True, verbose_name='Escribir')
+    perm_create = models.BooleanField(default=True, verbose_name='Crear')
+    perm_unlink = models.BooleanField(default=True, verbose_name='Borrar')
     is_active = models.BooleanField(default=True, verbose_name='Activa')
 
     class Meta:
@@ -260,9 +281,20 @@ class AccessRule(TimeStampedModel):
         verbose_name_plural = 'Reglas de acceso'
         ordering = ['model_label', 'role__code']
         indexes = [models.Index(fields=['model_label', 'is_active'])]
+        constraints = [
+            # Paridad ``ir_rule.py:_no_access_rights``: una regla sin ninguna
+            # operación marcada no concede nada — se rechaza.
+            models.CheckConstraint(
+                condition=(
+                    models.Q(perm_read=True) | models.Q(perm_write=True)
+                    | models.Q(perm_create=True) | models.Q(perm_unlink=True)
+                ),
+                name='authz_access_rule_at_least_one_perm',
+            ),
+        ]
 
     def __str__(self):
-        return f'{self.model_label} @ {self.role_id}'
+        return f'{self.model_label} @ {self.role_id or "global"}'
 
 
 class DirectEntitlement(TimeStampedModel):
