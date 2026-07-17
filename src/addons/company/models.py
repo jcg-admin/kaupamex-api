@@ -48,19 +48,30 @@ class CompanyScopedManager(models.Manager):
 FOUNDER_COMPANY_CODE = 'practicayoruba'
 SYSTEM_COMPANY_CODE = 'kaupamex_global'
 
-# Valores L1 de contacto/newsletter de PracticaYoruba (founder tenant, SOL-090
-# slice 3), sembrados como sus propios ``CompanySetting`` por la migración de
-# datos ``company/0006_seed_founder_settings``. Tal cual existían en
-# ``config.settings.base`` (``CONTACT_FROM_EMAIL``/``CONTACT_NOTIFY_EMAIL``/
-# ``NEWSLETTER_FROM_EMAIL``) antes de esta slice — PracticaYoruba es tenant
-# L1 (NO L0/Kaupamex), así que no eran stale, sólo estaban mal ubicados como
-# ``default=`` global. Constante módulo-nivel (dato, no comportamiento) para
-# que la migración y los tests reseed la compartan sin duplicarla (mismo
-# patrón que ``_DEFAULT_PARAMETERS`` en ``addons.base.models``).
+# Valores L1 de contacto/newsletter/transaccional de PracticaYoruba (founder
+# tenant, SOL-090 slice 3 + follow-up #199), sembrados como sus propios
+# ``CompanySetting`` por las migraciones de datos
+# ``company/0006_seed_founder_settings`` (contacto/newsletter) y
+# ``company/0007_seed_founder_notifications_from`` (transaccional). Tal cual
+# existían en ``config.settings.base`` (``CONTACT_FROM_EMAIL``/
+# ``CONTACT_NOTIFY_EMAIL``/``NEWSLETTER_FROM_EMAIL``/``DEFAULT_FROM_EMAIL``)
+# antes de estas slices — PracticaYoruba es tenant L1 (NO L0/Kaupamex), así
+# que no eran stale, sólo estaban mal ubicados como ``default=`` global.
+#
+# ``notifications.from_email`` es el remitente **no-reply transaccional único**
+# del tenant: bajo el diseño previo TODO el correo transaccional (auth,
+# órdenes, envíos, devoluciones, soporte) salía de un solo ``DEFAULT_FROM_EMAIL``
+# (``noreply@``). Se conserva esa unicidad como una sola clave per-tenant, en
+# vez de una clave por addon.
+#
+# Constante módulo-nivel (dato, no comportamiento) para que la migración y los
+# tests reseed la compartan sin duplicarla (mismo patrón que
+# ``_DEFAULT_PARAMETERS`` en ``addons.base.models``).
 FOUNDER_L1_SETTINGS = {
     'contact.from_email': 'hola@practicayoruba.com',
     'contact.notify_email': 'hola@practicayoruba.com',
     'newsletter.from_email': 'newsletter@practicayoruba.com',
+    'notifications.from_email': 'noreply@practicayoruba.com',
 }
 
 

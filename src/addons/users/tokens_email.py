@@ -18,6 +18,7 @@ from django.core.cache import cache
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 from rest_framework_simplejwt.tokens import RefreshToken
+from addons.company.models import CompanySetting
 from core.email_executor import dispatch_email
 from django.conf import settings
 from django.template.loader import render_to_string
@@ -30,6 +31,14 @@ logger = logging.getLogger(__name__)
 
 RESET_TTL_HOURS  = 1
 VERIFY_TTL_HOURS = 24
+
+# Remitente no-reply transaccional — L1 per-tenant (SOL-090 follow-up #199,
+# CompanySetting 'notifications.from_email', misma clave que las notificaciones
+# de órdenes/envíos: un solo no-reply por tenant). Los correos de auth
+# (verificación/reset) disparan PRE-login, así que NO hay empresa ambiente; se
+# resuelve con ``company=user.company_id`` explícito (el ``user`` sí se conoce
+# al enviarlos). El fallback es el neutral de plataforma (Kaupamex).
+NOTIFICATIONS_FROM_EMAIL_DEFAULT = 'noreply@kaupamex.com'
 
 
 def _hash_token(plain: str) -> str:
@@ -82,7 +91,10 @@ def send_password_reset_email(user, plain_token: str):
             f'Si no solicitaste esto, ignora este mensaje.\n\n'
             f'— Equipo PracticaYoruba'
         ),
-        from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@practicayoruba.com'),
+        from_email=CompanySetting.get_setting(
+            'notifications.from_email', NOTIFICATIONS_FROM_EMAIL_DEFAULT,
+            company=user.company_id,
+        ),
         recipient_list=[user.email],
         html_message=html_body,
     )
@@ -210,7 +222,10 @@ def send_verification_email(user, plain_token: str, next_path: str = ''):
             f'Si no te registraste en PracticaYoruba, ignora este mensaje.\n\n'
             f'— Equipo PracticaYoruba'
         ),
-        from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@practicayoruba.com'),
+        from_email=CompanySetting.get_setting(
+            'notifications.from_email', NOTIFICATIONS_FROM_EMAIL_DEFAULT,
+            company=user.company_id,
+        ),
         recipient_list=[user.email],
         html_message=html_body,
     )

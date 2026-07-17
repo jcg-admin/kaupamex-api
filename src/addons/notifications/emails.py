@@ -9,9 +9,21 @@ import logging
 from django.conf import settings
 from django.template.loader import render_to_string
 
+from addons.company.models import CompanySetting
 from core.email_executor import dispatch_email
 
 logger = logging.getLogger(__name__)
+
+# Remitente no-reply transaccional — L1 per-tenant (SOL-090 follow-up #199,
+# CompanySetting 'notifications.from_email'). Antes era
+# ``settings.DEFAULT_FROM_EMAIL`` con ``default=`` cableado a
+# ``noreply@practicayoruba.com``. Ese valor NO era stale: es la config L1
+# correcta del tenant founder (Kaupamex es L0, no PracticaYoruba); la migración
+# ``company/0007_seed_founder_notifications_from`` lo siembra como su propio
+# ``CompanySetting``. La constante de abajo es el fallback **neutral** (nivel
+# Kaupamex, no de PracticaYoruba) que usa ``get_setting`` cuando no hay empresa
+# en contexto (pre resolutor subdominio→company, UC-PLT-06).
+NOTIFICATIONS_FROM_EMAIL_DEFAULT = 'noreply@kaupamex.com'
 
 
 def _render_transactional(heading, paragraphs, button_label=None,
@@ -29,7 +41,14 @@ def _render_transactional(heading, paragraphs, button_label=None,
 
 
 def _from_email():
-    return getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@practicayoruba.com')
+    # Empresa ambiente (CompanyContextMiddleware la fija desde
+    # ``request.user.company_id``); las notificaciones transaccionales disparan
+    # en requests autenticados del comprador, así que bajo N=1 resuelve al
+    # founder (``noreply@practicayoruba.com`` sembrado). Sin empresa en
+    # contexto → fallback neutral de plataforma.
+    return CompanySetting.get_setting(
+        'notifications.from_email', NOTIFICATIONS_FROM_EMAIL_DEFAULT,
+    )
 
 
 def _frontend_url():

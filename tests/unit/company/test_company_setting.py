@@ -159,6 +159,11 @@ class TestFounderSeeding:
         assert CompanySetting.get_setting(
             'newsletter.from_email', company=founder,
         ) == 'newsletter@practicayoruba.com'
+        # #199: remitente no-reply transaccional del founder (auth/órdenes/
+        # envíos/devoluciones/soporte) — antes ``DEFAULT_FROM_EMAIL`` global.
+        assert CompanySetting.get_setting(
+            'notifications.from_email', company=founder,
+        ) == 'noreply@practicayoruba.com'
 
     def test_neutral_fallback_is_not_practicayoruba_specific_for_other_company(self):
         other = _company('other-tenant-founder-seed')

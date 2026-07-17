@@ -190,35 +190,46 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# Dirección remitente por defecto para todos los emails del sistema.
-# Sobrescribir en production.py via decouple si se necesita otro valor.
-DEFAULT_FROM_EMAIL = 'noreply@practicayoruba.com'
+# Dirección remitente por defecto de plataforma (L0, Kaupamex). Fallback
+# neutral env-overridable: lo usa Django implícitamente (send_mail sin
+# from_email) y el alertamiento de backups (infra L0, sin dimensión de
+# empresa). NO es la verdad per-tenant — el remitente transaccional de cada
+# tenant vive en L3 (ver abajo). Sobrescribir en production.py via decouple.
+DEFAULT_FROM_EMAIL = 'noreply@kaupamex.com'
 
 # Destinatario de alertas operativas (UC-ADM-05: backup fallido). Migrado a
 # SystemParameter L2 ('backup.alert_email', H-API-CFG-01) — tenia default=
 # stale (practicayoruba.com); ahora editable en caliente. Ver
 # addons.backups.views._notify_backup_failed().
 #
-# Buzones por propósito en VM2 (Postfix + Cyrus). Los emails transaccionales
-# (auth, órdenes, devoluciones, soporte) salen de DEFAULT_FROM_EMAIL (noreply@).
-# Contacto y newsletter usan su buzón monitoreado para que la conversación
-# llegue a un humano y las respuestas no caigan en un buzón no-reply.
+# Buzones por propósito en VM2 (Postfix + Cyrus). Contacto y newsletter usan
+# su buzón monitoreado para que la conversación llegue a un humano y las
+# respuestas no caigan en un buzón no-reply.
 #
-# CONTACT_FROM_EMAIL/CONTACT_NOTIFY_EMAIL/NEWSLETTER_FROM_EMAIL migraron a L3
-# (SOL-090 slice 3, ``addons.company.CompanySetting`` — per-empresa, FK
-# ``company`` + ``CompanyScopedManager``): ya NO son settings de Django. Los
-# valores previos (``hola@practicayoruba.com`` / ``newsletter@practicayoruba.
-# com``) NO eran stale — PracticaYoruba es un tenant **L1** (el founder, NO
-# L0/Kaupamex), y esos eran su config correcta de contacto/newsletter. La
-# migración ``company/0006_seed_founder_settings`` los siembra como filas
-# ``CompanySetting`` de PracticaYoruba (founder), no los reemplaza. Los
-# consumidores (``addons.contact.views``, ``addons.newsletter.views``) leen
-# ``CompanySetting.get_setting('contact.from_email', <fallback neutral>)``
-# bajo la empresa activa; el fallback (sin empresa activa o sin fila) SÍ es
-# neutral (nivel Kaupamex, ``*@kaupamex.com``) — PracticaYoruba es solo un
-# tenant entre potencialmente varios. Cierra H-CFG-IMPL-10. Ver
+# Los remitentes de correo per-tenant migraron a L3
+# (``addons.company.CompanySetting`` — per-empresa, FK ``company`` +
+# ``CompanyScopedManager``): ya NO son settings de Django.
+#
+# - CONTACT_FROM_EMAIL/CONTACT_NOTIFY_EMAIL/NEWSLETTER_FROM_EMAIL → SOL-090
+#   slice 3 (``company/0006_seed_founder_settings``).
+# - DEFAULT_FROM_EMAIL (remitente no-reply transaccional: auth, órdenes,
+#   envíos, devoluciones, soporte) → follow-up #199, clave
+#   ``notifications.from_email`` (``company/0007_seed_founder_notifications_from``).
+#
+# Los valores previos (``hola@practicayoruba.com`` / ``newsletter@practica…`` /
+# ``noreply@practicayoruba.com``) NO eran stale — PracticaYoruba es un tenant
+# **L1** (el founder, NO L0/Kaupamex), y esos eran su config correcta. Las
+# migraciones los siembran como filas ``CompanySetting`` de PracticaYoruba
+# (founder), no los reemplazan. Los consumidores
+# (``addons.contact.views``, ``addons.newsletter.views``,
+# ``addons.notifications.emails``, ``addons.users.tokens_email``) leen
+# ``CompanySetting.get_setting('<key>', <fallback neutral>)`` bajo la empresa
+# resuelta (ambiente para flujos autenticados; ``company=user.company_id``
+# explícito para auth pre-login); el fallback SÍ es neutral (nivel Kaupamex,
+# ``*@kaupamex.com``) — PracticaYoruba es solo un tenant entre potencialmente
+# varios. Cierra H-CFG-IMPL-10 + H-CFG-IMPL-13. Ver
 # addons.company.models.CompanySetting y
-# hallazgos-implementar-systemparameter-l2 (H-CFG-IMPL-10).
+# hallazgos-implementar-systemparameter-l2.
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -331,9 +342,17 @@ SPECTACULAR_SETTINGS = {
         'Todos los endpoints bajo el prefijo /api/v2/'
     ),
     'VERSION': '1.0.0',
+    # Contacto del schema OpenAPI = operador de la plataforma (L0, Kaupamex):
+    # la API es infraestructura de plataforma (un solo codebase Django sirve a
+    # todos los tenants), evaluada estáticamente al generar el schema — sin
+    # dimensión de empresa. Antes reusaba el buzón L1 del founder
+    # (``hola@practicayoruba.com``); es config de plataforma, no per-tenant
+    # (DEC-KX-05, follow-up #199). El TITLE/DESCRIPTION mantienen el branding
+    # de PracticaYoruba como producto insignia — cambiarlos es una decisión de
+    # producto aparte, no de clasificación de config.
     'CONTACT': {
-        'name': 'Equipo PracticaYoruba',
-        'email': 'hola@practicayoruba.com',
+        'name': 'Equipo Kaupamex',
+        'email': 'soporte@kaupamex.com',
     },
     'LICENSE': {'name': 'Propietario'},
 
