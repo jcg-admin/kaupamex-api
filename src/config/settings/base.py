@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     'apps.addons.backups',
     'apps.addons.referral',
     'apps.addons.geo',
+    'apps.base',
     'apps.platform.authz',
     'apps.platform.company',
     'apps.addons.finance',
@@ -165,6 +166,11 @@ install_company_aliases(DATABASES, list(_MULTIDB_COMPANY_DBS))
 # fail-closed duro (dominio sin empresa bajo N>1) se activa solo cuando el roster
 # de arriba puebla aliases ``company_*`` (ver ``orm.routers``).
 DATABASE_ROUTERS = ['orm.routers.CompanyDatabaseRouter']
+
+# Plano de control L0 (vive siempre en ``default``, no se particiona por empresa).
+# ``apps.base`` (addon fundacional, ``SystemParameter`` L2 global) es config de
+# instancia, no per-empresa (SOL-090): debe rutear a ``default`` también bajo N>1.
+MULTIDB_CONTROL_PLANE_APPS = ('sessions', 'contenttypes', 'base')
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
