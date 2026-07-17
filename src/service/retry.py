@@ -1,7 +1,13 @@
 """Reintento ante concurrencia de BD — ``service/retry.py``.
 
-Adaptación **nativa** (DEC-KX-03) de ``odoo/service/model.py::retrying``
-(``odoo19x``, LGPL-3): Odoo envuelve cada request en un loop que reintenta la
+Adaptado del patrón de ``odoo/service/model.py::retrying`` (Odoo Community
+``odoo19x``, LGPL-3) — atribución preservada. Bajo DEC-KX-03, la fuente LGPL-3
+permitiría **copia near-verbatim** con cumplimiento; aquí se eligió la
+**reimplementación nativa** del patrón (más conservadora y desacoplada del
+cursor/env/registry de Odoo). Mismo resultado funcional, distinto mecanismo
+(DEC-KX-03 punto 3).
+
+Odoo envuelve cada request en un loop que reintenta la
 transacción ante un *serialization failure* / deadlock, con rollback + backoff
 exponencial aleatorio (``random.uniform(0.0, 2**tryno)``,
 ``MAX_TRIES_ON_CONCURRENCY_FAILURE = 5``). Aquí se extrae **solo el patrón**
