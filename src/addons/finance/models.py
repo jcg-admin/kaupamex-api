@@ -379,3 +379,129 @@ class CashClose(TimeStampedModel):
         self.status = CashCloseStatus.REOPENED
         self.reopen_reason = reason
         self.save(update_fields=['status', 'reopen_reason', 'updated_at'])
+
+
+class ProjectionScenario(models.TextChoices):
+    """Escenario del presupuesto de caja proyectado (UC-FIN-05)."""
+    BASE = 'base', 'Base'
+    OPTIMISTIC = 'optimistic', 'Optimista'
+    PESSIMISTIC = 'pessimistic', 'Pesimista'
+
+
+class ProjectionGranularity(models.TextChoices):
+    """Granularidad del sub-periodo de proyeccion (UC-FIN-05)."""
+    WEEK = 'week', 'Semana'
+    MONTH = 'month', 'Mes'
+
+
+#: Multiplicador de ingresos por escenario (UC-FIN-05 Alt B). ``base`` = 1;
+#: optimista/pesimista mueven el run-rate de ingresos +/- 15%.
+_SCENARIO_INCOME_MULT = {
+    ProjectionScenario.BASE: Decimal('1.00'),
+    ProjectionScenario.OPTIMISTIC: Decimal('1.15'),
+    ProjectionScenario.PESSIMISTIC: Decimal('0.85'),
+}
+
+
+class CashFlowProjection(TimeStampedModel):
+    """Presupuesto de caja proyectado por metodo directo (UC-FIN-05).
+
+    Base **percibido** (cash-basis): parte de la ``opening_balance`` (caja
+    inicial), suma ingresos y resta egresos por sub-periodo, y **encadena** la
+    ``closing_balance`` de un sub-periodo como ``opening_balance`` del siguiente
+    (rolling). Los supuestos (``income_per_period`` / ``expense_per_period`` /
+    ``min_balance``) viven en ``assumptions``; el ``scenario`` aplica un
+    multiplicador al run-rate de ingresos.
+
+    Adaptacion nativa (DEC-KX-03; H-API-FIN-03). El analogo real en Odoo19
+    enterprise es ``account_budget`` (OEEL-1): ``budget.analytic`` (nombre +
+    rango de fechas + ``state`` + ``budget_type`` + responsable ``user_id``) y
+    ``budget.line`` (``budget_amount`` planeado vs ``achieved_amount`` real vs
+    ``theoritical_amount`` pro-rata). De ahi se **reimplementa nativo** (no se
+    copia OEEL-1): ``name`` + ``created_by`` (= responsable) + ``assumptions``
+    (monto planeado por sub-periodo = ``budget_amount``). Pero ``account_budget``
+    es **variance hacia atras** (planeado vs logrado sobre un periodo fijo); UC-
+    FIN-05 agrega lo que Odoo **no** trae: el **encadenamiento rolling de caja**
+    (``opening -> closing`` por sub-periodo) y el **marcador de deficit**. El
+    encadenamiento sigue el patron de ``pos.session`` (LGPL-3;
+    ``cash_register_balance_start = last.balance_end_real``), que tambien
+    sustenta ``CashClose`` (UC-FIN-02). ``project_forecast`` es planeacion de
+    recursos HR y ``account_reports`` Cash Flow es un reporte hacia atras —
+    ninguno es una proyeccion de liquidez.
+    """
+    name = models.CharField(
+        max_length=120, blank=True, default='',
+        verbose_name='Nombre del escenario',
+    )
+    scenario = models.CharField(
+        max_length=12, choices=ProjectionScenario.choices,
+        default=ProjectionScenario.BASE, verbose_name='Escenario',
+    )
+    horizon = models.PositiveIntegerField(
+        verbose_name='Horizonte (nº de sub-periodos)',
+    )
+    granularity = models.CharField(
+        max_length=8, choices=ProjectionGranularity.choices,
+        default=ProjectionGranularity.WEEK, verbose_name='Granularidad',
+    )
+    opening_balance = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal('0.00'),
+        verbose_name='Caja inicial',
+    )
+    assumptions = models.JSONField(
+        default=dict, blank=True, verbose_name='Supuestos',
+        help_text='income_per_period / expense_per_period / min_balance.',
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='cash_flow_projections', verbose_name='Creado por',
+    )
+
+    class Meta:
+        db_table = 'finance_cash_flow_projection'
+        ordering = ['-created_at']
+        verbose_name = 'Proyeccion de flujo de caja'
+        verbose_name_plural = 'Proyecciones de flujo de caja'
+
+    def __str__(self):
+        return f'{self.name or "proyeccion"} ({self.scenario}, {self.horizon}{self.granularity[0]})'
+
+    def build(self):
+        """Construye la proyeccion rolling por sub-periodo (UC-FIN-05 paso 4-5).
+
+        Devuelve un dict con la lista de ``periods`` (cada uno con
+        ``opening_balance`` / ``income`` / ``expense`` / ``closing_balance``) y
+        el ``deficit_index`` = primer sub-periodo cuya ``closing_balance`` cruza
+        por debajo del ``min_balance`` (``None`` si nunca ocurre).
+        """
+        a = self.assumptions or {}
+        income = Decimal(str(a.get('income_per_period', '0')))
+        expense = Decimal(str(a.get('expense_per_period', '0')))
+        min_balance = Decimal(str(a.get('min_balance', '0')))
+        mult = _SCENARIO_INCOME_MULT.get(self.scenario, Decimal('1.00'))
+        cent = Decimal('0.01')
+
+        periods = []
+        deficit_index = None
+        balance = self.opening_balance
+        for i in range(self.horizon):
+            opening = balance
+            period_income = (income * mult).quantize(cent)
+            closing = (opening + period_income - expense).quantize(cent)
+            if deficit_index is None and closing < min_balance:
+                deficit_index = i
+            periods.append({
+                'index': i,
+                'opening_balance': str(opening.quantize(cent)),
+                'income': str(period_income),
+                'expense': str(expense.quantize(cent)),
+                'closing_balance': str(closing),
+            })
+            balance = closing
+        return {
+            'scenario': self.scenario,
+            'granularity': self.granularity,
+            'horizon': self.horizon,
+            'periods': periods,
+            'deficit_index': deficit_index,
+        }

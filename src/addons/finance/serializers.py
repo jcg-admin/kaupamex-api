@@ -3,8 +3,8 @@ from rest_framework import serializers
 
 from addons.finance.exceptions import DuplicateCode, ImmutableField
 from addons.finance.models import (
-    CarrierInvoice, CashClose, CashConcept, GatewaySettlement,
-    GatewaySettlementLine,
+    CarrierInvoice, CashClose, CashConcept, CashFlowProjection,
+    GatewaySettlement, GatewaySettlementLine,
 )
 
 
@@ -114,3 +114,29 @@ class CashCloseApproveSerializer(serializers.Serializer):
 class CashCloseReopenSerializer(serializers.Serializer):
     """Cuerpo de la reapertura (UC-FIN-02 Alt B): motivo obligatorio."""
     reason = serializers.CharField()
+
+
+class CashFlowProjectionSerializer(serializers.ModelSerializer):
+    """Proyeccion de flujo de caja (UC-FIN-05).
+
+    ``periods`` y ``deficit_index`` son **derivados** (``build()`` rolling): no
+    se persisten, se calculan del escenario + supuestos. Valida ``scenario`` y
+    ``granularity`` contra sus choices (una granularidad invalida -> 400).
+    """
+    periods = serializers.SerializerMethodField()
+    deficit_index = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CashFlowProjection
+        fields = [
+            'id', 'name', 'scenario', 'horizon', 'granularity',
+            'opening_balance', 'assumptions', 'created_by',
+            'periods', 'deficit_index', 'created_at', 'updated_at',
+        ]
+        read_only_fields = ['id', 'created_by', 'created_at', 'updated_at']
+
+    def get_periods(self, obj):
+        return obj.build()['periods']
+
+    def get_deficit_index(self, obj):
+        return obj.build()['deficit_index']

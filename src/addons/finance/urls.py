@@ -11,7 +11,7 @@ from rest_framework.routers import DefaultRouter
 
 from addons.finance.views import (
     CarrierInvoiceViewSet, CashCloseViewSet, CashConceptViewSet,
-    GatewaySettlementViewSet,
+    CashFlowProjectionViewSet, GatewaySettlementViewSet,
 )
 
 app_name = 'finance'
@@ -21,5 +21,6 @@ router.register('concepts', CashConceptViewSet, basename='concept')
 router.register('reconciliations', GatewaySettlementViewSet, basename='reconciliation')
 router.register('carrier-invoices', CarrierInvoiceViewSet, basename='carrier-invoice')
 router.register('cash-closes', CashCloseViewSet, basename='cash-close')
+router.register('projection', CashFlowProjectionViewSet, basename='projection')
 
 urlpatterns = router.urls

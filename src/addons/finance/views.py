@@ -16,12 +16,13 @@ from addons.finance.exceptions import (
     SodViolation,
 )
 from addons.finance.models import (
-    CarrierInvoice, CashClose, CashCloseStatus, CashConcept, GatewaySettlement,
+    CarrierInvoice, CashClose, CashCloseStatus, CashConcept, CashFlowProjection,
+    GatewaySettlement,
 )
 from addons.finance.serializers import (
     CarrierInvoiceSerializer, CashCloseApproveSerializer, CashCloseArqueoSerializer,
     CashCloseReopenSerializer, CashCloseSerializer, CashConceptSerializer,
-    GatewaySettlementSerializer,
+    CashFlowProjectionSerializer, GatewaySettlementSerializer,
 )
 
 
@@ -217,3 +218,37 @@ class CashCloseViewSet(ModelViewSet):
         body.is_valid(raise_exception=True)
         close.reopen(body.validated_data['reason'])
         return Response(self.get_serializer(close).data)
+
+
+class CashFlowProjectionViewSet(ModelViewSet):
+    """Proyeccion de flujo de caja (UC-FIN-05).
+
+    Proyectar/consultar = ``finance.view``; **guardar** un escenario =
+    ``finance.edit`` (DEC-11). ``compute`` calcula una proyeccion transitoria
+    (sin persistir); ``create`` guarda el escenario.
+    """
+    permission_classes = [IsAuthenticated, HasCapability]
+    permission_map = {
+        'list': 'finance.view',
+        'retrieve': 'finance.view',
+        'compute': 'finance.view',
+        'create': 'finance.edit',
+    }
+    serializer_class = CashFlowProjectionSerializer
+    queryset = CashFlowProjection.objects.all()
+    http_method_names = ['get', 'post', 'head', 'options']
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
+    @action(detail=False, methods=['post'])
+    def compute(self, request):
+        """Proyecta sin persistir (UC-FIN-05, ``finance.view``).
+
+        Valida el input con el mismo serializer (choices de ``scenario`` /
+        ``granularity``) y devuelve ``build()`` de una instancia transitoria.
+        """
+        body = self.get_serializer(data=request.data)
+        body.is_valid(raise_exception=True)
+        proj = CashFlowProjection(**body.validated_data)
+        return Response(proj.build())
