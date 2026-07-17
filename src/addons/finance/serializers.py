@@ -1,4 +1,5 @@
 """Serializers — addons.finance (UC-FIN-06 CashConcept, UC-FIN-01 settlements)."""
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from addons.finance.exceptions import DuplicateCode, ImmutableField
@@ -135,9 +136,11 @@ class CashFlowProjectionSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'created_by', 'created_at', 'updated_at']
 
+    @extend_schema_field(serializers.ListField(child=serializers.DictField()))
     def get_periods(self, obj):
         return obj.build()['periods']
 
+    @extend_schema_field(serializers.IntegerField(allow_null=True))
     def get_deficit_index(self, obj):
         return obj.build()['deficit_index']
 

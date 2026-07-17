@@ -5,11 +5,14 @@ Gateado por el recurso graduado ``finance`` (DEC-11): listar/ver = ``finance.vie
 crear/editar/desactivar = ``finance.edit``, borrar = ``finance.full``. Usa la
 azucar de authz (``HasCapability`` + ``permission_map``).
 """
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet, ViewSet
 from django.utils import timezone
+
+from config.schema import error_response
 
 from addons.authz.permissions import HasCapability
 from addons.finance.availability import AvailabilityQuery
@@ -30,6 +33,7 @@ from addons.finance.serializers import (
 )
 
 
+@extend_schema(tags=['finance'])
 class CashConceptViewSet(ModelViewSet):
     """CRUD del catalogo de conceptos de caja (UC-FIN-06).
 
@@ -66,6 +70,7 @@ class CashConceptViewSet(ModelViewSet):
         instance.delete()
 
 
+@extend_schema(tags=['finance'])
 class GatewaySettlementViewSet(ReadOnlyModelViewSet):
     """Conciliacion de liquidaciones del gateway (UC-FIN-01).
 
@@ -88,6 +93,8 @@ class GatewaySettlementViewSet(ReadOnlyModelViewSet):
             qs = qs.filter(status=status_q)
         return qs
 
+    @extend_schema(summary='Conciliar liquidacion', request=None,
+                   responses={200: GatewaySettlementSerializer})
     @action(detail=True, methods=['post'])
     def reconcile(self, request, pk=None):
         """Marca la liquidacion como ``reconciled`` (UC-FIN-01)."""
@@ -96,6 +103,7 @@ class GatewaySettlementViewSet(ReadOnlyModelViewSet):
         return Response(self.get_serializer(settlement).data)
 
 
+@extend_schema(tags=['finance'])
 class CarrierInvoiceViewSet(ModelViewSet):
     """Flete por pagar al transportista (UC-FIN-03).
 
@@ -120,6 +128,8 @@ class CarrierInvoiceViewSet(ModelViewSet):
             qs = qs.filter(status=status_q)
         return qs
 
+    @extend_schema(summary='Pagar flete al transportista', request=None,
+                   responses={200: CarrierInvoiceSerializer})
     @action(detail=True, methods=['post'])
     def pay(self, request, pk=None):
         """Marca el flete como ``paid`` (UC-FIN-03, ``finance.disburse``)."""
@@ -128,6 +138,7 @@ class CarrierInvoiceViewSet(ModelViewSet):
         return Response(self.get_serializer(invoice).data)
 
 
+@extend_schema(tags=['finance'])
 class CashCloseViewSet(ModelViewSet):
     """Corte de caja diario (UC-FIN-02).
 
@@ -168,6 +179,9 @@ class CashCloseViewSet(ModelViewSet):
             raise CashCloseAlreadyOpen()
         serializer.save(prepared_by=self.request.user)
 
+    @extend_schema(summary='Arqueo del corte (cuadra)', request=CashCloseArqueoSerializer,
+                   responses={200: CashCloseSerializer,
+                              409: error_response('Corte sellado (CASH_CLOSE_SEALED)')})
     @action(detail=True, methods=['post'])
     def arqueo(self, request, pk=None):
         """Arma el arqueo y cuadra el corte (UC-FIN-02 pasos 2-3)."""
@@ -179,6 +193,9 @@ class CashCloseViewSet(ModelViewSet):
         close.arqueo(body.validated_data['counted_balance'])
         return Response(self.get_serializer(close).data)
 
+    @extend_schema(summary='Aprobar corte (SoD)', request=CashCloseApproveSerializer,
+                   responses={200: CashCloseSerializer,
+                              409: error_response('SOD_VIOLATION / CASH_CLOSE_SEALED')})
     @action(detail=True, methods=['post'])
     def approve(self, request, pk=None):
         """Registra la aprobacion por un segundo usuario (UC-FIN-02 paso 5).
@@ -195,6 +212,9 @@ class CashCloseViewSet(ModelViewSet):
         close.approve(request.user, note=body.validated_data.get('note', ''))
         return Response(self.get_serializer(close).data)
 
+    @extend_schema(summary='Sellar corte (inmutable)', request=None,
+                   responses={200: CashCloseSerializer,
+                              409: error_response('CASH_CLOSE_SEALED / SOD_VIOLATION / SETTLEMENTS_NOT_RECONCILED')})
     @action(detail=True, methods=['post'])
     def seal(self, request, pk=None):
         """Sella el corte (UC-FIN-02 paso 6): ``balanced`` -> ``sealed``.
@@ -214,6 +234,8 @@ class CashCloseViewSet(ModelViewSet):
         close.seal()
         return Response(self.get_serializer(close).data)
 
+    @extend_schema(summary='Reabrir corte sellado', request=CashCloseReopenSerializer,
+                   responses={200: CashCloseSerializer})
     @action(detail=True, methods=['post'])
     def reopen(self, request, pk=None):
         """Reapertura autorizada (UC-FIN-02 Alt B): ``sealed`` -> ``reopened``."""
@@ -224,6 +246,7 @@ class CashCloseViewSet(ModelViewSet):
         return Response(self.get_serializer(close).data)
 
 
+@extend_schema(tags=['finance'])
 class CashFlowProjectionViewSet(ModelViewSet):
     """Proyeccion de flujo de caja (UC-FIN-05).
 
@@ -245,6 +268,9 @@ class CashFlowProjectionViewSet(ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
 
+    @extend_schema(summary='Proyeccion transitoria (sin persistir)',
+                   request=CashFlowProjectionSerializer,
+                   responses={200: CashFlowProjectionSerializer})
     @action(detail=False, methods=['post'])
     def compute(self, request):
         """Proyecta sin persistir (UC-FIN-05, ``finance.view``).
@@ -258,6 +284,7 @@ class CashFlowProjectionViewSet(ModelViewSet):
         return Response(proj.build())
 
 
+@extend_schema(tags=['finance'])
 class PeriodCloseViewSet(ReadOnlyModelViewSet):
     """Cierre de ejercicio anual (UC-FIN-08).
 
@@ -282,6 +309,10 @@ class PeriodCloseViewSet(ReadOnlyModelViewSet):
     queryset = PeriodClose.objects.all()
     lookup_field = 'fiscal_year'
 
+    @extend_schema(summary='Cerrar ejercicio y abrir el siguiente',
+                   request=PeriodCloseCloseSerializer,
+                   responses={200: PeriodCloseSerializer,
+                              409: error_response('OPEN_MOVEMENTS / OUT_OF_ORDER_CLOSE / INVALID_STATE / BACKUP_REQUIRED')})
     @action(detail=True, methods=['post'])
     def close(self, request, fiscal_year=None):
         """Cierra el ejercicio y abre el siguiente (UC-FIN-08 PARTE 3).
@@ -312,6 +343,10 @@ class PeriodCloseViewSet(ReadOnlyModelViewSet):
         nxt = period.seal(sealed_by=request.user, idempotency_key=key)
         return Response(self._close_payload(period, nxt))
 
+    @extend_schema(summary='Reabrir ejercicio cerrado (alto control)',
+                   request=PeriodCloseReopenSerializer,
+                   responses={200: PeriodCloseSerializer,
+                              409: error_response('INVALID_STATE')})
     @action(detail=True, methods=['post'])
     def reopen(self, request, fiscal_year=None):
         """Reabre un ejercicio cerrado (UC-FIN-08 Alt B, alto control).
@@ -335,6 +370,7 @@ class PeriodCloseViewSet(ReadOnlyModelViewSet):
         }
 
 
+@extend_schema(tags=['finance'])
 class AvailabilityViewSet(ViewSet):
     """Disponibilidad caja vs banco (UC-FIN-04), consulta de solo lectura.
 
@@ -355,15 +391,30 @@ class AvailabilityViewSet(ViewSet):
         period = request.query_params.get('period') or timezone.localtime().strftime('%Y-%m')
         return AvailabilityQuery(period)
 
+    @extend_schema(
+        summary='KPIs de disponibilidad del periodo',
+        parameters=[OpenApiParameter(
+            'period', str, required=False,
+            description='Periodo YYYY-MM (default: mes en curso)')],
+        responses={400: error_response('INVALID_PERIOD')},
+    )
     def list(self, request):
         """KPIs del periodo (percibido, egresos, saldo actual, mínimo, estado)."""
         return Response(self._query(request).kpis())
 
+    @extend_schema(summary='Serie diaria caja vs banco',
+                   parameters=[OpenApiParameter('period', str, required=False,
+                               description='Periodo YYYY-MM (default: mes en curso)')],
+                   responses={400: error_response('INVALID_PERIOD')})
     @action(detail=False, methods=['get'])
     def series(self, request):
         """Serie diaria de recaudación caja vs banco (UC-FIN-04 paso 4)."""
         return Response(self._query(request).series())
 
+    @extend_schema(summary='Pivote concepto x periodo',
+                   parameters=[OpenApiParameter('period', str, required=False,
+                               description='Periodo YYYY-MM (default: mes en curso)')],
+                   responses={400: error_response('INVALID_PERIOD')})
     @action(detail=False, methods=['get'])
     def pivot(self, request):
         """Pivote concepto x periodo (UC-FIN-04 paso 5)."""
