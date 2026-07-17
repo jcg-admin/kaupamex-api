@@ -28,6 +28,7 @@ import re
 import shutil
 import subprocess
 
+from django.conf import settings
 from django.core.management import call_command
 from django.db import DEFAULT_DB_ALIAS, connections
 
@@ -298,6 +299,30 @@ def create_database(db_name, using=DEFAULT_DB_ALIAS):
     create_empty_database(db_name, using)
     call_command('migrate', database=db_name, run_syncdb=True, verbosity=0)
     return db_name
+
+
+def provision_company_database(db_name, using=DEFAULT_DB_ALIAS):
+    """Alta unitaria **idempotente** de una base ``company_<N>_db`` (T-091-06).
+
+    Orquesta el "initialize" de Odoo (``exp_create_database``) a nivel de una
+    empresa: instala el alias en ``settings.DATABASES`` (para que ``migrate``
+    resuelva la conexión), crea la base **si falta**, y aplica migraciones
+    siempre (idempotente: una base ya provisionada solo recibe las migraciones
+    nuevas). Devuelve ``(db_name, created)`` — ``created`` True si la base no
+    existía.
+
+    Separa la lógica de provisión (aquí, ``service``) del adapter de I/O (el
+    management command ``company_create``): SRP + Tell-Don't-Ask.
+    """
+    ensure_management_enabled()
+    created = not database_exists(db_name, using)
+    if created:
+        create_empty_database(db_name, using)
+    # Cablea el alias runtime ANTES de migrar (la base recién creada no estaba
+    # en el roster de settings al boot). Idempotente si ya estaba.
+    install_company_aliases(settings.DATABASES, names=[db_name], using=using)
+    call_command('migrate', database=db_name, run_syncdb=True, verbosity=0)
+    return db_name, created
 
 
 def _resolve_bin(*candidates):
