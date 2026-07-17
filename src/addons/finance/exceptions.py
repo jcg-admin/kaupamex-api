@@ -109,3 +109,65 @@ class CashCloseAlreadyOpen(APIException):
             'detail': 'Ya existe un corte sin sellar para esa fecha.',
             'codigo_error': 'CASH_CLOSE_ALREADY_OPEN',
         })
+
+
+class PeriodOpenMovements(APIException):
+    """409 ``OPEN_MOVEMENTS`` — cerrar un ejercicio con pendientes (UC-FIN-08 EX-03).
+
+    Quedan liquidaciones sin conciliar (UC-FIN-01) o cortes sin sellar
+    (UC-FIN-02) dentro del ejercicio.
+    """
+
+    status_code = 409
+    default_code = 'open_movements'
+
+    def __init__(self):
+        super().__init__(detail={
+            'detail': 'Quedan movimientos sin conciliar o cortes sin sellar en el ejercicio.',
+            'codigo_error': 'OPEN_MOVEMENTS',
+        })
+
+
+class OutOfOrderClose(APIException):
+    """409 ``OUT_OF_ORDER_CLOSE`` — cerrar dejando un ejercicio anterior abierto
+    (UC-FIN-08 EX-04). El cierre es en orden cronologico.
+    """
+
+    status_code = 409
+    default_code = 'out_of_order_close'
+
+    def __init__(self):
+        super().__init__(detail={
+            'detail': 'Hay un ejercicio anterior sin cerrar; cierralos en orden cronologico.',
+            'codigo_error': 'OUT_OF_ORDER_CLOSE',
+        })
+
+
+class PeriodInvalidState(APIException):
+    """409 ``INVALID_STATE`` — cerrar un ejercicio ya sellado o reabrir uno ya
+    abierto (UC-FIN-08 EX-05).
+    """
+
+    status_code = 409
+    default_code = 'invalid_state'
+
+    def __init__(self, detail=None):
+        super().__init__(detail={
+            'detail': detail or 'El ejercicio no esta en un estado valido para esta operacion.',
+            'codigo_error': 'INVALID_STATE',
+        })
+
+
+class BackupRequired(APIException):
+    """409 ``BACKUP_REQUIRED`` — cerrar sin backup completo reciente (UC-FIN-08
+    EX-07 / PRE-05). El cierre sella la historia de forma inmutable.
+    """
+
+    status_code = 409
+    default_code = 'backup_required'
+
+    def __init__(self):
+        super().__init__(detail={
+            'detail': 'Ejecuta un respaldo completo del ejercicio antes de sellarlo.',
+            'codigo_error': 'BACKUP_REQUIRED',
+        })

@@ -12,17 +12,19 @@ from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
 from addons.authz.permissions import HasCapability
 from addons.finance.exceptions import (
-    CashCloseAlreadyOpen, CashCloseSealed, ConceptInUse, SettlementsNotReconciled,
-    SodViolation,
+    BackupRequired, CashCloseAlreadyOpen, CashCloseSealed, ConceptInUse,
+    OutOfOrderClose, PeriodInvalidState, PeriodOpenMovements,
+    SettlementsNotReconciled, SodViolation,
 )
 from addons.finance.models import (
     CarrierInvoice, CashClose, CashCloseStatus, CashConcept, CashFlowProjection,
-    GatewaySettlement,
+    GatewaySettlement, PeriodClose, PeriodCloseStatus,
 )
 from addons.finance.serializers import (
     CarrierInvoiceSerializer, CashCloseApproveSerializer, CashCloseArqueoSerializer,
     CashCloseReopenSerializer, CashCloseSerializer, CashConceptSerializer,
     CashFlowProjectionSerializer, GatewaySettlementSerializer,
+    PeriodCloseCloseSerializer, PeriodCloseReopenSerializer, PeriodCloseSerializer,
 )
 
 
@@ -252,3 +254,80 @@ class CashFlowProjectionViewSet(ModelViewSet):
         body.is_valid(raise_exception=True)
         proj = CashFlowProjection(**body.validated_data)
         return Response(proj.build())
+
+
+class PeriodCloseViewSet(ReadOnlyModelViewSet):
+    """Cierre de ejercicio anual (UC-FIN-08).
+
+    ``ver`` = ``finance.view`` (piso); ``close``/``reopen`` = accion SoD
+    ``finance.close`` (FULL). La **reautenticacion** (DEC-12) sobre esas dos
+    acciones la aplica la capa authz (``HasCapability`` -> ``assert_session_fresh``)
+    cuando ``finance.close`` esta sembrada ``is_sensitive`` — no se cablea aqui.
+
+    El lookup es por ``fiscal_year`` (``/period-closes/{year}/close``). El cierre
+    es sellante y transaccional: ``close`` verifica precondiciones y delega en
+    ``PeriodClose.seal`` (que congela el saldo y abre el siguiente en una
+    transaccion).
+    """
+    permission_classes = [IsAuthenticated, HasCapability]
+    permission_map = {
+        'list': 'finance.view',
+        'retrieve': 'finance.view',
+        'close': 'finance.close',
+        'reopen': 'finance.close',
+    }
+    serializer_class = PeriodCloseSerializer
+    queryset = PeriodClose.objects.all()
+    lookup_field = 'fiscal_year'
+
+    @action(detail=True, methods=['post'])
+    def close(self, request, fiscal_year=None):
+        """Cierra el ejercicio y abre el siguiente (UC-FIN-08 PARTE 3).
+
+        Orden de verificacion: idempotencia/estado (EX-05) -> backup (EX-07) ->
+        orden cronologico (EX-04) -> pendientes (EX-03) -> sello transaccional.
+        """
+        period = self.get_object()
+        body = PeriodCloseCloseSerializer(data=request.data)
+        body.is_valid(raise_exception=True)
+        key = body.validated_data['idempotency_key']
+
+        if period.status == PeriodCloseStatus.SEALED:
+            # Alt C / AC-04: mismo key -> idempotente (devuelve el primer cierre);
+            # otro key sobre un sellado -> INVALID_STATE (EX-05).
+            if period.idempotency_key and period.idempotency_key == key:
+                nxt = PeriodClose.objects.filter(fiscal_year=period.fiscal_year + 1).first()
+                return Response(self._close_payload(period, nxt))
+            raise PeriodInvalidState('El ejercicio ya esta cerrado.')
+
+        if not body.validated_data['backup_confirmed']:
+            raise BackupRequired()
+        if period.has_earlier_open_period():
+            raise OutOfOrderClose()
+        if period.has_open_movements():
+            raise PeriodOpenMovements()
+
+        nxt = period.seal(sealed_by=request.user, idempotency_key=key)
+        return Response(self._close_payload(period, nxt))
+
+    @action(detail=True, methods=['post'])
+    def reopen(self, request, fiscal_year=None):
+        """Reabre un ejercicio cerrado (UC-FIN-08 Alt B, alto control).
+
+        Solo un ejercicio ``sealed`` se reabre; reabrir uno ``open`` ->
+        INVALID_STATE (EX-05).
+        """
+        period = self.get_object()
+        if period.status != PeriodCloseStatus.SEALED:
+            raise PeriodInvalidState('El ejercicio no esta cerrado.')
+        body = PeriodCloseReopenSerializer(data=request.data)
+        body.is_valid(raise_exception=True)
+        period.reopen(reopened_by=request.user, reason=body.validated_data['reason'])
+        return Response(self.get_serializer(period).data)
+
+    def _close_payload(self, sealed, nxt):
+        """Respuesta del cierre: ejercicio sellado + ejercicio siguiente abierto."""
+        return {
+            'sealed': self.get_serializer(sealed).data,
+            'next': self.get_serializer(nxt).data if nxt else None,
+        }

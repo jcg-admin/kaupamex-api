@@ -4,7 +4,7 @@ from rest_framework import serializers
 from addons.finance.exceptions import DuplicateCode, ImmutableField
 from addons.finance.models import (
     CarrierInvoice, CashClose, CashConcept, CashFlowProjection,
-    GatewaySettlement, GatewaySettlementLine,
+    GatewaySettlement, GatewaySettlementLine, PeriodClose,
 )
 
 
@@ -140,3 +140,36 @@ class CashFlowProjectionSerializer(serializers.ModelSerializer):
 
     def get_deficit_index(self, obj):
         return obj.build()['deficit_index']
+
+
+class PeriodCloseSerializer(serializers.ModelSerializer):
+    """Cierre de ejercicio anual (UC-FIN-08).
+
+    Todo lo que refleja el sello (``status``, ``closing_balance``, actores y
+    marcas de tiempo, ``opening_balance_stale``) es **derivado** de las acciones
+    ``close``/``reopen``; el cliente nunca lo escribe directo.
+    """
+
+    class Meta:
+        model = PeriodClose
+        fields = [
+            'id', 'fiscal_year', 'status', 'opening_balance', 'closing_balance',
+            'opening_balance_stale', 'sealed_by', 'sealed_at', 'reopened_by',
+            'reopened_at', 'reopen_reason', 'created_at', 'updated_at',
+        ]
+        read_only_fields = fields
+
+
+class PeriodCloseCloseSerializer(serializers.Serializer):
+    """Cuerpo del cierre (UC-FIN-08 paso 2): idempotencia + gate de backup.
+
+    ``backup_confirmed`` modela el gate de respaldo (PRE-05/EX-07): el cierre no
+    procede sin un backup completo reciente confirmado.
+    """
+    idempotency_key = serializers.CharField(max_length=128)
+    backup_confirmed = serializers.BooleanField(required=False, default=False)
+
+
+class PeriodCloseReopenSerializer(serializers.Serializer):
+    """Cuerpo de la reapertura (UC-FIN-08 Alt B): motivo obligatorio (auditoria)."""
+    reason = serializers.CharField()
