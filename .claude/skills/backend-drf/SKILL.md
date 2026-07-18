@@ -147,6 +147,10 @@ Cargar el doc del eje que se está tocando (no todo el skill):
   concretas (List/Retrieve/Create/…), `get_queryset()` con acotamiento de fila
   por usuario (capa L3), N+1 vía `select_related`/`prefetch_related`, hooks
   `perform_create/update/destroy`, PUT-no-crea (404).
+- [`viewsets.md`](references/viewsets.md) — recurso CRUD como
+  `ViewSet`/`ModelViewSet` + router, `@action` (detail True/False), gate por
+  acción con `permission_map`, introspección `self.action`, base a medida con
+  mixins, y la regla dura de nunca `.as_view({...})` manual.
 
 ## Referencias de código
 
