@@ -56,6 +56,8 @@ INSTALLED_APPS = [
     'addons.sale_crm',
     'addons.sms',
     'addons.sale_sms',
+    'addons.product_matrix',
+    'addons.sale_product_matrix',
     'addons.orders',
     'addons.payments',
     'addons.support',
