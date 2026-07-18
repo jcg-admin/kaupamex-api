@@ -208,6 +208,10 @@ Cargar el doc del eje que se está tocando (no todo el skill):
   (`request.version`=None); se versiona por **prefijo de URL + namespace Django**
   (`api/v1/`=webhooks externos estables, `api/v2/`=API del producto con
   namespaces `<app>_v2`); no ramificar por versión.
+- [`content-negotiation.md`](references/content-negotiation.md) —
+  `DefaultContentNegotiation` global (trivial: JSON-only en prod; `q` values
+  ignorados); único negociador a medida `_PassthroughNegotiator` (exports:
+  ignora `?format=`, la vista es dueña del formato).
 
 ## Referencias de código
 
