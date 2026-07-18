@@ -212,6 +212,10 @@ Cargar el doc del eje que se está tocando (no todo el skill):
   `DefaultContentNegotiation` global (trivial: JSON-only en prod; `q` values
   ignorados); único negociador a medida `_PassthroughNegotiator` (exports:
   ignora `?format=`, la vista es dueña del formato).
+- [`metadata.md`](references/metadata.md) — metadata de `OPTIONS` **no se usa**
+  (`SimpleMetadata` default, 0 overrides); el contrato del API es
+  **drf-spectacular** (`DEFAULT_SCHEMA_CLASS=AutoSchema`, `@extend_schema`,
+  `/api/schema/` + Swagger/Redoc), no `OPTIONS`.
 
 ## Referencias de código
 
