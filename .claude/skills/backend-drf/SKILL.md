@@ -137,6 +137,9 @@ Cargar el doc del eje que se está tocando (no todo el skill):
 - [`request-object.md`](references/request-object.md) — leer body/params/usuario
   de la petición (`request.data` vs `request.POST`; `query_params`; `user`/`auth`;
   parse errors 400/415).
+- [`response-object.md`](references/response-object.md) — construir la respuesta
+  (`Response(data, status)` con primitivos; cuerpo `codigo_error`; headers;
+  excepción streaming/`FileResponse`).
 
 ## Referencias de código
 
