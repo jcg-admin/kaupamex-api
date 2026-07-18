@@ -16,7 +16,9 @@ import uuid
 from decimal import Decimal
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils import timezone
 
 from core.models import TimeStampedModel
 
@@ -155,3 +157,47 @@ class SaleOrder(TimeStampedModel):
 
     def amount_total_after_discount(self) -> Decimal:
         return self.amount_total() - self.discount_amount()
+
+    # ------------------------------------------------------------------
+    # Máquina de estados de venta — de sale.order (sale/models/sale_order.py):
+    # action_confirm (1166), action_draft (1058), action_lock (1318),
+    # action_cancel (1324). Es la transición que el checkout dispara al unificar
+    # cart→order (draft → sale). Adaptación single-record de los métodos Odoo.
+    # ------------------------------------------------------------------
+    def action_confirm(self):
+        """Confirma la cotización/carrito (draft/sent → sale)."""
+        if self.state == self.STATE_CANCEL:
+            raise ValidationError('No se puede confirmar una orden cancelada.')
+        if not self.order_line.exists():
+            raise ValidationError('No se puede confirmar una orden sin líneas.')
+        if not self.name:
+            self.name = _generate_sale_name()
+        self.state = self.STATE_SALE
+        self.date_order = timezone.now()
+        self.save(update_fields=['name', 'state', 'date_order', 'updated_at'])
+        return True
+
+    def action_draft(self):
+        """Reabre a borrador (cancel/sent → draft)."""
+        if self.state in (self.STATE_CANCEL, self.STATE_SENT):
+            self.state = self.STATE_DRAFT
+            self.save(update_fields=['state', 'updated_at'])
+        return True
+
+    def action_cancel(self):
+        """Cancela la orden (Odoo action_cancel; bloqueada → error)."""
+        if self.locked:
+            raise ValidationError('No se puede cancelar una orden bloqueada.')
+        self.state = self.STATE_CANCEL
+        self.save(update_fields=['state', 'updated_at'])
+        return True
+
+    def action_lock(self):
+        self.locked = True
+        self.save(update_fields=['locked', 'updated_at'])
+        return True
+
+    def action_unlock(self):
+        self.locked = False
+        self.save(update_fields=['locked', 'updated_at'])
+        return True
