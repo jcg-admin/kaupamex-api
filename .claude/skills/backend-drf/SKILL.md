@@ -204,6 +204,10 @@ Cargar el doc del eje que se está tocando (no todo el skill):
   list endpoint declara `pagination_class` (subclase `PageNumberPagination` con
   `page_size`/`page_size_query_param`/`max_page_size`); envelope default
   `{count,next,previous,results}` (contrato UI); `APIView` plano pagina a mano.
+- [`versioning.md`](references/versioning.md) — versionado de DRF **off**
+  (`request.version`=None); se versiona por **prefijo de URL + namespace Django**
+  (`api/v1/`=webhooks externos estables, `api/v2/`=API del producto con
+  namespaces `<app>_v2`); no ramificar por versión.
 
 ## Referencias de código
 
