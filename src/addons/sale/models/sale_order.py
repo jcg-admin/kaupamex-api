@@ -74,6 +74,25 @@ class SaleOrder(TimeStampedModel):
         on_delete=models.SET_NULL, related_name='sale_orders',
         help_text='Equipo de venta atribuido (Odoo sale.order.team_id).',
     )
+    # Contribución de ``sale_stock``: estado de entrega, SEPARADO de ``state``.
+    # Odoo ``sale.order.delivery_status`` (sale_stock/models/sale_order.py:33,
+    # pending/started/partial/full). Resuelve H-SALE-04: enviado/entregado NO van
+    # en ``state`` (draft/sent/sale/cancel) sino en su propio campo, alimentado por
+    # el fulfillment (``stock.picking`` en Odoo = ``logistics`` aquí).
+    DELIVERY_PENDING = 'pending'   # nada entregado
+    DELIVERY_STARTED = 'started'   # picking creado, aún nada entregado
+    DELIVERY_PARTIAL = 'partial'   # entregado en parte
+    DELIVERY_FULL    = 'full'      # todo entregado
+    DELIVERY_STATES  = [
+        (DELIVERY_PENDING, 'Pendiente'),
+        (DELIVERY_STARTED, 'Iniciada'),
+        (DELIVERY_PARTIAL, 'Entrega parcial'),
+        (DELIVERY_FULL,    'Entregada'),
+    ]
+    delivery_status = models.CharField(
+        max_length=10, choices=DELIVERY_STATES, null=True, blank=True,
+        help_text='Estado de entrega (Odoo sale.order.delivery_status).',
+    )
 
     class Meta:
         db_table     = 'sale_order'
@@ -100,3 +119,18 @@ class SaleOrder(TimeStampedModel):
 
     def amount_total(self) -> Decimal:
         return self._sum_lines('price_total')
+
+    # delivery_status — de sale_stock.sale.order._compute_delivery_status
+    # (sale_stock/models/sale_order.py:91). full si toda línea está entregada;
+    # partial si algo se entregó; pending/started si nada aún.
+    def compute_delivery_status(self) -> str | None:
+        lines = list(self.order_line.all())
+        if not lines:
+            return None
+        ordered = sum(l.product_uom_qty for l in lines)
+        delivered = sum(l.qty_delivered for l in lines)
+        if delivered <= 0:
+            return self.DELIVERY_PENDING
+        if delivered >= ordered:
+            return self.DELIVERY_FULL
+        return self.DELIVERY_PARTIAL
