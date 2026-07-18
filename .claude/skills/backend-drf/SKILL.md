@@ -244,8 +244,10 @@ Cargar el doc del eje que se está tocando (no todo el skill):
   `status=NNN` **domina** (255) sobre la constante `status.HTTP_*` (89) — drift
   BAJA vs la recomendación de DRF; código **nuevo** usa la constante, no se migra
   en masa. El `status_code` de clase en `APIException` (13) sí es idioma DRF (no
-  cambiar). Helpers `is_success()`/etc en 0. El código correcto sale del contrato
-  (401/403, 404 por row-scoping, 409/422, 429).
+  cambiar). Helpers `is_success()`/etc en 0. Incluye el **catálogo de los 15
+  códigos en uso** con su significado en el contrato (200/201/202/204; 400/401/
+  403/404/409/410/422/429; 500/502/503), con las distinciones 502-vs-503,
+  410-vs-404 y 409-vs-422.
 
 ## Referencias de código
 
