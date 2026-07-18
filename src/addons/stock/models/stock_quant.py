@@ -9,6 +9,7 @@ ambas versiones — ``product_id``/``location_id``/``quantity`` (a la mano)/
 from decimal import Decimal
 
 from django.db import models
+from django.utils import timezone
 
 from core.models import TimeStampedModel
 
@@ -32,12 +33,23 @@ class StockQuant(TimeStampedModel):
         max_digits=12, decimal_places=2, default=Decimal('0.00'),
         help_text='Cantidad reservada (Odoo reserved_quantity).',
     )
+    lot               = models.ForeignKey(
+        'stock.StockLot', on_delete=models.CASCADE, related_name='quants',
+        null=True, blank=True,
+        help_text='Lote / número de serie (Odoo lot_id). NULL = sin lote.',
+    )
+    in_date           = models.DateTimeField(
+        default=timezone.now,
+        help_text='Fecha de entrada al quant (Odoo stock.quant.in_date; '
+                  'clave de orden de la estrategia FIFO).',
+    )
 
     class Meta:
         db_table = 'stock_quant'
         constraints = [
             models.UniqueConstraint(
-                fields=['product', 'location'], name='unique_quant_product_location',
+                fields=['product', 'location', 'lot'],
+                name='unique_quant_product_location_lot',
             ),
         ]
         verbose_name = 'Existencia de inventario'
@@ -57,10 +69,30 @@ class StockQuant(TimeStampedModel):
         """
         if location.should_bypass_reservation():
             return Decimal('999999999.00')
-        quant = cls.objects.filter(product=product, location=location).first()
-        if quant is None:
-            return Decimal('0.00')
-        return quant.quantity - quant.reserved_quantity
+        agg = cls.objects.filter(product=product, location=location).aggregate(
+            q=models.Sum('quantity'), r=models.Sum('reserved_quantity'),
+        )
+        on_hand = agg['q'] if agg['q'] is not None else Decimal('0.00')
+        reserved = agg['r'] if agg['r'] is not None else Decimal('0.00')
+        return on_hand - reserved
+
+    @classmethod
+    def gather(cls, product, location, removal_strategy='fifo'):
+        """Devuelve los quants del producto en ``location`` ordenados por estrategia.
+
+        Réplica de ``stock.quant._gather`` + ``_get_removal_strategy_order`` de
+        Odoo (idéntico 18/19). El orden de remoción de la **base** ``stock`` es:
+
+        - ``fifo`` → ``in_date, id`` (lo más antiguo primero).
+        - ``lifo`` → ``-in_date, id`` (lo más reciente primero).
+
+        La estrategia ``fefo`` la añade el satélite ``product_expiry``
+        (ordena por ``removal_date``); no vive en la base.
+        """
+        qs = cls.objects.filter(product=product, location=location, quantity__gt=0)
+        if removal_strategy == 'lifo':
+            return qs.order_by('-in_date', 'id')
+        return qs.order_by('in_date', 'id')
 
     @classmethod
     def apply_move(cls, product, location_src, location_dest, qty) -> None:
@@ -72,18 +104,20 @@ class StockQuant(TimeStampedModel):
         """
         qty = Decimal(qty)
         if not location_src.should_bypass_reservation():
-            src, _ = cls.objects.get_or_create(product=product, location=location_src)
+            src, _ = cls.objects.get_or_create(
+                product=product, location=location_src, lot=None)
             src.quantity = src.quantity - qty
             src.save(update_fields=['quantity', 'updated_at'])
         if not location_dest.should_bypass_reservation():
-            dest, _ = cls.objects.get_or_create(product=product, location=location_dest)
+            dest, _ = cls.objects.get_or_create(
+                product=product, location=location_dest, lot=None)
             dest.quantity = dest.quantity + qty
             dest.save(update_fields=['quantity', 'updated_at'])
 
     @classmethod
-    def set_on_hand(cls, product, location, qty):
+    def set_on_hand(cls, product, location, qty, lot=None):
         """Ajuste de inventario: fija la cantidad a la mano (Odoo inventory)."""
-        quant, _ = cls.objects.get_or_create(product=product, location=location)
+        quant, _ = cls.objects.get_or_create(product=product, location=location, lot=lot)
         quant.quantity = Decimal(qty)
         quant.save(update_fields=['quantity', 'updated_at'])
         return quant
