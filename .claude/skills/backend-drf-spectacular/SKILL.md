@@ -175,6 +175,11 @@ El skill crece por pieza de la doc de drf-spectacular (mismo patrón que
   propias del stack auth (session+simplejwt) son sus blueprints caseros;
   `OpenApiAuthenticationExtension` > `SECURITY`; UIs alternas (RapiDoc/Elements) y
   drf-rw-serializers disponibles-no-usadas; registrar en `schema.py` no en `ready()`.
+- [`openapi-types-and-yasg.md`](references/openapi-types-and-yasg.md) — drf-yasg **no
+  se usa** (no hay migración); catálogo de `OpenApiTypes` en uso (STR/OBJECT/INT/
+  BOOL/DECIMAL/BINARY/URI, o el tipo Python básico); `location` QUERY por default,
+  `PATH` explícito; **gotcha del docstring** (entra completo → usar `summary=`
+  siempre, 285 usos); nombres de componente automáticos.
 
 Próximas (una por pieza de la doc): el contrato del `schema.py` por app
 (`SPECTACULAR_TAGS` + extensiones auth/serializer/view), patrones de
