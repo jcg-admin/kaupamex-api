@@ -39,11 +39,14 @@ source: DRF api-guide/requests
 ## `request.user` / `request.auth` — autenticación por petición
 
 - **`request.user`** — usuario autenticado; aquí es `IdentityUser`
-  (`USERNAME_FIELD='email'`). Si la petición no está autenticada →
-  `AnonymousUser`. Es lo que consulta `HasCapability` / `@require_capability`
-  para resolver capacidades.
-- **`request.auth`** — contexto extra de auth; con simplejwt es el token
-  validado. `None` si no autenticado o sin contexto.
+  (`USERNAME_FIELD='email'`), resuelto por la **sesión de servidor** (cookie
+  `__Host-sessionid`; ADR-018 — ver `authentication.md`). Si la petición no está
+  autenticada → `AnonymousUser`. Es lo que consulta `HasCapability` /
+  `@require_capability` para resolver capacidades.
+- **`request.auth`** — contexto extra de auth; con la auth de **sesión** (el
+  default) es `None`. (SimpleJWT está instalado pero **dormido**, fuera del
+  default; si se re-activara, `request.auth` sería el token validado —
+  ver `authentication.md`.)
 - `WrappedAttributeError` al acceder `.user`/`.auth` = un authenticator lanzó un
   `AttributeError` interno; el bug está en el authenticator, no en la vista.
 

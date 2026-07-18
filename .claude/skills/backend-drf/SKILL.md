@@ -179,6 +179,10 @@ Cargar el doc del eje que se está tocando (no todo el skill):
   validador **función** en `<app>/validators.py` + `validators=[...]`,
   `UniqueValidator`, `unique_together` auto-generado por `ModelSerializer`; casos
   ambiguos van a `.validate()`/vista, no a `Meta.validators = []`.
+- [`authentication.md`](references/authentication.md) — identidad de la petición:
+  default = **sesión de servidor** (`CsrfExemptSessionAuthentication`, ADR-018;
+  cookie `__Host-`, sin token CSRF), SimpleJWT instalado pero **dormido**;
+  contrato **401** (sesión ausente) vs **403** (sin capacidad).
 
 ## Referencias de código
 
