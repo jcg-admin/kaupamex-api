@@ -143,6 +143,10 @@ Cargar el doc del eje que se está tocando (no todo el skill):
 - [`views.md`](references/views.md) — mecánica APIView/`@api_view`, policy
   attributes ↔ decoradores, ciclo de dispatch + `handle_exception` central
   (ADR-019), `raise APIException`, y la receta de **throttle en FBV**.
+- [`generic-views.md`](references/generic-views.md) — `GenericAPIView` y clases
+  concretas (List/Retrieve/Create/…), `get_queryset()` con acotamiento de fila
+  por usuario (capa L3), N+1 vía `select_related`/`prefetch_related`, hooks
+  `perform_create/update/destroy`, PUT-no-crea (404).
 
 ## Referencias de código
 
