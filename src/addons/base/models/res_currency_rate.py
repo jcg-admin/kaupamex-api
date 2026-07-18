@@ -9,28 +9,29 @@ Cross-app (DEC-SALE-01): ``currency`` → ``base.ResCurrency``; ``company`` →
 """
 from decimal import Decimal
 
-from django.db import models
+import fields
+import models
 
 
 class ResCurrencyRate(models.Model):
     """``res.currency.rate`` — tipo de cambio de una moneda en una fecha."""
 
-    name         = models.DateField(
+    name         = fields.Date(
         help_text='Fecha del tipo de cambio (Odoo name, requerido).',
     )
-    rate         = models.DecimalField(
+    rate         = fields.Monetary(
         max_digits=24, decimal_places=12, default=Decimal('1.0'),
         help_text='Tasa por unidad de la moneda de la empresa (Odoo rate).',
     )
-    company_rate = models.DecimalField(
+    company_rate = fields.Monetary(
         max_digits=24, decimal_places=12, default=Decimal('1.0'),
         help_text='Tasa vista desde la empresa (Odoo company_rate).',
     )
-    currency     = models.ForeignKey(
+    currency     = fields.Many2one(
         'base.ResCurrency', on_delete=models.CASCADE, related_name='rates',
         help_text='Moneda (Odoo currency_id).',
     )
-    company      = models.ForeignKey(
+    company      = fields.Many2one(
         'company.Company', on_delete=models.CASCADE, related_name='currency_rates',
         null=True, blank=True,
         help_text='Empresa (Odoo company_id).',

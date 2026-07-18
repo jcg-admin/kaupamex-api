@@ -14,8 +14,9 @@ en la fila (``number_next``); la variante PostgreSQL-sequence de Odoo
 Interpolación de fecha: se portan los tokens comunes (``%(year)s`` ``%(y)s``
 ``%(month)s`` ``%(day)s`` ``%(doy)s`` ``%(woy)s``); el resto queda documentado.
 """
-from django.db import models
 from django.utils import timezone
+import fields
+import models
 
 
 class IrSequence(models.Model):
@@ -23,37 +24,37 @@ class IrSequence(models.Model):
 
     IMPLEMENTATIONS = [('standard', 'Standard'), ('no_gap', 'No gap')]
 
-    name           = models.CharField(max_length=128, help_text='Nombre (Odoo name).')
-    code           = models.CharField(
+    name           = fields.Char(max_length=128, help_text='Nombre (Odoo name).')
+    code           = fields.Char(
         max_length=64, blank=True, default='',
         help_text='Código de la secuencia (Odoo code).',
     )
-    implementation = models.CharField(
+    implementation = fields.Char(
         max_length=16, choices=IMPLEMENTATIONS, default='standard',
         help_text='Standard o No gap (Odoo implementation).',
     )
-    active         = models.BooleanField(default=True, help_text='Odoo active.')
-    prefix         = models.CharField(
+    active         = fields.Boolean(default=True, help_text='Odoo active.')
+    prefix         = fields.Char(
         max_length=128, blank=True, default='',
         help_text='Prefijo, interpolable por fecha (Odoo prefix).',
     )
-    suffix         = models.CharField(
+    suffix         = fields.Char(
         max_length=128, blank=True, default='',
         help_text='Sufijo, interpolable por fecha (Odoo suffix).',
     )
-    number_next    = models.IntegerField(
+    number_next    = fields.Integer(
         default=1, help_text='Próximo número (Odoo number_next).',
     )
-    number_increment = models.IntegerField(
+    number_increment = fields.Integer(
         default=1, help_text='Paso de incremento (Odoo number_increment / Step).',
     )
-    padding        = models.IntegerField(
+    padding        = fields.Integer(
         default=0, help_text='Ancho con ceros a la izquierda (Odoo padding).',
     )
-    use_date_range = models.BooleanField(
+    use_date_range = fields.Boolean(
         default=False, help_text='Subsecuencias por rango de fecha (Odoo use_date_range).',
     )
-    company        = models.ForeignKey(
+    company        = fields.Many2one(
         'company.Company', on_delete=models.CASCADE, related_name='sequences',
         null=True, blank=True, help_text='Empresa (Odoo company_id).',
     )

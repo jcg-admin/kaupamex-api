@@ -1,32 +1,11 @@
-"""Nombres de campo — fiel a ``odoo/fields`` (Odoo 18/19).
+"""``fields`` — fiel a ``odoo/fields/__init__.py`` (Odoo 19).
 
-Módulo top-level (prefijo ``odoo.`` eliminado por la convención del proyecto):
-un addon escribe ``import fields`` y usa ``fields.Char(...)``, leyendo como su
-fuente Odoo (``from odoo import fields``).
-
-Cada nombre mapea al **nombre** de campo de Odoo → la clase de Django. La
-**firma** difiere (Odoo ``fields.Char(string=…, required=True)`` vs Django
-``CharField(max_length=…, verbose_name=…)``): se exponen como alias de clase
-para lectura/consistencia; un adaptador de firmas 1:1 sería una sub-iniciativa
-(``fields``-signature-shim), no se half-buildea aquí.
-
-``models`` (base de modelo) NO se re-exporta: en este proyecto un addon usa
-``from django.db import models`` directamente — ``models`` ES la ORM de Django.
+Re-export de los campos definidos en ``orm/fields.py`` (≙ ``odoo/orm/fields*.py``)
++ ``Command`` desde ``orm/commands.py`` (≙ ``odoo/orm/commands.py``, que
+``odoo/fields/__init__.py`` re-exporta como ``odoo.fields.Command``). Un addon
+escribe ``import fields`` y usa ``fields.Char(...)`` / ``fields.Command`` leyendo
+como su fuente Odoo (``from odoo import fields``). La definición vive en
+``orm/``; este módulo top-level es sólo la superficie pública.
 """
-from django.db import models
-
-# Nombres de campo de Odoo → clases de Django (alias de lectura).
-Char = models.CharField
-Text = models.TextField
-Boolean = models.BooleanField
-Integer = models.IntegerField
-Float = models.FloatField
-Monetary = models.DecimalField
-Date = models.DateField
-Datetime = models.DateTimeField
-Selection = models.CharField          # Odoo Selection ≈ CharField(choices=…)
-Many2one = models.ForeignKey
-One2many = None                       # reverso de FK en Django (related_name)
-Many2many = models.ManyToManyField
-Binary = models.BinaryField
-Json = models.JSONField
+from orm.commands import Command      # noqa: F401  (odoo.fields.Command)
+from orm.fields import *              # noqa: F401,F403  (re-export de orm/fields)
