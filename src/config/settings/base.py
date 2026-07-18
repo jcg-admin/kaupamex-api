@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     'addons.authz_audit',
     'addons.authz_reauth',
     'addons.authz_menu',
+    'addons.authz_password_policy',
     'addons.company',
     'addons.finance',
 ]
@@ -178,7 +179,11 @@ MULTIDB_CONTROL_PLANE_APPS = ('sessions', 'contenttypes', 'base')
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    # Longitud mínima editable en caliente (L2) — adaptación de
+    # auth_password_policy de Odoo. Reemplaza a MinimumLengthValidator (que
+    # cablea min_length=8 en settings) por la variante configurable en
+    # SystemParameter (default 8; sin regresión). Ver addons.authz_password_policy.
+    {'NAME': 'addons.authz_password_policy.validators.ConfigurablePasswordPolicyValidator'},
     {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
