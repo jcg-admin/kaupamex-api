@@ -59,6 +59,7 @@ NAMED_ACTIONS = [
     ('account.notifications', 'Ver mis notificaciones',           False),
     ('account.profile',       'Ver mi perfil',                    False),
     ('account.password',      'Cambiar mi contraseña',            False),
+    ('account.security',      'Gestionar mi verificación 2FA',    False),
     ('account.deactivate',    'Dar de baja mi cuenta',            False),
     ('account.reviews',       'Ver y escribir mis reseñas',       False),
     ('account.referral',      'Ver mi programa de referidos',     False),
@@ -220,7 +221,7 @@ class Command(BaseCommand):
         # baja, historial de pago). Se siembran en TODOS los roles para no dejar
         # a nadie fuera de su propia cuenta (DEC-ENF-01). ``add`` es idempotente.
         self_account_codes = {
-            'account.profile', 'account.password',
+            'account.profile', 'account.password', 'account.security',
             'account.deactivate', 'account.payments',
         }
         self_account_caps = [c for c in caps if c.code in self_account_codes]

@@ -9,8 +9,10 @@ import time
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.core.management import call_command
 from rest_framework.test import APIClient
 
+from addons.authz.services import assign_buyer_role, invalidate_capabilities
 from addons.authz_totp.models import TotpSecret
 from addons.authz_totp.services import (
     _code_matches,
@@ -41,9 +43,16 @@ def _current_code(secret, offset=0):
 
 @pytest.fixture
 def user(db):
-    return User.objects.create_user(
+    # Los endpoints de 2FA están gateados por la capacidad de cuenta propia
+    # ``account.security`` (CapabilityRequiredMixin). El usuario necesita un rol
+    # que la tenga; el rol comprador agrupa todas las ``account.*``.
+    call_command('seed_authz')
+    u = User.objects.create_user(
         email='totp-user@example.com', password=PASSWORD, is_active=True,
     )
+    assign_buyer_role(u)
+    invalidate_capabilities(u.id)
+    return u
 
 
 @pytest.fixture

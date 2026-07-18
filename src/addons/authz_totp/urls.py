@@ -2,15 +2,17 @@
 from django.urls import path
 
 from addons.authz_totp.views import (
-    TotpConfirmView,
-    TotpDisableView,
-    TotpSetupView,
-    TotpStatusView,
+    totp_confirm,
+    totp_disable,
+    totp_recovery_codes,
+    totp_setup,
+    totp_status,
 )
 
 urlpatterns = [
-    path('', TotpStatusView.as_view(), name='totp-status'),
-    path('setup/', TotpSetupView.as_view(), name='totp-setup'),
-    path('confirm/', TotpConfirmView.as_view(), name='totp-confirm'),
-    path('disable/', TotpDisableView.as_view(), name='totp-disable'),
+    path('', totp_status, name='totp-status'),
+    path('setup/', totp_setup, name='totp-setup'),
+    path('confirm/', totp_confirm, name='totp-confirm'),
+    path('disable/', totp_disable, name='totp-disable'),
+    path('recovery-codes/', totp_recovery_codes, name='totp-recovery-codes'),
 ]
