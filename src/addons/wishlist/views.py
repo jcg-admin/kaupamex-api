@@ -8,8 +8,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema, extend_schema_field, inline_serializer
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
-from rest_framework.permissions import IsAuthenticated
-from addons.authz.permissions import HasCapability
+from addons.authz.permissions import CapabilityRequiredMixin
 from rest_framework.response import Response
 from rest_framework.serializers import ModelSerializer, SerializerMethodField
 from rest_framework.views import APIView
@@ -127,12 +126,11 @@ class WishlistItemSerializer(ModelSerializer):
         return obj.product.stock
 
 
-class WishlistView(APIView):
+class WishlistView(CapabilityRequiredMixin, APIView):
     """
     GET  /api/v1/wishlist/ — ver lista de deseos (UC-WISH-02)
     POST /api/v1/wishlist/ — agregar producto (UC-WISH-01)
     """
-    permission_classes = [IsAuthenticated, HasCapability]
     required_capability = 'account.wishlist'
 
     @extend_schema(summary='Ver lista de deseos', tags=['wishlist'],
@@ -193,7 +191,8 @@ class WishlistView(APIView):
                 existing.save(update_fields=[
                     'is_deleted', 'deleted_at', 'price_at_add', 'updated_at',
                 ])
-                return Response(WishlistItemSerializer(existing).data, status=201)
+                return Response(WishlistItemSerializer(existing).data,
+                                status=status.HTTP_201_CREATED)
             return Response(
                 {'detail': 'El producto ya está en la lista de deseos.',
                  'codigo_error': 'PRODUCT_ALREADY_IN_WISHLIST'},
@@ -214,14 +213,14 @@ class WishlistView(APIView):
                 status=status.HTTP_409_CONFLICT,
             )
 
-        return Response(WishlistItemSerializer(item).data, status=201)
+        return Response(WishlistItemSerializer(item).data,
+                        status=status.HTTP_201_CREATED)
 
 
-class WishlistItemDetailView(APIView):
+class WishlistItemDetailView(CapabilityRequiredMixin, APIView):
     """
     DELETE /api/v1/wishlist/<pk>/ — eliminar item (UC-WISH-02)
     """
-    permission_classes = [IsAuthenticated, HasCapability]
     required_capability = 'account.wishlist'
 
     def _get_item(self, request, pk):
@@ -231,12 +230,11 @@ class WishlistItemDetailView(APIView):
                    responses={204: None}, tags=['wishlist'])
     def delete(self, request, pk):
         self._get_item(request, pk).delete()
-        return Response(status=204)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class WishlistMoveToCartView(APIView):
+class WishlistMoveToCartView(CapabilityRequiredMixin, APIView):
     """POST /api/v1/wishlist/<pk>/move-to-cart/ — UC-WISH-03."""
-    permission_classes = [IsAuthenticated, HasCapability]
     required_capability = 'account.wishlist'
 
     @extend_schema(
@@ -289,10 +287,10 @@ class WishlistMoveToCartView(APIView):
             'wishlist_item_id': pk,
             'cart_item_id': cart_item_id,
             'moved_at': timezone.now().isoformat(),
-        }, status=200)
+        }, status=status.HTTP_200_OK)
 
 
-class WishlistAggregateView(APIView):
+class WishlistAggregateView(CapabilityRequiredMixin, APIView):
     """
     UC-WISH-04 (H-08): agregacion de wishlists para marketing (admin).
 
@@ -301,7 +299,6 @@ class WishlistAggregateView(APIView):
     identidad de los compradores (BR-013). El manager por defecto de
     WishlistItem excluye los soft-deleted.
     """
-    permission_classes = [IsAuthenticated, HasCapability]
     required_capability = 'users.view'
 
     @extend_schema(
