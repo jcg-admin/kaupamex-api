@@ -254,6 +254,13 @@ Cargar el doc del eje que se está tocando (no todo el skill):
   36. `force_login` (Django, crea sesión — fiel a ADR-018) vs `force_authenticate`
   (DRF, `session_key=''` → sembrar reauth DEC-12). `format='json'` explícito;
   assert `response.data`+status+`codigo_error`; MariaDB real, no SQLite.
+- [`settings.md`](references/settings.md) — **mapa maestro** del bloque
+  `REST_FRAMEWORK` (`base.py`): qué se fija (auth sesión, `IsAuthenticated` como
+  piso + `HasCapability` por vista, JSON-only, spectacular, EXCEPTION_HANDLER
+  central, throttle scoped) con su ADR, los overrides por entorno (browsable en
+  dev, throttle-off en tests) y qué rige por default de DRF (parsers, paginación
+  None, versioning None, `COERCE_DECIMAL_TO_STRING`, `URL_FORMAT_OVERRIDE`…) —
+  cada key remite a su referencia dedicada.
 
 ## Referencias de código
 
