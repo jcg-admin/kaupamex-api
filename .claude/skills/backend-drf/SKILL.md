@@ -216,6 +216,12 @@ Cargar el doc del eje que se está tocando (no todo el skill):
   (`SimpleMetadata` default, 0 overrides); el contrato del API es
   **drf-spectacular** (`DEFAULT_SCHEMA_CLASS=AutoSchema`, `@extend_schema`,
   `/api/schema/` + Swagger/Redoc), no `OPTIONS`.
+- [`schema.md`](references/schema.md) — el schema **nativo** de DRF
+  (`rest_framework.schemas`/`@schema`) está deprecado y **no se usa** (0); el
+  contrato OpenAPI 3 lo genera **drf-spectacular** (`@extend_schema` 354, `tags`
+  273, `OpenApiResponse` 135, `OpenApiParameter` 108, `extend_schema_field` 72;
+  `@extend_schema_view`/`OpenApiExample` 0) servido en `/api/schema/` + Swagger +
+  Redoc; `CONTACT`=operador L0 (Kaupamex).
 
 ## Referencias de código
 
