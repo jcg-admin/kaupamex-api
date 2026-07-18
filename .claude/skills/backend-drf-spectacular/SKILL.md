@@ -180,6 +180,10 @@ El skill crece por pieza de la doc de drf-spectacular (mismo patrón que
   BOOL/DECIMAL/BINARY/URI, o el tipo Python básico); `location` QUERY por default,
   `PATH` explícito; **gotcha del docstring** (entra completo → usar `summary=`
   siempre, 285 usos); nombres de componente automáticos.
+- [`api-reference.md`](references/api-reference.md) — **catálogo completo neutro**
+  del API público (`utils`/`types`/`views`/`extensions`/`hooks`/`openapi.AutoSchema`/
+  `contrib`): cada símbolo, qué es y cuándo se ocupa, con la firma de `@extend_schema`
+  y el enum `OpenApiTypes` completos. Referencia para elegir la herramienta correcta.
 
 Próximas (una por pieza de la doc): el contrato del `schema.py` por app
 (`SPECTACULAR_TAGS` + extensiones auth/serializer/view), patrones de
