@@ -196,6 +196,10 @@ Cargar el doc del eje que se está tocando (no todo el skill):
   (`throttle_classes=[ScopedRateThrottle]` + `throttle_scope` +
   `DEFAULT_THROTTLE_RATES`); gotcha `throttle_scope` huérfano = no-op silencioso
   (H-CICLO26-01); FBV vía `UserRateThrottle` con `scope=`.
+- [`filtering.md`](references/filtering.md) — filtrado **manual en
+  `get_queryset()`** (`query_params.get`), no `django-filter` (no instalado);
+  ordenamiento expuesto = **allowlist** (`CatalogueOrderingFilter`), nunca campo
+  libre; `SearchFilter`/`OrderingFilter` de DRF no se usan.
 
 ## Referencias de código
 
