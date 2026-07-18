@@ -222,6 +222,11 @@ Cargar el doc del eje que se está tocando (no todo el skill):
   273, `OpenApiResponse` 135, `OpenApiParameter` 108, `extend_schema_field` 72;
   `@extend_schema_view`/`OpenApiExample` 0) servido en `/api/schema/` + Swagger +
   Redoc; `CONTACT`=operador L0 (Kaupamex).
+- [`format-suffixes.md`](references/format-suffixes.md) — sufijos `.json` en URL
+  **no se usan** (`format_suffix_patterns` 0, kwarg `format=None` 0); `?format=`
+  queda default-habilitado (`URL_FORMAT_OVERRIDE='format'`) pero no-op en prod
+  (JSON-only), **salvo** el export view que se apropia de `?format=` como contrato
+  y neutraliza a DRF con `_PassthroughNegotiator` (no global).
 
 ## Referencias de código
 
