@@ -93,6 +93,16 @@ class SaleOrder(TimeStampedModel):
         max_length=10, choices=DELIVERY_STATES, null=True, blank=True,
         help_text='Estado de entrega (Odoo sale.order.delivery_status).',
     )
+    # Contribución de ``sale_loyalty``: cupón/promo aplicado a la orden. Odoo
+    # ``sale_loyalty`` puentea ``sale`` + ``loyalty`` (programas/tarjetas/premios);
+    # este e-commerce usa el addon ``voucher`` (códigos de descuento) — se integra
+    # su modelo sobre el grafo ``sale.order`` (paridad con ``cart.voucher``). La
+    # maquinaria de puntos/tarjetas de ``loyalty`` queda fuera de scope.
+    voucher    = models.ForeignKey(
+        'voucher.Voucher', null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='sale_orders',
+        help_text='Cupón aplicado (paridad cart.voucher; = sale_loyalty coupon).',
+    )
 
     class Meta:
         db_table     = 'sale_order'
@@ -134,3 +144,14 @@ class SaleOrder(TimeStampedModel):
         if delivered >= ordered:
             return self.DELIVERY_FULL
         return self.DELIVERY_PARTIAL
+
+    # Contribución de ``sale_loyalty``: descuento del cupón sobre la orden.
+    # Reutiliza ``Voucher.calculate_discount`` (voucher/models.py:154) igual que
+    # ``cart.get_discount``. FREE_SHIPPING retorna 0 (descuenta en envío).
+    def discount_amount(self) -> Decimal:
+        if not self.voucher_id:
+            return Decimal('0.00')
+        return self.voucher.calculate_discount(self.amount_untaxed())
+
+    def amount_total_after_discount(self) -> Decimal:
+        return self.amount_total() - self.discount_amount()
