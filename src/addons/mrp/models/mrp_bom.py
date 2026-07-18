@@ -18,11 +18,14 @@ from core.models import TimeStampedModel
 class MrpBom(TimeStampedModel):
     """``mrp.bom`` — lista de materiales de un producto."""
 
-    TYPE_NORMAL  = 'normal'
-    TYPE_PHANTOM = 'phantom'
+    TYPE_NORMAL      = 'normal'
+    TYPE_PHANTOM     = 'phantom'
+    TYPE_SUBCONTRACT = 'subcontract'
     TYPE_CHOICES = [
         (TYPE_NORMAL, 'Fabricar este producto'),
         (TYPE_PHANTOM, 'Kit'),
+        # Odoo mrp_subcontracting selection_add=[('subcontract','Subcontracting')].
+        (TYPE_SUBCONTRACT, 'Subcontratación'),
     ]
 
     code        = models.CharField(

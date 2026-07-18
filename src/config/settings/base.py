@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     'addons.purchase',
     'addons.sale_purchase',
     'addons.mrp',
+    'addons.mrp_subcontracting',
     'addons.sale_mrp',
     'addons.orders',
     'addons.payments',
