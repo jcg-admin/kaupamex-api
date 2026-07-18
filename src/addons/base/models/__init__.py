@@ -9,14 +9,20 @@ Un archivo por modelo (monolito modular, como Odoo):
 Se reexporta todo aquí para preservar el contrato de import histórico
 ``from addons.base.models import SystemParameter, ResCurrency, ...``.
 """
+from .decimal_precision import DecimalPrecision
 from .ir_config_parameter import (
     _DEFAULT_PARAMETERS,
     _PARAM_CACHE,
     _clear_cache,
     SystemParameter,
 )
+from .ir_sequence import IrSequence
+from .res_bank import ResBank
 from .res_country import ResCountry, ResCountryState
+from .res_country_group import ResCountryGroup
 from .res_currency import ResCurrency
+from .res_currency_rate import ResCurrencyRate
+from .res_lang import ResLang
 
 __all__ = [
     '_DEFAULT_PARAMETERS',
@@ -24,6 +30,12 @@ __all__ = [
     '_clear_cache',
     'SystemParameter',
     'ResCurrency',
+    'ResCurrencyRate',
     'ResCountry',
     'ResCountryState',
+    'ResCountryGroup',
+    'ResLang',
+    'ResBank',
+    'DecimalPrecision',
+    'IrSequence',
 ]
