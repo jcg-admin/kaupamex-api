@@ -164,6 +164,12 @@ El skill crece por pieza de la doc de drf-spectacular (mismo patrón que
   (`COMPONENT_NO_READ_ONLY_REQUIRED`, `ENUM_ADD_EXPLICIT_BLANK_NULL_CHOICE`,
   `GENERIC_ADDITIONAL_PROPERTIES`) se dejan en su default preciso; gap: el gate CI
   `--validate --fail-on-warn` no está cableado.
+- [`faq-troubleshooting.md`](references/faq-troubleshooting.md) — índice de síntomas
+  → manejo del proyecto: ya resuelto (versioning off ⇒ nada faltante, `{format}`
+  excluido, extensiones por PREPROCESSING no `ready()`); gotchas que aplican
+  (`@extend_schema` en el `get`/`post` de un `APIView`, `@api_view` multi-método,
+  `@action` paginado); CSP en blanco (no aplica en Django, caveat prod); y los
+  mecanismos disponibles-pero-no-usados (Polymorphic/enveloper/`swagger_fake_view`…).
 
 Próximas (una por pieza de la doc): el contrato del `schema.py` por app
 (`SPECTACULAR_TAGS` + extensiones auth/serializer/view), patrones de
