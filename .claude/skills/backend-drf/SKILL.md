@@ -71,7 +71,7 @@ solo saltaría el modelo de capacidades. Azúcar en `addons.authz.permissions`:
   con punto, o `CRUD_NOUNS` para sustantivos graduables). Si NO se añade, el
   sweep de URLconf de `tests/integration/authz/test_capability_sugar.py`
   (`unknown_capability_codes`) **falla**.
-- **Cuenta propia:** además, meter el code en `self_account_codes` de
+- **Cuenta propia:** además, añadir el code a `self_account_codes` de
   `seed_authz` (se siembra en TODOS los roles — DEC-ENF-01) para que ningún
   usuario quede fuera de su propia cuenta.
 - **DEC-12 (re-auth):** acciones **sensibles** mutantes exigen sesión elevada

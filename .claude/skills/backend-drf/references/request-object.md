@@ -61,8 +61,8 @@ source: DRF api-guide/requests
   formulario del browsable API).
 - **`request.content_type`** — media type del body; preferirlo sobre
   `request.META.get('HTTP_CONTENT_TYPE')`.
-- **`request.stream`** — stream crudo del body (normalmente no se toca; usar
-  `request.data`).
+- **`request.stream`** — stream crudo del body (normalmente no se accede
+  directamente; usar `request.data`).
 - **Content negotiation:** `request.accepted_renderer` /
   `request.accepted_media_type` (para servir distintos formatos por media type).
 - **Estándar de Django** disponible igual: `request.META`, `request.session`.

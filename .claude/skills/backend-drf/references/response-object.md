@@ -64,8 +64,8 @@ source: DRF api-guide/responses
 - `.data` — datos sin renderizar (lo que asertan los tests:
   `resp.data['codigo_error']`).
 - `.status_code` — código numérico (`assert resp.status_code == 400`).
-- `.content` — bytes renderizados (sólo tras `.render()`, que corre en el ciclo
-  estándar; no llamarlo a mano).
+- `.content` — bytes renderizados (sólo tras `.render()`, que se ejecuta en el
+  ciclo estándar; no invocarlo manualmente).
 
 ## Checklist al devolver
 

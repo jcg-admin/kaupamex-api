@@ -21,7 +21,7 @@ las dos):
 1. El handler recibe un `Request` de DRF (no `HttpRequest`) — parsing flexible.
 2. Puede devolver `Response` — content-negotiation + renderer correcto.
 3. Cualquier `APIException` se **atrapa y media** a una respuesta de error.
-4. **Antes** de despachar al handler se corren, en orden: autenticación →
+4. **Antes** de despachar al handler se ejecutan, en orden: autenticación →
    permisos → throttle → content-negotiation (`.initial()`).
 
 ## Policy attributes (CBV) ↔ decoradores (FBV)
@@ -58,8 +58,8 @@ Los decoradores de policy van **después (debajo)** de `@api_view`. El único qu
 
 ## Ciclo de dispatch — dónde engancha cada cosa
 
-- **`.initial(request)`** — corre auth + permisos + throttle + content-negotiation
-  antes del handler. No se sobrescribe.
+- **`.initial(request)`** — ejecuta auth + permisos + throttle +
+  content-negotiation antes del handler. No se sobrescribe.
 - **`.handle_exception(exc)`** — toda excepción del handler pasa por aquí.
   Maneja `APIException`, `Http404` y `PermissionDenied`. **En este proyecto** el
   error se sella centralmente vía `EXCEPTION_HANDLER =
@@ -67,10 +67,10 @@ Los decoradores de policy van **después (debajo)** de `@api_view`. El único qu
   handler de DRF y da la forma canónica del error. Por eso **`raise
   AuthenticationFailed(...)` / `ValidationError` / `PermissionDenied` / `NotFound`
   es un patrón válido** (163 usos en el repo) — el handler central los mapea; no
-  hay que armar el 4xx a mano en cada sitio. Coexiste con el `return
-  Response({'codigo_error': ...}, status=4xx)` explícito.
+  es necesario construir el 4xx manualmente en cada punto. Coexiste con el
+  `return Response({'codigo_error': ...}, status=4xx)` explícito.
 - **`.initialize_request` / `.finalize_response`** — envuelven request/response;
-  no se tocan.
+  no se sobrescriben.
 
 ## Throttling en FBV — la receta (evita la fricción de `throttle_scope`)
 
