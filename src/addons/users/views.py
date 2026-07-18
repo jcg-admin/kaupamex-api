@@ -37,6 +37,7 @@ from .models import Address, AuthEvent, EmailVerificationToken, PasswordResetTok
 from .serializers import AddressSerializer, ChangePasswordSerializer, EmailVerificationSerializer, PasswordResetConfirmSerializer, PasswordResetRequestSerializer, ProfileSerializer, RegisterSerializer, ResendVerificationSerializer, UpdateProfileSerializer
 from .tokens_email import check_rate_limit, create_password_reset_token, create_verification_token, invalidate_all_sessions, send_password_reset_email, send_verification_email, validate_password_reset_token, validate_verification_token
 from addons.authz.services import assign_buyer_role, is_superadmin
+from addons.authz_signup.policy import password_reset_enabled, signup_open
 
 # DRF + plugins
 
@@ -108,6 +109,16 @@ class RegisterView(APIView):
             None, AuthEvent.ACTION_REGISTER_ATTEMPT, request,
             extra={'email_present': bool(email)},
         )
+
+        # authz_signup (DEC-01, ~auth_signup de Odoo): el auto-registro público
+        # es una política editable en caliente (L2), no un comportamiento
+        # cableado. Si el operador cerró el registro, 403 SIGNUP_CLOSED.
+        if not signup_open():
+            return Response(
+                {'codigo_error': 'SIGNUP_CLOSED',
+                 'detail': 'El registro de nuevas cuentas está deshabilitado.'},
+                status=403,
+            )
 
         existing = User.objects.filter(email__iexact=email).first() if email else None
 
@@ -438,6 +449,15 @@ class PasswordResetRequestView(APIView):
         tags=['auth'],
     )
     def post(self, request):
+        # authz_signup (DEC-01, ~auth_signup de Odoo): el reset desde login es
+        # una política editable en caliente (L2), no un comportamiento cableado.
+        if not password_reset_enabled():
+            return Response(
+                {'codigo_error': 'PASSWORD_RESET_DISABLED',
+                 'detail': 'La recuperación de contraseña está deshabilitada.'},
+                status=403,
+            )
+
         serializer = PasswordResetRequestSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
