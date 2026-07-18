@@ -63,6 +63,8 @@ INSTALLED_APPS = [
     'addons.sale_project',
     'addons.purchase',
     'addons.sale_purchase',
+    'addons.mrp',
+    'addons.sale_mrp',
     'addons.orders',
     'addons.payments',
     'addons.support',
