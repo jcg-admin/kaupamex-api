@@ -140,6 +140,9 @@ Cargar el doc del eje que se está tocando (no todo el skill):
 - [`response-object.md`](references/response-object.md) — construir la respuesta
   (`Response(data, status)` con primitivos; cuerpo `codigo_error`; headers;
   excepción streaming/`FileResponse`).
+- [`views.md`](references/views.md) — mecánica APIView/`@api_view`, policy
+  attributes ↔ decoradores, ciclo de dispatch + `handle_exception` central
+  (ADR-019), `raise APIException`, y la receta de **throttle en FBV**.
 
 ## Referencias de código
 
