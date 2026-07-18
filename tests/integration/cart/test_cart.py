@@ -239,6 +239,20 @@ class TestVerCarrito:
         assert 'subtotal' in totals
         assert 'total' in totals
 
+    def test_item_incluye_desglose_iva_por_linea(
+        self, anon_client_with_cart, product_sin_variante, db
+    ):
+        """Adaptado de Odoo sale.order.line: cada línea expone
+        price_subtotal (sin IVA) + price_tax + price_total (con IVA);
+        subtotal+tax == total y total == unit_price*quantity."""
+        client, _ = anon_client_with_cart
+        item = client.get(CART_URL).json()['items'][0]
+        sub = Decimal(item['price_subtotal'])
+        tax = Decimal(item['price_tax'])
+        tot = Decimal(item['price_total'])
+        assert sub + tax == tot
+        assert tot == Decimal(item['unit_price']) * item['quantity']
+
     def test_price_changed_detecta_cambio(
         self, anon_client_with_cart, product_sin_variante, db
     ):

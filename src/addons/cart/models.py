@@ -160,6 +160,26 @@ class CartItem(TimeStampedModel):
     def get_subtotal(self) -> Decimal:
         return self.unit_price * self.quantity
 
+    # Desglose de importes por línea — adaptado de Odoo
+    # ``sale.order.line._compute_amount`` (sale/models/sale_order_line.py:852):
+    # Odoo expone ``price_subtotal`` (sin impuesto), ``price_tax`` y
+    # ``price_total`` (con impuesto) redondeados **por línea**. Aquí los precios
+    # son IVA-incluido (MX), así que el total de línea es ``unit_price*qty`` y el
+    # IVA se extrae con la tasa vigente, cuantizando por línea (equivalente a
+    # ``_round_base_lines_tax_details``) para evitar deriva de redondeo al sumar.
+    def price_total(self) -> Decimal:
+        """Total de la línea con IVA incluido."""
+        return (self.unit_price * self.quantity).quantize(Decimal('0.01'))
+
+    def price_tax(self) -> Decimal:
+        """IVA contenido en el total de la línea (extraído, tasa vigente)."""
+        rate = SiteSettings.get_current().iva_rate
+        return (self.price_total() * rate / (1 + rate)).quantize(Decimal('0.01'))
+
+    def price_subtotal(self) -> Decimal:
+        """Subtotal de la línea sin IVA (total − IVA)."""
+        return self.price_total() - self.price_tax()
+
     def current_price(self) -> Decimal:
         if self.variant:
             return self.variant.effective_price()

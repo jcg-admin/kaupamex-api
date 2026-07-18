@@ -11,6 +11,10 @@ class CartItemSerializer(serializers.ModelSerializer):
     variant_label = serializers.SerializerMethodField()
     sku           = serializers.SerializerMethodField()
     subtotal      = serializers.SerializerMethodField()
+    # Desglose por línea (adaptado de Odoo sale.order.line): sin IVA / IVA / con IVA.
+    price_subtotal = serializers.SerializerMethodField()
+    price_tax      = serializers.SerializerMethodField()
+    price_total    = serializers.SerializerMethodField()
     available_stock = serializers.SerializerMethodField()
     is_available  = serializers.SerializerMethodField()
     price_changed = serializers.SerializerMethodField()
@@ -21,6 +25,7 @@ class CartItemSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'product_name', 'product_slug', 'variant_label', 'sku',
             'quantity', 'unit_price', 'subtotal',
+            'price_subtotal', 'price_tax', 'price_total',
             'available_stock', 'is_available', 'price_changed', 'image_url',
         ]
 
@@ -42,6 +47,15 @@ class CartItemSerializer(serializers.ModelSerializer):
 
     def get_subtotal(self, obj) -> str:
         return str(obj.get_subtotal())
+
+    def get_price_subtotal(self, obj) -> str:
+        return str(obj.price_subtotal())
+
+    def get_price_tax(self, obj) -> str:
+        return str(obj.price_tax())
+
+    def get_price_total(self, obj) -> str:
+        return str(obj.price_total())
 
     def get_available_stock(self, obj) -> int:
         return obj.available_stock()
