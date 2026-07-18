@@ -66,6 +66,14 @@ class SaleOrder(TimeStampedModel):
     locked     = models.BooleanField(
         default=False, help_text='Orden bloqueada, no modificable (Odoo locked).',
     )
+    # Odoo sale.order.team_id (Many2one crm.team) — atribución de la orden a un
+    # equipo de venta. El addon ``sale`` declara ``sales_team`` como dependencia
+    # justamente para añadir este campo.
+    team       = models.ForeignKey(
+        'sales_team.CrmTeam', null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='sale_orders',
+        help_text='Equipo de venta atribuido (Odoo sale.order.team_id).',
+    )
 
     class Meta:
         db_table     = 'sale_order'
