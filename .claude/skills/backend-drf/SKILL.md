@@ -233,6 +233,13 @@ Cargar el doc del eje que se está tocando (no todo el skill):
   `SerializerMethodField`, fallback relativo si falta `request`); resolver
   `viewname` es `django.urls.reverse` con namespace `_v2`; sin serializers
   hyperlinked.
+- [`exceptions.md`](references/exceptions.md) — el contrato de error lleva la
+  clave canónica `codigo_error` (390; string INGLÉS) además de `detail`, via
+  `ValidationError` (182) o 13 `APIException` codificadas
+  (`<app>/exceptions.py`, p.ej. `ReauthRequired` DEC-12); el `EXCEPTION_HANDLER`
+  central (`core.exception_handling`, ADR-019) **no cambia el cuerpo** — solo
+  sella el error en `RequestLog` (no bloqueante, DEC-LOG-04); sin
+  `drf-standardized-errors` ni `handler500/400`.
 
 ## Referencias de código
 
