@@ -187,6 +187,10 @@ Cargar el doc del eje que se está tocando (no todo el skill):
   `IsAuthenticated` a secas → `HasCapability` (DEC-11, motor) + `IsOwnerOrAdmin`
   (object-level); las 3 capas (queryset L3 / capacidad / campos); object-level
   sólo en retrieve/update/destroy (create se restringe en serializer/perform_create).
+- [`caching.md`](references/caching.md) — caché de **bajo nivel** `cache.get/set`
+  (backend `DatabaseCache`), no `cache_page`; clave `dominio:tema:<inputs>` + TTL
+  por vista (patrón `reports/views.py`); `invalidate_capabilities(user.id)` tras
+  cambiar rol.
 
 ## Referencias de código
 
