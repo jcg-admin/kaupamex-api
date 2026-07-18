@@ -6,9 +6,10 @@ capacidades del usuario. Verifica: superadmin ve todo; un usuario de solo
 las secciones sin hijos visibles se descartan; requiere autenticación.
 """
 from addons.authz.models import (
-    AccessLevel, Capability, MenuItem, Module, Role, RoleAssignment,
+    AccessLevel, Capability, Module, Role, RoleAssignment,
     RoleCapability,
 )
+from addons.authz_menu.models import MenuItem
 from addons.authz.services import SUPERADMIN_ROLE_CODE, invalidate_capabilities
 
 import pytest

@@ -5,7 +5,7 @@ autenticado y el árbol de menú podado por esas capacidades (DEC-08/09).
 """
 from rest_framework import serializers
 
-from addons.authz.models import MenuItem
+from addons.authz_menu.models import MenuItem
 
 
 class MenuItemNodeSerializer(serializers.ModelSerializer):

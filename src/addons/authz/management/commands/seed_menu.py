@@ -12,7 +12,8 @@ Secciones (nivel 0) y agrupadores (nivel 1 sin ruta, p.ej. Reportes) llevan
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from addons.authz.models import Capability, MenuItem
+from addons.authz.models import Capability
+from addons.authz_menu.models import MenuItem
 
 
 def _leaf(key, label, route, cap):
