@@ -4,8 +4,11 @@ Adaptación fiel de Odoo ``mrp.production`` (``mrp/models/mrp_production.py``,
 idéntico en 18 y 19): orden de fabricación. Núcleo verificado en ambas versiones
 — ``name`` (default 'New')/``product``/``product_qty``/``state``
 (``draft``/``confirmed``/``progress``/``done``/``cancel``) + ``bom``. La
-maquinaria de movimientos de stock (``move_raw_ids``/``move_finished_ids``),
-workorders y reservación se omite (Clausula 5 — no existe en este stack).
+maquinaria de movimientos de stock (``move_raw_ids``/``move_finished_ids``,
+o18:175-180), órdenes de trabajo (``workorders``) y su valoración quedan
+**integradas** sobre las bases ``stock`` + ``stock_account`` (el consumo de
+materia prima se valúa como salida y el terminado se recibe con costo =
+materia prima valuada + mano de obra). Ver ``mrp/services.py``.
 """
 import uuid
 from decimal import Decimal
@@ -13,6 +16,7 @@ from decimal import Decimal
 from django.core.exceptions import ValidationError
 from django.db import models
 
+from addons.stock.models.stock_move import StockMove
 from core.models import TimeStampedModel
 
 
@@ -87,3 +91,20 @@ class MrpProduction(TimeStampedModel):
         self.state = self.STATE_CANCEL
         self.save(update_fields=['state', 'updated_at'])
         return self
+
+    def move_raw_ids(self):
+        """Movimientos de consumo de materia prima (Odoo move_raw_ids)."""
+        ids = self.production_moves.filter(role='raw').values_list('move_id', flat=True)
+        return StockMove.objects.filter(id__in=list(ids))
+
+    def move_finished_ids(self):
+        """Movimientos del producto terminado (Odoo move_finished_ids)."""
+        ids = self.production_moves.filter(role='finished').values_list('move_id', flat=True)
+        return StockMove.objects.filter(id__in=list(ids))
+
+    def labor_cost(self) -> Decimal:
+        """Costo de mano de obra = suma de las órdenes de trabajo (Odoo)."""
+        total = Decimal('0.00')
+        for wo in self.workorders.all():
+            total += wo.labor_cost()
+        return total
