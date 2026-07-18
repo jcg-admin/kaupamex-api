@@ -61,6 +61,8 @@ INSTALLED_APPS = [
     'addons.sale_stock_margin',
     'addons.project',
     'addons.sale_project',
+    'addons.purchase',
+    'addons.sale_purchase',
     'addons.orders',
     'addons.payments',
     'addons.support',
