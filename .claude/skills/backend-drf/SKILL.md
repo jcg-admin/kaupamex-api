@@ -161,6 +161,11 @@ Cargar el doc del eje que se está tocando (no todo el skill):
 - [`renderers.md`](references/renderers.md) — cómo se serializa la respuesta
   según `Accept`; default **JSON-only** en prod (browsable sólo en dev); renderer
   a medida (`BaseRenderer`) para exports CSV/PDF/XLSX (patrón `reports/views.py`).
+- [`serializers.md`](references/serializers.md) — `ModelSerializer`/`Serializer`,
+  `Meta.fields` explícito (nunca `'__all__'`), validación 3 niveles
+  (`validate_<campo>`/`validate`/`is_valid(raise_exception=True)` → 400 sellado),
+  contexto vía `save(user=...)` (no `CurrentUserDefault`), nested writable
+  explícito.
 
 ## Referencias de código
 
