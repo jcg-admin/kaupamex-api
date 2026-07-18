@@ -158,6 +158,12 @@ El skill crece por pieza de la doc de drf-spectacular (mismo patrón que
   **no** (`@extend_schema_view`/`@extend_schema_serializer`/field-ext/filter-ext = 0);
   la desviación de `ready()` (PREPROCESSING hook por el gate no-lazy) y el gotcha
   de re-añadir el enum hook.
+- [`client-generation.md`](references/client-generation.md) — el proyecto **no**
+  genera cliente (UI a mano); el schema es para documentar. `COMPONENT_SPLIT_REQUEST`
+  ya está (por precisión, no por generador); los knobs de compatibilidad
+  (`COMPONENT_NO_READ_ONLY_REQUIRED`, `ENUM_ADD_EXPLICIT_BLANK_NULL_CHOICE`,
+  `GENERIC_ADDITIONAL_PROPERTIES`) se dejan en su default preciso; gap: el gate CI
+  `--validate --fail-on-warn` no está cableado.
 
 Próximas (una por pieza de la doc): el contrato del `schema.py` por app
 (`SPECTACULAR_TAGS` + extensiones auth/serializer/view), patrones de
