@@ -166,6 +166,11 @@ Cargar el doc del eje que se está tocando (no todo el skill):
   (`validate_<campo>`/`validate`/`is_valid(raise_exception=True)` → 400 sellado),
   contexto vía `save(user=...)` (no `CurrentUserDefault`), nested writable
   explícito.
+- [`serializer-fields.md`](references/serializer-fields.md) — campos:
+  `SerializerMethodField` (calculado read-only, cuidar N+1), `source=`, dinero con
+  `DecimalField(...,decimal_places=2)` (nunca `FloatField`; sale como string),
+  `write_only`/`read_only`, `ImageField`/`FileField` + MultiPart; sin campo a
+  medida (usar nested/method field).
 
 ## Referencias de código
 
