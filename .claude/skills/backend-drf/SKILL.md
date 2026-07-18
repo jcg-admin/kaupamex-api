@@ -158,6 +158,9 @@ Cargar el doc del eje que se está tocando (no todo el skill):
 - [`parsers.md`](references/parsers.md) — cómo se puebla `request.data` según
   `Content-Type`; default JSON+form+multipart sin override; cuándo fijar
   `parser_classes = [MultiPartParser, FormParser]` para subidas de archivo/CSV.
+- [`renderers.md`](references/renderers.md) — cómo se serializa la respuesta
+  según `Accept`; default **JSON-only** en prod (browsable sólo en dev); renderer
+  a medida (`BaseRenderer`) para exports CSV/PDF/XLSX (patrón `reports/views.py`).
 
 ## Referencias de código
 
