@@ -183,6 +183,10 @@ Cargar el doc del eje que se está tocando (no todo el skill):
   default = **sesión de servidor** (`CsrfExemptSessionAuthentication`, ADR-018;
   cookie `__Host-`, sin token CSRF), SimpleJWT instalado pero **dormido**;
   contrato **401** (sesión ausente) vs **403** (sin capacidad).
+- [`permissions.md`](references/permissions.md) — autorización: nunca
+  `IsAuthenticated` a secas → `HasCapability` (DEC-11, motor) + `IsOwnerOrAdmin`
+  (object-level); las 3 capas (queryset L3 / capacidad / campos); object-level
+  sólo en retrieve/update/destroy (create se restringe en serializer/perform_create).
 
 ## Referencias de código
 
