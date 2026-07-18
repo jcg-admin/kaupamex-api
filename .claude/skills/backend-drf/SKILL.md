@@ -155,6 +155,9 @@ Cargar el doc del eje que se está tocando (no todo el skill):
   `basename` explícito (el ViewSet acota con `get_queryset()` → sin `queryset`),
   prefijo sin slash final, `url_path` para el URL de una `@action`, y por qué no
   se usa router a medida.
+- [`parsers.md`](references/parsers.md) — cómo se puebla `request.data` según
+  `Content-Type`; default JSON+form+multipart sin override; cuándo fijar
+  `parser_classes = [MultiPartParser, FormParser]` para subidas de archivo/CSV.
 
 ## Referencias de código
 
