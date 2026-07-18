@@ -13,7 +13,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from addons.authz.models import AuthzEvent, MenuItem, ReauthSession
+from addons.authz.models import MenuItem, ReauthSession
+from addons.authz_audit.models import AuthzEvent
 from addons.authz.serializers import MenuItemNodeSerializer
 from addons.authz.services import (
     REAUTH_CAP_CODE,

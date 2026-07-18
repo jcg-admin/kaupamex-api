@@ -23,7 +23,8 @@ from django.core.management import call_command
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from addons.authz.models import AuthzEvent, ReauthSession, Role, RoleAssignment
+from addons.authz.models import ReauthSession, Role, RoleAssignment
+from addons.authz_audit.models import AuthzEvent
 from addons.authz.services import (
     SUPERADMIN_ROLE_CODE,
     code_requires_fresh_session,

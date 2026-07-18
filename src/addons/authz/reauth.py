@@ -10,10 +10,11 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from addons.authz.audit import _session_key, audit_authz_event
+from addons.authz_audit.audit import _session_key, audit_authz_event
+from addons.authz_audit.models import AuthzEvent
 from addons.authz.catalog import code_requires_fresh_session
 from addons.authz.exceptions import ReauthRequired
-from addons.authz.models import AuthzEvent, ReauthSession
+from addons.authz.models import ReauthSession
 from addons.base.models import SystemParameter
 
 # Código de auditoría de la re-autenticación (no es una Capability gateada; es la

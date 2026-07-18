@@ -16,7 +16,7 @@ consumidores se migran a los módulos concretos en un follow-up documentado
 (H-API-RR-06); cuando el último deje de importar de aquí, este facade se
 elimina.
 """
-from addons.authz.audit import (  # noqa: F401
+from addons.authz_audit.audit import (  # noqa: F401
     _client_ip,
     _session_key,
     audit_authz_event,

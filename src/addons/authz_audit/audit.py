@@ -1,10 +1,10 @@
-"""Auditoría de eventos de autorización (DEC-07) — addons.authz.
+"""Auditoría de eventos de autorización (DEC-07) — addons.authz_audit.
 
-Un concern por módulo (SOL-094 frente B): registro append-only de ``AuthzEvent``
-PII-safe. No bloqueante — un fallo del audit jamás rompe la request original
-(DEC-LOG-04). Antes vivía mezclado en ``services.py``.
+Extraído de ``addons.authz`` a su propio módulo (SOL-094 frente B, DEC-01):
+registro append-only de ``AuthzEvent`` PII-safe. No bloqueante — un fallo del
+audit jamás rompe la request original (DEC-LOG-04).
 """
-from addons.authz.models import AuthzEvent
+from addons.authz_audit.models import AuthzEvent
 
 
 def _client_ip(request):
