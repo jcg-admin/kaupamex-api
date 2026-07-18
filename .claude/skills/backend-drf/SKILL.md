@@ -200,6 +200,10 @@ Cargar el doc del eje que se está tocando (no todo el skill):
   `get_queryset()`** (`query_params.get`), no `django-filter` (no instalado);
   ordenamiento expuesto = **allowlist** (`CatalogueOrderingFilter`), nunca campo
   libre; `SearchFilter`/`OrderingFilter` de DRF no se usan.
+- [`pagination.md`](references/pagination.md) — **sin paginación global** → todo
+  list endpoint declara `pagination_class` (subclase `PageNumberPagination` con
+  `page_size`/`page_size_query_param`/`max_page_size`); envelope default
+  `{count,next,previous,results}` (contrato UI); `APIView` plano pagina a mano.
 
 ## Referencias de código
 

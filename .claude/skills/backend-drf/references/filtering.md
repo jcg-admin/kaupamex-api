@@ -111,6 +111,7 @@ para no filtrar existencia.
   `prefetch_related` para el N+1 del filtro).
 - `permissions.md` — el filtrado por usuario es la 1ª capa de acceso (queryset).
 - `request-object.md` — `request.query_params` (no `request.GET`).
+- `pagination.md` — el filtro/orden se aplica antes de paginar.
 - Código: `addons/catalogue/views.py:141` (`CatalogueOrderingFilter` — allowlist)
   + `CataloguePagination` (paginación por página en la misma vista).
 ```
