@@ -170,6 +170,11 @@ El skill crece por pieza de la doc de drf-spectacular (mismo patrón que
   (`@extend_schema` en el `get`/`post` de un `APIView`, `@api_view` multi-método,
   `@action` paginado); CSP en blanco (no aplica en Django, caveat prod); y los
   mecanismos disponibles-pero-no-usados (Polymorphic/enveloper/`swagger_fake_view`…).
+- [`blueprints.md`](references/blueprints.md) — extensiones listas para librerías de
+  terceros: **ninguna** aplica (0 libs de blueprint instaladas); las 3 extensiones
+  propias del stack auth (session+simplejwt) son sus blueprints caseros;
+  `OpenApiAuthenticationExtension` > `SECURITY`; UIs alternas (RapiDoc/Elements) y
+  drf-rw-serializers disponibles-no-usadas; registrar en `schema.py` no en `ready()`.
 
 Próximas (una por pieza de la doc): el contrato del `schema.py` por app
 (`SPECTACULAR_TAGS` + extensiones auth/serializer/view), patrones de
