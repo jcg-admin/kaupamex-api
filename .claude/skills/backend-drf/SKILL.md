@@ -130,12 +130,20 @@ endpoint sin `@extend_schema` degrada el OpenAPI publicado. ViewSet:
 - **Migración nueva:** aplica con `--reuse-db`; verificar `makemigrations
   <app> --check --dry-run` limpio.
 
-## Referencias
+## Referencias on-demand (`references/`)
+
+Cargar el doc del eje que se está tocando (no todo el skill):
+
+- [`request-object.md`](references/request-object.md) — leer body/params/usuario
+  de la petición (`request.data` vs `request.POST`; `query_params`; `user`/`auth`;
+  parse errors 400/415).
+
+## Referencias de código
 
 - `addons/authz/permissions.py` — `HasCapability`, `RequireCapability`,
   `CapabilityRequiredMixin`, `require_capability`, `IsOwnerOrAdmin`.
 - `addons/authz/management/commands/seed_authz.py` — catálogo de capacidades.
 - `.claude/rules/no-lazy-imports.md` — gate de imports.
-- DRF docs: Views (APIView/FBV) · ViewSets (router + `@action`).
+- DRF docs: Views (APIView/FBV) · ViewSets (router + `@action`) · Requests.
 - Precedente FBV: `addons/authz_totp/` (2FA, migrado a FBV 2026-07-18).
 ```
