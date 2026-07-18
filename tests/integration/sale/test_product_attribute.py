@@ -10,8 +10,8 @@ from decimal import Decimal
 import pytest
 
 from addons.catalogue.models import Product
-from addons.product_attribute import services as pa_services
-from addons.product_attribute.models import (
+from addons.product import services as pa_services
+from addons.product.models import (
     ProductAttribute,
     ProductAttributeValue,
     ProductTemplateAttributeLine,

@@ -1,4 +1,4 @@
-"""Modelo ``ProductAttribute`` — addon ``product_attribute``.
+"""Modelo ``ProductAttribute`` — addon ``product`` (base del monolito modular).
 
 Adaptación fiel de Odoo ``product.attribute``
 (``product/models/product_attribute.py:22-33``, verificado en 18 y 19):

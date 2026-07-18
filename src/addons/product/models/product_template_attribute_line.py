@@ -1,4 +1,4 @@
-"""Modelo ``ProductTemplateAttributeLine`` — addon ``product_attribute``.
+"""Modelo ``ProductTemplateAttributeLine`` — addon ``product`` (base del monolito modular).
 
 Adaptación fiel de Odoo ``product.template.attribute.line``
 (``product/models/product_template_attribute_line.py:8-39``, verificado en 18 y
@@ -20,11 +20,11 @@ class ProductTemplateAttributeLine(TimeStampedModel):
         help_text='Producto (Odoo product_tmpl_id).',
     )
     attribute = models.ForeignKey(
-        'product_attribute.ProductAttribute', on_delete=models.PROTECT,
+        'product.ProductAttribute', on_delete=models.PROTECT,
         related_name='template_lines', help_text='Atributo (Odoo attribute_id).',
     )
     values    = models.ManyToManyField(
-        'product_attribute.ProductAttributeValue', related_name='template_lines',
+        'product.ProductAttributeValue', related_name='template_lines',
         help_text='Valores aplicables a este producto (Odoo value_ids).',
     )
     sequence  = models.PositiveIntegerField(

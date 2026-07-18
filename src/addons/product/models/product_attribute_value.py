@@ -1,4 +1,4 @@
-"""Modelo ``ProductAttributeValue`` — addon ``product_attribute``.
+"""Modelo ``ProductAttributeValue`` — addon ``product`` (base del monolito modular).
 
 Adaptación fiel de Odoo ``product.attribute.value``
 (``product/models/product_attribute_value.py``, verificado en 18 y 19): un valor
@@ -14,7 +14,7 @@ class ProductAttributeValue(TimeStampedModel):
     """``product.attribute.value`` — un valor de un atributo reutilizable."""
 
     attribute = models.ForeignKey(
-        'product_attribute.ProductAttribute', on_delete=models.CASCADE,
+        'product.ProductAttribute', on_delete=models.CASCADE,
         related_name='values', help_text='Atributo (Odoo attribute_id).',
     )
     name      = models.CharField(

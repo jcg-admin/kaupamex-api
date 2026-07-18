@@ -1,4 +1,4 @@
-"""Servicio de combinaciones — addon ``product_attribute``.
+"""Servicio de combinaciones — addon ``product`` (base del monolito modular).
 
 Adaptación fiel de la generación de variantes de Odoo
 (``product/models/product_template.py::_get_possible_combinations`` /
@@ -10,7 +10,7 @@ combinación = precio base + Σ ``price_extra``. Es el enriquecimiento que el
 import itertools
 from decimal import Decimal
 
-from addons.product_attribute.models.product_template_attribute_value import (
+from addons.product.models.product_template_attribute_value import (
     ProductTemplateAttributeValue,
 )
 

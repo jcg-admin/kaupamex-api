@@ -1,4 +1,4 @@
-"""Modelo ``ProductTemplateAttributeValue`` — addon ``product_attribute``.
+"""Modelo ``ProductTemplateAttributeValue`` — addon ``product`` (base del monolito modular).
 
 Adaptación fiel de Odoo ``product.template.attribute.value``
 (``product/models/product_template_attribute_value.py:10-35``, verificado en 18
@@ -18,11 +18,11 @@ class ProductTemplateAttributeValue(TimeStampedModel):
     """``product.template.attribute.value`` — valor por-producto con price_extra."""
 
     line            = models.ForeignKey(
-        'product_attribute.ProductTemplateAttributeLine', on_delete=models.CASCADE,
+        'product.ProductTemplateAttributeLine', on_delete=models.CASCADE,
         related_name='template_values', help_text='Línea (Odoo attribute_line_id).',
     )
     attribute_value = models.ForeignKey(
-        'product_attribute.ProductAttributeValue', on_delete=models.PROTECT,
+        'product.ProductAttributeValue', on_delete=models.PROTECT,
         related_name='template_values',
         help_text='Valor del atributo (Odoo product_attribute_value_id).',
     )
