@@ -253,6 +253,20 @@ class TestVerCarrito:
         assert sub + tax == tot
         assert tot == Decimal(item['unit_price']) * item['quantity']
 
+    def test_totales_incluyen_importes_odoo_orden(
+        self, anon_client_with_cart, product_sin_variante, db
+    ):
+        """Adaptado de Odoo sale.order._compute_amounts: totals expone
+        amount_untaxed/amount_tax/amount_total = suma del desglose por línea;
+        untaxed+tax == total y total == subtotal (bruto de líneas)."""
+        client, _ = anon_client_with_cart
+        totals = client.get(CART_URL).json()['totals']
+        au = Decimal(totals['amount_untaxed'])
+        at = Decimal(totals['amount_tax'])
+        atot = Decimal(totals['amount_total'])
+        assert au + at == atot
+        assert atot == Decimal(totals['subtotal'])
+
     def test_price_changed_detecta_cambio(
         self, anon_client_with_cart, product_sin_variante, db
     ):

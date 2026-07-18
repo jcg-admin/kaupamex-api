@@ -76,6 +76,15 @@ class Cart(TimeStampedModel):
         free_remaining = (
             max(Decimal('0.00'), threshold - subtotal_net) if threshold else None
         )
+        # Importes Odoo-canónicos a nivel orden — adaptado de
+        # sale.order._compute_amounts (sale/models/sale_order.py:513): suma del
+        # desglose por línea ya redondeado (evita la deriva de extraer del
+        # agregado). amount_* son los importes brutos de las líneas (el descuento
+        # por voucher se refleja aparte en discount/subtotal_net).
+        _lines = list(self.items.select_related('variant__product', 'product'))
+        amount_untaxed = sum((i.price_subtotal() for i in _lines), Decimal('0.00'))
+        amount_tax     = sum((i.price_tax() for i in _lines), Decimal('0.00'))
+        amount_total   = sum((i.price_total() for i in _lines), Decimal('0.00'))
         return {
             'subtotal':                str(subtotal),
             'discount':                str(discount),
@@ -89,6 +98,9 @@ class Cart(TimeStampedModel):
                 (threshold and subtotal_net >= threshold) or
                 (self.voucher_id and self.voucher.voucher_type == 'FREE_SHIPPING')
             ),
+            'amount_untaxed': str(amount_untaxed),
+            'amount_tax':     str(amount_tax),
+            'amount_total':   str(amount_total),
             'item_count': self.items.count(),
         }
 
