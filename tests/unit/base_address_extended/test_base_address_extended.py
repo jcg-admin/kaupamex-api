@@ -13,9 +13,18 @@ verifica un comportamiento del original:
 """
 import pytest
 
+from django.contrib.auth import get_user_model
+
 from addons.base.models import ResCountry, ResCountryState
-from addons.base_address_extended.models import CountryAddressPolicy, ResCity
+from addons.base_address_extended.models import (
+    AddressStructured,
+    CountryAddressPolicy,
+    ResCity,
+)
 from addons.base_address_extended.services import street_split
+from addons.users.models import Address
+
+User = get_user_model()
 
 
 class TestStreetSplit:
@@ -92,3 +101,71 @@ class TestCountryAddressPolicy:
         CountryAddressPolicy.objects.create(country=mx)
         mx.delete()
         assert CountryAddressPolicy.objects.count() == 0
+
+
+def _make_address(street='Av. Insurgentes Sur 1234 - 5B'):
+    user = User.objects.create_user(email='addr@example.com', password='x')
+    return Address.objects.create(
+        user=user, recipient_name='Nestor', street=street, city='CDMX',
+        state='CDMX', zip_code='03100', phone='5512345678',
+    )
+
+
+class TestAddressStructured:
+    def test_compute_from_street_splits_parts(self):
+        addr = _make_address()
+        st = AddressStructured(address=addr)
+        st.compute_from_street(addr.street)
+        assert st.street_name == 'Av. Insurgentes Sur'
+        assert st.street_number == '1234'
+        assert st.street_number2 == '5B'
+
+    def test_inverse_to_street_roundtrip(self):
+        addr = _make_address()
+        st = AddressStructured(address=addr)
+        st.compute_from_street(addr.street)
+        # Odoo _inverse_street_data: 'name number - number2'.
+        assert st.inverse_to_street() == 'Av. Insurgentes Sur 1234 - 5B'
+
+    def test_get_street_split_returns_three_keys(self):
+        addr = _make_address('Main 12')
+        st = AddressStructured(address=addr)
+        st.compute_from_street(addr.street)
+        assert st.get_street_split() == {
+            'street_name': 'Main', 'street_number': '12', 'street_number2': '',
+        }
+
+    def test_one_to_one_reverse_on_address(self):
+        addr = _make_address()
+        AddressStructured.objects.create(address=addr, street_name='Main')
+        addr.refresh_from_db()
+        assert addr.structured.street_name == 'Main'
+
+    def test_country_enforce_cities_false_without_city(self):
+        addr = _make_address()
+        st = AddressStructured.objects.create(address=addr)
+        assert st.country_enforce_cities is False
+
+    def test_country_enforce_cities_reads_policy(self):
+        mx = ResCountry.objects.create(name='México', code='MX')
+        CountryAddressPolicy.objects.create(country=mx, enforce_cities=True)
+        city = ResCity.objects.create(name='CDMX', country=mx)
+        addr = _make_address()
+        st = AddressStructured.objects.create(address=addr, city=city)
+        assert st.country_enforce_cities is True
+
+    def test_soft_delete_keeps_structured_row(self):
+        # Address hereda SoftDeleteModel: delete() es soft (marca is_deleted),
+        # NO dispara el CASCADE de la BD → la fila estructurada persiste.
+        addr = _make_address()
+        AddressStructured.objects.create(address=addr)
+        addr.delete()
+        assert AddressStructured.objects.count() == 1
+
+    def test_hard_delete_cascades_structured_row(self):
+        # hard_delete() sí borra la fila de la BD → CASCADE elimina la
+        # AddressStructured enlazada.
+        addr = _make_address()
+        AddressStructured.objects.create(address=addr)
+        addr.hard_delete()
+        assert AddressStructured.objects.count() == 0
