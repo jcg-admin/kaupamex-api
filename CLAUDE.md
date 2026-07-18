@@ -81,64 +81,17 @@ install-hooks db-up ci-test ci-test-fast` (`make help`).
   `practicayoruba/apps/`. El gate canon-idioma lo vigila.
 - **Zero lazy imports**: imports al top del módulo; el pre-commit lo bloquea.
 
-### Convenciones de vistas DRF — OBLIGATORIO (no olvidar)
+### Vistas DRF — invariante de seguridad (detalle en el skill `backend-drf`)
 
 - **Autorización por CAPACIDAD, nunca `IsAuthenticated` a secas.** Toda vista
-  que exponga datos/acciones va gateada por `HasCapability` (fail-closed:
-  sin capacidad declarada → 403). NO usar `permission_classes =
-  [IsAuthenticated]` solo — eso **salta** el modelo de capacidades DEC-11.
-  Usar la azúcar declarativa de `addons.authz.permissions`:
-  - **Vista de acción única** → **FBV** (ver punto siguiente):
-    `@api_view([...])` + `@require_capability('dominio.verbo')`.
-  - **ViewSet/ModelViewSet** (CRUD): `permission_classes = [IsAuthenticated,
-    HasCapability]` + `permission_map = {'list': 'x.view', 'create': 'x.create'}`.
-  - CBV `APIView` (legacy o multi-método complejo): `class V(
-    CapabilityRequiredMixin, APIView): required_capability = 'dominio.verbo'`.
-  - **Cuenta propia** (el usuario gestiona SU cuenta): capacidad `account.*`
-    sembrada en TODOS los roles en `seed_authz` (`self_account_codes` +
-    `NAMED_ACTIONS`). Un `required_capability` nuevo DEBE añadirse al catálogo
-    de `seed_authz` o el sweep de `test_capability_sugar.py`
-    (`unknown_capability_codes`, barre todo el URLconf) falla.
-- **Convención de estilo de vista (decisión ejecutor 2026-07-18) — 3 casos:**
-
-  | Estilo | Cuándo | Wiring |
-  |---|---|---|
-  | **FBV** `@api_view` + `@require_capability` | **acción única** (1 verbo: login, 2FA, cambiar pass) | `path()` → función |
-  | **`ViewSet`/`ModelViewSet`** + `permission_map` | **recurso CRUD** (list/retrieve/create/update/destroy + `@action`) | **router** (`DefaultRouter().register`) |
-  | **CBV `APIView`** + `CapabilityRequiredMixin` | legacy / multi-método que no es recurso CRUD | `path(..., V.as_view())` |
-
-  Criterio: un endpoint de un solo verbo se implementa function-based (evita el
-  boilerplate de una clase por método); un recurso con operaciones CRUD usa
-  `ViewSet`. Orden de decoradores en FBV (`@extend_schema` arriba, `@api_view`,
-  `@require_capability` **debajo** — más interno, para que DRF lea
-  `permission_classes` al envolver)::
-
-      @extend_schema(tags=[...], summary='...', request=Ser|None, responses={...})
-      @api_view(['POST'])
-      @require_capability('dominio.verbo')
-      def mi_accion(request): ...
-
-  - **ViewSet SIEMPRE con router; NUNCA `.as_view({'get':'list'})` manual con
-    `@action`** — el bind manual salta el router e **ignora las
-    `permission_classes` de la acción** (hueco de seguridad, advertencia DRF).
-    Verificado limpio 2026-07-18: **43** `router.register`, **0** `.as_view({…})`
-    manual. Gate por acción: `permission_map={action: cap}` o
-    `@action(..., permission_classes=[IsAuthenticated, RequireCapability(cap)])`.
-    Router prefix **sin** slash final.
-  - No hay clase base de proyecto (no existe `BaseAPIView`); lo transversal vive
-    en las permission classes + `codigo_error` + drf-spectacular.
-  - **`authz_totp` ya está migrado a FBV**; los self-account CBV heredados
-    (`ProfileView`, `ChangePasswordView`, `DeactivateAccountView`,
-    `LogoutAllSessionsView`) migran en la iniciativa `migrar-self-account-a-fbv`
-    (ojo: `ChangePasswordView` usa `ScopedRateThrottle` con `throttle_scope` de
-    clase → requiere throttle propio en FBV; `ProfileView` GET+PATCH →
-    `@extend_schema(methods=[...])` apilados).
-- **drf-spectacular en CADA endpoint nuevo — no olvidar.** Anotar cada handler
-  con `@extend_schema(tags=[...], summary='...', request=<Serializer|None>,
-  responses={200: OpenApiResponse(description=...), 4xx: ...})`. La API publica
-  su OpenAPI con `drf-spectacular`; un endpoint sin `@extend_schema` degrada el
-  schema. En FBV multi-método usar `@extend_schema(methods=['GET'], ...)`
-  apilados. Import: `from drf_spectacular.utils import extend_schema, OpenApiResponse`.
+  que exponga datos/acciones va gateada por `HasCapability` (fail-closed: sin
+  capacidad declarada → 403). NO usar `permission_classes = [IsAuthenticated]`
+  solo — **salta** el modelo de capacidades DEC-11.
+- El **detalle de convenciones de vista** (estilo FBV / ViewSet+router / CBV,
+  azúcar de capacidad, `drf-spectacular`, gotcha del `.as_view()` manual con
+  `@action`, seed de capacidades) vive en el skill on-demand **`backend-drf`**
+  (`.claude/skills/backend-drf/SKILL.md`) — invocarlo al implementar/modificar
+  endpoints en `src/addons/**`. No se duplica aquí para no engordar el CLAUDE.
 
 ## Estructura
 
