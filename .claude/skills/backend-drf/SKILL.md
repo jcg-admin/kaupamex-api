@@ -171,6 +171,10 @@ Cargar el doc del eje que se está tocando (no todo el skill):
   `DecimalField(...,decimal_places=2)` (nunca `FloatField`; sale como string),
   `write_only`/`read_only`, `ImageField`/`FileField` + MultiPart; sin campo a
   medida (usar nested/method field).
+- [`serializer-relations.md`](references/serializer-relations.md) — relaciones:
+  idioma `<campo>_id` write_only (`PrimaryKeyRelatedField` con `queryset=`) +
+  nested de lectura, `SlugRelatedField` por campo único, inversas por
+  `related_name`, M2M `through` read-only; N+1 se optimiza en la vista, no DRF.
 
 ## Referencias de código
 
