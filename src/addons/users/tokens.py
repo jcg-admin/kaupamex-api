@@ -18,6 +18,7 @@ import hashlib
 from django.contrib.auth import get_user_model, login as django_login
 
 from addons.authz.services import is_superadmin
+from addons.authz_totp.services import totp_enabled, verify_code
 from django.contrib.auth.models import update_last_login
 from django.core.cache import cache
 from .session_tracking import record_user_session
@@ -114,6 +115,25 @@ class PYTokenObtainPairSerializer(TokenObtainPairSerializer):
             pass
 
         data = super().validate(attrs)
+
+        # authz_totp (DEC-01, ~auth_totp de Odoo): segundo factor DESPUÉS de
+        # verificar la contraseña. Si el usuario tiene 2FA activo, exige un
+        # código TOTP válido; sin él, el login NO se completa (no se emiten
+        # tokens). Data-driven: sólo aplica a usuarios con 2FA (sin regresión).
+        if totp_enabled(self.user):
+            otp = str(self.initial_data.get('otp', '') or '').strip()
+            if not otp:
+                raise AuthenticationFailed(
+                    detail={'codigo_error': 'TOTP_REQUIRED',
+                            'mensaje': 'Ingresa el código de verificación de dos pasos.'},
+                    code='totp_required',
+                )
+            if not verify_code(self.user, otp):
+                raise AuthenticationFailed(
+                    detail={'codigo_error': 'TOTP_INVALID',
+                            'mensaje': 'Código de verificación inválido.'},
+                    code='totp_invalid',
+                )
 
         # D-09 fix (audit-log-eventos-auth, DEC-AL-6):
         # simplejwt no actualiza last_login por default.

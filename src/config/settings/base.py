@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     'addons.authz_menu',
     'addons.authz_password_policy',
     'addons.authz_signup',
+    'addons.authz_totp',
     'addons.company',
     'addons.finance',
 ]
