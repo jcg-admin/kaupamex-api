@@ -12,6 +12,7 @@ Hallazgo H-ACC-01 (drift 18→19): el enum ``account_type`` de 19 añade
 ``expense_other`` respecto de 18. Se adopta el **superset de 19** (nada
 fabricado; ambos valores existen en 19). Ver audit.
 """
+import api
 from django.db import models
 
 
@@ -99,9 +100,13 @@ class AccountAccount(models.Model):
     def __str__(self) -> str:
         return f'{self.code} {self.name}'
 
-    def save(self, *args, **kwargs):
+    @api.depends('account_type')
+    def _compute_internal_group(self):
         # Odoo _compute_internal_group: el grupo es el prefijo del account_type
         # ('asset_receivable' -> 'asset'; 'off_balance' -> 'off').
         at = self.account_type or ''
         self.internal_group = at.split('_')[0] if at else ''
+
+    def save(self, *args, **kwargs):
+        self._compute_internal_group()
         return super().save(*args, **kwargs)

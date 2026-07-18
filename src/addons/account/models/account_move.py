@@ -8,9 +8,11 @@ Portación fiel de ``account_move.py`` (Odoo 18/19). Campos núcleo: ``name``,
 """
 from decimal import Decimal
 
+import api
 from django.conf import settings
-from django.core.exceptions import ValidationError
 from django.db import models
+from exceptions import UserError
+from tools.translate import _
 
 
 class AccountMove(models.Model):
@@ -97,17 +99,24 @@ class AccountMove(models.Model):
         self.amount_total = agg['d'] or Decimal('0.00')
         return self.amount_total
 
+    @api.constrains('line_ids')
+    def _check_balanced(self):
+        """Invariante de doble entrada (Odoo ``_check_balanced``): debe == haber.
+
+        Odoo lanza ``UserError`` si el asiento no cuadra; se replica.
+        """
+        if not self.is_balanced():
+            raise UserError(_('El asiento no está balanceado (debe ≠ haber).'))
+
     def post(self):
         """Publica el asiento (Odoo ``_post``): exige doble entrada balanceada.
 
-        Rechaza postear un asiento vacío o desbalanceado (Odoo
-        ``_check_balanced``). Recalcula ``amount_total``.
+        Rechaza postear un asiento vacío o desbalanceado. Recalcula
+        ``amount_total``.
         """
         if not self.line_ids.exists():
-            raise ValidationError('No se puede publicar un asiento sin líneas.')
-        if not self.is_balanced():
-            raise ValidationError(
-                'El asiento no está balanceado (debe ≠ haber).')
+            raise UserError(_('No se puede publicar un asiento sin líneas.'))
+        self._check_balanced()
         self.compute_amount_total()
         self.state = 'posted'
         self.save(update_fields=['state', 'amount_total'])

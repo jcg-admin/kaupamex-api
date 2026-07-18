@@ -4,7 +4,15 @@
 sobre ``information_schema``. Aquí la versión **MariaDB**: el "current schema" de
 Odoo (``current_schema`` de PostgreSQL) es ``DATABASE()`` en MariaDB. Todas
 reciben un ``cursor`` de Django (``connections[alias].cursor()``) y devuelven bool.
+
+Además expone ``SQL`` (fiel a la clase componible ``odoo.tools.SQL``), que un
+addon portado importa como ``from tools.sql import SQL``. Respaldo Django:
+``SQL`` = ``django.db.models.expressions.RawSQL`` (fragmento SQL parametrizado
+embebible en un ``QuerySet``, equivalente al rol de ``odoo.tools.SQL``).
 """
+from django.db.models.expressions import RawSQL
+
+SQL = RawSQL                       # Odoo tools.SQL ≈ Django RawSQL
 
 
 def table_exists(cursor, table_name, schema=None):

@@ -7,6 +7,7 @@ Portación fiel de ``account_move_line.py`` (Odoo 18/19). Campos núcleo:
 """
 from decimal import Decimal
 
+import api
 from django.db import models
 
 
@@ -75,7 +76,11 @@ class AccountMoveLine(models.Model):
     def __str__(self) -> str:
         return f'{self.name or self.account} {self.debit}/{self.credit}'
 
-    def save(self, *args, **kwargs):
+    @api.depends('debit', 'credit')
+    def _compute_balance(self):
         # Odoo _compute_balance: balance = debit - credit.
         self.balance = (self.debit or Decimal('0.00')) - (self.credit or Decimal('0.00'))
+
+    def save(self, *args, **kwargs):
+        self._compute_balance()
         return super().save(*args, **kwargs)

@@ -15,10 +15,10 @@ Cubre cada modelo del paquete:
 from decimal import Decimal
 
 import pytest
-from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
+from exceptions import UserError
 from addons.account.models import (
     AccountAccount,
     AccountJournal,
@@ -145,14 +145,14 @@ class TestAccountMovePost:
         move, cash, income = self._fixture(company)
         AccountMoveLine.objects.create(move=move, account=cash, debit=Decimal('100.00'))
         AccountMoveLine.objects.create(move=move, account=income, credit=Decimal('90.00'))
-        with pytest.raises(ValidationError):
+        with pytest.raises(UserError):
             move.post()
         move.refresh_from_db()
         assert move.state == 'draft'
 
     def test_post_empty_move_rejected(self, company):
         move, _, _ = self._fixture(company)
-        with pytest.raises(ValidationError):
+        with pytest.raises(UserError):
             move.post()
 
     def test_button_cancel(self, company):
