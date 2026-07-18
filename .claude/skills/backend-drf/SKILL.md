@@ -18,7 +18,41 @@ Guía fase-por-fase para vistas/endpoints del submódulo `api` (`src/addons/**`)
 Complementa el cheat-sheet `CLAUDE.md` (que sólo lleva el invariante de
 seguridad); el detalle vive aquí, on-demand.
 
+El skill cubre **toda la superficie DRF** — no sólo el endpoint: request/response,
+vistas (FBV/GenericAPIView/ViewSet), routers, parsers, renderers, serializers
+(+ fields/relations/validators), authentication, permissions, caching,
+throttling, filtering, pagination, versioning, exceptions, status-codes, testing
+y el `settings` maestro. Cada eje tiene su referencia dedicada en `references/`
+(28 docs; cargar sólo el del eje que se toca). Aplica a **todos** los apps de
+`src/addons/**`, incluidos los **addons portados de Odoo**.
+
 ---
+
+## Dos capas: modelo Odoo-vocabulario · DRF encima
+
+Un addon portado de Odoo tiene **dos capas** con vocabularios distintos, y este
+skill gobierna sólo la de arriba:
+
+- **Modelo** (`<addon>/models/*.py`) — se escribe con el **vocabulario de
+  primitivos Odoo** espejado en la raíz `src/` (DEC-FW-01,
+  `api@17f1eb4`): `import api` (`@api.depends`/`@api.constrains`),
+  `from exceptions import UserError` (o `ValidationError`), `import fields`
+  (`fields.Monetary`…), `from orm.commands import Command`,
+  `from osv import expression`, `from tools.translate import _`,
+  `from tools.sql import SQL` / `from tools.query import Query`. `models` es
+  `from django.db import models` directo. Esta capa **no** la cubre el skill.
+- **API DRF** (`<addon>/{serializers,views,urls}.py`) — se construye con **este
+  skill**: `ModelSerializer` (`Meta.fields` explícito), `HasCapability`
+  fail-closed (nunca `IsAuthenticated` a secas), FBV vs ViewSet+router,
+  `@extend_schema`, canon `codigo_error`, paginación por-list-endpoint, testing
+  pytest-django contra MariaDB real. El serializer envuelve el modelo Odoo:
+  un `fields.Monetary` (= `DecimalField`) sale como **string** vía
+  `DecimalField(...,decimal_places=2)` (ver `serializer-fields.md`); un
+  `UserError` de negocio del modelo se sella en el contrato con `codigo_error`
+  (ver `exceptions.md`).
+
+Regla: el modelo habla Odoo; el endpoint habla DRF. No mezclar
+(`@api.depends` no va en una vista; `@extend_schema` no va en un modelo).
 
 ## Stage 3: DIAGNOSE — Antes de tocar una vista
 
