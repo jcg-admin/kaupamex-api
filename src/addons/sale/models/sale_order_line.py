@@ -46,17 +46,6 @@ class SaleOrderLine(TimeStampedModel):
         max_digits=5, decimal_places=2, default=Decimal('0.00'),
         help_text='Descuento % de la línea (Odoo discount).',
     )
-    # Contribución de ``sale_stock``: seguimiento de entrega por línea.
-    # Odoo ``sale.order.line.qty_delivered`` (sale_order_line.py:230); en Odoo lo
-    # computa ``sale_stock`` desde ``stock.move``. Aquí la fuente de la cantidad
-    # entregada es el addon ``logistics``/``inventory`` (pickings); el campo vive
-    # en la línea porque bajo Django los campos de ``sale_stock`` colapsan en el
-    # modelo concreto ``sale`` (no hay inyección de campos vía ``_inherit``).
-    qty_delivered   = models.PositiveIntegerField(
-        default=0,
-        help_text='Cantidad entregada (Odoo sale.order.line.qty_delivered).',
-    )
-
     class Meta:
         db_table     = 'sale_order_line'
         verbose_name = 'Línea de orden de venta'
@@ -76,8 +65,3 @@ class SaleOrderLine(TimeStampedModel):
 
     def price_subtotal(self) -> Decimal:
         return self.price_total() - self.price_tax()
-
-    # Contribución de ``sale_stock``: cantidad pendiente de entregar.
-    # Odoo ``sale.order.line.qty_to_deliver`` (sale_stock/…/sale_order_line.py:24).
-    def qty_to_deliver(self) -> int:
-        return max(self.product_uom_qty - self.qty_delivered, 0)

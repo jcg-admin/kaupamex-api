@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'addons.wishlist',
     'addons.sale',
     'addons.sales_team',
+    'addons.sale_stock',
     'addons.orders',
     'addons.payments',
     'addons.support',
