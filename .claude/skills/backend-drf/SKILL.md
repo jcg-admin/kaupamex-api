@@ -175,6 +175,10 @@ Cargar el doc del eje que se está tocando (no todo el skill):
   idioma `<campo>_id` write_only (`PrimaryKeyRelatedField` con `queryset=`) +
   nested de lectura, `SlugRelatedField` por campo único, inversas por
   `related_name`, M2M `through` read-only; N+1 se optimiza en la vista, no DRF.
+- [`validators.md`](references/validators.md) — validación reutilizable:
+  validador **función** en `<app>/validators.py` + `validators=[...]`,
+  `UniqueValidator`, `unique_together` auto-generado por `ModelSerializer`; casos
+  ambiguos van a `.validate()`/vista, no a `Meta.validators = []`.
 
 ## Referencias de código
 
