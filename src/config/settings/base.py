@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     'addons.referral',
     'addons.geo',
     'addons.base',
+    'addons.base_vat',
     'addons.authz',
     'addons.authz_audit',
     'addons.authz_reauth',

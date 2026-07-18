@@ -18,6 +18,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
+from addons.base_vat.validators import validate_rfc
 from addons.company.context import company_scope, get_current_company
 from core.models import TimeStampedModel
 
@@ -100,7 +101,11 @@ class Company(TimeStampedModel):
     # Datos mínimos de facturación (opcionales hasta activar).
     billing_email = models.EmailField(blank=True, default='', verbose_name='Correo de facturación')
     billing_name = models.CharField(max_length=150, blank=True, default='', verbose_name='Razón social')
-    tax_id = models.CharField(max_length=30, blank=True, default='', verbose_name='RFC / Tax ID')
+    tax_id = models.CharField(
+        max_length=30, blank=True, default='', verbose_name='RFC / Tax ID',
+        validators=[validate_rfc],
+        help_text='RFC del SAT (12 moral / 13 física). Validado por base_vat.',
+    )
 
     class Meta:
         db_table = 'company'
