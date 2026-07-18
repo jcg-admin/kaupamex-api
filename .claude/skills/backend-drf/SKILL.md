@@ -191,6 +191,11 @@ Cargar el doc del eje que se está tocando (no todo el skill):
   (backend `DatabaseCache`), no `cache_page`; clave `dominio:tema:<inputs>` + TTL
   por vista (patrón `reports/views.py`); `invalidate_capabilities(user.id)` tras
   cambiar rol.
+- [`throttling.md`](references/throttling.md) — límite de tasa: default
+  anon/user (off en tests), scope por endpoint = **3 piezas**
+  (`throttle_classes=[ScopedRateThrottle]` + `throttle_scope` +
+  `DEFAULT_THROTTLE_RATES`); gotcha `throttle_scope` huérfano = no-op silencioso
+  (H-CICLO26-01); FBV vía `UserRateThrottle` con `scope=`.
 
 ## Referencias de código
 
