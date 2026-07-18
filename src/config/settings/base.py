@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     'addons.geo',
     'addons.base',
     'addons.base_vat',
+    'addons.base_bank',
     'addons.authz',
     'addons.authz_audit',
     'addons.authz_reauth',
