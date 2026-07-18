@@ -6,8 +6,9 @@ partió en módulos cohesivos —un concern por archivo, al estilo Odoo
 
 - :mod:`addons.authz.resolution` — resolver de capacidades (L2) + checks.
 - :mod:`addons.authz.catalog` — catálogo ``Capability`` + códigos sensibles.
-- :mod:`addons.authz.audit` — ``AuthzEvent`` (DEC-07).
-- :mod:`addons.authz.reauth` — re-autenticación de acciones sensibles (DEC-12).
+- :mod:`addons.authz_audit.audit` — ``AuthzEvent`` (DEC-07), app opcional.
+- :mod:`addons.authz_reauth.reauth` — re-autenticación de acciones sensibles
+  (DEC-12), app opcional (análoga a ``auth_totp`` de Odoo).
 - :mod:`addons.authz.bootstrap` — asignación idempotente de roles base.
 
 Este módulo re-exporta los nombres públicos para **no romper** a los
@@ -31,7 +32,7 @@ from addons.authz.catalog import (  # noqa: F401
     sensitive_codes,
     unknown_capability_codes,
 )
-from addons.authz.reauth import (  # noqa: F401
+from addons.authz_reauth.reauth import (  # noqa: F401
     REAUTH_CAP_CODE,
     _reauth_ttl,
     assert_session_fresh,

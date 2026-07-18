@@ -1,20 +1,21 @@
-"""Re-autenticación para acciones sensibles (DEC-12) — addons.authz.
+"""Re-autenticación para acciones sensibles (DEC-12) — addons.authz_reauth.
 
 Un concern por módulo (SOL-094 frente B): sesiones reautenticadas
 (``ReauthSession``) y el gate ``assert_session_fresh`` invocado desde
 ``HasCapability`` tras confirmar la capacidad — data-driven, sin cablear vista
 por vista. El **superadmin NO está exento**: es la cuenta más privilegiada la
-que DEC-12 quiere proteger. Antes vivía mezclado en ``services.py``.
+que DEC-12 quiere proteger. Vive en su propia app instalable (análoga a
+``auth_totp`` de Odoo); ``addons.authz`` la invoca vía el facade ``services``.
 """
 from datetime import timedelta
 
 from django.utils import timezone
 
-from addons.authz_audit.audit import _session_key, audit_authz_event
-from addons.authz_audit.models import AuthzEvent
 from addons.authz.catalog import code_requires_fresh_session
 from addons.authz.exceptions import ReauthRequired
-from addons.authz.models import ReauthSession
+from addons.authz_audit.audit import _session_key, audit_authz_event
+from addons.authz_audit.models import AuthzEvent
+from addons.authz_reauth.models import ReauthSession
 from addons.base.models import SystemParameter
 
 # Código de auditoría de la re-autenticación (no es una Capability gateada; es la

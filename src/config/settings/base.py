@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     'addons.base',
     'addons.authz',
     'addons.authz_audit',
+    'addons.authz_reauth',
     'addons.company',
     'addons.finance',
 ]
