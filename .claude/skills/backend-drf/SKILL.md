@@ -227,6 +227,12 @@ Cargar el doc del eje que se está tocando (no todo el skill):
   queda default-habilitado (`URL_FORMAT_OVERRIDE='format'`) pero no-op en prod
   (JSON-only), **salvo** el export view que se apropia de `?format=` como contrato
   y neutraliza a DRF con `_PassthroughNegotiator` (no global).
+- [`reverse-urls.md`](references/reverse-urls.md) — el `reverse` de DRF
+  (`rest_framework.reverse`) **no se usa** (0); la URL absoluta se arma con
+  `request.build_absolute_uri(...)` (13, imágenes/descargas en
+  `SerializerMethodField`, fallback relativo si falta `request`); resolver
+  `viewname` es `django.urls.reverse` con namespace `_v2`; sin serializers
+  hyperlinked.
 
 ## Referencias de código
 
