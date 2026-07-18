@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'addons.inventory',
     'addons.stock',
     'addons.stock_account',
+    'addons.stock_landed_costs',
     'addons.cart',
     'addons.voucher',
     'addons.wishlist',
