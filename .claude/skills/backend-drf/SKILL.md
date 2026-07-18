@@ -240,6 +240,12 @@ Cargar el doc del eje que se está tocando (no todo el skill):
   central (`core.exception_handling`, ADR-019) **no cambia el cuerpo** — solo
   sella el error en `RequestLog` (no bloqueante, DEC-LOG-04); sin
   `drf-standardized-errors` ni `handler500/400`.
+- [`status-codes.md`](references/status-codes.md) — estado real: el número pelado
+  `status=NNN` **domina** (255) sobre la constante `status.HTTP_*` (89) — drift
+  BAJA vs la recomendación de DRF; código **nuevo** usa la constante, no se migra
+  en masa. El `status_code` de clase en `APIException` (13) sí es idioma DRF (no
+  cambiar). Helpers `is_success()`/etc en 0. El código correcto sale del contrato
+  (401/403, 404 por row-scoping, 409/422, 429).
 
 ## Referencias de código
 
