@@ -66,23 +66,37 @@ Estos son **todos** los status que aparecen en `src/addons` (unión de
 PROVEN 2026-07-18 y su significado en el contrato del proyecto. **No** se usa
 ningún otro código del catálogo de DRF fuera de esta lista:
 
-| Código | Usos | Significado en el proyecto |
-|---|---|---|
-| **200** OK | 27 | Éxito con cuerpo (GET, y acciones que devuelven estado). |
-| **201** Created | 38 | Recurso creado (`CreateAPIView`/`create()`; ver `generic-views.md`). |
-| **202** Accepted | 2 | Job **asíncrono** aceptado (backup `backups/views.py:178`, export `reports/views.py:374`) — el trabajo corre después, la respuesta no lo espera. |
-| **204** No Content | 12 | Éxito **sin cuerpo**: borrado (`destroy()`) y logout/`session_views.py:107`. |
-| **400** Bad Request | 133 | Validación fallida / petición malformada — el grueso (`ValidationError` con `codigo_error`; ver `exceptions.md`). |
-| **401** Unauthorized | 4 | **Sin sesión** — no autenticado (ver `authentication.md`). |
-| **403** Forbidden | 9 | Sesión válida **sin capacidad** (`HasCapability`) o **reauth** requerida (`ReauthRequired`, `codigo_error=REAUTH_REQUIRED`; ver `permissions.md`). |
-| **404** Not Found | 46 | No existe **o** objeto ajeno — el row-scoping de `get_queryset()` da 404, no 403, para no filtrar existencia (ver `filtering.md`/`generic-views.md`). |
-| **409** Conflict | 48 | Conflicto de estado: código duplicado (`DUPLICATE_CODE`), recurso ya en el estado pedido (voucher ya activo), etc. |
-| **410** Gone | 1 | Recurso **eliminado** deliberadamente: tarjeta borrada (`CARD_DELETED`, `payments/views.py:1654`) — distinto de 404 (nunca existió). |
-| **422** Unprocessable | 13 | Semántica de negocio inválida: campo inmutable (`IMMUTABLE_FIELD`), reglas de negocio (`finance/exceptions.py`). |
-| **429** Too Many Requests | 3 | Throttle superado (`Throttled`; ver `throttling.md`). |
-| **500** Internal Server Error | 4 | Error interno **explícito** que la vista decide devolver (no el 500 no manejado de Django). |
-| **502** Bad Gateway | 8 | Un **proveedor externo** respondió mal/inesperado: webhook MP (`payments/webhooks.py:507`), guía de retorno (`returns/views.py:653`). |
-| **503** Service Unavailable | 10 | **Error de red** hacia un proveedor externo (MP/paqueterías) — indisponibilidad temporal (`orders/views.py:484`, `settings_app/views.py:229`). |
+La columna **Constante destino** es el **nombre canónico** al que debe migrar
+cada número pelado (`from rest_framework import status`). Al cambiar
+`status=NNN` → constante, usar **exactamente** ese nombre — no inventar
+variantes:
+
+| Código | Usos | Constante destino (`status.…`) | Significado en el proyecto |
+|---|---|---|---|
+| **200** OK | 27 | `HTTP_200_OK` | Éxito con cuerpo (GET, y acciones que devuelven estado). |
+| **201** Created | 38 | `HTTP_201_CREATED` | Recurso creado (`CreateAPIView`/`create()`; ver `generic-views.md`). |
+| **202** Accepted | 2 | `HTTP_202_ACCEPTED` | Job **asíncrono** aceptado (backup `backups/views.py:178`, export `reports/views.py:374`) — el trabajo corre después, la respuesta no lo espera. |
+| **204** No Content | 12 | `HTTP_204_NO_CONTENT` | Éxito **sin cuerpo**: borrado (`destroy()`) y logout/`session_views.py:107`. |
+| **400** Bad Request | 133 | `HTTP_400_BAD_REQUEST` | Validación fallida / petición malformada — el grueso (`ValidationError` con `codigo_error`; ver `exceptions.md`). |
+| **401** Unauthorized | 4 | `HTTP_401_UNAUTHORIZED` | **Sin sesión** — no autenticado (ver `authentication.md`). |
+| **403** Forbidden | 9 | `HTTP_403_FORBIDDEN` | Sesión válida **sin capacidad** (`HasCapability`) o **reauth** requerida (`ReauthRequired`, `codigo_error=REAUTH_REQUIRED`; ver `permissions.md`). |
+| **404** Not Found | 46 | `HTTP_404_NOT_FOUND` | No existe **o** objeto ajeno — el row-scoping de `get_queryset()` da 404, no 403, para no filtrar existencia (ver `filtering.md`/`generic-views.md`). |
+| **409** Conflict | 48 | `HTTP_409_CONFLICT` | Conflicto de estado: código duplicado (`DUPLICATE_CODE`), recurso ya en el estado pedido (voucher ya activo), etc. |
+| **410** Gone | 1 | `HTTP_410_GONE` | Recurso **eliminado** deliberadamente: tarjeta borrada (`CARD_DELETED`, `payments/views.py:1654`) — distinto de 404 (nunca existió). |
+| **422** Unprocessable | 13 | `HTTP_422_UNPROCESSABLE_ENTITY` | Semántica de negocio inválida: campo inmutable (`IMMUTABLE_FIELD`), reglas de negocio (`finance/exceptions.py`). |
+| **429** Too Many Requests | 3 | `HTTP_429_TOO_MANY_REQUESTS` | Throttle superado (`Throttled`; ver `throttling.md`). |
+| **500** Internal Server Error | 4 | `HTTP_500_INTERNAL_SERVER_ERROR` | Error interno **explícito** que la vista decide devolver (no el 500 no manejado de Django). |
+| **502** Bad Gateway | 8 | `HTTP_502_BAD_GATEWAY` | Un **proveedor externo** respondió mal/inesperado: webhook MP (`payments/webhooks.py:507`), guía de retorno (`returns/views.py:653`). |
+| **503** Service Unavailable | 10 | `HTTP_503_SERVICE_UNAVAILABLE` | **Error de red** hacia un proveedor externo (MP/paqueterías) — indisponibilidad temporal (`orders/views.py:484`, `settings_app/views.py:229`). |
+
+Ejemplo de la migración (número pelado → constante destino), preservando el
+`codigo_error`::
+
+    # Antes
+    return Response({'detail': ..., 'codigo_error': 'CARD_DELETED'}, status=410)
+    # Después
+    return Response({'detail': ..., 'codigo_error': 'CARD_DELETED'},
+                    status=status.HTTP_410_GONE)
 
 **Distinción 502 vs 503 (contrato del proyecto):** **503** = no se pudo
 **alcanzar** al proveedor (red caída, timeout de conexión) → reintentable pronto;
