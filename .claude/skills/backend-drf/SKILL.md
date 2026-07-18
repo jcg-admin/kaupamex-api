@@ -151,6 +151,10 @@ Cargar el doc del eje que se está tocando (no todo el skill):
   `ViewSet`/`ModelViewSet` + router, `@action` (detail True/False), gate por
   acción con `permission_map`, introspección `self.action`, base a medida con
   mixins, y la regla dura de nunca `.as_view({...})` manual.
+- [`routers.md`](references/routers.md) — cableado con `DefaultRouter`,
+  `basename` explícito (el ViewSet acota con `get_queryset()` → sin `queryset`),
+  prefijo sin slash final, `url_path` para el URL de una `@action`, y por qué no
+  se usa router a medida.
 
 ## Referencias de código
 
