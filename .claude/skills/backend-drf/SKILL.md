@@ -248,6 +248,12 @@ Cargar el doc del eje que se está tocando (no todo el skill):
   códigos en uso** con su significado en el contrato (200/201/202/204; 400/401/
   403/404/409/410/422/429; 500/502/503), con las distinciones 502-vs-503,
   410-vs-404 y 409-vs-422.
+- [`testing.md`](references/testing.md) — se testea con **pytest-django +
+  fixtures** (`conftest.py`: `api_client`/`auth_client`/`admin_client`), **no**
+  `APITestCase` (0); `APIClient` 53, `APIRequestFactory` 9, `force_authenticate`
+  36. `force_login` (Django, crea sesión — fiel a ADR-018) vs `force_authenticate`
+  (DRF, `session_key=''` → sembrar reauth DEC-12). `format='json'` explícito;
+  assert `response.data`+status+`codigo_error`; MariaDB real, no SQLite.
 
 ## Referencias de código
 
