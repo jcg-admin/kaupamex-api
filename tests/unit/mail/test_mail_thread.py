@@ -6,9 +6,17 @@ addon ``mail`` de Odoo, ejercitado a traves de su primer consumidor real
 artificial): ``message_post`` crea ``mail.message`` polimorficos y
 ``message_subscribe`` crea ``mail.followers`` idempotentes.
 """
+import datetime
+
 import pytest
 
-from addons.mail.models import MailFollowers, MailMessage, MailMessageSubtype
+from addons.mail.models import (
+    MailActivity,
+    MailActivityType,
+    MailFollowers,
+    MailMessage,
+    MailMessageSubtype,
+)
 from addons.support.models import SupportTicket
 from tests.factories.user_factory import UserFactory
 
@@ -105,3 +113,53 @@ class TestMailThreadFollowers:
         t1.message_subscribe(user)
         assert t1.message_is_follower(user) is True
         assert t2.message_is_follower(user) is False
+
+
+class TestMailThreadActivities:
+    def test_activity_schedule_creates_polymorphic_activity(self, ticket, user):
+        act = ticket.activity_schedule(summary='Llamar al cliente', user=user)
+        assert isinstance(act, MailActivity)
+        assert act.res_model == 'support.SupportTicket'
+        assert act.res_id == ticket.pk
+        assert act.user_id == user.pk
+        assert act.date_deadline is not None  # default hoy
+
+    def test_activity_ids_returns_open_activities(self, ticket, user):
+        ticket.activity_schedule(summary='uno', user=user)
+        ticket.activity_schedule(summary='dos', user=user)
+        assert ticket.activity_ids.count() == 2
+
+    def test_activity_type_wired(self, ticket, user):
+        at = MailActivityType.objects.create(name='Llamada')
+        act = ticket.activity_schedule(activity_type=at, user=user)
+        assert act.activity_type_id == at.pk
+
+    def test_activity_state_property(self, ticket, user):
+        today = datetime.date.today()
+        overdue = ticket.activity_schedule(
+            user=user, date_deadline=today - datetime.timedelta(days=1))
+        due = ticket.activity_schedule(user=user, date_deadline=today)
+        planned = ticket.activity_schedule(
+            user=user, date_deadline=today + datetime.timedelta(days=3))
+        assert overdue.state == MailActivity.STATE_OVERDUE
+        assert due.state == MailActivity.STATE_TODAY
+        assert planned.state == MailActivity.STATE_PLANNED
+
+    def test_action_done_posts_message_and_deletes(self, ticket, user):
+        act = ticket.activity_schedule(summary='Revisar pedido', user=user)
+        pk = act.pk
+        msg = act.action_done(feedback='listo')
+        # actividad eliminada; mensaje de tipo notification publicado en el hilo
+        assert not MailActivity.objects.filter(pk=pk).exists()
+        assert isinstance(msg, MailMessage)
+        assert msg.model == 'support.SupportTicket'
+        assert msg.res_id == ticket.pk
+        assert msg.message_type == MailMessage.TYPE_NOTIFICATION
+        assert 'listo' in msg.body
+
+    def test_activities_scoped_to_record(self, db, user):
+        t1 = SupportTicket.objects.create(user=user, subject='a', body='a')
+        t2 = SupportTicket.objects.create(user=user, subject='b', body='b')
+        t1.activity_schedule(summary='de t1', user=user)
+        assert t1.activity_ids.count() == 1
+        assert t2.activity_ids.count() == 0

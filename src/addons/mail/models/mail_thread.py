@@ -25,6 +25,7 @@ siguiente), y alias de correo entrante (``mail.alias``). El contrato publico
 import fields  # noqa: F401  (coherencia de vocabulario del addon; el mixin no declara campos)
 import models
 
+from .mail_activity import MailActivity
 from .mail_followers import MailFollowers
 from .mail_message import MailMessage
 
@@ -116,6 +117,34 @@ class MailThread(models.Model):
             res_model=self._mail_thread_res_model(), res_id=self.pk,
             partner=partner,
         ).exists()
+
+    # --- actividades (to-dos planificados) -------------------------------------
+
+    def activity_schedule(self, *, activity_type=None, summary='', note='',
+                          date_deadline=None, user=None):
+        """Planifica una actividad sobre el registro (Odoo ``activity_schedule``).
+
+        Crea una ``mail.activity`` polimorfica apuntando a este registro.
+        Devuelve la ``MailActivity`` creada.
+        """
+        kwargs = dict(
+            res_model=self._mail_thread_res_model(),
+            res_id=self.pk,
+            activity_type=activity_type,
+            summary=summary,
+            note=note,
+            user=user,
+        )
+        if date_deadline is not None:
+            kwargs['date_deadline'] = date_deadline
+        return MailActivity.objects.create(**kwargs)
+
+    @property
+    def activity_ids(self):
+        """Actividades abiertas del registro, por plazo (Odoo ``activity_ids``)."""
+        return MailActivity.objects.filter(
+            res_model=self._mail_thread_res_model(), res_id=self.pk,
+        )
 
     @staticmethod
     def _normalize_partners(partners):
