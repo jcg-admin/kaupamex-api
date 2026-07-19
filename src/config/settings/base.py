@@ -89,6 +89,7 @@ INSTALLED_APPS = [
     'addons.geo',
     'addons.base',
     'addons.observability',
+    'addons.mail',
     'addons.base_address_extended',
     'addons.base_vat',
     'addons.base_bank',

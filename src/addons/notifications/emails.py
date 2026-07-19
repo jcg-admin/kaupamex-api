@@ -10,7 +10,7 @@ from django.conf import settings
 from django.template.loader import render_to_string
 
 from addons.company.models import CompanySetting
-from core.email_executor import dispatch_email
+from addons.mail.email_executor import dispatch_email
 
 logger = logging.getLogger(__name__)
 

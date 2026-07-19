@@ -31,7 +31,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
-from core.email_executor import dispatch_email
+from addons.mail.email_executor import dispatch_email
 from config.schema import error_response
 
 from .models import NewsletterCampaign, NewsletterSubscriber, SubscriberStatus

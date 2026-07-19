@@ -23,7 +23,7 @@ from addons.base.models import SystemParameter
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from core.email_executor import dispatch_email
+from addons.mail.email_executor import dispatch_email
 from .models import BackupRecord
 from .serializers import BackupRecordSerializer
 

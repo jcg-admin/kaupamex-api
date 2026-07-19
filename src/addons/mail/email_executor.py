@@ -1,17 +1,20 @@
 """
-email_executor.py — core
+addons/mail/email_executor.py
 
-Dispatcher asincrono para envio de emails. Implementa Alt 1 + Alt 2
-del analisis de infraestructura async (implementar-async-email-infrastructure).
+Dispatcher asincrono para envio de emails — addon ``mail`` (fiel a Odoo, DEC-11).
+Es el equivalente de ``mail.mail.process_email_queue`` de Odoo: envio async de
+correo con cola de reintento, sin broker externo. El transporte SMTP se apoya en
+la config de Django (``EMAIL_*``), analogo a ``ir.mail_server`` de ``addons/base``.
 
 Alt 1 — ThreadPoolExecutor: envia el email en un hilo del pool, retornando
 control inmediato al llamador HTTP. Elimina el bloqueo de 100-2000ms por
-envio SMTP en los 9 call sites de send_mail.
+envio SMTP en los call sites de send_mail.
 
 Alt 2 — EmailTask DB queue: si el envio falla en el thread, persiste la
 tarea en EmailTask para reintento via management command send_pending_emails
 (cron cada minuto). Garantia de entrega sin broker externo (sin Celery,
-sin Redis, sin RabbitMQ).
+sin Redis, sin RabbitMQ). ``EmailTask`` vive hoy en ``addons.notifications``
+(migrara a ``mail`` cuando ``notifications`` se disuelva).
 
 UCs afectados: UC-NOT-01..05, UC-USR-02, UC-USR-04, UC-COM-01, UC-NEW-04.
 """
