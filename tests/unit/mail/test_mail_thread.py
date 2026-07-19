@@ -10,6 +10,7 @@ import datetime
 
 import pytest
 
+from addons.crm.models import CrmLead
 from addons.mail.models import (
     MailActivity,
     MailActivityType,
@@ -17,8 +18,11 @@ from addons.mail.models import (
     MailMessage,
     MailMessageSubtype,
     MailTemplate,
+    MailThread,
     MailTrackingValue,
 )
+from addons.orders.models import Order
+from addons.returns.models import ReturnRequest
 from addons.support.models import SupportTicket
 from tests.factories.user_factory import UserFactory
 
@@ -240,3 +244,35 @@ class TestMailTemplate:
         assert 'Pedido no llego' in msg.body
         assert msg.message_type == MailMessage.TYPE_EMAIL
         assert msg in list(ticket.message_ids)
+
+
+class TestMailThreadConsumers:
+    """El mixin ``mail.thread`` se cablea en los modelos de negocio centrales
+    (relaciones, adaptando ``src/**``) — igual que Odoo, donde casi todo modelo
+    hereda ``mail.thread``. Todos schema-neutrales (el hilo vive en mail_*)."""
+
+    def test_central_models_are_threads(self):
+        assert issubclass(Order, MailThread)
+        assert issubclass(CrmLead, MailThread)
+        assert issubclass(ReturnRequest, MailThread)
+
+    def test_crm_lead_gains_chatter(self, db, user):
+        lead = CrmLead.objects.create(name='Prospecto ACME')
+        msg = lead.message_post(body='Primer contacto', author=user)
+        assert msg.model == 'crm.CrmLead'
+        assert msg.res_id == lead.pk
+        assert lead.message_ids.count() == 1
+        lead.message_subscribe(user)
+        assert lead.message_is_follower(user)
+        act = lead.activity_schedule(summary='Llamar', user=user)
+        assert act.res_model == 'crm.CrmLead' and lead.activity_ids.count() == 1
+
+    def test_res_model_label_distinct_per_consumer(self, db, user, ticket):
+        lead = CrmLead.objects.create(name='X')
+        ticket.message_post(body='del ticket')
+        lead.message_post(body='del lead')
+        # aislamiento por (model,res_id): cada consumidor ve solo lo suyo
+        assert ticket.message_ids.count() == 1
+        assert lead.message_ids.count() == 1
+        assert ticket.message_ids.first().model == 'support.SupportTicket'
+        assert lead.message_ids.first().model == 'crm.CrmLead'

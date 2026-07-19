@@ -9,6 +9,7 @@ from decimal import Decimal
 from django.conf import settings
 from django.db import models
 from addons.base.models import SoftDeleteModel, TimeStampedModel
+from addons.mail.models import MailThread
 from django.core.validators import MinValueValidator
 
 
@@ -18,7 +19,7 @@ def _generate_order_number() -> str:
     return f'PY-{str(uuid.uuid4())[:8].upper()}'
 
 
-class Order(TimeStampedModel, SoftDeleteModel):
+class Order(MailThread, TimeStampedModel, SoftDeleteModel):
     """Orden de compra. Hereda SoftDeleteModel (DEC-DOC-007)."""
     STATUS_PENDING              = 'PENDING'
     STATUS_PROCESSING           = 'PROCESSING'

@@ -12,9 +12,10 @@ import fields
 import models
 
 from addons.base.models import TimeStampedModel
+from addons.mail.models import MailThread
 
 
-class CrmLead(TimeStampedModel):
+class CrmLead(MailThread, TimeStampedModel):
     """``crm.lead`` — iniciativa/oportunidad de venta."""
 
     # Odoo type (crm_lead.py:123): lead (iniciativa) vs opportunity (oportunidad).

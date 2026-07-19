@@ -10,10 +10,11 @@ ReturnHistoryEntry: pista de auditoria (UC-RET-04 expone el historial).
 from django.conf import settings
 from django.db import models
 from addons.base.models import SoftDeleteModel, TimeStampedModel
+from addons.mail.models import MailThread
 
 
 
-class ReturnRequest(TimeStampedModel, SoftDeleteModel):
+class ReturnRequest(MailThread, TimeStampedModel, SoftDeleteModel):
     """Solicitud de devolucion. UC-RET-01..06.
 
     Hereda de SoftDeleteModel (DEC-DOC-007): un DELETE conserva la fila
