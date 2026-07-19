@@ -82,3 +82,43 @@ class TestMailingTrace:
         t.refresh_from_db()
         assert t.contact_id is None
         assert t.email == 'a@x.com'
+
+
+class TestSubscriptionOptInLifecycle:
+    """Doble opt-in por lista alojado en mailing.subscription (ex-newsletter
+    DEC-NEW-02): pending → confirmed → unsubscribed."""
+
+    def _sub(self):
+        c = MailingContact.objects.create(email='a@x.com')
+        l = MailingList.objects.create(name='News')
+        return MailingSubscription.objects.create(contact=c, mailing_list=l)
+
+    def test_new_subscription_is_pending(self, db):
+        s = self._sub()
+        assert s.is_pending is True
+        assert s.is_confirmed is False
+        assert s.confirmed_at is None
+        # token de baja autogenerado, único
+        assert s.unsubscribe_token
+
+    def test_confirm_transitions_to_confirmed(self, db):
+        s = self._sub()
+        s.confirm()
+        s.refresh_from_db()
+        assert s.is_confirmed is True and s.is_pending is False
+        assert s.confirmed_at is not None
+        assert s.confirmation_token is None
+
+    def test_unsubscribe_sets_opt_out(self, db):
+        s = self._sub()
+        s.confirm()
+        s.unsubscribe()
+        s.refresh_from_db()
+        assert s.opt_out is True and s.opt_out_datetime is not None
+        assert s.is_confirmed is False
+
+    def test_unsubscribe_tokens_unique(self, db):
+        s1 = self._sub()
+        c2 = MailingContact.objects.create(email='b@x.com')
+        s2 = MailingSubscription.objects.create(contact=c2, mailing_list=s1.mailing_list)
+        assert s1.unsubscribe_token != s2.unsubscribe_token
