@@ -13,7 +13,8 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.db import models
+import fields
+import models
 from django.utils import timezone
 
 from core.models import TimeStampedModel
@@ -34,26 +35,26 @@ class PurchaseOrder(TimeStampedModel):
     ]
 
     # Odoo purchase.order.name (default 'New' → aquí se asigna al confirmar).
-    name       = models.CharField(
+    name       = fields.Char(
         max_length=32, blank=True, default='',
         help_text='Referencia de la orden (Odoo purchase.order.name).',
     )
     # Odoo purchase.order.partner_id — proveedor (res.partner). Aquí AUTH_USER.
-    partner    = models.ForeignKey(
+    partner    = fields.Many2one(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
         related_name='purchase_orders', help_text='Proveedor (Odoo partner_id).',
     )
     # Odoo purchase.order.date_order.
-    date_order = models.DateTimeField(
+    date_order = fields.Datetime(
         null=True, blank=True, help_text='Fecha de la orden (Odoo date_order).',
     )
     # Odoo purchase.order.state.
-    state      = models.CharField(
+    state      = fields.Selection(
         max_length=16, choices=STATE_CHOICES, default=STATE_DRAFT,
         help_text='Estado (Odoo purchase.order.state).',
     )
     # Odoo purchase.order.note.
-    note       = models.TextField(
+    note       = fields.Text(
         blank=True, default='', help_text='Términos y condiciones (Odoo note).',
     )
 

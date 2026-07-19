@@ -16,7 +16,8 @@ fechas de caducidad del lote. En Odoo son campos ``_inherit`` inyectados en
 El cálculo de las fechas (``services.compute_lot_dates``) y el barrido de
 alertas (``services.alert_date_exceeded``) replican los compute/cron de Odoo.
 """
-from django.db import models
+import fields
+import models
 from django.utils import timezone
 
 from core.models import TimeStampedModel
@@ -29,23 +30,23 @@ class StockLotExpiry(TimeStampedModel):
         'stock.StockLot', on_delete=models.CASCADE, related_name='expiry',
         help_text='Lote base (Odoo stock.lot).',
     )
-    expiration_date         = models.DateTimeField(
+    expiration_date         = fields.Datetime(
         null=True, blank=True,
         help_text='Fecha de caducidad (Odoo expiration_date).',
     )
-    use_date                = models.DateTimeField(
+    use_date                = fields.Datetime(
         null=True, blank=True,
         help_text='Consumo preferente / best before (Odoo use_date).',
     )
-    removal_date            = models.DateTimeField(
+    removal_date            = fields.Datetime(
         null=True, blank=True,
         help_text='Fecha de retiro; clave FEFO (Odoo removal_date).',
     )
-    alert_date              = models.DateTimeField(
+    alert_date              = fields.Datetime(
         null=True, blank=True,
         help_text='Fecha de alerta de caducidad (Odoo alert_date).',
     )
-    product_expiry_reminded = models.BooleanField(
+    product_expiry_reminded = fields.Boolean(
         default=False,
         help_text='La alerta ya se notificó (Odoo product_expiry_reminded).',
     )

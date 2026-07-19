@@ -13,7 +13,8 @@ adapta como modelo RELATED en el addon satélite).
 """
 from decimal import Decimal
 
-from django.db import models
+import fields
+import models
 
 from core.models import TimeStampedModel
 
@@ -21,15 +22,15 @@ from core.models import TimeStampedModel
 class StockLot(TimeStampedModel):
     """``stock.lot`` — lote / número de serie de un producto."""
 
-    name       = models.CharField(
+    name       = fields.Char(
         max_length=120,
         help_text='Número de lote / serie (Odoo stock.lot.name, requerido).',
     )
-    ref        = models.CharField(
+    ref        = fields.Char(
         max_length=120, blank=True, default='',
         help_text='Referencia interna (Odoo stock.lot.ref).',
     )
-    product    = models.ForeignKey(
+    product    = fields.Many2one(
         'catalogue.Product', on_delete=models.CASCADE, related_name='lots',
         help_text='Producto (Odoo product_id).',
     )

@@ -10,7 +10,8 @@ graba el ``unit_cost`` con el que se valuó ese movimiento.
 """
 from decimal import Decimal
 
-from django.db import models
+import fields
+import models
 
 from core.models import TimeStampedModel
 
@@ -18,35 +19,35 @@ from core.models import TimeStampedModel
 class StockValuationLayer(TimeStampedModel):
     """``stock.valuation.layer`` — una capa de valoración de inventario."""
 
-    product         = models.ForeignKey(
+    product         = fields.Many2one(
         'catalogue.Product', on_delete=models.CASCADE, related_name='valuation_layers',
         help_text='Producto (Odoo product_id).',
     )
-    quantity        = models.DecimalField(
+    quantity        = fields.Monetary(
         max_digits=12, decimal_places=2, default=Decimal('0.00'),
         help_text='Cantidad valuada; negativa en salidas (Odoo quantity).',
     )
-    unit_cost       = models.DecimalField(
+    unit_cost       = fields.Monetary(
         max_digits=12, decimal_places=4, default=Decimal('0.0000'),
         help_text='Valor unitario del movimiento (Odoo unit_cost).',
     )
-    value           = models.DecimalField(
+    value           = fields.Monetary(
         max_digits=14, decimal_places=2, default=Decimal('0.00'),
         help_text='Valor total; negativo en salidas (Odoo value).',
     )
-    remaining_qty   = models.DecimalField(
+    remaining_qty   = fields.Monetary(
         max_digits=12, decimal_places=2, default=Decimal('0.00'),
         help_text='Saldo por consumir en FIFO (Odoo remaining_qty).',
     )
-    remaining_value = models.DecimalField(
+    remaining_value = fields.Monetary(
         max_digits=14, decimal_places=2, default=Decimal('0.00'),
         help_text='Valor del saldo FIFO (Odoo remaining_value).',
     )
-    stock_move      = models.ForeignKey(
+    stock_move      = fields.Many2one(
         'stock.StockMove', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='valuation_layers', help_text='Movimiento (Odoo stock_move_id).',
     )
-    description     = models.CharField(
+    description     = fields.Char(
         max_length=255, blank=True, default='',
         help_text='Descripción (Odoo description).',
     )

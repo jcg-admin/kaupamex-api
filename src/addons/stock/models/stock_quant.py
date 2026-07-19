@@ -8,7 +8,8 @@ ambas versiones — ``product_id``/``location_id``/``quantity`` (a la mano)/
 """
 from decimal import Decimal
 
-from django.db import models
+import fields
+import models
 from django.utils import timezone
 
 from core.models import TimeStampedModel
@@ -17,28 +18,28 @@ from core.models import TimeStampedModel
 class StockQuant(TimeStampedModel):
     """``stock.quant`` — existencia de un producto en una ubicación."""
 
-    product           = models.ForeignKey(
+    product           = fields.Many2one(
         'catalogue.Product', on_delete=models.CASCADE, related_name='quants',
         help_text='Producto (Odoo product_id).',
     )
-    location          = models.ForeignKey(
+    location          = fields.Many2one(
         'stock.StockLocation', on_delete=models.CASCADE, related_name='quants',
         help_text='Ubicación (Odoo location_id).',
     )
-    quantity          = models.DecimalField(
+    quantity          = fields.Monetary(
         max_digits=12, decimal_places=2, default=Decimal('0.00'),
         help_text='Cantidad a la mano (Odoo stock.quant.quantity).',
     )
-    reserved_quantity = models.DecimalField(
+    reserved_quantity = fields.Monetary(
         max_digits=12, decimal_places=2, default=Decimal('0.00'),
         help_text='Cantidad reservada (Odoo reserved_quantity).',
     )
-    lot               = models.ForeignKey(
+    lot               = fields.Many2one(
         'stock.StockLot', on_delete=models.CASCADE, related_name='quants',
         null=True, blank=True,
         help_text='Lote / número de serie (Odoo lot_id). NULL = sin lote.',
     )
-    in_date           = models.DateTimeField(
+    in_date           = fields.Datetime(
         default=timezone.now,
         help_text='Fecha de entrada al quant (Odoo stock.quant.in_date; '
                   'clave de orden de la estrategia FIFO).',

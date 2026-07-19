@@ -12,7 +12,8 @@ cross-app) se materializan como modelo RELATED OneToOne a ``catalogue.Product``.
 - ``removal_time`` (o18:31) — días antes de la caducidad para retirarlo del stock.
 - ``alert_time`` (o18:34) — días antes de la caducidad para levantar una alerta.
 """
-from django.db import models
+import fields
+import models
 
 from core.models import TimeStampedModel
 
@@ -24,23 +25,23 @@ class ProductExpiryConfig(TimeStampedModel):
         'catalogue.Product', on_delete=models.CASCADE, related_name='expiry_config',
         help_text='Producto (Odoo product_tmpl_id).',
     )
-    use_expiration_date = models.BooleanField(
+    use_expiration_date = fields.Boolean(
         default=False,
         help_text='Gestiona fechas de caducidad (Odoo use_expiration_date).',
     )
-    expiration_time     = models.IntegerField(
+    expiration_time     = fields.Integer(
         default=0,
         help_text='Días tras la recepción hasta la caducidad (Odoo expiration_time).',
     )
-    use_time            = models.IntegerField(
+    use_time            = fields.Integer(
         default=0,
         help_text='Días antes de la caducidad — consumo preferente (Odoo use_time).',
     )
-    removal_time        = models.IntegerField(
+    removal_time        = fields.Integer(
         default=0,
         help_text='Días antes de la caducidad para retirar del stock (Odoo removal_time).',
     )
-    alert_time          = models.IntegerField(
+    alert_time          = fields.Integer(
         default=0,
         help_text='Días antes de la caducidad para alertar (Odoo alert_time).',
     )

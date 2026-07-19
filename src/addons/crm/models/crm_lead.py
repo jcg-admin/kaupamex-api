@@ -8,7 +8,8 @@ adicionales).
 from decimal import Decimal
 
 from django.conf import settings
-from django.db import models
+import fields
+import models
 
 from core.models import TimeStampedModel
 
@@ -26,54 +27,54 @@ class CrmLead(TimeStampedModel):
     # Odoo priority (crm_lead.py:127).
     PRIORITIES = [('0', 'Baja'), ('1', 'Media'), ('2', 'Alta'), ('3', 'Muy alta')]
 
-    name             = models.CharField(
+    name             = fields.Char(
         max_length=255, help_text='Nombre de la oportunidad (Odoo crm.lead.name).',
     )
-    type             = models.CharField(
+    type             = fields.Selection(
         max_length=12, choices=TYPES, default=TYPE_LEAD,
         help_text='Iniciativa u oportunidad (Odoo type).',
     )
-    priority         = models.CharField(
+    priority         = fields.Selection(
         max_length=1, choices=PRIORITIES, default='0',
         help_text='Prioridad (Odoo priority).',
     )
-    active           = models.BooleanField(
+    active           = fields.Boolean(
         default=True, help_text='Archivar sin borrar (Odoo active).',
     )
-    description      = models.TextField(
+    description      = fields.Text(
         blank=True, default='', help_text='Notas (Odoo description).',
     )
-    stage            = models.ForeignKey(
+    stage            = fields.Many2one(
         'crm.CrmStage', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='leads', help_text='Etapa del pipeline (Odoo stage_id).',
     )
-    expected_revenue = models.DecimalField(
+    expected_revenue = fields.Monetary(
         max_digits=14, decimal_places=2, default=Decimal('0.00'),
         help_text='Ingreso esperado (Odoo expected_revenue).',
     )
-    probability      = models.DecimalField(
+    probability      = fields.Monetary(
         max_digits=5, decimal_places=2, default=Decimal('0.00'),
         help_text='Probabilidad % (Odoo probability).',
     )
-    partner          = models.ForeignKey(
+    partner          = fields.Many2one(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
         related_name='crm_leads', help_text='Cliente asociado (Odoo partner_id).',
     )
-    contact_name     = models.CharField(
+    contact_name     = fields.Char(
         max_length=150, blank=True, default='',
         help_text='Nombre de contacto (Odoo contact_name).',
     )
     email_from       = models.EmailField(
         null=True, blank=True, help_text='Correo (Odoo email_from).',
     )
-    phone            = models.CharField(
+    phone            = fields.Char(
         max_length=30, blank=True, default='', help_text='Teléfono (Odoo phone).',
     )
-    user             = models.ForeignKey(
+    user             = fields.Many2one(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
         related_name='crm_leads_owned', help_text='Vendedor (Odoo user_id).',
     )
-    team             = models.ForeignKey(
+    team             = fields.Many2one(
         'sales_team.CrmTeam', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='crm_leads', help_text='Equipo de venta (Odoo team_id).',
     )

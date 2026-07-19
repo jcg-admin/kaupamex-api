@@ -9,7 +9,8 @@ Portación fiel de ``account_payment.py`` (Odoo 18/19). Campos núcleo:
 from decimal import Decimal
 
 from django.conf import settings
-from django.db import models
+import fields
+import models
 
 
 class AccountPayment(models.Model):
@@ -31,45 +32,45 @@ class AccountPayment(models.Model):
         ('rejected', 'Rechazado'),
     ]
 
-    amount        = models.DecimalField(
+    amount        = fields.Monetary(
         max_digits=16, decimal_places=2, default=Decimal('0.00'),
         help_text='Importe del pago (Odoo amount).',
     )
-    payment_type  = models.CharField(
+    payment_type  = fields.Selection(
         max_length=8, choices=PAYMENT_TYPES, default='inbound',
         help_text='Tipo de pago (Odoo payment_type, requerido).',
     )
-    partner_type  = models.CharField(
+    partner_type  = fields.Selection(
         max_length=8, choices=PARTNER_TYPES, default='customer',
         help_text='Tipo de contraparte (Odoo partner_type, requerido).',
     )
-    state         = models.CharField(
+    state         = fields.Selection(
         max_length=12, choices=STATES, default='draft',
         help_text='Estado del pago (Odoo state).',
     )
-    journal       = models.ForeignKey(
+    journal       = fields.Many2one(
         'account.AccountJournal', on_delete=models.PROTECT, related_name='payments',
         help_text='Diario (Odoo journal_id).',
     )
-    partner       = models.ForeignKey(
+    partner       = fields.Many2one(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='account_payments',
         help_text='Contacto (Odoo partner_id → party).',
     )
-    currency      = models.ForeignKey(
+    currency      = fields.Many2one(
         'base.ResCurrency', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='payments',
         help_text='Moneda (Odoo currency_id).',
     )
-    company       = models.ForeignKey(
+    company       = fields.Many2one(
         'company.Company', on_delete=models.CASCADE, related_name='payments',
         help_text='Empresa (Odoo company_id).',
     )
-    memo          = models.CharField(
+    memo          = fields.Char(
         max_length=255, blank=True, default='',
         help_text='Concepto (Odoo memo).',
     )
-    is_reconciled = models.BooleanField(
+    is_reconciled = fields.Boolean(
         default=False, help_text='Pago conciliado (Odoo is_reconciled).',
     )
 

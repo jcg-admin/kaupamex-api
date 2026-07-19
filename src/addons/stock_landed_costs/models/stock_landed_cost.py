@@ -9,7 +9,8 @@ el costo del producto deja de ser solo el precio de compra y absorbe el flete.
 """
 from decimal import Decimal
 
-from django.db import models
+import fields
+import models
 
 from core.models import TimeStampedModel
 
@@ -26,11 +27,11 @@ class StockLandedCost(TimeStampedModel):
         (STATE_CANCEL, 'Cancelado'),
     ]
 
-    name  = models.CharField(
+    name  = fields.Char(
         max_length=64, blank=True, default='',
         help_text='Referencia (Odoo stock.landed.cost.name).',
     )
-    state = models.CharField(
+    state = fields.Selection(
         max_length=16, choices=STATE_CHOICES, default=STATE_DRAFT,
         help_text='Estado (Odoo stock.landed.cost.state).',
     )

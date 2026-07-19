@@ -8,7 +8,8 @@ app (DEC-SALE-01), así que la relación se materializa aquí: cada movimiento d
 la orden (consumo de materia prima o producto terminado) queda ligado con su
 ``role``.
 """
-from django.db import models
+import fields
+import models
 
 from core.models import TimeStampedModel
 
@@ -23,7 +24,7 @@ class MrpProductionMove(TimeStampedModel):
         (ROLE_FINISHED, 'Producto terminado (Odoo move_finished_ids)'),
     ]
 
-    production = models.ForeignKey(
+    production = fields.Many2one(
         'mrp.MrpProduction', on_delete=models.CASCADE, related_name='production_moves',
         help_text='Orden de fabricación (Odoo production_id).',
     )
@@ -31,7 +32,7 @@ class MrpProductionMove(TimeStampedModel):
         'stock.StockMove', on_delete=models.CASCADE, related_name='mrp_production_move',
         help_text='Movimiento de stock ligado.',
     )
-    role       = models.CharField(
+    role       = fields.Selection(
         max_length=16, choices=ROLE_CHOICES,
         help_text='raw = move_raw_ids; finished = move_finished_ids.',
     )

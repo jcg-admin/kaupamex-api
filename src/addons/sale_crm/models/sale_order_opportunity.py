@@ -7,7 +7,8 @@ Adaptación de Odoo ``sale_crm``, que **extiende** ``sale.order`` con
 
 Bridge ``sale`` + ``crm``: atribuye cada orden a la oportunidad que la originó.
 """
-from django.db import models
+import fields
+import models
 
 from core.models import TimeStampedModel
 
@@ -19,7 +20,7 @@ class SaleOrderOpportunity(TimeStampedModel):
         'sale.SaleOrder', on_delete=models.CASCADE, related_name='opportunity_link',
         help_text='Orden de venta (Odoo sale.order).',
     )
-    opportunity = models.ForeignKey(
+    opportunity = fields.Many2one(
         'crm.CrmLead', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='sale_orders', help_text='Oportunidad (Odoo opportunity_id).',
     )

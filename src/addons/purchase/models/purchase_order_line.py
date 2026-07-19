@@ -9,7 +9,8 @@ desglose por línea de ``sale.order.line`` (IVA-incluido MX) para consistencia.
 from decimal import Decimal
 
 from django.core.validators import MinValueValidator
-from django.db import models
+import fields
+import models
 
 from addons.settings_app.models import SiteSettings
 from core.models import TimeStampedModel
@@ -18,15 +19,15 @@ from core.models import TimeStampedModel
 class PurchaseOrderLine(TimeStampedModel):
     """``purchase.order.line`` — una línea de la orden de compra."""
 
-    order       = models.ForeignKey(
+    order       = fields.Many2one(
         'purchase.PurchaseOrder', on_delete=models.CASCADE, related_name='order_line',
         help_text='Odoo order_id.',
     )
-    product     = models.ForeignKey(
+    product     = fields.Many2one(
         'catalogue.Product', on_delete=models.PROTECT,
         related_name='purchase_order_lines', help_text='Odoo product_id.',
     )
-    name        = models.CharField(
+    name        = fields.Char(
         max_length=255, blank=True, default='',
         help_text='Descripción de la línea (Odoo purchase.order.line.name).',
     )
@@ -34,10 +35,10 @@ class PurchaseOrderLine(TimeStampedModel):
         default=1, validators=[MinValueValidator(1)],
         help_text='Cantidad (Odoo product_qty).',
     )
-    price_unit  = models.DecimalField(
+    price_unit  = fields.Monetary(
         max_digits=12, decimal_places=2, help_text='Odoo price_unit (IVA incl.).',
     )
-    discount    = models.DecimalField(
+    discount    = fields.Monetary(
         max_digits=5, decimal_places=2, default=Decimal('0.00'),
         help_text='Descuento % de la línea (Odoo discount).',
     )

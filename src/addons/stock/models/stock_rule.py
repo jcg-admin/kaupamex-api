@@ -9,7 +9,8 @@ o19:63-64)/``location_src_id``/``location_dest_id``/``procure_method``
 """
 from decimal import Decimal
 
-from django.db import models
+import fields
+import models
 
 from addons.stock.models.stock_move import StockMove
 from core.models import TimeStampedModel
@@ -34,22 +35,22 @@ class StockRule(TimeStampedModel):
         (PROCURE_MTO, 'Disparar otra regla'),
     ]
 
-    name           = models.CharField(
+    name           = fields.Char(
         max_length=100, help_text='Nombre de la regla (Odoo stock.rule.name).',
     )
-    action         = models.CharField(
+    action         = fields.Selection(
         max_length=16, choices=ACTION_CHOICES, default=ACTION_PULL,
         help_text='Acción (Odoo stock.rule.action).',
     )
-    location_src   = models.ForeignKey(
+    location_src   = fields.Many2one(
         'stock.StockLocation', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='rules_out', help_text='Ubicación origen (Odoo location_src_id).',
     )
-    location_dest  = models.ForeignKey(
+    location_dest  = fields.Many2one(
         'stock.StockLocation', on_delete=models.CASCADE, related_name='rules_in',
         help_text='Ubicación destino (Odoo location_dest_id).',
     )
-    procure_method = models.CharField(
+    procure_method = fields.Selection(
         max_length=16, choices=PROCURE_CHOICES, default=PROCURE_MTS,
         help_text='Método de aprovisionamiento (Odoo procure_method).',
     )

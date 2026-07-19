@@ -9,7 +9,8 @@ additional_landed_cost`` es el nuevo costo del inventario recibido.
 """
 from decimal import Decimal
 
-from django.db import models
+import fields
+import models
 
 from core.models import TimeStampedModel
 
@@ -17,43 +18,43 @@ from core.models import TimeStampedModel
 class StockValuationAdjustment(TimeStampedModel):
     """``stock.valuation.adjustment.lines`` — un ajuste de valoración."""
 
-    cost                   = models.ForeignKey(
+    cost                   = fields.Many2one(
         'stock_landed_costs.StockLandedCost', on_delete=models.CASCADE,
         related_name='adjustment_lines', help_text='Documento (Odoo cost_id).',
     )
-    cost_line              = models.ForeignKey(
+    cost_line              = fields.Many2one(
         'stock_landed_costs.StockLandedCostLine', on_delete=models.CASCADE,
         related_name='adjustment_lines', help_text='Componente (Odoo cost_line_id).',
     )
-    move                   = models.ForeignKey(
+    move                   = fields.Many2one(
         'stock.StockMove', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='landed_cost_adjustments', help_text='Movimiento (Odoo move_id).',
     )
-    product                = models.ForeignKey(
+    product                = fields.Many2one(
         'catalogue.Product', on_delete=models.CASCADE,
         related_name='landed_cost_adjustments', help_text='Producto (Odoo product_id).',
     )
-    quantity               = models.DecimalField(
+    quantity               = fields.Monetary(
         max_digits=12, decimal_places=2, default=Decimal('0.00'),
         help_text='Cantidad recibida (Odoo quantity).',
     )
-    weight                 = models.DecimalField(
+    weight                 = fields.Monetary(
         max_digits=12, decimal_places=3, default=Decimal('0.000'),
         help_text='Peso total (Odoo weight).',
     )
-    volume                 = models.DecimalField(
+    volume                 = fields.Monetary(
         max_digits=12, decimal_places=3, default=Decimal('0.000'),
         help_text='Volumen total (Odoo volume).',
     )
-    former_cost            = models.DecimalField(
+    former_cost            = fields.Monetary(
         max_digits=14, decimal_places=2, default=Decimal('0.00'),
         help_text='Costo antes del ajuste (Odoo former_cost).',
     )
-    additional_landed_cost = models.DecimalField(
+    additional_landed_cost = fields.Monetary(
         max_digits=14, decimal_places=2, default=Decimal('0.00'),
         help_text='Coste en destino repartido (Odoo additional_landed_cost).',
     )
-    final_cost             = models.DecimalField(
+    final_cost             = fields.Monetary(
         max_digits=14, decimal_places=2, default=Decimal('0.00'),
         help_text='Costo final = former + additional (Odoo final_cost).',
     )

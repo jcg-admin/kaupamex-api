@@ -11,7 +11,8 @@ campos añadidos — el módulo ``sale_stock`` posee su propia tabla, sin tocar 
 sale_stock/models/sale_order.py:33) vive aquí; se alimenta del fulfillment
 (``stock.picking`` en Odoo = ``logistics``/``inventory`` aquí).
 """
-from django.db import models
+import fields
+import models
 
 from core.models import TimeStampedModel
 
@@ -35,7 +36,7 @@ class SaleOrderDelivery(TimeStampedModel):
         'sale.SaleOrder', on_delete=models.CASCADE, related_name='delivery',
         help_text='Orden de venta extendida (Odoo sale.order).',
     )
-    delivery_status = models.CharField(
+    delivery_status = fields.Selection(
         max_length=10, choices=STATUSES, null=True, blank=True,
         help_text='Estado de entrega (Odoo sale.order.delivery_status).',
     )

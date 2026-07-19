@@ -3,7 +3,8 @@
 Portación fiel de ``res_country.py`` (Odoo 18 / 19 idéntico). Espina base de la
 adaptación de familias (SOL-096): direcciones/impuestos dependen de país+estado.
 """
-from django.db import models
+import fields
+import models
 
 
 class ResCountry(models.Model):
@@ -14,20 +15,20 @@ class ResCountry(models.Model):
     ``phone_code``. ``state_ids`` es el reverso de ``ResCountryState.country``.
     """
 
-    name        = models.CharField(
+    name        = fields.Char(
         max_length=120,
         help_text='Nombre del país (Odoo res.country.name).',
     )
-    code        = models.CharField(
+    code        = fields.Char(
         max_length=2, unique=True, null=True, blank=True,
         help_text='Código ISO 3166-1 alpha-2 (Odoo code).',
     )
-    currency    = models.ForeignKey(
+    currency    = fields.Many2one(
         'base.ResCurrency', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='countries',
         help_text='Moneda del país (Odoo currency_id).',
     )
-    phone_code  = models.IntegerField(
+    phone_code  = fields.Integer(
         null=True, blank=True,
         help_text='Código telefónico del país (Odoo phone_code).',
     )
@@ -50,14 +51,14 @@ class ResCountryState(models.Model):
     replica el ``_sql_constraints`` ``name_code_uniq`` de Odoo.
     """
 
-    country = models.ForeignKey(
+    country = fields.Many2one(
         'base.ResCountry', on_delete=models.CASCADE, related_name='state_ids',
         help_text='País (Odoo country_id).',
     )
-    name    = models.CharField(
+    name    = fields.Char(
         max_length=120, help_text='Nombre del estado (Odoo name).',
     )
-    code    = models.CharField(
+    code    = fields.Char(
         max_length=8, help_text='Código del estado (Odoo code).',
     )
 

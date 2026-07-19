@@ -7,7 +7,8 @@ account/sale/pricing dependen de moneda.
 import math
 from decimal import Decimal
 
-from django.db import models
+import fields
+import models
 
 
 class ResCurrency(models.Model):
@@ -26,34 +27,34 @@ class ResCurrency(models.Model):
         (POSITION_BEFORE, 'Antes del importe'),
     ]
 
-    name                = models.CharField(
+    name                = fields.Char(
         max_length=3, unique=True,
         help_text='Código de moneda ISO 4217 (Odoo res.currency.name).',
     )
-    full_name           = models.CharField(
+    full_name           = fields.Char(
         max_length=64, blank=True, default='',
         help_text='Nombre de la moneda (Odoo full_name).',
     )
-    symbol              = models.CharField(
+    symbol              = fields.Char(
         max_length=8,
         help_text='Signo de la moneda (Odoo symbol).',
     )
-    rounding            = models.DecimalField(
+    rounding            = fields.Monetary(
         max_digits=12, decimal_places=6, default=Decimal('0.01'),
         help_text='Factor de redondeo (Odoo rounding).',
     )
-    decimal_places      = models.IntegerField(
+    decimal_places      = fields.Integer(
         default=2,
         help_text='Decimales, computado de rounding (Odoo decimal_places).',
     )
-    position            = models.CharField(
+    position            = fields.Selection(
         max_length=6, choices=POSITION_CHOICES, default=POSITION_AFTER,
         help_text='Posición del símbolo (Odoo position).',
     )
-    active              = models.BooleanField(
+    active              = fields.Boolean(
         default=True, help_text='Moneda activa (Odoo active).',
     )
-    currency_unit_label = models.CharField(
+    currency_unit_label = fields.Char(
         max_length=32, blank=True, default='',
         help_text='Etiqueta de la unidad (Odoo currency_unit_label).',
     )

@@ -6,7 +6,8 @@ sobre un registro; aquí se conserva el núcleo portable — ``name`` + ``body``
 placeholders ``str.format`` (``{campo}``) — sin el motor de plantillas de Odoo,
 que no existe en este stack.
 """
-from django.db import models
+import fields
+import models
 
 from core.models import TimeStampedModel
 
@@ -22,16 +23,16 @@ class SmsTemplate(TimeStampedModel):
     """``sms.template`` — plantilla de texto para un SMS."""
 
     # Odoo sms.template.name (sms_template.py:22).
-    name   = models.CharField(
+    name   = fields.Char(
         max_length=100, help_text='Nombre de la plantilla (Odoo sms.template.name).',
     )
     # Odoo sms.template.body (sms_template.py:27, required). Placeholders
     # ``{campo}`` resueltos con ``str.format`` (no QWeb).
-    body   = models.TextField(
+    body   = fields.Text(
         help_text='Cuerpo con placeholders {campo} (Odoo sms.template.body).',
     )
     # Sin equivalente directo: bandera local para desactivar sin borrar.
-    active = models.BooleanField(
+    active = fields.Boolean(
         default=True, help_text='Plantilla activa.',
     )
 

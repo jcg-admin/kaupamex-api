@@ -9,7 +9,8 @@ la operación.
 """
 from decimal import Decimal
 
-from django.db import models
+import fields
+import models
 
 from core.models import TimeStampedModel
 
@@ -17,18 +18,18 @@ from core.models import TimeStampedModel
 class MrpRoutingWorkcenter(TimeStampedModel):
     """``mrp.routing.workcenter`` — una operación de la hoja de ruta."""
 
-    name          = models.CharField(
+    name          = fields.Char(
         max_length=100, help_text='Operación (Odoo mrp.routing.workcenter.name).',
     )
-    bom           = models.ForeignKey(
+    bom           = fields.Many2one(
         'mrp.MrpBom', null=True, blank=True, on_delete=models.CASCADE,
         related_name='operations', help_text='BoM (Odoo bom_id).',
     )
-    workcenter    = models.ForeignKey(
+    workcenter    = fields.Many2one(
         'mrp.MrpWorkcenter', on_delete=models.PROTECT, related_name='operations',
         help_text='Centro de trabajo (Odoo workcenter_id).',
     )
-    time_cycle    = models.DecimalField(
+    time_cycle    = fields.Monetary(
         max_digits=10, decimal_places=2, default=Decimal('0.00'),
         help_text='Duración en minutos (Odoo time_cycle_manual).',
     )

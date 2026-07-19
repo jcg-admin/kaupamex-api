@@ -8,7 +8,8 @@ Portación fiel de ``account_move_line.py`` (Odoo 18/19). Campos núcleo:
 from decimal import Decimal
 
 import api
-from django.db import models
+import fields
+import models
 
 
 class AccountMoveLine(models.Model):
@@ -24,44 +25,44 @@ class AccountMoveLine(models.Model):
         ('rounding', 'Redondeo'),
     ]
 
-    move        = models.ForeignKey(
+    move        = fields.Many2one(
         'account.AccountMove', on_delete=models.CASCADE, related_name='line_ids',
         help_text='Asiento al que pertenece (Odoo move_id, requerido).',
     )
-    account     = models.ForeignKey(
+    account     = fields.Many2one(
         'account.AccountAccount', on_delete=models.PROTECT, related_name='move_lines',
         null=True, blank=True,
         help_text='Cuenta contable (Odoo account_id).',
     )
-    name        = models.CharField(
+    name        = fields.Char(
         max_length=255, blank=True, default='',
         help_text='Etiqueta del apunte (Odoo name).',
     )
-    debit       = models.DecimalField(
+    debit       = fields.Monetary(
         max_digits=16, decimal_places=2, default=Decimal('0.00'),
         help_text='Debe (Odoo debit).',
     )
-    credit      = models.DecimalField(
+    credit      = fields.Monetary(
         max_digits=16, decimal_places=2, default=Decimal('0.00'),
         help_text='Haber (Odoo credit).',
     )
-    balance     = models.DecimalField(
+    balance     = fields.Monetary(
         max_digits=16, decimal_places=2, default=Decimal('0.00'),
         help_text='Saldo = debe - haber (Odoo balance, computado).',
     )
-    display_type = models.CharField(
+    display_type = fields.Selection(
         max_length=16, choices=DISPLAY_TYPES, blank=True, default='',
         help_text='Tipo de línea (Odoo display_type).',
     )
-    quantity    = models.DecimalField(
+    quantity    = fields.Monetary(
         max_digits=16, decimal_places=4, default=Decimal('1.0'),
         help_text='Cantidad (Odoo quantity).',
     )
-    price_unit  = models.DecimalField(
+    price_unit  = fields.Monetary(
         max_digits=16, decimal_places=4, default=Decimal('0.0'),
         help_text='Precio unitario (Odoo price_unit).',
     )
-    currency    = models.ForeignKey(
+    currency    = fields.Many2one(
         'base.ResCurrency', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='move_lines',
         help_text='Moneda (Odoo currency_id).',

@@ -9,7 +9,8 @@ base de un impuesto simple.
 """
 from decimal import Decimal
 
-from django.db import models
+import fields
+import models
 
 
 class AccountTax(models.Model):
@@ -27,29 +28,29 @@ class AccountTax(models.Model):
         ('none', 'Ninguno'),
     ]
 
-    name          = models.CharField(
+    name          = fields.Char(
         max_length=255, help_text='Nombre del impuesto (Odoo name, requerido).',
     )
-    amount        = models.DecimalField(
+    amount        = fields.Monetary(
         max_digits=16, decimal_places=4, default=Decimal('0.0'),
         help_text='Monto/porcentaje del impuesto (Odoo amount).',
     )
-    amount_type   = models.CharField(
+    amount_type   = fields.Selection(
         max_length=12, choices=AMOUNT_TYPES, default='percent',
         help_text='Forma de cómputo (Odoo amount_type, requerido).',
     )
-    type_tax_use  = models.CharField(
+    type_tax_use  = fields.Selection(
         max_length=12, choices=TYPE_TAX_USE, default='sale',
         help_text='Uso del impuesto (Odoo type_tax_use, requerido).',
     )
-    price_include = models.BooleanField(
+    price_include = fields.Boolean(
         default=False,
         help_text='Precio con impuesto incluido (Odoo price_include).',
     )
-    active        = models.BooleanField(
+    active        = fields.Boolean(
         default=True, help_text='Impuesto activo (Odoo active).',
     )
-    company       = models.ForeignKey(
+    company       = fields.Many2one(
         'company.Company', on_delete=models.CASCADE, related_name='taxes',
         help_text='Empresa (Odoo company_id).',
     )

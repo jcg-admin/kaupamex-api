@@ -9,7 +9,8 @@ reales, o18:90)/``duration_expected`` (o18:87)/``state``. El ``duration`` × el
 """
 from decimal import Decimal
 
-from django.db import models
+import fields
+import models
 
 from core.models import TimeStampedModel
 
@@ -28,31 +29,31 @@ class MrpWorkorder(TimeStampedModel):
         (STATE_CANCEL, 'Cancelada'),
     ]
 
-    name              = models.CharField(
+    name              = fields.Char(
         max_length=100, blank=True, default='',
         help_text='Descripción (Odoo mrp.workorder.name).',
     )
-    production        = models.ForeignKey(
+    production        = fields.Many2one(
         'mrp.MrpProduction', on_delete=models.CASCADE, related_name='workorders',
         help_text='Orden de fabricación (Odoo production_id).',
     )
-    workcenter        = models.ForeignKey(
+    workcenter        = fields.Many2one(
         'mrp.MrpWorkcenter', on_delete=models.PROTECT, related_name='workorders',
         help_text='Centro de trabajo (Odoo workcenter_id).',
     )
-    operation         = models.ForeignKey(
+    operation         = fields.Many2one(
         'mrp.MrpRoutingWorkcenter', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='workorders', help_text='Operación (Odoo operation_id).',
     )
-    duration_expected = models.DecimalField(
+    duration_expected = fields.Monetary(
         max_digits=10, decimal_places=2, default=Decimal('0.00'),
         help_text='Duración esperada en minutos (Odoo duration_expected).',
     )
-    duration          = models.DecimalField(
+    duration          = fields.Monetary(
         max_digits=10, decimal_places=2, default=Decimal('0.00'),
         help_text='Duración real en minutos (Odoo duration).',
     )
-    state             = models.CharField(
+    state             = fields.Selection(
         max_length=16, choices=STATE_CHOICES, default=STATE_PENDING,
         help_text='Estado (Odoo mrp.workorder.state).',
     )

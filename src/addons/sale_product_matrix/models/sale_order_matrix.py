@@ -10,7 +10,8 @@ método de alta masiva.
 Bridge ``sale`` + ``product_matrix``: agrega en bloque líneas de la orden desde
 las celdas (variante, cantidad) de la grilla.
 """
-from django.db import models
+import fields
+import models
 
 from addons.sale.models import SaleOrderLine
 from core.models import TimeStampedModel
@@ -24,7 +25,7 @@ class SaleOrderMatrix(TimeStampedModel):
         help_text='Orden de venta (Odoo sale.order).',
     )
     # Odoo sale.order.report_grids.
-    report_grids = models.BooleanField(
+    report_grids = fields.Boolean(
         default=True, help_text='Imprimir la grilla de variantes (Odoo report_grids).',
     )
 

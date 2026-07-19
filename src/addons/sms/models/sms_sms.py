@@ -9,7 +9,8 @@ SMS) queda fuera de scope: aquí ``SmsSms`` es el registro de intención de env�
 y su transición de estado; el transporte real lo cablea el proveedor que se
 integre después (Clausula 5 anti-performativa — no se fabrica el gateway).
 """
-from django.db import models
+import fields
+import models
 
 from core.models import TimeStampedModel
 
@@ -27,20 +28,20 @@ class SmsSms(TimeStampedModel):
     ]
 
     # Odoo sms.sms.number (sms_sms.py:40).
-    number     = models.CharField(
+    number     = fields.Char(
         max_length=32, help_text='Número destino (Odoo sms.sms.number).',
     )
     # Odoo sms.sms.body (sms_sms.py:41).
-    body       = models.TextField(
+    body       = fields.Text(
         help_text='Cuerpo del mensaje (Odoo sms.sms.body).',
     )
     # Odoo sms.sms.state (sms_sms.py:44) — colapsado a 3 estados.
-    state      = models.CharField(
+    state      = fields.Selection(
         max_length=16, choices=STATE_CHOICES, default=STATE_PENDING,
         help_text='Estado de envío (Odoo sms.sms.state, colapsado).',
     )
     # Odoo sms.sms.failure_type (sms_sms.py:54) — motivo de error, texto libre.
-    error_code = models.CharField(
+    error_code = fields.Char(
         max_length=64, blank=True, default='',
         help_text='Motivo del fallo si state=error (Odoo failure_type).',
     )

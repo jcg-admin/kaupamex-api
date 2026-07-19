@@ -7,7 +7,8 @@ atributo aplican a ese producto. Núcleo: ``product_tmpl_id``/``attribute_id``/
 ``value_ids`` (M2M). Es el eje del que se genera el producto cartesiano de
 combinaciones.
 """
-from django.db import models
+import fields
+import models
 
 from core.models import TimeStampedModel
 
@@ -15,15 +16,15 @@ from core.models import TimeStampedModel
 class ProductTemplateAttributeLine(TimeStampedModel):
     """``product.template.attribute.line`` — atributo aplicado a un producto."""
 
-    product   = models.ForeignKey(
+    product   = fields.Many2one(
         'catalogue.Product', on_delete=models.CASCADE, related_name='attribute_lines',
         help_text='Producto (Odoo product_tmpl_id).',
     )
-    attribute = models.ForeignKey(
+    attribute = fields.Many2one(
         'product.ProductAttribute', on_delete=models.PROTECT,
         related_name='template_lines', help_text='Atributo (Odoo attribute_id).',
     )
-    values    = models.ManyToManyField(
+    values    = fields.Many2many(
         'product.ProductAttributeValue', related_name='template_lines',
         help_text='Valores aplicables a este producto (Odoo value_ids).',
     )

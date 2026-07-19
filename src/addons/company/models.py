@@ -15,7 +15,8 @@ Entidad L1 = ``Company`` (DEC-T7; converge Odoo ``res.company`` / NetSuite).
 precios sigue abierto (pregunta abierta del diseño) y no cambia el esquema.
 """
 from django.core.exceptions import ValidationError
-from django.db import models
+import fields
+import models
 from django.utils import timezone
 
 from addons.base_vat.validators import validate_rfc
@@ -86,22 +87,22 @@ class Company(TimeStampedModel):
         CANCELLED = 'cancelled', 'Cancelado'
 
     code = models.SlugField(max_length=50, unique=True, verbose_name='Código')
-    name = models.CharField(max_length=150, verbose_name='Nombre')
-    status = models.CharField(
+    name = fields.Char(max_length=150, verbose_name='Nombre')
+    status = fields.Selection(
         max_length=12, choices=Status.choices, default=Status.TRIAL,
         verbose_name='Estado',
     )
     # Company de datos compartidos de plataforma (L-EXT-3). Los datos globales
     # cuelgan de la system company; el manager scopeado hace fallback por
     # whitelist a ella además de la company activa. NO usar company nullable.
-    is_system = models.BooleanField(
+    is_system = fields.Boolean(
         default=False, verbose_name='Company de sistema',
         help_text='Company de datos compartidos de plataforma (L0), no un tenant.',
     )
     # Datos mínimos de facturación (opcionales hasta activar).
     billing_email = models.EmailField(blank=True, default='', verbose_name='Correo de facturación')
-    billing_name = models.CharField(max_length=150, blank=True, default='', verbose_name='Razón social')
-    tax_id = models.CharField(
+    billing_name = fields.Char(max_length=150, blank=True, default='', verbose_name='Razón social')
+    tax_id = fields.Char(
         max_length=30, blank=True, default='', verbose_name='RFC / Tax ID',
         validators=[validate_rfc],
         help_text='RFC del SAT (12 moral / 13 física). Validado por base_vat.',
@@ -188,12 +189,12 @@ class CompanySetting(TimeStampedModel):
     contacto/newsletter, que sí son per-tenant.
     """
 
-    company = models.ForeignKey(
+    company = fields.Many2one(
         Company, on_delete=models.CASCADE, related_name='settings',
         verbose_name='Empresa',
     )
-    key = models.CharField(max_length=255, verbose_name='Clave')
-    value = models.TextField(verbose_name='Valor')
+    key = fields.Char(max_length=255, verbose_name='Clave')
+    value = fields.Text(verbose_name='Valor')
 
     objects = models.Manager()               # cross-company (L0 admin)
     scoped = CompanyScopedManager()          # L3: fail-closed por company activa
@@ -278,20 +279,20 @@ class Subsidiary(TimeStampedModel):
     (DIS-02) — sólo subsidiaria como scope + pertenencia.
     """
 
-    company = models.ForeignKey(
+    company = fields.Many2one(
         Company, on_delete=models.CASCADE, related_name='subsidiaries',
         verbose_name='Empresa (tenant)',
     )
-    name = models.CharField(max_length=150, verbose_name='Nombre')
-    parent = models.ForeignKey(
+    name = fields.Char(max_length=150, verbose_name='Nombre')
+    parent = fields.Many2one(
         'self', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='children', verbose_name='Subsidiaria padre',
     )
-    country = models.CharField(max_length=2, blank=True, default='', verbose_name='País')
-    base_currency = models.CharField(
+    country = fields.Char(max_length=2, blank=True, default='', verbose_name='País')
+    base_currency = fields.Char(
         max_length=3, blank=True, default='MXN', verbose_name='Moneda base',
     )
-    is_active = models.BooleanField(default=True, verbose_name='Activa')
+    is_active = fields.Boolean(default=True, verbose_name='Activa')
 
     class Meta:
         db_table = 'org_subsidiary'
@@ -310,16 +311,16 @@ class Subsidiary(TimeStampedModel):
 class Department(TimeStampedModel):
     """Unidad organizativa dentro de una subsidiaria (con sub-departamentos)."""
 
-    subsidiary = models.ForeignKey(
+    subsidiary = fields.Many2one(
         Subsidiary, on_delete=models.CASCADE, related_name='departments',
         verbose_name='Subsidiaria',
     )
-    name = models.CharField(max_length=150, verbose_name='Nombre')
-    parent = models.ForeignKey(
+    name = fields.Char(max_length=150, verbose_name='Nombre')
+    parent = fields.Many2one(
         'self', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='children', verbose_name='Departamento padre',
     )
-    is_active = models.BooleanField(default=True, verbose_name='Activo')
+    is_active = fields.Boolean(default=True, verbose_name='Activo')
 
     class Meta:
         db_table = 'org_department'
@@ -338,12 +339,12 @@ class Department(TimeStampedModel):
 class Job(TimeStampedModel):
     """Catálogo de puestos. El departamento es opcional (puesto transversal)."""
 
-    title = models.CharField(max_length=150, verbose_name='Puesto')
-    department = models.ForeignKey(
+    title = fields.Char(max_length=150, verbose_name='Puesto')
+    department = fields.Many2one(
         Department, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='jobs', verbose_name='Departamento',
     )
-    is_active = models.BooleanField(default=True, verbose_name='Activo')
+    is_active = fields.Boolean(default=True, verbose_name='Activo')
 
     class Meta:
         db_table = 'org_job'
@@ -394,17 +395,17 @@ class ModulePrice(TimeStampedModel):
         MONTHLY = 'monthly', 'Mensual'
         ANNUAL = 'annual', 'Anual'
 
-    module = models.ForeignKey(
+    module = fields.Many2one(
         'authz.Module', on_delete=models.PROTECT, related_name='prices',
         verbose_name='Módulo',
     )
-    billing_cycle = models.CharField(
+    billing_cycle = fields.Selection(
         max_length=8, choices=BillingCycle.choices, verbose_name='Ciclo de cobro',
     )
-    price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Precio')
-    currency = models.CharField(max_length=3, default='MXN', verbose_name='Moneda')
-    effective_from = models.DateTimeField(verbose_name='Vigente desde')
-    effective_to = models.DateTimeField(
+    price = fields.Monetary(max_digits=10, decimal_places=2, verbose_name='Precio')
+    currency = fields.Char(max_length=3, default='MXN', verbose_name='Moneda')
+    effective_from = fields.Datetime(verbose_name='Vigente desde')
+    effective_to = fields.Datetime(
         null=True, blank=True, verbose_name='Vigente hasta',
     )
 
@@ -450,29 +451,29 @@ class CompanyModuleSubscription(TimeStampedModel):
         SUSPENDED = 'suspended', 'Suspendido'
         CANCELLED = 'cancelled', 'Cancelado'
 
-    company = models.ForeignKey(
+    company = fields.Many2one(
         Company, on_delete=models.CASCADE, related_name='subscriptions',
         verbose_name='Empresa',
     )
-    module = models.ForeignKey(
+    module = fields.Many2one(
         'authz.Module', on_delete=models.PROTECT, related_name='subscriptions',
         verbose_name='Módulo',
     )
-    status = models.CharField(
+    status = fields.Selection(
         max_length=12, choices=Status.choices, default=Status.ACTIVE,
         verbose_name='Estado',
     )
-    started_at = models.DateTimeField(null=True, blank=True, verbose_name='Inicio')
-    expires_at = models.DateTimeField(null=True, blank=True, verbose_name='Expira')
+    started_at = fields.Datetime(null=True, blank=True, verbose_name='Inicio')
+    expires_at = fields.Datetime(null=True, blank=True, verbose_name='Expira')
     # Ciclo + precio COPIADOS del catálogo ``ModulePrice`` al suscribir (DEC-T6,
     # S4). No se referencia el catálogo en vivo: la copia congela lo que la
     # company paga (inmutabilidad histórica). ``price`` nulo = sin tarifa
     # sembrada (free) — no un error.
-    billing_cycle = models.CharField(
+    billing_cycle = fields.Selection(
         max_length=8, choices=ModulePrice.BillingCycle.choices,
         blank=True, default='', verbose_name='Ciclo de cobro',
     )
-    price = models.DecimalField(
+    price = fields.Monetary(
         max_digits=10, decimal_places=2, null=True, blank=True,
         verbose_name='Precio',
     )

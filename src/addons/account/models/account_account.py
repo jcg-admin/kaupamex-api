@@ -13,7 +13,8 @@ Hallazgo H-ACC-01 (drift 18→19): el enum ``account_type`` de 19 añade
 fabricado; ambos valores existen en 19). Ver audit.
 """
 import api
-from django.db import models
+import fields
+import models
 
 
 class AccountAccount(models.Model):
@@ -52,37 +53,37 @@ class AccountAccount(models.Model):
         ('off', 'Fuera de balance'),
     ]
 
-    code           = models.CharField(
+    code           = fields.Char(
         max_length=64, help_text='Código de cuenta (Odoo account.account.code).',
     )
-    name           = models.CharField(
+    name           = fields.Char(
         max_length=255, help_text='Nombre de la cuenta (Odoo name, requerido).',
     )
-    account_type   = models.CharField(
+    account_type   = fields.Selection(
         max_length=32, choices=ACCOUNT_TYPES,
         help_text='Tipo de cuenta (Odoo account_type, requerido).',
     )
-    internal_group = models.CharField(
+    internal_group = fields.Selection(
         max_length=16, choices=INTERNAL_GROUPS, blank=True, default='',
         help_text='Grupo interno derivado de account_type (Odoo internal_group).',
     )
-    reconcile      = models.BooleanField(
+    reconcile      = fields.Boolean(
         default=False,
         help_text='Permite conciliación (Odoo reconcile).',
     )
-    deprecated     = models.BooleanField(
+    deprecated     = fields.Boolean(
         default=False, help_text='Cuenta obsoleta (Odoo deprecated).',
     )
-    currency       = models.ForeignKey(
+    currency       = fields.Many2one(
         'base.ResCurrency', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='accounts',
         help_text='Moneda de la cuenta (Odoo currency_id).',
     )
-    company        = models.ForeignKey(
+    company        = fields.Many2one(
         'company.Company', on_delete=models.CASCADE, related_name='accounts',
         help_text='Empresa (Odoo company_id / company_ids).',
     )
-    note           = models.TextField(
+    note           = fields.Text(
         blank=True, default='', help_text='Notas internas (Odoo note).',
     )
 

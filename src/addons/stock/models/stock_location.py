@@ -6,7 +6,8 @@ versiones — ``name``/``usage`` (``supplier``/``view``/``internal``/``customer`
 ``inventory``/``production``/``transit``, o19:32-39)/``location_id`` (padre,
 self-FK). ``complete_name`` se calcula recursivamente.
 """
-from django.db import models
+import fields
+import models
 
 from core.models import TimeStampedModel
 
@@ -31,14 +32,14 @@ class StockLocation(TimeStampedModel):
         (USAGE_TRANSIT, 'Tránsito'),
     ]
 
-    name        = models.CharField(
+    name        = fields.Char(
         max_length=100, help_text='Nombre de la ubicación (Odoo stock.location.name).',
     )
-    usage       = models.CharField(
+    usage       = fields.Selection(
         max_length=16, choices=USAGE_CHOICES, default=USAGE_INTERNAL,
         help_text='Tipo de ubicación (Odoo stock.location.usage).',
     )
-    location    = models.ForeignKey(
+    location    = fields.Many2one(
         'self', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='child_ids', help_text='Ubicación padre (Odoo location_id).',
     )

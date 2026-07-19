@@ -6,7 +6,8 @@ una ``sale.order`` estas líneas se materializan en ``sale.order.line``.
 """
 from decimal import Decimal
 
-from django.db import models
+import fields
+import models
 
 from core.models import TimeStampedModel
 
@@ -25,28 +26,28 @@ class SaleOrderTemplateLine(TimeStampedModel):
         (DISPLAY_NOTE,    'Nota'),
     ]
 
-    template        = models.ForeignKey(
+    template        = fields.Many2one(
         'sale_management.SaleOrderTemplate', on_delete=models.CASCADE,
         related_name='template_line',
         help_text='Plantilla (Odoo sale_order_template_id).',
     )
-    sequence        = models.IntegerField(
+    sequence        = fields.Integer(
         default=10, help_text='Orden dentro de la plantilla (Odoo sequence).',
     )
-    product         = models.ForeignKey(
+    product         = fields.Many2one(
         'catalogue.Product', null=True, blank=True, on_delete=models.PROTECT,
         related_name='sale_template_lines',
         help_text='Producto (Odoo product_id); NULL en sección/nota.',
     )
-    name            = models.TextField(
+    name            = fields.Text(
         blank=True, default='',
         help_text='Descripción de la línea (Odoo name).',
     )
-    product_uom_qty = models.DecimalField(
+    product_uom_qty = fields.Monetary(
         max_digits=12, decimal_places=2, default=Decimal('1.00'),
         help_text='Cantidad (Odoo product_uom_qty).',
     )
-    display_type    = models.CharField(
+    display_type    = fields.Selection(
         max_length=12, choices=DISPLAY_TYPES, default=DISPLAY_PRODUCT, blank=True,
         help_text='Tipo de línea: producto/sección/nota (Odoo display_type).',
     )

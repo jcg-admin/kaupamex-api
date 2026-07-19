@@ -9,7 +9,8 @@ opción (p. ej. talla XL) cueste ``+50`` sobre el precio base — lo que el
 """
 from decimal import Decimal
 
-from django.db import models
+import fields
+import models
 
 from core.models import TimeStampedModel
 
@@ -17,16 +18,16 @@ from core.models import TimeStampedModel
 class ProductTemplateAttributeValue(TimeStampedModel):
     """``product.template.attribute.value`` — valor por-producto con price_extra."""
 
-    line            = models.ForeignKey(
+    line            = fields.Many2one(
         'product.ProductTemplateAttributeLine', on_delete=models.CASCADE,
         related_name='template_values', help_text='Línea (Odoo attribute_line_id).',
     )
-    attribute_value = models.ForeignKey(
+    attribute_value = fields.Many2one(
         'product.ProductAttributeValue', on_delete=models.PROTECT,
         related_name='template_values',
         help_text='Valor del atributo (Odoo product_attribute_value_id).',
     )
-    price_extra     = models.DecimalField(
+    price_extra     = fields.Monetary(
         max_digits=12, decimal_places=2, default=Decimal('0.00'),
         help_text='Sobreprecio de esta opción (Odoo price_extra).',
     )

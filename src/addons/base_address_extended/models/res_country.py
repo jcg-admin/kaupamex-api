@@ -5,7 +5,8 @@ Odoo agrega ``enforce_cities`` a ``res.country`` vía ``_inherit`` cross-app
 RELATED OneToOne sobre ``base.ResCountry`` (DEC-SALE-01: Django no inyecta
 columnas cross-app).
 """
-from django.db import models
+import fields
+import models
 
 
 class CountryAddressPolicy(models.Model):
@@ -19,7 +20,7 @@ class CountryAddressPolicy(models.Model):
         'base.ResCountry', on_delete=models.CASCADE, related_name='address_policy',
         help_text='País al que aplica la política (Odoo res.country).',
     )
-    enforce_cities  = models.BooleanField(
+    enforce_cities  = fields.Boolean(
         default=False,
         help_text='Exigir ciudad del catálogo en direcciones (Odoo enforce_cities).',
     )

@@ -11,7 +11,8 @@ En este proyecto el "partner" con dirección es ``users.Address`` (no
 columnas en su tabla, y aloja la descomposición estructurada de la calle + el
 enlace al catálogo ``res.city``.
 """
-from django.db import models
+import fields
+import models
 
 from addons.base_address_extended.services import street_split
 
@@ -25,20 +26,20 @@ class AddressStructured(models.Model):
         'users.Address', on_delete=models.CASCADE, related_name='structured',
         help_text='Dirección a la que pertenece (Odoo res.partner).',
     )
-    city          = models.ForeignKey(
+    city          = fields.Many2one(
         'base_address_extended.ResCity', on_delete=models.SET_NULL,
         null=True, blank=True, related_name='addresses',
         help_text='Ciudad del catálogo (Odoo city_id → res.city).',
     )
-    street_name    = models.CharField(
+    street_name    = fields.Char(
         max_length=200, blank=True, default='',
         help_text='Nombre de la calle (Odoo street_name).',
     )
-    street_number  = models.CharField(
+    street_number  = fields.Char(
         max_length=32, blank=True, default='',
         help_text='Número exterior (Odoo street_number / House).',
     )
-    street_number2 = models.CharField(
+    street_number2 = fields.Char(
         max_length=32, blank=True, default='',
         help_text='Número interior / puerta (Odoo street_number2 / Door).',
     )

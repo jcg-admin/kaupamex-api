@@ -12,7 +12,8 @@ generada conoce su línea de venta origen a través de ``SaleLinePurchaseLink``.
 Bridge ``sale`` + ``purchase``: aprovisiona la compra que una venta de servicio
 origina, y mantiene la trazabilidad venta→compra (Odoo sale_line_id).
 """
-from django.db import models
+import fields
+import models
 
 from addons.purchase.models import PurchaseOrder, PurchaseOrderLine
 from core.models import TimeStampedModel
@@ -21,7 +22,7 @@ from core.models import TimeStampedModel
 class SaleLinePurchaseLink(TimeStampedModel):
     """Enlace ``sale.order.line`` ↔ ``purchase.order.line`` (Odoo sale_line_id)."""
 
-    sale_line     = models.ForeignKey(
+    sale_line     = fields.Many2one(
         'sale.SaleOrderLine', on_delete=models.CASCADE, related_name='purchase_links',
         help_text='Línea de venta origen (Odoo purchase.order.line.sale_line_id).',
     )

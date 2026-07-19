@@ -4,7 +4,8 @@ Portación fiel de ``account_journal.py`` (Odoo 18/19, ``type`` idéntico:
 sale/purchase/cash/bank/credit/general). Campos núcleo: ``name``, ``code``,
 ``type``, ``currency``, ``default_account``, ``company``, ``active``.
 """
-from django.db import models
+import fields
+import models
 
 
 class AccountJournal(models.Model):
@@ -19,31 +20,31 @@ class AccountJournal(models.Model):
         ('general', 'Varios'),
     ]
 
-    name            = models.CharField(
+    name            = fields.Char(
         max_length=255, help_text='Nombre del diario (Odoo name, requerido).',
     )
-    code            = models.CharField(
+    code            = fields.Char(
         max_length=12, help_text='Código corto del diario (Odoo code).',
     )
-    type            = models.CharField(
+    type            = fields.Selection(
         max_length=12, choices=JOURNAL_TYPES,
         help_text='Tipo de diario (Odoo type, requerido).',
     )
-    currency        = models.ForeignKey(
+    currency        = fields.Many2one(
         'base.ResCurrency', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='journals',
         help_text='Moneda del diario (Odoo currency_id).',
     )
-    default_account = models.ForeignKey(
+    default_account = fields.Many2one(
         'account.AccountAccount', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='default_for_journals',
         help_text='Cuenta por defecto (Odoo default_account_id).',
     )
-    company         = models.ForeignKey(
+    company         = fields.Many2one(
         'company.Company', on_delete=models.CASCADE, related_name='journals',
         help_text='Empresa (Odoo company_id).',
     )
-    active          = models.BooleanField(
+    active          = fields.Boolean(
         default=True, help_text='Diario activo (Odoo active).',
     )
 

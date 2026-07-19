@@ -9,7 +9,8 @@ a la orden — misma forma de módulo-extensión que ``sale_stock``.
 """
 from decimal import Decimal
 
-from django.db import models
+import fields
+import models
 
 from core.models import TimeStampedModel
 
@@ -21,7 +22,7 @@ class SaleOrderCoupon(TimeStampedModel):
         'sale.SaleOrder', on_delete=models.CASCADE, related_name='coupon',
         help_text='Orden de venta (Odoo sale.order).',
     )
-    voucher = models.ForeignKey(
+    voucher = fields.Many2one(
         'voucher.Voucher', null=True, blank=True,
         on_delete=models.SET_NULL, related_name='sale_order_coupons',
         help_text='Cupón aplicado (Odoo sale_loyalty coupon; = cart.voucher).',

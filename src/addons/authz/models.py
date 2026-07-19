@@ -16,7 +16,8 @@ Diseño: :ref:`arq-mod-authz` (MOD-027). Entidades:
 - ``AuthzEvent`` — auditoría append-only (403 + uso de capacidad sensible, DEC-07).
 """
 from django.conf import settings
-from django.db import models
+import fields
+import models
 from django.utils import timezone
 
 from core.models import TimeStampedModel
@@ -40,34 +41,34 @@ class Module(TimeStampedModel):
         PAID = 'paid', 'De pago'
 
     code = models.SlugField(max_length=50, unique=True, verbose_name='Código')
-    name = models.CharField(max_length=100, verbose_name='Nombre')
-    is_active = models.BooleanField(default=True, verbose_name='Activo')
+    name = fields.Char(max_length=100, verbose_name='Nombre')
+    is_active = fields.Boolean(default=True, verbose_name='Activo')
     # Grafo de dependencias (SOL-085 S3): activar este módulo para una company
     # exige que sus ``depends`` estén activos (p.ej. pos depende de
     # inventory+catalogue). No simétrico: A depende de B ≠ B depende de A.
-    depends = models.ManyToManyField(
+    depends = fields.Many2many(
         'self', symmetrical=False, related_name='dependents', blank=True,
         verbose_name='Depende de',
     )
     # Metadata de catálogo L0 (contrato __manifest__ de Odoo).
-    is_application = models.BooleanField(
+    is_application = fields.Boolean(
         default=False, verbose_name='App vendible',
         help_text='Vendible (top-level) vs módulo técnico (dependencia interna).',
     )
-    tier = models.CharField(
+    tier = fields.Selection(
         max_length=8, choices=Tier.choices, default=Tier.FREE,
         verbose_name='Tier',
     )
-    category = models.CharField(
+    category = fields.Char(
         max_length=50, blank=True, default='', verbose_name='Categoría',
     )
-    version = models.CharField(
+    version = fields.Char(
         max_length=20, blank=True, default='', verbose_name='Versión',
     )
-    description = models.TextField(
+    description = fields.Text(
         blank=True, default='', verbose_name='Descripción',
     )
-    auto_install = models.BooleanField(
+    auto_install = fields.Boolean(
         default=False, verbose_name='Auto-instalar',
         help_text='Se activa solo cuando sus dependencias están presentes.',
     )
@@ -123,22 +124,22 @@ class AccessLevel(models.IntegerChoices):
 class Capability(TimeStampedModel):
     """Un permiso atómico. ``code`` = ``dominio.verbo`` (cara técnica); el resto
     es la cara de negocio (un solo registro, sin split lógico/físico)."""
-    module = models.ForeignKey(
+    module = fields.Many2one(
         Module, on_delete=models.PROTECT, related_name='capabilities',
         verbose_name='Módulo',
     )
-    code = models.CharField(
+    code = fields.Char(
         max_length=100, unique=True,
         verbose_name='Código', help_text="Formato 'dominio.verbo' (p.ej. orders.refund).",
     )
-    name = models.CharField(max_length=150, verbose_name='Nombre')
-    description = models.TextField(blank=True, default='', verbose_name='Descripción')
-    category = models.CharField(max_length=50, blank=True, default='', verbose_name='Categoría')
-    is_sensitive = models.BooleanField(
+    name = fields.Char(max_length=150, verbose_name='Nombre')
+    description = fields.Text(blank=True, default='', verbose_name='Descripción')
+    category = fields.Char(max_length=50, blank=True, default='', verbose_name='Categoría')
+    is_sensitive = fields.Boolean(
         default=False, verbose_name='Sensible',
         help_text='Su uso exitoso se audita en AuthzEvent (DEC-07).',
     )
-    is_active = models.BooleanField(default=True, verbose_name='Activa')
+    is_active = fields.Boolean(default=True, verbose_name='Activa')
 
     class Meta:
         db_table = 'authz_capability'
@@ -153,8 +154,8 @@ class Capability(TimeStampedModel):
 class Role(TimeStampedModel):
     """Agrupación de capacidades. El acceso vía Role es *indirect entitlement*."""
     code = models.SlugField(max_length=50, unique=True, verbose_name='Código')
-    name = models.CharField(max_length=100, verbose_name='Nombre')
-    capabilities = models.ManyToManyField(
+    name = fields.Char(max_length=100, verbose_name='Nombre')
+    capabilities = fields.Many2many(
         Capability, through='RoleCapability', related_name='roles', blank=True,
         verbose_name='Capacidades',
     )
@@ -175,15 +176,15 @@ class RoleCapability(TimeStampedModel):
     ``AccessLevel``. Para capacidades de acción nombrada (``code`` con punto que
     no es verbo CRUD, p.ej. ``account.profile``) el nivel es irrelevante y se
     guarda ``FULL`` — el resolver las trata por membresía, no por escala."""
-    role = models.ForeignKey(
+    role = fields.Many2one(
         Role, on_delete=models.CASCADE, related_name='role_capabilities',
         verbose_name='Rol',
     )
-    capability = models.ForeignKey(
+    capability = fields.Many2one(
         Capability, on_delete=models.CASCADE, related_name='role_capabilities',
         verbose_name='Capacidad',
     )
-    level = models.IntegerField(
+    level = fields.Integer(
         choices=AccessLevel.choices, default=AccessLevel.FULL,
         verbose_name='Nivel de acceso',
     )
@@ -202,18 +203,18 @@ class RoleCapability(TimeStampedModel):
 class RoleAssignment(TimeStampedModel):
     """Asignación usuario↔Role (indirect entitlement). ``expires_at`` NULL = sin
     expiración (gancho JIT/least-privilege)."""
-    user = models.ForeignKey(
+    user = fields.Many2one(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
         related_name='role_assignments', verbose_name='Usuario',
     )
-    role = models.ForeignKey(
+    role = fields.Many2one(
         Role, on_delete=models.CASCADE, related_name='assignments', verbose_name='Rol',
     )
-    assigned_by = models.ForeignKey(
+    assigned_by = fields.Many2one(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='+', verbose_name='Asignado por',
     )
-    expires_at = models.DateTimeField(null=True, blank=True, verbose_name='Expira')
+    expires_at = fields.Datetime(null=True, blank=True, verbose_name='Expira')
 
     class Meta:
         db_table = 'authz_role_assignment'
@@ -251,17 +252,17 @@ class AccessRule(TimeStampedModel):
     # Modos de operación (paridad ``ir_rule.py:_MODES``).
     MODES = ('read', 'write', 'create', 'unlink')
 
-    role = models.ForeignKey(
+    role = fields.Many2one(
         Role, on_delete=models.CASCADE, related_name='access_rules', verbose_name='Rol',
         null=True, blank=True,
         help_text="Rol al que aplica la regla; **nulo = regla global** "
                   "(obligatoria, se combina con AND). Paridad ``ir.rule.groups``.",
     )
-    model_label = models.CharField(
+    model_label = fields.Char(
         max_length=100, verbose_name='Modelo',
         help_text="``app_label.model`` en minúsculas, p.ej. ``orders.order``.",
     )
-    domain = models.JSONField(
+    domain = fields.Json(
         default=dict, verbose_name='Dominio',
         help_text="Filtro ORM serializado; los valores ``$user``/``$company`` se "
                   "resuelven en runtime al pk del usuario / id de su company.",
@@ -269,11 +270,11 @@ class AccessRule(TimeStampedModel):
     # Operaciones CRUD que la regla concede (paridad ``ir_rule.py:27-30``).
     # Default True en las cuatro, como Odoo: una regla aplica a todos los modos
     # salvo que se restrinja explícitamente.
-    perm_read = models.BooleanField(default=True, verbose_name='Leer')
-    perm_write = models.BooleanField(default=True, verbose_name='Escribir')
-    perm_create = models.BooleanField(default=True, verbose_name='Crear')
-    perm_unlink = models.BooleanField(default=True, verbose_name='Borrar')
-    is_active = models.BooleanField(default=True, verbose_name='Activa')
+    perm_read = fields.Boolean(default=True, verbose_name='Leer')
+    perm_write = fields.Boolean(default=True, verbose_name='Escribir')
+    perm_create = fields.Boolean(default=True, verbose_name='Crear')
+    perm_unlink = fields.Boolean(default=True, verbose_name='Borrar')
+    is_active = fields.Boolean(default=True, verbose_name='Activa')
 
     class Meta:
         db_table = 'authz_access_rule'
@@ -299,19 +300,19 @@ class AccessRule(TimeStampedModel):
 
 class DirectEntitlement(TimeStampedModel):
     """Grant directo positivo usuario↔Capability (direct entitlement, DEC-AUTHZ-01)."""
-    user = models.ForeignKey(
+    user = fields.Many2one(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
         related_name='direct_entitlements', verbose_name='Usuario',
     )
-    capability = models.ForeignKey(
+    capability = fields.Many2one(
         Capability, on_delete=models.CASCADE, related_name='direct_entitlements',
         verbose_name='Capacidad',
     )
-    granted_by = models.ForeignKey(
+    granted_by = fields.Many2one(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='+', verbose_name='Otorgado por',
     )
-    expires_at = models.DateTimeField(null=True, blank=True, verbose_name='Expira')
+    expires_at = fields.Datetime(null=True, blank=True, verbose_name='Expira')
 
     class Meta:
         db_table = 'authz_direct_entitlement'
@@ -329,19 +330,19 @@ class DirectEntitlement(TimeStampedModel):
 class EntitlementRevocation(TimeStampedModel):
     """Tombstone auditable: cancela un grant directo usuario↔Capability
     (DEC-AUTHZ-01). No cancela capacidades heredadas de rol."""
-    user = models.ForeignKey(
+    user = fields.Many2one(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
         related_name='entitlement_revocations', verbose_name='Usuario',
     )
-    capability = models.ForeignKey(
+    capability = fields.Many2one(
         Capability, on_delete=models.CASCADE, related_name='entitlement_revocations',
         verbose_name='Capacidad',
     )
-    revoked_by = models.ForeignKey(
+    revoked_by = fields.Many2one(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='+', verbose_name='Revocado por',
     )
-    reason = models.TextField(blank=True, default='', verbose_name='Motivo')
+    reason = fields.Text(blank=True, default='', verbose_name='Motivo')
 
     class Meta:
         db_table = 'authz_entitlement_revocation'

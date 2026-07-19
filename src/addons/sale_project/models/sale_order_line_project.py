@@ -10,7 +10,8 @@ enlaces + el generador de tarea.
 Bridge ``sale`` + ``project``: atribuye a cada línea de servicio la tarea/proyecto
 que su venta origina.
 """
-from django.db import models
+import fields
+import models
 
 from addons.project.models import ProjectTask
 from core.models import TimeStampedModel
@@ -23,11 +24,11 @@ class SaleOrderLineProject(TimeStampedModel):
         'sale.SaleOrderLine', on_delete=models.CASCADE, related_name='project_link',
         help_text='Línea de orden (Odoo sale.order.line).',
     )
-    project = models.ForeignKey(
+    project = fields.Many2one(
         'project.Project', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='sale_order_lines', help_text='Proyecto (Odoo project_id).',
     )
-    task    = models.ForeignKey(
+    task    = fields.Many2one(
         'project.ProjectTask', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='sale_order_lines', help_text='Tarea (Odoo task_id).',
     )

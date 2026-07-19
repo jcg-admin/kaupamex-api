@@ -13,7 +13,8 @@ Bridge ``sale`` + ``mrp``: la venta de un producto fabricado origina su MO.
 """
 from decimal import Decimal
 
-from django.db import models
+import fields
+import models
 
 from addons.mrp.models import MrpProduction
 from core.models import TimeStampedModel
@@ -26,7 +27,7 @@ class SaleOrderLineProduction(TimeStampedModel):
         'sale.SaleOrderLine', on_delete=models.CASCADE, related_name='production_link',
         help_text='Línea de venta origen (Odoo sale.order.line).',
     )
-    production = models.ForeignKey(
+    production = fields.Many2one(
         'mrp.MrpProduction', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='sale_order_lines', help_text='Orden de fabricación (Odoo mrp.production).',
     )

@@ -12,7 +12,8 @@ verificado en 18 y 19): configuración de costeo del producto.
 """
 from decimal import Decimal
 
-from django.db import models
+import fields
+import models
 
 from core.models import TimeStampedModel
 
@@ -33,11 +34,11 @@ class ProductCosting(TimeStampedModel):
         'catalogue.Product', on_delete=models.CASCADE, related_name='costing',
         help_text='Producto (Odoo product_id).',
     )
-    cost_method    = models.CharField(
+    cost_method    = fields.Selection(
         max_length=16, choices=COST_CHOICES, default=COST_AVERAGE,
         help_text='Método de costeo (Odoo property_cost_method).',
     )
-    standard_price = models.DecimalField(
+    standard_price = fields.Monetary(
         max_digits=12, decimal_places=4, default=Decimal('0.0000'),
         help_text='Costo unitario (Odoo standard_price).',
     )

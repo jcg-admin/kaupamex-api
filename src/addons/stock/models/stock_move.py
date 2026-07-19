@@ -10,7 +10,8 @@ origen↔destino (``move_orig_ids``/``move_dest_ids``) que Odoo usa para MTO.
 """
 from decimal import Decimal
 
-from django.db import models
+import fields
+import models
 
 from addons.stock.models.stock_quant import StockQuant
 from core.models import TimeStampedModel
@@ -34,39 +35,39 @@ class StockMove(TimeStampedModel):
         (STATE_CANCEL, 'Cancelado'),
     ]
 
-    name            = models.CharField(
+    name            = fields.Char(
         max_length=255, blank=True, default='',
         help_text='Descripción (Odoo stock.move.name).',
     )
-    product         = models.ForeignKey(
+    product         = fields.Many2one(
         'catalogue.Product', on_delete=models.PROTECT, related_name='stock_moves',
         help_text='Producto (Odoo product_id).',
     )
-    product_uom_qty = models.DecimalField(
+    product_uom_qty = fields.Monetary(
         max_digits=12, decimal_places=2, default=Decimal('0.00'),
         help_text='Cantidad demandada (Odoo product_uom_qty).',
     )
-    quantity        = models.DecimalField(
+    quantity        = fields.Monetary(
         max_digits=12, decimal_places=2, default=Decimal('0.00'),
         help_text='Cantidad reservada/hecha (Odoo stock.move.quantity).',
     )
-    location        = models.ForeignKey(
+    location        = fields.Many2one(
         'stock.StockLocation', on_delete=models.PROTECT, related_name='moves_out',
         help_text='Ubicación origen (Odoo location_id).',
     )
-    location_dest   = models.ForeignKey(
+    location_dest   = fields.Many2one(
         'stock.StockLocation', on_delete=models.PROTECT, related_name='moves_in',
         help_text='Ubicación destino (Odoo location_dest_id).',
     )
-    picking         = models.ForeignKey(
+    picking         = fields.Many2one(
         'stock.StockPicking', null=True, blank=True, on_delete=models.CASCADE,
         related_name='move_ids', help_text='Transferencia (Odoo picking_id).',
     )
-    move_orig       = models.ManyToManyField(
+    move_orig       = fields.Many2many(
         'self', symmetrical=False, blank=True, related_name='move_dest',
         help_text='Movimientos origen que abastecen a éste (Odoo move_orig_ids).',
     )
-    state           = models.CharField(
+    state           = fields.Selection(
         max_length=16, choices=STATE_CHOICES, default=STATE_DRAFT,
         help_text='Estado (Odoo stock.move.state).',
     )

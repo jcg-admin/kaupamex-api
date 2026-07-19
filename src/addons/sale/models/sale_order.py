@@ -17,7 +17,8 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.db import models
+import fields
+import models
 from django.utils import timezone
 
 from core.models import TimeStampedModel
@@ -45,11 +46,11 @@ class SaleOrder(TimeStampedModel):
 
     # ``name`` NULL mientras es borrador (Odoo lo asigna al crear vía secuencia;
     # aquí se asigna al confirmar). UNIQUE admite múltiples NULL en SQL.
-    name       = models.CharField(
+    name       = fields.Char(
         max_length=20, unique=True, null=True, blank=True, db_index=True,
         help_text='Referencia SO (Odoo sale.order.name). NULL en borrador.',
     )
-    partner    = models.ForeignKey(
+    partner    = fields.Many2one(
         settings.AUTH_USER_MODEL, null=True, blank=True,
         on_delete=models.SET_NULL, related_name='sale_orders',
         help_text='Cliente (Odoo partner_id). NULL en carrito anónimo.',
@@ -58,20 +59,20 @@ class SaleOrder(TimeStampedModel):
         unique=True, null=True, blank=True, db_index=True,
         help_text='Carrito anónimo — draft sin partner (paridad cart.cart_token).',
     )
-    state      = models.CharField(
+    state      = fields.Selection(
         max_length=10, choices=STATES, default=STATE_DRAFT, db_index=True,
     )
-    date_order = models.DateTimeField(
+    date_order = fields.Datetime(
         null=True, blank=True,
         help_text='Fecha de la orden (Odoo date_order); se fija al confirmar.',
     )
-    locked     = models.BooleanField(
+    locked     = fields.Boolean(
         default=False, help_text='Orden bloqueada, no modificable (Odoo locked).',
     )
     # Odoo sale.order.team_id (Many2one crm.team) — atribución de la orden a un
     # equipo de venta. El addon ``sale`` declara ``sales_team`` como dependencia
     # justamente para añadir este campo.
-    team       = models.ForeignKey(
+    team       = fields.Many2one(
         'sales_team.CrmTeam', null=True, blank=True,
         on_delete=models.SET_NULL, related_name='sale_orders',
         help_text='Equipo de venta atribuido (Odoo sale.order.team_id).',

@@ -14,7 +14,8 @@ import uuid
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
-from django.db import models
+import fields
+import models
 
 from addons.stock.models.stock_move import StockMove
 from core.models import TimeStampedModel
@@ -36,23 +37,23 @@ class MrpProduction(TimeStampedModel):
         (STATE_CANCEL, 'Cancelada'),
     ]
 
-    name        = models.CharField(
+    name        = fields.Char(
         max_length=32, blank=True, default='',
         help_text='Referencia (Odoo mrp.production.name).',
     )
-    product     = models.ForeignKey(
+    product     = fields.Many2one(
         'catalogue.Product', on_delete=models.PROTECT, related_name='productions',
         help_text='Producto a fabricar (Odoo product_id).',
     )
-    product_qty = models.DecimalField(
+    product_qty = fields.Monetary(
         max_digits=12, decimal_places=2, default=Decimal('1.00'),
         help_text='Cantidad a producir (Odoo product_qty).',
     )
-    bom         = models.ForeignKey(
+    bom         = fields.Many2one(
         'mrp.MrpBom', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='productions', help_text='BoM aplicada (Odoo bom_id).',
     )
-    state       = models.CharField(
+    state       = fields.Selection(
         max_length=16, choices=STATE_CHOICES, default=STATE_DRAFT,
         help_text='Estado (Odoo mrp.production.state).',
     )

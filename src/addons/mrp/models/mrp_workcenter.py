@@ -8,7 +8,8 @@ fabricación imputa al producto terminado.
 """
 from decimal import Decimal
 
-from django.db import models
+import fields
+import models
 
 from core.models import TimeStampedModel
 
@@ -16,18 +17,18 @@ from core.models import TimeStampedModel
 class MrpWorkcenter(TimeStampedModel):
     """``mrp.workcenter`` — centro de trabajo."""
 
-    name            = models.CharField(
+    name            = fields.Char(
         max_length=100, help_text='Nombre (Odoo mrp.workcenter.name).',
     )
-    costs_hour      = models.DecimalField(
+    costs_hour      = fields.Monetary(
         max_digits=12, decimal_places=2, default=Decimal('0.00'),
         help_text='Costo por hora (Odoo costs_hour).',
     )
-    time_efficiency = models.DecimalField(
+    time_efficiency = fields.Monetary(
         max_digits=6, decimal_places=2, default=Decimal('100.00'),
         help_text='Eficiencia de tiempo % (Odoo time_efficiency).',
     )
-    capacity        = models.DecimalField(
+    capacity        = fields.Monetary(
         max_digits=8, decimal_places=2, default=Decimal('1.00'),
         help_text='Capacidad por defecto (Odoo default_capacity).',
     )

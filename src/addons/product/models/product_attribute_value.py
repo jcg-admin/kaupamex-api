@@ -5,7 +5,8 @@ Adaptación fiel de Odoo ``product.attribute.value``
 posible de un atributo reutilizable (p. ej. del atributo Color: Rojo, Azul).
 Núcleo: ``name``/``attribute_id``/``sequence``.
 """
-from django.db import models
+import fields
+import models
 
 from core.models import TimeStampedModel
 
@@ -13,11 +14,11 @@ from core.models import TimeStampedModel
 class ProductAttributeValue(TimeStampedModel):
     """``product.attribute.value`` — un valor de un atributo reutilizable."""
 
-    attribute = models.ForeignKey(
+    attribute = fields.Many2one(
         'product.ProductAttribute', on_delete=models.CASCADE,
         related_name='values', help_text='Atributo (Odoo attribute_id).',
     )
-    name      = models.CharField(
+    name      = fields.Char(
         max_length=100, help_text='Valor (Odoo product.attribute.value.name).',
     )
     sequence  = models.PositiveIntegerField(

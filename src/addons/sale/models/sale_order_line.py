@@ -10,7 +10,8 @@ tasa vigente, cuantizando por línea (equivale a ``_round_base_lines_tax_details
 from decimal import Decimal
 
 from django.core.validators import MinValueValidator
-from django.db import models
+import fields
+import models
 
 from core.models import TimeStampedModel
 from addons.settings_app.models import SiteSettings
@@ -19,19 +20,19 @@ from addons.settings_app.models import SiteSettings
 class SaleOrderLine(TimeStampedModel):
     """``sale.order.line`` — una línea de la orden/carrito."""
 
-    order           = models.ForeignKey(
+    order           = fields.Many2one(
         'sale.SaleOrder', on_delete=models.CASCADE, related_name='order_line',
         help_text='Odoo order_id.',
     )
-    product         = models.ForeignKey(
+    product         = fields.Many2one(
         'catalogue.Product', on_delete=models.PROTECT,
         related_name='sale_order_lines', help_text='Odoo product_id.',
     )
-    variant         = models.ForeignKey(
+    variant         = fields.Many2one(
         'chartsize.ProductVariant', null=True, blank=True,
         on_delete=models.PROTECT, related_name='sale_order_lines',
     )
-    name            = models.CharField(
+    name            = fields.Char(
         max_length=255, blank=True, default='',
         help_text='Descripción de la línea (Odoo name).',
     )
@@ -39,10 +40,10 @@ class SaleOrderLine(TimeStampedModel):
         default=1, validators=[MinValueValidator(1)],
         help_text='Cantidad (Odoo product_uom_qty).',
     )
-    price_unit      = models.DecimalField(
+    price_unit      = fields.Monetary(
         max_digits=12, decimal_places=2, help_text='Odoo price_unit (IVA incl.).',
     )
-    discount        = models.DecimalField(
+    discount        = fields.Monetary(
         max_digits=5, decimal_places=2, default=Decimal('0.00'),
         help_text='Descuento % de la línea (Odoo discount).',
     )

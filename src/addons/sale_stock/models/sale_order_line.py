@@ -8,7 +8,8 @@ la forma Django correcta de un módulo-extensión Odoo separado.
 en Odoo lo computa ``sale_stock`` desde ``stock.move``). Aquí la fuente es
 ``logistics``/``inventory`` (pickings).
 """
-from django.db import models
+import fields
+import models
 
 from core.models import TimeStampedModel
 

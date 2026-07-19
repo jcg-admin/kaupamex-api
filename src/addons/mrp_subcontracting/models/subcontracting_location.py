@@ -15,7 +15,8 @@ modelos RELATED (DEC-SALE-01) — Django no inyecta columnas cross-app.
 """
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.db import models
+import fields
+import models
 
 from addons.stock.models import StockLocation
 from core.models import TimeStampedModel
@@ -29,7 +30,7 @@ class SubcontractingLocation(TimeStampedModel):
         related_name='subcontracting_flag',
         help_text='Ubicación base (Odoo stock.location).',
     )
-    is_subcontracting_location = models.BooleanField(
+    is_subcontracting_location = fields.Boolean(
         default=True,
         help_text='La ubicación es de subcontratación (Odoo '
                   'is_subcontracting_location).',
@@ -67,7 +68,7 @@ class Subcontractor(TimeStampedModel):
         related_name='subcontractor_profile',
         help_text='Subcontratista (Odoo res.partner).',
     )
-    location = models.ForeignKey(
+    location = fields.Many2one(
         'stock.StockLocation', on_delete=models.PROTECT,
         related_name='subcontractors',
         help_text='Ubicación de stock del subcontratista (Odoo '

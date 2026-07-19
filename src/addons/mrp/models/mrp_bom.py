@@ -10,7 +10,8 @@ Odoo (Clausula 5 — no existen en este stack; las variantes viven en chartsize)
 """
 from decimal import Decimal
 
-from django.db import models
+import fields
+import models
 
 from core.models import TimeStampedModel
 
@@ -28,26 +29,26 @@ class MrpBom(TimeStampedModel):
         (TYPE_SUBCONTRACT, 'Subcontratación'),
     ]
 
-    code        = models.CharField(
+    code        = fields.Char(
         max_length=64, blank=True, default='',
         help_text='Referencia de la BoM (Odoo mrp.bom.code).',
     )
-    active      = models.BooleanField(
+    active      = fields.Boolean(
         default=True, help_text='BoM activa (Odoo active).',
     )
-    type        = models.CharField(
+    type        = fields.Selection(
         max_length=16, choices=TYPE_CHOICES, default=TYPE_NORMAL,
         help_text='Tipo de BoM: normal|phantom/kit (Odoo mrp.bom.type).',
     )
-    product     = models.ForeignKey(
+    product     = fields.Many2one(
         'catalogue.Product', on_delete=models.CASCADE, related_name='boms',
         help_text='Producto fabricado (Odoo product_id/product_tmpl_id).',
     )
-    product_qty = models.DecimalField(
+    product_qty = fields.Monetary(
         max_digits=12, decimal_places=2, default=Decimal('1.00'),
         help_text='Cantidad producida por la BoM (Odoo product_qty).',
     )
-    sequence    = models.IntegerField(
+    sequence    = fields.Integer(
         default=0, help_text='Orden (Odoo sequence).',
     )
 
@@ -64,19 +65,19 @@ class MrpBom(TimeStampedModel):
 class MrpBomLine(TimeStampedModel):
     """``mrp.bom.line`` — un componente de una BoM."""
 
-    bom         = models.ForeignKey(
+    bom         = fields.Many2one(
         'mrp.MrpBom', on_delete=models.CASCADE, related_name='bom_line_ids',
         help_text='BoM contenedora (Odoo bom_id).',
     )
-    product     = models.ForeignKey(
+    product     = fields.Many2one(
         'catalogue.Product', on_delete=models.PROTECT, related_name='bom_lines',
         help_text='Componente (Odoo mrp.bom.line.product_id).',
     )
-    product_qty = models.DecimalField(
+    product_qty = fields.Monetary(
         max_digits=12, decimal_places=2, default=Decimal('1.00'),
         help_text='Cantidad del componente (Odoo product_qty).',
     )
-    sequence    = models.IntegerField(
+    sequence    = fields.Integer(
         default=1, help_text='Orden (Odoo sequence).',
     )
 

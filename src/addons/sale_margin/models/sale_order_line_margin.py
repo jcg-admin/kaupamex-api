@@ -13,7 +13,8 @@ Odoo ``sale_margin/models/sale_order_line.py``:
 """
 from decimal import Decimal
 
-from django.db import models
+import fields
+import models
 
 from core.models import TimeStampedModel
 
@@ -26,7 +27,7 @@ class SaleOrderLineMargin(TimeStampedModel):
         help_text='Línea de orden extendida (Odoo sale.order.line).',
     )
     # Odoo purchase_price (sale_margin/…/sale_order_line.py:15) — costo snapshot.
-    purchase_price = models.DecimalField(
+    purchase_price = fields.Monetary(
         max_digits=12, decimal_places=2, null=True, blank=True,
         help_text='Costo unitario snapshot al vender (Odoo purchase_price).',
     )

@@ -10,7 +10,8 @@ from decimal import Decimal
 
 import api
 from django.conf import settings
-from django.db import models
+import fields
+import models
 from exceptions import UserError
 from tools.translate import _
 
@@ -33,44 +34,44 @@ class AccountMove(models.Model):
         ('in_receipt', 'Recibo de compra'),
     ]
 
-    name         = models.CharField(
+    name         = fields.Char(
         max_length=255, blank=True, default='/',
         help_text='Número del asiento (Odoo name; "/" hasta postear).',
     )
-    ref          = models.CharField(
+    ref          = fields.Char(
         max_length=255, blank=True, default='',
         help_text='Referencia (Odoo ref).',
     )
-    date         = models.DateField(
+    date         = fields.Date(
         help_text='Fecha contable (Odoo date, requerido).',
     )
-    state        = models.CharField(
+    state        = fields.Selection(
         max_length=8, choices=STATES, default='draft',
         help_text='Estado (Odoo state).',
     )
-    move_type    = models.CharField(
+    move_type    = fields.Selection(
         max_length=16, choices=MOVE_TYPES, default='entry',
         help_text='Tipo de asiento (Odoo move_type).',
     )
-    journal      = models.ForeignKey(
+    journal      = fields.Many2one(
         'account.AccountJournal', on_delete=models.PROTECT, related_name='moves',
         help_text='Diario (Odoo journal_id, requerido).',
     )
-    partner      = models.ForeignKey(
+    partner      = fields.Many2one(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='account_moves',
         help_text='Contacto (Odoo partner_id → res.partner ≡ party).',
     )
-    currency     = models.ForeignKey(
+    currency     = fields.Many2one(
         'base.ResCurrency', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='moves',
         help_text='Moneda (Odoo currency_id).',
     )
-    company      = models.ForeignKey(
+    company      = fields.Many2one(
         'company.Company', on_delete=models.CASCADE, related_name='moves',
         help_text='Empresa (Odoo company_id).',
     )
-    amount_total = models.DecimalField(
+    amount_total = fields.Monetary(
         max_digits=16, decimal_places=2, default=Decimal('0.00'),
         help_text='Total del asiento (Odoo amount_total, computado de líneas).',
     )

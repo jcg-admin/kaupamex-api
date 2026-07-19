@@ -9,7 +9,8 @@ cada orden con el ``SmsSms`` de confirmación emitido para ella.
 
 Bridge ``sale`` + ``sms``: registra y dispara el SMS de confirmación de la orden.
 """
-from django.db import models
+import fields
+import models
 
 from addons.sms.models import SmsSms
 from core.models import TimeStampedModel
@@ -22,7 +23,7 @@ class SaleOrderSmsConfirmation(TimeStampedModel):
         'sale.SaleOrder', on_delete=models.CASCADE, related_name='sms_confirmation',
         help_text='Orden de venta (Odoo sale.order).',
     )
-    message = models.ForeignKey(
+    message = fields.Many2one(
         'sms.SmsSms', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='sale_confirmations',
         help_text='SMS de confirmación emitido (Odoo sms.sms).',

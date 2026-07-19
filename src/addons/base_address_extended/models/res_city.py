@@ -3,7 +3,8 @@
 Portación fiel de ``res_city.py`` (18:9-22 / 19:8-21, campos idénticos; en 19 la
 clase se renombró ``City`` → ``ResCity``, sólo cosmético).
 """
-from django.db import models
+import fields
+import models
 
 
 class ResCity(models.Model):
@@ -13,18 +14,18 @@ class ResCity(models.Model):
     (dominio país). ``__str__`` replica ``_compute_display_name`` de Odoo.
     """
 
-    name    = models.CharField(
+    name    = fields.Char(
         max_length=120, help_text='Nombre de la ciudad (Odoo res.city.name).',
     )
-    zipcode = models.CharField(
+    zipcode = fields.Char(
         max_length=16, blank=True, default='',
         help_text='Código postal (Odoo zipcode).',
     )
-    country = models.ForeignKey(
+    country = fields.Many2one(
         'base.ResCountry', on_delete=models.CASCADE, related_name='cities',
         help_text='País (Odoo country_id, requerido).',
     )
-    state   = models.ForeignKey(
+    state   = fields.Many2one(
         'base.ResCountryState', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='cities',
         help_text='Estado/provincia (Odoo state_id, dominio country_id).',

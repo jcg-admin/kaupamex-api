@@ -4,7 +4,8 @@ Adaptación de Odoo ``project/models/project_task_type.py`` (``project.task.type
 etapa (columna kanban) de las tareas. Núcleo portable: ``name``/``sequence``/
 ``fold``/``color``.
 """
-from django.db import models
+import fields
+import models
 
 from core.models import TimeStampedModel
 
@@ -12,16 +13,16 @@ from core.models import TimeStampedModel
 class ProjectTaskType(TimeStampedModel):
     """``project.task.type`` — etapa de tareas de proyecto."""
 
-    name     = models.CharField(
+    name     = fields.Char(
         max_length=100, help_text='Nombre de la etapa (Odoo project.task.type.name).',
     )
-    sequence = models.IntegerField(
+    sequence = fields.Integer(
         default=10, help_text='Orden kanban; menor primero (Odoo sequence).',
     )
-    fold     = models.BooleanField(
+    fold     = fields.Boolean(
         default=False, help_text='Plegada en el kanban (Odoo fold).',
     )
-    color    = models.IntegerField(
+    color    = fields.Integer(
         default=0, help_text='Índice de color (Odoo color).',
     )
 

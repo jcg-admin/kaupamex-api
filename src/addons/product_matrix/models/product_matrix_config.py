@@ -14,7 +14,8 @@ sus ``VariantOption`` activos son las celdas (la variante, su SKU, precio y
 stock). No se fabrica el motor de combinaciones cartesianas ni el widget JS de
 Odoo (Clausula 5): aquí cada ``ProductVariant`` ya es una celda concreta.
 """
-from django.db import models
+import fields
+import models
 
 from core.models import TimeStampedModel
 
@@ -34,7 +35,7 @@ class ProductMatrixConfig(TimeStampedModel):
         help_text='Producto (Odoo product.template).',
     )
     # Odoo product.template.product_add_mode.
-    add_mode = models.CharField(
+    add_mode = fields.Selection(
         max_length=16, choices=MODE_CHOICES, default=MODE_CONFIGURATOR,
         help_text='Modo de alta (Odoo product_add_mode).',
     )

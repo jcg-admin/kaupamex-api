@@ -7,7 +7,8 @@ diferencia del ``VariantType`` de ``chartsize``, que es por-producto—. Núcleo
 ``name``/``create_variant`` (``always``/``dynamic``/``no_variant``, o18:29-31 ≡
 o19:24)/``display_type``/``sequence``.
 """
-from django.db import models
+import fields
+import models
 
 from core.models import TimeStampedModel
 
@@ -33,14 +34,14 @@ class ProductAttribute(TimeStampedModel):
         (DISPLAY_COLOR, 'Color'),
     ]
 
-    name           = models.CharField(
+    name           = fields.Char(
         max_length=100, help_text='Nombre del atributo (Odoo product.attribute.name).',
     )
-    create_variant = models.CharField(
+    create_variant = fields.Selection(
         max_length=16, choices=CREATE_CHOICES, default=CREATE_ALWAYS,
         help_text='Cuándo genera variante (Odoo create_variant).',
     )
-    display_type   = models.CharField(
+    display_type   = fields.Selection(
         max_length=16, choices=DISPLAY_CHOICES, default=DISPLAY_RADIO,
         help_text='Cómo se muestra (Odoo display_type).',
     )

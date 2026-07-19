@@ -10,7 +10,8 @@ expone además la máquina de transiciones equivalente
 """
 import uuid
 
-from django.db import models
+import fields
+import models
 
 from core.models import TimeStampedModel
 
@@ -33,19 +34,19 @@ class StockPicking(TimeStampedModel):
         (STATE_CANCEL, 'Cancelada'),
     ]
 
-    name             = models.CharField(
+    name             = fields.Char(
         max_length=32, blank=True, default='',
         help_text='Referencia (Odoo stock.picking.name).',
     )
-    state            = models.CharField(
+    state            = fields.Selection(
         max_length=16, choices=STATE_CHOICES, default=STATE_DRAFT,
         help_text='Estado (Odoo stock.picking.state).',
     )
-    location         = models.ForeignKey(
+    location         = fields.Many2one(
         'stock.StockLocation', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='pickings_out', help_text='Origen (Odoo location_id).',
     )
-    location_dest    = models.ForeignKey(
+    location_dest    = fields.Many2one(
         'stock.StockLocation', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='pickings_in', help_text='Destino (Odoo location_dest_id).',
     )

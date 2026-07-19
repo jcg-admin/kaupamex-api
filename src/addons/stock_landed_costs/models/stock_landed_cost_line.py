@@ -9,7 +9,8 @@ volumen (o18:12-16).
 """
 from decimal import Decimal
 
-from django.db import models
+import fields
+import models
 
 from core.models import TimeStampedModel
 
@@ -30,19 +31,19 @@ class StockLandedCostLine(TimeStampedModel):
         (SPLIT_BY_VOLUME, 'Por volumen'),
     ]
 
-    cost         = models.ForeignKey(
+    cost         = fields.Many2one(
         'stock_landed_costs.StockLandedCost', on_delete=models.CASCADE,
         related_name='cost_lines', help_text='Documento (Odoo cost_id).',
     )
-    name         = models.CharField(
+    name         = fields.Char(
         max_length=100, blank=True, default='',
         help_text='Descripción de la componente (Odoo name).',
     )
-    price_unit   = models.DecimalField(
+    price_unit   = fields.Monetary(
         max_digits=14, decimal_places=2, default=Decimal('0.00'),
         help_text='Monto del coste (Odoo price_unit).',
     )
-    split_method = models.CharField(
+    split_method = fields.Selection(
         max_length=24, choices=SPLIT_CHOICES, default=SPLIT_BY_QUANTITY,
         help_text='Método de reparto (Odoo split_method).',
     )

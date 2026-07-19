@@ -7,7 +7,8 @@ dentro de un proyecto. Núcleo portable: ``name``/``description``/``priority``/
 Odoo (Clausula 5 — no existe en este stack).
 """
 from django.conf import settings
-from django.db import models
+import fields
+import models
 
 from core.models import TimeStampedModel
 
@@ -26,39 +27,39 @@ class ProjectTask(TimeStampedModel):
 
     PRIORITY_CHOICES = [('0', 'Normal'), ('1', 'Alta')]
 
-    project       = models.ForeignKey(
+    project       = fields.Many2one(
         'project.Project', on_delete=models.CASCADE, related_name='tasks',
         help_text='Proyecto (Odoo project_id).',
     )
-    name          = models.CharField(
+    name          = fields.Char(
         max_length=255, help_text='Título de la tarea (Odoo project.task.name).',
     )
-    description   = models.TextField(
+    description   = fields.Text(
         blank=True, default='', help_text='Descripción (Odoo description).',
     )
-    priority      = models.CharField(
+    priority      = fields.Selection(
         max_length=1, choices=PRIORITY_CHOICES, default='0',
         help_text='Prioridad (Odoo priority).',
     )
-    active        = models.BooleanField(
+    active        = fields.Boolean(
         default=True, help_text='Tarea activa (Odoo active).',
     )
-    sequence      = models.IntegerField(
+    sequence      = fields.Integer(
         default=10, help_text='Orden (Odoo sequence).',
     )
-    stage         = models.ForeignKey(
+    stage         = fields.Many2one(
         'project.ProjectTaskType', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='tasks', help_text='Etapa (Odoo stage_id).',
     )
-    state         = models.CharField(
+    state         = fields.Selection(
         max_length=16, choices=STATE_CHOICES, default=STATE_IN_PROGRESS,
         help_text='Estado (Odoo state).',
     )
-    assignee      = models.ForeignKey(
+    assignee      = fields.Many2one(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
         related_name='project_tasks', help_text='Responsable (Odoo user_ids).',
     )
-    date_deadline = models.DateField(
+    date_deadline = fields.Date(
         null=True, blank=True, help_text='Fecha límite (Odoo date_deadline).',
     )
 

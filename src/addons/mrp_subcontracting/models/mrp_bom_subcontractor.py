@@ -13,7 +13,8 @@ extensiones ``_inherit`` cross-app se materializan como modelos RELATED
   proveedor del proyecto es ``AUTH_USER`` (igual que ``purchase.order.partner``).
 """
 from django.conf import settings
-from django.db import models
+import fields
+import models
 
 from core.models import TimeStampedModel
 
@@ -21,11 +22,11 @@ from core.models import TimeStampedModel
 class BomSubcontractor(TimeStampedModel):
     """``mrp.bom.subcontractor_ids`` — puente BoM ↔ subcontratista (M2M Odoo)."""
 
-    bom          = models.ForeignKey(
+    bom          = fields.Many2one(
         'mrp.MrpBom', on_delete=models.CASCADE, related_name='subcontractor_links',
         help_text='BoM de subcontratación (Odoo mrp.bom).',
     )
-    subcontractor = models.ForeignKey(
+    subcontractor = fields.Many2one(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
         related_name='subcontracted_boms',
         help_text='Subcontratista (Odoo res.partner).',
@@ -53,7 +54,7 @@ class SubcontractProduction(TimeStampedModel):
         related_name='subcontract',
         help_text='Orden de fabricación (Odoo mrp.production).',
     )
-    subcontractor = models.ForeignKey(
+    subcontractor = fields.Many2one(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
         related_name='subcontract_productions',
         help_text='Subcontratista de la orden (Odoo subcontractor_id).',
