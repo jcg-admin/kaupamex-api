@@ -4,14 +4,19 @@ core/models.py — modelos de log (transitorio).
 Las bases abstractas (``TimeStampedModel``/``AppendOnlyModel``/``SoftDeleteModel``)
 se movieron al addon fundacional ``addons/base`` (DEC-09 de
 ``adoptar-arquitectura-server-service-odoo``); se importan desde ahí. Este módulo
-sólo conserva los modelos de log concretos (``RequestLog``, ``AppLog``) que aún
-viven en ``core`` mientras se disuelve la app:
+sólo conservaba los modelos de log concretos (``RequestLog``, ``AppLog``) que
+vivían en ``core`` mientras se disuelve la app:
 
-- ``AppLog`` → modelo fiel ``ir.logging`` en ``addons/base`` (DEC-08, slice 2).
-- ``RequestLog`` → ``addons/observability`` (DEC-08, slice 3).
+- ``AppLog`` → migrado al modelo fiel ``IrLogging`` (``ir.logging``) en
+  ``addons/base`` (DEC-08, slice 2 de ``adoptar-arquitectura-server-service-odoo``).
+  Ver ``addons/base/models/ir_logging_log.py`` para el mapeo de campos y
+  ``addons/base/migrations/0007_copiar_applog_a_irlogging.py`` +
+  ``core/migrations/0002_eliminar_applog.py`` para la migración de datos/esquema
+  (no destructiva). Ya no se define aquí.
+- ``RequestLog`` → pendiente de mover a ``addons/observability`` (DEC-08, slice 3).
 
-Hasta que esos slices corran, permanecen aquí sobre ``AppendOnlyModel`` de
-``addons.base``.
+``RequestLog`` permanece aquí sobre ``AppendOnlyModel`` de ``addons.base``
+hasta que ese slice corra.
 """
 from django.conf import settings
 from django.db import models
@@ -56,47 +61,3 @@ class RequestLog(AppendOnlyModel):
 
     def __str__(self):
         return f'{self.method} {self.path} -> {self.status_code} ({self.correlation_id})'
-
-
-class AppLog(AppendOnlyModel):
-    """
-    Log a nivel handler (DEC-LOG-01): recibe lo que rutea ``LOGGING`` a traves de
-    ``DatabaseLogHandler`` — los ``logger.*`` del codigo y ``django.request``
-    (5xx). Adaptado de ``StatusLog`` de django-db-logger 0.1.13 (MIT) sobre un
-    modelo propio PII-safe (DEC-LOG-06). ``msg`` y ``trace`` ya vienen redactados
-    por el ``PIIScrubber`` de Nivel 1 (DEC-LOG-03); no se persiste PII de Nivel 2
-    (el usuario se referencia via el ``RequestLog`` de la misma request). Se une a
-    ``RequestLog`` / ``BusinessEvent`` por ``correlation_id`` (DEC-LOG-07);
-    ``correlation_id`` es vacio fuera de un request (management commands). Alta
-    rotacion: retencion 14 d (INFO/DEBUG) / 90 d (WARNING/ERROR) via
-    ``purge_logs`` (DEC-LOG-05).
-    """
-    LEVEL_DEBUG = 'DEBUG'
-    LEVEL_INFO = 'INFO'
-    LEVEL_WARNING = 'WARNING'
-    LEVEL_ERROR = 'ERROR'
-    LEVEL_CRITICAL = 'CRITICAL'
-    LEVEL_CHOICES = [
-        (LEVEL_DEBUG, 'Debug'),
-        (LEVEL_INFO, 'Info'),
-        (LEVEL_WARNING, 'Warning'),
-        (LEVEL_ERROR, 'Error'),
-        (LEVEL_CRITICAL, 'Critical'),
-    ]
-
-    logger_name = models.CharField(max_length=255, db_index=True)
-    level = models.CharField(max_length=20, choices=LEVEL_CHOICES, db_index=True)
-    msg = models.TextField(blank=True, default='')
-    trace = models.TextField(blank=True, default='')
-    correlation_id = models.CharField(max_length=32, db_index=True, blank=True, default='')
-
-    class Meta:
-        ordering = ['-created_at']
-        verbose_name = 'App Log'
-        verbose_name_plural = 'App Logs'
-        indexes = [
-            models.Index(fields=['-created_at'], name='applog_created_idx'),
-        ]
-
-    def __str__(self):
-        return f'{self.level} {self.logger_name}: {self.msg[:60]}'

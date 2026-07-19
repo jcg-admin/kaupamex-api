@@ -39,9 +39,10 @@ def test_hogar_canonico_es_addons_base():
 def test_abstractos_ya_no_se_definen_en_core():
     """``TimeStampedModel``/``SoftDeleteModel`` ya no se definen en ``core``.
 
-    (``AppendOnlyModel`` sí queda importado en ``core.models`` como base de los
-    modelos de log ``RequestLog``/``AppLog`` hasta los slices 2-3, pero su
-    definición vive en ``addons.base``.)
+    (``AppendOnlyModel`` sí queda importado en ``core.models`` como base del
+    modelo de log ``RequestLog`` hasta el slice 3 lo mueva a
+    ``addons.observability``; ``AppLog`` ya migró a ``IrLogging`` en
+    ``addons.base`` en el slice 2. Su definición vive en ``addons.base``.)
     """
     assert getattr(core_models, 'TimeStampedModel', None) is None
     assert getattr(core_models, 'SoftDeleteModel', None) is None

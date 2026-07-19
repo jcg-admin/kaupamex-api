@@ -534,7 +534,7 @@ LOGGING = {
             'backupCount': 3,
         },
         # SOL-011 (DEC-LOG-02): persiste logger.* + django.request (5xx) a la
-        # tabla AppLog via DatabaseLogHandler. PII-safe (scrubber Nivel 1),
+        # tabla ir_logging (IrLogging) via DatabaseLogHandler. PII-safe (scrubber Nivel 1),
         # no bloqueante y anti-recursion (se excluye django.db). testing.py
         # sobreescribe LOGGING con NullHandler, asi que este handler NO corre
         # durante la suite (el handler se prueba directamente).

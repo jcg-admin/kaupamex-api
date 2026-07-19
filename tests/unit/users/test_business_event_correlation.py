@@ -1,7 +1,7 @@
 """Tests unitarios — BusinessEvent.correlation_id (SOL-011 T-05, DEC-LOG-07).
 
 Verifican que ``BusinessEvent.save()`` sella el ``correlation_id`` de la request
-en curso para poder unir el evento de negocio con ``RequestLog`` / ``AppLog``:
+en curso para poder unir el evento de negocio con ``RequestLog`` / ``IrLogging``:
   - autopopula desde el contexto de logging cuando no se provee,
   - vacio fuera de un request (management commands / cron),
   - no pisa un ``correlation_id`` provisto explicitamente.

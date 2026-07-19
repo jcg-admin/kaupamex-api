@@ -6,11 +6,11 @@ del proyecto. Delega **primero** en el handler por defecto de DRF (el cuerpo de
 respuesta al cliente NO cambia — conserva la clave canonica ``codigo_error``,
 351 usos) y **despues** sella ``exception_class`` / ``error_detail`` (scrubbed,
 Nivel 1) en el contexto de la request para que el ``RequestLogMiddleware`` los
-persista en su fila ``RequestLog`` (unida al trace de ``AppLog`` por
+persista en su fila ``RequestLog`` (unida al trace de ``IrLogging`` por
 ``correlation_id``, DEC-LOG-07).
 
 - **PII-safe (DEC-LOG-03):** ``error_detail`` pasa por el scrubber. NO es el
-  traceback completo (ese va a ``AppLog.trace`` via ``django.request`` +
+  traceback completo (ese va a ``IrLogging.trace`` via ``django.request`` +
   ``DatabaseLogHandler``); aqui solo el mensaje corto.
 - **No bloqueante (DEC-LOG-04):** el sellado va en ``try/except`` que traga el
   error; si el logging falla, la respuesta de error al cliente NO se altera.

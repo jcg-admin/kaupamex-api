@@ -3,6 +3,7 @@
 Un archivo por modelo (monolito modular, como Odoo):
 
 - ``ir_config_parameter.py`` → ``SystemParameter`` (config L2 global, key/value).
+- ``ir_logging_log.py`` → ``IrLogging`` (log técnico ``ir.logging``, DEC-08).
 - ``res_currency.py`` → ``ResCurrency`` (moneda ISO 4217).
 - ``res_country.py`` → ``ResCountry`` + ``ResCountryState`` (geografía política).
 
@@ -24,6 +25,7 @@ from .ir_config_parameter import (
     _clear_cache,
     SystemParameter,
 )
+from .ir_logging_log import IrLogging
 from .ir_sequence import IrSequence
 from .res_bank import ResBank
 from .res_country import ResCountry, ResCountryState
@@ -43,6 +45,7 @@ __all__ = [
     '_PARAM_CACHE',
     '_clear_cache',
     'SystemParameter',
+    'IrLogging',
     'ResCurrency',
     'ResCurrencyRate',
     'ResCountry',

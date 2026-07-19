@@ -7,9 +7,13 @@ django-db-logger). Idempotente: si no hay filas vencidas, borra 0.
 
 Politica ratificada (2026-07-09):
   - RequestLog:            30 dias
-  - AppLog INFO/DEBUG:     14 dias
-  - AppLog WARNING/ERROR/CRITICAL: 90 dias
+  - IrLogging INFO/DEBUG:     14 dias
+  - IrLogging WARNING/ERROR/CRITICAL: 90 dias
   - BusinessEvent:         NO lo purga este comando (append-only de negocio).
+
+``IrLogging`` (``ir.logging``, ``addons.base``) reemplaza a ``core.AppLog``
+desde DEC-08 slice 2 (``adoptar-arquitectura-server-service-odoo``); mismos
+niveles/retencion, solo cambia el modelo de origen.
 
 Uso:
   manage.py purge_logs            # ejecuta la purga
@@ -20,11 +24,12 @@ from datetime import timedelta
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from core.models import AppLog, RequestLog
+from addons.base.models import IrLogging
+from core.models import RequestLog
 
 
 class Command(BaseCommand):
-    help = 'Purga RequestLog/AppLog por retencion (DEC-LOG-05). BusinessEvent no se toca.'
+    help = 'Purga RequestLog/IrLogging por retencion (DEC-LOG-05). BusinessEvent no se toca.'
 
     REQUESTLOG_DAYS = 30
     APPLOG_LOW_DAYS = 14   # INFO / DEBUG
@@ -44,17 +49,17 @@ class Command(BaseCommand):
 
         request_qs = RequestLog.objects.filter(
             created_at__lt=now - timedelta(days=self.REQUESTLOG_DAYS))
-        low_qs = AppLog.objects.filter(
+        low_qs = IrLogging.objects.filter(
             level__in=self._LOW_LEVELS,
             created_at__lt=now - timedelta(days=self.APPLOG_LOW_DAYS))
-        high_qs = AppLog.objects.filter(
+        high_qs = IrLogging.objects.filter(
             level__in=self._HIGH_LEVELS,
             created_at__lt=now - timedelta(days=self.APPLOG_HIGH_DAYS))
 
         counts = {
             'RequestLog': request_qs.count(),
-            'AppLog INFO/DEBUG': low_qs.count(),
-            'AppLog WARNING/ERROR': high_qs.count(),
+            'IrLogging INFO/DEBUG': low_qs.count(),
+            'IrLogging WARNING/ERROR': high_qs.count(),
         }
 
         if not dry:

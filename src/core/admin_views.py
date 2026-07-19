@@ -3,7 +3,14 @@ apps/core/admin_views.py
 
 Endpoint DRF read-only de logs tecnicos (SOL-011 T-06, UC-ADM-06, DEC-LOG-08
 revisada, ADR-019). ``GET /api/v2/admin/logs/`` sirve ``RequestLog`` (default) y
-``AppLog`` (``?source=applog``) al dashboard admin React (``AdminLogsPage``, T-09).
+``IrLogging`` (``?source=applog``) al dashboard admin React (``AdminLogsPage``,
+T-09).
+
+``IrLogging`` (``ir.logging``, ``addons.base``) reemplaza a ``core.AppLog``
+desde DEC-08 slice 2. El contrato JSON de este endpoint (``logger_name``,
+``msg``) se preserva sin cambios para no romper al consumidor
+(``AdminLogsPage``): ``_serialize_applog`` mapea ``IrLogging.name`` /
+``IrLogging.message`` a esas mismas claves de salida.
 
 - Reemplaza al Django admin (H-API-LOG-01: gated tras ``DJANGO_ADMIN_ENABLED``,
   deshabilitado en prod). Es el patron ``apps/<app>/admin_urls.py`` del proyecto.
@@ -26,7 +33,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from addons.authz.permissions import HasCapability
-from core.models import AppLog, RequestLog
+from addons.base.models import IrLogging
+from core.models import RequestLog
 
 _DEFAULT_PAGE_SIZE = 25
 _MAX_PAGE_SIZE = 100
@@ -47,7 +55,7 @@ class AdminLogsView(APIView):
             OpenApiParameter('status', int, description='RequestLog: status_code exacto'),
             OpenApiParameter('status_min', int, description='RequestLog: status_code >= (ej. 400)'),
             OpenApiParameter('path', str, description='RequestLog: path contiene'),
-            OpenApiParameter('level', str, description='AppLog: level exacto (INFO, ERROR, ...)'),
+            OpenApiParameter('level', str, description='IrLogging: level exacto (INFO, ERROR, ...)'),
             OpenApiParameter('from', str, description='created_at >= (ISO 8601)'),
             OpenApiParameter('to', str, description='created_at <= (ISO 8601)'),
             OpenApiParameter('page', int, description='Numero de pagina'),
@@ -155,10 +163,10 @@ class AdminLogsView(APIView):
             'created_at': obj.created_at.isoformat(),
         }
 
-    # --- AppLog ---
+    # --- IrLogging (fuente ?source=applog) ---
 
     def _applog_qs(self, request):
-        qs = AppLog.objects.all().order_by('-created_at')
+        qs = IrLogging.objects.all().order_by('-created_at')
         qs = self._apply_common(request, qs)
         level = request.query_params.get('level')
         if level:
@@ -166,11 +174,14 @@ class AdminLogsView(APIView):
         return qs
 
     def _serialize_applog(self, obj):
+        # Claves de salida preservadas (logger_name/msg) por compat de
+        # contrato con AdminLogsPage; el modelo interno es IrLogging
+        # (name/message) desde DEC-08 slice 2.
         return {
             'id': obj.pk,
-            'logger_name': obj.logger_name,
+            'logger_name': obj.name,
             'level': obj.level,
-            'msg': obj.msg,
+            'msg': obj.message,
             'trace': obj.trace,
             'correlation_id': obj.correlation_id,
             'created_at': obj.created_at.isoformat(),
