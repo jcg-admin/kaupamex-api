@@ -57,6 +57,21 @@ class Notification(TimeStampedModel):
     subject = models.CharField(max_length=200)
     body = models.TextField()
     read = models.BooleanField(default=False)
+    # Puente al backbone de chatter (familia mail): si esta notificacion se
+    # origino en un mensaje del hilo de un registro (``MailThread.message_post``),
+    # apunta al ``mail.message`` fuente. NULL para las notificaciones que no
+    # nacen del chatter (la mayoria de las transaccionales del servicio). Es la
+    # contraparte de ``mail.notification`` inbox: aquel rastrea la ENTREGA por
+    # destinatario; este es el item de BUZON que ve el comprador. SET_NULL: el
+    # buzon sobrevive al purgado del mensaje. Referencia por string → sin ciclo
+    # de imports (el backbone mail nunca importa notifications).
+    mail_message = models.ForeignKey(
+        'mail.MailMessage',
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='inbox_notifications',
+        help_text='Mensaje de chatter que origino esta notificacion (familia mail).',
+    )
 
     class Meta:
         db_table = 'notifications_notification'
@@ -70,6 +85,23 @@ class Notification(TimeStampedModel):
 
     def __str__(self):
         return f'#{self.pk} {self.subject} ({self.type})'
+
+    @classmethod
+    def from_mail_message(cls, message, user, type=None):
+        """Materializa un item de buzon a partir de un ``mail.message`` del hilo.
+
+        Puente fiel del backbone: cualquier registro que herede ``MailThread``
+        puede aflorar un mensaje de su chatter al buzon del comprador. Copia
+        ``subject``/``body`` del mensaje y guarda el enlace ``mail_message``.
+        Devuelve la ``Notification`` creada.
+        """
+        return cls.objects.create(
+            user=user,
+            type=type or NotificationType.SYSTEM,
+            subject=(message.subject or '')[:200],
+            body=message.body or '',
+            mail_message=message,
+        )
 
 
 class NotificationPreference(TimeStampedModel):

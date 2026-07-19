@@ -22,6 +22,7 @@ from addons.mail.models import (
     MailThread,
     MailTrackingValue,
 )
+from addons.notifications.models import Notification, NotificationType
 from addons.orders.models import Order
 from addons.returns.models import ReturnRequest
 from addons.support.models import SupportTicket
@@ -348,3 +349,38 @@ class TestMailNotification:
         msg = ticket.message_post(body='x', author=user)
         n = MailNotification.objects.get(message=msg, partner=follower)
         assert n.email_task_id is None and n.sms_id is None
+
+
+class TestNotificationInboxBridge:
+    """Puente ``notifications.Notification`` ↔ backbone ``mail`` (relacion,
+    no duplicado): un item de buzon del comprador puede originarse en un
+    mensaje de chatter y enlazarlo. Direccion de acoplamiento correcta
+    (notifications → mail; el backbone nunca importa notifications)."""
+
+    def test_from_mail_message_bridges_inbox(self, ticket, user):
+        msg = ticket.message_post(
+            subject='Tu ticket avanzo', body='<p>En proceso</p>', author=user,
+        )
+        notif = Notification.from_mail_message(msg, user)
+        assert isinstance(notif, Notification)
+        assert notif.user_id == user.pk
+        assert notif.subject == 'Tu ticket avanzo'
+        assert notif.body == '<p>En proceso</p>'
+        assert notif.mail_message_id == msg.pk
+        assert notif.type == NotificationType.SYSTEM
+        # relacion inversa desde el mensaje
+        assert msg.inbox_notifications.filter(pk=notif.pk).exists()
+
+    def test_from_mail_message_respects_type(self, ticket, user):
+        msg = ticket.message_post(subject='promo', body='oferta', author=user)
+        notif = Notification.from_mail_message(
+            msg, user, type=NotificationType.SUPPORT_UPDATE)
+        assert notif.type == NotificationType.SUPPORT_UPDATE
+
+    def test_plain_notification_has_no_mail_message(self, db, user):
+        """Las notificaciones transaccionales del servicio no nacen del chatter."""
+        n = Notification.objects.create(
+            user=user, type=NotificationType.ORDER_UPDATE,
+            subject='Orden pagada', body='ok',
+        )
+        assert n.mail_message_id is None
