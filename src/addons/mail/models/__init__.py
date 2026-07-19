@@ -21,6 +21,7 @@ registro de apps. Los consumidores importan la ruta completa
 from .mail_message_subtype import MailMessageSubtype
 from .mail_message import MailMessage
 from .mail_followers import MailFollowers
+from .mail_notification import MailNotification
 from .mail_activity_type import MailActivityType
 from .mail_activity import MailActivity
 from .mail_tracking_value import MailTrackingValue
@@ -28,7 +29,7 @@ from .mail_template import MailTemplate
 from .mail_thread import MailThread
 
 __all__ = [
-    'MailMessageSubtype', 'MailMessage', 'MailFollowers',
+    'MailMessageSubtype', 'MailMessage', 'MailFollowers', 'MailNotification',
     'MailActivityType', 'MailActivity', 'MailTrackingValue',
     'MailTemplate', 'MailThread',
 ]

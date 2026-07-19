@@ -15,12 +15,13 @@ polimorfico (``model``/``res_model`` + ``res_id``), exactamente como Odoo, que
 tampoco guarda los mensajes en la tabla del documento. Por eso aplicar el mixin
 a un modelo existente (p. ej. ``support.SupportTicket``) NO genera migracion.
 
-Alcance de este slice: ``message_post`` + suscripcion. NO se porta aun la
-maquinaria ``@api`` de Odoo de: computo de destinatarios por subtipo y envio
-(``_notify_thread`` — depende de la capa de notificaciones/correo, wiring
-posterior), auto-suscripcion por ``_track_*`` (tracking de campos, micro-paso
-siguiente), y alias de correo entrante (``mail.alias``). El contrato publico
-(``message_post``/``message_subscribe``/``message_ids``) se conserva fiel.
+Alcance portado: ``message_post`` + suscripcion + **reparto a destinatarios**
+(``_notify_thread`` → una ``mail.notification`` inbox por seguidor, gateada por
+subtipo, fiel a Odoo) + ``message_notify`` (notificacion transitoria a partners
+que no siguen el hilo). NO se porta la auto-suscripcion por ``_track_*``
+(tracking de campos, micro-paso siguiente) ni el alias de correo entrante
+(``mail.alias``). El contrato publico (``message_post``/``message_subscribe``/
+``message_ids``/``message_notify``) se conserva fiel.
 """
 import fields  # noqa: F401  (coherencia de vocabulario del addon; el mixin no declara campos)
 import models
@@ -28,6 +29,7 @@ import models
 from .mail_activity import MailActivity
 from .mail_followers import MailFollowers
 from .mail_message import MailMessage
+from .mail_notification import MailNotification
 from .mail_tracking_value import MailTrackingValue
 
 
@@ -53,13 +55,16 @@ class MailThread(models.Model):
     # --- mensajes (chatter) ----------------------------------------------------
 
     def message_post(self, *, body='', subject='', message_type=None,
-                     author=None, email_from='', parent=None, subtype=None):
+                     author=None, email_from='', parent=None, subtype=None,
+                     notify=True):
         """Publica un mensaje en el hilo del registro (Odoo ``message_post``).
 
-        Crea una fila ``mail.message`` polimorfica apuntando a este registro.
-        Devuelve el ``MailMessage`` creado.
+        Crea una fila ``mail.message`` polimorfica apuntando a este registro y,
+        si ``notify`` (default), reparte una ``mail.notification`` inbox a cada
+        seguidor del registro (menos el autor), gateada por subtipo — fiel al
+        ``_notify_thread`` de Odoo. Devuelve el ``MailMessage`` creado.
         """
-        return MailMessage.objects.create(
+        message = MailMessage.objects.create(
             model=self._mail_thread_res_model(),
             res_id=self.pk,
             body=body,
@@ -71,6 +76,66 @@ class MailThread(models.Model):
             subtype=subtype,
             record_name=str(self),
         )
+        if notify:
+            self._notify_thread(message)
+        return message
+
+    def _notify_thread(self, message):
+        """Reparte ``message`` a los seguidores del registro (Odoo ``_notify_thread``).
+
+        Crea una ``mail.notification`` de canal ``inbox`` por cada seguidor
+        (excluyendo al autor). El reparto se **gatea por subtipo**: un seguidor
+        recibe el mensaje si no filtro subtipos, o si el subtipo del mensaje
+        esta entre los que sigue — igual que Odoo enruta por
+        ``mail.followers.subtype_ids``. Devuelve las notificaciones creadas.
+        """
+        followers = self.message_follower_ids
+        author_id = message.author_id
+        notifications = []
+        for follower in followers.prefetch_related('subtype_ids'):
+            if author_id is not None and follower.partner_id == author_id:
+                continue
+            if message.subtype_id is not None:
+                subscribed = set(
+                    follower.subtype_ids.values_list('pk', flat=True)
+                )
+                if subscribed and message.subtype_id not in subscribed:
+                    continue
+            notifications.append(MailNotification(
+                message=message,
+                partner_id=follower.partner_id,
+                notification_type=MailNotification.TYPE_INBOX,
+                notification_status=MailNotification.STATUS_SENT,
+            ))
+        if notifications:
+            MailNotification.objects.bulk_create(notifications)
+        return notifications
+
+    def message_notify(self, partners, *, body='', subject='',
+                       message_type=None, author=None):
+        """Notifica a ``partners`` fuera del set de seguidores (Odoo ``message_notify``).
+
+        Publica un ``mail.message`` (sin repartir a seguidores, ``notify=False``)
+        y crea una ``mail.notification`` inbox por cada partner dado — util para
+        avisos transitorios (p. ej. una asignacion) sin suscribir al partner al
+        hilo. Devuelve el ``MailMessage`` creado.
+        """
+        message = self.message_post(
+            body=body, subject=subject,
+            message_type=message_type or MailMessage.TYPE_NOTIFICATION,
+            author=author, notify=False,
+        )
+        rows = [
+            MailNotification(
+                message=message, partner=partner,
+                notification_type=MailNotification.TYPE_INBOX,
+                notification_status=MailNotification.STATUS_SENT,
+            )
+            for partner in self._normalize_partners(partners)
+        ]
+        if rows:
+            MailNotification.objects.bulk_create(rows)
+        return message
 
     @property
     def message_ids(self):

@@ -17,6 +17,7 @@ from addons.mail.models import (
     MailFollowers,
     MailMessage,
     MailMessageSubtype,
+    MailNotification,
     MailTemplate,
     MailThread,
     MailTrackingValue,
@@ -276,3 +277,74 @@ class TestMailThreadConsumers:
         assert lead.message_ids.count() == 1
         assert ticket.message_ids.first().model == 'support.SupportTicket'
         assert lead.message_ids.first().model == 'crm.CrmLead'
+
+
+class TestMailNotification:
+    """``mail.notification`` — reparto por destinatario del ``_notify_thread``
+    (Odoo): al publicar, cada seguidor recibe una notificacion inbox; el gateo
+    por subtipo y ``message_notify`` (aviso transitorio) tambien son fieles."""
+
+    def test_message_post_notifies_followers_except_author(self, ticket, user):
+        follower = UserFactory()
+        ticket.message_subscribe([user, follower])
+        msg = ticket.message_post(body='novedad', author=user)
+        notifs = MailNotification.objects.filter(message=msg)
+        # el autor (user) NO se notifica a si mismo; el follower si
+        assert notifs.count() == 1
+        n = notifs.first()
+        assert n.partner_id == follower.pk
+        assert n.notification_type == MailNotification.TYPE_INBOX
+        assert n.notification_status == MailNotification.STATUS_SENT
+        assert n.is_read is False
+
+    def test_no_notification_without_followers(self, ticket, user):
+        msg = ticket.message_post(body='sin seguidores', author=user)
+        assert MailNotification.objects.filter(message=msg).count() == 0
+
+    def test_notify_gated_by_subtype(self, ticket, user):
+        discussions = MailMessageSubtype.objects.get(name='Discussions', res_model='')
+        note = MailMessageSubtype.objects.get(name='Note', res_model='')
+        follower = UserFactory()
+        # el seguidor solo sigue "Discussions"
+        ticket.message_subscribe([follower], subtypes=[discussions])
+        # mensaje con subtype "Note" NO llega al seguidor filtrado
+        msg_note = ticket.message_post(body='nota interna', subtype=note)
+        assert MailNotification.objects.filter(message=msg_note).count() == 0
+        # mensaje con subtype "Discussions" SI llega
+        msg_disc = ticket.message_post(body='discusion', subtype=discussions)
+        assert MailNotification.objects.filter(message=msg_disc).count() == 1
+
+    def test_message_notify_reaches_non_followers(self, ticket, user):
+        target = UserFactory()
+        assert not ticket.message_is_follower(target)
+        msg = ticket.message_notify([target], body='asignado a ti', author=user)
+        # message_notify NO suscribe al partner (aviso transitorio, fiel a Odoo)
+        assert not ticket.message_is_follower(target)
+        notifs = MailNotification.objects.filter(message=msg)
+        assert notifs.count() == 1
+        assert notifs.first().partner_id == target.pk
+
+    def test_mark_read_sets_flags(self, ticket, user):
+        follower = UserFactory()
+        ticket.message_subscribe([follower])
+        msg = ticket.message_post(body='hola', author=user)
+        n = MailNotification.objects.get(message=msg, partner=follower)
+        assert n.is_read is False and n.read_date is None
+        n.mark_read()
+        n.refresh_from_db()
+        assert n.is_read is True and n.read_date is not None
+
+    def test_canonical_subtypes_seeded(self, db):
+        """Migracion 0006 siembra los subtipos canonicos de Odoo."""
+        disc = MailMessageSubtype.objects.get(name='Discussions', res_model='')
+        note = MailMessageSubtype.objects.get(name='Note', res_model='')
+        assert disc.internal is False and disc.default is True
+        assert note.internal is True and note.hidden is True
+
+    def test_notification_cross_link_fields_nullable(self, ticket, user):
+        """email_task / sms son cross-links opcionales al envio saliente."""
+        follower = UserFactory()
+        ticket.message_subscribe([follower])
+        msg = ticket.message_post(body='x', author=user)
+        n = MailNotification.objects.get(message=msg, partner=follower)
+        assert n.email_task_id is None and n.sms_id is None
