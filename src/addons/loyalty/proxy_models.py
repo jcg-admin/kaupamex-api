@@ -1,5 +1,5 @@
 """
-Proxy models — addons.voucher
+Proxy models — addons.loyalty
 Sprint de infraestructura: herencia-modelos-django (T-014)
 
 Tipo de herencia: PROXY (DEC-006).
@@ -10,7 +10,7 @@ Tipo de herencia: PROXY (DEC-006).
   fallback en la clase base pero ahora puede delegarse al proxy correcto.
 
 Uso:
-    from addons.voucher.proxy_models import FixedVoucher, PercentageVoucher
+    from addons.loyalty.proxy_models import FixedVoucher, PercentageVoucher
     v = FixedVoucher.objects.get(code='PROMO50')
     descuento = v.calculate_discount(subtotal)
 

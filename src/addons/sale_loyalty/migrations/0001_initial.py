@@ -10,7 +10,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("sale", "0006_remove_saleorder_voucher"),
-        ("voucher", "0001_initial"),
+        ("loyalty", "0001_initial"),
     ]
 
     operations = [
@@ -45,7 +45,7 @@ class Migration(migrations.Migration):
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="sale_order_coupons",
-                        to="voucher.voucher",
+                        to="loyalty.voucher",
                     ),
                 ),
             ],

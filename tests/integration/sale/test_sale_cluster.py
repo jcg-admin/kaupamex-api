@@ -20,7 +20,7 @@ from addons.sale.models import SaleOrder, SaleOrderLine
 from addons.sale_loyalty.models import SaleOrderCoupon
 from addons.sale_stock.models import SaleOrderDelivery, SaleOrderLineDelivery
 from addons.sales_team.models import CrmTag, CrmTeam, CrmTeamMember
-from addons.voucher.models import Voucher
+from addons.loyalty.models import Voucher
 
 pytestmark = pytest.mark.integration
 

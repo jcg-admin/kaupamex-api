@@ -1,4 +1,4 @@
-"""Serializers — addons.voucher (Sprint 13)."""
+"""Serializers — addons.loyalty (Sprint 13)."""
 from decimal import Decimal
 from django.utils import timezone
 from rest_framework import serializers

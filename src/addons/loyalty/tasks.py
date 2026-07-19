@@ -1,5 +1,5 @@
 """
-Tareas periodicas de sistema — addons.voucher (UC-SYS-02).
+Tareas periodicas de sistema — addons.loyalty (UC-SYS-02).
 
 expire_vouchers: desactiva vouchers cuya valid_until < now y que
 estan activos. Registra el cambio en VoucherChangeLog con fuente

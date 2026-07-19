@@ -8,7 +8,7 @@ from decimal import Decimal
 from django.db import transaction, IntegrityError
 from django.utils import timezone
 from django.db.models import F
-from addons.voucher.models import Voucher, VoucherUsage
+from addons.loyalty.models import Voucher, VoucherUsage
 from .signals import order_created as order_created_signal
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter

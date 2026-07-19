@@ -16,14 +16,14 @@ from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from addons.settings_app.models import SiteSettings, PaymentGateway, ShippingMethod, StaticPage, StaticPageVersion
 from addons.users.models import Address, PasswordResetToken, EmailVerificationToken
 from addons.users.models import IdentityUser as User
-from addons.voucher.models import Voucher, VoucherChangeLog
+from addons.loyalty.models import Voucher, VoucherChangeLog
 from addons.wishlist.models import WishlistItem
 from addons.catalogue.serializers import SearchHistorySerializer
 from addons.inventory.proxy_models import SaleMovement, CancellationMovement, AdjustmentMovement, ImportMovement
 from addons.orders.proxy_models import PendingOrder, DeliveredOrder, ActiveOrder, CancelledOrder
 from django.utils import timezone
 from datetime import timedelta
-from addons.voucher.proxy_models import FixedVoucher, PercentageVoucher, FreeShippingVoucher
+from addons.loyalty.proxy_models import FixedVoucher, PercentageVoucher, FreeShippingVoucher
 
 pytestmark = pytest.mark.integration
 

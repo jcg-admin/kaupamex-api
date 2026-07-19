@@ -14,8 +14,8 @@ from django.utils import timezone
 from datetime import date, timedelta
 from addons.catalogue.models import Category, Product
 from addons.orders.models import Order, OrderValue
-from addons.voucher.models import Voucher, VoucherChangeLog
-from addons.voucher.serializers import VoucherSerializer
+from addons.loyalty.models import Voucher, VoucherChangeLog
+from addons.loyalty.serializers import VoucherSerializer
 
 pytestmark = pytest.mark.integration
 

@@ -13,7 +13,7 @@ from django.conf import settings
 from django.db import models, transaction
 from django.utils import timezone
 from addons.base.models import TimeStampedModel
-from addons.voucher.models import Voucher
+from addons.loyalty.models import Voucher
 
 _ALPHABET = string.ascii_uppercase + string.digits
 

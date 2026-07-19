@@ -23,7 +23,7 @@ class SaleOrderCoupon(TimeStampedModel):
         help_text='Orden de venta (Odoo sale.order).',
     )
     voucher = fields.Many2one(
-        'voucher.Voucher', null=True, blank=True,
+        'loyalty.Voucher', null=True, blank=True,
         on_delete=models.SET_NULL, related_name='sale_order_coupons',
         help_text='Cupón aplicado (Odoo sale_loyalty coupon; = cart.voucher).',
     )

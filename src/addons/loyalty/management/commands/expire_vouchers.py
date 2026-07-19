@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from addons.voucher.tasks import expire_vouchers
+from addons.loyalty.tasks import expire_vouchers
 
 
 class Command(BaseCommand):

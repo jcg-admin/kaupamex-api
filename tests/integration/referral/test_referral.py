@@ -27,7 +27,7 @@ from addons.orders.models import Order
 from addons.settings_app.models import SiteSettings
 from addons.referral.models import ReferralCode, Referral
 from addons.referral.services import complete_referral_for_order
-from addons.voucher.models import Voucher
+from addons.loyalty.models import Voucher
 from tests.factories.user_factory import make_buyer
 
 pytestmark = pytest.mark.integration

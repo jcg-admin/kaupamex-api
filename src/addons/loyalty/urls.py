@@ -1,4 +1,4 @@
-"""Admin URLs — addons.voucher (Sprint 13)."""
+"""Admin URLs — addons.loyalty (Sprint 13)."""
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import VoucherViewSet

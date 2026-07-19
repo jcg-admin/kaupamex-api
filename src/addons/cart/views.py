@@ -21,7 +21,7 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from addons.catalogue.models import Product
 from addons.chartsize.models import ProductVariant
-from addons.voucher.models import Voucher, VoucherUsage
+from addons.loyalty.models import Voucher, VoucherUsage
 from config.schema import error_response
 from .models import Cart, CartItem, SavedCart, SavedCartItem
 from .serializers import (

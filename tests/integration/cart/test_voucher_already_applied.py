@@ -4,7 +4,7 @@ from datetime import timedelta
 from decimal import Decimal
 from django.utils import timezone
 from addons.catalogue.models import Category, Product
-from addons.voucher.models import Voucher
+from addons.loyalty.models import Voucher
 
 pytestmark = pytest.mark.integration
 

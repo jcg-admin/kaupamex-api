@@ -1,5 +1,5 @@
 """
-Models — addons.voucher
+Models — addons.loyalty
 Sprint 13 — UC-PRO-01/02/03/04, UC-CART-04
 
 Voucher: cupon de descuento. Tres tipos: FIXED, PERCENTAGE, FREE_SHIPPING.

@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
     dependencies = [
         ("catalogue", "0001_initial"),
         ("chartsize", "0001_initial"),
-        ("voucher", "0001_initial"),
+        ("loyalty", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
@@ -54,7 +54,7 @@ class Migration(migrations.Migration):
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="carts",
-                        to="voucher.voucher",
+                        to="loyalty.voucher",
                     ),
                 ),
             ],

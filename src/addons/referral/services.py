@@ -17,7 +17,7 @@ from django.db import transaction
 from django.utils import timezone
 from addons.orders.models import Order
 from addons.settings_app.models import SiteSettings
-from addons.voucher.models import Voucher
+from addons.loyalty.models import Voucher
 from .models import ReferralCode, Referral
 
 _VOUCHER_CODE_ALPHABET = string.ascii_uppercase + string.digits

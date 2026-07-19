@@ -1,5 +1,5 @@
 """
-Views — addons.voucher (Sprint 13)
+Views — addons.loyalty (Sprint 13)
 UC-PRO-01: Crear Voucher
 UC-PRO-02: Editar Voucher
 UC-PRO-03: Desactivar Voucher

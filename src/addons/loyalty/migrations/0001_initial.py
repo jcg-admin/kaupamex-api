@@ -217,7 +217,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="change_log",
-                        to="voucher.voucher",
+                        to="loyalty.voucher",
                     ),
                 ),
             ],
@@ -253,7 +253,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="usages",
-                        to="voucher.voucher",
+                        to="loyalty.voucher",
                     ),
                 ),
             ],

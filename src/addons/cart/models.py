@@ -33,7 +33,7 @@ class Cart(TimeStampedModel):
         unique=True, null=True, blank=True, db_index=True,
     )
     voucher    = models.ForeignKey(
-        'voucher.Voucher', null=True, blank=True,
+        'loyalty.Voucher', null=True, blank=True,
         on_delete=models.SET_NULL, related_name='carts',
     )
 

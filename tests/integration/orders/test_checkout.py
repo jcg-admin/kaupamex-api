@@ -11,7 +11,7 @@ from addons.catalogue.models import Category, Product
 from addons.settings_app.models import ShippingMethod
 from addons.orders.models import Order, OrderValue, OrderAddress, ShippingZone
 from addons.cart.models import CartItem
-from addons.voucher.models import Voucher
+from addons.loyalty.models import Voucher
 from django.utils import timezone
 pytestmark = pytest.mark.integration
 

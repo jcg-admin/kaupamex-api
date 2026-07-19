@@ -17,7 +17,7 @@ from addons.catalogue.models import Category, Product
 from addons.inventory.services import InventoryService
 from addons.orders.models import Order, ShippingZone
 from addons.settings_app.models import ShippingMethod
-from addons.voucher.models import Voucher, VoucherUsage
+from addons.loyalty.models import Voucher, VoucherUsage
 from addons.cart.models import Cart
 
 pytestmark = pytest.mark.integration

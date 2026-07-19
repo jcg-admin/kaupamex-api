@@ -208,7 +208,7 @@ class ProductDiscount(TimeStampedModel, SoftDeleteModel):
       Fuera del manager por defecto pero recuperable via
       ``ProductDiscount.all_objects`` para auditoria.
 
-    Distinto de Voucher (addons.voucher): no tiene codigo y se aplica
+    Distinto de Voucher (addons.loyalty): no tiene codigo y se aplica
     automaticamente al render del producto en catalogo. Una sola
     promocion activa por producto a la vez (la mas reciente con
     valid_from <= now <= valid_until y is_active=True).

@@ -284,7 +284,7 @@ class TestSchemaInventoryLogisticsVoucher:
 
     Inventory montado en /api/v2/admin/inventory/ (addons.inventory.urls).
     Logistics montado en /api/v2/logistics/ (addons.logistics.urls).
-    Voucher router montado en /api/v2/admin/vouchers/ (addons.voucher.urls).
+    Voucher router montado en /api/v2/admin/vouchers/ (addons.loyalty.urls).
     """
     pytestmark = pytest.mark.schema
 

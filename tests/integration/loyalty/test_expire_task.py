@@ -7,8 +7,8 @@ son desactivados y se registra un VoucherChangeLog.
 import pytest
 from datetime import timedelta
 from django.utils import timezone
-from addons.voucher.models import Voucher, VoucherChangeLog
-from addons.voucher.tasks import expire_vouchers
+from addons.loyalty.models import Voucher, VoucherChangeLog
+from addons.loyalty.tasks import expire_vouchers
 
 pytestmark = pytest.mark.django_db
 
