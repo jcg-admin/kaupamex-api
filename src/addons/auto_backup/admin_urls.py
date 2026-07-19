@@ -1,5 +1,5 @@
 """
-Admin URLs — addons.backups (UC-ADM-05).
+Admin URLs — addons.auto_backup (UC-ADM-05).
 
 Mounted in config/urls.py under api/v2/admin/:
 

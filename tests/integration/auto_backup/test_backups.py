@@ -19,8 +19,8 @@ from unittest import mock
 
 from django.core import mail
 
-from addons.backups import views as backups_views
-from addons.backups.models import BackupRecord
+from addons.auto_backup import views as backups_views
+from addons.auto_backup.models import BackupRecord
 from addons.base.models import _PARAM_CACHE, SystemParameter
 
 pytestmark = pytest.mark.integration

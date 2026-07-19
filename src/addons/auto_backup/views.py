@@ -1,5 +1,5 @@
 """
-Views — addons.backups (UC-ADM-05).
+Views — addons.auto_backup (UC-ADM-05).
 
 GET  /api/v1/admin/backups/          — list backup history
 POST /api/v1/admin/backups/trigger/  — trigger an on-demand backup

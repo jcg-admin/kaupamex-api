@@ -1,5 +1,5 @@
 """
-Models — addons.backups (UC-ADM-05).
+Models — addons.auto_backup (UC-ADM-05).
 
 BackupRecord tracks every backup execution (cron or manual on-demand).
 The actual dump is performed by db/scripts/backup_db.sh and

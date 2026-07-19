@@ -49,7 +49,7 @@ logger = logging.getLogger('apps')
 
 # D-19: rows>5000 take the async branch (DEC-REP-01). The project has no
 # Celery/Redis, so the long export runs in a threading.Thread worker (same
-# no-Celery pattern as addons.backups) and the file is fetched later via a
+# no-Celery pattern as addons.auto_backup) and the file is fetched later via a
 # signed, time-limited download URL.
 _EXPORT_ASYNC_THRESHOLD = 5000
 
@@ -104,7 +104,7 @@ def _run_export_job(job_pk: int) -> None:
 
     Reuses the synchronous CSV/XLSX/PDF code paths (EXPORTERS) and persists
     the rendered bytes to a temp file so the admin can download it later.
-    Runnable synchronously for tests (mirrors addons.backups._run_backup).
+    Runnable synchronously for tests (mirrors addons.auto_backup._run_backup).
     """
     try:
         ExportJob.objects.filter(pk=job_pk).update(

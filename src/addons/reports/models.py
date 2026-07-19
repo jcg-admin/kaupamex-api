@@ -5,7 +5,7 @@ The aggregation endpoints are read-only over existing tables. The only
 persistent model is ExportJob, which tracks an asynchronous report export
 (D-19, UC-REP-05 rows>5000 branch). There is no Celery/Redis in the project,
 so the long export runs in a threading.Thread worker (same no-Celery pattern
-as addons.backups.BackupRecord) and this record stores its state and the path
+as addons.auto_backup.BackupRecord) and this record stores its state and the path
 of the generated file so the admin can poll the status endpoint and download
 the file via a signed, time-limited URL.
 """

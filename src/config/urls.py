@@ -80,7 +80,7 @@ urlpatterns = _admin_urls + [
     path('api/v2/admin/',      include(('addons.mass_mailing.admin_urls', 'admin_newsletter'),   namespace='admin_newsletter_v2')),
     path('api/v2/admin/',      include(('addons.contact.admin_urls', 'admin_contact'),         namespace='admin_contact_v2')),
     path('api/v2/admin/',      include(('addons.settings_app.admin_urls', 'admin_settings'),   namespace='admin_settings_v2')),
-    path('api/v2/admin/',      include(('addons.backups.admin_urls', 'admin_backups'),         namespace='admin_backups_v2')),
+    path('api/v2/admin/',      include(('addons.auto_backup.admin_urls', 'admin_backups'),         namespace='admin_backups_v2')),
     path('api/v2/admin/',      include(('addons.reports.admin_urls', 'admin_reports'),         namespace='admin_reports_v2')),
     path('api/v2/auth/',       include(('addons.users.auth_urls', 'auth'),                     namespace='auth_v2')),
     # T-214: consulta pública SEPOMEX de CP → asentamientos (autocompletado de direcciones)

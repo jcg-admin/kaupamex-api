@@ -3,7 +3,7 @@ Tests — Async report export (D-19, DEC-REP-01 superseded by threading job).
 
 UC-REP-05 declares a ``rows > 5000`` branch. There is no Celery/Redis in
 the project (DEC-REP-01 alt 1 was blocked on that), so async export follows
-the sanctioned no-Celery pattern already used by addons.backups: a job record
+the sanctioned no-Celery pattern already used by addons.auto_backup: a job record
 model + a threading.Thread worker that generates the file and updates the
 record, while the endpoint returns 202 immediately. A status endpoint exposes
 the job state and, when DONE, a time-limited signed download URL (~1h,

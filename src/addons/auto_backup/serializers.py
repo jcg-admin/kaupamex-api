@@ -1,4 +1,4 @@
-"""Serializers — addons.backups (UC-ADM-05)."""
+"""Serializers — addons.auto_backup (UC-ADM-05)."""
 from rest_framework import serializers
 from .models import BackupRecord
 
