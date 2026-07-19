@@ -91,6 +91,7 @@ INSTALLED_APPS = [
     'addons.observability',
     'addons.mail',
     'addons.base_address_extended',
+    'addons.base_geolocalize',
     'addons.base_vat',
     'addons.base_bank',
     'addons.authz',
@@ -212,7 +213,7 @@ DATABASE_ROUTERS = ['orm.routers.CompanyDatabaseRouter']
 # instancia, no per-empresa (SOL-090): debe rutear a ``default`` también bajo N>1.
 # ``observability`` (``RequestLog``, DEC-12) es telemetria global de la instancia,
 # no per-empresa, por lo que rutea igual que ``base``.
-MULTIDB_CONTROL_PLANE_APPS = ('sessions', 'contenttypes', 'base', 'observability', 'base_address_extended')
+MULTIDB_CONTROL_PLANE_APPS = ('sessions', 'contenttypes', 'base', 'observability', 'base_address_extended', 'base_geolocalize')
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
