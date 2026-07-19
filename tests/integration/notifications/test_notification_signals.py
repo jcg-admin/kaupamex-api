@@ -11,7 +11,7 @@ import pytest
 from decimal import Decimal
 from unittest.mock import patch
 
-from addons.notifications.models import Notification
+from addons.mail.models import Notification
 from addons.orders.models import Order, OrderValue
 from addons.payments.models import Payment, Refund
 from addons.returns.models import ReturnRequest

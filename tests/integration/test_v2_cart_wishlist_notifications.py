@@ -15,7 +15,7 @@ from decimal import Decimal
 
 from addons.catalogue.models import Category, Product
 from addons.cart.models import Cart, CartItem
-from addons.notifications.models import Notification
+from addons.mail.models import Notification
 from addons.wishlist.models import WishlistItem
 
 pytestmark = pytest.mark.integration

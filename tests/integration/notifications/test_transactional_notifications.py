@@ -14,7 +14,7 @@ from unittest.mock import patch
 from django.test import override_settings
 from django.core import mail
 
-from addons.notifications.models import Notification
+from addons.mail.models import Notification
 from addons.notifications.service import (
     notify_order_created,
     notify_order_status_changed,

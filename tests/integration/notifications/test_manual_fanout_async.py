@@ -10,7 +10,8 @@ from decimal import Decimal
 from django.contrib.auth import get_user_model
 
 from addons.catalogue.models import Category, Product
-from addons.notifications.models import ManualNotification, Notification
+from addons.mail.models import Notification
+from addons.notifications.models import ManualNotification
 from addons.orders.models import Order, OrderItem
 
 import pytest

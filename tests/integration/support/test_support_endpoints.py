@@ -28,7 +28,7 @@ from addons.support.management.commands.auto_close_support_tickets import (
     AUTO_CLOSE_DAYS,
 )
 from addons.orders.models import Order
-from addons.notifications.models import Notification, NotificationType
+from addons.mail.models import Notification, NotificationType
 
 pytestmark = pytest.mark.integration
 

@@ -27,10 +27,18 @@ from .mail_activity import MailActivity
 from .mail_tracking_value import MailTrackingValue
 from .mail_template import MailTemplate
 from .mail_mail import MailMail
+from .notification_inbox import (
+    Notification,
+    NotificationType,
+    NOTIFICATION_TYPE_LABELS,
+    MANDATORY_NOTIFICATION_TYPES,
+)
 from .mail_thread import MailThread
 
 __all__ = [
     'MailMessageSubtype', 'MailMessage', 'MailFollowers', 'MailNotification',
     'MailActivityType', 'MailActivity', 'MailTrackingValue',
     'MailTemplate', 'MailMail', 'MailThread',
+    'Notification', 'NotificationType', 'NOTIFICATION_TYPE_LABELS',
+    'MANDATORY_NOTIFICATION_TYPES',
 ]

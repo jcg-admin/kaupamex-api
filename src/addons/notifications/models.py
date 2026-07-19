@@ -1,107 +1,21 @@
 """
-Models — addons.notifications (UC-NOT-01..07).
+Models — addons.notifications (UC-NOT-06/07, en disolución hacia ``mail``).
 
 Identifiers in English per DEC-DOC-005.
 
-Notification           — buzon del usuario (UC-NOT-01..05).
+El buzón ``Notification`` (UC-NOT-01..05) + su ``NotificationType`` se reubicaron
+a su hogar Odoo ``addons.mail`` (slice 3a de la disolución notifications→mail);
+se importan de allí. Aquí quedan, hasta slices posteriores:
+
 NotificationPreference — preferencias por tipo de notificacion (UC-NOT-06).
 ManualNotification     — envios manuales del admin (UC-NOT-07).
+EmailTask              — cola legacy (datos ya copiados a ``mail.mail``; retiro pendiente).
 """
 from django.conf import settings
 from django.db import models
+
 from addons.base.models import TimeStampedModel
-
-
-
-class NotificationType(models.TextChoices):
-    """Tipos soportados de notificaciones (English)."""
-
-    ORDER_UPDATE = 'ORDER_UPDATE', 'Actualizacion de orden'
-    RETURN_UPDATE = 'RETURN_UPDATE', 'Actualizacion de devolucion'
-    PROMOTION = 'PROMOTION', 'Promocion'
-    SYSTEM = 'SYSTEM', 'Sistema'
-    SUPPORT_UPDATE = 'SUPPORT_UPDATE', 'Actualizacion de soporte'
-
-
-# Tipos obligatorios — el usuario no puede deshabilitarlos.
-MANDATORY_NOTIFICATION_TYPES = frozenset({
-    NotificationType.ORDER_UPDATE,
-    NotificationType.RETURN_UPDATE,
-    NotificationType.SYSTEM,
-})
-
-
-# Etiquetas user-facing por tipo.
-NOTIFICATION_TYPE_LABELS = {
-    NotificationType.ORDER_UPDATE: 'Actualizaciones de orden',
-    NotificationType.RETURN_UPDATE: 'Actualizaciones de devolucion',
-    NotificationType.PROMOTION: 'Promociones',
-    NotificationType.SYSTEM: 'Mensajes del sistema',
-    NotificationType.SUPPORT_UPDATE: 'Actualizaciones de soporte',
-}
-
-
-class Notification(TimeStampedModel):
-    """Notificacion individual en el buzon de un usuario."""
-
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='notifications',
-    )
-    type = models.CharField(
-        max_length=32,
-        choices=NotificationType.choices,
-        default=NotificationType.SYSTEM,
-    )
-    subject = models.CharField(max_length=200)
-    body = models.TextField()
-    read = models.BooleanField(default=False)
-    # Puente al backbone de chatter (familia mail): si esta notificacion se
-    # origino en un mensaje del hilo de un registro (``MailThread.message_post``),
-    # apunta al ``mail.message`` fuente. NULL para las notificaciones que no
-    # nacen del chatter (la mayoria de las transaccionales del servicio). Es la
-    # contraparte de ``mail.notification`` inbox: aquel rastrea la ENTREGA por
-    # destinatario; este es el item de BUZON que ve el comprador. SET_NULL: el
-    # buzon sobrevive al purgado del mensaje. Referencia por string → sin ciclo
-    # de imports (el backbone mail nunca importa notifications).
-    mail_message = models.ForeignKey(
-        'mail.MailMessage',
-        null=True, blank=True,
-        on_delete=models.SET_NULL,
-        related_name='inbox_notifications',
-        help_text='Mensaje de chatter que origino esta notificacion (familia mail).',
-    )
-
-    class Meta:
-        db_table = 'notifications_notification'
-        ordering = ['-created_at']
-        verbose_name = 'Notificacion'
-        verbose_name_plural = 'Notificaciones'
-        indexes = [
-            models.Index(fields=['user', 'read']),
-            models.Index(fields=['user', '-created_at']),
-        ]
-
-    def __str__(self):
-        return f'#{self.pk} {self.subject} ({self.type})'
-
-    @classmethod
-    def from_mail_message(cls, message, user, type=None):
-        """Materializa un item de buzon a partir de un ``mail.message`` del hilo.
-
-        Puente fiel del backbone: cualquier registro que herede ``MailThread``
-        puede aflorar un mensaje de su chatter al buzon del comprador. Copia
-        ``subject``/``body`` del mensaje y guarda el enlace ``mail_message``.
-        Devuelve la ``Notification`` creada.
-        """
-        return cls.objects.create(
-            user=user,
-            type=type or NotificationType.SYSTEM,
-            subject=(message.subject or '')[:200],
-            body=message.body or '',
-            mail_message=message,
-        )
+from addons.mail.models import NotificationType
 
 
 class NotificationPreference(TimeStampedModel):

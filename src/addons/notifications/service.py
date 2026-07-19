@@ -12,7 +12,7 @@ consistencia; email fuera evita enviar si el checkout/transicion falla.
 No se usa Celery — el stack del proyecto no incluye broker de tareas.
 """
 from django.db import transaction
-from .models import Notification, NotificationType
+from addons.mail.models import Notification, NotificationType
 from .emails import (
     send_order_confirmation_email,
     send_order_status_email,

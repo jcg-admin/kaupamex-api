@@ -25,7 +25,7 @@ from addons.mail.models import (
     MailThread,
     MailTrackingValue,
 )
-from addons.notifications.models import Notification, NotificationType
+from addons.mail.models import Notification, NotificationType
 from addons.orders.models import Order
 from addons.returns.models import ReturnRequest
 from addons.sms.models import SmsSms

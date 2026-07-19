@@ -506,7 +506,7 @@ SPECTACULAR_SETTINGS = {
         # `type` field collision: NotificationType es el unico choice set
         # de un campo llamado `type` que necesita nombre estable.
         'NotificationTypeEnum':
-            'addons.notifications.models.NotificationType',
+            'addons.mail.models.notification_inbox.NotificationType',
         # `reason` field collision: dos choice sets distintos comparten el
         # nombre de campo `reason` — devolucion vs ajuste de inventario.
         'ReturnReasonEnum':
