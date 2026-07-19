@@ -6,7 +6,7 @@ audit trail (PII + commercial contact history).
 """
 import pytest
 from addons.contact.models import ContactMessage
-from core.models import SoftDeleteModel
+from addons.base.models import SoftDeleteModel
 
 pytestmark = pytest.mark.integration
 

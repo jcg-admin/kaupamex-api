@@ -12,7 +12,7 @@ the file via a signed, time-limited URL.
 from django.conf import settings
 from django.db import models
 
-from core.models import TimeStampedModel
+from addons.base.models import TimeStampedModel
 
 
 class ExportJob(TimeStampedModel):

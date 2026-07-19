@@ -18,7 +18,7 @@ from django.db import models, transaction
 from django.db.models import Sum
 from django.utils import timezone
 
-from core.models import TimeStampedModel
+from addons.base.models import TimeStampedModel
 
 
 def _day_bounds(business_date):

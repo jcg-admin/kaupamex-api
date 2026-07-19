@@ -8,7 +8,7 @@ El diagrama canonico esta en modelo-chartsize.rst.
 """
 from decimal import Decimal
 from django.db import models
-from core.models import SoftDeleteModel, TimeStampedModel
+from addons.base.models import SoftDeleteModel, TimeStampedModel
 from django.core.validators import MinValueValidator
 from django.utils.text import slugify
 

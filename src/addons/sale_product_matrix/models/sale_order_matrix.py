@@ -14,7 +14,7 @@ import fields
 import models
 
 from addons.sale.models import SaleOrderLine
-from core.models import TimeStampedModel
+from addons.base.models import TimeStampedModel
 
 
 class SaleOrderMatrix(TimeStampedModel):

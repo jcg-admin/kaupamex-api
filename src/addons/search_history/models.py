@@ -8,7 +8,7 @@ SoftDeleteModel (DEC-DOC-007 audit exception).
 """
 from django.conf import settings
 from django.db import models
-from core.models import TimeStampedModel
+from addons.base.models import TimeStampedModel
 
 
 

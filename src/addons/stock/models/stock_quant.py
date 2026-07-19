@@ -12,7 +12,7 @@ import fields
 import models
 from django.utils import timezone
 
-from core.models import TimeStampedModel
+from addons.base.models import TimeStampedModel
 
 
 class StockQuant(TimeStampedModel):

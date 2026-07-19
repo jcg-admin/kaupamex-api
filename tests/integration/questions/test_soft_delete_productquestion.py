@@ -5,7 +5,7 @@ DEC-DOC-007.
 from decimal import Decimal
 from addons.catalogue.models import Category, Product
 from addons.questions.models import ProductQuestion
-from core.models import SoftDeleteModel
+from addons.base.models import SoftDeleteModel
 
 import pytest
 

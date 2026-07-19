@@ -8,7 +8,7 @@ Núcleo: ``name``/``attribute_id``/``sequence``.
 import fields
 import models
 
-from core.models import TimeStampedModel
+from addons.base.models import TimeStampedModel
 
 
 class ProductAttributeValue(TimeStampedModel):

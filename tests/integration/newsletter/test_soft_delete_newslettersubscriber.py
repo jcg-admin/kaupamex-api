@@ -7,7 +7,7 @@ con la semantica de NEGOCIO (status=UNSUBSCRIBED + unsubscribed_at).
 import pytest
 from django.utils import timezone
 from addons.newsletter.models import NewsletterSubscriber, SubscriberStatus
-from core.models import SoftDeleteModel
+from addons.base.models import SoftDeleteModel
 
 pytestmark = pytest.mark.integration
 

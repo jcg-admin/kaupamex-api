@@ -7,7 +7,7 @@ etapa (columna kanban) de las tareas. Núcleo portable: ``name``/``sequence``/
 import fields
 import models
 
-from core.models import TimeStampedModel
+from addons.base.models import TimeStampedModel
 
 
 class ProjectTaskType(TimeStampedModel):

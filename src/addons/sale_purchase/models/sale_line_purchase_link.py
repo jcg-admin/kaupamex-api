@@ -16,7 +16,7 @@ import fields
 import models
 
 from addons.purchase.models import PurchaseOrder, PurchaseOrderLine
-from core.models import TimeStampedModel
+from addons.base.models import TimeStampedModel
 
 
 class SaleLinePurchaseLink(TimeStampedModel):

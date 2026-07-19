@@ -9,7 +9,7 @@ se envia por email y se registra en el propio modelo.
 """
 from django.conf import settings
 from django.db import models
-from core.models import SoftDeleteModel, TimeStampedModel
+from addons.base.models import SoftDeleteModel, TimeStampedModel
 
 
 

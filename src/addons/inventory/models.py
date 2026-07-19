@@ -1,7 +1,7 @@
 """\nModels — addons.inventory\nSprint 10 — UC-INV-01, UC-INV-02\n"""
 from django.conf import settings
 from django.db import models
-from core.models import TimeStampedModel
+from addons.base.models import TimeStampedModel
 
 
 class StockMovement(TimeStampedModel):

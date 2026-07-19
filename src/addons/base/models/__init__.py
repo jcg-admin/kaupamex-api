@@ -9,6 +9,14 @@ Un archivo por modelo (monolito modular, como Odoo):
 Se reexporta todo aquí para preservar el contrato de import histórico
 ``from addons.base.models import SystemParameter, ResCurrency, ...``.
 """
+from .mixins import (
+    TimeStampedModel,
+    AppendOnlyModel,
+    SoftDeleteModel,
+    SoftDeleteQuerySet,
+    SoftDeleteManager,
+    AllObjectsManager,
+)
 from .decimal_precision import DecimalPrecision
 from .ir_config_parameter import (
     _DEFAULT_PARAMETERS,
@@ -25,6 +33,12 @@ from .res_currency_rate import ResCurrencyRate
 from .res_lang import ResLang
 
 __all__ = [
+    'TimeStampedModel',
+    'AppendOnlyModel',
+    'SoftDeleteModel',
+    'SoftDeleteQuerySet',
+    'SoftDeleteManager',
+    'AllObjectsManager',
     '_DEFAULT_PARAMETERS',
     '_PARAM_CACHE',
     '_clear_cache',

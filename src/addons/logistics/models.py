@@ -19,7 +19,7 @@ import logging
 from cryptography.fernet import Fernet
 from django.conf import settings
 from django.db import models
-from core.models import SoftDeleteModel, TimeStampedModel
+from addons.base.models import SoftDeleteModel, TimeStampedModel
 from addons.logistics.offers import RateCard
 
 logger = logging.getLogger('apps')

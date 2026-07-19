@@ -14,7 +14,7 @@ import fields
 import models
 
 from addons.project.models import ProjectTask
-from core.models import TimeStampedModel
+from addons.base.models import TimeStampedModel
 
 
 class SaleOrderLineProject(TimeStampedModel):

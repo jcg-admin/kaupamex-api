@@ -8,7 +8,7 @@ from decimal import Decimal
 from datetime import timedelta
 from django.utils import timezone
 from addons.voucher.models import Voucher
-from core.models import SoftDeleteModel
+from addons.base.models import SoftDeleteModel
 
 import pytest
 

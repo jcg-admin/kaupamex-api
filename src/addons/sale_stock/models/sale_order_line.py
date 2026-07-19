@@ -11,7 +11,7 @@ en Odoo lo computa ``sale_stock`` desde ``stock.move``). Aquí la fuente es
 import fields
 import models
 
-from core.models import TimeStampedModel
+from addons.base.models import TimeStampedModel
 
 
 class SaleOrderLineDelivery(TimeStampedModel):

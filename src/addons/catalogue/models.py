@@ -14,7 +14,7 @@ from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils import timezone
-from core.models import SoftDeleteModel, TimeStampedModel
+from addons.base.models import SoftDeleteModel, TimeStampedModel
 from addons.catalogue.utils import category_upload_path, product_image_upload_path
 
 

@@ -7,7 +7,7 @@ from datetime import timedelta
 from decimal import Decimal
 from django.utils import timezone
 from addons.catalogue.models import Category, Product, ProductDiscount
-from core.models import SoftDeleteModel
+from addons.base.models import SoftDeleteModel
 
 import pytest
 

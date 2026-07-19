@@ -17,7 +17,7 @@ import fields
 import models
 
 from addons.mrp.models import MrpProduction
-from core.models import TimeStampedModel
+from addons.base.models import TimeStampedModel
 
 
 class SaleOrderLineProduction(TimeStampedModel):

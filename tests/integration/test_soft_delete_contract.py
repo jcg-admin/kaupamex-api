@@ -11,7 +11,7 @@ These tests validate the SoftDeleteModel mixin in core.models:
 - ``queryset.delete()`` does a bulk soft delete via UPDATE.
 """
 import pytest
-from core.models import SoftDeleteModel, SoftDeleteManager, AllObjectsManager
+from addons.base.models import SoftDeleteModel, SoftDeleteManager, AllObjectsManager
 from addons.catalogue.models import Product, Category
 from addons.orders.models import Order
 from addons.users.models import Address

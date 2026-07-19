@@ -8,7 +8,7 @@ SupportTicketReply modela cada mensaje del hilo de conversacion.
 """
 from django.conf import settings
 from django.db import models
-from core.models import SoftDeleteModel, TimeStampedModel
+from addons.base.models import SoftDeleteModel, TimeStampedModel
 
 
 

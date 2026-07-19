@@ -15,7 +15,7 @@ cross-app) se materializan como modelo RELATED OneToOne a ``catalogue.Product``.
 import fields
 import models
 
-from core.models import TimeStampedModel
+from addons.base.models import TimeStampedModel
 
 
 class ProductExpiryConfig(TimeStampedModel):

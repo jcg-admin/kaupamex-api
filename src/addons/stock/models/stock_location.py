@@ -9,7 +9,7 @@ self-FK). ``complete_name`` se calcula recursivamente.
 import fields
 import models
 
-from core.models import TimeStampedModel
+from addons.base.models import TimeStampedModel
 
 
 class StockLocation(TimeStampedModel):

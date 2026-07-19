@@ -13,7 +13,7 @@ import fields
 import models
 
 from addons.sms.models import SmsSms
-from core.models import TimeStampedModel
+from addons.base.models import TimeStampedModel
 
 
 class SaleOrderSmsConfirmation(TimeStampedModel):

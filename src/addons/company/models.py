@@ -21,7 +21,7 @@ from django.utils import timezone
 
 from addons.base_vat.validators import validate_rfc
 from addons.company.context import company_scope, get_current_company
-from core.models import TimeStampedModel
+from addons.base.models import TimeStampedModel
 
 
 class CompanyScopedManager(models.Manager):

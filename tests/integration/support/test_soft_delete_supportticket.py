@@ -6,7 +6,7 @@ support history referenced by SupportTicketReply via CASCADE.
 """
 import pytest
 from addons.support.models import SupportTicket
-from core.models import SoftDeleteModel
+from addons.base.models import SoftDeleteModel
 
 pytestmark = pytest.mark.integration
 

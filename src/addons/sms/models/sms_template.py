@@ -9,7 +9,7 @@ que no existe en este stack.
 import fields
 import models
 
-from core.models import TimeStampedModel
+from addons.base.models import TimeStampedModel
 
 
 class _SafeDict(dict):

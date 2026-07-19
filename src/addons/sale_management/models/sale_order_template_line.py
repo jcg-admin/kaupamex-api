@@ -9,7 +9,7 @@ from decimal import Decimal
 import fields
 import models
 
-from core.models import TimeStampedModel
+from addons.base.models import TimeStampedModel
 
 
 class SaleOrderTemplateLine(TimeStampedModel):

@@ -9,7 +9,7 @@ ManualNotification     — envios manuales del admin (UC-NOT-07).
 """
 from django.conf import settings
 from django.db import models
-from core.models import TimeStampedModel
+from addons.base.models import TimeStampedModel
 
 
 

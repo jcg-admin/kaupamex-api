@@ -19,7 +19,7 @@ import fields
 import models
 
 from addons.stock.models import StockLocation
-from core.models import TimeStampedModel
+from addons.base.models import TimeStampedModel
 
 
 class SubcontractingLocation(TimeStampedModel):

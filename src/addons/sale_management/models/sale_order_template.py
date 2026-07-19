@@ -16,7 +16,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 import fields
 import models
 
-from core.models import TimeStampedModel
+from addons.base.models import TimeStampedModel
 
 
 class SaleOrderTemplate(TimeStampedModel):

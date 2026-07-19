@@ -7,7 +7,7 @@ que garantizan que el refactoring no rompe nada.
 """
 import pytest
 from decimal import Decimal
-from core.models import TimeStampedModel
+from addons.base.models import TimeStampedModel
 from addons.cart.models import Cart, CartItem, SavedCart, SavedCartItem
 from addons.catalogue.models import Category, Product, SearchHistory, ProductImage
 from addons.chartsize.models import VariantType, VariantOption, ProductVariant

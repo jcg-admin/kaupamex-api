@@ -14,7 +14,7 @@ sale_stock/models/sale_order.py:33) vive aquí; se alimenta del fulfillment
 import fields
 import models
 
-from core.models import TimeStampedModel
+from addons.base.models import TimeStampedModel
 
 
 class SaleOrderDelivery(TimeStampedModel):

@@ -7,7 +7,7 @@ pipeline de oportunidades. Núcleo: ``name``/``sequence``/``is_won``/``fold``/
 import fields
 import models
 
-from core.models import TimeStampedModel
+from addons.base.models import TimeStampedModel
 
 
 class CrmStage(TimeStampedModel):

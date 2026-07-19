@@ -5,7 +5,7 @@ referenciado desde ReturnItem y ReturnHistoryEntry via CASCADE.
 """
 import pytest
 from addons.returns.models import ReturnRequest
-from core.models import SoftDeleteModel
+from addons.base.models import SoftDeleteModel
 
 pytestmark = pytest.mark.integration
 

@@ -15,7 +15,7 @@ from django.conf import settings
 import fields
 import models
 
-from core.models import TimeStampedModel
+from addons.base.models import TimeStampedModel
 
 
 class CrmTeam(TimeStampedModel):

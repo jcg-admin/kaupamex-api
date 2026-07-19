@@ -7,7 +7,7 @@ db/scripts/backup_proyectos.sh; this model stores the metadata so
 AdminBackupsPage can list history and report status.
 """
 from django.db import models
-from core.models import TimeStampedModel
+from addons.base.models import TimeStampedModel
 
 
 class BackupRecord(TimeStampedModel):

@@ -14,7 +14,7 @@ import fields
 import models
 
 from addons.stock.models.stock_quant import StockQuant
-from core.models import TimeStampedModel
+from addons.base.models import TimeStampedModel
 
 
 class StockMove(TimeStampedModel):

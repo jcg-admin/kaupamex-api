@@ -10,7 +10,7 @@ hace con ``SeparateDatabaseAndState`` (migración ``authz.0012`` la borra del
 """
 from django.db import models
 
-from core.models import TimeStampedModel
+from addons.base.models import TimeStampedModel
 
 
 class MenuItem(TimeStampedModel):

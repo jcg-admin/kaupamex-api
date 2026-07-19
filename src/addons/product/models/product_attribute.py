@@ -10,7 +10,7 @@ o19:24)/``display_type``/``sequence``.
 import fields
 import models
 
-from core.models import TimeStampedModel
+from addons.base.models import TimeStampedModel
 
 
 class ProductAttribute(TimeStampedModel):

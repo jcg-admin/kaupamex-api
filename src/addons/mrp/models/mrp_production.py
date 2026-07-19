@@ -18,7 +18,7 @@ import fields
 import models
 
 from addons.stock.models.stock_move import StockMove
-from core.models import TimeStampedModel
+from addons.base.models import TimeStampedModel
 
 
 class MrpProduction(TimeStampedModel):

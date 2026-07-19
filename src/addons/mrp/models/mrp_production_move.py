@@ -11,7 +11,7 @@ la orden (consumo de materia prima o producto terminado) queda ligado con su
 import fields
 import models
 
-from core.models import TimeStampedModel
+from addons.base.models import TimeStampedModel
 
 
 class MrpProductionMove(TimeStampedModel):

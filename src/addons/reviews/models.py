@@ -14,7 +14,7 @@ usuario por reseña. Incrementa Review.helpful_count.
 from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-from core.models import SoftDeleteModel, TimeStampedModel
+from addons.base.models import SoftDeleteModel, TimeStampedModel
 
 
 

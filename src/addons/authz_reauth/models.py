@@ -10,7 +10,7 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from core.models import TimeStampedModel
+from addons.base.models import TimeStampedModel
 
 
 class ReauthSession(TimeStampedModel):

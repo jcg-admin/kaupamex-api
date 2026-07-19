@@ -10,7 +10,7 @@ y deben preservar historial.
 from decimal import Decimal
 from addons.catalogue.models import Category, Product
 from addons.chartsize.models import ProductVariant, VariantOption, VariantType
-from core.models import SoftDeleteModel
+from addons.base.models import SoftDeleteModel
 
 import pytest
 

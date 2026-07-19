@@ -10,7 +10,7 @@ Bridge ``sale`` + ``crm``: atribuye cada orden a la oportunidad que la originó.
 import fields
 import models
 
-from core.models import TimeStampedModel
+from addons.base.models import TimeStampedModel
 
 
 class SaleOrderOpportunity(TimeStampedModel):

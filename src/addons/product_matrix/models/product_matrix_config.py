@@ -17,7 +17,7 @@ Odoo (Clausula 5): aquí cada ``ProductVariant`` ya es una celda concreta.
 import fields
 import models
 
-from core.models import TimeStampedModel
+from addons.base.models import TimeStampedModel
 
 
 class ProductMatrixConfig(TimeStampedModel):
