@@ -28,6 +28,7 @@ import models
 from .mail_activity import MailActivity
 from .mail_followers import MailFollowers
 from .mail_message import MailMessage
+from .mail_tracking_value import MailTrackingValue
 
 
 class MailThread(models.Model):
@@ -117,6 +118,37 @@ class MailThread(models.Model):
             res_model=self._mail_thread_res_model(), res_id=self.pk,
             partner=partner,
         ).exists()
+
+    # --- tracking de campos (auditoria de cambios) -----------------------------
+
+    def message_track(self, changes, author=None):
+        """Registra cambios de campo en el chatter (Odoo ``_message_track``).
+
+        ``changes`` es un iterable de dicts con claves ``field`` (nombre),
+        ``field_desc`` (etiqueta), ``field_type`` (char/integer/float/text/
+        datetime/monetary/boolean), ``old`` y ``new``. Publica UN
+        ``mail.message`` de tipo notification en el hilo y le adjunta un
+        ``mail.tracking.value`` por cada cambio. Devuelve el mensaje (o ``None``
+        si no hubo cambios). Django no tiene el ``@api.depends``/``write`` que
+        dispara esto en Odoo; el llamador invoca este metodo al detectar el
+        cambio (mismo resultado, mecanismo adaptado).
+        """
+        changes = list(changes or [])
+        if not changes:
+            return None
+        message = self.message_post(
+            body='', message_type=MailMessage.TYPE_NOTIFICATION, author=author,
+        )
+        for change in changes:
+            tracking = MailTrackingValue(
+                message=message,
+                field=change['field'],
+                field_desc=change.get('field_desc', ''),
+                field_type=change.get('field_type', 'char'),
+            )
+            tracking.set_values(change.get('old'), change.get('new'))
+            tracking.save()
+        return message
 
     # --- actividades (to-dos planificados) -------------------------------------
 

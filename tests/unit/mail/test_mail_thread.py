@@ -16,6 +16,7 @@ from addons.mail.models import (
     MailFollowers,
     MailMessage,
     MailMessageSubtype,
+    MailTrackingValue,
 )
 from addons.support.models import SupportTicket
 from tests.factories.user_factory import UserFactory
@@ -163,3 +164,45 @@ class TestMailThreadActivities:
         t1.activity_schedule(summary='de t1', user=user)
         assert t1.activity_ids.count() == 1
         assert t2.activity_ids.count() == 0
+
+
+class TestMailThreadTracking:
+    def test_message_track_creates_notification_and_values(self, ticket, user):
+        msg = ticket.message_track([
+            {'field': 'status', 'field_desc': 'Estado', 'field_type': 'char',
+             'old': 'OPEN', 'new': 'RESOLVED'},
+            {'field': 'priority', 'field_desc': 'Prioridad', 'field_type': 'char',
+             'old': 'NORMAL', 'new': 'HIGH'},
+        ], author=user)
+        assert isinstance(msg, MailMessage)
+        assert msg.message_type == MailMessage.TYPE_NOTIFICATION
+        assert msg.model == 'support.SupportTicket' and msg.res_id == ticket.pk
+        # dos tracking values colgados del mensaje (relacion Odoo tracking_value_ids)
+        tvs = msg.tracking_value_ids.all()
+        assert tvs.count() == 2
+        status_tv = tvs.get(field='status')
+        assert status_tv.get_old_value() == 'OPEN'
+        assert status_tv.get_new_value() == 'RESOLVED'
+
+    def test_message_track_typed_value_columns(self, ticket, user):
+        msg = ticket.message_track([
+            {'field': 'amount', 'field_type': 'float', 'old': 10.0, 'new': 25.5},
+            {'field': 'qty', 'field_type': 'integer', 'old': 1, 'new': 3},
+        ])
+        amount = msg.tracking_value_ids.get(field='amount')
+        assert amount.old_value_float == 10.0 and amount.new_value_float == 25.5
+        # el valor cae en la columna correcta segun field_type (Odoo _get_field_value_type)
+        assert amount.old_value_char == ''
+        qty = msg.tracking_value_ids.get(field='qty')
+        assert qty.old_value_integer == 1 and qty.new_value_integer == 3
+
+    def test_message_track_empty_is_noop(self, ticket):
+        assert ticket.message_track([]) is None
+        assert ticket.message_ids.count() == 0
+
+    def test_tracking_deleted_with_message(self, ticket, user):
+        msg = ticket.message_track([
+            {'field': 'status', 'old': 'OPEN', 'new': 'CLOSED'}], author=user)
+        tv_pk = msg.tracking_value_ids.first().pk
+        msg.delete()  # CASCADE (Odoo ondelete='cascade')
+        assert not MailTrackingValue.objects.filter(pk=tv_pk).exists()

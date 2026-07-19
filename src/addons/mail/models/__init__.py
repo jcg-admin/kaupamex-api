@@ -23,9 +23,10 @@ from .mail_message import MailMessage
 from .mail_followers import MailFollowers
 from .mail_activity_type import MailActivityType
 from .mail_activity import MailActivity
+from .mail_tracking_value import MailTrackingValue
 from .mail_thread import MailThread
 
 __all__ = [
     'MailMessageSubtype', 'MailMessage', 'MailFollowers',
-    'MailActivityType', 'MailActivity', 'MailThread',
+    'MailActivityType', 'MailActivity', 'MailTrackingValue', 'MailThread',
 ]
