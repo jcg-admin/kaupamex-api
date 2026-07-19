@@ -19,6 +19,8 @@ objeto inservible; misma razón que los stubs de motor (environments/registry).
 import re
 from collections.abc import Set as AbstractSet
 
+from exceptions import ValidationError
+
 regex_object_name = re.compile(r'^[a-z0-9_.]+$')
 regex_pg_name = re.compile(r'^[a-z_][a-z0-9_$]*$', re.IGNORECASE)
 
@@ -52,14 +54,15 @@ def check_object_name(name):
 def check_pg_name(name):
     """Valida que ``name`` sea un identificador PostgreSQL/SQL válido.
 
-    Fiel a Odoo 19: caracteres permitidos + longitud ≤ 63. En Django el ORM ya
-    valida nombres de columna/tabla al construir el schema; se preserva para
-    paridad cuando un addon compone SQL crudo vía ``tools/sql.py``.
+    Fiel a Odoo 19 (levanta ``ValidationError``, no ``ValueError``): caracteres
+    permitidos + longitud ≤ 63. En Django el ORM ya valida nombres de
+    columna/tabla al construir el schema; se preserva para paridad cuando un
+    addon compone SQL crudo vía ``tools/sql.py``.
     """
     if not regex_pg_name.match(name):
-        raise ValueError("Invalid characters in table name %r" % name)
+        raise ValidationError("Invalid characters in table name %r" % name)
     if len(name) > 63:
-        raise ValueError("Table name %r is too long" % name)
+        raise ValidationError("Table name %r is too long" % name)
 
 
 def parse_field_expr(field_expr: str) -> tuple[str, str | None]:
