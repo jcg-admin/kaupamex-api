@@ -16,6 +16,7 @@ from addons.mail.models import (
     MailFollowers,
     MailMessage,
     MailMessageSubtype,
+    MailTemplate,
     MailTrackingValue,
 )
 from addons.support.models import SupportTicket
@@ -206,3 +207,36 @@ class TestMailThreadTracking:
         tv_pk = msg.tracking_value_ids.first().pk
         msg.delete()  # CASCADE (Odoo ondelete='cascade')
         assert not MailTrackingValue.objects.filter(pk=tv_pk).exists()
+
+
+class TestMailTemplate:
+    def test_render_substitutes_placeholders(self, ticket, user):
+        tpl = MailTemplate.objects.create(
+            name='Ticket resuelto', model='support.SupportTicket',
+            subject='Ticket #{{ object.pk }}: {{ object.subject }}',
+            body_html='<p>Hola, tu ticket "{{ object.subject }}" fue actualizado.</p>',
+            email_to='{{ object.user.email }}',
+        )
+        out = tpl.render(ticket)
+        assert out['subject'] == f'Ticket #{ticket.pk}: Pedido no llego'
+        assert 'Pedido no llego' in out['body_html']
+        assert out['email_to'] == user.email
+
+    def test_render_empty_fields_safe(self, ticket):
+        tpl = MailTemplate.objects.create(name='vacia', subject='hola')
+        out = tpl.render(ticket)
+        assert out['subject'] == 'hola'
+        assert out['body_html'] == ''
+
+    def test_message_post_with_template_posts_rendered(self, ticket, user):
+        tpl = MailTemplate.objects.create(
+            name='aviso', model='support.SupportTicket',
+            subject='Aviso {{ object.pk }}',
+            body_html='<p>{{ object.subject }}</p>',
+        )
+        msg = ticket.message_post_with_template(tpl, author=user)
+        assert isinstance(msg, MailMessage)
+        assert msg.subject == f'Aviso {ticket.pk}'
+        assert 'Pedido no llego' in msg.body
+        assert msg.message_type == MailMessage.TYPE_EMAIL
+        assert msg in list(ticket.message_ids)

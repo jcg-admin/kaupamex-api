@@ -79,6 +79,20 @@ class MailThread(models.Model):
             model=self._mail_thread_res_model(), res_id=self.pk,
         )
 
+    def message_post_with_template(self, template, author=None, message_type=None):
+        """Renderiza una ``mail.template`` contra este registro y publica el
+        mensaje resultante en el hilo (Odoo ``message_post_with_source`` /
+        ``message_post_with_template``). Devuelve el ``MailMessage``.
+        """
+        rendered = template.render(self)
+        return self.message_post(
+            subject=rendered['subject'],
+            body=rendered['body_html'],
+            email_from=rendered['email_from'],
+            message_type=message_type or MailMessage.TYPE_EMAIL,
+            author=author,
+        )
+
     # --- seguidores ------------------------------------------------------------
 
     def message_subscribe(self, partners, subtypes=None):
