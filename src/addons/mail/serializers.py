@@ -1,5 +1,5 @@
 """
-Serializers — addons.notifications.
+Serializers — addons.mail.
 
 JSON keys in English (DEC-DOC-005).
 """

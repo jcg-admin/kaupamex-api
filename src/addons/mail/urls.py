@@ -1,4 +1,4 @@
-"""URLs — addons.notifications (user endpoints, F8 consolidation)."""
+"""URLs — addons.mail (user endpoints, F8 consolidation)."""
 from django.urls import path
 from .views import (
     NotificationListV2View,

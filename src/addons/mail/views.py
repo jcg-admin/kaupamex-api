@@ -1,5 +1,5 @@
 """
-Views — addons.notifications.
+Views — addons.mail.
 
 User endpoints (UC-NOT-01..06):
   GET    /api/v1/notifications/                        list
