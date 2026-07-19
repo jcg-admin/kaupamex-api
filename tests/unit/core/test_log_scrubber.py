@@ -8,7 +8,7 @@ toca DB → no requiere django_db.
 """
 import pytest
 
-from core.log_scrubber import REDACTED, scrub
+from tools.log_scrubber import REDACTED, scrub
 
 pytestmark = [pytest.mark.unit]
 

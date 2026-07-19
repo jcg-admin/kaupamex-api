@@ -13,7 +13,7 @@ telemetria HTTP sin analogo Odoo y vive en el addon net-new ``observability``.
 """
 import time
 
-from core.logging_context import (
+from tools.logging_context import (
     clear_correlation_id,
     get_request_error,
     new_correlation_id,

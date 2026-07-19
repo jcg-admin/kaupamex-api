@@ -21,7 +21,7 @@ from django.contrib.auth import hashers
 from django.db import models, transaction
 from django.utils import timezone
 from django.utils.crypto import salted_hmac
-from core.logging_context import get_correlation_id
+from tools.logging_context import get_correlation_id
 from addons.base.models import AppendOnlyModel, SoftDeleteModel, TimeStampedModel
 from addons.users import mfa
 

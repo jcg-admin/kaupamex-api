@@ -7,7 +7,7 @@ el mapeo de campos completo). Verifica:
 - importable desde el hogar canónico ``addons.base.models``,
 - append-only (hereda ``AppendOnlyModel``, SOL-011/DEC-LOG-05),
 - ``db_table`` fiel a Odoo (``ir_logging``),
-- el ``DatabaseLogHandler`` (``core.logging_handlers``) escribe en este
+- el ``DatabaseLogHandler`` (``tools.logging_handlers``) escribe en este
   modelo, no en el ``AppLog`` previo.
 
 El contrato append-only detallado (INSERT permitido / UPDATE-DELETE de
@@ -22,8 +22,8 @@ import logging
 import pytest
 
 from addons.base.models import AppendOnlyModel, IrLogging
-from core.logging_context import clear_correlation_id
-from core.logging_handlers import DatabaseLogHandler
+from tools.logging_context import clear_correlation_id
+from tools.logging_handlers import DatabaseLogHandler
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 

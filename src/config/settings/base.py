@@ -303,7 +303,7 @@ REST_FRAMEWORK = {
     # SOL-011 / ADR-019: envuelve el handler de DRF para sellar exception_class
     # + error_detail (scrubbed) en RequestLog sin cambiar el cuerpo de error
     # (conserva la clave canonica ``codigo_error``). No bloqueante (DEC-LOG-04).
-    'EXCEPTION_HANDLER': 'core.exception_handling.custom_exception_handler',
+    'EXCEPTION_HANDLER': 'addons.observability.exception_handling.custom_exception_handler',
     # DEC-THR-1 (hardening-throttle-endpoints-publicos):
     # Defense in depth contra brute-force/spam en endpoints
     # publicos. Rates conservadores por scope sensible.
@@ -544,7 +544,7 @@ LOGGING = {
         # no bloqueante y anti-recursion (se excluye django.db). testing.py
         # sobreescribe LOGGING con NullHandler, asi que este handler NO corre
         # durante la suite (el handler se prueba directamente).
-        'db': {'class': 'core.logging_handlers.DatabaseLogHandler',
+        'db': {'class': 'tools.logging_handlers.DatabaseLogHandler',
                'level': 'INFO'},
     },
     'loggers': {

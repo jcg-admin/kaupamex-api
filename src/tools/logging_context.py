@@ -1,10 +1,14 @@
 """
-apps/core/logging_context.py
+tools/logging_context.py
 
 correlation_id por request (DEC-LOG-07): un UUID que une las tres tablas de
 logging (RequestLog + IrLogging + BusinessEvent) para reconstruir "que paso" en
 una request. Se expone via contextvars para que cualquier capa (handler de
 logging, señales de negocio) lo lea sin propagarlo por parametro.
+
+Movido desde ``core.logging_context`` en el slice 5 de
+``adoptar-arquitectura-server-service-odoo`` (DEC-10): utilidad de logging sin
+modelo Django, fiel a Odoo la ubica en ``tools/``.
 """
 import contextvars
 import uuid

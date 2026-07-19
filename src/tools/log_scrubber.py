@@ -1,5 +1,5 @@
 """
-apps/core/log_scrubber.py
+tools/log_scrubber.py
 
 PIIScrubber (SOL-011 T-02, DEC-LOG-03 Nivel 1): redacta *secretos* del texto
 libre que llega a los logs (``IrLogging.message`` / ``IrLogging.trace`` /
@@ -14,6 +14,11 @@ nombres/emails — esos nunca deberian entrar al log.
 
 Funcion pura, sin dependencias de Django ni de DB: se puede aplicar en el
 handler, el middleware o el exception_handler antes de insertar.
+
+Movido desde ``core.log_scrubber`` en el slice 5 de
+``adoptar-arquitectura-server-service-odoo`` (DEC-10): utilidad de logging
+sin modelo Django, fiel a Odoo la ubica en ``tools/`` (netsvc/logging
+utilities), junto a ``tools/logging_context.py`` y ``tools/logging_handlers.py``.
 """
 import re
 

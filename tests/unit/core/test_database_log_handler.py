@@ -20,8 +20,8 @@ from unittest import mock
 import pytest
 
 from addons.base.models import IrLogging
-from core.logging_context import clear_correlation_id, set_correlation_id
-from core.logging_handlers import DatabaseLogHandler
+from tools.logging_context import clear_correlation_id, set_correlation_id
+from tools.logging_handlers import DatabaseLogHandler
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 

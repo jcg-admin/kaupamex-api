@@ -1,5 +1,5 @@
 """
-apps/core/exception_handling.py
+addons/observability/exception_handling.py
 
 custom_exception_handler (SOL-011 T-04, ADR-019): el ``EXCEPTION_HANDLER`` de DRF
 del proyecto. Delega **primero** en el handler por defecto de DRF (el cuerpo de
@@ -14,11 +14,16 @@ persista en su fila ``RequestLog`` (unida al trace de ``IrLogging`` por
   ``DatabaseLogHandler``); aqui solo el mensaje corto.
 - **No bloqueante (DEC-LOG-04):** el sellado va en ``try/except`` que traga el
   error; si el logging falla, la respuesta de error al cliente NO se altera.
+
+Vive en ``addons.observability`` (movido desde ``core.exception_handling`` en
+el slice 5 de ``adoptar-arquitectura-server-service-odoo``, DEC-10): el
+handler sella el error para que el ``RequestLogMiddleware`` (mismo addon) lo
+persista — ambos conviven en el mismo modulo.
 """
 from rest_framework.views import exception_handler as drf_exception_handler
 
-from core.log_scrubber import scrub
-from core.logging_context import set_request_error
+from tools.log_scrubber import scrub
+from tools.logging_context import set_request_error
 
 
 def custom_exception_handler(exc, context):

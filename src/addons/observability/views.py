@@ -1,5 +1,5 @@
 """
-apps/core/admin_views.py
+addons/observability/views.py
 
 Endpoint DRF read-only de logs tecnicos (SOL-011 T-06, UC-ADM-06, DEC-LOG-08
 revisada, ADR-019). ``GET /api/v2/admin/logs/`` sirve ``RequestLog`` (default) y
@@ -14,6 +14,11 @@ desde DEC-08 slice 2. El contrato JSON de este endpoint (``logger_name``,
 
 ``RequestLog`` vive en ``addons.observability`` (addon net-new, DEC-12) desde
 el slice 3 (antes ``core.models``); el contrato JSON del endpoint no cambia.
+
+Movido desde ``core.admin_views`` en el slice 5 de
+``adoptar-arquitectura-server-service-odoo`` (DEC-10): ambos modelos servidos
+(``RequestLog`` + ``IrLogging`` via ``addons.base``) ya vivian fuera de
+``core``, asi que el endpoint que los expone se une a su hogar natural.
 
 - Reemplaza al Django admin (H-API-LOG-01: gated tras ``DJANGO_ADMIN_ENABLED``,
   deshabilitado en prod). Es el patron ``apps/<app>/admin_urls.py`` del proyecto.

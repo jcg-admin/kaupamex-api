@@ -1,11 +1,15 @@
 """
-apps/core/logging_handlers.py
+tools/logging_handlers.py
 
 DatabaseLogHandler (SOL-011 T-03, DEC-LOG-02): un ``logging.Handler`` que
 persiste cada ``LogRecord`` ruteado por ``LOGGING`` al modelo fiel
 ``IrLogging`` (``ir.logging``, ``addons.base`` — DEC-08, slice 2). Adaptado del
 patron de django-db-logger 0.1.13 (MIT) sobre un modelo propio PII-safe
 (DEC-LOG-06); no se instala el paquete.
+
+Movido desde ``core.logging_handlers`` en el slice 5 de
+``adoptar-arquitectura-server-service-odoo`` (DEC-10): utilidad de logging sin
+modelo Django propio, fiel a Odoo la ubica en ``tools/``.
 
 Garantias:
 
@@ -34,8 +38,8 @@ import threading
 from django.apps import apps as django_apps
 from django.db import connection
 
-from core.log_scrubber import scrub
-from core.logging_context import get_correlation_id
+from tools.log_scrubber import scrub
+from tools.logging_context import get_correlation_id
 
 _reentrancy = threading.local()
 _exc_formatter = logging.Formatter()

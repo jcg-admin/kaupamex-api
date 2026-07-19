@@ -1,9 +1,14 @@
 """
-apps/core/management/commands/purge_logs.py
+addons/observability/management/commands/purge_logs.py
 
 purge_logs (SOL-011 T-07, DEC-LOG-05): purga por retencion de las tablas de
 logging, corrida por cron. Sin retencion las tablas crecen sin limite (gap de
 django-db-logger). Idempotente: si no hay filas vencidas, borra 0.
+
+Movido desde ``core.management.commands.purge_logs`` en el slice 5 de
+``adoptar-arquitectura-server-service-odoo`` (DEC-10): purga ``IrLogging``
+(``addons.base``) + ``RequestLog`` (``addons.observability``), asi que el
+comando se une al addon que sirve la mitad de las tablas que purga.
 
 Politica ratificada (2026-07-09):
   - RequestLog:            30 dias
