@@ -28,6 +28,8 @@ from addons.mail.models import (
 from addons.notifications.models import Notification, NotificationType
 from addons.orders.models import Order
 from addons.returns.models import ReturnRequest
+from addons.sms.models import SmsSms
+from addons.sms.services import mark_sms_error, mark_sms_sent, send_thread_sms
 from addons.support.models import SupportTicket
 from tests.factories.user_factory import UserFactory
 
@@ -439,3 +441,37 @@ class TestMailThreadEmailChannel:
             'S', 'B', 'from@x.com', [user.email], notification=n)
         n.refresh_from_db()
         assert n.notification_status == MailNotification.STATUS_SENT
+
+
+class TestMailThreadSmsChannel:
+    """Canal SMS del backbone (addon ``sms``): ``send_thread_sms`` registra la
+    intencion ``sms.sms`` + la ``mail.notification`` de canal sms cruzadas; el
+    transporte real las resuelve con mark_sms_sent/mark_sms_error."""
+
+    def test_send_thread_sms_records_intent_and_delivery(self, ticket, user):
+        notif = send_thread_sms(ticket, user, body='Tu ticket avanzo', number='5215500000000')
+        assert notif.notification_type == MailNotification.TYPE_SMS
+        assert notif.notification_status == MailNotification.STATUS_PROCESS
+        assert notif.sms_id is not None
+        assert notif.sms.number == '5215500000000'
+        assert notif.sms.body == 'Tu ticket avanzo'
+        assert notif.sms.state == SmsSms.STATE_PENDING
+        # mensaje del hilo publicado
+        assert notif.message.model == 'support.SupportTicket'
+
+    def test_mark_sms_sent_transitions_both(self, ticket, user):
+        notif = send_thread_sms(ticket, user, body='hola', number='52155')
+        mark_sms_sent(notif)
+        notif.refresh_from_db()
+        notif.sms.refresh_from_db()
+        assert notif.notification_status == MailNotification.STATUS_SENT
+        assert notif.sms.state == SmsSms.STATE_SENT
+
+    def test_mark_sms_error_transitions_both(self, ticket, user):
+        notif = send_thread_sms(ticket, user, body='hola', number='52155')
+        mark_sms_error(notif, 'no credit')
+        notif.refresh_from_db()
+        notif.sms.refresh_from_db()
+        assert notif.notification_status == MailNotification.STATUS_EXCEPTION
+        assert notif.sms.state == SmsSms.STATE_ERROR
+        assert 'no credit' in notif.failure_reason
