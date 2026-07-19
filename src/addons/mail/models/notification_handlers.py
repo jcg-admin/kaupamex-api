@@ -1,9 +1,9 @@
-"""
-Signal handlers — addons.notifications. DEC-BC-19.
+"""Signal handlers downstream — familia ``mail``. DEC-BC-19.
 
-Conectado en NotificationsConfig.ready().
-Stub: infraestructura para handlers downstream futuros
-(analytics, CRM push, marketing emails).
+Reubicado desde ``notifications.handlers`` (slice 3e-2 de la disolucion
+notifications->mail). Conectado en ``MailConfig.ready()``. Stub: infraestructura
+para handlers downstream futuros (analytics, CRM push, marketing emails) sobre la
+senal ``orders.order_created``.
 """
 import logging
 from django.dispatch import receiver

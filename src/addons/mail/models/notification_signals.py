@@ -1,8 +1,16 @@
-"""
-signals.py — addons.notifications (UC-NOT-01..05, UC-NOT-08)
+"""Signal receivers de notificacion transaccional — familia ``mail``.
 
-Conecta eventos de dominio a notify_* de service.py.
-Wiring: NotificationsConfig.ready() importa este modulo.
+Reubicado desde ``notifications.signals`` (slice 3e-2 de la disolucion
+notifications->mail). Conecta eventos de dominio (orden, refund, devolucion,
+soporte) a los ``notify_*`` de ``mail.notification_service``. En Odoo esto lo
+hace ``mail.thread`` (subtypes + automated actions); aqui es la adaptacion de
+proyecto por ``@receiver`` sobre los ``post_save``/``pre_save`` de cada dominio.
+Wiring: ``MailConfig.ready()`` importa este modulo (los imports de modelos de
+orders/payments/returns/support al top son seguros porque el modulo se importa
+diferido en ``ready()``). UC-NOT-01..05, UC-NOT-08.
+
+transaction.on_commit en ``notification_service`` garantiza email solo si la
+transaccion que disparo el post_save commiteo.
 
 UC-NOT-01: OrderValue.post_save(created=True) — dispara cuando el
   snapshot financiero se persiste, garantizando que instance.total
@@ -14,9 +22,6 @@ UC-NOT-02: Order.post_save(created=False) + transicion de status —
 UC-NOT-04: ReturnRequest.post_save, transicion a APPROVED/REJECTED.
 UC-NOT-05: Refund.post_save(created=True, status=APPROVED).
 UC-NOT-08: SupportTicket.post_save(created=False) — transicion a CLOSED.
-
-transaction.on_commit en service.py garantiza email solo si la
-transaccion que disparo el post_save commiteo.
 """
 import logging
 

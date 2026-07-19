@@ -1,5 +1,3 @@
-import importlib
-
 from django.apps import AppConfig
 
 
@@ -8,13 +6,10 @@ class NotificationsConfig(AppConfig):
     name = 'addons.notifications'
     verbose_name = 'Notificaciones'
 
-    def ready(self):
-        # Signal wiring. No puede ser un `import` top-level de apps.py
-        # porque addons.notifications.signals importa modelos
-        # (addons.orders/payments/returns/support) antes de que el app
-        # registry este listo (AppRegistryNotReady). Excepcion #3 de
-        # no-lazy-imports.md (constraint de lifecycle, no ciclo de
-        # codigo): se difiere con importlib.import_module — `import
-        # importlib` queda visible al top del modulo.
-        importlib.import_module('addons.notifications.handlers')
-        importlib.import_module('addons.notifications.signals')
+    # Sin ready(): los signals de notificación transaccional
+    # (``handlers``/``signals``) se reubicaron a ``addons.mail`` y se registran
+    # en ``MailConfig.ready()`` (disolución notifications→mail, slice 3e-2). El
+    # addon queda como shell: sin modelos (todos en ``mail``) y sin wiring de
+    # signals; conserva por ahora views/serializers/urls (slice 3e-3) y sus
+    # migraciones — que ``mail`` referencia en su grafo, por lo que no puede
+    # salir de INSTALLED_APPS sin un squash.

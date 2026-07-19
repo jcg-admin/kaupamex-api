@@ -1,7 +1,7 @@
 """
 Tests — Signal wiring para notificaciones transaccionales (UC-NOT-01..05)
 
-Verifica que los signal receivers en addons.notifications.signals disparan
+Verifica que los signal receivers en addons.mail.models.notification_signals disparan
 las funciones notify_* correctas cuando los modelos de dominio cambian.
 
 on_commit se parchea para ejecutar callbacks inmediatamente (los tests

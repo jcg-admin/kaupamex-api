@@ -4,7 +4,7 @@ auto_close_support_tickets — management command (UC-NOT-08).
 Cierra automaticamente tickets en estado AWAITING_USER que no han
 tenido actividad por mas de AUTO_CLOSE_DAYS dias. El cierre dispara
 el signal post_save de SupportTicket que envia UC-NOT-08 via
-addons.notifications.signals.
+addons.mail.models.notification_signals.
 
 Ejecutar via cron (sin Celery — cnst-arquitectura T6):
     0 * * * * cd /path/to/api && python manage.py auto_close_support_tickets
