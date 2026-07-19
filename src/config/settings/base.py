@@ -77,7 +77,6 @@ INSTALLED_APPS = [
     'addons.returns',
     'addons.notifications',
     'addons.contact',
-    'addons.newsletter',
     'addons.mass_mailing',
     'addons.website_mass_mailing',
     'addons.questions',
@@ -488,8 +487,6 @@ SPECTACULAR_SETTINGS = {
             'addons.settings_app.models.StaticPageVersion.STATUS_CHOICES',
         'NotificationStatusEnum':
             'addons.notifications.models.ManualNotification.Status',
-        'NewsletterSubscriberStatusEnum':
-            'addons.newsletter.models.SubscriberStatus.choices',
         'QuestionStatusEnum':
             'addons.questions.models.QuestionStatus.choices',
         'SupportTicketStatusEnum':

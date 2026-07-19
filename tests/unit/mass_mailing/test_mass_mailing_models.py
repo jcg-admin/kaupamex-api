@@ -1,21 +1,10 @@
 """TDD del addon ``mass_mailing`` — hogar Odoo fiel de la newsletter (en
 disolucion). Verifica el contrato de los modelos portados: list/contact/
 subscription (opt-out por lista) / mailing (hereda mail.thread) / trace."""
-import importlib
-
 import pytest
-from django.apps import apps as global_apps
 from django.db import IntegrityError, transaction
 
 from addons.mail.models import MailMessage, MailThread
-from addons.newsletter.models import (
-    NewsletterCampaign,
-    NewsletterSubscriber,
-    SubscriberStatus,
-)
-
-_mig_0003 = importlib.import_module(
-    'addons.mass_mailing.migrations.0003_migrate_newsletter_data')
 from addons.mass_mailing.models import (
     MailingContact,
     MailingList,
@@ -135,29 +124,8 @@ class TestSubscriptionOptInLifecycle:
         assert s1.unsubscribe_token != s2.unsubscribe_token
 
 
-class TestNewsletterDataMigration:
-    """El paso 2b copia newsletter→mass_mailing sin perdida y preservando los
-    tokens de baja. Se ejercita ``forwards`` con el registro real."""
-
-    def test_forwards_maps_subscriber_and_campaign(self, db):
-        sub = NewsletterSubscriber.objects.create(
-            email='mig@x.com', status=SubscriberStatus.CONFIRMED)
-        NewsletterCampaign.objects.create(subject='Camp X', body='<p>b</p>')
-
-        _mig_0003.forwards(global_apps, None)
-
-        contact = MailingContact.objects.get(email='mig@x.com')
-        s = MailingSubscription.objects.get(contact=contact)
-        # token de baja preservado → los enlaces ya enviados siguen validos
-        assert s.unsubscribe_token == sub.unsubscribe_token
-        assert s.is_confirmed is True
-        m = MailingMailing.objects.get(subject='Camp X')
-        assert m.body_html == '<p>b</p>'
-        assert m.state == MailingMailing.STATE_DRAFT  # sin sent_at
-
-    def test_forwards_maps_unsubscribed(self, db):
-        NewsletterSubscriber.objects.create(
-            email='out@x.com', status=SubscriberStatus.UNSUBSCRIBED)
-        _mig_0003.forwards(global_apps, None)
-        s = MailingSubscription.objects.get(contact__email='out@x.com')
-        assert s.opt_out is True
+# La cobertura de la migración de datos ``0003`` (newsletter→mass_mailing) vivió
+# en ``TestNewsletterDataMigration`` mientras el addon ``newsletter`` existía
+# (pasos 2b/2c). En el paso 3 el addon se retiró: ``0003`` es ahora un no-op
+# resiliente (guarda ``LookupError``) y no hay modelos ``newsletter`` que
+# ejercitar. La copia sin pérdida quedó verificada en el historial (api@f26528a).

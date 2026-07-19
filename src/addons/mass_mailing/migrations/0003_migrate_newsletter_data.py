@@ -21,8 +21,15 @@ NEWSLETTER_LIST_NAME = 'Newsletter'
 
 
 def forwards(apps, schema_editor):
-    Subscriber = apps.get_model('newsletter', 'NewsletterSubscriber')
-    Campaign = apps.get_model('newsletter', 'NewsletterCampaign')
+    # El addon ``newsletter`` fue retirado (paso 3): en instalaciones nuevas ya
+    # no existe → esta copia es un no-op. En la BD que aún tenía sus tablas, la
+    # copia ya corrió antes del retiro. Guardamos el LookupError para que la
+    # migración siga siendo aplicable sin el addon fuente.
+    try:
+        Subscriber = apps.get_model('newsletter', 'NewsletterSubscriber')
+        Campaign = apps.get_model('newsletter', 'NewsletterCampaign')
+    except LookupError:
+        return
     MailingList = apps.get_model('mass_mailing', 'MailingList')
     MailingContact = apps.get_model('mass_mailing', 'MailingContact')
     MailingSubscription = apps.get_model('mass_mailing', 'MailingSubscription')
@@ -80,7 +87,6 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('mass_mailing', '0002_mailingsubscription_confirmation_token_and_more'),
-        ('newsletter', '0001_initial'),
     ]
 
     operations = [
