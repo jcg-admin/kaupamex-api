@@ -11,11 +11,10 @@ Relacion en el backbone: cuando ``MailThread.message_post`` publica un mensaje,
 se materializa una ``MailNotification`` de tipo ``inbox`` por cada **seguidor**
 del registro (menos el autor) — igual que el ``_notify_thread`` de Odoo reparte
 el mensaje a los followers. Los canales ``email`` / ``sms`` cuelgan del mismo
-registro con un cross-link al envio saliente concreto (``EmailTask`` de
-``notifications`` ≙ ``mail.mail``; ``SmsSms`` de ``sms`` ≙ ``sms.sms``),
-referenciados por **string** para no acoplar el backbone a esos addons (Django
-resuelve la FK de forma diferida; el ``__init__`` del backbone no importa
-``notifications``/``sms``).
+registro con un cross-link al envio saliente concreto (``mail.mail`` = la cola
+``MailMail``, hogar Odoo fiel de la ex-``EmailTask``; ``SmsSms`` de ``sms`` ≙
+``sms.sms``), referenciados por **string** para no acoplar el orden de import
+(Django resuelve la FK de forma diferida).
 """
 from django.conf import settings
 from django.utils import timezone
@@ -109,12 +108,12 @@ class MailNotification(TimeStampedModel):
         blank=True, default='',
         help_text='Detalle del fallo (Odoo failure_reason).',
     )
-    # Cross-link al envio saliente concreto. String FK para no acoplar el
-    # backbone a notifications/sms (Odoo: mail_mail_id / sms_id, agregados por
-    # sus modulos via _inherit). SET_NULL: el registro de entrega sobrevive al
-    # purgado de la cola de envio.
-    email_task = fields.Many2one(
-        'notifications.EmailTask', on_delete=models.SET_NULL,
+    # Cross-link al envio saliente concreto (Odoo ``mail_mail_id``). Ahora apunta
+    # al hogar fiel ``mail.mail`` (``MailMail``), ex-``notifications.EmailTask``.
+    # String FK para no acoplar el orden de import; SET_NULL: el registro de
+    # entrega sobrevive al purgado de la cola de envio.
+    mail_mail = fields.Many2one(
+        'mail.MailMail', on_delete=models.SET_NULL,
         null=True, blank=True, related_name='mail_notifications',
         help_text='Envio de correo asociado (Odoo mail_mail_id).',
     )

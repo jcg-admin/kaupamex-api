@@ -6,10 +6,11 @@
 ``odoo/addons/mail/models/mail_mail.py``) — sobre el transporte SMTP
 ``ir.mail_server`` de ``addons/base``.
 
-Primer inquilino: ``email_executor`` (dispatch async por ``ThreadPoolExecutor`` +
-cola de reintento; ≙ ``mail.mail.process_email_queue``). La cola de reintento
-``EmailTask`` vive hoy en ``addons.notifications`` y migrará aquí cuando
-``notifications`` se disuelva en ``mail`` (Odoo: ``mail.message``/``mail.mail``).
+La cola de correo saliente es ``mail.mail`` (``MailMail``) — hogar Odoo fiel de
+la ex-``notifications.EmailTask`` (disuelta en esta familia) — drenada por el
+management command ``send_pending_emails`` (≙ ``mail.mail.process_email_queue``).
+``email_executor`` hace el dispatch async por ``ThreadPoolExecutor`` y reencola
+en ``mail.mail`` los envíos que fallan en el thread pool.
 """
 from django.apps import AppConfig
 

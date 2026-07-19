@@ -8,15 +8,15 @@ Un archivo por modelo Odoo (monolito modular, como Odoo). Backbone del chatter:
 - ``mail_thread.py`` → ``MailThread`` (``mail.thread``, mixin abstracto que dota
   a cualquier modelo de ``message_post``/``message_subscribe``).
 
-El envío de correo de Odoo vive en ``models/mail_mail.py`` (``mail.mail`` con
-``process_email_queue``). Aquí reside el servicio de envío async ``email_executor``
-(≙ ``mail.mail.process_email_queue``) como módulo de la capa de modelos.
+El correo saliente de Odoo vive en ``models/mail_mail.py`` (``mail.mail``, la
+cola encolada + envío async por ``process_email_queue``; hogar fiel de la
+ex-``notifications.EmailTask``). El servicio de dispatch async ``email_executor``
+(≙ ``mail.mail.process_email_queue``) reside aquí como módulo de la capa de
+modelos y ya solo depende de ``mail`` (``MailMail``), no de ``notifications``.
 
-No se importa ``email_executor`` en este ``__init__`` a propósito: importa
-``EmailTask`` de ``addons.notifications`` y no debe cargarse al poblar el
-registro de apps. Los consumidores importan la ruta completa
-``addons.mail.models.email_executor``. Los modelos del backbone NO importan
-``notifications`` — son seguros de reexportar aquí.
+``email_executor`` no se reexporta en este ``__init__`` a propósito: es un módulo
+de servicio con estado (un ``ThreadPoolExecutor``), no un modelo. Los
+consumidores importan la ruta completa ``addons.mail.models.email_executor``.
 """
 from .mail_message_subtype import MailMessageSubtype
 from .mail_message import MailMessage

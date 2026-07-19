@@ -13,11 +13,11 @@ from django.core import mail as django_mail
 
 from addons.crm.models import CrmLead
 from addons.mail.models import email_executor
-from addons.notifications.models import EmailTask
 from addons.mail.models import (
     MailActivity,
     MailActivityType,
     MailFollowers,
+    MailMail,
     MailMessage,
     MailMessageSubtype,
     MailNotification,
@@ -348,12 +348,12 @@ class TestMailNotification:
         assert note.internal is True and note.hidden is True
 
     def test_notification_cross_link_fields_nullable(self, ticket, user):
-        """email_task / sms son cross-links opcionales al envio saliente."""
+        """mail_mail / sms son cross-links opcionales al envio saliente."""
         follower = UserFactory()
         ticket.message_subscribe([follower])
         msg = ticket.message_post(body='x', author=user)
         n = MailNotification.objects.get(message=msg, partner=follower)
-        assert n.email_task_id is None and n.sms_id is None
+        assert n.mail_mail_id is None and n.sms_id is None
 
 
 class TestNotificationInboxBridge:
@@ -404,29 +404,29 @@ class TestMailThreadEmailChannel:
         # correo realmente enviado (DISPATCH_EMAIL_SYNC en testing)
         assert len(django_mail.outbox) == 1
         assert user.email in django_mail.outbox[0].to
-        # notificacion de canal email, estado sent, sin EmailTask (exito)
+        # notificacion de canal email, estado sent, sin mail.mail (exito)
         assert notif.notification_type == MailNotification.TYPE_EMAIL
         assert notif.notification_status == MailNotification.STATUS_SENT
-        assert notif.email_task_id is None
+        assert notif.mail_mail_id is None
         # el mensaje del hilo quedo publicado (tipo email)
         assert notif.message.model == 'support.SupportTicket'
         assert notif.message.message_type == MailMessage.TYPE_EMAIL
 
-    def test_dispatch_failure_links_emailtask_and_exception(
+    def test_dispatch_failure_links_mail_mail_and_exception(
             self, ticket, user, monkeypatch):
         # forzar fallo del envio SMTP (sync en testing)
         def _boom(*a, **k):
             raise RuntimeError('smtp down')
         monkeypatch.setattr(email_executor, '_send_mail', _boom)
-        before = EmailTask.objects.count()
+        before = MailMail.objects.count()
         notif = email_executor.send_thread_email(
             ticket, user, subject='X', body='Y',
         )
-        # se reencolo un EmailTask y la notificacion quedo en exception + cross-link
-        assert EmailTask.objects.count() == before + 1
+        # se reencolo un mail.mail y la notificacion quedo en exception + cross-link
+        assert MailMail.objects.count() == before + 1
         assert notif.notification_status == MailNotification.STATUS_EXCEPTION
         assert notif.failure_type == MailNotification.FAILURE_MAIL_SMTP
-        assert notif.email_task_id is not None
+        assert notif.mail_mail_id is not None
         assert 'smtp down' in notif.failure_reason
 
     def test_dispatch_email_notification_param_marks_sent(self, ticket, user):

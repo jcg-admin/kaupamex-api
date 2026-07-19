@@ -141,16 +141,21 @@ class MailMail(TimeStampedModel):
 
     @classmethod
     def enqueue(cls, *, to, subject='', body_html='', email_from='',
-                email_cc='', scheduled_date=None, max_attempts=3):
+                email_cc='', scheduled_date=None, max_attempts=3,
+                failure_reason=''):
         """Encola un correo saliente (Odoo ``mail.mail.create`` con ``state='outgoing'``).
 
         Reemplaza a ``EmailTask.objects.create(...)`` como punto de entrada de la
         cola de reintento. El envio efectivo lo hace ``email_executor``.
+        ``failure_reason`` preserva el error del intento previo del thread pool
+        cuando ``email_executor`` reencola tras un fallo (fiel a Odoo, que
+        conserva ``failure_reason`` entre reintentos).
         """
         return cls.objects.create(
             email_to=to, subject=subject, body_html=body_html,
             email_from=email_from, email_cc=email_cc,
             scheduled_date=scheduled_date, max_attempts=max_attempts,
+            failure_reason=(failure_reason or '')[:1000],
         )
 
     @classmethod
@@ -167,12 +172,18 @@ class MailMail(TimeStampedModel):
         """El envio puede reintentarse: sigue ``outgoing`` y no agoto intentos."""
         return self.state == self.STATE_OUTGOING and self.attempts < self.max_attempts
 
-    def mark_sent(self) -> None:
-        """Marca el correo como enviado (Odoo ``state='sent'``)."""
+    def mark_sent(self, *, count_attempt=False) -> None:
+        """Marca el correo como enviado (Odoo ``state='sent'``). ``count_attempt``
+        suma el intento exitoso al contador (lo usa el cron para reflejar el total
+        de tries, como hacia ``EmailTask``)."""
         self.state = self.STATE_SENT
         self.failure_type = None
         self.failure_reason = ''
-        self.save(update_fields=['state', 'failure_type', 'failure_reason', 'updated_at'])
+        fields = ['state', 'failure_type', 'failure_reason', 'updated_at']
+        if count_attempt:
+            self.attempts = self.attempts + 1
+            fields.append('attempts')
+        self.save(update_fields=fields)
 
     def mark_exception(self, failure_type, reason='') -> None:
         """Registra un fallo de entrega (Odoo ``state='exception'``) y suma un
@@ -190,3 +201,23 @@ class MailMail(TimeStampedModel):
         siguiente reintento. Adaptacion de proyecto (cola sin broker)."""
         self.state = self.STATE_OUTGOING
         self.save(update_fields=['state', 'updated_at'])
+
+    def register_failed_attempt(self, failure_type, reason='', *, backoff=None):
+        """Contabiliza un intento de envio fallido de la cola (≙ el manejo de
+        fallo de ``process_email_queue``). Suma un intento y guarda el error; si
+        se agoto ``max_attempts`` el correo pasa a ``exception`` (terminal), si
+        no permanece ``outgoing`` para el siguiente reintento — difiriendo el
+        envio con ``backoff`` (``timedelta``) si se pasa. Adaptacion de proyecto:
+        la cola de reintento sin broker (ex-``EmailTask``)."""
+        self.attempts = self.attempts + 1
+        self.failure_type = failure_type
+        self.failure_reason = (reason or '')[:1000]
+        fields = ['attempts', 'failure_type', 'failure_reason', 'state', 'updated_at']
+        if self.attempts >= self.max_attempts:
+            self.state = self.STATE_EXCEPTION
+        else:
+            self.state = self.STATE_OUTGOING
+            if backoff is not None:
+                self.scheduled_date = timezone.now() + backoff
+                fields.append('scheduled_date')
+        self.save(update_fields=fields)
