@@ -18,7 +18,7 @@ from addons.returns.models import ReturnRequest
 
 pytestmark = pytest.mark.integration
 
-_ON_COMMIT_PATH = 'addons.notifications.service.transaction.on_commit'
+_ON_COMMIT_PATH = 'addons.mail.models.notification_service.transaction.on_commit'
 
 
 # ── Helpers ─────────────────────────────────────────────────────────────

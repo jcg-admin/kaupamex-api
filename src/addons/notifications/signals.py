@@ -30,7 +30,7 @@ from addons.payments.models import Refund
 from addons.returns.models import ReturnRequest
 from addons.support.models import SupportTicket
 
-from .service import (
+from addons.mail.models.notification_service import (
     notify_order_created,
     notify_order_status_changed,
     notify_refund_processed,

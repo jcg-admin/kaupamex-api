@@ -5,7 +5,7 @@ Antes leían ``settings.DEFAULT_FROM_EMAIL`` (``default=`` global cableado a
 ``noreply@practicayoruba.com``); ahora leen
 ``CompanySetting.get_setting('notifications.from_email', <neutral>)``:
 
-- ``addons.notifications.emails._from_email()`` usa la empresa **ambiente**
+- ``addons.mail.models.notification_emails._from_email()`` usa la empresa **ambiente**
   (``CompanyContextMiddleware`` la fija desde ``request.user.company_id``);
   bajo N=1 los correos de órdenes/envíos disparan en requests autenticados,
   así que resuelve al founder (PracticaYoruba).
@@ -22,7 +22,7 @@ from django.core import mail
 
 from addons.company.context import company_scope
 from addons.company.models import Company, CompanySetting, FOUNDER_L1_SETTINGS
-from addons.notifications.emails import (
+from addons.mail.models.notification_emails import (
     NOTIFICATIONS_FROM_EMAIL_DEFAULT,
     _from_email,
 )
@@ -47,7 +47,7 @@ def _reseed_founder_settings(db):
 
 
 class TestNotificationsFromEmail:
-    """``addons.notifications.emails._from_email()`` — empresa ambiente."""
+    """``addons.mail.models.notification_emails._from_email()`` — empresa ambiente."""
 
     def test_ambient_founder_resolves_seeded_value(self):
         founder = Company.get_founder()

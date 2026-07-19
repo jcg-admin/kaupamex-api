@@ -31,7 +31,7 @@ from rest_framework.views import APIView
 from addons.orders.models import Order, OrderItem
 from addons.payments.models import Payment, Refund
 from addons.payments.services import execute_refund
-from addons.notifications.service import notify_return_info_requested
+from addons.mail.models.notification_service import notify_return_info_requested
 from config.schema import error_response
 from .models import ReturnEvidence, ReturnHistoryEntry, ReturnItem, ReturnRequest
 from .serializers import (

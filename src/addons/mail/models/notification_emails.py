@@ -1,6 +1,16 @@
-"""
-emails.py — addons.notifications
-Funciones de envio de email transaccional. UC-NOT-01..05, UC-NOT-08.
+"""Funciones de envio de email transaccional — servicio de la familia ``mail``.
+
+Reubicado desde ``notifications.emails`` (slice 3e de la disolucion
+notifications->mail). Envia los correos transaccionales (confirmacion de orden,
+cambio de estado, envio, devolucion, reembolso, soporte, verificacion de
+tarjeta) via el dispatcher async ``mail.email_executor.dispatch_email``. En Odoo
+estos correos se plantillan con ``mail.template`` y se encolan en ``mail.mail``;
+aqui son la adaptacion de proyecto (render de plantilla + dispatch).
+
+Modulo de **servicio** (no modelo): no se reexporta en ``models/__init__`` — los
+consumidores importan la ruta completa ``addons.mail.models.notification_emails``
+(mismo criterio que ``email_executor``/``manual_fanout``). UC-NOT-01..05,
+UC-NOT-08.
 
 No usa fail_silently=True — los errores se registran via logger
 para cumplir POST-F01 (fallo siempre registrado, nunca silenciado).

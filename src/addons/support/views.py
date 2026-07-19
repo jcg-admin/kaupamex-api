@@ -34,7 +34,7 @@ from addons.authz.permissions import HasCapability
 from addons.authz.services import SUPERADMIN_ROLE_CODE, is_superadmin
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from addons.notifications.service import notify_support_created
+from addons.mail.models.notification_service import notify_support_created
 from addons.orders.models import Order
 from .models import SupportTicket, SupportTicketReply
 from .serializers import AdminSupportTicketListSerializer, SupportTicketCloseSerializer, SupportTicketCreateResponseSerializer, SupportTicketCreateSerializer, SupportTicketDetailSerializer, SupportTicketListSerializer, SupportTicketReplyCreateSerializer, SupportTicketReplySerializer

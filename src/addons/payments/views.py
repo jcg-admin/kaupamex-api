@@ -39,7 +39,7 @@ from .services import (
     get_payment_status, get_payment_history, execute_refund, get_retry_eligibility,
     initiate_checkout_api_payment, get_mp_public_key, get_or_create_mp_customer,
 )
-from addons.notifications.emails import send_card_verification_email
+from addons.mail.models.notification_emails import send_card_verification_email
 from .gateways.mercadopago import MercadoPagoGateway
 from addons.users.models import Address
 from addons.settings_app.models import ShippingMethod, SiteSettings

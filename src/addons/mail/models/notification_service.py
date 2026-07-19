@@ -1,6 +1,15 @@
-"""
-service.py — addons.notifications
-Servicios de notificacion transaccional. UC-NOT-01..05, UC-NOT-08.
+"""Servicios de notificacion transaccional — servicio de la familia ``mail``.
+
+Reubicado desde ``notifications.service`` (slice 3e de la disolucion
+notifications->mail). Cada ``notify_*`` es el puente de un evento de negocio
+(orden creada/estado, envio, devolucion, reembolso, soporte) al backbone de
+mensajeria: crea el item de buzon ``Notification`` y despacha el correo
+transaccional (``notification_emails``). En Odoo esto lo hace ``mail.thread``
+(subtypes + ``message_post``) via automated actions; aqui es la adaptacion de
+proyecto. Modulo de **servicio** (no modelo): no se reexporta en
+``models/__init__``; los consumidores importan la ruta completa
+``addons.mail.models.notification_service`` (mismo criterio que
+``email_executor``/``manual_fanout``). UC-NOT-01..05, UC-NOT-08.
 
 Cada funcion `notify_*` hace dos cosas:
 1. Crea la Notification in-app (debe llamarse dentro de transaction.atomic).
@@ -13,7 +22,7 @@ No se usa Celery — el stack del proyecto no incluye broker de tareas.
 """
 from django.db import transaction
 from addons.mail.models import Notification, NotificationType
-from .emails import (
+from .notification_emails import (
     send_order_confirmation_email,
     send_order_status_email,
     send_shipping_update_email,
