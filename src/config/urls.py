@@ -55,8 +55,8 @@ urlpatterns = _admin_urls + [
     path('api/v2/wishlist/',       include(('addons.wishlist.urls', 'wishlist'),               namespace='wishlist_v2')),
     path('api/v2/admin/',          include(('addons.wishlist.admin_urls', 'admin_wishlist'),   namespace='admin_wishlist_v2')),
     path('api/v2/account/',        include(('addons.referral.urls', 'referral'),               namespace='referral_v2')),
-    path('api/v2/notifications/',  include(('addons.notifications.urls', 'notifications'),     namespace='notifications_v2')),
-    path('api/v2/admin/',          include(('addons.notifications.admin_notifications', 'admin_notifications'),
+    path('api/v2/notifications/',  include(('addons.mail.urls', 'notifications'),     namespace='notifications_v2')),
+    path('api/v2/admin/',          include(('addons.mail.admin_notifications', 'admin_notifications'),
                                            namespace='admin_notifications_v2')),
 
     # ─── API v2 (F3: orders, returns, reviews, questions, support) ──────────────
