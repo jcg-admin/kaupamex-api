@@ -1,10 +1,15 @@
 """
 Tests — Newsletter endpoints (UC-NEW-01..04)
 
+La persistencia se movió a ``mass_mailing`` (disolución del addon ``newsletter``):
+estos tests ejercen el MISMO contrato HTTP pero contra la lista canónica
+``"Newsletter"`` de ``mass_mailing`` (``MailingSubscription``). El estado de
+negocio PENDING/CONFIRMED/UNSUBSCRIBED se deriva vía ``services.status_of``.
+
 Public:
-  POST /api/v2/newsletter/subscribe/
-  POST /api/v2/newsletter/subscriptions/confirmations/<token>/
-  POST /api/v2/newsletter/unsubscribe/
+  POST   /api/v2/newsletter/subscriptions/
+  POST   /api/v2/newsletter/subscriptions/confirmations/
+  DELETE /api/v2/newsletter/subscriptions/
 
 Admin:
   GET  /api/v2/admin/newsletter/subscribers/
@@ -17,7 +22,8 @@ import time
 from unittest.mock import patch
 
 import pytest
-from addons.newsletter.models import NewsletterSubscriber
+from addons.mass_mailing import services as mm
+from addons.mass_mailing.models import MailingSubscription
 from django.core import mail, signing
 
 pytestmark = pytest.mark.integration
@@ -33,8 +39,15 @@ def _admin_force_unsub_url(pk):
     return f'/api/v2/admin/newsletter/subscribers/{pk}/unsubscribe/'
 
 
-def _make_subscriber(email='sub@example.com', status='CONFIRMED'):
-    return NewsletterSubscriber.objects.create(email=email, status=status)
+def _make_subscriber(email='sub@example.com', status='CONFIRMED',
+                     confirmation_token=None):
+    """Crea una MailingSubscription en la lista Newsletter en el estado dado."""
+    sub = mm.create_pending(email, confirmation_token)
+    if status == 'CONFIRMED':
+        sub.confirm()
+    elif status == 'UNSUBSCRIBED':
+        sub.unsubscribe()
+    return sub
 
 
 # ─── POST /newsletter/subscribe ──────────────────────────────────────────
@@ -48,8 +61,9 @@ class TestSubscribe:
         assert body['email'] == 'nuevo@example.com'
         assert body['status'] == 'PENDING'
 
-        assert NewsletterSubscriber.objects.filter(
-            email='nuevo@example.com',
+        assert MailingSubscription.objects.filter(
+            mailing_list=mm.newsletter_list(),
+            contact__email='nuevo@example.com',
         ).count() == 1
 
     def test_invalid_email_rejected(self, api_client, db):
@@ -75,16 +89,12 @@ class TestSubscribe:
         assert res.json()['status'] == 'PENDING'
 
 
-# ─── POST /newsletter/subscriptions/confirmations/<token> ────────────────────────────────────
+# ─── POST /newsletter/subscriptions/confirmations/ ───────────────────────────
 class TestConfirmSubscription:
     def test_confirm_valid_token(self, api_client, db):
         email = 'pending@example.com'
         token = signing.dumps(email, salt='newsletter-confirm')
-        sub = NewsletterSubscriber.objects.create(
-            email=email,
-            status='PENDING',
-            confirmation_token=token,
-        )
+        sub = _make_subscriber(email, status='PENDING', confirmation_token=token)
 
         res = api_client.post(CONFIRM_URL, {'token': token}, format='json')
         assert res.status_code == 200
@@ -93,7 +103,7 @@ class TestConfirmSubscription:
         assert body['email'] == email
 
         sub.refresh_from_db()
-        assert sub.status == 'CONFIRMED'
+        assert mm.status_of(sub) == 'CONFIRMED'
         assert sub.confirmed_at is not None
         assert sub.confirmation_token is None
 
@@ -107,11 +117,7 @@ class TestConfirmSubscription:
         past = time.time() - 25 * 3600  # 25 hours ago — beyond 24h TTL
         with patch('time.time', return_value=past):
             expired_token = signing.dumps(email, salt='newsletter-confirm')
-        NewsletterSubscriber.objects.create(
-            email=email,
-            status='PENDING',
-            confirmation_token=expired_token,
-        )
+        _make_subscriber(email, status='PENDING', confirmation_token=expired_token)
 
         res = api_client.post(CONFIRM_URL, {'token': expired_token}, format='json')
         assert res.status_code == 400
@@ -120,11 +126,7 @@ class TestConfirmSubscription:
     def test_confirm_already_confirmed_idempotent(self, api_client, db):
         email = 'already@example.com'
         token = signing.dumps(email, salt='newsletter-confirm')
-        NewsletterSubscriber.objects.create(
-            email=email,
-            status='CONFIRMED',
-            confirmation_token=None,
-        )
+        _make_subscriber(email, status='CONFIRMED', confirmation_token=None)
         # Token signature is valid but confirmation_token cleared — returns 400
         res = api_client.post(CONFIRM_URL, {'token': token}, format='json')
         assert res.status_code == 400
@@ -139,7 +141,7 @@ class TestConfirmSubscription:
         assert any('Confirma' in s for s in subjects)
 
 
-# ─── POST /newsletter/unsubscribe ────────────────────────────────────────
+# ─── DELETE /newsletter/subscriptions/ ───────────────────────────────────
 class TestUnsubscribe:
     def test_invalid_token_returns_404(self, api_client, db):
         res = api_client.delete(UNSUB_URL,
@@ -170,8 +172,8 @@ class TestUnsubscribe:
         assert body['status'] == 'UNSUBSCRIBED'
 
         sub.refresh_from_db()
-        assert sub.status == 'UNSUBSCRIBED'
-        assert sub.unsubscribed_at is not None
+        assert mm.status_of(sub) == 'UNSUBSCRIBED'
+        assert sub.opt_out_datetime is not None
 
     def test_token_required(self, api_client, db):
         res = api_client.delete(UNSUB_URL, data={}, format='json')
@@ -255,7 +257,7 @@ class TestAdminForceUnsubscribe:
         assert res.status_code == 200
         assert res.json()['status'] == 'UNSUBSCRIBED'
         sub.refresh_from_db()
-        assert sub.status == 'UNSUBSCRIBED'
+        assert mm.status_of(sub) == 'UNSUBSCRIBED'
 
     def test_admin_force_unsub_returns_404_for_missing(self, admin_client, db):
         res = admin_client.post(_admin_force_unsub_url(999999))
@@ -306,7 +308,7 @@ class TestAdminCreateCampaign:
         _make_subscriber('dos@example.com', status='CONFIRMED')
         _make_subscriber('pendiente@example.com', status='PENDING')
 
-        with patch('addons.newsletter.views.dispatch_email') as mock_dispatch:
+        with patch('addons.mass_mailing.views.campaign.dispatch_email') as mock_dispatch:
             res = admin_client.post(ADMIN_CAMPAIGN_URL, {
                 'subject': 'Campaña async',
                 'body': 'Hola, esto se encola.',

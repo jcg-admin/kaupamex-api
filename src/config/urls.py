@@ -76,8 +76,8 @@ urlpatterns = _admin_urls + [
     # ─── API v2 (F5: logistics/shipments, newsletter, contact, pages, backups,
     #             reports, auth §2.1) ────────────────────────────────────────
     path('api/v2/',            include(('addons.logistics.urls', 'logistics'), namespace='logistics_v2')),
-    path('api/v2/newsletter/', include(('addons.newsletter.urls', 'newsletter'),               namespace='newsletter_v2')),
-    path('api/v2/admin/',      include(('addons.newsletter.admin_urls', 'admin_newsletter'),   namespace='admin_newsletter_v2')),
+    path('api/v2/newsletter/', include(('addons.website_mass_mailing.urls', 'website_mass_mailing'), namespace='newsletter_v2')),
+    path('api/v2/admin/',      include(('addons.mass_mailing.admin_urls', 'admin_newsletter'),   namespace='admin_newsletter_v2')),
     path('api/v2/admin/',      include(('addons.contact.admin_urls', 'admin_contact'),         namespace='admin_contact_v2')),
     path('api/v2/admin/',      include(('addons.settings_app.admin_urls', 'admin_settings'),   namespace='admin_settings_v2')),
     path('api/v2/admin/',      include(('addons.backups.admin_urls', 'admin_backups'),         namespace='admin_backups_v2')),

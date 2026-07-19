@@ -9,7 +9,7 @@ import pytest
 from unittest.mock import patch
 from django.core import signing
 
-from addons.newsletter.models import NewsletterSubscriber
+from addons.mass_mailing import services as mm
 from addons.settings_app.models import StaticPage
 
 pytestmark = pytest.mark.integration
@@ -80,7 +80,7 @@ class TestShipmentsV2Auth:
 
 class TestNewsletterSubscriptionsV2:
     def test_subscribe_201(self, api_client, db):
-        with patch('addons.newsletter.views._send_confirmation_email'):
+        with patch('addons.website_mass_mailing.views.subscribe._send_confirmation_email'):
             r = api_client.post(V2_NEWSLETTER_SUBS,
                                 {'email': 'v2test@example.com'},
                                 format='json')
@@ -107,15 +107,11 @@ class TestNewsletterSubscriptionsV2:
     def test_confirm_valid_token(self, api_client, db):
         email = 'confirm_v2@example.com'
         token = signing.dumps(email, salt='newsletter-confirm')
-        sub = NewsletterSubscriber.objects.create(
-            email=email,
-            status='PENDING',
-            confirmation_token=token,
-        )
+        sub = mm.create_pending(email, token)
         r = api_client.post(V2_NEWSLETTER_CONF, {'token': token}, format='json')
         assert r.status_code == 200
         sub.refresh_from_db()
-        assert sub.status == 'CONFIRMED'
+        assert mm.status_of(sub) == 'CONFIRMED'
 
 
 class TestAdminNewsletterV2:
@@ -132,13 +128,12 @@ class TestAdminNewsletterV2:
         assert r.status_code == 404
 
     def test_unsub_delete_confirmed_subscriber(self, admin_client, db):
-        sub = NewsletterSubscriber.objects.create(
-            email='admin_v2@example.com', status='CONFIRMED',
-        )
+        sub = mm.create_pending('admin_v2@example.com', None)
+        sub.confirm()
         r = admin_client.delete(V2_ADMIN_NL_UNSUB(sub.pk))
         assert r.status_code == 200
         sub.refresh_from_db()
-        assert sub.status == 'UNSUBSCRIBED'
+        assert mm.status_of(sub) == 'UNSUBSCRIBED'
 
 
 # ─── Contact admin v2 ────────────────────────────────────────────────────────

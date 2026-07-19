@@ -1,5 +1,10 @@
-"""Admin URLs — addons.newsletter (UC-NEW-03..04, F8 consolidation)."""
+"""Admin URLs — addons.mass_mailing (UC-NEW-03..04, backend de la newsletter).
+
+Mounted in config/urls.py under ``api/v2/admin/`` (namespace
+``admin_newsletter_v2`` conservado para no romper ``reverse()``).
+"""
 from django.urls import path
+
 from .views import (
     AdminCampaignCreateView,
     AdminSubscriberExportCSVView,
@@ -7,7 +12,6 @@ from .views import (
     AdminSubscriberListView,
     AdminSubscriberSubscriptionDeleteView,
 )
-
 
 app_name = 'admin_newsletter'
 

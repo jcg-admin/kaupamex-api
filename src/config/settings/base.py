@@ -79,6 +79,7 @@ INSTALLED_APPS = [
     'addons.contact',
     'addons.newsletter',
     'addons.mass_mailing',
+    'addons.website_mass_mailing',
     'addons.questions',
     'addons.reports',
     'addons.logistics',

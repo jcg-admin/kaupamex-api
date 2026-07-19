@@ -110,18 +110,3 @@ class MailingSubscription(TimeStampedModel):
         self.opt_out = True
         self.opt_out_datetime = timezone.now()
         self.save(update_fields=['opt_out', 'opt_out_datetime', 'updated_at'])
-
-    class Meta:
-        db_table = 'mailing_subscription'
-        ordering = ['-created_at', '-id']
-        verbose_name = 'Suscripcion a lista de correo'
-        verbose_name_plural = 'Suscripciones a listas de correo'
-        constraints = [
-            models.UniqueConstraint(
-                fields=['contact', 'mailing_list'],
-                name='unique_mailing_subscription',
-            ),
-        ]
-
-    def __str__(self) -> str:
-        return f'{self.contact_id}→{self.mailing_list_id} (opt_out={self.opt_out})'
