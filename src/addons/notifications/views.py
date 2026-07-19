@@ -29,9 +29,8 @@ from addons.authz.permissions import HasCapability
 from addons.orders.models import OrderItem
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from addons.mail.models import MANDATORY_NOTIFICATION_TYPES, NOTIFICATION_TYPE_LABELS, Notification, NotificationPreference, NotificationType
-from .models import ManualNotification
-from .tasks import dispatch_manual_fanout
+from addons.mail.models import MANDATORY_NOTIFICATION_TYPES, NOTIFICATION_TYPE_LABELS, ManualNotification, Notification, NotificationPreference, NotificationType
+from addons.mail.models.manual_fanout import dispatch_manual_fanout
 from .serializers import ManualNotificationCreateSerializer, ManualNotificationResponseSerializer, NotificationPreferenceItemSerializer, NotificationPreferencesUpdateSerializer, NotificationSerializer
 
 

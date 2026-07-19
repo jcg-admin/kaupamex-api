@@ -486,7 +486,7 @@ SPECTACULAR_SETTINGS = {
         'StaticPageVersionStatusEnum':
             'addons.settings_app.models.StaticPageVersion.STATUS_CHOICES',
         'NotificationStatusEnum':
-            'addons.notifications.models.ManualNotification.Status',
+            'addons.mail.models.manual_notification.ManualNotification.Status',
         'QuestionStatusEnum':
             'addons.questions.models.QuestionStatus.choices',
         'SupportTicketStatusEnum':
@@ -502,7 +502,7 @@ SPECTACULAR_SETTINGS = {
         # AudienceFilterEnum: alias para ManualNotification.RecipientType
         # que aparece en serializers diferentes con choice set identico
         'AudienceFilterEnum':
-            'addons.notifications.models.ManualNotification.RecipientType',
+            'addons.mail.models.manual_notification.ManualNotification.RecipientType',
         # `type` field collision: NotificationType es el unico choice set
         # de un campo llamado `type` que necesita nombre estable.
         'NotificationTypeEnum':

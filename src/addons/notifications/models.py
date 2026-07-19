@@ -3,58 +3,16 @@ Models — addons.notifications (UC-NOT-06/07, en disolución hacia ``mail``).
 
 Identifiers in English per DEC-DOC-005.
 
-El buzón ``Notification`` (UC-NOT-01..05) + su ``NotificationType`` (slice 3a) y
-``NotificationPreference`` (UC-NOT-06, slice 3b) se reubicaron a su hogar Odoo
-``addons.mail`` (disolución notifications→mail); se importan de allí. Aquí
-quedan, hasta slices posteriores:
+El buzón ``Notification`` (UC-NOT-01..05) + su ``NotificationType`` (slice 3a),
+``NotificationPreference`` (UC-NOT-06, slice 3b) y ``ManualNotification``
+(UC-NOT-07, slice 3c) se reubicaron a su hogar Odoo ``addons.mail`` (disolución
+notifications→mail); se importan de allí. Aquí queda, hasta el slice 3d:
 
-ManualNotification — envios manuales del admin (UC-NOT-07, slice 3c pendiente).
-EmailTask          — cola legacy (datos ya copiados a ``mail.mail``; retiro 3d).
+EmailTask — cola legacy (datos ya copiados a ``mail.mail``; retiro 3d pendiente).
 """
-from django.conf import settings
 from django.db import models
 
 from addons.base.models import TimeStampedModel
-
-
-class ManualNotification(TimeStampedModel):
-    """Envio manual originado por staff. UC-NOT-07."""
-
-    class RecipientType(models.TextChoices):
-        USER = 'USER', 'Usuario especifico'
-        PRODUCT_BUYERS = 'PRODUCT_BUYERS', 'Compradores de producto'
-
-    class Status(models.TextChoices):
-        PENDING = 'PENDING', 'Pendiente'
-        SENT = 'SENT', 'Enviado'
-        FAILED = 'FAILED', 'Fallido'
-
-    sender = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name='manual_notifications_sent',
-    )
-    recipient_type = models.CharField(
-        max_length=24, choices=RecipientType.choices,
-    )
-    recipient_identifier = models.CharField(max_length=150, blank=True, default='')
-    product_id = models.PositiveIntegerField(null=True, blank=True)
-    subject = models.CharField(max_length=200)
-    message = models.TextField()
-    recipients_count = models.PositiveIntegerField(default=0)
-    status = models.CharField(
-        max_length=16, choices=Status.choices, default=Status.PENDING,
-    )
-
-    class Meta:
-        db_table = 'notifications_manual'
-        ordering = ['-created_at']
-        verbose_name = 'Notificacion manual'
-        verbose_name_plural = 'Notificaciones manuales'
-
-    def __str__(self):
-        return f'Manual#{self.pk} {self.recipient_type} ({self.status})'
 
 
 class EmailTask(TimeStampedModel):

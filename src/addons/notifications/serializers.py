@@ -4,8 +4,7 @@ Serializers — addons.notifications.
 JSON keys in English (DEC-DOC-005).
 """
 from rest_framework import serializers
-from addons.mail.models import Notification, NotificationType
-from .models import ManualNotification
+from addons.mail.models import ManualNotification, Notification, NotificationType
 
 
 

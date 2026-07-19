@@ -1,12 +1,21 @@
-"""
-Fanout de notificaciones manuales — addons.notifications (UC-NOT-07).
+"""Fan-out de notificaciones manuales — servicio de la familia ``mail``.
 
-dispatch_manual_fanout: crea Notification para cada user_id
-respetando preferencias. Llamada directamente desde
-AdminManualNotificationCreateView (sin broker — cnst-arquitectura T6).
+Reubicado desde ``notifications.tasks`` (slice 3c de la disolucion
+notifications->mail). ``dispatch_manual_fanout`` crea un item de buzon
+``Notification`` por destinatario respetando su ``NotificationPreference``.
+Es la contraparte de dispatch del wizard de composicion de Odoo (el envio a la
+audiencia se materializa en los buzones de los seguidores).
+
+Es un modulo de **servicio** (funcion de dominio), no un modelo: no se reexporta
+en ``models/__init__`` — los consumidores importan la ruta completa
+``addons.mail.models.manual_fanout`` (mismo criterio que ``email_executor``).
+Llamado directamente por ``AdminManualNotificationCreateView`` (sin broker —
+cnst-arquitectura T6).
 """
 import logging
-from addons.mail.models import Notification, NotificationPreference
+
+from .notification_inbox import Notification
+from .notification_preference import NotificationPreference
 
 logger = logging.getLogger('apps')
 
