@@ -18,14 +18,14 @@ from django.test import RequestFactory
 from rest_framework import exceptions
 from rest_framework.test import APIRequestFactory
 
+from addons.observability.middleware import RequestLogMiddleware
+from addons.observability.models import RequestLog
 from core.exception_handling import custom_exception_handler
 from core.logging_context import (
     clear_correlation_id,
     get_request_error,
     set_request_error,
 )
-from core.middleware.request_log import RequestLogMiddleware
-from core.models import RequestLog
 
 pytestmark = [pytest.mark.unit]
 

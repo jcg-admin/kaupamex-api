@@ -15,6 +15,9 @@ Politica ratificada (2026-07-09):
 desde DEC-08 slice 2 (``adoptar-arquitectura-server-service-odoo``); mismos
 niveles/retencion, solo cambia el modelo de origen.
 
+``RequestLog`` vive en ``addons.observability`` (addon net-new, DEC-12) desde
+el slice 3 de la misma iniciativa (antes ``core.models``).
+
 Uso:
   manage.py purge_logs            # ejecuta la purga
   manage.py purge_logs --dry-run  # solo reporta cuantas filas se purgarian
@@ -25,7 +28,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from addons.base.models import IrLogging
-from core.models import RequestLog
+from addons.observability.models import RequestLog
 
 
 class Command(BaseCommand):

@@ -12,6 +12,9 @@ desde DEC-08 slice 2. El contrato JSON de este endpoint (``logger_name``,
 (``AdminLogsPage``): ``_serialize_applog`` mapea ``IrLogging.name`` /
 ``IrLogging.message`` a esas mismas claves de salida.
 
+``RequestLog`` vive en ``addons.observability`` (addon net-new, DEC-12) desde
+el slice 3 (antes ``core.models``); el contrato JSON del endpoint no cambia.
+
 - Reemplaza al Django admin (H-API-LOG-01: gated tras ``DJANGO_ADMIN_ENABLED``,
   deshabilitado en prod). Es el patron ``apps/<app>/admin_urls.py`` del proyecto.
 - **Append-only:** solo ``GET`` — ``APIView`` responde ``405`` a
@@ -34,7 +37,7 @@ from rest_framework.views import APIView
 
 from addons.authz.permissions import HasCapability
 from addons.base.models import IrLogging
-from core.models import RequestLog
+from addons.observability.models import RequestLog
 
 _DEFAULT_PAGE_SIZE = 25
 _MAX_PAGE_SIZE = 100

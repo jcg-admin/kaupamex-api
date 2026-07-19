@@ -1,11 +1,15 @@
 """
-apps/core/middleware/request_log.py
+addons/observability/middleware.py
 
 RequestLogMiddleware (DEC-LOG-02): cobertura universal request->DB. Una fila de
 RequestLog por cada request HTTP, con correlation_id (DEC-LOG-07). No bloqueante
 (DEC-LOG-04): si el insert del log falla, el request continua. PII-safe
 (DEC-LOG-03): solo metadata; se guarda ``user_id`` (no nombre/email) y ``path``
 sin query string (evita tokens/PII en parametros).
+
+Movido desde ``core.middleware.request_log`` en el slice 3 de
+``adoptar-arquitectura-server-service-odoo`` (DEC-08/DEC-12): ``RequestLog`` es
+telemetria HTTP sin analogo Odoo y vive en el addon net-new ``observability``.
 """
 import time
 
@@ -14,7 +18,8 @@ from core.logging_context import (
     get_request_error,
     new_correlation_id,
 )
-from core.models import RequestLog
+
+from addons.observability.models import RequestLog
 
 
 class RequestLogMiddleware:

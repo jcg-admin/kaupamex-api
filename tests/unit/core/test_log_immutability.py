@@ -17,7 +17,7 @@ Toca DB -> django_db.
 """
 import pytest
 
-from core.models import RequestLog
+from addons.observability.models import RequestLog
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 

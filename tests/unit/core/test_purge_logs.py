@@ -21,8 +21,8 @@ from django.core.management import call_command
 from django.utils import timezone
 
 from addons.base.models import IrLogging
+from addons.observability.models import RequestLog
 from addons.users.models import BusinessEvent
-from core.models import RequestLog
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 

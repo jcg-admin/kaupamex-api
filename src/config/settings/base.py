@@ -88,6 +88,7 @@ INSTALLED_APPS = [
     'addons.referral',
     'addons.geo',
     'addons.base',
+    'addons.observability',
     'addons.base_address_extended',
     'addons.base_vat',
     'addons.base_bank',
@@ -110,7 +111,9 @@ MIDDLEWARE = [
     # RequestLogMiddleware (DEC-LOG-02): cobertura universal request->DB. Va
     # cerca del tope para medir la duracion completa; su process_response corre
     # tras get_response, cuando request.user y resolver_match ya estan puestos.
-    'core.middleware.request_log.RequestLogMiddleware',
+    # Vive en addons.observability (addon net-new, DEC-12) desde el slice 3 de
+    # adoptar-arquitectura-server-service-odoo (antes core.middleware.request_log).
+    'addons.observability.middleware.RequestLogMiddleware',
     # CookieGovernanceMiddleware va sobre Session/CSRF: su process_response
     # (orden inverso) corre despues de que aquellas ponen sus cookies, para
     # observarlas/gobernarlas. Fase 1 = auditoria (COOKIE_GOVERNANCE_ENFORCE
@@ -206,7 +209,9 @@ DATABASE_ROUTERS = ['orm.routers.CompanyDatabaseRouter']
 # Plano de control L0 (vive siempre en ``default``, no se particiona por empresa).
 # ``addons.base`` (addon fundacional, ``SystemParameter`` L2 global) es config de
 # instancia, no per-empresa (SOL-090): debe rutear a ``default`` también bajo N>1.
-MULTIDB_CONTROL_PLANE_APPS = ('sessions', 'contenttypes', 'base', 'base_address_extended')
+# ``observability`` (``RequestLog``, DEC-12) es telemetria global de la instancia,
+# no per-empresa, por lo que rutea igual que ``base``.
+MULTIDB_CONTROL_PLANE_APPS = ('sessions', 'contenttypes', 'base', 'observability', 'base_address_extended')
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},

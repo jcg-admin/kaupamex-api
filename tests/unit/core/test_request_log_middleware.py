@@ -18,9 +18,9 @@ import pytest
 from django.http import HttpResponse
 from django.test import RequestFactory
 
+from addons.observability.middleware import RequestLogMiddleware
+from addons.observability.models import RequestLog
 from core.logging_context import get_correlation_id
-from core.middleware.request_log import RequestLogMiddleware
-from core.models import RequestLog
 from tests.factories.user_factory import UserFactory
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]

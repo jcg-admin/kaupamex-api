@@ -17,7 +17,7 @@ import pytest
 from rest_framework.test import APIClient
 
 from addons.base.models import IrLogging
-from core.models import RequestLog
+from addons.observability.models import RequestLog
 from tests.factories.user_factory import AdminUserFactory, UserFactory
 
 pytestmark = [pytest.mark.integration, pytest.mark.django_db]

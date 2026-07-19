@@ -37,17 +37,18 @@ def test_hogar_canonico_es_addons_base():
 
 
 def test_abstractos_ya_no_se_definen_en_core():
-    """``TimeStampedModel``/``SoftDeleteModel`` ya no se definen en ``core``.
+    """``TimeStampedModel``/``SoftDeleteModel``/``AppendOnlyModel`` ya no se
+    definen ni se importan en ``core.models``.
 
-    (``AppendOnlyModel`` sí queda importado en ``core.models`` como base del
-    modelo de log ``RequestLog`` hasta el slice 3 lo mueva a
-    ``addons.observability``; ``AppLog`` ya migró a ``IrLogging`` en
-    ``addons.base`` en el slice 2. Su definición vive en ``addons.base``.)
+    (Slice 3 de ``adoptar-arquitectura-server-service-odoo``, DEC-08: con
+    ``RequestLog`` movido a ``addons.observability``, ``core.models`` quedó
+    sin modelos y sin necesidad de importar ``AppendOnlyModel``. ``AppLog``
+    ya había migrado a ``IrLogging`` en ``addons.base`` en el slice 2. Ambos
+    mixins/modelos se definen en ``addons.base``.)
     """
     assert getattr(core_models, 'TimeStampedModel', None) is None
     assert getattr(core_models, 'SoftDeleteModel', None) is None
-    # AppendOnlyModel presente por import, pero definido en addons.base:
-    assert core_models.AppendOnlyModel.__module__ == 'addons.base.models.mixins'
+    assert getattr(core_models, 'AppendOnlyModel', None) is None
 
 
 def test_soft_delete_managers_disponibles():
