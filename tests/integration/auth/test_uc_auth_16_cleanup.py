@@ -20,7 +20,7 @@ from addons.catalogue.models import Category, Product
 from addons.cart.models import Cart, SavedCart
 from addons.wishlist.models import WishlistItem
 from addons.search_history.models import SearchEntry
-from addons.notifications.models import NotificationPreference
+from addons.mail.models import NotificationPreference
 from addons.users.models import Address, UserDeactivationEvent
 
 pytestmark = pytest.mark.api

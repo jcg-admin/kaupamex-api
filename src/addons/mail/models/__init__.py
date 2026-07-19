@@ -33,6 +33,7 @@ from .notification_inbox import (
     NOTIFICATION_TYPE_LABELS,
     MANDATORY_NOTIFICATION_TYPES,
 )
+from .notification_preference import NotificationPreference
 from .mail_thread import MailThread
 
 __all__ = [
@@ -40,5 +41,5 @@ __all__ = [
     'MailActivityType', 'MailActivity', 'MailTrackingValue',
     'MailTemplate', 'MailMail', 'MailThread',
     'Notification', 'NotificationType', 'NOTIFICATION_TYPE_LABELS',
-    'MANDATORY_NOTIFICATION_TYPES',
+    'MANDATORY_NOTIFICATION_TYPES', 'NotificationPreference',
 ]

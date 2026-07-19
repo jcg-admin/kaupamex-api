@@ -30,7 +30,7 @@ from rest_framework.viewsets import ModelViewSet
 from drf_spectacular.types import OpenApiTypes as OAT
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
 from addons.cart.models import Cart, SavedCart
-from addons.notifications.models import NotificationPreference
+from addons.mail.models import NotificationPreference
 from addons.search_history.models import SearchEntry
 from addons.wishlist.models import WishlistItem
 from .models import Address, AuthEvent, EmailVerificationToken, PasswordResetToken, UserDeactivationEvent

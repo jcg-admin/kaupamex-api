@@ -6,8 +6,7 @@ respetando preferencias. Llamada directamente desde
 AdminManualNotificationCreateView (sin broker — cnst-arquitectura T6).
 """
 import logging
-from addons.mail.models import Notification
-from .models import NotificationPreference
+from addons.mail.models import Notification, NotificationPreference
 
 logger = logging.getLogger('apps')
 

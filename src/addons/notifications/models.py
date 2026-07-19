@@ -3,48 +3,18 @@ Models — addons.notifications (UC-NOT-06/07, en disolución hacia ``mail``).
 
 Identifiers in English per DEC-DOC-005.
 
-El buzón ``Notification`` (UC-NOT-01..05) + su ``NotificationType`` se reubicaron
-a su hogar Odoo ``addons.mail`` (slice 3a de la disolución notifications→mail);
-se importan de allí. Aquí quedan, hasta slices posteriores:
+El buzón ``Notification`` (UC-NOT-01..05) + su ``NotificationType`` (slice 3a) y
+``NotificationPreference`` (UC-NOT-06, slice 3b) se reubicaron a su hogar Odoo
+``addons.mail`` (disolución notifications→mail); se importan de allí. Aquí
+quedan, hasta slices posteriores:
 
-NotificationPreference — preferencias por tipo de notificacion (UC-NOT-06).
-ManualNotification     — envios manuales del admin (UC-NOT-07).
-EmailTask              — cola legacy (datos ya copiados a ``mail.mail``; retiro pendiente).
+ManualNotification — envios manuales del admin (UC-NOT-07, slice 3c pendiente).
+EmailTask          — cola legacy (datos ya copiados a ``mail.mail``; retiro 3d).
 """
 from django.conf import settings
 from django.db import models
 
 from addons.base.models import TimeStampedModel
-from addons.mail.models import NotificationType
-
-
-class NotificationPreference(TimeStampedModel):
-    """Preferencia user x type."""
-
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='notification_preferences',
-    )
-    type = models.CharField(
-        max_length=32,
-        choices=NotificationType.choices,
-    )
-    enabled = models.BooleanField(default=True)
-
-    class Meta:
-        db_table             = 'notifications_preference'
-        constraints          = [
-            models.UniqueConstraint(
-                fields=['user', 'type'],
-                name='unique_notification_preference',
-            )
-        ]
-        verbose_name         = 'Preferencia de notificacion'
-        verbose_name_plural  = 'Preferencias de notificacion'
-
-    def __str__(self):
-        return f'{self.user_id}:{self.type}={self.enabled}'
 
 
 class ManualNotification(TimeStampedModel):
