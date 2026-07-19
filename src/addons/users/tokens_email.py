@@ -19,7 +19,7 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 from rest_framework_simplejwt.tokens import RefreshToken
 from addons.company.models import CompanySetting
-from addons.mail.email_executor import dispatch_email
+from addons.mail.models.email_executor import dispatch_email
 from django.conf import settings
 from django.template.loader import render_to_string
 from django.utils import timezone

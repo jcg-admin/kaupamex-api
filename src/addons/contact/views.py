@@ -22,7 +22,7 @@ from addons.company.models import CompanySetting
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
-from addons.mail.email_executor import dispatch_email
+from addons.mail.models.email_executor import dispatch_email
 from config.schema import error_response
 from .models import ContactMessage
 from .serializers import (

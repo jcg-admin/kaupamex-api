@@ -1,5 +1,5 @@
 """
-addons/mail/email_executor.py
+addons/mail/models/email_executor.py
 
 Dispatcher asincrono para envio de emails — addon ``mail`` (fiel a Odoo, DEC-11).
 Es el equivalente de ``mail.mail.process_email_queue`` de Odoo: envio async de
