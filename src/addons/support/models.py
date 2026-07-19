@@ -9,11 +9,16 @@ SupportTicketReply modela cada mensaje del hilo de conversacion.
 from django.conf import settings
 from django.db import models
 from addons.base.models import SoftDeleteModel, TimeStampedModel
+from addons.mail.models import MailThread
 
 
 
-class SupportTicket(TimeStampedModel, SoftDeleteModel):
+class SupportTicket(MailThread, TimeStampedModel, SoftDeleteModel):
     """Ticket de soporte. UC-SUPP-01.
+
+    Hereda ``MailThread`` (addon ``mail``, ``mail.thread`` de Odoo): dota al
+    ticket de chatter/seguidores (``message_post``/``message_subscribe``) sin
+    agregar columnas — los mensajes viven en ``mail_message`` (polimorfico).
 
     Hereda de SoftDeleteModel (DEC-DOC-007): el historial de soporte
     se conserva incluso despues de una operacion DELETE del admin —
