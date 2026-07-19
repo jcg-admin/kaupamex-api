@@ -9,8 +9,11 @@ artificial): ``message_post`` crea ``mail.message`` polimorficos y
 import datetime
 
 import pytest
+from django.core import mail as django_mail
 
 from addons.crm.models import CrmLead
+from addons.mail.models import email_executor
+from addons.notifications.models import EmailTask
 from addons.mail.models import (
     MailActivity,
     MailActivityType,
@@ -384,3 +387,55 @@ class TestNotificationInboxBridge:
             subject='Orden pagada', body='ok',
         )
         assert n.mail_message_id is None
+
+
+class TestMailThreadEmailChannel:
+    """Canal email del backbone: ``send_thread_email`` publica un mensaje del
+    hilo, crea una ``mail.notification`` de canal email y despacha el correo
+    enlazando esa fila — el nexo fiel entrega ↔ correo saliente de Odoo."""
+
+    def test_send_thread_email_delivers_and_records(self, ticket, user):
+        django_mail.outbox = []
+        notif = email_executor.send_thread_email(
+            ticket, user, subject='Actualizacion', body='Tu ticket avanzo',
+        )
+        # correo realmente enviado (DISPATCH_EMAIL_SYNC en testing)
+        assert len(django_mail.outbox) == 1
+        assert user.email in django_mail.outbox[0].to
+        # notificacion de canal email, estado sent, sin EmailTask (exito)
+        assert notif.notification_type == MailNotification.TYPE_EMAIL
+        assert notif.notification_status == MailNotification.STATUS_SENT
+        assert notif.email_task_id is None
+        # el mensaje del hilo quedo publicado (tipo email)
+        assert notif.message.model == 'support.SupportTicket'
+        assert notif.message.message_type == MailMessage.TYPE_EMAIL
+
+    def test_dispatch_failure_links_emailtask_and_exception(
+            self, ticket, user, monkeypatch):
+        # forzar fallo del envio SMTP (sync en testing)
+        def _boom(*a, **k):
+            raise RuntimeError('smtp down')
+        monkeypatch.setattr(email_executor, '_send_mail', _boom)
+        before = EmailTask.objects.count()
+        notif = email_executor.send_thread_email(
+            ticket, user, subject='X', body='Y',
+        )
+        # se reencolo un EmailTask y la notificacion quedo en exception + cross-link
+        assert EmailTask.objects.count() == before + 1
+        assert notif.notification_status == MailNotification.STATUS_EXCEPTION
+        assert notif.failure_type == MailNotification.FAILURE_MAIL_SMTP
+        assert notif.email_task_id is not None
+        assert 'smtp down' in notif.failure_reason
+
+    def test_dispatch_email_notification_param_marks_sent(self, ticket, user):
+        django_mail.outbox = []
+        msg = ticket.message_post(body='hola', author=user, notify=False)
+        n = MailNotification.objects.create(
+            message=msg, partner=user,
+            notification_type=MailNotification.TYPE_EMAIL,
+            notification_status=MailNotification.STATUS_PROCESS,
+        )
+        email_executor.dispatch_email(
+            'S', 'B', 'from@x.com', [user.email], notification=n)
+        n.refresh_from_db()
+        assert n.notification_status == MailNotification.STATUS_SENT
