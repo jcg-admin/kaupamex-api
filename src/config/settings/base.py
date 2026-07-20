@@ -75,7 +75,6 @@ INSTALLED_APPS = [
     'addons.payments',
     'addons.helpdesk',
     'addons.returns',
-    'addons.contact',
     'addons.mass_mailing',
     'addons.website_mass_mailing',
     'addons.questions',

@@ -13,7 +13,7 @@ Admin:
 JSON keys + identifiers in English (DEC-DOC-005).
 """
 import pytest
-from addons.contact.models import ContactMessage
+from addons.crm.models import ContactMessage
 from addons.contact.views import (
     CONTACT_FROM_EMAIL_DEFAULT,
     CONTACT_NOTIFY_EMAIL_DEFAULT,

@@ -1,16 +1,16 @@
-"""
-Models — addons.contact (UC-COM-01..03).
+"""Modelo ``ContactMessage`` — addon ``crm``.
+
+Mensaje entrante del formulario público de contacto. En Odoo, ``website_crm``
+enruta las submissions del formulario de contacto del sitio a ``crm.lead``; este
+``ContactMessage`` es la captura ligera (pre-lead: sin pipeline, con respuesta
+embebida) que vive bajo el módulo ``crm`` — su hogar fiel. ``res.partner`` es el
+directorio de terceros, no un mensaje entrante, por eso el hogar es ``crm``.
 
 Identifiers + field names in English per DEC-DOC-005.
-
-ContactMessage — mensaje enviado a traves del formulario publico de
-contacto. El admin puede marcarlo como leido y responder; la respuesta
-se envia por email y se registra en el propio modelo.
 """
 from django.conf import settings
 from django.db import models
 from addons.base.models import SoftDeleteModel, TimeStampedModel
-
 
 
 class ContactMessage(TimeStampedModel, SoftDeleteModel):

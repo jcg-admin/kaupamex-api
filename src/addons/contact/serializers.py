@@ -4,7 +4,7 @@ Serializers — addons.contact.
 JSON keys in English (DEC-DOC-005).
 """
 from rest_framework import serializers
-from .models import ContactMessage
+from addons.crm.models import ContactMessage
 
 
 

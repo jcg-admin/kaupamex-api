@@ -5,7 +5,7 @@ DEC-DOC-007: ContactMessage inherits from SoftDeleteModel to preserve
 audit trail (PII + commercial contact history).
 """
 import pytest
-from addons.contact.models import ContactMessage
+from addons.crm.models import ContactMessage
 from addons.base.models import SoftDeleteModel
 
 pytestmark = pytest.mark.integration
