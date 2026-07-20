@@ -1,7 +1,7 @@
 """
 Tests — Product.weight_kg (peso para cotización de envío por peso, G-ENV-04).
 
-El peso físico habilita el costo de envío por peso (addons.logistics.offers).
+El peso físico habilita el costo de envío por peso (addons.delivery.offers).
 Nullable: los productos sin peso caen al costo plano por zona en el checkout.
 Sólo el serializer admin lo escribe/expone.
 """

@@ -1,10 +1,10 @@
 """
-URLs — addons.logistics.
+URLs — addons.delivery.
 
 Mounted in config/urls.py:
-  path('api/v2/',          include(('addons.logistics.urls', 'logistics'),
+  path('api/v2/',          include(('addons.delivery.urls', 'logistics'),
                                    namespace='logistics_v2'))
-  path('api/v1/logistics/', include('addons.logistics.webhook_urls'))
+  path('api/v1/logistics/', include('addons.delivery.webhook_urls'))
 """
 from django.urls import path
 

@@ -1,5 +1,5 @@
 """
-Webhook handlers — addons.logistics (LOG-04 / US-1.2 / DEC-LOOP-05).
+Webhook handlers — addons.delivery (LOG-04 / US-1.2 / DEC-LOOP-05).
 
 Courier status webhook. The courier's tracking platform calls this endpoint
 to push shipment status changes; the manual admin PATCH (LOG-02) remains as a

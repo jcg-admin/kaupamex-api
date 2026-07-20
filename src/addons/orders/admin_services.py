@@ -14,7 +14,7 @@ from django.db.models import Count, Sum, Q
 from datetime import timedelta
 from addons.payments.models import Payment
 from addons.settings_app.models import SiteSettings
-from addons.logistics.models import ShipmentGuide
+from addons.delivery.models import ShipmentGuide
 
 logger = logging.getLogger('apps')
 

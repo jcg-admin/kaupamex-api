@@ -99,7 +99,7 @@ class Product(TimeStampedModel, SoftDeleteModel):
     )
     stock             = models.IntegerField(default=0, validators=[MinValueValidator(0)])
     # G-ENV-04: peso físico en kg para la cotización de envío por peso
-    # (addons.logistics.offers: costo = base + $/kg × peso_total). Nullable:
+    # (addons.delivery.offers: costo = base + $/kg × peso_total). Nullable:
     # los productos existentes no cargan peso hasta que el admin lo fije; el
     # checkout cae al costo plano por zona cuando el peso no está disponible.
     weight_kg         = models.DecimalField(

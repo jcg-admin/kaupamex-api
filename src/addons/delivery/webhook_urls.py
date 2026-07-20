@@ -1,4 +1,4 @@
-"""Webhook URLs — addons.logistics.
+"""Webhook URLs — addons.delivery.
 
 DEC-V2-02: el webhook del courier está registrado con el proveedor
 externo y no se puede cambiar sin coordinación. Permanece en /api/v1/.

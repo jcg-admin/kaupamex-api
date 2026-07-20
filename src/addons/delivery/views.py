@@ -1,5 +1,5 @@
 """
-Views — addons.logistics (P-10 / UC-LOG-01..09).
+Views — addons.delivery (P-10 / UC-LOG-01..09).
 """
 import logging
 from datetime import timedelta

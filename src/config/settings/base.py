@@ -80,7 +80,7 @@ INSTALLED_APPS = [
     'addons.website_mass_mailing',
     'addons.questions',
     'addons.reports',
-    'addons.logistics',
+    'addons.delivery',
     'addons.reviews',
     'addons.search_history',
     'addons.website',
@@ -481,7 +481,7 @@ SPECTACULAR_SETTINGS = {
         'ReviewStatusEnum':
             'addons.reviews.models.Review.STATUSES',
         'ShipmentGuideStatusEnum':
-            'addons.logistics.models.ShipmentGuide.STATUSES',
+            'addons.delivery.models.ShipmentGuide.STATUSES',
         'StaticPageVersionStatusEnum':
             'addons.settings_app.models.StaticPageVersion.STATUS_CHOICES',
         'NotificationStatusEnum':

@@ -13,7 +13,7 @@ English JSON keys per DEC-DOC-005. Spanish business codes per DEC-DOC-006.
 from decimal import Decimal
 from addons.catalogue.models import Category, Product
 from addons.orders.models import Order, OrderAddress, OrderItem, OrderValue
-from addons.logistics.models import Courier, ShipmentGuide
+from addons.delivery.models import Courier, ShipmentGuide
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 

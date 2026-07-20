@@ -113,7 +113,7 @@ def notify_order_status_changed(order, new_status):
 def notify_shipping_updated(order, user, tracking_number=None, event_description=None):
     """
     UC-NOT-03: notificacion de actualizacion de envio.
-    Llamar desde addons.logistics dentro de transaction.atomic().
+    Llamar desde addons.delivery dentro de transaction.atomic().
     """
     if not user or not getattr(user, 'pk', None):
         return

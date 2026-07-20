@@ -1,5 +1,5 @@
 """
-Serializers — addons.logistics (P-13).
+Serializers — addons.delivery (P-13).
 
 English JSON keys per DEC-DOC-005. Business error codes Spanish per
 DEC-DOC-006 — raised in views, not here.
@@ -147,7 +147,7 @@ class BuyerShipmentGuideSerializer(serializers.ModelSerializer):
         return ShipmentEventSerializer(ev).data if ev else None
 
 
-# ── Motor de cotización de paqueterías (addons.logistics.offers) ──────────────
+# ── Motor de cotización de paqueterías (addons.delivery.offers) ──────────────
 
 class ShipmentPackageInputSerializer(serializers.Serializer):
     """Un paquete del envío. Dimensiones en cm, peso en kg, valor en la moneda

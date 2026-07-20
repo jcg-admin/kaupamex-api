@@ -24,7 +24,7 @@ import pytest
 from django.utils import timezone
 
 from addons.catalogue.models import Category, Product
-from addons.logistics.models import Courier, ShipmentEvent, ShipmentGuide
+from addons.delivery.models import Courier, ShipmentEvent, ShipmentGuide
 from addons.orders.models import Order, OrderAddress, OrderItem, OrderValue
 
 pytestmark = pytest.mark.integration

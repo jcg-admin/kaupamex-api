@@ -1,5 +1,5 @@
 """
-Models — addons.logistics (P-13 / UC-LOG-01..09).
+Models — addons.delivery (P-13 / UC-LOG-01..09).
 
 Entities:
   - Courier: catalogue of shipping providers (Estafeta, DHL, FedEx, ...).
@@ -20,7 +20,7 @@ from cryptography.fernet import Fernet
 from django.conf import settings
 from django.db import models
 from addons.base.models import SoftDeleteModel, TimeStampedModel
-from addons.logistics.offers import RateCard
+from addons.delivery.offers import RateCard
 
 logger = logging.getLogger('apps')
 
@@ -192,7 +192,7 @@ class ShipmentEvent(TimeStampedModel):
 
 class CarrierRateCard(TimeStampedModel):
     """Catálogo de tarifas + reglas de una paquetería para el motor de
-    cotización (addons.logistics.offers). Separado de ``Courier`` (que modela
+    cotización (addons.delivery.offers). Separado de ``Courier`` (que modela
     tracking/webhooks) por responsabilidad única: aquí vive el pricing y las
     reglas de elegibilidad. Un ``Courier`` sin rate card no se cotiza.
 

@@ -1,6 +1,6 @@
 """
 Seed de paqueterías + tarifas para el motor de cotización
-(addons.logistics.offers / ShipmentOffersView).
+(addons.delivery.offers / ShipmentOffersView).
 
 Catálogo canónico (spec del ejecutor): DHL / Bring / FedEx Express /
 DSV Green. La spec viene en **EUR**; aquí se adapta a **MXN** (moneda de la
@@ -18,7 +18,7 @@ Idempotente (``update_or_create`` por code). Correr:
 """
 from decimal import Decimal
 from django.core.management.base import BaseCommand
-from addons.logistics.models import CarrierRateCard, Courier
+from addons.delivery.models import CarrierRateCard, Courier
 
 # Tasa ILUSTRATIVA EUR→MXN (placeholder; el operador ajusta tarifas reales).
 _EUR_MXN = Decimal('20')

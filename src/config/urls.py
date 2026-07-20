@@ -40,7 +40,7 @@ urlpatterns = _admin_urls + [
 
     # --- API v1 (DEC-V2-02: webhooks registrados con terceros — no renombrar) ---
     path('api/v1/payments/', include('addons.payments.webhook_urls')),
-    path('api/v1/logistics/', include('addons.logistics.webhook_urls')),
+    path('api/v1/logistics/', include('addons.delivery.webhook_urls')),
 
     # --- API v2 ---
     # chartsize_v2 ANTES de catalogue_v2: más específico (/products/<slug>/variants/)
@@ -75,7 +75,7 @@ urlpatterns = _admin_urls + [
 
     # ─── API v2 (F5: logistics/shipments, newsletter, contact, pages, backups,
     #             reports, auth §2.1) ────────────────────────────────────────
-    path('api/v2/',            include(('addons.logistics.urls', 'logistics'), namespace='logistics_v2')),
+    path('api/v2/',            include(('addons.delivery.urls', 'logistics'), namespace='logistics_v2')),
     path('api/v2/newsletter/', include(('addons.website_mass_mailing.urls', 'website_mass_mailing'), namespace='newsletter_v2')),
     path('api/v2/admin/',      include(('addons.mass_mailing.admin_urls', 'admin_newsletter'),   namespace='admin_newsletter_v2')),
     path('api/v2/admin/',      include(('addons.contact.admin_urls', 'admin_contact'),         namespace='admin_contact_v2')),

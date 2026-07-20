@@ -7,7 +7,7 @@ import pytest
 from decimal import Decimal
 from addons.authz.services import SUPERADMIN_ROLE_CODE
 from addons.catalogue.models import Category, Product
-from addons.logistics.models import Courier, ShipmentGuide
+from addons.delivery.models import Courier, ShipmentGuide
 from addons.orders.admin_services import transition_order_status
 from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress, OrderStatusLog
 from django.contrib.auth import get_user_model

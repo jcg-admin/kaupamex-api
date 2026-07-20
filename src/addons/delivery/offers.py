@@ -1,5 +1,5 @@
 """
-Motor de cotización de paqueterías — addons.logistics.offers
+Motor de cotización de paqueterías — addons.delivery.offers
 
 Adaptación nativa (Django/DRF, no Node/Express) de la "Shipment Offer API":
 dado un envío (paquetes con dimensiones/peso/valor/peligrosidad), evalúa cada
