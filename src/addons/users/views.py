@@ -31,7 +31,7 @@ from drf_spectacular.types import OpenApiTypes as OAT
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
 from addons.cart.models import Cart, SavedCart
 from addons.mail.models import NotificationPreference
-from addons.search_history.models import SearchEntry
+from addons.website.models import SearchEntry
 from addons.website_sale_wishlist.models import WishlistItem
 from .models import Address, AuthEvent, EmailVerificationToken, PasswordResetToken, UserDeactivationEvent
 from .serializers import AddressSerializer, ChangePasswordSerializer, EmailVerificationSerializer, PasswordResetConfirmSerializer, PasswordResetRequestSerializer, ProfileSerializer, RegisterSerializer, ResendVerificationSerializer, UpdateProfileSerializer

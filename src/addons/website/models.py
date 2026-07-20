@@ -157,3 +157,28 @@ class Banner(TimeStampedModel):
 
     def __str__(self):
         return f'{self.placement} #{self.order} ({self.alt_text})'
+
+
+# ── Historial de búsqueda (visitor behavior — movido de addons.search_history) ──
+# En Odoo el rastreo de comportamiento del visitante del storefront vive en el
+# módulo ``website`` (``website.visitor``/``website.track``). ``SearchEntry`` es
+# la telemetría append-only de las búsquedas por usuario (UC-SRCH-03), su hogar
+# fiel es ``website``. Append-only: NO hereda SoftDeleteModel (excepción de
+# auditoría DEC-DOC-007).
+class SearchEntry(TimeStampedModel):
+    """Append-only search history entry."""
+    user           = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='search_entries',
+    )
+    query          = models.CharField(max_length=200)
+    normalized_query = models.CharField(max_length=200, db_index=True)
+    results_count  = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        db_table     = 'search_history_entry'
+        ordering     = ['-created_at']
+        verbose_name = 'Entrada de historial de busqueda'
+
+    def __str__(self):
+        return f'{self.user.email}: {self.normalized_query!r}'

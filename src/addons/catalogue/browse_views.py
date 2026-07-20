@@ -24,7 +24,7 @@ from rest_framework.views import APIView
 from .models import Category, Product
 from .serializers import CategoryWithCountSerializer, ProductListSerializer, ProductSearchSerializer
 from .views import CATEGORY_TREE_CACHE_KEY, CATEGORY_TREE_CACHE_TTL, _build_active_filters, _build_category_tree_with_counts, _fulltext_search, _get_category_descendants, _normalize_query, _record_history_async, _validate_query, CataloguePagination
-from addons.search_history.models import SearchEntry
+from addons.website.models import SearchEntry
 
 
 

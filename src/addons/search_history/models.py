@@ -1,31 +1,12 @@
 """
-Models — addons.search_history (UC-SRCH-03 — append-only).
+Models — addons.search_history.
 
-A separate SearchEntry table from catalogue.SearchHistory to capture
-analytic information (normalized_query, results_count) without
-touching the existing catalogue model. Append-only — NO heredamos
-SoftDeleteModel (DEC-DOC-007 audit exception).
+``search_history`` queda como **paquete controlador delgado** (views/urls/
+serializers) del historial de búsqueda. **No tiene modelos propios.**
+
+El único modelo, ``SearchEntry`` (telemetría append-only de búsquedas por
+usuario, UC-SRCH-03), se movió a su hogar fiel ``addons.website``: en Odoo el
+rastreo de comportamiento del visitante del storefront vive en el módulo
+``website`` (``website.visitor``/``website.track``). Los consumidores importan
+``SearchEntry`` desde ``addons.website.models``.
 """
-from django.conf import settings
-from django.db import models
-from addons.base.models import TimeStampedModel
-
-
-
-class SearchEntry(TimeStampedModel):
-    """Append-only search history entry."""
-    user           = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
-        related_name='search_entries',
-    )
-    query          = models.CharField(max_length=200)
-    normalized_query = models.CharField(max_length=200, db_index=True)
-    results_count  = models.PositiveIntegerField(default=0)
-
-    class Meta:
-        db_table     = 'search_history_entry'
-        ordering     = ['-created_at']
-        verbose_name = 'Entrada de historial de busqueda'
-
-    def __str__(self):
-        return f'{self.user.email}: {self.normalized_query!r}'

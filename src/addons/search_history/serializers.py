@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import SearchEntry
+from addons.website.models import SearchEntry
 
 
 
