@@ -18,7 +18,7 @@ import pytest
 from decimal import Decimal
 from addons.catalogue.models import Category, Product
 from addons.cart.models import Cart, SavedCart
-from addons.wishlist.models import WishlistItem
+from addons.website_sale_wishlist.models import WishlistItem
 from addons.search_history.models import SearchEntry
 from addons.mail.models import NotificationPreference
 from addons.users.models import Address, UserDeactivationEvent

@@ -14,7 +14,7 @@ from rest_framework.serializers import ModelSerializer, SerializerMethodField
 from rest_framework.views import APIView
 from addons.catalogue.models import Product
 from addons.chartsize.models import ProductVariant
-from .models import WishlistItem
+from addons.website_sale_wishlist.models import WishlistItem
 from addons.cart.views import _get_or_create_cart
 from addons.cart.models import CartItem
 from config.schema import error_response

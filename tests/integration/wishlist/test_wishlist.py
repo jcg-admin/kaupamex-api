@@ -17,7 +17,7 @@ import pytest
 from decimal import Decimal
 from addons.catalogue.models import Category, Product
 from addons.chartsize.models import VariantType, VariantOption, ProductVariant
-from addons.wishlist.models import WishlistItem
+from addons.website_sale_wishlist.models import WishlistItem
 from django.contrib.auth import get_user_model
 
 pytestmark = pytest.mark.integration

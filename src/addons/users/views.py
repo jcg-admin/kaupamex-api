@@ -32,7 +32,7 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiRespon
 from addons.cart.models import Cart, SavedCart
 from addons.mail.models import NotificationPreference
 from addons.search_history.models import SearchEntry
-from addons.wishlist.models import WishlistItem
+from addons.website_sale_wishlist.models import WishlistItem
 from .models import Address, AuthEvent, EmailVerificationToken, PasswordResetToken, UserDeactivationEvent
 from .serializers import AddressSerializer, ChangePasswordSerializer, EmailVerificationSerializer, PasswordResetConfirmSerializer, PasswordResetRequestSerializer, ProfileSerializer, RegisterSerializer, ResendVerificationSerializer, UpdateProfileSerializer
 from .tokens_email import check_rate_limit, create_password_reset_token, create_verification_token, invalidate_all_sessions, send_password_reset_email, send_verification_email, validate_password_reset_token, validate_verification_token

@@ -31,7 +31,7 @@ from .serializers import (
 )
 from .models import ProductPriceHistory
 from addons.cart.models import CartItem
-from addons.wishlist.models import WishlistItem
+from addons.website_sale_wishlist.models import WishlistItem
 import logging
 """
 Views — addons.catalogue

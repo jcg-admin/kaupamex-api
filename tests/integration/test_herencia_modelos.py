@@ -18,7 +18,7 @@ from addons.website.models import StaticPage, StaticPageVersion
 from addons.users.models import Address, PasswordResetToken, EmailVerificationToken
 from addons.users.models import IdentityUser as User
 from addons.loyalty.models import Voucher, VoucherChangeLog
-from addons.wishlist.models import WishlistItem
+from addons.website_sale_wishlist.models import WishlistItem
 from addons.catalogue.serializers import SearchHistorySerializer
 from addons.inventory.proxy_models import SaleMovement, CancellationMovement, AdjustmentMovement, ImportMovement
 from addons.orders.proxy_models import PendingOrder, DeliveredOrder, ActiveOrder, CancelledOrder

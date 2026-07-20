@@ -7,7 +7,7 @@ import pytest
 from decimal import Decimal
 
 from addons.catalogue.models import Product
-from addons.wishlist.models import WishlistItem
+from addons.website_sale_wishlist.models import WishlistItem
 
 pytestmark = pytest.mark.integration
 
