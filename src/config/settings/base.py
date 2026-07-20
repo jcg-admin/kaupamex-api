@@ -480,7 +480,7 @@ SPECTACULAR_SETTINGS = {
         'ShipmentGuideStatusEnum':
             'addons.delivery.models.ShipmentGuide.STATUSES',
         'StaticPageVersionStatusEnum':
-            'addons.settings_app.models.StaticPageVersion.STATUS_CHOICES',
+            'addons.website.models.StaticPageVersion.STATUS_CHOICES',
         'NotificationStatusEnum':
             'addons.mail.models.manual_notification.ManualNotification.Status',
         'QuestionStatusEnum':
