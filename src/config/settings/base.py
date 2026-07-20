@@ -85,7 +85,6 @@ INSTALLED_APPS = [
     'addons.search_history',
     'addons.website',
     'addons.auto_backup',
-    'addons.referral',
     'addons.geo',
     'addons.base',
     'addons.observability',
