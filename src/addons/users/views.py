@@ -37,7 +37,7 @@ from .models import Address, AuthEvent, EmailVerificationToken, PasswordResetTok
 from .serializers import AddressSerializer, ChangePasswordSerializer, EmailVerificationSerializer, PasswordResetConfirmSerializer, PasswordResetRequestSerializer, ProfileSerializer, RegisterSerializer, ResendVerificationSerializer, UpdateProfileSerializer
 from .tokens_email import check_rate_limit, create_password_reset_token, create_verification_token, invalidate_all_sessions, send_password_reset_email, send_verification_email, validate_password_reset_token, validate_verification_token
 from addons.authz.services import assign_buyer_role, is_superadmin
-from addons.authz_signup.policy import password_reset_enabled, signup_open
+from addons.auth_signup.policy import password_reset_enabled, signup_open
 
 # DRF + plugins
 

@@ -26,7 +26,7 @@ def unseed_recovery_count(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("authz_totp", "0001_initial"),
+        ("auth_totp", "0001_initial"),
         ("base", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]

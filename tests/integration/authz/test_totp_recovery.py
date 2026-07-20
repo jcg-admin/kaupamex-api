@@ -13,13 +13,13 @@ from django.core.management import call_command
 from rest_framework.test import APIClient
 
 from addons.authz.services import assign_buyer_role, invalidate_capabilities
-from addons.authz_totp.models import TotpRecoveryCode, TotpSecret
-from addons.authz_totp.services import (
+from addons.auth_totp.models import TotpRecoveryCode, TotpSecret
+from addons.auth_totp.services import (
     count_recovery_codes,
     generate_recovery_codes,
     generate_secret,
 )
-from addons.authz_totp.totp import hotp
+from addons.auth_totp.totp import hotp
 
 pytestmark = pytest.mark.django_db
 

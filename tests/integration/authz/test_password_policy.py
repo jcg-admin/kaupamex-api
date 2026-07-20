@@ -16,7 +16,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 
 from addons.base.models import SystemParameter, _clear_cache
-from addons.authz_password_policy.validators import (
+from addons.auth_password_policy.validators import (
     ConfigurablePasswordPolicyValidator,
     get_password_policy,
 )

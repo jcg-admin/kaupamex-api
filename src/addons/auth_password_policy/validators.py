@@ -1,4 +1,4 @@
-"""Política de contraseña configurable en caliente — addons.authz_password_policy.
+"""Política de contraseña configurable en caliente — addons.auth_password_policy.
 
 Adaptado de ``auth_password_policy/models/res_users.py`` de Odoo (LGPL-3):
 

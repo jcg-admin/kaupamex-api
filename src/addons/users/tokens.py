@@ -18,7 +18,7 @@ import hashlib
 from django.contrib.auth import get_user_model, login as django_login
 
 from addons.authz.services import is_superadmin
-from addons.authz_totp.services import consume_recovery_code, totp_enabled, verify_code
+from addons.auth_totp.services import consume_recovery_code, totp_enabled, verify_code
 from django.contrib.auth.models import update_last_login
 from django.core.cache import cache
 from .session_tracking import record_user_session

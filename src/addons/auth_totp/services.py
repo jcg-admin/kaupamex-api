@@ -1,4 +1,4 @@
-"""Servicios TOTP — addons.authz_totp (DEC-01, ~ auth_totp de Odoo).
+"""Servicios TOTP — addons.auth_totp (DEC-01, ~ auth_totp de Odoo).
 
 Adaptado de ``auth_totp/models/res_users.py`` (``_totp_check`` / ``_totp_try_setting``)
 y del wizard (``auth_totp_wizard.py``, generación del secreto + URI de
@@ -15,8 +15,8 @@ from urllib.parse import quote, urlencode
 from django.utils import timezone
 
 from addons.base.models import SystemParameter
-from addons.authz_totp.models import TotpRecoveryCode, TotpSecret
-from addons.authz_totp.totp import ALGORITHM, DIGITS, TIMESTEP, TOTP, TOTP_SECRET_SIZE
+from addons.auth_totp.models import TotpRecoveryCode, TotpSecret
+from addons.auth_totp.totp import ALGORITHM, DIGITS, TIMESTEP, TOTP, TOTP_SECRET_SIZE
 
 # Marca mostrada en la app authenticator. NADA cableado: L2, sembrado por la
 # migración (0001) a 'Kaupamex' (marca de plataforma L0), editable en caliente.

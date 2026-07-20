@@ -1,4 +1,4 @@
-"""Serializers — addons.authz_totp."""
+"""Serializers — addons.auth_totp."""
 from rest_framework import serializers
 
 
