@@ -74,7 +74,6 @@ INSTALLED_APPS = [
     'addons.orders',
     'addons.payments',
     'addons.helpdesk',
-    'addons.returns',
     'addons.mass_mailing',
     'addons.website_mass_mailing',
     'addons.questions',
@@ -489,7 +488,7 @@ SPECTACULAR_SETTINGS = {
         'SupportTicketStatusEnum':
             'addons.helpdesk.models.SupportTicket.Status',
         'ReturnRequestStatusEnum':
-            'addons.returns.models.ReturnRequest.Status',
+            'addons.stock.models.ReturnRequest.Status',
         # gateway fields (Payment vs PaymentGateway tienen choice sets
         # diferentes — el segundo agrega TEST sandbox)
         'PaymentGatewayChoiceEnum':
@@ -507,7 +506,7 @@ SPECTACULAR_SETTINGS = {
         # `reason` field collision: dos choice sets distintos comparten el
         # nombre de campo `reason` — devolucion vs ajuste de inventario.
         'ReturnReasonEnum':
-            'addons.returns.models.ReturnRequest.Reason',
+            'addons.stock.models.ReturnRequest.Reason',
         'StockAdjustmentReasonEnum':
             'addons.inventory.serializers.ADJUSTMENT_REASONS',
     },

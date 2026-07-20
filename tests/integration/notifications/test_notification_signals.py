@@ -14,7 +14,7 @@ from unittest.mock import patch
 from addons.mail.models import Notification
 from addons.orders.models import Order, OrderValue
 from addons.payments.models import Payment, Refund
-from addons.returns.models import ReturnRequest
+from addons.stock.models import ReturnRequest
 
 pytestmark = pytest.mark.integration
 

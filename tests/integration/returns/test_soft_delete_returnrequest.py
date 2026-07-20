@@ -4,7 +4,7 @@ DEC-DOC-007: ReturnRequest debe preservar el rastro financiero
 referenciado desde ReturnItem y ReturnHistoryEntry via CASCADE.
 """
 import pytest
-from addons.returns.models import ReturnRequest
+from addons.stock.models import ReturnRequest
 from addons.base.models import SoftDeleteModel
 
 pytestmark = pytest.mark.integration

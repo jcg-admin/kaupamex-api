@@ -1,5 +1,9 @@
 """
-Models — addons.returns (UC-RET-01..06).
+Models — return requests (adaptación en ``stock``: devolución de mercancía).
+
+En Odoo una devolución de cliente es un return picking sobre ``stock.picking``;
+aquí el RMA (``ReturnRequest`` + items/historial/evidencia) se aloja en el módulo
+``stock`` —su hogar fiel— manteniendo el vocabulario del caso de uso UC-RET.
 
 Identificadores en ingles segun DEC-DOC-005.
 
@@ -11,9 +15,6 @@ from django.conf import settings
 from django.db import models
 from addons.base.models import SoftDeleteModel, TimeStampedModel
 from addons.mail.models import MailThread
-
-
-
 class ReturnRequest(MailThread, TimeStampedModel, SoftDeleteModel):
     """Solicitud de devolucion. UC-RET-01..06.
 

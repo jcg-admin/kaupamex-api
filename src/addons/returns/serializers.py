@@ -6,7 +6,7 @@ Cumplen los contratos JSON declarados en UC-RET-01..06 (PARTE 7C).
 from decimal import Decimal
 from rest_framework import serializers
 from addons.authz.services import is_superadmin
-from .models import (
+from addons.stock.models import (
     ReturnEvidence,
     ReturnHistoryEntry,
     ReturnItem,

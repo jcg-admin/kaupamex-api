@@ -27,7 +27,7 @@ from addons.mail.models import (
 )
 from addons.mail.models import Notification, NotificationType
 from addons.orders.models import Order
-from addons.returns.models import ReturnRequest
+from addons.stock.models import ReturnRequest
 from addons.sms.models import SmsSms
 from addons.sms.services import mark_sms_error, mark_sms_sent, send_thread_sms
 from addons.helpdesk.models import SupportTicket

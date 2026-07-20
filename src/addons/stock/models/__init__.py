@@ -10,6 +10,12 @@ from addons.stock.models.stock_move import StockMove
 from addons.stock.models.stock_picking import StockPicking
 from addons.stock.models.stock_quant import StockQuant
 from addons.stock.models.stock_rule import StockRule
+from addons.stock.models.return_request import (
+    ReturnRequest,
+    ReturnItem,
+    ReturnHistoryEntry,
+    ReturnEvidence,
+)
 
 __all__ = [
     'StockLocation',
@@ -18,4 +24,8 @@ __all__ = [
     'StockPicking',
     'StockQuant',
     'StockRule',
+    'ReturnRequest',
+    'ReturnItem',
+    'ReturnHistoryEntry',
+    'ReturnEvidence',
 ]

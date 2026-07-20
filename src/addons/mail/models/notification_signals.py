@@ -32,7 +32,7 @@ logger = logging.getLogger('apps')
 
 from addons.orders.models import Order, OrderValue
 from addons.payments.models import Refund
-from addons.returns.models import ReturnRequest
+from addons.stock.models import ReturnRequest
 from addons.helpdesk.models import SupportTicket
 
 from addons.mail.models.notification_service import (

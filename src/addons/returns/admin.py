@@ -1,6 +1,6 @@
 """Django admin registration for addons.returns."""
 from django.contrib import admin
-from .models import ReturnHistoryEntry, ReturnItem, ReturnRequest
+from addons.stock.models import ReturnHistoryEntry, ReturnItem, ReturnRequest
 
 
 
