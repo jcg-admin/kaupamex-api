@@ -13,7 +13,8 @@ from addons.catalogue.models import Category, Product, SearchHistory, ProductIma
 from addons.chartsize.models import VariantType, VariantOption, ProductVariant
 from addons.inventory.models import StockMovement, StockAlert
 from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
-from addons.settings_app.models import SiteSettings, PaymentGateway, ShippingMethod, StaticPage, StaticPageVersion
+from addons.settings_app.models import SiteSettings, PaymentGateway, ShippingMethod
+from addons.website.models import StaticPage, StaticPageVersion
 from addons.users.models import Address, PasswordResetToken, EmailVerificationToken
 from addons.users.models import IdentityUser as User
 from addons.loyalty.models import Voucher, VoucherChangeLog

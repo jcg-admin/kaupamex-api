@@ -10,7 +10,7 @@ from unittest.mock import patch
 from django.core import signing
 
 from addons.mass_mailing import services as mm
-from addons.settings_app.models import StaticPage
+from addons.website.models import StaticPage
 
 pytestmark = pytest.mark.integration
 

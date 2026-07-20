@@ -23,7 +23,8 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from django.core.cache import cache
 from addons.users.audit import audit_log_business
-from .models import SiteSettings, PaymentGateway, ShippingMethod, StaticPage, StaticPageVersion, Banner
+from .models import SiteSettings, PaymentGateway, ShippingMethod
+from addons.website.models import StaticPage, StaticPageVersion, Banner
 from .serializers import (
     SiteSettingsSerializer, SiteSettingsAdminSerializer, PublicSiteSettingsSerializer,
     PaymentGatewaySerializer, ShippingMethodSerializer, PublicShippingMethodSerializer,

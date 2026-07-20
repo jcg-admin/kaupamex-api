@@ -9,7 +9,8 @@ from rest_framework import serializers
 from addons.orders.models import ShippingZone
 from addons.orders.delivery import delivery_estimate_dict
 from addons.geo.models import CatalogPostalCode
-from .models import SiteSettings, PaymentGateway, ShippingMethod, Banner
+from .models import SiteSettings, PaymentGateway, ShippingMethod
+from addons.website.models import Banner
 
 
 class SiteSettingsSerializer(serializers.ModelSerializer):
