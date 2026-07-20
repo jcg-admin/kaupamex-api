@@ -40,7 +40,7 @@ from .aggregations import (
     build_top_sellers_payload, count_export_rows, parse_period,
 )
 from .exports import EXPORTERS
-from .models import ExportJob
+from addons.base.models import ExportJob
 from .pdf_report import PdfGenerationError
 from .serializers import ExportJobSerializer
 from .sp_helpers import call_sp

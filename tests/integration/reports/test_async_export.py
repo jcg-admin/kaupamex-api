@@ -21,7 +21,7 @@ from unittest import mock
 from django.core import signing
 
 from addons.reports import views as reports_views
-from addons.reports.models import ExportJob
+from addons.base.models import ExportJob
 
 pytestmark = pytest.mark.integration
 

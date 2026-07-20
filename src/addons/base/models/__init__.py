@@ -35,6 +35,7 @@ from .ir_default import IrDefault
 from .ir_filters import IrFilters
 from .ir_logging_log import IrLogging
 from .ir_sequence import IrSequence
+from .report_export_job import ExportJob
 from .res_bank import ResBank
 from .res_country import ResCountry, ResCountryState
 from .res_country_group import ResCountryGroup
@@ -67,4 +68,5 @@ __all__ = [
     'ResBank',
     'DecimalPrecision',
     'IrSequence',
+    'ExportJob',
 ]
