@@ -10,7 +10,7 @@ import pytest
 from decimal import Decimal
 from django.contrib.auth import get_user_model
 from addons.catalogue.models import Category, Product
-from addons.reviews.models import Review
+from addons.rating.models import Review
 from addons.questions.models import ProductQuestion, QuestionStatus
 from addons.orders.models import Order
 

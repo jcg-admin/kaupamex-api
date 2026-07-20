@@ -29,7 +29,7 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from addons.catalogue.models import Product
 from addons.orders.models import Order
-from .models import Review, ReviewHelpfulVote, ReviewImage, ReviewModerationLog
+from addons.rating.models import Review, ReviewHelpfulVote, ReviewImage, ReviewModerationLog
 from config.schema import error_response
 from .serializers import (
     ReviewAdminSerializer, ReviewCreateSerializer, ReviewImageSerializer,

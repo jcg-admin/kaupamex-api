@@ -20,7 +20,7 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from addons.chartsize.serializers import ProductVariantPublicSerializer
 from addons.questions.models import ProductQuestion, QuestionStatus
-from addons.reviews.models import Review
+from addons.rating.models import Review
 from addons.settings_app.models import SiteSettings
 from .models import Category, Product, ProductImage, ProductDiscount, ProductPriceHistory, SearchHistory
 

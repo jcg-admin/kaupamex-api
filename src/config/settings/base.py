@@ -79,7 +79,7 @@ INSTALLED_APPS = [
     'addons.questions',
     'addons.reports',
     'addons.delivery',
-    'addons.reviews',
+    'addons.rating',
     'addons.search_history',
     'addons.website',
     'addons.auto_backup',
@@ -476,7 +476,7 @@ SPECTACULAR_SETTINGS = {
         'RefundStatusEnum':
             'addons.payments.models.Refund.STATUSES',
         'ReviewStatusEnum':
-            'addons.reviews.models.Review.STATUSES',
+            'addons.rating.models.Review.STATUSES',
         'ShipmentGuideStatusEnum':
             'addons.delivery.models.ShipmentGuide.STATUSES',
         'StaticPageVersionStatusEnum':

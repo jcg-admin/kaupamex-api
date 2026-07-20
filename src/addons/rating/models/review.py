@@ -1,15 +1,16 @@
 """
-Models — addons.reviews (P-14 / UC-REV-01..03).
+Models — product reviews (adaptación en ``rating``: reseña de producto).
+
+En Odoo las reseñas de producto se construyen sobre ``rating.rating`` (módulo
+``rating`` + ``website_sale``); aquí el agregado de reseña (``Review`` +
+moderación/votos/imágenes) se aloja en el módulo ``rating`` —su hogar fiel—
+manteniendo el vocabulario del caso de uso UC-REV.
 
 Review: una reseña por (user, product). Inherits SoftDeleteModel para
 conservar historial de moderación (auditoría RNF-AUDIT-001).
-
-ReviewModerationLog: append-only audit trail. NO hereda SoftDeleteModel
-(DEC-DOC-007 exception para tablas de auditoría).
-
-ReviewHelpfulVote: voto de "util" por usuario/reseña (UC-REV-02
-FR-REV-02.02). Append-only; unique_together garantiza un voto por
-usuario por reseña. Incrementa Review.helpful_count.
+ReviewModerationLog: append-only audit trail.
+ReviewHelpfulVote: voto de "util" por usuario/reseña (UC-REV-02).
+ReviewImage: foto adjunta a una reseña (UC-REV-02 cap6).
 """
 from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
