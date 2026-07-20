@@ -71,7 +71,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="versions",
-                        to="static_content.staticcontent",
+                        to="website.staticcontent",
                     ),
                 ),
             ],

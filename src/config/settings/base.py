@@ -83,7 +83,7 @@ INSTALLED_APPS = [
     'addons.logistics',
     'addons.reviews',
     'addons.search_history',
-    'addons.static_content',
+    'addons.website',
     'addons.auto_backup',
     'addons.referral',
     'addons.geo',

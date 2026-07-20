@@ -1,5 +1,5 @@
 """
-Models — addons.static_content (UC-CFG-04).
+Models — addons.website (UC-CFG-04).
 
 StaticContent: páginas de contenido estático (privacy-policy, terms,
 about-us, etc.) editables por administradores con version history.

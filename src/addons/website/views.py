@@ -1,5 +1,5 @@
 """
-Views — addons.static_content (UC-CFG-04).
+Views — addons.website (UC-CFG-04).
 
   GET   /api/v1/admin/static-content/             list
   POST  /api/v1/admin/static-content/             create page (idempotent on slug)

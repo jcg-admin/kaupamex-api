@@ -1,8 +1,8 @@
 """
-Admin URLs — addons.static_content (UC-CFG-04).
+Admin URLs — addons.website (UC-CFG-04).
 
 Mounted in config/urls.py as:
-  path('api/v1/admin/', include('addons.static_content.admin_urls',
+  path('api/v1/admin/', include('addons.website.admin_urls',
        namespace='admin_static_content'))
 """
 from django.urls import path
