@@ -22,8 +22,8 @@ from django.utils import timezone
 
 from addons.mail.models import Notification, NotificationType
 from addons.mail.models.notification_service import notify_support_closed
-from addons.support.models import SupportTicket, SupportTicketReply
-from addons.support.management.commands.auto_close_support_tickets import AUTO_CLOSE_DAYS
+from addons.helpdesk.models import SupportTicket, SupportTicketReply
+from addons.helpdesk.management.commands.auto_close_support_tickets import AUTO_CLOSE_DAYS
 
 User = get_user_model()
 

@@ -17,7 +17,7 @@ from django.contrib.auth import get_user_model
 from addons.authz.models import Capability, Module, Role, RoleAssignment
 from addons.orders.models import Order, OrderItem, OrderValue
 from addons.payments.models import Payment
-from addons.support.models import SupportTicket
+from addons.helpdesk.models import SupportTicket
 
 import pytest
 

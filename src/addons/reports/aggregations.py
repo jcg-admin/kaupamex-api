@@ -14,7 +14,7 @@ from addons.orders.models import Order, OrderValue, OrderItem
 from addons.payments.models import Payment
 from addons.catalogue.models import Product
 from addons.inventory.models import StockAlert
-from addons.support.models import SupportTicket
+from addons.helpdesk.models import SupportTicket
 
 
 

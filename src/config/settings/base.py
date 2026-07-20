@@ -73,7 +73,7 @@ INSTALLED_APPS = [
     'addons.sale_mrp',
     'addons.orders',
     'addons.payments',
-    'addons.support',
+    'addons.helpdesk',
     'addons.returns',
     'addons.contact',
     'addons.mass_mailing',
@@ -489,7 +489,7 @@ SPECTACULAR_SETTINGS = {
         'QuestionStatusEnum':
             'addons.questions.models.QuestionStatus.choices',
         'SupportTicketStatusEnum':
-            'addons.support.models.SupportTicket.Status',
+            'addons.helpdesk.models.SupportTicket.Status',
         'ReturnRequestStatusEnum':
             'addons.returns.models.ReturnRequest.Status',
         # gateway fields (Payment vs PaymentGateway tienen choice sets

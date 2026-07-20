@@ -67,7 +67,7 @@ urlpatterns = _admin_urls + [
     path('api/v2/admin/',                 include(('addons.reviews.admin_urls', 'admin_reviews'), namespace='admin_reviews_v2')),
     path('api/v2/products/',              include(('addons.questions.urls', 'questions'),         namespace='questions_v2')),
     path('api/v2/admin/',                 include(('addons.questions.admin_urls', 'admin_questions'), namespace='admin_questions_v2')),
-    path('api/v2/support/',               include(('addons.support.urls', 'support'),             namespace='support_v2')),
+    path('api/v2/support/',               include(('addons.helpdesk.urls', 'support'),             namespace='support_v2')),
 
     # ─── API v2 (F4: inventory admin + catalogue admin) ───────────────────────
     path('api/v2/admin/inventory/', include(('addons.inventory.admin_urls', 'admin_inventory_v2'), namespace='admin_inventory_v2')),
@@ -115,7 +115,7 @@ urlpatterns = _admin_urls + [
     path('api/v2/admin/',   include(('addons.users.admin_urls', 'admin_users'),                         namespace='admin_users_v2')),
     path('api/v2/admin/',   include(('addons.loyalty.urls', 'admin_voucher'),                           namespace='admin_voucher_v2')),
     path('api/v2/admin/',   include(('addons.orders.admin_urls', 'admin_orders'),                       namespace='admin_orders_v2')),
-    path('api/v2/admin/',   include(('addons.support.admin_urls', 'admin_support'),                     namespace='admin_support_v2')),
+    path('api/v2/admin/',   include(('addons.helpdesk.admin_urls', 'admin_support'),                     namespace='admin_support_v2')),
     path('api/v2/contact/', include(('addons.contact.urls', 'contact'),                                 namespace='contact_v2')),
     path('api/v2/admin/',   include(('addons.website.admin_urls', 'admin_static_content'),      namespace='admin_static_content_v2')),
     path('api/v2/admin/',   include(('addons.payments.admin_urls', 'admin_payments'),                   namespace='admin_payments_v2')),

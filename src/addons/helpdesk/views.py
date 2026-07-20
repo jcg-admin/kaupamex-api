@@ -1,5 +1,5 @@
 """
-Views — addons.support (UC-SUPP-01..05).
+Views — addons.helpdesk (UC-SUPP-01..05).
 
 User endpoints:
   POST   /api/v1/support/tickets/                 UC-SUPP-01 create

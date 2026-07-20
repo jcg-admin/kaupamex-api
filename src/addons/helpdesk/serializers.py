@@ -1,5 +1,5 @@
 """
-Serializers — addons.support.
+Serializers — addons.helpdesk.
 
 Cumplen los contratos JSON declarados en UC-SUPP-01..05 (PARTE 7C).
 """

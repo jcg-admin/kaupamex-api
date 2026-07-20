@@ -20,7 +20,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
 
-from addons.support.models import SupportTicket, SupportTicketReply
+from addons.helpdesk.models import SupportTicket, SupportTicketReply
 
 logger = logging.getLogger(__name__)
 

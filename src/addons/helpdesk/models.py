@@ -1,5 +1,5 @@
 """
-Models — addons.support (UC-SUPP-01..05).
+Models — addons.helpdesk (UC-SUPP-01..05).
 
 Identificadores en ingles segun DEC-DOC-005.
 
