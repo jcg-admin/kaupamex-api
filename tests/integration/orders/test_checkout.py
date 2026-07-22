@@ -10,6 +10,7 @@ from decimal import Decimal
 from addons.catalogue.models import Category, Product
 from addons.delivery.models import ShippingMethod
 from addons.orders.models import Order, OrderValue, OrderAddress, ShippingZone
+from addons.sale.models import SaleOrder
 from addons.loyalty.models import Voucher
 from django.utils import timezone
 pytestmark = pytest.mark.integration
@@ -148,8 +149,8 @@ class TestCheckout:
             CHECKOUT_URL,
             {'address': ADDR, 'shipping_method_id': shipping_gratis.pk},
             format='json')
-        # S4: el carrito ES la orden — confirmar deja al usuario sin draft.
-        assert Order.objects.filter(status=Order.STATUS_DRAFT).count() == 0
+        # V2: el carrito ES la SaleOrder — confirmar deja 0 drafts.
+        assert SaleOrder.objects.filter(state=SaleOrder.STATE_DRAFT).count() == 0
 
     def test_checkout_crea_ordervalue(
         self, cart_con_item_auth, prod_ord, shipping_gratis, db

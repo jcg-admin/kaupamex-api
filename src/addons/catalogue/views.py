@@ -30,7 +30,7 @@ from .serializers import (
     CategoryWithCountSerializer, ProductAdminSerializer, ProductPriceHistorySerializer,
 )
 from .models import ProductPriceHistory
-from addons.orders.models import Order, OrderItem
+from addons.sale.models import SaleOrder, SaleOrderLine
 from addons.website_sale_wishlist.models import WishlistItem
 import logging
 """
@@ -588,10 +588,10 @@ class CategoryListView(APIView):
 
 
 def _count_active_carts(product):
-    # S3 cart→order→sale: el carrito activo es el Order(DRAFT).
+    # V2 orders→sale: el carrito activo es la SaleOrder(draft).
     try:
-        return OrderItem.objects.filter(
-            product=product, order__status=Order.STATUS_DRAFT).count()
+        return SaleOrderLine.objects.filter(
+            product=product, order__state=SaleOrder.STATE_DRAFT).count()
     except Exception:
         logger.warning('_count_active_carts failed for product %s', product.pk, exc_info=True)
         return 0
@@ -737,8 +737,8 @@ class ProductAdminViewSet(ProductDeactivateAction, ModelViewSet):
             # is_deleted=True. Esos registros nunca se limpiaban: el carrito
             # mostraba items "fantasma" y la wishlist retenia referencias
             # invalidas hasta que el usuario las eliminara manualmente.
-            OrderItem.objects.filter(
-                product=instance, order__status=Order.STATUS_DRAFT).delete()
+            SaleOrderLine.objects.filter(
+                product=instance, order__state=SaleOrder.STATE_DRAFT).delete()
             WishlistItem.objects.filter(product=instance).delete()
         cache.delete(f'product:{instance.pk}:detail')
         cache.delete(CATEGORY_TREE_CACHE_KEY)

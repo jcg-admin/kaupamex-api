@@ -19,6 +19,7 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from addons.inventory.services import InsufficientStockError
 from .models import CheckoutAttempt, Order, OrderItem
+from addons.sale.models import SaleOrder
 from .serializers import CancelOrderSerializer, CheckoutSerializer, OrderListSerializer, OrderSerializer, UpdateAddressSerializer, UpdateShippingSerializer
 from .shipping import resolve_shipping_quote
 from django.db.models import Prefetch
@@ -87,12 +88,12 @@ class CheckoutView(APIView):
         s.is_valid(raise_exception=True)
         data = s.validated_data
 
-        # 1. Recuperar el draft — S3 unificación cart→order→sale: el
-        # carrito ES un Order(DRAFT) (sale.order state='draft' en Odoo).
+        # 1. Recuperar el draft — V2 unificación orders→sale: el carrito
+        # ES la SaleOrder(draft) canónica (sale.order state='draft').
         if request.user and request.user.is_authenticated:
             order = (
-                Order.objects
-                .filter(user=request.user, status=Order.STATUS_DRAFT)
+                SaleOrder.objects
+                .filter(partner=request.user, state=SaleOrder.STATE_DRAFT)
                 .order_by('-created_at')
                 .first()
             )
@@ -109,9 +110,9 @@ class CheckoutView(APIView):
             if not guest_email:
                 raise ValidationError({'guest_email': 'Requerido para visitantes anónimos.',
                                        'codigo_error': 'GUEST_EMAIL_REQUIRED'})
-            order = get_object_or_404(Order, cart_token=cart_token,
-                                      user__isnull=True,
-                                      status=Order.STATUS_DRAFT)
+            order = get_object_or_404(SaleOrder, cart_token=cart_token,
+                                      partner__isnull=True,
+                                      state=SaleOrder.STATE_DRAFT)
 
         # 2. Cotización de envío (sin cambio de política: envío GRATIS —
         # REVIERTE DEC-BC-25; el comprador no elige método, el costo se

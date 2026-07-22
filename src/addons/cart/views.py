@@ -8,11 +8,12 @@ UC-CART-04: Aplicar voucher al carrito
 UC-CART-05: Guardar carrito para después
 UC-CART-06: Sincronizar carrito anónimo con cuenta
 
-S3 (analisis-unificar-cart-order-sale): estas vistas conservan el contrato
+V2 (analisis-unificar-orders-sale): estas vistas conservan el contrato
 ``/api/v1/cart/*`` (mismos paths, mismos campos ``items``/``totals``, mismos
-``codigo_error``) pero sirven y mutan el ``Order(DRAFT)`` — en Odoo el
-carrito ES un ``sale.order`` en ``state='draft'``, no una tabla aparte. Los
-modelos ``Cart``/``CartItem`` quedan como legado hasta la data migration S4.
+``codigo_error``) pero sirven y mutan la ``SaleOrder(draft)`` canónica — en
+Odoo el carrito ES un ``sale.order`` en ``state='draft'``. El strangler
+``orders.Order(DRAFT)`` de S3 quedó atrás; los servicios viven en
+``addons.sale.services``.
 """
 from django.db import transaction
 from django.shortcuts import get_object_or_404
@@ -25,8 +26,8 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from addons.catalogue.models import Product
 from addons.chartsize.models import ProductVariant
-from addons.orders.models import Order
-from addons.orders.services import (
+from addons.sale.models import SaleOrder
+from addons.sale.services import (
     DraftOrderError,
     add_item_to_draft,
     apply_voucher_to_draft,
@@ -47,8 +48,8 @@ from .serializers import (
 
 def _get_or_create_draft(request):
     """
-    Devuelve (order, created, is_authenticated) — el ``Order(DRAFT)`` que
-    hace de carrito activo.
+    Devuelve (order, created, is_authenticated) — la ``SaleOrder(draft)``
+    que hace de carrito activo (V2 unificación orders→sale).
     - Autenticado: draft único del usuario (one-draft-per-user en servicio).
     - Anónimo: draft por token (cookie httpOnly preferida sobre el header
       X-Cart-Token, H-CART-01 Fase 2).
@@ -73,8 +74,9 @@ def _prefetch_draft(order):
     ``item.product.slug``/``images`` y ``item.variant`` (current_price).
     """
     return (
-        Order.objects
-        .prefetch_related('items__product__images', 'items__variant__option')
+        SaleOrder.objects
+        .prefetch_related('order_line__product__images',
+                          'order_line__variant__option')
         .get(pk=order.pk)
     )
 
@@ -296,20 +298,20 @@ class CartSaveView(APIView):
     )
     def post(self, request):
         order, _, _ = _get_or_create_draft(request)
-        items = order.items.select_related('product', 'variant').all()
-        if not items.exists():
+        lines = order.order_line.select_related('product', 'variant').all()
+        if not lines.exists():
             raise ValidationError({'detail': 'El carrito está vacío.', 'codigo_error': 'EMPTY_CART'})
 
-        saved_count = items.count()
+        saved_count = lines.count()
         with transaction.atomic():
             saved, _ = SavedCart.objects.get_or_create(user=request.user)
             saved.items.all().delete()
-            for item in items:
+            for line in lines:
                 SavedCartItem.objects.create(
                     saved_cart=saved,
-                    product=item.product,
-                    quantity=item.quantity,
-                    price_at_save=item.unit_price,
+                    product=line.product,
+                    quantity=line.product_uom_qty,
+                    price_at_save=line.price_unit,
                 )
 
         return Response({'detail': 'Carrito guardado.', 'saved_count': saved_count})

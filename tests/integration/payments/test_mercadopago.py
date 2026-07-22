@@ -13,6 +13,7 @@ from unittest.mock import patch, MagicMock
 from decouple import config
 from addons.catalogue.models import Category, Product
 from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress, ShippingZone
+from addons.sale.models import SaleOrder
 from addons.delivery.models import ShippingMethod
 from addons.payment.models import PaymentGateway
 from addons.payment.models import Payment, PaymentGatewayEvent
@@ -527,8 +528,9 @@ class TestCheckoutExpress:
         }, format='json')
 
         auth_client.post(EXPRESS_URL, {}, format='json')
-        # S4: confirmar el draft lo transiciona — no queda draft del usuario.
-        assert Order.objects.filter(user=user, status=Order.STATUS_DRAFT).count() == 0
+        # V2: confirmar el draft lo transiciona — no queda draft del usuario.
+        assert SaleOrder.objects.filter(
+            partner=user, state=SaleOrder.STATE_DRAFT).count() == 0
 
 
 # =============================================================================

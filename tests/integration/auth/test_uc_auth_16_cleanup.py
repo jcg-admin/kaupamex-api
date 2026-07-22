@@ -18,8 +18,8 @@ import pytest
 from decimal import Decimal
 from addons.catalogue.models import Category, Product
 from addons.cart.models import SavedCart
-from addons.orders.models import Order
-from addons.orders.services import get_or_create_draft_order
+from addons.sale.models import SaleOrder
+from addons.sale.services import get_or_create_draft_order
 from addons.website_sale_wishlist.models import WishlistItem
 from addons.website.models import SearchEntry
 from addons.mail.models import NotificationPreference
@@ -48,7 +48,7 @@ class TestSelfDeleteEliminaCartActivo:
     def test_cart_se_elimina(self, auth_client, user, db):
         get_or_create_draft_order(user=user)
         auth_client.post(URL, {'password': 'TestPass123!'}, format='json')
-        assert Order.objects.filter(user=user, status=Order.STATUS_DRAFT).count() == 0
+        assert SaleOrder.objects.filter(partner=user, state=SaleOrder.STATE_DRAFT).count() == 0
 
 
 class TestSelfDeleteEliminaSavedCarts:

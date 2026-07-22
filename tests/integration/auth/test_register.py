@@ -111,8 +111,8 @@ class TestRegisterUnicidad:
 
 import uuid as _uuid
 from decimal import Decimal
-from addons.orders.models import Order
-from addons.orders.services import add_item_to_draft, get_or_create_draft_order
+from addons.sale.models import SaleOrder
+from addons.sale.services import add_item_to_draft, get_or_create_draft_order
 from addons.catalogue.models import Product
 
 
@@ -123,7 +123,7 @@ class TestRegisterMergesAnonCart:
             sku=f'ELE-{email_slug.upper()}-1', description='x',
             price=Decimal('100.00'), stock=5, is_active=True, is_published=True,
         )
-        # S3 cart→order→sale: el carrito anónimo es un Order(DRAFT) por token.
+        # V2 orders→sale: el carrito anónimo es una SaleOrder(draft) por token.
         anon, _ = get_or_create_draft_order(cart_token=_uuid.uuid4())
         add_item_to_draft(anon, p, quantity=2)
         return anon
@@ -133,10 +133,11 @@ class TestRegisterMergesAnonCart:
         res = api_client.post(URL, {**VALID, 'cart_token': str(anon.cart_token)}, format='json')
         assert res.status_code == 201
         user = get_user_model().objects.get(email=VALID['email'])
-        user_order = Order.objects.get(user=user, status=Order.STATUS_DRAFT)
-        assert user_order.items.count() == 1
+        user_order = SaleOrder.objects.get(partner=user,
+                                           state=SaleOrder.STATE_DRAFT)
+        assert user_order.order_line.count() == 1
         # el carrito anónimo se consumió al fusionarse
-        assert not Order.objects.filter(cart_token=anon.cart_token).exists()
+        assert not SaleOrder.objects.filter(cart_token=anon.cart_token).exists()
 
     def test_registro_sin_cart_token_sigue_funcionando(self, api_client, db):
         assert api_client.post(URL, VALID, format='json').status_code == 201
@@ -154,6 +155,6 @@ class TestRegisterMergesAnonCart:
         owned.save(update_fields=['cart_token'])
         res = api_client.post(URL, {**VALID, 'cart_token': str(token)}, format='json')
         assert res.status_code == 201
-        # el carrito del otro usuario sigue intacto (merge exige user__isnull)
-        assert Order.objects.filter(pk=owned.pk, user=other,
-                                    status=Order.STATUS_DRAFT).exists()
+        # el carrito del otro usuario sigue intacto (merge exige partner nulo)
+        assert SaleOrder.objects.filter(pk=owned.pk, partner=other,
+                                        state=SaleOrder.STATE_DRAFT).exists()

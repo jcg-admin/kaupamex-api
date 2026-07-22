@@ -1,9 +1,11 @@
-"""Tests — S1 de la unificación cart→order→sale (analisis-unificar-cart-order-sale).
+"""Tests — servicios del draft sobre el canónico ``sale`` (V2 orders→sale).
 
-El carrito de Odoo es un ``sale.order`` en ``state='draft'`` — no una tabla
-aparte. S1 hace la migración additiva: ``Order.status`` gana ``DRAFT`` y
-``Order`` gana ``cart_token`` (paridad con ``cart.Cart.cart_token`` para el
-carrito anónimo). Nada se borra ni se copia todavía (S2+).
+El carrito de Odoo es un ``sale.order`` en ``state='draft'``. S1–S3
+construyeron los servicios del draft sobre el strangler ``orders.Order``;
+V2 (``analisis-unificar-orders-sale``) los conmuta a ``sale.SaleOrder`` +
+``SaleOrderLine`` con el voucher anclado por ``SaleOrderCoupon``
+(H-CART-CL-02). Este archivo re-ancla la MISMA cobertura de S1–S2c-2b al
+canónico.
 """
 import uuid
 
@@ -11,12 +13,12 @@ import pytest
 from django.db import IntegrityError
 
 from addons.base.models import SiteSettings
-from addons.orders.models import Order
+from addons.sale.models import SaleOrder
 from decimal import Decimal
 
 from addons.catalogue.models import Category, Product
 from addons.cart.serializers import DraftCartSerializer, DraftItemSerializer
-from addons.orders.services import (
+from addons.sale.services import (
     DraftOrderError,
     add_item_to_draft,
     clear_draft_items,
@@ -30,46 +32,35 @@ from addons.orders.services import (
 pytestmark = pytest.mark.django_db
 
 
-class TestDraftOrderS1:
-    def test_draft_status_is_a_valid_choice(self):
-        assert Order.STATUS_DRAFT == 'DRAFT'
-        assert Order.STATUS_DRAFT in dict(Order.STATUSES)
+class TestDraftSaleOrderV2:
+    def test_draft_state_is_a_valid_choice(self):
+        assert SaleOrder.STATE_DRAFT == 'draft'
+        assert SaleOrder.STATE_DRAFT in dict(SaleOrder.STATES)
 
-    def test_order_persists_as_draft_with_cart_token(self):
+    def test_sale_order_persists_as_draft_with_cart_token(self):
         token = uuid.uuid4()
-        order = Order.objects.create(
-            order_number=f'D-{str(uuid.uuid4())[:8]}',
-            status=Order.STATUS_DRAFT,
-            cart_token=token,
-        )
+        order = SaleOrder.objects.create(
+            state=SaleOrder.STATE_DRAFT, cart_token=token)
         order.refresh_from_db()
-        assert order.status == Order.STATUS_DRAFT
+        assert order.state == SaleOrder.STATE_DRAFT
         assert order.cart_token == token
+        assert order.name is None  # el nombre SO se acuña al confirmar
 
     def test_cart_token_is_unique(self):
         token = uuid.uuid4()
-        Order.objects.create(
-            order_number=f'D-{str(uuid.uuid4())[:8]}',
-            status=Order.STATUS_DRAFT,
-            cart_token=token,
-        )
+        SaleOrder.objects.create(state=SaleOrder.STATE_DRAFT, cart_token=token)
         with pytest.raises(IntegrityError):
-            Order.objects.create(
-                order_number=f'D-{str(uuid.uuid4())[:8]}',
-                status=Order.STATUS_DRAFT,
-                cart_token=token,
-            )
+            SaleOrder.objects.create(
+                state=SaleOrder.STATE_DRAFT, cart_token=token)
 
     def test_cart_token_is_optional_multiple_null_allowed(self):
-        a = Order.objects.create(
-            order_number=f'D-{str(uuid.uuid4())[:8]}', status=Order.STATUS_DRAFT)
-        b = Order.objects.create(
-            order_number=f'D-{str(uuid.uuid4())[:8]}', status=Order.STATUS_DRAFT)
+        a = SaleOrder.objects.create(state=SaleOrder.STATE_DRAFT)
+        b = SaleOrder.objects.create(state=SaleOrder.STATE_DRAFT)
         assert a.cart_token is None and b.cart_token is None
 
 
 class TestGetOrCreateDraftOrderS2:
-    """S2a: espejo de _get_or_create_cart sobre Order(DRAFT)."""
+    """Espejo de _get_or_create_cart sobre SaleOrder(draft)."""
 
     def test_authenticated_user_gets_single_draft(self, django_user_model):
         user = django_user_model.objects.create_user(
@@ -78,7 +69,7 @@ class TestGetOrCreateDraftOrderS2:
         b, created_b = get_or_create_draft_order(user=user)
         assert created_a is True and created_b is False
         assert a.pk == b.pk
-        assert a.status == Order.STATUS_DRAFT
+        assert a.state == SaleOrder.STATE_DRAFT
 
     def test_anonymous_token_reuses_draft(self):
         token = uuid.uuid4()
@@ -90,7 +81,7 @@ class TestGetOrCreateDraftOrderS2:
     def test_anonymous_without_token_mints_one(self):
         order, created = get_or_create_draft_order()
         assert created is True
-        assert order.status == Order.STATUS_DRAFT
+        assert order.state == SaleOrder.STATE_DRAFT
         assert order.cart_token is not None
 
 
@@ -107,22 +98,20 @@ def draft_product(db):
 
 
 class TestDraftItemOperationsS2b:
-    """S2b: paridad de operaciones de items sobre Order(DRAFT)."""
+    """Paridad de operaciones de líneas sobre SaleOrder(draft)."""
 
     def test_add_item_snapshots_and_merges(self, draft_product):
         order, _ = get_or_create_draft_order(cart_token=uuid.uuid4())
-        item, created = add_item_to_draft(order, draft_product, quantity=2)
+        line, created = add_item_to_draft(order, draft_product, quantity=2)
         assert created is True
-        assert item.product_name == draft_product.name
-        assert item.sku == draft_product.sku
-        assert item.unit_price == Decimal('100.00')
-        assert item.subtotal == Decimal('200.00')
+        assert line.name == draft_product.name
+        assert line.price_unit == Decimal('100.00')
+        assert line.price_unit * line.product_uom_qty == Decimal('200.00')
 
-        item2, created2 = add_item_to_draft(order, draft_product, quantity=1)
-        assert created2 is False and item2.pk == item.pk
-        item2.refresh_from_db()
-        assert item2.quantity == 3
-        assert item2.subtotal == Decimal('300.00')
+        line2, created2 = add_item_to_draft(order, draft_product, quantity=1)
+        assert created2 is False and line2.pk == line.pk
+        line2.refresh_from_db()
+        assert line2.product_uom_qty == 3
 
     def test_add_item_respects_stock(self, draft_product):
         order, _ = get_or_create_draft_order(cart_token=uuid.uuid4())
@@ -131,8 +120,7 @@ class TestDraftItemOperationsS2b:
         assert exc.value.codigo_error == 'INSUFFICIENT_STOCK'
 
     def test_add_item_rejects_non_draft(self, draft_product):
-        order = Order.objects.create(
-            order_number=f'D-{str(uuid.uuid4())[:8]}', status=Order.STATUS_PENDING)
+        order = SaleOrder.objects.create(state=SaleOrder.STATE_SALE)
         with pytest.raises(DraftOrderError) as exc:
             add_item_to_draft(order, draft_product, quantity=1)
         assert exc.value.codigo_error == 'ORDEN_NO_DRAFT'
@@ -140,13 +128,13 @@ class TestDraftItemOperationsS2b:
     def test_clear_draft_items(self, draft_product):
         order, _ = get_or_create_draft_order(cart_token=uuid.uuid4())
         add_item_to_draft(order, draft_product, quantity=1)
-        assert order.items.count() == 1
+        assert order.order_line.count() == 1
         clear_draft_items(order)
-        assert order.items.count() == 0
+        assert order.order_line.count() == 0
 
 
 class TestDraftTotalsS2c:
-    """S2c-1: paridad del contrato de totales con Cart.get_totals."""
+    """Paridad del contrato de totales (13 claves) con el histórico."""
 
     CART_TOTALS_KEYS = {
         'subtotal', 'discount', 'subtotal_net', 'tax_included',
@@ -172,20 +160,20 @@ class TestDraftTotalsS2c:
 
 
 class TestDraftItemUpdateRemoveS2c2:
-    """S2c-2a: paridad de patch/delete de item sobre el draft."""
+    """Paridad de patch/delete de línea sobre el draft."""
 
-    def test_update_quantity_and_subtotal(self, draft_product):
+    def test_update_quantity(self, draft_product):
         order, _ = get_or_create_draft_order(cart_token=uuid.uuid4())
-        item, _ = add_item_to_draft(order, draft_product, quantity=1)
-        updated = update_draft_item_quantity(order, item.pk, 4)
-        assert updated.quantity == 4
-        assert updated.subtotal == Decimal('400.00')
+        line, _ = add_item_to_draft(order, draft_product, quantity=1)
+        updated = update_draft_item_quantity(order, line.pk, 4)
+        assert updated.product_uom_qty == 4
+        assert updated.price_unit * updated.product_uom_qty == Decimal('400.00')
 
     def test_update_quantity_respects_stock(self, draft_product):
         order, _ = get_or_create_draft_order(cart_token=uuid.uuid4())
-        item, _ = add_item_to_draft(order, draft_product, quantity=1)
+        line, _ = add_item_to_draft(order, draft_product, quantity=1)
         with pytest.raises(DraftOrderError) as exc:
-            update_draft_item_quantity(order, item.pk, 6)
+            update_draft_item_quantity(order, line.pk, 6)
         assert exc.value.codigo_error == 'INSUFFICIENT_STOCK'
 
     def test_update_missing_item_raises(self, draft_product):
@@ -196,58 +184,54 @@ class TestDraftItemUpdateRemoveS2c2:
 
     def test_remove_item(self, draft_product):
         order, _ = get_or_create_draft_order(cart_token=uuid.uuid4())
-        item, _ = add_item_to_draft(order, draft_product, quantity=1)
-        remove_draft_item(order, item.pk)
-        assert order.items.count() == 0
+        line, _ = add_item_to_draft(order, draft_product, quantity=1)
+        remove_draft_item(order, line.pk)
+        assert order.order_line.count() == 0
 
 
-class TestOrderItemLineMethodsS2c2b:
-    """S2c-2b: paridad de la matemática de línea con CartItem.
-
-    En Odoo estos cálculos viven en ``sale.order.line``
-    (price_subtotal/price_tax/price_total); ``OrderItem`` es su línea
-    strangler, así que gana los mismos métodos que ``CartItem`` expone
-    al serializer del carrito.
+class TestSaleOrderLineMethodsV2:
+    """La matemática y disponibilidad de línea viven en SaleOrderLine
+    (Odoo ``sale.order.line._compute_amount`` + estado vivo del catálogo).
     """
 
     def test_price_total_and_breakdown(self, draft_product):
         order, _ = get_or_create_draft_order(cart_token=uuid.uuid4())
-        item, _ = add_item_to_draft(order, draft_product, quantity=2)
+        line, _ = add_item_to_draft(order, draft_product, quantity=2)
         rate = SiteSettings.get_current().iva_rate
         total = Decimal('200.00')
         expected_tax = (total * rate / (Decimal('1') + rate)).quantize(
             Decimal('0.01'))
-        assert item.price_total() == total
-        assert item.price_tax() == expected_tax
-        assert item.price_subtotal() == total - expected_tax
+        assert line.price_total() == total
+        assert line.price_tax() == expected_tax
+        assert line.price_subtotal() == total - expected_tax
 
     def test_current_price_and_availability(self, draft_product):
         order, _ = get_or_create_draft_order(cart_token=uuid.uuid4())
-        item, _ = add_item_to_draft(order, draft_product, quantity=1)
-        assert item.current_price() == Decimal('100.00')
-        assert item.is_available() is True
-        assert item.available_stock() == draft_product.stock
+        line, _ = add_item_to_draft(order, draft_product, quantity=1)
+        assert line.current_price() == Decimal('100.00')
+        assert line.is_available() is True
+        assert line.available_stock() == draft_product.stock
 
     def test_is_available_false_when_product_inactive(self, draft_product):
         order, _ = get_or_create_draft_order(cart_token=uuid.uuid4())
-        item, _ = add_item_to_draft(order, draft_product, quantity=1)
+        line, _ = add_item_to_draft(order, draft_product, quantity=1)
         draft_product.is_active = False
         draft_product.save(update_fields=['is_active'])
-        item.refresh_from_db()
-        assert item.is_available() is False
+        line.refresh_from_db()
+        assert line.is_available() is False
 
     def test_is_available_false_when_out_of_stock(self, draft_product):
         order, _ = get_or_create_draft_order(cart_token=uuid.uuid4())
-        item, _ = add_item_to_draft(order, draft_product, quantity=1)
+        line, _ = add_item_to_draft(order, draft_product, quantity=1)
         draft_product.stock = 0
         draft_product.save(update_fields=['stock'])
-        item.refresh_from_db()
-        assert item.is_available() is False
-        assert item.available_stock() == 0
+        line.refresh_from_db()
+        assert line.is_available() is False
+        assert line.available_stock() == 0
 
 
 class TestDraftSerializersS2c2b:
-    """S2c-2b: el draft serializado con el contrato EXACTO del carrito."""
+    """El draft serializado con el contrato EXACTO del carrito."""
 
     CART_ITEM_KEYS = [
         'id', 'product_name', 'product_slug', 'variant_label', 'sku',
@@ -259,11 +243,12 @@ class TestDraftSerializersS2c2b:
     def test_item_contract_matches_cart_item_serializer(self, draft_product):
         order, _ = get_or_create_draft_order(cart_token=uuid.uuid4())
         add_item_to_draft(order, draft_product, quantity=2)
-        data = DraftItemSerializer(order.items.first()).data
+        data = DraftItemSerializer(order.order_line.first()).data
         assert list(data.keys()) == self.CART_ITEM_KEYS
         assert data['product_name'] == draft_product.name
         assert data['product_slug'] == draft_product.slug
         assert data['variant_label'] is None
+        assert data['sku'] == draft_product.sku
         assert data['subtotal'] == '200.00'
         assert data['is_available'] is True
         assert data['price_changed'] is False
@@ -279,7 +264,7 @@ class TestDraftSerializersS2c2b:
 
 
 class TestMergeDraftOrdersS2c2b:
-    """S2c-2b: fusión del draft anónimo al autenticado (UC-CART-06)."""
+    """Fusión del draft anónimo al autenticado (UC-CART-06)."""
 
     def test_merge_moves_items_and_deletes_anon_draft(
             self, draft_product, django_user_model):
@@ -291,10 +276,10 @@ class TestMergeDraftOrdersS2c2b:
 
         order, skipped = merge_draft_orders(user, token)
         assert skipped == []
-        assert order.user_id == user.pk
-        assert order.items.count() == 1
-        assert order.items.first().quantity == 2
-        assert not Order.objects.filter(pk=anon.pk).exists()
+        assert order.partner_id == user.pk
+        assert order.order_line.count() == 1
+        assert order.order_line.first().product_uom_qty == 2
+        assert not SaleOrder.objects.filter(pk=anon.pk).exists()
 
     def test_merge_caps_quantity_to_stock(self, draft_product, django_user_model):
         user = django_user_model.objects.create_user(
@@ -306,9 +291,8 @@ class TestMergeDraftOrdersS2c2b:
         add_item_to_draft(anon, draft_product, quantity=3)
 
         order, skipped = merge_draft_orders(user, token)
-        item = order.items.get()
-        assert item.quantity == 5  # 4+3 recortado al stock=5
-        assert item.subtotal == Decimal('500.00')
+        line = order.order_line.get()
+        assert line.product_uom_qty == 5  # 4+3 recortado al stock=5
         assert skipped == []
 
     def test_merge_skips_out_of_stock(self, draft_product, django_user_model):
@@ -321,7 +305,7 @@ class TestMergeDraftOrdersS2c2b:
         draft_product.save(update_fields=['stock'])
 
         order, skipped = merge_draft_orders(user, token)
-        assert order.items.count() == 0
+        assert order.order_line.count() == 0
         assert skipped == [{'product_id': draft_product.pk,
                             'product_name': draft_product.name,
                             'reason': 'OUT_OF_STOCK'}]
@@ -330,5 +314,5 @@ class TestMergeDraftOrdersS2c2b:
         user = django_user_model.objects.create_user(
             email='merge-noop@test.mx', password='x')
         order, skipped = merge_draft_orders(user, uuid.uuid4())
-        assert order.user_id == user.pk
+        assert order.partner_id == user.pk
         assert skipped == []

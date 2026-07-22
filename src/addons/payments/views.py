@@ -19,6 +19,7 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from django.db.models import Q, Sum
 from addons.orders.models import Order, ShippingZone
+from addons.sale.models import SaleOrder
 from addons.orders.proxy_models import DeliveredOrder
 from addons.payment.models import Payment, Payment as PaymentModel, Refund, Chargeback, SavedCard
 from .serializers import (
@@ -589,15 +590,15 @@ class ExpressCheckoutView(APIView):
                 'codigo_error': 'NOT_ELIGIBLE_EXPRESS',
             })
 
-        # Obtener el carrito (S3 cart→order→sale: es el Order(DRAFT))
-        draft = (Order.objects
-                 .filter(user=request.user, status=Order.STATUS_DRAFT)
+        # Obtener el carrito (V2 orders→sale: es la SaleOrder(draft))
+        draft = (SaleOrder.objects
+                 .filter(partner=request.user, state=SaleOrder.STATE_DRAFT)
                  .order_by('-created_at')
                  .first())
         if draft is None:
             raise ValidationError({'detail': 'No tienes un carrito activo.', 'codigo_error': 'EMPTY_CART'})
 
-        if not draft.items.exists():
+        if not draft.order_line.exists():
             raise ValidationError({'detail': 'El carrito está vacío.', 'codigo_error': 'EMPTY_CART'})
 
         addr = eligibility['default_address']

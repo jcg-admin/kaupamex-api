@@ -13,8 +13,8 @@ from rest_framework.test import APIClient
 from addons.catalogue.models import Category, Product
 from addons.chartsize.models import VariantType, VariantOption, ProductVariant
 from addons.cart.models import SavedCart
-from addons.orders.models import Order
-from addons.orders.services import add_item_to_draft, get_or_create_draft_order
+from addons.sale.models import SaleOrder
+from addons.sale.services import add_item_to_draft, get_or_create_draft_order
 from addons.users.models import IdentityUser as User
 
 pytestmark = pytest.mark.integration
@@ -203,13 +203,13 @@ class TestAgregarProducto:
         assert len(body['items']) == 1
         assert body['items'][0]['quantity'] == 1
 
-        # 3) Persistencia en el modelo (S3 cart→order→sale): el carrito con
-        #    ese token es un Order(DRAFT) sin usuario (anónimo, BR-004).
-        order = Order.objects.get(cart_token=token)
-        assert order.user is None
-        assert order.status == Order.STATUS_DRAFT
-        assert order.items.count() == 1
-        assert order.items.first().product_id == product_sin_variante.pk
+        # 3) Persistencia en el modelo (V2 orders→sale): el carrito con
+        #    ese token es una SaleOrder(draft) sin partner (anónimo, BR-004).
+        order = SaleOrder.objects.get(cart_token=token)
+        assert order.partner is None
+        assert order.state == SaleOrder.STATE_DRAFT
+        assert order.order_line.count() == 1
+        assert order.order_line.first().product_id == product_sin_variante.pk
 
     def test_autenticado_no_requiere_cart_token(
         self, auth_client, product_sin_variante, db
@@ -413,9 +413,10 @@ class TestGuardarCarrito:
         assert res.status_code == 200
 
         # Party (T-201): auth_client autentica el fixture ``user`` (por email).
-        # S3 cart→order→sale: el carrito activo es el Order(DRAFT).
-        order = Order.objects.get(user=user, status=Order.STATUS_DRAFT)
-        assert order.items.count() == 1
+        # V2 orders→sale: el carrito activo es la SaleOrder(draft).
+        order = SaleOrder.objects.get(partner=user,
+                                      state=SaleOrder.STATE_DRAFT)
+        assert order.order_line.count() == 1
         saved = SavedCart.objects.get(user=user)
         assert saved.items.count() == 1
 
@@ -434,7 +435,7 @@ class TestFusionarCarrito:
         self, auth_client, product_sin_variante, db
     ):
         """FC-CART-06 Escenario principal: fusión de carrito anónimo."""
-        # Crear el carrito anónimo (S3: Order DRAFT por token) en BD
+        # Crear el carrito anónimo (V2: SaleOrder draft por token) en BD
         anon_token = uuid.uuid4()
         anon_order, _ = get_or_create_draft_order(cart_token=anon_token)
         add_item_to_draft(anon_order, product_sin_variante, quantity=2)
@@ -490,7 +491,7 @@ class TestProteccionVarianteConCartItems:
         self, admin_client, product_con_variante, variant_s12, db
     ):
         """H-S12-006: variante con CartItems activos no puede desactivarse."""
-        # S3 cart→order→sale: el carrito activo es un Order(DRAFT)
+        # V2 orders→sale: el carrito activo es una SaleOrder(draft)
         draft, _ = get_or_create_draft_order(cart_token=uuid.uuid4())
         add_item_to_draft(draft, product_con_variante,
                           variant=variant_s12, quantity=1)

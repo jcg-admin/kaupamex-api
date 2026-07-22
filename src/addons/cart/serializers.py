@@ -5,25 +5,34 @@ modelos ``Cart``/``CartItem`` (S4): el carrito se sirve desde
 ``Order(DRAFT)`` con ``DraftItemSerializer``/``DraftCartSerializer``,
 que preservan el contrato campo a campo.
 """
+from decimal import Decimal
 from rest_framework import serializers
-from addons.orders.models import Order, OrderItem
-from addons.orders.services import get_draft_totals
+from addons.sale.models import SaleOrder, SaleOrderLine
+from addons.sale.services import get_draft_totals
 from .models import SavedCart, SavedCartItem
 
 
 class DraftItemSerializer(serializers.ModelSerializer):
-    """Línea del carrito servida desde ``orders.OrderItem`` (S2c-2b).
+    """Línea del carrito servida desde ``sale.SaleOrderLine`` (V2
+    unificación orders→sale).
 
-    Contrato IDÉNTICO a ``CartItemSerializer`` — el UI no distingue si la
-    línea viene de ``cart.CartItem`` o del ``Order(DRAFT)`` (en Odoo el
-    carrito ES un ``sale.order`` draft y sus líneas ``sale.order.line``).
-    Diferencia interna: ``product_name``/``variant_label``/``sku`` salen del
-    snapshot vivo de la línea (refrescado por los servicios del draft), y
-    ``product`` es nullable (SET_NULL), por lo que los campos derivados del
-    producto llevan guardia.
+    Contrato IDÉNTICO al histórico ``CartItemSerializer`` (15 claves) — el
+    UI no distingue el origen. Mapeo interno al vocabulario Odoo:
+    ``quantity``←``product_uom_qty``, ``unit_price``←``price_unit``;
+    ``product_name``/``sku``/``variant_label`` se derivan de la línea y sus
+    FKs PROTECT (el producto no puede borrarse en duro con líneas vivas).
     """
+    product_name    = serializers.SerializerMethodField()
     variant_label   = serializers.SerializerMethodField()
     product_slug    = serializers.SerializerMethodField()
+    sku             = serializers.SerializerMethodField()
+    quantity        = serializers.IntegerField(source='product_uom_qty',
+                                               read_only=True)
+    unit_price      = serializers.DecimalField(source='price_unit',
+                                               max_digits=12,
+                                               decimal_places=2,
+                                               read_only=True)
+    subtotal        = serializers.SerializerMethodField()
     price_subtotal  = serializers.SerializerMethodField()
     price_tax       = serializers.SerializerMethodField()
     price_total     = serializers.SerializerMethodField()
@@ -33,7 +42,7 @@ class DraftItemSerializer(serializers.ModelSerializer):
     image_url       = serializers.SerializerMethodField()
 
     class Meta:
-        model  = OrderItem
+        model  = SaleOrderLine
         fields = [
             'id', 'product_name', 'product_slug', 'variant_label', 'sku',
             'quantity', 'unit_price', 'subtotal',
@@ -41,21 +50,29 @@ class DraftItemSerializer(serializers.ModelSerializer):
             'available_stock', 'is_available', 'price_changed', 'image_url',
         ]
 
+    def get_product_name(self, obj) -> str:
+        return obj.product.name
+
     def get_product_slug(self, obj) -> str | None:
-        return obj.product.slug if obj.product else None
+        return obj.product.slug
 
     def get_variant_label(self, obj) -> str | None:
-        return obj.variant_label or None
+        return obj.variant.option.label if obj.variant else None
+
+    def get_sku(self, obj) -> str:
+        return obj.variant.sku if obj.variant else obj.product.sku
 
     def get_image_url(self, obj) -> str | None:
-        if not obj.product:
-            return None
         cover = (obj.product.images.filter(is_cover=True).first()
                  or obj.product.images.first())
         if not (cover and cover.image):
             return None
         request = self.context.get('request')
         return request.build_absolute_uri(cover.image.url) if request else cover.image.url
+
+    def get_subtotal(self, obj) -> str:
+        return str((obj.price_unit * obj.product_uom_qty)
+                   .quantize(Decimal('0.01')))
 
     def get_price_subtotal(self, obj) -> str:
         return str(obj.price_subtotal())
@@ -76,21 +93,21 @@ class DraftItemSerializer(serializers.ModelSerializer):
         changed_ids = self.context.get('changed_ids', set())
         if changed_ids:
             return obj.pk in changed_ids
-        return obj.current_price() != obj.unit_price
+        return obj.current_price() != obj.price_unit
 
 
 class DraftCartSerializer(serializers.ModelSerializer):
-    """El ``Order(DRAFT)`` presentado con el contrato de ``CartSerializer``.
-
-    Mismas 4 claves (``id``/``cart_token``/``items``/``totals``); ``totals``
-    delega en ``get_draft_totals`` (paridad de las 13 claves con
-    ``Cart.get_totals``, verificada en TestDraftTotalsS2c).
+    """La ``SaleOrder(draft)`` presentada con el contrato histórico de
+    ``CartSerializer``: 4 claves ``id``/``cart_token``/``items``/``totals``;
+    ``totals`` delega en ``get_draft_totals`` (paridad de las 13 claves,
+    verificada en TestDraftTotalsS2c).
     """
-    items  = DraftItemSerializer(many=True, read_only=True)
+    items  = DraftItemSerializer(many=True, read_only=True,
+                                 source='order_line')
     totals = serializers.SerializerMethodField()
 
     class Meta:
-        model  = Order
+        model  = SaleOrder
         fields = ['id', 'cart_token', 'items', 'totals']
 
     def get_totals(self, obj) -> dict:

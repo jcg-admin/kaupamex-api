@@ -9,9 +9,10 @@ from django.contrib.auth import get_user_model
 from django.db import IntegrityError
 
 from addons.authz.models import (
-    AuthzEvent, Capability, DirectEntitlement, EntitlementRevocation, Module,
+    Capability, DirectEntitlement, EntitlementRevocation, Module,
     Role, RoleAssignment,
 )
+from addons.authz_audit.models import AuthzEvent
 
 pytestmark = pytest.mark.django_db
 User = get_user_model()

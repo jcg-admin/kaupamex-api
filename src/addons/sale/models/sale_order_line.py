@@ -66,3 +66,30 @@ class SaleOrderLine(TimeStampedModel):
 
     def price_subtotal(self) -> Decimal:
         return self.price_total() - self.price_tax()
+
+    # ------------------------------------------------------------------
+    # V2 unificación orders→sale: la línea del draft (carrito) necesita el
+    # estado VIVO del catálogo — paridad con los métodos que OrderItem ganó
+    # en S2c-2b como línea strangler. En Odoo website_sale recalcula el
+    # precio del carrito contra la pricelist vigente; aquí el vigente es
+    # variant.effective_price() / product.price.
+    # ------------------------------------------------------------------
+    def current_price(self) -> Decimal:
+        """Precio vigente del catálogo (variant.effective_price o product.price)."""
+        if self.variant:
+            return self.variant.effective_price()
+        return self.product.price
+
+    def is_available(self) -> bool:
+        """Paridad con OrderItem.is_available (guardias H-CICLO42-01)."""
+        if not (self.product.is_active and self.product.is_published):
+            return False
+        if self.variant:
+            return (self.variant.is_available()
+                    and self.variant.stock >= self.product_uom_qty)
+        return self.product.stock >= self.product_uom_qty
+
+    def available_stock(self) -> int:
+        if self.variant:
+            return self.variant.stock
+        return self.product.stock
