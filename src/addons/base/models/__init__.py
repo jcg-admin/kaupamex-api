@@ -10,6 +10,7 @@ Un archivo por modelo (monolito modular, como Odoo):
 - ``ir_filters.py`` → ``IrFilters`` (filtros de búsqueda guardados ``ir.filters``).
 - ``res_currency.py`` → ``ResCurrency`` (moneda ISO 4217).
 - ``res_country.py`` → ``ResCountry`` + ``ResCountryState`` (geografía política).
+- ``res_config_settings.py`` → ``SiteSettings`` (~ ``res.config.settings``, singleton).
 
 Se reexporta todo aquí para preservar el contrato de import histórico
 ``from addons.base.models import SystemParameter, ResCurrency, ...``.
@@ -41,6 +42,7 @@ from .res_country import ResCountry, ResCountryState
 from .res_country_group import ResCountryGroup
 from .res_currency import ResCurrency
 from .res_currency_rate import ResCurrencyRate
+from .res_config_settings import SiteSettings
 from .res_lang import ResLang
 
 __all__ = [
@@ -69,4 +71,5 @@ __all__ = [
     'DecimalPrecision',
     'IrSequence',
     'ExportJob',
+    'SiteSettings',
 ]

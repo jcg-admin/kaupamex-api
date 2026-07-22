@@ -23,7 +23,7 @@ from rest_framework.views import APIView
 from addons.catalogue.models import Category, Product
 from addons.chartsize.models import ProductVariant
 from addons.orders.models import Order, OrderItem
-from addons.settings_app.models import SiteSettings
+from addons.base.models import SiteSettings
 from addons.users.models import BusinessEvent
 from .models import ImportJob, StockAlert, StockMovement
 from .serializers import (

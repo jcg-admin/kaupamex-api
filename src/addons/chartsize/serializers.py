@@ -5,7 +5,7 @@ Sprint 9 — UC-CHT-01, UC-CHT-03, UC-CHT-04
 """
 from decimal import Decimal
 from rest_framework import serializers
-from addons.settings_app.models import SiteSettings
+from addons.base.models import SiteSettings
 from .models import VariantType, VariantOption, ProductVariant
 
 

@@ -12,7 +12,7 @@ from decimal import Decimal
 import pytest
 
 from addons.catalogue.models import Category, Product
-from addons.settings_app.models import SiteSettings
+from addons.base.models import SiteSettings
 
 pytestmark = pytest.mark.integration
 

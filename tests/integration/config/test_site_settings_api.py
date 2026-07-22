@@ -15,7 +15,7 @@ Contrato:
 """
 import pytest
 from decimal import Decimal
-from addons.settings_app.models import SiteSettings
+from addons.base.models import SiteSettings
 
 pytestmark = pytest.mark.api
 

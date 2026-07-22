@@ -6,7 +6,7 @@ No auth required; exposes ONLY the storefront-safe fields and NEVER any
 admin/secret field.
 """
 import pytest
-from addons.settings_app.models import SiteSettings
+from addons.base.models import SiteSettings
 
 pytestmark = pytest.mark.integration
 

@@ -13,7 +13,7 @@ from datetime import timedelta
 from decimal import Decimal
 from django.db import transaction
 from django.utils import timezone
-from addons.settings_app.models import SiteSettings
+from addons.base.models import SiteSettings
 from .models import StockAlert, StockMovement
 from addons.catalogue.models import Product
 from addons.chartsize.models import ProductVariant

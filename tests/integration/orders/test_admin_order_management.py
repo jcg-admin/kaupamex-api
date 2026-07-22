@@ -11,7 +11,7 @@ from addons.delivery.models import Courier, ShipmentGuide
 from addons.orders.admin_services import transition_order_status
 from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress, OrderStatusLog
 from django.contrib.auth import get_user_model
-from addons.settings_app.models import SiteSettings
+from addons.base.models import SiteSettings
 
 pytestmark = pytest.mark.integration
 

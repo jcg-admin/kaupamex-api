@@ -12,7 +12,7 @@ from rest_framework.views import APIView
 
 from addons.authz.permissions import HasCapability
 
-from addons.settings_app.models import SiteSettings
+from addons.base.models import SiteSettings
 from addons.loyalty.models import ReferralCode, Referral
 from .serializers import ReferralStatusSerializer, RedeemReferralSerializer
 from .services import redeem_referral_code, ReferralError

@@ -2,7 +2,7 @@
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
-from addons.settings_app.models import SiteSettings
+from addons.base.models import SiteSettings
 from .models import ImportJob, StockMovement, StockAlert
 from .services import _get_stock_status
 

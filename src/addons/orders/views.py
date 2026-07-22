@@ -24,7 +24,7 @@ from rest_framework.views import APIView
 from addons.cart.models import Cart, CartItem
 from addons.cart.views import _get_or_create_cart
 from addons.inventory.services import InventoryService, InsufficientStockError
-from addons.settings_app.models import SiteSettings
+from addons.base.models import SiteSettings
 from .models import CheckoutAttempt, Order, OrderItem, OrderValue, OrderAddress
 from .serializers import CancelOrderSerializer, CheckoutSerializer, OrderListSerializer, OrderSerializer, UpdateAddressSerializer, UpdateShippingSerializer
 from .shipping import resolve_shipping_quote

@@ -14,7 +14,7 @@ import fields
 import models
 
 from addons.base.models import TimeStampedModel
-from addons.settings_app.models import SiteSettings
+from addons.base.models import SiteSettings
 
 
 class SaleOrderLine(TimeStampedModel):

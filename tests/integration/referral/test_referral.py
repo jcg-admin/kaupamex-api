@@ -24,7 +24,7 @@ from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from addons.orders.models import Order
-from addons.settings_app.models import SiteSettings
+from addons.base.models import SiteSettings
 from addons.referral.services import complete_referral_for_order
 from addons.loyalty.models import ReferralCode, Referral, Voucher
 from tests.factories.user_factory import make_buyer

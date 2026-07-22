@@ -12,7 +12,7 @@ from django.core.validators import MinValueValidator
 import fields
 import models
 
-from addons.settings_app.models import SiteSettings
+from addons.base.models import SiteSettings
 from addons.base.models import TimeStampedModel
 
 

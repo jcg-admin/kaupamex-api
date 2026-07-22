@@ -21,7 +21,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from decimal import Decimal
 from addons.catalogue.models import Category, Product
 from addons.chartsize.models import VariantType, VariantOption, ProductVariant
-from addons.settings_app.models import SiteSettings
+from addons.base.models import SiteSettings
 from addons.inventory.services import InventoryService
 from addons.inventory.models import StockMovement
 from urllib.parse import urlparse

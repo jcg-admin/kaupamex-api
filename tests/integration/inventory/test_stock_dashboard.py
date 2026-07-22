@@ -11,7 +11,7 @@ import pytest
 from decimal import Decimal
 from addons.catalogue.models import Category, Product
 from addons.chartsize.models import VariantType, VariantOption, ProductVariant
-from addons.settings_app.models import SiteSettings
+from addons.base.models import SiteSettings
 from addons.website.models import StaticPageVersion
 from addons.inventory.services import InventoryService, InsufficientStockError
 from addons.inventory.models import StockAlert

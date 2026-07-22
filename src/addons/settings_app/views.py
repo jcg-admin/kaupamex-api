@@ -24,7 +24,8 @@ from rest_framework.viewsets import ModelViewSet
 from django.core.cache import cache
 from addons.users.audit import audit_log_business
 from addons.payment.models import PaymentGateway
-from .models import SiteSettings, ShippingMethod
+from addons.base.models import SiteSettings
+from .models import ShippingMethod
 from addons.website.models import StaticPage, StaticPageVersion, Banner
 from .serializers import (
     SiteSettingsSerializer, SiteSettingsAdminSerializer, PublicSiteSettingsSerializer,

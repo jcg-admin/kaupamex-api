@@ -6,7 +6,7 @@ from decimal import Decimal, InvalidOperation
 
 from addons.catalogue.models import Category, Product
 from addons.chartsize.models import ProductVariant
-from addons.settings_app.models import SiteSettings
+from addons.base.models import SiteSettings
 from .models import ImportJob
 from .services import _maybe_create_alert
 

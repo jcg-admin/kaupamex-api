@@ -15,7 +15,7 @@ from django.db import models, transaction
 from django.db.models import Q
 from django.core.validators import MinValueValidator
 from addons.base.models import TimeStampedModel
-from addons.settings_app.models import SiteSettings
+from addons.base.models import SiteSettings
 
 
 
