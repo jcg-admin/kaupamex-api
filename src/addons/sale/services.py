@@ -31,6 +31,8 @@ from addons.inventory.services import InventoryService
 from addons.loyalty.models import Voucher, VoucherUsage
 from addons.orders.models import Order, OrderAddress, OrderItem, OrderValue
 from addons.sale_loyalty.models import SaleOrderCoupon
+from addons.sale_stock.models import SaleOrderDelivery
+from addons.stock.models import StockPicking
 from .models import SaleOrder, SaleOrderLine
 
 
@@ -399,6 +401,20 @@ def confirm_draft_order(order, *, address_data, guest_email=None, notes='',
         order.save(update_fields=['notes', 'guest_email', 'cart_token',
                                   'updated_at'])
         order.action_confirm()
+
+        # Sub-estado de fulfillment (V5b — analisis-unificar-orders-sale,
+        # H-SALE-09). En Odoo action_confirm crea el albarán vía sale_stock;
+        # aquí poblamos el eje canónico para que IN_PREPARATION sea derivable
+        # (albarán ``assigned`` + ``delivery_status='started'`` sin guía) sin
+        # depender del enum monolítico ``Order.status``. Additivo: modelos
+        # dormidos, ningún lector vivo depende de ellos todavía.
+        picking = StockPicking.objects.create(
+            sale_order=order, state=StockPicking.STATE_CONFIRMED)
+        picking.action_assign()
+        SaleOrderDelivery.objects.get_or_create(
+            order=order,
+            defaults={'delivery_status': SaleOrderDelivery.STATUS_STARTED},
+        )
 
         # Puente legacy (se retira en V5 — analisis-unificar-orders-sale).
         legacy = Order.objects.create(
