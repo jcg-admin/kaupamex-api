@@ -12,14 +12,8 @@ from django.conf import settings
 from django.db import transaction
 from django.urls import reverse
 from addons.payment.gateways.base import BaseGateway
-from addons.payment_aps.gateway import ApsGateway
-from addons.payment_authorize.gateway import AuthorizeGateway
-from addons.payment_custom.gateway import CustomGateway
-from addons.payment_demo.gateway import DemoGateway
-from addons.payment_mercado_pago.gateway import MercadoPagoGateway
+from addons.payment.gateways.registry import get_gateway, get_default_gateway
 from addons.payment.models import Payment, PaymentGatewayEvent, Payment as PaymentModel, Refund
-from addons.payment_paypal.gateway import PayPalGateway
-from addons.payment_stripe.gateway import StripeGateway
 from django.db.models import F, Sum as DjSum
 from addons.payment.models import PaymentGateway
 from addons.orders.models import Order
@@ -29,33 +23,6 @@ from addons.orders.models import Order
 logger = logging.getLogger('apps')
 
 
-# Registro de providers de la familia payment (patrón payment_<provider> de
-# Odoo). MP es el primario (BR-006) y PayPal el secundario (BR-007); el resto
-# está registrado con integración pendiente (sus operaciones fallan explícito).
-_GATEWAY_REGISTRY: dict[str, type[BaseGateway]] = {
-    'MERCADOPAGO': MercadoPagoGateway,
-    'PAYPAL': PayPalGateway,
-    'APS': ApsGateway,
-    'AUTHORIZE': AuthorizeGateway,
-    'CUSTOM': CustomGateway,
-    'DEMO': DemoGateway,
-    'STRIPE': StripeGateway,
-}
-
-
-def _get_gateway(gateway_type: str = 'MERCADOPAGO') -> BaseGateway:
-    """
-    Retorna la instancia del gateway solicitado.
-    BR-006: MP es el gateway primario.
-    BR-007: PayPal es el secundario disponible desde MVP.
-    Tipos desconocidos caen al primario (comportamiento histórico).
-    """
-    return _GATEWAY_REGISTRY.get(gateway_type, MercadoPagoGateway)()
-
-
-def _get_default_gateway() -> BaseGateway:
-    """Retorna el gateway activo por defecto (BR-006: MP es el primario)."""
-    return MercadoPagoGateway()
 
 
 def _build_back_urls(order_number: str, base_url: str) -> dict:
@@ -102,7 +69,7 @@ def initiate_payment(
         )
 
     if gateway is None:
-        gateway = _get_gateway(gateway_type)
+        gateway = get_gateway(gateway_type)
 
     base_url  = f'{request.scheme}://{request.get_host()}'
     back_urls = _build_back_urls(order.order_number, base_url)
@@ -193,7 +160,7 @@ def get_installment_plans(order, gateway: BaseGateway = None) -> list:
     UC-PAY-01-EXT (FR-PAY-01-EXT.01).
     """
     if gateway is None:
-        gateway = _get_default_gateway()
+        gateway = get_default_gateway()
     amount = order.value.total
     return gateway.get_installment_plans(amount)
 
@@ -256,7 +223,7 @@ def execute_refund(
             )
 
         if gateway is None:
-            gateway = _get_gateway(locked_payment.gateway)
+            gateway = get_gateway(locked_payment.gateway)
 
         # Ejecutar el reembolso en el gateway (fuera del punto de lectura
         # pero dentro del atomic; si el gateway falla la transacción se
@@ -446,7 +413,7 @@ def get_or_create_mp_customer(user):
     if user.mp_customer_id:
         return user.mp_customer_id
     try:
-        gateway = MercadoPagoGateway()
+        gateway = get_default_gateway()
         customer_id = gateway.get_or_create_customer(
             email=user.email,
             first_name=user.first_name or '',
@@ -493,7 +460,7 @@ def initiate_checkout_api_payment(
     :param payer_email: email del pagador (fallback: order.user/guest_email)
     :param payer_identification_type: tipo de doc ('CURP', 'RFC', …)
     :param payer_identification_number: número de documento
-    :param gateway: BaseGateway opcional (None usa MercadoPagoGateway)
+    :param gateway: BaseGateway opcional (None usa el gateway por defecto, MP)
     :returns: (Payment, PaymentResult) — Payment guardado y resultado de MP
     :raises ValueError: si la orden no está en PENDING
     :raises RuntimeError: si el gateway falla (propagado al caller)
@@ -505,7 +472,7 @@ def initiate_checkout_api_payment(
         )
 
     if gateway is None:
-        gateway = MercadoPagoGateway()
+        gateway = get_default_gateway()
 
     customer_id = get_or_create_mp_customer(order.user)
 
