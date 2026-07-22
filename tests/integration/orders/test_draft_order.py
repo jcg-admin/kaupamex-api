@@ -11,7 +11,15 @@ import pytest
 from django.db import IntegrityError
 
 from addons.orders.models import Order
-from addons.orders.services import get_or_create_draft_order
+from decimal import Decimal
+
+from addons.catalogue.models import Category, Product
+from addons.orders.services import (
+    DraftOrderError,
+    add_item_to_draft,
+    clear_draft_items,
+    get_or_create_draft_order,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -78,3 +86,54 @@ class TestGetOrCreateDraftOrderS2:
         assert created is True
         assert order.status == Order.STATUS_DRAFT
         assert order.cart_token is not None
+
+
+@pytest.fixture
+def draft_product(db):
+    cat = Category.objects.create(name='Cat Draft', slug='cat-draft-s2b', is_active=True)
+    p = Product.objects.create(
+        name='Prod Draft S2b', slug='prod-draft-s2b', sku='S2B-001',
+        description='', price=Decimal('100.00'), stock=5,
+        is_active=True, is_published=True,
+    )
+    p.categories.add(cat)
+    return p
+
+
+class TestDraftItemOperationsS2b:
+    """S2b: paridad de operaciones de items sobre Order(DRAFT)."""
+
+    def test_add_item_snapshots_and_merges(self, draft_product):
+        order, _ = get_or_create_draft_order(cart_token=uuid.uuid4())
+        item, created = add_item_to_draft(order, draft_product, quantity=2)
+        assert created is True
+        assert item.product_name == draft_product.name
+        assert item.sku == draft_product.sku
+        assert item.unit_price == Decimal('100.00')
+        assert item.subtotal == Decimal('200.00')
+
+        item2, created2 = add_item_to_draft(order, draft_product, quantity=1)
+        assert created2 is False and item2.pk == item.pk
+        item2.refresh_from_db()
+        assert item2.quantity == 3
+        assert item2.subtotal == Decimal('300.00')
+
+    def test_add_item_respects_stock(self, draft_product):
+        order, _ = get_or_create_draft_order(cart_token=uuid.uuid4())
+        with pytest.raises(DraftOrderError) as exc:
+            add_item_to_draft(order, draft_product, quantity=6)
+        assert exc.value.codigo_error == 'INSUFFICIENT_STOCK'
+
+    def test_add_item_rejects_non_draft(self, draft_product):
+        order = Order.objects.create(
+            order_number=f'D-{str(uuid.uuid4())[:8]}', status=Order.STATUS_PENDING)
+        with pytest.raises(DraftOrderError) as exc:
+            add_item_to_draft(order, draft_product, quantity=1)
+        assert exc.value.codigo_error == 'ORDEN_NO_DRAFT'
+
+    def test_clear_draft_items(self, draft_product):
+        order, _ = get_or_create_draft_order(cart_token=uuid.uuid4())
+        add_item_to_draft(order, draft_product, quantity=1)
+        assert order.items.count() == 1
+        clear_draft_items(order)
+        assert order.items.count() == 0

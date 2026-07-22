@@ -298,3 +298,71 @@ def get_or_create_draft_order(user=None, cart_token=None):
     order, created = Order.objects.get_or_create(
         cart_token=cart_token, defaults={'status': Order.STATUS_DRAFT})
     return order, created
+
+
+class DraftOrderError(ValueError):
+    """Errores de operación sobre el draft order (S2b). ``codigo_error``
+    lleva el código canónico que la vista sella en la respuesta."""
+
+    def __init__(self, message, codigo_error):
+        super().__init__(message)
+        self.codigo_error = codigo_error
+
+
+def add_item_to_draft(order, product, variant=None, quantity=1):
+    """S2b unificación cart→order→sale: agrega/mezcla un item en el draft.
+
+    Paridad con ``cart.views.CartView.post`` (UC-CART-02): guard de stock
+    doble (antes y dentro del atomic, H-CICLO121-01), merge de cantidad si
+    el item ya existe, y precio vigente al momento de la operación
+    (``variant.effective_price()`` o ``product.price``). A diferencia de
+    ``CartItem``, el ``OrderItem`` del draft ya carga el snapshot
+    (``product_name``/``sku``/``variant_label``) — se refresca en cada
+    operación mientras la orden siga en ``DRAFT``; ``action_confirm`` (S3)
+    lo congela.
+    """
+    if order.status != Order.STATUS_DRAFT:
+        raise DraftOrderError('La orden no es un draft.', 'ORDEN_NO_DRAFT')
+    if quantity < 1:
+        raise DraftOrderError('quantity debe ser >= 1.', 'CANTIDAD_INVALIDA')
+
+    available = variant.stock if variant else product.stock
+    if available is not None and available <= 0:
+        raise DraftOrderError('Producto sin stock.', 'OUT_OF_STOCK')
+    if available is not None and quantity > available:
+        raise DraftOrderError('Stock insuficiente.', 'INSUFFICIENT_STOCK')
+
+    unit_price = variant.effective_price() if variant else product.price
+    label      = variant.option.label if variant else ''
+    sku        = variant.sku if variant else product.sku
+
+    with transaction.atomic():
+        item, created = order.items.get_or_create(
+            product=product, variant=variant,
+            defaults={
+                'product_name': product.name,
+                'variant_label': label,
+                'sku': sku,
+                'unit_price': unit_price,
+                'quantity': quantity,
+                'subtotal': unit_price * quantity,
+            },
+        )
+        if not created:
+            new_qty = item.quantity + quantity
+            avail = variant.stock if variant else product.stock
+            if avail is not None and new_qty > avail:
+                raise DraftOrderError('Stock insuficiente.', 'INSUFFICIENT_STOCK')
+            item.quantity   = new_qty
+            item.unit_price = unit_price
+            item.subtotal   = unit_price * new_qty
+            item.save(update_fields=['quantity', 'unit_price', 'subtotal',
+                                     'updated_at'])
+    return item, created
+
+
+def clear_draft_items(order):
+    """S2b: vacía el draft (paridad con ``CartView.delete``, UC-CART-03)."""
+    if order.status != Order.STATUS_DRAFT:
+        raise DraftOrderError('La orden no es un draft.', 'ORDEN_NO_DRAFT')
+    order.items.all().delete()
