@@ -199,6 +199,7 @@ class ProductReviewsView(APIView):
                 user=request.user,
                 product=product,
                 order=order,
+                sale_order=order.sale_order,
                 rating=data['rating'],
                 title=data['title'],
                 body=data['body'],

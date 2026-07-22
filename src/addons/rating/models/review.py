@@ -54,6 +54,12 @@ class Review(TimeStampedModel, SoftDeleteModel):
         related_name='reviews',
         help_text='Orden que prueba la compra (UC-REV-02).',
     )
+    # V4a orders→sale (DEC-FW-02): la prueba de compra ancla también al
+    # canónico; V5 retira la FK legacy con el espejo.
+    sale_order = models.ForeignKey(
+        'sale.SaleOrder', null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='reviews',
+    )
     rating  = models.PositiveSmallIntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(5)],
     )

@@ -170,7 +170,8 @@ class ShipmentGuideListCreateView(_AdminOnly, APIView):
 
             previous_status = order_locked.status
             guide = ShipmentGuide.objects.create(
-                order=order_locked, courier=data['courier'],
+                order=order_locked, sale_order=order_locked.sale_order,
+                courier=data['courier'],
                 tracking_number=data['tracking_number'], notes=data.get('notes', ''),
             )
             order_locked.status = Order.STATUS_SHIPPED

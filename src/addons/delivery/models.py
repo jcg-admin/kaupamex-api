@@ -124,6 +124,13 @@ class ShipmentGuide(TimeStampedModel, SoftDeleteModel):
     order           = models.OneToOneField(
         'orders.Order', on_delete=models.PROTECT, related_name='shipment_guide',
     )
+    # V4a orders→sale (DEC-FW-02): la guía ancla también al canónico —
+    # el eje de fulfillment (guide.status) es la adaptación de
+    # stock.picking y en Odoo cuelga de la sale.order; V5 retira la legacy.
+    sale_order      = models.OneToOneField(
+        'sale.SaleOrder', null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='shipment_guide',
+    )
     courier         = models.ForeignKey(
         Courier, on_delete=models.PROTECT, related_name='guides',
     )
