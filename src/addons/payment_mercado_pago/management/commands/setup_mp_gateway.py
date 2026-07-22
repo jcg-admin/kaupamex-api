@@ -28,7 +28,7 @@ import os
 import decouple
 from django.core.management.base import BaseCommand, CommandError
 
-from addons.settings_app.models import PaymentGateway
+from addons.payment.models import PaymentGateway
 
 
 def _read_var(name):

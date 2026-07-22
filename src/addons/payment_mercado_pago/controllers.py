@@ -27,7 +27,7 @@ from django.db import IntegrityError, transaction
 
 from addons.payment.models import Payment, PaymentGatewayEvent, WebhookEvent, Chargeback
 from addons.payment.webhook_processing import _process_payment_approval
-from addons.settings_app.models import PaymentGateway as PGModel
+from addons.payment.models import PaymentGateway as PGModel
 from addons.payment_mercado_pago.gateway import MercadoPagoGateway
 from addons.orders.models import Order
 

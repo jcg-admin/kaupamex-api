@@ -11,7 +11,7 @@ from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from addons.payment.models import Payment
 from datetime import timedelta
 from django.contrib.auth import get_user_model
-from addons.settings_app.models import PaymentGateway
+from addons.payment.models import PaymentGateway
 import django.utils.timezone as tz
 
 pytestmark = pytest.mark.integration

@@ -9,12 +9,12 @@ DEC-BC-01 (2026-05-21): client_secret de MercadoPago obligatorio
 en produccion para que `_verify_mp_signature` opere fail-closed
 sin perder eventos por rechazo defensivo.
 
-Nota tecnica: usamos django_apps.get_model('settings_app',
+Nota tecnica: usamos django_apps.get_model('payment',
 'PaymentGateway') dentro de la funcion en vez de
-"from addons.settings_app.models import PaymentGateway" porque al
+"from addons.payment.models import PaymentGateway" porque al
 cargar este modulo (via apps/payments/apps.py top-level), Django
 aun no ha terminado de registrar todos los AppConfigs y el import
-de addons.settings_app.models dispara
+de addons.payment.models dispara
 django.core.exceptions.AppRegistryNotReady. get_model() es la
 forma canonica Django de hacer late-binding al model sin recurrir
 a lazy imports (que la regla no-lazy-imports.md prohibe).
@@ -47,7 +47,7 @@ def check_mercadopago_client_secret(app_configs, **kwargs):
         return errors
 
     try:
-        PGModel = django_apps.get_model('settings_app', 'PaymentGateway')
+        PGModel = django_apps.get_model('payment', 'PaymentGateway')
         gw = PGModel.objects.filter(gateway='MERCADOPAGO', is_active=True).first()
         if gw is None:
             errors.append(Error(
@@ -69,7 +69,7 @@ def check_mercadopago_client_secret(app_configs, **kwargs):
     except Exception as exc:
         errors.append(Error(
             f'Cannot verify PaymentGateway(MERCADOPAGO) configuration: {exc!r}',
-            hint='Verificar que la tabla settings_app_paymentgateway existe y es leible.',
+            hint='Verificar que la tabla settings_payment_gateway existe y es leible.',
             id='payments.E002',
         ))
 

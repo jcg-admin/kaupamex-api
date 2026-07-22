@@ -15,7 +15,7 @@ from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from django.core.checks.registry import registry
 from addons.payment_mercado_pago.checks import check_mercadopago_client_secret
 from addons.payment.models import Payment
-from addons.settings_app.models import PaymentGateway
+from addons.payment.models import PaymentGateway
 
 pytestmark = pytest.mark.integration
 

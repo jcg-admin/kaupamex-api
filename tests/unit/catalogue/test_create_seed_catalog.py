@@ -10,7 +10,8 @@ from django.core.management.base import CommandError
 from addons.catalogue.models import Category, Product
 from addons.chartsize.models import ProductVariant, VariantOption, VariantType
 from addons.orders.models import ShippingZone
-from addons.settings_app.models import PaymentGateway, ShippingMethod
+from addons.settings_app.models import ShippingMethod
+from addons.payment.models import PaymentGateway
 
 pytestmark = pytest.mark.unit
 

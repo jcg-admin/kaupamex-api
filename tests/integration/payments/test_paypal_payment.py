@@ -10,7 +10,7 @@ from decimal import Decimal
 from unittest.mock import patch, MagicMock
 from addons.catalogue.models import Category, Product
 from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
-from addons.settings_app.models import PaymentGateway
+from addons.payment.models import PaymentGateway
 from addons.payment.models import Payment
 from addons.payment_paypal.gateway import PayPalGateway
 from addons.payment.gateways.base import BaseGateway

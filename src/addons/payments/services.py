@@ -21,7 +21,7 @@ from addons.payment.models import Payment, PaymentGatewayEvent, Payment as Payme
 from addons.payment_paypal.gateway import PayPalGateway
 from addons.payment_stripe.gateway import StripeGateway
 from django.db.models import F, Sum as DjSum
-from addons.settings_app.models import PaymentGateway
+from addons.payment.models import PaymentGateway
 from addons.orders.models import Order
 
 

@@ -54,7 +54,7 @@ import uuid
 import mercadopago
 from django.core.management.base import BaseCommand
 
-from addons.settings_app.models import PaymentGateway
+from addons.payment.models import PaymentGateway
 
 # Tarjeta de PRUEBA oficial de MP México (pública, libre). Solo se usa para
 # la prueba de emparejamiento; el titular OTHE fuerza un rechazo para no

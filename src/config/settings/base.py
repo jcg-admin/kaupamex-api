@@ -503,7 +503,7 @@ SPECTACULAR_SETTINGS = {
         'PaymentGatewayChoiceEnum':
             'addons.payment.models.Payment.GATEWAYS',
         'PaymentGatewayConfigEnum':
-            'addons.settings_app.models.PaymentGateway.GATEWAYS',
+            'addons.payment.models.PaymentGateway.GATEWAYS',
         # AudienceFilterEnum: alias para ManualNotification.RecipientType
         # que aparece en serializers diferentes con choice set identico
         'AudienceFilterEnum':

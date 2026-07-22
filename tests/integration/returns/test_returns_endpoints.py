@@ -26,7 +26,7 @@ from addons.catalogue.models import Category, Product
 from addons.orders.models import Order, OrderItem
 from addons.payment.models import Payment
 from addons.stock.models import ReturnHistoryEntry, ReturnRequest
-from addons.settings_app.models import PaymentGateway
+from addons.payment.models import PaymentGateway
 from addons.mail.models import Notification, NotificationType
 
 pytestmark = pytest.mark.integration

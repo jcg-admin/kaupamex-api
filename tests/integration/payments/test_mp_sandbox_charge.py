@@ -19,7 +19,7 @@ import decouple
 from django.core.management.base import CommandError
 from django.test import Client
 
-from addons.settings_app.models import PaymentGateway
+from addons.payment.models import PaymentGateway
 from addons.orders.models import Order
 from addons.payment.models import Payment, WebhookEvent
 from addons.payment_mercado_pago.management.commands.mp_sandbox_charge import (

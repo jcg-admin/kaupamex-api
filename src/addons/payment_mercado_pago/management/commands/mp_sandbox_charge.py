@@ -32,7 +32,7 @@ from django.core.management.base import BaseCommand, CommandError
 from addons.orders.models import Order, OrderValue
 from addons.payment.models import Payment
 from addons.payments.services import initiate_checkout_api_payment
-from addons.settings_app.models import PaymentGateway
+from addons.payment.models import PaymentGateway
 
 # Tarjetas de PRUEBA oficiales de MP México (públicas, libres). El estado
 # del pago se fuerza con el nombre del titular, no con la tarjeta.
