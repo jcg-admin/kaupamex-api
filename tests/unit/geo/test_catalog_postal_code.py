@@ -11,7 +11,7 @@ import pytest
 from django.core.management import call_command
 from django.db import IntegrityError
 
-from addons.geo.models import CatalogPostalCode
+from addons.base_address_extended.models import CatalogPostalCode
 
 pytestmark = pytest.mark.django_db
 

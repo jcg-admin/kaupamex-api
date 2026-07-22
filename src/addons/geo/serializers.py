@@ -6,7 +6,7 @@ autocompletado de direcciones (T-214, party). Un CP mapea a N asentamientos
 """
 from rest_framework import serializers
 
-from addons.geo.models import CatalogPostalCode
+from addons.base_address_extended.models import CatalogPostalCode
 
 
 class SettlementSerializer(serializers.ModelSerializer):

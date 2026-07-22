@@ -9,7 +9,7 @@ import pytest
 from decimal import Decimal
 
 from addons.orders.models import ShippingZone
-from addons.geo.models import CatalogPostalCode
+from addons.base_address_extended.models import CatalogPostalCode
 
 pytestmark = pytest.mark.integration
 

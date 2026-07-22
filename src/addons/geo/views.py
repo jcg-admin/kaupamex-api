@@ -9,7 +9,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from addons.geo.models import CatalogPostalCode
+from addons.base_address_extended.models import CatalogPostalCode
 from addons.geo.serializers import PostalCodeLookupSerializer
 
 

@@ -17,7 +17,7 @@ from pathlib import Path
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
-from addons.geo.models import CatalogPostalCode
+from addons.base_address_extended.models import CatalogPostalCode
 
 # Orden oficial de columnas del .txt SEPOMEX -> campos del modelo.
 _FIELDS = [

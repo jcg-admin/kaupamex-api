@@ -421,7 +421,7 @@ class Address(TimeStampedModel, SoftDeleteModel):
         help_text='Código ISO 3166-1 alpha-2.',
     )
     postal_code_ref = models.ForeignKey(
-        'geo.CatalogPostalCode', on_delete=models.SET_NULL,
+        'base_address_extended.CatalogPostalCode', on_delete=models.SET_NULL,
         null=True, blank=True, related_name='addresses',
         verbose_name='Código postal (catálogo)',
         help_text='Enlace opcional a la colonia del catálogo internacional.',
