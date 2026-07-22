@@ -442,3 +442,66 @@ def remove_draft_item(order, item_pk):
     if item is None:
         raise DraftOrderError('Item no encontrado.', 'ITEM_NOT_FOUND')
     item.delete()
+
+
+def merge_draft_orders(user, cart_token):
+    """S2c-2b: fusiona el draft anónimo (por token) en el draft del usuario
+    autenticado — paridad con ``CartMergeView.post`` (UC-CART-06,
+    H-CICLO20-02): items sin stock se omiten y se reportan en ``skipped``;
+    cantidades se recortan al stock disponible al mezclar.
+
+    Retorna ``(order, skipped)``. Si no existe draft anónimo con ese token
+    (o ya pertenece a un usuario), retorna el draft del usuario intacto.
+    """
+    auth_order, _ = get_or_create_draft_order(user=user)
+    anon_order = (Order.objects
+                  .filter(cart_token=cart_token, status=Order.STATUS_DRAFT,
+                          user__isnull=True)
+                  .exclude(pk=auth_order.pk)
+                  .first())
+    if anon_order is None:
+        return auth_order, []
+
+    skipped = []
+    with transaction.atomic():
+        for anon_item in anon_order.items.select_related('product', 'variant').all():
+            if anon_item.product is None:
+                skipped.append({'product_id': None,
+                                'product_name': anon_item.product_name,
+                                'reason': 'PRODUCT_UNAVAILABLE'})
+                continue
+            available = (anon_item.variant.stock if anon_item.variant
+                         else anon_item.product.stock)
+            if available is not None and available <= 0:
+                skipped.append({'product_id': anon_item.product.pk,
+                                'product_name': anon_item.product_name,
+                                'reason': 'OUT_OF_STOCK'})
+                continue
+
+            existing = auth_order.items.filter(
+                product=anon_item.product, variant=anon_item.variant).first()
+            if existing:
+                new_qty = existing.quantity + anon_item.quantity
+                if available is not None and new_qty > available:
+                    new_qty = available
+                existing.quantity   = new_qty
+                existing.unit_price = anon_item.unit_price
+                existing.subtotal   = anon_item.unit_price * new_qty
+                existing.save(update_fields=['quantity', 'unit_price',
+                                             'subtotal', 'updated_at'])
+            else:
+                merge_qty = anon_item.quantity
+                if available is not None and merge_qty > available:
+                    merge_qty = available
+                auth_order.items.create(
+                    product=anon_item.product,
+                    variant=anon_item.variant,
+                    product_name=anon_item.product_name,
+                    variant_label=anon_item.variant_label,
+                    sku=anon_item.sku,
+                    unit_price=anon_item.unit_price,
+                    quantity=merge_qty,
+                    subtotal=anon_item.unit_price * merge_qty,
+                )
+        anon_order.delete()
+    return auth_order, skipped

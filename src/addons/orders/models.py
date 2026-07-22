@@ -8,7 +8,7 @@ import uuid
 from decimal import Decimal
 from django.conf import settings
 from django.db import models
-from addons.base.models import SoftDeleteModel, TimeStampedModel
+from addons.base.models import SiteSettings, SoftDeleteModel, TimeStampedModel
 from addons.mail.models import MailThread
 from django.core.validators import MinValueValidator
 
@@ -136,6 +136,46 @@ class OrderItem(TimeStampedModel):
     def __str__(self):
         return f'{self.order.order_number} — {self.product_name}'
 
+
+
+    # S2c unificación cart→order→sale: desglose por línea con la MISMA
+    # matemática de cart.CartItem.price_* (adaptación de Odoo
+    # ``sale.order.line._compute_amount``: precios IVA-incluido MX, IVA
+    # extraído y cuantizado por línea). OrderItem es la línea strangler de
+    # ``sale.order.line`` mientras dura el cut-over.
+    def price_total(self):
+        """Total de la línea con IVA incluido."""
+        return (self.unit_price * self.quantity).quantize(Decimal('0.01'))
+
+    def price_tax(self):
+        """IVA contenido en el total de la línea (extraído, tasa vigente)."""
+        rate = SiteSettings.get_current().iva_rate
+        return (self.price_total() * rate / (1 + rate)).quantize(Decimal('0.01'))
+
+    def price_subtotal(self):
+        """Subtotal de la línea sin IVA (total − IVA)."""
+        return self.price_total() - self.price_tax()
+
+    def current_price(self):
+        """Precio vigente del catálogo (variant.effective_price o product.price)."""
+        if self.variant:
+            return self.variant.effective_price()
+        return self.product.price if self.product else self.unit_price
+
+    def is_available(self) -> bool:
+        """Paridad con CartItem.is_available (guardias H-CICLO42-01)."""
+        if self.product is None:
+            return False
+        if not (self.product.is_active and self.product.is_published):
+            return False
+        if self.variant:
+            return self.variant.is_available() and self.variant.stock >= self.quantity
+        return self.product.stock >= self.quantity
+
+    def available_stock(self) -> int:
+        if self.variant:
+            return self.variant.stock
+        return self.product.stock if self.product else 0
 
 class OrderValue(TimeStampedModel):
     """Snapshot financiero de la orden. BR-005. OneToOne con Order."""
