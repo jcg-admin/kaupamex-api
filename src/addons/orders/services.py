@@ -12,6 +12,7 @@ from django.db import transaction
 from django.utils import timezone
 from addons.inventory.services import InventoryService
 from .models import Order, OrderAddress, OrderStatusLog
+from addons.base.models import SiteSettings
 from addons.payments.services import execute_refund
 from addons.delivery.models import ShippingMethod
 
@@ -366,3 +367,46 @@ def clear_draft_items(order):
     if order.status != Order.STATUS_DRAFT:
         raise DraftOrderError('La orden no es un draft.', 'ORDEN_NO_DRAFT')
     order.items.all().delete()
+
+
+def get_draft_totals(order):
+    """S2c unificación cart→order→sale: totales del draft con el MISMO
+    contrato de ``cart.Cart.get_totals`` (paridad de claves — el storefront
+    consume este dict tal cual). El descuento sale de
+    ``order.voucher_discount`` (en el draft aún 0; el voucher se re-ancla a
+    ``sale_loyalty`` en una rebanada posterior, H-CART-CL-02). Los importes
+    Odoo-canónicos (``amount_*``) se derivan del subtotal por línea +
+    ``iva_rate`` — mismo desglose IVA-incluido que ``CartItem.price_*``.
+    """
+    iva_rate  = SiteSettings.get_current().iva_rate
+    threshold = SiteSettings.get_current().free_shipping_threshold
+    threshold = threshold if threshold > 0 else None
+
+    items    = list(order.items.all())
+    subtotal = sum((i.unit_price * i.quantity for i in items), Decimal('0.00'))
+    discount = order.voucher_discount or Decimal('0.00')
+    subtotal_net = subtotal - discount
+    tax = (subtotal_net * iva_rate / (1 + iva_rate)).quantize(Decimal('0.01'))
+    free_remaining = (
+        max(Decimal('0.00'), threshold - subtotal_net) if threshold else None
+    )
+    amount_tax = sum(
+        ((i.unit_price * i.quantity * iva_rate / (1 + iva_rate)).quantize(Decimal('0.01'))
+         for i in items),
+        Decimal('0.00'),
+    )
+    return {
+        'subtotal':                str(subtotal),
+        'discount':                str(discount),
+        'subtotal_net':            str(subtotal_net),
+        'tax_included':            str(tax),
+        'shipping_cost':           None,
+        'total':                   str(subtotal_net),
+        'free_shipping_threshold': str(threshold) if threshold else None,
+        'free_shipping_remaining': str(free_remaining) if free_remaining else None,
+        'free_shipping_applied':   bool(threshold and subtotal_net >= threshold),
+        'amount_untaxed': str(subtotal - amount_tax),
+        'amount_tax':     str(amount_tax),
+        'amount_total':   str(subtotal),
+        'item_count': len(items),
+    }

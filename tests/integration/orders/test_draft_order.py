@@ -18,6 +18,7 @@ from addons.orders.services import (
     DraftOrderError,
     add_item_to_draft,
     clear_draft_items,
+    get_draft_totals,
     get_or_create_draft_order,
 )
 
@@ -137,3 +138,29 @@ class TestDraftItemOperationsS2b:
         assert order.items.count() == 1
         clear_draft_items(order)
         assert order.items.count() == 0
+
+
+class TestDraftTotalsS2c:
+    """S2c-1: paridad del contrato de totales con Cart.get_totals."""
+
+    CART_TOTALS_KEYS = {
+        'subtotal', 'discount', 'subtotal_net', 'tax_included',
+        'shipping_cost', 'total', 'free_shipping_threshold',
+        'free_shipping_remaining', 'free_shipping_applied',
+        'amount_untaxed', 'amount_tax', 'amount_total', 'item_count',
+    }
+
+    def test_totals_contract_keys_match_cart(self, draft_product):
+        order, _ = get_or_create_draft_order(cart_token=uuid.uuid4())
+        add_item_to_draft(order, draft_product, quantity=2)
+        totals = get_draft_totals(order)
+        assert set(totals.keys()) == self.CART_TOTALS_KEYS
+
+    def test_totals_math_simple(self, draft_product):
+        order, _ = get_or_create_draft_order(cart_token=uuid.uuid4())
+        add_item_to_draft(order, draft_product, quantity=2)
+        totals = get_draft_totals(order)
+        assert totals['subtotal'] == '200.00'
+        assert totals['discount'] == '0.00'
+        assert totals['total'] == '200.00'
+        assert totals['item_count'] == 1
