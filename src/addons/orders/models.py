@@ -21,6 +21,10 @@ def _generate_order_number() -> str:
 
 class Order(MailThread, TimeStampedModel, SoftDeleteModel):
     """Orden de compra. Hereda SoftDeleteModel (DEC-DOC-007)."""
+    # S1 unificación cart→order→sale: el carrito de Odoo es un sale.order
+    # en state='draft' — no una tabla aparte. DRAFT precede a PENDING; el
+    # checkout es la transición DRAFT→PENDING (analisis-unificar-cart-order-sale).
+    STATUS_DRAFT                = 'DRAFT'
     STATUS_PENDING              = 'PENDING'
     STATUS_PROCESSING           = 'PROCESSING'
     STATUS_IN_PREPARATION       = 'IN_PREPARATION'
@@ -31,6 +35,7 @@ class Order(MailThread, TimeStampedModel, SoftDeleteModel):
     STATUS_REFUNDED             = 'REFUNDED'
     STATUS_PAID                 = 'PAID'
     STATUSES = [
+        (STATUS_DRAFT,                'Carrito / cotización'),
         (STATUS_PENDING,              'Pendiente de pago'),
         (STATUS_PROCESSING,           'Procesando pago'),
         (STATUS_PAID,                 'Pagado'),
@@ -51,6 +56,12 @@ class Order(MailThread, TimeStampedModel, SoftDeleteModel):
                           help_text='Email del comprador invitado (BR-011).')
     status          = models.CharField(max_length=20, choices=STATUSES,
                           default=STATUS_PENDING, db_index=True)
+    # S1 unificación cart→order→sale: token del carrito anónimo (paridad con
+    # cart.Cart.cart_token). Solo los drafts anónimos lo llevan; la unicidad
+    # UNIQUE admite múltiples NULL en SQL.
+    cart_token      = models.UUIDField(
+        unique=True, null=True, blank=True, db_index=True,
+        help_text='Carrito anónimo — draft sin user (S1, analisis-unificar-cart-order-sale).')
     shipping_method = models.ForeignKey(
         'delivery.ShippingMethod', null=True, blank=True,
         on_delete=models.SET_NULL, related_name='orders',
