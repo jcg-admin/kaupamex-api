@@ -50,6 +50,15 @@ class StockPicking(TimeStampedModel):
         'stock.StockLocation', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='pickings_in', help_text='Destino (Odoo location_dest_id).',
     )
+    # Odoo stock.picking.sale_id — el enlace lo añade el módulo sale_stock
+    # (stock_picking se inherita en sale_stock/models/stock_picking.py). Aquí el
+    # albarán conoce su orden de venta canónica; el sub-estado de preparación
+    # (state confirmed/assigned) se proyecta a IN_PREPARATION cuando aún no hay
+    # guía de transportista (V5a de analisis-unificar-orders-sale, H-SALE-09).
+    sale_order       = fields.Many2one(
+        'sale.SaleOrder', null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='pickings', help_text='Orden de venta (Odoo stock.picking.sale_id).',
+    )
 
     class Meta:
         db_table = 'stock_picking'
