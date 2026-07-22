@@ -410,3 +410,35 @@ def get_draft_totals(order):
         'amount_total':   str(subtotal),
         'item_count': len(items),
     }
+
+
+def update_draft_item_quantity(order, item_pk, quantity):
+    """S2c: fija la cantidad de un item del draft (paridad con
+    ``CartItemDetailView.patch``, UC-CART-02): guard de stock sobre el
+    valor absoluto y refresco de ``subtotal``."""
+    if order.status != Order.STATUS_DRAFT:
+        raise DraftOrderError('La orden no es un draft.', 'ORDEN_NO_DRAFT')
+    if quantity < 1:
+        raise DraftOrderError('quantity debe ser >= 1.', 'CANTIDAD_INVALIDA')
+    item = order.items.filter(pk=item_pk).first()
+    if item is None:
+        raise DraftOrderError('Item no encontrado.', 'ITEM_NOT_FOUND')
+    stock = item.variant.stock if item.variant else (
+        item.product.stock if item.product else None)
+    if stock is not None and quantity > stock:
+        raise DraftOrderError('Stock insuficiente.', 'INSUFFICIENT_STOCK')
+    item.quantity = quantity
+    item.subtotal = item.unit_price * quantity
+    item.save(update_fields=['quantity', 'subtotal', 'updated_at'])
+    return item
+
+
+def remove_draft_item(order, item_pk):
+    """S2c: elimina un item del draft (paridad con
+    ``CartItemDetailView.delete``, UC-CART-03)."""
+    if order.status != Order.STATUS_DRAFT:
+        raise DraftOrderError('La orden no es un draft.', 'ORDEN_NO_DRAFT')
+    item = order.items.filter(pk=item_pk).first()
+    if item is None:
+        raise DraftOrderError('Item no encontrado.', 'ITEM_NOT_FOUND')
+    item.delete()

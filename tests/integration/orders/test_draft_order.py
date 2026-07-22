@@ -19,6 +19,8 @@ from addons.orders.services import (
     add_item_to_draft,
     clear_draft_items,
     get_draft_totals,
+    remove_draft_item,
+    update_draft_item_quantity,
     get_or_create_draft_order,
 )
 
@@ -164,3 +166,33 @@ class TestDraftTotalsS2c:
         assert totals['discount'] == '0.00'
         assert totals['total'] == '200.00'
         assert totals['item_count'] == 1
+
+
+class TestDraftItemUpdateRemoveS2c2:
+    """S2c-2a: paridad de patch/delete de item sobre el draft."""
+
+    def test_update_quantity_and_subtotal(self, draft_product):
+        order, _ = get_or_create_draft_order(cart_token=uuid.uuid4())
+        item, _ = add_item_to_draft(order, draft_product, quantity=1)
+        updated = update_draft_item_quantity(order, item.pk, 4)
+        assert updated.quantity == 4
+        assert updated.subtotal == Decimal('400.00')
+
+    def test_update_quantity_respects_stock(self, draft_product):
+        order, _ = get_or_create_draft_order(cart_token=uuid.uuid4())
+        item, _ = add_item_to_draft(order, draft_product, quantity=1)
+        with pytest.raises(DraftOrderError) as exc:
+            update_draft_item_quantity(order, item.pk, 6)
+        assert exc.value.codigo_error == 'INSUFFICIENT_STOCK'
+
+    def test_update_missing_item_raises(self, draft_product):
+        order, _ = get_or_create_draft_order(cart_token=uuid.uuid4())
+        with pytest.raises(DraftOrderError) as exc:
+            update_draft_item_quantity(order, 999999, 1)
+        assert exc.value.codigo_error == 'ITEM_NOT_FOUND'
+
+    def test_remove_item(self, draft_product):
+        order, _ = get_or_create_draft_order(cart_token=uuid.uuid4())
+        item, _ = add_item_to_draft(order, draft_product, quantity=1)
+        remove_draft_item(order, item.pk)
+        assert order.items.count() == 0
