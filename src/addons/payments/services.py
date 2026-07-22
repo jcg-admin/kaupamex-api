@@ -83,6 +83,7 @@ def initiate_payment(
     with transaction.atomic():
         payment = Payment.objects.create(
             order=order,
+            sale_order=order.sale_order,
             gateway=gateway_type,
             preference_id=result.preference_id,
             status=Payment.STATUS_PENDING,
@@ -503,6 +504,7 @@ def initiate_checkout_api_payment(
     with transaction.atomic():
         payment = Payment.objects.create(
             order=order,
+            sale_order=order.sale_order,
             gateway=Payment.GATEWAY_MERCADOPAGO,
             gateway_payment_id=result.gateway_payment_id,
             mp_order_id=result.mp_order_id,

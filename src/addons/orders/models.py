@@ -62,6 +62,12 @@ class Order(MailThread, TimeStampedModel, SoftDeleteModel):
     cart_token      = models.UUIDField(
         unique=True, null=True, blank=True, db_index=True,
         help_text='Carrito anónimo — draft sin user (S1, analisis-unificar-cart-order-sale).')
+    # V3a orders→sale (DEC-FW-02): el espejo legacy conoce su canónico.
+    # confirm_draft_order lo fija al confirmar; V5 retira el espejo entero.
+    sale_order      = models.OneToOneField(
+        'sale.SaleOrder', null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='legacy_order',
+        help_text='SaleOrder canónica de la que este Order es espejo (V3a).')
     shipping_method = models.ForeignKey(
         'delivery.ShippingMethod', null=True, blank=True,
         on_delete=models.SET_NULL, related_name='orders',

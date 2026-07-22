@@ -402,6 +402,7 @@ def confirm_draft_order(order, *, address_data, guest_email=None, notes='',
 
         # Puente legacy (se retira en V5 — analisis-unificar-orders-sale).
         legacy = Order.objects.create(
+            sale_order=order,
             user=order.partner,
             guest_email=(guest_email if (guest_email and not order.partner_id)
                          else None),
