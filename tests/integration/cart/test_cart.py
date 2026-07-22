@@ -12,7 +12,7 @@ from decimal import Decimal
 from rest_framework.test import APIClient
 from addons.catalogue.models import Category, Product
 from addons.chartsize.models import VariantType, VariantOption, ProductVariant
-from addons.cart.models import Cart, CartItem, SavedCart
+from addons.cart.models import SavedCart
 from addons.orders.models import Order
 from addons.orders.services import add_item_to_draft, get_or_create_draft_order
 from addons.users.models import IdentityUser as User
@@ -345,11 +345,8 @@ class TestEliminarItem:
         self, api_client, product_sin_variante, db
     ):
         """No se puede eliminar un item de otro carrito."""
-        other_cart = Cart.objects.create(cart_token=uuid.uuid4())
-        item = CartItem.objects.create(
-            cart=other_cart, product=product_sin_variante,
-            quantity=1, unit_price=product_sin_variante.price,
-        )
+        other_order, _ = get_or_create_draft_order(cart_token=uuid.uuid4())
+        item, _ = add_item_to_draft(other_order, product_sin_variante, quantity=1)
         # api_client tiene su propio carrito (vacío)
         api_client.post(ITEMS_URL, {'product_id': product_sin_variante.pk}, format='json')
         # Intentar borrar item del otro carrito → 404

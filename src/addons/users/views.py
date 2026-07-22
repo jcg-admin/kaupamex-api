@@ -29,7 +29,7 @@ from .audit import audit_log_auth
 from rest_framework.viewsets import ModelViewSet
 from drf_spectacular.types import OpenApiTypes as OAT
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
-from addons.cart.models import Cart, SavedCart
+from addons.cart.models import SavedCart
 from addons.orders.models import Order
 from addons.orders.services import merge_draft_orders
 from addons.mail.models import NotificationPreference
@@ -734,10 +734,8 @@ class DeactivateAccountView(APIView):
             #   - users_address (referenciado desde orders_order_address
             #     snapshot, conservar la fila original facilita lookup)
             #   - users_deactivation_event (audit append-only)
-            # S3 cart→order→sale: el carrito vivo es el Order(DRAFT) del
-            # usuario — se elimina junto con el legado Cart (hasta S4).
+            # S3/S4 cart→order→sale: el carrito vivo es el Order(DRAFT).
             Order.objects.filter(user=user, status=Order.STATUS_DRAFT).delete()
-            Cart.objects.filter(user=user).delete()
             SavedCart.objects.filter(user=user).delete()
             # WishlistItem.all_objects + hard_delete: bypassa el
             # soft-delete del modelo (queremos borrado fisico).

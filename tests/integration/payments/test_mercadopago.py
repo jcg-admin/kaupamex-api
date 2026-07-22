@@ -18,7 +18,6 @@ from addons.payment.models import PaymentGateway
 from addons.payment.models import Payment, PaymentGatewayEvent
 from addons.payment_mercado_pago.gateway import MercadoPagoGateway
 from addons.users.models import Address
-from addons.cart.models import CartItem
 
 pytestmark = pytest.mark.integration
 
@@ -528,7 +527,8 @@ class TestCheckoutExpress:
         }, format='json')
 
         auth_client.post(EXPRESS_URL, {}, format='json')
-        assert CartItem.objects.filter(product=prod_s15).count() == 0
+        # S4: confirmar el draft lo transiciona — no queda draft del usuario.
+        assert Order.objects.filter(user=user, status=Order.STATUS_DRAFT).count() == 0
 
 
 # =============================================================================

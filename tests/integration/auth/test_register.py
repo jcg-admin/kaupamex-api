@@ -111,7 +111,6 @@ class TestRegisterUnicidad:
 
 import uuid as _uuid
 from decimal import Decimal
-from addons.cart.models import Cart, CartItem
 from addons.orders.models import Order
 from addons.orders.services import add_item_to_draft, get_or_create_draft_order
 from addons.catalogue.models import Product
@@ -149,8 +148,12 @@ class TestRegisterMergesAnonCart:
         # Un carrito ya asociado a un usuario no debe fusionarse por token.
         other = get_user_model().objects.create_user(
             email='dueno@x.mx', password='Yoruba2026!', is_active=True)
-        owned = Cart.objects.create(user=other, cart_token=_uuid.uuid4())
-        res = api_client.post(URL, {**VALID, 'cart_token': str(owned.cart_token)}, format='json')
+        token = _uuid.uuid4()
+        owned, _ = get_or_create_draft_order(user=other)
+        owned.cart_token = token
+        owned.save(update_fields=['cart_token'])
+        res = api_client.post(URL, {**VALID, 'cart_token': str(token)}, format='json')
         assert res.status_code == 201
-        # el carrito del otro usuario sigue intacto
-        assert Cart.objects.filter(pk=owned.pk, user=other).exists()
+        # el carrito del otro usuario sigue intacto (merge exige user__isnull)
+        assert Order.objects.filter(pk=owned.pk, user=other,
+                                    status=Order.STATUS_DRAFT).exists()

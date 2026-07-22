@@ -8,7 +8,7 @@ que garantizan que el refactoring no rompe nada.
 import pytest
 from decimal import Decimal
 from addons.base.models import TimeStampedModel
-from addons.cart.models import Cart, CartItem, SavedCart, SavedCartItem
+from addons.cart.models import SavedCart, SavedCartItem
 from addons.catalogue.models import Category, Product, SearchHistory, ProductImage
 from addons.chartsize.models import VariantType, VariantOption, ProductVariant
 from addons.inventory.models import StockMovement, StockAlert
@@ -41,7 +41,7 @@ class TestTimeStampedModelHerencia:
     def test_todos_los_modelos_heredan_de_timestampedmodel(self, db):
 
         models_concretos = [
-            Cart, CartItem, SavedCart, SavedCartItem,
+            SavedCart, SavedCartItem,
             Category, Product, SearchHistory, ProductImage,
             VariantType, VariantOption, ProductVariant,
             StockMovement, StockAlert,

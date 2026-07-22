@@ -17,7 +17,9 @@ Conserva:
 import pytest
 from decimal import Decimal
 from addons.catalogue.models import Category, Product
-from addons.cart.models import Cart, SavedCart
+from addons.cart.models import SavedCart
+from addons.orders.models import Order
+from addons.orders.services import get_or_create_draft_order
 from addons.website_sale_wishlist.models import WishlistItem
 from addons.website.models import SearchEntry
 from addons.mail.models import NotificationPreference
@@ -44,9 +46,9 @@ def product(db):
 class TestSelfDeleteEliminaCartActivo:
 
     def test_cart_se_elimina(self, auth_client, user, db):
-        Cart.objects.create(user=user)
+        get_or_create_draft_order(user=user)
         auth_client.post(URL, {'password': 'TestPass123!'}, format='json')
-        assert Cart.objects.filter(user=user).count() == 0
+        assert Order.objects.filter(user=user, status=Order.STATUS_DRAFT).count() == 0
 
 
 class TestSelfDeleteEliminaSavedCarts:
