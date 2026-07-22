@@ -9,7 +9,8 @@ The v2 /payments/initiate/ serves CheckoutApiPaymentView (ADR-018 in-site).
 """
 from django.urls import path
 from .views import InitiatePaymentView
-from .webhooks import MercadoPagoWebhookView, PayPalWebhookView
+from addons.payment_mercado_pago.controllers import MercadoPagoWebhookView
+from addons.payment_paypal.controllers import PayPalWebhookView
 
 urlpatterns = [
     path('webhooks/mercadopago/',

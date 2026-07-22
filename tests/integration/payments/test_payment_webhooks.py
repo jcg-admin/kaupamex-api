@@ -355,7 +355,7 @@ class TestMercadoPagoWebhook:
         signature = _make_mp_signature('TEST-SECRET', 'MP-PAY-999', req_id, ts)
 
         # Mock para forzar excepcion en MercadoPagoGateway().verify_payment
-        with patch('addons.payments.webhooks.MercadoPagoGateway') as mock_cls:
+        with patch('addons.payment_mercado_pago.controllers.MercadoPagoGateway') as mock_cls:
             instance = MagicMock()
             instance.verify_payment.side_effect = Exception('MP API down')
             mock_cls.return_value = instance
