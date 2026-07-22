@@ -112,6 +112,8 @@ class TestRegisterUnicidad:
 import uuid as _uuid
 from decimal import Decimal
 from addons.cart.models import Cart, CartItem
+from addons.orders.models import Order
+from addons.orders.services import add_item_to_draft, get_or_create_draft_order
 from addons.catalogue.models import Product
 
 
@@ -122,8 +124,9 @@ class TestRegisterMergesAnonCart:
             sku=f'ELE-{email_slug.upper()}-1', description='x',
             price=Decimal('100.00'), stock=5, is_active=True, is_published=True,
         )
-        anon = Cart.objects.create(cart_token=_uuid.uuid4())
-        CartItem.objects.create(cart=anon, product=p, quantity=2, unit_price=Decimal('100.00'))
+        # S3 cart→order→sale: el carrito anónimo es un Order(DRAFT) por token.
+        anon, _ = get_or_create_draft_order(cart_token=_uuid.uuid4())
+        add_item_to_draft(anon, p, quantity=2)
         return anon
 
     def test_registro_fusiona_el_carrito_anonimo(self, api_client, db):
@@ -131,10 +134,10 @@ class TestRegisterMergesAnonCart:
         res = api_client.post(URL, {**VALID, 'cart_token': str(anon.cart_token)}, format='json')
         assert res.status_code == 201
         user = get_user_model().objects.get(email=VALID['email'])
-        user_cart = Cart.objects.get(user=user)
-        assert user_cart.items.count() == 1
+        user_order = Order.objects.get(user=user, status=Order.STATUS_DRAFT)
+        assert user_order.items.count() == 1
         # el carrito anónimo se consumió al fusionarse
-        assert not Cart.objects.filter(cart_token=anon.cart_token).exists()
+        assert not Order.objects.filter(cart_token=anon.cart_token).exists()
 
     def test_registro_sin_cart_token_sigue_funcionando(self, api_client, db):
         assert api_client.post(URL, VALID, format='json').status_code == 201

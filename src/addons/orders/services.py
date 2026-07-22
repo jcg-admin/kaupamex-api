@@ -10,9 +10,11 @@ from uuid import uuid4
 from decimal import Decimal
 from django.db import transaction
 from django.utils import timezone
+from django.db.models import F
 from addons.inventory.services import InventoryService
-from .models import Order, OrderAddress, OrderStatusLog
+from .models import Order, OrderAddress, OrderStatusLog, OrderValue
 from addons.base.models import SiteSettings
+from addons.loyalty.models import Voucher, VoucherUsage
 from addons.payments.services import execute_refund
 from addons.delivery.models import ShippingMethod
 
@@ -384,7 +386,14 @@ def get_draft_totals(order):
 
     items    = list(order.items.all())
     subtotal = sum((i.unit_price * i.quantity for i in items), Decimal('0.00'))
+    # En DRAFT el descuento se recalcula VIVO desde el voucher aplicado
+    # (paridad con Cart.get_discount: los items cambian y el descuento
+    # los sigue). confirm_draft_order congela voucher_discount al confirmar.
     discount = order.voucher_discount or Decimal('0.00')
+    if order.status == Order.STATUS_DRAFT and order.voucher_code:
+        voucher = Voucher.objects.filter(code=order.voucher_code).first()
+        discount = (voucher.calculate_discount(subtotal)
+                    if voucher else Decimal('0.00'))
     subtotal_net = subtotal - discount
     tax = (subtotal_net * iva_rate / (1 + iva_rate)).quantize(Decimal('0.01'))
     free_remaining = (
@@ -505,3 +514,152 @@ def merge_draft_orders(user, cart_token):
                 )
         anon_order.delete()
     return auth_order, skipped
+
+
+def apply_voucher_to_draft(order, code, user=None):
+    """S3: aplica un voucher al draft (paridad con ``CartVoucherView.post``,
+    UC-CART-04 + H-CICLO112-01). El draft ancla el voucher por
+    ``voucher_code`` (snapshot-friendly: es el mismo campo que el checkout
+    congela); el descuento NO se congela aquí — ``get_draft_totals`` lo
+    recalcula vivo mientras la orden siga en DRAFT. Retorna
+    ``(voucher, discount, cart_total)``.
+    """
+    if order.status != Order.STATUS_DRAFT:
+        raise DraftOrderError('La orden no es un draft.', 'ORDEN_NO_DRAFT')
+    voucher = Voucher.objects.filter(code=code).first()
+    if voucher is None:
+        raise DraftOrderError('El voucher no existe.', 'VOUCHER_NOT_FOUND')
+
+    with transaction.atomic():
+        order = Order.objects.select_for_update().get(pk=order.pk)
+        cart_total = sum(
+            (i.unit_price * i.quantity for i in order.items.all()),
+            Decimal('0.00'))
+
+        error_code = voucher.validate_for_cart(cart_total, user)
+        if error_code:
+            raise DraftOrderError(f'Voucher no aplicable: {error_code}',
+                                  error_code)
+        if user is not None and getattr(user, 'is_authenticated', False):
+            if VoucherUsage.objects.filter(user=user, voucher=voucher).exists():
+                raise DraftOrderError('Ya has utilizado este voucher.',
+                                      'VOUCHER_ALREADY_USED')
+        if order.voucher_code:
+            raise DraftOrderError(
+                'El carrito ya tiene un voucher aplicado. Elimínelo primero.',
+                'VOUCHER_ALREADY_APPLIED')
+
+        order.voucher_code = voucher.code
+        order.save(update_fields=['voucher_code', 'updated_at'])
+
+    return voucher, voucher.calculate_discount(cart_total), cart_total
+
+
+def remove_voucher_from_draft(order):
+    """S3: quita el voucher del draft (paridad con ``CartVoucherView.delete``)."""
+    if not order.voucher_code:
+        raise DraftOrderError('El carrito no tiene voucher aplicado.',
+                              'NO_ACTIVE_VOUCHER')
+    order.voucher_code = ''
+    order.voucher_discount = Decimal('0.00')
+    order.save(update_fields=['voucher_code', 'voucher_discount', 'updated_at'])
+
+
+def confirm_draft_order(order, *, address_data, guest_email=None, notes='',
+                        shipping_cost=Decimal('0.00')):
+    """S3 unificación cart→order→sale: el checkout deja de ser copy-and-delete
+    y pasa a ser la **transición** ``DRAFT→PENDING`` — la adaptación de
+    ``sale.order.action_confirm`` de Odoo (el carrito ES la orden; confirmar
+    no crea nada, congela y transiciona).
+
+    Pasos (misma semántica que el CheckoutView histórico, UC-ORD-01):
+
+    1. Guards: orden DRAFT + con items.
+    2. Disponibilidad de stock (``InventoryService.check_availability``).
+    3. Atómico: decrement con SELECT FOR UPDATE; refresco del snapshot al
+       precio VIGENTE (H-CICLO78-04: ``current_price()``, no el precio del
+       add-to-cart); congela ``voucher_discount``; crea ``OrderValue`` y
+       ``OrderAddress``; incrementa ``Voucher.current_uses`` + registra
+       ``VoucherUsage`` (DEC-VCU-01 / DEC-BC-10); transiciona a PENDING y
+       **libera** ``cart_token`` (el token de la cookie debe poder acuñar
+       un draft nuevo — si la orden confirmada lo retuviera,
+       ``get_or_create_draft_order`` devolvería una orden no-draft).
+
+    Levanta ``DraftOrderError`` en los guards; propaga
+    ``InsufficientStockError``/``IntegrityError`` para que la vista selle
+    los mismos ``codigo_error`` históricos.
+    """
+    if order.status != Order.STATUS_DRAFT:
+        raise DraftOrderError('La orden no es un draft.', 'ORDEN_NO_DRAFT')
+
+    items = list(order.items.select_related(
+        'product', 'variant__product', 'variant__option').all())
+    if not items:
+        raise DraftOrderError('El carrito está vacío.', 'EMPTY_CART')
+    if any(i.product is None for i in items):
+        raise DraftOrderError('Hay items de productos eliminados.',
+                              'PRODUCT_UNAVAILABLE')
+
+    check_items = [{'product': i.product, 'variant': i.variant,
+                    'quantity': i.quantity} for i in items]
+    insufficient = InventoryService.check_availability(check_items)
+    if insufficient:
+        err = DraftOrderError('Stock insuficiente para algunos items.',
+                              'INSUFFICIENT_STOCK')
+        err.items = insufficient
+        raise err
+
+    iva_rate = SiteSettings.get_current().iva_rate
+    voucher = (Voucher.objects.filter(code=order.voucher_code).first()
+               if order.voucher_code else None)
+
+    with transaction.atomic():
+        InventoryService.decrement(check_items)
+
+        subtotal = Decimal('0.00')
+        for item in items:
+            live_price = item.current_price()
+            item_sub   = live_price * item.quantity
+            subtotal  += item_sub
+            item.unit_price = live_price
+            item.subtotal   = item_sub
+            item.save(update_fields=['unit_price', 'subtotal', 'updated_at'])
+
+        voucher_discount = (voucher.calculate_discount(subtotal)
+                            if voucher else Decimal('0.00'))
+
+        net   = subtotal - voucher_discount
+        tax   = (net * iva_rate / (1 + iva_rate)).quantize(Decimal('0.01'))
+        total = net + shipping_cost
+        OrderValue.objects.create(
+            order=order, subtotal=subtotal, tax=tax,
+            shipping_cost=shipping_cost, discount=voucher_discount,
+            total=total,
+        )
+        OrderAddress.objects.create(order=order, **address_data)
+
+        if voucher is not None:
+            voucher_locked = (Voucher.objects.select_for_update()
+                              .get(pk=voucher.pk))
+            if (voucher_locked.max_uses is not None
+                    and voucher_locked.current_uses >= voucher_locked.max_uses):
+                raise DraftOrderError(
+                    f'Voucher {voucher_locked.code} agotado: '
+                    f'{voucher_locked.current_uses}/{voucher_locked.max_uses}.',
+                    'VOUCHER_EXHAUSTED')
+            Voucher.objects.filter(pk=voucher.pk).update(
+                current_uses=F('current_uses') + 1,
+                updated_at=timezone.now(),
+            )
+            if order.user_id:
+                VoucherUsage.objects.create(user=order.user, voucher=voucher)
+
+        order.status = Order.STATUS_PENDING
+        order.cart_token = None
+        order.voucher_discount = voucher_discount
+        order.notes = notes or order.notes
+        if guest_email and not order.user_id:
+            order.guest_email = guest_email
+        order.save(update_fields=['status', 'cart_token', 'voucher_discount',
+                                  'notes', 'guest_email', 'updated_at'])
+    return order

@@ -15,8 +15,8 @@ from rest_framework.views import APIView
 from addons.catalogue.models import Product
 from addons.chartsize.models import ProductVariant
 from addons.website_sale_wishlist.models import WishlistItem
-from addons.cart.views import _get_or_create_cart
-from addons.cart.models import CartItem
+from addons.cart.views import _get_or_create_draft
+from addons.orders.services import DraftOrderError, add_item_to_draft
 from config.schema import error_response
 from rest_framework import serializers as drf_serializers
 
@@ -258,27 +258,22 @@ class WishlistMoveToCartView(CapabilityRequiredMixin, APIView):
                 status=status.HTTP_409_CONFLICT,
             )
 
-        cart, _, _ = _get_or_create_cart(request)
-        unit_price = item.current_price
+        order, _, _ = _get_or_create_draft(request)
 
         remove = request.data.get('remove_from_wishlist', True)
 
+        # S3 cart→order→sale: el carrito es el Order(DRAFT); el servicio
+        # hace el get_or_create + merge de cantidad con guard de stock.
         with transaction.atomic():
-            existing = CartItem.objects.select_for_update().filter(
-                cart=cart, variant=item.variant,
-                product=item.product,
-            ).first()
-            if existing:
-                existing.quantity += 1
-                existing.unit_price = unit_price
-                existing.save(update_fields=['quantity', 'unit_price', 'updated_at'])
-                cart_item_id = existing.pk
-            else:
-                cart_item = CartItem.objects.create(
-                    cart=cart, product=item.product, variant=item.variant,
-                    quantity=1, unit_price=unit_price,
+            try:
+                draft_item, _ = add_item_to_draft(
+                    order, item.product, variant=item.variant, quantity=1)
+            except DraftOrderError as exc:
+                return Response(
+                    {'detail': str(exc), 'codigo_error': exc.codigo_error},
+                    status=status.HTTP_409_CONFLICT,
                 )
-                cart_item_id = cart_item.pk
+            cart_item_id = draft_item.pk
 
             if remove:
                 item.delete()

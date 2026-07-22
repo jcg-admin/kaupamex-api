@@ -30,6 +30,8 @@ from rest_framework.viewsets import ModelViewSet
 from drf_spectacular.types import OpenApiTypes as OAT
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
 from addons.cart.models import Cart, SavedCart
+from addons.orders.models import Order
+from addons.orders.services import merge_draft_orders
 from addons.mail.models import NotificationPreference
 from addons.website.models import SearchEntry
 from addons.website_sale_wishlist.models import WishlistItem
@@ -65,12 +67,10 @@ def _merge_anon_cart_into_user(user, cart_token):
         token = uuid.UUID(str(cart_token))
     except (ValueError, TypeError, AttributeError):
         return
-    anon = Cart.objects.filter(cart_token=token, user__isnull=True).first()
-    if anon is None:
-        return
     try:
-        user_cart, _ = Cart.objects.get_or_create(user=user)
-        user_cart.merge(anon)
+        # S3 cart→order→sale: el carrito anónimo es un Order(DRAFT) por
+        # token; la fusión (stock guards + recorte) vive en el servicio.
+        merge_draft_orders(user, token)
     except Exception:
         # Loud-log sin re-raise (DEC-DOC-008): una falla al fusionar el carrito
         # no debe romper el registro, que es la operación crítica.
@@ -734,6 +734,9 @@ class DeactivateAccountView(APIView):
             #   - users_address (referenciado desde orders_order_address
             #     snapshot, conservar la fila original facilita lookup)
             #   - users_deactivation_event (audit append-only)
+            # S3 cart→order→sale: el carrito vivo es el Order(DRAFT) del
+            # usuario — se elimina junto con el legado Cart (hasta S4).
+            Order.objects.filter(user=user, status=Order.STATUS_DRAFT).delete()
             Cart.objects.filter(user=user).delete()
             SavedCart.objects.filter(user=user).delete()
             # WishlistItem.all_objects + hard_delete: bypassa el

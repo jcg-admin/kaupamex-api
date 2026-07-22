@@ -1,5 +1,5 @@
 """
-Views — addons.cart (Sprint 6)
+Views — addons.cart (Sprint 6 · S3 unificación cart→order→sale)
 
 UC-CART-01: Ver carrito activo
 UC-CART-02: Agregar ítem al carrito
@@ -7,12 +7,16 @@ UC-CART-03: Eliminar ítem del carrito
 UC-CART-04: Aplicar voucher al carrito
 UC-CART-05: Guardar carrito para después
 UC-CART-06: Sincronizar carrito anónimo con cuenta
+
+S3 (analisis-unificar-cart-order-sale): estas vistas conservan el contrato
+``/api/v1/cart/*`` (mismos paths, mismos campos ``items``/``totals``, mismos
+``codigo_error``) pero sirven y mutan el ``Order(DRAFT)`` — en Odoo el
+carrito ES un ``sale.order`` en ``state='draft'``, no una tabla aparte. Los
+modelos ``Cart``/``CartItem`` quedan como legado hasta la data migration S4.
 """
-from decimal import Decimal
-from uuid import uuid4
 from django.db import transaction
 from django.shortcuts import get_object_or_404
-from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiParameter
+from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers, status
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -21,60 +25,57 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from addons.catalogue.models import Product
 from addons.chartsize.models import ProductVariant
-from addons.loyalty.models import Voucher, VoucherUsage
+from addons.orders.models import Order
+from addons.orders.services import (
+    DraftOrderError,
+    add_item_to_draft,
+    apply_voucher_to_draft,
+    clear_draft_items,
+    get_or_create_draft_order,
+    merge_draft_orders,
+    remove_draft_item,
+    remove_voucher_from_draft,
+    update_draft_item_quantity,
+)
 from config.schema import error_response
-from .models import Cart, CartItem, SavedCart, SavedCartItem
+from .models import SavedCart, SavedCartItem
 from .serializers import (
-    AddItemSerializer, CartSerializer, MergeCartSerializer, SavedCartSerializer,
-    UpdateItemSerializer,
+    AddItemSerializer, DraftCartSerializer, MergeCartSerializer,
+    SavedCartSerializer, UpdateItemSerializer,
 )
 
 
-
-
-def _get_or_create_cart(request):
+def _get_or_create_draft(request):
     """
-    Devuelve (cart, created, is_authenticated).
-    - Autenticado: busca/crea Cart(user=request.user).
-    - Anónimo: busca/crea Cart(token=X-Cart-Token header).
+    Devuelve (order, created, is_authenticated) — el ``Order(DRAFT)`` que
+    hace de carrito activo.
+    - Autenticado: draft único del usuario (one-draft-per-user en servicio).
+    - Anónimo: draft por token (cookie httpOnly preferida sobre el header
+      X-Cart-Token, H-CART-01 Fase 2).
     """
     if request.user.is_authenticated:
-        cart, created = Cart.objects.get_or_create(user=request.user)
-        return cart, created, True
-    # H-CART-01 Fase 2: preferir la cookie httpOnly (durable entre recargas y
-    # pestañas) sobre el header X-Cart-Token (memory-only, back-compat).
+        order, created = get_or_create_draft_order(user=request.user)
+        return order, created, True
     token = request.COOKIES.get('cart_token') or request.META.get('HTTP_X_CART_TOKEN')
-    if not token:
-        token = str(uuid4())
-        created = True
-    else:
-        created = False
-    cart, _ = Cart.objects.get_or_create(cart_token=token)
+    order, created = get_or_create_draft_order(cart_token=token or None)
     # Señal para CartCookieMiddleware: fija/renueva la cookie con este token.
     # OJO: la vista recibe el Request de DRF (wrapper); el middleware ve el
-    # HttpRequest de Django subyacente. Hay que marcar el request nativo
-    # (``_request``) para que el middleware lea la señal.
+    # HttpRequest de Django subyacente — marcar el request nativo.
     django_request = getattr(request, '_request', request)
-    django_request._anon_cart_token = str(cart.cart_token)
-    return cart, created, False
+    django_request._anon_cart_token = str(order.cart_token)
+    return order, created, False
 
 
-def _prefetch_cart(cart):
+def _prefetch_draft(order):
     """
-    Re-fetches the cart with prefetch_related to avoid N+1 queries when
-    CartSerializer iterates cart.items and accesses product.name/slug/sku
-    and variant.option.label.  CartItemSerializer touches:
-      - item.product.name, .slug, .sku  → select_related('product')
-      - item.variant.option.label        → select_related('variant__option')
-      - item.variant.sku                 → select_related('variant')
-    Without this re-fetch every CartSerializer(cart).data call fires
-    1 + 3 × len(items) extra queries (N+1).
-    H-CICLO46-01.
+    Re-fetch del draft con prefetch para evitar N+1 al serializar
+    (H-CICLO46-01 aplicado al draft): DraftItemSerializer toca
+    ``item.product.slug``/``images`` y ``item.variant`` (current_price).
     """
     return (
-        Cart.objects
-        .prefetch_related('items__product', 'items__variant__option')
-        .get(pk=cart.pk)
+        Order.objects
+        .prefetch_related('items__product__images', 'items__variant__option')
+        .get(pk=order.pk)
     )
 
 
@@ -91,17 +92,17 @@ class CartView(APIView):
     @extend_schema(
         summary='Ver carrito activo (UC-CART-01)',
         tags=['cart'],
-        responses={200: CartSerializer},
+        responses={200: DraftCartSerializer},
     )
     def get(self, request):
-        cart, _, _ = _get_or_create_cart(request)
-        return Response(CartSerializer(_prefetch_cart(cart)).data)
+        order, _, _ = _get_or_create_draft(request)
+        return Response(DraftCartSerializer(_prefetch_draft(order)).data)
 
     @extend_schema(
         summary='Agregar ítem al carrito (UC-CART-02)',
         tags=['cart'],
         request=AddItemSerializer,
-        responses={200: CartSerializer,
+        responses={200: DraftCartSerializer,
                    400: error_response('Datos inválidos'),
                    409: error_response('Producto sin stock')},
     )
@@ -123,46 +124,25 @@ class CartView(APIView):
         if variant_id:
             variant = get_object_or_404(ProductVariant, pk=variant_id, product=product)
 
-        # H-CICLO121-01: CartView.post() lacked any stock check — a client
-        # could add arbitrary quantities via POST /api/v1/cart/ without the
-        # guard present in CartItemListView.post(). Validate stock before
-        # entering the atomic block and again inside it (double-check pattern)
-        # to handle concurrent requests.
-        available = variant.stock if variant else product.stock
-        if available is not None and available <= 0:
-            return Response(
-                {'detail': 'Producto sin stock.', 'codigo_error': 'OUT_OF_STOCK'},
-                status=status.HTTP_409_CONFLICT,
-            )
-        if available is not None and quantity > available:
-            raise ValidationError({'codigo_error': 'INSUFFICIENT_STOCK',
+        order, _, _ = _get_or_create_draft(request)
+        try:
+            add_item_to_draft(order, product, variant=variant, quantity=quantity)
+        except DraftOrderError as exc:
+            if exc.codigo_error == 'OUT_OF_STOCK':
+                return Response(
+                    {'detail': 'Producto sin stock.', 'codigo_error': 'OUT_OF_STOCK'},
+                    status=status.HTTP_409_CONFLICT,
+                )
+            raise ValidationError({'codigo_error': exc.codigo_error,
                                    'quantity': 'Stock insuficiente.'})
 
-        unit_price = variant.effective_price() if variant else product.price
-
-        cart, _, _ = _get_or_create_cart(request)
-        with transaction.atomic():
-            item, created_item = CartItem.objects.get_or_create(
-                cart=cart, product=product, variant=variant,
-                defaults={'quantity': quantity, 'unit_price': unit_price},
-            )
-            if not created_item:
-                new_qty = item.quantity + quantity
-                avail = variant.stock if variant else product.stock
-                if avail is not None and new_qty > avail:
-                    raise ValidationError({'codigo_error': 'INSUFFICIENT_STOCK',
-                                           'quantity': 'Stock insuficiente.'})
-                item.quantity = new_qty
-                item.unit_price = unit_price
-                item.save(update_fields=['quantity', 'unit_price', 'updated_at'])
-
-        return Response(CartSerializer(_prefetch_cart(cart)).data)
+        return Response(DraftCartSerializer(_prefetch_draft(order)).data)
 
     @extend_schema(summary='Vaciar carrito (UC-CART-03)', tags=['cart'],
                    responses={204: None})
     def delete(self, request):
-        cart, _, _ = _get_or_create_cart(request)
-        cart.items.all().delete()
+        order, _, _ = _get_or_create_draft(request)
+        clear_draft_items(order)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -176,14 +156,14 @@ class CartItemListView(APIView):
     throttle_scope     = 'cart'
 
     @extend_schema(summary='Listar items del carrito', tags=['cart'],
-                   responses={200: CartSerializer})
+                   responses={200: DraftCartSerializer})
     def get(self, request):
-        cart, _, _ = _get_or_create_cart(request)
-        return Response(CartSerializer(_prefetch_cart(cart)).data)
+        order, _, _ = _get_or_create_draft(request)
+        return Response(DraftCartSerializer(_prefetch_draft(order)).data)
 
     @extend_schema(summary='Agregar ítem al carrito (UC-CART-02)', tags=['cart'],
                    request=AddItemSerializer,
-                   responses={201: CartSerializer, 200: CartSerializer,
+                   responses={201: DraftCartSerializer, 200: DraftCartSerializer,
                               400: error_response('Datos inválidos'),
                               404: error_response('Variante no disponible'),
                               409: error_response('Sin stock suficiente')})
@@ -232,33 +212,23 @@ class CartItemListView(APIView):
             raise ValidationError({'codigo_error': 'VARIANT_REQUIRED',
                                    'variant_id': 'Este producto requiere variante.'})
 
-        available = variant.stock if variant else product.stock
-        if available is not None and quantity > available:
-            raise ValidationError({'codigo_error': 'INSUFFICIENT_STOCK',
+        order, _, _ = _get_or_create_draft(request)
+        try:
+            item, created_item = add_item_to_draft(
+                order, product, variant=variant, quantity=quantity)
+        except DraftOrderError as exc:
+            if exc.codigo_error == 'OUT_OF_STOCK':
+                return Response(
+                    {'detail': 'Producto sin stock.', 'codigo_error': 'OUT_OF_STOCK'},
+                    status=status.HTTP_409_CONFLICT,
+                )
+            raise ValidationError({'codigo_error': exc.codigo_error,
                                    'quantity': 'Stock insuficiente.'})
 
-        unit_price = variant.effective_price() if variant else product.price
-
-        cart, _, _ = _get_or_create_cart(request)
-        with transaction.atomic():
-            item, created_item = CartItem.objects.get_or_create(
-                cart=cart, product=product, variant=variant,
-                defaults={'quantity': quantity, 'unit_price': unit_price},
-            )
-            if not created_item:
-                new_qty = item.quantity + quantity
-                avail = variant.stock if variant else product.stock
-                if avail is not None and new_qty > avail:
-                    raise ValidationError({'codigo_error': 'INSUFFICIENT_STOCK',
-                                           'quantity': 'Stock insuficiente.'})
-                item.quantity = new_qty
-                item.unit_price = unit_price
-                item.save(update_fields=['quantity', 'unit_price', 'updated_at'])
-
         resp_status = status.HTTP_201_CREATED if created_item else status.HTTP_200_OK
-        resp = Response(CartSerializer(_prefetch_cart(cart)).data, status=resp_status)
+        resp = Response(DraftCartSerializer(_prefetch_draft(order)).data, status=resp_status)
         if not request.user.is_authenticated:
-            resp['X-Cart-Token'] = str(cart.cart_token)
+            resp['X-Cart-Token'] = str(order.cart_token)
         return resp
 
 
@@ -271,21 +241,14 @@ class CartItemDetailView(APIView):
     throttle_classes   = [ScopedRateThrottle]
     throttle_scope     = 'cart'
 
-    def _get_item(self, request, pk):
-        cart, _, _ = _get_or_create_cart(request)
-        try:
-            return CartItem.objects.get(pk=pk, cart=cart)
-        except CartItem.DoesNotExist:
-            raise NotFound({'detail': 'Item no encontrado.', 'codigo_error': 'ITEM_NOT_FOUND'})
-
     @extend_schema(summary='Actualizar cantidad de ítem (UC-CART-02)', tags=['cart'],
                    request=UpdateItemSerializer,
-                   responses={200: CartSerializer,
+                   responses={200: DraftCartSerializer,
                               400: error_response('Datos inválidos'),
                               404: error_response('Item no encontrado')})
     def patch(self, request, pk):
-        item = self._get_item(request, pk)
-        qty  = request.data.get('quantity')
+        order, _, _ = _get_or_create_draft(request)
+        qty = request.data.get('quantity')
         if qty is None:
             raise ValidationError({'quantity': 'Requerido.'})
         try:
@@ -294,22 +257,26 @@ class CartItemDetailView(APIView):
             raise ValidationError({'quantity': 'Debe ser un entero valido.'})
         if qty < 1:
             raise ValidationError({'quantity': 'Debe ser >= 1.'})
-        stock = item.variant.stock if item.variant else item.product.stock
-        if stock is not None and qty > stock:
-            raise ValidationError({'codigo_error': 'INSUFFICIENT_STOCK',
+        try:
+            update_draft_item_quantity(order, pk, qty)
+        except DraftOrderError as exc:
+            if exc.codigo_error == 'ITEM_NOT_FOUND':
+                raise NotFound({'detail': 'Item no encontrado.',
+                                'codigo_error': 'ITEM_NOT_FOUND'})
+            raise ValidationError({'codigo_error': exc.codigo_error,
                                    'quantity': 'Stock insuficiente.'})
-        item.quantity = qty
-        item.save(update_fields=['quantity', 'updated_at'])
-        cart, _, _ = _get_or_create_cart(request)
-        return Response(CartSerializer(_prefetch_cart(cart)).data)
+        return Response(DraftCartSerializer(_prefetch_draft(order)).data)
 
     @extend_schema(summary='Eliminar ítem del carrito (UC-CART-03)', tags=['cart'],
-                   responses={200: CartSerializer})
+                   responses={200: DraftCartSerializer})
     def delete(self, request, pk):
-        item = self._get_item(request, pk)
-        item.delete()
-        cart, _, _ = _get_or_create_cart(request)
-        return Response(CartSerializer(_prefetch_cart(cart)).data)
+        order, _, _ = _get_or_create_draft(request)
+        try:
+            remove_draft_item(order, pk)
+        except DraftOrderError:
+            raise NotFound({'detail': 'Item no encontrado.',
+                            'codigo_error': 'ITEM_NOT_FOUND'})
+        return Response(DraftCartSerializer(_prefetch_draft(order)).data)
 
 
 class CartSaveView(APIView):
@@ -328,8 +295,8 @@ class CartSaveView(APIView):
             400: error_response('El carrito está vacío')},
     )
     def post(self, request):
-        cart, _, _ = _get_or_create_cart(request)
-        items = cart.items.select_related('product', 'variant').all()
+        order, _, _ = _get_or_create_draft(request)
+        items = order.items.select_related('product', 'variant').all()
         if not items.exists():
             raise ValidationError({'detail': 'El carrito está vacío.', 'codigo_error': 'EMPTY_CART'})
 
@@ -357,7 +324,7 @@ class CartMergeView(APIView):
         deprecated=True,
         tags=['cart'],
         request=MergeCartSerializer,
-        responses={200: CartSerializer,
+        responses={200: DraftCartSerializer,
                    400: error_response('cart_token requerido')},
     )
     def post(self, request):
@@ -365,60 +332,8 @@ class CartMergeView(APIView):
         if not token:
             raise ValidationError({'cart_token': 'Requerido.'})
 
-        try:
-            anon_cart = Cart.objects.get(cart_token=token, user__isnull=True)
-        except Cart.DoesNotExist:
-            auth_cart, _ = Cart.objects.get_or_create(user=request.user)
-            return Response(CartSerializer(_prefetch_cart(auth_cart)).data)
-
-        auth_cart, _ = Cart.objects.get_or_create(user=request.user)
-
-        skipped = []
-        with transaction.atomic():
-            for anon_item in anon_cart.items.select_related('product', 'variant').all():
-                # H-CICLO20-02: validar disponibilidad de stock antes de
-                # fusionar cada ítem del carrito anónimo. Ítems sin stock
-                # suficiente se omiten (no se fusionan) y se reportan al
-                # caller para que el UI informe al usuario.
-                available = (
-                    anon_item.variant.stock
-                    if anon_item.variant
-                    else anon_item.product.stock
-                )
-                if available is not None and available <= 0:
-                    skipped.append({
-                        'product_id': anon_item.product.pk,
-                        'product_name': anon_item.product.name,
-                        'reason': 'OUT_OF_STOCK',
-                    })
-                    continue
-
-                existing = CartItem.objects.filter(
-                    cart=auth_cart,
-                    product=anon_item.product,
-                    variant=anon_item.variant,
-                ).first()
-                if existing:
-                    new_qty = existing.quantity + anon_item.quantity
-                    if available is not None and new_qty > available:
-                        new_qty = available
-                    existing.quantity = new_qty
-                    existing.unit_price = anon_item.unit_price
-                    existing.save(update_fields=['quantity', 'unit_price', 'updated_at'])
-                else:
-                    merge_qty = anon_item.quantity
-                    if available is not None and merge_qty > available:
-                        merge_qty = available
-                    CartItem.objects.create(
-                        cart=auth_cart,
-                        product=anon_item.product,
-                        variant=anon_item.variant,
-                        quantity=merge_qty,
-                        unit_price=anon_item.unit_price,
-                    )
-            anon_cart.delete()
-
-        resp_data = CartSerializer(_prefetch_cart(auth_cart)).data
+        order, skipped = merge_draft_orders(request.user, token)
+        resp_data = DraftCartSerializer(_prefetch_draft(order)).data
         if skipped:
             resp_data['merge_skipped'] = skipped
         return Response(resp_data)
@@ -444,7 +359,7 @@ class CartVoucherView(APIView):
         request=inline_serializer('CartVoucherApplyRequest', {
             'code': serializers.CharField(),
         }),
-        responses={200: CartSerializer,
+        responses={200: DraftCartSerializer,
                    400: error_response('Voucher inválido o no aplicable'),
                    409: error_response('Voucher ya utilizado')},
     )
@@ -453,59 +368,24 @@ class CartVoucherView(APIView):
         if not code:
             raise ValidationError({'code': 'Requerido.'})
 
+        order, _, _ = _get_or_create_draft(request)
+        # H-CICLO112-01: el check-then-act corre atómico con
+        # select_for_update dentro del servicio.
         try:
-            voucher = Voucher.objects.get(code=code)
-        except Voucher.DoesNotExist:
-            raise ValidationError({
-                'detail': 'El voucher no existe.',
-                'codigo_error': 'VOUCHER_NOT_FOUND',
-            })
-
-        cart, _, _ = _get_or_create_cart(request)
-
-        # H-CICLO112-01: wrap the check-then-act sequence in a single
-        # atomic block with select_for_update() on the cart to prevent
-        # two concurrent POST requests from both passing the
-        # VoucherUsage.exists() guard and the cart.voucher_id is None
-        # guard before either commits, resulting in one voucher applied
-        # twice (both writes succeed, last writer wins silently).
-        # select_for_update serializes concurrent requests for the same
-        # cart row so only one proceeds through the guards at a time.
-        with transaction.atomic():
-            cart = Cart.objects.select_for_update().get(pk=cart.pk)
-
-            cart_total = sum(
-                item.unit_price * item.quantity for item in cart.items.all()
-            )
-
-            error_code = voucher.validate_for_cart(cart_total, request.user)
-            if error_code:
-                raise ValidationError({
-                    'detail': f'Voucher no aplicable: {error_code}',
-                    'codigo_error': error_code,
-                })
-
-            # Single-use-per-user enforcement (DEC-BC-10)
-            if request.user.is_authenticated:
-                if VoucherUsage.objects.filter(user=request.user, voucher=voucher).exists():
-                    raise ValidationError({
-                        'detail': 'Ya has utilizado este voucher.',
-                        'codigo_error': 'VOUCHER_ALREADY_USED',
-                    })
-
-            # If cart already has a voucher, reject with 409 (DEC-BC-20)
-            if cart.voucher_id is not None:
+            voucher, discount, cart_total = apply_voucher_to_draft(
+                order, code,
+                request.user if request.user.is_authenticated else None)
+        except DraftOrderError as exc:
+            if exc.codigo_error == 'VOUCHER_ALREADY_APPLIED':
                 return Response({
-                    'detail': 'El carrito ya tiene un voucher aplicado. Elímínelo primero.',
+                    'detail': 'El carrito ya tiene un voucher aplicado. Elimínelo primero.',
                     'codigo_error': 'VOUCHER_ALREADY_APPLIED',
                 }, status=409)
+            raise ValidationError({'detail': str(exc),
+                                   'codigo_error': exc.codigo_error})
 
-            cart.voucher = voucher
-            cart.save(update_fields=['voucher', 'updated_at'])
-
-        discount = voucher.calculate_discount(cart_total)
         return Response({
-            **CartSerializer(_prefetch_cart(cart)).data,
+            **DraftCartSerializer(_prefetch_draft(order)).data,
             'voucher_code': voucher.code,
             'voucher_discount': str(discount),
             'total_after_discount': str(cart_total - discount),
@@ -514,15 +394,13 @@ class CartVoucherView(APIView):
     @extend_schema(
         summary='Quitar voucher del carrito',
         tags=['cart'],
-        responses={200: CartSerializer, 400: None},
+        responses={200: DraftCartSerializer, 400: None},
     )
     def delete(self, request):
-        cart, _, _ = _get_or_create_cart(request)
-        if cart.voucher_id is None:
-            raise ValidationError({
-                'detail': 'El carrito no tiene voucher aplicado.',
-                'codigo_error': 'NO_ACTIVE_VOUCHER',
-            })
-        cart.voucher = None
-        cart.save(update_fields=['voucher', 'updated_at'])
-        return Response(CartSerializer(_prefetch_cart(cart)).data)
+        order, _, _ = _get_or_create_draft(request)
+        try:
+            remove_voucher_from_draft(order)
+        except DraftOrderError as exc:
+            raise ValidationError({'detail': str(exc),
+                                   'codigo_error': exc.codigo_error})
+        return Response(DraftCartSerializer(_prefetch_draft(order)).data)

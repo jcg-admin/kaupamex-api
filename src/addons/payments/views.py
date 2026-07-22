@@ -17,10 +17,9 @@ from addons.authz.services import is_superadmin
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
-from django.db.models import F, Q, Sum
-from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress, ShippingZone
+from django.db.models import Q, Sum
+from addons.orders.models import Order, ShippingZone
 from addons.orders.proxy_models import DeliveredOrder
-from addons.loyalty.models import Voucher, VoucherUsage
 from addons.payment.models import Payment, Payment as PaymentModel, Refund, Chargeback, SavedCard
 from .serializers import (
     InitiatePaymentSerializer, MercadoPagoInitiateSerializer,
@@ -44,13 +43,9 @@ from addons.payment_mercado_pago.gateway import MercadoPagoGateway
 from addons.users.models import Address
 from addons.base.models import SiteSettings
 from addons.delivery.models import ShippingMethod
-from addons.cart.models import Cart
-from rest_framework.test import APIRequestFactory
-from rest_framework.request import Request
 from django.db import transaction as db_transaction, IntegrityError
-from django.utils import timezone
-from addons.inventory.services import InventoryService, InsufficientStockError
-from addons.orders.views import CheckoutView
+from addons.inventory.services import InsufficientStockError
+from addons.orders.services import DraftOrderError, confirm_draft_order, get_draft_totals
 from addons.orders.serializers import CheckoutSerializer, OrderSerializer
 from addons.users.audit import audit_log_business
 from addons.users.models import BusinessEvent
@@ -594,63 +589,29 @@ class ExpressCheckoutView(APIView):
                 'codigo_error': 'NOT_ELIGIBLE_EXPRESS',
             })
 
-        # Obtener carrito del usuario
-        try:
-            cart = Cart.objects.get(user=request.user)
-        except Cart.DoesNotExist:
+        # Obtener el carrito (S3 cart→order→sale: es el Order(DRAFT))
+        draft = (Order.objects
+                 .filter(user=request.user, status=Order.STATUS_DRAFT)
+                 .order_by('-created_at')
+                 .first())
+        if draft is None:
             raise ValidationError({'detail': 'No tienes un carrito activo.', 'codigo_error': 'EMPTY_CART'})
 
-        if not cart.items.exists():
+        if not draft.items.exists():
             raise ValidationError({'detail': 'El carrito está vacío.', 'codigo_error': 'EMPTY_CART'})
-
-        # Reutilizar el servicio de checkout de UC-ORD-01
 
         addr = eligibility['default_address']
         shipping_id = eligibility['default_shipping']['id']
 
-        checkout_data = {
-            'address': {
-                'recipient_name': addr['recipient_name'],
-                'street':         addr['street'],
-                'city':           addr['city'],
-                'state':          addr['state'],
-                'zip_code':       addr['zip_code'],
-                'country':        'MX',
-            },
-            'shipping_method_id': shipping_id,
-            'notes': s.validated_data.get('notes', ''),
-        }
-
-        # Crear el request interno con los datos del express
-        factory = APIRequestFactory()
-        inner_request = factory.post('/api/v2/checkout/', checkout_data, format='json')
-        inner_request.user = request.user
-        inner_request.auth = request.auth
-        inner_request._request = request._request
-
-        checkout_view = CheckoutView.as_view()
-        drf_request = Request(inner_request)
-        drf_request.user = request.user
-
-        # Ejecutar el checkout directamente
-
-        cart_items = list(cart.items.select_related('product', 'variant__product', 'variant__option').all())
-        check_items = [{'product': ci.product, 'variant': ci.variant, 'quantity': ci.quantity} for ci in cart_items]
-
-        insufficient = InventoryService.check_availability(check_items)
-        if insufficient:
-            return Response({'detail': 'Stock insuficiente.', 'codigo_error': 'INSUFFICIENT_STOCK', 'items': insufficient}, status=409)
-
-        # H-CICLO21-05a: usar get_object_or_404 con is_active=True para
-        # cerrar la TOCTOU race entre _check_express_eligibility() y aquí.
-        # Si el método fue desactivado en ese intervalo, retorna 404 en
-        # lugar de DoesNotExist sin capturar.
-        settings_obj = SiteSettings.get_current()
-        iva_rate = settings_obj.iva_rate
+        # S3 cart→order→sale: el express confirma el MISMO draft con
+        # confirm_draft_order (sale.order.action_confirm) — se elimina el
+        # checkout duplicado inline que copiaba CartItems a una orden nueva.
+        # H-CICLO21-05a: get_object_or_404 con is_active=True cierra la
+        # TOCTOU race entre _check_express_eligibility() y aquí.
         shipping = get_object_or_404(ShippingMethod, pk=shipping_id, is_active=True)
 
         # H-CICLO21-05b: validar cobertura de zona de envío para la dirección
-        # predeterminada (el CheckoutView lo hace; ExpressCheckout lo omitía).
+        # predeterminada (el CheckoutView lo hace vía serializer).
         zip_code = addr.get('zip_code', '')
         if zip_code:
             all_prefixes = list(
@@ -663,98 +624,48 @@ class ExpressCheckoutView(APIView):
                     'codigo_error': 'ZONE_NOT_COVERED',
                 })
 
-        subtotal_for_shipping = cart.get_subtotal() - cart.get_discount()
+        totals = get_draft_totals(draft)
+        subtotal_for_shipping = Dec(totals['subtotal_net'])
         shipping_cost = Dec('0.00')
         if shipping.free_threshold is None or subtotal_for_shipping < shipping.free_threshold:
             shipping_cost = shipping.cost
 
         try:
-            with db_transaction.atomic():
-                InventoryService.decrement(check_items)
-
-                voucher_code     = cart.voucher.code if cart.voucher else ''
-                voucher_discount = cart.get_discount()
-
-                order = Order.objects.create(
-                    user=request.user,
-                    shipping_method=shipping,
-                    voucher_code=voucher_code,
-                    voucher_discount=voucher_discount,
-                    notes=s.validated_data.get('notes', ''),
-                )
-
-                subtotal = Dec('0.00')
-                for ci in cart_items:
-                    label      = ci.variant.option.label if ci.variant else ''
-                    sku        = ci.variant.sku if ci.variant else ci.product.sku
-                    # H-CICLO108-06: use current_price() (live price) instead of
-                    # ci.unit_price (cached price at add-to-cart time). CheckoutView
-                    # already uses current_price() per H-CICLO78-04. ExpressCheckout
-                    # had the same TOCTOU window: if the admin changed a price between
-                    # add-to-cart and express checkout, the order snapshot would record
-                    # the stale price, causing a revenue discrepancy.
-                    live_price = ci.current_price()
-                    item_sub   = live_price * ci.quantity
-                    subtotal  += item_sub
-                    OrderItem.objects.create(
-                        order=order, variant=ci.variant,
-                        product_name=ci.product.name,
-                        variant_label=label, sku=sku,
-                        unit_price=live_price, quantity=ci.quantity, subtotal=item_sub,
-                    )
-
-                net   = subtotal - voucher_discount
-                tax   = (net * iva_rate / (1 + iva_rate)).quantize(Dec('0.01'))
-                total = net + shipping_cost
-                OrderValue.objects.create(
-                    order=order, subtotal=subtotal, tax=tax,
-                    shipping_cost=shipping_cost, discount=voucher_discount, total=total,
-                )
-
-                addr_data = eligibility['default_address']
-                OrderAddress.objects.create(
-                    order=order,
-                    recipient_name=addr_data['recipient_name'],
-                    street=addr_data['street'], city=addr_data['city'],
-                    state=addr_data['state'], zip_code=addr_data['zip_code'],
-                )
-
-                # Increment voucher usage atomically (mirrors CheckoutView behaviour)
-                if cart.voucher_id:
-                    voucher_locked = (
-                        Voucher.objects.select_for_update()
-                        .get(pk=cart.voucher_id)
-                    )
-                    if (voucher_locked.max_uses is not None
-                            and voucher_locked.current_uses >= voucher_locked.max_uses):
-                        raise ValidationError({
-                            'detail': f'Voucher {voucher_locked.code} agotado.',
-                            'codigo_error': 'VOUCHER_EXHAUSTED',
-                        })
-                    Voucher.objects.filter(pk=cart.voucher_id).update(
-                        current_uses=F('current_uses') + 1,
-                        updated_at=timezone.now(),
-                    )
-                    VoucherUsage.objects.create(
-                        user=request.user, voucher_id=cart.voucher_id)
-
-                cart.items.all().delete()
-                cart.voucher = None
-                cart.save(update_fields=['voucher', 'updated_at'])
-
+            order = confirm_draft_order(
+                draft,
+                address_data={
+                    'recipient_name': addr['recipient_name'],
+                    'street': addr['street'], 'city': addr['city'],
+                    'state': addr['state'], 'zip_code': addr['zip_code'],
+                },
+                notes=s.validated_data.get('notes', ''),
+                shipping_cost=shipping_cost,
+            )
+        except DraftOrderError as exc:
+            if exc.codigo_error == 'INSUFFICIENT_STOCK':
+                return Response({'detail': 'Stock insuficiente.',
+                                 'codigo_error': 'INSUFFICIENT_STOCK',
+                                 'items': getattr(exc, 'items', [])}, status=409)
+            if exc.codigo_error == 'VOUCHER_EXHAUSTED':
+                raise ValidationError({'detail': str(exc),
+                                       'codigo_error': 'VOUCHER_EXHAUSTED'})
+            raise ValidationError({'detail': str(exc),
+                                   'codigo_error': exc.codigo_error})
         except InsufficientStockError as exc:
             return Response({'detail': str(exc), 'codigo_error': 'INSUFFICIENT_STOCK',
                              'stock_disponible': exc.available}, status=409)
         except IntegrityError:
-            # H-CICLO49-02: VoucherUsage tiene unique_together=(user, voucher).
-            # En una condicion de carrera (dos requests concurrentes con el mismo
-            # voucher y usuario) el segundo INSERT lanza IntegrityError desde la
-            # BD. Sin este bloque except el error escala a 500. Se devuelve 409
-            # alineando con el comportamiento de CheckoutView (orders/views.py).
+            # H-CICLO49-02: VoucherUsage unique_together=(user, voucher) —
+            # carrera de dos requests concurrentes → 409, no 500.
             return Response({
                 'detail': 'Este voucher ya fue utilizado en tu cuenta.',
                 'codigo_error': 'VOUCHER_ALREADY_USED',
             }, status=409)
+
+        # El express sí asigna método de envío (a diferencia del checkout
+        # estándar, donde el envío lo deriva el admin por zona).
+        order.shipping_method = shipping
+        order.save(update_fields=['shipping_method', 'updated_at'])
 
         return Response(OrderSerializer(order).data, status=201)
 

@@ -3,12 +3,8 @@ Views — addons.orders
 UC-ORD-01: Checkout, UC-ORD-02..06: Gestión del comprador (Sprint 18)
 """
 import json as _json
-import uuid
 from decimal import Decimal
-from django.db import transaction, IntegrityError
-from django.utils import timezone
-from django.db.models import F
-from addons.loyalty.models import Voucher, VoucherUsage
+from django.db import IntegrityError
 from .signals import order_created as order_created_signal
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
@@ -21,16 +17,17 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
-from addons.cart.models import Cart, CartItem
-from addons.cart.views import _get_or_create_cart
-from addons.inventory.services import InventoryService, InsufficientStockError
-from addons.base.models import SiteSettings
-from .models import CheckoutAttempt, Order, OrderItem, OrderValue, OrderAddress
+from addons.inventory.services import InsufficientStockError
+from .models import CheckoutAttempt, Order, OrderItem
 from .serializers import CancelOrderSerializer, CheckoutSerializer, OrderListSerializer, OrderSerializer, UpdateAddressSerializer, UpdateShippingSerializer
 from .shipping import resolve_shipping_quote
 from django.db.models import Prefetch
 from addons.catalogue.models import ProductImage
-from .services import OrderNotEditableError, ShippingMethodNotAvailableError, cancel_order, update_order_address, update_shipping_method
+from .services import (
+    DraftOrderError, OrderNotEditableError, ShippingMethodNotAvailableError,
+    cancel_order, confirm_draft_order, get_draft_totals,
+    update_order_address, update_shipping_method,
+)
 
 
 
@@ -90,13 +87,19 @@ class CheckoutView(APIView):
         s.is_valid(raise_exception=True)
         data = s.validated_data
 
-        # 1. Recuperar carrito
+        # 1. Recuperar el draft — S3 unificación cart→order→sale: el
+        # carrito ES un Order(DRAFT) (sale.order state='draft' en Odoo).
         if request.user and request.user.is_authenticated:
-            try:
-                cart = Cart.objects.get(user=request.user)
-            except Cart.DoesNotExist:
+            order = (
+                Order.objects
+                .filter(user=request.user, status=Order.STATUS_DRAFT)
+                .order_by('-created_at')
+                .first()
+            )
+            if order is None:
                 raise ValidationError({'detail': 'No tienes un carrito activo.',
                                        'codigo_error': 'EMPTY_CART'})
+            guest_email = None
         else:
             cart_token = data.get('cart_token')
             if not cart_token:
@@ -106,153 +109,43 @@ class CheckoutView(APIView):
             if not guest_email:
                 raise ValidationError({'guest_email': 'Requerido para visitantes anónimos.',
                                        'codigo_error': 'GUEST_EMAIL_REQUIRED'})
-            cart = get_object_or_404(Cart, cart_token=cart_token, user__isnull=True)
+            order = get_object_or_404(Order, cart_token=cart_token,
+                                      user__isnull=True,
+                                      status=Order.STATUS_DRAFT)
 
-        # 2. Verificar items
-        cart_items = list(cart.items.select_related(
-            'product', 'variant__product', 'variant__option'
-        ).all())
-        if not cart_items:
-            raise ValidationError({'detail': 'El carrito está vacío.',
-                                   'codigo_error': 'EMPTY_CART'})
-
-        # 3. Verificar disponibilidad (sin bloqueo aún)
-        check_items = [
-            {'product': ci.product, 'variant': ci.variant, 'quantity': ci.quantity}
-            for ci in cart_items
-        ]
-        insufficient = InventoryService.check_availability(check_items)
-        if insufficient:
-            return Response({'detail': 'Stock insuficiente para algunos items.',
-                             'codigo_error': 'INSUFFICIENT_STOCK',
-                             'items': insufficient}, status=409)
-
-        # 3b. DEC-BC-18: validación de cobertura de zona de envío delegada al
-        # CheckoutSerializer.validate_address() (ejecutado en s.is_valid() arriba).
-        # El bloque de validación redundante que existía aquí se eliminó en
-        # H-CICLO21-04: la doble consulta a ShippingZone era código muerto
-        # porque el serializer ya rechazaba zip_codes no cubiertos antes de
-        # llegar a esta sección.
-
-        # 4. Transacción atómica: decrement + crear orden
-        settings_obj = SiteSettings.get_current()
-        iva_rate = settings_obj.iva_rate
-
-        # Envío GRATIS siempre (decisión de producto — REVIERTE DEC-BC-25). El
-        # comprador NUNCA selecciona método de envío: el envío lo configura el
-        # admin y el costo se deriva automáticamente por zona (C.P.) vía
-        # resolve_shipping_quote, hoy Decimal('0.00'). La orden se crea sin
-        # ShippingMethod (Order.shipping_method es nullable). El único punto de
-        # extensión (cobro bajo-umbral, PENDIENTE) vive en addons.orders.shipping:
-        # el checkout consume el ShippingQuote y no cambia cuando se agregue la
-        # rama de cobro (open-closed). Si el payload trae shipping_method_id se
-        # ignora — el comprador ya no elige método.
+        # 2. Cotización de envío (sin cambio de política: envío GRATIS —
+        # REVIERTE DEC-BC-25; el comprador no elige método, el costo se
+        # deriva por zona vía resolve_shipping_quote, hoy Decimal('0.00')).
+        # DEC-BC-18: la cobertura de zona la valida CheckoutSerializer.
         zip_code = (data.get('address') or {}).get('zip_code', '')
-        subtotal_for_shipping = cart.get_subtotal() - cart.get_discount()
+        totals = get_draft_totals(order)
+        subtotal_for_shipping = Decimal(totals['subtotal_net'])
         quote = resolve_shipping_quote(zip_code, subtotal_for_shipping)
         shipping_cost = quote.cost
 
+        # 3. Transición DRAFT→PENDING (adaptación de sale.order.action_confirm):
+        # nada se copia ni se borra — el servicio congela snapshot (precio
+        # vigente H-CICLO78-04), crea OrderValue/OrderAddress, consume el
+        # voucher (DEC-VCU-01/DEC-BC-10) y libera el cart_token.
+        user = request.user if request.user.is_authenticated else None
         try:
-            with transaction.atomic():
-                # a. Decrementar stock (SELECT FOR UPDATE dentro del servicio)
-                order_items_for_inv = check_items
-                InventoryService.decrement(order_items_for_inv)
-
-                # b. Crear Order
-                user = request.user if request.user.is_authenticated else None
-                guest_email = data.get('guest_email') if not user else None
-
-                # Capturar voucher snapshot
-                voucher_code     = cart.voucher.code if cart.voucher else ''
-                voucher_discount = cart.get_discount()
-
-                order = Order.objects.create(
-                    user=user,
-                    guest_email=guest_email,
-                    shipping_method=None,
-                    voucher_code=voucher_code,
-                    voucher_discount=voucher_discount,
-                    notes=data.get('notes', ''),
-                )
-
-                # c. Crear OrderItems (snapshot BR-005)
-                # H-CICLO78-04: usar ci.current_price() en lugar de
-                # ci.unit_price para garantizar que el snapshot capture el
-                # precio vigente al momento del checkout y no el precio
-                # que tenia el item cuando se agrego al carrito (que puede
-                # haber cambiado si el admin modifico el precio del producto
-                # entre el add-to-cart y el checkout).
-                subtotal = Decimal('0.00')
-                for ci in cart_items:
-                    label      = ci.variant.option.label if ci.variant else ''
-                    sku        = ci.variant.sku if ci.variant else ci.product.sku
-                    live_price = ci.current_price()
-                    item_sub   = live_price * ci.quantity
-                    subtotal  += item_sub
-                    OrderItem.objects.create(
-                        order=order,
-                        variant=ci.variant,
-                        product_name=ci.product.name,
-                        variant_label=label,
-                        sku=sku,
-                        unit_price=live_price,
-                        quantity=ci.quantity,
-                        subtotal=item_sub,
-                    )
-
-                # d. Crear OrderValue (snapshot financiero)
-                net    = subtotal - voucher_discount
-                tax    = (net * iva_rate / (1 + iva_rate)).quantize(Decimal('0.01'))
-                total  = net + shipping_cost
-                OrderValue.objects.create(
-                    order=order, subtotal=subtotal, tax=tax,
-                    shipping_cost=shipping_cost, discount=voucher_discount, total=total,
-                )
-
-                # e. Crear OrderAddress (snapshot de dirección)
-                addr_data = data['address']
-                OrderAddress.objects.create(order=order, **addr_data)
-
-                # f. Incrementar Voucher.current_uses atomicamente
-                # (DEC-VCU-01 T-115 D-01 CRITICA: el campo se leia en
-                # is_usable()/can_apply() pero NUNCA se incrementaba.
-                # max_uses no limitaba en la practica).
-                if cart.voucher_id:
-                    voucher_locked = (
-                        Voucher.objects.select_for_update()
-                        .get(pk=cart.voucher_id)
-                    )
-                    if (voucher_locked.max_uses is not None
-                            and voucher_locked.current_uses >=
-                                voucher_locked.max_uses):
-                        # Race detectada: otro checkout consumio el
-                        # cupo entre validacion y lock.
-                        raise ValueError(
-                            f'Voucher {voucher_locked.code} agotado: '
-                            f'{voucher_locked.current_uses}/'
-                            f'{voucher_locked.max_uses}.'
-                        )
-                    Voucher.objects.filter(pk=cart.voucher_id).update(
-                        current_uses=F('current_uses') + 1,
-                        updated_at=timezone.now(),
-                    )
-                    # DEC-BC-10: registrar uso por usuario para single-use validation.
-                    if user:
-                        VoucherUsage.objects.create(
-                            user=user, voucher_id=cart.voucher_id)
-
-                # g. Vaciar carrito
-                cart.items.all().delete()
-                cart.voucher = None
-                cart.save(update_fields=['voucher', 'updated_at'])
-
-                # UC-NOT-01: la notificacion de confirmacion (in-app + email)
-                # es disparada por el signal _order_value_created en
-                # apps/notifications/signals.py cuando OrderValue.objects.create()
-                # commitea. Llamarla aqui tambien causaba DOBLE notificacion
-                # (dos emails + dos in-app) por checkout. Eliminado en
-                # H-CICLO29-01.
-
+            order = confirm_draft_order(
+                order,
+                address_data=data['address'],
+                guest_email=guest_email,
+                notes=data.get('notes', ''),
+                shipping_cost=shipping_cost,
+            )
+        except DraftOrderError as exc:
+            if exc.codigo_error == 'INSUFFICIENT_STOCK':
+                return Response({'detail': 'Stock insuficiente para algunos items.',
+                                 'codigo_error': 'INSUFFICIENT_STOCK',
+                                 'items': getattr(exc, 'items', [])}, status=409)
+            if exc.codigo_error == 'VOUCHER_EXHAUSTED':
+                return Response({'detail': str(exc),
+                                 'codigo_error': 'VOUCHER_EXHAUSTED'}, status=409)
+            raise ValidationError({'detail': str(exc),
+                                   'codigo_error': exc.codigo_error})
         except InsufficientStockError as exc:
             return Response({'detail': str(exc),
                              'codigo_error': 'INSUFFICIENT_STOCK',

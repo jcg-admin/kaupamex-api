@@ -17,7 +17,6 @@ from addons.authz.permissions import HasCapability
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
-from addons.cart.models import CartItem
 from addons.catalogue.models import Product
 from addons.orders.models import Order, OrderItem
 from config.schema import error_response
@@ -152,7 +151,9 @@ class ProductVariantAdminViewSet(ModelViewSet):
                    responses={204: None, 400: None})
     def destroy(self, request, *args, **kwargs):
         variant = self.get_object()
-        if CartItem.objects.filter(variant=variant).exists():
+        # S3 cart→order→sale: los carritos activos son Order(DRAFT).
+        if OrderItem.objects.filter(
+                variant=variant, order__status=Order.STATUS_DRAFT).exists():
             raise ValidationError({
                 'codigo_error': 'VARIANT_WITH_CART_ITEMS',
                 'detail': 'No se puede eliminar una variante con ítems en carritos activos.',
