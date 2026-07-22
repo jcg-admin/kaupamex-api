@@ -11,7 +11,7 @@ from addons.orders.delivery import delivery_estimate_dict
 from addons.geo.models import CatalogPostalCode
 from addons.payment.models import PaymentGateway
 from addons.base.models import SiteSettings
-from .models import ShippingMethod
+from addons.delivery.models import ShippingMethod
 from addons.website.models import Banner
 
 

@@ -10,7 +10,7 @@ import pytest
 from decimal import Decimal
 
 from addons.orders.models import Order
-from addons.settings_app.models import ShippingMethod
+from addons.delivery.models import ShippingMethod
 
 pytestmark = pytest.mark.integration
 

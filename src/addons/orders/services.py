@@ -12,7 +12,7 @@ from django.utils import timezone
 from addons.inventory.services import InventoryService
 from .models import Order, OrderAddress, OrderStatusLog
 from addons.payments.services import execute_refund
-from addons.settings_app.models import ShippingMethod
+from addons.delivery.models import ShippingMethod
 
 
 logger = logging.getLogger('apps')

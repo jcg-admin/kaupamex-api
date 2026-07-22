@@ -16,8 +16,10 @@ import base64
 import hashlib
 import hmac
 import logging
+from decimal import Decimal
 from cryptography.fernet import Fernet
 from django.conf import settings
+from django.core.validators import MinValueValidator
 from django.db import models
 from addons.base.models import SoftDeleteModel, TimeStampedModel
 from addons.delivery.offers import RateCard
@@ -252,3 +254,30 @@ class CarrierRateCard(TimeStampedModel):
             max_total_weight_kg=self.max_total_weight_kg,
             allows_hazardous=self.allows_hazardous,
         )
+
+
+class ShippingMethod(TimeStampedModel):
+    """Método de envío disponible. UC-CFG-02.
+
+    Contraparte de ``delivery.carrier`` (Odoo ``delivery``): el método de
+    envío que el comprador elige en el checkout, con costo y umbral de
+    gratuidad. Movido state-only desde el addon no-Odoo ``settings_app``;
+    la tabla física ``settings_shipping_method`` no cambia.
+    """
+    name           = models.CharField(max_length=100)
+    cost           = models.DecimalField(
+                       max_digits=10, decimal_places=2,
+                       validators=[MinValueValidator(Decimal('0'))],
+                       help_text='Costo de envío. 0 = gratis.')
+    estimated_days = models.PositiveSmallIntegerField()
+    is_active      = models.BooleanField(default=True, db_index=True)
+    free_threshold = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    zones          = models.JSONField(default=list, blank=True)
+
+    class Meta:
+        db_table     = 'settings_shipping_method'
+        ordering     = ['cost', 'name']
+        verbose_name = 'Método de envío'
+
+    def __str__(self):
+        return f'{self.name} (${self.cost})'

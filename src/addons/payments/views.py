@@ -43,7 +43,7 @@ from addons.mail.models.notification_emails import send_card_verification_email
 from addons.payment_mercado_pago.gateway import MercadoPagoGateway
 from addons.users.models import Address
 from addons.base.models import SiteSettings
-from addons.settings_app.models import ShippingMethod
+from addons.delivery.models import ShippingMethod
 from addons.cart.models import Cart
 from rest_framework.test import APIRequestFactory
 from rest_framework.request import Request

@@ -3,7 +3,7 @@ import pytest
 from decimal import Decimal
 from addons.catalogue.models import Category, Product
 from addons.orders.models import ShippingZone
-from addons.settings_app.models import ShippingMethod
+from addons.delivery.models import ShippingMethod
 from addons.orders.signals import order_created
 
 pytestmark = pytest.mark.integration

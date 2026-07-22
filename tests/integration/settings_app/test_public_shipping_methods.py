@@ -9,7 +9,7 @@ UC-CFG-02 / GAP-C1: checkout shipping gap.
 """
 import pytest
 from decimal import Decimal
-from addons.settings_app.models import ShippingMethod
+from addons.delivery.models import ShippingMethod
 
 pytestmark = pytest.mark.integration
 

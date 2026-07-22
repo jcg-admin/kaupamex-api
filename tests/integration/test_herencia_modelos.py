@@ -14,7 +14,7 @@ from addons.chartsize.models import VariantType, VariantOption, ProductVariant
 from addons.inventory.models import StockMovement, StockAlert
 from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from addons.base.models import SiteSettings
-from addons.settings_app.models import ShippingMethod
+from addons.delivery.models import ShippingMethod
 from addons.payment.models import PaymentGateway
 from addons.website.models import StaticPage, StaticPageVersion
 from addons.users.models import Address, PasswordResetToken, EmailVerificationToken

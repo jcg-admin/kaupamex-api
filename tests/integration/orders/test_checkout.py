@@ -8,7 +8,7 @@ import time
 import pytest
 from decimal import Decimal
 from addons.catalogue.models import Category, Product
-from addons.settings_app.models import ShippingMethod
+from addons.delivery.models import ShippingMethod
 from addons.orders.models import Order, OrderValue, OrderAddress, ShippingZone
 from addons.cart.models import CartItem
 from addons.loyalty.models import Voucher

@@ -52,7 +52,7 @@ class Order(MailThread, TimeStampedModel, SoftDeleteModel):
     status          = models.CharField(max_length=20, choices=STATUSES,
                           default=STATUS_PENDING, db_index=True)
     shipping_method = models.ForeignKey(
-        'settings_app.ShippingMethod', null=True, blank=True,
+        'delivery.ShippingMethod', null=True, blank=True,
         on_delete=models.SET_NULL, related_name='orders',
     )
     voucher_code    = models.CharField(max_length=50, blank=True, default='',
