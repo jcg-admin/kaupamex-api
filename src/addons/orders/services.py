@@ -6,6 +6,7 @@ Orquesta cancelación, edición de dirección y cambio de método de envío.
 Centraliza la lógica de negocio fuera de las vistas.
 """
 import logging
+from uuid import uuid4
 from decimal import Decimal
 from django.db import transaction
 from django.utils import timezone
@@ -266,3 +267,34 @@ def update_shipping_method(order, shipping_method_id: int, changed_by=None):
         order.order_number, new_method.name, new_shipping_cost,
     )
     return order
+
+
+def get_or_create_draft_order(user=None, cart_token=None):
+    """S2 unificación cart→order→sale (analisis-unificar-cart-order-sale).
+
+    Espejo de ``cart.views._get_or_create_cart`` sobre ``Order(DRAFT)``:
+
+    - Autenticado (``user``): un único draft por usuario — MariaDB no
+      soporta UNIQUE parcial, así que la unicidad one-draft-per-user se
+      garantiza aquí (``get_or_create`` sobre el draft más reciente).
+    - Anónimo (``cart_token``): busca/crea el draft por token (columna
+      UNIQUE; múltiples NULL permitidos).
+
+    Retorna ``(order, created)``. No toca ``Cart``/``CartItem`` — la
+    paridad de vistas y la data migration llegan en S2b/S4.
+    """
+    if user is not None and getattr(user, 'is_authenticated', False):
+        draft = (Order.objects
+                 .filter(user=user, status=Order.STATUS_DRAFT)
+                 .order_by('-created_at')
+                 .first())
+        if draft is not None:
+            return draft, False
+        return Order.objects.create(user=user, status=Order.STATUS_DRAFT), True
+
+    if cart_token is None:
+        return Order.objects.create(status=Order.STATUS_DRAFT,
+                                    cart_token=uuid4()), True
+    order, created = Order.objects.get_or_create(
+        cart_token=cart_token, defaults={'status': Order.STATUS_DRAFT})
+    return order, created
