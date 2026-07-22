@@ -23,7 +23,7 @@ from decimal import Decimal
 from django.contrib.auth import get_user_model
 
 from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
-from addons.payments.models import Payment
+from addons.payment.models import Payment
 from addons.payments.pdf_receipt import HELPER_PATH, build_receipt_payload
 from addons.settings_app.models import SiteSettings
 from addons.users.models import BusinessEvent

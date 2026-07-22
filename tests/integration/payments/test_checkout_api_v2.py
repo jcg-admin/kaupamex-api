@@ -15,7 +15,7 @@ from unittest.mock import patch, MagicMock
 from addons.catalogue.models import Category, Product
 from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from addons.settings_app.models import PaymentGateway
-from addons.payments.models import Payment, PaymentGatewayEvent
+from addons.payment.models import Payment, PaymentGatewayEvent
 from addons.payments.gateways.mercadopago import MercadoPagoGateway
 
 pytestmark = pytest.mark.integration

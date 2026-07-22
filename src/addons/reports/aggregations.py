@@ -11,7 +11,7 @@ from django.db.models import Count, F, Sum, Max as models_Max
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 from addons.orders.models import Order, OrderValue, OrderItem
-from addons.payments.models import Payment
+from addons.payment.models import Payment
 from addons.catalogue.models import Product
 from addons.inventory.models import StockAlert
 from addons.helpdesk.models import SupportTicket

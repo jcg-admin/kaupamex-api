@@ -73,6 +73,7 @@ INSTALLED_APPS = [
     'addons.mrp_subcontracting',
     'addons.sale_mrp',
     'addons.orders',
+    'addons.payment',
     'addons.payments',
     'addons.helpdesk',
     'addons.mass_mailing',
@@ -473,9 +474,9 @@ SPECTACULAR_SETTINGS = {
         'OrderStatusEnum':
             'addons.orders.models.Order.STATUSES',
         'PaymentStatusEnum':
-            'addons.payments.models.Payment.STATUSES',
+            'addons.payment.models.Payment.STATUSES',
         'RefundStatusEnum':
-            'addons.payments.models.Refund.STATUSES',
+            'addons.payment.models.Refund.STATUSES',
         'ReviewStatusEnum':
             'addons.rating.models.Review.STATUSES',
         'ShipmentGuideStatusEnum':
@@ -493,7 +494,7 @@ SPECTACULAR_SETTINGS = {
         # gateway fields (Payment vs PaymentGateway tienen choice sets
         # diferentes — el segundo agrega TEST sandbox)
         'PaymentGatewayChoiceEnum':
-            'addons.payments.models.Payment.GATEWAYS',
+            'addons.payment.models.Payment.GATEWAYS',
         'PaymentGatewayConfigEnum':
             'addons.settings_app.models.PaymentGateway.GATEWAYS',
         # AudienceFilterEnum: alias para ManualNotification.RecipientType

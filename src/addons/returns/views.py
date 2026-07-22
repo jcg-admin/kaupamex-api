@@ -29,7 +29,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from addons.orders.models import Order, OrderItem
-from addons.payments.models import Payment, Refund
+from addons.payment.models import Payment, Refund
 from addons.payments.services import execute_refund
 from addons.mail.models.notification_service import notify_return_info_requested
 from config.schema import error_response

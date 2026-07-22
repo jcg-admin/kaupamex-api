@@ -13,7 +13,7 @@ from django.db import transaction
 from django.urls import reverse
 from .gateways.base import BaseGateway
 from .gateways.mercadopago import MercadoPagoGateway
-from .models import Payment, PaymentGatewayEvent, Payment as PaymentModel, Refund
+from addons.payment.models import Payment, PaymentGatewayEvent, Payment as PaymentModel, Refund
 from .gateways.paypal import PayPalGateway
 from django.db.models import F, Sum as DjSum
 from addons.settings_app.models import PaymentGateway

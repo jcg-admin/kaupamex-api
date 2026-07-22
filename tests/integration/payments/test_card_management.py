@@ -12,7 +12,7 @@ Covers:
 import pytest
 from unittest.mock import patch, MagicMock
 
-from addons.payments.models import SavedCard
+from addons.payment.models import SavedCard
 from addons.settings_app.models import PaymentGateway
 
 pytestmark = pytest.mark.integration

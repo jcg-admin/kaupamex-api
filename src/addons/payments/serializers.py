@@ -1,7 +1,7 @@
 """Serializers — addons.payments (Sprint 15). Compatible con drf-spectacular."""
 from decimal import Decimal
 from rest_framework import serializers
-from .models import Payment, Refund, Chargeback, PaymentGatewayEvent, SavedCard
+from addons.payment.models import Payment, Refund, Chargeback, PaymentGatewayEvent, SavedCard
 from .gateways.mercadopago import NON_CARD_METHOD_IDS
 
 

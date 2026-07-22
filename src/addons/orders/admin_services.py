@@ -12,7 +12,7 @@ from .models import OrderStatusLog, Order
 from .services import cancel_order
 from django.db.models import Count, Sum, Q
 from datetime import timedelta
-from addons.payments.models import Payment
+from addons.payment.models import Payment
 from addons.settings_app.models import SiteSettings
 from addons.delivery.models import ShipmentGuide
 

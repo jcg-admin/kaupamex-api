@@ -30,7 +30,7 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 
 from addons.orders.models import Order, OrderValue
-from addons.payments.models import Payment
+from addons.payment.models import Payment
 from addons.payments.services import initiate_checkout_api_payment
 from addons.settings_app.models import PaymentGateway
 

@@ -23,7 +23,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from mercadopago.webhook import WebhookSignatureValidator, InvalidWebhookSignatureError
 from django.db import IntegrityError
-from .models import Payment, PaymentGatewayEvent, WebhookEvent, Chargeback
+from addons.payment.models import Payment, PaymentGatewayEvent, WebhookEvent, Chargeback
 from addons.settings_app.models import PaymentGateway as PGModel
 from django.db import transaction
 from .gateways.mercadopago import MercadoPagoGateway

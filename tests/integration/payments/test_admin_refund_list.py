@@ -8,7 +8,7 @@ import pytest
 from decimal import Decimal
 
 from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
-from addons.payments.models import Payment, Refund
+from addons.payment.models import Payment, Refund
 
 pytestmark = pytest.mark.integration
 

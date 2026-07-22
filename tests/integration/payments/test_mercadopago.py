@@ -14,7 +14,7 @@ from decouple import config
 from addons.catalogue.models import Category, Product
 from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress, ShippingZone
 from addons.settings_app.models import PaymentGateway, ShippingMethod
-from addons.payments.models import Payment, PaymentGatewayEvent
+from addons.payment.models import Payment, PaymentGatewayEvent
 from addons.payments.gateways.mercadopago import MercadoPagoGateway
 from addons.users.models import Address
 from addons.cart.models import CartItem

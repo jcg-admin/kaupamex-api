@@ -9,7 +9,7 @@ from decimal import Decimal
 from unittest.mock import patch, MagicMock
 from addons.catalogue.models import Category, Product
 from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
-from addons.payments.models import Payment, Refund
+from addons.payment.models import Payment, Refund
 from addons.settings_app.models import PaymentGateway
 from django.contrib.auth import get_user_model
 

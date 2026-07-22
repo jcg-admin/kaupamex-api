@@ -21,7 +21,7 @@ from django.db.models import F, Q, Sum
 from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress, ShippingZone
 from addons.orders.proxy_models import DeliveredOrder
 from addons.loyalty.models import Voucher, VoucherUsage
-from .models import Payment, Payment as PaymentModel, Refund, Chargeback, SavedCard
+from addons.payment.models import Payment, Payment as PaymentModel, Refund, Chargeback, SavedCard
 from .serializers import (
     InitiatePaymentSerializer, MercadoPagoInitiateSerializer,
     InitiatePaymentResponseSerializer, InstallmentPlansResponseSerializer,

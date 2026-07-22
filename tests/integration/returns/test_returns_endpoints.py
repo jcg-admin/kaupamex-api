@@ -24,7 +24,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 from addons.catalogue.models import Category, Product
 from addons.orders.models import Order, OrderItem
-from addons.payments.models import Payment
+from addons.payment.models import Payment
 from addons.stock.models import ReturnHistoryEntry, ReturnRequest
 from addons.settings_app.models import PaymentGateway
 from addons.mail.models import Notification, NotificationType

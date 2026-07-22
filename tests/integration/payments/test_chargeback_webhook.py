@@ -11,7 +11,7 @@ from decimal import Decimal
 from unittest.mock import patch, MagicMock
 
 from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
-from addons.payments.models import Payment, Chargeback
+from addons.payment.models import Payment, Chargeback
 
 pytestmark = pytest.mark.integration
 

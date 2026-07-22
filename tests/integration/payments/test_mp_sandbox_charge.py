@@ -21,7 +21,7 @@ from django.test import Client
 
 from addons.settings_app.models import PaymentGateway
 from addons.orders.models import Order
-from addons.payments.models import Payment, WebhookEvent
+from addons.payment.models import Payment, WebhookEvent
 from addons.payments.management.commands.mp_sandbox_charge import (
     run_sandbox_charge, TEST_CARDS, STATUS_NAMES, EXPECTED_MP_STATUS,
 )

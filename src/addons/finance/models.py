@@ -139,7 +139,7 @@ class GatewaySettlement(TimeStampedModel):
         default=SettlementStatus.IMPORTED, verbose_name='Estado',
     )
     payment = models.ForeignKey(
-        'payments.Payment', on_delete=models.SET_NULL, null=True, blank=True,
+        'payment.Payment', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='settlements', verbose_name='Pago',
     )
 

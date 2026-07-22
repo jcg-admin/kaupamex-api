@@ -31,7 +31,7 @@ from django.dispatch import receiver
 logger = logging.getLogger('apps')
 
 from addons.orders.models import Order, OrderValue
-from addons.payments.models import Refund
+from addons.payment.models import Refund
 from addons.stock.models import ReturnRequest
 from addons.helpdesk.models import SupportTicket
 
