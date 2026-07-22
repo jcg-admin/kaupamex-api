@@ -11,10 +11,15 @@ from decimal import Decimal
 from django.conf import settings
 from django.db import transaction
 from django.urls import reverse
-from .gateways.base import BaseGateway
-from .gateways.mercadopago import MercadoPagoGateway
+from addons.payment.gateways.base import BaseGateway
+from addons.payment_aps.gateway import ApsGateway
+from addons.payment_authorize.gateway import AuthorizeGateway
+from addons.payment_custom.gateway import CustomGateway
+from addons.payment_demo.gateway import DemoGateway
+from addons.payment_mercado_pago.gateway import MercadoPagoGateway
 from addons.payment.models import Payment, PaymentGatewayEvent, Payment as PaymentModel, Refund
-from .gateways.paypal import PayPalGateway
+from addons.payment_paypal.gateway import PayPalGateway
+from addons.payment_stripe.gateway import StripeGateway
 from django.db.models import F, Sum as DjSum
 from addons.settings_app.models import PaymentGateway
 from addons.orders.models import Order
@@ -24,15 +29,28 @@ from addons.orders.models import Order
 logger = logging.getLogger('apps')
 
 
+# Registro de providers de la familia payment (patrón payment_<provider> de
+# Odoo). MP es el primario (BR-006) y PayPal el secundario (BR-007); el resto
+# está registrado con integración pendiente (sus operaciones fallan explícito).
+_GATEWAY_REGISTRY: dict[str, type[BaseGateway]] = {
+    'MERCADOPAGO': MercadoPagoGateway,
+    'PAYPAL': PayPalGateway,
+    'APS': ApsGateway,
+    'AUTHORIZE': AuthorizeGateway,
+    'CUSTOM': CustomGateway,
+    'DEMO': DemoGateway,
+    'STRIPE': StripeGateway,
+}
+
+
 def _get_gateway(gateway_type: str = 'MERCADOPAGO') -> BaseGateway:
     """
     Retorna la instancia del gateway solicitado.
     BR-006: MP es el gateway primario.
     BR-007: PayPal es el secundario disponible desde MVP.
+    Tipos desconocidos caen al primario (comportamiento histórico).
     """
-    if gateway_type == 'PAYPAL':
-        return PayPalGateway()
-    return MercadoPagoGateway()
+    return _GATEWAY_REGISTRY.get(gateway_type, MercadoPagoGateway)()
 
 
 def _get_default_gateway() -> BaseGateway:

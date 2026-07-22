@@ -11,7 +11,7 @@ si MP devuelve status="approved" o cualquier otro estado.
 import pytest
 from unittest.mock import patch, MagicMock
 
-from addons.payments.gateways.mercadopago import MercadoPagoGateway
+from addons.payment_mercado_pago.gateway import MercadoPagoGateway
 
 pytestmark = pytest.mark.integration
 
@@ -32,7 +32,7 @@ class TestZeroDollarAuthGateway:
             'status': 201,
             'response': {'id': 1001, 'status': 'approved'},
         }
-        with patch('addons.payments.gateways.mercadopago._get_sdk') as mock_get:
+        with patch('addons.payment_mercado_pago.gateway._get_sdk') as mock_get:
             mock_sdk = MagicMock()
             mock_get.return_value = mock_sdk
             mock_sdk.payment().create.return_value = mock_response
@@ -50,7 +50,7 @@ class TestZeroDollarAuthGateway:
             'status': 201,
             'response': {'id': 1002, 'status': 'approved'},
         }
-        with patch('addons.payments.gateways.mercadopago._get_sdk') as mock_get:
+        with patch('addons.payment_mercado_pago.gateway._get_sdk') as mock_get:
             mock_sdk = MagicMock()
             mock_get.return_value = mock_sdk
             mock_sdk.payment().create.return_value = mock_response
@@ -73,7 +73,7 @@ class TestZeroDollarAuthGateway:
             'status': 201,
             'response': {'id': 1003, 'status': 'rejected'},
         }
-        with patch('addons.payments.gateways.mercadopago._get_sdk') as mock_get:
+        with patch('addons.payment_mercado_pago.gateway._get_sdk') as mock_get:
             mock_sdk = MagicMock()
             mock_get.return_value = mock_sdk
             mock_sdk.payment().create.return_value = mock_response
@@ -91,7 +91,7 @@ class TestZeroDollarAuthGateway:
             'status': 400,
             'response': {'message': 'invalid token'},
         }
-        with patch('addons.payments.gateways.mercadopago._get_sdk') as mock_get:
+        with patch('addons.payment_mercado_pago.gateway._get_sdk') as mock_get:
             mock_sdk = MagicMock()
             mock_get.return_value = mock_sdk
             mock_sdk.payment().create.return_value = mock_response

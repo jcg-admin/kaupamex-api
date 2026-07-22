@@ -40,7 +40,7 @@ from .services import (
     initiate_checkout_api_payment, get_mp_public_key, get_or_create_mp_customer,
 )
 from addons.mail.models.notification_emails import send_card_verification_email
-from .gateways.mercadopago import MercadoPagoGateway
+from addons.payment_mercado_pago.gateway import MercadoPagoGateway
 from addons.users.models import Address
 from addons.settings_app.models import ShippingMethod, SiteSettings
 from addons.cart.models import Cart

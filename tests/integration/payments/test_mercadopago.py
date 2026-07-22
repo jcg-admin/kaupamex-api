@@ -15,7 +15,7 @@ from addons.catalogue.models import Category, Product
 from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress, ShippingZone
 from addons.settings_app.models import PaymentGateway, ShippingMethod
 from addons.payment.models import Payment, PaymentGatewayEvent
-from addons.payments.gateways.mercadopago import MercadoPagoGateway
+from addons.payment_mercado_pago.gateway import MercadoPagoGateway
 from addons.users.models import Address
 from addons.cart.models import CartItem
 
@@ -91,7 +91,7 @@ def mp_gateway_activo(db, admin_user):
 @pytest.fixture
 def mock_mp_sdk():
     """Mock del SDK de MercadoPago para evitar llamadas reales."""
-    with patch('addons.payments.gateways.mercadopago.mercadopago') as mock_mp:
+    with patch('addons.payment_mercado_pago.gateway.mercadopago') as mock_mp:
         sdk_instance = MagicMock()
         mock_mp.SDK.return_value = sdk_instance
 
@@ -236,7 +236,7 @@ class TestIniciarPago:
     def test_iniciar_pago_gateway_down_retorna_503(
         self, auth_client, orden_pendiente, mp_gateway_activo, db
     ):
-        with patch('addons.payments.gateways.mercadopago.mercadopago') as mock_mp:
+        with patch('addons.payment_mercado_pago.gateway.mercadopago') as mock_mp:
             sdk = MagicMock()
             mock_mp.SDK.return_value = sdk
             sdk.preference.return_value.create.return_value = {
@@ -553,7 +553,7 @@ class TestPreferencePayerEnrichment:
             }
 
         sdk.preference.return_value.create.side_effect = _create
-        with patch('addons.payments.gateways.mercadopago._get_sdk', return_value=sdk):
+        with patch('addons.payment_mercado_pago.gateway._get_sdk', return_value=sdk):
             gw.create_preference(
                 order,
                 back_urls={'success': 'https://x/s', 'failure': 'https://x/f',

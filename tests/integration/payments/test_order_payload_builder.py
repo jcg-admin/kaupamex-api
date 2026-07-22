@@ -10,7 +10,7 @@ import pytest
 from decimal import Decimal
 
 from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
-from addons.payments.gateways.mercadopago import (
+from addons.payment_mercado_pago.gateway import (
     _build_order_payload,
     _build_order_payment_method,
     _amount_str,

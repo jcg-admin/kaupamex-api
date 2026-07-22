@@ -11,7 +11,7 @@ from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
 from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
-from addons.payments.gateways.mercadopago import MercadoPagoGateway
+from addons.payment_mercado_pago.gateway import MercadoPagoGateway
 
 pytestmark = pytest.mark.integration
 
@@ -60,7 +60,7 @@ class TestCreateOrderPayment:
         order = _make_order(user)
         mock_sdk = MagicMock()
         mock_sdk.order.return_value.create.return_value = _orders_response()
-        with patch('addons.payments.gateways.mercadopago._get_sdk', return_value=mock_sdk):
+        with patch('addons.payment_mercado_pago.gateway._get_sdk', return_value=mock_sdk):
             result = MercadoPagoGateway().create_payment(
                 order=order, token='TKN', installments=1,
                 payment_method_id='visa', payment_type='credit_card',
@@ -77,7 +77,7 @@ class TestCreateOrderPayment:
         order = _make_order(user)
         mock_sdk = MagicMock()
         mock_sdk.order.return_value.create.return_value = _orders_response()
-        with patch('addons.payments.gateways.mercadopago._get_sdk', return_value=mock_sdk):
+        with patch('addons.payment_mercado_pago.gateway._get_sdk', return_value=mock_sdk):
             MercadoPagoGateway().create_payment(
                 order=order, token='TKN', payment_method_id='visa', payment_type='credit_card',
             )
@@ -92,7 +92,7 @@ class TestCreateOrderPayment:
         mock_sdk.order.return_value.create.return_value = _orders_response(
             pay_status='failed', pay_detail='cc_rejected_insufficient_amount',
         )
-        with patch('addons.payments.gateways.mercadopago._get_sdk', return_value=mock_sdk):
+        with patch('addons.payment_mercado_pago.gateway._get_sdk', return_value=mock_sdk):
             result = MercadoPagoGateway().create_payment(
                 order=order, token='TKN', payment_method_id='visa', payment_type='credit_card',
             )
@@ -104,7 +104,7 @@ class TestCreateOrderPayment:
         mock_sdk.order.return_value.create.return_value = {
             'status': 400, 'response': {'message': 'bad request'},
         }
-        with patch('addons.payments.gateways.mercadopago._get_sdk', return_value=mock_sdk):
+        with patch('addons.payment_mercado_pago.gateway._get_sdk', return_value=mock_sdk):
             with pytest.raises(RuntimeError):
                 MercadoPagoGateway().create_payment(
                     order=order, token='TKN', payment_method_id='visa', payment_type='credit_card',
@@ -131,7 +131,7 @@ class TestCreateOrderPayment:
                 },
             },
         }
-        with patch('addons.payments.gateways.mercadopago._get_sdk', return_value=mock_sdk):
+        with patch('addons.payment_mercado_pago.gateway._get_sdk', return_value=mock_sdk):
             result = MercadoPagoGateway().create_payment(
                 order=order, token='TKN', payment_method_id='master', payment_type='credit_card',
             )

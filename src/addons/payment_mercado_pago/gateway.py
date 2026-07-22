@@ -9,7 +9,7 @@ import json
 import logging
 import uuid
 from decimal import Decimal, Decimal as Dec
-from .base import BaseGateway, PreferenceResult, InstallmentPlan, PaymentVerification, RefundResult, PaymentResult
+from addons.payment.gateways.base import BaseGateway, PreferenceResult, InstallmentPlan, PaymentVerification, RefundResult, PaymentResult
 from .orders_status import map_order_payment_status
 from addons.settings_app.models import PaymentGateway
 

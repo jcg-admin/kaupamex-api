@@ -470,7 +470,7 @@ def mp_gateway_active(db):
 @pytest.fixture
 def mock_mp_refund_ok():
     """Mock SDK MercadoPago.refund.create -> happy path."""
-    with patch('addons.payments.gateways.mercadopago.mercadopago') as mock_mp:
+    with patch('addons.payment_mercado_pago.gateway.mercadopago') as mock_mp:
         sdk = MagicMock()
         mock_mp.SDK.return_value = sdk
         sdk.refund.return_value.create.return_value = {

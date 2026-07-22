@@ -13,7 +13,7 @@ import json
 import logging
 from decimal import Decimal, Decimal as Dec
 from typing import Optional
-from .base import BaseGateway, PreferenceResult, InstallmentPlan, PaymentVerification, RefundResult
+from addons.payment.gateways.base import BaseGateway, PreferenceResult, InstallmentPlan, PaymentVerification, RefundResult
 from addons.settings_app.models import PaymentGateway
 
 import requests

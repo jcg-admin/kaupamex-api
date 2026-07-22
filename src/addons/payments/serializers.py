@@ -2,7 +2,7 @@
 from decimal import Decimal
 from rest_framework import serializers
 from addons.payment.models import Payment, Refund, Chargeback, PaymentGatewayEvent, SavedCard
-from .gateways.mercadopago import NON_CARD_METHOD_IDS
+from addons.payment_mercado_pago.gateway import NON_CARD_METHOD_IDS
 
 
 

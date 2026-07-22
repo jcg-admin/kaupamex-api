@@ -82,7 +82,7 @@ def mp_gateway(db, admin_user):
 
 @pytest.fixture
 def mock_sdk():
-    with patch('addons.payments.gateways.mercadopago.mercadopago') as mock_mp:
+    with patch('addons.payment_mercado_pago.gateway.mercadopago') as mock_mp:
         sdk = MagicMock()
         mock_mp.SDK.return_value = sdk
         sdk.preference.return_value.create.return_value = {
@@ -203,7 +203,7 @@ class TestMercadoPagoGatewayURLErrores:
         assert res.json()['codigo_error'] == 'AMOUNT_MISMATCH'
 
     def test_gateway_down_retorna_503(self, auth_client, orden_mp, mp_gateway):
-        with patch('addons.payments.gateways.mercadopago.mercadopago') as mock_mp:
+        with patch('addons.payment_mercado_pago.gateway.mercadopago') as mock_mp:
             sdk = MagicMock()
             mock_mp.SDK.return_value = sdk
             sdk.preference.return_value.create.return_value = {

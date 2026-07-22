@@ -12,8 +12,8 @@ from addons.catalogue.models import Category, Product
 from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from addons.settings_app.models import PaymentGateway
 from addons.payment.models import Payment
-from addons.payments.gateways.paypal import PayPalGateway
-from addons.payments.gateways.base import BaseGateway
+from addons.payment_paypal.gateway import PayPalGateway
+from addons.payment.gateways.base import BaseGateway
 
 pytestmark = pytest.mark.integration
 
@@ -75,7 +75,7 @@ def paypal_gateway_activo(db):
 @pytest.fixture
 def mock_paypal_api():
     """Mock de todas las llamadas requests a PayPal API."""
-    with patch('addons.payments.gateways.paypal.requests') as mock_req:
+    with patch('addons.payment_paypal.gateway.requests') as mock_req:
         # Token endpoint
         token_resp = MagicMock()
         token_resp.status_code = 200

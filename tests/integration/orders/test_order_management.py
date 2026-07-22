@@ -281,7 +281,7 @@ class TestCancelarOrden:
             status='APPROVED', amount=prod_ord.price + Decimal('80'),
         )
 
-        with patch('addons.payments.gateways.mercadopago.mercadopago') as mock_mp:
+        with patch('addons.payment_mercado_pago.gateway.mercadopago') as mock_mp:
             sdk = MagicMock()
             mock_mp.SDK.return_value = sdk
             sdk.refund.return_value.create.return_value = {

@@ -111,7 +111,7 @@ def test_save_card_creates_pending_and_sends_email(auth_client, user, mp_gw_card
         'response': MP_CARD_RESPONSE,
     }
 
-    with patch('addons.payments.gateways.mercadopago._get_sdk', return_value=mp_mock), \
+    with patch('addons.payment_mercado_pago.gateway._get_sdk', return_value=mp_mock), \
          patch('addons.payments.views.send_card_verification_email') as mock_email:
         resp = auth_client.post(CARDS_URL, {
             'token': 'TEST-CARD-TOKEN-ABCDEF',
@@ -150,7 +150,7 @@ def test_save_card_no_customer_id_auto_creates(auth_client, user, mp_gw_cards):
         'response': MP_CARD_RESPONSE,
     }
 
-    with patch('addons.payments.gateways.mercadopago._get_sdk', return_value=mp_mock), \
+    with patch('addons.payment_mercado_pago.gateway._get_sdk', return_value=mp_mock), \
          patch('addons.payments.views.send_card_verification_email'):
         resp = auth_client.post(CARDS_URL, {
             'token': 'TEST-TOKEN-NUEVO',
@@ -181,7 +181,7 @@ def test_save_card_duplicate_returns_200(auth_client, user, active_saved_card, m
         'response': duplicate_mp_response,
     }
 
-    with patch('addons.payments.gateways.mercadopago._get_sdk', return_value=mp_mock), \
+    with patch('addons.payment_mercado_pago.gateway._get_sdk', return_value=mp_mock), \
          patch('addons.payments.views.send_card_verification_email') as mock_email:
         resp = auth_client.post(CARDS_URL, {
             'token': 'TEST-DUP-TOKEN',
@@ -267,7 +267,7 @@ def test_update_card_expiration(auth_client, user, active_saved_card, mp_gw_card
     }
 
     url = f'{CARDS_URL}{active_saved_card.mp_card_id}/'
-    with patch('addons.payments.gateways.mercadopago._get_sdk', return_value=mp_mock):
+    with patch('addons.payment_mercado_pago.gateway._get_sdk', return_value=mp_mock):
         resp = auth_client.put(url, {
             'expiration_year': 2030,
         }, content_type='application/json')
@@ -287,7 +287,7 @@ def test_update_card_cardholder_name(auth_client, user, active_saved_card, mp_gw
     }
 
     url = f'{CARDS_URL}{active_saved_card.mp_card_id}/'
-    with patch('addons.payments.gateways.mercadopago._get_sdk', return_value=mp_mock):
+    with patch('addons.payment_mercado_pago.gateway._get_sdk', return_value=mp_mock):
         resp = auth_client.put(url, {
             'cardholder_name': 'NUEVO TITULAR',
         }, content_type='application/json')
@@ -317,7 +317,7 @@ def test_delete_card_marks_as_deleted(auth_client, user, active_saved_card, mp_g
     }
 
     url = f'{CARDS_URL}{active_saved_card.mp_card_id}/'
-    with patch('addons.payments.gateways.mercadopago._get_sdk', return_value=mp_mock):
+    with patch('addons.payment_mercado_pago.gateway._get_sdk', return_value=mp_mock):
         resp = auth_client.delete(url)
 
     assert resp.status_code == 204

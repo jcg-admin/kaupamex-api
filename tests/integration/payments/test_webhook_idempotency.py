@@ -154,7 +154,7 @@ class TestWebhookPayPalIdempotencyDenied:
         }
 
         with patch(
-            'addons.payments.gateways.paypal.PayPalGateway.verify_webhook_signature',
+            'addons.payment_paypal.gateway.PayPalGateway.verify_webhook_signature',
             return_value=True,
         ):
             res1 = api_client.post(
@@ -182,7 +182,7 @@ class TestWebhookPayPalIdempotencyDenied:
         }
 
         with patch(
-            'addons.payments.gateways.paypal.PayPalGateway.verify_webhook_signature',
+            'addons.payment_paypal.gateway.PayPalGateway.verify_webhook_signature',
             return_value=True,
         ):
             res2 = api_client.post(
@@ -235,7 +235,7 @@ class TestWebhookMpReplayAttack:
 
         responses = []
         with patch(
-            'addons.payments.gateways.mercadopago.MercadoPagoGateway.verify_payment',
+            'addons.payment_mercado_pago.gateway.MercadoPagoGateway.verify_payment',
             return_value=gw_result,
         ):
             for _ in range(10):

@@ -23,7 +23,7 @@ from unittest.mock import MagicMock, patch
 from addons.orders.models import Order
 from addons.payment.models import Payment
 from addons.payments.services import execute_refund
-from addons.payments.gateways.mercadopago import _log_legacy_payments_api
+from addons.payment_mercado_pago.gateway import _log_legacy_payments_api
 
 pytestmark = pytest.mark.integration
 
