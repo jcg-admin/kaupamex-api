@@ -77,6 +77,18 @@ class SaleOrder(TimeStampedModel):
         on_delete=models.SET_NULL, related_name='sale_orders',
         help_text='Equipo de venta atribuido (Odoo sale.order.team_id).',
     )
+    # V1 unificación orders→sale (DEC-FW-02): lo que el flujo vivo del
+    # strangler ``orders.Order`` necesita y el canónico aún no tenía.
+    # guest_email = checkout anónimo (BR-011); en Odoo el guest es un
+    # partner efímero de website_sale — aquí se conserva el email snapshot.
+    guest_email = fields.Char(
+        max_length=254, blank=True, default='',
+        help_text='Email del comprador anónimo (BR-011). Vacío si hay partner.',
+    )
+    notes       = fields.Text(
+        blank=True, default='',
+        help_text='Notas del comprador al confirmar (paridad orders.Order.notes).',
+    )
 
     class Meta:
         db_table     = 'sale_order'

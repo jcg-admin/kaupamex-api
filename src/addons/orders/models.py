@@ -195,8 +195,14 @@ class OrderValue(TimeStampedModel):
 
 class OrderAddress(TimeStampedModel):
     """Snapshot de la dirección de envío al momento del checkout. BR-005."""
-    order          = models.OneToOneField(Order, on_delete=models.CASCADE,
-                         related_name='address')
+    # V1 orders→sale (DEC-FW-02): la FK legacy pasa a nullable — FK dual
+    # transitoria; V2 conmuta el flujo vivo a sale.SaleOrder y V5 la retira.
+    order          = models.OneToOneField(Order, null=True, blank=True,
+                         on_delete=models.CASCADE, related_name='address')
+    sale_order     = models.OneToOneField(
+        'sale.SaleOrder', null=True, blank=True,
+        on_delete=models.CASCADE, related_name='delivery_address',
+    )
     recipient_name = models.CharField(max_length=200)
     street         = models.CharField(max_length=255)
     city           = models.CharField(max_length=100)
@@ -220,8 +226,14 @@ class OrderStatusLog(TimeStampedModel):
     - Timestamp (created_at de TimeStampedModel)
     - Notas opcionales sobre el cambio
     """
+    # V1 orders→sale (DEC-FW-02): FK legacy nullable (dual transitoria).
     order           = models.ForeignKey(
-        Order, on_delete=models.CASCADE, related_name='status_logs',
+        Order, null=True, blank=True,
+        on_delete=models.CASCADE, related_name='status_logs',
+    )
+    sale_order      = models.ForeignKey(
+        'sale.SaleOrder', null=True, blank=True,
+        on_delete=models.CASCADE, related_name='status_logs',
     )
     previous_status = models.CharField(max_length=20)
     new_status      = models.CharField(max_length=20)
@@ -242,10 +254,9 @@ class OrderStatusLog(TimeStampedModel):
         verbose_name = 'Historial de estado de orden'
 
     def __str__(self):
-        return (
-            f'{self.order.order_number}: '
-            f'{self.previous_status} → {self.new_status}'
-        )
+        ref = self.order.order_number if self.order_id else (
+            self.sale_order_id and str(self.sale_order) or 's/ref')
+        return f'{ref}: {self.previous_status} → {self.new_status}'
 
 
 class CheckoutAttempt(models.Model):
