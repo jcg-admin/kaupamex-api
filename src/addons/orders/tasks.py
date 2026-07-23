@@ -46,6 +46,12 @@ def cancel_timeout_orders():
             order.cancellation_reason = 'TIMEOUT'
             order.cancelled_at        = now
             order.save(update_fields=['status', 'cancellation_reason', 'cancelled_at', 'updated_at'])
+
+            # V5b-cancel (H-SALE-10): la cancelación por timeout también
+            # cancela la sale.order canónica (eje comercial autoritativo).
+            sale = order.sale_order
+            if sale is not None and sale.state != sale.STATE_CANCEL and not sale.locked:
+                sale.action_cancel()
             OrderStatusLog.objects.create(
                 order=order,
                 previous_status=Order.STATUS_PENDING,

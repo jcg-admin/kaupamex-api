@@ -8,14 +8,19 @@ de correctitud del cut-over: la proyección **reproduce** el estado del espejo
 proyección.
 """
 import uuid
+from datetime import timedelta
 from decimal import Decimal
 
 import pytest
 
+from django.utils import timezone
+
 from addons.catalogue.models import Category, Product
 from addons.delivery.models import Courier, ShipmentGuide
 from addons.orders.models import Order
+from addons.orders.services import cancel_order
 from addons.orders.status_projection import derive_order_status
+from addons.orders.tasks import cancel_timeout_orders
 from addons.payment.models import Payment
 from addons.sale.models import SaleOrder
 from addons.sale.services import add_item_to_draft, confirm_draft_order
@@ -127,3 +132,31 @@ class TestDeadGuideDoesNotShip:
         sale.refresh_from_db()
         # Guía muerta → no cuenta como enviado; cae al eje de pago (PAID).
         assert derive_order_status(sale) == Order.STATUS_PAID
+
+
+class TestCancelWritersMakeSaleAuthoritative:
+    """V5b-cancel (H-SALE-10): las rutas de cancelación deben cancelar la
+    ``sale.order`` para que el eje comercial canónico (``sale.state``) sea
+    autoritativo — de otro modo la proyección devuelve PENDING/PAID para una
+    orden cancelada."""
+
+    def test_manual_cancel_cancels_the_sale(self, confirmed):
+        sale, legacy = confirmed
+        cancel_order(legacy, reason='test V5b-cancel')
+        sale.refresh_from_db()
+        legacy.refresh_from_db()
+        assert legacy.status == Order.STATUS_CANCELLED
+        assert sale.state == SaleOrder.STATE_CANCEL
+        assert derive_order_status(sale) == Order.STATUS_CANCELLED
+
+    def test_timeout_cancel_cancels_the_sale(self, confirmed):
+        sale, legacy = confirmed
+        # La tarea escanea órdenes PENDING con created_at anterior al cutoff.
+        Order.objects.filter(pk=legacy.pk).update(
+            created_at=timezone.now() - timedelta(hours=2))
+        cancel_timeout_orders()
+        sale.refresh_from_db()
+        legacy.refresh_from_db()
+        assert legacy.status == Order.STATUS_CANCELLED_BY_TIMEOUT
+        assert sale.state == SaleOrder.STATE_CANCEL
+        assert derive_order_status(sale) == Order.STATUS_CANCELLED

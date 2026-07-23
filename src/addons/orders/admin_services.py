@@ -78,6 +78,13 @@ def transition_order_status(order, new_status: str, admin_user, notes: str = '')
         locked.status = new_status
         locked.save(update_fields=['status', 'updated_at'])
 
+        # V5b-cancel (H-SALE-10): si el admin cancela, cancelar también la
+        # sale.order canónica para que sale.state sea autoritativo.
+        if new_status == 'CANCELLED':
+            sale = locked.sale_order
+            if sale is not None and sale.state != sale.STATE_CANCEL and not sale.locked:
+                sale.action_cancel()
+
         OrderStatusLog.objects.create(
             order=locked,
             previous_status=previous,

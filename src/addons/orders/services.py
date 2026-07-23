@@ -71,6 +71,13 @@ def cancel_order(order, reason: str = '', cancelled_by=None, cancelable_statuses
         order.cancelled_at        = timezone.now()
         order.save(update_fields=['status', 'cancellation_reason', 'cancelled_at', 'updated_at'])
 
+        # V5b-cancel (H-SALE-10): cancelar también la sale.order canónica para
+        # que el eje comercial (sale.state) sea autoritativo. Sin esto la
+        # proyección devuelve PENDING/PAID para una orden cancelada.
+        sale = order.sale_order
+        if sale is not None and sale.state != sale.STATE_CANCEL and not sale.locked:
+            sale.action_cancel()
+
         # Registrar transición en el log de auditoría — UC-ORD-04
         OrderStatusLog.objects.create(
             order=order,
