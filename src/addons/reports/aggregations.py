@@ -12,6 +12,7 @@ from django.db.models.functions import TruncDate
 from django.utils import timezone
 from addons.orders.models import Order, OrderValue, OrderItem
 from addons.payment.models import Payment
+from addons.sale.models import SaleOrder
 from addons.catalogue.models import Product
 from addons.inventory.models import StockAlert
 from addons.helpdesk.models import SupportTicket
@@ -61,7 +62,7 @@ def build_sales_payload(period_days: int) -> dict:
 
     qs = Order.objects.filter(
         created_at__gte=start, created_at__lte=end,
-    ).exclude(status__in=['CANCELLED', 'CANCELLED_TIMEOUT'])  # D-03
+    ).exclude(sale_order__state=SaleOrder.STATE_CANCEL)  # D-03
 
     totals_agg = OrderValue.objects.filter(order__in=qs).aggregate(
         revenue=Sum('total'),
@@ -72,7 +73,7 @@ def build_sales_payload(period_days: int) -> dict:
 
     prev_qs = Order.objects.filter(
         created_at__gte=prev_start, created_at__lt=prev_end,
-    ).exclude(status__in=['CANCELLED', 'CANCELLED_TIMEOUT'])
+    ).exclude(sale_order__state=SaleOrder.STATE_CANCEL)
     prev_agg = OrderValue.objects.filter(order__in=prev_qs).aggregate(
         revenue=Sum('total'),
         order_count=Count('id'),
@@ -154,7 +155,7 @@ def build_top_sellers_payload(
     rows = (
         OrderItem.objects
         .filter(order__created_at__gte=start, order__created_at__lte=end)
-        .exclude(order__status__in=['CANCELLED', 'CANCELLED_TIMEOUT'])  # H-CICLO27-03: alinear con build_sales_payload
+        .exclude(order__sale_order__state=SaleOrder.STATE_CANCEL)  # H-CICLO27-03: alinear con build_sales_payload
         .values('product_id', 'product_name', 'sku')
         .annotate(units_sold=Sum('quantity'), revenue=Sum('subtotal'))
         .order_by(order_field)[:limit]
@@ -184,7 +185,7 @@ def build_top_sellers_payload(
     inactive_with_sales = (
         OrderItem.objects
         .filter(order__created_at__gte=start, order__created_at__lte=end)
-        .exclude(order__status__in=['CANCELLED', 'CANCELLED_TIMEOUT'])
+        .exclude(order__sale_order__state=SaleOrder.STATE_CANCEL)
         .filter(product__is_active=False)
         .values('product_id').distinct().count()
     )
@@ -208,7 +209,7 @@ def build_dashboard_payload() -> dict:
 
     today_qs = Order.objects.filter(
         created_at__gte=today_start,
-    ).exclude(status__in=['CANCELLED', 'CANCELLED_TIMEOUT'])  # H-CICLO28-01
+    ).exclude(sale_order__state=SaleOrder.STATE_CANCEL)  # H-CICLO28-01
     today_agg = OrderValue.objects.filter(order__in=today_qs).aggregate(
         revenue=Sum('total'), order_count=Count('id'),
     )
@@ -219,7 +220,7 @@ def build_dashboard_payload() -> dict:
     trend_rows = (
         OrderValue.objects.filter(
             order__created_at__gte=trend_start,
-        ).exclude(order__status__in=['CANCELLED', 'CANCELLED_TIMEOUT'])  # H-CICLO28-01
+        ).exclude(order__sale_order__state=SaleOrder.STATE_CANCEL)  # H-CICLO28-01
         .annotate(day=TruncDate('order__created_at'))
         .values('day')
         .annotate(revenue=Sum('total'), orders=Count('id'))
@@ -237,7 +238,7 @@ def build_dashboard_payload() -> dict:
     top_products_rows = (
         OrderItem.objects
         .filter(order__created_at__gte=trend_start)
-        .exclude(order__status__in=['CANCELLED', 'CANCELLED_TIMEOUT'])  # H-CICLO28-01
+        .exclude(order__sale_order__state=SaleOrder.STATE_CANCEL)  # H-CICLO28-01
         .values('product_id', 'product_name', 'sku')
         .annotate(units_sold=Sum('quantity'))
         .order_by('-units_sold')[:5]
@@ -298,7 +299,7 @@ def build_rfm_payload(period_days: int, segment_filter: str | None = None) -> di
             order__created_at__gte=start, order__created_at__lte=end,
             order__user__isnull=False,
         )
-        .exclude(order__status__in=['CANCELLED', 'CANCELLED_TIMEOUT'])  # H-CICLO28-02
+        .exclude(order__sale_order__state=SaleOrder.STATE_CANCEL)  # H-CICLO28-02
         .values(
             'order__user_id',
             user_email=F('order__user__email'),
@@ -350,13 +351,13 @@ def count_export_rows(slug: str, days: int) -> int:
         return (
             OrderValue.objects.filter(
                 order__created_at__gte=start, order__created_at__lte=end,
-            ).exclude(order__status__in=['CANCELLED', 'CANCELLED_TIMEOUT']).count()
+            ).exclude(order__sale_order__state=SaleOrder.STATE_CANCEL).count()
         )
     if slug == 'top-sellers':
         return (
             OrderItem.objects
             .filter(order__created_at__gte=start, order__created_at__lte=end)
-            .exclude(order__status__in=['CANCELLED', 'CANCELLED_TIMEOUT'])
+            .exclude(order__sale_order__state=SaleOrder.STATE_CANCEL)
             .values('product_id').distinct().count()
         )
     if slug == 'customers-rfm':
@@ -364,7 +365,7 @@ def count_export_rows(slug: str, days: int) -> int:
             OrderValue.objects.filter(
                 order__created_at__gte=start, order__created_at__lte=end,
                 order__user__isnull=False,
-            ).exclude(order__status__in=['CANCELLED', 'CANCELLED_TIMEOUT'])  # H-CICLO28-02
+            ).exclude(order__sale_order__state=SaleOrder.STATE_CANCEL)  # H-CICLO28-02
             .values('order__user_id').distinct().count()
         )
     return 0  # dashboard and unknowns are always small

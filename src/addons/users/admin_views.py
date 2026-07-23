@@ -23,6 +23,8 @@ from addons.authz.services import (
     SUPERADMIN_ROLE_CODE, has_capability, invalidate_capabilities, is_superadmin,
 )
 from addons.orders.models import Order, OrderValue
+from addons.orders.status_projection import order_status
+from addons.sale.models import SaleOrder
 from .audit import audit_log_business
 from .models import AuthEvent, BusinessEvent, UserDeactivationEvent
 from .serializers import AddressSerializer, AdminUserListSerializer
@@ -111,14 +113,16 @@ class AdminUserDetailSerializer(AdminUserListSerializer):
         for order in qs:
             v = getattr(order, 'value', None)
             total = str(v.total) if v else '0.00'
+            # V5c-2: estado derivado de los ejes canónicos (null-safe).
+            st = order_status(order)
             result.append({
                 'order_number': order.order_number,
                 'created_at': order.created_at.isoformat(),
                 'item_count': order.items.count(),
                 'total': total,
-                'status': order.status,
-                'status_label': STATUS_LABEL.get(order.status, order.status),
-                'tone': STATUS_TONE.get(order.status, 'muted'),
+                'status': st,
+                'status_label': STATUS_LABEL.get(st, st),
+                'tone': STATUS_TONE.get(st, 'muted'),
             })
         return result
 
@@ -126,7 +130,7 @@ class AdminUserDetailSerializer(AdminUserListSerializer):
         agg = OrderValue.objects.filter(
             order__user=obj,
         ).exclude(
-            order__status__in=['CANCELLED', 'CANCELLED_TIMEOUT'],
+            order__sale_order__state=SaleOrder.STATE_CANCEL,
         ).aggregate(total=Sum('total'))
         return str(agg['total'] or Decimal('0.00'))
 
