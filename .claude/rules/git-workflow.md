@@ -112,4 +112,4 @@ git push --force origin feature/nombre
 ## Referencias
 
 - `commit-conventions.md` — formato y autor de cada commit
-- Gobernanza completa: `../e-comerce/.claude/CLAUDE.md`
+- Gobernanza completa: `../kaupamex/.claude/CLAUDE.md`

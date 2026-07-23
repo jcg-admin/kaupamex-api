@@ -8,10 +8,10 @@ version: 1.0.0
 
 # Mechanical Bulk Edits — Micro-cycle
 
-> **Adaptacion e-comerce (2026-05-19):** Las menciones a "sesion IACT-docs"
+> **Adaptacion kaupamex (2026-05-19):** Las menciones a "sesion IACT-docs"
 > y a paths `.thyrox/context/work/<WP>/` son del template original. El
-> patron micro-cycle aplica igual en e-comerce; cuando se referencia un
-> work package historico de IACT-docs, en e-comerce el equivalente seria
+> patron micro-cycle aplica igual en kaupamex; cuando se referencia un
+> work package historico de IACT-docs, en kaupamex el equivalente seria
 > `docs/source/gestion/pm/<submodulo>/iniciativas/<slug>/`. La leccion
 > metodologica (small batches, verify, commit) no cambia.
 

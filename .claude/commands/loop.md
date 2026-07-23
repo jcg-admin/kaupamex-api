@@ -17,7 +17,7 @@ Ejecuta la siguiente tarea pendiente del work package activo. Diseñado para usa
 
 ### 1. Verificar contexto
 
-Identificar la iniciativa activa (en e-comerce el estado **no** vive en
+Identificar la iniciativa activa (en kaupamex el estado **no** vive en
 `.thyrox/`): el `progreso-<slug>.rst` más reciente bajo
 `docs/source/gestion/pm/<submodulo>/iniciativas/`, situado con el SMD
 (`docs/source/gestion/pm/siguiente-mejor-decision.rst`).

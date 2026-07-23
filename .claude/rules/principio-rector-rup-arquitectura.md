@@ -4,7 +4,7 @@ category: Gobierno — analisis antes de ejecucion
 version: 1.1.0
 created_at: 2026-05-21 14:40:00
 updated_at: 2026-07-05 01:23:35
-applies_to: e-comerce v1.0.0+
+applies_to: kaupamex v1.0.0+
 source_canonical: docs/source/normativa/principios/principio-rector-rup-arquitectura.rst
 ```
 

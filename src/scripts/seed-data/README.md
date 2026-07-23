@@ -23,7 +23,7 @@ DEC-DOC-005 (`products_created`, `products_failed`, `error_report`,
 ## Run the seed
 
 ```bash
-cd e-commerce-api
+cd kaupamex-api
 source .venv/bin/activate
 cd practicayoruba
 

@@ -11,7 +11,7 @@ updated_at: 2026-05-21 03:19:20
 
 # /rup-construction — RUP: Construction
 
-> **Adaptacion e-comerce v2 (2026-05-21).** En e-comerce el estado y
+> **Adaptacion kaupamex v2 (2026-05-21).** En kaupamex el estado y
 > la coordinacion intra-sesion **persisten en ``docs/source/``**, en
 > los `.rst` de la iniciativa. Las salidas de Construction NO viven
 > en `{wp}/rup-construction.md` sino mapeadas asi sobre los
@@ -218,7 +218,7 @@ Al final de cada iteración de Construction:
 
 Los entregables canonicos RUP de Construction se materializan en
 artefactos de la iniciativa + commits reales del codigo (ver banner
-de adaptacion e-comerce v2 al inicio):
+de adaptacion kaupamex v2 al inicio):
 
 - ``tareas-<slug>.rst`` — Iteration Plans 1..N con T-NNN por
   iteracion y entregable verificable.
@@ -299,7 +299,7 @@ de los artefactos de la iniciativa y los commits de codigo):
 
 ## Estado activo
 
-En e-comerce **no hay `now.md`**. El estado y la coordinacion
+En kaupamex **no hay `now.md`**. El estado y la coordinacion
 intra-sesion **persisten en ``docs/source/``**, en los `.rst` de la
 iniciativa. La fase activa se lee del campo ``:estado:`` del
 metadata de ``progreso-<slug>.rst`` y de la ultima seccion de su

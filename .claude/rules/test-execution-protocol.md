@@ -4,7 +4,7 @@ category: Ejecución de pruebas db + api + ui
 version: 1.0.0
 created_at: 2026-05-21 04:33:50
 updated_at: 2026-05-21 04:33:50
-applies_to: e-comerce v1.0.0+
+applies_to: kaupamex v1.0.0+
 ```
 
 # Protocolo de Ejecución de Pruebas — db + api + ui
@@ -62,7 +62,7 @@ explícitamente), **no se cierra la T-NNN ni se commitea como
 Antes de cualquier `pytest`:
 
 ```bash
-bash /home/user/e-comerce/db/scripts/start_db.sh
+bash /home/user/kaupamex/db/scripts/start_db.sh
 ```
 
 Idempotente: si ya está activo, informa y sale. Si no, arranca
@@ -81,7 +81,7 @@ mariadb -u django_user -pdjango_pass --socket=/run/mysqld/mysqld.sock -e "SELECT
 ### Capa db — verificación
 
 ```bash
-cd /home/user/e-comerce/db
+cd /home/user/kaupamex/db
 bash scripts/start_db.sh           # arranca + verify
 bash scripts/verify.sh             # solo verify
 ```
@@ -89,7 +89,7 @@ bash scripts/verify.sh             # solo verify
 ### Capa api — suite completa contra MariaDB real
 
 ```bash
-cd /home/user/e-comerce/api
+cd /home/user/kaupamex/api
 python -m pytest --tb=no -q        # suite completa (~7 min, 1066+ tests)
 python -m pytest tests/integration/payments/ -v  # subset por modulo
 python -m pytest -k "test_name_pattern"          # subset por patron
@@ -113,7 +113,7 @@ con `EBADENGINE`. Un `EBADENGINE` de node **invalida el gate** (mide la
 toolchain equivocada).
 
 ```bash
-cd /home/user/e-comerce/ui
+cd /home/user/kaupamex/ui
 # 1) cargar nvm explícito (no se auto-carga en shell develop — ver D-07)
 export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
 nvm use                             # lee .nvmrc (=20)
@@ -129,7 +129,7 @@ npx jest --testPathPattern="apiService"   # subset por patrón
 ### Build docs (cuando se tocan RST) — OPCIONAL
 
 ```bash
-cd /home/user/e-comerce/docs
+cd /home/user/kaupamex/docs
 make html                           # exit 0, 0 warnings nuevos
 ```
 

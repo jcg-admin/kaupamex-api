@@ -1,6 +1,6 @@
 ---
 name: Status
-description: Estado rápido del proyecto sin invocar agentes. Lee la fuente canónica de "qué sigue" (siguiente-mejor-decision.rst), el progreso de la iniciativa activa y git, y resume en 3-5 líneas. Adaptado a e-comerce (no usa ROADMAP.md ni .thyrox/).
+description: Estado rápido del proyecto sin invocar agentes. Lee la fuente canónica de "qué sigue" (siguiente-mejor-decision.rst), el progreso de la iniciativa activa y git, y resume en 3-5 líneas. Adaptado a kaupamex (no usa ROADMAP.md ni .thyrox/).
 ---
 
 # /thyrox:status — Estado rápido

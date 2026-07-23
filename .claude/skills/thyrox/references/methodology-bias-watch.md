@@ -8,7 +8,7 @@ version: 1.0.0
 
 # Methodology Bias Watch
 
-> **Adaptacion e-comerce (2026-05-19):** Las menciones a "sesion IACT-docs
+> **Adaptacion kaupamex (2026-05-19):** Las menciones a "sesion IACT-docs
 > 2026-04-29" y paths `.thyrox/context/work/<WP>/` son del template
 > original. La leccion metodologica (no codificar invariantes desde una
 > sola sesion exitosa) aplica igual; el WP equivalente seria

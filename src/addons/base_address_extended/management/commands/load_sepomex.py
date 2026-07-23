@@ -26,7 +26,7 @@ _FIELDS = [
     'postal_code_internal_code', 'settlement_type_code', 'municipality_code',
     'settlement_consecutive_id', 'zone', 'city_code',
 ]
-_DEFAULT_PATH = '/home/user/e-commerce-db/provisioners/mariadb/data/sepomex-codigos-postales.txt'
+_DEFAULT_PATH = '/home/user/kaupamex-db/provisioners/mariadb/data/sepomex-codigos-postales.txt'
 
 
 class Command(BaseCommand):

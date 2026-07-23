@@ -17,10 +17,10 @@ Si `DB_SOCKET` no está seteada → fallback TCP (`127.0.0.1:3306`).
 
 ## Gate (obligatorio antes de migrar o correr tests de integración)
 
-Desde `/home/user/e-commerce-api`, ejecuta y **cita la salida**:
+Desde `/home/user/kaupamex-api`, ejecuta y **cita la salida**:
 
 ```bash
-cd /home/user/e-commerce-api && \
+cd /home/user/kaupamex-api && \
   PYTHONPATH=practicayoruba DJANGO_SETTINGS_MODULE=config.settings.testing \
   python -c "from django.db import connection; \
     print('unix_socket:', connection.settings_dict.get('OPTIONS',{}).get('unix_socket','<NONE>'))"

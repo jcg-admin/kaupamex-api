@@ -1,13 +1,13 @@
 CICLO76_RESULTS:
-- H-CICLO76-01 [MEDIA]: InitiatePaymentView returns payment.pk (sequential integer) as payment_id, allowing enumeration of all Payment records. Removed sequential PK from response; payment_id now null. order_number is sufficient for all UI flows. (e-commerce-api@40c6c16)
+- H-CICLO76-01 [MEDIA]: InitiatePaymentView returns payment.pk (sequential integer) as payment_id, allowing enumeration of all Payment records. Removed sequential PK from response; payment_id now null. order_number is sufficient for all UI flows. (kaupamex-api@40c6c16)
 - H-CICLO76-02: clean — AdminUserDetailSerializer inherits AdminUserListSerializer; no password hash, no JWT tokens exposed. is_admin (source=is_superuser) is intentional for admin management UI.
 - H-CICLO76-03: clean — _get_active_discount() uses _prefetched_objects_cache correctly. Discount percentage calculation uses Decimal, no float arithmetic.
-- H-CICLO76-04 [ALTA]: transition_order_status() allows IN_PREPARATION->SHIPPED with no ShipmentGuide check. Order could be marked SHIPPED with no tracking number. Added guard: raises ValueError if no active ShipmentGuide exists. (e-commerce-api@2d7d679)
-- H-CICLO76-05 [BAJA]: AdminOrderDetailPage.jsx never rendered order.address (shipping destination). AdminOrderSerializer exposes address via OrderAddressSerializer. Admin had no visibility into where the order was shipped. Added shipping address section. (e-commerce-ui@37a0a7a)
+- H-CICLO76-04 [ALTA]: transition_order_status() allows IN_PREPARATION->SHIPPED with no ShipmentGuide check. Order could be marked SHIPPED with no tracking number. Added guard: raises ValueError if no active ShipmentGuide exists. (kaupamex-api@2d7d679)
+- H-CICLO76-05 [BAJA]: AdminOrderDetailPage.jsx never rendered order.address (shipping destination). AdminOrderSerializer exposes address via OrderAddressSerializer. Admin had no visibility into where the order was shipped. Added shipping address section. (kaupamex-ui@37a0a7a)
 - H-CICLO76-06: clean — ReturnItemInputSerializer.product_id validated in ReturnListCreateView.post(): purchased_qtys from OrderItem.objects.filter(order_id); product not in map raises PRODUCT_NOT_IN_ORDER.
 - H-CICLO76-07: clean — AdminBackupsPage.jsx fields match BackupRecordSerializer exactly.
 - H-CICLO76-08: clean — NotificationMarkReadView saves with update_fields=['read', 'updated_at'], bypassing auto_now correctly.
-- H-CICLO76-09 [MEDIA]: AdminContactMessageListView returned all ContactMessage rows unbounded, risking OOM. Added _ContactMessagePagination (25/page, max 100). (e-commerce-api@b9b2b8a)
+- H-CICLO76-09 [MEDIA]: AdminContactMessageListView returned all ContactMessage rows unbounded, risking OOM. Added _ContactMessagePagination (25/page, max 100). (kaupamex-api@b9b2b8a)
 - H-CICLO76-10: clean — Voucher.discount_value has MinValueValidator(Decimal('0.01')); zero-discount FIXED_AMOUNT voucher rejected at model level.
 
-COMMITS: e-commerce-api@40c6c16, e-commerce-api@2d7d679, e-commerce-api@b9b2b8a, e-commerce-ui@37a0a7a
+COMMITS: kaupamex-api@40c6c16, kaupamex-api@2d7d679, kaupamex-api@b9b2b8a, kaupamex-ui@37a0a7a

@@ -3,7 +3,7 @@ type: Regla de Proyecto
 category: Code style — imports
 version: 1.0.0
 created_at: 2026-05-20
-applies_to: e-comerce v1.0.0+ (api + ui)
+applies_to: kaupamex v1.0.0+ (api + ui)
 ```
 
 # Zero Lazy Imports — regla cross-submodulo

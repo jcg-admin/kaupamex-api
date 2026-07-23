@@ -56,7 +56,7 @@ install-hooks:
 # conocida del contenedor.
 db-up:
 	@DB_DIR="$${DB_DIR:-../db}"; \
-	if [ ! -d "$$DB_DIR" ]; then DB_DIR=/home/user/e-commerce-db; fi; \
+	if [ ! -d "$$DB_DIR" ]; then DB_DIR=/home/user/kaupamex-db; fi; \
 	echo "db-up: usando DB_DIR=$$DB_DIR"; \
 	bash "$$DB_DIR/scripts/start_db.sh"
 

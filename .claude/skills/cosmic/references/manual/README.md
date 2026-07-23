@@ -26,6 +26,6 @@ Markdown con pypdf (texto fiel; marcadores `<!-- pág i/n -->` conservan la pagi
 | [tutorial-early-sizing-m3-nfr.md](tutorial-early-sizing-m3-nfr.md) | Tutorial | Early Sizing M3 — Early & NFR (slides) |
 
 > Estas son la **fuente autoritativa** del skill `cosmic`. Reemplazan a los textos
-> v4.0.2 que tenía e-comerce. Pendientes otras partes que el ejecutor pueda pasar.
+> v4.0.2 que tenía kaupamex. Pendientes otras partes que el ejecutor pueda pasar.
 >
 > Uso: el skill cita estos archivos para reglas/definiciones; se cargan bajo demanda.

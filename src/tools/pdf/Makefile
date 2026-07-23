@@ -9,7 +9,7 @@
 #     sudo apt-get install -y libhpdf-dev
 #     make            # produces ./pdf_receipt and ./pdf_report
 #
-# The server provisioner (e-commerce-server) must install libhpdf-dev and run
+# The server provisioner (kaupamex-server) must install libhpdf-dev and run
 # `make` (or `make build`) in this directory during deploy so BOTH binaries
 # exist next to the source. The Django views invoke them via subprocess
 # (apps/payments -> pdf_receipt, apps/reports -> pdf_report). See ADR-017 for
