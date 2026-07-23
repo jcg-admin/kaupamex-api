@@ -40,7 +40,7 @@ contrato:
   ``POST /api/v2/auth/login/``) y el prefijo ``/api/v2/`` — coherente con
   `authentication.md` y `versioning.md`.
 - `CONTACT`: ``'Equipo Kaupamex' / 'soporte@kaupamex.com'`` — es el **operador
-  L0 de la plataforma**, no el buzón L1 del founder. El schema es infraestructura
+  L0 de la plataforma**, no el buzón del L1 de ejemplo. El schema es infraestructura
   de plataforma (un solo codebase Django sirve a todos los tenants), evaluada
   estáticamente al generar — sin dimensión de empresa (DEC-KX-05, follow-up
   #199). El `TITLE`/`DESCRIPTION` conservan el branding de PracticaYoruba como

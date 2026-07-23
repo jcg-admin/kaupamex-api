@@ -20,8 +20,9 @@ updated_at: 2026-07-17 19:33:06
 - **Plataforma vs tenant (DEC-KX-05):** el modelo es multi-tenant. El
   **operador L0** de la plataforma es **Kaupamex** (schemas `kaupamex_*`,
   `SYSTEM_COMPANY_CODE='kaupamex_global'`); **PracticaYoruba** es el tenant
-  **L1 founder** — el ejemplo/tenant insignia (`FOUNDER_COMPANY_CODE=
-  'practicayoruba'`), **no** el operador de plataforma ni "el producto"
+  **L1 de ejemplo (insignia)** — la constante de código es `FOUNDER_COMPANY_CODE=
+  'practicayoruba'`, pero en prosa no se usa "founder" (ver
+  `terminologia-l0-company.md`), **no** el operador de plataforma ni "el producto"
   como un todo. Los nombres `practicayoruba_*` del codigo son de ese tenant
   L1. Regla de clasificacion de config: infra/ops → L0 (Kaupamex);
   per-tenant (contacto, newsletter, remitente transaccional) → L1/L3

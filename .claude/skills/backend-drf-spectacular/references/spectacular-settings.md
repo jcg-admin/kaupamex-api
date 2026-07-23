@@ -21,7 +21,7 @@ PROVEN 2026-07-18:
 - `DESCRIPTION`: declara la auth de **sesión** (cookie HttpOnly via
   `POST /api/v2/auth/login/`) y el prefijo `/api/v2/`.
 - `CONTACT`: `'Equipo Kaupamex' / 'soporte@kaupamex.com'` — es el **operador L0 de
-  la plataforma**, no el buzón L1 del founder (DEC-KX-05, follow-up #199). El
+  la plataforma**, no el buzón del L1 de ejemplo (DEC-KX-05, follow-up #199). El
   `TITLE`/`DESCRIPTION` conservan el branding de PracticaYoruba como producto
   insignia. Ver `backend-drf/references/schema.md`.
 
