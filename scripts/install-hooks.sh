@@ -5,7 +5,7 @@
 # Idempotente: ejecuta 'git config core.hooksPath .githooks' relativo a
 # la raiz del submodulo api/.
 #
-# El hook pre-commit valida zero lazy imports en practicayoruba/apps/**.
+# El hook pre-commit valida zero lazy imports en src/apps/**.
 # Ver docs/source/gestion/pm/api/iniciativas/eliminar-lazy-imports-pep8/.
 # =============================================================================
 set -euo pipefail

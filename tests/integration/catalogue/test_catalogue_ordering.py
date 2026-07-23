@@ -8,7 +8,7 @@ import pytest
 from decimal import Decimal
 from django.utils import timezone
 from datetime import timedelta
-from apps.catalogue.models import Category, Product
+from addons.catalogue.models import Category, Product
 
 pytestmark = pytest.mark.integration
 

@@ -2,7 +2,7 @@
 Integration tests — P-17 search history endpoints (UC-SRCH-03).
 """
 import pytest
-from apps.catalogue.models import SearchHistory
+from addons.catalogue.models import SearchHistory
 from django.contrib.auth import get_user_model
 
 pytestmark = pytest.mark.integration

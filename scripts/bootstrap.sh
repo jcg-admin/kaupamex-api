@@ -224,7 +224,7 @@ phase_migrations() {
     log_header "Fase 5/6 — Migraciones Django"
 
     local python="${PROJECT_ROOT}/.venv/bin/python3"
-    local manage="${PROJECT_ROOT}/practicayoruba/manage.py"
+    local manage="${PROJECT_ROOT}/src/manage.py"
 
     if ! exists_file "$manage"; then
         log_warn "manage.py no encontrado en ${manage}"
@@ -236,13 +236,13 @@ phase_migrations() {
         return 0
     fi
 
-    local env_file="${PROJECT_ROOT}/practicayoruba/.env"
+    local env_file="${PROJECT_ROOT}/src/.env"
     if ! exists_file "$env_file"; then
         # D-031 / H-15: auto-crear .env desde .env.example. Antes el
         # script salia con warn y exigia copia manual — el operador
         # tenia que recordar el paso. Ahora idempotente: si .env existe
         # se preserva; si no, se copia desde .env.example.
-        local env_example="${PROJECT_ROOT}/practicayoruba/.env.example"
+        local env_example="${PROJECT_ROOT}/src/.env.example"
         if exists_file "$env_example"; then
             log_info ".env no existe — copiando desde .env.example..."
             cp "$env_example" "$env_file"
@@ -274,8 +274,8 @@ phase_seed() {
     log_header "Fase 5c/6 — Seed de usuarios E2E (opcional)"
 
     local python="${PROJECT_ROOT}/.venv/bin/python3"
-    local manage="${PROJECT_ROOT}/practicayoruba/manage.py"
-    local env_file="${PROJECT_ROOT}/practicayoruba/.env"
+    local manage="${PROJECT_ROOT}/src/manage.py"
+    local env_file="${PROJECT_ROOT}/src/.env"
 
     if ! exists_file "$manage"; then
         log_warn "  manage.py no encontrado — seed omitido"
@@ -298,7 +298,7 @@ phase_seed() {
     if [[ -z "${ADMIN_PASSWORD:-}" || -z "${QA_BUYER_PASSWORD:-}" ]]; then
         log_warn "  ADMIN_PASSWORD / QA_BUYER_PASSWORD no definidos en .env"
         log_warn "  Seed de usuarios omitido — para ejecutar manualmente:"
-        log_warn "    cd practicayoruba"
+        log_warn "    cd src"
         log_warn "    python manage.py create_seed_users"
         return 0
     fi
@@ -315,8 +315,8 @@ phase_seed_catalog() {
     log_header "Fase 5d/6 — Seed de catálogo E2E (opcional)"
 
     local python="${PROJECT_ROOT}/.venv/bin/python3"
-    local manage="${PROJECT_ROOT}/practicayoruba/manage.py"
-    local env_file="${PROJECT_ROOT}/practicayoruba/.env"
+    local manage="${PROJECT_ROOT}/src/manage.py"
+    local env_file="${PROJECT_ROOT}/src/.env"
 
     if ! exists_file "$manage"; then
         log_warn "  manage.py no encontrado — seed de catálogo omitido"
@@ -341,7 +341,7 @@ phase_seed_catalog() {
         && log_success "  Seed de catálogo E2E completado" \
         || {
             log_warn "  create_seed_catalog falló — ejecutar manualmente:"
-            log_warn "    cd practicayoruba && python manage.py create_seed_catalog"
+            log_warn "    cd src && python manage.py create_seed_catalog"
         }
 }
 
@@ -407,8 +407,8 @@ main() {
     if [[ -n "$repo_owner" && "$repo_owner" != "root" ]]; then
         log_info "  Restaurando ownership a ${repo_owner}:${repo_group} (owner del repo)..."
         for path in "${PROJECT_ROOT}/.venv" \
-                    "${PROJECT_ROOT}/practicayoruba/logs" \
-                    "${PROJECT_ROOT}/practicayoruba/.env"; do
+                    "${PROJECT_ROOT}/src/logs" \
+                    "${PROJECT_ROOT}/src/.env"; do
             [[ -e "$path" ]] && chown -R "${repo_owner}:${repo_group}" "$path"
         done
         log_success "  Ownership restaurado a ${repo_owner}:${repo_group}"
@@ -435,8 +435,8 @@ main() {
         # archivos pre-existentes creados por runserver como develop.
         if getent group www-data >/dev/null 2>&1; then
             log_info "  Configurando permisos runtime para www-data (Apache)..."
-            for runtime_dir in "${PROJECT_ROOT}/practicayoruba/logs" \
-                               "${PROJECT_ROOT}/practicayoruba/media"; do
+            for runtime_dir in "${PROJECT_ROOT}/src/logs" \
+                               "${PROJECT_ROOT}/src/media"; do
                 mkdir -p "$runtime_dir"
                 chgrp -R www-data "$runtime_dir" 2>/dev/null || true
                 chmod -R g+w,g+s "$runtime_dir" 2>/dev/null || true
@@ -449,7 +449,7 @@ main() {
         log_warn "  PROJECT_ROOT root-owned o sin stat — omitiendo chown post-bootstrap"
         log_warn "  Si manage.py falla con PermissionError en logs/:"
         log_warn "    sudo chown -R \$(stat -c '%U' \"$PROJECT_ROOT\"):\$(stat -c '%G' \"$PROJECT_ROOT\") \\"
-        log_warn "      ${PROJECT_ROOT}/practicayoruba/logs ${PROJECT_ROOT}/.venv"
+        log_warn "      ${PROJECT_ROOT}/src/logs ${PROJECT_ROOT}/.venv"
     fi
 
     log_separator 60 "="
@@ -466,7 +466,7 @@ main() {
     echo ""
     log_info "Siguientes pasos:"
     log_info "  source .venv/bin/activate"
-    log_info "  cd practicayoruba"
+    log_info "  cd src"
     log_info "  python manage.py runserver"
     log_info ""
     log_info "Si el seed E2E no se ejecuto automaticamente (ADMIN_PASSWORD"

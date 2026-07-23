@@ -7,8 +7,9 @@ capacidades ``account.*`` del rol ``comprador`` (asignado al registrarse). El
 menú admin (``audience='admin'``, default) NO debe incluir ítems de cuenta y
 viceversa. Agregar un menú futuro = sembrar una fila, sin tocar el UI.
 """
-from apps.authz.models import MenuItem, Role, RoleAssignment
-from apps.authz.services import (
+from addons.authz.models import Role, RoleAssignment
+from addons.authz_menu.models import MenuItem
+from addons.authz.services import (
     BUYER_ROLE_CODE, SUPERADMIN_ROLE_CODE, assign_buyer_role,
     invalidate_capabilities,
 )

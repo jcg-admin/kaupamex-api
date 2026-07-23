@@ -2,13 +2,14 @@
 Tests — Reenviar emails de notificacion fallidos (UC-SYS-04).
 
 UC-SYS-04 es un proceso de sistema (sin endpoint HTTP): el management
-command ``send_pending_emails`` drena la cola EmailTask (PENDING/RETRYING)
-y reintenta con backoff exponencial (5 min x attempts), marcando FAILED al
-agotar max_attempts.
+command ``send_pending_emails`` drena la cola de correo saliente ``mail.mail``
+(``MailMail``, hogar Odoo fiel de la ex-``EmailTask``): filas ``outgoing`` cuya
+fecha diferida ya pasó, reintentando con backoff exponencial (5 min x attempts)
+y marcando ``exception`` al agotar ``max_attempts``.
 
 Implementacion:
-  apps/notifications/management/commands/send_pending_emails.py
-  apps/notifications/models.py :: EmailTask
+  src/addons/mail/management/commands/send_pending_emails.py
+  src/addons/mail/models/mail_mail.py :: MailMail
 """
 import pytest
 from datetime import timedelta
@@ -17,7 +18,7 @@ from django.core import mail
 from django.core.management import call_command
 from django.utils import timezone
 
-from apps.notifications.models import EmailTask
+from addons.mail.models import MailMail
 
 pytestmark = pytest.mark.integration
 
@@ -30,86 +31,81 @@ class TestSendPendingEmails:
 
     def test_envia_pendiente_y_marca_sent(self, db):
         mail.outbox = []
-        task = EmailTask.objects.create(
+        m = MailMail.enqueue(
             to='dest@practicayoruba.mx',
             subject='Confirmacion de orden',
-            body='Gracias por tu compra.',
-            status=EmailTask.Status.PENDING,
+            body_html='Gracias por tu compra.',
         )
         _run()
-        task.refresh_from_db()
-        assert task.status == EmailTask.Status.SENT
-        assert task.attempts == 1
-        assert task.sent_at is not None
+        m.refresh_from_db()
+        assert m.state == MailMail.STATE_SENT
+        assert m.attempts == 1
         assert len(mail.outbox) == 1
         assert mail.outbox[0].to == ['dest@practicayoruba.mx']
 
     def test_no_procesa_tarea_futura(self, db):
-        """scheduled_at en el futuro => no se toca (backoff aun pendiente)."""
+        """scheduled_date en el futuro => no se toca (backoff aun pendiente)."""
         mail.outbox = []
-        task = EmailTask.objects.create(
-            to='futuro@practicayoruba.mx', subject='S', body='B',
-            status=EmailTask.Status.RETRYING,
-        )
-        # auto_now_add fija scheduled_at; forzar al futuro con update.
-        EmailTask.objects.filter(pk=task.pk).update(
-            scheduled_at=timezone.now() + timedelta(hours=1),
+        m = MailMail.enqueue(
+            to='futuro@practicayoruba.mx', subject='S', body_html='B',
+            scheduled_date=timezone.now() + timedelta(hours=1),
         )
         _run()
-        task.refresh_from_db()
-        assert task.status == EmailTask.Status.RETRYING
-        assert task.attempts == 0
+        m.refresh_from_db()
+        assert m.state == MailMail.STATE_OUTGOING
+        assert m.attempts == 0
         assert len(mail.outbox) == 0
 
     def test_fallo_de_envio_marca_retrying_con_backoff(self, db, settings):
-        """Si send_mail lanza, la tarea pasa a RETRYING y reprograma scheduled_at."""
+        """Si send_mail lanza, el correo sigue outgoing y reprograma scheduled_date."""
         settings.EMAIL_BACKEND = 'django.core.mail.backends.dummy.EmailBackend'
-        task = EmailTask.objects.create(
-            to='falla@practicayoruba.mx', subject='S', body='B',
-            status=EmailTask.Status.PENDING, max_attempts=3,
+        m = MailMail.enqueue(
+            to='falla@practicayoruba.mx', subject='S', body_html='B',
+            max_attempts=3,
         )
         before = timezone.now()
         with pytest.MonkeyPatch.context() as mp:
             def _boom(*a, **k):
                 raise RuntimeError('SMTP down')
             mp.setattr(
-                'apps.notifications.management.commands.send_pending_emails.send_mail',
+                'addons.mail.management.commands.send_pending_emails.send_mail',
                 _boom,
             )
             _run()
-        task.refresh_from_db()
-        assert task.status == EmailTask.Status.RETRYING
-        assert task.attempts == 1
-        assert 'SMTP down' in task.last_error
-        # backoff: scheduled_at corrido al futuro (5 min x attempts).
-        assert task.scheduled_at > before
+        m.refresh_from_db()
+        assert m.state == MailMail.STATE_OUTGOING
+        assert m.attempts == 1
+        assert 'SMTP down' in m.failure_reason
+        # backoff: scheduled_date corrido al futuro (5 min x attempts).
+        assert m.scheduled_date > before
 
     def test_agota_reintentos_marca_failed(self, db):
-        """Tras max_attempts fallos, la tarea queda FAILED (no se reintenta mas)."""
-        task = EmailTask.objects.create(
-            to='maxed@practicayoruba.mx', subject='S', body='B',
-            status=EmailTask.Status.RETRYING, max_attempts=2, attempts=1,
+        """Tras max_attempts fallos, el correo queda exception (no se reintenta mas)."""
+        m = MailMail.enqueue(
+            to='maxed@practicayoruba.mx', subject='S', body_html='B',
+            max_attempts=2,
         )
+        MailMail.objects.filter(pk=m.pk).update(attempts=1)
         with pytest.MonkeyPatch.context() as mp:
             def _boom(*a, **k):
                 raise RuntimeError('SMTP down')
             mp.setattr(
-                'apps.notifications.management.commands.send_pending_emails.send_mail',
+                'addons.mail.management.commands.send_pending_emails.send_mail',
                 _boom,
             )
             _run()
-        task.refresh_from_db()
-        # attempts pasa de 1 a 2 == max_attempts => FAILED.
-        assert task.attempts == 2
-        assert task.status == EmailTask.Status.FAILED
+        m.refresh_from_db()
+        # attempts pasa de 1 a 2 == max_attempts => exception.
+        assert m.attempts == 2
+        assert m.state == MailMail.STATE_EXCEPTION
 
     def test_no_reintenta_tarea_ya_enviada(self, db):
         mail.outbox = []
-        task = EmailTask.objects.create(
-            to='ya@practicayoruba.mx', subject='S', body='B',
-            status=EmailTask.Status.SENT,
+        m = MailMail.enqueue(
+            to='ya@practicayoruba.mx', subject='S', body_html='B',
         )
+        m.mark_sent()
         _run()
-        task.refresh_from_db()
-        assert task.status == EmailTask.Status.SENT
+        m.refresh_from_db()
+        assert m.state == MailMail.STATE_SENT
         assert len(mail.outbox) == 0

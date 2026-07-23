@@ -18,14 +18,14 @@ from django.test import RequestFactory
 from rest_framework import exceptions
 from rest_framework.test import APIRequestFactory
 
-from apps.core.exception_handling import custom_exception_handler
-from apps.core.logging_context import (
+from addons.observability.exception_handling import custom_exception_handler
+from addons.observability.middleware import RequestLogMiddleware
+from addons.observability.models import RequestLog
+from tools.logging_context import (
     clear_correlation_id,
     get_request_error,
     set_request_error,
 )
-from apps.core.middleware.request_log import RequestLogMiddleware
-from apps.core.models import RequestLog
 
 pytestmark = [pytest.mark.unit]
 
@@ -56,7 +56,7 @@ def test_scrubs_error_detail():
 def test_non_blocking_on_seal_failure():
     exc = exceptions.NotFound('missing')
     with mock.patch(
-        'apps.core.exception_handling.set_request_error',
+        'addons.observability.exception_handling.set_request_error',
         side_effect=RuntimeError('ctx broke'),
     ):
         resp = custom_exception_handler(exc, {'request': APIRequestFactory().get('/x')})

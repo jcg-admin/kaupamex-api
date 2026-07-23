@@ -12,7 +12,7 @@ import pytest
 from PIL import Image
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from apps.settings_app.models import Banner
+from addons.website.models import Banner
 
 pytestmark = pytest.mark.integration
 

@@ -12,7 +12,7 @@ Cubre exito (publicar/listar/detalle/restaurar con versionado), permisos
 """
 import pytest
 
-from apps.settings_app.models import StaticPage, StaticPageVersion
+from addons.website.models import StaticPage, StaticPageVersion
 
 pytestmark = pytest.mark.integration
 

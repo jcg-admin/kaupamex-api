@@ -11,13 +11,14 @@ import pytest
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
 from decouple import config
-from apps.catalogue.models import Category, Product
-from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress, ShippingZone
-from apps.settings_app.models import PaymentGateway, ShippingMethod
-from apps.payments.models import Payment, PaymentGatewayEvent
-from apps.payments.gateways.mercadopago import MercadoPagoGateway
-from apps.users.models import Address
-from apps.cart.models import CartItem
+from addons.catalogue.models import Category, Product
+from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress, ShippingZone
+from addons.sale.models import SaleOrder
+from addons.delivery.models import ShippingMethod
+from addons.payment.models import PaymentGateway
+from addons.payment.models import Payment, PaymentGatewayEvent
+from addons.payment_mercado_pago.gateway import MercadoPagoGateway
+from addons.users.models import Address
 
 pytestmark = pytest.mark.integration
 
@@ -91,7 +92,7 @@ def mp_gateway_activo(db, admin_user):
 @pytest.fixture
 def mock_mp_sdk():
     """Mock del SDK de MercadoPago para evitar llamadas reales."""
-    with patch('apps.payments.gateways.mercadopago.mercadopago') as mock_mp:
+    with patch('addons.payment_mercado_pago.gateway.mercadopago') as mock_mp:
         sdk_instance = MagicMock()
         mock_mp.SDK.return_value = sdk_instance
 
@@ -236,7 +237,7 @@ class TestIniciarPago:
     def test_iniciar_pago_gateway_down_retorna_503(
         self, auth_client, orden_pendiente, mp_gateway_activo, db
     ):
-        with patch('apps.payments.gateways.mercadopago.mercadopago') as mock_mp:
+        with patch('addons.payment_mercado_pago.gateway.mercadopago') as mock_mp:
             sdk = MagicMock()
             mock_mp.SDK.return_value = sdk
             sdk.preference.return_value.create.return_value = {
@@ -527,7 +528,9 @@ class TestCheckoutExpress:
         }, format='json')
 
         auth_client.post(EXPRESS_URL, {}, format='json')
-        assert CartItem.objects.filter(product=prod_s15).count() == 0
+        # V2: confirmar el draft lo transiciona — no queda draft del usuario.
+        assert SaleOrder.objects.filter(
+            partner=user, state=SaleOrder.STATE_DRAFT).count() == 0
 
 
 # =============================================================================
@@ -553,7 +556,7 @@ class TestPreferencePayerEnrichment:
             }
 
         sdk.preference.return_value.create.side_effect = _create
-        with patch('apps.payments.gateways.mercadopago._get_sdk', return_value=sdk):
+        with patch('addons.payment_mercado_pago.gateway._get_sdk', return_value=sdk):
             gw.create_preference(
                 order,
                 back_urls={'success': 'https://x/s', 'failure': 'https://x/f',

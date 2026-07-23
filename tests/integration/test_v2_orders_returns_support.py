@@ -11,7 +11,7 @@ Verifica que los endpoints /api/v2/ para el bloque F3 son funcionales:
 F3 no elimina v1; verifica coexistencia (doble-corrida).
 """
 import pytest
-from apps.support.models import SupportTicket
+from addons.helpdesk.models import SupportTicket
 
 pytestmark = pytest.mark.integration
 

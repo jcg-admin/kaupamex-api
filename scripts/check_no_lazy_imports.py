@@ -2,7 +2,7 @@
 """
 check_no_lazy_imports — gate de zero-tolerance para imports lazy.
 
-Verifica que ningun .py de ``practicayoruba/apps/**`` (excluyendo
+Verifica que ningun .py de ``src/apps/**`` (excluyendo
 ``migrations/``) contenga ``Import`` o ``ImportFrom`` dentro de un
 ``FunctionDef`` / ``AsyncFunctionDef``.
 
@@ -31,7 +31,7 @@ import sys
 from pathlib import Path
 
 DEFAULT_ROOTS = [
-    Path('practicayoruba/apps'),
+    Path('src/apps'),
     Path('tests'),
 ]
 
@@ -107,7 +107,7 @@ def main(argv: list[str]) -> int:
         )
         print('', file=sys.stderr)
         print(
-            'Lazy imports estan PROHIBIDOS en practicayoruba/apps/** y tests/**.',
+            'Lazy imports estan PROHIBIDOS en src/apps/** y tests/**.',
             file=sys.stderr,
         )
         print(

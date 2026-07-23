@@ -11,10 +11,10 @@ import pytest
 from decimal import Decimal
 from unittest.mock import patch
 
-from apps.catalogue.models import Category, Product
-from apps.inventory.services import InventoryService
-from apps.orders.models import Order, CheckoutAttempt, ShippingZone
-from apps.settings_app.models import ShippingMethod
+from addons.catalogue.models import Category, Product
+from addons.inventory.services import InventoryService
+from addons.orders.models import Order, CheckoutAttempt, ShippingZone
+from addons.delivery.models import ShippingMethod
 
 pytestmark = pytest.mark.integration
 

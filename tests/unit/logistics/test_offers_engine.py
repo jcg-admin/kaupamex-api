@@ -1,5 +1,5 @@
 """
-Unit tests — motor de cotización puro (apps.logistics.offers).
+Unit tests — motor de cotización puro (addons.delivery.offers).
 
 Sin Django ORM: opera sobre ``RateCard`` y dicts. Cubre la lógica núcleo
 de la "Shipment Offer API" adaptada:
@@ -9,7 +9,7 @@ de la "Shipment Offer API" adaptada:
   - Cálculo de costo = base + por_kg × peso_total.
 """
 from decimal import Decimal
-from apps.logistics.offers import RateCard, build_offers
+from addons.delivery.offers import RateCard, build_offers
 
 import pytest
 

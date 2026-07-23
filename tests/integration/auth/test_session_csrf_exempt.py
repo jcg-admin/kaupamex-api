@@ -22,7 +22,7 @@ from decimal import Decimal
 import pytest
 from rest_framework.test import APIClient
 
-from apps.catalogue.models import Category, Product
+from addons.catalogue.models import Category, Product
 
 pytestmark = pytest.mark.integration
 

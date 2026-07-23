@@ -1,0 +1,54 @@
+"""Decoradores del ORM — fiel a ``odoo/orm/decorators.py`` (Odoo 19).
+
+En Odoo 19 los decoradores ``@api.depends``/``@api.constrains``/``@api.model``…
+se **definen** en ``odoo/orm/decorators.py`` y ``odoo/api/__init__.py`` los
+re-exporta. Aquí, con el prefijo ``odoo.`` eliminado (``orm`` ≙ ``odoo/orm``),
+esta es la **definición**; ``src/api/__init__.py`` (≙ ``odoo/api/__init__.py``)
+la re-exporta como el namespace ``api``.
+
+Django no tiene el motor de dependencias del ORM de Odoo: el cómputo se ejecuta
+en ``save()`` y la validación en ``clean()``. Estos decoradores **no cambian el
+comportamiento** (devuelven la función tal cual) y anotan el metadato ``_odoo_*``
+con los campos declarados; permiten conservar el decorador sobre el método
+portado para expresar la intención Odoo — el ``save()``/``clean()`` del modelo
+es quien realmente los llama.
+"""
+
+__all__ = [
+    'depends', 'constrains', 'onchange', 'model', 'model_create_multi', 'returns',
+]
+
+
+def depends(*fields):
+    def deco(func):
+        func._odoo_depends = fields
+        return func
+    return deco
+
+
+def constrains(*fields):
+    def deco(func):
+        func._odoo_constrains = fields
+        return func
+    return deco
+
+
+def onchange(*fields):
+    def deco(func):
+        func._odoo_onchange = fields
+        return func
+    return deco
+
+
+def model(func):
+    return func
+
+
+def model_create_multi(func):
+    return func
+
+
+def returns(*args, **kwargs):
+    def deco(func):
+        return func
+    return deco

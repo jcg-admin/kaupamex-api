@@ -9,8 +9,8 @@ un Order real.
 import pytest
 from decimal import Decimal
 
-from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
-from apps.payments.gateways.mercadopago import (
+from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from addons.payment_mercado_pago.gateway import (
     _build_order_payload,
     _build_order_payment_method,
     _amount_str,

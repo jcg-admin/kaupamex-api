@@ -1,15 +1,15 @@
 """
 Tests unitarios del management command create_seed_users.
 
-BD: practicayoruba_qa (config.settings.testing)
+BD: kaupamex_qa (config.settings.testing)
 """
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.core.management.base import CommandError
 
-from apps.authz.models import RoleAssignment
-from apps.authz.services import SUPERADMIN_ROLE_CODE
+from addons.authz.models import RoleAssignment
+from addons.authz.services import SUPERADMIN_ROLE_CODE
 
 pytestmark = pytest.mark.unit
 

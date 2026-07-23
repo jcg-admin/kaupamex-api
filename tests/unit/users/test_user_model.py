@@ -4,12 +4,12 @@ Tests unitarios del modelo de identidad — PracticaYoruba API (party, T-201).
 IdentityUser (U-D puro) es sólo email + credenciales; nombre/teléfono/avatar
 viven en Person. El email es el identificador (USERNAME_FIELD).
 
-BD: practicayoruba_qa
+BD: kaupamex_qa
 """
 import pytest
 from django.contrib.auth import get_user_model
 
-from apps.users.models import Person
+from addons.users.models import Person
 
 pytestmark = pytest.mark.unit
 

@@ -9,8 +9,8 @@ permisos (anon 401, comprador 403) y validacion de error con ``codigo_error``
 import pytest
 from decimal import Decimal
 
-from apps.orders.models import Order
-from apps.settings_app.models import ShippingMethod
+from addons.orders.models import Order
+from addons.delivery.models import ShippingMethod
 
 pytestmark = pytest.mark.integration
 

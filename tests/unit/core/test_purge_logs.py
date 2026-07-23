@@ -2,10 +2,13 @@
 
 Verifican la politica de retencion:
   - RequestLog > 30 d se purga; <= 30 d se conserva,
-  - AppLog INFO/DEBUG > 14 d se purga; WARNING/ERROR se conservan hasta 90 d,
+  - IrLogging INFO/DEBUG > 14 d se purga; WARNING/ERROR se conservan hasta 90 d,
   - BusinessEvent NUNCA se purga,
   - --dry-run cuenta pero no borra,
   - idempotente: segunda corrida purga 0.
+
+``IrLogging`` (``ir.logging``, ``addons.base``) reemplaza a ``core.AppLog``
+desde DEC-08 slice 2 — misma politica, otro modelo de origen.
 
 created_at es auto_now_add → se fuerza con queryset.update para simular
 antiguedad. Toca DB → django_db.
@@ -17,8 +20,9 @@ import pytest
 from django.core.management import call_command
 from django.utils import timezone
 
-from apps.core.models import AppLog, RequestLog
-from apps.users.models import BusinessEvent
+from addons.base.models import IrLogging
+from addons.observability.models import RequestLog
+from addons.users.models import BusinessEvent
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
@@ -47,20 +51,20 @@ def test_purges_old_requestlog_keeps_recent():
 
 
 def test_applog_low_purged_at_14d_high_kept():
-    info = AppLog.objects.create(logger_name='a', level='INFO', msg='i')
-    err = AppLog.objects.create(logger_name='a', level='ERROR', msg='e')
-    _age(AppLog, info.pk, 15)   # INFO > 14 d -> purga
-    _age(AppLog, err.pk, 15)    # ERROR a 15 d -> se conserva (< 90 d)
+    info = IrLogging.objects.create(name='a', level='INFO', message='i')
+    err = IrLogging.objects.create(name='a', level='ERROR', message='e')
+    _age(IrLogging, info.pk, 15)   # INFO > 14 d -> purga
+    _age(IrLogging, err.pk, 15)    # ERROR a 15 d -> se conserva (< 90 d)
     _run()
-    assert not AppLog.objects.filter(pk=info.pk).exists()
-    assert AppLog.objects.filter(pk=err.pk).exists()
+    assert not IrLogging.objects.filter(pk=info.pk).exists()
+    assert IrLogging.objects.filter(pk=err.pk).exists()
 
 
 def test_applog_high_purged_at_90d():
-    err = AppLog.objects.create(logger_name='a', level='ERROR', msg='e')
-    _age(AppLog, err.pk, 91)
+    err = IrLogging.objects.create(name='a', level='ERROR', message='e')
+    _age(IrLogging, err.pk, 91)
     _run()
-    assert not AppLog.objects.filter(pk=err.pk).exists()
+    assert not IrLogging.objects.filter(pk=err.pk).exists()
 
 
 def test_does_not_touch_business_event():

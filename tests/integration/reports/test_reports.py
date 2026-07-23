@@ -9,15 +9,18 @@ UC-REP-05: Report export (CSV/PDF)
 
 DEC-DOC-005: English identifiers and English JSON keys.
 """
+import uuid
 from datetime import timedelta
 from decimal import Decimal
 from django.utils import timezone
-from apps.catalogue.models import Category, Product
+from addons.catalogue.models import Category, Product
 from django.contrib.auth import get_user_model
-from apps.authz.models import Capability, Module, Role, RoleAssignment
-from apps.orders.models import Order, OrderItem, OrderValue
-from apps.payments.models import Payment
-from apps.support.models import SupportTicket
+from addons.authz.models import Capability, Module, Role, RoleAssignment
+from addons.orders.models import Order, OrderItem, OrderValue
+from addons.payment.models import Payment
+from addons.helpdesk.models import SupportTicket
+from addons.sale.models import SaleOrder
+from addons.sale.services import add_item_to_draft, confirm_draft_order
 
 import pytest
 
@@ -145,6 +148,31 @@ class TestSalesReport:
         # 2 orders, total: 2*500 + 1*500 = 1500
         assert Decimal(body['totals']['revenue']) == Decimal('1500.00')
         assert body['totals']['orders'] == 2
+
+    def test_sales_excludes_cancelled_linked_order(self, admin_client, product, buyer):
+        # V5c-2-reports (H-SALE-09): la exclusión de canceladas ahora se
+        # deriva de sale.state, no de la columna legacy. Una orden confirmada
+        # y luego cancelada (sale.state='cancel') NO debe contar en revenue.
+        _make_order(buyer, product, qty=1)  # cuenta: 500
+        product.stock = 50
+        product.save(update_fields=['stock'])
+        draft = SaleOrder.objects.create(
+            state=SaleOrder.STATE_DRAFT, cart_token=uuid.uuid4())
+        add_item_to_draft(draft, product, quantity=1)
+        legacy = confirm_draft_order(
+            draft,
+            address_data={'recipient_name': 'C', 'street': 's', 'city': 'c',
+                          'state': 'CDMX', 'zip_code': '06600'},
+            guest_email='cancel@t.mx')
+        # confirm_draft_order ya creó el OrderValue de la orden; solo la
+        # cancelamos por el eje canónico.
+        draft.refresh_from_db()
+        draft.action_cancel()
+        # Revenue incluye SOLO la orden no cancelada (500); si la cancelada
+        # no quedara excluida, el total superaría 500.
+        res = admin_client.get(f'{BASE}sales/?period=30d')
+        body = res.json()
+        assert Decimal(body['totals']['revenue']) == Decimal('500.00')
 
     def test_sales_payment_breakdown(self, admin_client, product, buyer):
         _make_order(buyer, product, gateway='MERCADOPAGO')

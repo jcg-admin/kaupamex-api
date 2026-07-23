@@ -11,7 +11,7 @@ si MP devuelve status="approved" o cualquier otro estado.
 import pytest
 from unittest.mock import patch, MagicMock
 
-from apps.payments.gateways.mercadopago import MercadoPagoGateway
+from addons.payment_mercado_pago.gateway import MercadoPagoGateway
 
 pytestmark = pytest.mark.integration
 
@@ -32,7 +32,7 @@ class TestZeroDollarAuthGateway:
             'status': 201,
             'response': {'id': 1001, 'status': 'approved'},
         }
-        with patch('apps.payments.gateways.mercadopago._get_sdk') as mock_get:
+        with patch('addons.payment_mercado_pago.gateway._get_sdk') as mock_get:
             mock_sdk = MagicMock()
             mock_get.return_value = mock_sdk
             mock_sdk.payment().create.return_value = mock_response
@@ -50,7 +50,7 @@ class TestZeroDollarAuthGateway:
             'status': 201,
             'response': {'id': 1002, 'status': 'approved'},
         }
-        with patch('apps.payments.gateways.mercadopago._get_sdk') as mock_get:
+        with patch('addons.payment_mercado_pago.gateway._get_sdk') as mock_get:
             mock_sdk = MagicMock()
             mock_get.return_value = mock_sdk
             mock_sdk.payment().create.return_value = mock_response
@@ -73,7 +73,7 @@ class TestZeroDollarAuthGateway:
             'status': 201,
             'response': {'id': 1003, 'status': 'rejected'},
         }
-        with patch('apps.payments.gateways.mercadopago._get_sdk') as mock_get:
+        with patch('addons.payment_mercado_pago.gateway._get_sdk') as mock_get:
             mock_sdk = MagicMock()
             mock_get.return_value = mock_sdk
             mock_sdk.payment().create.return_value = mock_response
@@ -91,7 +91,7 @@ class TestZeroDollarAuthGateway:
             'status': 400,
             'response': {'message': 'invalid token'},
         }
-        with patch('apps.payments.gateways.mercadopago._get_sdk') as mock_get:
+        with patch('addons.payment_mercado_pago.gateway._get_sdk') as mock_get:
             mock_sdk = MagicMock()
             mock_get.return_value = mock_sdk
             mock_sdk.payment().create.return_value = mock_response
@@ -108,7 +108,7 @@ class TestZeroDollarAuthGateway:
 # ---------------------------------------------------------------------------
 class TestZeroDollarAuthView:
     def test_approved_card_returns_valid_true(self, auth_client, db):
-        with patch('apps.payments.views.MercadoPagoGateway') as MockGW:
+        with patch('addons.payments.views.MercadoPagoGateway') as MockGW:
             MockGW.return_value.zero_dollar_auth.return_value = {
                 'id': 2001, 'status': 'approved',
             }
@@ -122,7 +122,7 @@ class TestZeroDollarAuthView:
         assert resp.json()['valid'] is True
 
     def test_rejected_card_returns_valid_false(self, auth_client, db):
-        with patch('apps.payments.views.MercadoPagoGateway') as MockGW:
+        with patch('addons.payments.views.MercadoPagoGateway') as MockGW:
             MockGW.return_value.zero_dollar_auth.return_value = {
                 'id': 2002, 'status': 'rejected',
             }
@@ -136,7 +136,7 @@ class TestZeroDollarAuthView:
         assert resp.json()['valid'] is False
 
     def test_pending_card_returns_valid_false(self, auth_client, db):
-        with patch('apps.payments.views.MercadoPagoGateway') as MockGW:
+        with patch('addons.payments.views.MercadoPagoGateway') as MockGW:
             MockGW.return_value.zero_dollar_auth.return_value = {
                 'id': 2003, 'status': 'pending',
             }
@@ -174,7 +174,7 @@ class TestZeroDollarAuthView:
         assert resp.status_code == 400
 
     def test_gateway_error_returns_502(self, auth_client, db):
-        with patch('apps.payments.views.MercadoPagoGateway') as MockGW:
+        with patch('addons.payments.views.MercadoPagoGateway') as MockGW:
             MockGW.return_value.zero_dollar_auth.side_effect = RuntimeError(
                 'Error al validar tarjeta en MercadoPago: invalid token'
             )
@@ -188,7 +188,7 @@ class TestZeroDollarAuthView:
         assert resp.json()['codigo_error'] == 'GATEWAY_ERROR'
 
     def test_payer_email_uses_authenticated_user(self, auth_client, user, db):
-        with patch('apps.payments.views.MercadoPagoGateway') as MockGW:
+        with patch('addons.payments.views.MercadoPagoGateway') as MockGW:
             MockGW.return_value.zero_dollar_auth.return_value = {
                 'id': 2004, 'status': 'approved',
             }

@@ -9,10 +9,10 @@ UC-SRCH-01: Full-text search with MariaDB FULLTEXT
 import pytest
 from decimal import Decimal
 from django.contrib.auth import get_user_model
-from apps.catalogue.models import Category, Product
-from apps.reviews.models import Review
-from apps.questions.models import ProductQuestion, QuestionStatus
-from apps.orders.models import Order
+from addons.catalogue.models import Category, Product
+from addons.rating.models import Review
+from addons.questions.models import ProductQuestion, QuestionStatus
+from addons.orders.models import Order
 
 pytestmark = pytest.mark.integration
 

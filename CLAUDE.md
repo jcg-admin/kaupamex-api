@@ -81,6 +81,18 @@ install-hooks db-up ci-test ci-test-fast` (`make help`).
   `practicayoruba/apps/`. El gate canon-idioma lo vigila.
 - **Zero lazy imports**: imports al top del módulo; el pre-commit lo bloquea.
 
+### Vistas DRF — invariante de seguridad (detalle en el skill `backend-drf`)
+
+- **Autorización por CAPACIDAD, nunca `IsAuthenticated` a secas.** Toda vista
+  que exponga datos/acciones va gateada por `HasCapability` (fail-closed: sin
+  capacidad declarada → 403). NO usar `permission_classes = [IsAuthenticated]`
+  solo — **salta** el modelo de capacidades DEC-11.
+- El **detalle de convenciones de vista** (estilo FBV / ViewSet+router / CBV,
+  azúcar de capacidad, `drf-spectacular`, gotcha del `.as_view()` manual con
+  `@action`, seed de capacidades) vive en el skill on-demand **`backend-drf`**
+  (`.claude/skills/backend-drf/SKILL.md`) — invocarlo al implementar/modificar
+  endpoints en `src/addons/**`. No se duplica aquí para no engordar el CLAUDE.
+
 ## Estructura
 
 ```

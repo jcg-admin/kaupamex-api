@@ -14,10 +14,10 @@ import json
 import pytest
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
-from apps.catalogue.models import Category, Product
-from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
-from apps.payments.models import Payment, WebhookEvent
-from apps.settings_app.models import PaymentGateway
+from addons.catalogue.models import Category, Product
+from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from addons.payment.models import Payment, WebhookEvent
+from addons.payment.models import PaymentGateway
 
 pytestmark = pytest.mark.integration
 
@@ -154,7 +154,7 @@ class TestWebhookPayPalIdempotencyDenied:
         }
 
         with patch(
-            'apps.payments.gateways.paypal.PayPalGateway.verify_webhook_signature',
+            'addons.payment_paypal.gateway.PayPalGateway.verify_webhook_signature',
             return_value=True,
         ):
             res1 = api_client.post(
@@ -182,7 +182,7 @@ class TestWebhookPayPalIdempotencyDenied:
         }
 
         with patch(
-            'apps.payments.gateways.paypal.PayPalGateway.verify_webhook_signature',
+            'addons.payment_paypal.gateway.PayPalGateway.verify_webhook_signature',
             return_value=True,
         ):
             res2 = api_client.post(
@@ -235,7 +235,7 @@ class TestWebhookMpReplayAttack:
 
         responses = []
         with patch(
-            'apps.payments.gateways.mercadopago.MercadoPagoGateway.verify_payment',
+            'addons.payment_mercado_pago.gateway.MercadoPagoGateway.verify_payment',
             return_value=gw_result,
         ):
             for _ in range(10):

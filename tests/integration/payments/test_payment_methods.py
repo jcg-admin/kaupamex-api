@@ -55,7 +55,7 @@ MOCK_MP_RESPONSE = [
     },
 ]
 
-MP_SDK_PATH = 'apps.payments.gateways.mercadopago._get_sdk'
+MP_SDK_PATH = 'addons.payment_mercado_pago.gateway._get_sdk'
 
 
 @pytest.mark.django_db(transaction=True)

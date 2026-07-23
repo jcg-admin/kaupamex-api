@@ -7,23 +7,26 @@ que garantizan que el refactoring no rompe nada.
 """
 import pytest
 from decimal import Decimal
-from apps.core.models import TimeStampedModel
-from apps.cart.models import Cart, CartItem, SavedCart, SavedCartItem
-from apps.catalogue.models import Category, Product, SearchHistory, ProductImage
-from apps.chartsize.models import VariantType, VariantOption, ProductVariant
-from apps.inventory.models import StockMovement, StockAlert
-from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
-from apps.settings_app.models import SiteSettings, PaymentGateway, ShippingMethod, StaticPage, StaticPageVersion
-from apps.users.models import Address, PasswordResetToken, EmailVerificationToken
-from apps.users.models import IdentityUser as User
-from apps.voucher.models import Voucher, VoucherChangeLog
-from apps.wishlist.models import WishlistItem
-from apps.catalogue.serializers import SearchHistorySerializer
-from apps.inventory.proxy_models import SaleMovement, CancellationMovement, AdjustmentMovement, ImportMovement
-from apps.orders.proxy_models import PendingOrder, DeliveredOrder, ActiveOrder, CancelledOrder
+from addons.base.models import TimeStampedModel
+from addons.cart.models import SavedCart, SavedCartItem
+from addons.catalogue.models import Category, Product, SearchHistory, ProductImage
+from addons.chartsize.models import VariantType, VariantOption, ProductVariant
+from addons.inventory.models import StockMovement, StockAlert
+from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from addons.base.models import SiteSettings
+from addons.delivery.models import ShippingMethod
+from addons.payment.models import PaymentGateway
+from addons.website.models import StaticPage, StaticPageVersion
+from addons.users.models import Address, PasswordResetToken, EmailVerificationToken
+from addons.users.models import IdentityUser as User
+from addons.loyalty.models import Voucher, VoucherChangeLog
+from addons.website_sale_wishlist.models import WishlistItem
+from addons.catalogue.serializers import SearchHistorySerializer
+from addons.inventory.proxy_models import SaleMovement, CancellationMovement, AdjustmentMovement, ImportMovement
+from addons.orders.proxy_models import PendingOrder, DeliveredOrder, ActiveOrder, CancelledOrder
 from django.utils import timezone
 from datetime import timedelta
-from apps.voucher.proxy_models import FixedVoucher, PercentageVoucher, FreeShippingVoucher
+from addons.loyalty.proxy_models import FixedVoucher, PercentageVoucher, FreeShippingVoucher
 
 pytestmark = pytest.mark.integration
 
@@ -38,7 +41,7 @@ class TestTimeStampedModelHerencia:
     def test_todos_los_modelos_heredan_de_timestampedmodel(self, db):
 
         models_concretos = [
-            Cart, CartItem, SavedCart, SavedCartItem,
+            SavedCart, SavedCartItem,
             Category, Product, SearchHistory, ProductImage,
             VariantType, VariantOption, ProductVariant,
             StockMovement, StockAlert,

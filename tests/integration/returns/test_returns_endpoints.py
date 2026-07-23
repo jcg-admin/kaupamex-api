@@ -22,12 +22,12 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
-from apps.catalogue.models import Category, Product
-from apps.orders.models import Order, OrderItem
-from apps.payments.models import Payment
-from apps.returns.models import ReturnHistoryEntry, ReturnRequest
-from apps.settings_app.models import PaymentGateway
-from apps.notifications.models import Notification, NotificationType
+from addons.catalogue.models import Category, Product
+from addons.orders.models import Order, OrderItem
+from addons.payment.models import Payment
+from addons.stock.models import ReturnHistoryEntry, ReturnRequest
+from addons.payment.models import PaymentGateway
+from addons.mail.models import Notification, NotificationType
 
 pytestmark = pytest.mark.integration
 
@@ -470,7 +470,7 @@ def mp_gateway_active(db):
 @pytest.fixture
 def mock_mp_refund_ok():
     """Mock SDK MercadoPago.refund.create -> happy path."""
-    with patch('apps.payments.gateways.mercadopago.mercadopago') as mock_mp:
+    with patch('addons.payment_mercado_pago.gateway.mercadopago') as mock_mp:
         sdk = MagicMock()
         mock_mp.SDK.return_value = sdk
         sdk.refund.return_value.create.return_value = {

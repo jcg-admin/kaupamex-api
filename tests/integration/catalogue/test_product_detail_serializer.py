@@ -10,7 +10,7 @@ import pytest
 from datetime import timedelta
 from decimal import Decimal
 from django.utils import timezone
-from apps.catalogue.models import Category, Product, ProductDiscount, ProductImage
+from addons.catalogue.models import Category, Product, ProductDiscount, ProductImage
 
 pytestmark = pytest.mark.integration
 

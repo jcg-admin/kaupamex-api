@@ -6,7 +6,7 @@ T-504: Tests covering GET with filters -> response includes reflection.
 """
 import pytest
 from decimal import Decimal
-from apps.catalogue.models import Category, Product
+from addons.catalogue.models import Category, Product
 
 pytestmark = pytest.mark.integration
 

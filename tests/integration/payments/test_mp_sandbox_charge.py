@@ -7,7 +7,7 @@ Dos niveles:
   - Integración opt-in (NO corre en CI): cobro real contra MP sandbox.
     Saltado salvo que RUN_MP_SANDBOX=1 y existan las MP_TEST_* en env/.env.
 
-BD: practicayoruba_qa (config.settings.testing).
+BD: kaupamex_qa (config.settings.testing).
 """
 import os
 import hmac
@@ -19,10 +19,10 @@ import decouple
 from django.core.management.base import CommandError
 from django.test import Client
 
-from apps.settings_app.models import PaymentGateway
-from apps.orders.models import Order
-from apps.payments.models import Payment, WebhookEvent
-from apps.payments.management.commands.mp_sandbox_charge import (
+from addons.payment.models import PaymentGateway
+from addons.orders.models import Order
+from addons.payment.models import Payment, WebhookEvent
+from addons.payment_mercado_pago.management.commands.mp_sandbox_charge import (
     run_sandbox_charge, TEST_CARDS, STATUS_NAMES, EXPECTED_MP_STATUS,
 )
 

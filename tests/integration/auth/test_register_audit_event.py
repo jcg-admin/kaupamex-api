@@ -6,7 +6,7 @@ REGISTER_SUCCESS, REGISTER_FAIL en RegisterView.post.
 """
 import pytest
 from django.urls import reverse
-from apps.users.models import AuthEvent
+from addons.users.models import AuthEvent
 
 pytestmark = [pytest.mark.integration, pytest.mark.django_db(transaction=True)]
 

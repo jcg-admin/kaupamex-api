@@ -44,7 +44,7 @@ test:
 	pytest
 
 test-coverage:
-	pytest --cov=practicayoruba --cov-report=term-missing
+	pytest --cov=src --cov-report=term-missing
 
 install-hooks:
 	bash scripts/install-hooks.sh

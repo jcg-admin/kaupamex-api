@@ -10,10 +10,12 @@ UC-CART-06: Merge anonymous cart on login
 import uuid, pytest
 from decimal import Decimal
 from rest_framework.test import APIClient
-from apps.catalogue.models import Category, Product
-from apps.chartsize.models import VariantType, VariantOption, ProductVariant
-from apps.cart.models import Cart, CartItem, SavedCart
-from apps.users.models import IdentityUser as User
+from addons.catalogue.models import Category, Product
+from addons.chartsize.models import VariantType, VariantOption, ProductVariant
+from addons.cart.models import SavedCart
+from addons.sale.models import SaleOrder
+from addons.sale.services import add_item_to_draft, get_or_create_draft_order
+from addons.users.models import IdentityUser as User
 
 pytestmark = pytest.mark.integration
 
@@ -201,12 +203,13 @@ class TestAgregarProducto:
         assert len(body['items']) == 1
         assert body['items'][0]['quantity'] == 1
 
-        # 3) Persistencia en el modelo: el Cart con ese token tiene 1 item y
-        #    no está asociado a ningún usuario (anónimo, BR-004).
-        cart = Cart.objects.get(cart_token=token)
-        assert cart.user is None
-        assert cart.items.count() == 1
-        assert cart.items.first().product_id == product_sin_variante.pk
+        # 3) Persistencia en el modelo (V2 orders→sale): el carrito con
+        #    ese token es una SaleOrder(draft) sin partner (anónimo, BR-004).
+        order = SaleOrder.objects.get(cart_token=token)
+        assert order.partner is None
+        assert order.state == SaleOrder.STATE_DRAFT
+        assert order.order_line.count() == 1
+        assert order.order_line.first().product_id == product_sin_variante.pk
 
     def test_autenticado_no_requiere_cart_token(
         self, auth_client, product_sin_variante, db
@@ -238,6 +241,34 @@ class TestVerCarrito:
         totals = data['totals']
         assert 'subtotal' in totals
         assert 'total' in totals
+
+    def test_item_incluye_desglose_iva_por_linea(
+        self, anon_client_with_cart, product_sin_variante, db
+    ):
+        """Adaptado de Odoo sale.order.line: cada línea expone
+        price_subtotal (sin IVA) + price_tax + price_total (con IVA);
+        subtotal+tax == total y total == unit_price*quantity."""
+        client, _ = anon_client_with_cart
+        item = client.get(CART_URL).json()['items'][0]
+        sub = Decimal(item['price_subtotal'])
+        tax = Decimal(item['price_tax'])
+        tot = Decimal(item['price_total'])
+        assert sub + tax == tot
+        assert tot == Decimal(item['unit_price']) * item['quantity']
+
+    def test_totales_incluyen_importes_odoo_orden(
+        self, anon_client_with_cart, product_sin_variante, db
+    ):
+        """Adaptado de Odoo sale.order._compute_amounts: totals expone
+        amount_untaxed/amount_tax/amount_total = suma del desglose por línea;
+        untaxed+tax == total y total == subtotal (bruto de líneas)."""
+        client, _ = anon_client_with_cart
+        totals = client.get(CART_URL).json()['totals']
+        au = Decimal(totals['amount_untaxed'])
+        at = Decimal(totals['amount_tax'])
+        atot = Decimal(totals['amount_total'])
+        assert au + at == atot
+        assert atot == Decimal(totals['subtotal'])
 
     def test_price_changed_detecta_cambio(
         self, anon_client_with_cart, product_sin_variante, db
@@ -314,11 +345,8 @@ class TestEliminarItem:
         self, api_client, product_sin_variante, db
     ):
         """No se puede eliminar un item de otro carrito."""
-        other_cart = Cart.objects.create(cart_token=uuid.uuid4())
-        item = CartItem.objects.create(
-            cart=other_cart, product=product_sin_variante,
-            quantity=1, unit_price=product_sin_variante.price,
-        )
+        other_order, _ = get_or_create_draft_order(cart_token=uuid.uuid4())
+        item, _ = add_item_to_draft(other_order, product_sin_variante, quantity=1)
         # api_client tiene su propio carrito (vacío)
         api_client.post(ITEMS_URL, {'product_id': product_sin_variante.pk}, format='json')
         # Intentar borrar item del otro carrito → 404
@@ -385,8 +413,10 @@ class TestGuardarCarrito:
         assert res.status_code == 200
 
         # Party (T-201): auth_client autentica el fixture ``user`` (por email).
-        cart = Cart.objects.get(user=user)
-        assert cart.items.count() == 1
+        # V2 orders→sale: el carrito activo es la SaleOrder(draft).
+        order = SaleOrder.objects.get(partner=user,
+                                      state=SaleOrder.STATE_DRAFT)
+        assert order.order_line.count() == 1
         saved = SavedCart.objects.get(user=user)
         assert saved.items.count() == 1
 
@@ -405,13 +435,10 @@ class TestFusionarCarrito:
         self, auth_client, product_sin_variante, db
     ):
         """FC-CART-06 Escenario principal: fusión de carrito anónimo."""
-        # Crear carrito anónimo directamente en BD
+        # Crear el carrito anónimo (V2: SaleOrder draft por token) en BD
         anon_token = uuid.uuid4()
-        anon_cart = Cart.objects.create(cart_token=anon_token, user=None)
-        CartItem.objects.create(
-            cart=anon_cart, product=product_sin_variante,
-            quantity=2, unit_price=product_sin_variante.price,
-        )
+        anon_order, _ = get_or_create_draft_order(cart_token=anon_token)
+        add_item_to_draft(anon_order, product_sin_variante, quantity=2)
         # Fusionar al autenticar
         merge_res = auth_client.post(MERGE_URL, {
             'cart_token': str(anon_token),
@@ -430,13 +457,10 @@ class TestFusionarCarrito:
         auth_client.post(ITEMS_URL, {
             'product_id': product_sin_variante.pk, 'quantity': 1,
         }, format='json')
-        # Carrito anónimo con 2 items — creado directamente en BD
+        # Carrito anónimo con 2 unidades — draft por token (S3)
         anon_token = uuid.uuid4()
-        anon_cart = Cart.objects.create(cart_token=anon_token, user=None)
-        CartItem.objects.create(
-            cart=anon_cart, product=product_sin_variante,
-            quantity=2, unit_price=product_sin_variante.price,
-        )
+        anon_order, _ = get_or_create_draft_order(cart_token=anon_token)
+        add_item_to_draft(anon_order, product_sin_variante, quantity=2)
         # Fusionar: total debe ser 1 + 2 = 3
         merge_res = auth_client.post(MERGE_URL, {
             'cart_token': str(anon_token),
@@ -467,12 +491,10 @@ class TestProteccionVarianteConCartItems:
         self, admin_client, product_con_variante, variant_s12, db
     ):
         """H-S12-006: variante con CartItems activos no puede desactivarse."""
-        cart = Cart.objects.create(cart_token=uuid.uuid4())
-        CartItem.objects.create(
-            cart=cart, product=product_con_variante,
-            variant=variant_s12, quantity=1,
-            unit_price=variant_s12.effective_price(),
-        )
+        # V2 orders→sale: el carrito activo es una SaleOrder(draft)
+        draft, _ = get_or_create_draft_order(cart_token=uuid.uuid4())
+        add_item_to_draft(draft, product_con_variante,
+                          variant=variant_s12, quantity=1)
         res = admin_client.delete(
             f'/api/v2/admin/products/{product_con_variante.pk}/variants/{variant_s12.pk}/'
         )

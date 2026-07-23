@@ -6,7 +6,7 @@ UC-CAT-12: Bulk price sync (CSV upload and percentage adjustment)
 """
 import csv, io, pytest
 from decimal import Decimal
-from apps.catalogue.models import Category, Product
+from addons.catalogue.models import Category, Product
 from django.core.cache import cache
 
 pytestmark = pytest.mark.integration

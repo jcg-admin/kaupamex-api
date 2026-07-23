@@ -14,8 +14,8 @@ from unittest.mock import patch
 from django.test import override_settings
 from django.core import mail
 
-from apps.notifications.models import Notification
-from apps.notifications.service import (
+from addons.mail.models import Notification
+from addons.mail.models.notification_service import (
     notify_order_created,
     notify_order_status_changed,
     notify_shipping_updated,
@@ -29,7 +29,7 @@ LOCMEM_SETTINGS = {
     'EMAIL_BACKEND': 'django.core.mail.backends.locmem.EmailBackend',
 }
 
-_ON_COMMIT_PATH = 'apps.notifications.service.transaction.on_commit'
+_ON_COMMIT_PATH = 'addons.mail.models.notification_service.transaction.on_commit'
 
 
 # ─── fixtures ─────────────────────────────────────────────────────────────────────────────────────

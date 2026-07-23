@@ -3,17 +3,17 @@ __pycache__/
 venv/
 .env
 *.sqlite3
-/practicayoruba/logs/
-!/practicayoruba/logs/.gitkeep
-/practicayoruba/media/
+/src/logs/
+!/src/logs/.gitkeep
+/src/media/
 .DS_Store
 .pytest_cache/
 htmlcov/
 test-results/
 .venv/
-/practicayoruba/staticfiles/
+/src/staticfiles/
 # Compiled PDF helpers (built per-environment by the server provisioner; ADR-017)
-/practicayoruba/tools/pdf/pdf_receipt
-/practicayoruba/tools/pdf/pdf_report
+/src/tools/pdf/pdf_receipt
+/src/tools/pdf/pdf_report
 # pytest-last-failed output
 test-results/

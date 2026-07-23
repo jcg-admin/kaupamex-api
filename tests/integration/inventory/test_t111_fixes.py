@@ -7,10 +7,10 @@ UC-INV-01: threshold field in dashboard items (API side).
 """
 import pytest
 from decimal import Decimal
-from apps.catalogue.models import Category, Product
-from apps.chartsize.models import VariantType, VariantOption, ProductVariant
-from apps.inventory.models import StockMovement
-from apps.inventory.services import InventoryService
+from addons.catalogue.models import Category, Product
+from addons.chartsize.models import VariantType, VariantOption, ProductVariant
+from addons.inventory.models import StockMovement
+from addons.inventory.services import InventoryService
 
 pytestmark = pytest.mark.integration
 

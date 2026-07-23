@@ -6,8 +6,8 @@ GET /api/v2/admin/wishlist/aggregate/ — solo staff; agregados anonimos.
 import pytest
 from decimal import Decimal
 
-from apps.catalogue.models import Product
-from apps.wishlist.models import WishlistItem
+from addons.catalogue.models import Product
+from addons.website_sale_wishlist.models import WishlistItem
 
 pytestmark = pytest.mark.integration
 

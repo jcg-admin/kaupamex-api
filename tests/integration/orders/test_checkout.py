@@ -7,11 +7,11 @@ import time
 
 import pytest
 from decimal import Decimal
-from apps.catalogue.models import Category, Product
-from apps.settings_app.models import ShippingMethod
-from apps.orders.models import Order, OrderValue, OrderAddress, ShippingZone
-from apps.cart.models import CartItem
-from apps.voucher.models import Voucher
+from addons.catalogue.models import Category, Product
+from addons.delivery.models import ShippingMethod
+from addons.orders.models import Order, OrderValue, OrderAddress, ShippingZone
+from addons.sale.models import SaleOrder
+from addons.loyalty.models import Voucher
 from django.utils import timezone
 pytestmark = pytest.mark.integration
 
@@ -149,7 +149,8 @@ class TestCheckout:
             CHECKOUT_URL,
             {'address': ADDR, 'shipping_method_id': shipping_gratis.pk},
             format='json')
-        assert CartItem.objects.count() == 0
+        # V2: el carrito ES la SaleOrder — confirmar deja 0 drafts.
+        assert SaleOrder.objects.filter(state=SaleOrder.STATE_DRAFT).count() == 0
 
     def test_checkout_crea_ordervalue(
         self, cart_con_item_auth, prod_ord, shipping_gratis, db
@@ -437,7 +438,7 @@ class TestZoneFreeShipping:
     """Costo manual por zona con umbral de envío gratis (G-ENV-04): el
     comprador no elige método; el admin fija ``cost``/``free_threshold`` por
     zona. Umbral alcanzado o zona sin ``cost`` → gratis; bajo umbral con
-    ``cost`` → cobra el costo manual. Ver ``apps.orders.shipping``."""
+    ``cost`` → cobra el costo manual. Ver ``addons.orders.shipping``."""
 
     def _set_zone(self, **defaults):
         # C.P. de ADDR = '06600' → prefijo '06'. update_or_create respeta el

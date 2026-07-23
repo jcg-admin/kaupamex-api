@@ -1,7 +1,7 @@
 """
 Contract tests for the soft delete policy (DEC-DOC-007).
 
-These tests validate the SoftDeleteModel mixin in apps.core.models:
+These tests validate the SoftDeleteModel mixin in core.models:
 - ``delete()`` marks ``is_deleted=True`` + ``deleted_at`` and does
   NOT remove the row from the database.
 - the default ``objects`` manager hides soft-deleted rows.
@@ -11,16 +11,16 @@ These tests validate the SoftDeleteModel mixin in apps.core.models:
 - ``queryset.delete()`` does a bulk soft delete via UPDATE.
 """
 import pytest
-from apps.core.models import SoftDeleteModel, SoftDeleteManager, AllObjectsManager
-from apps.catalogue.models import Product, Category
-from apps.orders.models import Order
-from apps.users.models import Address
+from addons.base.models import SoftDeleteModel, SoftDeleteManager, AllObjectsManager
+from addons.catalogue.models import Product, Category
+from addons.orders.models import Order
+from addons.users.models import Address
 
 pytestmark = pytest.mark.integration
 
 
 class TestSoftDeleteContract:
-    """Contract tests against apps.core.models.SoftDeleteModel."""
+    """Contract tests against core.models.SoftDeleteModel."""
 
     def test_softdeletemodel_is_abstract(self):
         assert SoftDeleteModel._meta.abstract is True

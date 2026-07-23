@@ -13,10 +13,10 @@ import uuid
 import pytest
 from decimal import Decimal
 
-from apps.catalogue.models import Category, Product
-from apps.cart.models import Cart, CartItem
-from apps.notifications.models import Notification
-from apps.wishlist.models import WishlistItem
+from addons.catalogue.models import Category, Product
+from addons.orders.services import add_item_to_draft, get_or_create_draft_order
+from addons.mail.models import Notification
+from addons.website_sale_wishlist.models import WishlistItem
 
 pytestmark = pytest.mark.integration
 
@@ -64,14 +64,10 @@ def product_f2(db, category_f2):
 
 @pytest.fixture
 def cart_with_item(db, user, product_f2):
-    cart, _ = Cart.objects.get_or_create(user=user)
-    CartItem.objects.create(
-        cart=cart,
-        product=product_f2,
-        quantity=1,
-        unit_price=product_f2.price,
-    )
-    return cart
+    # S4 cart→order→sale: el carrito es el Order(DRAFT) del usuario.
+    order, _ = get_or_create_draft_order(user=user)
+    add_item_to_draft(order, product_f2, quantity=1)
+    return order
 
 
 @pytest.fixture
@@ -104,7 +100,7 @@ class TestCartSnapshotsV2:
         assert res.status_code == 401
 
     def test_empty_cart_returns_400(self, auth_client, user, db):
-        Cart.objects.get_or_create(user=user)
+        get_or_create_draft_order(user=user)
         res = auth_client.post(V2_SNAPSHOTS_URL)
         assert res.status_code == 400
 

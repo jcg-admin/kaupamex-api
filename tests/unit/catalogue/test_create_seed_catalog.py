@@ -1,16 +1,17 @@
 """
 Tests unitarios del management command create_seed_catalog.
 
-BD: practicayoruba_qa (config.settings.testing)
+BD: kaupamex_qa (config.settings.testing)
 """
 import pytest
 from django.core.management import call_command
 from django.core.management.base import CommandError
 
-from apps.catalogue.models import Category, Product
-from apps.chartsize.models import ProductVariant, VariantOption, VariantType
-from apps.orders.models import ShippingZone
-from apps.settings_app.models import PaymentGateway, ShippingMethod
+from addons.catalogue.models import Category, Product
+from addons.chartsize.models import ProductVariant, VariantOption, VariantType
+from addons.orders.models import ShippingZone
+from addons.delivery.models import ShippingMethod
+from addons.payment.models import PaymentGateway
 
 pytestmark = pytest.mark.unit
 

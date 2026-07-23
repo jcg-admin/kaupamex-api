@@ -12,11 +12,11 @@ import pytest
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
 
-from apps.catalogue.models import Category, Product
-from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
-from apps.settings_app.models import PaymentGateway
-from apps.payments.models import Payment, PaymentGatewayEvent
-from apps.payments.gateways.mercadopago import MercadoPagoGateway
+from addons.catalogue.models import Category, Product
+from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from addons.payment.models import PaymentGateway
+from addons.payment.models import Payment, PaymentGatewayEvent
+from addons.payment_mercado_pago.gateway import MercadoPagoGateway
 
 pytestmark = pytest.mark.integration
 
@@ -184,7 +184,7 @@ class TestCheckoutApiAuth:
 class TestCheckoutApiOrden:
 
     def test_orden_no_existe_retorna_404(self, auth_client, mp_gw, db):
-        with patch('apps.payments.gateways.mercadopago.mercadopago',
+        with patch('addons.payment_mercado_pago.gateway.mercadopago',
                    _make_mp_payment_mock()):
             res = auth_client.post(INITIATE_V2_URL, _valid_payload('PY-NO-EXISTE'),
                                    format='json')
@@ -198,7 +198,7 @@ class TestCheckoutApiOrden:
             email='otro@test.mx', password='Otro1234!',
         )
         auth_client.force_authenticate(user=other)
-        with patch('apps.payments.gateways.mercadopago.mercadopago',
+        with patch('addons.payment_mercado_pago.gateway.mercadopago',
                    _make_mp_payment_mock()):
             res = auth_client.post(INITIATE_V2_URL,
                                    _valid_payload(orden_v2.order_number),
@@ -209,7 +209,7 @@ class TestCheckoutApiOrden:
     def test_orden_no_pending_retorna_404(self, auth_client, orden_v2, mp_gw, db):
         orden_v2.status = 'PAID'
         orden_v2.save()
-        with patch('apps.payments.gateways.mercadopago.mercadopago',
+        with patch('addons.payment_mercado_pago.gateway.mercadopago',
                    _make_mp_payment_mock()):
             res = auth_client.post(INITIATE_V2_URL,
                                    _valid_payload(orden_v2.order_number),
@@ -218,7 +218,7 @@ class TestCheckoutApiOrden:
         assert res.json()['codigo_error'] == 'ORDER_NOT_FOUND'
 
     def test_amount_mismatch_retorna_422(self, auth_client, orden_v2, mp_gw, db):
-        with patch('apps.payments.gateways.mercadopago.mercadopago',
+        with patch('addons.payment_mercado_pago.gateway.mercadopago',
                    _make_mp_payment_mock()):
             res = auth_client.post(INITIATE_V2_URL, _valid_payload(
                 orden_v2.order_number,
@@ -228,7 +228,7 @@ class TestCheckoutApiOrden:
         assert res.json()['codigo_error'] == 'AMOUNT_MISMATCH'
 
     def test_amount_correcto_pasa_validacion(self, auth_client, orden_v2, mp_gw, db):
-        with patch('apps.payments.gateways.mercadopago.mercadopago',
+        with patch('addons.payment_mercado_pago.gateway.mercadopago',
                    _make_mp_payment_mock()):
             res = auth_client.post(INITIATE_V2_URL, _valid_payload(
                 orden_v2.order_number,
@@ -244,7 +244,7 @@ class TestCheckoutApiOrden:
 class TestCheckoutApiMpStatus:
 
     def test_pago_aprobado_retorna_201(self, auth_client, orden_v2, mp_gw, db):
-        with patch('apps.payments.gateways.mercadopago.mercadopago',
+        with patch('addons.payment_mercado_pago.gateway.mercadopago',
                    _make_mp_payment_mock('approved', 'accredited')):
             res = auth_client.post(INITIATE_V2_URL,
                                    _valid_payload(orden_v2.order_number),
@@ -257,7 +257,7 @@ class TestCheckoutApiMpStatus:
         assert data['order_number'] == orden_v2.order_number
 
     def test_pago_rechazado_retorna_200(self, auth_client, orden_v2, mp_gw, db):
-        with patch('apps.payments.gateways.mercadopago.mercadopago',
+        with patch('addons.payment_mercado_pago.gateway.mercadopago',
                    _make_mp_payment_mock('rejected', 'cc_rejected_insufficient_amount')):
             res = auth_client.post(INITIATE_V2_URL,
                                    _valid_payload(orden_v2.order_number),
@@ -268,7 +268,7 @@ class TestCheckoutApiMpStatus:
         assert data['status_detail'] == 'cc_rejected_insufficient_amount'
 
     def test_pago_pendiente_retorna_200(self, auth_client, orden_v2, mp_gw, db):
-        with patch('apps.payments.gateways.mercadopago.mercadopago',
+        with patch('addons.payment_mercado_pago.gateway.mercadopago',
                    _make_mp_payment_mock('pending', 'pending_contingency')):
             res = auth_client.post(INITIATE_V2_URL,
                                    _valid_payload(orden_v2.order_number),
@@ -278,7 +278,7 @@ class TestCheckoutApiMpStatus:
         assert data['status'] == 'pending'
 
     def test_gateway_error_retorna_502(self, auth_client, orden_v2, mp_gw, db):
-        with patch('apps.payments.gateways.mercadopago.mercadopago',
+        with patch('addons.payment_mercado_pago.gateway.mercadopago',
                    _make_mp_payment_mock(mp_status_code=400)):
             res = auth_client.post(INITIATE_V2_URL,
                                    _valid_payload(orden_v2.order_number),
@@ -294,7 +294,7 @@ class TestCheckoutApiMpStatus:
 class TestCheckoutApiDB:
 
     def test_aprobado_crea_payment_approved(self, auth_client, orden_v2, mp_gw, db):
-        with patch('apps.payments.gateways.mercadopago.mercadopago',
+        with patch('addons.payment_mercado_pago.gateway.mercadopago',
                    _make_mp_payment_mock('approved', 'accredited')):
             auth_client.post(INITIATE_V2_URL,
                              _valid_payload(orden_v2.order_number),
@@ -306,7 +306,7 @@ class TestCheckoutApiDB:
         assert payment.preference_id is None   # Checkout API nunca usa preference
 
     def test_aprobado_actualiza_orden_a_paid(self, auth_client, orden_v2, mp_gw, db):
-        with patch('apps.payments.gateways.mercadopago.mercadopago',
+        with patch('addons.payment_mercado_pago.gateway.mercadopago',
                    _make_mp_payment_mock('approved', 'accredited')):
             auth_client.post(INITIATE_V2_URL,
                              _valid_payload(orden_v2.order_number),
@@ -317,7 +317,7 @@ class TestCheckoutApiDB:
     def test_rechazado_crea_payment_failed_orden_sigue_pending(
         self, auth_client, orden_v2, mp_gw, db
     ):
-        with patch('apps.payments.gateways.mercadopago.mercadopago',
+        with patch('addons.payment_mercado_pago.gateway.mercadopago',
                    _make_mp_payment_mock('rejected', 'cc_rejected_other_reason')):
             auth_client.post(INITIATE_V2_URL,
                              _valid_payload(orden_v2.order_number),
@@ -330,7 +330,7 @@ class TestCheckoutApiDB:
     def test_aprobado_registra_evento_payment_approved(
         self, auth_client, orden_v2, mp_gw, db
     ):
-        with patch('apps.payments.gateways.mercadopago.mercadopago',
+        with patch('addons.payment_mercado_pago.gateway.mercadopago',
                    _make_mp_payment_mock('approved', 'accredited')):
             auth_client.post(INITIATE_V2_URL,
                              _valid_payload(orden_v2.order_number),
@@ -345,7 +345,7 @@ class TestCheckoutApiDB:
         assert body['gateway_payment_id'] == '99001'
 
     def test_pendiente_crea_payment_pending(self, auth_client, orden_v2, mp_gw, db):
-        with patch('apps.payments.gateways.mercadopago.mercadopago',
+        with patch('addons.payment_mercado_pago.gateway.mercadopago',
                    _make_mp_payment_mock('pending', 'pending_contingency')):
             auth_client.post(INITIATE_V2_URL,
                              _valid_payload(orden_v2.order_number),
@@ -366,7 +366,7 @@ class TestCheckoutApiSeguridad:
         self, auth_client, orden_v2, mp_gw, db
     ):
         """BR-009: access_token y public_key del gateway NUNCA en la respuesta."""
-        with patch('apps.payments.gateways.mercadopago.mercadopago',
+        with patch('addons.payment_mercado_pago.gateway.mercadopago',
                    _make_mp_payment_mock('approved')):
             res = auth_client.post(INITIATE_V2_URL,
                                    _valid_payload(orden_v2.order_number),
@@ -380,7 +380,7 @@ class TestCheckoutApiSeguridad:
         self, auth_client, orden_v2, mp_gw, db
     ):
         """Los campos opcionales llegan al gateway sin romper la respuesta."""
-        with patch('apps.payments.gateways.mercadopago.mercadopago',
+        with patch('addons.payment_mercado_pago.gateway.mercadopago',
                    _make_mp_payment_mock('approved', installments=3)):
             res = auth_client.post(INITIATE_V2_URL, _valid_payload(
                 orden_v2.order_number,
@@ -461,7 +461,7 @@ class TestCheckoutApiAdditionalInfo:
             }
 
         sdk.order.return_value.create.side_effect = _create
-        with patch('apps.payments.gateways.mercadopago._get_sdk', return_value=sdk):
+        with patch('addons.payment_mercado_pago.gateway._get_sdk', return_value=sdk):
             self._make_gateway().create_payment(
                 order, token=_VALID_TOKEN,
                 payment_method_id=_VALID_PAYMENT_METHOD,

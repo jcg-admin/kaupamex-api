@@ -13,8 +13,8 @@ Reglas clave:
 """
 import pytest
 from decimal import Decimal
-from apps.catalogue.models import Category, Product
-from apps.catalogue.serializers import (
+from addons.catalogue.models import Category, Product
+from addons.catalogue.serializers import (
     ProductAdminSerializer,
     ProductDetailSerializer,
     ProductListSerializer,

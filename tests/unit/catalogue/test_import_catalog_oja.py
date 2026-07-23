@@ -4,7 +4,7 @@ Tests unitarios del management command import_catalog_oja.
 Usa tmp_path (pytest) para crear un catálogo mínimo en disco
 sin tocar /tmp/catalogo/oja/. Tests aislados de filesystem real.
 
-BD: practicayoruba_qa (config.settings.testing)
+BD: kaupamex_qa (config.settings.testing)
 """
 import json
 from decimal import Decimal
@@ -13,8 +13,8 @@ from pathlib import Path
 import pytest
 from django.core.management import call_command
 
-from apps.catalogue.models import Category, Product, ProductImage
-from apps.catalogue.management.commands.import_catalog_oja import (
+from addons.catalogue.models import Category, Product, ProductImage
+from addons.catalogue.management.commands.import_catalog_oja import (
     _limpiar_descripcion,
     CATEGORIA_NAMES,
     SLUG_OVERRIDES,

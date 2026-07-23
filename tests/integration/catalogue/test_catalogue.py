@@ -4,7 +4,7 @@ UC-CAT-01: Ver Catalogo de Productos
 """
 import pytest
 from decimal import Decimal
-from apps.catalogue.models import Category, Product
+from addons.catalogue.models import Category, Product
 
 pytestmark = pytest.mark.integration
 

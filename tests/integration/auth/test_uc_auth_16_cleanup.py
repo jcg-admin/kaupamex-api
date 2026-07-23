@@ -16,12 +16,14 @@ Conserva:
 """
 import pytest
 from decimal import Decimal
-from apps.catalogue.models import Category, Product
-from apps.cart.models import Cart, SavedCart
-from apps.wishlist.models import WishlistItem
-from apps.search_history.models import SearchEntry
-from apps.notifications.models import NotificationPreference
-from apps.users.models import Address, UserDeactivationEvent
+from addons.catalogue.models import Category, Product
+from addons.cart.models import SavedCart
+from addons.sale.models import SaleOrder
+from addons.sale.services import get_or_create_draft_order
+from addons.website_sale_wishlist.models import WishlistItem
+from addons.website.models import SearchEntry
+from addons.mail.models import NotificationPreference
+from addons.users.models import Address, UserDeactivationEvent
 
 pytestmark = pytest.mark.api
 
@@ -44,9 +46,9 @@ def product(db):
 class TestSelfDeleteEliminaCartActivo:
 
     def test_cart_se_elimina(self, auth_client, user, db):
-        Cart.objects.create(user=user)
+        get_or_create_draft_order(user=user)
         auth_client.post(URL, {'password': 'TestPass123!'}, format='json')
-        assert Cart.objects.filter(user=user).count() == 0
+        assert SaleOrder.objects.filter(partner=user, state=SaleOrder.STATE_DRAFT).count() == 0
 
 
 class TestSelfDeleteEliminaSavedCarts:

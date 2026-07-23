@@ -5,8 +5,8 @@ UC-AUTH-08: Cambiar Contrasena
 import logging
 
 import pytest
-from apps.users.models import AuthEvent
-from apps.users.tokens_email import invalidate_all_sessions
+from addons.users.models import AuthEvent
+from addons.users.tokens_email import invalidate_all_sessions
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 

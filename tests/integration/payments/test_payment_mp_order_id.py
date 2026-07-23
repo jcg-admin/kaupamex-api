@@ -3,13 +3,13 @@ Tests — persistencia de mp_order_id (ORD) + gateway_payment_id (PAY) en Paymen
 
 T-102 de la migración a Orders (DEC-ORD-03): el Payment guarda el id del recurso
 Order de MP (ORD...) en mp_order_id y el id del pago anidado (PAY...) en
-gateway_payment_id. Verifica el round-trip real contra MariaDB (practicayoruba_qa).
+gateway_payment_id. Verifica el round-trip real contra MariaDB (kaupamex_qa).
 """
 import pytest
 from decimal import Decimal
 
-from apps.orders.models import Order, OrderItem, OrderValue, OrderAddress
-from apps.payments.models import Payment
+from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from addons.payment.models import Payment
 
 pytestmark = pytest.mark.integration
 

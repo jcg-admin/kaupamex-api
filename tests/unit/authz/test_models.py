@@ -1,4 +1,4 @@
-"""Tests — apps.authz modelos (Opción B, DEC-AUTHZ-01, MOD-027).
+"""Tests — addons.authz modelos (Opción B, DEC-AUTHZ-01, MOD-027).
 
 Cubre integridad de las 7 entidades: catálogo Module/Capability, agrupación
 Role (M2M), grants directos + revocaciones con clave única (user, capability),
@@ -8,10 +8,11 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError
 
-from apps.authz.models import (
-    AuthzEvent, Capability, DirectEntitlement, EntitlementRevocation, Module,
+from addons.authz.models import (
+    Capability, DirectEntitlement, EntitlementRevocation, Module,
     Role, RoleAssignment,
 )
+from addons.authz_audit.models import AuthzEvent
 
 pytestmark = pytest.mark.django_db
 User = get_user_model()

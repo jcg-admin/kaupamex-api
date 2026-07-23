@@ -1,18 +1,23 @@
 """Tests de integracion — GET /api/v2/admin/logs/ (SOL-011 T-06, UC-ADM-06).
 
 Verifican el endpoint DRF read-only del visor de logs:
-  - admin (is_staff) lista RequestLog (default) y AppLog (?source=applog),
+  - admin (is_staff) lista RequestLog (default) y IrLogging (?source=applog),
   - filtros: correlation_id, status_min, level,
   - acceso: no-staff -> 403, anonimo -> 401/403 (FR-ADM-06.04),
   - append-only: POST/PUT/DELETE -> 405 (FR-ADM-06.03),
   - paginado.
+
+``IrLogging`` (``ir.logging``, ``addons.base``) reemplaza a ``core.AppLog``
+desde DEC-08 slice 2; el contrato JSON del endpoint (``logger_name``/``msg``)
+no cambia (ver ``addons/observability/views.py::_serialize_applog``).
 
 Toca DB → django_db.
 """
 import pytest
 from rest_framework.test import APIClient
 
-from apps.core.models import AppLog, RequestLog
+from addons.base.models import IrLogging
+from addons.observability.models import RequestLog
 from tests.factories.user_factory import AdminUserFactory, UserFactory
 
 pytestmark = [pytest.mark.integration, pytest.mark.django_db]
@@ -64,8 +69,8 @@ def test_filter_correlation_id(admin_client):
 
 
 def test_source_applog_and_level_filter(admin_client):
-    AppLog.objects.create(logger_name='apps.x', level='INFO', msg='hi', correlation_id='c1')
-    AppLog.objects.create(logger_name='apps.x', level='ERROR', msg='boom', correlation_id='c1')
+    IrLogging.objects.create(name='apps.x', level='INFO', message='hi', correlation_id='c1')
+    IrLogging.objects.create(name='apps.x', level='ERROR', message='boom', correlation_id='c1')
     resp = admin_client.get(URL, {'source': 'applog', 'level': 'error'})
     assert resp.status_code == 200
     body = resp.json()

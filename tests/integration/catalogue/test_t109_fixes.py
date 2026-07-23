@@ -6,7 +6,7 @@ UC-CAT-10 RNF 6.3: ProductPriceHistory creado en PATCH y CSV sync.
 """
 import pytest
 from decimal import Decimal
-from apps.catalogue.models import Category, Product, ProductPriceHistory
+from addons.catalogue.models import Category, Product, ProductPriceHistory
 
 pytestmark = pytest.mark.integration
 

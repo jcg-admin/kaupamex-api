@@ -8,7 +8,7 @@ import pytest
 from django.contrib.sessions.backends.db import SessionStore
 from django.contrib.sessions.models import Session
 
-from apps.users.models import UserSession
+from addons.users.models import UserSession
 
 pytestmark = pytest.mark.integration
 

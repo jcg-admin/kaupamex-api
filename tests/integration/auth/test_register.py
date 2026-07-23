@@ -111,8 +111,9 @@ class TestRegisterUnicidad:
 
 import uuid as _uuid
 from decimal import Decimal
-from apps.cart.models import Cart, CartItem
-from apps.catalogue.models import Product
+from addons.sale.models import SaleOrder
+from addons.sale.services import add_item_to_draft, get_or_create_draft_order
+from addons.catalogue.models import Product
 
 
 class TestRegisterMergesAnonCart:
@@ -122,8 +123,9 @@ class TestRegisterMergesAnonCart:
             sku=f'ELE-{email_slug.upper()}-1', description='x',
             price=Decimal('100.00'), stock=5, is_active=True, is_published=True,
         )
-        anon = Cart.objects.create(cart_token=_uuid.uuid4())
-        CartItem.objects.create(cart=anon, product=p, quantity=2, unit_price=Decimal('100.00'))
+        # V2 orders→sale: el carrito anónimo es una SaleOrder(draft) por token.
+        anon, _ = get_or_create_draft_order(cart_token=_uuid.uuid4())
+        add_item_to_draft(anon, p, quantity=2)
         return anon
 
     def test_registro_fusiona_el_carrito_anonimo(self, api_client, db):
@@ -131,10 +133,11 @@ class TestRegisterMergesAnonCart:
         res = api_client.post(URL, {**VALID, 'cart_token': str(anon.cart_token)}, format='json')
         assert res.status_code == 201
         user = get_user_model().objects.get(email=VALID['email'])
-        user_cart = Cart.objects.get(user=user)
-        assert user_cart.items.count() == 1
+        user_order = SaleOrder.objects.get(partner=user,
+                                           state=SaleOrder.STATE_DRAFT)
+        assert user_order.order_line.count() == 1
         # el carrito anónimo se consumió al fusionarse
-        assert not Cart.objects.filter(cart_token=anon.cart_token).exists()
+        assert not SaleOrder.objects.filter(cart_token=anon.cart_token).exists()
 
     def test_registro_sin_cart_token_sigue_funcionando(self, api_client, db):
         assert api_client.post(URL, VALID, format='json').status_code == 201
@@ -146,8 +149,12 @@ class TestRegisterMergesAnonCart:
         # Un carrito ya asociado a un usuario no debe fusionarse por token.
         other = get_user_model().objects.create_user(
             email='dueno@x.mx', password='Yoruba2026!', is_active=True)
-        owned = Cart.objects.create(user=other, cart_token=_uuid.uuid4())
-        res = api_client.post(URL, {**VALID, 'cart_token': str(owned.cart_token)}, format='json')
+        token = _uuid.uuid4()
+        owned, _ = get_or_create_draft_order(user=other)
+        owned.cart_token = token
+        owned.save(update_fields=['cart_token'])
+        res = api_client.post(URL, {**VALID, 'cart_token': str(token)}, format='json')
         assert res.status_code == 201
-        # el carrito del otro usuario sigue intacto
-        assert Cart.objects.filter(pk=owned.pk, user=other).exists()
+        # el carrito del otro usuario sigue intacto (merge exige partner nulo)
+        assert SaleOrder.objects.filter(pk=owned.pk, partner=other,
+                                        state=SaleOrder.STATE_DRAFT).exists()
