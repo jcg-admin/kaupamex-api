@@ -16,6 +16,7 @@ import string
 from django.db import transaction
 from django.utils import timezone
 from addons.orders.models import Order
+from addons.orders.status_projection import order_status
 from addons.base.models import SiteSettings
 from addons.loyalty.models import Voucher
 from addons.loyalty.models import ReferralCode, Referral
@@ -113,7 +114,7 @@ def complete_referral_for_order(order) -> Referral | None:
     completada" (PAID o DELIVERED). Idempotente: si la relacion ya esta
     COMPLETED no emite un segundo voucher.
     """
-    if order.user_id is None or order.status not in _REWARD_ORDER_STATES:
+    if order.user_id is None or order_status(order) not in _REWARD_ORDER_STATES:
         return None
 
     referral = Referral.objects.filter(referee_id=order.user_id).first()
