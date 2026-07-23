@@ -2,7 +2,7 @@
 created_at: 2026-05-20 00:00:00
 updated_at: 2026-05-21 08:00:00
 status: Aprobado
-project: e-comerce
+project: kaupamex
 author: claude
 version: 1.2.0
 ```
@@ -128,11 +128,11 @@ Estas señales fuerzan escalar al nivel 0c sin importar cuán
 
       # Para cada sucesora candidato T-NNN, antes de scaffold:
       # 1. git log --grep en el cluster afectado (apps modificadas)
-      cd /home/user/e-comerce/<submodulo> \
+      cd /home/user/kaupamex/<submodulo> \
           && git log --all --oneline --grep="<tema-cluster>" | head -20
 
       # 2. Listar iniciativas hijas previas que pudieron tocar el area
-      ls /home/user/e-comerce/docs/source/gestion/pm/<submodulo>/iniciativas/ \
+      ls /home/user/kaupamex/docs/source/gestion/pm/<submodulo>/iniciativas/ \
           | grep -i "<tema-cluster>"
 
       # 3. Si hay iniciativas cerradas <30 dias previas, leer su
@@ -241,7 +241,7 @@ Antes de escribir cualquier artefacto sustantivo:
   - `pm/docs/iniciativas/` → Template A (IACT verbose con
     `:artefacto:`, `:tipo:`, `:dominio:`, `:subdominio:`,
     `:estado:`, `:version:`, `:fecha_creacion:` ISO 8601,
-    `:autor: Equipo e-comerce`, `:clasificacion:`).
+    `:autor: Equipo kaupamex`, `:clasificacion:`).
   - `pm/{api,ui,db}/iniciativas/` → Template B (THYROX simple
     con `:fecha_creacion: YYYY-MM-DD`, `:autor: claude`,
     `:estado:`, `:submodulo:`, `:iniciativa:`).

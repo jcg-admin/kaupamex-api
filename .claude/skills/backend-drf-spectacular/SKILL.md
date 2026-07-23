@@ -3,7 +3,7 @@ name: backend-drf-spectacular
 description: "Skill de tecnología para drf-spectacular (OpenAPI 3) en el backend de e-commerce (submódulo api). Usar cuando se documenta el contrato de un endpoint, se añade una app al schema, se corrige un warning de generación, o se toca SPECTACULAR_SETTINGS. Cubre: el patrón Open/Closed (base.py cerrado + schema.py por app), @extend_schema por endpoint, tags por app, ENUM_NAME_OVERRIDES, extensiones (auth/serializer/view) y la superficie /api/schema/. Invocar en Phase 7 DESIGN/SPECIFY para el contrato del endpoint y Phase 11 TRACK/EVALUATE para verificar el schema."
 layer: backend
 framework: drf-spectacular
-project: e-comerce
+project: kaupamex
 allowed-tools: Read Glob Grep Bash
 stack:
   - Python 3.12+
@@ -122,7 +122,7 @@ Detalle + plantillas: referencia dedicada `per-app-schema` (por pieza); patrón 
   `ENABLE_DJANGO_DEPLOY_CHECK` es default-`True`, la generación corre en el deploy
   check (PROVEN 2026-07-18, exit 0 sin warnings de spectacular)::
 
-      cd /home/user/e-commerce-api && \
+      cd /home/user/kaupamex-api && \
         DJANGO_SETTINGS_MODULE=config.settings.testing \
         uv run python manage.py check --deploy 2>&1 | grep -iE "spectacular|schema|W"
 

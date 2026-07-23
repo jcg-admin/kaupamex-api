@@ -44,7 +44,7 @@ El Measurement Manual v5.0 (Parte 2, §3, líneas 749-771) es explícito:
 2. **Para ESTIMAR el backlog usa la tasa all-in**, no la limpia. La limpia solo
    sirve para entender el techo teórico.
 3. Reporta el **% de esfuerzo a 0 CFP** (trabajo no-funcional + defectos). Si es
-   alto (en e-comerce: ~41% del wall-clock api del loop), una estimación basada
+   alto (en kaupamex: ~41% del wall-clock api del loop), una estimación basada
    solo en CFP nuevos subestima ~⅓.
 4. **Agrega, no cherry-pick** (MM Parte 2 §4.2, ágil L801-808; guía completa:
    [manual/guideline-agile-cosmic-trudel-buglione.md](manual/guideline-agile-cosmic-trudel-buglione.md),
@@ -52,7 +52,7 @@ El Measurement Manual v5.0 (Parte 2, §3, líneas 749-771) es explícito:
    **agregando** los tamaños de las US/procesos de la iteración (y los USP de
    Fibonacci **no son una medida**), no eligiendo las corridas limpias.
 
-**Fuente de datos del esfuerzo:** debe ser trazable (en e-comerce: `duration_ms`
+**Fuente de datos del esfuerzo:** debe ser trazable (en kaupamex: `duration_ms`
 de los subagentes + overhead de reconciliación del orquestador). Marca lo que NO
 puedas medir (p. ej. la reconciliación orquestada no está en `duration_ms` → la
 tasa all-in es un **piso**, no el valor exacto).
@@ -61,7 +61,7 @@ tasa all-in es un **piso**, no el valor exacto).
 calibración. Eso contradice L749-751 (distinguir, no descartar) y produce una
 tasa optimista. El defecto es esfuerzo real con 0 CFP → entra en la tasa all-in.
 
-## Precedente e-comerce (NO copiar valores — calibrar los tuyos)
+## Precedente kaupamex (NO copiar valores — calibrar los tuyos)
 
 - Umbral atomicidad capa **api = 8 CFP** (calibrado con UC-INV-02 = 7 CFP, UC-AUTH-02 = 8 CFP).
 - Decisión explícita de **no extrapolar** ese umbral a ui/db/server (DEC-COSMIC-002/006).

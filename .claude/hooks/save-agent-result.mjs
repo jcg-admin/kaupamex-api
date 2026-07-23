@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// save-agent-result.mjs — SubagentStop hook (e-comerce).
+// save-agent-result.mjs — SubagentStop hook (kaupamex).
 //
 // Reads the subagent-stop payload on stdin, extracts the agent's final
 // assistant message from its transcript, and appends it (ISO-timestamped)

@@ -11,7 +11,7 @@ updated_at: 2026-05-21 03:19:20
 
 # /rup-transition — RUP: Transition
 
-> **Adaptacion e-comerce v2 (2026-05-21).** En e-comerce el estado y
+> **Adaptacion kaupamex v2 (2026-05-21).** En kaupamex el estado y
 > la coordinacion intra-sesion **persisten en ``docs/source/``**, en
 > los `.rst` de la iniciativa. Las salidas de Transition NO viven en
 > `{wp}/rup-transition.md` sino mapeadas asi sobre los artefactos
@@ -194,7 +194,7 @@ Al alcanzar el PD, documentar lecciones por fase y por disciplina:
 
 Los entregables canonicos RUP de Transition se materializan en
 artefactos de la iniciativa + acciones reales de deployment (ver
-banner de adaptacion e-comerce v2 al inicio):
+banner de adaptacion kaupamex v2 al inicio):
 
 - ``tareas-<slug>.rst`` — T-NNN de deployment + handoff a
   iniciativa server submodulo si el despliegue toca infra.
@@ -265,7 +265,7 @@ de los artefactos de la iniciativa y de los commits de deployment):
 
 ## Estado activo
 
-En e-comerce **no hay `now.md`**. El estado y la coordinacion
+En kaupamex **no hay `now.md`**. El estado y la coordinacion
 intra-sesion **persisten en ``docs/source/``**, en los `.rst` de la
 iniciativa. La fase activa se lee del campo ``:estado:`` del
 metadata de ``progreso-<slug>.rst`` y de la ultima seccion de su

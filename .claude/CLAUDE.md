@@ -4,14 +4,14 @@ version: 4.0.0
 updated_at: 2026-07-17 19:33:06
 ```
 
-# CLAUDE.md — e-comerce
+# CLAUDE.md — kaupamex
 
 **Level 2 — Puente entre [SKILL](skills/thyrox/SKILL.md) (Level 1) y proyecto.**
 
 **Identidad — dos capas distintas (no confundir):**
 
-- **Repositorio en GitHub:** `jcg-admin/e-comerce` (parent) y los cinco
-  submodulos `jcg-admin/e-comerce-{api,db,docs,server,ui}`.
+- **Repositorio en GitHub:** `jcg-admin/kaupamex` (parent) y los cinco
+  submodulos `jcg-admin/kaupamex-{api,db,docs,server,ui}`.
 - **Proyecto / producto:** PracticaYoruba — e-commerce de productos
   Yoruba. Este es el nombre usado **dentro** del codigo: schemas
   (`practicayoruba_db`, `practicayoruba_qa`), usuarios (`django_user`
@@ -30,12 +30,12 @@ updated_at: 2026-07-17 19:33:06
 Una iniciativa cuyo slug contiene `practicayoruba` (ej.
 `crear-practicayoruba-db`, `configurar-red-dmz-practicayoruba-server`)
 **no es legacy** — documenta trabajo sobre el producto PracticaYoruba
-hospedado en el repo `e-comerce-*`. La aparente discrepancia es
-intencional y debe respetarse: no renombrar PracticaYoruba a e-comerce
+hospedado en el repo `kaupamex-*`. La aparente discrepancia es
+intencional y debe respetarse: no renombrar PracticaYoruba a kaupamex
 dentro del codigo sin una decision explicita de producto.
 
 **Nota de adaptacion (2026-05-19):** este archivo proviene del template
-THYROX usado en IACT-docs. Para e-comerce se decidio **no importar**
+THYROX usado en IACT-docs. Para kaupamex se decidio **no importar**
 el directorio `.thyrox/` — la funcionalidad que THYROX coloca en
 `.thyrox/context/` (estado de proyecto, work packages, decisiones,
 focus, technical-debt) vive aqui en el submodulo `docs/` bajo
@@ -58,8 +58,8 @@ Los ADRs del proyecto viven en el path declarado por `adr_path` en este archivo 
    *Addendum FASE 31:* Interfaz pública del sistema → `/thyrox:*` (plugin namespace via `.claude-plugin/plugin.json`). Los `workflow-*` skills permanecen como implementación interna. Capa de presentación complementa ADR-016. Ver ADR-019. TD-036 cerrado (FASE 31).
    *Addendum FASE 35:* Estado de sesión y work packages migrados a `.thyrox/context/` — fuera de `.claude/` (zona de configuración de Claude Code).
    *Addendum FASE 39:* 12 fases THYROX propias (DISCOVER → STANDARDIZE). `workflow-analyze` renombrado a `workflow-discover`. 12 skills workflow-* totales: workflow-discover, workflow-measure, workflow-analyze, workflow-constraints, workflow-strategy, workflow-plan, workflow-structure, workflow-decompose, workflow-pilot, workflow-execute, workflow-track, workflow-standardize. Sistema `.claude/rules/` creado para invariantes globales.
-   *Addendum e-comerce 2026-05-19:* `.thyrox/` no se importa. El rol de `.thyrox/context/` (estado, decisiones, deuda tecnica, work packages) se cumple en el submodulo `docs/` bajo `source/gestion/pm/`. Decisiones de documentacion siguen en `docs/source/gestion/decisiones/`; ADRs de producto van a `docs/source/backend/adr/` o `docs/source/frontend/adr/` segun corresponda.
-6. **Work packages with timestamp** — `docs/source/gestion/pm/<submodulo>/iniciativas/<slug>/` (slug kebab-case estable). En e-comerce no se usa el prefijo timestamp: el slug es estable, el git log registra la fecha. Heredado de THYROX pero adaptado al naming de IACT-docs/source/gestion/pm/.
+   *Addendum kaupamex 2026-05-19:* `.thyrox/` no se importa. El rol de `.thyrox/context/` (estado, decisiones, deuda tecnica, work packages) se cumple en el submodulo `docs/` bajo `source/gestion/pm/`. Decisiones de documentacion siguen en `docs/source/gestion/decisiones/`; ADRs de producto van a `docs/source/backend/adr/` o `docs/source/frontend/adr/` segun corresponda.
+6. **Work packages with timestamp** — `docs/source/gestion/pm/<submodulo>/iniciativas/<slug>/` (slug kebab-case estable). En kaupamex no se usa el prefijo timestamp: el slug es estable, el git log registra la fecha. Heredado de THYROX pero adaptado al naming de IACT-docs/source/gestion/pm/.
 7. **Tim Pope commit style** — Subject imperativo recomendado **≤50 ch** (máximo absoluto: 72), capitalizado y sin punto + línea en blanco + body con QUÉ y POR QUÉ, wrapped a 72 ch. Reemplaza Conventional Commits desde ÉPICA 4 (repository-diagnostics). Ver `.claude/rules/commit-conventions.md`.
 8. **Changelog en dos niveles** — `track/{wp}-changelog.md` se actualiza siempre durante el WP. `CHANGELOG.md` raíz **solo** se modifica en merge a `main` con bump de versión. Ver `.claude/rules/changelog-policy.md`.
 
@@ -113,10 +113,10 @@ docs/source/gestion/           ← Sustituto de .thyrox/context/ en este proyect
     └── plan-documentacion-pendiente.rst
 ```
 
-**Por que no `.thyrox/`:** importar el directorio en e-comerce no aportaba
+**Por que no `.thyrox/`:** importar el directorio en kaupamex no aportaba
 valor — su tooling (registry/_generator.sh, bootstrap.py) esta orientado
 a generar skills y guidelines en proyectos sin documentacion estructurada.
-e-comerce ya tiene Sphinx + RST y la convencion `source/gestion/pm/` que
+kaupamex ya tiene Sphinx + RST y la convencion `source/gestion/pm/` que
 hereda de IACT-docs, asi que el estado del proyecto vive en docs/ donde
 es buscable, indexable y publicable.
 
@@ -137,7 +137,7 @@ Stack del monorepo (parent + 5 submodulos):
 
 **Guidelines tech-stack (@imports):** deshabilitados por ahora. En IACT-docs
 los `.thyrox/guidelines/*.instructions.md` se importan con `@`-imports
-automaticos. En e-comerce el directorio `.thyrox/` no existe; los skills
+automaticos. En kaupamex el directorio `.thyrox/` no existe; los skills
 tech-stack que ya viven en `.claude/skills/{frontend-react, frontend-webpack,
 db-mysql, sphinx}` cubren la mayoria de los casos al invocarse via Skill
 tool. Si se necesita comportamiento siempre-activo (no on-demand), los
@@ -197,7 +197,7 @@ Reglas cuando hay más de un skill activo en la misma sesión.
 - **Máximo simultáneos:** 2-3 skills. Por encima de ese límite, el budget de context window para descripciones se satura y el triggering de todos se degrada.
 - **Cuándo secuenciar:** Si skill B necesita output de skill A (e.g. tech-detector → python-mcp), ejecutar A hasta completar y commitear antes de activar B.
 - **Section owners disjuntos:** Cada skill escribe en archivos distintos. Si dos skills necesitan tocar el mismo archivo, uno lo hace y el otro espera (o usa una sección marcada con `<!-- SECTION OWNER: {skill} -->`).
-- **Naming de state files por skill:** En e-comerce los state files de sesion no se persisten en el filesystem (no hay `.thyrox/context/`). El estado de iniciativa vive en el `progreso-<slug>.rst` de cada iniciativa. Para coordinacion intra-sesion entre agentes paralelos, usar memoria del orquestador y tool outputs — no archivos `now-*.md`.
+- **Naming de state files por skill:** En kaupamex los state files de sesion no se persisten en el filesystem (no hay `.thyrox/context/`). El estado de iniciativa vive en el `progreso-<slug>.rst` de cada iniciativa. Para coordinacion intra-sesion entre agentes paralelos, usar memoria del orquestador y tool outputs — no archivos `now-*.md`.
 - **Campos requeridos al reportar agentes paralelos en `progreso-<slug>.rst`:** `agent_id`, `status` (running/completed/failed), `output_key`, `started_at`, `timeout_at`. Ver detalle: `.claude/references/parallel-agent-state-files.md`
 
 ## Convenciones de escritura — OBLIGATORIO

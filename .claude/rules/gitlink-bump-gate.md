@@ -21,7 +21,7 @@ reincidencia. Solo un gate ejecutable integrado en el flujo lo hace.
 ANTES de cualquier otra acción o reporte:**
 
 ```bash
-# Desde el superproyecto (e-comerce/)
+# Desde el superproyecto (kaupamex/)
 git -C .git/modules/<submodulo> fetch <ruta-local-submodulo>
 git -C <submodulo> checkout <hash-del-tip>
 git add <submodulo>
@@ -35,15 +35,15 @@ git ls-tree HEAD <submodulo>
 **La afirmación "publicado" / "completo" / "cerrado" NO puede emitirse
 hasta que `git ls-tree HEAD <submodulo>` devuelva el hash esperado.**
 
-## Submódulos del superproyecto e-comerce
+## Submódulos del superproyecto kaupamex
 
 | Submódulo | Ruta local |
 |-----------|------------|
-| `api`     | `/home/user/e-comerce-api` |
-| `db`      | `/home/user/e-comerce-db` |
-| `docs`    | `/home/user/e-comerce-docs` |
-| `server`  | `/home/user/e-comerce-server` |
-| `ui`      | `/home/user/e-comerce-ui` |
+| `api`     | `/home/user/kaupamex-api` |
+| `db`      | `/home/user/kaupamex-db` |
+| `docs`    | `/home/user/kaupamex-docs` |
+| `server`  | `/home/user/kaupamex-server` |
+| `ui`      | `/home/user/kaupamex-ui` |
 
 ## Gate mínimo verificable (no omitible)
 

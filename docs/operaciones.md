@@ -9,7 +9,7 @@ Runbook de operaciones para PracticaYoruba-api.
 ```bash
 # 1. Clonar y configurar (uv crea .venv desde pyproject.toml + uv.lock)
 git clone <repo>
-cd e-commerce-api
+cd kaupamex-api
 uv sync
 
 # 2. Variables de entorno
@@ -56,9 +56,9 @@ python manage.py showmigrations
 DJANGO_SETTINGS_MODULE=config.settings.testing \
   python manage.py showmigrations
 
-# Verificar estado completo de la BD (desde e-commerce-db)
-bash ../e-commerce-db/scripts/verify.sh
-python ../e-commerce-db/scripts/check_db.py
+# Verificar estado completo de la BD (desde kaupamex-db)
+bash ../kaupamex-db/scripts/verify.sh
+python ../kaupamex-db/scripts/check_db.py
 ```
 
 ---

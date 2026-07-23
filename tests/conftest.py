@@ -211,10 +211,10 @@ def mariadb_keepalive(db):
 # automáticamente al inicio de la sesión de tests si no existen.
 # Orden OBLIGATORIO por dependencias: funciones → vistas → SPs.
 
-# conftest.py está en tests/ (hijo directo del repo e-commerce-api/).
-# e-commerce-db es hermano de e-commerce-api/ en /home/user/.
+# conftest.py está en tests/ (hijo directo del repo kaupamex-api/).
+# kaupamex-db es hermano de kaupamex-api/ en /home/user/.
 _REPOS_ROOT  = _REPO_ROOT.parent                          # /home/user
-_DB_OBJETOS  = _REPOS_ROOT / 'e-commerce-db' / 'provisioners' / 'mariadb' / 'objetos'
+_DB_OBJETOS  = _REPOS_ROOT / 'kaupamex-db' / 'provisioners' / 'mariadb' / 'objetos'
 
 # Orden de instalación: (tipo, nombre_objeto, path_relativo_desde_objetos)
 _DB_OBJECTS_ORDERED = [
@@ -323,7 +323,7 @@ def db_objects_setup(django_db_setup, django_db_blocker):
     """
     if not _DB_OBJETOS.exists():
         warnings.warn(
-            f'db_objects_setup: directorio e-commerce-db no encontrado en '
+            f'db_objects_setup: directorio kaupamex-db no encontrado en '
             f'{_DB_OBJETOS}. Los tests que dependen de SPs/funciones/vistas '
             f'pueden fallar.',
             RuntimeWarning,

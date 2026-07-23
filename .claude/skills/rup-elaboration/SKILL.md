@@ -11,7 +11,7 @@ updated_at: 2026-05-21 03:19:20
 
 # /rup-elaboration — RUP: Elaboration
 
-> **Adaptacion e-comerce v2 (2026-05-21).** Las salidas de esta fase
+> **Adaptacion kaupamex v2 (2026-05-21).** Las salidas de esta fase
 > NO viven en `{wp}/rup-elaboration.md`. Se mapean asi sobre los
 > artefactos de la iniciativa en
 > `docs/source/gestion/pm/<submodulo>/iniciativas/<slug>/`:
@@ -221,7 +221,7 @@ Al final de Elaboration, el plan de Construction debe tener:
 
 Los entregables canonicos RUP de Elaboration se materializan en
 artefactos de la iniciativa + archivos externos del proyecto (ver
-banner de adaptacion e-comerce v2 al inicio):
+banner de adaptacion kaupamex v2 al inicio):
 
 - ``analisis-<slug>.rst`` — Risk List R-NN actualizada (estado
   mitigado/residual); UC Model 80% como cross-link a
@@ -295,7 +295,7 @@ de los artefactos de la iniciativa):
 
 ## Estado activo
 
-En e-comerce **no hay `now.md`**. El estado y la coordinacion
+En kaupamex **no hay `now.md`**. El estado y la coordinacion
 intra-sesion **persisten en ``docs/source/``**, en los `.rst` de la
 iniciativa. La fase activa se lee del campo ``:estado:`` del
 metadata de ``progreso-<slug>.rst`` y de la ultima seccion de su

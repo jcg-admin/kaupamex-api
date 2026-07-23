@@ -11,9 +11,9 @@ updated_at: 2026-05-21 03:19:20
 
 # /rup-inception — RUP: Inception
 
-> **Adaptacion e-comerce v2 (2026-05-21).** Las salidas de esta fase
+> **Adaptacion kaupamex v2 (2026-05-21).** Las salidas de esta fase
 > NO se escriben en un archivo `rup-inception.md` separado dentro de
-> `.thyrox/context/work/<WP>/`. En e-comerce van mapeadas a los
+> `.thyrox/context/work/<WP>/`. En kaupamex van mapeadas a los
 > artefactos `.rst` estandar de la iniciativa, ubicada en
 > `docs/source/gestion/pm/<submodulo>/iniciativas/<slug>/`:
 >
@@ -185,7 +185,7 @@ En Inception, el plan es rough (±50% de accuracy es aceptable):
 
 Los entregables canonicos RUP de Inception se materializan en los
 artefactos `.rst` de la iniciativa (ver banner de adaptacion
-e-comerce v2 al inicio del archivo):
+kaupamex v2 al inicio del archivo):
 
 - ``alcance-<slug>.rst``  — Vision Document + Business Case + scope.
 - ``analisis-<slug>.rst`` — Risk List R-NN + Use Case Model 10%
@@ -233,7 +233,7 @@ los 4 artefactos de la iniciativa):
 
 ## Estado activo
 
-En e-comerce **no hay `now.md`**. El estado y la coordinacion
+En kaupamex **no hay `now.md`**. El estado y la coordinacion
 intra-sesion **persisten en ``docs/source/``**, en los `.rst` de la
 iniciativa. La fase activa se lee del campo ``:estado:`` del
 metadata de ``progreso-<slug>.rst`` y de la ultima seccion de su
@@ -281,7 +281,7 @@ bash .claude/skills/rup-inception/scripts/check-lco-criteria.sh \
   docs/source/gestion/pm/<submodulo>/iniciativas/<slug>/
 ```
 
-> **Nota e-comerce v2:** el script en `scripts/` aun apunta al
+> **Nota kaupamex v2:** el script en `scripts/` aun apunta al
 > layout `.thyrox/<WP>/` historico. Pendiente de port a la
 > estructura `.rst` actual; el agente puede ejecutar el check
 > manualmente leyendo los 5 criterios contra los 4 RST relevantes

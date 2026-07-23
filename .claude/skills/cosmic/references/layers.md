@@ -21,7 +21,7 @@ Ejemplos de capas separadas en un stack típico:
 - Un mismo evento de negocio puede generar procesos funcionales en varias capas
   (UI + API + DB) — se miden por separado.
 
-> Precedente: e-comerce midió 4 capas (api/ui/db/server) con umbrales propios
+> Precedente: kaupamex midió 4 capas (api/ui/db/server) con umbrales propios
 > (DEC-COSMIC-001 / DEC-COSMIC-006). Identifica TUS capas, no copies las suyas.
 
 ---

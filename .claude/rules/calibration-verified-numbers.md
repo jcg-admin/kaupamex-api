@@ -2,7 +2,7 @@
 created_at: 2026-04-22 21:20:00
 updated_at: 2026-04-22 21:20:00
 status: Aprobado
-project: e-comerce
+project: kaupamex
 author: claude
 version: 1.0.0
 ```

@@ -8,9 +8,9 @@ version: 1.0.0
 
 # Bash Background Tasks — Mecanismos de Espera
 
-> **Adaptacion e-comerce (2026-05-19):** Las menciones a "sesion IACT-docs"
+> **Adaptacion kaupamex (2026-05-19):** Las menciones a "sesion IACT-docs"
 > y paths `.thyrox/context/work/<WP>/` son del template. El mecanismo de
-> background tasks aplica igual en e-comerce; el WP equivalente seria
+> background tasks aplica igual en kaupamex; el WP equivalente seria
 > `docs/source/gestion/pm/<submodulo>/iniciativas/<slug>/`.
 
 Cargar esta reference cuando se va a usar `Bash(run_in_background=true)`

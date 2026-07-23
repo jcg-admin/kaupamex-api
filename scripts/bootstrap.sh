@@ -153,7 +153,7 @@ phase_database() {
 
     # 0. Cross-repo env sync (T-B2 de iniciativa
     #    resolver-problemas-db-pendientes — cierra ENV-01, H-03).
-    #    Si el sibling repo e-commerce-db esta presente y trae
+    #    Si el sibling repo kaupamex-db esta presente y trae
     #    scripts/verify_env_sync.sh, validar que las claves DB_* en
     #    db/.env.example coincidan con las de practicayoruba/.env.example.
     #    Drift = log_error pero no fatal — la causa raiz (.env real
@@ -161,7 +161,7 @@ phase_database() {
     local _env_sync=""
     for cand in \
         "$(cd "${PROJECT_ROOT}/.." && pwd)/db/scripts/verify_env_sync.sh" \
-        "$(cd "${PROJECT_ROOT}/.." && pwd)/e-commerce-db/scripts/verify_env_sync.sh" \
+        "$(cd "${PROJECT_ROOT}/.." && pwd)/kaupamex-db/scripts/verify_env_sync.sh" \
         "$(cd "${PROJECT_ROOT}/.." && pwd)/PracticaYoruba-db/scripts/verify_env_sync.sh"; do
         if [[ -f "$cand" ]]; then _env_sync="$cand"; break; fi
     done
@@ -174,7 +174,7 @@ phase_database() {
             log_error "  Revisar el diff arriba y sincronizar manualmente."
         fi
     else
-        log_info "  Skip verify_env_sync (e-commerce-db sibling no detectado)"
+        log_info "  Skip verify_env_sync (kaupamex-db sibling no detectado)"
     fi
 
     # 1. Arrancar MySQL (incluye limpieza de estado stale y fallback sin systemd)

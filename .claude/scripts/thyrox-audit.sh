@@ -1,15 +1,15 @@
 #!/bin/bash
 # =============================================================================
-# .claude/scripts/thyrox-audit.sh — auditoría mecánica de coherencia (e-comerce)
+# .claude/scripts/thyrox-audit.sh — auditoría mecánica de coherencia (kaupamex)
 # =============================================================================
-# Corre los gates verificables del monorepo e-comerce y emite un score por
+# Corre los gates verificables del monorepo kaupamex y emite un score por
 # chequeo. NO corrige — documenta. El juicio cualitativo lo añade el agente
 # increment-acceptor vía /thyrox:audit-coherence.
 #
 # Adaptado del thyrox-audit.sh de NestorMonroy/thyrox (Command -> Script +
-# Agente), repunteado a la realidad de e-comerce: estado en el SMD (no
+# Agente), repunteado a la realidad de kaupamex: estado en el SMD (no
 # ROADMAP/.thyrox/), skill `thyrox` (no pm-thyrox), 5 submódulos como clones
-# hermanos, y lenguaje-muerto = los tokens que e-comerce ya prohibió.
+# hermanos, y lenguaje-muerto = los tokens que kaupamex ya prohibió.
 #
 # Uso:
 #   bash .claude/scripts/thyrox-audit.sh            # reporte a stdout
@@ -28,7 +28,7 @@ ok()   { echo "PASS  · $1"; PASS=$((PASS+1)); }
 bad()  { echo "FAIL  · $1"; FAIL=$((FAIL+1)); }
 warn() { echo "WARN  · $1"; WARN=$((WARN+1)); }
 
-echo "# Auditoría de coherencia e-comerce — $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+echo "# Auditoría de coherencia kaupamex — $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 echo "Repo: $ROOT"
 echo ""
 
@@ -49,8 +49,8 @@ else
     warn "Referencias: validate-broken-references.py no encontrado"
 fi
 
-# --- 2a. Lenguaje muerto DURO: tokens de template nunca válidos en e-comerce ---
-# arc42 / .claude/prds / .claude/epics / /task:create no existen en e-comerce.
+# --- 2a. Lenguaje muerto DURO: tokens de template nunca válidos en kaupamex ---
+# arc42 / .claude/prds / .claude/epics / /task:create no existen en kaupamex.
 # Se excluyen los docs del PROPIO auditor (describen los patrones que detecta →
 # auto-FP; lección registro-errores-falsos-positivos FP-01).
 SELF='(coherence-audit-gate|audit-coherence|thyrox-audit)\.md'
@@ -61,7 +61,7 @@ else bad "Lenguaje muerto (duro): $HARD (arc42/.claude/prds/.claude/epics//task:
 
 # --- 2b. Candidatos a deriva (WARN, no FAIL): triage cualitativo ---
 # pm-thyrox/.thyrox/ROADMAP/now.md/type(scope) tienen menciones LEGÍTIMAS en
-# e-comerce (notas de adaptación que explican qué NO usar). Detección mecánica
+# kaupamex (notas de adaptación que explican qué NO usar). Detección mecánica
 # no distingue uso-real de mención-documental -> son CANDIDATOS, los tría el
 # agente increment-acceptor, no un FAIL automático (lección del dogfood inicial).
 CAND=$(grep -rniE "pm-thyrox|\.thyrox/context|ROADMAP\.md|\bnow\.md\b|type\(scope\):" \
@@ -70,10 +70,10 @@ if [[ "$CAND" -eq 0 ]]; then ok "Candidatos a deriva: 0"
 else warn "Candidatos a deriva: $CAND menciones (pm-thyrox/.thyrox/ROADMAP/now.md/type(scope)) — triage cualitativo (muchas son notas de adaptación legítimas; revisar usos-como-instrucción en SKILL.md)"; fi
 
 # --- 3. Coherencia de estado (SMD ↔ docs ↔ git) ---
-SMD="$PARENT/e-comerce-docs/source/gestion/pm/siguiente-mejor-decision.rst"
+SMD="$PARENT/kaupamex-docs/source/gestion/pm/siguiente-mejor-decision.rst"
 if [[ -f "$SMD" ]]; then
     REF=$(grep -oE ':commit_referencia:.*docs [0-9a-f]{7}' "$SMD" | grep -oE '[0-9a-f]{7}$' | head -1)
-    DOCSHEAD=$(git -C "$PARENT/e-comerce-docs" rev-parse --short=7 HEAD 2>/dev/null)
+    DOCSHEAD=$(git -C "$PARENT/kaupamex-docs" rev-parse --short=7 HEAD 2>/dev/null)
     FA=$(grep -oE ':fecha_actualizacion: [0-9T:-]+' "$SMD" | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' | head -1)
     AGE=$(( ( $(date -u +%s) - $(date -u -d "${FA:-1970-01-01}" +%s 2>/dev/null || echo 0) ) / 86400 ))
     if [[ "$AGE" -gt 7 ]]; then warn "SMD: :fecha_actualizacion: $FA tiene >7 días — refrescar"
@@ -100,7 +100,7 @@ done
 # --- 5. Coherencia parent ↔ submódulos (gitlink vs clon hermano) ---
 if [[ -f .gitmodules ]]; then
     while read -r sm; do
-        clone="$PARENT/e-comerce-$sm"
+        clone="$PARENT/kaupamex-$sm"
         link=$(git ls-tree HEAD "$sm" 2>/dev/null | awk '{print $3}')
         tip=$(git -C "$clone" rev-parse HEAD 2>/dev/null)
         if [[ -z "$tip" ]]; then warn "Submódulo $sm: clon hermano no hallado en $clone"

@@ -3,7 +3,7 @@ name: backend-drf
 description: "Skill de tecnología para el backend Django 6 + DRF de e-commerce (submódulo api). Usar cuando se implementen o modifiquen vistas, serializers, permisos, endpoints o su OpenAPI en src/addons/**. Cubre: estilo de vista (FBV vs ViewSet vs CBV), autorización por capacidad (HasCapability + azúcar), drf-spectacular, canon codigo_error, y el gate de no-lazy-imports. Invocar en Phase 7 DESIGN/SPECIFY para el contrato del endpoint, Phase 10 EXECUTE para implementarlo, y Phase 11 TRACK/EVALUATE para verificar autorización y schema."
 layer: backend
 framework: django-drf
-project: e-comerce
+project: kaupamex
 stack:
   - Python 3.12+
   - Django 6.0.x
@@ -154,7 +154,7 @@ endpoint sin `@extend_schema` degrada el OpenAPI publicado. ViewSet:
 ## Phase 11: TRACK/EVALUATE — Verificar
 
 - **DB + pytest** contra MariaDB real (nunca SQLite):
-  `bash /home/user/e-commerce-db/scripts/start_db.sh` + `uv run pytest <ruta> -q --reuse-db`.
+  `bash /home/user/kaupamex-db/scripts/start_db.sh` + `uv run pytest <ruta> -q --reuse-db`.
 - **Autorización:** un test que confirme 403 sin la capacidad y 200 con ella
   (patrón `seed_authz` + `assign_buyer_role`/`RoleAssignment` +
   `invalidate_capabilities`; ver `tests/integration/authz/test_self_account_caps.py`).

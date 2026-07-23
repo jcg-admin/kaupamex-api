@@ -1,6 +1,6 @@
 # CLAUDE.md — api (cheat-sheet local)
 
-Submódulo `api` del monorepo PracticaYoruba (repo GitHub `jcg-admin/e-commerce-api`).
+Submódulo `api` del monorepo PracticaYoruba (repo GitHub `jcg-admin/kaupamex-api`).
 Backend Django 6 + DRF, gestionado con `uv`, tests con pytest contra MariaDB.
 El producto se llama **PracticaYoruba** dentro del código (schemas
 `practicayoruba_db` / `practicayoruba_qa`; usuario `django_user`).
@@ -11,8 +11,8 @@ Este archivo es **solo un cheat-sheet local** — NO redefine gobernanza.
 
 La gobernanza vive en el superproyecto, no aquí:
 
-- **`../e-commerce/.claude/CLAUDE.md`** — identidad, flujo de sesión, glosario.
-- **`../e-commerce/.claude/rules/`** — reglas no negociables cargadas en cada
+- **`../kaupamex/.claude/CLAUDE.md`** — identidad, flujo de sesión, glosario.
+- **`../kaupamex/.claude/rules/`** — reglas no negociables cargadas en cada
   sesión: commit Tim Pope (`commit-conventions.md`), timestamps ISO 8601
   (`timestamps-iso8601-obligatorios.md`), `react-verification-gate.md`,
   `no-lazy-imports.md`, `test-execution-protocol.md`, etc.
@@ -37,7 +37,7 @@ La gobernanza vive en el superproyecto, no aquí:
 
 ```bash
 # Levantar MariaDB (idempotente, socket Unix) — script del submódulo db
-bash /home/user/e-commerce-db/scripts/start_db.sh        # o: make db-up
+bash /home/user/kaupamex-db/scripts/start_db.sh        # o: make db-up
 
 # Gate de conexión (ver .claude/rules/db-conexion-socket.md): debe imprimir un .sock
 PYTHONPATH=practicayoruba DJANGO_SETTINGS_MODULE=config.settings.testing \

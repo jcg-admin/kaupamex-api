@@ -76,7 +76,7 @@ No fijar estos sin una necesidad concreta — cambiar un default global afecta
 Como `ENABLE_DJANGO_DEPLOY_CHECK` es `True`, el schema se **genera** y sus warnings
 se emiten en el deploy check::
 
-    cd /home/user/e-commerce-api && \
+    cd /home/user/kaupamex-api && \
       DJANGO_SETTINGS_MODULE=config.settings.testing \
       uv run python manage.py check --deploy 2>&1 | grep -iE "spectacular|schema|W"
 

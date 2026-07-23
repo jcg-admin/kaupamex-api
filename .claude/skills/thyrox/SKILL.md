@@ -597,8 +597,8 @@ Tareas:          [T-NNN] Descripción (R-N)
 Errores:         {descripcion}.md  (sin números)
 ```
 
-> **Adaptación e-comerce:** los paths, timestamps y modelo ``now.md`` de esta
-> sección son del **THYROX genérico**. e-comerce los **sustituye** (no importa
+> **Adaptación kaupamex:** los paths, timestamps y modelo ``now.md`` de esta
+> sección son del **THYROX genérico**. kaupamex los **sustituye** (no importa
 > ``.thyrox/``): los WP viven en
 > ``docs/source/gestion/pm/<submodulo>/iniciativas/<slug>/`` con **slug
 > kebab-case estable sin timestamp** (I-004) y el estado en el SMD +

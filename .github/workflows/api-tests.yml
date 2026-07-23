@@ -103,5 +103,5 @@ jobs:
           --ignore=tests/integration/reports/test_db_rpt_endpoints.py
         # --create-db: recrea el schema desde migraciones (greenfield CI).
         # --ignore: los tests sp_rpt_* requieren los stored procedures de
-        # e-commerce-db (no provisionados en CI). Re-incluir cuando se
+        # kaupamex-db (no provisionados en CI). Re-incluir cuando se
         # provisionen los SP (ver migrar-urls-rest-v2 / auditar-endpoints-api).

@@ -1,9 +1,9 @@
 ---
 name: Help
-description: Cómo trabajar con THYROX en e-comerce — fases, comandos y dónde vive el estado. No invoca agentes; responde directamente, adaptado al estado actual (lee el SMD para situar).
+description: Cómo trabajar con THYROX en kaupamex — fases, comandos y dónde vive el estado. No invoca agentes; responde directamente, adaptado al estado actual (lee el SMD para situar).
 ---
 
-# /thyrox:help — Cómo usar THYROX en e-comerce
+# /thyrox:help — Cómo usar THYROX en kaupamex
 
 No invoques agentes. Responde directamente con lo siguiente, situando al
 usuario con el SMD (`docs/source/gestion/pm/siguiente-mejor-decision.rst`).
@@ -12,7 +12,7 @@ usuario con el SMD (`docs/source/gestion/pm/siguiente-mejor-decision.rst`).
 
 THYROX es una metodología de gestión empaquetada como skill de Claude Code.
 Hablas en lenguaje natural y Claude dirige el ciclo de vida en fases, dejando
-todo como **RST + commits en git**. En e-comerce el estado **NO** vive en
+todo como **RST + commits en git**. En kaupamex el estado **NO** vive en
 `.thyrox/` (decisión bloqueada en `CLAUDE.md`): vive en el submódulo `docs/`
 bajo `source/gestion/pm/`.
 

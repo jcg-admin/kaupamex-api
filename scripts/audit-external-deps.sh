@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # audit-external-deps.sh
 #
-# Probe ops-critical external URLs hardcoded across the e-comerce
+# Probe ops-critical external URLs hardcoded across the kaupamex
 # monorepo (provisioners, build setup scripts, package fetchers).
 # Exit 0 if all live; exit 1 listing dead/redirected-to-wrong-content.
 #
