@@ -52,3 +52,18 @@ def derive_order_status(sale_order):
     approved = sale_order.payments.filter(
         status=Payment.STATUS_APPROVED).exists()
     return Order.STATUS_PAID if approved else Order.STATUS_PENDING
+
+
+def order_status(order):
+    """Estado legacy de un ``orders.Order`` derivado de su canónica.
+
+    Transición V5c-2: los lectores object-level dejan de leer la columna
+    ``order.status`` y derivan de los ejes canónicos vía la O2O
+    ``Order.sale_order`` (fijada por el confirm, V3a). Guarda null-safe:
+    filas legacy sin enlace canónico (pre-V3a) caen a la columna hasta la
+    data migration (V5d). Comportamiento equivalente probado en
+    ``test_status_projection`` (``derive == legacy.status``).
+    """
+    if order.sale_order_id is None:
+        return order.status
+    return derive_order_status(order.sale_order)

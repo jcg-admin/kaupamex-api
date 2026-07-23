@@ -29,6 +29,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from addons.orders.models import Order, OrderItem
+from addons.orders.status_projection import order_status
 from addons.payment.models import Payment, Refund
 from addons.payments.services import execute_refund
 from addons.mail.models.notification_service import notify_return_info_requested
@@ -133,7 +134,8 @@ class ReturnListCreateView(APIView):
         order_id = order.pk
 
         # H-API-31: solo se permiten devoluciones sobre ordenes ENTREGADAS.
-        if order.status != Order.STATUS_DELIVERED:
+        # V5c-2: estado derivado de los ejes canónicos (no de la columna).
+        if order_status(order) != Order.STATUS_DELIVERED:
             raise DRFValidationError({
                 'order_number': 'Solo se pueden solicitar devoluciones para ordenes entregadas.',
                 'codigo_error': 'ORDER_NOT_DELIVERED',
