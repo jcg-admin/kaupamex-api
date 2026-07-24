@@ -90,8 +90,14 @@ install-hooks db-up ci-test ci-test-fast` (`make help`).
 - El **detalle de convenciones de vista** (estilo FBV / ViewSet+router / CBV,
   azúcar de capacidad, `drf-spectacular`, gotcha del `.as_view()` manual con
   `@action`, seed de capacidades) vive en el skill on-demand **`backend-drf`**
-  (`.claude/skills/backend-drf/SKILL.md`) — invocarlo al implementar/modificar
-  endpoints en `src/addons/**`. No se duplica aquí para no engordar el CLAUDE.
+  (`.claude/skills/backend-drf/SKILL.md`); el contrato OpenAPI en
+  **`backend-drf-spectacular`**. No se duplica aquí para no engordar el CLAUDE.
+- **La invocación de esos skills es un GATE mecánico, no prosa.** Un hook
+  `PreToolUse` (`.claude/hooks/inject-drf-skill-gate.py`, ver
+  `.claude/rules/drf-skill-gate.md`) dispara en CADA `Edit`/`Write`/`MultiEdit`
+  sobre Python del monolito modular (`src/**/*.py` y `tests/**/*.py`) e inyecta
+  el recordatorio de invocar `backend-drf` (+ `backend-drf-spectacular` si toca
+  la capa DRF) ANTES de escribir. No depende de la memoria del agente.
 
 ## Estructura
 
