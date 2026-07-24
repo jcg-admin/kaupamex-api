@@ -14,6 +14,8 @@ Entidad L1 = ``Company`` (DEC-T7; converge Odoo ``res.company`` / NetSuite).
 ``price`` es un placeholder de facturación (valor, no lógica): el modelo de
 precios sigue abierto (pregunta abierta del diseño) y no cambia el esquema.
 """
+from decimal import Decimal
+
 from django.core.exceptions import ValidationError
 import fields
 import models
@@ -540,3 +542,110 @@ class CompanyModuleSubscription(TimeStampedModel):
                     )
                 })
         super().save(*args, **kwargs)
+
+
+class SubscriptionBillingRun(TimeStampedModel):
+    """Corrida periódica de facturación L0 (UC-PLT-18 / #180).
+
+    La mitad *cash* del O2C re-domiciliado (DEC-KX-07): el Actor Tiempo (o el
+    operador) dispara una corrida por período; ésta emite las
+    ``SubscriptionInvoice`` de las suscripciones vencidas y cobra. Persiste el
+    **resumen auditable** que el ``run_billing`` sin estado no tenía (H-API-01/
+    H-API-02). Ver :ref:`diseno-motor-facturacion-recurrente-l0`.
+    """
+
+    class TriggeredBy(models.TextChoices):
+        TIME = 'time', 'Planificador (Actor Tiempo)'
+        OPERATOR = 'operator', 'Corrida manual del operador'
+
+    period = fields.Char(max_length=7, verbose_name='Periodo')  # ``YYYY-MM``
+    triggered_by = fields.Selection(
+        max_length=8, choices=TriggeredBy.choices, default=TriggeredBy.TIME,
+        verbose_name='Disparada por',
+    )
+    started_at = fields.Datetime(auto_now_add=True, verbose_name='Inicio')
+    finished_at = fields.Datetime(
+        null=True, blank=True, verbose_name='Fin',
+    )
+    invoices_issued = fields.Integer(default=0, verbose_name='Facturas emitidas')
+    amount_charged = fields.Monetary(
+        max_digits=12, decimal_places=2, default=Decimal('0.00'),
+        verbose_name='Monto cobrado',
+    )
+    currency = fields.Char(max_length=3, default='MXN', verbose_name='Moneda')
+    failures = fields.Integer(default=0, verbose_name='Cobros fallidos')
+
+    class Meta:
+        db_table = 'subscription_billing_run'
+        verbose_name = 'Corrida de facturación'
+        verbose_name_plural = 'Corridas de facturación'
+        ordering = ['-started_at']
+        indexes = [models.Index(fields=['period'])]
+
+    def __str__(self):
+        return f'run:{self.period}:{self.triggered_by}'
+
+
+class SubscriptionInvoice(TimeStampedModel):
+    """Factura recurrente de una suscripción por período (eje ``account`` L0).
+
+    Documento de cobro **auditable** e **idempotente** por
+    ``(subscription, period)`` (EX-04): reintentar una corrida no duplica la
+    factura. El ``amount`` **congela** ``subscription.price`` — no referencia el
+    tarifario en vivo (inmutabilidad histórica, H-API-01). El cobro reutiliza el
+    eje ``payment`` del O2C (DEC-KX-07); esta factura sella el resultado en
+    ``status``. Ver :ref:`diseno-motor-facturacion-recurrente-l0`.
+    """
+
+    class Status(models.TextChoices):
+        DRAFT = 'draft', 'Borrador'
+        ISSUED = 'issued', 'Emitida'
+        PAID = 'paid', 'Pagada'
+        FAILED = 'failed', 'Cobro fallido'
+        VOID = 'void', 'Anulada'
+
+    company = fields.Many2one(
+        Company, on_delete=models.CASCADE, related_name='subscription_invoices',
+        verbose_name='Empresa',
+    )
+    subscription = fields.Many2one(
+        CompanyModuleSubscription, on_delete=models.PROTECT,
+        related_name='invoices', verbose_name='Suscripción',
+    )
+    run = fields.Many2one(
+        SubscriptionBillingRun, on_delete=models.PROTECT, related_name='invoices',
+        verbose_name='Corrida',
+    )
+    period = fields.Char(max_length=7, verbose_name='Periodo')  # ``YYYY-MM``
+    amount = fields.Monetary(
+        max_digits=10, decimal_places=2, verbose_name='Monto',
+    )
+    currency = fields.Char(max_length=3, default='MXN', verbose_name='Moneda')
+    status = fields.Selection(
+        max_length=8, choices=Status.choices, default=Status.DRAFT,
+        verbose_name='Estado',
+    )
+    issued_at = fields.Datetime(null=True, blank=True, verbose_name='Emitida en')
+    paid_at = fields.Datetime(null=True, blank=True, verbose_name='Pagada en')
+    failure_reason = fields.Char(
+        max_length=255, blank=True, default='', verbose_name='Motivo de fallo',
+    )
+
+    objects = models.Manager()               # default: cross-company (L0)
+    scoped = CompanyScopedManager()          # L3: fail-closed por company
+
+    class Meta:
+        db_table = 'subscription_invoice'
+        verbose_name = 'Factura de suscripción'
+        verbose_name_plural = 'Facturas de suscripción'
+        ordering = ['-created_at']
+        # Idempotencia (EX-04): una suscripción no se factura dos veces por el
+        # mismo período. Reintentar la corrida es seguro.
+        unique_together = [('subscription', 'period')]
+        indexes = [
+            models.Index(fields=['company', 'status']),
+            models.Index(fields=['run']),
+        ]
+
+    def __str__(self):
+        return f'inv:{self.subscription_id}:{self.period}:{self.status}'
