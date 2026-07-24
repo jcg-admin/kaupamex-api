@@ -69,6 +69,7 @@ NAMED_ACTIONS = [
     ('inventory.import',      'Importar inventario',              True),
     ('reports.export',        'Exportar reportes',                False),
     ('platform.provision',    'Provisionar la plataforma (operador Kaupamex L0)', True),
+    ('platform.billing',      'Facturar y cobrar suscripciones (operador Kaupamex L0)', True),
     # MOD-028 FINANCE — acciones SoD (segregacion de funciones, UC-FIN-01..08).
     ('finance.record',        'Registrar movimiento/concepto financiero',  True),
     ('finance.reconcile',     'Conciliar liquidaciones del gateway',       True),

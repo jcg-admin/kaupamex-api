@@ -12,6 +12,8 @@ from addons.company.models import (
     Company,
     CompanyModuleSubscription,
     ModulePrice,
+    SubscriptionBillingRun,
+    SubscriptionInvoice,
 )
 
 
@@ -164,3 +166,36 @@ class CompanyModuleSubscriptionSerializer(serializers.ModelSerializer):
                     )
                 })
         return attrs
+
+
+class SubscriptionBillingRunSerializer(serializers.ModelSerializer):
+    """Resumen de una corrida de facturación L0 (UC-PLT-18 §7C.2)."""
+
+    run_id = serializers.IntegerField(source='id', read_only=True)
+
+    class Meta:
+        model = SubscriptionBillingRun
+        fields = [
+            'run_id', 'period', 'triggered_by', 'invoices_issued',
+            'amount_charged', 'currency', 'failures', 'started_at',
+            'finished_at',
+        ]
+        read_only_fields = fields
+
+
+class SubscriptionInvoiceSerializer(serializers.ModelSerializer):
+    """Factura de suscripción L0 (documento de cobro por período, UC-PLT-18)."""
+
+    company_code = serializers.CharField(source='company.code', read_only=True)
+    module_code = serializers.CharField(
+        source='subscription.module.code', read_only=True,
+    )
+
+    class Meta:
+        model = SubscriptionInvoice
+        fields = [
+            'id', 'company', 'company_code', 'subscription', 'module_code',
+            'run', 'period', 'amount', 'currency', 'status', 'issued_at',
+            'paid_at', 'failure_reason', 'created_at',
+        ]
+        read_only_fields = fields
