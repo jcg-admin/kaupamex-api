@@ -11,10 +11,16 @@ Los montos son datos de prueba arbitrarios (no se inventan precios de negocio).
 from decimal import Decimal
 
 import pytest
+from django.utils import timezone
 
 from addons.authz.models import Module
 from addons.company import billing
-from addons.company.models import Company, CompanyModuleSubscription
+from addons.company.models import (
+    Company,
+    CompanyModuleSubscription,
+    SubscriptionBillingRun,
+    SubscriptionInvoice,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -101,3 +107,68 @@ def test_run_billing_excludes_system_company():
         Company.objects.exclude(is_system=True).values_list('code', flat=True)
     )
     assert 'kaupamex_global' not in codes
+
+
+# --- Persistencia: run_billing ahora crea run + factura (H-API-02, slice 2) ---
+
+def test_run_billing_persists_run_and_paid_invoice():
+    c = Company.objects.create(code='acme', name='Acme')
+    _priced_active_sub(c, 'catalogue', '199.00')
+    billing.run_billing(lambda company, amount: True, period='2026-08')
+
+    run = SubscriptionBillingRun.objects.get(period='2026-08')
+    assert run.invoices_issued == 1
+    assert run.amount_charged == Decimal('199.00')
+    assert run.failures == 0
+    assert run.finished_at is not None
+
+    inv = SubscriptionInvoice.objects.get(company=c, period='2026-08')
+    assert inv.status == SubscriptionInvoice.Status.PAID
+    assert inv.amount == Decimal('199.00')   # precio congelado
+    assert inv.paid_at is not None
+    assert inv.run_id == run.id
+
+
+def test_run_billing_idempotent_does_not_recharge_paid_invoice():
+    c = Company.objects.create(code='acme', name='Acme')
+    _priced_active_sub(c, 'catalogue', '199.00')
+    calls = []
+
+    def charge(company, amount):
+        calls.append((company.code, amount))
+        return True
+
+    # Dos corridas por el MISMO periodo: la segunda no re-cobra ni duplica.
+    billing.run_billing(charge, period='2026-08')
+    billing.run_billing(charge, period='2026-08')
+
+    assert calls == [('acme', Decimal('199.00'))]       # cobrada UNA vez
+    assert SubscriptionInvoice.objects.filter(
+        company=c, period='2026-08',
+    ).count() == 1                                        # sin duplicar (EX-04)
+
+
+def test_run_billing_failed_charge_marks_invoice_failed_and_suspends():
+    c = Company.objects.create(code='acme', name='Acme')
+    _priced_active_sub(c, 'catalogue', '199.00')
+    billing.run_billing(lambda company, amount: False, period='2026-08')
+
+    inv = SubscriptionInvoice.objects.get(company=c, period='2026-08')
+    assert inv.status == SubscriptionInvoice.Status.FAILED
+    assert inv.paid_at is None
+    run = SubscriptionBillingRun.objects.get(period='2026-08')
+    assert run.failures == 1
+    assert run.invoices_issued == 0
+    sub = CompanyModuleSubscription.objects.get(company=c)
+    assert sub.status == CompanyModuleSubscription.Status.SUSPENDED
+
+
+def test_run_billing_period_defaults_to_current_month():
+    c = Company.objects.create(code='acme', name='Acme')
+    _priced_active_sub(c, 'catalogue', '199.00')
+    expected = timezone.now().strftime('%Y-%m')
+    billing.run_billing(lambda company, amount: True)
+    assert SubscriptionBillingRun.objects.filter(period=expected).exists()
+    assert SubscriptionInvoice.objects.filter(
+        company=c, period=expected,
+    ).exists()
