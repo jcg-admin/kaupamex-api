@@ -130,3 +130,83 @@ def run_billing(charge, at=None, companies=None, period=None,
     run.finished_at = timezone.now()
     run.save()
     return results
+
+
+def issue_billing_run(at=None, companies=None, period=None,
+                      triggered_by=SubscriptionBillingRun.TriggeredBy.OPERATOR):
+    """Emite (sin cobrar) las facturas del período: crea la corrida y una
+    ``SubscriptionInvoice`` ``issued`` idempotente por suscripción facturable.
+
+    El **cobro real** (mover dinero por la pasarela MP) es un paso posterior —
+    ``charge_invoice`` / el scheduler con el adaptador MP (pieza de integración
+    aparte, H-API-03). Este flujo es el que dispara el endpoint ``POST
+    /billing/runs`` → 202 (encolada): deja las facturas listas para cobrar sin
+    egress. Devuelve la ``SubscriptionBillingRun``.
+    """
+    if at is None:
+        at = timezone.now()
+    if period is None:
+        period = at.strftime('%Y-%m')
+    if companies is None:
+        companies = Company.objects.filter(is_system=False)
+
+    run = SubscriptionBillingRun.objects.create(
+        period=period, triggered_by=triggered_by,
+    )
+    for company in companies:
+        for sub in _billable_subscriptions(company, at):
+            invoice, created = SubscriptionInvoice.objects.get_or_create(
+                subscription=sub, period=period,
+                defaults={
+                    'company': company, 'run': run, 'amount': sub.price,
+                    'status': SubscriptionInvoice.Status.ISSUED,
+                    'issued_at': at,
+                },
+            )
+            if created:
+                run.invoices_issued += 1
+    run.finished_at = timezone.now()
+    run.save()
+    return run
+
+
+class BillingGatewayNotConfigured(Exception):
+    """No hay pasarela de cobro cableada para el billing L0 (H-API-03).
+
+    El cobro real company→Kaupamex reutiliza el eje ``payment`` del O2C
+    (DEC-KX-07); el adaptador concreto (crear el pago en MP) es una pieza de
+    integración aparte que aún no se cabló. Hasta entonces, ``charge_invoice``
+    la levanta y el endpoint la traduce a 503.
+    """
+
+
+def charge_invoice(invoice):
+    """Cobra una ``SubscriptionInvoice`` por la pasarela (seam de integración).
+
+    **Deferido (H-API-03):** el adaptador MP (egress real) no está cableado; por
+    defecto levanta ``BillingGatewayNotConfigured``. Los tests inyectan un doble
+    (``monkeypatch``). Devuelve ``bool`` (aprobado/rechazado) cuando esté cableado.
+    """
+    raise BillingGatewayNotConfigured(
+        'Adaptador de cobro MP no cableado para billing L0 (H-API-03).')
+
+
+def retry_invoice(invoice, at=None):
+    """Reintenta el cobro de una factura ``failed`` vía ``charge_invoice``.
+
+    Éxito → ``paid`` (``paid_at``); rechazo → sigue ``failed`` con motivo. El
+    llamador (endpoint) ya validó que la factura estaba ``failed`` (si no, 409).
+    Devuelve la factura actualizada.
+    """
+    if at is None:
+        at = timezone.now()
+    invoice.issued_at = invoice.issued_at or at
+    if charge_invoice(invoice):
+        invoice.status = SubscriptionInvoice.Status.PAID
+        invoice.paid_at = at
+        invoice.failure_reason = ''
+    else:
+        invoice.status = SubscriptionInvoice.Status.FAILED
+        invoice.failure_reason = 'Cobro rechazado por la pasarela'
+    invoice.save()
+    return invoice

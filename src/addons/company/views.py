@@ -17,17 +17,25 @@ no sustituye a la capacidad.
 
 Identificadores + claves JSON en inglés (DEC-DOC-005).
 """
+from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
-from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
+from rest_framework.viewsets import (
+    GenericViewSet,
+    ModelViewSet,
+    ReadOnlyModelViewSet,
+)
 
 from addons.authz.models import Module
 from addons.authz.permissions import CapabilityRequiredMixin
+from addons.company import billing
 from addons.company.models import (
     Company,
     CompanyModuleSubscription,
     ModulePrice,
+    SubscriptionBillingRun,
+    SubscriptionInvoice,
 )
 from addons.company.serializers import (
     CompanyCreateSerializer,
@@ -35,6 +43,8 @@ from addons.company.serializers import (
     CompanySerializer,
     ModuleCatalogSerializer,
     ModulePriceSerializer,
+    SubscriptionBillingRunSerializer,
+    SubscriptionInvoiceSerializer,
 )
 
 
@@ -90,9 +100,22 @@ class CompanyViewSet(CapabilityRequiredMixin, ModelViewSet):
         'create': 'platform.provision',
         'suspend': 'platform.provision',
         'reactivate': 'platform.provision',
+        'invoices': 'platform.view',
     }
     queryset = Company.objects.all().order_by('code')
     http_method_names = ['get', 'post', 'head', 'options']
+
+    @action(detail=True, methods=['get'])
+    def invoices(self, request, pk=None):
+        """Facturas de suscripción de esta company (UC-PLT-18 §7C).
+
+        Lectura L0 (``platform.view``), acotada a la company del path.
+        """
+        company = self.get_object()
+        qs = SubscriptionInvoice.objects.filter(
+            company=company,
+        ).order_by('-created_at')
+        return Response(SubscriptionInvoiceSerializer(qs, many=True).data)
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -162,3 +185,69 @@ class CompanyModuleSubscriptionViewSet(CapabilityRequiredMixin, ModelViewSet):
         if company_id:
             qs = qs.filter(company_id=company_id)
         return qs
+
+
+class BillingRunViewSet(CapabilityRequiredMixin, ModelViewSet):
+    """Corridas de facturación recurrente L0 (UC-PLT-18 §7C).
+
+    Lectura del historial de corridas con ``platform.view``; disparar una
+    corrida manual (emite las facturas del período) exige ``platform.billing``
+    y responde 202 (encolada). El cobro real es posterior (adaptador MP,
+    H-API-03); esta corrida deja las facturas ``issued``.
+    """
+
+    permission_map = {
+        'list': 'platform.view',
+        'retrieve': 'platform.view',
+        'create': 'platform.billing',
+    }
+    queryset = SubscriptionBillingRun.objects.all().order_by('-started_at')
+    serializer_class = SubscriptionBillingRunSerializer
+    http_method_names = ['get', 'post', 'head', 'options']
+
+    def create(self, request, *args, **kwargs):
+        period = request.data.get('period') or None
+        run = billing.issue_billing_run(period=period)
+        return Response(
+            SubscriptionBillingRunSerializer(run).data,
+            status=status.HTTP_202_ACCEPTED,
+        )
+
+
+class SubscriptionInvoiceViewSet(CapabilityRequiredMixin, GenericViewSet):
+    """Acciones sobre facturas de suscripción L0 (UC-PLT-18 §7C).
+
+    Sólo expone ``retry`` (reintentar el cobro de una factura ``failed``),
+    gateado con ``platform.billing``. El listado de facturas vive bajo la
+    company (``/platform/companies/{id}/invoices/``), no aquí.
+    """
+
+    permission_map = {'retry': 'platform.billing'}
+    queryset = SubscriptionInvoice.objects.all()
+    serializer_class = SubscriptionInvoiceSerializer
+
+    @action(detail=True, methods=['post'])
+    def retry(self, request, pk=None):
+        try:
+            invoice = SubscriptionInvoice.objects.get(pk=pk)
+        except SubscriptionInvoice.DoesNotExist:
+            return Response(
+                {'codigo_error': 'INVOICE_NOT_FOUND',
+                 'detail': 'La factura no existe.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        if invoice.status != SubscriptionInvoice.Status.FAILED:
+            return Response(
+                {'codigo_error': 'INVOICE_NOT_RETRYABLE',
+                 'detail': 'Solo una factura fallida puede reintentarse.'},
+                status=status.HTTP_409_CONFLICT,
+            )
+        try:
+            billing.retry_invoice(invoice)
+        except billing.BillingGatewayNotConfigured:
+            return Response(
+                {'codigo_error': 'GATEWAY_NOT_CONFIGURED',
+                 'detail': 'La pasarela de cobro no está configurada.'},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        return Response(SubscriptionInvoiceSerializer(invoice).data)
