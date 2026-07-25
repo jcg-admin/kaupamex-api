@@ -22,6 +22,7 @@ import models
 from django.utils import timezone
 
 from addons.base.models import TimeStampedModel
+from addons.company.models import CompanyScopedManager
 
 
 def _generate_sale_name() -> str:
@@ -89,6 +90,17 @@ class SaleOrder(TimeStampedModel):
         blank=True, default='',
         help_text='Notas del comprador al confirmar (paridad orders.Order.notes).',
     )
+    # Empresa dueña de la orden (Odoo sale.order.company_id). L3 rollout
+    # SOL-085 S3: nullable durante el backfill (la migración asigna las filas
+    # heredadas a la founder company). Espeja el patrón de company.CompanySetting.
+    company     = fields.Many2one(
+        'company.Company', null=True, blank=True,
+        on_delete=models.CASCADE, related_name='sale_orders',
+        help_text='Empresa dueña de la orden (Odoo company_id). NULL pre-backfill.',
+    )
+
+    objects = models.Manager()               # cross-company (L0 admin)
+    scoped = CompanyScopedManager()          # L3: fail-closed por empresa activa
 
     class Meta:
         db_table     = 'sale_order'
