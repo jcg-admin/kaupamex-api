@@ -33,6 +33,17 @@ class AccountMove(models.Model):
         ('out_receipt', 'Recibo de venta'),
         ('in_receipt', 'Recibo de compra'),
     ]
+    # Prefijo de secuencia por move_type (Odoo deriva el nombre de la secuencia
+    # del diario; aquí un prefijo estable por tipo, único con el código de diario).
+    SEQUENCE_PREFIXES = {
+        'out_invoice': 'INV',
+        'out_refund': 'RINV',
+        'in_invoice': 'BILL',
+        'in_refund': 'RBILL',
+        'out_receipt': 'RCPT',
+        'in_receipt': 'PRCPT',
+        'entry': 'MISC',
+    }
 
     name         = fields.Char(
         max_length=255, blank=True, default='/',
@@ -109,18 +120,44 @@ class AccountMove(models.Model):
         if not self.is_balanced():
             raise UserError(_('El asiento no está balanceado (debe ≠ haber).'))
 
+    def _assign_sequence(self):
+        """Siguiente ``name`` por (diario, move_type, año).
+
+        Espeja Odoo ``account.move._set_next_sequence``: numeración consecutiva
+        con la forma ``{prefijo}/{código-diario}/{año}/{NNNNN}``, única por diario
+        y tipo. El ``name`` global es único (constraint del modelo) porque el
+        código de diario forma parte del prefijo.
+        """
+        prefix = self.SEQUENCE_PREFIXES.get(self.move_type, 'MISC')
+        base = f'{prefix}/{self.journal.code}/{self.date.year}/'
+        last = (AccountMove.objects
+                .filter(journal=self.journal, move_type=self.move_type,
+                        name__startswith=base)
+                .exclude(pk=self.pk)
+                .order_by('-name').first())
+        n = 1
+        if last and last.name:
+            try:
+                n = int(last.name.rsplit('/', 1)[1]) + 1
+            except (ValueError, IndexError):
+                n = 1
+        return f'{base}{n:05d}'
+
     def post(self):
         """Publica el asiento (Odoo ``_post``): exige doble entrada balanceada.
 
         Rechaza postear un asiento vacío o desbalanceado. Recalcula
-        ``amount_total``.
+        ``amount_total`` y, si el ``name`` sigue en ``'/'`` (borrador), asigna la
+        secuencia del diario (Odoo asigna el número al postear).
         """
         if not self.line_ids.exists():
             raise UserError(_('No se puede publicar un asiento sin líneas.'))
         self._check_balanced()
         self.compute_amount_total()
+        if not self.name or self.name == '/':
+            self.name = self._assign_sequence()
         self.state = 'posted'
-        self.save(update_fields=['state', 'amount_total'])
+        self.save(update_fields=['name', 'state', 'amount_total'])
         return True
 
     def button_cancel(self):
