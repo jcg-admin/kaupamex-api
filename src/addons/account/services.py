@@ -100,3 +100,40 @@ def create_invoice_from_sale_order(order, company) -> AccountMove:
         )
 
     return move
+
+
+def create_refund_from_invoice(invoice) -> AccountMove:
+    """Crea (sin postear) un ``out_refund`` que revierte ``invoice``.
+
+    Nota de crédito de cliente: espeja Odoo ``account.move._reverse_moves``.
+    Cada apunte de la factura se copia con débito/crédito **intercambiados**
+    sobre la misma cuenta, de modo que el asiento queda balanceado por
+    construcción (si la factura cuadraba, su reversión cuadra). Devuelve el
+    asiento en ``draft``; el llamador decide cuándo ``post()``.
+
+    :param invoice: factura de cliente **publicada** (``out_invoice``/``posted``).
+    :raises UserError: si el asiento no es una factura de cliente o no está
+        publicado.
+    """
+    if getattr(invoice, 'move_type', None) != 'out_invoice':
+        raise UserError(_('Solo se puede acreditar una factura de cliente.'))
+    if invoice.state != 'posted':
+        raise UserError(_('Solo se puede acreditar una factura publicada.'))
+
+    refund = AccountMove.objects.create(
+        move_type='out_refund',
+        date=timezone.now().date(),
+        journal=invoice.journal,
+        partner=invoice.partner,
+        currency=invoice.currency,
+        company=invoice.company,
+        ref=invoice.name,
+    )
+    for line in invoice.line_ids.all():
+        AccountMoveLine.objects.create(
+            move=refund, account=line.account, name=line.name,
+            debit=line.credit, credit=line.debit,  # reversión de la factura
+            display_type=line.display_type,
+        )
+
+    return refund
