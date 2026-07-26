@@ -65,6 +65,18 @@ jobs:
       # verificar TLS contra CAs publicas (testing.py lo lee). Sin esto:
       # OperationalError 2026 'SSL ... certificate verify failed'.
       DB_QA_SSL_MODE: DISABLED
+      # base.py construye DATABASES desde las claves de CONEXION base (DB_*) al
+      # importar el modulo — ANTES de que testing.py reemplace DATABASES con las
+      # DB_QA_*. Esas claves son sin ``default=`` a proposito (SOL-087, 12-factor
+      # fail-loud), asi que deben venir del env: en CI no hay ``.env`` (gitignored),
+      # solo os.environ. Apuntan al mismo service container; testing.py descarta
+      # este DATABASES, pero el import debe resolver. DB_SSL_MODE/DB_SOCKET ya
+      # tienen ``default=''`` en base.py (toggles opcionales), no van aqui.
+      DB_NAME: practicayoruba_qa
+      DB_USER: django_user
+      DB_PASSWORD: ${{ secrets.DB_QA_PASSWORD || 'django_pass' }}
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
 
     steps:
       - name: Checkout
