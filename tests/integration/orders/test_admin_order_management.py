@@ -10,8 +10,27 @@ from addons.catalogue.models import Category, Product
 from addons.delivery.models import Courier, ShipmentGuide
 from addons.orders.admin_services import transition_order_status
 from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress, OrderStatusLog
+from addons.payment.models import Payment
+from addons.sale.models import SaleOrder
 from django.contrib.auth import get_user_model
 from addons.base.models import SiteSettings
+
+
+def _canonical_order(user, *, approved=False):
+    """Orden enlazada a una SaleOrder confirmada (ejes O2C, sin columna espejo).
+
+    Sin pago aprobado → proyecta PENDING; con pago aprobado → PAID.
+    """
+    so = SaleOrder.objects.create(state=SaleOrder.STATE_SALE)
+    order = Order.objects.create(user=user, sale_order=so)
+    if approved:
+        Payment.objects.create(
+            order=order, sale_order=so,
+            gateway=Payment.GATEWAY_MERCADOPAGO,
+            amount=Decimal('100.00'),
+            status=Payment.STATUS_APPROVED,
+        )
+    return order
 
 pytestmark = pytest.mark.integration
 
@@ -360,16 +379,42 @@ class TestDashboardTransaccional:
     def test_dashboard_contadores_correctos(
         self, admin_client, user, prod_adm, db
     ):
+        # O2C V5c-2: los KPIs se derivan de los ejes canónicos, no de la
+        # columna espejo. Dos ventas confirmadas sin pago aprobado proyectan
+        # PENDING; una con pago aprobado proyecta PAID (activa, no pending).
         SiteSettings.get_current()
 
-        _make_order(user, prod_adm, 'PENDING')
-        _make_order(user, prod_adm, 'PENDING')
-        _make_order(user, prod_adm, 'PROCESSING')
+        _canonical_order(user)                  # PENDING
+        _canonical_order(user)                  # PENDING
+        _canonical_order(user, approved=True)   # PAID (activa)
 
         res    = admin_client.get(ADMIN_DASHBOARD_URL)
         counts = res.json()['order_counts']
-        assert counts['pending']    >= 2
-        assert counts['processing'] >= 1
+        assert counts['pending'] >= 2
+        # PROCESSING e IN_PREPARATION son valores muertos (0 escritores; la
+        # proyección canónica nunca los emite) → contadores provablemente 0.
+        assert counts['processing'] == 0
+        assert counts['in_preparation'] == 0
+        # La orden PAID cuenta como activa (ni entregada ni cancelada).
+        assert counts['total_active'] >= 3
+
+    def test_dashboard_shipped_and_active_from_axes(
+        self, admin_client, user, prod_adm, db
+    ):
+        """Guía activa proyecta SHIPPED; columna espejo ausente."""
+        SiteSettings.get_current()
+        order = _canonical_order(user, approved=True)
+        courier = Courier.objects.create(name='DHL', code='dhl', is_active=True)
+        ShipmentGuide.objects.create(
+            order=order, sale_order=order.sale_order, courier=courier,
+            tracking_number='TRK-DASH-1',
+        )
+
+        counts = admin_client.get(ADMIN_DASHBOARD_URL).json()['order_counts']
+
+        assert counts['shipped'] >= 1
+        assert counts['pending'] == 0          # ya tiene guía → no pending
+        assert counts['total_active'] >= 1     # enviada sigue activa
 
     def test_dashboard_sin_auth_retorna_401(self, api_client, db):
         res = api_client.get(ADMIN_DASHBOARD_URL)

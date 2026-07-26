@@ -10,11 +10,13 @@ from django.db import transaction
 from django.utils import timezone
 from .models import OrderStatusLog, Order
 from .services import cancel_order
-from django.db.models import Count, Sum, Q
+from .status_projection import order_status
+from django.db.models import Count, Sum, Q, Exists, OuterRef
 from datetime import timedelta
 from addons.payment.models import Payment
 from addons.base.models import SiteSettings
 from addons.delivery.models import ShipmentGuide
+from addons.sale.models import SaleOrder
 
 logger = logging.getLogger('apps')
 
@@ -168,23 +170,54 @@ def get_dashboard_data():
     settings = SiteSettings.get_current()
     timeout  = settings.payment_timeout_minutes
 
-    # Bloque 1: Contadores por estado relevantes para el admin
-    order_counts = Order.objects.aggregate(
-        pending=Count('id', filter=Q(status='PENDING')),
-        processing=Count('id', filter=Q(status='PROCESSING')),
-        in_preparation=Count('id', filter=Q(status='IN_PREPARATION')),
-        shipped=Count('id', filter=Q(status='SHIPPED')),
-        total_active=Count('id', filter=~Q(status__in=['DELIVERED', 'CANCELLED', 'REFUNDED'])),
+    # Bloque 1: Contadores por estado relevantes para el admin.
+    # O2C V5c-2: los KPIs se derivan de los ejes canónicos (sale.state +
+    # Payment + guía), no de la columna espejo ``order.status`` (retirada en
+    # V5d). Los estados proyectables se expresan como filtros de queryset
+    # equivalentes a ``status_projection.derive_order_status`` (fulfillment
+    # gana; luego pago decide PENDING vs PAID). Se usan las relaciones inversas
+    # por la FK ``order`` (no-nula) — robusto al ``sale_order`` nulable de la
+    # guía (H-API-12).
+    _base = Order.objects.annotate(
+        _has_approved=Exists(
+            Payment.objects.filter(
+                order=OuterRef('pk'), status=Payment.STATUS_APPROVED)),
+        _has_active_guide=Exists(
+            ShipmentGuide.objects.filter(
+                order=OuterRef('pk'), is_deleted=False)),
+        _has_delivered_guide=Exists(
+            ShipmentGuide.objects.filter(
+                order=OuterRef('pk'), is_deleted=False,
+                status=ShipmentGuide.STATUS_DELIVERED)),
     )
+    _is_sale     = Q(sale_order__state=SaleOrder.STATE_SALE)
+    _pending_q   = _is_sale & Q(_has_approved=False) & Q(_has_active_guide=False)
+    _shipped_q   = _is_sale & Q(_has_active_guide=True) & Q(_has_delivered_guide=False)
+    _delivered_q = _is_sale & Q(_has_delivered_guide=True)
+    _cancelled_q = Q(sale_order__state=SaleOrder.STATE_CANCEL)
 
-    # Bloque 2: Alertas de expiración — órdenes PENDING > 80% del timeout
-    # H-ADM-002: PENDING = PENDING_PAYMENT de la FR
+    order_counts = _base.aggregate(
+        pending=Count('id', filter=_pending_q),
+        shipped=Count('id', filter=_shipped_q),
+        # total_active: ni entregada ni cancelada (REFUNDED es valor muerto —
+        # 0 escritores, la proyección nunca lo emite — así que excluirlo era
+        # no-op).
+        total_active=Count('id', filter=~(_delivered_q | _cancelled_q)),
+    )
+    # PROCESSING e IN_PREPARATION son valores MUERTOS (0 escritores; la
+    # proyección canónica nunca los emite — H-API-05/H-API-10). En producción
+    # estos contadores ya eran 0; se exponen explícitamente como 0 para
+    # preservar la forma del contrato del dashboard. Activar IN_PREPARATION
+    # como "pagado, sin guía" es una DECISIÓN DE PRODUCTO separada (ver
+    # ``status_projection`` docstring) — no se toma aquí.
+    order_counts['processing'] = 0
+    order_counts['in_preparation'] = 0
+
+    # Bloque 2: Alertas de expiración — órdenes PENDING > 80% del timeout.
+    # PENDING canónico = venta confirmada sin pago aprobado ni guía activa.
     alert_threshold = now - timedelta(minutes=timeout * 0.8)
     expiring_orders = list(
-        Order.objects.filter(
-            status='PENDING',
-            created_at__lte=alert_threshold,
-        )
+        _base.filter(_pending_q, created_at__lte=alert_threshold)
         .select_related('user')
         .order_by('created_at')
         .values('order_number', 'created_at', 'user__email')[:10]
@@ -200,15 +233,23 @@ def get_dashboard_data():
         total_revenue=Sum('amount'),
     )
 
-    # Bloque 4: Últimas 10 órdenes
-    latest_orders = list(
-        Order.objects.select_related('value', 'user')
-        .order_by('-created_at')
-        .values(
-            'order_number', 'status', 'created_at',
-            'user__email', 'value__total',
-        )[:10]
-    )
+    # Bloque 4: Últimas 10 órdenes. El campo ``status`` se deriva de la
+    # proyección canónica por fila (no la columna espejo); ``select_related``
+    # de ``sale_order`` evita N+1 en ``order_status``.
+    latest_orders = [
+        {
+            'order_number': o.order_number,
+            'status':       order_status(o),
+            'created_at':   o.created_at,
+            'user__email':  o.user.email if o.user_id else None,
+            'value__total': getattr(getattr(o, 'value', None), 'total', None),
+        }
+        for o in (
+            Order.objects
+            .select_related('value', 'user', 'sale_order')
+            .order_by('-created_at')[:10]
+        )
+    ]
 
     return {
         'order_counts':    order_counts,
