@@ -10,8 +10,9 @@ from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from django.contrib.auth import get_user_model
 from tests.factories.user_factory import make_buyer
 from addons.payment.models import Payment, Refund
-from addons.delivery.models import ShippingMethod
+from addons.delivery.models import ShippingMethod, Courier, ShipmentGuide
 from addons.payment.models import PaymentGateway
+from addons.sale.models import SaleOrder
 from unittest.mock import patch, MagicMock
 from addons.chartsize.models import VariantType, VariantOption, ProductVariant
 
@@ -526,39 +527,56 @@ class TestCambiarMetodoEnvio:
 # =============================================================================
 
 class TestProteccionVariantesOrdenes:
+    """H-ORD-005 tras cut-over orders→sale (ADR-024): "orden activa" =
+    confirmada (``sale.state='sale'``) y NO entregada. Los fixtures
+    construyen los ejes canónicos (SaleOrder + Order espejo + guía)."""
 
-    def test_no_eliminar_variante_con_orden_activa(self, admin_client, prod_ord, db):
-        """H-ORD-005: variante con ActiveOrder no puede eliminarse."""
-        User = get_user_model()
-
-        vtype  = VariantType.objects.create(name='Talla', product=prod_ord)
-        vopt   = VariantOption.objects.create(
+    def _make_variant(self, prod_ord):
+        vtype = VariantType.objects.create(name='Talla', product=prod_ord)
+        vopt  = VariantOption.objects.create(
             variant_type=vtype, label='M', slug='m'
         )
-        variant = ProductVariant.objects.create(
+        return ProductVariant.objects.create(
             product=prod_ord, option=vopt, sku_suffix='M',
             price_override=Decimal('1500'), stock=5, is_active=True,
         )
 
-        user = User.objects.create_user(
-            email='bv@test.com', password='pass'
-        )
-        order = Order.objects.create(user=user, status='PENDING')
+    def _make_order_with_variant(self, prod_ord, variant):
+        so = SaleOrder.objects.create(state=SaleOrder.STATE_SALE)
+        order = Order.objects.create(sale_order=so)
         OrderItem.objects.create(
             order=order, product_name=prod_ord.name, sku=prod_ord.sku + '-M',
-            unit_price=variant.price_override if variant.price_override else prod_ord.price, quantity=1,
-            subtotal=variant.price_override if variant.price_override else prod_ord.price,
+            unit_price=variant.price_override, quantity=1,
+            subtotal=variant.price_override,
             variant=variant, product=prod_ord,
         )
-        OrderValue.objects.create(
-            order=order, subtotal=Decimal('1500'), tax=Decimal('200'),
-            shipping_cost=Decimal('80'), discount=Decimal('0'),
-            total=Decimal('1500') + Decimal('280'),
-        )
-        OrderAddress.objects.create(
-            order=order, recipient_name='T', street='S',
-            city='CDMX', state='CMX', zip_code='06600',
+        return so, order
+
+    def test_no_eliminar_variante_con_orden_activa(self, admin_client, prod_ord, db):
+        """Variante en orden confirmada sin guía entregada → 400."""
+        variant = self._make_variant(prod_ord)
+        self._make_order_with_variant(prod_ord, variant)
+
+        res = admin_client.delete(
+            f'/api/v2/admin/products/{prod_ord.pk}/variants/{variant.pk}/')
+        assert res.status_code == 400
+        assert res.json()['codigo_error'] == 'VARIANT_WITH_ACTIVE_ORDERS'
+
+    def test_eliminar_variante_con_orden_entregada_permitido(
+        self, admin_client, prod_ord, db
+    ):
+        """Orden entregada (guía DELIVERED viva) NO bloquea → 204."""
+        variant = self._make_variant(prod_ord)
+        so, order = self._make_order_with_variant(prod_ord, variant)
+        courier = Courier.objects.create(name='Estafeta', code='EST')
+        ShipmentGuide.objects.create(
+            order=order, sale_order=so, courier=courier,
+            tracking_number='TRK-DELIVERED-1',
+            status=ShipmentGuide.STATUS_DELIVERED,
         )
 
-        res = admin_client.delete(f'/api/v2/admin/products/{prod_ord.pk}/variants/{variant.pk}/')
-        assert res.status_code == 400
+        res = admin_client.delete(
+            f'/api/v2/admin/products/{prod_ord.pk}/variants/{variant.pk}/')
+        assert res.status_code == 204
+        variant.refresh_from_db()
+        assert variant.is_active is False

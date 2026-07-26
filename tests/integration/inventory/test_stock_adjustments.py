@@ -13,6 +13,8 @@ from addons.chartsize.models import VariantType, VariantOption, ProductVariant
 from addons.inventory.models import StockMovement
 from addons.inventory.services import InventoryService, InsufficientStockError
 from addons.orders.models import Order, OrderItem
+from addons.payment.models import Payment
+from addons.sale.models import SaleOrder
 from addons.users.models import BusinessEvent
 
 pytestmark = pytest.mark.integration
@@ -461,12 +463,18 @@ class TestDecrementGuard:
 class TestZeroStockGuard:
     """
     UC-INV-04 EX-02: two-round guard cuando stock de variante se ajusta a cero.
-    Round 1 detecta órdenes PENDING/PROCESSING (Group 1, daño real).
+    Cut-over orders→sale (ADR-024): "en riesgo" = orden confirmada
+    (``sale.state='sale'``) SIN pago aprobado — el fixture construye los
+    ejes canónicos (SaleOrder + Order espejo + Payment), no el enum legacy.
     Round 2 escribe BusinessEvent (AC-06 / RNF-AUDIT-001) cuando new_quantity=0.
     """
 
-    def _make_order_with_item(self, db, variant, order_status, quantity=1):
-        order = Order.objects.create(status=order_status)
+    def _make_confirmed_order(self, variant, *, approved=False, quantity=1):
+        """Construye los ejes canónicos O2C: SaleOrder(state='sale') +
+        Order espejo + OrderItem. Con ``approved=True`` añade un Payment
+        APPROVED en el eje de pago (excluye la orden del set at-risk)."""
+        so = SaleOrder.objects.create(state=SaleOrder.STATE_SALE)
+        order = Order.objects.create(sale_order=so)
         OrderItem.objects.create(
             order=order,
             variant=variant,
@@ -476,6 +484,14 @@ class TestZeroStockGuard:
             quantity=quantity,
             subtotal=Decimal('100.00') * quantity,
         )
+        if approved:
+            Payment.objects.create(
+                order=order,
+                sale_order=so,
+                gateway=Payment.GATEWAY_MERCADOPAGO,
+                amount=Decimal('100.00'),
+                status=Payment.STATUS_APPROVED,
+            )
         return order
 
     # --- Round 1 ---
@@ -492,7 +508,10 @@ class TestZeroStockGuard:
     def test_round1_orden_pending_retorna_requires_confirmation_true(
         self, admin_client, variant_s11, db
     ):
-        self._make_order_with_item(db, variant_s11, Order.STATUS_PENDING, quantity=2)
+        """Orden confirmada SIN pago aprobado → at-risk. El estado
+        proyectado desde los ejes deriva a PENDING (state='sale', sin
+        guía, sin Payment APPROVED)."""
+        self._make_confirmed_order(variant_s11, approved=False, quantity=2)
         res = admin_client.get(ZERO_CHECK_URL.format(pk=variant_s11.pk))
         assert res.status_code == 200
         data = res.json()
@@ -501,21 +520,15 @@ class TestZeroStockGuard:
         assert data['active_orders'][0]['quantity'] == 2
         assert data['requires_confirmation'] is True
 
-    def test_round1_orden_processing_retorna_requires_confirmation_true(
-        self, admin_client, variant_s11, db
-    ):
-        self._make_order_with_item(db, variant_s11, Order.STATUS_PROCESSING)
-        res = admin_client.get(ZERO_CHECK_URL.format(pk=variant_s11.pk))
-        assert res.status_code == 200
-        data = res.json()
-        assert len(data['active_orders']) == 1
-        assert data['requires_confirmation'] is True
+    # test_round1_orden_processing eliminado: PROCESSING es un valor MUERTO
+    # del enum legacy sin productor canónico (H-API-06); ninguna condición
+    # de eje lo genera tras el cut-over orders→sale (ADR-024).
 
     def test_round1_ordenes_paid_excluidas_group2(
         self, admin_client, variant_s11, db
     ):
-        """PAID ya decrementó stock — no es Group 1, no activa el guard."""
-        self._make_order_with_item(db, variant_s11, Order.STATUS_PAID)
+        """Orden con Payment APPROVED ya decrementó stock — no es at-risk."""
+        self._make_confirmed_order(variant_s11, approved=True)
         res = admin_client.get(ZERO_CHECK_URL.format(pk=variant_s11.pk))
         assert res.status_code == 200
         data = res.json()
@@ -525,8 +538,9 @@ class TestZeroStockGuard:
     def test_round1_ordenes_shipped_excluidas_group2(
         self, admin_client, variant_s11, db
     ):
-        """SHIPPED ya decrementó stock — no es Group 1."""
-        self._make_order_with_item(db, variant_s11, Order.STATUS_SHIPPED)
+        """Una orden enviada está pagada; con Payment APPROVED basta para
+        excluirla del set at-risk (2 ejes: confirmada + sin pago aprobado)."""
+        self._make_confirmed_order(variant_s11, approved=True)
         res = admin_client.get(ZERO_CHECK_URL.format(pk=variant_s11.pk))
         assert res.status_code == 200
         data = res.json()
@@ -585,7 +599,7 @@ class TestZeroStockGuard:
         self, admin_client, variant_s11, db
     ):
         """extra_json registra las órdenes en riesgo al momento del ajuste (AC-06)."""
-        self._make_order_with_item(db, variant_s11, Order.STATUS_PENDING, quantity=3)
+        self._make_confirmed_order(variant_s11, approved=False, quantity=3)
         res = admin_client.patch(
             VARIANT_ADJ_URL.format(pk=variant_s11.pk),
             {'new_quantity': 0, 'reason': 'LOSS'},
