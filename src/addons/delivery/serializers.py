@@ -7,6 +7,8 @@ DEC-DOC-006 — raised in views, not here.
 from decimal import Decimal
 from rest_framework import serializers
 from addons.orders.models import Order
+from addons.payment.models import Payment
+from addons.sale.models import SaleOrder
 from .models import Courier, ShipmentEvent, ShipmentGuide
 
 
@@ -93,15 +95,25 @@ class ShipmentGuideCreateSerializer(serializers.ModelSerializer):
                 'detail': 'Debe indicar order_id u order_number.',
                 'codigo_error': 'ORDER_REQUIRED',
             })
-        # H-CICLO23-01: verificar que la orden está en estado IN_PREPARATION
-        # antes de crear guía. Crear una guía para una orden PENDING/PROCESSING
-        # o ya DELIVERED/CANCELLED es un error de negocio silencioso que deja
-        # la orden en estado incoherente.
-        if order.status != Order.STATUS_IN_PREPARATION:
+        # H-CICLO23-01: verificar que la orden está lista para surtir antes de
+        # crear guía. Cut-over orders→sale (ADR-024): "lista para surtir" ya
+        # NO se lee del enum legacy Order.status — IN_PREPARATION es un valor
+        # muerto (ningún escritor canónico lo produce, H-API-10) proyectado
+        # desde los ejes. Se deriva de la canónica: la orden debe estar
+        # confirmada (sale.state='sale') y pagada (un Payment APPROVED). El
+        # check de guía duplicada que sigue cubre "aún sin enviar".
+        sale_order = order.sale_order
+        lista_para_surtir = (
+            sale_order is not None
+            and sale_order.state == SaleOrder.STATE_SALE
+            and sale_order.payments.filter(
+                status=Payment.STATUS_APPROVED).exists()
+        )
+        if not lista_para_surtir:
             raise serializers.ValidationError({
                 'detail': (
-                    f'La orden debe estar en estado IN_PREPARATION para crear '
-                    f'una guía de envío. Estado actual: {order.status}.'
+                    'La orden debe estar confirmada y pagada para crear una '
+                    'guía de envío.'
                 ),
                 'codigo_error': 'ORDER_NOT_IN_PREPARATION',
             })

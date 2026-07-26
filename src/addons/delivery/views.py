@@ -24,6 +24,9 @@ class ShipmentGuidePagination(PageNumberPagination):
 logger = logging.getLogger('apps')
 
 from addons.orders.models import Order, OrderStatusLog
+from addons.orders.status_projection import order_status
+from addons.payment.models import Payment
+from addons.sale.models import SaleOrder
 from config.schema import error_response
 from .models import CarrierRateCard, Courier, ShipmentEvent, ShipmentGuide
 from .offers import build_offers
@@ -50,10 +53,25 @@ class LogisticsPanelView(_AdminOnly, APIView):
             except ValueError:
                 return Response({'detail': 'courier_id inválido.', 'codigo_error': 'COURIER_ID_INVALID'}, status=400)
 
-        group_a_qs = Order.objects.filter(status=Order.STATUS_IN_PREPARATION).select_related('address').prefetch_related('items')
+        # Cut-over orders→sale (ADR-024): "pending pickup" = orden confirmada
+        # (sale.state='sale') y pagada (Payment APPROVED) SIN guía viva. El
+        # enum legacy Order.status ya no se filtra: IN_PREPARATION es un valor
+        # muerto proyectado desde los ejes, no escrito (H-API-10). El status
+        # de cada fila se deriva con order_status(), no leyendo la columna.
+        group_a_qs = (
+            Order.objects
+            .filter(
+                sale_order__state=SaleOrder.STATE_SALE,
+                sale_order__payments__status=Payment.STATUS_APPROVED,
+            )
+            .exclude(sale_order__shipment_guide__is_deleted=False)
+            .select_related('address', 'sale_order')
+            .prefetch_related('items')
+            .distinct()
+        )
         pending_pickup = []
         for order in group_a_qs:
-            entry = {'order_id': order.id, 'order_number': order.order_number, 'status': order.status}
+            entry = {'order_id': order.id, 'order_number': order.order_number, 'status': order_status(order)}
             try:
                 addr = order.address
                 entry['recipient_name'] = addr.recipient_name

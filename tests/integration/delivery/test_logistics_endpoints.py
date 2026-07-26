@@ -14,6 +14,8 @@ from decimal import Decimal
 from addons.catalogue.models import Category, Product
 from addons.orders.models import Order, OrderAddress, OrderItem, OrderValue
 from addons.delivery.models import Courier, ShipmentGuide
+from addons.payment.models import Payment
+from addons.sale.models import SaleOrder
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
@@ -45,13 +47,23 @@ def prod_log(db, cat_log):
     return _p
 
 
-@pytest.fixture
-def order_log(db, user, prod_log):
-    o = Order.objects.create(user=user, status=Order.STATUS_IN_PREPARATION)
+def _canonical_ready_order(user, prod, *, approved=True,
+                           legacy_status=Order.STATUS_PENDING):
+    """Orden 'lista para surtir' por los ejes canónicos O2C (ADR-024).
+
+    Cut-over orders→sale: la guarda de creación de guía y el panel ya no
+    leen el enum legacy ``Order.status`` (IN_PREPARATION es un valor muerto
+    proyectado, H-API-10). "Lista para surtir" se deriva de:
+    ``SaleOrder(state='sale')`` espejado en ``Order`` + un ``Payment``
+    APPROVED. El enum legacy se deja en PENDING a propósito para probar que
+    la nueva guarda NO lo lee. Con ``approved=False`` no se crea el Payment.
+    """
+    so = SaleOrder.objects.create(state=SaleOrder.STATE_SALE)
+    o = Order.objects.create(user=user, sale_order=so, status=legacy_status)
     OrderItem.objects.create(
-        order=o, product=prod_log, product_name=prod_log.name,
-        sku=prod_log.sku, unit_price=prod_log.price,
-        quantity=1, subtotal=prod_log.price,
+        order=o, product=prod, product_name=prod.name,
+        sku=prod.sku, unit_price=prod.price,
+        quantity=1, subtotal=prod.price,
     )
     OrderValue.objects.create(
         order=o, subtotal=Decimal('500'), tax=Decimal('0'),
@@ -60,6 +72,26 @@ def order_log(db, user, prod_log):
     OrderAddress.objects.create(
         order=o, recipient_name='Test', street='Av', city='CDMX',
         state='CDMX', zip_code='06600',
+    )
+    if approved:
+        Payment.objects.create(
+            order=o, sale_order=so,
+            gateway=Payment.GATEWAY_MERCADOPAGO,
+            amount=Decimal('580.00'),
+            status=Payment.STATUS_APPROVED,
+        )
+    return o, so
+
+
+@pytest.fixture
+def order_log(db, user, prod_log):
+    # Cut-over orders→sale (ADR-024): la orden "en preparación" se modela por
+    # los ejes canónicos (SaleOrder state='sale' + Payment APPROVED). Se
+    # conserva el enum legacy IN_PREPARATION porque el escritor SHIPPED aún
+    # lo lee (Rebanada 8): la migración es aditiva, no lo retira.
+    o, _ = _canonical_ready_order(
+        user, prod_log, approved=True,
+        legacy_status=Order.STATUS_IN_PREPARATION,
     )
     return o
 
@@ -133,6 +165,79 @@ class TestLogisticsPanel:
         r = admin_client.get(PANEL_URL + '?courier_id=abc')
         assert r.status_code == 400
         assert r.json()['codigo_error'] == 'COURIER_ID_INVALID'
+
+
+class TestGuideGuardOnCanonicalAxes:
+    """Cut-over orders→sale (ADR-024): la guarda de creación de guía y el
+    panel logístico leen los ejes canónicos O2C, no el enum legacy
+    ``Order.status``. "Lista para surtir" = ``sale.state='sale'`` + un
+    ``Payment`` APPROVED (y, para el panel, sin guía viva)."""
+
+    def test_crea_guia_con_venta_confirmada_y_pago_aprobado(
+        self, admin_client, courier_log, prod_log, user, db,
+    ):
+        # Enum legacy en PENDING a propósito: la vieja guarda
+        # (status==IN_PREPARATION) lo rechazaría; la nueva lo acepta por
+        # sale.state='sale' + Payment APPROVED.
+        o, _ = _canonical_ready_order(user, prod_log, approved=True)
+        r = admin_client.post(GUIDES_URL, {
+            'order_id': o.id, 'courier_id': courier_log.id,
+            'tracking_number': 'CANON-OK-1',
+        }, format='json')
+        assert r.status_code == 201, r.content
+
+    def test_rechaza_guia_sin_pago_aprobado(
+        self, admin_client, courier_log, prod_log, user, db,
+    ):
+        o, _ = _canonical_ready_order(user, prod_log, approved=False)
+        r = admin_client.post(GUIDES_URL, {
+            'order_id': o.id, 'courier_id': courier_log.id,
+            'tracking_number': 'CANON-NOPAY-1',
+        }, format='json')
+        assert r.status_code == 400
+        # El serializer envuelve el valor en lista (mismo shape que
+        # ORDER_REQUIRED): assert loose sobre el código de negocio estable.
+        assert 'ORDER_NOT_IN_PREPARATION' in str(r.json())
+
+    def test_rechaza_guia_sin_sale_order(
+        self, admin_client, courier_log, prod_log, user, db,
+    ):
+        # Orden con el enum legacy IN_PREPARATION pero SIN sale_order: la
+        # vieja guarda la aceptaría; la nueva la rechaza (sin eje canónico).
+        o = Order.objects.create(
+            user=user, status=Order.STATUS_IN_PREPARATION,
+        )
+        OrderItem.objects.create(
+            order=o, product=prod_log, product_name=prod_log.name,
+            sku=prod_log.sku, unit_price=prod_log.price,
+            quantity=1, subtotal=prod_log.price,
+        )
+        r = admin_client.post(GUIDES_URL, {
+            'order_id': o.id, 'courier_id': courier_log.id,
+            'tracking_number': 'CANON-NOSO-1',
+        }, format='json')
+        assert r.status_code == 400
+        # El serializer envuelve el valor en lista (mismo shape que
+        # ORDER_REQUIRED): assert loose sobre el código de negocio estable.
+        assert 'ORDER_NOT_IN_PREPARATION' in str(r.json())
+
+    def test_panel_lista_solo_venta_pagada_sin_guia(
+        self, admin_client, courier_log, prod_log, user, db,
+    ):
+        ready, _   = _canonical_ready_order(user, prod_log, approved=True)
+        unpaid, _  = _canonical_ready_order(user, prod_log, approved=False)
+        shipped, so_s = _canonical_ready_order(user, prod_log, approved=True)
+        ShipmentGuide.objects.create(
+            order=shipped, sale_order=so_s, courier=courier_log,
+            tracking_number='PANEL-CANON-GUIDE-1',
+        )
+
+        r = admin_client.get(PANEL_URL)
+        assert r.status_code == 200
+        nums = {row['order_number'] for row in r.json()['pending_pickup']}
+        assert ready.order_number in nums          # sale + pagada, sin guía
+        assert unpaid.order_number not in nums      # sale pero sin pago
+        assert shipped.order_number not in nums     # sale + pagada, con guía
 
 
 class TestCreateShipmentGuide:
