@@ -19,6 +19,7 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from django.db.models import Q, Sum
 from addons.orders.models import Order, ShippingZone
+from addons.orders.status_projection import order_status
 from addons.sale.models import SaleOrder
 from addons.orders.proxy_models import DeliveredOrder
 from addons.payment.models import Payment, Payment as PaymentModel, Refund, Chargeback, SavedCard
@@ -140,9 +141,10 @@ class InitiatePaymentView(APIView):
                         'codigo_error': 'ORDER_NOT_FOUND',
                     })
 
-                if order.status != Order.STATUS_PENDING:
+                _status = order_status(order)
+                if _status != Order.STATUS_PENDING:
                     raise ValidationError({
-                        'detail': f'La orden no está en estado PENDING (estado: {order.status}).',
+                        'detail': f'La orden no está en estado PENDING (estado: {_status}).',
                         'codigo_error': 'ORDER_NOT_PAYABLE',
                     })
 
@@ -362,8 +364,10 @@ class ReceiptPdfView(APIView):
                 status=403,
             )
 
-        # EX-03: orden no pagada → 409 ORDER_NOT_PAID.
-        if order.status not in _PAID_ORDER_STATUSES:
+        # EX-03: orden no pagada → 409 ORDER_NOT_PAID. O2C V5c-2: el eje de
+        # pagada/beyond se deriva de la proyección canónica (sale.state +
+        # Payment + guía), no de la columna espejo ``order.status``.
+        if order_status(order) not in _PAID_ORDER_STATUSES:
             return Response(
                 {'detail': 'La orden no está pagada.',
                  'codigo_error': 'ORDER_NOT_PAID'},
@@ -1230,10 +1234,20 @@ class CheckoutApiPaymentView(APIView):
                     .get(
                         order_number=data['order_number'],
                         user=request.user,
-                        status=Order.STATUS_PENDING,
                     )
                 )
             except Order.DoesNotExist:
+                return Response(
+                    {'codigo_error': 'ORDER_NOT_FOUND'},
+                    status=404,
+                )
+
+            # O2C V5c-2: el lock (select_for_update) toma la fila por
+            # order_number+user; la aserción de PENDING se hace sobre la
+            # proyección canónica tras adquirir el lock (antes vivía en el
+            # filtro ``status=PENDING`` del .get, que leía la columna espejo).
+            # Mismo contrato: orden existente pero no-PENDING → 404 ORDER_NOT_FOUND.
+            if order_status(order) != Order.STATUS_PENDING:
                 return Response(
                     {'codigo_error': 'ORDER_NOT_FOUND'},
                     status=404,

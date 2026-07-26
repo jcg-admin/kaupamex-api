@@ -17,6 +17,7 @@ from addons.payment.models import Payment, PaymentGatewayEvent, Payment as Payme
 from django.db.models import F, Sum as DjSum
 from addons.payment.models import PaymentGateway
 from addons.orders.models import Order
+from addons.orders.status_projection import order_status
 
 
 
@@ -62,10 +63,14 @@ def initiate_payment(
     :raises RuntimeError: si el gateway falla (propagado al caller)
     """
 
-    if order.status != Order.STATUS_PENDING:
+    # O2C V5c-2: guard sobre el estado PROYECTADO desde los ejes canónicos
+    # (sale.state + Payment), no la columna espejo ``order.status`` (retirada
+    # en V5d). Null-safe: órdenes sin enlace canónico caen a la columna.
+    _status = order_status(order)
+    if _status != Order.STATUS_PENDING:
         raise ValueError(
             f'La orden {order.order_number} no está en estado PENDING '
-            f'(estado actual: {order.status}).'
+            f'(estado actual: {_status}).'
         )
 
     if gateway is None:
@@ -298,7 +303,7 @@ def get_payment_status(order_number: str, user) -> dict:
     )
     return {
         'order_number':  order.order_number,
-        'order_status':  order.status,
+        'order_status':  order_status(order),
         'payment_status': payment.status if payment else 'NO_PAYMENT',
         'gateway':        payment.gateway if payment else None,
         'amount':         str(payment.amount) if payment else None,
@@ -344,10 +349,11 @@ def get_retry_eligibility(order_number: str, user) -> dict | None:
     except Order.DoesNotExist:
         return None
 
-    if order.status != Order.STATUS_PENDING:
+    _status = order_status(order)
+    if _status != Order.STATUS_PENDING:
         return {
             'eligible':      False,
-            'reason':        f'La orden está en estado {order.status}.',
+            'reason':        f'La orden está en estado {_status}.',
             'codigo_error':  'ORDER_NOT_RETRYABLE',
         }
 
@@ -363,7 +369,7 @@ def get_retry_eligibility(order_number: str, user) -> dict | None:
     return {
         'eligible':          True,
         'order_number':      order.order_number,
-        'order_status':      order.status,
+        'order_status':      order_status(order),
         'last_failed_gateway': failed_payment.gateway if failed_payment else None,
         'available_gateways': _get_available_gateways(),
     }
@@ -466,10 +472,11 @@ def initiate_checkout_api_payment(
     :raises ValueError: si la orden no está en PENDING
     :raises RuntimeError: si el gateway falla (propagado al caller)
     """
-    if order.status != Order.STATUS_PENDING:
+    _status = order_status(order)
+    if _status != Order.STATUS_PENDING:
         raise ValueError(
             f'La orden {order.order_number} no está en PENDING '
-            f'(estado actual: {order.status}).'
+            f'(estado actual: {_status}).'
         )
 
     if gateway is None:
