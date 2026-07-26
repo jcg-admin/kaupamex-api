@@ -137,3 +137,47 @@ def create_refund_from_invoice(invoice) -> AccountMove:
         )
 
     return refund
+
+
+def create_invoice_from_subscription(sub_invoice, company) -> AccountMove:
+    """Crea (sin postear) un ``out_invoice`` del cobro L0 en los libros de
+    ``company`` (Kaupamex, el operador de plataforma) desde una
+    ``SubscriptionInvoice`` (H-API-05).
+
+    A diferencia de ``create_invoice_from_sale_order`` (desglose por línea), el
+    cobro de suscripción es de un solo importe: por cobrar (débito) contra
+    ingreso de plataforma (crédito), balanceado por construcción. Sin línea de
+    IVA (el tratamiento fiscal del cobro L0 es una decisión aparte). El
+    ``company`` emisora la pasa el llamador (``get_system()``) — así ``account``
+    no importa ``company`` y *duck-typea* la ``sub_invoice``.
+
+    :param sub_invoice: ``SubscriptionInvoice`` con ``amount`` a cobrar.
+    :param company: empresa emisora (la system company / Kaupamex).
+    :raises UserError: si el importe no es positivo, o a la empresa le faltan el
+        diario de ventas o las cuentas requeridas.
+    """
+    amount = getattr(sub_invoice, 'amount', None)
+    if amount is None or amount <= Decimal('0.00'):
+        raise UserError(_('La factura de suscripción no tiene importe a cobrar.'))
+    journal = (AccountJournal.objects
+               .filter(company=company, type='sale', active=True)
+               .order_by('code').first())
+    if journal is None:
+        raise UserError(_('La empresa no tiene un diario de ventas.'))
+    receivable = _require_account(company, 'asset_receivable', 'Por cobrar')
+    income = _require_account(company, 'income', 'Ingreso')
+
+    ref = f'SUB/{sub_invoice.subscription_id}/{sub_invoice.period}'
+    move = AccountMove.objects.create(
+        move_type='out_invoice', date=timezone.now().date(),
+        journal=journal, company=company, ref=ref,
+    )
+    AccountMoveLine.objects.create(
+        move=move, account=receivable, name=ref,
+        debit=amount, credit=Decimal('0.00'),
+    )
+    AccountMoveLine.objects.create(
+        move=move, account=income, name=_('Ingreso por suscripción'),
+        debit=Decimal('0.00'), credit=amount, display_type='product',
+    )
+    return move

@@ -24,6 +24,7 @@ from django.utils import timezone
 from addons.base_vat.validators import validate_rfc
 from addons.company.context import company_scope, get_current_company
 from addons.base.models import TimeStampedModel
+from addons.account.services import create_invoice_from_subscription
 
 
 class CompanyScopedManager(models.Manager):
@@ -630,6 +631,15 @@ class SubscriptionInvoice(TimeStampedModel):
     failure_reason = fields.Char(
         max_length=255, blank=True, default='', verbose_name='Motivo de fallo',
     )
+    # Asiento contable del cobro L0 en los libros de Kaupamex (H-API-05). FK
+    # company→account (dirección correcta: account es la capa base). El enlace
+    # hace idempotente post_to_ledger: no se duplica el asiento. related_name='+'
+    # — sin accesor inverso (account limpio).
+    account_move = fields.Many2one(
+        'account.AccountMove', null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='+',
+        verbose_name='Asiento contable',
+    )
 
     objects = models.Manager()               # default: cross-company (L0)
     scoped = CompanyScopedManager()          # L3: fail-closed por company
@@ -649,3 +659,24 @@ class SubscriptionInvoice(TimeStampedModel):
 
     def __str__(self):
         return f'inv:{self.subscription_id}:{self.period}:{self.status}'
+
+    def post_to_ledger(self):
+        """Asienta el cobro L0 en los libros de Kaupamex (H-API-05).
+
+        Emite (o devuelve) un ``account.move`` ``out_invoice`` de doble entrada
+        en la **system company** (Kaupamex, el operador L0) — NO en los del
+        tenant. Idempotente: si ya está asentada (``account_move`` fijado), la
+        devuelve sin duplicar. Puente **explícito** — NO se dispara en la
+        corrida de facturación (rompería flujos sin plan de cuentas L0).
+
+        :raises UserError: si a la system company le faltan el diario/cuentas
+            (delegado a ``account.services.create_invoice_from_subscription``).
+        """
+        if self.account_move_id is not None:
+            return self.account_move
+        system = Company.get_system()
+        move = create_invoice_from_subscription(self, system)
+        move.post()
+        self.account_move = move
+        self.save(update_fields=['account_move', 'updated_at'])
+        return move
