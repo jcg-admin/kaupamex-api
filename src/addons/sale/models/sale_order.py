@@ -21,6 +21,10 @@ import fields
 import models
 from django.utils import timezone
 
+from exceptions import UserError
+from tools.translate import _
+
+from addons.account.services import create_invoice_from_sale_order
 from addons.base.models import TimeStampedModel
 from addons.company.models import CompanyScopedManager
 
@@ -99,6 +103,16 @@ class SaleOrder(TimeStampedModel):
         help_text='Empresa dueña de la orden (Odoo company_id). NULL pre-backfill.',
     )
 
+    # Factura de la orden (Odoo sale.order.invoice_ids, aquí 1:1). FK
+    # sale→account (dirección correcta: account es la capa contable base). El
+    # enlace hace idempotente action_create_invoice: una orden ya facturada no
+    # emite duplicado. related_name='+' — sin accesor inverso (account limpio).
+    invoice     = fields.Many2one(
+        'account.AccountMove', null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='+',
+        help_text='Factura emitida de la orden (Odoo invoice_ids, 1:1).',
+    )
+
     objects = models.Manager()               # cross-company (L0 admin)
     scoped = CompanyScopedManager()          # L3: fail-closed por empresa activa
 
@@ -171,3 +185,31 @@ class SaleOrder(TimeStampedModel):
         self.locked = False
         self.save(update_fields=['locked', 'updated_at'])
         return True
+
+    # ------------------------------------------------------------------
+    # Puente O2C → factura (H-API-08 (a)). sale es dueño del enganche a
+    # account (dirección de dependencia correcta: account es la capa base y no
+    # importa sale). Espeja Odoo sale.order._create_invoices como acción
+    # EXPLÍCITA — NO un efecto de action_confirm (auto-facturar al confirmar es
+    # política config-gated tipo website_sale.automatic_invoice; se difiere).
+    # ------------------------------------------------------------------
+    def action_create_invoice(self):
+        """Emite y postea la factura de esta orden, o devuelve la existente.
+
+        Idempotente: si la orden ya tiene ``invoice``, la devuelve sin emitir
+        un duplicado (Odoo salta órdenes ya facturadas). Requiere que la orden
+        esté confirmada (``state='sale'``) y tenga empresa emisora.
+
+        :raises UserError: si la orden no tiene empresa, no está confirmada o
+            sin líneas, o a la empresa le faltan el diario/cuentas (delegado a
+            ``account.services.create_invoice_from_sale_order``).
+        """
+        if self.invoice_id is not None:
+            return self.invoice
+        if self.company_id is None:
+            raise UserError(_('La orden no tiene empresa asignada para facturar.'))
+        move = create_invoice_from_sale_order(self, self.company)
+        move.post()
+        self.invoice = move
+        self.save(update_fields=['invoice', 'updated_at'])
+        return move
