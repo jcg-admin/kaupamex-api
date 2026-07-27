@@ -218,11 +218,11 @@ class TestOrderProxies:
         assert enviada.pk in activos
         assert entregada.pk not in activos
 
-    def test_active_order_excluye_paid_sin_guia(self, db):
-        # Traducción FIEL del conjunto legacy: PAID NO estaba en ActiveOrder.
-        # (Incorporar PAID = H-API-14, cambio de comportamiento aparte.)
+    def test_active_order_incluye_paid_sin_guia_h_api_14(self, db):
+        # H-API-14: una venta pagada sin guía (PAID) es activa — protege su
+        # ShippingMethod. El conjunto legacy la dejaba fuera (bug latente).
         paid = self._order(approved=True)             # PAID, sin guía
-        assert not ActiveOrder.objects.filter(pk=paid.pk).exists()
+        assert ActiveOrder.objects.filter(pk=paid.pk).exists()
 
 
 class TestVoucherProxies:

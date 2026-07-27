@@ -73,24 +73,27 @@ class DeliveredOrderManager(models.Manager):
 
 
 class ActiveOrderManager(models.Manager):
-    """Órdenes en proceso activo — traducción **fiel** del conjunto legacy
-    ``{PENDING, PROCESSING, IN_PREPARATION, SHIPPED}`` a los ejes canónicos.
+    """Órdenes en proceso activo: **toda venta confirmada aún no entregada ni
+    cancelada** — ``PENDING ∪ PAID ∪ SHIPPED``.
 
-    ``PROCESSING`` e ``IN_PREPARATION`` son valores muertos (0 filas), así que
-    el conjunto vivo proyectable es ``PENDING ∪ SHIPPED``. **PAID queda fuera**
-    (igual que el conjunto legacy no incluía ``PAID``): incorporarlo es un
-    cambio de comportamiento tratado por separado (H-API-14).
+    H-API-14: se incorpora ``PAID`` (venta pagada sin guía). Antes quedaba
+    fuera —herencia del conjunto legacy que sólo cubría
+    ``{PENDING, PROCESSING, IN_PREPARATION, SHIPPED}``—, dejando una orden
+    pagada-sin-enviar **sin proteger** su ``ShippingMethod`` de la
+    desactivación (``settings_app`` UC-CFG-02). Canónicamente el conjunto
+    colapsa a *venta confirmada sin guía entregada*; ``PROCESSING`` e
+    ``IN_PREPARATION`` siguen siendo valores muertos.
     """
 
     def get_queryset(self):
         base = _with_axis_annotations(super().get_queryset())
-        pending = _IS_SALE & Q(_has_approved=False) & Q(_has_active_guide=False)
-        shipped = _IS_SALE & Q(_has_active_guide=True) & Q(_has_delivered_guide=False)
+        canonical = _IS_SALE & Q(_has_delivered_guide=False)
         legacy = _LEGACY & Q(status__in=[
             Order.STATUS_PENDING, Order.STATUS_PROCESSING,
-            Order.STATUS_IN_PREPARATION, Order.STATUS_SHIPPED,
+            Order.STATUS_IN_PREPARATION, Order.STATUS_PAID,
+            Order.STATUS_SHIPPED,
         ])
-        return base.filter(pending | shipped | legacy)
+        return base.filter(canonical | legacy)
 
 
 # =============================================================================
