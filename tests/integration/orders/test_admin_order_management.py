@@ -78,6 +78,22 @@ def _make_order(user, prod, status='PENDING'):
     return order
 
 
+def _canonical_admin_order(user, prod, *, approved=False, mirror='PENDING'):
+    """Orden con scaffolding de lista (``_make_order``) enlazada a una
+    ``SaleOrder`` confirmada; la columna espejo se deja **stale** a propósito
+    (``mirror``) para probar que el filtro deriva de los ejes, no del espejo."""
+    order = _make_order(user, prod, status=mirror)
+    so = SaleOrder.objects.create(state=SaleOrder.STATE_SALE)
+    order.sale_order = so
+    order.save(update_fields=['sale_order'])
+    if approved:
+        Payment.objects.create(
+            order=order, sale_order=so, gateway=Payment.GATEWAY_MERCADOPAGO,
+            amount=Decimal('100.00'), status=Payment.STATUS_APPROVED,
+        )
+    return order
+
+
 # =============================================================================
 # Seguridad — solo admins pueden acceder
 # =============================================================================
@@ -129,6 +145,29 @@ class TestBuscarOrdenesAdmin:
         data = res.json()
         statuses = {o['status'] for o in data['results']}
         assert statuses == {'PENDING'}
+
+    def test_filtro_por_status_canonico_desde_ejes(
+        self, admin_client, user, prod_adm, db
+    ):
+        """O2C R6: el ?status= admin deriva de los ejes canónicos (pago), no
+        de la columna espejo. La orden pagada tiene espejo stale 'PENDING'
+        pero se filtra correctamente como PAID."""
+        pend = _canonical_admin_order(user, prod_adm, approved=False)
+        paid = _canonical_admin_order(user, prod_adm, approved=True)  # espejo stale
+        res = admin_client.get(ADMIN_LIST_URL, {'status': 'PAID'})
+        nums = {o['order_number'] for o in res.json()['results']}
+        assert paid.order_number in nums
+        assert pend.order_number not in nums
+
+    def test_filtro_por_status_muerto_400(
+        self, admin_client, user, prod_adm, db
+    ):
+        """O2C R6: los valores muertos del enum legacy salen del contrato
+        admin → 400 INVALID_STATUS."""
+        _canonical_admin_order(user, prod_adm)
+        res = admin_client.get(ADMIN_LIST_URL, {'status': 'IN_PREPARATION'})
+        assert res.status_code == 400
+        assert res.json()['codigo_error'] == 'INVALID_STATUS'
 
     def test_filtro_por_numero_orden_parcial(
         self, admin_client, user, prod_adm, db

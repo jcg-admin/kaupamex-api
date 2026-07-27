@@ -19,6 +19,7 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from addons.inventory.services import InsufficientStockError
 from .models import CheckoutAttempt, Order, OrderItem
+from .status_projection import filter_orders_by_status, CANONICAL_ORDER_STATUSES
 from addons.sale.models import SaleOrder
 from .serializers import CancelOrderSerializer, CheckoutSerializer, OrderListSerializer, OrderSerializer, UpdateAddressSerializer, UpdateShippingSerializer
 from .shipping import resolve_shipping_quote
@@ -248,17 +249,21 @@ class OrderListView(APIView):
         )
 
         # UC-ORD-03 PARTE 4.2 Alt-B + PARTE 7.1 (DEC-ORD-07):
-        # filtro por ?status=<STATUS>. Antes ignorado.
+        # filtro por ?status=<STATUS>. O2C rebanada 6: el contrato público se
+        # re-especifica contra el vocabulario canónico (6 valores) y se traduce
+        # a los ejes canónicos, sin depender de la columna espejo (retirada en
+        # V5d). Los 3 valores muertos del enum legacy quedan fuera → 400.
         status_filter = request.query_params.get('status')
         if status_filter:
-            valid_statuses = {choice[0] for choice in Order._meta.get_field('status').choices}
-            if status_filter not in valid_statuses:
+            try:
+                qs = filter_orders_by_status(qs, status_filter)
+            except ValueError:
                 return Response(
-                    {'detail': f'Status invalido: {status_filter}.',
+                    {'detail': (f'Status invalido: {status_filter}. Validos: '
+                                f'{list(CANONICAL_ORDER_STATUSES)}.'),
                      'codigo_error': 'INVALID_STATUS'},
                     status=400,
                 )
-            qs = qs.filter(status=status_filter)
 
         paginator = OrderPagination()
         page = paginator.paginate_queryset(qs, request)

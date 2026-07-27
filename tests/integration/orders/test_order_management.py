@@ -103,6 +103,41 @@ def _create_full_order(user, prod, status='PENDING', n_items=1):
     return order
 
 
+def _canonical_full_order(user, prod, *, approved=False, guide=False, delivered=False):
+    """Orden canónica (SaleOrder confirmada + Order enlazada) con ítems/valor/
+    dirección para que la lista serialice. Estado proyectado desde los ejes
+    (pago + guía), no de la columna espejo."""
+    so = SaleOrder.objects.create(state=SaleOrder.STATE_SALE)
+    order = Order.objects.create(user=user, sale_order=so)
+    OrderItem.objects.create(
+        order=order, product_name=prod.name, sku=f'{prod.sku}-c',
+        unit_price=prod.price, quantity=1, subtotal=prod.price, product=prod,
+    )
+    OrderValue.objects.create(
+        order=order, subtotal=prod.price, tax=Decimal('0.00'),
+        shipping_cost=Decimal('80.00'), discount=Decimal('0.00'),
+        total=prod.price + Decimal('80.00'),
+    )
+    OrderAddress.objects.create(
+        order=order, recipient_name='Test User', street='Av. Reforma 100',
+        city='CDMX', state='Ciudad de Mexico', zip_code='06600',
+    )
+    if approved:
+        Payment.objects.create(
+            order=order, sale_order=so, gateway=Payment.GATEWAY_MERCADOPAGO,
+            amount=Decimal('100.00'), status=Payment.STATUS_APPROVED,
+        )
+    if guide or delivered:
+        courier = Courier.objects.create(
+            name=f'C-{order.pk}', code=f'c-{order.pk}', is_active=True)
+        kw = dict(order=order, sale_order=so, courier=courier,
+                  tracking_number=f'TRK-{order.pk}')
+        if delivered:
+            kw['status'] = ShipmentGuide.STATUS_DELIVERED
+        ShipmentGuide.objects.create(**kw)
+    return order
+
+
 # =============================================================================
 # UC-ORD-02 — Detalle de orden
 # =============================================================================
@@ -208,6 +243,37 @@ class TestListadoOrdenes:
         res = auth_client.get(f'{ORDERS_URL}?status=UNICORN')
         assert res.status_code == 400
         assert res.json()['codigo_error'] == 'INVALID_STATUS'
+
+    def test_listado_filtro_status_canonico_desde_ejes(
+        self, auth_client, user, prod_ord, db,
+    ):
+        """O2C R6: ?status= deriva el estado de los ejes canónicos (pago +
+        guía), no de la columna espejo ``order.status``."""
+        pend  = _canonical_full_order(user, prod_ord)                       # PENDING
+        paid  = _canonical_full_order(user, prod_ord, approved=True)        # PAID
+        ship  = _canonical_full_order(user, prod_ord, approved=True, guide=True)      # SHIPPED
+        deliv = _canonical_full_order(user, prod_ord, approved=True, delivered=True)  # DELIVERED
+
+        def nums(status):
+            r = auth_client.get(f'{ORDERS_URL}?status={status}')
+            assert r.status_code == 200
+            return {o['order_number'] for o in r.json()['results']}
+
+        assert nums('PENDING')   == {pend.order_number}
+        assert nums('PAID')      == {paid.order_number}
+        assert nums('SHIPPED')   == {ship.order_number}
+        assert nums('DELIVERED') == {deliv.order_number}
+
+    def test_listado_filtro_status_muerto_400(
+        self, auth_client, user, prod_ord, db,
+    ):
+        """O2C R6: los 3 valores muertos del enum legacy salen del contrato
+        público → 400 (la proyección nunca los emite)."""
+        _canonical_full_order(user, prod_ord)
+        for dead in ('PROCESSING', 'IN_PREPARATION', 'REFUNDED'):
+            r = auth_client.get(f'{ORDERS_URL}?status={dead}')
+            assert r.status_code == 400, dead
+            assert r.json()['codigo_error'] == 'INVALID_STATUS'
 
     def test_listado_incluye_campos_requeridos(
         self, auth_client, user, prod_ord, db

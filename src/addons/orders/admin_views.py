@@ -14,6 +14,7 @@ from rest_framework.pagination import PageNumberPagination
 from .serializers import AdminOrderSerializer
 from .models import Order
 from django.db.models import Q
+from .status_projection import filter_orders_by_status, CANONICAL_ORDER_STATUSES
 from .admin_services import transition_order_status, admin_cancel_order, get_dashboard_data
 
 
@@ -68,15 +69,18 @@ class AdminOrderListView(APIView):
         if order_number := params.get('order_number'):
             qs = qs.filter(order_number__icontains=order_number)
         if status := params.get('status'):
-            # H-CICLO98-01: validate status against Order.STATUSES choices to
-            # return 400 instead of silently returning an empty queryset.
-            valid_statuses = {s[0] for s in Order.STATUSES}
-            if status not in valid_statuses:
+            # H-CICLO98-01: validate + return 400 instead of an empty queryset.
+            # O2C rebanada 6: el contrato ?status= se re-especifica contra el
+            # vocabulario canónico (6) y se traduce a los ejes canónicos, sin
+            # depender de la columna espejo (retirada en V5d).
+            try:
+                qs = filter_orders_by_status(qs, status)
+            except ValueError:
                 raise ValidationError({
-                    'status': f'Estado inválido. Opciones válidas: {sorted(valid_statuses)}',
+                    'status': (f'Estado inválido. Opciones válidas: '
+                               f'{list(CANONICAL_ORDER_STATUSES)}'),
                     'codigo_error': 'INVALID_STATUS',
                 })
-            qs = qs.filter(status=status)
         if email := params.get('email'):
             qs = qs.filter(
                 Q(user__email__icontains=email) |
