@@ -20,20 +20,25 @@ from addons.sale.models import SaleOrder
 
 logger = logging.getLogger('apps')
 
-# H-ADM-002: Máquina de estados real (FRs usan nombres inexistentes)
-# H-ORD-S01: PAID añadida — pago confirmado, admin debe poder avanzar o cancelar.
+# H-ADM-002: Máquina de estados real (FRs usan nombres inexistentes).
+# O2C R7 (ADR-024/ADR-026): la máquina habla el VOCABULARIO CANÓNICO de 6
+# valores. Se podan los estados MUERTOS PROCESSING/IN_PREPARATION/REFUNDED
+# (0 escritores; la proyección canónica nunca los emite — H-API-05/H-API-10),
+# colapsando el camino vivo a PENDING → PAID → SHIPPED → DELIVERED (+CANCELLED).
+# PAID lo fija el pago aprobado o una conciliación manual del admin; SHIPPED
+# exige una guía activa (guard abajo). DRAFT es estado del carrito, no de la
+# orden materializada, así que no aparece como origen ni destino.
 ALLOWED_TRANSITIONS = {
-    'PENDING':        ['PROCESSING', 'CANCELLED'],
-    'PROCESSING':     ['PAID', 'IN_PREPARATION', 'CANCELLED'],
-    'PAID':           ['IN_PREPARATION', 'CANCELLED'],
-    'IN_PREPARATION': ['SHIPPED'],
-    'SHIPPED':        ['DELIVERED'],
-    # DELIVERED, CANCELLED, REFUNDED → terminales sin transiciones
+    'PENDING': ['PAID', 'SHIPPED', 'CANCELLED'],
+    'PAID':    ['SHIPPED', 'CANCELLED'],
+    'SHIPPED': ['DELIVERED'],
+    # DRAFT, DELIVERED, CANCELLED → terminales sin transiciones
 }
 
-# H-ADM-005: El admin puede cancelar más estados que el comprador
-# H-ORD-S01: PAID included — refund applies same as PROCESSING.
-ADMIN_CANCELABLE_STATUSES = ['PENDING', 'PROCESSING', 'PAID', 'IN_PREPARATION']
+# H-ADM-005: El admin puede cancelar más estados que el comprador.
+# O2C R7: podado al vocabulario canónico — pre-fulfillment (sin guía) es
+# cancelable; SHIPPED/DELIVERED no. PROCESSING/IN_PREPARATION eran muertos.
+ADMIN_CANCELABLE_STATUSES = ['PENDING', 'PAID']
 
 
 def transition_order_status(order, new_status: str, admin_user, notes: str = ''):

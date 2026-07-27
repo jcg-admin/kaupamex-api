@@ -170,10 +170,9 @@ class AdminOrderStatusUpdateView(APIView):
         description=(
             'Transiciona el estado de la orden validando la máquina de estados. '
             'Crea un registro en OrderStatusLog para auditoría. '
-            'H-ADM-002: transiciones permitidas desde el estado actual.\n\n'
-            'PENDING → PROCESSING | CANCELLED\n'
-            'PROCESSING → IN_PREPARATION | CANCELLED\n'
-            'IN_PREPARATION → SHIPPED\n'
+            'H-ADM-002 / O2C R7: vocabulario canónico de 6 valores.\n\n'
+            'PENDING → PAID | SHIPPED | CANCELLED\n'
+            'PAID → SHIPPED | CANCELLED\n'
             'SHIPPED → DELIVERED'
         ),
         request={'application/json': {

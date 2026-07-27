@@ -109,7 +109,7 @@ class TestSeguridadAdminEndpoints:
     ):
         order = _make_order(user, prod_adm)
         res   = auth_client.patch(ADMIN_STATUS_URL(order.order_number),
-                                  {'new_status': 'PROCESSING'}, format='json')
+                                  {'new_status': 'PAID'}, format='json')
         assert res.status_code == 403
 
     def test_sin_auth_retorna_401(self, user, api_client, db):
@@ -215,40 +215,43 @@ class TestBuscarOrdenesAdmin:
 
 class TestTransicionEstadoAdmin:
 
-    def test_transicion_valida_pending_a_processing(
+    def test_transicion_valida_pending_a_paid(
         self, admin_client, user, prod_adm, db
     ):
+        # O2C R7: vocabulario canónico — PENDING → PAID (antes → PROCESSING,
+        # valor muerto podado del contrato).
         order = _make_order(user, prod_adm, 'PENDING')
         res   = admin_client.patch(
             ADMIN_STATUS_URL(order.order_number),
-            {'new_status': 'PROCESSING', 'notes': 'Pago verificado'},
+            {'new_status': 'PAID', 'notes': 'Pago verificado'},
             format='json',
         )
         assert res.status_code == 200
-        assert res.json()['status'] == 'PROCESSING'
+        assert res.json()['status'] == 'PAID'
 
     def test_transicion_crea_statuslog(
         self, admin_client, user, prod_adm, db
     ):
-        order = _make_order(user, prod_adm, 'PROCESSING')
+        # O2C R7: PENDING → PAID (antes PROCESSING → IN_PREPARATION, muertos).
+        order = _make_order(user, prod_adm, 'PENDING')
         admin_client.patch(
             ADMIN_STATUS_URL(order.order_number),
-            {'new_status': 'IN_PREPARATION'},
+            {'new_status': 'PAID'},
             format='json',
         )
         log = OrderStatusLog.objects.filter(order=order).first()
         assert log is not None
-        assert log.previous_status == 'PROCESSING'
-        assert log.new_status == 'IN_PREPARATION'
+        assert log.previous_status == 'PENDING'
+        assert log.new_status == 'PAID'
 
     def test_transicion_invalida_retorna_400(
         self, admin_client, user, prod_adm, db
     ):
-        """H-ADM-002: SHIPPED no puede volver a PROCESSING."""
+        """H-ADM-002 / O2C R7: SHIPPED sólo avanza a DELIVERED."""
         order = _make_order(user, prod_adm, 'SHIPPED')
         res   = admin_client.patch(
             ADMIN_STATUS_URL(order.order_number),
-            {'new_status': 'PROCESSING'},
+            {'new_status': 'PENDING'},
             format='json',
         )
         assert res.status_code == 400
@@ -270,11 +273,11 @@ class TestTransicionEstadoAdmin:
     def test_flujo_completo_pending_a_delivered(
         self, admin_client, user, prod_adm, db
     ):
-        """Flujo feliz completo: PENDING → PROCESSING → IN_PREPARATION → SHIPPED → DELIVERED."""
+        """O2C R7 — flujo feliz canónico: PENDING → PAID → SHIPPED → DELIVERED."""
         order = _make_order(user, prod_adm, 'PENDING')
         courier = Courier.objects.create(name='DHL Test', code='DHL', is_active=True)
 
-        for new_status in ['PROCESSING', 'IN_PREPARATION', 'SHIPPED', 'DELIVERED']:
+        for new_status in ['PAID', 'SHIPPED', 'DELIVERED']:
             if new_status == 'SHIPPED':
                 ShipmentGuide.objects.create(
                     order=order, courier=courier, tracking_number='TEST-SHIP-001',
@@ -288,7 +291,7 @@ class TestTransicionEstadoAdmin:
 
         order.refresh_from_db()
         assert order.status == 'DELIVERED'
-        assert OrderStatusLog.objects.filter(order=order).count() == 4
+        assert OrderStatusLog.objects.filter(order=order).count() == 3
 
     def test_transicion_lee_status_fresh_con_select_for_update(
         self, admin_client, user, prod_adm, db,
@@ -318,7 +321,7 @@ class TestTransicionEstadoAdmin:
         # stale. select_for_update fuerza re-lectura: DB.status =
         # CANCELLED (terminal) -> ValueError.
         with pytest.raises(ValueError, match='Transición no permitida'):
-            transition_order_status(order_in_memory_A, 'PROCESSING', admin)
+            transition_order_status(order_in_memory_A, 'PAID', admin)
 
 
 # =============================================================================
@@ -327,11 +330,12 @@ class TestTransicionEstadoAdmin:
 
 class TestCancelarOrdenAdmin:
 
-    def test_admin_cancela_in_preparation(
+    def test_admin_cancela_paid(
         self, admin_client, user, prod_adm, db
     ):
-        """H-ADM-005: el admin puede cancelar IN_PREPARATION (el comprador no)."""
-        order = _make_order(user, prod_adm, 'IN_PREPARATION')
+        """H-ADM-005 / O2C R7: el admin puede cancelar una orden PAID
+        (sin guía) — el comprador también, pero admin exige motivo."""
+        order = _make_order(user, prod_adm, 'PAID')
         res   = admin_client.post(
             ADMIN_CANCEL_URL(order.order_number),
             {'reason': 'Fraude detectado en el pedido'},
@@ -370,7 +374,7 @@ class TestCancelarOrdenAdmin:
         self, admin_client, user, prod_adm, db
     ):
         stock_inicial = prod_adm.stock
-        order = _make_order(user, prod_adm, 'IN_PREPARATION')
+        order = _make_order(user, prod_adm, 'PAID')
         admin_client.post(
             ADMIN_CANCEL_URL(order.order_number),
             {'reason': 'Stock incorrecto reportado por almacén'},
@@ -382,7 +386,7 @@ class TestCancelarOrdenAdmin:
     def test_admin_cancelacion_registra_statuslog(
         self, admin_client, user, prod_adm, db
     ):
-        order = _make_order(user, prod_adm, 'PROCESSING')
+        order = _make_order(user, prod_adm, 'PAID')
         admin_client.post(
             ADMIN_CANCEL_URL(order.order_number),
             {'reason': 'Cancelación administrativa por validación'},
