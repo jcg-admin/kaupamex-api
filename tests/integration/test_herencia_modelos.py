@@ -23,7 +23,10 @@ from addons.loyalty.models import Voucher, VoucherChangeLog
 from addons.website_sale_wishlist.models import WishlistItem
 from addons.catalogue.serializers import SearchHistorySerializer
 from addons.inventory.proxy_models import SaleMovement, CancellationMovement, AdjustmentMovement, ImportMovement
-from addons.orders.proxy_models import PendingOrder, DeliveredOrder, ActiveOrder, CancelledOrder
+from addons.orders.proxy_models import DeliveredOrder, ActiveOrder
+from addons.sale.models import SaleOrder
+from addons.payment.models import Payment
+from addons.delivery.models import Courier, ShipmentGuide
 from django.utils import timezone
 from datetime import timedelta
 from addons.loyalty.proxy_models import FixedVoucher, PercentageVoucher, FreeShippingVoucher
@@ -160,28 +163,66 @@ class TestStockMovementProxies:
 
 
 class TestOrderProxies:
-    """T-013: proxy models para Order."""
+    """T-013 (O2C V5c-3): proxies vivos derivan de los ejes canónicos.
+
+    Los dos proxies restantes (``DeliveredOrder``, ``ActiveOrder``) filtran por
+    sale.state + pago + guía, no por la columna espejo ``order.status``. Los
+    seis proxies muertos se eliminaron (H-API-06).
+    """
+
+    def _order(self, *, approved=False):
+        """Orden canónica: SaleOrder confirmada + Order enlazada (+ pago)."""
+        so = SaleOrder.objects.create(state=SaleOrder.STATE_SALE)
+        order = Order.objects.create(sale_order=so)
+        if approved:
+            Payment.objects.create(
+                order=order, sale_order=so,
+                gateway=Payment.GATEWAY_MERCADOPAGO,
+                amount=Decimal('100.00'), status=Payment.STATUS_APPROVED,
+            )
+        return order
+
+    def _guide(self, order, *, delivered=False):
+        courier = Courier.objects.create(
+            name=f'DHL-{order.pk}', code=f'dhl-{order.pk}', is_active=True)
+        kwargs = dict(
+            order=order, sale_order=order.sale_order, courier=courier,
+            tracking_number=f'TRK-{order.pk}',
+        )
+        if delivered:
+            kwargs['status'] = ShipmentGuide.STATUS_DELIVERED
+        return ShipmentGuide.objects.create(**kwargs)
 
     def test_proxy_models_no_crean_tablas(self, db):
-        for proxy in [PendingOrder, DeliveredOrder, ActiveOrder]:
+        for proxy in [DeliveredOrder, ActiveOrder]:
             assert proxy._meta.db_table == Order._meta.db_table
             assert proxy._meta.proxy is True
 
-    def test_pending_order_filtra_por_estado(self, db):
+    def test_delivered_order_desde_guia_entregada(self, db):
+        entregada = self._order(approved=True)
+        self._guide(entregada, delivered=True)
+        pendiente = self._order()                     # sin guía → PENDING
 
-        o1 = Order.objects.create(status=Order.STATUS_PENDING)
-        o2 = Order.objects.create(status=Order.STATUS_CANCELLED)
+        assert DeliveredOrder.objects.filter(pk=entregada.pk).exists()
+        assert not DeliveredOrder.objects.filter(pk=pendiente.pk).exists()
 
-        assert PendingOrder.objects.count() == 1
-        assert CancelledOrder.objects.count() == 1
+    def test_active_order_pending_y_shipped_desde_ejes(self, db):
+        pendiente = self._order()                     # PENDING
+        enviada   = self._order(approved=True)
+        self._guide(enviada, delivered=False)         # SHIPPED (guía viva)
+        entregada = self._order(approved=True)
+        self._guide(entregada, delivered=True)        # DELIVERED → no activa
 
-    def test_active_order_incluye_multiples_estados(self, db):
+        activos = set(ActiveOrder.objects.values_list('pk', flat=True))
+        assert pendiente.pk in activos
+        assert enviada.pk in activos
+        assert entregada.pk not in activos
 
-        Order.objects.create(status=Order.STATUS_PENDING)
-        Order.objects.create(status=Order.STATUS_PROCESSING)
-        Order.objects.create(status=Order.STATUS_DELIVERED)  # no activa
-
-        assert ActiveOrder.objects.count() == 2
+    def test_active_order_excluye_paid_sin_guia(self, db):
+        # Traducción FIEL del conjunto legacy: PAID NO estaba en ActiveOrder.
+        # (Incorporar PAID = H-API-14, cambio de comportamiento aparte.)
+        paid = self._order(approved=True)             # PAID, sin guía
+        assert not ActiveOrder.objects.filter(pk=paid.pk).exists()
 
 
 class TestVoucherProxies:
