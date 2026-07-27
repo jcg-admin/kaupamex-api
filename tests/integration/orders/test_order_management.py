@@ -302,9 +302,10 @@ class TestCancelarOrden:
         assert order.cancellation_reason == 'Me arrepentí'
         assert order.cancelled_at is not None
 
-    def test_cancelar_orden_processing(self, auth_client, user, prod_ord, db):
-        """H-ORD-002: PROCESSING = PAYMENT_CONFIRMED de la FR — cancelable."""
-        order = _create_full_order(user, prod_ord, status='PROCESSING')
+    def test_cancelar_orden_paid(self, auth_client, user, prod_ord, db):
+        """O2C R8-pre: una orden PAID (pago confirmado, sin guía) es cancelable
+        por el comprador — PROCESSING era el valor muerto equivalente."""
+        order = _create_full_order(user, prod_ord, status='PAID')
         res = auth_client.post(CANCEL_URL(order.order_number), {}, format='json')
         assert res.status_code == 200
         assert res.json()['status'] == 'CANCELLED'
@@ -335,13 +336,13 @@ class TestCancelarOrden:
     def test_cancelacion_con_pago_inicia_reembolso(
         self, auth_client, user, prod_ord, db
     ):
-        """H-ORD-004: cancelar orden PROCESSING con Payment → reembolso automático."""
+        """H-ORD-004: cancelar orden PAID con Payment → reembolso automático."""
 
         gw = PaymentGateway(name='MP', gateway='MERCADOPAGO', is_active=True)
         gw.set_credentials({'access_token': 'T', 'client_secret': 'S'})
         gw.save()
 
-        order = _create_full_order(user, prod_ord, status='PROCESSING')
+        order = _create_full_order(user, prod_ord, status='PAID')
         payment = Payment.objects.create(
             order=order, gateway='MERCADOPAGO',
             gateway_payment_id='MP-CANCEL-001',
@@ -418,11 +419,12 @@ class TestEditarDireccion:
         order.refresh_from_db()
         assert order.address.city == 'Guadalajara'
 
-    def test_editar_direccion_in_preparation_permitido(
+    def test_editar_direccion_paid_permitido(
         self, auth_client, user, prod_ord, db
     ):
-        """IN_PREPARATION: aún no hay guía — edición permitida."""
-        order = _create_full_order(user, prod_ord, status='IN_PREPARATION')
+        """O2C R8-pre: PAID y aún sin guía — edición de dirección permitida
+        (IN_PREPARATION era el valor muerto equivalente)."""
+        order = _create_full_order(user, prod_ord, status='PAID')
         res = auth_client.patch(ADDRESS_URL(order.order_number), {
             'recipient_name': 'Prueba', 'street': 'St 1',
             'city': 'MTY', 'state': 'NL', 'zip_code': '64000',

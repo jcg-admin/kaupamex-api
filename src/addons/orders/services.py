@@ -11,6 +11,7 @@ from django.db import transaction
 from django.utils import timezone
 from addons.inventory.services import InventoryService
 from .models import Order, OrderAddress, OrderStatusLog
+from .status_projection import order_status
 from addons.payments.services import execute_refund
 from addons.delivery.models import ShippingMethod
 
@@ -18,16 +19,19 @@ from addons.delivery.models import ShippingMethod
 logger = logging.getLogger('apps')
 
 # ─── Estados que permiten cada operación ────────────────────────────────────
-# H-ORD-002: mapeo FR→modelo (PENDING_PAYMENT→PENDING, PAYMENT_CONFIRMED→PROCESSING)
-# H-ORD-S01: PAID debe incluirse — pago confirmado pero aún no en preparación.
-CANCELABLE_STATUSES = ['PENDING', 'PROCESSING', 'PAID']
-EDITABLE_STATUSES   = ['PENDING', 'PROCESSING', 'PAID', 'IN_PREPARATION']  # dirección
+# O2C R8-pre (H-API-17): vocabulario canónico de 6 valores. Los guards leen el
+# estado vía ``order_status(order)`` (proyección null-safe: ejes O2C para filas
+# con ``sale_order``, columna espejo para filas legacy pre-V3a), NO ``.status``
+# directo — así estos consumidores dejan de atar el cancelar/editar a la columna
+# espejo (preparación para su retiro en V5d). PROCESSING/IN_PREPARATION eran
+# valores MUERTOS (0 escritores; la proyección nunca los emite).
+CANCELABLE_STATUSES = ['PENDING', 'PAID']
+EDITABLE_STATUSES   = ['PENDING', 'PAID']  # dirección de envío
 # D-3 (UC-ORD-06): cambiar el método de envío recalcula el total; en una orden
-# ya pagada (PAID/IN_PREPARATION) eso deja el pago capturado sin conciliar
-# (cobro/reembolso de la diferencia no implementado). Se restringe a estados
-# PRE-pago (pago aún no confirmado — el webhook transiciona PENDING/PROCESSING
-# → PAID), de modo que el recálculo siempre precede a la captura del pago.
-SHIPPING_METHOD_EDITABLE_STATUSES = ['PENDING', 'PROCESSING']
+# ya pagada (PAID) eso deja el pago capturado sin conciliar (cobro/reembolso de
+# la diferencia no implementado). Se restringe a PRE-pago (PENDING), de modo que
+# el recálculo siempre precede a la captura del pago.
+SHIPPING_METHOD_EDITABLE_STATUSES = ['PENDING']
 
 
 def cancel_order(order, reason: str = '', cancelled_by=None, cancelable_statuses=None):
@@ -46,26 +50,32 @@ def cancel_order(order, reason: str = '', cancelled_by=None, cancelable_statuses
     """
 
     _cancelable = cancelable_statuses if cancelable_statuses is not None else CANCELABLE_STATUSES
-    if order.status not in _cancelable:
+    if order_status(order) not in _cancelable:
         raise ValueError(
             f'La orden {order.order_number} no se puede cancelar '
-            f'(estado: {order.status}). Solo se permiten cancelaciones '
+            f'(estado: {order_status(order)}). Solo se permiten cancelaciones '
             f'en estados: {_cancelable}.'
         )
 
     with transaction.atomic():
-        # H-API-35: re-verificar el estado bajo lock para prevenir
-        # que dos cancelaciones concurrentes restauren el stock dos veces.
-        if not Order.objects.select_for_update().filter(
-            pk=order.pk, status__in=_cancelable
-        ).exists():
+        # H-API-35 / O2C R8-pre (H-API-17): re-verificar el estado bajo lock
+        # para prevenir que dos cancelaciones concurrentes restauren el stock
+        # dos veces.  Se bloquea la fila y se re-deriva el estado canónico con
+        # ``order_status`` (no la columna espejo); se opera sobre la instancia
+        # bloqueada.
+        order = (
+            Order.objects.select_for_update()
+            .select_related('sale_order')
+            .get(pk=order.pk)
+        )
+        if order_status(order) not in _cancelable:
             raise ValueError(
                 f'La orden {order.order_number} ya no es cancelable '
                 f'(cancelada por request concurrente).'
             )
 
         # 1. Cancelar la orden
-        previous_status           = order.status
+        previous_status           = order_status(order)
         order.status              = 'CANCELLED'
         order.cancellation_reason = reason
         order.cancelled_at        = timezone.now()
@@ -154,10 +164,10 @@ def update_order_address(order, address_data: dict, changed_by=None):
     :raises ValueError: si la orden no permite editar la dirección.
     """
 
-    if order.status not in EDITABLE_STATUSES:
+    if order_status(order) not in EDITABLE_STATUSES:
         raise ValueError(
             f'La orden {order.order_number} no permite editar la dirección '
-            f'(estado: {order.status}). La guía de envío ya fue creada.'
+            f'(estado: {order_status(order)}). La guía de envío ya fue creada.'
         )
 
     try:
@@ -222,10 +232,10 @@ def update_shipping_method(order, shipping_method_id: int, changed_by=None):
     :raises ShippingMethodNotAvailableError: si el método no existe o está inactivo.
     """
 
-    if order.status not in SHIPPING_METHOD_EDITABLE_STATUSES:
+    if order_status(order) not in SHIPPING_METHOD_EDITABLE_STATUSES:
         raise OrderNotEditableError(
             f'La orden {order.order_number} no permite cambiar el método '
-            f'de envío (estado: {order.status}).'
+            f'de envío (estado: {order_status(order)}).'
         )
 
     try:
