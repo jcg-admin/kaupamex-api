@@ -13,6 +13,7 @@ from django.utils import timezone
 
 from addons.inventory.services import InventoryService
 from .models import Order, OrderStatusLog
+from .status_projection import order_status, filter_orders_by_status
 
 logger = logging.getLogger('apps')
 
@@ -23,11 +24,14 @@ def cancel_timeout_orders():
     """UC-SYS-01: cancela ordenes PENDING por timeout de pago."""
     cutoff = timezone.now() - timedelta(minutes=ORDER_PAYMENT_TIMEOUT_MINUTES)
     # Collect IDs first; iterate outside any lock.
+    # O2C R8-pre (H-API-18): el PENDING se deriva de los ejes canónicos
+    # (venta confirmada, sin pago aprobado, sin guía) vía
+    # ``filter_orders_by_status`` — null-safe para filas legacy — en vez de
+    # leer la columna espejo ``status=PENDING`` directamente.
     pending_ids = list(
-        Order.objects.filter(
-            status=Order.STATUS_PENDING,
-            created_at__lt=cutoff,
-        ).values_list('id', flat=True)
+        filter_orders_by_status(Order.objects.all(), Order.STATUS_PENDING)
+        .filter(created_at__lt=cutoff)
+        .values_list('id', flat=True)
     )
     now = timezone.now()
     count = 0
@@ -37,10 +41,13 @@ def cancel_timeout_orders():
         with transaction.atomic():
             order = (
                 Order.objects.select_for_update()
-                .filter(pk=order_id, status=Order.STATUS_PENDING)
+                .select_related('sale_order')
+                .filter(pk=order_id)
                 .first()
             )
-            if order is None:
+            # Re-derivar el estado canónico bajo lock: si el pago llegó entre
+            # el query y el lock, la orden ya no proyecta PENDING → se salta.
+            if order is None or order_status(order) != Order.STATUS_PENDING:
                 continue
             order.status              = Order.STATUS_CANCELLED_BY_TIMEOUT
             order.cancellation_reason = 'TIMEOUT'
