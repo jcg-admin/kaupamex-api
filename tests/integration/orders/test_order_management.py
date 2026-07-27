@@ -138,6 +138,18 @@ def _canonical_full_order(user, prod, *, approved=False, guide=False, delivered=
     return order
 
 
+
+def _canonical_paid_manual(user, prod):
+    """PAID canónico vía pago conciliado (gateway MANUAL): proyecta PAID y el
+    cancel no dispara refund de pasarela (los MANUAL se excluyen)."""
+    order = _canonical_full_order(user, prod)
+    Payment.objects.create(
+        order=order, sale_order=order.sale_order,
+        gateway=Payment.GATEWAY_MANUAL,
+        amount=Decimal('100.00'), status=Payment.STATUS_APPROVED,
+    )
+    return order
+
 # =============================================================================
 # UC-ORD-02 — Detalle de orden
 # =============================================================================
@@ -293,7 +305,7 @@ class TestListadoOrdenes:
 class TestCancelarOrden:
 
     def test_cancelar_orden_pending(self, auth_client, user, prod_ord, db):
-        order = _create_full_order(user, prod_ord, status='PENDING')
+        order = _canonical_full_order(user, prod_ord)
         res = auth_client.post(CANCEL_URL(order.order_number),
                                {'reason': 'Me arrepentí'}, format='json')
         assert res.status_code == 200
@@ -305,7 +317,7 @@ class TestCancelarOrden:
     def test_cancelar_orden_paid(self, auth_client, user, prod_ord, db):
         """O2C R8-pre: una orden PAID (pago confirmado, sin guía) es cancelable
         por el comprador — PROCESSING era el valor muerto equivalente."""
-        order = _create_full_order(user, prod_ord, status='PAID')
+        order = _canonical_paid_manual(user, prod_ord)
         res = auth_client.post(CANCEL_URL(order.order_number), {}, format='json')
         assert res.status_code == 200
         assert res.json()['status'] == 'CANCELLED'
@@ -375,7 +387,7 @@ class TestCancelarOrden:
         Debe incluirse en CANCELABLE_STATUSES para evitar que el comprador
         quede atrapado con una orden pagada que no puede cancelar.
         """
-        order = _create_full_order(user, prod_ord, status='PAID')
+        order = _canonical_paid_manual(user, prod_ord)
         res = auth_client.post(
             CANCEL_URL(order.order_number),
             {'reason': 'Cambié de opinión'},
@@ -384,7 +396,8 @@ class TestCancelarOrden:
         assert res.status_code == 200, res.json()
         assert res.json()['status'] == 'CANCELLED'
         order.refresh_from_db()
-        assert order.status == 'CANCELLED'
+        # O2C R8: el estado es la proyección del eje comercial.
+        assert order.sale_order.state == SaleOrder.STATE_CANCEL
         assert order.cancellation_reason == 'Cambié de opinión'
         assert order.cancelled_at is not None
 

@@ -4,6 +4,8 @@ Tests — UC-SYS-01: cancel_timeout_orders task.
 Verifica que ordenes PENDING con mas de ORDER_PAYMENT_TIMEOUT_MINUTES
 de antiguedad son canceladas con STATUS_CANCELLED_BY_TIMEOUT.
 """
+import uuid
+
 import pytest
 from datetime import timedelta
 from decimal import Decimal
@@ -11,13 +13,20 @@ from django.utils import timezone
 from addons.catalogue.models import Category, Product
 from addons.inventory.models import StockMovement
 from addons.orders.models import Order, OrderItem, OrderStatusLog
+from addons.orders.status_projection import order_status
 from addons.orders.tasks import cancel_timeout_orders, ORDER_PAYMENT_TIMEOUT_MINUTES
+from addons.payment.models import Payment
+from addons.sale.models import SaleOrder
 
 pytestmark = pytest.mark.django_db
 
 
 def _make_pending_order(age_minutes=ORDER_PAYMENT_TIMEOUT_MINUTES + 10):
-    order = Order.objects.create(status=Order.STATUS_PENDING)
+    # O2C R8: PENDING canonico = venta confirmada sin pago aprobado ni guia
+    # activa. El espejo se crea enlazado a su sale.order (par canonico).
+    sale = SaleOrder.objects.create(state=SaleOrder.STATE_SALE,
+                                    cart_token=uuid.uuid4())
+    order = Order.objects.create(sale_order=sale)
     Order.objects.filter(pk=order.pk).update(
         created_at=timezone.now() - timedelta(minutes=age_minutes)
     )
@@ -43,7 +52,10 @@ class TestCancelTimeoutOrders:
         order = _make_pending_order(age_minutes=ORDER_PAYMENT_TIMEOUT_MINUTES + 10)
         count = cancel_timeout_orders()
         order.refresh_from_db()
-        assert order.status == Order.STATUS_CANCELLED_BY_TIMEOUT
+        # O2C R8: el estado es la proyeccion del eje comercial; el sub-eje
+        # "por timeout" vive en cancellation_reason.
+        assert order.sale_order.state == SaleOrder.STATE_CANCEL
+        assert order_status(order) == Order.STATUS_CANCELLED
         assert order.cancellation_reason == 'TIMEOUT'
         assert order.cancelled_at is not None
         assert count >= 1
@@ -52,15 +64,19 @@ class TestCancelTimeoutOrders:
         order = _make_pending_order(age_minutes=5)
         cancel_timeout_orders()
         order.refresh_from_db()
-        assert order.status == Order.STATUS_PENDING
+        assert order_status(order) == Order.STATUS_PENDING
 
     def test_ignora_ordenes_no_pending(self):
+        # O2C R8: "no PENDING" canonico = con pago aprobado (proyecta PAID).
         order = _make_pending_order(age_minutes=ORDER_PAYMENT_TIMEOUT_MINUTES + 10)
-        Order.objects.filter(pk=order.pk).update(status=Order.STATUS_PROCESSING)
-        order.refresh_from_db()
+        Payment.objects.create(
+            order=order, sale_order=order.sale_order,
+            gateway=Payment.GATEWAY_MERCADOPAGO,
+            status=Payment.STATUS_APPROVED, amount=Decimal('100.00'))
         cancel_timeout_orders()
         order.refresh_from_db()
-        assert order.status == Order.STATUS_PROCESSING
+        assert order_status(order) == Order.STATUS_PAID
+        assert order.sale_order.state == SaleOrder.STATE_SALE
 
     def test_crea_status_log(self):
         order = _make_pending_order(age_minutes=ORDER_PAYMENT_TIMEOUT_MINUTES + 10)

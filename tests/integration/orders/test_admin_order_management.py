@@ -218,9 +218,10 @@ class TestTransicionEstadoAdmin:
     def test_transicion_valida_pending_a_paid(
         self, admin_client, user, prod_adm, db
     ):
-        # O2C R7: vocabulario canónico — PENDING → PAID (antes → PROCESSING,
-        # valor muerto podado del contrato).
-        order = _make_order(user, prod_adm, 'PENDING')
+        # O2C R8: PENDING → PAID es conciliación manual — el hub registra
+        # un Payment APPROVED gateway=MANUAL (eje de pago) y la proyección
+        # deriva PAID de él.
+        order = _canonical_admin_order(user, prod_adm)
         res   = admin_client.patch(
             ADMIN_STATUS_URL(order.order_number),
             {'new_status': 'PAID', 'notes': 'Pago verificado'},
@@ -228,6 +229,9 @@ class TestTransicionEstadoAdmin:
         )
         assert res.status_code == 200
         assert res.json()['status'] == 'PAID'
+        manual = order.payments.get()
+        assert manual.gateway == Payment.GATEWAY_MANUAL
+        assert manual.status == Payment.STATUS_APPROVED
 
     def test_transicion_crea_statuslog(
         self, admin_client, user, prod_adm, db
@@ -273,25 +277,41 @@ class TestTransicionEstadoAdmin:
     def test_flujo_completo_pending_a_delivered(
         self, admin_client, user, prod_adm, db
     ):
-        """O2C R7 — flujo feliz canónico: PENDING → PAID → SHIPPED → DELIVERED."""
-        order = _make_order(user, prod_adm, 'PENDING')
+        """O2C R8 — flujo feliz canónico: PENDING → PAID (hub, conciliación)
+        → SHIPPED (crear la guía ES la transición, eje fulfillment) →
+        DELIVERED (hub marca la guía entregada)."""
+        order = _canonical_admin_order(user, prod_adm)
         courier = Courier.objects.create(name='DHL Test', code='DHL', is_active=True)
 
-        for new_status in ['PAID', 'SHIPPED', 'DELIVERED']:
-            if new_status == 'SHIPPED':
-                ShipmentGuide.objects.create(
-                    order=order, courier=courier, tracking_number='TEST-SHIP-001',
-                )
-            res = admin_client.patch(
-                ADMIN_STATUS_URL(order.order_number),
-                {'new_status': new_status},
-                format='json',
-            )
-            assert res.status_code == 200, f'Falló en → {new_status}: {res.json()}'
+        res = admin_client.patch(
+            ADMIN_STATUS_URL(order.order_number),
+            {'new_status': 'PAID'}, format='json',
+        )
+        assert res.status_code == 200, f'Falló en → PAID: {res.json()}'
 
-        order.refresh_from_db()
-        assert order.status == 'DELIVERED'
-        assert OrderStatusLog.objects.filter(order=order).count() == 3
+        # SHIPPED no es transición manual del hub: la guía activa ES el eje.
+        ShipmentGuide.objects.create(
+            order=order, sale_order=order.sale_order, courier=courier,
+            tracking_number='TEST-SHIP-001',
+        )
+
+        res = admin_client.patch(
+            ADMIN_STATUS_URL(order.order_number),
+            {'new_status': 'DELIVERED'}, format='json',
+        )
+        assert res.status_code == 200, f'Falló en → DELIVERED: {res.json()}'
+        assert res.json()['status'] == 'DELIVERED'
+
+        # Dos transiciones del hub (PAID, DELIVERED) → dos entradas de log;
+        # la guía creada directo (sin endpoint logistics) no loguea SHIPPED.
+        assert OrderStatusLog.objects.filter(order=order).count() == 2
+
+        # Pedir SHIPPED al hub es error explícito (eje fulfillment).
+        res = admin_client.patch(
+            ADMIN_STATUS_URL(order.order_number),
+            {'new_status': 'SHIPPED'}, format='json',
+        )
+        assert res.status_code == 400
 
     def test_transicion_lee_status_fresh_con_select_for_update(
         self, admin_client, user, prod_adm, db,
@@ -335,7 +355,14 @@ class TestCancelarOrdenAdmin:
     ):
         """H-ADM-005 / O2C R7: el admin puede cancelar una orden PAID
         (sin guía) — el comprador también, pero admin exige motivo."""
-        order = _make_order(user, prod_adm, 'PAID')
+        # O2C R8: PAID canónico = pago aprobado (MANUAL: sin refund de
+        # pasarela al cancelar); el estado es la proyección del eje.
+        order = _canonical_admin_order(user, prod_adm)
+        Payment.objects.create(
+            order=order, sale_order=order.sale_order,
+            gateway=Payment.GATEWAY_MANUAL,
+            amount=Decimal('100.00'), status=Payment.STATUS_APPROVED,
+        )
         res   = admin_client.post(
             ADMIN_CANCEL_URL(order.order_number),
             {'reason': 'Fraude detectado en el pedido'},
@@ -343,7 +370,7 @@ class TestCancelarOrdenAdmin:
         )
         assert res.status_code == 200
         order.refresh_from_db()
-        assert order.status == 'CANCELLED'
+        assert order.sale_order.state == SaleOrder.STATE_CANCEL
         assert order.admin_cancelled_by is not None
 
     def test_motivo_obligatorio_min_10_chars(

@@ -530,9 +530,10 @@ def initiate_checkout_api_payment(
             }),
         )
 
-        if result.status == 'approved':
-            order.status = Order.STATUS_PAID
-            order.save(update_fields=['status', 'updated_at'])
+        # O2C R8: el Payment APPROVED de arriba ES el eje de pago — la
+        # proyección canónica deriva PAID de él; la columna espejo ya no se
+        # escribe (V5d la retira). PAID no está en el set de estados
+        # notificables de UC-NOT-02, así que no hay notify aquí.
 
     logger.info(
         'Checkout API pago: orden=%s payment_id=%s status=%s detail=%s',

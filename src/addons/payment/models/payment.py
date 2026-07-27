@@ -21,9 +21,15 @@ class Payment(TimeStampedModel):
     """
     GATEWAY_MERCADOPAGO = 'MERCADOPAGO'
     GATEWAY_PAYPAL      = 'PAYPAL'
+    # O2C R8: conciliación manual del admin (UC-ORD-07). En Odoo el pago
+    # registrado a mano es un payment.provider tipo 'custom' (transferencia,
+    # efectivo); aquí el eje de pago lo registra con gateway MANUAL para que
+    # la proyección canónica derive PAID sin pasar por una pasarela.
+    GATEWAY_MANUAL      = 'MANUAL'
     GATEWAYS = [
         (GATEWAY_MERCADOPAGO, 'MercadoPago'),
         (GATEWAY_PAYPAL,      'PayPal'),
+        (GATEWAY_MANUAL,      'Conciliación manual'),
     ]
 
     STATUS_PENDING             = 'PENDING'

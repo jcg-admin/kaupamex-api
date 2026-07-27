@@ -30,6 +30,7 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 
 from addons.orders.models import Order, OrderValue
+from addons.orders.status_projection import order_status
 from addons.payment.models import Payment
 from addons.payments.services import initiate_checkout_api_payment
 from addons.payment.models import PaymentGateway
@@ -156,7 +157,7 @@ def run_sandbox_charge(status='APRO', method='master', amount='199.00',
                              getattr(result, 'detail', '')),
         'expected_mp_status': EXPECTED_MP_STATUS.get(status),
         'order_number': order.order_number,
-        'order_status': order.status,
+        'order_status': order_status(order),
         'payment_id': getattr(payment, 'pk', None),
         'gateway_payment_id': getattr(payment, 'gateway_payment_id', None),
         'public_key_last4': public_key[-4:],

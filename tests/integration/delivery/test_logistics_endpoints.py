@@ -13,6 +13,7 @@ English JSON keys per DEC-DOC-005. Spanish business codes per DEC-DOC-006.
 from decimal import Decimal
 from addons.catalogue.models import Category, Product
 from addons.orders.models import Order, OrderAddress, OrderItem, OrderValue
+from addons.orders.status_projection import order_status
 from addons.delivery.models import Courier, ShipmentGuide
 from addons.payment.models import Payment
 from addons.sale.models import SaleOrder
@@ -341,7 +342,8 @@ class TestConfirmDelivery:
         self, admin_client, order_log, courier_log, db,
     ):
         g = ShipmentGuide.objects.create(
-            order=order_log, courier=courier_log, tracking_number='DEL-1',
+            order=order_log, sale_order=order_log.sale_order,
+            courier=courier_log, tracking_number='DEL-1',
             status=ShipmentGuide.STATUS_IN_TRANSIT,
         )
         r = admin_client.post(CONFIRM_URL(g.id), {}, format='json')
@@ -350,7 +352,8 @@ class TestConfirmDelivery:
         assert data['status'] == 'DELIVERED'
         assert data['already_delivered'] is False
         order_log.refresh_from_db()
-        assert order_log.status == 'DELIVERED'
+        # O2C R8: el estado se proyecta del eje fulfillment (guía DELIVERED).
+        assert order_status(order_log) == 'DELIVERED'
 
     def test_confirmacion_idempotente(
         self, admin_client, order_log, courier_log, db,
@@ -387,7 +390,9 @@ class TestOrderStatusShippedAfterGuide:
     def test_order_pasa_a_shipped_al_crear_guia(
         self, admin_client, order_log, courier_log, db,
     ):
-        assert order_log.status == Order.STATUS_IN_PREPARATION
+        # O2C R8: antes de la guía la orden proyecta PAID (pago aprobado,
+        # sin guía); crear la guía ES la transición a SHIPPED (eje).
+        assert order_status(order_log) == Order.STATUS_PAID
         r = admin_client.post(GUIDES_URL, {
             'order_id': order_log.id,
             'courier_id': courier_log.id,
@@ -395,7 +400,7 @@ class TestOrderStatusShippedAfterGuide:
         }, format='json')
         assert r.status_code == 201
         order_log.refresh_from_db()
-        assert order_log.status == Order.STATUS_SHIPPED
+        assert order_status(order_log) == Order.STATUS_SHIPPED
 
 
 class TestCancelGuide:

@@ -49,10 +49,12 @@ def cancel_timeout_orders():
             # el query y el lock, la orden ya no proyecta PENDING → se salta.
             if order is None or order_status(order) != Order.STATUS_PENDING:
                 continue
-            order.status              = Order.STATUS_CANCELLED_BY_TIMEOUT
+            # O2C R8: el estado lo fija el EJE comercial (action_cancel); la
+            # columna espejo ya no se escribe (V5d la retira). El sub-eje
+            # "por timeout" se preserva en cancellation_reason='TIMEOUT'.
             order.cancellation_reason = 'TIMEOUT'
             order.cancelled_at        = now
-            order.save(update_fields=['status', 'cancellation_reason', 'cancelled_at', 'updated_at'])
+            order.save(update_fields=['cancellation_reason', 'cancelled_at', 'updated_at'])
 
             # V5b-cancel (H-SALE-10): la cancelación por timeout también
             # cancela la sale.order canónica (eje comercial autoritativo).

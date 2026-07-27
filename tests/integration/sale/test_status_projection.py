@@ -145,7 +145,8 @@ class TestCancelWritersMakeSaleAuthoritative:
         cancel_order(legacy, reason='test V5b-cancel')
         sale.refresh_from_db()
         legacy.refresh_from_db()
-        assert legacy.status == Order.STATUS_CANCELLED
+        # O2C R8: la columna espejo ya no se escribe — el estado es la
+        # proyección del eje comercial (sale.state).
         assert sale.state == SaleOrder.STATE_CANCEL
         assert derive_order_status(sale) == Order.STATUS_CANCELLED
 
@@ -157,6 +158,8 @@ class TestCancelWritersMakeSaleAuthoritative:
         cancel_timeout_orders()
         sale.refresh_from_db()
         legacy.refresh_from_db()
-        assert legacy.status == Order.STATUS_CANCELLED_BY_TIMEOUT
+        # O2C R8: el sub-eje "por timeout" vive en cancellation_reason; el
+        # estado es la proyección del eje comercial (sale.state).
+        assert legacy.cancellation_reason == 'TIMEOUT'
         assert sale.state == SaleOrder.STATE_CANCEL
         assert derive_order_status(sale) == Order.STATUS_CANCELLED

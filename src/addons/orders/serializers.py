@@ -6,6 +6,20 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from .models import Order, OrderItem, OrderValue, OrderAddress, OrderStatusLog
+from .status_projection import order_status
+
+
+# O2C R8: el campo ``status`` del contrato se PROYECTA de los ejes canónicos
+# (sale.state + Payment + guía) — la columna espejo ya no se escribe (V5d la
+# retira). Memo por instancia para no derivar dos veces (status +
+# status_display) en la misma serialización.
+_STATUS_LABELS = dict(Order.STATUSES)
+
+
+def _projected_status(obj):
+    if not hasattr(obj, '_projected_status_cache'):
+        obj._projected_status_cache = order_status(obj)
+    return obj._projected_status_cache
 
 
 # Validación MX (hardening-checkout-envio-mexico): Teléfono y C.P. son
@@ -144,11 +158,18 @@ class OrderSerializer(serializers.ModelSerializer):
             'created_at', 'cancelled_at', 'cancellation_reason',
         ]
 
+    # O2C R8: status proyectado de los ejes canónicos (no la columna espejo).
+    status = serializers.SerializerMethodField()
+
     def get_shipping_method_name(self, obj) -> str | None:
         return obj.shipping_method.name if obj.shipping_method else None
 
+    @extend_schema_field(OpenApiTypes.STR)
+    def get_status(self, obj) -> str:
+        return _projected_status(obj)
+
     def get_status_display(self, obj) -> str:
-        return obj.get_status_display()
+        return _STATUS_LABELS.get(_projected_status(obj), _projected_status(obj))
 
 
 class AdminOrderSerializer(OrderSerializer):
@@ -188,6 +209,8 @@ class OrderListSerializer(serializers.ModelSerializer):
     )
     items_count   = serializers.SerializerMethodField()
     thumbnail_url = serializers.SerializerMethodField()
+    # O2C R8: status proyectado de los ejes canónicos (no la columna espejo).
+    status         = serializers.SerializerMethodField()
     status_display = serializers.SerializerMethodField()
 
     class Meta:
@@ -231,8 +254,12 @@ class OrderListSerializer(serializers.ModelSerializer):
             return cover.image.url
         return None
 
+    @extend_schema_field(OpenApiTypes.STR)
+    def get_status(self, obj) -> str:
+        return _projected_status(obj)
+
     def get_status_display(self, obj) -> str:
-        return obj.get_status_display()
+        return _STATUS_LABELS.get(_projected_status(obj), _projected_status(obj))
 
 
 class CheckoutSerializer(serializers.Serializer):

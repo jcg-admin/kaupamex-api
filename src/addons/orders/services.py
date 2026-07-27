@@ -12,6 +12,7 @@ from django.utils import timezone
 from addons.inventory.services import InventoryService
 from .models import Order, OrderAddress, OrderStatusLog
 from .status_projection import order_status
+from addons.mail.models.notification_service import notify_order_status_changed
 from addons.payments.services import execute_refund
 from addons.delivery.models import ShippingMethod
 
@@ -74,16 +75,17 @@ def cancel_order(order, reason: str = '', cancelled_by=None, cancelable_statuses
                 f'(cancelada por request concurrente).'
             )
 
-        # 1. Cancelar la orden
+        # 1. Cancelar la orden — O2C R8: el estado lo fija el EJE comercial
+        # (sale.action_cancel); la columna espejo ya no se escribe (V5d la
+        # retira). Los campos de metadata de cancelación sí son de la orden.
         previous_status           = order_status(order)
-        order.status              = 'CANCELLED'
         order.cancellation_reason = reason
         order.cancelled_at        = timezone.now()
-        order.save(update_fields=['status', 'cancellation_reason', 'cancelled_at', 'updated_at'])
+        order.save(update_fields=['cancellation_reason', 'cancelled_at', 'updated_at'])
 
-        # V5b-cancel (H-SALE-10): cancelar también la sale.order canónica para
-        # que el eje comercial (sale.state) sea autoritativo. Sin esto la
-        # proyección devuelve PENDING/PAID para una orden cancelada.
+        # V5b-cancel (H-SALE-10): cancelar la sale.order canónica — el eje
+        # comercial (sale.state) es autoritativo; la proyección deriva
+        # CANCELLED de él.
         sale = order.sale_order
         if sale is not None and sale.state != sale.STATE_CANCEL and not sale.locked:
             sale.action_cancel()
@@ -96,6 +98,11 @@ def cancel_order(order, reason: str = '', cancelled_by=None, cancelable_statuses
             changed_by=cancelled_by,
             notes=reason,
         )
+
+        # UC-NOT-02 (O2C R8): sin escritura de la columna espejo la signal
+        # post_save ya no dispara — notificación explícita en el punto de
+        # transición del eje.
+        notify_order_status_changed(order, 'CANCELLED')
 
         # 2. Restaurar stock — UC-INV-03
         stock_items = [
@@ -119,8 +126,14 @@ def cancel_order(order, reason: str = '', cancelled_by=None, cancelable_statuses
             )
 
         # 3. Reembolso si había pago aprobado — H-ORD-004 / H-REF-005
+        # O2C R8: los pagos conciliados a mano (gateway MANUAL, UC-ORD-07)
+        # no tienen pasarela a la cual pedir el reembolso — su devolución es
+        # un proceso manual fuera de la plataforma. Se excluyen del refund
+        # automático (get_gateway('MANUAL') no existe y abortaría el cancel).
         approved_payment = (
-            order.payments.filter(status='APPROVED').order_by('-created_at').first()
+            order.payments.filter(status='APPROVED')
+            .exclude(gateway='MANUAL')
+            .order_by('-created_at').first()
         )
         if approved_payment:
             try:

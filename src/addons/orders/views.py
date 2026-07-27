@@ -174,7 +174,7 @@ class CheckoutView(APIView):
         # OrderSerializer accede a items, value, address y shipping_method.
         order = (
             Order.objects
-            .select_related('value', 'address', 'shipping_method')
+            .select_related('value', 'address', 'shipping_method', 'sale_order')
             .prefetch_related('items')
             .get(pk=order.pk)
         )
@@ -230,7 +230,7 @@ class OrderListView(APIView):
 
         qs = (
             Order.objects.filter(user=request.user)
-            .select_related('value', 'shipping_method')
+            .select_related('value', 'shipping_method', 'sale_order')
             .prefetch_related(
                 Prefetch(
                     'items',
@@ -300,7 +300,7 @@ class OrderDetailView(APIView):
         order = (
             Order.objects
             .filter(order_number=order_number, user=request.user)
-            .select_related('value', 'address', 'shipping_method')
+            .select_related('value', 'address', 'shipping_method', 'sale_order')
             # H-CICLO104-07: prefetch status_logs so OrderSerializer can
             # include them without N+1; OrderDetailPage.jsx uses them for
             # the timeline step dates.
@@ -353,7 +353,7 @@ class OrderCancelView(APIView):
         order = (
             Order.objects
             .filter(order_number=order_number, user=request.user)
-            .select_related('value', 'shipping_method')
+            .select_related('value', 'shipping_method', 'sale_order')
             .prefetch_related('items__product', 'items__variant', 'payments')
             .first()
         )
@@ -396,7 +396,7 @@ class OrderCancelView(APIView):
         # OrderSerializer accede a items, value, address, shipping_method.
         order = (
             Order.objects
-            .select_related('value', 'address', 'shipping_method')
+            .select_related('value', 'address', 'shipping_method', 'sale_order')
             .prefetch_related('items')
             .get(pk=order.pk)
         )
@@ -458,7 +458,7 @@ class OrderAddressUpdateView(APIView):
         # Re-fetch con select_related/prefetch para evitar N+1 al serializar.
         order = (
             Order.objects
-            .select_related('value', 'address', 'shipping_method')
+            .select_related('value', 'address', 'shipping_method', 'sale_order')
             .prefetch_related('items')
             .get(pk=order.pk)
         )
@@ -504,7 +504,7 @@ class OrderShippingUpdateView(APIView):
         order = (
             Order.objects
             .filter(order_number=order_number, user=request.user)
-            .select_related('value', 'shipping_method')
+            .select_related('value', 'shipping_method', 'sale_order')
             .first()
         )
         if not order:
@@ -538,7 +538,7 @@ class OrderShippingUpdateView(APIView):
         # Re-fetch con select_related/prefetch para evitar N+1 al serializar.
         order = (
             Order.objects
-            .select_related('value', 'address', 'shipping_method')
+            .select_related('value', 'address', 'shipping_method', 'sale_order')
             .prefetch_related('items')
             .get(pk=order.pk)
         )

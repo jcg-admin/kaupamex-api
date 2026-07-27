@@ -8,11 +8,12 @@ Reutiliza cancel_order() de services.py con permisos ampliados.
 import logging
 from django.db import transaction
 from django.utils import timezone
-from .models import OrderStatusLog, Order
+from .models import OrderStatusLog, Order, OrderValue
 from .services import cancel_order
 from .status_projection import order_status
 from django.db.models import Count, Sum, Q, Exists, OuterRef
 from datetime import timedelta
+from addons.mail.models.notification_service import notify_order_status_changed
 from addons.payment.models import Payment
 from addons.base.models import SiteSettings
 from addons.delivery.models import ShipmentGuide
@@ -21,16 +22,22 @@ from addons.sale.models import SaleOrder
 logger = logging.getLogger('apps')
 
 # H-ADM-002: Máquina de estados real (FRs usan nombres inexistentes).
-# O2C R7 (ADR-024/ADR-026): la máquina habla el VOCABULARIO CANÓNICO de 6
-# valores. Se podan los estados MUERTOS PROCESSING/IN_PREPARATION/REFUNDED
-# (0 escritores; la proyección canónica nunca los emite — H-API-05/H-API-10),
-# colapsando el camino vivo a PENDING → PAID → SHIPPED → DELIVERED (+CANCELLED).
-# PAID lo fija el pago aprobado o una conciliación manual del admin; SHIPPED
-# exige una guía activa (guard abajo). DRAFT es estado del carrito, no de la
-# orden materializada, así que no aparece como origen ni destino.
+# O2C R7 (ADR-024/ADR-026) + R8 (H-API-20): la máquina habla el VOCABULARIO
+# CANÓNICO de 6 valores y cada transición MUTA SU EJE canónico (la proyección
+# deriva el estado; la columna espejo ya no se escribe — se retira en V5d):
+#
+#   PENDING → PAID       conciliación manual: Payment APPROVED gateway=MANUAL
+#   *       → CANCELLED  sale.action_cancel() (eje comercial)
+#   SHIPPED → DELIVERED  guía activa → STATUS_DELIVERED (eje fulfillment)
+#
+# SHIPPED NO es una transición manual del hub: se alcanza creando la guía
+# (/api/v2/logistics/guides/ — eje fulfillment). Con guía activa la
+# proyección ya devuelve SHIPPED, así que un "transiciona a SHIPPED" manual
+# no tiene eje que mutar. DRAFT es estado del carrito, no de la orden
+# materializada, así que no aparece como origen ni destino.
 ALLOWED_TRANSITIONS = {
-    'PENDING': ['PAID', 'SHIPPED', 'CANCELLED'],
-    'PAID':    ['SHIPPED', 'CANCELLED'],
+    'PENDING': ['PAID', 'CANCELLED'],
+    'PAID':    ['CANCELLED'],
     'SHIPPED': ['DELIVERED'],
     # DRAFT, DELIVERED, CANCELLED → terminales sin transiciones
 }
@@ -56,41 +63,71 @@ def transition_order_status(order, new_status: str, admin_user, notes: str = '')
     :raises ValueError: si la transición no está permitida.
     """
 
+    # O2C R8 (H-API-20): SHIPPED se alcanza por el eje fulfillment (crear la
+    # guía), no por transición manual — error específico antes del genérico.
+    if new_status == 'SHIPPED':
+        raise ValueError(
+            'SHIPPED se alcanza creando la guía de envío en '
+            '/api/v2/logistics/guides/ (eje fulfillment) — no es una '
+            'transición manual del hub.'
+        )
+
     with transaction.atomic():
-        locked = Order.objects.select_for_update().get(pk=order.pk)
-        allowed = ALLOWED_TRANSITIONS.get(locked.status, [])
+        locked = (
+            Order.objects.select_for_update()
+            .select_related('sale_order')
+            .get(pk=order.pk)
+        )
+        # O2C R8: el estado ORIGEN se deriva de los ejes canónicos bajo lock
+        # (no de la columna espejo, que ya no se escribe).
+        previous = order_status(locked)
+        allowed = ALLOWED_TRANSITIONS.get(previous, [])
         if new_status not in allowed:
             raise ValueError(
-                f"Transición no permitida: {locked.status} → {new_status}. "
-                f"Transiciones válidas desde {locked.status!r}: "
+                f"Transición no permitida: {previous} → {new_status}. "
+                f"Transiciones válidas desde {previous!r}: "
                 f"{allowed or ['ninguna (estado terminal)']}"
             )
 
-        # UC-LOG guard: an order cannot be marked SHIPPED unless it has an
-        # active ShipmentGuide.  Without this check an admin can set SHIPPED
-        # on an order that has no tracking number, leaving the buyer unable
-        # to track the parcel and breaking the logistics audit trail.
-        if new_status == 'SHIPPED':
-            has_guide = ShipmentGuide.objects.filter(
-                order=locked, is_deleted=False,
-            ).exists()
-            if not has_guide:
+        # O2C R8: cada transición muta SU EJE canónico; la proyección deriva
+        # el nuevo estado de él.
+        if new_status == 'PAID':
+            # Conciliación manual (UC-ORD-07): registra el pago aprobado en
+            # el eje de pago. La proyección deriva PAID de él.
+            try:
+                amount = locked.value.total
+            except OrderValue.DoesNotExist:
                 raise ValueError(
-                    "La orden no puede marcarse como SHIPPED sin una guía de "
-                    "envío activa. Crea la guía en /api/v2/logistics/guides/ "
-                    "antes de avanzar este estado."
+                    f'La orden {locked.order_number} no tiene OrderValue; '
+                    'no se puede conciliar el pago manual sin importe.'
                 )
-
-        previous = locked.status
-        locked.status = new_status
-        locked.save(update_fields=['status', 'updated_at'])
-
-        # V5b-cancel (H-SALE-10): si el admin cancela, cancelar también la
-        # sale.order canónica para que sale.state sea autoritativo.
-        if new_status == 'CANCELLED':
+            Payment.objects.create(
+                order=locked,
+                sale_order=locked.sale_order,
+                gateway=Payment.GATEWAY_MANUAL,
+                status=Payment.STATUS_APPROVED,
+                amount=amount,
+            )
+        elif new_status == 'DELIVERED':
+            # previous == SHIPPED garantiza guía activa (proyección); se
+            # marca entregada en el eje fulfillment.
+            guide = (
+                ShipmentGuide.objects.select_for_update()
+                .filter(order=locked, is_deleted=False)
+                .first()
+            )
+            guide.status = ShipmentGuide.STATUS_DELIVERED
+            guide.delivered_at = timezone.now()
+            guide.save(update_fields=['status', 'delivered_at', 'updated_at'])
+        elif new_status == 'CANCELLED':
+            # V5b-cancel (H-SALE-10): el eje comercial es autoritativo.
             sale = locked.sale_order
             if sale is not None and sale.state != sale.STATE_CANCEL and not sale.locked:
                 sale.action_cancel()
+            locked.cancellation_reason = notes or 'Cancelación admin'
+            locked.cancelled_at = timezone.now()
+            locked.save(update_fields=['cancellation_reason', 'cancelled_at',
+                                       'updated_at'])
 
         OrderStatusLog.objects.create(
             order=locked,
@@ -100,11 +137,10 @@ def transition_order_status(order, new_status: str, admin_user, notes: str = '')
             notes=notes,
         )
 
-        # UC-NOT-02: la notificacion es disparada automaticamente por la
-        # signal _order_status_changed (notifications/signals.py) al hacer
-        # locked.save() arriba. Llamarla aqui ademas causaba doble envio
-        # (una notificacion in-app + email por la signal Y otro por esta
-        # linea). Bug detectado en ciclo 43.
+        # UC-NOT-02: sin escritura de la columna espejo ya no dispara la
+        # signal post_save — la notificación se emite explícitamente en el
+        # punto de transición del eje (notify filtra los estados relevantes).
+        notify_order_status_changed(locked, new_status)
 
     logger.info(
         'Orden %s: %s → %s (admin=%s)',
@@ -133,11 +169,16 @@ def admin_cancel_order(order, reason: str, admin_user):
         )
 
     with transaction.atomic():
-        locked = Order.objects.select_for_update().get(pk=order.pk)
-        if locked.status not in ADMIN_CANCELABLE_STATUSES:
+        locked = (
+            Order.objects.select_for_update()
+            .select_related('sale_order')
+            .get(pk=order.pk)
+        )
+        current = order_status(locked)
+        if current not in ADMIN_CANCELABLE_STATUSES:
             raise ValueError(
                 f'El admin no puede cancelar una orden en estado '
-                f'{locked.status!r}. Estados cancelables por admin: '
+                f'{current!r}. Estados cancelables por admin: '
                 f'{ADMIN_CANCELABLE_STATUSES}.'
             )
 
