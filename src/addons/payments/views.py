@@ -29,6 +29,8 @@ from addons.orders.status_projection import (
     order_status,
 )
 from addons.sale.models import SaleOrder
+from addons.delivery.models.sale_order import set_delivery_line
+from addons.sale_loyalty.models.sale_order import set_reward_line
 from addons.orders.proxy_models import DeliveredOrder
 from addons.payment.models import Payment, Payment as PaymentModel, Refund, Chargeback, SavedCard
 from .serializers import (
@@ -642,6 +644,11 @@ class ExpressCheckoutView(APIView):
         shipping_cost = Dec('0.00')
         if shipping.free_threshold is None or subtotal_for_shipping < shipping.free_threshold:
             shipping_cost = shipping.cost
+
+        # E1-bis: ver nota en orders/views.py — la línea de envío/descuento
+        # se materializa sobre el draft antes de confirmar.
+        set_delivery_line(draft, shipping_cost)
+        set_reward_line(draft)
 
         try:
             order = confirm_draft_order(

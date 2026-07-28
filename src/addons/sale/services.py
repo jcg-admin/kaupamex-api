@@ -343,8 +343,16 @@ def confirm_draft_order(order, *, address_data, guest_email=None, notes='',
     if order.state != SaleOrder.STATE_DRAFT:
         raise DraftOrderError('La orden no es un draft.', 'ORDEN_NO_DRAFT')
 
-    lines = list(order.order_line.select_related(
-        'product', 'variant__product', 'variant__option').all())
+    # E1-bis — SÓLO líneas de producto. Las líneas marcadoras
+    # (``is_delivery``/``is_reward``, materializadas por ``delivery`` y
+    # ``sale_loyalty`` antes de confirmar) NO son vendibles: no reservan stock,
+    # no se refrescan a precio vigente —su ``current_price()`` devolvería el
+    # precio 0 del producto de servicio, borrando el importe— y no cruzan al
+    # espejo legacy, cuyos ``OrderItem`` son de producto por contrato.
+    # Un carrito con sólo líneas marcadoras está vacío.
+    lines = list(order.order_line.filter(is_delivery=False, is_reward=False)
+                 .select_related('product', 'variant__product',
+                                 'variant__option'))
     if not lines:
         raise DraftOrderError('El carrito está vacío.', 'EMPTY_CART')
 

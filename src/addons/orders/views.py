@@ -18,6 +18,8 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from addons.inventory.services import InsufficientStockError
+from addons.delivery.models.sale_order import set_delivery_line
+from addons.sale_loyalty.models.sale_order import set_reward_line
 from .models import CheckoutAttempt, Order, OrderItem
 from .status_projection import filter_orders_by_status, CANONICAL_ORDER_STATUSES
 from addons.sale.models import SaleOrder
@@ -129,6 +131,14 @@ class CheckoutView(APIView):
         # nada se copia ni se borra — el servicio congela snapshot (precio
         # vigente H-CICLO78-04), crea OrderValue/OrderAddress, consume el
         # voucher (DEC-VCU-01/DEC-BC-10) y libera el cart_token.
+        # E1-bis: los importes que NO son de producto se materializan como
+        # LÍNEAS del draft ANTES de confirmar — mismo orden que Odoo (el
+        # wizard agrega la línea a la cotización; luego se confirma). Cada
+        # addon contribuye la suya: `delivery` el envío, `sale_loyalty` el
+        # descuento. `sale` no las conoce (dirección de dependencia).
+        set_delivery_line(order, shipping_cost)
+        set_reward_line(order)
+
         user = request.user if request.user.is_authenticated else None
         try:
             order = confirm_draft_order(
