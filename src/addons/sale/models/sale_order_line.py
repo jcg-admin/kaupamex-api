@@ -47,6 +47,33 @@ class SaleOrderLine(TimeStampedModel):
         max_digits=5, decimal_places=2, default=Decimal('0.00'),
         help_text='Descuento % de la línea (Odoo discount).',
     )
+    # ------------------------------------------------------------------
+    # E1-bis — marcadores de línea NO-producto (H-API-24 / H-API-30).
+    #
+    # Los importes que no son de producto (envío, descuento de cupón) hoy son
+    # escalares que nunca llegan a ``order_line``, así que ``amount_total()``
+    # los excluye por construcción. La forma fiel los materializa como líneas
+    # y los marca para poder distinguirlas:
+    #
+    # - ``is_delivery`` ≙ Odoo ``delivery/models/sale_order_line.py:9``.
+    # - ``is_reward``   ≙ la línea de recompensa de ``sale_loyalty`` (precio
+    #   negativo).
+    #
+    # Ambos marcadores nacen juntos por decisión del ejecutor (2026-07-28):
+    # envío y descuento comparten mecanismo en el monolito modular, y comparten
+    # la misma causa raíz. Son marcadores, NO un tipo de línea: la línea sigue
+    # siendo una ``sale.order.line`` normal y entra a los totales como
+    # cualquier otra.
+    # ------------------------------------------------------------------
+    is_delivery     = fields.Boolean(
+        default=False, db_index=True,
+        help_text='La línea representa el costo de envío (Odoo is_delivery).',
+    )
+    is_reward       = fields.Boolean(
+        default=False, db_index=True,
+        help_text='La línea representa un descuento/recompensa (precio negativo).',
+    )
+
     class Meta:
         db_table     = 'sale_order_line'
         verbose_name = 'Línea de orden de venta'
