@@ -103,6 +103,35 @@ class SaleOrder(TimeStampedModel):
         help_text='Empresa dueña de la orden (Odoo company_id). NULL pre-backfill.',
     )
 
+    # Método de envío elegido (Odoo sale.order.carrier_id, que el módulo
+    # ``delivery`` añade a sale.order — delivery/models/sale_order.py:13).
+    # E1 del retiro del espejo: el dato vivía sólo en orders.Order.
+    # SET_NULL — el catálogo de envío es configuración; darlo de baja no
+    # puede llevarse la venta por delante.
+    carrier     = fields.Many2one(
+        'delivery.ShippingMethod', null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='sale_orders',
+        help_text='Método de envío elegido (Odoo sale.order.carrier_id).',
+    )
+
+    # Trazabilidad de cancelación (UC-ORD-04, UC-ORD-08 / H-ORD-001,
+    # H-ADM-003). NO tienen equivalente en Odoo core —allí la cancelación es
+    # ``state='cancel'`` + el hilo de ``mail.thread``—; son extensión propia
+    # del proyecto, que el espejo legacy sí modelaba y el canónico no.
+    admin_cancelled_by  = fields.Many2one(
+        settings.AUTH_USER_MODEL, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='admin_cancelled_sale_orders',
+        help_text='Admin que canceló. NULL si la canceló el comprador.',
+    )
+    cancellation_reason = fields.Text(
+        blank=True, default='',
+        help_text='Motivo de la cancelación (comprador o admin).',
+    )
+    cancelled_at        = fields.Datetime(
+        null=True, blank=True,
+        help_text='Momento de la cancelación. NULL si la orden no se canceló.',
+    )
+
     # Factura de la orden (Odoo sale.order.invoice_ids, aquí 1:1). FK
     # sale→account (dirección correcta: account es la capa contable base). El
     # enlace hace idempotente action_create_invoice: una orden ya facturada no
