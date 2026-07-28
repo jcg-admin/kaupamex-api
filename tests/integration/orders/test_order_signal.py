@@ -89,7 +89,7 @@ class TestOrderCreatedSignal:
             assert 'order' in call_kwargs, (
                 'La señal debe incluir kwarg "order"'
             )
-            assert call_kwargs['order'].order_number.startswith('PY-'), (
+            assert call_kwargs['order'].order_number == call_kwargs['order'].sale_order.name, (
                 f'order.order_number invalido: {call_kwargs["order"].order_number}'
             )
         finally:

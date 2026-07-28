@@ -12,26 +12,40 @@ estados de *fulfillment* (enviado/entregado) y *pago* (pagado) NO viven aquí �
 Odoo están en ``stock.picking`` y ``payment.transaction``/``account.move``; se
 integran en sus addons (``inventory``/``logistics``/``payments``).
 """
-import uuid
 from decimal import Decimal
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
 import fields
 import models
+from django.db import transaction
 from django.utils import timezone
 
 from exceptions import UserError
 from tools.translate import _
 
 from addons.account.services import create_invoice_from_sale_order
-from addons.base.models import TimeStampedModel
+from addons.base.models import IrSequence, TimeStampedModel
 from addons.company.models import CompanyScopedManager
 
 
-def _generate_sale_name() -> str:
-    """Referencia SO al confirmar (análogo a la secuencia ``sale.order``)."""
-    return f'S-{str(uuid.uuid4())[:8].upper()}'
+def _next_sale_name() -> str:
+    """Referencia SO vía ``ir.sequence`` ``code='sale.order'`` (Odoo
+    ``sale/models/sale_order.py:1010`` — ``next_by_code('sale.order')``;
+    secuencia ``seq_sale_order``: prefix ``S``, padding 5 → ``S00001``,
+    ``sale/data/ir_sequence_data.xml``). El seed es idempotente en el punto
+    de uso — análogo del data record ``noupdate`` — para no depender del
+    mecanismo de seeds del proyecto (H-API-22). ``select_for_update``
+    serializa la lectura-incremento; el atomic anidado lo hace válido
+    aunque el llamador no tenga transacción abierta.
+    """
+    with transaction.atomic():
+        seq = IrSequence.objects.select_for_update().filter(
+            code='sale.order').first()
+        if seq is None:
+            seq = IrSequence.objects.create(
+                name='Sales Order', code='sale.order', prefix='S', padding=5)
+        return seq.get_next()
 
 
 class SaleOrder(TimeStampedModel):
@@ -184,7 +198,7 @@ class SaleOrder(TimeStampedModel):
         if not self.order_line.exists():
             raise ValidationError('No se puede confirmar una orden sin líneas.')
         if not self.name:
-            self.name = _generate_sale_name()
+            self.name = _next_sale_name()
         self.state = self.STATE_SALE
         self.date_order = timezone.now()
         self.save(update_fields=['name', 'state', 'date_order', 'updated_at'])

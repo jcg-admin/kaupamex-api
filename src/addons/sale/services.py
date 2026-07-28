@@ -417,8 +417,13 @@ def confirm_draft_order(order, *, address_data, guest_email=None, notes='',
         )
 
         # Puente legacy (se retira en V5 — analisis-unificar-orders-sale).
+        # I1 (H-API-29, decisión ejecutor 2026-07-28): la identidad pública
+        # es la canónica — el espejo nace con order_number = sale.name, así
+        # todo el contrato (serializers, emails, lookups) publica ``S-…``
+        # sin re-anclar cada sitio. Órdenes previas conservan su ``PY-…``.
         legacy = Order.objects.create(
             sale_order=order,
+            order_number=order.name,
             user=order.partner,
             guest_email=(guest_email if (guest_email and not order.partner_id)
                          else None),

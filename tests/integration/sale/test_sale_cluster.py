@@ -82,7 +82,7 @@ def test_state_machine_confirm(producto):
     so.action_confirm()
     so.refresh_from_db()
     assert so.state == SaleOrder.STATE_SALE
-    assert so.name and so.name.startswith('S-')
+    assert so.name and so.name.startswith('S')
     assert so.date_order is not None
 
 

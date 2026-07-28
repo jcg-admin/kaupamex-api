@@ -503,7 +503,8 @@ class TestCheckoutExpress:
         res = auth_client.post(EXPRESS_URL, {}, format='json')
         assert res.status_code == 201, res.json()
         data = res.json()
-        assert data['order_number'].startswith('PY-')
+        # I1 (H-API-29): el contrato publica la referencia canonica S00001.
+        assert data['order_number'].startswith('S')
         assert data['status'] == 'PENDING'
 
     def test_express_checkout_vacia_el_carrito(

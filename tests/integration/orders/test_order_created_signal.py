@@ -87,7 +87,8 @@ class TestOrderCreatedSignal:
                 {'address': ADDR, 'shipping_method_id': ship_sig.pk},
                 format='json')
             assert 'order' in received
-            assert received['order'].order_number.startswith('PY-')
+            # I1 (H-API-29): la identidad publica es la canonica (secuencia S00001).
+            assert received['order'].order_number == received['order'].sale_order.name
         finally:
             order_created.disconnect(capture)
 

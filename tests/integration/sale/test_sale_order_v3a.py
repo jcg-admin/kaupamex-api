@@ -56,7 +56,7 @@ class TestMirrorKnowsItsCanonical:
         assert legacy.sale_order_id == canonical.pk
         assert canonical.legacy_order.pk == legacy.pk
         assert canonical.state == SaleOrder.STATE_SALE
-        assert canonical.name and canonical.name.startswith('S-')
+        assert canonical.name and canonical.name.startswith('S')
         assert order_status(legacy) == STATUS_PENDING
 
     def test_confirm_releases_cart_token_on_canonical(self, product_v3):
