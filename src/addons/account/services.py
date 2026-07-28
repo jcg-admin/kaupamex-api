@@ -69,9 +69,9 @@ def create_invoice_from_sale_order(order, company) -> AccountMove:
     receivable = _require_account(company, 'asset_receivable', 'Por cobrar')
     income = _require_account(company, 'income', 'Ingreso')
 
-    untaxed = order.amount_untaxed()
-    tax = order.amount_tax()
-    total = order.amount_total()
+    untaxed = order.amount_untaxed
+    tax = order.amount_tax
+    total = order.amount_total
 
     move = AccountMove.objects.create(
         move_type='out_invoice',

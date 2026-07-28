@@ -115,7 +115,7 @@ class TestLineaDeEnvio:
         draft = _draft(producto, carrier=metodo)
         _checkout(draft, Decimal('99.00'))
         draft.refresh_from_db()
-        assert draft.amount_total() == Decimal('199.00')
+        assert draft.amount_total == Decimal('199.00')
 
     def test_la_linea_apunta_al_producto_de_servicio_del_metodo(
             self, producto, metodo):
@@ -144,7 +144,7 @@ class TestLineaDeEnvio:
         assert linea.name == 'Envío'
         # El espejo conserva su escalar; los dos totales siguen coincidiendo.
         assert OrderValue.objects.get(order=legacy).shipping_cost == Decimal('50.00')
-        assert draft.amount_total() == Decimal('150.00')
+        assert draft.amount_total == Decimal('150.00')
 
 
 class TestLineaDeRecompensa:
@@ -160,10 +160,10 @@ class TestLineaDeRecompensa:
 
     def test_resta_del_total_canonico(self, producto, metodo, voucher_20):
         draft = _draft(producto, carrier=metodo)
-        assert draft.amount_total() == Decimal('100.00')
+        assert draft.amount_total == Decimal('100.00')
         apply_voucher_to_draft(draft, voucher_20.code)
         set_reward_line(draft)
-        assert draft.amount_total() == Decimal('80.00')
+        assert draft.amount_total == Decimal('80.00')
 
     def test_sin_cupon_no_hay_linea(self, producto, metodo):
         draft = _draft(producto, carrier=metodo)
@@ -217,7 +217,7 @@ class TestBaseDelDescuento:
         set_delivery_line(draft, Decimal('99.00'))
         set_reward_line(draft)
         assert draft.order_line.get(is_reward=True).price_unit == Decimal('-20.00')
-        assert draft.amount_total() == Decimal('179.00')
+        assert draft.amount_total == Decimal('179.00')
 
     def test_el_orden_inverso_da_el_mismo_total(
             self, producto, metodo, voucher_20):
@@ -225,7 +225,7 @@ class TestBaseDelDescuento:
         apply_voucher_to_draft(draft, voucher_20.code)
         set_reward_line(draft)
         set_delivery_line(draft, Decimal('99.00'))
-        assert draft.amount_total() == Decimal('179.00')
+        assert draft.amount_total == Decimal('179.00')
 
 
 class TestElEspejoNoSeContamina:
@@ -245,7 +245,7 @@ class TestElEspejoNoSeContamina:
         legacy = _checkout(draft, Decimal('99.00'))
         draft.refresh_from_db()
         valor = OrderValue.objects.get(order=legacy)
-        assert valor.total == draft.amount_total() == Decimal('199.00')
+        assert valor.total == draft.amount_total == Decimal('199.00')
 
 
 class TestVoucherEndToEnd:
@@ -259,4 +259,4 @@ class TestVoucherEndToEnd:
         assert draft.order_line.filter(is_delivery=True).count() == 1
         assert draft.order_line.filter(is_reward=True).count() == 1
         valor = OrderValue.objects.get(order=legacy)
-        assert valor.total == draft.amount_total()
+        assert valor.total == draft.amount_total

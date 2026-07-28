@@ -27,13 +27,21 @@ def set_reward_line(order):
 
     Idempotente: borra la línea de recompensa previa y crea una nueva.
     Devuelve ``None`` si la orden no trae cupón o el descuento es 0.
+
+    El borrado previo es un ``QuerySet.delete()`` en bloque —no dispara el
+    recálculo de ``SaleOrderLine.delete()`` (H-API-30)—; cuando la función
+    termina sin crear línea nueva (sin cupón o descuento 0) el recálculo no
+    llegaría por ningún otro camino, así que se dispara explícito para no
+    dejar la orden con un total stale.
     """
     order.order_line.filter(is_reward=True).delete()
     coupon = SaleOrderCoupon.objects.filter(order=order).first()
     if coupon is None:
+        order._compute_amounts()
         return None
     discount = coupon.discount_amount()
     if discount == Decimal('0.00'):
+        order._compute_amounts()
         return None
     return SaleOrderLine.objects.create(
         order=order,

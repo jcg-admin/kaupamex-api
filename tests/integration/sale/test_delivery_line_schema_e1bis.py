@@ -97,13 +97,13 @@ class TestMarcadoresDeLinea:
         SaleOrderLine.objects.create(
             order=venta, product=producto, name=producto.name,
             product_uom_qty=1, price_unit=Decimal('100.00'))
-        assert venta.amount_total() == Decimal('100.00')
+        assert venta.amount_total == Decimal('100.00')
 
         SaleOrderLine.objects.create(
             order=venta, product=metodo.ensure_service_product(),
             name=f'Envío — {metodo.name}', product_uom_qty=1,
             price_unit=metodo.cost, is_delivery=True)
-        assert venta.amount_total() == Decimal('199.00')
+        assert venta.amount_total == Decimal('199.00')
 
     def test_la_linea_de_recompensa_resta_del_total(self, producto):
         """Simetría envío/descuento (decisión ejecutor 2026-07-28): la
@@ -116,4 +116,4 @@ class TestMarcadoresDeLinea:
         SaleOrderLine.objects.create(
             order=venta, product=producto, name='Descuento cupón',
             product_uom_qty=1, price_unit=Decimal('-20.00'), is_reward=True)
-        assert venta.amount_total() == Decimal('80.00')
+        assert venta.amount_total == Decimal('80.00')

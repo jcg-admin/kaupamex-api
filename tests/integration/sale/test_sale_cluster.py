@@ -69,9 +69,9 @@ def test_order_amounts_sum_lines(producto):
     """amount_untaxed/tax/total = suma del desglose por línea (Odoo _compute_amounts)."""
     so = SaleOrder.objects.create()
     SaleOrderLine.objects.create(order=so, product=producto, product_uom_qty=2, price_unit=Decimal('100.00'))
-    assert so.amount_total() == Decimal('200.00')
-    assert so.amount_untaxed() == Decimal('172.41')
-    assert so.amount_tax() == Decimal('27.59')
+    assert so.amount_total == Decimal('200.00')
+    assert so.amount_untaxed == Decimal('172.41')
+    assert so.amount_tax == Decimal('27.59')
 
 
 def test_state_machine_confirm(producto):

@@ -12,7 +12,6 @@ from django.db.models.functions import TruncDate
 from django.utils import timezone
 from addons.orders.models import Order, OrderItem
 from addons.payment.models import Payment
-from addons.sale.aggregates import with_amounts
 from addons.sale.models import SaleOrder
 from addons.catalogue.models import Product
 from addons.inventory.models import StockAlert
@@ -77,8 +76,11 @@ def build_sales_payload(period_days: int) -> dict:
         date_order__gte=start, date_order__lte=end,
     )
 
-    totals_agg = with_amounts(qs).aggregate(
-        revenue=Sum('amount_total_sql'),
+    # H-API-30 — ``amount_total`` es columna real: ``Sum`` directo sobre
+    # ``SaleOrder``, sin ``Subquery``/``with_amounts`` (retirado; sobraba una
+    # vez materializado el total).
+    totals_agg = qs.aggregate(
+        revenue=Sum('amount_total'),
         order_count=Count('id'),
     )
     revenue = totals_agg['revenue'] or Decimal('0.00')
@@ -88,8 +90,8 @@ def build_sales_payload(period_days: int) -> dict:
         state=SaleOrder.STATE_SALE,
         date_order__gte=prev_start, date_order__lt=prev_end,
     )
-    prev_agg = with_amounts(prev_qs).aggregate(
-        revenue=Sum('amount_total_sql'),
+    prev_agg = prev_qs.aggregate(
+        revenue=Sum('amount_total'),
         order_count=Count('id'),
     )
     prev_revenue = prev_agg['revenue'] or Decimal('0.00')
@@ -104,10 +106,10 @@ def build_sales_payload(period_days: int) -> dict:
         )
 
     series_rows = (
-        with_amounts(qs)
+        qs
         .annotate(day=TruncDate('date_order'))
         .values('day')
-        .annotate(revenue=Sum('amount_total_sql'), orders=Count('id'))
+        .annotate(revenue=Sum('amount_total'), orders=Count('id'))
         .order_by('day')
     )
     series = [
@@ -227,20 +229,20 @@ def build_dashboard_payload() -> dict:
     today_qs = SaleOrder.objects.filter(
         state=SaleOrder.STATE_SALE, date_order__gte=today_start,
     )
-    today_agg = with_amounts(today_qs).aggregate(
-        revenue=Sum('amount_total_sql'), order_count=Count('id'),
+    today_agg = today_qs.aggregate(
+        revenue=Sum('amount_total'), order_count=Count('id'),
     )
     today_revenue = today_agg['revenue'] or Decimal('0.00')
     today_orders = today_agg['order_count'] or 0
 
     trend_start = now - timedelta(days=30)
     trend_rows = (
-        with_amounts(SaleOrder.objects.filter(
+        SaleOrder.objects.filter(
             state=SaleOrder.STATE_SALE, date_order__gte=trend_start,
-        ))
+        )
         .annotate(day=TruncDate('date_order'))
         .values('day')
-        .annotate(revenue=Sum('amount_total_sql'), orders=Count('id'))
+        .annotate(revenue=Sum('amount_total'), orders=Count('id'))
         .order_by('day')
     )
     trend = [
@@ -315,18 +317,18 @@ def build_rfm_payload(period_days: int, segment_filter: str | None = None) -> di
     # el agrupamiento por cliente es equivalente. Anclaje: ver la nota de
     # ``build_sales_payload``.
     rows = (
-        with_amounts(SaleOrder.objects.filter(
+        SaleOrder.objects.filter(
             state=SaleOrder.STATE_SALE,
             date_order__gte=start, date_order__lte=end,
             partner__isnull=False,
-        ))
+        )
         .values(
             'partner_id',
             user_email=F('partner__email'),
         )
         .annotate(
             frequency=Count('id', distinct=True),
-            monetary=Sum('amount_total_sql'),
+            monetary=Sum('amount_total'),
             last_order_at=models_Max('date_order'),
         )
     )

@@ -66,7 +66,7 @@ class TestSaleOrderCreateInvoice:
         move = confirmed_order.action_create_invoice()
         assert move.move_type == 'out_invoice'
         assert move.state == 'posted'
-        assert move.amount_total == confirmed_order.amount_total()
+        assert move.amount_total == confirmed_order.amount_total
 
     def test_links_order_to_invoice(self, chart, confirmed_order):
         move = confirmed_order.action_create_invoice()

@@ -1,30 +1,25 @@
-"""Motor SQL de importes sobre ``sale.order`` — addon ``sale``.
+"""Motor SQL de importes por línea sobre ``sale.order`` — addon ``sale``.
 
-**Por qué existe este módulo.** Los importes del canónico son métodos Python
-que iteran líneas (``SaleOrder.amount_total()`` →
-``SaleOrderLine.price_total()``), y SQL no puede ``Sum()`` un método. Mientras
-envío y descuento vivían como escalares del espejo, el único agregado posible
-era sobre ``orders.OrderValue`` — de ahí que todo reporte de dinero siguiera
-atado al espejo (H-API-30, defecto de agregación).
+**Por qué existe este módulo.** Los importes que no son de producto (envío,
+descuento de cupón) son datos de línea con columnas reales (``price_unit``,
+``product_uom_qty``, ``discount``), marcados con ``is_delivery``/``is_reward``
+(E1-bis). El **total de la orden** (``amount_total``) ya no necesita este
+motor —está materializado como columna, ver ``SaleOrder._compute_amounts``
+(H-API-30)—; un ``Sum('amount_total')`` directo sobre ``SaleOrder`` agrega sin
+``Subquery`` y sin fan-out, porque no hay join a línea que lo arriesgue.
 
-E1-bis cambió la premisa: **todos** los montos son ahora datos de línea con
-columnas reales (``price_unit``, ``product_uom_qty``, ``discount``), incluidos
-los que no son de producto. Eso hace el agregado **expresable en SQL**.
+Lo que **sí** sigue necesitando ``Subquery`` es el **desglose por marcador**:
+cuánto de ``amount_total`` es envío, cuánto es descuento. Eso no es una
+columna propia —``sale`` no sabe qué es una línea de envío, sólo sus
+addons contribuyentes lo saben (``delivery``/``sale_loyalty``)— así que aquí
+queda el motor genérico parametrizable:
 
-**Alcance de este módulo — sólo el motor genérico.** Fiel al reparto de la
-referencia: ``sale._compute_amounts`` (``sale/models/sale_order.py:513``) suma
-**todas** las líneas y no sabe qué es una línea de envío; el desglose que
-filtra ``is_delivery`` vive en el módulo que conoce el envío
-(``website_sale._compute_amount_delivery``, :62-69), no en ``sale``. Aquí
-queda entonces la expresión de total y el constructor parametrizable
-``line_sum_subquery``; cada addon contribuyente arma **su** desglose con él:
-
-- ``delivery/aggregates.py``    → importe de envío.
-- ``sale_loyalty/aggregates.py`` → importe de recompensa.
+- ``delivery/aggregates.py``     → importe de envío (``Q(is_delivery=True)``).
+- ``sale_loyalty/aggregates.py`` → importe de recompensa (``Q(is_reward=True)``).
 
 **Paridad exacta con el método Python, no aproximada.**
 ``price_total()`` cuantiza **por línea** antes de sumar
-(``sale_order_line.py:84-87``); esta expresión hace ``ROUND(..., 2)`` por línea
+(``sale_order_line.py:85-88``); esta expresión hace ``ROUND(..., 2)`` por línea
 por la misma razón. Sumar exacto y redondear al final daría diferencias de
 centavos contra el total que el comprador vio — inaceptable en un reporte de
 ingresos. La paridad está fijada por test
@@ -74,22 +69,3 @@ def line_sum_subquery(line_filter=None):
     lines = lines.values('order').annotate(t=Sum(LINE_TOTAL)).values('t')
     return Coalesce(Subquery(lines, output_field=MONEY),
                     Value(Decimal('0.00'), output_field=MONEY))
-
-
-# Equivalente SQL de ``SaleOrder.amount_total()`` — y por tanto de
-# ``OrderValue.total`` del espejo para toda venta nacida después de E1-bis.
-AMOUNT_TOTAL_SQL = line_sum_subquery()
-
-
-def with_amounts(queryset):
-    """Anota un queryset de ``SaleOrder`` con su total agregable.
-
-    Uso::
-
-        with_amounts(SaleOrder.objects.filter(...)).aggregate(
-            revenue=Sum('amount_total_sql'), order_count=Count('id'))
-
-    El ``Count('id')`` es correcto porque la anotación es un ``Subquery``: una
-    fila por orden, sin fan-out de líneas.
-    """
-    return queryset.annotate(amount_total_sql=AMOUNT_TOTAL_SQL)

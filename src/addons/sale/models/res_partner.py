@@ -19,7 +19,6 @@ from decimal import Decimal
 
 from django.db.models import Sum
 
-from ..aggregates import with_amounts
 from .sale_order import SaleOrder
 
 
@@ -30,10 +29,13 @@ def lifetime_value(partner) -> Decimal:
     los **carritos** (``draft``). El espejo legacy sólo representaba ventas
     confirmadas, así que bastaba con excluir canceladas; sobre el canónico hay
     que excluir ambas — un carrito abandonado no es valor de vida.
+
+    ``amount_total`` es columna real (H-API-30): ``Sum`` directo, sin
+    ``Subquery`` — antes se anotaba con ``with_amounts``/``amount_total_sql``.
     """
-    agg = with_amounts(
-        SaleOrder.objects.filter(partner=partner, state=SaleOrder.STATE_SALE)
-    ).aggregate(total=Sum('amount_total_sql'))
+    agg = SaleOrder.objects.filter(
+        partner=partner, state=SaleOrder.STATE_SALE,
+    ).aggregate(total=Sum('amount_total'))
     return agg['total'] or Decimal('0.00')
 
 

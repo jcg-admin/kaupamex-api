@@ -76,12 +76,12 @@ class TestCreateInvoiceFromSaleOrder:
         move.post()
         move.refresh_from_db()
         assert move.state == 'posted'
-        assert move.amount_total == confirmed_order.amount_total()
+        assert move.amount_total == confirmed_order.amount_total
 
     def test_double_entry_matches_order_total(self, company, chart,
                                               confirmed_order):
         move = create_invoice_from_sale_order(confirmed_order, company)
-        total = confirmed_order.amount_total()
+        total = confirmed_order.amount_total
 
         debit = sum((line.debit for line in move.line_ids.all()),
                     Decimal('0.00'))
@@ -100,8 +100,8 @@ class TestCreateInvoiceFromSaleOrder:
         tax_credit = sum(
             (line.credit for line in move.line_ids.all()
              if line.account_id == chart['tax'].pk), Decimal('0.00'))
-        assert income_credit == confirmed_order.amount_untaxed()
-        assert tax_credit == confirmed_order.amount_tax()
+        assert income_credit == confirmed_order.amount_untaxed
+        assert tax_credit == confirmed_order.amount_tax
 
     def test_refuses_order_without_lines(self, company, chart, db):
         empty = SaleOrder.objects.create(

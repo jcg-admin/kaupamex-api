@@ -69,9 +69,16 @@ def set_delivery_line(order, shipping_cost):
 
     Devuelve ``None`` sólo cuando el importe es 0 (envío gratis): no hay
     concepto que facturar.
+
+    El borrado de la línea previa es un ``QuerySet.delete()`` en bloque, que
+    no dispara el recálculo de ``SaleOrderLine.delete()`` (H-API-30); en la
+    rama que crea la línea nueva el recálculo llega igual vía
+    ``SaleOrderLine.save()``, pero la rama "envío gratis" no crea nada, así
+    que aquí se dispara explícito para no dejar la orden con un total stale.
     """
     order.order_line.filter(is_delivery=True).delete()
     if shipping_cost == Decimal('0.00'):
+        order._compute_amounts()
         return None
     carrier = order.carrier if order.carrier_id else None
     return SaleOrderLine.objects.create(

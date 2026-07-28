@@ -92,7 +92,7 @@ class TestContratoEstable:
         assert a['shipping_cost'] == Decimal('99.00')
         assert a['subtotal'] == Decimal('100.00')
         assert a['total'] == Decimal('199.00')
-        assert a['total'] == venta.amount_total()
+        assert a['total'] == venta.amount_total
 
     def test_el_descuento_se_presenta_en_positivo(self, producto, metodo):
         voucher = Voucher.objects.create(
@@ -126,7 +126,7 @@ class TestDivergenciaDeliberadaDelIva:
         # El envío entra a la base, así que el impuesto extraído es mayor.
         assert canonico > espejo.tax
         # Y equivale al IVA de la venta completa, no sólo del producto.
-        assert canonico == venta.amount_tax()
+        assert canonico == venta.amount_tax
 
 
 class TestDegradacion:
@@ -144,5 +144,5 @@ class TestElPayloadDelPedido:
     def test_el_serializer_lee_del_canonico(self, producto, metodo):
         venta, legacy = _venta(producto, metodo)
         data = OrderSerializer(Order.objects.get(pk=legacy.pk)).data
-        assert Decimal(str(data['value']['total'])) == venta.amount_total()
+        assert Decimal(str(data['value']['total'])) == venta.amount_total
         assert Decimal(str(data['value']['shipping_cost'])) == Decimal('99.00')

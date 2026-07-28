@@ -91,4 +91,4 @@ class SaleOrderCoupon(TimeStampedModel):
         return self.voucher.calculate_discount(self.discount_base())
 
     def amount_total_after_discount(self) -> Decimal:
-        return self.order.amount_total() - self.discount_amount()
+        return self.order.amount_total - self.discount_amount()

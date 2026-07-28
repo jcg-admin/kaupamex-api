@@ -737,6 +737,17 @@ class ProductAdminViewSet(ProductDeactivateAction, ModelViewSet):
             # is_deleted=True. Esos registros nunca se limpiaban: el carrito
             # mostraba items "fantasma" y la wishlist retenia referencias
             # invalidas hasta que el usuario las eliminara manualmente.
+            #
+            # H-API-30 (hallazgo sin fix aquí): este ``QuerySet.delete()``
+            # abarca líneas de N draft distintos (un producto puede estar en
+            # varios carritos abandonados) y no dispara el recálculo de
+            # ``SaleOrderLine.delete()`` — a diferencia de los borrados en
+            # bloque de ``sale``/``delivery``/``sale_loyalty``, que sí llaman
+            # ``order._compute_amounts()`` tras el delete porque acotan a UNA
+            # orden. Aquí requeriría recolectar los ``order_id`` afectados
+            # antes del delete e iterar el recompute por cada uno — severidad
+            # baja (el draft se autocorrige en la siguiente mutación del
+            # carrito) y fuera del alcance de esta rebanada.
             SaleOrderLine.objects.filter(
                 product=instance, order__state=SaleOrder.STATE_DRAFT).delete()
             WishlistItem.objects.filter(product=instance).delete()

@@ -46,6 +46,10 @@ class SaleOrderMatrix(TimeStampedModel):
         variante); ``qty <= 0`` elimina la línea de esa variante si existe. El
         ``price_unit`` sale de ``variant.effective_price()``. Devuelve las líneas
         vigentes tras aplicar.
+
+        La rama ``qty <= 0`` borra con un ``QuerySet.delete()`` en bloque, que
+        no dispara el recálculo de ``SaleOrderLine.delete()`` (H-API-30); se
+        dispara explícito para que el total de la orden no quede stale.
         """
         cls.objects.get_or_create(order=order)
         touched = []
@@ -63,4 +67,5 @@ class SaleOrderMatrix(TimeStampedModel):
                 touched.append(line)
             else:
                 SaleOrderLine.objects.filter(order=order, variant=variant).delete()
+                order._compute_amounts()
         return touched

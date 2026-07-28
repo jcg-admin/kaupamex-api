@@ -256,7 +256,7 @@ def test_ac05_payload_totals_match_order_value(db, buyer):
     assert payload['totals']['discount'] == '0.00'
     assert payload['totals']['total']    == '1149.00'
     assert payload['totals']['total']    == f'{value.total:.2f}'
-    assert payload['totals']['tax'] == f'{order.sale_order.amount_tax():.2f}'
+    assert payload['totals']['tax'] == f'{order.sale_order.amount_tax:.2f}'
     assert Decimal(payload['totals']['tax']) > value.tax
     assert payload['order_number'] == order.order_number
     assert len(payload['items']) == 2

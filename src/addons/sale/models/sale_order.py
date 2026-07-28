@@ -16,6 +16,7 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+import api
 import fields
 import models
 from django.db import transaction
@@ -169,6 +170,27 @@ class SaleOrder(MailThread, TimeStampedModel):
         help_text='Factura emitida de la orden (Odoo invoice_ids, 1:1).',
     )
 
+    # amount_untaxed/tax/total (H-API-30) — Odoo sale/models/sale_order.py:
+    # 232-234, ``store=True, compute='_compute_amounts'``. Antes eran métodos
+    # Python (obligaba a un shim SQL para agregarlos); materializados como
+    # columnas reales, un ``Sum('amount_total')`` agrega directo. Se
+    # recalculan y persisten en ``_compute_amounts`` (más abajo), disparado
+    # desde ``SaleOrderLine.save()``/``delete()`` — ver el docstring ahí. Los
+    # ``tracking=5``/``=4`` de la referencia no se portan: sólo el estado
+    # tiene bitácora (ver ``_track_state``).
+    amount_untaxed = fields.Monetary(
+        max_digits=10, decimal_places=2, default=Decimal('0.00'),
+        help_text='Subtotal sin IVA, suma de líneas (Odoo amount_untaxed).',
+    )
+    amount_tax     = fields.Monetary(
+        max_digits=10, decimal_places=2, default=Decimal('0.00'),
+        help_text='IVA de la orden, suma de líneas (Odoo amount_tax).',
+    )
+    amount_total   = fields.Monetary(
+        max_digits=10, decimal_places=2, default=Decimal('0.00'),
+        help_text='Total de la orden, suma de líneas (Odoo amount_total).',
+    )
+
     objects = models.Manager()               # cross-company (L0 admin)
     scoped = CompanyScopedManager()          # L3: fail-closed por empresa activa
 
@@ -189,14 +211,29 @@ class SaleOrder(MailThread, TimeStampedModel):
             Decimal('0.00'),
         )
 
-    def amount_untaxed(self) -> Decimal:
-        return self._sum_lines('price_subtotal')
+    @api.depends('order_line.price_subtotal', 'order_line.price_tax',
+                 'order_line.price_total')
+    def _compute_amounts(self):
+        """Recalcula y persiste ``amount_untaxed``/``amount_tax``/``amount_total``.
 
-    def amount_tax(self) -> Decimal:
-        return self._sum_lines('price_tax')
+        Espeja ``sale.order._compute_amounts`` (Odoo sale/models/sale_order.py:
+        513): suma el desglose ya redondeado **por línea** — ``SaleOrderLine``
+        cuantiza a centavos antes de sumar (``sale_order_line.py:85-88``), no
+        al final; sumar exacto y redondear al final divergiría un centavo en
+        casos adversos (ver ``TestRedondeoPorLinea`` del test de paridad).
 
-    def amount_total(self) -> Decimal:
-        return self._sum_lines('price_total')
+        En la referencia, ``@api.depends`` dispara este cómputo automáticamente
+        cuando cambia algo de lo que depende. Django no tiene ese motor: el
+        decorador de arriba es sólo documental (``orm/decorators.py``) — quien
+        dispara el recálculo real es ``SaleOrderLine.save()``/``delete()``
+        (mismo patrón de adaptación que ``_track`` ya documenta para el rastro
+        de estado).
+        """
+        self.amount_untaxed = self._sum_lines('price_subtotal')
+        self.amount_tax = self._sum_lines('price_tax')
+        self.amount_total = self._sum_lines('price_total')
+        self.save(update_fields=[
+            'amount_untaxed', 'amount_tax', 'amount_total', 'updated_at'])
 
     # ------------------------------------------------------------------
     # Máquina de estados de venta — de sale.order (sale/models/sale_order.py):

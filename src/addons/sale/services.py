@@ -128,10 +128,16 @@ def add_item_to_draft(order, product, variant=None, quantity=1):
 
 
 def clear_draft_items(order):
-    """Vacía el draft (UC-CART-03)."""
+    """Vacía el draft (UC-CART-03).
+
+    ``QuerySet.delete()`` en bloque no dispara el recálculo de
+    ``SaleOrderLine.delete()`` (H-API-30) — se dispara explícito para que el
+    total de la orden quede en ``0.00`` y no stale con el valor previo.
+    """
     if order.state != SaleOrder.STATE_DRAFT:
         raise DraftOrderError('La orden no es un draft.', 'ORDEN_NO_DRAFT')
     order.order_line.all().delete()
+    order._compute_amounts()
 
 
 def _draft_coupon_voucher(order):

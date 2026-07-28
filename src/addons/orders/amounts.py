@@ -48,10 +48,10 @@ def order_amounts(sale_order) -> dict:
 
     shipping = amount_delivery(sale_order)
     discount = amount_reward(sale_order)
-    total    = sale_order.amount_total()
+    total    = sale_order.amount_total
     return {
         'subtotal':      total - shipping + discount,
-        'tax':           sale_order.amount_tax(),
+        'tax':           sale_order.amount_tax,
         'shipping_cost': shipping,
         'discount':      discount,
         'total':         total,
