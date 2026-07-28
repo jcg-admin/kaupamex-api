@@ -43,3 +43,15 @@ def set_reward_line(order):
         price_unit=-discount,
         is_reward=True,
     )
+
+
+def amount_reward(order):
+    """Descuento aplicado a la orden, en **positivo**.
+
+    La línea de recompensa lleva ``price_unit`` negativo para sumar al total;
+    las superficies de salida presentan el descuento como cantidad positiva
+    (igual que hacía ``OrderValue.discount``), así que aquí se invierte.
+    """
+    return -sum((line.price_total()
+                 for line in order.order_line.filter(is_reward=True)),
+                Decimal('0.00'))

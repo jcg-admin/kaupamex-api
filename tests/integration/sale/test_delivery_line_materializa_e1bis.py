@@ -25,9 +25,10 @@ Invariantes que fijan el contrato:
 4. Mecanismo A (borrar+recrear) es idempotente: re-materializar deja una sola
    línea. El Mecanismo B de Odoo (reescritura in-place bajo flag de contexto)
    no se porta.
-5. Degradación explícita: sin ``carrier`` no hay línea de envío (la FK a
-   producto es opcional por diseño), y el importe sigue en el escalar del
-   espejo.
+5. El transportista es **opcional**: sin ``carrier`` la línea se crea igual,
+   con el producto de servicio genérico. Lo que decide si hay línea es el
+   importe. (La versión original degradaba aquí; corregido en E5-pre,
+   H-API-42, al descubrir que ésa es la ruta real de producción.)
 6. La base del descuento es el subtotal de **producto**: el orden en que se
    materializan las dos líneas no altera el importe.
 """
@@ -123,14 +124,27 @@ class TestLineaDeEnvio:
         linea = draft.order_line.get(is_delivery=True)
         assert linea.product.sku == f'{ShippingMethod.SERVICE_SKU_PREFIX}{metodo.pk}'
 
-    def test_sin_carrier_no_hay_linea_y_el_importe_queda_en_el_espejo(
+    def test_sin_carrier_tambien_hay_linea_con_producto_generico(
             self, producto):
-        """Degradación explícita: la FK es opcional por diseño."""
+        """Corregido en E5-pre (H-API-42) — antes esto era una degradación.
+
+        La versión original de E1-bis omitía la línea cuando la orden no traía
+        ``carrier``, y dejaba el importe sólo en el escalar del espejo. Parecía
+        aceptable mientras las superficies leían el espejo; al re-anclarlas al
+        canónico resultó ser **la ruta real** —el envío se deriva por zona y la
+        orden no lleva transportista— así que el comprador habría visto envío
+        en cero. Lo que decide si hay línea es el importe, no el transportista.
+        """
         draft = _draft(producto, carrier=None)
         legacy = _checkout(draft, Decimal('50.00'))
         draft.refresh_from_db()
-        assert draft.order_line.filter(is_delivery=True).count() == 0
+        linea = draft.order_line.get(is_delivery=True)
+        assert linea.price_unit == Decimal('50.00')
+        assert linea.product.sku == 'SRV-ENVIO'     # producto genérico
+        assert linea.name == 'Envío'
+        # El espejo conserva su escalar; los dos totales siguen coincidiendo.
         assert OrderValue.objects.get(order=legacy).shipping_cost == Decimal('50.00')
+        assert draft.amount_total() == Decimal('150.00')
 
 
 class TestLineaDeRecompensa:

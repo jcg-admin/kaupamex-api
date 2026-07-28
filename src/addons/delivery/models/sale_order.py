@@ -30,31 +30,70 @@ from decimal import Decimal
 from addons.sale.models import SaleOrderLine
 
 
+# Producto de servicio **genérico** del envío. La semilla por método
+# (``ShippingMethod.ensure_service_product``) cubre el caso en que el comprador
+# elige transportista; pero el flujo real de este e-commerce deriva el envío
+# **por zona** (``orders/shipping.py::resolve_shipping_quote``) y la orden
+# queda sin ``carrier``. Ese envío se cobra igual, así que necesita su concepto
+# — mismo criterio que el descuento, que tampoco tiene "método" y usa un
+# producto global (``sale_loyalty.ensure_reward_product``). Ver H-API-42.
+GENERIC_SERVICE_SKU = 'SRV-ENVIO'
+
+
+def ensure_generic_service_product():
+    """Producto de servicio del envío sin transportista. Idempotente."""
+    product_model = SaleOrderLine._meta.get_field('product').related_model
+    product, _ = product_model.objects.get_or_create(
+        sku=GENERIC_SERVICE_SKU,
+        defaults={'name': 'Envío', 'slug': 'servicio-envio',
+                  'price': Decimal('0.00'), 'is_active': True,
+                  'is_published': False,
+                  'short_description': 'Concepto de envío para facturación.'},
+    )
+    return product
+
+
 def set_delivery_line(order, shipping_cost):
     """Materializa el costo de envío de ``order`` como línea marcada.
 
     Idempotente por construcción: borra la línea de envío previa y crea una
     nueva, así que llamarla dos veces deja una sola.
 
-    Degradación explícita — devuelve ``None`` sin crear línea cuando:
+    **El transportista es opcional.** Si la orden trae ``carrier``, la línea
+    usa el producto de servicio de ese método y lo nombra; si no —el caso real,
+    porque el envío se deriva por zona desde que ``update_shipping_method``
+    quedó deprecado— usa el producto genérico. Lo que decide si hay línea es el
+    **importe**, no el transportista: un envío cobrado siempre es un concepto
+    facturable, y omitirlo dejaba el total del canónico por debajo de lo que el
+    comprador paga (H-API-42).
 
-    - la orden no trae ``carrier`` (el comprador ya no elige transportista: el
-      envío se deriva por zona desde que ``update_shipping_method`` quedó
-      deprecado), o
-    - el importe es 0 (envío gratis: no hay concepto que facturar).
-
-    En ambos casos el importe sigue viviendo en el escalar del espejo. La FK a
-    producto es **opcional** por diseño, así que un método sin producto cotiza
-    pero todavía no factura como concepto.
+    Devuelve ``None`` sólo cuando el importe es 0 (envío gratis): no hay
+    concepto que facturar.
     """
     order.order_line.filter(is_delivery=True).delete()
-    if order.carrier_id is None or shipping_cost == Decimal('0.00'):
+    if shipping_cost == Decimal('0.00'):
         return None
+    carrier = order.carrier if order.carrier_id else None
     return SaleOrderLine.objects.create(
         order=order,
-        product=order.carrier.ensure_service_product(),
-        name=f'Envío — {order.carrier.name}',
+        product=(carrier.ensure_service_product() if carrier
+                 else ensure_generic_service_product()),
+        name=(f'Envío — {carrier.name}' if carrier else 'Envío'),
         product_uom_qty=1,
         price_unit=shipping_cost,
         is_delivery=True,
     )
+
+
+def amount_delivery(order):
+    """Importe de envío de la orden — suma de sus líneas ``is_delivery``.
+
+    Contraparte por-orden de ``delivery/aggregates.py`` (que agrega sobre
+    muchas). Fiel a ``website_sale._compute_amount_delivery``
+    (``website_sale/models/sale_order.py:62-69``), que resuelve el mismo dato
+    filtrando ``order_line.filtered('is_delivery')`` — vive en el módulo que
+    conoce el envío, no en ``sale``.
+    """
+    return sum((line.price_total()
+                for line in order.order_line.filter(is_delivery=True)),
+               Decimal('0.00'))
