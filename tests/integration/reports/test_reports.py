@@ -105,7 +105,8 @@ def buyer_b(db):
 def _make_order(user, product, qty=1, when=None, status='DELIVERED',
                 gateway='MERCADOPAGO', payment_status='APPROVED'):
     when = when or _now()
-    o = make_order(user=user, status=status)
+    # E4: la venta canónica lleva su línea — es de donde el reporte agrega.
+    o = make_order(user=user, status=status, product=product, quantity=qty)
     Order.objects.filter(pk=o.pk).update(created_at=when, updated_at=when)
     OrderItem.objects.create(
         order=o, product=product,

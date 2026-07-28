@@ -29,7 +29,8 @@ from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.generics import ListAPIView
-from addons.orders.models import Order
+from addons.sale.aggregates import LINE_TOTAL
+from addons.sale.models import SaleOrder, SaleOrderLine
 from .models import Voucher, VoucherChangeLog
 from .serializers import VoucherSerializer, VoucherReportSerializer
 
@@ -208,23 +209,47 @@ class VoucherViewSet(ModelViewSet):
                 'codigo_error': 'INVALID_DATE_RANGE',
             })
 
-        orders_base = Order.objects.filter(voucher_code=OuterRef('code'))
+        # E4 — el reporte se ancla al canónico. Dos mejoras de fondo, no sólo
+        # de fuente:
+        #
+        # - **FK, no string**: el ancla era ``Order.voucher_code`` (texto
+        #   copiado al confirmar); ahora es ``SaleOrderCoupon.voucher``, una FK
+        #   real. Un cambio de código de voucher deja de romper la traza.
+        # - **Descuento medido, no declarado**: el importe sale de las líneas
+        #   ``is_reward`` que ``sale_loyalty`` materializa, así que el reporte
+        #   suma exactamente lo que la venta descontó.
+        #
+        # Se agrega sobre ``SaleOrderLine`` (no sobre la orden) para que el
+        # ``OuterRef`` del voucher quede en un solo nivel de anidamiento.
+        lines_base = SaleOrderLine.objects.filter(
+            order__coupon__voucher=OuterRef('pk'),
+            order__state=SaleOrder.STATE_SALE,
+        )
+        orders_base = SaleOrder.objects.filter(
+            coupon__voucher=OuterRef('pk'), state=SaleOrder.STATE_SALE,
+        )
         if date_from:
-            orders_base = orders_base.filter(created_at__date__gte=date_from)
+            lines_base = lines_base.filter(order__date_order__date__gte=date_from)
+            orders_base = orders_base.filter(date_order__date__gte=date_from)
         if date_to:
-            orders_base = orders_base.filter(created_at__date__lte=date_to)
+            lines_base = lines_base.filter(order__date_order__date__lte=date_to)
+            orders_base = orders_base.filter(date_order__date__lte=date_to)
 
         count_sq = (
-            orders_base.values('voucher_code')
-            .annotate(c=Count('id')).values('c')[:1]
+            orders_base.values('coupon__voucher')
+            .annotate(c=Count('id', distinct=True)).values('c')[:1]
         )
+        # La línea de recompensa lleva ``price_unit`` negativo; el contrato del
+        # reporte expone el descuento en positivo (como lo hacía
+        # ``OrderValue.discount``), así que se invierte el signo.
         disc_sq = (
-            orders_base.values('voucher_code')
-            .annotate(s=Sum('value__discount')).values('s')[:1]
+            lines_base.filter(is_reward=True)
+            .values('order__coupon__voucher')
+            .annotate(s=-Sum(LINE_TOTAL)).values('s')[:1]
         )
         rev_sq = (
-            orders_base.values('voucher_code')
-            .annotate(s=Sum('value__total')).values('s')[:1]
+            lines_base.values('order__coupon__voucher')
+            .annotate(s=Sum(LINE_TOTAL)).values('s')[:1]
         )
 
         qs = qs.annotate(

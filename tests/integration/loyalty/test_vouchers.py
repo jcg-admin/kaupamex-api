@@ -14,6 +14,10 @@ from django.utils import timezone
 from datetime import date, timedelta
 from addons.catalogue.models import Category, Product
 from addons.orders.models import Order, OrderValue
+from addons.sale.models import SaleOrderLine
+from addons.sale_loyalty.models.sale_order_coupon import (
+    SaleOrderCoupon, ensure_reward_product,
+)
 from addons.loyalty.models import Voucher, VoucherChangeLog
 from addons.loyalty.serializers import VoucherSerializer
 from tests.factories.order_factory import make_order
@@ -297,27 +301,30 @@ class TestReporteVouchers:
         assert voucher_data['roi'] is None
 
     def test_reporte_roi_incluye_aggregates_cuando_hay_ordenes(
-        self, admin_client, voucher_fixed, db, admin_user
+        self, admin_client, voucher_fixed, db, admin_user, product_s13
     ):
         User = get_user_model()
         buyer = User.objects.create_user(
             password='pass',
             email='buyer_roi@test.com',
         )
+        # E4 — el reporte se ancla al canónico: el cupón es una FK
+        # (``SaleOrderCoupon``), no el string ``Order.voucher_code``, y el
+        # descuento se mide de la línea ``is_reward`` que ``sale_loyalty``
+        # materializa, no de un escalar declarado en ``OrderValue``.
         order = make_order(
             user=buyer,
             voucher_code=voucher_fixed.code,
             voucher_discount=Decimal('50.00'),
             status=STATUS_DELIVERED,
+            product=product_s13, quantity=1, unit_price=Decimal('1000.00'),
         )
-        OrderValue.objects.create(
-            order=order,
-            subtotal=Decimal('1000.00'),
-            tax=Decimal('0.00'),
-            shipping_cost=Decimal('0.00'),
-            discount=Decimal('50.00'),
-            total=Decimal('950.00'),
-        )
+        SaleOrderCoupon.objects.create(
+            order=order.sale_order, voucher=voucher_fixed)
+        SaleOrderLine.objects.create(
+            order=order.sale_order, product=ensure_reward_product(),
+            name='Descuento', product_uom_qty=1,
+            price_unit=Decimal('-50.00'), is_reward=True)
         res = admin_client.get(f'{VOUCHERS_URL}report/')
         assert res.status_code == 200
         voucher_data = next(
@@ -329,27 +336,30 @@ class TestReporteVouchers:
         assert voucher_data['roi'] == round(950.0 / 50.0, 2)
 
     def test_reporte_filtro_date_from(
-        self, admin_client, voucher_fixed, db, admin_user
+        self, admin_client, voucher_fixed, db, admin_user, product_s13
     ):
         User = get_user_model()
         buyer = User.objects.create_user(
             password='pass',
             email='buyer_datefrom@test.com',
         )
+        # E4 — el reporte se ancla al canónico: el cupón es una FK
+        # (``SaleOrderCoupon``), no el string ``Order.voucher_code``, y el
+        # descuento se mide de la línea ``is_reward`` que ``sale_loyalty``
+        # materializa, no de un escalar declarado en ``OrderValue``.
         order = make_order(
             user=buyer,
             voucher_code=voucher_fixed.code,
             voucher_discount=Decimal('50.00'),
             status=STATUS_DELIVERED,
+            product=product_s13, quantity=1, unit_price=Decimal('1000.00'),
         )
-        OrderValue.objects.create(
-            order=order,
-            subtotal=Decimal('1000.00'),
-            tax=Decimal('0.00'),
-            shipping_cost=Decimal('0.00'),
-            discount=Decimal('50.00'),
-            total=Decimal('950.00'),
-        )
+        SaleOrderCoupon.objects.create(
+            order=order.sale_order, voucher=voucher_fixed)
+        SaleOrderLine.objects.create(
+            order=order.sale_order, product=ensure_reward_product(),
+            name='Descuento', product_uom_qty=1,
+            price_unit=Decimal('-50.00'), is_reward=True)
         tomorrow = (date.today() + timedelta(days=1)).isoformat()
         res = admin_client.get(f'{VOUCHERS_URL}report/?date_from={tomorrow}')
         assert res.status_code == 200

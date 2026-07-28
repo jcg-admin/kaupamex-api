@@ -10,8 +10,9 @@ from decimal import Decimal
 from django.db.models import Count, F, Sum, Max as models_Max
 from django.db.models.functions import TruncDate
 from django.utils import timezone
-from addons.orders.models import Order, OrderValue, OrderItem
+from addons.orders.models import Order, OrderItem
 from addons.payment.models import Payment
+from addons.sale.aggregates import with_amounts
 from addons.sale.models import SaleOrder
 from addons.catalogue.models import Product
 from addons.inventory.models import StockAlert
@@ -60,22 +61,35 @@ def build_sales_payload(period_days: int) -> dict:
     prev_start = start - timedelta(days=period_days)
     prev_end = start
 
-    qs = Order.objects.filter(
-        created_at__gte=start, created_at__lte=end,
-    ).exclude(sale_order__state=SaleOrder.STATE_CANCEL)  # D-03
+    # E4 — el dinero se lee del canónico, no del espejo. Dos cambios de anclaje
+    # que no son mecánicos y que el re-anclaje ingenuo habría errado:
+    #
+    # 1. **Estado, no exclusión**: el espejo sólo existía para ventas
+    #    confirmadas, así que bastaba con excluir las canceladas. ``SaleOrder``
+    #    incluye además los **carritos** (``draft``), que no son ingreso; el
+    #    filtro correcto es ``state=sale``, no ``exclude(state=cancel)``.
+    # 2. **``date_order``, no ``created_at``**: ``created_at`` del canónico es
+    #    cuando nació el *carrito*; ``date_order`` se fija al confirmar
+    #    (``sale/models/sale_order.py:203``), que es la fecha que el espejo
+    #    registraba. Ver H-API-38.
+    qs = SaleOrder.objects.filter(
+        state=SaleOrder.STATE_SALE,
+        date_order__gte=start, date_order__lte=end,
+    )
 
-    totals_agg = OrderValue.objects.filter(order__in=qs).aggregate(
-        revenue=Sum('total'),
+    totals_agg = with_amounts(qs).aggregate(
+        revenue=Sum('amount_total_sql'),
         order_count=Count('id'),
     )
     revenue = totals_agg['revenue'] or Decimal('0.00')
     order_count = totals_agg['order_count'] or 0
 
-    prev_qs = Order.objects.filter(
-        created_at__gte=prev_start, created_at__lt=prev_end,
-    ).exclude(sale_order__state=SaleOrder.STATE_CANCEL)
-    prev_agg = OrderValue.objects.filter(order__in=prev_qs).aggregate(
-        revenue=Sum('total'),
+    prev_qs = SaleOrder.objects.filter(
+        state=SaleOrder.STATE_SALE,
+        date_order__gte=prev_start, date_order__lt=prev_end,
+    )
+    prev_agg = with_amounts(prev_qs).aggregate(
+        revenue=Sum('amount_total_sql'),
         order_count=Count('id'),
     )
     prev_revenue = prev_agg['revenue'] or Decimal('0.00')
@@ -90,10 +104,10 @@ def build_sales_payload(period_days: int) -> dict:
         )
 
     series_rows = (
-        OrderValue.objects.filter(order__in=qs)
-        .annotate(day=TruncDate('order__created_at'))
+        with_amounts(qs)
+        .annotate(day=TruncDate('date_order'))
         .values('day')
-        .annotate(revenue=Sum('total'), orders=Count('id'))
+        .annotate(revenue=Sum('amount_total_sql'), orders=Count('id'))
         .order_by('day')
     )
     series = [
@@ -207,23 +221,26 @@ def build_dashboard_payload() -> dict:
     now = timezone.now()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
-    today_qs = Order.objects.filter(
-        created_at__gte=today_start,
-    ).exclude(sale_order__state=SaleOrder.STATE_CANCEL)  # H-CICLO28-01
-    today_agg = OrderValue.objects.filter(order__in=today_qs).aggregate(
-        revenue=Sum('total'), order_count=Count('id'),
+    # E4 — ver la nota de anclaje en ``build_sales_payload``. El
+    # ``exclude(cancel)`` de H-CICLO28-01 queda subsumido: ``state=sale`` ya
+    # deja fuera tanto las canceladas como los carritos.
+    today_qs = SaleOrder.objects.filter(
+        state=SaleOrder.STATE_SALE, date_order__gte=today_start,
+    )
+    today_agg = with_amounts(today_qs).aggregate(
+        revenue=Sum('amount_total_sql'), order_count=Count('id'),
     )
     today_revenue = today_agg['revenue'] or Decimal('0.00')
     today_orders = today_agg['order_count'] or 0
 
     trend_start = now - timedelta(days=30)
     trend_rows = (
-        OrderValue.objects.filter(
-            order__created_at__gte=trend_start,
-        ).exclude(order__sale_order__state=SaleOrder.STATE_CANCEL)  # H-CICLO28-01
-        .annotate(day=TruncDate('order__created_at'))
+        with_amounts(SaleOrder.objects.filter(
+            state=SaleOrder.STATE_SALE, date_order__gte=trend_start,
+        ))
+        .annotate(day=TruncDate('date_order'))
         .values('day')
-        .annotate(revenue=Sum('total'), orders=Count('id'))
+        .annotate(revenue=Sum('amount_total_sql'), orders=Count('id'))
         .order_by('day')
     )
     trend = [
@@ -293,21 +310,24 @@ def build_rfm_payload(period_days: int, segment_filter: str | None = None) -> di
     start, end = period_window(period_days)
     now = timezone.now()
 
+    # E4 — ``partner`` del canónico apunta al mismo ``AUTH_USER_MODEL`` que
+    # ``Order.user`` del espejo (``sale/models/sale_order.py:72-76``), así que
+    # el agrupamiento por cliente es equivalente. Anclaje: ver la nota de
+    # ``build_sales_payload``.
     rows = (
-        OrderValue.objects
-        .filter(
-            order__created_at__gte=start, order__created_at__lte=end,
-            order__user__isnull=False,
-        )
-        .exclude(order__sale_order__state=SaleOrder.STATE_CANCEL)  # H-CICLO28-02
+        with_amounts(SaleOrder.objects.filter(
+            state=SaleOrder.STATE_SALE,
+            date_order__gte=start, date_order__lte=end,
+            partner__isnull=False,
+        ))
         .values(
-            'order__user_id',
-            user_email=F('order__user__email'),
+            'partner_id',
+            user_email=F('partner__email'),
         )
         .annotate(
-            frequency=Count('order_id', distinct=True),
-            monetary=Sum('total'),
-            last_order_at=models_Max('order__created_at'),
+            frequency=Count('id', distinct=True),
+            monetary=Sum('amount_total_sql'),
+            last_order_at=models_Max('date_order'),
         )
     )
 
@@ -321,7 +341,7 @@ def build_rfm_payload(period_days: int, segment_filter: str | None = None) -> di
         if segment_filter and segment.upper() != segment_filter.upper():
             continue
         results.append({
-            'user_id': r['order__user_id'],
+            'user_id': r['partner_id'],
             'email': r['user_email'],
             'recency_days': recency_days,
             'frequency': r['frequency'],
@@ -348,11 +368,10 @@ def count_export_rows(slug: str, days: int) -> int:
     """Fast row count to gate the async export threshold (D-19)."""
     start, end = period_window(days)
     if slug == 'sales':
-        return (
-            OrderValue.objects.filter(
-                order__created_at__gte=start, order__created_at__lte=end,
-            ).exclude(order__sale_order__state=SaleOrder.STATE_CANCEL).count()
-        )
+        return SaleOrder.objects.filter(
+            state=SaleOrder.STATE_SALE,
+            date_order__gte=start, date_order__lte=end,
+        ).count()
     if slug == 'top-sellers':
         return (
             OrderItem.objects
@@ -362,11 +381,11 @@ def count_export_rows(slug: str, days: int) -> int:
         )
     if slug == 'customers-rfm':
         return (
-            OrderValue.objects.filter(
-                order__created_at__gte=start, order__created_at__lte=end,
-                order__user__isnull=False,
-            ).exclude(order__sale_order__state=SaleOrder.STATE_CANCEL)  # H-CICLO28-02
-            .values('order__user_id').distinct().count()
+            SaleOrder.objects.filter(
+                state=SaleOrder.STATE_SALE,
+                date_order__gte=start, date_order__lte=end,
+                partner__isnull=False,
+            ).values('partner_id').distinct().count()
         )
     return 0  # dashboard and unknowns are always small
 

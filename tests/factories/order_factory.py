@@ -30,7 +30,7 @@ from django.utils import timezone
 from addons.delivery.models import Courier, ShipmentGuide
 from addons.orders.models import Order
 from addons.payment.models import Payment
-from addons.sale.models import SaleOrder
+from addons.sale.models import SaleOrder, SaleOrderLine
 from addons.sale.models.sale_order import _next_sale_name
 from addons.orders.status_projection import (
     STATUSES,
@@ -58,6 +58,7 @@ def make_courier(**kwargs):
 
 
 def make_order(status=STATUS_PENDING, courier=None, amount=None,
+               product=None, quantity=1, unit_price=None,
                **order_kwargs):
     """Crea el par ``Order`` + ``SaleOrder`` cuyos ejes proyectan ``status``.
 
@@ -67,6 +68,13 @@ def make_order(status=STATUS_PENDING, courier=None, amount=None,
         la proyección nunca los emite.
     :param courier: courier a reusar para la guía (se crea uno si hace falta).
     :param amount: importe del ``Payment`` cuando el estado lo requiere.
+    :param product: producto de la línea canónica. Una venta confirmada
+        **siempre** tiene al menos una línea (``action_confirm`` rechaza la
+        orden sin ellas, ``sale/models/sale_order.py:198-199``), y desde E4 el
+        dinero de los reportes se agrega sobre esas líneas. Un test que
+        verifique importes debe pasarlo.
+    :param quantity: cantidad de esa línea.
+    :param unit_price: precio unitario; por defecto el del producto.
     :param order_kwargs: se pasan tal cual a ``Order.objects.create``.
     :returns: la ``Order`` creada (su canónica está en ``order.sale_order``).
     """
@@ -89,6 +97,19 @@ def make_order(status=STATUS_PENDING, courier=None, amount=None,
         partner=order_kwargs.get('user'),
     )
     order = Order.objects.create(sale_order=sale, **order_kwargs)
+
+    # E4 / H-API-33 — una venta confirmada sin líneas es un estado imposible:
+    # ``action_confirm`` lo rechaza. Mientras el dinero vivía en el espejo el
+    # hueco era invisible; ahora los reportes agregan sobre ``order_line``, así
+    # que fabricar la venta sin línea produce ingresos en cero y haría fallar
+    # al reporte por culpa del fixture, no del código.
+    if product is not None and status != STATUS_DRAFT:
+        SaleOrderLine.objects.create(
+            order=sale, product=product,
+            name=product.name,
+            product_uom_qty=quantity,
+            price_unit=unit_price if unit_price is not None else product.price,
+        )
 
     if status in (STATUS_PAID, STATUS_SHIPPED,
                   STATUS_DELIVERED):
