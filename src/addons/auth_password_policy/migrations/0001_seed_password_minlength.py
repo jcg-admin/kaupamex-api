@@ -8,21 +8,22 @@ preserva el comportamiento previo (``MinimumLengthValidator`` de Django cableaba
 """
 from django.db import migrations
 
-_KEY = 'authz.password_minlength'
-_DEFAULT = '8'
+from addons.auth_password_policy.data import PASSWORD_POLICY_PARAMETERS
 
 
 def seed_password_policy(apps, schema_editor):
     SystemParameter = apps.get_model('base', 'SystemParameter')
     db = schema_editor.connection.alias
-    if not SystemParameter.objects.using(db).filter(key=_KEY).exists():
-        SystemParameter.objects.using(db).create(key=_KEY, value=_DEFAULT)
+    for key, value in PASSWORD_POLICY_PARAMETERS.items():
+        if not SystemParameter.objects.using(db).filter(key=key).exists():
+            SystemParameter.objects.using(db).create(key=key, value=value)
 
 
 def unseed_password_policy(apps, schema_editor):
     SystemParameter = apps.get_model('base', 'SystemParameter')
     db = schema_editor.connection.alias
-    SystemParameter.objects.using(db).filter(key=_KEY).delete()
+    SystemParameter.objects.using(db).filter(
+        key__in=list(PASSWORD_POLICY_PARAMETERS)).delete()
 
 
 class Migration(migrations.Migration):

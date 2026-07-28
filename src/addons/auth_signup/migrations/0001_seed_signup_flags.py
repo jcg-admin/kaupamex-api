@@ -8,10 +8,7 @@ reset públicos), ahora editables en caliente en ``SystemParameter`` (L2).
 """
 from django.db import migrations
 
-_KEYS = {
-    'authz.signup_allow_uninvited': '1',
-    'authz.signup_reset_password': '1',
-}
+from addons.auth_signup.data import SIGNUP_PARAMETERS as _KEYS
 
 
 def seed_signup_flags(apps, schema_editor):

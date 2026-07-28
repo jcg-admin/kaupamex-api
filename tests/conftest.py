@@ -13,12 +13,20 @@ from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.cache import cache
 
+from addons.auth_password_policy.data import seed as password_policy_seed
+from addons.auth_signup.data import seed as signup_flags_seed
+from addons.auth_totp.data import seed as totp_params_seed
 from addons.authz.models import Role, RoleAssignment
 from addons.authz.services import SUPERADMIN_ROLE_CODE
+from addons.base.models import SystemParameter
+from addons.base_geolocalize.data import seed as geo_providers_seed
+from addons.company.data import seed as founder_company_seed
+from addons.mail.data import seed as mail_subtypes_seed
 from addons.users.models import EmployeeProfile, Person
 from tests.factories.user_factory import make_buyer  # noqa: F401 (re-export)
 
 import pytest
+from pytest_django.plugin import blocking_manager_key
 import warnings
 
 # ─── Paths del repositorio ───────────────────────────────────────────────────
@@ -205,16 +213,89 @@ def mariadb_keepalive(db):
     yield
 
 
+# ─── Catálogo de semillas restauradas (H-API-22) ─────────────────────────────
+# Verificado 2026-07-28 en kaupamex_qa: tras re-aplicar las semillas
+# (system_parameter=3, mail_message_subtype=2, base_geo_provider=2), un único
+# test transaccional las dejó las tres en 0.
+#
+# Cada addon expone su ``data.seed()`` idempotente — el equivalente nativo del
+# ``data/*.xml`` que Odoo re-aplica al actualizar el módulo, y el mismo patrón
+# que ``base`` ya usaba (``_DEFAULT_PARAMETERS`` + ``SystemParameter.seed()``).
+# La migración importa **el mismo spec**, así que no hay dos copias que puedan
+# divergir.
+#
+# Cubre las semillas de **configuración y catálogo** — las que producción
+# siempre tiene y cuya ausencia vuelve order-dependent a los tests. NO cubre las
+# data-migrations que son **portes históricos** de una sola vez (copiar applog a
+# irlogging, retirar los modelos de cart, portar borradores a sale…): re-correr
+# esas sería incorrecto, no una restauración.
+#
+# Exclusión deliberada: ``orders/0002_seed_shipping_zones``. Sembrar zonas de
+# envío en cada test colisiona con los tests que crean las suyas y afirman
+# conteos — el mismo choque que ya costó un CI rojo. Queda registrado como
+# hallazgo aparte en vez de arrastrarlo aquí a ciegas.
+_SEEDERS = (
+    SystemParameter.seed,       # base/0002 + base/0003 (_DEFAULT_PARAMETERS)
+    password_policy_seed,       # auth_password_policy/0001
+    signup_flags_seed,          # auth_signup/0001
+    totp_params_seed,           # auth_totp/0001 + 0002
+    mail_subtypes_seed,         # mail/0002
+    geo_providers_seed,         # base_geolocalize/0002
+    founder_company_seed,       # company/0006 + 0007
+)
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_teardown(item):
+    """Re-siembra las semillas tras un test transaccional — H-API-22.
+
+    **Por qué un hook y no un fixture.** El ``flush`` vive en el teardown del
+    fixture ``db``, y ``db`` se instala *antes* que los fixtures autouse del
+    conftest, así que se finaliza *después* que ellos: ningún finalizador de
+    fixture puede correr después del flush. Medido: un fixture que re-sembraba
+    en su teardown escribía las filas (``sp=9``) y el flush posterior las
+    borraba igual (``sp=0`` en la BD). ``pytest_runtest_teardown`` envuelto
+    como ``hookwrapper`` sí corre después de **todos** los finalizadores.
+
+    La alternativa —sembrar como precondición de cada test— también funciona,
+    pero paga el costo ~600 veces para arreglar algo que ocurre 14. Aquí el
+    costo es cero salvo tras un transaccional.
+
+    ``unblock()`` es necesario: en este punto pytest-django ya volvió a
+    bloquear el acceso a BD. Y la escritura queda **comiteada**, porque fuera
+    de la transacción del test — que es justo lo que hace falta para que
+    sobreviva al resto de la sesión.
+    """
+    yield
+    marker = item.get_closest_marker('django_db')
+    if marker is None:
+        return
+    if not (marker.kwargs.get('transaction')
+            or (marker.args and marker.args[0])):
+        return
+    with item.config.stash[blocking_manager_key].unblock():
+        for seed in _SEEDERS:
+            seed()
+
+
 # ─── DB Objects — SPs, funciones y vistas (H-DB-01) ─────────────────────────
 # Cuando pytest-django recrea kaupamex_qa, los objetos SQL instalados
 # manualmente (SPs, funciones, vistas) desaparecen. Este fixture los reinstala
 # automáticamente al inicio de la sesión de tests si no existen.
 # Orden OBLIGATORIO por dependencias: funciones → vistas → SPs.
 
-# conftest.py está en tests/ (hijo directo del repo kaupamex-api/).
-# kaupamex-db es hermano de kaupamex-api/ en /home/user/.
+# conftest.py está en tests/ (hijo directo del repo <prefijo>-api/).
+# El repo de db es su HERMANO con el mismo prefijo: <prefijo>-db.
+#
+# H-API-23: el nombre estaba hardcodeado a ``kaupamex-db`` y quedó obsoleto con
+# el rename de repos (2026-07-23, DEC-KX-06 → ``e-commerce-*``). Se deriva del
+# nombre del propio repo para que sobreviva al siguiente rename: si mañana el
+# prefijo cambia de nuevo, ambos cambian juntos.
 _REPOS_ROOT  = _REPO_ROOT.parent                          # /home/user
-_DB_OBJETOS  = _REPOS_ROOT / 'kaupamex-db' / 'provisioners' / 'mariadb' / 'objetos'
+_DB_REPO_NAME = _REPO_ROOT.name.removesuffix('-api') + '-db'
+_DB_OBJETOS  = (
+    _REPOS_ROOT / _DB_REPO_NAME / 'provisioners' / 'mariadb' / 'objetos'
+)
 
 # Orden de instalación: (tipo, nombre_objeto, path_relativo_desde_objetos)
 _DB_OBJECTS_ORDERED = [
@@ -322,14 +403,13 @@ def db_objects_setup(django_db_setup, django_db_blocker):
     Orden: funciones → vistas (v_published_catalog primero) → SPs.
     """
     if not _DB_OBJETOS.exists():
-        warnings.warn(
-            f'db_objects_setup: directorio kaupamex-db no encontrado en '
-            f'{_DB_OBJETOS}. Los tests que dependen de SPs/funciones/vistas '
-            f'pueden fallar.',
-            RuntimeWarning,
-            stacklevel=2,
+        raise RuntimeError(
+            f'db_objects_setup: no existe el directorio de objetos SQL en '
+            f'{_DB_OBJETOS} (repo hermano {_DB_REPO_NAME!r}). Sin SPs, '
+            f'funciones y vistas los tests de reportes fallan con '
+            f'"PROCEDURE ... does not exist", lejos de la causa real. '
+            f'Clonar el repo db como hermano de {_REPO_ROOT.name!r}.'
         )
-        return
 
     db_settings = connection.settings_dict
     db_name     = db_settings.get('NAME', '')
@@ -339,21 +419,19 @@ def db_objects_setup(django_db_setup, django_db_blocker):
             for obj_type, obj_name, rel_path in _DB_OBJECTS_ORDERED:
                 sql_path = _DB_OBJETOS / rel_path
                 if not sql_path.exists():
-                    warnings.warn(
-                        f'db_objects_setup: SQL no encontrado: {sql_path}',
-                        RuntimeWarning,
-                        stacklevel=2,
+                    raise RuntimeError(
+                        f'db_objects_setup: SQL no encontrado: {sql_path}. '
+                        f'El inventario _DB_OBJECTS_ORDERED quedó desfasado '
+                        f'del repo db.'
                     )
-                    continue
 
                 if _db_object_exists(cursor, db_name, obj_type, obj_name):
                     continue  # ya instalado — no reinstalar
 
                 success = _run_sql_file(sql_path, db_settings)
                 if not success:
-                    warnings.warn(
+                    raise RuntimeError(
                         f'db_objects_setup: falló la instalación de {obj_name} '
-                        f'({obj_type}). Tests dependientes pueden fallar.',
-                        RuntimeWarning,
-                        stacklevel=2,
+                        f'({obj_type}) desde {sql_path}. Los tests que lo usan '
+                        f'fallarían con "does not exist", lejos de la causa.'
                     )
