@@ -18,7 +18,8 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from django.db.models import Q, Sum
-from addons.orders.models import Order, ShippingZone
+from addons.delivery.models import ShippingZone
+from addons.orders.models import Order
 from addons.orders.status_projection import (
     STATUS_DELIVERED,
     STATUS_IN_PREPARATION,

@@ -36,7 +36,7 @@ from .serializers import (
 from .gateway_connector import connector
 from rest_framework import serializers as drf_serializers
 from addons.orders.proxy_models import ActiveOrder
-from addons.orders.models import ShippingZone
+from addons.delivery.models import ShippingZone
 
 logger = logging.getLogger(__name__)
 

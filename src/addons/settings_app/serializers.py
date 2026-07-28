@@ -6,7 +6,7 @@ Sprint 8:  PaymentGatewaySerializer, ShippingMethodSerializer
 """
 from decimal import Decimal
 from rest_framework import serializers
-from addons.orders.models import ShippingZone
+from addons.delivery.models import ShippingZone
 from addons.orders.delivery import delivery_estimate_dict
 from addons.base_address_extended.models import CatalogPostalCode
 from addons.payment.models import PaymentGateway

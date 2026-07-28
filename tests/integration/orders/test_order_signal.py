@@ -11,7 +11,7 @@ from unittest.mock import patch, MagicMock
 
 from addons.catalogue.models import Category, Product
 from addons.inventory.services import InventoryService
-from addons.orders.models import ShippingZone
+from addons.delivery.models import ShippingZone
 from addons.delivery.models import ShippingMethod
 from addons.orders.signals import order_created
 

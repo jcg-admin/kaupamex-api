@@ -13,7 +13,8 @@ from unittest.mock import patch
 
 from addons.catalogue.models import Category, Product
 from addons.inventory.services import InventoryService
-from addons.orders.models import Order, CheckoutAttempt, ShippingZone
+from addons.delivery.models import ShippingZone
+from addons.orders.models import Order, CheckoutAttempt
 from addons.delivery.models import ShippingMethod
 
 pytestmark = pytest.mark.integration

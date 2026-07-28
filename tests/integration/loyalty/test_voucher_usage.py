@@ -15,7 +15,8 @@ from unittest.mock import patch
 
 from addons.catalogue.models import Category, Product
 from addons.inventory.services import InventoryService
-from addons.orders.models import Order, ShippingZone
+from addons.delivery.models import ShippingZone
+from addons.orders.models import Order
 from addons.delivery.models import ShippingMethod
 from addons.loyalty.models import Voucher, VoucherUsage
 

@@ -23,6 +23,7 @@ from django.core.validators import MinValueValidator
 from django.db import models
 from addons.base.models import SoftDeleteModel, TimeStampedModel
 from addons.delivery.offers import RateCard
+from addons.delivery.models.shipping_zone import ShippingZone
 
 logger = logging.getLogger('apps')
 

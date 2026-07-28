@@ -9,7 +9,8 @@ import pytest
 from decimal import Decimal
 from addons.catalogue.models import Category, Product
 from addons.delivery.models import ShippingMethod
-from addons.orders.models import Order, OrderValue, OrderAddress, ShippingZone
+from addons.delivery.models import ShippingZone
+from addons.orders.models import Order, OrderValue, OrderAddress
 from addons.sale.models import SaleOrder
 from addons.loyalty.models import Voucher
 from django.utils import timezone

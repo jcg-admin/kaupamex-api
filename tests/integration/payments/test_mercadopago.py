@@ -12,7 +12,8 @@ from decimal import Decimal
 from unittest.mock import patch, MagicMock
 from decouple import config
 from addons.catalogue.models import Category, Product
-from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress, ShippingZone
+from addons.delivery.models import ShippingZone
+from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from addons.sale.models import SaleOrder
 from addons.delivery.models import ShippingMethod
 from addons.payment.models import PaymentGateway

@@ -8,7 +8,7 @@ permisos, validación min/max y soft-delete.
 import pytest
 from decimal import Decimal
 
-from addons.orders.models import ShippingZone
+from addons.delivery.models import ShippingZone
 from addons.base_address_extended.models import CatalogPostalCode
 
 pytestmark = pytest.mark.integration

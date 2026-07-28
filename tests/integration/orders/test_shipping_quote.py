@@ -7,7 +7,7 @@ Política vigente (REVIERTE DEC-BC-25): envío GRATIS siempre. El resolver es el
 import pytest
 from decimal import Decimal
 
-from addons.orders.models import ShippingZone
+from addons.delivery.models import ShippingZone
 from addons.orders.shipping import ShippingQuote, resolve_shipping_quote
 
 pytestmark = pytest.mark.integration
