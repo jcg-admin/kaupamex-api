@@ -24,28 +24,11 @@ class Order(MailThread, TimeStampedModel, SoftDeleteModel):
     # S1 unificación cart→order→sale: el carrito de Odoo es un sale.order
     # en state='draft' — no una tabla aparte. DRAFT precede a PENDING; el
     # checkout es la transición DRAFT→PENDING (analisis-unificar-cart-order-sale).
-    STATUS_DRAFT                = 'DRAFT'
-    STATUS_PENDING              = 'PENDING'
-    STATUS_PROCESSING           = 'PROCESSING'
-    STATUS_IN_PREPARATION       = 'IN_PREPARATION'
-    STATUS_SHIPPED              = 'SHIPPED'
-    STATUS_DELIVERED            = 'DELIVERED'
-    STATUS_CANCELLED            = 'CANCELLED'
-    STATUS_CANCELLED_BY_TIMEOUT = 'CANCELLED_TIMEOUT'
-    STATUS_REFUNDED             = 'REFUNDED'
-    STATUS_PAID                 = 'PAID'
-    STATUSES = [
-        (STATUS_DRAFT,                'Carrito / cotización'),
-        (STATUS_PENDING,              'Pendiente de pago'),
-        (STATUS_PROCESSING,           'Procesando pago'),
-        (STATUS_PAID,                 'Pagado'),
-        (STATUS_IN_PREPARATION,       'En preparación'),
-        (STATUS_SHIPPED,              'Enviado'),
-        (STATUS_DELIVERED,            'Entregado'),
-        (STATUS_CANCELLED,            'Cancelado'),
-        (STATUS_CANCELLED_BY_TIMEOUT, 'Cancelado por timeout'),
-        (STATUS_REFUNDED,             'Reembolsado'),
-    ]
+    # E2a: el vocabulario de estado (``STATUS_*`` + ``STATUSES``) se movió a
+    # ``orders.status_projection`` — el módulo que *produce* el estado. Aquí
+    # era un acoplamiento invertido: 39 referencias importaban este modelo
+    # espejo sólo para leer una constante, y la propia proyección tenía que
+    # importarlo para nombrar su salida. Los valores no cambiaron.
 
     order_number    = models.CharField(max_length=20, unique=True, db_index=True)
     user            = models.ForeignKey(

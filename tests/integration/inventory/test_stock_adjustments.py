@@ -16,6 +16,7 @@ from addons.orders.models import Order, OrderItem
 from addons.payment.models import Payment
 from addons.sale.models import SaleOrder
 from addons.users.models import BusinessEvent
+from addons.orders.status_projection import STATUS_PENDING
 
 pytestmark = pytest.mark.integration
 
@@ -516,7 +517,7 @@ class TestZeroStockGuard:
         assert res.status_code == 200
         data = res.json()
         assert len(data['active_orders']) == 1
-        assert data['active_orders'][0]['status'] == Order.STATUS_PENDING
+        assert data['active_orders'][0]['status'] == STATUS_PENDING
         assert data['active_orders'][0]['quantity'] == 2
         assert data['requires_confirmation'] is True
 

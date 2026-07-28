@@ -17,6 +17,10 @@ from addons.orders.models import Order, OrderValue
 from addons.payment.models import Payment, Refund
 from addons.stock.models import ReturnRequest
 from tests.factories.order_factory import make_order
+from addons.orders.status_projection import (
+    STATUS_PENDING,
+    STATUS_SHIPPED,
+)
 
 pytestmark = pytest.mark.integration
 
@@ -101,7 +105,7 @@ class TestOrderStatusChangedNotification:
     def test_creates_notification_on_status_transition(self, db, user):
         with patch(_ON_COMMIT_PATH, side_effect=lambda f: f()):
             order = _make_order(user)
-            notify_order_status_changed(order, Order.STATUS_SHIPPED)
+            notify_order_status_changed(order, STATUS_SHIPPED)
 
         assert Notification.objects.filter(
             user=user,
@@ -113,7 +117,7 @@ class TestOrderStatusChangedNotification:
             order = _make_order(user)
             initial_count = Notification.objects.filter(user=user).count()
             # PENDING no esta en el conjunto notificable
-            notify_order_status_changed(order, Order.STATUS_PENDING)
+            notify_order_status_changed(order, STATUS_PENDING)
 
         assert Notification.objects.filter(user=user).count() == initial_count
 
@@ -129,7 +133,7 @@ class TestOrderStatusChangedNotification:
     def test_shipped_notification_has_correct_subject(self, db, user):
         with patch(_ON_COMMIT_PATH, side_effect=lambda f: f()):
             order = _make_order(user)
-            notify_order_status_changed(order, Order.STATUS_SHIPPED)
+            notify_order_status_changed(order, STATUS_SHIPPED)
 
         notif = Notification.objects.filter(user=user, type='ORDER_UPDATE').first()
         assert 'enviado' in notif.subject.lower()

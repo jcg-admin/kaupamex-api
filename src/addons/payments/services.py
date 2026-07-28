@@ -17,7 +17,10 @@ from addons.payment.models import Payment, PaymentGatewayEvent, Payment as Payme
 from django.db.models import F, Sum as DjSum
 from addons.payment.models import PaymentGateway
 from addons.orders.models import Order
-from addons.orders.status_projection import order_status
+from addons.orders.status_projection import (
+    STATUS_PENDING,
+    order_status,
+)
 
 
 
@@ -67,7 +70,7 @@ def initiate_payment(
     # (sale.state + Payment), no la columna espejo ``order.status`` (retirada
     # en V5d). Null-safe: órdenes sin enlace canónico caen a la columna.
     _status = order_status(order)
-    if _status != Order.STATUS_PENDING:
+    if _status != STATUS_PENDING:
         raise ValueError(
             f'La orden {order.order_number} no está en estado PENDING '
             f'(estado actual: {_status}).'
@@ -350,7 +353,7 @@ def get_retry_eligibility(order_number: str, user) -> dict | None:
         return None
 
     _status = order_status(order)
-    if _status != Order.STATUS_PENDING:
+    if _status != STATUS_PENDING:
         return {
             'eligible':      False,
             'reason':        f'La orden está en estado {_status}.',
@@ -473,7 +476,7 @@ def initiate_checkout_api_payment(
     :raises RuntimeError: si el gateway falla (propagado al caller)
     """
     _status = order_status(order)
-    if _status != Order.STATUS_PENDING:
+    if _status != STATUS_PENDING:
         raise ValueError(
             f'La orden {order.order_number} no está en PENDING '
             f'(estado actual: {_status}).'

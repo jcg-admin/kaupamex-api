@@ -17,6 +17,7 @@ from addons.orders.models import Order, OrderValue
 from addons.loyalty.models import Voucher, VoucherChangeLog
 from addons.loyalty.serializers import VoucherSerializer
 from tests.factories.order_factory import make_order
+from addons.orders.status_projection import STATUS_DELIVERED
 
 pytestmark = pytest.mark.integration
 
@@ -307,7 +308,7 @@ class TestReporteVouchers:
             user=buyer,
             voucher_code=voucher_fixed.code,
             voucher_discount=Decimal('50.00'),
-            status=Order.STATUS_DELIVERED,
+            status=STATUS_DELIVERED,
         )
         OrderValue.objects.create(
             order=order,
@@ -339,7 +340,7 @@ class TestReporteVouchers:
             user=buyer,
             voucher_code=voucher_fixed.code,
             voucher_discount=Decimal('50.00'),
-            status=Order.STATUS_DELIVERED,
+            status=STATUS_DELIVERED,
         )
         OrderValue.objects.create(
             order=order,

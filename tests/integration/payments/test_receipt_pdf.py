@@ -28,6 +28,10 @@ from addons.payments.pdf_receipt import HELPER_PATH, build_receipt_payload
 from addons.base.models import SiteSettings
 from addons.users.models import BusinessEvent
 from tests.factories.order_factory import make_order
+from addons.orders.status_projection import (
+    STATUS_PAID,
+    STATUS_PENDING,
+)
 
 pytestmark = pytest.mark.integration
 
@@ -56,7 +60,7 @@ def other_user(db):
     ))
 
 
-def _make_paid_order(user, *, status=Order.STATUS_PAID, with_payment=True):
+def _make_paid_order(user, *, status=STATUS_PAID, with_payment=True):
     """Orden con snapshots financieros + (opcional) Payment aprobado."""
     order = make_order(user=user, status=status)
     OrderItem.objects.create(
@@ -142,7 +146,7 @@ def test_ac01_audit_event_recorded(
 def test_ac02_unpaid_order_returns_409(api_client, buyer):
     api_client.force_authenticate(user=buyer)
     order = _make_paid_order(
-        buyer, status=Order.STATUS_PENDING, with_payment=False,
+        buyer, status=STATUS_PENDING, with_payment=False,
     )
 
     resp = api_client.get(RECEIPT_URL(order.order_number))

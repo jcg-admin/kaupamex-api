@@ -25,7 +25,11 @@ logger = logging.getLogger('apps')
 
 from addons.mail.models.notification_service import notify_order_status_changed
 from addons.orders.models import Order, OrderStatusLog
-from addons.orders.status_projection import order_status
+from addons.orders.status_projection import (
+    STATUS_DELIVERED,
+    STATUS_SHIPPED,
+    order_status,
+)
 from addons.payment.models import Payment
 from addons.sale.models import SaleOrder
 from config.schema import error_response
@@ -200,13 +204,13 @@ class ShipmentGuideListCreateView(_AdminOnly, APIView):
             OrderStatusLog.objects.create(
                 order=order_locked,
                 previous_status=previous_status,
-                new_status=Order.STATUS_SHIPPED,
+                new_status=STATUS_SHIPPED,
                 changed_by=request.user,
                 notes=f'Guía de envío creada: {data["tracking_number"]}',
             )
             # UC-NOT-02 (O2C R8): notificación explícita en el eje (antes la
             # disparaba la signal post_save al escribir el espejo).
-            notify_order_status_changed(order_locked, Order.STATUS_SHIPPED)
+            notify_order_status_changed(order_locked, STATUS_SHIPPED)
 
         # H-CICLO46-02: re-fetch guide with select_related to avoid N+1 when
         # ShipmentGuideSerializer accesses guide.order.order_number (source FK)
@@ -420,13 +424,13 @@ class ConfirmDeliveryView(_AdminOnly, APIView):
             OrderStatusLog.objects.create(
                 order=guide_locked.order,
                 previous_status=previous_order_status,
-                new_status=Order.STATUS_DELIVERED,
+                new_status=STATUS_DELIVERED,
                 changed_by=request.user,
                 notes=f'Entrega confirmada via guia #{guide_locked.pk} ({guide_locked.tracking_number})',
             )
             # UC-NOT-02 (O2C R8): sin escritura del espejo la signal
             # post_save no dispara — notificación explícita en el eje.
-            notify_order_status_changed(guide_locked.order, Order.STATUS_DELIVERED)
+            notify_order_status_changed(guide_locked.order, STATUS_DELIVERED)
         return Response({'status': guide_locked.status, 'already_delivered': False,
                          'tracking_number': guide_locked.tracking_number,
                          'delivered_at': guide_locked.delivered_at})

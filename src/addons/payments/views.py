@@ -19,7 +19,15 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from django.db.models import Q, Sum
 from addons.orders.models import Order, ShippingZone
-from addons.orders.status_projection import order_status
+from addons.orders.status_projection import (
+    STATUS_DELIVERED,
+    STATUS_IN_PREPARATION,
+    STATUS_PAID,
+    STATUS_PENDING,
+    STATUS_PROCESSING,
+    STATUS_SHIPPED,
+    order_status,
+)
 from addons.sale.models import SaleOrder
 from addons.orders.proxy_models import DeliveredOrder
 from addons.payment.models import Payment, Payment as PaymentModel, Refund, Chargeback, SavedCard
@@ -142,7 +150,7 @@ class InitiatePaymentView(APIView):
                     })
 
                 _status = order_status(order)
-                if _status != Order.STATUS_PENDING:
+                if _status != STATUS_PENDING:
                     raise ValidationError({
                         'detail': f'La orden no está en estado PENDING (estado: {_status}).',
                         'codigo_error': 'ORDER_NOT_PAYABLE',
@@ -302,11 +310,11 @@ class PaymentReturnView(APIView):
 
 # Estados de orden que cuentan como "pagada" para emitir recibo (PRE-02).
 _PAID_ORDER_STATUSES = frozenset({
-    Order.STATUS_PAID,
-    Order.STATUS_PROCESSING,
-    Order.STATUS_IN_PREPARATION,
-    Order.STATUS_SHIPPED,
-    Order.STATUS_DELIVERED,
+    STATUS_PAID,
+    STATUS_PROCESSING,
+    STATUS_IN_PREPARATION,
+    STATUS_SHIPPED,
+    STATUS_DELIVERED,
 })
 
 
@@ -1247,7 +1255,7 @@ class CheckoutApiPaymentView(APIView):
             # proyección canónica tras adquirir el lock (antes vivía en el
             # filtro ``status=PENDING`` del .get, que leía la columna espejo).
             # Mismo contrato: orden existente pero no-PENDING → 404 ORDER_NOT_FOUND.
-            if order_status(order) != Order.STATUS_PENDING:
+            if order_status(order) != STATUS_PENDING:
                 return Response(
                     {'codigo_error': 'ORDER_NOT_FOUND'},
                     status=404,

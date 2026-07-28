@@ -30,7 +30,10 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 
 from addons.orders.models import Order, OrderValue
-from addons.orders.status_projection import order_status
+from addons.orders.status_projection import (
+    STATUS_PENDING,
+    order_status,
+)
 from addons.payment.models import Payment
 from addons.payments.services import initiate_checkout_api_payment
 from addons.payment.models import PaymentGateway
@@ -137,7 +140,7 @@ def run_sandbox_charge(status='APRO', method='master', amount='199.00',
     order_number = f'MPSMOKE{uuid.uuid4().hex[:12].upper()}'
     order = Order.objects.create(
         order_number=order_number, user=user,
-        status=Order.STATUS_PENDING)
+        status=STATUS_PENDING)
     OrderValue.objects.create(
         order=order, subtotal=Decimal(amount), tax=Decimal('0.00'),
         shipping_cost=Decimal('0.00'), discount=Decimal('0.00'),

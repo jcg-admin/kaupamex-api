@@ -29,6 +29,7 @@ from addons.stock.models import ReturnHistoryEntry, ReturnRequest
 from addons.payment.models import PaymentGateway
 from addons.mail.models import Notification, NotificationType
 from tests.factories.order_factory import make_order
+from addons.orders.status_projection import STATUS_DELIVERED
 
 pytestmark = pytest.mark.integration
 
@@ -74,12 +75,12 @@ def prod2(db, category):
 
 @pytest.fixture
 def delivered_order(db, user):
-    return make_order(user=user, status=Order.STATUS_DELIVERED)
+    return make_order(user=user, status=STATUS_DELIVERED)
 
 
 @pytest.fixture
 def delivered_order_with_items(db, user, prod1, prod2):
-    order = make_order(user=user, status=Order.STATUS_DELIVERED)
+    order = make_order(user=user, status=STATUS_DELIVERED)
     OrderItem.objects.create(
         order=order, product=prod1, product_name=prod1.name, sku=prod1.sku,
         unit_price=prod1.price, quantity=2, subtotal=prod1.price * 2,

@@ -14,6 +14,10 @@ from django.utils import timezone
 from addons.inventory.services import InventoryService
 from .models import Order, OrderStatusLog
 from .status_projection import order_status, filter_orders_by_status
+from addons.orders.status_projection import (
+    STATUS_CANCELLED_BY_TIMEOUT,
+    STATUS_PENDING,
+)
 
 logger = logging.getLogger('apps')
 
@@ -29,7 +33,7 @@ def cancel_timeout_orders():
     # ``filter_orders_by_status`` — null-safe para filas legacy — en vez de
     # leer la columna espejo ``status=PENDING`` directamente.
     pending_ids = list(
-        filter_orders_by_status(Order.objects.all(), Order.STATUS_PENDING)
+        filter_orders_by_status(Order.objects.all(), STATUS_PENDING)
         .filter(created_at__lt=cutoff)
         .values_list('id', flat=True)
     )
@@ -47,7 +51,7 @@ def cancel_timeout_orders():
             )
             # Re-derivar el estado canónico bajo lock: si el pago llegó entre
             # el query y el lock, la orden ya no proyecta PENDING → se salta.
-            if order is None or order_status(order) != Order.STATUS_PENDING:
+            if order is None or order_status(order) != STATUS_PENDING:
                 continue
             # O2C R8: el estado lo fija el EJE comercial (action_cancel); la
             # columna espejo ya no se escribe (V5d la retira). El sub-eje
@@ -63,8 +67,8 @@ def cancel_timeout_orders():
                 sale.action_cancel()
             OrderStatusLog.objects.create(
                 order=order,
-                previous_status=Order.STATUS_PENDING,
-                new_status=Order.STATUS_CANCELLED_BY_TIMEOUT,
+                previous_status=STATUS_PENDING,
+                new_status=STATUS_CANCELLED_BY_TIMEOUT,
                 changed_by=None,
                 notes='Cancelacion automatica por timeout de pago.',
             )

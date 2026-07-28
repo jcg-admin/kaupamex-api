@@ -28,32 +28,69 @@ from addons.delivery.models import ShipmentGuide
 from addons.payment.models import Payment
 from addons.sale.models import SaleOrder
 
-from .models import Order
+# ------------------------------------------------------------------
+# Vocabulario del estado proyectado (E2a del retiro de la entidad espejo).
+#
+# Vivía en ``orders.Order`` como enum de la columna. Tras V5d la columna no
+# existe, pero el vocabulario seguía allí: 39 referencias de producción
+# importaban el modelo espejo sólo para leer una constante, y este módulo —el
+# que *produce* el estado— importaba el espejo para nombrar su propia salida.
+# Acoplamiento invertido, y bloqueante de E5 (no se da de baja ``Order``
+# mientras sea el hogar del idioma). Los valores NO cambian: son contrato de
+# API pública (``?status=``, Rebanada 6).
+# ------------------------------------------------------------------
+STATUS_DRAFT                = 'DRAFT'
+STATUS_PENDING              = 'PENDING'
+STATUS_PROCESSING           = 'PROCESSING'
+STATUS_IN_PREPARATION       = 'IN_PREPARATION'
+STATUS_SHIPPED              = 'SHIPPED'
+STATUS_DELIVERED            = 'DELIVERED'
+STATUS_CANCELLED            = 'CANCELLED'
+STATUS_CANCELLED_BY_TIMEOUT = 'CANCELLED_TIMEOUT'
+STATUS_REFUNDED             = 'REFUNDED'
+STATUS_PAID                 = 'PAID'
+
+# Etiquetas para presentación. ``PROCESSING``/``IN_PREPARATION``/``REFUNDED``/
+# ``CANCELLED_TIMEOUT`` no los emite la proyección (ver
+# ``CANONICAL_ORDER_STATUSES``); se conservan como vocabulario histórico
+# alcanzable por datos previos. Su retiro es decisión aparte.
+STATUSES = [
+    (STATUS_DRAFT,                'Carrito / cotización'),
+    (STATUS_PENDING,              'Pendiente de pago'),
+    (STATUS_PROCESSING,           'Procesando pago'),
+    (STATUS_PAID,                 'Pagado'),
+    (STATUS_IN_PREPARATION,       'En preparación'),
+    (STATUS_SHIPPED,              'Enviado'),
+    (STATUS_DELIVERED,            'Entregado'),
+    (STATUS_CANCELLED,            'Cancelado'),
+    (STATUS_CANCELLED_BY_TIMEOUT, 'Cancelado por timeout'),
+    (STATUS_REFUNDED,             'Reembolsado'),
+]
 
 
 def derive_order_status(sale_order):
-    """Proyecta ``Order.STATUSES`` desde los ejes canónicos de ``sale_order``.
+    """Proyecta ``STATUSES`` desde los ejes canónicos de ``sale_order``.
 
     :param sale_order: instancia de ``sale.SaleOrder``.
-    :returns: uno de los valores de ``Order.STATUSES`` alcanzables.
+    :returns: uno de los valores de ``STATUSES`` alcanzables.
     """
     if sale_order.state == SaleOrder.STATE_DRAFT:
-        return Order.STATUS_DRAFT
+        return STATUS_DRAFT
     if sale_order.state == SaleOrder.STATE_CANCEL:
-        return Order.STATUS_CANCELLED
+        return STATUS_CANCELLED
 
     # sale.state == 'sale' (confirmado). Eje fulfillment primero (más
     # avanzado gana): una guía viva significa enviado/entregado.
     guide = getattr(sale_order, 'shipment_guide', None)
     if guide is not None and not guide.is_deleted:
         if guide.status == ShipmentGuide.STATUS_DELIVERED:
-            return Order.STATUS_DELIVERED
-        return Order.STATUS_SHIPPED
+            return STATUS_DELIVERED
+        return STATUS_SHIPPED
 
     # Sin guía viva → eje de pago decide PENDING vs PAID.
     approved = sale_order.payments.filter(
         status=Payment.STATUS_APPROVED).exists()
-    return Order.STATUS_PAID if approved else Order.STATUS_PENDING
+    return STATUS_PAID if approved else STATUS_PENDING
 
 
 def order_status(order):
@@ -79,12 +116,12 @@ def order_status(order):
 # (``PROCESSING``, ``IN_PREPARATION``, ``REFUNDED``) quedan **fuera** del
 # contrato: la proyección nunca los emite.
 CANONICAL_ORDER_STATUSES = (
-    Order.STATUS_DRAFT,
-    Order.STATUS_PENDING,
-    Order.STATUS_PAID,
-    Order.STATUS_SHIPPED,
-    Order.STATUS_DELIVERED,
-    Order.STATUS_CANCELLED,
+    STATUS_DRAFT,
+    STATUS_PENDING,
+    STATUS_PAID,
+    STATUS_SHIPPED,
+    STATUS_DELIVERED,
+    STATUS_CANCELLED,
 )
 
 
@@ -115,17 +152,17 @@ def _canonical_status_q(status):
     """
     is_sale = Q(sale_order__state=SaleOrder.STATE_SALE)
 
-    if status == Order.STATUS_DRAFT:
+    if status == STATUS_DRAFT:
         return Q(sale_order__state=SaleOrder.STATE_DRAFT)
-    if status == Order.STATUS_PENDING:
+    if status == STATUS_PENDING:
         return is_sale & Q(_has_approved=False) & Q(_has_active_guide=False)
-    if status == Order.STATUS_PAID:
+    if status == STATUS_PAID:
         return is_sale & Q(_has_approved=True) & Q(_has_active_guide=False)
-    if status == Order.STATUS_SHIPPED:
+    if status == STATUS_SHIPPED:
         return is_sale & Q(_has_active_guide=True) & Q(_has_delivered_guide=False)
-    if status == Order.STATUS_DELIVERED:
+    if status == STATUS_DELIVERED:
         return is_sale & Q(_has_delivered_guide=True)
-    if status == Order.STATUS_CANCELLED:
+    if status == STATUS_CANCELLED:
         # ``sale.state='cancel'`` colapsa CANCELLED y CANCELLED_TIMEOUT.
         return Q(sale_order__state=SaleOrder.STATE_CANCEL)
     raise ValueError(status)

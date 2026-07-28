@@ -18,6 +18,10 @@ from addons.payment.models import Payment
 from addons.payments.serializers import AdminPaymentSerializer
 from addons.payments.services import get_payment_status, get_retry_eligibility
 from addons.sale.models import SaleOrder
+from addons.orders.status_projection import (
+    STATUS_PAID,
+    STATUS_PENDING,
+)
 
 pytestmark = pytest.mark.integration
 
@@ -56,19 +60,19 @@ class TestRetryEligibilityOnProjection:
         # Ejes: sale='sale' + sin pago aprobado → proyección PENDING.
         # Columna espejo mentida a PAID: el guard NO debe leerla.
         user = _make_user('retry-pending@example.com')
-        order = _canonical_order(user, approved=False, mirror_status=Order.STATUS_PAID)
+        order = _canonical_order(user, approved=False, mirror_status=STATUS_PAID)
 
         result = get_retry_eligibility(order.order_number, user)
 
         assert result is not None
         assert result['eligible'] is True
-        assert result['order_status'] == Order.STATUS_PENDING
+        assert result['order_status'] == STATUS_PENDING
 
     def test_not_eligible_when_canonical_paid_despite_stale_pending_column(self):
         # Ejes: sale='sale' + pago aprobado → proyección PAID.
         # Columna espejo mentida a PENDING: el guard debe rechazar por eje.
         user = _make_user('retry-paid@example.com')
-        order = _canonical_order(user, approved=True, mirror_status=Order.STATUS_PENDING)
+        order = _canonical_order(user, approved=True, mirror_status=STATUS_PENDING)
 
         result = get_retry_eligibility(order.order_number, user)
 
@@ -76,7 +80,7 @@ class TestRetryEligibilityOnProjection:
         assert result['eligible'] is False
         assert result['codigo_error'] == 'ORDER_NOT_RETRYABLE'
         # El motivo cita el estado proyectado (PAID), no la columna (PENDING).
-        assert Order.STATUS_PAID in result['reason']
+        assert STATUS_PAID in result['reason']
 
 
 @pytest.mark.django_db
@@ -86,11 +90,11 @@ class TestPaymentStatusDisplayOnProjection:
     def test_order_status_is_projected_not_column(self):
         user = _make_user('status-disp@example.com')
         # Ejes → PAID; columna espejo stale → PENDING.
-        order = _canonical_order(user, approved=True, mirror_status=Order.STATUS_PENDING)
+        order = _canonical_order(user, approved=True, mirror_status=STATUS_PENDING)
 
         payload = get_payment_status(order.order_number, user)
 
-        assert payload['order_status'] == Order.STATUS_PAID
+        assert payload['order_status'] == STATUS_PAID
 
 
 @pytest.mark.django_db
@@ -99,12 +103,12 @@ class TestAdminSerializerOrderStatusOnProjection:
 
     def test_serializer_order_status_from_axes_not_column(self):
         user = _make_user('admin-ser@example.com')
-        order = _canonical_order(user, approved=True, mirror_status=Order.STATUS_PENDING)
+        order = _canonical_order(user, approved=True, mirror_status=STATUS_PENDING)
         payment = order.payments.first()
 
         data = AdminPaymentSerializer(payment).data
 
-        assert data['order_status'] == Order.STATUS_PAID
+        assert data['order_status'] == STATUS_PAID
 
     def test_serializer_order_status_pending_without_approved_payment(self):
         user = _make_user('admin-ser2@example.com')
@@ -121,4 +125,4 @@ class TestAdminSerializerOrderStatusOnProjection:
 
         data = AdminPaymentSerializer(payment).data
 
-        assert data['order_status'] == Order.STATUS_PENDING
+        assert data['order_status'] == STATUS_PENDING

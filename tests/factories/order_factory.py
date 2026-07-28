@@ -31,11 +31,20 @@ from addons.delivery.models import Courier, ShipmentGuide
 from addons.orders.models import Order
 from addons.payment.models import Payment
 from addons.sale.models import SaleOrder
+from addons.orders.status_projection import (
+    STATUSES,
+    STATUS_CANCELLED,
+    STATUS_DELIVERED,
+    STATUS_DRAFT,
+    STATUS_PAID,
+    STATUS_PENDING,
+    STATUS_SHIPPED,
+)
 
 
 _SALE_STATE = {
-    Order.STATUS_DRAFT:     SaleOrder.STATE_DRAFT,
-    Order.STATUS_CANCELLED: SaleOrder.STATE_CANCEL,
+    STATUS_DRAFT:     SaleOrder.STATE_DRAFT,
+    STATUS_CANCELLED: SaleOrder.STATE_CANCEL,
 }
 
 
@@ -47,11 +56,11 @@ def make_courier(**kwargs):
     return Courier.objects.create(**kwargs)
 
 
-def make_order(status=Order.STATUS_PENDING, courier=None, amount=None,
+def make_order(status=STATUS_PENDING, courier=None, amount=None,
                **order_kwargs):
     """Crea el par ``Order`` + ``SaleOrder`` cuyos ejes proyectan ``status``.
 
-    :param status: valor de ``Order.STATUSES`` que debe proyectar
+    :param status: valor de ``STATUSES`` que debe proyectar
         ``order_status(order)``. Los tres valores muertos del enum
         (``PROCESSING``, ``IN_PREPARATION``, ``REFUNDED``) no son alcanzables:
         la proyección nunca los emite.
@@ -66,8 +75,8 @@ def make_order(status=Order.STATUS_PENDING, courier=None, amount=None,
     )
     order = Order.objects.create(sale_order=sale, **order_kwargs)
 
-    if status in (Order.STATUS_PAID, Order.STATUS_SHIPPED,
-                  Order.STATUS_DELIVERED):
+    if status in (STATUS_PAID, STATUS_SHIPPED,
+                  STATUS_DELIVERED):
         Payment.objects.create(
             order=order, sale_order=sale,
             gateway=Payment.GATEWAY_MANUAL,
@@ -75,8 +84,8 @@ def make_order(status=Order.STATUS_PENDING, courier=None, amount=None,
             amount=amount if amount is not None else Decimal('100.00'),
         )
 
-    if status in (Order.STATUS_SHIPPED, Order.STATUS_DELIVERED):
-        delivered = status == Order.STATUS_DELIVERED
+    if status in (STATUS_SHIPPED, STATUS_DELIVERED):
+        delivered = status == STATUS_DELIVERED
         ShipmentGuide.objects.create(
             order=order, sale_order=sale,
             courier=courier or make_courier(),

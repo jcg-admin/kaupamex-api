@@ -30,6 +30,7 @@ from addons.helpdesk.management.commands.auto_close_support_tickets import (
 from addons.orders.models import Order
 from addons.mail.models import Notification, NotificationType
 from tests.factories.order_factory import make_order
+from addons.orders.status_projection import STATUS_PENDING
 
 pytestmark = pytest.mark.integration
 
@@ -537,7 +538,7 @@ class TestCreateTicketOrderOwnership:
     """D-002 — order_id solo se acepta si pertenece al comprador autenticado."""
 
     def _make_order(self, owner):
-        return make_order(user=owner, status=Order.STATUS_PENDING)
+        return make_order(user=owner, status=STATUS_PENDING)
 
     def test_create_ticket_with_own_order_returns_201(self, auth_client, user, db):
         order = self._make_order(user)

@@ -7,13 +7,14 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from .models import Order, OrderItem, OrderValue, OrderAddress, OrderStatusLog
 from .status_projection import order_status
+from addons.orders.status_projection import STATUSES
 
 
 # O2C R8: el campo ``status`` del contrato se PROYECTA de los ejes canónicos
 # (sale.state + Payment + guía) — la columna espejo ya no se escribe (V5d la
 # retira). Memo por instancia para no derivar dos veces (status +
 # status_display) en la misma serialización.
-_STATUS_LABELS = dict(Order.STATUSES)
+_STATUS_LABELS = dict(STATUSES)
 
 
 def _projected_status(obj):

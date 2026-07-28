@@ -13,7 +13,13 @@ English JSON keys per DEC-DOC-005. Spanish business codes per DEC-DOC-006.
 from decimal import Decimal
 from addons.catalogue.models import Category, Product
 from addons.orders.models import Order, OrderAddress, OrderItem, OrderValue
-from addons.orders.status_projection import order_status
+from addons.orders.status_projection import (
+    STATUS_IN_PREPARATION,
+    STATUS_PAID,
+    STATUS_PENDING,
+    STATUS_SHIPPED,
+    order_status,
+)
 from addons.delivery.models import Courier, ShipmentGuide
 from addons.payment.models import Payment
 from addons.sale.models import SaleOrder
@@ -50,7 +56,7 @@ def prod_log(db, cat_log):
 
 
 def _canonical_ready_order(user, prod, *, approved=True,
-                           legacy_status=Order.STATUS_PENDING):
+                           legacy_status=STATUS_PENDING):
     """Orden 'lista para surtir' por los ejes canónicos O2C (ADR-024).
 
     Cut-over orders→sale: la guarda de creación de guía y el panel ya no
@@ -93,7 +99,7 @@ def order_log(db, user, prod_log):
     # lo lee (Rebanada 8): la migración es aditiva, no lo retira.
     o, _ = _canonical_ready_order(
         user, prod_log, approved=True,
-        legacy_status=Order.STATUS_IN_PREPARATION,
+        legacy_status=STATUS_IN_PREPARATION,
     )
     return o
 
@@ -208,7 +214,7 @@ class TestGuideGuardOnCanonicalAxes:
         # Orden con el enum legacy IN_PREPARATION pero SIN sale_order: la
         # vieja guarda la aceptaría; la nueva la rechaza (sin eje canónico).
         o = make_order(
-            user=user, status=Order.STATUS_IN_PREPARATION,
+            user=user, status=STATUS_IN_PREPARATION,
         )
         OrderItem.objects.create(
             order=o, product=prod_log, product_name=prod_log.name,
@@ -394,7 +400,7 @@ class TestOrderStatusShippedAfterGuide:
     ):
         # O2C R8: antes de la guía la orden proyecta PAID (pago aprobado,
         # sin guía); crear la guía ES la transición a SHIPPED (eje).
-        assert order_status(order_log) == Order.STATUS_PAID
+        assert order_status(order_log) == STATUS_PAID
         r = admin_client.post(GUIDES_URL, {
             'order_id': order_log.id,
             'courier_id': courier_log.id,
@@ -402,7 +408,7 @@ class TestOrderStatusShippedAfterGuide:
         }, format='json')
         assert r.status_code == 201
         order_log.refresh_from_db()
-        assert order_status(order_log) == Order.STATUS_SHIPPED
+        assert order_status(order_log) == STATUS_SHIPPED
 
 
 class TestCancelGuide:
@@ -530,7 +536,7 @@ class TestUpdateTrackingNumber:
         # pero permite. Nota: la unicidad es per-courier (unique_tracking_per_courier),
         # así que el duplicado reachable es cross-courier.
         c2 = Courier.objects.create(name='DHL-dup', code='DHLD')
-        o2 = make_order(user=user, status=Order.STATUS_IN_PREPARATION)
+        o2 = make_order(user=user, status=STATUS_IN_PREPARATION)
         ShipmentGuide.objects.create(
             order=o2, courier=c2, tracking_number='DUP-TRK',
         )
