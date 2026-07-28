@@ -192,7 +192,7 @@ class TestProductoDetalle:
         u = User.objects.create_user(password='X', email='r@x.com')
         order = make_order(user=u, status=STATUS_DELIVERED)
         Review.objects.create(
-            user=u, product=product_oshun, order=order,
+            user=u, product=product_oshun, order=order, sale_order=order.sale_order,
             rating=4, title='Bien', body='Producto bueno.',
             status=Review.STATUS_APPROVED,
         )
@@ -206,7 +206,7 @@ class TestProductoDetalle:
         u = User.objects.create_user(password='X', email='r2@x.com')
         order = make_order(user=u, status=STATUS_DELIVERED)
         Review.objects.create(
-            user=u, product=product_oshun, order=order,
+            user=u, product=product_oshun, order=order, sale_order=order.sale_order,
             rating=5, title='Excelente', body='Muy bueno.',
             status=Review.STATUS_PENDING,
         )

@@ -59,7 +59,7 @@ def _make_order_with_payment(user, prod, gateway='MERCADOPAGO', status='APPROVED
         city='CDMX', state='CMX', zip_code='06600',
     )
     payment = Payment.objects.create(
-        order=order, gateway=gateway,
+        order=order, sale_order=order.sale_order, gateway=gateway,
         preference_id=f'PREF-REF-{order.pk}',
         gateway_payment_id=f'GW-REF-{order.pk}',
         status=status, amount=prod.price,

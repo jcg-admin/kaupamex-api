@@ -357,7 +357,7 @@ class TestCancelarOrden:
 
         order = _create_full_order(user, prod_ord, status='PAID')
         payment = Payment.objects.create(
-            order=order, gateway='MERCADOPAGO',
+            order=order, sale_order=order.sale_order, gateway='MERCADOPAGO',
             gateway_payment_id='MP-CANCEL-001',
             preference_id='PREF-CANCEL',
             status='APPROVED', amount=prod_ord.price + Decimal('80'),

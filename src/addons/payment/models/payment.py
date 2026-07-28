@@ -47,15 +47,15 @@ class Payment(TimeStampedModel):
         (STATUS_CANCELLED,          'Cancelado'),
     ]
 
+    # E4-pre (H-API-26): anclaje invertido. En Odoo el eje de pago vive en
+    # payment.transaction anclado a sale.order — la canónica manda (NOT NULL,
+    # PROTECT) y la FK al espejo queda nullable/SET_NULL hasta su retiro en E5.
     order             = models.ForeignKey(
-        'orders.Order', on_delete=models.PROTECT, related_name='payments',
-    )
-    # V3a orders→sale (DEC-FW-02): en Odoo el eje de pago vive en
-    # payment.transaction anclado a sale.order — Payment (la transacción
-    # strangler) gana la FK al canónico; V5 retira la FK legacy.
-    sale_order        = models.ForeignKey(
-        'sale.SaleOrder', null=True, blank=True,
+        'orders.Order', null=True, blank=True,
         on_delete=models.SET_NULL, related_name='payments',
+    )
+    sale_order        = models.ForeignKey(
+        'sale.SaleOrder', on_delete=models.PROTECT, related_name='payments',
     )
     gateway           = models.CharField(max_length=20, choices=GATEWAYS, db_index=True)
     gateway_payment_id = models.CharField(

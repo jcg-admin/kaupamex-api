@@ -35,7 +35,7 @@ def _payment(user, *, mp_order_id='', status=Payment.STATUS_APPROVED,
              amount=Decimal('250.00')):
     order = make_order(user=user, status='PROCESSING')
     return Payment.objects.create(
-        order=order,
+        order=order, sale_order=order.sale_order,
         gateway=Payment.GATEWAY_MERCADOPAGO,
         gateway_payment_id=f'PAY-{order.pk}',
         mp_order_id=mp_order_id or None,

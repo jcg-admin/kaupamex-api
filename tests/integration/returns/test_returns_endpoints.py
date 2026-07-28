@@ -447,7 +447,7 @@ def _create_approved_order_and_return(user, payment_amount=Decimal('2000.00')):
     """
     order = make_order(user=user, status='PROCESSING')
     payment = Payment.objects.create(
-        order=order, gateway='MERCADOPAGO',
+        order=order, sale_order=order.sale_order, gateway='MERCADOPAGO',
         preference_id=f'PREF-RET-{order.pk}',
         gateway_payment_id=f'GW-RET-{order.pk}',
         status=Payment.STATUS_APPROVED, amount=payment_amount,

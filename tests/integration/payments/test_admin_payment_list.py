@@ -50,12 +50,12 @@ def payments_dataset(db, user):
 
     o1 = _make_order(user, 'PAY-A', Decimal('1000.00'))
     p_approved = Payment.objects.create(
-        order=o1, gateway='MERCADOPAGO', preference_id='PREF-A',
+        order=o1, sale_order=o1.sale_order, gateway='MERCADOPAGO', preference_id='PREF-A',
         gateway_payment_id='MP-A', status='APPROVED', amount=Decimal('1000.00'),
     )
     o2 = _make_order(user, 'PAY-B', Decimal('500.00'))
     p_refunded = Payment.objects.create(
-        order=o2, gateway='PAYPAL', preference_id='PREF-B',
+        order=o2, sale_order=o2.sale_order, gateway='PAYPAL', preference_id='PREF-B',
         gateway_payment_id='PP-B', status='REFUNDED', amount=Decimal('500.00'),
     )
     # El monto reembolsado real vive en Refund (PAY-11), no en Payment.amount.
@@ -65,7 +65,7 @@ def payments_dataset(db, user):
     )
     o3 = _make_order(user, 'PAY-C', Decimal('250.00'))
     p_failed = Payment.objects.create(
-        order=o3, gateway='MERCADOPAGO', preference_id='PREF-C',
+        order=o3, sale_order=o3.sale_order, gateway='MERCADOPAGO', preference_id='PREF-C',
         gateway_payment_id='MP-C', status='FAILED', amount=Decimal('250.00'),
     )
     return {'approved': p_approved, 'refunded': p_refunded, 'failed': p_failed}
@@ -103,7 +103,7 @@ class TestAdminPaymentList:
         # contar 300 en 'refunded', no 1000 (Payment.amount es el total).
         order = _make_order(user, 'PAY-PARTIAL', Decimal('1000.00'))
         payment = Payment.objects.create(
-            order=order, gateway='MERCADOPAGO', preference_id='PREF-PR',
+            order=order, sale_order=order.sale_order, gateway='MERCADOPAGO', preference_id='PREF-PR',
             gateway_payment_id='MP-PR', status='PARTIALLY_REFUNDED',
             amount=Decimal('1000.00'),
         )
@@ -121,7 +121,7 @@ class TestAdminPaymentList:
         # Un Refund PENDING/FAILED no cuenta en 'refunded'.
         order = _make_order(user, 'PAY-PEND', Decimal('400.00'))
         payment = Payment.objects.create(
-            order=order, gateway='MERCADOPAGO', preference_id='PREF-PE',
+            order=order, sale_order=order.sale_order, gateway='MERCADOPAGO', preference_id='PREF-PE',
             gateway_payment_id='MP-PE', status='APPROVED',
             amount=Decimal('400.00'),
         )

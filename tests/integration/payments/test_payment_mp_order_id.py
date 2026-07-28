@@ -36,7 +36,7 @@ class TestMpOrderIdPersistence:
     def test_persists_both_ids(self, user, db):
         order = _make_order(user)
         payment = Payment.objects.create(
-            order=order, gateway='MERCADOPAGO',
+            order=order, sale_order=order.sale_order, gateway='MERCADOPAGO',
             mp_order_id='ORD01JABCDEF0123456789',
             gateway_payment_id='PAY86439942806',
             status=Payment.STATUS_APPROVED, amount=Decimal('200.00'),
@@ -49,7 +49,7 @@ class TestMpOrderIdPersistence:
         # Payments-legacy y PayPal no setean mp_order_id: debe aceptar null/blank.
         order = _make_order(user)
         payment = Payment.objects.create(
-            order=order, gateway='PAYPAL',
+            order=order, sale_order=order.sale_order, gateway='PAYPAL',
             gateway_payment_id='PAYPAL-XYZ',
             status=Payment.STATUS_APPROVED, amount=Decimal('200.00'),
         )
@@ -60,7 +60,7 @@ class TestMpOrderIdPersistence:
         # db_index=True: se puede filtrar por mp_order_id (reconciliación webhook).
         order = _make_order(user)
         Payment.objects.create(
-            order=order, gateway='MERCADOPAGO',
+            order=order, sale_order=order.sale_order, gateway='MERCADOPAGO',
             mp_order_id='ORD-QUERYABLE-1',
             gateway_payment_id='PAY-Q1',
             status=Payment.STATUS_PENDING, amount=Decimal('200.00'),

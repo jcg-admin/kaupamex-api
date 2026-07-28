@@ -224,7 +224,7 @@ class TestCourierWebhookSecretUnset:
     def test_secret_no_configurado_rechazo_seguro(self, api_client, order_log, db):
         courier = Courier.objects.create(name='SinSecreto', code='NOSEC')
         guide = ShipmentGuide.objects.create(
-            order=order_log, courier=courier,
+            order=order_log, sale_order=order_log.sale_order, courier=courier,
             tracking_number='TRK-NOSEC', status=ShipmentGuide.STATUS_PICKED_UP,
         )
         payload = {

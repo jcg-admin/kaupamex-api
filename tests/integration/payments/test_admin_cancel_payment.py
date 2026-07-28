@@ -32,7 +32,7 @@ def _make_payment(user, status=Payment.STATUS_PENDING, gateway_payment_id='MP-CA
         city='CDMX', state='CMX', zip_code='06600',
     )
     return Payment.objects.create(
-        order=order, gateway='MERCADOPAGO',
+        order=order, sale_order=order.sale_order, gateway='MERCADOPAGO',
         preference_id=f'PREF-{gateway_payment_id}',
         gateway_payment_id=gateway_payment_id,
         status=status, amount=Decimal('200.00'),

@@ -85,7 +85,7 @@ def _make_paid_order(user, *, status=STATUS_PAID, with_payment=True):
     )
     if with_payment:
         Payment.objects.create(
-            order=order, gateway=Payment.GATEWAY_MERCADOPAGO,
+            order=order, sale_order=order.sale_order, gateway=Payment.GATEWAY_MERCADOPAGO,
             preference_id=f'PREF-PAY10-{order.pk}',
             gateway_payment_id=f'GW-PAY10-{order.pk}',
             status=Payment.STATUS_APPROVED, amount=Decimal('1149.00'),

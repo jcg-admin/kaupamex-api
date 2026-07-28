@@ -121,15 +121,16 @@ class ShipmentGuide(TimeStampedModel, SoftDeleteModel):
         (STATUS_CANCELLED,  'Cancelada'),
     ]
 
+    # E4-pre (H-API-26): anclaje invertido. El eje de fulfillment es la
+    # adaptación de stock.picking y en Odoo cuelga de la sale.order — la
+    # canónica manda (NOT NULL, PROTECT); la FK al espejo queda
+    # nullable/SET_NULL hasta su retiro en E5.
     order           = models.OneToOneField(
-        'orders.Order', on_delete=models.PROTECT, related_name='shipment_guide',
-    )
-    # V4a orders→sale (DEC-FW-02): la guía ancla también al canónico —
-    # el eje de fulfillment (guide.status) es la adaptación de
-    # stock.picking y en Odoo cuelga de la sale.order; V5 retira la legacy.
-    sale_order      = models.OneToOneField(
-        'sale.SaleOrder', null=True, blank=True,
+        'orders.Order', null=True, blank=True,
         on_delete=models.SET_NULL, related_name='shipment_guide',
+    )
+    sale_order      = models.OneToOneField(
+        'sale.SaleOrder', on_delete=models.PROTECT, related_name='shipment_guide',
     )
     courier         = models.ForeignKey(
         Courier, on_delete=models.PROTECT, related_name='guides',

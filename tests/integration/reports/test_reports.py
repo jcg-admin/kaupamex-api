@@ -119,7 +119,7 @@ def _make_order(user, product, qty=1, when=None, status='DELIVERED',
         shipping_cost=Decimal('0'), discount=Decimal('0'), total=total,
     )
     p = Payment.objects.create(
-        order=o, gateway=gateway, status=payment_status,
+        order=o, sale_order=o.sale_order, gateway=gateway, status=payment_status,
         amount=total,
     )
     Payment.objects.filter(pk=p.pk).update(created_at=when, updated_at=when)

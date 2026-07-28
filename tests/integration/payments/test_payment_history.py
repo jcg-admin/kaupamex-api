@@ -54,7 +54,7 @@ def orden_con_pago(db, user, cat_hist):
         street='Calle 1', city='CDMX', state='CMX', zip_code='06600',
     )
     approved = Payment.objects.create(
-        order=order, gateway='MERCADOPAGO',
+        order=order, sale_order=order.sale_order, gateway='MERCADOPAGO',
         preference_id='PREF-HIST-001',
         gateway_payment_id='MP-HIST-001',
         status='APPROVED', amount=Decimal('2400.00'),
@@ -88,12 +88,12 @@ def orden_con_historial(db, user, cat_hist):
         street='Av 1', city='CDMX', state='CMX', zip_code='06600',
     )
     failed = Payment.objects.create(
-        order=order, gateway='MERCADOPAGO',
+        order=order, sale_order=order.sale_order, gateway='MERCADOPAGO',
         preference_id='PREF-HIST-FAIL',
         status='FAILED', amount=Decimal('1200.00'),
     )
     approved = Payment.objects.create(
-        order=order, gateway='PAYPAL',
+        order=order, sale_order=order.sale_order, gateway='PAYPAL',
         preference_id='PP-HIST-001',
         gateway_payment_id='PP-CAP-HIST-001',
         status='APPROVED', amount=Decimal('1200.00'),
@@ -224,7 +224,7 @@ class TestElegibilidadReintento:
 
         order = make_order(user=user, status='PENDING')
         Payment.objects.create(
-            order=order, gateway='MERCADOPAGO',
+            order=order, sale_order=order.sale_order, gateway='MERCADOPAGO',
             status='FAILED', amount=Decimal('500'),
         )
         res = auth_client.get(RETRY_URL(order.order_number))
