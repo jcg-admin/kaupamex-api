@@ -200,21 +200,29 @@ def notify_refund_processed(order, user, amount_refunded):
     """
     UC-NOT-05: notificacion de reembolso procesado.
     Llamar desde addons.payments dentro de transaction.atomic().
+
+    I2 (H-API-31): ``order`` es la orden **canonica** (``sale.SaleOrder``);
+    su identidad publica vive en ``name`` (I1). Se acepta tambien el espejo
+    (``order_number``) mientras el puente exista, para no romper llamadores
+    heredados durante el cut-over.
     """
     if not user or not getattr(user, 'pk', None):
         return
 
+    referencia = (getattr(order, 'name', None)
+                  or getattr(order, 'order_number', ''))
+
     Notification.objects.create(
         user=user,
         type=NotificationType.RETURN_UPDATE,
-        subject=f'Reembolso procesado — #{order.order_number}',
-        body=f'Tu reembolso de ${amount_refunded} para la orden #{order.order_number} fue procesado.',
+        subject=f'Reembolso procesado — #{referencia}',
+        body=f'Tu reembolso de ${amount_refunded} para la orden #{referencia} fue procesado.',
     )
 
     if user.email:
         user_email  = user.email
         name        = user.first_name or user.email
-        order_num   = order.order_number
+        order_num   = referencia
         amount      = str(amount_refunded)
         transaction.on_commit(
             lambda: send_refund_email(

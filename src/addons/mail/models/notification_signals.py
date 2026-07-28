@@ -129,8 +129,11 @@ def _refund_created(sender, instance, created, **kwargs):
     if instance.status != Refund.STATUS_APPROVED:
         return
     try:
-        order = instance.payment.order
-        notify_refund_processed(order, order.user, instance.amount)
+        # I2 (H-API-31): la orden del reembolso se toma de la canónica —
+        # tras E4-pre ``payment.order`` es nullable y un pago sólo-canónico
+        # perdía la notificación en el ``except`` de abajo.
+        order = instance.payment.sale_order
+        notify_refund_processed(order, order.partner, instance.amount)
     except Exception:
         logger.warning(
             '_refund_created: notificacion fallida para Refund %s',

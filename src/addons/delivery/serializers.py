@@ -32,7 +32,9 @@ class ShipmentGuideSerializer(serializers.ModelSerializer):
         queryset=Courier.objects.filter(is_active=True),
         source='courier', write_only=True,
     )
-    order_number = serializers.CharField(source='order.order_number', read_only=True)
+    # I2 (H-API-31): la identidad se lee de la canónica — tras E4-pre la FK
+    # espejo es nullable y tras I1 ambas portan el mismo valor (sale.name).
+    order_number = serializers.CharField(source='sale_order.name', read_only=True)
     last_event   = serializers.SerializerMethodField()
 
     class Meta:

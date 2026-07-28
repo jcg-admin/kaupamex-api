@@ -37,7 +37,8 @@ class ReviewAdminSerializer(serializers.ModelSerializer):
     user_username    = serializers.CharField(source='user.email', read_only=True)
     product_id       = serializers.IntegerField(source='product.id', read_only=True)
     product_name     = serializers.CharField(source='product.name', read_only=True)
-    order_number     = serializers.CharField(source='order.order_number', read_only=True)
+    # I2 (H-API-31): identidad desde la canónica (ver delivery/serializers).
+    order_number     = serializers.CharField(source='sale_order.name', read_only=True)
 
     class Meta:
         model  = Review

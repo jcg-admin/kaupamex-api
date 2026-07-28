@@ -217,8 +217,9 @@ class ProductReviewsView(APIView):
             })
 
         # Re-fetch con select_related para evitar N+1: ReviewAdminSerializer
-        # accede a review.user, review.product y review.order.
-        review = Review.objects.select_related('user', 'product', 'order').get(pk=review.pk)
+        # accede a review.user, review.product y —tras I2— review.sale_order
+        # (la identidad se lee de la canónica).
+        review = Review.objects.select_related('user', 'product', 'order', 'sale_order').get(pk=review.pk)
 
         return Response(
             ReviewAdminSerializer(review).data,
@@ -252,7 +253,7 @@ class ReviewUpdateView(APIView):
                    404: error_response('Reseña no encontrada')})
     def patch(self, request, product_id, pk):
         try:
-            review = Review.objects.select_related('user', 'product', 'order').get(
+            review = Review.objects.select_related('user', 'product', 'order', 'sale_order').get(
                 pk=pk, product_id=product_id,
             )
         except Review.DoesNotExist:
@@ -335,7 +336,7 @@ class ReviewAdminListView(_AdminOnly, APIView):
             })
         qs = (
             Review.objects.filter(status=status_filter)
-            .select_related('user', 'product', 'order')
+            .select_related('user', 'product', 'order', 'sale_order')
             .order_by('created_at')  # FIFO
         )
         # H-CICLO90-01: paginar para evitar OOM en tiendas con cola de

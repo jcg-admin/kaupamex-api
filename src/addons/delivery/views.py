@@ -87,7 +87,7 @@ class LogisticsPanelView(_AdminOnly, APIView):
 
         guide_qs = ShipmentGuide.objects.filter(is_deleted=False).exclude(
             status=ShipmentGuide.STATUS_DELIVERED,
-        ).exclude(status=ShipmentGuide.STATUS_CANCELLED).select_related('order', 'courier')
+        ).exclude(status=ShipmentGuide.STATUS_CANCELLED).select_related('order', 'sale_order', 'courier')
         if courier_filter:
             guide_qs = guide_qs.filter(courier_id=courier_filter)
 
@@ -95,7 +95,7 @@ class LogisticsPanelView(_AdminOnly, APIView):
         for guide in guide_qs:
             in_transit.append({
                 'guide_id': guide.id, 'tracking_number': guide.tracking_number,
-                'order_id': guide.order_id, 'order_number': guide.order.order_number,
+                'order_id': guide.order_id, 'order_number': guide.sale_order.name,
                 'courier_code': guide.courier.code, 'status': guide.status,
             })
 
@@ -154,7 +154,7 @@ class ShipmentGuideListCreateView(_AdminOnly, APIView):
     @extend_schema(summary='Listar guías de envío', tags=['logistics'],
                    responses={200: ShipmentGuideSerializer(many=True)})
     def get(self, request):
-        qs = ShipmentGuide.objects.filter(is_deleted=False).select_related('order', 'courier').order_by('-created_at')
+        qs = ShipmentGuide.objects.filter(is_deleted=False).select_related('order', 'sale_order', 'courier').order_by('-created_at')
         if request.query_params.get('order_id'):
             qs = qs.filter(order_id=request.query_params['order_id'])
         # H-CICLO29-03: sin paginacion este endpoint podia retornar todas
@@ -213,9 +213,11 @@ class ShipmentGuideListCreateView(_AdminOnly, APIView):
             notify_order_status_changed(order_locked, STATUS_SHIPPED)
 
         # H-CICLO46-02: re-fetch guide with select_related to avoid N+1 when
-        # ShipmentGuideSerializer accesses guide.order.order_number (source FK)
-        # and guide.courier (nested CourierSerializer).
-        guide = ShipmentGuide.objects.select_related('order', 'courier').get(pk=guide.pk)
+        # ShipmentGuideSerializer accesses guide.sale_order.name (source FK,
+        # re-anclado a la canónica en I2) and guide.courier (nested
+        # CourierSerializer).
+        guide = ShipmentGuide.objects.select_related(
+            'sale_order', 'courier').get(pk=guide.pk)
         return Response(ShipmentGuideSerializer(guide).data, status=201)
 
 
@@ -233,7 +235,7 @@ class AdminOrderGuideView(_AdminOnly, APIView):
     def get(self, request, order_number):
         guide = (
             ShipmentGuide.objects
-            .select_related('order', 'courier')
+            .select_related('order', 'sale_order', 'courier')
             .filter(order__order_number=order_number, is_deleted=False)
             .first()
         )
@@ -269,7 +271,7 @@ class ShipmentGuideDetailView(_AdminOnly, APIView):
 
     def _get_guide(self, pk):
         try:
-            return ShipmentGuide.objects.select_related('order', 'courier').get(pk=pk, is_deleted=False)
+            return ShipmentGuide.objects.select_related('order', 'sale_order', 'courier').get(pk=pk, is_deleted=False)
         except ShipmentGuide.DoesNotExist:
             raise NotFound({'detail': 'Guía no encontrada.', 'codigo_error': 'SHIPMENT_GUIDE_NOT_FOUND'})
 

@@ -31,6 +31,7 @@ from addons.delivery.models import Courier, ShipmentGuide
 from addons.orders.models import Order
 from addons.payment.models import Payment
 from addons.sale.models import SaleOrder
+from addons.sale.models.sale_order import _next_sale_name
 from addons.orders.status_projection import (
     STATUSES,
     STATUS_CANCELLED,
@@ -73,9 +74,15 @@ def make_order(status=STATUS_PENDING, courier=None, amount=None,
     # el espejo sólo existe post-confirm. Un state='sale' sin date_order es
     # un estado que el flujo real nunca produce (E2c lo filtra como "no
     # comprador"); el factory lo respeta para no fabricar estados imposibles.
+    # I2: ``action_confirm`` asigna SIEMPRE ``name`` (referencia de la
+    # secuencia ir.sequence 'sale.order'). Una venta ``state='sale'`` sin
+    # ``name`` es un estado que el flujo real nunca produce — y desde I1 la
+    # identidad pública se lee de ahí, así que el factory debe respetarlo.
+    estado = _SALE_STATE.get(status, SaleOrder.STATE_SALE)
     sale = SaleOrder.objects.create(
-        state=_SALE_STATE.get(status, SaleOrder.STATE_SALE),
+        state=estado,
         cart_token=uuid4(),
+        name=(None if status == STATUS_DRAFT else _next_sale_name()),
         date_order=(None if status == STATUS_DRAFT else timezone.now()),
         # Producción setea ambos lados del actor (confirm_draft_order crea el
         # espejo con user=order.partner); el factory replica esa consistencia.
