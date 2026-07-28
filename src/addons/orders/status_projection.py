@@ -94,14 +94,25 @@ def derive_order_status(sale_order):
 
 
 def order_status(order):
-    """Estado de un ``orders.Order`` derivado de su canónica.
+    """Estado proyectado de una orden — acepta el espejo o la canónica.
 
     V5d: la columna espejo ``order.status`` fue retirada y ``sale_order`` es
     obligatorio (``null=False`` + ``PROTECT``), así que el fallback null-safe
     de V5c-2 deja de existir — **toda** ``Order`` deriva de sus ejes. Es la
     única fuente de estado a nivel de objeto.
+
+    I3 (retiro del espejo): esta función es el punto por el que pasa todo
+    consumidor del estado proyectado. Mientras exigiera un ``orders.Order``,
+    ningún consumidor podía migrar su query al canónico por separado — o
+    migraban todos a la vez, o ninguno. Aceptando ambos lados (mismo patrón
+    strangler que el puente), cada rebanada migra su propia query sin tocar
+    la llamada al proyector, y el día que el espejo desaparezca los
+    llamadores ya funcionan.
+
+    :param order: ``orders.Order`` (espejo) o ``sale.SaleOrder`` (canónica).
     """
-    return derive_order_status(order.sale_order)
+    sale_order = getattr(order, 'sale_order', order)
+    return derive_order_status(sale_order)
 
 
 # ---------------------------------------------------------------------------
