@@ -10,6 +10,7 @@ from decimal import Decimal
 
 from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from addons.payment.models import Payment, Chargeback
+from tests.factories.order_factory import make_order
 
 pytestmark = pytest.mark.integration
 
@@ -18,7 +19,7 @@ DETAIL_URL = lambda cid: f'/api/v2/admin/chargebacks/{cid}/'
 
 
 def _make_payment(user, amount='500.00', gateway_payment_id='MP-CB-L001'):
-    order = Order.objects.create(user=user, status='PROCESSING')
+    order = make_order(user=user, status='PROCESSING')
     OrderItem.objects.create(
         order=order, product_name='Prod CB', sku=f'CB-{gateway_payment_id}',
         unit_price=Decimal(amount), quantity=1, subtotal=Decimal(amount),

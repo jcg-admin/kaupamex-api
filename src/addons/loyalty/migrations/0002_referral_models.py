@@ -4,6 +4,12 @@ State-only (``SeparateDatabaseAndState``): las tablas ``referral_referral`` y
 ``referral_code`` ya existen (creadas por la ex-migracion ``referral.0001``); el
 programa de referidos se re-aloja en ``loyalty`` porque es la capa de referral
 del framework de fidelidad de Odoo. Solo cambia el ``app_label`` de los modelos.
+
+**H-API-21 (2026-07-28):** nació ``state-only`` porque la tabla ya existía,
+creada por la ex-migración del app donante. Al plegarse ese app su migración
+se eliminó del árbol y nadie quedó creando la tabla. El defecto era
+**silencioso** (``migrate`` termina OK; sólo falla el ORM en runtime) y
+quedaba oculto bajo ``--reuse-db``. Se restituye la creación real.
 """
 import django.db.models.deletion
 from django.conf import settings
@@ -116,9 +122,5 @@ class Migration(migrations.Migration):
         ),
     ]
 
-    operations = [
-        migrations.SeparateDatabaseAndState(
-            state_operations=state_operations,
-            database_operations=[],
-        ),
-    ]
+    # H-API-21: las operaciones se aplican a la BD, no sólo al estado.
+    operations = state_operations

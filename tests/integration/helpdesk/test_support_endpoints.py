@@ -29,6 +29,7 @@ from addons.helpdesk.management.commands.auto_close_support_tickets import (
 )
 from addons.orders.models import Order
 from addons.mail.models import Notification, NotificationType
+from tests.factories.order_factory import make_order
 
 pytestmark = pytest.mark.integration
 
@@ -71,7 +72,7 @@ class TestCreateTicket:
     def test_create_ticket_with_order_number_resolves(self, auth_client, user, db):
         # H-18: la UI solo conoce order_number (el PK no se expone). El
         # serializer debe resolverlo al order_id del comprador.
-        order = Order.objects.create(
+        order = make_order(
             user=user, order_number='PY-SUP00001', status='DELIVERED',
         )
         res = auth_client.post(TICKETS_URL, {
@@ -536,7 +537,7 @@ class TestCreateTicketOrderOwnership:
     """D-002 — order_id solo se acepta si pertenece al comprador autenticado."""
 
     def _make_order(self, owner):
-        return Order.objects.create(user=owner, status=Order.STATUS_PENDING)
+        return make_order(user=owner, status=Order.STATUS_PENDING)
 
     def test_create_ticket_with_own_order_returns_201(self, auth_client, user, db):
         order = self._make_order(user)

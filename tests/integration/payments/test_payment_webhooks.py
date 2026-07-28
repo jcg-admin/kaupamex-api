@@ -18,6 +18,7 @@ from django.core.checks.registry import registry
 from addons.payment_mercado_pago.checks import check_mercadopago_client_secret
 from addons.payment.models import Payment
 from addons.payment.models import PaymentGateway
+from tests.factories.order_factory import make_order
 
 pytestmark = pytest.mark.integration
 
@@ -42,8 +43,7 @@ def orden_processing_mp(db, user, cat_wh):
     )
     prod.categories.add(cat_wh)
     order = Order.objects.create(
-        user=user, status='PENDING',
-        # O2C R8: par canonico — la proyeccion deriva el estado de los ejes.
+        user=user, # O2C R8: par canonico — la proyeccion deriva el estado de los ejes.
         sale_order=SaleOrder.objects.create(state=SaleOrder.STATE_SALE),
     )
     OrderItem.objects.create(
@@ -403,8 +403,7 @@ class TestPayPalWebhook:
         )
         prod.categories.add(cat_wh)
         order = Order.objects.create(
-        user=user, status='PENDING',
-        # O2C R8: par canonico — la proyeccion deriva el estado de los ejes.
+        user=user, # O2C R8: par canonico — la proyeccion deriva el estado de los ejes.
         sale_order=SaleOrder.objects.create(state=SaleOrder.STATE_SALE),
     )
         OrderItem.objects.create(

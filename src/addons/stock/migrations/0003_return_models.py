@@ -1,9 +1,13 @@
-"""Adopta los modelos de devolución (RMA) en ``stock`` (state-only).
+"""Crea los modelos de devolución (RMA) en ``stock``.
 
-Las tablas ``return_request``/``return_item``/``return_history_entry``/
-``return_evidence`` ya existen (creadas por la ex-migración ``returns.0001``);
-el RMA se re-aloja en ``stock`` (hogar fiel: devolución = return picking de Odoo).
-Solo cambia el ``app_label``.
+El RMA se aloja en ``stock`` (hogar fiel: devolución = return picking de Odoo);
+las tablas conservan el nombre histórico ``return_*`` vía ``db_table``.
+
+**H-API-21 (2026-07-28):** nació ``state-only`` porque las tablas ya existían,
+creadas por la ex-migración ``returns.0001``. Al plegarse ``returns`` en
+``stock`` esa migración se eliminó del árbol y nadie quedó creando las tablas:
+todo build *desde cero* moría con ``Table 'return_request' doesn't exist``.
+Se restituye la creación real. Mismo defecto que ``rating.0001_initial``.
 """
 import addons.stock.models.return_request
 import django.db.models.deletion
@@ -252,9 +256,5 @@ class Migration(migrations.Migration):
         ),
     ]
 
-    operations = [
-        migrations.SeparateDatabaseAndState(
-            state_operations=state_operations,
-            database_operations=[],
-        ),
-    ]
+    # H-API-21: las operaciones se aplican a la BD, no sólo al estado.
+    operations = state_operations

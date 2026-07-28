@@ -14,6 +14,7 @@ from addons.payment.models import PaymentGateway
 from addons.payment.models import Payment
 from addons.payment_paypal.gateway import PayPalGateway
 from addons.payment.gateways.base import BaseGateway
+from tests.factories.order_factory import make_order
 
 pytestmark = pytest.mark.integration
 
@@ -39,7 +40,7 @@ def prod_pp(db, cat_pp):
 
 @pytest.fixture
 def orden_paypal(db, user, prod_pp):
-    order = Order.objects.create(user=user, status='PENDING')
+    order = make_order(user=user, status='PENDING')
     OrderItem.objects.create(
         order=order, product_name=prod_pp.name,
         sku=prod_pp.sku, unit_price=prod_pp.price,

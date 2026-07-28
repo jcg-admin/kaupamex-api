@@ -12,6 +12,7 @@ from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from addons.payment.models import Payment, Refund
 from addons.payment.models import PaymentGateway
 from django.contrib.auth import get_user_model
+from tests.factories.order_factory import make_order
 
 pytestmark = pytest.mark.integration
 
@@ -44,7 +45,7 @@ def prod_ref(db, cat_ref):
 def _make_order_with_payment(user, prod, gateway='MERCADOPAGO', status='APPROVED'):
     """Helper para crear orden + payment en el estado indicado."""
 
-    order = Order.objects.create(user=user, status='PROCESSING' if status == 'APPROVED' else 'PENDING')
+    order = make_order(user=user, status='PROCESSING' if status == 'APPROVED' else 'PENDING')
     OrderItem.objects.create(
         order=order, product_name=prod.name, sku=prod.sku,
         unit_price=prod.price, quantity=1, subtotal=prod.price,

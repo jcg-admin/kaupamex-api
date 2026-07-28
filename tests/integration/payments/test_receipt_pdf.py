@@ -27,6 +27,7 @@ from addons.payment.models import Payment
 from addons.payments.pdf_receipt import HELPER_PATH, build_receipt_payload
 from addons.base.models import SiteSettings
 from addons.users.models import BusinessEvent
+from tests.factories.order_factory import make_order
 
 pytestmark = pytest.mark.integration
 
@@ -57,7 +58,7 @@ def other_user(db):
 
 def _make_paid_order(user, *, status=Order.STATUS_PAID, with_payment=True):
     """Orden con snapshots financieros + (opcional) Payment aprobado."""
-    order = Order.objects.create(user=user, status=status)
+    order = make_order(user=user, status=status)
     OrderItem.objects.create(
         order=order, product_name='Collar Eleguá', sku='YOR-001',
         unit_price=Decimal('450.00'), quantity=2,

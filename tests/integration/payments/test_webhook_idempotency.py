@@ -20,6 +20,7 @@ from addons.orders.status_projection import order_status
 from addons.sale.models import SaleOrder
 from addons.payment.models import Payment, WebhookEvent
 from addons.payment.models import PaymentGateway
+from tests.factories.order_factory import make_order
 
 pytestmark = pytest.mark.integration
 
@@ -53,8 +54,7 @@ def order_mp_pending(db, user, cat_idem):
     )
     prod.categories.add(cat_idem)
     order = Order.objects.create(
-        user=user, status='PENDING',
-        # O2C R8: par canonico — la proyeccion deriva el estado de los ejes.
+        user=user, # O2C R8: par canonico — la proyeccion deriva el estado de los ejes.
         sale_order=SaleOrder.objects.create(state=SaleOrder.STATE_SALE),
     )
     OrderItem.objects.create(
@@ -90,8 +90,7 @@ def order_paypal_pending(db, user, cat_idem):
     )
     prod.categories.add(cat_idem)
     order = Order.objects.create(
-        user=user, status='PENDING',
-        # O2C R8: par canonico — la proyeccion deriva el estado de los ejes.
+        user=user, # O2C R8: par canonico — la proyeccion deriva el estado de los ejes.
         sale_order=SaleOrder.objects.create(state=SaleOrder.STATE_SALE),
     )
     OrderItem.objects.create(

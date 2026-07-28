@@ -37,7 +37,7 @@ def _canonical_order(user, *, approved, mirror_status):
                           para probar que el guard NO lo lee.
     """
     so = SaleOrder.objects.create(state=SaleOrder.STATE_SALE)
-    order = Order.objects.create(user=user, sale_order=so, status=mirror_status)
+    order = Order.objects.create(user=user, sale_order=so)
     if approved:
         Payment.objects.create(
             order=order, sale_order=so,
@@ -111,7 +111,7 @@ class TestAdminSerializerOrderStatusOnProjection:
         # Sin pago aprobado → PENDING; pero necesitamos un Payment (no aprobado)
         # para serializar: lo creamos FAILED, que no altera la proyección.
         so = SaleOrder.objects.create(state=SaleOrder.STATE_SALE)
-        order = Order.objects.create(user=user, sale_order=so, status=Order.STATUS_PAID)
+        order = Order.objects.create(user=user, sale_order=so)
         payment = Payment.objects.create(
             order=order, sale_order=so,
             gateway=Payment.GATEWAY_MERCADOPAGO,

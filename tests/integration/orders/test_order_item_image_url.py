@@ -10,6 +10,7 @@ import pytest
 
 from addons.orders.serializers import OrderItemSerializer
 from addons.orders.models import Order, OrderItem
+from tests.factories.order_factory import make_order
 
 pytestmark = pytest.mark.integration
 
@@ -19,7 +20,7 @@ def test_order_item_serializer_exposes_image_url_field():
 
 
 def test_image_url_is_none_when_item_has_no_product(db):
-    order = Order.objects.create(order_number='PY-IMG00001', status='DELIVERED')
+    order = make_order(order_number='PY-IMG00001', status='DELIVERED')
     item = OrderItem.objects.create(
         order=order, product=None, product_name='Pieza histórica',
         sku='SKU-X', unit_price='100.00', quantity=1, subtotal='100.00',

@@ -16,8 +16,9 @@ UC-NOT-01: OrderValue.post_save(created=True) — dispara cuando el
   snapshot financiero se persiste, garantizando que instance.total
   esta disponible (Order no tiene campo total directo).
 
-UC-NOT-02: Order.post_save(created=False) + transicion de status —
-  pre_save captura _old_status para detectar cambios sin query extra.
+UC-NOT-02: ya NO se dispara por signal (O2C V5d) — la columna espejo
+  ``Order.status`` cuyo cambio se observaba fue retirada; cada mutacion de
+  eje llama ``notify_order_status_changed`` explicitamente.
 
 UC-NOT-04: ReturnRequest.post_save, transicion a APPROVED/REJECTED.
 UC-NOT-05: Refund.post_save(created=True, status=APPROVED).
@@ -37,7 +38,6 @@ from addons.helpdesk.models import SupportTicket
 
 from addons.mail.models.notification_service import (
     notify_order_created,
-    notify_order_status_changed,
     notify_refund_processed,
     notify_return_processed,
     notify_support_closed,
@@ -62,38 +62,14 @@ def _order_value_created(sender, instance, created, **kwargs):
         )
 
 
-# ── UC-NOT-02: Order status transition ────────────────────────────
-
-@receiver(pre_save, sender=Order)
-def _cache_order_old_status(sender, instance, **kwargs):
-    """Captura status anterior para detectar transicion en post_save."""
-    update_fields = kwargs.get('update_fields')
-    if update_fields is not None and 'status' not in update_fields:
-        instance._old_status = getattr(instance, '_old_status', None)
-        return
-    if instance.pk:
-        try:
-            instance._old_status = Order.objects.get(pk=instance.pk).status
-        except Order.DoesNotExist:
-            instance._old_status = None
-    else:
-        instance._old_status = None
-
-
-@receiver(post_save, sender=Order)
-def _order_status_changed(sender, instance, created, **kwargs):
-    """Dispara UC-NOT-02 cuando el status de la orden cambia."""
-    if created:
-        return
-    old = getattr(instance, '_old_status', None)
-    if old is not None and old != instance.status:
-        try:
-            notify_order_status_changed(instance, instance.status)
-        except Exception:
-            logger.warning(
-                '_order_status_changed: notificacion fallida para Order %s',
-                instance.pk, exc_info=True,
-            )
+# ── UC-NOT-02: Order status transition — SIN SIGNAL (O2C V5d) ─────────
+#
+# El par ``pre_save``/``post_save`` que detectaba la transicion colgaba de la
+# escritura de la columna espejo ``orders_order.status``, retirada en V5d: ya no
+# existe un campo cuyo cambio observar (el estado se DERIVA de los tres ejes
+# canonicos). La notificacion es ahora **explicita** en cada punto de mutacion
+# del eje — hub admin, ``cancel_order``, alta de guia, confirmacion de entrega —
+# via ``notify_order_status_changed``. Ver H-API-20.
 
 
 # ── UC-NOT-04: ReturnRequest → APPROVED / REJECTED ─────────────────

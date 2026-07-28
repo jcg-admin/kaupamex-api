@@ -12,6 +12,7 @@ from PIL import Image as PILImage
 from tests.factories.user_factory import make_buyer
 
 import pytest
+from tests.factories.order_factory import make_order
 
 pytestmark = pytest.mark.integration
 
@@ -83,7 +84,7 @@ def prod_rev(db, cat_rev):
 
 @pytest.fixture
 def order_user_with_product(db, user, prod_rev):
-    o = Order.objects.create(user=user, status='DELIVERED')
+    o = make_order(user=user, status='DELIVERED')
     OrderItem.objects.create(
         order=o, product=prod_rev, product_name=prod_rev.name,
         sku=prod_rev.sku, unit_price=Decimal('100'),
@@ -115,7 +116,7 @@ class TestPublicReviewListing:
         u2 = get_user_model().objects.create_user(
             email='u2@rev.com', password='x',
         )
-        o2 = Order.objects.create(user=u2, status='DELIVERED')
+        o2 = make_order(user=u2, status='DELIVERED')
         Review.objects.create(
             user=u2, product=prod_rev, order=o2,
             rating=2, title='Mala', body='Mala',
@@ -154,7 +155,7 @@ class TestCreateReview:
         other = get_user_model().objects.create_user(
             email='or@rev.com', password='x',
         )
-        o = Order.objects.create(user=other, status='DELIVERED')
+        o = make_order(user=other, status='DELIVERED')
         r = auth_client.post(PRODUCT_REVIEWS_URL(prod_rev.id), {
             'order_id': o.id, 'rating': 4, 'title': 'X', 'body': 'X',
         }, format='json')
@@ -168,7 +169,7 @@ class TestCreateReview:
         reseñar productos de ordenes ENTREGADAS. Antes cualquier
         estado pasaba el guard."""
         for st in ('PENDING', 'PROCESSING', 'SHIPPED'):
-            o = Order.objects.create(user=user, status=st)
+            o = make_order(user=user, status=st)
             OrderItem.objects.create(
                 order=o, product=prod_rev, product_name=prod_rev.name,
                 sku=prod_rev.sku, unit_price=Decimal('100'), quantity=1,
@@ -406,7 +407,7 @@ class TestRatingFilterAndSorting:
     """UC-REV-01 — rating filter excludes non-matching; helpful sort orders correctly."""
 
     def _make_order(self, db, user):
-        o = Order.objects.create(user=user, status='DELIVERED')
+        o = make_order(user=user, status='DELIVERED')
         OrderValue.objects.create(
             order=o, subtotal=Decimal('100'), tax=Decimal('0'),
             shipping_cost=Decimal('0'), total=Decimal('100'),
@@ -535,7 +536,7 @@ class TestCreateReviewEdgeCases:
         )
         other_prod.categories.add(cat_rev)
         other_prod.categories.add(cat_rev)
-        o = Order.objects.create(user=user, status='DELIVERED')
+        o = make_order(user=user, status='DELIVERED')
         # order only contains other_prod, not prod_rev
         OrderItem.objects.create(
             order=o, product=other_prod, product_name=other_prod.name,
@@ -726,7 +727,7 @@ class TestBuyerEditReview:
         other = get_user_model().objects.create_user(
             email='otheredit@rev.com', password='x',
         )
-        o_other = Order.objects.create(user=other, status='DELIVERED')
+        o_other = make_order(user=other, status='DELIVERED')
         review = Review.objects.create(
             user=other, product=prod_rev, order=o_other,
             rating=2, title='Otro', body='Cuerpo de otro usuario largo',
@@ -960,7 +961,7 @@ class TestUcRev01CreateErrorHandling:
         other = get_user_model().objects.create_user(
             email='ac05o@rev.com', password='x',
         )
-        o = Order.objects.create(user=other, status='DELIVERED')
+        o = make_order(user=other, status='DELIVERED')
         r = auth_client.post(
             PRODUCT_REVIEWS_URL(prod_rev.id),
             {'order_id': o.id, 'rating': 4, 'title': 'X', 'body': 'cuerpo'},

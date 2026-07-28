@@ -21,6 +21,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 import pytest
+from tests.factories.order_factory import make_order
 
 pytestmark = pytest.mark.integration
 
@@ -60,7 +61,7 @@ def _canonical_ready_order(user, prod, *, approved=True,
     la nueva guarda NO lo lee. Con ``approved=False`` no se crea el Payment.
     """
     so = SaleOrder.objects.create(state=SaleOrder.STATE_SALE)
-    o = Order.objects.create(user=user, sale_order=so, status=legacy_status)
+    o = Order.objects.create(user=user, sale_order=so)
     OrderItem.objects.create(
         order=o, product=prod, product_name=prod.name,
         sku=prod.sku, unit_price=prod.price,
@@ -126,7 +127,7 @@ class TestLogisticsPanel:
     ):
         # group A: order_log has no guide.
         # group B: create another order + guide.
-        o2 = Order.objects.create(user=user, status='SHIPPED')
+        o2 = make_order(user=user)   # la guia se crea abajo (V5d)
         OrderItem.objects.create(
             order=o2, product=prod_log, product_name=prod_log.name,
             sku='X', unit_price=Decimal('100'), quantity=1,
@@ -138,7 +139,8 @@ class TestLogisticsPanel:
         OrderAddress.objects.create(order=o2, recipient_name='X',
             street='Y', city='Z', state='Z', zip_code='00000')
         ShipmentGuide.objects.create(
-            order=o2, courier=courier_log, tracking_number='TRK-001',
+            order=o2, sale_order=o2.sale_order,
+            courier=courier_log, tracking_number='TRK-001',
         )
         r = admin_client.get(PANEL_URL)
         assert r.status_code == 200
@@ -205,7 +207,7 @@ class TestGuideGuardOnCanonicalAxes:
     ):
         # Orden con el enum legacy IN_PREPARATION pero SIN sale_order: la
         # vieja guarda la aceptaría; la nueva la rechaza (sin eje canónico).
-        o = Order.objects.create(
+        o = make_order(
             user=user, status=Order.STATUS_IN_PREPARATION,
         )
         OrderItem.objects.create(
@@ -528,7 +530,7 @@ class TestUpdateTrackingNumber:
         # pero permite. Nota: la unicidad es per-courier (unique_tracking_per_courier),
         # así que el duplicado reachable es cross-courier.
         c2 = Courier.objects.create(name='DHL-dup', code='DHLD')
-        o2 = Order.objects.create(user=user, status=Order.STATUS_IN_PREPARATION)
+        o2 = make_order(user=user, status=Order.STATUS_IN_PREPARATION)
         ShipmentGuide.objects.create(
             order=o2, courier=c2, tracking_number='DUP-TRK',
         )

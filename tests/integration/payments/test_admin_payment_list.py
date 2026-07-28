@@ -13,6 +13,7 @@ from django.contrib.auth import get_user_model
 from addons.catalogue.models import Category, Product
 from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from addons.payment.models import Payment, Refund
+from tests.factories.order_factory import make_order
 
 pytestmark = pytest.mark.integration
 
@@ -20,7 +21,7 @@ LIST_URL = '/api/v2/admin/payments/'
 
 
 def _make_order(user, sku, total):
-    order = Order.objects.create(user=user, status='PROCESSING')
+    order = make_order(user=user, status='PROCESSING')
     OrderItem.objects.create(
         order=order, product_name='Prod', sku=sku,
         unit_price=total, quantity=1, subtotal=total,

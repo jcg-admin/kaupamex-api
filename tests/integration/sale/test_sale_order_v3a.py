@@ -15,6 +15,7 @@ from addons.orders.models import Order
 from addons.payment.models import Payment
 from addons.sale.models import SaleOrder
 from addons.sale.services import add_item_to_draft, confirm_draft_order
+from addons.orders.status_projection import order_status
 
 pytestmark = pytest.mark.django_db
 
@@ -53,7 +54,7 @@ class TestMirrorKnowsItsCanonical:
         assert canonical.legacy_order.pk == legacy.pk
         assert canonical.state == SaleOrder.STATE_SALE
         assert canonical.name and canonical.name.startswith('S-')
-        assert legacy.status == Order.STATUS_PENDING
+        assert order_status(legacy) == Order.STATUS_PENDING
 
     def test_confirm_releases_cart_token_on_canonical(self, product_v3):
         canonical, _ = _confirmed_pair(product_v3)

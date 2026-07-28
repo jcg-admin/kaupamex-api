@@ -14,6 +14,7 @@ from addons.payment.models import Payment
 from addons.sale.models import SaleOrder
 from django.contrib.auth import get_user_model
 from addons.base.models import SiteSettings
+from tests.factories.order_factory import make_order
 
 
 def _canonical_order(user, *, approved=False):
@@ -59,7 +60,7 @@ def prod_adm(db, cat_adm):
 
 
 def _make_order(user, prod, status='PENDING'):
-    order = Order.objects.create(user=user, status=status)
+    order = make_order(user=user, status=status)
     OrderItem.objects.create(
         order=order, product_name=prod.name, sku=prod.sku,
         unit_price=prod.price, quantity=1, subtotal=prod.price,
@@ -336,7 +337,10 @@ class TestTransicionEstadoAdmin:
         order_in_memory_A = _make_order(user, prod_adm, 'PENDING')
         # Admin B (simulado) cancela la orden via UPDATE directo (no
         # tocar la instancia en memoria de A).
-        Order.objects.filter(pk=order_in_memory_A.pk).update(status='CANCELLED')
+        # O2C V5d: sin columna espejo, "admin B" cancela por el EJE comercial.
+        # La instancia de A sigue stale en memoria; select_for_update la re-lee.
+        sale_b = SaleOrder.objects.get(pk=order_in_memory_A.sale_order_id)
+        sale_b.action_cancel()
         # Admin A intenta transicionar a PROCESSING usando su instancia
         # stale. select_for_update fuerza re-lectura: DB.status =
         # CANCELLED (terminal) -> ValueError.

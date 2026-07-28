@@ -14,6 +14,7 @@ from addons.mail.models import ManualNotification, Notification
 from addons.orders.models import Order, OrderItem
 
 import pytest
+from tests.factories.order_factory import make_order
 
 
 ADMIN_MANUAL_URL = '/api/v2/admin/notifications/'
@@ -39,7 +40,7 @@ def _create_buyers(n):
             email=f'syncbuyer{i}@practicayoruba.mx',
             password='Pw123456!',
         )
-        order = Order.objects.create(user=u)
+        order = make_order(user=u)
         OrderItem.objects.create(
             order=order,
             product=product,

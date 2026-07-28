@@ -13,6 +13,7 @@ from addons.orders.models import Order
 from addons.delivery.models import ShippingMethod
 from addons.sale.models import SaleOrder
 from addons.payment.models import Payment
+from tests.factories.order_factory import make_order
 
 pytestmark = pytest.mark.integration
 
@@ -95,7 +96,7 @@ class TestShippingMethods:
             name='Con ordenes', cost=Decimal('50.00'), estimated_days=4,
         )
         # Orden activa que referencia el metodo (estado distinto a terminal).
-        Order.objects.create(
+        make_order(
             user=user, status='PROCESSING', shipping_method=method,
         )
         r = admin_client.delete(DETAIL_URL(method.pk))

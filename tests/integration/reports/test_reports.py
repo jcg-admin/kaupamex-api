@@ -23,6 +23,7 @@ from addons.sale.models import SaleOrder
 from addons.sale.services import add_item_to_draft, confirm_draft_order
 
 import pytest
+from tests.factories.order_factory import make_order
 
 pytestmark = pytest.mark.integration
 
@@ -104,7 +105,7 @@ def buyer_b(db):
 def _make_order(user, product, qty=1, when=None, status='DELIVERED',
                 gateway='MERCADOPAGO', payment_status='APPROVED'):
     when = when or _now()
-    o = Order.objects.create(user=user, status=status)
+    o = make_order(user=user, status=status)
     Order.objects.filter(pk=o.pk).update(created_at=when, updated_at=when)
     OrderItem.objects.create(
         order=o, product=product,

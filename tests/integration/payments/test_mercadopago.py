@@ -19,6 +19,8 @@ from addons.payment.models import PaymentGateway
 from addons.payment.models import Payment, PaymentGatewayEvent
 from addons.payment_mercado_pago.gateway import MercadoPagoGateway
 from addons.users.models import Address
+from tests.factories.order_factory import make_order
+from tests.factories.order_factory import mark_delivered
 
 pytestmark = pytest.mark.integration
 
@@ -52,7 +54,7 @@ def prod_s15(db, cat_s15):
 @pytest.fixture
 def orden_pendiente(db, user, prod_s15):
     """Orden en estado PENDING con OrderValue."""
-    order = Order.objects.create(
+    order = make_order(
         user=user, status='PENDING',
     )
     OrderItem.objects.create(
@@ -217,8 +219,8 @@ class TestIniciarPago:
     def test_iniciar_pago_orden_no_pending_retorna_400(
         self, auth_client, orden_pendiente, mp_gateway_activo, mock_mp_sdk, db
     ):
-        orden_pendiente.status = 'DELIVERED'
-        orden_pendiente.save()
+        # O2C V5d: DELIVERED se produce por el EJE de fulfillment.
+        mark_delivered(orden_pendiente)
         res = auth_client.post(INITIATE_URL, {
             'order_number': orden_pendiente.order_number,
         }, format='json')
@@ -444,7 +446,7 @@ class TestCheckoutExpress:
             is_default=True,
         )
         # Crear orden entregada
-        o = Order.objects.create(user=user, status='DELIVERED')
+        o = make_order(user=user, status='DELIVERED')
 
         res = auth_client.get(ELIGIBILITY_URL)
         data = res.json()
@@ -455,7 +457,7 @@ class TestCheckoutExpress:
     def test_comprador_sin_direccion_default_no_es_elegible(
         self, auth_client, user, db
     ):
-        Order.objects.create(user=user, status='DELIVERED')
+        make_order(user=user, status='DELIVERED')
         # Sin dirección default
         res = auth_client.get(ELIGIBILITY_URL)
         assert res.json()['express_available'] is False
@@ -489,7 +491,7 @@ class TestCheckoutExpress:
             city='CDMX', state='CMX', zip_code='06600',
             is_default=True,
         )
-        Order.objects.create(user=user, status='DELIVERED')
+        make_order(user=user, status='DELIVERED')
 
         # Agregar producto al carrito
         prod_s15.stock = 10
@@ -521,7 +523,7 @@ class TestCheckoutExpress:
             city='CDMX', state='CMX', zip_code='06600',
             is_default=True,
         )
-        Order.objects.create(user=user, status='DELIVERED')
+        make_order(user=user, status='DELIVERED')
 
         auth_client.post('/api/v2/cart/items/', {
             'product_id': prod_s15.pk, 'quantity': 1,

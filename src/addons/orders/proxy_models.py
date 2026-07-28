@@ -9,9 +9,9 @@ O2C V5c-3 (cut-over ``orders → sale``, rebanada 5): los dos proxies **vivos**
 **ejes canónicos** — comercial (``sale.SaleOrder.state``), pago
 (``payment.Payment``) y fulfillment (guía ``delivery.ShipmentGuide``) — con la
 misma semántica que ``status_projection.order_status`` (fulfillment gana; luego
-pago decide PENDING vs PAID). Se conserva el guard null-safe de la proyección:
-las filas legacy sin enlace canónico (``sale_order_id IS NULL``, pre-V3a) caen a
-la columna espejo hasta la data migration de V5d.
+pago decide PENDING vs PAID). V5d retiró la columna espejo y con ella el guard
+null-safe: ``sale_order`` es obligatorio, así que la pertenencia es puramente
+canónica.
 
 Los seis proxies **muertos** (``PendingOrder``, ``ProcessingOrder``,
 ``InPreparationOrder``, ``ShippedOrder``, ``CancelledOrder``, ``RefundedOrder``)
@@ -55,21 +55,15 @@ def _with_axis_annotations(queryset):
     )
 
 
-# Fila legacy sin canónica: la proyección ``order_status`` cae a la columna
-# espejo (guard null-safe). Se replica aquí para pertenencia idéntica.
-_LEGACY = Q(sale_order__isnull=True)
 _IS_SALE = Q(sale_order__state=SaleOrder.STATE_SALE)
 
 
 class DeliveredOrderManager(models.Manager):
-    """Órdenes entregadas: guía viva entregada (canónico) o, en filas legacy
-    sin canónica, ``status == DELIVERED`` (espejo)."""
+    """Órdenes entregadas: venta confirmada con guía viva entregada."""
 
     def get_queryset(self):
         base = _with_axis_annotations(super().get_queryset())
-        canonical = _IS_SALE & Q(_has_delivered_guide=True)
-        legacy = _LEGACY & Q(status=Order.STATUS_DELIVERED)
-        return base.filter(canonical | legacy)
+        return base.filter(_IS_SALE & Q(_has_delivered_guide=True))
 
 
 class ActiveOrderManager(models.Manager):
@@ -87,13 +81,7 @@ class ActiveOrderManager(models.Manager):
 
     def get_queryset(self):
         base = _with_axis_annotations(super().get_queryset())
-        canonical = _IS_SALE & Q(_has_delivered_guide=False)
-        legacy = _LEGACY & Q(status__in=[
-            Order.STATUS_PENDING, Order.STATUS_PROCESSING,
-            Order.STATUS_IN_PREPARATION, Order.STATUS_PAID,
-            Order.STATUS_SHIPPED,
-        ])
-        return base.filter(canonical | legacy)
+        return base.filter(_IS_SALE & Q(_has_delivered_guide=False))
 
 
 # =============================================================================

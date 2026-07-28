@@ -194,10 +194,13 @@ def update_order_address(order, address_data: dict, changed_by=None):
         setattr(address, field, value)
     address.save()
 
+    # O2C V5d: sin columna espejo, el estado del log se DERIVA. Editar la
+    # dirección no transiciona (previous == new), así que se deriva una vez.
+    current_status = order_status(order)
     OrderStatusLog.objects.create(
         order=order,
-        previous_status=order.status,
-        new_status=order.status,
+        previous_status=current_status,
+        new_status=current_status,
         changed_by=changed_by,
         notes=(
             f'Dirección actualizada: {previous_summary} → '
@@ -279,10 +282,12 @@ def update_shipping_method(order, shipping_method_id: int, changed_by=None):
         order.shipping_method = new_method
         order.save(update_fields=['shipping_method', 'updated_at'])
 
+        # O2C V5d: idem — cambiar el método de envío no transiciona el estado.
+        current_status = order_status(order)
         OrderStatusLog.objects.create(
             order=order,
-            previous_status=order.status,
-            new_status=order.status,
+            previous_status=current_status,
+            new_status=current_status,
             changed_by=changed_by,
             notes=(
                 f'Método de envío actualizado: '

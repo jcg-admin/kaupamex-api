@@ -4,6 +4,12 @@ La tabla ``contact_message`` ya existe (creada por la ex-migración
 ``contact.0001``); el mensaje del formulario de contacto se re-aloja en ``crm``
 —hogar fiel de las capturas del formulario de contacto (Odoo ``website_crm`` →
 ``crm.lead``)—. Solo cambia el ``app_label``.
+
+**H-API-21 (2026-07-28):** nació ``state-only`` porque la tabla ya existía,
+creada por la ex-migración del app donante. Al plegarse ese app su migración
+se eliminó del árbol y nadie quedó creando la tabla. El defecto era
+**silencioso** (``migrate`` termina OK; sólo falla el ORM en runtime) y
+quedaba oculto bajo ``--reuse-db``. Se restituye la creación real.
 """
 import django.db.models.deletion
 from django.conf import settings
@@ -50,6 +56,5 @@ class Migration(migrations.Migration):
         ),
     ]
 
-    operations = [
-        migrations.SeparateDatabaseAndState(state_operations=state_operations, database_operations=[]),
-    ]
+    # H-API-21: las operaciones se aplican a la BD, no sólo al estado.
+    operations = state_operations

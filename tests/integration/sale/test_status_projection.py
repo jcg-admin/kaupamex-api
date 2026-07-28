@@ -56,16 +56,15 @@ def confirmed(product_v5c):
     return draft, legacy
 
 
-class TestProjectionReproducesMirror:
+class TestProjectionFromCanonicalAxes:
     def test_draft_projects_draft(self, db):
         draft = SaleOrder.objects.create(
             state=SaleOrder.STATE_DRAFT, cart_token=uuid.uuid4())
         assert derive_order_status(draft) == Order.STATUS_DRAFT
 
     def test_pending_after_confirm(self, confirmed):
-        sale, legacy = confirmed
-        assert legacy.status == Order.STATUS_PENDING
-        assert derive_order_status(sale) == legacy.status
+        sale, _legacy = confirmed
+        assert derive_order_status(sale) == Order.STATUS_PENDING
 
     def test_paid_after_payment_approved(self, confirmed):
         sale, legacy = confirmed
@@ -73,10 +72,9 @@ class TestProjectionReproducesMirror:
             order=legacy, sale_order=sale,
             gateway=Payment.GATEWAY_MERCADOPAGO,
             status=Payment.STATUS_APPROVED, amount=Decimal('110.00'))
-        legacy.status = Order.STATUS_PAID  # espejo: webhook fija PAID
-        legacy.save(update_fields=['status'])
+        # O2C V5d: la columna espejo fue retirada — ya no hay un
+        # ``legacy.status`` contra el cual contrastar; el eje ES el estado.
         assert derive_order_status(sale) == Order.STATUS_PAID
-        assert derive_order_status(sale) == legacy.status
 
     def test_shipped_when_guide_created(self, confirmed):
         sale, legacy = confirmed
@@ -89,11 +87,9 @@ class TestProjectionReproducesMirror:
         ShipmentGuide.objects.create(
             order=legacy, sale_order=sale, courier=courier,
             tracking_number='V5C-TRK-001')
-        legacy.status = Order.STATUS_SHIPPED
-        legacy.save(update_fields=['status'])
+        # O2C V5d: sin espejo que escribir; la guia viva ES el eje.
         sale.refresh_from_db()
         assert derive_order_status(sale) == Order.STATUS_SHIPPED
-        assert derive_order_status(sale) == legacy.status
 
     def test_delivered_when_guide_delivered(self, confirmed):
         sale, legacy = confirmed

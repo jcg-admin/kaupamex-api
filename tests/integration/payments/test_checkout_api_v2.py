@@ -53,8 +53,7 @@ def prod_v2(db, cat_v2):
 def orden_v2(db, user, prod_v2):
     """Orden PENDING con OrderValue total=3000."""
     order = Order.objects.create(
-        user=user, status='PENDING',
-        # O2C R8: par canonico — la proyeccion deriva el estado de los ejes.
+        user=user, # O2C R8: par canonico — la proyeccion deriva el estado de los ejes.
         sale_order=SaleOrder.objects.create(state=SaleOrder.STATE_SALE),
     )
     OrderItem.objects.create(
@@ -335,7 +334,7 @@ class TestCheckoutApiDB:
         payment = Payment.objects.get(order=orden_v2)
         assert payment.status == 'FAILED'
         orden_v2.refresh_from_db()
-        assert orden_v2.status == 'PENDING'
+        assert order_status(orden_v2) == 'PENDING'
 
     def test_aprobado_registra_evento_payment_approved(
         self, auth_client, orden_v2, mp_gw, db
@@ -363,7 +362,7 @@ class TestCheckoutApiDB:
         payment = Payment.objects.get(order=orden_v2)
         assert payment.status == 'PENDING'
         orden_v2.refresh_from_db()
-        assert orden_v2.status == 'PENDING'
+        assert order_status(orden_v2) == 'PENDING'
 
 
 # =============================================================================

@@ -13,6 +13,7 @@ from addons.catalogue.models import Category, Product
 from addons.rating.models import Review
 from addons.questions.models import ProductQuestion, QuestionStatus
 from addons.orders.models import Order
+from tests.factories.order_factory import make_order
 
 pytestmark = pytest.mark.integration
 
@@ -188,7 +189,7 @@ class TestProductoDetalle:
     def test_detalle_reviews_summary_agrega_aprobadas(self, api_client, db, product_oshun):
         User = get_user_model()
         u = User.objects.create_user(password='X', email='r@x.com')
-        order = Order.objects.create(user=u, status=Order.STATUS_DELIVERED)
+        order = make_order(user=u, status=Order.STATUS_DELIVERED)
         Review.objects.create(
             user=u, product=product_oshun, order=order,
             rating=4, title='Bien', body='Producto bueno.',
@@ -202,7 +203,7 @@ class TestProductoDetalle:
     def test_detalle_reviews_summary_excluye_pendientes(self, api_client, db, product_oshun):
         User = get_user_model()
         u = User.objects.create_user(password='X', email='r2@x.com')
-        order = Order.objects.create(user=u, status=Order.STATUS_DELIVERED)
+        order = make_order(user=u, status=Order.STATUS_DELIVERED)
         Review.objects.create(
             user=u, product=product_oshun, order=order,
             rating=5, title='Excelente', body='Muy bueno.',

@@ -54,8 +54,13 @@ class Order(MailThread, TimeStampedModel, SoftDeleteModel):
     )
     guest_email     = models.EmailField(null=True, blank=True,
                           help_text='Email del comprador invitado (BR-011).')
-    status          = models.CharField(max_length=20, choices=STATUSES,
-                          default=STATUS_PENDING, db_index=True)
+    # O2C V5d (ADR-024): la columna espejo ``status`` fue RETIRADA. El estado se
+    # deriva de los tres ejes canónicos vía ``status_projection.order_status``
+    # (comercial ``sale.SaleOrder.state`` · pago ``Payment`` · fulfillment
+    # ``ShipmentGuide``). Las constantes ``STATUS_*`` / ``STATUSES`` sobreviven
+    # como **vocabulario** del contrato público (``?status=``, labels del
+    # serializer, ``OrderStatusLog``), no como campo de esta tabla.
+    #
     # S1 unificación cart→order→sale: token del carrito anónimo (paridad con
     # cart.Cart.cart_token). Solo los drafts anónimos lo llevan; la unicidad
     # UNIQUE admite múltiples NULL en SQL.
@@ -63,10 +68,13 @@ class Order(MailThread, TimeStampedModel, SoftDeleteModel):
         unique=True, null=True, blank=True, db_index=True,
         help_text='Carrito anónimo — draft sin user (S1, analisis-unificar-cart-order-sale).')
     # V3a orders→sale (DEC-FW-02): el espejo legacy conoce su canónico.
-    # confirm_draft_order lo fija al confirmar; V5 retira el espejo entero.
+    # O2C V5d: pasa a **obligatorio** (``null=False``) — sin canónica no hay
+    # estado que derivar, y ``PROTECT`` impide que borrar la ``SaleOrder``
+    # reintroduzca el ``NULL`` que el retiro de la columna espejo elimina
+    # (``SET_NULL`` era la puerta trasera del fallback; ver H-API-19).
     sale_order      = models.OneToOneField(
-        'sale.SaleOrder', null=True, blank=True,
-        on_delete=models.SET_NULL, related_name='legacy_order',
+        'sale.SaleOrder',
+        on_delete=models.PROTECT, related_name='legacy_order',
         help_text='SaleOrder canónica de la que este Order es espejo (V3a).')
     shipping_method = models.ForeignKey(
         'delivery.ShippingMethod', null=True, blank=True,

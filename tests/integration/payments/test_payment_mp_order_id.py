@@ -10,12 +10,13 @@ from decimal import Decimal
 
 from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from addons.payment.models import Payment
+from tests.factories.order_factory import make_order
 
 pytestmark = pytest.mark.integration
 
 
 def _make_order(user):
-    order = Order.objects.create(user=user, status='PENDING')
+    order = make_order(user=user, status='PENDING')
     OrderItem.objects.create(
         order=order, product_name='Prod ORD', sku='ORD-T102',
         unit_price=Decimal('200.00'), quantity=1, subtotal=Decimal('200.00'),

@@ -15,6 +15,8 @@ from addons.payment.models import PaymentGateway
 from addons.sale.models import SaleOrder
 from unittest.mock import patch, MagicMock
 from addons.chartsize.models import VariantType, VariantOption, ProductVariant
+from tests.factories.order_factory import make_order
+from addons.orders.status_projection import order_status
 
 pytestmark = pytest.mark.integration
 
@@ -80,7 +82,7 @@ def prod_ord(db, cat_ord):
 
 
 def _create_full_order(user, prod, status='PENDING', n_items=1):
-    order = Order.objects.create(user=user, status=status)
+    order = make_order(user=user, status=status)
     for i in range(n_items):
         OrderItem.objects.create(
             order=order, product_name=prod.name, sku=f'{prod.sku}-{i}',
@@ -329,14 +331,11 @@ class TestCancelarOrden:
         prod_ord.refresh_from_db()
         assert prod_ord.stock == stock_inicial + 1
 
-    def test_cancelar_in_preparation_no_permitido(
-        self, auth_client, user, prod_ord, db
-    ):
-        """IN_PREPARATION no es cancelable por el comprador."""
-        order = _create_full_order(user, prod_ord, status='IN_PREPARATION')
-        res = auth_client.post(CANCEL_URL(order.order_number), {}, format='json')
-        assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'CANCELLATION_NOT_ALLOWED'
+    # O2C V5d: se retiro ``test_cancelar_in_preparation_no_permitido``.
+    # ``IN_PREPARATION`` es un valor MUERTO del enum legacy (0 escritores; la
+    # proyeccion canonica nunca lo emite), asi que el caso no era representable
+    # y el test probaba un estado inalcanzable. El camino no-cancelable real lo
+    # cubre ``test_cancelar_delivered_no_permitido``.
 
     def test_cancelar_delivered_no_permitido(
         self, auth_client, user, prod_ord, db
@@ -489,8 +488,10 @@ class TestEditarDireccion:
         log = order.status_logs.order_by('-created_at').first()
         assert log.changed_by_id == user.id
         # No hay transición de estado real — se usa el mismo patrón de
-        # OrderStatusLog que cancel_order, sin cambiar Order.status.
-        assert log.previous_status == log.new_status == order.status
+        # OrderStatusLog que cancel_order. O2C V5d: el estado se DERIVA de los
+        # ejes (la columna espejo fue retirada), así que previous == new ==
+        # proyección.
+        assert log.previous_status == log.new_status == order_status(order)
         assert 'Guadalajara' in log.notes
 
 
@@ -555,7 +556,8 @@ class TestCambiarMetodoEnvio:
         (cobro/reembolso no implementado) -> se rechaza con 409
         ORDER_NOT_EDITABLE. El cambio solo se permite en estados pre-pago
         (PENDING/PROCESSING)."""
-        for paid_status in ('PAID', 'IN_PREPARATION'):
+        # V5d: ``IN_PREPARATION`` es valor muerto (inalcanzable) — solo PAID.
+        for paid_status in ('PAID',):
             order = _create_full_order(user, prod_ord, status=paid_status)
             res = auth_client.patch(SHIPPING_URL(order.order_number), {
                 'shipping_method_id': shipping_methods['standard'].pk,
@@ -598,8 +600,10 @@ class TestCambiarMetodoEnvio:
         log = order.status_logs.order_by('-created_at').first()
         assert log.changed_by_id == user.id
         # No hay transición de estado real — se usa el mismo patrón de
-        # OrderStatusLog que cancel_order, sin cambiar Order.status.
-        assert log.previous_status == log.new_status == order.status
+        # OrderStatusLog que cancel_order. O2C V5d: el estado se DERIVA de los
+        # ejes (la columna espejo fue retirada), así que previous == new ==
+        # proyección.
+        assert log.previous_status == log.new_status == order_status(order)
         assert shipping_methods['standard'].name in log.notes
 
 

@@ -57,17 +57,13 @@ def derive_order_status(sale_order):
 
 
 def order_status(order):
-    """Estado legacy de un ``orders.Order`` derivado de su canónica.
+    """Estado de un ``orders.Order`` derivado de su canónica.
 
-    Transición V5c-2: los lectores object-level dejan de leer la columna
-    ``order.status`` y derivan de los ejes canónicos vía la O2O
-    ``Order.sale_order`` (fijada por el confirm, V3a). Guarda null-safe:
-    filas legacy sin enlace canónico (pre-V3a) caen a la columna hasta la
-    data migration (V5d). Comportamiento equivalente probado en
-    ``test_status_projection`` (``derive == legacy.status``).
+    V5d: la columna espejo ``order.status`` fue retirada y ``sale_order`` es
+    obligatorio (``null=False`` + ``PROTECT``), así que el fallback null-safe
+    de V5c-2 deja de existir — **toda** ``Order`` deriva de sus ejes. Es la
+    única fuente de estado a nivel de objeto.
     """
-    if order.sale_order_id is None:
-        return order.status
     return derive_order_status(order.sale_order)
 
 
@@ -113,32 +109,25 @@ def _canonical_status_q(status):
     """``Q`` que selecciona las órdenes cuyo estado **proyectado** es
     ``status``, sobre un queryset anotado con :func:`annotate_status_axes`.
 
-    Guard null-safe: las filas legacy sin canónica (``sale_order_id IS NULL``,
-    pre-V3a) caen a la columna espejo, idéntico a :func:`order_status`.
+    V5d: sin columna espejo ni filas sin canónica, cada rama es puramente
+    canónica — el guard null-safe de V5c desapareció junto con el fallback de
+    :func:`order_status`.
     """
-    legacy = Q(sale_order__isnull=True)
     is_sale = Q(sale_order__state=SaleOrder.STATE_SALE)
 
     if status == Order.STATUS_DRAFT:
-        return (Q(sale_order__state=SaleOrder.STATE_DRAFT)
-                | (legacy & Q(status=Order.STATUS_DRAFT)))
+        return Q(sale_order__state=SaleOrder.STATE_DRAFT)
     if status == Order.STATUS_PENDING:
-        return ((is_sale & Q(_has_approved=False) & Q(_has_active_guide=False))
-                | (legacy & Q(status=Order.STATUS_PENDING)))
+        return is_sale & Q(_has_approved=False) & Q(_has_active_guide=False)
     if status == Order.STATUS_PAID:
-        return ((is_sale & Q(_has_approved=True) & Q(_has_active_guide=False))
-                | (legacy & Q(status=Order.STATUS_PAID)))
+        return is_sale & Q(_has_approved=True) & Q(_has_active_guide=False)
     if status == Order.STATUS_SHIPPED:
-        return ((is_sale & Q(_has_active_guide=True) & Q(_has_delivered_guide=False))
-                | (legacy & Q(status=Order.STATUS_SHIPPED)))
+        return is_sale & Q(_has_active_guide=True) & Q(_has_delivered_guide=False)
     if status == Order.STATUS_DELIVERED:
-        return ((is_sale & Q(_has_delivered_guide=True))
-                | (legacy & Q(status=Order.STATUS_DELIVERED)))
+        return is_sale & Q(_has_delivered_guide=True)
     if status == Order.STATUS_CANCELLED:
         # ``sale.state='cancel'`` colapsa CANCELLED y CANCELLED_TIMEOUT.
-        return (Q(sale_order__state=SaleOrder.STATE_CANCEL)
-                | (legacy & Q(status__in=[Order.STATUS_CANCELLED,
-                                          Order.STATUS_CANCELLED_BY_TIMEOUT])))
+        return Q(sale_order__state=SaleOrder.STATE_CANCEL)
     raise ValueError(status)
 
 

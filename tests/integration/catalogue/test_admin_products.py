@@ -12,6 +12,7 @@ from addons.catalogue.models import Category, Product, ProductImage
 from addons.orders.models import Order, OrderItem
 from django.core.cache import cache
 from addons.catalogue.serializers import ProductAdminSerializer
+from tests.factories.order_factory import make_order
 
 pytestmark = pytest.mark.integration
 
@@ -366,7 +367,7 @@ class TestEditarProductoAdmin:
         self, admin_client, product_sopera, db
     ):
         """BR-005: snapshot en OrderItem es inmutable frente a cambios de precio en Product."""
-        order = Order.objects.create(order_number='PY-BR005TEST')
+        order = make_order(order_number='PY-BR005TEST')
         OrderItem.objects.create(
             order=order,
             product=product_sopera,

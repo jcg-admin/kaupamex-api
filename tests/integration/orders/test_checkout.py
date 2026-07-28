@@ -13,6 +13,7 @@ from addons.orders.models import Order, OrderValue, OrderAddress, ShippingZone
 from addons.sale.models import SaleOrder
 from addons.loyalty.models import Voucher
 from django.utils import timezone
+from tests.factories.order_factory import make_order
 pytestmark = pytest.mark.integration
 
 CHECKOUT_URL = '/api/v2/orders/'
@@ -416,7 +417,7 @@ class TestShippingMethodProtection:
     def test_desactivar_metodo_con_ordenes_activas_retorna_400(
         self, admin_client, shipping, prod_ord, db
     ):
-        o = Order.objects.create(
+        o = make_order(
             order_number='PY-TEST0001',
             status='PENDING', shipping_method=shipping
         )

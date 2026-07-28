@@ -422,7 +422,8 @@ def confirm_draft_order(order, *, address_data, guest_email=None, notes='',
             user=order.partner,
             guest_email=(guest_email if (guest_email and not order.partner_id)
                          else None),
-            status=Order.STATUS_PENDING,
+            # O2C V5d: sin columna espejo. El PENDING inicial lo produce el
+            # estado real de los ejes (venta confirmada + sin pago aprobado).
             notes=order.notes,
             voucher_code=voucher.code if voucher else '',
             voucher_discount=voucher_discount,

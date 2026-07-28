@@ -9,6 +9,7 @@ from decimal import Decimal
 
 from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from addons.payment.models import Payment, Refund
+from tests.factories.order_factory import make_order
 
 pytestmark = pytest.mark.integration
 
@@ -16,7 +17,7 @@ REFUNDS_URL = lambda pid: f'/api/v2/admin/payments/{pid}/refunds/'
 
 
 def _make_payment(user, amount='500.00', status='APPROVED', gateway_payment_id='MP-001'):
-    order = Order.objects.create(user=user, status='PROCESSING')
+    order = make_order(user=user, status='PROCESSING')
     OrderItem.objects.create(
         order=order, product_name='Eleke', sku='RFL-001',
         unit_price=Decimal(amount), quantity=1, subtotal=Decimal(amount),
