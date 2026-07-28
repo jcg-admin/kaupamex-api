@@ -27,6 +27,7 @@ from tools.translate import _
 from addons.account.services import create_invoice_from_sale_order
 from addons.base.models import IrSequence, TimeStampedModel
 from addons.company.models import CompanyScopedManager
+from addons.mail.models import MailThread
 
 
 def _next_sale_name() -> str:
@@ -48,8 +49,20 @@ def _next_sale_name() -> str:
         return seq.get_next()
 
 
-class SaleOrder(TimeStampedModel):
-    """``sale.order`` — cotización/carrito (draft) → orden de venta (sale)."""
+class SaleOrder(MailThread, TimeStampedModel):
+    """``sale.order`` — cotización/carrito (draft) → orden de venta (sale).
+
+    Hereda ``MailThread`` igual que ``sale.order`` hereda ``mail.thread`` en la
+    referencia (``odoo19x sale/models/sale_order.py:23``). El mixin es abstracto
+    y **no agrega columnas** —el hilo se materializa en ``mail_message`` /
+    ``mail_followers`` por el par polimórfico—, así que la herencia no genera
+    migración.
+
+    Por qué importa para el cut-over: en la referencia la bitácora de la venta
+    es ``tracking=True`` sobre ``state`` (``:81``), no una tabla lateral. El
+    espejo ``orders.Order`` sí era un hilo; la canónica no lo era, de modo que
+    retirar ``orders`` habría perdido la capacidad.
+    """
 
     # Odoo SALE_ORDER_STATE (sale/models/sale_order.py:70, default 'draft').
     STATE_DRAFT  = 'draft'    # cotización / carrito (website_sale)
@@ -191,42 +204,73 @@ class SaleOrder(TimeStampedModel):
     # action_cancel (1324). Es la transición que el checkout dispara al unificar
     # cart→order (draft → sale). Adaptación single-record de los métodos Odoo.
     # ------------------------------------------------------------------
+    def _track(self, field, field_desc, field_type, old, new):
+        """Deja el cambio de ``field`` en el chatter (Odoo ``tracking=True``).
+
+        En Odoo el rastro lo dispara el ``write()`` del ORM al ver un campo con
+        ``tracking=``; Django no tiene ese enganche, así que lo invoca quien
+        hace la transición — mismo resultado, mecanismo adaptado (ver
+        ``MailThread.message_track``). No registra nada si el valor no cambió.
+        """
+        if old == new:
+            return None
+        return self.message_track([{
+            'field': field, 'field_desc': field_desc,
+            'field_type': field_type, 'old': old, 'new': new,
+        }])
+
+    def _track_state(self, old):
+        # tracking=5 en amount_untaxed y =4 en amount_total de la referencia
+        # son prioridades de despliegue, no aplican aquí: sólo se porta el
+        # rastro del estado, que es el que la bitácora del espejo cubría.
+        return self._track('state', 'Estado', 'char', old, self.state)
+
     def action_confirm(self):
         """Confirma la cotización/carrito (draft/sent → sale)."""
         if self.state == self.STATE_CANCEL:
             raise ValidationError('No se puede confirmar una orden cancelada.')
         if not self.order_line.exists():
             raise ValidationError('No se puede confirmar una orden sin líneas.')
+        previo = self.state
         if not self.name:
             self.name = _next_sale_name()
         self.state = self.STATE_SALE
         self.date_order = timezone.now()
         self.save(update_fields=['name', 'state', 'date_order', 'updated_at'])
+        self._track_state(previo)
         return True
 
     def action_draft(self):
         """Reabre a borrador (cancel/sent → draft)."""
         if self.state in (self.STATE_CANCEL, self.STATE_SENT):
+            previo = self.state
             self.state = self.STATE_DRAFT
             self.save(update_fields=['state', 'updated_at'])
+            self._track_state(previo)
         return True
 
     def action_cancel(self):
         """Cancela la orden (Odoo action_cancel; bloqueada → error)."""
         if self.locked:
             raise ValidationError('No se puede cancelar una orden bloqueada.')
+        previo = self.state
         self.state = self.STATE_CANCEL
         self.save(update_fields=['state', 'updated_at'])
+        self._track_state(previo)
         return True
 
     def action_lock(self):
+        previo = self.locked
         self.locked = True
         self.save(update_fields=['locked', 'updated_at'])
+        self._track('locked', 'Bloqueada', 'boolean', previo, self.locked)
         return True
 
     def action_unlock(self):
+        previo = self.locked
         self.locked = False
         self.save(update_fields=['locked', 'updated_at'])
+        self._track('locked', 'Bloqueada', 'boolean', previo, self.locked)
         return True
 
     # ------------------------------------------------------------------
