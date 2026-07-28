@@ -12,7 +12,9 @@ from tests.factories.user_factory import make_buyer
 from addons.payment.models import Payment, Refund
 from addons.delivery.models import ShippingMethod, Courier, ShipmentGuide
 from addons.payment.models import PaymentGateway
-from addons.sale.models import SaleOrder
+from django.utils import timezone
+
+from addons.sale.models import SaleOrder, SaleOrderLine
 from unittest.mock import patch, MagicMock
 from addons.chartsize.models import VariantType, VariantOption, ProductVariant
 from tests.factories.order_factory import make_order
@@ -627,13 +629,15 @@ class TestProteccionVariantesOrdenes:
         )
 
     def _make_order_with_variant(self, prod_ord, variant):
-        so = SaleOrder.objects.create(state=SaleOrder.STATE_SALE)
+        # E2c: el guard de la vista lee SaleOrderLine (canónico); el fixture
+        # construye la línea canónica, no el OrderItem del espejo.
+        so = SaleOrder.objects.create(
+            state=SaleOrder.STATE_SALE, date_order=timezone.now())
         order = Order.objects.create(sale_order=so)
-        OrderItem.objects.create(
-            order=order, product_name=prod_ord.name, sku=prod_ord.sku + '-M',
-            unit_price=variant.price_override, quantity=1,
-            subtotal=variant.price_override,
-            variant=variant, product=prod_ord,
+        SaleOrderLine.objects.create(
+            order=so, product=prod_ord, variant=variant,
+            name=prod_ord.name, product_uom_qty=1,
+            price_unit=variant.price_override,
         )
         return so, order
 

@@ -26,7 +26,7 @@ from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from addons.authz.permissions import HasCapability
-from addons.orders.models import OrderItem
+from addons.sale.models import SaleOrderLine
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from addons.mail.models import MANDATORY_NOTIFICATION_TYPES, NOTIFICATION_TYPE_LABELS, ManualNotification, Notification, NotificationPreference, NotificationType
@@ -280,10 +280,16 @@ def _compute_audience_count(recipient_type, recipient_identifier, product_id):
     if recipient_type == ManualNotification.RecipientType.PRODUCT_BUYERS:
         if not product_id:
             return 0
+        # E2c retiro del espejo: la línea canónica existe desde el carrito
+        # (draft); "comprador" exige confirmación. El marcador es date_order
+        # (lo fija action_confirm y la cancelación NO lo limpia — una compra
+        # cancelada sigue siendo una compra, igual que la fila espejo que persistía).
         return (
-            OrderItem.objects
-            .filter(product_id=product_id, order__user__isnull=False)
-            .values('order__user_id')
+            SaleOrderLine.objects
+            .filter(product_id=product_id,
+                    order__partner__isnull=False,
+                    order__date_order__isnull=False)
+            .values('order__partner_id')
             .distinct()
             .count()
         )
@@ -303,9 +309,11 @@ def _resolve_audience_user_ids(recipient_type, recipient_identifier, product_id)
 
     if recipient_type == ManualNotification.RecipientType.PRODUCT_BUYERS:
         return list(
-            OrderItem.objects
-            .filter(product_id=product_id, order__user__isnull=False)
-            .values_list('order__user_id', flat=True)
+            SaleOrderLine.objects
+            .filter(product_id=product_id,
+                    order__partner__isnull=False,
+                    order__date_order__isnull=False)
+            .values_list('order__partner_id', flat=True)
             .distinct()
         )
 

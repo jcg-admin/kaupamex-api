@@ -11,7 +11,8 @@ from django.contrib.auth import get_user_model
 
 from addons.catalogue.models import Category, Product
 from addons.mail.models import ManualNotification, Notification
-from addons.orders.models import Order, OrderItem
+from addons.orders.models import Order
+from addons.sale.models import SaleOrderLine
 
 import pytest
 from tests.factories.order_factory import make_order
@@ -21,7 +22,7 @@ ADMIN_MANUAL_URL = '/api/v2/admin/notifications/'
 
 
 def _create_buyers(n):
-    """Crea n usuarios enlazados a OrderItem sobre un producto comun."""
+    """Crea n compradores con línea canónica sobre un producto común (E2c)."""
     category, _ = Category.objects.get_or_create(
         name='Fanout cat', defaults={'slug': 'fanout-cat'},
     )
@@ -41,14 +42,14 @@ def _create_buyers(n):
             password='Pw123456!',
         )
         order = make_order(user=u)
-        OrderItem.objects.create(
-            order=order,
+        # E2c: la audiencia se resuelve por SaleOrderLine (canónico), no por
+        # el espejo. make_order deja la SaleOrder confirmada (date_order set).
+        SaleOrderLine.objects.create(
+            order=order.sale_order,
             product=product,
-            product_name=product.name,
-            sku=f'sku-sync-{i}',
-            unit_price=Decimal('10.00'),
-            quantity=1,
-            subtotal=Decimal('10.00'),
+            name=product.name,
+            product_uom_qty=1,
+            price_unit=Decimal('10.00'),
         )
         user_ids.append(u.id)
     return user_ids, product.id

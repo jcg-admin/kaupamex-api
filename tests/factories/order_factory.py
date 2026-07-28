@@ -69,9 +69,17 @@ def make_order(status=STATUS_PENDING, courier=None, amount=None,
     :param order_kwargs: se pasan tal cual a ``Order.objects.create``.
     :returns: la ``Order`` creada (su canónica está en ``order.sale_order``).
     """
+    # Invariante de producción: action_confirm SIEMPRE fija date_order, y
+    # el espejo sólo existe post-confirm. Un state='sale' sin date_order es
+    # un estado que el flujo real nunca produce (E2c lo filtra como "no
+    # comprador"); el factory lo respeta para no fabricar estados imposibles.
     sale = SaleOrder.objects.create(
         state=_SALE_STATE.get(status, SaleOrder.STATE_SALE),
         cart_token=uuid4(),
+        date_order=(None if status == STATUS_DRAFT else timezone.now()),
+        # Producción setea ambos lados del actor (confirm_draft_order crea el
+        # espejo con user=order.partner); el factory replica esa consistencia.
+        partner=order_kwargs.get('user'),
     )
     order = Order.objects.create(sale_order=sale, **order_kwargs)
 

@@ -18,7 +18,6 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from addons.catalogue.models import Product
-from addons.orders.models import OrderItem
 from addons.sale.models import SaleOrder, SaleOrderLine
 from addons.delivery.models import ShipmentGuide
 from config.schema import error_response
@@ -160,15 +159,17 @@ class ProductVariantAdminViewSet(ModelViewSet):
                 'codigo_error': 'VARIANT_WITH_CART_ITEMS',
                 'detail': 'No se puede eliminar una variante con ítems en carritos activos.',
             })
-        # H-ORD-005: proteger variante si tiene OrderItems en órdenes activas.
+        # H-ORD-005: proteger variante con líneas en órdenes activas.
         # Cut-over orders→sale (ADR-024): "orden activa" = confirmada
         # (``sale.state='sale'``) y NO entregada (sin guía viva DELIVERED).
-        if OrderItem.objects.filter(
+        # E2c: la línea canónica reemplaza a la del espejo; la guía se
+        # alcanza por su FK canónica directa (order__shipment_guide).
+        if SaleOrderLine.objects.filter(
             variant=variant,
-            order__sale_order__state=SaleOrder.STATE_SALE,
+            order__state=SaleOrder.STATE_SALE,
         ).exclude(
-            order__sale_order__shipment_guide__status=ShipmentGuide.STATUS_DELIVERED,
-            order__sale_order__shipment_guide__is_deleted=False,
+            order__shipment_guide__status=ShipmentGuide.STATUS_DELIVERED,
+            order__shipment_guide__is_deleted=False,
         ).exists():
             raise ValidationError({
                 'codigo_error': 'VARIANT_WITH_ACTIVE_ORDERS',
