@@ -34,8 +34,9 @@ from addons.orders.amounts import order_amounts
 from addons.orders.models import Order, OrderValue
 from addons.orders.serializers import OrderSerializer
 from addons.sale.models import SaleOrder
+from addons.sale_loyalty.services import apply_voucher_to_draft
 from addons.sale.services import (
-    add_item_to_draft, apply_voucher_to_draft, confirm_draft_order,
+    add_item_to_draft, confirm_draft_order,
 )
 from addons.sale_loyalty.models.sale_order import set_reward_line
 from django.utils import timezone
