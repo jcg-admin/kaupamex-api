@@ -171,12 +171,20 @@ _DB_OPTIONS = {
 # local (contenedor/CI) sin afectar produccion. Paridad con testing.py
 # (DB_QA_SSL_MODE): antes 'ssl' estaba hardcodeado y rompia el socket local con
 # "certificate verify failed" (H-API-LOG-04).
-_DB_SSL_MODE = config('DB_SSL_MODE')
+#
+# DB_SSL_MODE y DB_SOCKET son TOGGLES OPCIONALES: su ausencia tiene un
+# significado definido (verificar cert contra CAs publicas / fallback TCP), por
+# el guard ``if _X:`` de abajo. Llevan ``default=''`` a proposito — a diferencia
+# de las claves de CONEXION (NAME/USER/PASSWORD/HOST/PORT) que SI son sin
+# ``default=`` por SOL-087 (fail-loud). Requerir estos toggles rompia el import
+# de settings en cualquier entorno sin la envvar (CI sin ``.env``: base.py
+# construye ``DATABASES`` al import antes de que testing.py lo reemplace).
+_DB_SSL_MODE = config('DB_SSL_MODE', default='')
 if _DB_SSL_MODE:
     _DB_OPTIONS['ssl_mode'] = _DB_SSL_MODE
 else:
     _DB_OPTIONS['ssl'] = {'ca': certifi.where()}
-_DB_SOCKET = config('DB_SOCKET')
+_DB_SOCKET = config('DB_SOCKET', default='')
 if _DB_SOCKET:
     _DB_OPTIONS['unix_socket'] = _DB_SOCKET
 

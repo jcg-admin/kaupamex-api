@@ -31,12 +31,19 @@ _DB_QA_OPTIONS = {
 # (certifi), valido para la DB productiva (Let's Encrypt). En CI la DB es un
 # service container con cert self-signed; DB_QA_SSL_MODE=DISABLED apaga TLS
 # para ese entorno sin afectar local (socket) ni produccion (TCP+SSL).
-_DB_QA_SSL_MODE = config('DB_QA_SSL_MODE')
+# DB_QA_SSL_MODE y DB_QA_SOCKET son TOGGLES OPCIONALES (paridad con base.py):
+# su ausencia tiene un significado definido por el guard ``if _X:`` de abajo
+# (verificar cert contra CAs publicas / fallback TCP). Llevan ``default=''`` a
+# proposito — las claves de CONEXION QA (DB_QA_NAME/USER/PASSWORD/HOST/PORT) si
+# son sin ``default=`` por SOL-087. Sin el default, el import crasheaba en CI
+# (no hay ``.env``; el workflow no exporta DB_QA_SOCKET, cuya ausencia es
+# justamente el fallback TCP esperado).
+_DB_QA_SSL_MODE = config('DB_QA_SSL_MODE', default='')
 if _DB_QA_SSL_MODE:
     _DB_QA_OPTIONS['ssl_mode'] = _DB_QA_SSL_MODE
 else:
     _DB_QA_OPTIONS['ssl'] = {'ca': certifi.where()}
-_DB_QA_SOCKET = config('DB_QA_SOCKET')
+_DB_QA_SOCKET = config('DB_QA_SOCKET', default='')
 if _DB_QA_SOCKET:
     _DB_QA_OPTIONS['unix_socket'] = _DB_QA_SOCKET
 
