@@ -79,4 +79,18 @@ if [[ "$EXIT_CODE" -ne 0 ]]; then
     echo "(solo emergencias documentadas)." >&2
 fi
 
+# ─── Gate 4: direccion de dependencias entre addons (T-036) ─────────────────
+# Un addon fundacional (identidad, acceso, correo, catalogo) NO importa uno de
+# negocio: en la referencia Odoo la dependencia apunta siempre hacia abajo.
+# Ratchet sobre INVERSIONES_CONOCIDAS — falla solo ante una inversion NUEVA.
+# Script: scripts/check_addon_cycles.py.
+CYCLES_CHECKER="$REPO_ROOT/scripts/check_addon_cycles.py"
+if [ -f "$CYCLES_CHECKER" ]; then
+    if ! python3 "$CYCLES_CHECKER" >/dev/null 2>&1; then
+        python3 "$CYCLES_CHECKER" >&2
+        echo "pre-commit: inversion de dependencia nueva — commit bloqueado" >&2
+        exit 1
+    fi
+fi
+
 exit "$EXIT_CODE"
