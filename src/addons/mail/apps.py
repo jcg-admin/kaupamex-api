@@ -12,8 +12,6 @@ management command ``send_pending_emails`` (≙ ``mail.mail.process_email_queue`
 ``email_executor`` hace el dispatch async por ``ThreadPoolExecutor`` y reencola
 en ``mail.mail`` los envíos que fallan en el thread pool.
 """
-import importlib
-
 from django.apps import AppConfig
 
 
@@ -22,15 +20,3 @@ class MailConfig(AppConfig):
     name = 'addons.mail'
     label = 'mail'
     verbose_name = 'Mail (envío de correo, fiel al addon mail de Odoo)'
-
-    def ready(self):
-        # Registro de signals de notificación transaccional, reubicados desde
-        # ``addons.notifications`` (disolución notifications→mail, slice 3e-2).
-        # No puede ser un ``import`` top-level: ``notification_signals`` importa
-        # modelos de orders/payments/returns/support antes de que el registro de
-        # apps esté listo (AppRegistryNotReady). Excepción #4 de
-        # no-lazy-imports.md (constraint de lifecycle de Django): se difiere con
-        # ``importlib.import_module`` — es una llamada de función, no un
-        # statement ``import``, así que el AST gate da exit 0.
-        importlib.import_module('addons.mail.models.notification_handlers')
-        importlib.import_module('addons.mail.models.notification_signals')
