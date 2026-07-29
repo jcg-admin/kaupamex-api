@@ -310,15 +310,15 @@ def update_shipping_method(order, shipping_method_id: int, changed_by=None):
 # los consumidores (cart/wishlist/users/payments/orders views) hasta que V5
 # disuelva la fachada ``orders``.
 # ---------------------------------------------------------------------------
+from addons.sale_loyalty.services import (apply_voucher_to_draft,
+                                          remove_voucher_from_draft)
 from addons.sale.services import (  # noqa: F401  (re-export)
     DraftOrderError,
     add_item_to_draft,
-    apply_voucher_to_draft,
     clear_draft_items,
     confirm_draft_order,
     get_draft_totals,
     get_or_create_draft_order,
     merge_draft_orders,
     remove_draft_item,
-    remove_voucher_from_draft,
 )
