@@ -8,9 +8,11 @@ from decimal import Decimal
 from django.db import models
 from django.core.validators import MinValueValidator
 from addons.base.models import TimeStampedModel
+from addons.bus.mixins import BusListenerMixin
+from addons.bus.services import user_channel
 
 
-class Payment(TimeStampedModel):
+class Payment(BusListenerMixin, TimeStampedModel):
     """
     Registro de un intento de pago para una orden. UC-PAY-01.
     Una orden puede tener múltiples Payment (reintentos).
@@ -97,3 +99,34 @@ class Payment(TimeStampedModel):
     @property
     def is_approved(self) -> bool:
         return self.status == self.STATUS_APPROVED
+
+    #: Estados que el comprador está esperando ver. ``PENDING`` no entra: es el
+    #: estado en el que ya está mirando la pantalla, así que no es noticia.
+    ESTADOS_QUE_AVISAN = (
+        STATUS_APPROVED, STATUS_FAILED, STATUS_CANCELLED,
+        STATUS_REFUNDED, STATUS_PARTIALLY_REFUNDED,
+    )
+
+    def bus_channel_key(self) -> str:
+        return user_channel(self.sale_order.partner)
+
+    def save(self, *args, **kwargs):
+        # Sólo la transición emite. Sin esto, cada save del webhook (que toca
+        # varios campos) reencolaría el mismo estado y la UI vería ruido.
+        anterior = None
+        if not self._state.adding:
+            anterior = type(self).objects.filter(pk=self.pk).values_list(
+                'status', flat=True,
+            ).first()
+        super().save(*args, **kwargs)
+
+        if self.status == anterior or self.status not in self.ESTADOS_QUE_AVISAN:
+            return
+        # Carrito anónimo: sin comprador no hay canal privado al que avisar.
+        if not self.sale_order.partner_id:
+            return
+        self._bus_send('pago.estado', {
+            'payment_id': self.pk,
+            'sale_order_id': self.sale_order_id,
+            'status': self.status,
+        })

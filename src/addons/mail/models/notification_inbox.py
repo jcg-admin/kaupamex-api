@@ -18,6 +18,8 @@ from django.conf import settings
 from django.db import models
 
 from addons.base.models import TimeStampedModel
+from addons.bus.mixins import BusListenerMixin
+from addons.bus.services import user_channel
 
 
 class NotificationType(models.TextChoices):
@@ -48,8 +50,14 @@ NOTIFICATION_TYPE_LABELS = {
 }
 
 
-class Notification(TimeStampedModel):
-    """Notificacion individual en el buzon de un usuario (read-model del inbox)."""
+class Notification(BusListenerMixin, TimeStampedModel):
+    """Notificacion individual en el buzon de un usuario (read-model del inbox).
+
+    Emite al bus al crearse (T-079). El emisor va en el modelo y no en cada
+    ``notify_*`` del servicio porque la creación **es** el evento: así todo
+    productor —presente y futuro— queda cubierto por construcción, sin depender
+    de que alguien recuerde emitir.
+    """
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -91,6 +99,21 @@ class Notification(TimeStampedModel):
 
     def __str__(self):
         return f'#{self.pk} {self.subject} ({self.type})'
+
+    def bus_channel_key(self) -> str:
+        return user_channel(self.user)
+
+    def save(self, *args, **kwargs):
+        es_nueva = self._state.adding
+        super().save(*args, **kwargs)
+        if es_nueva:
+            # Sólo la creación es noticia. Marcar leída actualiza la fila y no
+            # debe reemitir: el cliente ya sabe de esta notificación.
+            self._bus_send('notificacion', {
+                'id': self.pk,
+                'type': self.type,
+                'subject': self.subject,
+            })
 
     @classmethod
     def from_mail_message(cls, message, user, type=None):
