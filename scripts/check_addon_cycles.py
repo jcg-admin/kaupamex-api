@@ -36,6 +36,10 @@ RAIZ = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
 FUNDACIONALES = frozenset({
     'base', 'users', 'authz', 'authz_reauth', 'auth_totp', 'company',
     'mail', 'catalogue', 'chartsize', 'questions', 'website',
+    # Nivel 0 del árbol de referencia, portados por `alinear-arbol-addons`:
+    # `uom` sólo importa `base`; `bus` importa `base` y `authz` (su endpoint
+    # va gateado por capacidad). Ninguno apunta a negocio.
+    'uom', 'bus',
 })
 
 # Addons de negocio: el O2C y sus satélites. Referencia: 7 a 12.
