@@ -56,6 +56,7 @@ urlpatterns = _admin_urls + [
     path('api/v2/admin/',          include(('addons.wishlist.admin_urls', 'admin_wishlist'),   namespace='admin_wishlist_v2')),
     path('api/v2/account/',        include(('addons.referral.urls', 'referral'),               namespace='referral_v2')),
     path('api/v2/notifications/',  include(('addons.mail.urls', 'notifications'),     namespace='notifications_v2')),
+    path('api/v2/bus/',            include(('addons.bus.urls', 'bus'),                 namespace='bus_v2')),
     path('api/v2/admin/',          include(('addons.mail.admin_notifications', 'admin_notifications'),
                                            namespace='admin_notifications_v2')),
 
