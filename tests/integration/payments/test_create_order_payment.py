@@ -12,12 +12,13 @@ from unittest.mock import MagicMock, patch
 
 from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from addons.payment_mercado_pago.gateway import MercadoPagoGateway
+from tests.factories.order_factory import make_order
 
 pytestmark = pytest.mark.integration
 
 
 def _make_order(user, total='200.00'):
-    order = Order.objects.create(user=user, status='PENDING')
+    order = make_order(user=user, status='PENDING')
     OrderItem.objects.create(
         order=order, product_name='Smartphone', sku='SKU-201B',
         unit_price=Decimal(total), quantity=1, subtotal=Decimal(total),

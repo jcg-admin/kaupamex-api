@@ -30,10 +30,10 @@ from addons.base.models import SiteSettings
 from addons.inventory.services import InventoryService
 from addons.loyalty.models import Voucher, VoucherUsage
 from addons.orders.models import Order, OrderAddress, OrderItem, OrderValue
-from addons.sale_loyalty.models import SaleOrderCoupon
-from addons.sale_stock.models import SaleOrderDelivery
 from addons.stock.models import StockPicking
 from .models import SaleOrder, SaleOrderLine
+from .signals import (draft_discount_requested,
+                      draft_voucher_requested, order_confirmed)
 
 
 logger = logging.getLogger('apps')
@@ -128,18 +128,35 @@ def add_item_to_draft(order, product, variant=None, quantity=1):
 
 
 def clear_draft_items(order):
-    """Vacía el draft (UC-CART-03)."""
+    """Vacía el draft (UC-CART-03).
+
+    ``QuerySet.delete()`` en bloque no dispara el recálculo de
+    ``SaleOrderLine.delete()`` (H-API-30) — se dispara explícito para que el
+    total de la orden quede en ``0.00`` y no stale con el valor previo.
+    """
     if order.state != SaleOrder.STATE_DRAFT:
         raise DraftOrderError('La orden no es un draft.', 'ORDEN_NO_DRAFT')
     order.order_line.all().delete()
+    order._compute_amounts()
 
 
-def _draft_coupon_voucher(order):
-    """Voucher del cupón aplicado al draft, o None (H-CART-CL-02)."""
-    coupon = SaleOrderCoupon.objects.filter(order=order).first()
-    if coupon is None or not coupon.voucher_id:
-        return None
-    return coupon.voucher
+def _draft_extra_discount(order, subtotal):
+    """Descuento aportado por los satélites sobre el draft (T-034).
+
+    El núcleo NO conoce el cupón: emite ``draft_discount_requested`` y suma
+    lo que respondan los receptores. Hoy responde ``sale_loyalty`` con el
+    descuento vivo de su ``SaleOrderCoupon``; si el addon no está instalado
+    no hay receptores y el descuento es ``0.00``.
+
+    Es la traducción a Django del ``_inherit`` de la referencia, donde
+    ``sale_loyalty`` extiende ``sale.order`` sin que ``sale`` lo declare.
+    """
+    respuestas = draft_discount_requested.send(
+        sender=SaleOrder, order=order, subtotal=subtotal)
+    return sum(
+        (valor for _receptor, valor in respuestas if valor),
+        Decimal('0.00'),
+    )
 
 
 def get_draft_totals(order):
@@ -159,9 +176,7 @@ def get_draft_totals(order):
                    Decimal('0.00'))
     discount = Decimal('0.00')
     if order.state == SaleOrder.STATE_DRAFT:
-        voucher = _draft_coupon_voucher(order)
-        if voucher is not None:
-            discount = voucher.calculate_discount(subtotal)
+        discount = _draft_extra_discount(order, subtotal)
     subtotal_net = subtotal - discount
     tax = (subtotal_net * iva_rate / (1 + iva_rate)).quantize(Decimal('0.01'))
     free_remaining = (
@@ -269,53 +284,6 @@ def merge_draft_orders(user, cart_token):
     return auth_order, skipped
 
 
-def apply_voucher_to_draft(order, code, user=None):
-    """Aplica un voucher al draft vía ``SaleOrderCoupon`` (UC-CART-04 +
-    H-CICLO112-01; cierra H-CART-CL-02 — el ancla deja de ser el string
-    ``voucher_code``). El descuento NO se congela aquí —
-    ``get_draft_totals`` lo recalcula vivo mientras la orden siga en
-    draft. Retorna ``(voucher, discount, cart_total)``.
-    """
-    if order.state != SaleOrder.STATE_DRAFT:
-        raise DraftOrderError('La orden no es un draft.', 'ORDEN_NO_DRAFT')
-    voucher = Voucher.objects.filter(code=code).first()
-    if voucher is None:
-        raise DraftOrderError('El voucher no existe.', 'VOUCHER_NOT_FOUND')
-
-    with transaction.atomic():
-        order = SaleOrder.objects.select_for_update().get(pk=order.pk)
-        cart_total = sum(
-            (l.price_unit * l.product_uom_qty for l in order.order_line.all()),
-            Decimal('0.00'))
-
-        error_code = voucher.validate_for_cart(cart_total, user)
-        if error_code:
-            raise DraftOrderError(f'Voucher no aplicable: {error_code}',
-                                  error_code)
-        if user is not None and getattr(user, 'is_authenticated', False):
-            if VoucherUsage.objects.filter(user=user, voucher=voucher).exists():
-                raise DraftOrderError('Ya has utilizado este voucher.',
-                                      'VOUCHER_ALREADY_USED')
-        if _draft_coupon_voucher(order) is not None:
-            raise DraftOrderError(
-                'El carrito ya tiene un voucher aplicado. Elimínelo primero.',
-                'VOUCHER_ALREADY_APPLIED')
-
-        coupon, _ = SaleOrderCoupon.objects.get_or_create(order=order)
-        coupon.voucher = voucher
-        coupon.save(update_fields=['voucher', 'updated_at'])
-
-    return voucher, voucher.calculate_discount(cart_total), cart_total
-
-
-def remove_voucher_from_draft(order):
-    """Quita el voucher del draft (elimina el ``SaleOrderCoupon``)."""
-    if _draft_coupon_voucher(order) is None:
-        raise DraftOrderError('El carrito no tiene voucher aplicado.',
-                              'NO_ACTIVE_VOUCHER')
-    SaleOrderCoupon.objects.filter(order=order).delete()
-
-
 def confirm_draft_order(order, *, address_data, guest_email=None, notes='',
                         shipping_cost=Decimal('0.00')):
     """Confirma el carrito: la transición nativa ``sale.order.action_confirm``
@@ -343,8 +311,16 @@ def confirm_draft_order(order, *, address_data, guest_email=None, notes='',
     if order.state != SaleOrder.STATE_DRAFT:
         raise DraftOrderError('La orden no es un draft.', 'ORDEN_NO_DRAFT')
 
-    lines = list(order.order_line.select_related(
-        'product', 'variant__product', 'variant__option').all())
+    # E1-bis — SÓLO líneas de producto. Las líneas marcadoras
+    # (``is_delivery``/``is_reward``, materializadas por ``delivery`` y
+    # ``sale_loyalty`` antes de confirmar) NO son vendibles: no reservan stock,
+    # no se refrescan a precio vigente —su ``current_price()`` devolvería el
+    # precio 0 del producto de servicio, borrando el importe— y no cruzan al
+    # espejo legacy, cuyos ``OrderItem`` son de producto por contrato.
+    # Un carrito con sólo líneas marcadoras está vacío.
+    lines = list(order.order_line.filter(is_delivery=False, is_reward=False)
+                 .select_related('product', 'variant__product',
+                                 'variant__option'))
     if not lines:
         raise DraftOrderError('El carrito está vacío.', 'EMPTY_CART')
 
@@ -358,7 +334,8 @@ def confirm_draft_order(order, *, address_data, guest_email=None, notes='',
         raise err
 
     iva_rate = SiteSettings.get_current().iva_rate
-    voucher = _draft_coupon_voucher(order)
+    respuestas = draft_voucher_requested.send(sender=SaleOrder, order=order)
+    voucher = next((v for _r, v in respuestas if v is not None), None)
 
     with transaction.atomic():
         InventoryService.decrement(check_items)
@@ -411,18 +388,23 @@ def confirm_draft_order(order, *, address_data, guest_email=None, notes='',
         picking = StockPicking.objects.create(
             sale_order=order, state=StockPicking.STATE_CONFIRMED)
         picking.action_assign()
-        SaleOrderDelivery.objects.get_or_create(
-            order=order,
-            defaults={'delivery_status': SaleOrderDelivery.STATUS_STARTED},
-        )
+        # Los satélites reaccionan a la confirmación (T-034): ``sale_stock``
+        # abre el seguimiento de entrega. El núcleo no los nombra.
+        order_confirmed.send(sender=SaleOrder, order=order, subtotal=subtotal)
 
         # Puente legacy (se retira en V5 — analisis-unificar-orders-sale).
+        # I1 (H-API-29, decisión ejecutor 2026-07-28): la identidad pública
+        # es la canónica — el espejo nace con order_number = sale.name, así
+        # todo el contrato (serializers, emails, lookups) publica ``S-…``
+        # sin re-anclar cada sitio. Órdenes previas conservan su ``PY-…``.
         legacy = Order.objects.create(
             sale_order=order,
+            order_number=order.name,
             user=order.partner,
             guest_email=(guest_email if (guest_email and not order.partner_id)
                          else None),
-            status=Order.STATUS_PENDING,
+            # O2C V5d: sin columna espejo. El PENDING inicial lo produce el
+            # estado real de los ejes (venta confirmada + sin pago aprobado).
             notes=order.notes,
             voucher_code=voucher.code if voucher else '',
             voucher_discount=voucher_discount,

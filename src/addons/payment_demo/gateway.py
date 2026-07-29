@@ -9,6 +9,7 @@ cableado) — nunca simula un resultado.
 """
 from decimal import Decimal
 
+from addons.payment.gateways.registry import register_gateway
 from addons.payment.gateways.base import (
     BaseGateway,
     InstallmentPlan,
@@ -38,3 +39,9 @@ class DemoGateway(BaseGateway):
 
     def verify_payment(self, payment_id: str) -> PaymentVerification:
         raise NotImplementedError(_PENDING)
+
+
+# Inscripción en el registro del núcleo (T-033): la dirección de la
+# dependencia va satélite → núcleo, como en la referencia, donde cada
+# ``payment_<provider>`` declara ``depends: payment``.
+register_gateway('DEMO', DemoGateway)

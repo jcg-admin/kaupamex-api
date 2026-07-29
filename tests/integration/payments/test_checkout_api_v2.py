@@ -14,6 +14,8 @@ from unittest.mock import patch, MagicMock
 
 from addons.catalogue.models import Category, Product
 from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from addons.orders.status_projection import order_status
+from addons.sale.models import SaleOrder
 from addons.payment.models import PaymentGateway
 from addons.payment.models import Payment, PaymentGatewayEvent
 from addons.payment_mercado_pago.gateway import MercadoPagoGateway
@@ -50,7 +52,10 @@ def prod_v2(db, cat_v2):
 @pytest.fixture
 def orden_v2(db, user, prod_v2):
     """Orden PENDING con OrderValue total=3000."""
-    order = Order.objects.create(user=user, status='PENDING')
+    order = Order.objects.create(
+        user=user, # O2C R8: par canonico — la proyeccion deriva el estado de los ejes.
+        sale_order=SaleOrder.objects.create(state=SaleOrder.STATE_SALE),
+    )
     OrderItem.objects.create(
         order=order, product_name=prod_v2.name, sku=prod_v2.sku,
         unit_price=prod_v2.price, quantity=2,
@@ -207,8 +212,11 @@ class TestCheckoutApiOrden:
         assert res.json()['codigo_error'] == 'ORDER_NOT_FOUND'
 
     def test_orden_no_pending_retorna_404(self, auth_client, orden_v2, mp_gw, db):
-        orden_v2.status = 'PAID'
-        orden_v2.save()
+        # O2C R8: "no PENDING" canónico = pago aprobado (proyecta PAID).
+        Payment.objects.create(
+            order=orden_v2, sale_order=orden_v2.sale_order,
+            gateway=Payment.GATEWAY_MANUAL,
+            status=Payment.STATUS_APPROVED, amount=Decimal('100.00'))
         with patch('addons.payment_mercado_pago.gateway.mercadopago',
                    _make_mp_payment_mock()):
             res = auth_client.post(INITIATE_V2_URL,
@@ -312,7 +320,8 @@ class TestCheckoutApiDB:
                              _valid_payload(orden_v2.order_number),
                              format='json')
         orden_v2.refresh_from_db()
-        assert orden_v2.status == 'PAID'
+        # O2C R8: el estado se proyecta del eje de pago (Payment APPROVED).
+        assert order_status(orden_v2) == 'PAID'
 
     def test_rechazado_crea_payment_failed_orden_sigue_pending(
         self, auth_client, orden_v2, mp_gw, db
@@ -325,7 +334,7 @@ class TestCheckoutApiDB:
         payment = Payment.objects.get(order=orden_v2)
         assert payment.status == 'FAILED'
         orden_v2.refresh_from_db()
-        assert orden_v2.status == 'PENDING'
+        assert order_status(orden_v2) == 'PENDING'
 
     def test_aprobado_registra_evento_payment_approved(
         self, auth_client, orden_v2, mp_gw, db
@@ -353,7 +362,7 @@ class TestCheckoutApiDB:
         payment = Payment.objects.get(order=orden_v2)
         assert payment.status == 'PENDING'
         orden_v2.refresh_from_db()
-        assert orden_v2.status == 'PENDING'
+        assert order_status(orden_v2) == 'PENDING'
 
 
 # =============================================================================

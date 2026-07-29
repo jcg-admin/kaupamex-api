@@ -49,16 +49,15 @@ class Review(TimeStampedModel, SoftDeleteModel):
         'catalogue.Product', on_delete=models.CASCADE,
         related_name='reviews',
     )
+    # E4-pre (H-API-26): anclaje invertido. La prueba de compra (UC-REV-02)
+    # es la orden canónica — NOT NULL/PROTECT; la FK al espejo queda
+    # nullable/SET_NULL hasta su retiro en E5.
     order   = models.ForeignKey(
-        'orders.Order', on_delete=models.PROTECT,
-        related_name='reviews',
-        help_text='Orden que prueba la compra (UC-REV-02).',
-    )
-    # V4a orders→sale (DEC-FW-02): la prueba de compra ancla también al
-    # canónico; V5 retira la FK legacy con el espejo.
-    sale_order = models.ForeignKey(
-        'sale.SaleOrder', null=True, blank=True,
+        'orders.Order', null=True, blank=True,
         on_delete=models.SET_NULL, related_name='reviews',
+    )
+    sale_order = models.ForeignKey(
+        'sale.SaleOrder', on_delete=models.PROTECT, related_name='reviews',
     )
     rating  = models.PositiveSmallIntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(5)],

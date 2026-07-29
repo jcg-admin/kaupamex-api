@@ -42,6 +42,8 @@ INSTALLED_APPS = [
     'addons.settings_app',
     'addons.catalogue',
     'addons.chartsize',
+    'addons.bus',
+    'addons.uom',
     'addons.product',
     'addons.inventory',
     'addons.stock',

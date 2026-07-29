@@ -22,7 +22,10 @@ from rest_framework.views import APIView
 
 from addons.catalogue.models import Category, Product
 from addons.chartsize.models import ProductVariant
-from addons.orders.models import Order, OrderItem
+from addons.orders.models import OrderItem
+from addons.orders.status_projection import order_status
+from addons.sale.models import SaleOrder
+from addons.payment.models import Payment
 from addons.base.models import SiteSettings
 from addons.users.models import BusinessEvent
 from .models import ImportJob, StockAlert, StockMovement
@@ -183,12 +186,29 @@ class VariantStockAdjustView(_AdminOnly, APIView):
                 # AC-06 / RNF-AUDIT-001: capture at-risk orders in the same
                 # transaction so the audit record reflects the exact state
                 # at the moment stock was zeroed (ADR-011 round 2).
-                at_risk = list(
+                # Cut-over orders→sale (ADR-024): "at-risk" = confirmed sale
+                # order (state='sale') WITHOUT an approved payment. The
+                # fulfillment axis is not needed — shipping implies payment.
+                at_risk_items = (
                     OrderItem.objects
-                    .filter(variant_id=variant.pk, order__status__in=_AT_RISK_STATUSES)
-                    .select_related('order')
-                    .values('order_id', 'order__order_number', 'order__status', 'quantity')
+                    .filter(
+                        variant_id=variant.pk,
+                        order__sale_order__state=SaleOrder.STATE_SALE,
+                    )
+                    .exclude(
+                        order__sale_order__payments__status=Payment.STATUS_APPROVED,
+                    )
+                    .select_related('order__sale_order')
                 )
+                at_risk = [
+                    {
+                        'order_id':     item.order_id,
+                        'order_number': item.order.order_number,
+                        'status':       order_status(item.order),
+                        'quantity':     item.quantity,
+                    }
+                    for item in at_risk_items
+                ]
                 BusinessEvent.objects.create(
                     actor=request.user,
                     action=BusinessEvent.ACTION_STOCK_ADJUSTED_TO_ZERO,
@@ -282,14 +302,15 @@ class VariantRestockView(_AdminOnly, APIView):
         }, status=201)
 
 
-_AT_RISK_STATUSES = [Order.STATUS_PENDING, Order.STATUS_PROCESSING]
-
-
 class ZeroStockCheckView(_AdminOnly, APIView):
     """
     Round 1 del guard two-round (ADR-011 / UC-INV-04 EX-02).
-    Detecta órdenes PENDING/PROCESSING que referencian esta variante —
-    las únicas cuyo decremento futuro fallaría si stock llega a 0.
+    Detecta órdenes en riesgo que referencian esta variante — las únicas
+    cuyo decremento futuro fallaría si stock llega a 0.
+
+    Cut-over orders→sale (ADR-024): "en riesgo" = orden confirmada
+    (``sale.state='sale'``) SIN pago aprobado. El eje de fulfillment no
+    se necesita porque enviar implica pagar.
     COSMIC: 1E + 1R(variant) + 1R(OrderItem) + 1X = 4 CFP.
     """
     @extend_schema(
@@ -305,14 +326,20 @@ class ZeroStockCheckView(_AdminOnly, APIView):
 
         risk_items = (
             OrderItem.objects
-            .filter(variant_id=variant.pk, order__status__in=_AT_RISK_STATUSES)
-            .select_related('order')
+            .filter(
+                variant_id=variant.pk,
+                order__sale_order__state=SaleOrder.STATE_SALE,
+            )
+            .exclude(
+                order__sale_order__payments__status=Payment.STATUS_APPROVED,
+            )
+            .select_related('order__sale_order')
         )
         active_orders = [
             {
                 'order_id':     item.order_id,
                 'order_number': item.order.order_number,
-                'status':       item.order.status,
+                'status':       order_status(item.order),
                 'quantity':     item.quantity,
             }
             for item in risk_items

@@ -26,10 +26,10 @@ from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from addons.authz.permissions import HasCapability
-from addons.orders.models import OrderItem
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from addons.mail.models import MANDATORY_NOTIFICATION_TYPES, NOTIFICATION_TYPE_LABELS, ManualNotification, Notification, NotificationPreference, NotificationType
+from addons.mail.audience import count_audience, resolve_audience_user_ids
 from addons.mail.models.manual_fanout import dispatch_manual_fanout
 from .serializers import ManualNotificationCreateSerializer, ManualNotificationResponseSerializer, NotificationPreferenceItemSerializer, NotificationPreferencesUpdateSerializer, NotificationSerializer
 
@@ -278,15 +278,9 @@ def _compute_audience_count(recipient_type, recipient_identifier, product_id):
         ).count()
 
     if recipient_type == ManualNotification.RecipientType.PRODUCT_BUYERS:
-        if not product_id:
-            return 0
-        return (
-            OrderItem.objects
-            .filter(product_id=product_id, order__user__isnull=False)
-            .values('order__user_id')
-            .distinct()
-            .count()
-        )
+        # El público lo resuelve su dueño (``sale``), inscrito en el registro
+        # de audiencias — ``mail`` ya no importa ``SaleOrderLine`` (T-035).
+        return count_audience(recipient_type, product_id=product_id)
 
     return 0
 
@@ -302,12 +296,7 @@ def _resolve_audience_user_ids(recipient_type, recipient_identifier, product_id)
         return list(qs.values_list('id', flat=True))
 
     if recipient_type == ManualNotification.RecipientType.PRODUCT_BUYERS:
-        return list(
-            OrderItem.objects
-            .filter(product_id=product_id, order__user__isnull=False)
-            .values_list('order__user_id', flat=True)
-            .distinct()
-        )
+        return list(resolve_audience_user_ids(recipient_type, product_id=product_id))
 
     return []
 

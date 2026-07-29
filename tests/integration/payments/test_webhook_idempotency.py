@@ -16,8 +16,11 @@ from decimal import Decimal
 from unittest.mock import patch, MagicMock
 from addons.catalogue.models import Category, Product
 from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from addons.orders.status_projection import order_status
+from addons.sale.models import SaleOrder
 from addons.payment.models import Payment, WebhookEvent
 from addons.payment.models import PaymentGateway
+from tests.factories.order_factory import make_order
 
 pytestmark = pytest.mark.integration
 
@@ -50,7 +53,10 @@ def order_mp_pending(db, user, cat_idem):
         is_active=True, is_published=True,
     )
     prod.categories.add(cat_idem)
-    order = Order.objects.create(user=user, status='PENDING')
+    order = Order.objects.create(
+        user=user, # O2C R8: par canonico — la proyeccion deriva el estado de los ejes.
+        sale_order=SaleOrder.objects.create(state=SaleOrder.STATE_SALE),
+    )
     OrderItem.objects.create(
         order=order, product_name=prod.name, sku=prod.sku,
         unit_price=prod.price, quantity=1, subtotal=prod.price,
@@ -65,7 +71,7 @@ def order_mp_pending(db, user, cat_idem):
         city='CDMX', state='CMX', zip_code='06600',
     )
     payment = Payment.objects.create(
-        order=order, gateway='MERCADOPAGO',
+        order=order, sale_order=order.sale_order, gateway='MERCADOPAGO',
         preference_id='PREF-IDEM-001',
         gateway_payment_id='MP-PAY-IDEM-001',
         status='PENDING', amount=Decimal('500.00'),
@@ -83,7 +89,10 @@ def order_paypal_pending(db, user, cat_idem):
         is_active=True, is_published=True,
     )
     prod.categories.add(cat_idem)
-    order = Order.objects.create(user=user, status='PENDING')
+    order = Order.objects.create(
+        user=user, # O2C R8: par canonico — la proyeccion deriva el estado de los ejes.
+        sale_order=SaleOrder.objects.create(state=SaleOrder.STATE_SALE),
+    )
     OrderItem.objects.create(
         order=order, product_name=prod.name, sku=prod.sku,
         unit_price=prod.price, quantity=1, subtotal=prod.price,
@@ -98,7 +107,7 @@ def order_paypal_pending(db, user, cat_idem):
         city='GDL', state='JAL', zip_code='44100',
     )
     payment = Payment.objects.create(
-        order=order, gateway='PAYPAL',
+        order=order, sale_order=order.sale_order, gateway='PAYPAL',
         preference_id='PP-ORDER-IDEM-001',
         gateway_payment_id='PP-CAP-T205',
         status='PENDING', amount=Decimal('400.00'),
@@ -171,8 +180,8 @@ class TestWebhookPayPalIdempotencyDenied:
         assert payment.status == 'APPROVED', (
             f'Primer webhook COMPLETED debio aprobar el pago; estado={payment.status}'
         )
-        assert order.status == 'PAID', (
-            f'Orden debio quedar PAID (DEC-BC-12); estado={order.status}'
+        assert order_status(order) == 'PAID', (
+            f'Orden debio quedar PAID (DEC-BC-12); estado={order_status(order)}'
         )
 
         denied_payload = {
@@ -201,7 +210,7 @@ class TestWebhookPayPalIdempotencyDenied:
         payment.refresh_from_db()
         order.refresh_from_db()
         assert payment.status == 'APPROVED', 'DENIED duplicado no debe revertir a FAILED'
-        assert order.status == 'PAID', 'Orden no debe regresar de PAID (DEC-BC-12)'
+        assert order_status(order) == 'PAID', 'Orden no debe regresar de PAID (DEC-BC-12)'
 
 
 # ─── T-206 — MP replay attack: 10 envíos del mismo webhook ─────────────

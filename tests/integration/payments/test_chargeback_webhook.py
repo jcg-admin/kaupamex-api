@@ -12,6 +12,7 @@ from unittest.mock import patch, MagicMock
 
 from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from addons.payment.models import Payment, Chargeback
+from tests.factories.order_factory import make_order
 
 pytestmark = pytest.mark.integration
 
@@ -19,7 +20,7 @@ WEBHOOK_URL = '/api/v1/payments/webhooks/mercadopago/'
 
 
 def _make_payment(user, amount='500.00'):
-    order = Order.objects.create(user=user, status='PROCESSING')
+    order = make_order(user=user, status='PROCESSING')
     OrderItem.objects.create(
         order=order, product_name='Prod CB', sku='CB-001',
         unit_price=Decimal(amount), quantity=1, subtotal=Decimal(amount),
@@ -33,7 +34,7 @@ def _make_payment(user, amount='500.00'):
         city='CDMX', state='CMX', zip_code='06600',
     )
     return Payment.objects.create(
-        order=order, gateway='MERCADOPAGO',
+        order=order, sale_order=order.sale_order, gateway='MERCADOPAGO',
         preference_id='PREF-CB', gateway_payment_id='MP-CB-001',
         status=Payment.STATUS_APPROVED, amount=Decimal(amount),
     )

@@ -5,7 +5,23 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
-from .models import Order, OrderItem, OrderValue, OrderAddress, OrderStatusLog
+from .amounts import order_amounts
+from .models import Order, OrderItem, OrderAddress, OrderStatusLog
+from .status_projection import order_status
+from addons.orders.status_projection import STATUSES
+
+
+# O2C R8: el campo ``status`` del contrato se PROYECTA de los ejes canónicos
+# (sale.state + Payment + guía) — la columna espejo ya no se escribe (V5d la
+# retira). Memo por instancia para no derivar dos veces (status +
+# status_display) en la misma serialización.
+_STATUS_LABELS = dict(STATUSES)
+
+
+def _projected_status(obj):
+    if not hasattr(obj, '_projected_status_cache'):
+        obj._projected_status_cache = order_status(obj)
+    return obj._projected_status_cache
 
 
 # Validación MX (hardening-checkout-envio-mexico): Teléfono y C.P. son
@@ -59,10 +75,19 @@ class OrderAddressInputSerializer(serializers.Serializer):
         return validate_mx_zip(value)
 
 
-class OrderValueSerializer(serializers.ModelSerializer):
-    class Meta:
-        model  = OrderValue
-        fields = ['subtotal','tax','shipping_cost','discount','total']
+class OrderValueSerializer(serializers.Serializer):
+    """Desglose de importes del pedido — leído del **canónico**, no del espejo.
+
+    E5-pre: mismas cinco claves que exponía el ``ModelSerializer`` sobre
+    ``OrderValue``, así que el contrato del UI no cambia; lo que cambia es la
+    fuente. Ver ``orders/amounts.py`` para la composición y la divergencia
+    deliberada en la base gravable del IVA (H-API-41).
+    """
+    subtotal      = serializers.DecimalField(max_digits=12, decimal_places=2)
+    tax           = serializers.DecimalField(max_digits=12, decimal_places=2)
+    shipping_cost = serializers.DecimalField(max_digits=12, decimal_places=2)
+    discount      = serializers.DecimalField(max_digits=12, decimal_places=2)
+    total         = serializers.DecimalField(max_digits=12, decimal_places=2)
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
@@ -117,7 +142,7 @@ class OrderStatusLogSerializer(serializers.ModelSerializer):
 class OrderSerializer(serializers.ModelSerializer):
     """Detalle completo de una orden — UC-ORD-02."""
     items                = OrderItemSerializer(many=True, read_only=True)
-    value                = OrderValueSerializer(read_only=True)
+    value                = serializers.SerializerMethodField()
     address              = OrderAddressSerializer(read_only=True)
     shipping_method_name = serializers.SerializerMethodField()
     status_display       = serializers.SerializerMethodField()
@@ -144,11 +169,33 @@ class OrderSerializer(serializers.ModelSerializer):
             'created_at', 'cancelled_at', 'cancellation_reason',
         ]
 
+    # O2C R8: status proyectado de los ejes canónicos (no la columna espejo).
+    status = serializers.SerializerMethodField()
+
+    @extend_schema_field(OrderValueSerializer)
+    def get_value(self, obj) -> dict:
+        # E5-pre: el desglose sale del canónico. ``obj`` es el espejo, así que
+        # el ancla es su ``sale_order``; ``order_amounts`` devuelve ceros si la
+        # FK es nula (espejo huérfano del histórico).
+        #
+        # Se pasa por ``OrderValueSerializer`` en vez de devolver el dict tal
+        # cual: ``order_amounts`` entrega ``Decimal`` (es una función de
+        # dominio) y el contrato del payload son **strings** con dos decimales,
+        # como los emitía el ``ModelSerializer`` anterior. Devolver el
+        # ``Decimal`` crudo rompía el caché de idempotencia —que serializa la
+        # respuesta a JSON— y degradaba el tipo a float en el resto de los
+        # consumidores. ``@extend_schema_field`` sólo documenta; no serializa.
+        return OrderValueSerializer(order_amounts(obj.sale_order)).data
+
     def get_shipping_method_name(self, obj) -> str | None:
         return obj.shipping_method.name if obj.shipping_method else None
 
+    @extend_schema_field(OpenApiTypes.STR)
+    def get_status(self, obj) -> str:
+        return _projected_status(obj)
+
     def get_status_display(self, obj) -> str:
-        return obj.get_status_display()
+        return _STATUS_LABELS.get(_projected_status(obj), _projected_status(obj))
 
 
 class AdminOrderSerializer(OrderSerializer):
@@ -188,6 +235,8 @@ class OrderListSerializer(serializers.ModelSerializer):
     )
     items_count   = serializers.SerializerMethodField()
     thumbnail_url = serializers.SerializerMethodField()
+    # O2C R8: status proyectado de los ejes canónicos (no la columna espejo).
+    status         = serializers.SerializerMethodField()
     status_display = serializers.SerializerMethodField()
 
     class Meta:
@@ -231,8 +280,12 @@ class OrderListSerializer(serializers.ModelSerializer):
             return cover.image.url
         return None
 
+    @extend_schema_field(OpenApiTypes.STR)
+    def get_status(self, obj) -> str:
+        return _projected_status(obj)
+
     def get_status_display(self, obj) -> str:
-        return obj.get_status_display()
+        return _STATUS_LABELS.get(_projected_status(obj), _projected_status(obj))
 
 
 class CheckoutSerializer(serializers.Serializer):

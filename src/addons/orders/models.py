@@ -24,28 +24,11 @@ class Order(MailThread, TimeStampedModel, SoftDeleteModel):
     # S1 unificación cart→order→sale: el carrito de Odoo es un sale.order
     # en state='draft' — no una tabla aparte. DRAFT precede a PENDING; el
     # checkout es la transición DRAFT→PENDING (analisis-unificar-cart-order-sale).
-    STATUS_DRAFT                = 'DRAFT'
-    STATUS_PENDING              = 'PENDING'
-    STATUS_PROCESSING           = 'PROCESSING'
-    STATUS_IN_PREPARATION       = 'IN_PREPARATION'
-    STATUS_SHIPPED              = 'SHIPPED'
-    STATUS_DELIVERED            = 'DELIVERED'
-    STATUS_CANCELLED            = 'CANCELLED'
-    STATUS_CANCELLED_BY_TIMEOUT = 'CANCELLED_TIMEOUT'
-    STATUS_REFUNDED             = 'REFUNDED'
-    STATUS_PAID                 = 'PAID'
-    STATUSES = [
-        (STATUS_DRAFT,                'Carrito / cotización'),
-        (STATUS_PENDING,              'Pendiente de pago'),
-        (STATUS_PROCESSING,           'Procesando pago'),
-        (STATUS_PAID,                 'Pagado'),
-        (STATUS_IN_PREPARATION,       'En preparación'),
-        (STATUS_SHIPPED,              'Enviado'),
-        (STATUS_DELIVERED,            'Entregado'),
-        (STATUS_CANCELLED,            'Cancelado'),
-        (STATUS_CANCELLED_BY_TIMEOUT, 'Cancelado por timeout'),
-        (STATUS_REFUNDED,             'Reembolsado'),
-    ]
+    # E2a: el vocabulario de estado (``STATUS_*`` + ``STATUSES``) se movió a
+    # ``orders.status_projection`` — el módulo que *produce* el estado. Aquí
+    # era un acoplamiento invertido: 39 referencias importaban este modelo
+    # espejo sólo para leer una constante, y la propia proyección tenía que
+    # importarlo para nombrar su salida. Los valores no cambiaron.
 
     order_number    = models.CharField(max_length=20, unique=True, db_index=True)
     user            = models.ForeignKey(
@@ -54,8 +37,13 @@ class Order(MailThread, TimeStampedModel, SoftDeleteModel):
     )
     guest_email     = models.EmailField(null=True, blank=True,
                           help_text='Email del comprador invitado (BR-011).')
-    status          = models.CharField(max_length=20, choices=STATUSES,
-                          default=STATUS_PENDING, db_index=True)
+    # O2C V5d (ADR-024): la columna espejo ``status`` fue RETIRADA. El estado se
+    # deriva de los tres ejes canónicos vía ``status_projection.order_status``
+    # (comercial ``sale.SaleOrder.state`` · pago ``Payment`` · fulfillment
+    # ``ShipmentGuide``). Las constantes ``STATUS_*`` / ``STATUSES`` sobreviven
+    # como **vocabulario** del contrato público (``?status=``, labels del
+    # serializer, ``OrderStatusLog``), no como campo de esta tabla.
+    #
     # S1 unificación cart→order→sale: token del carrito anónimo (paridad con
     # cart.Cart.cart_token). Solo los drafts anónimos lo llevan; la unicidad
     # UNIQUE admite múltiples NULL en SQL.
@@ -63,10 +51,13 @@ class Order(MailThread, TimeStampedModel, SoftDeleteModel):
         unique=True, null=True, blank=True, db_index=True,
         help_text='Carrito anónimo — draft sin user (S1, analisis-unificar-cart-order-sale).')
     # V3a orders→sale (DEC-FW-02): el espejo legacy conoce su canónico.
-    # confirm_draft_order lo fija al confirmar; V5 retira el espejo entero.
+    # O2C V5d: pasa a **obligatorio** (``null=False``) — sin canónica no hay
+    # estado que derivar, y ``PROTECT`` impide que borrar la ``SaleOrder``
+    # reintroduzca el ``NULL`` que el retiro de la columna espejo elimina
+    # (``SET_NULL`` era la puerta trasera del fallback; ver H-API-19).
     sale_order      = models.OneToOneField(
-        'sale.SaleOrder', null=True, blank=True,
-        on_delete=models.SET_NULL, related_name='legacy_order',
+        'sale.SaleOrder',
+        on_delete=models.PROTECT, related_name='legacy_order',
         help_text='SaleOrder canónica de la que este Order es espejo (V3a).')
     shipping_method = models.ForeignKey(
         'delivery.ShippingMethod', null=True, blank=True,
@@ -291,61 +282,3 @@ class CheckoutAttempt(models.Model):
 
     def __str__(self):
         return f'{self.user_id}/{self.idempotency_key}'
-
-
-class ShippingZone(models.Model):
-    """
-    Zona de envío cubierta. DEC-BC-18.
-    zip_code_prefix es el inicio del código postal cubierto (1-5 dígitos).
-    Ejemplo: "44" cubre todos los CP que empiezan con "44" (Guadalajara, JAL).
-    """
-    name            = models.CharField(max_length=100)
-    # Invariante (decision Nestor 2026-06-02): UNA zona por prefijo. unique=True
-    # crea indice, asi que reemplaza al db_index. Ver H-API-07.
-    zip_code_prefix = models.CharField(max_length=5, unique=True)
-    is_active       = models.BooleanField(default=True)
-    # H-12: catálogo de tiempos de entrega por zona. Ventana min/max de días
-    # hábiles y costo opcional (vacío = usar el del método de envío). Nullable
-    # para no forzar valores en zonas ya sembradas.
-    estimated_days_min = models.PositiveSmallIntegerField(
-        null=True, blank=True,
-        validators=[MinValueValidator(1)],
-        help_text='Días hábiles mínimos de entrega en la zona.')
-    estimated_days_max = models.PositiveSmallIntegerField(
-        null=True, blank=True,
-        validators=[MinValueValidator(1)],
-        help_text='Días hábiles máximos de entrega en la zona.')
-    cost               = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True,
-        validators=[MinValueValidator(Decimal('0'))],
-        help_text='Costo de envío específico de la zona. Vacío = usar el del método.')
-    # G-ENV-01: umbral de envío GRATIS específico de la zona. Permite el modelo
-    # tipo competidor (CDMX/Edomex gratis desde $800; nacional desde $1,300).
-    # Vacío = usar el umbral del método de envío.
-    free_threshold     = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True,
-        validators=[MinValueValidator(Decimal('0'))],
-        help_text='Compra mínima para envío gratis en la zona. Vacío = usar el '
-                  'del método de envío.')
-
-    class Meta:
-        db_table = 'orders_shipping_zone'
-
-    def __str__(self):
-        return f'{self.name} ({self.zip_code_prefix})'
-
-    @classmethod
-    def resolve_for_zip(cls, zip_code):
-        """G-ENV-01: zona activa más específica cuyo prefijo coincide con el
-        inicio del C.P. (el prefijo más largo gana). None si ninguna cubre el
-        C.P. o si viene vacío."""
-        digits = ''.join(ch for ch in (zip_code or '') if ch.isdigit())
-        if not digits:
-            return None
-        matches = [
-            z for z in cls.objects.filter(is_active=True)
-            if z.zip_code_prefix and digits.startswith(z.zip_code_prefix)
-        ]
-        if not matches:
-            return None
-        return max(matches, key=lambda z: len(z.zip_code_prefix))

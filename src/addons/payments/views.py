@@ -18,8 +18,20 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from django.db.models import Q, Sum
-from addons.orders.models import Order, ShippingZone
+from addons.delivery.models import ShippingZone
+from addons.orders.models import Order
+from addons.orders.status_projection import (
+    STATUS_DELIVERED,
+    STATUS_IN_PREPARATION,
+    STATUS_PAID,
+    STATUS_PENDING,
+    STATUS_PROCESSING,
+    STATUS_SHIPPED,
+    order_status,
+)
 from addons.sale.models import SaleOrder
+from addons.delivery.models.sale_order import set_delivery_line
+from addons.sale_loyalty.models.sale_order import set_reward_line
 from addons.orders.proxy_models import DeliveredOrder
 from addons.payment.models import Payment, Payment as PaymentModel, Refund, Chargeback, SavedCard
 from .serializers import (
@@ -140,9 +152,10 @@ class InitiatePaymentView(APIView):
                         'codigo_error': 'ORDER_NOT_FOUND',
                     })
 
-                if order.status != Order.STATUS_PENDING:
+                _status = order_status(order)
+                if _status != STATUS_PENDING:
                     raise ValidationError({
-                        'detail': f'La orden no está en estado PENDING (estado: {order.status}).',
+                        'detail': f'La orden no está en estado PENDING (estado: {_status}).',
                         'codigo_error': 'ORDER_NOT_PAYABLE',
                     })
 
@@ -300,11 +313,11 @@ class PaymentReturnView(APIView):
 
 # Estados de orden que cuentan como "pagada" para emitir recibo (PRE-02).
 _PAID_ORDER_STATUSES = frozenset({
-    Order.STATUS_PAID,
-    Order.STATUS_PROCESSING,
-    Order.STATUS_IN_PREPARATION,
-    Order.STATUS_SHIPPED,
-    Order.STATUS_DELIVERED,
+    STATUS_PAID,
+    STATUS_PROCESSING,
+    STATUS_IN_PREPARATION,
+    STATUS_SHIPPED,
+    STATUS_DELIVERED,
 })
 
 
@@ -362,8 +375,10 @@ class ReceiptPdfView(APIView):
                 status=403,
             )
 
-        # EX-03: orden no pagada → 409 ORDER_NOT_PAID.
-        if order.status not in _PAID_ORDER_STATUSES:
+        # EX-03: orden no pagada → 409 ORDER_NOT_PAID. O2C V5c-2: el eje de
+        # pagada/beyond se deriva de la proyección canónica (sale.state +
+        # Payment + guía), no de la columna espejo ``order.status``.
+        if order_status(order) not in _PAID_ORDER_STATUSES:
             return Response(
                 {'detail': 'La orden no está pagada.',
                  'codigo_error': 'ORDER_NOT_PAID'},
@@ -630,6 +645,11 @@ class ExpressCheckoutView(APIView):
         shipping_cost = Dec('0.00')
         if shipping.free_threshold is None or subtotal_for_shipping < shipping.free_threshold:
             shipping_cost = shipping.cost
+
+        # E1-bis: ver nota en orders/views.py — la línea de envío/descuento
+        # se materializa sobre el draft antes de confirmar.
+        set_delivery_line(draft, shipping_cost)
+        set_reward_line(draft)
 
         try:
             order = confirm_draft_order(
@@ -1230,10 +1250,20 @@ class CheckoutApiPaymentView(APIView):
                     .get(
                         order_number=data['order_number'],
                         user=request.user,
-                        status=Order.STATUS_PENDING,
                     )
                 )
             except Order.DoesNotExist:
+                return Response(
+                    {'codigo_error': 'ORDER_NOT_FOUND'},
+                    status=404,
+                )
+
+            # O2C V5c-2: el lock (select_for_update) toma la fila por
+            # order_number+user; la aserción de PENDING se hace sobre la
+            # proyección canónica tras adquirir el lock (antes vivía en el
+            # filtro ``status=PENDING`` del .get, que leía la columna espejo).
+            # Mismo contrato: orden existente pero no-PENDING → 404 ORDER_NOT_FOUND.
+            if order_status(order) != STATUS_PENDING:
                 return Response(
                     {'codigo_error': 'ORDER_NOT_FOUND'},
                     status=404,

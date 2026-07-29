@@ -12,10 +12,13 @@ from decimal import Decimal
 from unittest.mock import patch, MagicMock
 from addons.catalogue.models import Category, Product
 from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from addons.orders.status_projection import order_status
+from addons.sale.models import SaleOrder
 from django.core.checks.registry import registry
 from addons.payment_mercado_pago.checks import check_mercadopago_client_secret
 from addons.payment.models import Payment
 from addons.payment.models import PaymentGateway
+from tests.factories.order_factory import make_order
 
 pytestmark = pytest.mark.integration
 
@@ -39,7 +42,10 @@ def orden_processing_mp(db, user, cat_wh):
         is_active=True, is_published=True,
     )
     prod.categories.add(cat_wh)
-    order = Order.objects.create(user=user, status='PENDING')
+    order = Order.objects.create(
+        user=user, # O2C R8: par canonico — la proyeccion deriva el estado de los ejes.
+        sale_order=SaleOrder.objects.create(state=SaleOrder.STATE_SALE),
+    )
     OrderItem.objects.create(
         order=order, product_name=prod.name, sku=prod.sku,
         unit_price=prod.price, quantity=1, subtotal=prod.price,
@@ -53,7 +59,7 @@ def orden_processing_mp(db, user, cat_wh):
         city='CDMX', state='CMX', zip_code='06600',
     )
     payment = Payment.objects.create(
-        order=order, gateway='MERCADOPAGO',
+        order=order, sale_order=order.sale_order, gateway='MERCADOPAGO',
         preference_id='PREF-WH-TEST-001',
         gateway_payment_id='MP-PAY-999',
         status='PENDING', amount=Decimal('600.00'),
@@ -117,7 +123,7 @@ class TestMercadoPagoWebhook:
         payment.refresh_from_db()
         order.refresh_from_db()
         assert payment.status == 'APPROVED'
-        assert order.status == 'PAID'  # DEC-BC-12: aprobado → PAID
+        assert order_status(order) == 'PAID'  # DEC-BC-12 proyectado del eje
 
     def test_webhook_tipo_order_aprobado_actualiza_payment(
         self, api_client, orden_processing_mp, mp_gateway_wh, db
@@ -161,7 +167,7 @@ class TestMercadoPagoWebhook:
         payment.refresh_from_db()
         order.refresh_from_db()
         assert payment.status == 'APPROVED'
-        assert order.status == 'PAID'
+        assert order_status(order) == 'PAID'
         # usó el Orders API para la verificación, no el Payments API
         sdk.order.return_value.get.assert_called_once_with('ORD-WH-1')
 
@@ -214,7 +220,8 @@ class TestMercadoPagoWebhook:
         payment.refresh_from_db()
         assert payment.status == 'APPROVED'  # sin cambio
         order.refresh_from_db()
-        assert order.status == 'PROCESSING'  # sin cambio
+        # O2C R8: proyectado — el pago ya estaba APPROVED, sigue PAID.
+        assert order_status(order) == 'PAID'  # sin cambio
 
     def test_webhook_pago_rechazado_marca_payment_failed(
         self, api_client, orden_processing_mp, mp_gateway_wh, db
@@ -244,7 +251,7 @@ class TestMercadoPagoWebhook:
         payment.refresh_from_db()
         order.refresh_from_db()
         assert payment.status == 'FAILED'
-        assert order.status == 'PENDING'  # sin procesar
+        assert order_status(order) == 'PENDING'  # sin pago aprobado → PENDING
 
     def test_webhook_tipo_no_payment_ignorado(self, api_client, db):
         """Eventos que no son 'payment' se ignoran con 200."""
@@ -395,7 +402,10 @@ class TestPayPalWebhook:
             is_active=True, is_published=True,
         )
         prod.categories.add(cat_wh)
-        order = Order.objects.create(user=user, status='PENDING')
+        order = Order.objects.create(
+        user=user, # O2C R8: par canonico — la proyeccion deriva el estado de los ejes.
+        sale_order=SaleOrder.objects.create(state=SaleOrder.STATE_SALE),
+    )
         OrderItem.objects.create(
             order=order, product_name=prod.name, sku=prod.sku,
             unit_price=prod.price, quantity=1, subtotal=prod.price,
@@ -409,7 +419,7 @@ class TestPayPalWebhook:
             city='CDMX', state='CMX', zip_code='06600',
         )
         payment = Payment.objects.create(
-            order=order, gateway='PAYPAL',
+            order=order, sale_order=order.sale_order, gateway='PAYPAL',
             preference_id='PP-ORDER-WH-001',
             status='PENDING', amount=Decimal('400.00'),
         )
@@ -450,7 +460,7 @@ class TestPayPalWebhook:
         payment.refresh_from_db()
         order.refresh_from_db()
         assert payment.status == 'APPROVED'
-        assert order.status == 'PAID'  # DEC-BC-12
+        assert order_status(order) == 'PAID'  # DEC-BC-12 proyectado del eje
 
     def test_webhook_paypal_firma_invalida_retorna_401(
         self, api_client, db

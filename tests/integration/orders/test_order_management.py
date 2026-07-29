@@ -10,10 +10,15 @@ from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from django.contrib.auth import get_user_model
 from tests.factories.user_factory import make_buyer
 from addons.payment.models import Payment, Refund
-from addons.delivery.models import ShippingMethod
+from addons.delivery.models import ShippingMethod, Courier, ShipmentGuide
 from addons.payment.models import PaymentGateway
+from django.utils import timezone
+
+from addons.sale.models import SaleOrder, SaleOrderLine
 from unittest.mock import patch, MagicMock
 from addons.chartsize.models import VariantType, VariantOption, ProductVariant
+from tests.factories.order_factory import make_order
+from addons.orders.status_projection import order_status
 
 pytestmark = pytest.mark.integration
 
@@ -79,7 +84,7 @@ def prod_ord(db, cat_ord):
 
 
 def _create_full_order(user, prod, status='PENDING', n_items=1):
-    order = Order.objects.create(user=user, status=status)
+    order = make_order(user=user, status=status)
     for i in range(n_items):
         OrderItem.objects.create(
             order=order, product_name=prod.name, sku=f'{prod.sku}-{i}',
@@ -101,6 +106,53 @@ def _create_full_order(user, prod, status='PENDING', n_items=1):
     )
     return order
 
+
+def _canonical_full_order(user, prod, *, approved=False, guide=False, delivered=False):
+    """Orden canónica (SaleOrder confirmada + Order enlazada) con ítems/valor/
+    dirección para que la lista serialice. Estado proyectado desde los ejes
+    (pago + guía), no de la columna espejo."""
+    so = SaleOrder.objects.create(state=SaleOrder.STATE_SALE)
+    order = Order.objects.create(user=user, sale_order=so)
+    OrderItem.objects.create(
+        order=order, product_name=prod.name, sku=f'{prod.sku}-c',
+        unit_price=prod.price, quantity=1, subtotal=prod.price, product=prod,
+    )
+    OrderValue.objects.create(
+        order=order, subtotal=prod.price, tax=Decimal('0.00'),
+        shipping_cost=Decimal('80.00'), discount=Decimal('0.00'),
+        total=prod.price + Decimal('80.00'),
+    )
+    OrderAddress.objects.create(
+        order=order, recipient_name='Test User', street='Av. Reforma 100',
+        city='CDMX', state='Ciudad de Mexico', zip_code='06600',
+    )
+    if approved:
+        Payment.objects.create(
+            order=order, sale_order=so, gateway=Payment.GATEWAY_MERCADOPAGO,
+            amount=Decimal('100.00'), status=Payment.STATUS_APPROVED,
+        )
+    if guide or delivered:
+        courier = Courier.objects.create(
+            name=f'C-{order.pk}', code=f'c-{order.pk}', is_active=True)
+        kw = dict(order=order, sale_order=so, courier=courier,
+                  tracking_number=f'TRK-{order.pk}')
+        if delivered:
+            kw['status'] = ShipmentGuide.STATUS_DELIVERED
+        ShipmentGuide.objects.create(**kw)
+    return order
+
+
+
+def _canonical_paid_manual(user, prod):
+    """PAID canónico vía pago conciliado (gateway MANUAL): proyecta PAID y el
+    cancel no dispara refund de pasarela (los MANUAL se excluyen)."""
+    order = _canonical_full_order(user, prod)
+    Payment.objects.create(
+        order=order, sale_order=order.sale_order,
+        gateway=Payment.GATEWAY_MANUAL,
+        amount=Decimal('100.00'), status=Payment.STATUS_APPROVED,
+    )
+    return order
 
 # =============================================================================
 # UC-ORD-02 — Detalle de orden
@@ -208,6 +260,37 @@ class TestListadoOrdenes:
         assert res.status_code == 400
         assert res.json()['codigo_error'] == 'INVALID_STATUS'
 
+    def test_listado_filtro_status_canonico_desde_ejes(
+        self, auth_client, user, prod_ord, db,
+    ):
+        """O2C R6: ?status= deriva el estado de los ejes canónicos (pago +
+        guía), no de la columna espejo ``order.status``."""
+        pend  = _canonical_full_order(user, prod_ord)                       # PENDING
+        paid  = _canonical_full_order(user, prod_ord, approved=True)        # PAID
+        ship  = _canonical_full_order(user, prod_ord, approved=True, guide=True)      # SHIPPED
+        deliv = _canonical_full_order(user, prod_ord, approved=True, delivered=True)  # DELIVERED
+
+        def nums(status):
+            r = auth_client.get(f'{ORDERS_URL}?status={status}')
+            assert r.status_code == 200
+            return {o['order_number'] for o in r.json()['results']}
+
+        assert nums('PENDING')   == {pend.order_number}
+        assert nums('PAID')      == {paid.order_number}
+        assert nums('SHIPPED')   == {ship.order_number}
+        assert nums('DELIVERED') == {deliv.order_number}
+
+    def test_listado_filtro_status_muerto_400(
+        self, auth_client, user, prod_ord, db,
+    ):
+        """O2C R6: los 3 valores muertos del enum legacy salen del contrato
+        público → 400 (la proyección nunca los emite)."""
+        _canonical_full_order(user, prod_ord)
+        for dead in ('PROCESSING', 'IN_PREPARATION', 'REFUNDED'):
+            r = auth_client.get(f'{ORDERS_URL}?status={dead}')
+            assert r.status_code == 400, dead
+            assert r.json()['codigo_error'] == 'INVALID_STATUS'
+
     def test_listado_incluye_campos_requeridos(
         self, auth_client, user, prod_ord, db
     ):
@@ -226,7 +309,7 @@ class TestListadoOrdenes:
 class TestCancelarOrden:
 
     def test_cancelar_orden_pending(self, auth_client, user, prod_ord, db):
-        order = _create_full_order(user, prod_ord, status='PENDING')
+        order = _canonical_full_order(user, prod_ord)
         res = auth_client.post(CANCEL_URL(order.order_number),
                                {'reason': 'Me arrepentí'}, format='json')
         assert res.status_code == 200
@@ -235,9 +318,10 @@ class TestCancelarOrden:
         assert order.cancellation_reason == 'Me arrepentí'
         assert order.cancelled_at is not None
 
-    def test_cancelar_orden_processing(self, auth_client, user, prod_ord, db):
-        """H-ORD-002: PROCESSING = PAYMENT_CONFIRMED de la FR — cancelable."""
-        order = _create_full_order(user, prod_ord, status='PROCESSING')
+    def test_cancelar_orden_paid(self, auth_client, user, prod_ord, db):
+        """O2C R8-pre: una orden PAID (pago confirmado, sin guía) es cancelable
+        por el comprador — PROCESSING era el valor muerto equivalente."""
+        order = _canonical_paid_manual(user, prod_ord)
         res = auth_client.post(CANCEL_URL(order.order_number), {}, format='json')
         assert res.status_code == 200
         assert res.json()['status'] == 'CANCELLED'
@@ -249,14 +333,11 @@ class TestCancelarOrden:
         prod_ord.refresh_from_db()
         assert prod_ord.stock == stock_inicial + 1
 
-    def test_cancelar_in_preparation_no_permitido(
-        self, auth_client, user, prod_ord, db
-    ):
-        """IN_PREPARATION no es cancelable por el comprador."""
-        order = _create_full_order(user, prod_ord, status='IN_PREPARATION')
-        res = auth_client.post(CANCEL_URL(order.order_number), {}, format='json')
-        assert res.status_code == 400
-        assert res.json()['codigo_error'] == 'CANCELLATION_NOT_ALLOWED'
+    # O2C V5d: se retiro ``test_cancelar_in_preparation_no_permitido``.
+    # ``IN_PREPARATION`` es un valor MUERTO del enum legacy (0 escritores; la
+    # proyeccion canonica nunca lo emite), asi que el caso no era representable
+    # y el test probaba un estado inalcanzable. El camino no-cancelable real lo
+    # cubre ``test_cancelar_delivered_no_permitido``.
 
     def test_cancelar_delivered_no_permitido(
         self, auth_client, user, prod_ord, db
@@ -268,15 +349,15 @@ class TestCancelarOrden:
     def test_cancelacion_con_pago_inicia_reembolso(
         self, auth_client, user, prod_ord, db
     ):
-        """H-ORD-004: cancelar orden PROCESSING con Payment → reembolso automático."""
+        """H-ORD-004: cancelar orden PAID con Payment → reembolso automático."""
 
         gw = PaymentGateway(name='MP', gateway='MERCADOPAGO', is_active=True)
         gw.set_credentials({'access_token': 'T', 'client_secret': 'S'})
         gw.save()
 
-        order = _create_full_order(user, prod_ord, status='PROCESSING')
+        order = _create_full_order(user, prod_ord, status='PAID')
         payment = Payment.objects.create(
-            order=order, gateway='MERCADOPAGO',
+            order=order, sale_order=order.sale_order, gateway='MERCADOPAGO',
             gateway_payment_id='MP-CANCEL-001',
             preference_id='PREF-CANCEL',
             status='APPROVED', amount=prod_ord.price + Decimal('80'),
@@ -307,7 +388,7 @@ class TestCancelarOrden:
         Debe incluirse en CANCELABLE_STATUSES para evitar que el comprador
         quede atrapado con una orden pagada que no puede cancelar.
         """
-        order = _create_full_order(user, prod_ord, status='PAID')
+        order = _canonical_paid_manual(user, prod_ord)
         res = auth_client.post(
             CANCEL_URL(order.order_number),
             {'reason': 'Cambié de opinión'},
@@ -316,7 +397,8 @@ class TestCancelarOrden:
         assert res.status_code == 200, res.json()
         assert res.json()['status'] == 'CANCELLED'
         order.refresh_from_db()
-        assert order.status == 'CANCELLED'
+        # O2C R8: el estado es la proyección del eje comercial.
+        assert order.sale_order.state == SaleOrder.STATE_CANCEL
         assert order.cancellation_reason == 'Cambié de opinión'
         assert order.cancelled_at is not None
 
@@ -351,11 +433,12 @@ class TestEditarDireccion:
         order.refresh_from_db()
         assert order.address.city == 'Guadalajara'
 
-    def test_editar_direccion_in_preparation_permitido(
+    def test_editar_direccion_paid_permitido(
         self, auth_client, user, prod_ord, db
     ):
-        """IN_PREPARATION: aún no hay guía — edición permitida."""
-        order = _create_full_order(user, prod_ord, status='IN_PREPARATION')
+        """O2C R8-pre: PAID y aún sin guía — edición de dirección permitida
+        (IN_PREPARATION era el valor muerto equivalente)."""
+        order = _create_full_order(user, prod_ord, status='PAID')
         res = auth_client.patch(ADDRESS_URL(order.order_number), {
             'recipient_name': 'Prueba', 'street': 'St 1',
             'city': 'MTY', 'state': 'NL', 'zip_code': '64000',
@@ -407,8 +490,10 @@ class TestEditarDireccion:
         log = order.status_logs.order_by('-created_at').first()
         assert log.changed_by_id == user.id
         # No hay transición de estado real — se usa el mismo patrón de
-        # OrderStatusLog que cancel_order, sin cambiar Order.status.
-        assert log.previous_status == log.new_status == order.status
+        # OrderStatusLog que cancel_order. O2C V5d: el estado se DERIVA de los
+        # ejes (la columna espejo fue retirada), así que previous == new ==
+        # proyección.
+        assert log.previous_status == log.new_status == order_status(order)
         assert 'Guadalajara' in log.notes
 
 
@@ -473,7 +558,8 @@ class TestCambiarMetodoEnvio:
         (cobro/reembolso no implementado) -> se rechaza con 409
         ORDER_NOT_EDITABLE. El cambio solo se permite en estados pre-pago
         (PENDING/PROCESSING)."""
-        for paid_status in ('PAID', 'IN_PREPARATION'):
+        # V5d: ``IN_PREPARATION`` es valor muerto (inalcanzable) — solo PAID.
+        for paid_status in ('PAID',):
             order = _create_full_order(user, prod_ord, status=paid_status)
             res = auth_client.patch(SHIPPING_URL(order.order_number), {
                 'shipping_method_id': shipping_methods['standard'].pk,
@@ -516,8 +602,10 @@ class TestCambiarMetodoEnvio:
         log = order.status_logs.order_by('-created_at').first()
         assert log.changed_by_id == user.id
         # No hay transición de estado real — se usa el mismo patrón de
-        # OrderStatusLog que cancel_order, sin cambiar Order.status.
-        assert log.previous_status == log.new_status == order.status
+        # OrderStatusLog que cancel_order. O2C V5d: el estado se DERIVA de los
+        # ejes (la columna espejo fue retirada), así que previous == new ==
+        # proyección.
+        assert log.previous_status == log.new_status == order_status(order)
         assert shipping_methods['standard'].name in log.notes
 
 
@@ -526,39 +614,58 @@ class TestCambiarMetodoEnvio:
 # =============================================================================
 
 class TestProteccionVariantesOrdenes:
+    """H-ORD-005 tras cut-over orders→sale (ADR-024): "orden activa" =
+    confirmada (``sale.state='sale'``) y NO entregada. Los fixtures
+    construyen los ejes canónicos (SaleOrder + Order espejo + guía)."""
 
-    def test_no_eliminar_variante_con_orden_activa(self, admin_client, prod_ord, db):
-        """H-ORD-005: variante con ActiveOrder no puede eliminarse."""
-        User = get_user_model()
-
-        vtype  = VariantType.objects.create(name='Talla', product=prod_ord)
-        vopt   = VariantOption.objects.create(
+    def _make_variant(self, prod_ord):
+        vtype = VariantType.objects.create(name='Talla', product=prod_ord)
+        vopt  = VariantOption.objects.create(
             variant_type=vtype, label='M', slug='m'
         )
-        variant = ProductVariant.objects.create(
+        return ProductVariant.objects.create(
             product=prod_ord, option=vopt, sku_suffix='M',
             price_override=Decimal('1500'), stock=5, is_active=True,
         )
 
-        user = User.objects.create_user(
-            email='bv@test.com', password='pass'
+    def _make_order_with_variant(self, prod_ord, variant):
+        # E2c: el guard de la vista lee SaleOrderLine (canónico); el fixture
+        # construye la línea canónica, no el OrderItem del espejo.
+        so = SaleOrder.objects.create(
+            state=SaleOrder.STATE_SALE, date_order=timezone.now())
+        order = Order.objects.create(sale_order=so)
+        SaleOrderLine.objects.create(
+            order=so, product=prod_ord, variant=variant,
+            name=prod_ord.name, product_uom_qty=1,
+            price_unit=variant.price_override,
         )
-        order = Order.objects.create(user=user, status='PENDING')
-        OrderItem.objects.create(
-            order=order, product_name=prod_ord.name, sku=prod_ord.sku + '-M',
-            unit_price=variant.price_override if variant.price_override else prod_ord.price, quantity=1,
-            subtotal=variant.price_override if variant.price_override else prod_ord.price,
-            variant=variant, product=prod_ord,
-        )
-        OrderValue.objects.create(
-            order=order, subtotal=Decimal('1500'), tax=Decimal('200'),
-            shipping_cost=Decimal('80'), discount=Decimal('0'),
-            total=Decimal('1500') + Decimal('280'),
-        )
-        OrderAddress.objects.create(
-            order=order, recipient_name='T', street='S',
-            city='CDMX', state='CMX', zip_code='06600',
+        return so, order
+
+    def test_no_eliminar_variante_con_orden_activa(self, admin_client, prod_ord, db):
+        """Variante en orden confirmada sin guía entregada → 400."""
+        variant = self._make_variant(prod_ord)
+        self._make_order_with_variant(prod_ord, variant)
+
+        res = admin_client.delete(
+            f'/api/v2/admin/products/{prod_ord.pk}/variants/{variant.pk}/')
+        assert res.status_code == 400
+        assert res.json()['codigo_error'] == 'VARIANT_WITH_ACTIVE_ORDERS'
+
+    def test_eliminar_variante_con_orden_entregada_permitido(
+        self, admin_client, prod_ord, db
+    ):
+        """Orden entregada (guía DELIVERED viva) NO bloquea → 204."""
+        variant = self._make_variant(prod_ord)
+        so, order = self._make_order_with_variant(prod_ord, variant)
+        courier = Courier.objects.create(name='Estafeta', code='EST')
+        ShipmentGuide.objects.create(
+            order=order, sale_order=so, courier=courier,
+            tracking_number='TRK-DELIVERED-1',
+            status=ShipmentGuide.STATUS_DELIVERED,
         )
 
-        res = admin_client.delete(f'/api/v2/admin/products/{prod_ord.pk}/variants/{variant.pk}/')
-        assert res.status_code == 400
+        res = admin_client.delete(
+            f'/api/v2/admin/products/{prod_ord.pk}/variants/{variant.pk}/')
+        assert res.status_code == 204
+        variant.refresh_from_db()
+        assert variant.is_active is False

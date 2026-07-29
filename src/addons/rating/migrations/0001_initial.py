@@ -1,10 +1,18 @@
-"""Adopta los modelos de reseña de producto en ``rating`` (state-only).
+"""Crea los modelos de reseña de producto en ``rating``.
 
-Las tablas ``reviews_review``/``reviews_moderation_log``/``reviews_helpful_vote``/
-``reviews_image`` ya existen (creadas por la ex-migración ``reviews.0001``); las
-reseñas de producto se re-alojan en ``rating`` (hogar fiel: Odoo construye las
-reseñas de producto sobre ``rating.rating`` + ``website_sale``). Solo cambia el
-``app_label``.
+Las reseñas de producto se alojan en ``rating`` (hogar fiel: Odoo construye las
+reseñas de producto sobre ``rating.rating`` + ``website_sale``); las tablas
+conservan el nombre histórico ``reviews_*`` vía ``db_table``.
+
+**H-API-21 (2026-07-28):** esta migración nació ``state-only``
+(``SeparateDatabaseAndState`` con ``database_operations=[]``) porque las tablas
+ya existían en el schema desplegado, creadas por la ex-migración
+``reviews.0001``. Al plegarse ``reviews`` en ``rating`` esa migración se
+eliminó del árbol y **nadie quedó creando las tablas**: cualquier build
+*desde cero* moría en ``rating.0002_review_sale_order`` con
+``Table 'reviews_review' doesn't exist``. El defecto era invisible bajo
+``--reuse-db`` (el schema arrastraba las tablas del árbol viejo). Se restituye
+la creación real para que el grafo sea auto-contenido.
 """
 import django.core.validators
 import django.db.models.deletion
@@ -260,9 +268,5 @@ class Migration(migrations.Migration):
         ),
     ]
 
-    operations = [
-        migrations.SeparateDatabaseAndState(
-            state_operations=state_operations,
-            database_operations=[],
-        ),
-    ]
+    # H-API-21: las operaciones se aplican a la BD, no sólo al estado.
+    operations = state_operations

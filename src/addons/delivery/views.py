@@ -23,7 +23,15 @@ class ShipmentGuidePagination(PageNumberPagination):
 
 logger = logging.getLogger('apps')
 
+from addons.mail.models.notification_service import notify_order_status_changed
 from addons.orders.models import Order, OrderStatusLog
+from addons.orders.status_projection import (
+    STATUS_DELIVERED,
+    STATUS_SHIPPED,
+    order_status,
+)
+from addons.payment.models import Payment
+from addons.sale.models import SaleOrder
 from config.schema import error_response
 from .models import CarrierRateCard, Courier, ShipmentEvent, ShipmentGuide
 from .offers import build_offers
@@ -50,10 +58,25 @@ class LogisticsPanelView(_AdminOnly, APIView):
             except ValueError:
                 return Response({'detail': 'courier_id inválido.', 'codigo_error': 'COURIER_ID_INVALID'}, status=400)
 
-        group_a_qs = Order.objects.filter(status=Order.STATUS_IN_PREPARATION).select_related('address').prefetch_related('items')
+        # Cut-over orders→sale (ADR-024): "pending pickup" = orden confirmada
+        # (sale.state='sale') y pagada (Payment APPROVED) SIN guía viva. El
+        # enum legacy Order.status ya no se filtra: IN_PREPARATION es un valor
+        # muerto proyectado desde los ejes, no escrito (H-API-10). El status
+        # de cada fila se deriva con order_status(), no leyendo la columna.
+        group_a_qs = (
+            Order.objects
+            .filter(
+                sale_order__state=SaleOrder.STATE_SALE,
+                sale_order__payments__status=Payment.STATUS_APPROVED,
+            )
+            .exclude(sale_order__shipment_guide__is_deleted=False)
+            .select_related('address', 'sale_order')
+            .prefetch_related('items')
+            .distinct()
+        )
         pending_pickup = []
         for order in group_a_qs:
-            entry = {'order_id': order.id, 'order_number': order.order_number, 'status': order.status}
+            entry = {'order_id': order.id, 'order_number': order.order_number, 'status': order_status(order)}
             try:
                 addr = order.address
                 entry['recipient_name'] = addr.recipient_name
@@ -64,7 +87,7 @@ class LogisticsPanelView(_AdminOnly, APIView):
 
         guide_qs = ShipmentGuide.objects.filter(is_deleted=False).exclude(
             status=ShipmentGuide.STATUS_DELIVERED,
-        ).exclude(status=ShipmentGuide.STATUS_CANCELLED).select_related('order', 'courier')
+        ).exclude(status=ShipmentGuide.STATUS_CANCELLED).select_related('order', 'sale_order', 'courier')
         if courier_filter:
             guide_qs = guide_qs.filter(courier_id=courier_filter)
 
@@ -72,7 +95,7 @@ class LogisticsPanelView(_AdminOnly, APIView):
         for guide in guide_qs:
             in_transit.append({
                 'guide_id': guide.id, 'tracking_number': guide.tracking_number,
-                'order_id': guide.order_id, 'order_number': guide.order.order_number,
+                'order_id': guide.order_id, 'order_number': guide.sale_order.name,
                 'courier_code': guide.courier.code, 'status': guide.status,
             })
 
@@ -131,7 +154,7 @@ class ShipmentGuideListCreateView(_AdminOnly, APIView):
     @extend_schema(summary='Listar guías de envío', tags=['logistics'],
                    responses={200: ShipmentGuideSerializer(many=True)})
     def get(self, request):
-        qs = ShipmentGuide.objects.filter(is_deleted=False).select_related('order', 'courier').order_by('-created_at')
+        qs = ShipmentGuide.objects.filter(is_deleted=False).select_related('order', 'sale_order', 'courier').order_by('-created_at')
         if request.query_params.get('order_id'):
             qs = qs.filter(order_id=request.query_params['order_id'])
         # H-CICLO29-03: sin paginacion este endpoint podia retornar todas
@@ -157,7 +180,8 @@ class ShipmentGuideListCreateView(_AdminOnly, APIView):
         # dos guías para la misma orden. También se crea OrderStatusLog para
         # la transición →SHIPPED, que antes quedaba sin registro de auditoría.
         with transaction.atomic():
-            order_locked = Order.objects.select_for_update().get(pk=order.pk)
+            order_locked = (Order.objects.select_for_update()
+                            .select_related('sale_order').get(pk=order.pk))
             # H-CICLO72-03: prevent duplicate active guides for the same order.
             if ShipmentGuide.objects.filter(order=order_locked, is_deleted=False).exists():
                 return Response(
@@ -168,26 +192,32 @@ class ShipmentGuideListCreateView(_AdminOnly, APIView):
                     status=status.HTTP_409_CONFLICT,
                 )
 
-            previous_status = order_locked.status
+            # O2C R8: la creación de la guía ES la transición a SHIPPED (eje
+            # fulfillment) — la proyección deriva SHIPPED de la guía activa;
+            # la columna espejo ya no se escribe (V5d la retira).
+            previous_status = order_status(order_locked)
             guide = ShipmentGuide.objects.create(
                 order=order_locked, sale_order=order_locked.sale_order,
                 courier=data['courier'],
                 tracking_number=data['tracking_number'], notes=data.get('notes', ''),
             )
-            order_locked.status = Order.STATUS_SHIPPED
-            order_locked.save(update_fields=['status', 'updated_at'])
             OrderStatusLog.objects.create(
                 order=order_locked,
                 previous_status=previous_status,
-                new_status=Order.STATUS_SHIPPED,
+                new_status=STATUS_SHIPPED,
                 changed_by=request.user,
                 notes=f'Guía de envío creada: {data["tracking_number"]}',
             )
+            # UC-NOT-02 (O2C R8): notificación explícita en el eje (antes la
+            # disparaba la signal post_save al escribir el espejo).
+            notify_order_status_changed(order_locked, STATUS_SHIPPED)
 
         # H-CICLO46-02: re-fetch guide with select_related to avoid N+1 when
-        # ShipmentGuideSerializer accesses guide.order.order_number (source FK)
-        # and guide.courier (nested CourierSerializer).
-        guide = ShipmentGuide.objects.select_related('order', 'courier').get(pk=guide.pk)
+        # ShipmentGuideSerializer accesses guide.sale_order.name (source FK,
+        # re-anclado a la canónica en I2) and guide.courier (nested
+        # CourierSerializer).
+        guide = ShipmentGuide.objects.select_related(
+            'sale_order', 'courier').get(pk=guide.pk)
         return Response(ShipmentGuideSerializer(guide).data, status=201)
 
 
@@ -205,7 +235,7 @@ class AdminOrderGuideView(_AdminOnly, APIView):
     def get(self, request, order_number):
         guide = (
             ShipmentGuide.objects
-            .select_related('order', 'courier')
+            .select_related('order', 'sale_order', 'courier')
             .filter(order__order_number=order_number, is_deleted=False)
             .first()
         )
@@ -241,7 +271,7 @@ class ShipmentGuideDetailView(_AdminOnly, APIView):
 
     def _get_guide(self, pk):
         try:
-            return ShipmentGuide.objects.select_related('order', 'courier').get(pk=pk, is_deleted=False)
+            return ShipmentGuide.objects.select_related('order', 'sale_order', 'courier').get(pk=pk, is_deleted=False)
         except ShipmentGuide.DoesNotExist:
             raise NotFound({'detail': 'Guía no encontrada.', 'codigo_error': 'SHIPMENT_GUIDE_NOT_FOUND'})
 
@@ -380,24 +410,29 @@ class ConfirmDeliveryView(_AdminOnly, APIView):
         # Ademas se crea OrderStatusLog para la transicion SHIPPED→DELIVERED,
         # que antes quedaba sin entrada de auditoria.
         with transaction.atomic():
-            guide_locked = ShipmentGuide.objects.select_for_update().select_related('order').get(pk=pk)
+            guide_locked = (ShipmentGuide.objects.select_for_update()
+                            .select_related('order', 'order__sale_order').get(pk=pk))
             if guide_locked.status == ShipmentGuide.STATUS_DELIVERED:
                 return Response({'status': guide_locked.status, 'already_delivered': True,
                                  'tracking_number': guide_locked.tracking_number})
-            previous_order_status = guide_locked.order.status
+            # O2C R8: el estado previo se deriva de los ejes canónicos; la
+            # guía DELIVERED de abajo ES el eje fulfillment — la proyección
+            # deriva DELIVERED de ella (la columna espejo ya no se escribe).
+            previous_order_status = order_status(guide_locked.order)
             now = timezone.now()
             guide_locked.status = ShipmentGuide.STATUS_DELIVERED
             guide_locked.delivered_at = now
             guide_locked.save(update_fields=['status', 'delivered_at', 'updated_at'])
-            guide_locked.order.status = Order.STATUS_DELIVERED
-            guide_locked.order.save(update_fields=['status', 'updated_at'])
             OrderStatusLog.objects.create(
                 order=guide_locked.order,
                 previous_status=previous_order_status,
-                new_status=Order.STATUS_DELIVERED,
+                new_status=STATUS_DELIVERED,
                 changed_by=request.user,
                 notes=f'Entrega confirmada via guia #{guide_locked.pk} ({guide_locked.tracking_number})',
             )
+            # UC-NOT-02 (O2C R8): sin escritura del espejo la signal
+            # post_save no dispara — notificación explícita en el eje.
+            notify_order_status_changed(guide_locked.order, STATUS_DELIVERED)
         return Response({'status': guide_locked.status, 'already_delivered': False,
                          'tracking_number': guide_locked.tracking_number,
                          'delivered_at': guide_locked.delivered_at})

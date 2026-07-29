@@ -6,8 +6,10 @@ from django.db import migrations, models
 
 # Marca (issuer) mostrada en la app authenticator. NADA cableado: L2, sembrado
 # aquí a 'Kaupamex' (plataforma L0), editable en caliente en SystemParameter.
+from addons.auth_totp.data import TOTP_PARAMETERS
+
 _ISSUER_KEY = 'authz.totp_issuer'
-_ISSUER_DEFAULT = 'Kaupamex'
+_ISSUER_DEFAULT = TOTP_PARAMETERS[_ISSUER_KEY]
 
 
 def seed_issuer(apps, schema_editor):

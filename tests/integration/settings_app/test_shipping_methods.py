@@ -11,6 +11,9 @@ from decimal import Decimal
 
 from addons.orders.models import Order
 from addons.delivery.models import ShippingMethod
+from addons.sale.models import SaleOrder
+from addons.payment.models import Payment
+from tests.factories.order_factory import make_order
 
 pytestmark = pytest.mark.integration
 
@@ -93,8 +96,30 @@ class TestShippingMethods:
             name='Con ordenes', cost=Decimal('50.00'), estimated_days=4,
         )
         # Orden activa que referencia el metodo (estado distinto a terminal).
-        Order.objects.create(
+        make_order(
             user=user, status='PROCESSING', shipping_method=method,
+        )
+        r = admin_client.delete(DETAIL_URL(method.pk))
+        assert r.status_code == 400
+        assert r.json()['codigo_error'] == 'METHOD_WITH_ACTIVE_ORDERS'
+        method.refresh_from_db()
+        assert method.is_active is True
+
+    def test_desactivar_con_orden_pagada_sin_guia_loud(self, admin_client, db, user):
+        """H-API-14: una venta PAID canónica (pagada, aún sin guía) protege su
+        método de envío. Antes quedaba fuera de ``ActiveOrder`` y el método se
+        podía desactivar dejando la orden pagada sin transporte."""
+        method = ShippingMethod.objects.create(
+            name='Con orden pagada', cost=Decimal('50.00'), estimated_days=4,
+        )
+        so = SaleOrder.objects.create(state=SaleOrder.STATE_SALE)
+        order = Order.objects.create(
+            user=user, sale_order=so, shipping_method=method,
+        )
+        Payment.objects.create(
+            order=order, sale_order=so,
+            gateway=Payment.GATEWAY_MERCADOPAGO,
+            amount=Decimal('100.00'), status=Payment.STATUS_APPROVED,
         )
         r = admin_client.delete(DETAIL_URL(method.pk))
         assert r.status_code == 400

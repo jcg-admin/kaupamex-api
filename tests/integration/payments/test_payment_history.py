@@ -13,6 +13,8 @@ from datetime import timedelta
 from django.contrib.auth import get_user_model
 from addons.payment.models import PaymentGateway
 import django.utils.timezone as tz
+from tests.factories.order_factory import make_order
+from tests.factories.order_factory import mark_delivered
 
 pytestmark = pytest.mark.integration
 
@@ -37,7 +39,7 @@ def orden_con_pago(db, user, cat_hist):
         is_active=True, is_published=True,
     )
     prod.categories.add(cat_hist)
-    order = Order.objects.create(user=user, status='PROCESSING')
+    order = make_order(user=user, status='PROCESSING')
     OrderItem.objects.create(
         order=order, product_name=prod.name, sku=prod.sku,
         unit_price=prod.price, quantity=1, subtotal=prod.price,
@@ -52,7 +54,7 @@ def orden_con_pago(db, user, cat_hist):
         street='Calle 1', city='CDMX', state='CMX', zip_code='06600',
     )
     approved = Payment.objects.create(
-        order=order, gateway='MERCADOPAGO',
+        order=order, sale_order=order.sale_order, gateway='MERCADOPAGO',
         preference_id='PREF-HIST-001',
         gateway_payment_id='MP-HIST-001',
         status='APPROVED', amount=Decimal('2400.00'),
@@ -71,7 +73,7 @@ def orden_con_historial(db, user, cat_hist):
         is_active=True, is_published=True,
     )
     prod.categories.add(cat_hist)
-    order = Order.objects.create(user=user, status='PROCESSING')
+    order = make_order(user=user, status='PROCESSING')
     OrderItem.objects.create(
         order=order, product_name=prod.name, sku=prod.sku,
         unit_price=prod.price, quantity=1, subtotal=prod.price,
@@ -86,12 +88,12 @@ def orden_con_historial(db, user, cat_hist):
         street='Av 1', city='CDMX', state='CMX', zip_code='06600',
     )
     failed = Payment.objects.create(
-        order=order, gateway='MERCADOPAGO',
+        order=order, sale_order=order.sale_order, gateway='MERCADOPAGO',
         preference_id='PREF-HIST-FAIL',
         status='FAILED', amount=Decimal('1200.00'),
     )
     approved = Payment.objects.create(
-        order=order, gateway='PAYPAL',
+        order=order, sale_order=order.sale_order, gateway='PAYPAL',
         preference_id='PP-HIST-001',
         gateway_payment_id='PP-CAP-HIST-001',
         status='APPROVED', amount=Decimal('1200.00'),
@@ -129,7 +131,7 @@ class TestEstadoPago:
             price=Decimal('100'), stock=1, is_active=True, is_published=True,
         )
         prod.categories.add(cat_hist)
-        order = Order.objects.create(user=user, status='PENDING')
+        order = make_order(user=user, status='PENDING')
         OrderValue.objects.create(
             order=order, subtotal=Decimal('100'), tax=Decimal('13.79'),
             shipping_cost=Decimal('0'), discount=Decimal('0'), total=Decimal('100'),
@@ -150,7 +152,7 @@ class TestEstadoPago:
         other = User.objects.create_user(
             email='other_h@test.com', password='pass'
         )
-        order = Order.objects.create(user=other, status='PENDING')
+        order = make_order(user=other, status='PENDING')
         res = auth_client.get(STATUS_URL(order.order_number))
         assert res.status_code == 404
         assert res.json()['codigo_error'] == 'ORDER_NOT_FOUND'
@@ -193,14 +195,14 @@ class TestHistorialPagos:
         other = User.objects.create_user(
             email='o2@test.com', password='pass'
         )
-        order = Order.objects.create(user=other, status='PENDING')
+        order = make_order(user=other, status='PENDING')
         res = auth_client.get(HISTORY_URL(order.order_number))
         assert res.status_code == 404
 
     def test_historial_orden_sin_pagos_retorna_lista_vacia(
         self, auth_client, user, cat_hist, db
     ):
-        order = Order.objects.create(user=user, status='PENDING')
+        order = make_order(user=user, status='PENDING')
         res = auth_client.get(HISTORY_URL(order.order_number))
         assert res.status_code == 200
         assert res.json() == []
@@ -220,9 +222,9 @@ class TestElegibilidadReintento:
         gw.set_credentials({'access_token': 'T', 'client_secret': 'S'})
         gw.save()
 
-        order = Order.objects.create(user=user, status='PENDING')
+        order = make_order(user=user, status='PENDING')
         Payment.objects.create(
-            order=order, gateway='MERCADOPAGO',
+            order=order, sale_order=order.sale_order, gateway='MERCADOPAGO',
             status='FAILED', amount=Decimal('500'),
         )
         res = auth_client.get(RETRY_URL(order.order_number))
@@ -235,6 +237,8 @@ class TestElegibilidadReintento:
         self, auth_client, orden_con_pago, db
     ):
         order, _ = orden_con_pago
+        # O2C V5d: DELIVERED lo produce el eje de fulfillment (guia entregada).
+        mark_delivered(order)
         res = auth_client.get(RETRY_URL(order.order_number))
         assert res.status_code == 200
         data = res.json()

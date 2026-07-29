@@ -16,14 +16,18 @@ import string
 from django.db import transaction
 from django.utils import timezone
 from addons.orders.models import Order
-from addons.orders.status_projection import order_status
+from addons.orders.status_projection import (
+    STATUS_DELIVERED,
+    STATUS_PAID,
+    order_status,
+)
 from addons.base.models import SiteSettings
 from addons.loyalty.models import Voucher
 from addons.loyalty.models import ReferralCode, Referral
 
 _VOUCHER_CODE_ALPHABET = string.ascii_uppercase + string.digits
 
-_REWARD_ORDER_STATES = (Order.STATUS_PAID, Order.STATUS_DELIVERED)
+_REWARD_ORDER_STATES = (STATUS_PAID, STATUS_DELIVERED)
 
 
 class ReferralError(Exception):

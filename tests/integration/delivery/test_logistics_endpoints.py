@@ -13,11 +13,21 @@ English JSON keys per DEC-DOC-005. Spanish business codes per DEC-DOC-006.
 from decimal import Decimal
 from addons.catalogue.models import Category, Product
 from addons.orders.models import Order, OrderAddress, OrderItem, OrderValue
+from addons.orders.status_projection import (
+    STATUS_IN_PREPARATION,
+    STATUS_PAID,
+    STATUS_PENDING,
+    STATUS_SHIPPED,
+    order_status,
+)
 from addons.delivery.models import Courier, ShipmentGuide
+from addons.payment.models import Payment
+from addons.sale.models import SaleOrder
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 import pytest
+from tests.factories.order_factory import make_order
 
 pytestmark = pytest.mark.integration
 
@@ -45,13 +55,23 @@ def prod_log(db, cat_log):
     return _p
 
 
-@pytest.fixture
-def order_log(db, user, prod_log):
-    o = Order.objects.create(user=user, status=Order.STATUS_IN_PREPARATION)
+def _canonical_ready_order(user, prod, *, approved=True,
+                           legacy_status=STATUS_PENDING):
+    """Orden 'lista para surtir' por los ejes canónicos O2C (ADR-024).
+
+    Cut-over orders→sale: la guarda de creación de guía y el panel ya no
+    leen el enum legacy ``Order.status`` (IN_PREPARATION es un valor muerto
+    proyectado, H-API-10). "Lista para surtir" se deriva de:
+    ``SaleOrder(state='sale')`` espejado en ``Order`` + un ``Payment``
+    APPROVED. El enum legacy se deja en PENDING a propósito para probar que
+    la nueva guarda NO lo lee. Con ``approved=False`` no se crea el Payment.
+    """
+    so = SaleOrder.objects.create(state=SaleOrder.STATE_SALE)
+    o = Order.objects.create(user=user, sale_order=so)
     OrderItem.objects.create(
-        order=o, product=prod_log, product_name=prod_log.name,
-        sku=prod_log.sku, unit_price=prod_log.price,
-        quantity=1, subtotal=prod_log.price,
+        order=o, product=prod, product_name=prod.name,
+        sku=prod.sku, unit_price=prod.price,
+        quantity=1, subtotal=prod.price,
     )
     OrderValue.objects.create(
         order=o, subtotal=Decimal('500'), tax=Decimal('0'),
@@ -60,6 +80,26 @@ def order_log(db, user, prod_log):
     OrderAddress.objects.create(
         order=o, recipient_name='Test', street='Av', city='CDMX',
         state='CDMX', zip_code='06600',
+    )
+    if approved:
+        Payment.objects.create(
+            order=o, sale_order=so,
+            gateway=Payment.GATEWAY_MERCADOPAGO,
+            amount=Decimal('580.00'),
+            status=Payment.STATUS_APPROVED,
+        )
+    return o, so
+
+
+@pytest.fixture
+def order_log(db, user, prod_log):
+    # Cut-over orders→sale (ADR-024): la orden "en preparación" se modela por
+    # los ejes canónicos (SaleOrder state='sale' + Payment APPROVED). Se
+    # conserva el enum legacy IN_PREPARATION porque el escritor SHIPPED aún
+    # lo lee (Rebanada 8): la migración es aditiva, no lo retira.
+    o, _ = _canonical_ready_order(
+        user, prod_log, approved=True,
+        legacy_status=STATUS_IN_PREPARATION,
     )
     return o
 
@@ -93,7 +133,7 @@ class TestLogisticsPanel:
     ):
         # group A: order_log has no guide.
         # group B: create another order + guide.
-        o2 = Order.objects.create(user=user, status='SHIPPED')
+        o2 = make_order(user=user)   # la guia se crea abajo (V5d)
         OrderItem.objects.create(
             order=o2, product=prod_log, product_name=prod_log.name,
             sku='X', unit_price=Decimal('100'), quantity=1,
@@ -105,7 +145,8 @@ class TestLogisticsPanel:
         OrderAddress.objects.create(order=o2, recipient_name='X',
             street='Y', city='Z', state='Z', zip_code='00000')
         ShipmentGuide.objects.create(
-            order=o2, courier=courier_log, tracking_number='TRK-001',
+            order=o2, sale_order=o2.sale_order,
+            courier=courier_log, tracking_number='TRK-001',
         )
         r = admin_client.get(PANEL_URL)
         assert r.status_code == 200
@@ -122,7 +163,7 @@ class TestLogisticsPanel:
     ):
         c2 = Courier.objects.create(name='DHL', code='DHL')
         ShipmentGuide.objects.create(
-            order=order_log, courier=c2, tracking_number='OTHER-001',
+            order=order_log, sale_order=order_log.sale_order, courier=c2, tracking_number='OTHER-001',
         )
         r = admin_client.get(PANEL_URL + f'?courier_id={courier_log.id}')
         assert r.status_code == 200
@@ -133,6 +174,79 @@ class TestLogisticsPanel:
         r = admin_client.get(PANEL_URL + '?courier_id=abc')
         assert r.status_code == 400
         assert r.json()['codigo_error'] == 'COURIER_ID_INVALID'
+
+
+class TestGuideGuardOnCanonicalAxes:
+    """Cut-over orders→sale (ADR-024): la guarda de creación de guía y el
+    panel logístico leen los ejes canónicos O2C, no el enum legacy
+    ``Order.status``. "Lista para surtir" = ``sale.state='sale'`` + un
+    ``Payment`` APPROVED (y, para el panel, sin guía viva)."""
+
+    def test_crea_guia_con_venta_confirmada_y_pago_aprobado(
+        self, admin_client, courier_log, prod_log, user, db,
+    ):
+        # Enum legacy en PENDING a propósito: la vieja guarda
+        # (status==IN_PREPARATION) lo rechazaría; la nueva lo acepta por
+        # sale.state='sale' + Payment APPROVED.
+        o, _ = _canonical_ready_order(user, prod_log, approved=True)
+        r = admin_client.post(GUIDES_URL, {
+            'order_id': o.id, 'courier_id': courier_log.id,
+            'tracking_number': 'CANON-OK-1',
+        }, format='json')
+        assert r.status_code == 201, r.content
+
+    def test_rechaza_guia_sin_pago_aprobado(
+        self, admin_client, courier_log, prod_log, user, db,
+    ):
+        o, _ = _canonical_ready_order(user, prod_log, approved=False)
+        r = admin_client.post(GUIDES_URL, {
+            'order_id': o.id, 'courier_id': courier_log.id,
+            'tracking_number': 'CANON-NOPAY-1',
+        }, format='json')
+        assert r.status_code == 400
+        # El serializer envuelve el valor en lista (mismo shape que
+        # ORDER_REQUIRED): assert loose sobre el código de negocio estable.
+        assert 'ORDER_NOT_IN_PREPARATION' in str(r.json())
+
+    def test_rechaza_guia_sin_sale_order(
+        self, admin_client, courier_log, prod_log, user, db,
+    ):
+        # Orden con el enum legacy IN_PREPARATION pero SIN sale_order: la
+        # vieja guarda la aceptaría; la nueva la rechaza (sin eje canónico).
+        o = make_order(
+            user=user, status=STATUS_IN_PREPARATION,
+        )
+        OrderItem.objects.create(
+            order=o, product=prod_log, product_name=prod_log.name,
+            sku=prod_log.sku, unit_price=prod_log.price,
+            quantity=1, subtotal=prod_log.price,
+        )
+        r = admin_client.post(GUIDES_URL, {
+            'order_id': o.id, 'courier_id': courier_log.id,
+            'tracking_number': 'CANON-NOSO-1',
+        }, format='json')
+        assert r.status_code == 400
+        # El serializer envuelve el valor en lista (mismo shape que
+        # ORDER_REQUIRED): assert loose sobre el código de negocio estable.
+        assert 'ORDER_NOT_IN_PREPARATION' in str(r.json())
+
+    def test_panel_lista_solo_venta_pagada_sin_guia(
+        self, admin_client, courier_log, prod_log, user, db,
+    ):
+        ready, _   = _canonical_ready_order(user, prod_log, approved=True)
+        unpaid, _  = _canonical_ready_order(user, prod_log, approved=False)
+        shipped, so_s = _canonical_ready_order(user, prod_log, approved=True)
+        ShipmentGuide.objects.create(
+            order=shipped, sale_order=so_s, courier=courier_log,
+            tracking_number='PANEL-CANON-GUIDE-1',
+        )
+
+        r = admin_client.get(PANEL_URL)
+        assert r.status_code == 200
+        nums = {row['order_number'] for row in r.json()['pending_pickup']}
+        assert ready.order_number in nums          # sale + pagada, sin guía
+        assert unpaid.order_number not in nums      # sale pero sin pago
+        assert shipped.order_number not in nums     # sale + pagada, con guía
 
 
 class TestCreateShipmentGuide:
@@ -163,7 +277,7 @@ class TestCreateShipmentGuide:
 
     def test_admin_obtiene_guia_por_order_number(self, admin_client, order_log, courier_log, db):
         ShipmentGuide.objects.create(
-            order=order_log, courier=courier_log, tracking_number='ADM-GET-1',
+            order=order_log, sale_order=order_log.sale_order, courier=courier_log, tracking_number='ADM-GET-1',
         )
         r = admin_client.get(
             f'/api/v2/logistics/admin/orders/{order_log.order_number}/guide/'
@@ -190,7 +304,7 @@ class TestCreateShipmentGuide:
         self, admin_client, order_log, courier_log, db
     ):
         ShipmentGuide.objects.create(
-            order=order_log, courier=courier_log, tracking_number='DUPE',
+            order=order_log, sale_order=order_log.sale_order, courier=courier_log, tracking_number='DUPE',
         )
         r = admin_client.post(GUIDES_URL, {
             'order_id': order_log.id,
@@ -207,7 +321,7 @@ class TestUpdateGuideStatus:
         self, admin_client, order_log, courier_log, db,
     ):
         g = ShipmentGuide.objects.create(
-            order=order_log, courier=courier_log, tracking_number='UPD-1',
+            order=order_log, sale_order=order_log.sale_order, courier=courier_log, tracking_number='UPD-1',
         )
         r = admin_client.patch(GUIDE_URL(g.id), {
             'status': 'PICKED_UP',
@@ -222,7 +336,7 @@ class TestUpdateGuideStatus:
         self, admin_client, order_log, courier_log, db,
     ):
         g = ShipmentGuide.objects.create(
-            order=order_log, courier=courier_log, tracking_number='UPD-2',
+            order=order_log, sale_order=order_log.sale_order, courier=courier_log, tracking_number='UPD-2',
         )
         r = admin_client.patch(GUIDE_URL(g.id), {'status': 'X'}, format='json')
         assert r.status_code == 400
@@ -236,7 +350,8 @@ class TestConfirmDelivery:
         self, admin_client, order_log, courier_log, db,
     ):
         g = ShipmentGuide.objects.create(
-            order=order_log, courier=courier_log, tracking_number='DEL-1',
+            order=order_log, sale_order=order_log.sale_order,
+            courier=courier_log, tracking_number='DEL-1',
             status=ShipmentGuide.STATUS_IN_TRANSIT,
         )
         r = admin_client.post(CONFIRM_URL(g.id), {}, format='json')
@@ -245,13 +360,14 @@ class TestConfirmDelivery:
         assert data['status'] == 'DELIVERED'
         assert data['already_delivered'] is False
         order_log.refresh_from_db()
-        assert order_log.status == 'DELIVERED'
+        # O2C R8: el estado se proyecta del eje fulfillment (guía DELIVERED).
+        assert order_status(order_log) == 'DELIVERED'
 
     def test_confirmacion_idempotente(
         self, admin_client, order_log, courier_log, db,
     ):
         g = ShipmentGuide.objects.create(
-            order=order_log, courier=courier_log, tracking_number='DEL-2',
+            order=order_log, sale_order=order_log.sale_order, courier=courier_log, tracking_number='DEL-2',
             status=ShipmentGuide.STATUS_DELIVERED,
             delivered_at=timezone.now(),
         )
@@ -263,7 +379,7 @@ class TestConfirmDelivery:
         self, admin_client, order_log, courier_log, db,
     ):
         g = ShipmentGuide.objects.create(
-            order=order_log, courier=courier_log, tracking_number='DEL-3',
+            order=order_log, sale_order=order_log.sale_order, courier=courier_log, tracking_number='DEL-3',
             status=ShipmentGuide.STATUS_CANCELLED,
         )
         r = admin_client.post(CONFIRM_URL(g.id), {}, format='json')
@@ -282,7 +398,9 @@ class TestOrderStatusShippedAfterGuide:
     def test_order_pasa_a_shipped_al_crear_guia(
         self, admin_client, order_log, courier_log, db,
     ):
-        assert order_log.status == Order.STATUS_IN_PREPARATION
+        # O2C R8: antes de la guía la orden proyecta PAID (pago aprobado,
+        # sin guía); crear la guía ES la transición a SHIPPED (eje).
+        assert order_status(order_log) == STATUS_PAID
         r = admin_client.post(GUIDES_URL, {
             'order_id': order_log.id,
             'courier_id': courier_log.id,
@@ -290,7 +408,7 @@ class TestOrderStatusShippedAfterGuide:
         }, format='json')
         assert r.status_code == 201
         order_log.refresh_from_db()
-        assert order_log.status == Order.STATUS_SHIPPED
+        assert order_status(order_log) == STATUS_SHIPPED
 
 
 class TestCancelGuide:
@@ -300,7 +418,7 @@ class TestCancelGuide:
         self, admin_client, order_log, courier_log, db,
     ):
         g = ShipmentGuide.objects.create(
-            order=order_log, courier=courier_log, tracking_number='CAN-001',
+            order=order_log, sale_order=order_log.sale_order, courier=courier_log, tracking_number='CAN-001',
         )
         r = admin_client.post(f'/api/v2/logistics/guides/{g.id}/cancellations/',
                               {'reason': 'Cliente cancelo'}, format='json')
@@ -312,7 +430,7 @@ class TestCancelGuide:
         self, admin_client, order_log, courier_log, db,
     ):
         g = ShipmentGuide.objects.create(
-            order=order_log, courier=courier_log, tracking_number='CAN-002',
+            order=order_log, sale_order=order_log.sale_order, courier=courier_log, tracking_number='CAN-002',
             status=ShipmentGuide.STATUS_DELIVERED,
         )
         r = admin_client.post(f'/api/v2/logistics/guides/{g.id}/cancellations/', {}, format='json')
@@ -323,7 +441,7 @@ class TestCancelGuide:
         self, admin_client, order_log, courier_log, db,
     ):
         g = ShipmentGuide.objects.create(
-            order=order_log, courier=courier_log, tracking_number='CAN-003',
+            order=order_log, sale_order=order_log.sale_order, courier=courier_log, tracking_number='CAN-003',
             status=ShipmentGuide.STATUS_CANCELLED,
         )
         r = admin_client.post(f'/api/v2/logistics/guides/{g.id}/cancellations/', {}, format='json')
@@ -377,7 +495,7 @@ class TestUpdateTrackingNumber:
         self, admin_client, order_log, courier_log, db,
     ):
         g = ShipmentGuide.objects.create(
-            order=order_log, courier=courier_log, tracking_number='TRK-OLD',
+            order=order_log, sale_order=order_log.sale_order, courier=courier_log, tracking_number='TRK-OLD',
         )
         r = admin_client.patch(GUIDE_URL(g.id), {
             'tracking_number': 'TRK-NEW',
@@ -396,7 +514,7 @@ class TestUpdateTrackingNumber:
         self, auth_client, order_log, courier_log, db,
     ):
         g = ShipmentGuide.objects.create(
-            order=order_log, courier=courier_log, tracking_number='TRK-AUTH',
+            order=order_log, sale_order=order_log.sale_order, courier=courier_log, tracking_number='TRK-AUTH',
         )
         r = auth_client.patch(GUIDE_URL(g.id), {'tracking_number': 'X'}, format='json')
         assert r.status_code == 403
@@ -405,7 +523,7 @@ class TestUpdateTrackingNumber:
         self, admin_client, order_log, courier_log, db,
     ):
         g = ShipmentGuide.objects.create(
-            order=order_log, courier=courier_log, tracking_number='TRK-VAL',
+            order=order_log, sale_order=order_log.sale_order, courier=courier_log, tracking_number='TRK-VAL',
         )
         r = admin_client.patch(GUIDE_URL(g.id), {'tracking_number': '   '}, format='json')
         assert r.status_code == 400
@@ -418,12 +536,12 @@ class TestUpdateTrackingNumber:
         # pero permite. Nota: la unicidad es per-courier (unique_tracking_per_courier),
         # así que el duplicado reachable es cross-courier.
         c2 = Courier.objects.create(name='DHL-dup', code='DHLD')
-        o2 = Order.objects.create(user=user, status=Order.STATUS_IN_PREPARATION)
+        o2 = make_order(user=user, status=STATUS_IN_PREPARATION)
         ShipmentGuide.objects.create(
-            order=o2, courier=c2, tracking_number='DUP-TRK',
+            order=o2, sale_order=o2.sale_order, courier=c2, tracking_number='DUP-TRK',
         )
         g = ShipmentGuide.objects.create(
-            order=order_log, courier=courier_log, tracking_number='TRK-ORIG',
+            order=order_log, sale_order=order_log.sale_order, courier=courier_log, tracking_number='TRK-ORIG',
         )
         r = admin_client.patch(GUIDE_URL(g.id), {'tracking_number': 'DUP-TRK'}, format='json')
         assert r.status_code == 200
@@ -436,7 +554,7 @@ class TestUpdateTrackingNumber:
     ):
         # Regresión: el PATCH de status no se rompe con la rama de tracking.
         g = ShipmentGuide.objects.create(
-            order=order_log, courier=courier_log, tracking_number='TRK-STS',
+            order=order_log, sale_order=order_log.sale_order, courier=courier_log, tracking_number='TRK-STS',
         )
         r = admin_client.patch(GUIDE_URL(g.id), {'status': 'PICKED_UP'}, format='json')
         assert r.status_code == 200
@@ -452,7 +570,7 @@ class TestBuyerReportIncident:
         self, auth_client, order_log, courier_log, db,
     ):
         g = ShipmentGuide.objects.create(
-            order=order_log, courier=courier_log, tracking_number='INC-1',
+            order=order_log, sale_order=order_log.sale_order, courier=courier_log, tracking_number='INC-1',
             status=ShipmentGuide.STATUS_IN_TRANSIT,
         )
         r = auth_client.post(self.INCIDENT_URL(order_log.id), {
@@ -472,7 +590,7 @@ class TestBuyerReportIncident:
     ):
         # La UI usa order_number (no conoce el PK).
         ShipmentGuide.objects.create(
-            order=order_log, courier=courier_log, tracking_number='INC-NUM-1',
+            order=order_log, sale_order=order_log.sale_order, courier=courier_log, tracking_number='INC-NUM-1',
             status=ShipmentGuide.STATUS_IN_TRANSIT,
         )
         r = auth_client.post(
@@ -490,7 +608,7 @@ class TestBuyerReportIncident:
     ):
         # admin_client está autenticado como un usuario distinto al dueño.
         ShipmentGuide.objects.create(
-            order=order_log, courier=courier_log, tracking_number='INC-2',
+            order=order_log, sale_order=order_log.sale_order, courier=courier_log, tracking_number='INC-2',
             status=ShipmentGuide.STATUS_IN_TRANSIT,
         )
         r = admin_client.post(self.INCIDENT_URL(order_log.id), {
@@ -510,7 +628,7 @@ class TestBuyerReportIncident:
         self, auth_client, order_log, courier_log, db,
     ):
         ShipmentGuide.objects.create(
-            order=order_log, courier=courier_log, tracking_number='INC-3',
+            order=order_log, sale_order=order_log.sale_order, courier=courier_log, tracking_number='INC-3',
             status=ShipmentGuide.STATUS_IN_TRANSIT,
         )
         r = auth_client.post(self.INCIDENT_URL(order_log.id), {
@@ -524,7 +642,7 @@ class TestBuyerReportIncident:
         self, auth_client, order_log, courier_log, db,
     ):
         ShipmentGuide.objects.create(
-            order=order_log, courier=courier_log, tracking_number='INC-4',
+            order=order_log, sale_order=order_log.sale_order, courier=courier_log, tracking_number='INC-4',
             status=ShipmentGuide.STATUS_IN_TRANSIT,
         )
         r = auth_client.post(self.INCIDENT_URL(order_log.id), {
@@ -538,7 +656,7 @@ class TestBuyerReportIncident:
     ):
         # EX-02: guía en CREATED (paquete no ha salido).
         ShipmentGuide.objects.create(
-            order=order_log, courier=courier_log, tracking_number='INC-5',
+            order=order_log, sale_order=order_log.sale_order, courier=courier_log, tracking_number='INC-5',
             status=ShipmentGuide.STATUS_CREATED,
         )
         r = auth_client.post(self.INCIDENT_URL(order_log.id), {
@@ -552,7 +670,7 @@ class TestBuyerReportIncident:
         self, auth_client, order_log, courier_log, db,
     ):
         ShipmentGuide.objects.create(
-            order=order_log, courier=courier_log, tracking_number='INC-6',
+            order=order_log, sale_order=order_log.sale_order, courier=courier_log, tracking_number='INC-6',
             status=ShipmentGuide.STATUS_IN_TRANSIT,
         )
         body = {
@@ -581,7 +699,7 @@ class TestBuyerGuide:
         self, auth_client, order_log, courier_log, db,
     ):
         ShipmentGuide.objects.create(
-            order=order_log, courier=courier_log, tracking_number='BYR-001',
+            order=order_log, sale_order=order_log.sale_order, courier=courier_log, tracking_number='BYR-001',
         )
         r = auth_client.get(f'/api/v2/logistics/buyer/order/{order_log.id}/guide/')
         assert r.status_code == 200
@@ -594,7 +712,7 @@ class TestBuyerGuide:
     ):
         # La UI del comprador consulta por order_number (no conoce el PK).
         ShipmentGuide.objects.create(
-            order=order_log, courier=courier_log, tracking_number='BYR-NUM-001',
+            order=order_log, sale_order=order_log.sale_order, courier=courier_log, tracking_number='BYR-NUM-001',
         )
         r = auth_client.get(
             f'/api/v2/logistics/buyer/orders/{order_log.order_number}/guide/'
@@ -604,7 +722,7 @@ class TestBuyerGuide:
 
     def test_comprador_no_ve_orden_ajena(self, admin_client, order_log, courier_log, db):
         ShipmentGuide.objects.create(
-            order=order_log, courier=courier_log, tracking_number='BYR-002',
+            order=order_log, sale_order=order_log.sale_order, courier=courier_log, tracking_number='BYR-002',
         )
         # admin_client is authenticated as a different user (admin, not order_log.user)
         r = admin_client.get(f'/api/v2/logistics/buyer/order/{order_log.id}/guide/')

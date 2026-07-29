@@ -17,3 +17,5 @@ class OrdersConfig(AppConfig):
         # importlib.import_module — `import importlib` queda visible al
         # top del modulo.
         importlib.import_module('addons.orders.signals')
+        # Receptores de notificación reubicados desde ``mail`` (T-035).
+        importlib.import_module('addons.orders.handlers')

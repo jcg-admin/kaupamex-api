@@ -7,13 +7,7 @@ Fiel a los registros de datos de Odoo ``mail/data/mail_data.xml``:
 """
 from django.db import migrations
 
-
-CANONICAL_SUBTYPES = [
-    {'name': 'Discussions', 'internal': False, 'default': True,
-     'hidden': False, 'sequence': 1, 'description': ''},
-    {'name': 'Note', 'internal': True, 'default': False,
-     'hidden': True, 'sequence': 2, 'description': ''},
-]
+from addons.mail.data import CANONICAL_SUBTYPES
 
 
 def seed_subtypes(apps, schema_editor):

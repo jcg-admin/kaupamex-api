@@ -24,6 +24,7 @@ from addons.orders.models import Order
 from addons.payment.models import Payment
 from addons.payments.services import execute_refund
 from addons.payment_mercado_pago.gateway import _log_legacy_payments_api
+from tests.factories.order_factory import make_order
 
 pytestmark = pytest.mark.integration
 
@@ -32,9 +33,9 @@ CANCEL_URL = lambda pid: f'/api/v2/admin/payments/{pid}/cancel/'
 
 def _payment(user, *, mp_order_id='', status=Payment.STATUS_APPROVED,
              amount=Decimal('250.00')):
-    order = Order.objects.create(user=user, status='PROCESSING')
+    order = make_order(user=user, status='PROCESSING')
     return Payment.objects.create(
-        order=order,
+        order=order, sale_order=order.sale_order,
         gateway=Payment.GATEWAY_MERCADOPAGO,
         gateway_payment_id=f'PAY-{order.pk}',
         mp_order_id=mp_order_id or None,

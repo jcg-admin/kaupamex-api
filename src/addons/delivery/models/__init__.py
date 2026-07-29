@@ -23,6 +23,7 @@ from django.core.validators import MinValueValidator
 from django.db import models
 from addons.base.models import SoftDeleteModel, TimeStampedModel
 from addons.delivery.offers import RateCard
+from addons.delivery.models.shipping_zone import ShippingZone
 
 logger = logging.getLogger('apps')
 
@@ -121,15 +122,16 @@ class ShipmentGuide(TimeStampedModel, SoftDeleteModel):
         (STATUS_CANCELLED,  'Cancelada'),
     ]
 
+    # E4-pre (H-API-26): anclaje invertido. El eje de fulfillment es la
+    # adaptación de stock.picking y en Odoo cuelga de la sale.order — la
+    # canónica manda (NOT NULL, PROTECT); la FK al espejo queda
+    # nullable/SET_NULL hasta su retiro en E5.
     order           = models.OneToOneField(
-        'orders.Order', on_delete=models.PROTECT, related_name='shipment_guide',
-    )
-    # V4a orders→sale (DEC-FW-02): la guía ancla también al canónico —
-    # el eje de fulfillment (guide.status) es la adaptación de
-    # stock.picking y en Odoo cuelga de la sale.order; V5 retira la legacy.
-    sale_order      = models.OneToOneField(
-        'sale.SaleOrder', null=True, blank=True,
+        'orders.Order', null=True, blank=True,
         on_delete=models.SET_NULL, related_name='shipment_guide',
+    )
+    sale_order      = models.OneToOneField(
+        'sale.SaleOrder', on_delete=models.PROTECT, related_name='shipment_guide',
     )
     courier         = models.ForeignKey(
         Courier, on_delete=models.PROTECT, related_name='guides',
@@ -280,6 +282,23 @@ class ShippingMethod(TimeStampedModel):
     is_active      = models.BooleanField(default=True, db_index=True)
     free_threshold = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     zones          = models.JSONField(default=list, blank=True)
+    # E1-bis (H-API-24): producto de servicio que representa este método como
+    # LÍNEA de la venta. Contraparte de Odoo ``delivery.carrier.product_id``
+    # (``delivery/models/delivery_carrier.py:56``), que allí es
+    # ``required=True`` porque ``sale.order.line.product_id`` es obligatorio —
+    # igual que aquí (``SaleOrderLine.product`` es PROTECT NOT NULL).
+    #
+    # Aquí es **opcional** a propósito: el comprador ya no elige transportista
+    # (``orders/services.py:update_shipping_method`` DEPRECADO 2026-07-07 — el
+    # envío se deriva por zona), así que un método sin producto sigue siendo
+    # utilizable para cotizar; sólo no puede facturarse como concepto. La FK se
+    # puebla por método vía ``ensure_service_product`` y el gate de la línea
+    # vive en el servicio, no en el esquema.
+    product        = models.ForeignKey(
+                       'catalogue.Product', null=True, blank=True,
+                       on_delete=models.PROTECT, related_name='shipping_methods',
+                       help_text='Producto de servicio para la línea de envío '
+                                 '(Odoo delivery.carrier.product_id).')
 
     class Meta:
         db_table     = 'settings_shipping_method'
@@ -288,3 +307,40 @@ class ShippingMethod(TimeStampedModel):
 
     def __str__(self):
         return f'{self.name} (${self.cost})'
+
+    # E1-bis: sembrado del producto de servicio (≙ delivery_data.xml de Odoo,
+    # que trae ``product_product_delivery`` como dato maestro editable con
+    # ``type=service`` y ``sale_ok=False`` — no un artefacto de runtime).
+    #
+    # Equivalencias de la semilla:
+    #   Odoo ``type='service'``  → nuestro producto sin stock relevante.
+    #   Odoo ``sale_ok=False``   → ``is_published=False`` (fuera del storefront:
+    #                              el comprador nunca lo ve en el catálogo).
+    SERVICE_SKU_PREFIX = 'SRV-ENVIO-'
+
+    def ensure_service_product(self):
+        """Devuelve el producto de servicio de este método, creándolo si falta.
+
+        Idempotente: dos llamadas devuelven la misma fila. El precio del
+        producto es informativo — el importe que va a la línea lo fija el
+        servicio de venta con el costo calculado para la orden (por zona), no
+        este campo.
+        """
+        if self.product_id is not None:
+            return self.product
+        product_model = self._meta.get_field('product').related_model
+        sku = f'{self.SERVICE_SKU_PREFIX}{self.pk}'
+        product, _ = product_model.objects.get_or_create(
+            sku=sku,
+            defaults={
+                'name': f'Envío — {self.name}',
+                'slug': f'servicio-envio-{self.pk}',
+                'price': self.cost,
+                'is_active': True,
+                'is_published': False,
+                'short_description': 'Concepto de envío para facturación.',
+            },
+        )
+        self.product = product
+        self.save(update_fields=['product', 'updated_at'])
+        return product

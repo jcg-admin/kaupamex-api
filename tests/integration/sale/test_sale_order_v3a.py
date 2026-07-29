@@ -15,6 +15,10 @@ from addons.orders.models import Order
 from addons.payment.models import Payment
 from addons.sale.models import SaleOrder
 from addons.sale.services import add_item_to_draft, confirm_draft_order
+from addons.orders.status_projection import (
+    STATUS_PENDING,
+    order_status,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -52,8 +56,8 @@ class TestMirrorKnowsItsCanonical:
         assert legacy.sale_order_id == canonical.pk
         assert canonical.legacy_order.pk == legacy.pk
         assert canonical.state == SaleOrder.STATE_SALE
-        assert canonical.name and canonical.name.startswith('S-')
-        assert legacy.status == Order.STATUS_PENDING
+        assert canonical.name and canonical.name.startswith('S')
+        assert order_status(legacy) == STATUS_PENDING
 
     def test_confirm_releases_cart_token_on_canonical(self, product_v3):
         canonical, _ = _confirmed_pair(product_v3)
@@ -71,10 +75,13 @@ class TestPaymentAnchorsToCanonical:
         assert payment.sale_order_id == canonical.pk
         assert list(canonical.payments.all()) == [payment]
 
-    def test_sale_order_fk_is_nullable_for_legacy_rows(self, product_v3):
-        _, legacy = _confirmed_pair(product_v3)
-        payment = Payment.objects.create(
-            order=legacy, gateway=Payment.GATEWAY_MERCADOPAGO,
-            status=Payment.STATUS_PENDING, amount=Decimal('300.00'),
-        )
-        assert payment.sale_order_id is None
+    def test_sale_order_fk_ya_no_es_nullable(self, product_v3):
+        """E4-pre (H-API-26) invirtió el contrato V3a: la canónica manda.
+
+        En V3a ``sale_order`` era nullable (filas legacy sin canónica). Tras
+        la inversión de anclaje es NOT NULL/PROTECT — el detalle del nuevo
+        contrato vive en ``test_axis_anchor_e4pre.py``; aquí sólo se fija
+        que el contrato viejo NO regresa.
+        """
+        field = Payment._meta.get_field('sale_order')
+        assert field.null is False

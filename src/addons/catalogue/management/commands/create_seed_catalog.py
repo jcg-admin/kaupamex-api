@@ -33,7 +33,7 @@ from django.utils import timezone
 
 from addons.catalogue.models import Category, Product
 from addons.chartsize.models import VariantOption, VariantType, ProductVariant
-from addons.orders.models import ShippingZone
+from addons.delivery.models import ShippingZone
 from addons.delivery.models import ShippingMethod
 from addons.payment.models import PaymentGateway
 

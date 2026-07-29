@@ -15,6 +15,7 @@ from addons.catalogue.models import Category, Product
 from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from addons.payment.models import PaymentGateway
 from addons.payment.models import Payment
+from tests.factories.order_factory import make_order
 
 pytestmark = pytest.mark.integration
 
@@ -43,7 +44,7 @@ def prod_nc(db, cat_nc):
 
 @pytest.fixture
 def orden_nc(db, user, prod_nc):
-    order = Order.objects.create(user=user, status='PENDING')
+    order = make_order(user=user, status='PENDING')
     OrderItem.objects.create(
         order=order, product_name=prod_nc.name, sku=prod_nc.sku,
         unit_price=prod_nc.price, quantity=1,

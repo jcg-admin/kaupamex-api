@@ -8,9 +8,11 @@ from decimal import Decimal
 from django.db import models
 from django.core.validators import MinValueValidator
 from addons.base.models import TimeStampedModel
+from addons.bus.mixins import BusListenerMixin
+from addons.bus.services import user_channel
 
 
-class Payment(TimeStampedModel):
+class Payment(BusListenerMixin, TimeStampedModel):
     """
     Registro de un intento de pago para una orden. UC-PAY-01.
     Una orden puede tener múltiples Payment (reintentos).
@@ -21,9 +23,15 @@ class Payment(TimeStampedModel):
     """
     GATEWAY_MERCADOPAGO = 'MERCADOPAGO'
     GATEWAY_PAYPAL      = 'PAYPAL'
+    # O2C R8: conciliación manual del admin (UC-ORD-07). En Odoo el pago
+    # registrado a mano es un payment.provider tipo 'custom' (transferencia,
+    # efectivo); aquí el eje de pago lo registra con gateway MANUAL para que
+    # la proyección canónica derive PAID sin pasar por una pasarela.
+    GATEWAY_MANUAL      = 'MANUAL'
     GATEWAYS = [
         (GATEWAY_MERCADOPAGO, 'MercadoPago'),
         (GATEWAY_PAYPAL,      'PayPal'),
+        (GATEWAY_MANUAL,      'Conciliación manual'),
     ]
 
     STATUS_PENDING             = 'PENDING'
@@ -41,15 +49,15 @@ class Payment(TimeStampedModel):
         (STATUS_CANCELLED,          'Cancelado'),
     ]
 
+    # E4-pre (H-API-26): anclaje invertido. En Odoo el eje de pago vive en
+    # payment.transaction anclado a sale.order — la canónica manda (NOT NULL,
+    # PROTECT) y la FK al espejo queda nullable/SET_NULL hasta su retiro en E5.
     order             = models.ForeignKey(
-        'orders.Order', on_delete=models.PROTECT, related_name='payments',
-    )
-    # V3a orders→sale (DEC-FW-02): en Odoo el eje de pago vive en
-    # payment.transaction anclado a sale.order — Payment (la transacción
-    # strangler) gana la FK al canónico; V5 retira la FK legacy.
-    sale_order        = models.ForeignKey(
-        'sale.SaleOrder', null=True, blank=True,
+        'orders.Order', null=True, blank=True,
         on_delete=models.SET_NULL, related_name='payments',
+    )
+    sale_order        = models.ForeignKey(
+        'sale.SaleOrder', on_delete=models.PROTECT, related_name='payments',
     )
     gateway           = models.CharField(max_length=20, choices=GATEWAYS, db_index=True)
     gateway_payment_id = models.CharField(
@@ -91,3 +99,34 @@ class Payment(TimeStampedModel):
     @property
     def is_approved(self) -> bool:
         return self.status == self.STATUS_APPROVED
+
+    #: Estados que el comprador está esperando ver. ``PENDING`` no entra: es el
+    #: estado en el que ya está mirando la pantalla, así que no es noticia.
+    ESTADOS_QUE_AVISAN = (
+        STATUS_APPROVED, STATUS_FAILED, STATUS_CANCELLED,
+        STATUS_REFUNDED, STATUS_PARTIALLY_REFUNDED,
+    )
+
+    def bus_channel_key(self) -> str:
+        return user_channel(self.sale_order.partner)
+
+    def save(self, *args, **kwargs):
+        # Sólo la transición emite. Sin esto, cada save del webhook (que toca
+        # varios campos) reencolaría el mismo estado y la UI vería ruido.
+        anterior = None
+        if not self._state.adding:
+            anterior = type(self).objects.filter(pk=self.pk).values_list(
+                'status', flat=True,
+            ).first()
+        super().save(*args, **kwargs)
+
+        if self.status == anterior or self.status not in self.ESTADOS_QUE_AVISAN:
+            return
+        # Carrito anónimo: sin comprador no hay canal privado al que avisar.
+        if not self.sale_order.partner_id:
+            return
+        self._bus_send('pago.estado', {
+            'payment_id': self.pk,
+            'sale_order_id': self.sale_order_id,
+            'status': self.status,
+        })

@@ -22,11 +22,19 @@ from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 
+from addons.catalogue.models import Category, Product
+from addons.delivery.models.sale_order import set_delivery_line
 from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
+from addons.sale.models import SaleOrderLine
 from addons.payment.models import Payment
 from addons.payments.pdf_receipt import HELPER_PATH, build_receipt_payload
 from addons.base.models import SiteSettings
 from addons.users.models import BusinessEvent
+from tests.factories.order_factory import make_order
+from addons.orders.status_projection import (
+    STATUS_PAID,
+    STATUS_PENDING,
+)
 
 pytestmark = pytest.mark.integration
 
@@ -55,9 +63,30 @@ def other_user(db):
     ))
 
 
-def _make_paid_order(user, *, status=Order.STATUS_PAID, with_payment=True):
+def _make_paid_order(user, *, status=STATUS_PAID, with_payment=True):
     """Orden con snapshots financieros + (opcional) Payment aprobado."""
-    order = Order.objects.create(user=user, status=status)
+    # E5-pre: el recibo lee del canónico, así que la venta debe traer sus
+    # líneas. Fabricar sólo el espejo producía un recibo en ceros — misma
+    # clase de estado imposible que H-API-33 (una venta confirmada sin
+    # líneas es lo que ``action_confirm`` rechaza).
+    cat = Category.objects.create(
+        name='Cat R', slug=f'cat-r-{user.pk}', is_active=True)
+    p1 = Product.objects.create(
+        name='Collar Eleguá', slug=f'collar-{user.pk}', sku='YOR-001',
+        price=Decimal('450.00'), stock=9, is_active=True, is_published=True)
+    p2 = Product.objects.create(
+        name='Otá de Yemayá', slug=f'ota-{user.pk}', sku='YOR-002',
+        price=Decimal('150.00'), stock=9, is_active=True, is_published=True)
+    p1.categories.add(cat)
+    p2.categories.add(cat)
+
+    order = make_order(user=user, status=status,
+                       product=p1, quantity=2, unit_price=Decimal('450.00'))
+    SaleOrderLine.objects.create(
+        order=order.sale_order, product=p2, name='Otá de Yemayá',
+        product_uom_qty=1, price_unit=Decimal('150.00'))
+    set_delivery_line(order.sale_order, Decimal('99.00'))
+
     OrderItem.objects.create(
         order=order, product_name='Collar Eleguá', sku='YOR-001',
         unit_price=Decimal('450.00'), quantity=2,
@@ -80,7 +109,7 @@ def _make_paid_order(user, *, status=Order.STATUS_PAID, with_payment=True):
     )
     if with_payment:
         Payment.objects.create(
-            order=order, gateway=Payment.GATEWAY_MERCADOPAGO,
+            order=order, sale_order=order.sale_order, gateway=Payment.GATEWAY_MERCADOPAGO,
             preference_id=f'PREF-PAY10-{order.pk}',
             gateway_payment_id=f'GW-PAY10-{order.pk}',
             status=Payment.STATUS_APPROVED, amount=Decimal('1149.00'),
@@ -141,7 +170,7 @@ def test_ac01_audit_event_recorded(
 def test_ac02_unpaid_order_returns_409(api_client, buyer):
     api_client.force_authenticate(user=buyer)
     order = _make_paid_order(
-        buyer, status=Order.STATUS_PENDING, with_payment=False,
+        buyer, status=STATUS_PENDING, with_payment=False,
     )
 
     resp = api_client.get(RECEIPT_URL(order.order_number))
@@ -217,13 +246,18 @@ def test_ac05_payload_totals_match_order_value(db, buyer):
         address=address, payment=payment, site=site,
     )
 
-    assert payload['totals'] == {
-        'subtotal': '1050.00',
-        'tax':      '144.83',
-        'shipping': '99.00',
-        'discount': '0.00',
-        'total':    '1149.00',
-    }
+    # E5-pre — los importes salen del canónico. Cuatro de los cinco son
+    # idénticos a los del espejo; el IVA diverge a propósito (H-API-41): el
+    # espejo lo calculaba excluyendo el envío de la base gravable, el canónico
+    # extrae el impuesto por línea, así que el flete también tributa. El total
+    # que paga el comprador no cambia.
+    assert payload['totals']['subtotal'] == '1050.00'
+    assert payload['totals']['shipping'] == '99.00'
+    assert payload['totals']['discount'] == '0.00'
+    assert payload['totals']['total']    == '1149.00'
+    assert payload['totals']['total']    == f'{value.total:.2f}'
+    assert payload['totals']['tax'] == f'{order.sale_order.amount_tax:.2f}'
+    assert Decimal(payload['totals']['tax']) > value.tax
     assert payload['order_number'] == order.order_number
     assert len(payload['items']) == 2
     assert payload['items'][0]['sku'] == 'YOR-001'

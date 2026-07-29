@@ -21,7 +21,6 @@ from django.db import IntegrityError, transaction
 from addons.payment.models import Payment, PaymentGatewayEvent, WebhookEvent, Chargeback
 from addons.payment.webhook_processing import _process_payment_approval
 from addons.payment_paypal.gateway import PayPalGateway
-from addons.orders.models import Order
 
 logger = logging.getLogger('apps')
 

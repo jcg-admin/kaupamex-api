@@ -22,9 +22,10 @@ from addons.authz.permissions import HasCapability
 from addons.authz.services import (
     SUPERADMIN_ROLE_CODE, has_capability, invalidate_capabilities, is_superadmin,
 )
-from addons.orders.models import Order, OrderValue
+from addons.orders.models import Order
 from addons.orders.status_projection import order_status
 from addons.sale.models import SaleOrder
+from addons.sale.models.res_partner import lifetime_value
 from .audit import audit_log_business
 from .models import AuthEvent, BusinessEvent, UserDeactivationEvent
 from .serializers import AddressSerializer, AdminUserListSerializer
@@ -127,12 +128,14 @@ class AdminUserDetailSerializer(AdminUserListSerializer):
         return result
 
     def get_lifetime_value(self, obj) -> str:
-        agg = OrderValue.objects.filter(
-            order__user=obj,
-        ).exclude(
-            order__sale_order__state=SaleOrder.STATE_CANCEL,
-        ).aggregate(total=Sum('total'))
-        return str(agg['total'] or Decimal('0.00'))
+        # E4 — el CÁLCULO vive en ``sale`` (``sale/models/res_partner.py``),
+        # no aquí. ``users`` es el addon de identidad, equivalente de ``base``:
+        # en la referencia ``base/models/res_partner.py`` no declara ningún
+        # campo de dinero — los agregados monetarios del cliente los contribuyen
+        # ``sale`` y ``account`` (``total_invoiced``, account/models/partner.py:539).
+        # Este serializer sólo expone el valor; componer aquí la agregación
+        # sería el equivalente de declarar ``total_invoiced`` en ``base``.
+        return str(lifetime_value(obj))
 
 
 class AdminCreateUserSerializer(drf_serializers.Serializer):

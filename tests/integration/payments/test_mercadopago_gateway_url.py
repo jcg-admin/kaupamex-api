@@ -15,6 +15,8 @@ from addons.catalogue.models import Category, Product
 from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from addons.payment.models import PaymentGateway
 from addons.payment.models import Payment, PaymentGatewayEvent
+from tests.factories.order_factory import make_order
+from tests.factories.order_factory import mark_delivered
 
 pytestmark = pytest.mark.integration
 
@@ -45,7 +47,7 @@ def prod_mp(db, cat_mp):
 @pytest.fixture
 def orden_mp(db, user, prod_mp):
     """Orden PENDING con OrderValue para tests de MercadoPago."""
-    order = Order.objects.create(user=user, status='PENDING')
+    order = make_order(user=user, status='PENDING')
     OrderItem.objects.create(
         order=order, product_name=prod_mp.name,
         sku=prod_mp.sku, unit_price=prod_mp.price,
@@ -187,8 +189,9 @@ class TestMercadoPagoGatewayURLErrores:
         assert res.json()['codigo_error'] == 'ORDER_NOT_FOUND'
 
     def test_orden_no_pending_retorna_400(self, auth_client, orden_mp, mp_gateway, mock_sdk):
-        orden_mp.status = 'APPROVED'
-        orden_mp.save(update_fields=['status'])
+        # O2C V5d: no-pagable se produce por los ejes (entregada), no
+        # escribiendo la columna ('APPROVED' ni era un Order status valido).
+        mark_delivered(orden_mp)
         res = auth_client.post(MP_URL, {'order_number': orden_mp.order_number}, format='json')
         assert res.status_code == 400
         assert res.json()['codigo_error'] == 'ORDER_NOT_PAYABLE'

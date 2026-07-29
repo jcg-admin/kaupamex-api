@@ -23,6 +23,7 @@ from addons.sale.models import SaleOrder
 from addons.sale.services import add_item_to_draft, confirm_draft_order
 
 import pytest
+from tests.factories.order_factory import make_order
 
 pytestmark = pytest.mark.integration
 
@@ -104,7 +105,8 @@ def buyer_b(db):
 def _make_order(user, product, qty=1, when=None, status='DELIVERED',
                 gateway='MERCADOPAGO', payment_status='APPROVED'):
     when = when or _now()
-    o = Order.objects.create(user=user, status=status)
+    # E4: la venta canónica lleva su línea — es de donde el reporte agrega.
+    o = make_order(user=user, status=status, product=product, quantity=qty)
     Order.objects.filter(pk=o.pk).update(created_at=when, updated_at=when)
     OrderItem.objects.create(
         order=o, product=product,
@@ -118,7 +120,7 @@ def _make_order(user, product, qty=1, when=None, status='DELIVERED',
         shipping_cost=Decimal('0'), discount=Decimal('0'), total=total,
     )
     p = Payment.objects.create(
-        order=o, gateway=gateway, status=payment_status,
+        order=o, sale_order=o.sale_order, gateway=gateway, status=payment_status,
         amount=total,
     )
     Payment.objects.filter(pk=p.pk).update(created_at=when, updated_at=when)

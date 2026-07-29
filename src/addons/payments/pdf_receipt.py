@@ -10,6 +10,8 @@ import json
 import logging
 import subprocess
 from decimal import Decimal
+
+from addons.orders.amounts import order_amounts
 from pathlib import Path
 
 from django.conf import settings
@@ -73,12 +75,18 @@ def build_receipt_payload(order, value, items, address, payment, site) -> dict:
         for it in items
     ]
 
+    # E5-pre — los importes del recibo salen del **canónico**, no de las
+    # columnas de cabecera del espejo. Mismas etiquetas, otra fuente. El IVA
+    # ahora incluye el envío en su base (H-API-41): el total no cambia, se
+    # reparte distinto entre base e impuesto — que es la forma que el CFDI
+    # necesita (H-API-35).
+    _a = order_amounts(order.sale_order)
     totals = {
-        'subtotal': _money(value.subtotal) if value else '',
-        'tax':      _money(value.tax) if value else '',
-        'shipping': _money(value.shipping_cost) if value else '',
-        'discount': _money(value.discount) if value else '',
-        'total':    _money(value.total) if value else '',
+        'subtotal': _money(_a['subtotal']),
+        'tax':      _money(_a['tax']),
+        'shipping': _money(_a['shipping_cost']),
+        'discount': _money(_a['discount']),
+        'total':    _money(_a['total']),
     }
 
     payment_block = {

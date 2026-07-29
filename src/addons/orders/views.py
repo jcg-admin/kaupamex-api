@@ -18,7 +18,10 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from addons.inventory.services import InsufficientStockError
+from addons.delivery.models.sale_order import set_delivery_line
+from addons.sale_loyalty.models.sale_order import set_reward_line
 from .models import CheckoutAttempt, Order, OrderItem
+from .status_projection import filter_orders_by_status, CANONICAL_ORDER_STATUSES
 from addons.sale.models import SaleOrder
 from .serializers import CancelOrderSerializer, CheckoutSerializer, OrderListSerializer, OrderSerializer, UpdateAddressSerializer, UpdateShippingSerializer
 from .shipping import resolve_shipping_quote
@@ -128,6 +131,14 @@ class CheckoutView(APIView):
         # nada se copia ni se borra — el servicio congela snapshot (precio
         # vigente H-CICLO78-04), crea OrderValue/OrderAddress, consume el
         # voucher (DEC-VCU-01/DEC-BC-10) y libera el cart_token.
+        # E1-bis: los importes que NO son de producto se materializan como
+        # LÍNEAS del draft ANTES de confirmar — mismo orden que Odoo (el
+        # wizard agrega la línea a la cotización; luego se confirma). Cada
+        # addon contribuye la suya: `delivery` el envío, `sale_loyalty` el
+        # descuento. `sale` no las conoce (dirección de dependencia).
+        set_delivery_line(order, shipping_cost)
+        set_reward_line(order)
+
         user = request.user if request.user.is_authenticated else None
         try:
             order = confirm_draft_order(
@@ -173,7 +184,7 @@ class CheckoutView(APIView):
         # OrderSerializer accede a items, value, address y shipping_method.
         order = (
             Order.objects
-            .select_related('value', 'address', 'shipping_method')
+            .select_related('value', 'address', 'shipping_method', 'sale_order')
             .prefetch_related('items')
             .get(pk=order.pk)
         )
@@ -229,7 +240,7 @@ class OrderListView(APIView):
 
         qs = (
             Order.objects.filter(user=request.user)
-            .select_related('value', 'shipping_method')
+            .select_related('value', 'shipping_method', 'sale_order')
             .prefetch_related(
                 Prefetch(
                     'items',
@@ -248,17 +259,21 @@ class OrderListView(APIView):
         )
 
         # UC-ORD-03 PARTE 4.2 Alt-B + PARTE 7.1 (DEC-ORD-07):
-        # filtro por ?status=<STATUS>. Antes ignorado.
+        # filtro por ?status=<STATUS>. O2C rebanada 6: el contrato público se
+        # re-especifica contra el vocabulario canónico (6 valores) y se traduce
+        # a los ejes canónicos, sin depender de la columna espejo (retirada en
+        # V5d). Los 3 valores muertos del enum legacy quedan fuera → 400.
         status_filter = request.query_params.get('status')
         if status_filter:
-            valid_statuses = {choice[0] for choice in Order._meta.get_field('status').choices}
-            if status_filter not in valid_statuses:
+            try:
+                qs = filter_orders_by_status(qs, status_filter)
+            except ValueError:
                 return Response(
-                    {'detail': f'Status invalido: {status_filter}.',
+                    {'detail': (f'Status invalido: {status_filter}. Validos: '
+                                f'{list(CANONICAL_ORDER_STATUSES)}.'),
                      'codigo_error': 'INVALID_STATUS'},
                     status=400,
                 )
-            qs = qs.filter(status=status_filter)
 
         paginator = OrderPagination()
         page = paginator.paginate_queryset(qs, request)
@@ -295,7 +310,7 @@ class OrderDetailView(APIView):
         order = (
             Order.objects
             .filter(order_number=order_number, user=request.user)
-            .select_related('value', 'address', 'shipping_method')
+            .select_related('value', 'address', 'shipping_method', 'sale_order')
             # H-CICLO104-07: prefetch status_logs so OrderSerializer can
             # include them without N+1; OrderDetailPage.jsx uses them for
             # the timeline step dates.
@@ -348,7 +363,7 @@ class OrderCancelView(APIView):
         order = (
             Order.objects
             .filter(order_number=order_number, user=request.user)
-            .select_related('value', 'shipping_method')
+            .select_related('value', 'shipping_method', 'sale_order')
             .prefetch_related('items__product', 'items__variant', 'payments')
             .first()
         )
@@ -391,7 +406,7 @@ class OrderCancelView(APIView):
         # OrderSerializer accede a items, value, address, shipping_method.
         order = (
             Order.objects
-            .select_related('value', 'address', 'shipping_method')
+            .select_related('value', 'address', 'shipping_method', 'sale_order')
             .prefetch_related('items')
             .get(pk=order.pk)
         )
@@ -453,7 +468,7 @@ class OrderAddressUpdateView(APIView):
         # Re-fetch con select_related/prefetch para evitar N+1 al serializar.
         order = (
             Order.objects
-            .select_related('value', 'address', 'shipping_method')
+            .select_related('value', 'address', 'shipping_method', 'sale_order')
             .prefetch_related('items')
             .get(pk=order.pk)
         )
@@ -499,7 +514,7 @@ class OrderShippingUpdateView(APIView):
         order = (
             Order.objects
             .filter(order_number=order_number, user=request.user)
-            .select_related('value', 'shipping_method')
+            .select_related('value', 'shipping_method', 'sale_order')
             .first()
         )
         if not order:
@@ -533,7 +548,7 @@ class OrderShippingUpdateView(APIView):
         # Re-fetch con select_related/prefetch para evitar N+1 al serializar.
         order = (
             Order.objects
-            .select_related('value', 'address', 'shipping_method')
+            .select_related('value', 'address', 'shipping_method', 'sale_order')
             .prefetch_related('items')
             .get(pk=order.pk)
         )

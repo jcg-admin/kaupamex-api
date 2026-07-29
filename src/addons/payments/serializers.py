@@ -3,6 +3,7 @@ from decimal import Decimal
 from rest_framework import serializers
 from addons.payment.models import Payment, Refund, Chargeback, PaymentGatewayEvent, SavedCard
 from addons.payment_mercado_pago.gateway import NON_CARD_METHOD_IDS
+from addons.orders.status_projection import order_status as project_order_status
 
 
 
@@ -29,12 +30,18 @@ class AdminPaymentSerializer(PaymentSerializer):
     forcing the UI to either show blanks or issue an extra request.
     """
 
-    order_status = serializers.CharField(source='order.status', read_only=True)
+    # O2C V5c-2: el estado de la orden se deriva de la proyección canónica
+    # (sale.state + Payment + guía) vía SerializerMethodField, no de la
+    # columna espejo ``order.status`` (retirada en V5d). Null-safe.
+    order_status = serializers.SerializerMethodField()
     user_email   = serializers.SerializerMethodField()
 
     class Meta(PaymentSerializer.Meta):
         fields = PaymentSerializer.Meta.fields + ['order_status', 'user_email']
         read_only_fields = fields
+
+    def get_order_status(self, obj) -> str:
+        return project_order_status(obj.order)
 
     def get_user_email(self, obj) -> str | None:
         return obj.order.user.email if obj.order.user_id else obj.order.guest_email

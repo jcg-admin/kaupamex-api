@@ -12,9 +12,15 @@ from decimal import Decimal
 from unittest.mock import patch
 
 from addons.mail.models import Notification
+from addons.mail.models.notification_service import notify_order_status_changed
 from addons.orders.models import Order, OrderValue
 from addons.payment.models import Payment, Refund
 from addons.stock.models import ReturnRequest
+from tests.factories.order_factory import make_order
+from addons.orders.status_projection import (
+    STATUS_PENDING,
+    STATUS_SHIPPED,
+)
 
 pytestmark = pytest.mark.integration
 
@@ -24,7 +30,7 @@ _ON_COMMIT_PATH = 'addons.mail.models.notification_service.transaction.on_commit
 # ── Helpers ─────────────────────────────────────────────────────────────
 
 def _make_order(user):
-    return Order.objects.create(user=user)
+    return make_order(user=user)
 
 
 def _make_order_value(order, total=Decimal('464.00')):
@@ -41,6 +47,7 @@ def _make_order_value(order, total=Decimal('464.00')):
 def _make_payment(order):
     return Payment.objects.create(
         order=order,
+        sale_order=order.sale_order,
         gateway=Payment.GATEWAY_MERCADOPAGO,
         gateway_payment_id=None,
         amount=Decimal('464.00'),
@@ -71,7 +78,7 @@ class TestOrderCreatedSignal:
 
     def test_no_notification_if_user_is_none(self, db):
         with patch(_ON_COMMIT_PATH, side_effect=lambda f: f()):
-            order = Order.objects.create(user=None)
+            order = make_order(user=None)
             _make_order_value(order)
 
         assert not Notification.objects.filter(type='ORDER_UPDATE').exists()
@@ -86,14 +93,19 @@ class TestOrderCreatedSignal:
         assert Notification.objects.filter(user=user, type='ORDER_UPDATE').count() == 1
 
 
-# ── UC-NOT-02: Order status transition triggers status update notification ─
+# ── UC-NOT-02: notificacion EXPLICITA por transicion de eje (O2C V5d) ─────
+#
+# La signal ``post_save`` que observaba ``Order.status`` murio con la columna
+# espejo (V5d, H-API-20): sin campo no hay cambio que observar. El mecanismo
+# vigente es la llamada explicita ``notify_order_status_changed`` en cada punto
+# de mutacion del eje (hub admin, cancel_order, alta de guia, entrega). Estos
+# tests ejercen ese contrato directamente.
 
-class TestOrderStatusChangedSignal:
+class TestOrderStatusChangedNotification:
     def test_creates_notification_on_status_transition(self, db, user):
         with patch(_ON_COMMIT_PATH, side_effect=lambda f: f()):
             order = _make_order(user)
-            order.status = Order.STATUS_PROCESSING
-            order.save(update_fields=['status', 'updated_at'])
+            notify_order_status_changed(order, STATUS_SHIPPED)
 
         assert Notification.objects.filter(
             user=user,
@@ -104,8 +116,8 @@ class TestOrderStatusChangedSignal:
         with patch(_ON_COMMIT_PATH, side_effect=lambda f: f()):
             order = _make_order(user)
             initial_count = Notification.objects.filter(user=user).count()
-            order.status = Order.STATUS_PENDING
-            order.save(update_fields=['status', 'updated_at'])
+            # PENDING no esta en el conjunto notificable
+            notify_order_status_changed(order, STATUS_PENDING)
 
         assert Notification.objects.filter(user=user).count() == initial_count
 
@@ -121,8 +133,7 @@ class TestOrderStatusChangedSignal:
     def test_shipped_notification_has_correct_subject(self, db, user):
         with patch(_ON_COMMIT_PATH, side_effect=lambda f: f()):
             order = _make_order(user)
-            order.status = Order.STATUS_SHIPPED
-            order.save(update_fields=['status', 'updated_at'])
+            notify_order_status_changed(order, STATUS_SHIPPED)
 
         notif = Notification.objects.filter(user=user, type='ORDER_UPDATE').first()
         assert 'enviado' in notif.subject.lower()

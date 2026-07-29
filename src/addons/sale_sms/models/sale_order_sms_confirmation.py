@@ -48,7 +48,7 @@ class SaleOrderSmsConfirmation(TimeStampedModel):
         """
         body = template.render({
             'order': order.name or '',
-            'total': str(order.amount_total()),
+            'total': str(order.amount_total),
         })
         message = SmsSms.objects.create(number=number, body=body)
         link, _created = cls.objects.update_or_create(

@@ -6,8 +6,10 @@ from django.db import migrations, models
 
 # Nº de códigos de recuperación por alta. NADA cableado: L2, sembrado aquí a
 # '10' (default de Odoo auth_totp), editable en caliente en SystemParameter.
+from addons.auth_totp.data import TOTP_PARAMETERS
+
 _RECOVERY_KEY = 'authz.totp_recovery_codes'
-_RECOVERY_DEFAULT = '10'
+_RECOVERY_DEFAULT = TOTP_PARAMETERS[_RECOVERY_KEY]
 
 
 def seed_recovery_count(apps, schema_editor):

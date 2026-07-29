@@ -10,6 +10,7 @@ from unittest.mock import patch, MagicMock
 
 from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from addons.payment.models import Payment
+from tests.factories.order_factory import make_order
 
 pytestmark = pytest.mark.integration
 
@@ -17,7 +18,7 @@ CANCEL_URL = lambda pid: f'/api/v2/admin/payments/{pid}/cancel/'
 
 
 def _make_payment(user, status=Payment.STATUS_PENDING, gateway_payment_id='MP-CAN-001'):
-    order = Order.objects.create(user=user, status='PENDING')
+    order = make_order(user=user, status='PENDING')
     OrderItem.objects.create(
         order=order, product_name='Prod CAN', sku=f'CAN-{gateway_payment_id}',
         unit_price=Decimal('200.00'), quantity=1, subtotal=Decimal('200.00'),
@@ -31,7 +32,7 @@ def _make_payment(user, status=Payment.STATUS_PENDING, gateway_payment_id='MP-CA
         city='CDMX', state='CMX', zip_code='06600',
     )
     return Payment.objects.create(
-        order=order, gateway='MERCADOPAGO',
+        order=order, sale_order=order.sale_order, gateway='MERCADOPAGO',
         preference_id=f'PREF-{gateway_payment_id}',
         gateway_payment_id=gateway_payment_id,
         status=status, amount=Decimal('200.00'),

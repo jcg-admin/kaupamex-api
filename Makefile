@@ -2,12 +2,14 @@
 #
 # Targets para ejecucion local y en pipelines de CI futuros.
 # Mantiene paridad con ui/package.json scripts equivalentes.
-.PHONY: help check-lazy check-lazy-ci check-canon check-canon-ci test test-coverage install-hooks db-up ci-test ci-test-fast
+.PHONY: help check-lazy check-lazy-ci check-cycles check-cycles-ci check-canon check-canon-ci test test-coverage install-hooks db-up ci-test ci-test-fast
 
 help:
 	@echo 'Targets:'
 	@echo '  make check-lazy        Audit AST: 0 lazy imports en apps/** y tests/**'
 	@echo '  make check-lazy-ci     Idem, exit code != 0 si hay violaciones'
+	@echo '  make check-cycles      Direccion de dependencias: 0 inversiones nuevas'
+	@echo '  make check-cycles-ci   Idem, exit code != 0 si hay inversiones nuevas'
 	@echo '  make check-canon       Canon-idioma: 0 identifiers ES en apps/** (soft)'
 	@echo '  make check-canon-ci    Idem, exit code != 0 si hay violaciones'
 	@echo '  make test              Pytest suite completa'
@@ -33,6 +35,12 @@ check-silent-ci:
 	python3 scripts/check_silent_oks.py
 
 # Canon-idioma soft — imprime hallazgos pero retorna exit 0.
+check-cycles:
+	@python3 scripts/check_addon_cycles.py --report
+
+check-cycles-ci:
+	@python3 scripts/check_addon_cycles.py
+
 check-canon:
 	python3 ../docs/scripts/check_canon_idioma.py --repo-root .. --soft
 

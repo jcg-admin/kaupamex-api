@@ -18,6 +18,7 @@ from addons.payment_mercado_pago.gateway import MercadoPagoGateway
 from addons.payments.services import get_or_create_mp_customer
 from addons.payment.models import PaymentGateway
 from addons.users.models import IdentityUser as UserModel
+from tests.factories.order_factory import make_order
 
 pytestmark = pytest.mark.integration
 
@@ -65,7 +66,7 @@ def prod(db, cat):
 
 @pytest.fixture
 def orden(db, user, prod):
-    order = Order.objects.create(user=user, status='PENDING')
+    order = make_order(user=user, status='PENDING')
     OrderItem.objects.create(
         order=order, product_name=prod.name, sku=prod.sku,
         unit_price=prod.price, quantity=2,

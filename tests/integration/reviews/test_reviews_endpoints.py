@@ -12,6 +12,7 @@ from PIL import Image as PILImage
 from tests.factories.user_factory import make_buyer
 
 import pytest
+from tests.factories.order_factory import make_order
 
 pytestmark = pytest.mark.integration
 
@@ -83,7 +84,7 @@ def prod_rev(db, cat_rev):
 
 @pytest.fixture
 def order_user_with_product(db, user, prod_rev):
-    o = Order.objects.create(user=user, status='DELIVERED')
+    o = make_order(user=user, status='DELIVERED')
     OrderItem.objects.create(
         order=o, product=prod_rev, product_name=prod_rev.name,
         sku=prod_rev.sku, unit_price=Decimal('100'),
@@ -107,7 +108,7 @@ class TestPublicReviewListing:
         self, api_client, prod_rev, user, order_user_with_product, db,
     ):
         Review.objects.create(
-            user=user, product=prod_rev, order=order_user_with_product,
+            user=user, product=prod_rev, order=order_user_with_product, sale_order=order_user_with_product.sale_order,
             rating=5, title='Buena', body='Excelente',
             status=Review.STATUS_APPROVED,
         )
@@ -115,9 +116,9 @@ class TestPublicReviewListing:
         u2 = get_user_model().objects.create_user(
             email='u2@rev.com', password='x',
         )
-        o2 = Order.objects.create(user=u2, status='DELIVERED')
+        o2 = make_order(user=u2, status='DELIVERED')
         Review.objects.create(
-            user=u2, product=prod_rev, order=o2,
+            user=u2, product=prod_rev, order=o2, sale_order=o2.sale_order,
             rating=2, title='Mala', body='Mala',
             status=Review.STATUS_PENDING,
         )
@@ -154,7 +155,7 @@ class TestCreateReview:
         other = get_user_model().objects.create_user(
             email='or@rev.com', password='x',
         )
-        o = Order.objects.create(user=other, status='DELIVERED')
+        o = make_order(user=other, status='DELIVERED')
         r = auth_client.post(PRODUCT_REVIEWS_URL(prod_rev.id), {
             'order_id': o.id, 'rating': 4, 'title': 'X', 'body': 'X',
         }, format='json')
@@ -168,7 +169,7 @@ class TestCreateReview:
         reseñar productos de ordenes ENTREGADAS. Antes cualquier
         estado pasaba el guard."""
         for st in ('PENDING', 'PROCESSING', 'SHIPPED'):
-            o = Order.objects.create(user=user, status=st)
+            o = make_order(user=user, status=st)
             OrderItem.objects.create(
                 order=o, product=prod_rev, product_name=prod_rev.name,
                 sku=prod_rev.sku, unit_price=Decimal('100'), quantity=1,
@@ -187,7 +188,7 @@ class TestCreateReview:
         self, auth_client, user, prod_rev, order_user_with_product, db,
     ):
         Review.objects.create(
-            user=user, product=prod_rev, order=order_user_with_product,
+            user=user, product=prod_rev, order=order_user_with_product, sale_order=order_user_with_product.sale_order,
             rating=5, title='A', body='B',
         )
         r = auth_client.post(PRODUCT_REVIEWS_URL(prod_rev.id), {
@@ -210,7 +211,7 @@ class TestAdminQueue:
         self, admin_client, user, prod_rev, order_user_with_product, db,
     ):
         r1 = Review.objects.create(
-            user=user, product=prod_rev, order=order_user_with_product,
+            user=user, product=prod_rev, order=order_user_with_product, sale_order=order_user_with_product.sale_order,
             rating=3, title='1', body='1',
         )
         r = admin_client.get(ADMIN_QUEUE_URL + '?status=PENDING_MODERATION')
@@ -222,7 +223,7 @@ class TestAdminQueue:
         self, admin_client, user, prod_rev, order_user_with_product, db,
     ):
         rev = Review.objects.create(
-            user=user, product=prod_rev, order=order_user_with_product,
+            user=user, product=prod_rev, order=order_user_with_product, sale_order=order_user_with_product.sale_order,
             rating=5, title='1', body='1',
         )
         # Primera aprobacion.
@@ -244,7 +245,7 @@ class TestAdminQueue:
         self, admin_client, user, prod_rev, order_user_with_product, db,
     ):
         rev = Review.objects.create(
-            user=user, product=prod_rev, order=order_user_with_product,
+            user=user, product=prod_rev, order=order_user_with_product, sale_order=order_user_with_product.sale_order,
             rating=1, title='no', body='no',
         )
         r = admin_client.patch(REJECT_URL(rev.id), {'action': 'reject', 'reason': 'SPAM'}, format='json')
@@ -260,7 +261,7 @@ class TestAdminQueue:
         self, admin_client, user, prod_rev, order_user_with_product, db,
     ):
         rev = Review.objects.create(
-            user=user, product=prod_rev, order=order_user_with_product,
+            user=user, product=prod_rev, order=order_user_with_product, sale_order=order_user_with_product.sale_order,
             rating=1, title='no', body='no',
         )
         r = admin_client.patch(REJECT_URL(rev.id), {'action': 'reject', 'reason': 'NOPE'}, format='json')
@@ -273,7 +274,7 @@ class TestAdminQueue:
         self, auth_client, user, prod_rev, order_user_with_product, db,
     ):
         rev = Review.objects.create(
-            user=user, product=prod_rev, order=order_user_with_product,
+            user=user, product=prod_rev, order=order_user_with_product, sale_order=order_user_with_product.sale_order,
             rating=5, title='ok', body='ok',
         )
         r = auth_client.patch(APPROVE_URL(rev.id), {'action': 'approve'}, format='json')
@@ -291,7 +292,7 @@ class TestReviewPagination:
         self, api_client, prod_rev, user, order_user_with_product, db,
     ):
         Review.objects.create(
-            user=user, product=prod_rev, order=order_user_with_product,
+            user=user, product=prod_rev, order=order_user_with_product, sale_order=order_user_with_product.sale_order,
             rating=5, title='T', body='B', status=Review.STATUS_APPROVED,
         )
         r = api_client.get(PRODUCT_REVIEWS_URL(prod_rev.id))
@@ -303,7 +304,7 @@ class TestReviewPagination:
         self, api_client, prod_rev, user, order_user_with_product, db,
     ):
         Review.objects.create(
-            user=user, product=prod_rev, order=order_user_with_product,
+            user=user, product=prod_rev, order=order_user_with_product, sale_order=order_user_with_product.sale_order,
             rating=5, title='T5', body='B', status=Review.STATUS_APPROVED,
         )
         r = api_client.get(PRODUCT_REVIEWS_URL(prod_rev.id), {'rating': '5'})
@@ -322,7 +323,7 @@ class TestReviewPagination:
         self, api_client, prod_rev, user, order_user_with_product, db,
     ):
         Review.objects.create(
-            user=user, product=prod_rev, order=order_user_with_product,
+            user=user, product=prod_rev, order=order_user_with_product, sale_order=order_user_with_product.sale_order,
             rating=4, title='T', body='B', status=Review.STATUS_APPROVED,
         )
         r = api_client.get(PRODUCT_REVIEWS_URL(prod_rev.id), {'sort': 'helpful'})
@@ -335,7 +336,7 @@ class TestReviewHelpfulVote:
     @pytest.fixture
     def approved_review(self, db, user, prod_rev, order_user_with_product):
         return Review.objects.create(
-            user=user, product=prod_rev, order=order_user_with_product,
+            user=user, product=prod_rev, order=order_user_with_product, sale_order=order_user_with_product.sale_order,
             rating=5, title='T', body='B', status=Review.STATUS_APPROVED,
         )
 
@@ -406,7 +407,7 @@ class TestRatingFilterAndSorting:
     """UC-REV-01 — rating filter excludes non-matching; helpful sort orders correctly."""
 
     def _make_order(self, db, user):
-        o = Order.objects.create(user=user, status='DELIVERED')
+        o = make_order(user=user, status='DELIVERED')
         OrderValue.objects.create(
             order=o, subtotal=Decimal('100'), tax=Decimal('0'),
             shipping_cost=Decimal('0'), total=Decimal('100'),
@@ -432,12 +433,12 @@ class TestRatingFilterAndSorting:
         )
         o2 = self._make_order(db, u2)
         Review.objects.create(
-            user=user, product=prod_rev, order=o1,
+            user=user, product=prod_rev, order=o1, sale_order=o1.sale_order,
             rating=3, title='Tres', body='cuerpo',
             status=Review.STATUS_APPROVED,
         )
         Review.objects.create(
-            user=u2, product=prod_rev, order=o2,
+            user=u2, product=prod_rev, order=o2, sale_order=o2.sale_order,
             rating=5, title='Cinco', body='cuerpo',
             status=Review.STATUS_APPROVED,
         )
@@ -462,13 +463,13 @@ class TestRatingFilterAndSorting:
         )
         o2 = self._make_order(db, u2)
         rev_low = Review.objects.create(
-            user=user, product=prod_rev, order=o1,
+            user=user, product=prod_rev, order=o1, sale_order=o1.sale_order,
             rating=4, title='Low', body='cuerpo',
             status=Review.STATUS_APPROVED,
             helpful_count=0,
         )
         rev_high = Review.objects.create(
-            user=u2, product=prod_rev, order=o2,
+            user=u2, product=prod_rev, order=o2, sale_order=o2.sale_order,
             rating=5, title='High', body='cuerpo',
             status=Review.STATUS_APPROVED,
             helpful_count=5,
@@ -494,12 +495,12 @@ class TestRatingFilterAndSorting:
         )
         o2 = self._make_order(db, u2)
         rev1 = Review.objects.create(
-            user=user, product=prod_rev, order=o1,
+            user=user, product=prod_rev, order=o1, sale_order=o1.sale_order,
             rating=4, title='First', body='cuerpo',
             status=Review.STATUS_APPROVED,
         )
         rev2 = Review.objects.create(
-            user=u2, product=prod_rev, order=o2,
+            user=u2, product=prod_rev, order=o2, sale_order=o2.sale_order,
             rating=5, title='Second', body='cuerpo',
             status=Review.STATUS_APPROVED,
         )
@@ -535,7 +536,7 @@ class TestCreateReviewEdgeCases:
         )
         other_prod.categories.add(cat_rev)
         other_prod.categories.add(cat_rev)
-        o = Order.objects.create(user=user, status='DELIVERED')
+        o = make_order(user=user, status='DELIVERED')
         # order only contains other_prod, not prod_rev
         OrderItem.objects.create(
             order=o, product=other_prod, product_name=other_prod.name,
@@ -572,7 +573,7 @@ class TestAdminModerationGuards:
     @pytest.fixture
     def pending_review(self, db, user, prod_rev, order_user_with_product):
         return Review.objects.create(
-            user=user, product=prod_rev, order=order_user_with_product,
+            user=user, product=prod_rev, order=order_user_with_product, sale_order=order_user_with_product.sale_order,
             rating=3, title='Pend', body='cuerpo',
             status=Review.STATUS_PENDING,
         )
@@ -580,7 +581,7 @@ class TestAdminModerationGuards:
     @pytest.fixture
     def approved_review(self, db, user, prod_rev, order_user_with_product):
         return Review.objects.create(
-            user=user, product=prod_rev, order=order_user_with_product,
+            user=user, product=prod_rev, order=order_user_with_product, sale_order=order_user_with_product.sale_order,
             rating=5, title='Aprov', body='cuerpo',
             status=Review.STATUS_APPROVED,
         )
@@ -588,7 +589,7 @@ class TestAdminModerationGuards:
     @pytest.fixture
     def rejected_review(self, db, user, prod_rev, order_user_with_product):
         return Review.objects.create(
-            user=user, product=prod_rev, order=order_user_with_product,
+            user=user, product=prod_rev, order=order_user_with_product, sale_order=order_user_with_product.sale_order,
             rating=1, title='Rej', body='cuerpo',
             status=Review.STATUS_REJECTED,
             reject_reason='SPAM',
@@ -640,7 +641,7 @@ class TestAdminModerationGuards:
     ):
         """?status=APPROVED queue returns only approved reviews."""
         Review.objects.create(
-            user=user, product=prod_rev, order=order_user_with_product,
+            user=user, product=prod_rev, order=order_user_with_product, sale_order=order_user_with_product.sale_order,
             rating=5, title='App', body='cuerpo',
             status=Review.STATUS_APPROVED,
         )
@@ -677,7 +678,7 @@ class TestBuyerEditReview:
     @pytest.fixture
     def pending_review(self, db, user, prod_rev, order_user_with_product):
         return Review.objects.create(
-            user=user, product=prod_rev, order=order_user_with_product,
+            user=user, product=prod_rev, order=order_user_with_product, sale_order=order_user_with_product.sale_order,
             rating=3, title='Titulo original', body='Cuerpo original largo',
             status=Review.STATUS_PENDING,
         )
@@ -685,7 +686,7 @@ class TestBuyerEditReview:
     @pytest.fixture
     def approved_review(self, db, user, prod_rev, order_user_with_product):
         return Review.objects.create(
-            user=user, product=prod_rev, order=order_user_with_product,
+            user=user, product=prod_rev, order=order_user_with_product, sale_order=order_user_with_product.sale_order,
             rating=5, title='Aprobada', body='Cuerpo aprobado largo',
             status=Review.STATUS_APPROVED,
         )
@@ -693,7 +694,7 @@ class TestBuyerEditReview:
     @pytest.fixture
     def rejected_review(self, db, user, prod_rev, order_user_with_product):
         return Review.objects.create(
-            user=user, product=prod_rev, order=order_user_with_product,
+            user=user, product=prod_rev, order=order_user_with_product, sale_order=order_user_with_product.sale_order,
             rating=1, title='Rechazada', body='Cuerpo rechazado largo',
             status=Review.STATUS_REJECTED,
             reject_reason='SPAM',
@@ -726,9 +727,9 @@ class TestBuyerEditReview:
         other = get_user_model().objects.create_user(
             email='otheredit@rev.com', password='x',
         )
-        o_other = Order.objects.create(user=other, status='DELIVERED')
+        o_other = make_order(user=other, status='DELIVERED')
         review = Review.objects.create(
-            user=other, product=prod_rev, order=o_other,
+            user=other, product=prod_rev, order=o_other, sale_order=o_other.sale_order,
             rating=2, title='Otro', body='Cuerpo de otro usuario largo',
             status=Review.STATUS_PENDING,
         )
@@ -791,7 +792,7 @@ class TestReviewImages:
     @pytest.fixture
     def pending_review(self, db, user, prod_rev, order_user_with_product):
         return Review.objects.create(
-            user=user, product=prod_rev, order=order_user_with_product,
+            user=user, product=prod_rev, order=order_user_with_product, sale_order=order_user_with_product.sale_order,
             rating=5, title='Great', body='Really great product',
             status=Review.STATUS_PENDING,
         )
@@ -960,7 +961,7 @@ class TestUcRev01CreateErrorHandling:
         other = get_user_model().objects.create_user(
             email='ac05o@rev.com', password='x',
         )
-        o = Order.objects.create(user=other, status='DELIVERED')
+        o = make_order(user=other, status='DELIVERED')
         r = auth_client.post(
             PRODUCT_REVIEWS_URL(prod_rev.id),
             {'order_id': o.id, 'rating': 4, 'title': 'X', 'body': 'cuerpo'},
@@ -979,7 +980,7 @@ class TestUcRev01CreateErrorHandling:
         Estado consistente: sigue existiendo exactamente una resena.
         """
         Review.objects.create(
-            user=user, product=prod_rev, order=order_user_with_product,
+            user=user, product=prod_rev, order=order_user_with_product, sale_order=order_user_with_product.sale_order,
             rating=5, title='A', body='cuerpo original',
         )
         r = auth_client.post(
@@ -1051,7 +1052,7 @@ class TestUcRev03ModerateErrorHandling:
     @pytest.fixture
     def pending_review(self, db, user, prod_rev, order_user_with_product):
         return Review.objects.create(
-            user=user, product=prod_rev, order=order_user_with_product,
+            user=user, product=prod_rev, order=order_user_with_product, sale_order=order_user_with_product.sale_order,
             rating=3, title='Pend', body='cuerpo pendiente',
             status=Review.STATUS_PENDING,
         )
@@ -1059,7 +1060,7 @@ class TestUcRev03ModerateErrorHandling:
     @pytest.fixture
     def approved_review(self, db, user, prod_rev, order_user_with_product):
         return Review.objects.create(
-            user=user, product=prod_rev, order=order_user_with_product,
+            user=user, product=prod_rev, order=order_user_with_product, sale_order=order_user_with_product.sale_order,
             rating=5, title='Aprov', body='cuerpo aprobado',
             status=Review.STATUS_APPROVED,
         )

@@ -13,6 +13,7 @@ import json
 import logging
 from decimal import Decimal, Decimal as Dec
 from typing import Optional
+from addons.payment.gateways.registry import register_gateway
 from addons.payment.gateways.base import BaseGateway, PreferenceResult, InstallmentPlan, PaymentVerification, RefundResult
 from addons.payment.models import PaymentGateway
 
@@ -340,3 +341,9 @@ class PayPalGateway(BaseGateway):
             status='approved',
             amount=refunded_amount,
         )
+
+
+# Inscripción en el registro del núcleo (T-033): la dirección de la
+# dependencia va satélite → núcleo, como en la referencia, donde cada
+# ``payment_<provider>`` declara ``depends: payment``.
+register_gateway('PAYPAL', PayPalGateway)

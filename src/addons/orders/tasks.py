@@ -13,6 +13,11 @@ from django.utils import timezone
 
 from addons.inventory.services import InventoryService
 from .models import Order, OrderStatusLog
+from .status_projection import order_status, filter_orders_by_status
+from addons.orders.status_projection import (
+    STATUS_CANCELLED_BY_TIMEOUT,
+    STATUS_PENDING,
+)
 
 logger = logging.getLogger('apps')
 
@@ -23,11 +28,14 @@ def cancel_timeout_orders():
     """UC-SYS-01: cancela ordenes PENDING por timeout de pago."""
     cutoff = timezone.now() - timedelta(minutes=ORDER_PAYMENT_TIMEOUT_MINUTES)
     # Collect IDs first; iterate outside any lock.
+    # O2C R8-pre (H-API-18): el PENDING se deriva de los ejes canónicos
+    # (venta confirmada, sin pago aprobado, sin guía) vía
+    # ``filter_orders_by_status`` — null-safe para filas legacy — en vez de
+    # leer la columna espejo ``status=PENDING`` directamente.
     pending_ids = list(
-        Order.objects.filter(
-            status=Order.STATUS_PENDING,
-            created_at__lt=cutoff,
-        ).values_list('id', flat=True)
+        filter_orders_by_status(Order.objects.all(), STATUS_PENDING)
+        .filter(created_at__lt=cutoff)
+        .values_list('id', flat=True)
     )
     now = timezone.now()
     count = 0
@@ -37,15 +45,20 @@ def cancel_timeout_orders():
         with transaction.atomic():
             order = (
                 Order.objects.select_for_update()
-                .filter(pk=order_id, status=Order.STATUS_PENDING)
+                .select_related('sale_order')
+                .filter(pk=order_id)
                 .first()
             )
-            if order is None:
+            # Re-derivar el estado canónico bajo lock: si el pago llegó entre
+            # el query y el lock, la orden ya no proyecta PENDING → se salta.
+            if order is None or order_status(order) != STATUS_PENDING:
                 continue
-            order.status              = Order.STATUS_CANCELLED_BY_TIMEOUT
+            # O2C R8: el estado lo fija el EJE comercial (action_cancel); la
+            # columna espejo ya no se escribe (V5d la retira). El sub-eje
+            # "por timeout" se preserva en cancellation_reason='TIMEOUT'.
             order.cancellation_reason = 'TIMEOUT'
             order.cancelled_at        = now
-            order.save(update_fields=['status', 'cancellation_reason', 'cancelled_at', 'updated_at'])
+            order.save(update_fields=['cancellation_reason', 'cancelled_at', 'updated_at'])
 
             # V5b-cancel (H-SALE-10): la cancelación por timeout también
             # cancela la sale.order canónica (eje comercial autoritativo).
@@ -54,8 +67,8 @@ def cancel_timeout_orders():
                 sale.action_cancel()
             OrderStatusLog.objects.create(
                 order=order,
-                previous_status=Order.STATUS_PENDING,
-                new_status=Order.STATUS_CANCELLED_BY_TIMEOUT,
+                previous_status=STATUS_PENDING,
+                new_status=STATUS_CANCELLED_BY_TIMEOUT,
                 changed_by=None,
                 notes='Cancelacion automatica por timeout de pago.',
             )

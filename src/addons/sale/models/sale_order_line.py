@@ -47,12 +47,70 @@ class SaleOrderLine(TimeStampedModel):
         max_digits=5, decimal_places=2, default=Decimal('0.00'),
         help_text='Descuento % de la línea (Odoo discount).',
     )
+    # ------------------------------------------------------------------
+    # E1-bis — marcadores de línea NO-producto (H-API-24 / H-API-30).
+    #
+    # Los importes que no son de producto (envío, descuento de cupón) hoy son
+    # escalares que nunca llegan a ``order_line``, así que ``amount_total``
+    # los excluye por construcción. La forma fiel los materializa como líneas
+    # y los marca para poder distinguirlas:
+    #
+    # - ``is_delivery`` ≙ Odoo ``delivery/models/sale_order_line.py:9``.
+    # - ``is_reward``   ≙ la línea de recompensa de ``sale_loyalty`` (precio
+    #   negativo).
+    #
+    # Ambos marcadores nacen juntos por decisión del ejecutor (2026-07-28):
+    # envío y descuento comparten mecanismo en el monolito modular, y comparten
+    # la misma causa raíz. Son marcadores, NO un tipo de línea: la línea sigue
+    # siendo una ``sale.order.line`` normal y entra a los totales como
+    # cualquier otra.
+    # ------------------------------------------------------------------
+    is_delivery     = fields.Boolean(
+        default=False, db_index=True,
+        help_text='La línea representa el costo de envío (Odoo is_delivery).',
+    )
+    is_reward       = fields.Boolean(
+        default=False, db_index=True,
+        help_text='La línea representa un descuento/recompensa (precio negativo).',
+    )
+
     class Meta:
         db_table     = 'sale_order_line'
         verbose_name = 'Línea de orden de venta'
 
     def __str__(self):
         return f'{self.name or self.product_id} ×{self.product_uom_qty}'
+
+    # ------------------------------------------------------------------
+    # Disparo del recálculo de la orden (H-API-30) — equivalente Django del
+    # ``@api.depends('order_line.price_subtotal', ...)`` que Odoo declara en
+    # ``SaleOrder.amount_untaxed/tax/total`` (sale/models/sale_order.py:232-234).
+    # En la referencia el motor de dependencias de Odoo dispara
+    # ``_compute_amounts`` sólo cuando cambia un campo del que depende; Django
+    # no tiene ese motor, así que aquí se dispara en **cada** ``save()``/
+    # ``delete()`` de la línea, sin distinguir qué campo cambió. El costo es
+    # un recompute redundante ocasional (p. ej. renombrar la línea sin tocar
+    # precio/cantidad) — no hay recursión: ``_compute_amounts`` guarda la
+    # ORDEN (``SaleOrder.save``, sin overridear), nunca vuelve a tocar la línea.
+    #
+    # **Alcance del disparo — sólo mutaciones a nivel instancia.** Un
+    # ``QuerySet.filter(...).delete()`` (o ``.update()``) no pasa por aquí:
+    # Django hace DELETE/UPDATE en bloque sin invocar el ``delete()``/``save()``
+    # de cada fila. Los llamadores que borran líneas en bloque
+    # (``delivery.set_delivery_line``, ``sale_loyalty.set_reward_line``,
+    # ``sale_product_matrix.SaleOrderMatrix.apply``, ``sale.services.
+    # clear_draft_items``) llaman a ``order._compute_amounts()`` explícitamente
+    # tras el borrado en bloque — ver el docstring de cada uno.
+    # ------------------------------------------------------------------
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        self.order._compute_amounts()
+
+    def delete(self, *args, **kwargs):
+        order = self.order
+        result = super().delete(*args, **kwargs)
+        order._compute_amounts()
+        return result
 
     # Desglose por línea — de sale.order.line._compute_amount (sale_order_line.py:852).
     def price_total(self) -> Decimal:

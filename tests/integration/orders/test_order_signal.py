@@ -11,7 +11,7 @@ from unittest.mock import patch, MagicMock
 
 from addons.catalogue.models import Category, Product
 from addons.inventory.services import InventoryService
-from addons.orders.models import ShippingZone
+from addons.delivery.models import ShippingZone
 from addons.delivery.models import ShippingMethod
 from addons.orders.signals import order_created
 
@@ -89,7 +89,7 @@ class TestOrderCreatedSignal:
             assert 'order' in call_kwargs, (
                 'La señal debe incluir kwarg "order"'
             )
-            assert call_kwargs['order'].order_number.startswith('PY-'), (
+            assert call_kwargs['order'].order_number == call_kwargs['order'].sale_order.name, (
                 f'order.order_number invalido: {call_kwargs["order"].order_number}'
             )
         finally:

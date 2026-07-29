@@ -10,8 +10,28 @@ from addons.catalogue.models import Category, Product
 from addons.delivery.models import Courier, ShipmentGuide
 from addons.orders.admin_services import transition_order_status
 from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress, OrderStatusLog
+from addons.payment.models import Payment
+from addons.sale.models import SaleOrder
 from django.contrib.auth import get_user_model
 from addons.base.models import SiteSettings
+from tests.factories.order_factory import make_order
+
+
+def _canonical_order(user, *, approved=False):
+    """Orden enlazada a una SaleOrder confirmada (ejes O2C, sin columna espejo).
+
+    Sin pago aprobado → proyecta PENDING; con pago aprobado → PAID.
+    """
+    so = SaleOrder.objects.create(state=SaleOrder.STATE_SALE)
+    order = Order.objects.create(user=user, sale_order=so)
+    if approved:
+        Payment.objects.create(
+            order=order, sale_order=so,
+            gateway=Payment.GATEWAY_MERCADOPAGO,
+            amount=Decimal('100.00'),
+            status=Payment.STATUS_APPROVED,
+        )
+    return order
 
 pytestmark = pytest.mark.integration
 
@@ -40,7 +60,7 @@ def prod_adm(db, cat_adm):
 
 
 def _make_order(user, prod, status='PENDING'):
-    order = Order.objects.create(user=user, status=status)
+    order = make_order(user=user, status=status)
     OrderItem.objects.create(
         order=order, product_name=prod.name, sku=prod.sku,
         unit_price=prod.price, quantity=1, subtotal=prod.price,
@@ -59,6 +79,22 @@ def _make_order(user, prod, status='PENDING'):
     return order
 
 
+def _canonical_admin_order(user, prod, *, approved=False, mirror='PENDING'):
+    """Orden con scaffolding de lista (``_make_order``) enlazada a una
+    ``SaleOrder`` confirmada; la columna espejo se deja **stale** a propósito
+    (``mirror``) para probar que el filtro deriva de los ejes, no del espejo."""
+    order = _make_order(user, prod, status=mirror)
+    so = SaleOrder.objects.create(state=SaleOrder.STATE_SALE)
+    order.sale_order = so
+    order.save(update_fields=['sale_order'])
+    if approved:
+        Payment.objects.create(
+            order=order, sale_order=so, gateway=Payment.GATEWAY_MERCADOPAGO,
+            amount=Decimal('100.00'), status=Payment.STATUS_APPROVED,
+        )
+    return order
+
+
 # =============================================================================
 # Seguridad — solo admins pueden acceder
 # =============================================================================
@@ -74,7 +110,7 @@ class TestSeguridadAdminEndpoints:
     ):
         order = _make_order(user, prod_adm)
         res   = auth_client.patch(ADMIN_STATUS_URL(order.order_number),
-                                  {'new_status': 'PROCESSING'}, format='json')
+                                  {'new_status': 'PAID'}, format='json')
         assert res.status_code == 403
 
     def test_sin_auth_retorna_401(self, user, api_client, db):
@@ -110,6 +146,29 @@ class TestBuscarOrdenesAdmin:
         data = res.json()
         statuses = {o['status'] for o in data['results']}
         assert statuses == {'PENDING'}
+
+    def test_filtro_por_status_canonico_desde_ejes(
+        self, admin_client, user, prod_adm, db
+    ):
+        """O2C R6: el ?status= admin deriva de los ejes canónicos (pago), no
+        de la columna espejo. La orden pagada tiene espejo stale 'PENDING'
+        pero se filtra correctamente como PAID."""
+        pend = _canonical_admin_order(user, prod_adm, approved=False)
+        paid = _canonical_admin_order(user, prod_adm, approved=True)  # espejo stale
+        res = admin_client.get(ADMIN_LIST_URL, {'status': 'PAID'})
+        nums = {o['order_number'] for o in res.json()['results']}
+        assert paid.order_number in nums
+        assert pend.order_number not in nums
+
+    def test_filtro_por_status_muerto_400(
+        self, admin_client, user, prod_adm, db
+    ):
+        """O2C R6: los valores muertos del enum legacy salen del contrato
+        admin → 400 INVALID_STATUS."""
+        _canonical_admin_order(user, prod_adm)
+        res = admin_client.get(ADMIN_LIST_URL, {'status': 'IN_PREPARATION'})
+        assert res.status_code == 400
+        assert res.json()['codigo_error'] == 'INVALID_STATUS'
 
     def test_filtro_por_numero_orden_parcial(
         self, admin_client, user, prod_adm, db
@@ -157,40 +216,47 @@ class TestBuscarOrdenesAdmin:
 
 class TestTransicionEstadoAdmin:
 
-    def test_transicion_valida_pending_a_processing(
+    def test_transicion_valida_pending_a_paid(
         self, admin_client, user, prod_adm, db
     ):
-        order = _make_order(user, prod_adm, 'PENDING')
+        # O2C R8: PENDING → PAID es conciliación manual — el hub registra
+        # un Payment APPROVED gateway=MANUAL (eje de pago) y la proyección
+        # deriva PAID de él.
+        order = _canonical_admin_order(user, prod_adm)
         res   = admin_client.patch(
             ADMIN_STATUS_URL(order.order_number),
-            {'new_status': 'PROCESSING', 'notes': 'Pago verificado'},
+            {'new_status': 'PAID', 'notes': 'Pago verificado'},
             format='json',
         )
         assert res.status_code == 200
-        assert res.json()['status'] == 'PROCESSING'
+        assert res.json()['status'] == 'PAID'
+        manual = order.payments.get()
+        assert manual.gateway == Payment.GATEWAY_MANUAL
+        assert manual.status == Payment.STATUS_APPROVED
 
     def test_transicion_crea_statuslog(
         self, admin_client, user, prod_adm, db
     ):
-        order = _make_order(user, prod_adm, 'PROCESSING')
+        # O2C R7: PENDING → PAID (antes PROCESSING → IN_PREPARATION, muertos).
+        order = _make_order(user, prod_adm, 'PENDING')
         admin_client.patch(
             ADMIN_STATUS_URL(order.order_number),
-            {'new_status': 'IN_PREPARATION'},
+            {'new_status': 'PAID'},
             format='json',
         )
         log = OrderStatusLog.objects.filter(order=order).first()
         assert log is not None
-        assert log.previous_status == 'PROCESSING'
-        assert log.new_status == 'IN_PREPARATION'
+        assert log.previous_status == 'PENDING'
+        assert log.new_status == 'PAID'
 
     def test_transicion_invalida_retorna_400(
         self, admin_client, user, prod_adm, db
     ):
-        """H-ADM-002: SHIPPED no puede volver a PROCESSING."""
+        """H-ADM-002 / O2C R7: SHIPPED sólo avanza a DELIVERED."""
         order = _make_order(user, prod_adm, 'SHIPPED')
         res   = admin_client.patch(
             ADMIN_STATUS_URL(order.order_number),
-            {'new_status': 'PROCESSING'},
+            {'new_status': 'PENDING'},
             format='json',
         )
         assert res.status_code == 400
@@ -212,25 +278,41 @@ class TestTransicionEstadoAdmin:
     def test_flujo_completo_pending_a_delivered(
         self, admin_client, user, prod_adm, db
     ):
-        """Flujo feliz completo: PENDING → PROCESSING → IN_PREPARATION → SHIPPED → DELIVERED."""
-        order = _make_order(user, prod_adm, 'PENDING')
+        """O2C R8 — flujo feliz canónico: PENDING → PAID (hub, conciliación)
+        → SHIPPED (crear la guía ES la transición, eje fulfillment) →
+        DELIVERED (hub marca la guía entregada)."""
+        order = _canonical_admin_order(user, prod_adm)
         courier = Courier.objects.create(name='DHL Test', code='DHL', is_active=True)
 
-        for new_status in ['PROCESSING', 'IN_PREPARATION', 'SHIPPED', 'DELIVERED']:
-            if new_status == 'SHIPPED':
-                ShipmentGuide.objects.create(
-                    order=order, courier=courier, tracking_number='TEST-SHIP-001',
-                )
-            res = admin_client.patch(
-                ADMIN_STATUS_URL(order.order_number),
-                {'new_status': new_status},
-                format='json',
-            )
-            assert res.status_code == 200, f'Falló en → {new_status}: {res.json()}'
+        res = admin_client.patch(
+            ADMIN_STATUS_URL(order.order_number),
+            {'new_status': 'PAID'}, format='json',
+        )
+        assert res.status_code == 200, f'Falló en → PAID: {res.json()}'
 
-        order.refresh_from_db()
-        assert order.status == 'DELIVERED'
-        assert OrderStatusLog.objects.filter(order=order).count() == 4
+        # SHIPPED no es transición manual del hub: la guía activa ES el eje.
+        ShipmentGuide.objects.create(
+            order=order, sale_order=order.sale_order, courier=courier,
+            tracking_number='TEST-SHIP-001',
+        )
+
+        res = admin_client.patch(
+            ADMIN_STATUS_URL(order.order_number),
+            {'new_status': 'DELIVERED'}, format='json',
+        )
+        assert res.status_code == 200, f'Falló en → DELIVERED: {res.json()}'
+        assert res.json()['status'] == 'DELIVERED'
+
+        # Dos transiciones del hub (PAID, DELIVERED) → dos entradas de log;
+        # la guía creada directo (sin endpoint logistics) no loguea SHIPPED.
+        assert OrderStatusLog.objects.filter(order=order).count() == 2
+
+        # Pedir SHIPPED al hub es error explícito (eje fulfillment).
+        res = admin_client.patch(
+            ADMIN_STATUS_URL(order.order_number),
+            {'new_status': 'SHIPPED'}, format='json',
+        )
+        assert res.status_code == 400
 
     def test_transicion_lee_status_fresh_con_select_for_update(
         self, admin_client, user, prod_adm, db,
@@ -255,12 +337,15 @@ class TestTransicionEstadoAdmin:
         order_in_memory_A = _make_order(user, prod_adm, 'PENDING')
         # Admin B (simulado) cancela la orden via UPDATE directo (no
         # tocar la instancia en memoria de A).
-        Order.objects.filter(pk=order_in_memory_A.pk).update(status='CANCELLED')
+        # O2C V5d: sin columna espejo, "admin B" cancela por el EJE comercial.
+        # La instancia de A sigue stale en memoria; select_for_update la re-lee.
+        sale_b = SaleOrder.objects.get(pk=order_in_memory_A.sale_order_id)
+        sale_b.action_cancel()
         # Admin A intenta transicionar a PROCESSING usando su instancia
         # stale. select_for_update fuerza re-lectura: DB.status =
         # CANCELLED (terminal) -> ValueError.
         with pytest.raises(ValueError, match='Transición no permitida'):
-            transition_order_status(order_in_memory_A, 'PROCESSING', admin)
+            transition_order_status(order_in_memory_A, 'PAID', admin)
 
 
 # =============================================================================
@@ -269,11 +354,19 @@ class TestTransicionEstadoAdmin:
 
 class TestCancelarOrdenAdmin:
 
-    def test_admin_cancela_in_preparation(
+    def test_admin_cancela_paid(
         self, admin_client, user, prod_adm, db
     ):
-        """H-ADM-005: el admin puede cancelar IN_PREPARATION (el comprador no)."""
-        order = _make_order(user, prod_adm, 'IN_PREPARATION')
+        """H-ADM-005 / O2C R7: el admin puede cancelar una orden PAID
+        (sin guía) — el comprador también, pero admin exige motivo."""
+        # O2C R8: PAID canónico = pago aprobado (MANUAL: sin refund de
+        # pasarela al cancelar); el estado es la proyección del eje.
+        order = _canonical_admin_order(user, prod_adm)
+        Payment.objects.create(
+            order=order, sale_order=order.sale_order,
+            gateway=Payment.GATEWAY_MANUAL,
+            amount=Decimal('100.00'), status=Payment.STATUS_APPROVED,
+        )
         res   = admin_client.post(
             ADMIN_CANCEL_URL(order.order_number),
             {'reason': 'Fraude detectado en el pedido'},
@@ -281,7 +374,7 @@ class TestCancelarOrdenAdmin:
         )
         assert res.status_code == 200
         order.refresh_from_db()
-        assert order.status == 'CANCELLED'
+        assert order.sale_order.state == SaleOrder.STATE_CANCEL
         assert order.admin_cancelled_by is not None
 
     def test_motivo_obligatorio_min_10_chars(
@@ -312,7 +405,7 @@ class TestCancelarOrdenAdmin:
         self, admin_client, user, prod_adm, db
     ):
         stock_inicial = prod_adm.stock
-        order = _make_order(user, prod_adm, 'IN_PREPARATION')
+        order = _make_order(user, prod_adm, 'PAID')
         admin_client.post(
             ADMIN_CANCEL_URL(order.order_number),
             {'reason': 'Stock incorrecto reportado por almacén'},
@@ -324,7 +417,7 @@ class TestCancelarOrdenAdmin:
     def test_admin_cancelacion_registra_statuslog(
         self, admin_client, user, prod_adm, db
     ):
-        order = _make_order(user, prod_adm, 'PROCESSING')
+        order = _make_order(user, prod_adm, 'PAID')
         admin_client.post(
             ADMIN_CANCEL_URL(order.order_number),
             {'reason': 'Cancelación administrativa por validación'},
@@ -360,16 +453,42 @@ class TestDashboardTransaccional:
     def test_dashboard_contadores_correctos(
         self, admin_client, user, prod_adm, db
     ):
+        # O2C V5c-2: los KPIs se derivan de los ejes canónicos, no de la
+        # columna espejo. Dos ventas confirmadas sin pago aprobado proyectan
+        # PENDING; una con pago aprobado proyecta PAID (activa, no pending).
         SiteSettings.get_current()
 
-        _make_order(user, prod_adm, 'PENDING')
-        _make_order(user, prod_adm, 'PENDING')
-        _make_order(user, prod_adm, 'PROCESSING')
+        _canonical_order(user)                  # PENDING
+        _canonical_order(user)                  # PENDING
+        _canonical_order(user, approved=True)   # PAID (activa)
 
         res    = admin_client.get(ADMIN_DASHBOARD_URL)
         counts = res.json()['order_counts']
-        assert counts['pending']    >= 2
-        assert counts['processing'] >= 1
+        assert counts['pending'] >= 2
+        # PROCESSING e IN_PREPARATION son valores muertos (0 escritores; la
+        # proyección canónica nunca los emite) → contadores provablemente 0.
+        assert counts['processing'] == 0
+        assert counts['in_preparation'] == 0
+        # La orden PAID cuenta como activa (ni entregada ni cancelada).
+        assert counts['total_active'] >= 3
+
+    def test_dashboard_shipped_and_active_from_axes(
+        self, admin_client, user, prod_adm, db
+    ):
+        """Guía activa proyecta SHIPPED; columna espejo ausente."""
+        SiteSettings.get_current()
+        order = _canonical_order(user, approved=True)
+        courier = Courier.objects.create(name='DHL', code='dhl', is_active=True)
+        ShipmentGuide.objects.create(
+            order=order, sale_order=order.sale_order, courier=courier,
+            tracking_number='TRK-DASH-1',
+        )
+
+        counts = admin_client.get(ADMIN_DASHBOARD_URL).json()['order_counts']
+
+        assert counts['shipped'] >= 1
+        assert counts['pending'] == 0          # ya tiene guía → no pending
+        assert counts['total_active'] >= 1     # enviada sigue activa
 
     def test_dashboard_sin_auth_retorna_401(self, api_client, db):
         res = api_client.get(ADMIN_DASHBOARD_URL)

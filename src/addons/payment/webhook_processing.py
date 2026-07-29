@@ -12,7 +12,7 @@ from decimal import Decimal
 from django.db import transaction
 
 from addons.payment.models import Payment
-from addons.orders.models import Order
+
 
 logger = logging.getLogger('apps')
 
@@ -62,15 +62,13 @@ def _process_payment_approval(
             payment.amount = amount
         payment.save(update_fields=['status', 'amount', 'updated_at'])
 
-        # DEC-BC-12: Order → PAID cuando pago aprobado (confirma pago recibido).
-        order = payment.order
-        if order.status in (Order.STATUS_PENDING, Order.STATUS_PROCESSING):
-            order.status = Order.STATUS_PAID
-            order.save(update_fields=['status', 'updated_at'])
-            logger.info(
-                'Orden %s → PAID tras pago aprobado (%s)',
-                order.order_number, gateway,
-            )
+        # DEC-BC-12 / O2C R8: el Payment APPROVED de arriba ES el eje de
+        # pago — la proyección canónica deriva PAID de él; la columna espejo
+        # ya no se escribe (V5d la retira).
+        logger.info(
+            'Orden %s → PAID (proyectado) tras pago aprobado (%s)',
+            payment.order.order_number, gateway,
+        )
 
     return payment, True
 

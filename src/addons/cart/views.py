@@ -27,15 +27,15 @@ from rest_framework.views import APIView
 from addons.catalogue.models import Product
 from addons.chartsize.models import ProductVariant
 from addons.sale.models import SaleOrder
+from addons.sale_loyalty.services import (apply_voucher_to_draft,
+                                          remove_voucher_from_draft)
 from addons.sale.services import (
     DraftOrderError,
     add_item_to_draft,
-    apply_voucher_to_draft,
     clear_draft_items,
     get_or_create_draft_order,
     merge_draft_orders,
     remove_draft_item,
-    remove_voucher_from_draft,
     update_draft_item_quantity,
 )
 from config.schema import error_response

@@ -31,7 +31,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Optional
 
-from .models import ShippingZone
+from addons.delivery.models import ShippingZone
 
 _TWO_PLACES = Decimal('0.01')
 _FREE = Decimal('0.00')

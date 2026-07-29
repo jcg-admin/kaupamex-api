@@ -26,6 +26,7 @@ from django.utils import timezone
 from addons.catalogue.models import Category, Product
 from addons.delivery.models import Courier, ShipmentEvent, ShipmentGuide
 from addons.orders.models import Order, OrderAddress, OrderItem, OrderValue
+from tests.factories.order_factory import make_order
 
 pytestmark = pytest.mark.integration
 
@@ -70,7 +71,9 @@ def prod_log(db, cat_log):
 
 @pytest.fixture
 def order_log(db, user, prod_log):
-    o = Order.objects.create(user=user, status=Order.STATUS_SHIPPED)
+    # O2C V5d: la guia la crea el fixture ``guide_log`` (OneToOne) — la
+    # orden base se fabrica PENDING para no duplicar el eje de fulfillment.
+    o = make_order(user=user)
     OrderItem.objects.create(
         order=o, product=prod_log, product_name=prod_log.name,
         sku=prod_log.sku, unit_price=prod_log.price,
@@ -98,7 +101,7 @@ def courier_log(db):
 @pytest.fixture
 def guide_log(db, order_log, courier_log):
     return ShipmentGuide.objects.create(
-        order=order_log, courier=courier_log,
+        order=order_log, sale_order=order_log.sale_order, courier=courier_log,
         tracking_number='TRK-0001', status=ShipmentGuide.STATUS_PICKED_UP,
     )
 
@@ -221,7 +224,7 @@ class TestCourierWebhookSecretUnset:
     def test_secret_no_configurado_rechazo_seguro(self, api_client, order_log, db):
         courier = Courier.objects.create(name='SinSecreto', code='NOSEC')
         guide = ShipmentGuide.objects.create(
-            order=order_log, courier=courier,
+            order=order_log, sale_order=order_log.sale_order, courier=courier,
             tracking_number='TRK-NOSEC', status=ShipmentGuide.STATUS_PICKED_UP,
         )
         payload = {

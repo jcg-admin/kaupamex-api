@@ -28,6 +28,8 @@ from addons.payment.models import Payment
 from addons.stock.models import ReturnHistoryEntry, ReturnRequest
 from addons.payment.models import PaymentGateway
 from addons.mail.models import Notification, NotificationType
+from tests.factories.order_factory import make_order
+from addons.orders.status_projection import STATUS_DELIVERED
 
 pytestmark = pytest.mark.integration
 
@@ -73,12 +75,12 @@ def prod2(db, category):
 
 @pytest.fixture
 def delivered_order(db, user):
-    return Order.objects.create(user=user, status=Order.STATUS_DELIVERED)
+    return make_order(user=user, status=STATUS_DELIVERED)
 
 
 @pytest.fixture
 def delivered_order_with_items(db, user, prod1, prod2):
-    order = Order.objects.create(user=user, status=Order.STATUS_DELIVERED)
+    order = make_order(user=user, status=STATUS_DELIVERED)
     OrderItem.objects.create(
         order=order, product=prod1, product_name=prod1.name, sku=prod1.sku,
         unit_price=prod1.price, quantity=2, subtotal=prod1.price * 2,
@@ -443,9 +445,9 @@ def _create_approved_order_and_return(user, payment_amount=Decimal('2000.00')):
     DEC-RET-01 que conecta AdminReturnRefundView -> execute_refund;
     los tests requieren un Payment reembolsable asociado.
     """
-    order = Order.objects.create(user=user, status='PROCESSING')
+    order = make_order(user=user, status='PROCESSING')
     payment = Payment.objects.create(
-        order=order, gateway='MERCADOPAGO',
+        order=order, sale_order=order.sale_order, gateway='MERCADOPAGO',
         preference_id=f'PREF-RET-{order.pk}',
         gateway_payment_id=f'GW-RET-{order.pk}',
         status=Payment.STATUS_APPROVED, amount=payment_amount,

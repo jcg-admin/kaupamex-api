@@ -28,6 +28,12 @@ from addons.base.models import SiteSettings
 from addons.referral.services import complete_referral_for_order
 from addons.loyalty.models import ReferralCode, Referral, Voucher
 from tests.factories.user_factory import make_buyer
+from tests.factories.order_factory import make_order
+from addons.orders.status_projection import (
+    STATUS_DELIVERED,
+    STATUS_PAID,
+    STATUS_PENDING,
+)
 
 pytestmark = pytest.mark.integration
 
@@ -190,7 +196,7 @@ class TestReferralReward:
     ):
         referee = User.objects.create_user(email='refc@x.mx', password='RefcPass123!')
         ref = self._make_referral(referrer, referee)
-        order = Order.objects.create(user=referee, status=Order.STATUS_PAID)
+        order = make_order(user=referee, status=STATUS_PAID)
 
         complete_referral_for_order(order)
 
@@ -205,7 +211,7 @@ class TestReferralReward:
     def test_unpaid_order_does_not_complete_referral(self, db, referral_enabled, referrer):
         referee = User.objects.create_user(email='refd@x.mx', password='RefdPass123!')
         ref = self._make_referral(referrer, referee)
-        order = Order.objects.create(user=referee, status=Order.STATUS_PENDING)
+        order = make_order(user=referee, status=STATUS_PENDING)
 
         complete_referral_for_order(order)
 
@@ -215,7 +221,7 @@ class TestReferralReward:
     def test_completion_is_idempotent(self, db, referral_enabled, referrer):
         referee = User.objects.create_user(email='refe@x.mx', password='RefePass123!')
         ref = self._make_referral(referrer, referee)
-        order = Order.objects.create(user=referee, status=Order.STATUS_DELIVERED)
+        order = make_order(user=referee, status=STATUS_DELIVERED)
 
         complete_referral_for_order(order)
         complete_referral_for_order(order)

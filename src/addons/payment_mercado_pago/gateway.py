@@ -9,6 +9,7 @@ import json
 import logging
 import uuid
 from decimal import Decimal, Decimal as Dec
+from addons.payment.gateways.registry import register_gateway
 from addons.payment.gateways.base import BaseGateway, PreferenceResult, InstallmentPlan, PaymentVerification, RefundResult, PaymentResult
 from .orders_status import map_order_payment_status
 from addons.payment.models import PaymentGateway
@@ -940,3 +941,9 @@ class MercadoPagoGateway(BaseGateway):
             logger.error('MercadoPago zero-dollar auth error: %s', msg)
             raise RuntimeError(f'Error al validar tarjeta en MercadoPago: {msg}')
         return response['response']
+
+
+# Inscripción en el registro del núcleo (T-033): la dirección de la
+# dependencia va satélite → núcleo, como en la referencia, donde cada
+# ``payment_<provider>`` declara ``depends: payment``.
+register_gateway('MERCADOPAGO', MercadoPagoGateway)
