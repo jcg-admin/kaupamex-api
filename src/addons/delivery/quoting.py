@@ -1,5 +1,5 @@
 """
-Cotización de envío — addons.orders.shipping
+Cotización de envío — addons.delivery.quoting (E5/R3, movido desde orders)
 
 UC-ORD-01 (política de envío). Punto de extensión ÚNICO (open-closed) del costo
 de envío del checkout.

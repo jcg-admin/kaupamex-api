@@ -24,7 +24,7 @@ from .models import CheckoutAttempt, Order, OrderItem
 from addons.sale.status_projection import filter_orders_by_status, CANONICAL_ORDER_STATUSES
 from addons.sale.models import SaleOrder
 from .serializers import CancelOrderSerializer, CheckoutSerializer, OrderListSerializer, OrderSerializer, UpdateAddressSerializer, UpdateShippingSerializer
-from .shipping import resolve_shipping_quote
+from addons.delivery.quoting import resolve_shipping_quote
 from django.db.models import Prefetch
 from addons.catalogue.models import ProductImage
 from .services import (
