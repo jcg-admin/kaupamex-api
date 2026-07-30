@@ -1,10 +1,12 @@
 """Serializers — addons.orders (Sprint 14)."""
-import re
 from decimal import Decimal
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
+from addons.base_address_extended.validators import (
+    validate_mx_phone, validate_mx_zip,
+)
 from addons.sale.amounts import order_amounts
 from .models import Order, OrderItem, OrderAddress, OrderStatusLog
 from addons.sale.status_projection import order_status
@@ -22,34 +24,6 @@ def _projected_status(obj):
     if not hasattr(obj, '_projected_status_cache'):
         obj._projected_status_cache = order_status(obj)
     return obj._projected_status_cache
-
-
-# Validación MX (hardening-checkout-envio-mexico): Teléfono y C.P. son
-# numéricos de longitud fija. El teléfono es opcional a nivel serializer
-# (el front lo exige); cuando llega un valor debe tener EXACTAMENTE 10
-# dígitos. El C.P. es requerido y debe tener EXACTAMENTE 5 dígitos. Sin
-# espacios, guiones ni prefijo +52.
-_MX_PHONE_RE = re.compile(r'^\d{10}$')
-_MX_ZIP_RE   = re.compile(r'^\d{5}$')
-
-
-def validate_mx_phone(value):
-    if value in (None, ''):
-        return value
-    if not _MX_PHONE_RE.match(value):
-        raise serializers.ValidationError(
-            'El teléfono debe tener exactamente 10 dígitos '
-            '(sin espacios, guiones ni +52).'
-        )
-    return value
-
-
-def validate_mx_zip(value):
-    if not _MX_ZIP_RE.match(value or ''):
-        raise serializers.ValidationError(
-            'El código postal debe tener exactamente 5 dígitos.'
-        )
-    return value
 
 
 class OrderAddressSerializer(serializers.ModelSerializer):

@@ -20,7 +20,7 @@ from PIL import Image
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from addons.base.models import SiteSettings
-from addons.orders.serializers import validate_mx_phone
+from addons.base_address_extended.validators import validate_mx_phone
 from .audit import audit_log_auth
 from addons.authz.services import is_superadmin
 from .models import Address, AuthEvent, Person, UserDeactivationEvent
