@@ -19,7 +19,7 @@ import pytest
 from django.utils import timezone
 
 from addons.catalogue.models import Category, Product
-from addons.orders.status_projection import (
+from addons.sale.status_projection import (
     STATUS_CANCELLED,
     STATUS_PAID,
     STATUS_PENDING,

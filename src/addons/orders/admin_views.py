@@ -14,7 +14,7 @@ from rest_framework.pagination import PageNumberPagination
 from .serializers import AdminOrderSerializer
 from .models import Order
 from django.db.models import Q
-from .status_projection import filter_orders_by_status, CANONICAL_ORDER_STATUSES
+from addons.sale.status_projection import filter_orders_by_status, CANONICAL_ORDER_STATUSES
 from .admin_services import transition_order_status, admin_cancel_order, get_dashboard_data
 
 

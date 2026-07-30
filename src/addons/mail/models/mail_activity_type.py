@@ -69,7 +69,7 @@ class MailActivityType(TimeStampedModel):
     )
     res_model = fields.Char(
         max_length=128, blank=True, default='',
-        help_text='Modelo al que aplica, p. ej. "orders.Order"; vacio = todos (Odoo res_model).',
+        help_text='Modelo al que aplica, p. ej. "sale.SaleOrder"; vacio = todos (Odoo res_model).',
     )
     chaining_type = fields.Selection(
         max_length=8, choices=CHAINING_TYPE_CHOICES, default=CHAINING_SUGGEST,

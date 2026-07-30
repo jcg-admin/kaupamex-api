@@ -31,7 +31,7 @@ from addons.payments.pdf_receipt import HELPER_PATH, build_receipt_payload
 from addons.base.models import SiteSettings
 from addons.users.models import BusinessEvent
 from tests.factories.order_factory import make_order
-from addons.orders.status_projection import (
+from addons.sale.status_projection import (
     STATUS_PAID,
     STATUS_PENDING,
 )

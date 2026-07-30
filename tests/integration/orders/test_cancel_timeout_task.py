@@ -13,7 +13,7 @@ from django.utils import timezone
 from addons.catalogue.models import Category, Product
 from addons.inventory.models import StockMovement
 from addons.orders.models import Order, OrderItem, OrderStatusLog
-from addons.orders.status_projection import (
+from addons.sale.status_projection import (
     STATUS_CANCELLED,
     STATUS_CANCELLED_BY_TIMEOUT,
     STATUS_PAID,

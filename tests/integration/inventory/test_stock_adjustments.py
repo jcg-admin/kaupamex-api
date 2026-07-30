@@ -16,7 +16,7 @@ from addons.orders.models import Order, OrderItem
 from addons.payment.models import Payment
 from addons.sale.models import SaleOrder
 from addons.users.models import BusinessEvent
-from addons.orders.status_projection import STATUS_PENDING
+from addons.sale.status_projection import STATUS_PENDING
 
 pytestmark = pytest.mark.integration
 

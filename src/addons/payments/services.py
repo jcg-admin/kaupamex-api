@@ -17,7 +17,7 @@ from addons.payment.models import Payment, PaymentGatewayEvent, Payment as Payme
 from django.db.models import F, Sum as DjSum
 from addons.payment.models import PaymentGateway
 from addons.orders.models import Order
-from addons.orders.status_projection import (
+from addons.sale.status_projection import (
     STATUS_PENDING,
     order_status,
 )

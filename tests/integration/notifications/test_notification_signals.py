@@ -17,7 +17,7 @@ from addons.orders.models import Order, OrderValue
 from addons.payment.models import Payment, Refund
 from addons.stock.models import ReturnRequest
 from tests.factories.order_factory import make_order
-from addons.orders.status_projection import (
+from addons.sale.status_projection import (
     STATUS_PENDING,
     STATUS_SHIPPED,
 )

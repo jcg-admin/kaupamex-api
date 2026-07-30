@@ -19,7 +19,7 @@ from addons.catalogue.models import Category, Product
 from addons.delivery.models import Courier, ShipmentGuide
 from addons.orders.models import Order
 from addons.orders.services import cancel_order
-from addons.orders.status_projection import (
+from addons.sale.status_projection import (
     STATUS_CANCELLED,
     STATUS_DELIVERED,
     STATUS_DRAFT,

@@ -3,7 +3,7 @@
 Cut-over ``orders → sale`` (ADR-024, #205). Los lectores de la capa de cobro
 (``payments/services.py`` + ``serializers.py``) dejan de leer la columna espejo
 ``orders_order.status`` (retirada en V5d) y derivan el estado desde los ejes
-canónicos vía ``orders.status_projection.order_status`` (sale.state + Payment +
+canónicos vía ``sale.status_projection.order_status`` (sale.state + Payment +
 guía). Estos tests prueban que el guard sigue la **proyección**, no la columna:
 una orden con la columna espejo *stale* respecto a los ejes debe evaluarse por
 los ejes.
@@ -18,7 +18,7 @@ from addons.payment.models import Payment
 from addons.payments.serializers import AdminPaymentSerializer
 from addons.payments.services import get_payment_status, get_retry_eligibility
 from addons.sale.models import SaleOrder
-from addons.orders.status_projection import (
+from addons.sale.status_projection import (
     STATUS_PAID,
     STATUS_PENDING,
 )

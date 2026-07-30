@@ -21,7 +21,7 @@ from addons.inventory.services import InsufficientStockError
 from addons.delivery.models.sale_order import set_delivery_line
 from addons.sale_loyalty.models.sale_order import set_reward_line
 from .models import CheckoutAttempt, Order, OrderItem
-from .status_projection import filter_orders_by_status, CANONICAL_ORDER_STATUSES
+from addons.sale.status_projection import filter_orders_by_status, CANONICAL_ORDER_STATUSES
 from addons.sale.models import SaleOrder
 from .serializers import CancelOrderSerializer, CheckoutSerializer, OrderListSerializer, OrderSerializer, UpdateAddressSerializer, UpdateShippingSerializer
 from .shipping import resolve_shipping_quote

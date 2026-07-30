@@ -11,7 +11,7 @@ from django.db import transaction
 from django.utils import timezone
 from addons.inventory.services import InventoryService
 from .models import Order, OrderAddress, OrderStatusLog
-from .status_projection import order_status
+from addons.sale.status_projection import order_status
 from addons.mail.models.notification_service import notify_order_status_changed
 from addons.payments.services import execute_refund
 from addons.delivery.models import ShippingMethod

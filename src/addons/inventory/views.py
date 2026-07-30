@@ -23,7 +23,7 @@ from rest_framework.views import APIView
 from addons.catalogue.models import Category, Product
 from addons.chartsize.models import ProductVariant
 from addons.orders.models import OrderItem
-from addons.orders.status_projection import order_status
+from addons.sale.status_projection import order_status
 from addons.sale.models import SaleOrder
 from addons.payment.models import Payment
 from addons.base.models import SiteSettings

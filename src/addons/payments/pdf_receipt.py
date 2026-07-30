@@ -11,7 +11,7 @@ import logging
 import subprocess
 from decimal import Decimal
 
-from addons.orders.amounts import order_amounts
+from addons.sale.amounts import order_amounts
 from pathlib import Path
 
 from django.conf import settings

@@ -30,7 +30,7 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 
 from addons.orders.models import Order, OrderValue
-from addons.orders.status_projection import (
+from addons.sale.status_projection import (
     STATUS_PENDING,
     order_status,
 )

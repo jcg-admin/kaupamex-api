@@ -32,7 +32,7 @@ from addons.orders.models import Order
 from addons.payment.models import Payment
 from addons.sale.models import SaleOrder, SaleOrderLine
 from addons.sale.models.sale_order import _next_sale_name
-from addons.orders.status_projection import (
+from addons.sale.status_projection import (
     STATUSES,
     STATUS_CANCELLED,
     STATUS_DELIVERED,

@@ -6,7 +6,7 @@ Este servicio es el punto central de toda mutacion de stock.
 Se llama desde:
 - Sprint 10: directamente en tests (sin ordenes)
 - Sprint 12: desde addons.cart al hacer checkout
-- Sprint 18: desde addons.orders al confirmar pago (UC-ORD-07)
+- Sprint 18: desde addons.sale al confirmar pago (UC-ORD-07)
 """
 import logging
 from datetime import timedelta

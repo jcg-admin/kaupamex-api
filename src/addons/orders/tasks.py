@@ -13,8 +13,8 @@ from django.utils import timezone
 
 from addons.inventory.services import InventoryService
 from .models import Order, OrderStatusLog
-from .status_projection import order_status, filter_orders_by_status
-from addons.orders.status_projection import (
+from addons.sale.status_projection import order_status, filter_orders_by_status
+from addons.sale.status_projection import (
     STATUS_CANCELLED_BY_TIMEOUT,
     STATUS_PENDING,
 )

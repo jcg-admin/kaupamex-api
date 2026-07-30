@@ -30,7 +30,7 @@ from addons.catalogue.models import Category, Product
 from addons.delivery.models import ShippingMethod
 from addons.delivery.models.sale_order import set_delivery_line
 from addons.loyalty.models import Voucher
-from addons.orders.amounts import order_amounts
+from addons.sale.amounts import order_amounts
 from addons.orders.models import Order, OrderValue
 from addons.orders.serializers import OrderSerializer
 from addons.sale.models import SaleOrder

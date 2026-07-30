@@ -29,7 +29,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from addons.orders.models import Order, OrderItem
-from addons.orders.status_projection import (
+from addons.sale.status_projection import (
     STATUS_DELIVERED,
     order_status,
 )

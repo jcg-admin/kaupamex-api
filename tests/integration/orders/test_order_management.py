@@ -18,7 +18,7 @@ from addons.sale.models import SaleOrder, SaleOrderLine
 from unittest.mock import patch, MagicMock
 from addons.chartsize.models import VariantType, VariantOption, ProductVariant
 from tests.factories.order_factory import make_order
-from addons.orders.status_projection import order_status
+from addons.sale.status_projection import order_status
 
 pytestmark = pytest.mark.integration
 

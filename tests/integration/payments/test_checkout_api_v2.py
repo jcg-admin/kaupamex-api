@@ -14,7 +14,7 @@ from unittest.mock import patch, MagicMock
 
 from addons.catalogue.models import Category, Product
 from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
-from addons.orders.status_projection import order_status
+from addons.sale.status_projection import order_status
 from addons.sale.models import SaleOrder
 from addons.payment.models import PaymentGateway
 from addons.payment.models import Payment, PaymentGatewayEvent

@@ -25,7 +25,7 @@ class Order(MailThread, TimeStampedModel, SoftDeleteModel):
     # en state='draft' — no una tabla aparte. DRAFT precede a PENDING; el
     # checkout es la transición DRAFT→PENDING (analisis-unificar-cart-order-sale).
     # E2a: el vocabulario de estado (``STATUS_*`` + ``STATUSES``) se movió a
-    # ``orders.status_projection`` — el módulo que *produce* el estado. Aquí
+    # ``sale.status_projection`` — el módulo que *produce* el estado. Aquí
     # era un acoplamiento invertido: 39 referencias importaban este modelo
     # espejo sólo para leer una constante, y la propia proyección tenía que
     # importarlo para nombrar su salida. Los valores no cambiaron.

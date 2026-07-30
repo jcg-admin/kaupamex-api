@@ -29,7 +29,7 @@ from addons.stock.models import ReturnHistoryEntry, ReturnRequest
 from addons.payment.models import PaymentGateway
 from addons.mail.models import Notification, NotificationType
 from tests.factories.order_factory import make_order
-from addons.orders.status_projection import STATUS_DELIVERED
+from addons.sale.status_projection import STATUS_DELIVERED
 
 pytestmark = pytest.mark.integration
 

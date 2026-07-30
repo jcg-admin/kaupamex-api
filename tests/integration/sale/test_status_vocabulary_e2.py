@@ -16,7 +16,7 @@ El valor de cada constante **no cambia** — es contrato de API pública
 """
 import pytest
 
-from addons.orders import status_projection as sp
+from addons.sale import status_projection as sp
 from addons.orders.models import Order
 from addons.payment.models import Payment
 from addons.sale.models import SaleOrder

@@ -136,35 +136,61 @@ CANONICAL_ORDER_STATUSES = (
 )
 
 
+def _es_canonico(queryset) -> bool:
+    """``True`` si las filas del queryset son ``SaleOrder``, no el espejo.
+
+    E5/R2 (H-API-98): ``Payment`` y ``ShipmentGuide`` tienen **dos** FK — una al
+    espejo (``order``) y otra a la canónica (``sale_order``). El trío de
+    queryset de este módulo joineaba siempre por la del espejo, así que mudarlo
+    a ``sale/`` sin más lo habría dejado devolviendo vacío en cuanto el espejo
+    se vaciara: un fallo silencioso, no un ``ImportError``.
+
+    Aceptar ambas formas es el mismo patrón strangler que :func:`order_status`
+    ya usa a nivel de objeto: cada consumidor migra su propia query cuando le
+    toca su rebanada, sin coordinar a los diez a la vez.
+    """
+    return queryset.model is SaleOrder
+
+
 def annotate_status_axes(queryset):
     """Anota los tres ejes canónicos por fila (mismos ``Exists`` que el
-    dashboard O2C y los proxies)."""
+    dashboard O2C y los proxies).
+
+    Acepta queryset de ``SaleOrder`` (canónica) o de ``orders.Order`` (espejo);
+    elige la FK del join según cuál sea. Ver :func:`_es_canonico`.
+    """
+    ancla = 'sale_order' if _es_canonico(queryset) else 'order'
     return queryset.annotate(
         _has_approved=Exists(
             Payment.objects.filter(
-                order=OuterRef('pk'), status=Payment.STATUS_APPROVED)),
+                **{ancla: OuterRef('pk')}, status=Payment.STATUS_APPROVED)),
         _has_active_guide=Exists(
             ShipmentGuide.objects.filter(
-                order=OuterRef('pk'), is_deleted=False)),
+                **{ancla: OuterRef('pk')}, is_deleted=False)),
         _has_delivered_guide=Exists(
             ShipmentGuide.objects.filter(
-                order=OuterRef('pk'), is_deleted=False,
+                **{ancla: OuterRef('pk')}, is_deleted=False,
                 status=ShipmentGuide.STATUS_DELIVERED)),
     )
 
 
-def _canonical_status_q(status):
+def _canonical_status_q(status, canonico=False):
     """``Q`` que selecciona las órdenes cuyo estado **proyectado** es
     ``status``, sobre un queryset anotado con :func:`annotate_status_axes`.
 
     V5d: sin columna espejo ni filas sin canónica, cada rama es puramente
     canónica — el guard null-safe de V5c desapareció junto con el fallback de
     :func:`order_status`.
+
+    :param canonico: ``True`` si las filas ya son ``SaleOrder`` — entonces
+        ``state`` se lee directo en vez de navegar ``sale_order__state``
+        (E5/R2, H-API-98).
     """
-    is_sale = Q(sale_order__state=SaleOrder.STATE_SALE)
+    campo_estado = 'state' if canonico else 'sale_order__state'
+    is_sale = Q(**{campo_estado: SaleOrder.STATE_SALE})
 
     if status == STATUS_DRAFT:
-        return Q(sale_order__state=SaleOrder.STATE_DRAFT)
+        return Q(**{campo_estado: SaleOrder.STATE_DRAFT})
     if status == STATUS_PENDING:
         return is_sale & Q(_has_approved=False) & Q(_has_active_guide=False)
     if status == STATUS_PAID:
@@ -175,7 +201,7 @@ def _canonical_status_q(status):
         return is_sale & Q(_has_delivered_guide=True)
     if status == STATUS_CANCELLED:
         # ``sale.state='cancel'`` colapsa CANCELLED y CANCELLED_TIMEOUT.
-        return Q(sale_order__state=SaleOrder.STATE_CANCEL)
+        return Q(**{campo_estado: SaleOrder.STATE_CANCEL})
     raise ValueError(status)
 
 
@@ -189,4 +215,6 @@ def filter_orders_by_status(queryset, status):
     """
     if status not in CANONICAL_ORDER_STATUSES:
         raise ValueError(status)
-    return annotate_status_axes(queryset).filter(_canonical_status_q(status))
+    canonico = _es_canonico(queryset)
+    return annotate_status_axes(queryset).filter(
+        _canonical_status_q(status, canonico=canonico))

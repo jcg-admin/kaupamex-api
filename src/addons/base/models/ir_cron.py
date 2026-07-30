@@ -194,7 +194,7 @@ class IrCron(models.Model):
     model_name = fields.Char(
         max_length=128,
         help_text=(
-            'Modelo técnico objetivo, p. ej. "orders.Order" (adaptación '
+            'Modelo técnico objetivo, p. ej. "sale.SaleOrder" (adaptación '
             'del model_id delegado en ir.actions.server de Odoo — aquí '
             'Char plano, mismo criterio que ir_filters.model_id / '
             'ir_attachment.res_model: no es FK real, el runner diferido '

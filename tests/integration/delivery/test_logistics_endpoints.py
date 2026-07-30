@@ -13,7 +13,7 @@ English JSON keys per DEC-DOC-005. Spanish business codes per DEC-DOC-006.
 from decimal import Decimal
 from addons.catalogue.models import Category, Product
 from addons.orders.models import Order, OrderAddress, OrderItem, OrderValue
-from addons.orders.status_projection import (
+from addons.sale.status_projection import (
     STATUS_IN_PREPARATION,
     STATUS_PAID,
     STATUS_PENDING,

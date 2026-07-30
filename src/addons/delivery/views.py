@@ -25,7 +25,7 @@ logger = logging.getLogger('apps')
 
 from addons.mail.models.notification_service import notify_order_status_changed
 from addons.orders.models import Order, OrderStatusLog
-from addons.orders.status_projection import (
+from addons.sale.status_projection import (
     STATUS_DELIVERED,
     STATUS_SHIPPED,
     order_status,

@@ -10,7 +10,7 @@ from django.db import transaction
 from django.utils import timezone
 from .models import OrderStatusLog, Order, OrderValue
 from .services import cancel_order
-from .status_projection import order_status
+from addons.sale.status_projection import order_status
 from django.db.models import Count, Sum, Q, Exists, OuterRef
 from datetime import timedelta
 from addons.mail.models.notification_service import notify_order_status_changed

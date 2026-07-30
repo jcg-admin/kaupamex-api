@@ -42,7 +42,7 @@ class MailMessageSubtype(TimeStampedModel):
     res_model = fields.Char(
         max_length=128, blank=True, default='',
         help_text=(
-            'Modelo al que aplica el subtipo, p. ej. "orders.Order" (Odoo '
+            'Modelo al que aplica el subtipo, p. ej. "sale.SaleOrder" (Odoo '
             'res_model). Vacio = aplica a todos los modelos.'
         ),
     )

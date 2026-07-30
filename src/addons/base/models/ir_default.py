@@ -143,7 +143,7 @@ class IrDefault(models.Model):
     model = fields.Char(
         max_length=128,
         help_text=(
-            'Modelo técnico objetivo, p. ej. "orders.Order" (adaptación del '
+            'Modelo técnico objetivo, p. ej. "sale.SaleOrder" (adaptación del '
             'field_id.model_id delegado de Odoo — aquí Char plano, mismo '
             'criterio que ir_filters.model_id / ir_cron.model_name: no es FK '
             'real, ver docstring del módulo).'

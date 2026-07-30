@@ -30,7 +30,7 @@ from addons.helpdesk.management.commands.auto_close_support_tickets import (
 from addons.orders.models import Order
 from addons.mail.models import Notification, NotificationType
 from tests.factories.order_factory import make_order
-from addons.orders.status_projection import STATUS_PENDING
+from addons.sale.status_projection import STATUS_PENDING
 
 pytestmark = pytest.mark.integration
 
