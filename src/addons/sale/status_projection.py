@@ -136,7 +136,7 @@ CANONICAL_ORDER_STATUSES = (
 )
 
 
-def _es_canonico(queryset) -> bool:
+def _is_canonical(queryset) -> bool:
     """``True`` si las filas del queryset son ``SaleOrder``, no el espejo.
 
     E5/R2 (H-API-98): ``Payment`` y ``ShipmentGuide`` tienen **dos** FK — una al
@@ -157,24 +157,24 @@ def annotate_status_axes(queryset):
     dashboard O2C y los proxies).
 
     Acepta queryset de ``SaleOrder`` (canónica) o de ``orders.Order`` (espejo);
-    elige la FK del join según cuál sea. Ver :func:`_es_canonico`.
+    elige la FK del join según cuál sea. Ver :func:`_is_canonical`.
     """
-    ancla = 'sale_order' if _es_canonico(queryset) else 'order'
+    anchor = 'sale_order' if _is_canonical(queryset) else 'order'
     return queryset.annotate(
         _has_approved=Exists(
             Payment.objects.filter(
-                **{ancla: OuterRef('pk')}, status=Payment.STATUS_APPROVED)),
+                **{anchor: OuterRef('pk')}, status=Payment.STATUS_APPROVED)),
         _has_active_guide=Exists(
             ShipmentGuide.objects.filter(
-                **{ancla: OuterRef('pk')}, is_deleted=False)),
+                **{anchor: OuterRef('pk')}, is_deleted=False)),
         _has_delivered_guide=Exists(
             ShipmentGuide.objects.filter(
-                **{ancla: OuterRef('pk')}, is_deleted=False,
+                **{anchor: OuterRef('pk')}, is_deleted=False,
                 status=ShipmentGuide.STATUS_DELIVERED)),
     )
 
 
-def _canonical_status_q(status, canonico=False):
+def _canonical_status_q(status, canonical=False):
     """``Q`` que selecciona las órdenes cuyo estado **proyectado** es
     ``status``, sobre un queryset anotado con :func:`annotate_status_axes`.
 
@@ -182,15 +182,15 @@ def _canonical_status_q(status, canonico=False):
     canónica — el guard null-safe de V5c desapareció junto con el fallback de
     :func:`order_status`.
 
-    :param canonico: ``True`` si las filas ya son ``SaleOrder`` — entonces
+    :param canonical: ``True`` si las filas ya son ``SaleOrder`` — entonces
         ``state`` se lee directo en vez de navegar ``sale_order__state``
         (E5/R2, H-API-98).
     """
-    campo_estado = 'state' if canonico else 'sale_order__state'
-    is_sale = Q(**{campo_estado: SaleOrder.STATE_SALE})
+    state_field = 'state' if canonical else 'sale_order__state'
+    is_sale = Q(**{state_field: SaleOrder.STATE_SALE})
 
     if status == STATUS_DRAFT:
-        return Q(**{campo_estado: SaleOrder.STATE_DRAFT})
+        return Q(**{state_field: SaleOrder.STATE_DRAFT})
     if status == STATUS_PENDING:
         return is_sale & Q(_has_approved=False) & Q(_has_active_guide=False)
     if status == STATUS_PAID:
@@ -201,7 +201,7 @@ def _canonical_status_q(status, canonico=False):
         return is_sale & Q(_has_delivered_guide=True)
     if status == STATUS_CANCELLED:
         # ``sale.state='cancel'`` colapsa CANCELLED y CANCELLED_TIMEOUT.
-        return Q(**{campo_estado: SaleOrder.STATE_CANCEL})
+        return Q(**{state_field: SaleOrder.STATE_CANCEL})
     raise ValueError(status)
 
 
@@ -215,6 +215,6 @@ def filter_orders_by_status(queryset, status):
     """
     if status not in CANONICAL_ORDER_STATUSES:
         raise ValueError(status)
-    canonico = _es_canonico(queryset)
+    canonical = _is_canonical(queryset)
     return annotate_status_axes(queryset).filter(
-        _canonical_status_q(status, canonico=canonico))
+        _canonical_status_q(status, canonical=canonical))
