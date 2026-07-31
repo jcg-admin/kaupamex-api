@@ -88,19 +88,19 @@ class LogisticsPanelView(_AdminOnly, APIView):
         group_a_qs = (
             SaleOrder.objects
             .filter(
-                sale_order__state=SaleOrder.STATE_SALE,
-                sale_order__payments__status=Payment.STATUS_APPROVED,
+                state=SaleOrder.STATE_SALE,
+                payments__status=Payment.STATUS_APPROVED,
             )
-            .exclude(sale_order__shipment_guide__is_deleted=False)
-            .select_related('address', 'sale_order')
-            .prefetch_related('items')
+            .exclude(shipment_guide__is_deleted=False)
+            .select_related('delivery_address')
+            .prefetch_related('order_line')
             .distinct()
         )
         pending_pickup = []
         for order in group_a_qs:
-            entry = {'order_id': order.id, 'order_number': order.order_number, 'status': order_status(order)}
+            entry = {'order_id': order.id, 'order_number': order.name, 'status': order_status(order)}
             try:
-                addr = order.address
+                addr = order.delivery_address
                 entry['recipient_name'] = addr.recipient_name
                 entry['city'] = addr.city
             except Exception:
@@ -109,7 +109,7 @@ class LogisticsPanelView(_AdminOnly, APIView):
 
         guide_qs = ShipmentGuide.objects.filter(is_deleted=False).exclude(
             status=ShipmentGuide.STATUS_DELIVERED,
-        ).exclude(status=ShipmentGuide.STATUS_CANCELLED).select_related('order', 'sale_order', 'courier')
+        ).exclude(status=ShipmentGuide.STATUS_CANCELLED).select_related('sale_order', 'courier')
         if courier_filter:
             guide_qs = guide_qs.filter(courier_id=courier_filter)
 
@@ -176,7 +176,7 @@ class ShipmentGuideListCreateView(_AdminOnly, APIView):
     @extend_schema(summary='Listar guías de envío', tags=['logistics'],
                    responses={200: ShipmentGuideSerializer(many=True)})
     def get(self, request):
-        qs = ShipmentGuide.objects.filter(is_deleted=False).select_related('order', 'sale_order', 'courier').order_by('-created_at')
+        qs = ShipmentGuide.objects.filter(is_deleted=False).select_related('sale_order', 'courier').order_by('-created_at')
         if request.query_params.get('order_id'):
             qs = qs.filter(order_id=request.query_params['order_id'])
         # H-CICLO29-03: sin paginacion este endpoint podia retornar todas
@@ -202,10 +202,9 @@ class ShipmentGuideListCreateView(_AdminOnly, APIView):
         # dos guías para la misma orden. También se crea SaleOrderStatusLog para
         # la transición →SHIPPED, que antes quedaba sin registro de auditoría.
         with transaction.atomic():
-            order_locked = (SaleOrder.objects.select_for_update()
-                            .select_related('sale_order').get(pk=order.pk))
+            order_locked = (SaleOrder.objects.select_for_update().get(pk=order.pk))
             # H-CICLO72-03: prevent duplicate active guides for the same order.
-            if ShipmentGuide.objects.filter(order=order_locked, is_deleted=False).exists():
+            if ShipmentGuide.objects.filter(sale_order=order_locked, is_deleted=False).exists():
                 return Response(
                     {
                         'detail': 'Ya existe una guía de envío activa para esta orden.',
@@ -259,8 +258,8 @@ class AdminOrderGuideView(_AdminOnly, APIView):
     def get(self, request, order_number):
         guide = (
             ShipmentGuide.objects
-            .select_related('order', 'sale_order', 'courier')
-            .filter(order__order_number=order_number, is_deleted=False)
+            .select_related('sale_order', 'courier')
+            .filter(sale_order__name=order_number, is_deleted=False)
             .first()
         )
         if not guide:
@@ -295,7 +294,7 @@ class ShipmentGuideDetailView(_AdminOnly, APIView):
 
     def _get_guide(self, pk):
         try:
-            return ShipmentGuide.objects.select_related('order', 'sale_order', 'courier').get(pk=pk, is_deleted=False)
+            return ShipmentGuide.objects.select_related('sale_order', 'courier').get(pk=pk, is_deleted=False)
         except ShipmentGuide.DoesNotExist:
             raise NotFound({'detail': 'Guía no encontrada.', 'codigo_error': 'SHIPMENT_GUIDE_NOT_FOUND'})
 
@@ -418,7 +417,7 @@ class ConfirmDeliveryView(_AdminOnly, APIView):
                        404: error_response('Guía no encontrada')})
     def post(self, request, pk):
         try:
-            guide = ShipmentGuide.objects.select_related('order').get(pk=pk, is_deleted=False)
+            guide = ShipmentGuide.objects.select_related('sale_order').get(pk=pk, is_deleted=False)
         except ShipmentGuide.DoesNotExist:
             return Response({'detail': 'Guía no encontrada.', 'codigo_error': 'SHIPMENT_GUIDE_NOT_FOUND'}, status=404)
         if guide.status == ShipmentGuide.STATUS_CANCELLED:
@@ -435,14 +434,14 @@ class ConfirmDeliveryView(_AdminOnly, APIView):
         # que antes quedaba sin entrada de auditoria.
         with transaction.atomic():
             guide_locked = (ShipmentGuide.objects.select_for_update()
-                            .select_related('order', 'order__sale_order').get(pk=pk))
+                            .select_related('sale_order').get(pk=pk))
             if guide_locked.status == ShipmentGuide.STATUS_DELIVERED:
                 return Response({'status': guide_locked.status, 'already_delivered': True,
                                  'tracking_number': guide_locked.tracking_number})
             # O2C R8: el estado previo se deriva de los ejes canónicos; la
             # guía DELIVERED de abajo ES el eje fulfillment — la proyección
             # deriva DELIVERED de ella (la columna espejo ya no se escribe).
-            previous_order_status = order_status(guide_locked.order)
+            previous_order_status = order_status(guide_locked.sale_order)
             now = timezone.now()
             guide_locked.status = ShipmentGuide.STATUS_DELIVERED
             guide_locked.delivered_at = now
@@ -472,7 +471,7 @@ class CancelGuideView(_AdminOnly, APIView):
                        404: error_response('Guía no encontrada')})
     def post(self, request, pk):
         try:
-            guide = ShipmentGuide.objects.select_related('order').get(pk=pk, is_deleted=False)
+            guide = ShipmentGuide.objects.select_related('sale_order').get(pk=pk, is_deleted=False)
         except ShipmentGuide.DoesNotExist:
             return Response({'detail': 'Guía no encontrada.', 'codigo_error': 'SHIPMENT_GUIDE_NOT_FOUND'}, status=404)
         if guide.status == ShipmentGuide.STATUS_DELIVERED:
@@ -493,10 +492,10 @@ class BuyerGuideView(APIView):
     def _guide_response(self, request, order_lookup):
         """order_lookup: dict con pk o order_number, siempre scoped al usuario."""
         try:
-            order = SaleOrder.objects.get(user=request.user, **order_lookup)
+            order = SaleOrder.objects.get(partner=request.user, **order_lookup)
         except SaleOrder.DoesNotExist:
             return Response({'detail': 'Orden no encontrada.', 'codigo_error': 'ORDER_NOT_FOUND'}, status=404)
-        guide = ShipmentGuide.objects.filter(order=order, is_deleted=False).select_related('courier').first()
+        guide = ShipmentGuide.objects.filter(sale_order=order, is_deleted=False).select_related('courier').first()
         if not guide:
             return Response({'detail': 'Guía de envío no disponible.', 'codigo_error': 'SHIPMENT_GUIDE_NOT_FOUND'}, status=404)
         return Response(BuyerShipmentGuideSerializer(guide, context={'request': request}).data)
@@ -559,11 +558,11 @@ class BuyerReportIncidentView(APIView):
         # acepta cualquiera de los dos, siempre scoped al usuario.
         lookup = {'pk': order_id} if order_id is not None else {'order_number': order_number}
         try:
-            order = SaleOrder.objects.get(user=request.user, **lookup)
+            order = SaleOrder.objects.get(partner=request.user, **lookup)
         except SaleOrder.DoesNotExist:
             return Response({'detail': 'Orden no encontrada.', 'codigo_error': 'ORDER_NOT_FOUND'}, status=404)
 
-        guide = ShipmentGuide.objects.filter(order=order, is_deleted=False).select_related('order').first()
+        guide = ShipmentGuide.objects.filter(sale_order=order, is_deleted=False).select_related('sale_order').first()
         if not guide:
             return Response(
                 {'detail': 'Guía de envío no disponible.', 'codigo_error': 'SHIPMENT_GUIDE_NOT_FOUND'},
@@ -706,7 +705,7 @@ class ShipmentProblemReportV2View(APIView):
 
     def post(self, request, pk):
         try:
-            guide = ShipmentGuide.objects.select_related('order').get(
+            guide = ShipmentGuide.objects.select_related('sale_order').get(
                 pk=pk, is_deleted=False,
             )
         except ShipmentGuide.DoesNotExist:

@@ -167,7 +167,7 @@ class CourierWebhookView(APIView):
 
         guide = ShipmentGuide.objects.filter(
             courier=courier, tracking_number=tracking_number, is_deleted=False,
-        ).select_related('order').first()
+        ).select_related('sale_order').first()
         if guide is None:
             return Response(
                 {'detail': 'Guía no encontrada.', 'codigo_error': 'SHIPMENT_GUIDE_NOT_FOUND'},
