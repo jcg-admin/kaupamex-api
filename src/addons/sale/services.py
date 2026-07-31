@@ -11,12 +11,11 @@ El voucher del draft deja de anclarse por ``voucher_code`` string y pasa a
 ``sale_loyalty.SaleOrderCoupon`` (OneToOne a la orden) — cierra
 H-CART-CL-02.
 
-Puente transicional: ``confirm_draft_order`` confirma la ``SaleOrder``
-nativamente (``action_confirm``) y ADEMÁS materializa el espejo legacy
-``orders.Order(PENDING)`` + ``SaleOrderLine``/``SaleOrderValue_REMOVED``/``SaleOrderAddress``
-que los clusters de pagos/logística/post-venta siguen consumiendo hasta
-V3–V5 (el plan retira el espejo en V5). ``orders/services.py`` re-exporta
-estas funciones para no romper los imports de los consumidores.
+``confirm_draft_order`` confirma la ``SaleOrder`` nativamente
+(``action_confirm``): la venta **es** la orden. El puente transicional que
+materializaba el espejo ``orders.Order`` desapareció con el addon (SOL-098,
+``api@77bd1f0``); pagos, logística y post-venta consumen la canónica
+directamente.
 """
 import logging
 from decimal import Decimal
@@ -299,11 +298,10 @@ def confirm_draft_order(order, *, address_data, guest_email=None, notes='',
        consumo del voucher del cupón (DEC-VCU-01 / DEC-BC-10) y
        liberación de ``cart_token`` (el token de la cookie debe poder
        acuñar un draft nuevo).
-    4. Puente V2→V5: materializa el espejo legacy ``orders.Order(PENDING)``
-       + ``SaleOrderLine``/``SaleOrderValue_REMOVED``/``SaleOrderAddress`` que pagos/
-       logística/post-venta consumen hasta re-anclarse (V3/V4); la
-       ``SaleOrderAddress`` ancla a AMBOS (FK dual de V1). Retorna el espejo
-       legacy para que la vista selle la misma respuesta 201.
+    4. Materializa la dirección de entrega (``delivery.DeliveryAddress``):
+       por la referencia no es del eje comercial, así que vive en
+       ``delivery``, no en la orden. Retorna la ``SaleOrder`` confirmada —
+       ya no hay espejo que devolver.
 
     Levanta ``DraftOrderError`` en los guards; propaga
     ``InsufficientStockError``/``IntegrityError`` para que la vista selle
