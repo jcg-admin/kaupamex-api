@@ -2,12 +2,14 @@
 #
 # Targets para ejecucion local y en pipelines de CI futuros.
 # Mantiene paridad con ui/package.json scripts equivalentes.
-.PHONY: help check-lazy check-lazy-ci check-cycles check-cycles-ci check-canon check-canon-ci test test-coverage install-hooks db-up ci-test ci-test-fast
+.PHONY: help check-lazy check-lazy-ci check-cycles check-cycles-ci check-catalog check-catalog-ci check-canon check-canon-ci test test-coverage install-hooks db-up ci-test ci-test-fast
 
 help:
 	@echo 'Targets:'
 	@echo '  make check-lazy        Audit AST: 0 lazy imports en apps/** y tests/**'
 	@echo '  make check-lazy-ci     Idem, exit code != 0 si hay violaciones'
+	@echo '  make check-catalog     Coherencia de los authz_catalog.py (SOL-100)'
+	@echo '  make check-catalog-ci  Idem, exit code != 0 si hay incoherencias'
 	@echo '  make check-cycles      Direccion de dependencias: 0 inversiones nuevas'
 	@echo '  make check-cycles-ci   Idem, exit code != 0 si hay inversiones nuevas'
 	@echo '  make check-canon       Canon-idioma: 0 identifiers ES en apps/** (soft)'
@@ -40,6 +42,15 @@ check-cycles:
 
 check-cycles-ci:
 	@python3 scripts/check_addon_cycles.py
+
+# Declaracion del catalogo L0 (SOL-100) — coherencia estatica de los
+# authz_catalog.py: addon instalado, sin duenos duplicados, sin capacidades
+# huerfanas, sin aristas depends colgantes.
+check-catalog:
+	@python3 scripts/check_catalog_declaration.py --report
+
+check-catalog-ci:
+	@python3 scripts/check_catalog_declaration.py
 
 check-canon:
 	python3 ../docs/scripts/check_canon_idioma.py --repo-root .. --soft

@@ -93,4 +93,22 @@ if [ -f "$CYCLES_CHECKER" ]; then
     fi
 fi
 
+# ---------------------------------------------------------------------------
+# Gate 5: declaracion del catalogo L0 (SOL-100).
+# Cada addon declara sus modulos/capacidades en authz_catalog.py; el seed solo
+# recolecta. Este gate verifica que la declaracion sea coherente ANTES de que
+# llegue a una DB: addon en INSTALLED_APPS, sin duenos duplicados, sin
+# capacidades huerfanas, sin aristas depends hacia un modulo inexistente.
+# Ese ultimo check es el que habria cazado H-API-106 (el modulo 'orders'
+# sobrevivio al addon retirado con cuatro aristas colgando).
+# Script: scripts/check_catalog_declaration.py.
+CATALOG_CHECKER="$REPO_ROOT/scripts/check_catalog_declaration.py"
+if [ -f "$CATALOG_CHECKER" ]; then
+    if ! python3 "$CATALOG_CHECKER" >/dev/null 2>&1; then
+        python3 "$CATALOG_CHECKER" >&2
+        echo "pre-commit: declaracion de catalogo incoherente — commit bloqueado" >&2
+        exit 1
+    fi
+fi
+
 exit "$EXIT_CODE"
