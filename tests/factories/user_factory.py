@@ -17,14 +17,15 @@ from addons.authz.services import (
     BUYER_ROLE_CODE, SUPERADMIN_ROLE_CODE, assign_buyer_role,
     invalidate_capabilities,
 )
-from addons.authz.management.commands.seed_authz import NAMED_ACTIONS
+from addons.users.authz_catalog import CAPABILITIES as _USERS_CAPS
 from addons.users.models import EmployeeProfile, Person
 
 User = get_user_model()
 
-# Capacidades del dominio 'account' (rol comprador), derivadas del catálogo
-# canónico de seed_authz para no duplicar la lista.
-_ACCOUNT_CAPS = [c for c in NAMED_ACTIONS if c[0].startswith('account.')]
+# Capacidades del dominio 'account' (rol comprador), derivadas de la
+# declaración de su addon dueño para no duplicar la lista. Desde SOL-100 el
+# catálogo lo declara ``users`` en su ``authz_catalog.py``, no el seed central.
+_ACCOUNT_CAPS = [c for c in _USERS_CAPS if c.module == 'account']
 
 
 def make_buyer(user):
@@ -38,10 +39,13 @@ def make_buyer(user):
         code='account', defaults={'name': 'Mi cuenta'},
     )
     caps = []
-    for code, name, sensitive in _ACCOUNT_CAPS:
+    for spec in _ACCOUNT_CAPS:
         cap, _ = Capability.objects.get_or_create(
-            code=code,
-            defaults={'module': module, 'name': name, 'is_sensitive': sensitive},
+            code=spec.code,
+            defaults={
+                'module': module, 'name': spec.name,
+                'is_sensitive': spec.is_sensitive,
+            },
         )
         caps.append(cap)
     role, _ = Role.objects.get_or_create(
