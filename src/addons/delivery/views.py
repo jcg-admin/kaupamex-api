@@ -117,7 +117,7 @@ class LogisticsPanelView(_AdminOnly, APIView):
         for guide in guide_qs:
             in_transit.append({
                 'guide_id': guide.id, 'tracking_number': guide.tracking_number,
-                'order_id': guide.order_id, 'order_number': guide.sale_order.name,
+                'order_id': guide.sale_order_id, 'order_number': guide.sale_order.name,
                 'courier_code': guide.courier.code, 'status': guide.status,
             })
 
@@ -194,13 +194,14 @@ class ShipmentGuideListCreateView(_AdminOnly, APIView):
         ser = ShipmentGuideCreateSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         data = ser.validated_data
-        order = data['order']
+        order = data['sale_order']
 
         # H-CICLO110-04: envolver la dedup check + guide create + order save
         # en un bloque atomic con select_for_update para evitar dos requests
         # concurrentes que ambos pasen el filtro GUIDE_ALREADY_EXISTS y creen
-        # dos guías para la misma orden. También se crea SaleOrderStatusLog para
-        # la transición →SHIPPED, que antes quedaba sin registro de auditoría.
+        # dos guías para la misma orden. La transición →SHIPPED se audita en el
+        # chatter de la venta (``_track_sale_state``), no en una tabla lateral:
+        # ``SaleOrderStatusLog`` se fue con el espejo (SOL-098).
         with transaction.atomic():
             order_locked = (SaleOrder.objects.select_for_update().get(pk=order.pk))
             # H-CICLO72-03: prevent duplicate active guides for the same order.
@@ -218,7 +219,7 @@ class ShipmentGuideListCreateView(_AdminOnly, APIView):
             # la columna espejo ya no se escribe (V5d la retira).
             previous_status = order_status(order_locked)
             guide = ShipmentGuide.objects.create(
-                order=order_locked, sale_order=order_locked.sale_order,
+                sale_order=order_locked,
                 courier=data['courier'],
                 tracking_number=data['tracking_number'], notes=data.get('notes', ''),
             )
@@ -227,7 +228,7 @@ class ShipmentGuideListCreateView(_AdminOnly, APIView):
             # ``_message_track``). El autor del mensaje sustituye a
             # ``changed_by`` y la nota va como mensaje propio del hilo.
             _track_sale_state(
-                order_locked.sale_order, previous_status, STATUS_SHIPPED,
+                order_locked, previous_status, STATUS_SHIPPED,
                 request.user,
                 f'Guía de envío creada: {data["tracking_number"]}',
             )
@@ -454,7 +455,7 @@ class ConfirmDeliveryView(_AdminOnly, APIView):
             )
             # UC-NOT-02 (O2C R8): sin escritura del espejo la signal
             # post_save no dispara — notificación explícita en el eje.
-            notify_order_status_changed(guide_locked.order, STATUS_DELIVERED)
+            notify_order_status_changed(guide_locked.sale_order, STATUS_DELIVERED)
         return Response({'status': guide_locked.status, 'already_delivered': False,
                          'tracking_number': guide_locked.tracking_number,
                          'delivered_at': guide_locked.delivered_at})
@@ -490,7 +491,12 @@ class BuyerGuideView(APIView):
     required_capability = 'account.shipments'
 
     def _guide_response(self, request, order_lookup):
-        """order_lookup: dict con pk o order_number, siempre scoped al usuario."""
+        """order_lookup: filtro ORM sobre la venta, siempre scoped al usuario.
+
+        Las claves son las de la canónica (``pk`` o ``name``), no las del
+        contrato público: la UI habla de ``order_number``, pero la columna que
+        lo guarda se llama ``name`` desde que la venta es la orden (SOL-098).
+        """
         try:
             order = SaleOrder.objects.get(partner=request.user, **order_lookup)
         except SaleOrder.DoesNotExist:
@@ -516,7 +522,7 @@ class BuyerGuideByNumberView(BuyerGuideView):
                    responses={200: BuyerShipmentGuideSerializer,
                               404: error_response('Orden o guía no encontrada')})
     def get(self, request, order_number):
-        return self._guide_response(request, {'order_number': order_number})
+        return self._guide_response(request, {'name': order_number})
 
 
 class BuyerReportIncidentView(APIView):
@@ -555,8 +561,9 @@ class BuyerReportIncidentView(APIView):
                    409: error_response('Envío no despachado o reporte reciente existente')})
     def post(self, request, order_id=None, order_number=None):
         # La UI del comprador usa order_number (el PK entero se oculta); se
-        # acepta cualquiera de los dos, siempre scoped al usuario.
-        lookup = {'pk': order_id} if order_id is not None else {'order_number': order_number}
+        # acepta cualquiera de los dos, siempre scoped al usuario. El nombre
+        # público sigue siendo order_number; la columna es ``name``.
+        lookup = {'pk': order_id} if order_id is not None else {'name': order_number}
         try:
             order = SaleOrder.objects.get(partner=request.user, **lookup)
         except SaleOrder.DoesNotExist:
@@ -712,7 +719,7 @@ class ShipmentProblemReportV2View(APIView):
             raise NotFound(
                 {'detail': 'Envío no encontrado.', 'codigo_error': 'SHIPMENT_GUIDE_NOT_FOUND'}
             )
-        return BuyerReportIncidentView().post(request, guide.order_id)
+        return BuyerReportIncidentView().post(request, guide.sale_order_id)
 
 
 class ShipmentOffersView(_AdminOnly, APIView):
