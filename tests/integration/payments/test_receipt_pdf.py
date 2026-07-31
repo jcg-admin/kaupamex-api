@@ -87,14 +87,12 @@ def _make_paid_order(user, *, status=STATUS_PAID, with_payment=True):
     set_delivery_line(order.sale_order, Decimal('99.00'))
 
     SaleOrderLine.objects.create(
-        order=order, product_name='Collar Eleguá', sku='YOR-001',
-        unit_price=Decimal('450.00'), quantity=2,
-        subtotal=Decimal('900.00'),
+        order=order, name='Collar Eleguá',
+        price_unit=Decimal('450.00'), product_uom_qty=2,
     )
     SaleOrderLine.objects.create(
-        order=order, product_name='Otá de Yemayá', sku='YOR-002',
-        unit_price=Decimal('150.00'), quantity=1,
-        subtotal=Decimal('150.00'),
+        order=order, name='Otá de Yemayá',
+        price_unit=Decimal('150.00'), product_uom_qty=1,
     )
     OrderValue_GONE.objects.create(
         order=order, subtotal=Decimal('1050.00'),

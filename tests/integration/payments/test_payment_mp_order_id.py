@@ -6,7 +6,7 @@ SaleOrder de MP (ORD...) en mp_order_id y el id del pago anidado (PAY...) en
 gateway_payment_id. Verifica el round-trip real contra MariaDB (kaupamex_qa).
 """
 import pytest
-from addons.sale.models import SaleOrder
+from addons.sale.models import SaleOrder, SaleOrderLine
 from decimal import Decimal
 
 from addons.payment.models import Payment
@@ -18,8 +18,8 @@ pytestmark = pytest.mark.integration
 def _make_order(user):
     order = make_order(user=user, status='PENDING')
     SaleOrderLine.objects.create(
-        order=order, product_name='Prod ORD', sku='ORD-T102',
-        unit_price=Decimal('200.00'), quantity=1, subtotal=Decimal('200.00'),
+        order=order, name='Prod ORD',
+        price_unit=Decimal('200.00'), product_uom_qty=1,
     )
     OrderValue_GONE.objects.create(
         order=order, subtotal=Decimal('200.00'), tax=Decimal('0'),

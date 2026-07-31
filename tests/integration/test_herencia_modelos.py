@@ -22,7 +22,7 @@ from addons.loyalty.models import Voucher, VoucherChangeLog
 from addons.website_sale_wishlist.models import WishlistItem
 from addons.catalogue.serializers import SearchHistorySerializer
 from addons.inventory.proxy_models import SaleMovement, CancellationMovement, AdjustmentMovement, ImportMovement
-from addons.sale.models import SaleOrder
+from addons.sale.models import SaleOrder, SaleOrderLine
 from addons.payment.models import Payment
 from addons.delivery.models import Courier, ShipmentGuide
 from django.utils import timezone

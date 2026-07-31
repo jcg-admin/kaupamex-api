@@ -19,7 +19,7 @@ from decimal import Decimal
 from io import BytesIO
 from unittest.mock import MagicMock, patch
 import pytest
-from addons.sale.models import SaleOrder
+from addons.sale.models import SaleOrder, SaleOrderLine
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
@@ -82,12 +82,12 @@ def delivered_order(db, user):
 def delivered_order_with_items(db, user, prod1, prod2):
     order = make_order(user=user, status=STATUS_DELIVERED)
     SaleOrderLine.objects.create(
-        order=order, product=prod1, product_name=prod1.name, sku=prod1.sku,
-        unit_price=prod1.price, quantity=2, subtotal=prod1.price * 2,
+        order=order, product=prod1, name=prod1.name,
+        price_unit=prod1.price, product_uom_qty=2,
     )
     SaleOrderLine.objects.create(
-        order=order, product=prod2, product_name=prod2.name, sku=prod2.sku,
-        unit_price=prod2.price, quantity=2, subtotal=prod2.price * 2,
+        order=order, product=prod2, name=prod2.name,
+        price_unit=prod2.price, product_uom_qty=2,
     )
     return order
 

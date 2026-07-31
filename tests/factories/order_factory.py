@@ -59,7 +59,7 @@ def make_courier(**kwargs):
 def make_order(status=STATUS_PENDING, courier=None, amount=None,
                product=None, quantity=1, unit_price=None,
                **order_kwargs):
-    """Crea el par ``SaleOrder`` + ``SaleOrder`` cuyos ejes proyectan ``status``.
+    """Crea la ``SaleOrder`` cuyos ejes proyectan ``status``.
 
     :param status: valor de ``STATUSES`` que debe proyectar
         ``order_status(order)``. Los tres valores muertos del enum
@@ -74,11 +74,13 @@ def make_order(status=STATUS_PENDING, courier=None, amount=None,
         verifique importes debe pasarlo.
     :param quantity: cantidad de esa línea.
     :param unit_price: precio unitario; por defecto el del producto.
-    :param order_kwargs: se pasan tal cual a ``SaleOrder.objects.create``.
-    :returns: la ``SaleOrder`` creada (su canónica está en ``order.sale_order``).
+    :param order_kwargs: van a ``SaleOrder.objects.create``. Los nombres del
+        espejo retirado se traducen: ``user``→``partner``,
+        ``order_number``→``name``, ``shipping_method``→``carrier``.
+    :returns: la ``SaleOrder`` creada — es la canónica, no hay espejo.
     """
-    # Invariante de producción: action_confirm SIEMPRE fija date_order, y
-    # el espejo sólo existe post-confirm. Un state='sale' sin date_order es
+    # Invariante de producción: action_confirm SIEMPRE fija date_order.
+    # Un state='sale' sin date_order es
     # un estado que el flujo real nunca produce (E2c lo filtra como "no
     # comprador"); el factory lo respeta para no fabricar estados imposibles.
     # I2: ``action_confirm`` asigna SIEMPRE ``name`` (referencia de la
@@ -86,24 +88,23 @@ def make_order(status=STATUS_PENDING, courier=None, amount=None,
     # ``name`` es un estado que el flujo real nunca produce — y desde I1 la
     # identidad pública se lee de ahí, así que el factory debe respetarlo.
     estado = _SALE_STATE.get(status, SaleOrder.STATE_SALE)
+    # E5: el espejo ``orders.Order`` ya no existe. Los kwargs que los tests
+    # pasaban al espejo se traducen a los campos canónicos equivalentes; el
+    # resto va tal cual a ``SaleOrder``.
+    partner_kw = order_kwargs.pop('user', None)
+    carrier_kw = order_kwargs.pop('shipping_method', None)
+    name_kw    = order_kwargs.pop('order_number', None)
     sale = SaleOrder.objects.create(
         state=estado,
         cart_token=uuid4(),
-        name=(None if status == STATUS_DRAFT else _next_sale_name()),
+        name=name_kw or (None if status == STATUS_DRAFT else _next_sale_name()),
         date_order=(None if status == STATUS_DRAFT else timezone.now()),
-        # Producción setea ambos lados del actor (confirm_draft_order crea el
-        # espejo con user=order.partner); el factory replica esa consistencia.
-        partner=order_kwargs.get('user'),
-        # Idem para el método de envío (H-API-100): el espejo lo llama
-        # ``shipping_method`` y la canónica ``carrier``, ambos hacia
-        # ``delivery.ShippingMethod``. El docstring de arriba ya declaraba
-        # "aquí se setean ambos siempre", pero este par faltaba: un test que
-        # pasara ``shipping_method=`` dejaba ``carrier`` en NULL y cualquier
-        # query canónica por método de envío devolvía vacío — el mismo fallo
-        # silencioso que la asimetría de ``Payment``/``ShipmentGuide``.
-        carrier=order_kwargs.get('shipping_method'),
+        partner=partner_kw,
+        carrier=carrier_kw,
+        **order_kwargs,
     )
-    order = SaleOrder.objects.create(sale_order=sale, **order_kwargs)
+    # La venta ES la orden: no hay segunda entidad que crear ni que enlazar.
+    order = sale
 
     # E4 / H-API-33 — una venta confirmada sin líneas es un estado imposible:
     # ``action_confirm`` lo rechaza. Mientras el dinero vivía en el espejo el
@@ -121,7 +122,7 @@ def make_order(status=STATUS_PENDING, courier=None, amount=None,
     if status in (STATUS_PAID, STATUS_SHIPPED,
                   STATUS_DELIVERED):
         Payment.objects.create(
-            order=order, sale_order=sale,
+            sale_order=sale,
             gateway=Payment.GATEWAY_MANUAL,
             status=Payment.STATUS_APPROVED,
             amount=amount if amount is not None else Decimal('100.00'),
@@ -130,7 +131,7 @@ def make_order(status=STATUS_PENDING, courier=None, amount=None,
     if status in (STATUS_SHIPPED, STATUS_DELIVERED):
         delivered = status == STATUS_DELIVERED
         ShipmentGuide.objects.create(
-            order=order, sale_order=sale,
+            sale_order=sale,
             courier=courier or make_courier(),
             tracking_number=uuid4().hex[:20],
             status=(ShipmentGuide.STATUS_DELIVERED if delivered
@@ -147,11 +148,11 @@ def mark_paid(order, amount=None):
     Post-V5d no existe columna que escribir: el estado se produce creando el
     hecho. Idempotente — si ya hay un pago aprobado no crea otro.
     """
-    sale = order.sale_order
+    sale = order
     if sale.payments.filter(status=Payment.STATUS_APPROVED).exists():
         return order
     Payment.objects.create(
-        order=order, sale_order=sale,
+        sale_order=sale,
         gateway=Payment.GATEWAY_MANUAL,
         status=Payment.STATUS_APPROVED,
         amount=amount if amount is not None else Decimal('100.00'),
@@ -166,11 +167,11 @@ def mark_delivered(order, courier=None):
     marca entregada en vez de crear una segunda (la relación es OneToOne).
     """
     mark_paid(order)
-    sale = order.sale_order
+    sale = order
     guide = getattr(sale, 'shipment_guide', None)
     if guide is None:
         ShipmentGuide.objects.create(
-            order=order, sale_order=sale,
+            sale_order=sale,
             courier=courier or make_courier(),
             tracking_number=uuid4().hex[:20],
             status=ShipmentGuide.STATUS_DELIVERED,

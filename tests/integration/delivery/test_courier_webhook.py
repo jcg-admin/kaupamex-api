@@ -15,6 +15,7 @@ Contract:
 
 English JSON keys per DEC-DOC-005. Spanish business codes per DEC-DOC-006.
 """
+from addons.sale.models import SaleOrderLine
 import hashlib
 import hmac
 import json
@@ -74,9 +75,8 @@ def order_log(db, user, prod_log):
     # orden base se fabrica PENDING para no duplicar el eje de fulfillment.
     o = make_order(user=user)
     SaleOrderLine.objects.create(
-        order=o, product=prod_log, product_name=prod_log.name,
-        sku=prod_log.sku, unit_price=prod_log.price,
-        quantity=1, subtotal=prod_log.price,
+        order=o, product=prod_log, name=prod_log.name, price_unit=prod_log.price,
+        product_uom_qty=1,
     )
     OrderValue_GONE.objects.create(
         order=o, subtotal=Decimal('500'), tax=Decimal('0'),

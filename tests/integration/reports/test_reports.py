@@ -18,7 +18,7 @@ from django.contrib.auth import get_user_model
 from addons.authz.models import Capability, Module, Role, RoleAssignment
 from addons.payment.models import Payment
 from addons.helpdesk.models import SupportTicket
-from addons.sale.models import SaleOrder
+from addons.sale.models import SaleOrder, SaleOrderLine
 from addons.sale.services import add_item_to_draft, confirm_draft_order
 
 import pytest
@@ -109,9 +109,8 @@ def _make_order(user, product, qty=1, when=None, status='DELIVERED',
     SaleOrder.objects.filter(pk=o.pk).update(created_at=when, updated_at=when)
     SaleOrderLine.objects.create(
         order=o, product=product,
-        product_name=product.name, sku=product.sku,
-        unit_price=product.price, quantity=qty,
-        subtotal=product.price * qty,
+        name=product.name,
+        price_unit=product.price, product_uom_qty=qty,
     )
     total = product.price * qty
     OrderValue_GONE.objects.create(

@@ -5,6 +5,7 @@ POST /api/v1/payments/webhooks/mercadopago/ con topic=chargebacks.
 Cubre: creacion de Chargeback, idempotencia, actualizacion de estado,
 pago no encontrado (warning log, 200 igual).
 """
+from addons.sale.models import SaleOrderLine
 import json
 import pytest
 from decimal import Decimal
@@ -21,8 +22,8 @@ WEBHOOK_URL = '/api/v1/payments/webhooks/mercadopago/'
 def _make_payment(user, amount='500.00'):
     order = make_order(user=user, status='PROCESSING')
     SaleOrderLine.objects.create(
-        order=order, product_name='Prod CB', sku='CB-001',
-        unit_price=Decimal(amount), quantity=1, subtotal=Decimal(amount),
+        order=order, name='Prod CB',
+        price_unit=Decimal(amount), product_uom_qty=1,
     )
     OrderValue_GONE.objects.create(
         order=order, subtotal=Decimal(amount), tax=Decimal('0'),

@@ -7,7 +7,7 @@ STRING, discriminante payment_method.type, processing/capture automatic
 un SaleOrder real.
 """
 import pytest
-from addons.sale.models import SaleOrder
+from addons.sale.models import SaleOrder, SaleOrderLine
 from decimal import Decimal
 
 from addons.payment_mercado_pago.gateway import (
@@ -24,8 +24,8 @@ pytestmark = pytest.mark.integration
 def _make_order(user, total='200.00'):
     order = make_order(user=user, status='PENDING')
     SaleOrderLine.objects.create(
-        order=order, product_name='Smartphone', sku='SKU-201A',
-        unit_price=Decimal(total), quantity=1, subtotal=Decimal(total),
+        order=order, name='Smartphone',
+        price_unit=Decimal(total), product_uom_qty=1,
     )
     OrderValue_GONE.objects.create(
         order=order, subtotal=Decimal(total), tax=Decimal('0'),

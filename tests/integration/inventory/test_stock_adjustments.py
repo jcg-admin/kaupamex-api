@@ -13,7 +13,7 @@ from addons.chartsize.models import VariantType, VariantOption, ProductVariant
 from addons.inventory.models import StockMovement
 from addons.inventory.services import InventoryService, InsufficientStockError
 from addons.payment.models import Payment
-from addons.sale.models import SaleOrder
+from addons.sale.models import SaleOrder, SaleOrderLine
 from addons.users.models import BusinessEvent
 from addons.sale.status_projection import STATUS_PENDING
 
@@ -478,11 +478,9 @@ class TestZeroStockGuard:
         SaleOrderLine.objects.create(
             order=order,
             variant=variant,
-            product_name='Test',
-            sku=variant.product.sku,
-            unit_price=Decimal('100.00'),
-            quantity=quantity,
-            subtotal=Decimal('100.00') * quantity,
+            name='Test',
+            price_unit=Decimal('100.00'),
+            product_uom_qty=quantity,
         )
         if approved:
             Payment.objects.create(

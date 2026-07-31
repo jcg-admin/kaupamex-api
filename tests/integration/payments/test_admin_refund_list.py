@@ -4,6 +4,7 @@ Tests — Listado de reembolsos por pago (T-16-D, UC-PAY-09).
 GET /api/v2/admin/payments/<id>/refunds/ — AdminPaymentRefundsListView.
 Cubre: lista completa, pago sin reembolsos, permisos (401/403), 404.
 """
+from addons.sale.models import SaleOrderLine
 import pytest
 from decimal import Decimal
 
@@ -18,8 +19,8 @@ REFUNDS_URL = lambda pid: f'/api/v2/admin/payments/{pid}/refunds/'
 def _make_payment(user, amount='500.00', status='APPROVED', gateway_payment_id='MP-001'):
     order = make_order(user=user, status='PROCESSING')
     SaleOrderLine.objects.create(
-        order=order, product_name='Eleke', sku='RFL-001',
-        unit_price=Decimal(amount), quantity=1, subtotal=Decimal(amount),
+        order=order, name='Eleke',
+        price_unit=Decimal(amount), product_uom_qty=1,
     )
     OrderValue_GONE.objects.create(
         order=order,

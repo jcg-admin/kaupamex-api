@@ -21,7 +21,7 @@ from addons.sale.status_projection import (
 )
 from addons.delivery.models import Courier, ShipmentGuide
 from addons.payment.models import Payment
-from addons.sale.models import SaleOrder
+from addons.sale.models import SaleOrder, SaleOrderLine
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
@@ -68,9 +68,8 @@ def _canonical_ready_order(user, prod, *, approved=True,
     so = SaleOrder.objects.create(state=SaleOrder.STATE_SALE)
     o = SaleOrder.objects.create(user=user, sale_order=so)
     SaleOrderLine.objects.create(
-        order=o, product=prod, product_name=prod.name,
-        sku=prod.sku, unit_price=prod.price,
-        quantity=1, subtotal=prod.price,
+        order=o, product=prod, name=prod.name, price_unit=prod.price,
+        product_uom_qty=1,
     )
     OrderValue_GONE.objects.create(
         order=o, subtotal=Decimal('500'), tax=Decimal('0'),
@@ -134,9 +133,7 @@ class TestLogisticsPanel:
         # group B: create another order + guide.
         o2 = make_order(user=user)   # la guia se crea abajo (V5d)
         SaleOrderLine.objects.create(
-            order=o2, product=prod_log, product_name=prod_log.name,
-            sku='X', unit_price=Decimal('100'), quantity=1,
-            subtotal=Decimal('100'),
+            order=o2, product=prod_log, name=prod_log.name, price_unit=Decimal('100'), product_uom_qty=1,
         )
         OrderValue_GONE.objects.create(order=o2, subtotal=Decimal('100'),
             tax=Decimal('0'), shipping_cost=Decimal('0'),
@@ -216,9 +213,8 @@ class TestGuideGuardOnCanonicalAxes:
             user=user, status=STATUS_IN_PREPARATION,
         )
         SaleOrderLine.objects.create(
-            order=o, product=prod_log, product_name=prod_log.name,
-            sku=prod_log.sku, unit_price=prod_log.price,
-            quantity=1, subtotal=prod_log.price,
+            order=o, product=prod_log, name=prod_log.name, price_unit=prod_log.price,
+            product_uom_qty=1,
         )
         r = admin_client.post(GUIDES_URL, {
             'order_id': o.id, 'courier_id': courier_log.id,

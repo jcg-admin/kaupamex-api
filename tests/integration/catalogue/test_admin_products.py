@@ -6,6 +6,7 @@ UC-CAT-08: List categories (hierarchical tree)
 UC-CAT-09: Create product (admin)
 UC-CAT-10: Edit product (admin)
 """
+from addons.sale.models import SaleOrderLine
 import pytest
 from decimal import Decimal
 from addons.catalogue.models import Category, Product, ProductImage
@@ -370,11 +371,9 @@ class TestEditarProductoAdmin:
         SaleOrderLine.objects.create(
             order=order,
             product=product_sopera,
-            product_name=product_sopera.name,
-            sku=product_sopera.sku,
-            unit_price=product_sopera.price,
-            quantity=1,
-            subtotal=product_sopera.price,
+            name=product_sopera.name,
+            price_unit=product_sopera.price,
+            product_uom_qty=1,
         )
         original_unit_price = product_sopera.price
 

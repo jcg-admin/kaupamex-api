@@ -6,7 +6,7 @@ from decimal import Decimal
 from addons.catalogue.models import Category, Product
 from addons.rating.models import Review, ReviewHelpfulVote, ReviewModerationLog
 from django.contrib.auth import get_user_model
-from addons.sale.models import SaleOrder
+from addons.sale.models import SaleOrder, SaleOrderLine
 from rest_framework_simplejwt.tokens import RefreshToken
 from PIL import Image as PILImage
 from tests.factories.user_factory import make_buyer
@@ -86,9 +86,8 @@ def prod_rev(db, cat_rev):
 def order_user_with_product(db, user, prod_rev):
     o = make_order(user=user, status='DELIVERED')
     SaleOrderLine.objects.create(
-        order=o, product=prod_rev, product_name=prod_rev.name,
-        sku=prod_rev.sku, unit_price=Decimal('100'),
-        quantity=1, subtotal=Decimal('100'),
+        order=o, product=prod_rev, name=prod_rev.name, price_unit=Decimal('100'),
+        product_uom_qty=1,
     )
     OrderValue_GONE.objects.create(
         order=o, subtotal=Decimal('100'), tax=Decimal('0'),
@@ -171,9 +170,7 @@ class TestCreateReview:
         for st in ('PENDING', 'PROCESSING', 'SHIPPED'):
             o = make_order(user=user, status=st)
             SaleOrderLine.objects.create(
-                order=o, product=prod_rev, product_name=prod_rev.name,
-                sku=prod_rev.sku, unit_price=Decimal('100'), quantity=1,
-                subtotal=Decimal('100'),
+                order=o, product=prod_rev, name=prod_rev.name, price_unit=Decimal('100'), product_uom_qty=1,
             )
             r = auth_client.post(PRODUCT_REVIEWS_URL(prod_rev.id), {
                 'order_id': o.id, 'rating': 4,
@@ -427,9 +424,7 @@ class TestRatingFilterAndSorting:
         )
         o1 = self._make_order(db, user)
         SaleOrderLine.objects.create(
-            order=o1, product=prod_rev, product_name=prod_rev.name,
-            sku=prod_rev.sku, unit_price=Decimal('100'), quantity=1,
-            subtotal=Decimal('100'),
+            order=o1, product=prod_rev, name=prod_rev.name, price_unit=Decimal('100'), product_uom_qty=1,
         )
         o2 = self._make_order(db, u2)
         Review.objects.create(
@@ -457,9 +452,7 @@ class TestRatingFilterAndSorting:
         )
         o1 = self._make_order(db, user)
         SaleOrderLine.objects.create(
-            order=o1, product=prod_rev, product_name=prod_rev.name,
-            sku=prod_rev.sku, unit_price=Decimal('100'), quantity=1,
-            subtotal=Decimal('100'),
+            order=o1, product=prod_rev, name=prod_rev.name, price_unit=Decimal('100'), product_uom_qty=1,
         )
         o2 = self._make_order(db, u2)
         rev_low = Review.objects.create(
@@ -489,9 +482,7 @@ class TestRatingFilterAndSorting:
         )
         o1 = self._make_order(db, user)
         SaleOrderLine.objects.create(
-            order=o1, product=prod_rev, product_name=prod_rev.name,
-            sku=prod_rev.sku, unit_price=Decimal('100'), quantity=1,
-            subtotal=Decimal('100'),
+            order=o1, product=prod_rev, name=prod_rev.name, price_unit=Decimal('100'), product_uom_qty=1,
         )
         o2 = self._make_order(db, u2)
         rev1 = Review.objects.create(
@@ -539,9 +530,7 @@ class TestCreateReviewEdgeCases:
         o = make_order(user=user, status='DELIVERED')
         # order only contains other_prod, not prod_rev
         SaleOrderLine.objects.create(
-            order=o, product=other_prod, product_name=other_prod.name,
-            sku=other_prod.sku, unit_price=Decimal('50'), quantity=1,
-            subtotal=Decimal('50'),
+            order=o, product=other_prod, name=other_prod.name, price_unit=Decimal('50'), product_uom_qty=1,
         )
         OrderValue_GONE.objects.create(
             order=o, subtotal=Decimal('50'), tax=Decimal('0'),

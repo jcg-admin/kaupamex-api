@@ -3,6 +3,7 @@ Tests — Reembolso de pagos y reintento (UC-PAY-07, UC-PAY-08, UC-PAY-09)
 
 Nombre descriptivo: dominio (reembolso y reintento), no sprint.
 """
+from addons.sale.models import SaleOrderLine
 import json
 import pytest
 from decimal import Decimal
@@ -46,8 +47,8 @@ def _make_order_with_payment(user, prod, gateway='MERCADOPAGO', status='APPROVED
 
     order = make_order(user=user, status='PROCESSING' if status == 'APPROVED' else 'PENDING')
     SaleOrderLine.objects.create(
-        order=order, product_name=prod.name, sku=prod.sku,
-        unit_price=prod.price, quantity=1, subtotal=prod.price,
+        order=order, name=prod.name,
+        price_unit=prod.price, product_uom_qty=1,
     )
     OrderValue_GONE.objects.create(
         order=order, subtotal=prod.price, tax=(prod.price * Decimal('0.16') / Decimal('1.16')).quantize(Decimal('0.01')),

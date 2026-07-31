@@ -8,7 +8,7 @@ UC-PAY-01: Procesar pago con MercadoPago
 """
 import json
 import pytest
-from addons.sale.models import SaleOrder
+from addons.sale.models import SaleOrder, SaleOrderLine
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
 from decouple import config
@@ -49,9 +49,8 @@ def orden_mp(db, user, prod_mp):
     """Orden PENDING con OrderValue_GONE para tests de MercadoPago."""
     order = make_order(user=user, status='PENDING')
     SaleOrderLine.objects.create(
-        order=order, product_name=prod_mp.name,
-        sku=prod_mp.sku, unit_price=prod_mp.price,
-        quantity=2, subtotal=prod_mp.price * 2,
+        order=order, name=prod_mp.name, price_unit=prod_mp.price,
+        product_uom_qty=2,
     )
     OrderValue_GONE.objects.create(
         order=order,

@@ -6,6 +6,7 @@ verifican: llama a order() (no payment()), envía X-Idempotency-Key, mapea el
 pago anidado a PaymentResult (gateway_payment_id=PAY, mp_order_id=ORD, status
 via orders_status), y clasifica el rechazo.
 """
+from addons.sale.models import SaleOrderLine
 import pytest
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
@@ -19,8 +20,8 @@ pytestmark = pytest.mark.integration
 def _make_order(user, total='200.00'):
     order = make_order(user=user, status='PENDING')
     SaleOrderLine.objects.create(
-        order=order, product_name='Smartphone', sku='SKU-201B',
-        unit_price=Decimal(total), quantity=1, subtotal=Decimal(total),
+        order=order, name='Smartphone',
+        price_unit=Decimal(total), product_uom_qty=1,
     )
     OrderValue_GONE.objects.create(
         order=order, subtotal=Decimal(total), tax=Decimal('0'),

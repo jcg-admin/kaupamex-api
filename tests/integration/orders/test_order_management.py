@@ -86,8 +86,8 @@ def _create_full_order(user, prod, status='PENDING', n_items=1):
     order = make_order(user=user, status=status)
     for i in range(n_items):
         SaleOrderLine.objects.create(
-            order=order, product_name=prod.name, sku=f'{prod.sku}-{i}',
-            unit_price=prod.price, quantity=1, subtotal=prod.price,
+            order=order, name=prod.name,
+            price_unit=prod.price, product_uom_qty=1,
             product=prod,
         )
     OrderValue_GONE.objects.create(
@@ -113,8 +113,8 @@ def _canonical_full_order(user, prod, *, approved=False, guide=False, delivered=
     so = SaleOrder.objects.create(state=SaleOrder.STATE_SALE)
     order = SaleOrder.objects.create(user=user, sale_order=so)
     SaleOrderLine.objects.create(
-        order=order, product_name=prod.name, sku=f'{prod.sku}-c',
-        unit_price=prod.price, quantity=1, subtotal=prod.price, product=prod,
+        order=order, name=prod.name,
+        price_unit=prod.price, product_uom_qty=1, product=prod,
     )
     OrderValue_GONE.objects.create(
         order=order, subtotal=prod.price, tax=Decimal('0.00'),

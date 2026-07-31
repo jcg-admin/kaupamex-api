@@ -6,6 +6,7 @@ Cubre: exito (lista + totales + paginacion), filtros (status, gateway,
 rango de fechas), permisos (anon 401, comprador 403) y errores con
 ``codigo_error`` (status/gateway/fecha invalidos, rango invertido).
 """
+from addons.sale.models import SaleOrderLine
 import pytest
 from decimal import Decimal
 
@@ -22,8 +23,8 @@ LIST_URL = '/api/v2/admin/payments/'
 def _make_order(user, sku, total):
     order = make_order(user=user, status='PROCESSING')
     SaleOrderLine.objects.create(
-        order=order, product_name='Prod', sku=sku,
-        unit_price=total, quantity=1, subtotal=total,
+        order=order, name='Prod',
+        price_unit=total, product_uom_qty=1,
     )
     OrderValue_GONE.objects.create(
         order=order, subtotal=total, tax=Decimal('0.00'),

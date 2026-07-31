@@ -9,7 +9,7 @@ from addons.authz.services import SUPERADMIN_ROLE_CODE
 from addons.catalogue.models import Category, Product
 from addons.delivery.models import Courier, ShipmentGuide
 from addons.payment.models import Payment
-from addons.sale.models import SaleOrder
+from addons.sale.models import SaleOrder, SaleOrderLine
 from django.contrib.auth import get_user_model
 from addons.base.models import SiteSettings
 from tests.factories.order_factory import make_order
@@ -60,8 +60,8 @@ def prod_adm(db, cat_adm):
 def _make_order(user, prod, status='PENDING'):
     order = make_order(user=user, status=status)
     SaleOrderLine.objects.create(
-        order=order, product_name=prod.name, sku=prod.sku,
-        unit_price=prod.price, quantity=1, subtotal=prod.price,
+        order=order, name=prod.name,
+        price_unit=prod.price, product_uom_qty=1,
         product=prod,
     )
     OrderValue_GONE.objects.create(

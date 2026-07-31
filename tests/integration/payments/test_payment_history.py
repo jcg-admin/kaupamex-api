@@ -4,6 +4,7 @@ Tests — Historial y estado de pagos (UC-PAY-05, UC-PAY-06)
 Nombre descriptivo: describe el dominio (historial de pagos),
 no el número de sprint.
 """
+from addons.sale.models import SaleOrderLine
 import pytest
 from decimal import Decimal
 from addons.catalogue.models import Category, Product
@@ -40,8 +41,8 @@ def orden_con_pago(db, user, cat_hist):
     prod.categories.add(cat_hist)
     order = make_order(user=user, status='PROCESSING')
     SaleOrderLine.objects.create(
-        order=order, product_name=prod.name, sku=prod.sku,
-        unit_price=prod.price, quantity=1, subtotal=prod.price,
+        order=order, name=prod.name,
+        price_unit=prod.price, product_uom_qty=1,
     )
     OrderValue_GONE.objects.create(
         order=order, subtotal=Decimal('2400.00'), tax=Decimal('331.03'),
@@ -74,8 +75,8 @@ def orden_con_historial(db, user, cat_hist):
     prod.categories.add(cat_hist)
     order = make_order(user=user, status='PROCESSING')
     SaleOrderLine.objects.create(
-        order=order, product_name=prod.name, sku=prod.sku,
-        unit_price=prod.price, quantity=1, subtotal=prod.price,
+        order=order, name=prod.name,
+        price_unit=prod.price, product_uom_qty=1,
     )
     OrderValue_GONE.objects.create(
         order=order, subtotal=Decimal('1200.00'), tax=Decimal('165.52'),

@@ -5,6 +5,7 @@ GET /api/v2/admin/chargebacks/        — AdminChargebackListView
 GET /api/v2/admin/chargebacks/<id>/   — AdminChargebackDetailView
 Cubre: lista, detalle, filtro por payment, 401, 403, 404.
 """
+from addons.sale.models import SaleOrderLine
 import pytest
 from decimal import Decimal
 
@@ -20,8 +21,8 @@ DETAIL_URL = lambda cid: f'/api/v2/admin/chargebacks/{cid}/'
 def _make_payment(user, amount='500.00', gateway_payment_id='MP-CB-L001'):
     order = make_order(user=user, status='PROCESSING')
     SaleOrderLine.objects.create(
-        order=order, product_name='Prod CB', sku=f'CB-{gateway_payment_id}',
-        unit_price=Decimal(amount), quantity=1, subtotal=Decimal(amount),
+        order=order, name='Prod CB',
+        price_unit=Decimal(amount), product_uom_qty=1,
     )
     OrderValue_GONE.objects.create(
         order=order, subtotal=Decimal(amount), tax=Decimal('0'),

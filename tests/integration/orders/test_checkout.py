@@ -10,7 +10,7 @@ from decimal import Decimal
 from addons.catalogue.models import Category, Product
 from addons.delivery.models import ShippingMethod
 from addons.delivery.models import ShippingZone
-from addons.sale.models import SaleOrder
+from addons.sale.models import SaleOrder, SaleOrderLine
 from addons.loyalty.models import Voucher
 from django.utils import timezone
 from tests.factories.order_factory import make_order

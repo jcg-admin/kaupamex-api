@@ -13,7 +13,7 @@ from unittest.mock import patch, MagicMock
 from decouple import config
 from addons.catalogue.models import Category, Product
 from addons.delivery.models import ShippingZone
-from addons.sale.models import SaleOrder
+from addons.sale.models import SaleOrder, SaleOrderLine
 from addons.delivery.models import ShippingMethod
 from addons.payment.models import PaymentGateway
 from addons.payment.models import Payment, PaymentGatewayEvent
@@ -58,9 +58,8 @@ def orden_pendiente(db, user, prod_s15):
         user=user, status='PENDING',
     )
     SaleOrderLine.objects.create(
-        order=order, product_name=prod_s15.name,
-        sku=prod_s15.sku, unit_price=prod_s15.price,
-        quantity=2, subtotal=prod_s15.price * 2,
+        order=order, name=prod_s15.name, price_unit=prod_s15.price,
+        product_uom_qty=2,
     )
     OrderValue_GONE.objects.create(
         order=order, subtotal=Decimal('3000.00'),

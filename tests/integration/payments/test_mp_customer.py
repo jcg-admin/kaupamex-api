@@ -7,6 +7,7 @@ Cubre:
   Flow:    initiate_checkout_api_payment() almacena mp_customer_id en User
   View:    GET /api/v2/payments/customer/  MpCustomerView
 """
+from addons.sale.models import SaleOrderLine
 import json as _json
 import pytest
 from decimal import Decimal
@@ -67,9 +68,8 @@ def prod(db, cat):
 def orden(db, user, prod):
     order = make_order(user=user, status='PENDING')
     SaleOrderLine.objects.create(
-        order=order, product_name=prod.name, sku=prod.sku,
-        unit_price=prod.price, quantity=2,
-        subtotal=prod.price * 2,
+        order=order, name=prod.name,
+        price_unit=prod.price, product_uom_qty=2,
     )
     OrderValue_GONE.objects.create(
         order=order, subtotal=Decimal('1000.00'),

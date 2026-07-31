@@ -14,7 +14,7 @@ from unittest.mock import patch, MagicMock
 
 from addons.catalogue.models import Category, Product
 from addons.sale.status_projection import order_status
-from addons.sale.models import SaleOrder
+from addons.sale.models import SaleOrder, SaleOrderLine
 from addons.payment.models import PaymentGateway
 from addons.payment.models import Payment, PaymentGatewayEvent
 from addons.payment_mercado_pago.gateway import MercadoPagoGateway
@@ -56,9 +56,8 @@ def orden_v2(db, user, prod_v2):
         sale_order=SaleOrder.objects.create(state=SaleOrder.STATE_SALE),
     )
     SaleOrderLine.objects.create(
-        order=order, product_name=prod_v2.name, sku=prod_v2.sku,
-        unit_price=prod_v2.price, quantity=2,
-        subtotal=prod_v2.price * 2,
+        order=order, name=prod_v2.name,
+        price_unit=prod_v2.price, product_uom_qty=2,
     )
     OrderValue_GONE.objects.create(
         order=order, subtotal=Decimal('3000.00'),

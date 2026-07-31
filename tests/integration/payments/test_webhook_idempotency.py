@@ -16,7 +16,7 @@ from decimal import Decimal
 from unittest.mock import patch, MagicMock
 from addons.catalogue.models import Category, Product
 from addons.sale.status_projection import order_status
-from addons.sale.models import SaleOrder
+from addons.sale.models import SaleOrder, SaleOrderLine
 from addons.payment.models import Payment, WebhookEvent
 from addons.payment.models import PaymentGateway
 from tests.factories.order_factory import make_order
@@ -57,8 +57,8 @@ def order_mp_pending(db, user, cat_idem):
         sale_order=SaleOrder.objects.create(state=SaleOrder.STATE_SALE),
     )
     SaleOrderLine.objects.create(
-        order=order, product_name=prod.name, sku=prod.sku,
-        unit_price=prod.price, quantity=1, subtotal=prod.price,
+        order=order, name=prod.name,
+        price_unit=prod.price, product_uom_qty=1,
     )
     OrderValue_GONE.objects.create(
         order=order, subtotal=Decimal('500.00'), tax=Decimal('69.00'),
@@ -93,8 +93,8 @@ def order_paypal_pending(db, user, cat_idem):
         sale_order=SaleOrder.objects.create(state=SaleOrder.STATE_SALE),
     )
     SaleOrderLine.objects.create(
-        order=order, product_name=prod.name, sku=prod.sku,
-        unit_price=prod.price, quantity=1, subtotal=prod.price,
+        order=order, name=prod.name,
+        price_unit=prod.price, product_uom_qty=1,
     )
     OrderValue_GONE.objects.create(
         order=order, subtotal=Decimal('400.00'), tax=Decimal('55.17'),

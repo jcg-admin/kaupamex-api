@@ -13,7 +13,7 @@ import pytest
 from django.db import IntegrityError
 
 from addons.base.models import SiteSettings
-from addons.sale.models import SaleOrder
+from addons.sale.models import SaleOrder, SaleOrderLine
 from decimal import Decimal
 
 from addons.catalogue.models import Category, Product

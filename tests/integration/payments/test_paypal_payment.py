@@ -6,7 +6,7 @@ no cuándo se implementó.
 """
 import json
 import pytest
-from addons.sale.models import SaleOrder
+from addons.sale.models import SaleOrder, SaleOrderLine
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
 from addons.catalogue.models import Category, Product
@@ -42,9 +42,8 @@ def prod_pp(db, cat_pp):
 def orden_paypal(db, user, prod_pp):
     order = make_order(user=user, status='PENDING')
     SaleOrderLine.objects.create(
-        order=order, product_name=prod_pp.name,
-        sku=prod_pp.sku, unit_price=prod_pp.price,
-        quantity=1, subtotal=prod_pp.price,
+        order=order, name=prod_pp.name, price_unit=prod_pp.price,
+        product_uom_qty=1,
     )
     OrderValue_GONE.objects.create(
         order=order, subtotal=Decimal('800.00'),

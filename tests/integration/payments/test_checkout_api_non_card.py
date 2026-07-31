@@ -7,6 +7,7 @@ BBVA (bancomer), Cuenta Mercado Pago (account_money).
 All use POST /api/v2/payments/initiate/ but WITHOUT a token.
 MP responds with external_resource_url / date_of_expiration / transaction_data.
 """
+from addons.sale.models import SaleOrderLine
 import pytest
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
@@ -45,9 +46,8 @@ def prod_nc(db, cat_nc):
 def orden_nc(db, user, prod_nc):
     order = make_order(user=user, status='PENDING')
     SaleOrderLine.objects.create(
-        order=order, product_name=prod_nc.name, sku=prod_nc.sku,
-        unit_price=prod_nc.price, quantity=1,
-        subtotal=prod_nc.price,
+        order=order, name=prod_nc.name,
+        price_unit=prod_nc.price, product_uom_qty=1,
     )
     OrderValue_GONE.objects.create(
         order=order, subtotal=Decimal('500.00'),

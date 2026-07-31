@@ -12,7 +12,7 @@ from decimal import Decimal
 from unittest.mock import patch, MagicMock
 from addons.catalogue.models import Category, Product
 from addons.sale.status_projection import order_status
-from addons.sale.models import SaleOrder
+from addons.sale.models import SaleOrder, SaleOrderLine
 from django.core.checks.registry import registry
 from addons.payment_mercado_pago.checks import check_mercadopago_client_secret
 from addons.payment.models import Payment
@@ -46,8 +46,8 @@ def orden_processing_mp(db, user, cat_wh):
         sale_order=SaleOrder.objects.create(state=SaleOrder.STATE_SALE),
     )
     SaleOrderLine.objects.create(
-        order=order, product_name=prod.name, sku=prod.sku,
-        unit_price=prod.price, quantity=1, subtotal=prod.price,
+        order=order, name=prod.name,
+        price_unit=prod.price, product_uom_qty=1,
     )
     OrderValue_GONE.objects.create(
         order=order, subtotal=Decimal('600.00'), tax=Decimal('82.76'),
@@ -406,8 +406,8 @@ class TestPayPalWebhook:
         sale_order=SaleOrder.objects.create(state=SaleOrder.STATE_SALE),
     )
         SaleOrderLine.objects.create(
-            order=order, product_name=prod.name, sku=prod.sku,
-            unit_price=prod.price, quantity=1, subtotal=prod.price,
+            order=order, name=prod.name,
+            price_unit=prod.price, product_uom_qty=1,
         )
         OrderValue_GONE.objects.create(
             order=order, subtotal=Decimal('400.00'), tax=Decimal('55.17'),

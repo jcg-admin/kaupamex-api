@@ -42,7 +42,7 @@ from addons.catalogue.models import Category, Product
 from addons.delivery.models import ShippingMethod
 from addons.delivery.models.sale_order import set_delivery_line
 from addons.loyalty.models import Voucher
-from addons.sale.models import SaleOrder
+from addons.sale.models import SaleOrder, SaleOrderLine
 from addons.sale_loyalty.services import apply_voucher_to_draft
 from addons.sale.services import (
     add_item_to_draft,

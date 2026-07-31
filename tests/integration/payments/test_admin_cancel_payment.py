@@ -4,6 +4,7 @@ Tests — Cancelación proactiva de pago (T-CAN).
 POST /api/v2/admin/payments/<id>/cancel/  — AdminCancelPaymentView
 Cubre: cancel ok, pago no cancelable, 404, 401, 403, error de gateway.
 """
+from addons.sale.models import SaleOrderLine
 import pytest
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
@@ -19,8 +20,8 @@ CANCEL_URL = lambda pid: f'/api/v2/admin/payments/{pid}/cancel/'
 def _make_payment(user, status=Payment.STATUS_PENDING, gateway_payment_id='MP-CAN-001'):
     order = make_order(user=user, status='PENDING')
     SaleOrderLine.objects.create(
-        order=order, product_name='Prod CAN', sku=f'CAN-{gateway_payment_id}',
-        unit_price=Decimal('200.00'), quantity=1, subtotal=Decimal('200.00'),
+        order=order, name='Prod CAN',
+        price_unit=Decimal('200.00'), product_uom_qty=1,
     )
     OrderValue_GONE.objects.create(
         order=order, subtotal=Decimal('200.00'), tax=Decimal('0'),
