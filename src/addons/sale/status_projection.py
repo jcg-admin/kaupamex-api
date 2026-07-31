@@ -218,3 +218,23 @@ def filter_orders_by_status(queryset, status):
     canonical = _is_canonical(queryset)
     return annotate_status_axes(queryset).filter(
         _canonical_status_q(status, canonical=canonical))
+
+
+def active_sale_orders():
+    """Ventas confirmadas aún no entregadas — ``PENDING ∪ PAID ∪ SHIPPED``.
+
+    E5/R5: reemplaza al proxy ``orders.proxy_models.ActiveOrder``, que era un
+    ``proxy=True`` sobre ``orders_order`` y por tanto no sobrevive a la baja del
+    espejo. La pertenencia no cambia: *venta confirmada sin guía entregada*,
+    exactamente el predicado que el proxy ya derivaba de los ejes canónicos.
+
+    No se expresa con :func:`filter_orders_by_status` porque "activa" no es un
+    estado del vocabulario público sino la unión de tres — y el contrato
+    ``?status=`` no debe crecer con un valor que la proyección nunca emite.
+
+    Su consumidor real (``settings_app``) filtra además por método de envío,
+    que en la canónica se llama ``carrier`` (en el espejo, ``shipping_method``);
+    ambos apuntan a ``delivery.ShippingMethod``.
+    """
+    return annotate_status_axes(SaleOrder.objects.all()).filter(
+        Q(state=SaleOrder.STATE_SALE) & Q(_has_delivered_guide=False))

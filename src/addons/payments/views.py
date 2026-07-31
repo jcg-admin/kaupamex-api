@@ -32,7 +32,9 @@ from addons.sale.status_projection import (
 from addons.sale.models import SaleOrder
 from addons.delivery.models.sale_order import set_delivery_line
 from addons.sale_loyalty.models.sale_order import set_reward_line
-from addons.orders.proxy_models import DeliveredOrder
+from addons.sale.status_projection import (
+    STATUS_DELIVERED, filter_orders_by_status,
+)
 from addons.payment.models import Payment, Payment as PaymentModel, Refund, Chargeback, SavedCard
 from .serializers import (
     InitiatePaymentSerializer, MercadoPagoInitiateSerializer,
@@ -511,7 +513,11 @@ def _check_express_eligibility(user) -> dict:
     }
 
     # 1. Comprador recurrente: al menos una orden DELIVERED
-    if not DeliveredOrder.objects.filter(user=user).exists():
+    # E5/R5: el proxy DeliveredOrder vivía sobre el espejo; la canónica
+    # llama ``partner`` al mismo FK hacia el usuario.
+    entregadas = filter_orders_by_status(
+        SaleOrder.objects.all(), STATUS_DELIVERED)
+    if not entregadas.filter(partner=user).exists():
         result['reason'] = 'Sin órdenes previas entregadas.'
         return result
 
@@ -687,6 +693,9 @@ class ExpressCheckoutView(APIView):
         # estándar, donde el envío lo deriva el admin por zona).
         order.shipping_method = shipping
         order.save(update_fields=['shipping_method', 'updated_at'])
+        # E5/R5 — write-through al hogar canónico (ver orders/services.py).
+        order.sale_order.carrier = shipping
+        order.sale_order.save(update_fields=['carrier'])
 
         return Response(OrderSerializer(order).data, status=201)
 

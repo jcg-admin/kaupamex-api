@@ -112,7 +112,15 @@ class TestShippingMethods:
         method = ShippingMethod.objects.create(
             name='Con orden pagada', cost=Decimal('50.00'), estimated_days=4,
         )
-        so = SaleOrder.objects.create(state=SaleOrder.STATE_SALE)
+        # El transportista se setea en AMBOS lados, como hace producción
+        # desde E5/R5 (``orders/services.py`` y el express de ``payments``):
+        # el espejo ``Order.shipping_method`` y la canónica
+        # ``SaleOrder.carrier``. Construir sólo el espejo fabricaba un estado
+        # que el flujo real no produce, y el guard —que ya consulta la
+        # canónica— no tenía por dónde verlo.
+        so = SaleOrder.objects.create(
+            state=SaleOrder.STATE_SALE, carrier=method,
+        )
         order = Order.objects.create(
             user=user, sale_order=so, shipping_method=method,
         )

@@ -95,6 +95,14 @@ def make_order(status=STATUS_PENDING, courier=None, amount=None,
         # Producción setea ambos lados del actor (confirm_draft_order crea el
         # espejo con user=order.partner); el factory replica esa consistencia.
         partner=order_kwargs.get('user'),
+        # Idem para el método de envío (H-API-100): el espejo lo llama
+        # ``shipping_method`` y la canónica ``carrier``, ambos hacia
+        # ``delivery.ShippingMethod``. El docstring de arriba ya declaraba
+        # "aquí se setean ambos siempre", pero este par faltaba: un test que
+        # pasara ``shipping_method=`` dejaba ``carrier`` en NULL y cualquier
+        # query canónica por método de envío devolvía vacío — el mismo fallo
+        # silencioso que la asimetría de ``Payment``/``ShipmentGuide``.
+        carrier=order_kwargs.get('shipping_method'),
     )
     order = Order.objects.create(sale_order=sale, **order_kwargs)
 

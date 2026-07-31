@@ -282,6 +282,15 @@ def update_shipping_method(order, shipping_method_id: int, changed_by=None):
         order.shipping_method = new_method
         order.save(update_fields=['shipping_method', 'updated_at'])
 
+        # E5/R5 — el transportista tiene su hogar canónico en
+        # ``sale.SaleOrder.carrier`` (Odoo ``sale.order.carrier_id``); el
+        # espejo de arriba se retira con ``orders``. Escribir sólo el espejo
+        # dejaba ``carrier`` NULL en TODA venta, así que cualquier consulta
+        # canónica por método de envío devolvía vacío en silencio.
+        sale = order.sale_order
+        sale.carrier = new_method
+        sale.save(update_fields=['carrier'])
+
         # O2C V5d: idem — cambiar el método de envío no transiciona el estado.
         current_status = order_status(order)
         OrderStatusLog.objects.create(
