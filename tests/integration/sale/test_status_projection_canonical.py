@@ -22,7 +22,6 @@ from addons.sale.status_projection import (
     STATUS_SHIPPED,
     filter_orders_by_status,
 )
-from addons.orders.models import Order
 from tests.factories.order_factory import make_order
 
 pytestmark = pytest.mark.django_db
@@ -46,10 +45,10 @@ def universo():
 @pytest.mark.parametrize('estado', ESTADOS)
 def test_filtro_canonico_selecciona_la_misma_venta_que_el_espejo(universo, estado):
     """``filter_orders_by_status`` sobre ``SaleOrder`` devuelve la canónica de
-    la misma fila que devuelve sobre ``Order``."""
+    la misma fila que devuelve sobre ``SaleOrder``."""
     esperado = universo[estado].sale_order_id
 
-    por_espejo = filter_orders_by_status(Order.objects.all(), estado)
+    por_espejo = filter_orders_by_status(SaleOrder.objects.all(), estado)
     por_canonica = filter_orders_by_status(SaleOrder.objects.all(), estado)
 
     assert list(por_espejo.values_list('sale_order_id', flat=True)) == [esperado]

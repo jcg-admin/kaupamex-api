@@ -1,6 +1,6 @@
 """Fábrica canónica de órdenes O2C — post-V5d (ADR-024).
 
-Tras el retiro de la columna espejo ``orders_order.status`` una ``Order`` **no
+Tras el retiro de la columna espejo ``orders_order.status`` una ``SaleOrder`` **no
 tiene estado propio**: se deriva de tres ejes (comercial ``sale.SaleOrder.state``
 · pago ``payment.Payment`` · fulfillment ``delivery.ShipmentGuide``). Fabricar
 una orden "en estado X" deja de ser fijar un enum y pasa a ser **construir los
@@ -28,7 +28,6 @@ from uuid import uuid4
 from django.utils import timezone
 
 from addons.delivery.models import Courier, ShipmentGuide
-from addons.orders.models import Order
 from addons.payment.models import Payment
 from addons.sale.models import SaleOrder, SaleOrderLine
 from addons.sale.models.sale_order import _next_sale_name
@@ -60,7 +59,7 @@ def make_courier(**kwargs):
 def make_order(status=STATUS_PENDING, courier=None, amount=None,
                product=None, quantity=1, unit_price=None,
                **order_kwargs):
-    """Crea el par ``Order`` + ``SaleOrder`` cuyos ejes proyectan ``status``.
+    """Crea el par ``SaleOrder`` + ``SaleOrder`` cuyos ejes proyectan ``status``.
 
     :param status: valor de ``STATUSES`` que debe proyectar
         ``order_status(order)``. Los tres valores muertos del enum
@@ -75,8 +74,8 @@ def make_order(status=STATUS_PENDING, courier=None, amount=None,
         verifique importes debe pasarlo.
     :param quantity: cantidad de esa línea.
     :param unit_price: precio unitario; por defecto el del producto.
-    :param order_kwargs: se pasan tal cual a ``Order.objects.create``.
-    :returns: la ``Order`` creada (su canónica está en ``order.sale_order``).
+    :param order_kwargs: se pasan tal cual a ``SaleOrder.objects.create``.
+    :returns: la ``SaleOrder`` creada (su canónica está en ``order.sale_order``).
     """
     # Invariante de producción: action_confirm SIEMPRE fija date_order, y
     # el espejo sólo existe post-confirm. Un state='sale' sin date_order es
@@ -104,7 +103,7 @@ def make_order(status=STATUS_PENDING, courier=None, amount=None,
         # silencioso que la asimetría de ``Payment``/``ShipmentGuide``.
         carrier=order_kwargs.get('shipping_method'),
     )
-    order = Order.objects.create(sale_order=sale, **order_kwargs)
+    order = SaleOrder.objects.create(sale_order=sale, **order_kwargs)
 
     # E4 / H-API-33 — una venta confirmada sin líneas es un estado imposible:
     # ``action_confirm`` lo rechaza. Mientras el dinero vivía en el espejo el

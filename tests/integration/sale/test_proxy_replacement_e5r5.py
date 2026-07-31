@@ -10,7 +10,7 @@ consumidores reales son de una línea cada uno:
 - ``payments/views.py`` — comprador recurrente (al menos una orden entregada).
 
 El reemplazo cambia además el campo del filtro, porque la canónica los nombra
-distinto: ``Order.user`` → ``SaleOrder.partner`` y ``Order.shipping_method`` →
+distinto: ``SaleOrder.user`` → ``SaleOrder.partner`` y ``SaleOrder.shipping_method`` →
 ``SaleOrder.carrier`` (ambos apuntan al mismo destino: ``AUTH_USER_MODEL`` y
 ``delivery.ShippingMethod``). Estos casos fijan la equivalencia **antes** de
 tocar a los consumidores, para que el cambio de campo sea observable y no un
@@ -21,7 +21,6 @@ from decimal import Decimal
 import pytest
 
 from addons.delivery.models import ShippingMethod
-from addons.orders.proxy_models import ActiveOrder, DeliveredOrder
 from addons.sale.models import SaleOrder
 from addons.sale.status_projection import (
     STATUS_CANCELLED,

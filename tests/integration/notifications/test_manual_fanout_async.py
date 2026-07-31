@@ -11,7 +11,6 @@ from django.contrib.auth import get_user_model
 
 from addons.catalogue.models import Category, Product
 from addons.mail.models import ManualNotification, Notification
-from addons.orders.models import Order
 from addons.sale.models import SaleOrderLine
 
 import pytest

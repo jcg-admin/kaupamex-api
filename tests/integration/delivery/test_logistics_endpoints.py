@@ -12,7 +12,6 @@ English JSON keys per DEC-DOC-005. Spanish business codes per DEC-DOC-006.
 """
 from decimal import Decimal
 from addons.catalogue.models import Category, Product
-from addons.orders.models import Order, OrderAddress, OrderItem, OrderValue
 from addons.sale.status_projection import (
     STATUS_IN_PREPARATION,
     STATUS_PAID,
@@ -60,24 +59,24 @@ def _canonical_ready_order(user, prod, *, approved=True,
     """Orden 'lista para surtir' por los ejes canónicos O2C (ADR-024).
 
     Cut-over orders→sale: la guarda de creación de guía y el panel ya no
-    leen el enum legacy ``Order.status`` (IN_PREPARATION es un valor muerto
+    leen el enum legacy ``SaleOrder.status`` (IN_PREPARATION es un valor muerto
     proyectado, H-API-10). "Lista para surtir" se deriva de:
-    ``SaleOrder(state='sale')`` espejado en ``Order`` + un ``Payment``
+    ``SaleOrder(state='sale')`` espejado en ``SaleOrder`` + un ``Payment``
     APPROVED. El enum legacy se deja en PENDING a propósito para probar que
     la nueva guarda NO lo lee. Con ``approved=False`` no se crea el Payment.
     """
     so = SaleOrder.objects.create(state=SaleOrder.STATE_SALE)
-    o = Order.objects.create(user=user, sale_order=so)
-    OrderItem.objects.create(
+    o = SaleOrder.objects.create(user=user, sale_order=so)
+    SaleOrderLine.objects.create(
         order=o, product=prod, product_name=prod.name,
         sku=prod.sku, unit_price=prod.price,
         quantity=1, subtotal=prod.price,
     )
-    OrderValue.objects.create(
+    OrderValue_GONE.objects.create(
         order=o, subtotal=Decimal('500'), tax=Decimal('0'),
         shipping_cost=Decimal('80'), total=Decimal('580'),
     )
-    OrderAddress.objects.create(
+    DeliveryAddress.objects.create(
         order=o, recipient_name='Test', street='Av', city='CDMX',
         state='CDMX', zip_code='06600',
     )
@@ -134,15 +133,15 @@ class TestLogisticsPanel:
         # group A: order_log has no guide.
         # group B: create another order + guide.
         o2 = make_order(user=user)   # la guia se crea abajo (V5d)
-        OrderItem.objects.create(
+        SaleOrderLine.objects.create(
             order=o2, product=prod_log, product_name=prod_log.name,
             sku='X', unit_price=Decimal('100'), quantity=1,
             subtotal=Decimal('100'),
         )
-        OrderValue.objects.create(order=o2, subtotal=Decimal('100'),
+        OrderValue_GONE.objects.create(order=o2, subtotal=Decimal('100'),
             tax=Decimal('0'), shipping_cost=Decimal('0'),
             total=Decimal('100'))
-        OrderAddress.objects.create(order=o2, recipient_name='X',
+        DeliveryAddress.objects.create(order=o2, recipient_name='X',
             street='Y', city='Z', state='Z', zip_code='00000')
         ShipmentGuide.objects.create(
             order=o2, sale_order=o2.sale_order,
@@ -179,7 +178,7 @@ class TestLogisticsPanel:
 class TestGuideGuardOnCanonicalAxes:
     """Cut-over orders→sale (ADR-024): la guarda de creación de guía y el
     panel logístico leen los ejes canónicos O2C, no el enum legacy
-    ``Order.status``. "Lista para surtir" = ``sale.state='sale'`` + un
+    ``SaleOrder.status``. "Lista para surtir" = ``sale.state='sale'`` + un
     ``Payment`` APPROVED (y, para el panel, sin guía viva)."""
 
     def test_crea_guia_con_venta_confirmada_y_pago_aprobado(
@@ -216,7 +215,7 @@ class TestGuideGuardOnCanonicalAxes:
         o = make_order(
             user=user, status=STATUS_IN_PREPARATION,
         )
-        OrderItem.objects.create(
+        SaleOrderLine.objects.create(
             order=o, product=prod_log, product_name=prod_log.name,
             sku=prod_log.sku, unit_price=prod_log.price,
             quantity=1, subtotal=prod_log.price,

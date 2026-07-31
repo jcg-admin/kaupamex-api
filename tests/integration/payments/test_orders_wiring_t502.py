@@ -20,7 +20,6 @@ import pytest
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
-from addons.orders.models import Order
 from addons.payment.models import Payment
 from addons.payments.services import execute_refund
 from addons.payment_mercado_pago.gateway import _log_legacy_payments_api

@@ -2,7 +2,7 @@
 Tests — Webhooks de confirmación de pago (UC-PAY-03, UC-PAY-04)
 
 Nombre descriptivo: describe el dominio testeado, no el número de sprint.
-Cubre verificación de firma, idempotencia, actualización de Order y Payment.
+Cubre verificación de firma, idempotencia, actualización de SaleOrder y Payment.
 """
 import hashlib
 import hmac
@@ -11,7 +11,6 @@ import pytest
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
 from addons.catalogue.models import Category, Product
-from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from addons.sale.status_projection import order_status
 from addons.sale.models import SaleOrder
 from django.core.checks.registry import registry
@@ -42,19 +41,19 @@ def orden_processing_mp(db, user, cat_wh):
         is_active=True, is_published=True,
     )
     prod.categories.add(cat_wh)
-    order = Order.objects.create(
+    order = SaleOrder.objects.create(
         user=user, # O2C R8: par canonico — la proyeccion deriva el estado de los ejes.
         sale_order=SaleOrder.objects.create(state=SaleOrder.STATE_SALE),
     )
-    OrderItem.objects.create(
+    SaleOrderLine.objects.create(
         order=order, product_name=prod.name, sku=prod.sku,
         unit_price=prod.price, quantity=1, subtotal=prod.price,
     )
-    OrderValue.objects.create(
+    OrderValue_GONE.objects.create(
         order=order, subtotal=Decimal('600.00'), tax=Decimal('82.76'),
         shipping_cost=Decimal('0.00'), discount=Decimal('0.00'), total=Decimal('600.00'),
     )
-    OrderAddress.objects.create(
+    DeliveryAddress.objects.create(
         order=order, recipient_name='Test', street='St 1',
         city='CDMX', state='CMX', zip_code='06600',
     )
@@ -94,7 +93,7 @@ class TestMercadoPagoWebhook:
     def test_webhook_pago_aprobado_actualiza_payment_y_orden(
         self, api_client, orden_processing_mp, mp_gateway_wh, db
     ):
-        """FR-PAY-03.02: pago aprobado → Payment=APPROVED, Order=PAID (DEC-BC-12)."""
+        """FR-PAY-03.02: pago aprobado → Payment=APPROVED, SaleOrder=PAID (DEC-BC-12)."""
         order, payment = orden_processing_mp
         ts         = '1715000000'
         request_id = 'REQ-TEST-123'
@@ -129,7 +128,7 @@ class TestMercadoPagoWebhook:
         self, api_client, orden_processing_mp, mp_gateway_wh, db
     ):
         """T-302: notificación ``type: order`` (data.id = ORD) verifica via
-        Orders API el PAY anidado y aprueba el Payment/Order."""
+        Orders API el PAY anidado y aprueba el Payment/SaleOrder."""
         order, payment = orden_processing_mp
         payment.mp_order_id = 'ORD-WH-1'
         payment.gateway_payment_id = 'PAY-WH-1'
@@ -226,7 +225,7 @@ class TestMercadoPagoWebhook:
     def test_webhook_pago_rechazado_marca_payment_failed(
         self, api_client, orden_processing_mp, mp_gateway_wh, db
     ):
-        """FR-PAY-03.02: pago rechazado → Payment=FAILED, Order permanece en PENDING."""
+        """FR-PAY-03.02: pago rechazado → Payment=FAILED, SaleOrder permanece en PENDING."""
         order, payment = orden_processing_mp
         ts     = '1715000002'
         req_id = 'REQ-FAIL-789'
@@ -270,7 +269,7 @@ class TestMercadoPagoWebhook:
 
         Antes de DEC-BC-01 la rama "no secret -> return True" abria un vector
         de fraude: cualquiera podia simular `payment.approved` y forzar
-        Order.status=PROCESSING sin haber pagado. Ahora es fail-closed.
+        SaleOrder.status=PROCESSING sin haber pagado. Ahora es fail-closed.
         """
         # NO crear PaymentGateway(MERCADOPAGO) — secret ausente.
         order, payment = orden_processing_mp
@@ -402,19 +401,19 @@ class TestPayPalWebhook:
             is_active=True, is_published=True,
         )
         prod.categories.add(cat_wh)
-        order = Order.objects.create(
+        order = SaleOrder.objects.create(
         user=user, # O2C R8: par canonico — la proyeccion deriva el estado de los ejes.
         sale_order=SaleOrder.objects.create(state=SaleOrder.STATE_SALE),
     )
-        OrderItem.objects.create(
+        SaleOrderLine.objects.create(
             order=order, product_name=prod.name, sku=prod.sku,
             unit_price=prod.price, quantity=1, subtotal=prod.price,
         )
-        OrderValue.objects.create(
+        OrderValue_GONE.objects.create(
             order=order, subtotal=Decimal('400.00'), tax=Decimal('55.17'),
             shipping_cost=Decimal('0.00'), discount=Decimal('0.00'), total=Decimal('400.00'),
         )
-        OrderAddress.objects.create(
+        DeliveryAddress.objects.create(
             order=order, recipient_name='T', street='S 1',
             city='CDMX', state='CMX', zip_code='06600',
         )
@@ -428,7 +427,7 @@ class TestPayPalWebhook:
     def test_webhook_paypal_capture_completed(
         self, api_client, orden_paypal_wh, db
     ):
-        """UC-PAY-04: PAYMENT.CAPTURE.COMPLETED → Payment=APPROVED, Order=PAID (DEC-BC-12)."""
+        """UC-PAY-04: PAYMENT.CAPTURE.COMPLETED → Payment=APPROVED, SaleOrder=PAID (DEC-BC-12)."""
         order, payment = orden_paypal_wh
 
         payload = {

@@ -16,7 +16,6 @@ from django.utils import timezone
 from addons.catalogue.models import Category, Product
 from django.contrib.auth import get_user_model
 from addons.authz.models import Capability, Module, Role, RoleAssignment
-from addons.orders.models import Order, OrderItem, OrderValue
 from addons.payment.models import Payment
 from addons.helpdesk.models import SupportTicket
 from addons.sale.models import SaleOrder
@@ -107,15 +106,15 @@ def _make_order(user, product, qty=1, when=None, status='DELIVERED',
     when = when or _now()
     # E4: la venta canónica lleva su línea — es de donde el reporte agrega.
     o = make_order(user=user, status=status, product=product, quantity=qty)
-    Order.objects.filter(pk=o.pk).update(created_at=when, updated_at=when)
-    OrderItem.objects.create(
+    SaleOrder.objects.filter(pk=o.pk).update(created_at=when, updated_at=when)
+    SaleOrderLine.objects.create(
         order=o, product=product,
         product_name=product.name, sku=product.sku,
         unit_price=product.price, quantity=qty,
         subtotal=product.price * qty,
     )
     total = product.price * qty
-    OrderValue.objects.create(
+    OrderValue_GONE.objects.create(
         order=o, subtotal=total, tax=Decimal('0'),
         shipping_cost=Decimal('0'), discount=Decimal('0'), total=total,
     )
@@ -166,7 +165,7 @@ class TestSalesReport:
             address_data={'recipient_name': 'C', 'street': 's', 'city': 'c',
                           'state': 'CDMX', 'zip_code': '06600'},
             guest_email='cancel@t.mx')
-        # confirm_draft_order ya creó el OrderValue de la orden; solo la
+        # confirm_draft_order ya creó el OrderValue_GONE de la orden; solo la
         # cancelamos por el eje canónico.
         draft.refresh_from_db()
         draft.action_cancel()

@@ -9,7 +9,6 @@ permisos (anon 401, comprador 403) y validacion de error con ``codigo_error``
 import pytest
 from decimal import Decimal
 
-from addons.orders.models import Order
 from addons.delivery.models import ShippingMethod
 from addons.sale.models import SaleOrder
 from addons.payment.models import Payment
@@ -114,14 +113,14 @@ class TestShippingMethods:
         )
         # El transportista se setea en AMBOS lados, como hace producción
         # desde E5/R5 (``orders/services.py`` y el express de ``payments``):
-        # el espejo ``Order.shipping_method`` y la canónica
+        # el espejo ``SaleOrder.shipping_method`` y la canónica
         # ``SaleOrder.carrier``. Construir sólo el espejo fabricaba un estado
         # que el flujo real no produce, y el guard —que ya consulta la
         # canónica— no tenía por dónde verlo.
         so = SaleOrder.objects.create(
             state=SaleOrder.STATE_SALE, carrier=method,
         )
-        order = Order.objects.create(
+        order = SaleOrder.objects.create(
             user=user, sale_order=so, shipping_method=method,
         )
         Payment.objects.create(

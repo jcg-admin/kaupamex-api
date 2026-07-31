@@ -11,7 +11,6 @@ from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 from addons.catalogue.models import Category, Product
-from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from addons.payment.models import Payment, Refund
 from tests.factories.order_factory import make_order
 
@@ -22,15 +21,15 @@ LIST_URL = '/api/v2/admin/payments/'
 
 def _make_order(user, sku, total):
     order = make_order(user=user, status='PROCESSING')
-    OrderItem.objects.create(
+    SaleOrderLine.objects.create(
         order=order, product_name='Prod', sku=sku,
         unit_price=total, quantity=1, subtotal=total,
     )
-    OrderValue.objects.create(
+    OrderValue_GONE.objects.create(
         order=order, subtotal=total, tax=Decimal('0.00'),
         shipping_cost=Decimal('0.00'), discount=Decimal('0.00'), total=total,
     )
-    OrderAddress.objects.create(
+    DeliveryAddress.objects.create(
         order=order, recipient_name='Test',
         street='Calle 1', city='CDMX', state='CMX', zip_code='06600',
     )

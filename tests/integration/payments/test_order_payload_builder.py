@@ -4,12 +4,12 @@ Tests del builder puro del payload Orders (T-201a).
 Verifican la estructura PROVEN de la colección Postman: type=online, importes
 STRING, discriminante payment_method.type, processing/capture automatic
 (DEC-ORD-02), payer/items inline. No hace red — solo construye el dict desde
-un Order real.
+un SaleOrder real.
 """
 import pytest
+from addons.sale.models import SaleOrder
 from decimal import Decimal
 
-from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from addons.payment_mercado_pago.gateway import (
     _build_order_payload,
     _build_order_payment_method,
@@ -23,15 +23,15 @@ pytestmark = pytest.mark.integration
 
 def _make_order(user, total='200.00'):
     order = make_order(user=user, status='PENDING')
-    OrderItem.objects.create(
+    SaleOrderLine.objects.create(
         order=order, product_name='Smartphone', sku='SKU-201A',
         unit_price=Decimal(total), quantity=1, subtotal=Decimal(total),
     )
-    OrderValue.objects.create(
+    OrderValue_GONE.objects.create(
         order=order, subtotal=Decimal(total), tax=Decimal('0'),
         shipping_cost=Decimal('0'), discount=Decimal('0'), total=Decimal(total),
     )
-    OrderAddress.objects.create(
+    DeliveryAddress.objects.create(
         order=order, recipient_name='Juan Perez', street='Calle 10',
         city='CDMX', state='CMX', zip_code='06600', phone='5512345678',
     )

@@ -13,7 +13,6 @@ from decimal import Decimal
 import pytest
 from django.contrib.auth import get_user_model
 
-from addons.orders.models import Order
 from addons.payment.models import Payment
 from addons.payments.serializers import AdminPaymentSerializer
 from addons.payments.services import get_payment_status, get_retry_eligibility
@@ -41,7 +40,7 @@ def _canonical_order(user, *, approved, mirror_status):
                           para probar que el guard NO lo lee.
     """
     so = SaleOrder.objects.create(state=SaleOrder.STATE_SALE)
-    order = Order.objects.create(user=user, sale_order=so)
+    order = SaleOrder.objects.create(user=user, sale_order=so)
     if approved:
         Payment.objects.create(
             order=order, sale_order=so,
@@ -115,7 +114,7 @@ class TestAdminSerializerOrderStatusOnProjection:
         # Sin pago aprobado → PENDING; pero necesitamos un Payment (no aprobado)
         # para serializar: lo creamos FAILED, que no altera la proyección.
         so = SaleOrder.objects.create(state=SaleOrder.STATE_SALE)
-        order = Order.objects.create(user=user, sale_order=so)
+        order = SaleOrder.objects.create(user=user, sale_order=so)
         payment = Payment.objects.create(
             order=order, sale_order=so,
             gateway=Payment.GATEWAY_MERCADOPAGO,

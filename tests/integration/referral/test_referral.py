@@ -23,7 +23,6 @@ from datetime import timedelta
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from addons.orders.models import Order
 from addons.base.models import SiteSettings
 from addons.referral.services import complete_referral_for_order
 from addons.loyalty.models import ReferralCode, Referral, Voucher

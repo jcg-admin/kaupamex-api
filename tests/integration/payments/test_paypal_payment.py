@@ -6,10 +6,10 @@ no cuándo se implementó.
 """
 import json
 import pytest
+from addons.sale.models import SaleOrder
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
 from addons.catalogue.models import Category, Product
-from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from addons.payment.models import PaymentGateway
 from addons.payment.models import Payment
 from addons.payment_paypal.gateway import PayPalGateway
@@ -41,17 +41,17 @@ def prod_pp(db, cat_pp):
 @pytest.fixture
 def orden_paypal(db, user, prod_pp):
     order = make_order(user=user, status='PENDING')
-    OrderItem.objects.create(
+    SaleOrderLine.objects.create(
         order=order, product_name=prod_pp.name,
         sku=prod_pp.sku, unit_price=prod_pp.price,
         quantity=1, subtotal=prod_pp.price,
     )
-    OrderValue.objects.create(
+    OrderValue_GONE.objects.create(
         order=order, subtotal=Decimal('800.00'),
         tax=Decimal('110.34'), shipping_cost=Decimal('0.00'),
         discount=Decimal('0.00'), total=Decimal('800.00'),
     )
-    OrderAddress.objects.create(
+    DeliveryAddress.objects.create(
         order=order, recipient_name='Test',
         street='Calle 1', city='CDMX', state='CMX', zip_code='06600',
     )
@@ -82,7 +82,7 @@ def mock_paypal_api():
         token_resp.status_code = 200
         token_resp.json.return_value = {'access_token': 'PP-TEST-TOKEN'}
 
-        # Order creation endpoint
+        # SaleOrder creation endpoint
         order_resp = MagicMock()
         order_resp.status_code = 201
         order_resp.json.return_value = {

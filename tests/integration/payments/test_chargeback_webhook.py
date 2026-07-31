@@ -10,7 +10,6 @@ import pytest
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
 
-from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from addons.payment.models import Payment, Chargeback
 from tests.factories.order_factory import make_order
 
@@ -21,15 +20,15 @@ WEBHOOK_URL = '/api/v1/payments/webhooks/mercadopago/'
 
 def _make_payment(user, amount='500.00'):
     order = make_order(user=user, status='PROCESSING')
-    OrderItem.objects.create(
+    SaleOrderLine.objects.create(
         order=order, product_name='Prod CB', sku='CB-001',
         unit_price=Decimal(amount), quantity=1, subtotal=Decimal(amount),
     )
-    OrderValue.objects.create(
+    OrderValue_GONE.objects.create(
         order=order, subtotal=Decimal(amount), tax=Decimal('0'),
         shipping_cost=Decimal('0'), discount=Decimal('0'), total=Decimal(amount),
     )
-    OrderAddress.objects.create(
+    DeliveryAddress.objects.create(
         order=order, recipient_name='Test', street='Calle CB',
         city='CDMX', state='CMX', zip_code='06600',
     )

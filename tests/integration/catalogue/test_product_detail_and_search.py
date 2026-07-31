@@ -12,7 +12,6 @@ from django.contrib.auth import get_user_model
 from addons.catalogue.models import Category, Product
 from addons.rating.models import Review
 from addons.questions.models import ProductQuestion, QuestionStatus
-from addons.orders.models import Order
 from tests.factories.order_factory import make_order
 from addons.sale.status_projection import STATUS_DELIVERED
 

@@ -12,7 +12,6 @@ from addons.catalogue.models import Category, Product
 from addons.chartsize.models import VariantType, VariantOption, ProductVariant
 from addons.inventory.models import StockMovement
 from addons.inventory.services import InventoryService, InsufficientStockError
-from addons.orders.models import Order, OrderItem
 from addons.payment.models import Payment
 from addons.sale.models import SaleOrder
 from addons.users.models import BusinessEvent
@@ -466,17 +465,17 @@ class TestZeroStockGuard:
     UC-INV-04 EX-02: two-round guard cuando stock de variante se ajusta a cero.
     Cut-over orders→sale (ADR-024): "en riesgo" = orden confirmada
     (``sale.state='sale'``) SIN pago aprobado — el fixture construye los
-    ejes canónicos (SaleOrder + Order espejo + Payment), no el enum legacy.
+    ejes canónicos (SaleOrder + SaleOrder espejo + Payment), no el enum legacy.
     Round 2 escribe BusinessEvent (AC-06 / RNF-AUDIT-001) cuando new_quantity=0.
     """
 
     def _make_confirmed_order(self, variant, *, approved=False, quantity=1):
         """Construye los ejes canónicos O2C: SaleOrder(state='sale') +
-        Order espejo + OrderItem. Con ``approved=True`` añade un Payment
+        SaleOrder espejo + SaleOrderLine. Con ``approved=True`` añade un Payment
         APPROVED en el eje de pago (excluye la orden del set at-risk)."""
         so = SaleOrder.objects.create(state=SaleOrder.STATE_SALE)
-        order = Order.objects.create(sale_order=so)
-        OrderItem.objects.create(
+        order = SaleOrder.objects.create(sale_order=so)
+        SaleOrderLine.objects.create(
             order=order,
             variant=variant,
             product_name='Test',

@@ -12,7 +12,6 @@ from addons.cart.models import SavedCart, SavedCartItem
 from addons.catalogue.models import Category, Product, SearchHistory, ProductImage
 from addons.chartsize.models import VariantType, VariantOption, ProductVariant
 from addons.inventory.models import StockMovement, StockAlert
-from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from addons.base.models import SiteSettings
 from addons.delivery.models import ShippingMethod
 from addons.payment.models import PaymentGateway
@@ -23,7 +22,6 @@ from addons.loyalty.models import Voucher, VoucherChangeLog
 from addons.website_sale_wishlist.models import WishlistItem
 from addons.catalogue.serializers import SearchHistorySerializer
 from addons.inventory.proxy_models import SaleMovement, CancellationMovement, AdjustmentMovement, ImportMovement
-from addons.orders.proxy_models import DeliveredOrder, ActiveOrder
 from addons.sale.models import SaleOrder
 from addons.payment.models import Payment
 from addons.delivery.models import Courier, ShipmentGuide
@@ -48,7 +46,7 @@ class TestTimeStampedModelHerencia:
             Category, Product, SearchHistory, ProductImage,
             VariantType, VariantOption, ProductVariant,
             StockMovement, StockAlert,
-            Order, OrderItem, OrderValue, OrderAddress,
+            SaleOrder, SaleOrderLine, OrderValue_GONE, DeliveryAddress,
             SiteSettings, PaymentGateway, ShippingMethod,
             StaticPage, StaticPageVersion,
             Address, PasswordResetToken, EmailVerificationToken,
@@ -85,8 +83,8 @@ class TestTimestampsEspeciales:
         assert field.db_index is True
 
     def test_h_inh_001_order_created_at_tiene_db_index(self, db):
-        """DEC-003: override explícito en Order."""
-        field = Order._meta.get_field('created_at')
+        """DEC-003: override explícito en SaleOrder."""
+        field = SaleOrder._meta.get_field('created_at')
         assert field.db_index is True
 
     def test_h_inh_002_searchhistory_campo_externo_es_searched_at(self, db):
@@ -171,9 +169,9 @@ class TestOrderProxies:
     """
 
     def _order(self, *, approved=False):
-        """Orden canónica: SaleOrder confirmada + Order enlazada (+ pago)."""
+        """Orden canónica: SaleOrder confirmada + SaleOrder enlazada (+ pago)."""
         so = SaleOrder.objects.create(state=SaleOrder.STATE_SALE)
-        order = Order.objects.create(sale_order=so)
+        order = SaleOrder.objects.create(sale_order=so)
         if approved:
             Payment.objects.create(
                 order=order, sale_order=so,
@@ -195,7 +193,7 @@ class TestOrderProxies:
 
     def test_proxy_models_no_crean_tablas(self, db):
         for proxy in [DeliveredOrder, ActiveOrder]:
-            assert proxy._meta.db_table == Order._meta.db_table
+            assert proxy._meta.db_table == SaleOrder._meta.db_table
             assert proxy._meta.proxy is True
 
     def test_delivered_order_desde_guia_entregada(self, db):

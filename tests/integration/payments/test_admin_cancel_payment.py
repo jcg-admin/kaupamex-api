@@ -8,7 +8,6 @@ import pytest
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
 
-from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from addons.payment.models import Payment
 from tests.factories.order_factory import make_order
 
@@ -19,15 +18,15 @@ CANCEL_URL = lambda pid: f'/api/v2/admin/payments/{pid}/cancel/'
 
 def _make_payment(user, status=Payment.STATUS_PENDING, gateway_payment_id='MP-CAN-001'):
     order = make_order(user=user, status='PENDING')
-    OrderItem.objects.create(
+    SaleOrderLine.objects.create(
         order=order, product_name='Prod CAN', sku=f'CAN-{gateway_payment_id}',
         unit_price=Decimal('200.00'), quantity=1, subtotal=Decimal('200.00'),
     )
-    OrderValue.objects.create(
+    OrderValue_GONE.objects.create(
         order=order, subtotal=Decimal('200.00'), tax=Decimal('0'),
         shipping_cost=Decimal('0'), discount=Decimal('0'), total=Decimal('200.00'),
     )
-    OrderAddress.objects.create(
+    DeliveryAddress.objects.create(
         order=order, recipient_name='Test', street='Calle CAN',
         city='CDMX', state='CMX', zip_code='06600',
     )

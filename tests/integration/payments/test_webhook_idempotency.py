@@ -15,7 +15,6 @@ import pytest
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
 from addons.catalogue.models import Category, Product
-from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from addons.sale.status_projection import order_status
 from addons.sale.models import SaleOrder
 from addons.payment.models import Payment, WebhookEvent
@@ -53,20 +52,20 @@ def order_mp_pending(db, user, cat_idem):
         is_active=True, is_published=True,
     )
     prod.categories.add(cat_idem)
-    order = Order.objects.create(
+    order = SaleOrder.objects.create(
         user=user, # O2C R8: par canonico — la proyeccion deriva el estado de los ejes.
         sale_order=SaleOrder.objects.create(state=SaleOrder.STATE_SALE),
     )
-    OrderItem.objects.create(
+    SaleOrderLine.objects.create(
         order=order, product_name=prod.name, sku=prod.sku,
         unit_price=prod.price, quantity=1, subtotal=prod.price,
     )
-    OrderValue.objects.create(
+    OrderValue_GONE.objects.create(
         order=order, subtotal=Decimal('500.00'), tax=Decimal('69.00'),
         shipping_cost=Decimal('0.00'), discount=Decimal('0.00'),
         total=Decimal('500.00'),
     )
-    OrderAddress.objects.create(
+    DeliveryAddress.objects.create(
         order=order, recipient_name='Test', street='Av 1',
         city='CDMX', state='CMX', zip_code='06600',
     )
@@ -89,20 +88,20 @@ def order_paypal_pending(db, user, cat_idem):
         is_active=True, is_published=True,
     )
     prod.categories.add(cat_idem)
-    order = Order.objects.create(
+    order = SaleOrder.objects.create(
         user=user, # O2C R8: par canonico — la proyeccion deriva el estado de los ejes.
         sale_order=SaleOrder.objects.create(state=SaleOrder.STATE_SALE),
     )
-    OrderItem.objects.create(
+    SaleOrderLine.objects.create(
         order=order, product_name=prod.name, sku=prod.sku,
         unit_price=prod.price, quantity=1, subtotal=prod.price,
     )
-    OrderValue.objects.create(
+    OrderValue_GONE.objects.create(
         order=order, subtotal=Decimal('400.00'), tax=Decimal('55.17'),
         shipping_cost=Decimal('0.00'), discount=Decimal('0.00'),
         total=Decimal('400.00'),
     )
-    OrderAddress.objects.create(
+    DeliveryAddress.objects.create(
         order=order, recipient_name='PP Test', street='Calle 2',
         city='GDL', state='JAL', zip_code='44100',
     )

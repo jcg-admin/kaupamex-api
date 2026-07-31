@@ -17,10 +17,9 @@ la canónica sea consultable sin depender del espejo que E5 retira.
 from decimal import Decimal
 
 import pytest
+from addons.sale.models import SaleOrder
 
 from addons.delivery.models import ShippingMethod
-from addons.orders.models import OrderValue
-from addons.orders.services import update_shipping_method
 from addons.sale.status_projection import STATUS_PENDING, active_sale_orders
 from tests.factories.order_factory import make_order
 
@@ -36,9 +35,9 @@ def metodo():
 
 @pytest.fixture
 def orden(user):
-    """Orden PENDING con su ``OrderValue`` — el servicio recalcula el total."""
+    """Orden PENDING con su ``OrderValue_GONE`` — el servicio recalcula el total."""
     order = make_order(status=STATUS_PENDING, user=user)
-    OrderValue.objects.create(
+    OrderValue_GONE.objects.create(
         order=order, subtotal=Decimal('500.00'), tax=Decimal('0.00'),
         shipping_cost=Decimal('0.00'), total=Decimal('500.00'),
     )

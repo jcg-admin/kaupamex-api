@@ -10,7 +10,7 @@ Cubre los criterios de aceptación AC-01..AC-04 del contrato:
 Adicional:
 - admin (is_staff) puede descargar el recibo de una orden ajena (Alternativa A).
 - la auditoría RECEIPT_PDF_GENERATED queda registrada (POST-02 / AC-06).
-- totales del PDF derivan de OrderValue (AC-05, vía payload del helper).
+- totales del PDF derivan de OrderValue_GONE (AC-05, vía payload del helper).
 
 El helper C (tools/pdf/pdf_receipt) debe estar compilado en el entorno
 (ADR-017): el provisioner server lo construye con `make`. Estos tests lo
@@ -24,7 +24,6 @@ from django.contrib.auth import get_user_model
 
 from addons.catalogue.models import Category, Product
 from addons.delivery.models.sale_order import set_delivery_line
-from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from addons.sale.models import SaleOrderLine
 from addons.payment.models import Payment
 from addons.payments.pdf_receipt import HELPER_PATH, build_receipt_payload
@@ -87,22 +86,22 @@ def _make_paid_order(user, *, status=STATUS_PAID, with_payment=True):
         product_uom_qty=1, price_unit=Decimal('150.00'))
     set_delivery_line(order.sale_order, Decimal('99.00'))
 
-    OrderItem.objects.create(
+    SaleOrderLine.objects.create(
         order=order, product_name='Collar Eleguá', sku='YOR-001',
         unit_price=Decimal('450.00'), quantity=2,
         subtotal=Decimal('900.00'),
     )
-    OrderItem.objects.create(
+    SaleOrderLine.objects.create(
         order=order, product_name='Otá de Yemayá', sku='YOR-002',
         unit_price=Decimal('150.00'), quantity=1,
         subtotal=Decimal('150.00'),
     )
-    OrderValue.objects.create(
+    OrderValue_GONE.objects.create(
         order=order, subtotal=Decimal('1050.00'),
         tax=Decimal('144.83'), shipping_cost=Decimal('99.00'),
         discount=Decimal('0.00'), total=Decimal('1149.00'),
     )
-    OrderAddress.objects.create(
+    DeliveryAddress.objects.create(
         order=order, recipient_name='Juan Pérez',
         street='Av. Reforma 100', city='CDMX',
         state='Ciudad de México', zip_code='06600', country='MX',
@@ -230,7 +229,7 @@ def test_ac04_missing_order_returns_404(api_client, buyer):
 
 
 # ---------------------------------------------------------------------------
-# AC-05 — totales del PDF derivan de OrderValue (vía payload del helper)
+# AC-05 — totales del PDF derivan de OrderValue_GONE (vía payload del helper)
 # ---------------------------------------------------------------------------
 
 def test_ac05_payload_totals_match_order_value(db, buyer):

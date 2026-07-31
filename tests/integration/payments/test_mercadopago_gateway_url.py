@@ -8,11 +8,11 @@ UC-PAY-01: Procesar pago con MercadoPago
 """
 import json
 import pytest
+from addons.sale.models import SaleOrder
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
 from decouple import config
 from addons.catalogue.models import Category, Product
-from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from addons.payment.models import PaymentGateway
 from addons.payment.models import Payment, PaymentGatewayEvent
 from tests.factories.order_factory import make_order
@@ -46,20 +46,20 @@ def prod_mp(db, cat_mp):
 
 @pytest.fixture
 def orden_mp(db, user, prod_mp):
-    """Orden PENDING con OrderValue para tests de MercadoPago."""
+    """Orden PENDING con OrderValue_GONE para tests de MercadoPago."""
     order = make_order(user=user, status='PENDING')
-    OrderItem.objects.create(
+    SaleOrderLine.objects.create(
         order=order, product_name=prod_mp.name,
         sku=prod_mp.sku, unit_price=prod_mp.price,
         quantity=2, subtotal=prod_mp.price * 2,
     )
-    OrderValue.objects.create(
+    OrderValue_GONE.objects.create(
         order=order,
         subtotal=Decimal('3000.00'), tax=Decimal('0.00'),
         shipping_cost=Decimal('0.00'), discount=Decimal('0.00'),
         total=Decimal('3000.00'),
     )
-    OrderAddress.objects.create(
+    DeliveryAddress.objects.create(
         order=order, recipient_name='Test User',
         street='Av. Reforma 100', city='CDMX',
         state='Ciudad de Mexico', zip_code='06600',
@@ -190,7 +190,7 @@ class TestMercadoPagoGatewayURLErrores:
 
     def test_orden_no_pending_retorna_400(self, auth_client, orden_mp, mp_gateway, mock_sdk):
         # O2C V5d: no-pagable se produce por los ejes (entregada), no
-        # escribiendo la columna ('APPROVED' ni era un Order status valido).
+        # escribiendo la columna ('APPROVED' ni era un SaleOrder status valido).
         mark_delivered(orden_mp)
         res = auth_client.post(MP_URL, {'order_number': orden_mp.order_number}, format='json')
         assert res.status_code == 400

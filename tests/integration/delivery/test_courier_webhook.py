@@ -25,7 +25,6 @@ from django.utils import timezone
 
 from addons.catalogue.models import Category, Product
 from addons.delivery.models import Courier, ShipmentEvent, ShipmentGuide
-from addons.orders.models import Order, OrderAddress, OrderItem, OrderValue
 from tests.factories.order_factory import make_order
 
 pytestmark = pytest.mark.integration
@@ -74,16 +73,16 @@ def order_log(db, user, prod_log):
     # O2C V5d: la guia la crea el fixture ``guide_log`` (OneToOne) — la
     # orden base se fabrica PENDING para no duplicar el eje de fulfillment.
     o = make_order(user=user)
-    OrderItem.objects.create(
+    SaleOrderLine.objects.create(
         order=o, product=prod_log, product_name=prod_log.name,
         sku=prod_log.sku, unit_price=prod_log.price,
         quantity=1, subtotal=prod_log.price,
     )
-    OrderValue.objects.create(
+    OrderValue_GONE.objects.create(
         order=o, subtotal=Decimal('500'), tax=Decimal('0'),
         shipping_cost=Decimal('80'), total=Decimal('580'),
     )
-    OrderAddress.objects.create(
+    DeliveryAddress.objects.create(
         order=o, recipient_name='Test', street='Av', city='CDMX',
         state='CDMX', zip_code='06600',
     )

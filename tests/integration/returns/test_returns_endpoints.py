@@ -19,11 +19,11 @@ from decimal import Decimal
 from io import BytesIO
 from unittest.mock import MagicMock, patch
 import pytest
+from addons.sale.models import SaleOrder
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 from addons.catalogue.models import Category, Product
-from addons.orders.models import Order, OrderItem
 from addons.payment.models import Payment
 from addons.stock.models import ReturnHistoryEntry, ReturnRequest
 from addons.payment.models import PaymentGateway
@@ -81,11 +81,11 @@ def delivered_order(db, user):
 @pytest.fixture
 def delivered_order_with_items(db, user, prod1, prod2):
     order = make_order(user=user, status=STATUS_DELIVERED)
-    OrderItem.objects.create(
+    SaleOrderLine.objects.create(
         order=order, product=prod1, product_name=prod1.name, sku=prod1.sku,
         unit_price=prod1.price, quantity=2, subtotal=prod1.price * 2,
     )
-    OrderItem.objects.create(
+    SaleOrderLine.objects.create(
         order=order, product=prod2, product_name=prod2.name, sku=prod2.sku,
         unit_price=prod2.price, quantity=2, subtotal=prod2.price * 2,
     )
@@ -438,7 +438,7 @@ class TestAdminReception:
 
 # ────────────────────────────── UC-RET-06 ────────────────────────────────
 def _create_approved_order_and_return(user, payment_amount=Decimal('2000.00')):
-    """Crea Order + Payment APPROVED + ReturnRequest APPROVED.
+    """Crea SaleOrder + Payment APPROVED + ReturnRequest APPROVED.
 
     UC-RET-06 D-01: el refund debe ejecutar el gateway sobre el Payment
     real. La sucesora corregir-hallazgos-buyer-devoluciones aplico

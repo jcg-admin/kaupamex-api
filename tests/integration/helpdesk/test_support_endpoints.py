@@ -27,7 +27,6 @@ from addons.helpdesk.models import SupportTicket, SupportTicketReply
 from addons.helpdesk.management.commands.auto_close_support_tickets import (
     AUTO_CLOSE_DAYS,
 )
-from addons.orders.models import Order
 from addons.mail.models import Notification, NotificationType
 from tests.factories.order_factory import make_order
 from addons.sale.status_projection import STATUS_PENDING

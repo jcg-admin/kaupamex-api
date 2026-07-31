@@ -11,9 +11,9 @@ These tests validate the SoftDeleteModel mixin in core.models:
 - ``queryset.delete()`` does a bulk soft delete via UPDATE.
 """
 import pytest
+from addons.sale.models import SaleOrder
 from addons.base.models import SoftDeleteModel, SoftDeleteManager, AllObjectsManager
 from addons.catalogue.models import Product, Category
-from addons.orders.models import Order
 from addons.users.models import Address
 
 pytestmark = pytest.mark.integration
@@ -99,16 +99,16 @@ class TestSoftDeleteOnProduct:
 
 
 class TestSoftDeleteOnOrder:
-    """Order (orders) — historial financiero. Critico."""
+    """SaleOrder (orders) — historial financiero. Critico."""
 
     @pytest.mark.django_db
     def test_order_inherits_softdelete(self):
-        assert issubclass(Order, SoftDeleteModel)
-        assert hasattr(Order, 'all_objects')
+        assert issubclass(SaleOrder, SoftDeleteModel)
+        assert hasattr(SaleOrder, 'all_objects')
 
 
 class TestSoftDeleteOnAddress:
-    """Address (users) — referenciado historicamente desde Order."""
+    """Address (users) — referenciado historicamente desde SaleOrder."""
 
     @pytest.mark.django_db
     def test_address_inherits_softdelete(self):

@@ -7,7 +7,6 @@ Cubre: lista completa, pago sin reembolsos, permisos (401/403), 404.
 import pytest
 from decimal import Decimal
 
-from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from addons.payment.models import Payment, Refund
 from tests.factories.order_factory import make_order
 
@@ -18,16 +17,16 @@ REFUNDS_URL = lambda pid: f'/api/v2/admin/payments/{pid}/refunds/'
 
 def _make_payment(user, amount='500.00', status='APPROVED', gateway_payment_id='MP-001'):
     order = make_order(user=user, status='PROCESSING')
-    OrderItem.objects.create(
+    SaleOrderLine.objects.create(
         order=order, product_name='Eleke', sku='RFL-001',
         unit_price=Decimal(amount), quantity=1, subtotal=Decimal(amount),
     )
-    OrderValue.objects.create(
+    OrderValue_GONE.objects.create(
         order=order,
         subtotal=Decimal(amount), tax=Decimal('0'), shipping_cost=Decimal('0'),
         discount=Decimal('0'), total=Decimal(amount),
     )
-    OrderAddress.objects.create(
+    DeliveryAddress.objects.create(
         order=order, recipient_name='Test',
         street='Calle 1', city='CDMX', state='CMX', zip_code='06600',
     )

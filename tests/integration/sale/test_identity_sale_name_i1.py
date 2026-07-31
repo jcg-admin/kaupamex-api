@@ -19,7 +19,6 @@ from uuid import uuid4
 import pytest
 
 from addons.catalogue.models import Category, Product
-from addons.orders.models import Order
 from addons.sale.models import SaleOrder, SaleOrderLine
 from addons.sale.services import add_item_to_draft, confirm_draft_order
 
@@ -63,5 +62,5 @@ class TestIdentidadCanonicaEnElContrato:
         """El patrón de lookup vigente (``order_number``) sigue resolviendo,
         y ahora es equivalente a buscar por ``sale.name``."""
         canonical, legacy = _confirmar(producto)
-        assert Order.objects.get(order_number=canonical.name).pk == legacy.pk
+        assert SaleOrder.objects.get(order_number=canonical.name).pk == legacy.pk
         assert SaleOrder.objects.get(name=legacy.order_number).pk == canonical.pk

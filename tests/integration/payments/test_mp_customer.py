@@ -13,7 +13,6 @@ from decimal import Decimal
 from unittest.mock import patch, MagicMock
 
 from addons.catalogue.models import Category, Product
-from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from addons.payment_mercado_pago.gateway import MercadoPagoGateway
 from addons.payments.services import get_or_create_mp_customer
 from addons.payment.models import PaymentGateway
@@ -67,17 +66,17 @@ def prod(db, cat):
 @pytest.fixture
 def orden(db, user, prod):
     order = make_order(user=user, status='PENDING')
-    OrderItem.objects.create(
+    SaleOrderLine.objects.create(
         order=order, product_name=prod.name, sku=prod.sku,
         unit_price=prod.price, quantity=2,
         subtotal=prod.price * 2,
     )
-    OrderValue.objects.create(
+    OrderValue_GONE.objects.create(
         order=order, subtotal=Decimal('1000.00'),
         tax=Decimal('0'), shipping_cost=Decimal('0'),
         discount=Decimal('0'), total=Decimal('1000.00'),
     )
-    OrderAddress.objects.create(
+    DeliveryAddress.objects.create(
         order=order, recipient_name='Test User',
         street='Av. Reforma 1', city='CDMX',
         state='Ciudad de Mexico', zip_code='06600',

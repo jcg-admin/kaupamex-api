@@ -18,9 +18,9 @@ Invariantes que fijan el contrato:
    la incluye.
 2. El descuento del cupón nace como línea ``is_reward`` de precio negativo, con
    el importe calculado **del cupón**, no recibido del llamador.
-3. **El espejo no se contamina**: sus ``OrderItem`` siguen siendo sólo de
+3. **El espejo no se contamina**: sus ``SaleOrderLine`` siguen siendo sólo de
    producto (el puente itera la lista capturada antes de materializar), y su
-   ``OrderValue`` conserva los escalares. No hay doble conteo — son dos
+   ``OrderValue_GONE`` conserva los escalares. No hay doble conteo — son dos
    modelos distintos.
 4. Mecanismo A (borrar+recrear) es idempotente: re-materializar deja una sola
    línea. El Mecanismo B de Odoo (reescritura in-place bajo flag de contexto)
@@ -42,7 +42,6 @@ from addons.catalogue.models import Category, Product
 from addons.delivery.models import ShippingMethod
 from addons.delivery.models.sale_order import set_delivery_line
 from addons.loyalty.models import Voucher
-from addons.orders.models import OrderItem, OrderValue
 from addons.sale.models import SaleOrder
 from addons.sale_loyalty.services import apply_voucher_to_draft
 from addons.sale.services import (
@@ -143,7 +142,7 @@ class TestLineaDeEnvio:
         assert linea.product.sku == 'SRV-ENVIO'     # producto genérico
         assert linea.name == 'Envío'
         # El espejo conserva su escalar; los dos totales siguen coincidiendo.
-        assert OrderValue.objects.get(order=legacy).shipping_cost == Decimal('50.00')
+        assert OrderValue_GONE.objects.get(order=legacy).shipping_cost == Decimal('50.00')
         assert draft.amount_total == Decimal('150.00')
 
 
@@ -229,13 +228,13 @@ class TestBaseDelDescuento:
 
 
 class TestElEspejoNoSeContamina:
-    """El contrato del espejo queda intacto: sus OrderItem son de producto."""
+    """El contrato del espejo queda intacto: sus SaleOrderLine son de producto."""
 
     def test_los_orderitem_siguen_siendo_solo_de_producto(
             self, producto, metodo):
         draft = _draft(producto, carrier=metodo)
         legacy = _checkout(draft, Decimal('99.00'))
-        items = OrderItem.objects.filter(order=legacy)
+        items = SaleOrderLine.objects.filter(order=legacy)
         assert items.count() == 1
         assert items.first().product_id == producto.pk
 
@@ -244,7 +243,7 @@ class TestElEspejoNoSeContamina:
         draft = _draft(producto, carrier=metodo)
         legacy = _checkout(draft, Decimal('99.00'))
         draft.refresh_from_db()
-        valor = OrderValue.objects.get(order=legacy)
+        valor = OrderValue_GONE.objects.get(order=legacy)
         assert valor.total == draft.amount_total == Decimal('199.00')
 
 
@@ -258,5 +257,5 @@ class TestVoucherEndToEnd:
         draft.refresh_from_db()
         assert draft.order_line.filter(is_delivery=True).count() == 1
         assert draft.order_line.filter(is_reward=True).count() == 1
-        valor = OrderValue.objects.get(order=legacy)
+        valor = OrderValue_GONE.objects.get(order=legacy)
         assert valor.total == draft.amount_total

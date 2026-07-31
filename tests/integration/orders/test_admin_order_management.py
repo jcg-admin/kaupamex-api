@@ -8,8 +8,6 @@ from decimal import Decimal
 from addons.authz.services import SUPERADMIN_ROLE_CODE
 from addons.catalogue.models import Category, Product
 from addons.delivery.models import Courier, ShipmentGuide
-from addons.orders.admin_services import transition_order_status
-from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress, OrderStatusLog
 from addons.payment.models import Payment
 from addons.sale.models import SaleOrder
 from django.contrib.auth import get_user_model
@@ -23,7 +21,7 @@ def _canonical_order(user, *, approved=False):
     Sin pago aprobado → proyecta PENDING; con pago aprobado → PAID.
     """
     so = SaleOrder.objects.create(state=SaleOrder.STATE_SALE)
-    order = Order.objects.create(user=user, sale_order=so)
+    order = SaleOrder.objects.create(user=user, sale_order=so)
     if approved:
         Payment.objects.create(
             order=order, sale_order=so,
@@ -61,18 +59,18 @@ def prod_adm(db, cat_adm):
 
 def _make_order(user, prod, status='PENDING'):
     order = make_order(user=user, status=status)
-    OrderItem.objects.create(
+    SaleOrderLine.objects.create(
         order=order, product_name=prod.name, sku=prod.sku,
         unit_price=prod.price, quantity=1, subtotal=prod.price,
         product=prod,
     )
-    OrderValue.objects.create(
+    OrderValue_GONE.objects.create(
         order=order, subtotal=prod.price,
         tax=(prod.price * Decimal('0.16') / Decimal('1.16')).quantize(Decimal('0.01')),
         shipping_cost=Decimal('80'), discount=Decimal('0'),
         total=prod.price + Decimal('80'),
     )
-    OrderAddress.objects.create(
+    DeliveryAddress.objects.create(
         order=order, recipient_name='T',
         street='S 1', city='CDMX', state='CMX', zip_code='06600',
     )
@@ -244,7 +242,7 @@ class TestTransicionEstadoAdmin:
             {'new_status': 'PAID'},
             format='json',
         )
-        log = OrderStatusLog.objects.filter(order=order).first()
+        log = SaleOrderStatusLog_GONE.objects.filter(order=order).first()
         assert log is not None
         assert log.previous_status == 'PENDING'
         assert log.new_status == 'PAID'
@@ -305,7 +303,7 @@ class TestTransicionEstadoAdmin:
 
         # Dos transiciones del hub (PAID, DELIVERED) → dos entradas de log;
         # la guía creada directo (sin endpoint logistics) no loguea SHIPPED.
-        assert OrderStatusLog.objects.filter(order=order).count() == 2
+        assert SaleOrderStatusLog_GONE.objects.filter(order=order).count() == 2
 
         # Pedir SHIPPED al hub es error explícito (eje fulfillment).
         res = admin_client.patch(
@@ -423,7 +421,7 @@ class TestCancelarOrdenAdmin:
             {'reason': 'Cancelación administrativa por validación'},
             format='json',
         )
-        log = OrderStatusLog.objects.filter(
+        log = SaleOrderStatusLog_GONE.objects.filter(
             order=order, new_status='CANCELLED'
         ).first()
         assert log is not None
