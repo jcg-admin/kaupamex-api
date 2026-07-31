@@ -6,7 +6,6 @@ Cumplen los contratos JSON declarados en UC-SUPP-01..05 (PARTE 7C).
 from rest_framework import serializers
 from .models import SupportTicket, SupportTicketReply
 from addons.authz.services import is_superadmin
-from addons.orders.models import Order
 
 
 
@@ -51,7 +50,7 @@ class SupportTicketCreateSerializer(serializers.Serializer):
         request = self.context.get('request')
         if request is None or not getattr(request.user, 'is_authenticated', False):
             return value  # las views protegen con IsAuthenticated
-        if not Order.objects.filter(pk=value, user=request.user).exists():
+        if not SaleOrder.objects.filter(pk=value, user=request.user).exists():
             raise serializers.ValidationError({
                 'codigo_error': 'ORDER_NOT_FOUND',
                 'detail':     'La orden no existe o no pertenece al comprador.',

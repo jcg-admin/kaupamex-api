@@ -9,13 +9,14 @@ Diseño (heredado de payments/webhooks.py):
   - El endpoint retorna 200 inmediato para evitar reintentos del gateway.
   - La verificación de firma rechaza con 401 antes de procesar.
   - Idempotencia por unique(gateway_payment_id) en BD.
-  - Order.status → PAID cuando pago aprobado (via webhook_processing).
+  - SaleOrder.status → PAID cuando pago aprobado (via webhook_processing).
 """
 import json
 import logging
 from decimal import Decimal
 
 from django.views.decorators.csrf import csrf_exempt
+from addons.sale.models import SaleOrder
 from django.utils.decorators import method_decorator
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 from rest_framework import serializers
@@ -29,7 +30,6 @@ from addons.payment.models import Payment, PaymentGatewayEvent, WebhookEvent, Ch
 from addons.payment.webhook_processing import _process_payment_approval
 from addons.payment.models import PaymentGateway as PGModel
 from addons.payment_mercado_pago.gateway import MercadoPagoGateway
-from addons.orders.models import Order
 
 logger = logging.getLogger('apps')
 

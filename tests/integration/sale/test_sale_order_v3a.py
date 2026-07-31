@@ -3,7 +3,7 @@
 El eje de pago se ancla al canónico: en Odoo ``payment.transaction``
 apunta a ``sale.order``; aquí ``Payment`` (la transacción strangler) gana
 la FK ``sale_order`` y el espejo legacy ``orders.Order`` conoce su
-canónico (``Order.sale_order``, fijado por ``confirm_draft_order``).
+canónico (``SaleOrder.sale_order``, fijado por ``confirm_draft_order``).
 """
 import uuid
 from decimal import Decimal
@@ -11,11 +11,10 @@ from decimal import Decimal
 import pytest
 
 from addons.catalogue.models import Category, Product
-from addons.orders.models import Order
 from addons.payment.models import Payment
 from addons.sale.models import SaleOrder
 from addons.sale.services import add_item_to_draft, confirm_draft_order
-from addons.orders.status_projection import (
+from addons.sale.status_projection import (
     STATUS_PENDING,
     order_status,
 )

@@ -8,16 +8,16 @@ on_commit se parchea para ejecutar callbacks inmediatamente (los tests
 corren en transacciones que nunca commitean).
 """
 import pytest
+from addons.sale.models import SaleOrder
 from decimal import Decimal
 from unittest.mock import patch
 
 from addons.mail.models import Notification
 from addons.mail.models.notification_service import notify_order_status_changed
-from addons.orders.models import Order, OrderValue
 from addons.payment.models import Payment, Refund
 from addons.stock.models import ReturnRequest
 from tests.factories.order_factory import make_order
-from addons.orders.status_projection import (
+from addons.sale.status_projection import (
     STATUS_PENDING,
     STATUS_SHIPPED,
 )
@@ -34,7 +34,7 @@ def _make_order(user):
 
 
 def _make_order_value(order, total=Decimal('464.00')):
-    return OrderValue.objects.create(
+    return OrderValue_GONE.objects.create(
         order=order,
         subtotal=Decimal('400.00'),
         tax=Decimal('64.00'),
@@ -55,7 +55,7 @@ def _make_payment(order):
     )
 
 
-# ── UC-NOT-01: OrderValue created triggers order confirmation ─────────────
+# ── UC-NOT-01: OrderValue_GONE created triggers order confirmation ─────────────
 
 class TestOrderCreatedSignal:
     def test_creates_notification_on_order_value_save(self, db, user):
@@ -95,7 +95,7 @@ class TestOrderCreatedSignal:
 
 # ── UC-NOT-02: notificacion EXPLICITA por transicion de eje (O2C V5d) ─────
 #
-# La signal ``post_save`` que observaba ``Order.status`` murio con la columna
+# La signal ``post_save`` que observaba ``SaleOrder.status`` murio con la columna
 # espejo (V5d, H-API-20): sin campo no hay cambio que observar. El mecanismo
 # vigente es la llamada explicita ``notify_order_status_changed`` en cada punto
 # de mutacion del eje (hub admin, cancel_order, alta de guia, entrega). Estos

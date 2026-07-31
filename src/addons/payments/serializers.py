@@ -3,7 +3,7 @@ from decimal import Decimal
 from rest_framework import serializers
 from addons.payment.models import Payment, Refund, Chargeback, PaymentGatewayEvent, SavedCard
 from addons.payment_mercado_pago.gateway import NON_CARD_METHOD_IDS
-from addons.orders.status_projection import order_status as project_order_status
+from addons.sale.status_projection import order_status as project_order_status
 
 
 

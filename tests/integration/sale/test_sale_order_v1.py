@@ -2,12 +2,11 @@
 
 V1 es additiva: ``SaleOrder`` gana ``guest_email``/``notes`` (lo que el
 flujo vivo del strangler necesita, DEC-FW-02) y los satélites
-``OrderAddress``/``OrderStatusLog`` ganan la FK dual transitoria a
-``sale.SaleOrder`` (V2 conmuta el flujo; V5 retira la FK a Order).
+``DeliveryAddress``/``SaleOrderStatusLog_GONE`` ganan la FK dual transitoria a
+``sale.SaleOrder`` (V2 conmuta el flujo; V5 retira la FK a SaleOrder).
 """
 import pytest
 
-from addons.orders.models import OrderAddress, OrderStatusLog
 from addons.sale.models import SaleOrder
 
 pytestmark = pytest.mark.django_db
@@ -32,7 +31,7 @@ class TestSaleOrderV1Fields:
 class TestSatelliteDualFkV1:
     def test_order_address_anchors_to_sale_order(self):
         so = SaleOrder.objects.create()
-        addr = OrderAddress.objects.create(
+        addr = DeliveryAddress.objects.create(
             sale_order=so, recipient_name='Test V1', street='Calle 1',
             city='CDMX', state='CMX', zip_code='06600',
         )
@@ -41,6 +40,6 @@ class TestSatelliteDualFkV1:
 
     def test_status_log_anchors_to_sale_order(self):
         so = SaleOrder.objects.create()
-        log = OrderStatusLog.objects.create(
+        log = SaleOrderStatusLog_GONE.objects.create(
             sale_order=so, previous_status='draft', new_status='sale')
         assert list(so.status_logs.all()) == [log]

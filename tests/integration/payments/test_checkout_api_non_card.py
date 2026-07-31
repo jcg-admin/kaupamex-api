@@ -12,7 +12,6 @@ from decimal import Decimal
 from unittest.mock import patch, MagicMock
 
 from addons.catalogue.models import Category, Product
-from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from addons.payment.models import PaymentGateway
 from addons.payment.models import Payment
 from tests.factories.order_factory import make_order
@@ -45,17 +44,17 @@ def prod_nc(db, cat_nc):
 @pytest.fixture
 def orden_nc(db, user, prod_nc):
     order = make_order(user=user, status='PENDING')
-    OrderItem.objects.create(
+    SaleOrderLine.objects.create(
         order=order, product_name=prod_nc.name, sku=prod_nc.sku,
         unit_price=prod_nc.price, quantity=1,
         subtotal=prod_nc.price,
     )
-    OrderValue.objects.create(
+    OrderValue_GONE.objects.create(
         order=order, subtotal=Decimal('500.00'),
         tax=Decimal('0.00'), shipping_cost=Decimal('0.00'),
         discount=Decimal('0.00'), total=Decimal('500.00'),
     )
-    OrderAddress.objects.create(
+    DeliveryAddress.objects.create(
         order=order, recipient_name='Test User',
         street='Av. Insurgentes 1', city='CDMX',
         state='Ciudad de Mexico', zip_code='06600',

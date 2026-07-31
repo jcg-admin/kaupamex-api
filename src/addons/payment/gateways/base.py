@@ -95,7 +95,7 @@ class BaseGateway(ABC):
         """
         Crea una preferencia/intención de pago en el gateway.
 
-        :param order: instancia de addons.orders.models.Order
+        :param order: instancia de addons.sale.models.SaleOrder
         :param back_urls: dict con claves 'success', 'failure', 'pending'
         :param installments: número de cuotas (1 = contado)
         :returns: PreferenceResult con preference_id y checkout_url

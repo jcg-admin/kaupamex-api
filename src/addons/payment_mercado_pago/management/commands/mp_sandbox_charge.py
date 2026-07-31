@@ -2,7 +2,7 @@
 mp_sandbox_charge — cobro de humo contra MercadoPago **sandbox**.
 
 Tokeniza una tarjeta de PRUEBA de MP (públicas y libres) vía la API
-``card_tokens`` (equivalente headless de MP.js), crea una Order PENDING
+``card_tokens`` (equivalente headless de MP.js), crea una SaleOrder PENDING
 desechable y llama al MISMO servicio de producción
 ``initiate_checkout_api_payment``. El resultado esperado se fuerza con el
 nombre del titular (APRO/OTHE/CONT/CALL/FUND/SECU/EXPI/FORM).
@@ -27,10 +27,10 @@ import uuid
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
+from addons.sale.models import SaleOrder
 from django.core.management.base import BaseCommand, CommandError
 
-from addons.orders.models import Order, OrderValue
-from addons.orders.status_projection import (
+from addons.sale.status_projection import (
     STATUS_PENDING,
     order_status,
 )
@@ -134,14 +134,14 @@ def run_sandbox_charge(status='APRO', method='master', amount='199.00',
         user.mp_customer_id = ''
         user.save(update_fields=['mp_customer_id'])
 
-    # order_number único por corrida (uuid): Order es SoftDeleteModel, así que
+    # order_number único por corrida (uuid): SaleOrder es SoftDeleteModel, así que
     # una orden "borrada" deja la fila viva y su order_number único colisionaría
     # con un contador. El sufijo aleatorio lo evita. 'MPSMOKE'(7)+12 = 19 <= 20.
     order_number = f'MPSMOKE{uuid.uuid4().hex[:12].upper()}'
-    order = Order.objects.create(
+    order = SaleOrder.objects.create(
         order_number=order_number, user=user,
         status=STATUS_PENDING)
-    OrderValue.objects.create(
+    SaleOrderValue_REMOVED.objects.create(
         order=order, subtotal=Decimal(amount), tax=Decimal('0.00'),
         shipping_cost=Decimal('0.00'), discount=Decimal('0.00'),
         total=Decimal(amount))
@@ -167,10 +167,10 @@ def run_sandbox_charge(status='APRO', method='master', amount='199.00',
     }
 
     if not keep:
-        # hard_delete: Order es SoftDeleteModel; su delete() dejaría la fila.
+        # hard_delete: SaleOrder es SoftDeleteModel; su delete() dejaría la fila.
         for pay in Payment.objects.filter(order=order):
             (pay.hard_delete if hasattr(pay, 'hard_delete') else pay.delete)()
-        order.hard_delete()  # OrderValue cascada real
+        order.hard_delete()  # SaleOrderValue_REMOVED cascada real
 
     return out
 

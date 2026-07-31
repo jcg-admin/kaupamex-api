@@ -19,8 +19,7 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from django.db.models import Q, Sum
 from addons.delivery.models import ShippingZone
-from addons.orders.models import Order
-from addons.orders.status_projection import (
+from addons.sale.status_projection import (
     STATUS_DELIVERED,
     STATUS_IN_PREPARATION,
     STATUS_PAID,
@@ -32,7 +31,9 @@ from addons.orders.status_projection import (
 from addons.sale.models import SaleOrder
 from addons.delivery.models.sale_order import set_delivery_line
 from addons.sale_loyalty.models.sale_order import set_reward_line
-from addons.orders.proxy_models import DeliveredOrder
+from addons.sale.status_projection import (
+    STATUS_DELIVERED, filter_orders_by_status,
+)
 from addons.payment.models import Payment, Payment as PaymentModel, Refund, Chargeback, SavedCard
 from .serializers import (
     InitiatePaymentSerializer, MercadoPagoInitiateSerializer,
@@ -58,8 +59,6 @@ from addons.base.models import SiteSettings
 from addons.delivery.models import ShippingMethod
 from django.db import transaction as db_transaction, IntegrityError
 from addons.inventory.services import InsufficientStockError
-from addons.orders.services import DraftOrderError, confirm_draft_order, get_draft_totals
-from addons.orders.serializers import CheckoutSerializer, OrderSerializer
 from addons.users.audit import audit_log_business
 from addons.users.models import BusinessEvent
 from .pdf_receipt import build_receipt_payload, render_receipt_pdf, PdfGenerationError
@@ -124,7 +123,7 @@ class InitiatePaymentView(APIView):
     def _run_initiate(self, request, order_number, installments, gateway_type, expected_amount):
         # DEC-BC-11 (2026-05-21): permission_classes = [IsAuthenticated]
         # garantiza request.user.is_authenticated. La rama else previa
-        # (Order.objects.get sin filtro user=) era codigo muerto +
+        # (SaleOrder.objects.get sin filtro user=) era codigo muerto +
         # vector latente: si alguien cambiaba la permission a AllowAny
         # sin tocar este bloque, un comprador autenticado o invitado
         # podria iniciar pago sobre la orden de otro user (audit T-101
@@ -142,11 +141,11 @@ class InitiatePaymentView(APIView):
         try:
             with db_transaction.atomic():
                 try:
-                    order = Order.objects.select_related('value').select_for_update().get(
+                    order = SaleOrder.objects.select_related('value').select_for_update().get(
                         order_number=order_number,
                         user=request.user,
                     )
-                except Order.DoesNotExist:
+                except SaleOrder.DoesNotExist:
                     raise ValidationError({
                         'order_number': f'Orden {order_number!r} no encontrada.',
                         'codigo_error': 'ORDER_NOT_FOUND',
@@ -356,7 +355,7 @@ class ReceiptPdfView(APIView):
         # EX-01: orden inexistente → 404 NOT_FOUND. select_related para cargar
         # los snapshots financieros y de dirección en una sola consulta.
         order = (
-            Order.objects.select_related('value', 'address')
+            SaleOrder.objects.select_related('value', 'address')
             .filter(order_number=order_number)
             .first()
         )
@@ -465,7 +464,7 @@ class InstallmentPlansView(APIView):
             raise ValidationError({'order_number': 'Requerido.', 'codigo_error': 'ORDER_NUMBER_REQUIRED'})
 
         order = get_object_or_404(
-            Order.objects.select_related('value'),
+            SaleOrder.objects.select_related('value'),
             order_number=order_number,
             user=request.user,
         )
@@ -511,7 +510,11 @@ def _check_express_eligibility(user) -> dict:
     }
 
     # 1. Comprador recurrente: al menos una orden DELIVERED
-    if not DeliveredOrder.objects.filter(user=user).exists():
+    # E5/R5: el proxy DeliveredOrder vivía sobre el espejo; la canónica
+    # llama ``partner`` al mismo FK hacia el usuario.
+    entregadas = filter_orders_by_status(
+        SaleOrder.objects.all(), STATUS_DELIVERED)
+    if not entregadas.filter(partner=user).exists():
         result['reason'] = 'Sin órdenes previas entregadas.'
         return result
 
@@ -687,6 +690,9 @@ class ExpressCheckoutView(APIView):
         # estándar, donde el envío lo deriva el admin por zona).
         order.shipping_method = shipping
         order.save(update_fields=['shipping_method', 'updated_at'])
+        # E5/R5 — write-through al hogar canónico (ver orders/services.py).
+        order.sale_order.carrier = shipping
+        order.sale_order.save(update_fields=['carrier'])
 
         return Response(OrderSerializer(order).data, status=201)
 
@@ -792,7 +798,7 @@ class RefundView(APIView):
     def post(self, request, order_number):
 
         # RNF-SEC-003: usar filter+first, nunca get con user separado
-        order = Order.objects.filter(
+        order = SaleOrder.objects.filter(
             order_number=order_number, user=request.user
         ).first()
         if not order:
@@ -835,7 +841,7 @@ class RetryEligibilityView(APIView):
     """
     GET /api/v2/payments/<order_number>/retry-eligibility/
     Verifica si la orden es elegible para reintentar el pago.
-    UC-PAY-08 (FR-PAY-08.01). H-REF-004: condición real = Order.status=PENDING.
+    UC-PAY-08 (FR-PAY-08.01). H-REF-004: condición real = SaleOrder.status=PENDING.
     """
     permission_classes = [IsAuthenticated]
 
@@ -1245,14 +1251,14 @@ class CheckoutApiPaymentView(APIView):
         with db_transaction.atomic():
             try:
                 order = (
-                    Order.objects
+                    SaleOrder.objects
                     .select_for_update()
                     .get(
                         order_number=data['order_number'],
                         user=request.user,
                     )
                 )
-            except Order.DoesNotExist:
+            except SaleOrder.DoesNotExist:
                 return Response(
                     {'codigo_error': 'ORDER_NOT_FOUND'},
                     status=404,

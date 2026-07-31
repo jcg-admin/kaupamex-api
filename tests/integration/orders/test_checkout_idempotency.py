@@ -3,18 +3,18 @@ Tests — Idempotency-Key en checkout (T-603, DEC-BC-03).
 
 Verifica:
   - test_double_post_same_key_creates_one_order: dos POSTs con el mismo
-    Idempotency-Key retornan el mismo order_number y solo hay 1 Order.
+    Idempotency-Key retornan el mismo order_number y solo hay 1 SaleOrder.
   - test_double_post_same_key_decrements_stock_once: el stock solo se
     decrementa en el primer POST; el segundo retorna la respuesta cacheada.
 """
 import pytest
+from addons.sale.models import SaleOrder
 from decimal import Decimal
 from unittest.mock import patch
 
 from addons.catalogue.models import Category, Product
 from addons.inventory.services import InventoryService
 from addons.delivery.models import ShippingZone
-from addons.orders.models import Order, CheckoutAttempt
 from addons.delivery.models import ShippingMethod
 
 pytestmark = pytest.mark.integration
@@ -79,7 +79,7 @@ class TestCheckoutIdempotency:
     ):
         """
         T-603: dos POSTs con el mismo Idempotency-Key retornan el mismo
-        order_number y solo crean 1 Order en la BD.
+        order_number y solo crean 1 SaleOrder en la BD.
         """
         with patch.object(InventoryService, 'check_availability', return_value=[]), \
              patch.object(InventoryService, 'decrement', return_value=None):
@@ -106,9 +106,9 @@ class TestCheckoutIdempotency:
             f'res1={order_number}, res2={res2.data["order_number"]}'
         )
 
-        order_count = Order.objects.filter(user=user).count()
+        order_count = SaleOrder.objects.filter(user=user).count()
         assert order_count == 1, (
-            f'Solo debe haber 1 Order; hay {order_count}'
+            f'Solo debe haber 1 SaleOrder; hay {order_count}'
         )
 
         attempt_count = CheckoutAttempt.objects.filter(

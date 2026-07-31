@@ -22,8 +22,7 @@ from rest_framework.views import APIView
 
 from addons.catalogue.models import Category, Product
 from addons.chartsize.models import ProductVariant
-from addons.orders.models import OrderItem
-from addons.orders.status_projection import order_status
+from addons.sale.status_projection import order_status
 from addons.sale.models import SaleOrder
 from addons.payment.models import Payment
 from addons.base.models import SiteSettings
@@ -190,7 +189,7 @@ class VariantStockAdjustView(_AdminOnly, APIView):
                 # order (state='sale') WITHOUT an approved payment. The
                 # fulfillment axis is not needed — shipping implies payment.
                 at_risk_items = (
-                    OrderItem.objects
+                    SaleOrderLine.objects
                     .filter(
                         variant_id=variant.pk,
                         order__sale_order__state=SaleOrder.STATE_SALE,
@@ -311,7 +310,7 @@ class ZeroStockCheckView(_AdminOnly, APIView):
     Cut-over orders→sale (ADR-024): "en riesgo" = orden confirmada
     (``sale.state='sale'``) SIN pago aprobado. El eje de fulfillment no
     se necesita porque enviar implica pagar.
-    COSMIC: 1E + 1R(variant) + 1R(OrderItem) + 1X = 4 CFP.
+    COSMIC: 1E + 1R(variant) + 1R(SaleOrderLine) + 1X = 4 CFP.
     """
     @extend_schema(
         summary='Guard check: órdenes en riesgo al ajustar variante a cero (UC-INV-04 EX-02 Round 1)',
@@ -325,7 +324,7 @@ class ZeroStockCheckView(_AdminOnly, APIView):
             raise NotFound({'detail': 'Variante no encontrada.', 'codigo_error': 'VARIANT_NOT_FOUND'})
 
         risk_items = (
-            OrderItem.objects
+            SaleOrderLine.objects
             .filter(
                 variant_id=variant.pk,
                 order__sale_order__state=SaleOrder.STATE_SALE,

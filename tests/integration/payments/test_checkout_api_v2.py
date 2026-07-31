@@ -13,8 +13,7 @@ from decimal import Decimal
 from unittest.mock import patch, MagicMock
 
 from addons.catalogue.models import Category, Product
-from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
-from addons.orders.status_projection import order_status
+from addons.sale.status_projection import order_status
 from addons.sale.models import SaleOrder
 from addons.payment.models import PaymentGateway
 from addons.payment.models import Payment, PaymentGatewayEvent
@@ -51,22 +50,22 @@ def prod_v2(db, cat_v2):
 
 @pytest.fixture
 def orden_v2(db, user, prod_v2):
-    """Orden PENDING con OrderValue total=3000."""
-    order = Order.objects.create(
+    """Orden PENDING con OrderValue_GONE total=3000."""
+    order = SaleOrder.objects.create(
         user=user, # O2C R8: par canonico — la proyeccion deriva el estado de los ejes.
         sale_order=SaleOrder.objects.create(state=SaleOrder.STATE_SALE),
     )
-    OrderItem.objects.create(
+    SaleOrderLine.objects.create(
         order=order, product_name=prod_v2.name, sku=prod_v2.sku,
         unit_price=prod_v2.price, quantity=2,
         subtotal=prod_v2.price * 2,
     )
-    OrderValue.objects.create(
+    OrderValue_GONE.objects.create(
         order=order, subtotal=Decimal('3000.00'),
         tax=Decimal('0.00'), shipping_cost=Decimal('0.00'),
         discount=Decimal('0.00'), total=Decimal('3000.00'),
     )
-    OrderAddress.objects.create(
+    DeliveryAddress.objects.create(
         order=order, recipient_name='Test User',
         street='Av. Reforma 1', city='CDMX',
         state='Ciudad de Mexico', zip_code='06600',

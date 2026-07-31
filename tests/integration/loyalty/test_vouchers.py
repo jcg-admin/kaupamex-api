@@ -13,7 +13,6 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import date, timedelta
 from addons.catalogue.models import Category, Product
-from addons.orders.models import Order, OrderValue
 from addons.sale.models import SaleOrderLine
 from addons.sale_loyalty.models.sale_order_coupon import (
     SaleOrderCoupon, ensure_reward_product,
@@ -21,7 +20,7 @@ from addons.sale_loyalty.models.sale_order_coupon import (
 from addons.loyalty.models import Voucher, VoucherChangeLog
 from addons.loyalty.serializers import VoucherSerializer
 from tests.factories.order_factory import make_order
-from addons.orders.status_projection import STATUS_DELIVERED
+from addons.sale.status_projection import STATUS_DELIVERED
 
 pytestmark = pytest.mark.integration
 
@@ -309,9 +308,9 @@ class TestReporteVouchers:
             email='buyer_roi@test.com',
         )
         # E4 — el reporte se ancla al canónico: el cupón es una FK
-        # (``SaleOrderCoupon``), no el string ``Order.voucher_code``, y el
+        # (``SaleOrderCoupon``), no el string ``SaleOrder.voucher_code``, y el
         # descuento se mide de la línea ``is_reward`` que ``sale_loyalty``
-        # materializa, no de un escalar declarado en ``OrderValue``.
+        # materializa, no de un escalar declarado en ``OrderValue_GONE``.
         order = make_order(
             user=buyer,
             voucher_code=voucher_fixed.code,
@@ -344,9 +343,9 @@ class TestReporteVouchers:
             email='buyer_datefrom@test.com',
         )
         # E4 — el reporte se ancla al canónico: el cupón es una FK
-        # (``SaleOrderCoupon``), no el string ``Order.voucher_code``, y el
+        # (``SaleOrderCoupon``), no el string ``SaleOrder.voucher_code``, y el
         # descuento se mide de la línea ``is_reward`` que ``sale_loyalty``
-        # materializa, no de un escalar declarado en ``OrderValue``.
+        # materializa, no de un escalar declarado en ``OrderValue_GONE``.
         order = make_order(
             user=buyer,
             voucher_code=voucher_fixed.code,

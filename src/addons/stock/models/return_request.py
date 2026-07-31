@@ -43,7 +43,7 @@ class ReturnRequest(MailThread, TimeStampedModel, SoftDeleteModel):
         on_delete=models.CASCADE,
         related_name='return_requests',
     )
-    # Desacoplado de addons.orders (mismo patron que SupportTicket.order_id).
+    # Desacoplado de addons.sale (mismo patron que SupportTicket.order_id).
     order_id = models.PositiveIntegerField()
     reason = models.CharField(max_length=24, choices=Reason.choices)
     description = models.TextField()

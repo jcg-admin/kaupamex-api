@@ -6,7 +6,6 @@ Nombre descriptivo: dominio, no número de sprint.
 import pytest
 from decimal import Decimal
 from addons.catalogue.models import Category, Product
-from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from django.contrib.auth import get_user_model
 from tests.factories.user_factory import make_buyer
 from addons.payment.models import Payment, Refund
@@ -18,7 +17,7 @@ from addons.sale.models import SaleOrder, SaleOrderLine
 from unittest.mock import patch, MagicMock
 from addons.chartsize.models import VariantType, VariantOption, ProductVariant
 from tests.factories.order_factory import make_order
-from addons.orders.status_projection import order_status
+from addons.sale.status_projection import order_status
 
 pytestmark = pytest.mark.integration
 
@@ -86,12 +85,12 @@ def prod_ord(db, cat_ord):
 def _create_full_order(user, prod, status='PENDING', n_items=1):
     order = make_order(user=user, status=status)
     for i in range(n_items):
-        OrderItem.objects.create(
+        SaleOrderLine.objects.create(
             order=order, product_name=prod.name, sku=f'{prod.sku}-{i}',
             unit_price=prod.price, quantity=1, subtotal=prod.price,
             product=prod,
         )
-    OrderValue.objects.create(
+    OrderValue_GONE.objects.create(
         order=order,
         subtotal=prod.price * n_items,
         tax=(prod.price * n_items * Decimal('0.16') / Decimal('1.16')).quantize(Decimal('0.01')),
@@ -99,7 +98,7 @@ def _create_full_order(user, prod, status='PENDING', n_items=1):
         discount=Decimal('0.00'),
         total=prod.price * n_items + Decimal('80.00'),
     )
-    OrderAddress.objects.create(
+    DeliveryAddress.objects.create(
         order=order, recipient_name='Test User',
         street='Av. Reforma 100', city='CDMX',
         state='Ciudad de Mexico', zip_code='06600',
@@ -108,21 +107,21 @@ def _create_full_order(user, prod, status='PENDING', n_items=1):
 
 
 def _canonical_full_order(user, prod, *, approved=False, guide=False, delivered=False):
-    """Orden canónica (SaleOrder confirmada + Order enlazada) con ítems/valor/
+    """Orden canónica (SaleOrder confirmada + SaleOrder enlazada) con ítems/valor/
     dirección para que la lista serialice. Estado proyectado desde los ejes
     (pago + guía), no de la columna espejo."""
     so = SaleOrder.objects.create(state=SaleOrder.STATE_SALE)
-    order = Order.objects.create(user=user, sale_order=so)
-    OrderItem.objects.create(
+    order = SaleOrder.objects.create(user=user, sale_order=so)
+    SaleOrderLine.objects.create(
         order=order, product_name=prod.name, sku=f'{prod.sku}-c',
         unit_price=prod.price, quantity=1, subtotal=prod.price, product=prod,
     )
-    OrderValue.objects.create(
+    OrderValue_GONE.objects.create(
         order=order, subtotal=prod.price, tax=Decimal('0.00'),
         shipping_cost=Decimal('80.00'), discount=Decimal('0.00'),
         total=prod.price + Decimal('80.00'),
     )
-    OrderAddress.objects.create(
+    DeliveryAddress.objects.create(
         order=order, recipient_name='Test User', street='Av. Reforma 100',
         city='CDMX', state='Ciudad de Mexico', zip_code='06600',
     )
@@ -472,7 +471,7 @@ class TestEditarDireccion:
         self, auth_client, user, prod_ord, db
     ):
         """H-API-05 (T-005/ORD-05): cada edición de dirección deja un
-        OrderStatusLog — antes update_order_address solo hacía logger.info,
+        SaleOrderStatusLog_GONE — antes update_order_address solo hacía logger.info,
         sin ningún rastro auditable en la orden."""
         order = _create_full_order(user, prod_ord, status='PENDING')
         logs_before = order.status_logs.count()
@@ -490,7 +489,7 @@ class TestEditarDireccion:
         log = order.status_logs.order_by('-created_at').first()
         assert log.changed_by_id == user.id
         # No hay transición de estado real — se usa el mismo patrón de
-        # OrderStatusLog que cancel_order. O2C V5d: el estado se DERIVA de los
+        # SaleOrderStatusLog_GONE que cancel_order. O2C V5d: el estado se DERIVA de los
         # ejes (la columna espejo fue retirada), así que previous == new ==
         # proyección.
         assert log.previous_status == log.new_status == order_status(order)
@@ -583,7 +582,7 @@ class TestCambiarMetodoEnvio:
         self, auth_client, user, prod_ord, shipping_methods, db
     ):
         """H-API-06 (T-007-audit/ORD-06): cada cambio de método de envío
-        deja un OrderStatusLog — antes update_shipping_method solo hacía
+        deja un SaleOrderStatusLog_GONE — antes update_shipping_method solo hacía
         logger.info, sin ningún rastro auditable en la orden. D-3 resuelto:
         el cambio solo se permite pre-pago (aquí PENDING), donde el recálculo
         del total precede a la captura del pago (sin conciliación pendiente)."""
@@ -602,7 +601,7 @@ class TestCambiarMetodoEnvio:
         log = order.status_logs.order_by('-created_at').first()
         assert log.changed_by_id == user.id
         # No hay transición de estado real — se usa el mismo patrón de
-        # OrderStatusLog que cancel_order. O2C V5d: el estado se DERIVA de los
+        # SaleOrderStatusLog_GONE que cancel_order. O2C V5d: el estado se DERIVA de los
         # ejes (la columna espejo fue retirada), así que previous == new ==
         # proyección.
         assert log.previous_status == log.new_status == order_status(order)
@@ -616,7 +615,7 @@ class TestCambiarMetodoEnvio:
 class TestProteccionVariantesOrdenes:
     """H-ORD-005 tras cut-over orders→sale (ADR-024): "orden activa" =
     confirmada (``sale.state='sale'``) y NO entregada. Los fixtures
-    construyen los ejes canónicos (SaleOrder + Order espejo + guía)."""
+    construyen los ejes canónicos (SaleOrder + SaleOrder espejo + guía)."""
 
     def _make_variant(self, prod_ord):
         vtype = VariantType.objects.create(name='Talla', product=prod_ord)
@@ -630,10 +629,10 @@ class TestProteccionVariantesOrdenes:
 
     def _make_order_with_variant(self, prod_ord, variant):
         # E2c: el guard de la vista lee SaleOrderLine (canónico); el fixture
-        # construye la línea canónica, no el OrderItem del espejo.
+        # construye la línea canónica, no el SaleOrderLine del espejo.
         so = SaleOrder.objects.create(
             state=SaleOrder.STATE_SALE, date_order=timezone.now())
-        order = Order.objects.create(sale_order=so)
+        order = SaleOrder.objects.create(sale_order=so)
         SaleOrderLine.objects.create(
             order=so, product=prod_ord, variant=variant,
             name=prod_ord.name, product_uom_qty=1,

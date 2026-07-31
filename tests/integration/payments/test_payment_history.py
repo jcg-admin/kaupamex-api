@@ -7,7 +7,6 @@ no el número de sprint.
 import pytest
 from decimal import Decimal
 from addons.catalogue.models import Category, Product
-from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from addons.payment.models import Payment
 from datetime import timedelta
 from django.contrib.auth import get_user_model
@@ -40,16 +39,16 @@ def orden_con_pago(db, user, cat_hist):
     )
     prod.categories.add(cat_hist)
     order = make_order(user=user, status='PROCESSING')
-    OrderItem.objects.create(
+    SaleOrderLine.objects.create(
         order=order, product_name=prod.name, sku=prod.sku,
         unit_price=prod.price, quantity=1, subtotal=prod.price,
     )
-    OrderValue.objects.create(
+    OrderValue_GONE.objects.create(
         order=order, subtotal=Decimal('2400.00'), tax=Decimal('331.03'),
         shipping_cost=Decimal('0.00'), discount=Decimal('0.00'),
         total=Decimal('2400.00'),
     )
-    OrderAddress.objects.create(
+    DeliveryAddress.objects.create(
         order=order, recipient_name='Test',
         street='Calle 1', city='CDMX', state='CMX', zip_code='06600',
     )
@@ -74,16 +73,16 @@ def orden_con_historial(db, user, cat_hist):
     )
     prod.categories.add(cat_hist)
     order = make_order(user=user, status='PROCESSING')
-    OrderItem.objects.create(
+    SaleOrderLine.objects.create(
         order=order, product_name=prod.name, sku=prod.sku,
         unit_price=prod.price, quantity=1, subtotal=prod.price,
     )
-    OrderValue.objects.create(
+    OrderValue_GONE.objects.create(
         order=order, subtotal=Decimal('1200.00'), tax=Decimal('165.52'),
         shipping_cost=Decimal('0.00'), discount=Decimal('0.00'),
         total=Decimal('1200.00'),
     )
-    OrderAddress.objects.create(
+    DeliveryAddress.objects.create(
         order=order, recipient_name='Test',
         street='Av 1', city='CDMX', state='CMX', zip_code='06600',
     )
@@ -132,11 +131,11 @@ class TestEstadoPago:
         )
         prod.categories.add(cat_hist)
         order = make_order(user=user, status='PENDING')
-        OrderValue.objects.create(
+        OrderValue_GONE.objects.create(
             order=order, subtotal=Decimal('100'), tax=Decimal('13.79'),
             shipping_cost=Decimal('0'), discount=Decimal('0'), total=Decimal('100'),
         )
-        OrderAddress.objects.create(
+        DeliveryAddress.objects.create(
             order=order, recipient_name='X', street='Y',
             city='Z', state='W', zip_code='00000',
         )

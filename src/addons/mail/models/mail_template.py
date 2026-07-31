@@ -11,7 +11,7 @@ Fuente Odoo community (LGPL-3): copia + adaptacion con atribucion.
 
 - ``model`` ← ``model_id``/``model`` (Odoo ``ir.model`` + Char related): este
   monolito NO porta ``ir.model`` (H-BASE-08), asi que el modelo aplicable se
-  guarda como Char plano, p. ej. ``"orders.Order"``.
+  guarda como Char plano, p. ej. ``"sale.SaleOrder"``.
 - **Rendering nativo, no QWeb:** Odoo renderiza los placeholders con
   qweb/inline_template (``{{ object.name }}``). Django tiene su motor de
   plantillas con **la misma sintaxis** ``{{ object.campo }}``; ``render()`` lo
@@ -33,7 +33,7 @@ class MailTemplate(TimeStampedModel):
     name = fields.Char(max_length=255, help_text='Nombre de la plantilla (Odoo name).')
     model = fields.Char(
         max_length=128, blank=True, default='',
-        help_text='Modelo aplicable, p. ej. "orders.Order" (Odoo model/model_id).',
+        help_text='Modelo aplicable, p. ej. "sale.SaleOrder" (Odoo model/model_id).',
     )
     subject = fields.Char(
         max_length=255, blank=True, default='',

@@ -1,6 +1,6 @@
 """Tests — V5c proyección del estado legacy (``analisis-unificar-orders-sale``).
 
-``derive_order_status(sale_order)`` proyecta el enum legacy ``Order.status``
+``derive_order_status(sale_order)`` proyecta el enum legacy ``SaleOrder.status``
 desde los ejes canónicos (sale.state / Payment / ShipmentGuide). El criterio
 de correctitud del cut-over: la proyección **reproduce** el estado del espejo
 ``orders.Order`` en cada transición del ciclo de vida realmente alcanzable
@@ -17,9 +17,7 @@ from django.utils import timezone
 
 from addons.catalogue.models import Category, Product
 from addons.delivery.models import Courier, ShipmentGuide
-from addons.orders.models import Order
-from addons.orders.services import cancel_order
-from addons.orders.status_projection import (
+from addons.sale.status_projection import (
     STATUS_CANCELLED,
     STATUS_DELIVERED,
     STATUS_DRAFT,
@@ -28,7 +26,6 @@ from addons.orders.status_projection import (
     STATUS_SHIPPED,
     derive_order_status,
 )
-from addons.orders.tasks import cancel_timeout_orders
 from addons.payment.models import Payment
 from addons.sale.models import SaleOrder
 from addons.sale.services import add_item_to_draft, confirm_draft_order
@@ -157,7 +154,7 @@ class TestCancelWritersMakeSaleAuthoritative:
     def test_timeout_cancel_cancels_the_sale(self, confirmed):
         sale, legacy = confirmed
         # La tarea escanea órdenes PENDING con created_at anterior al cutoff.
-        Order.objects.filter(pk=legacy.pk).update(
+        SaleOrder.objects.filter(pk=legacy.pk).update(
             created_at=timezone.now() - timedelta(hours=2))
         cancel_timeout_orders()
         sale.refresh_from_db()

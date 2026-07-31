@@ -1,13 +1,13 @@
 """Tests — E2a: el vocabulario de estado deja de vivir en el espejo.
 
-Tras V5d la columna ``Order.status`` no existe, pero el **vocabulario** de
+Tras V5d la columna ``SaleOrder.status`` no existe, pero el **vocabulario** de
 estados seguía declarado en ``orders.Order`` (``STATUS_*`` + ``STATUSES``). Eso
 dejaba al espejo como propietario del idioma que consume la proyección
-canónica: 39 referencias de producción importaban ``Order`` sólo para leer dos
+canónica: 39 referencias de producción importaban ``SaleOrder`` sólo para leer dos
 constantes, y ``status_projection`` —el módulo que *produce* el estado— tenía
 que importar el modelo espejo para nombrar su propia salida.
 
-Es un acoplamiento invertido y bloquea E5: no se puede dar de baja ``Order``
+Es un acoplamiento invertido y bloquea E5: no se puede dar de baja ``SaleOrder``
 mientras sea el hogar del idioma. E2a lo mueve a ``status_projection``, que es
 quien deriva el estado de los ejes.
 
@@ -16,8 +16,7 @@ El valor de cada constante **no cambia** — es contrato de API pública
 """
 import pytest
 
-from addons.orders import status_projection as sp
-from addons.orders.models import Order
+from addons.sale import status_projection as sp
 from addons.payment.models import Payment
 from addons.sale.models import SaleOrder
 from tests.factories.order_factory import make_order
@@ -54,9 +53,9 @@ class TestVocabularioEnLaProyeccion:
         assert etiquetas[sp.STATUS_DELIVERED] == 'Entregado'
 
     def test_el_espejo_ya_no_es_dueno_del_vocabulario(self):
-        """El candado de E2a: si alguien lo devuelve a ``Order``, falla."""
-        assert 'STATUS_PENDING' not in vars(Order)
-        assert 'STATUSES' not in vars(Order)
+        """El candado de E2a: si alguien lo devuelve a ``SaleOrder``, falla."""
+        assert 'STATUS_PENDING' not in vars(SaleOrder)
+        assert 'STATUSES' not in vars(SaleOrder)
 
 
 class TestLaProyeccionNoDependeDelEspejo:
@@ -64,7 +63,7 @@ class TestLaProyeccionNoDependeDelEspejo:
 
     def test_el_modulo_no_importa_order(self):
         fuente = open(sp.__file__, encoding='utf-8').read()
-        assert 'from .models import Order' not in fuente
+        assert 'from .models import SaleOrder' not in fuente
 
     def test_derive_sigue_proyectando_los_mismos_valores(self):
         """El cambio es de hogar, no de comportamiento.

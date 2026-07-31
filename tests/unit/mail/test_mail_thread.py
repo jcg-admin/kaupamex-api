@@ -9,6 +9,7 @@ artificial): ``message_post`` crea ``mail.message`` polimorficos y
 import datetime
 
 import pytest
+from addons.sale.models import SaleOrder
 from django.core import mail as django_mail
 
 from addons.crm.models import CrmLead
@@ -26,7 +27,6 @@ from addons.mail.models import (
     MailTrackingValue,
 )
 from addons.mail.models import Notification, NotificationType
-from addons.orders.models import Order
 from addons.stock.models import ReturnRequest
 from addons.sms.models import SmsSms
 from addons.sms.services import mark_sms_error, mark_sms_sent, send_thread_sms
@@ -110,7 +110,7 @@ class TestMailThreadFollowers:
         assert ticket.message_follower_ids.count() == 2
 
     def test_subscribe_with_subtypes(self, ticket, user):
-        st = MailMessageSubtype.objects.create(name='Order Confirmed')
+        st = MailMessageSubtype.objects.create(name='SaleOrder Confirmed')
         followers = ticket.message_subscribe(user, subtypes=[st])
         assert followers[0].subtype_ids.filter(pk=st.pk).exists()
 
@@ -259,7 +259,7 @@ class TestMailThreadConsumers:
     hereda ``mail.thread``. Todos schema-neutrales (el hilo vive en mail_*)."""
 
     def test_central_models_are_threads(self):
-        assert issubclass(Order, MailThread)
+        assert issubclass(SaleOrder, MailThread)
         assert issubclass(CrmLead, MailThread)
         assert issubclass(ReturnRequest, MailThread)
 

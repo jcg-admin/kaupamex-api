@@ -11,10 +11,10 @@ F2 no elimina v1; verifica coexistencia (doble-corrida).
 """
 import uuid
 import pytest
+from addons.sale.models import SaleOrder
 from decimal import Decimal
 
 from addons.catalogue.models import Category, Product
-from addons.orders.services import add_item_to_draft, get_or_create_draft_order
 from addons.mail.models import Notification
 from addons.website_sale_wishlist.models import WishlistItem
 
@@ -64,7 +64,7 @@ def product_f2(db, category_f2):
 
 @pytest.fixture
 def cart_with_item(db, user, product_f2):
-    # S4 cart→order→sale: el carrito es el Order(DRAFT) del usuario.
+    # S4 cart→order→sale: el carrito es el SaleOrder(DRAFT) del usuario.
     order, _ = get_or_create_draft_order(user=user)
     add_item_to_draft(order, product_f2, quantity=1)
     return order

@@ -23,13 +23,12 @@ from datetime import timedelta
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from addons.orders.models import Order
 from addons.base.models import SiteSettings
 from addons.referral.services import complete_referral_for_order
 from addons.loyalty.models import ReferralCode, Referral, Voucher
 from tests.factories.user_factory import make_buyer
 from tests.factories.order_factory import make_order
-from addons.orders.status_projection import (
+from addons.sale.status_projection import (
     STATUS_DELIVERED,
     STATUS_PAID,
     STATUS_PENDING,

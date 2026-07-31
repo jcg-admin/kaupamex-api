@@ -10,10 +10,10 @@ Ver la nota de dirección en ``addons/orders/handlers.py``.
 import logging
 
 from django.db.models.signals import post_save, pre_save
+from addons.sale.models import SaleOrder
 from django.dispatch import receiver
 
 from addons.mail.models.notification_service import notify_return_processed
-from addons.orders.models import Order
 from addons.stock.models import ReturnRequest
 
 logger = logging.getLogger('apps')
@@ -46,8 +46,8 @@ def _return_status_changed(sender, instance, created, **kwargs):
         return
 
     try:
-        order = Order.objects.get(pk=instance.order_id)
-    except Order.DoesNotExist:
+        order = SaleOrder.objects.get(pk=instance.order_id)
+    except SaleOrder.DoesNotExist:
         return
 
     try:

@@ -4,7 +4,7 @@ Sprint 13 — UC-PRO-01/02/03/04, UC-CART-04
 
 Voucher: cupon de descuento. Tres tipos: FIXED, PERCENTAGE, FREE_SHIPPING.
 VoucherChangeLog: historial de cambios de admin (UC-PRO-02).
-VoucherUsage: registro de uso por orden — se crea en Sprint 18 (cuando exista addons.orders).
+VoucherUsage: registro de uso por orden — se crea al confirmar la venta (addons.sale).
 """
 import secrets
 import string

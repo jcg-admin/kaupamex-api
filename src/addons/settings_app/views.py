@@ -35,7 +35,7 @@ from .serializers import (
 )
 from .gateway_connector import connector
 from rest_framework import serializers as drf_serializers
-from addons.orders.proxy_models import ActiveOrder
+from addons.sale.status_projection import active_sale_orders
 from addons.delivery.models import ShippingZone
 
 logger = logging.getLogger(__name__)
@@ -270,9 +270,9 @@ class ShippingMethodViewSet(ModelViewSet):
     http_method_names  = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
     def perform_destroy(self, instance):
-        active_orders = ActiveOrder.objects.filter(
-            shipping_method=instance,
-        ).count()
+        # E5/R5: el proxy ActiveOrder vivía sobre el espejo orders_order. La
+        # canónica llama ``carrier`` al mismo FK hacia delivery.ShippingMethod.
+        active_orders = active_sale_orders().filter(carrier=instance).count()
         if active_orders > 0:
             raise ValidationError({
                 'detail': (

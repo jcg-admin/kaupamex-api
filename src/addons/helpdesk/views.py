@@ -17,6 +17,7 @@ import csv
 import io
 from datetime import timedelta
 from django.db import transaction
+from addons.sale.models import SaleOrder
 from django.db.models import (
     Avg, Count, DurationField, ExpressionWrapper, F, OuterRef, Q, Subquery,
 )
@@ -35,7 +36,6 @@ from addons.authz.services import SUPERADMIN_ROLE_CODE, is_superadmin
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from addons.mail.models.notification_service import notify_support_created
-from addons.orders.models import Order
 from .models import SupportTicket, SupportTicketReply
 from .serializers import AdminSupportTicketListSerializer, SupportTicketCloseSerializer, SupportTicketCreateResponseSerializer, SupportTicketCreateSerializer, SupportTicketDetailSerializer, SupportTicketListSerializer, SupportTicketReplyCreateSerializer, SupportTicketReplySerializer
 
@@ -210,7 +210,7 @@ class SupportTicketListCreateView(APIView):
         # (RNF-SEC-003: mismo error si no existe o es ajena).
         order_number = (payload.pop('order_number', None) or '').strip()
         if order_number and not payload.get('order_id'):
-            order = Order.objects.filter(
+            order = SaleOrder.objects.filter(
                 order_number=order_number, user=request.user,
             ).only('pk').first()
             if order is None:

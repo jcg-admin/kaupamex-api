@@ -15,12 +15,12 @@ import hashlib
 import json
 
 import pytest
+from addons.sale.models import SaleOrder
 import decouple
 from django.core.management.base import CommandError
 from django.test import Client
 
 from addons.payment.models import PaymentGateway
-from addons.orders.models import Order
 from addons.payment.models import Payment, WebhookEvent
 from addons.payment_mercado_pago.management.commands.mp_sandbox_charge import (
     run_sandbox_charge, TEST_CARDS, STATUS_NAMES, EXPECTED_MP_STATUS,
@@ -154,7 +154,7 @@ class TestMpSandboxWebhookLive:
         # 1er webhook: verify_payment REAL contra MP → approved → 200
         res1 = self._post_webhook(client, secret, mp_payment_id, order_number, 'req-mp-1')
         assert res1.status_code == 200, res1.content
-        assert Order.objects.get(order_number=order_number).status == 'PAID'
+        assert SaleOrder.objects.get(order_number=order_number).status == 'PAID'
         assert WebhookEvent.objects.filter(event_id=str(mp_payment_id)).count() == 1
 
         # Reintento REAL de MP: reusa el mismo request-id (la unicidad de dedup
@@ -175,5 +175,5 @@ class TestMpSandboxWebhookLive:
         # cleanup (keep=True no limpió): hard delete
         for p in Payment.objects.filter(order__order_number=order_number):
             (p.hard_delete if hasattr(p, 'hard_delete') else p.delete)()
-        Order.all_objects.filter(order_number=order_number).first().hard_delete()
+        SaleOrder.all_objects.filter(order_number=order_number).first().hard_delete()
         WebhookEvent.objects.filter(event_id=str(mp_payment_id)).delete()

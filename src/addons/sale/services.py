@@ -13,7 +13,7 @@ H-CART-CL-02.
 
 Puente transicional: ``confirm_draft_order`` confirma la ``SaleOrder``
 nativamente (``action_confirm``) y ADEMÁS materializa el espejo legacy
-``orders.Order(PENDING)`` + ``OrderItem``/``OrderValue``/``OrderAddress``
+``orders.Order(PENDING)`` + ``SaleOrderLine``/``SaleOrderValue_REMOVED``/``SaleOrderAddress``
 que los clusters de pagos/logística/post-venta siguen consumiendo hasta
 V3–V5 (el plan retira el espejo en V5). ``orders/services.py`` re-exporta
 estas funciones para no romper los imports de los consumidores.
@@ -23,13 +23,14 @@ from decimal import Decimal
 from uuid import uuid4
 
 from django.db import transaction
+from addons.sale.models import SaleOrder
+from addons.delivery.models import DeliveryAddress
 from django.db.models import F
 from django.utils import timezone
 
 from addons.base.models import SiteSettings
 from addons.inventory.services import InventoryService
 from addons.loyalty.models import Voucher, VoucherUsage
-from addons.orders.models import Order, OrderAddress, OrderItem, OrderValue
 from addons.stock.models import StockPicking
 from .models import SaleOrder, SaleOrderLine
 from .signals import (draft_discount_requested,
@@ -299,9 +300,9 @@ def confirm_draft_order(order, *, address_data, guest_email=None, notes='',
        liberación de ``cart_token`` (el token de la cookie debe poder
        acuñar un draft nuevo).
     4. Puente V2→V5: materializa el espejo legacy ``orders.Order(PENDING)``
-       + ``OrderItem``/``OrderValue``/``OrderAddress`` que pagos/
+       + ``SaleOrderLine``/``SaleOrderValue_REMOVED``/``SaleOrderAddress`` que pagos/
        logística/post-venta consumen hasta re-anclarse (V3/V4); la
-       ``OrderAddress`` ancla a AMBOS (FK dual de V1). Retorna el espejo
+       ``SaleOrderAddress`` ancla a AMBOS (FK dual de V1). Retorna el espejo
        legacy para que la vista selle la misma respuesta 201.
 
     Levanta ``DraftOrderError`` en los guards; propaga
@@ -316,7 +317,7 @@ def confirm_draft_order(order, *, address_data, guest_email=None, notes='',
     # ``sale_loyalty`` antes de confirmar) NO son vendibles: no reservan stock,
     # no se refrescan a precio vigente —su ``current_price()`` devolvería el
     # precio 0 del producto de servicio, borrando el importe— y no cruzan al
-    # espejo legacy, cuyos ``OrderItem`` son de producto por contrato.
+    # espejo legacy, cuyos ``SaleOrderLine`` son de producto por contrato.
     # Un carrito con sólo líneas marcadoras está vacío.
     lines = list(order.order_line.filter(is_delivery=False, is_reward=False)
                  .select_related('product', 'variant__product',
@@ -383,7 +384,7 @@ def confirm_draft_order(order, *, address_data, guest_email=None, notes='',
         # H-SALE-09). En Odoo action_confirm crea el albarán vía sale_stock;
         # aquí poblamos el eje canónico para que IN_PREPARATION sea derivable
         # (albarán ``assigned`` + ``delivery_status='started'`` sin guía) sin
-        # depender del enum monolítico ``Order.status``. Additivo: modelos
+        # depender del enum monolítico ``SaleOrder.status``. Additivo: modelos
         # dormidos, ningún lector vivo depende de ellos todavía.
         picking = StockPicking.objects.create(
             sale_order=order, state=StockPicking.STATE_CONFIRMED)
@@ -392,43 +393,11 @@ def confirm_draft_order(order, *, address_data, guest_email=None, notes='',
         # abre el seguimiento de entrega. El núcleo no los nombra.
         order_confirmed.send(sender=SaleOrder, order=order, subtotal=subtotal)
 
-        # Puente legacy (se retira en V5 — analisis-unificar-orders-sale).
-        # I1 (H-API-29, decisión ejecutor 2026-07-28): la identidad pública
-        # es la canónica — el espejo nace con order_number = sale.name, así
-        # todo el contrato (serializers, emails, lookups) publica ``S-…``
-        # sin re-anclar cada sitio. Órdenes previas conservan su ``PY-…``.
-        legacy = Order.objects.create(
-            sale_order=order,
-            order_number=order.name,
-            user=order.partner,
-            guest_email=(guest_email if (guest_email and not order.partner_id)
-                         else None),
-            # O2C V5d: sin columna espejo. El PENDING inicial lo produce el
-            # estado real de los ejes (venta confirmada + sin pago aprobado).
-            notes=order.notes,
-            voucher_code=voucher.code if voucher else '',
-            voucher_discount=voucher_discount,
-        )
-        OrderItem.objects.bulk_create([
-            OrderItem(
-                order=legacy,
-                product=line.product,
-                variant=line.variant,
-                product_name=line.product.name,
-                variant_label=(line.variant.option.label if line.variant
-                               else ''),
-                sku=(line.variant.sku if line.variant else line.product.sku),
-                unit_price=line.price_unit,
-                quantity=line.product_uom_qty,
-                subtotal=line.price_unit * line.product_uom_qty,
-            )
-            for line in lines
-        ])
-        OrderValue.objects.create(
-            order=legacy, subtotal=subtotal, tax=tax,
-            shipping_cost=shipping_cost, discount=voucher_discount,
-            total=total,
-        )
-        OrderAddress.objects.create(order=legacy, sale_order=order,
-                                    **address_data)
-    return legacy
+        # E5 — el puente al espejo desapareció con el addon ``orders``.
+        # La venta canónica YA tiene su identidad (``name`` acuñado por
+        # ``action_confirm``), sus líneas (``SaleOrderLine``) y sus importes
+        # (``amount_untaxed``/``amount_tax``/``amount_total``, E4). Lo único
+        # que faltaba materializar es la dirección de entrega, que por la
+        # referencia no es del eje comercial: vive en ``delivery``.
+        DeliveryAddress.objects.create(sale_order=order, **address_data)
+    return order

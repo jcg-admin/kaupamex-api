@@ -1,6 +1,7 @@
 """Views — addons.wishlist (Sprint 14)."""
 from decimal import Decimal
 from django.db import IntegrityError, transaction
+from addons.sale.models import SaleOrder
 from django.db.models import Count
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -16,7 +17,6 @@ from addons.catalogue.models import Product
 from addons.chartsize.models import ProductVariant
 from addons.website_sale_wishlist.models import WishlistItem
 from addons.cart.views import _get_or_create_draft
-from addons.orders.services import DraftOrderError, add_item_to_draft
 from config.schema import error_response
 from rest_framework import serializers as drf_serializers
 
@@ -262,7 +262,7 @@ class WishlistMoveToCartView(CapabilityRequiredMixin, APIView):
 
         remove = request.data.get('remove_from_wishlist', True)
 
-        # S3 cart→order→sale: el carrito es el Order(DRAFT); el servicio
+        # S3 cart→order→sale: el carrito es el SaleOrder(DRAFT); el servicio
         # hace el get_or_create + merge de cantidad con guard de stock.
         with transaction.atomic():
             try:

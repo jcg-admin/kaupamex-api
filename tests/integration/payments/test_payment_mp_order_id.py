@@ -2,13 +2,13 @@
 Tests — persistencia de mp_order_id (ORD) + gateway_payment_id (PAY) en Payment.
 
 T-102 de la migración a Orders (DEC-ORD-03): el Payment guarda el id del recurso
-Order de MP (ORD...) en mp_order_id y el id del pago anidado (PAY...) en
+SaleOrder de MP (ORD...) en mp_order_id y el id del pago anidado (PAY...) en
 gateway_payment_id. Verifica el round-trip real contra MariaDB (kaupamex_qa).
 """
 import pytest
+from addons.sale.models import SaleOrder
 from decimal import Decimal
 
-from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from addons.payment.models import Payment
 from tests.factories.order_factory import make_order
 
@@ -17,15 +17,15 @@ pytestmark = pytest.mark.integration
 
 def _make_order(user):
     order = make_order(user=user, status='PENDING')
-    OrderItem.objects.create(
+    SaleOrderLine.objects.create(
         order=order, product_name='Prod ORD', sku='ORD-T102',
         unit_price=Decimal('200.00'), quantity=1, subtotal=Decimal('200.00'),
     )
-    OrderValue.objects.create(
+    OrderValue_GONE.objects.create(
         order=order, subtotal=Decimal('200.00'), tax=Decimal('0'),
         shipping_cost=Decimal('0'), discount=Decimal('0'), total=Decimal('200.00'),
     )
-    OrderAddress.objects.create(
+    DeliveryAddress.objects.create(
         order=order, recipient_name='Test', street='Calle ORD',
         city='CDMX', state='CMX', zip_code='06600',
     )

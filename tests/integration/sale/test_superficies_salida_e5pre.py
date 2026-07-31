@@ -3,7 +3,7 @@
 Cierra H-API-34 (recibo PDF y payload del pedido anclados al espejo). Con
 E1-bis los importes son líneas y con E4 son agregables; aquí las **dos
 superficies que ve el comprador** dejan de leer las columnas de cabecera de
-``OrderValue``.
+``OrderValue_GONE``.
 
 Lo que se fija:
 
@@ -30,9 +30,7 @@ from addons.catalogue.models import Category, Product
 from addons.delivery.models import ShippingMethod
 from addons.delivery.models.sale_order import set_delivery_line
 from addons.loyalty.models import Voucher
-from addons.orders.amounts import order_amounts
-from addons.orders.models import Order, OrderValue
-from addons.orders.serializers import OrderSerializer
+from addons.sale.amounts import order_amounts
 from addons.sale.models import SaleOrder
 from addons.sale_loyalty.services import apply_voucher_to_draft
 from addons.sale.services import (
@@ -117,12 +115,12 @@ class TestDivergenciaDeliberadaDelIva:
 
     def test_el_total_es_identico_en_ambas_fuentes(self, producto, metodo):
         venta, legacy = _venta(producto, metodo)
-        espejo = OrderValue.objects.get(order=legacy)
+        espejo = OrderValue_GONE.objects.get(order=legacy)
         assert order_amounts(venta)['total'] == espejo.total
 
     def test_el_iva_canonico_grava_tambien_el_envio(self, producto, metodo):
         venta, legacy = _venta(producto, metodo)
-        espejo = OrderValue.objects.get(order=legacy)
+        espejo = OrderValue_GONE.objects.get(order=legacy)
         canonico = order_amounts(venta)['tax']
         # El envío entra a la base, así que el impuesto extraído es mayor.
         assert canonico > espejo.tax
@@ -144,6 +142,6 @@ class TestElPayloadDelPedido:
 
     def test_el_serializer_lee_del_canonico(self, producto, metodo):
         venta, legacy = _venta(producto, metodo)
-        data = OrderSerializer(Order.objects.get(pk=legacy.pk)).data
+        data = OrderSerializer(SaleOrder.objects.get(pk=legacy.pk)).data
         assert Decimal(str(data['value']['total'])) == venta.amount_total
         assert Decimal(str(data['value']['shipping_cost'])) == Decimal('99.00')

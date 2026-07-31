@@ -13,7 +13,6 @@ from unittest.mock import patch, MagicMock
 from decouple import config
 from addons.catalogue.models import Category, Product
 from addons.delivery.models import ShippingZone
-from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from addons.sale.models import SaleOrder
 from addons.delivery.models import ShippingMethod
 from addons.payment.models import PaymentGateway
@@ -54,21 +53,21 @@ def prod_s15(db, cat_s15):
 
 @pytest.fixture
 def orden_pendiente(db, user, prod_s15):
-    """Orden en estado PENDING con OrderValue."""
+    """Orden en estado PENDING con OrderValue_GONE."""
     order = make_order(
         user=user, status='PENDING',
     )
-    OrderItem.objects.create(
+    SaleOrderLine.objects.create(
         order=order, product_name=prod_s15.name,
         sku=prod_s15.sku, unit_price=prod_s15.price,
         quantity=2, subtotal=prod_s15.price * 2,
     )
-    OrderValue.objects.create(
+    OrderValue_GONE.objects.create(
         order=order, subtotal=Decimal('3000.00'),
         tax=Decimal('413.79'), shipping_cost=Decimal('0.00'),
         discount=Decimal('0.00'), total=Decimal('3000.00'),
     )
-    OrderAddress.objects.create(
+    DeliveryAddress.objects.create(
         order=order, recipient_name='Test User',
         street='Av. Reforma 100', city='CDMX',
         state='Ciudad de Mexico', zip_code='06600',
@@ -154,12 +153,12 @@ class TestIniciarPago:
 
         El audit T-101 UC-PAY-01 D-09/D-14 detecto que el InitiatePaymentView
         tenia un branch `else` (no autenticado) que ejecutaba
-        ``Order.objects.get(order_number=...)`` SIN filtro ``user=``. Era
+        ``SaleOrder.objects.get(order_number=...)`` SIN filtro ``user=``. Era
         codigo muerto bajo ``IsAuthenticated`` (vector latente) pero
         habria sido fraude si alguien cambiaba la permission a AllowAny
         sin tocar el branch.
 
-        Tras el fix (collapse a un solo Order.objects.get con filtro
+        Tras el fix (collapse a un solo SaleOrder.objects.get con filtro
         ``user=request.user``), un comprador autenticado distinto al
         dueno no encuentra la orden y recibe ORDER_NOT_FOUND.
         """
@@ -391,14 +390,14 @@ class TestCuotasMSI:
         checkout y la creación de la preferencia → HTTP 422 con
         codigo_error = AMOUNT_MISMATCH.
 
-        Simula el drift: tras crear la orden PENDING, su OrderValue.total cambia
+        Simula el drift: tras crear la orden PENDING, su OrderValue_GONE.total cambia
         (p.ej. recálculo de impuestos/envío por el cliente) antes de iniciar el
         pago. El backend detecta la divergencia y rechaza con 422.
 
         AC-06 implementado: InitiatePaymentSerializer acepta ``expected_amount``
         y InitiatePaymentView lo contrasta con ``order.value.total``.
         """
-        # Drift del monto: el OrderValue.total cambia respecto al snapshot del
+        # Drift del monto: el OrderValue_GONE.total cambia respecto al snapshot del
         # checkout, simulando recálculo entre el checkout y la preferencia.
         orden_pendiente.value.total = Decimal('9999.00')
         orden_pendiente.value.save(update_fields=['total'])

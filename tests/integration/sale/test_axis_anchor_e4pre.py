@@ -26,7 +26,7 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from addons.catalogue.models import Category, Product
-from addons.orders import status_projection as sp
+from addons.sale import status_projection as sp
 from addons.delivery.models import Courier, ShipmentGuide
 from addons.payment.models import Payment
 from addons.rating.models import Review

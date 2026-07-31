@@ -14,6 +14,7 @@ Spanish business error codes per DEC-DOC-006. Audit log per RNF-AUDIT-001.
 """
 from collections import Counter
 from django.db import IntegrityError, transaction
+from addons.sale.models import SaleOrder
 from django.db.models import F
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -28,8 +29,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from addons.catalogue.models import Product
-from addons.orders.models import Order
-from addons.orders.status_projection import (
+from addons.sale.status_projection import (
     STATUS_DELIVERED,
     order_status,
 )
@@ -167,10 +167,10 @@ class ProductReviewsView(APIView):
         ser.is_valid(raise_exception=True)
         data = ser.validated_data
 
-        # Order ownership check + product purchased.
+        # SaleOrder ownership check + product purchased.
         try:
-            order = Order.objects.get(pk=data['order_id'])
-        except Order.DoesNotExist:
+            order = SaleOrder.objects.get(pk=data['order_id'])
+        except SaleOrder.DoesNotExist:
             raise NotFound({
                 'detail': 'Orden no encontrada.',
                 'codigo_error': 'ORDER_NOT_FOUND',

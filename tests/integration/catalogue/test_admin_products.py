@@ -9,7 +9,6 @@ UC-CAT-10: Edit product (admin)
 import pytest
 from decimal import Decimal
 from addons.catalogue.models import Category, Product, ProductImage
-from addons.orders.models import Order, OrderItem
 from django.core.cache import cache
 from addons.catalogue.serializers import ProductAdminSerializer
 from tests.factories.order_factory import make_order
@@ -366,9 +365,9 @@ class TestEditarProductoAdmin:
     def test_br005_precio_cambiado_no_afecta_ordenes_existentes(
         self, admin_client, product_sopera, db
     ):
-        """BR-005: snapshot en OrderItem es inmutable frente a cambios de precio en Product."""
+        """BR-005: snapshot en SaleOrderLine es inmutable frente a cambios de precio en Product."""
         order = make_order(order_number='PY-BR005TEST')
-        OrderItem.objects.create(
+        SaleOrderLine.objects.create(
             order=order,
             product=product_sopera,
             product_name=product_sopera.name,
@@ -386,7 +385,7 @@ class TestEditarProductoAdmin:
         )
         assert res.status_code == 200
 
-        item = OrderItem.objects.get(order=order, product=product_sopera)
+        item = SaleOrderLine.objects.get(order=order, product=product_sopera)
         assert item.unit_price == original_unit_price
         product_sopera.refresh_from_db()
         assert product_sopera.price == Decimal('9999.00')

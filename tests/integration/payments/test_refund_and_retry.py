@@ -8,7 +8,6 @@ import pytest
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
 from addons.catalogue.models import Category, Product
-from addons.orders.models import Order, OrderItem, OrderValue, OrderAddress
 from addons.payment.models import Payment, Refund
 from addons.payment.models import PaymentGateway
 from django.contrib.auth import get_user_model
@@ -46,15 +45,15 @@ def _make_order_with_payment(user, prod, gateway='MERCADOPAGO', status='APPROVED
     """Helper para crear orden + payment en el estado indicado."""
 
     order = make_order(user=user, status='PROCESSING' if status == 'APPROVED' else 'PENDING')
-    OrderItem.objects.create(
+    SaleOrderLine.objects.create(
         order=order, product_name=prod.name, sku=prod.sku,
         unit_price=prod.price, quantity=1, subtotal=prod.price,
     )
-    OrderValue.objects.create(
+    OrderValue_GONE.objects.create(
         order=order, subtotal=prod.price, tax=(prod.price * Decimal('0.16') / Decimal('1.16')).quantize(Decimal('0.01')),
         shipping_cost=Decimal('0'), discount=Decimal('0'), total=prod.price,
     )
-    OrderAddress.objects.create(
+    DeliveryAddress.objects.create(
         order=order, recipient_name='T', street='S',
         city='CDMX', state='CMX', zip_code='06600',
     )

@@ -22,8 +22,7 @@ from addons.authz.permissions import HasCapability
 from addons.authz.services import (
     SUPERADMIN_ROLE_CODE, has_capability, invalidate_capabilities, is_superadmin,
 )
-from addons.orders.models import Order
-from addons.orders.status_projection import order_status
+from addons.sale.status_projection import order_status
 from addons.sale.models import SaleOrder
 from addons.sale.models.res_partner import lifetime_value
 from .audit import audit_log_business
@@ -106,7 +105,7 @@ class AdminUserDetailSerializer(AdminUserListSerializer):
             'PENDING': 'muted',
         }
         qs = (
-            Order.objects.filter(user=obj)
+            SaleOrder.objects.filter(user=obj)
             .prefetch_related('items')
             .order_by('-created_at')[:5]
         )

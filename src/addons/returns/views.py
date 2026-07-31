@@ -17,6 +17,7 @@ Admin:
 """
 from decimal import Decimal
 from django.db.models import Count, Q, Sum
+from addons.sale.models import SaleOrder
 from django.db import transaction
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema, OpenApiParameter
@@ -28,8 +29,7 @@ from addons.authz.permissions import HasCapability
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from addons.orders.models import Order, OrderItem
-from addons.orders.status_projection import (
+from addons.sale.status_projection import (
     STATUS_DELIVERED,
     order_status,
 )
@@ -127,8 +127,8 @@ class ReturnListCreateView(APIView):
         # order_number; usar el PK requeria que el comprador conociera el
         # ID interno de BD, lo cual nunca fue expuesto en la interfaz.
         try:
-            order = Order.objects.get(order_number=order_number, user=request.user)
-        except Order.DoesNotExist:
+            order = SaleOrder.objects.get(order_number=order_number, user=request.user)
+        except SaleOrder.DoesNotExist:
             raise DRFValidationError({
                 'order_number': 'Orden no encontrada.',
                 'codigo_error': 'ORDER_NOT_FOUND',
@@ -160,7 +160,7 @@ class ReturnListCreateView(APIView):
 
         # H-RET-QTY: validar que la cantidad devuelta no exceda la comprada.
         # Sin este check un comprador podía declarar devolver 9999 unidades
-        # de un producto que compró 1. Se coteja contra OrderItem por product.
+        # de un producto que compró 1. Se coteja contra SaleOrderLine por product.
         # H-CICLO65-01: también se acumula lo ya devuelto en solicitudes
         # anteriores no rechazadas para evitar que el usuario envíe dos
         # devoluciones parciales que sumen más de la cantidad comprada.
@@ -168,7 +168,7 @@ class ReturnListCreateView(APIView):
             # Construir mapa product_id→quantity_purchased desde la orden
             purchased_qtys = {
                 oi.product_id: oi.quantity
-                for oi in OrderItem.objects.filter(order_id=order_id)
+                for oi in SaleOrderLine.objects.filter(order_id=order_id)
             }
             # Cantidad ya solicitada en otras devoluciones no rechazadas
             # (PENDING_REVIEW, INFO_REQUESTED, APPROVED, RECEIVED, REFUNDED)
@@ -505,7 +505,7 @@ class AdminReturnRequestInfoView(_AdminOnly, APIView):
             # UC-RET-02 AC-06 (b): notificar al comprador la peticion de
             # informacion adicional. Se hace a nivel de endpoint (no via el
             # signal de cambio de estado) porque es la accion del admin la
-            # que dispara el aviso, y no depende de resolver el Order.
+            # que dispara el aviso, y no depende de resolver el SaleOrder.
             notify_return_info_requested(ret.user, message)
 
         # H-CICLO56-02: re-fetch after mutation to avoid stale prefetch cache.

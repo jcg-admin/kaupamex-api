@@ -61,7 +61,6 @@ urlpatterns = _admin_urls + [
                                            namespace='admin_notifications_v2')),
 
     # ─── API v2 (F3: orders, returns, reviews, questions, support) ──────────────
-    path('api/v2/orders/',                include(('addons.orders.urls', 'orders'),               namespace='orders_v2')),
     path('api/v2/return-requests/',       include(('addons.returns.urls', 'returns'),             namespace='returns_v2')),
     path('api/v2/admin/return-requests/', include(('addons.returns.admin_urls', 'admin_returns'), namespace='admin_returns_v2')),
     path('api/v2/products/',              include(('addons.reviews.urls', 'reviews'),             namespace='reviews_v2')),
@@ -115,7 +114,6 @@ urlpatterns = _admin_urls + [
     path('api/v2/shipping-methods/', include(('addons.settings_app.public_urls', 'public_shipping'), namespace='public_shipping_v2')),
     path('api/v2/admin/',   include(('addons.users.admin_urls', 'admin_users'),                         namespace='admin_users_v2')),
     path('api/v2/admin/',   include(('addons.loyalty.urls', 'admin_voucher'),                           namespace='admin_voucher_v2')),
-    path('api/v2/admin/',   include(('addons.orders.admin_urls', 'admin_orders'),                       namespace='admin_orders_v2')),
     path('api/v2/admin/',   include(('addons.helpdesk.admin_urls', 'admin_support'),                     namespace='admin_support_v2')),
     path('api/v2/contact/', include(('addons.contact.urls', 'contact'),                                 namespace='contact_v2')),
     path('api/v2/admin/',   include(('addons.website.admin_urls', 'admin_static_content'),      namespace='admin_static_content_v2')),

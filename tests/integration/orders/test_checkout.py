@@ -10,7 +10,6 @@ from decimal import Decimal
 from addons.catalogue.models import Category, Product
 from addons.delivery.models import ShippingMethod
 from addons.delivery.models import ShippingZone
-from addons.orders.models import Order, OrderValue, OrderAddress
 from addons.sale.models import SaleOrder
 from addons.loyalty.models import Voucher
 from django.utils import timezone
@@ -120,7 +119,7 @@ class TestCheckout:
     def test_checkout_crea_snapshot_inmutable_br005(
         self, cart_con_item_auth, prod_ord, shipping_gratis, db
     ):
-        """BR-005: unit_price del OrderItem = precio al momento del checkout."""
+        """BR-005: unit_price del SaleOrderLine = precio al momento del checkout."""
         original_price = prod_ord.price
         res = cart_con_item_auth.post(
             CHECKOUT_URL,
@@ -132,7 +131,7 @@ class TestCheckout:
         # Cambiar precio del producto — no debe afectar la orden
         prod_ord.price = Decimal('999.00')
         prod_ord.save()
-        order = Order.objects.get(order_number=res.json()['order_number'])
+        order = SaleOrder.objects.get(order_number=res.json()['order_number'])
         assert order.items.first().unit_price == original_price
 
     def test_checkout_decrementa_stock(
@@ -202,7 +201,7 @@ class TestCheckout:
         res = cart_con_item_auth.post(CHECKOUT_URL, {'address': ADDR}, format='json')
         assert res.status_code == 201
         assert Decimal(res.json()['value']['shipping_cost']) == Decimal('0.00')
-        order = Order.objects.get(order_number=res.json()['order_number'])
+        order = SaleOrder.objects.get(order_number=res.json()['order_number'])
         assert order.shipping_method is None
 
     def test_checkout_ignora_shipping_method_id_del_payload(
@@ -218,7 +217,7 @@ class TestCheckout:
         }, format='json')
         assert res.status_code == 201
         assert Decimal(res.json()['value']['shipping_cost']) == Decimal('0.00')
-        order = Order.objects.get(order_number=res.json()['order_number'])
+        order = SaleOrder.objects.get(order_number=res.json()['order_number'])
         assert order.shipping_method is None
 
     def test_checkout_carrito_vacio_retorna_400(self, auth_client, zone_cdmx, db):
@@ -304,7 +303,7 @@ class TestCheckout:
     ):
         """T-115 D-01 CRITICA (implementar-current-uses-increment):
         verificar que el campo Voucher.current_uses se incrementa
-        atomicamente tras crear la Order. Antes el campo era leido en
+        atomicamente tras crear la SaleOrder. Antes el campo era leido en
         is_usable()/can_apply() pero nunca incrementado -> max_uses
         no limitaba en la practica."""
         v = Voucher.objects.create(
@@ -357,9 +356,9 @@ class TestCheckout:
             HTTP_IDEMPOTENCY_KEY=key,
         )
         assert second.json()['order_number'] == first_number
-        # Invariante AC-06: una sola Order persistida para esa clave.
-        assert Order.objects.filter(order_number=first_number).count() == 1
-        assert Order.objects.count() == 1
+        # Invariante AC-06: una sola SaleOrder persistida para esa clave.
+        assert SaleOrder.objects.filter(order_number=first_number).count() == 1
+        assert SaleOrder.objects.count() == 1
 
     def test_iva_y_total_se_calculan_en_servidor(
         self, cart_con_item_auth, prod_ord, shipping_gratis, db
@@ -368,7 +367,7 @@ class TestCheckout:
         servidor; el cliente nunca define ``total`` en el request.
 
         El request abajo solo envia ``address`` (sin ``total`` ni ``tax``);
-        el servidor persiste OrderValue con valores derivados del carrito.
+        el servidor persiste OrderValue_GONE con valores derivados del carrito.
 
         Modelo fiscal IMPLEMENTADO (views.py:201-202, confirmado por el
         ejemplo en uc-ord-01 PARTE 7C.3): precios IVA-incluido ->
@@ -409,7 +408,7 @@ class TestCheckout:
         assert Decimal(value['total']) == Decimal('1000.00')
 
         # Server-side authority: el valor persistido coincide con la respuesta.
-        order = Order.objects.get(order_number=res.json()['order_number'])
+        order = SaleOrder.objects.get(order_number=res.json()['order_number'])
         assert order.value.tax == expected_tax
         assert order.value.total == subtotal + order.value.shipping_cost
 
@@ -423,12 +422,12 @@ class TestShippingMethodProtection:
             order_number='PY-TEST0001',
             status='PENDING', shipping_method=shipping
         )
-        OrderValue.objects.create(
+        OrderValue_GONE.objects.create(
             order=o, subtotal=Decimal('500'), tax=Decimal('68.97'),
             shipping_cost=Decimal('80'), discount=Decimal('0'),
             total=Decimal('580')
         )
-        OrderAddress.objects.create(
+        DeliveryAddress.objects.create(
             order=o, recipient_name='Test', street='St',
             city='CDMX', state='CMX', zip_code='06600'
         )
@@ -441,7 +440,7 @@ class TestZoneFreeShipping:
     """Costo manual por zona con umbral de envío gratis (G-ENV-04): el
     comprador no elige método; el admin fija ``cost``/``free_threshold`` por
     zona. Umbral alcanzado o zona sin ``cost`` → gratis; bajo umbral con
-    ``cost`` → cobra el costo manual. Ver ``addons.orders.shipping``."""
+    ``cost`` → cobra el costo manual. Ver ``addons.delivery.quoting``."""
 
     def _set_zone(self, **defaults):
         # C.P. de ADDR = '06600' → prefijo '06'. update_or_create respeta el

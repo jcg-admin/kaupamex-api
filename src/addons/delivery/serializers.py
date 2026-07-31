@@ -6,7 +6,6 @@ DEC-DOC-006 — raised in views, not here.
 """
 from decimal import Decimal
 from rest_framework import serializers
-from addons.orders.models import Order
 from addons.payment.models import Payment
 from addons.sale.models import SaleOrder
 from .models import Courier, ShipmentEvent, ShipmentGuide
@@ -57,11 +56,11 @@ class ShipmentGuideCreateSerializer(serializers.ModelSerializer):
     # oculta a propósito, H-CICLO79-03), así que la UI envía order_number; se
     # mantiene order_id por compatibilidad. Ambos mapean a source='order'.
     order_id     = serializers.PrimaryKeyRelatedField(
-        queryset=Order.objects.all(), source='order', write_only=True,
+        queryset=SaleOrder.objects.all(), source='order', write_only=True,
         required=False,
     )
     order_number = serializers.SlugRelatedField(
-        slug_field='order_number', queryset=Order.objects.all(),
+        slug_field='order_number', queryset=SaleOrder.objects.all(),
         source='order', write_only=True, required=False,
     )
     courier_id = serializers.PrimaryKeyRelatedField(
@@ -99,7 +98,7 @@ class ShipmentGuideCreateSerializer(serializers.ModelSerializer):
             })
         # H-CICLO23-01: verificar que la orden está lista para surtir antes de
         # crear guía. Cut-over orders→sale (ADR-024): "lista para surtir" ya
-        # NO se lee del enum legacy Order.status — IN_PREPARATION es un valor
+        # NO se lee del enum legacy SaleOrder.status — IN_PREPARATION es un valor
         # muerto (ningún escritor canónico lo produce, H-API-10) proyectado
         # desde los ejes. Se deriva de la canónica: la orden debe estar
         # confirmada (sale.state='sale') y pagada (un Payment APPROVED). El

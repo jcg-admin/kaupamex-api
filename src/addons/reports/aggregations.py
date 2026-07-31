@@ -10,7 +10,6 @@ from decimal import Decimal
 from django.db.models import Count, F, Sum, Max as models_Max
 from django.db.models.functions import TruncDate
 from django.utils import timezone
-from addons.orders.models import Order, OrderItem
 from addons.payment.models import Payment
 from addons.sale.models import SaleOrder
 from addons.catalogue.models import Product
@@ -169,7 +168,7 @@ def build_top_sellers_payload(
     order_field = '-revenue' if sort_by == 'INGRESOS' else '-units_sold'
 
     rows = (
-        OrderItem.objects
+        SaleOrderLine.objects
         .filter(order__created_at__gte=start, order__created_at__lte=end)
         .exclude(order__sale_order__state=SaleOrder.STATE_CANCEL)  # H-CICLO27-03: alinear con build_sales_payload
         .values('product_id', 'product_name', 'sku')
@@ -199,7 +198,7 @@ def build_top_sellers_payload(
 
     total_inactive = Product.objects.filter(is_active=False).count()
     inactive_with_sales = (
-        OrderItem.objects
+        SaleOrderLine.objects
         .filter(order__created_at__gte=start, order__created_at__lte=end)
         .exclude(order__sale_order__state=SaleOrder.STATE_CANCEL)
         .filter(product__is_active=False)
@@ -255,7 +254,7 @@ def build_dashboard_payload() -> dict:
     ]
 
     top_products_rows = (
-        OrderItem.objects
+        SaleOrderLine.objects
         .filter(order__created_at__gte=trend_start)
         .exclude(order__sale_order__state=SaleOrder.STATE_CANCEL)  # H-CICLO28-01
         .values('product_id', 'product_name', 'sku')
@@ -313,7 +312,7 @@ def build_rfm_payload(period_days: int, segment_filter: str | None = None) -> di
     now = timezone.now()
 
     # E4 — ``partner`` del canónico apunta al mismo ``AUTH_USER_MODEL`` que
-    # ``Order.user`` del espejo (``sale/models/sale_order.py:72-76``), así que
+    # ``SaleOrder.user`` del espejo (``sale/models/sale_order.py:72-76``), así que
     # el agrupamiento por cliente es equivalente. Anclaje: ver la nota de
     # ``build_sales_payload``.
     rows = (
@@ -376,7 +375,7 @@ def count_export_rows(slug: str, days: int) -> int:
         ).count()
     if slug == 'top-sellers':
         return (
-            OrderItem.objects
+            SaleOrderLine.objects
             .filter(order__created_at__gte=start, order__created_at__lte=end)
             .exclude(order__sale_order__state=SaleOrder.STATE_CANCEL)
             .values('product_id').distinct().count()
