@@ -31,7 +31,6 @@ from drf_spectacular.types import OpenApiTypes as OAT
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
 from addons.cart.models import SavedCart
 from addons.sale.models import SaleOrder
-from addons.orders.services import merge_draft_orders
 from addons.mail.models import NotificationPreference
 from addons.website.models import SearchEntry
 from addons.website_sale_wishlist.models import WishlistItem
@@ -68,7 +67,7 @@ def _merge_anon_cart_into_user(user, cart_token):
     except (ValueError, TypeError, AttributeError):
         return
     try:
-        # S3 cart→order→sale: el carrito anónimo es un Order(DRAFT) por
+        # S3 cart→order→sale: el carrito anónimo es un SaleOrder(DRAFT) por
         # token; la fusión (stock guards + recorte) vive en el servicio.
         merge_draft_orders(user, token)
     except Exception:

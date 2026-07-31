@@ -9,6 +9,7 @@ import json
 import logging
 from decimal import Decimal
 from django.conf import settings
+from addons.sale.models import SaleOrder
 from django.db import transaction
 from django.urls import reverse
 from addons.payment.gateways.base import BaseGateway
@@ -16,7 +17,6 @@ from addons.payment.gateways.registry import get_gateway, get_default_gateway
 from addons.payment.models import Payment, PaymentGatewayEvent, Payment as PaymentModel, Refund
 from django.db.models import F, Sum as DjSum
 from addons.payment.models import PaymentGateway
-from addons.orders.models import Order
 from addons.sale.status_projection import (
     STATUS_PENDING,
     order_status,
@@ -57,7 +57,7 @@ def initiate_payment(
     3. Persiste el Payment con status=PENDING.
     4. Registra el evento de auditoría.
 
-    :param order: instancia Order en estado PENDING
+    :param order: instancia SaleOrder en estado PENDING
     :param request: HttpRequest para construir las back_urls
     :param installments: número de cuotas (1 = contado, >1 = MSI)
     :param gateway: instancia de BaseGateway (None usa el default)
@@ -295,8 +295,8 @@ def get_payment_status(order_number: str, user) -> dict:
     """
 
     try:
-        order = Order.objects.get(order_number=order_number, user=user)
-    except Order.DoesNotExist:
+        order = SaleOrder.objects.get(order_number=order_number, user=user)
+    except SaleOrder.DoesNotExist:
         return None  # Caller convierte en 404
 
     payment = (
@@ -321,8 +321,8 @@ def get_payment_history(order_number: str, user) -> list | None:
     """
 
     try:
-        order = Order.objects.get(order_number=order_number, user=user)
-    except Order.DoesNotExist:
+        order = SaleOrder.objects.get(order_number=order_number, user=user)
+    except SaleOrder.DoesNotExist:
         return None
 
     # H-CICLO46-03: order_number field (documented in PaymentSerializer) was
@@ -344,12 +344,12 @@ def get_payment_history(order_number: str, user) -> list | None:
 def get_retry_eligibility(order_number: str, user) -> dict | None:
     """
     Verifica si una orden es elegible para reintentar el pago.
-    UC-PAY-08 (FR-PAY-08.01). H-REF-004: condición real = Order.status=PENDING.
+    UC-PAY-08 (FR-PAY-08.01). H-REF-004: condición real = SaleOrder.status=PENDING.
     """
 
     try:
-        order = Order.objects.get(order_number=order_number, user=user)
-    except Order.DoesNotExist:
+        order = SaleOrder.objects.get(order_number=order_number, user=user)
+    except SaleOrder.DoesNotExist:
         return None
 
     _status = order_status(order)
@@ -458,10 +458,10 @@ def initiate_checkout_api_payment(
 
     A diferencia de initiate_payment() (Checkout Pro), la respuesta de MP
     es síncrona: el estado approved/rejected/pending se conoce de inmediato.
-    Si el pago es aprobado, la Order se actualiza a STATUS_PAID aquí;
+    Si el pago es aprobado, la SaleOrder se actualiza a STATUS_PAID aquí;
     el webhook posterior (DEC-V2-02) actúa como confirmación idempotente.
 
-    :param order: instancia Order en estado PENDING
+    :param order: instancia SaleOrder en estado PENDING
     :param token: token del CardForm de MP.js (caduca en 7 min, un solo uso).
                   Vacío para métodos no-tarjeta (OXXO, SPEI, cajeros).
     :param installments: número de cuotas (1 = contado)

@@ -49,13 +49,15 @@ class Payment(BusListenerMixin, TimeStampedModel):
         (STATUS_CANCELLED,          'Cancelado'),
     ]
 
-    # E4-pre (H-API-26): anclaje invertido. En Odoo el eje de pago vive en
-    # payment.transaction anclado a sale.order — la canónica manda (NOT NULL,
-    # PROTECT) y la FK al espejo queda nullable/SET_NULL hasta su retiro en E5.
-    order             = models.ForeignKey(
-        'orders.Order', null=True, blank=True,
-        on_delete=models.SET_NULL, related_name='payments',
-    )
+    # E4-pre (H-API-26): anclaje invertido — la venta canónica manda
+    # (NOT NULL, PROTECT). Desde E5 es el único ancla: la FK al espejo se
+    # retiró con el addon ``orders``.
+    #
+    # H-API-97 — corrección del claim anterior: en la referencia
+    # ``payment.transaction`` NO cuelga de ``sale.order`` por FK directa; su
+    # ``reference`` es un ``Char`` de texto libre y el puente al documento de
+    # negocio lo pone el addon ``sale``. Nuestro anclaje por FK es una
+    # divergencia deliberada, no una copia.
     sale_order        = models.ForeignKey(
         'sale.SaleOrder', on_delete=models.PROTECT, related_name='payments',
     )

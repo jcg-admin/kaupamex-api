@@ -15,6 +15,29 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 
+def _track_sale_state(sale_order, previous, new, author, note=''):
+    """Registra una transición de estado de la venta en su chatter.
+
+    E5 — reemplaza a ``orders.OrderStatusLog``. El destino lo declara
+    ``analisis-estructura-destino-comercial.rst``: en la referencia la bitácora
+    es ``mail.thread`` con ``tracking=True`` sobre el campo, no una tabla
+    lateral. ``SaleOrder`` ya hereda ``MailThread``, así que la paridad es
+    directa: ``changed_by`` → autor del ``mail.message``; los estados →
+    ``old``/``new`` del ``mail.tracking.value``.
+
+    La nota va como mensaje aparte porque ``message_track`` publica el
+    tracking con cuerpo vacío (fiel a Odoo, donde el comentario es otro
+    mensaje del hilo).
+    """
+    sale_order.message_track(
+        [{'field': 'state', 'field_desc': 'Estado', 'field_type': 'char',
+          'old': previous, 'new': new}],
+        author=author,
+    )
+    if note:
+        sale_order.message_post(body=note, author=author)
+
+
 class ShipmentGuidePagination(PageNumberPagination):
     """Paginacion para listado de guias de envio — H-CICLO29-03."""
     page_size             = 25
@@ -24,7 +47,6 @@ class ShipmentGuidePagination(PageNumberPagination):
 logger = logging.getLogger('apps')
 
 from addons.mail.models.notification_service import notify_order_status_changed
-from addons.orders.models import Order, OrderStatusLog
 from addons.sale.status_projection import (
     STATUS_DELIVERED,
     STATUS_SHIPPED,
@@ -60,11 +82,11 @@ class LogisticsPanelView(_AdminOnly, APIView):
 
         # Cut-over orders→sale (ADR-024): "pending pickup" = orden confirmada
         # (sale.state='sale') y pagada (Payment APPROVED) SIN guía viva. El
-        # enum legacy Order.status ya no se filtra: IN_PREPARATION es un valor
+        # enum legacy SaleOrder.status ya no se filtra: IN_PREPARATION es un valor
         # muerto proyectado desde los ejes, no escrito (H-API-10). El status
         # de cada fila se deriva con order_status(), no leyendo la columna.
         group_a_qs = (
-            Order.objects
+            SaleOrder.objects
             .filter(
                 sale_order__state=SaleOrder.STATE_SALE,
                 sale_order__payments__status=Payment.STATUS_APPROVED,
@@ -82,7 +104,7 @@ class LogisticsPanelView(_AdminOnly, APIView):
                 entry['recipient_name'] = addr.recipient_name
                 entry['city'] = addr.city
             except Exception:
-                logger.warning('Order %s has no address record', order.id)
+                logger.warning('SaleOrder %s has no address record', order.id)
             pending_pickup.append(entry)
 
         guide_qs = ShipmentGuide.objects.filter(is_deleted=False).exclude(
@@ -177,10 +199,10 @@ class ShipmentGuideListCreateView(_AdminOnly, APIView):
         # H-CICLO110-04: envolver la dedup check + guide create + order save
         # en un bloque atomic con select_for_update para evitar dos requests
         # concurrentes que ambos pasen el filtro GUIDE_ALREADY_EXISTS y creen
-        # dos guías para la misma orden. También se crea OrderStatusLog para
+        # dos guías para la misma orden. También se crea SaleOrderStatusLog para
         # la transición →SHIPPED, que antes quedaba sin registro de auditoría.
         with transaction.atomic():
-            order_locked = (Order.objects.select_for_update()
+            order_locked = (SaleOrder.objects.select_for_update()
                             .select_related('sale_order').get(pk=order.pk))
             # H-CICLO72-03: prevent duplicate active guides for the same order.
             if ShipmentGuide.objects.filter(order=order_locked, is_deleted=False).exists():
@@ -201,12 +223,14 @@ class ShipmentGuideListCreateView(_AdminOnly, APIView):
                 courier=data['courier'],
                 tracking_number=data['tracking_number'], notes=data.get('notes', ''),
             )
-            OrderStatusLog.objects.create(
-                order=order_locked,
-                previous_status=previous_status,
-                new_status=STATUS_SHIPPED,
-                changed_by=request.user,
-                notes=f'Guía de envío creada: {data["tracking_number"]}',
+            # E5 — la bitácora de la venta es el chatter, no una tabla
+            # lateral: ``mail.tracking.value`` sobre ``state`` (Odoo
+            # ``_message_track``). El autor del mensaje sustituye a
+            # ``changed_by`` y la nota va como mensaje propio del hilo.
+            _track_sale_state(
+                order_locked.sale_order, previous_status, STATUS_SHIPPED,
+                request.user,
+                f'Guía de envío creada: {data["tracking_number"]}',
             )
             # UC-NOT-02 (O2C R8): notificación explícita en el eje (antes la
             # disparaba la signal post_save al escribir el espejo).
@@ -406,8 +430,8 @@ class ConfirmDeliveryView(_AdminOnly, APIView):
         # (a) inconsistencia si el primer save commitea y el segundo falla
         #     (guide=DELIVERED pero order≠DELIVERED o viceversa).
         # (b) dos admins confirmando la misma guia concurrentemente, creando
-        #     dos OrderStatusLog SHIPPED→DELIVERED.
-        # Ademas se crea OrderStatusLog para la transicion SHIPPED→DELIVERED,
+        #     dos SaleOrderStatusLog SHIPPED→DELIVERED.
+        # Ademas se crea SaleOrderStatusLog para la transicion SHIPPED→DELIVERED,
         # que antes quedaba sin entrada de auditoria.
         with transaction.atomic():
             guide_locked = (ShipmentGuide.objects.select_for_update()
@@ -423,12 +447,11 @@ class ConfirmDeliveryView(_AdminOnly, APIView):
             guide_locked.status = ShipmentGuide.STATUS_DELIVERED
             guide_locked.delivered_at = now
             guide_locked.save(update_fields=['status', 'delivered_at', 'updated_at'])
-            OrderStatusLog.objects.create(
-                order=guide_locked.order,
-                previous_status=previous_order_status,
-                new_status=STATUS_DELIVERED,
-                changed_by=request.user,
-                notes=f'Entrega confirmada via guia #{guide_locked.pk} ({guide_locked.tracking_number})',
+            _track_sale_state(
+                guide_locked.sale_order, previous_order_status,
+                STATUS_DELIVERED, request.user,
+                f'Entrega confirmada via guia #{guide_locked.pk} '
+                f'({guide_locked.tracking_number})',
             )
             # UC-NOT-02 (O2C R8): sin escritura del espejo la signal
             # post_save no dispara — notificación explícita en el eje.
@@ -470,8 +493,8 @@ class BuyerGuideView(APIView):
     def _guide_response(self, request, order_lookup):
         """order_lookup: dict con pk o order_number, siempre scoped al usuario."""
         try:
-            order = Order.objects.get(user=request.user, **order_lookup)
-        except Order.DoesNotExist:
+            order = SaleOrder.objects.get(user=request.user, **order_lookup)
+        except SaleOrder.DoesNotExist:
             return Response({'detail': 'Orden no encontrada.', 'codigo_error': 'ORDER_NOT_FOUND'}, status=404)
         guide = ShipmentGuide.objects.filter(order=order, is_deleted=False).select_related('courier').first()
         if not guide:
@@ -536,8 +559,8 @@ class BuyerReportIncidentView(APIView):
         # acepta cualquiera de los dos, siempre scoped al usuario.
         lookup = {'pk': order_id} if order_id is not None else {'order_number': order_number}
         try:
-            order = Order.objects.get(user=request.user, **lookup)
-        except Order.DoesNotExist:
+            order = SaleOrder.objects.get(user=request.user, **lookup)
+        except SaleOrder.DoesNotExist:
             return Response({'detail': 'Orden no encontrada.', 'codigo_error': 'ORDER_NOT_FOUND'}, status=404)
 
         guide = ShipmentGuide.objects.filter(order=order, is_deleted=False).select_related('order').first()

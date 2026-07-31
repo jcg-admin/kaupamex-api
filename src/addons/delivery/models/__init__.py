@@ -124,12 +124,8 @@ class ShipmentGuide(TimeStampedModel, SoftDeleteModel):
 
     # E4-pre (H-API-26): anclaje invertido. El eje de fulfillment es la
     # adaptación de stock.picking y en Odoo cuelga de la sale.order — la
-    # canónica manda (NOT NULL, PROTECT); la FK al espejo queda
-    # nullable/SET_NULL hasta su retiro en E5.
-    order           = models.OneToOneField(
-        'orders.Order', null=True, blank=True,
-        on_delete=models.SET_NULL, related_name='shipment_guide',
-    )
+    # canónica es el único ancla desde E5 (la FK al espejo se retiró con el
+    # addon ``orders``).
     sale_order      = models.OneToOneField(
         'sale.SaleOrder', on_delete=models.PROTECT, related_name='shipment_guide',
     )
@@ -344,3 +340,5 @@ class ShippingMethod(TimeStampedModel):
         self.product = product
         self.save(update_fields=['product', 'updated_at'])
         return product
+
+from .delivery_address import DeliveryAddress  # noqa: E402

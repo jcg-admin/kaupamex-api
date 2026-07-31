@@ -15,7 +15,6 @@ import secrets
 import string
 from django.db import transaction
 from django.utils import timezone
-from addons.orders.models import Order
 from addons.sale.status_projection import (
     STATUS_DELIVERED,
     STATUS_PAID,

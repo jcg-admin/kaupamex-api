@@ -74,7 +74,6 @@ INSTALLED_APPS = [
     'addons.mrp',
     'addons.mrp_subcontracting',
     'addons.sale_mrp',
-    'addons.orders',
     'addons.payment',
     'addons.payment_aps',
     'addons.payment_authorize',
@@ -488,8 +487,6 @@ SPECTACULAR_SETTINGS = {
     # ambas formas funcionan; se mantiene .choices por legibilidad.
     'ENUM_NAME_OVERRIDES': {
         # status fields (mas de un modelo usa este nombre de campo)
-        'OrderStatusEnum':
-            'addons.orders.models.Order.STATUSES',
         'PaymentStatusEnum':
             'addons.payment.models.Payment.STATUSES',
         'RefundStatusEnum':

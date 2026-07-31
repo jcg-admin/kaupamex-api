@@ -73,3 +73,5 @@ __all__ = [
     'ExportJob',
     'SiteSettings',
 ]
+
+from .checkout_attempt import CheckoutAttempt  # noqa: E402
