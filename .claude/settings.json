@@ -55,6 +55,17 @@
           }
         ]
       }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/inject-drf-skill-gate.py"
+          }
+        ]
+      }
     ]
   }
 }
