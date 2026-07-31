@@ -39,7 +39,7 @@ class ShipmentGuideSerializer(serializers.ModelSerializer):
     class Meta:
         model  = ShipmentGuide
         fields = [
-            'id', 'order', 'order_number', 'courier', 'courier_id',
+            'id', 'sale_order', 'order_number', 'courier', 'courier_id',
             'tracking_number', 'tracking_url', 'status', 'delivered_at',
             'estimated_delivery', 'notes', 'created_at', 'last_event',
         ]
@@ -54,14 +54,20 @@ class ShipmentGuideCreateSerializer(serializers.ModelSerializer):
     # La orden se puede identificar por su PK (order_id) o por su identificador
     # público order_number. El resto del admin usa order_number (el PK entero se
     # oculta a propósito, H-CICLO79-03), así que la UI envía order_number; se
-    # mantiene order_id por compatibilidad. Ambos mapean a source='order'.
+    # mantiene order_id por compatibilidad. Ambos mapean a source='sale_order'.
+    #
+    # SOL-098 (G7): tras el retiro del espejo `orders` la canónica ES la venta;
+    # el destino es `sale_order` y su identificador público es `SaleOrder.name`
+    # (el espejo lo llamaba `order_number`). El NOMBRE EXTERNO del campo se
+    # conserva (`order_number`) para no romper el contrato de la UI — sólo
+    # cambian `source`/`slug_field`, que son internos.
     order_id     = serializers.PrimaryKeyRelatedField(
-        queryset=SaleOrder.objects.all(), source='order', write_only=True,
+        queryset=SaleOrder.objects.all(), source='sale_order', write_only=True,
         required=False,
     )
     order_number = serializers.SlugRelatedField(
-        slug_field='order_number', queryset=SaleOrder.objects.all(),
-        source='order', write_only=True, required=False,
+        slug_field='name', queryset=SaleOrder.objects.all(),
+        source='sale_order', write_only=True, required=False,
     )
     courier_id = serializers.PrimaryKeyRelatedField(
         queryset=Courier.objects.filter(is_active=True),
@@ -90,8 +96,8 @@ class ShipmentGuideCreateSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, attrs):
-        order = attrs.get('order')
-        if order is None:
+        sale_order = attrs.get('sale_order')
+        if sale_order is None:
             raise serializers.ValidationError({
                 'detail': 'Debe indicar order_id u order_number.',
                 'codigo_error': 'ORDER_REQUIRED',
@@ -103,10 +109,9 @@ class ShipmentGuideCreateSerializer(serializers.ModelSerializer):
         # desde los ejes. Se deriva de la canónica: la orden debe estar
         # confirmada (sale.state='sale') y pagada (un Payment APPROVED). El
         # check de guía duplicada que sigue cubre "aún sin enviar".
-        sale_order = order.sale_order
+        # La canónica ES la venta: ya no hay indirección `order.sale_order`.
         lista_para_surtir = (
-            sale_order is not None
-            and sale_order.state == SaleOrder.STATE_SALE
+            sale_order.state == SaleOrder.STATE_SALE
             and sale_order.payments.filter(
                 status=Payment.STATUS_APPROVED).exists()
         )
@@ -118,7 +123,8 @@ class ShipmentGuideCreateSerializer(serializers.ModelSerializer):
                 ),
                 'codigo_error': 'ORDER_NOT_IN_PREPARATION',
             })
-        if ShipmentGuide.all_objects.filter(order=order, is_deleted=False).exists():
+        if ShipmentGuide.all_objects.filter(
+                sale_order=sale_order, is_deleted=False).exists():
             raise serializers.ValidationError({
                 'detail': 'La orden ya tiene una guia de envio activa.',
                 'codigo_error': 'SHIPMENT_GUIDE_DUPLICATE',
