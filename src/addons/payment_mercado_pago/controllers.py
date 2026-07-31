@@ -201,7 +201,7 @@ class MercadoPagoWebhookView(APIView):
         payment = (
             Payment.objects
             .filter(preference_id__isnull=False, gateway='MERCADOPAGO')
-            .filter(order__order_number=data.get('external_reference', ''))
+            .filter(sale_order__name=data.get('external_reference', ''))
             .first()
         )
         # Si no encontramos por order_number: en orders buscamos por mp_order_id

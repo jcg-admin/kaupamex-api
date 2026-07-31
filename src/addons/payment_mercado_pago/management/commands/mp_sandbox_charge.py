@@ -168,7 +168,7 @@ def run_sandbox_charge(status='APRO', method='master', amount='199.00',
 
     if not keep:
         # hard_delete: SaleOrder es SoftDeleteModel; su delete() dejaría la fila.
-        for pay in Payment.objects.filter(order=order):
+        for pay in Payment.objects.filter(sale_order=order):
             (pay.hard_delete if hasattr(pay, 'hard_delete') else pay.delete)()
         order.hard_delete()  # SaleOrderValue_REMOVED cascada real
 

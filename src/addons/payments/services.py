@@ -129,7 +129,7 @@ def handle_gateway_return(order_number: str, mp_payment_id: str | None, status: 
     """
     payment = (
         Payment.objects.filter(
-            order__order_number=order_number,
+            sale_order__name=order_number,
             status=Payment.STATUS_PENDING,
         )
         .order_by('-created_at')
@@ -300,7 +300,7 @@ def get_payment_status(order_number: str, user) -> dict:
         return None  # Caller convierte en 404
 
     payment = (
-        PaymentModel.objects.filter(order=order)
+        PaymentModel.objects.filter(sale_order=order)
         .order_by('-created_at')
         .first()
     )
@@ -330,8 +330,8 @@ def get_payment_history(order_number: str, user) -> list | None:
     # payment's order reference for display; returning it avoids the caller
     # having to derive it from the URL parameter.
     return list(
-        PaymentModel.objects.filter(order=order)
-        .annotate(order_number=F('order__order_number'))
+        PaymentModel.objects.filter(sale_order=order)
+        .annotate(order_number=F('sale_order__name'))
         .order_by('-created_at')
         .values(
             'id', 'gateway', 'status', 'amount',

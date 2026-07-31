@@ -386,9 +386,9 @@ class ReceiptPdfView(APIView):
 
         items = list(order.items.all())
         value = getattr(order, 'value', None)
-        address = getattr(order, 'address', None)
+        address = getattr(order, 'delivery_address', None)
         payment = (
-            Payment.objects.filter(order=order, status=Payment.STATUS_APPROVED)
+            Payment.objects.filter(sale_order=order, status=Payment.STATUS_APPROVED)
             .order_by('-created_at').first()
         )
         site = SiteSettings.get_current()
@@ -808,7 +808,7 @@ class RefundView(APIView):
             )
 
         payment = (
-            PaymentModel.objects.filter(order=order, status=PaymentModel.STATUS_APPROVED)
+            PaymentModel.objects.filter(sale_order=order, status=PaymentModel.STATUS_APPROVED)
             .order_by('-created_at').first()
         )
         if not payment:
@@ -959,7 +959,7 @@ class AdminPaymentDetailView(APIView):
     )
     def get(self, request, payment_id):
         payment = get_object_or_404(
-            PaymentModel.objects.select_related('order', 'order__user'),
+            PaymentModel.objects.select_related('sale_order', 'sale_order__partner'),
             pk=payment_id,
         )
         return Response(AdminPaymentSerializer(payment).data)
@@ -1002,7 +1002,7 @@ class AdminPaymentListView(APIView):
     )
     def get(self, request):
         qs = (
-            Payment.objects.select_related('order', 'order__user')
+            Payment.objects.select_related('sale_order', 'sale_order__partner')
             .order_by('-created_at')
         )
 

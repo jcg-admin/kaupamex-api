@@ -42,7 +42,7 @@ def _process_payment_approval(
         payment = (
             Payment.objects
             .select_for_update()
-            .select_related('order')
+            .select_related('sale_order')
             .filter(gateway_payment_id=gateway_payment_id, gateway=gateway)
             .first()
         )
