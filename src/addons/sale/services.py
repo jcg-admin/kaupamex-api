@@ -133,7 +133,7 @@ def clear_draft_items(order):
 
     ``QuerySet.delete()`` en bloque no dispara el recálculo de
     ``SaleOrderLine.delete()`` (H-API-30) — se dispara explícito para que el
-    total de la orden quede en ``0.00`` y no stale con el valor previo.
+    total de la orden quede en ``0.00`` y no stale con el value previo.
     """
     if order.state != SaleOrder.STATE_DRAFT:
         raise DraftOrderError('La orden no es un draft.', 'ORDEN_NO_DRAFT')
@@ -155,7 +155,7 @@ def _draft_extra_discount(order, subtotal):
     respuestas = draft_discount_requested.send(
         sender=SaleOrder, order=order, subtotal=subtotal)
     return sum(
-        (valor for _receptor, valor in respuestas if valor),
+        (value for _receptor, value in respuestas if value),
         Decimal('0.00'),
     )
 

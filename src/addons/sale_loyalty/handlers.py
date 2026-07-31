@@ -17,7 +17,7 @@ from addons.sale_loyalty.services import (draft_coupon_discount,
 
 @receiver(draft_discount_requested, sender=SaleOrder,
           dispatch_uid='sale_loyalty.draft_coupon_discount')
-def aportar_descuento_de_cupon(sender, order, subtotal, **kwargs):
+def contribute_voucher_discount(sender, order, subtotal, **kwargs):
     """Aporta el descuento vivo del cupón al total del draft.
 
     ``get_draft_totals`` suma lo que devuelvan los receptores; si no hay
@@ -29,7 +29,7 @@ def aportar_descuento_de_cupon(sender, order, subtotal, **kwargs):
 
 @receiver(draft_voucher_requested, sender=SaleOrder,
           dispatch_uid='sale_loyalty.draft_voucher')
-def aportar_voucher_del_cupon(sender, order, **kwargs):
+def contribute_applied_voucher(sender, order, **kwargs):
     """Devuelve el ``Voucher`` del cupón para que el núcleo lo consuma al
     confirmar, sin que ``sale`` conozca ``SaleOrderCoupon``."""
     return draft_coupon_voucher(order)

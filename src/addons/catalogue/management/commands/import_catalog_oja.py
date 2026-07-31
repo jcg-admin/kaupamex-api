@@ -31,7 +31,7 @@ from django.core.management.base import BaseCommand
 
 from addons.catalogue.models import Category, Product, ProductImage
 
-CATEGORIA_NAMES = {
+CATEGORY_NAMES = {
     'akoses-medicinas': 'Akoses / Medicinas',
     'collares-de-orumila': 'Collares de Orumila',
     'collares-y-pulseras': 'Collares y Pulseras',
@@ -42,7 +42,8 @@ CATEGORIA_NAMES = {
     'ropa-y-telas': 'Ropa y Telas',
 }
 
-# Folder slug → DB slug when they differ (folder name ≠ semantic category name)
+# Slug de carpeta → slug de BD cuando difieren (el nombre de la carpeta no
+# es el nombre semántico de la categoría).
 SLUG_OVERRIDES = {
     'enseres': 'ingredientes-rituales',
 }
@@ -50,14 +51,14 @@ SLUG_OVERRIDES = {
 _CORTE = ('Recibelo:', 'Valoraciones', 'Información adicional')
 
 
-def _limpiar_descripcion(texto):
-    if not texto:
+def _clean_description(text):
+    if not text:
         return ''
     for marcador in _CORTE:
-        idx = texto.find(marcador)
+        idx = text.find(marcador)
         if idx != -1:
-            texto = texto[:idx]
-    return texto.strip()
+            text = text[:idx]
+    return text.strip()
 
 
 class Command(BaseCommand):
@@ -104,7 +105,7 @@ class Command(BaseCommand):
             if not cat_dir.is_dir() or cat_dir.name.startswith('_'):
                 continue
             cat_slug = cat_dir.name
-            if cat_slug not in CATEGORIA_NAMES:
+            if cat_slug not in CATEGORY_NAMES:
                 continue
             if filter_category and cat_slug != filter_category:
                 continue
@@ -128,7 +129,7 @@ class Command(BaseCommand):
         self._print_summary(stats, dry_run)
 
     def _import_category(self, slug, dry_run, stats):
-        name = CATEGORIA_NAMES[slug]
+        name = CATEGORY_NAMES[slug]
         db_slug = SLUG_OVERRIDES.get(slug, slug)
         if dry_run:
             stats['cat_created'] += 1
@@ -146,9 +147,9 @@ class Command(BaseCommand):
 
     def _import_product(self, data, category, prod_dir, media_images, dry_run, stats):
         slug = data['slug']
-        nombre = (data.get('nombre') or '')[:200]
-        descripcion = _limpiar_descripcion(data.get('descripcion') or '')
-        precio = Decimal(str(data['precio_actual'])).quantize(Decimal('0.01'))
+        raw_name = (data.get('nombre') or '')[:200]
+        descripcion = _clean_description(data.get('descripcion') or '')
+        price = Decimal(str(data['precio_actual'])).quantize(Decimal('0.01'))
         sku = f'OJA-{slug[:40]}'
         imagenes = data.get('imagenes') or []
 
@@ -162,11 +163,11 @@ class Command(BaseCommand):
         # stock en cada corrida, deshaciendo cualquier ajuste de inventario
         # (DEC-STF-01: stock inicial 10; el re-import debe preservar el real).
         common = {
-            'name': nombre,
+            'name': raw_name,
             'sku': sku,
             'description': descripcion,
-            'short_description': nombre[:300],
-            'price': precio,
+            'short_description': raw_name[:300],
+            'price': price,
             'is_active': True,
             'is_published': True,
         }
@@ -183,18 +184,18 @@ class Command(BaseCommand):
             stats['prod_updated'] += 1
 
         for idx, img_data in enumerate(imagenes):
-            archivo = (img_data or {}).get('archivo')
-            if not archivo:
+            file_path = (img_data or {}).get('archivo')
+            if not file_path:
                 continue
-            src = prod_dir / 'images' / archivo
+            src = prod_dir / 'images' / file_path
             if src.exists():
-                shutil.copy2(str(src), str(media_images / archivo))
+                shutil.copy2(str(src), str(media_images / file_path))
             ProductImage.objects.update_or_create(
                 product=product,
                 order=idx,
                 defaults={
-                    'image': f'products/images/{archivo}',
-                    'alt_text': nombre[:200],
+                    'image': f'products/images/{file_path}',
+                    'alt_text': raw_name[:200],
                     'is_cover': idx == 0,
                 },
             )

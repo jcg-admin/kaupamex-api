@@ -102,8 +102,8 @@ class BusMessage(TimeStampedModel):
         if ignore_ids:
             qs = qs.exclude(pk__in=list(ignore_ids))
         return [
-            {'id': fila.pk, 'message': fila.payload()}
-            for fila in qs.order_by('id')
+            {'id': row.pk, 'message': row.payload()}
+            for row in qs.order_by('id')
         ]
 
     @classmethod

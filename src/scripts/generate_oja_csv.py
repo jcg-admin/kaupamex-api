@@ -25,7 +25,7 @@ import json
 import sys
 from pathlib import Path
 
-CATEGORIA_NAMES = {
+CATEGORY_NAMES = {
     'akoses-medicinas': 'Akoses / Medicinas',
     'collares-de-orumila': 'Collares de Orumila',
     'collares-y-pulseras': 'Collares y Pulseras',
@@ -41,14 +41,14 @@ SLUG_OVERRIDES = {'enseres': 'ingredientes-rituales'}
 _CORTE = ('Recibelo:', 'Valoraciones', 'Información adicional')
 
 
-def _truncar(texto):
-    if not texto:
+def _truncar(text):
+    if not text:
         return ''
     for marcador in _CORTE:
-        idx = texto.find(marcador)
+        idx = text.find(marcador)
         if idx != -1:
-            texto = texto[:idx]
-    return texto.strip()
+            text = text[:idx]
+    return text.strip()
 
 
 def main():
@@ -77,7 +77,7 @@ def main():
     for cat_dir in sorted(catalog_dir.iterdir()):
         if not cat_dir.is_dir() or cat_dir.name.startswith('_'):
             continue
-        if cat_dir.name not in CATEGORIA_NAMES:
+        if cat_dir.name not in CATEGORY_NAMES:
             continue
         cat_slug = SLUG_OVERRIDES.get(cat_dir.name, cat_dir.name)
 

@@ -15,8 +15,8 @@ from django.core.management import call_command
 
 from addons.catalogue.models import Category, Product, ProductImage
 from addons.catalogue.management.commands.import_catalog_oja import (
-    _limpiar_descripcion,
-    CATEGORIA_NAMES,
+    _clean_description,
+    CATEGORY_NAMES,
     SLUG_OVERRIDES,
 )
 
@@ -65,46 +65,46 @@ def catalog_dir(tmp_path):
 # ---------------------------------------------------------------------------
 
 class TestLimpiarDescripcion:
-    """_limpiar_descripcion corta en los marcadores correctos."""
+    """_clean_description corta en los marcadores correctos."""
 
     def test_corta_en_recibelo(self):
         texto = 'Descripción real. Recibelo: basura extra'
-        assert _limpiar_descripcion(texto) == 'Descripción real.'
+        assert _clean_description(texto) == 'Descripción real.'
 
     def test_corta_en_valoraciones(self):
         texto = 'Producto especial. Valoraciones de clientes aquí'
-        assert _limpiar_descripcion(texto) == 'Producto especial.'
+        assert _clean_description(texto) == 'Producto especial.'
 
     def test_corta_en_informacion_adicional(self):
         texto = 'Texto útil. Información adicional no relevante'
-        assert _limpiar_descripcion(texto) == 'Texto útil.'
+        assert _clean_description(texto) == 'Texto útil.'
 
     def test_sin_marcador_devuelve_completo(self):
         texto = 'Descripción limpia sin marcadores.'
-        assert _limpiar_descripcion(texto) == texto
+        assert _clean_description(texto) == texto
 
     def test_texto_vacio_devuelve_vacio(self):
-        assert _limpiar_descripcion('') == ''
+        assert _clean_description('') == ''
 
     def test_none_devuelve_vacio(self):
-        assert _limpiar_descripcion(None) == ''
+        assert _clean_description(None) == ''
 
 
 class TestConstantes:
-    """CATEGORIA_NAMES y SLUG_OVERRIDES tienen los valores esperados."""
+    """CATEGORY_NAMES y SLUG_OVERRIDES tienen los valores esperados."""
 
     def test_enseres_tiene_nombre_correcto(self):
-        assert CATEGORIA_NAMES['enseres'] == 'Ingredientes Rituales'
+        assert CATEGORY_NAMES['enseres'] == 'Ingredientes Rituales'
 
     def test_slug_override_enseres(self):
         assert SLUG_OVERRIDES['enseres'] == 'ingredientes-rituales'
 
     def test_ocho_categorias_mapeadas(self):
-        assert len(CATEGORIA_NAMES) == 8
+        assert len(CATEGORY_NAMES) == 8
 
     def test_todos_los_slugs_override_tienen_entry_en_nombres(self):
         for folder_slug in SLUG_OVERRIDES:
-            assert folder_slug in CATEGORIA_NAMES
+            assert folder_slug in CATEGORY_NAMES
 
 
 # ---------------------------------------------------------------------------
@@ -136,7 +136,7 @@ class TestImportCatalogOjaCategory:
         assert cat.name == 'Ingredientes Rituales'
 
     def test_carpeta_desconocida_ignorada(self, db, tmp_path):
-        """Una carpeta cuyo nombre no está en CATEGORIA_NAMES se ignora."""
+        """Una carpeta cuyo nombre no está en CATEGORY_NAMES se ignora."""
         (tmp_path / 'carpeta-desconocida').mkdir()
         call_command('import_catalog_oja', catalog_dir=str(tmp_path))
 

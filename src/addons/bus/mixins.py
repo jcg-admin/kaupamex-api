@@ -42,10 +42,10 @@ class BusListenerMixin:
         que un objeto puede delegar su canal en otro sin que quien emite tenga
         que saberlo.
         """
-        destino = self
-        while (siguiente := destino._bus_channel()) is not destino:
-            destino = siguiente
-        canal = destino.bus_channel_key()
+        target = self
+        while (siguiente := target._bus_channel()) is not target:
+            target = siguiente
+        canal = target.bus_channel_key()
         if subchannel is not None:
             canal = f'{canal}/{subchannel}'
         return BusMessage.sendone(canal, notification_type, message)

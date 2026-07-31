@@ -75,16 +75,16 @@ def create_password_reset_token(user) -> str:
 
 def send_password_reset_email(user, plain_token: str):
     reset_url = f"{getattr(settings, 'FRONTEND_URL', 'http://localhost:3001')}/auth/reset-password/?token={plain_token}"
-    nombre = user.first_name or user.email
+    display_name = user.first_name or user.email
     html_body = render_to_string('emails/reset_password.html', {
-        'nombre': nombre,
+        'nombre': display_name,
         'reset_url': reset_url,
         'ttl_hours': RESET_TTL_HOURS,
     })
     dispatch_email(
         subject='Recupera tu contrasena — PracticaYoruba',
         message=(
-            f'Hola {nombre},\n\n'
+            f'Hola {display_name},\n\n'
             f'Recibimos una solicitud para recuperar la contrasena de tu cuenta.\n'
             f'Sigue este enlace (valido por {RESET_TTL_HOURS} hora):\n\n'
             f'{reset_url}\n\n'
@@ -207,16 +207,16 @@ def send_verification_email(user, plain_token: str, next_path: str = ''):
     safe_next = _safe_internal_path(next_path)
     if safe_next:
         verify_url += f"&next={quote(safe_next, safe='/')}"
-    nombre = user.first_name or user.email
+    display_name = user.first_name or user.email
     html_body = render_to_string('emails/verify_account.html', {
-        'nombre': nombre,
+        'nombre': display_name,
         'verify_url': verify_url,
         'ttl_hours': VERIFY_TTL_HOURS,
     })
     dispatch_email(
         subject='Activa tu cuenta — PracticaYoruba',
         message=(
-            f'Hola {nombre},\n\n'
+            f'Hola {display_name},\n\n'
             f'Activa tu cuenta siguiendo este enlace (valido por {VERIFY_TTL_HOURS} horas):\n\n'
             f'{verify_url}\n\n'
             f'Si no te registraste en PracticaYoruba, ignora este mensaje.\n\n'

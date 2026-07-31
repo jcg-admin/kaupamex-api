@@ -8,7 +8,7 @@ from addons.mail.models import ManualNotification
 from addons.sale.models import SaleOrderLine
 
 
-def compradores_de_producto(product_id=None, **_kwargs):
+def product_buyers(product_id=None, **_kwargs):
     """``user_id`` distintos que compraron ``product_id``.
 
     E2c retiro del espejo: la línea canónica existe desde el carrito (draft);
@@ -29,5 +29,5 @@ def compradores_de_producto(product_id=None, **_kwargs):
 
 
 register_audience_resolver(
-    ManualNotification.RecipientType.PRODUCT_BUYERS, compradores_de_producto,
+    ManualNotification.RecipientType.PRODUCT_BUYERS, product_buyers,
 )

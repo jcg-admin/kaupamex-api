@@ -42,9 +42,9 @@ import sys
 from collections import defaultdict
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RAIZ = os.path.join(BASE, 'src', 'addons')
+ROOT = os.path.join(BASE, 'src', 'addons')
 SETTINGS = os.path.join(BASE, 'src', 'config', 'settings', 'base.py')
-ARCHIVO = 'authz_catalog.py'
+DECLARATION_FILE = 'authz_catalog.py'
 
 
 def installed_addons():
@@ -86,8 +86,8 @@ def read_declarations():
     modules = defaultdict(list)
     capabilities = defaultdict(list)
     non_literal = []
-    for addon in sorted(os.listdir(RAIZ)):
-        path = os.path.join(RAIZ, addon, ARCHIVO)
+    for addon in sorted(os.listdir(ROOT)):
+        path = os.path.join(ROOT, addon, DECLARATION_FILE)
         if not os.path.isfile(path):
             continue
         tree = ast.parse(open(path, encoding='utf-8').read(), filename=path)
@@ -99,7 +99,7 @@ def read_declarations():
             data = _kwargs(node)
             code = data.get('code')
             if not isinstance(code, str):
-                non_literal.append(f'{addon}/{ARCHIVO}:{node.lineno}')
+                non_literal.append(f'{addon}/{DECLARATION_FILE}:{node.lineno}')
                 continue
             target = modules if node.func.id == 'ModuleSpec' else capabilities
             target[code].append((addon, data))
