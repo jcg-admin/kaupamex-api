@@ -57,34 +57,34 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        specs_modules, specs_caps = discover()
+        declared_modules, declared_caps = discover()
 
         db_modules = {m.code: m for m in Module.objects.prefetch_related('depends')}
         db_caps = {c.code: c for c in Capability.objects.all()}
 
-        modulos_stale = sorted(set(db_modules) - set(specs_modules))
-        modulos_faltantes = sorted(set(specs_modules) - set(db_modules))
-        caps_stale = sorted(set(db_caps) - set(specs_caps))
-        caps_faltantes = sorted(set(specs_caps) - set(db_caps))
-        divergentes = self._metadata_divergente(specs_modules, db_modules)
+        stale_modules = sorted(set(db_modules) - set(declared_modules))
+        missing_modules = sorted(set(declared_modules) - set(db_modules))
+        stale_caps = sorted(set(db_caps) - set(declared_caps))
+        missing_caps = sorted(set(declared_caps) - set(db_caps))
+        diverging = self._diverging_metadata(declared_modules, db_modules)
 
-        self._reportar('Módulos sembrados que nadie declara', modulos_stale)
-        self._reportar('Módulos declarados sin sembrar (falta seed_authz)',
-                       modulos_faltantes)
-        self._reportar('Capacidades sembradas que nadie declara', caps_stale)
-        self._reportar('Capacidades declaradas sin sembrar', caps_faltantes)
-        self._reportar('Metadata divergente entre DB y declaración', divergentes)
+        self._report('Módulos sembrados que nadie declara', stale_modules)
+        self._report('Módulos declarados sin sembrar (falta seed_authz)',
+                       missing_modules)
+        self._report('Capacidades sembradas que nadie declara', stale_caps)
+        self._report('Capacidades declaradas sin sembrar', missing_caps)
+        self._report('Metadata divergente entre DB y declaración', diverging)
 
-        total = (len(modulos_stale) + len(modulos_faltantes) + len(caps_stale)
-                 + len(caps_faltantes) + len(divergentes))
+        total = (len(stale_modules) + len(missing_modules) + len(stale_caps)
+                 + len(missing_caps) + len(diverging))
 
         if options['prune']:
-            self._prune(modulos_stale, caps_stale, db_modules, db_caps)
+            self._prune(stale_modules, stale_caps, db_modules, db_caps)
 
         if total == 0:
             self.stdout.write(self.style.SUCCESS(
-                f'Catálogo reconciliado: {len(specs_modules)} módulos y '
-                f'{len(specs_caps)} capacidades coinciden con la declaración.'
+                f'Catálogo reconciliado: {len(declared_modules)} módulos y '
+                f'{len(declared_caps)} capacidades coinciden con la declaración.'
             ))
             return
 
@@ -95,62 +95,62 @@ class Command(BaseCommand):
                 'reconcile_catalog --prune si sobran.'
             )
 
-    def _metadata_divergente(self, specs, db_modules):
+    def _diverging_metadata(self, specs, db_modules):
         """Filas cuya metadata no coincide con lo declarado por su addon."""
-        salida = []
+        result = []
         for code, spec in specs.items():
-            fila = db_modules.get(code)
-            if fila is None:
+            row = db_modules.get(code)
+            if row is None:
                 continue
             diffs = []
-            if fila.name != spec.name:
-                diffs.append(f'name {fila.name!r}≠{spec.name!r}')
-            if fila.is_application != spec.is_application:
+            if row.name != spec.name:
+                diffs.append(f'name {row.name!r}≠{spec.name!r}')
+            if row.is_application != spec.is_application:
                 diffs.append(
-                    f'is_application {fila.is_application}≠{spec.is_application}')
-            if fila.category != spec.category:
-                diffs.append(f'category {fila.category!r}≠{spec.category!r}')
-            depends_db = set(fila.depends.values_list('code', flat=True))
+                    f'is_application {row.is_application}≠{spec.is_application}')
+            if row.category != spec.category:
+                diffs.append(f'category {row.category!r}≠{spec.category!r}')
+            depends_db = set(row.depends.values_list('code', flat=True))
             if depends_db != set(spec.depends):
                 diffs.append(
                     f'depends {sorted(depends_db)}≠{sorted(spec.depends)}')
             if diffs:
-                salida.append(f'{code}: ' + ' · '.join(diffs))
-        return salida
+                result.append(f'{code}: ' + ' · '.join(diffs))
+        return result
 
     @transaction.atomic
-    def _prune(self, modulos_stale, caps_stale, db_modules, db_caps):
+    def _prune(self, stale_modules, stale_caps, db_modules, db_caps):
         """Retira lo no declarado, protegiendo lo que una company contrató.
 
         El orden importa: las capacidades primero, porque ``Capability.module``
         es ``PROTECT`` y una capacidad viva impediría retirar su módulo.
         """
-        for code in caps_stale:
+        for code in stale_caps:
             db_caps[code].delete()
-        if caps_stale:
-            self.stdout.write(f'Retiradas {len(caps_stale)} capacidad(es).')
+        if stale_caps:
+            self.stdout.write(f'Retiradas {len(stale_caps)} capacidad(es).')
 
-        con_suscripcion = set(
+        with_subscription = set(
             CompanyModuleSubscription.objects
-            .filter(module__code__in=modulos_stale)
+            .filter(module__code__in=stale_modules)
             .values_list('module__code', flat=True)
         )
-        retirados = 0
-        for code in modulos_stale:
-            if code in con_suscripcion:
+        removed = 0
+        for code in stale_modules:
+            if code in with_subscription:
                 self.stdout.write(self.style.WARNING(
                     f'  {code}: NO se retira — tiene suscripciones de company. '
                     f'Cancelarlas o volver a declararlo.'
                 ))
                 continue
             db_modules[code].delete()
-            retirados += 1
-        if retirados:
-            self.stdout.write(f'Retirados {retirados} módulo(s).')
+            removed += 1
+        if removed:
+            self.stdout.write(f'Retirados {removed} módulo(s).')
 
-    def _reportar(self, titulo, elementos):
-        if not elementos:
+    def _report(self, title, items):
+        if not items:
             return
-        self.stdout.write(self.style.WARNING(f'{titulo} ({len(elementos)}):'))
-        for elemento in elementos:
-            self.stdout.write(f'  - {elemento}')
+        self.stdout.write(self.style.WARNING(f'{title} ({len(items)}):'))
+        for item in items:
+            self.stdout.write(f'  - {item}')

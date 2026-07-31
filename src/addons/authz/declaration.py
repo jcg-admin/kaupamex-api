@@ -124,15 +124,15 @@ def _import_declaration(app_config):
     de addons se conoce en runtime. Es el patrón sancionado en
     ``.claude/rules/no-lazy-imports.md`` (excepción #4) y pasa el gate AST.
     """
-    nombre = f'{app_config.name}.{DECLARATION_MODULE}'
+    dotted_path = f'{app_config.name}.{DECLARATION_MODULE}'
     try:
-        return importlib.import_module(nombre)
+        return importlib.import_module(dotted_path)
     except ModuleNotFoundError as exc:
         # Sólo se traga la ausencia del propio archivo de declaración. Un
         # ModuleNotFoundError lanzado DESDE authz_catalog.py (un import roto
         # adentro) se propaga: tragarlo haría desaparecer al addon del catálogo
         # en silencio, que es el defecto que esta pieza viene a cerrar.
-        if exc.name == nombre:
+        if exc.name == dotted_path:
             return None
         raise
 
@@ -147,27 +147,27 @@ def discover():
     """
     modules = {}
     capabilities = {}
-    duenos = {}
+    owners = {}
     for app_config in apps.get_app_configs():
-        declaracion = _import_declaration(app_config)
-        if declaracion is None:
+        declared = _import_declaration(app_config)
+        if declared is None:
             continue
-        for spec in getattr(declaracion, 'MODULES', ()):
+        for spec in getattr(declared, 'MODULES', ()):
             if spec.code in modules:
                 raise DuplicateDeclaration(
-                    f'El módulo {spec.code!r} lo declaran {duenos[spec.code]!r} '
+                    f'El módulo {spec.code!r} lo declaran {owners[spec.code]!r} '
                     f'y {app_config.name!r}. Un código tiene un solo dueño.'
                 )
             modules[spec.code] = spec
-            duenos[spec.code] = app_config.name
-        for spec in getattr(declaracion, 'CAPABILITIES', ()):
+            owners[spec.code] = app_config.name
+        for spec in getattr(declared, 'CAPABILITIES', ()):
             if spec.code in capabilities:
                 raise DuplicateDeclaration(
                     f'La capacidad {spec.code!r} la declaran '
-                    f'{duenos[spec.code]!r} y {app_config.name!r}.'
+                    f'{owners[spec.code]!r} y {app_config.name!r}.'
                 )
             capabilities[spec.code] = spec
-            duenos[spec.code] = app_config.name
+            owners[spec.code] = app_config.name
     return modules, capabilities
 
 
@@ -191,9 +191,9 @@ def unknown_depends(modules):
     addon se retiró y cuatro aristas quedaron colgando de un código sin dueño
     sin que nada fallara.
     """
-    faltantes = []
+    dangling = []
     for spec in modules.values():
         for dep in spec.depends:
             if dep not in modules:
-                faltantes.append((spec.code, dep))
-    return sorted(faltantes)
+                dangling.append((spec.code, dep))
+    return sorted(dangling)

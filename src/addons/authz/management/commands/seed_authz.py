@@ -48,17 +48,17 @@ class Command(BaseCommand):
         # pretix aplicado a la declaración: sin ellos, una capacidad huérfana
         # rompe el seed con un KeyError opaco y una arista colgante no rompe
         # nada — que es exactamente cómo pasó H-API-106.
-        huerfanas = orphan_capabilities(specs_modules, specs_caps)
-        if huerfanas:
+        orphans = orphan_capabilities(specs_modules, specs_caps)
+        if orphans:
             raise CommandError(
                 'Capacidades cuyo módulo nadie declara: '
-                + ', '.join(huerfanas)
+                + ', '.join(orphans)
             )
-        colgantes = unknown_depends(specs_modules)
-        if colgantes:
+        dangling = unknown_depends(specs_modules)
+        if dangling:
             raise CommandError(
                 'Aristas depends hacia un módulo no declarado: '
-                + ', '.join(f'{o}->{d}' for o, d in colgantes)
+                + ', '.join(f'{o}->{d}' for o, d in dangling)
             )
 
         modules = {}

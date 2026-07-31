@@ -26,7 +26,7 @@ from addons.company.models import Company, CompanyModuleSubscription
 BASE = Path(__file__).resolve().parents[3]
 
 
-def test_gate_estatico_pasa_sobre_el_arbol_actual():
+def test_static_gate_passes_on_the_current_tree():
     """El árbol tal como está declarado pasa los cinco checks."""
     proc = subprocess.run(
         [sys.executable, str(BASE / 'scripts' / 'check_catalog_declaration.py')],
@@ -37,56 +37,56 @@ def test_gate_estatico_pasa_sobre_el_arbol_actual():
 
 
 @pytest.mark.django_db
-def test_reconcilia_limpio_tras_sembrar():
+def test_reconciles_clean_right_after_seeding():
     """Sembrar y reconciliar de inmediato no debe reportar nada."""
     call_command('seed_authz')
-    salida = io.StringIO()
-    call_command('reconcile_catalog', '--strict', stdout=salida)
-    assert 'Catálogo reconciliado' in salida.getvalue()
+    out = io.StringIO()
+    call_command('reconcile_catalog', '--strict', stdout=out)
+    assert 'Catálogo reconciliado' in out.getvalue()
 
 
 @pytest.mark.django_db
-def test_detecta_modulo_sembrado_que_nadie_declara():
+def test_detects_stored_module_nobody_declares():
     """El caso ``orders`` de H-API-106, reproducido."""
     call_command('seed_authz')
     Module.objects.create(code='addon_retirado', name='Addon retirado')
 
-    salida = io.StringIO()
+    out = io.StringIO()
     with pytest.raises(CommandError):
-        call_command('reconcile_catalog', '--strict', stdout=salida)
-    assert 'addon_retirado' in salida.getvalue()
+        call_command('reconcile_catalog', '--strict', stdout=out)
+    assert 'addon_retirado' in out.getvalue()
 
 
 @pytest.mark.django_db
-def test_detecta_capacidad_sembrada_que_nadie_declara():
+def test_detects_stored_capability_nobody_declares():
     call_command('seed_authz')
-    modulo = Module.objects.get(code='catalogue')
+    module = Module.objects.get(code='catalogue')
     Capability.objects.create(
-        code='catalogue.inventada', module=modulo, name='Inventada',
+        code='catalogue.inventada', module=module, name='Inventada',
     )
 
-    salida = io.StringIO()
+    out = io.StringIO()
     with pytest.raises(CommandError):
-        call_command('reconcile_catalog', '--strict', stdout=salida)
-    assert 'catalogue.inventada' in salida.getvalue()
+        call_command('reconcile_catalog', '--strict', stdout=out)
+    assert 'catalogue.inventada' in out.getvalue()
 
 
 @pytest.mark.django_db
-def test_detecta_metadata_divergente():
+def test_detects_diverging_metadata():
     """Editar la fila en la consola L0 sin tocar la declaración es divergencia."""
     call_command('seed_authz')
-    modulo = Module.objects.get(code='catalogue')
-    modulo.category = 'Categoría inventada'
-    modulo.save(update_fields=['category', 'updated_at'])
+    module = Module.objects.get(code='catalogue')
+    module.category = 'Categoría inventada'
+    module.save(update_fields=['category', 'updated_at'])
 
-    salida = io.StringIO()
+    out = io.StringIO()
     with pytest.raises(CommandError):
-        call_command('reconcile_catalog', '--strict', stdout=salida)
-    assert 'Categoría inventada' in salida.getvalue()
+        call_command('reconcile_catalog', '--strict', stdout=out)
+    assert 'Categoría inventada' in out.getvalue()
 
 
 @pytest.mark.django_db
-def test_prune_retira_lo_no_declarado():
+def test_prune_removes_the_undeclared():
     call_command('seed_authz')
     Module.objects.create(code='addon_retirado', name='Addon retirado')
 
@@ -94,38 +94,38 @@ def test_prune_retira_lo_no_declarado():
     assert not Module.objects.filter(code='addon_retirado').exists()
 
     # Y tras podar, la reconciliación queda limpia.
-    salida = io.StringIO()
-    call_command('reconcile_catalog', '--strict', stdout=salida)
-    assert 'Catálogo reconciliado' in salida.getvalue()
+    out = io.StringIO()
+    call_command('reconcile_catalog', '--strict', stdout=out)
+    assert 'Catálogo reconciliado' in out.getvalue()
 
 
 @pytest.mark.django_db
-def test_prune_no_toca_un_modulo_contratado():
+def test_prune_spares_a_subscribed_module():
     """Una company puede estar pagando por un módulo cuya declaración se borró.
 
     Retirar la fila destruiría ese registro comercial. El freno es la razón por
     la que ``--prune`` es opt-in y no parte del seed.
     """
     call_command('seed_authz')
-    modulo = Module.objects.create(code='addon_retirado', name='Addon retirado')
+    module = Module.objects.create(code='addon_retirado', name='Addon retirado')
     company = Company.objects.create(code='acme', name='ACME')
-    CompanyModuleSubscription.objects.create(company=company, module=modulo)
+    CompanyModuleSubscription.objects.create(company=company, module=module)
 
-    salida = io.StringIO()
-    call_command('reconcile_catalog', '--prune', stdout=salida)
+    out = io.StringIO()
+    call_command('reconcile_catalog', '--prune', stdout=out)
 
     assert Module.objects.filter(code='addon_retirado').exists()
-    assert 'NO se retira' in salida.getvalue()
+    assert 'NO se retira' in out.getvalue()
 
 
 @pytest.mark.django_db
-def test_detecta_declarado_sin_sembrar():
+def test_detects_declared_but_not_stored():
     """Sin correr el seed, todo lo declarado aparece como faltante."""
     modules, _ = discover()
-    salida = io.StringIO()
+    out = io.StringIO()
     with pytest.raises(CommandError):
-        call_command('reconcile_catalog', '--strict', stdout=salida)
-    texto = salida.getvalue()
-    assert 'sin sembrar' in texto
+        call_command('reconcile_catalog', '--strict', stdout=out)
+    text = out.getvalue()
+    assert 'sin sembrar' in text
     # Una muestra concreta, no sólo el encabezado.
-    assert 'catalogue' in texto and 'catalogue' in modules
+    assert 'catalogue' in text and 'catalogue' in modules

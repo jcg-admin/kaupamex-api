@@ -47,138 +47,138 @@ SETTINGS = os.path.join(BASE, 'src', 'config', 'settings', 'base.py')
 ARCHIVO = 'authz_catalog.py'
 
 
-def addons_instalados():
+def installed_addons():
     """Códigos de addon presentes en ``INSTALLED_APPS`` de ``base.py``.
 
     Se lee con regex sobre el bloque literal en vez de importar el settings:
     el gate debe correr sin Django configurado ni base de datos, igual que
     ``check_addon_cycles.py``.
     """
-    fuente = open(SETTINGS, encoding='utf-8').read()
-    bloque = re.search(r'INSTALLED_APPS\s*=\s*\[(.*?)\n\]', fuente, re.S)
-    if not bloque:
+    source = open(SETTINGS, encoding='utf-8').read()
+    block = re.search(r'INSTALLED_APPS\s*=\s*\[(.*?)\n\]', source, re.S)
+    if not block:
         raise SystemExit('No se encontró el bloque INSTALLED_APPS en base.py')
-    return set(re.findall(r"['\"]addons\.([a-z_0-9]+)['\"]", bloque.group(1)))
+    return set(re.findall(r"['\"]addons\.([a-z_0-9]+)['\"]", block.group(1)))
 
 
-def _kwargs(nodo):
+def _kwargs(node):
     """Extrae los kwargs literales de una llamada ``ModuleSpec``/``CapabilitySpec``.
 
     Devuelve ``None`` para lo que no sea literal: la declaración es **dato**, y
     un valor computado no se puede auditar estáticamente. El caller lo reporta.
     """
-    datos = {}
-    for kw in nodo.keywords:
+    data = {}
+    for kw in node.keywords:
         try:
-            datos[kw.arg] = ast.literal_eval(kw.value)
+            data[kw.arg] = ast.literal_eval(kw.value)
         except ValueError:
-            datos[kw.arg] = None
-    return datos
+            data[kw.arg] = None
+    return data
 
 
-def leer_declaraciones():
-    """Devuelve ``(modulos, capacidades, no_literales)`` leídos con AST.
+def read_declarations():
+    """Devuelve ``(modules, capabilities, non_literal)`` leídos con AST.
 
-    ``modulos``/``capacidades`` mapean ``code -> (addon, datos)``; cuando un
+    ``modules``/``capabilities`` mapean ``code -> (addon, data)``; cuando un
     código está declarado dos veces se conserva la **lista** de dueños para
     poder reportar el conflicto completo, no sólo el primero.
     """
-    modulos = defaultdict(list)
-    capacidades = defaultdict(list)
-    no_literales = []
+    modules = defaultdict(list)
+    capabilities = defaultdict(list)
+    non_literal = []
     for addon in sorted(os.listdir(RAIZ)):
-        ruta = os.path.join(RAIZ, addon, ARCHIVO)
-        if not os.path.isfile(ruta):
+        path = os.path.join(RAIZ, addon, ARCHIVO)
+        if not os.path.isfile(path):
             continue
-        arbol = ast.parse(open(ruta, encoding='utf-8').read(), filename=ruta)
-        for nodo in ast.walk(arbol):
-            if not isinstance(nodo, ast.Call) or not isinstance(nodo.func, ast.Name):
+        tree = ast.parse(open(path, encoding='utf-8').read(), filename=path)
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Name):
                 continue
-            if nodo.func.id not in ('ModuleSpec', 'CapabilitySpec'):
+            if node.func.id not in ('ModuleSpec', 'CapabilitySpec'):
                 continue
-            datos = _kwargs(nodo)
-            code = datos.get('code')
+            data = _kwargs(node)
+            code = data.get('code')
             if not isinstance(code, str):
-                no_literales.append(f'{addon}/{ARCHIVO}:{nodo.lineno}')
+                non_literal.append(f'{addon}/{ARCHIVO}:{node.lineno}')
                 continue
-            destino = modulos if nodo.func.id == 'ModuleSpec' else capacidades
-            destino[code].append((addon, datos))
-    return modulos, capacidades, no_literales
+            target = modules if node.func.id == 'ModuleSpec' else capabilities
+            target[code].append((addon, data))
+    return modules, capabilities, non_literal
 
 
-def analizar():
+def analyze():
     """Corre los cinco checks y devuelve la lista de fallos con su detalle."""
-    instalados = addons_instalados()
-    modulos, capacidades, no_literales = leer_declaraciones()
-    fallos = []
+    installed = installed_addons()
+    modules, capabilities, non_literal = read_declarations()
+    failures = []
 
-    if no_literales:
-        fallos.append((
+    if non_literal:
+        failures.append((
             'Declaración no literal (el catálogo es dato, no código)',
-            no_literales,
+            non_literal,
         ))
 
-    declarantes = {a for dueños in modulos.values() for a, _ in dueños}
-    declarantes |= {a for dueños in capacidades.values() for a, _ in dueños}
-    huerfanos = sorted(declarantes - instalados)
-    if huerfanos:
-        fallos.append((
+    declarers = {a for owners in modules.values() for a, _ in owners}
+    declarers |= {a for owners in capabilities.values() for a, _ in owners}
+    uninstalled = sorted(declarers - installed)
+    if uninstalled:
+        failures.append((
             'Addons que declaran catálogo y NO están en INSTALLED_APPS '
             '(discover() nunca los verá)',
-            huerfanos,
+            uninstalled,
         ))
 
-    duplicados = []
-    for tipo, tabla in (('módulo', modulos), ('capacidad', capacidades)):
-        for code, dueños in sorted(tabla.items()):
-            if len(dueños) > 1:
-                duplicados.append(
-                    f'{tipo} {code!r}: ' + ', '.join(a for a, _ in dueños)
+    duplicates = []
+    for kind, table in (('módulo', modules), ('capacidad', capabilities)):
+        for code, owners in sorted(table.items()):
+            if len(owners) > 1:
+                duplicates.append(
+                    f'{kind} {code!r}: ' + ', '.join(a for a, _ in owners)
                 )
-    if duplicados:
-        fallos.append(('Códigos con más de un dueño', duplicados))
+    if duplicates:
+        failures.append(('Códigos con más de un dueño', duplicates))
 
-    sin_modulo = []
-    for code, dueños in sorted(capacidades.items()):
-        _, datos = dueños[0]
-        propietario = datos.get('module') or code.split('.', 1)[0]
-        if propietario not in modulos:
-            sin_modulo.append(f'{code} → módulo {propietario!r} no declarado')
-    if sin_modulo:
-        fallos.append(('Capacidades huérfanas', sin_modulo))
+    orphans = []
+    for code, owners in sorted(capabilities.items()):
+        _, data = owners[0]
+        owner_code = data.get('module') or code.split('.', 1)[0]
+        if owner_code not in modules:
+            orphans.append(f'{code} → módulo {owner_code!r} no declarado')
+    if orphans:
+        failures.append(('Capacidades huérfanas', orphans))
 
-    colgantes = []
-    for code, dueños in sorted(modulos.items()):
-        _, datos = dueños[0]
-        for dep in (datos.get('depends') or ()):
-            if dep not in modulos:
-                colgantes.append(f'{code} → depends {dep!r} no declarado')
-    if colgantes:
-        fallos.append(('Aristas depends hacia un módulo inexistente', colgantes))
+    dangling = []
+    for code, owners in sorted(modules.items()):
+        _, data = owners[0]
+        for dep in (data.get('depends') or ()):
+            if dep not in modules:
+                dangling.append(f'{code} → depends {dep!r} no declarado')
+    if dangling:
+        failures.append(('Aristas depends hacia un módulo inexistente', dangling))
 
-    return modulos, capacidades, instalados, fallos
+    return modules, capabilities, installed, failures
 
 
 def main():
-    solo_reporte = '--report' in sys.argv
-    modulos, capacidades, instalados, fallos = analizar()
+    report_only = '--report' in sys.argv
+    modules, capabilities, installed, failures = analyze()
 
-    declarantes = sorted({a for d in modulos.values() for a, _ in d}
-                         | {a for d in capacidades.values() for a, _ in d})
-    print(f'Declaración del catálogo L0 — {len(modulos)} módulos y '
-          f'{len(capacidades)} capacidades en {len(declarantes)} addons '
-          f'(de {len(instalados)} instalados).')
+    declarers = sorted({a for d in modules.values() for a, _ in d}
+                         | {a for d in capabilities.values() for a, _ in d})
+    print(f'Declaración del catálogo L0 — {len(modules)} módulos y '
+          f'{len(capabilities)} capacidades en {len(declarers)} addons '
+          f'(de {len(installed)} instalados).')
 
-    if not fallos:
+    if not failures:
         print('Coherencia: OK (5/5 checks).')
         return 0
 
-    for titulo, detalle in fallos:
-        print(f'\nFALLA — {titulo}:')
-        for linea in detalle:
-            print(f'  - {linea}')
-    print(f'\n{len(fallos)} check(s) en falla.')
-    return 0 if solo_reporte else 1
+    for title, detail in failures:
+        print(f'\nFALLA — {title}:')
+        for line in detail:
+            print(f'  - {line}')
+    print(f'\n{len(failures)} check(s) en falla.')
+    return 0 if report_only else 1
 
 
 if __name__ == '__main__':
