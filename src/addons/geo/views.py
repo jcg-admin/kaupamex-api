@@ -32,7 +32,7 @@ class PostalCodeLookupView(APIView):
         )
         if not rows:
             return Response(
-                {'codigo_error': 'CP_NO_ENCONTRADO',
+                {'codigo_error': 'POSTAL_CODE_NOT_FOUND',
                  'detail': f'No hay asentamientos para el CP {postal_code}.'},
                 status=status.HTTP_404_NOT_FOUND,
             )

@@ -36,7 +36,7 @@ from rest_framework.response import Response
     ],
     responses={
         200: OpenApiResponse(description='{"last": <id>, "notifications": [...]}'),
-        400: OpenApiResponse(description='LAST_INVALIDO'),
+        400: OpenApiResponse(description='INVALID_LAST'),
     },
 )
 @api_view(['GET'])
@@ -47,13 +47,13 @@ def bus_poll(request):
         last = int(crudo)
     except (TypeError, ValueError):
         return Response(
-            {'codigo_error': 'LAST_INVALIDO',
+            {'codigo_error': 'INVALID_LAST',
              'detail': 'El parámetro last debe ser un entero.'},
             status=400,
         )
     if last < 0:
         return Response(
-            {'codigo_error': 'LAST_INVALIDO',
+            {'codigo_error': 'INVALID_LAST',
              'detail': 'El parámetro last no puede ser negativo.'},
             status=400,
         )

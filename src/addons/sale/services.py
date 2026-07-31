@@ -95,9 +95,9 @@ def add_item_to_draft(order, product, variant=None, quantity=1):
     siga en draft; ``action_confirm`` lo congela.
     """
     if order.state != SaleOrder.STATE_DRAFT:
-        raise DraftOrderError('La orden no es un draft.', 'ORDEN_NO_DRAFT')
+        raise DraftOrderError('La orden no es un draft.', 'ORDER_NOT_DRAFT')
     if quantity < 1:
-        raise DraftOrderError('quantity debe ser >= 1.', 'CANTIDAD_INVALIDA')
+        raise DraftOrderError('quantity debe ser >= 1.', 'INVALID_QUANTITY')
 
     available = variant.stock if variant else product.stock
     if available is not None and available <= 0:
@@ -136,7 +136,7 @@ def clear_draft_items(order):
     total de la orden quede en ``0.00`` y no stale con el value previo.
     """
     if order.state != SaleOrder.STATE_DRAFT:
-        raise DraftOrderError('La orden no es un draft.', 'ORDEN_NO_DRAFT')
+        raise DraftOrderError('La orden no es un draft.', 'ORDER_NOT_DRAFT')
     order.order_line.all().delete()
     order._compute_amounts()
 
@@ -204,9 +204,9 @@ def get_draft_totals(order):
 def update_draft_item_quantity(order, item_pk, quantity):
     """Fija la cantidad de una línea del draft (UC-CART-02)."""
     if order.state != SaleOrder.STATE_DRAFT:
-        raise DraftOrderError('La orden no es un draft.', 'ORDEN_NO_DRAFT')
+        raise DraftOrderError('La orden no es un draft.', 'ORDER_NOT_DRAFT')
     if quantity < 1:
-        raise DraftOrderError('quantity debe ser >= 1.', 'CANTIDAD_INVALIDA')
+        raise DraftOrderError('quantity debe ser >= 1.', 'INVALID_QUANTITY')
     line = order.order_line.filter(pk=item_pk).first()
     if line is None:
         raise DraftOrderError('Item no encontrado.', 'ITEM_NOT_FOUND')
@@ -221,7 +221,7 @@ def update_draft_item_quantity(order, item_pk, quantity):
 def remove_draft_item(order, item_pk):
     """Elimina una línea del draft (UC-CART-03)."""
     if order.state != SaleOrder.STATE_DRAFT:
-        raise DraftOrderError('La orden no es un draft.', 'ORDEN_NO_DRAFT')
+        raise DraftOrderError('La orden no es un draft.', 'ORDER_NOT_DRAFT')
     line = order.order_line.filter(pk=item_pk).first()
     if line is None:
         raise DraftOrderError('Item no encontrado.', 'ITEM_NOT_FOUND')
@@ -310,7 +310,7 @@ def confirm_draft_order(order, *, address_data, guest_email=None, notes='',
     los mismos ``codigo_error`` históricos.
     """
     if order.state != SaleOrder.STATE_DRAFT:
-        raise DraftOrderError('La orden no es un draft.', 'ORDEN_NO_DRAFT')
+        raise DraftOrderError('La orden no es un draft.', 'ORDER_NOT_DRAFT')
 
     # E1-bis — SÓLO líneas de producto. Las líneas marcadoras
     # (``is_delivery``/``is_reward``, materializadas por ``delivery`` y

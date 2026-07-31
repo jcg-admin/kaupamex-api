@@ -51,12 +51,23 @@ fi
 # Script:     docs/scripts/check_canon_idioma.py (cross-submodule).
 # Allowlist:  docs/scripts/canon-idioma-allowlist.txt.
 # El gate aplica solo cuando hay .py staged en apps/.
+# El clon hermano de docs se llama `kaupamex-docs` desde el rename de repos
+# (DEC-KX-06); la ruta `../docs` que este gate usaba dejo de existir y el gate
+# degradaba a skip silencioso — H-API-109. Se prueban los nombres conocidos en
+# vez de asumir uno.
 if [[ "${#STAGED_PY[@]}" -gt 0 ]]; then
-    CANON_CHECKER="$REPO_ROOT/../docs/scripts/check_canon_idioma.py"
-    if [[ ! -f "$CANON_CHECKER" ]]; then
-        echo "pre-commit: $CANON_CHECKER no encontrado — skip canon-idioma gate" >&2
+    CANON_CHECKER=""
+    for CANDIDATO in kaupamex-docs docs e-commerce-docs; do
+        if [[ -f "$REPO_ROOT/../$CANDIDATO/scripts/check_canon_idioma.py" ]]; then
+            CANON_CHECKER="$REPO_ROOT/../$CANDIDATO/scripts/check_canon_idioma.py"
+            CANON_ROOT="$REPO_ROOT/.."
+            break
+        fi
+    done
+    if [[ -z "$CANON_CHECKER" ]]; then
+        echo "pre-commit: clon de docs no encontrado — skip canon-idioma gate" >&2
     else
-        python3 "$CANON_CHECKER" --repo-root "$REPO_ROOT/.." || EXIT_CODE=1
+        python3 "$CANON_CHECKER" --repo-root "$CANON_ROOT" || EXIT_CODE=1
     fi
 fi
 

@@ -123,7 +123,7 @@ class TestDraftItemOperationsS2b:
         order = SaleOrder.objects.create(state=SaleOrder.STATE_SALE)
         with pytest.raises(DraftOrderError) as exc:
             add_item_to_draft(order, draft_product, quantity=1)
-        assert exc.value.codigo_error == 'ORDEN_NO_DRAFT'
+        assert exc.value.codigo_error == 'ORDER_NOT_DRAFT'
 
     def test_clear_draft_items(self, draft_product):
         order, _ = get_or_create_draft_order(cart_token=uuid.uuid4())

@@ -47,7 +47,7 @@ def apply_voucher_to_draft(order, code, user=None):
     draft. Retorna ``(voucher, discount, cart_total)``.
     """
     if order.state != SaleOrder.STATE_DRAFT:
-        raise DraftOrderError('La orden no es un draft.', 'ORDEN_NO_DRAFT')
+        raise DraftOrderError('La orden no es un draft.', 'ORDER_NOT_DRAFT')
     voucher = Voucher.objects.filter(code=code).first()
     if voucher is None:
         raise DraftOrderError('El voucher no existe.', 'VOUCHER_NOT_FOUND')

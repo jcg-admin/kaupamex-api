@@ -48,7 +48,7 @@ def test_lookup_returns_settlements_grouped_by_cp(client):
 def test_lookup_unknown_cp_returns_404(client):
     resp = client.get('/api/v2/geo/postal-codes/99999/')
     assert resp.status_code == 404
-    assert resp.json()['codigo_error'] == 'CP_NO_ENCONTRADO'
+    assert resp.json()['codigo_error'] == 'POSTAL_CODE_NOT_FOUND'
 
 
 @pytest.mark.django_db

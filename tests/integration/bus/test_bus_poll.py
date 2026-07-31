@@ -84,4 +84,4 @@ def test_last_no_numerico_es_400_con_codigo_error(db):
     r = cliente.get(POLL_URL, {'last': 'abc'})
 
     assert r.status_code == 400
-    assert r.data['codigo_error'] == 'LAST_INVALIDO'
+    assert r.data['codigo_error'] == 'INVALID_LAST'
