@@ -41,6 +41,8 @@ que los agrupe por naturaleza.
 - ``ir_qweb.py`` → ``IrQweb`` + ``MALICIOUS_SCHEMES`` + ``keep_query``
   (vocabulario y primitivas de QWeb; el compilador NO se porta — este árbol
   renderiza en el cliente).
+- ``ir_qweb_fields.py`` → los conversores ``ir.qweb.field.*`` (cómo se
+  escribe un valor para que lo lea una persona; valen sin QWeb).
 - ``ir_rule.py`` → ``IrRule`` (reglas de registro: acceso por fila).
 - ``ir_binary.py`` → ``IrBinary`` (sirve campos binarios como respuesta HTTP).
 - ``ir_fields.py`` → ``IrFieldsConverter`` (conversión de valores de import).
@@ -102,6 +104,15 @@ from .ir_qweb import (
     MALICIOUS_SCHEMES,
     VOID_ELEMENTS,
     keep_query,
+)
+from .ir_qweb_fields import (
+    IrQwebField,
+    IrQwebFieldDuration,
+    IrQwebFieldFloat_Time,
+    TIMEDELTA_UNITS,
+    format_duration_digital,
+    nl2br,
+    nl2br_enclose,
 )
 from .ir_rule import IrRule
 from .ir_embedded_actions import IrEmbeddedActions
@@ -224,6 +235,13 @@ __all__ = [
     'MALICIOUS_SCHEMES',
     'VOID_ELEMENTS',
     'keep_query',
+    'IrQwebField',
+    'IrQwebFieldDuration',
+    'IrQwebFieldFloat_Time',
+    'TIMEDELTA_UNITS',
+    'format_duration_digital',
+    'nl2br',
+    'nl2br_enclose',
     'IrEmbeddedActions',
     'IrUiMenu',
     'IrSequence',
