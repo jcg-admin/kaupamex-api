@@ -1,11 +1,21 @@
-"""``SiteSettings`` — contraparte de ``res.config.settings`` (Odoo ``base``).
+"""``SiteSettings`` — la configuración operativa del sitio, tipada y persistente.
 
-En Odoo la configuración global del sistema vive en ``base``
-(``res_config.py`` define ``res.config.settings``; los valores persisten en
-``ir.config_parameter``). Aquí el singleton ``SiteSettings`` cumple ese rol
-para la configuración operativa del sitio (UC-CFG-03): identidad, impuestos,
-umbrales, timeouts y contacto. Movido state-only desde el addon no-Odoo
-``settings_app``; la tabla física ``settings_sitesettings`` no cambia.
+**Corregido** (porte de ``res_config.py``). Este docstring se declaraba
+*"contraparte de ``res.config.settings``"*. **No lo es**, y la diferencia
+importa porque las dos piezas ya coexisten:
+
+- ``res.config.settings`` (portado en ``res_config.py``) es un formulario
+  **transitorio** cuyos campos se interpretan **por su nombre**
+  (``default_`` / ``group_`` / ``module_`` / ``config_parameter``) y cuyo
+  efecto se escribe en **otros** sitios: ``ir.default``, los grupos, los
+  parámetros de sistema. No guarda nada en sí mismo.
+- ``SiteSettings`` es una fila **persistente y tipada** —identidad del sitio,
+  IVA, umbrales, timeouts, contacto (UC-CFG-03)— con validación de campo.
+
+Ninguna de las dos sustituye a la otra. Nota de procedencia: en la referencia
+**no existe** un ``res_config_settings.py``; este archivo es propio de este
+árbol. Movido state-only desde el addon no-Odoo ``settings_app``; la tabla
+física ``settings_sitesettings`` no cambia.
 
 Complementa a ``SystemParameter`` (``ir_config_parameter.py``, config L2
 key/value) — ``SiteSettings`` es el registro tipado con validación de campo.

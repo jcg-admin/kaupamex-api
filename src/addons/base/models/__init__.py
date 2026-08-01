@@ -34,6 +34,8 @@ que los agrupe por naturaleza.
 - ``ir_mail_server.py`` → ``IrMailServer`` (registro de servidores SMTP
   salientes con prioridad y enrutado por remitente; el transporte sigue siendo
   ``django.core.mail`` vía ``addons/mail``).
+- ``res_config.py`` → ``ResConfig`` + ``ResConfigSettings`` (motor de
+  configuración por convención de nombre de campo; abstractos, sin tabla).
 - ``ir_rule.py`` → ``IrRule`` (reglas de registro: acceso por fila).
 - ``ir_binary.py`` → ``IrBinary`` (sirve campos binarios como respuesta HTTP).
 - ``ir_fields.py`` → ``IrFieldsConverter`` (conversión de valores de import).
@@ -101,6 +103,11 @@ from .ir_actions import (
     IrActionsTodo,
 )
 from .ir_default import IrDefault
+from .res_config import (
+    ResConfig,
+    ResConfigSettings,
+    ConfigWarning,
+)
 from .ir_model import (
     Base,
     Unknown,
@@ -226,6 +233,9 @@ __all__ = [
     'IrModelData',
     'FIELD_TYPES',
     'DJANGO_TYPE_TO_TTYPE',
+    'ResConfig',
+    'ResConfigSettings',
+    'ConfigWarning',
     'IrMailServer',
     'MailDeliveryException',
     'extract_rfc2822_addresses',
