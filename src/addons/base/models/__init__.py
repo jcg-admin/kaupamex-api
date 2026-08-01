@@ -23,6 +23,7 @@ que los agrupe por naturaleza.
   resolutor de rutas contra manifests no aplica — lo hace Webpack en ``ui``).
 - ``ir_autovacuum.py`` → ``IrAutovacuum`` + ``is_autovacuum`` (colector de los
   métodos ``@api.autovacuum``).
+- ``ir_rule.py`` → ``IrRule`` (reglas de registro: acceso por fila).
 - ``ir_binary.py`` → ``IrBinary`` (sirve campos binarios como respuesta HTTP).
 - ``ir_fields.py`` → ``IrFieldsConverter`` (conversión de valores de import).
 - ``report_paperformat.py`` → ``ReportPaperformat`` + ``PAPER_SIZES``
@@ -76,6 +77,7 @@ from .ir_cron import IrCron
 from .ir_demo import IrDemo
 from .ir_demo_failure import IrDemoFailure, IrDemoFailureWizard
 from .ir_profile import IrProfile, BaseEnableProfilingWizard
+from .ir_rule import IrRule
 from .ir_default import IrDefault
 from .ir_filters import IrFilters
 from .ir_logging import IrLogging
@@ -143,6 +145,7 @@ __all__ = [
     'ResGroupsPrivilege',
     'ResGroups',
     'ResCompany',
+    'IrRule',
     'IrUiMenu',
     'IrSequence',
     'ExportJob',
