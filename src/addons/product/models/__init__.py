@@ -19,6 +19,10 @@ ahora, con lo que aporta cada uno:
   y su alcance.
 - ``product_pricelist_item.py`` → ``ProductPricelistItem``, la regla y el
   cálculo entero: los cinco pasos de la fórmula en el orden de la fuente.
+- ``product_tag.py`` → ``ProductTag``, con sus **dos** M2M (ficha y variante
+  suelta), que no son redundantes.
+- ``product_uom.py`` → ``ProductUom``, el código de barras de un empaquetado;
+  cierra la unicidad cruzada que ``product_product`` dejó anotada.
 
 Pendientes:
 ``product_pricelist{,_item}.py``, ``product_supplierinfo.py``,
@@ -37,6 +41,8 @@ from addons.product.models.product_pricelist_item import (
     ProductPricelistItem,
 )
 from addons.product.models.product_product import ProductProduct
+from addons.product.models.product_tag import ProductTag
+from addons.product.models.product_uom import ProductUom
 from addons.product.models.product_template import ProductTemplate
 from addons.product.models.product_attribute_value import (
     ProductAttributeValue,
@@ -54,6 +60,8 @@ __all__ = [
     'ProductPricelist',
     'ProductPricelistItem',
     'ProductProduct',
+    'ProductTag',
+    'ProductUom',
     'ProductTemplate',
     'ProductAttributeValue',
     'ProductTemplateAttributeLine',

@@ -69,15 +69,20 @@ Qué NO se porta, con su medición
   ``product.supplierinfo``. Ese modelo no está portado
   (``grep -rn "^class ProductSupplierinfo" src/`` → **0**), y el permiso aquí
   es por capacidad (DEC-11), no por ACL de modelo.
-- **``_check_barcode_uniqueness``**: la referencia exige el código de barras
-  único **por compañía** y compartido con el de los empaquetados, porque la
-  nomenclatura GS1 usa el mismo patrón para los dos. Se porta la restricción
-  de unicidad por compañía; la parte de empaquetados espera a
-  ``product_uom.py``, que declara ese otro espacio de códigos.
-- **``product_uom_ids``, ``pricelist_rule_ids``, ``product_document_ids``,
-  ``additional_product_tag_ids``**: reversos y M2M hacia archivos aún sin
-  portar. Aparecen solos cuando cada uno declare su ``related_name``, sin
+- **``_check_barcode_uniqueness``** — **cerrado**. La referencia exige el
+  código único y compartido con el de los empaquetados, porque la
+  nomenclatura GS1 usa el mismo patrón para los dos. La unicidad de esta tabla
+  está en su ``UniqueConstraint``; la mitad cruzada la aporta
+  ``product_uom.py``, que ya está portado y comprueba en su ``clean()`` que
+  ninguna variante use el código. El destino estaba fechado y se cumplió sin
+  tocar este archivo.
+- **``product_document_ids``**: reverso hacia ``product_document.py``, aún sin
+  portar. Aparece solo cuando ese archivo declare su ``related_name``, sin
   tocar éste — igual que ``report_paperformat.report_ids`` (H-API-164).
+  ``product_uom_ids``, ``pricelist_rule_ids`` y
+  ``additional_product_tag_ids`` **ya llegaron** así, desde
+  ``product_uom.py``, ``product_pricelist_item.py`` y ``product_tag.py``
+  respectivamente — ninguno necesitó una línea aquí.
 """
 import fields
 import models
