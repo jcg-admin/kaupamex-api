@@ -24,10 +24,11 @@ reenvían. Ver ``res_users.py``.
 import fields
 import models
 
+from addons.base.models.avatar_mixin import AvatarMixin
 from addons.base.models.timestamped_mixin import TimeStampedModel
 
 
-class ResPartner(TimeStampedModel):
+class ResPartner(AvatarMixin, TimeStampedModel):
     """``res.partner`` — persona, empresa o dirección.
 
     Fiel a ``odoo19c: odoo/addons/base/models/res_partner.py:213-309``. Se
@@ -36,6 +37,18 @@ class ResPartner(TimeStampedModel):
     (``customer_rank`` es de ``account``, no de ``base``) quedan fuera: portar
     aquí un campo que la referencia declara en otro módulo sería inventar una
     dependencia que ella no tiene.
+
+    **Hereda ``avatar.mixin``**, igual que la referencia
+    (``res_partner.py:187``: ``_inherit = [… 'avatar.mixin' …]``). De ahí
+    salen ``image_1920`` y sus cuatro reducciones más el avatar generado —
+    y con ellas el ``logo`` de ``res.company``, que es ``related`` a
+    ``partner_id.image_1920``. El hueco se destapó al portar ``res_company``:
+    la delegación del logotipo no tenía de dónde leer.
+
+    ``TimeStampedModel`` se conserva **explícitamente** en la lista de bases:
+    ``AvatarMixin`` hereda de ``ImageMixin``, y ``ImageMixin`` hereda de
+    ``models.Model``, **no** de ``TimeStampedModel``. Sustituir una base por la
+    otra habría borrado las marcas de tiempo en silencio.
     """
 
     # ``type`` — un partner hijo es una dirección; el padre es el titular.
@@ -106,6 +119,16 @@ class ResPartner(TimeStampedModel):
         'base.ResCountry', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='partners',
         help_text='País (Odoo country_id).',
+    )
+
+    # Índice de color de la paleta del cliente. La referencia lo declara en
+    # ``res.partner`` con ``default=0`` (``res_partner.py:286``) — no confundir
+    # con el ``color`` de ``res.partner.category``, que allá es aleatorio
+    # (``randint(1, 11)``) y pertenece a otra clase del mismo archivo.
+    # ``res.company._compute_color`` lo lee y, si es 0, cae a ``id % 12``.
+    color       = fields.Integer(
+        default=0, verbose_name='Índice de color',
+        help_text='Odoo color. 0 = sin color declarado.',
     )
 
     # --- Localización ---
