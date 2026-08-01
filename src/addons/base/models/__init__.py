@@ -23,6 +23,8 @@ que los agrupe por naturaleza.
 - ``res_groups.py`` → ``ResGroups`` (grupos con implicación transitiva y
   disjuntos; NO reemplaza la autorización por capacidad de ``authz``).
 
+- ``assetsbundle.py`` → el contrato de la URL versionada de un bundle y su
+  algoritmo de versión (el empaquetado lo hace Webpack en ``ui``).
 - ``ir_asset.py`` → ``IrAsset`` + ``AssetPaths`` (directivas sobre bundles; el
   resolutor de rutas contra manifests no aplica — lo hace Webpack en ``ui``).
 - ``ir_autovacuum.py`` → ``IrAutovacuum`` + ``is_autovacuum`` (colector de los
@@ -100,6 +102,15 @@ from .ir_config_parameter import (
     _PARAM_CACHE,
     _clear_cache,
     SystemParameter,
+)
+from .assetsbundle import (
+    ANY_UNIQUE,
+    AssetError,
+    AssetNotFound,
+    CompileError,
+    bundle_checksum,
+    bundle_name,
+    bundle_version,
 )
 from .ir_asset import IrAsset, AssetPaths
 from .ir_attachment import IrAttachment
@@ -276,6 +287,13 @@ __all__ = [
     'PropertiesBaseDefinition',
     'PropertiesBaseDefinitionMixin',
     '_clear_definition_cache',
+    'ANY_UNIQUE',
+    'AssetError',
+    'AssetNotFound',
+    'CompileError',
+    'bundle_checksum',
+    'bundle_name',
+    'bundle_version',
     'IrEmbeddedActions',
     'IrUiMenu',
     'IrSequence',
