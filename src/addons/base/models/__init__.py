@@ -45,6 +45,8 @@ que los agrupe por naturaleza.
   escribe un valor para que lo lea una persona; valen sin QWeb).
 - ``ir_ui_view.py`` → ``IrUiView`` + ``IrUiViewCustom`` + ``ResetViewArchWizard``
   (registro de vistas y reglas de herencia; el combinador de XML no se porta).
+- ``ir_http.py`` → ``IrHttp`` + ``slugify`` (utilidades de URL; el enrutado
+  y el despacho los hace Django, y la autenticación ya está decidida).
 - ``ir_rule.py`` → ``IrRule`` (reglas de registro: acceso por fila).
 - ``ir_binary.py`` → ``IrBinary`` (sirve campos binarios como respuesta HTTP).
 - ``ir_fields.py`` → ``IrFieldsConverter`` (conversión de valores de import).
@@ -121,6 +123,11 @@ from .ir_ui_view import (
     IrUiViewCustom,
     ResetViewArchWizard,
     VIEW_TYPE_CHOICES,
+)
+from .ir_http import (
+    IrHttp,
+    AUTH_METHODS,
+    EXTENSION_TO_WEB_MIMETYPES,
 )
 from .ir_rule import IrRule
 from .ir_embedded_actions import IrEmbeddedActions
@@ -254,6 +261,9 @@ __all__ = [
     'IrUiViewCustom',
     'ResetViewArchWizard',
     'VIEW_TYPE_CHOICES',
+    'IrHttp',
+    'AUTH_METHODS',
+    'EXTENSION_TO_WEB_MIMETYPES',
     'IrEmbeddedActions',
     'IrUiMenu',
     'IrSequence',
