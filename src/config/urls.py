@@ -5,7 +5,6 @@ from django.contrib import admin
 from django.http import FileResponse, Http404
 from django.urls import path, include, re_path
 
-from addons.settings_app.views import ShippingMethodListPublicView, ShippingZoneListPublicView
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularSwaggerView,
@@ -45,13 +44,10 @@ urlpatterns = _admin_urls + [
     # --- API v2 ---
     # chartsize_v2 ANTES de catalogue_v2: más específico (/products/<slug>/variants/)
     # debe resolverse antes del catch-all de catalogue_v2 (/products/<slug>/).
-    path('api/v2/products/', include(('addons.chartsize.urls', 'chartsize'), namespace='chartsize_v2')),
-    path('api/v2/',          include(('addons.catalogue.urls', 'catalogue'), namespace='catalogue_v2')),
 
     # ─── API v2 (F2: cart, wishlist, referral, notifications) ───────────────────
     # SOL-011 T-06: logs tecnicos read-only (UC-ADM-06, DEC-LOG-08 revisada).
     path('api/v2/admin/',          include(('addons.observability.admin_urls', 'admin_core'), namespace='admin_core_v2')),
-    path('api/v2/cart/',           include(('addons.cart.urls', 'cart'),                       namespace='cart_v2')),
     path('api/v2/notifications/',  include(('addons.mail.urls', 'notifications'),     namespace='notifications_v2')),
     path('api/v2/bus/',            include(('addons.bus.urls', 'bus'),                 namespace='bus_v2')),
     path('api/v2/admin/',          include(('addons.mail.admin_notifications', 'admin_notifications'),
@@ -81,19 +77,15 @@ urlpatterns = _admin_urls + [
 
     # ─── API v2 (F4: inventory admin + catalogue admin) ───────────────────────
     path('api/v2/admin/inventory/', include(('addons.inventory.admin_urls', 'admin_inventory_v2'), namespace='admin_inventory_v2')),
-    path('api/v2/admin/',           include(('addons.catalogue.admin_urls', 'admin_catalogue'),    namespace='admin_catalogue_v2')),
 
     # ─── API v2 (F5: logistics/shipments, newsletter, contact, pages, backups,
     #             reports, auth §2.1) ────────────────────────────────────────
     path('api/v2/',            include(('addons.delivery.urls', 'logistics'), namespace='logistics_v2')),
     path('api/v2/newsletter/', include(('addons.website_mass_mailing.urls', 'website_mass_mailing'), namespace='newsletter_v2')),
     path('api/v2/admin/',      include(('addons.mass_mailing.admin_urls', 'admin_newsletter'),   namespace='admin_newsletter_v2')),
-    path('api/v2/admin/',      include(('addons.settings_app.admin_urls', 'admin_settings'),   namespace='admin_settings_v2')),
     path('api/v2/admin/',      include(('addons.auto_backup.admin_urls', 'admin_backups'),         namespace='admin_backups_v2')),
-    path('api/v2/admin/',      include(('addons.reports.admin_urls', 'admin_reports'),         namespace='admin_reports_v2')),
     path('api/v2/auth/',       include(('addons.users.auth_urls', 'auth'),                     namespace='auth_v2')),
     # T-214: consulta pública SEPOMEX de CP → asentamientos (autocompletado de direcciones)
-    path('api/v2/geo/',        include(('addons.geo.urls', 'geo'),                             namespace='geo_v2')),
     # MOD-028 FINANCE: modulo financiero (UC-FIN-01..08). Primer slice: conceptos.
     path('api/v2/finance/',    include(('addons.finance.urls', 'finance'),                     namespace='finance_v2')),
     # DEC-08/09: capacidades del usuario + menú admin dinámico (podado por capacidad)
@@ -119,18 +111,13 @@ urlpatterns = _admin_urls + [
     # appear here via users.urls — correct behaviour (same at both v1 and v2).
     # F6 (payments initiate/checkout) excluded — those are Tier B.
     path('api/v2/auth/',    include(('addons.users.urls', 'users'),                                      namespace='users_v2_pt')),
-    path('api/v2/config/',         include(('addons.settings_app.urls', 'settings_app'),          namespace='settings_v2')),
-    path('api/v2/shipping-methods/', include(('addons.settings_app.public_urls', 'public_shipping'), namespace='public_shipping_v2')),
     path('api/v2/admin/',   include(('addons.users.admin_urls', 'admin_users'),                         namespace='admin_users_v2')),
     path('api/v2/admin/',   include(('addons.loyalty.urls', 'admin_voucher'),                           namespace='admin_voucher_v2')),
     path('api/v2/admin/',   include(('addons.helpdesk.admin_urls', 'admin_support'),                     namespace='admin_support_v2')),
     path('api/v2/admin/',   include(('addons.website.admin_urls', 'admin_static_content'),      namespace='admin_static_content_v2')),
     path('api/v2/admin/',   include(('addons.payments.admin_urls', 'admin_payments'),                   namespace='admin_payments_v2')),
-    path('api/v2/admin/',   include(('addons.catalogue.browse_admin_urls', 'catalogue_browse_admin'),   namespace='catalogue_browse_admin_v2')),
-    path('api/v2/',         include(('addons.catalogue.browse_public_urls', 'catalogue_browse_public'), namespace='catalogue_browse_public_v2')),
     # Chartsize admin (variants) after catalogue CRUD so POST /api/v2/admin/products/
     # resolves to ProductAdminViewSet, not chartsize DefaultRouter root (GET-only).
-    path('api/v2/admin/',   include(('addons.chartsize.admin_urls', 'admin_chartsize'),                 namespace='admin_chartsize_v2')),
     # Inventory list (/inventory/) and movements (/inventory/variants/<pk>/movements/)
     # not yet ported to urls_v2; admin_inventory_v2 (line 121) handles the rest.
     path('api/v2/admin/',   include(('addons.inventory.urls', 'admin_inventory'),                        namespace='admin_inventory_pt')),

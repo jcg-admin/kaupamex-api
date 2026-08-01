@@ -39,9 +39,6 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'core',
     'addons.users',
-    'addons.settings_app',
-    'addons.catalogue',
-    'addons.chartsize',
     'addons.bus',
     'addons.uom',
     'addons.product',
@@ -50,7 +47,6 @@ INSTALLED_APPS = [
     'addons.stock_account',
     'addons.stock_landed_costs',
     'addons.product_expiry',
-    'addons.cart',
     'addons.loyalty',
     'addons.website_sale_wishlist',
     'addons.sale',
@@ -86,13 +82,11 @@ INSTALLED_APPS = [
     'addons.mass_mailing',
     'addons.website_mass_mailing',
     'addons.questions',
-    'addons.reports',
     'addons.delivery',
     'addons.rating',
     'addons.search_history',
     'addons.website',
     'addons.auto_backup',
-    'addons.geo',
     'addons.base',
     'addons.observability',
     'addons.mail',
@@ -138,7 +132,6 @@ MIDDLEWARE = [
     # H-CART-01 Fase 2: fija la cookie httpOnly cart_token para carritos
     # anonimos. Va por DEBAJO de CookieGovernanceMiddleware para que el
     # process_response de aquel (orden inverso) observe la cookie de carrito.
-    'addons.cart.middleware.CartCookieMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'

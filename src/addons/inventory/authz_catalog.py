@@ -17,7 +17,10 @@ MODULES = [
         name='Inventario',
         is_application=True,
         category='Supply Chain Management',
-        depends=('catalogue',),
+        # La arista a ``catalogue`` se retiró con su addon: el módulo de
+        # catálogo lo re-declarará ``product``/``website_sale`` cuando
+        # aterricen. Una arista a un módulo sin dueño es H-API-106.
+        depends=(),
     ),
 ]
 

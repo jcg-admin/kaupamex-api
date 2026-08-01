@@ -18,7 +18,9 @@ MODULES = [
         name='Pedidos',
         is_application=True,
         category='Order Management',
-        depends=('catalogue', 'inventory'),
+        # Ídem: se conserva ``inventory``, que sigue declarado; ``catalogue``
+        # se fue con su addon y vuelve con la familia que lo hospede.
+        depends=('inventory',),
     ),
 ]
 
