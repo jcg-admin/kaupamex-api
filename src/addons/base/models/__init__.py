@@ -11,6 +11,10 @@ que los agrupe por naturaleza.
   (≙ campo ``active``).
 - ``image_mixin.py`` → ``ImageMixin`` (imagen + sus cuatro reducciones).
 - ``avatar_mixin.py`` → ``AvatarMixin`` (avatar; retrato SVG si no hay imagen).
+- ``properties_base_definition_mixin.py`` → ``PropertiesBaseDefinitionMixin``
+  (propiedades de usuario cuyo esquema no cuelga de un padre).
+- ``properties_base_definition.py`` → ``PropertiesBaseDefinition`` (ese
+  esquema; FK **real** a ``ir.model.fields``).
 - ``ir_exports.py`` → ``IrExports`` + ``IrExportsLine`` (exportaciones guardadas).
 - ``report_layout.py`` → ``ReportLayout`` (diseños de documento impreso).
 - ``res_groups_privilege.py`` → ``ResGroupsPrivilege`` (agrupa grupos en el form).
@@ -85,6 +89,11 @@ from .soft_delete_mixin import (
 )
 from .image_mixin import ImageMixin
 from .avatar_mixin import AvatarMixin
+from .properties_base_definition import (
+    PropertiesBaseDefinition,
+    _clear_definition_cache,
+)
+from .properties_base_definition_mixin import PropertiesBaseDefinitionMixin
 from .decimal_precision import DecimalPrecision
 from .ir_config_parameter import (
     _DEFAULT_PARAMETERS,
@@ -264,6 +273,9 @@ __all__ = [
     'IrHttp',
     'AUTH_METHODS',
     'EXTENSION_TO_WEB_MIMETYPES',
+    'PropertiesBaseDefinition',
+    'PropertiesBaseDefinitionMixin',
+    '_clear_definition_cache',
     'IrEmbeddedActions',
     'IrUiMenu',
     'IrSequence',
