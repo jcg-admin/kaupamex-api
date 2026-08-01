@@ -27,6 +27,10 @@ que los agrupe por naturaleza.
   (ventana, URL, cliente, servidor, cierre, vista, todo).
 - ``ir_embedded_actions.py`` → ``IrEmbeddedActions`` (acciones embebidas en
   la vista de otro registro; cierra H-API-142).
+- ``ir_model.py`` → las diez clases del registro reflejado (``Base``,
+  ``Unknown``, ``IrModel``, ``IrModelFields``, ``IrModelInherit``,
+  ``IrModelFieldsSelection``, ``IrModelConstraint``, ``IrModelRelation``,
+  ``IrModelAccess``, ``IrModelData``).
 - ``ir_rule.py`` → ``IrRule`` (reglas de registro: acceso por fila).
 - ``ir_binary.py`` → ``IrBinary`` (sirve campos binarios como respuesta HTTP).
 - ``ir_fields.py`` → ``IrFieldsConverter`` (conversión de valores de import).
@@ -94,6 +98,20 @@ from .ir_actions import (
     IrActionsTodo,
 )
 from .ir_default import IrDefault
+from .ir_model import (
+    Base,
+    Unknown,
+    IrModel,
+    IrModelFields,
+    IrModelInherit,
+    IrModelFieldsSelection,
+    IrModelConstraint,
+    IrModelRelation,
+    IrModelAccess,
+    IrModelData,
+    FIELD_TYPES,
+    DJANGO_TYPE_TO_TTYPE,
+)
 from .ir_filters import IrFilters
 from .ir_logging import IrLogging
 from .ir_exports import IrExports, IrExportsLine
@@ -187,6 +205,18 @@ __all__ = [
     'IrFieldsConverter',
     'ReportPaperformat',
     'PAPER_SIZES',
+    'Base',
+    'Unknown',
+    'IrModel',
+    'IrModelFields',
+    'IrModelInherit',
+    'IrModelFieldsSelection',
+    'IrModelConstraint',
+    'IrModelRelation',
+    'IrModelAccess',
+    'IrModelData',
+    'FIELD_TYPES',
+    'DJANGO_TYPE_TO_TTYPE',
 ]
 
 from .checkout_attempt import CheckoutAttempt  # noqa: E402

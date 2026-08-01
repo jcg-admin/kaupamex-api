@@ -43,13 +43,15 @@ tiene se descarta antes de evaluarse — no aporta ni restringe.
 Qué NO se porta, con su medición
 ================================
 
-- **``model_id`` como FK a ``ir.model``.** Medido con
-  ``grep -rn "^class IrModel\b" src/`` → **0** clases (el ancla de columna 0
-  distingue una definición de una cita indentada — ver H-API-141).
-  [PROVEN] Se porta como ``model_name`` (``Char`` indexado) con el label del
-  modelo Django, mismo criterio que ``ir_filters.model_id`` e
-  ``ir_attachment.res_model`` ya usan en este árbol: el "modelo técnico" es un
-  string que se resuelve en runtime, no una relación.
+- **``model_id`` como FK a ``ir.model``.** **Actualizado** (porte de
+  ``ir_model.py``): ``grep -rn "^class IrModel\b" src/`` → **1** clase (el
+  ancla de columna 0 distingue una definición de una cita indentada — ver
+  H-API-141). [PROVEN] La medición de **0** que sostenía el ``Char`` dejó de
+  ser cierta al portar ``ir_model``; se corrige en vez de dejarla envejecer.
+  El campo **sigue** siendo ``model_name`` (``Char`` indexado) con el label
+  del modelo Django: cambiarlo a FK migra esta tabla y va en su propio pase,
+  igual que ``ir_filters.action_id``. Mismo estado en ``ir_filters.model_id``
+  e ``ir_attachment.res_model``.
 - **``domain_force`` evaluado con ``safe_eval``.** La referencia guarda el
   dominio como **texto de una expresión Python** y lo evalúa con su
   ``safe_eval`` contra un contexto acotado. Aquí el campo se porta —es el dato

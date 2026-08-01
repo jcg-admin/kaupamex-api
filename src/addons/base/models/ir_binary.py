@@ -36,14 +36,15 @@ Lo que **sí** se porta, porque es conocimiento del dominio y no del transporte:
 Lo que NO se porta, con su medición
 ===================================
 
-- **``_find_record`` por ``xmlid``.** Medido con
-  ``grep -rn "^class IrModelData\b" src/`` → **0** clases (el ancla de columna 0
-  distingue una definición de una cita indentada — ver H-API-141).
-  [PROVEN] El ``xmlid`` se resuelve contra
-  ``ir.model.data``, el registro de datos declarativos XML que este árbol no
-  tiene (la misma ausencia que ``ir_module.py`` ya declara para el ``xml_id``
-  de la categoría). Queda la resolución por ``modelo + id``, que es la que
-  usan los consumidores reales.
+- **``_find_record`` por ``xmlid``.** **Actualizado** (porte de
+  ``ir_model.py``): ``grep -rn "^class IrModelData\b" src/`` → **1** clase (el
+  ancla de columna 0 distingue una definición de una cita indentada — ver
+  H-API-141). [PROVEN] La medición de **0** clases que justificaba omitirlo
+  dejó de ser cierta: ``ir.model.data`` **ya existe** y el ``xmlid`` tiene
+  contra qué resolverse. Lo que sigue faltando es el **cargador** que puebla
+  esa tabla desde datos declarativos, así que la resolución por ``xmlid``
+  entra cuando haya filas que resolver, no antes. Mientras tanto se usa
+  ``modelo + id``, que es la que usan los consumidores reales.
 - **``access_token`` / ``verify_limited_field_access_token`` /
   ``_can_return_content`` / ``record.sudo()``.** Son el mecanismo de Odoo para
   servir un binario **saltándose** los derechos de acceso con un token de

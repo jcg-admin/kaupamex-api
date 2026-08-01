@@ -51,11 +51,14 @@ Qué NO se porta, con su medición
   ``_referencing_subfield``, ``_str_to_many2one``, ``_str_to_many2many``,
   ``_str_to_one2many``, ``_str_to_many2one_reference``. Resuelven una
   referencia por ``xmlid`` (contra ``ir.model.data``) o por ``name_search``
-  (la búsqueda por nombre visible del ORM de Odoo). Medido con
-  ``grep -rn "^class IrModelData\b" src/`` → **0** clases, y
-  ``grep -rn "def name_search" src/`` → **0** definiciones. [PROVEN] Sin
-  ninguno de los dos caminos de resolución no hay conversión relacional fiel
-  que portar; inventar una tercera vía sería inventar semántica.
+  (la búsqueda por nombre visible del ORM de Odoo). **Actualizado** (porte de
+  ``ir_model.py``): ``grep -rn "^class IrModelData\b" src/`` → **1** clase;
+  ``grep -rn "def name_search" src/`` sigue en **0** definiciones. [PROVEN]
+  Cambia **uno** de los dos caminos, no los dos: la tabla del ``xmlid``
+  existe pero nadie la puebla —falta el cargador declarativo—, y
+  ``name_search`` no existe en absoluto. La mitad relacional sigue sin portar
+  por la misma razón de fondo; inventar una tercera vía sería inventar
+  semántica.
 - **``_str_to_properties``** (95 líneas) — convierte contra el campo
   ``Properties`` de Odoo, cuyo esquema vive en un campo hermano
   ``PropertiesDefinition``. El vocabulario los declara como ``JSONField``

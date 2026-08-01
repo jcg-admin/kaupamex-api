@@ -57,9 +57,13 @@ reventar al pulsarla.
 
 ``is_deletable`` distingue lo que vino de datos declarativos de lo que creó un
 usuario: en la referencia, mirando si el ``xml_id`` empieza por ``__export__``
-o ``__custom__``. Medido: ``grep -rn "^class IrModelData\b" src/`` → **0**
-clases, así que aquí se declara con un booleano ``system`` en el propio
-registro — una acción de sistema no se borra, una de usuario sí.
+o ``__custom__``. **Actualizado** (porte de ``ir_model.py``):
+``grep -rn "^class IrModelData\b" src/`` → **1** clase. La medición de **0**
+que sostenía el booleano dejó de ser cierta; el booleano ``system`` **se
+queda** igual, y por una razón mejor que la ausencia: leer la procedencia de
+un prefijo del ``xml_id`` es un acuerdo implícito entre el cargador y este
+modelo, mientras que un campo declarado dice lo mismo sin adivinar. Una
+acción de sistema no se borra, una de usuario sí.
 
 Qué NO se porta, con su medición
 ================================

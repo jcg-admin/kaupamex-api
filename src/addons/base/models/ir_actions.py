@@ -74,9 +74,13 @@ Qué NO se porta, con su medición
   razón: montar un evaluador sobre entrada almacenada es superficie de
   ejecución de código y exige decidir explícitamente el evaluador y su
   contexto. ``run()`` deja el punto de extensión declarado y levanta.
-- **``model_id`` como FK a ``ir.model``.** Medido con
-  ``grep -rn "^class IrModel\b" src/`` → **0** clases. [PROVEN] Va como
-  ``model_name`` (``Char``), mismo criterio que ``ir_rule``, ``ir_filters`` e
+- **``model_id`` como FK a ``ir.model``.** **Actualizado** (porte de
+  ``ir_model.py``): ``grep -rn "^class IrModel\b" src/`` → **1** clase.
+  [PROVEN] La medición que justificaba el ``Char`` —**0** clases— dejó de ser
+  cierta; se corrige aquí en vez de dejarla envejecer. El campo **sigue**
+  siendo ``model_name`` (``Char``) en este pase: convertirlo a FK migra esta
+  tabla, y eso va en su propio pase, igual que se decidió con
+  ``ir_filters.action_id``. Mismo estado en ``ir_rule``, ``ir_filters`` e
   ``ir_attachment``.
 
   El **ancla de columna 0** no es cosmética: sin ella el grep cuenta también

@@ -30,21 +30,29 @@ Drift 18→19 observado (ambas fuentes citadas arriba) — no afecta lo portado:
   **idénticos** entre 18 y 19 (mismas líneas, mismo texto) — es la parte que
   se porta aquí.
 
-Adaptación clave — ``field_id`` (FK a ``ir.model.fields``) se DROPEA
-=====================================================================
+Adaptación clave — ``field_id`` (FK a ``ir.model.fields``) queda como Char
+==========================================================================
 
 Odoo modela el campo objetivo como ``field_id = fields.Many2one('ir.model.fields',
-...)`` (18/19 línea 20-21). Este monolito **no porta** ``ir.model.fields``
-(decisión H-BASE-08 del orquestador): Django ya provee introspección de
-modelo/campo vía su registro de apps (``apps.get_model``) + ``ContentType``,
-así que un registro paralelo tipo ``ir.model.fields`` sería duplicación
-FRAMEWORK-UI. Sin el modelo destino no hay FK fiel que portar.
+...)`` (18/19 línea 20-21).
 
-La adaptación fiel es almacenar el objetivo directamente como **``model``
-(Char) + ``field`` (Char)** — mismo criterio que ``ir_filters.model_id``,
-``ir_attachment.res_model``/``res_field`` e ``ir_cron.model_name`` (todos
-Char plano, no FK real, resuelto en runtime por la capa de negocio que lo
-consume). NO se crea ni se referencia ``ir.model``/``ir.model.fields``.
+**Actualizado** (porte de ``ir_model.py``). La redacción anterior decía que
+este monolito *"no porta ``ir.model.fields``"* por decisión H-BASE-08 —Django
+ya introspecciona vía ``apps.get_model`` + ``ContentType``, así que un
+registro paralelo sería duplicación—. **Esa decisión está superada**: la
+directiva del ejecutor es portar `base` archivo por archivo contra la
+referencia, sin agrupar ni omitir, y ``ir.model.fields`` entró con
+``ir_model.py``. Medido: ``grep -rn "^class IrModelFields\b" src/`` → **1**
+clase. [PROVEN] El argumento de la duplicación sigue siendo verdadero como
+observación —el registro de Django es la fuente, y por eso la reflexión de
+``ir_model`` va **de** Django **a** filas, no al revés— pero no autoriza a
+saltarse un archivo de la referencia.
+
+Lo que **no** cambia en este pase: el objetivo se sigue almacenando como
+**``model`` (Char) + ``field`` (Char)**, mismo criterio que
+``ir_filters.model_id``, ``ir_attachment.res_model``/``res_field`` e
+``ir_cron.model_name``. Convertirlo a FK real migra esta tabla y va en su
+propio pase, igual que ``ir_filters.action_id``.
 
 ``json_value`` — ``Text``, no ``Char`` (drift deliberado vs. la firma de Odoo)
 =====================================================================

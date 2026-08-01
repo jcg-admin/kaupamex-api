@@ -44,9 +44,12 @@ Grupos disjuntos
 fuente es que un usuario no puede ser portal e interno a la vez. En la
 referencia el conjunto disjunto sale de tres ``xmlid`` fijos
 (``base.group_user`` / ``group_portal`` / ``group_public``) resueltos contra
-``ir.model.data``. Medido con
-``grep -rn "^class IrModelData\b" src/`` → **0** clases.
-[PROVEN]
+``ir.model.data``. **Actualizado** (porte de ``ir_model.py``):
+``grep -rn "^class IrModelData\b" src/`` → **1** clase. [PROVEN] La medición
+de **0** que sostenía la decisión de abajo dejó de ser cierta. La decisión
+**no** cambia: la tabla existe pero nadie la puebla todavía —falta el cargador
+de datos declarativos—, y un conjunto disjunto que depende de tres filas
+ausentes no declararía nada.
 
 Por eso la pertenencia al conjunto disjunto se declara **en el propio
 registro**, con un campo ``user_type`` que marca al grupo como tipo de usuario:
