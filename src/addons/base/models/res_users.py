@@ -21,29 +21,36 @@ llamado ``<modelo>_ptr``— guarda cada tabla por separado y hace el ``JOIN``
 implícito. Sería ``class ResUsers(ResPartner)`` y ``name``/``email`` saldrían
 gratis, sin las propiedades de abajo.
 
-Se descartó por tres diferencias **medidas**, no estéticas:
+**Una sola diferencia estructural lo descarta**, y sólo queda en pie porque se
+midió: el enlace de MTI es **siempre** ``OneToOneField`` —``parent_link=True``
+lo exige—, mientras que ``partner_id`` de la referencia es ``Many2one`` sin
+restricción única (``res_users.py:214``). Dos credenciales sobre un mismo
+partner: la FK lo permite, MTI da ``IntegrityError``. Declarar el enlace a mano
+no lo cambia; sigue siendo ``unique=True``.
 
-1. **Cardinalidad.** El enlace de MTI es ``OneToOneField`` (``unique=True``);
-   ``partner_id`` de la referencia es ``Many2one`` sin restricción única
-   (``res_users.py:214``). Dos credenciales sobre un mismo partner: con FK se
-   permite, con MTI es ``IntegrityError``.
-2. **Borrado.** MTI cablea ``on_delete=CASCADE`` y no es configurable —es un
-   campo ``auto_created``—; la referencia declara ``ondelete='restrict'``.
-   Borrar el partner arrastraría la credencial en vez de impedirse.
-3. **Adjuntar a un partner que ya existe.** Es el flujo real: un cliente existe
-   como partner y **después** obtiene login. Con FK se adjunta y la tabla de
-   partners no crece. Con MTI, crear el hijo **crea una fila nueva** de padre —
-   no hay forma normal de apuntar a una preexistente.
+Las otras dos objeciones que se escribieron aquí **eran falsas** y se corrigen
+(medido con ``parent_link`` declarado explícitamente):
 
-Y una diferencia conceptual que las explica: MTI es *is-a*
-(``isinstance(user, ResPartner)`` daría ``True``), mientras que el ORM de la
+- *"MTI cablea* ``CASCADE`` *y no es configurable"* — **falso**. Declarando el
+  campo (``OneToOneField(Parent, on_delete=PROTECT, parent_link=True,
+  primary_key=True)``) el ``on_delete`` es el que se elija: borrar el padre da
+  ``ProtectedError``. El ``CASCADE`` es sólo el default del campo
+  ``auto_created``.
+- *"con MTI no se puede adjuntar a un padre preexistente"* — **falso** con ese
+  mismo override: ``Child.objects.create(parent_link=<padre existente>, …)``
+  **no** crea fila nueva de padre. Lo que no funciona es la vía automática.
+
+Queda además la divergencia conceptual: MTI es *is-a*
+(``isinstance(user, ResPartner)`` sería ``True``), mientras que el ORM de la
 referencia describe ``_inherits`` como *"implements **composition-based**
 inheritance: the new model exposes all the fields of the inherited models but
-**stores none of them**"* (``odoo/orm/models.py:416-418``). Composición, no
-herencia.
+**stores none of them**"* (``odoo/orm/models.py:416-418``).
 
-Así que la reimplementación es FK requerida + propiedades que reenvían: más
-verbosa que MTI, y la única que conserva las tres propiedades de arriba.
+Y un argumento de coste, no de capacidad: para que MTI se comportara como la
+referencia habría que declarar el ``parent_link`` a mano — momento en que ya se
+está escribiendo la FK, sin la automagia que hacía atractivo a MTI, y **aun
+así** con la cardinalidad equivocada. Por eso: FK requerida + propiedades que
+reenvían.
 
 **Lo que NO se hereda de Django.** El modelo no extiende ``AbstractBaseUser``:
 reimplementa el contrato de auth a mano (U-D puro, T-203) para no arrastrar
