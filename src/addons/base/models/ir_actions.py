@@ -432,6 +432,16 @@ class IrActionsServer(IrActionsBase):
         blank=True, default='', verbose_name='Código',
         help_text='Bloque Python del modo "code". Este archivo NO lo evalúa.',
     )
+    # Adaptación de proyecto (sin análogo en la referencia): sustituye la
+    # EVALUACIÓN de ``code`` por una llamada a método resuelta en runtime
+    # (``getattr(apps.get_model(model_name), method_name)``). Vive aquí, y no
+    # en ``ir.cron``, porque este es el modelo donde la referencia pone el
+    # "qué ejecutar" — ``ir.cron`` sólo aporta la periodicidad y lo delega.
+    method_name = fields.Char(
+        max_length=128, blank=True, default='', verbose_name='Método',
+        help_text='Método a invocar sobre model_name. Alternativa segura al '
+                  'code Python del modo "code"; este archivo tampoco lo invoca.',
+    )
 
     class Meta:
         db_table = 'ir_act_server'

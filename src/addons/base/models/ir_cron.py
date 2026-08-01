@@ -11,37 +11,53 @@ verificada por el orquestador: ``ir_cron`` AUSENTE de
 ``src/addons/base/models/`` antes de este commit (``grep -rl "class IrCron"
 src/addons/base/models/`` → vacío).
 
-Adaptación clave — se DROPEA la delegación a ``ir.actions.server``
+Delegación a ``ir.actions.server`` — PORTADA
 =====================================================================
 
 Odoo modela ``ir.cron`` con ``_inherits = {'ir.actions.server':
-'ir_actions_server_id'}`` (18 línea 68-70; 19 línea 104-108): el "qué
-ejecutar" vive delegado en un modelo ``ir.actions.server`` aparte (código
-Python arbitrario, llamada a método, etc.), y ``ir.cron`` solo añade la
-periodicidad.
+'ir_actions_server_id'}`` (19 línea 104-108, enlace en :106-108 como
+``Many2one(..., delegate=True, ondelete='restrict', required=True)``): el
+"qué ejecutar" vive delegado en la acción servidor, y ``ir.cron`` **sólo
+aporta la periodicidad**.
 
-**Actualizado** (porte de ``ir_actions.py``): ``ir.actions.server`` **ya
-existe** —``grep -rn "^class IrActionsServer" src/`` → **1** clase— pero **su
-motor de ejecución no se porta** (evalúa Python almacenado; ver el docstring
-de ``ir_actions.py``). Es decir: el destino de la delegación existe como dato,
-no como ejecutor. La adaptación de abajo **no cambia** por eso — sigue siendo
-la correcta mientras el runner no exista—, pero la premisa "no hay ningún
-modelo ``ir.actions.*``" ya no es cierta y se corrige aquí.
+Se porta con el patrón establecido en este árbol para ``_inherits`` — **FK
+real + delegación por propiedad**, NO herencia multi-tabla de Django (que
+crea un ``OneToOneField(parent_link=True)``, una hija por padre, cuando el
+``_inherits`` de Odoo es un ``Many2one``). Mismo criterio que
+``product_product.py`` → ``product.template``, ``res_users.py`` →
+``res.partner`` y ``mail_mail.py`` → ``mail.message``.
 
-Sin el modelo destino no hay FK fiel que portar. La adaptación fiel es
-almacenar el objetivo directamente como **``model_name`` (Char) +
-``method_name`` (Char)** — el runner (diferido, ver abajo) llamará
-``getattr(apps.get_model(model_name), method_name)`` sobre el modelo
-resuelto. Esto espeja cómo ``ir.filters.model_id`` y
-``ir.attachment.res_model`` ya son ``Char`` plano en vez de una FK real
-(mismo criterio: el "modelo técnico" no es una relación de Django, es un
-string resuelto en runtime por la capa de negocio).
+**Revierte la adaptación anterior**, que declaraba ``name``/``model_name``/
+``method_name`` como columnas locales. Aquella se justificaba en que "sin el
+modelo destino no hay FK fiel que portar"; ``IrActionsServer`` ya existe
+(``ir_actions.py:402``), así que la premisa caducó. Prevalece el análisis
+actual — principio rector, Clausula 1; directiva del ejecutor 2026-08-01
+(*"queremos delegar las cosas, como lo tienes en odoo-tools"*). Ver
+H-API-203.
 
-El campo Odoo ``cron_name`` (``Char``, ``compute='_compute_cron_name'``,
-delegado del ``name`` de la acción servidor — 18/19 línea 109/71) se porta
-como campo **local** ``name`` (no computado, directamente editable) —
-adaptación forzada por el drop de la delegación: sin ``ir.actions.server``
-no hay de dónde computar el nombre.
+Qué NO cambia con la delegación
+---------------------------------
+
+El **motor de ejecución sigue sin portarse**: ``IrActionsServer.run()``
+levanta ``NotImplementedError`` a propósito, porque el modo ``code`` evalúa
+Python almacenado y quién conecte el evaluador es una decisión aparte (ver
+el docstring de ``ir_actions.py``). Delegar mueve el *dato* del "qué
+ejecutar" a su hogar fiel; **no** habilita la evaluación de código.
+
+``method_name`` — dónde vive ahora
+-----------------------------------
+
+Es una adaptación de proyecto **sin análogo** en la referencia: sustituye la
+evaluación del ``code`` Python por una llamada a método
+(``getattr(apps.get_model(model_name), method_name)``, que resolverá el
+runner diferido). Vive en ``IrActionsServer`` junto a ``code`` y
+``model_name`` —no en ``ir.cron``— porque ese es el modelo donde la
+referencia pone el "qué ejecutar". Partirlo entre los dos modelos habría
+dejado el objetivo a medias en cada uno.
+
+``model_name`` sigue siendo ``Char`` plano en su nuevo hogar, igual que
+``ir.filters.model_id`` y ``ir.attachment.res_model`` — la delegación no
+cambia ese criterio, sólo dónde está el campo.
 
 El runner del cron — DIFERIDO (Clausula 4, fuera de este slice)
 =====================================================================
@@ -139,6 +155,7 @@ from django.utils import timezone
 
 import fields
 import models
+from addons.base.models.ir_actions import IrActionsServer
 
 INTERVAL_CHOICES = [
     ('minutes', 'Minutes'),
@@ -188,32 +205,16 @@ class IrCron(models.Model):
     ``active=True`` con ``nextcall`` vencido es un componente separado,
     diferido fuera de este slice (ver docstring del módulo)."""
 
-    name = fields.Char(
-        max_length=256,
+    # Enlace de _inherits (Odoo ir_actions_server_id, ir_cron.py:106-108):
+    # Many2one required con ondelete='restrict' (≙ PROTECT). NO es herencia
+    # multi-tabla — ver el docstring del módulo.
+    ir_actions_server = fields.Many2one(
+        IrActionsServer, on_delete=models.PROTECT, db_index=True,
+        related_name='crons',
         help_text=(
-            'Nombre de la tarea (Odoo cron_name — ahí computado desde el '
-            'name de la ir.actions.server delegada; aquí campo local '
-            'directo porque no se porta esa delegación, ver docstring '
-            'del módulo).'
-        ),
-    )
-    model_name = fields.Char(
-        max_length=128,
-        help_text=(
-            'Modelo técnico objetivo, p. ej. "sale.SaleOrder" (adaptación '
-            'del model_id delegado en ir.actions.server de Odoo — aquí '
-            'Char plano, mismo criterio que ir_filters.model_id / '
-            'ir_attachment.res_model: no es FK real, el runner diferido '
-            'la resuelve con apps.get_model()).'
-        ),
-    )
-    method_name = fields.Char(
-        max_length=128,
-        help_text=(
-            'Nombre del método a invocar sobre model_name (adaptación: '
-            'sustituye el code Python arbitrario de ir.actions.server de '
-            'Odoo por una llamada directa a método, resuelta por el '
-            'runner diferido).'
+            'Acción que este cron ejecuta (Odoo ir_actions_server_id, '
+            '_inherits). El "qué ejecutar" —name, model_name, method_name— '
+            'vive ahí y se delega; ir.cron sólo aporta la periodicidad.'
         ),
     )
     interval_number = fields.Integer(
@@ -253,7 +254,7 @@ class IrCron(models.Model):
 
     class Meta:
         db_table = 'ir_cron'
-        ordering = ['name', 'id']
+        ordering = ['ir_actions_server__name', 'id']
         verbose_name = 'Tarea programada'
         verbose_name_plural = 'Tareas programadas'
         constraints = [
@@ -265,6 +266,27 @@ class IrCron(models.Model):
 
     def __str__(self) -> str:
         return self.name
+
+    # ---- Campos delegados (≙ _inherits de ir.actions.server) ----
+    # Solo lectura, como el resto de delegaciones del árbol (product_product,
+    # res_users, mail_mail). Para escribirlos se toca la acción servidor.
+
+    @property
+    def name(self):
+        """El nombre de la acción (Odoo ``cron_name``, computado desde el
+        ``name`` de la ``ir.actions.server`` delegada)."""
+        return self.ir_actions_server.name
+
+    @property
+    def model_name(self):
+        """El modelo técnico objetivo (delegado; Odoo ``model_id``)."""
+        return self.ir_actions_server.model_name
+
+    @property
+    def method_name(self):
+        """El método a invocar (delegado; ocupa el lugar del ``code`` de la
+        referencia — ver el docstring de ``ir_actions.py``)."""
+        return self.ir_actions_server.method_name
 
     def _compute_next(self):
         """Calcula el próximo ``nextcall`` avanzando por

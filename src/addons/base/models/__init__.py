@@ -117,7 +117,6 @@ from .ir_attachment import IrAttachment
 from .ir_autovacuum import IrAutovacuum, is_autovacuum
 from .ir_binary import IrBinary
 from .ir_fields import IrFieldsConverter
-from .ir_cron import IrCron
 from .ir_demo import IrDemo
 from .ir_demo_failure import IrDemoFailure, IrDemoFailureWizard
 from .ir_profile import IrProfile, BaseEnableProfilingWizard
@@ -161,6 +160,8 @@ from .ir_actions import (
     IrActionsServer,
     IrActionsTodo,
 )
+# ir_cron delega su "que ejecutar" en IrActionsServer (_inherits): despues.
+from .ir_cron import IrCron
 from .ir_actions_report import IrActionsReport
 from .ir_default import IrDefault
 from .res_config import (
