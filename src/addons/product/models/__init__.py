@@ -31,10 +31,12 @@ ahora, con lo que aporta cada uno:
   precio, unidad y plazo por proveedor, con el alcance plantilla-o-variante.
 - ``product_catalog_mixin.py`` → ``ProductCatalogMixin``, el contrato del
   selector de productos. **Clase Python, no modelo** — no declara campos.
+- ``product_combo_item.py`` → ``ProductComboItem``, una **opción** dentro de
+  una elección. Su ``related_name`` es lo que hace que ``combo_item_count`` y
+  ``base_price`` de ``ProductCombo`` dejen de devolver 0.
 
-Pendientes — **10** de los 25:
-``product_combo_item.py``, ``product_document.py``,
-``product_attribute_custom_value.py``,
+Pendientes — **9** de los 25:
+``product_document.py``, ``product_attribute_custom_value.py``,
 ``product_template_attribute_exclusion.py`` y las siete extensiones de
 modelos de ``base`` (``res_company``, ``res_partner``, ``res_currency``,
 ``res_config_settings``, ``res_country_group``, ``ir_attachment``,
@@ -49,6 +51,7 @@ from addons.product.models.product_attribute import ProductAttribute
 from addons.product.models.product_catalog_mixin import ProductCatalogMixin
 from addons.product.models.product_category import ProductCategory
 from addons.product.models.product_combo import ProductCombo
+from addons.product.models.product_combo_item import ProductComboItem
 from addons.product.models.product_pricelist import ProductPricelist
 from addons.product.models.product_pricelist_item import (
     ProductPricelistItem,
@@ -73,6 +76,7 @@ __all__ = [
     'ProductCatalogMixin',
     'ProductCategory',
     'ProductCombo',
+    'ProductComboItem',
     'ProductPricelist',
     'ProductPricelistItem',
     'ProductProduct',

@@ -90,7 +90,6 @@ Qué NO se porta, con su medición
 """
 import fields
 import models
-from django.core.exceptions import ValidationError
 
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from addons.product.models.product_template import ProductTemplate
@@ -198,6 +197,27 @@ class ProductProduct(TimeStampedModel):
     def company(self):
         """La compañía de la ficha."""
         return self.product_tmpl.company
+
+    @property
+    def sale_ok(self):
+        """Si la ficha se puede vender (``product_template.py:116``).
+
+        Faltaba, y **dos** consumidores ya la invocaban sobre la variante:
+        ``ProductTemplate.check_combo_choices()`` (``item.product.sale_ok``) y
+        el ``_check_sale_combo_ids`` que aquel porta. En la referencia la
+        variante la alcanza por ``_inherits`` (``product_product.py:19``);
+        aquí la delegación es explícita. Ver H-API-191.
+        """
+        return self.product_tmpl.sale_ok
+
+    @property
+    def currency(self):
+        """La moneda de la ficha — misma delegación por ``_inherits``.
+
+        La lee ``ProductComboItem.currency``, que en la referencia es
+        ``related='product_id.currency_id'``.
+        """
+        return getattr(self.product_tmpl, 'currency', None)
 
     @property
     def list_price(self):
@@ -328,13 +348,22 @@ class ProductProduct(TimeStampedModel):
         return self.display_name
 
     def clean(self):
-        """La variante no puede colgar de una ficha de tipo combo.
+        """Sin invariantes propias de la variante frente a su ficha.
 
-        Un combo agrupa otros productos: no tiene variantes propias, y
-        permitirlas daría una combinación de atributos sobre algo que no es
-        un artículo.
+        **Aquí vivía una regla inventada** —"un combo no tiene variantes"— que
+        contradecía a la referencia y bloqueaba el caso central del tipo
+        ``combo``: un producto combo **se vende**, y una línea de venta apunta
+        a una *variante*. La fuente lo dice sin ambigüedad en
+        ``odoo19c: addons/sale/models/sale_order_line.py:546`` —
+        ``if line.product_type == 'combo':``, donde ``product_type`` deriva del
+        ``product_id`` de la línea, que es un ``product.product``. Con el guard
+        anterior, ese producto no podía existir.
+
+        Lo que la referencia sí prohíbe es que un combo tenga **atributos**
+        (``product_template.py:460-462``: *"Combo products can't have
+        attributes."*), que es cosa distinta: sin atributos la ficha tiene
+        exactamente **una** variante, no ninguna. Esa regla vive ahora en
+        ``ProductTemplate.check_combo_has_no_attributes()``, del lado donde se
+        declaran los atributos. Ver H-API-190.
         """
         super().clean()
-        if self.product_tmpl_id and self.product_tmpl.type == 'combo':
-            raise ValidationError(
-                'Un combo no tiene variantes: sus componentes las tienen.')

@@ -216,6 +216,30 @@ class ProductTemplate(ImageMixin, TimeStampedModel):
             raise ValidationError(
                 'Un combo no tiene coste propio: lo aportan sus componentes.')
 
+    def check_combo_has_no_attributes(self):
+        """``_onchange_type`` — *"Combo products can't have attributes."*
+
+        ``odoo19c: product_template.py:460-462`` (``odoo-tools@622ddc2aa5``).
+        Un combo no describe un artículo con variaciones: describe un conjunto
+        de elecciones. Darle atributos generaría el producto cartesiano de algo
+        que no es un producto.
+
+        **No es "un combo no tiene variantes".** Sin atributos la ficha tiene
+        exactamente **una** variante — la que la línea de venta necesita para
+        apuntar al combo. La confusión entre ambas reglas produjo H-API-190.
+
+        Método y no ``clean()``: ``attribute_lines`` es una relación inversa, y
+        Django persiste el padre antes que sus hijos. Mismo motivo que
+        ``check_combo_choices`` y ``ProductCombo.check_has_items``.
+        """
+        if self.type != TYPE_COMBO:
+            return
+        lines = getattr(self, 'attribute_lines', None)
+        if lines is not None and lines.exists():
+            raise ValidationError(
+                'Un producto combo no puede tener atributos: agrupa '
+                'elecciones, no variaciones de un artículo.')
+
     def check_combo_choices(self):
         """Las dos invariantes de la referencia sobre ``combo_ids``.
 
