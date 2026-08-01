@@ -31,6 +31,9 @@ que los agrupe por naturaleza.
   ``Unknown``, ``IrModel``, ``IrModelFields``, ``IrModelInherit``,
   ``IrModelFieldsSelection``, ``IrModelConstraint``, ``IrModelRelation``,
   ``IrModelAccess``, ``IrModelData``).
+- ``ir_mail_server.py`` → ``IrMailServer`` (registro de servidores SMTP
+  salientes con prioridad y enrutado por remitente; el transporte sigue siendo
+  ``django.core.mail`` vía ``addons/mail``).
 - ``ir_rule.py`` → ``IrRule`` (reglas de registro: acceso por fila).
 - ``ir_binary.py`` → ``IrBinary`` (sirve campos binarios como respuesta HTTP).
 - ``ir_fields.py`` → ``IrFieldsConverter`` (conversión de valores de import).
@@ -114,6 +117,12 @@ from .ir_model import (
 )
 from .ir_filters import IrFilters
 from .ir_logging import IrLogging
+from .ir_mail_server import (
+    IrMailServer,
+    MailDeliveryException,
+    extract_rfc2822_addresses,
+    is_ascii,
+)
 from .ir_exports import IrExports, IrExportsLine
 from .ir_module import IrModule, IrModuleCategory, IrModuleDependency
 from .ir_ui_menu import IrUiMenu
@@ -217,6 +226,10 @@ __all__ = [
     'IrModelData',
     'FIELD_TYPES',
     'DJANGO_TYPE_TO_TTYPE',
+    'IrMailServer',
+    'MailDeliveryException',
+    'extract_rfc2822_addresses',
+    'is_ascii',
 ]
 
 from .checkout_attempt import CheckoutAttempt  # noqa: E402
