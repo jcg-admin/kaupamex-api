@@ -59,6 +59,9 @@ class Command(BaseCommand):
             try:
                 mail = (
                     MailMail.objects
+                    # subject/email_from se delegan al mail.message (_inherits):
+                    # sin el JOIN, cada correo del lote pagaria una query extra.
+                    .select_related('mail_message')
                     .select_for_update(skip_locked=True)
                     .get(pk=pk, state=MailMail.STATE_OUTGOING)
                 )

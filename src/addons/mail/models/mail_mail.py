@@ -18,11 +18,25 @@ Fidelidad y adaptaciones (documentadas, principio-rector Clausula 2):
 - **``failure_type``/``failure_reason``** — fieles a Odoo (subconjunto ``mail_*``
   aplicable a este stack; sin ``snail``/``sms`` que no son correo). ``last_error``
   de ``EmailTask`` ≙ ``failure_reason``.
-- **No ``_inherits`` de ``mail.message``** — Odoo delega ``subject``/``body`` al
-  ``mail.message`` enlazado. Este monolito NO porta la delegacion Odoo (H-BASE):
-  ``subject``/``body_html``/``email_from`` viven como columnas propias, igual que
-  ya hacia ``EmailTask``. El puente al chatter existe por el otro lado
-  (``mail.notification`` referencia el envio saliente).
+- **``_inherits`` de ``mail.message`` — PORTADA** (directiva del ejecutor
+  2026-08-01: *"queremos delegar las cosas, como lo tienes en odoo-tools"*).
+  La referencia declara ``_inherits = {'mail.message': 'mail_message_id'}``
+  (``mail_mail.py:31``) con el enlace ``Many2one('mail.message', required=True,
+  ondelete='cascade')`` (``:46``); ``subject`` y ``email_from`` **no son de**
+  ``mail.mail`` — viven en ``mail.message`` (``mail_message.py:91,144``).
+
+  Se porta con el patron ya establecido en este arbol para ``_inherits``: **FK
+  real + delegacion por propiedad**, NO herencia multi-tabla de Django (que
+  crea un ``OneToOneField(parent_link=True)``, una hija por padre, cuando el
+  ``_inherits`` de Odoo es un ``Many2one``). Mismo criterio que
+  ``product_product.py`` → ``product.template`` y ``res_users.py`` →
+  ``res.partner``.
+
+  **Revierte la divergencia anterior**, que declaraba estas columnas como
+  propias "igual que ya hacia ``EmailTask``". Prevalece el analisis actual
+  (principio rector, Clausula 1). Ver H-API-202.
+- ``body_html`` **si** es propio de ``mail.mail`` en la referencia — no se
+  delega. ``mail.message.body`` es otro campo (el del chatter).
 - **``attempts``/``max_attempts``** — adaptacion de proyecto: cola de reintento
   **sin broker** (sin Celery/Redis), heredada de ``EmailTask`` (Alt 2 de
   ``email_executor``). Odoo reintenta con su cron; aqui el conteo acota los
@@ -37,6 +51,7 @@ from django.utils import timezone
 import fields
 import models
 from addons.base.models import TimeStampedModel
+from addons.mail.models.mail_message import MailMessage
 
 
 class MailMail(TimeStampedModel):
@@ -74,16 +89,15 @@ class MailMail(TimeStampedModel):
         (FAILURE_MAIL_SMTP, 'Connection failed (outgoing mail server problem)'),
     ]
 
-    # content — Odoo email_to (Text), email_cc (Char), body_html (Text). subject/
-    # email_from viven aqui (sin _inherits de mail.message, ver docstring).
-    subject = fields.Char(
-        max_length=255, blank=True, default='',
-        help_text='Asunto del correo (Odoo mail.message.subject).',
+    # Enlace de _inherits (Odoo mail_message_id, mail_mail.py:46) — Many2one
+    # required + cascade. NO es herencia multi-tabla (ver docstring).
+    mail_message = fields.Many2one(
+        MailMessage, on_delete=models.CASCADE, db_index=True,
+        related_name='mails',
+        help_text='Mensaje del que este correo es el envio (Odoo mail_message_id, '
+                  '_inherits). subject/email_from se delegan a el.',
     )
-    email_from = fields.Char(
-        max_length=254, blank=True, default='',
-        help_text='Remitente (Odoo mail.message.email_from).',
-    )
+    # content — Odoo email_to (Text), email_cc (Char), body_html (Text).
     email_to = fields.Text(
         blank=True, default='',
         help_text='Destinatarios, coma-separados (Odoo email_to).',
@@ -137,12 +151,26 @@ class MailMail(TimeStampedModel):
     def __str__(self) -> str:
         return f'MailMail#{self.pk} {self.state} → {self.email_to[:50]}'
 
+    # ---- Campos delegados (≙ _inherits de mail.message) ----
+    # Solo lectura, como el resto de delegaciones del arbol (product_product,
+    # res_users). Para escribirlos se toca el mensaje: mail.mail_message.subject.
+
+    @property
+    def subject(self):
+        """El asunto del mensaje (delegado por ``_inherits``)."""
+        return self.mail_message.subject
+
+    @property
+    def email_from(self):
+        """El remitente del mensaje (delegado por ``_inherits``)."""
+        return self.mail_message.email_from
+
     # ---- API de cola (≙ mail.mail create/send/process_email_queue) ----
 
     @classmethod
     def enqueue(cls, *, to, subject='', body_html='', email_from='',
                 email_cc='', scheduled_date=None, max_attempts=3,
-                failure_reason=''):
+                failure_reason='', mail_message=None):
         """Encola un correo saliente (Odoo ``mail.mail.create`` con ``state='outgoing'``).
 
         Reemplaza a ``EmailTask.objects.create(...)`` como punto de entrada de la
@@ -150,10 +178,19 @@ class MailMail(TimeStampedModel):
         ``failure_reason`` preserva el error del intento previo del thread pool
         cuando ``email_executor`` reencola tras un fallo (fiel a Odoo, que
         conserva ``failure_reason`` entre reintentos).
+
+        ``subject``/``email_from`` viven en el ``mail.message`` enlazado
+        (``_inherits``): si no se pasa uno con ``mail_message``, se crea. Es lo
+        que hace la referencia al crear un ``mail.mail`` sin mensaje previo.
         """
+        if mail_message is None:
+            mail_message = MailMessage.objects.create(
+                subject=subject, email_from=email_from,
+                message_type=MailMessage.TYPE_EMAIL_OUTGOING,
+            )
         return cls.objects.create(
-            email_to=to, subject=subject, body_html=body_html,
-            email_from=email_from, email_cc=email_cc,
+            mail_message=mail_message,
+            email_to=to, body_html=body_html, email_cc=email_cc,
             scheduled_date=scheduled_date, max_attempts=max_attempts,
             failure_reason=(failure_reason or '')[:1000],
         )
