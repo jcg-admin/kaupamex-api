@@ -76,7 +76,6 @@ INSTALLED_APPS = [
     'addons.payment_mercado_pago',
     'addons.payment_paypal',
     'addons.payment_stripe',
-    'addons.payments',
     'addons.helpdesk',
     'addons.mass_mailing',
     'addons.website_mass_mailing',

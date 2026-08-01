@@ -38,7 +38,6 @@ urlpatterns = _admin_urls + [
     ),
 
     # --- API v1 (DEC-V2-02: webhooks registrados con terceros — no renombrar) ---
-    path('api/v1/payments/', include('addons.payments.webhook_urls')),
     path('api/v1/logistics/', include('addons.delivery.webhook_urls')),
 
     # --- API v2 ---
@@ -93,8 +92,6 @@ urlpatterns = _admin_urls + [
     path('api/v2/platform/',   include(('addons.company.urls', 'company'),                     namespace='company')),
 
     # ─── API v2 (F6: payments + checkout) ─────────────────────────────────────
-    path('api/v2/payments/', include(('addons.payments.urls', 'payments'),                    namespace='payments_v2')),
-    path('api/v2/checkout/', include(('addons.payments.checkout_urls', 'checkout'), namespace='checkout_v2')),
     # GAP-C1: public shipping methods for checkout (unauthenticated)
     path('api/v2/shipping-methods/', ShippingMethodListPublicView.as_view(), name='public-shipping-methods'),
     # H-12: public shipping zones + delivery-time catalog (unauthenticated)
@@ -110,7 +107,6 @@ urlpatterns = _admin_urls + [
     path('api/v2/admin/',   include(('addons.loyalty.urls', 'admin_voucher'),                           namespace='admin_voucher_v2')),
     path('api/v2/admin/',   include(('addons.helpdesk.admin_urls', 'admin_support'),                     namespace='admin_support_v2')),
     path('api/v2/admin/',   include(('addons.website.admin_urls', 'admin_static_content'),      namespace='admin_static_content_v2')),
-    path('api/v2/admin/',   include(('addons.payments.admin_urls', 'admin_payments'),                   namespace='admin_payments_v2')),
     # Chartsize admin (variants) after catalogue CRUD so POST /api/v2/admin/products/
     # resolves to ProductAdminViewSet, not chartsize DefaultRouter root (GET-only).
     # Search history — no v2-specific URL file; same endpoints at v2.
