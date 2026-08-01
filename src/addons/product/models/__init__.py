@@ -15,9 +15,12 @@ ahora, con lo que aporta cada uno:
 - ``product_product.py`` → ``ProductProduct``, la variante — lo que apunta un
   movimiento de stock o una línea de pedido. FK real a la ficha, **no**
   herencia multi-tabla: ésta admitiría una sola variante por ficha.
+- ``product_pricelist.py`` → ``ProductPricelist``, el contenedor con su moneda
+  y su alcance.
+- ``product_pricelist_item.py`` → ``ProductPricelistItem``, la regla y el
+  cálculo entero: los cinco pasos de la fórmula en el orden de la fuente.
 
-Pendientes, encabezados por el precio (``product_pricelist.py`` 414 +
-``product_pricelist_item.py`` 684), más
+Pendientes:
 ``product_pricelist{,_item}.py``, ``product_supplierinfo.py``,
 ``product_combo{,_item}.py``, ``product_tag.py``, ``product_document.py``,
 ``product_catalog_mixin.py``, ``product_uom.py``,
@@ -29,6 +32,10 @@ modelos de ``base`` (``res_company``, ``res_partner``, ``res_currency``,
 """
 from addons.product.models.product_attribute import ProductAttribute
 from addons.product.models.product_category import ProductCategory
+from addons.product.models.product_pricelist import ProductPricelist
+from addons.product.models.product_pricelist_item import (
+    ProductPricelistItem,
+)
 from addons.product.models.product_product import ProductProduct
 from addons.product.models.product_template import ProductTemplate
 from addons.product.models.product_attribute_value import (
@@ -44,6 +51,8 @@ from addons.product.models.product_template_attribute_value import (
 __all__ = [
     'ProductAttribute',
     'ProductCategory',
+    'ProductPricelist',
+    'ProductPricelistItem',
     'ProductProduct',
     'ProductTemplate',
     'ProductAttributeValue',
