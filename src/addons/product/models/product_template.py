@@ -46,15 +46,29 @@ Qué NO se porta, con su medición
   (``ImageMixin`` existe en ``base``), junto a ``TimeStampedModel``: heredar
   sólo el mixin de imagen **borraría las marcas de tiempo**, que es el defecto
   que H-API-147 registró al portar ``res_partner``.
-- **Los campos que apuntan a modelos aún sin portar**, cada uno con su
-  medición: ``combo_ids`` (``product.combo``), ``product_tag_ids``
-  (``product.tag``), ``seller_ids`` (``product.supplierinfo``),
-  ``pricelist_rule_ids`` (``product.pricelist.item``),
-  ``product_document_ids`` (``product.document``),
-  ``product_variant_ids`` (``product.product``). Los cuatro últimos son
-  **reversos**: aparecen solos cuando su archivo declare el
-  ``related_name``, sin tocar éste — igual que ``report_paperformat.report_ids``
-  (H-API-164).
+- **Los campos que apuntan a modelos aún sin portar**: ``combo_ids``
+  (``product.combo``) y ``product_document_ids`` (``product.document``). Los
+  demás ya llegaron, **todos por ``related_name`` y sin tocar este archivo**,
+  igual que ``report_paperformat.report_ids`` (H-API-164):
+  ``product_tag_ids`` desde ``product_tag.py``, ``pricelist_rule_ids`` desde
+  ``product_pricelist_item.py``, ``product_variant_ids`` desde
+  ``product_product.py`` y ``seller_ids`` desde ``product_supplierinfo.py``.
+  Lo que la predicción no cubría es que uno de ellos llegara **con un
+  gemelo**: ver ``variant_seller_ids`` abajo.
+
+``variant_seller_ids`` — dos One2many sobre el mismo inverso
+============================================================
+
+La referencia declara ``seller_ids`` y ``variant_seller_ids`` en líneas
+consecutivas (``product_template.py:126-127``) y **las dos** apuntan al mismo
+campo inverso, ``product_tmpl_id``. Sólo difieren en el
+``depends_context=('company',)`` de la primera; el nombre de la segunda
+promete un filtro por variante que su declaración no hace.
+
+En Django una FK da exactamente **un** ``related_name``, así que el gemelo no
+puede existir como campo. Se conserva como **propiedad alias** sobre el mismo
+conjunto: el nombre sigue disponible para quien lo llame, y el docstring dice
+que no filtra nada — que es la verdad de la fuente, no una simplificación.
 - **``standard_price`` como ``compute``/``inverse``/``search``**: su valor
   sale de la valoración AVCO del inventario, que vive en ``stock_account``.
   Aquí se porta como **columna** —es el dato que alguien escribe cuando no hay
@@ -253,6 +267,21 @@ class ProductTemplate(ImageMixin, TimeStampedModel):
         if variants is None or variants.count() != 1:
             return None
         return variants.first()
+
+    @property
+    def variant_seller_ids(self):
+        """El gemelo de ``seller_ids`` — el **mismo** conjunto, no un filtro.
+
+        Su nombre sugiere "las tarifas específicas de variante", pero la
+        referencia lo declara sobre el inverso ``product_tmpl_id``, igual que
+        ``seller_ids``. Se conserva el nombre porque hay código que lo llama;
+        filtrarlo aquí "porque el nombre lo dice" cambiaría el comportamiento
+        de la fuente en silencio, que es lo contrario de portar.
+
+        Quien quiera de verdad las tarifas de una variante concreta tiene
+        ``ProductProduct.supplierinfo_ids``.
+        """
+        return self.seller_ids
 
     @property
     def barcode(self):

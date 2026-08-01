@@ -64,11 +64,15 @@ Qué NO se porta, con su medición
   más ese extra. La conversión de unidad que ``lst_price`` hace por contexto
   (``depends_context=('uom',)``) **no** se porta: este archivo no conoce el
   contexto de la petición, y la conversión ya la sabe hacer ``Uom``.
-- **``code`` / ``partner_ref``**: la referencia elige entre la referencia
-  interna y la del proveedor según el permiso de lectura sobre
-  ``product.supplierinfo``. Ese modelo no está portado
-  (``grep -rn "^class ProductSupplierinfo" src/`` → **0**), y el permiso aquí
-  es por capacidad (DEC-11), no por ACL de modelo.
+- **``code`` / ``partner_ref``** — **cerrados**, con un cambio de forma. La
+  referencia los declara ``compute`` con ``@api.depends_context('partner_id')``:
+  el mismo producto muestra un código distinto según **quién** pregunta, y ese
+  "quién" viaja en el contexto de la petición. Aquí no hay ese contexto, así
+  que la clave del contexto pasa a ser un **argumento**: ``code_for(partner)``
+  y ``partner_ref_for(partner)``. No es una degradación — es la misma
+  dependencia, escrita donde se puede ver. El gate de acceso de lectura sobre
+  ``product.supplierinfo`` no viaja con ellos: la autorización aquí es por
+  capacidad (DEC-11) y la decide la vista, no el modelo.
 - **``_check_barcode_uniqueness``** — **cerrado**. La referencia exige el
   código único y compartido con el de los empaquetados, porque la
   nomenclatura GS1 usa el mismo patrón para los dos. La unicidad de esta tabla
@@ -274,6 +278,54 @@ class ProductProduct(TimeStampedModel):
         porta; ver el docstring del módulo.
         """
         return self.list_price + self.price_extra
+
+    # === IDENTIFICACIÓN ANTE UN PROVEEDOR =================================
+    # ``_compute_product_code`` y ``_compute_partner_ref`` de la referencia,
+    # con el ``partner_id`` del contexto convertido en argumento.
+
+    def code_for(self, partner):
+        """``_compute_product_code`` — el código con que **este** proveedor
+        conoce la variante.
+
+        El bucle **no corta en la primera coincidencia**, y eso es el corazón
+        del método: recorre las tarifas del proveedor quedándose con la última
+        que encaja, y sólo rompe cuando encuentra la que es específica de esta
+        variante. Así una fila de plantilla ("camiseta = REF-100") queda
+        pisada por la de la variante ("camiseta roja M = REF-100-RM") cuando
+        existe, y se ignora la que es específica de **otra** variante.
+
+        Sin proveedor, o sin tarifa suya, devuelve la referencia interna.
+        """
+        code = self.default_code
+        partner_id = getattr(partner, 'pk', partner)
+        if not partner_id:
+            return code
+        for seller in self.product_tmpl.seller_ids.all():
+            if seller.partner_id != partner_id:
+                continue
+            if seller.product_id and seller.product_id != self.pk:
+                continue        # tarifa específica de otra variante
+            code = seller.product_code or self.default_code
+            if seller.product_id == self.pk:
+                break           # específica de ésta: manda y termina
+        return code
+
+    def partner_ref_for(self, partner):
+        """``_compute_partner_ref`` — cómo se nombra la variante ante él.
+
+        ``[CÓDIGO] Nombre``, donde las dos mitades salen de la tarifa del
+        proveedor si la tiene. El ``for/else`` de la fuente se conserva tal
+        cual: sin tarifa suya, el nombre es el de siempre — no una versión
+        vacía del formato.
+        """
+        partner_id = getattr(partner, 'pk', partner)
+        for seller in self.product_tmpl.seller_ids.all():
+            if seller.partner_id != partner_id:
+                continue
+            name = seller.product_name or self.default_code or self.name
+            code = self.code_for(partner)
+            return f'[{code}] {name}' if code else name
+        return self.display_name
 
     def clean(self):
         """La variante no puede colgar de una ficha de tipo combo.
