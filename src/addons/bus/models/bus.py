@@ -1,6 +1,20 @@
-"""Modelo ``BusMessage`` — la cola persistida del addon ``bus``.
+"""``bus.bus`` — la cola persistida del addon ``bus``.
 
-Adaptación de ``bus.bus`` (``bus/models/bus.py:89-94``). La referencia tiene una
+Adaptación de ``addons/bus/models/bus.py``
+(``odoo-tools@bf077302``, ``odoo19c:``, 275 líneas).
+
+Nombre del archivo y de la clase
+================================
+
+El archivo se llamaba ``bus_bus.py``; se renombró a ``bus.py`` para que sea
+espejo del de la referencia, como el resto del monolito modular.
+
+La **clase** sigue siendo ``BusMessage`` y allá es ``BusBus``. Es una
+divergencia declarada, no un descuido: renombrar un modelo de Django exige una
+``RenameModel`` en las migraciones —``bus/migrations/0001_initial.py:14`` la
+crea con ese nombre— y eso migra la tabla, así que va en su propio pase. Mismo
+criterio que ``ir_filters.action_id`` y las columnas ``Char`` que esperan su
+FK. La referencia tiene una
 tabla de dos campos —canal y mensaje— y dos formas de leerla: **empuje** por
 WebSocket y **consulta** por ``_poll`` (``:170``). DEC-AF-06 adopta la cola y la
 consulta, y deja fuera el empuje.
@@ -25,6 +39,7 @@ import json
 import fields
 import models
 from addons.base.models import SystemParameter, TimeStampedModel
+from api import autovacuum
 from django.utils import timezone
 
 #: Retención por defecto de la cola: 24 h, igual que
@@ -115,11 +130,20 @@ class BusMessage(TimeStampedModel):
     # === MANTENIMIENTO =====================================================
 
     @classmethod
-    def gc_messages(cls) -> int:
+    @autovacuum
+    def _gc_messages(cls) -> int:
         """Purga los mensajes vencidos (Odoo ``_gc_messages``, ``:98``).
 
-        La referencia lo cuelga de su ``autovacuum``; aquí es una llamada
-        explícita para que el planificador la invoque.
+        **Cierra H-API-140.** Se llamaba ``gc_messages``, público y sin
+        decorar; la referencia lo declara ``_gc_messages`` **con**
+        ``@api.autovacuum``, de modo que el colector lo encuentra solo. Con el
+        nombre público y sin decorador había que acordarse de llamarlo — que
+        es justo lo que el decorador existe para evitar.
+
+        El guion bajo no es cosmético: ``api.autovacuum`` **exige** que el
+        método empiece por ``_`` (``assert method.__name__.startswith('_')``
+        en ``orm/decorators.py``), así que el nombre viejo ni siquiera podía
+        decorarse.
 
         :return: número de filas borradas.
         """

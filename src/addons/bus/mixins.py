@@ -1,51 +1,29 @@
-"""``BusListenerMixin`` — el punto de extensión del addon ``bus``.
+"""Shim de compatibilidad — el hogar canónico es ``models/bus_listener_mixin.py``.
 
-Adaptación de ``bus.listener.mixin`` (``bus/models/bus_listener_mixin.py``).
-En la referencia son **30 líneas** y es todo el patrón: un modelo que quiera
-emitir hereda el mixin y declara cuál es su canal. Aquí es un mixin de Python
-plano, no un modelo Django, porque el original tampoco aporta campos — es un
-``AbstractModel`` con dos métodos.
+Este módulo **no** define nada: reexporta ``BusListenerMixin`` desde su archivo
+canónico. Existe por una razón concreta y verificable, no por comodidad.
+
+Por qué no se borra
+===================
+
+Dos migraciones de Django lo referencian **por ruta de módulo** en la lista de
+bases de un modelo:
+
+- ``addons/mail/migrations/0001_initial.py:1102`` →
+  ``bases=(addons.bus.mixins.BusListenerMixin, models.Model)``
+- ``addons/payment/migrations/0001_initial.py:165`` → idéntico.
+
+Una migración aplicada es un **registro histórico**: describe el estado del
+código en el momento en que se escribió, y Django la vuelve a importar cada vez
+que reconstruye el grafo. Borrar el módulo rompe esa importación en cualquier
+base que aún no haya llegado a la última migración; reescribir la migración
+para que apunte al nuevo módulo falsea lo que había entonces.
+
+El shim resuelve las dos cosas: el código nuevo importa del archivo canónico
+—``addons.bus.models.bus_listener_mixin``, espejo de
+``bus/models/bus_listener_mixin.py`` de la referencia— y las migraciones
+existentes siguen resolviendo.
 """
-from addons.bus.models import BusMessage
+from addons.bus.models.bus_listener_mixin import BusListenerMixin  # noqa: F401
 
-
-class BusListenerMixin:
-    """Permite a un modelo emitir mensajes en su propio canal del bus."""
-
-    def _bus_channel(self):
-        """Canal en el que emite este objeto.
-
-        Por defecto, él mismo. Un modelo puede delegar en otro devolviéndolo
-        aquí — ``_bus_send`` recorre la delegación hasta el punto fijo, igual
-        que la referencia.
-        """
-        return self
-
-    def bus_channel_key(self) -> str:
-        """Clave estable del canal.
-
-        La referencia serializa el propio registro (y lo prefija con el nombre
-        de la base). Un modelo que herede el mixin sobreescribe esto con algo
-        que **no sea adivinable** por un tercero: es la propiedad de seguridad
-        que la referencia señala al advertir contra el uso directo de
-        ``_sendone``.
-        """
-        raise NotImplementedError(
-            f'{type(self).__name__} hereda BusListenerMixin y debe declarar '
-            f'bus_channel_key()'
-        )
-
-    def _bus_send(self, notification_type: str, message, *, subchannel=None):
-        """Encola una notificación en el canal de este objeto.
-
-        Recorre ``_bus_channel()`` hasta el punto fijo antes de emitir, de modo
-        que un objeto puede delegar su canal en otro sin que quien emite tenga
-        que saberlo.
-        """
-        target = self
-        while (siguiente := target._bus_channel()) is not target:
-            target = siguiente
-        canal = target.bus_channel_key()
-        if subchannel is not None:
-            canal = f'{canal}/{subchannel}'
-        return BusMessage.sendone(canal, notification_type, message)
+__all__ = ['BusListenerMixin']
