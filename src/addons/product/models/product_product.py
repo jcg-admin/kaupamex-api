@@ -152,9 +152,9 @@ class ProductProduct(TimeStampedModel):
         verbose_name = 'Variante de producto'
         verbose_name_plural = 'Variantes de producto'
         constraints = [
-            # ``_check_barcode_uniqueness`` — la mitad portable: único por
-            # compañía. La otra mitad (compartir espacio de códigos con los
-            # empaquetados) espera a product_uom.py.
+            # ``_check_barcode_uniqueness`` — la mitad que cabe en la tabla.
+            # La otra mitad (que tampoco lo use un empaquetado) la aporta
+            # ``product_uom.clean()``, que ya está portado.
             models.UniqueConstraint(
                 fields=['barcode'],
                 condition=~models.Q(barcode=''),
