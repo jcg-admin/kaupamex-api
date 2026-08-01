@@ -25,10 +25,12 @@ ahora, con lo que aporta cada uno:
   cierra la unicidad cruzada que ``product_product`` dejó anotada.
 - ``product_supplierinfo.py`` → ``ProductSupplierinfo``, la tarifa de compra:
   precio, unidad y plazo por proveedor, con el alcance plantilla-o-variante.
+- ``product_catalog_mixin.py`` → ``ProductCatalogMixin``, el contrato del
+  selector de productos. **Clase Python, no modelo** — no declara campos.
 
-Pendientes — **12** de los 25:
+Pendientes — **11** de los 25:
 ``product_combo{,_item}.py``, ``product_document.py``,
-``product_catalog_mixin.py``, ``product_attribute_custom_value.py``,
+``product_attribute_custom_value.py``,
 ``product_template_attribute_exclusion.py`` y las siete extensiones de
 modelos de ``base`` (``res_company``, ``res_partner``, ``res_currency``,
 ``res_config_settings``, ``res_country_group``, ``ir_attachment``,
@@ -40,6 +42,7 @@ es el defecto de cita rancia que H-API-149 fijó como barrido obligatorio, y
 un índice es justo donde más engaña. Se corrige al registrar la tarifa.
 """
 from addons.product.models.product_attribute import ProductAttribute
+from addons.product.models.product_catalog_mixin import ProductCatalogMixin
 from addons.product.models.product_category import ProductCategory
 from addons.product.models.product_pricelist import ProductPricelist
 from addons.product.models.product_pricelist_item import (
@@ -62,6 +65,7 @@ from addons.product.models.product_template_attribute_value import (
 
 __all__ = [
     'ProductAttribute',
+    'ProductCatalogMixin',
     'ProductCategory',
     'ProductPricelist',
     'ProductPricelistItem',
