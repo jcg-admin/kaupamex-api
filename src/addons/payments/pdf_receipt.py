@@ -40,10 +40,14 @@ def _money(value) -> str:
     return f'{value:.2f}'
 
 
-def build_receipt_payload(order, value, items, address, payment, site) -> dict:
-    """
-    Assemble the JSON descriptor consumed by the C helper from already-loaded
-    ORM objects. Numbers are pre-formatted strings to avoid float drift.
+def build_receipt_payload(order, items, address, payment, site) -> dict:
+    """Arma el descriptor JSON que consume el helper en C.
+
+    Recibe objetos ORM ya cargados; los números llegan preformateados como
+    string para que no haya deriva de punto flotante.
+
+    El parámetro ``value`` desapareció con el espejo (SOL-098): los importes
+    ya no viven en una entidad de cabecera aparte, se derivan de las líneas.
     """
     issuer = {
         'name':      site.site_name if site else 'PracticaYoruba',
@@ -64,23 +68,26 @@ def build_receipt_payload(order, value, items, address, payment, site) -> dict:
             f'{address.state} {address.zip_code}, {address.country}'
         )
 
+    # El importe por renglón es el **bruto** de la línea (``price_total``,
+    # IVA incluido como en el precio de catálogo), no el neto: la suma de los
+    # renglones tiene que cuadrar con el total del recibo.
     item_rows = [
         {
-            'name':       it.product_name,
-            'sku':        it.sku,
-            'quantity':   str(it.quantity),
-            'unit_price': _money(it.unit_price),
-            'amount':     _money(it.subtotal),
+            'name':       it.name,
+            'sku':        it.product.sku if it.product_id else '',
+            'quantity':   str(it.product_uom_qty),
+            'unit_price': _money(it.price_unit),
+            'amount':     _money(it.price_total()),
         }
         for it in items
     ]
 
-    # E5-pre — los importes del recibo salen del **canónico**, no de las
-    # columnas de cabecera del espejo. Mismas etiquetas, otra fuente. El IVA
+    # Los importes del recibo se derivan de las líneas de la venta. Mismas
+    # etiquetas del contrato, otra fuente que las columnas retiradas. El IVA
     # ahora incluye el envío en su base (H-API-41): el total no cambia, se
     # reparte distinto entre base e impuesto — que es la forma que el CFDI
     # necesita (H-API-35).
-    _a = order_amounts(order.sale_order)
+    _a = order_amounts(order)
     totals = {
         'subtotal': _money(_a['subtotal']),
         'tax':      _money(_a['tax']),
@@ -97,7 +104,7 @@ def build_receipt_payload(order, value, items, address, payment, site) -> dict:
     return {
         'issuer':       issuer,
         'buyer':        {'name': buyer_name, 'address': buyer_addr},
-        'order_number': order.order_number,
+        'order_number': order.name,
         'date':         order.created_at.isoformat() if order.created_at else '',
         'currency':     site.currency if site else 'MXN',
         'items':        item_rows,

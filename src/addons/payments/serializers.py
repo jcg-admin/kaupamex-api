@@ -4,11 +4,14 @@ from rest_framework import serializers
 from addons.payment.models import Payment, Refund, Chargeback, PaymentGatewayEvent, SavedCard
 from addons.payment_mercado_pago.gateway import NON_CARD_METHOD_IDS
 from addons.sale.status_projection import order_status as project_order_status
+from addons.sale.models import SaleOrder
 
 
 
 class PaymentSerializer(serializers.ModelSerializer):
-    order_number = serializers.CharField(source='order.order_number', read_only=True)
+    # La clave del contrato sigue siendo ``order_number``; la columna que la
+    # alimenta es ``name`` de la venta canónica (SOL-098).
+    order_number = serializers.CharField(source='sale_order.name', read_only=True)
 
     class Meta:
         model  = Payment
@@ -30,9 +33,9 @@ class AdminPaymentSerializer(PaymentSerializer):
     forcing the UI to either show blanks or issue an extra request.
     """
 
-    # O2C V5c-2: el estado de la orden se deriva de la proyección canónica
-    # (sale.state + Payment + guía) vía SerializerMethodField, no de la
-    # columna espejo ``order.status`` (retirada en V5d). Null-safe.
+    # El estado de la orden se deriva de la proyección canónica (sale.state
+    # + Payment + guía) vía SerializerMethodField: nunca fue una columna que
+    # se pudiera leer, y desde SOL-098 la venta es la única fuente.
     order_status = serializers.SerializerMethodField()
     user_email   = serializers.SerializerMethodField()
 
@@ -41,10 +44,11 @@ class AdminPaymentSerializer(PaymentSerializer):
         read_only_fields = fields
 
     def get_order_status(self, obj) -> str:
-        return project_order_status(obj.order)
+        return project_order_status(obj.sale_order)
 
     def get_user_email(self, obj) -> str | None:
-        return obj.order.user.email if obj.order.user_id else obj.order.guest_email
+        return (obj.sale_order.partner.email if obj.sale_order.partner_id
+                else obj.sale_order.guest_email)
 
 
 class InitiatePaymentSerializer(serializers.Serializer):
@@ -159,6 +163,29 @@ class ExpressCheckoutSerializer(serializers.Serializer):
         default=1, min_value=1,
         help_text='Número de cuotas. 1 = contado.',
     )
+
+
+class ExpressCheckoutResponseSerializer(serializers.ModelSerializer):
+    """201 de POST /api/v2/checkout/express/ — la orden recién confirmada.
+
+    La respuesta declaraba ``OrderSerializer``, que serializaba el espejo y se
+    fue con él (SOL-098) sin dejar sustituto: el endpoint quedó levantando
+    ``NameError``. Éste publica exactamente lo que el contrato pide —la
+    referencia canónica y el estado— desde la venta.
+
+    ``status`` es **proyectado**, no una columna: se deriva de los tres ejes
+    (comercial · pago · fulfillment), así que se calcula, no se lee.
+    """
+    order_number = serializers.CharField(source='name', read_only=True)
+    status       = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = SaleOrder
+        fields = ['id', 'order_number', 'status', 'amount_total', 'date_order']
+        read_only_fields = fields
+
+    def get_status(self, obj) -> str:
+        return project_order_status(obj)
 
 
 class PaymentStatusSerializer(serializers.Serializer):

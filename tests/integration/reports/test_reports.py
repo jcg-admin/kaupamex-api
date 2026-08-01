@@ -18,7 +18,7 @@ from django.contrib.auth import get_user_model
 from addons.authz.models import Capability, Module, Role, RoleAssignment
 from addons.payment.models import Payment
 from addons.helpdesk.models import SupportTicket
-from addons.sale.models import SaleOrder, SaleOrderLine
+from addons.sale.models import SaleOrder
 from addons.sale.services import add_item_to_draft, confirm_draft_order
 
 import pytest
@@ -104,24 +104,26 @@ def buyer_b(db):
 def _make_order(user, product, qty=1, when=None, status='DELIVERED',
                 gateway='MERCADOPAGO', payment_status='APPROVED'):
     when = when or _now()
-    # E4: la venta canónica lleva su línea — es de donde el reporte agrega.
-    o = make_order(user=user, status=status, product=product, quantity=qty)
-    SaleOrder.objects.filter(pk=o.pk).update(created_at=when, updated_at=when)
-    SaleOrderLine.objects.create(
-        order=o, product=product,
-        name=product.name,
-        price_unit=product.price, product_uom_qty=qty,
-    )
     total = product.price * qty
-    OrderValue_GONE.objects.create(
-        order=o, subtotal=total, tax=Decimal('0'),
-        shipping_cost=Decimal('0'), discount=Decimal('0'), total=total,
+    # E4: la venta canónica lleva su línea — es de donde el reporte agrega
+    # (``SaleOrder.amount_total`` se recalcula desde ``order_line``, ver
+    # ``sale_order.py:_compute_amounts``). La fábrica YA crea esa línea al
+    # recibir ``product``/``quantity`` — no se duplica aquí: una segunda
+    # línea doblaría el importe recalculado y rompería los asserts exactos
+    # de revenue (p. ej. 1500.00) por culpa del fixture, no del código.
+    o = make_order(
+        user=user, status=status, product=product, quantity=qty, amount=total,
     )
-    p = Payment.objects.create(
-        order=o, sale_order=o.sale_order, gateway=gateway, status=payment_status,
-        amount=total,
+    SaleOrder.objects.filter(pk=o.pk).update(created_at=when, updated_at=when)
+    # La fábrica ya crea el Payment aprobado para PAID/SHIPPED/DELIVERED
+    # (ver order_factory.make_order) con gateway fijo MANUAL y el `amount`
+    # recién pasado. Se ajusta ese único pago al gateway/estado que el caso
+    # necesita en vez de crear uno nuevo — un segundo Payment inflaría
+    # ``payment_breakdown`` con una fila MANUAL espuria.
+    Payment.objects.filter(sale_order=o).update(
+        gateway=gateway, status=payment_status,
+        created_at=when, updated_at=when,
     )
-    Payment.objects.filter(pk=p.pk).update(created_at=when, updated_at=when)
     return o
 
 
@@ -164,8 +166,8 @@ class TestSalesReport:
             address_data={'recipient_name': 'C', 'street': 's', 'city': 'c',
                           'state': 'CDMX', 'zip_code': '06600'},
             guest_email='cancel@t.mx')
-        # confirm_draft_order ya creó el OrderValue_GONE de la orden; solo la
-        # cancelamos por el eje canónico.
+        # confirm_draft_order ya confirmó la venta canónica (sin espejo de
+        # importes que crear); sólo la cancelamos por el eje sale.state.
         draft.refresh_from_db()
         draft.action_cancel()
         # Revenue incluye SOLO la orden no cancelada (500); si la cancelada

@@ -8,6 +8,7 @@ from addons.sale.models import SaleOrderLine
 import pytest
 from decimal import Decimal
 
+from addons.catalogue.models import Category, Product
 from addons.payment.models import Payment, Refund
 from tests.factories.order_factory import make_order
 
@@ -17,22 +18,32 @@ REFUNDS_URL = lambda pid: f'/api/v2/admin/payments/{pid}/refunds/'
 
 
 def _make_payment(user, amount='500.00', status='APPROVED', gateway_payment_id='MP-001'):
-    order = make_order(user=user, status='PROCESSING')
+    # PROCESSING es un valor muerto de la proyección; PENDING deja la orden
+    # confirmada sin que el factory cree su propio Payment, para no chocar
+    # con el Payment manual de abajo. El subtotal ya no vive en el espejo
+    # ``OrderValue`` (retirado, SOL-098): lo reproduce la línea de producto.
+    # ``Payment.sale_order`` es la única FK.
+    cat, _ = Category.objects.get_or_create(
+        slug='cat-rfl', defaults={'name': 'Cat RFL', 'is_active': True},
+    )
+    prod = Product.objects.create(
+        name='Eleke', slug=f'eleke-{gateway_payment_id.lower()}',
+        sku=gateway_payment_id,
+        description='', price=Decimal(amount), stock=10,
+        is_active=True, is_published=True,
+    )
+    prod.categories.add(cat)
+    order = make_order(user=user, status='PENDING')
     SaleOrderLine.objects.create(
-        order=order, name='Eleke',
+        order=order, product=prod, name='Eleke',
         price_unit=Decimal(amount), product_uom_qty=1,
     )
-    OrderValue_GONE.objects.create(
-        order=order,
-        subtotal=Decimal(amount), tax=Decimal('0'), shipping_cost=Decimal('0'),
-        discount=Decimal('0'), total=Decimal(amount),
-    )
     DeliveryAddress.objects.create(
-        order=order, recipient_name='Test',
+        sale_order=order, recipient_name='Test',
         street='Calle 1', city='CDMX', state='CMX', zip_code='06600',
     )
     return Payment.objects.create(
-        order=order, sale_order=order.sale_order, gateway='MERCADOPAGO',
+        sale_order=order, gateway='MERCADOPAGO',
         preference_id='PREF-RFL', gateway_payment_id=gateway_payment_id,
         status=status, amount=Decimal(amount),
     )

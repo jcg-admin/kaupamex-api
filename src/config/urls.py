@@ -61,6 +61,15 @@ urlpatterns = _admin_urls + [
                                            namespace='admin_notifications_v2')),
 
     # ─── API v2 (F3: orders, returns, reviews, questions, support) ──────────────
+    # El recorrido del comprador sobre su venta lo sirve ``sale`` — es donde
+    # la referencia lo pone (``sale/controllers/portal.py`` → ``/my/orders``).
+    # El prefijo público sigue siendo ``/orders/``: el comprador habla de sus
+    # pedidos, no de las ventas de la tienda.
+    path('api/v2/orders/',                include(('addons.sale.urls', 'sale'),                   namespace='sale_v2')),
+    # El backoffice es de ``sale_management`` — la referencia separa gestionar
+    # de comprar, y el espejo las mezclaba en un solo addon.
+    path('api/v2/admin/',                 include(('addons.sale_management.admin_urls', 'admin_sale'),
+                                                  namespace='admin_sale_v2')),
     path('api/v2/return-requests/',       include(('addons.returns.urls', 'returns'),             namespace='returns_v2')),
     path('api/v2/admin/return-requests/', include(('addons.returns.admin_urls', 'admin_returns'), namespace='admin_returns_v2')),
     path('api/v2/products/',              include(('addons.reviews.urls', 'reviews'),             namespace='reviews_v2')),

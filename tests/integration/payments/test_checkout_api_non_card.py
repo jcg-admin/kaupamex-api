@@ -45,17 +45,14 @@ def prod_nc(db, cat_nc):
 @pytest.fixture
 def orden_nc(db, user, prod_nc):
     order = make_order(user=user, status='PENDING')
+    # Subtotal 500.00 reproducido por la línea de producto (antes vivía en
+    # el espejo ``OrderValue``, retirado — SOL-098).
     SaleOrderLine.objects.create(
-        order=order, name=prod_nc.name,
+        order=order, product=prod_nc, name=prod_nc.name,
         price_unit=prod_nc.price, product_uom_qty=1,
     )
-    OrderValue_GONE.objects.create(
-        order=order, subtotal=Decimal('500.00'),
-        tax=Decimal('0.00'), shipping_cost=Decimal('0.00'),
-        discount=Decimal('0.00'), total=Decimal('500.00'),
-    )
     DeliveryAddress.objects.create(
-        order=order, recipient_name='Test User',
+        sale_order=order, recipient_name='Test User',
         street='Av. Insurgentes 1', city='CDMX',
         state='Ciudad de Mexico', zip_code='06600',
     )
@@ -159,7 +156,7 @@ def test_oxxo_payment_no_token_required(auth_client, orden_nc, mp_gw_nc):
 
     with patch('addons.payment_mercado_pago.gateway._get_sdk', return_value=mp_mock):
         resp = auth_client.post(INITIATE_V2_URL, {
-            'order_number':     orden_nc.order_number,
+            'order_number':     orden_nc.name,
             'payment_method_id': 'oxxo',
         }, content_type='application/json')
 
@@ -168,7 +165,7 @@ def test_oxxo_payment_no_token_required(auth_client, orden_nc, mp_gw_nc):
     assert data['status'] == 'pending'
     assert 'mercadopago.com' in data['external_resource_url']
     assert data['date_of_expiration'] != ''
-    assert Payment.objects.filter(order=orden_nc).exists()
+    assert Payment.objects.filter(sale_order=orden_nc).exists()
 
 
 @pytest.mark.django_db
@@ -183,7 +180,7 @@ def test_oxxo_token_in_request_is_ignored_gracefully(auth_client, orden_nc, mp_g
 
     with patch('addons.payment_mercado_pago.gateway._get_sdk', return_value=mp_mock):
         resp = auth_client.post(INITIATE_V2_URL, {
-            'order_number':     orden_nc.order_number,
+            'order_number':     orden_nc.name,
             'payment_method_id': 'oxxo',
             'token':            'some-irrelevant-token',
         }, content_type='application/json')
@@ -218,7 +215,7 @@ def test_spei_returns_clabe_in_transaction_data(auth_client, orden_nc, mp_gw_nc)
 
     with patch('addons.payment_mercado_pago.gateway._get_sdk', return_value=mp_mock):
         resp = auth_client.post(INITIATE_V2_URL, {
-            'order_number':     orden_nc.order_number,
+            'order_number':     orden_nc.name,
             'payment_method_id': 'clabe',
         }, content_type='application/json')
 
@@ -236,7 +233,7 @@ def test_spei_returns_clabe_in_transaction_data(auth_client, orden_nc, mp_gw_nc)
 @pytest.mark.django_db
 def test_card_method_without_token_returns_400(auth_client, orden_nc, mp_gw_nc):
     resp = auth_client.post(INITIATE_V2_URL, {
-        'order_number':     orden_nc.order_number,
+        'order_number':     orden_nc.name,
         'payment_method_id': 'visa',
     }, content_type='application/json')
 
@@ -255,7 +252,7 @@ def test_paycash_payment_no_token(auth_client, orden_nc, mp_gw_nc):
 
     with patch('addons.payment_mercado_pago.gateway._get_sdk', return_value=mp_mock):
         resp = auth_client.post(INITIATE_V2_URL, {
-            'order_number':     orden_nc.order_number,
+            'order_number':     orden_nc.name,
             'payment_method_id': 'paycash',
         }, content_type='application/json')
 
@@ -274,7 +271,7 @@ def test_bancomer_atm_no_token(auth_client, orden_nc, mp_gw_nc):
 
     with patch('addons.payment_mercado_pago.gateway._get_sdk', return_value=mp_mock):
         resp = auth_client.post(INITIATE_V2_URL, {
-            'order_number':     orden_nc.order_number,
+            'order_number':     orden_nc.name,
             'payment_method_id': 'bancomer',
         }, content_type='application/json')
 
@@ -293,7 +290,7 @@ def test_account_money_no_token(auth_client, orden_nc, mp_gw_nc):
 
     with patch('addons.payment_mercado_pago.gateway._get_sdk', return_value=mp_mock):
         resp = auth_client.post(INITIATE_V2_URL, {
-            'order_number':     orden_nc.order_number,
+            'order_number':     orden_nc.name,
             'payment_method_id': 'account_money',
         }, content_type='application/json')
 

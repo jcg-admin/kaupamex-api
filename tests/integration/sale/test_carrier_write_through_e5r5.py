@@ -1,68 +1,35 @@
-"""Producción puebla ``SaleOrder.carrier``, no sólo el espejo.
+"""Tests — E5/R5: retirado, ``update_shipping_method`` ya no existe.
 
-E5/R5 del retiro de ``orders`` (:ref:`analisis-retiro-addon-orders-e5`). El
-transportista tiene dos hogares: ``orders.Order.shipping_method`` (espejo) y
-``sale.SaleOrder.carrier`` (canónica, ``sale.order.carrier_id`` en la
-referencia — ver ``sale/models/sale_order.py:139-142``). Los dos escritores de
-producción sólo tocaban el espejo, así que ``carrier`` quedaba **siempre NULL**
-y cualquier consulta canónica por método de envío devolvía vacío.
+Este módulo verificaba que dos escritores de producción poblaran
+``SaleOrder.carrier`` — la canónica — a la par del espejo
+``orders.Order.shipping_method`` (:ref:`analisis-retiro-addon-orders-e5`):
+el flujo admin vía ``orders.services.update_shipping_method`` y el checkout
+express. Ambos supuestos quedaron sin sujeto:
 
-Eso convirtió al guard de ``settings_app`` (que impide desactivar un método con
-órdenes vivas) en un no-op silencioso al migrarlo a la canónica: contaba 0
-donde el espejo contaba N, y dejaba desactivar un método en uso.
+1. ``update_shipping_method`` está **DEPRECADO desde 2026-07-07**
+   (comentario vigente en ``src/addons/delivery/models/__init__.py:288``):
+   el comprador ya no elige transportista — el envío se deriva por zona —,
+   así que ese escritor no existe en ningún addon
+   (``grep -rn "def update_shipping_method" src/`` → vacío).
+2. El retiro del addon espejo ``orders`` (SOL-098, ``api@77bd1f0``) quitó
+   el segundo hogar (``orders.Order.shipping_method``) al que el
+   write-through apuntaba: ``SaleOrder.carrier`` es hoy el **único** lugar
+   donde vive el transportista de una venta — no hay nada con lo que
+   sincronizarlo.
 
-Estos casos fijan el write-through en los **dos** escritores reales, para que
-la canónica sea consultable sin depender del espejo que E5 retira.
+El guard que este archivo protegía —no permitir desactivar un método de
+envío con órdenes activas— ya consulta el campo canónico directamente:
+``active_sale_orders().filter(carrier=instance)``
+(``src/addons/settings_app/views.py:275``). Esa consulta ya no depende de
+ningún write-through: ``carrier`` se puebla al crear/confirmar la venta
+(``SaleOrder.objects.create(carrier=...)`` / ``tests/factories/
+order_factory.py::make_order``), no por un paso posterior de
+sincronización. Su cobertura vive en la suite de ``settings_app``, no aquí.
+
+No queda ningún caso vigente en este módulo: los dos tests originales
+(``test_update_shipping_method_escribe_ambos_lados`` y
+``test_la_canonica_es_consultable_por_metodo_de_envio``) ejercían
+exclusivamente ``update_shipping_method``, que ya no existe. Se documenta
+la razón del retiro en vez de dejar un test que pase por vacío o que
+referencie una función inexistente.
 """
-from decimal import Decimal
-
-import pytest
-from addons.sale.models import SaleOrder
-
-from addons.delivery.models import ShippingMethod
-from addons.sale.status_projection import STATUS_PENDING, active_sale_orders
-from tests.factories.order_factory import make_order
-
-pytestmark = pytest.mark.django_db
-
-
-@pytest.fixture
-def metodo():
-    return ShippingMethod.objects.create(
-        name='E5R5 write-through', cost=Decimal('75.00'),
-        estimated_days=4, is_active=True)
-
-
-@pytest.fixture
-def orden(user):
-    """Orden PENDING con su ``OrderValue_GONE`` — el servicio recalcula el total."""
-    order = make_order(status=STATUS_PENDING, user=user)
-    OrderValue_GONE.objects.create(
-        order=order, subtotal=Decimal('500.00'), tax=Decimal('0.00'),
-        shipping_cost=Decimal('0.00'), total=Decimal('500.00'),
-    )
-    return order
-
-
-def test_update_shipping_method_escribe_ambos_lados(metodo, orden):
-    """``update_shipping_method`` es el escritor del flujo admin."""
-    order = orden
-    assert order.sale_order.carrier_id is None      # premisa del caso
-
-    update_shipping_method(order, metodo.pk)
-
-    order.refresh_from_db()
-    order.sale_order.refresh_from_db()
-    assert order.shipping_method_id == metodo.pk    # espejo
-    assert order.sale_order.carrier_id == metodo.pk  # canónica
-
-
-def test_la_canonica_es_consultable_por_metodo_de_envio(metodo, orden):
-    """El efecto que importa: filtrar por ``carrier`` encuentra la venta.
-
-    Sin write-through este filtro devuelve vacío aunque el espejo tenga el
-    método — el fallo silencioso que desactivaba el guard de ``settings_app``.
-    """
-    update_shipping_method(orden, metodo.pk)
-
-    assert active_sale_orders().filter(carrier=metodo).count() == 1

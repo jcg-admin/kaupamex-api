@@ -117,10 +117,10 @@ def complete_referral_for_order(order) -> Referral | None:
     completada" (PAID o DELIVERED). Idempotente: si la relacion ya esta
     COMPLETED no emite un segundo voucher.
     """
-    if order.user_id is None or order_status(order) not in _REWARD_ORDER_STATES:
+    if order.partner_id is None or order_status(order) not in _REWARD_ORDER_STATES:
         return None
 
-    referral = Referral.objects.filter(referee_id=order.user_id).first()
+    referral = Referral.objects.filter(referee_id=order.partner_id).first()
     if referral is None or referral.status == Referral.STATUS_COMPLETED:
         return referral
 

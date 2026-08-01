@@ -127,7 +127,7 @@ class ReturnListCreateView(APIView):
         # order_number; usar el PK requeria que el comprador conociera el
         # ID interno de BD, lo cual nunca fue expuesto en la interfaz.
         try:
-            order = SaleOrder.objects.get(order_number=order_number, user=request.user)
+            order = SaleOrder.objects.get(name=order_number, partner=request.user)
         except SaleOrder.DoesNotExist:
             raise DRFValidationError({
                 'order_number': 'Orden no encontrada.',

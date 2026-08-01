@@ -9,6 +9,7 @@ import pytest
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
 
+from addons.catalogue.models import Category, Product
 from addons.payment.models import Payment
 from tests.factories.order_factory import make_order
 
@@ -18,21 +19,31 @@ CANCEL_URL = lambda pid: f'/api/v2/admin/payments/{pid}/cancel/'
 
 
 def _make_payment(user, status=Payment.STATUS_PENDING, gateway_payment_id='MP-CAN-001'):
+    # El subtotal ya no vive en el espejo ``OrderValue`` (retirado,
+    # SOL-098): lo reproduce la línea de producto. ``gateway_payment_id``
+    # (único por llamada) evita colisión de Product entre los distintos
+    # tests de este módulo. ``Payment.sale_order`` es la única FK.
+    cat, _ = Category.objects.get_or_create(
+        slug='cat-can', defaults={'name': 'Cat CAN', 'is_active': True},
+    )
+    prod = Product.objects.create(
+        name='Prod CAN', slug=f'prod-{gateway_payment_id.lower()}',
+        sku=gateway_payment_id,
+        description='', price=Decimal('200.00'), stock=10,
+        is_active=True, is_published=True,
+    )
+    prod.categories.add(cat)
     order = make_order(user=user, status='PENDING')
     SaleOrderLine.objects.create(
-        order=order, name='Prod CAN',
+        order=order, product=prod, name='Prod CAN',
         price_unit=Decimal('200.00'), product_uom_qty=1,
     )
-    OrderValue_GONE.objects.create(
-        order=order, subtotal=Decimal('200.00'), tax=Decimal('0'),
-        shipping_cost=Decimal('0'), discount=Decimal('0'), total=Decimal('200.00'),
-    )
     DeliveryAddress.objects.create(
-        order=order, recipient_name='Test', street='Calle CAN',
+        sale_order=order, recipient_name='Test', street='Calle CAN',
         city='CDMX', state='CMX', zip_code='06600',
     )
     return Payment.objects.create(
-        order=order, sale_order=order.sale_order, gateway='MERCADOPAGO',
+        sale_order=order, gateway='MERCADOPAGO',
         preference_id=f'PREF-{gateway_payment_id}',
         gateway_payment_id=gateway_payment_id,
         status=status, amount=Decimal('200.00'),

@@ -96,7 +96,7 @@ class Payment(BusListenerMixin, TimeStampedModel):
         verbose_name = 'Pago'
 
     def __str__(self):
-        return f'{self.order.order_number} — {self.gateway} — {self.status}'
+        return f'{self.sale_order.name} — {self.gateway} — {self.status}'
 
     @property
     def is_approved(self) -> bool:

@@ -41,6 +41,6 @@ class Refund(TimeStampedModel):
 
     def __str__(self):
         # H-CICLO44-02: usar payment_id/order_id en lugar de traversar
-        # self.payment.order.order_number para evitar 2 queries FK en
+        # self.payment.sale_order.name para evitar 2 queries FK en
         # listados del admin (N+1).
         return f'Reembolso {self.amount} — payment_id={self.payment_id}'

@@ -192,17 +192,17 @@ class VariantStockAdjustView(_AdminOnly, APIView):
                     SaleOrderLine.objects
                     .filter(
                         variant_id=variant.pk,
-                        order__sale_order__state=SaleOrder.STATE_SALE,
+                        order__state=SaleOrder.STATE_SALE,
                     )
                     .exclude(
-                        order__sale_order__payments__status=Payment.STATUS_APPROVED,
+                        order__payments__status=Payment.STATUS_APPROVED,
                     )
-                    .select_related('order__sale_order')
+                    .select_related('order')
                 )
                 at_risk = [
                     {
                         'order_id':     item.order_id,
-                        'order_number': item.order.order_number,
+                        'order_number': item.order.name,
                         'status':       order_status(item.order),
                         'quantity':     item.quantity,
                     }
@@ -327,17 +327,17 @@ class ZeroStockCheckView(_AdminOnly, APIView):
             SaleOrderLine.objects
             .filter(
                 variant_id=variant.pk,
-                order__sale_order__state=SaleOrder.STATE_SALE,
+                order__state=SaleOrder.STATE_SALE,
             )
             .exclude(
-                order__sale_order__payments__status=Payment.STATUS_APPROVED,
+                order__payments__status=Payment.STATUS_APPROVED,
             )
-            .select_related('order__sale_order')
+            .select_related('order')
         )
         active_orders = [
             {
                 'order_id':     item.order_id,
-                'order_number': item.order.order_number,
+                'order_number': item.order.name,
                 'status':       order_status(item.order),
                 'quantity':     item.quantity,
             }

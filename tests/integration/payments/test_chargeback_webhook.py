@@ -11,6 +11,7 @@ import pytest
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
 
+from addons.catalogue.models import Category, Product
 from addons.payment.models import Payment, Chargeback
 from tests.factories.order_factory import make_order
 
@@ -20,21 +21,31 @@ WEBHOOK_URL = '/api/v1/payments/webhooks/mercadopago/'
 
 
 def _make_payment(user, amount='500.00'):
-    order = make_order(user=user, status='PROCESSING')
+    # PROCESSING es un valor muerto de la proyección (la venta confirmada
+    # sin pago aprobado proyecta PENDING); se usa PENDING para tener la
+    # orden confirmada antes del Payment manual de abajo. El subtotal ya no
+    # vive en el espejo ``OrderValue`` (retirado, SOL-098): la línea de
+    # producto lo reproduce. ``Payment.sale_order`` es la única FK.
+    cat, _ = Category.objects.get_or_create(
+        slug='cat-cb', defaults={'name': 'Cat CB', 'is_active': True},
+    )
+    prod = Product.objects.create(
+        name='Prod CB', slug='prod-cb', sku='CB-001',
+        description='', price=Decimal(amount), stock=10,
+        is_active=True, is_published=True,
+    )
+    prod.categories.add(cat)
+    order = make_order(user=user, status='PENDING')
     SaleOrderLine.objects.create(
-        order=order, name='Prod CB',
+        order=order, product=prod, name='Prod CB',
         price_unit=Decimal(amount), product_uom_qty=1,
     )
-    OrderValue_GONE.objects.create(
-        order=order, subtotal=Decimal(amount), tax=Decimal('0'),
-        shipping_cost=Decimal('0'), discount=Decimal('0'), total=Decimal(amount),
-    )
     DeliveryAddress.objects.create(
-        order=order, recipient_name='Test', street='Calle CB',
+        sale_order=order, recipient_name='Test', street='Calle CB',
         city='CDMX', state='CMX', zip_code='06600',
     )
     return Payment.objects.create(
-        order=order, sale_order=order.sale_order, gateway='MERCADOPAGO',
+        sale_order=order, gateway='MERCADOPAGO',
         preference_id='PREF-CB', gateway_payment_id='MP-CB-001',
         status=Payment.STATUS_APPROVED, amount=Decimal(amount),
     )

@@ -72,7 +72,7 @@ def initiate_payment(
     _status = order_status(order)
     if _status != STATUS_PENDING:
         raise ValueError(
-            f'La orden {order.order_number} no está en estado PENDING '
+            f'La orden {order.name} no está en estado PENDING '
             f'(estado actual: {_status}).'
         )
 
@@ -80,7 +80,7 @@ def initiate_payment(
         gateway = get_gateway(gateway_type)
 
     base_url  = f'{request.scheme}://{request.get_host()}'
-    back_urls = _build_back_urls(order.order_number, base_url)
+    back_urls = _build_back_urls(order.name, base_url)
 
     result = gateway.create_preference(
         order=order,
@@ -90,12 +90,11 @@ def initiate_payment(
 
     with transaction.atomic():
         payment = Payment.objects.create(
-            order=order,
-            sale_order=order.sale_order,
+            sale_order=order,
             gateway=gateway_type,
             preference_id=result.preference_id,
             status=Payment.STATUS_PENDING,
-            amount=order.value.total,
+            amount=order.amount_total,
             installments=installments,
         )
         PaymentGatewayEvent.objects.create(
@@ -109,7 +108,7 @@ def initiate_payment(
 
     logger.info(
         'Payment iniciado: orden=%s preference_id=%s gateway=%s cuotas=%d',
-        order.order_number, result.preference_id, Payment.GATEWAY_MERCADOPAGO, installments,
+        order.name, result.preference_id, Payment.GATEWAY_MERCADOPAGO, installments,
     )
     return payment, result.checkout_url
 
@@ -170,7 +169,7 @@ def get_installment_plans(order, gateway: BaseGateway = None) -> list:
     """
     if gateway is None:
         gateway = get_default_gateway()
-    amount = order.value.total
+    amount = order.amount_total
     return gateway.get_installment_plans(amount)
 
 
@@ -295,7 +294,7 @@ def get_payment_status(order_number: str, user) -> dict:
     """
 
     try:
-        order = SaleOrder.objects.get(order_number=order_number, user=user)
+        order = SaleOrder.objects.get(name=order_number, partner=user)
     except SaleOrder.DoesNotExist:
         return None  # Caller convierte en 404
 
@@ -321,7 +320,7 @@ def get_payment_history(order_number: str, user) -> list | None:
     """
 
     try:
-        order = SaleOrder.objects.get(order_number=order_number, user=user)
+        order = SaleOrder.objects.get(name=order_number, partner=user)
     except SaleOrder.DoesNotExist:
         return None
 
@@ -348,7 +347,7 @@ def get_retry_eligibility(order_number: str, user) -> dict | None:
     """
 
     try:
-        order = SaleOrder.objects.get(order_number=order_number, user=user)
+        order = SaleOrder.objects.get(name=order_number, partner=user)
     except SaleOrder.DoesNotExist:
         return None
 
@@ -362,7 +361,7 @@ def get_retry_eligibility(order_number: str, user) -> dict | None:
 
     failed_payment = (
         PaymentModel.objects.filter(
-            order=order,
+            sale_order=order,
             status__in=[PaymentModel.STATUS_FAILED, PaymentModel.STATUS_CANCELLED],
         )
         .order_by('-created_at')
@@ -467,7 +466,7 @@ def initiate_checkout_api_payment(
     :param installments: número de cuotas (1 = contado)
     :param payment_method_id: método: 'visa', 'master', 'oxxo', 'clabe', etc.
     :param issuer_id: ID del banco emisor (mejora tasa de aprobación)
-    :param payer_email: email del pagador (fallback: order.user/guest_email)
+    :param payer_email: email del pagador (fallback: order.partner/guest_email)
     :param payer_identification_type: tipo de doc ('CURP', 'RFC', …)
     :param payer_identification_number: número de documento
     :param gateway: BaseGateway opcional (None usa el gateway por defecto, MP)
@@ -478,14 +477,14 @@ def initiate_checkout_api_payment(
     _status = order_status(order)
     if _status != STATUS_PENDING:
         raise ValueError(
-            f'La orden {order.order_number} no está en PENDING '
+            f'La orden {order.name} no está en PENDING '
             f'(estado actual: {_status}).'
         )
 
     if gateway is None:
         gateway = get_default_gateway()
 
-    customer_id = get_or_create_mp_customer(order.user)
+    customer_id = get_or_create_mp_customer(order.partner)
 
     result = gateway.create_payment(
         order=order,
@@ -513,8 +512,7 @@ def initiate_checkout_api_payment(
 
     with transaction.atomic():
         payment = Payment.objects.create(
-            order=order,
-            sale_order=order.sale_order,
+            sale_order=order,
             gateway=Payment.GATEWAY_MERCADOPAGO,
             gateway_payment_id=result.gateway_payment_id,
             mp_order_id=result.mp_order_id,
@@ -540,7 +538,7 @@ def initiate_checkout_api_payment(
 
     logger.info(
         'Checkout API pago: orden=%s payment_id=%s status=%s detail=%s',
-        order.order_number, result.gateway_payment_id,
+        order.name, result.gateway_payment_id,
         result.status, result.status_detail,
     )
     return payment, result

@@ -10,7 +10,8 @@ Cubre los criterios de aceptación AC-01..AC-04 del contrato:
 Adicional:
 - admin (is_staff) puede descargar el recibo de una orden ajena (Alternativa A).
 - la auditoría RECEIPT_PDF_GENERATED queda registrada (POST-02 / AC-06).
-- totales del PDF derivan de OrderValue_GONE (AC-05, vía payload del helper).
+- totales del PDF derivan de ``order_amounts`` sobre el ``SaleOrder`` canónico
+  (AC-05, vía payload del helper) — ya no hay una entidad de importes aparte.
 
 El helper C (tools/pdf/pdf_receipt) debe estar compilado en el entorno
 (ADR-017): el provisioner server lo construye con `make`. Estos tests lo
@@ -23,6 +24,7 @@ from decimal import Decimal
 from django.contrib.auth import get_user_model
 
 from addons.catalogue.models import Category, Product
+from addons.delivery.models import DeliveryAddress
 from addons.delivery.models.sale_order import set_delivery_line
 from addons.sale.models import SaleOrderLine
 from addons.payment.models import Payment
@@ -63,11 +65,14 @@ def other_user(db):
 
 
 def _make_paid_order(user, *, status=STATUS_PAID, with_payment=True):
-    """Orden con snapshots financieros + (opcional) Payment aprobado."""
-    # E5-pre: el recibo lee del canónico, así que la venta debe traer sus
-    # líneas. Fabricar sólo el espejo producía un recibo en ceros — misma
-    # clase de estado imposible que H-API-33 (una venta confirmada sin
-    # líneas es lo que ``action_confirm`` rechaza).
+    """Orden con líneas de producto + envío + (opcional) Payment aprobado.
+
+    E5: la venta ES la orden — no hay una entidad de importes aparte
+    (``OrderValue``) que fabricar; los totales se recalculan desde las
+    líneas (``SaleOrderLine.save()`` -> ``order._compute_amounts()``). Una
+    venta confirmada sin líneas es un estado imposible (``action_confirm``
+    lo rechaza — H-API-33), así que la venta debe traer sus líneas reales.
+    """
     cat = Category.objects.create(
         name='Cat R', slug=f'cat-r-{user.pk}', is_active=True)
     p1 = Product.objects.create(
@@ -82,31 +87,20 @@ def _make_paid_order(user, *, status=STATUS_PAID, with_payment=True):
     order = make_order(user=user, status=status,
                        product=p1, quantity=2, unit_price=Decimal('450.00'))
     SaleOrderLine.objects.create(
-        order=order.sale_order, product=p2, name='Otá de Yemayá',
+        order=order, product=p2, name='Otá de Yemayá',
         product_uom_qty=1, price_unit=Decimal('150.00'))
-    set_delivery_line(order.sale_order, Decimal('99.00'))
+    # Envío como línea marcada (is_delivery=True) — no una columna de
+    # cabecera; totaliza junto con las líneas de producto (H-API-42).
+    set_delivery_line(order, Decimal('99.00'))
 
-    SaleOrderLine.objects.create(
-        order=order, name='Collar Eleguá',
-        price_unit=Decimal('450.00'), product_uom_qty=2,
-    )
-    SaleOrderLine.objects.create(
-        order=order, name='Otá de Yemayá',
-        price_unit=Decimal('150.00'), product_uom_qty=1,
-    )
-    OrderValue_GONE.objects.create(
-        order=order, subtotal=Decimal('1050.00'),
-        tax=Decimal('144.83'), shipping_cost=Decimal('99.00'),
-        discount=Decimal('0.00'), total=Decimal('1149.00'),
-    )
     DeliveryAddress.objects.create(
-        order=order, recipient_name='Juan Pérez',
+        sale_order=order, recipient_name='Juan Pérez',
         street='Av. Reforma 100', city='CDMX',
         state='Ciudad de México', zip_code='06600', country='MX',
     )
     if with_payment:
         Payment.objects.create(
-            order=order, sale_order=order.sale_order, gateway=Payment.GATEWAY_MERCADOPAGO,
+            sale_order=order, gateway=Payment.GATEWAY_MERCADOPAGO,
             preference_id=f'PREF-PAY10-{order.pk}',
             gateway_payment_id=f'GW-PAY10-{order.pk}',
             status=Payment.STATUS_APPROVED, amount=Decimal('1149.00'),
@@ -122,12 +116,12 @@ def test_ac01_owner_paid_order_returns_pdf(api_client, buyer):
     api_client.force_authenticate(user=buyer)
     order = _make_paid_order(buyer)
 
-    resp = api_client.get(RECEIPT_URL(order.order_number))
+    resp = api_client.get(RECEIPT_URL(order.name))
 
     assert resp.status_code == 200, resp.content[:300]
     assert resp['Content-Type'] == 'application/pdf'
     assert resp['Content-Disposition'] == (
-        f'attachment; filename="recibo-{order.order_number}.pdf"'
+        f'attachment; filename="recibo-{order.name}.pdf"'
     )
     body = b''.join(resp.streaming_content) if resp.streaming else resp.content
     assert body.startswith(b'%PDF'), body[:40]
@@ -147,7 +141,7 @@ def test_ac01_audit_event_recorded(
     order = _make_paid_order(buyer)
 
     with django_capture_on_commit_callbacks(execute=True):
-        resp = api_client.get(RECEIPT_URL(order.order_number))
+        resp = api_client.get(RECEIPT_URL(order.name))
     assert resp.status_code == 200
 
     ev = BusinessEvent.objects.filter(
@@ -157,7 +151,7 @@ def test_ac01_audit_event_recorded(
     ).first()
     assert ev is not None
     assert ev.actor_id == buyer.pk
-    assert ev.extra_json.get('order_number') == order.order_number
+    assert ev.extra_json.get('order_number') == order.name
 
 
 # ---------------------------------------------------------------------------
@@ -170,7 +164,7 @@ def test_ac02_unpaid_order_returns_409(api_client, buyer):
         buyer, status=STATUS_PENDING, with_payment=False,
     )
 
-    resp = api_client.get(RECEIPT_URL(order.order_number))
+    resp = api_client.get(RECEIPT_URL(order.name))
 
     assert resp.status_code == 409
     assert resp.json()['codigo_error'] == 'ORDER_NOT_PAID'
@@ -187,7 +181,7 @@ def test_ac02_unpaid_order_returns_409(api_client, buyer):
 
 def test_ac03_anonymous_returns_401(api_client, buyer):
     order = _make_paid_order(buyer)
-    resp = api_client.get(RECEIPT_URL(order.order_number))
+    resp = api_client.get(RECEIPT_URL(order.name))
     assert resp.status_code == 401
 
 
@@ -195,7 +189,7 @@ def test_ac03_non_owner_returns_403(api_client, buyer, other_user):
     order = _make_paid_order(buyer)
     api_client.force_authenticate(user=other_user)
 
-    resp = api_client.get(RECEIPT_URL(order.order_number))
+    resp = api_client.get(RECEIPT_URL(order.name))
 
     assert resp.status_code == 403
     assert resp.json()['codigo_error'] == 'FORBIDDEN'
@@ -206,7 +200,7 @@ def test_admin_can_download_other_users_receipt(api_client, buyer, admin_user):
     order = _make_paid_order(buyer)
     api_client.force_authenticate(user=admin_user)
 
-    resp = api_client.get(RECEIPT_URL(order.order_number))
+    resp = api_client.get(RECEIPT_URL(order.name))
 
     assert resp.status_code == 200
     body = b''.join(resp.streaming_content) if resp.streaming else resp.content
@@ -227,35 +221,49 @@ def test_ac04_missing_order_returns_404(api_client, buyer):
 
 
 # ---------------------------------------------------------------------------
-# AC-05 — totales del PDF derivan de OrderValue_GONE (vía payload del helper)
+# AC-05 — totales del PDF derivan de ``order_amounts`` (canónico), vía el
+# payload del helper. Antes leían de ``OrderValue`` (columnas de cabecera del
+# espejo); ahora se recalculan de las líneas de la venta (H-API-41).
 # ---------------------------------------------------------------------------
+
+def _items_comprados(order):
+    """Líneas de producto puras — excluye envío/descuento marcados.
+
+    Equivalente canónico de lo que el espejo llamaba ``order.items`` (sólo
+    lo comprado, sin la línea de envío materializada por
+    ``set_delivery_line``). Orden determinista por ``id`` (creación).
+    """
+    return list(
+        order.order_line.filter(is_delivery=False, is_reward=False)
+        .order_by('id')
+    )
+
 
 def test_ac05_payload_totals_match_order_value(db, buyer):
     order = _make_paid_order(buyer)
-    value = order.value
-    items = list(order.items.all())
-    address = order.address
+    items = _items_comprados(order)
+    address = order.delivery_address
     payment = order.payments.first()
     site = SiteSettings.get_current()
 
     payload = build_receipt_payload(
-        order=order, value=value, items=items,
+        order=order, value=None, items=items,
         address=address, payment=payment, site=site,
     )
 
-    # E5-pre — los importes salen del canónico. Cuatro de los cinco son
-    # idénticos a los del espejo; el IVA diverge a propósito (H-API-41): el
-    # espejo lo calculaba excluyendo el envío de la base gravable, el canónico
-    # extrae el impuesto por línea, así que el flete también tributa. El total
-    # que paga el comprador no cambia.
+    # E5 — los importes salen del canónico (order_amounts sobre el
+    # SaleOrder, que ES la orden). El IVA diverge a propósito del cálculo
+    # histórico del espejo (H-API-41): el espejo lo calculaba excluyendo el
+    # envío de la base gravable; el canónico extrae el impuesto por línea,
+    # así que el flete también tributa. El total que paga el comprador no
+    # cambia — sólo se reparte distinto entre base e impuesto.
     assert payload['totals']['subtotal'] == '1050.00'
     assert payload['totals']['shipping'] == '99.00'
     assert payload['totals']['discount'] == '0.00'
     assert payload['totals']['total']    == '1149.00'
-    assert payload['totals']['total']    == f'{value.total:.2f}'
-    assert payload['totals']['tax'] == f'{order.sale_order.amount_tax:.2f}'
-    assert Decimal(payload['totals']['tax']) > value.tax
-    assert payload['order_number'] == order.order_number
+    assert payload['totals']['total']    == f'{order.amount_total:.2f}'
+    assert payload['totals']['tax'] == f'{order.amount_tax:.2f}'
+    assert payload['order_number'] == order.name
     assert len(payload['items']) == 2
     assert payload['items'][0]['sku'] == 'YOR-001'
     assert payload['payment']['status']  # método/estado de pago presentes
@@ -269,8 +277,9 @@ def test_ac05_payload_sin_logo_degrada_a_vacio(db, buyer):
     assert not site.logo  # ImageField vacío por defecto
 
     payload = build_receipt_payload(
-        order=order, value=order.value, items=list(order.items.all()),
-        address=order.address, payment=order.payments.first(), site=site,
+        order=order, value=None, items=_items_comprados(order),
+        address=order.delivery_address, payment=order.payments.first(),
+        site=site,
     )
     assert payload['issuer']['logo_path'] == ''
 
@@ -286,8 +295,9 @@ def test_ac05_payload_incluye_logo_path_cuando_hay_logo(db, buyer):
     site.logo.name = 'settings/logo/practicayoruba.png'
 
     payload = build_receipt_payload(
-        order=order, value=order.value, items=list(order.items.all()),
-        address=order.address, payment=order.payments.first(), site=site,
+        order=order, value=None, items=_items_comprados(order),
+        address=order.delivery_address, payment=order.payments.first(),
+        site=site,
     )
     logo_path = payload['issuer']['logo_path']
     assert logo_path  # no vacío

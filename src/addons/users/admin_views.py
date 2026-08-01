@@ -105,20 +105,22 @@ class AdminUserDetailSerializer(AdminUserListSerializer):
             'PENDING': 'muted',
         }
         qs = (
-            SaleOrder.objects.filter(user=obj)
-            .prefetch_related('items')
+            SaleOrder.objects.filter(partner=obj)
+            .prefetch_related('order_line')
             .order_by('-created_at')[:5]
         )
         result = []
         for order in qs:
-            v = getattr(order, 'value', None)
-            total = str(v.total) if v else '0.00'
+            # El total es columna de la venta, recalculada desde sus líneas:
+            # ya no hay entidad de importes aparte que pueda faltar.
+            total = str(order.amount_total)
             # V5c-2: estado derivado de los ejes canónicos (null-safe).
             st = order_status(order)
             result.append({
-                'order_number': order.order_number,
+                'order_number': order.name,
                 'created_at': order.created_at.isoformat(),
-                'item_count': order.items.count(),
+                'item_count': order.order_line.filter(
+                    is_delivery=False, is_reward=False).count(),
                 'total': total,
                 'status': st,
                 'status_label': STATUS_LABEL.get(st, st),

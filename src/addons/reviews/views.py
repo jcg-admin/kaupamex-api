@@ -175,7 +175,7 @@ class ProductReviewsView(APIView):
                 'detail': 'Orden no encontrada.',
                 'codigo_error': 'ORDER_NOT_FOUND',
             })
-        if order.user_id != request.user.id:
+        if order.partner_id != request.user.id:
             raise PermissionDenied({
                 'detail': 'No puedes reseñar productos que no compraste.',
                 'codigo_error': 'PRODUCT_NOT_PURCHASED',
@@ -193,7 +193,10 @@ class ProductReviewsView(APIView):
                 ),
                 'codigo_error': 'ORDER_NOT_DELIVERED',
             })
-        if not order.items.filter(product=product).exists():
+        # Sólo renglones de producto: las líneas marcadoras de envío y
+        # descuento no son algo que el comprador pueda reseñar.
+        if not order.order_line.filter(product=product, is_delivery=False,
+                                       is_reward=False).exists():
             raise PermissionDenied({
                 'detail': 'El producto no fue comprado en esa orden.',
                 'codigo_error': 'PRODUCT_NOT_PURCHASED',

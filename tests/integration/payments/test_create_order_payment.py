@@ -11,6 +11,7 @@ import pytest
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
+from addons.catalogue.models import Category, Product
 from addons.payment_mercado_pago.gateway import MercadoPagoGateway
 from tests.factories.order_factory import make_order
 
@@ -18,17 +19,25 @@ pytestmark = pytest.mark.integration
 
 
 def _make_order(user, total='200.00'):
+    # La venta ES la orden (SOL-098): el subtotal que antes vivía en el
+    # espejo ``OrderValue`` ahora se reproduce con la línea de producto.
+    # ``product`` es obligatorio en ``SaleOrderLine``.
+    cat, _ = Category.objects.get_or_create(
+        slug='cat-corder', defaults={'name': 'Cat CORDER', 'is_active': True},
+    )
+    prod = Product.objects.create(
+        name='Smartphone', slug='smartphone-corder', sku='CORDER-001',
+        description='', price=Decimal(total), stock=10,
+        is_active=True, is_published=True,
+    )
+    prod.categories.add(cat)
     order = make_order(user=user, status='PENDING')
     SaleOrderLine.objects.create(
-        order=order, name='Smartphone',
+        order=order, product=prod, name='Smartphone',
         price_unit=Decimal(total), product_uom_qty=1,
     )
-    OrderValue_GONE.objects.create(
-        order=order, subtotal=Decimal(total), tax=Decimal('0'),
-        shipping_cost=Decimal('0'), discount=Decimal('0'), total=Decimal(total),
-    )
     DeliveryAddress.objects.create(
-        order=order, recipient_name='Juan', street='Calle 1',
+        sale_order=order, recipient_name='Juan', street='Calle 1',
         city='CDMX', state='CMX', zip_code='06600',
     )
     return order

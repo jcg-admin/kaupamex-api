@@ -15,8 +15,8 @@ import pytest
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
 from addons.catalogue.models import Category, Product
-from addons.sale.status_projection import order_status
-from addons.sale.models import SaleOrder, SaleOrderLine
+from addons.delivery.models import DeliveryAddress
+from addons.sale.status_projection import order_status, STATUS_PENDING
 from addons.payment.models import Payment, WebhookEvent
 from addons.payment.models import PaymentGateway
 from tests.factories.order_factory import make_order
@@ -44,7 +44,12 @@ def mp_gateway_idem(db):
 
 @pytest.fixture
 def order_mp_pending(db, user, cat_idem):
-    """Orden PENDING con Payment MP listo para webhook."""
+    """Orden confirmada (PENDING) con Payment MP listo para webhook.
+
+    E5: la venta ES la orden — se fabrica con ``make_order`` (que dispara
+    ``_compute_amounts`` vía la línea), no con una entidad de importes
+    aparte ni con el par ``order``/``sale_order`` del espejo retirado.
+    """
     prod = Product.objects.create(
         name='Idolo', slug='idolo-idem', sku='IDEM-001',
         description='',
@@ -52,25 +57,14 @@ def order_mp_pending(db, user, cat_idem):
         is_active=True, is_published=True,
     )
     prod.categories.add(cat_idem)
-    order = SaleOrder.objects.create(
-        user=user, # O2C R8: par canonico — la proyeccion deriva el estado de los ejes.
-        sale_order=SaleOrder.objects.create(state=SaleOrder.STATE_SALE),
-    )
-    SaleOrderLine.objects.create(
-        order=order, name=prod.name,
-        price_unit=prod.price, product_uom_qty=1,
-    )
-    OrderValue_GONE.objects.create(
-        order=order, subtotal=Decimal('500.00'), tax=Decimal('69.00'),
-        shipping_cost=Decimal('0.00'), discount=Decimal('0.00'),
-        total=Decimal('500.00'),
-    )
+    order = make_order(user=user, status=STATUS_PENDING,
+                       product=prod, quantity=1)
     DeliveryAddress.objects.create(
-        order=order, recipient_name='Test', street='Av 1',
+        sale_order=order, recipient_name='Test', street='Av 1',
         city='CDMX', state='CMX', zip_code='06600',
     )
     payment = Payment.objects.create(
-        order=order, sale_order=order.sale_order, gateway='MERCADOPAGO',
+        sale_order=order, gateway='MERCADOPAGO',
         preference_id='PREF-IDEM-001',
         gateway_payment_id='MP-PAY-IDEM-001',
         status='PENDING', amount=Decimal('500.00'),
@@ -80,7 +74,7 @@ def order_mp_pending(db, user, cat_idem):
 
 @pytest.fixture
 def order_paypal_pending(db, user, cat_idem):
-    """Orden PENDING con Payment PayPal listo para webhook."""
+    """Orden confirmada (PENDING) con Payment PayPal listo para webhook."""
     prod = Product.objects.create(
         name='Collar PayPal', slug='collar-paypal-idem', sku='IDEM-PP-001',
         description='',
@@ -88,25 +82,14 @@ def order_paypal_pending(db, user, cat_idem):
         is_active=True, is_published=True,
     )
     prod.categories.add(cat_idem)
-    order = SaleOrder.objects.create(
-        user=user, # O2C R8: par canonico — la proyeccion deriva el estado de los ejes.
-        sale_order=SaleOrder.objects.create(state=SaleOrder.STATE_SALE),
-    )
-    SaleOrderLine.objects.create(
-        order=order, name=prod.name,
-        price_unit=prod.price, product_uom_qty=1,
-    )
-    OrderValue_GONE.objects.create(
-        order=order, subtotal=Decimal('400.00'), tax=Decimal('55.17'),
-        shipping_cost=Decimal('0.00'), discount=Decimal('0.00'),
-        total=Decimal('400.00'),
-    )
+    order = make_order(user=user, status=STATUS_PENDING,
+                       product=prod, quantity=1)
     DeliveryAddress.objects.create(
-        order=order, recipient_name='PP Test', street='Calle 2',
+        sale_order=order, recipient_name='PP Test', street='Calle 2',
         city='GDL', state='JAL', zip_code='44100',
     )
     payment = Payment.objects.create(
-        order=order, sale_order=order.sale_order, gateway='PAYPAL',
+        sale_order=order, gateway='PAYPAL',
         preference_id='PP-ORDER-IDEM-001',
         gateway_payment_id='PP-CAP-T205',
         status='PENDING', amount=Decimal('400.00'),
@@ -234,7 +217,7 @@ class TestWebhookMpReplayAttack:
         payload = json.dumps({
             'type': 'payment',
             'data': {'id': payment_id},
-            'external_reference': order.order_number,
+            'external_reference': order.name,
         })
 
         gw_result = MagicMock()

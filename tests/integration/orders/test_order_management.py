@@ -2,6 +2,22 @@
 Tests — Gestión de órdenes del comprador (UC-ORD-02..06)
 
 Nombre descriptivo: dominio, no número de sprint.
+
+Post-retiro del addon espejo ``orders`` (SOL-098, ``api@77bd1f0``): la venta
+**es** la orden — ``sale.SaleOrder`` es la entidad canónica, no hay una
+segunda entidad ``orders.Order`` que enlazar. Identidad pública = ``name``;
+comprador = ``partner``; estado comercial = ``state``; importes = columnas
+``amount_*`` recalculadas desde las líneas (``_compute_amounts``); estado
+proyectado (para lectura) = ``order_status(order)`` desde los tres ejes
+(comercial + pago + fulfillment).
+
+Nota sobre bitácora de auditoría: ``SaleOrderStatusLog`` (el modelo que
+registraba cada transición) se retiró junto con el espejo y se disolvió en
+el chatter (``MailThread.message_track`` — H-API-102). No tiene reemplazo
+consultable equivalente todavía, así que los tests cuyo único sujeto era esa
+bitácora (``test_editar_direccion_registra_auditoria``,
+``test_cambiar_envio_registra_auditoria``) se retiraron en este pase; no se
+reencuadran porque no hay eje canónico de reemplazo que probar.
 """
 import pytest
 from decimal import Decimal
@@ -9,15 +25,16 @@ from addons.catalogue.models import Category, Product
 from django.contrib.auth import get_user_model
 from tests.factories.user_factory import make_buyer
 from addons.payment.models import Payment, Refund
-from addons.delivery.models import ShippingMethod, Courier, ShipmentGuide
+from addons.delivery.models import ShippingMethod, Courier, ShipmentGuide, DeliveryAddress
+from addons.delivery.models.sale_order import set_delivery_line
 from addons.payment.models import PaymentGateway
 from django.utils import timezone
 
 from addons.sale.models import SaleOrder, SaleOrderLine
+from addons.sale.amounts import order_amounts
 from unittest.mock import patch, MagicMock
 from addons.chartsize.models import VariantType, VariantOption, ProductVariant
 from tests.factories.order_factory import make_order
-from addons.sale.status_projection import order_status
 
 pytestmark = pytest.mark.integration
 
@@ -83,23 +100,18 @@ def prod_ord(db, cat_ord):
 
 
 def _create_full_order(user, prod, status='PENDING', n_items=1):
+    """Venta confirmada (fábrica canónica) + línea(s) de ``prod`` + envío
+    materializado ($80, misma cifra histórica) + dirección de entrega."""
     order = make_order(user=user, status=status)
-    for i in range(n_items):
+    for _ in range(n_items):
         SaleOrderLine.objects.create(
             order=order, name=prod.name,
             price_unit=prod.price, product_uom_qty=1,
             product=prod,
         )
-    OrderValue_GONE.objects.create(
-        order=order,
-        subtotal=prod.price * n_items,
-        tax=(prod.price * n_items * Decimal('0.16') / Decimal('1.16')).quantize(Decimal('0.01')),
-        shipping_cost=Decimal('80.00'),
-        discount=Decimal('0.00'),
-        total=prod.price * n_items + Decimal('80.00'),
-    )
+    set_delivery_line(order, Decimal('80.00'))
     DeliveryAddress.objects.create(
-        order=order, recipient_name='Test User',
+        sale_order=order, recipient_name='Test User',
         street='Av. Reforma 100', city='CDMX',
         state='Ciudad de Mexico', zip_code='06600',
     )
@@ -107,47 +119,32 @@ def _create_full_order(user, prod, status='PENDING', n_items=1):
 
 
 def _canonical_full_order(user, prod, *, approved=False, guide=False, delivered=False):
-    """Orden canónica (SaleOrder confirmada + SaleOrder enlazada) con ítems/valor/
+    """Orden canónica (SaleOrder confirmada, vía fábrica) con ítem y
     dirección para que la lista serialice. Estado proyectado desde los ejes
-    (pago + guía), no de la columna espejo."""
-    so = SaleOrder.objects.create(state=SaleOrder.STATE_SALE)
-    order = SaleOrder.objects.create(user=user, sale_order=so)
-    SaleOrderLine.objects.create(
-        order=order, name=prod.name,
-        price_unit=prod.price, product_uom_qty=1, product=prod,
-    )
-    OrderValue_GONE.objects.create(
-        order=order, subtotal=prod.price, tax=Decimal('0.00'),
-        shipping_cost=Decimal('80.00'), discount=Decimal('0.00'),
-        total=prod.price + Decimal('80.00'),
-    )
+    (pago + guía), no de una columna espejo — construir los hechos que
+    proyectan el status pedido, no escribirlo."""
+    if delivered:
+        status = 'DELIVERED'
+    elif guide:
+        status = 'SHIPPED'
+    elif approved:
+        status = 'PAID'
+    else:
+        status = 'PENDING'
+    order = make_order(status=status, user=user, product=prod)
     DeliveryAddress.objects.create(
-        order=order, recipient_name='Test User', street='Av. Reforma 100',
+        sale_order=order, recipient_name='Test User', street='Av. Reforma 100',
         city='CDMX', state='Ciudad de Mexico', zip_code='06600',
     )
-    if approved:
-        Payment.objects.create(
-            order=order, sale_order=so, gateway=Payment.GATEWAY_MERCADOPAGO,
-            amount=Decimal('100.00'), status=Payment.STATUS_APPROVED,
-        )
-    if guide or delivered:
-        courier = Courier.objects.create(
-            name=f'C-{order.pk}', code=f'c-{order.pk}', is_active=True)
-        kw = dict(order=order, sale_order=so, courier=courier,
-                  tracking_number=f'TRK-{order.pk}')
-        if delivered:
-            kw['status'] = ShipmentGuide.STATUS_DELIVERED
-        ShipmentGuide.objects.create(**kw)
     return order
-
 
 
 def _canonical_paid_manual(user, prod):
     """PAID canónico vía pago conciliado (gateway MANUAL): proyecta PAID y el
     cancel no dispara refund de pasarela (los MANUAL se excluyen)."""
-    order = _canonical_full_order(user, prod)
+    order = _canonical_full_order(user, prod)  # PENDING
     Payment.objects.create(
-        order=order, sale_order=order.sale_order,
+        sale_order=order,
         gateway=Payment.GATEWAY_MANUAL,
         amount=Decimal('100.00'), status=Payment.STATUS_APPROVED,
     )
@@ -161,10 +158,10 @@ class TestDetalleOrden:
 
     def test_detalle_propio_retorna_200(self, auth_client, user, prod_ord, db):
         order = _create_full_order(user, prod_ord)
-        res = auth_client.get(DETAIL_URL(order.order_number))
+        res = auth_client.get(DETAIL_URL(order.name))
         assert res.status_code == 200
         data = res.json()
-        assert data['order_number'] == order.order_number
+        assert data['order_number'] == order.name
         assert 'items' in data
         assert 'value' in data
         assert 'address' in data
@@ -176,7 +173,7 @@ class TestDetalleOrden:
             email='other@ord.com', password='pass'
         )
         order = _create_full_order(other, prod_ord)
-        res = auth_client.get(DETAIL_URL(order.order_number))
+        res = auth_client.get(DETAIL_URL(order.name))
         assert res.status_code == 404  # nunca 403 — RNF-SEC-003
         assert res.json()['codigo_error'] == 'ORDER_NOT_FOUND'
 
@@ -187,7 +184,7 @@ class TestDetalleOrden:
         prod_ord.price = Decimal('9999.00')
         prod_ord.save()
 
-        res = auth_client.get(DETAIL_URL(order.order_number))
+        res = auth_client.get(DETAIL_URL(order.name))
         item = res.json()['items'][0]
         assert Decimal(item['unit_price']) == Decimal('1500.00')  # precio original
 
@@ -236,7 +233,7 @@ class TestListadoOrdenes:
         res = auth_client.get(ORDERS_URL)
         results = res.json()['results']
         # El más reciente primero (por created_at DESC)
-        assert results[0]['order_number'] == o2.order_number
+        assert results[0]['order_number'] == o2.name
 
     def test_listado_filtro_status(
         self, auth_client, user, prod_ord, db,
@@ -248,7 +245,7 @@ class TestListadoOrdenes:
         assert res.status_code == 200
         results = res.json()['results']
         assert len(results) == 1
-        assert results[0]['order_number'] == o_delivered.order_number
+        assert results[0]['order_number'] == o_delivered.name
 
     def test_listado_filtro_status_invalido_400(
         self, auth_client, user, prod_ord, db,
@@ -274,10 +271,10 @@ class TestListadoOrdenes:
             assert r.status_code == 200
             return {o['order_number'] for o in r.json()['results']}
 
-        assert nums('PENDING')   == {pend.order_number}
-        assert nums('PAID')      == {paid.order_number}
-        assert nums('SHIPPED')   == {ship.order_number}
-        assert nums('DELIVERED') == {deliv.order_number}
+        assert nums('PENDING')   == {pend.name}
+        assert nums('PAID')      == {paid.name}
+        assert nums('SHIPPED')   == {ship.name}
+        assert nums('DELIVERED') == {deliv.name}
 
     def test_listado_filtro_status_muerto_400(
         self, auth_client, user, prod_ord, db,
@@ -309,7 +306,7 @@ class TestCancelarOrden:
 
     def test_cancelar_orden_pending(self, auth_client, user, prod_ord, db):
         order = _canonical_full_order(user, prod_ord)
-        res = auth_client.post(CANCEL_URL(order.order_number),
+        res = auth_client.post(CANCEL_URL(order.name),
                                {'reason': 'Me arrepentí'}, format='json')
         assert res.status_code == 200
         assert res.json()['status'] == 'CANCELLED'
@@ -321,14 +318,14 @@ class TestCancelarOrden:
         """O2C R8-pre: una orden PAID (pago confirmado, sin guía) es cancelable
         por el comprador — PROCESSING era el valor muerto equivalente."""
         order = _canonical_paid_manual(user, prod_ord)
-        res = auth_client.post(CANCEL_URL(order.order_number), {}, format='json')
+        res = auth_client.post(CANCEL_URL(order.name), {}, format='json')
         assert res.status_code == 200
         assert res.json()['status'] == 'CANCELLED'
 
     def test_cancelar_restaura_stock(self, auth_client, user, prod_ord, db):
         stock_inicial = prod_ord.stock
         order = _create_full_order(user, prod_ord, status='PENDING')
-        auth_client.post(CANCEL_URL(order.order_number), {}, format='json')
+        auth_client.post(CANCEL_URL(order.name), {}, format='json')
         prod_ord.refresh_from_db()
         assert prod_ord.stock == stock_inicial + 1
 
@@ -342,21 +339,27 @@ class TestCancelarOrden:
         self, auth_client, user, prod_ord, db
     ):
         order = _create_full_order(user, prod_ord, status='DELIVERED')
-        res = auth_client.post(CANCEL_URL(order.order_number), {}, format='json')
+        res = auth_client.post(CANCEL_URL(order.name), {}, format='json')
         assert res.status_code == 400
 
     def test_cancelacion_con_pago_inicia_reembolso(
         self, auth_client, user, prod_ord, db
     ):
-        """H-ORD-004: cancelar orden PAID con Payment → reembolso automático."""
+        """H-ORD-004: cancelar orden PAID con Payment → reembolso automático.
+
+        La orden se construye PENDING y el ``Payment`` MERCADOPAGO se agrega
+        a mano (no vía ``status='PAID'`` de la fábrica) para no confundir el
+        flujo con el ``Payment`` MANUAL que la fábrica agregaría — este caso
+        exige exactamente un pago de pasarela real, elegible a reembolso.
+        """
 
         gw = PaymentGateway(name='MP', gateway='MERCADOPAGO', is_active=True)
         gw.set_credentials({'access_token': 'T', 'client_secret': 'S'})
         gw.save()
 
-        order = _create_full_order(user, prod_ord, status='PAID')
+        order = _create_full_order(user, prod_ord, status='PENDING')
         payment = Payment.objects.create(
-            order=order, sale_order=order.sale_order, gateway='MERCADOPAGO',
+            sale_order=order, gateway='MERCADOPAGO',
             gateway_payment_id='MP-CANCEL-001',
             preference_id='PREF-CANCEL',
             status='APPROVED', amount=prod_ord.price + Decimal('80'),
@@ -370,7 +373,7 @@ class TestCancelarOrden:
                 'response': {'id': 777, 'amount': float(payment.amount), 'status': 'approved'},
             }
             res = auth_client.post(
-                CANCEL_URL(order.order_number),
+                CANCEL_URL(order.name),
                 {'reason': 'Cancelación con reembolso'},
                 format='json',
             )
@@ -389,15 +392,16 @@ class TestCancelarOrden:
         """
         order = _canonical_paid_manual(user, prod_ord)
         res = auth_client.post(
-            CANCEL_URL(order.order_number),
+            CANCEL_URL(order.name),
             {'reason': 'Cambié de opinión'},
             format='json',
         )
         assert res.status_code == 200, res.json()
         assert res.json()['status'] == 'CANCELLED'
         order.refresh_from_db()
-        # O2C R8: el estado es la proyección del eje comercial.
-        assert order.sale_order.state == SaleOrder.STATE_CANCEL
+        # O2C R8: el estado es la proyección del eje comercial — la venta ES
+        # la orden, no hay ``.sale_order`` que navegar.
+        assert order.state == SaleOrder.STATE_CANCEL
         assert order.cancellation_reason == 'Cambié de opinión'
         assert order.cancelled_at is not None
 
@@ -409,7 +413,7 @@ class TestCancelarOrden:
             email='oc@test.com', password='pass'
         )
         order = _create_full_order(other, prod_ord)
-        res = auth_client.post(CANCEL_URL(order.order_number), {}, format='json')
+        res = auth_client.post(CANCEL_URL(order.name), {}, format='json')
         assert res.status_code == 404
 
 
@@ -421,7 +425,7 @@ class TestEditarDireccion:
 
     def test_editar_direccion_orden_pending(self, auth_client, user, prod_ord, db):
         order = _create_full_order(user, prod_ord, status='PENDING')
-        res = auth_client.patch(ADDRESS_URL(order.order_number), {
+        res = auth_client.patch(ADDRESS_URL(order.name), {
             'recipient_name': 'Nuevo Destinatario',
             'street':         'Calle Nueva 999',
             'city':           'Guadalajara',
@@ -430,7 +434,7 @@ class TestEditarDireccion:
         }, format='json')
         assert res.status_code == 200
         order.refresh_from_db()
-        assert order.address.city == 'Guadalajara'
+        assert order.delivery_address.city == 'Guadalajara'
 
     def test_editar_direccion_paid_permitido(
         self, auth_client, user, prod_ord, db
@@ -438,7 +442,7 @@ class TestEditarDireccion:
         """O2C R8-pre: PAID y aún sin guía — edición de dirección permitida
         (IN_PREPARATION era el valor muerto equivalente)."""
         order = _create_full_order(user, prod_ord, status='PAID')
-        res = auth_client.patch(ADDRESS_URL(order.order_number), {
+        res = auth_client.patch(ADDRESS_URL(order.name), {
             'recipient_name': 'Prueba', 'street': 'St 1',
             'city': 'MTY', 'state': 'NL', 'zip_code': '64000',
         }, format='json')
@@ -448,7 +452,7 @@ class TestEditarDireccion:
         self, auth_client, user, prod_ord, db
     ):
         order = _create_full_order(user, prod_ord, status='SHIPPED')
-        res = auth_client.patch(ADDRESS_URL(order.order_number), {
+        res = auth_client.patch(ADDRESS_URL(order.name), {
             'recipient_name': 'X', 'street': 'Y',
             'city': 'Z', 'state': 'W', 'zip_code': '00000',
         }, format='json')
@@ -461,39 +465,18 @@ class TestEditarDireccion:
             email='oa@test.com', password='pass'
         )
         order = _create_full_order(other, prod_ord)
-        res = auth_client.patch(ADDRESS_URL(order.order_number), {
+        res = auth_client.patch(ADDRESS_URL(order.name), {
             'recipient_name': 'X', 'street': 'Y',
             'city': 'Z', 'state': 'W', 'zip_code': '00000',
         }, format='json')
         assert res.status_code == 404
 
-    def test_editar_direccion_registra_auditoria(
-        self, auth_client, user, prod_ord, db
-    ):
-        """H-API-05 (T-005/ORD-05): cada edición de dirección deja un
-        SaleOrderStatusLog_GONE — antes update_order_address solo hacía logger.info,
-        sin ningún rastro auditable en la orden."""
-        order = _create_full_order(user, prod_ord, status='PENDING')
-        logs_before = order.status_logs.count()
-
-        res = auth_client.patch(ADDRESS_URL(order.order_number), {
-            'recipient_name': 'Nuevo Destinatario',
-            'street':         'Calle Nueva 999',
-            'city':           'Guadalajara',
-            'state':          'Jalisco',
-            'zip_code':       '44100',
-        }, format='json')
-
-        assert res.status_code == 200
-        assert order.status_logs.count() == logs_before + 1
-        log = order.status_logs.order_by('-created_at').first()
-        assert log.changed_by_id == user.id
-        # No hay transición de estado real — se usa el mismo patrón de
-        # SaleOrderStatusLog_GONE que cancel_order. O2C V5d: el estado se DERIVA de los
-        # ejes (la columna espejo fue retirada), así que previous == new ==
-        # proyección.
-        assert log.previous_status == log.new_status == order_status(order)
-        assert 'Guadalajara' in log.notes
+    # H-API-05 (T-005/ORD-05) — ``test_editar_direccion_registra_auditoria``
+    # se retiró en el cut-over orders→sale (SOL-098). Su único sujeto era
+    # ``SaleOrderStatusLog`` (bitácora de cambios), modelo disuelto en el
+    # chatter (``MailThread.message_track``, H-API-102) sin API de lectura
+    # equivalente todavía. No se reencuadra: no hay eje canónico consultable
+    # que sustituya la aserción original (conteo de logs + campos del log).
 
 
 # =============================================================================
@@ -517,25 +500,23 @@ class TestCambiarMetodoEnvio:
     def test_cambiar_envio_recalcula_total(
         self, auth_client, user, prod_ord, shipping_methods, db
     ):
-
         order = _create_full_order(user, prod_ord, status='PENDING')
-        order.shipping_method = shipping_methods['express']
-        order.value.shipping_cost = Decimal('150.00')
-        order.value.total = prod_ord.price + Decimal('150.00')
-        order.shipping_method.save()
-        order.value.save()
-        order.save()
+        order.carrier = shipping_methods['express']
+        order.save(update_fields=['carrier', 'updated_at'])
+        set_delivery_line(order, Decimal('150.00'))
 
-        res = auth_client.patch(SHIPPING_URL(order.order_number), {
+        res = auth_client.patch(SHIPPING_URL(order.name), {
             'shipping_method_id': shipping_methods['standard'].pk,
         }, format='json')
 
         assert res.status_code == 200
         order.refresh_from_db()
-        # H-ORD-007: total = neto + tax + nuevo_shipping
-        neto = order.value.subtotal - order.value.discount
-        expected_total = neto + order.value.tax + Decimal('50.00')
-        assert order.value.total == expected_total
+        # H-ORD-007: el envío materializa como línea marcada (is_delivery);
+        # amount_total recalcula automáticamente vía _compute_amounts al
+        # cambiar la línea. El desglose de comprador se lee de order_amounts
+        # (mismo contrato de 5 claves que el OrderValue retirado, E4).
+        value = order_amounts(order)
+        assert Decimal(value['shipping_cost']) == Decimal('50.00')
 
     def test_cambiar_envio_shipped_no_permitido(
         self, auth_client, user, prod_ord, shipping_methods, db
@@ -543,7 +524,7 @@ class TestCambiarMetodoEnvio:
         """UC-ORD-06 PARTE 7.3 (DEC-ORD-04): orden en estado no-editable
         -> 409 ORDER_NOT_EDITABLE (antes 400 METHOD_NOT_EDITABLE)."""
         order = _create_full_order(user, prod_ord, status='SHIPPED')
-        res = auth_client.patch(SHIPPING_URL(order.order_number), {
+        res = auth_client.patch(SHIPPING_URL(order.name), {
             'shipping_method_id': shipping_methods['standard'].pk,
         }, format='json')
         assert res.status_code == 409
@@ -560,7 +541,7 @@ class TestCambiarMetodoEnvio:
         # V5d: ``IN_PREPARATION`` es valor muerto (inalcanzable) — solo PAID.
         for paid_status in ('PAID',):
             order = _create_full_order(user, prod_ord, status=paid_status)
-            res = auth_client.patch(SHIPPING_URL(order.order_number), {
+            res = auth_client.patch(SHIPPING_URL(order.name), {
                 'shipping_method_id': shipping_methods['standard'].pk,
             }, format='json')
             assert res.status_code == 409, paid_status
@@ -572,40 +553,16 @@ class TestCambiarMetodoEnvio:
         """UC-ORD-06 PARTE 7.3 (DEC-ORD-04): shipping_method invalido
         -> 400 SHIPPING_METHOD_NOT_AVAILABLE."""
         order = _create_full_order(user, prod_ord, status='PENDING')
-        res = auth_client.patch(SHIPPING_URL(order.order_number), {
+        res = auth_client.patch(SHIPPING_URL(order.name), {
             'shipping_method_id': 99999,
         }, format='json')
         assert res.status_code == 400
         assert res.json()['codigo_error'] == 'SHIPPING_METHOD_NOT_AVAILABLE'
 
-    def test_cambiar_envio_registra_auditoria(
-        self, auth_client, user, prod_ord, shipping_methods, db
-    ):
-        """H-API-06 (T-007-audit/ORD-06): cada cambio de método de envío
-        deja un SaleOrderStatusLog_GONE — antes update_shipping_method solo hacía
-        logger.info, sin ningún rastro auditable en la orden. D-3 resuelto:
-        el cambio solo se permite pre-pago (aquí PENDING), donde el recálculo
-        del total precede a la captura del pago (sin conciliación pendiente)."""
-        order = _create_full_order(user, prod_ord, status='PENDING')
-        order.shipping_method = shipping_methods['express']
-        order.shipping_method.save()
-        order.save()
-        logs_before = order.status_logs.count()
-
-        res = auth_client.patch(SHIPPING_URL(order.order_number), {
-            'shipping_method_id': shipping_methods['standard'].pk,
-        }, format='json')
-
-        assert res.status_code == 200
-        assert order.status_logs.count() == logs_before + 1
-        log = order.status_logs.order_by('-created_at').first()
-        assert log.changed_by_id == user.id
-        # No hay transición de estado real — se usa el mismo patrón de
-        # SaleOrderStatusLog_GONE que cancel_order. O2C V5d: el estado se DERIVA de los
-        # ejes (la columna espejo fue retirada), así que previous == new ==
-        # proyección.
-        assert log.previous_status == log.new_status == order_status(order)
-        assert shipping_methods['standard'].name in log.notes
+    # H-API-06 (T-007-audit/ORD-06) — ``test_cambiar_envio_registra_auditoria``
+    # se retiró por la misma razón que su hermana de UC-ORD-05: su único
+    # sujeto era ``SaleOrderStatusLog``, sin reemplazo consultable (ver nota
+    # en ``TestEditarDireccion``).
 
 
 # =============================================================================
@@ -615,7 +572,8 @@ class TestCambiarMetodoEnvio:
 class TestProteccionVariantesOrdenes:
     """H-ORD-005 tras cut-over orders→sale (ADR-024): "orden activa" =
     confirmada (``sale.state='sale'``) y NO entregada. Los fixtures
-    construyen los ejes canónicos (SaleOrder + SaleOrder espejo + guía)."""
+    construyen los ejes canónicos (SaleOrder confirmada + guía) — la venta
+    ES la orden, no hay una segunda entidad que enlazar."""
 
     def _make_variant(self, prod_ord):
         vtype = VariantType.objects.create(name='Talla', product=prod_ord)
@@ -628,17 +586,17 @@ class TestProteccionVariantesOrdenes:
         )
 
     def _make_order_with_variant(self, prod_ord, variant):
-        # E2c: el guard de la vista lee SaleOrderLine (canónico); el fixture
-        # construye la línea canónica, no el SaleOrderLine del espejo.
-        so = SaleOrder.objects.create(
+        """Venta confirmada con una línea de la variante (E2c: el guard de
+        la vista lee ``SaleOrderLine`` — el fixture construye la línea
+        canónica directo, sin segunda entidad que enlazar)."""
+        order = SaleOrder.objects.create(
             state=SaleOrder.STATE_SALE, date_order=timezone.now())
-        order = SaleOrder.objects.create(sale_order=so)
         SaleOrderLine.objects.create(
-            order=so, product=prod_ord, variant=variant,
+            order=order, product=prod_ord, variant=variant,
             name=prod_ord.name, product_uom_qty=1,
             price_unit=variant.price_override,
         )
-        return so, order
+        return order
 
     def test_no_eliminar_variante_con_orden_activa(self, admin_client, prod_ord, db):
         """Variante en orden confirmada sin guía entregada → 400."""
@@ -655,10 +613,10 @@ class TestProteccionVariantesOrdenes:
     ):
         """Orden entregada (guía DELIVERED viva) NO bloquea → 204."""
         variant = self._make_variant(prod_ord)
-        so, order = self._make_order_with_variant(prod_ord, variant)
+        order = self._make_order_with_variant(prod_ord, variant)
         courier = Courier.objects.create(name='Estafeta', code='EST')
         ShipmentGuide.objects.create(
-            order=order, sale_order=so, courier=courier,
+            sale_order=order, courier=courier,
             tracking_number='TRK-DELIVERED-1',
             status=ShipmentGuide.STATUS_DELIVERED,
         )

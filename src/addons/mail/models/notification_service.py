@@ -44,9 +44,9 @@ def notify_order_created(order, user, total_amount):
     Notification.objects.create(
         user=user,
         type=NotificationType.ORDER_UPDATE,
-        subject=f'Orden confirmada #{order.order_number}',
+        subject=f'Orden confirmada #{order.name}',
         body=(
-            f'Tu orden #{order.order_number} ha sido recibida y '
+            f'Tu orden #{order.name} ha sido recibida y '
             f'esta siendo procesada. Total: ${total_amount}.'
         ),
     )
@@ -54,7 +54,7 @@ def notify_order_created(order, user, total_amount):
     if user.email:
         user_email  = user.email
         name        = user.first_name or user.email
-        order_num   = order.order_number
+        order_num   = order.name
         total_str   = str(total_amount)
         transaction.on_commit(
             lambda: send_order_confirmation_email(
@@ -93,15 +93,15 @@ def notify_order_status_changed(order, new_status):
     Notification.objects.create(
         user=user,
         type=NotificationType.ORDER_UPDATE,
-        subject=f'{label} — #{order.order_number}',
-        body=f'El estado de tu orden #{order.order_number} cambio a: {label}.',
+        subject=f'{label} — #{order.name}',
+        body=f'El estado de tu orden #{order.name} cambio a: {label}.',
     )
 
     if user.email:
         user_email   = user.email
         name         = user.first_name or user.email
-        order_num    = order.order_number
-        shipping     = getattr(order, 'shipping_info', None)
+        order_num    = order.name
+        shipping     = getattr(order, 'shipment_guide', None)
         tracking_num = shipping.tracking_number if shipping else None
         transaction.on_commit(
             lambda: send_order_status_email(
@@ -121,14 +121,14 @@ def notify_shipping_updated(order, user, tracking_number=None, event_description
     Notification.objects.create(
         user=user,
         type=NotificationType.ORDER_UPDATE,
-        subject=f'Actualizacion de envio — #{order.order_number}',
-        body=event_description or f'Hay una actualizacion sobre el envio de tu orden #{order.order_number}.',
+        subject=f'Actualizacion de envio — #{order.name}',
+        body=event_description or f'Hay una actualizacion sobre el envio de tu orden #{order.name}.',
     )
 
     if user.email:
         user_email  = user.email
         name        = user.first_name or user.email
-        order_num   = order.order_number
+        order_num   = order.name
         tracking    = tracking_number
         description = event_description
         transaction.on_commit(
@@ -155,14 +155,14 @@ def notify_return_processed(order, user, return_status, reason=None):
     Notification.objects.create(
         user=user,
         type=NotificationType.RETURN_UPDATE,
-        subject=f'{label} — #{order.order_number}',
-        body=f'Actualizacion sobre tu devolucion de la orden #{order.order_number}.',
+        subject=f'{label} — #{order.name}',
+        body=f'Actualizacion sobre tu devolucion de la orden #{order.name}.',
     )
 
     if user.email:
         user_email   = user.email
         name         = user.first_name or user.email
-        order_num    = order.order_number
+        order_num    = order.name
         r_status     = return_status
         r_reason     = reason
         transaction.on_commit(
@@ -201,16 +201,16 @@ def notify_refund_processed(order, user, amount_refunded):
     UC-NOT-05: notificacion de reembolso procesado.
     Llamar desde addons.payments dentro de transaction.atomic().
 
-    I2 (H-API-31): ``order`` es la orden **canonica** (``sale.SaleOrder``);
-    su identidad publica vive en ``name`` (I1). Se acepta tambien el espejo
-    (``order_number``) mientras el puente exista, para no romper llamadores
-    heredados durante el cut-over.
+    ``order`` es la orden canonica (``sale.SaleOrder``) y su identidad
+    publica vive en ``name``. El puente que aceptaba tambien ``order_number``
+    del espejo se retiro con el (SOL-098): no queda llamador heredado al que
+    proteger, y conservarlo enmascararia un objeto equivocado en vez de
+    delatarlo.
     """
     if not user or not getattr(user, 'pk', None):
         return
 
-    referencia = (getattr(order, 'name', None)
-                  or getattr(order, 'order_number', ''))
+    referencia = order.name
 
     Notification.objects.create(
         user=user,

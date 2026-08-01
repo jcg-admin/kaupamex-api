@@ -25,7 +25,8 @@ import pytest
 from django.utils import timezone
 
 from addons.catalogue.models import Category, Product
-from addons.delivery.models import Courier, ShipmentEvent, ShipmentGuide
+from addons.delivery.models import Courier, DeliveryAddress, ShipmentEvent, ShipmentGuide
+from addons.delivery.models.sale_order import set_delivery_line
 from tests.factories.order_factory import make_order
 
 pytestmark = pytest.mark.integration
@@ -78,12 +79,11 @@ def order_log(db, user, prod_log):
         order=o, product=prod_log, name=prod_log.name, price_unit=prod_log.price,
         product_uom_qty=1,
     )
-    OrderValue_GONE.objects.create(
-        order=o, subtotal=Decimal('500'), tax=Decimal('0'),
-        shipping_cost=Decimal('80'), total=Decimal('580'),
-    )
+    # El envío ($80) se materializa como línea marcada — el importe ya no
+    # vive en un escalar ``shipping_cost`` del espejo retirado.
+    set_delivery_line(o, Decimal('80'))
     DeliveryAddress.objects.create(
-        order=o, recipient_name='Test', street='Av', city='CDMX',
+        sale_order=o, recipient_name='Test', street='Av', city='CDMX',
         state='CDMX', zip_code='06600',
     )
     return o
@@ -100,7 +100,7 @@ def courier_log(db):
 @pytest.fixture
 def guide_log(db, order_log, courier_log):
     return ShipmentGuide.objects.create(
-        order=order_log, sale_order=order_log.sale_order, courier=courier_log,
+        sale_order=order_log, courier=courier_log,
         tracking_number='TRK-0001', status=ShipmentGuide.STATUS_PICKED_UP,
     )
 
@@ -223,7 +223,7 @@ class TestCourierWebhookSecretUnset:
     def test_secret_no_configurado_rechazo_seguro(self, api_client, order_log, db):
         courier = Courier.objects.create(name='SinSecreto', code='NOSEC')
         guide = ShipmentGuide.objects.create(
-            order=order_log, sale_order=order_log.sale_order, courier=courier,
+            sale_order=order_log, courier=courier,
             tracking_number='TRK-NOSEC', status=ShipmentGuide.STATUS_PICKED_UP,
         )
         payload = {

@@ -10,6 +10,7 @@ from addons.sale.models import SaleOrder, SaleOrderLine
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
 from addons.catalogue.models import Category, Product
+from addons.delivery.models import DeliveryAddress
 from addons.payment.models import PaymentGateway
 from addons.payment.models import Payment
 from addons.payment_paypal.gateway import PayPalGateway
@@ -40,18 +41,19 @@ def prod_pp(db, cat_pp):
 
 @pytest.fixture
 def orden_paypal(db, user, prod_pp):
+    """Orden PENDING con una linea de producto (total 800.00).
+
+    El registro de importes aparte de la orden se retiro con el espejo
+    (SOL-098): el importe se recalcula desde ``order_line``, no se fija a
+    mano.
+    """
     order = make_order(user=user, status='PENDING')
     SaleOrderLine.objects.create(
-        order=order, name=prod_pp.name, price_unit=prod_pp.price,
-        product_uom_qty=1,
-    )
-    OrderValue_GONE.objects.create(
-        order=order, subtotal=Decimal('800.00'),
-        tax=Decimal('110.34'), shipping_cost=Decimal('0.00'),
-        discount=Decimal('0.00'), total=Decimal('800.00'),
+        order=order, product=prod_pp, name=prod_pp.name,
+        price_unit=prod_pp.price, product_uom_qty=1,
     )
     DeliveryAddress.objects.create(
-        order=order, recipient_name='Test',
+        sale_order=order, recipient_name='Test',
         street='Calle 1', city='CDMX', state='CMX', zip_code='06600',
     )
     return order
@@ -124,7 +126,7 @@ class TestPagoConPayPal:
         self, auth_client, orden_paypal, paypal_gateway_activo, mock_paypal_api, db
     ):
         res = auth_client.post(INITIATE_URL, {
-            'order_number': orden_paypal.order_number,
+            'order_number': orden_paypal.name,
             'gateway':      'PAYPAL',
         }, format='json')
         assert res.status_code == 201, res.json()
@@ -136,10 +138,10 @@ class TestPagoConPayPal:
         self, auth_client, orden_paypal, paypal_gateway_activo, mock_paypal_api, db
     ):
         auth_client.post(INITIATE_URL, {
-            'order_number': orden_paypal.order_number,
+            'order_number': orden_paypal.name,
             'gateway':      'PAYPAL',
         }, format='json')
-        payment = Payment.objects.get(order=orden_paypal, gateway='PAYPAL')
+        payment = Payment.objects.get(sale_order=orden_paypal, gateway='PAYPAL')
         assert payment.preference_id == 'PP-ORDER-123456'
         assert payment.status == 'PENDING'
 
@@ -148,7 +150,7 @@ class TestPagoConPayPal:
     ):
         """BR-009: las credenciales nunca deben aparecer en la respuesta."""
         res = auth_client.post(INITIATE_URL, {
-            'order_number': orden_paypal.order_number,
+            'order_number': orden_paypal.name,
             'gateway':      'PAYPAL',
         }, format='json')
         resp_str = json.dumps(res.json())

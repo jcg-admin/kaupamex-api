@@ -13,11 +13,13 @@ from decimal import Decimal
 from unittest.mock import patch, MagicMock
 
 from addons.catalogue.models import Category, Product
+from addons.delivery.models import DeliveryAddress
 from addons.sale.status_projection import order_status
 from addons.sale.models import SaleOrder, SaleOrderLine
 from addons.payment.models import PaymentGateway
 from addons.payment.models import Payment, PaymentGatewayEvent
 from addons.payment_mercado_pago.gateway import MercadoPagoGateway
+from tests.factories.order_factory import make_order
 
 pytestmark = pytest.mark.integration
 
@@ -50,22 +52,22 @@ def prod_v2(db, cat_v2):
 
 @pytest.fixture
 def orden_v2(db, user, prod_v2):
-    """Orden PENDING con OrderValue_GONE total=3000."""
-    order = SaleOrder.objects.create(
-        user=user, # O2C R8: par canonico — la proyeccion deriva el estado de los ejes.
-        sale_order=SaleOrder.objects.create(state=SaleOrder.STATE_SALE),
-    )
+    """Orden PENDING con una linea de producto (total 3000.00).
+
+    La venta ES la orden (espejo retirado, SOL-098): no hay una segunda
+    entidad que crear ni enlazar (``sale_order=`` apuntando a otro
+    ``SaleOrder`` era el patron viejo del par espejo). Los importes se
+    recalculan desde ``order_line``; la linea reproduce el subtotal
+    3000.00 que antes se fijaba a mano en el registro de importes aparte
+    (2 x 1500.00).
+    """
+    order = make_order(user=user, status='PENDING')
     SaleOrderLine.objects.create(
-        order=order, name=prod_v2.name,
+        order=order, product=prod_v2, name=prod_v2.name,
         price_unit=prod_v2.price, product_uom_qty=2,
     )
-    OrderValue_GONE.objects.create(
-        order=order, subtotal=Decimal('3000.00'),
-        tax=Decimal('0.00'), shipping_cost=Decimal('0.00'),
-        discount=Decimal('0.00'), total=Decimal('3000.00'),
-    )
     DeliveryAddress.objects.create(
-        order=order, recipient_name='Test User',
+        sale_order=order, recipient_name='Test User',
         street='Av. Reforma 1', city='CDMX',
         state='Ciudad de Mexico', zip_code='06600',
     )
@@ -167,14 +169,14 @@ class TestCheckoutApiAuth:
 
     def test_token_faltante_retorna_400(self, auth_client, orden_v2, mp_gw, db):
         res = auth_client.post(INITIATE_V2_URL, {
-            'order_number':      orden_v2.order_number,
+            'order_number':      orden_v2.name,
             'payment_method_id': _VALID_PAYMENT_METHOD,
         }, format='json')
         assert res.status_code == 400
 
     def test_payment_method_faltante_retorna_400(self, auth_client, orden_v2, mp_gw, db):
         res = auth_client.post(INITIATE_V2_URL, {
-            'order_number': orden_v2.order_number,
+            'order_number': orden_v2.name,
             'token':        _VALID_TOKEN,
         }, format='json')
         assert res.status_code == 400
@@ -204,7 +206,7 @@ class TestCheckoutApiOrden:
         with patch('addons.payment_mercado_pago.gateway.mercadopago',
                    _make_mp_payment_mock()):
             res = auth_client.post(INITIATE_V2_URL,
-                                   _valid_payload(orden_v2.order_number),
+                                   _valid_payload(orden_v2.name),
                                    format='json')
         assert res.status_code == 404
         assert res.json()['codigo_error'] == 'ORDER_NOT_FOUND'
@@ -212,13 +214,13 @@ class TestCheckoutApiOrden:
     def test_orden_no_pending_retorna_404(self, auth_client, orden_v2, mp_gw, db):
         # O2C R8: "no PENDING" canónico = pago aprobado (proyecta PAID).
         Payment.objects.create(
-            order=orden_v2, sale_order=orden_v2.sale_order,
+            sale_order=orden_v2,
             gateway=Payment.GATEWAY_MANUAL,
             status=Payment.STATUS_APPROVED, amount=Decimal('100.00'))
         with patch('addons.payment_mercado_pago.gateway.mercadopago',
                    _make_mp_payment_mock()):
             res = auth_client.post(INITIATE_V2_URL,
-                                   _valid_payload(orden_v2.order_number),
+                                   _valid_payload(orden_v2.name),
                                    format='json')
         assert res.status_code == 404
         assert res.json()['codigo_error'] == 'ORDER_NOT_FOUND'
@@ -227,7 +229,7 @@ class TestCheckoutApiOrden:
         with patch('addons.payment_mercado_pago.gateway.mercadopago',
                    _make_mp_payment_mock()):
             res = auth_client.post(INITIATE_V2_URL, _valid_payload(
-                orden_v2.order_number,
+                orden_v2.name,
                 expected_amount='9999.00',
             ), format='json')
         assert res.status_code == 422
@@ -237,7 +239,7 @@ class TestCheckoutApiOrden:
         with patch('addons.payment_mercado_pago.gateway.mercadopago',
                    _make_mp_payment_mock()):
             res = auth_client.post(INITIATE_V2_URL, _valid_payload(
-                orden_v2.order_number,
+                orden_v2.name,
                 expected_amount='3000.00',
             ), format='json')
         assert res.status_code == 201
@@ -253,20 +255,20 @@ class TestCheckoutApiMpStatus:
         with patch('addons.payment_mercado_pago.gateway.mercadopago',
                    _make_mp_payment_mock('approved', 'accredited')):
             res = auth_client.post(INITIATE_V2_URL,
-                                   _valid_payload(orden_v2.order_number),
+                                   _valid_payload(orden_v2.name),
                                    format='json')
         assert res.status_code == 201
         data = res.json()
         assert data['status'] == 'approved'
         assert data['status_detail'] == 'accredited'
         assert data['gateway_payment_id'] == '99001'
-        assert data['order_number'] == orden_v2.order_number
+        assert data['order_number'] == orden_v2.name
 
     def test_pago_rechazado_retorna_200(self, auth_client, orden_v2, mp_gw, db):
         with patch('addons.payment_mercado_pago.gateway.mercadopago',
                    _make_mp_payment_mock('rejected', 'cc_rejected_insufficient_amount')):
             res = auth_client.post(INITIATE_V2_URL,
-                                   _valid_payload(orden_v2.order_number),
+                                   _valid_payload(orden_v2.name),
                                    format='json')
         assert res.status_code == 200
         data = res.json()
@@ -277,7 +279,7 @@ class TestCheckoutApiMpStatus:
         with patch('addons.payment_mercado_pago.gateway.mercadopago',
                    _make_mp_payment_mock('pending', 'pending_contingency')):
             res = auth_client.post(INITIATE_V2_URL,
-                                   _valid_payload(orden_v2.order_number),
+                                   _valid_payload(orden_v2.name),
                                    format='json')
         assert res.status_code == 200
         data = res.json()
@@ -287,7 +289,7 @@ class TestCheckoutApiMpStatus:
         with patch('addons.payment_mercado_pago.gateway.mercadopago',
                    _make_mp_payment_mock(mp_status_code=400)):
             res = auth_client.post(INITIATE_V2_URL,
-                                   _valid_payload(orden_v2.order_number),
+                                   _valid_payload(orden_v2.name),
                                    format='json')
         assert res.status_code == 502
         assert res.json()['codigo_error'] == 'GATEWAY_ERROR'
@@ -303,9 +305,9 @@ class TestCheckoutApiDB:
         with patch('addons.payment_mercado_pago.gateway.mercadopago',
                    _make_mp_payment_mock('approved', 'accredited')):
             auth_client.post(INITIATE_V2_URL,
-                             _valid_payload(orden_v2.order_number),
+                             _valid_payload(orden_v2.name),
                              format='json')
-        payment = Payment.objects.get(order=orden_v2)
+        payment = Payment.objects.get(sale_order=orden_v2)
         assert payment.status == 'APPROVED'
         assert payment.gateway_payment_id == '99001'
         assert payment.gateway == 'MERCADOPAGO'
@@ -315,7 +317,7 @@ class TestCheckoutApiDB:
         with patch('addons.payment_mercado_pago.gateway.mercadopago',
                    _make_mp_payment_mock('approved', 'accredited')):
             auth_client.post(INITIATE_V2_URL,
-                             _valid_payload(orden_v2.order_number),
+                             _valid_payload(orden_v2.name),
                              format='json')
         orden_v2.refresh_from_db()
         # O2C R8: el estado se proyecta del eje de pago (Payment APPROVED).
@@ -327,9 +329,9 @@ class TestCheckoutApiDB:
         with patch('addons.payment_mercado_pago.gateway.mercadopago',
                    _make_mp_payment_mock('rejected', 'cc_rejected_other_reason')):
             auth_client.post(INITIATE_V2_URL,
-                             _valid_payload(orden_v2.order_number),
+                             _valid_payload(orden_v2.name),
                              format='json')
-        payment = Payment.objects.get(order=orden_v2)
+        payment = Payment.objects.get(sale_order=orden_v2)
         assert payment.status == 'FAILED'
         orden_v2.refresh_from_db()
         assert order_status(orden_v2) == 'PENDING'
@@ -340,9 +342,9 @@ class TestCheckoutApiDB:
         with patch('addons.payment_mercado_pago.gateway.mercadopago',
                    _make_mp_payment_mock('approved', 'accredited')):
             auth_client.post(INITIATE_V2_URL,
-                             _valid_payload(orden_v2.order_number),
+                             _valid_payload(orden_v2.name),
                              format='json')
-        payment = Payment.objects.get(order=orden_v2)
+        payment = Payment.objects.get(sale_order=orden_v2)
         event = PaymentGatewayEvent.objects.filter(
             payment=payment, event_type='PAYMENT_APPROVED'
         ).first()
@@ -355,9 +357,9 @@ class TestCheckoutApiDB:
         with patch('addons.payment_mercado_pago.gateway.mercadopago',
                    _make_mp_payment_mock('pending', 'pending_contingency')):
             auth_client.post(INITIATE_V2_URL,
-                             _valid_payload(orden_v2.order_number),
+                             _valid_payload(orden_v2.name),
                              format='json')
-        payment = Payment.objects.get(order=orden_v2)
+        payment = Payment.objects.get(sale_order=orden_v2)
         assert payment.status == 'PENDING'
         orden_v2.refresh_from_db()
         assert order_status(orden_v2) == 'PENDING'
@@ -376,7 +378,7 @@ class TestCheckoutApiSeguridad:
         with patch('addons.payment_mercado_pago.gateway.mercadopago',
                    _make_mp_payment_mock('approved')):
             res = auth_client.post(INITIATE_V2_URL,
-                                   _valid_payload(orden_v2.order_number),
+                                   _valid_payload(orden_v2.name),
                                    format='json')
         body_str = json.dumps(res.json())
         assert 'TEST-ACCESS-TOKEN-V2-FAKE' not in body_str
@@ -390,7 +392,7 @@ class TestCheckoutApiSeguridad:
         with patch('addons.payment_mercado_pago.gateway.mercadopago',
                    _make_mp_payment_mock('approved', installments=3)):
             res = auth_client.post(INITIATE_V2_URL, _valid_payload(
-                orden_v2.order_number,
+                orden_v2.name,
                 installments=3,
                 issuer_id='12345',
                 payer_email='comprador@test.mx',

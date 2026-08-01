@@ -1,25 +1,34 @@
 """Tests — E5-pre: las superficies de salida leen el canónico.
 
-Cierra H-API-34 (recibo PDF y payload del pedido anclados al espejo). Con
-E1-bis los importes son líneas y con E4 son agregables; aquí las **dos
-superficies que ve el comprador** dejan de leer las columnas de cabecera de
-``OrderValue_GONE``.
+Cierra H-API-34 (desglose de montos anclado al canónico). Con E1-bis los
+importes son líneas y con E4 son agregables; aquí la superficie de
+desglose (``order_amounts``) deja de leer columnas de cabecera de un
+espejo — hoy no hay ningún espejo del que leer.
 
 Lo que se fija:
 
 1. **El contrato no cambia** — las cinco claves siguen siendo
    ``subtotal``/``tax``/``shipping_cost``/``discount``/``total``, así que el UI
    no se toca.
-2. **La fuente sí** — los valores se componen de las líneas del canónico, y
-   cada término lo aporta su addon (``delivery`` el envío, ``sale_loyalty`` el
-   descuento).
-3. **Divergencia deliberada del IVA (H-API-41)** — el espejo calculaba el
-   impuesto excluyendo el envío de la base; el canónico lo incluye. El
-   **total es idéntico**; sólo se reparte distinto. Se fija con un test que
-   compara ambos, para que la divergencia sea una decisión visible y no un
-   drift silencioso.
-4. **Degradación** — un espejo sin ``sale_order`` (huérfano del histórico)
-   devuelve ceros en vez de romper la superficie.
+2. **La fuente es el canónico** — los valores se componen de las líneas de
+   ``SaleOrder``, y cada término lo aporta su addon (``delivery`` el envío,
+   ``sale_loyalty`` el descuento).
+3. **El envío entra a la base gravable (H-API-41)** — el IVA se extrae por
+   línea (``SaleOrderLine.price_tax``), así que la línea de envío también
+   tributa: agregar el envío incrementa ``amount_tax``. (Origen histórico:
+   el espejo, ya retirado junto con el addon ``orders`` — SOL-098,
+   ``api@77bd1f0`` —, excluía el envío de su base; esa comparación entre
+   dos fuentes ya no es posible ni necesaria, sólo queda un origen.)
+4. **Degradación** — sin una venta que renderizar (``sale_order=None``,
+   p. ej. una referencia aún sin resolver) la superficie devuelve ceros en
+   vez de romper.
+
+**Sección retirada (post-V5d/SOL-098):** la versión original de este
+módulo incluía ``TestElPayloadDelPedido``, que verificaba que un
+``OrderSerializer`` (del addon espejo ``orders``, ya retirado) expusiera el
+desglose del canónico. Esa clase se eliminó: el serializer no existe en
+ningún addon vigente (``grep -rn "class OrderSerializer" src/`` → vacío),
+así que su sujeto desapareció junto con el espejo.
 """
 from decimal import Decimal
 from uuid import uuid4
@@ -64,6 +73,11 @@ def metodo():
 
 
 def _venta(producto, metodo, shipping=Decimal('99.00'), voucher=None):
+    """Confirma una venta con envío (y cupón opcional) y la retorna.
+
+    No hay una segunda entidad que devolver: ``confirm_draft_order``
+    confirma el mismo ``SaleOrder`` que recibe.
+    """
     draft = SaleOrder.objects.create(
         state=SaleOrder.STATE_DRAFT, cart_token=uuid4(), carrier=metodo)
     add_item_to_draft(draft, producto, quantity=1)
@@ -71,22 +85,21 @@ def _venta(producto, metodo, shipping=Decimal('99.00'), voucher=None):
         apply_voucher_to_draft(draft, voucher.code)
     set_delivery_line(draft, shipping)
     set_reward_line(draft)
-    legacy = confirm_draft_order(draft, address_data=dict(ADDR),
-                                 guest_email='s@test.mx',
-                                 shipping_cost=shipping)
+    confirm_draft_order(draft, address_data=dict(ADDR),
+                        guest_email='s@test.mx', shipping_cost=shipping)
     draft.refresh_from_db()
-    return draft, legacy
+    return draft
 
 
 class TestContratoEstable:
 
     def test_las_cinco_claves_siguen_siendo_las_mismas(self, producto, metodo):
-        venta, _ = _venta(producto, metodo)
+        venta = _venta(producto, metodo)
         assert set(order_amounts(venta)) == {
             'subtotal', 'tax', 'shipping_cost', 'discount', 'total'}
 
     def test_el_desglose_sale_de_las_lineas(self, producto, metodo):
-        venta, _ = _venta(producto, metodo)
+        venta = _venta(producto, metodo)
         a = order_amounts(venta)
         assert a['shipping_cost'] == Decimal('99.00')
         assert a['subtotal'] == Decimal('100.00')
@@ -98,50 +111,43 @@ class TestContratoEstable:
             code='E5PRE20', voucher_type=Voucher.TYPE_FIXED,
             discount_value=Decimal('20.00'), is_active=True,
             valid_from=timezone.now())
-        venta, _ = _venta(producto, metodo, voucher=voucher)
+        venta = _venta(producto, metodo, voucher=voucher)
         a = order_amounts(venta)
         assert a['discount'] == Decimal('20.00')     # la línea es -20.00
         assert a['subtotal'] == Decimal('100.00')    # producto bruto
         assert a['total'] == Decimal('179.00')
 
 
-class TestDivergenciaDeliberadaDelIva:
-    """H-API-41 — el espejo excluía el envío de la base gravable.
+class TestElIvaIncluyeElEnvioEnSuBase:
+    """H-API-41 — el IVA se extrae por línea, así que la de envío también
+    tributa.
 
-    ``confirm_draft_order`` calculaba ``tax`` sobre ``subtotal - discount``
-    (``sale/services.py:377``); el canónico extrae el IVA por línea, así que la
-    línea de envío también tributa. El comprador paga lo mismo.
+    Origen histórico: el espejo (ya retirado, SOL-098) calculaba el
+    impuesto sobre ``subtotal - discount`` sin el envío. Al no existir ya
+    una segunda fuente que comparar, el invariante se fija de forma
+    autocontenida: agregar la línea de envío a una venta sólo-producto
+    debe aumentar el IVA calculado.
     """
 
-    def test_el_total_es_identico_en_ambas_fuentes(self, producto, metodo):
-        venta, legacy = _venta(producto, metodo)
-        espejo = OrderValue_GONE.objects.get(order=legacy)
-        assert order_amounts(venta)['total'] == espejo.total
+    def test_agregar_el_envio_aumenta_el_iva_de_la_venta(
+            self, producto, metodo):
+        draft = SaleOrder.objects.create(
+            state=SaleOrder.STATE_DRAFT, cart_token=uuid4(), carrier=metodo)
+        add_item_to_draft(draft, producto, quantity=1)
+        iva_solo_producto = draft.amount_tax
 
-    def test_el_iva_canonico_grava_tambien_el_envio(self, producto, metodo):
-        venta, legacy = _venta(producto, metodo)
-        espejo = OrderValue_GONE.objects.get(order=legacy)
-        canonico = order_amounts(venta)['tax']
-        # El envío entra a la base, así que el impuesto extraído es mayor.
-        assert canonico > espejo.tax
+        set_delivery_line(draft, metodo.cost)
+        draft.refresh_from_db()
+
+        assert draft.amount_tax > iva_solo_producto
         # Y equivale al IVA de la venta completa, no sólo del producto.
-        assert canonico == venta.amount_tax
+        assert order_amounts(draft)['tax'] == draft.amount_tax
 
 
 class TestDegradacion:
 
-    def test_espejo_sin_canonico_devuelve_ceros(self):
+    def test_sin_venta_que_renderizar_devuelve_ceros(self):
         a = order_amounts(None)
         assert a['total'] == Decimal('0.00')
         assert set(a) == {'subtotal', 'tax', 'shipping_cost', 'discount',
                           'total'}
-
-
-class TestElPayloadDelPedido:
-    """El serializer expone el desglose del canónico con el contrato intacto."""
-
-    def test_el_serializer_lee_del_canonico(self, producto, metodo):
-        venta, legacy = _venta(producto, metodo)
-        data = OrderSerializer(SaleOrder.objects.get(pk=legacy.pk)).data
-        assert Decimal(str(data['value']['total'])) == venta.amount_total
-        assert Decimal(str(data['value']['shipping_cost'])) == Decimal('99.00')

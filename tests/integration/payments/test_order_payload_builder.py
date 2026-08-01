@@ -7,7 +7,9 @@ STRING, discriminante payment_method.type, processing/capture automatic
 un SaleOrder real.
 """
 import pytest
-from addons.sale.models import SaleOrder, SaleOrderLine
+from uuid import uuid4
+from addons.catalogue.models import Category, Product
+from addons.delivery.models import DeliveryAddress
 from decimal import Decimal
 
 from addons.payment_mercado_pago.gateway import (
@@ -22,17 +24,28 @@ pytestmark = pytest.mark.integration
 
 
 def _make_order(user, total='200.00'):
-    order = make_order(user=user, status='PENDING')
-    SaleOrderLine.objects.create(
-        order=order, name='Smartphone',
-        price_unit=Decimal(total), product_uom_qty=1,
+    """Crea una orden PENDING con una línea 'Smartphone' de precio ``total``.
+
+    El registro de importes aparte de la orden se retiró con el espejo
+    (SOL-098): el importe se recalcula desde ``order_line``, no se fija a
+    mano. El producto es mínimo y local a la llamada (mismo patrón que el
+    resto de fixtures de payments — este módulo no comparte catálogo con
+    los demás).
+    """
+    suffix = uuid4().hex[:8]
+    category = Category.objects.create(
+        name=f'Cat Builder {suffix}', slug=f'cat-builder-{suffix}',
+        is_active=True,
     )
-    OrderValue_GONE.objects.create(
-        order=order, subtotal=Decimal(total), tax=Decimal('0'),
-        shipping_cost=Decimal('0'), discount=Decimal('0'), total=Decimal(total),
+    product = Product.objects.create(
+        name='Smartphone', slug=f'smartphone-{suffix}', sku=f'BLD-{suffix}',
+        description='', price=Decimal(total), stock=10,
+        is_active=True, is_published=True,
     )
+    product.categories.add(category)
+    order = make_order(user=user, status='PENDING', product=product, quantity=1)
     DeliveryAddress.objects.create(
-        order=order, recipient_name='Juan Perez', street='Calle 10',
+        sale_order=order, recipient_name='Juan Perez', street='Calle 10',
         city='CDMX', state='CMX', zip_code='06600', phone='5512345678',
     )
     return order
@@ -95,7 +108,7 @@ class TestBuildOrderPayload:
             token='CARD-TKN', installments=1,
         )
         assert p['type'] == 'online'
-        assert p['external_reference'] == order.order_number
+        assert p['external_reference'] == order.name
         assert p['processing_mode'] == 'automatic'
         assert p['capture_mode'] == 'automatic'
         # importes STRING, cuadran orden vs pago

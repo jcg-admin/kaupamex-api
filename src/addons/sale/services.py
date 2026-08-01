@@ -31,8 +31,10 @@ from addons.base.models import SiteSettings
 from addons.inventory.services import InventoryService
 from addons.loyalty.models import Voucher, VoucherUsage
 from addons.stock.models import StockPicking
+from addons.mail.models.notification_service import notify_order_status_changed
+from .status_projection import STATUS_CANCELLED, order_status
 from .models import SaleOrder, SaleOrderLine
-from .signals import (draft_discount_requested,
+from .signals import (draft_discount_requested, order_cancelled,
                       draft_voucher_requested, order_confirmed)
 
 
@@ -398,4 +400,110 @@ def confirm_draft_order(order, *, address_data, guest_email=None, notes='',
         # que faltaba materializar es la dirección de entrega, que por la
         # referencia no es del eje comercial: vive en ``delivery``.
         DeliveryAddress.objects.create(sale_order=order, **address_data)
+    return order
+
+
+def track_sale_state(order, previous, new, author, note=''):
+    """Registra una transición de estado de la venta en su chatter.
+
+    Reemplaza a ``orders.OrderStatusLog``. El destino lo declara
+    ``analisis-estructura-destino-comercial.rst``: en la referencia la bitácora
+    es ``mail.thread`` con ``tracking=True`` sobre el campo, no una tabla
+    lateral. ``SaleOrder`` ya hereda ``MailThread``, así que la paridad es
+    directa: ``changed_by`` → autor del ``mail.message``; los estados →
+    ``old``/``new`` del ``mail.tracking.value``.
+
+    La nota va como mensaje aparte porque ``message_track`` publica el
+    tracking con cuerpo vacío (fiel a Odoo, donde el comentario es otro
+    mensaje del hilo).
+
+    Vive aquí y no en ``delivery`` —donde nació— porque el sujeto es el estado
+    de la **venta**: ``delivery`` depende de ``sale``, nunca al revés.
+    """
+    order.message_track(
+        [{'field': 'state', 'field_desc': 'Estado', 'field_type': 'char',
+          'old': previous, 'new': new}],
+        author=author,
+    )
+    if note:
+        order.message_post(body=note, author=author)
+
+
+# Cancelable por el **comprador**. Una vez despachada la orden, la vuelta
+# atrás es una devolución (``returns``), no una cancelación.
+CANCELABLE_STATUSES = ['PENDING', 'PAID']
+
+
+def cancel_order(order, reason='', cancelled_by=None, cancelable_statuses=None):
+    """Cancela una venta de forma atómica (UC-ORD-04).
+
+    Cuatro pasos en una sola transacción: validar que el estado proyectado sea
+    cancelable, cancelar el eje comercial, restaurar el stock de las líneas de
+    producto, y reembolsar si hay un pago aprobado.
+
+    El estado **no se escribe**: se cancela ``action_cancel()`` y la proyección
+    deriva CANCELLED de ahí. Los campos de metadata de la cancelación
+    (``cancellation_reason``/``cancelled_at``) sí son columnas de la venta.
+
+    :raises ValueError: si la orden no es cancelable.
+    :raises RuntimeError: si el gateway de reembolso falla (revierte todo).
+    """
+    allowed = (cancelable_statuses if cancelable_statuses is not None
+               else CANCELABLE_STATUSES)
+    if order_status(order) not in allowed:
+        raise ValueError(
+            f'La orden {order.name} no se puede cancelar '
+            f'(estado: {order_status(order)}). Solo se permiten cancelaciones '
+            f'en estados: {allowed}.'
+        )
+
+    with transaction.atomic():
+        # Re-verificar bajo lock: dos cancelaciones concurrentes restaurarían
+        # el stock dos veces. Se re-deriva el estado sobre la fila bloqueada.
+        order = SaleOrder.objects.select_for_update().get(pk=order.pk)
+        if order_status(order) not in allowed:
+            raise ValueError(
+                f'La orden {order.name} ya no es cancelable '
+                f'(cancelada por una petición concurrente).'
+            )
+
+        previous_status = order_status(order)
+        order.cancellation_reason = reason
+        order.cancelled_at        = timezone.now()
+        order.save(update_fields=['cancellation_reason', 'cancelled_at',
+                                  'updated_at'])
+
+        if order.state != SaleOrder.STATE_CANCEL and not order.locked:
+            order.action_cancel()
+
+        track_sale_state(order, previous_status, STATUS_CANCELLED,
+                         cancelled_by, note=reason)
+        notify_order_status_changed(order, STATUS_CANCELLED)
+
+        # Restaurar stock — sólo las líneas de producto: las marcadoras de
+        # envío y descuento no reservaron nada que devolver.
+        stock_items = [
+            {'product': line.product, 'variant': line.variant,
+             'quantity': line.product_uom_qty}
+            for line in (order.order_line
+                         .filter(is_delivery=False, is_reward=False)
+                         .select_related('product', 'variant'))
+            if line.product_id
+        ]
+        if stock_items:
+            InventoryService.restore(
+                items=stock_items, reference=order.name,
+                created_by=cancelled_by,
+            )
+            logger.info('Stock restaurado para la orden cancelada %s — %d líneas',
+                        order.name, len(stock_items))
+
+        # El reembolso lo hace ``payments`` al escuchar la señal: el núcleo
+        # no puede importarlo (``Payment`` tiene FK a ``SaleOrder``). Si el
+        # gateway falla, el receptor levanta y revierte la transacción entera
+        # — cancelar sin devolver el dinero dejaría al comprador pagado y sin
+        # orden.
+        order_cancelled.send(sender=SaleOrder, order=order, reason=reason,
+                             cancelled_by=cancelled_by)
+
     return order

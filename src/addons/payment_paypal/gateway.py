@@ -83,18 +83,18 @@ class PayPalGateway(BaseGateway):
         FR-PAY-02.01.
 
         PayPal usa 'purchase_units' en lugar de 'items' individuales.
-        El 'external_reference' es order.order_number para correlacionar el webhook.
+        El 'external_reference' es order.name para correlacionar el webhook.
         """
         creds        = _get_credentials()
         access_token = _get_access_token(creds)
         env          = creds.get('env', 'sandbox')
         base_url     = PAYPAL_API_BASE if env == 'live' else PAYPAL_API_SANDBOX
 
-        total = str(order.value.total)
+        total = str(order.amount_total)
 
         purchase_units = [{
-            'reference_id':  order.order_number,
-            'description':   f'Orden {order.order_number} — PracticaYoruba',
+            'reference_id':  order.name,
+            'description':   f'Orden {order.name} — PracticaYoruba',
             'amount': {
                 'currency_code': 'MXN',
                 'value':         total,
@@ -104,12 +104,16 @@ class PayPalGateway(BaseGateway):
             },
             'items': [
                 {
-                    'name':        item.product_name,
-                    'description': item.variant_label or '',
-                    'unit_amount': {'currency_code': 'MXN', 'value': str(item.unit_price)},
-                    'quantity':    str(item.quantity),
+                    'name':        item.name,
+                    'description': (item.variant.option.label
+                                    if item.variant_id else ''),
+                    'unit_amount': {'currency_code': 'MXN', 'value': str(item.price_unit)},
+                    'quantity':    str(item.product_uom_qty),
                 }
-                for item in order.items.all()
+                # Sólo producto: envío y descuento son términos del total.
+                for item in order.order_line.filter(
+                    is_delivery=False, is_reward=False
+                ).select_related('product', 'variant__option').order_by('id')
             ],
         }]
 

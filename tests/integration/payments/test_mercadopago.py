@@ -12,13 +12,14 @@ from decimal import Decimal
 from unittest.mock import patch, MagicMock
 from decouple import config
 from addons.catalogue.models import Category, Product
-from addons.delivery.models import ShippingZone
+from addons.delivery.models import ShippingZone, DeliveryAddress
 from addons.sale.models import SaleOrder, SaleOrderLine
 from addons.delivery.models import ShippingMethod
 from addons.payment.models import PaymentGateway
 from addons.payment.models import Payment, PaymentGatewayEvent
 from addons.payment_mercado_pago.gateway import MercadoPagoGateway
 from addons.users.models import Address
+from addons.sale.status_projection import STATUS_PENDING, STATUS_DELIVERED
 from tests.factories.order_factory import make_order
 from tests.factories.order_factory import mark_delivered
 
@@ -53,21 +54,17 @@ def prod_s15(db, cat_s15):
 
 @pytest.fixture
 def orden_pendiente(db, user, prod_s15):
-    """Orden en estado PENDING con OrderValue_GONE."""
+    """Orden en estado PENDING con una línea de producto (2 x prod_s15).
+
+    E5: la venta ES la orden — la línea se crea vía ``make_order`` (que
+    dispara ``_compute_amounts``), no en una entidad de importes aparte.
+    """
     order = make_order(
-        user=user, status='PENDING',
-    )
-    SaleOrderLine.objects.create(
-        order=order, name=prod_s15.name, price_unit=prod_s15.price,
-        product_uom_qty=2,
-    )
-    OrderValue_GONE.objects.create(
-        order=order, subtotal=Decimal('3000.00'),
-        tax=Decimal('413.79'), shipping_cost=Decimal('0.00'),
-        discount=Decimal('0.00'), total=Decimal('3000.00'),
+        user=user, status=STATUS_PENDING,
+        product=prod_s15, quantity=2,
     )
     DeliveryAddress.objects.create(
-        order=order, recipient_name='Test User',
+        sale_order=order, recipient_name='Test User',
         street='Av. Reforma 100', city='CDMX',
         state='Ciudad de Mexico', zip_code='06600',
     )
@@ -168,7 +165,7 @@ class TestIniciarPago:
         )
         api_client.force_authenticate(user=attacker)
         res = api_client.post(INITIATE_URL, {
-            'order_number': orden_pendiente.order_number,
+            'order_number': orden_pendiente.name,
         }, format='json')
         assert res.status_code == 400, (
             f'Esperado 400 ORDER_NOT_FOUND (filtro user= excluye orden ajena), '
@@ -181,22 +178,22 @@ class TestIniciarPago:
         self, auth_client, orden_pendiente, mp_gateway_activo, mock_mp_sdk, db
     ):
         res = auth_client.post(INITIATE_URL, {
-            'order_number': orden_pendiente.order_number,
+            'order_number': orden_pendiente.name,
         }, format='json')
         assert res.status_code == 201, res.json()
         data = res.json()
         assert 'checkout_url' in data
         assert data['checkout_url'].startswith('https://')
-        assert data['order_number'] == orden_pendiente.order_number
+        assert data['order_number'] == orden_pendiente.name
         assert data['installments'] == 1
 
     def test_iniciar_pago_crea_registro_payment_en_bd(
         self, auth_client, orden_pendiente, mp_gateway_activo, mock_mp_sdk, db
     ):
         auth_client.post(INITIATE_URL, {
-            'order_number': orden_pendiente.order_number,
+            'order_number': orden_pendiente.name,
         }, format='json')
-        payment = Payment.objects.get(order=orden_pendiente)
+        payment = Payment.objects.get(sale_order=orden_pendiente)
         assert payment.status == 'PENDING'
         assert payment.preference_id == 'PREF-TEST-123456'
         assert payment.gateway == 'MERCADOPAGO'
@@ -205,9 +202,9 @@ class TestIniciarPago:
         self, auth_client, orden_pendiente, mp_gateway_activo, mock_mp_sdk, db
     ):
         auth_client.post(INITIATE_URL, {
-            'order_number': orden_pendiente.order_number,
+            'order_number': orden_pendiente.name,
         }, format='json')
-        payment = Payment.objects.get(order=orden_pendiente)
+        payment = Payment.objects.get(sale_order=orden_pendiente)
         event = PaymentGatewayEvent.objects.filter(
             payment=payment, event_type='PREFERENCE_CREATED'
         ).first()
@@ -221,7 +218,7 @@ class TestIniciarPago:
         # O2C V5d: DELIVERED se produce por el EJE de fulfillment.
         mark_delivered(orden_pendiente)
         res = auth_client.post(INITIATE_URL, {
-            'order_number': orden_pendiente.order_number,
+            'order_number': orden_pendiente.name,
         }, format='json')
         assert res.status_code == 400
         assert res.json()['codigo_error'] == 'ORDER_NOT_PAYABLE'
@@ -246,7 +243,7 @@ class TestIniciarPago:
                 'response': {'message': 'Invalid access token'},
             }
             res = auth_client.post(INITIATE_URL, {
-                'order_number': orden_pendiente.order_number,
+                'order_number': orden_pendiente.name,
             }, format='json')
         assert res.status_code == 503
         assert res.json()['codigo_error'] == 'GATEWAY_UNAVAILABLE'
@@ -256,7 +253,7 @@ class TestIniciarPago:
     ):
         """BR-009: las credenciales del gateway NUNCA deben aparecer en la respuesta."""
         res = auth_client.post(INITIATE_URL, {
-            'order_number': orden_pendiente.order_number,
+            'order_number': orden_pendiente.name,
         }, format='json')
         respuesta_str = json.dumps(res.json())
         assert 'TEST-ACCESS-TOKEN-FAKE' not in respuesta_str
@@ -268,10 +265,10 @@ class TestIniciarPago:
     ):
         # Crear el Payment primero
         auth_client.post(INITIATE_URL, {
-            'order_number': orden_pendiente.order_number,
+            'order_number': orden_pendiente.name,
         }, format='json')
 
-        return_url = f'/api/v2/payments/{orden_pendiente.order_number}/return/'
+        return_url = f'/api/v2/payments/{orden_pendiente.name}/return/'
         res = auth_client.get(return_url, {
             'status': 'approved',
             'payment_id': '12345678',
@@ -280,9 +277,9 @@ class TestIniciarPago:
         # devolver JSON; el efecto sobre el Payment se conserva.
         assert res.status_code == 302
         assert res['Location'].endswith(
-            f'/order/{orden_pendiente.order_number}/confirmation'
+            f'/order/{orden_pendiente.name}/confirmation'
         )
-        payment = Payment.objects.get(order=orden_pendiente)
+        payment = Payment.objects.get(sale_order=orden_pendiente)
         assert payment.status == 'APPROVED'
         assert payment.gateway_payment_id == '12345678'
 
@@ -290,19 +287,19 @@ class TestIniciarPago:
         self, auth_client, orden_pendiente, mp_gateway_activo, mock_mp_sdk, db
     ):
         auth_client.post(INITIATE_URL, {
-            'order_number': orden_pendiente.order_number,
+            'order_number': orden_pendiente.name,
         }, format='json')
 
-        return_url = f'/api/v2/payments/{orden_pendiente.order_number}/return/'
+        return_url = f'/api/v2/payments/{orden_pendiente.name}/return/'
         res = auth_client.get(return_url, {'status': 'pending'})
 
         # P-02: pending redirige a la página de verificación (polling), sin
         # alterar el status del Payment.
         assert res.status_code == 302
         assert res['Location'].endswith(
-            f'/checkout/payment-return/{orden_pendiente.order_number}'
+            f'/checkout/payment-return/{orden_pendiente.name}'
         )
-        payment = Payment.objects.get(order=orden_pendiente)
+        payment = Payment.objects.get(sale_order=orden_pendiente)
         assert payment.status == 'PENDING'
 
     def test_retorno_gateway_rechazado_redirige_a_payment_failed(
@@ -311,15 +308,15 @@ class TestIniciarPago:
         # P-02: al rechazar la tarjeta, "Volver a la tienda" debe llevar al
         # storefront (payment-failed), no a un JSON crudo del host de la API.
         auth_client.post(INITIATE_URL, {
-            'order_number': orden_pendiente.order_number,
+            'order_number': orden_pendiente.name,
         }, format='json')
 
-        return_url = f'/api/v2/payments/{orden_pendiente.order_number}/return/'
+        return_url = f'/api/v2/payments/{orden_pendiente.name}/return/'
         res = auth_client.get(return_url, {'status': 'rejected'})
 
         assert res.status_code == 302
         assert res['Location'].endswith(
-            f'/order/{orden_pendiente.order_number}/payment-failed'
+            f'/order/{orden_pendiente.name}/payment-failed'
         )
 
 
@@ -345,7 +342,7 @@ class TestCuotasMSI:
     ):
         """Solo planes con interest_rate = 0 (MSI)."""
         res = auth_client.get(INSTALLMENT_URL, {
-            'order_number': orden_pendiente.order_number,
+            'order_number': orden_pendiente.name,
         })
         assert res.status_code == 200
         plans = res.json()['plans']
@@ -356,7 +353,7 @@ class TestCuotasMSI:
         self, auth_client, orden_pendiente, mp_gateway_activo, mock_mp_sdk, db
     ):
         res = auth_client.get(INSTALLMENT_URL, {
-            'order_number': orden_pendiente.order_number,
+            'order_number': orden_pendiente.name,
         })
         data = res.json()
         assert 'order_number' in data
@@ -374,35 +371,41 @@ class TestCuotasMSI:
     ):
         """UC-PAY-01-EXT: iniciar pago con 3 cuotas MSI."""
         res = auth_client.post(INITIATE_URL, {
-            'order_number': orden_pendiente.order_number,
+            'order_number': orden_pendiente.name,
             'installments': 3,
         }, format='json')
         assert res.status_code == 201
         assert res.json()['installments'] == 3
-        payment = Payment.objects.get(order=orden_pendiente)
+        payment = Payment.objects.get(sale_order=orden_pendiente)
         assert payment.installments == 3
 
     def test_amount_mismatch_retorna_422(
-        self, auth_client, orden_pendiente, mp_gateway_activo, mock_mp_sdk, db
+        self, auth_client, orden_pendiente, mp_gateway_activo, mock_mp_sdk, prod_s15, db
     ):
         """UC-PAY-01 AC-06: si el monto de la orden cambió entre el cálculo del
         checkout y la creación de la preferencia → HTTP 422 con
         codigo_error = AMOUNT_MISMATCH.
 
-        Simula el drift: tras crear la orden PENDING, su OrderValue_GONE.total cambia
-        (p.ej. recálculo de impuestos/envío por el cliente) antes de iniciar el
-        pago. El backend detecta la divergencia y rechaza con 422.
+        Simula el drift: tras crear la orden PENDING, su total recalculado
+        (E5: ``SaleOrder.amount_total``, derivado de las líneas — ya no una
+        entidad de importes aparte) cambia respecto al snapshot que vio el
+        cliente en el checkout (p.ej. otro agente agrega una línea antes de
+        que el pago se inicie). El backend detecta la divergencia y rechaza
+        con 422.
 
         AC-06 implementado: InitiatePaymentSerializer acepta ``expected_amount``
-        y InitiatePaymentView lo contrasta con ``order.value.total``.
+        y InitiatePaymentView lo contrasta con el total recalculado de la orden.
         """
-        # Drift del monto: el OrderValue_GONE.total cambia respecto al snapshot del
-        # checkout, simulando recálculo entre el checkout y la preferencia.
-        orden_pendiente.value.total = Decimal('9999.00')
-        orden_pendiente.value.save(update_fields=['total'])
+        # Drift del monto: agregar una línea recalcula amount_total (dispara
+        # SaleOrderLine.save() -> order._compute_amounts()), simulando el
+        # recálculo entre el checkout y la preferencia.
+        SaleOrderLine.objects.create(
+            order=orden_pendiente, product=prod_s15, name=prod_s15.name,
+            product_uom_qty=1, price_unit=Decimal('9999.00'),
+        )
 
         res = auth_client.post(INITIATE_URL, {
-            'order_number': orden_pendiente.order_number,
+            'order_number': orden_pendiente.name,
             # AC-06: el cliente envía el monto que vio en el checkout; el backend
             # lo contrasta con el total recalculado de la orden.
             'expected_amount': '3000.00',
@@ -445,7 +448,7 @@ class TestCheckoutExpress:
             is_default=True,
         )
         # Crear orden entregada
-        o = make_order(user=user, status='DELIVERED')
+        o = make_order(user=user, status=STATUS_DELIVERED)
 
         res = auth_client.get(ELIGIBILITY_URL)
         data = res.json()
@@ -456,7 +459,7 @@ class TestCheckoutExpress:
     def test_comprador_sin_direccion_default_no_es_elegible(
         self, auth_client, user, db
     ):
-        make_order(user=user, status='DELIVERED')
+        make_order(user=user, status=STATUS_DELIVERED)
         # Sin dirección default
         res = auth_client.get(ELIGIBILITY_URL)
         assert res.json()['express_available'] is False
@@ -490,7 +493,7 @@ class TestCheckoutExpress:
             city='CDMX', state='CMX', zip_code='06600',
             is_default=True,
         )
-        make_order(user=user, status='DELIVERED')
+        make_order(user=user, status=STATUS_DELIVERED)
 
         # Agregar producto al carrito
         prod_s15.stock = 10
@@ -523,7 +526,7 @@ class TestCheckoutExpress:
             city='CDMX', state='CMX', zip_code='06600',
             is_default=True,
         )
-        make_order(user=user, status='DELIVERED')
+        make_order(user=user, status=STATUS_DELIVERED)
 
         auth_client.post('/api/v2/cart/items/', {
             'product_id': prod_s15.pk, 'quantity': 1,

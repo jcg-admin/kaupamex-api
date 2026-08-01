@@ -3,12 +3,12 @@ Tests — Reembolso de pagos y reintento (UC-PAY-07, UC-PAY-08, UC-PAY-09)
 
 Nombre descriptivo: dominio (reembolso y reintento), no sprint.
 """
-from addons.sale.models import SaleOrderLine
 import json
 import pytest
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
 from addons.catalogue.models import Category, Product
+from addons.delivery.models import DeliveryAddress
 from addons.payment.models import Payment, Refund
 from addons.payment.models import PaymentGateway
 from django.contrib.auth import get_user_model
@@ -43,23 +43,25 @@ def prod_ref(db, cat_ref):
 
 
 def _make_order_with_payment(user, prod, gateway='MERCADOPAGO', status='APPROVED'):
-    """Helper para crear orden + payment en el estado indicado."""
+    """Crea una orden confirmada + un ``Payment`` manual en el estado indicado.
 
-    order = make_order(user=user, status='PROCESSING' if status == 'APPROVED' else 'PENDING')
-    SaleOrderLine.objects.create(
-        order=order, name=prod.name,
-        price_unit=prod.price, product_uom_qty=1,
-    )
-    OrderValue_GONE.objects.create(
-        order=order, subtotal=prod.price, tax=(prod.price * Decimal('0.16') / Decimal('1.16')).quantize(Decimal('0.01')),
-        shipping_cost=Decimal('0'), discount=Decimal('0'), total=prod.price,
-    )
+    El eje de pago (APPROVED/FAILED) lo decide el ``Payment`` creado aquí; la
+    orden solo necesita estar confirmada (``state='sale'``) con una línea de
+    producto — la línea reproduce el subtotal/total que antes se fijaba a
+    mano en el registro de importes aparte (espejo retirado, SOL-098). El
+    literal ``'PROCESSING'`` que el código original pasaba a ``make_order``
+    era un estado muerto del vocabulario de ``status_projection`` (la
+    proyección nunca lo emite); ``'PENDING'`` es el equivalente vivo — el
+    estado de pago real lo decide el ``Payment`` de abajo, no el ``status``
+    de la fábrica.
+    """
+    order = make_order(user=user, status='PENDING', product=prod, quantity=1)
     DeliveryAddress.objects.create(
-        order=order, recipient_name='T', street='S',
+        sale_order=order, recipient_name='T', street='S',
         city='CDMX', state='CMX', zip_code='06600',
     )
     payment = Payment.objects.create(
-        order=order, sale_order=order.sale_order, gateway=gateway,
+        sale_order=order, gateway=gateway,
         preference_id=f'PREF-REF-{order.pk}',
         gateway_payment_id=f'GW-REF-{order.pk}',
         status=status, amount=prod.price,
@@ -125,7 +127,7 @@ class TestReembolsoComprador:
         """FR-PAY-07.02: reembolso total → Payment=REFUNDED, Refund creado."""
         order, payment = _make_order_with_payment(user, prod_ref)
 
-        res = auth_client.post(REFUND_URL(order.order_number), {}, format='json')
+        res = auth_client.post(REFUND_URL(order.name), {}, format='json')
         assert res.status_code == 201, res.json()
         data = res.json()
         assert data['status'] == 'APPROVED'   # H-REF-007: no 'PROCESSED'
@@ -149,7 +151,7 @@ class TestReembolsoComprador:
                 'response': {'id': 999002, 'amount': float(monto_parcial), 'status': 'approved'},
             }
             res = auth_client.post(
-                REFUND_URL(order.order_number),
+                REFUND_URL(order.name),
                 {'amount': str(monto_parcial)},
                 format='json',
             )
@@ -166,7 +168,7 @@ class TestReembolsoComprador:
         order, _ = _make_order_with_payment(
             user, prod_ref, status='FAILED'
         )
-        res = auth_client.post(REFUND_URL(order.order_number), {}, format='json')
+        res = auth_client.post(REFUND_URL(order.name), {}, format='json')
         assert res.status_code == 400
         assert res.json()['codigo_error'] == 'PAYMENT_NOT_REFUNDABLE'
 
@@ -179,7 +181,7 @@ class TestReembolsoComprador:
             email='other_r@test.com', password='pass'
         )
         order, _ = _make_order_with_payment(other, prod_ref)
-        res = auth_client.post(REFUND_URL(order.order_number), {}, format='json')
+        res = auth_client.post(REFUND_URL(order.name), {}, format='json')
         assert res.status_code == 404
         assert res.json()['codigo_error'] == 'ORDER_NOT_FOUND'
 
@@ -195,7 +197,7 @@ class TestReembolsoComprador:
                 'status': 400,
                 'response': {'message': 'Gateway error'},
             }
-            res = auth_client.post(REFUND_URL(order.order_number), {}, format='json')
+            res = auth_client.post(REFUND_URL(order.name), {}, format='json')
         assert res.status_code == 503
 
     def test_reembolso_registra_gateway_refund_id(
@@ -203,8 +205,8 @@ class TestReembolsoComprador:
     ):
         """El Refund.gateway_refund_id se guarda para trazabilidad."""
         order, _ = _make_order_with_payment(user, prod_ref)
-        auth_client.post(REFUND_URL(order.order_number), {}, format='json')
-        refund = Refund.objects.filter(payment__order=order).first()
+        auth_client.post(REFUND_URL(order.name), {}, format='json')
+        refund = Refund.objects.filter(payment__sale_order=order).first()
         assert refund is not None
         assert refund.gateway_refund_id == '999001'
 
@@ -271,17 +273,19 @@ class TestReintentoPago:
         order, failed_payment = _make_order_with_payment(
             user, prod_ref, status='FAILED'
         )
-        # La orden debe estar en PENDING para reintentar
-        order.status = 'PENDING'
-        order.save()
-
+        # O2C V5d: la orden ya proyecta PENDING sin escribir ninguna
+        # columna — no hay Payment APPROVED ni guía viva, solo el FAILED
+        # de arriba (que no cuenta para el eje de pago). El
+        # `order.status = 'PENDING'` original escribía un atributo que
+        # `SaleOrder` no tiene (el campo es `state`, no `status`); era un
+        # no-op silencioso, no una precondición real.
         res = auth_client.post(INITIATE_URL, {
-            'order_number': order.order_number,
+            'order_number': order.name,
             'gateway':      'MERCADOPAGO',
         }, format='json')
 
         assert res.status_code == 201, res.json()
-        total_payments = Payment.objects.filter(order=order).count()
+        total_payments = Payment.objects.filter(sale_order=order).count()
         assert total_payments == 2  # el FAILED + el nuevo PENDING
 
         failed_payment.refresh_from_db()
@@ -299,9 +303,10 @@ class TestReintentoPago:
         })
         pp_gw.save()
 
+        # O2C V5d: la orden ya proyecta PENDING (ver nota del test anterior);
+        # el `order.status = 'PENDING'` original era un no-op sobre un
+        # atributo que `SaleOrder` no tiene.
         order, _ = _make_order_with_payment(user, prod_ref, status='FAILED')
-        order.status = 'PENDING'
-        order.save()
 
         pp_order_resp = MagicMock()
         pp_order_resp.status_code = 201
@@ -316,11 +321,11 @@ class TestReintentoPago:
         with patch('addons.payment_paypal.gateway.requests') as mock_req:
             mock_req.post.side_effect = [token_resp, pp_order_resp]
             res = auth_client.post(INITIATE_URL, {
-                'order_number': order.order_number,
+                'order_number': order.name,
                 'gateway':      'PAYPAL',
             }, format='json')
 
         assert res.status_code == 201
-        payments = Payment.objects.filter(order=order).order_by('-created_at')
+        payments = Payment.objects.filter(sale_order=order).order_by('-created_at')
         assert payments[0].gateway == 'PAYPAL'
         assert payments[1].gateway == 'MERCADOPAGO'

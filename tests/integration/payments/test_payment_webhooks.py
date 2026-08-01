@@ -11,8 +11,8 @@ import pytest
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
 from addons.catalogue.models import Category, Product
-from addons.sale.status_projection import order_status
-from addons.sale.models import SaleOrder, SaleOrderLine
+from addons.delivery.models import DeliveryAddress
+from addons.sale.status_projection import order_status, STATUS_PENDING
 from django.core.checks.registry import registry
 from addons.payment_mercado_pago.checks import check_mercadopago_client_secret
 from addons.payment.models import Payment
@@ -32,8 +32,12 @@ def cat_wh(db):
 
 @pytest.fixture
 def orden_processing_mp(db, user, cat_wh):
-    """Orden con Payment de MP en PENDING, lista para recibir webhook."""
+    """Orden confirmada con Payment de MP en PENDING, lista para webhook.
 
+    E5: la venta ES la orden — se fabrica con ``make_order`` (dispara
+    ``_compute_amounts`` vía la línea real), no con el par ``order``/
+    ``sale_order`` ni una entidad de importes aparte del espejo retirado.
+    """
     prod = Product.objects.create(
         name='Pulso Orula', slug='pulso-orula', sku='WH-PO-001',
         description='',
@@ -41,24 +45,14 @@ def orden_processing_mp(db, user, cat_wh):
         is_active=True, is_published=True,
     )
     prod.categories.add(cat_wh)
-    order = SaleOrder.objects.create(
-        user=user, # O2C R8: par canonico — la proyeccion deriva el estado de los ejes.
-        sale_order=SaleOrder.objects.create(state=SaleOrder.STATE_SALE),
-    )
-    SaleOrderLine.objects.create(
-        order=order, name=prod.name,
-        price_unit=prod.price, product_uom_qty=1,
-    )
-    OrderValue_GONE.objects.create(
-        order=order, subtotal=Decimal('600.00'), tax=Decimal('82.76'),
-        shipping_cost=Decimal('0.00'), discount=Decimal('0.00'), total=Decimal('600.00'),
-    )
+    order = make_order(user=user, status=STATUS_PENDING,
+                       product=prod, quantity=1)
     DeliveryAddress.objects.create(
-        order=order, recipient_name='Test', street='St 1',
+        sale_order=order, recipient_name='Test', street='St 1',
         city='CDMX', state='CMX', zip_code='06600',
     )
     payment = Payment.objects.create(
-        order=order, sale_order=order.sale_order, gateway='MERCADOPAGO',
+        sale_order=order, gateway='MERCADOPAGO',
         preference_id='PREF-WH-TEST-001',
         gateway_payment_id='MP-PAY-999',
         status='PENDING', amount=Decimal('600.00'),
@@ -112,7 +106,7 @@ class TestMercadoPagoWebhook:
             res = api_client.post(
                 MP_WEBHOOK_URL,
                 data=json.dumps({'type': 'payment', 'data': {'id': 'MP-PAY-999'},
-                                 'external_reference': order.order_number}),
+                                 'external_reference': order.name}),
                 content_type='application/json',
                 HTTP_X_SIGNATURE=f'ts={ts},v1={signature}',
                 HTTP_X_REQUEST_ID=request_id,
@@ -156,7 +150,7 @@ class TestMercadoPagoWebhook:
             res = api_client.post(
                 MP_WEBHOOK_URL,
                 data=json.dumps({'type': 'order', 'data': {'id': 'ORD-WH-1'},
-                                 'external_reference': order.order_number}),
+                                 'external_reference': order.name}),
                 content_type='application/json',
                 HTTP_X_SIGNATURE=f'ts={ts},v1={signature}',
                 HTTP_X_REQUEST_ID=request_id,
@@ -190,11 +184,12 @@ class TestMercadoPagoWebhook:
         self, api_client, orden_processing_mp, mp_gateway_wh, db
     ):
         """FR-PAY-03.02: mismo webhook dos veces — solo la primera cambia el estado."""
+        # E5: SaleOrder no tiene columna ``status`` propia — es proyectada
+        # (order_status). Un Payment APPROVED ya basta para que la orden
+        # proyecte PAID; no hay campo de cabecera que fijar aparte.
         order, payment = orden_processing_mp
         payment.status = 'APPROVED'
         payment.save()
-        order.status = 'PROCESSING'
-        order.save()
 
         ts        = '1715000001'
         req_id    = 'REQ-DUP-456'
@@ -393,7 +388,7 @@ class TestPayPalWebhook:
 
     @pytest.fixture
     def orden_paypal_wh(self, db, user, cat_wh):
-
+        """Orden confirmada con Payment PayPal PENDING, lista para webhook."""
         prod = Product.objects.create(
             name='Azabache', slug='azabache-wh', sku='WH-AZ-001',
             description='',
@@ -401,24 +396,14 @@ class TestPayPalWebhook:
             is_active=True, is_published=True,
         )
         prod.categories.add(cat_wh)
-        order = SaleOrder.objects.create(
-        user=user, # O2C R8: par canonico — la proyeccion deriva el estado de los ejes.
-        sale_order=SaleOrder.objects.create(state=SaleOrder.STATE_SALE),
-    )
-        SaleOrderLine.objects.create(
-            order=order, name=prod.name,
-            price_unit=prod.price, product_uom_qty=1,
-        )
-        OrderValue_GONE.objects.create(
-            order=order, subtotal=Decimal('400.00'), tax=Decimal('55.17'),
-            shipping_cost=Decimal('0.00'), discount=Decimal('0.00'), total=Decimal('400.00'),
-        )
+        order = make_order(user=user, status=STATUS_PENDING,
+                           product=prod, quantity=1)
         DeliveryAddress.objects.create(
-            order=order, recipient_name='T', street='S 1',
+            sale_order=order, recipient_name='T', street='S 1',
             city='CDMX', state='CMX', zip_code='06600',
         )
         payment = Payment.objects.create(
-            order=order, sale_order=order.sale_order, gateway='PAYPAL',
+            sale_order=order, gateway='PAYPAL',
             preference_id='PP-ORDER-WH-001',
             status='PENDING', amount=Decimal('400.00'),
         )
@@ -495,12 +480,12 @@ class TestPayPalWebhook:
         self, api_client, orden_paypal_wh, db
     ):
         """El mismo capture_id procesado dos veces no cambia el estado."""
+        # E5: sin columna ``status`` en SaleOrder — el Payment ya APPROVED
+        # basta para que la orden proyecte PAID (order_status).
         order, payment = orden_paypal_wh
         payment.status             = 'APPROVED'
         payment.gateway_payment_id = 'PP-CAP-DUP'
         payment.save()
-        order.status = 'PROCESSING'
-        order.save()
 
         payload = {
             'event_type': 'PAYMENT.CAPTURE.COMPLETED',
@@ -519,8 +504,8 @@ class TestPayPalWebhook:
 
         payment.refresh_from_db()
         order.refresh_from_db()
-        assert payment.status == 'APPROVED'   # sin cambio
-        assert order.status   == 'PROCESSING' # sin cambio
+        assert payment.status == 'APPROVED'      # sin cambio
+        assert order_status(order) == 'PAID'     # proyectado del eje — sin cambio
 
     def test_paypal_webhook_invalid_json_returns_400(self, api_client, db):
         """T-105 / DEC-BC-06: payload no-JSON en webhook PayPal -> 400."""

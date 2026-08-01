@@ -67,17 +67,15 @@ def prod(db, cat):
 @pytest.fixture
 def orden(db, user, prod):
     order = make_order(user=user, status='PENDING')
+    # La venta ES la orden: la línea de producto reproduce el subtotal de
+    # 1000.00 (500.00 × 2) que antes vivía en el espejo ``OrderValue`` —
+    # retirado (SOL-098). ``product`` es obligatorio en ``SaleOrderLine``.
     SaleOrderLine.objects.create(
-        order=order, name=prod.name,
+        order=order, product=prod, name=prod.name,
         price_unit=prod.price, product_uom_qty=2,
     )
-    OrderValue_GONE.objects.create(
-        order=order, subtotal=Decimal('1000.00'),
-        tax=Decimal('0'), shipping_cost=Decimal('0'),
-        discount=Decimal('0'), total=Decimal('1000.00'),
-    )
     DeliveryAddress.objects.create(
-        order=order, recipient_name='Test User',
+        sale_order=order, recipient_name='Test User',
         street='Av. Reforma 1', city='CDMX',
         state='Ciudad de Mexico', zip_code='06600',
     )
@@ -293,7 +291,7 @@ class TestCheckoutApiCustomerIntegration:
         )
         with patch('addons.payment_mercado_pago.gateway.mercadopago', mock):
             res = auth_client.post(INITIATE_V2_URL, {
-                'order_number':      orden.order_number,
+                'order_number':      orden.name,
                 'token':             'TEST-TOKEN-CUST',
                 'payment_method_id': 'visa',
                 'installments':      1,
@@ -318,7 +316,7 @@ class TestCheckoutApiCustomerIntegration:
         mock = _make_full_mp_mock(customer_found=True)
         with patch('addons.payment_mercado_pago.gateway.mercadopago', mock):
             auth_client.post(INITIATE_V2_URL, {
-                'order_number':      orden.order_number,
+                'order_number':      orden.name,
                 'token':             'TEST-TOKEN-CUST',
                 'payment_method_id': 'visa',
                 'installments':      1,
@@ -351,7 +349,7 @@ class TestCheckoutApiCustomerIntegration:
         }
         with patch('addons.payment_mercado_pago.gateway.mercadopago', mock_mp):
             res = auth_client.post(INITIATE_V2_URL, {
-                'order_number':      orden.order_number,
+                'order_number':      orden.name,
                 'token':             'TEST-TOKEN-CUST',
                 'payment_method_id': 'visa',
                 'installments':      1,

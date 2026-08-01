@@ -4,6 +4,16 @@ Verifica Fase 1 (TimeStampedModel) y Fase 2 (Proxy Models).
 
 No son tests de integración de negocio — son tests de infraestructura
 que garantizan que el refactoring no rompe nada.
+
+Nota (retiro del espejo ``orders.Order``, SOL-098, ``api@77bd1f0``): la
+antigua ``TestOrderProxies`` ejercía los proxies ``DeliveredOrder``/
+``ActiveOrder`` de ese addon retirado — ninguno de los dos existe ya en
+``src/`` (los seis proxies restantes ya se habían eliminado antes, H-API-06).
+Sin el modelo espejo, el caso ya no tiene sujeto: se borró en vez de
+reencuadrarse, porque su reemplazo funcional (derivar estado desde
+``sale.state``/pago/guía sin proxy dedicado) ya está cubierto en
+``tests/integration/sale/test_proxy_replacement_e5r5.py``, fuera de este
+archivo.
 """
 import pytest
 from decimal import Decimal
@@ -23,8 +33,7 @@ from addons.website_sale_wishlist.models import WishlistItem
 from addons.catalogue.serializers import SearchHistorySerializer
 from addons.inventory.proxy_models import SaleMovement, CancellationMovement, AdjustmentMovement, ImportMovement
 from addons.sale.models import SaleOrder, SaleOrderLine
-from addons.payment.models import Payment
-from addons.delivery.models import Courier, ShipmentGuide
+from addons.delivery.models import DeliveryAddress
 from django.utils import timezone
 from datetime import timedelta
 from addons.loyalty.proxy_models import FixedVoucher, PercentageVoucher, FreeShippingVoucher
@@ -46,7 +55,7 @@ class TestTimeStampedModelHerencia:
             Category, Product, SearchHistory, ProductImage,
             VariantType, VariantOption, ProductVariant,
             StockMovement, StockAlert,
-            SaleOrder, SaleOrderLine, OrderValue_GONE, DeliveryAddress,
+            SaleOrder, SaleOrderLine, DeliveryAddress,
             SiteSettings, PaymentGateway, ShippingMethod,
             StaticPage, StaticPageVersion,
             Address, PasswordResetToken, EmailVerificationToken,
@@ -158,69 +167,6 @@ class TestStockMovementProxies:
         assert SaleMovement.objects.filter(product=p).count() == 1
         assert AdjustmentMovement.objects.filter(product=p).count() == 1
         assert SaleMovement.objects.filter(product=p).first().movement_type == 'SALE'
-
-
-class TestOrderProxies:
-    """T-013 (O2C V5c-3): proxies vivos derivan de los ejes canónicos.
-
-    Los dos proxies restantes (``DeliveredOrder``, ``ActiveOrder``) filtran por
-    sale.state + pago + guía, no por la columna espejo ``order.status``. Los
-    seis proxies muertos se eliminaron (H-API-06).
-    """
-
-    def _order(self, *, approved=False):
-        """Orden canónica: SaleOrder confirmada + SaleOrder enlazada (+ pago)."""
-        so = SaleOrder.objects.create(state=SaleOrder.STATE_SALE)
-        order = SaleOrder.objects.create(sale_order=so)
-        if approved:
-            Payment.objects.create(
-                order=order, sale_order=so,
-                gateway=Payment.GATEWAY_MERCADOPAGO,
-                amount=Decimal('100.00'), status=Payment.STATUS_APPROVED,
-            )
-        return order
-
-    def _guide(self, order, *, delivered=False):
-        courier = Courier.objects.create(
-            name=f'DHL-{order.pk}', code=f'dhl-{order.pk}', is_active=True)
-        kwargs = dict(
-            order=order, sale_order=order.sale_order, courier=courier,
-            tracking_number=f'TRK-{order.pk}',
-        )
-        if delivered:
-            kwargs['status'] = ShipmentGuide.STATUS_DELIVERED
-        return ShipmentGuide.objects.create(**kwargs)
-
-    def test_proxy_models_no_crean_tablas(self, db):
-        for proxy in [DeliveredOrder, ActiveOrder]:
-            assert proxy._meta.db_table == SaleOrder._meta.db_table
-            assert proxy._meta.proxy is True
-
-    def test_delivered_order_desde_guia_entregada(self, db):
-        entregada = self._order(approved=True)
-        self._guide(entregada, delivered=True)
-        pendiente = self._order()                     # sin guía → PENDING
-
-        assert DeliveredOrder.objects.filter(pk=entregada.pk).exists()
-        assert not DeliveredOrder.objects.filter(pk=pendiente.pk).exists()
-
-    def test_active_order_pending_y_shipped_desde_ejes(self, db):
-        pendiente = self._order()                     # PENDING
-        enviada   = self._order(approved=True)
-        self._guide(enviada, delivered=False)         # SHIPPED (guía viva)
-        entregada = self._order(approved=True)
-        self._guide(entregada, delivered=True)        # DELIVERED → no activa
-
-        activos = set(ActiveOrder.objects.values_list('pk', flat=True))
-        assert pendiente.pk in activos
-        assert enviada.pk in activos
-        assert entregada.pk not in activos
-
-    def test_active_order_incluye_paid_sin_guia_h_api_14(self, db):
-        # H-API-14: una venta pagada sin guía (PAID) es activa — protege su
-        # ShippingMethod. El conjunto legacy la dejaba fuera (bug latente).
-        paid = self._order(approved=True)             # PAID, sin guía
-        assert ActiveOrder.objects.filter(pk=paid.pk).exists()
 
 
 class TestVoucherProxies:

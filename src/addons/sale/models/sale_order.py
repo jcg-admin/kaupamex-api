@@ -77,6 +77,12 @@ class SaleOrder(MailThread, TimeStampedModel):
         (STATE_CANCEL, 'Cancelada'),
     ]
 
+    # DEC-003: ``TimeStampedModel`` deja ``created_at`` sin índice y encarga a
+    # cada modelo declararlo "por volumen (inventario, órdenes)". El espejo lo
+    # declaraba y la canónica no lo heredó al retirarlo, aunque es ella la que
+    # se ordena por fecha en el panel del comprador y en el admin.
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
     # ``name`` NULL mientras es borrador (Odoo lo asigna al crear vía secuencia;
     # aquí se asigna al confirmar). UNIQUE admite múltiples NULL en SQL.
     name       = fields.Char(

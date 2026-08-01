@@ -40,6 +40,7 @@ from .serializers import (
     InitiatePaymentResponseSerializer, InstallmentPlansResponseSerializer,
     PaymentSerializer, AdminPaymentSerializer, PaymentReturnSerializer,
     CheckoutEligibilitySerializer, ExpressCheckoutSerializer,
+    ExpressCheckoutResponseSerializer,
     RefundRequestSerializer, RefundSerializer, AdminRefundSerializer,
     RetryEligibilitySerializer, PaymentStatusSerializer as PSS,
     RefundRequestSerializer as RRS, ChargebackSerializer,
@@ -164,13 +165,13 @@ class InitiatePaymentView(APIView):
                 # con 422 AMOUNT_MISMATCH en lugar de cobrar un monto distinto
                 # al que el comprador autorizó.
                 if (expected_amount is not None
-                        and expected_amount != order.value.total):
+                        and expected_amount != order.amount_total):
                     return Response(
                         {
                             'detail': (
                                 'El monto cambió desde el checkout '
                                 f'(esperado: {expected_amount}, '
-                                f'actual: {order.value.total}).'
+                                f'actual: {order.amount_total}).'
                             ),
                             'codigo_error': 'AMOUNT_MISMATCH',
                         },
@@ -203,7 +204,7 @@ class InitiatePaymentView(APIView):
             InitiatePaymentResponseSerializer({
                 'payment_id':   None,
                 'checkout_url': checkout_url,
-                'order_number': order.order_number,
+                'order_number': order.name,
                 'amount':       payment.amount,
                 'installments': payment.installments,
             }).data,
@@ -366,7 +367,7 @@ class ReceiptPdfView(APIView):
             )
 
         # EX-02: solicitante no dueño ni admin → 403 FORBIDDEN.
-        is_owner = order.user_id is not None and order.user_id == request.user.pk
+        is_owner = order.partner_id is not None and order.partner_id == request.user.pk
         if not (is_owner or is_superadmin(request.user)):
             return Response(
                 {'detail': 'No tienes permiso sobre esta orden.',
@@ -384,8 +385,11 @@ class ReceiptPdfView(APIView):
                 status=409,
             )
 
-        items = list(order.items.all())
-        value = getattr(order, 'value', None)
+        # Sólo los renglones de producto: las líneas marcadoras de envío y
+        # descuento son conceptos del total, no partidas del recibo — sus
+        # importes ya entran por ``totals``.
+        items = list(order.order_line.filter(is_delivery=False, is_reward=False)
+                     .select_related('product').order_by('id'))
         address = getattr(order, 'delivery_address', None)
         payment = (
             Payment.objects.filter(sale_order=order, status=Payment.STATUS_APPROVED)
@@ -394,7 +398,7 @@ class ReceiptPdfView(APIView):
         site = SiteSettings.get_current()
 
         payload = build_receipt_payload(
-            order=order, value=value, items=items,
+            order=order, items=items,
             address=address, payment=payment, site=site,
         )
 
@@ -417,12 +421,12 @@ class ReceiptPdfView(APIView):
             request=request,
             target_type=BusinessEvent.TARGET_ORDER,
             target_id=order.pk,
-            extra={'order_number': order.order_number},
+            extra={'order_number': order.name},
         )
 
         response = HttpResponse(pdf_bytes, content_type='application/pdf')
         response['Content-Disposition'] = (
-            f'attachment; filename="recibo-{order.order_number}.pdf"'
+            f'attachment; filename="recibo-{order.name}.pdf"'
         )
         return response
 
@@ -476,8 +480,8 @@ class InstallmentPlansView(APIView):
 
         return Response(
             InstallmentPlansResponseSerializer({
-                'order_number': order.order_number,
-                'amount':       order.value.total,
+                'order_number': order.name,
+                'amount':       order.amount_total,
                 'plans':        [
                     {
                         'installments':           p.installments,
@@ -590,7 +594,7 @@ class ExpressCheckoutView(APIView):
         ),
         request=ExpressCheckoutSerializer,
         responses={
-            201: OpenApiResponse(description='Orden creada. Ver OrderSerializer.'),
+            201: ExpressCheckoutResponseSerializer,
             400: OpenApiResponse(description='No elegible para checkout express.'),
             409: OpenApiResponse(description='Stock insuficiente.'),
         },
@@ -686,15 +690,15 @@ class ExpressCheckoutView(APIView):
                 'codigo_error': 'VOUCHER_ALREADY_USED',
             }, status=409)
 
-        # El express sí asigna método de envío (a diferencia del checkout
-        # estándar, donde el envío lo deriva el admin por zona).
-        order.shipping_method = shipping
-        order.save(update_fields=['shipping_method', 'updated_at'])
-        # E5/R5 — write-through al hogar canónico (ver orders/services.py).
-        order.sale_order.carrier = shipping
-        order.sale_order.save(update_fields=['carrier'])
+        # El express sí asigna transportista (a diferencia del checkout
+        # estándar, donde el envío lo deriva el admin por zona). Antes esto
+        # eran dos escrituras —la del espejo y el write-through al canónico—;
+        # con una sola entidad es una sola.
+        order.carrier = shipping
+        order.save(update_fields=['carrier', 'updated_at'])
 
-        return Response(OrderSerializer(order).data, status=201)
+        return Response(
+            ExpressCheckoutResponseSerializer(order).data, status=201)
 
 
 # =============================================================================
@@ -1276,7 +1280,7 @@ class CheckoutApiPaymentView(APIView):
                 )
 
             if 'expected_amount' in data and data['expected_amount'] is not None:
-                order_total = order.value.total
+                order_total = order.amount_total
                 if abs(data['expected_amount'] - order_total) > Decimal('0.01'):
                     return Response(
                         {
@@ -1314,7 +1318,7 @@ class CheckoutApiPaymentView(APIView):
             'gateway_payment_id':    result.gateway_payment_id,
             'status':                result.status,
             'status_detail':         result.status_detail,
-            'order_number':          order.order_number,
+            'order_number':          order.name,
             'amount':                str(result.amount),
             'installments':          result.installments,
             'external_resource_url': result.external_resource_url or '',

@@ -11,6 +11,9 @@ from addons.catalogue.models import Category, Product
 from addons.delivery.models import ShippingMethod
 from addons.delivery.models import ShippingZone
 from addons.sale.models import SaleOrder, SaleOrderLine
+from addons.sale.amounts import order_amounts
+from addons.delivery.models import DeliveryAddress
+from addons.delivery.models.sale_order import set_delivery_line
 from addons.loyalty.models import Voucher
 from django.utils import timezone
 from tests.factories.order_factory import make_order
@@ -131,8 +134,8 @@ class TestCheckout:
         # Cambiar precio del producto — no debe afectar la orden
         prod_ord.price = Decimal('999.00')
         prod_ord.save()
-        order = SaleOrder.objects.get(order_number=res.json()['order_number'])
-        assert order.items.first().unit_price == original_price
+        order = SaleOrder.objects.get(name=res.json()['order_number'])
+        assert order.order_line.first().price_unit == original_price
 
     def test_checkout_decrementa_stock(
         self, cart_con_item_auth, prod_ord, shipping_gratis, db
@@ -201,8 +204,8 @@ class TestCheckout:
         res = cart_con_item_auth.post(CHECKOUT_URL, {'address': ADDR}, format='json')
         assert res.status_code == 201
         assert Decimal(res.json()['value']['shipping_cost']) == Decimal('0.00')
-        order = SaleOrder.objects.get(order_number=res.json()['order_number'])
-        assert order.shipping_method is None
+        order = SaleOrder.objects.get(name=res.json()['order_number'])
+        assert order.carrier is None
 
     def test_checkout_ignora_shipping_method_id_del_payload(
         self, cart_con_item_auth, shipping, db
@@ -217,8 +220,8 @@ class TestCheckout:
         }, format='json')
         assert res.status_code == 201
         assert Decimal(res.json()['value']['shipping_cost']) == Decimal('0.00')
-        order = SaleOrder.objects.get(order_number=res.json()['order_number'])
-        assert order.shipping_method is None
+        order = SaleOrder.objects.get(name=res.json()['order_number'])
+        assert order.carrier is None
 
     def test_checkout_carrito_vacio_retorna_400(self, auth_client, zone_cdmx, db):
         res = auth_client.post(CHECKOUT_URL, {'address': ADDR}, format='json')
@@ -357,7 +360,7 @@ class TestCheckout:
         )
         assert second.json()['order_number'] == first_number
         # Invariante AC-06: una sola SaleOrder persistida para esa clave.
-        assert SaleOrder.objects.filter(order_number=first_number).count() == 1
+        assert SaleOrder.objects.filter(name=first_number).count() == 1
         assert SaleOrder.objects.count() == 1
 
     def test_iva_y_total_se_calculan_en_servidor(
@@ -367,7 +370,8 @@ class TestCheckout:
         servidor; el cliente nunca define ``total`` en el request.
 
         El request abajo solo envia ``address`` (sin ``total`` ni ``tax``);
-        el servidor persiste OrderValue_GONE con valores derivados del carrito.
+        el servidor persiste los importes (columnas ``amount_*`` de
+        ``SaleOrder``, recalculadas desde las líneas) derivados del carrito.
 
         Modelo fiscal IMPLEMENTADO (views.py:201-202, confirmado por el
         ejemplo en uc-ord-01 PARTE 7C.3): precios IVA-incluido ->
@@ -408,9 +412,10 @@ class TestCheckout:
         assert Decimal(value['total']) == Decimal('1000.00')
 
         # Server-side authority: el valor persistido coincide con la respuesta.
-        order = SaleOrder.objects.get(order_number=res.json()['order_number'])
-        assert order.value.tax == expected_tax
-        assert order.value.total == subtotal + order.value.shipping_cost
+        order = SaleOrder.objects.get(name=res.json()['order_number'])
+        persisted = order_amounts(order)
+        assert persisted['tax'] == expected_tax
+        assert persisted['total'] == subtotal + persisted['shipping_cost']
 
 
 class TestShippingMethodProtection:
@@ -418,18 +423,22 @@ class TestShippingMethodProtection:
     def test_desactivar_metodo_con_ordenes_activas_retorna_400(
         self, admin_client, shipping, prod_ord, db
     ):
+        # make_order (fábrica canónica) traduce order_number->name y
+        # shipping_method->carrier (SaleOrder.carrier). La línea de producto
+        # y el envío se materializan aparte — sin ellos la orden confirmada
+        # quedaría sin importes (ver docstring de make_order, E4/H-API-33).
         o = make_order(
             order_number='PY-TEST0001',
-            status='PENDING', shipping_method=shipping
+            status='PENDING', shipping_method=shipping,
         )
-        OrderValue_GONE.objects.create(
-            order=o, subtotal=Decimal('500'), tax=Decimal('68.97'),
-            shipping_cost=Decimal('80'), discount=Decimal('0'),
-            total=Decimal('580')
+        SaleOrderLine.objects.create(
+            order=o, product=prod_ord, name=prod_ord.name,
+            price_unit=Decimal('500.00'), product_uom_qty=1,
         )
+        set_delivery_line(o, Decimal('80.00'))
         DeliveryAddress.objects.create(
-            order=o, recipient_name='Test', street='St',
-            city='CDMX', state='CMX', zip_code='06600'
+            sale_order=o, recipient_name='Test', street='St',
+            city='CDMX', state='CMX', zip_code='06600',
         )
         res = admin_client.delete(f'/api/v2/admin/shipping-methods/{shipping.pk}/')
         assert res.status_code == 400

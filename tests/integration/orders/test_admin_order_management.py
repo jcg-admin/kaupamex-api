@@ -2,12 +2,34 @@
 Tests — Gestión admin de órdenes y dashboard (UC-ORD-07..10)
 
 Nombre descriptivo: dominio y perspectiva, no número de sprint.
+
+Post-retiro del addon espejo ``orders`` (SOL-098, ``api@77bd1f0``): la venta
+**es** la orden. No hay una segunda entidad (``orders.Order``) que enlazar
+ni una columna espejo que dejar deliberadamente "stale" para probar que el
+filtro deriva de los ejes — eso ya lo prueba trivialmente al no existir otro
+eje que consultar. El helper ``_canonical_admin_order`` (que construía esa
+divergencia espejo/canónica) se retiró; sus llamadores usan ``_make_order``
+directo (ver nota en su definición).
+
+``SaleOrderStatusLog`` (bitácora de transiciones) se disolvió en el chatter
+(``MailThread.message_track``, H-API-102) sin API de lectura equivalente
+todavía. Los tests cuyo único sujeto era esa bitácora
+(``test_transicion_crea_statuslog``, ``test_admin_cancelacion_registra_statuslog``)
+se retiraron; la aserción de conteo de logs dentro de
+``test_flujo_completo_pending_a_delivered`` (efecto colateral, no su sujeto)
+se quitó, conservando el resto del test.
+
+``transition_order_status`` (servicio de transición concurrente con
+``select_for_update``) vivía en ``orders.admin_services``, retirado sin
+reemplazo importable — ``test_transicion_lee_status_fresh_con_select_for_update``
+se retiró: no hay forma de reencuadrarlo sin inventar la firma de un servicio
+que todavía no existe en el monolito modular.
 """
 import pytest
 from decimal import Decimal
-from addons.authz.services import SUPERADMIN_ROLE_CODE
 from addons.catalogue.models import Category, Product
-from addons.delivery.models import Courier, ShipmentGuide
+from addons.delivery.models import Courier, ShipmentGuide, DeliveryAddress
+from addons.delivery.models.sale_order import set_delivery_line
 from addons.payment.models import Payment
 from addons.sale.models import SaleOrder, SaleOrderLine
 from django.contrib.auth import get_user_model
@@ -16,20 +38,11 @@ from tests.factories.order_factory import make_order
 
 
 def _canonical_order(user, *, approved=False):
-    """Orden enlazada a una SaleOrder confirmada (ejes O2C, sin columna espejo).
+    """Venta confirmada (ejes O2C, sin segunda entidad que enlazar).
 
     Sin pago aprobado → proyecta PENDING; con pago aprobado → PAID.
     """
-    so = SaleOrder.objects.create(state=SaleOrder.STATE_SALE)
-    order = SaleOrder.objects.create(user=user, sale_order=so)
-    if approved:
-        Payment.objects.create(
-            order=order, sale_order=so,
-            gateway=Payment.GATEWAY_MERCADOPAGO,
-            amount=Decimal('100.00'),
-            status=Payment.STATUS_APPROVED,
-        )
-    return order
+    return make_order(status='PAID' if approved else 'PENDING', user=user)
 
 pytestmark = pytest.mark.integration
 
@@ -58,38 +71,28 @@ def prod_adm(db, cat_adm):
 
 
 def _make_order(user, prod, status='PENDING'):
+    """Venta confirmada + línea de ``prod`` + envío materializado ($80,
+    misma cifra histórica) + dirección de entrega.
+
+    Reemplaza tanto la vieja ``_make_order`` (que escribía a
+    ``OrderValue``/``DeliveryAddress`` del espejo) como
+    ``_canonical_admin_order`` — esta última existía sólo para dejar una
+    columna espejo "stale" y probar que el filtro admin deriva de los ejes
+    canónicos, no de ella. Sin espejo, esa divergencia ya no es representable
+    y el helper colapsa en éste: pasar ``status='PAID'`` construye
+    directamente el eje de pago aprobado que antes requería un segundo paso.
+    """
     order = make_order(user=user, status=status)
     SaleOrderLine.objects.create(
         order=order, name=prod.name,
         price_unit=prod.price, product_uom_qty=1,
         product=prod,
     )
-    OrderValue_GONE.objects.create(
-        order=order, subtotal=prod.price,
-        tax=(prod.price * Decimal('0.16') / Decimal('1.16')).quantize(Decimal('0.01')),
-        shipping_cost=Decimal('80'), discount=Decimal('0'),
-        total=prod.price + Decimal('80'),
-    )
+    set_delivery_line(order, Decimal('80.00'))
     DeliveryAddress.objects.create(
-        order=order, recipient_name='T',
+        sale_order=order, recipient_name='T',
         street='S 1', city='CDMX', state='CMX', zip_code='06600',
     )
-    return order
-
-
-def _canonical_admin_order(user, prod, *, approved=False, mirror='PENDING'):
-    """Orden con scaffolding de lista (``_make_order``) enlazada a una
-    ``SaleOrder`` confirmada; la columna espejo se deja **stale** a propósito
-    (``mirror``) para probar que el filtro deriva de los ejes, no del espejo."""
-    order = _make_order(user, prod, status=mirror)
-    so = SaleOrder.objects.create(state=SaleOrder.STATE_SALE)
-    order.sale_order = so
-    order.save(update_fields=['sale_order'])
-    if approved:
-        Payment.objects.create(
-            order=order, sale_order=so, gateway=Payment.GATEWAY_MERCADOPAGO,
-            amount=Decimal('100.00'), status=Payment.STATUS_APPROVED,
-        )
     return order
 
 
@@ -107,7 +110,7 @@ class TestSeguridadAdminEndpoints:
         self, auth_client, user, prod_adm, db
     ):
         order = _make_order(user, prod_adm)
-        res   = auth_client.patch(ADMIN_STATUS_URL(order.order_number),
+        res   = auth_client.patch(ADMIN_STATUS_URL(order.name),
                                   {'new_status': 'PAID'}, format='json')
         assert res.status_code == 403
 
@@ -148,22 +151,22 @@ class TestBuscarOrdenesAdmin:
     def test_filtro_por_status_canonico_desde_ejes(
         self, admin_client, user, prod_adm, db
     ):
-        """O2C R6: el ?status= admin deriva de los ejes canónicos (pago), no
-        de la columna espejo. La orden pagada tiene espejo stale 'PENDING'
-        pero se filtra correctamente como PAID."""
-        pend = _canonical_admin_order(user, prod_adm, approved=False)
-        paid = _canonical_admin_order(user, prod_adm, approved=True)  # espejo stale
+        """O2C R6: el ?status= admin deriva de los ejes canónicos (pago),
+        no de una columna espejo — ya no existe una segunda columna que
+        pudiera quedar desalineada."""
+        pend = _make_order(user, prod_adm, status='PENDING')
+        paid = _make_order(user, prod_adm, status='PAID')
         res = admin_client.get(ADMIN_LIST_URL, {'status': 'PAID'})
         nums = {o['order_number'] for o in res.json()['results']}
-        assert paid.order_number in nums
-        assert pend.order_number not in nums
+        assert paid.name in nums
+        assert pend.name not in nums
 
     def test_filtro_por_status_muerto_400(
         self, admin_client, user, prod_adm, db
     ):
         """O2C R6: los valores muertos del enum legacy salen del contrato
         admin → 400 INVALID_STATUS."""
-        _canonical_admin_order(user, prod_adm)
+        _make_order(user, prod_adm)
         res = admin_client.get(ADMIN_LIST_URL, {'status': 'IN_PREPARATION'})
         assert res.status_code == 400
         assert res.json()['codigo_error'] == 'INVALID_STATUS'
@@ -172,12 +175,12 @@ class TestBuscarOrdenesAdmin:
         self, admin_client, user, prod_adm, db
     ):
         order = _make_order(user, prod_adm)
-        prefix = order.order_number[:5]
+        prefix = order.name[:5]
 
         res = admin_client.get(ADMIN_LIST_URL, {'order_number': prefix})
         assert res.json()['count'] >= 1
         first_num = res.json()['results'][0]['order_number']
-        assert prefix.upper() in first_num.upper() or order.order_number == first_num
+        assert prefix.upper() in first_num.upper() or order.name == first_num
 
     def test_filtros_combinados_and(self, admin_client, user, prod_adm, db):
         order_p = _make_order(user, prod_adm, 'PENDING')
@@ -220,9 +223,9 @@ class TestTransicionEstadoAdmin:
         # O2C R8: PENDING → PAID es conciliación manual — el hub registra
         # un Payment APPROVED gateway=MANUAL (eje de pago) y la proyección
         # deriva PAID de él.
-        order = _canonical_admin_order(user, prod_adm)
+        order = _make_order(user, prod_adm)
         res   = admin_client.patch(
-            ADMIN_STATUS_URL(order.order_number),
+            ADMIN_STATUS_URL(order.name),
             {'new_status': 'PAID', 'notes': 'Pago verificado'},
             format='json',
         )
@@ -232,28 +235,13 @@ class TestTransicionEstadoAdmin:
         assert manual.gateway == Payment.GATEWAY_MANUAL
         assert manual.status == Payment.STATUS_APPROVED
 
-    def test_transicion_crea_statuslog(
-        self, admin_client, user, prod_adm, db
-    ):
-        # O2C R7: PENDING → PAID (antes PROCESSING → IN_PREPARATION, muertos).
-        order = _make_order(user, prod_adm, 'PENDING')
-        admin_client.patch(
-            ADMIN_STATUS_URL(order.order_number),
-            {'new_status': 'PAID'},
-            format='json',
-        )
-        log = SaleOrderStatusLog_GONE.objects.filter(order=order).first()
-        assert log is not None
-        assert log.previous_status == 'PENDING'
-        assert log.new_status == 'PAID'
-
     def test_transicion_invalida_retorna_400(
         self, admin_client, user, prod_adm, db
     ):
         """H-ADM-002 / O2C R7: SHIPPED sólo avanza a DELIVERED."""
         order = _make_order(user, prod_adm, 'SHIPPED')
         res   = admin_client.patch(
-            ADMIN_STATUS_URL(order.order_number),
+            ADMIN_STATUS_URL(order.name),
             {'new_status': 'PENDING'},
             format='json',
         )
@@ -267,7 +255,7 @@ class TestTransicionEstadoAdmin:
         """DELIVERED es terminal — no hay transición posible."""
         order = _make_order(user, prod_adm, 'DELIVERED')
         res   = admin_client.patch(
-            ADMIN_STATUS_URL(order.order_number),
+            ADMIN_STATUS_URL(order.name),
             {'new_status': 'SHIPPED'},  # intentar retroceder
             format='json',
         )
@@ -279,71 +267,40 @@ class TestTransicionEstadoAdmin:
         """O2C R8 — flujo feliz canónico: PENDING → PAID (hub, conciliación)
         → SHIPPED (crear la guía ES la transición, eje fulfillment) →
         DELIVERED (hub marca la guía entregada)."""
-        order = _canonical_admin_order(user, prod_adm)
+        order = _make_order(user, prod_adm)
         courier = Courier.objects.create(name='DHL Test', code='DHL', is_active=True)
 
         res = admin_client.patch(
-            ADMIN_STATUS_URL(order.order_number),
+            ADMIN_STATUS_URL(order.name),
             {'new_status': 'PAID'}, format='json',
         )
         assert res.status_code == 200, f'Falló en → PAID: {res.json()}'
 
         # SHIPPED no es transición manual del hub: la guía activa ES el eje.
         ShipmentGuide.objects.create(
-            order=order, sale_order=order.sale_order, courier=courier,
+            sale_order=order, courier=courier,
             tracking_number='TEST-SHIP-001',
         )
 
         res = admin_client.patch(
-            ADMIN_STATUS_URL(order.order_number),
+            ADMIN_STATUS_URL(order.name),
             {'new_status': 'DELIVERED'}, format='json',
         )
         assert res.status_code == 200, f'Falló en → DELIVERED: {res.json()}'
         assert res.json()['status'] == 'DELIVERED'
 
-        # Dos transiciones del hub (PAID, DELIVERED) → dos entradas de log;
-        # la guía creada directo (sin endpoint logistics) no loguea SHIPPED.
-        assert SaleOrderStatusLog_GONE.objects.filter(order=order).count() == 2
-
         # Pedir SHIPPED al hub es error explícito (eje fulfillment).
         res = admin_client.patch(
-            ADMIN_STATUS_URL(order.order_number),
+            ADMIN_STATUS_URL(order.name),
             {'new_status': 'SHIPPED'}, format='json',
         )
         assert res.status_code == 400
 
-    def test_transicion_lee_status_fresh_con_select_for_update(
-        self, admin_client, user, prod_adm, db,
-    ):
-        """UC-ORD-07 D-ORD-07.01 (DEC-AOQ-01): demuestra que
-        transition_order_status re-lee el status con
-        ``select_for_update()`` y no usa la instancia stale en memoria.
-
-        Setup simula 2 admins concurrentes: admin A tiene la orden en
-        memoria con status=PENDING. Admin B cancela la orden mientras
-        tanto (DB ahora CANCELLED, in-memory de A sigue PENDING).
-        Sin select_for_update, A leeria su instancia stale (PENDING) y
-        permitiria PENDING -> PROCESSING. Con select_for_update, A re-lee
-        la DB (CANCELLED terminal) y rechaza."""
-        User = get_user_model()
-        # Party/authz (T-201): el admin es titular del rol superadmin
-        # (el usuario detrás de admin_client). No hay is_staff nativo.
-        admin = User.objects.filter(
-            role_assignments__role__code=SUPERADMIN_ROLE_CODE,
-        ).first()
-        # Admin A obtiene la orden en PENDING.
-        order_in_memory_A = _make_order(user, prod_adm, 'PENDING')
-        # Admin B (simulado) cancela la orden via UPDATE directo (no
-        # tocar la instancia en memoria de A).
-        # O2C V5d: sin columna espejo, "admin B" cancela por el EJE comercial.
-        # La instancia de A sigue stale en memoria; select_for_update la re-lee.
-        sale_b = SaleOrder.objects.get(pk=order_in_memory_A.sale_order_id)
-        sale_b.action_cancel()
-        # Admin A intenta transicionar a PROCESSING usando su instancia
-        # stale. select_for_update fuerza re-lectura: DB.status =
-        # CANCELLED (terminal) -> ValueError.
-        with pytest.raises(ValueError, match='Transición no permitida'):
-            transition_order_status(order_in_memory_A, 'PAID', admin)
+    # UC-ORD-07 D-ORD-07.01 (DEC-AOQ-01) —
+    # ``test_transicion_lee_status_fresh_con_select_for_update`` se retiró
+    # (ver docstring del módulo): llamaba a ``transition_order_status``, un
+    # servicio de ``orders.admin_services`` retirado sin reemplazo
+    # importable. No hay firma que reencuadrar todavía.
 
 
 # =============================================================================
@@ -359,20 +316,20 @@ class TestCancelarOrdenAdmin:
         (sin guía) — el comprador también, pero admin exige motivo."""
         # O2C R8: PAID canónico = pago aprobado (MANUAL: sin refund de
         # pasarela al cancelar); el estado es la proyección del eje.
-        order = _canonical_admin_order(user, prod_adm)
+        order = _make_order(user, prod_adm)
         Payment.objects.create(
-            order=order, sale_order=order.sale_order,
+            sale_order=order,
             gateway=Payment.GATEWAY_MANUAL,
             amount=Decimal('100.00'), status=Payment.STATUS_APPROVED,
         )
         res   = admin_client.post(
-            ADMIN_CANCEL_URL(order.order_number),
+            ADMIN_CANCEL_URL(order.name),
             {'reason': 'Fraude detectado en el pedido'},
             format='json',
         )
         assert res.status_code == 200
         order.refresh_from_db()
-        assert order.sale_order.state == SaleOrder.STATE_CANCEL
+        assert order.state == SaleOrder.STATE_CANCEL
         assert order.admin_cancelled_by is not None
 
     def test_motivo_obligatorio_min_10_chars(
@@ -380,7 +337,7 @@ class TestCancelarOrdenAdmin:
     ):
         order = _make_order(user, prod_adm, 'PENDING')
         res   = admin_client.post(
-            ADMIN_CANCEL_URL(order.order_number),
+            ADMIN_CANCEL_URL(order.name),
             {'reason': 'corto'},
             format='json',
         )
@@ -393,7 +350,7 @@ class TestCancelarOrdenAdmin:
     ):
         order = _make_order(user, prod_adm, 'SHIPPED')
         res   = admin_client.post(
-            ADMIN_CANCEL_URL(order.order_number),
+            ADMIN_CANCEL_URL(order.name),
             {'reason': 'Motivo de prueba suficientemente largo'},
             format='json',
         )
@@ -405,27 +362,17 @@ class TestCancelarOrdenAdmin:
         stock_inicial = prod_adm.stock
         order = _make_order(user, prod_adm, 'PAID')
         admin_client.post(
-            ADMIN_CANCEL_URL(order.order_number),
+            ADMIN_CANCEL_URL(order.name),
             {'reason': 'Stock incorrecto reportado por almacén'},
             format='json',
         )
         prod_adm.refresh_from_db()
         assert prod_adm.stock == stock_inicial + 1
 
-    def test_admin_cancelacion_registra_statuslog(
-        self, admin_client, user, prod_adm, db
-    ):
-        order = _make_order(user, prod_adm, 'PAID')
-        admin_client.post(
-            ADMIN_CANCEL_URL(order.order_number),
-            {'reason': 'Cancelación administrativa por validación'},
-            format='json',
-        )
-        log = SaleOrderStatusLog_GONE.objects.filter(
-            order=order, new_status='CANCELLED'
-        ).first()
-        assert log is not None
-        assert '[ADMIN]' in log.notes
+    # H-ADM cancelación (admin) —
+    # ``test_admin_cancelacion_registra_statuslog`` se retiró (ver docstring
+    # del módulo): su único sujeto era ``SaleOrderStatusLog``, sin reemplazo
+    # consultable todavía.
 
 
 # =============================================================================
@@ -478,7 +425,7 @@ class TestDashboardTransaccional:
         order = _canonical_order(user, approved=True)
         courier = Courier.objects.create(name='DHL', code='dhl', is_active=True)
         ShipmentGuide.objects.create(
-            order=order, sale_order=order.sale_order, courier=courier,
+            sale_order=order, courier=courier,
             tracking_number='TRK-DASH-1',
         )
 

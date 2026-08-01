@@ -13,6 +13,7 @@ from decimal import Decimal
 from unittest.mock import patch, MagicMock
 from decouple import config
 from addons.catalogue.models import Category, Product
+from addons.delivery.models import DeliveryAddress
 from addons.payment.models import PaymentGateway
 from addons.payment.models import Payment, PaymentGatewayEvent
 from tests.factories.order_factory import make_order
@@ -46,20 +47,21 @@ def prod_mp(db, cat_mp):
 
 @pytest.fixture
 def orden_mp(db, user, prod_mp):
-    """Orden PENDING con OrderValue_GONE para tests de MercadoPago."""
+    """Orden PENDING con una linea de producto para tests de MercadoPago.
+
+    El registro de importes aparte de la orden se retiro con el espejo
+    (SOL-098): los importes ya no viven en una entidad separada, se
+    recalculan desde ``order_line`` (``SaleOrder._compute_amounts``). La
+    linea reproduce el subtotal 3000.00 que antes se fijaba a mano
+    (2 x 1500.00).
+    """
     order = make_order(user=user, status='PENDING')
     SaleOrderLine.objects.create(
-        order=order, name=prod_mp.name, price_unit=prod_mp.price,
-        product_uom_qty=2,
-    )
-    OrderValue_GONE.objects.create(
-        order=order,
-        subtotal=Decimal('3000.00'), tax=Decimal('0.00'),
-        shipping_cost=Decimal('0.00'), discount=Decimal('0.00'),
-        total=Decimal('3000.00'),
+        order=order, product=prod_mp, name=prod_mp.name,
+        price_unit=prod_mp.price, product_uom_qty=2,
     )
     DeliveryAddress.objects.create(
-        order=order, recipient_name='Test User',
+        sale_order=order, recipient_name='Test User',
         street='Av. Reforma 100', city='CDMX',
         state='Ciudad de Mexico', zip_code='06600',
     )
@@ -111,24 +113,24 @@ class TestMercadoPagoGatewayURL:
 
     def test_sin_campo_gateway_retorna_201(self, auth_client, orden_mp, mp_gateway, mock_sdk):
         """Gateway-specific URL: no se necesita el campo `gateway` en el body."""
-        res = auth_client.post(MP_URL, {'order_number': orden_mp.order_number}, format='json')
+        res = auth_client.post(MP_URL, {'order_number': orden_mp.name}, format='json')
         assert res.status_code == 201
         data = res.json()
         assert 'checkout_url' in data
         assert data['checkout_url'].startswith('https://')
-        assert data['order_number'] == orden_mp.order_number
+        assert data['order_number'] == orden_mp.name
         assert data['installments'] == 1
 
     def test_crea_payment_mercadopago_en_bd(self, auth_client, orden_mp, mp_gateway, mock_sdk):
-        auth_client.post(MP_URL, {'order_number': orden_mp.order_number}, format='json')
-        payment = Payment.objects.get(order=orden_mp)
+        auth_client.post(MP_URL, {'order_number': orden_mp.name}, format='json')
+        payment = Payment.objects.get(sale_order=orden_mp)
         assert payment.gateway == 'MERCADOPAGO'
         assert payment.status == 'PENDING'
         assert payment.preference_id == 'PREF-MP-GATEWAY-001'
 
     def test_registra_evento_auditoria(self, auth_client, orden_mp, mp_gateway, mock_sdk):
-        auth_client.post(MP_URL, {'order_number': orden_mp.order_number}, format='json')
-        payment = Payment.objects.get(order=orden_mp)
+        auth_client.post(MP_URL, {'order_number': orden_mp.name}, format='json')
+        payment = Payment.objects.get(sale_order=orden_mp)
         event = PaymentGatewayEvent.objects.filter(
             payment=payment, event_type='PREFERENCE_CREATED',
         ).first()
@@ -140,18 +142,18 @@ class TestMercadoPagoGatewayURL:
         """Si alguien pasa gateway=PAYPAL al endpoint de MP, se usa MP de todas formas."""
         res = auth_client.post(
             MP_URL,
-            {'order_number': orden_mp.order_number, 'gateway': 'PAYPAL'},
+            {'order_number': orden_mp.name, 'gateway': 'PAYPAL'},
             format='json',
         )
         # El serializer no tiene el campo gateway → se ignora silenciosamente
         assert res.status_code == 201
-        payment = Payment.objects.get(order=orden_mp)
+        payment = Payment.objects.get(sale_order=orden_mp)
         assert payment.gateway == 'MERCADOPAGO'
 
     def test_con_cuotas_msi(self, auth_client, orden_mp, mp_gateway, mock_sdk):
         res = auth_client.post(
             MP_URL,
-            {'order_number': orden_mp.order_number, 'installments': 3},
+            {'order_number': orden_mp.name, 'installments': 3},
             format='json',
         )
         assert res.status_code == 201
@@ -159,7 +161,7 @@ class TestMercadoPagoGatewayURL:
 
     def test_credenciales_no_en_respuesta(self, auth_client, orden_mp, mp_gateway, mock_sdk):
         """BR-009: credenciales del gateway NUNCA en la respuesta."""
-        res = auth_client.post(MP_URL, {'order_number': orden_mp.order_number}, format='json')
+        res = auth_client.post(MP_URL, {'order_number': orden_mp.name}, format='json')
         body_str = json.dumps(res.json())
         assert 'TEST-ACCESS-TOKEN-FAKE' not in body_str
         assert 'TEST-PUBLIC-KEY-FAKE' not in body_str
@@ -173,7 +175,7 @@ class TestMercadoPagoGatewayURL:
 class TestMercadoPagoGatewayURLErrores:
 
     def test_sin_autenticar_retorna_401(self, api_client, orden_mp, mp_gateway, mock_sdk):
-        res = api_client.post(MP_URL, {'order_number': orden_mp.order_number}, format='json')
+        res = api_client.post(MP_URL, {'order_number': orden_mp.name}, format='json')
         assert res.status_code == 401
 
     def test_orden_ajena_retorna_400(
@@ -183,7 +185,7 @@ class TestMercadoPagoGatewayURLErrores:
             email='attacker_mp@test.mx', password='Attack123!',
         )
         api_client.force_authenticate(user=attacker)
-        res = api_client.post(MP_URL, {'order_number': orden_mp.order_number}, format='json')
+        res = api_client.post(MP_URL, {'order_number': orden_mp.name}, format='json')
         assert res.status_code == 400
         assert res.json()['codigo_error'] == 'ORDER_NOT_FOUND'
 
@@ -191,14 +193,14 @@ class TestMercadoPagoGatewayURLErrores:
         # O2C V5d: no-pagable se produce por los ejes (entregada), no
         # escribiendo la columna ('APPROVED' ni era un SaleOrder status valido).
         mark_delivered(orden_mp)
-        res = auth_client.post(MP_URL, {'order_number': orden_mp.order_number}, format='json')
+        res = auth_client.post(MP_URL, {'order_number': orden_mp.name}, format='json')
         assert res.status_code == 400
         assert res.json()['codigo_error'] == 'ORDER_NOT_PAYABLE'
 
     def test_amount_mismatch_retorna_422(self, auth_client, orden_mp, mp_gateway, mock_sdk):
         res = auth_client.post(
             MP_URL,
-            {'order_number': orden_mp.order_number, 'expected_amount': '9999.00'},
+            {'order_number': orden_mp.name, 'expected_amount': '9999.00'},
             format='json',
         )
         assert res.status_code == 422
@@ -212,6 +214,6 @@ class TestMercadoPagoGatewayURLErrores:
                 'status': 400,
                 'response': {'message': 'Invalid access token'},
             }
-            res = auth_client.post(MP_URL, {'order_number': orden_mp.order_number}, format='json')
+            res = auth_client.post(MP_URL, {'order_number': orden_mp.name}, format='json')
         assert res.status_code == 503
         assert res.json()['codigo_error'] == 'GATEWAY_UNAVAILABLE'

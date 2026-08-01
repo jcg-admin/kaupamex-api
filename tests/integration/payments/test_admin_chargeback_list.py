@@ -9,6 +9,7 @@ from addons.sale.models import SaleOrderLine
 import pytest
 from decimal import Decimal
 
+from addons.catalogue.models import Category, Product
 from addons.payment.models import Payment, Chargeback
 from tests.factories.order_factory import make_order
 
@@ -19,21 +20,32 @@ DETAIL_URL = lambda cid: f'/api/v2/admin/chargebacks/{cid}/'
 
 
 def _make_payment(user, amount='500.00', gateway_payment_id='MP-CB-L001'):
-    order = make_order(user=user, status='PROCESSING')
+    # PROCESSING es un valor muerto de la proyección; PENDING deja la orden
+    # confirmada sin Payment del factory. El subtotal ya no vive en el
+    # espejo ``OrderValue`` (retirado, SOL-098): lo reproduce la línea de
+    # producto. ``gateway_payment_id`` (único por llamada) evita colisión de
+    # Product entre las 2 llamadas de ``chargeback_dataset`` en el mismo test.
+    cat, _ = Category.objects.get_or_create(
+        slug='cat-cb-list', defaults={'name': 'Cat CB List', 'is_active': True},
+    )
+    prod = Product.objects.create(
+        name='Prod CB', slug=f'prod-{gateway_payment_id.lower()}',
+        sku=gateway_payment_id,
+        description='', price=Decimal(amount), stock=10,
+        is_active=True, is_published=True,
+    )
+    prod.categories.add(cat)
+    order = make_order(user=user, status='PENDING')
     SaleOrderLine.objects.create(
-        order=order, name='Prod CB',
+        order=order, product=prod, name='Prod CB',
         price_unit=Decimal(amount), product_uom_qty=1,
     )
-    OrderValue_GONE.objects.create(
-        order=order, subtotal=Decimal(amount), tax=Decimal('0'),
-        shipping_cost=Decimal('0'), discount=Decimal('0'), total=Decimal(amount),
-    )
     DeliveryAddress.objects.create(
-        order=order, recipient_name='Test', street='Calle CB',
+        sale_order=order, recipient_name='Test', street='Calle CB',
         city='CDMX', state='CMX', zip_code='06600',
     )
     return Payment.objects.create(
-        order=order, sale_order=order.sale_order, gateway='MERCADOPAGO',
+        sale_order=order, gateway='MERCADOPAGO',
         preference_id=f'PREF-{gateway_payment_id}',
         gateway_payment_id=gateway_payment_id,
         status=Payment.STATUS_APPROVED, amount=Decimal(amount),
