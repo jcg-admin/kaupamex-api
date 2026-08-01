@@ -15,8 +15,14 @@ que los agrupe por naturaleza.
 - ``report_layout.py`` → ``ReportLayout`` (diseños de documento impreso).
 - ``res_groups_privilege.py`` → ``ResGroupsPrivilege`` (agrupa grupos en el form).
 
+- ``ir_asset.py`` → ``IrAsset`` + ``AssetPaths`` (directivas sobre bundles; el
+  resolutor de rutas contra manifests no aplica — lo hace Webpack en ``ui``).
 - ``ir_autovacuum.py`` → ``IrAutovacuum`` + ``is_autovacuum`` (colector de los
   métodos ``@api.autovacuum``).
+- ``ir_binary.py`` → ``IrBinary`` (sirve campos binarios como respuesta HTTP).
+- ``ir_fields.py`` → ``IrFieldsConverter`` (conversión de valores de import).
+- ``report_paperformat.py`` → ``ReportPaperformat`` + ``PAPER_SIZES``
+  (formato de papel de impresión; 31 tamaños verbatim).
 - ``ir_demo.py`` → ``IrDemo`` (asistente de datos de demostración).
 - ``ir_demo_failure.py`` → ``IrDemoFailure`` + ``IrDemoFailureWizard``
   (módulos cuyo seed de demostración falló).
@@ -57,8 +63,11 @@ from .ir_config_parameter import (
     _clear_cache,
     SystemParameter,
 )
+from .ir_asset import IrAsset, AssetPaths
 from .ir_attachment import IrAttachment
 from .ir_autovacuum import IrAutovacuum, is_autovacuum
+from .ir_binary import IrBinary
+from .ir_fields import IrFieldsConverter
 from .ir_cron import IrCron
 from .ir_demo import IrDemo
 from .ir_demo_failure import IrDemoFailure, IrDemoFailureWizard
@@ -70,6 +79,7 @@ from .ir_exports import IrExports, IrExportsLine
 from .ir_module import IrModule, IrModuleCategory, IrModuleDependency
 from .ir_ui_menu import IrUiMenu
 from .report_layout import ReportLayout
+from .report_paperformat import ReportPaperformat, PAPER_SIZES
 from .res_groups_privilege import ResGroupsPrivilege
 from .ir_sequence import IrSequence
 from .report_export_job import ExportJob
@@ -136,6 +146,12 @@ __all__ = [
     'IrDemoFailureWizard',
     'IrProfile',
     'BaseEnableProfilingWizard',
+    'IrAsset',
+    'AssetPaths',
+    'IrBinary',
+    'IrFieldsConverter',
+    'ReportPaperformat',
+    'PAPER_SIZES',
 ]
 
 from .checkout_attempt import CheckoutAttempt  # noqa: E402
