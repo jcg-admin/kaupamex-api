@@ -13,10 +13,37 @@ Portación fiel de ``odoo19c: odoo/addons/base/models/res_users.py`` (LGPL-3)
 se guardan dos veces. Un empleado que deja de tener login sigue existiendo como
 partner; un cliente sin cuenta nunca necesita uno.
 
-**Django no tiene** ``_inherits``. La delegación se reimplementa con lo que sí
-hay: FK requerida a ``ResPartner`` más propiedades que reenvían. El efecto
-observable es el mismo —un solo lugar donde vive el nombre— sin fingir un
-mecanismo del ORM que no existe.
+**Django sí tiene un mecanismo parecido, y no se usa.** La herencia multi-tabla
+(MTI) hace mecánicamente casi lo mismo: al heredar de un modelo concreto,
+``ModelBase`` inyecta un enlace oculto —``base.py:301-307``,
+``OneToOneField(base, on_delete=CASCADE, auto_created=True, parent_link=True)``
+llamado ``<modelo>_ptr``— guarda cada tabla por separado y hace el ``JOIN``
+implícito. Sería ``class ResUsers(ResPartner)`` y ``name``/``email`` saldrían
+gratis, sin las propiedades de abajo.
+
+Se descartó por tres diferencias **medidas**, no estéticas:
+
+1. **Cardinalidad.** El enlace de MTI es ``OneToOneField`` (``unique=True``);
+   ``partner_id`` de la referencia es ``Many2one`` sin restricción única
+   (``res_users.py:214``). Dos credenciales sobre un mismo partner: con FK se
+   permite, con MTI es ``IntegrityError``.
+2. **Borrado.** MTI cablea ``on_delete=CASCADE`` y no es configurable —es un
+   campo ``auto_created``—; la referencia declara ``ondelete='restrict'``.
+   Borrar el partner arrastraría la credencial en vez de impedirse.
+3. **Adjuntar a un partner que ya existe.** Es el flujo real: un cliente existe
+   como partner y **después** obtiene login. Con FK se adjunta y la tabla de
+   partners no crece. Con MTI, crear el hijo **crea una fila nueva** de padre —
+   no hay forma normal de apuntar a una preexistente.
+
+Y una diferencia conceptual que las explica: MTI es *is-a*
+(``isinstance(user, ResPartner)`` daría ``True``), mientras que el ORM de la
+referencia describe ``_inherits`` como *"implements **composition-based**
+inheritance: the new model exposes all the fields of the inherited models but
+**stores none of them**"* (``odoo/orm/models.py:416-418``). Composición, no
+herencia.
+
+Así que la reimplementación es FK requerida + propiedades que reenvían: más
+verbosa que MTI, y la única que conserva las tres propiedades de arriba.
 
 **Lo que NO se hereda de Django.** El modelo no extiende ``AbstractBaseUser``:
 reimplementa el contrato de auth a mano (U-D puro, T-203) para no arrastrar
