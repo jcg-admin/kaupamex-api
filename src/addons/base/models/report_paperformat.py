@@ -26,28 +26,28 @@ Procedencia de los campos — todos se portan:
 - ``_check_format_or_page`` (``@api.constrains``) → ``clean()`` de Django, que
   es donde vive la validación de modelo. Mismo mensaje que allá.
 
-Lo único que NO se porta, con su medición
-=========================================
+``report_ids`` — cerrado, tal como estaba fechado
+=================================================
 
-``report_ids`` — ``One2many`` a ``ir.actions.report`` por su
-``paperformat_id``.
+``report_ids`` es el ``One2many`` a ``ir.actions.report`` por su
+``paperformat_id``. Este archivo declaró dos veces que llegaría solo, y así
+fue:
 
-**Actualizado** (``api``, porte de ``ir_actions.py``): la familia
-``ir.actions.*`` **ya está portada** en parte —
-``grep -rn "^class IrActions" src/`` → **9** clases: ocho concretas más
-``IrActionsBase``, que es el abstracto que traduce el ``_inherit`` de la
-referencia y no corresponde a ningún modelo suyo. ``ir.actions.report``
-**no** está entre ellas —``grep -rn "^class IrActionsReport" src/`` → **0**—:
-vive en ``ir_actions_report.py``, archivo aparte de la referencia y aún
-pendiente. La cifra "0 clases" de la primera redacción era correcta cuando se
-escribió y dejó de serlo al portar ``ir_actions``; se corrige en vez de dejarla
-envejecer.
+1. Primera redacción: *"0 clases ``IrActions``"* — cierto entonces.
+2. Tras portar ``ir_actions.py``: **9** clases, pero
+   ``grep -rn "^class IrActionsReport" src/`` → **0**, porque
+   ``ir.actions.report`` vive en su propio archivo de la referencia.
+3. **Ahora** (porte de ``ir_actions_report.py``):
+   ``grep -rn "^class IrActionsReport\b" src/`` → **1** clase. [PROVEN]
 
-No es una columna: es el **reverso** de una FK que vive en el
-modelo ausente. Cuando ``ir_actions_report.py`` se porte, su FK declarará
+Y se cumplió la predicción literal —*"su FK declarará
 ``related_name='report_ids'`` y la relación aparece de este lado sola, sin
-tocar este archivo. Es la misma ausencia que ``ir_filters.py`` y ``ir_cron.py``
-ya declaran para ``ir.actions.*``.
+tocar este archivo"*—: el ``paperformat`` de ``ir_actions_report.py`` lleva
+ese ``related_name``, y **este archivo no necesitó una sola línea nueva** para
+ganar la relación. Sólo se corrige la medición, que es lo que envejece.
+
+Es el tercer hueco de esta iniciativa que se cierra **porque estaba anotado
+con su destino**, tras H-API-142 y los dos campos de ``ir_filters``.
 
 ``page_height``/``page_width`` llevan ``default=False`` en la referencia — un
 booleano donde el tipo es entero, quirk de su ORM (falsy ≡ "sin valor"). Aquí

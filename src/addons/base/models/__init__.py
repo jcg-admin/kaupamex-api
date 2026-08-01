@@ -25,6 +25,8 @@ que los agrupe por naturaleza.
   métodos ``@api.autovacuum``).
 - ``ir_actions.py`` → los ocho modelos de la familia ``ir.actions.*``
   (ventana, URL, cliente, servidor, cierre, vista, todo).
+- ``ir_actions_report.py`` → ``IrActionsReport`` (declaración del reporte;
+  el motor de render es propio — libharu, ADR-017 — no wkhtmltopdf).
 - ``ir_embedded_actions.py`` → ``IrEmbeddedActions`` (acciones embebidas en
   la vista de otro registro; cierra H-API-142).
 - ``ir_model.py`` → las diez clases del registro reflejado (``Base``,
@@ -102,6 +104,7 @@ from .ir_actions import (
     IrActionsServer,
     IrActionsTodo,
 )
+from .ir_actions_report import IrActionsReport
 from .ir_default import IrDefault
 from .res_config import (
     ResConfig,
@@ -203,6 +206,7 @@ __all__ = [
     'IrActionsClient',
     'IrActionsServer',
     'IrActionsTodo',
+    'IrActionsReport',
     'IrEmbeddedActions',
     'IrUiMenu',
     'IrSequence',
