@@ -44,7 +44,10 @@ from .res_bank import ResBank
 from .res_country import ResCountry, ResCountryState
 from .res_country_group import ResCountryGroup
 from .res_partner import ResPartner
-from .res_users import ResUsers
+from .res_users import ResUsers, ResUsersLog
+from .res_device import ResDeviceLog
+from .res_users_deletion import ResUsersDeletion
+from .res_users_settings import ResUsersSettings
 from .res_currency import ResCurrency
 from .res_currency_rate import ResCurrencyRate
 from .res_config_settings import SiteSettings
@@ -73,6 +76,10 @@ __all__ = [
     'ResCountryGroup',
     'ResPartner',
     'ResUsers',
+    'ResUsersLog',
+    'ResDeviceLog',
+    'ResUsersDeletion',
+    'ResUsersSettings',
     'ResLang',
     'ResBank',
     'DecimalPrecision',

@@ -312,3 +312,39 @@ class ResUsers(TimeStampedModel):
         self.save(update_fields=[
             'active', 'deactivated_reason', 'deactivated_at', 'updated_at',
         ])
+
+
+class ResUsersLog(TimeStampedModel):
+    """``res.users.log`` — que hubo un acceso, no una auditoría.
+
+    Fiel a ``odoo19c: odoo/addons/base/models/res_users.py:134-152``, y la
+    fidelidad aquí **quita** cosas. La referencia declara **un solo campo**
+    (``create_uid``) y se apoya en la fecha automática; su comentario lo dice::
+
+        # Uses the magical fields `create_uid` and `create_date` for recording
+        # logins. See `mail.presence` for more recent activity tracking.
+
+    Y su ``_gc_user_logs`` conserva **una fila por usuario**, borrando el resto.
+    No es un registro de auditoría: es un "último acceso" con historia mínima.
+
+    El ``AuthEvent`` que murió con el addon ``users`` guardaba tipo de evento,
+    IP y user-agent. Eso **no** vive aquí: la referencia lo pone en el
+    dispositivo (``ResDeviceLog``: ``ip_address``, ``browser``, ``platform``).
+    Portar ambos al mismo modelo habría fundido dos responsabilidades que la
+    referencia mantiene separadas.
+    """
+
+    user = fields.Many2one(
+        'base.ResUsers', on_delete=models.CASCADE, db_index=True,
+        related_name='logs',
+        help_text='Usuario que accedió (Odoo create_uid).',
+    )
+
+    class Meta:
+        db_table            = 'res_users_log'
+        ordering            = ['-id']
+        verbose_name        = 'Registro de acceso'
+        verbose_name_plural = 'Registros de acceso'
+
+    def __str__(self) -> str:
+        return f'acceso de {self.user_id} el {self.created_at}'
