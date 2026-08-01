@@ -34,9 +34,14 @@ ahora, con lo que aporta cada uno:
 - ``product_combo_item.py`` → ``ProductComboItem``, una **opción** dentro de
   una elección. Su ``related_name`` es lo que hace que ``combo_item_count`` y
   ``base_price`` de ``ProductCombo`` dejen de devolver 0.
+- ``product_document.py`` → ``ProductDocument``, un adjunto de producto
+  ordenable y archivable. Su reversa **no** llega por ``related_name``: la
+  fuente la declara por referencia genérica (``res_model``+``res_id``), así
+  que la ficha y la variante la exponen como propiedad de consulta
+  (H-API-193).
 
-Pendientes — **9** de los 25:
-``product_document.py``, ``product_attribute_custom_value.py``,
+Pendientes — **8** de los 25:
+``product_attribute_custom_value.py``,
 ``product_template_attribute_exclusion.py`` y las siete extensiones de
 modelos de ``base`` (``res_company``, ``res_partner``, ``res_currency``,
 ``res_config_settings``, ``res_country_group``, ``ir_attachment``,
@@ -52,6 +57,7 @@ from addons.product.models.product_catalog_mixin import ProductCatalogMixin
 from addons.product.models.product_category import ProductCategory
 from addons.product.models.product_combo import ProductCombo
 from addons.product.models.product_combo_item import ProductComboItem
+from addons.product.models.product_document import ProductDocument
 from addons.product.models.product_pricelist import ProductPricelist
 from addons.product.models.product_pricelist_item import (
     ProductPricelistItem,
@@ -77,6 +83,7 @@ __all__ = [
     'ProductCategory',
     'ProductCombo',
     'ProductComboItem',
+    'ProductDocument',
     'ProductPricelist',
     'ProductPricelistItem',
     'ProductProduct',

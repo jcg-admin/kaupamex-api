@@ -80,18 +80,24 @@ Qué NO se porta, con su medición
   ``product_uom.py``, que ya está portado y comprueba en su ``clean()`` que
   ninguna variante use el código. El destino estaba fechado y se cumplió sin
   tocar este archivo.
-- **``product_document_ids``**: reverso hacia ``product_document.py``, aún sin
-  portar. Aparece solo cuando ese archivo declare su ``related_name``, sin
-  tocar éste — igual que ``report_paperformat.report_ids`` (H-API-164).
-  ``product_uom_ids``, ``pricelist_rule_ids`` y
-  ``additional_product_tag_ids`` **ya llegaron** así, desde
-  ``product_uom.py``, ``product_pricelist_item.py`` y ``product_tag.py``
-  respectivamente — ninguno necesitó una línea aquí.
+- **``product_document_ids``** — **cerrado**, y la anotación que había aquí
+  era **falsa**. Decía que llegaría por ``related_name`` desde
+  ``product_document.py``, como habían llegado ``product_uom_ids``,
+  ``pricelist_rule_ids`` y ``additional_product_tag_ids`` (desde
+  ``product_uom.py``, ``product_pricelist_item.py`` y ``product_tag.py``, sin
+  tocar este archivo). Con los documentos **no** funciona así: la fuente los
+  declara ``One2many`` sobre ``inverse_name='res_id'`` con
+  ``domain=[('res_model', '=', self._name)]``
+  (``odoo19c: product_product.py:81-85``) — el vínculo es la **referencia
+  genérica** del adjunto, no una FK, así que ningún ``related_name`` puede
+  materializarlo. Se porta como la propiedad ``product_document_ids`` de abajo.
+  Ver H-API-193.
 """
 import fields
 import models
 
 from addons.base.models.timestamped_mixin import TimeStampedModel
+from addons.product.models.product_document import ProductDocument
 from addons.product.models.product_template import ProductTemplate
 from addons.product.models.product_template_attribute_value import (
     ProductTemplateAttributeValue,
@@ -197,6 +203,21 @@ class ProductProduct(TimeStampedModel):
     def company(self):
         """La compañía de la ficha."""
         return self.product_tmpl.company
+
+    @property
+    def product_document_ids(self):
+        """Los documentos de esta variante (``product_product.py:81-85``).
+
+        No es un ``related_name``: el documento apunta por referencia genérica
+        (``res_model``+``res_id``), no por FK. ``ProductDocument.for_record``
+        aplica el mismo filtro que el ``domain`` de la fuente. Ver H-API-193.
+        """
+        return ProductDocument.for_record(self)
+
+    @property
+    def product_document_count(self):
+        """``_compute_product_document_count`` — cuántos documentos tiene."""
+        return self.product_document_ids.count()
 
     @property
     def sale_ok(self):

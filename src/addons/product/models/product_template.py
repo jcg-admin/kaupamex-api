@@ -46,17 +46,25 @@ Qué NO se porta, con su medición
   (``ImageMixin`` existe en ``base``), junto a ``TimeStampedModel``: heredar
   sólo el mixin de imagen **borraría las marcas de tiempo**, que es el defecto
   que H-API-147 registró al portar ``res_partner``.
-- **Los campos que apuntan a modelos aún sin portar**: sólo queda
-  ``product_document_ids`` (``product.document``). ``combo_ids`` **ya llegó**
-  desde ``product_combo.py``, que declara el M2M de su lado con ese
-  ``related_name`` — el nombre de la fuente, sin tocar este archivo. Los
-  demás también llegaron, **todos por ``related_name``**,
-  igual que ``report_paperformat.report_ids`` (H-API-164):
-  ``product_tag_ids`` desde ``product_tag.py``, ``pricelist_rule_ids`` desde
+- **Los campos que apuntan a modelos aún sin portar**: **ninguno**. Los
+  reversos llegaron **casi todos por ``related_name``**, igual que
+  ``report_paperformat.report_ids`` (H-API-164): ``product_tag_ids`` desde
+  ``product_tag.py``, ``pricelist_rule_ids`` desde
   ``product_pricelist_item.py``, ``product_variant_ids`` desde
-  ``product_product.py`` y ``seller_ids`` desde ``product_supplierinfo.py``.
-  Lo que la predicción no cubría es que uno de ellos llegara **con un
-  gemelo**: ver ``variant_seller_ids`` abajo.
+  ``product_product.py``, ``seller_ids`` desde ``product_supplierinfo.py`` y
+  ``combo_ids`` desde ``product_combo.py`` —que declara el M2M de su lado con
+  el nombre de la fuente, sin tocar este archivo—.
+
+  La predicción falló **dos veces**, y en direcciones distintas:
+
+  1. No cubría que uno llegara **con un gemelo** — ver ``variant_seller_ids``
+     abajo.
+  2. Daba por hecho que ``product_document_ids`` llegaría también por
+     ``related_name``. **No podía**: la fuente lo declara ``One2many`` sobre
+     ``inverse_name='res_id'`` con ``domain=[('res_model', '=', self._name)]``
+     (``odoo19c: product_template.py:164-168``), es decir por **referencia
+     genérica**, no por FK. Se porta como propiedad de consulta abajo. Ver
+     H-API-193.
 
 ``variant_seller_ids`` — dos One2many sobre el mismo inverso
 ============================================================
@@ -94,6 +102,7 @@ from addons.base.models.image_mixin import ImageMixin
 from addons.base.models.res_company import ResCompany
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from addons.product.models.product_category import ProductCategory
+from addons.product.models.product_document import ProductDocument
 from addons.uom.models.uom_uom import Uom
 
 #: Claves de contexto que afectan al precio calculado — verbatim de la fuente.
@@ -326,6 +335,22 @@ class ProductTemplate(ImageMixin, TimeStampedModel):
         if variants is None or variants.count() != 1:
             return None
         return variants.first()
+
+    @property
+    def product_document_ids(self):
+        """Los documentos de esta ficha (``product_template.py:164-168``).
+
+        **No** es un ``related_name``, y no puede serlo: el documento apunta
+        por referencia genérica (``res_model``+``res_id``), no por FK.
+        ``ProductDocument.for_record`` aplica el mismo filtro que el ``domain``
+        de la fuente. Ver H-API-193.
+        """
+        return ProductDocument.for_record(self)
+
+    @property
+    def product_document_count(self):
+        """``_compute_product_document_count`` — cuántos documentos tiene."""
+        return self.product_document_ids.count()
 
     @property
     def variant_seller_ids(self):
