@@ -23,13 +23,17 @@ ahora, con lo que aporta cada uno:
   suelta), que no son redundantes.
 - ``product_uom.py`` → ``ProductUom``, el código de barras de un empaquetado;
   cierra la unicidad cruzada que ``product_product`` dejó anotada.
+- ``product_combo.py`` → ``ProductCombo``, una **elección** dentro de un
+  producto combo (no el menú: el menú es un ``product.template`` de tipo
+  ``combo``). Su ``base_price`` es el **mínimo**, que es lo que permite
+  prorratear.
 - ``product_supplierinfo.py`` → ``ProductSupplierinfo``, la tarifa de compra:
   precio, unidad y plazo por proveedor, con el alcance plantilla-o-variante.
 - ``product_catalog_mixin.py`` → ``ProductCatalogMixin``, el contrato del
   selector de productos. **Clase Python, no modelo** — no declara campos.
 
-Pendientes — **11** de los 25:
-``product_combo{,_item}.py``, ``product_document.py``,
+Pendientes — **10** de los 25:
+``product_combo_item.py``, ``product_document.py``,
 ``product_attribute_custom_value.py``,
 ``product_template_attribute_exclusion.py`` y las siete extensiones de
 modelos de ``base`` (``res_company``, ``res_partner``, ``res_currency``,
@@ -44,6 +48,7 @@ un índice es justo donde más engaña. Se corrige al registrar la tarifa.
 from addons.product.models.product_attribute import ProductAttribute
 from addons.product.models.product_catalog_mixin import ProductCatalogMixin
 from addons.product.models.product_category import ProductCategory
+from addons.product.models.product_combo import ProductCombo
 from addons.product.models.product_pricelist import ProductPricelist
 from addons.product.models.product_pricelist_item import (
     ProductPricelistItem,
@@ -67,6 +72,7 @@ __all__ = [
     'ProductAttribute',
     'ProductCatalogMixin',
     'ProductCategory',
+    'ProductCombo',
     'ProductPricelist',
     'ProductPricelistItem',
     'ProductProduct',

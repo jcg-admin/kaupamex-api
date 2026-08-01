@@ -46,9 +46,11 @@ Qué NO se porta, con su medición
   (``ImageMixin`` existe en ``base``), junto a ``TimeStampedModel``: heredar
   sólo el mixin de imagen **borraría las marcas de tiempo**, que es el defecto
   que H-API-147 registró al portar ``res_partner``.
-- **Los campos que apuntan a modelos aún sin portar**: ``combo_ids``
-  (``product.combo``) y ``product_document_ids`` (``product.document``). Los
-  demás ya llegaron, **todos por ``related_name`` y sin tocar este archivo**,
+- **Los campos que apuntan a modelos aún sin portar**: sólo queda
+  ``product_document_ids`` (``product.document``). ``combo_ids`` **ya llegó**
+  desde ``product_combo.py``, que declara el M2M de su lado con ese
+  ``related_name`` — el nombre de la fuente, sin tocar este archivo. Los
+  demás también llegaron, **todos por ``related_name``**,
   igual que ``report_paperformat.report_ids`` (H-API-164):
   ``product_tag_ids`` desde ``product_tag.py``, ``pricelist_rule_ids`` desde
   ``product_pricelist_item.py``, ``product_variant_ids`` desde
@@ -213,6 +215,39 @@ class ProductTemplate(ImageMixin, TimeStampedModel):
         if self.type == TYPE_COMBO and self.standard_price:
             raise ValidationError(
                 'Un combo no tiene coste propio: lo aportan sus componentes.')
+
+    def check_combo_choices(self):
+        """Las dos invariantes de la referencia sobre ``combo_ids``.
+
+        - ``_check_combo_ids_not_empty``: un producto de tipo combo tiene que
+          ofrecer al menos una elección. Un menú sin elecciones no es un menú.
+        - ``_check_sale_combo_ids``: si el combo se vende, **todo** producto
+          ofrecido dentro de él tiene que ser vendible. Lo contrario permite
+          armar un menú cuyo cliente elige algo que no está a la venta, y el
+          error aparecería al confirmar el pedido, lejos de su causa.
+
+        **Método, no ``clean()``**, por la misma razón que
+        ``ProductCombo.check_has_items``: ``combo_ids`` es un M2M, y Django no
+        deja poblarlo antes de que el registro exista. Exigirlo en ``clean()``
+        haría imposible crear un producto combo. Se invoca tras adjuntar las
+        elecciones.
+        """
+        if self.type != TYPE_COMBO:
+            return
+        combos = getattr(self, 'combo_ids', None)
+        if combos is None or not combos.exists():
+            raise ValidationError(
+                'Un producto combo debe ofrecer al menos una elección.')
+        if not self.sale_ok:
+            return
+        for combo in combos.all():
+            items = getattr(combo, 'combo_item_ids', None)
+            if items is not None and any(
+                not item.product.sale_ok for item in items.all()
+            ):
+                raise ValidationError(
+                    'Un combo a la venta no puede ofrecer productos que no '
+                    'están a la venta.')
 
     # === DERIVADOS ========================================================
 
