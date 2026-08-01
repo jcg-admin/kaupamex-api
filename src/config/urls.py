@@ -109,8 +109,6 @@ urlpatterns = _admin_urls + [
     path('api/v2/admin/',   include(('addons.website.admin_urls', 'admin_static_content'),      namespace='admin_static_content_v2')),
     # Chartsize admin (variants) after catalogue CRUD so POST /api/v2/admin/products/
     # resolves to ProductAdminViewSet, not chartsize DefaultRouter root (GET-only).
-    # Search history — no v2-specific URL file; same endpoints at v2.
-    path('api/v2/search/',  include(('addons.search_history.urls', 'search_history'),                    namespace='search_history_v2')),
 ]
 
 

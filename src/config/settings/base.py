@@ -81,7 +81,6 @@ INSTALLED_APPS = [
     'addons.website_mass_mailing',
     'addons.delivery',
     'addons.rating',
-    'addons.search_history',
     'addons.website',
     'addons.auto_backup',
     'addons.base',
