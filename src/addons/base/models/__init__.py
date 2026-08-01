@@ -35,6 +35,7 @@ from .ir_cron import IrCron
 from .ir_default import IrDefault
 from .ir_filters import IrFilters
 from .ir_logging_log import IrLogging
+from .ir_module import IrModule, IrModuleDependency
 from .ir_sequence import IrSequence
 from .report_export_job import ExportJob
 from .res_bank import ResBank
@@ -69,6 +70,8 @@ __all__ = [
     'ResLang',
     'ResBank',
     'DecimalPrecision',
+    'IrModule',
+    'IrModuleDependency',
     'IrSequence',
     'ExportJob',
     'SiteSettings',

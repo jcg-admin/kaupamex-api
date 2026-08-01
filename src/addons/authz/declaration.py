@@ -21,11 +21,49 @@ ensambla en runtime, y sigue siendo greppeable::
 
     grep -rn "ModuleSpec(" src/addons/*/authz_catalog.py
 
-**Por qué no ``__manifest__.py``.** El diseño
-(``diseno-catalogo-l0-module-extendido``) fija la frontera: se calca el
-*contrato de metadata* de Odoo, no su sistema de módulos (``addons_path``, el
-manifiesto como archivo que lee un instalador). Kaupamex es Django-nativo — el
-catálogo vive en DB y su declaración es Python importable.
+**Los dos archivos, y por qué son dos** (corregido 2026-08-01, H-API-113).
+
+La primera versión de este módulo tenía aquí una sección titulada *"Por qué no
+``__manifest__.py``"*, que lo descartaba por ser *"el manifiesto como archivo
+que lee un instalador"*. Era falso, y el error fue de razonamiento: el manifest
+de Odoo hace **dos trabajos** —declarar metadata y sostener el estado de
+instalación— y se descartaron ambos midiendo sólo el segundo. La prueba está
+en la referencia: ``ir.module.module.get_values_from_terp``
+(odoo19c: odoo/addons/base/models/ir_module.py:752) es una función **pura** que
+mapea el dict del manifest a columnas, sin instalador de por medio.
+
+Así que el manifest sí se porta, y hoy conviven dos declaraciones con sujetos
+distintos:
+
+- ``<addon>/__manifest__.py`` — **el addon**. Dato literal, leído con
+  ``ast.literal_eval`` igual que en la referencia. Lleva ``license``,
+  ``category``, ``version``, ``application``, ``depends``. Es donde vive la
+  licencia de la fuente adaptada, que DEC-KX-03 exige preservar y no
+  re-etiquetar.
+- ``<addon>/authz_catalog.py`` — **los módulos comerciales y sus capacidades**.
+  No es lo mismo que el addon: medido, 18 de 25 códigos de módulo no coinciden
+  con el nombre de su carpeta, y dos addons declaran dos módulos cada uno
+  (``settings_app`` → ``banners`` + ``settings``; ``website`` → ``content`` +
+  ``seo``) — algo que el modelo de Odoo no puede representar, porque allí un
+  manifest es un módulo es una carpeta.
+
+Son **dos ejes**: ``ir.module.module`` es catálogo técnico (qué está
+instalado); ``authz.Module`` es catálogo comercial (qué contrata una company).
+Que no coincidan **no** autoriza a colapsarlos — forzar ``code == carpeta``
+rompería los 18 códigos de los que cuelgan las capacidades y las suscripciones
+ya sembradas, y aun así no podría representar los dos addons con dos módulos:
+ganaría parecido, no fidelidad.
+
+Lo que sí exige es tener **los dos**, como la referencia (directiva del
+ejecutor 2026-08-01). El técnico vive en ``base.IrModule`` y se puebla de los
+manifiestos; el comercial es éste. Sin el técnico hay estado que el sistema no
+registra en ninguna parte: medido, **4 carpetas de** ``src/addons/`` **no están
+en** ``INSTALLED_APPS`` —``contact``, ``referral``, ``returns``, ``reviews``—
+y hoy ese hecho sólo existe como conocimiento tribal.
+
+Las capacidades tampoco tienen análogo en el manifest — en la referencia viven
+en ``security/ir.model.access.csv`` y los grupos. Son extensión nuestra y se
+declaran como tal.
 
 **Por qué ``authz_catalog.py`` y no ``catalog.py``.** ``addons/authz/catalog.py``
 ya existe con otro significado desde SOL-094 (consulta del catálogo sembrado:
@@ -45,7 +83,9 @@ Uso desde un addon::
         CapabilitySpec(code='catalogue', name='Catálogo'),
     ]
 """
+import ast
 import importlib
+import os
 
 from django.apps import apps
 
@@ -114,6 +154,67 @@ class CapabilitySpec:
 
     def __repr__(self):
         return f'CapabilitySpec({self.code!r})'
+
+
+MANIFEST_FILE = '__manifest__.py'
+
+# Las diez licencias que declara ``ir.module.module.license``
+# (odoo19c: odoo/addons/base/models/ir_module.py:306-317), con su mismo
+# default. Se porta la lista completa —no sólo las que hoy usamos— porque es
+# el vocabulario del titular, no nuestro: recortarlo obligaría a re-etiquetar
+# una fuente el día que aparezca, que es exactamente lo que DEC-KX-03 prohíbe.
+MANIFEST_LICENSES = (
+    'GPL-2', 'GPL-2 or any later version',
+    'GPL-3', 'GPL-3 or any later version',
+    'AGPL-3', 'LGPL-3',
+    'Other OSI approved licence',
+    'OEEL-1', 'OPL-1', 'Other proprietary',
+)
+DEFAULT_LICENSE = 'LGPL-3'
+
+# Licencia de un addon escrito por nosotros, sin código copiado de una fuente
+# externa. Coincide con la que declara ``pyproject.toml`` para el producto.
+OWN_LICENSE = 'Confidential'
+
+VALID_LICENSES = MANIFEST_LICENSES + (OWN_LICENSE,)
+
+
+def values_from_manifest(manifest):
+    """Mapea el dict de un ``__manifest__.py`` a los valores del catálogo.
+
+    Es el análogo de ``ir.module.module.get_values_from_terp``
+    (odoo19c: odoo/addons/base/models/ir_module.py:752-768) — una función
+    **pura**, sin DB ni Django, para que el gate estático la use igual que el
+    seed.
+
+    Se portan los mismos defaults de la referencia, incluido
+    ``license='LGPL-3'``: en Odoo un addon sin licencia declarada es LGPL-3, no
+    "sin licencia".
+    """
+    return {
+        'shortdesc':      manifest.get('name', ''),
+        'summary':        manifest.get('summary', ''),
+        'category':       manifest.get('category', 'Uncategorized'),
+        'version':        manifest.get('version', '1.0'),
+        'license':        manifest.get('license', DEFAULT_LICENSE),
+        'application':    manifest.get('application', False),
+        'auto_install':   manifest.get('auto_install', False) is not False,
+        'installable':    manifest.get('installable', True),
+        'depends':        tuple(manifest.get('depends', ())),
+    }
+
+
+def read_manifest(addon_dir):
+    """Lee y evalúa el ``__manifest__.py`` de un addon; ``None`` si no tiene.
+
+    Se evalúa con ``ast.literal_eval`` —no ``exec``, no ``import``— porque el
+    manifest **es dato**: un dict literal. Es la misma razón por la que Odoo lo
+    parsea en vez de importarlo, y lo que permite leerlo sin Django arrancado.
+    """
+    path = os.path.join(addon_dir, MANIFEST_FILE)
+    if not os.path.isfile(path):
+        return None
+    return ast.literal_eval(open(path, encoding='utf-8').read())
 
 
 def _import_declaration(app_config):
