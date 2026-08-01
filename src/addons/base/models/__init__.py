@@ -15,8 +15,16 @@ que los agrupe por naturaleza.
 - ``report_layout.py`` → ``ReportLayout`` (diseños de documento impreso).
 - ``res_groups_privilege.py`` → ``ResGroupsPrivilege`` (agrupa grupos en el form).
 
+- ``ir_autovacuum.py`` → ``IrAutovacuum`` + ``is_autovacuum`` (colector de los
+  métodos ``@api.autovacuum``).
+- ``ir_demo.py`` → ``IrDemo`` (asistente de datos de demostración).
+- ``ir_demo_failure.py`` → ``IrDemoFailure`` + ``IrDemoFailureWizard``
+  (módulos cuyo seed de demostración falló).
+- ``ir_profile.py`` → ``IrProfile`` + ``BaseEnableProfilingWizard``
+  (resultados de perfilado; sin el visor speedscope).
+
 - ``ir_config_parameter.py`` → ``SystemParameter`` (config L2 global, key/value).
-- ``ir_logging_log.py`` → ``IrLogging`` (log técnico ``ir.logging``, DEC-08).
+- ``ir_logging.py`` → ``IrLogging`` (log técnico ``ir.logging``, DEC-08).
 - ``ir_attachment.py`` → ``IrAttachment`` (adjuntos archivo/URL ``ir.attachment``).
 - ``ir_cron.py`` → ``IrCron`` (registro de horario ``ir.cron``; runner diferido).
 - ``ir_default.py`` → ``IrDefault`` (valores por defecto de campo ``ir.default``).
@@ -50,10 +58,14 @@ from .ir_config_parameter import (
     SystemParameter,
 )
 from .ir_attachment import IrAttachment
+from .ir_autovacuum import IrAutovacuum, is_autovacuum
 from .ir_cron import IrCron
+from .ir_demo import IrDemo
+from .ir_demo_failure import IrDemoFailure, IrDemoFailureWizard
+from .ir_profile import IrProfile, BaseEnableProfilingWizard
 from .ir_default import IrDefault
 from .ir_filters import IrFilters
-from .ir_logging_log import IrLogging
+from .ir_logging import IrLogging
 from .ir_exports import IrExports, IrExportsLine
 from .ir_module import IrModule, IrModuleCategory, IrModuleDependency
 from .ir_ui_menu import IrUiMenu
@@ -117,6 +129,13 @@ __all__ = [
     'IrSequence',
     'ExportJob',
     'SiteSettings',
+    'IrAutovacuum',
+    'is_autovacuum',
+    'IrDemo',
+    'IrDemoFailure',
+    'IrDemoFailureWizard',
+    'IrProfile',
+    'BaseEnableProfilingWizard',
 ]
 
 from .checkout_attempt import CheckoutAttempt  # noqa: E402

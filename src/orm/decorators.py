@@ -16,6 +16,7 @@ es quien realmente los llama.
 
 __all__ = [
     'depends', 'constrains', 'onchange', 'model', 'model_create_multi', 'returns',
+    'autovacuum',
 ]
 
 
@@ -52,3 +53,21 @@ def returns(*args, **kwargs):
     def deco(func):
         return func
     return deco
+
+
+def autovacuum(method):
+    """Marca un método para que lo llame el barrido de ``ir.autovacuum``.
+
+    Fiel a ``odoo/orm/decorators.py:299-310`` (``odoo19c:``), incluida la
+    aserción de que el nombre sea privado: allá el mensaje es *"autovacuum
+    methods must be private"*. Sirve para tareas de recolección que no ameritan
+    un cron propio.
+
+    El valor de retorno puede ser la tupla ``(hechos, restantes)``; si
+    ``restantes`` es verdadero, el colector vuelve a encolar el método.
+    """
+    assert method.__name__.startswith('_'), (
+        '%s: los métodos de autovacuum deben ser privados' % method.__name__
+    )
+    method._autovacuum = True
+    return method

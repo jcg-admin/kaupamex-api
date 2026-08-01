@@ -17,7 +17,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, MaxValueValidator, RegexValidator
 from django.db import models
 
-from .mixins import TimeStampedModel
+from .timestamped_mixin import TimeStampedModel
 
 logger = logging.getLogger(__name__)
 

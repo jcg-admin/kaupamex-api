@@ -8,6 +8,7 @@ que ``odoo/api/__init__.py`` re-exporta). Un addon escribe ``import api`` y usa
 superficie pública.
 """
 from orm.decorators import (          # noqa: F401  (re-export de orm/decorators)
+    autovacuum,
     constrains,
     depends,
     model,
@@ -18,4 +19,5 @@ from orm.decorators import (          # noqa: F401  (re-export de orm/decorators
 
 __all__ = [
     'depends', 'constrains', 'onchange', 'model', 'model_create_multi', 'returns',
+    'autovacuum',
 ]

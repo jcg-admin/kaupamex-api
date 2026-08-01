@@ -8,7 +8,7 @@ addon net-new ``observability``:
   -> ``addons/base/models/{timestamped,append_only,soft_delete}_mixin.py`` (slice 1 de
   ``adoptar-arquitectura-server-service-odoo``).
 - ``AppLog`` -> ``IrLogging`` en ``addons/base`` (slice 2, DEC-08). Ver
-  ``addons/base/models/ir_logging_log.py``.
+  ``addons/base/models/ir_logging.py``.
 - ``RequestLog`` -> ``addons/observability`` (slice 3, DEC-08/DEC-12). Ver
   ``addons/observability/models/request_log.py``.
 
