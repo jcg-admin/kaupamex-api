@@ -1,11 +1,28 @@
-"""Modelos del addon ``product`` (base del monolito modular) — atributos reutilizables.
+"""Modelos del addon ``product`` — espejo de ``addons/product/models/``.
 
-Adaptación de Odoo ``product.attribute*`` (verificado en 18 y 19): atributos
-reutilizables entre productos, con valores por-producto (``price_extra``) y la
-generación cartesiana de combinaciones. Enriquece el ``chartsize`` original
-(variantes de un solo eje por producto) hacia el modelo multi-atributo de Odoo.
+La referencia tiene **25** archivos además del ``__init__``. Portados hasta
+ahora, con lo que aporta cada uno:
+
+- ``product_attribute.py`` · ``product_attribute_value.py`` ·
+  ``product_template_attribute_line.py`` · ``product_template_attribute_value.py``
+  — atributos reutilizables entre productos, valores por-producto
+  (``price_extra``) y la generación cartesiana de combinaciones.
+- ``product_category.py`` → ``ProductCategory``, el árbol de categorías con su
+  ruta materializada y su nombre completo repropagado.
+
+Pendientes, encabezados por los dos que sostienen el resto:
+``product_template.py`` (1598) y ``product_product.py`` (1197), más
+``product_pricelist{,_item}.py``, ``product_supplierinfo.py``,
+``product_combo{,_item}.py``, ``product_tag.py``, ``product_document.py``,
+``product_catalog_mixin.py``, ``product_uom.py``,
+``product_attribute_custom_value.py``,
+``product_template_attribute_exclusion.py`` y las siete extensiones de
+modelos de ``base`` (``res_company``, ``res_partner``, ``res_currency``,
+``res_config_settings``, ``res_country_group``, ``ir_attachment``,
+``uom_uom``).
 """
 from addons.product.models.product_attribute import ProductAttribute
+from addons.product.models.product_category import ProductCategory
 from addons.product.models.product_attribute_value import (
     ProductAttributeValue,
 )
@@ -18,6 +35,7 @@ from addons.product.models.product_template_attribute_value import (
 
 __all__ = [
     'ProductAttribute',
+    'ProductCategory',
     'ProductAttributeValue',
     'ProductTemplateAttributeLine',
     'ProductTemplateAttributeValue',
