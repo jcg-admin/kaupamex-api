@@ -1,80 +1,25 @@
-"""Mixins abstractos de base de modelo — addon ``base`` (fundacional).
+"""Mixin ``SoftDeleteModel`` — borrado lógico, con su QuerySet y managers.
 
-Bases abstractas Django consumidas por los ``addons/**`` del proyecto. Viven en
-``addons/base`` (el addon fundacional del que todos dependen) porque son
-comportamiento de **base de modelo** compartido, no de un dominio concreto —
-DEC-09 de ``adoptar-arquitectura-server-service-odoo``.
+En la referencia el ORM auto-inyecta ``create_date``/``write_date``/
+``create_uid``/``write_uid`` (``LOG_ACCESS_COLUMNS``) y el archivado es el
+campo ``active``; no hay mixin de app equivalente. Aquí se adapta al patrón
+Django. El end-state totalmente fiel (auto-inyección en la capa ``orm/``, sin
+mixin) queda como alternativa diferida en DEC-09 de
+``adoptar-arquitectura-server-service-odoo``.
 
-En Odoo el ORM auto-inyecta ``create_date``/``write_date``/``create_uid``/
-``write_uid`` (``LOG_ACCESS_COLUMNS``, ``odoo/orm/models.py:296`` en 19) y el
-archivado es el campo ``active`` — no hay un mixin de app equivalente. Aquí se
-adaptan al patrón Django (mixin abstracto). El end-state totalmente fiel
-(auto-inyección en la capa ``orm/``, sin mixin) queda registrado como
-alternativa diferida en DEC-09.
+**Un archivo por mixin**, como ``image_mixin.py`` / ``avatar_mixin.py`` /
+``properties_base_definition_mixin.py`` en la referencia. Antes los seis
+vivían juntos en ``mixins.py``, agrupados por naturaleza ("son mixins") —
+agrupación que la referencia no hace.
 
-- ``TimeStampedModel`` — ``created_at``/``updated_at`` (≙ log-access de Odoo).
-- ``AppendOnlyModel`` — inmutabilidad a nivel de modelo para logs (SOL-011).
-- ``SoftDeleteModel`` (+ ``SoftDeleteQuerySet``/``SoftDeleteManager``/
-  ``AllObjectsManager``) — borrado lógico (DEC-DOC-007; ≙ ``active`` de Odoo).
-
-Decisiones de diseño originales:
-  gestion/herencia-modelos-django/decisiones-herencia-modelos-django.rst
-  gestion/decisiones/index.rst  (DEC-DOC-007)
+Es el análogo del campo ``active`` de la referencia (DEC-DOC-007). El
+QuerySet y los dos managers viven **con su modelo**, no en un archivo de
+"managers": es el mismo criterio con el que ``CapabilityPrunedMenuManager``
+vive en ``ir_ui_menu.py``, y con el que la referencia pone los métodos de
+un modelo en el archivo del modelo.
 """
 from django.db import models
 from django.utils import timezone
-
-
-class TimeStampedModel(models.Model):
-    """
-    Clase base abstracta que provee created_at y updated_at a todos
-    los modelos que hereden de ella.
-
-    Usar en TODOS los modelos concretos del proyecto excepto User.
-    No incluye ordering — cada modelo define el suyo.
-    No incluye db_index en created_at — los modelos que requieren
-    índice por volumen (inventario, órdenes) lo declaran directamente.
-    """
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-    )
-    updated_at = models.DateTimeField(
-        auto_now=True,
-    )
-
-    class Meta:
-        abstract      = True
-        get_latest_by = 'created_at'
-
-
-class AppendOnlyModel(TimeStampedModel):
-    """
-    Base abstracta append-only para logs (SOL-011, DEC-LOG-05). Impone la
-    inmutabilidad a nivel de modelo, no solo por docstring o por el endpoint
-    read-only (405): permite el INSERT inicial pero prohibe el UPDATE de
-    instancia (``save`` sobre una fila ya persistida -> ``PermissionError``) y
-    el DELETE de instancia (``obj.delete()`` -> ``PermissionError``).
-
-    La purga por retencion (``purge_logs``) usa ``QuerySet.delete()`` en bulk,
-    que NO invoca el ``delete()`` de instancia — por eso la retencion sigue
-    funcionando sin excepcion. Precedente adaptado de CNST-009 (otro proyecto):
-    un log de auditoria/tecnico que se puede editar o borrar puntualmente no es
-    prueba fiable.
-    """
-
-    class Meta:
-        abstract = True
-
-    def save(self, *args, **kwargs):
-        if not self._state.adding:
-            raise PermissionError(
-                f'{type(self).__name__} es append-only: UPDATE no permitido')
-        super().save(*args, **kwargs)
-
-    def delete(self, *args, **kwargs):
-        raise PermissionError(
-            f'{type(self).__name__} es append-only: DELETE de instancia no '
-            f'permitido (usar purga bulk por retencion)')
 
 
 class SoftDeleteQuerySet(models.QuerySet):

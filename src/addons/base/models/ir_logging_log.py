@@ -69,7 +69,7 @@ pasa por el guard de instancia.
 """
 from django.db import models
 
-from addons.base.models.mixins import AppendOnlyModel
+from addons.base.models.append_only_mixin import AppendOnlyModel
 
 
 class IrLogging(AppendOnlyModel):

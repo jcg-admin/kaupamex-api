@@ -27,7 +27,7 @@ quería ser.
 import fields
 import models
 
-from addons.base.models.mixins import TimeStampedModel
+from addons.base.models.timestamped_mixin import TimeStampedModel
 
 
 class ResDeviceLog(TimeStampedModel):

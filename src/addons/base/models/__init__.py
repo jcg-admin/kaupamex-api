@@ -1,6 +1,15 @@
 """Modelos del addon ``base`` — paquete espejo de ``odoo/addons/base/models/``.
 
-Un archivo por modelo (monolito modular, como Odoo):
+Un archivo por modelo (monolito modular, como Odoo) — **incluidos los
+mixins**: la referencia tiene ``image_mixin.py`` / ``avatar_mixin.py`` /
+``properties_base_definition_mixin.py``, uno por archivo, no un ``mixins.py``
+que los agrupe por naturaleza.
+
+- ``timestamped_mixin.py`` → ``TimeStampedModel`` (≙ log-access del ORM).
+- ``append_only_mixin.py`` → ``AppendOnlyModel`` (inmutabilidad de logs).
+- ``soft_delete_mixin.py`` → ``SoftDeleteModel`` + su QuerySet y managers
+  (≙ campo ``active``).
+- ``image_mixin.py`` → ``ImageMixin`` (imagen + sus cuatro reducciones).
 
 - ``ir_config_parameter.py`` → ``SystemParameter`` (config L2 global, key/value).
 - ``ir_logging_log.py`` → ``IrLogging`` (log técnico ``ir.logging``, DEC-08).
@@ -19,14 +28,15 @@ Un archivo por modelo (monolito modular, como Odoo):
 Se reexporta todo aquí para preservar el contrato de import histórico
 ``from addons.base.models import SystemParameter, ResCurrency, ...``.
 """
-from .mixins import (
-    TimeStampedModel,
-    AppendOnlyModel,
+from .timestamped_mixin import TimeStampedModel
+from .append_only_mixin import AppendOnlyModel
+from .soft_delete_mixin import (
     SoftDeleteModel,
     SoftDeleteQuerySet,
     SoftDeleteManager,
     AllObjectsManager,
 )
+from .image_mixin import ImageMixin
 from .decimal_precision import DecimalPrecision
 from .ir_config_parameter import (
     _DEFAULT_PARAMETERS,
@@ -88,6 +98,7 @@ __all__ = [
     'DecimalPrecision',
     'IrModule',
     'IrModuleDependency',
+    'ImageMixin',
     'IrUiMenu',
     'IrSequence',
     'ExportJob',

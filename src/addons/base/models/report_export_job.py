@@ -15,7 +15,7 @@ Identifiers + field names in English per DEC-DOC-005.
 from django.conf import settings
 from django.db import models
 
-from addons.base.models.mixins import TimeStampedModel
+from addons.base.models.timestamped_mixin import TimeStampedModel
 
 
 class ExportJob(TimeStampedModel):

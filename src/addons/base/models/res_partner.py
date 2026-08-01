@@ -24,7 +24,7 @@ reenvían. Ver ``res_users.py``.
 import fields
 import models
 
-from addons.base.models.mixins import TimeStampedModel
+from addons.base.models.timestamped_mixin import TimeStampedModel
 
 
 class ResPartner(TimeStampedModel):

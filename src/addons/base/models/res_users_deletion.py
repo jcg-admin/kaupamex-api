@@ -22,7 +22,7 @@ el borrado — la propiedad de arriba es lo que el port aporta.
 import fields
 import models
 
-from addons.base.models.mixins import TimeStampedModel
+from addons.base.models.timestamped_mixin import TimeStampedModel
 
 
 class ResUsersDeletion(TimeStampedModel):

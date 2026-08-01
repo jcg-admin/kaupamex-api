@@ -66,7 +66,7 @@ from django.contrib.auth import hashers
 from django.utils import timezone
 from django.utils.crypto import salted_hmac
 
-from addons.base.models.mixins import TimeStampedModel
+from addons.base.models.timestamped_mixin import TimeStampedModel
 
 # Sal del HMAC de sesión. Literal de Django (``AbstractBaseUser``): cambiarlo
 # invalidaría toda sesión viva, así que se replica verbatim.

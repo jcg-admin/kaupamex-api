@@ -5,7 +5,7 @@ Los modelos que antes vivían aquí ya migraron a addons fieles a Odoo o al
 addon net-new ``observability``:
 
 - Bases abstractas (``TimeStampedModel``/``AppendOnlyModel``/``SoftDeleteModel``)
-  -> ``addons/base/models/mixins.py`` (slice 1 de
+  -> ``addons/base/models/{timestamped,append_only,soft_delete}_mixin.py`` (slice 1 de
   ``adoptar-arquitectura-server-service-odoo``).
 - ``AppLog`` -> ``IrLogging`` en ``addons/base`` (slice 2, DEC-08). Ver
   ``addons/base/models/ir_logging_log.py``.

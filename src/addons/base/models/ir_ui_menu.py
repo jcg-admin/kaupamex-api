@@ -64,7 +64,7 @@ la del ítem. Así lo siembra ``seed_menu``.
 from django.core.cache import cache
 from django.db import models
 
-from addons.base.models.mixins import TimeStampedModel
+from addons.base.models.timestamped_mixin import TimeStampedModel
 
 _MENU_CACHE_PREFIX = 'ir_ui_menu:visible'
 _MENU_CACHE_EPOCH_KEY = 'ir_ui_menu:epoch'
