@@ -74,7 +74,6 @@ urlpatterns = _admin_urls + [
     path('api/v2/support/',               include(('addons.helpdesk.urls', 'support'),             namespace='support_v2')),
 
     # ─── API v2 (F4: inventory admin + catalogue admin) ───────────────────────
-    path('api/v2/admin/inventory/', include(('addons.inventory.admin_urls', 'admin_inventory_v2'), namespace='admin_inventory_v2')),
 
     # ─── API v2 (F5: logistics/shipments, newsletter, contact, pages, backups,
     #             reports, auth §2.1) ────────────────────────────────────────
@@ -114,9 +113,6 @@ urlpatterns = _admin_urls + [
     path('api/v2/admin/',   include(('addons.payments.admin_urls', 'admin_payments'),                   namespace='admin_payments_v2')),
     # Chartsize admin (variants) after catalogue CRUD so POST /api/v2/admin/products/
     # resolves to ProductAdminViewSet, not chartsize DefaultRouter root (GET-only).
-    # Inventory list (/inventory/) and movements (/inventory/variants/<pk>/movements/)
-    # not yet ported to urls_v2; admin_inventory_v2 (line 121) handles the rest.
-    path('api/v2/admin/',   include(('addons.inventory.urls', 'admin_inventory'),                        namespace='admin_inventory_pt')),
     # Search history — no v2-specific URL file; same endpoints at v2.
     path('api/v2/search/',  include(('addons.search_history.urls', 'search_history'),                    namespace='search_history_v2')),
 ]

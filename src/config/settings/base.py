@@ -42,7 +42,6 @@ INSTALLED_APPS = [
     'addons.bus',
     'addons.uom',
     'addons.product',
-    'addons.inventory',
     'addons.stock',
     'addons.stock_account',
     'addons.stock_landed_costs',
@@ -511,8 +510,6 @@ SPECTACULAR_SETTINGS = {
         # nombre de campo `reason` — devolucion vs ajuste de inventario.
         'ReturnReasonEnum':
             'addons.stock.models.ReturnRequest.Reason',
-        'StockAdjustmentReasonEnum':
-            'addons.inventory.serializers.ADJUSTMENT_REASONS',
     },
 }
 

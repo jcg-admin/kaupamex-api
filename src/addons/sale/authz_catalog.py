@@ -18,9 +18,11 @@ MODULES = [
         name='Pedidos',
         is_application=True,
         category='Order Management',
-        # Ídem: se conserva ``inventory``, que sigue declarado; ``catalogue``
-        # se fue con su addon y vuelve con la familia que lo hospede.
-        depends=('inventory',),
+        # Sin aristas: ``catalogue`` e ``inventory`` se fueron con sus addons.
+        # Vuelven como ``product``/``website_sale`` y ``stock`` cuando esas
+        # familias se integren — declarar antes es la arista colgada de
+        # H-API-106.
+        depends=(),
     ),
 ]
 
