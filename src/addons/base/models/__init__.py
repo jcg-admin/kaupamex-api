@@ -38,6 +38,9 @@ que los agrupe por naturaleza.
   ``django.core.mail`` vía ``addons/mail``).
 - ``res_config.py`` → ``ResConfig`` + ``ResConfigSettings`` (motor de
   configuración por convención de nombre de campo; abstractos, sin tabla).
+- ``ir_qweb.py`` → ``IrQweb`` + ``MALICIOUS_SCHEMES`` + ``keep_query``
+  (vocabulario y primitivas de QWeb; el compilador NO se porta — este árbol
+  renderiza en el cliente).
 - ``ir_rule.py`` → ``IrRule`` (reglas de registro: acceso por fila).
 - ``ir_binary.py`` → ``IrBinary`` (sirve campos binarios como respuesta HTTP).
 - ``ir_fields.py`` → ``IrFieldsConverter`` (conversión de valores de import).
@@ -92,6 +95,14 @@ from .ir_cron import IrCron
 from .ir_demo import IrDemo
 from .ir_demo_failure import IrDemoFailure, IrDemoFailureWizard
 from .ir_profile import IrProfile, BaseEnableProfilingWizard
+from .ir_qweb import (
+    IrQweb,
+    QWebError,
+    QWebErrorInfo,
+    MALICIOUS_SCHEMES,
+    VOID_ELEMENTS,
+    keep_query,
+)
 from .ir_rule import IrRule
 from .ir_embedded_actions import IrEmbeddedActions
 from .ir_actions import (
@@ -207,6 +218,12 @@ __all__ = [
     'IrActionsServer',
     'IrActionsTodo',
     'IrActionsReport',
+    'IrQweb',
+    'QWebError',
+    'QWebErrorInfo',
+    'MALICIOUS_SCHEMES',
+    'VOID_ELEMENTS',
+    'keep_query',
     'IrEmbeddedActions',
     'IrUiMenu',
     'IrSequence',
