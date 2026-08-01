@@ -147,9 +147,16 @@ class ResUsers(TimeStampedModel):
     Fiel a ``odoo19c: odoo/addons/base/models/res_users.py:163-257`` en lo
     estructural: ``partner`` requerido (``partner_id``), ``login``,
     ``password``, ``active``, ``company``. Los campos computados de la
-    referencia (``share``, ``companies_count``, ``tz_offset``) y su M2M a
-    ``res.groups`` no se portan: la autorización de este árbol es ``authz`` por
-    capacidad, no grupos.
+    referencia (``share``, ``companies_count``, ``tz_offset``) no se portan.
+
+    **El M2M a ``res.groups`` sí existe desde ``res_groups.py``.** La nota
+    anterior decía que no se portaba; quedó obsoleta al portar ese archivo. La
+    referencia declara ``user_ids`` **del lado de ``res.groups``**
+    (``res_groups_users_rel``), así que aquí el reverso llega por
+    ``related_name='group_ids'`` sin declarar nada. Que exista la relación NO
+    cambia la autorización: este árbol sigue autorizando por **capacidad**
+    (DEC-11, ``HasCapability`` fail-closed) sobre ``authz``; el re-apuntado de
+    los consumidores es una decisión de producto aparte.
     """
 
     # Causas distintas de ``active=False`` (UC-AUTH-01 Alt-A, UC-AUTH-13/16).

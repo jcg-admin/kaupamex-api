@@ -10,8 +10,15 @@ presenta como un selector: "Ventas: Usuario / Responsable / —". El
 Procedencia: ``name`` · ``description`` · ``placeholder`` (default ``'No'``) ·
 ``sequence`` (default 100) idénticos. ``category_id`` → ``category``, FK a
 ``base.IrModuleCategory``, que **ya está portado** (``ir_module.py``).
-``group_ids`` (One2many) → ``related_name='groups'``, que declarará
-``res.groups`` al portarse.
+``group_ids`` (One2many) → lo declara ``res_groups.py`` como
+``related_name='group_ids'`` en su FK ``privilege``, conservando el nombre de
+la referencia.
+
+*Corrección:* esta nota predecía ``related_name='groups'``. Al portar
+``res_groups.py`` la fuente resultó nombrarlo ``group_ids``
+(``res_groups_privilege.py:14`` de ``odoo19c:``), y manda la fuente. Una
+predicción sobre un archivo aún sin portar es especulación, no diseño — el
+nombre se lee de la referencia cuando llega, no se anticipa.
 """
 from django.db import models
 

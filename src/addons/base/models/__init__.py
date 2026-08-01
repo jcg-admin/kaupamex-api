@@ -14,6 +14,8 @@ que los agrupe por naturaleza.
 - ``ir_exports.py`` → ``IrExports`` + ``IrExportsLine`` (exportaciones guardadas).
 - ``report_layout.py`` → ``ReportLayout`` (diseños de documento impreso).
 - ``res_groups_privilege.py`` → ``ResGroupsPrivilege`` (agrupa grupos en el form).
+- ``res_groups.py`` → ``ResGroups`` (grupos con implicación transitiva y
+  disjuntos; NO reemplaza la autorización por capacidad de ``authz``).
 
 - ``ir_asset.py`` → ``IrAsset`` + ``AssetPaths`` (directivas sobre bundles; el
   resolutor de rutas contra manifests no aplica — lo hace Webpack en ``ui``).
@@ -81,6 +83,7 @@ from .ir_ui_menu import IrUiMenu
 from .report_layout import ReportLayout
 from .report_paperformat import ReportPaperformat, PAPER_SIZES
 from .res_groups_privilege import ResGroupsPrivilege
+from .res_groups import ResGroups
 from .ir_sequence import IrSequence
 from .report_export_job import ExportJob
 from .res_bank import ResBank
@@ -135,6 +138,7 @@ __all__ = [
     'IrModuleCategory',
     'ReportLayout',
     'ResGroupsPrivilege',
+    'ResGroups',
     'IrUiMenu',
     'IrSequence',
     'ExportJob',
