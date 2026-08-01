@@ -81,7 +81,6 @@ INSTALLED_APPS = [
     'addons.helpdesk',
     'addons.mass_mailing',
     'addons.website_mass_mailing',
-    'addons.questions',
     'addons.delivery',
     'addons.rating',
     'addons.search_history',
@@ -490,8 +489,6 @@ SPECTACULAR_SETTINGS = {
             'addons.website.models.StaticPageVersion.STATUS_CHOICES',
         'NotificationStatusEnum':
             'addons.mail.models.manual_notification.ManualNotification.Status',
-        'QuestionStatusEnum':
-            'addons.questions.models.QuestionStatus.choices',
         'SupportTicketStatusEnum':
             'addons.helpdesk.models.SupportTicket.Status',
         'ReturnRequestStatusEnum':

@@ -61,7 +61,7 @@ urlpatterns = _admin_urls + [
     # ``contacts``, ``website_sale``, ``stock``, ``rating`` y
     # ``website_sale_wishlist`` respectivamente.
 
-    # ─── API v2 (F3: orders, questions, support) ──────────────────────────────
+    # ─── API v2 (F3: support) ──────────────────────────────
     # El recorrido del comprador sobre su venta lo sirve ``sale`` — es donde
     # la referencia lo pone (``sale/controllers/portal.py`` → ``/my/orders``).
     # El prefijo público sigue siendo ``/orders/``: el comprador habla de sus
@@ -71,8 +71,6 @@ urlpatterns = _admin_urls + [
     # de comprar, y el espejo las mezclaba en un solo addon.
     path('api/v2/admin/',                 include(('addons.sale_management.admin_urls', 'admin_sale'),
                                                   namespace='admin_sale_v2')),
-    path('api/v2/products/',              include(('addons.questions.urls', 'questions'),         namespace='questions_v2')),
-    path('api/v2/admin/',                 include(('addons.questions.admin_urls', 'admin_questions'), namespace='admin_questions_v2')),
     path('api/v2/support/',               include(('addons.helpdesk.urls', 'support'),             namespace='support_v2')),
 
     # ─── API v2 (F4: inventory admin + catalogue admin) ───────────────────────

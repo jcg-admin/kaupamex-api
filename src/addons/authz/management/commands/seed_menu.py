@@ -48,10 +48,8 @@ MENU = [
         # (no la reseña que envía el comprador — eso es storefront). Por eso
         # vive en Marketing junto al resto de UGC/engagement, no en Catálogo.
         _leaf('resenas', 'Reseñas', '/admin/reviews/moderation', 'moderation'),
-        _group('grp-preguntas', 'Preguntas', [
-            _leaf('preguntas-moderacion', 'Moderación', '/admin/questions/moderation', 'questions'),
-            _leaf('preguntas-responder', 'Responder', '/admin/questions/answer', 'questions'),
-        ]),
+        # Q&A de producto: el grupo vuelve con el cluster ``website_sale`` que
+        # lo hospeda (H-QUESTIONS-01). Su capacidad murió con el addon.
         _group('grp-newsletter', 'Newsletter', [
             _leaf('newsletter-compose', 'Redactar', '/admin/newsletter/compose', 'newsletter'),
             _leaf('newsletter-subs', 'Suscriptores', '/admin/newsletter/subscribers', 'newsletter'),
