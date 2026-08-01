@@ -80,7 +80,6 @@ urlpatterns = _admin_urls + [
     path('api/v2/newsletter/', include(('addons.website_mass_mailing.urls', 'website_mass_mailing'), namespace='newsletter_v2')),
     path('api/v2/admin/',      include(('addons.mass_mailing.admin_urls', 'admin_newsletter'),   namespace='admin_newsletter_v2')),
     path('api/v2/admin/',      include(('addons.auto_backup.admin_urls', 'admin_backups'),         namespace='admin_backups_v2')),
-    path('api/v2/auth/',       include(('addons.users.auth_urls', 'auth'),                     namespace='auth_v2')),
     # T-214: consulta pública SEPOMEX de CP → asentamientos (autocompletado de direcciones)
     # DEC-08/09: capacidades del usuario + menú admin dinámico (podado por capacidad)
     path('api/v2/authz/',      include(('addons.authz.urls', 'authz'),                         namespace='authz_v2')),
@@ -102,8 +101,6 @@ urlpatterns = _admin_urls + [
     # DEC-V2-05 sancionados (login, register, refresh, logout, change-password)
     # appear here via users.urls — correct behaviour (same at both v1 and v2).
     # F6 (payments initiate/checkout) excluded — those are Tier B.
-    path('api/v2/auth/',    include(('addons.users.urls', 'users'),                                      namespace='users_v2_pt')),
-    path('api/v2/admin/',   include(('addons.users.admin_urls', 'admin_users'),                         namespace='admin_users_v2')),
     path('api/v2/admin/',   include(('addons.loyalty.urls', 'admin_voucher'),                           namespace='admin_voucher_v2')),
     path('api/v2/admin/',   include(('addons.helpdesk.admin_urls', 'admin_support'),                     namespace='admin_support_v2')),
     path('api/v2/admin/',   include(('addons.website.admin_urls', 'admin_static_content'),      namespace='admin_static_content_v2')),

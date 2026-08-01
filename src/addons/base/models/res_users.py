@@ -1,0 +1,280 @@
+"""``res.users`` — la credencial de acceso (Odoo ``base``).
+
+Portación fiel de ``odoo19c: odoo/addons/base/models/res_users.py`` (LGPL-3)
+— atribución y aviso de licencia preservados (DEC-KX-03).
+
+**La decisión que estructura este archivo** es la línea 165 de la referencia::
+
+    _inherits = {'res.partner': 'partner_id'}
+
+``res.users`` **no es la persona**. Es la credencial, y delega quién eres a un
+``res.partner`` requerido. Por eso ``name``/``email``/``phone`` figuran en
+``res.users`` como campos ``related`` (``:252-255``): se leen del partner, no
+se guardan dos veces. Un empleado que deja de tener login sigue existiendo como
+partner; un cliente sin cuenta nunca necesita uno.
+
+**Django no tiene** ``_inherits``. La delegación se reimplementa con lo que sí
+hay: FK requerida a ``ResPartner`` más propiedades que reenvían. El efecto
+observable es el mismo —un solo lugar donde vive el nombre— sin fingir un
+mecanismo del ORM que no existe.
+
+**Lo que NO se hereda de Django.** El modelo no extiende ``AbstractBaseUser``:
+reimplementa el contrato de auth a mano (U-D puro, T-203) para no arrastrar
+``is_staff``/``is_superuser`` ni el M2M de permisos nativo — la autorización
+vive en ``authz`` por capacidad (DEC-11), y un flag de superusuario saltaría
+ese modelo. Los *hashers* de Django sí se usan, como librería.
+"""
+import fields
+import models
+
+from django.conf import settings
+from django.contrib.auth import hashers
+from django.utils import timezone
+from django.utils.crypto import salted_hmac
+
+from addons.base.models.mixins import TimeStampedModel
+
+# Sal del HMAC de sesión. Literal de Django (``AbstractBaseUser``): cambiarlo
+# invalidaría toda sesión viva, así que se replica verbatim.
+_SESSION_AUTH_KEY_SALT = (
+    'django.contrib.auth.models.AbstractBaseUser.get_session_auth_hash'
+)
+
+
+class ResUsersManager(models.Manager):
+    """Manager de la credencial. Replica lo que el framework consume.
+
+    No hereda ``BaseUserManager`` por la misma razón que el modelo no hereda
+    ``AbstractBaseUser``: sólo se replican los métodos que Django y
+    ``createsuperuser`` llaman de verdad.
+    """
+
+    use_in_migrations = True
+
+    @staticmethod
+    def normalize_email(email):
+        """Normaliza el dominio a minúsculas (copia de ``BaseUserManager``)."""
+        email = email or ''
+        try:
+            email_name, domain_part = email.strip().rsplit('@', 1)
+        except ValueError:
+            return email.strip()
+        return email_name + '@' + domain_part.lower()
+
+    def _create_user(self, login, password, partner=None, **extra_fields):
+        if not login:
+            raise ValueError('El login es obligatorio para ResUsers')
+        login = self.normalize_email(login)
+        if partner is None:
+            # La referencia exige ``partner_id``: no hay credencial sin party.
+            # Si el llamador no trae uno, se crea el mínimo viable con el
+            # login como nombre — igual que ``res.users.create`` de Odoo, que
+            # crea el partner cuando falta.
+            partner = _partner_model().objects.create(
+                name=extra_fields.pop('name', '') or login,
+                email=login,
+            )
+        user = self.model(login=login, partner=partner, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_user(self, login, password=None, **extra_fields):
+        extra_fields.setdefault('active', True)
+        return self._create_user(login, password, **extra_fields)
+
+    def create_superuser(self, login, password=None, **extra_fields):
+        """Crea la credencial. El rol ``superadmin`` (DEC-01=B) se asigna en el
+        seed de ``authz``: U-D puro no tiene flag ``is_superuser``.
+        """
+        extra_fields.setdefault('active', True)
+        return self._create_user(login, password, **extra_fields)
+
+    def get_by_natural_key(self, username):
+        return self.get(**{self.model.USERNAME_FIELD: username})
+
+
+def _partner_model():
+    """Resuelve ``ResPartner`` por el registro de apps.
+
+    Import diferido **por función**, no por statement: ambos modelos viven en
+    el mismo addon y un import a nivel de módulo cerraría el ciclo
+    ``res_users`` → ``res_partner`` → ``__init__``. Es una llamada, así que el
+    gate AST de no-lazy-imports la admite (misma resolución que la excepción #4
+    de ``AppConfig.ready()``).
+    """
+    from django.apps import apps
+    return apps.get_model('base', 'ResPartner')
+
+
+class ResUsers(TimeStampedModel):
+    """``res.users`` — credencial de acceso, delegando identidad al partner.
+
+    Fiel a ``odoo19c: odoo/addons/base/models/res_users.py:163-257`` en lo
+    estructural: ``partner`` requerido (``partner_id``), ``login``,
+    ``password``, ``active``, ``company``. Los campos computados de la
+    referencia (``share``, ``companies_count``, ``tz_offset``) y su M2M a
+    ``res.groups`` no se portan: la autorización de este árbol es ``authz`` por
+    capacidad, no grupos.
+    """
+
+    # Causas distintas de ``active=False`` (UC-AUTH-01 Alt-A, UC-AUTH-13/16).
+    # No están en la referencia: allí ``active`` es un booleano sin motivo.
+    # Se conservan porque el flujo de reactivación por email depende de
+    # distinguir "no verificada" de "suspendida por un administrador".
+    DEACTIVATION_UNVERIFIED   = 'unverified'
+    DEACTIVATION_SUSPENDED    = 'suspended'
+    DEACTIVATION_SELF_DELETED = 'self_deleted'
+    DEACTIVATION_REASON_CHOICES = [
+        (DEACTIVATION_UNVERIFIED,   'No verificada (email pendiente)'),
+        (DEACTIVATION_SUSPENDED,    'Suspendida por administrador'),
+        (DEACTIVATION_SELF_DELETED, 'Dada de baja por el usuario'),
+    ]
+    DEACTIVATION_REASONS_REACTIVABLE_BY_EMAIL = {
+        DEACTIVATION_UNVERIFIED,
+        DEACTIVATION_SELF_DELETED,
+    }
+
+    partner       = fields.Many2one(
+        'base.ResPartner', on_delete=models.PROTECT, related_name='users',
+        help_text=(
+            'Party al que pertenece esta credencial (Odoo partner_id). '
+            'Requerido: en la referencia no hay usuario sin partner.'
+        ),
+    )
+    login         = fields.Char(
+        max_length=254, unique=True, db_index=True,
+        help_text='Identificador de acceso (Odoo login). Aquí es el email.',
+    )
+    password      = fields.Char(max_length=128, verbose_name='Contraseña')
+    active        = fields.Boolean(
+        default=True, db_index=True,
+        help_text='Cuenta operativa (Odoo active).',
+    )
+    last_login    = fields.Datetime(null=True, blank=True)
+
+    deactivated_reason = fields.Selection(
+        max_length=20, choices=DEACTIVATION_REASON_CHOICES,
+        null=True, blank=True,
+        help_text=(
+            'Causa por la que active=False; NULL cuando la cuenta está activa. '
+            'Distingue las reactivables por email de las que exigen UC-AUTH-14.'
+        ),
+    )
+    deactivated_at = fields.Datetime(null=True, blank=True)
+
+    company       = fields.Many2one(
+        'company.Company', on_delete=models.PROTECT, null=True, blank=True,
+        related_name='users',
+        help_text=(
+            'Company L1 del usuario (Odoo company_id). NULL = operador de '
+            'plataforma L0 o sin asignar. Lo consume el resolver de company.'
+        ),
+    )
+
+    objects = ResUsersManager()
+
+    USERNAME_FIELD = 'login'
+    EMAIL_FIELD    = 'login'
+    REQUIRED_FIELDS = []
+
+    # Sentinela de cambio de password (replica ``AbstractBaseUser._password``).
+    _password = None
+
+    class Meta:
+        db_table            = 'res_users'
+        ordering            = ['login']
+        verbose_name        = 'Usuario'
+        verbose_name_plural = 'Usuarios'
+
+    def __str__(self) -> str:
+        return self.login
+
+    # --- Delegación al partner (el ``_inherits`` que Django no tiene) ---
+    @property
+    def name(self):
+        return self.partner.name
+
+    @property
+    def email(self):
+        """La referencia relaciona ``email`` al del partner (``:253``)."""
+        return self.partner.email or self.login
+
+    @property
+    def phone(self):
+        return self.partner.phone
+
+    # --- Contrato de auth (reimplementación manual, U-D puro) ---
+    @property
+    def is_authenticated(self):
+        return True
+
+    @property
+    def is_anonymous(self):
+        return False
+
+    @property
+    def is_active(self):
+        """Alias del contrato de Django sobre el ``active`` de la referencia.
+
+        Django consulta ``is_active`` en ``ModelBackend.user_can_authenticate``
+        y en el login. La referencia llama al campo ``active``; se conserva ese
+        nombre y se expone el alias, en vez de renombrar el campo.
+        """
+        return self.active
+
+    def get_username(self):
+        return getattr(self, self.USERNAME_FIELD)
+
+    def natural_key(self):
+        return (self.get_username(),)
+
+    def set_password(self, raw_password):
+        self.password = hashers.make_password(raw_password)
+        self._password = raw_password
+
+    def check_password(self, raw_password):
+        """Verifica el password y re-hashea si el hasher quedó obsoleto."""
+        def setter(raw):
+            self.set_password(raw)
+            # Evita disparar la señal de cambio en el re-hash.
+            self._password = None
+            self.save(update_fields=['password'])
+        return hashers.check_password(raw_password, self.password, setter)
+
+    def set_unusable_password(self):
+        self.password = hashers.make_password(None)
+
+    def has_usable_password(self):
+        return hashers.is_password_usable(self.password)
+
+    def get_session_auth_hash(self):
+        """HMAC del hash de password: cambiarlo invalida las sesiones vivas."""
+        return salted_hmac(
+            _SESSION_AUTH_KEY_SALT, self.password, algorithm='sha256',
+        ).hexdigest()
+
+    def get_session_auth_fallback_hash(self):
+        """Hashes bajo ``SECRET_KEY_FALLBACKS`` — mantiene válidas las sesiones
+        durante la rotación de ``SECRET_KEY``."""
+        for fallback_secret in settings.SECRET_KEY_FALLBACKS:
+            yield salted_hmac(
+                _SESSION_AUTH_KEY_SALT, self.password,
+                secret=fallback_secret, algorithm='sha256',
+            ).hexdigest()
+
+    # --- Presentación ---
+    def get_full_name(self):
+        return self.partner.name
+
+    def get_short_name(self):
+        return self.partner.name.split(' ', 1)[0] if self.partner.name else ''
+
+    def deactivate(self, reason):
+        """Desactiva la cuenta registrando la causa."""
+        self.active = False
+        self.deactivated_reason = reason
+        self.deactivated_at = timezone.now()
+        self.save(update_fields=[
+            'active', 'deactivated_reason', 'deactivated_at', 'updated_at',
+        ])

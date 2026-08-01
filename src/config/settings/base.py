@@ -38,7 +38,6 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'drf_spectacular',
     'core',
-    'addons.users',
     'addons.bus',
     'addons.uom',
     'addons.product',
@@ -101,7 +100,7 @@ INSTALLED_APPS = [
     'addons.account',
 ]
 
-AUTH_USER_MODEL = 'users.IdentityUser'
+AUTH_USER_MODEL = 'base.ResUsers'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -294,7 +293,7 @@ REST_FRAMEWORK = {
         # JWT (SimpleJWT) queda INSTALADO pero fuera del default: el login aun
         # emite tokens (dormidos). Para una futura app movil basta re-anadir
         # 'rest_framework_simplejwt.authentication.JWTAuthentication' aqui.
-        'addons.users.authentication.CsrfExemptSessionAuthentication',
+        'addons.base.authentication.CsrfExemptSessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',

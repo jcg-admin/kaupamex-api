@@ -10,6 +10,8 @@ Un archivo por modelo (monolito modular, como Odoo):
 - ``ir_filters.py`` → ``IrFilters`` (filtros de búsqueda guardados ``ir.filters``).
 - ``res_currency.py`` → ``ResCurrency`` (moneda ISO 4217).
 - ``res_country.py`` → ``ResCountry`` + ``ResCountryState`` (geografía política).
+- ``res_partner.py`` → ``ResPartner`` (el party: persona, empresa o dirección).
+- ``res_users.py`` → ``ResUsers`` (credencial; delega identidad al partner).
 - ``res_config_settings.py`` → ``SiteSettings`` (~ ``res.config.settings``, singleton).
 
 Se reexporta todo aquí para preservar el contrato de import histórico
@@ -41,6 +43,8 @@ from .report_export_job import ExportJob
 from .res_bank import ResBank
 from .res_country import ResCountry, ResCountryState
 from .res_country_group import ResCountryGroup
+from .res_partner import ResPartner
+from .res_users import ResUsers
 from .res_currency import ResCurrency
 from .res_currency_rate import ResCurrencyRate
 from .res_config_settings import SiteSettings
@@ -67,6 +71,8 @@ __all__ = [
     'ResCountry',
     'ResCountryState',
     'ResCountryGroup',
+    'ResPartner',
+    'ResUsers',
     'ResLang',
     'ResBank',
     'DecimalPrecision',

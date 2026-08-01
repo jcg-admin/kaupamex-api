@@ -1,5 +1,9 @@
 """Autenticacion de sesion sin exigencia de token CSRF (ADR-018).
 
+Reubicada desde ``addons/users/authentication.py`` al disolver ``users`` en
+``base`` (H-API-119): es plomeria del framework, no dominio de identidad —
+vive con ``ir_*`` y ``res_*``, no con la credencial que autentica.
+
 Auth **unica** del SPA tras la migracion completa (Opcion 3 del
 analisis-incidente-csrf-mutaciones).
 
