@@ -37,8 +37,8 @@ Lo que NO se porta, con su medición
 ===================================
 
 - **``_find_record`` por ``xmlid``.** Medido con
-  ``grep -rn "class IrModelData" src/ | grep -v ir_binary.py`` → **0** clases
-  (el filtro excluye esta propia mención; sin él el grep se cuenta a sí mismo).
+  ``grep -rn "^class IrModelData\b" src/`` → **0** clases (el ancla de columna 0
+  distingue una definición de una cita indentada — ver H-API-141).
   [PROVEN] El ``xmlid`` se resuelve contra
   ``ir.model.data``, el registro de datos declarativos XML que este árbol no
   tiene (la misma ausencia que ``ir_module.py`` ya declara para el ``xml_id``

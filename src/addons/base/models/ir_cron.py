@@ -18,9 +18,15 @@ Odoo modela ``ir.cron`` con ``_inherits = {'ir.actions.server':
 'ir_actions_server_id'}`` (18 línea 68-70; 19 línea 104-108): el "qué
 ejecutar" vive delegado en un modelo ``ir.actions.server`` aparte (código
 Python arbitrario, llamada a método, etc.), y ``ir.cron`` solo añade la
-periodicidad. Este monolito **no tiene** ningún modelo ``ir.actions.*``
-(grep verificado: cero clases ``IrActions`` en ``src/addons`` — mismo
-patrón de ausencia documentado en ``ir_filters.py`` para su ``action_id``).
+periodicidad.
+
+**Actualizado** (porte de ``ir_actions.py``): ``ir.actions.server`` **ya
+existe** —``grep -rn "^class IrActionsServer" src/`` → **1** clase— pero **su
+motor de ejecución no se porta** (evalúa Python almacenado; ver el docstring
+de ``ir_actions.py``). Es decir: el destino de la delegación existe como dato,
+no como ejecutor. La adaptación de abajo **no cambia** por eso — sigue siendo
+la correcta mientras el runner no exista—, pero la premisa "no hay ningún
+modelo ``ir.actions.*``" ya no es cierta y se corrige aquí.
 
 Sin el modelo destino no hay FK fiel que portar. La adaptación fiel es
 almacenar el objetivo directamente como **``model_name`` (Char) +

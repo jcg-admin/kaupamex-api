@@ -45,7 +45,7 @@ fuente es que un usuario no puede ser portal e interno a la vez. En la
 referencia el conjunto disjunto sale de tres ``xmlid`` fijos
 (``base.group_user`` / ``group_portal`` / ``group_public``) resueltos contra
 ``ir.model.data``. Medido con
-``grep -rn "class IrModelData" src/ | grep -v res_groups.py`` → **0** clases.
+``grep -rn "^class IrModelData\b" src/`` → **0** clases.
 [PROVEN]
 
 Por eso la pertenencia al conjunto disjunto se declara **en el propio
@@ -73,8 +73,10 @@ Qué NO se porta, con su medición
   peor que uno provisional.
 - ``view_group_hierarchy`` / ``_get_view_group_hierarchy`` (Json computado
   para el formulario de ajustes) y ``action_show_all_users`` (devuelve una
-  ``ir.actions.act_window``): dependen de la capa de vistas/acciones —
-  ``grep -rn "class IrActions" src/`` → **0**.
+  ``ir.actions.act_window``): ``IrActionsActWindow`` **ya existe** desde el
+  porte de ``ir_actions.py``, pero ambos métodos dependen además de la capa de
+  **vistas** (``ir.ui.view``), que sigue sin portar —
+  ``grep -rn "^class IrUiView" src/`` → **0**.
 - ``_ensure_xml_id`` y ``get_external_id``: mismo motivo que ``disjoint_ids``,
   no hay ``ir.model.data``.
 - ``api_key_duration``: la duración máxima de una API key. Este árbol autentica

@@ -52,8 +52,8 @@ Qué NO se porta, con su medición
   ``_str_to_one2many``, ``_str_to_many2one_reference``. Resuelven una
   referencia por ``xmlid`` (contra ``ir.model.data``) o por ``name_search``
   (la búsqueda por nombre visible del ORM de Odoo). Medido con
-  ``grep -rn "class IrModelData" src/ | grep -v ir_fields.py`` → **0** clases,
-  y ``grep -rn "def name_search" src/`` → **0** definiciones. [PROVEN] Sin
+  ``grep -rn "^class IrModelData\b" src/`` → **0** clases, y
+  ``grep -rn "def name_search" src/`` → **0** definiciones. [PROVEN] Sin
   ninguno de los dos caminos de resolución no hay conversión relacional fiel
   que portar; inventar una tercera vía sería inventar semántica.
 - **``_str_to_properties``** (95 líneas) — convierte contra el campo

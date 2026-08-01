@@ -36,18 +36,21 @@ Drift 18→19 observado (ambas fuentes citadas arriba) — **se porta 18, no 19*
 
 Alcance de esta portación — deliberadamente NO se porta:
 
-- **``embedded_action_id`` / ``embedded_parent_res_id``** (presentes en AMBAS
-  18 y 19 — no es drift de versión). Referencian ``ir.embedded.actions``,
-  modelo de vistas embebidas que no existe en este monolito. Sin el modelo
-  destino no hay FK fiel que portar; omitir es correcto por dependencia
-  ausente, no por decisión de scope. Candidato H-BASE cuando/si
-  ``ir.embedded.actions`` se porte.
+- **``embedded_action_id`` / ``embedded_parent_res_id``** — **YA NO se omiten.**
+  Esta nota decía *"candidato H-BASE cuando/si ``ir.embedded.actions`` se
+  porte"*; ese archivo se portó y los dos campos entraron con él
+  (``embedded_action`` FK + ``embedded_parent_res_id``). Se conserva el
+  registro de que estuvieron diferidos —y por qué— en vez de borrarlo: era
+  dependencia ausente, no decisión de scope, y el destino estaba fechado.
 - **``action_id`` degradado a Integer plano, sin FK**: Odoo lo declara
-  Many2one a ``ir.actions.actions``, modelo tampoco portado en este
-  monolito (grep verificado: cero clases ``IrActions`` en ``src/addons``).
-  Se mantiene como campo de control mínimo (mismo criterio que ``res_id``
-  en ``ir_attachment`` — Integer plano, no FK real) en vez de omitirlo del
-  todo, porque el invariante "un filtro por defecto por acción" lo referencia.
+  Many2one a ``ir.actions.actions``. **Actualizado** (porte de
+  ``ir_actions.py``): ese modelo **ya existe**
+  (``grep -rn "^class IrActionsActions" src/`` → **1**), así que el Integer
+  plano es ahora deuda cerrable — el FK real cabe. Se deja el cambio para su
+  propio pase porque toca la migración de esta tabla, no de rebote desde
+  ``ir_actions``. Mientras tanto sigue siendo campo de control mínimo (mismo
+  criterio que ``res_id`` en ``ir_attachment``) en vez de omitirse, porque el
+  invariante "un filtro por defecto por acción" lo referencia.
 - **``company_id``**: NO existe en ``ir.filters`` en ninguna de las dos
   fuentes (18 ni 19) — verificado leyendo el modelo completo. El campo
   especulado en el brief de esta tarea se OMITE por ausencia real en Odoo,
@@ -120,10 +123,25 @@ class IrFilters(models.Model):
         null=True, blank=True,
         help_text=(
             'ID de la acción/menú al que aplica el filtro (Odoo action_id — '
-            'Many2one a ir.actions.actions, modelo no portado en este '
-            'monolito; se mantiene Integer plano, igual criterio que res_id '
-            'en ir_attachment). NULL = aplica a todos los menús del modelo.'
+            'Many2one a ir.actions.actions). NULL = aplica a todos los menús '
+            'del modelo. Sigue siendo Integer plano: ir.actions.actions ya '
+            'está portado, así que el FK real cabe, pero cambiarlo migra esta '
+            'tabla y va en su propio pase.'
         ),
+    )
+    # Cierra los dos campos que este archivo dejó diferidos: la referencia
+    # declara ``embedded_action_id`` + ``embedded_parent_res_id`` y ambos
+    # esperaban a ``ir.embedded.actions``, que ya está portado.
+    embedded_action = fields.Many2one(
+        'base.IrEmbeddedActions', on_delete=models.CASCADE,
+        null=True, blank=True, db_index=True, related_name='filter_ids',
+        verbose_name='Acción embebida',
+        help_text='Odoo embedded_action_id. Filtro por defecto de una acción '
+                  'embebida.',
+    )
+    embedded_parent_res_id = fields.Integer(
+        null=True, blank=True, verbose_name='ID del padre de la embebida',
+        help_text='Odoo embedded_parent_res_id.',
     )
     active = fields.Boolean(default=True, help_text='Odoo active.')
 

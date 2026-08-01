@@ -30,8 +30,20 @@ Lo único que NO se porta, con su medición
 =========================================
 
 ``report_ids`` — ``One2many`` a ``ir.actions.report`` por su
-``paperformat_id``. Medido: ``grep -rn "class IrActions" src/`` → **0**
-clases. [PROVEN] No es una columna: es el **reverso** de una FK que vive en el
+``paperformat_id``.
+
+**Actualizado** (``api``, porte de ``ir_actions.py``): la familia
+``ir.actions.*`` **ya está portada** en parte —
+``grep -rn "^class IrActions" src/`` → **9** clases: ocho concretas más
+``IrActionsBase``, que es el abstracto que traduce el ``_inherit`` de la
+referencia y no corresponde a ningún modelo suyo. ``ir.actions.report``
+**no** está entre ellas —``grep -rn "^class IrActionsReport" src/`` → **0**—:
+vive en ``ir_actions_report.py``, archivo aparte de la referencia y aún
+pendiente. La cifra "0 clases" de la primera redacción era correcta cuando se
+escribió y dejó de serlo al portar ``ir_actions``; se corrige en vez de dejarla
+envejecer.
+
+No es una columna: es el **reverso** de una FK que vive en el
 modelo ausente. Cuando ``ir_actions_report.py`` se porte, su FK declarará
 ``related_name='report_ids'`` y la relación aparece de este lado sola, sin
 tocar este archivo. Es la misma ausencia que ``ir_filters.py`` y ``ir_cron.py``

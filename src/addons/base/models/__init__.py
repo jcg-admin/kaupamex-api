@@ -23,6 +23,10 @@ que los agrupe por naturaleza.
   resolutor de rutas contra manifests no aplica — lo hace Webpack en ``ui``).
 - ``ir_autovacuum.py`` → ``IrAutovacuum`` + ``is_autovacuum`` (colector de los
   métodos ``@api.autovacuum``).
+- ``ir_actions.py`` → los ocho modelos de la familia ``ir.actions.*``
+  (ventana, URL, cliente, servidor, cierre, vista, todo).
+- ``ir_embedded_actions.py`` → ``IrEmbeddedActions`` (acciones embebidas en
+  la vista de otro registro; cierra H-API-142).
 - ``ir_rule.py`` → ``IrRule`` (reglas de registro: acceso por fila).
 - ``ir_binary.py`` → ``IrBinary`` (sirve campos binarios como respuesta HTTP).
 - ``ir_fields.py`` → ``IrFieldsConverter`` (conversión de valores de import).
@@ -78,6 +82,17 @@ from .ir_demo import IrDemo
 from .ir_demo_failure import IrDemoFailure, IrDemoFailureWizard
 from .ir_profile import IrProfile, BaseEnableProfilingWizard
 from .ir_rule import IrRule
+from .ir_embedded_actions import IrEmbeddedActions
+from .ir_actions import (
+    IrActionsActions,
+    IrActionsActWindow,
+    IrActionsActWindowClose,
+    IrActionsActWindowView,
+    IrActionsActUrl,
+    IrActionsClient,
+    IrActionsServer,
+    IrActionsTodo,
+)
 from .ir_default import IrDefault
 from .ir_filters import IrFilters
 from .ir_logging import IrLogging
@@ -146,6 +161,15 @@ __all__ = [
     'ResGroups',
     'ResCompany',
     'IrRule',
+    'IrActionsActions',
+    'IrActionsActWindow',
+    'IrActionsActWindowClose',
+    'IrActionsActWindowView',
+    'IrActionsActUrl',
+    'IrActionsClient',
+    'IrActionsServer',
+    'IrActionsTodo',
+    'IrEmbeddedActions',
     'IrUiMenu',
     'IrSequence',
     'ExportJob',

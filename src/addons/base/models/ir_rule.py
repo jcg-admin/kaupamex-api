@@ -44,7 +44,8 @@ Qué NO se porta, con su medición
 ================================
 
 - **``model_id`` como FK a ``ir.model``.** Medido con
-  ``grep -rn "class IrModel\b" src/ | grep -v ir_rule.py`` → **0** clases.
+  ``grep -rn "^class IrModel\b" src/`` → **0** clases (el ancla de columna 0
+  distingue una definición de una cita indentada — ver H-API-141).
   [PROVEN] Se porta como ``model_name`` (``Char`` indexado) con el label del
   modelo Django, mismo criterio que ``ir_filters.model_id`` e
   ``ir_attachment.res_model`` ya usan en este árbol: el "modelo técnico" es un
