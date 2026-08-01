@@ -103,7 +103,6 @@ INSTALLED_APPS = [
     'addons.auth_totp',
     'addons.company',
     'addons.account',
-    'addons.finance',
 ]
 
 AUTH_USER_MODEL = 'users.IdentityUser'

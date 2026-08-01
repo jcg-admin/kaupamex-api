@@ -86,8 +86,6 @@ urlpatterns = _admin_urls + [
     path('api/v2/admin/',      include(('addons.auto_backup.admin_urls', 'admin_backups'),         namespace='admin_backups_v2')),
     path('api/v2/auth/',       include(('addons.users.auth_urls', 'auth'),                     namespace='auth_v2')),
     # T-214: consulta pública SEPOMEX de CP → asentamientos (autocompletado de direcciones)
-    # MOD-028 FINANCE: modulo financiero (UC-FIN-01..08). Primer slice: conceptos.
-    path('api/v2/finance/',    include(('addons.finance.urls', 'finance'),                     namespace='finance_v2')),
     # DEC-08/09: capacidades del usuario + menú admin dinámico (podado por capacidad)
     path('api/v2/authz/',      include(('addons.authz.urls', 'authz'),                         namespace='authz_v2')),
     # DEC-01 (~auth_totp): gestión del 2FA TOTP del usuario autenticado
