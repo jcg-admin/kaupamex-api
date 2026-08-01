@@ -96,13 +96,18 @@ escrita a mano (o por un cargador futuro) sí puede declararla, y quitarla de
 ``FIELD_TYPES`` haría que ese valor legítimo fuera inválido. El límite es de
 la reflexión, no del campo.
 
+``view_ids`` — cerrado, ya no es un pendiente
+=============================================
+
+Este archivo dejó ``view_ids`` en la lista de omisiones con su medición
+(``^class IrUiView\\b`` → **0** clases). Tras portar ``ir_ui_view.py`` esa
+medición da **1** [PROVEN] y la propiedad se implementó abajo — **no** bastaba
+con corregir la cifra: el hueco tenía un cuerpo de cinco líneas esperando, y
+dejarlo pendiente por inercia habría sido deuda gratuita.
+
 Qué NO se porta, con su medición
 ================================
 
-- **``view_ids``** (``One2many`` computado sobre ``ir.ui.view``) —
-  ``grep -rn "^class IrUiView\\b" src/`` → **0** clases. Es el reverso de una
-  búsqueda sobre un modelo que vive en ``ir_ui_view.py``, archivo aparte de la
-  referencia y aún pendiente; aparecerá solo cuando ese archivo llegue.
 - **La maquinaria de campos manuales** (``_add_manual_models``,
   ``_instanciate``, ``make_compute``, ``_reflect_model``… con su
   ``safe_eval``): crea **clases de modelo en caliente** a partir de filas de
@@ -136,6 +141,7 @@ from django.apps import apps
 from django.core.exceptions import ValidationError
 
 from addons.base.models.ir_module import IrModule
+from addons.base.models.ir_ui_view import IrUiView
 from addons.base.models.res_groups import ResGroups
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from orm.fields import __all__ as _FIELD_NAMES
@@ -306,6 +312,16 @@ class IrModel(TimeStampedModel):
             and getattr(base, '_meta', None) is not None
         ]
         return type(self).objects.filter(model__in=parent_labels)
+
+    @property
+    def view_ids(self):
+        """``_view_ids`` — las vistas declaradas sobre este modelo.
+
+        ``compute`` sin ``store`` en la referencia → propiedad aquí. Cerrado
+        con el porte de ``ir_ui_view.py``; era el hueco que este archivo dejó
+        anotado.
+        """
+        return IrUiView.objects.filter(model=self.model)
 
     @property
     def modules(self):

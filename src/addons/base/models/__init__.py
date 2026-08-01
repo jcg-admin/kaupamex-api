@@ -43,6 +43,8 @@ que los agrupe por naturaleza.
   renderiza en el cliente).
 - ``ir_qweb_fields.py`` → los conversores ``ir.qweb.field.*`` (cómo se
   escribe un valor para que lo lea una persona; valen sin QWeb).
+- ``ir_ui_view.py`` → ``IrUiView`` + ``IrUiViewCustom`` + ``ResetViewArchWizard``
+  (registro de vistas y reglas de herencia; el combinador de XML no se porta).
 - ``ir_rule.py`` → ``IrRule`` (reglas de registro: acceso por fila).
 - ``ir_binary.py`` → ``IrBinary`` (sirve campos binarios como respuesta HTTP).
 - ``ir_fields.py`` → ``IrFieldsConverter`` (conversión de valores de import).
@@ -113,6 +115,12 @@ from .ir_qweb_fields import (
     format_duration_digital,
     nl2br,
     nl2br_enclose,
+)
+from .ir_ui_view import (
+    IrUiView,
+    IrUiViewCustom,
+    ResetViewArchWizard,
+    VIEW_TYPE_CHOICES,
 )
 from .ir_rule import IrRule
 from .ir_embedded_actions import IrEmbeddedActions
@@ -242,6 +250,10 @@ __all__ = [
     'format_duration_digital',
     'nl2br',
     'nl2br_enclose',
+    'IrUiView',
+    'IrUiViewCustom',
+    'ResetViewArchWizard',
+    'VIEW_TYPE_CHOICES',
     'IrEmbeddedActions',
     'IrUiMenu',
     'IrSequence',

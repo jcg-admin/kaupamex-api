@@ -49,9 +49,13 @@ Qué NO se porta, con su medición
   ``_render_qweb_html``, ``_render_qweb_text``, ``_render_template``,
   ``_merge_pdfs``, ``_get_rendering_context``, ``barcode``,
   ``get_available_barcode_masks``, ``get_wkhtmltopdf_state``. Ver arriba.
-- **``associated_view``** — busca la vista QWeb que usa el reporte. Medido:
-  ``grep -rn "^class IrUiView\\b" src/`` → **0** clases; ``ir_ui_view.py`` es
-  archivo aparte de la referencia y sigue pendiente.
+- **``associated_view``** — busca la vista QWeb que usa el reporte.
+  **Actualizado** (porte de ``ir_ui_view.py``):
+  ``grep -rn "^class IrUiView\\b" src/`` → **1** clase. [PROVEN] Pero el
+  método sigue sin portarse por una razón **distinta** de la que tenía: no le
+  falta el modelo, le falta la **acción de ventana resuelta por ``xml_id``**
+  (``self.env.ref('base.action_ui_view')``) que devuelve para que el cliente
+  la abra — y eso depende de ``ir.model.data``, que existe pero nadie puebla.
 - **``_search_model_id``** — implementa la búsqueda por modelo con el
   ``Domain`` de Odoo (``NEGATIVE_OPERATORS``, ``any!``, ``Domain.OR``). Es la
   mecánica de su motor de dominios; en Django la búsqueda equivalente es un

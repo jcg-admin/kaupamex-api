@@ -66,9 +66,14 @@ Qué NO se porta, con su medición
 ================================
 
 - ``model_access`` (``ir.model.access``), ``rule_groups`` (``ir.rule``),
-  ``view_access`` (``ir.ui.view``): son **reversos** de FK que viven en
-  modelos aún sin portar — los tres están en la lista de pendientes de
-  ``base``. Aparecen solos cuando esos archivos lleguen, sin tocar éste.
+  ``view_access`` (``ir.ui.view``): **los tres ya llegaron**, y llegaron como
+  este párrafo predijo — *"aparecen solos cuando esos archivos lleguen, sin
+  tocar éste"*. Ninguno necesitó una línea nueva aquí:
+  ``ir_rule.py`` declara ``related_name='rule_groups'``, ``ir_model.py``
+  declara ``related_name='model_access'`` en ``IrModelAccess.group_id``, e
+  ``ir_ui_view.py`` declara ``related_name='view_access'``. [PROVEN] Se
+  conserva el registro de que estuvieron pendientes —y de que la predicción
+  se cumplió literalmente— en vez de borrarlo.
 - ``menu_access`` (``ir.ui.menu``): ``IrUiMenu`` **sí** está portado, pero su
   campo ``group`` apunta hoy a ``authz.Capability``. Re-apuntarlo es
   exactamente la decisión de producto que este docstring difiere; añadir aquí

@@ -76,8 +76,13 @@ Qué NO se porta, con su medición
   paquetes de localización en caliente. Es el instalador, cuya ausencia
   ``ir_module.py`` ya declara y justifica.
 - **``external_report_layout_id``** (``ir.ui.view``) y ``_get_view`` — capa de
-  vistas. ``grep -rn "class IrUiView" src/`` → **0**; es el mismo pendiente
-  que ``report_layout.py`` ya declara.
+  vistas. **Actualizado** (porte de ``ir_ui_view.py``):
+  ``grep -rn "^class IrUiView\b" src/`` → **1** clase. [PROVEN] La medición de
+  **0** que sostenía la omisión dejó de ser cierta. El campo **sigue** sin
+  columna aquí: añadir la FK migra esta tabla y va en su propio pase, igual
+  que ``ir_filters.action_id``. ``_get_view`` sigue fuera por otra razón —
+  depende del combinador de XML, que ``ir_ui_view.py`` deja fuera con su
+  medición.
 - **``bank_ids``** — ``related`` a ``partner_id.bank_ids``; llega solo cuando
   ``res_partner`` declare el reverso de ``res.bank``.
 """
