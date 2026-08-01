@@ -1,6 +1,6 @@
 """Integration — /api/v2/authz/me/capabilities + me/menu (DEC-08/09).
 
-El menú admin se persiste (``authz_menu_item``) y el endpoint lo poda por las
+El menú admin se persiste (``ir_ui_menu``) y el endpoint lo poda por las
 capacidades del usuario. Verifica: superadmin ve todo; un usuario de solo
 ``support.view`` ve únicamente su sección; sin capacidades el menú es vacío;
 las secciones sin hijos visibles se descartan; requiere autenticación.
@@ -9,7 +9,7 @@ from addons.authz.models import (
     AccessLevel, Capability, Module, Role, RoleAssignment,
     RoleCapability,
 )
-from addons.authz_menu.models import MenuItem
+from addons.base.models import IrUiMenu
 from addons.authz.services import SUPERADMIN_ROLE_CODE, invalidate_capabilities
 
 import pytest
@@ -187,9 +187,9 @@ def test_static_content_leaf_gated_by_settings_manage(seeded, client):
 
 @pytest.mark.django_db
 def test_seed_menu_is_idempotent(seeded):
-    before = MenuItem.objects.count()
+    before = IrUiMenu.objects.count()
     call_command('seed_menu')
-    assert MenuItem.objects.count() == before
+    assert IrUiMenu.objects.count() == before
 
 
 @pytest.mark.django_db
@@ -198,11 +198,11 @@ def test_arbitrary_depth_0_1_2_3(seeded, client):
     límite por diseño. Se arma una cadena nivel 0→1→2→3 y el endpoint la
     devuelve anidada intacta (prueba de que 0/1/2/3/N funciona sin cambios)."""
     cap = Capability.objects.get(code='settings')
-    n0 = MenuItem.objects.create(key='d0', label='N0', route='', order=90)
-    n1 = MenuItem.objects.create(key='d1', label='N1', route='', order=0, parent=n0)
-    n2 = MenuItem.objects.create(key='d2', label='N2', route='', order=0, parent=n1)
-    MenuItem.objects.create(key='d3', label='N3', route='/admin/system-settings',
-                            order=0, parent=n2, required_capability=cap)
+    n0 = IrUiMenu.objects.create(key='d0', name='N0', route='', sequence=90)
+    n1 = IrUiMenu.objects.create(key='d1', name='N1', route='', sequence=0, parent=n0)
+    n2 = IrUiMenu.objects.create(key='d2', name='N2', route='', sequence=0, parent=n1)
+    IrUiMenu.objects.create(key='d3', name='N3', route='/admin/system-settings',
+                            sequence=0, parent=n2, group=cap)
 
     u = _user('deep@e.com')
     RoleAssignment.objects.create(user=u, role=_role_with(['settings.full']))

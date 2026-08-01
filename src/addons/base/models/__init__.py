@@ -8,6 +8,8 @@ Un archivo por modelo (monolito modular, como Odoo):
 - ``ir_cron.py`` → ``IrCron`` (registro de horario ``ir.cron``; runner diferido).
 - ``ir_default.py`` → ``IrDefault`` (valores por defecto de campo ``ir.default``).
 - ``ir_filters.py`` → ``IrFilters`` (filtros de búsqueda guardados ``ir.filters``).
+- ``ir_ui_menu.py`` → ``IrUiMenu`` (árbol de navegación ``ir.ui.menu``, podado
+  por capacidad; vive en ``base`` igual que en la referencia).
 - ``res_currency.py`` → ``ResCurrency`` (moneda ISO 4217).
 - ``res_country.py`` → ``ResCountry`` + ``ResCountryState`` (geografía política).
 - ``res_partner.py`` → ``ResPartner`` (el party: persona, empresa o dirección).
@@ -38,6 +40,7 @@ from .ir_default import IrDefault
 from .ir_filters import IrFilters
 from .ir_logging_log import IrLogging
 from .ir_module import IrModule, IrModuleDependency
+from .ir_ui_menu import IrUiMenu
 from .ir_sequence import IrSequence
 from .report_export_job import ExportJob
 from .res_bank import ResBank
@@ -85,6 +88,7 @@ __all__ = [
     'DecimalPrecision',
     'IrModule',
     'IrModuleDependency',
+    'IrUiMenu',
     'IrSequence',
     'ExportJob',
     'SiteSettings',

@@ -361,6 +361,10 @@ class EntitlementRevocation(TimeStampedModel):
 # DEC-01), con tabla física intacta (SeparateDatabaseAndState):
 #   - AuthzEvent (auditoría DEC-07)     -> ``addons.authz_audit``  (~ account_audit_trail)
 #   - ReauthSession (step-up DEC-12)    -> ``addons.authz_reauth`` (~ auth_totp)
-#   - MenuItem (navegación DEC-08/09)   -> ``addons.authz_menu``   (~ ir.ui.menu)
-# Importar desde ``addons.authz_audit.models`` / ``addons.authz_reauth.models`` /
-# ``addons.authz_menu.models`` respectivamente.
+# Importar desde ``addons.authz_audit.models`` / ``addons.authz_reauth.models``
+# respectivamente.
+#
+# El menú (antes ``MenuItem`` en ``addons.authz_menu``) se movió a
+# ``base.IrUiMenu`` — tabla ``ir_ui_menu``. En la referencia ``ir.ui.menu`` vive
+# en ``base``, junto al motor de permisos, y el addon intermedio no aportaba
+# nada: el modelo es del núcleo, no una feature opcional.

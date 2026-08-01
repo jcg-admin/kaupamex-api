@@ -1,14 +1,15 @@
 """Integration — menú de cuenta dinámico del comprador (DEC-AUTHZ-BUYER).
 
 El menú de "Mi cuenta" pasa de una lista estática en el UI a ser
-registro-dirigido: se siembra como ``MenuItem`` con ``audience='account'`` y se
-sirve por ``GET /api/v2/authz/me/menu/?audience=account``, podado por las
+registro-dirigido: se siembra como ``MenuItem`` con ```` y se
+sirve por ``GET /api/v2/authz/me/menu/?``, podado por las
 capacidades ``account.*`` del rol ``comprador`` (asignado al registrarse). El
-menú admin (``audience='admin'``, default) NO debe incluir ítems de cuenta y
+menú admin (````, default) NO debe incluir ítems de cuenta y
 viceversa. Agregar un menú futuro = sembrar una fila, sin tocar el UI.
 """
 from addons.authz.models import Role, RoleAssignment
-from addons.authz_menu.models import MenuItem
+from addons.base.models import IrUiMenu
+from addons.website.models import WebsiteMenu
 from addons.authz.services import (
     BUYER_ROLE_CODE, SUPERADMIN_ROLE_CODE, assign_buyer_role,
     invalidate_capabilities,
@@ -64,15 +65,17 @@ def test_seed_creates_buyer_role_with_account_caps(seeded):
 
 
 @pytest.mark.django_db
-def test_seed_marks_account_menu_audience(seeded):
-    assert MenuItem.objects.filter(
-        audience='account', key='cuenta-pedidos').exists()
-    # Los ítems admin conservan audience='admin'.
-    assert MenuItem.objects.filter(
-        audience='admin', key='pedidos').exists()
+def test_seed_splits_menus_by_model(seeded):
+    # La separación es por MODELO, no por un campo de audiencia: la referencia
+    # tiene ``ir.ui.menu`` (backoffice) y ``website.menu`` (cara pública) como
+    # modelos distintos.
+    assert WebsiteMenu.objects.filter(key='cuenta-pedidos').exists()
+    assert not WebsiteMenu.objects.filter(key='pedidos').exists()
+    assert IrUiMenu.objects.filter(key='pedidos').exists()
+    assert not IrUiMenu.objects.filter(key='cuenta-pedidos').exists()
 
 
-# ── /me/menu/?audience=account ───────────────────────────────────────────────
+# ── /me/menu/? ───────────────────────────────────────────────
 
 @pytest.mark.django_db
 def test_account_menu_requires_auth(seeded, client):
@@ -118,7 +121,7 @@ def test_buyer_gets_empty_admin_menu(seeded, client):
 
 @pytest.mark.django_db
 def test_admin_menu_excludes_account_section(seeded, client):
-    # Un superadmin ve TODO el menú admin, pero 'Mi cuenta' (audience=account)
+    # Un superadmin ve TODO el menú admin, pero 'Mi cuenta' ()
     # NO aparece mezclado en el menú admin.
     boss = _user('boss@e.com')
     RoleAssignment.objects.create(

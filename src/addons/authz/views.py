@@ -14,9 +14,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from addons.authz_audit.models import AuthzEvent
-from addons.authz_menu.models import MenuItem
+from addons.base.models import IrUiMenu
+from addons.website.models import WebsiteMenu
 from addons.authz_reauth.models import ReauthSession
-from addons.authz.serializers import MenuItemNodeSerializer
+from addons.authz.serializers import MenuNodeSerializer
 from addons.authz.services import (
     REAUTH_CAP_CODE,
     _client_ip,
@@ -46,67 +47,46 @@ class MyCapabilitiesView(APIView):
 class MyMenuView(APIView):
     """Árbol de menú podado por las capacidades del usuario.
 
-    Un item es visible si (a) no requiere capacidad, o (b) el usuario tiene la
-    capacidad (superadmin ve todo). Una sección (nivel 0) se descarta si no le
-    queda ningún hijo visible — así un usuario de solo-soporte ve únicamente su
-    sección.
+    Thin controller, como en la referencia: ``web/controllers/home.py:85`` sólo
+    llama ``request.env["ir.ui.menu"].load_web_menus(...)``. Todo el mecanismo
+    —los dos filtros, la regla de ancestros, el caché por perfil y el
+    ensamblado— vive en el manager del modelo, que es donde la referencia lo
+    pone.
 
-    ``?audience=admin`` (default) sirve el menú del panel; ``?audience=account``
-    sirve el menú de cuenta del comprador (DEC-AUTHZ-BUYER). Ambos son
-    registro-dirigidos: agregar una entrada es sembrar una fila, sin tocar el
-    UI. Filtrar por audiencia evita que el admin vea ítems de cuenta mezclados
-    (y viceversa).
+    ``?audience=`` elige **el modelo**, no un campo: ``admin`` (default) sirve
+    ``base.IrUiMenu`` —el backoffice, ``ir.ui.menu``— y ``account`` sirve
+    ``website.WebsiteMenu`` —la cara pública, ``website.menu``
+    (DEC-AUTHZ-BUYER)—. La referencia mantiene esos dos modelos separados; el
+    parámetro se conserva porque es el contrato que ya consume el SPA.
+
+    Ambos son registro-dirigidos: agregar una entrada es sembrar una fila, sin
+    tocar el UI.
     """
 
     permission_classes = [IsAuthenticated]
 
+    MENU_MODEL_BY_AUDIENCE = {
+        'admin': IrUiMenu,
+        'account': WebsiteMenu,
+    }
+
     def get(self, request):
-        caps = resolve_capabilities(request.user)
-        superadmin = is_superadmin(request.user)
+        audience = request.query_params.get('audience', 'admin')
+        model = self.MENU_MODEL_BY_AUDIENCE.get(audience, IrUiMenu)
 
-        audience = request.query_params.get('audience', MenuItem.AUDIENCE_ADMIN)
-        valid_audiences = {c[0] for c in MenuItem.AUDIENCE_CHOICES}
-        if audience not in valid_audiences:
-            audience = MenuItem.AUDIENCE_ADMIN
-
-        # Cargar todo el árbol activo de la audiencia en una query; armar el
-        # índice por parent.
-        items = list(
-            MenuItem.objects.filter(is_active=True, audience=audience)
-            .select_related('required_capability')
-            .order_by('parent_id', 'order', 'id')
+        tree = model.objects.load_menus_tree(
+            request.user,
+            capabilities=resolve_capabilities(request.user),
+            superadmin=is_superadmin(request.user),
         )
-        children_by_parent = {}
-        for item in items:
-            children_by_parent.setdefault(item.parent_id, []).append(item)
-
-        def visible(item):
-            cap = item.required_capability.code if item.required_capability_id else None
-            if superadmin or cap is None:
-                return True
-            # DEC-11: un sustantivo (sin punto) gatea el menú por LECTURA
-            # (``noun.view``); una acción nombrada (con punto) por membresía.
-            needed = cap if '.' in cap else f'{cap}.view'
-            return needed in caps
-
-        def build(parent_id):
-            out = []
-            for item in children_by_parent.get(parent_id, []):
-                kids = build(item.id)
-                # Item hoja: visible por su propia capacidad.
-                # Sección (sin route): visible solo si tiene hijos visibles.
-                is_section = not item.route
-                if is_section:
-                    if not kids:
-                        continue
-                elif not visible(item):
-                    continue
-                item._visible_children = kids
-                out.append(item)
-            return out
-
-        tree = build(None)
-        return Response(MenuItemNodeSerializer(tree, many=True).data)
+        response = Response(MenuNodeSerializer(tree, many=True).data)
+        # ``home.py:97`` de la referencia sella la respuesta de ``load_menus``
+        # con ``Cache-Control: no-store``. Es seguridad, no rendimiento: el menú
+        # depende del perfil, así que un proxy que lo cachee se lo serviría a
+        # otro usuario con otras capacidades. El caché vive del lado del
+        # servidor y por conjunto de capacidades (``visible_menu_ids``).
+        response['Cache-Control'] = 'no-store'
+        return response
 
 
 class ReauthSessionView(APIView):

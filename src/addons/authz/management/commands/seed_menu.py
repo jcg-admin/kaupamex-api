@@ -1,6 +1,8 @@
 """Seed idempotente del menú admin (DEC-08/09, árbol de 3 niveles).
 
-Proyecta el manifiesto de navegación a filas ``authz_menu_item``, etiquetando
+Proyecta el manifiesto de navegación a ``ir_ui_menu`` (backoffice) y
+``website_menu`` (cuenta del comprador) — la referencia mantiene los dos
+modelos separados, no un campo de audiencia —, etiquetando
 cada **hoja** con la capacidad que su endpoint enforce (verificado en código,
 :ref:`analisis-jerarquia-menu-admin`) para no mostrar destinos que darían 403.
 Idempotente por ``key`` (``update_or_create``). Requiere ``seed_authz`` antes.
@@ -13,7 +15,8 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from addons.authz.models import Capability
-from addons.authz_menu.models import MenuItem
+from addons.base.models import IrUiMenu
+from addons.website.models import WebsiteMenu
 
 
 def _leaf(key, label, route, cap):
@@ -89,7 +92,7 @@ MENU = [
 ]
 
 
-# Menú de CUENTA del comprador (audience='account', DEC-AUTHZ-BUYER). Mismo
+# Menú de CUENTA del comprador → ``website.WebsiteMenu`` (DEC-AUTHZ-BUYER). Mismo
 # mecanismo registro-dirigido: cada hoja lleva su capacidad ``account.*`` (rol
 # 'comprador'). Una sola sección 'Mi cuenta'; el UI aplana sus hijos. Agregar
 # una entrada aquí = sembrar una fila, sin tocar AccountLayout.
@@ -109,32 +112,32 @@ ACCOUNT_MENU = [
 
 
 class Command(BaseCommand):
-    help = 'Siembra el menú admin (authz_menu_item), árbol de 3 niveles, idempotente.'
+    help = 'Siembra los menús (ir_ui_menu + website_menu), idempotente.'
 
     @transaction.atomic
     def handle(self, *args, **options):
         self._caps = {c.code: c for c in Capability.objects.all()}
         self._n = 0
-        self._seen = set()
+        self._seen = {IrUiMenu: set(), WebsiteMenu: set()}
         for order, node in enumerate(MENU):
-            self._seed(node, parent=None, order=order,
-                       audience=MenuItem.AUDIENCE_ADMIN)
+            self._seed(node, parent=None, order=order, model=IrUiMenu)
         for order, node in enumerate(ACCOUNT_MENU):
-            self._seed(node, parent=None, order=order,
-                       audience=MenuItem.AUDIENCE_ACCOUNT)
+            self._seed(node, parent=None, order=order, model=WebsiteMenu)
         # Re-seed autoritativo: podar filas que ya no están en MENU (p.ej. una
         # sección movida/renombrada). Sin esto, update_or_create deja huérfanos
         # que aparecerían como secciones vacías. Idempotente: en un árbol ya
         # sembrado el keyset coincide y no borra nada.
-        stale = MenuItem.objects.exclude(key__in=self._seen)
-        pruned = stale.count()
-        stale.delete()
+        pruned = 0
+        for model in (IrUiMenu, WebsiteMenu):
+            stale = model.objects.exclude(key__in=self._seen[model])
+            pruned += stale.count()
+            stale.delete()
         self.stdout.write(self.style.SUCCESS(
             f'{self._n} entradas de menú sembradas (árbol de 3 niveles); '
             f'{pruned} obsoletas podadas.'
         ))
 
-    def _seed(self, node, parent, order, audience):
+    def _seed(self, node, parent, order, model):
         key, label, route, cap_code, children = node
         cap = None
         if cap_code:
@@ -144,13 +147,12 @@ class Command(BaseCommand):
                     f'  ADVERTENCIA: capacidad {cap_code} no existe; item {key} '
                     f'queda sin candado. Corre seed_authz primero.'
                 )
-        item, _ = MenuItem.objects.update_or_create(
+        item, _ = model.objects.update_or_create(
             key=key,
-            defaults=dict(parent=parent, label=label, route=route, icon='',
-                          order=order, required_capability=cap, is_active=True,
-                          audience=audience),
+            defaults=dict(parent=parent, name=label, route=route, web_icon='',
+                          sequence=order, group=cap, active=True),
         )
-        self._seen.add(key)
+        self._seen[model].add(key)
         self._n += 1
         for child_order, child in enumerate(children):
-            self._seed(child, parent=item, order=child_order, audience=audience)
+            self._seed(child, parent=item, order=child_order, model=model)

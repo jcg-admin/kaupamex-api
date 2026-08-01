@@ -92,7 +92,6 @@ INSTALLED_APPS = [
     'addons.authz',
     'addons.authz_audit',
     'addons.authz_reauth',
-    'addons.authz_menu',
     'addons.auth_password_policy',
     'addons.auth_signup',
     'addons.auth_totp',
