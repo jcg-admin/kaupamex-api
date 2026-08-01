@@ -52,15 +52,20 @@ urlpatterns = _admin_urls + [
     # SOL-011 T-06: logs tecnicos read-only (UC-ADM-06, DEC-LOG-08 revisada).
     path('api/v2/admin/',          include(('addons.observability.admin_urls', 'admin_core'), namespace='admin_core_v2')),
     path('api/v2/cart/',           include(('addons.cart.urls', 'cart'),                       namespace='cart_v2')),
-    path('api/v2/wishlist/',       include(('addons.wishlist.urls', 'wishlist'),               namespace='wishlist_v2')),
-    path('api/v2/admin/',          include(('addons.wishlist.admin_urls', 'admin_wishlist'),   namespace='admin_wishlist_v2')),
-    path('api/v2/account/',        include(('addons.referral.urls', 'referral'),               namespace='referral_v2')),
     path('api/v2/notifications/',  include(('addons.mail.urls', 'notifications'),     namespace='notifications_v2')),
     path('api/v2/bus/',            include(('addons.bus.urls', 'bus'),                 namespace='bus_v2')),
     path('api/v2/admin/',          include(('addons.mail.admin_notifications', 'admin_notifications'),
                                            namespace='admin_notifications_v2')),
 
-    # ─── API v2 (F3: orders, returns, reviews, questions, support) ──────────────
+    # ─── Retirados (SOL-098 aplicada a las familias) ──────────────────────────
+    # ``contact`` · ``referral`` · ``returns`` · ``reviews`` · ``wishlist`` se
+    # retiraron del
+    # árbol: eran superficie REST con 0 modelos, y su dominio ya vive en el
+    # addon destino. Sus rutas vuelven con la familia que las hospeda —
+    # ``contacts``, ``website_sale``, ``stock``, ``rating`` y
+    # ``website_sale_wishlist`` respectivamente.
+
+    # ─── API v2 (F3: orders, questions, support) ──────────────────────────────
     # El recorrido del comprador sobre su venta lo sirve ``sale`` — es donde
     # la referencia lo pone (``sale/controllers/portal.py`` → ``/my/orders``).
     # El prefijo público sigue siendo ``/orders/``: el comprador habla de sus
@@ -70,10 +75,6 @@ urlpatterns = _admin_urls + [
     # de comprar, y el espejo las mezclaba en un solo addon.
     path('api/v2/admin/',                 include(('addons.sale_management.admin_urls', 'admin_sale'),
                                                   namespace='admin_sale_v2')),
-    path('api/v2/return-requests/',       include(('addons.returns.urls', 'returns'),             namespace='returns_v2')),
-    path('api/v2/admin/return-requests/', include(('addons.returns.admin_urls', 'admin_returns'), namespace='admin_returns_v2')),
-    path('api/v2/products/',              include(('addons.reviews.urls', 'reviews'),             namespace='reviews_v2')),
-    path('api/v2/admin/',                 include(('addons.reviews.admin_urls', 'admin_reviews'), namespace='admin_reviews_v2')),
     path('api/v2/products/',              include(('addons.questions.urls', 'questions'),         namespace='questions_v2')),
     path('api/v2/admin/',                 include(('addons.questions.admin_urls', 'admin_questions'), namespace='admin_questions_v2')),
     path('api/v2/support/',               include(('addons.helpdesk.urls', 'support'),             namespace='support_v2')),
@@ -87,7 +88,6 @@ urlpatterns = _admin_urls + [
     path('api/v2/',            include(('addons.delivery.urls', 'logistics'), namespace='logistics_v2')),
     path('api/v2/newsletter/', include(('addons.website_mass_mailing.urls', 'website_mass_mailing'), namespace='newsletter_v2')),
     path('api/v2/admin/',      include(('addons.mass_mailing.admin_urls', 'admin_newsletter'),   namespace='admin_newsletter_v2')),
-    path('api/v2/admin/',      include(('addons.contact.admin_urls', 'admin_contact'),         namespace='admin_contact_v2')),
     path('api/v2/admin/',      include(('addons.settings_app.admin_urls', 'admin_settings'),   namespace='admin_settings_v2')),
     path('api/v2/admin/',      include(('addons.auto_backup.admin_urls', 'admin_backups'),         namespace='admin_backups_v2')),
     path('api/v2/admin/',      include(('addons.reports.admin_urls', 'admin_reports'),         namespace='admin_reports_v2')),
@@ -124,7 +124,6 @@ urlpatterns = _admin_urls + [
     path('api/v2/admin/',   include(('addons.users.admin_urls', 'admin_users'),                         namespace='admin_users_v2')),
     path('api/v2/admin/',   include(('addons.loyalty.urls', 'admin_voucher'),                           namespace='admin_voucher_v2')),
     path('api/v2/admin/',   include(('addons.helpdesk.admin_urls', 'admin_support'),                     namespace='admin_support_v2')),
-    path('api/v2/contact/', include(('addons.contact.urls', 'contact'),                                 namespace='contact_v2')),
     path('api/v2/admin/',   include(('addons.website.admin_urls', 'admin_static_content'),      namespace='admin_static_content_v2')),
     path('api/v2/admin/',   include(('addons.payments.admin_urls', 'admin_payments'),                   namespace='admin_payments_v2')),
     path('api/v2/admin/',   include(('addons.catalogue.browse_admin_urls', 'catalogue_browse_admin'),   namespace='catalogue_browse_admin_v2')),

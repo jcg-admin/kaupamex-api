@@ -52,7 +52,6 @@ INSTALLED_APPS = [
     'addons.product_expiry',
     'addons.cart',
     'addons.loyalty',
-    'addons.wishlist',
     'addons.website_sale_wishlist',
     'addons.sale',
     'addons.sales_team',
