@@ -10,6 +10,10 @@ que los agrupe por naturaleza.
 - ``soft_delete_mixin.py`` → ``SoftDeleteModel`` + su QuerySet y managers
   (≙ campo ``active``).
 - ``image_mixin.py`` → ``ImageMixin`` (imagen + sus cuatro reducciones).
+- ``avatar_mixin.py`` → ``AvatarMixin`` (avatar; retrato SVG si no hay imagen).
+- ``ir_exports.py`` → ``IrExports`` + ``IrExportsLine`` (exportaciones guardadas).
+- ``report_layout.py`` → ``ReportLayout`` (diseños de documento impreso).
+- ``res_groups_privilege.py`` → ``ResGroupsPrivilege`` (agrupa grupos en el form).
 
 - ``ir_config_parameter.py`` → ``SystemParameter`` (config L2 global, key/value).
 - ``ir_logging_log.py`` → ``IrLogging`` (log técnico ``ir.logging``, DEC-08).
@@ -37,6 +41,7 @@ from .soft_delete_mixin import (
     AllObjectsManager,
 )
 from .image_mixin import ImageMixin
+from .avatar_mixin import AvatarMixin
 from .decimal_precision import DecimalPrecision
 from .ir_config_parameter import (
     _DEFAULT_PARAMETERS,
@@ -49,8 +54,11 @@ from .ir_cron import IrCron
 from .ir_default import IrDefault
 from .ir_filters import IrFilters
 from .ir_logging_log import IrLogging
-from .ir_module import IrModule, IrModuleDependency
+from .ir_exports import IrExports, IrExportsLine
+from .ir_module import IrModule, IrModuleCategory, IrModuleDependency
 from .ir_ui_menu import IrUiMenu
+from .report_layout import ReportLayout
+from .res_groups_privilege import ResGroupsPrivilege
 from .ir_sequence import IrSequence
 from .report_export_job import ExportJob
 from .res_bank import ResBank
@@ -98,7 +106,13 @@ __all__ = [
     'DecimalPrecision',
     'IrModule',
     'IrModuleDependency',
+    'AvatarMixin',
     'ImageMixin',
+    'IrExports',
+    'IrExportsLine',
+    'IrModuleCategory',
+    'ReportLayout',
+    'ResGroupsPrivilege',
     'IrUiMenu',
     'IrSequence',
     'ExportJob',

@@ -36,6 +36,44 @@ import models
 from addons.base.models.timestamped_mixin import TimeStampedModel
 
 
+class IrModuleCategory(TimeStampedModel):
+    """Aplicación: la categoría bajo la que se agrupan los addons.
+
+    Adaptación de ``ir.module.category`` (``ir_module.py:76-91`` de la
+    referencia), que vive en este mismo archivo allá. Es un árbol
+    (``parent_id`` self-FK) y es lo que el instalador presenta como
+    "Aplicaciones".
+
+    Procedencia: ``name`` · ``description`` · ``sequence`` · ``visible``
+    (default True) · ``exclusive`` idénticos. ``parent_id`` → ``parent``;
+    ``child_ids``/``module_ids``/``privilege_ids`` → los ``related_name``
+    correspondientes. ``xml_id`` **no se porta**: se computa desde
+    ``ir.model.data``, el registro de datos declarativos XML de Odoo, que este
+    árbol no tiene — su papel de identificador estable lo cumple el ``name``
+    técnico del módulo.
+    """
+
+    name        = fields.Char(max_length=120)
+    parent      = fields.Many2one(
+        'self', on_delete=models.PROTECT, null=True, blank=True,
+        db_index=True, related_name='child',
+        help_text='Odoo parent_id. Null = aplicación de nivel 0.',
+    )
+    description = fields.Text(blank=True, default='')
+    sequence    = fields.Integer(null=True, blank=True)
+    visible     = fields.Boolean(default=True)
+    exclusive   = fields.Boolean(default=False)
+
+    class Meta:
+        db_table = 'ir_module_category'
+        ordering = ['sequence', 'name', 'id']
+        verbose_name = 'Aplicación'
+        verbose_name_plural = 'Aplicaciones'
+
+    def __str__(self):
+        return self.name
+
+
 class IrModule(TimeStampedModel):
     """Un addon del árbol, con la metadata que declara su ``__manifest__.py``.
 
