@@ -12,12 +12,12 @@ Qué se porta y qué NO — declarado, no omitido en silencio
 ``module.py`` (623 loc)      **portado** → ``modules/module.py`` (manifest + descubrimiento)
 ``module_graph.py`` (317)    **portado** → ``modules/module_graph.py`` (grafo + orden)
 ``registry/`` (3 loc shim)   **portado** → ``modules/registry/`` (shim sobre ``orm.registry``)
-``loading.py`` (632)         **NO** — lo hace ``INSTALLED_APPS`` + ``django.apps``
-``migration.py`` (253)       **NO** — lo hacen las migraciones de Django
-``db.py`` (200)              **NO** — es el estado de ``ir_module_module`` para el
-                             *install dinámico por-BD*, que este proyecto no adopta
-                             (los addons son first-party y se activan por
-                             suscripción: ``CompanyModuleSubscription``)
+``loading.py`` (632)         **NO** — el orden de carga lo da ``INSTALLED_APPS``
+                             + ``django.apps``
+``db.py`` (200)              **PARCIAL** — su *algoritmo* de ``auto_install`` SÍ
+                             (→ ``ModuleGraph.auto_installable``); su
+                             *almacenamiento* (``ir_module_module``) no
+``migration.py`` (253)       **pendiente de decidir** — ver abajo
 ``neutralize.py`` (41)       **NO** — depende de ``loading``
 ===========================  ==========================================================
 
@@ -25,6 +25,23 @@ La decisión de no adoptar el install dinámico no es de este pase: viene de
 ``analisis-organizacion-addon-odoo-modules`` ("Qué NO se adopta"), y se sostiene
 porque su premisa —módulos de terceros con set de instalación por cliente— no es
 la de este árbol.
+
+**Corrección de un descarte apresurado (H-API-230).** La primera versión de este
+docstring decía ``db.py`` → **NO**, "es el estado de ``ir_module_module``". Era
+falso por omisión: ``db.py:91-124`` **implementa ``auto_install``** —un bucle de
+punto fijo que marca los addons auto-instalables cuyas dependencias requeridas
+ya están— y ése es justo el mecanismo por el que la referencia instala solos los
+puentes ``_portal``/``_signup``. Descartarlo contradecía la razón por la que se
+estaba portando el manifest. El algoritmo es de **grafo** y se portó; lo que no
+se porta es la tabla donde Odoo lo persiste.
+
+**``migration.py`` no está resuelto.** Su convención —scripts ``pre-``/``post-``/
+``end-`` bajo ``<addon>/migrations/<version>/``, ejecutados antes y después de la
+inicialización del módulo, y ``end-`` tras **todos**— no tiene equivalente en
+Django: ``RunPython`` es schema-first y no conoce ni versión de addon ni fase
+``end-``. Decir "lo hacen las migraciones de Django" era una equivalencia sin
+medir. Queda como pregunta abierta contra la iniciativa
+``consolidar-migraciones-django-squash``, no como descarte.
 
 **Tres grafos distintos, no uno** (H-API-228). Este paquete resuelve el
 **primero**; los otros dos ya tienen dueño y no se colapsan aquí:

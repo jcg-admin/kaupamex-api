@@ -138,6 +138,49 @@ class ModuleGraph:
                 walk(name, [])
         return found
 
+    def auto_installable(self, present: Collection[str]) -> list[str]:
+        """Addons que deben instalarse solos dado un conjunto ya presente.
+
+        Porta el **algoritmo** de ``odoo/modules/db.py:91-124``, no su
+        almacenamiento. Allí es un bucle de punto fijo sobre SQL contra
+        ``ir_module_module``: seleccionar los ``auto_install`` cuyas
+        dependencias requeridas ya están marcadas ``to install``, marcarlos, y
+        repetir hasta que no cambie nada. La lógica es de **grafo**; la tabla
+        es sólo cómo Odoo la persiste, y ahí no hay nada que portar porque este
+        árbol no tiene install dinámico.
+
+        Es el mecanismo por el que la referencia instala **sola** cada addon
+        puente: ``auth_totp_portal`` declara ``auto_install: True`` y
+        ``depends: ['portal', 'auth_totp']``, así que aparece en cuanto sus dos
+        lados existen. Sin esto, la separación backoffice/portal habría que
+        cablearla a mano en cada despliegue.
+
+        ``auto_install`` admite dos formas, fiel a la referencia
+        (``db.py:82``): ``True`` (todas las ``depends`` son requeridas) o una
+        colección de nombres (sólo ésos lo son — el resto puede faltar).
+
+        :param present: addons ya presentes/activos.
+        :return: addons a auto-instalar, en orden topológico.
+        """
+        selected: set[str] = set(present)
+        while True:
+            nuevos = []
+            for node in self._nodes.values():
+                if node.name in selected:
+                    continue
+                auto = node.manifest.get('auto_install', False)
+                if not auto:
+                    continue
+                requeridas = node.depends if auto is True else [
+                    d for d in node.depends if d in auto
+                ]
+                if all(d in selected for d in requeridas):
+                    nuevos.append(node.name)
+            if not nuevos:
+                break
+            selected.update(nuevos)
+        return [n.name for n in self if n.name in selected - set(present)]
+
     def order(self) -> list[str]:
         """Nombres en orden topológico de carga."""
         return [node.name for node in self]
