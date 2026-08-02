@@ -52,13 +52,19 @@ def _admin_orders():
     Excluye los borradores: un draft es el carrito de alguien, no una orden
     que el backoffice deba gestionar.
     """
+    # H-API — ``order_line__product__images`` y ``order_line__variant__option``
+    # son prefetch a rutas que ya no existen: ``product.ProductProduct`` no
+    # tiene relación ``images`` (era de ``catalogue.Product``) y
+    # ``sale.SaleOrderLine`` no tiene campo ``variant`` (el eje se colapsó en
+    # ``product`` — H-API-213). Cualquier orden con líneas hacía que este
+    # queryset levantara ``AttributeError`` al evaluarse (prefetch inválido).
+    # Se retiran las dos rutas rotas; ``order_line__product`` (sin más
+    # profundidad) sigue evitando el N+1 de acceder al producto por línea.
     return (
         SaleOrder.objects
         .exclude(state=SaleOrder.STATE_DRAFT)
         .select_related('partner', 'carrier', 'delivery_address')
-        .prefetch_related('order_line__product__images',
-                          'order_line__variant__option', 'payments',
-                          'shipment_guide')
+        .prefetch_related('order_line__product', 'payments', 'shipment_guide')
         .order_by('-created_at')
     )
 
@@ -113,8 +119,13 @@ class AdminOrderListView(APIView):
                 })
 
         if email := params.get('email'):
+            # H-API — ``partner__email`` no resuelve: ``ResUsers.email`` es
+            # una property Python (delega a ``ResPartner.email``,
+            # ``odoo19c: base/models/res_users.py:240-242``), no un campo de
+            # BD — Django no puede usarla en un lookup. El campo real vive un
+            # salto más allá, en el partner del partner.
             queryset = queryset.filter(
-                Q(partner__email__icontains=email)
+                Q(partner__partner__email__icontains=email)
                 | Q(guest_email__icontains=email)
             )
 

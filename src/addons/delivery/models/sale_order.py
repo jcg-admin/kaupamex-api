@@ -27,6 +27,8 @@ no modela ese ciclo.
 """
 from decimal import Decimal
 
+from addons.product.models import ProductProduct, ProductTemplate
+from addons.product.models.product_template import TYPE_SERVICE
 from addons.sale.models import SaleOrderLine
 
 
@@ -41,16 +43,30 @@ GENERIC_SERVICE_SKU = 'SRV-ENVIO'
 
 
 def ensure_generic_service_product():
-    """Producto de servicio del envío sin transportista. Idempotente."""
-    product_model = SaleOrderLine._meta.get_field('product').related_model
-    product, _ = product_model.objects.get_or_create(
-        sku=GENERIC_SERVICE_SKU,
-        defaults={'name': 'Envío', 'slug': 'servicio-envio',
-                  'price': Decimal('0.00'), 'is_active': True,
-                  'is_published': False,
-                  'short_description': 'Concepto de envío para facturación.'},
+    """Producto de servicio del envío sin transportista. Idempotente.
+
+    H-API — creaba la **variante** (``product.ProductProduct``, el
+    ``related_model`` de ``SaleOrderLine.product``) con kwargs de
+    ``catalogue.Product`` (``sku``/``slug``/``price``/``is_active``/
+    ``is_published``/``short_description``): ninguno existe en el catálogo
+    canónico, que separa ficha (``ProductTemplate.name``/``list_price``/
+    ``active``) de variante (``ProductProduct.default_code``/``active``).
+    Drift heredado de la disolución de ``catalogue`` en ``product``
+    (H-API-212 y hermanas) — nunca se había ejercido con datos reales, sólo
+    fallaba silenciosamente en tests que mockeaban el gateway antes de
+    llegar aquí.
+    """
+    variant = (ProductProduct.objects
+              .filter(default_code=GENERIC_SERVICE_SKU).first())
+    if variant is not None:
+        return variant
+    tmpl = ProductTemplate.objects.create(
+        name='Envío', type=TYPE_SERVICE,
+        list_price=Decimal('0.00'), sale_ok=False, active=True,
     )
-    return product
+    return ProductProduct.objects.create(
+        product_tmpl=tmpl, default_code=GENERIC_SERVICE_SKU, active=True,
+    )
 
 
 def set_delivery_line(order, shipping_cost):

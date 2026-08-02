@@ -99,7 +99,11 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
 
     def get_sku(self, obj) -> str:
-        return obj.product.sku if obj.product_id else ''
+        # H-API — ``product.sku`` no existe en ``product.ProductProduct``: el
+        # equivalente de referencia interna es ``default_code`` (odoo19c:
+        # ``product_product.py:119-121``). Drift heredado de
+        # ``catalogue.Product.sku``, disuelto en ``product`` (H-API-212).
+        return obj.product.default_code if obj.product_id else ''
 
     @extend_schema_field(OpenApiTypes.DECIMAL)
     def get_subtotal(self, obj):
@@ -113,10 +117,15 @@ class OrderItemSerializer(serializers.ModelSerializer):
         # ese caso el consumidor cae a su placeholder.
         if not obj.product_id:
             return None
-        cover = (obj.product.images.filter(is_cover=True).first()
-                 or obj.product.images.first())
-        if not (cover and cover.image):
-            return None
+        # H-API — ``product.images`` (galería) no existe en
+        # ``product.ProductProduct``/``ProductTemplate``: la disolución de
+        # ``catalogue`` (H-API-212) no dejó un reemplazo con esa forma —
+        # ``ProductTemplate`` sólo hereda ``ImageMixin`` (una imagen, no
+        # galería con ``is_cover``). Antes esto crasheaba con
+        # ``AttributeError`` en cualquier línea con producto. Se degrada a
+        # "sin imagen" en vez de romper la respuesta; portar la galería real
+        # es un rediseño de producto, fuera de alcance aquí.
+        return None
         request = self.context.get('request')
         return (request.build_absolute_uri(cover.image.url) if request
                 else cover.image.url)
@@ -189,19 +198,17 @@ class OrderListSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(OpenApiTypes.URI)
     def get_thumbnail_url(self, obj) -> str | None:
+        # H-API — mismo drift que ``OrderItemSerializer.get_image_url``:
+        # ``product.images`` (galería con ``is_cover``) no existe en el
+        # catálogo canónico. Se degrada a "sin miniatura" en vez de crashear
+        # cada listado con producto; ver el docstring hermano.
         lines = product_lines(obj)
         if not lines:
             return None
         product = getattr(lines[0], 'product', None)
         if product is None:
             return None
-        cover = (product.images.filter(is_cover=True).first()
-                 or product.images.first())
-        if not (cover and cover.image):
-            return None
-        request = self.context.get('request')
-        return (request.build_absolute_uri(cover.image.url) if request
-                else cover.image.url)
+        return None
 
     @extend_schema_field(OpenApiTypes.STR)
     def get_status(self, obj) -> str:

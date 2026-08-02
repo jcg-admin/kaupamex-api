@@ -24,6 +24,8 @@ from django.db import models
 from addons.base.models import SoftDeleteModel, TimeStampedModel
 from addons.delivery.offers import RateCard
 from addons.delivery.models.shipping_zone import ShippingZone
+from addons.product.models import ProductProduct, ProductTemplate
+from addons.product.models.product_template import TYPE_SERVICE
 
 logger = logging.getLogger('apps')
 
@@ -321,24 +323,27 @@ class ShippingMethod(TimeStampedModel):
         producto es informativo — el importe que va a la línea lo fija el
         servicio de venta con el costo calculado para la orden (por zona), no
         este campo.
+
+        H-API — mismo drift que ``sale_order.ensure_generic_service_product``:
+        creaba la variante con kwargs de ``catalogue.Product``
+        (``sku``/``slug``/``price``/``is_active``/``is_published``/
+        ``short_description``), ninguno vigente en el catálogo canónico. Ver
+        el docstring hermano.
         """
         if self.product_id is not None:
             return self.product
-        product_model = self._meta.get_field('product').related_model
         sku = f'{self.SERVICE_SKU_PREFIX}{self.pk}'
-        product, _ = product_model.objects.get_or_create(
-            sku=sku,
-            defaults={
-                'name': f'Envío — {self.name}',
-                'slug': f'servicio-envio-{self.pk}',
-                'price': self.cost,
-                'is_active': True,
-                'is_published': False,
-                'short_description': 'Concepto de envío para facturación.',
-            },
-        )
-        self.product = product
+        variant = ProductProduct.objects.filter(default_code=sku).first()
+        if variant is None:
+            tmpl = ProductTemplate.objects.create(
+                name=f'Envío — {self.name}', type=TYPE_SERVICE,
+                list_price=self.cost, sale_ok=False, active=True,
+            )
+            variant = ProductProduct.objects.create(
+                product_tmpl=tmpl, default_code=sku, active=True,
+            )
+        self.product = variant
         self.save(update_fields=['product', 'updated_at'])
-        return product
+        return variant
 
 from .delivery_address import DeliveryAddress  # noqa: E402

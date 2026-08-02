@@ -41,11 +41,19 @@ class SaleOrderLineMargin(TimeStampedModel):
         return f'{self.line} → margen {self.margin()}'
 
     def _cost_snapshot(self) -> Decimal:
-        """Costo a usar: snapshot si existe, si no el costo actual del producto."""
+        """Costo a usar: snapshot si existe, si no el costo actual del producto.
+
+        H-API — ``prod.cost`` no existe en ``product.ProductProduct``: el
+        campo de costo por variante es ``standard_price`` (odoo19c:
+        ``product_product.py:144-148``, ``ProductProduct`` sobreescribe el de
+        la ficha). Quedó apuntando al viejo ``catalogue.Product.cost`` tras la
+        disolución de ``catalogue`` en ``product`` (H-API-212 y hermanas).
+        """
         if self.purchase_price is not None:
             return self.purchase_price
         prod = self.line.product
-        return prod.cost if prod and prod.cost is not None else Decimal('0.00')
+        return (prod.standard_price
+                if prod and prod.standard_price is not None else Decimal('0.00'))
 
     def capture_purchase_price(self):
         """Congela el costo actual del producto como snapshot (al confirmar)."""
