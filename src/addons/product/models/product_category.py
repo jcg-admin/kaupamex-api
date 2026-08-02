@@ -144,12 +144,19 @@ class ProductCategory(TimeStampedModel):
         las cuenta (``child_of``). Se porta el código — ver el docstring del
         módulo.
 
-        Devuelve 0 mientras ``product.template`` no esté portado; se conecta
-        con él, sin tocar este archivo.
+        Resuelve ``ProductTemplate`` por el registro de apps. Antes leía un
+        atributo de clase ``_product_template_model`` que **nada fijaba** en
+        todo el árbol, así que el contador devolvía 0 incluso con productos
+        reales: era un gancho de cableado escrito cuando ``product.template``
+        aún no estaba portado. Hoy lo está, y vive en este mismo addon.
+        Ver H-API-217.
+
+        Import diferido **por función**, no por statement: es una llamada, así
+        que el gate AST de no-lazy-imports la admite (misma resolución que
+        ``_partner_model()`` en ``base/models/res_users.py``).
         """
-        template_model = getattr(type(self), '_product_template_model', None)
-        if template_model is None:
-            return 0
+        from django.apps import apps
+        template_model = apps.get_model('product', 'ProductTemplate')
         branch = type(self).objects.filter(
             parent_path__startswith=self.parent_path)
         return template_model.objects.filter(categ__in=branch).count()

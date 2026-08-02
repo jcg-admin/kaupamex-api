@@ -53,8 +53,18 @@ def combinations(product):
 
 
 def combination_price(product, ptavs) -> Decimal:
-    """Precio de una combinación = precio base + Σ ``price_extra`` (Odoo)."""
-    total = Decimal(product.price)
+    """Precio de una combinación = precio base + Σ ``price_extra``.
+
+    Fiel a ``odoo19c: addons/product/models/product_template.py:720-727``, que
+    suma los ``price_extra`` de los valores de atributo de la combinación al
+    precio de la ficha.
+
+    El campo de la ficha es ``list_price``, no ``price``: la referencia no
+    declara ``price`` en ``product.template``. Leerlo lanzaba
+    ``AttributeError`` en cualquier llamada real — el defecto sobrevivió
+    porque no había test que ejercitara esta función. Ver H-API-217.
+    """
+    total = Decimal(product.list_price)
     for ptav in ptavs:
         total += ptav.price_extra
     return total.quantize(Decimal('0.01'))
