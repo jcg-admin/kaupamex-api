@@ -50,7 +50,7 @@ def product_lines(order):
         return prefetched
     return list(order.order_line
                 .filter(is_delivery=False, is_reward=False)
-                .select_related('product', 'variant__option')
+                .select_related('product')
                 .order_by('id'))
 
 
@@ -84,7 +84,6 @@ class OrderItemSerializer(serializers.ModelSerializer):
     ``product_uom_qty`` y en el método ``price_total()``.
     """
     product_name  = serializers.CharField(source='name', read_only=True)
-    variant_label = serializers.SerializerMethodField()
     sku           = serializers.SerializerMethodField()
     unit_price    = serializers.DecimalField(
         source='price_unit', max_digits=12, decimal_places=2, read_only=True)
@@ -95,11 +94,9 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
     class Meta:
         model  = SaleOrderLine
-        fields = ['id', 'product_name', 'variant_label', 'sku',
+        fields = ['id', 'product_name', 'sku',
                   'unit_price', 'quantity', 'subtotal', 'image_url']
 
-    def get_variant_label(self, obj) -> str:
-        return obj.variant.option.label if obj.variant_id else ''
 
     def get_sku(self, obj) -> str:
         return obj.product.sku if obj.product_id else ''

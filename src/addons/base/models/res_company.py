@@ -202,7 +202,11 @@ class ResCompany(TimeStampedModel):
 
     class Meta:
         db_table = 'res_company'
-        ordering = ['sequence', 'name', 'id']
+        # ``odoo19c: res_company.py:34`` declara ``_order = 'sequence, name'``.
+        # Aquí ``name`` es una **propiedad delegada** al partner, no una
+        # columna, así que el orden equivalente atraviesa la FK: ordenar por
+        # ``name`` a secas es un error de Django (models.E015).
+        ordering = ['sequence', 'partner__name', 'id']
         verbose_name = 'Compañía'
         verbose_name_plural = 'Compañías'
         constraints = [

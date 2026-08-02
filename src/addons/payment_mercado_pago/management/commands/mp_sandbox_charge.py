@@ -34,7 +34,7 @@ from addons.sale.status_projection import (
     order_status,
 )
 from addons.payment.models import Payment
-from addons.payments.services import initiate_checkout_api_payment
+from addons.payment.services import initiate_checkout_api_payment
 from addons.payment.models import PaymentGateway
 
 # Tarjetas de PRUEBA oficiales de MP México (públicas, libres). El estado

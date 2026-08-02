@@ -28,7 +28,7 @@ from django.db.models import F
 from django.utils import timezone
 
 from addons.base.models import SiteSettings
-from addons.inventory.services import InventoryService
+from addons.stock.services import InventoryService
 from addons.loyalty.models import Voucher, VoucherUsage
 from addons.stock.models import StockPicking
 from addons.mail.models.notification_service import notify_order_status_changed
@@ -79,48 +79,56 @@ def get_or_create_draft_order(user=None, cart_token=None):
     return order, created
 
 
-def _line_snapshot_name(product, variant=None):
-    """Descripción de la línea (Odoo ``sale.order.line.name``)."""
-    if variant is not None:
-        return f'{product.name} ({variant.option.label})'
-    return product.name
+def _line_snapshot_name(product):
+    """Descripción de la línea (Odoo ``sale.order.line.name``).
+
+    ``product`` es la **variante** (``product.product``): su ``display_name``
+    ya incluye los valores de atributo, así que no hay que componerlo desde un
+    eje ``variant`` aparte (odoo19c: ``product/models/product_product.py``).
+    """
+    return str(product)
 
 
-def add_item_to_draft(order, product, variant=None, quantity=1):
+def add_item_to_draft(order, product, quantity=1):
     """Agrega/mezcla una línea en el draft (UC-CART-02).
 
+    ``product`` es la **variante** (``product.product``), fiel a
+    ``odoo19c: addons/sale/models/sale_order_line.py:83-88``. El parámetro
+    ``variant`` desapareció: era el mismo dato en un segundo eje, herencia del
+    modelo plano previo a la separación plantilla/variante (H-API-213).
+
     Guard de stock doble (antes y dentro del atomic, H-CICLO121-01),
-    merge de cantidad si la línea ya existe, y precio vigente al momento
-    de la operación (``variant.effective_price()`` o ``product.price``).
-    El snapshot (``name``/``price_unit``) se refresca mientras la orden
-    siga en draft; ``action_confirm`` lo congela.
+    merge de cantidad si la línea ya existe, y precio vigente al momento de la
+    operación. La existencia se **deriva** de ``stock.quant`` vía
+    ``InventoryService``, no de una columna del producto (odoo19c:
+    ``stock/models/stock_quant.py:119-122``).
     """
     if order.state != SaleOrder.STATE_DRAFT:
         raise DraftOrderError('La orden no es un draft.', 'ORDER_NOT_DRAFT')
     if quantity < 1:
         raise DraftOrderError('quantity debe ser >= 1.', 'INVALID_QUANTITY')
 
-    available = variant.stock if variant else product.stock
-    if available is not None and available <= 0:
+    available = InventoryService.available_quantity(product)
+    if available <= 0:
         raise DraftOrderError('Producto sin stock.', 'OUT_OF_STOCK')
-    if available is not None and quantity > available:
+    if quantity > available:
         raise DraftOrderError('Stock insuficiente.', 'INSUFFICIENT_STOCK')
 
-    unit_price = variant.effective_price() if variant else product.price
+    unit_price = product.lst_price
 
     with transaction.atomic():
         line, created = order.order_line.get_or_create(
-            product=product, variant=variant,
+            product=product,
             defaults={
-                'name': _line_snapshot_name(product, variant),
+                'name': _line_snapshot_name(product),
                 'price_unit': unit_price,
                 'product_uom_qty': quantity,
             },
         )
         if not created:
             new_qty = line.product_uom_qty + quantity
-            avail = variant.stock if variant else product.stock
-            if avail is not None and new_qty > avail:
+            avail = InventoryService.available_quantity(product)
+            if new_qty > avail:
                 raise DraftOrderError('Stock insuficiente.', 'INSUFFICIENT_STOCK')
             line.product_uom_qty = new_qty
             line.price_unit = unit_price
@@ -211,8 +219,8 @@ def update_draft_item_quantity(order, item_pk, quantity):
     line = order.order_line.filter(pk=item_pk).first()
     if line is None:
         raise DraftOrderError('Item no encontrado.', 'ITEM_NOT_FOUND')
-    stock = line.variant.stock if line.variant else line.product.stock
-    if stock is not None and quantity > stock:
+    stock = InventoryService.available_quantity(line.product)
+    if quantity > stock:
         raise DraftOrderError('Stock insuficiente.', 'INSUFFICIENT_STOCK')
     line.product_uom_qty = quantity
     line.save(update_fields=['product_uom_qty', 'updated_at'])
@@ -251,21 +259,19 @@ def merge_draft_orders(user, cart_token):
 
     skipped = []
     with transaction.atomic():
-        for anon_line in anon_order.order_line.select_related(
-                'product', 'variant').all():
-            available = (anon_line.variant.stock if anon_line.variant
-                         else anon_line.product.stock)
-            if available is not None and available <= 0:
+        for anon_line in anon_order.order_line.select_related('product').all():
+            available = InventoryService.available_quantity(anon_line.product)
+            if available <= 0:
                 skipped.append({'product_id': anon_line.product_id,
                                 'product_name': anon_line.name,
                                 'reason': 'OUT_OF_STOCK'})
                 continue
 
             existing = auth_order.order_line.filter(
-                product=anon_line.product, variant=anon_line.variant).first()
+                product=anon_line.product).first()
             if existing:
                 new_qty = existing.product_uom_qty + anon_line.product_uom_qty
-                if available is not None and new_qty > available:
+                if new_qty > available:
                     new_qty = available
                 existing.product_uom_qty = new_qty
                 existing.price_unit = anon_line.price_unit
@@ -273,11 +279,10 @@ def merge_draft_orders(user, cart_token):
                                              'updated_at'])
             else:
                 merge_qty = anon_line.product_uom_qty
-                if available is not None and merge_qty > available:
+                if merge_qty > available:
                     merge_qty = available
                 auth_order.order_line.create(
                     product=anon_line.product,
-                    variant=anon_line.variant,
                     name=anon_line.name,
                     price_unit=anon_line.price_unit,
                     product_uom_qty=merge_qty,
@@ -320,12 +325,11 @@ def confirm_draft_order(order, *, address_data, guest_email=None, notes='',
     # espejo legacy, cuyos ``SaleOrderLine`` son de producto por contrato.
     # Un carrito con sólo líneas marcadoras está vacío.
     lines = list(order.order_line.filter(is_delivery=False, is_reward=False)
-                 .select_related('product', 'variant__product',
-                                 'variant__option'))
+                 .select_related('product'))
     if not lines:
         raise DraftOrderError('El carrito está vacío.', 'EMPTY_CART')
 
-    check_items = [{'product': l.product, 'variant': l.variant,
+    check_items = [{'product': l.product,
                     'quantity': l.product_uom_qty} for l in lines]
     insufficient = InventoryService.check_availability(check_items)
     if insufficient:
@@ -346,7 +350,7 @@ def confirm_draft_order(order, *, address_data, guest_email=None, notes='',
             live_price = line.current_price()
             subtotal  += live_price * line.product_uom_qty
             line.price_unit = live_price
-            line.name = _line_snapshot_name(line.product, line.variant)
+            line.name = _line_snapshot_name(line.product)
             line.save(update_fields=['price_unit', 'name', 'updated_at'])
 
         voucher_discount = (voucher.calculate_discount(subtotal)
@@ -483,11 +487,10 @@ def cancel_order(order, reason='', cancelled_by=None, cancelable_statuses=None):
         # Restaurar stock — sólo las líneas de producto: las marcadoras de
         # envío y descuento no reservaron nada que devolver.
         stock_items = [
-            {'product': line.product, 'variant': line.variant,
-             'quantity': line.product_uom_qty}
+            {'product': line.product, 'quantity': line.product_uom_qty}
             for line in (order.order_line
                          .filter(is_delivery=False, is_reward=False)
-                         .select_related('product', 'variant'))
+                         .select_related('product'))
             if line.product_id
         ]
         if stock_items:

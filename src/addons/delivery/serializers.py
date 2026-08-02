@@ -8,7 +8,9 @@ from decimal import Decimal
 from rest_framework import serializers
 from addons.payment.models import Payment
 from addons.sale.models import SaleOrder
-from .models import Courier, ShipmentEvent, ShipmentGuide
+from .models import (
+    Courier, ShipmentEvent, ShipmentGuide, ShippingMethod, ShippingZone,
+)
 
 
 
@@ -187,3 +189,25 @@ class ShipmentOfferRequestSerializer(serializers.Serializer):
     pickup_address   = serializers.CharField(required=False, allow_blank=True, max_length=255)
     delivery_address = serializers.CharField(required=False, allow_blank=True, max_length=255)
     packages = ShipmentPackageInputSerializer(many=True, allow_empty=False)
+
+
+class ShippingMethodPublicSerializer(serializers.ModelSerializer):
+    """Catálogo público de métodos de envío (GAP-C1).
+
+    Sólo lectura y sólo los campos que el checkout anónimo necesita para
+    decidir: nombre, costo, umbral de gratuidad y días estimados. No expone
+    ``zones`` ni el producto de servicio — son detalle interno de facturación.
+    """
+
+    class Meta:
+        model  = ShippingMethod
+        fields = ['id', 'name', 'cost', 'estimated_days', 'free_threshold']
+
+
+class ShippingZonePublicSerializer(serializers.ModelSerializer):
+    """Catálogo público de zonas y su ventana de entrega (H-12)."""
+
+    class Meta:
+        model  = ShippingZone
+        fields = ['id', 'name', 'zip_code_prefix', 'estimated_days_min',
+                  'estimated_days_max', 'cost', 'free_threshold']

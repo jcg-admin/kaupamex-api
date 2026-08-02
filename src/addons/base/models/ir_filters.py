@@ -104,7 +104,7 @@ class IrFilters(models.Model):
     model_id = fields.Char(
         max_length=128,
         help_text=(
-            'Modelo técnico referenciado, p. ej. "catalogue.Product" (Odoo '
+            'Modelo técnico referenciado, p. ej. "product.ProductProduct" (Odoo '
             'model_id — Selection dinámico en Odoo, aquí Char plano porque '
             'no es una FK real, igual criterio que res_model en '
             'ir_attachment).'

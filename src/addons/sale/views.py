@@ -32,8 +32,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from addons.authz.permissions import HasCapability
-from addons.users.audit import audit_log_business
-from addons.users.models import BusinessEvent
+from addons.observability.audit import audit_log_business
+from addons.observability.models import BusinessEvent
 
 from .models import SaleOrder
 from .serializers import (

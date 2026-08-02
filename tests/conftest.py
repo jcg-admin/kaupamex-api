@@ -22,7 +22,6 @@ from addons.base.models import SystemParameter
 from addons.base_geolocalize.data import seed as geo_providers_seed
 from addons.company.data import seed as founder_company_seed
 from addons.mail.data import seed as mail_subtypes_seed
-from addons.users.models import EmployeeProfile, Person
 from tests.factories.user_factory import make_buyer  # noqa: F401 (re-export)
 
 import pytest
@@ -41,23 +40,29 @@ _DB_QA_SCRIPT = (
 
 @pytest.fixture
 def user(db):
-    """Usuario basico activo (party: IdentityUser + Person)."""
+    """Usuario basico activo (party: ResUsers + ResPartner).
+
+    ``res.users`` delega la identidad al partner (``_inherits`` de la
+    referencia, ``odoo19c: base/models/res_users.py``): el nombre humano vive
+    en ``ResPartner.name``, no en la credencial. El manager crea el partner
+    cuando no se le pasa uno.
+    """
     User = get_user_model()
     u = User.objects.create_user(
-        email='test@practicayoruba.mx', password='TestPass123!',
+        login='test@practicayoruba.mx', password='TestPass123!',
+        name='Test User',
     )
-    Person.objects.create(identity=u, first_name='Test', last_name='User')
     return make_buyer(u)
 
 
 @pytest.fixture
 def auth_user(db):
-    """Usuario independiente usado en tests de payments y orders."""
+    """Usuario independiente usado en tests de payment y sale."""
     User = get_user_model()
     u = User.objects.create_user(
-        email='auth@practicayoruba.mx', password='AuthPass123!',
+        login='auth@practicayoruba.mx', password='AuthPass123!',
+        name='Auth User',
     )
-    Person.objects.create(identity=u, first_name='Auth', last_name='User')
     return make_buyer(u)
 
 
@@ -67,9 +72,13 @@ def admin_user(db):
     se le asigna el rol superadmin (bypass del resolver, DEC-01=B)."""
     User = get_user_model()
     u = User.objects.create_user(
-        email='admin@practicayoruba.mx', password='AdminPass123!',
+        login='admin@practicayoruba.mx', password='AdminPass123!',
+        name='Admin User',
     )
-    EmployeeProfile.objects.create(identity=u)
+    # ``EmployeeProfile`` no existe en la referencia: el empleado es el campo
+    # ``employee`` de ``res.partner`` (odoo19c: base/models/res_partner.py).
+    u.partner.employee = True
+    u.partner.save(update_fields=['employee'])
     role, _ = Role.objects.get_or_create(
         code=SUPERADMIN_ROLE_CODE, defaults={'name': 'Superadministrador'},
     )

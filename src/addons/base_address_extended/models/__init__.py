@@ -6,7 +6,7 @@ Un archivo por modelo (monolito modular, como Odoo):
 - ``res_city.py`` → ``ResCity`` (catálogo de ciudades).
 - ``res_country.py`` → ``CountryAddressPolicy`` (``enforce_cities`` RELATED).
 - ``res_partner.py`` → ``AddressStructured`` (street-split + city RELATED sobre
-  ``users.Address``).
+  ``base.ResPartner``).
 - ``res_city_zip.py`` → ``CatalogPostalCode`` (~ ``res.city.zip``, catálogo CP).
 """
 from .res_city import ResCity

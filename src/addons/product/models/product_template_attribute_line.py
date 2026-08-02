@@ -38,11 +38,12 @@ class ProductTemplateAttributeLine(TimeStampedModel):
         ordering = ['sequence', 'id']
         constraints = [
             models.UniqueConstraint(
-                fields=['product', 'attribute'], name='unique_template_attribute',
+                fields=['product_tmpl', 'attribute'],
+                name='unique_template_attribute',
             ),
         ]
         verbose_name = 'Línea de atributo de producto'
         verbose_name_plural = 'Líneas de atributo de producto'
 
     def __str__(self) -> str:
-        return f'{self.product} / {self.attribute}'
+        return f'{self.product_tmpl} / {self.attribute}'

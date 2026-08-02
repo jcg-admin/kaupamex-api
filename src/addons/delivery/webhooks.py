@@ -5,7 +5,7 @@ Courier status webhook. The courier's tracking platform calls this endpoint
 to push shipment status changes; the manual admin PATCH (LOG-02) remains as a
 fallback and is untouched.
 
-Design (mirrors addons.payments.webhooks):
+Design (mirrors addons.payment.webhooks):
   - AllowAny: no JWT. Authenticated by an HMAC-SHA256 signature with a shared
     per-courier secret (Courier.webhook_secret, Fernet-encrypted).
   - Verify signature BEFORE processing; reject with 401 on bad/missing

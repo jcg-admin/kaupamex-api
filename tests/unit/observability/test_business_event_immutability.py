@@ -10,7 +10,7 @@ Toca DB -> django_db.
 """
 import pytest
 
-from addons.users.models import BusinessEvent
+from addons.observability.models import BusinessEvent
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 

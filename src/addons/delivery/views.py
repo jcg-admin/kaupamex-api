@@ -9,7 +9,7 @@ from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiParam
 from rest_framework import serializers, status
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from addons.authz.permissions import HasCapability
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -55,12 +55,16 @@ from addons.sale.status_projection import (
 from addons.payment.models import Payment
 from addons.sale.models import SaleOrder
 from config.schema import error_response
-from .models import CarrierRateCard, Courier, ShipmentEvent, ShipmentGuide
+from .models import (
+    CarrierRateCard, Courier, ShipmentEvent, ShipmentGuide, ShippingMethod,
+    ShippingZone,
+)
 from .offers import build_offers
 from .serializers import (
     BuyerShipmentGuideSerializer, CourierCreateUpdateSerializer, CourierSerializer,
     ShipmentGuideCreateSerializer, ShipmentGuideSerializer,
-    ShipmentOfferRequestSerializer,
+    ShipmentOfferRequestSerializer, ShippingMethodPublicSerializer,
+    ShippingZonePublicSerializer,
 )
 
 
@@ -755,3 +759,45 @@ class ShipmentOffersView(_AdminOnly, APIView):
         ]
         result = build_offers(packages, rate_cards)
         return Response(result, status=status.HTTP_200_OK)
+
+
+class ShippingMethodListPublicView(APIView):
+    """``GET /api/v2/shipping-methods/`` — catálogo público (GAP-C1).
+
+    **Anónimo a propósito.** El comprador necesita ver costo y tiempo de
+    entrega antes de autenticarse; en la referencia ``website_sale`` expone los
+    transportistas (``delivery.carrier``) en el checkout sin exigir sesión. Es
+    la única excepción al invariante de capacidad, y por eso se declara
+    explícitamente con ``AllowAny`` en vez de omitir ``permission_classes``.
+
+    Sólo lectura: el alta de métodos es admin (UC-CFG-02). Ver H-API-215.
+    """
+
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        tags=['delivery'],
+        summary='Catálogo público de métodos de envío',
+        responses={200: ShippingMethodPublicSerializer(many=True)},
+    )
+    def get(self, request):
+        methods = ShippingMethod.objects.filter(is_active=True).order_by('cost', 'id')
+        return Response(ShippingMethodPublicSerializer(methods, many=True).data)
+
+
+class ShippingZoneListPublicView(APIView):
+    """``GET /api/v2/shipping-zones/`` — zonas y ventana de entrega (H-12).
+
+    Anónimo por la misma razón que el catálogo de métodos. Ver H-API-215.
+    """
+
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        tags=['delivery'],
+        summary='Catálogo público de zonas de envío',
+        responses={200: ShippingZonePublicSerializer(many=True)},
+    )
+    def get(self, request):
+        zones = ShippingZone.objects.filter(is_active=True).order_by('zip_code_prefix')
+        return Response(ShippingZonePublicSerializer(zones, many=True).data)

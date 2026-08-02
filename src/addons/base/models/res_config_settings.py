@@ -41,7 +41,7 @@ class SiteSettings(TimeStampedModel):
     # — Identidad del sitio —
     site_name = models.CharField(max_length=100, default='PracticaYoruba')
     # H-API-PAY10-01: UC-PAY-10 AC-05 asume un logotipo del sitio para el
-    # recibo PDF. El helper de PDF (addons.payments.pdf_receipt) ya resuelve el
+    # recibo PDF. El helper de PDF (addons.payment.pdf_receipt) ya resuelve el
     # logo por path y degrada a "sin logo" si está vacío; este campo le da la
     # fuente. Mismo patrón de ImageField local que catalogue/reviews.
     logo = models.ImageField(

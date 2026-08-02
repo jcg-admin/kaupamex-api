@@ -88,7 +88,7 @@ class ProductComboItem(TimeStampedModel):
                   'producto que alguna elección todavía ofrece.',
     )
     extra_price = fields.Monetary(
-        default=decimal.Decimal('0.00'),
+        max_digits=16, decimal_places=2, default=decimal.Decimal('0.00'),
         verbose_name='Precio adicional',
         help_text='Sobrecoste de elegir esta opción. En la referencia es '
                   'Float; aquí Monetary porque se suma a list_price, que ya '

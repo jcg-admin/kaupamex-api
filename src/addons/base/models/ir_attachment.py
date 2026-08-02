@@ -74,7 +74,7 @@ class IrAttachment(models.Model):
     res_model = fields.Char(
         max_length=128, blank=True, default='',
         help_text=(
-            'Modelo polimórfico referenciado, p. ej. "catalogue.Product" '
+            'Modelo polimórfico referenciado, p. ej. "product.ProductProduct" '
             '(Odoo res_model). NO es una FK — vínculo plano igual que Odoo.'
         ),
     )

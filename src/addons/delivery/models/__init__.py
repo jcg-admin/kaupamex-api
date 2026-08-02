@@ -39,7 +39,7 @@ class Courier(TimeStampedModel):
     is_active   = models.BooleanField(default=True, db_index=True)
     # LOG-04 (US-1.2 / DEC-LOOP-05): shared secret used to verify the HMAC
     # signature of courier status webhooks. Stored Fernet-encrypted (same
-    # pattern as addons.settings_app.PaymentGateway.credentials, DEC-DOC-008) —
+    # pattern as addons.payment.PaymentGateway.credentials, DEC-DOC-008) —
     # never in plaintext. Empty/unset means the courier cannot send webhooks
     # and any incoming webhook for it is rejected fail-closed.
     webhook_secret = models.BinaryField(

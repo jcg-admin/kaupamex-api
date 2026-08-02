@@ -11,6 +11,14 @@ from drf_spectacular.views import (
     SpectacularRedocView,
 )
 
+# Catálogos públicos de envío (GAP-C1 / H-12). Se importan explícitamente
+# porque las rutas son anónimas y viven en el URLconf raíz, no bajo el
+# ``include`` de ``delivery`` (que es todo admin/comprador autenticado).
+from addons.delivery.views import (
+    ShippingMethodListPublicView,
+    ShippingZoneListPublicView,
+)
+
 # Seguridad (H-11): el admin nativo de Django se monta SOLO cuando
 # DJANGO_ADMIN_ENABLED (default = DEBUG). En produccion queda apagado para no
 # exponer /admin/ como login de fuerza bruta; el backoffice real es el admin
