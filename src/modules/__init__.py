@@ -17,7 +17,7 @@ Qué se porta y qué NO — declarado, no omitido en silencio
 ``db.py`` (200)              **PARCIAL** — su *algoritmo* de ``auto_install`` SÍ
                              (→ ``ModuleGraph.auto_installable``); su
                              *almacenamiento* (``ir_module_module``) no
-``migration.py`` (253)       **pendiente de decidir** — ver abajo
+``migration.py`` (253)       **NO** — resuelto 2026-08-02; ver abajo
 ``neutralize.py`` (41)       **NO** — depende de ``loading``
 ===========================  ==========================================================
 
@@ -35,13 +35,20 @@ puentes ``_portal``/``_signup``. Descartarlo contradecía la razón por la que s
 estaba portando el manifest. El algoritmo es de **grafo** y se portó; lo que no
 se porta es la tabla donde Odoo lo persiste.
 
-**``migration.py`` no está resuelto.** Su convención —scripts ``pre-``/``post-``/
-``end-`` bajo ``<addon>/migrations/<version>/``, ejecutados antes y después de la
-inicialización del módulo, y ``end-`` tras **todos**— no tiene equivalente en
-Django: ``RunPython`` es schema-first y no conoce ni versión de addon ni fase
-``end-``. Decir "lo hacen las migraciones de Django" era una equivalencia sin
-medir. Queda como pregunta abierta contra la iniciativa
-``consolidar-migraciones-django-squash``, no como descarte.
+**``migration.py`` — resuelto: NO se porta (H-API-231, 2026-08-02).** Medido
+contra la referencia completa (253 loc): su disparador es
+``pkg.load_state == 'to upgrade'`` leído de ``ir_module_module``
+(``migration.py:134,151``; ``module_graph.py:158,309``) — el mismo
+almacenamiento que H-API-230 delimitó como no-portable, y aquí sin algoritmo
+separable: la selección de scripts depende de ``load_version`` de la BD. Su
+función (data ops alrededor del schema sync) la cubren ``RunPython``/``RunSQL``
+— en uso hoy (2 seeds: ``authz_password_policy/0001``, ``authz_signup/0001``) y
+con precedente PROVEN de que el squash las preserva (DEC-MIG-2). Los dos huecos
+residuales (fase ``end-`` dedicada; ``0.0.0`` re-ejecutable) tienen expresión
+Django (``dependencies``/``run_before``; management command) y 0 demandantes.
+Análisis completo:
+``docs: gestion/pm/api/iniciativas/consolidar-migraciones-django-squash/
+analisis-mecanismo-migracion-odoo-vs-django.rst``.
 
 **Tres grafos distintos, no uno** (H-API-228). Este paquete resuelve el
 **primero**; los otros dos ya tienen dueño y no se colapsan aquí:
