@@ -5,10 +5,32 @@
     'version': '1.0',
     'category': 'Order Management',
     'summary': 'La venta ES la orden: cotización, confirmación y su recorrido',
+    # `depends` MEDIDO contra los imports reales (`from addons.<x>` en
+    # src/addons/sale), no copiado de la referencia: allí son
+    # ['sales_team', 'account_payment', 'utm'] porque su `sale` es más delgado
+    # —el nuestro absorbió `catalogue`/`inventory` al disolverlos.
+    #
+    # Antes decía ['catalogue', 'inventory']: DOS addons que ya NO EXISTEN
+    # (se disolvieron en `product` y `stock`). El grafo de `modules/` lo
+    # destapó en su primera ejecución — ver H-API-229.
     'depends': [
-        'catalogue',
-        'inventory',
+        'account',
+        'authz',
+        'base',
+        'company',
+        'delivery',
+        'loyalty',
+        'mail',
+        'observability',
+        'payment',
+        'sales_team',
+        'stock',
     ],
+    # NO se declara `sale_loyalty`: `sale` lo importa (1 archivo) pero en la
+    # referencia la dirección es la contraria —`sale_loyalty` depende de
+    # `sale`—. Declararlo aquí legitimaría la inversión en vez de registrarla;
+    # el gate de dirección (`scripts/check_addon_cycles.py`) es su dueño.
+    #
     # Declaración de la licencia de la fuente de la que se adapta este addon,
     # tal como su manifest la declara (DEC-KX-03 punto 1): una licencia NO se
     # re-etiqueta. Aquí es la de `sale` en Odoo Community.
