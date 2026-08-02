@@ -102,24 +102,45 @@ def test_support_user_sees_only_its_section(seeded, client):
 
 @pytest.mark.django_db
 def test_level_two_group_is_nested(seeded, client):
-    """Un usuario reports.view ve la sección Operaciones con el agrupador
-    nivel-1 Reportes y sus 4 hijos nivel-2 (los demás items de Operaciones,
-    que requieren otras capacidades, se podan)."""
+    """El agrupador nivel-1 «Reportes» vive DENTRO de la sección de su dominio.
+
+    Antes existía un único ``grp-reportes`` colgado de Operaciones y gateado
+    por un ``reports`` transversal. La referencia no lo hace así: el submenú
+    Reporting cuelga del root de **su propia app** y lo gatea el grupo de esa
+    app (``odoo19c: addons/stock`` → ``menu_warehouse_report`` con
+    ``parent="stock.menu_stock_root"`` y ``groups="group_stock_manager"``).
+
+    Así que un usuario ``orders.view`` ve Ventas con su agrupador Reportes y
+    sus dos hijos —el mismo ``sale.report`` agrupado distinto— y **no** ve el
+    RFM, que es análisis de clientes y lo gatea ``users``.
+    """
     u = _user('rep@e.com')
-    RoleAssignment.objects.create(user=u, role=_role_with(['reports.view']))
+    RoleAssignment.objects.create(user=u, role=_role_with(['orders.view']))
     invalidate_capabilities(u.id)
     client.force_authenticate(u)
     tree = client.get('/api/v2/authz/me/menu/').json()
-    labels = [s['label'] for s in tree]
-    # Dashboard (Principal) y Reportes (Operaciones) usan reports.view.
-    assert 'Operaciones' in labels
-    ops = next(s for s in tree if s['label'] == 'Operaciones')
-    # Solo sobrevive el agrupador Reportes (los otros items son de otro dominio).
-    assert [c['label'] for c in ops['children']] == ['Reportes']
-    reportes = ops['children'][0]
+    ventas = next(s for s in tree if s['label'] == 'Ventas')
+    assert [c['label'] for c in ventas['children']] == [
+        'Pedidos', 'Panel de pedidos', 'Reportes']
+    reportes = ventas['children'][-1]
     assert reportes['route'] == ''  # agrupador nivel 1 sin ruta
-    assert [g['label'] for g in reportes['children']] == [
-        'Dashboard', 'Ventas', 'Top sellers', 'Clientes RFM']
+    assert [g['label'] for g in reportes['children']] == ['Ventas', 'Top sellers']
+    # El RFM NO aparece: es de otro dominio.
+    assert 'Clientes' not in [s['label'] for s in tree]
+
+
+@pytest.mark.django_db
+def test_customer_report_is_gated_by_its_own_domain(seeded, client):
+    """El contraejemplo del anterior: ``users.view`` ve el RFM, no el de ventas."""
+    u = _user('crm@e.com')
+    RoleAssignment.objects.create(user=u, role=_role_with(['users.view']))
+    invalidate_capabilities(u.id)
+    client.force_authenticate(u)
+    tree = client.get('/api/v2/authz/me/menu/').json()
+    clientes = next(s for s in tree if s['label'] == 'Clientes')
+    reportes = next(c for c in clientes['children'] if c['label'] == 'Reportes')
+    assert [g['label'] for g in reportes['children']] == ['Clientes RFM']
+    assert 'Ventas' not in [s['label'] for s in tree]
 
 
 @pytest.mark.django_db
@@ -145,12 +166,17 @@ def test_superadmin_sees_all_sections(seeded, client):
     assert [i['label'] for i in catalogo['children']] == [
         'Productos', 'Crear Producto', 'Categorías', 'Descuentos',
         'Sincronización de precios']
-    # Reseñas y Preguntas (UGC/moderación para marketing + comportamiento)
-    # viven en Marketing, no en una sección "Catálogo social" aparte.
+    # Reseñas (UGC/moderación para marketing + comportamiento) vive en
+    # Marketing, no en una sección "Catálogo social" aparte. «Preguntas» ya no
+    # está: su capacidad murió con el addon ``questions`` y vuelve con el
+    # cluster ``website_sale`` que lo hospeda (H-QUESTIONS-01).
     marketing = next(s for s in tree if s['label'] == 'Marketing')
     assert [i['label'] for i in marketing['children']] == [
-        'Reseñas', 'Preguntas', 'Newsletter', 'Notificaciones',
+        'Reseñas', 'Newsletter', 'Notificaciones',
         'Listas de deseos', 'Banners de portada']
+    # Ventas cierra con su propio agrupador Reportes (dominio dueño).
+    ventas = next(s for s in tree if s['label'] == 'Ventas')
+    assert [i['label'] for i in ventas['children']][-1] == 'Reportes'
 
 
 @pytest.mark.django_db

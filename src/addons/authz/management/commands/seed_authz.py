@@ -5,7 +5,7 @@
 (``VIEW<CREATE<EDIT<FULL``) vive en ``RoleCapability.level``, no en el código.
 El resolver expande ``noun@nivel → {noun.view, noun.create, noun.edit,
 noun.full}`` (``addons.authz.services.resolve_capabilities``). Las **acciones
-nombradas** (``account.*``, ``inventory.adjust``/``import``, ``reports.export``,
+nombradas** (``account.*``, ``inventory.adjust``/``import``, ``finance.close``,
 ``platform.provision``) se siembran **con punto** (membresía, sin nivel).
 
 **Qué cambió (SOL-100).** Este comando **ya no declara** el catálogo: lo

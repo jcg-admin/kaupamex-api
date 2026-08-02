@@ -170,8 +170,9 @@ def test_code_requires_fresh_session_matrix(seeded):
     # Acción nombrada sensible → True (intrínsecamente mutante).
     assert code_requires_fresh_session('platform.provision', unsafe_method=True) is True
     assert code_requires_fresh_session('inventory.adjust', unsafe_method=True) is True
-    # Acción nombrada NO sensible → False.
-    assert code_requires_fresh_session('reports.export', unsafe_method=True) is False
+    # Acción nombrada NO sensible → False. (Era ``reports.export``, capacidad
+    # que dejó de existir al disolverse el módulo transversal de reportes.)
+    assert code_requires_fresh_session('account.orders', unsafe_method=True) is False
     # Sin código → False.
     assert code_requires_fresh_session('', unsafe_method=True) is False
 

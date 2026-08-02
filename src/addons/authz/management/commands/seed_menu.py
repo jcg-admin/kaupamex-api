@@ -29,7 +29,13 @@ def _group(key, label, children):
 
 MENU = [
     _group('sec-principal', 'Principal', [
-        _leaf('dashboard', 'Dashboard', '/admin', 'reports'),
+        # Gateado por ``orders``, no por un permiso global de reportes: la
+        # página renderiza pedidos recientes, top de productos y ventas del
+        # día. La referencia no tiene un permiso "ver reportes" — el submenú
+        # Reporting de cada app lo gatea el grupo **de esa app**
+        # (``odoo19c: addons/stock/views/…`` → ``menu_warehouse_report`` con
+        # ``groups="group_stock_manager"``, ``odoo-tools@622ddc2a``).
+        _leaf('dashboard', 'Dashboard', '/admin', 'orders'),
     ]),
     _group('sec-catalogo', 'Catálogo', [
         _leaf('productos', 'Productos', '/admin/products', 'catalogue'),
@@ -45,6 +51,16 @@ MENU = [
         _leaf('contracargos', 'Contracargos', '/admin/chargebacks', 'payments'),
         _leaf('devoluciones', 'Devoluciones', '/admin/returns', 'returns'),
         _leaf('cupones', 'Cupones', '/admin/vouchers', 'vouchers'),
+        # El análisis de ventas vive DENTRO de su dominio, como en la
+        # referencia: ``sale.report`` es un modelo de ``sale``
+        # (``odoo19c: addons/sale/report/sale_report.py``, ``_auto = False``).
+        # "Ventas" y "Top sellers" no son dos reportes: son el **mismo**
+        # modelo agrupado distinto — ``sale.report`` ya lleva ``product_id``
+        # junto a ``partner_id``, ``user_id`` y ``date``.
+        _group('grp-reportes-ventas', 'Reportes', [
+            _leaf('reportes-ventas', 'Ventas', '/admin/reports/sales', 'orders'),
+            _leaf('reportes-top', 'Top sellers', '/admin/reports/top-sellers', 'orders'),
+        ]),
     ]),
     _group('sec-marketing', 'Marketing', [
         # Reseñas admin = gestión/moderación para marketing + comportamiento
@@ -66,18 +82,31 @@ MENU = [
         _leaf('permisos', 'Permisos', '/admin/permissions', 'permissions'),
         _leaf('soporte', 'Soporte (Tickets)', '/admin/support', 'support'),
         _leaf('contacto', 'Mensajes de contacto', '/admin/contact/messages', 'support'),
+        # El RFM es análisis **de clientes**, así que lo gatea ``users``. La
+        # referencia no lo cubre: 0 hits de ``rfm`` como palabra en sus ``.py``
+        # (``odoo-tools@622ddc2a``). Lo que sí se copia es la forma — un
+        # subgrupo Reportes dentro de la sección dueña del dominio.
+        _group('grp-reportes-clientes', 'Reportes', [
+            _leaf('reportes-rfm', 'Clientes RFM', '/admin/reports/customers-rfm', 'users'),
+        ]),
     ]),
     _group('sec-operaciones', 'Operaciones', [
         _leaf('inventario', 'Inventario', '/admin/inventory', 'inventory'),
         _leaf('logistica', 'Logística', '/admin/logistics', 'logistics'),
         _leaf('paqueterias', 'Paqueterías', '/admin/couriers', 'logistics'),
         _leaf('zonas-entrega', 'Zonas de entrega', '/admin/shipping-zones', 'settings'),
-        _group('grp-reportes', 'Reportes', [
-            _leaf('reportes-dashboard', 'Dashboard', '/admin/reports', 'reports'),
-            _leaf('reportes-ventas', 'Ventas', '/admin/reports/sales', 'reports'),
-            _leaf('reportes-top', 'Top sellers', '/admin/reports/top-sellers', 'reports'),
-            _leaf('reportes-rfm', 'Clientes RFM', '/admin/reports/customers-rfm', 'reports'),
-        ]),
+        # El grupo transversal ``grp-reportes`` se disolvió: cada reporte
+        # colgaba aquí gateado por un ``reports`` global que no existe en la
+        # referencia. Ahora cada uno vive en la sección de su dominio.
+        #
+        # El que NO volvió es ``/admin/reports`` — el hub de KPIs que cruza
+        # dominios (ingreso, órdenes, tickets de soporte, stock bajo). Ese sí
+        # tiene análogo, pero no es un reporte de dominio: es el contenedor
+        # ``spreadsheet_dashboard`` (3 modelos propios, menú propio, categoría
+        # ``Productivity/Dashboard``), al que cada dominio aporta vía un addon
+        # puente ``spreadsheet_dashboard_<dominio>`` con ``depends`` de ambos,
+        # ``auto_install`` del dominio y **cero** modelos propios. Vuelve al
+        # menú cuando ese contenedor exista, no antes.
     ]),
     _group('sec-sistema', 'Sistema', [
         _leaf('logs', 'Logs técnicos', '/admin/logs', 'audit'),
