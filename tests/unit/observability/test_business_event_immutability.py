@@ -53,7 +53,7 @@ def test_correlation_id_autostamp_still_works(monkeypatch):
     # DEC-LOG-07: en el INSERT, save() sella el correlation_id del contexto si el
     # llamador no lo fijo. El guard append-only no debe interferir con eso.
     monkeypatch.setattr(
-        'addons.users.models.get_correlation_id', lambda: 'abc123corr')
+        'addons.observability.models.business_event.get_correlation_id', lambda: 'abc123corr')
     ev = BusinessEvent.objects.create(action=BusinessEvent.ACTION_ORDER_CANCELLED)
     assert ev.correlation_id == 'abc123corr'
     assert BusinessEvent.objects.get(pk=ev.pk).correlation_id == 'abc123corr'
@@ -61,7 +61,7 @@ def test_correlation_id_autostamp_still_works(monkeypatch):
 
 def test_explicit_correlation_id_not_overwritten(monkeypatch):
     monkeypatch.setattr(
-        'addons.users.models.get_correlation_id', lambda: 'ctx-value')
+        'addons.observability.models.business_event.get_correlation_id', lambda: 'ctx-value')
     ev = BusinessEvent.objects.create(
         action=BusinessEvent.ACTION_ORDER_CREATED, correlation_id='explicit')
     assert ev.correlation_id == 'explicit'
