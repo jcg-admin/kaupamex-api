@@ -31,7 +31,7 @@ class ProductCosting(TimeStampedModel):
     ]
 
     product        = models.OneToOneField(
-        'catalogue.Product', on_delete=models.CASCADE, related_name='costing',
+        'product.ProductProduct', on_delete=models.CASCADE, related_name='costing',
         help_text='Producto (Odoo product_id).',
     )
     cost_method    = fields.Selection(

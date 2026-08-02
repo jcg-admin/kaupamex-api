@@ -16,9 +16,10 @@ from addons.base.models import TimeStampedModel
 class ProductTemplateAttributeLine(TimeStampedModel):
     """``product.template.attribute.line`` — atributo aplicado a un producto."""
 
-    product   = fields.Many2one(
-        'catalogue.Product', on_delete=models.CASCADE, related_name='attribute_lines',
-        help_text='Producto (Odoo product_tmpl_id).',
+    product_tmpl = fields.Many2one(
+        'product.ProductTemplate', on_delete=models.CASCADE,
+        related_name='attribute_lines',
+        help_text='Plantilla de producto (Odoo product_tmpl_id).',
     )
     attribute = fields.Many2one(
         'product.ProductAttribute', on_delete=models.PROTECT,

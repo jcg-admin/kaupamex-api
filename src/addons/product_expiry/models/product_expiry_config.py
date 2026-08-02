@@ -22,7 +22,7 @@ class ProductExpiryConfig(TimeStampedModel):
     """``product.template`` caducidad — config de fechas (Odoo product_expiry)."""
 
     product             = models.OneToOneField(
-        'catalogue.Product', on_delete=models.CASCADE, related_name='expiry_config',
+        'product.ProductProduct', on_delete=models.CASCADE, related_name='expiry_config',
         help_text='Producto (Odoo product_tmpl_id).',
     )
     use_expiration_date = fields.Boolean(

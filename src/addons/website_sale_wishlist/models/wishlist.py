@@ -31,7 +31,7 @@ class WishlistItem(TimeStampedModel, SoftDeleteModel):
         related_name='wishlist_items',
     )
     product       = models.ForeignKey(
-        'catalogue.Product', on_delete=models.CASCADE,
+        'product.ProductProduct', on_delete=models.CASCADE,
         related_name='wishlist_items',
     )
     variant       = models.ForeignKey(

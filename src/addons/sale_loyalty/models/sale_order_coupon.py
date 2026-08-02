@@ -13,7 +13,7 @@ import fields
 import models
 
 from addons.base.models import TimeStampedModel
-from addons.catalogue.models import Product
+from addons.product.models import ProductProduct as Product
 
 # ----------------------------------------------------------------------
 # E1-bis — producto de servicio de la línea de recompensa.

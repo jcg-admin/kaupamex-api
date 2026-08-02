@@ -291,7 +291,7 @@ class ShippingMethod(TimeStampedModel):
     # puebla por método vía ``ensure_service_product`` y el gate de la línea
     # vive en el servicio, no en el esquema.
     product        = models.ForeignKey(
-                       'catalogue.Product', null=True, blank=True,
+                       'product.ProductProduct', null=True, blank=True,
                        on_delete=models.PROTECT, related_name='shipping_methods',
                        help_text='Producto de servicio para la línea de envío '
                                  '(Odoo delivery.carrier.product_id).')

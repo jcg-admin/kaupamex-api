@@ -35,7 +35,7 @@ class SaleOrderTemplateLine(TimeStampedModel):
         default=10, help_text='Orden dentro de la plantilla (Odoo sequence).',
     )
     product         = fields.Many2one(
-        'catalogue.Product', null=True, blank=True, on_delete=models.PROTECT,
+        'product.ProductProduct', null=True, blank=True, on_delete=models.PROTECT,
         related_name='sale_template_lines',
         help_text='Producto (Odoo product_id); NULL en sección/nota.',
     )

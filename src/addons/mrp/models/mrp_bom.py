@@ -40,9 +40,20 @@ class MrpBom(TimeStampedModel):
         max_length=16, choices=TYPE_CHOICES, default=TYPE_NORMAL,
         help_text='Tipo de BoM: normal|phantom/kit (Odoo mrp.bom.type).',
     )
+    # Odoo declara DOS campos con cardinalidad distinta (mrp_bom.py:31-39), no
+    # uno: la plantilla es obligatoria y la variante es opcional. Estaban
+    # fusionados aquí en un solo 'product' cuyo help_text ya admitía la mezcla
+    # ("Odoo product_id/product_tmpl_id"). Ver H-API-208.
+    product_tmpl = fields.Many2one(
+        'product.ProductTemplate', on_delete=models.CASCADE,
+        related_name='boms',
+        help_text='Plantilla fabricada (Odoo product_tmpl_id, required).',
+    )
     product     = fields.Many2one(
-        'catalogue.Product', on_delete=models.CASCADE, related_name='boms',
-        help_text='Producto fabricado (Odoo product_id/product_tmpl_id).',
+        'product.ProductProduct', on_delete=models.CASCADE,
+        null=True, blank=True, related_name='boms',
+        help_text='Variante concreta (Odoo product_id, opcional). Si se '
+                  'define, la BoM sólo aplica a esa variante.',
     )
     product_qty = fields.Monetary(
         max_digits=12, decimal_places=2, default=Decimal('1.00'),
@@ -70,7 +81,7 @@ class MrpBomLine(TimeStampedModel):
         help_text='BoM contenedora (Odoo bom_id).',
     )
     product     = fields.Many2one(
-        'catalogue.Product', on_delete=models.PROTECT, related_name='bom_lines',
+        'product.ProductProduct', on_delete=models.PROTECT, related_name='bom_lines',
         help_text='Componente (Odoo mrp.bom.line.product_id).',
     )
     product_qty = fields.Monetary(

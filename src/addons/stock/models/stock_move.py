@@ -40,7 +40,7 @@ class StockMove(TimeStampedModel):
         help_text='Descripción (Odoo stock.move.name).',
     )
     product         = fields.Many2one(
-        'catalogue.Product', on_delete=models.PROTECT, related_name='stock_moves',
+        'product.ProductProduct', on_delete=models.PROTECT, related_name='stock_moves',
         help_text='Producto (Odoo product_id).',
     )
     product_uom_qty = fields.Monetary(
