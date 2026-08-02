@@ -92,9 +92,9 @@ INSTALLED_APPS = [
     'addons.authz',
     'addons.authz_audit',
     'addons.authz_reauth',
-    'addons.auth_password_policy',
-    'addons.auth_signup',
-    'addons.auth_totp',
+    'addons.authz_password_policy',
+    'addons.authz_signup',
+    'addons.authz_totp',
     'addons.company',
     'addons.account',
 ]
@@ -218,10 +218,10 @@ MULTIDB_CONTROL_PLANE_APPS = ('sessions', 'contenttypes', 'base', 'observability
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     # Longitud mínima editable en caliente (L2) — adaptación de
-    # auth_password_policy de Odoo. Reemplaza a MinimumLengthValidator (que
+    # authz_password_policy de Odoo. Reemplaza a MinimumLengthValidator (que
     # cablea min_length=8 en settings) por la variante configurable en
-    # SystemParameter (default 8; sin regresión). Ver addons.auth_password_policy.
-    {'NAME': 'addons.auth_password_policy.validators.ConfigurablePasswordPolicyValidator'},
+    # SystemParameter (default 8; sin regresión). Ver addons.authz_password_policy.
+    {'NAME': 'addons.authz_password_policy.validators.ConfigurablePasswordPolicyValidator'},
     {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
@@ -268,7 +268,7 @@ DEFAULT_FROM_EMAIL = 'noreply@kaupamex.com'
 # migraciones los siembran como filas ``CompanySetting`` de PracticaYoruba
 # (founder), no los reemplazan. Los consumidores
 # (``addons.website.views``, ``addons.mass_mailing.views``,
-# ``addons.mail.emails``, ``addons.auth_signup.tokens_email``) leen
+# ``addons.mail.emails``, ``addons.authz_signup.tokens_email``) leen
 # ``CompanySetting.get_setting('<key>', <fallback neutral>)`` bajo la empresa
 # resuelta (ambiente para flujos autenticados; ``company=user.company_id``
 # explícito para auth pre-login); el fallback SÍ es neutral (nivel Kaupamex,

@@ -1,6 +1,6 @@
 """authz_signup — auto-registro y reset gobernados por política L2 (editable).
 
-Adaptación nativa de ``auth_signup`` de Odoo: abrir/cerrar el registro público
+Adaptación nativa de ``authz_signup`` de Odoo: abrir/cerrar el registro público
 y el reset de contraseña son config-params en runtime
 (``authz.signup_allow_uninvited`` / ``authz.signup_reset_password``), no un
 comportamiento cableado en las vistas. Verifica:
@@ -13,7 +13,7 @@ import pytest
 from rest_framework.test import APIClient
 
 from addons.base.models import SystemParameter, _clear_cache
-from addons.auth_signup.policy import password_reset_enabled, signup_open
+from addons.authz_signup.policy import password_reset_enabled, signup_open
 
 pytestmark = pytest.mark.django_db
 

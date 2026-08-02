@@ -1,4 +1,4 @@
-"""Models — addons.auth_totp (2FA por TOTP, DEC-01).
+"""Models — addons.authz_totp (2FA por TOTP, DEC-01).
 
 Adaptación de ``auth_totp`` de Odoo, que guarda ``totp_secret`` (base32) en
 ``res.users`` (``groups=NO_ACCESS``). Aquí el secreto vive en su propia tabla

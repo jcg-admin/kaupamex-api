@@ -1,4 +1,4 @@
-"""Vistas — addons.auth_totp (gestión del 2FA del usuario autenticado).
+"""Vistas — addons.authz_totp (gestión del 2FA del usuario autenticado).
 
 Endpoints ``/api/v2/authz/totp/`` (nunca ``{user_id}`` — el 2FA es del propio
 usuario). **Function-based views** (``@api_view`` + ``@require_capability``):
@@ -16,8 +16,8 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from addons.authz.permissions import require_capability
-from addons.auth_totp.serializers import TotpCodeSerializer, TotpDisableSerializer
-from addons.auth_totp.services import (
+from addons.authz_totp.serializers import TotpCodeSerializer, TotpDisableSerializer
+from addons.authz_totp.services import (
     begin_setup,
     confirm_setup,
     count_recovery_codes,

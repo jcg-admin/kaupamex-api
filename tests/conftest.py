@@ -13,9 +13,9 @@ from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.cache import cache
 
-from addons.auth_password_policy.data import seed as password_policy_seed
-from addons.auth_signup.data import seed as signup_flags_seed
-from addons.auth_totp.data import seed as totp_params_seed
+from addons.authz_password_policy.data import seed as password_policy_seed
+from addons.authz_signup.data import seed as signup_flags_seed
+from addons.authz_totp.data import seed as totp_params_seed
 from addons.authz.models import Role, RoleAssignment
 from addons.authz.services import SUPERADMIN_ROLE_CODE
 from addons.base.models import SystemParameter
@@ -245,9 +245,9 @@ def mariadb_keepalive(db):
 # hallazgo aparte en vez de arrastrarlo aquí a ciegas.
 _SEEDERS = (
     SystemParameter.seed,       # base/0002 + base/0003 (_DEFAULT_PARAMETERS)
-    password_policy_seed,       # auth_password_policy/0001
-    signup_flags_seed,          # auth_signup/0001
-    totp_params_seed,           # auth_totp/0001 + 0002
+    password_policy_seed,       # authz_password_policy/0001
+    signup_flags_seed,          # authz_signup/0001
+    totp_params_seed,           # authz_totp/0001 + 0002
     mail_subtypes_seed,         # mail/0002
     geo_providers_seed,         # base_geolocalize/0002
     founder_company_seed,       # company/0006 + 0007

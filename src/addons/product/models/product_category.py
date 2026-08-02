@@ -50,6 +50,7 @@ Qué NO se porta, con su medición
 """
 import fields
 import models
+from django.apps import apps
 from django.core.exceptions import ValidationError
 
 from addons.base.models.timestamped_mixin import TimeStampedModel
@@ -151,11 +152,11 @@ class ProductCategory(TimeStampedModel):
         aún no estaba portado. Hoy lo está, y vive en este mismo addon.
         Ver H-API-217.
 
-        Import diferido **por función**, no por statement: es una llamada, así
-        que el gate AST de no-lazy-imports la admite (misma resolución que
-        ``_partner_model()`` en ``base/models/res_users.py``).
+        Lo diferido es la **resolución** (``get_model``), no el import:
+        ``django.apps`` es el registro y se importa arriba. Misma resolución
+        que ``_partner_model()`` en ``base/models/res_users.py``, corregida en
+        ambos sitios (ver H-API-221).
         """
-        from django.apps import apps
         template_model = apps.get_model('product', 'ProductTemplate')
         branch = type(self).objects.filter(
             parent_path__startswith=self.parent_path)

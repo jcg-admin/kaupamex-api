@@ -143,10 +143,19 @@ class Command(BaseCommand):
         if cap_code:
             cap = self._caps.get(cap_code)
             if cap is None:
+                # Fail-CLOSED: un candado declarado que no resuelve NO puede
+                # degradar a "sin candado". Antes el item se creaba con
+                # ``group=None``, que el endpoint del menú lee como público —
+                # así, un usuario sin ninguna capacidad veía el Dashboard y la
+                # sección Reportes completa. Se omite el nodo y su subárbol;
+                # el podado autoritativo del final borra la fila si existía de
+                # un seed anterior. Cuando la capacidad aparezca, re-correr
+                # ``seed_menu`` la vuelve a sembrar (idempotente).
                 self.stderr.write(
-                    f'  ADVERTENCIA: capacidad {cap_code} no existe; item {key} '
-                    f'queda sin candado. Corre seed_authz primero.'
+                    f'  OMITIDO: capacidad {cap_code} no existe; item {key} '
+                    f'(y su subárbol) no se siembra. Corre seed_authz primero.'
                 )
+                return
         item, _ = model.objects.update_or_create(
             key=key,
             defaults=dict(parent=parent, name=label, route=route, web_icon='',

@@ -360,7 +360,7 @@ class EntitlementRevocation(TimeStampedModel):
 # Modelos movidos a apps de feature opcional al estilo Odoo (SOL-094 frente B,
 # DEC-01), con tabla física intacta (SeparateDatabaseAndState):
 #   - AuthzEvent (auditoría DEC-07)     -> ``addons.authz_audit``  (~ account_audit_trail)
-#   - ReauthSession (step-up DEC-12)    -> ``addons.authz_reauth`` (~ auth_totp)
+#   - ReauthSession (step-up DEC-12)    -> ``addons.authz_reauth`` (~ authz_totp)
 # Importar desde ``addons.authz_audit.models`` / ``addons.authz_reauth.models``
 # respectivamente.
 #

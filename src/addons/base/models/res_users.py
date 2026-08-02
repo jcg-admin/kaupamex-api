@@ -61,6 +61,7 @@ ese modelo. Los *hashers* de Django sí se usan, como librería.
 import fields
 import models
 
+from django.apps import apps
 from django.conf import settings
 from django.contrib.auth import hashers
 from django.utils import timezone
@@ -131,13 +132,16 @@ class ResUsersManager(models.Manager):
 def _partner_model():
     """Resuelve ``ResPartner`` por el registro de apps.
 
-    Import diferido **por función**, no por statement: ambos modelos viven en
-    el mismo addon y un import a nivel de módulo cerraría el ciclo
-    ``res_users`` → ``res_partner`` → ``__init__``. Es una llamada, así que el
-    gate AST de no-lazy-imports la admite (misma resolución que la excepción #4
-    de ``AppConfig.ready()``).
+    Lo que se difiere es la **resolución** (``get_model``), no el import: un
+    import de ``res_partner`` a nivel de módulo cerraría el ciclo
+    ``res_users`` → ``res_partner`` → ``__init__``, pero ``django.apps`` es el
+    registro, no el modelo, y se importa arriba sin tocar ese ciclo.
+
+    La versión anterior tenía el ``from django.apps import apps`` **dentro** de
+    la función y un docstring que lo justificaba como "una llamada, no un
+    statement". Era falso —es un statement de import— y sólo pasaba el gate
+    porque el gate no miraba este árbol (ver H-API-221).
     """
-    from django.apps import apps
     return apps.get_model('base', 'ResPartner')
 
 

@@ -1,4 +1,4 @@
-"""Política de contraseña configurable en caliente — addons.auth_password_policy.
+"""Política de contraseña configurable en caliente — addons.authz_password_policy.
 
 Adaptado de ``auth_password_policy/models/res_users.py`` de Odoo (LGPL-3):
 
@@ -45,7 +45,7 @@ class ConfigurablePasswordPolicyValidator:
     Reemplaza a ``MinimumLengthValidator`` de Django: mismo efecto (rechaza
     contraseñas cortas) pero la cota se lee de L2 en vez de ``settings``, así
     es editable en caliente por el admin — el comportamiento de Odoo
-    ``auth_password_policy``.
+    ``authz_password_policy``.
     """
 
     def validate(self, password, user=None):

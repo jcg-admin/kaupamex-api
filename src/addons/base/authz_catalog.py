@@ -13,6 +13,14 @@ El commit ``api@6cf8120`` ("Move identity into base as res.partner and
 res.users") movió los modelos pero **borró el catálogo sin re-alojarlo**: sin
 él ``seed_authz`` no siembra ``account.*`` y todo gate ``HasCapability`` de
 autoservicio responde 403 (fail-closed). Ver H-API-209.
+
+**``settings``.** El addon ``settings_app`` se disolvió (``api@115d219``) y su
+propio ``models.py`` nombró el destino: *"``SiteSettings`` →
+``addons.base.models.res_config_settings`` (~ ``res.config.settings``,
+H-SETTINGS-02)"*. La referencia coincide: ``res.config.settings`` es un modelo
+de ``base`` (``odoo19c: odoo/addons/base/models/res_config.py``,
+``odoo-tools@622ddc2a``). Es configuración de plataforma, no contenido — por
+eso ``banners`` fue a ``website`` y ``settings`` viene aquí.
 """
 from addons.authz.declaration import CapabilitySpec, ModuleSpec
 
@@ -23,6 +31,7 @@ MODULES = [
     # separa la gestión de usuarios como grupo de acceso propio.
     ModuleSpec(code='users', name='Usuarios', category='Platform'),
     ModuleSpec(code='account', name='Mi cuenta', category='Platform'),
+    ModuleSpec(code='settings', name='Configuración', category='Platform'),
 ]
 
 CAPABILITIES = [
@@ -57,4 +66,5 @@ CAPABILITIES = [
     CapabilitySpec(code='account.support', name='Ver mi soporte'),
     CapabilitySpec(code='account.wishlist', name='Ver mis favoritos'),
     CapabilitySpec(code='users', name='Usuarios', is_sensitive=True),
+    CapabilitySpec(code='settings', name='Configuración', is_sensitive=True),
 ]

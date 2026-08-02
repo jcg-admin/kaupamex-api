@@ -2,7 +2,7 @@
 
 Adaptación de los config-params de ``auth_signup`` de Odoo
 (``auth_signup.invitation_scope`` / ``auth_signup.reset_password``). Mismo
-patrón que ``auth_password_policy.data``: el spec es la fuente única que
+patrón que ``authz_password_policy.data``: el spec es la fuente única que
 consumen la data-migration (arranque) y ``seed()`` (re-aplicación sobre el
 modelo vivo, H-API-22).
 

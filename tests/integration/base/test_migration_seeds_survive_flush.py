@@ -26,12 +26,12 @@ El test 2 depende del orden dentro de esta clase (``-p no:randomly`` está en
 """
 import pytest
 
-from addons.auth_password_policy.data import PASSWORD_POLICY_PARAMETERS
-from addons.auth_password_policy.data import seed as password_policy_seed
-from addons.auth_signup.data import SIGNUP_PARAMETERS
-from addons.auth_signup.data import seed as signup_flags_seed
-from addons.auth_totp.data import TOTP_PARAMETERS
-from addons.auth_totp.data import seed as totp_params_seed
+from addons.authz_password_policy.data import PASSWORD_POLICY_PARAMETERS
+from addons.authz_password_policy.data import seed as password_policy_seed
+from addons.authz_signup.data import SIGNUP_PARAMETERS
+from addons.authz_signup.data import seed as signup_flags_seed
+from addons.authz_totp.data import TOTP_PARAMETERS
+from addons.authz_totp.data import seed as totp_params_seed
 from addons.base.models import SystemParameter
 from addons.base_geolocalize.data import GEO_PROVIDERS
 from addons.base_geolocalize.data import seed as geo_providers_seed

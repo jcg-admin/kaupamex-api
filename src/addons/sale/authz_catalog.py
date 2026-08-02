@@ -18,11 +18,11 @@ MODULES = [
         name='Pedidos',
         is_application=True,
         category='Order Management',
-        # Sin aristas: ``catalogue`` e ``inventory`` se fueron con sus addons.
-        # Vuelven como ``product``/``website_sale`` y ``stock`` cuando esas
-        # familias se integren — declarar antes es la arista colgada de
-        # H-API-106.
-        depends=(),
+        # Las aristas vuelven: la condición que este comentario fijaba
+        # ("cuando esas familias se integren") se cumplió. ``catalogue`` lo
+        # declara ``product`` y ``inventory`` lo declara ``stock``, así que
+        # ninguna de las dos es ya la arista colgada de H-API-106.
+        depends=('catalogue', 'inventory'),
     ),
 ]
 

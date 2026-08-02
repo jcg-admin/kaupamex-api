@@ -1,10 +1,17 @@
 """RFC 4226/6238 TOTP — adaptado VERBATIM de Odoo (auth_totp/models/totp.py).
 
-Fuente: ``scratchpad/odoo-enterprise-18/.../addons/auth_totp/models/totp.py``
-(Odoo 18.0, LGPL-3). Es un algoritmo hand-rolled (``hmac`` + ``struct``), sin
-azúcar sintáctica del framework Odoo — se copia tal cual con atribución
-(DEC-KX-03). Verificado idéntico en odoo18-ent y my-odoo-enterprise-18.0
-(5/5 marcadores de algoritmo).
+Fuente: ``odoo19c: addons/auth_totp/models/totp.py`` (``odoo-tools@622ddc2a``).
+Licencia ``LGPL-3``, leída de ``addons/auth_totp/__manifest__.py`` — copia con
+atribución, que es lo que DEC-KX-03 permite para LGPL-3. Es un algoritmo
+hand-rolled (``hmac`` + ``struct``), sin azúcar sintáctica del framework Odoo,
+así que se copia tal cual. Verificado idéntico al descontar comentarios y
+líneas en blanco (``diff`` limpio contra el archivo de la referencia).
+
+**Corrección de procedencia.** La cabecera anterior citaba
+``scratchpad/odoo-enterprise-18/…`` y afirmaba "Odoo 18.0" **Enterprise**. Las
+dos cosas eran inexactas: el scratchpad ya no existe (la referencia vive en el
+repo ``odoo-tools``) y ``auth_totp`` es un addon de **Community**, no de
+Enterprise — medido, no está bajo ``odoo19e:``.
 
 Adaptado de @progress-independiente: sólo se removió la dependencia de Odoo
 (no había ninguna en este archivo). ``hotp`` devuelve el código como ``int``;
