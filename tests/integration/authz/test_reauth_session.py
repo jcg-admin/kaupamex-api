@@ -32,7 +32,6 @@ from addons.authz.services import (
     has_active_reauth_session,
     is_superadmin,
 )
-from addons.users.models import EmployeeProfile
 
 User = get_user_model()
 
@@ -49,8 +48,13 @@ def seeded(db):
 
 @pytest.fixture
 def superadmin(seeded):
-    u = User.objects.create_user(email='reauth-admin@practicayoruba.mx', password=PASSWORD)
-    EmployeeProfile.objects.create(identity=u)
+    u = User.objects.create_user(
+        login='reauth-admin@practicayoruba.mx', password=PASSWORD,
+        name='Reauth Admin')
+    # ``EmployeeProfile`` no existe en la referencia: el empleado es el campo
+    # booleano ``employee`` de ``res.partner``.
+    u.partner.employee = True
+    u.partner.save(update_fields=['employee'])
     role, _ = Role.objects.get_or_create(
         code=SUPERADMIN_ROLE_CODE, defaults={'name': 'Superadministrador'})
     RoleAssignment.objects.get_or_create(user=u, role=role)

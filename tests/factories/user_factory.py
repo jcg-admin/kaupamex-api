@@ -80,6 +80,23 @@ class UserFactory(factory.django.DjangoModelFactory):
         # aquí para que factory-boy no los pase al constructor del modelo.
         username = None
 
+    @classmethod
+    def _create(cls, model_class, *args, **kwargs):
+        """Enruta por ``create_user``, no por el ``manager.create()`` genérico
+        que usa ``DjangoModelFactory`` por defecto.
+
+        ``partner`` es un ``Many2one`` requerido (H-API-119): un
+        ``model_class(**kwargs).save()`` sin partner explícito revienta con
+        ``IntegrityError: Column 'partner_id' cannot be null`` — sólo
+        ``create_user``/``_create_user`` auto-crean el partner mínimo cuando
+        no se pasa uno. De paso corrige un segundo defecto latente: sin este
+        override, ``password`` (texto plano de ``factory.django.Password``)
+        se habría guardado sin hashear — ``create_user`` sí llama
+        ``set_password``.
+        """
+        manager = cls._get_manager(model_class)
+        return manager.create_user(*args, **kwargs)
+
     @factory.post_generation
     def partner_name(self, create, extracted, **kwargs):
         """Fija ``ResPartner.name``. Acepta first_name/last_name legacy.

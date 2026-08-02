@@ -5,12 +5,17 @@ Cubre audit-log-eventos-cross-cutting:
 ORDER_CANCELLED + RETURN_REQUESTED + RETURN_RESOLVED.
 ORDER_CREATED testeado indirectamente; fixture de checkout
 complejo requiere full cart/order setup, validacion en QA.
+
+``BusinessEvent``/``audit_log_business`` vivian en ``users/models.py`` y
+``users/audit.py``; el commit ``api@6cf8120`` disolvio ``users`` y ambos se
+realojaron en ``observability`` (el unico addon net-new sancionado, DEC-12) —
+no tienen homologo ``res.*`` en la referencia. Ver
+``addons.observability.models.business_event`` y ``addons.observability.audit``.
 """
 import pytest
-from django.urls import reverse
-from rest_framework_simplejwt.tokens import RefreshToken
-from addons.users.audit import audit_log_business
-from addons.users.models import BusinessEvent
+
+from addons.observability.audit import audit_log_business
+from addons.observability.models import BusinessEvent
 
 pytestmark = [pytest.mark.integration, pytest.mark.django_db(transaction=True)]
 

@@ -22,7 +22,7 @@ from django.utils import timezone
 
 from addons.base.models import IrLogging
 from addons.observability.models import RequestLog
-from addons.users.models import BusinessEvent
+from addons.observability.models import BusinessEvent
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
