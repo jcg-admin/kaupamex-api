@@ -67,7 +67,7 @@ class TestAuthEmailFromEmail:
 
     def _user(self, email, company):
         return IdentityUser.objects.create_user(
-            email=email, password='x-Passw0rd', company=company,
+            login=email, password='x-Passw0rd', company=company,
         )
 
     def test_reset_email_from_founder_user_uses_seeded_value(self):

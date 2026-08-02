@@ -19,9 +19,9 @@ import pytest
 
 from exceptions import UserError
 from addons.account.models import AccountAccount, AccountJournal, AccountMove
-from addons.catalogue.models import Category, Product
 from addons.company.models import Company
 from addons.sale.models import SaleOrder
+from tests.factories.product_factory import make_category, make_product
 
 
 @pytest.fixture
@@ -47,11 +47,8 @@ def chart(db, company):
 @pytest.fixture
 def confirmed_order(db, company):
     """``SaleOrder`` confirmada de ``company`` con una línea (total 116.00)."""
-    cat = Category.objects.create(name='Cat', slug='cat-aci', is_active=True)
-    product = Product.objects.create(
-        name='Prod', slug='prod-aci', sku='ACI-001', description='',
-        price=Decimal('116.00'), stock=5, is_active=True, is_published=True)
-    product.categories.add(cat)
+    cat = make_category(name='Cat')
+    product = make_product(name='Prod', price=Decimal('116.00'), stock=5, categ=cat)
     order = SaleOrder.objects.create(
         state=SaleOrder.STATE_SALE, company=company, cart_token=uuid.uuid4())
     order.order_line.create(
@@ -81,11 +78,8 @@ class TestSaleOrderCreateInvoice:
         assert AccountMove.objects.count() == 1
 
     def test_requires_company(self, chart, db):
-        cat = Category.objects.create(name='C', slug='c-noco', is_active=True)
-        product = Product.objects.create(
-            name='P', slug='p-noco', sku='NOCO-1', description='',
-            price=Decimal('50.00'), stock=1, is_active=True, is_published=True)
-        product.categories.add(cat)
+        cat = make_category(name='C')
+        product = make_product(name='P', price=Decimal('50.00'), stock=1, categ=cat)
         order = SaleOrder.objects.create(
             state=SaleOrder.STATE_SALE, cart_token=uuid.uuid4())  # sin company
         order.order_line.create(

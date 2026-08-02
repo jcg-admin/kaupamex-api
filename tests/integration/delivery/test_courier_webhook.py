@@ -24,10 +24,11 @@ from decimal import Decimal
 import pytest
 from django.utils import timezone
 
-from addons.catalogue.models import Category, Product
 from addons.delivery.models import Courier, DeliveryAddress, ShipmentEvent, ShipmentGuide
 from addons.delivery.models.sale_order import set_delivery_line
 from tests.factories.order_factory import make_order
+
+from tests.factories.product_factory import make_category, make_product
 
 pytestmark = pytest.mark.integration
 
@@ -57,16 +58,14 @@ def _post(client, payload: dict, secret=WEBHOOK_SECRET, signature=None):
 
 @pytest.fixture
 def cat_log(db):
-    return Category.objects.create(name='Logistics', slug='log-cat', is_active=True)
+    return make_category(name='Logistics',)
 
 
 @pytest.fixture
 def prod_log(db, cat_log):
-    p = Product.objects.create(
-        name='Pulsera Yoruba', slug='pulsera-yoruba', sku='LOG-PY-001',
-        price=Decimal('500.00'), stock=10, is_active=True, is_published=True,
-    )
-    p.categories.add(cat_log)
+    p = make_product(
+        name='Pulsera Yoruba', default_code='LOG-PY-001',
+        price=Decimal('500.00'), stock=10, categ=cat_log)
     return p
 
 
@@ -76,7 +75,7 @@ def order_log(db, user, prod_log):
     # orden base se fabrica PENDING para no duplicar el eje de fulfillment.
     o = make_order(user=user)
     SaleOrderLine.objects.create(
-        order=o, product=prod_log, name=prod_log.name, price_unit=prod_log.price,
+        order=o, product=prod_log, name=prod_log.name, price_unit=prod_log.lst_price,
         product_uom_qty=1,
     )
     # El envío ($80) se materializa como línea marcada — el importe ya no

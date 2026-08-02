@@ -13,8 +13,8 @@ import pytest
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
-from addons.catalogue.models import Product
 from addons.stock.models import StockLocation, StockLot, StockQuant
+from tests.factories.product_factory import make_product
 
 pytestmark = pytest.mark.integration
 
@@ -24,8 +24,8 @@ _slug_seq = [0]
 def _product(price='100.00'):
     _slug_seq[0] += 1
     n = _slug_seq[0]
-    return Product.objects.create(
-        name=f'Lot Prod {n}', slug=f'lot-prod-{n}', sku=f'LOT-{n:04d}',
+    return make_product(
+        name=f'Lot Prod {n}', default_code=f'LOT-{n:04d}',
         price=Decimal(price),
     )
 

@@ -1,15 +1,16 @@
-"""El proyector de estado filtra igual sobre la canónica que sobre el espejo.
+"""El proyector de estado filtra la venta canónica por cada estado del ciclo.
 
 E5/R2 del retiro de ``orders`` (:ref:`analisis-retiro-addon-orders-e5`). El
-módulo se muda a ``sale/`` y su trío de queryset —``annotate_status_axes``,
-``_canonical_status_q``, ``filter_orders_by_status``— deja de asumir que las
-filas son ``orders.Order``.
+módulo se mudó a ``sale/`` y su trío de queryset —``annotate_status_axes``,
+``_canonical_status_q``, ``filter_orders_by_status``— dejó de asumir que las
+filas eran ``orders.Order``.
 
-Por qué hace falta el test (H-API-98): las dos subconsultas ``Exists`` joinean
-por ``Payment.order``/``ShipmentGuide.order``, que son las FK **al espejo**. Un
-``git mv`` habría dejado el filtro devolviendo vacío en cuanto el espejo se
-vaciara — sin ``ImportError``, sin excepción: silencio. Estos casos fijan la
-equivalencia entre ambas formas para que el cambio de join sea observable.
+Retiro parcial (2026-08): el retiro del addon espejo ``orders`` (SOL-098,
+``api@77bd1f0``) le quitó el segundo lado a la comparación "espejo vs
+canónica" que este módulo protegía (H-API-98) — ``make_order`` ya no
+devuelve un objeto ``.sale_order_id`` distinto de la venta misma. Lo que
+sigue vigente es que el filtro selecciona **exactamente** la venta de su
+estado y descarta las demás; eso es lo que se prueba aquí.
 """
 import pytest
 
@@ -43,16 +44,10 @@ def universo():
 
 
 @pytest.mark.parametrize('estado', ESTADOS)
-def test_filtro_canonico_selecciona_la_misma_venta_que_el_espejo(universo, estado):
-    """``filter_orders_by_status`` sobre ``SaleOrder`` devuelve la canónica de
-    la misma fila que devuelve sobre ``SaleOrder``."""
-    esperado = universo[estado].sale_order_id
-
-    por_espejo = filter_orders_by_status(SaleOrder.objects.all(), estado)
-    por_canonica = filter_orders_by_status(SaleOrder.objects.all(), estado)
-
-    assert list(por_espejo.values_list('sale_order_id', flat=True)) == [esperado]
-    assert list(por_canonica.values_list('pk', flat=True)) == [esperado]
+def test_filtro_canonico_selecciona_la_venta_de_su_estado(universo, estado):
+    esperado = universo[estado].pk
+    seleccionadas = filter_orders_by_status(SaleOrder.objects.all(), estado)
+    assert list(seleccionadas.values_list('pk', flat=True)) == [esperado]
 
 
 @pytest.mark.parametrize('estado', ESTADOS)
@@ -64,11 +59,11 @@ def test_el_filtro_canonico_excluye_los_demas_estados(universo, estado):
         .values_list('pk', flat=True)
     )
     otras = {
-        orden.sale_order_id
+        orden.pk
         for otro, orden in universo.items() if otro != estado
     }
 
-    assert seleccionadas == {universo[estado].sale_order_id}
+    assert seleccionadas == {universo[estado].pk}
     assert not (seleccionadas & otras)
 
 

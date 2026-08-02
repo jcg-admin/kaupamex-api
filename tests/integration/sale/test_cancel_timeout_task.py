@@ -121,7 +121,7 @@ class TestCancelTimeoutOrders:
         product = _make_product(stock=7)  # 7 = 10 inicial - 3 del checkout
         order = _make_pending_order(age_minutes=ORDER_PAYMENT_TIMEOUT_MINUTES + 10)
         SaleOrderLine.objects.create(
-            order=order, product=product, name=product.name, price_unit=product.price, product_uom_qty=3,
+            order=order, product=product, name=product.name, price_unit=product.lst_price, product_uom_qty=3,
         )
         cancel_timeout_orders()
         product.refresh_from_db()
@@ -140,7 +140,7 @@ class TestCancelTimeoutOrders:
         product = _make_product(stock=7)
         order = _make_pending_order(age_minutes=ORDER_PAYMENT_TIMEOUT_MINUTES + 10)
         SaleOrderLine.objects.create(
-            order=order, product=product, name=product.name, price_unit=product.price, product_uom_qty=3,
+            order=order, product=product, name=product.name, price_unit=product.lst_price, product_uom_qty=3,
         )
         cancel_timeout_orders()
         cancel_timeout_orders()  # la orden ya no es PENDING; no re-restaura

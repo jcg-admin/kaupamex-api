@@ -63,8 +63,12 @@ def _own_orders(user):
         .filter(partner=user)
         .exclude(state=SaleOrder.STATE_DRAFT)
         .select_related('carrier', 'delivery_address')
-        .prefetch_related('order_line__product__images',
-                          'order_line__variant__option', 'payments',
+        # H-API — ``product__images`` y ``variant`` no existen desde la
+        # separación ficha/variante (product ES la variante, sin galería ni
+        # eje variant en SaleOrderLine): el prefetch viejo lanzaba
+        # AttributeError en cada GET real. Ver mismo fix en
+        # ``sale_management/admin_views.py::_admin_orders``.
+        .prefetch_related('order_line__product', 'payments',
                           'shipment_guide')
         .order_by('-created_at')
     )

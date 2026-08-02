@@ -9,23 +9,16 @@ from decimal import Decimal
 
 import pytest
 
-from addons.catalogue.models import Product
 from addons.stock.models import StockLocation, StockMove
 from addons.stock_account import services as valuation
 from addons.stock_account.models import ProductCosting, StockValuationLayer
+from tests.factories.product_factory import make_product
 
 pytestmark = pytest.mark.integration
 
-_slug_seq = [0]
-
 
 def _product(price='100.00'):
-    _slug_seq[0] += 1
-    n = _slug_seq[0]
-    return Product.objects.create(
-        name=f'Val {n}', slug=f'val-prod-{n}', sku=f'VAL-{n:04d}',
-        price=Decimal(price),
-    )
+    return make_product(name='Val', price=Decimal(price))
 
 
 def _internal(name='WH/Stock'):

@@ -11,7 +11,6 @@ Endpoints under test:
 English JSON keys per DEC-DOC-005. Spanish business codes per DEC-DOC-006.
 """
 from decimal import Decimal
-from addons.catalogue.models import Category, Product
 from addons.sale.status_projection import (
     STATUS_DRAFT,
     STATUS_PAID,
@@ -29,6 +28,8 @@ from django.utils import timezone
 import pytest
 from tests.factories.order_factory import make_order
 
+from tests.factories.product_factory import make_category, make_product
+
 pytestmark = pytest.mark.integration
 
 
@@ -41,17 +42,14 @@ GUIDE_URL    = lambda pk: f'/api/v2/logistics/guides/{pk}/'
 
 @pytest.fixture
 def cat_log(db):
-    return Category.objects.create(name='Logistics', slug='log-cat', is_active=True)
+    return make_category(name='Logistics',)
 
 
 @pytest.fixture
 def prod_log(db, cat_log):
-    _p = Product.objects.create(
-        name='Pulsera Yoruba', slug='pulsera-yoruba', sku='LOG-PY-001',
-        price=Decimal('500.00'), stock=10,
-        is_active=True, is_published=True,
-    )
-    _p.categories.add(cat_log)
+    _p = make_product(
+        name='Pulsera Yoruba', default_code='LOG-PY-001',
+        price=Decimal('500.00'), stock=10, categ=cat_log)
     return _p
 
 
@@ -192,7 +190,7 @@ class TestGuideGuardOnCanonicalAxes:
         # mantiene probados los dos ejes, no sólo el del pago.
         o = make_order(user=user, status=STATUS_DRAFT)
         SaleOrderLine.objects.create(
-            order=o, product=prod_log, name=prod_log.name, price_unit=prod_log.price,
+            order=o, product=prod_log, name=prod_log.name, price_unit=prod_log.lst_price,
             product_uom_qty=1,
         )
         r = admin_client.post(GUIDES_URL, {
@@ -720,7 +718,7 @@ class TestBuyerShipmentCapabilityGate:
         self, api_client, order_log, db,
     ):
         outsider = get_user_model().objects.create_user(
-            email='no_ship@x.mx', password='NoShipPass123!')
+            login='no_ship@x.mx', password='NoShipPass123!')
         api_client.force_login(outsider)
         r = api_client.get(f'/api/v2/logistics/buyer/order/{order_log.id}/guide/')
         assert r.status_code == 403
@@ -729,7 +727,7 @@ class TestBuyerShipmentCapabilityGate:
         self, api_client, order_log, db,
     ):
         outsider = get_user_model().objects.create_user(
-            email='no_ship2@x.mx', password='NoShip2Pass123!')
+            login='no_ship2@x.mx', password='NoShip2Pass123!')
         api_client.force_login(outsider)
         r = api_client.post(
             f'/api/v2/logistics/buyer/order/{order_log.id}/incident/',

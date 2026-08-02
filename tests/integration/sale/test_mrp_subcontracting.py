@@ -12,7 +12,6 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 
-from addons.catalogue.models import Product
 from addons.mrp.models import MrpBom, MrpBomLine, MrpProduction
 from addons.mrp_subcontracting import services as subc
 from addons.mrp_subcontracting.models import (
@@ -24,24 +23,25 @@ from addons.mrp_subcontracting.models import (
 from addons.stock.models import StockLocation, StockMove
 from addons.stock_account import services as valuation
 from addons.stock_account.models import ProductCosting
+from tests.factories.product_factory import make_product
 
 pytestmark = pytest.mark.integration
 
 User = get_user_model()
-_slug_seq = [0]
+_email_seq = [0]
 
 
 def _product(price='100.00'):
-    _slug_seq[0] += 1
-    n = _slug_seq[0]
-    return Product.objects.create(
-        name=f'Subc {n}', slug=f'subc-prod-{n}', sku=f'SUBC-{n:04d}',
-        price=Decimal(price),
-    )
+    return make_product(name='Subc', price=Decimal(price))
+
+
+def _bom(product, **kwargs):
+    return MrpBom.objects.create(
+        product_tmpl=product.product_tmpl, product=product, **kwargs)
 
 
 def _partner(email):
-    return User.objects.create_user(email=email, password='x')
+    return User.objects.create_user(login=email, password='x')
 
 
 def _internal(name='WH/Stock'):
@@ -50,10 +50,9 @@ def _internal(name='WH/Stock'):
 
 def test_bom_type_subcontract_with_subcontractors(db):
     finished = _product()
-    bom = MrpBom.objects.create(
-        product=finished, product_qty=Decimal('1'), type=MrpBom.TYPE_SUBCONTRACT)
-    sub_a = _partner('subA@x.test')
-    sub_b = _partner('subB@x.test')
+    bom = _bom(finished, product_qty=Decimal('1'), type=MrpBom.TYPE_SUBCONTRACT)
+    sub_a = _partner('subA@practicayoruba.mx')
+    sub_b = _partner('subB@practicayoruba.mx')
     BomSubcontractor.objects.create(bom=bom, subcontractor=sub_a)
     BomSubcontractor.objects.create(bom=bom, subcontractor=sub_b)
     assert bom.type == 'subcontract'
@@ -72,7 +71,7 @@ def test_subcontracting_location_must_be_internal(db):
 
 
 def test_subcontractor_profile_holds_its_location(db):
-    partner = _partner('sub@x.test')
+    partner = _partner('sub@practicayoruba.mx')
     loc = _internal('WH/Subc')
     prof = Subcontractor.objects.create(partner=partner, location=loc)
     assert prof.is_subcontractor is True
@@ -81,8 +80,8 @@ def test_subcontractor_profile_holds_its_location(db):
 
 
 def test_bom_subcontractor_unique(db):
-    bom = MrpBom.objects.create(product=_product(), type=MrpBom.TYPE_SUBCONTRACT)
-    sub = _partner('dup@x.test')
+    bom = _bom(_product(), type=MrpBom.TYPE_SUBCONTRACT)
+    sub = _partner('dup@practicayoruba.mx')
     BomSubcontractor.objects.create(bom=bom, subcontractor=sub)
     with pytest.raises(IntegrityError):
         with transaction.atomic():
@@ -94,8 +93,7 @@ def test_subcontract_produce_cost_is_components_plus_service(db):
     comp = _product()
     ProductCosting.for_product(finished, cost_method=ProductCosting.COST_AVERAGE)
     # BoM de subcontratación: 1 terminado consume 2 componentes.
-    bom = MrpBom.objects.create(
-        product=finished, product_qty=Decimal('1'), type=MrpBom.TYPE_SUBCONTRACT)
+    bom = _bom(finished, product_qty=Decimal('1'), type=MrpBom.TYPE_SUBCONTRACT)
     MrpBomLine.objects.create(bom=bom, product=comp, product_qty=Decimal('2'), sequence=1)
 
     subc_loc = _internal('WH/Subcontractor')
@@ -127,7 +125,7 @@ def test_subcontract_produce_cost_is_components_plus_service(db):
 def test_subcontract_production_links_subcontractor(db):
     mo = MrpProduction.objects.create(
         product=_product(), product_qty=Decimal('1'),
-        bom=MrpBom.objects.create(product=_product(), type=MrpBom.TYPE_SUBCONTRACT))
-    sub = _partner('link@x.test')
+        bom=_bom(_product(), type=MrpBom.TYPE_SUBCONTRACT))
+    sub = _partner('link@practicayoruba.mx')
     SubcontractProduction.objects.create(production=mo, subcontractor=sub)
     assert mo.subcontract.subcontractor == sub

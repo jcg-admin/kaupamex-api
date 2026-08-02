@@ -12,8 +12,8 @@ Contrato de la rebanada:
    (``update_shipping_method`` DEPRECADO 2026-07-07), así que exigir el
    producto rompería métodos vigentes sin ganar nada.
 2. ``ensure_service_product()`` siembra el producto de forma idempotente, con
-   ``is_published=False`` (≙ ``sale_ok=False`` de la semilla Odoo): fuera del
-   storefront, pero dato maestro editable.
+   ``sale_ok=False`` en la ficha (≙ ``sale_ok=False`` de la semilla Odoo):
+   fuera del storefront, pero dato maestro editable.
 3. ``SaleOrderLine`` acepta los marcadores ``is_delivery``/``is_reward``, y una
    línea marcada **entra a los totales como cualquier otra** — son marcadores,
    no un tipo de línea aparte.
@@ -23,9 +23,10 @@ from uuid import uuid4
 
 import pytest
 
-from addons.catalogue.models import Category, Product
 from addons.delivery.models import ShippingMethod
+from addons.product.models import ProductProduct
 from addons.sale.models import SaleOrder, SaleOrderLine
+from tests.factories.product_factory import make_category, make_product
 
 pytestmark = pytest.mark.django_db
 
@@ -38,12 +39,8 @@ def metodo():
 
 @pytest.fixture
 def producto():
-    cat = Category.objects.create(name='Cat E1bis', slug='cat-e1bis', is_active=True)
-    prod = Product.objects.create(
-        name='Prod E1bis', slug='prod-e1bis', sku='SKU-E1BIS',
-        price=Decimal('100.00'), stock=5, is_active=True, is_published=True)
-    prod.categories.add(cat)
-    return prod
+    cat = make_category(name='Cat E1bis')
+    return make_product(name='Prod E1bis', price=Decimal('100.00'), stock=5, categ=cat)
 
 
 class TestFKOpcionalAProducto:
@@ -63,19 +60,20 @@ class TestSembradoDelProductoDeServicio:
         producto = metodo.ensure_service_product()
         metodo.refresh_from_db()
         assert metodo.product_id == producto.pk
-        assert producto.sku == f'{ShippingMethod.SERVICE_SKU_PREFIX}{metodo.pk}'
+        assert producto.default_code == f'{ShippingMethod.SERVICE_SKU_PREFIX}{metodo.pk}'
 
     def test_es_idempotente(self, metodo):
         primero = metodo.ensure_service_product()
         segundo = metodo.ensure_service_product()
         assert primero.pk == segundo.pk
-        assert Product.objects.filter(sku=primero.sku).count() == 1
+        assert ProductProduct.objects.filter(
+            default_code=primero.default_code).count() == 1
 
     def test_queda_fuera_del_storefront(self, metodo):
-        """``is_published=False`` ≙ ``sale_ok=False`` de la semilla Odoo."""
+        """``sale_ok=False`` en la ficha ≙ ``sale_ok=False`` de la semilla Odoo."""
         producto = metodo.ensure_service_product()
-        assert producto.is_published is False
-        assert producto.is_active is True
+        assert producto.product_tmpl.sale_ok is False
+        assert producto.active is True
 
 
 class TestMarcadoresDeLinea:
@@ -85,7 +83,7 @@ class TestMarcadoresDeLinea:
             state=SaleOrder.STATE_DRAFT, cart_token=uuid4())
         linea = SaleOrderLine.objects.create(
             order=venta, product=producto, name=producto.name,
-            product_uom_qty=1, price_unit=producto.price)
+            product_uom_qty=1, price_unit=producto.lst_price)
         assert linea.is_delivery is False
         assert linea.is_reward is False
 

@@ -44,7 +44,6 @@ from uuid import uuid4
 import pytest
 from django.utils import timezone
 
-from addons.catalogue.models import Category, Product
 from addons.delivery.models import ShippingMethod
 from addons.delivery.models.sale_order import set_delivery_line
 from addons.loyalty.models import Voucher
@@ -56,6 +55,7 @@ from addons.sale.services import (
 )
 from addons.sale_loyalty.models.sale_order import set_reward_line
 from addons.sale_loyalty.models.sale_order_coupon import REWARD_SKU
+from tests.factories.product_factory import make_category, make_product
 
 pytestmark = pytest.mark.django_db
 
@@ -67,12 +67,8 @@ ADDR = {
 
 @pytest.fixture
 def producto():
-    cat = Category.objects.create(name='Cat M', slug='cat-m', is_active=True)
-    prod = Product.objects.create(
-        name='Prod M', slug='prod-m', sku='SKU-M',
-        price=Decimal('100.00'), stock=9, is_active=True, is_published=True)
-    prod.categories.add(cat)
-    return prod
+    cat = make_category(name='Cat M')
+    return make_product(name='Prod M', price=Decimal('100.00'), stock=9, categ=cat)
 
 
 @pytest.fixture
@@ -127,7 +123,7 @@ class TestLineaDeEnvio:
         draft = _draft(producto, carrier=metodo)
         set_delivery_line(draft, Decimal('99.00'))
         linea = draft.order_line.get(is_delivery=True)
-        assert linea.product.sku == f'{ShippingMethod.SERVICE_SKU_PREFIX}{metodo.pk}'
+        assert linea.product.default_code == f'{ShippingMethod.SERVICE_SKU_PREFIX}{metodo.pk}'
 
     def test_sin_carrier_tambien_hay_linea_con_producto_generico(
             self, producto):
@@ -145,7 +141,7 @@ class TestLineaDeEnvio:
         draft.refresh_from_db()
         linea = draft.order_line.get(is_delivery=True)
         assert linea.price_unit == Decimal('50.00')
-        assert linea.product.sku == 'SRV-ENVIO'     # producto genérico
+        assert linea.product.default_code == 'SRV-ENVIO'     # producto genérico
         assert linea.name == 'Envío'
         assert draft.amount_total == Decimal('150.00')
 
@@ -159,7 +155,7 @@ class TestLineaDeRecompensa:
         set_reward_line(draft)
         linea = draft.order_line.get(is_reward=True)
         assert linea.price_unit == Decimal('-20.00')
-        assert linea.product.sku == REWARD_SKU
+        assert linea.product.default_code == REWARD_SKU
 
     def test_resta_del_total_canonico(self, producto, metodo, voucher_20):
         draft = _draft(producto, carrier=metodo)

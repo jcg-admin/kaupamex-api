@@ -35,7 +35,7 @@ class TestNotificationsCapabilityGate:
 
     def test_requires_account_notifications(self, api_client, db):
         u = get_user_model().objects.create_user(
-            email='norole-notif@practicayoruba.mx', password='TestPass123!')
+            login='norole-notif@practicayoruba.mx', password='TestPass123!')
         api_client.force_login(u)
         assert api_client.get(LIST_URL).status_code == 403
 

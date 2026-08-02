@@ -104,7 +104,7 @@ class TestCountryAddressPolicy:
 
 
 def _make_address(street='Av. Insurgentes Sur 1234 - 5B'):
-    user = User.objects.create_user(email='addr@example.com', password='x')
+    user = User.objects.create_user(login='addr@example.com', password='x')
     return Address.objects.create(
         user=user, recipient_name='Nestor', street=street, city='CDMX',
         state='CDMX', zip_code='03100', phone='5512345678',

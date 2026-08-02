@@ -7,22 +7,16 @@ from decimal import Decimal
 
 import pytest
 
-from addons.catalogue.models import Category, Product
 from addons.sale_management.models import SaleOrderTemplate, SaleOrderTemplateLine
+from tests.factories.product_factory import make_category, make_product
 
 pytestmark = pytest.mark.integration
 
 
 @pytest.fixture
 def producto(db):
-    cat = Category.objects.create(name='Cat T', slug='cat-tpl', is_active=True)
-    p = Product.objects.create(
-        name='Prod T', slug='prod-tpl', sku='TPL-001',
-        description='', price=Decimal('100.00'), stock=5,
-        is_active=True, is_published=True,
-    )
-    p.categories.add(cat)
-    return p
+    cat = make_category(name='Cat T')
+    return make_product(name='Prod T', price=Decimal('100.00'), stock=5, categ=cat)
 
 
 def test_template_creation_defaults(db):

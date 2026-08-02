@@ -30,24 +30,20 @@ from uuid import uuid4
 import pytest
 from django.db.models import Count, Sum
 
-from addons.catalogue.models import Category, Product
 from addons.delivery.aggregates import with_delivery_amount
 from addons.delivery.models import ShippingMethod
 from addons.delivery.models.sale_order import set_delivery_line
 from addons.sale.models import SaleOrder, SaleOrderLine
 from addons.sale_loyalty.aggregates import with_reward_amount
+from tests.factories.product_factory import make_category, make_product
 
 pytestmark = pytest.mark.django_db
 
 
 @pytest.fixture
 def producto():
-    cat = Category.objects.create(name='Cat E4', slug='cat-e4', is_active=True)
-    prod = Product.objects.create(
-        name='Prod E4', slug='prod-e4', sku='SKU-E4',
-        price=Decimal('100.00'), stock=99, is_active=True, is_published=True)
-    prod.categories.add(cat)
-    return prod
+    cat = make_category(name='Cat E4')
+    return make_product(name='Prod E4', price=Decimal('100.00'), stock=99, categ=cat)
 
 
 @pytest.fixture

@@ -112,11 +112,16 @@ def make_order(status=STATUS_PENDING, courier=None, amount=None,
     # que fabricar la venta sin línea produce ingresos en cero y haría fallar
     # al reporte por culpa del fixture, no del código.
     if product is not None and status != STATUS_DRAFT:
+        # H-API — ``product.lst_price`` no existe en ``product.ProductProduct``
+        # (la variante); el precio de catálogo es ``lst_price`` (odoo19c:
+        # ``product_product.py:314-321``, ficha + extra de atributos). Drift
+        # heredado de ``catalogue.Product.price``, disuelto en ``product``
+        # (H-API-212 y hermanas).
         SaleOrderLine.objects.create(
             order=sale, product=product,
             name=product.name,
             product_uom_qty=quantity,
-            price_unit=unit_price if unit_price is not None else product.price,
+            price_unit=unit_price if unit_price is not None else product.lst_price,
         )
 
     if status in (STATUS_PAID, STATUS_SHIPPED,

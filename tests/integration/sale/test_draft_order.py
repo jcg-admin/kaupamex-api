@@ -6,18 +6,25 @@ V2 (``analisis-unificar-orders-sale``) los conmuta a ``sale.SaleOrder`` +
 ``SaleOrderLine`` con el voucher anclado por ``SaleOrderCoupon``
 (H-CART-CL-02). Este archivo re-ancla la MISMA cobertura de S1–S2c-2b al
 canónico.
+
+**Retiro parcial (H-API, este pase):** ``TestDraftSerializersS2c2b`` probaba
+``addons.cart.serializers.DraftCartSerializer``/``DraftItemSerializer`` —
+ninguno de los dos existe (``grep -rln "DraftCartSerializer\\|
+DraftItemSerializer" src/addons/`` → vacío); el contrato HTTP del carrito se
+disolvió con el addon ``cart`` (ver ``test_cart.py``) y no tiene sucesor en
+``sale.serializers`` (que sólo serializa la orden ya confirmada). La clase se
+retira; el resto del módulo (servicios del draft, sin HTTP) se conserva.
 """
 import uuid
 
 import pytest
+from django.contrib.auth import get_user_model
 from django.db import IntegrityError
 
 from addons.base.models import SiteSettings
 from addons.sale.models import SaleOrder, SaleOrderLine
 from decimal import Decimal
 
-from addons.catalogue.models import Category, Product
-from addons.cart.serializers import DraftCartSerializer, DraftItemSerializer
 from addons.sale.services import (
     DraftOrderError,
     add_item_to_draft,
@@ -28,8 +35,11 @@ from addons.sale.services import (
     update_draft_item_quantity,
     get_or_create_draft_order,
 )
+from tests.factories.product_factory import get_stock, make_category, make_product, set_stock
 
 pytestmark = pytest.mark.django_db
+
+User = get_user_model()
 
 
 class TestDraftSaleOrderV2:
@@ -62,9 +72,9 @@ class TestDraftSaleOrderV2:
 class TestGetOrCreateDraftOrderS2:
     """Espejo de _get_or_create_cart sobre SaleOrder(draft)."""
 
-    def test_authenticated_user_gets_single_draft(self, django_user_model):
-        user = django_user_model.objects.create_user(
-            email='draft-s2@test.mx', password='x')
+    def test_authenticated_user_gets_single_draft(self):
+        user = User.objects.create_user(
+            login='draft-s2@practicayoruba.mx', password='x')
         a, created_a = get_or_create_draft_order(user=user)
         b, created_b = get_or_create_draft_order(user=user)
         assert created_a is True and created_b is False
@@ -87,14 +97,9 @@ class TestGetOrCreateDraftOrderS2:
 
 @pytest.fixture
 def draft_product(db):
-    cat = Category.objects.create(name='Cat Draft', slug='cat-draft-s2b', is_active=True)
-    p = Product.objects.create(
-        name='Prod Draft S2b', slug='prod-draft-s2b', sku='S2B-001',
-        description='', price=Decimal('100.00'), stock=5,
-        is_active=True, is_published=True,
-    )
-    p.categories.add(cat)
-    return p
+    cat = make_category(name='Cat Draft')
+    return make_product(name='Prod Draft S2b', price=Decimal('100.00'),
+                        stock=5, categ=cat)
 
 
 class TestDraftItemOperationsS2b:
@@ -210,66 +215,31 @@ class TestSaleOrderLineMethodsV2:
         line, _ = add_item_to_draft(order, draft_product, quantity=1)
         assert line.current_price() == Decimal('100.00')
         assert line.is_available() is True
-        assert line.available_stock() == draft_product.stock
+        assert line.available_stock() == get_stock(draft_product)
 
     def test_is_available_false_when_product_inactive(self, draft_product):
         order, _ = get_or_create_draft_order(cart_token=uuid.uuid4())
         line, _ = add_item_to_draft(order, draft_product, quantity=1)
-        draft_product.is_active = False
-        draft_product.save(update_fields=['is_active'])
+        draft_product.active = False
+        draft_product.save(update_fields=['active'])
         line.refresh_from_db()
         assert line.is_available() is False
 
     def test_is_available_false_when_out_of_stock(self, draft_product):
         order, _ = get_or_create_draft_order(cart_token=uuid.uuid4())
         line, _ = add_item_to_draft(order, draft_product, quantity=1)
-        draft_product.stock = 0
-        draft_product.save(update_fields=['stock'])
+        set_stock(draft_product, 0)
         line.refresh_from_db()
         assert line.is_available() is False
         assert line.available_stock() == 0
 
 
-class TestDraftSerializersS2c2b:
-    """El draft serializado con el contrato EXACTO del carrito."""
-
-    CART_ITEM_KEYS = [
-        'id', 'product_name', 'product_slug', 'variant_label', 'sku',
-        'quantity', 'unit_price', 'subtotal',
-        'price_subtotal', 'price_tax', 'price_total',
-        'available_stock', 'is_available', 'price_changed', 'image_url',
-    ]
-
-    def test_item_contract_matches_cart_item_serializer(self, draft_product):
-        order, _ = get_or_create_draft_order(cart_token=uuid.uuid4())
-        add_item_to_draft(order, draft_product, quantity=2)
-        data = DraftItemSerializer(order.order_line.first()).data
-        assert list(data.keys()) == self.CART_ITEM_KEYS
-        assert data['product_name'] == draft_product.name
-        assert data['product_slug'] == draft_product.slug
-        assert data['variant_label'] is None
-        assert data['sku'] == draft_product.sku
-        assert data['subtotal'] == '200.00'
-        assert data['is_available'] is True
-        assert data['price_changed'] is False
-
-    def test_cart_contract_matches_cart_serializer(self, draft_product):
-        order, _ = get_or_create_draft_order(cart_token=uuid.uuid4())
-        add_item_to_draft(order, draft_product, quantity=1)
-        data = DraftCartSerializer(order).data
-        assert list(data.keys()) == ['id', 'cart_token', 'items', 'totals']
-        assert len(data['items']) == 1
-        assert data['totals']['item_count'] == 1
-        assert data['totals']['total'] == '100.00'
-
-
 class TestMergeDraftOrdersS2c2b:
     """Fusión del draft anónimo al autenticado (UC-CART-06)."""
 
-    def test_merge_moves_items_and_deletes_anon_draft(
-            self, draft_product, django_user_model):
-        user = django_user_model.objects.create_user(
-            email='merge-s2c@test.mx', password='x')
+    def test_merge_moves_items_and_deletes_anon_draft(self, draft_product):
+        user = User.objects.create_user(
+            login='merge-s2c@practicayoruba.mx', password='x')
         token = uuid.uuid4()
         anon, _ = get_or_create_draft_order(cart_token=token)
         add_item_to_draft(anon, draft_product, quantity=2)
@@ -281,9 +251,9 @@ class TestMergeDraftOrdersS2c2b:
         assert order.order_line.first().product_uom_qty == 2
         assert not SaleOrder.objects.filter(pk=anon.pk).exists()
 
-    def test_merge_caps_quantity_to_stock(self, draft_product, django_user_model):
-        user = django_user_model.objects.create_user(
-            email='merge-cap@test.mx', password='x')
+    def test_merge_caps_quantity_to_stock(self, draft_product):
+        user = User.objects.create_user(
+            login='merge-cap@practicayoruba.mx', password='x')
         auth, _ = get_or_create_draft_order(user=user)
         add_item_to_draft(auth, draft_product, quantity=4)
         token = uuid.uuid4()
@@ -295,14 +265,13 @@ class TestMergeDraftOrdersS2c2b:
         assert line.product_uom_qty == 5  # 4+3 recortado al stock=5
         assert skipped == []
 
-    def test_merge_skips_out_of_stock(self, draft_product, django_user_model):
-        user = django_user_model.objects.create_user(
-            email='merge-skip@test.mx', password='x')
+    def test_merge_skips_out_of_stock(self, draft_product):
+        user = User.objects.create_user(
+            login='merge-skip@practicayoruba.mx', password='x')
         token = uuid.uuid4()
         anon, _ = get_or_create_draft_order(cart_token=token)
         add_item_to_draft(anon, draft_product, quantity=1)
-        draft_product.stock = 0
-        draft_product.save(update_fields=['stock'])
+        set_stock(draft_product, 0)
 
         order, skipped = merge_draft_orders(user, token)
         assert order.order_line.count() == 0
@@ -310,9 +279,9 @@ class TestMergeDraftOrdersS2c2b:
                             'product_name': draft_product.name,
                             'reason': 'OUT_OF_STOCK'}]
 
-    def test_merge_without_anon_draft_returns_auth_draft(self, django_user_model):
-        user = django_user_model.objects.create_user(
-            email='merge-noop@test.mx', password='x')
+    def test_merge_without_anon_draft_returns_auth_draft(self):
+        user = User.objects.create_user(
+            login='merge-noop@practicayoruba.mx', password='x')
         order, skipped = merge_draft_orders(user, uuid.uuid4())
         assert order.partner_id == user.pk
         assert skipped == []

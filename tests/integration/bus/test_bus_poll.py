@@ -26,7 +26,7 @@ POLL_URL = '/api/v2/bus/poll/'
 def _con_rol(email):
     rol, _ = Role.objects.get_or_create(code='lector-bus', defaults={'name': 'Lector bus'})
     call_command('seed_authz')
-    u = User.objects.create_user(email=email, password='BusPass123!')
+    u = User.objects.create_user(login=email, password='BusPass123!')
     RoleAssignment.objects.create(user=u, role=rol)
     invalidate_capabilities(u.id)
     cliente = APIClient()
@@ -36,7 +36,7 @@ def _con_rol(email):
 
 def test_sin_rol_el_candado_aplica(db):
     call_command('seed_authz')
-    u = User.objects.create_user(email='sinrol@e.com', password='BusPass123!')
+    u = User.objects.create_user(login='sinrol@e.com', password='BusPass123!')
     cliente = APIClient()
     cliente.force_authenticate(u)
 
@@ -55,7 +55,7 @@ def test_con_la_capacidad_devuelve_su_canal(db):
 
 def test_no_puede_leer_el_canal_de_otro(db):
     u, cliente = _con_rol('propio@e.com')
-    otro = User.objects.create_user(email='otro@e.com', password='BusPass123!')
+    otro = User.objects.create_user(login='otro@e.com', password='BusPass123!')
     BusMessage.sendone(user_channel(otro), 'notificacion', {'texto': 'ajeno'})
 
     # Aunque intente pedirlo explícitamente: el canal no se toma del query string.

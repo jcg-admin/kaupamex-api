@@ -50,7 +50,7 @@ def _clear_param_cache():
 
 def _make_address(**overrides):
     user = User.objects.create_user(
-        email=overrides.pop('email', 'geo@example.com'), password='x')
+        login=overrides.pop('email', 'geo@example.com'), password='x')
     defaults = dict(
         user=user, recipient_name='Nestor', street='Av. Insurgentes Sur 1234',
         city='CDMX', state='CDMX', zip_code='03100', country='MX',

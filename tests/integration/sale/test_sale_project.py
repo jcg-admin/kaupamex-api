@@ -3,10 +3,10 @@ from decimal import Decimal
 
 import pytest
 
-from addons.catalogue.models import Product
 from addons.project.models import Project, ProjectTask, ProjectTaskType
 from addons.sale.models import SaleOrder, SaleOrderLine
 from addons.sale_project.models import SaleOrderLineProject
+from tests.factories.product_factory import make_product
 
 pytestmark = pytest.mark.integration
 
@@ -29,10 +29,7 @@ def test_project_task_defaults_and_closed(db):
 
 
 def test_generate_task_from_service_line(db):
-    product = Product.objects.create(
-        name='Servicio de armado', slug='armado', sku='SRV-001',
-        price=Decimal('500.00'),
-    )
+    product = make_product(name='Servicio de armado', price=Decimal('500.00'))
     order = SaleOrder.objects.create()
     line = SaleOrderLine.objects.create(
         order=order, product=product, price_unit=Decimal('500.00'),
@@ -47,9 +44,7 @@ def test_generate_task_from_service_line(db):
 
 
 def test_generate_task_idempotent(db):
-    product = Product.objects.create(
-        name='Servicio', slug='srv', sku='SRV-002', price=Decimal('100.00'),
-    )
+    product = make_product(name='Servicio', price=Decimal('100.00'))
     order = SaleOrder.objects.create()
     line = SaleOrderLine.objects.create(
         order=order, product=product, price_unit=Decimal('100.00'), name='Tarea',

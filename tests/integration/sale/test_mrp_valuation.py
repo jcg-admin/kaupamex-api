@@ -9,7 +9,6 @@ from decimal import Decimal
 
 import pytest
 
-from addons.catalogue.models import Product
 from addons.mrp.models import (
     MrpBom,
     MrpBomLine,
@@ -23,19 +22,18 @@ from addons.mrp import services as mrp_services
 from addons.stock.models import StockLocation, StockMove
 from addons.stock_account import services as valuation
 from addons.stock_account.models import ProductCosting, StockValuationLayer
+from tests.factories.product_factory import make_product
 
 pytestmark = pytest.mark.integration
 
-_slug_seq = [0]
-
 
 def _product(price='100.00'):
-    _slug_seq[0] += 1
-    n = _slug_seq[0]
-    return Product.objects.create(
-        name=f'MRP {n}', slug=f'mrp-prod-{n}', sku=f'MRP-{n:04d}',
-        price=Decimal(price),
-    )
+    return make_product(name='MRP', price=Decimal(price))
+
+
+def _bom(product, **kwargs):
+    return MrpBom.objects.create(
+        product_tmpl=product.product_tmpl, product=product, **kwargs)
 
 
 def _stock_and_prod_locations():
@@ -59,7 +57,7 @@ def test_generate_moves_from_bom(db):
     finished = _product()
     leg = _product()
     top = _product()
-    bom = MrpBom.objects.create(product=finished, product_qty=Decimal('1'))
+    bom = _bom(finished, product_qty=Decimal('1'))
     MrpBomLine.objects.create(bom=bom, product=leg, product_qty=Decimal('4'), sequence=1)
     MrpBomLine.objects.create(bom=bom, product=top, product_qty=Decimal('1'), sequence=2)
     mo = MrpProduction.objects.create(product=finished, product_qty=Decimal('2'), bom=bom)
@@ -82,7 +80,7 @@ def test_produce_values_finished_at_raw_plus_labor(db):
     # Materia prima en stock: 8 patas @ 10 = 80 ; 2 tableros @ 50 = 100 → 180.
     _receive(leg, '8', '10.00', stock)
     _receive(top, '2', '50.00', stock)
-    bom = MrpBom.objects.create(product=finished, product_qty=Decimal('1'))
+    bom = _bom(finished, product_qty=Decimal('1'))
     MrpBomLine.objects.create(bom=bom, product=leg, product_qty=Decimal('4'), sequence=1)
     MrpBomLine.objects.create(bom=bom, product=top, product_qty=Decimal('1'), sequence=2)
     mo = MrpProduction.objects.create(product=finished, product_qty=Decimal('2'), bom=bom)
@@ -121,7 +119,7 @@ def test_workorder_labor_cost(db):
 
 def test_routing_operation_links_workcenter_and_bom(db):
     finished = _product()
-    bom = MrpBom.objects.create(product=finished, product_qty=Decimal('1'))
+    bom = _bom(finished, product_qty=Decimal('1'))
     wc = MrpWorkcenter.objects.create(name='Pintura', costs_hour=Decimal('60.00'))
     op = MrpRoutingWorkcenter.objects.create(
         name='Pintar', bom=bom, workcenter=wc, time_cycle=Decimal('15'), sequence=1,
@@ -135,7 +133,7 @@ def test_production_move_bridge_roles(db):
     finished = _product()
     comp = _product()
     stock, prod = _stock_and_prod_locations()
-    bom = MrpBom.objects.create(product=finished, product_qty=Decimal('1'))
+    bom = _bom(finished, product_qty=Decimal('1'))
     MrpBomLine.objects.create(bom=bom, product=comp, product_qty=Decimal('1'), sequence=1)
     mo = MrpProduction.objects.create(product=finished, product_qty=Decimal('1'), bom=bom)
     mrp_services.generate_moves(mo, stock, prod)

@@ -35,7 +35,6 @@ from uuid import uuid4
 
 import pytest
 
-from addons.catalogue.models import Category, Product
 from addons.delivery.models import ShippingMethod
 from addons.delivery.models.sale_order import set_delivery_line
 from addons.loyalty.models import Voucher
@@ -47,6 +46,7 @@ from addons.sale.services import (
 )
 from addons.sale_loyalty.models.sale_order import set_reward_line
 from django.utils import timezone
+from tests.factories.product_factory import make_category, make_product
 
 pytestmark = pytest.mark.django_db
 
@@ -58,12 +58,8 @@ ADDR = {
 
 @pytest.fixture
 def producto():
-    cat = Category.objects.create(name='Cat S', slug='cat-s', is_active=True)
-    prod = Product.objects.create(
-        name='Prod S', slug='prod-s', sku='SKU-S',
-        price=Decimal('100.00'), stock=9, is_active=True, is_published=True)
-    prod.categories.add(cat)
-    return prod
+    cat = make_category(name='Cat S')
+    return make_product(name='Prod S', price=Decimal('100.00'), stock=9, categ=cat)
 
 
 @pytest.fixture

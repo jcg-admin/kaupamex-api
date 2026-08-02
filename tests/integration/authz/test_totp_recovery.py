@@ -46,7 +46,7 @@ def user(db):
     # agrupa. Ver test_totp.py.
     call_command('seed_authz')
     u = User.objects.create_user(
-        email='recovery-user@example.com', password=PASSWORD, is_active=True,
+        login='recovery-user@example.com', password=PASSWORD, is_active=True,
     )
     assign_buyer_role(u)
     invalidate_capabilities(u.id)

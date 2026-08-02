@@ -54,7 +54,7 @@ def referral_enabled(db):
 def referrer(db):
     # Party (T-201): nombre vive en Person; create_user solo toma email+password.
     user = User.objects.create_user(
-        email='referrer@practicayoruba.mx',
+        login='referrer@practicayoruba.mx',
         password='RefPass123!',
     )
     Person.objects.create(identity=user, first_name='Ref', last_name='Errer')
@@ -90,8 +90,8 @@ class TestReferralCodeGeneration:
         assert ReferralCode.objects.filter(user=referrer).count() == 1
 
     def test_codes_are_unique_across_users(self, db, referral_enabled):
-        u1 = User.objects.create_user(email='u1@x.mx', password='P1ass123!')
-        u2 = User.objects.create_user(email='u2@x.mx', password='P2ass123!')
+        u1 = User.objects.create_user(login='u1@x.mx', password='P1ass123!')
+        u2 = User.objects.create_user(login='u2@x.mx', password='P2ass123!')
         c1 = ReferralCode.get_or_create_for_user(u1).code
         c2 = ReferralCode.get_or_create_for_user(u2).code
         assert c1 != c2
@@ -126,7 +126,7 @@ class TestReferralRedeem:
     ):
         rc = ReferralCode.get_or_create_for_user(referrer)
         referee = make_buyer(User.objects.create_user(
-            email='referee@x.mx', password='RefeePass123!'))
+            login='referee@x.mx', password='RefeePass123!'))
         client = APIClient()
         client.force_login(referee)
 
@@ -152,7 +152,7 @@ class TestReferralRedeem:
     def test_redeem_inactive_code_rejected(self, db, referral_enabled, referrer):
         rc = ReferralCode.get_or_create_for_user(referrer)
         Voucher.objects.filter(code=rc.code).update(is_active=False)
-        referee = make_buyer(User.objects.create_user(email='ref2@x.mx', password='Ref2Pass123!'))
+        referee = make_buyer(User.objects.create_user(login='ref2@x.mx', password='Ref2Pass123!'))
         client = APIClient()
         client.force_login(referee)
         res = client.post(REDEEM_URL, {'code': rc.code}, format='json')
@@ -171,7 +171,7 @@ class TestReferralRedeem:
 
     def test_redeem_twice_rejected(self, db, referral_enabled, referrer):
         rc = ReferralCode.get_or_create_for_user(referrer)
-        referee = make_buyer(User.objects.create_user(email='ref3@x.mx', password='Ref3Pass123!'))
+        referee = make_buyer(User.objects.create_user(login='ref3@x.mx', password='Ref3Pass123!'))
         client = APIClient()
         client.force_login(referee)
         assert client.post(REDEEM_URL, {'code': rc.code}, format='json').status_code == 201
@@ -193,7 +193,7 @@ class TestReferralReward:
     def test_first_paid_order_completes_referral_and_rewards_referrer(
         self, db, referral_enabled, referrer
     ):
-        referee = User.objects.create_user(email='refc@x.mx', password='RefcPass123!')
+        referee = User.objects.create_user(login='refc@x.mx', password='RefcPass123!')
         ref = self._make_referral(referrer, referee)
         order = make_order(user=referee, status=STATUS_PAID)
 
@@ -208,7 +208,7 @@ class TestReferralReward:
         ).exists()
 
     def test_unpaid_order_does_not_complete_referral(self, db, referral_enabled, referrer):
-        referee = User.objects.create_user(email='refd@x.mx', password='RefdPass123!')
+        referee = User.objects.create_user(login='refd@x.mx', password='RefdPass123!')
         ref = self._make_referral(referrer, referee)
         order = make_order(user=referee, status=STATUS_PENDING)
 
@@ -218,7 +218,7 @@ class TestReferralReward:
         assert ref.status == Referral.STATUS_PENDING
 
     def test_completion_is_idempotent(self, db, referral_enabled, referrer):
-        referee = User.objects.create_user(email='refe@x.mx', password='RefePass123!')
+        referee = User.objects.create_user(login='refe@x.mx', password='RefePass123!')
         ref = self._make_referral(referrer, referee)
         order = make_order(user=referee, status=STATUS_DELIVERED)
 
@@ -239,7 +239,7 @@ class TestReferralCapabilityGate:
 
     def test_get_without_referral_capability_returns_403(self, api_client, referral_enabled):
         outsider = User.objects.create_user(
-            email='no_ref@x.mx', password='NoRefPass123!')
+            login='no_ref@x.mx', password='NoRefPass123!')
         api_client.force_login(outsider)
         res = api_client.get(REFERRAL_URL)
         assert res.status_code == 403
@@ -247,7 +247,7 @@ class TestReferralCapabilityGate:
     def test_redeem_without_referral_capability_returns_403(self, api_client, referral_enabled, referrer):
         rc = ReferralCode.get_or_create_for_user(referrer)
         outsider = User.objects.create_user(
-            email='no_ref2@x.mx', password='NoRef2Pass123!')
+            login='no_ref2@x.mx', password='NoRef2Pass123!')
         api_client.force_login(outsider)
         res = api_client.post(REDEEM_URL, {'code': rc.code}, format='json')
         assert res.status_code == 403

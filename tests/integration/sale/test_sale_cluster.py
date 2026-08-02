@@ -15,30 +15,24 @@ import pytest
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from addons.catalogue.models import Category, Product
 from addons.sale.models import SaleOrder, SaleOrderLine
 from addons.sale_loyalty.models import SaleOrderCoupon
 from addons.sale_stock.models import SaleOrderDelivery, SaleOrderLineDelivery
 from addons.sales_team.models import CrmTag, CrmTeam, CrmTeamMember
 from addons.loyalty.models import Voucher
+from tests.factories.product_factory import make_category, make_product
 
 pytestmark = pytest.mark.integration
 
 
 @pytest.fixture
 def cat(db):
-    return Category.objects.create(name='Cat Sale', slug='cat-sale', is_active=True)
+    return make_category(name='Cat Sale')
 
 
 @pytest.fixture
 def producto(db, cat):
-    p = Product.objects.create(
-        name='Prod Sale', slug='prod-sale', sku='SALE-001',
-        description='', price=Decimal('100.00'), stock=10,
-        is_active=True, is_published=True,
-    )
-    p.categories.add(cat)
-    return p
+    return make_product(name='Prod Sale', price=Decimal('100.00'), stock=10, categ=cat)
 
 
 # ---------------------------------------------------------------- sale (base)
@@ -115,7 +109,7 @@ def test_draft_reopens_from_cancel(db):
 
 def test_crm_team_and_membership(db, django_user_model):
     team = CrmTeam.objects.create(name='Ventas MX', sequence=5, color=3)
-    u = django_user_model.objects.create_user(email='v1@x.com', password='x')
+    u = django_user_model.objects.create_user(login='v1@practicayoruba.mx', password='x')
     CrmTeamMember.objects.create(crm_team=team, user=u)
     assert team.members.count() == 1
     assert list(CrmTeam.objects.all()) == [team]  # _order sequence

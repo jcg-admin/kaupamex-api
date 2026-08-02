@@ -10,7 +10,7 @@ T-104 fixes:
   D-05 UC-WISH-02 (ALTA)    — paginacion + filtro availability
   D-06 UC-WISH-01 (MEDIA)   — 200 → 409 PRODUCT_ALREADY_IN_WISHLIST
   D-06 UC-WISH-03 (MEDIA)   — respuesta {wishlist_item_id, cart_item_id, moved_at}
-  D-07 UC-WISH-01 (MEDIA)   — price_at_add = product.price
+  D-07 UC-WISH-01 (MEDIA)   — price_at_add = product.lst_price
   D-09 UC-WISH-02 (MEDIA)   — nested product + availability string + price_dropped
 """
 import pytest
@@ -31,7 +31,7 @@ class TestWishlistCapabilityGate:
 
     def test_requires_account_wishlist(self, api_client, db):
         u = get_user_model().objects.create_user(
-            email='norole-wishlist@practicayoruba.mx', password='TestPass123!')
+            login='norole-wishlist@practicayoruba.mx', password='TestPass123!')
         api_client.force_login(u)
         assert api_client.get(WISH_URL).status_code == 403
 
@@ -94,7 +94,7 @@ class TestWishlist:
             'product_id': prod_s14.pk, 'variant_id': variant_s14.pk
         }, format='json')
         assert res.status_code == 201
-        assert res.json()['price_at_add'] == str(prod_s14.price)
+        assert res.json()['price_at_add'] == str(prod_s14.lst_price)
 
     # UC-WISH-02 ── Ver lista (paginada) ──────────────────────────────
 
@@ -115,7 +115,7 @@ class TestWishlist:
         assert 'product' in item
         assert item['product']['name'] == prod_s14.name
         assert item['product']['slug'] == prod_s14.slug
-        assert item['product']['base_price'] == str(prod_s14.price)
+        assert item['product']['base_price'] == str(prod_s14.lst_price)
 
     def test_view_list_item_has_availability_string(self, auth_client, prod_s14, db):
         """D-09 UC-WISH-02: availability es string IN_STOCK/OUT_OF_STOCK."""
@@ -150,7 +150,7 @@ class TestWishlist:
     def test_price_drop_detected(self, auth_client, prod_s14, db):
         """D-09 UC-WISH-02: price_dropped=True y price_drop_percent calculado."""
         auth_client.post(WISH_URL, {'product_id': prod_s14.pk}, format='json')
-        prod_s14.price = Decimal('600.00')
+        prod_s14.lst_price = Decimal('600.00')
         prod_s14.save()
         item = auth_client.get(WISH_URL).json()['results'][0]
         assert item['price_dropped'] is True
@@ -159,7 +159,7 @@ class TestWishlist:
     def test_price_increase_not_a_drop(self, auth_client, prod_s14, db):
         """precio subio → price_dropped False, current_price actualizado."""
         auth_client.post(WISH_URL, {'product_id': prod_s14.pk}, format='json')
-        prod_s14.price = Decimal('900.00')
+        prod_s14.lst_price = Decimal('900.00')
         prod_s14.save()
         item = auth_client.get(WISH_URL).json()['results'][0]
         assert item['current_price'] == '900.00'

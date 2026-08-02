@@ -48,7 +48,7 @@ def user(db):
     # que la tenga; el rol comprador agrupa todas las ``account.*``.
     call_command('seed_authz')
     u = User.objects.create_user(
-        email='totp-user@example.com', password=PASSWORD, is_active=True,
+        login='totp-user@example.com', password=PASSWORD, is_active=True,
     )
     assign_buyer_role(u)
     invalidate_capabilities(u.id)

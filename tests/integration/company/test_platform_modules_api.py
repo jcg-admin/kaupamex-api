@@ -30,7 +30,7 @@ def _user_with_caps(email, codes):
         defaults={'name': 'Test platform role'},
     )
     role.capabilities.set(caps)
-    u = get_user_model().objects.create_user(email=email, password='TestPass123!')
+    u = get_user_model().objects.create_user(login=email, password='TestPass123!')
     RoleAssignment.objects.create(user=u, role=role)
     return u
 

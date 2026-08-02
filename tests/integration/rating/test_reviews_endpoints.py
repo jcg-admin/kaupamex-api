@@ -35,7 +35,7 @@ class TestReviewsCapabilityGate:
 
     def _authed_without_capability(self, api_client):
         u = get_user_model().objects.create_user(
-            email='norole-reviews@practicayoruba.mx', password='TestPass123!',
+            login='norole-reviews@practicayoruba.mx', password='TestPass123!',
         )
         api_client.force_login(u)
         return u
@@ -113,7 +113,7 @@ class TestPublicReviewListing:
         )
         # Una pendiente que NO debe aparecer.
         u2 = get_user_model().objects.create_user(
-            email='u2@rev.com', password='x',
+            login='u2@rev.com', password='x',
         )
         o2 = make_order(user=u2, status='DELIVERED')
         Review.objects.create(
@@ -152,7 +152,7 @@ class TestCreateReview:
         self, auth_client, prod_rev, db,
     ):
         other = get_user_model().objects.create_user(
-            email='or@rev.com', password='x',
+            login='or@rev.com', password='x',
         )
         o = make_order(user=other, status='DELIVERED')
         r = auth_client.post(PRODUCT_REVIEWS_URL(prod_rev.id), {
@@ -421,7 +421,7 @@ class TestRatingFilterAndSorting:
     ):
         """Filter ?rating=3 must exclude reviews with rating != 3."""
         u2 = get_user_model().objects.create_user(
-            email='uf2@rev.com', password='x',
+            login='uf2@rev.com', password='x',
         )
         o1 = self._make_order(db, user)
         SaleOrderLine.objects.create(
@@ -449,7 +449,7 @@ class TestRatingFilterAndSorting:
     ):
         """?sort=helpful must put the review with more votes first."""
         u2 = get_user_model().objects.create_user(
-            email='usort2@rev.com', password='x',
+            login='usort2@rev.com', password='x',
         )
         o1 = self._make_order(db, user)
         SaleOrderLine.objects.create(
@@ -479,7 +479,7 @@ class TestRatingFilterAndSorting:
     ):
         """Page 2 with page_size=1 should return the second-oldest approved review."""
         u2 = get_user_model().objects.create_user(
-            email='upage2@rev.com', password='x',
+            login='upage2@rev.com', password='x',
         )
         o1 = self._make_order(db, user)
         SaleOrderLine.objects.create(
@@ -711,7 +711,7 @@ class TestBuyerEditReview:
     ):
         """403 REVIEW_NOT_OWNER when editing another user's review."""
         other = get_user_model().objects.create_user(
-            email='otheredit@rev.com', password='x',
+            login='otheredit@rev.com', password='x',
         )
         o_other = make_order(user=other, status='DELIVERED')
         review = Review.objects.create(
@@ -724,7 +724,7 @@ class TestBuyerEditReview:
         # El atacante es otro comprador (account.reviews) — pasa el candado de
         # capacidad y llega al owner-check, que devuelve REVIEW_NOT_OWNER.
         attacker = make_buyer(get_user_model().objects.create_user(
-            email='attacker@rev.com', password='x',
+            login='attacker@rev.com', password='x',
         ))
         api_client.force_login(attacker)
         r = api_client.patch(
@@ -802,7 +802,7 @@ class TestReviewImages:
         # Otro comprador (account.reviews) — pasa el candado y cae en el
         # owner-check (REVIEW_NOT_OWNER), no en el gate de capacidad.
         other = make_buyer(get_user_model().objects.create_user(
-            email='other_img@rev.com', password='x',
+            login='other_img@rev.com', password='x',
         ))
         api_client.force_login(other)
         res = api_client.post(
@@ -945,7 +945,7 @@ class TestUcRev01CreateErrorHandling:
         PARTE 7.3 UC-REV-01: 403 codigo_error=PRODUCT_NOT_PURCHASED.
         """
         other = get_user_model().objects.create_user(
-            email='ac05o@rev.com', password='x',
+            login='ac05o@rev.com', password='x',
         )
         o = make_order(user=other, status='DELIVERED')
         r = auth_client.post(

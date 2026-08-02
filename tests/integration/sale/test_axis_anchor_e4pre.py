@@ -14,26 +14,29 @@ total):
 - ``delivery.ShipmentGuide`` — ídem (OneToOne)
 - ``rating.Review``        — ídem
 
-Los escritores de producción ya pasaban ambas FK (verificado:
-``admin_services.py:104``, ``payments/services.py:92,515``,
-``delivery/views.py:199``, ``reviews/views.py:206``), así que el flujo vivo
-no cambia — cambia quién manda en el esquema.
+Post-E5 (retiro del addon espejo ``orders``, ``api@77bd1f0``): el ``order``
+nullable de E4-pre ya no es sólo nullable — se retiró del todo. Los tests que
+verificaban "existe sin fila espejo" (``.order_id is None``) se reescriben
+como "el campo ya no existe" (``hasattr``), mismo patrón que
+``TestParidadYaCubierta`` de ``test_sale_order_parity_e1.py``.
 """
 from decimal import Decimal
 
 import pytest
+from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
-from addons.catalogue.models import Category, Product
 from addons.sale import status_projection as sp
 from addons.delivery.models import Courier, ShipmentGuide
 from addons.payment.models import Payment
 from addons.rating.models import Review
 from addons.sale.models import SaleOrder
-from addons.users.models import IdentityUser
+from tests.factories.product_factory import make_category, make_product
 
 pytestmark = pytest.mark.django_db
+
+User = get_user_model()
 
 
 @pytest.fixture
@@ -49,7 +52,7 @@ class TestPagoAncladoAlCanonico:
             sale_order=venta, gateway=Payment.GATEWAY_MANUAL,
             status=Payment.STATUS_APPROVED, amount=Decimal('150.00'))
         pago.refresh_from_db()
-        assert pago.order_id is None
+        assert not hasattr(pago, 'order_id')
         assert pago.sale_order_id == venta.pk
 
     def test_la_canonica_es_obligatoria(self, venta):
@@ -74,7 +77,7 @@ class TestGuiaAncladaAlCanonico:
         guia = ShipmentGuide.objects.create(
             sale_order=venta, courier=courier, tracking_number='TRK-E4PRE-1')
         guia.refresh_from_db()
-        assert guia.order_id is None
+        assert not hasattr(guia, 'order_id')
         assert guia.sale_order_id == venta.pk
 
     def test_la_proyeccion_deriva_shipped_de_la_guia_canonica(self, venta):
@@ -88,18 +91,14 @@ class TestGuiaAncladaAlCanonico:
 class TestResenaAncladaAlCanonico:
 
     def test_una_resena_prueba_la_compra_con_la_canonica(self, venta):
-        usuario = IdentityUser.objects.create_user(
-            email='rev.e4pre@example.com', password='x')
-        cat = Category.objects.create(
-            name='Cat E4pre', slug='cat-e4pre', is_active=True)
-        prod = Product.objects.create(
-            name='Prod E4pre', slug='prod-e4pre', sku='SKU-E4PRE',
-            price=Decimal('50.00'), is_active=True)
-        prod.categories.add(cat)
+        usuario = User.objects.create_user(
+            login='rev.e4pre@practicayoruba.mx', password='x')
+        cat = make_category(name='Cat E4pre')
+        prod = make_product(name='Prod E4pre', price=Decimal('50.00'), categ=cat)
 
         resena = Review.objects.create(
             user=usuario, product=prod, sale_order=venta,
             rating=5, title='Excelente', body='Prueba E4-pre')
         resena.refresh_from_db()
-        assert resena.order_id is None
+        assert not hasattr(resena, 'order_id')
         assert resena.sale_order_id == venta.pk

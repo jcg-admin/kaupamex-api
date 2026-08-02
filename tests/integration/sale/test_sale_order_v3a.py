@@ -1,86 +1,37 @@
-"""Tests — V3a unificación orders→sale (``analisis-unificar-orders-sale``).
+"""Tests — V3a unificación orders→sale (RETIRADO tras E5).
 
-El eje de pago se ancla al canónico: en Odoo ``payment.transaction``
-apunta a ``sale.order``; aquí ``Payment`` (la transacción strangler) gana
-la FK ``sale_order`` y el espejo legacy ``orders.Order`` conoce su
-canónico (``SaleOrder.sale_order``, fijado por ``confirm_draft_order``).
+**Retirado** durante la reescritura post-disolución de ``orders``/``cart``/
+``inventory``/``returns`` (rama ``feature/sanear-terminologia-l0-ecosistema``).
+
+Este módulo probaba el **puente** V3a entre la venta canónica
+(``sale.SaleOrder``) y un "espejo legacy" (``orders.Order``): ``Payment``
+llevaba una FK ``order`` al espejo (obligatoria en V3a) y otra ``sale_order``
+a la canónica; ``confirm_draft_order`` devolvía el **par** ``(canonical,
+legacy)``; ``SaleOrder`` exponía ``legacy_order`` para ir del canónico al
+espejo.
+
+El addon ``orders`` (el espejo) se dio de baja por completo en E5
+(``api@77bd1f0``). Verificado en el código real, no asumido:
+
+1. ``confirm_draft_order`` ya **no devuelve un par** — devuelve la propia
+   ``SaleOrder`` confirmada. Su propio docstring lo dice: *"Retorna la
+   ``SaleOrder`` confirmada — ya no hay espejo que devolver"*
+   (``src/addons/sale/services.py:310-311``), y el bloque final del cuerpo:
+   *"el puente al espejo desapareció con el addon ``orders``"*
+   (``src/addons/sale/services.py:396-397``).
+2. ``Payment`` **no tiene** campo ``order`` — sólo ``sale_order``
+   (``src/addons/payment/models/payment.py:56-62``, único ``ForeignKey`` del
+   modelo hacia una orden). ``grep -n "order " src/addons/payment/models/
+   payment.py`` → sin resultados de un segundo FK.
+3. ``SaleOrder`` **no tiene** el atributo ``legacy_order``
+   (``grep -rn "legacy_order" src/addons/sale/`` → vacío).
+
+El contrato que este archivo SÍ seguía teniendo vigente — ``Payment.
+sale_order`` NOT NULL/PROTECT, la canónica manda — está cubierto de forma
+completa y actualizada en ``test_axis_anchor_e4pre.py``
+(``TestPagoAncladoAlCanonico``), que ya declara explícitamente en su propio
+docstring: *"Los tests que verificaban 'existe sin fila espejo' se
+reescriben como 'el campo ya no existe' (``hasattr``)"* — exactamente el
+reemplazo de este módulo. No hay contenido de este archivo que no tenga ya
+un sucesor verificado.
 """
-import uuid
-from decimal import Decimal
-
-import pytest
-
-from addons.catalogue.models import Category, Product
-from addons.payment.models import Payment
-from addons.sale.models import SaleOrder
-from addons.sale.services import add_item_to_draft, confirm_draft_order
-from addons.sale.status_projection import (
-    STATUS_PENDING,
-    order_status,
-)
-
-pytestmark = pytest.mark.django_db
-
-ADDR = {
-    'recipient_name': 'Test V3a', 'street': 'Calle 1', 'city': 'CDMX',
-    'state': 'CDMX', 'zip_code': '06600',
-}
-
-
-@pytest.fixture
-def product_v3(db):
-    cat = Category.objects.create(name='Cat V3a', slug='cat-v3a', is_active=True)
-    p = Product.objects.create(
-        name='Prod V3a', slug='prod-v3a', sku='V3A-001', description='',
-        price=Decimal('150.00'), stock=8, is_active=True, is_published=True,
-    )
-    p.categories.add(cat)
-    return p
-
-
-def _confirmed_pair(product):
-    """Confirma un draft anónimo y retorna (canónica, espejo legacy)."""
-    draft = SaleOrder.objects.create(
-        state=SaleOrder.STATE_DRAFT, cart_token=uuid.uuid4())
-    add_item_to_draft(draft, product, quantity=2)
-    legacy = confirm_draft_order(draft, address_data=dict(ADDR),
-                                 guest_email='v3a@test.mx')
-    draft.refresh_from_db()
-    return draft, legacy
-
-
-class TestMirrorKnowsItsCanonical:
-    def test_confirm_links_legacy_mirror_to_sale_order(self, product_v3):
-        canonical, legacy = _confirmed_pair(product_v3)
-        assert legacy.sale_order_id == canonical.pk
-        assert canonical.legacy_order.pk == legacy.pk
-        assert canonical.state == SaleOrder.STATE_SALE
-        assert canonical.name and canonical.name.startswith('S')
-        assert order_status(legacy) == STATUS_PENDING
-
-    def test_confirm_releases_cart_token_on_canonical(self, product_v3):
-        canonical, _ = _confirmed_pair(product_v3)
-        assert canonical.cart_token is None
-
-
-class TestPaymentAnchorsToCanonical:
-    def test_payment_carries_sale_order_fk(self, product_v3):
-        canonical, legacy = _confirmed_pair(product_v3)
-        payment = Payment.objects.create(
-            order=legacy, sale_order=legacy.sale_order,
-            gateway=Payment.GATEWAY_MERCADOPAGO,
-            status=Payment.STATUS_PENDING, amount=Decimal('300.00'),
-        )
-        assert payment.sale_order_id == canonical.pk
-        assert list(canonical.payments.all()) == [payment]
-
-    def test_sale_order_fk_ya_no_es_nullable(self, product_v3):
-        """E4-pre (H-API-26) invirtió el contrato V3a: la canónica manda.
-
-        En V3a ``sale_order`` era nullable (filas legacy sin canónica). Tras
-        la inversión de anclaje es NOT NULL/PROTECT — el detalle del nuevo
-        contrato vive en ``test_axis_anchor_e4pre.py``; aquí sólo se fija
-        que el contrato viejo NO regresa.
-        """
-        field = Payment._meta.get_field('sale_order')
-        assert field.null is False

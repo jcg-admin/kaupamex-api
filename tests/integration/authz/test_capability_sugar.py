@@ -38,7 +38,7 @@ def seeded(db):
 
 
 def _user_with_noun(noun, level=AccessLevel.VIEW):
-    u = User.objects.create_user(email=f'cap-{noun}-{level}@t.mx', password='x')
+    u = User.objects.create_user(login=f'cap-{noun}-{level}@t.mx', password='x')
     module, _ = Module.objects.get_or_create(code=noun, defaults={'name': noun})
     cap, _ = Capability.objects.get_or_create(
         code=noun, defaults={'module': module, 'name': noun})
@@ -59,7 +59,7 @@ class _MixinView(CapabilityRequiredMixin, APIView):
 
 @pytest.mark.django_db
 def test_mixin_denies_without_capability(seeded):
-    u = User.objects.create_user(email='nocap@t.mx', password='x')
+    u = User.objects.create_user(login='nocap@t.mx', password='x')
     req = APIRequestFactory().get('/x')
     force_authenticate(req, user=u)
     assert _MixinView.as_view()(req).status_code == 403
@@ -83,7 +83,7 @@ def _decorated_view(request):
 
 @pytest.mark.django_db
 def test_decorator_denies_without_capability(seeded):
-    u = User.objects.create_user(email='deco@t.mx', password='x')
+    u = User.objects.create_user(login='deco@t.mx', password='x')
     req = APIRequestFactory().get('/x')
     force_authenticate(req, user=u)
     assert _decorated_view(req).status_code == 403

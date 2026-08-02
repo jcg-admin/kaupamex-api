@@ -12,10 +12,10 @@ from decimal import Decimal
 import pytest
 from django.utils import timezone
 
-from addons.catalogue.models import Product
 from addons.product_expiry import services as exp
 from addons.product_expiry.models import ProductExpiryConfig, StockLotExpiry
 from addons.stock.models import StockLocation, StockLot, StockQuant
+from tests.factories.product_factory import make_product
 
 pytestmark = pytest.mark.integration
 
@@ -25,8 +25,8 @@ _slug_seq = [0]
 def _product(price='100.00'):
     _slug_seq[0] += 1
     n = _slug_seq[0]
-    return Product.objects.create(
-        name=f'Exp Prod {n}', slug=f'exp-prod-{n}', sku=f'EXP-{n:04d}',
+    return make_product(
+        name=f'Exp Prod {n}', default_code=f'EXP-{n:04d}',
         price=Decimal(price),
     )
 

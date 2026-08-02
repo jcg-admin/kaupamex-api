@@ -11,11 +11,11 @@ from decimal import Decimal
 
 import pytest
 
-from addons.catalogue.models import Category, Product
 from addons.sale.models import SaleOrder
 from addons.sale.services import add_item_to_draft, confirm_draft_order
 from addons.sale_stock.models import SaleOrderDelivery
 from addons.stock.models import StockPicking
+from tests.factories.product_factory import make_category, make_product
 
 pytestmark = pytest.mark.django_db
 
@@ -33,13 +33,8 @@ def sale_order(db):
 
 @pytest.fixture
 def product_v5(db):
-    cat = Category.objects.create(name='Cat V5', slug='cat-v5', is_active=True)
-    p = Product.objects.create(
-        name='Prod V5', slug='prod-v5', sku='V5-001', description='',
-        price=Decimal('90.00'), stock=5, is_active=True, is_published=True,
-    )
-    p.categories.add(cat)
-    return p
+    cat = make_category(name='Cat V5')
+    return make_product(name='Prod V5', price=Decimal('90.00'), stock=5, categ=cat)
 
 
 class TestPickingAnchorsToCanonical:
