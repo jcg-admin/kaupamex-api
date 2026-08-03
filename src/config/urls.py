@@ -76,7 +76,7 @@ urlpatterns = _admin_urls + [
     path('api/v2/orders/',                include(('addons.sale.urls', 'sale'),                   namespace='sale_v2')),
     # El backoffice es de ``sale_management`` — la referencia separa gestionar
     # de comprar, y el espejo las mezclaba en un solo addon.
-    path('api/v2/admin/',                 include(('addons.sale_management.admin_urls', 'admin_sale'),
+    path('api/v2/admin/',                 include(('addons.sale_management.controllers.admin_urls', 'admin_sale'),
                                                   namespace='admin_sale_v2')),
     path('api/v2/support/',               include(('addons.helpdesk.urls', 'support'),             namespace='support_v2')),
 
