@@ -1,0 +1,36 @@
+# Procedencia de los addons que NO resuelven por nombre contra los cuatro
+# árboles con alias de odoo-tools. Lo lee scripts/check_addon_names.py.
+#
+#   <addon> | <clase> | <cita>
+#
+#   puerto     el nombre viene de la referencia, pero de un árbol fuera de los
+#              cuatro alias (p. ej. community de terceros). La cita lo prueba.
+#   propio     addon nuestro por decisión documentada. La cita es esa decisión.
+#   pendiente  el documento existe; falta leerlo y clasificar. Pasa en modo
+#              normal, FALLA con --strict.
+#
+# El gate verifica que el archivo citado EXISTA — no interpreta su contenido.
+# Así el veredicto no depende de que quien escribió la línea resumiera bien; el
+# error que produjo la primera versión de este archivo fue exactamente ése:
+# seis addons marcados "sin contraparte, pendiente de decisión" sin abrir un
+# solo documento, cuando los seis tenían análisis.
+#
+# Tener addons propios es legítimo. Crearlos sin decisión, no.
+
+# --- verificado ---------------------------------------------------------
+auto_backup | puerto | source/gestion/pm/api/iniciativas/adaptar-familias-odoo-monolito-modular/analisis-familia-backups.rst
+
+# --- pendientes de clasificar (el análisis existe; hay que leerlo) -------
+# No se escriben conclusiones que no se han leído. Cada línea apunta al
+# documento donde está la respuesta.
+authz         | pendiente | source/gestion/pm/api/iniciativas/adaptar-familias-odoo-monolito-modular/analisis-familia-auth-vs-authz-y-modelo-de-autorizacion.rst
+authz_audit   | pendiente | source/gestion/pm/api/iniciativas/adaptar-familias-odoo-monolito-modular/analisis-familia-auth.rst
+authz_reauth  | pendiente | source/gestion/pm/api/iniciativas/adaptar-familias-odoo-monolito-modular/analisis-familia-auth.rst
+base_bank     | pendiente | source/gestion/pm/api/iniciativas/adaptar-familias-odoo-monolito-modular/analisis-familia-base-bank.rst
+observability | pendiente | source/gestion/pm/api/iniciativas/adaptar-familias-odoo-monolito-modular/analisis-panorama-familias-strangler.rst
+
+# --- deuda con nombre propio --------------------------------------------
+# platform NO va aquí como "propio": H-API-245 sancionó el EJE de entitlement,
+# no el nombre de addon, y H-API-119 fija que la operación correcta es
+# disolver. Queda pendiente y --strict lo marca hasta que se disuelva.
+platform      | pendiente | source/gestion/pm/api/iniciativas/adaptar-familias-odoo-monolito-modular/analisis-disolucion-addons-company.rst

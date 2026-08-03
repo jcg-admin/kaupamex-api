@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Gate — un addon nuestro no puede llamarse como ninguno de la referencia.
+"""Gate — todo addon declara su procedencia; ninguno nace sin decisión.
 
 Origen: H-API-119 (``users`` era un nombre que la referencia no tiene) y su
 reincidencia, H-API-256 (``platform``, inventado en la misma sesión que citaba
@@ -12,10 +12,33 @@ proyecto lo dice sin rodeos (``gitlink-bump-gate.md``): *"La lección escrita no
 previene la reincidencia. Solo un gate ejecutable integrado en el flujo lo
 hace."*
 
-Qué hace: compara ``src/addons/*`` contra la unión de los cuatro árboles con
-alias de ``odoo-tools``. Un nombre ausente que **no** esté en el baseline es un
-nombre nuevo inventado → exit 1. El baseline congela la deuda heredada para que
-el gate bloquee lo próximo sin marcar rojo por lo de antes.
+**El eje NO es "existe en la referencia".** Esa fue la primera versión de este
+script y estaba mal: el proyecto va a tener addons propios, y eso es legítimo.
+Lo que no es legítimo es crear uno **sin decisión documentada**. Medirlo por
+ausencia de nombre castiga lo correcto (un addon propio decidido) y, peor, da
+por bueno lo incorrecto en cuanto alguien añade una línea al archivo.
+
+Lo destapó el ejecutor con dos ejemplos: ``auto_backup`` —que este script marcó
+"sin contraparte, pendiente de decisión" cuando ``analisis-familia-backups.rst``
+lo documenta como **home-map correcto** contra ``app_auto_backup``, un árbol
+community fuera de los cuatro alias— y la pregunta de fondo: *"¿qué pasa cuando
+nosotros queremos nuestros propios addons?"*.
+
+Qué hace ahora: cada addon debe resolver por **una** de tres vías.
+
+1. **Puerto por nombre** — el nombre existe en la unión de los cuatro árboles
+   con alias, aplicando los renames que el framework destino fuerza. Resuelve
+   solo, sin entrada en el registro.
+2. **Procedencia declarada** — entrada en ``scripts/addon_provenance.txt`` con
+   clase (``puerto`` | ``propio``) y **cita a un documento que debe existir**.
+   El gate verifica la existencia del archivo citado, no su contenido: así el
+   veredicto no depende de que quien escribió la línea resumiera bien.
+3. **Nada de lo anterior** → exit 1.
+
+La clase ``pendiente`` existe para la deuda real —addons cuyo documento hay que
+leer antes de clasificar— y pasa en modo normal pero **falla con** ``--strict``.
+Es la graduación de ``artefactos-minimos-iniciativa.md``: se cablea a CI cuando
+el conteo llegue a 0.
 
     python3 scripts/check_addon_names.py           # reporte
     python3 scripts/check_addon_names.py --quiet   # sólo el conteo
@@ -69,7 +92,8 @@ def reference_name_of(ours):
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ADDONS_DIR = os.path.join(REPO_ROOT, 'src', 'addons')
-BASELINE = os.path.join(REPO_ROOT, 'scripts', 'addon_names_baseline.txt')
+REGISTRY = os.path.join(REPO_ROOT, 'scripts', 'addon_provenance.txt')
+DOCS_ROOT = os.path.join(os.path.dirname(REPO_ROOT), 'kaupamex-docs')
 
 
 def reference_names():
@@ -94,19 +118,32 @@ def reference_names():
     return names, missing
 
 
-def load_baseline():
-    """Deuda congelada: ``<nombre>  # <por qué sigue viva>``."""
-    if not os.path.isfile(BASELINE):
+def load_registry():
+    """``<addon> | <clase> | <cita>`` — clase en puerto|propio|pendiente."""
+    if not os.path.isfile(REGISTRY):
         return {}
     entries = {}
-    with open(BASELINE, encoding='utf-8') as fh:
+    with open(REGISTRY, encoding='utf-8') as fh:
         for line in fh:
-            line = line.strip()
-            if not line or line.startswith('#'):
+            line = line.split('#', 1)[0].strip()
+            if not line:
                 continue
-            name, _, reason = line.partition('#')
-            entries[name.strip()] = reason.strip()
+            parts = [p.strip() for p in line.split('|')]
+            if len(parts) != 3:
+                continue
+            name, clase, cita = parts
+            entries[name] = (clase, cita)
     return entries
+
+
+def citation_exists(cita):
+    """La cita apunta a un archivo real (relativo a docs o al repo)."""
+    if not cita:
+        return False
+    for base in (DOCS_ROOT, REPO_ROOT):
+        if os.path.exists(os.path.join(base, cita)):
+            return True
+    return False
 
 
 def our_names():
@@ -129,14 +166,28 @@ def main(argv):
               'el gate no puede medir — estado DESCONOCIDO, no OK.')
         return 0
 
-    baseline = load_baseline()
+    registry = load_registry()
     absent = [n for n in our_names() if reference_name_of(n) not in reference]
-    nuevos = [n for n in absent if n not in baseline]
-    heredados = [n for n in absent if n in baseline]
+
+    sin_declarar, cita_rota, declarados, pendientes = [], [], [], []
+    for name in absent:
+        if name not in registry:
+            sin_declarar.append(name)
+            continue
+        clase, cita = registry[name]
+        if clase == 'pendiente':
+            pendientes.append((name, cita))
+        elif not citation_exists(cita):
+            cita_rota.append((name, cita))
+        else:
+            declarados.append((name, clase, cita))
+
+    fail = bool(sin_declarar or cita_rota)
 
     if quiet:
-        print(f'nuevos={len(nuevos)} heredados={len(heredados)}')
-        return 1 if nuevos or (strict and heredados) else 0
+        print(f'sin_declarar={len(sin_declarar)} cita_rota={len(cita_rota)} '
+              f'declarados={len(declarados)} pendientes={len(pendientes)}')
+        return 1 if fail or (strict and pendientes) else 0
 
     print(f'check_addon_names — referencia: {len(reference)} nombres '
           f'(unión de {len(REFERENCE_ROOTS)} árboles con alias)')
@@ -146,28 +197,38 @@ def main(argv):
         print(f'Renames forzados que SÍ resuelven ({len(renombrados)}): '
               + ', '.join(f'{n}→{reference_name_of(n)}' for n in renombrados))
 
-    if nuevos:
-        print(f'\nFAIL — {len(nuevos)} nombre(s) de addon que la referencia '
-              'no tiene y que no están en el baseline:')
-        for name in nuevos:
+    if sin_declarar:
+        print(f'\nFAIL — {len(sin_declarar)} addon(s) sin procedencia declarada:')
+        for name in sin_declarar:
             print(f'  - src/addons/{name}')
-        print('\nLa operación correcta no es inventar el nombre: es disolver el '
-              'dominio\nen el addon donde la referencia lo declara (H-API-119). '
-              'Si de verdad no\nhay contraparte, la excepción se decide y se '
-              'documenta ANTES, y se anota\nen scripts/addon_names_baseline.txt '
-              'con su hallazgo.')
+        print('\nNo se pide que el nombre exista en la referencia: se pide '
+              'saber POR QUÉ\nes propio. Antes de crearlo, medir dónde declara '
+              'la referencia el dominio\n(H-API-119). Si de verdad no lo cubre, '
+              'la decisión se documenta y se cita\nen scripts/addon_provenance.txt.')
 
-    if heredados:
-        print(f'\nDeuda heredada ({len(heredados)}), congelada en el baseline:')
-        for name in heredados:
-            print(f'  - {name}  ({baseline[name] or "sin motivo anotado"})')
+    if cita_rota:
+        print(f'\nFAIL — {len(cita_rota)} cita(s) que no apuntan a un archivo real:')
+        for name, cita in cita_rota:
+            print(f'  - {name}  →  {cita}')
+
+    if declarados:
+        print(f'\nProcedencia declarada y verificada ({len(declarados)}):')
+        for name, clase, cita in declarados:
+            print(f'  - {name:22} [{clase}]  {cita}')
+
+    if pendientes:
+        print(f'\nPendientes de clasificar ({len(pendientes)}) — el documento '
+              'existe,\nfalta leerlo y decidir. Pasan en modo normal, fallan '
+              'con --strict:')
+        for name, cita in pendientes:
+            print(f'  - {name:22} {cita}')
 
     if not absent:
-        print('\nOK — ningún addon con nombre ajeno a la referencia.')
-    elif not nuevos:
-        print('\nOK — sin nombres nuevos inventados.')
+        print('\nOK — todos los addons resuelven por nombre contra la referencia.')
+    elif not fail:
+        print('\nOK — todo addon propio tiene procedencia declarada.')
 
-    return 1 if nuevos or (strict and heredados) else 0
+    return 1 if fail or (strict and pendientes) else 0
 
 
 if __name__ == '__main__':

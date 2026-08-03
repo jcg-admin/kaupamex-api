@@ -123,16 +123,17 @@ if [ -f "$CATALOG_CHECKER" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# Gate 6: nombre de addon contra la referencia (H-API-119, reincidido en
-# H-API-256 con `platform`). Un addon nuestro no puede llamarse como ninguno de
-# odoo-tools; los renames forzados por Django (auth -> authz) los conoce el
-# script. Bloquea nombres NUEVOS; la deuda heredada vive congelada en
-# scripts/addon_names_baseline.txt.
+# Gate 6: procedencia de addon (H-API-119, reincidido en H-API-256).
+# El eje NO es "existe en la referencia" — tener addons propios es legitimo.
+# Lo que se exige es que cada addon que no resuelve por nombre DECLARE su
+# procedencia en scripts/addon_provenance.txt citando un documento que exista;
+# el gate verifica la existencia del archivo, no interpreta su contenido.
+# Los renames que Django fuerza (auth -> authz) los conoce el script.
 NAMES_CHECKER="$REPO_ROOT/scripts/check_addon_names.py"
 if [ -f "$NAMES_CHECKER" ]; then
     if ! python3 "$NAMES_CHECKER" >/dev/null 2>&1; then
         python3 "$NAMES_CHECKER" >&2
-        echo "pre-commit: nombre de addon ajeno a la referencia — commit bloqueado" >&2
+        echo "pre-commit: addon sin procedencia declarada — commit bloqueado" >&2
         exit 1
     fi
 fi
