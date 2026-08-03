@@ -30,10 +30,17 @@ Qué hace ahora: cada addon debe resolver por **una** de tres vías.
    con alias, aplicando los renames que el framework destino fuerza. Resuelve
    solo, sin entrada en el registro.
 2. **Procedencia declarada** — entrada en ``scripts/addon_provenance.txt`` con
-   clase (``puerto`` | ``propio`` | ``drift`` | ``pendiente``) y **cita a un
-   documento que debe existir**.
-   El gate verifica la existencia del archivo citado, no su contenido: así el
-   veredicto no depende de que quien escribió la línea resumiera bien.
+   clase (``puerto`` | ``propio`` | ``drift`` | ``pendiente``) y cita a un
+   documento que debe existir. Para las clases que **aprueban** (``puerto`` y
+   ``propio``) la cita debe ser además un **análisis**: de familia
+   (``analisis-familia-*.rst``) **o del addon** (``analisis-*<addon>*.rst``).
+   No vale cualquier archivo — sin ese requisito bastaba citar un README para
+   pasar. Es el artefacto que la iniciativa
+   ``adaptar-familias-odoo-monolito-modular`` exige antes de decidir el hogar
+   de nada, y existe en las dos formas.
+   El gate verifica la existencia y el **tipo** del archivo citado, no su
+   contenido: así el veredicto no depende de que quien escribió la línea
+   resumiera bien.
 3. **Nada de lo anterior** → exit 1.
 
 Dos clases marcan deuda y **fallan con** ``--strict``, pasando en modo normal:
@@ -138,14 +145,42 @@ def load_registry():
     return entries
 
 
+ANALYSIS_PREFIX = 'analisis-'
+FAMILY_ANALYSIS_PREFIX = 'analisis-familia-'
+
+
 def citation_exists(cita):
     """La cita apunta a un archivo real (relativo a docs o al repo)."""
     if not cita:
         return False
-    for base in (DOCS_ROOT, REPO_ROOT):
-        if os.path.exists(os.path.join(base, cita)):
-            return True
-    return False
+    return any(os.path.exists(os.path.join(base, cita))
+               for base in (DOCS_ROOT, REPO_ROOT))
+
+
+def is_valid_analysis(cita, addon):
+    """El documento citado es un análisis **de familia o del addon**.
+
+    Las dos formas valen, porque las dos existen en el repo: el hogar se decide
+    a veces para una familia entera (``analisis-familia-sale.rst``, que cubre
+    ``sale``, ``sale_stock``, ``sale_crm``…) y a veces para un addon suelto
+    (``analisis-users-no-es-un-addon-en-la-referencia.rst``). Exigir sólo la
+    primera daría 10/65 por nombre exacto — métrica equivocada; exigir sólo la
+    segunda obligaría a duplicar el análisis de familia por cada miembro.
+
+    Métrica: basename que empieza con ``analisis-`` y que, o bien es
+    ``analisis-familia-*``, o bien menciona el nombre del addon (normalizando
+    ``_`` y ``-``).
+    Ciega a: un análisis guardado con otro prefijo, y al *contenido* — que el
+    documento cubra de verdad a este addon no lo juzga el gate. Lo que impide
+    es aprobar citando un README o un progreso.
+    """
+    base = os.path.basename(cita)
+    if not base.startswith(ANALYSIS_PREFIX):
+        return False
+    if base.startswith(FAMILY_ANALYSIS_PREFIX):
+        return True
+    norm = lambda t: t.replace('_', '-')
+    return norm(addon) in norm(base)
 
 
 def our_names():
@@ -171,24 +206,28 @@ def main(argv):
     registry = load_registry()
     absent = [n for n in our_names() if reference_name_of(n) not in reference]
 
-    sin_declarar, cita_rota, declarados, pendientes = [], [], [], []
+    sin_declarar, cita_rota, sin_familia = [], [], []
+    declarados, pendientes = [], []
     for name in absent:
         if name not in registry:
             sin_declarar.append(name)
             continue
         clase, cita = registry[name]
-        if clase in ('pendiente', 'drift'):
-            pendientes.append((name, clase, cita))
-        elif not citation_exists(cita):
+        if not citation_exists(cita):
             cita_rota.append((name, cita))
+        elif clase in ('pendiente', 'drift'):
+            pendientes.append((name, clase, cita))
+        elif not is_valid_analysis(cita, name):
+            sin_familia.append((name, clase, cita))
         else:
             declarados.append((name, clase, cita))
 
-    fail = bool(sin_declarar or cita_rota)
+    fail = bool(sin_declarar or cita_rota or sin_familia)
 
     if quiet:
         print(f'sin_declarar={len(sin_declarar)} cita_rota={len(cita_rota)} '
-              f'declarados={len(declarados)} pendientes={len(pendientes)}')
+              f'sin_familia={len(sin_familia)} declarados={len(declarados)} '
+              f'pendientes={len(pendientes)}')
         return 1 if fail or (strict and pendientes) else 0
 
     print(f'check_addon_names — referencia: {len(reference)} nombres '
@@ -212,6 +251,16 @@ def main(argv):
         print(f'\nFAIL — {len(cita_rota)} cita(s) que no apuntan a un archivo real:')
         for name, cita in cita_rota:
             print(f'  - {name}  →  {cita}')
+
+    if sin_familia:
+        print(f'\nFAIL — {len(sin_familia)} addon(s) que aprueban citando algo '
+              'que NO es un\nanálisis (ni de familia ni del addon):')
+        for name, clase, cita in sin_familia:
+            print(f'  - {name:22} [{clase}]  {cita}')
+        print('\nEl hogar se decide en un analisis-familia-*.rst o en un '
+              'analisis-*<addon>*.rst,\nno en un README ni en un progreso. Si '
+              'ese análisis no existe, la clase\nhonesta es ``pendiente`` — no '
+              'aprobar citando otra cosa.')
 
     if declarados:
         print(f'\nProcedencia declarada y verificada ({len(declarados)}):')

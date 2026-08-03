@@ -25,8 +25,6 @@ auto_backup   | puerto | source/gestion/pm/api/iniciativas/adaptar-familias-odoo
 #  base_iban porque el módulo no valida IBAN (México usa CLABE). La
 #  faithfulness aquí es de patrón, no de nombre literal 1:1."
 base_bank     | propio | source/gestion/pm/api/iniciativas/adaptar-familias-odoo-monolito-modular/analisis-familia-base-bank.rst
-# "El único net-new es observability" — directiva del ejecutor.
-observability | propio | source/gestion/pm/api/iniciativas/adaptar-familias-odoo-monolito-modular/analisis-panorama-familias-strangler.rst
 # "authz_audit — sin análogo directo" en la tabla de la familia auth.
 authz_audit   | propio | source/gestion/pm/api/iniciativas/adaptar-familias-odoo-monolito-modular/analisis-familia-auth-vs-authz-y-modelo-de-autorizacion.rst
 
@@ -40,6 +38,10 @@ authz_reauth  | drift | source/gestion/pm/api/iniciativas/adaptar-familias-odoo-
 authz         | drift | source/gestion/pm/api/iniciativas/adaptar-familias-odoo-monolito-modular/analisis-familia-auth-vs-authz-y-modelo-de-autorizacion.rst
 
 # --- pendiente ------------------------------------------------------------
+# observability tiene decisión ("el único net-new" — directiva del ejecutor)
+# pero no tiene ni analisis-familia-* ni analisis-*observability*. Aprobarlo
+# citando el panorama es justo lo que el requisito impide.
+observability | pendiente | source/gestion/pm/api/iniciativas/adaptar-familias-odoo-monolito-modular/analisis-panorama-familias-strangler.rst
 # platform NO es "propio": H-API-245 sancionó el EJE de entitlement, no el
 # nombre de addon, y H-API-119 fija que la operación correcta es disolver.
 platform      | pendiente | source/gestion/pm/api/iniciativas/adaptar-familias-odoo-monolito-modular/analisis-disolucion-addons-company.rst
