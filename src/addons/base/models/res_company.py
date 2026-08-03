@@ -91,6 +91,7 @@ import logging
 import fields
 import models
 
+from addons.base.data.res_company import FOUNDER_COMPANY_CODE, SYSTEM_COMPANY_CODE
 from addons.base.models.report_paperformat import ReportPaperformat
 from addons.base.models.res_country import ResCountry, ResCountryState
 from addons.base.models.res_currency import ResCurrency
@@ -151,6 +152,50 @@ class ResCompany(TimeStampedModel):
     sequence = fields.Integer(
         default=10, verbose_name='Secuencia',
         help_text='Ordena las compañías en el selector (Odoo sequence).',
+    )
+
+    # === Eje L0 (operador de plataforma) ==================================
+    # La referencia no modela un operador de plataforma, así que estos tres
+    # campos no tienen análogo. Lo que SÍ gobierna la referencia es *dónde*
+    # van: el criterio es la cardinalidad, no el dominio (``auth_ldap`` de
+    # ``odoo19c:``/``odoo18c:`` reparte por ahí — ``_inherit`` sobre
+    # ``res.company`` para el dato 1:1, modelo propio ``res.company.ldap``
+    # para el 1:N). Los tres son 1:1 con la compañía, así que son columnas.
+    # En Odoo los aportaría la familia L0 vía ``_inherit``; Django no tiene
+    # ese mecanismo distribuido para el esquema, así que viven aquí.
+    # Ver ``analisis-extension-de-company-tres-motores``.
+
+    class Status(models.TextChoices):
+        TRIAL = 'trial', 'En prueba'
+        ACTIVE = 'active', 'Activo'
+        SUSPENDED = 'suspended', 'Suspendido'
+        CANCELLED = 'cancelled', 'Cancelado'
+
+    code = models.SlugField(
+        max_length=50, unique=True, null=True, blank=True,
+        verbose_name='Código',
+        help_text='Identificador estable del tenant L1 en la plataforma.',
+    )
+    status = fields.Selection(
+        max_length=12, choices=Status.choices, default=Status.TRIAL,
+        verbose_name='Estado',
+        help_text='Ciclo de vida de la contratación. Distinto de ``active``, '
+                  'que es el archivado de Odoo.',
+    )
+    is_system = fields.Boolean(
+        default=False, verbose_name='Compañía de sistema',
+        help_text='Compañía de datos compartidos de plataforma (L0), no un '
+                  'tenant.',
+    )
+    billing_email = fields.Char(
+        max_length=254, blank=True, default='',
+        verbose_name='Correo de facturación',
+        help_text='DIVERGENCIA DECLARADA: la referencia no separa el correo '
+                  'de contacto del de facturación en ``res.company`` — su '
+                  '``email`` es ``related`` al partner y la facturación sale '
+                  'del partner de la factura. Se conserva como columna propia '
+                  'porque el negocio sí los distingue; si se unifican, este '
+                  'campo desaparece a favor de la property ``email``.',
     )
     parent = fields.Many2one(
         'self', on_delete=models.PROTECT, null=True, blank=True,
@@ -250,6 +295,18 @@ class ResCompany(TimeStampedModel):
     @property
     def website(self):
         return getattr(self.partner, 'website', '')
+
+    @property
+    def billing_name(self):
+        """Razón social — ``related`` a ``partner.commercial_company_name``.
+
+        No es columna propia: la referencia deriva la razón social de la
+        entidad comercial del partner (``odoo19c: res_partner.py:306``,
+        ``compute=_compute_commercial_company_name``), y este árbol ya porta
+        esa cadena. Duplicarla aquí habría sido el mismo error que el modelo
+        ``Company`` paralelo que esta fusión disuelve.
+        """
+        return self.partner.commercial_company_name
 
     @property
     def vat(self):
@@ -400,6 +457,35 @@ class ResCompany(TimeStampedModel):
         """
         logo = self.logo
         return not logo or (default_logo is not None and logo == default_logo)
+
+    # === Resolución de la compañía principal ==============================
+
+    @classmethod
+    def get_main_company(cls):
+        """La compañía principal — ``_get_main_company`` de la referencia.
+
+        Adaptación de ``odoo19c: odoo/addons/base/models/res_company.py:436-440``
+        (idéntico en ``odoo18c:``): se busca por el identificador estable y, si
+        no está, se cae al primero por ``id``. El fallback **no es defensivo**:
+        es lo que permite que un árbol sin la semilla siga teniendo una
+        compañía principal determinista.
+
+        Allá el identificador es el XML id ``base.main_company``; aquí es la
+        columna ``code`` (ver ``addons.base.data.res_company``).
+        """
+        return (cls.objects.filter(code=FOUNDER_COMPANY_CODE).first()
+                or cls.objects.order_by('id').first())
+
+    @classmethod
+    def get_system_company(cls):
+        """La compañía de datos compartidos de plataforma (``is_system``).
+
+        **No tiene análogo en la referencia**: Odoo no modela un operador de
+        plataforma sobre las compañías. Es eje L0 propio, y por eso no lleva
+        fallback — si no existe, existe el problema, y devolver otra compañía
+        en su lugar mezclaría datos de plataforma con los de un tenant.
+        """
+        return cls.objects.filter(code=SYSTEM_COMPANY_CODE).first()
 
     # === Reglas de coherencia =============================================
 

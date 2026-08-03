@@ -100,6 +100,12 @@ class ResPartner(AvatarMixin, TimeStampedModel):
         max_length=120, blank=True, default='',
         help_text='Puesto (Odoo function).',
     )
+    company_name = fields.Char(
+        max_length=150, blank=True, default='',
+        help_text='Razón social escrita a mano cuando el contacto NO cuelga '
+                  'de una empresa (Odoo ``company_name``, '
+                  '``odoo19c: res_partner.py:308``).',
+    )
     employee    = fields.Boolean(
         default=False,
         help_text='Marca de contacto empleado (Odoo employee).',
@@ -157,3 +163,33 @@ class ResPartner(AvatarMixin, TimeStampedModel):
     def is_address(self) -> bool:
         """Un partner hijo con ``type`` distinto de contacto es una dirección."""
         return bool(self.parent_id) and self.type != self.TYPE_CONTACT
+
+    # === Entidad comercial ================================================
+    # Adaptación de ``_compute_commercial_partner`` /
+    # ``_compute_commercial_company_name`` — ``odoo19c: res_partner.py:515-521``
+    # y ``:523-526``; idénticos en ``odoo18c: :450-456``. Allá son campos
+    # ``compute=... store=True``; aquí son propiedades, que es como este árbol
+    # expresa un computado (mismo patrón que ``ResCompany.name``).
+
+    @property
+    def commercial_partner(self):
+        """El partner que representa la **entidad comercial** del contacto.
+
+        Sube por la cadena de padres hasta la primera empresa. Un contacto
+        suelto (sin padre) es su propia entidad comercial — por eso el corte
+        es ``is_company or not parent``, no sólo ``is_company``.
+        """
+        if self.is_company or not self.parent_id:
+            return self
+        return self.parent.commercial_partner
+
+    @property
+    def commercial_company_name(self):
+        """Razón social de la entidad comercial.
+
+        Si la entidad comercial es una empresa, su ``name``; si no, el
+        ``company_name`` escrito a mano en este contacto. La referencia lo
+        resuelve con ``p.is_company and p.name or partner.company_name``.
+        """
+        p = self.commercial_partner
+        return p.name if p.is_company else self.company_name
