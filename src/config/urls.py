@@ -96,7 +96,7 @@ urlpatterns = _admin_urls + [
     # ~auth_ldap: CRUD de configuraciones LDAP por Company (permissions.ldap)
     path('api/v2/authz/',      include(('addons.authz_ldap.controllers.urls', 'authz_ldap'),               namespace='authz_ldap_v2')),
     # ~auth_oauth: login federado OAuth2 + proveedores (permissions.oauth)
-    path('api/v2/authz/',      include(('addons.authz_oauth.urls', 'authz_oauth'),             namespace='authz_oauth_v2')),
+    path('api/v2/authz/',      include(('addons.authz_oauth.controllers.urls', 'authz_oauth'),             namespace='authz_oauth_v2')),
     # ~auth_totp_mail: código 2FA por correo + invitación
     path('api/v2/authz/totp-mail/', include(('addons.authz_totp_mail.urls', 'authz_totp_mail'), namespace='authz_totp_mail_v2')),
     # ~auth_passkey: login WebAuthn + gestión de passkeys (account.security)

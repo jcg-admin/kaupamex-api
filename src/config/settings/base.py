@@ -117,7 +117,7 @@ AUTHENTICATION_BACKENDS = [
     'addons.authz_ldap.models.backends.LdapBackend',
     # ≙ credential type 'oauth_token' de auth_oauth (_check_credentials):
     # solo atiende el kwarg oauth_token, invisible para logins con password.
-    'addons.authz_oauth.backends.OauthTokenBackend',
+    'addons.authz_oauth.models.backends.OauthTokenBackend',
     # ≙ credential type 'webauthn' de auth_passkey: solo atiende el kwarg
     # webauthn_response.
     'addons.authz_passkey.backends.PasskeyBackend',

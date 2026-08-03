@@ -2,7 +2,7 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from addons.authz_oauth.views import OauthProviderViewSet, oauth_signin
+from addons.authz_oauth.controllers.main import OauthProviderViewSet, oauth_signin
 
 app_name = 'authz_oauth'
 

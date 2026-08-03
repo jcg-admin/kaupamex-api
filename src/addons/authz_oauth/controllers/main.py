@@ -32,7 +32,7 @@ from exceptions import AccessDenied, UserError
 from addons.authz.permissions import CapabilityRequiredMixin
 from addons.authz_oauth.models import OauthProvider
 from addons.authz_oauth.models.res_users import auth_oauth
-from addons.authz_oauth.serializers import (
+from addons.authz_oauth.controllers.serializers import (
     OauthProviderPublicSerializer,
     OauthProviderSerializer,
     OauthSigninSerializer,
