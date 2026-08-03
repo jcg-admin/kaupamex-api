@@ -22,7 +22,7 @@ from exceptions import AccessDenied, MissingError
 from addons.base.models.res_groups import ResGroups
 from addons.base.models.res_partner import ResPartner
 from addons.portal.models import res_partner as pp
-from addons.portal.services import document_check_access
+from addons.portal.controllers.portal import document_check_access
 
 User = get_user_model()
 
