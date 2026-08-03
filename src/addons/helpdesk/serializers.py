@@ -6,6 +6,7 @@ Cumplen los contratos JSON declarados en UC-SUPP-01..05 (PARTE 7C).
 from rest_framework import serializers
 from .models import SupportTicket, SupportTicketReply
 from addons.authz.services import is_superadmin
+from addons.sale.models import SaleOrder
 
 
 
@@ -50,7 +51,11 @@ class SupportTicketCreateSerializer(serializers.Serializer):
         request = self.context.get('request')
         if request is None or not getattr(request.user, 'is_authenticated', False):
             return value  # las views protegen con IsAuthenticated
-        if not SaleOrder.objects.filter(pk=value, user=request.user).exists():
+        # ``SaleOrder.partner`` es el comprador (lleva el nombre de
+        # ``sale.order.partner_id`` de la referencia, pero apunta a
+        # ``AUTH_USER_MODEL`` — ver H-API-254). El espejo ``user`` murió con la
+        # disolución; el import faltaba y esto era un ``NameError`` en runtime.
+        if not SaleOrder.objects.filter(pk=value, partner=request.user).exists():
             raise serializers.ValidationError({
                 'codigo_error': 'ORDER_NOT_FOUND',
                 'detail':     'La orden no existe o no pertenece al comprador.',
@@ -142,10 +147,13 @@ class SupportTicketDetailSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if not (request and request.user.is_authenticated and is_superadmin(request.user)):
             return None
+        # ``res.users`` delega la identidad al partner (``_inherits`` de la
+        # referencia): el nombre humano vive en ``ResPartner.name``, expuesto
+        # como ``ResUsers.name``. ``first_name`` no existe en la credencial.
         return {
             'id': obj.user_id,
             'email': obj.user.email,
-            'first_name': obj.user.first_name,
+            'name': obj.user.name,
         }
 
 
@@ -182,5 +190,7 @@ class AdminSupportTicketListSerializer(serializers.ModelSerializer):
         u = obj.user
         if u is None:
             return None
-        name = f"{u.first_name} {u.last_name}".strip() or u.email
+        # La referencia no separa nombre y apellido: ``res.partner`` tiene un
+        # solo ``name``, que ``res.users`` delega por ``_inherits``.
+        name = (u.name or '').strip() or u.email
         return {'id': u.pk, 'name': name, 'email': u.email}

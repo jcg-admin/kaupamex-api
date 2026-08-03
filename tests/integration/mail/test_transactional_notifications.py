@@ -43,9 +43,18 @@ def order_stub(db, user):
         tracking_number = 'TRACK-999'
 
     class _Order:
-        pk           = 1
-        order_number = 'PY-TEST-0001'
-        user         = _user
+        # ``name`` es la referencia pública de la orden en la referencia
+        # (``sale.order.name``); el stub decía ``order_number``, que el
+        # servicio dejó de leer al portarse la familia sale.
+        pk            = 1
+        name          = 'PY-TEST-0001'
+        user          = _user
+        # ``notify_order_status_changed`` resuelve el comprador por
+        # ``order.partner``, que en este esquema apunta a la credencial
+        # (``sale/models/sale_order.py:92-95``, divergencia H-API-254).
+        # ``user`` se conserva porque ``notify_order_created`` lo recibe
+        # explícito como argumento, no de la orden.
+        partner       = _user
         shipping_info = _Shipping()
 
     return _Order()
@@ -79,13 +88,22 @@ class TestNotifyOrderCreated:
         assert len(mail.outbox) == 0
 
     @override_settings(**LOCMEM_SETTINGS)
-    def test_no_envia_email_si_user_sin_email(self, db, user, order_stub):
-        user.email = ''
-        user.save(update_fields=['email'])
+    def test_partner_sin_email_cae_al_login(self, db, user, order_stub):
+        # Antes: "no envía email si el user no tiene email", escribiendo
+        # ``user.email = ''``. Ya no se sostiene: ``ResUsers.email`` es una
+        # propiedad de sólo lectura que delega en el partner con fallback al
+        # login (``base/models/res_users.py:244``), y el login es obligatorio.
+        # Vaciar el email del partner no deja al usuario sin destino: lo
+        # manda al login. Ver H-API-253.
+        user.partner.email = ''
+        user.partner.save(update_fields=['email'])
+        user.refresh_from_db()
+        assert user.email == user.login
         with patch(_ON_COMMIT_PATH, side_effect=lambda f: f()):
             notify_order_created(order_stub, user, Decimal('580.00'))
         assert Notification.objects.filter(user=user).exists()
-        assert len(mail.outbox) == 0
+        assert len(mail.outbox) == 1
+        assert mail.outbox[0].to == [user.login]
 
 
 # ─── UC-NOT-02 ──────────────────────────────────────────────────────────────────────────────────────

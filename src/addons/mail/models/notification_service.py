@@ -53,7 +53,7 @@ def notify_order_created(order, user, total_amount):
 
     if user.email:
         user_email  = user.email
-        name        = user.first_name or user.email
+        name        = user.name or user.email
         order_num   = order.name
         total_str   = str(total_amount)
         transaction.on_commit(
@@ -61,6 +61,24 @@ def notify_order_created(order, user, total_amount):
                 user_email, name, order_num, total_str,
             )
         )
+
+
+def _order_user(order):
+    """Comprador de una orden.
+
+    El espejo ``order.user`` murió con la disolución de ``users``
+    (V5d/H-API-20). El campo vigente es ``SaleOrder.partner``, que lleva el
+    nombre de la referencia (``sale.order.partner_id``) pero **apunta a
+    ``AUTH_USER_MODEL``**, no a ``res.partner``
+    (``sale/models/sale_order.py:92-95``) — así que ya es la credencial y no
+    hay que resolver nada. Esa divergencia con la referencia es real y está
+    registrada como H-API-254; corregirla es una migración de esquema, no un
+    cambio de este servicio.
+
+    ``None`` en carrito anónimo (el campo es nullable): no hay bandeja que
+    notificar.
+    """
+    return getattr(order, 'partner', None)
 
 
 def notify_order_status_changed(order, new_status):
@@ -76,7 +94,7 @@ def notify_order_status_changed(order, new_status):
     if new_status not in notify_statuses:
         return
 
-    user = getattr(order, 'user', None)
+    user = _order_user(order)
     if not user or not getattr(user, 'pk', None):
         return
 
@@ -99,7 +117,7 @@ def notify_order_status_changed(order, new_status):
 
     if user.email:
         user_email   = user.email
-        name         = user.first_name or user.email
+        name         = user.name or user.email
         order_num    = order.name
         shipping     = getattr(order, 'shipment_guide', None)
         tracking_num = shipping.tracking_number if shipping else None
@@ -127,7 +145,7 @@ def notify_shipping_updated(order, user, tracking_number=None, event_description
 
     if user.email:
         user_email  = user.email
-        name        = user.first_name or user.email
+        name        = user.name or user.email
         order_num   = order.name
         tracking    = tracking_number
         description = event_description
@@ -161,7 +179,7 @@ def notify_return_processed(order, user, return_status, reason=None):
 
     if user.email:
         user_email   = user.email
-        name         = user.first_name or user.email
+        name         = user.name or user.email
         order_num    = order.name
         r_status     = return_status
         r_reason     = reason
@@ -221,7 +239,7 @@ def notify_refund_processed(order, user, amount_refunded):
 
     if user.email:
         user_email  = user.email
-        name        = user.first_name or user.email
+        name        = user.name or user.email
         order_num   = referencia
         amount      = str(amount_refunded)
         transaction.on_commit(
@@ -262,7 +280,7 @@ def notify_support_closed(ticket, user, closed_by_staff=False):
 
     if user.email:
         user_email   = user.email
-        name         = user.first_name or user.email
+        name         = user.name or user.email
         ticket_id    = ticket.pk
         ticket_subj  = ticket.subject
         by_staff     = closed_by_staff
@@ -298,7 +316,7 @@ def notify_support_created(ticket, user):
 
     if user.email:
         user_email   = user.email
-        name         = user.first_name or user.email
+        name         = user.name or user.email
         ticket_id    = ticket.pk
         ticket_subj  = ticket.subject
         transaction.on_commit(

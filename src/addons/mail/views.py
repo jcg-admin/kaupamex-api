@@ -17,6 +17,7 @@ Identifiers + JSON keys in English (DEC-DOC-005).
 """
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 from django.http import Http404
 from django.shortcuts import get_object_or_404
@@ -261,6 +262,24 @@ class NotificationPreferencesView(APIView):
 
 
 # ────────────────────────────── UC-NOT-07 (admin) ────────────────────────
+def _users_matching_email(identifier):
+    """Usuarios activos cuyo email resuelto es ``identifier``.
+
+    ``ResUsers`` no tiene columnas ``email`` ni ``is_active``: la referencia
+    delega la identidad al partner (``_inherits``, ``base/models/res_users.py``)
+    y llama ``active`` al flag. La propiedad ``ResUsers.email`` devuelve
+    ``partner.email or login`` (``res_users.py:244``), así que el equivalente
+    en ORM es esa misma disyunción — el login sólo cuenta cuando el partner no
+    tiene email propio, o se traería usuarios ajenos.
+    """
+    User = get_user_model()
+    return User.objects.filter(
+        Q(partner__email=identifier)
+        | (Q(partner__email='') & Q(login=identifier)),
+        active=True,
+    )
+
+
 def _compute_audience_count(recipient_type, recipient_identifier, product_id):
     """
     Estima la cantidad de destinatarios para un envio manual.
@@ -273,9 +292,7 @@ def _compute_audience_count(recipient_type, recipient_identifier, product_id):
         if not recipient_identifier:
             return 0
         # Party (T-201): el identificador de usuario es el email (no username).
-        return User.objects.filter(
-            is_active=True, email=recipient_identifier,
-        ).count()
+        return _users_matching_email(recipient_identifier).count()
 
     if recipient_type == ManualNotification.RecipientType.PRODUCT_BUYERS:
         # El público lo resuelve su dueño (``sale``), inscrito en el registro
@@ -290,10 +307,10 @@ def _resolve_audience_user_ids(recipient_type, recipient_identifier, product_id)
     User = get_user_model()
     if recipient_type == ManualNotification.RecipientType.USER:
         # Party (T-201): el identificador de usuario es el email (no username).
-        qs = User.objects.filter(
-            is_active=True, email=recipient_identifier,
+        return list(
+            _users_matching_email(recipient_identifier)
+            .values_list('id', flat=True)
         )
-        return list(qs.values_list('id', flat=True))
 
     if recipient_type == ManualNotification.RecipientType.PRODUCT_BUYERS:
         return list(resolve_audience_user_ids(recipient_type, product_id=product_id))

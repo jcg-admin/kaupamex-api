@@ -39,9 +39,11 @@ def _create_buyers(n):
         )
         order = make_order(user=u)
         # E2c: la audiencia se resuelve por SaleOrderLine (canónico), no por
-        # el espejo. make_order deja la SaleOrder confirmada (date_order set).
+        # el espejo. make_order deja la SaleOrder confirmada (date_order set)
+        # y **devuelve la SaleOrder misma** — la venta ES la orden desde E5, no
+        # hay segunda entidad ni atributo ``sale_order`` que desreferenciar.
         SaleOrderLine.objects.create(
-            order=order.sale_order,
+            order=order,
             product=product,
             name=product.name,
             product_uom_qty=1,

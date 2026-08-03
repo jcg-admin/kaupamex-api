@@ -157,8 +157,13 @@ def _apply_admin_filters(qs, params):
         qs = qs.filter(user_id=params['user_id'])
     q = (params.get('q') or '').strip()
     if q:
+        # ``ResUsers.email`` es una propiedad que delega en el partner con
+        # fallback al login (``base/models/res_users.py:244``); no hay columna
+        # ``email`` que recorrer. El equivalente en ORM busca en ambos.
         qs = qs.filter(
-            Q(user__email__icontains=q) | Q(subject__icontains=q)
+            Q(user__partner__email__icontains=q)
+            | Q(user__login__icontains=q)
+            | Q(subject__icontains=q)
         )
     return qs, None
 
@@ -210,8 +215,12 @@ class SupportTicketListCreateView(APIView):
         # (RNF-SEC-003: mismo error si no existe o es ajena).
         order_number = (payload.pop('order_number', None) or '').strip()
         if order_number and not payload.get('order_id'):
+            # La referencia pública de la venta vive en ``name``
+            # (``sale.order.name``); ``order_number`` era del espejo retirado.
+            # ``partner`` es el comprador — apunta a ``AUTH_USER_MODEL``, no a
+            # ``res.partner`` (divergencia H-API-254).
             order = SaleOrder.objects.filter(
-                order_number=order_number, user=request.user,
+                name=order_number, partner=request.user,
             ).only('pk').first()
             if order is None:
                 return Response(

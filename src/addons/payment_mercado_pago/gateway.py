@@ -72,10 +72,20 @@ def _split_payer_name(order) -> tuple[str, str]:
     """
     Deriva (first_name, last_name) del comprador. Prefiere el nombre de la
     cuenta (order.partner); si no, parte el recipient_name de la dirección.
+
+    La referencia no separa nombre y apellido: ``res.partner`` tiene un solo
+    ``name`` (``odoo19c: base/models/res_partner.py``), y ``res.users`` lo
+    delega por ``_inherits``. ``user.first_name``/``last_name`` no existen en
+    ``ResUsers`` — se parte ``user.name`` con el mismo criterio que ya se
+    aplica al ``recipient_name`` de la dirección, unos renglones abajo.
     """
     user = getattr(order, 'user', None)
-    if user and (user.first_name or user.last_name):
-        return user.first_name or '', user.last_name or ''
+    account_name = (getattr(user, 'name', '') or '').strip() if user else ''
+    if account_name:
+        parts = account_name.split()
+        if len(parts) == 1:
+            return parts[0], ''
+        return parts[0], ' '.join(parts[1:])
     addr = getattr(order, 'address', None)
     full = (getattr(addr, 'recipient_name', '') or '').strip()
     if not full:
