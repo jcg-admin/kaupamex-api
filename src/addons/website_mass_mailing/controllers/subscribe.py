@@ -17,7 +17,7 @@ from rest_framework.views import APIView
 from addons.company.models import CompanySetting
 from addons.mass_mailing import services as mm
 
-from ..serializers import SubscribeSerializer
+from .serializers import SubscribeSerializer
 
 # Buzón de newsletter — L3 per-empresa (SOL-090 slice 3, CompanySetting). La
 # constante es el fallback **neutral** (nivel Kaupamex, no PracticaYoruba) que

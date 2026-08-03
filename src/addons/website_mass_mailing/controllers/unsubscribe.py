@@ -15,7 +15,7 @@ from drf_spectacular.utils import extend_schema
 
 from addons.mass_mailing import services as mm
 
-from ..serializers import UnsubscribeSerializer
+from .serializers import UnsubscribeSerializer
 
 
 class NewsletterUnsubscribeView(APIView):

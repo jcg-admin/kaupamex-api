@@ -7,7 +7,7 @@ Mounted in config/urls.py:
 """
 from django.urls import path
 
-from .views import NewsletterConfirmV2View, NewsletterSubscriptionsV2View
+from . import NewsletterConfirmV2View, NewsletterSubscriptionsV2View
 
 app_name = 'website_mass_mailing'
 
