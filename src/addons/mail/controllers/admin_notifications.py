@@ -1,6 +1,6 @@
 """Admin URLs — addons.mail (F8 consolidation)."""
 from django.urls import path
-from .views import AdminAudienceCountView, AdminManualNotificationCreateView
+from .main import AdminAudienceCountView, AdminManualNotificationCreateView
 
 app_name = 'admin_notifications'
 

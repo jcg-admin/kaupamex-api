@@ -55,9 +55,9 @@ urlpatterns = _admin_urls + [
     # ─── API v2 (F2: cart, wishlist, referral, notifications) ───────────────────
     # SOL-011 T-06: logs tecnicos read-only (UC-ADM-06, DEC-LOG-08 revisada).
     path('api/v2/admin/',          include(('addons.observability.admin_urls', 'admin_core'), namespace='admin_core_v2')),
-    path('api/v2/notifications/',  include(('addons.mail.urls', 'notifications'),     namespace='notifications_v2')),
+    path('api/v2/notifications/',  include(('addons.mail.controllers.urls', 'notifications'),     namespace='notifications_v2')),
     path('api/v2/bus/',            include(('addons.bus.urls', 'bus'),                 namespace='bus_v2')),
-    path('api/v2/admin/',          include(('addons.mail.admin_notifications', 'admin_notifications'),
+    path('api/v2/admin/',          include(('addons.mail.controllers.admin_notifications', 'admin_notifications'),
                                            namespace='admin_notifications_v2')),
 
     # ─── Retirados (SOL-098 aplicada a las familias) ──────────────────────────

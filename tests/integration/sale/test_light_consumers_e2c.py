@@ -33,7 +33,7 @@ from decimal import Decimal
 import pytest
 from django.contrib.auth import get_user_model
 
-from addons.mail.views import (
+from addons.mail.controllers.main import (
     _compute_audience_count,
     _resolve_audience_user_ids,
 )

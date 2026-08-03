@@ -32,12 +32,6 @@ loyalty/serializers.py
 loyalty/urls.py
 loyalty/schema.py
 loyalty/authz_catalog.py
-mail/views.py
-mail/serializers.py
-mail/urls.py
-mail/schema.py
-mail/data.py
-mail/authz_catalog.py
 observability/views.py
 observability/admin_urls.py
 observability/authz_catalog.py
