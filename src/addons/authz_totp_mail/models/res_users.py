@@ -126,8 +126,9 @@ def totp_mail_required(user):
     True si la política L2 exige 2FA a este usuario y no tiene TOTP de app
     activo (el fallback por correo aplica entonces).
 
-    ``employee_required`` usa la marca ``partner.employee`` — el proxy actual
-    de "interno" mientras el eje interno/portal se resuelve.
+    ``employee_required`` (≙ ``_is_internal`` de la referencia) usa
+    ``ResUsers.is_internal()`` — el eje interno/portal real, resuelto por el
+    ``user_type`` de los grupos (antes era el proxy ``partner.employee``).
     """
     TotpSecret = django_apps.get_model('authz_totp', 'TotpSecret')
     if TotpSecret.objects.filter(user=user, confirmed=True).exists():
@@ -136,7 +137,7 @@ def totp_mail_required(user):
     if policy == 'all_required':
         return True
     if policy == 'employee_required':
-        return bool(user.partner and user.partner.employee)
+        return user.is_internal()
     return False
 
 

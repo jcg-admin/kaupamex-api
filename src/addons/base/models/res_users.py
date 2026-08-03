@@ -324,6 +324,49 @@ class ResUsers(TimeStampedModel):
             'active', 'deactivated_reason', 'deactivated_at', 'updated_at',
         ])
 
+    # --- Eje interno / portal / público (≙ res_users.py:1165-1179) ---
+    #
+    # La referencia resuelve ``_is_internal``/``_is_portal``/``_is_public``
+    # como ``has_group(base.group_user | group_portal | group_public)`` —
+    # tres xmlid fijos. Aquí el eje NO es un grupo con nombre reservado: cada
+    # ``res.groups`` declara su ``user_type`` (``ResGroups.USER_TYPE_*``), y
+    # dos tipos distintos son disjuntos por construcción (ver
+    # ``res_groups.py``). Así que "es interno" = "pertenece a ≥1 grupo cuyo
+    # ``user_type`` es 'internal'". Esto es lo que el eje interno/portal
+    # necesitaba y no existía: los consumidores (p. ej.
+    # ``authz_totp_mail.totp_mail_required``, la re-ruta de invitación por
+    # audiencia, los puentes ``_portal``) usaban ``partner.employee`` como
+    # proxy — este es el criterio real.
+
+    def _has_user_type(self, user_type):
+        """True si pertenece a algún grupo con ese ``user_type``.
+
+        ``group_ids`` es el reverso del M2M declarado en ``res_groups.py``
+        (``related_name='group_ids'``); su ``user_type`` es la Selection de
+        ``ResGroups.USER_TYPE_CHOICES``.
+        """
+        return self.group_ids.filter(user_type=user_type).exists()
+
+    def is_internal(self):
+        """≙ ``_is_internal`` (res_users.py:1165-1167)."""
+        return self._has_user_type('internal')
+
+    def is_portal(self):
+        """≙ ``_is_portal`` (res_users.py:1169-1171)."""
+        return self._has_user_type('portal')
+
+    def is_public(self):
+        """≙ ``_is_public`` (res_users.py:1173-1175)."""
+        return self._has_user_type('public')
+
+    @property
+    def share(self):
+        """≙ ``_compute_share`` (res_users.py:460-464): compartido = NO
+        interno. Un usuario sin ningún grupo de tipo es 'share' (portal/
+        público), igual que la referencia marca ``share=True`` a todo lo que
+        no está en ``group_user``."""
+        return not self.is_internal()
+
 
 class ResUsersLog(TimeStampedModel):
     """``res.users.log`` — que hubo un acceso, no una auditoría.
