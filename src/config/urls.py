@@ -94,7 +94,7 @@ urlpatterns = _admin_urls + [
     # DEC-01 (~authz_totp): gestión del 2FA TOTP del usuario autenticado
     path('api/v2/authz/totp/', include(('addons.authz_totp.urls', 'authz_totp'),               namespace='authz_totp_v2')),
     # ~auth_ldap: CRUD de configuraciones LDAP por Company (permissions.ldap)
-    path('api/v2/authz/',      include(('addons.authz_ldap.urls', 'authz_ldap'),               namespace='authz_ldap_v2')),
+    path('api/v2/authz/',      include(('addons.authz_ldap.controllers.urls', 'authz_ldap'),               namespace='authz_ldap_v2')),
     # ~auth_oauth: login federado OAuth2 + proveedores (permissions.oauth)
     path('api/v2/authz/',      include(('addons.authz_oauth.urls', 'authz_oauth'),             namespace='authz_oauth_v2')),
     # ~auth_totp_mail: código 2FA por correo + invitación

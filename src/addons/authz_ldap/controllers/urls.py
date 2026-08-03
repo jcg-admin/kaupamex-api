@@ -2,7 +2,7 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from addons.authz_ldap.views import CompanyLdapViewSet
+from addons.authz_ldap.controllers.main import CompanyLdapViewSet
 
 app_name = 'authz_ldap'
 

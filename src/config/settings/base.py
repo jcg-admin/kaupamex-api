@@ -114,7 +114,7 @@ AUTH_USER_MODEL = 'base.ResUsers'
 # como antes.
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
-    'addons.authz_ldap.backends.LdapBackend',
+    'addons.authz_ldap.models.backends.LdapBackend',
     # ≙ credential type 'oauth_token' de auth_oauth (_check_credentials):
     # solo atiende el kwarg oauth_token, invisible para logins con password.
     'addons.authz_oauth.backends.OauthTokenBackend',

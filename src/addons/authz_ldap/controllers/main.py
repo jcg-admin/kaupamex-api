@@ -16,7 +16,7 @@ from rest_framework.viewsets import ModelViewSet
 
 from addons.authz.permissions import CapabilityRequiredMixin
 from addons.authz_ldap.models import CompanyLdap
-from addons.authz_ldap.serializers import CompanyLdapSerializer
+from addons.authz_ldap.controllers.serializers import CompanyLdapSerializer
 
 
 @extend_schema(tags=['authz-ldap'])

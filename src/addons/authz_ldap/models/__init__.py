@@ -5,8 +5,9 @@
 #
 #   res_company_ldap.py  → res_company_ldap.py (LDAPWrapper + CompanyLdap)
 #   res_users.py         → res_users.py (change_password / set_empty_password;
-#                          _login/_check_credentials viven en ../backends.py
-#                          porque AUTHENTICATION_BACKENDS es la cadena de
+#                          _login/_check_credentials viven en backends.py
+#                          (mismo paquete models/) porque
+#                          AUTHENTICATION_BACKENDS es la cadena de
 #                          super()._login en Django)
 #   res_company.py       → SIN archivo: su único contenido es la One2many
 #                          `ldaps`, que en Django ES el reverso de la FK
