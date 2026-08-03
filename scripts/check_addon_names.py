@@ -30,13 +30,15 @@ Qué hace ahora: cada addon debe resolver por **una** de tres vías.
    con alias, aplicando los renames que el framework destino fuerza. Resuelve
    solo, sin entrada en el registro.
 2. **Procedencia declarada** — entrada en ``scripts/addon_provenance.txt`` con
-   clase (``puerto`` | ``propio``) y **cita a un documento que debe existir**.
+   clase (``puerto`` | ``propio`` | ``drift`` | ``pendiente``) y **cita a un
+   documento que debe existir**.
    El gate verifica la existencia del archivo citado, no su contenido: así el
    veredicto no depende de que quien escribió la línea resumiera bien.
 3. **Nada de lo anterior** → exit 1.
 
-La clase ``pendiente`` existe para la deuda real —addons cuyo documento hay que
-leer antes de clasificar— y pasa en modo normal pero **falla con** ``--strict``.
+Dos clases marcan deuda y **fallan con** ``--strict``, pasando en modo normal:
+``drift`` (el análisis ya dictaminó que el nombre está mal y hay tarea abierta)
+y ``pendiente`` (el documento existe, falta leerlo y clasificar).
 Es la graduación de ``artefactos-minimos-iniciativa.md``: se cablea a CI cuando
 el conteo llegue a 0.
 
@@ -175,8 +177,8 @@ def main(argv):
             sin_declarar.append(name)
             continue
         clase, cita = registry[name]
-        if clase == 'pendiente':
-            pendientes.append((name, cita))
+        if clase in ('pendiente', 'drift'):
+            pendientes.append((name, clase, cita))
         elif not citation_exists(cita):
             cita_rota.append((name, cita))
         else:
@@ -217,11 +219,10 @@ def main(argv):
             print(f'  - {name:22} [{clase}]  {cita}')
 
     if pendientes:
-        print(f'\nPendientes de clasificar ({len(pendientes)}) — el documento '
-              'existe,\nfalta leerlo y decidir. Pasan en modo normal, fallan '
-              'con --strict:')
-        for name, cita in pendientes:
-            print(f'  - {name:22} {cita}')
+        print(f'\nDeuda declarada ({len(pendientes)}) — pasa en modo normal, '
+              'falla con --strict:')
+        for name, clase, cita in pendientes:
+            print(f'  - {name:22} [{clase}]  {cita}')
 
     if not absent:
         print('\nOK — todos los addons resuelven por nombre contra la referencia.')
