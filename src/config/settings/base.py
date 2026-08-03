@@ -120,7 +120,7 @@ AUTHENTICATION_BACKENDS = [
     'addons.authz_oauth.models.backends.OauthTokenBackend',
     # ≙ credential type 'webauthn' de auth_passkey: solo atiende el kwarg
     # webauthn_response.
-    'addons.authz_passkey.backends.PasskeyBackend',
+    'addons.authz_passkey.models.backends.PasskeyBackend',
 ]
 
 MIDDLEWARE = [

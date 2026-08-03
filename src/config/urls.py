@@ -100,7 +100,7 @@ urlpatterns = _admin_urls + [
     # ~auth_totp_mail: código 2FA por correo + invitación
     path('api/v2/authz/totp-mail/', include(('addons.authz_totp_mail.controllers.urls', 'authz_totp_mail'), namespace='authz_totp_mail_v2')),
     # ~auth_passkey: login WebAuthn + gestión de passkeys (account.security)
-    path('api/v2/authz/',      include(('addons.authz_passkey.urls', 'authz_passkey'),         namespace='authz_passkey_v2')),
+    path('api/v2/authz/',      include(('addons.authz_passkey.controllers.urls', 'authz_passkey'),         namespace='authz_passkey_v2')),
     # ~auth_signup: alta/set-password/reset por token firmado (pre-auth)
     path('api/v2/authz/',      include(('addons.authz_signup.controllers.urls', 'authz_signup'),           namespace='authz_signup_v2')),
     # G-PERM-01: catálogo de roles para el selector de /admin/permissions (UC-ADM-02)

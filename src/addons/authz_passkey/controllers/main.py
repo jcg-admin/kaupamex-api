@@ -33,7 +33,7 @@ from addons.authz_reauth.reauth import (
     has_active_reauth_session,
 )
 from addons.authz_passkey.models import PasskeyKey
-from addons.authz_passkey.serializers import (
+from addons.authz_passkey.controllers.serializers import (
     PasskeyKeySerializer,
     PasskeyRegisterSerializer,
     PasskeySigninSerializer,

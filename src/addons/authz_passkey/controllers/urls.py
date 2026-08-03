@@ -2,7 +2,7 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from addons.authz_passkey.views import (
+from addons.authz_passkey.controllers.main import (
     PasskeyViewSet,
     auth_options,
     passkey_signin,
