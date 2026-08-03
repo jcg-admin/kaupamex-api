@@ -98,6 +98,7 @@ INSTALLED_APPS = [
     'addons.authz_ldap',
     'addons.authz_oauth',
     'addons.authz_totp_mail',
+    'addons.authz_passkey',
     'addons.company',
     'addons.account',
 ]
@@ -116,6 +117,9 @@ AUTHENTICATION_BACKENDS = [
     # ≙ credential type 'oauth_token' de auth_oauth (_check_credentials):
     # solo atiende el kwarg oauth_token, invisible para logins con password.
     'addons.authz_oauth.backends.OauthTokenBackend',
+    # ≙ credential type 'webauthn' de auth_passkey: solo atiende el kwarg
+    # webauthn_response.
+    'addons.authz_passkey.backends.PasskeyBackend',
 ]
 
 MIDDLEWARE = [
