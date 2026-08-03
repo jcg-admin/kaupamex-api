@@ -269,7 +269,7 @@ DEFAULT_FROM_EMAIL = 'noreply@kaupamex.com'
 # Destinatario de alertas operativas (UC-ADM-05: backup fallido). Migrado a
 # SystemParameter L2 ('backup.alert_email', H-API-CFG-01) — tenia default=
 # stale (practicayoruba.com); ahora editable en caliente. Ver
-# addons.auto_backup.views._notify_backup_failed().
+# addons.auto_backup.controllers.main._notify_backup_failed().
 #
 # Buzones por propósito en VM2 (Postfix + Cyrus). Contacto y newsletter usan
 # su buzón monitoreado para que la conversación llegue a un humano y las

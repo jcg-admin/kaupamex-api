@@ -24,8 +24,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from addons.mail.models.email_executor import dispatch_email
-from .models import BackupRecord
-from .serializers import BackupRecordSerializer
+from addons.auto_backup.models import BackupRecord
+from addons.auto_backup.controllers.serializers import BackupRecordSerializer
 
 logger = logging.getLogger('apps')
 

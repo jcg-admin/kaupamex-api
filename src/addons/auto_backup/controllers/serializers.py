@@ -1,6 +1,6 @@
 """Serializers — addons.auto_backup (UC-ADM-05)."""
 from rest_framework import serializers
-from .models import BackupRecord
+from addons.auto_backup.models import BackupRecord
 
 
 class BackupRecordSerializer(serializers.ModelSerializer):

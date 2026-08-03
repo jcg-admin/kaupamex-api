@@ -23,12 +23,6 @@ authz_totp/views.py
 authz_totp/serializers.py
 authz_totp/urls.py
 authz_totp/data.py
-auto_backup/views.py
-auto_backup/serializers.py
-auto_backup/schema.py
-auto_backup/admin_urls.py
-auto_backup/authz_catalog.py
-auto_backup/models.py
 base/authz_catalog.py
 base_geolocalize/data.py
 bus/views.py

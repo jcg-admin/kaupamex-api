@@ -19,7 +19,7 @@ from unittest import mock
 
 from django.core import mail
 
-from addons.auto_backup import views as backups_views
+from addons.auto_backup.controllers import main as backups_views
 from addons.auto_backup.models import BackupRecord
 from addons.base.models import _PARAM_CACHE, SystemParameter
 

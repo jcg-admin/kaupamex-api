@@ -7,7 +7,7 @@ Mounted in config/urls.py under api/v2/admin/:
   POST /api/v2/admin/backups/  — disparar backup on-demand (GAP-I2 fix)
 """
 from django.urls import path
-from .views import AdminBackupListView
+from addons.auto_backup.controllers.main import AdminBackupListView
 
 app_name = 'admin_backups_v2'
 
