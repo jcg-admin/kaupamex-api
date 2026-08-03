@@ -41,6 +41,27 @@ from django.apps import apps
 logger = logging.getLogger(__name__)
 
 
+def _resolve_schema_module(app_name):
+    """Importa el ``schema`` del addon desde su layout fiel a odoo-tools
+    (``<app>.controllers.schema``) o el plano histórico (``<app>.schema``).
+
+    Retrocompatible: los addons planos resuelven por la 2ª ruta; los
+    reestructurados (schema bajo ``controllers/``) por la 1ª. Devuelve el
+    módulo o ``None`` si ninguno existe.
+    """
+    for dotted_path in (
+        f'{app_name}.controllers.schema',
+        f'{app_name}.schema',
+    ):
+        try:
+            return importlib.import_module(dotted_path)
+        except ModuleNotFoundError as exc:
+            if exc.name in (dotted_path, f'{app_name}.controllers'):
+                continue
+            raise
+    return None
+
+
 def _import_app_schema_modules():
     """Importa el modulo ``schema`` de cada app propia (si existe).
 
@@ -52,10 +73,7 @@ def _import_app_schema_modules():
     for app_config in apps.get_app_configs():
         if not app_config.name.startswith(('addons.', 'core')):
             continue  # solo apps propias del proyecto
-        try:
-            importlib.import_module(f'{app_config.name}.schema')
-        except ModuleNotFoundError:
-            continue
+        _resolve_schema_module(app_config.name)
 
 
 def register_app_schema_extensions(endpoints, **kwargs):
@@ -88,9 +106,8 @@ def collect_app_tags(result, generator, **kwargs):
         if not app_config.name.startswith(('addons.', 'core')):
             continue  # solo apps propias del proyecto
 
-        try:
-            module = importlib.import_module(f'{app_config.name}.schema')
-        except ModuleNotFoundError:
+        module = _resolve_schema_module(app_config.name)
+        if module is None:
             continue
 
         tags = getattr(module, 'SPECTACULAR_TAGS', None)

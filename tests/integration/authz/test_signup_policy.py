@@ -13,7 +13,7 @@ import pytest
 from rest_framework.test import APIClient
 
 from addons.base.models import SystemParameter, _clear_cache
-from addons.authz_signup.policy import password_reset_enabled, signup_open
+from addons.authz_signup.models.policy import password_reset_enabled, signup_open
 
 pytestmark = pytest.mark.django_db
 

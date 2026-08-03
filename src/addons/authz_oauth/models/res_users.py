@@ -32,7 +32,7 @@ import models
 from exceptions import AccessDenied, UserError
 
 from addons.authz_oauth.models.oauth_provider import OauthProvider
-from addons.authz_signup.policy import signup_open
+from addons.authz_signup.models.policy import signup_open
 from addons.base.models import SystemParameter, TimeStampedModel
 
 _logger = logging.getLogger(__name__)

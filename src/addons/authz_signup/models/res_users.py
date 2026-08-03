@@ -32,7 +32,7 @@ from exceptions import AccessDenied, UserError
 
 from addons.authz_signup.models import res_partner as partner_svc
 from addons.authz_signup.models.signup_request import SignupRequest
-from addons.authz_signup.policy import signup_open
+from addons.authz_signup.models.policy import signup_open
 from addons.base.models import SystemParameter
 from addons.mail.models.email_executor import dispatch_email
 from addons.mail.models.mail_template import MailTemplate

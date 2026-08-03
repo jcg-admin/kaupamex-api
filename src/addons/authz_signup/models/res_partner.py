@@ -31,8 +31,8 @@ from django.apps import apps as django_apps
 from exceptions import AccessDenied, UserError
 
 from addons.authz_signup.models.signup_request import SignupRequest
-from addons.authz_signup.policy import signup_open
-from addons.authz_signup.token import (
+from addons.authz_signup.models.policy import signup_open
+from addons.authz_signup.models.token import (
     read_signup_payload,
     read_signup_payload_unchecked_age,
     sign_signup_payload,

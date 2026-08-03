@@ -102,7 +102,7 @@ urlpatterns = _admin_urls + [
     # ~auth_passkey: login WebAuthn + gestión de passkeys (account.security)
     path('api/v2/authz/',      include(('addons.authz_passkey.urls', 'authz_passkey'),         namespace='authz_passkey_v2')),
     # ~auth_signup: alta/set-password/reset por token firmado (pre-auth)
-    path('api/v2/authz/',      include(('addons.authz_signup.urls', 'authz_signup'),           namespace='authz_signup_v2')),
+    path('api/v2/authz/',      include(('addons.authz_signup.controllers.urls', 'authz_signup'),           namespace='authz_signup_v2')),
     # G-PERM-01: catálogo de roles para el selector de /admin/permissions (UC-ADM-02)
     path('api/v2/admin/',      include(('addons.authz.admin_urls', 'admin_authz'),             namespace='admin_authz_v2')),
     # UC-PLT-12: consola L0 del operador Kaupamex — directorio de tenants (platform.provision)

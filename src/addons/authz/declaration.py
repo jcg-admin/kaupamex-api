@@ -218,24 +218,36 @@ def read_manifest(addon_dir):
 
 
 def _import_declaration(app_config):
-    """Devuelve ``<app>.authz_catalog`` del addon, o ``None`` si no declara.
+    """Devuelve el módulo de catálogo del addon, o ``None`` si no declara.
 
-    Se usa ``importlib.import_module`` —una **llamada**, no un statement
-    ``import``— porque el descubrimiento es dinámico por definición: el conjunto
-    de addons se conoce en runtime. Es el patrón sancionado en
-    ``.claude/rules/no-lazy-imports.md`` (excepción #4) y pasa el gate AST.
+    Busca en dos ubicaciones, en orden:
+
+    1. ``<app>.security.authz_catalog`` — el layout fiel a odoo-tools, donde el
+       catálogo (= la ACL ``security/ir.model.access.csv`` de la referencia)
+       vive bajo ``security/``.
+    2. ``<app>.authz_catalog`` — el layout plano histórico (raíz del addon).
+
+    Retrocompatible: los addons planos siguen funcionando por la 2ª ruta; los
+    reestructurados a ``security/`` por la 1ª. Se usa ``importlib.import_module``
+    —una **llamada**, no un statement ``import``— porque el descubrimiento es
+    dinámico (``.claude/rules/no-lazy-imports.md`` excepción #4; pasa el gate AST).
     """
-    dotted_path = f'{app_config.name}.{DECLARATION_MODULE}'
-    try:
-        return importlib.import_module(dotted_path)
-    except ModuleNotFoundError as exc:
-        # Sólo se traga la ausencia del propio archivo de declaración. Un
-        # ModuleNotFoundError lanzado DESDE authz_catalog.py (un import roto
-        # adentro) se propaga: tragarlo haría desaparecer al addon del catálogo
-        # en silencio, que es el defecto que esta pieza viene a cerrar.
-        if exc.name == dotted_path:
-            return None
-        raise
+    for dotted_path in (
+        f'{app_config.name}.security.{DECLARATION_MODULE}',
+        f'{app_config.name}.{DECLARATION_MODULE}',
+    ):
+        try:
+            return importlib.import_module(dotted_path)
+        except ModuleNotFoundError as exc:
+            # Sólo se traga la ausencia del propio archivo de declaración (o su
+            # paquete ``security``). Un ModuleNotFoundError lanzado DESDE
+            # authz_catalog.py (un import roto adentro) se propaga: tragarlo
+            # haría desaparecer al addon del catálogo en silencio, que es el
+            # defecto que esta pieza viene a cerrar.
+            if exc.name in (dotted_path, f'{app_config.name}.security'):
+                continue
+            raise
+    return None
 
 
 def discover():

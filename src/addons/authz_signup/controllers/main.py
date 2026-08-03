@@ -26,7 +26,7 @@ from exceptions import UserError
 
 from addons.authz_signup.models import res_partner as partner_svc
 from addons.authz_signup.models import res_users as signup_svc
-from addons.authz_signup.serializers import (
+from addons.authz_signup.controllers.serializers import (
     RequestResetSerializer,
     SignupSerializer,
 )
