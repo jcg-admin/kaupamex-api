@@ -36,8 +36,8 @@ from addons.authz.services import SUPERADMIN_ROLE_CODE, is_superadmin
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from addons.mail.models.notification_service import notify_support_created
-from .models import SupportTicket, SupportTicketReply
-from .serializers import AdminSupportTicketListSerializer, SupportTicketCloseSerializer, SupportTicketCreateResponseSerializer, SupportTicketCreateSerializer, SupportTicketDetailSerializer, SupportTicketListSerializer, SupportTicketReplyCreateSerializer, SupportTicketReplySerializer
+from addons.helpdesk.models import SupportTicket, SupportTicketReply
+from addons.helpdesk.controllers.serializers import AdminSupportTicketListSerializer, SupportTicketCloseSerializer, SupportTicketCreateResponseSerializer, SupportTicketCreateSerializer, SupportTicketDetailSerializer, SupportTicketListSerializer, SupportTicketReplyCreateSerializer, SupportTicketReplySerializer
 
 
 

@@ -78,7 +78,7 @@ urlpatterns = _admin_urls + [
     # de comprar, y el espejo las mezclaba en un solo addon.
     path('api/v2/admin/',                 include(('addons.sale_management.controllers.admin_urls', 'admin_sale'),
                                                   namespace='admin_sale_v2')),
-    path('api/v2/support/',               include(('addons.helpdesk.urls', 'support'),             namespace='support_v2')),
+    path('api/v2/support/',               include(('addons.helpdesk.controllers.urls', 'support'),             namespace='support_v2')),
 
     # ─── API v2 (F4: inventory admin + catalogue admin) ───────────────────────
 
@@ -120,7 +120,7 @@ urlpatterns = _admin_urls + [
     # appear here via users.urls — correct behaviour (same at both v1 and v2).
     # F6 (payments initiate/checkout) excluded — those are Tier B.
     path('api/v2/admin/',   include(('addons.loyalty.urls', 'admin_voucher'),                           namespace='admin_voucher_v2')),
-    path('api/v2/admin/',   include(('addons.helpdesk.admin_urls', 'admin_support'),                     namespace='admin_support_v2')),
+    path('api/v2/admin/',   include(('addons.helpdesk.controllers.admin_urls', 'admin_support'),                     namespace='admin_support_v2')),
     path('api/v2/admin/',   include(('addons.website.admin_urls', 'admin_static_content'),      namespace='admin_static_content_v2')),
     # Chartsize admin (variants) after catalogue CRUD so POST /api/v2/admin/products/
     # resolves to ProductAdminViewSet, not chartsize DefaultRouter root (GET-only).

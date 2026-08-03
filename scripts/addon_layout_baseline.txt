@@ -39,13 +39,6 @@ delivery/urls.py
 delivery/schema.py
 delivery/webhook_urls.py
 delivery/authz_catalog.py
-helpdesk/views.py
-helpdesk/serializers.py
-helpdesk/urls.py
-helpdesk/schema.py
-helpdesk/admin_urls.py
-helpdesk/authz_catalog.py
-helpdesk/models.py
 loyalty/views.py
 loyalty/serializers.py
 loyalty/urls.py

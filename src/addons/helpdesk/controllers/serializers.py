@@ -4,7 +4,7 @@ Serializers — addons.helpdesk.
 Cumplen los contratos JSON declarados en UC-SUPP-01..05 (PARTE 7C).
 """
 from rest_framework import serializers
-from .models import SupportTicket, SupportTicketReply
+from addons.helpdesk.models import SupportTicket, SupportTicketReply
 from addons.authz.services import is_superadmin
 from addons.sale.models import SaleOrder
 

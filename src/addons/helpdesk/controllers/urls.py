@@ -1,6 +1,6 @@
 """URLs — addons.helpdesk (F8 consolidation)."""
 from django.urls import path
-from .views import (
+from addons.helpdesk.controllers.main import (
     SupportTicketDetailView,
     SupportTicketListCreateView,
     SupportTicketReplyView,

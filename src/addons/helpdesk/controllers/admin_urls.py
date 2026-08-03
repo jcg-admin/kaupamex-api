@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import AdminSupportTicketExportCSVView, AdminSupportTicketListView
+from addons.helpdesk.controllers.main import AdminSupportTicketExportCSVView, AdminSupportTicketListView
 
 app_name = 'admin_support_v2'
 
