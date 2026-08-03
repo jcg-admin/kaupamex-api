@@ -19,7 +19,7 @@ from addons.authz_totp.services import (
     generate_recovery_codes,
     generate_secret,
 )
-from addons.authz_totp.totp import hotp
+from addons.authz_totp.models.totp import hotp
 
 pytestmark = pytest.mark.django_db
 

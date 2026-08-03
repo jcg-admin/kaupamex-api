@@ -16,7 +16,7 @@ from django.utils import timezone
 
 from addons.base.models import SystemParameter
 from addons.authz_totp.models import TotpRecoveryCode, TotpSecret
-from addons.authz_totp.totp import ALGORITHM, DIGITS, TIMESTEP, TOTP, TOTP_SECRET_SIZE
+from addons.authz_totp.models.totp import ALGORITHM, DIGITS, TIMESTEP, TOTP, TOTP_SECRET_SIZE
 
 # Marca mostrada en la app authenticator. NADA cableado: L2, sembrado por la
 # migración (0001) a 'Kaupamex' (marca de plataforma L0), editable en caliente.

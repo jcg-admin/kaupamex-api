@@ -1,19 +1,22 @@
-"""
-Models — addons.loyalty
-Sprint 13 — UC-PRO-01/02/03/04, UC-CART-04
+"""``Voucher`` — cupón de descuento (UC-PRO-01/02/03/04, UC-CART-04).
 
-Voucher: cupon de descuento. Tres tipos: FIXED, PERCENTAGE, FREE_SHIPPING.
-VoucherChangeLog: historial de cambios de admin (UC-PRO-02).
-VoucherUsage: registro de uso por orden — se crea al confirmar la venta (addons.sale).
+Tres tipos: FIXED, PERCENTAGE, FREE_SHIPPING. Incluye la maquinaria de
+generación de sufijo del código.
+
+SIN contraparte 1:1 en ``odoo19c: loyalty/models/`` (allí el dominio es
+loyalty_program/card/reward/rule); el porte semántico de esa familia es una
+iniciativa aparte — ver el mapa en ``__init__.py``.
 """
 import secrets
 import string
 from decimal import Decimal
+
 from django.conf import settings
-from django.db import models, transaction
-from addons.base.models import SoftDeleteModel, TimeStampedModel
-from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator
+from django.db import models
 from django.utils import timezone
+
+from addons.base.models import SoftDeleteModel, TimeStampedModel
 
 _ALPHABET = string.ascii_uppercase + string.digits
 
@@ -21,8 +24,6 @@ _ALPHABET = string.ascii_uppercase + string.digits
 def generate_suffix(length: int = 6) -> str:
     """Genera un sufijo aleatorio de ``length`` caracteres en mayusculas."""
     return ''.join(secrets.choice(_ALPHABET) for _ in range(length))
-
-
 
 class Voucher(TimeStampedModel, SoftDeleteModel):
     """
@@ -175,159 +176,3 @@ class Voucher(TimeStampedModel, SoftDeleteModel):
             return raw.quantize(Decimal('0.01'))
         # FREE_SHIPPING
         return Decimal('0.00')
-
-
-class VoucherUsage(models.Model):
-    """
-    Registro de uso de voucher por usuario. DEC-BC-10.
-    UNIQUE(user, voucher) garantiza single-use per user.
-    """
-    user    = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='voucher_usages',
-    )
-    voucher = models.ForeignKey(
-        Voucher,
-        on_delete=models.CASCADE,
-        related_name='usages',
-    )
-    used_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        db_table     = 'voucher_usage'
-        constraints  = [
-            models.UniqueConstraint(
-                fields=['user', 'voucher'],
-                name='unique_voucher_usage',
-            )
-        ]
-        verbose_name = 'Voucher usage'
-
-    def __str__(self):
-        return f'{self.user_id} / {self.voucher.code}'
-
-
-class VoucherChangeLog(TimeStampedModel):
-    """
-    Historial de cambios de administrador en un Voucher. UC-PRO-02.
-    Un registro por cada edicion con el snapshot de campos modificados.
-    """
-    voucher    = models.ForeignKey(
-        Voucher, on_delete=models.CASCADE, related_name='change_log',
-    )
-    changed_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL,
-    )
-    changes    = models.JSONField(
-        help_text='Dict de {campo: {before, after}} con los cambios aplicados.')
-    # created_at viene de TimeStampedModel (renombrado de changed_at en migración)
-
-    class Meta:
-        db_table     = 'voucher_change_log'
-        ordering     = ['-created_at']
-        verbose_name = 'Cambio de voucher'
-
-    def __str__(self):
-        return f'{self.voucher.code} — {self.created_at.date()}'
-
-
-class ReferralCode(TimeStampedModel):
-    """Codigo referral unico de un comprador. UC-PRO-05 Subflujo A.
-
-    Homed en ``loyalty`` (2026-07-20): el programa de referidos es la capa de
-    referral del framework de fidelidad de Odoo — respalda cada codigo como un
-    ``Voucher`` de tipo REFERRAL para reutilizar la validacion de vigencia.
-    """
-    user = models.OneToOneField(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='referral_code',
-    )
-    code = models.CharField(
-        max_length=50, unique=True,
-        verbose_name='Codigo referral',
-        help_text='Formato REF-{user.id}-{6 chars}. Siempre en mayusculas.',
-    )
-
-    class Meta:
-        db_table     = 'referral_code'
-        verbose_name = 'Codigo referral'
-
-    def __str__(self):
-        return self.code
-
-    @classmethod
-    def get_or_create_for_user(cls, user) -> 'ReferralCode':
-        """
-        Devuelve el codigo referral del usuario, generandolo si no existe.
-
-        Idempotente: una segunda llamada devuelve el mismo ``ReferralCode``.
-        El codigo se respalda como un ``Voucher`` de tipo REFERRAL para que la
-        validacion de estado en el redeem reutilice la logica del voucher.
-        """
-        existing = cls.objects.filter(user=user).first()
-        if existing is not None:
-            return existing
-        with transaction.atomic():
-            code = cls._build_unique_code(user)
-            Voucher.objects.get_or_create(
-                code=code,
-                defaults={
-                    'voucher_type': Voucher.TYPE_REFERRAL,
-                    'valid_from': timezone.now(),
-                    'is_active': True,
-                    'created_by': user,
-                },
-            )
-            return cls.objects.create(user=user, code=code)
-
-    @classmethod
-    def _build_unique_code(cls, user) -> str:
-        while True:
-            candidate = f'REF-{user.id}-{generate_suffix()}'
-            if not cls.objects.filter(code=candidate).exists() \
-                    and not Voucher.objects.filter(code=candidate).exists():
-                return candidate
-
-
-class Referral(TimeStampedModel):
-    """Relacion referidor-referido. UC-PRO-05 POST-03."""
-    STATUS_PENDING   = 'PENDING'
-    STATUS_COMPLETED = 'COMPLETED'
-    STATUSES = [
-        (STATUS_PENDING,   'Pendiente'),
-        (STATUS_COMPLETED, 'Completado'),
-    ]
-
-    referrer = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='referrals_made',
-    )
-    referee = models.OneToOneField(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='referral_received',
-    )
-    code   = models.CharField(max_length=50, db_index=True)
-    status = models.CharField(
-        max_length=20, choices=STATUSES,
-        default=STATUS_PENDING, db_index=True,
-    )
-    reward_voucher = models.ForeignKey(
-        Voucher,
-        null=True, blank=True,
-        on_delete=models.SET_NULL,
-        related_name='referral_rewards',
-        help_text='Voucher de recompensa emitido al referidor (Subflujo C).',
-    )
-    completed_at = models.DateTimeField(null=True, blank=True)
-
-    class Meta:
-        db_table     = 'referral_referral'
-        ordering     = ['-created_at']
-        verbose_name = 'Referido'
-
-    def __str__(self):
-        return f'{self.referrer_id} -> {self.referee_id} ({self.status})'

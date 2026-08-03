@@ -20,7 +20,7 @@ from addons.authz_totp.services import (
     provisioning_uri,
     verify_code,
 )
-from addons.authz_totp.totp import hotp
+from addons.authz_totp.models.totp import hotp
 
 pytestmark = pytest.mark.django_db
 
