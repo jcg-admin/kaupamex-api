@@ -32,7 +32,7 @@ import pytest
 from datetime import timedelta
 from decimal import Decimal
 from django.utils import timezone
-from addons.catalogue.models import Category, Product
+from tests.factories.product_factory import make_category, make_product
 from addons.inventory.models import StockMovement
 from addons.sale.status_projection import (
     STATUS_CANCELLED,
@@ -67,15 +67,11 @@ def _make_pending_order(age_minutes=None):
 
 
 def _make_product(stock=7):
-    cat = Category.objects.create(name='Cat Timeout', slug='cat-timeout',
-                                  is_active=True)
-    p = Product.objects.create(
-        name='Prod Timeout', slug='prod-timeout', sku='SKU-TO',
-        price=Decimal('900.00'), stock=stock,
-        is_active=True, is_published=True,
+    cat = make_category('Cat Timeout')
+    return make_product(
+        name='Prod Timeout', default_code='SKU-TO',
+        price=Decimal('900.00'), stock=stock, categ=cat,
     )
-    p.categories.add(cat)
-    return p
 
 
 class TestCancelTimeoutOrders:

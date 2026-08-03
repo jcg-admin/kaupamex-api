@@ -6,7 +6,7 @@ GET /api/v2/admin/wishlist/aggregate/ — solo staff; agregados anonimos.
 import pytest
 from decimal import Decimal
 
-from addons.catalogue.models import Product
+from tests.factories.product_factory import make_product
 from addons.website_sale_wishlist.models import WishlistItem
 
 pytestmark = pytest.mark.integration
@@ -16,10 +16,9 @@ AGG_URL = '/api/v2/admin/wishlist/aggregate/'
 
 @pytest.fixture
 def product(db):
-    return Product.objects.create(
-        name='Elekes de Yemayá', slug='elekes-yemaya-agg', sku='AGG-1',
-        description='', price=Decimal('500.00'), stock=10,
-        is_active=True, is_published=True,
+    return make_product(
+        name='Elekes de Yemayá', default_code='AGG-1',
+        price=Decimal('500.00'), stock=10,
     )
 
 

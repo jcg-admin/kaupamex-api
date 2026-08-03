@@ -20,7 +20,7 @@ import pytest
 from exceptions import UserError
 from addons.account.models import AccountAccount, AccountJournal
 from addons.account.services import create_invoice_from_sale_order
-from addons.catalogue.models import Category, Product
+from tests.factories.product_factory import make_category, make_product
 from addons.platform.models import Company
 from addons.sale.models import SaleOrder
 
@@ -50,11 +50,10 @@ def chart(db, company):
 @pytest.fixture
 def confirmed_order(db):
     """``SaleOrder`` confirmada (``state='sale'``) con una línea (total 116.00)."""
-    cat = Category.objects.create(name='Cat', slug='cat-inv', is_active=True)
-    product = Product.objects.create(
-        name='Prod', slug='prod-inv', sku='INV-001', description='',
-        price=Decimal('116.00'), stock=5, is_active=True, is_published=True)
-    product.categories.add(cat)
+    cat = make_category('Cat')
+    product = make_product(
+        name='Prod', default_code='INV-001', price=Decimal('116.00'),
+        stock=5, categ=cat)
     order = SaleOrder.objects.create(
         state=SaleOrder.STATE_SALE, cart_token=uuid.uuid4())
     order.order_line.create(

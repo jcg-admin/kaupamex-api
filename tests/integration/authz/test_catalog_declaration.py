@@ -23,7 +23,7 @@ def test_discover_finds_addon_declarations():
     assert capabilities, 'ningún addon declaró capacidades'
     # Muestras de dominios distintos: si el recorrido se rompiera para un addon
     # concreto, un solo assert genérico no lo notaría.
-    assert 'catalogue' in modules      # declarado por addons.catalogue
+    assert 'catalogue' in modules      # declarado por addons.product
     assert 'orders' in modules         # declarado por addons.sale (SOL-098)
     assert 'platform' in modules       # declarado por addons.platform
     assert 'account.profile' in capabilities

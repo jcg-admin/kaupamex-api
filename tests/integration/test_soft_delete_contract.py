@@ -9,12 +9,26 @@ These tests validate the SoftDeleteModel mixin in core.models:
 - ``restore()`` reverts the soft delete.
 - ``hard_delete()`` performs a real DELETE.
 - ``queryset.delete()`` does a bulk soft delete via UPDATE.
+
+Retirado ``TestSoftDeleteOnProduct`` (H-API-250): el sujeto era
+``catalogue.Product``, disuelto. Su sucesor ``product.ProductTemplate``
+hereda ``(ImageMixin, TimeStampedModel)`` — **no** ``SoftDeleteModel``: la
+referencia archiva con ``active`` en vez de borrar en suave
+(``odoo19c: product/models/product_template.py``). El contrato sobre un
+modelo concreto lo cubre ``Voucher`` (``loyalty``).
+Retirado tambien ``TestSoftDeleteOnAddress``: ``addons.users`` esta disuelto
+(``res.users`` vive en ``base`` — ver ``analisis-users-no-es-un-addon-en-la-
+referencia``) y ``Address`` no tiene sucesor construido.
+
+``TestSoftDeleteOnOrder`` se **reapunta**, no se borra: ``SaleOrder`` ya no
+declara el mixin (``sale_order.py:53`` → ``(MailThread, TimeStampedModel)``),
+pero seis modelos concretos vivos sí lo declaran. El sujeto pasa a ``Voucher``
+(``loyalty/models/voucher.py:28``), que conserva la cobertura del contrato
+sobre un modelo real.
 """
 import pytest
-from addons.sale.models import SaleOrder
+from addons.loyalty.models import Voucher
 from addons.base.models import SoftDeleteModel, SoftDeleteManager, AllObjectsManager
-from addons.catalogue.models import Product, Category
-from addons.users.models import Address
 
 pytestmark = pytest.mark.integration
 
@@ -41,76 +55,10 @@ class TestSoftDeleteContract:
         assert 'all_objects' in manager_names
 
 
-class TestSoftDeleteOnProduct:
-    """
-    Contract test on a real concrete model: Product (catalogue).
-    Product must inherit from SoftDeleteModel after the migration
-    that lands in this same iteration.
-    """
+class TestSoftDeleteOnVoucher:
+    """``Voucher`` (loyalty) — modelo concreto vivo que declara el mixin."""
 
     @pytest.mark.django_db
-    def test_delete_marks_soft_and_hides_from_default_manager(self):
-        cat = Category.objects.create(name='Cat soft', slug='cat-soft')
-        product = Product.objects.create(
-            name='Soft Delete Subject',
-            slug='soft-delete-subject', price=10,
-            stock=1, is_active=True,
-        )
-        product.categories.add(cat)
-        product.categories.add(cat)
-        pk = product.pk
-        product.delete()
-
-        # No esta en queryset por defecto.
-        assert not Product.objects.filter(pk=pk).exists()
-        # Pero sigue en la base de datos via all_objects.
-        ghost = Product.all_objects.get(pk=pk)
-        assert ghost.is_deleted is True
-        assert ghost.deleted_at is not None
-
-    @pytest.mark.django_db
-    def test_restore_reverts_soft_delete(self):
-        cat = Category.objects.create(name='Cat restore', slug='cat-restore')
-        product = Product.objects.create(
-            name='Restore Subject',
-            slug='restore-subject', price=10, stock=1,
-            is_active=True,
-        )
-        product.categories.add(cat)
-        product.categories.add(cat)
-        product.delete()
-        ghost = Product.all_objects.get(pk=product.pk)
-        ghost.restore()
-        assert Product.objects.filter(pk=product.pk).exists()
-
-    @pytest.mark.django_db
-    def test_hard_delete_actually_removes_row(self):
-        cat = Category.objects.create(name='Cat hard', slug='cat-hard')
-        product = Product.objects.create(
-            name='Hard Delete Subject',
-            slug='hard-delete-subject', price=10, stock=1,
-            is_active=True,
-        )
-        product.categories.add(cat)
-        product.categories.add(cat)
-        pk = product.pk
-        product.hard_delete()
-        assert not Product.all_objects.filter(pk=pk).exists()
-
-
-class TestSoftDeleteOnOrder:
-    """SaleOrder (orders) — historial financiero. Critico."""
-
-    @pytest.mark.django_db
-    def test_order_inherits_softdelete(self):
-        assert issubclass(SaleOrder, SoftDeleteModel)
-        assert hasattr(SaleOrder, 'all_objects')
-
-
-class TestSoftDeleteOnAddress:
-    """Address (users) — referenciado historicamente desde SaleOrder."""
-
-    @pytest.mark.django_db
-    def test_address_inherits_softdelete(self):
-        assert issubclass(Address, SoftDeleteModel)
-        assert hasattr(Address, 'all_objects')
+    def test_voucher_inherits_softdelete(self):
+        assert issubclass(Voucher, SoftDeleteModel)
+        assert hasattr(Voucher, 'all_objects')

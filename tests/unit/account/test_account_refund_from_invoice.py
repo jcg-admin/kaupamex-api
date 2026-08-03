@@ -22,7 +22,7 @@ from addons.account.services import (
     create_invoice_from_sale_order,
     create_refund_from_invoice,
 )
-from addons.catalogue.models import Category, Product
+from tests.factories.product_factory import make_category, make_product
 from addons.platform.models import Company
 from addons.sale.models import SaleOrder
 
@@ -50,11 +50,10 @@ def chart(db, company):
 
 @pytest.fixture
 def posted_invoice(db, company, chart):
-    cat = Category.objects.create(name='Cat', slug='cat-ref', is_active=True)
-    product = Product.objects.create(
-        name='Prod', slug='prod-ref', sku='REF-001', description='',
-        price=Decimal('116.00'), stock=5, is_active=True, is_published=True)
-    product.categories.add(cat)
+    cat = make_category('Cat')
+    product = make_product(
+        name='Prod', default_code='REF-001', price=Decimal('116.00'),
+        stock=5, categ=cat)
     order = SaleOrder.objects.create(
         state=SaleOrder.STATE_SALE, cart_token=uuid.uuid4())
     order.order_line.create(

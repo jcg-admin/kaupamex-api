@@ -14,7 +14,7 @@ import pytest
 from addons.sale.models import SaleOrder
 from decimal import Decimal
 
-from addons.catalogue.models import Category, Product
+from tests.factories.product_factory import make_category, make_product
 from addons.mail.models import Notification
 from addons.website_sale_wishlist.models import WishlistItem
 
@@ -43,23 +43,18 @@ V1_NOTIF_READ_URL      = '/api/v2/notifications/{pk}/read/'
 
 @pytest.fixture
 def category_f2(db):
-    return Category.objects.create(name='Cat F2', slug='cat-f2', is_active=True)
+    return make_category('Cat F2')
 
 
 @pytest.fixture
 def product_f2(db, category_f2):
-    p = Product.objects.create(
+    return make_product(
         name='Prod F2',
-        slug='prod-f2',
-        sku='F2-001',
-        description='',
+        default_code='F2-001',
         price=Decimal('500.00'),
         stock=10,
-        is_active=True,
-        is_published=True,
+        categ=category_f2,
     )
-    p.categories.add(category_f2)
-    return p
 
 
 @pytest.fixture

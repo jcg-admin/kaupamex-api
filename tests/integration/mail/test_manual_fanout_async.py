@@ -9,7 +9,7 @@ from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 
-from addons.catalogue.models import Category, Product
+from tests.factories.product_factory import make_category, make_product
 from addons.mail.models import ManualNotification, Notification
 from addons.sale.models import SaleOrderLine
 
@@ -22,17 +22,14 @@ ADMIN_MANUAL_URL = '/api/v2/admin/notifications/'
 
 def _create_buyers(n):
     """Crea n compradores con línea canónica sobre un producto común (E2c)."""
-    category, _ = Category.objects.get_or_create(
-        name='Fanout cat', defaults={'slug': 'fanout-cat'},
-    )
-    product = Product.objects.create(
+    category = make_category('Fanout cat')
+    product = make_product(
         name='Fanout product',
-        slug='fanout-product-sync',
-        sku='SKU-SYNC-FANOUT',
+        default_code='SKU-SYNC-FANOUT',
         price=Decimal('10.00'),
         stock=100,
+        categ=category,
     )
-    product.categories.add(category)
     User = get_user_model()
     user_ids = []
     for i in range(n):

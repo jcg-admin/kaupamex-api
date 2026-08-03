@@ -3,7 +3,7 @@ Integration tests — P-14 reviews endpoints (UC-REV-01..03).
 """
 import io
 from decimal import Decimal
-from addons.catalogue.models import Category, Product
+from tests.factories.product_factory import make_category, make_product
 from addons.delivery.models import DeliveryAddress
 from addons.rating.models import Review, ReviewHelpfulVote, ReviewModerationLog
 from django.contrib.auth import get_user_model
@@ -69,18 +69,15 @@ class TestReviewsCapabilityGate:
 
 @pytest.fixture
 def cat_rev(db):
-    return Category.objects.create(name='Rev', slug='rev', is_active=True)
+    return make_category('Rev')
 
 
 @pytest.fixture
 def prod_rev(db, cat_rev):
-    _p = Product.objects.create(
-        name='Producto Rev', slug='producto-rev', sku='REV-001',
-        price=Decimal('100'), stock=10,
-        is_active=True, is_published=True,
+    return make_product(
+        name='Producto Rev', default_code='REV-001',
+        price=Decimal('100'), stock=10, categ=cat_rev,
     )
-    _p.categories.add(cat_rev)
-    return _p
 
 
 @pytest.fixture
@@ -521,13 +518,10 @@ class TestCreateReviewEdgeCases:
         self, auth_client, user, prod_rev, cat_rev, db,
     ):
         """SaleOrder is delivered but the reviewed product was not in it."""
-        other_prod = Product.objects.create(
-            name='Otro Prod', slug='otro-prod-p21', sku='REV-OTHER-01',
-            price=Decimal('50'), stock=5,
-            is_active=True, is_published=True,
+        other_prod = make_product(
+            name='Otro Prod', default_code='REV-OTHER-01',
+            price=Decimal('50'), stock=5, categ=cat_rev,
         )
-        other_prod.categories.add(cat_rev)
-        other_prod.categories.add(cat_rev)
         o = make_order(user=user, status='DELIVERED')
         # order only contains other_prod, not prod_rev
         SaleOrderLine.objects.create(

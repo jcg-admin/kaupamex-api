@@ -13,8 +13,8 @@ from django.utils import timezone
 from datetime import timedelta
 from unittest.mock import patch
 
-from addons.catalogue.models import Category, Product
-from addons.inventory.services import InventoryService
+from tests.factories.product_factory import make_category, make_product
+from addons.stock.services import InventoryService
 from addons.delivery.models import ShippingZone
 from addons.delivery.models import ShippingMethod
 from addons.loyalty.models import Voucher, VoucherUsage
@@ -53,19 +53,15 @@ def voucher_single(db):
 
 @pytest.fixture
 def cat_vou(db):
-    return Category.objects.create(name='Cat Voucher', slug='cat-vou', is_active=True)
+    return make_category('Cat Voucher')
 
 
 @pytest.fixture
 def product_vou(db, cat_vou):
-    _p = Product.objects.create(
-        name='Producto Voucher', slug='prod-vou', sku='VOU-001',
-        description='',
-        price=Decimal('200.00'), stock=10,
-        is_active=True, is_published=True,
+    return make_product(
+        name='Producto Voucher', default_code='VOU-001',
+        price=Decimal('200.00'), stock=10, categ=cat_vou,
     )
-    _p.categories.add(cat_vou)
-    return _p
 
 
 class TestVoucherAlreadyApplied:

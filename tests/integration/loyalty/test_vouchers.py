@@ -12,7 +12,7 @@ from decimal import Decimal
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import date, timedelta
-from addons.catalogue.models import Category, Product
+from tests.factories.product_factory import make_category, make_product
 from addons.sale_loyalty.models.sale_order_coupon import SaleOrderCoupon
 from addons.sale_loyalty.models.sale_order import set_reward_line
 from addons.loyalty.models import Voucher, VoucherChangeLog
@@ -40,19 +40,15 @@ def _future(**kw):
 
 @pytest.fixture
 def cat_s13(db):
-    return Category.objects.create(name='Cat S13', slug='cat-s13', is_active=True)
+    return make_category('Cat S13')
 
 
 @pytest.fixture
 def product_s13(db, cat_s13):
-    _p = Product.objects.create(
-        name='Prod S13', slug='prod-s13', sku='S13-001',
-        description='',
-        price=Decimal('1000.00'), stock=10,
-        is_active=True, is_published=True,
+    return make_product(
+        name='Prod S13', default_code='S13-001',
+        price=Decimal('1000.00'), stock=10, categ=cat_s13,
     )
-    _p.categories.add(cat_s13)
-    return _p
 
 
 @pytest.fixture

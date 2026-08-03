@@ -12,11 +12,18 @@ T-104 fixes:
   D-06 UC-WISH-03 (MEDIA)   — respuesta {wishlist_item_id, cart_item_id, moved_at}
   D-07 UC-WISH-01 (MEDIA)   — price_at_add = product.lst_price
   D-09 UC-WISH-02 (MEDIA)   — nested product + availability string + price_dropped
+
+Nota (disolución de ``chartsize``, H-API-250): se retiraron el fixture
+``variant_s14`` y los dos casos que lo consumían (``test_add_with_variant``,
+``test_price_at_add_uses_product_base_price``). El addon de variantes ya no
+existe (``ls src/addons/chartsize`` → *No such file*): en la referencia el
+producto **es** la variante (``product.product``), así que el eje
+``variant_id`` del wishlist no tiene sujeto construido. Mismo criterio que
+``TestProteccionVariantesOrdenes`` en ``sale/test_order_management.py``.
 """
 import pytest
 from decimal import Decimal
-from addons.catalogue.models import Category, Product
-from addons.chartsize.models import VariantType, VariantOption, ProductVariant
+from tests.factories.product_factory import make_category, make_product
 from addons.website_sale_wishlist.models import WishlistItem
 from django.contrib.auth import get_user_model
 
@@ -38,28 +45,15 @@ class TestWishlistCapabilityGate:
 
 @pytest.fixture
 def cat_s14(db):
-    return Category.objects.create(name='Cat S14', slug='cat-s14', is_active=True)
+    return make_category('Cat S14')
 
 
 @pytest.fixture
 def prod_s14(db, cat_s14):
-    _p = Product.objects.create(
-        name='Prod S14', slug='prod-s14', sku='S14-001',
-        description='',
-        price=Decimal('750.00'), stock=5,
-        is_active=True, is_published=True,
+    return make_product(
+        name='Prod S14', default_code='S14-001',
+        price=Decimal('750.00'), stock=5, categ=cat_s14,
     )
-    _p.categories.add(cat_s14)
-    return _p
-
-
-@pytest.fixture
-def variant_s14(db, prod_s14):
-    vt = VariantType.objects.create(product=prod_s14, name='Talla', order=0)
-    opt = VariantOption.objects.create(
-        variant_type=vt, label='L', slug='l-s14', order=0)
-    return ProductVariant.objects.create(
-        product=prod_s14, option=opt, sku_suffix='L', stock=3, is_active=True)
 
 
 class TestWishlist:
@@ -80,23 +74,6 @@ class TestWishlist:
         res = auth_client.post(WISH_URL, {'product_id': prod_s14.pk}, format='json')
         assert res.status_code == 409
         assert res.json().get('codigo_error') == 'PRODUCT_ALREADY_IN_WISHLIST'
-
-    def test_add_with_variant(self, auth_client, prod_s14, variant_s14, db):
-        res = auth_client.post(WISH_URL, {
-            'product_id': prod_s14.pk, 'variant_id': variant_s14.pk
-        }, format='json')
-        assert res.status_code == 201
-        assert res.json()['variant_label'] == 'L'
-
-    def test_price_at_add_uses_product_base_price(self, auth_client, prod_s14, variant_s14, db):
-        """D-07 UC-WISH-01: price_at_add = Product.base_price, no variant.effective_price."""
-        res = auth_client.post(WISH_URL, {
-            'product_id': prod_s14.pk, 'variant_id': variant_s14.pk
-        }, format='json')
-        assert res.status_code == 201
-        assert res.json()['price_at_add'] == str(prod_s14.lst_price)
-
-    # UC-WISH-02 ── Ver lista (paginada) ──────────────────────────────
 
     def test_view_list_returns_paginated(self, auth_client, prod_s14, db):
         """D-05 UC-WISH-02: GET retorna respuesta paginada con total_items y results."""
