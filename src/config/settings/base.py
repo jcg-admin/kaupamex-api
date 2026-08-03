@@ -95,11 +95,23 @@ INSTALLED_APPS = [
     'addons.authz_password_policy',
     'addons.authz_signup',
     'addons.authz_totp',
+    'addons.authz_ldap',
     'addons.company',
     'addons.account',
 ]
 
 AUTH_USER_MODEL = 'base.ResUsers'
+
+# Cadena de autenticación — el equivalente Django de la cadena super()._login
+# de la referencia (auth_ldap/models/res_users.py:13-32): el password local
+# intenta primero (ModelBackend, el default implícito hasta ahora — se declara
+# explícito al federar) y LDAP es el fallback. Sin python-ldap instalado
+# (extra `ldap`), LdapBackend degrada devolviendo None y la cadena se comporta
+# como antes.
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'addons.authz_ldap.backends.LdapBackend',
+]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
