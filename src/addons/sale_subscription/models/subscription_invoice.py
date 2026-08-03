@@ -10,7 +10,7 @@ import models
 from addons.account.services import create_invoice_from_subscription
 from addons.base.models import TimeStampedModel
 from addons.base.models import ResCompany
-from orm.environments import CompanyScopedManager
+from addons.base.models.ir_rule import RuleScopedManager
 from addons.sale_subscription.models.company_module_subscription import (
     CompanyModuleSubscription,
 )
@@ -74,7 +74,7 @@ class SubscriptionInvoice(TimeStampedModel):
     )
 
     objects = models.Manager()               # default: cross-company (L0)
-    scoped = CompanyScopedManager()          # L3: fail-closed por company
+    scoped = RuleScopedManager()             # L3: record rules (ir_rule)
 
     class Meta:
         db_table = 'subscription_invoice'

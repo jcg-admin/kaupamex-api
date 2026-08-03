@@ -35,7 +35,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 
 from django.apps import apps
-from django.db import connection, connections, models
+from django.db import connection, connections
 
 from exceptions import AccessError
 
@@ -100,8 +100,9 @@ def get_current_companies():
 def get_current_company():
     """PK de la compañía actual (la primera activada) — el ``env.company``.
 
-    ``None`` = sin compañía en contexto. Ya NO significa elevación: una
-    consulta scopeada sin compañía deniega (ver ``CompanyScopedManager``).
+    ``None`` = sin compañía en contexto. Ya NO significa elevación: la regla
+    multi-company sembrada (``[('company_id','in',company_ids)]``) con cero
+    activadas da ``IN []`` → cero filas (fail-closed como dato).
     """
     companies = _current_companies.get()
     return companies[0] if companies else None
@@ -143,34 +144,13 @@ def company_scope(company_id):
         _current_companies.reset(token)
 
 
-class CompanyScopedManager(models.Manager):
-    """Aislamiento de fila por compañía — TRANSITORIO (muere en DEC-AISL-04 §4).
-
-    En la referencia este filtrado es **dato** (``ir.rule`` con
-    ``company_ids``), evaluado por el ORM y OMITIDO bajo ``su``; aquí es un
-    manager codificado con la misma semántica de dos canales:
-
-    - ``su`` activo → sin filtro (las reglas no aplican en modo elevado).
-    - Sin compañías activadas y sin ``su`` → queryset vacío (fail-closed).
-    - Con activadas → ``company_id ∈ activadas`` (el dominio típico de una
-      record rule multi-company usa ``company_ids``, el conjunto, no una).
-
-    Requiere FK ``company`` (columna ``company_id``) en el modelo. Se retira
-    al cablear ``ir_rule`` (tarea #31).
-    """
-
-    def for_current_company(self):
-        if is_su():
-            return self.get_queryset()
-        companies = get_current_companies()
-        if not companies:
-            return self.get_queryset().none()
-        return self.get_queryset().filter(company_id__in=companies)
-
+# El manager ``CompanyScopedManager`` que vivía aquí (transitorio) se retiró
+# en DEC-AISL-04 §4: el aislamiento por fila es DATO — record rules
+# (``addons.base.models.ir_rule``, dominio ``[('company_id','in',
+# company_ids)]``) aplicadas por ``RuleScopedManager`` de ese módulo.
 
 __all__ = [
     'apps', 'connection', 'connections',
     'get_current_company', 'get_current_companies', 'set_current_company',
     'activate_companies', 'company_scope', 'sudo', 'is_su',
-    'CompanyScopedManager',
 ]

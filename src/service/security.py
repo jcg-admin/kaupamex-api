@@ -23,11 +23,11 @@ sesión)                              (``django_session`` + ``SECRET_KEY``) y/o 
                                      sesiones tras cambio de credenciales
 autorización (a qué puede acceder)   **fuera de este módulo**: ``HasCapability``
                                      fail-closed por vista (DEC-11 niveles L0/L1/L3) +
-                                     record rules ``AccessRule`` (DEC-KX-02)
+                                     record rules ``ir_rule`` (DEC-AISL-04)
 ===================================  ===================================================
 
 Por qué stub: Django+DRF ya firman y revalidan la sesión/JWT por request; recrear
 el HMAC de sesión duplicaría ``SECRET_KEY``+simplejwt. La **autorización** (lo que
 Odoo reparte entre ``security`` y ``ir.rule``) aquí es el modelo de capacidades por
-vista, no un token — ver skill ``backend-drf`` y ADR-021 / DEC-KX-02.
+vista, no un token — ver skill ``backend-drf`` y ADR-021 / DEC-AISL-04.
 """

@@ -13,6 +13,7 @@ from orm.domains import (            # noqa: F401  (re-export de orm/domains)
     NOT,
     OR,
     TRUE_DOMAIN,
+    to_q,
 )
 
-__all__ = ['AND', 'OR', 'NOT', 'TRUE_DOMAIN', 'FALSE_DOMAIN']
+__all__ = ['AND', 'OR', 'NOT', 'TRUE_DOMAIN', 'FALSE_DOMAIN', 'to_q']

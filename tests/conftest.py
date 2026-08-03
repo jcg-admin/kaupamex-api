@@ -19,7 +19,12 @@ from addons.authz_totp.data import seed as totp_params_seed
 from addons.authz.models import Role, RoleAssignment
 from addons.authz.services import SUPERADMIN_ROLE_CODE
 from addons.base.models import SystemParameter
+from addons.base.security.base_security import seed as base_rules_seed
 from addons.base_geolocalize.data import seed as geo_providers_seed
+from addons.sale.security.ir_rules import seed as sale_rules_seed
+from addons.sale_subscription.security.ir_rules import (
+    seed as subscription_rules_seed,
+)
 from addons.sale_subscription.data.res_company_data import seed as founder_company_seed
 from addons.mail.data import seed as mail_subtypes_seed
 from tests.factories.user_factory import make_buyer  # noqa: F401 (re-export)
@@ -251,6 +256,9 @@ _SEEDERS = (
     mail_subtypes_seed,         # mail/0002
     geo_providers_seed,         # base_geolocalize/0002
     founder_company_seed,       # company/0006 + 0007
+    base_rules_seed,            # base/security (record rules multi-company)
+    sale_rules_seed,            # sale/security/ir_rules
+    subscription_rules_seed,    # sale_subscription/security/ir_rules
 )
 
 

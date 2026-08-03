@@ -5,18 +5,21 @@ Adaptación de ``odoo/addons/base/models/ir_rule.py``
 dominio que acota **qué filas** de un modelo ve un usuario, por operación
 (leer, escribir, crear, borrar).
 
-Relación con el aislamiento L3 que este árbol ya tiene
-======================================================
+Relación con el aislamiento L3 de este árbol (DEC-AISL-04 §4)
+=============================================================
 
-``company.CompanyScopedManager`` implementa hoy el aislamiento por fila:
-``for_current_company()`` filtra por la company del contexto, fail-closed.
-Eso es **una** regla de registro concreta, cableada en un manager. ``ir.rule``
-es el mecanismo general: la misma idea, declarada como dato en vez de código,
-con un dominio por regla y por grupo.
+``ir.rule`` ES el aislamiento por fila: el filtrado multi-company es **dato**
+(reglas con dominio ``[('company_id', 'in', company_ids)]``, como
+``account_security.xml:131`` en la referencia), no código. El manager
+codificado que lo implementaba antes (``CompanyScopedManager``) y el motor
+paralelo ``authz.record_rules`` se retiraron en este pase — eran dos
+expresiones redundantes de la misma idea.
 
-Portarlo no reemplaza al manager ni cambia la autorización por capacidad
-(DEC-11). Añade la pieza declarativa; conectarla al queryset de cada modelo es
-un pase aparte.
+``RuleScopedManager`` (abajo) es el punto de integración con el queryset — el
+rol de ``_check_access`` en la referencia (``odoo19c: odoo/orm/models.py:4114``:
+``if not self.env.su and (result := self._check_access(operation))`` — bajo
+``su`` las reglas NO se evalúan). La autorización por capacidad (DEC-11) no
+cambia: capa distinta.
 
 La combinación de dominios, que es el corazón del archivo
 =========================================================
@@ -52,14 +55,17 @@ Qué NO se porta, con su medición
   del modelo Django: cambiarlo a FK migra esta tabla y va en su propio pase,
   igual que ``ir_filters.action_id``. Mismo estado en ``ir_filters.model_id``
   e ``ir_attachment.res_model``.
-- **``domain_force`` evaluado con ``safe_eval``.** La referencia guarda el
-  dominio como **texto de una expresión Python** y lo evalúa con su
-  ``safe_eval`` contra un contexto acotado. Aquí el campo se porta —es el dato
-  de la regla— pero **este archivo no lo evalúa**: montar un evaluador de
-  expresiones sobre entrada almacenada es superficie de ejecución de código, y
-  hacerlo bien exige la decisión explícita de qué evaluador y con qué contexto.
-  ``build_domain`` deja el punto de extensión declarado y levanta si nadie lo
-  conectó, en vez de evaluar por su cuenta.
+- **(SUPERADO en este pase)** ``domain_force`` ya SÍ se evalúa. La decisión
+  explícita que este archivo exigía se tomó (tarea #31, con autorización del
+  ejecutor de copiar la implementación de la referencia): el evaluador es
+  ``tools.safe_eval`` (adaptación acotada del ``odoo/tools/safe_eval.py`` de
+  la fuente — AST whitelist en vez de opcodes, más estrecho, ver su
+  docstring) y el contexto es ``eval_context()``, fiel a ``_eval_context``
+  (``odoo19c: addons/base/models/ir_rule.py:38-51``):
+  ``{'user', 'company_ids', 'company_id'}`` — *"company_ids contains the ids
+  of the activated companies … filtered and trusted"* (el canal del dato,
+  DEC-AISL-04). El dominio resultante se traduce a ``Q`` con
+  ``orm.domains.to_q``.
 - **``ormcache`` sobre ``_compute_domain``** y ``_compute_domain_keys`` — la
   caché por usuario y valores de contexto del ORM de Odoo. Se deja el cómputo
   puro; cachearlo depende del punto de integración con el queryset.
@@ -75,6 +81,9 @@ import models
 
 from addons.base.models.res_groups import ResGroups
 from addons.base.models.timestamped_mixin import TimeStampedModel
+from orm import domains
+from orm.environments import get_current_companies, get_current_company, is_su
+from tools.safe_eval import safe_eval
 
 _logger = logging.getLogger(__name__)
 
@@ -148,22 +157,39 @@ class IrRule(TimeStampedModel):
             models.Q(groups__isnull=True) | models.Q(groups__in=list(group_ids))
         ).distinct().order_by('id')
 
+    @classmethod
+    def eval_context(cls, user=None):
+        """El contexto de evaluación de los dominios — ``_eval_context``.
+
+        Fiel a la fuente (``odoo19c: addons/base/models/ir_rule.py:38-51``):
+        ``company_ids`` son las compañías ACTIVADAS por el usuario — *"These
+        companies are filtered and trusted"* — es decir, el canal del dato
+        (``orm.environments``, DEC-AISL-04), ya validado contra lo permitido.
+        ``company_id`` es la actual (la primera activada).
+
+        ``user`` se pasa desde el llamador que lo tenga (una vista con
+        ``request.user``); un dominio que use ``user.id`` sin usuario en
+        contexto revienta al evaluarse, que es preferible a inventar uno.
+        """
+        return {
+            'user': user,
+            'company_ids': list(get_current_companies()),
+            'company_id': get_current_company(),
+        }
+
     def build_domain(self, eval_context=None):
-        """Punto de extensión: traduce ``domain_force`` a un filtro.
+        """Evalúa ``domain_force`` y lo traduce a un filtro ``Q``.
 
-        La referencia evalúa el texto con ``safe_eval``. Aquí **no** se evalúa
-        (ver el docstring del módulo): quien conecte las reglas al queryset
-        decide con qué evaluador y con qué contexto, y lo declara.
-
-        Una regla sin ``domain_force`` es verdadera —no restringe—, así que
-        devuelve un ``Q`` vacío sin necesitar evaluador.
+        Fiel a ``_compute_domain`` de la fuente:
+        ``Domain(safe_eval(rule.domain_force, eval_context)) if
+        rule.domain_force else Domain.TRUE`` (``odoo19c:
+        addons/base/models/ir_rule.py:164``). Una regla sin ``domain_force``
+        es verdadera —no restringe—; aquí ``Domain`` es ``orm.domains.to_q``.
         """
         if not self.domain_force:
             return models.Q()
-        raise NotImplementedError(
-            'ir.rule.domain_force requiere un evaluador de dominios; este '
-            'archivo no lo provee a propósito. Ver el docstring del módulo.'
-        )
+        domain = safe_eval(self.domain_force, eval_context or {})
+        return domains.to_q(domain)
 
     @classmethod
     def compute_domain(cls, model_name, mode='read', group_ids=(),
@@ -174,6 +200,8 @@ class IrRule(TimeStampedModel):
         contra las globales. Invertir cualquiera de los dos operadores rompe
         el modelo: ver el docstring del módulo.
         """
+        if eval_context is None:
+            eval_context = cls.eval_context()
         rules = cls.get_rules(model_name, mode=mode, group_ids=group_ids)
         user_groups = set(group_ids)
 
@@ -217,3 +245,38 @@ class IrRule(TimeStampedModel):
             eval_context=eval_context)
         allowed = queryset.filter(domain).values_list('pk', flat=True)
         return queryset.exclude(pk__in=list(allowed))
+
+
+class RuleScopedManager(models.Manager):
+    """Aplica las record rules del modelo al queryset — el rol de
+    ``_check_access`` (``odoo19c: odoo/orm/models.py:4114``).
+
+    Sustituye al ``CompanyScopedManager`` codificado (DEC-AISL-04 §4): el
+    filtrado ya no vive en el manager sino en las reglas almacenadas
+    (``ir_rule``); este manager sólo las evalúa y las aplica. Semántica de la
+    referencia, verbatim:
+
+    - ``su`` activo → sin filtro. En la fuente ``_check_access`` ni se llama
+      bajo ``su`` (``if not self.env.su and (result := ...)``).
+    - Reglas de grupo cuyos grupos el llamador no pasa → descartadas
+      (``compute_domain``). Las reglas multi-company canónicas son globales
+      (``account_security.xml`` no les declara grupos), así que aplican sin
+      ``group_ids``.
+    - **Sin regla para el modelo → sin restricción** (semántica Odoo). El
+      fail-closed multi-company es DATO, no código: la regla sembrada
+      ``[('company_id', 'in', company_ids)]`` con cero compañías activadas
+      da ``company_id IN []`` → cero filas. Por eso la semilla de la regla
+      es parte del DoD de todo modelo con columna ``company_id``.
+
+    El nombre del método se conserva del manager retirado
+    (``for_current_company``) para no tocar a los llamadores; lo que hace
+    ahora es aplicar las reglas del modelo, no una compañía cableada.
+    """
+
+    def for_current_company(self, mode='read', group_ids=(), user=None):
+        if is_su():
+            return self.get_queryset()
+        domain = IrRule.compute_domain(
+            self.model._meta.label, mode=mode, group_ids=group_ids,
+            eval_context=IrRule.eval_context(user=user))
+        return self.get_queryset().filter(domain)

@@ -4,7 +4,7 @@ Diseño: :ref:`analisis-estrategia-configuracion-capas` (capa L3, sección 7).
 Cierra :ref:`hallazgos-implementar-systemparameter-l2` (H-CFG-IMPL-10).
 
 Extiende el patrón L2 de ``addons.base.SystemParameter`` (key/value) a la
-dimensión per-empresa: FK ``company`` + ``CompanyScopedManager`` (SOL-085),
+dimensión per-empresa: FK ``company`` + ``RuleScopedManager`` (SOL-085),
 igual que ``CompanyModuleSubscription``. A diferencia de L2 (plano de
 control, ``get_param``/``set_param`` sin dimensión de empresa),
 ``get_setting``/``set_setting`` resuelven la empresa (parámetro explícito o

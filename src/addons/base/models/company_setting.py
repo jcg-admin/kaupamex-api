@@ -13,13 +13,10 @@ vivir aquí sin acoplar ``base``.
 import fields
 import models
 
+from addons.base.models.ir_rule import RuleScopedManager
 from addons.base.models.res_company import ResCompany
 from addons.base.models.timestamped_mixin import TimeStampedModel
-from orm.environments import (
-    CompanyScopedManager,
-    company_scope,
-    get_current_company,
-)
+from orm.environments import company_scope, get_current_company
 
 
 class CompanySetting(TimeStampedModel):
@@ -29,7 +26,7 @@ class CompanySetting(TimeStampedModel):
     7). Cierra :ref:`hallazgos-implementar-systemparameter-l2` (H-CFG-IMPL-10).
     Extiende el patrón L2 de ``addons.base.SystemParameter`` (equivalente
     Django de ``ir.config_parameter``: store key/value) a la dimensión
-    per-compañía, con FK ``company`` + ``CompanyScopedManager`` (SOL-085) —
+    per-compañía, con FK ``company`` + ``RuleScopedManager`` (SOL-085) —
     el mismo par ``objects``/``scoped`` que ``CompanyModuleSubscription``.
 
     Bajo DB-per-company (SOL-091) este es un modelo de **dominio**: el
@@ -68,7 +65,7 @@ class CompanySetting(TimeStampedModel):
     value = fields.Text(verbose_name='Valor')
 
     objects = models.Manager()               # cross-company (L0 admin)
-    scoped = CompanyScopedManager()          # L3: fail-closed por company activa
+    scoped = RuleScopedManager()             # L3: record rules (ir_rule)
 
     class Meta:
         db_table = 'company_setting'

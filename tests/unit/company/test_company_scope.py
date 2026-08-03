@@ -1,9 +1,11 @@
-"""Contract for the CompanyScopedManager core primitive (SOL-085 L3 core).
+"""Contract del scoping L3 por record rules (SOL-085 / DEC-AISL-04 §4).
 
 En MariaDB 11.8 no hay RLS tipo Postgres, así que el aislamiento de fila L3 se
 hace a nivel de aplicación: un ``current_company`` (ContextVar) fija la company
-del request y ``CompanyScopedManager.for_current_company()`` filtra por ella,
-**fail-closed** (sin company en contexto → queryset vacío, nunca "todo").
+del request y ``RuleScopedManager.for_current_company()`` aplica la record
+rule global ``[('company_id','in',company_ids)]`` (dato sembrado por
+``security/ir_rules.py`` del addon dueño). **Fail-closed** por dato: sin
+company activada, el dominio da ``IN []`` → queryset vacío, nunca "todo".
 
 Este slice entrega el **núcleo** (contextvar + manager) con
 ``CompanyModuleSubscription`` como primer consumidor real (ya tiene FK company;
@@ -44,7 +46,7 @@ class TestCurrentCompanyContext:
         assert get_current_company() is None  # restored on exit
 
 
-class TestCompanyScopedManager:
+class TestRuleScopedManager:
     def _sub(self, company, code):
         m = Module.objects.create(code=code, name=code)
         return CompanyModuleSubscription.objects.create(

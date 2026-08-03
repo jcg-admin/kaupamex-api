@@ -3,16 +3,17 @@
 Rebanada del eje factura (H-API-08, sub-rebanada (b)): ``account.services``
 factura una ``SaleOrder`` leyendo su empresa, pero ``SaleOrder`` no tenía FK
 ``company`` (PROVEN: 0 usos en ``sale/models/sale_order.py``). Este es el
-primer modelo de dominio que adopta el motor de scoping L3 ya existente
-(``CompanyScopedManager``, ``company/models.py:29``): FK ``company`` nullable
+primer modelo de dominio que adopta el scoping L3: FK ``company`` nullable
 durante el rollout + par de managers ``objects`` (cross-company, L0 admin) /
-``scoped`` (fail-closed por empresa activa, L3). Espeja el patrón de
-``CompanySetting`` (``company/models.py:194-202``).
+``scoped``. Desde DEC-AISL-04 §4 el scoping es DATO: la record rule global
+*"Sales Order multi-company"* (``sale/security/ir_rules.py``, dominio
+``[('company_id','in',company_ids)]`` verbatim de la fuente) aplicada por
+``RuleScopedManager`` (``addons.base.models.ir_rule``).
 """
 import pytest
 
 from orm.environments import set_current_company
-from orm.environments import CompanyScopedManager
+from addons.base.models.ir_rule import RuleScopedManager
 from addons.base.models import ResCompany
 from addons.sale.models import SaleOrder
 
@@ -41,8 +42,8 @@ class TestSaleOrderCompanyScoping:
         order.refresh_from_db()
         assert order.company is None
 
-    def test_scoped_manager_is_company_scoped(self):
-        assert isinstance(SaleOrder.scoped, CompanyScopedManager)
+    def test_scoped_manager_is_rule_scoped(self):
+        assert isinstance(SaleOrder.scoped, RuleScopedManager)
 
     def test_scoped_filters_by_current_company(self, company_a, company_b):
         a1 = SaleOrder.objects.create(company=company_a)

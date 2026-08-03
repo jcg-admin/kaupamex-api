@@ -277,7 +277,7 @@ DEFAULT_FROM_EMAIL = 'noreply@kaupamex.com'
 #
 # Los remitentes de correo per-tenant migraron a L3
 # (``addons.base.CompanySetting`` — per-empresa, FK ``company`` +
-# ``CompanyScopedManager``): ya NO son settings de Django.
+# record rules ``ir_rule``): ya NO son settings de Django.
 #
 # - CONTACT_FROM_EMAIL/CONTACT_NOTIFY_EMAIL/NEWSLETTER_FROM_EMAIL → SOL-090
 #   slice 3 (``company/0006_seed_founder_settings``).

@@ -11,7 +11,7 @@ import models
 
 from addons.base.models import TimeStampedModel
 from addons.base.models import ResCompany
-from orm.environments import CompanyScopedManager
+from addons.base.models.ir_rule import RuleScopedManager
 from addons.sale_subscription.models.module_price import ModulePrice
 
 
@@ -52,7 +52,7 @@ class CompanyModuleSubscription(TimeStampedModel):
     )
 
     objects = models.Manager()               # default: cross-company (L0)
-    scoped = CompanyScopedManager()          # L3: fail-closed por company
+    scoped = RuleScopedManager()             # L3: record rules (ir_rule)
 
     class Meta:
         db_table = 'company_module_subscription'

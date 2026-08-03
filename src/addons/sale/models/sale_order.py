@@ -27,7 +27,7 @@ from tools.translate import _
 
 from addons.account.services import create_invoice_from_sale_order
 from addons.base.models import IrSequence, TimeStampedModel
-from orm.environments import CompanyScopedManager
+from addons.base.models.ir_rule import RuleScopedManager
 from addons.mail.models import MailThread
 
 
@@ -198,7 +198,7 @@ class SaleOrder(MailThread, TimeStampedModel):
     )
 
     objects = models.Manager()               # cross-company (L0 admin)
-    scoped = CompanyScopedManager()          # L3: fail-closed por empresa activa
+    scoped = RuleScopedManager()             # L3: record rules (ir_rule)
 
     class Meta:
         db_table     = 'sale_order'
