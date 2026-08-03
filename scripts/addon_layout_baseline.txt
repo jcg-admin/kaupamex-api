@@ -1,0 +1,83 @@
+# Deuda congelada de H-API-238 — capas estructurales planas ya existentes
+# cuando se cableó el gate (scripts/check_addon_layout.py). El gate bloquea
+# planos NUEVOS; estas se migran una por una con el mapa de H-API-238 y salen
+# de aquí al hacerlo.
+#
+# Los ocho de platform/ NO son deuda heredada ajena: se movieron desde company
+# en el mismo pase que sí desagrupó models.py, tomando un item ya nombrado por
+# H-API-238 y renombrandolo. Se pagan primero (H-API-256).
+
+account/authz_catalog.py
+authz/views.py
+authz/serializers.py
+authz/urls.py
+authz/admin_views.py
+authz/admin_serializers.py
+authz/admin_urls.py
+authz/authz_catalog.py
+authz/models.py
+authz_audit/models.py
+authz_password_policy/data.py
+authz_reauth/models.py
+authz_totp/views.py
+authz_totp/serializers.py
+authz_totp/urls.py
+authz_totp/data.py
+auto_backup/views.py
+auto_backup/serializers.py
+auto_backup/schema.py
+auto_backup/admin_urls.py
+auto_backup/authz_catalog.py
+auto_backup/models.py
+base/authz_catalog.py
+base_geolocalize/data.py
+bus/views.py
+bus/urls.py
+delivery/views.py
+delivery/serializers.py
+delivery/urls.py
+delivery/schema.py
+delivery/webhook_urls.py
+delivery/authz_catalog.py
+helpdesk/views.py
+helpdesk/serializers.py
+helpdesk/urls.py
+helpdesk/schema.py
+helpdesk/admin_urls.py
+helpdesk/authz_catalog.py
+helpdesk/models.py
+loyalty/views.py
+loyalty/serializers.py
+loyalty/urls.py
+loyalty/schema.py
+loyalty/authz_catalog.py
+mail/views.py
+mail/serializers.py
+mail/urls.py
+mail/schema.py
+mail/data.py
+mail/authz_catalog.py
+mass_mailing/admin_urls.py
+mass_mailing/authz_catalog.py
+observability/views.py
+observability/admin_urls.py
+observability/authz_catalog.py
+payment/authz_catalog.py
+platform/views.py
+platform/serializers.py
+platform/urls.py
+platform/data.py
+platform/authz_catalog.py
+product/authz_catalog.py
+rating/authz_catalog.py
+sale/views.py
+sale/serializers.py
+sale/urls.py
+sale/authz_catalog.py
+sale/signals.py
+stock/authz_catalog.py
+website/views.py
+website/serializers.py
+website/schema.py
+website/admin_urls.py
+website/authz_catalog.py

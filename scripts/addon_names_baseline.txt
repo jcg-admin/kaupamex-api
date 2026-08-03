@@ -1,0 +1,24 @@
+# Deuda congelada — addons cuyo nombre NO existe en ningún árbol con alias de
+# odoo-tools, ni siquiera aplicando los renames forzados que el gate conoce
+# (scripts/check_addon_names.py, FORCED_PREFIX_RENAMES).
+#
+# El gate bloquea nombres NUEVOS; esta lista es lo que ya estaba cuando se
+# cableó, con el motivo por el que sigue viva. Un nombre sale de aquí cuando se
+# disuelve en el addon donde la referencia declara el dominio (H-API-119), no
+# cuando alguien lo declara aceptable.
+#
+# NO están aquí los siete authz_* que resuelven por mapeo (ldap, oauth,
+# passkey, password_policy, signup, totp, totp_mail): son puertos fieles cuyo
+# prefijo cambió porque django.contrib.auth ocupa el label `auth`.
+
+authz         # `auth` no es un addon en la referencia: la maquinaria de
+              # identidad vive en el núcleo `base` (mismo caso que `users`,
+              # H-API-119). Cierra con la tarea #20.
+authz_audit   # sin contraparte; pendiente de decisión
+authz_reauth  # sin contraparte (DEC-12 es nuestro); pendiente de decisión
+auto_backup   # sin contraparte en la referencia; pendiente de decisión
+base_bank     # sin contraparte; pendiente de decisión
+observability # sin contraparte; pendiente de decisión
+platform      # H-API-256 — inventado el 2026-08-03 pese a H-API-119. NO es
+              # excepción sancionada: es la deuda que este gate existe para no
+              # repetir. Se disuelve, no se legitima.

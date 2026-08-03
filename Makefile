@@ -2,10 +2,14 @@
 #
 # Targets para ejecucion local y en pipelines de CI futuros.
 # Mantiene paridad con ui/package.json scripts equivalentes.
-.PHONY: help check-lazy check-lazy-ci check-cycles check-cycles-ci check-catalog check-catalog-ci check-canon check-canon-ci test test-coverage install-hooks db-up ci-test ci-test-fast
+.PHONY: help check-names check-names-ci check-layout check-layout-ci check-lazy check-lazy-ci check-cycles check-cycles-ci check-catalog check-catalog-ci check-canon check-canon-ci test test-coverage install-hooks db-up ci-test ci-test-fast
 
 help:
 	@echo 'Targets:'
+	@echo '  make check-names       Nombre de addon contra odoo-tools (H-API-119)'
+	@echo '  make check-names-ci    Idem, exit != 0 tambien con deuda heredada'
+	@echo '  make check-layout      Capas estructurales en paquete (H-API-238)'
+	@echo '  make check-layout-ci   Idem, exit != 0 tambien con deuda heredada'
 	@echo '  make check-lazy        Audit AST: 0 lazy imports en apps/** y tests/**'
 	@echo '  make check-lazy-ci     Idem, exit code != 0 si hay violaciones'
 	@echo '  make check-catalog     Coherencia de los authz_catalog.py (SOL-100)'
@@ -22,6 +26,18 @@ help:
 	@echo '  make ci-test-fast      db-up + subset de humo cart/ (--reuse-db)'
 
 # Audit local — imprime hallazgos pero no falla (para inspeccion manual).
+check-names:
+	python3 scripts/check_addon_names.py
+
+check-names-ci:
+	python3 scripts/check_addon_names.py --strict
+
+check-layout:
+	python3 scripts/check_addon_layout.py
+
+check-layout-ci:
+	python3 scripts/check_addon_layout.py --strict
+
 check-lazy:
 	python3 scripts/check_no_lazy_imports.py || true
 

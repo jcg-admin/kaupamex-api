@@ -122,4 +122,34 @@ if [ -f "$CATALOG_CHECKER" ]; then
     fi
 fi
 
+# ---------------------------------------------------------------------------
+# Gate 6: nombre de addon contra la referencia (H-API-119, reincidido en
+# H-API-256 con `platform`). Un addon nuestro no puede llamarse como ninguno de
+# odoo-tools; los renames forzados por Django (auth -> authz) los conoce el
+# script. Bloquea nombres NUEVOS; la deuda heredada vive congelada en
+# scripts/addon_names_baseline.txt.
+NAMES_CHECKER="$REPO_ROOT/scripts/check_addon_names.py"
+if [ -f "$NAMES_CHECKER" ]; then
+    if ! python3 "$NAMES_CHECKER" >/dev/null 2>&1; then
+        python3 "$NAMES_CHECKER" >&2
+        echo "pre-commit: nombre de addon ajeno a la referencia — commit bloqueado" >&2
+        exit 1
+    fi
+fi
+
+# ---------------------------------------------------------------------------
+# Gate 7: capas estructurales en paquete, no planas (H-API-238). El mapa ya
+# esta decidido (views/serializers/urls/schema -> controllers/, data -> data/,
+# authz_catalog -> security/); este gate solo impide que aparezcan planos
+# NUEVOS. Mover un plano de un addon a otro no lo saca de la deuda: lo renombra
+# — que es exactamente como reincidio en H-API-256.
+LAYOUT_CHECKER="$REPO_ROOT/scripts/check_addon_layout.py"
+if [ -f "$LAYOUT_CHECKER" ]; then
+    if ! python3 "$LAYOUT_CHECKER" >/dev/null 2>&1; then
+        python3 "$LAYOUT_CHECKER" >&2
+        echo "pre-commit: capa estructural plana nueva — commit bloqueado" >&2
+        exit 1
+    fi
+fi
+
 exit "$EXIT_CODE"
