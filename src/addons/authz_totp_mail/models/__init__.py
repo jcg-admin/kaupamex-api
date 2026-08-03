@@ -6,8 +6,10 @@
 #   res_users.py            → res_users.py (clave/código/envío/verificación
 #                             del 2FA por correo, política, invitación). El
 #                             write-hook de notificación al activar/desactivar
-#                             2FA vive en ../signals.py (Django signals sobre
-#                             TotpSecret — no hay _inherit).
+#                             2FA vive en signals.py (mismo paquete models/;
+#                             Django signals sobre TotpSecret — no hay
+#                             _inherit). Se registra en apps.py::ready() vía
+#                             importlib, no se importa aquí (AppRegistryNotReady).
 #   auth_totp_device.py     → SIN archivo: extiende `auth_totp.device`
 #                             (dispositivos de confianza), modelo NO portado
 #                             (gap nombrado en H-API-232).

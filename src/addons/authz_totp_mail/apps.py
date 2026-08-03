@@ -14,4 +14,4 @@ class AuthzTotpMailConfig(AppConfig):
         # via importlib (llamada, no statement). Las señales replican el
         # write-hook de la referencia sobre totp_secret (activar/desactivar
         # 2FA → notificación de seguridad).
-        importlib.import_module('addons.authz_totp_mail.signals')
+        importlib.import_module('addons.authz_totp_mail.models.signals')

@@ -1,7 +1,7 @@
 """URLs — addons.authz_totp_mail (2FA por correo + invitación)."""
 from django.urls import path
 
-from addons.authz_totp_mail.views import invite, send_code, verify_code
+from addons.authz_totp_mail.controllers.main import invite, send_code, verify_code
 
 app_name = 'authz_totp_mail'
 
