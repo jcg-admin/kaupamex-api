@@ -23,7 +23,8 @@ producto **es** la variante (``product.product``), así que el eje
 """
 import pytest
 from decimal import Decimal
-from tests.factories.product_factory import make_category, make_product
+from tests.factories.product_factory import make_category, make_product, set_stock
+from addons.base.models.ir_http import IrHttp
 from addons.website_sale_wishlist.models import WishlistItem
 from django.contrib.auth import get_user_model
 
@@ -91,7 +92,9 @@ class TestWishlist:
         item = auth_client.get(WISH_URL).json()['results'][0]
         assert 'product' in item
         assert item['product']['name'] == prod_s14.name
-        assert item['product']['slug'] == prod_s14.slug
+        # El slug no es columna: se computa como en la referencia
+        # (``ir.http._slugify``), asi que el esperado se computa igual.
+        assert item['product']['slug'] == IrHttp.slugify_one(prod_s14.name)
         assert item['product']['base_price'] == str(prod_s14.lst_price)
 
     def test_view_list_item_has_availability_string(self, auth_client, prod_s14, db):
@@ -119,16 +122,16 @@ class TestWishlist:
         auth_client.post(WISH_URL, {'product_id': prod_s14.pk}, format='json')
         data = auth_client.get(WISH_URL).json()
         assert data['items_out_of_stock'] == 0
-        prod_s14.stock = 0
-        prod_s14.save()
+        set_stock(prod_s14, 0)
         data2 = auth_client.get(WISH_URL).json()
         assert data2['items_out_of_stock'] == 1
 
     def test_price_drop_detected(self, auth_client, prod_s14, db):
         """D-09 UC-WISH-02: price_dropped=True y price_drop_percent calculado."""
         auth_client.post(WISH_URL, {'product_id': prod_s14.pk}, format='json')
-        prod_s14.lst_price = Decimal('600.00')
-        prod_s14.save()
+        # El precio vive en la ficha (lst_price = list_price + extra).
+        prod_s14.product_tmpl.list_price = Decimal('600.00')
+        prod_s14.product_tmpl.save()
         item = auth_client.get(WISH_URL).json()['results'][0]
         assert item['price_dropped'] is True
         assert item['price_drop_percent'] == 20  # (1 - 600/750) * 100 = 20%
@@ -136,8 +139,8 @@ class TestWishlist:
     def test_price_increase_not_a_drop(self, auth_client, prod_s14, db):
         """precio subio → price_dropped False, current_price actualizado."""
         auth_client.post(WISH_URL, {'product_id': prod_s14.pk}, format='json')
-        prod_s14.lst_price = Decimal('900.00')
-        prod_s14.save()
+        prod_s14.product_tmpl.list_price = Decimal('900.00')
+        prod_s14.product_tmpl.save()
         item = auth_client.get(WISH_URL).json()['results'][0]
         assert item['current_price'] == '900.00'
         assert item['price_dropped'] is False
@@ -199,8 +202,7 @@ class TestWishlist:
 
     def test_move_without_stock_returns_409(self, auth_client, prod_s14, db):
         """UC-WISH-03 EX-01 + PARTE 7.3: producto sin stock → 409 PRODUCT_OUT_OF_STOCK."""
-        prod_s14.stock = 0
-        prod_s14.save()
+        set_stock(prod_s14, 0)
         res = auth_client.post(WISH_URL, {'product_id': prod_s14.pk}, format='json')
         item_id = res.json()['id']
         move_res = auth_client.post(f'{WISH_URL}{item_id}/cart-transfers/', format='json')
@@ -213,8 +215,7 @@ class TestWishlist:
         El código falla antes de tocar el item; sin esta verificación el
         test previo sólo comprobaba el status, no el estado post-operación.
         """
-        prod_s14.stock = 0
-        prod_s14.save()
+        set_stock(prod_s14, 0)
         res = auth_client.post(WISH_URL, {'product_id': prod_s14.pk}, format='json')
         item_id = res.json()['id']
         move_res = auth_client.post(f'{WISH_URL}{item_id}/cart-transfers/', format='json')

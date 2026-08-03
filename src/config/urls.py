@@ -59,14 +59,19 @@ urlpatterns = _admin_urls + [
     path('api/v2/bus/',            include(('addons.bus.urls', 'bus'),                 namespace='bus_v2')),
     path('api/v2/admin/',          include(('addons.mail.controllers.admin_notifications', 'admin_notifications'),
                                            namespace='admin_notifications_v2')),
+    # Wishlist — la familia que la hospeda (tarea #41; adaptacion de
+    # ``odoo19c: website_sale_wishlist/controllers/main.py``).
+    path('api/v2/wishlist/',       include(('addons.website_sale_wishlist.controllers.urls', 'wishlist'),
+                                           namespace='wishlist_v2')),
+    path('api/v2/admin/',          include(('addons.website_sale_wishlist.controllers.admin_urls', 'admin_wishlist'),
+                                           namespace='admin_wishlist_v2')),
 
     # ─── Retirados (SOL-098 aplicada a las familias) ──────────────────────────
-    # ``contact`` · ``referral`` · ``returns`` · ``reviews`` · ``wishlist`` se
-    # retiraron del
+    # ``contact`` · ``referral`` · ``returns`` · ``reviews`` se retiraron del
     # árbol: eran superficie REST con 0 modelos, y su dominio ya vive en el
     # addon destino. Sus rutas vuelven con la familia que las hospeda —
-    # ``contacts``, ``website_sale``, ``stock``, ``rating`` y
-    # ``website_sale_wishlist`` respectivamente.
+    # ``contacts``, ``website_sale``, ``stock`` y ``rating`` respectivamente
+    # (``wishlist`` ya volvió: ``website_sale_wishlist``, arriba).
 
     # ─── API v2 (F3: support) ──────────────────────────────
     # El recorrido del comprador sobre su venta lo sirve ``sale`` — es donde
