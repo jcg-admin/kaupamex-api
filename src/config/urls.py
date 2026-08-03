@@ -14,7 +14,7 @@ from drf_spectacular.views import (
 # Catálogos públicos de envío (GAP-C1 / H-12). Se importan explícitamente
 # porque las rutas son anónimas y viven en el URLconf raíz, no bajo el
 # ``include`` de ``delivery`` (que es todo admin/comprador autenticado).
-from addons.delivery.views import (
+from addons.delivery.controllers.main import (
     ShippingMethodListPublicView,
     ShippingZoneListPublicView,
 )
@@ -46,7 +46,7 @@ urlpatterns = _admin_urls + [
     ),
 
     # --- API v1 (DEC-V2-02: webhooks registrados con terceros — no renombrar) ---
-    path('api/v1/logistics/', include('addons.delivery.webhook_urls')),
+    path('api/v1/logistics/', include('addons.delivery.controllers.webhook_urls')),
 
     # --- API v2 ---
     # chartsize_v2 ANTES de catalogue_v2: más específico (/products/<slug>/variants/)
@@ -84,7 +84,7 @@ urlpatterns = _admin_urls + [
 
     # ─── API v2 (F5: logistics/shipments, newsletter, contact, pages, backups,
     #             reports, auth §2.1) ────────────────────────────────────────
-    path('api/v2/',            include(('addons.delivery.urls', 'logistics'), namespace='logistics_v2')),
+    path('api/v2/',            include(('addons.delivery.controllers.urls', 'logistics'), namespace='logistics_v2')),
     path('api/v2/newsletter/', include(('addons.website_mass_mailing.controllers.urls', 'website_mass_mailing'), namespace='newsletter_v2')),
     path('api/v2/admin/',      include(('addons.mass_mailing.controllers.admin_urls', 'admin_newsletter'),   namespace='admin_newsletter_v2')),
     path('api/v2/admin/',      include(('addons.auto_backup.controllers.admin_urls', 'admin_backups'),         namespace='admin_backups_v2')),

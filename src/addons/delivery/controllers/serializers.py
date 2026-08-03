@@ -8,7 +8,7 @@ from decimal import Decimal
 from rest_framework import serializers
 from addons.payment.models import Payment
 from addons.sale.models import SaleOrder
-from .models import (
+from ..models import (
     Courier, ShipmentEvent, ShipmentGuide, ShippingMethod, ShippingZone,
 )
 

@@ -55,11 +55,11 @@ from addons.sale.status_projection import (
 from addons.payment.models import Payment
 from addons.sale.models import SaleOrder
 from config.schema import error_response
-from .models import (
+from ..models import (
     CarrierRateCard, Courier, ShipmentEvent, ShipmentGuide, ShippingMethod,
     ShippingZone,
 )
-from .offers import build_offers
+from ..offers import build_offers
 from .serializers import (
     BuyerShipmentGuideSerializer, CourierCreateUpdateSerializer, CourierSerializer,
     ShipmentGuideCreateSerializer, ShipmentGuideSerializer,

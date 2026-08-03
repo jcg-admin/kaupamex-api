@@ -36,7 +36,7 @@ import pytest
 from django.contrib.auth import get_user_model
 
 from addons.delivery.models import Courier, ShipmentGuide
-from addons.delivery.serializers import ShipmentGuideSerializer
+from addons.delivery.controllers.serializers import ShipmentGuideSerializer
 from addons.mail.models import Notification
 from addons.payment.models import Payment, Refund
 from addons.sale.models import SaleOrder, SaleOrderLine

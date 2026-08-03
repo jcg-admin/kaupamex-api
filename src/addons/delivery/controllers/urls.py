@@ -8,7 +8,7 @@ Mounted in config/urls.py:
 """
 from django.urls import path
 
-from .views import (
+from .main import (
     AdminOrderGuideView,
     BuyerGuideView,
     BuyerGuideByNumberView,
