@@ -32,6 +32,10 @@ dependencies = [
     # dependencia porque el proyecto tiene uv + lock y copiarla seria peor
     # (sin CVEs, sin upgrades). Ver H-API-228.
     "webauthn>=2.8.0",
+    # HTTP saliente (addons.authz_oauth valida access_tokens contra el
+    # proveedor). Ya llegaba transitivo via mercadopago; se declara directo
+    # porque ahora hay imports propios (uv no garantiza transitivas).
+    "requests>=2.31.0",
     # Pagos
     "mercadopago>=2.2.0",
     # CORS

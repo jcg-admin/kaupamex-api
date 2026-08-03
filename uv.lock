@@ -535,6 +535,7 @@ dependencies = [
     { name = "mysqlclient" },
     { name = "pillow" },
     { name = "python-decouple" },
+    { name = "requests" },
     { name = "webauthn" },
     { name = "xlsxwriter" },
 ]
@@ -571,6 +572,7 @@ requires-dist = [
     { name = "pillow", specifier = ">=10.3.0" },
     { name = "python-decouple", specifier = "==3.8" },
     { name = "python-ldap", marker = "extra == 'ldap'", specifier = ">=3.4.0" },
+    { name = "requests", specifier = ">=2.31.0" },
     { name = "webauthn", specifier = ">=2.8.0" },
     { name = "xlsxwriter", specifier = ">=3.2.9" },
 ]

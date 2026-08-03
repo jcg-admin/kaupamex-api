@@ -95,6 +95,8 @@ urlpatterns = _admin_urls + [
     path('api/v2/authz/totp/', include(('addons.authz_totp.urls', 'authz_totp'),               namespace='authz_totp_v2')),
     # ~auth_ldap: CRUD de configuraciones LDAP por Company (permissions.ldap)
     path('api/v2/authz/',      include(('addons.authz_ldap.urls', 'authz_ldap'),               namespace='authz_ldap_v2')),
+    # ~auth_oauth: login federado OAuth2 + proveedores (permissions.oauth)
+    path('api/v2/authz/',      include(('addons.authz_oauth.urls', 'authz_oauth'),             namespace='authz_oauth_v2')),
     # G-PERM-01: catálogo de roles para el selector de /admin/permissions (UC-ADM-02)
     path('api/v2/admin/',      include(('addons.authz.admin_urls', 'admin_authz'),             namespace='admin_authz_v2')),
     # UC-PLT-12: consola L0 del operador Kaupamex — directorio de tenants (platform.provision)
