@@ -308,7 +308,7 @@ class TestAdminCreateCampaign:
         _make_subscriber('dos@example.com', status='CONFIRMED')
         _make_subscriber('pendiente@example.com', status='PENDING')
 
-        with patch('addons.mass_mailing.views.campaign.dispatch_email') as mock_dispatch:
+        with patch('addons.mass_mailing.controllers.campaign.dispatch_email') as mock_dispatch:
             res = admin_client.post(ADMIN_CAMPAIGN_URL, {
                 'subject': 'Campaña async',
                 'body': 'Hola, esto se encola.',

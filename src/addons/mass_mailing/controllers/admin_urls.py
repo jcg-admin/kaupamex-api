@@ -5,7 +5,7 @@ Mounted in config/urls.py under ``api/v2/admin/`` (namespace
 """
 from django.urls import path
 
-from .views import (
+from addons.mass_mailing.controllers import (
     AdminCampaignCreateView,
     AdminSubscriberExportCSVView,
     AdminSubscriberForceUnsubscribeView,

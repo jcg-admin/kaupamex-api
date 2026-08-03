@@ -290,7 +290,7 @@ DEFAULT_FROM_EMAIL = 'noreply@kaupamex.com'
 # **L1** (el founder, NO L0/Kaupamex), y esos eran su config correcta. Las
 # migraciones los siembran como filas ``CompanySetting`` de PracticaYoruba
 # (founder), no los reemplazan. Los consumidores
-# (``addons.website.views``, ``addons.mass_mailing.views``,
+# (``addons.website.views``, ``addons.mass_mailing.controllers``,
 # ``addons.mail.emails``, ``addons.authz_signup.tokens_email``) leen
 # ``CompanySetting.get_setting('<key>', <fallback neutral>)`` bajo la empresa
 # resuelta (ambiente para flujos autenticados; ``company=user.company_id``

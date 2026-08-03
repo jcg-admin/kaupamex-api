@@ -44,8 +44,6 @@ mail/urls.py
 mail/schema.py
 mail/data.py
 mail/authz_catalog.py
-mass_mailing/admin_urls.py
-mass_mailing/authz_catalog.py
 observability/views.py
 observability/admin_urls.py
 observability/authz_catalog.py

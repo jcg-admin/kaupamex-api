@@ -86,7 +86,7 @@ urlpatterns = _admin_urls + [
     #             reports, auth §2.1) ────────────────────────────────────────
     path('api/v2/',            include(('addons.delivery.urls', 'logistics'), namespace='logistics_v2')),
     path('api/v2/newsletter/', include(('addons.website_mass_mailing.controllers.urls', 'website_mass_mailing'), namespace='newsletter_v2')),
-    path('api/v2/admin/',      include(('addons.mass_mailing.admin_urls', 'admin_newsletter'),   namespace='admin_newsletter_v2')),
+    path('api/v2/admin/',      include(('addons.mass_mailing.controllers.admin_urls', 'admin_newsletter'),   namespace='admin_newsletter_v2')),
     path('api/v2/admin/',      include(('addons.auto_backup.controllers.admin_urls', 'admin_backups'),         namespace='admin_backups_v2')),
     # T-214: consulta pública SEPOMEX de CP → asentamientos (autocompletado de direcciones)
     # DEC-08/09: capacidades del usuario + menú admin dinámico (podado por capacidad)

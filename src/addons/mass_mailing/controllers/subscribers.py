@@ -15,8 +15,8 @@ from rest_framework.views import APIView
 
 from config.schema import error_response
 
-from .. import services as mm
-from ..serializers import SubscriberListItemSerializer
+from addons.mass_mailing import services as mm
+from addons.mass_mailing.controllers.serializers import SubscriberListItemSerializer
 from .base import _AdminOnly
 
 

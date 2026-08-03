@@ -15,8 +15,8 @@ from rest_framework.views import APIView
 from addons.platform.models import CompanySetting
 from addons.mail.models.email_executor import dispatch_email
 
-from .. import services as mm
-from ..serializers import CampaignCreateSerializer, CampaignResponseSerializer
+from addons.mass_mailing import services as mm
+from addons.mass_mailing.controllers.serializers import CampaignCreateSerializer, CampaignResponseSerializer
 from .base import NEWSLETTER_FROM_EMAIL_DEFAULT, _AdminOnly
 
 _CAMPAIGN_DEDUP_WINDOW = timedelta(minutes=10)

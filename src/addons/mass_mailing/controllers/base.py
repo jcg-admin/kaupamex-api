@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from addons.authz.permissions import HasCapability
 
 # Fallback neutral (nivel Kaupamex) del buzón de newsletter — ver
-# website_mass_mailing.views.subscribe para el contexto L3/CompanySetting.
+# website_mass_mailing.controllers.subscribe para el contexto L3/CompanySetting.
 NEWSLETTER_FROM_EMAIL_DEFAULT = 'newsletter@kaupamex.com'
 
 
