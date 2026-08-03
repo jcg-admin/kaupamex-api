@@ -27,12 +27,6 @@ base/authz_catalog.py
 base_geolocalize/data.py
 bus/views.py
 bus/urls.py
-delivery/views.py
-delivery/serializers.py
-delivery/urls.py
-delivery/schema.py
-delivery/webhook_urls.py
-delivery/authz_catalog.py
 loyalty/views.py
 loyalty/serializers.py
 loyalty/urls.py
