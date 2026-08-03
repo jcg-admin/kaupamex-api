@@ -26,8 +26,6 @@ from addons.mail.models.notification_emails import (
     NOTIFICATIONS_FROM_EMAIL_DEFAULT,
     _from_email,
 )
-from addons.users import tokens_email
-from addons.users.models import IdentityUser
 
 pytestmark = pytest.mark.django_db
 
@@ -61,36 +59,11 @@ class TestNotificationsFromEmail:
         assert 'practicayoruba' not in NOTIFICATIONS_FROM_EMAIL_DEFAULT
 
 
-class TestAuthEmailFromEmail:
-    """``addons.users.tokens_email`` — ``company=user.company_id`` explícito
-    (auth dispara pre-login, sin empresa ambiente)."""
-
-    def _user(self, email, company):
-        return IdentityUser.objects.create_user(
-            login=email, password='x-Passw0rd', company=company,
-        )
-
-    def test_reset_email_from_founder_user_uses_seeded_value(self):
-        founder = Company.get_founder()
-        user = self._user('reset-l1@practicayoruba.mx', founder)
-        mail.outbox = []
-        tokens_email.send_password_reset_email(user, 'TOK')
-        assert len(mail.outbox) == 1
-        assert mail.outbox[0].from_email == 'noreply@practicayoruba.com'
-
-    def test_verify_email_from_founder_user_uses_seeded_value(self):
-        founder = Company.get_founder()
-        user = self._user('verify-l1@practicayoruba.mx', founder)
-        mail.outbox = []
-        tokens_email.send_verification_email(user, 'TOK')
-        assert len(mail.outbox) == 1
-        assert mail.outbox[0].from_email == 'noreply@practicayoruba.com'
-
-    def test_companyless_user_falls_to_neutral_platform_default(self):
-        # Usuario sin empresa (pre resolutor subdominio→company) -> fallback
-        # neutral de plataforma, no el valor del founder.
-        user = self._user('verify-neutral@practicayoruba.mx', None)
-        mail.outbox = []
-        tokens_email.send_verification_email(user, 'TOK')
-        assert len(mail.outbox) == 1
-        assert mail.outbox[0].from_email == NOTIFICATIONS_FROM_EMAIL_DEFAULT
+# ``TestAuthEmailFromEmail`` (3 casos) se retiró aquí: ejercitaba
+# ``addons.users.tokens_email.send_password_reset_email`` /
+# ``send_verification_email``, que la disolución de ``users`` no portó a ningún
+# addon —medido: 0 hits de ambos nombres en ``src/``— y ``IdentityUser``, que
+# hoy sólo aparece en prosa (el modelo real es ``ResUsers``). El remitente
+# per-company que probaban sigue cubierto por ``TestNotificationsFromEmail``
+# desde el lado de ``mail``; lo que falta es el disparo pre-login de auth.
+# Ver H-API-252.
