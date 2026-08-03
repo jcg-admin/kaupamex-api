@@ -2,7 +2,7 @@
 
 Siembra el L1 de ejemplo (PracticaYoruba, ``FOUNDER_COMPANY_CODE``) y sus
 ``CompanySetting`` L1 (``FOUNDER_L1_SETTINGS``, que ya incluye la clave que
-añadió la migración ``0007``). El spec vive en ``addons.company.models``; aquí
+añadió la migración ``0007``). El spec vive en ``addons.platform.models``; aquí
 sólo está el ``seed()`` que re-aplica las migraciones ``0006``/``0007`` sobre el
 modelo vivo (H-API-22).
 
@@ -14,7 +14,7 @@ Nota de multi-DB (mismo gotcha que documenta la migración ``0006``): se asigna
 """
 from django.db import DEFAULT_DB_ALIAS
 
-from addons.company.models import (
+from addons.platform.models import (
     FOUNDER_COMPANY_CODE,
     FOUNDER_L1_SETTINGS,
     Company,

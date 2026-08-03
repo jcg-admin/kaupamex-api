@@ -82,6 +82,7 @@ Se reexporta todo aquí para preservar el contrato de import histórico
 ``from addons.base.models import SystemParameter, ResCurrency, ...``.
 """
 from .timestamped_mixin import TimeStampedModel
+from .hierarchy import _reject_hierarchy_cycle
 from .append_only_mixin import AppendOnlyModel
 from .soft_delete_mixin import (
     SoftDeleteModel,
@@ -216,6 +217,7 @@ from .res_lang import ResLang
 
 __all__ = [
     'TimeStampedModel',
+    '_reject_hierarchy_cycle',
     'AppendOnlyModel',
     'SoftDeleteModel',
     'SoftDeleteQuerySet',

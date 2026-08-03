@@ -11,8 +11,8 @@ durante el rollout + par de managers ``objects`` (cross-company, L0 admin) /
 """
 import pytest
 
-from addons.company.context import set_current_company
-from addons.company.models import Company, CompanyScopedManager
+from addons.platform.context import set_current_company
+from addons.platform.models import Company, CompanyScopedManager
 from addons.sale.models import SaleOrder
 
 

@@ -36,8 +36,8 @@ from addons.base.models import SystemParameter
 from addons.base_geolocalize.data import GEO_PROVIDERS
 from addons.base_geolocalize.data import seed as geo_providers_seed
 from addons.base_geolocalize.models import GeoProvider
-from addons.company.data import seed as founder_company_seed
-from addons.company.models import (
+from addons.platform.data import seed as founder_company_seed
+from addons.platform.models import (
     FOUNDER_COMPANY_CODE, FOUNDER_L1_SETTINGS, Company, CompanySetting,
 )
 from addons.mail.data import CANONICAL_SUBTYPES

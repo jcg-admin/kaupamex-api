@@ -18,7 +18,7 @@ from addons.account.models import (
     AccountMove,
     AccountMoveLine,
 )
-from addons.company.models import Company
+from addons.platform.models import Company
 
 
 @pytest.fixture

@@ -16,7 +16,7 @@ from django.utils import timezone
 import pytest
 
 from addons.authz.models import Capability, Module, Role, RoleAssignment
-from addons.company.models import ModulePrice
+from addons.platform.models import ModulePrice
 
 pytestmark = pytest.mark.integration
 

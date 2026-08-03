@@ -14,8 +14,8 @@ import pytest
 from django.utils import timezone
 
 from addons.authz.models import Module
-from addons.company import billing
-from addons.company.models import (
+from addons.platform import billing
+from addons.platform.models import (
     Company,
     CompanyModuleSubscription,
     SubscriptionBillingRun,

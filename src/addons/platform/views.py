@@ -1,4 +1,4 @@
-"""Views — addons.company (consola L0 del operador Kaupamex).
+"""Views — addons.platform (consola L0 del operador Kaupamex).
 
 Directorio de companies L1 de solo lectura bajo ``/api/v2/platform/companies/``
 (UC-PLT-12). El operador L0 (Kaupamex) es **cross-company** por definición:
@@ -29,15 +29,15 @@ from rest_framework.viewsets import (
 
 from addons.authz.models import Module
 from addons.authz.permissions import CapabilityRequiredMixin
-from addons.company import billing
-from addons.company.models import (
+from addons.platform import billing
+from addons.platform.models import (
     Company,
     CompanyModuleSubscription,
     ModulePrice,
     SubscriptionBillingRun,
     SubscriptionInvoice,
 )
-from addons.company.serializers import (
+from addons.platform.serializers import (
     CompanyCreateSerializer,
     CompanyModuleSubscriptionSerializer,
     CompanySerializer,

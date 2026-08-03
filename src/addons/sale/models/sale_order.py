@@ -27,7 +27,7 @@ from tools.translate import _
 
 from addons.account.services import create_invoice_from_sale_order
 from addons.base.models import IrSequence, TimeStampedModel
-from addons.company.models import CompanyScopedManager
+from addons.platform.models import CompanyScopedManager
 from addons.mail.models import MailThread
 
 
@@ -132,7 +132,7 @@ class SaleOrder(MailThread, TimeStampedModel):
     # SOL-085 S3: nullable durante el backfill (la migración asigna las filas
     # heredadas a la founder company). Espeja el patrón de company.CompanySetting.
     company     = fields.Many2one(
-        'company.Company', null=True, blank=True,
+        'platform.Company', null=True, blank=True,
         on_delete=models.CASCADE, related_name='sale_orders',
         help_text='Empresa dueña de la orden (Odoo company_id). NULL pre-backfill.',
     )

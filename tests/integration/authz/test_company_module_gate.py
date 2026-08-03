@@ -26,7 +26,7 @@ from addons.authz.models import (
     RoleCapability,
 )
 from addons.authz.services import invalidate_capabilities, resolve_capabilities
-from addons.company.models import Company, CompanyModuleSubscription
+from addons.platform.models import Company, CompanyModuleSubscription
 from tests.factories.user_factory import UserFactory
 
 pytestmark = pytest.mark.django_db

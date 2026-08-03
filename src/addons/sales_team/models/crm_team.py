@@ -36,7 +36,7 @@ class CrmTeam(TimeStampedModel):
     )
     # Odoo company_id — equipo por Company (L1 tenant). Multi-company.
     company     = fields.Many2one(
-        'company.Company', null=True, blank=True,
+        'platform.Company', null=True, blank=True,
         on_delete=models.CASCADE, related_name='sales_teams',
         help_text='Company propietaria (Odoo crm.team.company_id).',
     )

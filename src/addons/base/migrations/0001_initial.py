@@ -14,8 +14,8 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
+        ("platform", "0001_initial"),
         ("authz", "0001_initial"),
-        ("company", "0001_initial"),
     ]
 
     operations = [
@@ -1673,7 +1673,7 @@ class Migration(migrations.Migration):
                         null=True,
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="users",
-                        to="company.company",
+                        to="platform.company",
                     ),
                 ),
             ],
@@ -2349,7 +2349,7 @@ class Migration(migrations.Migration):
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="sequences",
-                        to="company.company",
+                        to="platform.company",
                     ),
                 ),
             ],
@@ -2802,7 +2802,7 @@ class Migration(migrations.Migration):
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="currency_rates",
-                        to="company.company",
+                        to="platform.company",
                     ),
                 ),
                 (
@@ -4647,7 +4647,7 @@ class Migration(migrations.Migration):
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="attachments",
-                        to="company.company",
+                        to="platform.company",
                     ),
                 ),
             ],
@@ -4802,7 +4802,7 @@ class Migration(migrations.Migration):
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="ir_defaults",
-                        to="company.company",
+                        to="platform.company",
                     ),
                 ),
                 (

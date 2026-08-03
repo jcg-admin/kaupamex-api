@@ -19,7 +19,7 @@ from django.core.management import call_command
 
 from addons.account.models import AccountAccount, AccountJournal
 from addons.authz.models import Module
-from addons.company.models import (
+from addons.platform.models import (
     Company,
     CompanyModuleSubscription,
     SubscriptionBillingRun,

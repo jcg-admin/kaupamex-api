@@ -6,9 +6,9 @@ scope.
 """
 import pytest
 
-from addons.company.context import get_current_company
-from addons.company.middleware import CompanyContextMiddleware
-from addons.company.models import Company
+from addons.platform.context import get_current_company
+from addons.platform.middleware import CompanyContextMiddleware
+from addons.platform.models import Company
 from tests.factories.user_factory import UserFactory
 
 pytestmark = pytest.mark.django_db

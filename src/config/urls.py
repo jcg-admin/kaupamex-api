@@ -106,7 +106,7 @@ urlpatterns = _admin_urls + [
     # G-PERM-01: catálogo de roles para el selector de /admin/permissions (UC-ADM-02)
     path('api/v2/admin/',      include(('addons.authz.admin_urls', 'admin_authz'),             namespace='admin_authz_v2')),
     # UC-PLT-12: consola L0 del operador Kaupamex — directorio de tenants (platform.provision)
-    path('api/v2/platform/',   include(('addons.company.urls', 'company'),                     namespace='company')),
+    path('api/v2/platform/',   include(('addons.platform.urls', 'company'),                     namespace='company')),
 
     # ─── API v2 (F6: payments + checkout) ─────────────────────────────────────
     # GAP-C1: public shipping methods for checkout (unauthenticated)

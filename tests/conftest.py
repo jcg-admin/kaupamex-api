@@ -20,7 +20,7 @@ from addons.authz.models import Role, RoleAssignment
 from addons.authz.services import SUPERADMIN_ROLE_CODE
 from addons.base.models import SystemParameter
 from addons.base_geolocalize.data import seed as geo_providers_seed
-from addons.company.data import seed as founder_company_seed
+from addons.platform.data import seed as founder_company_seed
 from addons.mail.data import seed as mail_subtypes_seed
 from tests.factories.user_factory import make_buyer  # noqa: F401 (re-export)
 

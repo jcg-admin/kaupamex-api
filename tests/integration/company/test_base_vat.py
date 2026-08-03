@@ -7,7 +7,7 @@ import pytest
 from django.core.exceptions import ValidationError
 
 from addons.base_vat.validators import validate_rfc, validate_tax_id
-from addons.company.models import Company
+from addons.platform.models import Company
 
 pytestmark = pytest.mark.django_db
 

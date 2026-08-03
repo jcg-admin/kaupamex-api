@@ -21,7 +21,7 @@ from exceptions import UserError
 from addons.account.models import AccountAccount, AccountJournal
 from addons.account.services import create_invoice_from_sale_order
 from addons.catalogue.models import Category, Product
-from addons.company.models import Company
+from addons.platform.models import Company
 from addons.sale.models import SaleOrder
 
 

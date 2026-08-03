@@ -80,7 +80,7 @@ class AccountAccount(models.Model):
         help_text='Moneda de la cuenta (Odoo currency_id).',
     )
     company        = fields.Many2one(
-        'company.Company', on_delete=models.CASCADE, related_name='accounts',
+        'platform.Company', on_delete=models.CASCADE, related_name='accounts',
         help_text='Empresa (Odoo company_id / company_ids).',
     )
     note           = fields.Text(

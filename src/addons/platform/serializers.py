@@ -1,4 +1,4 @@
-"""Serializers — addons.company (consola L0 del operador Kaupamex).
+"""Serializers — addons.platform (consola L0 del operador Kaupamex).
 
 Solo lectura del directorio de companies L1 (UC-PLT-12). El detalle expone el
 estado de la company + resumen de módulos activos y conteo de usuarios, sin
@@ -8,7 +8,7 @@ definición).
 from rest_framework import serializers
 
 from addons.authz.models import Module
-from addons.company.models import (
+from addons.platform.models import (
     Company,
     CompanyModuleSubscription,
     ModulePrice,

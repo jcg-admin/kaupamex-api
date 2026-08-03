@@ -1,8 +1,8 @@
-"""Platform URLs — addons.company (consola L0 del operador Kaupamex)."""
+"""Platform URLs — addons.platform (consola L0 del operador Kaupamex)."""
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from addons.company.views import (
+from addons.platform.views import (
     BillingRunViewSet,
     CompanyModuleSubscriptionViewSet,
     CompanyViewSet,

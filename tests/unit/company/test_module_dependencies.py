@@ -15,7 +15,7 @@ import pytest
 from django.core.exceptions import ValidationError
 
 from addons.authz.models import Module
-from addons.company.models import Company, CompanyModuleSubscription
+from addons.platform.models import Company, CompanyModuleSubscription
 
 pytestmark = pytest.mark.django_db
 

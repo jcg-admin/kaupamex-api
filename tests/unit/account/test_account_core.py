@@ -27,7 +27,7 @@ from addons.account.models import (
     AccountPayment,
     AccountTax,
 )
-from addons.company.models import Company
+from addons.platform.models import Company
 
 pytestmark = pytest.mark.django_db
 

@@ -13,12 +13,12 @@ subdominio→company (UC-PLT-06) + la system-company son la iniciativa L3 mayor.
 import pytest
 
 from addons.authz.models import Module
-from addons.company.context import (
+from addons.platform.context import (
     company_scope,
     get_current_company,
     set_current_company,
 )
-from addons.company.models import Company, CompanyModuleSubscription
+from addons.platform.models import Company, CompanyModuleSubscription
 
 pytestmark = pytest.mark.django_db
 

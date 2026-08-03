@@ -20,8 +20,8 @@ SOL-090 slice 3).
 import pytest
 from django.core import mail
 
-from addons.company.context import company_scope
-from addons.company.models import Company, CompanySetting, FOUNDER_L1_SETTINGS
+from addons.platform.context import company_scope
+from addons.platform.models import Company, CompanySetting, FOUNDER_L1_SETTINGS
 from addons.mail.models.notification_emails import (
     NOTIFICATIONS_FROM_EMAIL_DEFAULT,
     _from_email,

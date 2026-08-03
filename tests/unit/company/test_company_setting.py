@@ -15,8 +15,8 @@ subdominio→company (UC-PLT-06), no un error.
 import pytest
 from django.db import IntegrityError, transaction
 
-from addons.company.context import company_scope, get_current_company
-from addons.company.models import (
+from addons.platform.context import company_scope, get_current_company
+from addons.platform.models import (
     Company,
     CompanySetting,
     FOUNDER_COMPANY_CODE,

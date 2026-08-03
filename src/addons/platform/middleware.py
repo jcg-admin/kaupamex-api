@@ -15,7 +15,7 @@ este middleware lo respetará (el operador L0 cross-company queda con
 
 Ubicar DESPUÉS de ``AuthenticationMiddleware`` (necesita ``request.user``).
 """
-from addons.company.context import set_current_company
+from addons.platform.context import set_current_company
 
 
 class CompanyContextMiddleware:

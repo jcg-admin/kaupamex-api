@@ -19,7 +19,7 @@ import pytest
 
 from exceptions import UserError
 from addons.account.models import AccountAccount, AccountJournal, AccountMove
-from addons.company.models import Company
+from addons.platform.models import Company
 from addons.sale.models import SaleOrder
 from tests.factories.product_factory import make_category, make_product
 

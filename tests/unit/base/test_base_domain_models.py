@@ -26,7 +26,7 @@ from addons.base.models import (
     ResCurrencyRate,
     ResLang,
 )
-from addons.company.models import Company
+from addons.platform.models import Company
 
 pytestmark = pytest.mark.django_db
 

@@ -19,7 +19,7 @@ Vive en ``company`` (dueño del concepto L0/system) y **lee** los modelos de
 from django.core.management.base import BaseCommand
 
 from addons.account.models import AccountAccount, AccountJournal
-from addons.company.models import Company
+from addons.platform.models import Company
 
 # Carta contable L0 mínima (códigos alineados con el fixture ``l0_chart``).
 _JOURNAL = {'code': 'VEN', 'name': 'Ventas plataforma', 'type': 'sale'}

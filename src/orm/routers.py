@@ -31,7 +31,7 @@ import re
 from django.conf import settings
 from django.db import DEFAULT_DB_ALIAS
 
-from addons.company.context import get_current_company
+from addons.platform.context import get_current_company
 
 
 class CompanyContextRequired(Exception):

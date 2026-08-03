@@ -209,7 +209,7 @@ class ResUsers(TimeStampedModel):
     deactivated_at = fields.Datetime(null=True, blank=True)
 
     company       = fields.Many2one(
-        'company.Company', on_delete=models.PROTECT, null=True, blank=True,
+        'platform.Company', on_delete=models.PROTECT, null=True, blank=True,
         related_name='users',
         help_text=(
             'Company L1 del usuario (Odoo company_id). NULL = operador de '

@@ -14,12 +14,12 @@ import pytest
 
 from django.core.management import call_command
 
-from addons.company.models import Company
+from addons.platform.models import Company
 
 pytestmark = pytest.mark.integration
 
 
-@mock.patch('addons.company.management.commands.company_create.provision_company_database')
+@mock.patch('addons.platform.management.commands.company_create.provision_company_database')
 def test_creates_row_and_provisions_db(mock_provision, db):
     mock_provision.return_value = ('company_stub_db', True)
     out = StringIO()
@@ -31,7 +31,7 @@ def test_creates_row_and_provisions_db(mock_provision, db):
     assert 'row_created=True' in out.getvalue()
 
 
-@mock.patch('addons.company.management.commands.company_create.provision_company_database')
+@mock.patch('addons.platform.management.commands.company_create.provision_company_database')
 def test_second_run_is_idempotent(mock_provision, db):
     mock_provision.return_value = ('company_stub_db', False)
     call_command('company_create', 'globex', stdout=StringIO())

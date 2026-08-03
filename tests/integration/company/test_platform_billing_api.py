@@ -20,8 +20,8 @@ from django.contrib.auth import get_user_model
 import pytest
 
 from addons.authz.models import Capability, Module, Role, RoleAssignment
-from addons.company import billing
-from addons.company.models import (
+from addons.platform import billing
+from addons.platform.models import (
     Company,
     CompanyModuleSubscription,
     SubscriptionBillingRun,

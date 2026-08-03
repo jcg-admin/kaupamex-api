@@ -12,7 +12,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from addons.company.models import CompanySetting
+from addons.platform.models import CompanySetting
 from addons.mail.models.email_executor import dispatch_email
 
 from .. import services as mm

@@ -16,7 +16,7 @@ import pytest
 from exceptions import UserError
 from addons.account.models import AccountAccount, AccountJournal, AccountMove
 from addons.authz.models import Module
-from addons.company.models import (
+from addons.platform.models import (
     Company,
     CompanyModuleSubscription,
     SubscriptionBillingRun,

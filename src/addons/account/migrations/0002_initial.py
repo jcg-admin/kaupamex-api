@@ -10,9 +10,9 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
+        ("platform", "0001_initial"),
         ("account", "0001_initial"),
         ("base", "0001_initial"),
-        ("company", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
@@ -24,7 +24,7 @@ class Migration(migrations.Migration):
                 help_text="Empresa (Odoo company_id / company_ids).",
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="accounts",
-                to="company.company",
+                to="platform.company",
             ),
         ),
         migrations.AddField(
@@ -46,7 +46,7 @@ class Migration(migrations.Migration):
                 help_text="Empresa (Odoo company_id).",
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="journals",
-                to="company.company",
+                to="platform.company",
             ),
         ),
         migrations.AddField(
@@ -80,7 +80,7 @@ class Migration(migrations.Migration):
                 help_text="Empresa (Odoo company_id).",
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="moves",
-                to="company.company",
+                to="platform.company",
             ),
         ),
         migrations.AddField(
@@ -158,7 +158,7 @@ class Migration(migrations.Migration):
                 help_text="Empresa (Odoo company_id).",
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="payments",
-                to="company.company",
+                to="platform.company",
             ),
         ),
         migrations.AddField(
@@ -202,7 +202,7 @@ class Migration(migrations.Migration):
                 help_text="Empresa (Odoo company_id).",
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="taxes",
-                to="company.company",
+                to="platform.company",
             ),
         ),
         migrations.AddConstraint(

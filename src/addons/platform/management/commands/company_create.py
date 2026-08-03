@@ -9,7 +9,7 @@ que Odoo separa CLI vs RPC (== ``company_migrate_all``).
 """
 from django.core.management.base import BaseCommand
 
-from addons.company.models import Company
+from addons.platform.models import Company
 from orm.routers import company_db_alias
 from service.db import provision_company_database
 

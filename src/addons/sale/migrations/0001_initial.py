@@ -12,8 +12,8 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
+        ("platform", "0001_initial"),
         ("account", "0002_initial"),
-        ("company", "0001_initial"),
         ("delivery", "0001_initial"),
         ("product", "0001_initial"),
         ("sales_team", "0001_initial"),
@@ -175,7 +175,7 @@ class Migration(migrations.Migration):
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="sale_orders",
-                        to="company.company",
+                        to="platform.company",
                     ),
                 ),
                 (

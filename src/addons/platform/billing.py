@@ -21,7 +21,7 @@ from decimal import Decimal
 
 from django.utils import timezone
 
-from addons.company.models import (
+from addons.platform.models import (
     Company,
     CompanyModuleSubscription,
     SubscriptionBillingRun,

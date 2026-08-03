@@ -25,7 +25,7 @@ def test_discover_finds_addon_declarations():
     # concreto, un solo assert genérico no lo notaría.
     assert 'catalogue' in modules      # declarado por addons.catalogue
     assert 'orders' in modules         # declarado por addons.sale (SOL-098)
-    assert 'platform' in modules       # declarado por addons.company
+    assert 'platform' in modules       # declarado por addons.platform
     assert 'account.profile' in capabilities
 
 

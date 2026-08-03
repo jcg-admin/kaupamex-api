@@ -23,7 +23,7 @@ import pytest
 from django.core.files.base import ContentFile
 
 from addons.base.models import IrAttachment
-from addons.company.models import Company
+from addons.platform.models import Company
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 

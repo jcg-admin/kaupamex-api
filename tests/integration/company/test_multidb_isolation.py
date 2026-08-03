@@ -96,8 +96,8 @@ from django.core.management import call_command
 from django.db import connections
 
 from addons.authz.models import Module
-from addons.company.context import company_scope
-from addons.company.models import Company, CompanyModuleSubscription
+from addons.platform.context import company_scope
+from addons.platform.models import Company, CompanyModuleSubscription
 from service import db as svc
 
 pytestmark = [
@@ -131,7 +131,7 @@ def _provision(alias):
     """
     svc.create_empty_database(alias)
     call_command('migrate', 'authz', database=alias, verbosity=0)
-    call_command('migrate', 'company', database=alias, verbosity=0)
+    call_command('migrate', 'platform', database=alias, verbosity=0)
 
 
 def _forget_alias(alias):

@@ -23,7 +23,7 @@ from addons.authz.models import Capability, Role, RoleAssignment, RoleCapability
 from addons.authz.services import invalidate_capabilities
 from addons.authz_reauth.models import ReauthSession
 from addons.authz_ldap.models import CompanyLdap
-from addons.company.models import Company
+from addons.platform.models import Company
 
 User = get_user_model()
 

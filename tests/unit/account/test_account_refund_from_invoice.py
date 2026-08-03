@@ -23,7 +23,7 @@ from addons.account.services import (
     create_refund_from_invoice,
 )
 from addons.catalogue.models import Category, Product
-from addons.company.models import Company
+from addons.platform.models import Company
 from addons.sale.models import SaleOrder
 
 

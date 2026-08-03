@@ -100,7 +100,8 @@ INSTALLED_APPS = [
     'addons.authz_totp_mail',
     'addons.authz_passkey',
     'addons.portal',
-    'addons.company',
+    'addons.platform',
+    'addons.hr',
     'addons.account',
 ]
 
@@ -141,7 +142,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'addons.company.middleware.CompanyContextMiddleware',
+    'addons.platform.middleware.CompanyContextMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     # H-CART-01 Fase 2: fija la cookie httpOnly cart_token para carritos
@@ -275,7 +276,7 @@ DEFAULT_FROM_EMAIL = 'noreply@kaupamex.com'
 # respuestas no caigan en un buzón no-reply.
 #
 # Los remitentes de correo per-tenant migraron a L3
-# (``addons.company.CompanySetting`` — per-empresa, FK ``company`` +
+# (``addons.platform.CompanySetting`` — per-empresa, FK ``company`` +
 # ``CompanyScopedManager``): ya NO son settings de Django.
 #
 # - CONTACT_FROM_EMAIL/CONTACT_NOTIFY_EMAIL/NEWSLETTER_FROM_EMAIL → SOL-090
@@ -296,7 +297,7 @@ DEFAULT_FROM_EMAIL = 'noreply@kaupamex.com'
 # explícito para auth pre-login); el fallback SÍ es neutral (nivel Kaupamex,
 # ``*@kaupamex.com``) — PracticaYoruba es solo un tenant entre potencialmente
 # varios. Cierra H-CFG-IMPL-10 + H-CFG-IMPL-13. Ver
-# addons.company.models.CompanySetting y
+# addons.platform.models.CompanySetting y
 # hallazgos-implementar-systemparameter-l2.
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

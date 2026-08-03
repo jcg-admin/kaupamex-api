@@ -1,4 +1,4 @@
-"""Models — addons.company (capa L1 de la plataforma Kaupamex).
+"""Models — addons.platform (capa L1 de la plataforma Kaupamex).
 
 Diseño: :ref:`analisis-modelo-tenant-l1-foundation` (plataforma-kaupamex).
 Entidad L1 = ``Company`` (DEC-T7; converge Odoo ``res.company`` / NetSuite).
@@ -22,8 +22,8 @@ import models
 from django.utils import timezone
 
 from addons.base_vat.validators import validate_rfc
-from addons.company.context import company_scope, get_current_company
-from addons.base.models import TimeStampedModel
+from addons.platform.context import company_scope, get_current_company
+from addons.base.models import TimeStampedModel, _reject_hierarchy_cycle
 from addons.account.services import create_invoice_from_subscription
 
 
@@ -309,76 +309,6 @@ class Subsidiary(TimeStampedModel):
     def clean(self):
         super().clean()
         _reject_hierarchy_cycle(self, 'parent', 'SUBSIDIARY_CYCLE')
-
-
-class Department(TimeStampedModel):
-    """Unidad organizativa dentro de una subsidiaria (con sub-departamentos)."""
-
-    subsidiary = fields.Many2one(
-        Subsidiary, on_delete=models.CASCADE, related_name='departments',
-        verbose_name='Subsidiaria',
-    )
-    name = fields.Char(max_length=150, verbose_name='Nombre')
-    parent = fields.Many2one(
-        'self', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='children', verbose_name='Departamento padre',
-    )
-    is_active = fields.Boolean(default=True, verbose_name='Activo')
-
-    class Meta:
-        db_table = 'org_department'
-        verbose_name = 'Departamento'
-        verbose_name_plural = 'Departamentos'
-        ordering = ['subsidiary__name', 'name']
-
-    def __str__(self):
-        return self.name
-
-    def clean(self):
-        super().clean()
-        _reject_hierarchy_cycle(self, 'parent', 'DEPARTMENT_CYCLE')
-
-
-class Job(TimeStampedModel):
-    """Catálogo de puestos. El departamento es opcional (puesto transversal)."""
-
-    title = fields.Char(max_length=150, verbose_name='Puesto')
-    department = fields.Many2one(
-        Department, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='jobs', verbose_name='Departamento',
-    )
-    is_active = fields.Boolean(default=True, verbose_name='Activo')
-
-    class Meta:
-        db_table = 'org_job'
-        verbose_name = 'Puesto'
-        verbose_name_plural = 'Puestos'
-        ordering = ['title']
-
-    def __str__(self):
-        return self.title
-
-
-def _reject_hierarchy_cycle(node, fk_name, error_code):
-    """Rechaza que ``node`` sea su propio ancestro por ``fk_name`` (DIS-04).
-
-    Recorre la cadena de padres; si vuelve a ``node`` (o a sí mismo), lanza
-    ``ValidationError`` con ``error_code`` en inglés (canon ``codigo_error``).
-    Nodos aún sin pk (creación) no pueden cerrar un ciclo salvo auto-padre.
-    """
-    parent = getattr(node, fk_name, None)
-    if parent is None:
-        return
-    if parent.pk is not None and parent.pk == node.pk:
-        raise ValidationError({fk_name: error_code})
-    seen = set()
-    while parent is not None:
-        if parent.pk == node.pk:
-            raise ValidationError({fk_name: error_code})
-        if parent.pk in seen:
-            break
-        seen.add(parent.pk)
-        parent = getattr(parent, fk_name, None)
 
 
 class ModulePrice(TimeStampedModel):

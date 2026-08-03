@@ -21,7 +21,7 @@ Toca DB → django_db.
 import pytest
 
 from addons.base.models import IrDefault
-from addons.company.models import Company
+from addons.platform.models import Company
 from tests.factories.user_factory import UserFactory
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]

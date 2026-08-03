@@ -14,7 +14,7 @@ import pytest
 from django.db import IntegrityError
 
 from addons.authz.models import Module
-from addons.company.models import (
+from addons.platform.models import (
     Company,
     CompanyModuleSubscription,
     SubscriptionBillingRun,

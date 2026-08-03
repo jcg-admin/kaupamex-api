@@ -8,7 +8,7 @@ the resolver L1 filter that consumes it comes later.
 import pytest
 from django.db.models import ProtectedError
 
-from addons.company.models import Company
+from addons.platform.models import Company
 from tests.factories.user_factory import UserFactory
 
 pytestmark = pytest.mark.django_db

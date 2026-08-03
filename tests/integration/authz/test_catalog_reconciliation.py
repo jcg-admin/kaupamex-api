@@ -21,7 +21,7 @@ from django.core.management.base import CommandError
 
 from addons.authz.declaration import discover
 from addons.authz.models import Capability, Module
-from addons.company.models import Company, CompanyModuleSubscription
+from addons.platform.models import Company, CompanyModuleSubscription
 
 BASE = Path(__file__).resolve().parents[3]
 
