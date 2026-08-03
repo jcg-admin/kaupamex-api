@@ -37,63 +37,140 @@ from contextvars import ContextVar
 from django.apps import apps
 from django.db import connection, connections, models
 
-# === Canal del DATO: la compañía activa del request ========================
-# Análogo de ``env.companies``/``env.company`` (``odoo19c:
-# odoo/orm/environments.py:246``; en 18c el símbolo vive en ``odoo/api.py`` —
-# citar por símbolo, no por ruta). Es el canal del **dato**: qué compañía
-# está activa. La **elevación** es el otro canal (``env.su``) y NO pasa por
-# aquí (DEC-AISL-04) — el acceso cross-company del operador se hace explícito
-# con el manager por defecto, nunca "limpiando" el contexto.
-#
-# ``ContextVar`` (no un global) para ser seguro bajo async/threads: cada
-# request tiene su propio valor. Lo puebla ``CompanyContextMiddleware``
-# (``addons.base.models.ir_http`` — allá vive el enlace request→entorno,
-# como ``ir.http`` en la referencia).
+from exceptions import AccessError
 
-_current_company: ContextVar = ContextVar('current_company', default=None)
+# === Los DOS canales del entorno (DEC-AISL-04) =============================
+# Réplica de la separación de la referencia, verificada idéntica en las dos
+# poblaciones:
+#
+# - **Canal del DATO** — qué compañías están activadas: ``env.companies`` /
+#   ``env.company`` (``odoo19c: odoo/orm/environments.py`` — ctx
+#   ``allowed_company_ids`` validado contra lo permitido del usuario, con
+#   ``AccessError`` si trae contenido no autorizado; en 18c el símbolo vive
+#   en ``odoo/api.py`` — citar por símbolo, no por ruta).
+# - **Canal de ELEVACIÓN** — operar por encima de las reglas: ``env.su`` /
+#   ``sudo()`` (``odoo19c: orm/models.py:5954``; ``odoo18c: api.py:674-679``).
+#   NO cambia al usuario; sólo omite las guardas. Y — verbatim del docstring
+#   de la fuente — *"No sanity checks applied in sudo mode!"*: bajo ``su`` la
+#   validación de compañías no aplica (habilita flujos inter-company).
+#
+# Antes de esta separación, la elevación se codificaba como ``company=None``
+# (centinela EN el canal del dato): cualquier ruta sin middleware quedaba
+# indistinguible del operador. Ahora la ausencia de dato DENIEGA y elevar es
+# un acto explícito (``sudo()``).
+#
+# ``ContextVar`` (no globals) para ser seguro bajo async/threads. Los puebla
+# ``CompanyContextMiddleware`` (``addons.base.models.ir_http`` — allá vive el
+# enlace request→entorno, como ``ir.http`` en la referencia).
+
+_current_companies: ContextVar = ContextVar('current_companies', default=())
+_su: ContextVar = ContextVar('su', default=False)
+
+
+# --- Canal de elevación ----------------------------------------------------
+
+def is_su():
+    """¿El contexto actual está elevado? — el ``env.su`` de la referencia."""
+    return _su.get()
+
+
+@contextmanager
+def sudo(flag=True):
+    """Eleva el bloque por encima de las reglas — el ``sudo()`` de la fuente.
+
+    No cambia al usuario; omite el filtrado por compañía (y, cuando
+    ``ir_rule`` se cablee, sus reglas). Mismo warning que la referencia:
+    usarlo puede cruzar los límites de aislamiento entre compañías — por eso
+    es un bloque explícito y acotado, nunca un default.
+    """
+    token = _su.set(bool(flag))
+    try:
+        yield
+    finally:
+        _su.reset(token)
+
+
+# --- Canal del dato --------------------------------------------------------
+
+def get_current_companies():
+    """Tupla de PKs de las compañías ACTIVADAS — el ``env.companies``."""
+    return _current_companies.get()
 
 
 def get_current_company():
-    """PK de la compañía del request en curso, o ``None`` si no hay."""
-    return _current_company.get()
+    """PK de la compañía actual (la primera activada) — el ``env.company``.
+
+    ``None`` = sin compañía en contexto. Ya NO significa elevación: una
+    consulta scopeada sin compañía deniega (ver ``CompanyScopedManager``).
+    """
+    companies = _current_companies.get()
+    return companies[0] if companies else None
 
 
 def set_current_company(company_id):
-    """Fija (o limpia con ``None``) la compañía del contexto actual."""
-    _current_company.set(company_id)
+    """Activa una sola compañía (o limpia con ``None``)."""
+    _current_companies.set(() if company_id is None else (company_id,))
+
+
+def activate_companies(requested_ids, permitted_ids):
+    """Valida y activa el conjunto pedido — el cómputo de ``env.companies``.
+
+    Fiel a la fuente: lo pedido (ctx ``allowed_company_ids``) se valida
+    contra lo permitido del usuario y el excedente es ``AccessError``;
+    vacío cae al permitido completo (*"fallback on current user
+    companies"*). Bajo ``su`` no hay sanity check (verbatim del docstring
+    de la referencia).
+    """
+    requested = tuple(requested_ids or ())
+    permitted = tuple(permitted_ids or ())
+    if not requested:
+        _current_companies.set(permitted)
+        return permitted
+    if not is_su() and set(requested) - set(permitted):
+        raise AccessError('Access to unauthorized or invalid companies.')
+    _current_companies.set(requested)
+    return requested
 
 
 @contextmanager
 def company_scope(company_id):
-    """Fija la compañía en el bloque y **restaura** el valor previo al salir."""
-    token = _current_company.set(company_id)
+    """Activa la compañía en el bloque y **restaura** el valor previo."""
+    token = _current_companies.set(
+        () if company_id is None else (company_id,))
     try:
         yield
     finally:
-        _current_company.reset(token)
+        _current_companies.reset(token)
 
 
 class CompanyScopedManager(models.Manager):
     """Aislamiento de fila por compañía — TRANSITORIO (muere en DEC-AISL-04 §4).
 
     En la referencia este filtrado es **dato** (``ir.rule`` con
-    ``company_ids``), evaluado por el ORM; aquí es un manager codificado.
-    ``for_current_company()`` filtra por la compañía del contexto,
-    fail-closed: sin compañía en contexto → queryset vacío, nunca "todo".
-    Requiere FK ``company`` (columna ``company_id``) en el modelo. El acceso
-    cross-company del operador usa ``objects`` (explícito). Se retira al
-    cablear ``ir_rule`` (tarea #31).
+    ``company_ids``), evaluado por el ORM y OMITIDO bajo ``su``; aquí es un
+    manager codificado con la misma semántica de dos canales:
+
+    - ``su`` activo → sin filtro (las reglas no aplican en modo elevado).
+    - Sin compañías activadas y sin ``su`` → queryset vacío (fail-closed).
+    - Con activadas → ``company_id ∈ activadas`` (el dominio típico de una
+      record rule multi-company usa ``company_ids``, el conjunto, no una).
+
+    Requiere FK ``company`` (columna ``company_id``) en el modelo. Se retira
+    al cablear ``ir_rule`` (tarea #31).
     """
 
     def for_current_company(self):
-        company_id = get_current_company()
-        if company_id is None:
+        if is_su():
+            return self.get_queryset()
+        companies = get_current_companies()
+        if not companies:
             return self.get_queryset().none()
-        return self.get_queryset().filter(company_id=company_id)
+        return self.get_queryset().filter(company_id__in=companies)
 
 
 __all__ = [
     'apps', 'connection', 'connections',
-    'get_current_company', 'set_current_company', 'company_scope',
+    'get_current_company', 'get_current_companies', 'set_current_company',
+    'activate_companies', 'company_scope', 'sudo', 'is_su',
     'CompanyScopedManager',
 ]

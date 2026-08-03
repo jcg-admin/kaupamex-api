@@ -95,7 +95,7 @@ import unicodedata
 
 import models
 
-from orm.environments import set_current_company
+from orm.environments import activate_companies
 
 _logger = logging.getLogger(__name__)
 
@@ -238,11 +238,22 @@ class CompanyContextMiddleware:
 
     def __call__(self, request):
         user = getattr(request, 'user', None)
-        company_id = None
+        permitted = ()
         if user is not None and getattr(user, 'is_authenticated', False):
+            # Permitido = compañía propia + la pertenencia N (``company_ids``
+            # M2M, el reverso de ``res_company_users_rel``) — el
+            # ``user.company_ids`` de la referencia, con la propia primero
+            # (``env.company`` = la primera activada).
             company_id = getattr(user, 'company_id', None)
-        set_current_company(company_id)
+            if company_id is not None:
+                permitted = (company_id,)
+            extra = getattr(user, 'company_ids', None)
+            if extra is not None:
+                permitted += tuple(
+                    pk for pk in extra.values_list('pk', flat=True)
+                    if pk != company_id)
+        activate_companies((), permitted)
         try:
             return self.get_response(request)
         finally:
-            set_current_company(None)
+            activate_companies((), ())
