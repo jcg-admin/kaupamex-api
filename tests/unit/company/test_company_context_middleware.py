@@ -6,9 +6,9 @@ scope.
 """
 import pytest
 
-from addons.platform.context import get_current_company
-from addons.platform.middleware import CompanyContextMiddleware
-from addons.platform.models import Company
+from orm.environments import get_current_company
+from addons.base.models.ir_http import CompanyContextMiddleware
+from addons.base.models import ResCompany
 from tests.factories.user_factory import UserFactory
 
 pytestmark = pytest.mark.django_db
@@ -39,7 +39,7 @@ def _run(user):
 
 class TestCompanyContextMiddleware:
     def test_sets_company_from_authenticated_user(self):
-        company = Company.objects.create(code='acme', name='Acme')
+        company = ResCompany.objects.create(code='acme', name='Acme')
         user = UserFactory(company=company)
         seen, result = _run(user)
         assert seen == company.pk
@@ -59,7 +59,7 @@ class TestCompanyContextMiddleware:
         assert get_current_company() is None
 
     def test_context_cleared_even_if_view_raises(self):
-        company = Company.objects.create(code='acme', name='Acme')
+        company = ResCompany.objects.create(code='acme', name='Acme')
         user = UserFactory(company=company)
 
         def boom(request):

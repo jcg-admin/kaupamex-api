@@ -14,7 +14,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
-from addons.platform.models import CompanySetting
+from addons.base.models import CompanySetting
 from addons.mass_mailing import services as mm
 
 from .serializers import SubscribeSerializer

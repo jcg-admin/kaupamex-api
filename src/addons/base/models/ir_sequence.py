@@ -55,7 +55,7 @@ class IrSequence(models.Model):
         default=False, help_text='Subsecuencias por rango de fecha (Odoo use_date_range).',
     )
     company        = fields.Many2one(
-        'platform.Company', on_delete=models.CASCADE, related_name='sequences',
+        'base.ResCompany', on_delete=models.CASCADE, related_name='sequences',
         null=True, blank=True, help_text='Empresa (Odoo company_id).',
     )
 

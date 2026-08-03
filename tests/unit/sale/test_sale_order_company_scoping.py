@@ -11,19 +11,20 @@ durante el rollout + par de managers ``objects`` (cross-company, L0 admin) /
 """
 import pytest
 
-from addons.platform.context import set_current_company
-from addons.platform.models import Company, CompanyScopedManager
+from orm.environments import set_current_company
+from orm.environments import CompanyScopedManager
+from addons.base.models import ResCompany
 from addons.sale.models import SaleOrder
 
 
 @pytest.fixture
 def company_a(db):
-    return Company.objects.create(code='acme', name='ACME')
+    return ResCompany.objects.create(code='acme', name='ACME')
 
 
 @pytest.fixture
 def company_b(db):
-    return Company.objects.create(code='globex', name='Globex')
+    return ResCompany.objects.create(code='globex', name='Globex')
 
 
 @pytest.mark.django_db

@@ -1,9 +1,11 @@
 """hr.department / hr.job — núcleo organizativo (Odoo ``hr``).
 
 Re-hogar de ``platform.Department``/``platform.Job`` a su familia fiel ``hr``
-(``analisis-porte-familia-hr``). Cambios respecto del origen: FK directa
-opcional a ``platform.Company`` (D-2); ``subsidiary`` opcional (D-2);
-``is_active`` → ``active`` (D-3); ``Job.title`` → ``HrJob.name`` (D-3).
+(``analisis-porte-familia-hr``). ``subsidiary`` se disolvió (D-1 cerrada):
+la referencia no lo declara en ``hr.department`` — la multi-entidad-legal es
+la jerarquía de ``res.company`` (Branches), y el departamento sólo lleva
+``company_id``. ``is_active`` → ``active`` (D-3); ``Job.title`` →
+``HrJob.name`` (D-3).
 
 Invariante de jerarquía (DIS-04): un departamento no puede ser su propio padre
 ni cerrar un ciclo (``DEPARTMENT_CYCLE``) — el helper vive ahora en
@@ -12,7 +14,7 @@ ni cerrar un ciclo (``DEPARTMENT_CYCLE``) — el helper vive ahora en
 import pytest
 from django.core.exceptions import ValidationError
 
-from addons.platform.models import Company, Subsidiary
+from addons.base.models import ResCompany, ResCurrency
 from addons.hr.models import HrDepartment, HrJob
 
 pytestmark = pytest.mark.django_db
@@ -20,41 +22,37 @@ pytestmark = pytest.mark.django_db
 
 @pytest.fixture
 def company():
-    return Company.objects.create(code='acme', name='Acme')
+    mxn, _ = ResCurrency.objects.get_or_create(name='MXN', defaults={'symbol': '$'})
+    return ResCompany.create_company('Acme', currency=mxn, code='acme')
 
 
 # --- HrDepartment -----------------------------------------------------------
 
-def test_department_optional_subsidiary_and_company(company):
-    s = Subsidiary.objects.create(company=company, name='Acme MX')
-    d = HrDepartment.objects.create(subsidiary=s, name='Ventas', company=company)
+def test_department_with_company(company):
+    d = HrDepartment.objects.create(name='Ventas', company=company)
     d.refresh_from_db()
-    assert d.subsidiary_id == s.pk
     assert d.company_id == company.pk
     assert d.active is True
     assert str(d) == 'Ventas'
 
 
-def test_department_without_subsidiary(company):
-    # D-2: subsidiary ya no es el ancla; puede crearse sin ella.
-    d = HrDepartment.objects.create(name='Corporativo', company=company)
+def test_department_without_company():
+    # company es opcional (SET_NULL), como el resto de FKs de compañía.
+    d = HrDepartment.objects.create(name='Corporativo')
     d.refresh_from_db()
-    assert d.subsidiary_id is None
-    assert d.company_id == company.pk
+    assert d.company_id is None
 
 
 def test_department_subhierarchy(company):
-    s = Subsidiary.objects.create(company=company, name='Acme MX')
-    ventas = HrDepartment.objects.create(subsidiary=s, name='Ventas')
+    ventas = HrDepartment.objects.create(name='Ventas', company=company)
     online = HrDepartment.objects.create(
-        subsidiary=s, name='Ventas Online', parent=ventas)
+        name='Ventas Online', parent=ventas, company=company)
     assert online.parent_id == ventas.pk
     assert list(ventas.children.all()) == [online]
 
 
 def test_department_no_self_cycle(company):
-    s = Subsidiary.objects.create(company=company, name='Acme MX')
-    d = HrDepartment.objects.create(subsidiary=s, name='Ventas')
+    d = HrDepartment.objects.create(name='Ventas', company=company)
     d.parent = d
     with pytest.raises(ValidationError) as exc:
         d.full_clean()
@@ -72,8 +70,7 @@ def test_job_department_is_optional(company):
 
 
 def test_job_bound_to_department(company):
-    s = Subsidiary.objects.create(company=company, name='Acme MX')
-    d = HrDepartment.objects.create(subsidiary=s, name='Ventas')
+    d = HrDepartment.objects.create(name='Ventas', company=company)
     j = HrJob.objects.create(name='Vendedor', department=d, company=company)
     assert j.department_id == d.pk
     assert j.company_id == company.pk

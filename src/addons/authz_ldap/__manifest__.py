@@ -9,7 +9,7 @@
     # que hospeda `res.config.settings` (la UI de ajustes); este árbol no lo
     # tiene y su rol aquí lo cumplen la propia API DRF del recurso + los
     # SystemParameter de `base` — por eso no aparece. `company` entra porque
-    # la configuración es por-Company (FK medida en models.py); en la
+    # la configuración es por-ResCompany (FK medida en models.py); en la
     # referencia ese modelo vive en `base`, aquí en su addon propio.
     # `authz` entra por la capacidad que gatea el CRUD (permissions.ldap).
     'depends': [

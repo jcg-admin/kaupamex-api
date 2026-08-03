@@ -8,32 +8,32 @@ NO ``company_id`` nullable). Ambos helpers son idempotentes.
 """
 import pytest
 
-from addons.platform.models import (
+from addons.sale_subscription.data.res_company_data import (
     FOUNDER_COMPANY_CODE,
     SYSTEM_COMPANY_CODE,
-    Company,
 )
+from addons.base.models import ResCompany
 
 pytestmark = pytest.mark.django_db
 
 
 def test_is_system_defaults_false():
-    c = Company.objects.create(code='acme', name='Acme')
+    c = ResCompany.objects.create(code='acme', name='Acme')
     c.refresh_from_db()
     assert c.is_system is False
 
 
 def test_get_system_creates_idempotent():
-    a = Company.get_system()
-    b = Company.get_system()
+    a = ResCompany.get_system()
+    b = ResCompany.get_system()
     assert a.pk == b.pk
     assert a.code == SYSTEM_COMPANY_CODE
     assert a.is_system is True
 
 
 def test_get_founder_creates_idempotent():
-    a = Company.get_founder()
-    b = Company.get_founder()
+    a = ResCompany.get_founder()
+    b = ResCompany.get_founder()
     assert a.pk == b.pk
     assert a.code == FOUNDER_COMPANY_CODE
     # La founder es un tenant real (no la system company de datos compartidos).
@@ -41,4 +41,4 @@ def test_get_founder_creates_idempotent():
 
 
 def test_system_and_founder_are_distinct():
-    assert Company.get_system().pk != Company.get_founder().pk
+    assert ResCompany.get_system().pk != ResCompany.get_founder().pk

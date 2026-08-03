@@ -1,4 +1,4 @@
-"""``res.company.ldap`` — configuración LDAP por Company.
+"""``res.company.ldap`` — configuración LDAP por ResCompany.
 
 Adaptación fiel de Odoo ``auth_ldap/models/res_company_ldap.py`` (LGPL-3).
 
@@ -92,8 +92,8 @@ class CompanyLdap(TimeStampedModel):
 
     sequence = fields.Integer(default=10, verbose_name='Secuencia')
     company = fields.Many2one(
-        'platform.Company', on_delete=models.CASCADE, related_name='ldaps',
-        verbose_name='Company',
+        'base.ResCompany', on_delete=models.CASCADE, related_name='ldaps',
+        verbose_name='Compañía',
     )
     ldap_server = fields.Char(
         max_length=255, default='127.0.0.1',

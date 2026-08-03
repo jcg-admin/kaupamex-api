@@ -26,7 +26,7 @@ from addons.base.models import (
     ResCurrencyRate,
     ResLang,
 )
-from addons.platform.models import Company
+from addons.base.models import ResCompany
 
 pytestmark = pytest.mark.django_db
 
@@ -67,7 +67,7 @@ class TestResCurrencyRate:
         # con company NULL, SQL NULL != NULL no dispara (fiel a Odoo, misma
         # semántica que su unique(name,currency_id,company_id)).
         usd = ResCurrency.objects.create(name='USD')
-        acme = Company.objects.create(code='acme-fx', name='ACME FX')
+        acme = ResCompany.objects.create(code='acme-fx', name='ACME FX')
         ResCurrencyRate.objects.create(
             name=date(2026, 7, 18), rate=Decimal('17'), currency=usd, company=acme)
         with transaction.atomic(), pytest.raises(IntegrityError):

@@ -36,10 +36,13 @@ from addons.base.models import SystemParameter
 from addons.base_geolocalize.data import GEO_PROVIDERS
 from addons.base_geolocalize.data import seed as geo_providers_seed
 from addons.base_geolocalize.models import GeoProvider
-from addons.platform.data import seed as founder_company_seed
-from addons.platform.models import (
-    FOUNDER_COMPANY_CODE, FOUNDER_L1_SETTINGS, Company, CompanySetting,
+from addons.sale_subscription.data.res_company_data import seed as founder_company_seed
+from addons.base.models import CompanySetting
+from addons.sale_subscription.data.res_company_data import (
+    FOUNDER_COMPANY_CODE,
+    FOUNDER_L1_SETTINGS,
 )
+from addons.base.models import ResCompany
 from addons.mail.data import CANONICAL_SUBTYPES
 from addons.mail.data import seed as mail_subtypes_seed
 from addons.mail.models import MailMessageSubtype
@@ -57,7 +60,7 @@ _ALL_SEEDERS = (password_policy_seed, signup_flags_seed, totp_params_seed,
 
 def _seeds_present():
     """Estado de todas las familias de semilla, como dict verificable."""
-    founder = Company.objects.filter(code=FOUNDER_COMPANY_CODE).first()
+    founder = ResCompany.objects.filter(code=FOUNDER_COMPANY_CODE).first()
     return {
         'params': SystemParameter.objects.filter(key__in=_SEED_KEYS).count(),
         'subtypes': MailMessageSubtype.objects.filter(

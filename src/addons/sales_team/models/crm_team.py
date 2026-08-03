@@ -34,11 +34,11 @@ class CrmTeam(TimeStampedModel):
         default=True,
         help_text='Archivar el equipo sin borrarlo (Odoo crm.team.active).',
     )
-    # Odoo company_id — equipo por Company (L1 tenant). Multi-company.
+    # Odoo company_id — equipo por ResCompany (L1 tenant). Multi-company.
     company     = fields.Many2one(
-        'platform.Company', null=True, blank=True,
+        'base.ResCompany', null=True, blank=True,
         on_delete=models.CASCADE, related_name='sales_teams',
-        help_text='Company propietaria (Odoo crm.team.company_id).',
+        help_text='ResCompany propietaria (Odoo crm.team.company_id).',
     )
     # Odoo user_id (crm_team.py:93) — líder del equipo (Team Leader).
     leader      = fields.Many2one(

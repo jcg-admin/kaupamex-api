@@ -79,7 +79,7 @@ class AccountMove(models.Model):
         help_text='Moneda (Odoo currency_id).',
     )
     company      = fields.Many2one(
-        'platform.Company', on_delete=models.CASCADE, related_name='moves',
+        'base.ResCompany', on_delete=models.CASCADE, related_name='moves',
         help_text='Empresa (Odoo company_id).',
     )
     amount_total = fields.Monetary(

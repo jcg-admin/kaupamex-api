@@ -6,7 +6,7 @@ núcleo: ``code``, ``name``, ``account_type`` (Selection), ``reconcile``,
 ``account_type`` (Odoo ``_compute_internal_group``) → se computa en ``save()``.
 
 Cross-app (DEC-SALE-01): ``currency`` → ``base.ResCurrency``; ``company`` →
-``company.Company`` (Odoo ``res.company``).
+``base.ResCompany`` (Odoo ``res.company``).
 
 Hallazgo H-ACC-01 (drift 18→19): el enum ``account_type`` de 19 añade
 ``expense_other`` respecto de 18. Se adopta el **superset de 19** (nada
@@ -80,7 +80,7 @@ class AccountAccount(models.Model):
         help_text='Moneda de la cuenta (Odoo currency_id).',
     )
     company        = fields.Many2one(
-        'platform.Company', on_delete=models.CASCADE, related_name='accounts',
+        'base.ResCompany', on_delete=models.CASCADE, related_name='accounts',
         help_text='Empresa (Odoo company_id / company_ids).',
     )
     note           = fields.Text(

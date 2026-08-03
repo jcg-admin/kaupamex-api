@@ -14,12 +14,12 @@ import pytest
 from django.db import IntegrityError
 
 from addons.authz.models import Module
-from addons.platform.models import (
-    Company,
+from addons.sale_subscription.models import (
     CompanyModuleSubscription,
     SubscriptionBillingRun,
     SubscriptionInvoice,
 )
+from addons.base.models import ResCompany
 
 pytestmark = pytest.mark.django_db
 
@@ -47,7 +47,7 @@ def test_billing_run_defaults_counters_to_zero():
 
 
 def test_invoice_freezes_amount_and_defaults_to_draft():
-    c = Company.objects.create(code='acme', name='Acme')
+    c = ResCompany.objects.create(code='acme', name='Acme')
     sub = _active_sub(c, 'catalogue', '199.00')
     run = SubscriptionBillingRun.objects.create(period='2026-08')
     inv = SubscriptionInvoice.objects.create(
@@ -60,7 +60,7 @@ def test_invoice_freezes_amount_and_defaults_to_draft():
 
 
 def test_invoice_idempotent_per_subscription_and_period():
-    c = Company.objects.create(code='acme', name='Acme')
+    c = ResCompany.objects.create(code='acme', name='Acme')
     sub = _active_sub(c, 'catalogue', '199.00')
     run = SubscriptionBillingRun.objects.create(period='2026-08')
     SubscriptionInvoice.objects.create(
@@ -76,7 +76,7 @@ def test_invoice_idempotent_per_subscription_and_period():
 
 
 def test_invoice_same_subscription_different_period_is_allowed():
-    c = Company.objects.create(code='acme', name='Acme')
+    c = ResCompany.objects.create(code='acme', name='Acme')
     sub = _active_sub(c, 'catalogue', '199.00')
     run1 = SubscriptionBillingRun.objects.create(period='2026-08')
     run2 = SubscriptionBillingRun.objects.create(period='2026-09')
@@ -95,7 +95,7 @@ def test_invoice_status_lifecycle_values():
 
 
 def test_run_reverse_relation_to_invoices():
-    c = Company.objects.create(code='acme', name='Acme')
+    c = ResCompany.objects.create(code='acme', name='Acme')
     sub = _active_sub(c, 'catalogue', '199.00')
     run = SubscriptionBillingRun.objects.create(period='2026-08')
     inv = SubscriptionInvoice.objects.create(

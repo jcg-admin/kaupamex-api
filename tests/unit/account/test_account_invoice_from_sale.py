@@ -21,13 +21,13 @@ from exceptions import UserError
 from addons.account.models import AccountAccount, AccountJournal
 from addons.account.services import create_invoice_from_sale_order
 from tests.factories.product_factory import make_category, make_product
-from addons.platform.models import Company
+from addons.base.models import ResCompany
 from addons.sale.models import SaleOrder
 
 
 @pytest.fixture
 def company(db):
-    return Company.objects.create(code='acme', name='ACME')
+    return ResCompany.objects.create(code='acme', name='ACME')
 
 
 @pytest.fixture

@@ -3,9 +3,9 @@
 # planos NUEVOS; estas se migran una por una con el mapa de H-API-238 y salen
 # de aquí al hacerlo.
 #
-# Los ocho de platform/ NO son deuda heredada ajena: se movieron desde company
-# en el mismo pase que sí desagrupó models.py, tomando un item ya nombrado por
-# H-API-238 y renombrandolo. Se pagan primero (H-API-256).
+# platform/ pagado (2026-08-03): el addon se disolvió — Company en base,
+# billing en sale_subscription (controllers/ security/ data/), contexto en
+# orm.environments, middleware en base.models.ir_http. Ver H-API-261/262.
 
 account/authz_catalog.py
 authz/views.py
@@ -36,11 +36,6 @@ observability/views.py
 observability/admin_urls.py
 observability/authz_catalog.py
 payment/authz_catalog.py
-platform/views.py
-platform/serializers.py
-platform/urls.py
-platform/data.py
-platform/authz_catalog.py
 product/authz_catalog.py
 rating/authz_catalog.py
 sale/views.py

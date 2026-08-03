@@ -17,7 +17,7 @@ verdad (sin bypass del resolver).
 from django.contrib.auth import get_user_model
 
 from addons.authz.models import Capability, Module, Role, RoleAssignment
-from addons.platform.models import Company
+from addons.base.models import ResCompany
 
 import pytest
 
@@ -55,8 +55,8 @@ class TestPlatformCompaniesGate:
 
     def test_operator_can_list_all_companies(self, api_client, db):
         # Camino POSITIVO: operador L0 ve todos los companies (cross-company).
-        Company.objects.create(code='acme', name='Acme')
-        Company.objects.create(code='globex', name='Globex')
+        ResCompany.objects.create(code='acme', name='Acme')
+        ResCompany.objects.create(code='globex', name='Globex')
         operator = _user_with_caps(
             'l0_operator@practicayoruba.mx', ['platform.view'],
         )
@@ -68,7 +68,7 @@ class TestPlatformCompaniesGate:
         assert {'acme', 'globex'} <= codes
 
     def test_operator_can_retrieve_company_detail(self, api_client, db):
-        t = Company.objects.create(code='acme', name='Acme')
+        t = ResCompany.objects.create(code='acme', name='Acme')
         operator = _user_with_caps(
             'l0_detail@practicayoruba.mx', ['platform.view'],
         )
@@ -76,13 +76,13 @@ class TestPlatformCompaniesGate:
         res = api_client.get(f'{COMPANIES_URL}{t.pk}/')
         assert res.status_code == 200
         assert res.data['code'] == 'acme'
-        assert res.data['status'] == Company.Status.TRIAL
+        assert res.data['status'] == ResCompany.Status.TRIAL
         assert res.data['active_modules'] == []
         assert res.data['user_count'] == 0
 
     def test_user_without_platform_view_is_denied(self, api_client, db):
         # Camino NEGATIVO: autenticado sin la capacidad de lectura → 403.
-        Company.objects.create(code='acme', name='Acme')
+        ResCompany.objects.create(code='acme', name='Acme')
         outsider = _user_with_caps(
             'l0_outsider@practicayoruba.mx', ['reports.view'],
         )
@@ -108,9 +108,9 @@ class TestPlatformCompaniesLifecycle:
             'billing_email': 'facturacion@zapateriados.mx',
         }, format='json')
         assert res.status_code == 201, res.data
-        company = Company.objects.get(code='zapateria-dos')
+        company = ResCompany.objects.get(code='zapateria-dos')
         # El estado inicial es SIEMPRE trial (fijo en alta, no editable).
-        assert company.status == Company.Status.TRIAL
+        assert company.status == ResCompany.Status.TRIAL
 
     def test_create_forces_trial_even_if_status_sent(self, api_client, db):
         operator = _user_with_caps('l0_create2@practicayoruba.mx', ['platform.provision'])
@@ -119,7 +119,7 @@ class TestPlatformCompaniesLifecycle:
             'code': 'tienda-x', 'name': 'Tienda X', 'status': 'active',
         }, format='json')
         assert res.status_code == 201, res.data
-        assert Company.objects.get(code='tienda-x').status == Company.Status.TRIAL
+        assert ResCompany.objects.get(code='tienda-x').status == ResCompany.Status.TRIAL
 
     def test_read_only_operator_cannot_create(self, api_client, db):
         viewer = _user_with_caps('l0_ro_create@practicayoruba.mx', ['platform.view'])
@@ -128,35 +128,35 @@ class TestPlatformCompaniesLifecycle:
         assert res.status_code == 403
 
     def test_operator_can_suspend_and_reactivate(self, api_client, db):
-        company = Company.objects.create(
-            code='acme', name='Acme', status=Company.Status.ACTIVE,
+        company = ResCompany.objects.create(
+            code='acme', name='Acme', status=ResCompany.Status.ACTIVE,
         )
         operator = _user_with_caps('l0_susp@practicayoruba.mx', ['platform.provision'])
         api_client.force_login(operator)
         res = api_client.post(f'{COMPANIES_URL}{company.pk}/suspend/')
         assert res.status_code == 200, res.data
         company.refresh_from_db()
-        assert company.status == Company.Status.SUSPENDED
+        assert company.status == ResCompany.Status.SUSPENDED
         res = api_client.post(f'{COMPANIES_URL}{company.pk}/reactivate/')
         assert res.status_code == 200, res.data
         company.refresh_from_db()
-        assert company.status == Company.Status.ACTIVE
+        assert company.status == ResCompany.Status.ACTIVE
 
     def test_cannot_suspend_system_company(self, api_client, db):
-        system = Company.objects.create(
+        system = ResCompany.objects.create(
             code='kaupamex_global', name='Kaupamex', is_system=True,
-            status=Company.Status.ACTIVE,
+            status=ResCompany.Status.ACTIVE,
         )
         operator = _user_with_caps('l0_sys@practicayoruba.mx', ['platform.provision'])
         api_client.force_login(operator)
         res = api_client.post(f'{COMPANIES_URL}{system.pk}/suspend/')
         assert res.status_code == 400
         system.refresh_from_db()
-        assert system.status == Company.Status.ACTIVE
+        assert system.status == ResCompany.Status.ACTIVE
 
     def test_reactivate_requires_suspended_state(self, api_client, db):
-        company = Company.objects.create(
-            code='acme2', name='Acme2', status=Company.Status.ACTIVE,
+        company = ResCompany.objects.create(
+            code='acme2', name='Acme2', status=ResCompany.Status.ACTIVE,
         )
         operator = _user_with_caps('l0_react@practicayoruba.mx', ['platform.provision'])
         api_client.force_login(operator)
@@ -164,8 +164,8 @@ class TestPlatformCompaniesLifecycle:
         assert res.status_code == 400
 
     def test_read_only_operator_cannot_suspend(self, api_client, db):
-        company = Company.objects.create(
-            code='acme3', name='Acme3', status=Company.Status.ACTIVE,
+        company = ResCompany.objects.create(
+            code='acme3', name='Acme3', status=ResCompany.Status.ACTIVE,
         )
         viewer = _user_with_caps('l0_ro_susp@practicayoruba.mx', ['platform.view'])
         api_client.force_login(viewer)

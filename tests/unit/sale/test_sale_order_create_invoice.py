@@ -19,14 +19,14 @@ import pytest
 
 from exceptions import UserError
 from addons.account.models import AccountAccount, AccountJournal, AccountMove
-from addons.platform.models import Company
+from addons.base.models import ResCompany
 from addons.sale.models import SaleOrder
 from tests.factories.product_factory import make_category, make_product
 
 
 @pytest.fixture
 def company(db):
-    return Company.objects.create(code='acme', name='ACME')
+    return ResCompany.objects.create(code='acme', name='ACME')
 
 
 @pytest.fixture

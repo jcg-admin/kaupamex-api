@@ -23,13 +23,13 @@ import pytest
 from django.core.files.base import ContentFile
 
 from addons.base.models import IrAttachment
-from addons.platform.models import Company
+from addons.base.models import ResCompany
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
 
 def _make_company():
-    return Company.objects.create(code='acme-attach', name='Acme Attach')
+    return ResCompany.objects.create(code='acme-attach', name='Acme Attach')
 
 
 # --- Importable desde el hogar canónico ------------------------------------

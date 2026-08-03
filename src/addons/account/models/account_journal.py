@@ -41,7 +41,7 @@ class AccountJournal(models.Model):
         help_text='Cuenta por defecto (Odoo default_account_id).',
     )
     company         = fields.Many2one(
-        'platform.Company', on_delete=models.CASCADE, related_name='journals',
+        'base.ResCompany', on_delete=models.CASCADE, related_name='journals',
         help_text='Empresa (Odoo company_id).',
     )
     active          = fields.Boolean(

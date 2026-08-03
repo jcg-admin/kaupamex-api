@@ -19,7 +19,7 @@ import logging
 from django.conf import settings
 from django.template.loader import render_to_string
 
-from addons.platform.models import CompanySetting
+from addons.base.models import CompanySetting
 from addons.mail.models.email_executor import dispatch_email
 
 logger = logging.getLogger(__name__)

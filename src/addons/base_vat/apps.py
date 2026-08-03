@@ -7,7 +7,7 @@ class BaseVatConfig(AppConfig):
     Adaptación nativa de ``base_vat`` de Odoo (LGPL-3), que agrega
     ``check_vat`` a ``res.partner`` con un método por país
     (``check_vat_XX``). Aquí se expone un validador por país (MX = RFC) que se
-    engancha en el campo ``Company.tax_id``. Es un módulo ``base_*`` — cimiento
+    engancha en el campo ``ResCompany.tax_id``. Es un módulo ``base_*`` — cimiento
     del cluster ``account_*`` (facturación/CFDI necesita un RFC bien formado
     del emisor y del receptor).
     """

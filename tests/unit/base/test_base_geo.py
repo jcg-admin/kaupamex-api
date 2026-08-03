@@ -24,7 +24,9 @@ pytestmark = pytest.mark.django_db
 
 class TestResCurrency:
     def test_name_iso4217_unique(self):
-        ResCurrency.objects.create(name='MXN', symbol='$')
+        # get_or_create: MXN puede pre-existir (semilla de compañías de tests
+        # transaction=True comprometidos en la DB reutilizada).
+        ResCurrency.objects.get_or_create(name='MXN', defaults={'symbol': '$'})
         with transaction.atomic(), pytest.raises(IntegrityError):
             ResCurrency.objects.create(name='MXN', symbol='$')
 
@@ -66,9 +68,11 @@ class TestResCountry:
             ResCountry.objects.create(name='Otro', code='MX')
 
     def test_currency_fk_set_null_on_delete(self):
-        mxn = ResCurrency.objects.create(name='MXN', symbol='$')
-        mx = ResCountry.objects.create(name='México', code='MX', currency=mxn)
-        mxn.delete()
+        # XTS (código ISO de prueba): MXN puede estar referenciada con PROTECT
+        # por compañías comprometidas en la DB reutilizada.
+        xts = ResCurrency.objects.create(name='XTS', symbol='X')
+        mx = ResCountry.objects.create(name='México', code='MX', currency=xts)
+        xts.delete()
         mx.refresh_from_db()
         assert mx.currency is None
 

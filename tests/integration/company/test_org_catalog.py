@@ -1,56 +1,43 @@
-"""Org catalog — Subsidiary (UC-PLT-14, DIS-01/02).
+"""Jerarquía de sucursales — ``res.company`` (antes ``Subsidiary``).
 
-Estructura organizativa del tenant que vive junto a ``Company``
-(``addons.platform``). ``Subsidiary`` = entidad legal bajo la Company
-(jerarquía OneWorld → root). ``Department``/``Job`` re-hogaron al addon ``hr``
-(``hr.department``/``hr.job``) — sus pruebas viven en
-``tests/integration/hr/test_org_catalog.py`` (ver ``analisis-porte-familia-hr``).
-
-Invariante de jerarquía (DIS-04): un nodo no puede ser su propio padre ni
-cerrar un ciclo (``SUBSIDIARY_CYCLE``).
+``Subsidiary`` se disolvió contra la referencia (D-1 cerrada): la
+multi-entidad-legal es la jerarquía de ``res.company``
+(``parent_id``/``child_ids`` — 'Branches', ``odoo19c: res_company.py:51-56``),
+con ``parent_path`` como ruta materializada. Estas pruebas ejercen ese eje
+sobre ``base.ResCompany``. ``Department``/``Job`` viven en ``hr``
+(``tests/integration/hr/test_org_catalog.py``).
 """
 import pytest
-from django.core.exceptions import ValidationError
 
-from addons.platform.models import Company, Subsidiary
+from addons.base.models import ResCompany, ResCurrency
 
 pytestmark = pytest.mark.django_db
 
 
 @pytest.fixture
 def company():
-    return Company.objects.create(code='acme', name='Acme')
+    # Bootstrap: la primera compañía no puede heredar moneda de una principal.
+    mxn, _ = ResCurrency.objects.get_or_create(name='MXN', defaults={'symbol': '$'})
+    return ResCompany.create_company('Acme', currency=mxn, code='acme')
 
 
-# --- Subsidiary -------------------------------------------------------------
-
-def test_subsidiary_is_active_default_true(company):
-    s = Subsidiary.objects.create(company=company, name='Acme MX')
-    s.refresh_from_db()
-    assert s.is_active is True
-    assert str(s) == 'Acme MX'
+def test_branch_parent_child(company):
+    branch = ResCompany.create_company('Acme MX', code='acme-mx', parent=company)
+    assert branch.parent_id == company.pk
+    assert list(company.child_ids.all()) == [branch]
 
 
-def test_subsidiary_hierarchy_parent_child(company):
-    root = Subsidiary.objects.create(company=company, name='Acme Global')
-    child = Subsidiary.objects.create(company=company, name='Acme MX', parent=root)
-    assert child.parent_id == root.pk
-    assert list(root.children.all()) == [child]
+def test_parent_path_materializada(company):
+    branch = ResCompany.create_company('Acme MX', code='acme-mx', parent=company)
+    branch.refresh_from_db()
+    assert branch.parent_path == f'{company.pk}/{branch.pk}/'
+    assert list(branch.parent_ids.order_by('pk')) == [company, branch]
+    assert branch.root_id == company
 
 
-def test_subsidiary_cannot_be_its_own_parent(company):
-    s = Subsidiary.objects.create(company=company, name='Acme MX')
-    s.parent = s
-    with pytest.raises(ValidationError) as exc:
-        s.full_clean()
-    assert 'SUBSIDIARY_CYCLE' in str(exc.value)
-
-
-def test_subsidiary_no_cycle_in_chain(company):
-    a = Subsidiary.objects.create(company=company, name='A')
-    b = Subsidiary.objects.create(company=company, name='B', parent=a)
-    # Cerrar el ciclo A → B → A debe rechazarse.
-    a.parent = b
-    with pytest.raises(ValidationError) as exc:
-        a.full_clean()
-    assert 'SUBSIDIARY_CYCLE' in str(exc.value)
+def test_branch_hereda_moneda_de_la_raiz(company):
+    """``_get_company_root_delegated_field_names``: la sucursal copia la
+    moneda funcional de su raíz."""
+    branch = ResCompany.create_company('Acme MX', code='acme-mx', parent=company)
+    branch.apply_root_delegation()
+    assert branch.currency_id == company.currency_id

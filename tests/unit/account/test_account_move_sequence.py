@@ -18,12 +18,12 @@ from addons.account.models import (
     AccountMove,
     AccountMoveLine,
 )
-from addons.platform.models import Company
+from addons.base.models import ResCompany
 
 
 @pytest.fixture
 def company(db):
-    return Company.objects.create(code='acme', name='ACME')
+    return ResCompany.objects.create(code='acme', name='ACME')
 
 
 @pytest.fixture

@@ -21,7 +21,10 @@ from django.core.management.base import CommandError
 
 from addons.authz.declaration import discover
 from addons.authz.models import Capability, Module
-from addons.platform.models import Company, CompanyModuleSubscription
+from addons.sale_subscription.models import (
+    CompanyModuleSubscription,
+)
+from addons.base.models import ResCompany
 
 BASE = Path(__file__).resolve().parents[3]
 
@@ -108,7 +111,7 @@ def test_prune_spares_a_subscribed_module():
     """
     call_command('seed_authz')
     module = Module.objects.create(code='addon_retirado', name='Addon retirado')
-    company = Company.objects.create(code='acme', name='ACME')
+    company = ResCompany.objects.create(code='acme', name='ACME')
     CompanyModuleSubscription.objects.create(company=company, module=module)
 
     out = io.StringIO()

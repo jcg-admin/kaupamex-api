@@ -13,12 +13,15 @@ subdominio→company (UC-PLT-06) + la system-company son la iniciativa L3 mayor.
 import pytest
 
 from addons.authz.models import Module
-from addons.platform.context import (
+from orm.environments import (
     company_scope,
     get_current_company,
     set_current_company,
 )
-from addons.platform.models import Company, CompanyModuleSubscription
+from addons.sale_subscription.models import (
+    CompanyModuleSubscription,
+)
+from addons.base.models import ResCompany
 
 pytestmark = pytest.mark.django_db
 
@@ -50,8 +53,8 @@ class TestCompanyScopedManager:
         )
 
     def test_for_current_company_scopes_rows(self):
-        acme = Company.objects.create(code="acme", name="Acme")
-        globex = Company.objects.create(code="globex", name="Globex")
+        acme = ResCompany.objects.create(code="acme", name="Acme")
+        globex = ResCompany.objects.create(code="globex", name="Globex")
         self._sub(acme, "catalogue")
         self._sub(globex, "orders")
         with company_scope(acme.pk):
@@ -60,7 +63,7 @@ class TestCompanyScopedManager:
             assert rows.count() == 1
 
     def test_fail_closed_when_no_company_in_context(self):
-        acme = Company.objects.create(code="acme", name="Acme")
+        acme = ResCompany.objects.create(code="acme", name="Acme")
         self._sub(acme, "catalogue")
         # no company set -> empty (deny by default), NOT all rows
         assert get_current_company() is None
@@ -68,8 +71,8 @@ class TestCompanyScopedManager:
 
     def test_default_manager_is_unscoped(self):
         # the default manager still sees everything (L0 cross-company access)
-        acme = Company.objects.create(code="acme", name="Acme")
-        globex = Company.objects.create(code="globex", name="Globex")
+        acme = ResCompany.objects.create(code="acme", name="Acme")
+        globex = ResCompany.objects.create(code="globex", name="Globex")
         self._sub(acme, "catalogue")
         self._sub(globex, "orders")
         assert CompanyModuleSubscription.objects.count() == 2

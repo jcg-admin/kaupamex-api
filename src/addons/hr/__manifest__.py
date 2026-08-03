@@ -11,7 +11,6 @@
     'depends': [
         'base',      # TimeStampedModel, _reject_hierarchy_cycle, ResUsers
         'mail',      # MailThread
-        'platform',  # Company (D-2), Subsidiary
     ],
     # Licencia de la fuente de la que se adapta este addon, tal como su manifest
     # la declara (DEC-KX-03 punto 1): `hr` en Odoo Community es LGPL-3.

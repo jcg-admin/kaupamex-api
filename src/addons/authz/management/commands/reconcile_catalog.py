@@ -39,7 +39,9 @@ from django.db import transaction
 
 from addons.authz.declaration import discover
 from addons.authz.models import Capability, Module
-from addons.platform.models import CompanyModuleSubscription
+from addons.sale_subscription.models import (
+    CompanyModuleSubscription,
+)
 
 
 class Command(BaseCommand):

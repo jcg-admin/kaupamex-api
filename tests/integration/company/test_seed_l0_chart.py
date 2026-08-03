@@ -19,12 +19,12 @@ from django.core.management import call_command
 
 from addons.account.models import AccountAccount, AccountJournal
 from addons.authz.models import Module
-from addons.platform.models import (
-    Company,
+from addons.sale_subscription.models import (
     CompanyModuleSubscription,
     SubscriptionBillingRun,
     SubscriptionInvoice,
 )
+from addons.base.models import ResCompany
 
 pytestmark = pytest.mark.django_db
 
@@ -32,13 +32,13 @@ pytestmark = pytest.mark.django_db
 class TestSeedL0Chart:
     def test_creates_sales_journal_for_system_company(self):
         call_command('seed_l0_chart', stdout=StringIO())
-        system = Company.get_system()
+        system = ResCompany.get_system()
         journal = AccountJournal.objects.get(company=system, type='sale')
         assert journal.active is True
 
     def test_creates_receivable_and_income_accounts(self):
         call_command('seed_l0_chart', stdout=StringIO())
-        system = Company.get_system()
+        system = ResCompany.get_system()
         assert AccountAccount.objects.filter(
             company=system, account_type='asset_receivable',
             deprecated=False).exists()
@@ -49,7 +49,7 @@ class TestSeedL0Chart:
     def test_is_idempotent(self):
         call_command('seed_l0_chart', stdout=StringIO())
         call_command('seed_l0_chart', stdout=StringIO())
-        system = Company.get_system()
+        system = ResCompany.get_system()
         assert AccountJournal.objects.filter(
             company=system, type='sale').count() == 1
         assert AccountAccount.objects.filter(
@@ -61,7 +61,7 @@ class TestSeedL0Chart:
         # Sin el fixture ``l0_chart``: el seed debe bastar para asentar el
         # cobro L0 end-to-end.
         call_command('seed_l0_chart', stdout=StringIO())
-        tenant = Company.objects.create(code='acme', name='Acme')
+        tenant = ResCompany.objects.create(code='acme', name='Acme')
         module = Module.objects.create(code='catalogue', name='catalogue')
         sub = CompanyModuleSubscription.objects.create(
             company=tenant, module=module,
@@ -75,5 +75,5 @@ class TestSeedL0Chart:
         move = invoice.post_to_ledger()
 
         assert move.state == 'posted'
-        assert move.company_id == Company.get_system().pk
+        assert move.company_id == ResCompany.get_system().pk
         assert move.amount_total == invoice.amount

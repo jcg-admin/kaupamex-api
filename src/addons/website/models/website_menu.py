@@ -39,7 +39,7 @@ class WebsiteMenu(TimeStampedModel):
       (DEC-11).
     - ``website_id`` → **no se porta**: la referencia lo usa para servir varios
       sitios desde una instancia; aquí el equivalente de esa separación es la
-      ``Company`` (L1), y el menú de cuenta no está segmentado por sitio.
+      ``ResCompany`` (L1), y el menú de cuenta no está segmentado por sitio.
     - ``page_id`` · ``controller_page_id`` · ``new_window`` · ``mega_menu_*``
       → **no se portan**: pertenecen al editor de sitios de Odoo, que este
       árbol no tiene (el cliente es un SPA React).

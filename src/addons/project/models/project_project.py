@@ -33,7 +33,7 @@ class Project(TimeStampedModel):
         related_name='projects', help_text='Cliente (Odoo partner_id).',
     )
     company     = fields.Many2one(
-        'platform.Company', null=True, blank=True, on_delete=models.SET_NULL,
+        'base.ResCompany', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='projects', help_text='Compañía (Odoo company_id).',
     )
 

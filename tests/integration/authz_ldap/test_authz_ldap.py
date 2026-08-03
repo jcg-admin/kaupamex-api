@@ -23,7 +23,7 @@ from addons.authz.models import Capability, Role, RoleAssignment, RoleCapability
 from addons.authz.services import invalidate_capabilities
 from addons.authz_reauth.models import ReauthSession
 from addons.authz_ldap.models import CompanyLdap
-from addons.platform.models import Company
+from addons.base.models import ResCompany
 
 User = get_user_model()
 
@@ -39,7 +39,7 @@ LDAP_ENTRY = (
 
 @pytest.fixture
 def company(db):
-    return Company.objects.create(code='c-ldap', name='Company LDAP')
+    return ResCompany.objects.create(code='c-ldap', name='ResCompany LDAP')
 
 
 def _conf(company, **overrides):

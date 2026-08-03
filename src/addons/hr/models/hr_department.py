@@ -27,22 +27,18 @@ class HrDepartment(MailThread, TimeStampedModel):
     """
 
     name = fields.Char(max_length=150, verbose_name='Nombre')
-    # D-2: FK directa a platform.Company (Odoo company_id, res.company). El eje
+    # D-2: FK directa a base.ResCompany (Odoo company_id, res.company). El eje
     # tenant que usa el árbol (CompanyScopedManager, DEC-KX-05). Opcional +
     # SET_NULL como el resto de FKs de company del proyecto (sale.order).
     company = fields.Many2one(
-        'platform.Company', on_delete=models.SET_NULL, null=True, blank=True,
+        'base.ResCompany', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='hr_departments', verbose_name='Empresa (tenant)',
         help_text='Empresa dueña del departamento (Odoo company_id).',
     )
-    # D-2: subsidiary conservado como dimensión opcional (DIS-01), pasado de
-    # requerido/CASCADE a opcional/SET_NULL para no ser el ancla de department.
-    subsidiary = fields.Many2one(
-        'platform.Subsidiary', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='departments', verbose_name='Subsidiaria',
-    )
-    # TODO: constraint cruzada subsidiary.company == self.company (Odoo
-    # check_company). Diferida — requiere resolver el par de ejes en runtime.
+    # ``subsidiary`` se disolvió (D-1 cerrada contra la referencia): la
+    # jerarquía multi-entidad-legal es ``res.company.parent_id``/``child_ids``
+    # ('Branches', ``odoo19c: res_company.py:51-52``), que ``base.ResCompany``
+    # ya porta. ``hr.department`` en la referencia solo lleva ``company_id``.
     parent = fields.Many2one(
         'self', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='children', verbose_name='Departamento padre',

@@ -20,8 +20,10 @@ SOL-090 slice 3).
 import pytest
 from django.core import mail
 
-from addons.platform.context import company_scope
-from addons.platform.models import Company, CompanySetting, FOUNDER_L1_SETTINGS
+from orm.environments import company_scope
+from addons.base.models import CompanySetting
+from addons.sale_subscription.data.res_company_data import FOUNDER_L1_SETTINGS
+from addons.base.models import ResCompany
 from addons.mail.models.notification_emails import (
     NOTIFICATIONS_FROM_EMAIL_DEFAULT,
     _from_email,
@@ -39,7 +41,7 @@ def _reseed_founder_settings(db):
     # del founder para los tests que corren después — mismo patrón
     # order-dependent que H-CFG-IMPL-09. Restaura el estado que la migración
     # garantiza en producción, sin depender del orden de ejecución.
-    founder = Company.get_founder()
+    founder = ResCompany.get_founder()
     for key, value in FOUNDER_L1_SETTINGS.items():
         CompanySetting.set_setting(key, value, founder)
 
@@ -48,7 +50,7 @@ class TestNotificationsFromEmail:
     """``addons.mail.models.notification_emails._from_email()`` — empresa ambiente."""
 
     def test_ambient_founder_resolves_seeded_value(self):
-        founder = Company.get_founder()
+        founder = ResCompany.get_founder()
         with company_scope(founder.pk):
             assert _from_email() == 'noreply@practicayoruba.com'
 

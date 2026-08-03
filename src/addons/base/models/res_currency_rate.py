@@ -32,7 +32,7 @@ class ResCurrencyRate(models.Model):
         help_text='Moneda (Odoo currency_id).',
     )
     company      = fields.Many2one(
-        'platform.Company', on_delete=models.CASCADE, related_name='currency_rates',
+        'base.ResCompany', on_delete=models.CASCADE, related_name='currency_rates',
         null=True, blank=True,
         help_text='Empresa (Odoo company_id).',
     )

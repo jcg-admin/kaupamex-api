@@ -95,6 +95,8 @@ import unicodedata
 
 import models
 
+from orm.environments import set_current_company
+
 _logger = logging.getLogger(__name__)
 
 #: Extensiones cuyo tipo MIME sirve la web — verbatim de la fuente. En modo
@@ -209,3 +211,38 @@ class IrHttp(models.Model):
         módulo interviene las cookies salientes sin parchear el despacho.
         """
         return cookies
+
+
+class CompanyContextMiddleware:
+    """Ata la petición al canal del dato — el rol de ``ir.http._authenticate``.
+
+    En la referencia ``ir.http`` autentica cada petición y deja el entorno
+    (``env.company``/``env.companies``) listo para el despacho. Aquí Django
+    autentica y este middleware fija el ``ContextVar`` de compañía
+    (``orm.environments``, análogo de ``env.companies``) desde
+    ``request.user.company_id``, y lo limpia al terminar (``finally``) para
+    no filtrar contexto entre requests que comparten hilo (WSGI).
+
+    Resolutor L1 = usuario→compañía (``ResUsers.company``). El resolutor
+    subdominio→compañía (``dbfilter`` de la referencia) es una capa futura;
+    cuando llegue, fijará el contexto ANTES por host y este middleware lo
+    respetará. El operador cross-company queda con ``company=None`` → sin
+    scope implícito; su acceso es explícito (canal de elevación,
+    DEC-AISL-04).
+
+    Ubicar DESPUÉS de ``AuthenticationMiddleware`` (necesita ``request.user``).
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        user = getattr(request, 'user', None)
+        company_id = None
+        if user is not None and getattr(user, 'is_authenticated', False):
+            company_id = getattr(user, 'company_id', None)
+        set_current_company(company_id)
+        try:
+            return self.get_response(request)
+        finally:
+            set_current_company(None)

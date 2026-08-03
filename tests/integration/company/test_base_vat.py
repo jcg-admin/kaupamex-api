@@ -1,13 +1,15 @@
 """base_vat — validación de RFC (DEC-01, ~base_vat de Odoo).
 
-Valida el formato + fecha del RFC del SAT y su enganche en ``Company.tax_id``
-(vía el validador del campo, que DRF ModelSerializer hereda).
+Valida el formato + fecha del RFC del SAT y su enganche en ``ResPartner.vat``
+— fiel a la referencia: ``base_vat`` extiende ``res.partner``
+(``odoo19c: base_vat/models/res_partner.py:92``, ``_inherit``); la compañía
+lo lee por delegación (``ResCompany.vat`` es property al partner).
 """
 import pytest
 from django.core.exceptions import ValidationError
 
+from addons.base.models import ResPartner
 from addons.base_vat.validators import validate_rfc, validate_tax_id
-from addons.platform.models import Company
 
 pytestmark = pytest.mark.django_db
 
@@ -47,24 +49,23 @@ def test_normalizes_lowercase():
     validate_rfc('xaxx010101000')  # minúsculas: se normaliza, no lanza
 
 
-# --- enganche en Company.tax_id ---------------------------------------------
+# --- enganche en ResPartner.vat (el _inherit del addon) ---------------------
 
-def test_company_tax_id_field_has_validator():
-    field = Company._meta.get_field('tax_id')
+def test_partner_vat_field_has_validator():
+    field = ResPartner._meta.get_field('vat')
     assert validate_rfc in field.validators
 
 
-def test_company_full_clean_rejects_bad_rfc():
-    c = Company(code='t-vat', name='T', tax_id='NOPE')
-    with pytest.raises(ValidationError):
-        c.full_clean()
+def test_partner_full_clean_rejects_bad_rfc():
+    p = ResPartner(name='T', vat='NOPE')
+    with pytest.raises(ValidationError) as exc:
+        p.full_clean()
+    assert 'vat' in exc.value.message_dict
 
 
-def test_company_full_clean_accepts_good_rfc(db):
-    c = Company(code='t-vat-ok', name='T', tax_id='XAXX010101000')
-    # full_clean valida el RFC; puede fallar por otros campos requeridos, pero
-    # NO por tax_id — verificamos que tax_id no está entre los errores.
+def test_partner_full_clean_accepts_good_rfc(db):
+    p = ResPartner(name='T', vat='XAXX010101000')
     try:
-        c.full_clean()
+        p.full_clean()
     except ValidationError as exc:
-        assert 'tax_id' not in exc.message_dict
+        assert 'vat' not in exc.message_dict

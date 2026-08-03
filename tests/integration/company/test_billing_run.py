@@ -14,13 +14,13 @@ import pytest
 from django.utils import timezone
 
 from addons.authz.models import Module
-from addons.platform import billing
-from addons.platform.models import (
-    Company,
+from addons.sale_subscription import services as billing
+from addons.sale_subscription.models import (
     CompanyModuleSubscription,
     SubscriptionBillingRun,
     SubscriptionInvoice,
 )
+from addons.base.models import ResCompany
 
 pytestmark = pytest.mark.django_db
 
@@ -37,14 +37,14 @@ def _priced_active_sub(company, code, price):
 
 
 def test_amount_due_sums_active_priced_subscriptions():
-    c = Company.objects.create(code='acme', name='Acme')
+    c = ResCompany.objects.create(code='acme', name='Acme')
     _priced_active_sub(c, 'catalogue', '199.00')
     _priced_active_sub(c, 'inventory', '99.00')
     assert billing.amount_due(c) == Decimal('298.00')
 
 
 def test_amount_due_excludes_trial_and_unpriced():
-    c = Company.objects.create(code='acme', name='Acme')
+    c = ResCompany.objects.create(code='acme', name='Acme')
     _priced_active_sub(c, 'catalogue', '199.00')
     # Trial: no se cobra todavía.
     mt = Module.objects.create(code='orders', name='orders')
@@ -62,7 +62,7 @@ def test_amount_due_excludes_trial_and_unpriced():
 
 
 def test_run_billing_charges_and_marks_charged():
-    c = Company.objects.create(code='acme', name='Acme')
+    c = ResCompany.objects.create(code='acme', name='Acme')
     _priced_active_sub(c, 'catalogue', '199.00')
     calls = []
 
@@ -77,7 +77,7 @@ def test_run_billing_charges_and_marks_charged():
 
 
 def test_run_billing_suspends_on_charge_failure():
-    c = Company.objects.create(code='acme', name='Acme')
+    c = ResCompany.objects.create(code='acme', name='Acme')
     _priced_active_sub(c, 'catalogue', '199.00')
 
     def charge(company, amount):
@@ -91,7 +91,7 @@ def test_run_billing_suspends_on_charge_failure():
 
 
 def test_run_billing_skips_companies_with_nothing_due():
-    c = Company.objects.create(code='empty', name='Empty')
+    c = ResCompany.objects.create(code='empty', name='Empty')
     charged = []
     results = billing.run_billing(lambda company, amount: charged.append(company) or True)
     assert results['empty'] == 'skipped'
@@ -99,12 +99,12 @@ def test_run_billing_skips_companies_with_nothing_due():
 
 
 def test_run_billing_excludes_system_company():
-    Company.objects.create(code='acme', name='Acme')
-    Company.get_system()  # is_system=True — plataforma, no se autocobra
+    ResCompany.objects.create(code='acme', name='Acme')
+    ResCompany.get_system()  # is_system=True — plataforma, no se autocobra
     seen = []
     billing.run_billing(lambda company, amount: seen.append(company.code) or True)
     codes = set(
-        Company.objects.exclude(is_system=True).values_list('code', flat=True)
+        ResCompany.objects.exclude(is_system=True).values_list('code', flat=True)
     )
     assert 'kaupamex_global' not in codes
 
@@ -112,7 +112,7 @@ def test_run_billing_excludes_system_company():
 # --- Persistencia: run_billing ahora crea run + factura (H-API-02, slice 2) ---
 
 def test_run_billing_persists_run_and_paid_invoice():
-    c = Company.objects.create(code='acme', name='Acme')
+    c = ResCompany.objects.create(code='acme', name='Acme')
     _priced_active_sub(c, 'catalogue', '199.00')
     billing.run_billing(lambda company, amount: True, period='2026-08')
 
@@ -130,7 +130,7 @@ def test_run_billing_persists_run_and_paid_invoice():
 
 
 def test_run_billing_idempotent_does_not_recharge_paid_invoice():
-    c = Company.objects.create(code='acme', name='Acme')
+    c = ResCompany.objects.create(code='acme', name='Acme')
     _priced_active_sub(c, 'catalogue', '199.00')
     calls = []
 
@@ -149,7 +149,7 @@ def test_run_billing_idempotent_does_not_recharge_paid_invoice():
 
 
 def test_run_billing_failed_charge_marks_invoice_failed_and_suspends():
-    c = Company.objects.create(code='acme', name='Acme')
+    c = ResCompany.objects.create(code='acme', name='Acme')
     _priced_active_sub(c, 'catalogue', '199.00')
     billing.run_billing(lambda company, amount: False, period='2026-08')
 
@@ -164,7 +164,7 @@ def test_run_billing_failed_charge_marks_invoice_failed_and_suspends():
 
 
 def test_run_billing_period_defaults_to_current_month():
-    c = Company.objects.create(code='acme', name='Acme')
+    c = ResCompany.objects.create(code='acme', name='Acme')
     _priced_active_sub(c, 'catalogue', '199.00')
     expected = timezone.now().strftime('%Y-%m')
     billing.run_billing(lambda company, amount: True)

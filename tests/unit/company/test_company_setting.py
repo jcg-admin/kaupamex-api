@@ -15,19 +15,19 @@ subdominio→company (UC-PLT-06), no un error.
 import pytest
 from django.db import IntegrityError, transaction
 
-from addons.platform.context import company_scope, get_current_company
-from addons.platform.models import (
-    Company,
-    CompanySetting,
+from orm.environments import company_scope, get_current_company
+from addons.base.models import CompanySetting
+from addons.sale_subscription.data.res_company_data import (
     FOUNDER_COMPANY_CODE,
     FOUNDER_L1_SETTINGS,
 )
+from addons.base.models import ResCompany
 
 pytestmark = pytest.mark.django_db
 
 
 def _company(code):
-    return Company.objects.create(code=code, name=code)
+    return ResCompany.objects.create(code=code, name=code)
 
 
 class TestGetSettingFallback:
@@ -144,12 +144,12 @@ class TestFounderSeeding:
         # mismo patrón order-dependent que H-CFG-IMPL-09 (SystemParameter,
         # tests/unit/base/test_system_parameter.py). Restaura el estado que
         # la migración garantiza en producción, sin depender del orden.
-        founder = Company.get_founder()
+        founder = ResCompany.get_founder()
         for key, value in FOUNDER_L1_SETTINGS.items():
             CompanySetting.set_setting(key, value, founder)
 
     def test_founder_has_its_own_seeded_contact_settings(self):
-        founder = Company.objects.get(code=FOUNDER_COMPANY_CODE)
+        founder = ResCompany.objects.get(code=FOUNDER_COMPANY_CODE)
         assert CompanySetting.get_setting(
             'contact.from_email', company=founder,
         ) == 'hola@practicayoruba.com'
@@ -172,12 +172,12 @@ class TestFounderSeeding:
         ) == 'hola@kaupamex.com'
 
     def test_founder_seeding_is_idempotent_with_manual_seed(self):
-        founder = Company.objects.get(code=FOUNDER_COMPANY_CODE)
+        founder = ResCompany.objects.get(code=FOUNDER_COMPANY_CODE)
         # Re-crear la company founder es un no-op (get_or_create); confirma
         # que no hay una segunda fila duplicada de la migración.
-        again, created = Company.objects.get_or_create(
+        again, created = ResCompany.objects.get_or_create(
             code=FOUNDER_COMPANY_CODE,
-            defaults={'name': 'PracticaYoruba', 'status': Company.Status.ACTIVE},
+            defaults={'name': 'PracticaYoruba', 'status': ResCompany.Status.ACTIVE},
         )
         assert created is False
         assert again.pk == founder.pk

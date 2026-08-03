@@ -51,7 +51,7 @@ class AccountTax(models.Model):
         default=True, help_text='Impuesto activo (Odoo active).',
     )
     company       = fields.Many2one(
-        'platform.Company', on_delete=models.CASCADE, related_name='taxes',
+        'base.ResCompany', on_delete=models.CASCADE, related_name='taxes',
         help_text='Empresa (Odoo company_id).',
     )
 

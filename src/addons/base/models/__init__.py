@@ -199,6 +199,7 @@ from .report_layout import ReportLayout
 from .report_paperformat import ReportPaperformat, PAPER_SIZES
 from .res_groups_privilege import ResGroupsPrivilege
 from .res_groups import ResGroups
+from .company_setting import CompanySetting
 from .res_company import ResCompany
 from .ir_sequence import IrSequence
 from .report_export_job import ExportJob
@@ -256,6 +257,7 @@ __all__ = [
     'ReportLayout',
     'ResGroupsPrivilege',
     'ResGroups',
+    'CompanySetting',
     'ResCompany',
     'IrRule',
     'IrActionsActions',

@@ -44,12 +44,12 @@ authz_reauth  | drift | source/gestion/pm/api/iniciativas/adaptar-familias-odoo-
 #  una equivalencia real." Tarea #20.
 authz         | drift | source/gestion/pm/api/iniciativas/adaptar-familias-odoo-monolito-modular/analisis-familia-auth-vs-authz-y-modelo-de-autorizacion.rst
 
-# --- pendiente ------------------------------------------------------------
-# platform ya tiene su análisis (analisis-disolucion-platform.rst), y éste
-# NO concluye "disolver y listo": 3 de los 7 modelos tienen hogar citable
-# (SubscriptionInvoice->account.move, ModulePrice->pricelist,
-# Subsidiary->res.company.parent_id), pero `Company` (el L1) no tiene
-# contraparte en ninguno de los 4 árboles — es distinto de res.company.
-# La composición final (D-0) sigue abierta, así que NO se asciende a `propio`:
-# ascenderlo ahora sería aprobar por cansancio lo que H-API-119 prohíbe.
-platform      | pendiente | source/gestion/pm/api/iniciativas/adaptar-familias-odoo-monolito-modular/analisis-disolucion-platform.rst
+# platform DISUELTO (2026-08-03, directiva ejecutor + D-0 cerrada): Company
+# fundido en base.ResCompany (una tabla, como la referencia); Subsidiary
+# disuelto en res.company.parent_id (Branches); CompanySetting transitorio en
+# base (D-5 abierta: company_dependent distribuido); billing/suscripciones →
+# sale_subscription. Ver H-API-261/262 y analisis-disolucion-platform.rst.
+# sale_subscription: reimplementación NATIVA del patrón 19e (OEEL-1, sin
+# copia — DEC-KX-03); el eje (suscripción de MÓDULOS por compañía) es
+# plataforma-propio (DEC-KX-05), sin contraparte en los 4 árboles.
+sale_subscription | propio | source/gestion/pm/api/iniciativas/adaptar-familias-odoo-monolito-modular/analisis-disolucion-platform.rst

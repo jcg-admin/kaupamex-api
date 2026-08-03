@@ -63,7 +63,7 @@ class AccountPayment(models.Model):
         help_text='Moneda (Odoo currency_id).',
     )
     company       = fields.Many2one(
-        'platform.Company', on_delete=models.CASCADE, related_name='payments',
+        'base.ResCompany', on_delete=models.CASCADE, related_name='payments',
         help_text='Empresa (Odoo company_id).',
     )
     memo          = fields.Char(

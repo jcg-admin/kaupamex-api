@@ -1,7 +1,7 @@
 """Contract for the L1-a company-module gate in ``resolve_capabilities``.
 
 DEC-T7 + SOL-085 S2: a user's L2 capabilities (DEC-11 graded + named) are
-**filtered by their Company's active module subscriptions** (L1-a). A
+**filtered by their ResCompany's active module subscriptions** (L1-a). A
 capability only survives if ``capability.module.code`` is in
 ``user.company.active_module_codes()``.
 
@@ -26,7 +26,10 @@ from addons.authz.models import (
     RoleCapability,
 )
 from addons.authz.services import invalidate_capabilities, resolve_capabilities
-from addons.platform.models import Company, CompanyModuleSubscription
+from addons.sale_subscription.models import (
+    CompanyModuleSubscription,
+)
+from addons.base.models import ResCompany
 from tests.factories.user_factory import UserFactory
 
 pytestmark = pytest.mark.django_db
@@ -59,7 +62,7 @@ class TestCompanyModuleGate:
         assert {"orders.view", "orders.create", "orders.edit"} <= caps
 
     def test_active_module_grants_its_caps(self):
-        company = Company.objects.create(code="acme", name="Acme")
+        company = ResCompany.objects.create(code="acme", name="Acme")
         m = Module.objects.create(code="orders", name="Órdenes")
         _subscribe(company, m, active=True)
         user = UserFactory(company=company)
@@ -70,7 +73,7 @@ class TestCompanyModuleGate:
 
     def test_unsubscribed_module_filters_its_caps(self):
         # user belongs to a company that has NOT subscribed the module -> gated out
-        company = Company.objects.create(code="acme", name="Acme")
+        company = ResCompany.objects.create(code="acme", name="Acme")
         m_orders = Module.objects.create(code="orders", name="Órdenes")
         m_pos = Module.objects.create(code="pos", name="POS")
         _subscribe(company, m_orders, active=True)  # orders active, pos absent
@@ -83,7 +86,7 @@ class TestCompanyModuleGate:
         assert not any(c.startswith("pos.") for c in caps)  # unsubscribed gated out
 
     def test_expired_subscription_filters_its_caps(self):
-        company = Company.objects.create(code="acme", name="Acme")
+        company = ResCompany.objects.create(code="acme", name="Acme")
         m = Module.objects.create(code="orders", name="Órdenes")
         CompanyModuleSubscription.objects.create(
             company=company, module=m,
@@ -97,7 +100,7 @@ class TestCompanyModuleGate:
         assert not any(c.startswith("orders.") for c in caps)
 
     def test_company_with_no_active_modules_grants_nothing(self):
-        company = Company.objects.create(code="acme", name="Acme")
+        company = ResCompany.objects.create(code="acme", name="Acme")
         m = Module.objects.create(code="orders", name="Órdenes")
         # module exists + granted by role, but the company has NO subscription
         user = UserFactory(company=company)
@@ -106,7 +109,7 @@ class TestCompanyModuleGate:
         assert resolve_capabilities(user) == set()
 
     def test_direct_entitlement_is_also_gated(self):
-        company = Company.objects.create(code="acme", name="Acme")
+        company = ResCompany.objects.create(code="acme", name="Acme")
         m_pos = Module.objects.create(code="pos", name="POS")
         cap = Capability.objects.create(module=m_pos, code="pos.sell", name="sell")
         user = UserFactory(company=company)  # no pos subscription

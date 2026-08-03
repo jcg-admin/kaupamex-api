@@ -174,7 +174,7 @@ class IrDefault(models.Model):
         ),
     )
     company = fields.Many2one(
-        'platform.Company', on_delete=models.CASCADE, null=True, blank=True,
+        'base.ResCompany', on_delete=models.CASCADE, null=True, blank=True,
         related_name='ir_defaults',
         help_text=(
             'Empresa a la que aplica el default (Odoo company_id). NULL = '

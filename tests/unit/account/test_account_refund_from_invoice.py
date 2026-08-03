@@ -23,13 +23,13 @@ from addons.account.services import (
     create_refund_from_invoice,
 )
 from tests.factories.product_factory import make_category, make_product
-from addons.platform.models import Company
+from addons.base.models import ResCompany
 from addons.sale.models import SaleOrder
 
 
 @pytest.fixture
 def company(db):
-    return Company.objects.create(code='acme', name='ACME')
+    return ResCompany.objects.create(code='acme', name='ACME')
 
 
 @pytest.fixture

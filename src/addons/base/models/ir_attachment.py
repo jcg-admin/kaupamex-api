@@ -123,7 +123,7 @@ class IrAttachment(models.Model):
         ),
     )
     company = fields.Many2one(
-        'platform.Company', on_delete=models.SET_NULL, null=True, blank=True,
+        'base.ResCompany', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='attachments', help_text='Empresa (Odoo company_id).',
     )
 

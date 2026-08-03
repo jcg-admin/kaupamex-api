@@ -18,11 +18,11 @@ from django.utils import timezone
 import pytest
 
 from addons.authz.models import Module
-from addons.platform.models import (
-    Company,
+from addons.sale_subscription.models import (
     CompanyModuleSubscription,
     ModulePrice,
 )
+from addons.base.models import ResCompany
 
 pytestmark = pytest.mark.django_db
 
@@ -89,7 +89,7 @@ def test_current_is_scoped_by_billing_cycle():
 
 
 def test_apply_current_price_copies_price_and_keeps_cycle():
-    company = Company.objects.create(code='c1', name='C1')
+    company = ResCompany.objects.create(code='c1', name='C1')
     m = _module()
     now = timezone.now()
     ModulePrice.objects.create(
@@ -107,7 +107,7 @@ def test_apply_current_price_copies_price_and_keeps_cycle():
 
 
 def test_copied_price_is_immutable_after_rate_change():
-    company = Company.objects.create(code='c2', name='C2')
+    company = ResCompany.objects.create(code='c2', name='C2')
     m = _module()
     now = timezone.now()
     old = ModulePrice.objects.create(
@@ -133,7 +133,7 @@ def test_copied_price_is_immutable_after_rate_change():
 
 
 def test_apply_current_price_without_row_leaves_price_none():
-    company = Company.objects.create(code='c3', name='C3')
+    company = ResCompany.objects.create(code='c3', name='C3')
     m = _module()
     sub = CompanyModuleSubscription(
         company=company, module=m,

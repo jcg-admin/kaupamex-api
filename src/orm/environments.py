@@ -31,7 +31,69 @@ azúcar de acceso (p. ej. un helper ``env(request)`` que exponga ``user`` +
 ``lang`` + ``company``), se añade aquí como conveniencia sobre las piezas
 nativas, sin reintroducir el motor.
 """
-from django.apps import apps
-from django.db import connection, connections
+from contextlib import contextmanager
+from contextvars import ContextVar
 
-__all__ = ['apps', 'connection', 'connections']
+from django.apps import apps
+from django.db import connection, connections, models
+
+# === Canal del DATO: la compañía activa del request ========================
+# Análogo de ``env.companies``/``env.company`` (``odoo19c:
+# odoo/orm/environments.py:246``; en 18c el símbolo vive en ``odoo/api.py`` —
+# citar por símbolo, no por ruta). Es el canal del **dato**: qué compañía
+# está activa. La **elevación** es el otro canal (``env.su``) y NO pasa por
+# aquí (DEC-AISL-04) — el acceso cross-company del operador se hace explícito
+# con el manager por defecto, nunca "limpiando" el contexto.
+#
+# ``ContextVar`` (no un global) para ser seguro bajo async/threads: cada
+# request tiene su propio valor. Lo puebla ``CompanyContextMiddleware``
+# (``addons.base.models.ir_http`` — allá vive el enlace request→entorno,
+# como ``ir.http`` en la referencia).
+
+_current_company: ContextVar = ContextVar('current_company', default=None)
+
+
+def get_current_company():
+    """PK de la compañía del request en curso, o ``None`` si no hay."""
+    return _current_company.get()
+
+
+def set_current_company(company_id):
+    """Fija (o limpia con ``None``) la compañía del contexto actual."""
+    _current_company.set(company_id)
+
+
+@contextmanager
+def company_scope(company_id):
+    """Fija la compañía en el bloque y **restaura** el valor previo al salir."""
+    token = _current_company.set(company_id)
+    try:
+        yield
+    finally:
+        _current_company.reset(token)
+
+
+class CompanyScopedManager(models.Manager):
+    """Aislamiento de fila por compañía — TRANSITORIO (muere en DEC-AISL-04 §4).
+
+    En la referencia este filtrado es **dato** (``ir.rule`` con
+    ``company_ids``), evaluado por el ORM; aquí es un manager codificado.
+    ``for_current_company()`` filtra por la compañía del contexto,
+    fail-closed: sin compañía en contexto → queryset vacío, nunca "todo".
+    Requiere FK ``company`` (columna ``company_id``) en el modelo. El acceso
+    cross-company del operador usa ``objects`` (explícito). Se retira al
+    cablear ``ir_rule`` (tarea #31).
+    """
+
+    def for_current_company(self):
+        company_id = get_current_company()
+        if company_id is None:
+            return self.get_queryset().none()
+        return self.get_queryset().filter(company_id=company_id)
+
+
+__all__ = [
+    'apps', 'connection', 'connections',
+    'get_current_company', 'set_current_company', 'company_scope',
+    'CompanyScopedManager',
+]

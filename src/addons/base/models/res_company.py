@@ -90,8 +90,6 @@ import logging
 
 import fields
 import models
-
-from addons.base.data.res_company import FOUNDER_COMPANY_CODE, SYSTEM_COMPANY_CODE
 from addons.base.models.report_paperformat import ReportPaperformat
 from addons.base.models.res_country import ResCountry, ResCountryState
 from addons.base.models.res_currency import ResCurrency
@@ -127,12 +125,49 @@ LAYOUT_BACKGROUND_CHOICES = [
 ]
 
 
+class ResCompanyManager(models.Manager):
+    """El ``create`` de la fuente: la compañía nace CON su partner.
+
+    ``odoo19c: res_company.py:296-300`` fabrica el ``res.partner``
+    (``is_company=True``) dentro del ``create`` del modelo — la identidad
+    (nombre, contacto) nunca vive en la compañía. Se replica en el manager
+    por defecto para que ``ResCompany.objects.create(name=...)`` conserve el
+    contrato de la referencia. La moneda es requerida; si no se pasa, se
+    hereda de la compañía principal (el default de la fuente:
+    ``default=lambda self: self.env.company.currency_id``) y, en el
+    bootstrap sin compañías, cae a la moneda de la semilla base (MXN — el
+    análogo local del dato de ``res_currency_data.xml``).
+    """
+
+    def create(self, **kwargs):
+        name = kwargs.pop('name', None)
+        if 'partner' not in kwargs and 'partner_id' not in kwargs:
+            kwargs['partner'] = ResPartner.objects.create(
+                name=name or '', is_company=True)
+        elif name is not None:
+            partner = kwargs.get('partner')
+            if partner is not None:
+                partner.name = name
+                partner.save(update_fields=['name'])
+        if 'currency' not in kwargs and 'currency_id' not in kwargs:
+            main = self.model.get_main_company()
+            if main is not None:
+                kwargs['currency'] = main.currency
+            else:
+                kwargs['currency'], _ = ResCurrency.objects.get_or_create(
+                    name='MXN', defaults={'symbol': '$'})
+        return super().create(**kwargs)
+
+
 class ResCompany(TimeStampedModel):
     """Entidad legal que emite documentos (``res.company``).
 
-    No confundir con ``company.Company``, el tenant L1 que contrata la
-    plataforma — ver el docstring del módulo.
+    Absorbe también el eje L1 de plataforma (``code``/``status``/``is_system``)
+    del modelo ``Company`` paralelo que se disolvió — una sola tabla, como la
+    referencia. Ver ``analisis-extension-de-company-tres-motores``.
     """
+
+    objects = ResCompanyManager()
 
     #: Campos que una sucursal hereda de su raíz. Es un método en la fuente
     #: para que un addon lo extienda; aquí, un ``classmethod`` por lo mismo.
@@ -465,16 +500,14 @@ class ResCompany(TimeStampedModel):
         """La compañía principal — ``_get_main_company`` de la referencia.
 
         Adaptación de ``odoo19c: odoo/addons/base/models/res_company.py:436-440``
-        (idéntico en ``odoo18c:``): se busca por el identificador estable y, si
-        no está, se cae al primero por ``id``. El fallback **no es defensivo**:
-        es lo que permite que un árbol sin la semilla siga teniendo una
-        compañía principal determinista.
-
-        Allá el identificador es el XML id ``base.main_company``; aquí es la
-        columna ``code`` (ver ``addons.base.data.res_company``).
+        (idéntico en ``odoo18c:``): allá se resuelve ``env.ref('base.main_company')``
+        con fallback al primero por ``id``. El camino primario exige
+        ``ir.model.data`` (no portado), así que aquí rige el fallback de la
+        propia fuente — determinista y ABSTRACTO: ``base`` no nombra a ningún
+        tenant. Las compañías de sistema quedan fuera: son plataforma, no la
+        principal.
         """
-        return (cls.objects.filter(code=FOUNDER_COMPANY_CODE).first()
-                or cls.objects.order_by('id').first())
+        return cls.objects.filter(is_system=False).order_by('id').first()
 
     @classmethod
     def get_system_company(cls):
@@ -484,8 +517,24 @@ class ResCompany(TimeStampedModel):
         plataforma sobre las compañías. Es eje L0 propio, y por eso no lleva
         fallback — si no existe, existe el problema, y devolver otra compañía
         en su lugar mezclaría datos de plataforma con los de un tenant.
+        Se resuelve por la bandera ``is_system`` (abstracta): la compañía
+        concreta la siembra el addon dueño del eje (``sale_subscription``).
         """
-        return cls.objects.filter(code=SYSTEM_COMPANY_CODE).first()
+        return cls.objects.filter(is_system=True).order_by('id').first()
+
+    # === Camino de creación ==============================================
+
+    @classmethod
+    def create_company(cls, name, currency=None, **values):
+        """Azúcar sobre el ``create`` del manager (que fabrica el partner).
+
+        ABSTRACTO: ningún tenant concreto se nombra aquí; la semilla de
+        compañías reales es DATO de los addons que las declaran
+        (``sale_subscription/data``).
+        """
+        if currency is not None:
+            values['currency'] = currency
+        return cls.objects.create(name=name, **values)
 
     # === Reglas de coherencia =============================================
 
