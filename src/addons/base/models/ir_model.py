@@ -392,6 +392,7 @@ class IrModelFields(TimeStampedModel):
         help_text='Odoo lo llama field_id (One2many en singular, contra su '
                   'propia convención _ids); se conserva ese nombre en el '
                   'reverso.',
+        db_column='model_id',
     )
     relation = fields.Char(
         max_length=255, blank=True, default='', verbose_name='Modelo relacionado',
@@ -408,6 +409,7 @@ class IrModelFields(TimeStampedModel):
         related_name='inverse_of', verbose_name='Campo de relación',
         help_text='Odoo lo computa con store=True; aquí es columna real igual, '
                   'poblada por la reflexión.',
+        db_column='relation_field_id',
     )
     field_description = fields.Char(
         max_length=255, blank=True, default='', verbose_name='Etiqueta del campo')
@@ -427,7 +429,9 @@ class IrModelFields(TimeStampedModel):
     )
     related_field_id = fields.Many2one(
         'self', on_delete=models.CASCADE, null=True, blank=True,
-        related_name='related_from', verbose_name='Campo relacionado')
+        related_name='related_from', verbose_name='Campo relacionado',
+        db_column='related_field_id',
+    )
     required = fields.Boolean(default=False, verbose_name='Requerido')
     readonly = fields.Boolean(default=False, verbose_name='Sólo lectura')
     index = fields.Boolean(default=False, verbose_name='Indexado')
@@ -630,14 +634,19 @@ class IrModelInherit(models.Model):
 
     model_id = fields.Many2one(
         IrModel, on_delete=models.CASCADE, related_name='inherit_ids',
-        verbose_name='Modelo')
+        verbose_name='Modelo',
+        db_column='model_id',
+    )
     parent_id = fields.Many2one(
         IrModel, on_delete=models.CASCADE, related_name='inherit_child_ids',
-        verbose_name='Modelo padre')
+        verbose_name='Modelo padre',
+        db_column='parent_id',
+    )
     parent_field_id = fields.Many2one(
         IrModelFields, on_delete=models.CASCADE, null=True, blank=True,
         related_name='inherit_ids', verbose_name='Campo de delegación',
         help_text='Sólo en herencia por delegación (Odoo _inherits).',
+        db_column='parent_field_id',
     )
 
     class Meta:
@@ -787,12 +796,15 @@ class IrModelAccess(TimeStampedModel):
     )
     model_id = fields.Many2one(
         IrModel, on_delete=models.CASCADE, db_index=True,
-        related_name='access_ids', verbose_name='Modelo')
+        related_name='access_ids', verbose_name='Modelo',
+        db_column='model_id',
+    )
     group_id = fields.Many2one(
         ResGroups, on_delete=models.PROTECT, null=True, blank=True,
         db_index=True, related_name='model_access', verbose_name='Grupo',
         help_text='Vacío = acceso global. ondelete restrict de la fuente: no '
                   'se borra un grupo que aún concede permisos.',
+        db_column='group_id',
     )
     perm_read = fields.Boolean(default=False, verbose_name='Acceso de lectura')
     perm_write = fields.Boolean(default=False, verbose_name='Acceso de escritura')

@@ -174,6 +174,7 @@ class IrUiView(TimeStampedModel):
         related_name='inherit_children_ids', verbose_name='Vista heredada',
         help_text='ondelete restrict de la fuente: no se borra una vista de '
                   'la que otras heredan.',
+        db_column='inherit_id',
     )
     groups = fields.Many2many(
         ResGroups, blank=True, db_table='ir_ui_view_group_rel',
@@ -305,7 +306,9 @@ class IrUiViewCustom(TimeStampedModel):
 
     ref_id = fields.Many2one(
         IrUiView, on_delete=models.CASCADE, db_index=True,
-        related_name='custom_ids', verbose_name='Vista original')
+        related_name='custom_ids', verbose_name='Vista original',
+        db_column='ref_id',
+    )
     user = fields.Many2one(
         ResUsers, on_delete=models.CASCADE, db_index=True,
         related_name='custom_views', verbose_name='Usuario')
