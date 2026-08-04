@@ -298,8 +298,8 @@ class TestReporteVouchers:
     ):
         User = get_user_model()
         buyer = User.objects.create_user(
+            login='buyer_roi@test.com',
             password='pass',
-            email='buyer_roi@test.com',
         )
         # E4 — el reporte se ancla al canónico: el cupón es una FK
         # (``SaleOrderCoupon``), no un string/escalar declarado a mano en la
@@ -329,8 +329,8 @@ class TestReporteVouchers:
     ):
         User = get_user_model()
         buyer = User.objects.create_user(
+            login='buyer_datefrom@test.com',
             password='pass',
-            email='buyer_datefrom@test.com',
         )
         # E4 — el reporte se ancla al canónico: el cupón es una FK
         # (``SaleOrderCoupon``), no un string/escalar declarado a mano en la
