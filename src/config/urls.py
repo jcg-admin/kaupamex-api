@@ -115,7 +115,6 @@ urlpatterns = _admin_urls + [
     path('api/v2/newsletter/', include(('addons.website_mass_mailing.controllers.urls', 'website_mass_mailing'), namespace='newsletter_v2')),
     path('api/v2/admin/',      include(('addons.mass_mailing.controllers.admin_urls', 'admin_newsletter'),   namespace='admin_newsletter_v2')),
     path('api/v2/admin/',      include(('addons.auto_backup.controllers.admin_urls', 'admin_backups'),         namespace='admin_backups_v2')),
-    # T-214: consulta pública SEPOMEX de CP → asentamientos (autocompletado de direcciones)
     # DEC-08/09: capacidades del usuario + menú admin dinámico (podado por capacidad)
     path('api/v2/authz/',      include(('addons.authz.urls', 'authz'),                         namespace='authz_v2')),
     # DEC-01 (~authz_totp): gestión del 2FA TOTP del usuario autenticado
@@ -130,6 +129,11 @@ urlpatterns = _admin_urls + [
     path('api/v2/authz/',      include(('addons.authz_passkey.controllers.urls', 'authz_passkey'),         namespace='authz_passkey_v2')),
     # ~auth_signup: alta/set-password/reset por token firmado (pre-auth)
     path('api/v2/authz/',      include(('addons.authz_signup.controllers.urls', 'authz_signup'),           namespace='authz_signup_v2')),
+    # Consulta pública de CP → asentamientos (autocompletado de dirección).
+    # FORMA PROPIA: la referencia no expone superficie de códigos postales
+    # (base_address_extended y base_geolocalize sin controllers/). Ver el
+    # docstring de base_address_extended/controllers/main.py.
+    path('api/v2/geo/',        include(('addons.base_address_extended.controllers.urls', 'geo'), namespace='geo_v2')),
     # ~web: sesión del cliente — ≙ /web/session/{authenticate,destroy,logout}
     # de odoo19c: web/controllers/session.py (LGPL-3). Es la puerta que abre la
     # sesión de servidor que ADR-018 declara como autenticación por defecto.
