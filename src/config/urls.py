@@ -71,6 +71,12 @@ urlpatterns = _admin_urls + [
                                            namespace='reviews_v2')),
     path('api/v2/admin/',          include(('addons.rating.controllers.admin_urls', 'admin_reviews'),
                                            namespace='admin_reviews_v2')),
+    # Contacto — captura en ``crm`` (tarea #45; reparto de
+    # ``odoo19c: website_crm``: la página es del sitio, la captura del CRM).
+    path('api/v2/contact/',        include(('addons.crm.controllers.urls', 'contact'),
+                                           namespace='contact_v2')),
+    path('api/v2/admin/',          include(('addons.crm.controllers.admin_urls', 'admin_contact'),
+                                           namespace='admin_contact_v2')),
 
     # ─── Retirados (SOL-098 aplicada a las familias) ──────────────────────────
     # ``contact`` · ``referral`` · ``returns`` · ``reviews`` se retiraron del
