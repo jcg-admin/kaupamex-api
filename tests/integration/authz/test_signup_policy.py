@@ -17,8 +17,12 @@ from addons.authz_signup.models.policy import password_reset_enabled, signup_ope
 
 pytestmark = pytest.mark.django_db
 
-REGISTER_URL = '/api/v2/auth/register/'
-RESET_URL = '/api/v2/auth/password-reset/'
+# Reapuntados al contrato portado: la referencia sirve el alta y el reset en
+# ``auth_signup`` (``/web/signup`` · ``/web/reset_password``, medidos por
+# símbolo en odoo19c), que aquí es el addon ``authz_signup``. El namespace
+# ``/api/v2/auth/`` se retiró con la app ``auth``; no se recrea.
+REGISTER_URL = '/api/v2/authz/signup/'
+RESET_URL = '/api/v2/authz/request-reset/'
 
 
 @pytest.fixture(autouse=True)

@@ -17,7 +17,9 @@ from rest_framework.test import APIClient
 pytestmark = pytest.mark.integration
 
 User = get_user_model()
-PROFILE_URL = '/api/v2/auth/profile/'
+# Reapuntado: el perfil propio es ``/my/account`` de ``portal`` en la
+# referencia (odoo19c, LGPL-3), montado aquí como /api/v2/portal/account/.
+PROFILE_URL = '/api/v2/portal/account/'
 SELF_ACCOUNT = {'account.profile', 'account.password',
                 'account.deactivate', 'account.payments'}
 

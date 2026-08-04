@@ -130,6 +130,9 @@ urlpatterns = _admin_urls + [
     path('api/v2/authz/',      include(('addons.authz_passkey.controllers.urls', 'authz_passkey'),         namespace='authz_passkey_v2')),
     # ~auth_signup: alta/set-password/reset por token firmado (pre-auth)
     path('api/v2/authz/',      include(('addons.authz_signup.controllers.urls', 'authz_signup'),           namespace='authz_signup_v2')),
+    # ~portal: cuenta propia — ≙ /my/account · /my/addresses · /my/security ·
+    # /my/deactivate_account de odoo19c: portal (LGPL-3)
+    path('api/v2/portal/',     include(('addons.portal.controllers.urls', 'portal'),                       namespace='portal_v2')),
     # G-PERM-01: catálogo de roles para el selector de /admin/permissions (UC-ADM-02)
     path('api/v2/admin/',      include(('addons.authz.admin_urls', 'admin_authz'),             namespace='admin_authz_v2')),
     # UC-PLT-12: consola L0 del operador Kaupamex — directorio de tenants (platform.provision)

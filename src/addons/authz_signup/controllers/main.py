@@ -26,6 +26,10 @@ from exceptions import UserError
 
 from addons.authz_signup.models import res_partner as partner_svc
 from addons.authz_signup.models import res_users as signup_svc
+from addons.authz_signup.models.policy import (
+    password_reset_enabled,
+    signup_open,
+)
 from addons.authz_signup.controllers.serializers import (
     RequestResetSerializer,
     SignupSerializer,
@@ -49,7 +53,26 @@ _logger = logging.getLogger(__name__)
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def signup(request):
-    """≙ ``web_auth_signup`` — pre-auth."""
+    """≙ ``web_auth_signup`` — pre-auth.
+
+    La política se consulta **antes** de mirar el payload, como en la
+    referencia: ``auth_signup/controllers/main.py:91`` corta por
+    ``reset_password_enabled`` antes de procesar nada, y ``:132`` deriva
+    ``signup_enabled`` del scope de invitación. Sin este corte el gate
+    existía sólo en el modelo (``authz_signup/models/res_users.py:89``) y el
+    400 de validación llegaba primero, así que cerrar el alta no cerraba
+    nada observable desde el endpoint.
+
+    El token invitado es la excepción de la referencia: con token, el alta
+    procede aunque el alta libre esté cerrada (es un *set-password*, no un
+    registro nuevo).
+    """
+    if not request.data.get('token') and not signup_open():
+        return Response(
+            {'codigo_error': 'SIGNUP_CLOSED',
+             'detail': 'El alta de cuentas está deshabilitada.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
     serializer = SignupSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     data = serializer.validated_data
@@ -98,7 +121,17 @@ def request_reset(request):
 
     Responde 202 siempre (no revela si la cuenta existe — enumeración de
     usuarios). El envío ocurre sólo si hay cuenta.
+
+    El corte por política va **antes** del payload, igual que
+    ``auth_signup/controllers/main.py:91``.
     """
+    if not password_reset_enabled():
+        return Response(
+            {'codigo_error': 'PASSWORD_RESET_DISABLED',
+             'detail': 'El restablecimiento de contraseña está '
+                       'deshabilitado.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
     serializer = RequestResetSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     try:

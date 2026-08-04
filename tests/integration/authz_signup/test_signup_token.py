@@ -116,8 +116,16 @@ class TestSignupFlow:
         resp = api_client.post(SIGNUP_URL, {
             'login': 'externo@kaupamex.mx', 'password': 'Abc12345!',
         }, format='json')
-        assert resp.status_code == 400
-        assert resp.data['codigo_error'] == 'SIGNUP_NOT_ALLOWED'
+        # 403 SIGNUP_CLOSED, no 400: el alta cerrada es una **denegación de
+        # política**, no un payload malformado (status-codes.md). Hasta
+        # api@<este commit> el gate vivía sólo en el modelo
+        # (authz_signup/models/res_users.py:89) y el 400 de validación del
+        # serializer llegaba primero, así que cerrar el alta no era
+        # observable desde el endpoint. La referencia corta en el controller
+        # antes de mirar el payload (auth_signup/controllers/main.py:91).
+        # Ver H-API-269.
+        assert resp.status_code == 403
+        assert resp.data['codigo_error'] == 'SIGNUP_CLOSED'
 
     def test_alta_externa_ok_si_abierto(
             self, seeded, signup_abierto, api_client):
