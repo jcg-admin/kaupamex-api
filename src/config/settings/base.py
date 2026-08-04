@@ -144,6 +144,12 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'addons.base.models.ir_http.CompanyContextMiddleware',
+    # DeviceLogMiddleware: el punto donde la referencia registra el dispositivo
+    # de la peticion (check_session -> res.device.log._update_device,
+    # odoo19c: odoo/service/security.py:23,31). Va DESPUES de Session y
+    # Authentication: necesita session_key y request.user. Trazado throttled a
+    # una fila por dispositivo por hora; nunca rompe la respuesta.
+    'addons.base.models.res_device.DeviceLogMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     # H-CART-01 Fase 2: fija la cookie httpOnly cart_token para carritos
