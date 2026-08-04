@@ -21,7 +21,7 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError
 
-from addons.base.models import SiteSettings
+from addons.base_setup.settings_access import get_setting
 from addons.sale.models import SaleOrder, SaleOrderLine
 from decimal import Decimal
 
@@ -202,7 +202,7 @@ class TestSaleOrderLineMethodsV2:
     def test_price_total_and_breakdown(self, draft_product):
         order, _ = get_or_create_draft_order(cart_token=uuid.uuid4())
         line, _ = add_item_to_draft(order, draft_product, quantity=2)
-        rate = SiteSettings.get_current().iva_rate
+        rate = get_setting('iva_rate')
         total = Decimal('200.00')
         expected_tax = (total * rate / (Decimal('1') + rate)).quantize(
             Decimal('0.01'))

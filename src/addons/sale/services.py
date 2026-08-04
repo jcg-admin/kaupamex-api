@@ -27,7 +27,7 @@ from addons.delivery.models import DeliveryAddress
 from django.db.models import F
 from django.utils import timezone
 
-from addons.base.models import SiteSettings
+from addons.base_setup.settings_access import get_setting
 from addons.stock.services import InventoryService
 from addons.loyalty.models import Voucher, VoucherUsage
 from addons.stock.models import StockPicking
@@ -177,8 +177,8 @@ def get_draft_totals(order):
     y el descuento los sigue); ``confirm_draft_order`` lo congela en el
     espejo legacy.
     """
-    iva_rate  = SiteSettings.get_current().iva_rate
-    threshold = SiteSettings.get_current().free_shipping_threshold
+    iva_rate  = get_setting('iva_rate')
+    threshold = get_setting('free_shipping_threshold')
     threshold = threshold if threshold > 0 else None
 
     lines    = list(order.order_line.all())
@@ -338,7 +338,7 @@ def confirm_draft_order(order, *, address_data, guest_email=None, notes='',
         err.items = insufficient
         raise err
 
-    iva_rate = SiteSettings.get_current().iva_rate
+    iva_rate = get_setting('iva_rate')
     respuestas = draft_voucher_requested.send(sender=SaleOrder, order=order)
     voucher = next((v for _r, v in respuestas if v is not None), None)
 

@@ -41,7 +41,6 @@ import pytest
 from decimal import Decimal
 from addons.base.models import TimeStampedModel
 from addons.product.models import ProductCategory, ProductProduct, ProductTemplate
-from addons.base.models import SiteSettings
 from addons.delivery.models import ShippingMethod
 from addons.payment.models import PaymentGateway
 from addons.website.models import StaticPage, StaticPageVersion
@@ -68,7 +67,7 @@ class TestTimeStampedModelHerencia:
         models_concretos = [
             ProductCategory, ProductTemplate, ProductProduct,
             SaleOrder, SaleOrderLine, DeliveryAddress,
-            SiteSettings, PaymentGateway, ShippingMethod,
+            PaymentGateway, ShippingMethod,
             StaticPage, StaticPageVersion,
             Voucher, VoucherChangeLog,
             WishlistItem,
@@ -100,11 +99,11 @@ class TestTimestampsEspeciales:
         assert 'created_at' in field_names
         assert 'updated_at' in field_names
 
-    def test_h_inh_004_sitesettings_tiene_created_at(self, db):
-        """H-INH-004: SiteSettings solo tenía updated_at — ahora tiene ambos."""
-        field_names = [f.name for f in SiteSettings._meta.get_fields()]
-        assert 'created_at' in field_names
-        assert 'updated_at' in field_names
+    # H-INH-004 verificaba que ``SiteSettings`` tuviera ambos timestamps. Esa
+    # tabla se retiró (H-API-265): los ajustes ya no son una fila, son claves
+    # de parámetro, y ``SystemParameter`` trae sus propios timestamps —
+    # cubiertos por el caso de arriba. El hallazgo queda cerrado por
+    # desaparición del sujeto, no por regresión.
 
 
 # =============================================================================

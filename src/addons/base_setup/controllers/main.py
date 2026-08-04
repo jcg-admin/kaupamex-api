@@ -21,16 +21,17 @@ confundir —
 ``odoo18c:``. *Ciega a:* extensiones declaradas con otra forma sintáctica
 (``_inherit`` en lista) — el grep exigió la cadena exacta.
 
-Divergencia declarada: nuestro ``SiteSettings`` es un singleton monolítico
-que mezcla ejes de varios dominios (impuestos, pago, stock, envío, contacto)
-donde la referencia los reparte entre los 117/113 addons que heredan. Esa
-redistribución NO se hace aquí — queda registrada como hallazgo.
+El almacén ya no es una tabla: la ex-``SiteSettings`` mezclaba diez dominios
+en un esquema (10 razones para cambiar). Hoy cada ajuste es una clave con el
+prefijo de su dominio dueño, y el formulario los compone — la forma de la
+referencia. Ver :ref:`h-api-265`.
 
-El singleton no lleva ``company``: es config del sistema (L0), no per-company
-(DEC-KX-05). Por eso NO pasa por el canal del dato (``ir.rule`` /
-``RuleScopedManager``) — no hay fila que acotar por compañía; y el canal de
-elevación (``su``) tampoco se usa: el gate es la capacidad ``settings``,
-marcada sensible en el catálogo de ``base``.
+Ninguna de las claves lleva ``company`` todavía: el destino per-company está
+bloqueado por el resolutor ausente (UC-PLT-06, ver el modelo). Por eso NO
+pasa por el canal del dato (``ir.rule`` / ``RuleScopedManager``) — no hay
+fila que acotar por compañía; y el canal de elevación (``su``) tampoco se
+usa: el gate es la capacidad ``settings``, sensible en el catálogo de
+``base``.
 """
 from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import IsAuthenticated
@@ -39,11 +40,14 @@ from rest_framework.views import APIView
 
 from addons.authz.permissions import HasCapability
 from addons.base_setup.controllers.serializers import SiteSettingsSerializer
-from addons.base.models import SiteSettings
 
 
 class SiteSettingsView(APIView):
-    """GET/PATCH ``/api/v2/config/settings/`` — UC-CFG-03."""
+    """GET/PATCH ``/api/v2/config/settings/`` — UC-CFG-03.
+
+    El formulario no tiene fila: ``read_current()`` compone el estado desde
+    los tres destinos y ``apply()`` lo devuelve a ellos.
+    """
 
     permission_classes = [IsAuthenticated, HasCapability]
     required_capability = 'settings.edit'
@@ -54,7 +58,7 @@ class SiteSettingsView(APIView):
         responses={200: SiteSettingsSerializer},
     )
     def get(self, request):
-        return Response(SiteSettingsSerializer(SiteSettings.get_current()).data)
+        return Response(SiteSettingsSerializer.read_current())
 
     @extend_schema(
         summary='Actualizar configuración global del sitio (UC-CFG-03)',
@@ -63,9 +67,6 @@ class SiteSettingsView(APIView):
         responses={200: SiteSettingsSerializer},
     )
     def patch(self, request):
-        serializer = SiteSettingsSerializer(
-            SiteSettings.get_current(), data=request.data, partial=True,
-        )
+        serializer = SiteSettingsSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data)
+        return Response(SiteSettingsSerializer.apply(dict(serializer.validated_data)))

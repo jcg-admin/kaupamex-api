@@ -14,7 +14,7 @@ import fields
 import models
 
 from addons.base.models import TimeStampedModel
-from addons.base.models import SiteSettings
+from addons.base_setup.settings_access import get_setting
 from addons.stock.services import InventoryService
 
 
@@ -116,7 +116,7 @@ class SaleOrderLine(TimeStampedModel):
         return gross.quantize(Decimal('0.01'))
 
     def price_tax(self) -> Decimal:
-        rate = SiteSettings.get_current().iva_rate
+        rate = get_setting('iva_rate')
         return (self.price_total() * rate / (1 + rate)).quantize(Decimal('0.01'))
 
     def price_subtotal(self) -> Decimal:

@@ -30,6 +30,7 @@ from addons.mail.data import seed as mail_subtypes_seed
 from tests.factories.user_factory import make_buyer  # noqa: F401 (re-export)
 
 import pytest
+from addons.base.models.ir_config_parameter import _clear_cache as _clear_param_cache
 from pytest_django.plugin import blocking_manager_key
 import warnings
 
@@ -225,6 +226,26 @@ def mariadb_keepalive(db):
     if not _mariadb_alive():
         _restart_mariadb()
     yield
+
+
+@pytest.fixture(autouse=True)
+def _reset_system_parameter_cache():
+    """Aísla la caché de parámetros entre tests.
+
+    ``SystemParameter`` cachea a nivel de módulo (``_PARAM_CACHE``, el
+    equivalente del ``ormcache`` de Odoo). La caché es per-proceso: el
+    rollback de la transacción del test revierte la FILA, pero no el valor
+    ya cacheado, así que un test que escribe un parámetro se lo filtra a
+    todos los siguientes.
+
+    Se destapó al mover los ajustes del sitio a parámetros (H-API-265):
+    ``test_admin_can_update_iva_rate`` fijaba ``account.iva_rate`` a 0.08 y
+    seis tests de ``sale`` calculaban su IVA con ese valor. Sin el reset,
+    ``sale/`` da 8 fallos tras ``config/`` y 2 en solitario.
+    """
+    _clear_param_cache()
+    yield
+    _clear_param_cache()
 
 
 # ─── Catálogo de semillas restauradas (H-API-22) ─────────────────────────────

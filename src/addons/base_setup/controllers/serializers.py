@@ -1,39 +1,49 @@
-"""Serializers de la configuración del sitio — ``base``.
+"""Serializer del formulario de ajustes — ``base_setup``.
 
-``SiteSettings`` es el singleton de configuración del sistema; la referencia
-declara su análogo ``res.config.settings`` en ``base`` en las dos poblaciones
-medidas (``odoo19c: odoo/addons/base/models/res_config.py`` y
-``odoo18c:`` el mismo símbolo ``_name = 'res.config.settings'``), así que la
-superficie vive con el modelo y no en un addon de sitio.
+No es un ``ModelSerializer``: no hay tabla que serializar. Es la proyección
+HTTP del formulario ``SiteConfigSettings``, cuyos valores viven en
+``SystemParameter`` — una clave por dominio dueño, no una fila con todos los
+ejes. El destino per-company de la referencia queda pendiente del resolutor
+(ver el docstring del modelo).
 
-Porte de la capa del ex-addon ``settings_app`` (retirado en ``api@115d219``);
-el modelo ya vivía aquí desde el fold.
+El contrato publicado **no cambia** respecto de la versión que serializaba la
+tabla ``SiteSettings``: mismos nombres de campo, mismos tipos, mismos
+validadores. Lo que cambió es dónde aterrizan los valores.
 """
+import json
+from decimal import Decimal
+
 from rest_framework import serializers
 
-from addons.base.models import SiteSettings
+from addons.base.models.ir_config_parameter import SystemParameter
+from addons.base_setup.models import SiteConfigSettings
 
 _SOCIAL_KEYS = {'facebook', 'instagram', 'twitter', 'youtube', 'tiktok', 'whatsapp'}
 
+#: Las redes sociales son un JSON suelto, no un campo con política: van al
+#: mismo destino de parámetro, con la clave prefijada por su dominio dueño.
+SOCIAL_LINKS_KEY = 'crm.social_links'
 
-class SiteSettingsSerializer(serializers.ModelSerializer):
+
+class SiteSettingsSerializer(serializers.Serializer):
     """Contrato admin de ``/api/v2/config/settings/`` (UC-CFG-03).
 
-    La lista de campos es explícita: los deprecados (``currency``,
-    ``site_name``, ``order_timeout_minutes``, ``max_return_days``) quedan
-    fuera del contrato aunque sigan en el modelo (DEC-DOC-005).
+    Los campos deprecados (``currency``, ``site_name``,
+    ``order_timeout_minutes``, ``max_return_days``) quedan fuera del contrato
+    publicado aunque el formulario los conozca — DEC-DOC-005.
     """
 
-    class Meta:
-        model = SiteSettings
-        fields = [
-            'id', 'iva_rate',
-            'payment_timeout_minutes', 'min_stock_threshold',
-            'free_shipping_threshold',
-            'support_email', 'phone', 'address', 'social_links',
-            'updated_at',
-        ]
-        read_only_fields = ['id', 'updated_at']
+    iva_rate = serializers.DecimalField(
+        max_digits=5, decimal_places=4,
+        min_value=Decimal('0'), max_value=Decimal('1'), required=False)
+    payment_timeout_minutes = serializers.IntegerField(min_value=1, required=False)
+    min_stock_threshold = serializers.IntegerField(min_value=0, required=False)
+    free_shipping_threshold = serializers.DecimalField(
+        max_digits=10, decimal_places=2, min_value=Decimal('0'), required=False)
+    support_email = serializers.EmailField(required=False, allow_blank=True)
+    phone = serializers.CharField(max_length=30, required=False, allow_blank=True)
+    address = serializers.CharField(required=False, allow_blank=True)
+    social_links = serializers.JSONField(required=False)
 
     def validate_social_links(self, value):
         if not isinstance(value, dict):
@@ -51,3 +61,43 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
                     f'El valor de "{key}" debe ser una cadena de texto.'
                 )
         return value
+
+    @staticmethod
+    def read_current():
+        """Estado actual del formulario, leído de su destino.
+
+        Pasa por el propio serializer para que los tipos del contrato sean
+        los declarados (``DecimalField`` sale como cadena, no como float del
+        encoder JSON) — el equivalente de que en la referencia el campo, no
+        el almacén, decida la forma publicada.
+        """
+        state = SiteConfigSettings.current_values()
+        values = {name: state[name] for name in SiteSettingsSerializer().fields
+                  if name in state}
+        raw = SystemParameter.get_param(SOCIAL_LINKS_KEY)
+        values['social_links'] = json.loads(raw) if raw else {}
+        return SiteSettingsSerializer(values).data
+
+    @staticmethod
+    def apply(validated):
+        """Escribe los campos entrantes en su destino y devuelve el estado.
+
+        Parcial por contrato (``PATCH``): lo que no viene conserva su valor
+        actual, así que el formulario se instancia con el estado leído y se
+        sobrescribe sólo lo entrante — igual que la referencia hace al
+        rellenar el formulario con ``default_get`` antes de guardar.
+        """
+        social = validated.pop('social_links', None)
+
+        state = SiteConfigSettings.current_values()
+        state.update(validated)
+        form = SiteConfigSettings(**{
+            name: value for name, value in state.items()
+            if name in {f.name for f in SiteConfigSettings._meta.get_fields()}
+        })
+        form.apply_values()
+
+        if social is not None:
+            SystemParameter.set_param(SOCIAL_LINKS_KEY, json.dumps(social))
+
+        return SiteSettingsSerializer.read_current()

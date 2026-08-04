@@ -76,7 +76,8 @@ que los agrupe por naturaleza.
 - ``res_country.py`` → ``ResCountry`` + ``ResCountryState`` (geografía política).
 - ``res_partner.py`` → ``ResPartner`` (el party: persona, empresa o dirección).
 - ``res_users.py`` → ``ResUsers`` (credencial; delega identidad al partner).
-- ``res_config_settings.py`` → ``SiteSettings`` (~ ``res.config.settings``, singleton).
+- ``res_config.py`` → ``ResConfigSettings`` (el formulario de ajustes; su
+  concreción vive en ``base_setup``, que es quien sirve la superficie).
 
 Se reexporta todo aquí para preservar el contrato de import histórico
 ``from addons.base.models import SystemParameter, ResCurrency, ...``.
@@ -213,7 +214,6 @@ from .res_users_deletion import ResUsersDeletion
 from .res_users_settings import ResUsersSettings
 from .res_currency import ResCurrency
 from .res_currency_rate import ResCurrencyRate
-from .res_config_settings import SiteSettings
 from .res_lang import ResLang
 
 __all__ = [
@@ -303,7 +303,6 @@ __all__ = [
     'IrUiMenu',
     'IrSequence',
     'ExportJob',
-    'SiteSettings',
     'IrAutovacuum',
     'is_autovacuum',
     'IrDemo',
