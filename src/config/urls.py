@@ -130,6 +130,10 @@ urlpatterns = _admin_urls + [
     path('api/v2/authz/',      include(('addons.authz_passkey.controllers.urls', 'authz_passkey'),         namespace='authz_passkey_v2')),
     # ~auth_signup: alta/set-password/reset por token firmado (pre-auth)
     path('api/v2/authz/',      include(('addons.authz_signup.controllers.urls', 'authz_signup'),           namespace='authz_signup_v2')),
+    # ~web: sesión del cliente — ≙ /web/session/{authenticate,destroy,logout}
+    # de odoo19c: web/controllers/session.py (LGPL-3). Es la puerta que abre la
+    # sesión de servidor que ADR-018 declara como autenticación por defecto.
+    path('api/v2/web/',        include(('addons.web.controllers.urls', 'web'),                             namespace='web_v2')),
     # ~portal: cuenta propia — ≙ /my/account · /my/addresses · /my/security ·
     # /my/deactivate_account de odoo19c: portal (LGPL-3)
     path('api/v2/portal/',     include(('addons.portal.controllers.urls', 'portal'),                       namespace='portal_v2')),

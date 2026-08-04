@@ -108,8 +108,8 @@ class BusListenerMixin:
         (lo normal al leerlo de la base) haría bucle infinito.
         """
         target = self
-        while (siguiente := target._bus_channel()) != target:
-            target = siguiente
+        while (nxt := target._bus_channel()) != target:
+            target = nxt
         canal = target.bus_channel_key()
         if subchannel is not None:
             canal = f'{canal}/{subchannel}'

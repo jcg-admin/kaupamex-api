@@ -100,6 +100,7 @@ INSTALLED_APPS = [
     'addons.authz_oauth',
     'addons.authz_totp_mail',
     'addons.authz_passkey',
+    'addons.web',
     'addons.portal',
     'addons.sale_subscription',
     'addons.hr',

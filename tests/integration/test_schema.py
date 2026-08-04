@@ -42,13 +42,13 @@ class TestSchemaEndpoint:
         r = api_client.get('/api/schema/?format=json')
         assert 'PracticaYoruba' in r.json()['info']['title']
 
-    def test_schema_contiene_endpoint_alta(self, api_client, db):
+    def test_schema_has_signup_endpoint(self, api_client, db):
         # El alta vive en ``authz_signup`` (``controllers/urls.py:9``),
         # montado bajo ``/api/v2/authz/`` (``src/config/urls.py:132``).
         r = api_client.get('/api/schema/?format=json')
         assert '/api/v2/authz/signup/' in r.json()['paths']
 
-    def test_schema_contiene_endpoints_sesion(self, api_client, db):
+    def test_schema_has_session_endpoints(self, api_client, db):
         # PENDIENTE — la sesión (login/logout) es de la familia ``web`` de la
         # referencia (``odoo19c: addons/web/controllers/session.py:31,88``) y
         # todavía no está portada. Ver H-API-279: no es forma propia, es un
@@ -64,7 +64,7 @@ class TestSchemaEndpoint:
         paths = r.json()['paths']
         assert '/api/v2/config/settings/' in paths
 
-    def test_schema_alta_tiene_request_body(self, api_client, db):
+    def test_schema_signup_has_request_body(self, api_client, db):
         r = api_client.get('/api/schema/?format=json')
         alta = r.json()['paths']['/api/v2/authz/signup/']['post']
         assert 'requestBody' in alta
@@ -103,7 +103,7 @@ class TestRedocUI:
 # Sprint 4 — T-001..T-008 (pytest.mark.schema)
 # =============================================================================
 
-class TestSchemaCuentaPropia:
+class TestSchemaSelfAccount:
     """
     Superficie de cuenta propia — ≙ ``/my/*`` de ``odoo19c: portal``.
 
@@ -118,60 +118,72 @@ class TestSchemaCuentaPropia:
     def _paths(self, api_client, db):
         return api_client.get('/api/schema/?format=json').json()['paths']
 
-    def test_cuenta_en_schema(self, api_client, db):
+    def test_account_in_schema(self, api_client, db):
         # ``portal/controllers/urls.py:16`` — ≙ /my/account
         assert '/api/v2/portal/account/' in self._paths(api_client, db)
 
-    def test_direcciones_en_schema(self, api_client, db):
+    def test_addresses_in_schema(self, api_client, db):
         # ``portal/controllers/urls.py:17`` — ≙ /my/addresses
         assert '/api/v2/portal/addresses/' in self._paths(api_client, db)
 
-    def test_archivar_direccion_en_schema(self, api_client, db):
+    def test_archive_address_in_schema(self, api_client, db):
         # ``portal/controllers/urls.py:18`` — el verbo es **archivar**, no
         # borrar: la referencia desactiva con ``ResPartner.active``
         # (H-API-252). Por eso la ruta lleva el sufijo ``/archive/``.
         assert ('/api/v2/portal/addresses/{id}/archive/'
                 in self._paths(api_client, db))
 
-    def test_cambio_de_contrasena_en_schema(self, api_client, db):
+    def test_change_password_in_schema(self, api_client, db):
         # ``portal/controllers/urls.py:21`` — ≙ /my/security
         assert '/api/v2/portal/security/password/' in self._paths(api_client, db)
 
-    def test_solicitud_de_reset_en_schema(self, api_client, db):
+    def test_request_reset_in_schema(self, api_client, db):
         # ``authz_signup/controllers/urls.py:11``
         assert '/api/v2/authz/request-reset/' in self._paths(api_client, db)
 
-    def test_baja_de_cuenta_en_schema(self, api_client, db):
+    def test_deactivate_account_in_schema(self, api_client, db):
         # ``portal/controllers/urls.py:22`` — ≙ /my/deactivate_account
         assert '/api/v2/portal/deactivations/' in self._paths(api_client, db)
 
 
-class TestSchemaSesionPendiente:
+class TestSchemaSession:
     """
-    Superficie de sesión — PENDIENTE de portar la familia ``web``.
+    Superficie de sesión — familia ``web``, ya portada.
 
-    Estos tres describen un contrato que la referencia sí tiene
-    (``odoo19c: addons/web/controllers/session.py``) y nosotros no hemos
-    adaptado. Quedan **rojos a propósito**: son el inventario ejecutable del
-    hueco. Marcarlos ``xfail`` los volvería invisibles y la deuda dejaría de
-    tener quien la reclame (mismo criterio que H-API-278, causa 2).
-
-    ``verify-email`` / ``resend-verification`` cuelgan de otra vía
-    (``authz_signup`` + el módulo de tokens de correo, ausente), no de ``web``.
-    Ver H-API-279.
+    Las cuatro rutas adaptan ``odoo19c: addons/web/controllers/session.py``.
+    El contrato de comportamiento se prueba en ``tests/integration/web/``;
+    aquí sólo se verifica que estén **publicadas** en el OpenAPI.
     """
     pytestmark = pytest.mark.schema
 
     def _paths(self, api_client, db):
         return api_client.get('/api/schema/?format=json').json()['paths']
 
-    def test_cierre_de_todas_las_sesiones_en_schema(self, api_client, db):
+    def test_session_info_in_schema(self, api_client, db):
+        assert '/api/v2/web/session/' in self._paths(api_client, db)
+
+    def test_destroy_session_in_schema(self, api_client, db):
         assert '/api/v2/web/session/destroy/' in self._paths(api_client, db)
 
-    def test_verificacion_de_correo_en_schema(self, api_client, db):
+
+class TestSchemaEmailVerificationPending:
+    """
+    Verificación de correo — PENDIENTE, y NO por la familia ``web``.
+
+    Cuelgan de ``authz_signup`` más el módulo de tokens de correo, que no
+    existe (H-API-252 midió ``send_verification_email`` → 0 hits). Quedan
+    **rojos a propósito**: son el inventario ejecutable del hueco. Marcarlos
+    ``xfail`` los volvería invisibles (mismo criterio que H-API-278, causa 2).
+    """
+    pytestmark = pytest.mark.schema
+
+    def _paths(self, api_client, db):
+        return api_client.get('/api/schema/?format=json').json()['paths']
+
+    def test_verify_email_in_schema(self, api_client, db):
         assert '/api/v2/authz/verify-email/' in self._paths(api_client, db)
 
-    def test_reenvio_de_verificacion_en_schema(self, api_client, db):
+    def test_resend_verification_in_schema(self, api_client, db):
         assert '/api/v2/authz/resend-verification/' in self._paths(api_client, db)
 
 
