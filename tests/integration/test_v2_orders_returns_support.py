@@ -17,19 +17,14 @@ pytestmark = pytest.mark.integration
 
 # ─── URLs v2 ────────────────────────────────────────────────────────────────
 V2_ORDERS_BASE          = '/api/v2/orders/'
-V2_RETURNS_BASE         = '/api/v2/return-requests/'
-V2_ADMIN_RETURNS_BASE   = '/api/v2/admin/return-requests/'
 V2_PRODUCTS_BASE        = '/api/v2/products/'
 V2_ADMIN_REVIEWS_BASE   = '/api/v2/admin/reviews/'
-V2_ADMIN_QUESTIONS_BASE = '/api/v2/admin/questions/'
 V2_SUPPORT_BASE         = '/api/v2/support/tickets/'
 
 # ─── URLs v1 (dual-run) ──────────────────────────────────────────────────────
 V1_ORDER_CANCEL_URL         = '/api/v2/orders/{n}/cancellations/'
 V1_ORDER_ADDRESS_URL        = '/api/v2/orders/{n}/shipping-address/'
 V1_ORDER_SHIPPING_URL       = '/api/v2/orders/{n}/shipping-method/'
-V1_RETURNS_URL              = '/api/v2/return-requests/'
-V1_ADMIN_RETURN_APPROVE_URL = '/api/v2/admin/return-requests/{id}/status/'
 V1_REVIEW_EDIT_URL          = '/api/v2/products/{pid}/reviews/{pk}/'
 V1_SUPPORT_CLOSE_URL        = '/api/v2/support/tickets/{id}/status/'
 
@@ -93,39 +88,22 @@ class TestOrderShippingMethodV2:
         assert r.status_code == 401
 
 
-# ─── Returns Tier A + B ─────────────────────────────────────────────────────
-
-class TestReturnRequestsV2:
-    def test_list_unauthenticated_returns_401(self, api_client):
-        r = api_client.get(V2_RETURNS_BASE)
-        assert r.status_code == 401
-
-    def test_v1_returns_still_works(self, api_client):
-        r = api_client.get(V1_RETURNS_URL)
-        assert r.status_code == 401
-
-
-class TestAdminReturnStatusV2:
-    def test_unauthenticated_returns_401(self, api_client):
-        url = V2_ADMIN_RETURNS_BASE + '1/status/'
-        r = api_client.patch(url, {'action': 'approve'}, content_type='application/json')
-        assert r.status_code == 401
-
-    def test_non_admin_returns_403(self, auth_client):
-        url = V2_ADMIN_RETURNS_BASE + '1/status/'
-        r = auth_client.patch(url, {'action': 'approve'}, content_type='application/json')
-        assert r.status_code == 403
-
-    def test_invalid_action_returns_400(self, admin_auth_client):
-        url = V2_ADMIN_RETURNS_BASE + '999/status/'
-        r = admin_auth_client.patch(url, {'action': 'delete'}, content_type='application/json')
-        assert r.status_code == 400
-        assert r.data['codigo_error'] == 'INVALID_ACTION'
-
-    def test_v1_approve_still_works(self, api_client):
-        url = V1_ADMIN_RETURN_APPROVE_URL.format(id=999)
-        r = api_client.patch(url, {'action': 'approve'}, content_type='application/json')
-        assert r.status_code == 401
+# ─── Returns — RETIRADA, la referencia no expone una devolución al cliente ───
+#
+# ``/api/v2/return-requests/`` y ``/api/v2/admin/return-requests/<id>/status/``
+# no existen y **no se crean en este pase**. Medido sobre
+# ``odoo-tools@622ddc2a``: en ``odoo19c:`` la única ``@route`` con ``return``
+# en el path es ``sale_stock/controllers/portal.py:40``, y sirve el **PDF** de
+# la etiqueta de una devolución ya creada. La devolución en sí es un
+# **wizard de backoffice** — ``stock.return.picking``
+# (``odoo19c: addons/stock/wizard/stock_picking_return.py:87``) — que opera un
+# operador de almacén, no el comprador.
+#
+# Una solicitud de devolución self-service sería forma propia, y **no hay
+# análisis que la sustente**: 0 documentos ``*return*``/``*devolucion*`` en
+# ``pm/api/iniciativas/``. Inventarla aquí violaría la directiva vigente
+# ("si no tienen análisis, no crees"). Cuando se decida, el hogar natural es
+# la familia ``stock``, sobre el wizard portado.
 
 
 # ─── Reviews Tier B ─────────────────────────────────────────────────────────
@@ -160,31 +138,16 @@ class TestAdminReviewStatusV2:
         assert r.data['codigo_error'] == 'INVALID_ACTION'
 
 
-# ─── Questions Tier A + B ────────────────────────────────────────────────────
-
-class TestAdminQuestionAnswersV2:
-    def test_unauthenticated_returns_401(self, api_client):
-        url = V2_ADMIN_QUESTIONS_BASE + '1/answers/'
-        r = api_client.post(url, {'answer_body': 'resp'}, content_type='application/json')
-        assert r.status_code == 401
-
-    def test_non_admin_returns_403(self, auth_client):
-        url = V2_ADMIN_QUESTIONS_BASE + '1/answers/'
-        r = auth_client.post(url, {'answer_body': 'resp'}, content_type='application/json')
-        assert r.status_code == 403
-
-
-class TestAdminQuestionStatusV2:
-    def test_unauthenticated_returns_401(self, api_client):
-        url = V2_ADMIN_QUESTIONS_BASE + '1/status/'
-        r = api_client.patch(url, {'action': 'approve'}, content_type='application/json')
-        assert r.status_code == 401
-
-    def test_invalid_action_returns_400(self, admin_auth_client):
-        url = V2_ADMIN_QUESTIONS_BASE + '999/status/'
-        r = admin_auth_client.patch(url, {'action': 'delete'}, content_type='application/json')
-        assert r.status_code == 400
-        assert r.data['codigo_error'] == 'INVALID_ACTION'
+# ─── Q&A de producto — RETIRADA, no existe en la referencia ──────────────────
+#
+# ``/api/v2/admin/questions/<id>/{answers,status}/`` no existe y **no se crea
+# en este pase**. Medido sobre ``odoo-tools@622ddc2a``: en ``odoo19c:`` hay
+# **0** addons con ``question`` en el nombre y **0** ``@route`` con
+# ``question`` en el path. El canal de preguntas de un comprador sobre un
+# producto simplemente no está en el producto de referencia.
+#
+# Sería forma propia, y su decisión está abierta como trabajo aparte (Q&A y
+# referidos). Sin análisis que la sustente, no se inventa aquí.
 
 
 # ─── Support Tier B ─────────────────────────────────────────────────────────
