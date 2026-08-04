@@ -249,7 +249,7 @@ class ResCompany(TimeStampedModel):
     )
     user_ids = fields.Many2many(
         ResUsers, blank=True, related_name='company_ids',
-        db_table='res_company_users_rel', verbose_name='Usuarios aceptados',
+        through='ResCompanyUsersRel', verbose_name='Usuarios aceptados',
     )
 
     # — Membrete de los documentos impresos —
@@ -557,3 +557,44 @@ class ResCompany(TimeStampedModel):
         if path != self.parent_path:
             self.parent_path = path
             super().save(update_fields=['parent_path'])
+
+
+class ResCompanyUsersRel(models.Model):
+    """Tabla de relación ``res_company_users_rel`` — usuario ↔ compañía aceptada.
+
+    La referencia la declara desde ambos lados con sus nombres de columna
+    explícitos (``odoo-tools@622ddc2a``):
+
+    - ``odoo19c: odoo/addons/base/models/res_company.py:68`` —
+      ``user_ids = fields.Many2many('res.users', 'res_company_users_rel', 'cid', 'user_id')``
+    - ``odoo19c: odoo/addons/base/models/res_users.py:247`` —
+      ``company_ids = fields.Many2many('res.company', 'res_company_users_rel', 'user_id', 'cid')``
+
+    (mismos nombres en ``odoo18c:``, líneas ``:54`` y ``:403``.)
+
+    Django nombraría las columnas ``rescompany_id``/``resusers_id`` al
+    autogenerar la tabla; el ``through`` explícito existe **sólo** para fijar
+    ``cid``/``user_id`` como en la referencia. No añade campos propios, así
+    que ``.add()``/``.remove()`` siguen funcionando sin ``through_defaults``.
+    """
+
+    cid = fields.Many2one(
+        'base.ResCompany', on_delete=models.CASCADE, db_column='cid',
+        related_name='+', verbose_name='Compañía',
+    )
+    user_id = fields.Many2one(
+        ResUsers, on_delete=models.CASCADE, db_column='user_id',
+        related_name='+', verbose_name='Usuario',
+    )
+
+    class Meta:
+        db_table            = 'res_company_users_rel'
+        constraints         = [
+            models.UniqueConstraint(
+                fields=['cid', 'user_id'], name='res_company_users_rel_uniq'),
+        ]
+        verbose_name        = 'Usuario aceptado de la compañía'
+        verbose_name_plural = 'Usuarios aceptados de la compañía'
+
+    def __str__(self) -> str:
+        return f'{self.cid_id}:{self.user_id_id}'

@@ -243,15 +243,12 @@ class CompanyContextMiddleware:
             # Permitido = compañía propia + la pertenencia N (``company_ids``
             # M2M, el reverso de ``res_company_users_rel``) — el
             # ``user.company_ids`` de la referencia, con la propia primero
-            # (``env.company`` = la primera activada).
-            company_id = getattr(user, 'company_id', None)
-            if company_id is not None:
-                permitted = (company_id,)
-            extra = getattr(user, 'company_ids', None)
-            if extra is not None:
-                permitted += tuple(
-                    pk for pk in extra.values_list('pk', flat=True)
-                    if pk != company_id)
+            # (``env.company`` = la primera activada). El cómputo vive en
+            # ``ResUsers._permitted_company_ids`` (≙ ``_get_company_ids``),
+            # que filtra las compañías archivadas como hace la fuente.
+            permitir = getattr(user, '_permitted_company_ids', None)
+            if permitir is not None:
+                permitted = permitir()
         activate_companies((), permitted)
         try:
             return self.get_response(request)

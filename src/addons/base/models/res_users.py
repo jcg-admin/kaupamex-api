@@ -64,6 +64,7 @@ import models
 from django.apps import apps
 from django.conf import settings
 from django.contrib.auth import hashers
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.utils.crypto import salted_hmac
 
@@ -307,6 +308,63 @@ class ResUsers(TimeStampedModel):
                 _SESSION_AUTH_KEY_SALT, self.password,
                 secret=fallback_secret, algorithm='sha256',
             ).hexdigest()
+
+    # --- Compañías permitidas (≙ ``company_id`` + ``company_ids``) ---
+    #
+    # ``company_ids`` **existe** como reverso del M2M declarado en
+    # ``ResCompany.user_ids`` (``related_name='company_ids'``, tabla
+    # ``res_company_users_rel`` con columnas ``cid``/``user_id``). La
+    # referencia lo declara desde ambos lados con esos mismos nombres
+    # (``odoo19c: res_users.py:247`` y ``res_company.py:68``; idem
+    # ``odoo18c:`` en ``:403`` y ``:54``).
+    #
+    # Los dos campos son ejes distintos, no redundantes: ``company`` es la
+    # compañía **activa por defecto**, ``company_ids`` el **conjunto
+    # alcanzable sin volver a autenticarse**. El resolutor de ``ir_http``
+    # ya consume ambos.
+
+    def _check_user_company(self):
+        """Odoo ``_check_user_company`` (``odoo19c: res_users.py:501-511``).
+
+        ``@api.constrains('company_id', 'company_ids', 'active')``: para un
+        usuario activo, su compañía por defecto tiene que estar entre las
+        permitidas. Se porta como método explícito y se invoca desde
+        ``clean()`` — Django no valida M2M en ``full_clean()`` porque la
+        relación no existe hasta que la fila tiene PK.
+        """
+        if not self.active or self.company_id is None or self.pk is None:
+            return
+        if self.company_ids.filter(pk=self.company_id).exists():
+            return
+        permitidas = ', '.join(
+            self.company_ids.values_list('partner__name', flat=True)) or '—'
+        raise ValidationError(
+            'La compañía %(company)s no está entre las permitidas para el '
+            'usuario %(user)s (%(allowed)s).' % {
+                'company': self.company.partner.name,
+                'user': self.login,
+                'allowed': permitidas,
+            })
+
+    def _permitted_company_ids(self):
+        """Odoo ``_get_company_ids`` (``odoo19c: res_users.py:726-730``).
+
+        La referencia filtra por ``('active', '=', True)`` — una compañía
+        archivada no otorga acceso aunque siga en la tabla de relación. La
+        propia va primero, porque ``env.company`` es la primera activada.
+        """
+        if self.pk is None:
+            return ()
+        activas = tuple(
+            self.company_ids.filter(active=True).values_list('pk', flat=True))
+        if self.company_id is None:
+            return activas
+        return (self.company_id,) + tuple(
+            pk for pk in activas if pk != self.company_id)
+
+    def clean(self):
+        super().clean()
+        self._check_user_company()
 
     # --- Presentación ---
     def get_full_name(self):
