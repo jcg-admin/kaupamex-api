@@ -6,11 +6,14 @@ from django.urls import path
 
 from addons.authz.admin_views import (
     AdminPermissionCatalogView, AdminRoleListView, AdminRolePermissionsView,
+    AdminUserPermissionsView,
 )
 
 app_name = 'admin_authz'
 
 urlpatterns = [
+    path('users/<int:pk>/permissions/', AdminUserPermissionsView.as_view(),
+         name='user-permissions'),
     path('roles/', AdminRoleListView.as_view(), name='role-list'),
     path('permissions/', AdminPermissionCatalogView.as_view(),
          name='permission-catalog'),

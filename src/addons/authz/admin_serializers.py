@@ -84,3 +84,20 @@ class RolePermissionsWriteSerializer(serializers.Serializer):
                     f"({', '.join(GRANTABLE_LEVEL_NAMES)}).",
                 )
         return entries
+
+
+class UserRolesWriteSerializer(serializers.Serializer):
+    """Cuerpo de ``POST /admin/users/<pk>/permissions/`` — reemplaza el set.
+
+    Es reemplazo, no adición: el cliente manda el conjunto completo que debe
+    quedar. Un ``roles: []`` deja al usuario sin roles, y ésa es la vía por la
+    que se revoca — por eso el guard de escalada tiene que mirar también la
+    lista vacía, no sólo la presencia del rol superadmin.
+    """
+
+    roles = serializers.ListField(
+        child=serializers.IntegerField(),
+        allow_empty=True,
+        help_text='Ids de los roles que el usuario debe tener tras la '
+                  'operación.',
+    )

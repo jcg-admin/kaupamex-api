@@ -8,6 +8,8 @@ ya no existe en ``IdentityUser`` U-D). Todas exigen ``permissions.full``:
 - ``GET  /api/v2/admin/permissions/`` — matriz roles×capacidades para el editor
   ``/admin/permissions`` de la UI. Devuelve ``{roles:[{role, permissions}],
   permissions:[{code, level}]}``.
+- ``POST /api/v2/admin/users/<pk>/permissions/`` — asigna roles a un usuario
+  (reemplaza el set). Es el lado de escritura de UC-ADM-02.
 - ``PUT  /api/v2/admin/roles/<code>/permissions/`` — edita el set graduado de
   capacidades de un rol (reemplaza). Los roles son editables en runtime **con
   contención de escalada por nivel** (H-UI-PERM-01, DEC-11): un delegado con
@@ -15,14 +17,19 @@ ya no existe en ``IdentityUser`` U-D). Todas exigen ``permissions.full``:
   en ese sustantivo, y solo las acciones nombradas que él posee; el superadmin
   no tiene ese límite y su rol solo lo edita otro superadmin.
 """
+from django.contrib.auth import get_user_model
+from django.db import transaction
+from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import OpenApiResponse, extend_schema
+from rest_framework import status
 from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from addons.authz.admin_serializers import (
-    AdminRoleSerializer, RolePermissionsWriteSerializer, capability_rows,
-    is_noun,
+    AdminRoleSerializer, RolePermissionsWriteSerializer,
+    UserRolesWriteSerializer, capability_rows, is_noun,
 )
 from addons.authz.models import AccessLevel, Capability, Role, RoleAssignment, RoleCapability
 from addons.authz.permissions import HasCapability
@@ -73,12 +80,12 @@ class AdminRoleListView(ListAPIView):
     """Catálogo de roles (read-only) para el selector de ``/admin/permissions``.
 
     Gateado por ``permissions.full`` — la misma capacidad que la asignación
-    (``AdminUserViewSet.permissions``): quien puede asignar roles puede ver el
+    (``AdminUserPermissionsView``): quien puede asignar roles puede ver el
     catálogo. Sin paginación: el número de roles es pequeño y estable.
 
     **Contención de escalada:** el rol ``superadmin`` (que concede TODAS las
     capacidades) se oculta a quien no es superadmin. El candado real está en la
-    escritura (``AdminUserViewSet.permissions``); este filtro evita exponer el
+    escritura (``AdminUserPermissionsView``); este filtro evita exponer el
     id en el picker. Simétrico con el guard ``CANNOT_GRANT_SUPERADMIN``.
     """
 
@@ -292,3 +299,92 @@ class AdminRolePermissionsView(APIView):
             if code not in own_named:
                 escalating.add(code)
         return escalating
+
+
+class AdminUserPermissionsView(APIView):
+    """``POST /api/v2/admin/users/<pk>/permissions/`` — asignar roles a un usuario.
+
+    Es el **lado de escritura** de UC-ADM-02. ``AdminRoleListView`` ya lo
+    nombraba como "el candado real" desde su docstring, pero la vista no
+    existía: ninguna superficie escribía ``RoleAssignment``, así que el modelo
+    de autorización era de sólo lectura desde la API y el guard de contención
+    de escalada no se ejecutaba nunca. Ver H-API-282.
+
+    Contención de escalada
+    -----------------------
+
+    Un delegado con ``permissions.full`` **no** puede tocar la membresía
+    ``superadmin`` de nadie — ni concederla ni revocarla — aunque adivine el id
+    del rol. Sólo otro superadmin puede. Las dos direcciones se bloquean con el
+    mismo código: revocar el superadmin ajeno es tan escalada como concederse
+    el propio, porque deja al delegado como máxima autoridad.
+
+    Relación con la referencia
+    ---------------------------
+
+    ``odoo19c: odoo/addons/base/models/res_users.py:189`` contiene la escalada
+    con ``SELF_WRITEABLE_FIELDS`` — una lista blanca de campos escribibles
+    sobre el propio registro, que **no** incluye ``groups_id``. Es el mismo
+    principio (la pertenencia no se auto-concede) por otro mecanismo: allí un
+    filtro de campo sobre el ORM genérico, aquí un guard en la ruta, porque no
+    exponemos un RPC de ORM sobre el que colgar la lista blanca.
+    """
+
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = PERMISSIONS_MANAGE
+
+    @extend_schema(
+        tags=['admin-authz'],
+        summary='Reemplazar el conjunto de roles de un usuario',
+        request=UserRolesWriteSerializer,
+        responses={
+            200: OpenApiResponse(description='Roles asignados'),
+            400: OpenApiResponse(description='INVALID_ROLES · ROLE_NOT_FOUND'),
+            403: OpenApiResponse(description='CANNOT_GRANT_SUPERADMIN'),
+            404: OpenApiResponse(description='Usuario inexistente'),
+        },
+    )
+    def post(self, request, pk):
+        target = get_object_or_404(get_user_model(), pk=pk)
+        role_ids = request.data.get('roles', [])
+        if not isinstance(role_ids, list):
+            return Response(
+                {'codigo_error': 'INVALID_ROLES',
+                 'detail': 'El campo "roles" debe ser una lista de ids.'},
+                status=status.HTTP_400_BAD_REQUEST)
+
+        desired = list(Role.objects.filter(pk__in=role_ids))
+        if len(desired) != len(set(role_ids)):
+            return Response(
+                {'codigo_error': 'ROLE_NOT_FOUND',
+                 'detail': 'Uno o más roles no existen.'},
+                status=status.HTTP_400_BAD_REQUEST)
+
+        grants_superadmin = any(r.code == SUPERADMIN_ROLE_CODE for r in desired)
+        target_is_superadmin = is_superadmin(target)
+        # Revocar cuenta igual que conceder: si el objetivo ES superadmin y el
+        # set entrante no lo incluye, la operación le quita la membresía.
+        revokes_superadmin = target_is_superadmin and not grants_superadmin
+
+        if (grants_superadmin or revokes_superadmin) \
+                and not is_superadmin(request.user):
+            return Response(
+                {'codigo_error': 'CANNOT_GRANT_SUPERADMIN',
+                 'detail': 'Sólo un superadministrador puede alterar la '
+                           'membresía superadmin.'},
+                status=status.HTTP_403_FORBIDDEN)
+
+        with transaction.atomic():
+            RoleAssignment.objects.filter(user=target).delete()
+            RoleAssignment.objects.bulk_create(
+                [RoleAssignment(user=target, role=r) for r in desired])
+        invalidate_capabilities(target.pk)
+        audit_log_business(
+            request.user,
+            'ADMIN_USER_ROLES_ASSIGNED',
+            request,
+            target_type='user',
+            target_id=target.pk,
+            extra={'roles': [r.code for r in desired]},
+        )
+        return Response({'roles': [r.code for r in desired]})
