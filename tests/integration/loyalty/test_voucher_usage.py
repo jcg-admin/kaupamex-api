@@ -22,6 +22,13 @@ from addons.loyalty.models import Voucher, VoucherUsage
 pytestmark = pytest.mark.integration
 
 VOUCHER_APPLY_URL = '/api/v2/cart/voucher/'
+# El checkout confirma el carrito; NO crea una orden. En la referencia el
+# carrito ES la ``sale.order`` en borrador (``odoo19c:
+# website_sale/models/sale_order.py:133``), y ``/shop/payment`` la confirma —
+# no hay ningún POST que "cree" un pedido. Por eso ``POST /api/v2/orders/``
+# responde 405: ``OrderListView`` es el historial (GET), y ese 405 es la
+# respuesta correcta, no un hueco. Ver H-API-282 para el mismo patrón.
+CHECKOUT_URL      = '/api/v2/checkout/express/'
 ITEMS_URL         = '/api/v2/cart/items/'
 
 
@@ -126,7 +133,7 @@ class TestVoucherUsageCreatedOnCheckout:
         # Mock InventoryService para no depender de stock
         with patch.object(InventoryService, 'check_availability', return_value=[]), \
              patch.object(InventoryService, 'decrement', return_value=None):
-            res = auth_client.post('/api/v2/orders/', checkout_data, format='json')
+            res = auth_client.post(CHECKOUT_URL, checkout_data, format='json')
 
         assert res.status_code == 201, f'Checkout fallo: {res.data}'
 

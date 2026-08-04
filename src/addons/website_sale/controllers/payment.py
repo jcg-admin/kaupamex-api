@@ -32,6 +32,8 @@ La confirmación la hace ``confirm_draft_order`` (``addons.sale.services``),
 que ya existía: es la transición ``draft → sale`` que acuña el número de
 orden. Este módulo es sólo la capa HTTP.
 """
+from decimal import Decimal
+
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import status
 from rest_framework.decorators import api_view
@@ -43,6 +45,7 @@ from addons.sale.services import (
     confirm_draft_order,
     get_or_create_draft_order,
 )
+from addons.delivery.models import ShippingMethod
 from addons.website_sale.controllers.serializers import (
     ExpressCheckoutSerializer,
 )
@@ -54,7 +57,8 @@ from addons.website_sale.controllers.serializers import (
     request=ExpressCheckoutSerializer,
     responses={
         201: OpenApiResponse(description='order_number + total'),
-        409: OpenApiResponse(description='EMPTY_CART | INSUFFICIENT_STOCK'),
+        409: OpenApiResponse(description='EMPTY_CART | INSUFFICIENT_STOCK | '
+                                         'SHIPPING_METHOD_NOT_AVAILABLE'),
     },
 )
 @api_view(['POST'])
@@ -71,11 +75,29 @@ def express_checkout(request):
     data = serializer.validated_data
 
     order, _created = get_or_create_draft_order(user=request.user)
+
+    # El coste de envío sale del método, no del cliente: aceptar un importe
+    # del formulario dejaría al comprador fijar lo que paga de envío. Es el
+    # mismo orden de la referencia — ``_set_delivery_method`` fija el
+    # transportista y el precio se deriva de él.
+    shipping_cost = Decimal('0.00')
+    method_id = data.get('shipping_method_id')
+    if method_id is not None:
+        method = ShippingMethod.objects.filter(
+            pk=method_id, is_active=True).first()
+        if method is None:
+            return Response(
+                {'codigo_error': 'SHIPPING_METHOD_NOT_AVAILABLE',
+                 'detail': 'El método de envío no existe o está inactivo.'},
+                status=status.HTTP_409_CONFLICT)
+        shipping_cost = method.cost
+
     try:
         confirmed = confirm_draft_order(
             order,
             address_data=data['address'],
             notes=data.get('notes', ''),
+            shipping_cost=shipping_cost,
         )
     except DraftOrderError as exc:
         return Response(

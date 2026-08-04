@@ -145,8 +145,16 @@ class ExpressCheckoutSerializer(serializers.Serializer):
     valida es ``confirm_draft_order``, que ya conoce las reglas de dirección
     del proyecto. Duplicar el esquema aquí crearía dos fuentes de verdad
     sobre qué es una dirección válida.
+
+    ``shipping_method_id`` es opcional y su **coste** lo resuelve la vista
+    consultando ``delivery`` — no se recibe el importe desde el cliente. Es
+    el mismo orden de la referencia: ``_set_delivery_method`` fija el
+    transportista y el precio sale de él, nunca del formulario.
     """
 
     address = serializers.DictField()
+    shipping_method_id = serializers.IntegerField(required=False,
+                                                  allow_null=True,
+                                                  default=None)
     notes = serializers.CharField(max_length=500, required=False,
                                   allow_blank=True, default='')

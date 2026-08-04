@@ -85,6 +85,11 @@ urlpatterns = _admin_urls + [
     # Panel de inventario del operador (``stock/controllers/``).
     path('api/v2/admin/',          include(('addons.stock.controllers.admin_urls', 'admin_inventory'),
                                            namespace='admin_inventory_v2')),
+    # Programa de referidos — superavit local declarado (ver
+    # analisis-familia-loyalty:158-159). Vive en ``loyalty`` porque cada
+    # codigo se respalda como Voucher tipo REFERRAL.
+    path('api/v2/account/referral/', include(('addons.loyalty.controllers.urls', 'referral'),
+                                           namespace='referral_v2')),
     # Wishlist — la familia que la hospeda (tarea #41; adaptacion de
     # ``odoo19c: website_sale_wishlist/controllers/main.py``).
     path('api/v2/wishlist/',       include(('addons.website_sale_wishlist.controllers.urls', 'wishlist'),
