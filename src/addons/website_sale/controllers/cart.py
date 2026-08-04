@@ -5,9 +5,17 @@ Origen y correspondencia
 
 Adaptación de ``odoo19c: addons/website_sale/controllers/cart.py`` (LGPL-3,
 leído completo) sobre ``odoo-tools@622ddc2a``. El archivo se llama igual que
-su fuente: la referencia parte el controlador en 11 módulos y ``cart.py`` es
-uno de ellos, distinto de ``main.py`` (el escaparate y el checkout). Aquí se
-respeta esa partición — el carrito no vive en ``main``.
+su fuente: ``odoo19c`` parte el controlador en 11 módulos y ``cart.py`` es
+uno de ellos, distinto de ``main.py`` (el escaparate y el checkout).
+
+**El split es de 19, no de siempre.** Medido por población: ``odoo18c``
+tiene 10 módulos y **no** tiene ``cart.py`` — sus cinco rutas de carrito
+(``/shop/cart``, ``update``, ``update_json``, ``quantity``, ``clear``) viven
+dentro de ``main.py`` (``odoo18c: website_sale/controllers/main.py:757-954``).
+Se sigue a 19 porque 19 gobierna cuando las dos versiones difieren, y porque
+su factorización es la que separa el carrito del checkout — que es
+exactamente el corte que este porte necesita, con ``main.py`` aún sin portar.
+No se sigue "porque la referencia lo hace así": una de las dos no lo hace.
 
 El carrito **es** la ``SaleOrder`` en ``state='draft'``: la referencia lo
 localiza filtrando por ``Domain('state', '=', 'draft')``
@@ -51,10 +59,21 @@ Autorización
 
 Las rutas del carrito son **públicas** (``AllowAny``) porque en la referencia
 lo son (``auth='public'``): comprar sin cuenta es el caso normal del
-escaparate. Medido en ``odoo19c: addons/website_sale/security/``: **0** filas
-de ``ir.model.access.csv`` para ``sale.order`` — el carrito no se gatea por
-grupo en ningún lado; la pertenencia se resuelve de la sesión y el controlador
-corre en ``sudo``. Sus tres ``res.groups`` propios son de *display*
+escaparate.
+
+El carrito **no se gatea por grupo**, y esto sí se sostiene en las dos
+poblaciones que llevan el addon —``website_sale`` es Community, medido: 0
+hits en ``odoo18e`` y ``odoo19e``—:
+
+===========  ======================  =========================
+Árbol        filas de la ACL         filas para ``sale.order``
+===========  ======================  =========================
+``odoo19c``  44                      **0**
+``odoo18c``  60                      **0**
+===========  ======================  =========================
+
+La pertenencia se resuelve de la sesión y el controlador corre en ``sudo``.
+Los tres ``res.groups`` propios de ``odoo19c`` son de *display*
 (``group_show_uom_price``, ``group_product_price_comparison``,
 ``group_product_feed``) y los demás, de back-office (designer / sale manager).
 
