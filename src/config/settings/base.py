@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'addons.stock_landed_costs',
     'addons.product_expiry',
     'addons.loyalty',
+    'addons.website_sale',
     'addons.website_sale_wishlist',
     'addons.sale',
     'addons.sales_team',

@@ -12,6 +12,7 @@ F2 no elimina v1; verifica coexistencia (doble-corrida).
 import uuid
 import pytest
 from addons.sale.models import SaleOrder
+from addons.sale.services import add_item_to_draft, get_or_create_draft_order
 from decimal import Decimal
 
 from tests.factories.product_factory import make_category, make_product

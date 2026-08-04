@@ -59,6 +59,11 @@ urlpatterns = _admin_urls + [
     path('api/v2/bus/',            include(('addons.bus.urls', 'bus'),                 namespace='bus_v2')),
     path('api/v2/admin/',          include(('addons.mail.controllers.admin_notifications', 'admin_notifications'),
                                            namespace='admin_notifications_v2')),
+    # Carrito del escaparate — ``website_sale`` (tarea #42; adaptacion de
+    # ``odoo19c: website_sale/controllers/cart.py``). El carrito ES la
+    # ``SaleOrder`` en borrador; el addon solo aporta la capa HTTP.
+    path('api/v2/cart/',           include(('addons.website_sale.controllers.urls', 'cart'),
+                                           namespace='cart_v2')),
     # Wishlist — la familia que la hospeda (tarea #41; adaptacion de
     # ``odoo19c: website_sale_wishlist/controllers/main.py``).
     path('api/v2/wishlist/',       include(('addons.website_sale_wishlist.controllers.urls', 'wishlist'),
