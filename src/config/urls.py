@@ -64,6 +64,27 @@ urlpatterns = _admin_urls + [
     # ``SaleOrder`` en borrador; el addon solo aporta la capa HTTP.
     path('api/v2/cart/',           include(('addons.website_sale.controllers.urls', 'cart'),
                                            namespace='cart_v2')),
+    # Escaparate de la misma familia (``odoo19c:
+    # website_sale/controllers/main.py``): listado, ficha, categorias y
+    # busqueda. Se monta en la raiz de v2 porque cuelga de tres prefijos
+    # distintos; mismo patron que ``logistics``. Va DESPUES de las resenas de
+    # ``rating`` para que ``products/<int>/reviews/`` resuelva primero.
+    path('api/v2/',                include(('addons.website_sale.controllers.shop_urls', 'shop'),
+                                           namespace='shop_v2')),
+    # Historial de busquedas del comprador — vive en ``website`` porque ahi
+    # vive ``SearchEntry``; lo escribe el buscador del escaparate.
+    path('api/v2/search/',         include(('addons.website.controllers.search_urls', 'search'),
+                                           namespace='search_v2')),
+    # Checkout express de la misma familia (``website_sale/controllers/
+    # payment.py``): confirma el carrito en un paso.
+    path('api/v2/checkout/',       include(('addons.website_sale.controllers.checkout_urls', 'checkout'),
+                                           namespace='checkout_v2')),
+    # Cobro — superficie del comprador (``payment/controllers/portal.py``).
+    path('api/v2/payments/',       include(('addons.payment.controllers.urls', 'payments'),
+                                           namespace='payments_v2')),
+    # Panel de inventario del operador (``stock/controllers/``).
+    path('api/v2/admin/',          include(('addons.stock.controllers.admin_urls', 'admin_inventory'),
+                                           namespace='admin_inventory_v2')),
     # Wishlist — la familia que la hospeda (tarea #41; adaptacion de
     # ``odoo19c: website_sale_wishlist/controllers/main.py``).
     path('api/v2/wishlist/',       include(('addons.website_sale_wishlist.controllers.urls', 'wishlist'),

@@ -118,7 +118,12 @@ Divergencias declaradas
 import logging
 
 from django.db import transaction
-from drf_spectacular.utils import OpenApiResponse, extend_schema
+from drf_spectacular.utils import (
+    OpenApiParameter,
+    OpenApiResponse,
+    OpenApiTypes,
+    extend_schema,
+)
 from rest_framework import status, viewsets
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
@@ -312,6 +317,8 @@ class CartItemViewSet(viewsets.ViewSet):
     @extend_schema(
         tags=['cart'],
         summary='Cambiar la cantidad de una línea',
+        parameters=[OpenApiParameter('id', OpenApiTypes.INT,
+                                     OpenApiParameter.PATH)],
         request=UpdateCartItemSerializer,
         responses={
             200: OpenApiResponse(description='carrito actualizado'),
@@ -335,6 +342,8 @@ class CartItemViewSet(viewsets.ViewSet):
     @extend_schema(
         tags=['cart'],
         summary='Quitar una línea del carrito',
+        parameters=[OpenApiParameter('id', OpenApiTypes.INT,
+                                     OpenApiParameter.PATH)],
         responses={
             200: OpenApiResponse(description='carrito actualizado'),
             409: OpenApiResponse(description='ITEM_NOT_FOUND'),

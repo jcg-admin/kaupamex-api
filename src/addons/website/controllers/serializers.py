@@ -8,7 +8,7 @@ el fold ya había elegido.
 """
 from rest_framework import serializers
 
-from addons.website.models import StaticPage, StaticPageVersion
+from addons.website.models import SearchEntry, StaticPage, StaticPageVersion
 
 
 class StaticPageVersionSerializer(serializers.ModelSerializer):
@@ -60,3 +60,18 @@ class PublicStaticPageSerializer(serializers.ModelSerializer):
     def get_content(self, obj) -> str:
         version = obj.current_version
         return version.content if version else ''
+
+
+class SearchEntrySerializer(serializers.ModelSerializer):
+    """Una entrada del historial de búsquedas del comprador.
+
+    ``normalized_query`` viaja además de ``query`` porque es lo que el SPA
+    usa para agrupar repeticiones: "Camisa Azul" y "camisa  azul" son la
+    misma búsqueda para quien la hizo.
+    """
+
+    class Meta:
+        model = SearchEntry
+        fields = ['id', 'query', 'normalized_query', 'results_count',
+                  'created_at']
+        read_only_fields = fields
