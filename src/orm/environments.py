@@ -65,6 +65,59 @@ from exceptions import AccessError
 
 _current_companies: ContextVar = ContextVar('current_companies', default=())
 _su: ContextVar = ContextVar('su', default=False)
+_uid: ContextVar = ContextVar('uid', default=None)
+
+
+# --- Canal del actor -------------------------------------------------------
+# El TERCER eje del entorno, y el que faltaba. La referencia los declara
+# juntos y separados (``odoo19c: odoo/orm/environments.py:54-56``)::
+#
+#     uid: int
+#     context: frozendict
+#     su: bool
+#
+# QUIÉN actúa (``uid``) no es QUÉ datos ve (``companies``) ni SI está elevado
+# (``su``): tres razones de cambio distintas en un mismo objeto.
+#
+# Su ausencia tuvo un costo medido: ``bus`` no tenía de dónde sacar el
+# ``self.env.user`` que la referencia usa en ``ir_attachment._bus_channel``, y
+# lo compensó ensanchando la firma de **todos** los ``_bus_channel`` con un
+# parámetro ``actor``. Un contrato entero cambiado para cubrir la carencia de
+# un solo caso — lo contrario de una responsabilidad por clase. Ver H-API-277.
+
+def get_current_uid():
+    """PK del usuario que actúa — el ``env.uid`` de la referencia."""
+    return _uid.get()
+
+
+def get_current_user():
+    """Registro del usuario que actúa — el ``env.user`` de la referencia.
+
+    La fuente **no guarda el registro**: guarda el identificador y lo
+    materializa al pedirlo (``odoo19c: orm/environments.py:213`` —
+    ``self(su=True)['res.users'].browse(self.uid)``). Se replica igual para
+    que el entorno no retenga objetos vivos entre peticiones que comparten
+    hilo bajo WSGI.
+    """
+    uid = _uid.get()
+    if uid is None:
+        return None
+    return apps.get_model('base', 'ResUsers').objects.filter(pk=uid).first()
+
+
+def set_current_uid(uid):
+    """Fija el usuario que actúa (o lo limpia con ``None``)."""
+    _uid.set(uid)
+
+
+@contextmanager
+def user_scope(uid):
+    """Actúa como ese usuario en el bloque y **restaura** el valor previo."""
+    token = _uid.set(uid)
+    try:
+        yield
+    finally:
+        _uid.reset(token)
 
 
 # --- Canal de elevación ----------------------------------------------------
@@ -153,4 +206,5 @@ __all__ = [
     'apps', 'connection', 'connections',
     'get_current_company', 'get_current_companies', 'set_current_company',
     'activate_companies', 'company_scope', 'sudo', 'is_su',
+    'get_current_uid', 'get_current_user', 'set_current_uid', 'user_scope',
 ]

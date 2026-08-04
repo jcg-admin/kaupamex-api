@@ -95,7 +95,7 @@ import unicodedata
 
 import models
 
-from orm.environments import activate_companies
+from orm.environments import activate_companies, set_current_uid
 
 _logger = logging.getLogger(__name__)
 
@@ -238,8 +238,9 @@ class CompanyContextMiddleware:
 
     def __call__(self, request):
         user = getattr(request, 'user', None)
+        autenticado = user is not None and getattr(user, 'is_authenticated', False)
         permitted = ()
-        if user is not None and getattr(user, 'is_authenticated', False):
+        if autenticado:
             # Permitido = compañía propia + la pertenencia N (``company_ids``
             # M2M, el reverso de ``res_company_users_rel``) — el
             # ``user.company_ids`` de la referencia, con la propia primero
@@ -249,8 +250,14 @@ class CompanyContextMiddleware:
             permitir = getattr(user, '_permitted_company_ids', None)
             if permitir is not None:
                 permitted = permitir()
+        # Los dos ejes del entorno que la referencia deja listos antes del
+        # despacho: QUIÉN actúa (``env.uid``) y QUÉ compañías ve
+        # (``env.companies``). Se fijan juntos porque llegan de la misma
+        # petición, pero son ejes distintos: el actor no acota el dato.
+        set_current_uid(user.pk if autenticado else None)
         activate_companies((), permitted)
         try:
             return self.get_response(request)
         finally:
             activate_companies((), ())
+            set_current_uid(None)

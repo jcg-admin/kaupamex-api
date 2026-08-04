@@ -33,15 +33,18 @@ plano, no un modelo Django, porque el original tampoco aporta campos — es un
 """
 from addons.bus.models.bus import BusMessage
 
-#: ``etiqueta de modelo`` → ``fn(registro, actor)`` que devuelve el objeto en
-#: cuyo canal emite. Poblado por ``register_channel`` desde un archivo por
-#: modelo, igual que la referencia declara un archivo por ``_inherit``.
+#: ``etiqueta de modelo`` → ``fn(registro)`` que devuelve el objeto en cuyo
+#: canal emite. Poblado por ``register_channel`` desde un archivo por modelo,
+#: igual que la referencia declara un archivo por ``_inherit``.
 #:
-#: El segundo parámetro existe porque **no todos los canales son propiedad del
-#: registro**: el de ``ir.attachment`` es ``self.env.user`` en la referencia —
-#: el usuario que actúa, que no es un campo del adjunto—. Sin ese parámetro,
-#: ese archivo no se podría portar y habría que declararlo "no aplica", que es
-#: exactamente lo que H-API-134 prohíbe.
+#: **Un solo parámetro**, como ``def _bus_channel(self)`` de la referencia
+#: (``odoo19c: addons/bus/models/bus_listener_mixin.py:29``; idéntico en
+#: ``odoo18c: …:24``). Hubo una versión con un segundo parámetro ``actor``,
+#: añadido porque el canal de ``ir.attachment`` es ``self.env.user`` y el
+#: entorno portado no exponía el usuario actual. Eso cambiaba el contrato de
+#: **todos** los resolutores para cubrir la carencia de uno; el actor ahora
+#: sale del entorno (``orm.environments.get_current_user``), que es de donde
+#: la referencia lo toma. Ver H-API-277.
 CHANNEL_RESOLVERS = {}
 
 
@@ -61,7 +64,7 @@ def register_channel(model_label):
 class BusListenerMixin:
     """Permite a un modelo emitir mensajes en su propio canal del bus."""
 
-    def _bus_channel(self, actor=None):
+    def _bus_channel(self):
         """Canal en el que emite este objeto.
 
         Por defecto, él mismo. Un modelo puede delegar en otro registrando su
@@ -73,7 +76,7 @@ class BusListenerMixin:
             resolver = CHANNEL_RESOLVERS.get(
                 f'{meta.app_label}.{meta.object_name}')
             if resolver is not None:
-                return resolver(self, actor) or self
+                return resolver(self) or self
         return self
 
     def bus_channel_key(self) -> str:
@@ -90,16 +93,22 @@ class BusListenerMixin:
             f'bus_channel_key()'
         )
 
-    def _bus_send(self, notification_type: str, message, *, subchannel=None,
-                  actor=None):
+    def _bus_send(self, notification_type: str, message, *, subchannel=None):
         """Encola una notificación en el canal de este objeto.
 
         Recorre ``_bus_channel()`` hasta el punto fijo antes de emitir, de modo
         que un objeto puede delegar su canal en otro sin que quien emite tenga
-        que saberlo.
+        que saberlo. Es el bucle de ``odoo19c:`` (``bus_listener_mixin.py:19``);
+        ``odoo18c:`` resuelve con **una sola** llamada, sin punto fijo — cuando
+        las poblaciones difieren gobierna 19.
+
+        La comparación es por **igualdad**, no por identidad: la referencia usa
+        ``!=`` sobre recordsets, que comparan por contenido. Con ``is not``, un
+        resolutor que devuelva un registro equivalente pero otro objeto Python
+        (lo normal al leerlo de la base) haría bucle infinito.
         """
         target = self
-        while (siguiente := target._bus_channel(actor)) is not target:
+        while (siguiente := target._bus_channel()) != target:
             target = siguiente
         canal = target.bus_channel_key()
         if subchannel is not None:
