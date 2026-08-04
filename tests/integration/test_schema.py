@@ -49,11 +49,10 @@ class TestSchemaEndpoint:
         assert '/api/v2/authz/signup/' in r.json()['paths']
 
     def test_schema_has_session_endpoints(self, api_client, db):
-        # PENDIENTE — la sesión (login/logout) es de la familia ``web`` de la
-        # referencia (``odoo19c: addons/web/controllers/session.py:31,88``) y
-        # todavía no está portada. Ver H-API-279: no es forma propia, es un
-        # puerto con contrato ya decidido. El test queda rojo a propósito —
-        # es el inventario ejecutable del hueco, no deuda invisible.
+        # La sesión (login/logout) es de la familia ``web`` de la referencia
+        # (``odoo19c: addons/web/controllers/session.py:31,88``), portada en
+        # este árbol — ver H-API-279. No es forma propia: es un puerto con
+        # contrato ya decidido.
         r = api_client.get('/api/schema/?format=json')
         paths = r.json()['paths']
         assert '/api/v2/web/session/authenticate/' in paths
@@ -166,22 +165,21 @@ class TestSchemaSession:
         assert '/api/v2/web/session/destroy/' in self._paths(api_client, db)
 
 
-class TestSchemaEmailVerificationPending:
+class TestSchemaEmailVerification:
     """
-    Verificación de correo — PENDIENTE, y NO por la familia ``web``.
+    Verificación de correo — montada en ``authz_signup`` (``api@4b83a9b``).
 
-    Cuelgan de ``authz_signup`` más el módulo de tokens de correo, que no
-    existe (H-API-252 midió ``send_verification_email`` → 0 hits). Quedan
-    **rojos a propósito**: son el inventario ejecutable del hueco. Marcarlos
-    ``xfail`` los volvería invisibles (mismo criterio que H-API-278, causa 2).
+    Estuvo PENDIENTE mientras el módulo de tokens de correo no existía
+    (H-API-252 midió ``send_verification_email`` → 0 hits). Ya no: el flujo
+    reusa el token firmado del propio ``authz_signup`` con un tercer
+    ``signup_type``. Su **existencia** es forma propia declarada — la
+    referencia no verifica el correo porque su alta llega por invitación
+    (H-API-281); el **mecanismo** sí se hereda entero.
     """
     pytestmark = pytest.mark.schema
 
     def _paths(self, api_client, db):
         return api_client.get('/api/schema/?format=json').json()['paths']
-
-    def test_verify_email_in_schema(self, api_client, db):
-        assert '/api/v2/authz/verify-email/' in self._paths(api_client, db)
 
     def test_verify_email_in_schema(self, api_client, db):
         """Una ruta, dos operaciones — no hay ``resend-verification/`` aparte.
@@ -329,8 +327,10 @@ class TestSchemaReviewsQuestions:
     def test_product_review_helpful_en_schema(self, api_client, db):
         assert '/api/v2/products/{product_id}/reviews/{id}/helpful-votes/' in self._paths(api_client, db)
 
-    def test_product_questions_en_schema(self, api_client, db):
-        assert '/api/v2/products/{product_id}/questions/' in self._paths(api_client, db)
+    # Q&A de producto — RETIRADA: 0 addons con ``question`` en el nombre y 0
+    # ``@route`` con ``question`` en el path en todo ``odoo19c:``
+    # (``odoo-tools@622ddc2a``). El canal no está en el producto de referencia
+    # y su decisión sigue abierta como trabajo aparte. Ver H-API-282.
 
     def test_search_history_en_schema(self, api_client, db):
         assert '/api/v2/search/history/' in self._paths(api_client, db)
@@ -396,11 +396,11 @@ class TestSchemaSupportReturnsNewsletter:
     def test_support_ticket_close_en_schema(self, api_client, db):
         assert '/api/v2/support/tickets/{ticket_id}/status/' in self._paths(api_client, db)
 
-    def test_returns_en_schema(self, api_client, db):
-        assert '/api/v2/return-requests/' in self._paths(api_client, db)
-
-    def test_returns_detail_en_schema(self, api_client, db):
-        assert '/api/v2/return-requests/{return_id}/' in self._paths(api_client, db)
+    # Devoluciones — RETIRADA: la única ``@route`` con ``return`` en el path de
+    # ``odoo19c:`` sirve el PDF de la etiqueta
+    # (``addons/sale_stock/controllers/portal.py:40``); la devolución en sí es
+    # un wizard de backoffice, ``stock.return.picking``
+    # (``addons/stock/wizard/stock_picking_return.py:87``). Ver H-API-282.
 
     def test_contact_messages_en_schema(self, api_client, db):
         # H-SCHEMA-04: path es /messages/ dentro de /api/v2/contact/
@@ -457,9 +457,5 @@ class TestSchemaAdminEndpoints:
         # settings mounted at /api/v2/config/ (settings_app/urls.py)
         assert '/api/v2/config/settings/' in self._paths(api_client, db)
 
-    def test_admin_questions_en_schema(self, api_client, db):
-        assert '/api/v2/admin/questions/' in self._paths(api_client, db)
-
-    def test_admin_question_approve_en_schema(self, api_client, db):
-        # v2: approve/reject → PATCH /status/ (questions/admin_urls_v2.py)
-        assert '/api/v2/admin/questions/{question_id}/status/' in self._paths(api_client, db)
+    # Admin de Q&A — RETIRADA junto con la superficie pública (ver arriba y
+    # H-API-282): no hay dominio que administrar.
