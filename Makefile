@@ -2,7 +2,7 @@
 #
 # Targets para ejecucion local y en pipelines de CI futuros.
 # Mantiene paridad con ui/package.json scripts equivalentes.
-.PHONY: help check-names check-names-ci check-layout check-layout-ci check-lazy check-lazy-ci check-cycles check-cycles-ci check-catalog check-catalog-ci check-canon check-canon-ci test test-coverage install-hooks db-up ci-test ci-test-fast
+.PHONY: help check-names check-names-ci check-layout check-layout-ci check-lazy check-lazy-ci check-cycles check-cycles-ci check-catalog check-catalog-ci check-canon check-canon-ci test test-coverage install-hooks db-up ci-test ci-test-fast pdf check-pdf clean-pdf
 
 help:
 	@echo 'Targets:'
@@ -26,6 +26,9 @@ help:
 	@echo '  make ci-test-fast      db-up + subset de humo cart/ (--reuse-db)'
 	@echo '  make serve             Servidor de aplicacion embebido (ADR-027)'
 	@echo '  make check-serve       Gate: valida gunicorn.conf.py y que la app importe'
+	@echo '  make pdf               Compila los helpers PDF (libharu vendorizada; ADR-017)'
+	@echo '  make check-pdf         Gate: los helpers PDF compilan (salida a build/)'
+	@echo '  make clean-pdf         Borra binarios y objetos de los helpers PDF'
 
 # Audit local — imprime hallazgos pero no falla (para inspeccion manual).
 check-names:
@@ -114,3 +117,22 @@ serve:
 check-serve:
 	DJANGO_SETTINGS_MODULE=config.settings.testing \
 	  uv run gunicorn -c setup/gunicorn.conf.py --check-config
+
+# Helpers PDF nativos (ADR-017). libharu va vendorizada en
+# src/tools/pdf/vendor/libharu, asi que un clon limpio compila sin buscar nada
+# fuera del arbol: no hace falta libhpdf-dev ni CMake, solo gcc/make y las
+# cabeceras de zlib/libpng (paquetes de `main`).
+#
+# Los binarios NO se versionan (son especificos de arquitectura y ABI): un .a
+# compilado en otra maquina puede enlazar y comportarse mal, que es peor que
+# no estar. Por eso este target existe — el deploy lo ejecuta.
+pdf:
+	$(MAKE) -C src/tools/pdf build
+
+# Gate de compilacion: exit != 0 si alguno de los dos helpers no compila.
+# Deja los binarios de prueba en src/tools/pdf/build/, nunca en /tmp.
+check-pdf:
+	$(MAKE) -C src/tools/pdf check
+
+clean-pdf:
+	$(MAKE) -C src/tools/pdf distclean
