@@ -74,3 +74,40 @@ class WebsitePublishedMixin(models.Model):
         self.is_published = not self.is_published
         self.save(update_fields=['is_published'])
         return self.is_published
+
+    @classmethod
+    def apply_to(cls, model):
+        """Aplica la publicación a un modelo **ya definido** — ≙ ``_inherit``.
+
+        Éste es el camino que un addon de sitio usa para publicar un modelo
+        que **no le pertenece**, sin tocar su código. Es el análogo directo de
+        lo que hace la referencia::
+
+            # odoo19c: website_sale/models/product_template.py:34-42
+            class ProductTemplate(models.Model):
+                _name = 'product.template'
+                _inherit = [… 'website.published.multi.mixin' …]
+
+        Se llama desde el ``ready()`` del addon que declara la dependencia
+        (``website_sale``), nunca desde el modelo destino: así ``product``
+        queda **cerrado a modificación y abierto a extensión**, y no adquiere
+        una razón de cambio que es del escaparate.
+
+        Idempotente: si el campo ya está, no hace nada — ``ready()`` puede
+        ejecutarse más de una vez en tests que recargan el registro de apps.
+        """
+        if not model._meta.get_fields():  # pragma: no cover - defensivo
+            raise RuntimeError(
+                f'{model.__name__} no está poblado todavía; apply_to debe '
+                f'llamarse desde AppConfig.ready(), no en tiempo de import.')
+
+        existing = {f.name for f in model._meta.get_fields()}
+        if 'is_published' not in existing:
+            field = cls._meta.get_field('is_published').clone()
+            model.add_to_class('is_published', field)
+
+        # Los métodos no son campos: se cuelgan directo. No se sobrescriben si
+        # el modelo destino ya define los suyos.
+        for name in ('website_published', 'website_publish_button'):
+            if not hasattr(model, name):
+                setattr(model, name, getattr(cls, name))

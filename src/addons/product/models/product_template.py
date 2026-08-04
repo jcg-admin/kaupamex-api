@@ -104,7 +104,6 @@ from addons.base.models.timestamped_mixin import TimeStampedModel
 from addons.product.models.product_category import ProductCategory
 from addons.product.models.product_document import ProductDocument
 from addons.uom.models.uom_uom import Uom
-from addons.website.models.mixins import WebsitePublishedMixin
 
 #: Claves de contexto que afectan al precio calculado — verbatim de la fuente.
 #: Se conservan aunque el cálculo de precio viva en ``product.pricelist``:
@@ -127,20 +126,8 @@ TYPE_CHOICES = [
 SERVICE_TRACKING_CHOICES = [('no', 'Nada')]
 
 
-class ProductTemplate(ImageMixin, WebsitePublishedMixin, TimeStampedModel):
-    """``product.template`` — el producto del catálogo.
-
-    **De dónde sale ``is_published``.** En la referencia no lo declara este
-    modelo: lo añade ``website_sale`` reabriendo ``product.template`` con
-    ``_inherit = [… 'website.published.multi.mixin' …]``
-    (``odoo19c: website_sale/models/product_template.py:36-42``). Django no
-    puede reabrir una clase de modelo, así que el mixin se hereda aquí — pero
-    **el concepto sigue viviendo en ``website``**
-    (``addons.website.models.mixins``), que es quien lo dueña en la
-    referencia. La divergencia es de mecanismo (herencia en la definición vs.
-    ``_inherit`` en tiempo de registro), no de reparto: un producto sigue
-    existiendo en el ERP sin estar publicado en la tienda.
-    """
+class ProductTemplate(ImageMixin, TimeStampedModel):
+    """``product.template`` — el producto del catálogo."""
 
     name = fields.Char(max_length=255, db_index=True, verbose_name='Nombre')
     sequence = fields.Integer(
