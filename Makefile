@@ -24,6 +24,8 @@ help:
 	@echo '  make db-up             Arranca MariaDB via el script de db (socket)'
 	@echo '  make ci-test           db-up + pytest suite completa (--reuse-db)'
 	@echo '  make ci-test-fast      db-up + subset de humo cart/ (--reuse-db)'
+	@echo '  make serve             Servidor de aplicacion embebido (ADR-027)'
+	@echo '  make check-serve       Gate: valida gunicorn.conf.py y que la app importe'
 
 # Audit local — imprime hallazgos pero no falla (para inspeccion manual).
 check-names:
@@ -102,3 +104,13 @@ ci-test: db-up
 # Subset rapido de humo (cart/) — smoke test de CI.
 ci-test-fast: db-up
 	uv run pytest tests/integration/cart/ -q --reuse-db
+
+# Servidor de aplicacion embebido (ADR-027). Prefork sincrono, loopback.
+# Sobrescribir con GUNICORN_BIND / GUNICORN_WORKERS; ver setup/gunicorn.conf.py.
+serve:
+	uv run gunicorn -c setup/gunicorn.conf.py
+
+# Gate de configuracion del servidor: valida el archivo y que la app importe.
+check-serve:
+	DJANGO_SETTINGS_MODULE=config.settings.testing \
+	  uv run gunicorn -c setup/gunicorn.conf.py --check-config

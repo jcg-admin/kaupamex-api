@@ -41,6 +41,12 @@ dependencies = [
     # CORS
     "django-cors-headers==4.9.0",
     "xlsxwriter>=3.2.9",
+    # Servidor de aplicacion WSGI embebido (ADR-027). Es dependencia de
+    # PRODUCCION a proposito: el producto L0 se distribuye a terceros y debe
+    # servir HTTP por si mismo, sin asumir Apache+mod_wsgi en el destino. La
+    # referencia publica su propia invocacion de Gunicorn en
+    # odoo19c: setup/odoo-wsgi.example.py (odoo-tools@622ddc2a).
+    "gunicorn>=23.0.0",
 ]
 
 [project.optional-dependencies]
