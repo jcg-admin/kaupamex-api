@@ -26,6 +26,9 @@ SIGNUP_PARAMETERS = {
     'authz_signup.signup_validity_hours': '144',
     'authz_signup.reset_validity_hours': '4',
     'authz_signup.set_password_url': '/account/set-password',
+    # Forma propia — la verificación de correo no existe en la referencia.
+    'authz_signup.verify_validity_hours': '24',
+    'authz_signup.verify_email_url': '/account/verify-email',
 }
 
 SIGNUP_TEMPLATES = [
@@ -50,6 +53,18 @@ SIGNUP_TEMPLATES = [
             '<p>Recibimos una solicitud para restablecer tu contraseña:</p>'
             '<p><a href="{{ link }}">Restablecer mi contraseña</a></p>'
             '<p>Si no fuiste tú, ignora este correo.</p>'
+        ),
+        'auto_delete': True,
+    },
+    {
+        'name': 'authz_signup: verify email',
+        'model': 'base.ResUsers',
+        'subject': 'Verifica tu correo',
+        'body_html': (
+            '<p>Hola {{ object.partner }},</p>'
+            '<p>Confirma que este buzón es tuyo para activar tu cuenta:</p>'
+            '<p><a href="{{ link }}">Verificar mi correo</a></p>'
+            '<p>El enlace vence en 24 horas.</p>'
         ),
         'auto_delete': True,
     },

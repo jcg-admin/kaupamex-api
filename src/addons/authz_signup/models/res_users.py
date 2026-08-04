@@ -41,8 +41,11 @@ _logger = logging.getLogger(__name__)
 
 TEMPLATE_SET_PASSWORD = 'authz_signup: set password'
 TEMPLATE_RESET_PASSWORD = 'authz_signup: reset password'
+TEMPLATE_VERIFY_EMAIL = 'authz_signup: verify email'
 # URL del SPA donde el usuario fija su contraseña con el token (L2).
 PARAM_SET_PASSWORD_URL = 'authz_signup.set_password_url'
+# URL del SPA que consume el token de verificación (forma propia).
+PARAM_VERIFY_EMAIL_URL = 'authz_signup.verify_email_url'
 
 
 class SignupError(Exception):
@@ -136,3 +139,81 @@ def send_reset_password(user, signup_type=SignupRequest.TYPE_RESET):
         rendered['email_from'] or None, [user.login])
     _logger.info('%s email sent for user <%s>', signup_type, user.login)
     return token
+
+
+# ─── Verificación de correo — forma propia declarada ─────────────────────────
+#
+# La referencia NO tiene este flujo (ver ``SignupRequest.TYPE_VERIFY`` para la
+# medición). Lo que se hereda es el **mecanismo**, no la existencia: mismo
+# token firmado stateless, misma invalidación por ``login_date``, mismo
+# ``signup_prepare``/``signup_cancel`` para el un-solo-uso. Sólo cambia el
+# ``signup_type`` y qué se hace al consumirlo (activar, no fijar contraseña).
+
+
+def send_verification_email(user):
+    """Manda el enlace de verificación al buzón del usuario.
+
+    Gemela de ``send_reset_password``, con una diferencia obligada: **no**
+    exige ``user.active``. Una cuenta pendiente de verificar nace
+    ``active=False`` con ``deactivated_reason='unverified'``, así que el gate
+    de archivado del reset la rechazaría justo cuando más se la necesita.
+    """
+    if not user.login:
+        raise UserError(
+            'Cannot send email: user %s has no email address.' % user)
+    if user.active:
+        raise UserError('This account is already verified.')
+    if user.deactivated_reason not in (
+            user.DEACTIVATION_REASONS_REACTIVABLE_BY_EMAIL):
+        # Suspendida por un administrador: reactivarla por correo sería
+        # saltarse la decisión del administrador (UC-AUTH-14).
+        raise UserError('This account cannot be reactivated by email.')
+    partner_svc.signup_prepare(
+        user.partner, signup_type=SignupRequest.TYPE_VERIFY)
+    token = partner_svc.generate_signup_token(user.partner)
+    base = str(SystemParameter.get_param(
+        PARAM_VERIFY_EMAIL_URL, '/account/verify-email'))
+    link = '%s?token=%s' % (base, token)
+
+    template = MailTemplate.objects.filter(
+        name=TEMPLATE_VERIFY_EMAIL).first()
+    if template is None:
+        raise UserError(
+            'Signup mail template %r is not seeded.' % TEMPLATE_VERIFY_EMAIL)
+    rendered = template.render(user, extra_context={'link': link})
+    dispatch_email(
+        rendered['subject'], rendered['body_html'],
+        rendered['email_from'] or None, [user.login])
+    _logger.info('verify email sent for user <%s>', user.login)
+    return token
+
+
+def verify_email(token):
+    """Consume el token de verificación y activa la cuenta.
+
+    Devuelve el usuario activado. Lanza ``UserError`` si el token no es
+    válido, venció, ya se usó, o no es de tipo ``verify`` — un token de
+    ``reset`` no debe poder activar una cuenta suspendida.
+
+    Un solo uso: ``signup_cancel`` borra el ``SignupRequest``, y como el
+    ``signup_type`` va dentro del payload firmado, el mismo token deja de
+    resolver en cuanto se consume.
+    """
+    partner = partner_svc.get_partner_from_token(token) if token else None
+    if partner is None:
+        raise UserError('Verification token is not valid or expired.')
+    request = SignupRequest.objects.filter(partner=partner).first()
+    if request is None or request.signup_type != SignupRequest.TYPE_VERIFY:
+        raise UserError('Verification token is not valid or expired.')
+    user = partner.users.first()
+    if user is None:
+        raise UserError('Verification token has no account attached.')
+
+    user.active = True
+    user.deactivated_reason = None
+    user.deactivated_at = None
+    user.save(update_fields=[
+        'active', 'deactivated_reason', 'deactivated_at', 'updated_at'])
+    partner_svc.signup_cancel(partner)
+    _logger.info('email verified for user <%s>', user.login)
+    return user

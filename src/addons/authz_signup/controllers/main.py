@@ -15,6 +15,7 @@ siempre capacidad" gobierna vistas de datos, no la puerta de entrada.
 """
 import logging
 
+from django.apps import apps as django_apps
 from django.contrib.auth import authenticate, login
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from rest_framework import status
@@ -33,6 +34,7 @@ from addons.authz_signup.models.policy import (
 from addons.authz_signup.controllers.serializers import (
     RequestResetSerializer,
     SignupSerializer,
+    VerifyEmailSerializer,
 )
 
 _logger = logging.getLogger(__name__)
@@ -163,3 +165,74 @@ def signup_info(request):
              'detail': 'Signup token is not valid or expired.'},
             status=status.HTTP_400_BAD_REQUEST)
     return Response(info)
+
+
+@extend_schema(
+    tags=['authz-signup'],
+    summary='Verificar el correo con el token, o reenviar el enlace',
+    request=VerifyEmailSerializer,
+    responses={
+        200: OpenApiResponse(
+            description='Con token: cuenta activada y sesión abierta. '
+                        'Con login: si la cuenta existe, se reenvió el correo'),
+        400: OpenApiResponse(description='VERIFY_INVALID_TOKEN | '
+                                         'VERIFY_PAYLOAD_REQUIRED'),
+    },
+    auth=[],
+)
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def verify_email(request):
+    """Verificación de correo — pre-auth. **Forma propia**, no un puerto.
+
+    La referencia no tiene este flujo: allí el alta llega por invitación al
+    buzón, así que el signup mismo prueba el correo. Ver
+    ``SignupRequest.TYPE_VERIFY`` para la medición sobre ``odoo19c:``.
+
+    Dos operaciones sobre la misma ruta, según el payload:
+
+    - ``{token}`` → consume el enlace, activa la cuenta y **abre sesión**.
+      El auto-login es decisión vigente (``analisis-auto-login-verificacion-
+      email``): hacer clic en el enlace prueba control del buzón, el mismo
+      nivel de confianza que el reset — y sin él el usuario cae en una
+      pantalla sin salida.
+    - ``{login}`` → reenvía el correo. Responde 200 **siempre**, exista o no
+      la cuenta: revelar lo contrario es enumeración de usuarios (mismo
+      criterio que ``request_reset``).
+    """
+    serializer = VerifyEmailSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    token = serializer.validated_data['token']
+    loginname = serializer.validated_data['login']
+
+    if token:
+        try:
+            user = signup_svc.verify_email(token)
+        except UserError as exc:
+            return Response(
+                {'codigo_error': 'VERIFY_INVALID_TOKEN', 'detail': str(exc)},
+                status=status.HTTP_400_BAD_REQUEST)
+        # Sin ``authenticate`` no hay backend en el usuario; se nombra el
+        # backend de credenciales explícitamente porque el proyecto tiene
+        # cuatro registrados y Django sólo lo infiere cuando hay uno.
+        login(request, user,
+              backend='django.contrib.auth.backends.ModelBackend')
+        return Response({'login': user.login, 'isAuthenticated': True})
+
+    if not loginname:
+        return Response(
+            {'codigo_error': 'VERIFY_PAYLOAD_REQUIRED',
+             'detail': 'Provide either a token or a login.'},
+            status=status.HTTP_400_BAD_REQUEST)
+
+    ResUsers = django_apps.get_model('base', 'ResUsers')
+    user = ResUsers.objects.filter(login__iexact=loginname).first()
+    if user is not None:
+        try:
+            signup_svc.send_verification_email(user)
+        except UserError as exc:
+            _logger.info('Verification resend skipped for <%s>: %s',
+                         loginname, exc)
+    else:
+        _logger.info('Verification resend for unknown login <%s>', loginname)
+    return Response(status=status.HTTP_200_OK)

@@ -43,14 +43,21 @@ from addons.base.models import SystemParameter
 # namespace del addon nuestro. Default idéntico: signup 144h, reset 4h.
 PARAM_SIGNUP_VALIDITY_HOURS = 'authz_signup.signup_validity_hours'
 PARAM_RESET_VALIDITY_HOURS = 'authz_signup.reset_validity_hours'
+# Forma propia (el tipo ``verify`` no existe en la referencia). 24 h es el TTL
+# decidido en ``analisis-auto-login-verificacion-email`` y se conserva.
+PARAM_VERIFY_VALIDITY_HOURS = 'authz_signup.verify_validity_hours'
 _DEFAULT_SIGNUP_HOURS = 144
 _DEFAULT_RESET_HOURS = 4
+_DEFAULT_VERIFY_HOURS = 24
 
 
 def _validity_seconds(signup_type):
     if signup_type == SignupRequest.TYPE_RESET:
         hours = int(SystemParameter.get_param(
             PARAM_RESET_VALIDITY_HOURS, str(_DEFAULT_RESET_HOURS)))
+    elif signup_type == SignupRequest.TYPE_VERIFY:
+        hours = int(SystemParameter.get_param(
+            PARAM_VERIFY_VALIDITY_HOURS, str(_DEFAULT_VERIFY_HOURS)))
     else:
         hours = int(SystemParameter.get_param(
             PARAM_SIGNUP_VALIDITY_HOURS, str(_DEFAULT_SIGNUP_HOURS)))

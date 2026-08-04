@@ -21,9 +21,21 @@ class SignupRequest(TimeStampedModel):
 
     TYPE_SIGNUP = 'signup'
     TYPE_RESET = 'reset'
+    # Forma propia declarada — la referencia NO tiene verificación de correo.
+    # Medido sobre ``odoo-tools@622ddc2a``: en todo ``odoo19c:`` no hay una
+    # ``@route`` cuyo path contenga ``verify``/``confirm`` fuera de
+    # ``/shop/confirmation``, y ``signup_type`` sólo toma ``'signup'``/
+    # ``'reset'`` (``odoo19c: addons/auth_signup/models/res_partner.py:113``).
+    # En la referencia el alta ES la prueba del buzón: el enlace de invitación
+    # llega al correo. Nuestro producto además permite alta self-service con
+    # contraseña inmediata, así que la cuenta nace ``active=False`` con
+    # ``deactivated_reason='unverified'`` y necesita este tercer tipo.
+    # Lo que sí se hereda es el **mecanismo**: mismo token firmado stateless.
+    TYPE_VERIFY = 'verify'
     TYPE_CHOICES = [
         (TYPE_SIGNUP, 'Alta invitada'),
         (TYPE_RESET, 'Restablecer contraseña'),
+        (TYPE_VERIFY, 'Verificación de correo'),
     ]
 
     partner = models.OneToOneField(
@@ -34,7 +46,8 @@ class SignupRequest(TimeStampedModel):
         max_length=16, choices=TYPE_CHOICES,
         verbose_name='Tipo de signup',
         help_text='Odoo signup_type: "signup" (alta invitada) o "reset" '
-                  '(restablecer contraseña).',
+                  '(restablecer contraseña). "verify" (verificación de '
+                  'correo) es forma propia: no existe en la referencia.',
     )
 
     class Meta:
