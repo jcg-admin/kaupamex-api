@@ -183,8 +183,16 @@ class TestSchemaEmailVerificationPending:
     def test_verify_email_in_schema(self, api_client, db):
         assert '/api/v2/authz/verify-email/' in self._paths(api_client, db)
 
-    def test_resend_verification_in_schema(self, api_client, db):
-        assert '/api/v2/authz/resend-verification/' in self._paths(api_client, db)
+    def test_verify_email_in_schema(self, api_client, db):
+        """Una ruta, dos operaciones — no hay ``resend-verification/`` aparte.
+
+        El reenvío y la verificación viven en el mismo endpoint y ramifican
+        por el payload (``{token}`` verifica, ``{login}`` reenvía), siguiendo
+        el patrón de la referencia: ``odoo19c:
+        addons/auth_signup/controllers/main.py`` resuelve alta externa y
+        set-password en la misma ``@route``, ramificando por ``token``.
+        """
+        assert '/api/v2/authz/verify-email/' in self._paths(api_client, db)
 
 
 class TestSchemaCartWishlist:
