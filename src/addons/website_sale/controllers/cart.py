@@ -1,14 +1,19 @@
-"""Carrito del escaparate — adaptación de ``odoo19c: website_sale``.
+"""``cart`` — la superficie HTTP del carrito del escaparate.
 
 Origen y correspondencia
 ========================
 
 Adaptación de ``odoo19c: addons/website_sale/controllers/cart.py`` (LGPL-3,
-leído completo) sobre ``odoo-tools@622ddc2a``. El carrito **es** la
-``SaleOrder`` en ``state='draft'`` — la referencia lo localiza filtrando por
-``Domain('state', '=', 'draft')`` (``models/sale_order.py:133``) y sus rutas
-la materializan al añadir la primera línea. Aquí es idéntico: no hay modelo
-de carrito, hay una orden en borrador.
+leído completo) sobre ``odoo-tools@622ddc2a``. El archivo se llama igual que
+su fuente: la referencia parte el controlador en 11 módulos y ``cart.py`` es
+uno de ellos, distinto de ``main.py`` (el escaparate y el checkout). Aquí se
+respeta esa partición — el carrito no vive en ``main``.
+
+El carrito **es** la ``SaleOrder`` en ``state='draft'``: la referencia lo
+localiza filtrando por ``Domain('state', '=', 'draft')``
+(``models/sale_order.py:133``) y sus rutas la materializan al añadir la
+primera línea. Aquí es idéntico: no hay modelo de carrito, hay una orden en
+borrador.
 
 ============================================  ==============================
 Referencia (``controllers/cart.py``)          Aquí
@@ -25,6 +30,49 @@ Toda la lógica ya estaba portada en ``addons.sale.services`` — este módulo e
 **sólo la capa HTTP** que faltaba, que es exactamente lo que el mapa de porte
 declara (``analisis-mapa-de-porte-website-sale``: *"CREAR la familia
 —adaptar controllers sobre ``sale`` ya portado"*).
+
+Estilo de vista (skill ``backend-drf``)
+=======================================
+
+No todo es ``APIView``; el estilo lo decide la forma del recurso:
+
+- **Las líneas del carrito son un recurso CRUD** (colección + detalle) →
+  ``CartItemViewSet`` con router. Es el caso que la guía manda modelar como
+  ViewSet, y el router es obligatorio (un ``.as_view({...})`` manual se salta
+  las ``permission_classes`` de la acción).
+- **El carrito es un singleton**, no una colección: ``GET`` lo lee y
+  ``DELETE`` lo vacía. Multi-método sin colección → ``APIView``. Igual el
+  cupón, que es un sub-recurso de dos verbos.
+- **Fusionar y guardar son acciones sueltas de un solo verbo** → vistas
+  función (``@api_view``), sin la ceremonia de una clase por método.
+
+Autorización
+============
+
+Las rutas del carrito son **públicas** (``AllowAny``) porque en la referencia
+lo son (``auth='public'``): comprar sin cuenta es el caso normal del
+escaparate. Medido en ``odoo19c: addons/website_sale/security/``: **0** filas
+de ``ir.model.access.csv`` para ``sale.order`` — el carrito no se gatea por
+grupo en ningún lado; la pertenencia se resuelve de la sesión y el controlador
+corre en ``sudo``. Sus tres ``res.groups`` propios son de *display*
+(``group_show_uom_price``, ``group_product_price_comparison``,
+``group_product_feed``) y los demás, de back-office (designer / sale manager).
+
+**Este addon no declara capacidades propias.** Las dos superficies que sí
+exigen sesión reusan las que ya dueña ``base`` —que en nuestra adaptación
+hospeda la familia ``account.*`` y el menú de cuenta— porque cada una escribe
+sobre un modelo que esa capacidad ya gobierna:
+
+- ``merges`` → ``account.orders``: el carrito **es** la ``sale.order`` en
+  borrador del comprador, el mismo modelo que esa capacidad gobierna.
+- ``snapshots`` → ``account.wishlist``: escribe ``WishlistItem``, el modelo
+  que el hermano ``website_sale_wishlist`` ya gatea con ella.
+
+Inventar un ``account.cart`` habría añadido una capacidad que ni la
+referencia declara ni ningún modelo nuevo justifica —y que además nadie
+siembra, así que el gate fail-closed (DEC-11) respondería 403 a todo el
+mundo. Lo que **no** se hace es caer en ``IsAuthenticated`` a secas: eso sí
+saltaría el modelo de capacidades.
 
 Divergencias declaradas
 =======================
@@ -47,21 +95,18 @@ Divergencias declaradas
 3. **Sin ``_render_template``.** ``update_cart`` de la referencia devuelve
    fragmentos QWeb ya renderizados (``:325-343``). Aquí la respuesta es el
    carrito serializado: el render lo hace el SPA.
-
-Las rutas son **públicas** (``AllowAny``) porque en la referencia lo son
-(``auth='public'``): comprar sin cuenta es el caso normal del escaparate.
-Las dos superficies que sí exigen sesión —guardar y fusionar— lo declaran
-en su propia vista.
 """
 import logging
 
 from django.db import transaction
 from drf_spectacular.utils import OpenApiResponse, extend_schema
-from rest_framework import status
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework import status, viewsets
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from addons.authz.permissions import require_capability
 from addons.product.models import ProductProduct
 from addons.sale.services import (
     DraftOrderError,
@@ -77,13 +122,13 @@ from addons.sale_loyalty.services import (
     apply_voucher_to_draft,
     remove_voucher_from_draft,
 )
-from addons.website_sale_wishlist.models.wishlist import WishlistItem
 from addons.website_sale.controllers.serializers import (
     AddCartItemSerializer,
     ApplyVoucherSerializer,
     MergeCartSerializer,
     UpdateCartItemSerializer,
 )
+from addons.website_sale_wishlist.models.wishlist import WishlistItem
 
 _logger = logging.getLogger(__name__)
 
@@ -163,7 +208,10 @@ def _voucher_error(exc):
 
 class CartView(APIView):
     """≙ ``/shop/cart`` (``odoo19c: controllers/cart.py:20``) y
-    ``/shop/cart/clear`` (``:435``)."""
+    ``/shop/cart/clear`` (``:435``).
+
+    Singleton, no colección: por eso ``APIView`` y no ViewSet.
+    """
 
     permission_classes = [AllowAny]
 
@@ -192,8 +240,18 @@ class CartView(APIView):
         return _with_cart_token(Response(_cart_payload(order)), order)
 
 
-class CartItemsView(APIView):
-    """≙ ``/shop/cart/add`` (``odoo19c: controllers/cart.py:75``)."""
+class CartItemViewSet(viewsets.ViewSet):
+    """Las líneas del carrito — ≙ ``/shop/cart/add`` (``:75``) y
+    ``/shop/cart/update`` (``:284``).
+
+    Es un recurso CRUD (colección ``items/`` + detalle ``items/<pk>/``), así
+    que va como ViewSet cableado por router. ``ViewSet`` pelado y no
+    ``ModelViewSet`` porque las líneas no se sirven por queryset propio: se
+    crean, actualizan y borran **a través de los servicios de ``sale``**, que
+    son los que aplican stock, precio y recálculo de totales. Un
+    ``ModelViewSet`` invitaría a escribir la línea directamente y saltarse
+    esa lógica.
+    """
 
     permission_classes = [AllowAny]
 
@@ -209,7 +267,7 @@ class CartItemsView(APIView):
         },
         auth=[],
     )
-    def post(self, request):
+    def create(self, request):
         serializer = AddCartItemSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
@@ -232,13 +290,6 @@ class CartItemsView(APIView):
             Response(_cart_payload(order), status=status.HTTP_201_CREATED),
             order)
 
-
-class CartItemDetailView(APIView):
-    """≙ ``/shop/cart/update`` (``odoo19c: controllers/cart.py:284``),
-    partido en dos verbos (ver divergencia 2 del módulo)."""
-
-    permission_classes = [AllowAny]
-
     @extend_schema(
         tags=['cart'],
         summary='Cambiar la cantidad de una línea',
@@ -250,7 +301,7 @@ class CartItemDetailView(APIView):
         },
         auth=[],
     )
-    def patch(self, request, pk):
+    def partial_update(self, request, pk=None):
         serializer = UpdateCartItemSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         order, _created = _resolve_cart(request)
@@ -271,7 +322,7 @@ class CartItemDetailView(APIView):
         },
         auth=[],
     )
-    def delete(self, request, pk):
+    def destroy(self, request, pk=None):
         order, _created = _resolve_cart(request)
         try:
             remove_draft_item(order, pk)
@@ -283,6 +334,9 @@ class CartItemDetailView(APIView):
 
 class CartVoucherView(APIView):
     """Aplicar y quitar el cupón del carrito.
+
+    Sub-recurso de dos verbos sobre el carrito singleton — no es una
+    colección, así que ``APIView`` (mismo criterio que ``CartView``).
 
     En la referencia el cupón entra por ``website_sale_loyalty``, un addon
     puente aparte; aquí ``sale_loyalty`` ya trae los servicios
@@ -349,39 +403,46 @@ class CartVoucherView(APIView):
         return _with_cart_token(Response(_cart_payload(order)), order)
 
 
-class CartMergesView(APIView):
+@extend_schema(
+    tags=['cart'],
+    summary='Fusionar el carrito anónimo en el del usuario',
+    request=MergeCartSerializer,
+    responses={200: OpenApiResponse(description='carrito fusionado')},
+)
+@api_view(['POST'])
+@require_capability('account.orders')
+def merge_cart(request):
     """Fusionar el carrito anónimo en el del usuario al iniciar sesión.
 
     Forma propia declarada: la referencia no la necesita porque su carrito
     vive en la sesión, y la sesión sobrevive al login. Aquí el anónimo se
     ancla por ``cart_token`` (DEC-BC-07), así que la fusión es un paso
-    explícito. Exige sesión — es una operación sobre la cuenta.
+    explícito. Un solo verbo → vista función.
     """
-
-    permission_classes = [IsAuthenticated]
-
-    @extend_schema(
-        tags=['cart'],
-        summary='Fusionar el carrito anónimo en el del usuario',
-        request=MergeCartSerializer,
-        responses={
-            200: OpenApiResponse(description='carrito fusionado'),
-        },
-    )
-    def post(self, request):
-        serializer = MergeCartSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        # El servicio devuelve también las líneas que NO pudieron migrar
-        # (sin stock al momento de fusionar). Se reportan: perderlas en
-        # silencio dejaría al comprador creyendo que su carrito viajó entero.
-        order, skipped = merge_draft_orders(
-            request.user, serializer.validated_data['cart_token'])
-        payload = _cart_payload(order)
-        payload['skipped'] = skipped
-        return Response(payload)
+    serializer = MergeCartSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    # El servicio devuelve también las líneas que NO pudieron migrar (sin
+    # stock al momento de fusionar). Se reportan: perderlas en silencio
+    # dejaría al comprador creyendo que su carrito viajó entero.
+    order, skipped = merge_draft_orders(
+        request.user, serializer.validated_data['cart_token'])
+    payload = _cart_payload(order)
+    payload['skipped'] = skipped
+    return Response(payload)
 
 
-class CartSnapshotsView(APIView):
+@extend_schema(
+    tags=['cart'],
+    summary='Guardar el carrito en la lista de deseos',
+    request=None,
+    responses={
+        200: OpenApiResponse(description='saved_count + detail'),
+        400: OpenApiResponse(description='EMPTY_CART'),
+    },
+)
+@api_view(['POST'])
+@require_capability('account.wishlist')
+def save_cart_for_later(request):
     """Guardar el carrito para después — mover sus líneas a la lista de deseos.
 
     **Forma propia declarada.** La referencia no la tiene: sus cuatro rutas de
@@ -391,47 +452,35 @@ class CartSnapshotsView(APIView):
     mismo motivo — allá el botón mueve un deseo al carrito, aquí mueve el
     carrito a los deseos.
 
-    Exige sesión: la lista de deseos cuelga del usuario, así que un carrito
-    anónimo no tiene dónde guardarse.
+    Gateada por ``account.wishlist`` —la misma que el hermano— porque lo que
+    escribe es ``WishlistItem``: la lista cuelga del usuario, así que un
+    carrito anónimo no tiene dónde guardarse.
     """
+    order, _created = _resolve_cart(request)
+    lines = list(order.order_line.select_related('product').all())
+    if not lines:
+        return Response(
+            {'codigo_error': 'EMPTY_CART',
+             'detail': 'No hay nada que guardar: el carrito está vacío.'},
+            status=status.HTTP_400_BAD_REQUEST)
 
-    permission_classes = [IsAuthenticated]
+    saved = 0
+    with transaction.atomic():
+        for line in lines:
+            # ``get_or_create`` en vez de ``create``: el producto puede estar
+            # ya en la lista y el UNIQUE(user, product) lo rechazaría.
+            # Guardar dos veces no es un error del comprador.
+            _item, created = WishlistItem.objects.get_or_create(
+                user=request.user, product=line.product,
+                defaults={'price_at_add': line.price_unit},
+            )
+            if created:
+                saved += 1
+        clear_draft_items(order)
 
-    @extend_schema(
-        tags=['cart'],
-        summary='Guardar el carrito en la lista de deseos',
-        request=None,
-        responses={
-            200: OpenApiResponse(description='saved_count + detail'),
-            400: OpenApiResponse(description='EMPTY_CART'),
-        },
-    )
-    def post(self, request):
-        order, _created = _resolve_cart(request)
-        lines = list(order.order_line.select_related('product').all())
-        if not lines:
-            return Response(
-                {'codigo_error': 'EMPTY_CART',
-                 'detail': 'No hay nada que guardar: el carrito está vacío.'},
-                status=status.HTTP_400_BAD_REQUEST)
-
-        saved = 0
-        with transaction.atomic():
-            for line in lines:
-                # ``get_or_create`` en vez de ``create``: el producto puede
-                # estar ya en la lista y el UNIQUE(user, product) lo
-                # rechazaría. Guardar dos veces no es un error del comprador.
-                _item, created = WishlistItem.objects.get_or_create(
-                    user=request.user, product=line.product,
-                    defaults={'price_at_add': line.price_unit},
-                )
-                if created:
-                    saved += 1
-            clear_draft_items(order)
-
-        order.refresh_from_db()
-        return Response({
-            'saved_count': saved,
-            'detail': f'{saved} producto(s) guardado(s) en tu lista de deseos.',
-            'cart': _cart_payload(order),
-        })
+    order.refresh_from_db()
+    return Response({
+        'saved_count': saved,
+        'detail': f'{saved} producto(s) guardado(s) en tu lista de deseos.',
+        'cart': _cart_payload(order),
+    })
