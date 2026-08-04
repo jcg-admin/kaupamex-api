@@ -35,11 +35,12 @@ aislamiento de fallos frente a ``mod_wsgi``. Medido:
 → **0** archivos. [PROVEN] No hay pipeline HTML→PDF que portar contra, ni
 falta: hay uno distinto, decidido y documentado.
 
-Consecuencia para ``report_type``: las tres claves de la referencia
-(``qweb-html`` / ``qweb-pdf`` / ``qweb-text``) **se conservan verbatim**
-aunque el renderizador difiera. Renombrarlas a algo "más nuestro" rompería la
-correspondencia con la referencia sin ganar nada, y el día que se conecte el
-render habría que deshacerlo.
+Consecuencia para ``report_type``: sus valores son ``pdf`` / ``text`` /
+``html``, **no** ``qweb-*``. El string de la referencia codifica dos cosas —
+el motor de plantillas y el formato— y aquí sólo la segunda es verdad.
+Conservarlo verbatim metería el sustrato ajeno dentro de nuestro dato; lo que
+se porta es el **rol** del campo (en qué formato sale el documento), que es la
+parte abstracta. Ver ``REPORT_TYPE_CHOICES`` para la tabla de correspondencia.
 
 Qué NO se porta, con su medición
 ================================
@@ -76,11 +77,17 @@ Qué NO se porta, con su medición
 - **``report_action`` / ``_action_configure_external_report_layout``** —
   devuelven diccionarios de acción que consume el cliente web de Odoo.
 """
+import json
 import logging
+import subprocess
+from pathlib import Path
+
+from django.conf import settings
 
 import fields
 import models
 
+from addons.base import report_catalog
 from addons.base.models.ir_actions import IrActionsBase
 from addons.base.models.ir_attachment import IrAttachment
 from addons.base.models.report_paperformat import ReportPaperformat
@@ -88,18 +95,169 @@ from addons.base.models.res_groups import ResGroups
 
 _logger = logging.getLogger(__name__)
 
-#: ``report_type`` — las tres claves de la referencia, verbatim. Se conservan
-#: aunque el renderizador de este árbol sea otro; ver el docstring del módulo.
+#: ``report_type`` — **formato de salida** del documento.
+#:
+#: Dos decisiones distintas, ambas contra la referencia:
+#:
+#: **1. Sin prefijo, porque el eje que nombra no existe aquí.** ``qweb-pdf``
+#: es un par: **lenguaje de plantillas** (``qweb``) + formato (``pdf``). El
+#: prefijo identifica *qué intérprete lee la definición del documento*.
+#:
+#: El mapeo real de las piezas, para no confundirlas:
+#:
+#: =========================  ==================================
+#: Referencia                 Aquí
+#: =========================  ==================================
+#: plantilla QWeb (XML, dato) ``builder`` (función Python, código)
+#: motor QWeb que la lee      — no existe
+#: intermedio: HTML           intermedio: descriptor JSON
+#: conversor: wkhtmltopdf     conversor: helper en C (libharu)
+#: =========================  ==================================
+#:
+#: JSON es nuestro **intermedio** —el análogo del HTML—, no el análogo de
+#: QWeb. Así que ``json-pdf`` sería un nombre equivocado: pondría el formato
+#: del intermedio donde va el intérprete.
+#:
+#: Y el intérprete no lo tenemos: **el documento aquí es código, no dato**. No
+#: hay lenguaje de plantillas que nombrar, así que el eje del prefijo no es
+#: constante — está ausente. Queda sólo el formato de salida.
+#:
+#: **La divergencia que esto implica, dicha en voz alta:** la referencia hace
+#: del documento un dato a propósito — una plantilla se edita sin tocar
+#: Python, y un addon puede extender la de otro por XPath sin bifurcarla.
+#: Nuestro builder no da ninguna de las dos cosas: cambiar un documento es
+#: cambiar código, y extenderlo desde otro addon exige envolver la función.
+#: Es el costo aceptado de no tener motor de plantillas, no un detalle de
+#: nomenclatura.
+#:
+#: Precedente del proyecto para la misma clase de llamada: ``Company`` y no
+#: ``Tenant`` (``terminologia-l0-company.md``).
+#:
+#: **2. Sin ``html``.** No es un rename: es un formato que este árbol **no
+#: produce**. Estaba en el enum sólo por copiar el catálogo ajeno — el mismo
+#: defecto que el prefijo, un nivel más arriba: declarar como opción una
+#: capacidad de la referencia, no nuestra. La referencia tiene **un** reporte
+#: ``qweb-html`` (``stock.report_stock_rule``); si algún día se porta, hará
+#: falta su renderizador, y el valor entra **con** él.
+#:
+#: Correspondencia para quien compare las dos tablas:
+#: ``pdf`` ≙ ``qweb-pdf`` · ``text`` ≙ ``qweb-text`` · (sin análogo de
+#: ``qweb-html``).
+REPORT_TYPE_PDF = 'pdf'
+REPORT_TYPE_TEXT = 'text'
 REPORT_TYPE_CHOICES = [
-    ('qweb-html', 'HTML'),
-    ('qweb-pdf', 'PDF'),
-    ('qweb-text', 'Texto'),
+    (REPORT_TYPE_PDF, 'PDF'),
+    (REPORT_TYPE_TEXT, 'Texto'),
 ]
 
 #: ``type`` por defecto de esta acción.
 ACTION_TYPE = 'ir.actions.report'
 #: ``binding_type`` por defecto — aparece como "Imprimir", no como "Acción".
 BINDING_TYPE_REPORT = 'report'
+
+#: Despacho del paso 4: ``report_type`` → método que lo rinde.
+#:
+#: La referencia lo **deriva** del propio valor
+#: (``getattr(self, '_render_' + report_type)``, ``:1148``). Aquí el mapeo es
+#: explícito: con los valores ya nombrados por formato (ver
+#: ``REPORT_TYPE_CHOICES``) la derivación daría ``_render_pdf`` y funcionaría,
+#: pero un mapa explícito deja ver de un vistazo **qué formatos se rinden** y
+#: cuáles no — que es justamente la información que aquí no es obvia.
+#:
+#: ``html`` no tiene entrada: exigiría un intermedio neutral que el colapso
+#: composición+conversión de los helpers no deja construir (ver
+#: ``report_catalog.py``). Su ausencia devuelve ``None``, no un error — mismo
+#: contrato que ``:1150``.
+RENDERER_BY_TYPE = {
+    REPORT_TYPE_PDF: '_render_pdf',
+    REPORT_TYPE_TEXT: '_render_text',
+}
+
+#: Directorio de los helpers compilados. ``BASE_DIR`` es ``src/``
+#: (``config/settings/base.py:6``), así que los binarios que produce
+#: ``make pdf`` caen exactamente aquí.
+HELPER_DIR = Path(settings.BASE_DIR) / 'tools' / 'pdf'
+
+#: Techo duro para que un helper colgado no bloquee al worker. UC-PAY-10 fija
+#: un SLO de P95 < 2 s; 15 s es el failsafe, no el objetivo.
+HELPER_TIMEOUT_SECONDS = 15
+
+#: Códigos de salida del contrato de los helpers (cabecera de
+#: ``tools/pdf/pdf_report.c``), mapeados a mensaje para que el fallo diga qué
+#: pasó en vez de "exit 2".
+HELPER_EXIT_MEANING = {
+    1: 'descriptor JSON inválido o no parseable',
+    2: 'error de libharu al generar el PDF',
+    3: 'error de lectura de stdin',
+}
+
+
+class ReportError(Exception):
+    """El reporte no pudo generarse."""
+
+
+class UnknownReport(ReportError):
+    """``report_name`` no está declarado por ningún addon instalado."""
+
+
+class HelperNotBuilt(ReportError):
+    """El binario del helper no existe.
+
+    Se distingue del fallo de ejecución a propósito: la causa es de despliegue
+    (falta correr ``make pdf``), no del dato ni del código.
+    """
+
+
+class HelperFailed(ReportError):
+    """El helper corrió y salió con código != 0, o excedió el timeout."""
+
+
+def run_helper(helper, descriptor):
+    """Ejecuta un helper de ``tools/pdf/`` y devuelve su stdout.
+
+    Función de módulo, no método: espeja ``_run_wkhtmltopdf`` de la referencia,
+    que existe **dos veces** — cruda a nivel de módulo (``:41``) y como método
+    que arma los argumentos (``:514``). La cruda no necesita el registro, así
+    que no lo pide.
+
+    Aislamiento por ``subprocess`` según ADR-017: un fallo nativo de libharu
+    mata al hijo, no al worker. El descriptor viaja por stdin como JSON UTF-8;
+    el PDF vuelve por stdout como bytes.
+
+    :raises HelperNotBuilt: si el binario no existe (falta ``make pdf``).
+    :raises HelperFailed: si sale con código != 0 o excede el timeout.
+    """
+    path = HELPER_DIR / helper
+    if not path.exists():
+        raise HelperNotBuilt(
+            f'{path} no existe; correr `make pdf` en api (ADR-017, H-API-287)')
+
+    payload = json.dumps(descriptor, ensure_ascii=False).encode('utf-8')
+    try:
+        completed = subprocess.run(
+            [str(path)], input=payload, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE, timeout=HELPER_TIMEOUT_SECONDS,
+            check=False,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise HelperFailed(
+            f'{helper} excedió {HELPER_TIMEOUT_SECONDS}s') from exc
+
+    if completed.returncode != 0:
+        meaning = HELPER_EXIT_MEANING.get(
+            completed.returncode, 'fallo no declarado en el contrato')
+        stderr = completed.stderr.decode('utf-8', 'replace').strip()
+        _logger.error('helper %s exit=%s (%s) stderr=%s',
+                      helper, completed.returncode, meaning, stderr)
+        raise HelperFailed(
+            f'{helper} salió con {completed.returncode}: {meaning}')
+
+    if not completed.stdout.startswith(b'%PDF'):
+        # Exit 0 con salida que no es PDF: el contrato dice que no puede pasar,
+        # así que si pasa hay que verlo, no servirlo.
+        raise HelperFailed(f'{helper} salió 0 pero su stdout no es un PDF')
+
+    return completed.stdout
 
 
 class IrActionsReport(IrActionsBase):
@@ -117,10 +275,10 @@ class IrActionsReport(IrActionsBase):
                   'criterio que ir_rule.model_name e ir_filters.model_id.',
     )
     report_type = fields.Selection(
-        max_length=16, choices=REPORT_TYPE_CHOICES, default='qweb-pdf',
+        max_length=16, choices=REPORT_TYPE_CHOICES, default=REPORT_TYPE_PDF,
         verbose_name='Tipo de reporte',
-        help_text='Claves verbatim de la referencia; el renderizador de este '
-                  'árbol es otro (libharu, ADR-017).',
+        help_text='Formato de salida. Sin el prefijo qweb- de la referencia: '
+                  'aquí no hay QWeb, el render es libharu (ADR-017).',
     )
     report_name = fields.Char(
         max_length=255, verbose_name='Nombre de la plantilla')
@@ -270,3 +428,57 @@ class IrActionsReport(IrActionsBase):
             if not declared or (declared & group_ids):
                 applicable.append(report)
         return applicable
+
+    # --- Motor ------------------------------------------------------------
+    #
+    # Pasos 3-5 de la cadena (ver ``report_catalog.py``). Viven aquí, en el
+    # modelo, porque es donde la referencia los pone: su motor entero está en
+    # ``ir_actions_report.py`` (1217 líneas, medido) y su punto de entrada es
+    # ``report._render(...)`` — un método del registro, no un módulo hermano.
+    #
+    # Lo que NO está: el paso 6 (fusionar, estampar). Opera sobre el PDF ya
+    # hecho, no tiene consumidor todavía, y en la referencia parte vive fuera
+    # del modelo (``add_banner`` en ``odoo/tools/pdf/``). Cuando llegue, ese
+    # es su lugar.
+
+    def render(self, records, **ctx):
+        """Genera este reporte sobre ``records``.
+
+        Paso 4 — despacho por ``report_type``. Espeja ``_render`` (``:1145``)
+        incluido su contrato de ausencia: un tipo sin renderizador devuelve
+        ``None``, no levanta (``:1150``).
+
+        :returns: tupla ``(contenido, extensión)`` — ``bytes`` para
+            ``qweb-pdf``, ``str`` para ``qweb-text``. Misma forma que la
+            referencia (``:1110``, ``:1119``).
+        :raises UnknownReport: si nadie declara este ``report_name``.
+        """
+        spec = report_catalog.get(self.report_name)
+        if spec is None:
+            raise UnknownReport(
+                f'{self.report_name!r} no está declarado por ningún addon '
+                f'instalado')
+        method = RENDERER_BY_TYPE.get(self.report_type)
+        render_func = getattr(self, method, None) if method else None
+        if render_func is None:
+            return None
+        return render_func(spec, records, ctx)
+
+    def _render_pdf(self, spec, records, ctx):
+        """Composición + conversión: descriptor JSON → helper en C → PDF.
+
+        Aquí los pasos 3 y 5 ocurren juntos porque el helper hace ambos; el
+        colapso está declarado en ``report_catalog.py``.
+        """
+        return run_helper(spec.helper, spec.builder(records, **ctx)), 'pdf'
+
+    def _render_text(self, spec, records, ctx):
+        """Salida de texto plano — el constructor la produce entera.
+
+        Es el ``report_type`` de las etiquetas térmicas: en la referencia
+        ``label_product_product``, ``label_lot_template`` y cinco más son
+        ``qweb-text`` (medido: 7 registros en ``stock``, 1 en ``mrp``). ZPL es
+        un lenguaje de impresora, así que producirlo es **componer texto** —
+        no hace falta hardware ni para generarlo ni para probarlo.
+        """
+        return spec.builder(records, **ctx), 'txt'
