@@ -119,6 +119,18 @@ class MailAlias(TimeStampedModel):
         help_text="Odoo ``alias_domain_id``: dominio del alias "
                   "(``ondelete='restrict'``).")
 
+    # Columna generada que materializa el ``COALESCE(alias_domain_id, 0)`` del
+    # índice de la referencia. No es un campo del modelo Odoo: es el soporte
+    # físico que MariaDB necesita para poder indexar esa expresión — no admite
+    # índices funcionales, sólo índices sobre columnas generadas STORED.
+    # Sin ella, Django OMITE el constraint EN SILENCIO y la unicidad no existe
+    # (H-API-281). Se declara ``editable=False``: la calcula la base.
+    alias_domain_key = models.GeneratedField(
+        expression=Coalesce('alias_domain_id', models.Value(0)),
+        output_field=models.BigIntegerField(),
+        db_persist=True,
+    )
+
     # -- Destino: crear / actualizar ---------------------------------------
     alias_model = fields.Many2one(
         'base.IrModel', on_delete=models.CASCADE, related_name='aliases',
@@ -195,9 +207,14 @@ class MailAlias(TimeStampedModel):
             # Odoo: UniqueIndex('(alias_name, COALESCE(alias_domain_id, 0))').
             # El COALESCE es deliberado: sin él dos aliases homónimos SIN
             # dominio no colisionarían (NULL != NULL en SQL).
+            #
+            # Va sobre ``fields=`` y no sobre la expresión: MariaDB declara
+            # ``supports_expression_indexes = False``, y ante eso Django NO
+            # falla — omite el constraint sin decir nada. La expresión vive en
+            # la columna generada ``alias_domain_key``, que sí se puede indexar
+            # (``supports_stored_generated_columns = True``). Ver H-API-281.
             models.UniqueConstraint(
-                'alias_name',
-                Coalesce('alias_domain_id', 0),
+                fields=['alias_name', 'alias_domain_key'],
                 name='mail_alias_name_domain_unique',
             ),
         ]
