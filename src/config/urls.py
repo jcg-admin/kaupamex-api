@@ -65,6 +65,12 @@ urlpatterns = _admin_urls + [
                                            namespace='wishlist_v2')),
     path('api/v2/admin/',          include(('addons.website_sale_wishlist.controllers.admin_urls', 'admin_wishlist'),
                                            namespace='admin_wishlist_v2')),
+    # Reseñas — superficie de ``rating`` (tarea #43; reparto de
+    # ``odoo19c: portal_rating``: el dato es de rating, el portal la expone).
+    path('api/v2/products/',       include(('addons.rating.controllers.urls', 'reviews'),
+                                           namespace='reviews_v2')),
+    path('api/v2/admin/',          include(('addons.rating.controllers.admin_urls', 'admin_reviews'),
+                                           namespace='admin_reviews_v2')),
 
     # ─── Retirados (SOL-098 aplicada a las familias) ──────────────────────────
     # ``contact`` · ``referral`` · ``returns`` · ``reviews`` se retiraron del
