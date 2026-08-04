@@ -75,6 +75,16 @@ urlpatterns = _admin_urls + [
     # ``odoo19c: website_crm``: la página es del sitio, la captura del CRM).
     path('api/v2/contact/',        include(('addons.crm.controllers.urls', 'contact'),
                                            namespace='contact_v2')),
+    # Ajustes generales — familia ``base_setup`` (tarea #46). La referencia
+    # declara el modelo en ``base`` pero SIRVE la superficie desde
+    # ``base_setup`` (medido en 19c y 18c; 117/113 addons la extienden).
+    path('api/v2/config/',         include(('addons.base_setup.controllers.urls', 'config'),
+                                           namespace='config_v2')),
+    # Páginas estáticas versionadas — el sitio es su dueño (tarea #46).
+    path('api/v2/config/',         include(('addons.website.controllers.urls', 'public_pages'),
+                                           namespace='public_pages_v2')),
+    path('api/v2/admin/',          include(('addons.website.controllers.admin_urls', 'admin_pages'),
+                                           namespace='admin_pages_v2')),
     path('api/v2/admin/',          include(('addons.crm.controllers.admin_urls', 'admin_contact'),
                                            namespace='admin_contact_v2')),
 

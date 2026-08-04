@@ -83,6 +83,7 @@ INSTALLED_APPS = [
     'addons.website',
     'addons.auto_backup',
     'addons.base',
+    'addons.base_setup',
     'addons.observability',
     'addons.mail',
     'addons.base_address_extended',
