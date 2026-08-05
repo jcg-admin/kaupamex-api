@@ -188,8 +188,20 @@ json_string(const char *p, char *out, size_t cap)
                 case '\\': out[o++] = '\\'; break;
                 case '/': out[o++] = '/';  break;
                 case 'u': {
-                    /* decode \uXXXX; keep ASCII, fold non-ASCII to '?' for
-                       the WinAnsi/StandardEncoding font set used here. */
+                    /* decode \uXXXX into one WinAnsi byte; fold anything
+                       above U+00FF to '?'.
+
+                       This branch is the ONLY path that renders accents
+                       correctly, so the producer must send \uXXXX escapes:
+                       json.dumps(..., ensure_ascii=True). Raw UTF-8 falls
+                       to the default branch below, which copies bytes one
+                       by one — "días" would reach the page as the two
+                       bytes C3 AD, i.e. "dÃ­as" (H-API-290).
+
+                       WinAnsi and Latin-1 agree from A0 up, which covers
+                       every accent Spanish needs; they differ in 80-9F
+                       (typographic punctuation), where this fold is only
+                       approximate. */
                     if (p[1] && p[2] && p[3] && p[4]) {
                         char hex[5] = { p[1], p[2], p[3], p[4], 0 };
                         long cp = strtol(hex, NULL, 16);
@@ -309,8 +321,8 @@ main(void)
 
     HPDF_SetCompressionMode(pdf, HPDF_COMP_ALL);
 
-    HPDF_Font font      = HPDF_GetFont(pdf, "Helvetica", NULL);
-    HPDF_Font font_bold = HPDF_GetFont(pdf, "Helvetica-Bold", NULL);
+    HPDF_Font font      = HPDF_GetFont(pdf, "Helvetica", "WinAnsiEncoding");
+    HPDF_Font font_bold = HPDF_GetFont(pdf, "Helvetica-Bold", "WinAnsiEncoding");
 
     HPDF_Page page = HPDF_AddPage(pdf);
     HPDF_Page_SetSize(page, HPDF_PAGE_SIZE_A4, HPDF_PAGE_PORTRAIT);

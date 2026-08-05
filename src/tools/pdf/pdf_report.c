@@ -175,6 +175,10 @@ json_string(const char *p, char *out, size_t cap)
                 case '\\': if (o + 1 < cap) out[o++] = '\\'; break;
                 case '/': if (o + 1 < cap) out[o++] = '/';  break;
                 case 'u': {
+                    /* One WinAnsi byte per \uXXXX; above U+00FF folds to
+                       '?'. The producer must send escapes
+                       (ensure_ascii=True) — raw UTF-8 falls to the default
+                       branch and reaches the page as its bytes (H-API-290). */
                     if (p[1] && p[2] && p[3] && p[4]) {
                         char hex[5] = { p[1], p[2], p[3], p[4], 0 };
                         long cp = strtol(hex, NULL, 16);
@@ -298,8 +302,8 @@ main(void)
 
     HPDF_SetCompressionMode(pdf, HPDF_COMP_ALL);
 
-    HPDF_Font font      = HPDF_GetFont(pdf, "Helvetica", NULL);
-    HPDF_Font font_bold = HPDF_GetFont(pdf, "Helvetica-Bold", NULL);
+    HPDF_Font font      = HPDF_GetFont(pdf, "Helvetica", "WinAnsiEncoding");
+    HPDF_Font font_bold = HPDF_GetFont(pdf, "Helvetica-Bold", "WinAnsiEncoding");
 
     HPDF_Page page = HPDF_AddPage(pdf);
     HPDF_Page_SetSize(page, HPDF_PAGE_SIZE_A4, HPDF_PAGE_LANDSCAPE);

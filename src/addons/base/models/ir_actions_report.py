@@ -251,7 +251,11 @@ def run_helper(helper, descriptor):
         raise HelperNotBuilt(
             f'{path} no existe; correr `make pdf` en api (ADR-017, H-API-287)')
 
-    payload = json.dumps(descriptor, ensure_ascii=False).encode('utf-8')
+    # ``ensure_ascii=True`` NO es cosmético: el lector JSON del helper sólo
+    # traduce a un byte WinAnsi por la rama ``\uXXXX``
+    # (``pdf_receipt.c:190-211``). Con UTF-8 crudo, "días" llega al papel como
+    # los dos bytes C3 AD — "dÃ­as". Ver H-API-290.
+    payload = json.dumps(descriptor, ensure_ascii=True).encode('ascii')
     try:
         completed = subprocess.run(
             [str(path)], input=payload, stdout=subprocess.PIPE,

@@ -14,7 +14,9 @@ datos — y los casos que ejercen el helper se saltan en vez de fallar en rojo
 por una causa que no es del código bajo prueba.
 """
 import json
+import re
 import subprocess
+import zlib
 
 import pytest
 
@@ -39,6 +41,35 @@ helpers_built = pytest.mark.skipif(
     not (HELPER_DIR / 'pdf_receipt').exists(),
     reason='helpers PDF sin construir; correr `make pdf` (ADR-017)',
 )
+
+#: Un byte >127 dentro de una cadena literal de PDF va escapado en octal.
+_OCTAL = re.compile(rb'\\([0-7]{3})')
+
+
+def texto_impreso(pdf: bytes) -> str:
+    """Los textos que el PDF realmente dibuja, decodificados a str.
+
+    Es la única lectura que ve lo que sale en el papel. Un test que sólo
+    comprueba el prefijo ``%PDF`` y el tamaño da verde con el documento
+    corrompido — que es exactamente cómo H-API-290 sobrevivió al primer
+    test de esta suite.
+    """
+    salida = []
+    for bloque in re.finditer(rb'stream\r?\n(.*?)endstream', pdf, re.S):
+        crudo = bloque.group(1)
+        try:
+            crudo = zlib.decompress(crudo)
+        except zlib.error:
+            # silent OK because libharu no comprime siempre: un stream corto
+            # va en claro y `crudo` ya sirve tal cual. Distinguir "no estaba
+            # comprimido" de "venía roto" exigiría leer /Filter del objeto,
+            # y un stream ilegible se delata igual — el texto no aparece.
+            pass
+        for literal in re.findall(rb'\((.*?)\)\s*Tj', crudo):
+            byteado = _OCTAL.sub(
+                lambda m: bytes([int(m.group(1), 8)]), literal)
+            salida.append(byteado.decode('cp1252', errors='replace'))
+    return '\n'.join(salida)
 
 
 @pytest.fixture
@@ -156,6 +187,29 @@ class TestConversion:
         # Un PDF de una página con dos líneas no baja de 1 KB; por debajo de
         # eso el helper habría emitido un documento vacío con exit 0.
         assert len(contenido) > 1024
+
+    def test_los_acentos_llegan_intactos_al_papel(self, reporte_orden,
+                                                  orden_con_lineas):
+        """H-API-290 — el español del producto no puede salir corrompido.
+
+        El descriptor viaja con ``\\uXXXX`` (``ensure_ascii=True``) porque es
+        la única rama del lector del helper que produce un byte WinAnsi; con
+        UTF-8 crudo, ``días`` llegaba como los dos bytes ``C3 AD`` y la página
+        decía ``dÃ­as``. Se afirma sobre el texto dibujado, no sobre el
+        descriptor: el descriptor ya era correcto cuando el papel no lo era.
+
+        El nombre se mantiene bajo 36 **bytes**: el helper corta ahí para que
+        entre en la columna (``pdf_receipt.c:446``). Con la codificación ya
+        corregida cada acento ocupa uno, así que el corte no parte un carácter
+        por la mitad — con UTF-8 crudo sí podía.
+        """
+        acentuado = 'Vela 7 días · ñ ó ú ¿va?'
+        linea = orden_con_lineas.order_line.first()
+        linea.name = acentuado
+        linea.save(update_fields=['name'])
+
+        contenido, _ = reporte_orden.render(orden_con_lineas)
+        assert acentuado in texto_impreso(contenido)
 
     def test_descriptor_invalido_sale_con_el_codigo_de_su_contrato(self):
         """Exit 1 = JSON no parseable (cabecera de ``pdf_receipt.c``)."""
