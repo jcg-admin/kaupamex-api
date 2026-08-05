@@ -35,12 +35,12 @@ from addons.authz.permissions import HasCapability
 from addons.observability.audit import audit_log_business
 from addons.observability.models import BusinessEvent
 
-from .models import SaleOrder
-from .serializers import (
+from addons.sale.models import SaleOrder
+from addons.sale.controllers.serializers import (
     CancelOrderSerializer, OrderListSerializer, OrderSerializer,
 )
-from .services import cancel_order
-from .status_projection import CANONICAL_ORDER_STATUSES, filter_orders_by_status
+from addons.sale.services import cancel_order
+from addons.sale.status_projection import CANONICAL_ORDER_STATUSES, filter_orders_by_status
 
 logger = logging.getLogger('apps')
 

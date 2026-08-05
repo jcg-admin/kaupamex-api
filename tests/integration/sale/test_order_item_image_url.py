@@ -16,7 +16,7 @@ un estado que la BD ya no permite crear. La rama ``obj.product_id is None`` de
 queda como código muerto — no hay forma de alcanzarla desde una fila real —,
 lo cual es un hallazgo aparte, no algo que este test pueda seguir ejerciendo.
 """
-from addons.sale.serializers import OrderItemSerializer
+from addons.sale.controllers.serializers import OrderItemSerializer
 import pytest
 
 pytestmark = pytest.mark.integration

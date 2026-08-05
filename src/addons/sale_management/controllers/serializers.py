@@ -8,7 +8,7 @@ el recorrido del comprador es de ``sale``, la gestión es de aquí.
 """
 from rest_framework import serializers
 
-from addons.sale.serializers import OrderSerializer
+from addons.sale.controllers.serializers import OrderSerializer
 
 
 class AdminOrderSerializer(OrderSerializer):

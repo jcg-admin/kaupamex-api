@@ -16,7 +16,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from addons.authz.permissions import require_capability
-from addons.authz_totp.serializers import TotpCodeSerializer, TotpDisableSerializer
+from addons.authz_totp.controllers.serializers import TotpCodeSerializer, TotpDisableSerializer
 from addons.authz_totp.services import (
     begin_setup,
     confirm_setup,

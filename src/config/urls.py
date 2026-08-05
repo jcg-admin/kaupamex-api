@@ -131,7 +131,7 @@ urlpatterns = _admin_urls + [
     # la referencia lo pone (``sale/controllers/portal.py`` → ``/my/orders``).
     # El prefijo público sigue siendo ``/orders/``: el comprador habla de sus
     # pedidos, no de las ventas de la tienda.
-    path('api/v2/orders/',                include(('addons.sale.urls', 'sale'),                   namespace='sale_v2')),
+    path('api/v2/orders/',                include(('addons.sale.controllers.urls', 'sale'),                   namespace='sale_v2')),
     # El backoffice es de ``sale_management`` — la referencia separa gestionar
     # de comprar, y el espejo las mezclaba en un solo addon.
     path('api/v2/admin/',                 include(('addons.sale_management.controllers.admin_urls', 'admin_sale'),
@@ -149,7 +149,7 @@ urlpatterns = _admin_urls + [
     # DEC-08/09: capacidades del usuario + menú admin dinámico (podado por capacidad)
     path('api/v2/authz/',      include(('addons.authz.urls', 'authz'),                         namespace='authz_v2')),
     # DEC-01 (~authz_totp): gestión del 2FA TOTP del usuario autenticado
-    path('api/v2/authz/totp/', include(('addons.authz_totp.urls', 'authz_totp'),               namespace='authz_totp_v2')),
+    path('api/v2/authz/totp/', include(('addons.authz_totp.controllers.urls', 'authz_totp'),               namespace='authz_totp_v2')),
     # ~auth_ldap: CRUD de configuraciones LDAP por ResCompany (permissions.ldap)
     path('api/v2/authz/',      include(('addons.authz_ldap.controllers.urls', 'authz_ldap'),               namespace='authz_ldap_v2')),
     # ~auth_oauth: login federado OAuth2 + proveedores (permissions.oauth)

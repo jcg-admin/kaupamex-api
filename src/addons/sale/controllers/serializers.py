@@ -19,9 +19,9 @@ from rest_framework import serializers
 
 from addons.delivery.models import DeliveryAddress
 
-from .amounts import order_amounts
-from .models import SaleOrder, SaleOrderLine
-from .status_projection import STATUSES, order_status
+from addons.sale.amounts import order_amounts
+from addons.sale.models import SaleOrder, SaleOrderLine
+from addons.sale.status_projection import STATUSES, order_status
 
 _STATUS_LABELS = dict(STATUSES)
 

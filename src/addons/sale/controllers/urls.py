@@ -2,7 +2,7 @@
 
 Montado en ``config/urls.py``::
 
-    path('api/v2/orders/', include(('addons.sale.urls', 'sale'),
+    path('api/v2/orders/', include(('addons.sale.controllers.urls', 'sale'),
                                    namespace='sale_v2'))
 
 Las rutas conservan el prefijo ``/orders/`` del contrato público aunque el
@@ -12,7 +12,7 @@ ventas". Es la misma asimetría que la referencia acepta al servir
 """
 from django.urls import path
 
-from .views import OrderCancelView, OrderDetailView, OrderListView
+from addons.sale.controllers.main import OrderCancelView, OrderDetailView, OrderListView
 
 app_name = 'sale'
 
