@@ -329,6 +329,14 @@ static void
 draw_header_row(HPDF_Page page, HPDF_Font font_bold, float y,
                 float *col_x, int ncols, char cells[][256])
 {
+    /* Banda sombreada del encabezado (T-005): los glifos se pintan con el
+       fill color, así que se restaura negro antes de escribir encima. */
+    HPDF_Page_SetRGBFill(page, 0.92f, 0.92f, 0.92f);
+    HPDF_Page_Rectangle(page, MARGIN_L, y - 4.0f,
+                        col_x[ncols] - col_x[0], 16.0f);
+    HPDF_Page_Fill(page);
+    HPDF_Page_SetRGBFill(page, 0.0f, 0.0f, 0.0f);
+
     HPDF_Page_SetLineWidth(page, 0.5f);
     HPDF_Page_MoveTo(page, MARGIN_L, y + 12);
     HPDF_Page_LineTo(page, MARGIN_L + (col_x[ncols] - col_x[0]), y + 12);

@@ -562,6 +562,14 @@ main(void)
     float col_pu   = 450.0f;   /* right-aligned at */
     float col_amt  = right_edge;
 
+    /* Banda sombreada del encabezado (T-005): los glifos se pintan con el
+       fill color, así que se restaura negro antes de escribir encima. */
+    HPDF_Page_SetRGBFill(page, 0.92f, 0.92f, 0.92f);
+    HPDF_Page_Rectangle(page, MARGIN_L, y - 4.0f,
+                        right_edge - MARGIN_L, 16.0f);
+    HPDF_Page_Fill(page);
+    HPDF_Page_SetRGBFill(page, 0.0f, 0.0f, 0.0f);
+
     HPDF_Page_SetLineWidth(page, 0.5f);
     HPDF_Page_MoveTo(page, MARGIN_L, y + 12);
     HPDF_Page_LineTo(page, right_edge, y + 12);

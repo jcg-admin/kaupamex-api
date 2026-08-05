@@ -90,6 +90,25 @@ def texto_impreso(pdf: bytes) -> str:
     return '\n'.join(salida)
 
 
+def operadores(pdf: bytes) -> bytes:
+    """Los content streams inflados, para afirmar sobre operadores de dibujo.
+
+    ``texto_impreso`` sólo ve texto; los operadores de trazo (``re``, ``f``,
+    ``rg``) requieren el stream crudo. Misma tolerancia a streams sin
+    comprimir que arriba.
+    """
+    ops = b''
+    for bloque in re.finditer(rb'stream\r?\n(.*?)endstream', pdf, re.S):
+        crudo = bloque.group(1)
+        try:
+            crudo = zlib.decompress(crudo)
+        except zlib.error:
+            # silent OK because libharu no comprime siempre (ver texto_impreso)
+            pass
+        ops += crudo
+    return ops
+
+
 @pytest.fixture
 def orden_con_lineas():
     """Una orden con dos líneas — el sujeto de ``sale.report_saleorder``."""
@@ -299,6 +318,33 @@ class TestConversion:
         # ...y ninguna línea la contiene entera — se envolvió de verdad.
         assert not any(direccion in linea for linea in lineas)
         assert sum('Insurgentes' in l or '14060' in l for l in lineas) >= 2
+
+    def test_el_encabezado_lleva_banda_sombreada_sin_mover_el_texto(self):
+        """T-005 — ``Rectangle`` + ``Fill`` sombrean el encabezado de tabla.
+
+        Los operadores estaban compilados en la libharu vendorizada y nunca
+        se llamaban. La banda se pinta ANTES del texto (los glifos usan el
+        fill color, así que el helper restaura ``0 0 0 rg`` antes de
+        escribir) y la no-regresión es que el contenido no se desplaza: los
+        rótulos y datos siguen llegando al papel.
+        """
+        contenido = run_helper('pdf_receipt', {
+            'issuer': {'name': 'Kaupamex'},
+            'order_number': 'A-2', 'date': '2026-08-05',
+            'buyer': {'name': 'Ana', 'address': 'Calle 1'},
+            'items': [{'name': 'Ofrenda', 'sku': 'S1', 'quantity': '1',
+                       'unit_price': '10.00', 'amount': '10.00'}],
+            'totals': {'subtotal': '10.00', 'total': '10.00'},
+        })
+        ops = operadores(contenido)
+        # La banda: gris de relleno → rectángulo → fill → negro restaurado.
+        assert re.search(rb'0\.9\d* 0\.9\d* 0\.9\d* rg', ops)
+        assert re.search(rb'[\d.]+ [\d.]+ [\d.]+ [\d.]+ re\s+f\s', ops)
+        assert b'0 0 0 rg' in ops
+        # No-regresión: el dibujo no desplazó el contenido.
+        impreso = texto_impreso(contenido)
+        for esperado in ('Producto', 'SKU', 'Ofrenda', '10.00', 'TOTAL'):
+            assert esperado in impreso
 
     def test_descriptor_invalido_sale_con_el_codigo_de_su_contrato(self):
         """Exit 1 = JSON no parseable (cabecera de ``pdf_receipt.c``)."""
