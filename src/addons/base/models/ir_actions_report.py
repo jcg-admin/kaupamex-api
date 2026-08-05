@@ -35,12 +35,22 @@ aislamiento de fallos frente a ``mod_wsgi``. Medido:
 → **0** archivos. [PROVEN] No hay pipeline HTML→PDF que portar contra, ni
 falta: hay uno distinto, decidido y documentado.
 
-Consecuencia para ``report_type``: sus valores son ``pdf`` / ``text`` /
-``html``, **no** ``qweb-*``. El string de la referencia codifica dos cosas —
-el motor de plantillas y el formato— y aquí sólo la segunda es verdad.
+Consecuencia para ``report_type``: sus valores son ``pdf`` / ``text``, **no**
+``qweb-*``. El string de la referencia codifica dos cosas —el lenguaje de
+plantillas y el formato— y en **esta cadena** sólo la segunda es verdad.
 Conservarlo verbatim metería el sustrato ajeno dentro de nuestro dato; lo que
 se porta es el **rol** del campo (en qué formato sale el documento), que es la
 parte abstracta. Ver ``REPORT_TYPE_CHOICES`` para la tabla de correspondencia.
+
+Precisión, porque la versión anterior de este párrafo decía de más: el árbol
+**sí tiene** lenguaje de plantillas —el de Django, configurado en
+``config/settings/base.py:165``— y **sí tiene** el patrón de plantilla como
+dato: ``mail.template.body_html`` guarda el cuerpo con placeholders
+``{{ object.campo }}`` y ``MailTemplate.render`` lo interpreta con
+``Template(text).render(ctx)`` (``mail/models/mail_template.py:100``). Lo que
+no lo usa es **el reporte**: su documento es código (el ``builder`` del
+``ReportSpec``). Eso es una elección de esta cadena, no una carencia del
+árbol — y como tal se documenta, no se presenta como límite.
 
 Qué NO se porta, con su medición
 ================================
@@ -105,30 +115,39 @@ _logger = logging.getLogger(__name__)
 #:
 #: El mapeo real de las piezas, para no confundirlas:
 #:
-#: =========================  ==================================
+#: =========================  =======================================
 #: Referencia                 Aquí
-#: =========================  ==================================
+#: =========================  =======================================
 #: plantilla QWeb (XML, dato) ``builder`` (función Python, código)
-#: motor QWeb que la lee      — no existe
+#: motor QWeb que la lee      — ninguno **en esta cadena** (ver abajo)
 #: intermedio: HTML           intermedio: descriptor JSON
 #: conversor: wkhtmltopdf     conversor: helper en C (libharu)
-#: =========================  ==================================
+#: =========================  =======================================
 #:
 #: JSON es nuestro **intermedio** —el análogo del HTML—, no el análogo de
 #: QWeb. Así que ``json-pdf`` sería un nombre equivocado: pondría el formato
 #: del intermedio donde va el intérprete.
 #:
-#: Y el intérprete no lo tenemos: **el documento aquí es código, no dato**. No
-#: hay lenguaje de plantillas que nombrar, así que el eje del prefijo no es
-#: constante — está ausente. Queda sólo el formato de salida.
+#: **La segunda fila dice "en esta cadena", no "en el árbol", y la distinción
+#: importa.** El árbol tiene lenguaje de plantillas —el de Django,
+#: ``config/settings/base.py:165``— y tiene el patrón completo de plantilla
+#: como dato: ``mail.template.body_html`` guarda el cuerpo con placeholders
+#: ``{{ object.campo }}`` y ``MailTemplate.render`` lo interpreta
+#: (``mail/models/mail_template.py:100``), con la misma sintaxis que el
+#: ``inline_template`` de la referencia. El reporte **no lo usa**: su documento
+#: es código. Es una elección de esta cadena, no una carencia del árbol.
+#:
+#: Para el nombre del valor da igual —no hay intérprete **que este campo
+#: discrimine**, así que el eje del prefijo no aplica y queda sólo el
+#: formato—, pero para la deuda no da igual, y por eso se dice aquí.
 #:
 #: **La divergencia que esto implica, dicha en voz alta:** la referencia hace
 #: del documento un dato a propósito — una plantilla se edita sin tocar
 #: Python, y un addon puede extender la de otro por XPath sin bifurcarla.
 #: Nuestro builder no da ninguna de las dos cosas: cambiar un documento es
 #: cambiar código, y extenderlo desde otro addon exige envolver la función.
-#: Es el costo aceptado de no tener motor de plantillas, no un detalle de
-#: nomenclatura.
+#: Es el costo de **no haber conectado** el reporte al motor que el árbol ya
+#: tiene — reversible, no estructural.
 #:
 #: Precedente del proyecto para la misma clase de llamada: ``Company`` y no
 #: ``Tenant`` (``terminologia-l0-company.md``).
