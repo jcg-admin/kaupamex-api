@@ -25,6 +25,7 @@ from rest_framework.response import Response
 
 from exceptions import UserError
 
+from addons.authz_password_policy.validators import get_password_policy
 from addons.authz_signup.models import res_partner as partner_svc
 from addons.authz_signup.models import res_users as signup_svc
 from addons.authz_signup.models.policy import (
@@ -148,7 +149,9 @@ def request_reset(request):
     summary='Datos del token de signup (para la pantalla de set-password)',
     parameters=[OpenApiParameter('token', str, required=True)],
     responses={
-        200: OpenApiResponse(description='name/login/email del token'),
+        200: OpenApiResponse(
+            description='name/login/email del token + '
+                        'password_minimum_length'),
         400: OpenApiResponse(description='SIGNUP_INVALID_TOKEN'),
     },
     auth=[],
@@ -156,7 +159,13 @@ def request_reset(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def signup_info(request):
-    """≙ ``_signup_retrieve_info`` expuesto — pre-auth."""
+    """≙ ``_signup_retrieve_info`` expuesto — pre-auth.
+
+    ``password_minimum_length`` viaja en el payload — fold del puente
+    ``auth_password_policy_signup`` de la referencia, cuyo único dominio
+    es añadir esa clave a ``get_auth_signup_config`` para que la pantalla
+    de set-password pinte la política antes de enviar.
+    """
     token = request.query_params.get('token', '')
     info = partner_svc.signup_retrieve_info(token) if token else None
     if info is None:
@@ -164,6 +173,7 @@ def signup_info(request):
             {'codigo_error': 'SIGNUP_INVALID_TOKEN',
              'detail': 'Signup token is not valid or expired.'},
             status=status.HTTP_400_BAD_REQUEST)
+    info['password_minimum_length'] = get_password_policy()['minlength']
     return Response(info)
 
 

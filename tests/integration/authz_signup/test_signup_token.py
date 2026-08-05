@@ -99,10 +99,13 @@ class TestSignupFlow:
             name='Info', email='info@kaupamex.mx')
         pp.signup_prepare(partner)
         token = pp.generate_signup_token(partner)
+        SystemParameter.set_param('authz.password_minlength', '10')
         resp = api_client.get(INFO_URL, {'token': token})
         assert resp.status_code == 200, resp.data
         assert resp.data['name'] == 'Info'
         assert resp.data['email'] == 'info@kaupamex.mx'
+        # Fold de auth_password_policy_signup: la política viaja pre-auth.
+        assert resp.data['password_minimum_length'] == 10
 
     def test_signup_info_token_malo_400(self, seeded, api_client, db):
         resp = api_client.get(INFO_URL, {'token': 'malo'})

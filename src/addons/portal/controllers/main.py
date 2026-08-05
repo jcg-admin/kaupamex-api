@@ -63,6 +63,7 @@ from rest_framework.views import APIView
 
 from addons.authz.permissions import HasCapability
 from addons.authz_ldap.models.res_users import change_password as ldap_change_password
+from addons.authz_password_policy.validators import get_password_policy
 from addons.base.models.ir_config_parameter import SystemParameter
 from addons.base.models.res_partner import ResPartner
 from addons.base.models.res_users_deletion import ResUsersDeletion
@@ -242,6 +243,11 @@ class PortalSecurityView(APIView):
     ``allow_api_keys`` (leído de ``ir.config_parameter``) y si hay que abrir
     el modal de baja. El primero se conserva como bandera; el segundo es
     estado de UI del QWeb y no viaja.
+
+    ``password_minimum_length`` viaja también — fold del puente
+    ``auth_password_policy_portal`` de la referencia, cuyo único dominio es
+    añadir esa clave a ``_prepare_portal_layout_values`` para que el
+    formulario de cambio de contraseña pinte la política.
     """
 
     permission_classes = [IsAuthenticated, HasCapability]
@@ -250,13 +256,15 @@ class PortalSecurityView(APIView):
     @extend_schema(
         summary='Estado de seguridad de mi cuenta (≙ GET /my/security)',
         tags=['portal'],
-        responses={200: OpenApiResponse(description='login · allow_api_keys')},
+        responses={200: OpenApiResponse(
+            description='login · allow_api_keys · password_minimum_length')},
     )
     def get(self, request):
         from_param = SystemParameter.get_param('portal.allow_api_keys', '')
         return Response({
             'login': request.user.login,
             'allow_api_keys': bool(from_param),
+            'password_minimum_length': get_password_policy()['minlength'],
         })
 
 

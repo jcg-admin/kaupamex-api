@@ -11,6 +11,7 @@ cierra — con ``session_key=''`` esos pasos no se ejercitarían de verdad
 """
 from addons.authz.models import Role, RoleAssignment
 from addons.authz.services import invalidate_capabilities
+from addons.base.models import SystemParameter
 from addons.base.models.res_partner import ResPartner
 from addons.base.models.res_users_deletion import ResUsersDeletion
 
@@ -126,10 +127,13 @@ class TestSeguridad:
     """≙ el GET y el POST de ``/my/security`` (``_update_password``)."""
 
     def test_get_devuelve_login_y_bandera_de_api_keys(self, comprador):
+        SystemParameter.set_param('authz.password_minlength', '10')
         r = _cliente(comprador).get(SECURITY)
         assert r.status_code == 200, r.data
         assert r.data['login'] == 'ana@portal.test'
         assert r.data['allow_api_keys'] is False
+        # Fold de auth_password_policy_portal: la política viaja en /my/security.
+        assert r.data['password_minimum_length'] == 10
 
     def test_cambio_de_contrasena(self, comprador):
         r = _cliente(comprador).post(
