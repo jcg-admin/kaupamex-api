@@ -21,6 +21,8 @@ import zlib
 import pytest
 
 from addons.base import report_catalog
+from addons.base.models.ir_ui_view import IrUiView
+from addons.base.report_template import InvalidReportTemplate
 from addons.base.report_catalog import ReportSpec, UnknownHelper
 from addons.base.models.ir_actions_report import (
     HELPER_DIR,
@@ -287,3 +289,79 @@ class TestDespliegue:
     def test_helper_inexistente_levanta_su_propio_error(self):
         with pytest.raises(HelperNotBuilt):
             run_helper('pdf_que_nadie_construyo', {})
+
+
+@helpers_built
+class TestPlantillaEnBD:
+    """La plantilla del documento vive en ``ir.ui.view`` — interpretada.
+
+    Directiva del ejecutor 2026-08-05: el reporte usa también
+    ``self.env['ir.ui.view']``. La vista se resuelve por ``key`` =
+    ``report_name`` (el camino de la referencia, ``:769-781``), su arch
+    combinado se interpreta hacia el descriptor JSON, y las extensiones
+    XPath de otros addons entran solas por ``get_combined_arch``.
+    """
+
+    ARCH = (
+        '<descriptor>'
+        '<section name="issuer">'
+        '<field name="name">Plantilla Kaupamex ñ</field>'
+        '</section>'
+        '<field name="order_number">{{ docs.pk }}</field>'
+        '<list name="items" in="docs.order_line.all">'
+        '<field name="name">{{ item.name }}</field>'
+        '<field name="quantity">{{ item.quantity }}</field>'
+        '</list>'
+        '</descriptor>'
+    )
+
+    def make_template_view(self, arch=None, **kwargs):
+        return IrUiView.objects.create(
+            name='reporte de prueba', type='qweb',
+            key='sale.report_saleorder', arch_db=arch or self.ARCH,
+            mode='primary', **kwargs,
+        )
+
+    def test_la_vista_redefine_el_documento(self, reporte_orden,
+                                            orden_con_lineas):
+        self.make_template_view()
+        contenido, _ext = reporte_orden.render(orden_con_lineas)
+        impreso = texto_impreso(contenido)
+        # El emisor sale de la plantilla en BD, no del builder — y con acento,
+        # porque el camino UTF-8 de T-002 también cubre esta vía.
+        assert 'Plantilla Kaupamex ñ' in impreso
+        # La lista se iteró contra el recordset real.
+        linea = orden_con_lineas.order_line.first()
+        assert linea.name in impreso
+
+    def test_sin_vista_el_builder_sigue_siendo_el_documento(
+            self, reporte_orden, orden_con_lineas):
+        # Open/Closed: la vista es extensión, no reemplazo del mecanismo. Sin
+        # fila en BD, el builder del catálogo produce el documento como antes.
+        assert not IrUiView.objects.filter(key='sale.report_saleorder').exists()
+        contenido, _ext = reporte_orden.render(orden_con_lineas)
+        assert contenido.startswith(b'%PDF')
+
+    def test_una_extension_xpath_agrega_su_campo(self, reporte_orden,
+                                                 orden_con_lineas):
+        # El análogo del bloque incoterm que sale_stock añade al reporte de
+        # sale en la referencia (sale_order_report_templates.xml): otra vista
+        # parcha el documento SIN tocar la plantilla base.
+        base = self.make_template_view()
+        IrUiView.objects.create(
+            name='extension incoterm', type='qweb',
+            key='sale.report_saleorder_inherit_prueba',
+            inherit_id=base, mode='extension',
+            arch_db=('<xpath expr="//section[@name=\'issuer\']" '
+                     'position="inside">'
+                     '<field name="phone">Incoterm EXW</field>'
+                     '</xpath>'),
+        )
+        contenido, _ext = reporte_orden.render(orden_con_lineas)
+        assert 'Incoterm EXW' in texto_impreso(contenido)
+
+    def test_arch_fuera_de_vocabulario_levanta(self, reporte_orden,
+                                               orden_con_lineas):
+        self.make_template_view(arch='<html><body/></html>')
+        with pytest.raises(InvalidReportTemplate):
+            reporte_orden.render(orden_con_lineas)

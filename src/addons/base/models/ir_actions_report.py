@@ -97,8 +97,9 @@ from django.conf import settings
 import fields
 import models
 
-from addons.base import report_catalog
+from addons.base import report_catalog, report_template
 from addons.base.models.ir_actions import IrActionsBase
+from addons.base.models.ir_ui_view import IrUiView
 from addons.base.models.ir_attachment import IrAttachment
 from addons.base.models.report_paperformat import ReportPaperformat
 from addons.base.models.res_groups import ResGroups
@@ -509,10 +510,42 @@ class IrActionsReport(IrActionsBase):
     def _render_pdf(self, spec, records, ctx):
         """Composición + conversión: descriptor JSON → helper en C → PDF.
 
-        Aquí los pasos 3 y 5 ocurren juntos porque el helper hace ambos; el
-        colapso está declarado en ``report_catalog.py``.
+        La composición tiene DOS fuentes, en este orden (directiva del
+        ejecutor 2026-08-05 — *"queremos usar también self.env['ir.ui.view']"*):
+
+        1. **Plantilla en BD** — una vista ``type='qweb'`` cuya ``key`` es el
+           ``report_name``. Es el camino de la referencia
+           (``:769-781`` resuelve ``ir.ui.view``): el arch combinado —con las
+           extensiones XPath de otros addons ya aplicadas— se **interpreta**
+           hacia el descriptor (``report_template.interpret_descriptor``).
+        2. **Builder en código** — el ``callable`` del catálogo, que queda
+           como respaldo. Así el catálogo sigue abierto a extensión (una
+           vista nueva en BD redefine el documento) y cerrado a modificación
+           (ningún builder existente cambia por ello).
         """
-        return run_helper(spec.helper, spec.builder(records, **ctx)), 'pdf'
+        descriptor = self._descriptor_from_view(records, ctx)
+        if descriptor is None:
+            descriptor = spec.builder(records, **ctx)
+        return run_helper(spec.helper, descriptor), 'pdf'
+
+    def _descriptor_from_view(self, records, ctx):
+        """El descriptor desde la plantilla en BD, o ``None`` si no la hay.
+
+        La resolución por ``key`` espeja ``_get_template_view`` de la fuente:
+        la vista QWeb se identifica por su clave estable, no por id. Sólo se
+        consideran vistas **primarias activas** — una extensión no es un
+        documento, es un parche, y entra vía ``get_combined_arch`` de su
+        primaria.
+        """
+        view = IrUiView.objects.filter(
+            key=self.report_name, type='qweb', active=True,
+            mode='primary',
+        ).order_by('priority', 'id').first()
+        if view is None:
+            return None
+        context = dict(ctx, docs=records, report=self)
+        return report_template.interpret_descriptor(
+            view._get_combined_arch(), context)
 
     # Aquí vivía ``_render_text``, retirado en H-API-291 por no tener quien lo
     # declarara ni quien lo probara. Su vuelta tiene destinatario concreto —
