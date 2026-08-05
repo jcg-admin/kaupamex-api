@@ -19,6 +19,7 @@ import re
 import struct
 import subprocess
 import zlib
+from datetime import datetime
 
 import pytest
 
@@ -37,6 +38,7 @@ from addons.base.models.ir_actions_report import (
     run_helper,
 )
 from addons.sale.models.sale_order_line import SaleOrderLine
+from addons.sale_stock.models.sale_order import SaleOrderDelivery
 from tests.factories.order_factory import make_order
 from tests.factories.product_factory import make_product
 
@@ -453,10 +455,13 @@ class TestPlantillaEnBD:
     )
 
     def make_template_view(self, arch=None, **kwargs):
+        # ``priority=1`` gana sobre la fila SEMBRADA por sale.0002 (default
+        # 16): el orden de resolución es priority,id y estos casos prueban
+        # el mecanismo con SU plantilla, no con la del addon.
         return IrUiView.objects.create(
             name='reporte de prueba', type='qweb',
             key='sale.report_saleorder', arch_db=arch or self.ARCH,
-            mode='primary', **kwargs,
+            mode='primary', priority=1, **kwargs,
         )
 
     def test_la_vista_redefine_el_documento(self, reporte_orden,
@@ -473,9 +478,12 @@ class TestPlantillaEnBD:
 
     def test_sin_vista_el_builder_sigue_siendo_el_documento(
             self, reporte_orden, orden_con_lineas):
-        # Open/Closed: la vista es extensión, no reemplazo del mecanismo. Sin
-        # fila en BD, el builder del catálogo produce el documento como antes.
-        assert not IrUiView.objects.filter(key='sale.report_saleorder').exists()
+        # Open/Closed: la vista es extensión, no reemplazo del mecanismo. La
+        # fila sembrada por sale.0002 se retira (extensiones primero, por el
+        # inherit_id) para probar el respaldo; el rollback por test la
+        # restaura.
+        IrUiView.objects.filter(inherit_id__isnull=False).delete()
+        IrUiView.objects.filter(key='sale.report_saleorder').delete()
         contenido, _ext = reporte_orden.render(orden_con_lineas)
         assert contenido.startswith(b'%PDF')
 
@@ -502,3 +510,63 @@ class TestPlantillaEnBD:
         self.make_template_view(arch='<html><body/></html>')
         with pytest.raises(InvalidReportTemplate):
             reporte_orden.render(orden_con_lineas)
+
+
+@helpers_built
+class TestPlantillaSembrada:
+    """La plantilla real de ``sale`` vive sembrada en BD (#63).
+
+    ``sale.0002`` siembra la vista primaria (el aterrizaje nativo del
+    ``data/*.xml`` de la referencia) y ``sale_stock.0003`` cuelga su
+    extensión Incoterm — el análogo del ``<xpath position="after">`` de
+    ``sale_order_report_templates.xml``, anclado en la sección ``notes``
+    que el helper dibuja línea a línea.
+    """
+
+    def test_la_siembra_existe_y_es_la_forma_de_la_referencia(self):
+        primaria = IrUiView.objects.get(
+            key='sale.report_saleorder', mode='primary')
+        extension = IrUiView.objects.get(
+            key='sale_stock.report_saleorder_incoterm')
+        assert extension.inherit_id_id == primaria.pk
+        assert extension.mode == 'extension'
+
+    def test_la_vista_sembrada_espeja_al_builder(self, reporte_orden,
+                                                 orden_con_lineas):
+        """La siembra releva al builder SIN cambiar el documento.
+
+        Igualdad campo a campo entre las dos vías; la fecha se compara
+        parseada (el filtro ``date:'c'`` y ``isoformat`` difieren en la
+        zona con que escriben el mismo instante). El descriptor de la vista
+        puede traer claves EXTRA (``notes`` de las extensiones): el helper
+        ignora lo que no dibuja, así que el subconjunto del builder es el
+        contrato.
+        """
+        del_builder = report_catalog.get(
+            'sale.report_saleorder').builder(orden_con_lineas)
+        de_la_vista = reporte_orden._descriptor_from_view(
+            orden_con_lineas, {})
+        assert de_la_vista is not None
+        for clave, valor in del_builder.items():
+            if clave == 'date':
+                # Mismo instante con distinto traje: el filtro ``date:'c'``
+                # escribe en zona local y con microsegundos; ``isoformat``
+                # del builder trunca a segundos en UTC. Se comparan
+                # parseados y sin microsegundos.
+                assert (datetime.fromisoformat(
+                            de_la_vista[clave]).replace(microsecond=0)
+                        == datetime.fromisoformat(valor))
+            else:
+                assert de_la_vista[clave] == valor, clave
+
+    def test_incoterm_de_sale_stock_llega_al_papel(self, reporte_orden,
+                                                   orden_con_lineas):
+        SaleOrderDelivery.objects.create(
+            order=orden_con_lineas, incoterm_location='FOB Veracruz')
+        contenido, _ext = reporte_orden.render(orden_con_lineas)
+        assert 'Incoterm: FOB Veracruz' in texto_impreso(contenido)
+
+    def test_sin_incoterm_la_nota_no_se_dibuja(self, reporte_orden,
+                                               orden_con_lineas):
+        contenido, _ext = reporte_orden.render(orden_con_lineas)
+        assert 'Incoterm' not in texto_impreso(contenido)

@@ -86,6 +86,7 @@ Qué NO se porta, con su medición
 - **``bank_ids``** — ``related`` a ``partner_id.bank_ids``; llega solo cuando
   ``res_partner`` declare el reverso de ``res.bank``.
 """
+import base64
 import logging
 
 import fields
@@ -483,6 +484,32 @@ class ResCompany(TimeStampedModel):
         resulte de preservar la proporción.
         """
         return getattr(self.partner, 'image_256', None) or self.logo
+
+    def logo_png_b64(self) -> str:
+        """Bytes del logotipo como base64, o ``''`` si no hay o no es PNG.
+
+        El consumidor es el descriptor del reporte (T-006 de
+        ``integrar-libharu``): el helper sólo acepta PNG (ADR-017), así que
+        otro formato degrada aquí — el descriptor nunca lleva bytes que el
+        helper no pueda incrustar. La firma se comprueba sobre los bytes
+        reales, no sobre la extensión del archivo. Es método (no property)
+        para que el resolver de variables de DTL lo invoque desde la
+        plantilla en BD: ``{{ docs.company.logo_png_b64 }}``.
+        """
+        logo = self.logo
+        if not logo:
+            return ''
+        try:
+            logo.open('rb')
+            data = logo.read()
+            logo.close()
+        except (OSError, ValueError):
+            # silent OK because un archivo perdido en disco no debe tumbar
+            # el recibo: el logo es adorno, el documento es el entregable.
+            return ''
+        if not data.startswith(b'\x89PNG\r\n\x1a\n'):
+            return ''
+        return base64.b64encode(data).decode('ascii')
 
     def uses_default_logo(self, default_logo=None):
         """¿La compañía sigue con el logotipo por defecto?

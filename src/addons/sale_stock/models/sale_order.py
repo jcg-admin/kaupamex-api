@@ -40,6 +40,16 @@ class SaleOrderDelivery(TimeStampedModel):
         max_length=10, choices=STATUSES, null=True, blank=True,
         help_text='Estado de entrega (Odoo sale.order.delivery_status).',
     )
+    # Del bloque Incoterm que sale_stock añade a sale.order (odoo19c:
+    # sale_stock/models/sale_order.py:17-20). Se porta SOLO la mitad Char:
+    # el M2O ``incoterm`` apunta a ``account.incoterms`` y esa familia no
+    # está portada — regla del puente (analisis-gap-sale-contra-ambos-
+    # arboles): el campo entra cuando su extremo aterrice.
+    incoterm_location = fields.Char(
+        max_length=255, blank=True, default='',
+        help_text='Lugar del Incoterm (Odoo sale.order.incoterm_location, '
+                  'sale_stock).',
+    )
 
     class Meta:
         db_table = 'sale_order_delivery'

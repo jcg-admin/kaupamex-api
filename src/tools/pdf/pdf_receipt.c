@@ -796,6 +796,46 @@ main(void)
         y -= 14;
     }
 
+    /* ---- Notes — superficie de extensión (forma propia, declarada) ----
+       En la referencia el reporte es HTML libre y una extensión XPath puede
+       insertar bloques donde quiera (sale_stock añade su Incoterm así). Este
+       helper tiene layout fijo, así que las extensiones anclan en UNA
+       superficie genérica: el objeto ``notes`` del descriptor — cada valor
+       no vacío se dibuja como una línea. El intérprete lo produce desde
+       ``<section name="notes">``, donde los addons parchan con XPath. */
+    const char *notes = obj_find(root, "notes");
+    if (notes) {
+        const char *p = skip_ws(notes);
+        if (*p == '{') {
+            p++;
+            y -= 6;
+            for (;;) {
+                p = skip_ws(p);
+                if (*p == '}' || *p == '\0') break;
+                if (*p != '"') break;
+                /* La clave se salta: el orden del arch decide el orden. */
+                p++;
+                while (*p && *p != '"') {
+                    if (*p == '\\' && p[1]) p += 2;
+                    else p++;
+                }
+                if (*p == '"') p++;
+                p = skip_ws(p);
+                if (*p == ':') p++;
+                p = skip_ws(p);
+                char nota[512];
+                json_string(p, nota, sizeof(nota));
+                if (nota[0]) {
+                    draw_text(page, font, 9, MARGIN_L, y, nota);
+                    y -= 12;
+                }
+                p = skip_value(p);
+                p = skip_ws(p);
+                if (*p == ',') p++;
+            }
+        }
+    }
+
     /* ---- Stream PDF to stdout ---- */
     if (HPDF_SaveToStream(pdf) != HPDF_OK) {
         HPDF_Free(pdf);

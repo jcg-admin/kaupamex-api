@@ -164,6 +164,21 @@ class ResPartner(AvatarMixin, TimeStampedModel):
         """Un partner hijo con ``type`` distinto de contacto es una dirección."""
         return bool(self.parent_id) and self.type != self.TYPE_CONTACT
 
+    @property
+    def contact_address(self) -> str:
+        """Dirección en una línea — el ``contact_address`` de la referencia.
+
+        En Odoo es un compute sobre ``_display_address`` con formato por
+        país (``odoo19c: res_partner.py``, campo ``contact_address``); aquí
+        el consumidor es el descriptor del PDF, que imprime UNA línea, así
+        que se unen las partes presentes con coma. La lógica vivía inline en
+        el builder del recibo (``sale/report/report_catalog.py``); ahora la
+        dueña es el partner y tanto el builder como la plantilla en BD la
+        leen de aquí.
+        """
+        return ', '.join(
+            part for part in (self.street, self.city, self.zip) if part)
+
     # === Entidad comercial ================================================
     # Adaptación de ``_compute_commercial_partner`` /
     # ``_compute_commercial_company_name`` — ``odoo19c: res_partner.py:515-521``

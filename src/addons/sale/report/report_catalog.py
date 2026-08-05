@@ -17,7 +17,6 @@ encabezado y la ausencia de número fiscal, y ese matiz depende de la
 numeración de ``account``, que no está resuelta. Declararla ahora sería
 inventar la diferencia. Se nombra la ausencia en vez de rellenarla.
 """
-import base64
 from decimal import Decimal
 
 from addons.base.models.ir_actions_report import REPORT_TYPE_PDF
@@ -59,45 +58,16 @@ def _issuer(company):
         return {'name': '', 'address': '', 'email': '', 'phone': '',
                 'logo': ''}
     partner = getattr(company, 'partner', None)
-    address = ', '.join(part for part in (
-        getattr(partner, 'street', ''), getattr(partner, 'city', ''),
-        getattr(partner, 'zip', ''),
-    ) if part)
     return {
         'name': company.name or '',
-        'address': address,
+        # ``contact_address`` (la línea de la referencia) y ``logo_png_b64``
+        # (T-006) son de los modelos: el builder y la plantilla en BD leen
+        # exactamente la misma fuente — SRP, y cero divergencia entre vías.
+        'address': partner.contact_address if partner else '',
         'email': getattr(partner, 'email', '') or '',
         'phone': getattr(partner, 'phone', '') or '',
-        # T-006: el logo viaja DENTRO del descriptor (base64 de un PNG) y el
-        # helper lo incrusta con LoadPngImageFromMem — no toca el filesystem.
-        # Cadena vacía = "sin logo"; la ausencia degrada sola.
-        'logo': _logo_b64(company),
+        'logo': company.logo_png_b64(),
     }
-
-
-def _logo_b64(company):
-    """Bytes del logo como base64, o ``''`` si no hay o no es PNG.
-
-    ``ResCompany.logo`` es ``related`` a ``partner.image_1920`` (ImageField).
-    El helper sólo acepta PNG (ADR-017): otro formato degrada a "sin logo"
-    aquí, no en C — el descriptor nunca lleva bytes que el helper no pueda
-    incrustar. La firma se comprueba sobre los bytes reales, no sobre la
-    extensión del archivo.
-    """
-    logo = getattr(company, 'logo', None)
-    if not logo:
-        return ''
-    try:
-        logo.open('rb')
-        data = logo.read()
-        logo.close()
-    except (OSError, ValueError):
-        # silent OK because un archivo perdido en disco no debe tumbar el
-        # recibo: el logo es adorno, el documento es el entregable.
-        return ''
-    if not data.startswith(b'\x89PNG\r\n\x1a\n'):
-        return ''
-    return base64.b64encode(data).decode('ascii')
 
 
 def _buyer(order):
@@ -109,9 +79,8 @@ def _buyer(order):
     """
     partner = getattr(order.partner, 'partner', None) if order.partner else None
     if partner is not None:
-        return {'name': partner.name or '', 'address': ', '.join(
-            part for part in (partner.street, partner.city, partner.zip)
-            if part)}
+        return {'name': partner.name or '',
+                'address': partner.contact_address}
     return {'name': order.guest_email or '', 'address': ''}
 
 
