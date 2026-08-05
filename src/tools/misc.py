@@ -12,6 +12,8 @@ aviso de licencia preservados (DEC-KX-03).
 import hmac as hmac_lib
 
 from django.utils.crypto import salted_hmac
+from django.utils.html import escape as django_html_escape
+from lxml import etree
 
 # ``consteq`` — comparación en tiempo constante.
 #
@@ -75,3 +77,25 @@ def hmac(scope, message, hash_function=None):
         raise ValueError('Non-empty scope required')
     kwargs = {'algorithm': hash_function} if hash_function else {}
     return salted_hmac(scope, message, **kwargs).hexdigest()
+
+
+# ``SKIPPED_ELEMENT_TYPES`` — nodos lxml que no son elementos "reales".
+#
+# Portado verbatim de la referencia (``odoo19c: odoo/tools/misc.py:117``):
+# comentarios, processing-instructions y entidades, que el motor de herencia
+# de vistas (``tools/template_inheritance.py``) debe saltar al recorrer los
+# specs. No hay equivalente Django/stdlib: es vocabulario de lxml.
+SKIPPED_ELEMENT_TYPES = (
+    etree._Comment, etree._ProcessingInstruction,
+    etree.CommentBase, etree.PIBase, etree._Entity,
+)
+
+# ``html_escape`` — escape HTML para mensajes construidos a mano.
+#
+# La referencia lo define como alias de ``markupsafe.escape``
+# (``odoo19c: odoo/tools/misc.py:1305``). Aquí lo resuelve Django
+# (``django.utils.html.escape``): mismo contrato para el único consumidor
+# actual (mensajes de error del motor de herencia), sin añadir ``markupsafe``
+# como dependencia — el criterio de este archivo: stdlib/Django antes que una
+# dependencia nueva, con la decisión anotada.
+html_escape = django_html_escape

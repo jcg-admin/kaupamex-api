@@ -50,16 +50,32 @@ Y una invariante SQL que **no** es redundante con lo anterior:
 extensión que no extiende a nadie es un parche sin destino — se acepta hoy y
 revienta al combinar, lejos de donde se creó.
 
+El combinador — portado en un segundo pase (2026-08-05)
+=======================================================
+
+La versión inicial de este módulo NO portaba el combinador, con esta premisa:
+*"0 archivos XML en el árbol; las pantallas las declara React"*. La directiva
+del ejecutor la supersede (Clausula 1 del principio rector): *"queremos que
+nosotros usemos también ``self.env['ir.ui.view']``"* — el registro pasa a ser
+el hogar de las **plantillas de reporte** (que emiten el descriptor JSON del
+motor de documentos, no HTML), y ``sale_management`` extiende el reporte de
+``sale`` **por XPath**, que es exactamente lo que el combinador hace.
+
+Cómo se porta: el motor XPath vive en ``tools/template_inheritance.py``
+(espejo de ``odoo/tools/template_inheritance.py``, 346 líneas, lxml puro),
+y aquí sólo la **orquestación**: ``get_combined_arch`` / ``_combine`` con el
+recorrido en profundidad de la fuente (``ir_ui_view.py:1010-1100``), donde
+las extensiones entran por el frente de la cola y las primarias por el final.
+
 Qué NO se porta, con su medición
 ================================
 
-- **El combinador de XML**: ``_apply_inheritance_specs``, ``_apply_view_
-  inheritance``, ``_combine_arch``, la resolución de ``<xpath expr=… position=
-  …>``, ``NameManager`` y ``_check_xml``. Son ~700 líneas de cirugía ``lxml``
-  sobre XML almacenado. Medido en este árbol: ``find src -name '*.xml'`` →
-  **0** archivos [PROVEN]; las pantallas las declara React en ``ui``. Misma
-  razón que ``ir_qweb.py`` (H-API-165), y aquí se suma que el resultado del
-  combinador sólo lo consume el cliente web de Odoo.
+- **Del combinador**, lo que sirve al editor web y al upgrade de Odoo:
+  ``inherit_branding`` (marcado ``data-oe-*``), ``_add_validation_flag``,
+  ``NameManager``/``_check_xml`` (validan el XML contra los campos del
+  modelo — aquí el arch no describe formularios), ``check_view_ids`` y el
+  filtro de vistas cargadas durante upgrade, y ``ir_ui_view_tree_cut_off_view``
+  (contexto del editor). El recorrido y la aplicación de specs sí están.
 - **``arch`` / ``arch_base`` como campos calculados sobre ``arch_db`` /
   ``arch_fs``**: leen del disco en modo desarrollo y aplican traducción de
   términos XML. Se portan las **columnas** (``arch_db``, ``arch_fs``,
@@ -76,11 +92,15 @@ Qué NO se porta, con su medición
   dos versiones del XML. El asistente **sí** se porta —los tres modos de
   reinicio son la decisión, y ésa es dato— sin el generador del diff.
 """
+import collections
 import logging
+
+from lxml import etree
 
 import fields
 import models
 from django.core.exceptions import ValidationError
+from tools.template_inheritance import apply_inheritance_specs
 
 from addons.base.models.res_groups import ResGroups
 from addons.base.models.res_users import ResUsers
@@ -292,6 +312,81 @@ class IrUiView(TimeStampedModel):
                 collected.append(child)
                 frontier.append(child)
         return collected
+
+    # ------------------------------------------------------------------ #
+    #  El combinador — ``get_combined_arch`` (fuente ``:1010-1100``)      #
+    # ------------------------------------------------------------------ #
+
+    def apply_inheritance_specs(self, source, specs_tree, pre_locate=None):
+        """``apply_inheritance_specs`` (fuente ``:944``) — delega en el motor.
+
+        El trabajo real vive en ``tools/template_inheritance`` (lxml puro);
+        aquí sólo se le pone nombre de vista al error, que es lo que la
+        fuente hace con ``_raise_view_error``.
+        """
+        try:
+            return apply_inheritance_specs(source, specs_tree,
+                                           pre_locate=pre_locate)
+        except ValueError as e:
+            raise ValidationError(
+                f'Error al aplicar la herencia de la vista {self.name!r}: {e}'
+            ) from e
+
+    def _get_hierarchy(self):
+        """Mapa ``pk del padre -> [vistas hijas]`` del árbol de ``self``.
+
+        Réplica de ``get_hierarchy`` (fuente ``:1086-1092``) sin la parte de
+        upgrade: se recorren las heredantes activas (misma condición de
+        modelo que ``inheriting_views``) y una hija **primaria** corta la
+        rama — sus parches se aplican al resolverla a ella, no al padre.
+        """
+        hierarchy = collections.defaultdict(list)
+        for view in self.inheriting_views():
+            hierarchy[view.inherit_id_id].append(view)
+        return hierarchy
+
+    def _combine(self, hierarchy):
+        """``_combine`` (fuente ``:971-1041``) — recorrido en profundidad.
+
+        La cola se recorre de izquierda a derecha; tras procesar una vista,
+        sus hijas entran por la **izquierda** (así se recorren en orden — la
+        cola funciona casi como pila). La excepción son las vistas
+        *primarias*, que entran por la derecha: se aplican después de todas
+        las extensiones. Verbatim de la fuente, sin branding ni flags de
+        validación (ver el docstring del módulo).
+        """
+        assert self.mode == MODE_PRIMARY
+        combined_arch = etree.fromstring(self.arch_db)
+
+        # ``sorted(..., key=mode)``: 'extension' < 'primary' — las
+        # extensiones directas se procesan antes que las primarias hijas.
+        queue = collections.deque(
+            sorted(hierarchy.get(self.pk, []), key=lambda v: v.mode))
+        while queue:
+            view = queue.popleft()
+            arch = etree.fromstring(view.arch_db or '<data/>')
+            combined_arch = view.apply_inheritance_specs(combined_arch, arch)
+
+            for child_view in reversed(hierarchy.get(view.pk, [])):
+                if child_view.mode == MODE_PRIMARY:
+                    queue.append(child_view)
+                else:
+                    queue.appendleft(child_view)
+
+        return combined_arch
+
+    def _get_combined_arch(self):
+        """La arquitectura de ``self`` (etree) combinada con sus heredantes.
+
+        En modo ``extension`` la combinación parte de la primaria más
+        cercana (``root_view``) — fuente ``:1051-1060``, el ascenso por
+        ``inherit_id``.
+        """
+        return self.root_view._combine(self.root_view._get_hierarchy())
+
+    def get_combined_arch(self):
+        """La arquitectura combinada, como string (fuente ``:1043``)."""
+        return etree.tostring(self._get_combined_arch(), encoding='unicode')
 
 
 class IrUiViewCustom(TimeStampedModel):
