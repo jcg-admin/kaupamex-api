@@ -1,7 +1,7 @@
 """URLs — addons.authz (superficie del usuario autenticado)."""
 from django.urls import path
 
-from addons.authz.views import MyCapabilitiesView, MyMenuView, ReauthSessionView
+from addons.authz.controllers.main import MyCapabilitiesView, MyMenuView, ReauthSessionView
 
 urlpatterns = [
     path('me/capabilities/', MyCapabilitiesView.as_view(), name='my-capabilities'),

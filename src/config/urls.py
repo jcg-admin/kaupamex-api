@@ -147,7 +147,7 @@ urlpatterns = _admin_urls + [
     path('api/v2/admin/',      include(('addons.mass_mailing.controllers.admin_urls', 'admin_newsletter'),   namespace='admin_newsletter_v2')),
     path('api/v2/admin/',      include(('addons.auto_backup.controllers.admin_urls', 'admin_backups'),         namespace='admin_backups_v2')),
     # DEC-08/09: capacidades del usuario + menú admin dinámico (podado por capacidad)
-    path('api/v2/authz/',      include(('addons.authz.urls', 'authz'),                         namespace='authz_v2')),
+    path('api/v2/authz/',      include(('addons.authz.controllers.urls', 'authz'),                         namespace='authz_v2')),
     # DEC-01 (~authz_totp): gestión del 2FA TOTP del usuario autenticado
     path('api/v2/authz/totp/', include(('addons.authz_totp.controllers.urls', 'authz_totp'),               namespace='authz_totp_v2')),
     # ~auth_ldap: CRUD de configuraciones LDAP por ResCompany (permissions.ldap)
@@ -173,7 +173,7 @@ urlpatterns = _admin_urls + [
     # /my/deactivate_account de odoo19c: portal (LGPL-3)
     path('api/v2/portal/',     include(('addons.portal.controllers.urls', 'portal'),                       namespace='portal_v2')),
     # G-PERM-01: catálogo de roles para el selector de /admin/permissions (UC-ADM-02)
-    path('api/v2/admin/',      include(('addons.authz.admin_urls', 'admin_authz'),             namespace='admin_authz_v2')),
+    path('api/v2/admin/',      include(('addons.authz.controllers.admin_urls', 'admin_authz'),             namespace='admin_authz_v2')),
     # UC-PLT-12: consola L0 del operador Kaupamex — directorio de tenants (platform.provision)
     path('api/v2/platform/',   include(('addons.sale_subscription.controllers.urls', 'company'),                     namespace='company')),
 
@@ -188,9 +188,9 @@ urlpatterns = _admin_urls + [
     # DEC-V2-05 sancionados (login, register, refresh, logout, change-password)
     # appear here via users.urls — correct behaviour (same at both v1 and v2).
     # F6 (payments initiate/checkout) excluded — those are Tier B.
-    path('api/v2/admin/',   include(('addons.loyalty.urls', 'admin_voucher'),                           namespace='admin_voucher_v2')),
+    path('api/v2/admin/',   include(('addons.loyalty.controllers.admin_urls', 'admin_voucher'),                           namespace='admin_voucher_v2')),
     path('api/v2/admin/',   include(('addons.helpdesk.controllers.admin_urls', 'admin_support'),                     namespace='admin_support_v2')),
-    path('api/v2/admin/',   include(('addons.website.admin_urls', 'admin_static_content'),      namespace='admin_static_content_v2')),
+    path('api/v2/admin/',   include(('addons.website.controllers.static_content_urls', 'admin_static_content'),      namespace='admin_static_content_v2')),
     # Chartsize admin (variants) after catalogue CRUD so POST /api/v2/admin/products/
     # resolves to ProductAdminViewSet, not chartsize DefaultRouter root (GET-only).
 ]

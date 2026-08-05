@@ -2,7 +2,7 @@
 from decimal import Decimal
 from django.utils import timezone
 from rest_framework import serializers
-from .models import Voucher, VoucherChangeLog
+from addons.loyalty.models import Voucher, VoucherChangeLog
 
 
 class VoucherSerializer(serializers.ModelSerializer):

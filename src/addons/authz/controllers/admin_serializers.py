@@ -2,7 +2,7 @@
 
 Superficie del panel admin (capacidad ``permissions.full``): el catálogo de
 roles disponibles para el selector de ``/admin/permissions`` (UC-ADM-02).
-Complementa ``addons.authz.serializers`` (superficie del usuario autenticado).
+Complementa ``addons.authz.controllers.serializers`` (superficie del usuario autenticado).
 
 **DEC-11 (sustantivo + nivel).** Las capacidades CRUD se exponen como
 ``{code, level}`` donde ``code`` es el sustantivo y ``level`` el nombre del

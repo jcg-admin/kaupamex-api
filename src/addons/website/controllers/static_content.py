@@ -15,8 +15,8 @@ from rest_framework.permissions import IsAuthenticated
 from addons.authz.permissions import HasCapability
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .models import StaticContent, StaticContentVersion
-from .serializers import StaticContentSerializer
+from addons.website.models import StaticContent, StaticContentVersion
+from addons.website.controllers.static_content_serializers import StaticContentSerializer
 
 
 

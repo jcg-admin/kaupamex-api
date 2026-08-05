@@ -17,7 +17,7 @@ from addons.authz_audit.models import AuthzEvent
 from addons.base.models import IrUiMenu
 from addons.website.models import WebsiteMenu
 from addons.authz_reauth.models import ReauthSession
-from addons.authz.serializers import MenuNodeSerializer
+from addons.authz.controllers.serializers import MenuNodeSerializer
 from addons.authz.services import (
     REAUTH_CAP_CODE,
     _client_ip,

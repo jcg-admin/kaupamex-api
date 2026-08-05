@@ -1,7 +1,7 @@
 """Admin URLs — addons.loyalty (Sprint 13)."""
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import VoucherViewSet
+from addons.loyalty.controllers.admin_main import VoucherViewSet
 
 app_name = 'admin_voucher_v2'
 

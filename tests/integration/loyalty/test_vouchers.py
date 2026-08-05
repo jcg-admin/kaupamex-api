@@ -16,7 +16,7 @@ from tests.factories.product_factory import make_category, make_product
 from addons.sale_loyalty.models.sale_order_coupon import SaleOrderCoupon
 from addons.sale_loyalty.models.sale_order import set_reward_line
 from addons.loyalty.models import Voucher, VoucherChangeLog
-from addons.loyalty.serializers import VoucherSerializer
+from addons.loyalty.controllers.admin_serializers import VoucherSerializer
 from tests.factories.order_factory import make_order
 from addons.sale.status_projection import STATUS_DELIVERED
 

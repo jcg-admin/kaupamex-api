@@ -31,8 +31,8 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework.generics import ListAPIView
 from addons.sale.aggregates import LINE_TOTAL
 from addons.sale.models import SaleOrder, SaleOrderLine
-from .models import Voucher, VoucherChangeLog
-from .serializers import VoucherSerializer, VoucherReportSerializer
+from addons.loyalty.models import Voucher, VoucherChangeLog
+from addons.loyalty.controllers.admin_serializers import VoucherSerializer, VoucherReportSerializer
 
 
 class _VoucherPagination(PageNumberPagination):

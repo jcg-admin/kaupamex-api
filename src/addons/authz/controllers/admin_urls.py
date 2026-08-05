@@ -4,7 +4,7 @@ Se monta en ``/api/v2/admin/`` (ver ``config/urls.py``).
 """
 from django.urls import path
 
-from addons.authz.admin_views import (
+from addons.authz.controllers.admin_main import (
     AdminPermissionCatalogView, AdminRoleListView, AdminRolePermissionsView,
     AdminUserPermissionsView,
 )
