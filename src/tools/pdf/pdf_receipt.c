@@ -334,6 +334,32 @@ draw_text_right(HPDF_Page page, HPDF_Font font, float size,
     HPDF_Page_EndText(page);
 }
 
+/*
+ * Recorta `txt` in situ para que quepa en `ancho_max` PUNTOS, no en un número
+ * de bytes.
+ *
+ * El corte por bytes que esto reemplaza (`if (strlen(name) > 36)`) medía la
+ * unidad equivocada: en UTF-8 un acento ocupa dos, así que el presupuesto de
+ * columna dependía del juego de caracteres — 36 bytes son 36 letras latinas
+ * pero sólo 18 acentuadas. Medido en el pase de T-002.
+ *
+ * Se retrocede hasta el inicio del carácter UTF-8 anterior (los bytes de
+ * continuación son 10xxxxxx). Cortar a media secuencia no corrompe el papel
+ * —libharu descarta el byte huérfano, también medido— pero dejaría el ancho
+ * dibujado por debajo del que se acaba de medir.
+ */
+static void
+truncar_a_ancho(HPDF_Page page, HPDF_Font font, float size,
+                char *txt, float ancho_max)
+{
+    HPDF_Page_SetFontAndSize(page, font, size);
+    size_t n = strlen(txt);
+    while (n > 0 && HPDF_Page_TextWidth(page, txt) > ancho_max) {
+        do { n--; } while (n > 0 && ((unsigned char)txt[n] & 0xC0) == 0x80);
+        txt[n] = '\0';
+    }
+}
+
 /* ------------------------------------------------------------------ *
  *  Main                                                               *
  * ------------------------------------------------------------------ */
@@ -529,9 +555,10 @@ main(void)
                 get_str(item, "unit_price", pu, sizeof(pu));
                 get_str(item, "amount", amt, sizeof(amt));
 
-                /* truncate name to fit column */
-                if (strlen(name) > 36) name[36] = '\0';
-                if (strlen(sku) > 18) sku[18] = '\0';
+                /* Recorte por ancho real de la columna, con un canalón de 6 pt
+                   para que el texto no bese la columna siguiente (T-003). */
+                truncar_a_ancho(page, font, 9, name, col_sku - col_name - 6.0f);
+                truncar_a_ancho(page, font, 9, sku,  col_qty - col_sku - 6.0f);
 
                 draw_text(page, font, 9, col_name, y, name);
                 draw_text(page, font, 9, col_sku, y, sku);

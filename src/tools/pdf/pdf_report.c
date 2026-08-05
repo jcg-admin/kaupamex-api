@@ -299,11 +299,30 @@ draw_text(HPDF_Page page, HPDF_Font font, float size,
     HPDF_Page_EndText(page);
 }
 
-/* Truncate a UTF-mapped string in place to at most n chars. */
+/*
+ * Recorta `txt` in situ para que quepa en `ancho_max` PUNTOS, no en un número
+ * de bytes o de caracteres.
+ *
+ * Reemplaza a `truncate_chars`, que cortaba por bytes con un presupuesto
+ * derivado de `col_w / 5.0` — una aproximación al ancho medio de **Helvetica**,
+ * que ya no es la fuente (T-002 la cambió por LiberationSans embebida). Medir
+ * el ancho real elimina de una vez las dos aproximaciones: la de la métrica y
+ * la de la unidad.
+ *
+ * Se retrocede hasta el inicio del carácter UTF-8 anterior (los bytes de
+ * continuación son 10xxxxxx): cortar a media secuencia dejaría el ancho
+ * dibujado por debajo del que se acaba de medir.
+ */
 static void
-truncate_chars(char *s, size_t n)
+truncar_a_ancho(HPDF_Page page, HPDF_Font font, float size,
+                char *txt, float ancho_max)
 {
-    if (strlen(s) > n) s[n] = '\0';
+    HPDF_Page_SetFontAndSize(page, font, size);
+    size_t n = strlen(txt);
+    while (n > 0 && HPDF_Page_TextWidth(page, txt) > ancho_max) {
+        do { n--; } while (n > 0 && ((unsigned char)txt[n] & 0xC0) == 0x80);
+        txt[n] = '\0';
+    }
 }
 
 static void
@@ -314,6 +333,12 @@ draw_header_row(HPDF_Page page, HPDF_Font font_bold, float y,
     HPDF_Page_MoveTo(page, MARGIN_L, y + 12);
     HPDF_Page_LineTo(page, MARGIN_L + (col_x[ncols] - col_x[0]), y + 12);
     HPDF_Page_Stroke(page);
+    /* El recorte va aquí y no al parsear: el ancho de columna sólo se conoce
+       cuando ya se sabe cuántas columnas hay. Es idempotente, así que
+       redibujar la cabecera en cada página no acumula recortes. */
+    for (int c = 0; c < ncols; c++)
+        truncar_a_ancho(page, font_bold, 9, cells[c],
+                        col_x[c + 1] - col_x[c] - 6.0f);
     for (int c = 0; c < ncols; c++)
         draw_text(page, font_bold, 9, col_x[c], y, cells[c]);
     HPDF_Page_MoveTo(page, MARGIN_L, y - 4);
@@ -431,8 +456,10 @@ main(void)
             while (ncols < MAX_COLS) {
                 p = skip_ws(p);
                 if (*p == ']' || *p == '\0') break;
+                /* La cabecera NO se recorta aquí: su ancho de columna depende
+                   de cuántas columnas resulten, y eso sólo se sabe al terminar
+                   este bucle. El recorte vive en `draw_header_row`. */
                 p = json_string(p, headers[ncols], sizeof(headers[ncols]));
-                truncate_chars(headers[ncols], 28);
                 ncols++;
                 p = skip_ws(p);
                 if (*p == ',') p++;
@@ -471,11 +498,7 @@ main(void)
                     p = skip_ws(p);
                     if (*p == ']' || *p == '\0') break;
                     p = json_string(p, cell, sizeof(cell));
-                    /* approx char budget per column for Helvetica 9pt */
-                    size_t budget = (size_t)(col_w / 5.0f);
-                    if (budget < 4) budget = 4;
-                    if (budget > 60) budget = 60;
-                    truncate_chars(cell, budget);
+                    truncar_a_ancho(page, font, 9, cell, col_w - 6.0f);
                     draw_text(page, font, 9, col_x[c], y, cell);
                     c++;
                     p = skip_ws(p);

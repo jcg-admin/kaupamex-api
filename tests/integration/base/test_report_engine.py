@@ -224,10 +224,9 @@ class TestConversion:
         UTF-8, así que el juego de caracteres dejó de estar limitado a
         Latin-1. Antes ``€`` y ``—`` llegaban al papel como ``?``.
 
-        El nombre se mantiene corto: el helper recorta la columna por bytes
-        (``pdf_receipt.c``), y en UTF-8 un acento ocupa dos — un nombre largo
-        se cortaría por razones de ancho, no de codificación, y enmascararía
-        lo que este caso mide.
+        El nombre se mantiene corto: el helper recorta la columna por ancho
+        (T-003) — un nombre largo se cortaría por razones de espacio y
+        enmascararía lo que este caso mide, que es la codificación.
         """
         acentuado = 'Vela ñ ó ú € — αβγ'
         linea = orden_con_lineas.order_line.first()
@@ -236,6 +235,37 @@ class TestConversion:
 
         contenido, _ = reporte_orden.render(orden_con_lineas)
         assert acentuado in texto_impreso(contenido)
+
+    def test_la_columna_recorta_por_ancho_no_por_bytes(self, reporte_orden,
+                                                       orden_con_lineas):
+        """T-003 — el presupuesto de columna es geométrico, no de bytes.
+
+        El corte anterior era ``name[36] = '\\0'``: 36 **bytes**, que con la
+        fuente UTF-8 de T-002 eran 36 letras latinas pero sólo 18 acentuadas —
+        el ancho dibujado dependía del idioma del dato. Ahora el helper mide
+        con ``HPDF_Page_TextWidth`` y corta donde termina la columna.
+
+        Se afirma la propiedad, no una cifra: con el mismo nombre en versión
+        estrecha (``i``) y ancha (``W``), caben **más** estrechas que anchas —
+        exactamente lo que un corte por bytes no puede producir (daría el
+        mismo conteo para ambas). Medido en el pase: 90 ``i`` vs 22 ``W``.
+        """
+        linea = orden_con_lineas.order_line.first()
+        dibujadas = {}
+        for letra in ('i', 'W'):
+            linea.name = letra * 90
+            linea.save(update_fields=['name'])
+            contenido, _ = reporte_orden.render(orden_con_lineas)
+            fila = next(t for t in texto_impreso(contenido).splitlines()
+                        if t.startswith(letra * 3))
+            dibujadas[letra] = len(fila)
+
+        assert dibujadas['i'] > dibujadas['W'], (
+            'con corte por bytes ambas darían igual; por ancho caben más '
+            f'estrechas que anchas — medido {dibujadas}'
+        )
+        # Ninguna fila desborda el buffer de 90: el recorte actuó o cupo todo.
+        assert dibujadas['W'] < 90
 
     def test_descriptor_invalido_sale_con_el_codigo_de_su_contrato(self):
         """Exit 1 = JSON no parseable (cabecera de ``pdf_receipt.c``)."""
