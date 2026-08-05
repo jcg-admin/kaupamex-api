@@ -38,9 +38,15 @@ class TestSchemaEndpoint:
         r = api_client.get('/api/schema/?format=json')
         assert r.json()['info']['version'] == '1.0.0'
 
-    def test_schema_titulo_correcto(self, api_client, db):
+    def test_schema_titulo_nombra_la_plataforma(self, api_client, db):
+        # El título publicado nombra al operador L0 (Kaupamex), NO al L1 de
+        # ejemplo: la API es una sola y sirve a todas las Company. Decisión de
+        # producto del ejecutor (2026-08-05); antes decía 'PracticaYoruba API'
+        # y este test guardaba ese valor — el guard sigue, el valor cambió.
         r = api_client.get('/api/schema/?format=json')
-        assert 'PracticaYoruba' in r.json()['info']['title']
+        titulo = r.json()['info']['title']
+        assert 'Kaupamex' in titulo
+        assert 'PracticaYoruba' not in titulo
 
     def test_schema_has_signup_endpoint(self, api_client, db):
         # El alta vive en ``authz_signup`` (``controllers/urls.py:9``),
