@@ -42,7 +42,7 @@ from addons.crm.controllers.serializers import (
 # Buzones de contacto — L3 per-empresa (SOL-090 slice 3, CompanySetting).
 # Antes eran ``settings.CONTACT_FROM_EMAIL``/``CONTACT_NOTIFY_EMAIL`` con
 # ``default=`` cableado. Ese default NO era stale — es la config L1 correcta
-# del tenant founder PracticaYoruba (Kaupamex es L0, no PracticaYoruba); la
+# del L1 de ejemplo PracticaYoruba (Kaupamex es L0, no PracticaYoruba); la
 # migración ``company/0006_seed_founder_settings`` lo siembra como su propio
 # ``CompanySetting``. Las constantes de abajo son el fallback **neutral**
 # (nivel Kaupamex, no de PracticaYoruba) que usa ``get_setting`` cuando no

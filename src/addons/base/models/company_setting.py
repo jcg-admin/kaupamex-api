@@ -41,7 +41,7 @@ class CompanySetting(TimeStampedModel):
     fila (SOL-085) es una capa distinta y necesaria además del aislamiento
     por base (SOL-091), no redundante con él.
 
-    **L0 (Kaupamex, operador) vs L1 (PracticaYoruba, founder tenant).**
+    **L0 (Kaupamex, operador) vs L1 (PracticaYoruba, el de ejemplo).**
     PracticaYoruba es un **tenant L1** (``FOUNDER_COMPANY_CODE``), NO L0 —
     Kaupamex es L0 (el operador de la plataforma). Por eso los valores
     ``hola@practicayoruba.com`` / ``newsletter@practicayoruba.com`` (antes

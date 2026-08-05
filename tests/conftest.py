@@ -21,7 +21,11 @@ from addons.authz.services import SUPERADMIN_ROLE_CODE
 from addons.base.models import SystemParameter
 from addons.base.security.base_security import seed as base_rules_seed
 from addons.base_geolocalize.data import seed as geo_providers_seed
+from addons.sale.data.report_templates import seed as sale_report_view_seed
 from addons.sale.security.ir_rules import seed as sale_rules_seed
+from addons.sale_stock.data.report_templates import (
+    seed as incoterm_extension_seed,
+)
 from addons.sale_subscription.security.ir_rules import (
     seed as subscription_rules_seed,
 )
@@ -280,7 +284,29 @@ _SEEDERS = (
     base_rules_seed,            # base/security (record rules multi-company)
     sale_rules_seed,            # sale/security/ir_rules
     subscription_rules_seed,    # sale_subscription/security/ir_rules
+    sale_report_view_seed,      # sale/0002 (plantilla del documento)
+    incoterm_extension_seed,    # sale_stock/0003 — después de la primaria
 )
+
+
+@pytest.fixture(scope='session', autouse=True)
+def _sembrar_al_inicio_de_sesion(django_db_setup, django_db_blocker):
+    """Re-aplica el catálogo de semillas una vez al arrancar la sesión.
+
+    El hook de teardown repara **después** de un test transaccional, pero no
+    puede reparar lo que ya estaba roto: con ``--reuse-db``, un flush de una
+    sesión anterior deja el schema sin semillas y ``django_migrations`` las
+    sigue dando por aplicadas, así que la sesión siguiente arranca en rojo y
+    el fallo aparece lejos de su causa (una vista de reporte que "no existe").
+
+    Medido: la plantilla ``sale.report_saleorder`` sembrada por ``sale.0002``
+    desapareció del schema de QA y tres tests del motor de reportes fallaban
+    desde un arranque limpio. Con esta siembra de sesión, el orden de
+    ejecución —y el historial del schema reusado— dejan de importar.
+    """
+    with django_db_blocker.unblock():
+        for seed in _SEEDERS:
+            seed()
 
 
 @pytest.hookimpl(hookwrapper=True)

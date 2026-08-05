@@ -1,5 +1,5 @@
 """
-Django settings TESTING (QA) — PracticaYoruba API.
+Django settings TESTING (QA) — Kaupamex API.
 
 BD exclusiva para tests: ``kaupamex_qa`` (SOL-087), definido en ``src/.env``
 (sin ``default=`` en el código — todo vive en el env). Separada de produccion.

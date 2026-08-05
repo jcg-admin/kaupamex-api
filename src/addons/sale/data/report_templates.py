@@ -23,6 +23,8 @@ Notas de forma:
   helper dibuja cada valor no vacío del objeto como una línea.
 """
 
+from addons.base.models.ir_ui_view import IrUiView
+
 #: ``key`` de la vista = ``report_name`` del reporte — la resolución de
 #: ``_descriptor_from_view`` espeja ``_get_template_view`` de la referencia.
 REPORT_SALEORDER_KEY = 'sale.report_saleorder'
@@ -58,3 +60,22 @@ REPORT_SALEORDER_ARCH = """\
   <section name="notes"></section>
 </descriptor>
 """
+
+
+def seed(using=None):
+    """Siembra la vista primaria del reporte si su clave no existe.
+
+    Idempotente y con el **mismo spec** que consume ``sale.0002`` — el patrón
+    de ``data.seed()`` de H-API-22: la migración escribe en el arranque de la
+    BD y este callable la re-aplica tras un test transaccional, que hace
+    ``flush`` de las tablas de modelo sin desmarcar la migración.
+    """
+    manager = IrUiView.objects.using(using) if using else IrUiView.objects
+    if manager.filter(key=REPORT_SALEORDER_KEY).exists():
+        return
+    manager.create(
+        name='Orden de venta (plantilla del documento)',
+        type='qweb', key=REPORT_SALEORDER_KEY,
+        mode='primary', active=True,
+        arch_db=REPORT_SALEORDER_ARCH,
+    )

@@ -300,10 +300,10 @@ DEFAULT_FROM_EMAIL = 'noreply@kaupamex.com'
 #
 # Los valores previos (``hola@practicayoruba.com`` / ``newsletter@practica…`` /
 # ``noreply@practicayoruba.com``) NO eran stale — PracticaYoruba es un tenant
-# **L1** (el founder, NO L0/Kaupamex), y esos eran su config correcta. Las
+# **L1** (el de ejemplo, NO L0/Kaupamex), y esos eran su config correcta. Las
 # migraciones los siembran como filas ``CompanySetting`` de PracticaYoruba
 # (founder), no los reemplazan. Los consumidores
-# (``addons.website.views``, ``addons.mass_mailing.controllers``,
+# (``addons.website.controllers``, ``addons.mass_mailing.controllers``,
 # ``addons.mail.emails``, ``addons.authz_signup.tokens_email``) leen
 # ``CompanySetting.get_setting('<key>', <fallback neutral>)`` bajo la empresa
 # resuelta (ambiente para flujos autenticados; ``company=user.company_id``
@@ -416,9 +416,11 @@ SIMPLE_JWT = {
 
 SPECTACULAR_SETTINGS = {
     # --- Metadatos ---
-    'TITLE': 'PracticaYoruba API',
+    'TITLE': 'Kaupamex API',
     'DESCRIPTION': (
-        'API REST de PracticaYoruba — plataforma e-commerce de productos Yoruba.\n\n'
+        'API REST de Kaupamex — plataforma multi-company de comercio\n'
+        'electrónico. PracticaYoruba es su L1 de ejemplo, no la\n'
+        'plataforma.\n\n'
         'Autenticación: sesión de servidor (cookie HttpOnly) via '
         'POST /api/v2/auth/login/\n'
         'Todos los endpoints bajo el prefijo /api/v2/'
@@ -427,11 +429,14 @@ SPECTACULAR_SETTINGS = {
     # Contacto del schema OpenAPI = operador de la plataforma (L0, Kaupamex):
     # la API es infraestructura de plataforma (un solo codebase Django sirve a
     # todos los tenants), evaluada estáticamente al generar el schema — sin
-    # dimensión de empresa. Antes reusaba el buzón L1 del founder
+    # dimensión de empresa. Antes reusaba el buzón L1 de ejemplo
     # (``hola@practicayoruba.com``); es config de plataforma, no per-tenant
-    # (DEC-KX-05, follow-up #199). El TITLE/DESCRIPTION mantienen el branding
-    # de PracticaYoruba como producto insignia — cambiarlos es una decisión de
-    # producto aparte, no de clasificación de config.
+    # (DEC-KX-05, follow-up #199). El TITLE/DESCRIPTION **ya no** llevan el
+    # branding del L1: la API publicada es la de la plataforma, y llamarla
+    # "PracticaYoruba API" la confundía con su tenant de ejemplo. La decisión
+    # de producto que este comentario dejaba pendiente la tomó el ejecutor el
+    # 2026-08-06; el schema QA ya se llamaba ``kaupamex_qa``, así que el
+    # título era el último resto del nombre viejo en la superficie publicada.
     'CONTACT': {
         'name': 'Equipo Kaupamex',
         'email': 'soporte@kaupamex.com',

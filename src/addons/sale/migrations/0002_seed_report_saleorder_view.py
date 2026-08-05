@@ -16,7 +16,13 @@ from addons.sale.data.report_templates import (
 
 
 def seed_view(apps, schema_editor):
-    """Crea la vista primaria del reporte si la clave no existe."""
+    """Crea la vista primaria del reporte si la clave no existe.
+
+    Escribe sobre el modelo **histórico** (``apps.get_model``), no sobre
+    ``data.seed()``: una migración no debe importar el modelo vivo. El spec
+    —``ARCH`` y ``KEY``— sí es el mismo que consume ``seed()``, así que no hay
+    dos copias que puedan divergir.
+    """
     IrUiView = apps.get_model('base', 'IrUiView')
     alias = schema_editor.connection.alias
     if not IrUiView.objects.using(alias).filter(

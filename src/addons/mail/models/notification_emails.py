@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 # CompanySetting 'notifications.from_email'). Antes era
 # ``settings.DEFAULT_FROM_EMAIL`` con ``default=`` cableado a
 # ``noreply@practicayoruba.com``. Ese valor NO era stale: es la config L1
-# correcta del tenant founder (Kaupamex es L0, no PracticaYoruba); la migración
+# correcta del L1 de ejemplo (Kaupamex es L0, no PracticaYoruba); la migración
 # ``company/0007_seed_founder_notifications_from`` lo siembra como su propio
 # ``CompanySetting``. La constante de abajo es el fallback **neutral** (nivel
 # Kaupamex, no de PracticaYoruba) que usa ``get_setting`` cuando no hay empresa
