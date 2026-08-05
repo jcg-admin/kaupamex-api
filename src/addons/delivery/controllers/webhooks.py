@@ -26,7 +26,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from config.schema import error_response
-from .models import Courier, ShipmentEvent, ShipmentGuide
+from addons.delivery.models import Courier, ShipmentEvent, ShipmentGuide
 
 logger = logging.getLogger('apps')
 

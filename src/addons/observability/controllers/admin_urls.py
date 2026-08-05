@@ -2,7 +2,7 @@
 Admin URLs — addons.observability (SOL-011 T-06, logs tecnicos).
 
 Montado en config/urls.py:
-  path('api/v2/admin/', include(('addons.observability.admin_urls', 'admin_core'),
+  path('api/v2/admin/', include(('addons.observability.controllers.admin_urls', 'admin_core'),
        namespace='admin_core_v2'))
 
 Sirve el endpoint read-only de logs (UC-ADM-06, DEC-LOG-08 revisada). Patron
@@ -15,7 +15,7 @@ Movido desde ``core.admin_urls`` en el slice 5 de
 """
 from django.urls import path
 
-from .views import AdminLogsView
+from .main import AdminLogsView
 
 app_name = 'admin_core_v2'
 

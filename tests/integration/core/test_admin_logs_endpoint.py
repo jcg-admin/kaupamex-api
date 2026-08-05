@@ -9,7 +9,7 @@ Verifican el endpoint DRF read-only del visor de logs:
 
 ``IrLogging`` (``ir.logging``, ``addons.base``) reemplaza a ``core.AppLog``
 desde DEC-08 slice 2; el contrato JSON del endpoint (``logger_name``/``msg``)
-no cambia (ver ``addons/observability/views.py::_serialize_applog``).
+no cambia (ver ``addons/observability/controllers/main.py::_serialize_applog``).
 
 Toca DB → django_db.
 """

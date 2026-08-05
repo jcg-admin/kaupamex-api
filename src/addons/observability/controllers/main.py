@@ -1,5 +1,5 @@
 """
-addons/observability/views.py
+addons/observability/controllers/main.py
 
 Endpoint DRF read-only de logs tecnicos (SOL-011 T-06, UC-ADM-06, DEC-LOG-08
 revisada, ADR-019). ``GET /api/v2/admin/logs/`` sirve ``RequestLog`` (default) y

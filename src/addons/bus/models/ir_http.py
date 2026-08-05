@@ -16,7 +16,7 @@ no tenerlo: quien busque "dónde se le dice al cliente cómo conectar" encuentra
 aquí la respuesta y su motivo, en vez de no encontrar nada.
 
 Lo que este árbol hace en su lugar: el cliente **sondea**
-(``BusMessage.poll``, ``bus/views.py``), y qué canales le tocan lo decide
+(``BusMessage.poll``, ``bus/controllers/main.py``), y qué canales le tocan lo decide
 ``ir_websocket.build_bus_channel_list`` — que sí está portado, porque es
 política, no transporte.
 """
