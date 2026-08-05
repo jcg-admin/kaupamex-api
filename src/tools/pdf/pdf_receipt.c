@@ -335,6 +335,42 @@ draw_text_right(HPDF_Page page, HPDF_Font font, float size,
 }
 
 /*
+ * Dibuja `txt` envuelto por palabras dentro de `width` puntos desde (x, y).
+ * Devuelve la `y` de la línea SIGUIENTE al texto dibujado (T-004).
+ *
+ * Se apoya en HPDF_Page_TextRect, que envuelve y reporta en `len` cuántos
+ * bytes entraron. Ante caja insuficiente devuelve
+ * HPDF_PAGE_INSUFFICIENT_SPACE SIN pasar por el manejador de errores
+ * (hpdf_page_operator.c:2631, medido en el vendor) — así que no dispara el
+ * setjmp del main: el texto simplemente se corta en la última línea que
+ * cupo. `max_lines` acota la caja: una dirección kilométrica no debe
+ * comerse el recibo.
+ */
+static float
+draw_text_wrapped(HPDF_Page page, HPDF_Font font, float size, float x,
+                  float y, float width, int max_lines, const char *txt)
+{
+    if (!txt || !txt[0]) return y;
+    float line_h = size + 4.0f;
+    float top = y + size;            /* TextRect recibe el TOPE de la caja */
+    float bottom = top - line_h * (float)max_lines;
+    HPDF_UINT len = 0;
+
+    HPDF_Page_SetFontAndSize(page, font, size);
+    HPDF_Page_BeginText(page);
+    HPDF_Page_TextRect(page, x, top, x + width, bottom, txt,
+                       HPDF_TALIGN_LEFT, &len);
+    /* La posición de texto quedó donde TextRect terminó; su `y` relativa a
+       `top` dice cuántas líneas se consumieron de verdad. */
+    HPDF_Point pos = HPDF_Page_GetCurrentTextPos(page);
+    HPDF_Page_EndText(page);
+
+    float used = top - pos.y;        /* alto consumido dentro de la caja */
+    if (used < line_h) used = line_h;
+    return y - used;
+}
+
+/*
  * Recorta `txt` in situ para que quepa en `ancho_max` PUNTOS, no en un número
  * de bytes.
  *
@@ -478,7 +514,11 @@ main(void)
         draw_text(page, font_bold, 18, MARGIN_L, y, buf);
         y -= 22;
         get_str(issuer, "address", buf, sizeof(buf));
-        if (buf[0]) { draw_text(page, font, 10, MARGIN_L, y, buf); y -= 14; }
+        /* La dirección se ENVUELVE, no se corta (T-004): el ancho es la
+           mitad izquierda —el logo vive a la derecha— y 3 líneas bastan
+           para cualquier dirección postal razonable. */
+        if (buf[0]) y = draw_text_wrapped(page, font, 10, MARGIN_L, y,
+                                          280.0f, 3, buf);
         get_str(issuer, "email", buf, sizeof(buf));
         if (buf[0]) { draw_text(page, font, 10, MARGIN_L, y, buf); y -= 14; }
         get_str(issuer, "phone", buf, sizeof(buf));
@@ -509,7 +549,9 @@ main(void)
         get_str(buyer, "name", buf, sizeof(buf));
         if (buf[0]) { draw_text(page, font, 10, MARGIN_L, y, buf); y -= 13; }
         get_str(buyer, "address", buf, sizeof(buf));
-        if (buf[0]) { draw_text(page, font, 10, MARGIN_L, y, buf); y -= 13; }
+        /* Envuelta a todo el ancho imprimible (T-004). */
+        if (buf[0]) y = draw_text_wrapped(page, font, 10, MARGIN_L, y,
+                                          right_edge - MARGIN_L, 3, buf);
     }
     y -= 12;
 

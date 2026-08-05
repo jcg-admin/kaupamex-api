@@ -69,17 +69,21 @@ def texto_impreso(pdf: bytes) -> str:
             # comprimido" de "venía roto" exigiría leer /Filter del objeto,
             # y un stream ilegible se delata igual — el texto no aparece.
             pass
-        # Fuente TrueType embebida (T-002): el texto va como ``<hex> Tj``, no
+        # Fuente TrueType embebida (T-002): el texto va como ``<hex>``, no
         # como literal. Se decodifica UTF-16BE porque libharu escribe el code
         # point y no un índice de glifo del subconjunto — medido: ``αβγ`` sale
         # como ``03B1 03B2 03B3``, que sólo cuadra si son code points.
-        for hexado in re.findall(rb'<([0-9A-Fa-f]+)>\s*Tj', crudo):
+        #
+        # Dos operadores de dibujo: ``Tj`` (draw_text) y ``'`` — el
+        # salto-de-línea-y-muestra que ``HPDF_Page_TextRect`` emite por cada
+        # línea envuelta (T-004, medido en el stream).
+        for hexado in re.findall(rb"<([0-9A-Fa-f]+)>\s*(?:Tj|')", crudo):
             salida.append(
                 bytes.fromhex(hexado.decode()).decode('utf-16-be', 'replace'))
         # Rama de la base-14 (WinAnsi), viva mientras algún texto no pase por
         # la fuente embebida. Si deja de haber literales, esto queda inerte —
         # no se borra hasta comprobar que ningún helper los emite.
-        for literal in re.findall(rb'\((.*?)\)\s*Tj', crudo):
+        for literal in re.findall(rb"\((.*?)\)\s*(?:Tj|')", crudo):
             byteado = _OCTAL.sub(
                 lambda m: bytes([int(m.group(1), 8)]), literal)
             salida.append(byteado.decode('cp1252', errors='replace'))
@@ -268,6 +272,33 @@ class TestConversion:
         )
         # Ninguna fila desborda el buffer de 90: el recorte actuó o cupo todo.
         assert dibujadas['W'] < 90
+
+    def test_la_direccion_larga_se_envuelve_no_se_corta(self):
+        """T-004 — un campo largo se reparte en líneas, sin perder texto.
+
+        Antes las direcciones se dibujaban en UNA llamada sin envoltura: lo
+        que no cabía se salía de la caja. Con ``TextRect`` el texto se
+        envuelve por palabras y — clave — ante caja insuficiente la libharu
+        vendorizada devuelve ``HPDF_PAGE_INSUFFICIENT_SPACE`` SIN pasar por
+        el manejador de errores (``hpdf_page_operator.c:2631``), así que no
+        tumba el helper.
+        """
+        direccion = ('Avenida de los Insurgentes Sur número 3500, interior '
+                     '12-B, colonia Peña Pobre, alcaldía Tlalpan, Ciudad de '
+                     'México, C.P. 14060, México')
+        contenido = run_helper('pdf_receipt', {
+            'issuer': {'name': 'Kaupamex'},
+            'order_number': 'A-1', 'date': '2026-08-05',
+            'buyer': {'name': 'José Ñuñez', 'address': direccion},
+            'items': [], 'totals': {'total': '0.00'},
+        })
+        impreso = texto_impreso(contenido)
+        lineas = impreso.splitlines()
+        # Nada se perdió: el final de la dirección llegó al papel...
+        assert '14060' in impreso
+        # ...y ninguna línea la contiene entera — se envolvió de verdad.
+        assert not any(direccion in linea for linea in lineas)
+        assert sum('Insurgentes' in l or '14060' in l for l in lineas) >= 2
 
     def test_descriptor_invalido_sale_con_el_codigo_de_su_contrato(self):
         """Exit 1 = JSON no parseable (cabecera de ``pdf_receipt.c``)."""
