@@ -24,6 +24,8 @@ from addons.base import report_catalog
 from addons.base.report_catalog import ReportSpec, UnknownHelper
 from addons.base.models.ir_actions_report import (
     HELPER_DIR,
+    RENDERER_BY_TYPE,
+    REPORT_TYPE_CHOICES,
     HelperFailed,
     HelperNotBuilt,
     IrActionsReport,
@@ -167,12 +169,23 @@ class TestDespacho:
                                                  orden_con_lineas):
         """Contrato de ausencia de la referencia (``:1150``): ``None``, no error.
 
-        Un tipo fuera de ``RENDERER_BY_TYPE`` — una fila escrita por una
-        migración vieja, o por un addon que declare un formato que este árbol
-        aún no emite — no revienta el motor: devuelve ``None``.
+        Se usa ``text`` a propósito, y no un string inventado: es el caso
+        **real** desde H-API-291 — el valor salió del enum por no tener quien
+        lo declarara, y una fila vieja podría traerlo. Así el test mide el
+        escenario que puede ocurrir, no uno imaginado.
         """
-        reporte_orden.report_type = 'formato-que-no-emitimos'
+        reporte_orden.report_type = 'text'
         assert reporte_orden.render(orden_con_lineas) is None
+
+    def test_el_enum_solo_declara_lo_que_hay_como_renderizador(self):
+        """Ningún formato ofrecido sin quien lo rinda — la invariante de H-API-291.
+
+        El defecto que cierra no es que ``text``/``html`` fueran erróneos: es
+        que se ofrecían como opción por venir del catálogo de la referencia,
+        sin nada aquí que los emitiera. Este caso lo vuelve mecánico.
+        """
+        ofrecidos = {valor for valor, _label in REPORT_TYPE_CHOICES}
+        assert ofrecidos == set(RENDERER_BY_TYPE)
 
 
 @helpers_built

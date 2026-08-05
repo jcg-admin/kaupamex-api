@@ -149,9 +149,10 @@ class ReportSpec:
         (``'sale.order'``). Mismo criterio ya fijado por
         ``ir_rule.model_name``.
     :param name: etiqueta legible; la que ve quien imprime.
-    :param report_type: formato de salida — ``pdf`` / ``text`` / ``html``.
-        **Sin** el prefijo ``qweb-`` de la referencia: aquí no hay QWeb, así
-        que el prefijo afirmaría un sustrato inexistente. Ver
+    :param report_type: formato de salida. Hoy **sólo** ``pdf`` — el enum
+        lista lo que este árbol sabe emitir, no el catálogo de la referencia
+        (H-API-291). **Sin** el prefijo ``qweb-``: aquí no hay QWeb, así que
+        el prefijo afirmaría un sustrato inexistente. Ver
         ``REPORT_TYPE_CHOICES`` en ``ir_actions_report.py`` para la tabla de
         correspondencia con la referencia.
     :param helper: binario de ``tools/pdf/`` que dibuja. Sólo para ``pdf``.

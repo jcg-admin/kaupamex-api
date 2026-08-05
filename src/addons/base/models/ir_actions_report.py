@@ -149,24 +149,38 @@ _logger = logging.getLogger(__name__)
 #: Es el costo de **no haber conectado** el reporte al motor que el árbol ya
 #: tiene — reversible, no estructural.
 #:
+#: **2. Un solo valor, porque es lo único que este árbol sabe emitir.** El
+#: enum lista formatos con renderizador **y con quien los declare**, no el
+#: catálogo de la referencia. Medido antes de recortarlo: ``text`` tenía 0
+#: addons declarándolo y 0 tests ejercitando su renderizador, y peor —
+#: ``ReportSpec`` traía **un** slot ``builder`` con **dos** contratos
+#: incompatibles según el tipo (``dict`` para pdf, ``str`` para text) sin
+#: nada que lo hiciera cumplir. ``html`` nunca tuvo renderizador siquiera.
+#: Los dos estaban por copiar el catálogo ajeno — el mismo defecto que el
+#: prefijo, un nivel más abajo (H-API-291).
+#:
+#: Ninguno de los dos se pierde. Medido en ``odoo19c:`` sobre declaraciones
+#: reales —``<field name="report_type">…</field>`` de un registro, no
+#: menciones— con ``odoo-tools@622ddc2a``: ``qweb-text`` en **7** reportes
+#: (6 ``stock`` + 1 ``mrp``, etiquetas ZPL) y ``qweb-html`` en **1**
+#: (``stock``). *Ciega a:* declaraciones en Python en vez de XML, que este
+#: patrón no ve; los 6 hits de ``web`` que un grep amplio devuelve son el
+#: despachador del framework y tests JS, no declaraciones.
+#:
+#: El día que se porten, el valor entra **con** su renderizador, su
+#: declarante y su test, y el contrato del ``builder`` se separa entonces —
+#: que es cuando se sabrá qué forma necesita. Mientras tanto, una fila con
+#: ``text`` cae en el contrato de ausencia y devuelve ``None``.
+#:
 #: Precedente del proyecto para la misma clase de llamada: ``Company`` y no
 #: ``Tenant`` (``terminologia-l0-company.md``).
 #:
-#: **2. Sin ``html``.** No es un rename: es un formato que este árbol **no
-#: produce**. Estaba en el enum sólo por copiar el catálogo ajeno — el mismo
-#: defecto que el prefijo, un nivel más arriba: declarar como opción una
-#: capacidad de la referencia, no nuestra. La referencia tiene **un** reporte
-#: ``qweb-html`` (``stock.report_stock_rule``); si algún día se porta, hará
-#: falta su renderizador, y el valor entra **con** él.
-#:
-#: Correspondencia para quien compare las dos tablas:
-#: ``pdf`` ≙ ``qweb-pdf`` · ``text`` ≙ ``qweb-text`` · (sin análogo de
-#: ``qweb-html``).
+#: Correspondencia para quien compare las dos tablas: ``pdf`` ≙ ``qweb-pdf``.
+#: ``qweb-text`` y ``qweb-html`` no tienen análogo **todavía** — no porque
+#: sean intraducibles, sino porque nada aquí los emite.
 REPORT_TYPE_PDF = 'pdf'
-REPORT_TYPE_TEXT = 'text'
 REPORT_TYPE_CHOICES = [
     (REPORT_TYPE_PDF, 'PDF'),
-    (REPORT_TYPE_TEXT, 'Texto'),
 ]
 
 #: ``type`` por defecto de esta acción.
@@ -183,13 +197,12 @@ BINDING_TYPE_REPORT = 'report'
 #: pero un mapa explícito deja ver de un vistazo **qué formatos se rinden** y
 #: cuáles no — que es justamente la información que aquí no es obvia.
 #:
-#: ``html`` no tiene entrada: exigiría un intermedio neutral que el colapso
-#: composición+conversión de los helpers no deja construir (ver
-#: ``report_catalog.py``). Su ausencia devuelve ``None``, no un error — mismo
-#: contrato que ``:1150``.
+#: Hoy el mapa tiene una sola entrada, y esa es la información: **este árbol
+#: emite PDF y nada más**. Cualquier otro valor —``text`` de una fila vieja,
+#: ``html`` de un addon que lo declare antes de tiempo— cae en el contrato de
+#: ausencia y devuelve ``None``, no un error; mismo contrato que ``:1150``.
 RENDERER_BY_TYPE = {
     REPORT_TYPE_PDF: '_render_pdf',
-    REPORT_TYPE_TEXT: '_render_text',
 }
 
 #: Directorio de los helpers compilados. ``BASE_DIR`` es ``src/``
@@ -471,9 +484,10 @@ class IrActionsReport(IrActionsBase):
         incluido su contrato de ausencia: un tipo sin renderizador devuelve
         ``None``, no levanta (``:1150``).
 
-        :returns: tupla ``(contenido, extensión)`` — ``bytes`` para
-            ``qweb-pdf``, ``str`` para ``qweb-text``. Misma forma que la
-            referencia (``:1110``, ``:1119``).
+        :returns: tupla ``(contenido, extensión)`` — hoy siempre ``bytes`` y
+            ``'pdf'``, porque es el único formato con renderizador. Misma
+            forma que la referencia (``:1110``), que devuelve ``str`` cuando
+            el tipo es de texto.
         :raises UnknownReport: si nadie declara este ``report_name``.
         """
         spec = report_catalog.get(self.report_name)
@@ -495,13 +509,8 @@ class IrActionsReport(IrActionsBase):
         """
         return run_helper(spec.helper, spec.builder(records, **ctx)), 'pdf'
 
-    def _render_text(self, spec, records, ctx):
-        """Salida de texto plano — el constructor la produce entera.
-
-        Es el ``report_type`` de las etiquetas térmicas: en la referencia
-        ``label_product_product``, ``label_lot_template`` y cinco más son
-        ``qweb-text`` (medido: 7 registros en ``stock``, 1 en ``mrp``). ZPL es
-        un lenguaje de impresora, así que producirlo es **componer texto** —
-        no hace falta hardware ni para generarlo ni para probarlo.
-        """
-        return spec.builder(records, **ctx), 'txt'
+    # Aquí vivía ``_render_text``, retirado en H-API-291 por no tener quien lo
+    # declarara ni quien lo probara. Su vuelta tiene destinatario concreto —
+    # las 7 etiquetas ZPL de ``odoo19c:`` (6 ``stock`` + 1 ``mrp``)— y una
+    # condición: entra con su declarante y su test, y separando el contrato
+    # del ``builder``, que para texto devuelve ``str`` y no el descriptor.
