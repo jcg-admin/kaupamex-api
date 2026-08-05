@@ -14,10 +14,7 @@ la semántica de ``_inherit``.
 from django.utils import timezone
 
 from addons.base.models import ResCompany, ResCurrency
-from addons.sale_subscription.data.res_company_data import (
-    FOUNDER_COMPANY_CODE,
-    SYSTEM_COMPANY_CODE,
-)
+from addons.sale_subscription.data.res_company_data import SYSTEM_COMPANY_CODE
 
 
 def active_module_codes(self, now=None):
@@ -34,21 +31,6 @@ def active_module_codes(self, now=None):
         if sub.is_active(now):
             codes.add(sub.module.code)
     return codes
-
-
-def get_founder(cls):
-    """El L1 insignia (PracticaYoruba), sembrándolo si falta. Idempotente.
-
-    Semilla de DATO de este addon — ``base`` no nombra tenants. El camino de
-    creación es el genérico de ``base`` (fabrica el partner, como el
-    ``create`` de la fuente).
-    """
-    company = cls.objects.filter(code=FOUNDER_COMPANY_CODE).first()
-    if company is not None:
-        return company
-    return cls.create_company(
-        'PracticaYoruba', currency=_seed_currency(),
-        code=FOUNDER_COMPANY_CODE, status=cls.Status.ACTIVE)
 
 
 def get_system(cls):
@@ -69,5 +51,4 @@ def _seed_currency():
 
 
 ResCompany.active_module_codes = active_module_codes
-ResCompany.get_founder = classmethod(get_founder)
 ResCompany.get_system = classmethod(get_system)

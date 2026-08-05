@@ -555,9 +555,10 @@ class ResCompany(TimeStampedModel):
     def create_company(cls, name, currency=None, **values):
         """Azúcar sobre el ``create`` del manager (que fabrica el partner).
 
-        ABSTRACTO: ningún tenant concreto se nombra aquí; la semilla de
-        compañías reales es DATO de los addons que las declaran
-        (``sale_subscription/data``).
+        ABSTRACTO: ninguna empresa concreta se nombra aquí; la compañía de
+        sistema es DATO del addon que la declara
+        (``sale_subscription/data``) y las L1 se crean por bootstrap
+        (``company_create``), no por código.
         """
         if currency is not None:
             values['currency'] = currency

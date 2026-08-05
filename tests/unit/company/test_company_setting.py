@@ -14,14 +14,13 @@ subdominio→company (UC-PLT-06), no un error.
 """
 import pytest
 from django.db import IntegrityError, transaction
+from django.test import override_settings
 
 from orm.environments import company_scope, get_current_company
-from addons.base.models import CompanySetting
+from addons.base.models import CompanySetting, ResCompany
 from addons.sale_subscription.data.res_company_data import (
-    FOUNDER_COMPANY_CODE,
-    FOUNDER_L1_SETTINGS,
+    seed as bootstrap_company_seed,
 )
-from addons.base.models import ResCompany
 
 pytestmark = pytest.mark.django_db
 
@@ -127,63 +126,48 @@ class TestPerCompanyIsolation:
         ).count() == 2
 
 
-class TestFounderSeeding:
-    """Migración ``company/0006_seed_founder_settings`` — PracticaYoruba es
-    un tenant **L1** (founder, NO L0/Kaupamex): sus valores de contacto/
-    newsletter no eran stale, se siembran como SU propio ``CompanySetting``.
+class TestBootstrapCompanySeeding:
+    """El remitente de una L1 es DATO del deployment, no constante de código.
+
+    Antes existía ``FOUNDER_COMPANY_CODE = 'practicayoruba'`` con sus cuatro
+    remitentes cableados en ``sale_subscription/data``, y esta clase afirmaba
+    esos valores literales. DEC-3 (``tenants-sin-clases-en-codigo``) los
+    eliminó: la empresa inicial se declara en config
+    (``BOOTSTRAP_COMPANY_CODE``) y sus ``CompanySetting`` se siembran por
+    bootstrap (``company_create --setting clave=valor``). Lo que se prueba es
+    el **mecanismo** — que cada empresa lleva su propio valor y que el
+    fallback es neutral —, no el remitente de una empresa concreta.
     """
 
-    @pytest.fixture(autouse=True)
-    def _reseed_founder_settings(self, db):
-        # Reseed idempotente: un test ``transaction=True`` previo (p.ej. el
-        # de aislamiento multi-DB SOL-091,
-        # tests/integration/platform/test_multidb_isolation.py) hace
-        # ``flush`` de 'default' sin re-correr la data-migration
-        # company/0006_seed_founder_settings, dejando ausente la fila
-        # founder + sus CompanySetting para los tests que corren después —
-        # mismo patrón order-dependent que H-CFG-IMPL-09 (SystemParameter,
-        # tests/unit/base/test_system_parameter.py). Restaura el estado que
-        # la migración garantiza en producción, sin depender del orden.
-        founder = ResCompany.get_founder()
-        for key, value in FOUNDER_L1_SETTINGS.items():
-            CompanySetting.set_setting(key, value, founder)
+    KEYS = ('contact.from_email', 'contact.notify_email',
+            'newsletter.from_email', 'notifications.from_email')
 
-    def test_founder_has_its_own_seeded_contact_settings(self):
-        founder = ResCompany.objects.get(code=FOUNDER_COMPANY_CODE)
-        assert CompanySetting.get_setting(
-            'contact.from_email', company=founder,
-        ) == 'hola@practicayoruba.com'
-        assert CompanySetting.get_setting(
-            'contact.notify_email', company=founder,
-        ) == 'hola@practicayoruba.com'
-        assert CompanySetting.get_setting(
-            'newsletter.from_email', company=founder,
-        ) == 'newsletter@practicayoruba.com'
-        # #199: remitente no-reply transaccional del founder (auth/órdenes/
-        # envíos/devoluciones/soporte) — antes ``DEFAULT_FROM_EMAIL`` global.
-        assert CompanySetting.get_setting(
-            'notifications.from_email', company=founder,
-        ) == 'noreply@practicayoruba.com'
+    def test_bootstrap_seed_creates_the_company_declared_in_config(self):
+        with override_settings(BOOTSTRAP_COMPANY_CODE='ejemplo-l1',
+                               BOOTSTRAP_COMPANY_NAME='Ejemplo L1'):
+            first = bootstrap_company_seed()
+            again = bootstrap_company_seed()      # idempotente
+        assert first is not None
+        assert again.pk == first.pk
+        assert ResCompany.objects.filter(code='ejemplo-l1').count() == 1
 
-    def test_neutral_fallback_is_not_practicayoruba_specific_for_other_company(self):
-        other = _company('other-tenant-founder-seed')
+    def test_bootstrap_seed_is_a_no_op_without_declared_code(self):
+        with override_settings(BOOTSTRAP_COMPANY_CODE=''):
+            assert bootstrap_company_seed() is None
+
+    def test_each_company_carries_its_own_sender_settings(self):
+        acme = _company('acme-bootstrap-seed')
+        for key in self.KEYS:
+            CompanySetting.set_setting(key, 'buzon@acme.com', acme)
+        for key in self.KEYS:
+            assert CompanySetting.get_setting(
+                key, company=acme) == 'buzon@acme.com'
+
+    def test_neutral_fallback_applies_to_a_company_without_rows(self):
+        other = _company('other-company-bootstrap-seed')
         assert CompanySetting.get_setting(
             'contact.from_email', 'hola@kaupamex.com', company=other,
         ) == 'hola@kaupamex.com'
-
-    def test_founder_seeding_is_idempotent_with_manual_seed(self):
-        founder = ResCompany.objects.get(code=FOUNDER_COMPANY_CODE)
-        # Re-crear la company founder es un no-op (get_or_create); confirma
-        # que no hay una segunda fila duplicada de la migración.
-        again, created = ResCompany.objects.get_or_create(
-            code=FOUNDER_COMPANY_CODE,
-            defaults={'name': 'PracticaYoruba', 'status': ResCompany.Status.ACTIVE},
-        )
-        assert created is False
-        assert again.pk == founder.pk
-        assert CompanySetting.objects.filter(
-            company=founder, key='contact.from_email',
-        ).count() == 1
 
 
 class TestMeta:

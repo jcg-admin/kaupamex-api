@@ -25,6 +25,7 @@ El test 2 depende del orden dentro de esta clase (``-p no:randomly`` está en
 ``pytest.ini``): el transaccional corre antes que el que verifica.
 """
 import pytest
+from django.test import override_settings
 
 from addons.authz_password_policy.data import PASSWORD_POLICY_PARAMETERS
 from addons.authz_password_policy.data import seed as password_policy_seed
@@ -36,11 +37,8 @@ from addons.base.models import SystemParameter
 from addons.base_geolocalize.data import GEO_PROVIDERS
 from addons.base_geolocalize.data import seed as geo_providers_seed
 from addons.base_geolocalize.models import GeoProvider
-from addons.sale_subscription.data.res_company_data import seed as founder_company_seed
-from addons.base.models import CompanySetting
 from addons.sale_subscription.data.res_company_data import (
-    FOUNDER_COMPANY_CODE,
-    FOUNDER_L1_SETTINGS,
+    seed as bootstrap_company_seed,
 )
 from addons.base.models import ResCompany
 from addons.mail.data import CANONICAL_SUBTYPES
@@ -55,12 +53,18 @@ _SEED_KEYS = (tuple(PASSWORD_POLICY_PARAMETERS) + tuple(SIGNUP_PARAMETERS)
               + tuple(TOTP_PARAMETERS))
 
 _ALL_SEEDERS = (password_policy_seed, signup_flags_seed, totp_params_seed,
-                mail_subtypes_seed, geo_providers_seed, founder_company_seed)
+                mail_subtypes_seed, geo_providers_seed, bootstrap_company_seed)
+
+# La empresa de bootstrap NO entra en ``_seeds_present``: su semilla depende de
+# ``BOOTSTRAP_COMPANY_CODE`` (DEC-3 — la app ya no nombra ninguna empresa L1 en
+# código), y en la suite esa clave está vacía, así que ``seed()`` es un no-op
+# legítimo. Su restauración se verifica aparte, declarando el código con
+# ``override_settings`` (``TestRestauracionDeLaEmpresaDeBootstrap``).
+_BOOTSTRAP_CODE = 'bootstrap-flush-test'
 
 
 def _seeds_present():
     """Estado de todas las familias de semilla, como dict verificable."""
-    founder = ResCompany.objects.filter(code=FOUNDER_COMPANY_CODE).first()
     return {
         'params': SystemParameter.objects.filter(key__in=_SEED_KEYS).count(),
         'subtypes': MailMessageSubtype.objects.filter(
@@ -68,8 +72,6 @@ def _seeds_present():
             res_model='').count(),
         'geo': GeoProvider.objects.filter(
             tech_name__in=[t for t, _ in GEO_PROVIDERS]).count(),
-        'l1_settings': (0 if founder is None else CompanySetting.objects.filter(
-            company_id=founder.pk, key__in=list(FOUNDER_L1_SETTINGS)).count()),
     }
 
 
@@ -77,7 +79,6 @@ _ESPERADO = {
     'params': len(_SEED_KEYS),
     'subtypes': len(CANONICAL_SUBTYPES),
     'geo': len(GEO_PROVIDERS),
-    'l1_settings': len(FOUNDER_L1_SETTINGS),
 }
 
 
@@ -122,7 +123,6 @@ class TestRestauracionTrasElFlush:
         SystemParameter.objects.filter(key__in=_SEED_KEYS).delete()
         MailMessageSubtype.objects.filter(res_model='').delete()
         GeoProvider.objects.all().delete()
-        CompanySetting.objects.filter(key__in=list(FOUNDER_L1_SETTINGS)).delete()
         assert _seeds_present() != _ESPERADO      # el flush deja hueco real
 
         for seed in _ALL_SEEDERS:                 # lo que corre el hook
@@ -138,3 +138,30 @@ class TestRestauracionTrasElFlush:
         """
         assert hasattr(conftest, 'pytest_runtest_teardown')
         assert set(conftest._SEEDERS) >= set(_ALL_SEEDERS)
+
+
+class TestRestauracionDeLaEmpresaDeBootstrap:
+    """La empresa declarada en config también se restaura tras el flush.
+
+    Va aparte porque su semilla es condicional: sin ``BOOTSTRAP_COMPANY_CODE``
+    no hay empresa que sembrar (DEC-3), así que el código se declara aquí con
+    ``override_settings`` en vez de asumirlo en ``_ESPERADO``.
+    """
+
+    def test_borrar_y_re_sembrar_restaura_la_empresa_declarada(self):
+        with override_settings(BOOTSTRAP_COMPANY_CODE=_BOOTSTRAP_CODE,
+                               BOOTSTRAP_COMPANY_NAME='Bootstrap Flush Test'):
+            bootstrap_company_seed()
+            assert ResCompany.objects.filter(code=_BOOTSTRAP_CODE).exists()
+
+            ResCompany.objects.filter(code=_BOOTSTRAP_CODE).delete()
+            assert not ResCompany.objects.filter(code=_BOOTSTRAP_CODE).exists()
+
+            bootstrap_company_seed()              # lo que corre el hook
+            assert ResCompany.objects.filter(code=_BOOTSTRAP_CODE).count() == 1
+
+    def test_sin_codigo_declarado_el_sembrador_no_fabrica_empresas(self):
+        with override_settings(BOOTSTRAP_COMPANY_CODE=''):
+            antes = ResCompany.objects.count()
+            assert bootstrap_company_seed() is None
+            assert ResCompany.objects.count() == antes

@@ -27,12 +27,10 @@ pytestmark = pytest.mark.django_db
 
 class TestCompanyModel:
     def test_create_and_str(self):
-        # code distinto de FOUNDER_COMPANY_CODE ('practicayoruba'): esa fila
-        # ya existe, sembrada por la migración de datos
-        # company/0006_seed_founder_settings (SOL-090 slice 3) con sus
-        # CompanySetting L3 — este test sólo verifica la creación/str/default
-        # genéricos, no la identidad del tenant founder (ver
-        # test_founder_system_company.py para eso).
+        # Código propio del test: la empresa de bootstrap (si el deployment
+        # declara ``BOOTSTRAP_COMPANY_CODE``) puede coexistir. Este test sólo
+        # verifica la creación/str/default genéricos, no la identidad de una
+        # empresa concreta — ver test_system_company.py para eso.
         t = ResCompany.objects.create(code="wonka-basic", name="Wonka")
         # __str__ = name (fiel a la referencia: el display es la razón
         # social del partner, no el código de plataforma).

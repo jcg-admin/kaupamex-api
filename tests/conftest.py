@@ -29,7 +29,9 @@ from addons.sale_stock.data.report_templates import (
 from addons.sale_subscription.security.ir_rules import (
     seed as subscription_rules_seed,
 )
-from addons.sale_subscription.data.res_company_data import seed as founder_company_seed
+from addons.sale_subscription.data.res_company_data import (
+    seed as bootstrap_company_seed,
+)
 from addons.mail.data import seed as mail_subtypes_seed
 from tests.factories.user_factory import make_buyer  # noqa: F401 (re-export)
 
@@ -280,7 +282,7 @@ _SEEDERS = (
     totp_params_seed,           # authz_totp/0001 + 0002
     mail_subtypes_seed,         # mail/0002
     geo_providers_seed,         # base_geolocalize/0002
-    founder_company_seed,       # company/0006 + 0007
+    bootstrap_company_seed,     # BOOTSTRAP_COMPANY_CODE (no-op si no se declara)
     base_rules_seed,            # base/security (record rules multi-company)
     sale_rules_seed,            # sale/security/ir_rules
     subscription_rules_seed,    # sale_subscription/security/ir_rules

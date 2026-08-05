@@ -41,20 +41,19 @@ class CompanySetting(TimeStampedModel):
     fila (SOL-085) es una capa distinta y necesaria además del aislamiento
     por base (SOL-091), no redundante con él.
 
-    **L0 (Kaupamex, operador) vs L1 (PracticaYoruba, el de ejemplo).**
-    PracticaYoruba es un **tenant L1** (``FOUNDER_COMPANY_CODE``), NO L0 —
-    Kaupamex es L0 (el operador de la plataforma). Por eso los valores
-    ``hola@practicayoruba.com`` / ``newsletter@practicayoruba.com`` (antes
-    ``default=`` de ``config.settings.base``) NO eran stale: son la config
-    **L1 correcta** de ese tenant, y la migración ``0006`` los siembra como
-    filas de ``CompanySetting`` de PracticaYoruba (no los reemplaza por un
-    valor de Kaupamex). El fallback de ``get_setting`` (sin empresa activa o
-    sin fila para esa empresa) sí es **neutral, nivel Kaupamex** —
-    PracticaYoruba es solo uno de potencialmente varios tenants. Contrástese
-    con L2 (``addons.base.SystemParameter``): ``backup.alert_email`` →
-    ``admin@kaupamex.com`` es correcto ahí porque el alertamiento de backups
-    es infra **L0** (plataforma), sin dimensión de empresa — a diferencia de
-    contacto/newsletter, que sí son per-tenant.
+    **L0 (Kaupamex, operador) vs L1 (la empresa cliente).** Los remitentes de
+    contacto/newsletter de una empresa concreta (antes ``default=`` de
+    ``config.settings.base``) NO eran stale: son su config **L1 correcta**, y
+    viven como filas de ``CompanySetting`` suyas. Desde DEC-3
+    (``tenants-sin-clases-en-codigo``) ninguna empresa L1 se nombra en código:
+    esas filas las siembra el bootstrap
+    (``manage.py company_create <code> --setting clave=valor``). El fallback de
+    ``get_setting`` (sin empresa activa o sin fila para esa empresa) sí es
+    **neutral, nivel Kaupamex** — cada L1 es una de potencialmente varias.
+    Contrástese con L2 (``addons.base.SystemParameter``):
+    ``backup.alert_email`` → ``admin@kaupamex.com`` es correcto ahí porque el
+    alertamiento de backups es infra **L0** (plataforma), sin dimensión de
+    empresa — a diferencia de contacto/newsletter, que sí son per-empresa.
     """
 
     company = fields.Many2one(

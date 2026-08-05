@@ -213,8 +213,9 @@ if _DB_SOCKET:
 # Config de conexión — SIN ``default=`` (SOL-087, directiva ejecutor
 # 2026-07-16): toda la configuración vive en ``.env`` (12-factor). Falla
 # ruidoso si una clave falta, en vez de esconder un valor mágico en el código.
-# La infraestructura la nombra el operador L0 (Kaupamex), no un tenant;
-# practicayoruba queda como fila de la tabla ``company`` (get_founder).
+# La infraestructura la nombra el operador L0 (Kaupamex), no una empresa L1;
+# cada L1 queda como fila de la tabla ``res_company``, creada por bootstrap
+# (``BOOTSTRAP_COMPANY_CODE`` + ``company_create``), no por código.
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -288,30 +289,35 @@ DEFAULT_FROM_EMAIL = 'noreply@kaupamex.com'
 # su buzón monitoreado para que la conversación llegue a un humano y las
 # respuestas no caigan en un buzón no-reply.
 #
-# Los remitentes de correo per-tenant migraron a L3
+# Los remitentes de correo per-empresa migraron a L3
 # (``addons.base.CompanySetting`` — per-empresa, FK ``company`` +
 # record rules ``ir_rule``): ya NO son settings de Django.
 #
 # - CONTACT_FROM_EMAIL/CONTACT_NOTIFY_EMAIL/NEWSLETTER_FROM_EMAIL → SOL-090
-#   slice 3 (``company/0006_seed_founder_settings``).
+#   slice 3.
 # - DEFAULT_FROM_EMAIL (remitente no-reply transaccional: auth, órdenes,
 #   envíos, devoluciones, soporte) → follow-up #199, clave
-#   ``notifications.from_email`` (``company/0007_seed_founder_notifications_from``).
+#   ``notifications.from_email``.
 #
-# Los valores previos (``hola@practicayoruba.com`` / ``newsletter@practica…`` /
-# ``noreply@practicayoruba.com``) NO eran stale — PracticaYoruba es un tenant
-# **L1** (el de ejemplo, NO L0/Kaupamex), y esos eran su config correcta. Las
-# migraciones los siembran como filas ``CompanySetting`` de PracticaYoruba
-# (founder), no los reemplazan. Los consumidores
-# (``addons.website.controllers``, ``addons.mass_mailing.controllers``,
-# ``addons.mail.emails``, ``addons.authz_signup.tokens_email``) leen
+# Los consumidores (``addons.crm.controllers``,
+# ``addons.mass_mailing.controllers``, ``addons.mail.models``,
+# ``addons.website_mass_mailing.controllers``) leen
 # ``CompanySetting.get_setting('<key>', <fallback neutral>)`` bajo la empresa
 # resuelta (ambiente para flujos autenticados; ``company=user.company_id``
-# explícito para auth pre-login); el fallback SÍ es neutral (nivel Kaupamex,
-# ``*@kaupamex.com``) — PracticaYoruba es solo un tenant entre potencialmente
-# varios. Cierra H-CFG-IMPL-10 + H-CFG-IMPL-13. Ver
+# explícito para auth pre-login); el fallback ES neutral (nivel Kaupamex,
+# ``*@kaupamex.com``) — el L1 de ejemplo es una empresa entre potencialmente
+# varias, así que su remitente propio se declara en el bootstrap
+# (``manage.py company_create <code> --setting clave=valor``), NO como
+# constante de código. Cierra H-CFG-IMPL-10 + H-CFG-IMPL-13. Ver
 # addons.base.models.CompanySetting y
 # hallazgos-implementar-systemparameter-l2.
+
+# Bootstrap de la primera empresa L1 (DEC-3 de ``tenants-sin-clases-en-codigo``).
+# La app NO nombra "el founder" por código en runtime: la empresa inicial se
+# declara aquí (12-factor, ``.env``) y la crea ``company_create``. Vacío = la
+# instalación no siembra ninguna empresa por sí sola.
+BOOTSTRAP_COMPANY_CODE = config('BOOTSTRAP_COMPANY_CODE', default='')
+BOOTSTRAP_COMPANY_NAME = config('BOOTSTRAP_COMPANY_NAME', default='')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
