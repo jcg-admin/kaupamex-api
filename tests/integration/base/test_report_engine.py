@@ -67,6 +67,16 @@ def texto_impreso(pdf: bytes) -> str:
             # comprimido" de "venía roto" exigiría leer /Filter del objeto,
             # y un stream ilegible se delata igual — el texto no aparece.
             pass
+        # Fuente TrueType embebida (T-002): el texto va como ``<hex> Tj``, no
+        # como literal. Se decodifica UTF-16BE porque libharu escribe el code
+        # point y no un índice de glifo del subconjunto — medido: ``αβγ`` sale
+        # como ``03B1 03B2 03B3``, que sólo cuadra si son code points.
+        for hexado in re.findall(rb'<([0-9A-Fa-f]+)>\s*Tj', crudo):
+            salida.append(
+                bytes.fromhex(hexado.decode()).decode('utf-16-be', 'replace'))
+        # Rama de la base-14 (WinAnsi), viva mientras algún texto no pase por
+        # la fuente embebida. Si deja de haber literales, esto queda inerte —
+        # no se borra hasta comprobar que ningún helper los emite.
         for literal in re.findall(rb'\((.*?)\)\s*Tj', crudo):
             byteado = _OCTAL.sub(
                 lambda m: bytes([int(m.group(1), 8)]), literal)
@@ -205,18 +215,21 @@ class TestConversion:
                                                   orden_con_lineas):
         """H-API-290 — el español del producto no puede salir corrompido.
 
-        El descriptor viaja con ``\\uXXXX`` (``ensure_ascii=True``) porque es
-        la única rama del lector del helper que produce un byte WinAnsi; con
-        UTF-8 crudo, ``días`` llegaba como los dos bytes ``C3 AD`` y la página
-        decía ``dÃ­as``. Se afirma sobre el texto dibujado, no sobre el
-        descriptor: el descriptor ya era correcto cuando el papel no lo era.
+        Se afirma sobre el texto **dibujado**, no sobre el descriptor: el
+        descriptor ya era correcto cuando el papel no lo era, y por eso un
+        test que sólo mirara el JSON habría dado verde con el bug vivo.
 
-        El nombre se mantiene bajo 36 **bytes**: el helper corta ahí para que
-        entre en la columna (``pdf_receipt.c:446``). Con la codificación ya
-        corregida cada acento ocupa uno, así que el corte no parte un carácter
-        por la mitad — con UTF-8 crudo sí podía.
+        Cubre además lo que WinAnsi no podía expresar (``€``, ``—``, ``αβγ``):
+        desde T-002 la fuente es LiberationSans embebida y el documento habla
+        UTF-8, así que el juego de caracteres dejó de estar limitado a
+        Latin-1. Antes ``€`` y ``—`` llegaban al papel como ``?``.
+
+        El nombre se mantiene corto: el helper recorta la columna por bytes
+        (``pdf_receipt.c``), y en UTF-8 un acento ocupa dos — un nombre largo
+        se cortaría por razones de ancho, no de codificación, y enmascararía
+        lo que este caso mide.
         """
-        acentuado = 'Vela 7 días · ñ ó ú ¿va?'
+        acentuado = 'Vela ñ ó ú € — αβγ'
         linea = orden_con_lineas.order_line.first()
         linea.name = acentuado
         linea.save(update_fields=['name'])

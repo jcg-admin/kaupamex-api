@@ -36,6 +36,7 @@
 #include <string.h>
 #include <setjmp.h>
 #include <hpdf.h>
+#include "pdf_fonts.h"
 
 /* ------------------------------------------------------------------ *
  *  Input buffering                                                    *
@@ -153,6 +154,44 @@ obj_find(const char *obj, const char *key)
 }
 
 /*
+ * Escribe `cp` como UTF-8 en `out`; devuelve los bytes escritos, o 0 si no
+ * caben en `espacio`. El documento habla UTF-8 desde que la fuente es
+ * LiberationSans embebida con HPDF_UseUTFEncodings (DEC-01 de
+ * `integrar-libharu`) — antes hablaba WinAnsi, un byte por carácter.
+ */
+static size_t
+utf8_encode(unsigned long cp, char *out, size_t espacio)
+{
+    if (cp < 0x80) {
+        if (espacio < 1) return 0;
+        out[0] = (char)cp;
+        return 1;
+    }
+    if (cp < 0x800) {
+        if (espacio < 2) return 0;
+        out[0] = (char)(0xC0 | (cp >> 6));
+        out[1] = (char)(0x80 | (cp & 0x3F));
+        return 2;
+    }
+    if (cp < 0x10000) {
+        if (espacio < 3) return 0;
+        out[0] = (char)(0xE0 | (cp >> 12));
+        out[1] = (char)(0x80 | ((cp >> 6) & 0x3F));
+        out[2] = (char)(0x80 | (cp & 0x3F));
+        return 3;
+    }
+    if (cp <= 0x10FFFF) {
+        if (espacio < 4) return 0;
+        out[0] = (char)(0xF0 | (cp >> 18));
+        out[1] = (char)(0x80 | ((cp >> 12) & 0x3F));
+        out[2] = (char)(0x80 | ((cp >> 6) & 0x3F));
+        out[3] = (char)(0x80 | (cp & 0x3F));
+        return 4;
+    }
+    return 0;
+}
+
+/*
  * Decode a JSON string value at p (pointing AT the opening '"') into out
  * (size cap). Returns pointer just past the string value, or p unchanged if
  * p is not a string.
@@ -175,17 +214,30 @@ json_string(const char *p, char *out, size_t cap)
                 case '\\': if (o + 1 < cap) out[o++] = '\\'; break;
                 case '/': if (o + 1 < cap) out[o++] = '/';  break;
                 case 'u': {
-                    /* One WinAnsi byte per \uXXXX; above U+00FF folds to
-                       '?'. The producer must send escapes
-                       (ensure_ascii=True) — raw UTF-8 falls to the default
-                       branch and reaches the page as its bytes (H-API-290). */
+                    /* Decodifica \uXXXX a UTF-8, que es lo que el documento
+                       habla desde que la fuente es TrueType embebida. Antes
+                       plegaba a UN byte WinAnsi y mandaba '?' arriba de
+                       U+00FF, lo que perdía el '€' y el em-dash; con la
+                       fuente UTF ese plegado además da mojibake. Ver
+                       H-API-290 y la sonda de T-002. */
                     if (p[1] && p[2] && p[3] && p[4]) {
                         char hex[5] = { p[1], p[2], p[3], p[4], 0 };
-                        long cp = strtol(hex, NULL, 16);
-                        if (cp < 0x80) { if (o + 1 < cap) out[o++] = (char)cp; }
-                        else if (cp < 0x100) { if (o + 1 < cap) out[o++] = (char)cp; }
-                        else { if (o + 1 < cap) out[o++] = '?'; }
+                        unsigned long cp = strtoul(hex, NULL, 16);
                         p += 4;
+                        /* Par suplente UTF-16: dos escapes, un codepoint. */
+                        if (cp >= 0xD800 && cp <= 0xDBFF &&
+                            p[1] == '\\' && p[2] == 'u' &&
+                            p[3] && p[4] && p[5] && p[6]) {
+                            char bajo[5] = { p[3], p[4], p[5], p[6], 0 };
+                            unsigned long lo = strtoul(bajo, NULL, 16);
+                            if (lo >= 0xDC00 && lo <= 0xDFFF) {
+                                cp = 0x10000UL + ((cp - 0xD800) << 10)
+                                   + (lo - 0xDC00);
+                                p += 6;
+                            }
+                        }
+                        if (o + 1 < cap)
+                            o += utf8_encode(cp, out + o, cap - o - 1);
                     }
                     break;
                 }
@@ -269,6 +321,28 @@ draw_header_row(HPDF_Page page, HPDF_Font font_bold, float y,
     HPDF_Page_Stroke(page);
 }
 
+/* --- catálogo tipográfico embebido (DEC-01/DEC-02 de `integrar-libharu`) ---
+ *
+ * La fuente viaja DENTRO del binario (build/pdf_fonts.c, generado desde el
+ * .ttf vendorizado). No se lee de /usr/share/fonts ni de ninguna ruta: el
+ * helper no resuelve nada en runtime, así que no tiene un modo de fallo
+ * "fuente no encontrada" que obligara a elegir entre abortar y degradar en
+ * silencio — y el silencio es lo que H-API-290 costó descubrir.
+ *
+ * Con UTF-8 + TrueType desaparecen las tres limitaciones que WinAnsi imponía:
+ * el plegado a un byte, el '?' para todo lo que pase de U+00FF, y la
+ * aproximación en 80-9F. LiberationSans es métricamente compatible con
+ * Helvetica —la que se usaba antes—, así que el diseño no se mueve.
+ */
+static HPDF_Font
+cargar_fuente(HPDF_Doc pdf, const unsigned char *datos, unsigned int largo)
+{
+    const char *nombre = HPDF_LoadTTFontFromMemory(pdf, datos, largo, HPDF_TRUE);
+    if (!nombre)
+        return NULL;
+    return HPDF_GetFont(pdf, nombre, "UTF-8");
+}
+
 int
 main(void)
 {
@@ -302,8 +376,22 @@ main(void)
 
     HPDF_SetCompressionMode(pdf, HPDF_COMP_ALL);
 
-    HPDF_Font font      = HPDF_GetFont(pdf, "Helvetica", "WinAnsiEncoding");
-    HPDF_Font font_bold = HPDF_GetFont(pdf, "Helvetica-Bold", "WinAnsiEncoding");
+    if (HPDF_UseUTFEncodings(pdf) != HPDF_OK) {
+        fprintf(stderr, "pdf_report: no se pudo registrar el encoder UTF-8\n");
+        HPDF_Free(pdf);
+        free(g_input);
+        return 2;
+    }
+    HPDF_Font font      = cargar_fuente(pdf, liberation_sans_regular,
+                                        liberation_sans_regular_len);
+    HPDF_Font font_bold = cargar_fuente(pdf, liberation_sans_bold,
+                                        liberation_sans_bold_len);
+    if (!font || !font_bold) {
+        fprintf(stderr, "pdf_report: no se pudo cargar la fuente embebida\n");
+        HPDF_Free(pdf);
+        free(g_input);
+        return 2;
+    }
 
     HPDF_Page page = HPDF_AddPage(pdf);
     HPDF_Page_SetSize(page, HPDF_PAGE_SIZE_A4, HPDF_PAGE_LANDSCAPE);

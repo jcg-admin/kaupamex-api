@@ -264,11 +264,16 @@ def run_helper(helper, descriptor):
         raise HelperNotBuilt(
             f'{path} no existe; correr `make pdf` en api (ADR-017, H-API-287)')
 
-    # ``ensure_ascii=True`` NO es cosmético: el lector JSON del helper sólo
-    # traduce a un byte WinAnsi por la rama ``\uXXXX``
-    # (``pdf_receipt.c:190-211``). Con UTF-8 crudo, "días" llega al papel como
-    # los dos bytes C3 AD — "dÃ­as". Ver H-API-290.
-    payload = json.dumps(descriptor, ensure_ascii=True).encode('ascii')
+    # El descriptor viaja en UTF-8 crudo. Ya no hace falta ``ensure_ascii``:
+    # desde que el helper embebe LiberationSans y registra el encoder UTF-8,
+    # su lector JSON traduce ``\uXXXX`` a UTF-8 y copia el UTF-8 crudo tal
+    # cual — medido: ambas formas dibujan "— ñ é Á ¿ ¡ αβγ €" idénticas.
+    #
+    # Hasta T-002 esto era ``ensure_ascii=True``, y no por estilo: con la
+    # fuente WinAnsi anterior la rama ``\uXXXX`` era la ÚNICA que producía el
+    # acento correcto, y el UTF-8 crudo llegaba al papel como sus bytes
+    # ("días" -> "dÃ­as"). Ver H-API-290.
+    payload = json.dumps(descriptor, ensure_ascii=False).encode('utf-8')
     try:
         completed = subprocess.run(
             [str(path)], input=payload, stdout=subprocess.PIPE,
