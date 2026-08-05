@@ -38,6 +38,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <setjmp.h>
+#include <zlib.h>
 #include <hpdf.h>
 #include "pdf_fonts.h"
 
@@ -274,6 +275,48 @@ json_string(const char *p, char *out, size_t cap)
     return 1;
 }
 
+/* Valor base64 de un carácter, o -1 fuera del alfabeto (RFC 4648). */
+static int
+b64_value(unsigned char c)
+{
+    if (c >= 'A' && c <= 'Z') return c - 'A';
+    if (c >= 'a' && c <= 'z') return c - 'a' + 26;
+    if (c >= '0' && c <= '9') return c - '0' + 52;
+    if (c == '+') return 62;
+    if (c == '/') return 63;
+    return -1;
+}
+
+/*
+ * Decodifica base64 a un buffer malloc'eado; ignora espacio en blanco y el
+ * padding '='. Devuelve NULL ante un carácter fuera del alfabeto: un logo
+ * corrupto degrada a "sin logo" aguas arriba, no aborta el documento.
+ */
+static unsigned char *
+base64_decode(const char *src, size_t src_len, size_t *out_len)
+{
+    unsigned char *out = malloc(src_len / 4 * 3 + 3);
+    if (!out) return NULL;
+    size_t o = 0;
+    unsigned int acc = 0;
+    int nbits = 0;
+    for (size_t i = 0; i < src_len; i++) {
+        unsigned char c = (unsigned char)src[i];
+        if (c == '=' || c == '\n' || c == '\r' || c == ' ' || c == '\t')
+            continue;
+        int v = b64_value(c);
+        if (v < 0) { free(out); return NULL; }
+        acc = (acc << 6) | (unsigned int)v;
+        nbits += 6;
+        if (nbits >= 8) {
+            nbits -= 8;
+            out[o++] = (unsigned char)((acc >> nbits) & 0xFF);
+        }
+    }
+    *out_len = o;
+    return out;
+}
+
 /* Convenience: obj.key -> string into out. Empty string if missing. */
 static void
 get_str(const char *obj, const char *key, char *out, size_t cap)
@@ -301,6 +344,71 @@ hpdf_error_handler(HPDF_STATUS error_no, HPDF_STATUS detail_no,
     fprintf(stderr, "libharu error: error_no=0x%04X detail_no=%lu\n",
             (unsigned)error_no, (unsigned long)detail_no);
     longjmp(g_env, 1);
+}
+
+/*
+ * Verifica la integridad estructural de un PNG: firma, camino de chunks con
+ * longitudes acotadas al buffer, CRC de cada chunk (crc32 de zlib, ya
+ * enlazada), IHDR primero e IEND al final exacto.
+ *
+ * No es paranoia: el PngErrorFunc del libharu vendorizado RETORNA, y libpng
+ * exige que su callback de error no retorne — con un cuerpo corrupto tras
+ * la firma el proceso queda COLGADO, no abortado (medido: timeout con
+ * `\x89PNG...` + basura; ver H-API-294). A libpng sólo se le entrega un
+ * PNG que pasó este camino; lo demás degrada a "sin logo".
+ */
+static int
+png_is_structurally_valid(const unsigned char *p, size_t n)
+{
+    static const unsigned char firma[8] =
+        { 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A };
+    if (n < 8 + 25 + 12) return 0;   /* firma + IHDR(13) + IEND vacio */
+    if (memcmp(p, firma, 8) != 0) return 0;
+    size_t off = 8;
+    int primero = 1;
+    while (off + 12 <= n) {
+        size_t len = ((size_t)p[off] << 24) | ((size_t)p[off + 1] << 16)
+                   | ((size_t)p[off + 2] << 8) | (size_t)p[off + 3];
+        if (len > n - off - 12) return 0;      /* chunk truncado */
+        const unsigned char *tag = p + off + 4;
+        unsigned long crc_leido =
+              ((unsigned long)p[off + 8 + len] << 24)
+            | ((unsigned long)p[off + 9 + len] << 16)
+            | ((unsigned long)p[off + 10 + len] << 8)
+            |  (unsigned long)p[off + 11 + len];
+        if (crc32(0L, tag, (uInt)(len + 4)) != crc_leido) return 0;
+        if (primero) {
+            if (memcmp(tag, "IHDR", 4) != 0) return 0;
+            primero = 0;
+        }
+        off += 12 + len;
+        if (memcmp(tag, "IEND", 4) == 0)
+            return off == n;                   /* sin basura al final */
+    }
+    return 0;                                  /* se acabó sin IEND */
+}
+
+/*
+ * Carga un PNG desde memoria aislando el fallo: LoadPngImageFromMem falla
+ * vía CheckError -> handler -> longjmp, y un logo corrupto no debe abortar
+ * el recibo. El setjmp anidado vive en ESTA función para no exponer las
+ * variables de main a -Wclobbered; `img` es volatile porque se escribe
+ * entre el setjmp y un posible longjmp.
+ */
+static HPDF_Image
+load_logo_guarded(HPDF_Doc pdf, const unsigned char *png, size_t nb)
+{
+    jmp_buf salvado;
+    memcpy(salvado, g_env, sizeof(jmp_buf));
+    volatile HPDF_Image img = NULL;
+    if (setjmp(g_env) == 0)
+        img = HPDF_LoadPngImageFromMem(pdf, png, (HPDF_UINT)nb);
+    else {
+        img = NULL;                          /* degrada a "sin logo" */
+        HPDF_ResetError(pdf);
+    }
+    memcpy(g_env, salvado, sizeof(jmp_buf));
+    return img;
 }
 
 /* ------------------------------------------------------------------ *
@@ -484,20 +592,27 @@ main(void)
     /* ---- Issuer block + logo ---- */
     const char *issuer = obj_find(root, "issuer");
     if (issuer) {
-        char logo_path[1024];
-        get_str(issuer, "logo_path", logo_path, sizeof(logo_path));
-        if (logo_path[0]) {
-            /* PNG only via HPDF_LoadPngImageFromFile (ADR-017). A bad path or
-               unreadable file raises into the error handler; we don't want a
-               missing logo to abort the whole receipt, so guard with a nested
-               setjmp restore. */
+        /* Logo embebido en el descriptor (T-006): base64 de un PNG, cargado
+           con HPDF_LoadPngImageFromMem. El helper no toca el filesystem —
+           antes leía ``logo_path`` con LoadPngImageFromFile. El alfabeto
+           base64 no contiene '"' ni '\\', así que el fin de la cadena JSON
+           es la próxima comilla, sin escapes que decodificar. */
+        const char *logoval = obj_find(issuer, "logo");
+        if (logoval) {
+            const char *q = skip_ws(logoval);
+            const char *b64 = (*q == '"') ? q + 1 : NULL;
+            const char *b64_end = b64 ? strchr(b64, '"') : NULL;
+            unsigned char *png = NULL;
+            size_t nb = 0;
+            if (b64_end && b64_end > b64)
+                png = base64_decode(b64, (size_t)(b64_end - b64), &nb);
+            /* La validación estructural es la que evita el CUELGUE del
+               vendor con PNG corrupto (H-API-294); el setjmp anidado de
+               load_logo_guarded cubre lo que aún pase el filtro. */
             HPDF_Image img = NULL;
-            size_t plen = strlen(logo_path);
-            if (plen > 4 &&
-                (strcmp(logo_path + plen - 4, ".png") == 0 ||
-                 strcmp(logo_path + plen - 4, ".PNG") == 0)) {
-                img = HPDF_LoadPngImageFromFile(pdf, logo_path);
-            }
+            if (png && png_is_structurally_valid(png, nb))
+                img = load_logo_guarded(pdf, png, nb);
+            free(png);
             if (img) {
                 float iw = (float)HPDF_Image_GetWidth(img);
                 float ih = (float)HPDF_Image_GetHeight(img);

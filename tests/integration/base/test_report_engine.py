@@ -13,8 +13,10 @@ levanta ``HelperNotBuilt`` — un error de despliegue, distinto de un fallo de
 datos — y los casos que ejercen el helper se saltan en vez de fallar en rojo
 por una causa que no es del código bajo prueba.
 """
+import base64
 import json
 import re
+import struct
 import subprocess
 import zlib
 
@@ -107,6 +109,25 @@ def operadores(pdf: bytes) -> bytes:
             pass
         ops += crudo
     return ops
+
+
+def _png_1x1_b64() -> str:
+    """Un PNG 1×1 válido construido a mano, como base64 (T-006).
+
+    Sin Pillow ni fixture en disco: el contrato bajo prueba es que el logo
+    viaja por el descriptor y el helper no toca el filesystem — un fixture
+    en disco desmentiría el punto. Chunks con su CRC real, que es lo que la
+    validación estructural del helper exige.
+    """
+    def chunk(tag: bytes, data: bytes) -> bytes:
+        return (struct.pack('>I', len(data)) + tag + data
+                + struct.pack('>I', zlib.crc32(tag + data) & 0xFFFFFFFF))
+
+    ihdr = struct.pack('>IIBBBBB', 1, 1, 8, 2, 0, 0, 0)
+    idat = zlib.compress(b'\x00\xff\x00\x00')   # filtro None + pixel RGB
+    png = (b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', ihdr)
+           + chunk(b'IDAT', idat) + chunk(b'IEND', b''))
+    return base64.b64encode(png).decode('ascii')
 
 
 @pytest.fixture
@@ -345,6 +366,45 @@ class TestConversion:
         impreso = texto_impreso(contenido)
         for esperado in ('Producto', 'SKU', 'Ofrenda', '10.00', 'TOTAL'):
             assert esperado in impreso
+
+    def test_el_logo_viaja_en_el_descriptor_y_se_incrusta(self):
+        """T-006 — el PNG va en base64 dentro del descriptor, no en disco.
+
+        Antes el helper leía ``logo_path`` con ``LoadPngImageFromFile``;
+        ahora decodifica ``issuer.logo`` y usa ``LoadPngImageFromMem`` —
+        cero filesystem. El PNG del caso se construye a mano (firma + IHDR
+        + IDAT + IEND con sus CRC) para no depender de fixtures en disco:
+        el punto del contrato es justamente que no hay archivos.
+        """
+        contenido = run_helper('pdf_receipt', {
+            'issuer': {'name': 'Kaupamex', 'logo': _png_1x1_b64()},
+            'order_number': 'A-3', 'date': '2026-08-05',
+            'buyer': {'name': 'Ana', 'address': 'Calle 1'},
+            'items': [], 'totals': {'total': '0.00'},
+        })
+        # El XObject de imagen sale como diccionario en claro en el PDF.
+        assert b'/Subtype /Image' in contenido
+        assert 'Kaupamex' in texto_impreso(contenido)
+
+    def test_el_logo_corrupto_degrada_a_sin_logo(self):
+        """H-API-294 — un PNG roto NO cuelga ni tumba el recibo.
+
+        El ``PngErrorFunc`` del libharu vendorizado retorna, y libpng exige
+        que su callback de error no retorne: con firma válida y cuerpo
+        corrupto el proceso quedaba COLGADO (medido con ``timeout``). El
+        helper valida ahora la estructura de chunks + CRC antes de llamar a
+        libpng; lo que no pasa degrada a "sin logo" y el documento sale.
+        """
+        roto = base64.b64encode(
+            b'\x89PNG\r\n\x1a\n' + b'basura' * 10).decode()
+        contenido = run_helper('pdf_receipt', {
+            'issuer': {'name': 'Kaupamex', 'logo': roto},
+            'order_number': 'A-4', 'date': '2026-08-05',
+            'buyer': {'name': 'Ana', 'address': 'Calle 1'},
+            'items': [], 'totals': {'total': '0.00'},
+        })
+        assert b'/Subtype /Image' not in contenido
+        assert 'Kaupamex' in texto_impreso(contenido)
 
     def test_descriptor_invalido_sale_con_el_codigo_de_su_contrato(self):
         """Exit 1 = JSON no parseable (cabecera de ``pdf_receipt.c``)."""
