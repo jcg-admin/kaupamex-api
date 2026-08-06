@@ -922,3 +922,104 @@ class IrModelData(TimeStampedModel):
     def reference(self):
         """``_compute_reference`` — ``"modelo,id"``."""
         return f'{self.model},{self.res_id}'
+
+    # -- resolución de identificadores externos -----------------------------
+    #
+    # La tabla sin resolutor es un archivador sin índice: se pueden guardar
+    # filas y no se puede recuperar nada por su nombre. Estos cinco métodos son
+    # el mecanismo que la referencia reparte entre ``ir.model.data`` (la
+    # búsqueda) y ``env.ref`` (el atajo que devuelve el registro).
+    #
+    # **Qué va en ``model``.** La referencia guarda su nombre punteado
+    # (``account.tax``); nuestros modelos no tienen ``_name``, así que la clave
+    # equivalente es la etiqueta de Django (``account.AccountTax``,
+    # ``Model._meta.label``). No es una elección nueva: el único lector previo
+    # de esta tabla ya consultaba así (``uom_uom.py:209``,
+    # ``model=cls._meta.label``), y ``apps.get_model`` acepta exactamente ese
+    # formato — de modo que la ida y la vuelta usan la misma llave.
+
+    @classmethod
+    def xmlid_lookup(cls, xmlid):
+        """``_xmlid_lookup`` — ``(model, res_id)`` o ``ValueError``.
+
+        El identificador es ``modulo.nombre``; el ``split`` es por el **primer**
+        punto porque el nombre puede llevar más (``l10n_mx.tax12`` frente a
+        ``account.1_tax_group_16``).
+        """
+        module, _, name = xmlid.partition('.')
+        if not name:
+            raise ValueError(
+                'Identificador externo mal formado (falta el módulo): %s' % xmlid)
+        fila = cls.objects.filter(module=module, name=name).first()
+        if fila is None or not fila.res_id:
+            raise ValueError('Identificador externo no encontrado: %s' % xmlid)
+        return fila.model, fila.res_id
+
+    @classmethod
+    def xmlid_to_res_model_res_id(cls, xmlid, raise_if_not_found=False):
+        """``_xmlid_to_res_model_res_id`` — la pareja, o ``(None, None)``.
+
+        La referencia devuelve ``(False, False)`` porque en su ORM el falso es
+        el vacío de cualquier tipo; aquí el vacío es ``None``.
+        """
+        try:
+            return cls.xmlid_lookup(xmlid)
+        except ValueError:
+            if raise_if_not_found:
+                raise
+            return None, None
+
+    @classmethod
+    def xmlid_to_res_id(cls, xmlid, raise_if_not_found=False):
+        """``_xmlid_to_res_id`` — sólo el id."""
+        return cls.xmlid_to_res_model_res_id(xmlid, raise_if_not_found)[1]
+
+    @classmethod
+    def ref(cls, xmlid, raise_if_not_found=True):
+        """El registro que designa el identificador — ≙ ``env.ref``.
+
+        Vive aquí y no en un ``env`` porque este proyecto no tiene ese objeto:
+        la referencia lo pone en ``odoo/orm/environments.py:158`` sólo para dar
+        el atajo, y su cuerpo no hace otra cosa que llamar a
+        ``_xmlid_to_res_model_res_id`` y traer el registro.
+
+        Devuelve ``None`` si la fila apunta a algo ya borrado — la referencia
+        hace lo mismo con su ``record.exists()``: un identificador externo
+        puede sobrevivir al registro que nombraba.
+        """
+        model_label, res_id = cls.xmlid_to_res_model_res_id(
+            xmlid, raise_if_not_found=raise_if_not_found)
+        if not model_label or not res_id:
+            return None
+        record = apps.get_model(model_label).objects.filter(pk=res_id).first()
+        if record is None and raise_if_not_found:
+            raise ValueError(
+                'El identificador externo %s apunta a un registro que ya no '
+                'existe (%s,%s)' % (xmlid, model_label, res_id))
+        return record
+
+    @classmethod
+    def set_xmlid(cls, record, xmlid, noupdate=False):
+        """Registra (o repunta) el identificador externo de ``record``.
+
+        Es el lado **escritor**, que en la referencia no es un método sino el
+        cargador de archivos de datos. Sin él la tabla no se puebla y el
+        resolutor de arriba no tendría nada que resolver — el defecto que
+        :ref:`h-api-346` documenta como "símbolo sin consumidor".
+
+        Idempotente por ``(module, name)``, que es la clave única de la tabla:
+        volver a sembrar repunta la fila en vez de duplicarla.
+        """
+        module, _, name = xmlid.partition('.')
+        if not name:
+            raise ValueError(
+                'Identificador externo mal formado (falta el módulo): %s' % xmlid)
+        fila, _creada = cls.objects.update_or_create(
+            module=module, name=name,
+            defaults={
+                'model': type(record)._meta.label,
+                'res_id': record.pk,
+                'noupdate': noupdate,
+            },
+        )
+        return fila

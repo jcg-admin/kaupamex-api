@@ -41,10 +41,14 @@ faltaban.
 
 Su mecanismo consulta ``ir.model.data`` por ``module='uom'``, y esa tabla
 **ya existe** (``api@b618a6b``), así que se porta tal cual en vez de inventar
-un booleano paralelo. Consecuencia medida y declarada: mientras **nadie
-puebla** esa tabla —falta el cargador de datos declarativos— la consulta
-devuelve vacío y la guarda queda **inerte**. Se activa sola cuando el cargador
-llegue, sin tocar este archivo.
+un booleano paralelo. Durante un tiempo la guarda quedó **inerte** porque nadie
+poblaba la tabla; se activó sola al llegar el escritor
+(``IrModelData.set_xmlid``, ``api@6ff52ca``… ver :ref:`h-api-347`) **sin tocar
+este archivo**, que era lo que aquella nota predijo. La llave que este lector
+usa —``model=cls._meta.label``— es la que fijó la convención del resolutor.
+
+Lo que sigue faltando es el **sembrado** de las unidades maestras: la guarda
+funciona, y protegerá lo que se siembre con identificador del módulo ``uom``.
 """
 import datetime
 
@@ -198,8 +202,9 @@ class Uom(TimeStampedModel):
         Una unidad está protegida si tiene un identificador externo del módulo
         ``uom`` **y** su nombre no está entre los tres liberados. Se porta la
         consulta de la referencia contra ``ir.model.data``, no un booleano
-        paralelo — ver el docstring del módulo sobre por qué hoy queda inerte
-        y cuándo se activa sola.
+        paralelo. Cubierto de punta a punta en
+        ``tests/unit/base/test_ir_model_data_xmlid.py``, que siembra un
+        identificador y comprueba que esta guarda lo ve.
         """
         ids = [uom.pk for uom in uoms if uom.pk is not None]
         if not ids:
