@@ -7,12 +7,19 @@ sesiones con `docs` en scope. Procedimiento humano:
 Aquí solo el invariante operativo (Opción B, iniciativa
 `consolidar-reglas-fuente-unica`, DEC-01/02):
 
-Antes de declarar una T-NNN cerrada o un commit "sin regresión", correr las
-**tres** capas, no solo el módulo tocado: **db** (`pg_isready`; si no responde,
-`pg_ctlcluster 16 main start`), **api** (`uv run pytest` completo contra
-PostgreSQL real — **nunca SQLite**), **ui** (jest completo, con el gate duro de
-Node v22 antes de `npm ci`). Sin las tres verdes —o con los fallos
-pre-existentes documentados y citados— no se cierra ni se commitea como verde.
+**La suite completa NO se corre por defecto** (directiva del ejecutor
+2026-08-06, reiterada). Se corre **el subconjunto que el cambio toca**: el
+addon tocado (`uv run pytest tests/unit/<x>/ tests/integration/<x>/ -q
+--reuse-db`), nada de pytest si el cambio es sólo `.rst`/`.claude/**` o un
+script fuera del camino de la suite, y la pila entera **sólo** cuando se toca
+un mecanismo transversal (ORM espejado, `config/settings`, `addons/base`) o
+cuando el ejecutor la pide.
+
+Los gates estáticos (`check_no_lazy_imports`, `check_silent_oks`,
+`check-canon`) cuestan segundos y **sí** se corren siempre. La DB por socket
+sigue siendo precondición de cualquier pytest (`pg_isready`; si no responde,
+`pg_ctlcluster 16 main start`) y **nunca SQLite**. Un fallo pre-existente se
+cita, no se silencia.
 
 Baseline vigente de api: **2 235 passed, 5 skipped, 0 failed** contra
 PostgreSQL 16.13 (2026-08-06). El build de docs es **opcional**, no parte del
