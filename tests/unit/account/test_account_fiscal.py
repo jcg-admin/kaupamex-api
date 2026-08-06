@@ -143,6 +143,36 @@ class TestAccountFiscalPosition:
         result = position.map_tax(AccountTax.objects.filter(pk__in=[universal.pk, restricted.pk]))
         assert list(result) == [universal]
 
+    def test_map_tax_substitutes_domestic_for_replacement(self, company):
+        # Rama de sustitución (H-API-322) — antes inerte: _compute_tax_map
+        # devolvía {} siempre porque original_tax_ids no estaba portado.
+        domestic = AccountTax.objects.create(name='IVA 16 doméstico', company=company)
+        export = AccountTax.objects.create(name='IVA 0 exportación', company=company)
+        export.original_tax_ids.add(domestic)
+        position = AccountFiscalPosition.objects.create(name='Extranjero', company=company)
+        position.tax_ids.add(export)
+        result = position.map_tax(AccountTax.objects.filter(pk=domestic.pk))
+        assert list(result) == [export]
+        # El reverso se puebla solo — misma tabla ``account_tax_alternatives``,
+        # leída en la otra dirección (Odoo replacing_tax_ids, readonly).
+        assert list(domestic.replacing_tax_ids.all()) == [export]
+
+    def test_map_tax_leaves_taxes_outside_the_map_untouched(self, company):
+        domestic = AccountTax.objects.create(name='IVA 16 doméstico', company=company)
+        export = AccountTax.objects.create(name='IVA 0 exportación', company=company)
+        unrelated = AccountTax.objects.create(name='Retención', company=company)
+        export.original_tax_ids.add(domestic)
+        position = AccountFiscalPosition.objects.create(name='Extranjero', company=company)
+        position.tax_ids.add(export)
+        result = position.map_tax(AccountTax.objects.filter(pk__in=[domestic.pk, unrelated.pk]))
+        assert set(result) == {export, unrelated}
+
+    def test_compute_tax_map_empty_without_original_tax_ids(self, company):
+        export = AccountTax.objects.create(name='IVA 0 exportación', company=company)
+        position = AccountFiscalPosition.objects.create(name='Extranjero', company=company)
+        position.tax_ids.add(export)
+        assert position._compute_tax_map() == {}
+
 
 class TestAccountGroup:
     def test_prefix_cross_default(self, company):
@@ -163,6 +193,76 @@ class TestAccountGroup:
         group.parent = group
         with pytest.raises(ValidationError):
             group.clean()
+
+    def test_prefix_length_mismatch_rejected_by_clean(self, company):
+        # H-API-323 / tarea #113 — _check_length_prefix (odoo19c: 1510-1513).
+        # Longitudes distintas entre inicio y fin del rango.
+        group = AccountGroup(
+            name='Activo', code_prefix_start='10', code_prefix_end='100',
+            company=company)
+        with pytest.raises(ValidationError) as exc:
+            group.clean()
+        assert exc.value.message_dict['code_prefix_end'] == [
+            'ACCOUNT_GROUP_PREFIX_LENGTH_MISMATCH']
+
+    def test_prefix_length_match_accepted_by_clean(self, company):
+        group = AccountGroup(
+            name='Activo', code_prefix_start='10', code_prefix_end='19',
+            company=company)
+        group.clean()  # no debe lanzar
+
+    def test_prefix_length_mismatch_rejected_by_db_constraint(self, company):
+        # El CheckConstraint de Meta.constraints es la garantía real —
+        # se cumple sin pasar por clean() (p. ej. bulk_create/update).
+        with transaction.atomic(), pytest.raises(IntegrityError):
+            AccountGroup.objects.create(
+                name='Activo', code_prefix_start='10', code_prefix_end='100',
+                company=company)
+
+    def test_prefix_overlap_rejected(self, company):
+        # H-API-323 / tarea #113 — _constraint_prefix_overlap
+        # (odoo19c: 1549-1568). Misma granularidad (longitud 2), rango
+        # [10, 19] ya existe; [15, 25] se solapa en 15-19.
+        AccountGroup.objects.create(
+            name='Bancos', code_prefix_start='10', code_prefix_end='19',
+            company=company)
+        overlapping = AccountGroup(
+            name='Otro', code_prefix_start='15', code_prefix_end='25',
+            company=company)
+        with pytest.raises(ValidationError) as exc:
+            overlapping.clean()
+        assert exc.value.message_dict['code_prefix_start'] == [
+            'ACCOUNT_GROUP_PREFIX_OVERLAP']
+
+    def test_prefix_no_overlap_accepted(self, company):
+        AccountGroup.objects.create(
+            name='Bancos', code_prefix_start='10', code_prefix_end='19',
+            company=company)
+        disjoint = AccountGroup(
+            name='Otro', code_prefix_start='20', code_prefix_end='29',
+            company=company)
+        disjoint.clean()  # no debe lanzar
+
+    def test_prefix_overlap_ignores_different_granularity(self, company):
+        # Distinta longitud de prefijo => distinta granularidad; Odoo NO
+        # los compara entre sí (char_length(other.start) == char_length(this.start)).
+        AccountGroup.objects.create(
+            name='Activo', code_prefix_start='1', code_prefix_end='1',
+            company=company)
+        child = AccountGroup(
+            name='Bancos', code_prefix_start='10', code_prefix_end='19',
+            company=company)
+        child.clean()  # no debe lanzar: '1' (longitud 1) no es par de '10' (longitud 2)
+
+    def test_prefix_overlap_ignores_other_company(self, company):
+        other_company = ResCompany.objects.create(code='other', name='Other')
+        AccountGroup.objects.create(
+            name='Bancos', code_prefix_start='10', code_prefix_end='19',
+            company=other_company)
+        same_range_other_company = AccountGroup(
+            name='Bancos', code_prefix_start='10', code_prefix_end='19',
+            company=company)
+        same_range_other_company.clean()  # no debe lanzar: empresa distinta
 
 
 class TestAccountRoot:

@@ -23,9 +23,9 @@ account_tax.py:106-124) y ``AccountFiscalPosition.tax_ids`` (M2M directa,
 sin línea intermedia). Como 19 gobierna (``referencia-odoo-gobierna-las-
 decisiones.md``), **NO se porta** ``account.fiscal.position.tax`` — el mapeo
 de impuestos usa la M2M directa ``tax_ids`` sobre la posición fiscal, con
-``_compute_tax_map`` armado desde ``AccountTax.original_tax_ids`` (no
-portado en este pase: pendiente de ``account.tax`` con
-``original_tax_ids``/``replacing_tax_ids``; declarado, no fabricado).
+``_compute_tax_map`` armado desde ``AccountTax.original_tax_ids`` — **portado**
+en ``account_tax.py`` (H-API-322): ``_compute_tax_map`` ya no devuelve ``{}``
+en todos los casos, la rama de sustitución de ``map_tax`` es operable.
 
 NO se porta: ``account_map``/``tax_map`` (``fields.Binary(compute=...)`` —
 caché de diccionario, se recalculan bajo demanda en ``map_tax``/``map_account``
@@ -116,11 +116,9 @@ class AccountFiscalPosition(models.Model):
         ``fiscal_position_ids``) — quedan sólo los "universales". Con
         ``tax_ids``: cada impuesto de entrada se sustituye por su destino si
         alguno de los impuestos propios lo declara como ``original_tax_ids``
-        (tax_map). Como ``original_tax_ids`` no está portado aún en
-        ``AccountTax`` (ver docstring del módulo), ``tax_map`` es siempre
-        vacío en este corte — el mapeo por sustitución queda declarado
-        pendiente, no fabricado; el resto del método (identidad / filtro por
-        universales) sí es fiel y operable.
+        (``tax_map``). Las tres ramas son fieles y operables (H-API-322 cerró
+        la de sustitución, antes inerte por ``tax_map`` siempre vacío — ver
+        ``_compute_tax_map``).
         """
         if not self.pk:
             return taxes
@@ -135,9 +133,19 @@ class AccountFiscalPosition(models.Model):
         return self.tax_ids.model.objects.filter(pk__in=seen)
 
     def _compute_tax_map(self):
-        """Odoo ``_compute_tax_map`` (odoo19c: partner.py:99-105). Pendiente
-        de ``AccountTax.original_tax_ids`` (ver docstring del módulo)."""
-        return {}
+        """Odoo ``_compute_tax_map`` (odoo19c: partner.py:99-105).
+
+        Por cada impuesto DESTINO de esta posición (``tax_ids``), lee sus
+        ``original_tax_ids`` — los impuestos ORIGEN que reemplaza — y arma
+        ``{origen_pk: [destino_pk, ...]}``. Antes de H-API-322 ``AccountTax``
+        no tenía ``original_tax_ids`` portado y este método devolvía ``{}``
+        siempre, dejando inerte la rama de sustitución de ``map_tax``.
+        """
+        tax_map = {}
+        for dest_tax in self.tax_ids.all().prefetch_related('original_tax_ids'):
+            for src_tax in dest_tax.original_tax_ids.all():
+                tax_map.setdefault(src_tax.pk, []).append(dest_tax.pk)
+        return tax_map
 
     def map_account(self, account):
         """Cuenta destino para ``account`` bajo esta posición — Odoo

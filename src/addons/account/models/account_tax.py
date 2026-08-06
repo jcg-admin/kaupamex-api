@@ -98,6 +98,44 @@ Qué no se porta, con su medición
 - **``analytic``, ``tax_exigibility``, ``tag_ids`` en el resultado.** Salen del
   reparto, no del cálculo. El dict de ``compute_all`` los omite en vez de
   devolverlos en cero, que sería peor: un cero se lee como dato.
+
+Los M2M de sustitución — ``original_tax_ids``/``replacing_tax_ids`` (H-API-322)
+=================================================================================
+
+Portados enteros: ambas direcciones de la relación ``account_tax_alternatives``
+(``odoo19c: :102-121``). Sin ellos ``AccountFiscalPosition._compute_tax_map``
+devolvía ``{}`` **siempre** — la rama de sustitución de ``map_tax`` (cambiar el
+impuesto A por B) quedaba inerte aunque el resto del método (identidad y
+filtro por universales) funcionara. Ver
+``docs: hallazgo-H-API-322-mapa-de-impuestos-inerte.rst``.
+
+La referencia declara los dos M2M como campos independientes de
+``AccountTax``, ambos leyendo la MISMA tabla ``account_tax_alternatives``
+en direcciones opuestas (``dest_tax_id``/``src_tax_id`` invertidos) — es el
+patrón Odoo de un M2M "de ida" más su reverso explícito (``readonly=True``)
+en vez de dejarlo implícito. El M2M "simple" de este ORM (el que ya usa
+``children``, una sola dirección con ``db_table``) no alcanza para expresar
+dos campos sobre el mismo par de columnas: hace falta un ``through`` explícito
+con ``through_fields`` para desambiguar qué FK es "origen" y cuál "destino"
+en cada dirección. Por eso aparece ``AccountTaxAlternative`` — no es un modelo
+Odoo (``account_tax_alternatives`` no tiene ``_name`` propio en la
+referencia: es la tabla que Odoo autogenera *desde* el campo); es la pieza de
+plomería que este ORM exige para portar fielmente las dos direcciones.
+
+**Declarado, no portado — el ``domain=`` de selección de ``original_tax_ids``**
+(``odoo19c: :108-111``: ``[('type_tax_use', '=', type_tax_use),
+('is_domestic', '=', True)]``). Es una restricción de **qué aparece en el
+selector del cliente web** al elegir un impuesto a reemplazar — no participa
+en ``_compute_tax_map`` ni en ``map_tax``, que es el mecanismo que este pase
+cierra. Este ORM no tiene cliente web ni concepto de ``domain`` declarativo
+sobre un M2M: no hay dónde aplicarlo. Es divergencia de mecanismo (no hay
+UI que filtrar), no una omisión del cálculo. Con ella va ``is_domestic``
+(``odoo19c: :331-334``, compute sobre
+``company_id.domestic_fiscal_position_id``): sólo la consume ese ``domain=``
+y ``_compute_display_alternative_taxes_field`` (``:336-343``, un booleano de
+UI que decide si mostrar el widget de alternativas) — ninguno de los dos
+altera el resultado de ``map_tax``. Grep de consumidores dentro de
+``odoo19c: account_tax.py`` de ambos: 0 usos fuera de esas dos secciones UI.
 """
 from decimal import Decimal
 
@@ -418,6 +456,43 @@ class AccountTaxQuerySet(models.QuerySet):
         }
 
 
+class AccountTaxAlternative(models.Model):
+    """Tabla de sustitución de impuestos — ≙ ``account_tax_alternatives``
+    (``odoo19c: account_tax.py:102-121``).
+
+    NO es un modelo Odoo (sin ``_name`` propio en la referencia): es la tabla
+    que Odoo autogenera *desde* los campos ``original_tax_ids``/
+    ``replacing_tax_ids``. Se explicita aquí porque el M2M "simple" de este
+    ORM sólo declara una tabla por campo, y ambos campos leen el MISMO par de
+    columnas en direcciones opuestas — ``through_fields`` es la única forma
+    de decir "cuál FK es el origen" por dirección.
+    """
+
+    src_tax = fields.Many2one(
+        'account.AccountTax', on_delete=models.CASCADE, related_name='+',
+        help_text='Impuesto doméstico a reemplazar (Odoo src_tax_id).',
+    )
+    dest_tax = fields.Many2one(
+        'account.AccountTax', on_delete=models.CASCADE, related_name='+',
+        help_text='Impuesto de reemplazo — "this Replacement tax" en la '
+                  'referencia (Odoo dest_tax_id).',
+    )
+
+    class Meta:
+        db_table = 'account_tax_alternatives'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['src_tax', 'dest_tax'],
+                name='unique_account_tax_alternative',
+            ),
+        ]
+        verbose_name = 'Alternativa de impuesto'
+        verbose_name_plural = 'Alternativas de impuesto'
+
+    def __str__(self) -> str:
+        return f'{self.src_tax} → {self.dest_tax}'
+
+
 class AccountTax(models.Model):
     """``account.tax`` — definición de un impuesto aplicable."""
 
@@ -491,6 +566,25 @@ class AccountTax(models.Model):
         related_name='taxes',
         help_text='Grupo al que pertenece el impuesto (Odoo tax_group_id); '
                   'agrupa los subtotales del documento.',
+    )
+    original_tax_ids = fields.Many2many(
+        'account.AccountTax', through='account.AccountTaxAlternative',
+        through_fields=('dest_tax', 'src_tax'), related_name='+',
+        blank=True, verbose_name='Reemplaza a',
+        help_text='Impuestos que ESTE reemplaza al aplicar cualquiera de las '
+                  'posiciones fiscales estipuladas (Odoo original_tax_ids, '
+                  'string "Replaces"). Es la mitad de escritura del mecanismo '
+                  'de sustitución: sin ella, '
+                  'AccountFiscalPosition._compute_tax_map devuelve siempre '
+                  '{} (H-API-322).',
+    )
+    replacing_tax_ids = fields.Many2many(
+        'account.AccountTax', through='account.AccountTaxAlternative',
+        through_fields=('src_tax', 'dest_tax'), related_name='+',
+        editable=False, verbose_name='Reemplazado por',
+        help_text='Reverso de original_tax_ids: impuestos que reemplazan a '
+                  'ESTE (Odoo replacing_tax_ids, string "Replaced by", '
+                  'readonly=True en la referencia — de ahí editable=False).',
     )
 
     class Meta:
