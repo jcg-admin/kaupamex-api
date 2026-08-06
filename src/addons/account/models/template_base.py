@@ -65,3 +65,39 @@ def get_account_journal():
             'code': 'BNK1',
         },
     }
+
+
+@template(model='account.reconcile.model')
+def get_account_reconcile_model():
+    """Las dos reglas de conciliación por defecto — ≙ ``_get_account_reconcile_model``.
+
+    También base, y por el mismo motivo que los diarios: una transferencia
+    interna y una comisión bancaria aparecen en el extracto de cualquier
+    empresa, no de una localización concreta.
+
+    La referencia expresa las líneas hijas con ``Command.create({...})``, la
+    forma con la que su ORM distingue crear de enlazar. Aquí una lista de
+    diccionarios bajo el nombre de la relación ya significa «crear estas
+    hijas» — es lo que el cargador hace con ``repartition_line_ids`` del CSV,
+    así que no hace falta un envoltorio que sólo diga «create».
+    """
+    return {
+        'internal_transfer_reco': {
+            'name': _('Transferencias internas'),
+            'line_ids': [{
+                'amount_type': 'percentage',
+                'amount_string': '100',
+                'label': _('Transferencias internas'),
+            }],
+        },
+        'bank_fees_reco': {
+            'name': _('Comisiones bancarias'),
+            'match_label': 'contains',
+            'match_label_param': 'Bank Fees',
+            'line_ids': [{
+                'amount_type': 'percentage',
+                'amount_string': '100',
+                'label': _('Comisiones bancarias'),
+            }],
+        },
+    }

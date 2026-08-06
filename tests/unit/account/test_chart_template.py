@@ -16,6 +16,7 @@ from addons.account.models import (
     AccountAccount,
     AccountFiscalPosition,
     AccountJournal,
+    AccountReconcileModel,
     AccountTax,
     AccountTaxGroup,
     ChartTemplate,
@@ -121,6 +122,22 @@ class TestPlantillaBase:
         assert diarios.count() == 6
         assert set(diarios.values_list('code', flat=True)) == {
             'INV', 'BILL', 'MISC', 'EXCH', 'CABA', 'BNK1'}
+
+    def test_las_reglas_de_conciliacion_nacen_con_su_linea(self, company):
+        """Transferencia interna y comisión bancaria, cada una con su línea.
+
+        Las hijas se declaran como lista de diccionarios; el cargador las crea
+        igual que las de reparto del CSV.
+        """
+        ChartTemplate.try_loading('generic_coa', company)
+
+        reglas = AccountReconcileModel.objects.filter(company=company)
+        assert reglas.count() == 2
+
+        comision = ChartTemplate.ref('bank_fees_reco', company)
+        assert comision.match_label == 'contains'
+        assert comision.line_ids.count() == 1
+        assert comision.line_ids.get().amount_string == '100'
 
     def test_el_diario_de_ventas_es_el_que_busca_el_asiento(self, company):
         """``create_invoice_from_subscription`` busca por ``type='sale'``.

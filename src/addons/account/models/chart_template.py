@@ -32,21 +32,41 @@ clases. El efecto es el mismo y el orden es explícito.
 Lo que este porte NO trae (medido, con desenlace)
 ---------------------------------------------------
 
-De los 40 métodos de la referencia se portan los del camino de carga. Los 13
-restantes tienen su razón nombrada:
+**Conteo medido, no estimado:** la referencia declara **40** métodos de clase;
+aquí hay **15** equivalentes y quedan **25** ausentes (1537 líneas allá contra
+639 aquí). Una versión anterior de este docstring decía "13 restantes" — era un
+conteo generoso, el defecto que ``porte-completo-no-parcial.md`` nombra.
 
-- ``_install_demo`` — no hay datos de demostración en este proyecto.
-- ``_pre_reload_data`` (219 líneas) — recarga sobre una plantilla **ya cargada**;
-  aplica al reinstalar un módulo, que aquí no ocurre.
-- ``_instantiate_foreign_taxes`` (174 líneas), ``_get_tag_mapper`` y
-  ``_deref_account_tags`` — dependen de addons ``l10n_*``, de los que hay
-  **cero** en este árbol.
-- Los seis de traducción (``_load_translations`` y sus ayudantes) — dependen del
-  mecanismo de campos traducibles de la referencia, que no se porta.
-- ``_post_model_setup__`` — el enganche del registro (ver arriba).
-- ``_setup_utility_bank_accounts`` y ``_create_outstanding_accounts`` —
-  necesitan ``account.journal`` con prefijos de código de banco/caja, que este
-  plan genérico no configura todavía.
+Los 25 se reparten en tres grupos, y **sólo el tercero es trabajo pendiente**:
+
+**a) Siete que este puerto resuelve de otra forma** (divergencia de mecanismo,
+declarada arriba): ``_template_register`` y ``_post_model_setup__`` (el
+decorador se registra solo), y los cinco ``_get_account_<modelo>`` —
+``account``, ``group``, ``tax_group``, ``tax``, ``fiscal_position``—, cuyas
+tablas viven en los CSV y cuyo orden lo fija ``loaded_models``.
+
+**b) Seis de traducción** (``_load_translations`` y sus ayudantes) — dependen
+del mecanismo de campos traducibles de la referencia, que este proyecto no
+porta. Si se portara, entran; hoy no hay dónde enchufarlos.
+
+**c) Doce que son trabajo pendiente**, con su dependencia real medida:
+
+- ``_setup_utility_bank_accounts``, ``_create_outstanding_accounts``,
+  ``_get_accounts_data_values``, ``_get_property_accounts`` y
+  ``_get_bank_fees_reco_account`` — las cuentas transitorias de pago. Necesitan
+  ``ResCompany.bank_account_code_prefix``, un campo de la **misma familia**
+  (``odoo19c: company.py``): no hay bloqueo, hay campo por colgar.
+- ``_get_tag_mapper`` y ``_deref_account_tags`` — el modelo
+  ``account.account.tag`` **existe y está portado** (``account_account_tag.py``);
+  lo que falta del mapeador es su discriminación xmlid-vs-nombre, que consulta
+  ``ir.module.module``, un registro de módulos que este puerto no tiene por
+  diseño. Los CSV de ``generic_coa`` **no traen columnas de etiqueta**, así que
+  hoy no tiene consumidor.
+- ``_instantiate_foreign_taxes`` — impuestos de otro país sobre la misma
+  empresa; exige un plan ``l10n_*`` portado, y hay **cero** en ``src/addons``.
+- ``_install_demo`` — datos de demostración, que este proyecto no tiene.
+- ``_pre_reload_data`` (219 líneas) y ``_pre_load_data`` — recarga sobre una
+  plantilla ya cargada, preservando lo que el usuario tocó.
 
 Sucesor registrado: tarea #155.
 """
@@ -122,8 +142,26 @@ class ChartTemplate:
             mapping[code] = {
                 'name': datos.get('name', code),
                 'country': datos.get('country'),
+                'parent': datos.get('parent'),
             }
         return mapping
+
+    @classmethod
+    def get_parent_template(cls, code):
+        """La cadena de herencia del plan — ≙ ``_get_parent_template``.
+
+        Un plan puede declarar ``parent`` y heredar las tablas de otro; el
+        caso real en la referencia son las localizaciones que parten de un
+        plan regional. La cadena va del plan **hacia** sus ancestros, y el
+        resolutor la recorre precedida de ``None`` (la base), de modo que lo
+        más específico se aplica al final y gana.
+        """
+        parents = []
+        mapping = cls.get_chart_template_mapping()
+        while mapping.get(code) and code not in parents:
+            parents.append(code)
+            code = mapping[code].get('parent')
+        return parents
 
     @classmethod
     def select_chart_template(cls, country=None):
@@ -294,7 +332,7 @@ class ChartTemplate:
         una plantilla puede corregir un campo suelto sin copiar la tabla.
         """
         datos = cls.parse_csv(template_code, model_name, model_class)
-        for code in (None, template_code):
+        for code in [None] + list(reversed(cls.get_parent_template(template_code))):
             func = TEMPLATE_REGISTRY.get((code, model_name))
             if func is not None:
                 for xmlid, valores in func().items():
@@ -334,6 +372,8 @@ class ChartTemplate:
             ('account.tax', apps.get_model('account', 'AccountTax')),
             ('account.fiscal.position', apps.get_model('account', 'AccountFiscalPosition')),
             ('account.journal', apps.get_model('account', 'AccountJournal')),
+            ('account.reconcile.model',
+             apps.get_model('account', 'AccountReconcileModel')),
         ]
 
     # -- instanciación ------------------------------------------------------
