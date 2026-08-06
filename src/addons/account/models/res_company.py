@@ -59,6 +59,7 @@ from django.db import models as dj_models
 
 import fields
 
+from addons.account.models.chart_template import ChartTemplate
 from addons.base.models import ResCompany
 
 
@@ -106,3 +107,42 @@ def apply_account_extensions():
         'account_purchase_tax_id, company.py:127).',
         'purchase',
     ))
+    _add_if_absent(ResCompany, 'chart_template', fields.Char(
+        max_length=64, null=True, blank=True,
+        help_text='Código del plan contable cargado en esta empresa (Odoo '
+                  'chart_template, company.py:117). Una empresa hija hereda '
+                  'el de su raíz al crearse.',
+    ))
+    dj_models.signals.post_save.connect(
+        load_chart_for_new_company, sender=ResCompany,
+        dispatch_uid='account.load_chart_for_new_company',
+    )
+
+
+def load_chart_for_new_company(sender, instance, created, **kwargs):
+    """Carga el plan de la raíz en la empresa recién creada.
+
+    ≙ el ``create`` de ``odoo19c: account/models/company.py:486-498``: si la
+    raíz de su jerarquía declara un plan, la nueva empresa lo instancia.
+
+    **Por qué se lee el padre y no ``instance.parent_ids``.** La referencia usa
+    ``parent_ids[0]`` y difiere la carga a ``cr.precommit`` — no por capricho:
+    ese cálculo necesita el estado del registro ya asentado. Aquí ocurre lo
+    mismo por otra vía: ``ResCompany.save()`` calcula ``parent_path`` **después**
+    del ``INSERT`` (``res_company.py:581-586``), así que en el instante del
+    ``post_save`` la ruta materializada todavía está vacía y ``parent_ids``
+    devuelve sólo la propia empresa. Leer ``instance.parent`` —una FK, escrita
+    ya— y pedirle a él su raíz evita depender de un valor que aún no existe.
+
+    Una empresa **raíz** (``parent is None``) no entra por aquí, igual que en la
+    referencia: su plan lo elige quien la aprovisiona (allá,
+    ``res_config_settings.py:223``). Esa mitad es la tarea #156.
+
+    ``dispatch_uid`` porque ``ready()`` puede correr dos veces con el
+    autoreloader, y sin él el receptor se conectaría por duplicado.
+    """
+    if not created or instance.parent is None:
+        return
+    codigo = getattr(instance.parent.root_id, 'chart_template', None)
+    if codigo:
+        ChartTemplate.try_loading(codigo, instance)

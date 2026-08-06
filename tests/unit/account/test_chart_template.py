@@ -136,6 +136,45 @@ class TestPlantillaBase:
 
 
 @pytest.mark.django_db
+class TestCargaAlCrearLaEmpresa:
+    """El cargador sin consumidor no vale: una empresa hija hereda el plan.
+
+    ≙ el ``create`` de la referencia, que instancia el plan de la raíz. Una
+    empresa **raíz** no entra por aquí — su plan lo elige quien la aprovisiona.
+    """
+
+    def test_la_hija_hereda_el_plan_de_su_raiz(self, company):
+        company.chart_template = 'generic_coa'
+        company.save(update_fields=['chart_template'])
+
+        hija = ResCompany.objects.create(
+            code='acme-mx', name='ACME México', parent=company)
+
+        assert AccountAccount.objects.filter(company=hija).count() == 46
+        assert AccountJournal.objects.filter(company=hija, type='sale').exists()
+
+    def test_sin_plan_en_la_raiz_no_se_carga_nada(self, company):
+        """El receptor es no-op mientras nadie declare un plan.
+
+        Es lo que hace que cablearlo no cambie el comportamiento de ninguna
+        empresa existente.
+        """
+        assert company.chart_template is None
+
+        hija = ResCompany.objects.create(
+            code='acme-co', name='ACME Colombia', parent=company)
+
+        assert AccountAccount.objects.filter(company=hija).count() == 0
+
+    def test_la_raiz_no_se_carga_a_si_misma(self, db):
+        """Una raíz es su propio ``parent_ids[0]`` — sin el guard se cargaría sola."""
+        raiz = ResCompany.objects.create(
+            code='beta-root', name='BETA', chart_template='generic_coa')
+
+        assert AccountAccount.objects.filter(company=raiz).count() == 0
+
+
+@pytest.mark.django_db
 class TestAislamientoEntreEmpresas:
     def test_dos_empresas_tienen_planes_independientes(self, company):
         """``receivable`` no nombra una cuenta: nombra un papel.
