@@ -206,6 +206,7 @@ from .res_company import ResCompany
 from .ir_sequence import IrSequence
 from .report_export_job import ExportJob
 from .res_bank import ResBank
+from .res_partner_bank import ResPartnerBank, sanitize_account_number
 from .res_country import ResCountry, ResCountryState
 from .res_country_group import ResCountryGroup
 from .res_partner import ResPartner
@@ -247,6 +248,8 @@ __all__ = [
     'ResUsersSettings',
     'ResLang',
     'ResBank',
+    'ResPartnerBank',
+    'sanitize_account_number',
     'DecimalPrecision',
     'IrModule',
     'IrModuleDependency',
