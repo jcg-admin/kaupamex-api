@@ -47,10 +47,25 @@ class AccountJournal(models.Model):
     active          = fields.Boolean(
         default=True, help_text='Diario activo (Odoo active).',
     )
+    sequence        = fields.Integer(
+        default=10, help_text='Orden del diario (Odoo sequence).',
+    )
+    # ``show_on_dashboard`` y ``color`` los declara la referencia en
+    # ``account_journal_dashboard.py:30-31``, un ``_inherit`` del **mismo**
+    # addon. Se portan aquí —misma clase, mismo addon— porque el archivo
+    # aparte de allá es una separación de lectura, no de modelo; el resto de
+    # ese archivo (la agregación del tablero) queda pendiente, sucesor #158.
+    show_on_dashboard = fields.Boolean(
+        default=True, help_text='Mostrar en el tablero (Odoo show_on_dashboard).',
+    )
+    color           = fields.Integer(
+        default=0, help_text='Índice de color (Odoo color).',
+    )
 
     class Meta:
         db_table = 'account_journal'
-        ordering = ['code']
+        # ≙ ``_order = 'sequence, type, code'`` (odoo19c: account_journal.py:45).
+        ordering = ['sequence', 'type', 'code']
         constraints = [
             models.UniqueConstraint(
                 fields=['company', 'code'], name='unique_journal_code_company',

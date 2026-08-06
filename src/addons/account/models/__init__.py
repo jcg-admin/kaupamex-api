@@ -89,7 +89,6 @@ from .chart_template import ChartTemplate, template
 # Importar una plantilla REGISTRA sus funciones (ver la nota de divergencia del
 # registro en chart_template.py). Sin estos imports el plan 'generic_coa' no
 # existiría para el cargador, y ninguna empresa recibiría sus diarios.
-from . import template_base  # noqa: F401
 from . import template_generic_coa  # noqa: F401
 
 __all__ = [

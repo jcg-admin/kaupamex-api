@@ -20,14 +20,22 @@ Dos fuentes de datos, igual que la referencia:
   en una tabla: los valores que se escriben en la empresa, el nombre del plan,
   las cuentas de propiedad.
 
-Divergencia de mecanismo declarada — el registro
---------------------------------------------------
+Divergencia de mecanismo declarada — cómo se descubre el registro
+------------------------------------------------------------------
 
 La referencia descubre las funciones decoradas recorriendo los atributos de
 clase en ``_post_model_setup__``, un enganche de su registro de modelos. Aquí no
 hay tal registro: el decorador **se registra a sí mismo** al importarse el
 módulo que lo usa, que es la forma natural en Python y no necesita barrer
 clases. El efecto es el mismo y el orden es explícito.
+
+Lo que **no** diverge —y una versión anterior sí— es todo lo demás del
+mecanismo: las plantillas se declaran **dentro de la clase** (aquí abajo, y en
+``template_generic_coa.py`` como subclase, ≙ su ``_inherit``), reciben
+``(cls, template_code)``, el registro guarda **una lista** por
+``(codigo, modelo)`` para que varios módulos compongan, y el resolutor recorre
+los ancestros en el orden verbatim de la referencia. Las cuatro cosas se habían
+cambiado sin decidirlo, excusadas con "su ORM lo exige"; ver :ref:`h-api-350`.
 
 Lo que este porte NO trae (medido, con desenlace)
 ---------------------------------------------------
@@ -85,9 +93,15 @@ from tools.translate import _
 #: Raíz de los CSV de plantilla, espejo de ``<addon>/data/template/``.
 TEMPLATE_DIR = pathlib.Path(__file__).resolve().parent.parent / 'data' / 'template'
 
-#: ``(codigo_plantilla, modelo) -> funcion``. Lo puebla el decorador al importar
-#: el módulo que declara la plantilla; ver la nota de divergencia del módulo.
-TEMPLATE_REGISTRY = {}
+#: ``codigo_plantilla -> modelo -> [funciones]``. Lo puebla el decorador al
+#: importar el módulo que declara la plantilla.
+#:
+#: La **lista** no es un detalle: ≙ ``_template_register``
+#: (``odoo19c: chart_template.py:78-88``), un ``defaultdict(list)`` que permite
+#: que varios módulos aporten al mismo ``(codigo, modelo)`` y se compongan. Una
+#: versión anterior guardaba ``{(codigo, modelo): funcion}``: la segunda
+#: declaración **borraba** la primera en silencio.
+TEMPLATE_REGISTRY = defaultdict(lambda: defaultdict(list))
 
 #: El modelo bajo el que la referencia guarda los valores sueltos del plan
 #: (nombre, país, cuentas de propiedad) — no es un modelo real.
@@ -104,13 +118,16 @@ def template(code=None, model=TEMPLATE_DATA):
 
     ``code=None`` declara una plantilla **base**: aporta a *todos* los planes.
     Es el mismo mecanismo de la referencia, cuyo resolutor recorre
-    ``[None] + parents`` (``chart_template.py:813``) — la base primero, para
-    que un plan concreto pueda sobreescribirla campo a campo. Así viven los
-    diarios por defecto: no pertenecen a un plan, pertenecen a *tener*
-    contabilidad.
+    ``[None] + parents`` (``chart_template.py:813``). Así viven los diarios por
+    defecto: no pertenecen a un plan, pertenecen a *tener* contabilidad.
+
+    La función decorada recibe ``(cls, template_code)`` — ≙ la firma
+    ``(self, template_code)`` de la referencia. El código llega por parámetro
+    aunque el decorador ya lo fije, porque una plantilla base (``code=None``)
+    sirve a **cualquier** plan y necesita saber a cuál está sirviendo.
     """
     def decorator(func):
-        TEMPLATE_REGISTRY[(code, model)] = func
+        TEMPLATE_REGISTRY[code][model].append(func)
         func.template_target = (code, model)
         return func
     return decorator
@@ -135,14 +152,16 @@ class ChartTemplate:
         catálogo de módulos.
         """
         mapping = {}
-        for (code, model), func in TEMPLATE_REGISTRY.items():
-            if model != TEMPLATE_DATA:
+        for code, by_model in TEMPLATE_REGISTRY.items():
+            data = {}
+            for func in by_model.get(TEMPLATE_DATA, []):
+                data.update(func(cls, code))
+            if not data:
                 continue
-            datos = func()
             mapping[code] = {
-                'name': datos.get('name', code),
-                'country': datos.get('country'),
-                'parent': datos.get('parent'),
+                'name': data.get('name', code),
+                'country': data.get('country'),
+                'parent': data.get('parent'),
             }
         return mapping
 
@@ -172,8 +191,8 @@ class ChartTemplate:
         """
         mapping = cls.get_chart_template_mapping()
         return [
-            (code, datos['name'])
-            for code, datos in sorted(mapping.items(), key=lambda t: (
+            (code, data['name'])
+            for code, data in sorted(mapping.items(), key=lambda t: (
                 t[0] != 'generic_coa' if not country
                 else t[1]['country'] != country
             ))
@@ -182,10 +201,10 @@ class ChartTemplate:
     @classmethod
     def guess_chart_template(cls, country):
         """El plan más apropiado para un país — ≙ ``_guess_chart_template``."""
-        opciones = cls.select_chart_template(country)
-        if not opciones:
+        options = cls.select_chart_template(country)
+        if not options:
             raise UserError(_('No hay ningún plan contable registrado.'))
-        return opciones[0][0]
+        return options[0][0]
 
     # -- identificadores externos ------------------------------------------
 
@@ -213,10 +232,10 @@ class ChartTemplate:
             cls.company_xmlid(xmlid, company), raise_if_not_found=False)
         if record is not None:
             return record
-        padre = getattr(company, 'parent', None)
-        if padre is not None:
+        parent_code = getattr(company, 'parent', None)
+        if parent_code is not None:
             record = IrModelData.ref(
-                cls.company_xmlid(xmlid, padre), raise_if_not_found=False)
+                cls.company_xmlid(xmlid, parent_code), raise_if_not_found=False)
             if record is not None:
                 return record
         if raise_if_not_found:
@@ -241,22 +260,22 @@ class ChartTemplate:
         Devolver ``None`` es un desenlace normal: el CSV describe columnas que
         este puerto todavía no tiene.
         """
-        campos = {f.name for f in model_class._meta.get_fields()}
-        if source_name in campos:
+        model_fields = {f.name for f in model_class._meta.get_fields()}
+        if source_name in model_fields:
             return source_name
         if source_name.endswith('_ids'):
             base = source_name[:-4]
-            for candidato in (base, base + 's'):
-                if candidato in campos:
-                    return candidato
+            for candidate in (base, base + 's'):
+                if candidate in model_fields:
+                    return candidate
         elif source_name.endswith('_id'):
             base = source_name[:-3]
-            if base in campos:
+            if base in model_fields:
                 return base
         return None
 
     @staticmethod
-    def coerce(campo, valor):
+    def coerce(field, value):
         """Del texto del CSV al tipo del campo.
 
         Todo en un CSV es texto; ``factor_percent`` llega como ``'100'`` y el
@@ -264,16 +283,16 @@ class ChartTemplate:
         los valores del registro **y a los de sus líneas hijas**, que es donde
         faltaba.
         """
-        if not isinstance(valor, str) or not valor:
-            return valor
-        clase = type(campo).__name__
-        if clase in ('BooleanField', 'IntegerField', 'FloatField',
+        if not isinstance(value, str) or not value:
+            return value
+        model_class = type(field).__name__
+        if model_class in ('BooleanField', 'IntegerField', 'FloatField',
                      'DecimalField', 'PositiveIntegerField'):
             try:
-                return ast.literal_eval(valor)
+                return ast.literal_eval(value)
             except (ValueError, SyntaxError):
-                return valor
-        return valor.strip()
+                return value
+        return value.strip()
 
     @classmethod
     def parse_csv(cls, template_code, model_name, model_class):
@@ -290,38 +309,38 @@ class ChartTemplate:
         El valor se convierte según el tipo del campo destino; lo que no sea
         booleano o número entra como texto y lo resuelve ``load_data``.
         """
-        ruta = TEMPLATE_DIR / f'{model_name}-{template_code}.csv'
-        if not ruta.exists():
+        path = TEMPLATE_DIR / f'{model_name}-{template_code}.csv'
+        if not path.exists():
             return {}
 
-        campos = {f.name: f for f in model_class._meta.get_fields()}
+        model_fields = {f.name: f for f in model_class._meta.get_fields()}
 
-        def convertir(nombre, valor):
-            real = cls.map_field_name(model_class, nombre)
-            campo = campos.get(real) if real else None
-            return cls.coerce(campo, valor) if campo is not None else valor
+        def convert(name, value):
+            real_name = cls.map_field_name(model_class, name)
+            field = model_fields.get(real_name) if real_name else None
+            return cls.coerce(field, value) if field is not None else value
 
         res = defaultdict(dict)
-        ultimo = None
-        with ruta.open(encoding='utf-8') as fh:
-            for fila in csv.DictReader(fh):
-                if fila.get('id'):
-                    ultimo = fila['id']
-                    res[ultimo].update({
-                        clave: convertir(clave, valor)
-                        for clave, valor in fila.items()
-                        if clave != 'id' and valor and '/' not in clave
+        last_xmlid = None
+        with path.open(encoding='utf-8') as fh:
+            for row in csv.DictReader(fh):
+                if row.get('id'):
+                    last_xmlid = row['id']
+                    res[last_xmlid].update({
+                        key: convert(key, value)
+                        for key, value in row.items()
+                        if key != 'id' and value and '/' not in key
                     })
-                if ultimo is None:
+                if last_xmlid is None:
                     continue
-                hija = {
-                    clave.split('/', 1)[1]: valor
-                    for clave, valor in fila.items()
-                    if '/' in clave and valor
+                child = {
+                    key.split('/', 1)[1]: value
+                    for key, value in row.items()
+                    if '/' in key and value
                 }
-                if hija:
-                    relacion = next(c for c in fila if '/' in c).split('/', 1)[0]
-                    res[ultimo].setdefault(relacion, []).append(hija)
+                if child:
+                    relation = next(c for c in row if '/' in c).split('/', 1)[0]
+                    res[last_xmlid].setdefault(relation, []).append(child)
         return dict(res)
 
     @classmethod
@@ -330,14 +349,27 @@ class ChartTemplate:
 
         La función decorada **se aplica encima** del CSV, no lo reemplaza: así
         una plantilla puede corregir un campo suelto sin copiar la tabla.
+
+        El orden de recorrido es el de la referencia **verbatim**:
+        ``[None] + get_parent_template(code)``, donde ese método devuelve
+        ``[codigo, padre, abuelo]`` — el más específico primero
+        (``odoo19c: chart_template.py:1236-1242``). Como cada vuelta hace
+        ``update``, **el ancestro sobreescribe al hijo**. Es contraintuitivo y
+        aun así es lo que hace la referencia; el propio archivo usa ``[::-1]``
+        explícito allá donde quiere el orden inverso (línea 1326). Una versión
+        anterior de este puerto invertía la lista "porque parecía al revés":
+        cambiar la precedencia de un mecanismo sin decidirlo es la divergencia
+        que ``referencia-odoo-gobierna-las-decisiones.md`` prohíbe. Hoy no
+        cambia nada observable —``generic_coa`` no declara ``parent``—, y el día
+        que exista un plan con padre el comportamiento será el de la referencia
+        y no el que supuse.
         """
-        datos = cls.parse_csv(template_code, model_name, model_class)
-        for code in [None] + list(reversed(cls.get_parent_template(template_code))):
-            func = TEMPLATE_REGISTRY.get((code, model_name))
-            if func is not None:
-                for xmlid, valores in func().items():
-                    datos.setdefault(xmlid, {}).update(valores)
-        return datos
+        data = cls.parse_csv(template_code, model_name, model_class)
+        for code in [None] + cls.get_parent_template(template_code):
+            for func in TEMPLATE_REGISTRY[code].get(model_name, []):
+                for xmlid, values in func(cls, template_code).items():
+                    data.setdefault(xmlid, {}).update(values)
+        return data
 
     @classmethod
     def get_chart_template_data(cls, template_code):
@@ -347,15 +379,18 @@ class ChartTemplate:
         las cuentas antes que los repartos que las nombran. Es el mismo orden de
         creación de la referencia.
         """
-        func = TEMPLATE_REGISTRY.get((template_code, TEMPLATE_DATA))
-        if func is None:
+        funcs = TEMPLATE_REGISTRY[template_code].get(TEMPLATE_DATA, [])
+        if not funcs:
             raise UserError(
                 _('No existe el plan contable «%(code)s».') % {'code': template_code})
-        datos = {TEMPLATE_DATA: func()}
-        for nombre, clase in cls.loaded_models():
-            datos[nombre] = cls.get_chart_template_model_data(
-                template_code, nombre, clase)
-        return datos
+        loose_values = {}
+        for func in funcs:
+            loose_values.update(func(cls, template_code))
+        data = {TEMPLATE_DATA: loose_values}
+        for name, model_class in cls.loaded_models():
+            data[name] = cls.get_chart_template_model_data(
+                template_code, name, model_class)
+        return data
 
     @classmethod
     def loaded_models(cls):
@@ -399,17 +434,17 @@ class ChartTemplate:
         Atómico a propósito: un plan a medias es peor que ninguno — deja
         cuentas sin sus impuestos y una empresa que parece configurada.
         """
-        datos = cls.get_chart_template_data(template_code)
-        creados = {}
-        for nombre, clase in cls.loaded_models():
-            creados[nombre] = cls.load_model_data(
-                nombre, clase, datos.get(nombre, {}), company,
+        data = cls.get_chart_template_data(template_code)
+        created = {}
+        for name, model_class in cls.loaded_models():
+            created[name] = cls.load_model_data(
+                name, model_class, data.get(name, {}), company,
                 force_create=force_create)
-        cls.post_load_data(template_code, company, datos[TEMPLATE_DATA])
-        return creados
+        cls.post_load_data(template_code, company, data[TEMPLATE_DATA])
+        return created
 
     @classmethod
-    def load_model_data(cls, model_name, model_class, datos, company,
+    def load_model_data(cls, model_name, model_class, data, company,
                         force_create=True):
         """Crea los registros de un modelo — ≙ la parte de ``_load_data``.
 
@@ -417,55 +452,55 @@ class ChartTemplate:
         externo **en el momento de escribirlo**, no antes: por eso el orden de
         ``loaded_models`` es el que es.
         """
-        creados = {}
-        for xmlid, valores in datos.items():
-            existente = cls.ref(xmlid, company, raise_if_not_found=False)
-            if existente is not None and not force_create:
-                creados[xmlid] = existente
+        created = {}
+        for xmlid, values in data.items():
+            existing = cls.ref(xmlid, company, raise_if_not_found=False)
+            if existing is not None and not force_create:
+                created[xmlid] = existing
                 continue
 
-            hijas = {}
-            planos = {}
-            for campo, valor in valores.items():
-                if isinstance(valor, list):
-                    hijas[campo] = valor
+            children = {}
+            flat_values = {}
+            for field, value in values.items():
+                if isinstance(value, list):
+                    children[field] = value
                 else:
-                    planos[campo] = valor
+                    flat_values[field] = value
 
-            planos = cls.resolve_values(model_class, planos, company)
-            planos['company'] = company
-            if existente is not None:
-                for campo, valor in planos.items():
-                    setattr(existente, campo, valor)
-                existente.save()
-                registro = existente
+            flat_values = cls.resolve_values(model_class, flat_values, company)
+            flat_values['company'] = company
+            if existing is not None:
+                for field, value in flat_values.items():
+                    setattr(existing, field, value)
+                existing.save()
+                record_data = existing
             else:
-                registro = model_class.objects.create(**planos)
-            IrModelData.set_xmlid(registro, cls.company_xmlid(xmlid, company))
-            cls.load_child_lines(registro, hijas, company)
-            creados[xmlid] = registro
-        return creados
+                record_data = model_class.objects.create(**flat_values)
+            IrModelData.set_xmlid(record_data, cls.company_xmlid(xmlid, company))
+            cls.load_child_lines(record_data, children, company)
+            created[xmlid] = record_data
+        return created
 
     @classmethod
-    def load_child_lines(cls, parent, hijas, company):
+    def load_child_lines(cls, parent, children, company):
         """Crea las líneas hijas declaradas con ``relacion/campo`` en el CSV."""
-        for relacion, filas in hijas.items():
-            nombre = cls.map_field_name(type(parent), relacion)
-            if nombre is None:
+        for relation, rows in children.items():
+            name = cls.map_field_name(type(parent), relation)
+            if name is None:
                 continue
-            campo = parent._meta.get_field(nombre)
-            hija_class = campo.related_model
-            nombre_inverso = campo.field.name
-            for orden, fila in enumerate(filas):
-                valores = cls.resolve_values(hija_class, dict(fila), company)
-                valores[nombre_inverso] = parent
-                valores['company'] = company
-                if 'sequence' in {f.name for f in hija_class._meta.get_fields()}:
-                    valores.setdefault('sequence', orden)
-                hija_class.objects.create(**valores)
+            field = parent._meta.get_field(name)
+            child_class = field.related_model
+            reverse_name = field.field.name
+            for order, row in enumerate(rows):
+                values = cls.resolve_values(child_class, dict(row), company)
+                values[reverse_name] = parent
+                values['company'] = company
+                if 'sequence' in {f.name for f in child_class._meta.get_fields()}:
+                    values.setdefault('sequence', order)
+                child_class.objects.create(**values)
 
     @classmethod
-    def resolve_values(cls, model_class, valores, company):
+    def resolve_values(cls, model_class, values, company):
         """Traduce los valores del CSV a lo que el modelo espera.
 
         Un valor de una relación llega como identificador externo
@@ -475,22 +510,22 @@ class ChartTemplate:
         porta todavía; abortar por eso impediría cargar el plan por un campo
         accesorio.
         """
-        campos = {f.name: f for f in model_class._meta.get_fields()}
-        salida = {}
-        for bruto, valor in valores.items():
-            nombre = cls.map_field_name(model_class, bruto)
-            campo = campos.get(nombre) if nombre else None
-            if campo is None:
+        model_fields = {f.name: f for f in model_class._meta.get_fields()}
+        out = {}
+        for raw, value in values.items():
+            name = cls.map_field_name(model_class, raw)
+            field = model_fields.get(name) if name else None
+            if field is None:
                 continue
-            if campo.is_relation and not campo.many_to_many:
-                if not valor:
+            if field.is_relation and not field.many_to_many:
+                if not value:
                     continue
-                salida[nombre] = cls.ref(valor, company, raise_if_not_found=False)
-            elif campo.many_to_many:
+                out[name] = cls.ref(value, company, raise_if_not_found=False)
+            elif field.many_to_many:
                 continue          # se resuelven tras crear todo (ver post_load_data)
             else:
-                salida[nombre] = cls.coerce(campo, valor)
-        return {k: v for k, v in salida.items() if v is not None}
+                out[name] = cls.coerce(field, value)
+        return {k: v for k, v in out.items() if v is not None}
 
     @classmethod
     def post_load_data(cls, template_code, company, template_data):
@@ -500,28 +535,135 @@ class ChartTemplate:
         resuelven ahora, cuando ya existen. Es el paso que deja a la empresa
         **configurada** y no sólo con registros sueltos.
         """
-        valores_empresa = TEMPLATE_REGISTRY.get((template_code, 'res.company'))
-        propiedades = {
-            clave: valor for clave, valor in template_data.items()
-            if clave.startswith('property_')
+        company_values = {}
+        for func in TEMPLATE_REGISTRY[template_code].get('res.company', []):
+            company_values.update(func(cls, template_code))
+        properties = {
+            key: value for key, value in template_data.items()
+            if key.startswith('property_')
         }
-        escribir = {}
-        campos = {f.name for f in type(company)._meta.get_fields()}
-        for clave, xmlid in propiedades.items():
-            destino = clave.replace('property_', '').replace('_id', '')
-            if destino in campos:
-                escribir[destino] = cls.ref(xmlid, company, raise_if_not_found=False)
-        if valores_empresa is not None:
-            for clave, valor in valores_empresa().items():
-                if clave in campos and isinstance(valor, str):
-                    resuelto = cls.ref(valor, company, raise_if_not_found=False)
-                    if resuelto is not None:
-                        escribir[clave] = resuelto
-                elif clave in campos and not isinstance(valor, str):
-                    escribir[clave] = valor
-        if not escribir:
+        to_write = {}
+        model_fields = {f.name for f in type(company)._meta.get_fields()}
+        for key, xmlid in properties.items():
+            target = key.replace('property_', '').replace('_id', '')
+            if target in model_fields:
+                to_write[target] = cls.ref(xmlid, company, raise_if_not_found=False)
+        if company_values:
+            for key, value in company_values.items():
+                if key in model_fields and isinstance(value, str):
+                    resolved = cls.ref(value, company, raise_if_not_found=False)
+                    if resolved is not None:
+                        to_write[key] = resolved
+                elif key in model_fields and not isinstance(value, str):
+                    to_write[key] = value
+        if not to_write:
             return company
-        for clave, valor in escribir.items():
-            setattr(company, clave, valor)
-        company.save(update_fields=list(escribir))
+        for key, value in to_write.items():
+            setattr(company, key, value)
+        company.save(update_fields=list(to_write))
         return company
+
+    # -- plantillas base (Root template functions) ---------------------------
+    #
+    # ≙ la sección homónima de ``odoo19c: chart_template.py:1121-1240``, donde
+    # viven **dentro** de ``AccountChartTemplate``. Aquí también: lo que aporta
+    # datos a un plan es parte del cargador, no un módulo suelto. Una versión
+    # anterior las sacó a ``template_base.py`` como funciones de módulo y lo
+    # excusó con "su ORM lo exige" — ver :ref:`h-api-350`.
+
+    @template(model='account.journal')
+    def get_account_journal(cls, template_code):
+        """Los seis diarios por defecto — ≙ ``_get_account_journal``.
+
+        Base (sin código): un diario de ventas no es una particularidad de la
+        contabilidad mexicana ni de la genérica. Es lo que hace falta para
+        **asentar**, y sin él un plan cargado es un catálogo de cuentas que no
+        puede emitir una factura.
+
+        El de banco es el único cuyo código la referencia deja en blanco porque
+        su ORM lo genera: ``_get_next_journal_default_code``
+        (``odoo19c: account_journal.py:883``) compone el prefijo ``BNK`` con el
+        primer número libre, así que en una empresa nueva da ``BNK1``. Aquí se
+        escribe ese valor: ``AccountJournal`` declara
+        ``UniqueConstraint(company, code)`` y dejarlo vacío haría colisionar dos
+        diarios en blanco en cuanto hubiera un segundo.
+        """
+        return {
+            'sale': {
+                'name': _('Ventas'),
+                'type': 'sale',
+                'code': 'INV',
+                'show_on_dashboard': True,
+                'color': 11,
+                'sequence': 5,
+            },
+            'purchase': {
+                'name': _('Compras'),
+                'type': 'purchase',
+                'code': 'BILL',
+                'show_on_dashboard': True,
+                'color': 11,
+                'sequence': 6,
+            },
+            'general': {
+                'name': _('Operaciones varias'),
+                'type': 'general',
+                'code': 'MISC',
+                'show_on_dashboard': False,
+                'sequence': 9,
+            },
+            'exch': {
+                'name': _('Diferencia de cambio'),
+                'type': 'general',
+                'code': 'EXCH',
+                'show_on_dashboard': False,
+            },
+            'caba': {
+                'name': _('Impuestos con criterio de caja'),
+                'type': 'general',
+                'code': 'CABA',
+                'show_on_dashboard': False,
+            },
+            'bank': {
+                'name': _('Banco'),
+                'type': 'bank',
+                'code': 'BNK1',
+                'show_on_dashboard': True,
+                'sequence': 7,
+            },
+        }
+
+    @template(model='account.reconcile.model')
+    def get_account_reconcile_model(cls, template_code):
+        """Las dos reglas de conciliación por defecto — ≙ ``_get_account_reconcile_model``.
+
+        También base, y por el mismo motivo que los diarios: una transferencia
+        interna y una comisión bancaria aparecen en el extracto de cualquier
+        empresa, no de una localización concreta.
+
+        La referencia expresa las líneas hijas con ``Command.create({...})``, la
+        forma con la que su ORM distingue crear de enlazar. Aquí una lista de
+        diccionarios bajo el nombre de la relación ya significa «crear estas
+        hijas» — es lo que el cargador hace con ``repartition_line_ids`` del
+        CSV, así que no hace falta un envoltorio que sólo diga «create».
+        """
+        return {
+            'internal_transfer_reco': {
+                'name': _('Transferencias internas'),
+                'line_ids': [{
+                    'amount_type': 'percentage',
+                    'amount_string': '100',
+                    'label': _('Transferencias internas'),
+                }],
+            },
+            'bank_fees_reco': {
+                'name': _('Comisiones bancarias'),
+                'match_label': 'contains',
+                'match_label_param': 'Bank Fees',
+                'line_ids': [{
+                    'amount_type': 'percentage',
+                    'amount_string': '100',
+                    'label': _('Comisiones bancarias'),
+                }],
+            },
+        }

@@ -21,6 +21,7 @@ from addons.account.models import (
     AccountTaxGroup,
     ChartTemplate,
 )
+from addons.account.models.chart_template import TEMPLATE_REGISTRY, template
 from addons.account.models.account_tax_repartition_line import AccountTaxRepartitionLine
 from addons.base.models.ir_model import IrModelData
 from addons.base.models.res_company import ResCompany
@@ -34,18 +35,18 @@ def company(db):
 
 
 @pytest.mark.django_db
-class TestRegistro:
-    def test_el_plan_generico_esta_registrado(self, db):
+class TestRegistry:
+    def test_generic_chart_is_registered(self, db):
         """Importar el módulo de la plantilla la registra — sin barrer clases."""
         assert 'generic_coa' in ChartTemplate.get_chart_template_mapping()
 
-    def test_sin_pais_el_generico_va_primero(self, db):
+    def test_generic_wins_without_country(self, db):
         assert ChartTemplate.guess_chart_template(None) == 'generic_coa'
 
 
 @pytest.mark.django_db
-class TestCarga:
-    def test_carga_las_cuatro_familias(self, company):
+class TestLoading:
+    def test_loads_the_four_families(self, company):
         ChartTemplate.try_loading('generic_coa', company)
 
         assert AccountAccount.objects.filter(company=company).count() == 46
@@ -53,15 +54,15 @@ class TestCarga:
         assert AccountTax.objects.filter(company=company).count() == 4
         assert AccountFiscalPosition.objects.filter(company=company).count() == 2
 
-    def test_cada_registro_nace_con_su_identificador(self, company):
+    def test_each_record_gets_its_external_id(self, company):
         ChartTemplate.try_loading('generic_coa', company)
 
-        cuenta = ChartTemplate.ref('receivable', company)
-        assert cuenta.code == '1210'
+        account = ChartTemplate.ref('receivable', company)
+        assert account.code == '1210'
         assert IrModelData.objects.filter(
             module='account', name=f'{company.pk}_receivable').exists()
 
-    def test_el_impuesto_apunta_a_su_grupo(self, company):
+    def test_tax_points_to_its_group(self, company):
         """La referencia entre registros se resuelve **por nombre**, no por id.
 
         Es lo que el CSV expresa con ``tax_group_id=tax_group_15``: sin el
@@ -69,12 +70,12 @@ class TestCarga:
         """
         ChartTemplate.try_loading('generic_coa', company)
 
-        impuesto = ChartTemplate.ref('sale_tax_template', company)
-        assert impuesto.tax_group == ChartTemplate.ref('tax_group_15', company)
-        assert impuesto.amount == 15
-        assert impuesto.type_tax_use == 'sale'
+        tax = ChartTemplate.ref('sale_tax_template', company)
+        assert tax.tax_group == ChartTemplate.ref('tax_group_15', company)
+        assert tax.amount == 15
+        assert tax.type_tax_use == 'sale'
 
-    def test_las_lineas_de_reparto_nacen_con_el_impuesto(self, company):
+    def test_repartition_lines_are_created_with_the_tax(self, company):
         """Cuatro filas del CSV con ``id`` vacío son cuatro líneas hijas.
 
         Dos de factura (base + impuesto) y dos de rectificativa. La línea de
@@ -82,17 +83,17 @@ class TestCarga:
         """
         ChartTemplate.try_loading('generic_coa', company)
 
-        impuesto = ChartTemplate.ref('sale_tax_template', company)
-        lineas = AccountTaxRepartitionLine.objects.filter(tax=impuesto)
-        assert lineas.count() == 4
-        assert lineas.filter(document_type='invoice').count() == 2
-        assert lineas.filter(document_type='refund').count() == 2
+        tax = ChartTemplate.ref('sale_tax_template', company)
+        lines = AccountTaxRepartitionLine.objects.filter(tax=tax)
+        assert lines.count() == 4
+        assert lines.filter(document_type='invoice').count() == 2
+        assert lines.filter(document_type='refund').count() == 2
 
-        recibido = ChartTemplate.ref('tax_received', company)
-        de_impuesto = lineas.filter(repartition_type='tax', document_type='invoice')
-        assert de_impuesto.get().account == recibido
+        received = ChartTemplate.ref('tax_received', company)
+        tax_line = lines.filter(repartition_type='tax', document_type='invoice')
+        assert tax_line.get().account == received
 
-    def test_la_empresa_queda_con_sus_impuestos_por_defecto(self, company):
+    def test_company_ends_up_with_default_taxes(self, company):
         """El paso que cierra la carga: la empresa **configurada**.
 
         Es exactamente el hueco de :ref:`h-api-344` — nadie sembraba un
@@ -108,22 +109,22 @@ class TestCarga:
 
 
 @pytest.mark.django_db
-class TestPlantillaBase:
+class TestBaseTemplate:
     """Los diarios no pertenecen a un plan: pertenecen a *tener* contabilidad.
 
     Se declaran con ``@template(model=...)`` sin código, y el resolutor los
     aplica a todo plan — ``[None] + parents`` en la referencia.
     """
 
-    def test_la_empresa_recibe_los_seis_diarios(self, company):
+    def test_company_receives_the_six_journals(self, company):
         ChartTemplate.try_loading('generic_coa', company)
 
-        diarios = AccountJournal.objects.filter(company=company)
-        assert diarios.count() == 6
-        assert set(diarios.values_list('code', flat=True)) == {
+        journals = AccountJournal.objects.filter(company=company)
+        assert journals.count() == 6
+        assert set(journals.values_list('code', flat=True)) == {
             'INV', 'BILL', 'MISC', 'EXCH', 'CABA', 'BNK1'}
 
-    def test_las_reglas_de_conciliacion_nacen_con_su_linea(self, company):
+    def test_reconcile_models_are_created_with_their_line(self, company):
         """Transferencia interna y comisión bancaria, cada una con su línea.
 
         Las hijas se declaran como lista de diccionarios; el cargador las crea
@@ -131,15 +132,39 @@ class TestPlantillaBase:
         """
         ChartTemplate.try_loading('generic_coa', company)
 
-        reglas = AccountReconcileModel.objects.filter(company=company)
-        assert reglas.count() == 2
+        rules = AccountReconcileModel.objects.filter(company=company)
+        assert rules.count() == 2
 
-        comision = ChartTemplate.ref('bank_fees_reco', company)
-        assert comision.match_label == 'contains'
-        assert comision.line_ids.count() == 1
-        assert comision.line_ids.get().amount_string == '100'
+        fee_rule = ChartTemplate.ref('bank_fees_reco', company)
+        assert fee_rule.match_label == 'contains'
+        assert fee_rule.line_ids.count() == 1
+        assert fee_rule.line_ids.get().amount_string == '100'
 
-    def test_el_diario_de_ventas_es_el_que_busca_el_asiento(self, company):
+    def test_journals_carry_the_three_dashboard_fields(self, company):
+        """``sequence``, ``show_on_dashboard`` y ``color`` — de la referencia.
+
+        Una versión anterior los omitía diciendo que "el modelo no los tiene".
+        Eso describía nuestro estado, no una incapacidad: los tres existen en
+        ``odoo19c`` (``account_journal.py:147`` y
+        ``account_journal_dashboard.py:30-31``) y Django los declara igual.
+        """
+        ChartTemplate.try_loading('generic_coa', company)
+
+        sale_journal = AccountJournal.objects.get(company=company, type='sale')
+        assert (sale_journal.sequence, sale_journal.show_on_dashboard, sale_journal.color) == (5, True, 11)
+
+        misc_journal = AccountJournal.objects.get(company=company, code='MISC')
+        assert misc_journal.show_on_dashboard is False
+
+    def test_journals_come_out_in_reference_order(self, company):
+        """``_order = 'sequence, type, code'`` — no ``code`` a secas."""
+        ChartTemplate.try_loading('generic_coa', company)
+
+        codes = list(
+            AccountJournal.objects.filter(company=company).values_list('code', flat=True))
+        assert codes[:3] == ['INV', 'BILL', 'BNK1']
+
+    def test_sale_journal_is_the_one_the_entry_looks_up(self, company):
         """``create_invoice_from_subscription`` busca por ``type='sale'``.
 
         Es el consumidor real: sin un diario de ese tipo lanza ``UserError`` y
@@ -147,30 +172,30 @@ class TestPlantillaBase:
         """
         ChartTemplate.try_loading('generic_coa', company)
 
-        venta = AccountJournal.objects.get(company=company, type='sale')
-        assert venta.code == 'INV'
-        assert venta == ChartTemplate.ref('sale', company)
+        sale_journal = AccountJournal.objects.get(company=company, type='sale')
+        assert sale_journal.code == 'INV'
+        assert sale_journal == ChartTemplate.ref('sale', company)
 
 
 @pytest.mark.django_db
-class TestCargaAlCrearLaEmpresa:
+class TestLoadOnCompanyCreate:
     """El cargador sin consumidor no vale: una empresa hija hereda el plan.
 
     ≙ el ``create`` de la referencia, que instancia el plan de la raíz. Una
     empresa **raíz** no entra por aquí — su plan lo elige quien la aprovisiona.
     """
 
-    def test_la_hija_hereda_el_plan_de_su_raiz(self, company):
+    def test_subsidiary_inherits_root_chart(self, company):
         company.chart_template = 'generic_coa'
         company.save(update_fields=['chart_template'])
 
-        hija = ResCompany.objects.create(
+        subsidiary = ResCompany.objects.create(
             code='acme-mx', name='ACME México', parent=company)
 
-        assert AccountAccount.objects.filter(company=hija).count() == 46
-        assert AccountJournal.objects.filter(company=hija, type='sale').exists()
+        assert AccountAccount.objects.filter(company=subsidiary).count() == 46
+        assert AccountJournal.objects.filter(company=subsidiary, type='sale').exists()
 
-    def test_sin_plan_en_la_raiz_no_se_carga_nada(self, company):
+    def test_nothing_loads_without_a_chart_on_the_root(self, company):
         """El receptor es no-op mientras nadie declare un plan.
 
         Es lo que hace que cablearlo no cambie el comportamiento de ninguna
@@ -178,40 +203,85 @@ class TestCargaAlCrearLaEmpresa:
         """
         assert company.chart_template is None
 
-        hija = ResCompany.objects.create(
+        subsidiary = ResCompany.objects.create(
             code='acme-co', name='ACME Colombia', parent=company)
 
-        assert AccountAccount.objects.filter(company=hija).count() == 0
+        assert AccountAccount.objects.filter(company=subsidiary).count() == 0
 
-    def test_la_raiz_no_se_carga_a_si_misma(self, db):
+    def test_root_does_not_load_itself(self, db):
         """Una raíz es su propio ``parent_ids[0]`` — sin el guard se cargaría sola."""
-        raiz = ResCompany.objects.create(
+        root = ResCompany.objects.create(
             code='beta-root', name='BETA', chart_template='generic_coa')
 
-        assert AccountAccount.objects.filter(company=raiz).count() == 0
+        assert AccountAccount.objects.filter(company=root).count() == 0
 
 
 @pytest.mark.django_db
-class TestAislamientoEntreEmpresas:
-    def test_dos_empresas_tienen_planes_independientes(self, company):
+class TestCompanyIsolation:
+    def test_two_companies_get_independent_charts(self, company):
         """``receivable`` no nombra una cuenta: nombra un papel.
 
         La cuenta concreta es la de cada empresa, y por eso el identificador
         externo lleva su id delante.
         """
-        otra = ResCompany.objects.create(code='beta', name='BETA')
+        other = ResCompany.objects.create(code='beta', name='BETA')
         ChartTemplate.try_loading('generic_coa', company)
-        ChartTemplate.try_loading('generic_coa', otra)
+        ChartTemplate.try_loading('generic_coa', other)
 
-        una = ChartTemplate.ref('receivable', company)
-        dos = ChartTemplate.ref('receivable', otra)
-        assert una != dos
-        assert una.code == dos.code == '1210'
-        assert una.company == company and dos.company == otra
+        first = ChartTemplate.ref('receivable', company)
+        second = ChartTemplate.ref('receivable', other)
+        assert first != second
+        assert first.code == second.code == '1210'
+        assert first.company == company and second.company == other
 
-    def test_recargar_no_duplica(self, company):
+    def test_reloading_does_not_duplicate(self, company):
         """Idempotente por identificador externo, como la referencia."""
         ChartTemplate.try_loading('generic_coa', company)
         ChartTemplate.try_loading('generic_coa', company)
 
         assert AccountAccount.objects.filter(company=company).count() == 46
+
+
+@pytest.mark.django_db
+class TestRegistryComposes:
+    """Dos declaraciones al mismo ``(codigo, modelo)`` se **componen**.
+
+    ≙ ``_template_register``, un ``defaultdict(list)``
+    (``odoo19c: chart_template.py:78-88``). Una versión anterior de este puerto
+    guardaba una sola función por clave: la segunda declaración borraba a la
+    primera **en silencio**, que es el modo de fallo que este test fija.
+    """
+
+    def test_second_declaration_does_not_erase_the_first(self, company):
+        @template(model='account.journal')
+        def extra_journal(cls, template_code):
+            return {'extra': {
+                'name': 'Diario extra', 'type': 'general', 'code': 'XTRA'}}
+
+        try:
+            ChartTemplate.try_loading('generic_coa', company)
+            codes = set(AccountJournal.objects
+                          .filter(company=company).values_list('code', flat=True))
+            assert 'XTRA' in codes          # la nueva entró
+            assert 'INV' in codes           # y la base sigue ahí
+        finally:
+            TEMPLATE_REGISTRY[None]['account.journal'].remove(extra_journal)
+
+    def test_template_receives_the_chart_code(self, company):
+        """La firma ``(cls, template_code)`` no es decorativa.
+
+        Una plantilla **base** sirve a cualquier plan; sin el parámetro no
+        podría saber a cuál está sirviendo.
+        """
+        seen = []
+
+        @template(model='account.journal')
+        def spy(cls, template_code):
+            seen.append(template_code)
+            return {}
+
+        try:
+            ChartTemplate.try_loading('generic_coa', company)
+            assert seen == ['generic_coa']
+        finally:
+            TEMPLATE_REGISTRY[None]['account.journal'].remove(spy)
