@@ -20,10 +20,14 @@ Odoo ``service/server``              Equivalente en la pila
 ``ThreadedServer`` / ``PreforkServer``  **prod:** Gunicorn en prefork síncrono
 / ``GeventServer`` (WSGI + workers)  (``setup/gunicorn.conf.py``); **dev:** ``runserver``
 ``WorkerHTTP``                       worker ``sync`` de Gunicorn
-``WorkerCron`` + ``cron_database_list``  ``ir.cron`` (portado como modelo de control)
-                                     disparado por un management command / Celery beat;
-                                     el "por-DB" lo cubre el router multi-DB
-                                     (``orm/routers.py``, DB-per-company SOL-091)
+``WorkerCron`` + ``cron_database_list``  ``ir.cron`` (modelo de control + runner
+                                     portados, ``addons/base/models/ir_cron.py``)
+                                     disparado por el subcomando ``cron``
+                                     (``addons/base/management/commands/cron.py``,
+                                     ``kaupamex-bin cron``); el "por-DB" lo cubre
+                                     ``service.db.list_company_db_names`` +
+                                     ``install_company_aliases`` (DB-per-company
+                                     SOL-091)
 ``FSWatcherInotify`` / autoreload    autoreload de ``runserver`` (dev); en prod no
                                      aplica (deploy inmutable)
 ``load_server_wide_modules``         ``INSTALLED_APPS`` + ``apps.populate()`` de Django

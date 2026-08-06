@@ -347,6 +347,11 @@ def kill_connections(db_name, using=DEFAULT_DB_ALIAS):
                 [db_name],
             )
         except Exception:
+            # silent OK because es best-effort: si no se puede terminar las
+            # conexiones, el DROP DATABASE que viene después falla solo y con
+            # un mensaje mucho más claro que cualquiera que se pudiera relanzar
+            # aquí. Copiado verbatim de `odoo19c: odoo/service/db.py:226-227`,
+            # que usa el mismo `except Exception: pass` en el mismo punto.
             pass
 
 

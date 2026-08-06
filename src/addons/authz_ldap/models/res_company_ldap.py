@@ -312,6 +312,11 @@ class CompanyLdap(TimeStampedModel):
             changed = True
             conn.unbind()
         except ldap.INVALID_CREDENTIALS:
+            # silent OK because una contraseña vieja incorrecta es un NO, no un
+            # error: `changed` sigue en False y el llamador decide. Fiel a
+            # `odoo19c: addons/auth_ldap/models/res_company_ldap.py:157-158`,
+            # que hace `return False` en la misma rama. No se registra el
+            # intento fallido a propósito — sería un canal de enumeración.
             pass
         except ldap.LDAPError as e:
             _logger.error('An LDAP exception occurred: %s', e)

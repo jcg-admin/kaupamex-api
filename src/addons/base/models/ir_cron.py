@@ -59,36 +59,59 @@ dejado el objetivo a medias en cada uno.
 ``ir.filters.model_id`` y ``ir.attachment.res_model`` — la delegación no
 cambia ese criterio, sólo dónde está el campo.
 
-El runner del cron — DIFERIDO (Clausula 4, fuera de este slice)
+El runner del cron — PORTADO (parcial; Clausula 4 cerrada para lo esencial)
 =====================================================================
 
-Esta portación modela **solo el registro de horario como dato** (qué
-existe, cuándo debe correr próximamente). El *runner* real — el proceso
-que hace polling de ``ir_cron`` con ``active=True AND nextcall <= now()``,
-adquiere el job, lo ejecuta y reprograma ``nextcall`` — es un **nodo
-consumidor separado** (worker/scheduler, análogo a
-``IrCron._process_jobs``/``_acquire_one_job``/``_run_job`` de Odoo) que
-**no se construye en este slice**. Se documenta explícitamente aquí y en
-el docstring de clase para que quede trazable como alcance diferido, no
-como omisión silenciosa.
+Iteración posterior a la portación original de este módulo: el runner que
+hace polling de ``ir_cron`` con ``active=True AND nextcall <= now()``,
+adquiere el job, lo ejecuta y reprograma ``nextcall`` **ya está portado**
+como los cuatro métodos homónimos de la referencia —
+``_acquire_one_job``/``_run_job``/``_process_jobs``/``_callback`` (18/19
+líneas 308-388/458-568/187-212/671-696)— más dos helpers propios
+(``_ready_q``, ``_reschedule``) que no tienen nombre en la referencia
+porque allá su lógica vive inline en ``_get_ready_sql_condition`` y
+``_reschedule_later``.
 
-Deliberadamente NO se porta (fuera de alcance de un registro de horario)
+Adquisición: ``FOR NO KEY UPDATE SKIP LOCKED`` vía
+``QuerySet.select_for_update(skip_locked=True, no_key=True)`` — la misma
+capacidad de PostgreSQL que la referencia usa (ADR-028 la desbloqueó;
+MariaDB no la daba), **no** un lock de aplicación en Python. Cada job se
+adquiere y ejecuta en su propia transacción (``transaction.atomic``),
+igual que la referencia comitea por-job en ``_process_jobs_loop``.
+
+Colapso deliberado frente a la referencia (por lo que SÍ se excluyó,
+ver la sección siguiente): sin ``ir.cron.progress`` no hay estados
+"parcialmente hecho" — un job es ``FULLY_DONE`` o ``FAILED`` en una sola
+pasada de ``_callback``, y **ambos** resultados reprograman por el
+intervalo normal (== la referencia: ``_reschedule_later`` corre para
+``FULLY_DONE`` y para ``FAILED`` por igual, ir_cron.py:445-448) — un job
+que falla no queda atascado en un reintento apretado ni bloquea a los
+siguientes.
+
+Deliberadamente NO se porta (fuera de alcance de este runner)
 =====================================================================
 
 - **``failure_count`` / ``first_failure_date`` + auto-desactivación tras
-  fallos consecutivos** (18/19): pertenecen al ciclo de vida de EJECUCIÓN
-  del job (qué hace el runner cuando el callback lanza una excepción), no
-  al registro de horario. Candidato H-BASE cuando se construya el runner.
+  fallos consecutivos** (18/19): sin ellos, un job que falla siempre
+  sigue reprogramándose (nunca se auto-desactiva). Candidato H-BASE si el
+  volumen de jobs con fallos crónicos lo justifica.
 - **``ir.cron.trigger`` / ``ir.cron.progress``** (modelos satélite 18/19
   para triggers ad-hoc y progreso batch — ``_trigger``/``_commit_progress``):
-  mecanismo de ejecución/observabilidad del runner, no de programación.
-- **``_process_jobs``/``_acquire_one_job``/``_run_job``/``_callback`` y
-  todo el locking ``FOR NO KEY UPDATE SKIP LOCKED``**: es el runner mismo
-  (ver sección anterior) — explícitamente diferido.
+  sin ``ir.cron.trigger`` no hay ``_reschedule_asap`` ni disparo fuera de
+  horario; sin ``ir.cron.progress`` no hay ejecución multi-lote de un
+  mismo job. Ninguno de los dos es requisito de un runner correcto de
+  polling — son optimizaciones de UX/observabilidad de Odoo.
+- **``_check_version``/``_check_modules_state`` (``BadVersion``/
+  ``BadModuleState``)**: dependen de ``ir_module_module.latest_version`` y
+  de filas con ``state LIKE 'to %'`` — semántica de "módulo instalando/
+  actualizando" que no tiene equivalente portado en este monolito (los
+  "módulos" aquí son apps Django versionadas por migraciones, no filas con
+  estado propio). ``_process_jobs`` no las invoca.
 - **``_notifydb`` (LISTEN/NOTIFY de PostgreSQL vía ``pg_notify``)**:
-  mecanismo de wake-up específico de Postgres; MariaDB no tiene un
-  equivalente directo y el runner (diferido) decidirá su propio esquema
-  de polling/wake-up cuando se construya.
+  mecanismo de wake-up específico de Postgres para reaccionar a triggers
+  entre pasadas del worker; sin ``ir.cron.trigger`` no hay a qué
+  reaccionar. El subcomando ``cron`` (``management/commands/cron.py``)
+  hace polling por intervalo fijo en su lugar.
 
 Comportamiento SÍ portado (adaptado a un método plano, no a los
 decoradores ``@api``/loop de reintento de Odoo): ``_compute_next()`` —
@@ -100,10 +123,10 @@ verificado: ausente de ``pyproject.toml`` y de la instalación ``uv``).
 Para ``months`` se implementa suma calendario con *clamping* de día de mes
 (mismo comportamiento observable que ``relativedelta`` para overflow de
 día, p. ej. 31 de enero + 1 mes → 28/29 de febrero) usando solo
-``calendar``/``datetime`` de la stdlib. El runner futuro es quien invoca
-este método tras cada ejecución — este método NO hace loop "hasta superar
-now()" (eso es ``_reschedule_later`` de Odoo, responsabilidad del runner
-diferido, no del registro de horario).
+``calendar``/``datetime`` de la stdlib. ``_reschedule()`` es quien invoca
+este cálculo repetidamente (loop "hasta superar now()", == referencia
+``_reschedule_later``) — ``_compute_next()`` en sí sigue siendo una sola
+pasada, sin loop propio.
 
 Campos del brief NO presentes en Odoo 18 ni 19 — OMITIDOS, no inventados
 =====================================================================
@@ -141,21 +164,43 @@ crear el cron. Este monolito no tiene ese contexto de request implícito al
 registrar una tarea programada (p. ej. seed de datos, management command),
 así que ``user`` se porta **nullable** (``null=True, blank=True,
 on_delete=SET_NULL``) — mismo patrón que ``company`` en
-``ir_sequence``/``ir_attachment``: el dueño es opcional a nivel de dato;
-el runner (diferido) decide qué usuario de ejecución usar cuando esté
-ausente (p. ej. un usuario de sistema).
+``ir_sequence``/``ir_attachment``: el dueño es opcional a nivel de dato.
 
 Cross-app: ``user`` → ``settings.AUTH_USER_MODEL`` (Odoo ``user_id``).
+
+``user`` NO se consume todavía en el runner (gap declarado, no omisión
+silenciosa)
+-----------------------------------------------------------------------
+
+La referencia ejecuta el callback **como el usuario del job**
+(``env = api.Environment(job_cr, job['user_id'], {...})``,
+ir_cron.py:481-483) — el ``method_name``/``model_name`` invocado aquí
+(``_callback``, arriba) es una llamada de **clase**
+(``getattr(apps.get_model(model_name), method_name)()``) sin ningún
+mecanismo de impersonación de usuario en este monolito (no hay un
+``env``/contexto de sesión que threading un ``user_id`` a través de la
+llamada, a diferencia de Odoo). El campo ``user`` queda persistido y
+disponible, pero **con o sin valor, el runner no lo lee todavía** — el
+método invocado corre con los privilegios que tenga el proceso worker
+(``kaupamex-bin cron``), no con los del ``user`` del cron. Candidato
+H-BASE cuando un ``method_name`` necesite ejecutar con los privilegios
+de un usuario concreto (p. ej. para que las reglas de registro/ACL del
+propio método se apliquen).
 """
 import calendar
+import logging
 from datetime import timedelta
 
+from django.apps import apps
 from django.conf import settings
+from django.db import DEFAULT_DB_ALIAS, transaction
 from django.utils import timezone
 
 import fields
 import models
 from addons.base.models.ir_actions import IrActionsServer
+
+_logger = logging.getLogger(__name__)
 
 INTERVAL_CHOICES = [
     ('minutes', 'Minutes'),
@@ -198,12 +243,14 @@ def _add_interval(dt, number, interval_type):
 
 
 class IrCron(models.Model):
-    """``ir.cron`` — registro de horario de una tarea programada.
+    """``ir.cron`` — registro de horario de una tarea programada + runner.
 
-    Modela SOLO el dato de programación (qué ejecutar + cada cuánto +
-    próxima corrida). El runner que hace polling y ejecuta las tareas
-    ``active=True`` con ``nextcall`` vencido es un componente separado,
-    diferido fuera de este slice (ver docstring del módulo)."""
+    El registro de horario (qué ejecutar + cada cuánto + próxima corrida)
+    y el runner que hace polling y ejecuta las tareas ``active=True`` con
+    ``nextcall`` vencido (``_process_jobs``/``_acquire_one_job``/
+    ``_run_job``/``_callback``) viven en la misma clase — igual que en la
+    referencia. Ver docstring del módulo para el detalle de qué del runner
+    de Odoo se portó y qué se excluyó deliberadamente."""
 
     # Enlace de _inherits (Odoo ir_actions_server_id, ir_cron.py:106-108):
     # Many2one required con ondelete='restrict' (≙ PROTECT). NO es herencia
@@ -298,3 +345,123 @@ class IrCron(models.Model):
         registro de horario. Devuelve el valor calculado sin guardarlo —
         el runner decide cuándo persistirlo junto con ``lastcall``."""
         return _add_interval(self.nextcall, self.interval_number, self.interval_type)
+
+    # ---- Runner: adquisición, ejecución y reprogramación de jobs --------
+    # (== _acquire_one_job / _run_job / _process_jobs / _callback de Odoo,
+    # ver docstring del módulo para el colapso deliberado frente a la
+    # referencia.)
+
+    @classmethod
+    def _ready_q(cls):
+        """Condición de "listo para correr" (== ``_get_ready_sql_condition``
+        de Odoo, ir_cron.py:284-293, sin el ``OR`` de ``ir_cron_trigger`` —
+        no portado, ver docstring del módulo): ``active`` y ``nextcall`` ya
+        vencido."""
+        return models.Q(active=True, nextcall__lte=timezone.now())
+
+    @classmethod
+    def _acquire_one_job(cls, job_id, using=DEFAULT_DB_ALIAS, *, include_not_ready=False):
+        """Adquiere para actualización el job ``job_id`` sin bloquear si
+        otro worker ya lo tiene (== ``_acquire_one_job`` de Odoo,
+        ir_cron.py:308-388). ``FOR NO KEY UPDATE SKIP LOCKED`` vía
+        ``select_for_update(skip_locked=True, no_key=True)`` — la misma
+        capacidad de PostgreSQL que la referencia usa (ADR-028), no un lock
+        de aplicación en Python. Debe llamarse dentro de una transacción
+        (``transaction.atomic``) que el caller cierra tras ``_run_job()``;
+        Django lo exige (``TransactionManagementError`` si no).
+
+        ``include_not_ready=True`` (== Odoo ``method_direct_trigger``)
+        adquiere el job aunque no esté listo todavía — no usado por el
+        polling normal, disponible para un disparo manual futuro.
+
+        Devuelve la instancia adquirida, o ``None`` si otro worker ya la
+        tenía tomada o si dejó de estar lista entre el listado y la
+        adquisición."""
+        qs = (
+            cls.objects.using(using)
+            .select_for_update(skip_locked=True, no_key=True)
+            .filter(pk=job_id)
+        )
+        if not include_not_ready:
+            qs = qs.filter(cls._ready_q())
+        return qs.first()
+
+    def _reschedule(self, now):
+        """Avanza ``nextcall`` hasta superar ``now`` y persiste junto con
+        ``lastcall`` (== ``_reschedule_later`` de Odoo, ir_cron.py:634-654,
+        sin el ajuste a la timezone de usuario — este monolito no tiene
+        contexto de sesión por cron job, ver docstring del módulo sobre
+        ``user``). ``lastcall`` se actualiza siempre, con éxito o con
+        fallo — fiel a la referencia: ``_reschedule_later`` corre para
+        ``FULLY_DONE`` y para ``FAILED`` por igual (ir_cron.py:445-448),
+        aunque el ``help_text`` de Odoo en el campo diga "successfully"
+        (ir_cron.py:119) — la implementación real no distingue.
+        ``UPDATE ... WHERE pk=`` en vez de ``self.save()``: sólo toca las
+        dos columnas que cambian, sin re-serializar el resto del row bajo
+        el lock ya tomado por ``_acquire_one_job``."""
+        nextcall = self.nextcall
+        while nextcall <= now:
+            nextcall = _add_interval(nextcall, self.interval_number, self.interval_type)
+        type(self).objects.filter(pk=self.pk).update(nextcall=nextcall, lastcall=now)
+        self.nextcall = nextcall
+        self.lastcall = now
+
+    def _callback(self):
+        """Invoca el método delegado por la acción servidor (==
+        ``_callback`` de Odoo, ir_cron.py:671-696). La referencia llama
+        ``ir.actions.server.browse(id).run()``; en este árbol
+        ``IrActionsServer.run()`` levanta ``NotImplementedError`` a
+        propósito (el modo ``code`` no se evalúa, ver ``ir_actions.py``).
+        La alternativa sancionada por este proyecto
+        (``ir_actions.py:436-444``) es ``method_name``/``model_name``: el
+        runner —este método— la invoca directamente, sin pasar por
+        ``.run()``. Deja escapar la excepción del método invocado; quien la
+        atrapa es ``_run_job()``."""
+        model = apps.get_model(self.model_name)
+        method = getattr(model, self.method_name)
+        method()
+
+    def _run_job(self):
+        """Ejecuta el callback de este cron ya adquirido (lock tomado) y
+        reprograma su siguiente corrida — colapsa ``_process_job`` +
+        ``_run_job`` de la referencia (ir_cron.py:396-568, ver docstring
+        del módulo sobre la API de progreso no portada). Nunca deja escapar
+        la excepción del callback — un fallo se loggea y de todos modos se
+        reprograma (ver ``_reschedule``), para que un job que falla
+        sistemáticamente no bloquee a los siguientes ni quede reintentando
+        en bucle apretado."""
+        now = timezone.now()
+        try:
+            self._callback()
+        except Exception:  # noqa: BLE001 — un job no debe tumbar al runner
+            _logger.exception('cron %r (id=%s) fallo', self.name, self.pk)
+        self._reschedule(now)
+
+    @classmethod
+    def _process_jobs(cls, using=DEFAULT_DB_ALIAS):
+        """Ejecuta todos los jobs listos en la base ``using`` (== combina
+        ``_process_jobs`` + ``_process_jobs_loop`` de Odoo, ir_cron.py:
+        187-230 — aquí en un único método porque no hay ``_check_version``/
+        ``_check_modules_state`` que verificar antes del loop, ver
+        docstring del módulo). Cada job se adquiere y corre en su propia
+        transacción, igual que la referencia comitea por-job en
+        ``_process_jobs_loop``. Devuelve el número de jobs procesados
+        (adquiridos y ejecutados, con éxito o con fallo — un fallo cuenta
+        como procesado; lo que no cuenta es un job que otro worker ya
+        tenía tomado)."""
+        ready_ids = list(
+            cls.objects.using(using)
+            .filter(cls._ready_q())
+            .order_by('priority', 'id')
+            .values_list('pk', flat=True)
+        )
+        processed = 0
+        for job_id in ready_ids:
+            with transaction.atomic(using=using):
+                cron = cls._acquire_one_job(job_id, using=using)
+                if cron is None:
+                    _logger.debug('cron id=%s ya tomado por otro worker', job_id)
+                    continue
+                cron._run_job()
+            processed += 1
+        return processed

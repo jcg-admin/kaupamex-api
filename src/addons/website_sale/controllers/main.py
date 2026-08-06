@@ -179,9 +179,11 @@ class ProductListView(ListAPIView):
                 try:
                     queryset = queryset.filter(**{f'list_price__{lookup}': raw})
                 except (ValueError, TypeError):
-                    # Un precio no numérico es ruido de la query string, no un
-                    # error del comprador: se ignora el filtro en vez de
-                    # devolver 400 y dejar la vitrina en blanco.
+                    # silent OK because un precio no numérico es ruido de la
+                    # query string, no un error del comprador: se ignora el
+                    # filtro en vez de devolver 400 y dejar la vitrina en
+                    # blanco. La excepción es acotada (ValueError/TypeError),
+                    # no un `except Exception`.
                     pass
 
         return queryset.order_by('sequence', 'name')

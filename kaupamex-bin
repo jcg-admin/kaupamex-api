@@ -1,0 +1,30 @@
+#!/usr/bin/env python3
+"""Punto de entrada del producto L0 — equivalente de ``odoo19c: odoo-bin``.
+
+La referencia lo resuelve en seis líneas (``import odoo.cli`` + ``main()``); el
+diseño no vive aquí sino en el registro de comandos. Se conserva esa forma.
+
+**Divergencia declarada:** las tres líneas de ``sys.path`` no están en la
+referencia. Su árbol es plano —``odoo/`` cuelga de la raíz del repositorio— así
+que ``import odoo.cli`` resuelve sin ayuda. El nuestro es *src-layout*
+(``src/cli/``, ``pytest.ini`` declara ``pythonpath = src``), y un script en la
+raíz no ve ``src/`` sin insertarlo. Es una diferencia de disposición del
+repositorio, no de arquitectura.
+
+Uso::
+
+    ./kaupamex-bin                 # sin comando → server (como la referencia)
+    ./kaupamex-bin server
+    ./kaupamex-bin company_create ...
+    ./kaupamex-bin --help
+"""
+
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent / 'src'))
+
+import cli  # noqa: E402  (el path debe existir antes del import)
+
+if __name__ == '__main__':
+    cli.main()

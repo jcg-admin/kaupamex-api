@@ -72,15 +72,35 @@ def check_file(path: pathlib.Path) -> list[str]:
     return violations
 
 
+# Raíces que recorre sin argumentos. Fueron ``src/apps`` —un directorio que
+# dejó de existir al pasar al monolito modular—, así que el ``rglob`` devolvía
+# 0 archivos y el script imprimía "OK" sobre el conjunto vacío. Un gate que no
+# encuentra su árbol no falla: publica un cero. Ver H-API-335.
+RAICES = ("src/addons", "src/orm", "src/service", "src/config", "tests")
+
+
 def iter_targets(argv: list[str]) -> list[pathlib.Path]:
     if argv:
         return [pathlib.Path(a) for a in argv if a.endswith(".py")]
-    root = pathlib.Path(__file__).resolve().parent.parent / "src" / "apps"
-    return [p for p in root.rglob("*.py") if "migrations" not in p.parts]
+    base = pathlib.Path(__file__).resolve().parent.parent
+    objetivos: list[pathlib.Path] = []
+    for nombre in RAICES:
+        root = base / nombre
+        if not root.is_dir():
+            print(f"check_silent_oks: raíz ausente, se omite: {nombre}")
+            continue
+        objetivos.extend(
+            p for p in root.rglob("*.py") if "migrations" not in p.parts
+        )
+    return objetivos
 
 
 def main(argv: list[str]) -> int:
     targets = iter_targets(argv)
+    if not targets:
+        print("check_silent_oks: 0 archivos que medir — el gate no puede "
+              "afirmar nada. Revisa RAICES.")
+        return 2
     all_violations: list[str] = []
     for path in targets:
         try:
@@ -94,7 +114,8 @@ def main(argv: list[str]) -> int:
         print(f"\nTotal: {len(all_violations)}. "
               f"Añade '# silent OK because <razon>' o maneja la excepción.")
         return 1
-    print("OK: todo silencio de excepción está justificado.")
+    print(f"OK: todo silencio de excepción está justificado "
+          f"({len(targets)} archivos medidos).")
     return 0
 
 

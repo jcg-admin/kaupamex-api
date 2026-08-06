@@ -67,7 +67,8 @@ que los agrupe por naturaleza.
 - ``ir_config_parameter.py`` → ``SystemParameter`` (config L2 global, key/value).
 - ``ir_logging.py`` → ``IrLogging`` (log técnico ``ir.logging``, DEC-08).
 - ``ir_attachment.py`` → ``IrAttachment`` (adjuntos archivo/URL ``ir.attachment``).
-- ``ir_cron.py`` → ``IrCron`` (registro de horario ``ir.cron``; runner diferido).
+- ``ir_cron.py`` → ``IrCron`` (registro de horario + runner ``ir.cron``;
+  ejecutado por el subcomando ``cron``).
 - ``ir_default.py`` → ``IrDefault`` (valores por defecto de campo ``ir.default``).
 - ``ir_filters.py`` → ``IrFilters`` (filtros de búsqueda guardados ``ir.filters``).
 - ``ir_ui_menu.py`` → ``IrUiMenu`` (árbol de navegación ``ir.ui.menu``, podado

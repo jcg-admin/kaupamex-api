@@ -143,9 +143,15 @@ class IrActionsBase(TimeStampedModel):
     name = fields.Char(max_length=255, verbose_name='Nombre de la acción')
     type = fields.Char(max_length=64, verbose_name='Tipo de acción')
     path = fields.Char(
-        max_length=64, blank=True, default='', unique=True, null=True,
+        max_length=64, blank=True, default=None, unique=True, null=True,
         verbose_name='Ruta en la URL',
-        help_text='Debe ser única (Odoo _path_unique).',
+        help_text='Debe ser única (Odoo _path_unique). default=None, no '
+                  "'': la referencia declara el campo sin default "
+                  '(``path = fields.Char(...)``, odoo19c: ir_actions.py:70) '
+                  'y un Char sin valor se escribe NULL en Odoo, no cadena '
+                  'vacía — con NULL el UNIQUE admite múltiples acciones sin '
+                  'ruta (H-API-332: default=\'\' colisionaba en la segunda '
+                  'ir.actions.server creada sin path explícito).',
     )
     help = fields.Html(
         blank=True, default='', verbose_name='Descripción de la acción',
