@@ -95,6 +95,55 @@ class TestGetOrCreateDraftOrderS2:
         assert order.cart_token is not None
 
 
+class TestUnDraftPorPartnerEnLaBase:
+    """H-API-309 — el invariante one-draft-per-partner lo garantiza la BASE.
+
+    Antes se sostenía en ``get_or_create_draft_order`` *"porque MariaDB no
+    soporta UNIQUE parcial"*. Con PostgreSQL (ADR-028) el índice único parcial
+    existe, así que el invariante deja de depender de que todo el mundo pase
+    por esa función: una migración de datos, un script de mantenimiento o dos
+    peticiones concurrentes ya no lo pueden violar.
+
+    Los cuatro casos que el índice debe distinguir — su condición es
+    ``state='draft' AND partner_id IS NOT NULL``, y cada test fija un borde.
+    """
+
+    def test_segundo_draft_del_mismo_partner_es_rechazado(self):
+        user = User.objects.create_user(
+            login='h309-dup@practicayoruba.mx', password='x')
+        SaleOrder.objects.create(partner=user, state=SaleOrder.STATE_DRAFT)
+        with pytest.raises(IntegrityError):
+            SaleOrder.objects.create(partner=user, state=SaleOrder.STATE_DRAFT)
+
+    def test_orden_confirmada_no_colisiona_con_el_draft(self):
+        """El índice sólo cubre ``draft``: confirmar no bloquea el siguiente
+        carrito, que es justo el flujo normal del comprador recurrente."""
+        user = User.objects.create_user(
+            login='h309-sale@practicayoruba.mx', password='x')
+        SaleOrder.objects.create(partner=user, state=SaleOrder.STATE_SALE)
+        SaleOrder.objects.create(partner=user, state=SaleOrder.STATE_SALE)
+        draft = SaleOrder.objects.create(
+            partner=user, state=SaleOrder.STATE_DRAFT)
+        assert draft.pk is not None
+
+    def test_carritos_anonimos_quedan_fuera_del_indice(self):
+        """``partner_id IS NOT NULL`` en la condición: N carritos anónimos en
+        draft conviven. Su unicidad es otra — la columna ``cart_token``."""
+        a = SaleOrder.objects.create(state=SaleOrder.STATE_DRAFT)
+        b = SaleOrder.objects.create(state=SaleOrder.STATE_DRAFT)
+        assert a.pk != b.pk
+
+    def test_dos_partners_distintos_tienen_su_propio_draft(self):
+        u1 = User.objects.create_user(
+            login='h309-u1@practicayoruba.mx', password='x')
+        u2 = User.objects.create_user(
+            login='h309-u2@practicayoruba.mx', password='x')
+        SaleOrder.objects.create(partner=u1, state=SaleOrder.STATE_DRAFT)
+        SaleOrder.objects.create(partner=u2, state=SaleOrder.STATE_DRAFT)
+        assert SaleOrder.objects.filter(
+            state=SaleOrder.STATE_DRAFT, partner__isnull=False).count() == 2
+
+
 @pytest.fixture
 def draft_product(db):
     cat = make_category(name='Cat Draft')

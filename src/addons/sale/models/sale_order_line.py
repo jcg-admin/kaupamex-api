@@ -70,10 +70,25 @@ class SaleOrderLine(TimeStampedModel):
         default=False, db_index=True,
         help_text='La línea representa un descuento/recompensa (precio negativo).',
     )
+    sequence        = models.IntegerField(
+        default=10, db_index=True,
+        help_text='Orden de la línea dentro de la orden (Odoo sequence).',
+    )
 
     class Meta:
         db_table     = 'sale_order_line'
         verbose_name = 'Línea de orden de venta'
+        # ≙ ``odoo19c: sale/models/sale_order_line.py:17`` — ``_order =
+        # 'order_id, sequence, id'``. No es cosmética: sin ORDER BY el motor
+        # devuelve las filas en el orden que le conviene, y PostgreSQL no
+        # promete el de la PK. MariaDB lo daba de hecho, así que dos caminos
+        # que leían las mismas líneas coincidían por suerte del
+        # almacenamiento — hasta que dejaron de coincidir (H-API-312).
+        #
+        # ``sequence`` viene con el orden: es lo que hace que el usuario pueda
+        # reordenar líneas sin depender del id de inserción, y es la razón por
+        # la que la referencia no ordena sólo por ``id``.
+        ordering     = ['order', 'sequence', 'id']
 
     def __str__(self):
         return f'{self.name or self.product_id} ×{self.product_uom_qty}'

@@ -53,11 +53,13 @@ class DraftOrderError(ValueError):
 def get_or_create_draft_order(user=None, cart_token=None):
     """Resuelve el ``SaleOrder(draft)`` que hace de carrito activo.
 
-    - Autenticado (``user``): un único draft por partner — MariaDB no
-      soporta UNIQUE parcial, la unicidad one-draft-per-partner se
-      garantiza aquí (draft más reciente).
+    - Autenticado (``user``): un único draft por partner. La unicidad la
+      garantiza la **base** — ``SaleOrder.Meta.constraints`` declara un
+      índice único parcial sobre ``partner`` restringido a
+      ``state='draft'`` (H-API-309). Esta función ya no la sostiene: sólo
+      resuelve o crea.
     - Anónimo (``cart_token``): busca/crea el draft por token (columna
-      UNIQUE; múltiples NULL permitidos).
+      UNIQUE; múltiples NULL permitidos — verificado en PostgreSQL).
 
     Retorna ``(order, created)``.
     """

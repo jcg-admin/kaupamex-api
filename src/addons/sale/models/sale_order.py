@@ -205,6 +205,26 @@ class SaleOrder(MailThread, TimeStampedModel):
         ordering     = ['-created_at']
         verbose_name = 'Orden de venta'
         verbose_name_plural = 'Órdenes de venta'
+        constraints  = [
+            # Un solo draft por partner, garantizado por la BASE y no por
+            # convención de código. El rodeo anterior lo sostenía en
+            # services.get_or_create_draft_order() "porque MariaDB no soporta
+            # UNIQUE parcial" — cierto entonces, falso desde ADR-028: el índice
+            # único parcial es exactamente esta construcción.
+            #
+            # Un invariante en Python se cumple mientras todos pasen por esa
+            # función; una migración de datos, un script de mantenimiento o dos
+            # peticiones concurrentes lo saltan. La base no.
+            #
+            # partner__isnull=False acota el índice a las filas que le importan:
+            # el carrito anónimo (partner NULL, unicidad por cart_token) queda
+            # fuera. Ver H-API-309.
+            models.UniqueConstraint(
+                fields=['partner'],
+                condition=models.Q(state='draft', partner__isnull=False),
+                name='sale_order_un_draft_por_partner',
+            ),
+        ]
 
     def __str__(self):
         return self.name or f'draft:{self.cart_token or self.pk}'

@@ -32,6 +32,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    # Registra los lookups del motor (unaccent, trigram_similar, arreglos) y
+    # los system checks de sus campos. Sin esta app los lookups NO existen:
+    # medido, CharField pasa de 17 a 22 lookups al declararla. ArrayField y
+    # GinIndex se importan igual, pero `__unaccent` / `__trigram_similar`
+    # fallarian con FieldError. Ver ADR-028 y T-008 de la iniciativa
+    # migrar-motor-mariadb-a-postgresql.
+    'django.contrib.postgres',
     'corsheaders',
     'rest_framework',
     'rest_framework_simplejwt',
