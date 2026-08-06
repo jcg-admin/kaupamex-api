@@ -9,7 +9,7 @@ describe también el pasado. Ver H-API-339.
 from django.db import migrations, models
 
 
-def partir_nombres(apps, schema_editor):
+def split_sequence_names(apps, schema_editor):
     """Deriva las dos columnas de los ``name`` ya asignados.
 
     Sólo toca los que tienen forma ``prefijo/NNNNN``: los borradores (``/``) y
@@ -61,5 +61,5 @@ class Migration(migrations.Migration):
                 max_length=255,
             ),
         ),
-        migrations.RunPython(partir_nombres, migrations.RunPython.noop),
+        migrations.RunPython(split_sequence_names, migrations.RunPython.noop),
     ]

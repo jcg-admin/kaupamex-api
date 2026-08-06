@@ -23,7 +23,10 @@ class AccountConfig(AppConfig):
     #: Módulos que extienden modelos de OTROS addons — ≙ ``_inherit``.
     #: El nombre del archivo espeja el de la referencia
     #: (``odoo19c: account/models/{product,res_currency}.py``).
+    #: El orden importa: ``res_company`` cuelga el impuesto por defecto que
+    #: ``product`` lee para inicializar el suyo.
     _EXTENSIONES = (
+        'addons.account.models.res_company',
         'addons.account.models.product',
         'addons.account.models.res_currency',
     )

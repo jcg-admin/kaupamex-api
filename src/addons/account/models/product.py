@@ -54,7 +54,7 @@ concreto — ninguno es un olvido:
 =================================  ==========  ==========================================
 Campo                              Modelo      Qué lo bloquea
 =================================  ==========  ==========================================
-``tax_string``                     template    ``AccountTax`` no tiene ``compute_all``
+``tax_string``                     template    DESBLOQUEADO — pendiente de portar (#141)
 ``tax_string``                     product     ídem (delega en el de la plantilla)
 ``fiscal_country_codes``           template    ``ResCompany.account_fiscal_country_id``
 ``fiscal_country_codes``           currency    ídem
@@ -63,12 +63,12 @@ Campo                              Modelo      Qué lo bloquea
 
 - **``tax_string``** (×2) construye *"(= 121,00 € Incl. Taxes)"* llamando a
   ``taxes_id.compute_all(price, product=…, partner=…)``
-  (``odoo19c: product.py:112-128``). Nuestro ``AccountTax`` declara
-  ``compute_amount`` y **no** ``compute_all`` — medido:
-  ``grep -n "def " account_tax.py`` da ``__str__`` y ``compute_amount``, nada
-  más. Portar el formateador sobre un motor que no existe daría siempre la
-  cadena vacía que la referencia usa como *placeholder*. **Sucesor: tarea
-  #141.**
+  (``odoo19c: product.py:112-128``). Este texto decía que el motor no existía;
+  **ya no es cierto**: ``compute_all`` se portó en ``api@2b94344``
+  (:ref:`h-api-342`) y vive en ``account_tax.py:363``. Lo que queda es portar
+  el formateador con sus dos dependencias —``_filter_taxes_by_company`` y el
+  redondeo de divisa (``compare_amounts``, :ref:`h-api-325`)—, y eso es un pase
+  propio, no un añadido a éste. **Sucesor: tarea #141.**
 - **``fiscal_country_codes``** (×2) mapea
   ``account_fiscal_country_id.code`` sobre las empresas permitidas. Ese campo
   es del Bloque 1 (los 72 de ``res.company``), medido ausente:
@@ -82,15 +82,21 @@ Campo                              Modelo      Qué lo bloquea
   condición de cierre: se decide si alguna vez existe un canal equivalente
   (validación en el serializer con el valor previo), no antes.
 
-El ``default`` de los dos M2M tampoco se porta
-===============================================
+El ``default`` de los dos M2M sí se porta (desde H-API-344)
+===========================================================
 
 La referencia da a ``taxes_id`` el default
 ``env.companies.account_sale_tax_id or …root_id.sudo().account_sale_tax_id``
-(``odoo19c: product.py:44``). Depende del mismo Bloque 1 ausente, así que un
-producto nuevo nace **sin impuestos por defecto** en vez de con los de la
-empresa. Es una divergencia de comportamiento real y se declara: la cierra
-#137, no este archivo.
+(``odoo19c: product.py:44``). Este archivo **lo implementa** con el receptor
+``_inherit_company_default_taxes``: Django no admite ``default=`` en un
+``ManyToManyField`` —no hay fila a la que asociar el valor hasta después del
+INSERT—, así que el equivalente idiomático es ``post_save`` con
+``created=True``. Mismo momento, mismo efecto.
+
+Dos límites declarados, con sucesor: el receptor **no** replica el fallback a
+la empresa **raíz** (segunda rama del ``or``), y **nadie puebla todavía**
+``ResCompany.account_sale_tax`` — hasta que lo haga, un producto nuevo sigue
+naciendo sin impuestos. Tareas **#146** y **#145**.
 
 Los métodos sí se portan — con su tercer escalón cortado
 =========================================================
@@ -103,6 +109,7 @@ propio método, no silenciado.
 """
 import fields
 from django.db import models as dj_models
+from django.db.models import signals as dj_signals
 
 from addons.product.models import ProductCategory, ProductProduct, ProductTemplate
 
@@ -182,15 +189,42 @@ def _get_variant_product_accounts(self):
     return _get_product_accounts(self.product_tmpl)
 
 
-def _add_if_absent(model, nombre, campo):
+def _add_if_absent(model, name, field):
     """Añade el campo sólo si el modelo no lo tiene ya.
 
     Idempotente a propósito: ``ready()`` puede correr más de una vez en tests
     que recargan el registro de apps (mismo criterio que
     ``WebsitePublishedMixin.apply_to``).
     """
-    if not any(f.name == nombre for f in model._meta.get_fields()):
-        model.add_to_class(nombre, campo)
+    if not any(f.name == name for f in model._meta.get_fields()):
+        model.add_to_class(name, field)
+
+
+def _inherit_company_default_taxes(sender, instance, created, **kwargs):
+    """El ``default=`` de los dos M2M de impuesto (``odoo19c: product.py:44``).
+
+    Sólo al **crear**, y sólo si el M2M quedó **vacío**: un producto que ya
+    declaró sus impuestos no se toca, y una edición posterior tampoco los
+    repone. Ésa es la semántica de un ``default``, no la de un compute.
+
+    *Métrica:* ``instance.taxes.exists()`` después del INSERT.
+    *Ciega a:* un `create()` que asigne el M2M **después** de este receptor —
+    en ese caso el default entra y luego se sobrescribe, que es el orden
+    correcto de todos modos.
+    """
+    if not created:
+        return
+    company = instance.company
+    if company is None:
+        return
+    for field_name, default_attr in (('taxes', 'account_sale_tax'),
+                                     ('supplier_taxes', 'account_purchase_tax')):
+        relation = getattr(instance, field_name, None)
+        if relation is None or relation.exists():
+            continue
+        tax = getattr(company, default_attr, None)
+        if tax is not None:
+            relation.add(tax)
 
 
 def apply_account_extensions():
@@ -223,9 +257,8 @@ def apply_account_extensions():
             related_name='product_templates_sale',
             db_table='product_taxes_rel',
             help_text='Impuestos por defecto al VENDER el producto (Odoo '
-                      'taxes_id; type_tax_use=sale). Sin default: el de la '
-                      'referencia lee ResCompany.account_sale_tax_id, campo '
-                      'del Bloque 1 aún ausente (tarea #137).'),
+                      'taxes_id; type_tax_use=sale). Si se crea vacío, hereda '
+                      'ResCompany.account_sale_tax (ver el receptor de abajo).'),
     )
     _add_if_absent(
         ProductTemplate, 'supplier_taxes',
@@ -234,8 +267,8 @@ def apply_account_extensions():
             related_name='product_templates_purchase',
             db_table='product_supplier_taxes_rel',
             help_text='Impuestos por defecto al COMPRAR el producto (Odoo '
-                      'supplier_taxes_id; type_tax_use=purchase). Sin default '
-                      'por la misma razón que taxes.'),
+                      'supplier_taxes_id; type_tax_use=purchase). Hereda '
+                      'ResCompany.account_purchase_tax igual que taxes.'),
     )
     _add_if_absent(
         ProductTemplate, 'property_account_income',
@@ -258,6 +291,24 @@ def apply_account_extensions():
             help_text='Etiquetas a poner en los apuntes de base e impuesto '
                       'generados por este producto (Odoo account_tag_ids; '
                       'applicability=products).'),
+    )
+
+    # --- el default de los dos M2M (Odoo ``default=lambda …``) -------------
+    #
+    # La referencia lo declara en el propio campo (``odoo19c: product.py:44``):
+    # ``default=lambda self: self.env.companies.account_sale_tax_id``. Django
+    # **no admite ``default=`` en un ManyToManyField** — no hay fila a la que
+    # asociar el valor hasta después del INSERT, así que el default de un M2M
+    # no es declarativo en ningún ORM de este tipo.
+    #
+    # El equivalente idiomático es un receptor ``post_save`` con
+    # ``created=True``: mismo momento, mismo efecto. Se conecta aquí y no al
+    # importar el módulo porque el registro de modelos aún no está poblado
+    # (misma razón que ``ready()``).
+    dj_signals.post_save.connect(
+        _inherit_company_default_taxes,
+        sender=ProductTemplate,
+        dispatch_uid='account.product_template.default_taxes',
     )
 
     # --- métodos (no son campos: se cuelgan directo) ------------------------
