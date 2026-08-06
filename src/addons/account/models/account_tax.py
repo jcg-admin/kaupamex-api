@@ -476,6 +476,12 @@ class AccountTax(models.Model):
         'base.ResCompany', on_delete=models.CASCADE, related_name='taxes',
         help_text='Empresa (Odoo company_id).',
     )
+    tax_group     = fields.Many2one(
+        'account.AccountTaxGroup', on_delete=models.PROTECT, null=True, blank=True,
+        related_name='taxes',
+        help_text='Grupo al que pertenece el impuesto (Odoo tax_group_id); '
+                  'agrupa los subtotales del documento.',
+    )
 
     class Meta:
         db_table = 'account_tax'
