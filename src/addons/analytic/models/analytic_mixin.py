@@ -28,18 +28,27 @@ Aquí ``__update__`` lleva **PKs de plan raíz** (``AccountAnalyticPlan.root``)
 en su lugar — mismo propósito (marcar qué planes se están redistribuyendo
 intencionalmente), mismo álgebra de razones, distinto identificador.
 
-Lo que NO se porta — **Postgres-only, no aplica a MariaDB**: ``init()``
-(índice GIN sobre ``jsonb_path_query_array`` — función de Postgres),
-``_query_analytic_accounts`` (``regexp_split_to_array``/``jsonb_path_query_array``,
-ídem), ``_search_analytic_distribution``, ``_read_group_groupby``,
+Lo que NO se porta — **gap de alcance, NO de capacidad del motor**: ``init()``
+(índice GIN sobre ``jsonb_path_query_array``), ``_query_analytic_accounts``
+(``regexp_split_to_array``/``jsonb_path_query_array``),
+``_search_analytic_distribution``, ``_read_group_groupby``,
 ``_read_group_select``, ``_get_count_id`` (agregación de "group by" del
-cliente web de Odoo sobre JSON, construida con SQL crudo de Postgres). Este
-proyecto usa MariaDB (``config/settings/base.py``); una búsqueda/agrupación
-equivalente sobre JSON en MariaDB necesitaría su propio diseño
-(``JSON_TABLE`` o columnas generadas), fuera de alcance de este corte —
-declarado, no inventado. Tampoco se porta ``filtered_domain`` (framework de
-dominios Python del ORM de Odoo, sin análogo) ni ``_validate_distribution``
-(depende de ``get_relevant_plans``, ver ``analytic_plan.py``).
+cliente web de Odoo sobre JSON, construida con SQL crudo de Postgres).
+
+**Corrección 2026-08-06:** una redacción previa encabezaba esta lista con
+*"Postgres-only, no aplica a MariaDB"*. Es falso y se midió: MariaDB 11.8.8
+tiene equivalente exacto de los cuatro constructos —``JSON_KEYS``,
+``JSON_TABLE``, columna generada ``STORED`` + índice (plan de ejecución
+``Using index``) y ``JSON_OVERLAPS``—. Lo que falta es el **diseño y el
+trabajo**, no la capacidad del motor: la traducción no es mecánica y no había
+consumidor que la exigiera en este corte. Se declara como gap de alcance para
+que el siguiente lector no lea "camino cerrado" donde sólo hay "todavía no
+recorrido". Ver ``docs: …/integrar-familia-account-completa/
+analisis-recortes-declarados-vs-capacidad-del-stack.rst`` (recorte 2).
+
+Tampoco se porta ``filtered_domain`` (framework de dominios Python del ORM de
+Odoo, sin análogo) ni ``_validate_distribution`` (depende de
+``get_relevant_plans``, ver ``analytic_plan.py``).
 """
 from collections import defaultdict
 

@@ -19,9 +19,25 @@ Lo que NO se porta — **el sistema de columna dinámica por plan**
     En la referencia, cada plan raíz agrega una **columna nueva** a
     ``account.analytic.line`` (``x_planN_id``) vía ``ir.model.fields`` +
     DDL en caliente — un mecanismo de meta-programación de esquema que Django
-    no tiene como característica del ORM (las migraciones son estáticas,
-    generadas por ``makemigrations``, no runtime). Reimplementarlo exigiría un
+    no tiene como característica del ORM. Reimplementarlo exigiría un
     generador de migraciones a medida, fuera del alcance de este corte.
+
+    **Corrección 2026-08-06 — el DDL en caliente NO es la barrera.** Una
+    redacción previa decía *"las migraciones son estáticas, generadas por
+    ``makemigrations``, no runtime"*, dando a entender que Django no puede
+    alterar el esquema en ejecución. Es falso y se midió:
+    ``connection.schema_editor().add_field()`` creó ``x_plan3_id_id`` con su
+    FK real contra MariaDB, y ``remove_field()`` la eliminó. ``ir.model.fields``
+    también está portado (``base/models/ir_model.py:377``).
+
+    Lo que sí falta es el **re-registro de campos en el arranque** —que la
+    columna nueva exista no basta: el modelo Python tiene que conocerla en el
+    proceso siguiente (``contribute_to_class``)— y, sobre todo, una **decisión
+    de producto**: el árbol ya optó por no construir un metaregistro paralelo
+    al de Django (``ir_model.py:111-117``). Es un gap de alcance con una
+    decisión pendiente del ejecutor, no una imposibilidad. Ver
+    ``docs: …/analisis-recortes-declarados-vs-capacidad-del-stack.rst``
+    (recorte 1).
 
     **Simplificación adoptada**: ``account.analytic.line`` usa una FK única
     ``account`` (ver ``analytic_line.py``) en vez de una columna por plan

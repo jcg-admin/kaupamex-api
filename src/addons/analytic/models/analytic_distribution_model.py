@@ -16,10 +16,12 @@ aterrice, el campo M2M y su rama en ``_create_domain`` se agregan en una
 migración aditiva.
 
 ``_check_company_accounts`` (constraint de compañía sobre las cuentas de la
-distribución) NO se porta: usa SQL crudo de Postgres
-(``jsonb_path_query_array``/``ARRAY[...]::text[] && ...``, vía
-``_query_analytic_accounts`` de ``analytic.mixin``) — mismo motivo de
-``analytic_mixin.py`` (proyecto en MariaDB, no Postgres).
+distribución) NO se porta: depende de ``_query_analytic_accounts`` de
+``analytic.mixin``, escrito con SQL crudo de Postgres
+(``jsonb_path_query_array``/``ARRAY[...]::text[] && ...``). Es el **mismo gap
+de alcance** que ``analytic_mixin.py``, no una barrera del motor: MariaDB
+11.8.8 tiene ``JSON_TABLE`` y ``JSON_OVERLAPS`` como equivalentes (medido
+2026-08-06). Se porta cuando se porte la consulta de la que depende.
 """
 import fields
 import models

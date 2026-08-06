@@ -9,11 +9,17 @@ completado, y la acción que abre el paso.
 **GAP — sin panel web (documentado, no relleno).** ``_get_placeholder_
 filename`` (línea 107-111 de la referencia) engancha el campo ``step_image``
 al mecanismo de imagen-de-relleno (``ir.binary``/``_find_record`` de Odoo).
-``addons.base.models.ir_binary.IrBinary`` ya porta el placeholder GENÉRICO
-(``get_placeholder_path``/``placeholder``), pero NO expone un hook por-campo
-como el override de Odoo — es infraestructura de servir binarios (misma
-frontera que el resto del panel web, fuera de scope de este addon; ver el
-manifest). No se inventa el hook: se documenta el gap.
+Este addon no lo cablea porque no hay panel web que sirva la imagen — misma
+frontera que el resto del panel (ver el manifest).
+
+**Corrección 2026-08-06 — la costura SÍ está abierta.** Una redacción previa
+decía que ``IrBinary`` *"NO expone un hook por-campo como el override de
+Odoo"*. Es falso: ``get_image_stream(..., placeholder=None, ...)`` lleva el
+parámetro en su firma (``base/models/ir_binary.py:215``) y lo usa
+(``:232``, ``cls.placeholder(placeholder)``). Cablear este paso es pasar un
+argumento, no abrir infraestructura. Queda pendiente por **falta de
+consumidor**, no por falta de mecanismo — y se hace junto con el primer
+endpoint que sirva ``step_image``.
 """
 from django.apps import apps
 from django.core.exceptions import ValidationError
