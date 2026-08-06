@@ -398,12 +398,30 @@ class ChartTemplate:
     def loaded_models(cls):
         """Los modelos que se instancian, **en orden de dependencia**.
 
-        ≙ los siete ``_get_account_*`` de la referencia, que allá son métodos
-        separados porque su ORM los llama por nombre. Aquí una lista ordenada
-        dice lo mismo y hace explícito el orden, que era lo que aquellos
-        métodos codificaban implícitamente.
+        ≙ ``TEMPLATE_MODELS`` (``odoo19c: chart_template.py:23-31``,
+        ``odoo-tools@622ddc2a``) y los siete ``_get_account_*`` que lo leen.
+        Allá son métodos separados porque su ORM los llama por nombre; aquí una
+        lista ordenada dice lo mismo y hace explícito el orden, que era lo que
+        aquellos métodos codificaban implícitamente.
+
+        **Los siete, no seis:** ``account.group`` abre la lista igual que en la
+        referencia. El plan genérico no trae CSV de grupos —los cuatro que
+        existen son cuentas, posiciones fiscales, grupos de impuesto e
+        impuestos—, pero una localización sí, y sin esta entrada su columna
+        no tendría dónde aterrizar. Es el mismo modo de fallo que
+        :ref:`h-api-352`: un archivo de datos que el cargador no sabe leer.
+
+        **El orden coincide con el efectivo de la referencia, no con su
+        tupla.** ``TEMPLATE_MODELS`` lista ``account.fiscal.position`` *antes*
+        de los impuestos, pero ``_pre_load_data`` la **mueve al final** antes
+        de cargar (``odoo19c: chart_template.py:526-528``: ``for model in
+        ('account.fiscal.position', 'account.reconcile.model'): data[model] =
+        data.pop(model)``). Aquí ese orden ya está en la lista, que es donde se
+        lee. Quien compare las dos tuplas verá una diferencia que no existe en
+        ejecución.
         """
         return [
+            ('account.group', apps.get_model('account', 'AccountGroup')),
             ('account.account', apps.get_model('account', 'AccountAccount')),
             ('account.tax.group', apps.get_model('account', 'AccountTaxGroup')),
             ('account.tax', apps.get_model('account', 'AccountTax')),
@@ -437,6 +455,8 @@ class ChartTemplate:
         cuentas sin sus impuestos y una empresa que parece configurada.
         """
         data = cls.get_chart_template_data(template_code)
+        cls.skip_existing_account_groups(data, company)
+        cls.normalize_account_codes(data)
         created = {}
         for name, model_class in cls.loaded_models():
             created[name] = cls.load_model_data(
@@ -447,6 +467,59 @@ class ChartTemplate:
             template_code, company, data[TEMPLATE_DATA])
         cls.wire_bank_fees_account(company)
         return created
+
+    @classmethod
+    def skip_existing_account_groups(cls, data, company):
+        """No re-crea los grupos si ya hay — ≙ el guard de ``_pre_reload_data``.
+
+        ≙ ``odoo19c: chart_template.py:308-312``, que vive dentro de
+        ``_pre_reload_data`` y por tanto **sólo corre al recargar** un plan
+        sobre una empresa que ya lo tiene (``chart_template.py:233-234``: se
+        llama bajo ``if reload_template``). Aquí corre siempre, y el efecto es
+        el mismo: si no hay grupos el guard no hace nada, y si los hay es
+        porque una carga previa los creó — que es exactamente el caso de
+        recarga que la referencia contempla.
+
+        Los grupos son la estructura del plan, no su contenido: volver a
+        instanciarlos sobre una empresa que ya los tiene duplicaría el árbol de
+        agrupación.
+
+        El dominio de la referencia es asimétrico y se conserva: una empresa
+        **hija** cuenta los grupos de **todas** las empresas —comparte los de su
+        raíz—, mientras que una raíz cuenta sólo los suyos.
+        """
+        groups = apps.get_model('account', 'AccountGroup').objects
+        existing = (groups.all() if company.parent is not None
+                    else groups.filter(company=company))
+        if existing.exists():
+            data.pop('account.group', None)
+
+    @classmethod
+    def normalize_account_codes(cls, data):
+        """Lleva cada ``code`` al ancho del plan — ≙ la parte de ``_pre_load_data``.
+
+        ≙ ``odoo19c: chart_template.py:520-523``. El CSV del plan genérico
+        mezcla anchos —43 códigos de 4 dígitos y 3 de 6— y la referencia los
+        rellena con ceros a la derecha hasta ``code_digits`` **antes** de
+        escribirlos: ``1010`` se almacena como ``101000``.
+
+        No es cosmético. El ``code`` es la clave por la que ``AccountGroup``
+        casa su rango de prefijos y por la que
+        ``AccountAccount.get_closest_parent_account`` ordena para heredar tipo
+        y etiquetas: comparar ``'1010'`` con ``'101401'`` como cadenas de
+        distinto ancho da un orden que la referencia nunca produce. Y sin la
+        normalización el plan quedaba internamente inconsistente — las cuentas
+        que este mismo módulo **genera** (``resolve_account_code``) ya salían a
+        6 dígitos mientras las **cargadas** se quedaban en 4.
+
+        Un código más largo que ``code_digits`` se deja intacto: el formato
+        rellena, no trunca.
+        """
+        code_digits = int(data.get(TEMPLATE_DATA, {}).get('code_digits', 6))
+        accounts = data.get('account.account', {})
+        for xmlid, values in accounts.items():
+            if 'code' in values:
+                accounts[xmlid]['code'] = f'{values["code"]:<0{code_digits}}'
 
     @classmethod
     def load_model_data(cls, model_name, model_class, data, company,

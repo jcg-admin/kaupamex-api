@@ -16,6 +16,7 @@ from addons.account.models import (
     AccountAccount,
     AccountAccountTag,
     AccountFiscalPosition,
+    AccountGroup,
     AccountJournal,
     AccountReconcileModel,
     AccountTax,
@@ -62,7 +63,7 @@ class TestLoading:
         ChartTemplate.try_loading('generic_coa', company)
 
         account = ChartTemplate.ref('receivable', company)
-        assert account.code == '1210'
+        assert account.code == '121000'
         assert IrModelData.objects.filter(
             module='account', name=f'{company.pk}_receivable').exists()
 
@@ -235,7 +236,7 @@ class TestCompanyIsolation:
         first = ChartTemplate.ref('receivable', company)
         second = ChartTemplate.ref('receivable', other)
         assert first != second
-        assert first.code == second.code == '1210'
+        assert first.code == second.code == '121000'
         assert first.company == company and second.company == other
 
     def test_reloading_does_not_duplicate(self, company):
@@ -292,6 +293,101 @@ class TestRegistryComposes:
 
 
 @pytest.mark.django_db
+class TestAccountGroups:
+    """``account.group`` es el **séptimo** modelo del plan, y abre la lista.
+
+    ≙ ``TEMPLATE_MODELS`` (``odoo19c: chart_template.py:23-31``). El plan
+    genérico no trae CSV de grupos —sus cuatro archivos son cuentas, posiciones
+    fiscales, grupos de impuesto e impuestos—, pero una localización sí, y sin
+    la entrada en ``loaded_models`` su columna no tendría dónde aterrizar: el
+    mismo modo de fallo que :ref:`h-api-352`.
+    """
+
+    def test_a_declared_group_is_instantiated(self, company):
+        @template(model='account.group')
+        def extra_group(cls, template_code):
+            return {'assets': {
+                'name': 'Activo', 'code_prefix_start': '10',
+                'code_prefix_end': '19'}}
+
+        try:
+            ChartTemplate.try_loading('generic_coa', company)
+
+            group = ChartTemplate.ref('assets', company)
+            assert group is not None
+            assert (group.code_prefix_start, group.code_prefix_end) == ('10', '19')
+        finally:
+            TEMPLATE_REGISTRY[None]['account.group'].remove(extra_group)
+
+    def test_a_company_that_already_has_groups_keeps_them(self, company):
+        """≙ el guard de ``_pre_reload_data`` (``odoo19c: chart_template.py:308-312``).
+
+        Los grupos son la estructura del plan, no su contenido: re-instanciarlos
+        duplicaría el árbol de agrupación.
+        """
+        AccountGroup.objects.create(
+            company=company, name='Mío', code_prefix_start='10',
+            code_prefix_end='19')
+
+        @template(model='account.group')
+        def extra_group(cls, template_code):
+            return {'assets': {
+                'name': 'Activo', 'code_prefix_start': '20',
+                'code_prefix_end': '29'}}
+
+        try:
+            ChartTemplate.try_loading('generic_coa', company)
+
+            assert AccountGroup.objects.filter(company=company).count() == 1
+            assert ChartTemplate.ref(
+                'assets', company, raise_if_not_found=False) is None
+        finally:
+            TEMPLATE_REGISTRY[None]['account.group'].remove(extra_group)
+
+
+@pytest.mark.django_db
+class TestAccountCodeWidth:
+    """Los códigos del plan se almacenan al ancho que el plan declara.
+
+    ≙ ``_pre_load_data`` (``odoo19c: chart_template.py:520-523``). El CSV
+    genérico mezcla anchos —43 códigos de 4 dígitos y 3 de 6— y la referencia
+    los rellena con ceros a la derecha hasta ``code_digits`` antes de
+    escribirlos. Sin eso, las cuentas cargadas y las **generadas** por este
+    mismo módulo convivían a anchos distintos.
+    """
+
+    def test_a_four_digit_code_is_padded_to_the_chart_width(self, company):
+        ChartTemplate.try_loading('generic_coa', company)
+
+        assert ChartTemplate.ref('receivable', company).code == '121000'
+        assert ChartTemplate.ref('payable', company).code == '211000'
+
+    def test_a_code_already_at_the_width_is_left_alone(self, company):
+        ChartTemplate.try_loading('generic_coa', company)
+
+        assert ChartTemplate.ref('retained_earnings', company).code == '999998'
+
+    def test_loaded_and_generated_codes_share_one_width(self, company):
+        """El defecto que esta normalización cierra, medido de un tirón."""
+        ChartTemplate.try_loading('generic_coa', company)
+        company.refresh_from_db()
+
+        anchos = set(AccountAccount.objects.filter(
+            company=company).values_list('code', flat=True))
+        assert {len(code) for code in anchos} == {6}
+        # Y la generada por ``resolve_account_code`` cae en el mismo ancho.
+        assert len(company.account_journal_suspense_account.code) == 6
+
+    def test_the_declared_width_governs_over_the_default(self, company):
+        """``code_digits`` sale del plan, no de una constante del cargador."""
+        datos = ChartTemplate.get_chart_template_data('generic_coa')
+        datos['template_data']['code_digits'] = 8
+        ChartTemplate.normalize_account_codes(datos)
+
+        assert datos['account.account']['receivable']['code'] == '12100000'
+
+
+@pytest.mark.django_db
 class TestUtilityBankAccounts:
     """Las cuentas que un diario de banco necesita para poder asentar.
 
@@ -337,8 +433,8 @@ class TestUtilityBankAccounts:
         ChartTemplate.try_loading('generic_coa', company)
         company.refresh_from_db()
 
-        assert company.default_cash_difference_income_account.code == '4420'
-        assert company.account_journal_early_pay_discount_loss_account.code == '4430'
+        assert company.default_cash_difference_income_account.code == '442000'
+        assert company.account_journal_early_pay_discount_loss_account.code == '443000'
         assert AccountAccount.objects.filter(
             company=company, code='999998').get().name == (
                 'Accumulated Retained Earnings')
@@ -411,7 +507,7 @@ class TestAccountTags:
         """
         ChartTemplate.try_loading('generic_coa', company)
 
-        sales = AccountAccount.objects.get(company=company, code='4000')
+        sales = AccountAccount.objects.get(company=company, code='400000')
         assert list(sales.tags.all()) == [master_tags['account_tag_operating']]
 
     def test_an_account_without_its_own_tag_inherits_the_previous_one(
