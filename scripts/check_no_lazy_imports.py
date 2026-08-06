@@ -30,10 +30,12 @@ import ast
 import sys
 from pathlib import Path
 
-DEFAULT_ROOTS = [
-    Path('src/addons'),
-    Path('tests'),
-]
+# Raíces que recorre sin argumentos, resueltas desde ``__file__`` y NO desde el
+# CWD. Eran relativas: corrido desde cualquier otro directorio, el ``rglob``
+# devolvía 0 archivos y el script salía 0 **sin imprimir nada** — un cero que se
+# lee como limpieza. Ver H-API-336; mismo defecto que H-API-335 en
+# ``check_silent_oks.py``, del que se copia el manejo.
+DEFAULT_ROOTS = ('src/addons', 'tests')
 
 
 def find_lazy_imports(tree: ast.AST):
@@ -56,31 +58,39 @@ def collect_files(args: list[str]) -> list[Path]:
     if args:
         # Modo pre-commit: rutas explicitas.
         return [Path(a) for a in args if a.endswith('.py')]
-    # Modo audit completo — itera por todos los roots default.
+    # Modo audit completo — resuelto desde el script, no desde el CWD.
+    base = Path(__file__).resolve().parent.parent
     out = []
-    for root in DEFAULT_ROOTS:
-        if root.exists():
-            out.extend(root.rglob('*.py'))
+    for nombre in DEFAULT_ROOTS:
+        root = base / nombre
+        if not root.is_dir():
+            print(f'check_no_lazy_imports: raíz ausente, se omite: {nombre}')
             continue
-        # Permite correr desde la raiz del monorepo (con 'api/' prefix).
-        alt = Path('api') / root
-        if alt.exists():
-            out.extend(alt.rglob('*.py'))
+        out.extend(root.rglob('*.py'))
     return out
 
 
 def main(argv: list[str]) -> int:
     files = collect_files(argv)
     if not files:
-        # Nada que validar — caso pre-commit sin .py staged.
-        return 0
+        if argv:
+            # Modo pre-commit sin .py staged: no hay nada que validar y eso
+            # es legítimo — el conjunto vacío lo fijó el commit, no el gate.
+            return 0
+        # Modo audit: un conjunto vacío significa que el gate no encontró su
+        # árbol. No puede afirmar nada, así que no dice OK.
+        print('check_no_lazy_imports: 0 archivos que medir — el gate no puede '
+              'afirmar nada. Revisa DEFAULT_ROOTS.')
+        return 2
 
     parse_errors = 0
+    medidos = 0
     findings: list[tuple[Path, int, str]] = []
 
     for path in files:
         if 'migrations' in path.parts or '__pycache__' in path.parts:
             continue
+        medidos += 1
         try:
             src = path.read_text()
         except OSError as e:
@@ -132,6 +142,9 @@ def main(argv: list[str]) -> int:
         )
         return 2
 
+    # El denominador va junto al veredicto: un "OK" sin él no distingue un
+    # árbol limpio de un instrumento ciego (H-API-335).
+    print(f'OK: sin lazy imports ({medidos} archivos medidos).')
     return 0
 
 
