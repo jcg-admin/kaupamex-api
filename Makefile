@@ -10,6 +10,8 @@ help:
 	@echo '  make check-names-ci    Idem, exit != 0 tambien con deuda heredada'
 	@echo '  make check-layout      Capas estructurales en paquete (H-API-238)'
 	@echo '  make check-layout-ci   Idem, exit != 0 tambien con deuda heredada'
+	@echo '  make check-porte       Simbolos de cada puerto vs odoo19c (surfacing)'
+	@echo '  make check-porte-ci    Idem, exit != 0 si hay porte incompleto'
 	@echo '  make check-lazy        Audit AST: 0 lazy imports en apps/** y tests/**'
 	@echo '  make check-lazy-ci     Idem, exit code != 0 si hay violaciones'
 	@echo '  make check-catalog     Coherencia de los authz_catalog.py (SOL-100)'
@@ -42,6 +44,16 @@ check-layout:
 
 check-layout-ci:
 	python3 scripts/check_addon_layout.py --strict
+
+# Cobertura de simbolos del puerto contra la referencia. Surfacing: al dia 1
+# hay 181 grupos incompletos en 149 pares de archivo (deuda heredada), asi que
+# bloquear el push por eso seria bloquear por deuda ajena — mismo criterio que
+# DEC-AM-01. Graduar a -ci en pre-push cuando el conteo baje.
+check-porte:
+	python3 scripts/check_porte_completo.py || true
+
+check-porte-ci:
+	python3 scripts/check_porte_completo.py --strict
 
 check-lazy:
 	python3 scripts/check_no_lazy_imports.py || true
