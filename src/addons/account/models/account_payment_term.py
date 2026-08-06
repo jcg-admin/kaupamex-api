@@ -13,6 +13,12 @@ y ``value``/``value_amount``/``delay_type``/``days_next_month``/``nb_days`` +
 ``_get_due_date``/``_check_valid_char_value``/``_check_percent``/
 ``_compute_display_days_next_month`` en ``AccountPaymentTermLine``.
 
+``_currency_round`` (H-API-325, tarea #115): delega en ``ResCurrency.round()``
+cuando hay moneda — el redondeo por divisa ya no se reimplementa aquí, sólo
+se conserva el valor por defecto de 2 decimales para el caso sin compañía
+(``self.currency`` es ``None``, ver la propiedad ``currency`` abajo), que
+``ResCurrency.round()`` no puede resolver por no tener a quién preguntarle.
+
 No portado (declarado, no improvisado):
 
 - ``fiscal_country_codes``/``currency_id`` (computados de ``company_id``/
@@ -40,12 +46,6 @@ No portado (declarado, no improvisado):
   ver ``account_cash_rounding.py``), pero cablear el ajuste de redondeo de
   efectivo al cómputo de cuotas no es parte de este cluster de pagos; queda
   para quien integre facturación con redondeo de efectivo.
-- ``currency.round()``/``company_currency.round()``: ``base.ResCurrency`` no
-  tiene un método ``round()`` (sólo los campos ``rounding``/
-  ``decimal_places``, ver ``base/models/res_currency.py``). Se usa un
-  redondeo local (``_currency_round``, quantize a ``decimal_places`` con
-  ``ROUND_HALF_UP``) documentado abajo — no se inventa un método en
-  ``base`` desde este cluster.
 - ``format_date``/``formatLang`` (i18n de fechas/montos para el preview del
   UI): sin consumidor de presentación en este core.
 - ``dateutil.relativedelta``: **no es dependencia de este proyecto**
@@ -125,12 +125,15 @@ def _shift_month(d, months, day=None):
 
 
 def _currency_round(currency, amount):
-    """Redondeo local por moneda (sustituto de ``res.currency.round()``, que
-    no existe en ``base.ResCurrency`` — ver docstring del módulo). Usa
-    ``decimal_places`` de la moneda (o 2 si no hay moneda) con
-    ``ROUND_HALF_UP``."""
-    places = currency.decimal_places if currency else 2
-    quantum = Decimal('1').scaleb(-places) if places else Decimal('1')
+    """Redondeo por moneda — delega en ``ResCurrency.round()`` (H-API-325,
+    tarea #115) cuando hay ``currency``. Sin moneda (plazo sin compañía, ver
+    la propiedad ``currency`` de ``AccountPaymentTerm`` abajo), usa 2
+    decimales ``ROUND_HALF_UP`` — no hay unidad monetaria de la que derivar
+    ``rounding``/``decimal_places``, así que este caso no puede centralizarse
+    en ``ResCurrency`` (ningún registro al que preguntarle)."""
+    if currency is not None:
+        return currency.round(amount)
+    quantum = Decimal('0.01')
     return Decimal(amount).quantize(quantum, rounding=ROUND_HALF_UP)
 
 
