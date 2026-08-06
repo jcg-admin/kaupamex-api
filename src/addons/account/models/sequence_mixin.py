@@ -218,11 +218,10 @@ class SequenceMixin(models.Model):
         consigo mismo.
         """
         prefix = self.sequence_prefix if with_prefix is None else with_prefix
-        qs = type(self).objects.filter(sequence_prefix=prefix)
+        qs = self.get_last_sequence_domain(type(self).objects.all())
+        qs = qs.filter(sequence_prefix=prefix)
         if self.pk:
             qs = qs.exclude(pk=self.pk)
-        if self.sequence_index:
-            qs = qs.filter(**{self.sequence_index: getattr(self, f'{self.sequence_index}_id', None)})
         return qs.aggregate(models.Max('sequence_number'))['sequence_number__max']
 
     @staticmethod
@@ -404,30 +403,46 @@ class SequenceMixin(models.Model):
         inaugura una serie nueva heredando el formato de la anterior, en vez
         de inventar uno.
         """
-        qs = type(self).objects.all()
+        qs = self.get_last_sequence_domain(type(self).objects.all(), relaxed=relaxed)
         if self.pk:
             qs = qs.exclude(pk=self.pk)
-        if self.sequence_index:
-            qs = qs.filter(**{self.sequence_index: getattr(self, f'{self.sequence_index}_id', None)})
-        qs = qs.exclude(**{f'{self.sequence_field}__in': ('', '/')})
-        if not relaxed:
-            qs = qs.filter(sequence_prefix=self.sequence_prefix)
-        last = qs.order_by('-sequence_prefix', '-sequence_number').first()
+        # El prefijo de la serie sale de la fila **más reciente del dominio**,
+        # no del prefijo que trae este documento. Es la subconsulta
+        # ``sequence_prefix = (SELECT sequence_prefix … ORDER BY id DESC
+        # LIMIT 1)`` de la referencia (``odoo19c: sequence_mixin.py:373``), y
+        # es la pieza que hace que ``relaxed`` sirva de algo: un documento sin
+        # numerar lleva ``'/'``, así que filtrar por *su* prefijo no encuentra
+        # nunca nada y toda la serie se reiniciaría en 1 en cada documento.
+        prefijo = qs.order_by('-id').values_list('sequence_prefix', flat=True).first()
+        if prefijo is None:
+            return None
+        last = qs.filter(sequence_prefix=prefijo).order_by('-sequence_number').first()
         return getattr(last, self.sequence_field, None) if last else None
 
     def get_last_sequence_domain(self, queryset, relaxed=False):
-        """Hook: acota qué filas cuentan como "la serie".
+        """Acota qué filas cuentan como "la serie".
 
         ≙ ``_get_last_sequence_domain``. En la referencia devuelve un WHERE
         crudo; aquí recibe y devuelve un ``QuerySet``, que es el equivalente
-        componible en este ORM.
+        componible en este ORM. **Los dos lectores pasan por aquí**
+        (``get_last_sequence_number`` y ``get_last_sequence_name``), igual que
+        en la referencia los dos caminos de ``_get_last_sequence`` construyen
+        su consulta con este dominio; si no, el hook sería decorativo.
 
-        Es el hook que hace correcta la numeración de ``AccountMove``: sólo los
-        asientos **publicados** consumen número, así que la subclase filtra por
-        estado. Sin él, un borrador contaría para el MAX y dejaría huecos al
-        descartarse.
+        La base hace lo genérico: segmentar por ``sequence_index`` y descartar
+        los que **no tienen número asignado**. Un documento sin numerar lleva
+        ``'/'`` en su campo de secuencia, así que excluirlo es lo que impide
+        que un borrador entre en el MAX y deje un hueco al descartarse.
+
+        La subclase **extiende** — p. ej. ``AccountMove`` añade la ventana de
+        fechas del periodo. Lo que la subclase NO hace es filtrar por estado:
+        un documento cancelado conserva su número y debe seguir contando, o el
+        siguiente lo reutilizaría.
         """
-        return queryset
+        if self.sequence_index:
+            queryset = queryset.filter(
+                **{self.sequence_index: getattr(self, f'{self.sequence_index}_id', None)})
+        return queryset.exclude(**{f'{self.sequence_field}__in': ('', '/')})
 
     def get_starting_sequence(self):
         """El nombre base de una serie que aún no existe.
@@ -541,8 +556,15 @@ class SequenceMixin(models.Model):
         divergencia de rendimiento, no de resultado.
         """
         self.split_sequence()
-        prefijo_previo = self.sequence_prefix or self.get_starting_sequence()
-        self.lock_sequence(prefijo_previo)
+        # La clave del lock es la **identidad de la serie**, no el prefijo que
+        # el documento trae. Un borrador se llama ``'/'``, así que su prefijo
+        # partido es ``'/'`` para todos: usarlo pondría en fila a todos los
+        # documentos de todos los segmentos sobre un único lock, y además no
+        # protegería la serie que se va a escribir. ``get_starting_sequence()``
+        # es determinista a partir del segmento y la fecha del documento, así
+        # que dos escritores de la misma serie coinciden en la clave **antes**
+        # de leer, que es lo que el orden lock→lectura necesita.
+        self.lock_sequence(self.get_starting_sequence())
 
         formato, valores = self.get_next_sequence_format()
         valores['seq'] = valores.get('seq', 0) + 1

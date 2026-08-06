@@ -95,6 +95,54 @@ class TestAccountMoveSequence:
 
 
 @pytest.mark.django_db
+class TestDominioDeLaSerie:
+    """Qué filas cuentan como "la serie" — el hook ``get_last_sequence_domain``.
+
+    Es la pieza que el mixin dejaba decorativa: existía el hook pero ningún
+    lector pasaba por él. Estos tests fijan las tres decisiones del dominio.
+    """
+
+    def test_un_borrador_no_consume_numero(self, setup):
+        """El que no está numerado no entra en el MAX.
+
+        Si entrara, descartar un borrador dejaría un hueco en la serie.
+        """
+        _balanced(*setup)                      # se queda en borrador
+        publicado = _balanced(*setup)
+        publicado.post()
+        publicado.refresh_from_db()
+        assert publicado.name.endswith('/00001')
+
+    def test_dos_borradores_conviven(self, setup):
+        """El UNIQUE es **parcial**: sólo cubre publicados con número.
+
+        Sin el predicado, dos borradores —ambos con ``name='/'``— chocarían
+        entre sí y no se podría tener más de uno abierto por diario.
+        """
+        _balanced(*setup)
+        _balanced(*setup)
+        assert AccountMove.objects.filter(name='/').count() == 2
+
+    def test_un_asiento_cancelado_sigue_contando(self, setup):
+        """Cancelar no libera el número.
+
+        Es la razón por la que el dominio filtra ``name != '/'`` y **no**
+        ``state='posted'``: un cancelado conserva su nombre, así que si se
+        excluyera, el siguiente propondría un número ya usado.
+        """
+        primero = _balanced(*setup)
+        primero.post()
+        segundo = _balanced(*setup)
+        segundo.post()
+        segundo.button_cancel()
+
+        tercero = _balanced(*setup)
+        tercero.post()
+        tercero.refresh_from_db()
+        assert tercero.name.endswith('/00003')
+
+
+@pytest.mark.django_db
 class TestLimiteDeCincoDigitos:
     """El punto exacto donde el orden de cadena rompía (:ref:`h-api-339`).
 
@@ -125,7 +173,12 @@ class TestLimiteDeCincoDigitos:
         self._numerado(company, journal, f'INV/VEN/{anio}/99999', 99999)
         self._numerado(company, journal, f'INV/VEN/{anio}/100000', 100000)
         siguiente = _balanced(*setup)
-        assert siguiente._assign_sequence() == f'INV/VEN/{anio}/100001'
+        # `set_next_sequence` es el sucesor de `_assign_sequence`: viene de
+        # SequenceMixin, toma el lock del prefijo y deja las dos mitades
+        # sincronizadas con el nombre.
+        assert siguiente.set_next_sequence() == f'INV/VEN/{anio}/100001'
+        assert siguiente.sequence_number == 100001
+        assert siguiente.sequence_prefix == f'INV/VEN/{anio}/'
 
     def test_contraprueba_el_orden_de_cadena_se_equivoca(self, setup):
         """Sin esto, el test de arriba pasaría con cualquier implementación.
