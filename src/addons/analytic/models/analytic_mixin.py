@@ -36,15 +36,31 @@ Lo que NO se porta — **gap de alcance, NO de capacidad del motor**: ``init()``
 cliente web de Odoo sobre JSON, construida con SQL crudo de Postgres).
 
 **Corrección 2026-08-06:** una redacción previa encabezaba esta lista con
-*"Postgres-only, no aplica a MariaDB"*. Es falso y se midió: MariaDB 11.8.8
-tiene equivalente exacto de los cuatro constructos —``JSON_KEYS``,
-``JSON_TABLE``, columna generada ``STORED`` + índice (plan de ejecución
-``Using index``) y ``JSON_OVERLAPS``—. Lo que falta es el **diseño y el
-trabajo**, no la capacidad del motor: la traducción no es mecánica y no había
-consumidor que la exigiera en este corte. Se declara como gap de alcance para
-que el siguiente lector no lea "camino cerrado" donde sólo hay "todavía no
-recorrido". Ver ``docs: …/integrar-familia-account-completa/
-analisis-recortes-declarados-vs-capacidad-del-stack.rst`` (recorte 2).
+*"Postgres-only, no aplica a MariaDB"*. Es falso, pero la primera corrección
+—*"los cuatro constructos tienen equivalente exacto"*— también se pasó. La
+forma medida (MariaDB 11.8.8 en vivo + flags de Django 6.0.5) es:
+
+- ``jsonb_path_query_array`` → ``JSON_KEYS``: equivalente exacto.
+- ``regexp_split_to_array`` → ``REGEXP_REPLACE`` / ``JSON_TABLE``: equivalente
+  por composición.
+- ``&&`` (solapamiento) → ``JSON_OVERLAPS``: equivalente exacto.
+- **índice GIN funcional → NO tiene equivalente directo.** MariaDB rechaza
+  ambas sintaxis de índice de expresión (``ERROR 1064``) y Django declara
+  ``supports_expression_indexes = False`` en este backend. El rodeo es columna
+  generada (``GeneratedField``, ya idioma del árbol — ver
+  ``mail/models/mail_alias.py:128``) + índice ``FULLTEXT`` vía ``RunSQL``, que
+  sí da búsqueda invertida real (``EXPLAIN`` → ``type: fulltext``). Trae un
+  caveat operativo: ``innodb_ft_min_token_size`` = 3 deja los IDs de 1 a 99
+  fuera del índice.
+
+Un índice B-tree sobre la columna generada **no** sirve para esto: el
+``EXPLAIN`` del solapamiento da ``type: index`` / ``rows: 5000`` — barrido
+completo, aunque diga ``Using index`` (eso es cobertura, no búsqueda).
+
+Es gap de **alcance con ruta dibujada**, no incapacidad del motor: falta
+diseño, una decisión de configuración y un consumidor que lo exija. Detalle
+completo y comandos en ``docs: …/integrar-familia-account-completa/
+analisis-postgres-only-vs-mariadb.rst``.
 
 Tampoco se porta ``filtered_domain`` (framework de dominios Python del ORM de
 Odoo, sin análogo) ni ``_validate_distribution`` (depende de
