@@ -40,6 +40,26 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 SRC_DIR = REPO_ROOT / 'src'
 
 
+@pytest.fixture(autouse=True)
+def _tabla_de_crons_vacia(db):
+    """``_process_jobs`` cuenta TODA la tabla; el test sólo posee sus filas.
+
+    Cuatro data-migrations siembran un ``ir.cron`` cada una — ``helpdesk``,
+    ``loyalty``, ``mail`` y ``observability``. Si están presentes,
+    ``_process_jobs()`` devuelve 4 de más y ``assert procesados == 1`` falla
+    con ``5 == 1``. Si no lo están, pasa. Cuál de las dos ocurre lo decide el
+    ``flush`` de un ``TransactionTestCase`` anterior, es decir **el orden de
+    la suite** — el mismo mecanismo de :ref:`h-api-337` visto desde el otro
+    lado.
+
+    Por eso el archivo pasaba aislado y fallaba en la suite completa: no es
+    un test frágil por azar, es un test que mide una tabla global y afirma
+    sobre ella como si fuera suya. Vaciarla al entrar hace que el número
+    signifique lo que el test cree que significa.
+    """
+    IrCron.objects.all().delete()
+
+
 def _accion(name='Tarea', model_name='base.SystemParameter', method_name='noop_test'):
     """== ``_accion`` de ``test_ir_cron.py``: crea la ``ir.actions.server``
     en la que el cron delega su "qué ejecutar". Aquí ``model_name`` apunta a

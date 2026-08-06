@@ -7,7 +7,10 @@ Cubre cada modelo del paquete:
   ``_compute_internal_group``); ``account_type`` incluye el drift 19
   (``expense_other``, H-ACC-01); único ``(company, code)``.
 - ``AccountJournal``: ``type`` enum; único ``(company, code)``.
-- ``AccountTax.compute_amount``: percent/fixed/division (Odoo ``_compute_amount``).
+- ``AccountTax.compute_amount``: el atajo de UN impuesto — percent/fixed/
+  division × ``price_include``. El motor de una línea completa (lotes,
+  cascada de base, tres pasadas) vive en ``compute_all`` y se prueba en
+  ``test_account_tax_compute_all.py``.
 - ``AccountMove.post``: invariante de doble entrada (Odoo ``_check_balanced``).
 - ``AccountMoveLine``: ``balance = debit - credit`` (Odoo ``_compute_balance``).
 - ``AccountPayment``: enums payment_type/partner_type/state.
@@ -93,13 +96,47 @@ class TestAccountTax:
             company=company)
         assert tax.compute_amount(Decimal('100')) == Decimal('5')
 
-    def test_division_included(self, company):
-        # 116 con IVA incluido 16% → impuesto = 116 - 116/1.16 = 16.
+    def test_percent_incluido_se_extrae_del_precio(self, company):
+        """116 con un 16 % marcado como incluido → 16 contenidos, base 100.
+
+        Éste es el cálculo que el test viejo pedía —y que atribuía a
+        ``division``, que es otra cosa (ver el siguiente). ``percent`` +
+        ``price_include`` es su nombre correcto (``odoo19c: :88-95``).
+        """
         tax = AccountTax.objects.create(
-            name='IVA incl', amount=Decimal('16'), amount_type='division',
+            name='IVA 16 incl', amount=Decimal('16'), amount_type='percent',
+            price_include=True, company=company)
+        assert tax.compute_amount(Decimal('116')) == pytest.approx(
+            Decimal('16'), abs=Decimal('0.0001'))
+
+    def test_division_no_incluido(self, company):
+        """``division`` = porcentaje sobre el total CON impuesto.
+
+        El ``help`` de la referencia lo fija con números: *"e.g 180 / (1 - 10%)
+        = 200 (not price included)"* — sobre 180 al 10 %, el impuesto es 20,
+        no 18. La diferencia con ``percent`` está en el denominador: el
+        porcentaje se aplica al total, no a la base.
+        """
+        tax = AccountTax.objects.create(
+            name='Div 10', amount=Decimal('10'), amount_type='division',
             company=company)
-        result = tax.compute_amount(Decimal('116'))
-        assert result == pytest.approx(Decimal('16'), abs=Decimal('0.0001'))
+        assert tax.compute_amount(Decimal('180')) == pytest.approx(
+            Decimal('20'), abs=Decimal('0.0001'))
+
+    def test_division_incluido(self, company):
+        """La otra rama del mismo ``help``: *"200 * (1 - 10%) = 180"*.
+
+        Con el precio ya incluyendo el impuesto, el 10 % de 200 son 20 y la
+        base queda en 180. El test que este reemplaza calculaba
+        ``base - base/(1+amount/100)`` bajo el nombre ``division``: eso es la
+        extracción de un *porcentaje* incluido, y daba 16 donde la referencia
+        da 18,56 sobre 116 al 16 % (H-API-342).
+        """
+        tax = AccountTax.objects.create(
+            name='Div 10 incl', amount=Decimal('10'), amount_type='division',
+            price_include=True, company=company)
+        assert tax.compute_amount(Decimal('200')) == pytest.approx(
+            Decimal('20'), abs=Decimal('0.0001'))
 
 
 class TestAccountMoveLine:
