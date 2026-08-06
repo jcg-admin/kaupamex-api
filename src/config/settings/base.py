@@ -110,6 +110,13 @@ INSTALLED_APPS = [
     'addons.sale_subscription',
     'addons.hr',
     'addons.account',
+    # Familias nuevas de la Ola 0 de `integrar-familia-account-completa`:
+    # dependencias que la referencia declara y nuestro árbol no tenía. Se
+    # portan completas, no recortadas a la superficie que account toca.
+    'addons.certificate',
+    'addons.onboarding',
+    'addons.analytic',
+    'addons.fleet',
 ]
 
 AUTH_USER_MODEL = 'base.ResUsers'
