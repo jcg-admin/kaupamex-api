@@ -11,6 +11,7 @@ help:
 	@echo '  make check-layout      Capas estructurales en paquete (H-API-238)'
 	@echo '  make check-layout-ci   Idem, exit != 0 tambien con deuda heredada'
 	@echo '  make check-porte       Simbolos de cada puerto vs odoo19c (surfacing)'
+	@echo '  make porte-mapa        Inventario por archivo: COMPLETO/PARCIAL/NO PORTADO'
 	@echo '  make check-porte-ci    Idem, exit != 0 si hay porte incompleto'
 	@echo '  make check-lazy        Audit AST: 0 lazy imports en apps/** y tests/**'
 	@echo '  make check-lazy-ci     Idem, exit code != 0 si hay violaciones'
@@ -54,6 +55,9 @@ check-porte:
 
 check-porte-ci:
 	python3 scripts/check_porte_completo.py --strict
+
+porte-mapa:
+	python3 scripts/check_porte_completo.py --mapa
 
 check-lazy:
 	python3 scripts/check_no_lazy_imports.py || true

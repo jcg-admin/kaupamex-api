@@ -11,10 +11,20 @@ Qué mide
 --------
 
 Empareja ``src/addons/<addon>/**/<archivo>.py`` con el mismo camino bajo el
-árbol de la referencia y compara, **clase por clase**:
+árbol de la referencia y clasifica **cada archivo de la referencia** en uno de
+tres estados:
 
-- clases de la referencia que aquí no existen;
-- métodos de la referencia ausentes en la clase homóloga.
+- ``COMPLETO`` — todas sus clases y métodos tienen homólogo aquí;
+- ``PARCIAL`` — el archivo existe pero le faltan clases o métodos;
+- ``NO PORTADO`` — ninguna de sus clases existe en el addon.
+
+El tercer estado es el que importa declarar: una primera versión de este gate
+**saltaba** los archivos sin contraparte, así que su denominador era la
+intersección y lo más ausente de todo le resultaba invisible. Es la ceguera
+que ``metrica-decide-la-conclusion.md`` describe, aplicada al instrumento.
+
+Medido 2026-08-06 sobre los 79 addons compartidos: **638 archivos de
+referencia** — 15 completos, 141 parciales, 482 sin portar.
 
 Qué NO puede ver
 -----------------
@@ -34,6 +44,7 @@ Uso
 
     python3 scripts/check_porte_completo.py                  # reporte
     python3 scripts/check_porte_completo.py --addon account  # un addon
+    python3 scripts/check_porte_completo.py --mapa           # inventario por archivo
     python3 scripts/check_porte_completo.py --quiet          # sólo el conteo
     python3 scripts/check_porte_completo.py --strict         # exit 1 si hay ausentes
 """
@@ -107,6 +118,22 @@ def simbolos_del_addon(raiz):
     return todos
 
 
+def clases_del_addon(raiz):
+    """Los nombres de clase del addon, normalizados.
+
+    Un archivo de la referencia puede estar portado **repartido** en varios
+    archivos nuestros; buscar la clase en todo el addon antes de declararla
+    ausente evita contar como no-portado lo que sólo cambió de casa.
+    """
+    nombres = set()
+    for py in raiz.rglob('*.py'):
+        if 'migrations' in py.parts or '__pycache__' in py.parts:
+            continue
+        for clase in (simbolos(py) or {}):
+            nombres.add(normaliza(clase))
+    return nombres
+
+
 def normaliza(nombre):
     """El nombre comparable: alias declarado, y sin guiones bajos de borde."""
     return PORTE_ALIAS.get(nombre, nombre).strip('_')
@@ -127,7 +154,20 @@ def compara(addon):
             continue
         mio_py = mio_raiz / 'models' / ref_py.name
         if not mio_py.exists():
-            continue          # archivo no portado: lo cubre el inventario, no este gate
+            # Un archivo sin contraparte NO se salta: saltarlo dejaba el
+            # denominador en la intersección, que es la ceguera que
+            # ``metrica-decide-la-conclusion.md`` describe — el instrumento no
+            # veía lo más ausente de todo. Se busca antes por nombre de clase
+            # en el addon, porque un puerto puede repartir un archivo en varios.
+            ref_clases = simbolos(ref_py) or {}
+            ajenas = [c for c in ref_clases
+                      if normaliza(c) not in clases_del_addon(mio_raiz)]
+            pares += 1
+            if ajenas:
+                hallazgos.append(
+                    (addon, ref_py.name, '(archivo)', 'ARCHIVO NO PORTADO',
+                     sorted(ajenas)))
+            continue
         pares += 1
         ref_clases = simbolos(ref_py) or {}
         mias = simbolos(mio_py) or {}
@@ -152,6 +192,8 @@ def compara(addon):
 def main():
     p = argparse.ArgumentParser()
     p.add_argument('--addon', help='medir sólo este addon')
+    p.add_argument('--mapa', action='store_true',
+                   help='inventario por archivo con su estado')
     p.add_argument('--quiet', action='store_true')
     p.add_argument('--strict', action='store_true')
     args = p.parse_args()
@@ -170,7 +212,26 @@ def main():
         pares_total += pares
         todos += hallazgos
 
-    if args.quiet:
+    if args.mapa:
+        # El inventario completo: cada archivo de la referencia con su estado.
+        # Es lo que convierte el gate en un mapa — sin él sólo se ve la deuda,
+        # no la superficie sobre la que se mide.
+        estado = {}
+        for addon, archivo, _clase, tipo, _s in todos:
+            previo = estado.get((addon, archivo))
+            estado[(addon, archivo)] = (
+                'NO PORTADO' if tipo == 'ARCHIVO NO PORTADO'
+                else previo or 'PARCIAL')
+        for addon in addons:
+            ref_dir = ODOO19C / 'addons' / addon / 'models'
+            if not ref_dir.is_dir() or not (SRC / addon).is_dir():
+                continue
+            for ref_py in sorted(ref_dir.glob('*.py')):
+                if ref_py.name == '__init__.py':
+                    continue
+                print(f'{estado.get((addon, ref_py.name), "COMPLETO"):>11}  '
+                      f'{addon}/models/{ref_py.name}')
+    elif args.quiet:
         print(len(todos))
     else:
         for addon, archivo, clase, tipo, simbolos_ in todos:
