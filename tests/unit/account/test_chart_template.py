@@ -346,6 +346,109 @@ class TestAccountGroups:
 
 
 @pytest.mark.django_db
+class TestTaxTagMapper:
+    """Las etiquetas de una línea de reparto llegan por **nombre**, no por id.
+
+    ≙ ``_get_tag_mapper`` + ``_deref_account_tags``
+    (``odoo19c: chart_template.py:1244,1294``). Una localización declara sus
+    etiquetas fiscales por el nombre que usa la autoridad tributaria, separadas
+    por ``||`` porque ese nombre suele llevar comas.
+
+    Cierra además el hueco de un nivel más abajo: ``load_child_lines`` pasaba
+    la fila hija sólo por ``resolve_values``, que **omite los M2M por diseño**,
+    así que el ``tag_ids`` de una línea de reparto se descartaba en silencio.
+    """
+
+    @pytest.fixture
+    def tax_tags(self, db):
+        """Dos etiquetas fiscales sin país, como las que ve ``generic_coa``."""
+        created = {}
+        for label in ('Base imponible', 'Cuota repercutida'):
+            tag, _new = AccountAccountTag.objects.get_or_create(
+                name=label, applicability='taxes')
+            created[label] = tag
+        return created
+
+    @staticmethod
+    def _load_with_tags(company, raw_tags):
+        @template(model='account.tax')
+        def tagged_tax(cls, template_code):
+            return {'tagged_tax': {
+                'name': 'Impuesto etiquetado',
+                'amount': 16,
+                'type_tax_use': 'sale',
+                'repartition_line_ids': [{
+                    'repartition_type': 'base',
+                    'factor_percent': 100,
+                    'document_type': 'invoice',
+                    'tag_ids': raw_tags,
+                }],
+            }}
+
+        try:
+            ChartTemplate.try_loading('generic_coa', company)
+            tax = ChartTemplate.ref('tagged_tax', company)
+            return list(tax.repartition_lines.get().tag_ids.all())
+        finally:
+            TEMPLATE_REGISTRY[None]['account.tax'].remove(tagged_tax)
+
+    def test_a_name_lands_on_the_repartition_line(self, company, tax_tags):
+        landed = self._load_with_tags(company, 'Base imponible')
+
+        assert landed == [tax_tags['Base imponible']]
+
+    def test_the_delimiter_splits_two_names(self, company, tax_tags):
+        landed = self._load_with_tags(
+            company, 'Base imponible||Cuota repercutida')
+
+        assert set(landed) == set(tax_tags.values())
+
+    def test_surrounding_whitespace_does_not_break_the_match(
+            self, company, tax_tags):
+        """≙ el ``re.sub(r'\\s+', ' ', tag.strip())`` de la referencia."""
+        landed = self._load_with_tags(company, '  Base    imponible ')
+
+        assert landed == [tax_tags['Base imponible']]
+
+    def test_an_external_id_takes_the_other_branch(self, company, master_tags):
+        """``modulo.nombre`` con módulo instalado se resuelve como identificador.
+
+        La etiqueta maestra tiene ``applicability='accounts'``, así que **no**
+        está en el mapa por nombre que el mapeador consulta: si aterriza, sólo
+        pudo hacerlo por la rama del identificador externo.
+        """
+        landed = self._load_with_tags(company, 'account.account_tag_operating')
+
+        assert landed == [master_tags['account_tag_operating']]
+
+    def test_a_dotted_name_of_an_unknown_module_is_not_an_external_id(
+            self, company, db):
+        """El punto no basta: el prefijo tiene que nombrar un módulo instalado.
+
+        ``ventas.general`` **sí** casa la forma ``modulo.nombre`` —a diferencia
+        de un nombre con espacios, que el patrón descarta antes—, así que este
+        caso llega al ``apps.is_installed`` y comprueba lo que dice comprobar.
+        Medido: ``addons.ventas`` no está instalado, así que cae a la búsqueda
+        por nombre.
+        """
+        tag, _new = AccountAccountTag.objects.get_or_create(
+            name='ventas.general', applicability='taxes')
+
+        landed = self._load_with_tags(company, 'ventas.general')
+
+        assert landed == [tag]
+
+    def test_an_unknown_name_is_dropped_without_aborting_the_load(
+            self, company, tax_tags):
+        """≙ la rama ``ignore_missing_tags`` — el plan se carga igual."""
+        landed = self._load_with_tags(
+            company, 'Base imponible||Etiqueta que no existe')
+
+        assert landed == [tax_tags['Base imponible']]
+        assert AccountAccount.objects.filter(company=company).exists()
+
+
+@pytest.mark.django_db
 class TestAccountCodeWidth:
     """Los códigos del plan se almacenan al ancho que el plan declara.
 

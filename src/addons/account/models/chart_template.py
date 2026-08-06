@@ -83,6 +83,7 @@ Sucesor registrado: tarea #155.
 import ast
 import csv
 import pathlib
+import re
 from collections import defaultdict
 
 from django.apps import apps
@@ -108,6 +109,20 @@ TEMPLATE_REGISTRY = defaultdict(lambda: defaultdict(list))
 #: El modelo bajo el que la referencia guarda los valores sueltos del plan
 #: (nombre, país, cuentas de propiedad) — no es un modelo real.
 TEMPLATE_DATA = 'template_data'
+
+#: Separador de la columna ``tag_ids`` de una línea de reparto — ≙
+#: ``TAX_TAG_DELIMITER`` (``odoo19c: chart_template.py:33``). Es ``||`` y no
+#: la coma porque el nombre de una etiqueta fiscal la contiene con frecuencia
+#: («Base imponible, operaciones exentas»).
+TAX_TAG_DELIMITER = '||'
+
+#: Los tres campos de reparto que pueden traer etiquetas — ≙ la tupla de
+#: ``_deref_account_tags`` (``odoo19c: chart_template.py:1297``).
+REPARTITION_FIELDS = (
+    'repartition_line_ids',
+    'invoice_repartition_line_ids',
+    'refund_repartition_line_ids',
+)
 
 
 def template(code=None, model=TEMPLATE_DATA):
@@ -457,6 +472,8 @@ class ChartTemplate:
         data = cls.get_chart_template_data(template_code)
         cls.skip_existing_account_groups(data, company)
         cls.normalize_account_codes(data)
+        cls.deref_account_tags(template_code, data.get('account.tax', {}),
+                               company)
         created = {}
         for name, model_class in cls.loaded_models():
             created[name] = cls.load_model_data(
@@ -522,6 +539,76 @@ class ChartTemplate:
                 accounts[xmlid]['code'] = f'{values["code"]:<0{code_digits}}'
 
     @classmethod
+    def get_tag_mapper(cls, country, company):
+        """Resuelve nombres de etiqueta fiscal a registros — ≙ ``_get_tag_mapper``.
+
+        ≙ ``odoo19c: chart_template.py:1244``. Devuelve un invocable porque la
+        consulta de etiquetas del país se hace **una vez** y se reutiliza para
+        cada línea de reparto del plan.
+
+        La discriminación que hace la referencia es sutil y se conserva: un
+        valor con la forma ``modulo.nombre`` puede ser un **identificador
+        externo** o el nombre de una etiqueta que casualmente lleva un punto.
+        Se decide preguntando si el prefijo nombra un módulo instalado — allá a
+        ``ir.module.module``, aquí al registro de aplicaciones de Django, que
+        responde exactamente lo mismo (``apps.is_installed('addons.account')``
+        → ``True``; ``'addons.inexistente'`` → ``False``).
+
+        Un nombre que no casa ninguna etiqueta **no aborta la carga**: se
+        descarta, igual que la rama ``ignore_missing_tags`` de la referencia.
+        El plan viene de allá y cita etiquetas de localizaciones que este
+        puerto todavía no siembra; abortar por una accesoria impediría cargar
+        el plan entero. Es el mismo criterio que ``resolve_values``.
+        """
+        AccountAccountTag = apps.get_model('account', 'AccountAccountTag')
+        by_name = {
+            tag.name: tag
+            for tag in AccountAccountTag.objects.filter(
+                applicability='taxes', country=country)
+        }
+
+        def mapping_getter(*names):
+            out = []
+            for name in names:
+                match = re.fullmatch(r'(?P<module>\w+)\.\w+', name or '')
+                if match and apps.is_installed(f"addons.{match.group('module')}"):
+                    tag = cls.ref(name, company, raise_if_not_found=False)
+                    if tag is not None:
+                        out.append(tag)
+                    continue
+                tag = by_name.get(re.sub(r'\s+', ' ', (name or '').strip()))
+                if tag is not None:
+                    out.append(tag)
+            return out
+
+        return mapping_getter
+
+    @classmethod
+    def deref_account_tags(cls, template_code, tax_data, company):
+        """Cambia los nombres de etiqueta por sus registros — ≙ ``_deref_account_tags``.
+
+        ≙ ``odoo19c: chart_template.py:1294``. Recorre los tres campos de
+        reparto de cada impuesto y, donde la columna ``tag_ids`` llegó como
+        cadena, la parte por ``TAX_TAG_DELIMITER`` y la sustituye por los
+        registros que el mapeador resuelve.
+
+        La referencia envuelve el resultado en ``Command.set(...)`` porque su
+        ORM distingue enlazar de crear; aquí una lista de registros bajo el
+        nombre de la relación ya significa enlazar, así que el envoltorio
+        sobra — el mismo criterio que ``get_account_reconcile_model`` aplica a
+        sus líneas hijas.
+        """
+        country = cls.get_chart_template_mapping().get(
+            template_code, {}).get('country')
+        mapper = cls.get_tag_mapper(country, company)
+        for tax_values in tax_data.values():
+            for field_name in REPARTITION_FIELDS:
+                for row in tax_values.get(field_name, []):
+                    tags = row.get('tag_ids') if isinstance(row, dict) else None
+                    if isinstance(tags, str) and tags:
+                        row['tag_ids'] = mapper(*tags.split(TAX_TAG_DELIMITER))
+
+    @classmethod
     def load_model_data(cls, model_name, model_class, data, company,
                         force_create=True):
         """Crea los registros de un modelo — ≙ la parte de ``_load_data``.
@@ -565,7 +652,19 @@ class ChartTemplate:
 
     @classmethod
     def load_child_lines(cls, parent, children, company):
-        """Crea las líneas hijas declaradas con ``relacion/campo`` en el CSV."""
+        """Crea las líneas hijas declaradas con ``relacion/campo`` en el CSV.
+
+        Una hija puede traer sus **propios** M2M —el caso real es el
+        ``tag_ids`` de una línea de reparto— y valen las mismas dos reglas que
+        para el padre: no se pueden pasar al ``create`` porque la tabla
+        intermedia necesita la fila, y se resuelven después de crearla.
+
+        Hasta este pase la hija pasaba sólo por ``resolve_values``, que **omite
+        los M2M por diseño** (los atiende ``resolve_many_to_many``): el
+        ``tag_ids`` de una línea de reparto se descartaba en silencio. Es
+        :ref:`h-api-352` un nivel más abajo — la columna existía, el cargador
+        no sabía leerla.
+        """
         for relation, rows in children.items():
             name = cls.map_field_name(type(parent), relation)
             if name is None:
@@ -574,12 +673,37 @@ class ChartTemplate:
             child_class = field.related_model
             reverse_name = field.field.name
             for order, row in enumerate(rows):
-                values = cls.resolve_values(child_class, dict(row), company)
+                row = dict(row)
+                many_to_many = cls.split_prepared_many_to_many(child_class, row)
+                many_to_many.update(
+                    cls.resolve_many_to_many(child_class, row, company))
+                values = cls.resolve_values(child_class, row, company)
                 values[reverse_name] = parent
                 values['company'] = company
                 if 'sequence' in {f.name for f in child_class._meta.get_fields()}:
                     values.setdefault('sequence', order)
-                child_class.objects.create(**values)
+                child = child_class.objects.create(**values)
+                for m2m_name, records in many_to_many.items():
+                    getattr(child, m2m_name).set(records)
+
+    @classmethod
+    def split_prepared_many_to_many(cls, model_class, row):
+        """Extrae de ``row`` los M2M que ya llegan resueltos a registros.
+
+        ``deref_account_tags`` sustituye la cadena del CSV por una lista de
+        registros **antes** de cargar, así que cuando la fila llega aquí su
+        ``tag_ids`` ya no es texto que ``resolve_many_to_many`` sepa partir.
+        Se sacan aparte para aplicarlos igual, tras crear la fila.
+        """
+        model_fields = {f.name: f for f in model_class._meta.get_fields()}
+        out = {}
+        for raw in list(row):
+            name = cls.map_field_name(model_class, raw)
+            field = model_fields.get(name) if name else None
+            if field is not None and field.many_to_many and isinstance(
+                    row[raw], list):
+                out[name] = row.pop(raw)
+        return out
 
     @classmethod
     def resolve_values(cls, model_class, values, company):
