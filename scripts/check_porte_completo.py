@@ -116,9 +116,11 @@ def simbolos_del_addon(raiz):
     El caso que la motivó —las plantillas de ``template_base.py``— se corrigió
     moviéndolas a ``ChartTemplate``, donde la referencia las tiene.
 
-    Se conserva el barrido de funciones sueltas porque el gate mide **presencia
-    del símbolo**, no su sitio de declaración; verificar el sitio es un segundo
-    instrumento que hoy no existe. Sucesor #159.
+    Se conserva el barrido de funciones sueltas, pero **ya no absuelve**: desde
+    #159 un símbolo que existe aquí fuera de la clase que le toca se reporta
+    como ``FUERA DE SITIO``, no se descarta. Este conjunto pasó de ser el
+    criterio de "está portado" a ser el que distingue *portado en otro sitio*
+    de *ausente del todo* — dos estados que el gate devolvía como uno solo.
     """
     todos = set()
     for py in raiz.rglob('*.py'):
@@ -227,12 +229,25 @@ def compara(addon):
                     (addon, ref_py.name, clase, 'CLASE AUSENTE', sorted(metodos)))
                 continue
             aqui_norm = {normaliza(m) for m in aqui}
-            faltan = [m for m in sorted(metodos)
-                      if normaliza(m) not in aqui_norm
-                      and normaliza(m) not in propios]
+            faltan, fuera_de_sitio = [], []
+            for m in sorted(metodos):
+                n = normaliza(m)
+                if n in aqui_norm:
+                    continue
+                # El símbolo existe en el addon pero NO en la clase que le
+                # toca: función suelta, o método de otra clase. Antes esto se
+                # descartaba en silencio y el método contaba como portado —
+                # el gate medía **presencia del nombre**, no su sitio. Es la
+                # ceguera que #159 cierra: dos estados distintos que el
+                # instrumento devolvía como uno.
+                (fuera_de_sitio if n in propios else faltan).append(m)
             if faltan:
                 hallazgos.append(
                     (addon, ref_py.name, clase, 'MÉTODOS AUSENTES', faltan))
+            if fuera_de_sitio:
+                hallazgos.append(
+                    (addon, ref_py.name, clase, 'FUERA DE SITIO',
+                     fuera_de_sitio))
     return pares, hallazgos
 
 
@@ -286,7 +301,14 @@ def main():
             print(f'    {", ".join(simbolos_)}')
         # El denominador va SIEMPRE junto al conteo: un 0 sin alcance medido no
         # distingue "no hay deuda" de "el instrumento no vio nada".
-        print(f'\nporte incompleto: {len(todos)} '
+        #
+        # Y los dos estados van **separados**: uno es trabajo de porte, el otro
+        # de reubicación. Sumarlos vuelve a esconder lo que #159 destapó.
+        fuera = [h for h in todos if h[3] == 'FUERA DE SITIO']
+        simb_fuera = sum(len(h[4]) for h in fuera)
+        print(f'\nporte incompleto: {len(todos)} hallazgos '
+              f'({len(todos) - len(fuera)} de porte · {len(fuera)} de sitio, '
+              f'{simb_fuera} símbolos) '
               f'(alcance medido: {pares_total} pares de archivo, '
               f'{len(addons)} addons)')
     return 1 if (args.strict and todos) else 0
