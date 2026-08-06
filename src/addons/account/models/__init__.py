@@ -35,6 +35,20 @@ doble entrada:
   + ``AccountReportExternalValue`` (el árbol declarativo de un reporte
   contable; el motor de evaluación de fórmulas NO se porta aquí — ver el
   docstring del archivo).
+
+Extensiones de modelos ajenos — ≙ ``_inherit``, NO se exportan aquí
+===================================================================
+
+Dos módulos más espejan la referencia y **no** declaran modelos: cuelgan
+campos y métodos de modelos que ``account`` no posee. No se importan desde
+este ``__init__`` a propósito — su import es tardío, desde
+``AccountConfig.ready()``, porque en tiempo de import el registro de modelos
+aún no está poblado.
+
+- ``product.py``      → cuelga de ``product.template``/``category``/``product``
+  (impuestos de venta y compra, cuentas de ingreso y gasto, etiquetas).
+- ``res_currency.py`` → cuelga de ``res.currency`` el guard que impide
+  reducir la precisión de una divisa ya usada en apuntes.
 """
 from .account_account import AccountAccount
 from .account_account_tag import AccountAccountTag
