@@ -29,6 +29,33 @@ portan ahora:
   (``_search_is_valid``) sí usa la ventana (``LAG(balance_end_real) OVER
   (PARTITION BY journal_id ORDER BY first_line_index)``); se porta tal cual
   vía SQL crudo en ``_get_invalid_statement_ids``/``search_is_valid``.
+
+**Portado (H-API-331, tarea #126).** ``date`` era un campo plano — la
+referencia lo deriva de la última línea posteada
+(``_compute_date``, ``odoo19c: account_bank_statement.py:133-138``). No era
+portable antes porque el ``compute`` ordena por ``internal_index``, que no
+existía hasta H-API-321; con ``internal_index`` ya presente, el obstáculo
+desapareció. Se porta como ``_compute_date()``, invocado desde
+``recompute()`` — mismo patrón que ``_compute_first_line_index()``.
+
+De paso, se extrae ``_compute_name()`` como método propio (antes inline
+dentro de ``recompute()``): el gate de porte (``check_porte_completo.py``)
+lo reportaba AUSENTE porque no existía un símbolo con ese nombre, aunque el
+comportamiento (asignar ``name`` una sola vez, sin sobreescribir un valor ya
+fijado) ya coincidía con el efecto práctico del ``compute`` de la referencia
+(``_compute_name``, ``odoo19c: account_bank_statement.py:118-124`` — depende
+de ``create_date``, que no vuelve a cambiar tras el INSERT, así que en la
+práctica corre una sola vez). **Divergencia declarada:** el fallback de la
+referencia cuando ``date`` es ``None`` usa ``create_date`` (fecha de
+creación del registro); este modelo no denormaliza un timestamp de creación
+(medido: ``grep -rn "create_date\|created_at\|auto_now_add"
+src/addons/account/models/*.py`` → 0 hits en este addon salvo el propio
+docstring). El puerto usa ``Estado #<pk>`` como aproximación estable —
+mismo fallback que ya tenía el bloque inline, sin cambio de comportamiento.
+DESCONOCIDO con condición de cierre: si se necesita fidelidad total al
+fallback de creación, requiere sumar ``created_at`` (vía ``TimeStampedModel``
+u homólogo) a este modelo — fuera del alcance de #126, que sólo pide portar
+``_compute_date``.
 """
 from decimal import Decimal
 
@@ -128,22 +155,19 @@ class AccountBankStatement(models.Model):
         return self.name or f'Estado de cuenta #{self.pk}'
 
     def recompute(self):
-        """Recalcula ``balance_end``/``first_line_index``/``is_complete``/
-        ``problem_description`` y rellena ``name`` si está vacío (Odoo
-        ``_compute_balance_end`` + ``_compute_first_line_index`` +
-        ``_compute_is_complete`` + ``_compute_name``, colapsados: sin
-        compute-engine, se invoca explícitamente tras modificar ``line_ids``)."""
+        """Recalcula ``balance_end``/``first_line_index``/``date``/``name``/
+        ``is_complete``/``problem_description`` (Odoo ``_compute_balance_end``
+        + ``_compute_first_line_index`` + ``_compute_date`` + ``_compute_name``
+        + ``_compute_is_complete``, colapsados: sin compute-engine, se invoca
+        explícitamente tras modificar ``line_ids``)."""
         lines = self.line_ids.all()
         posted = [line for line in lines if line.move.state == 'posted']
         total = sum((line.amount for line in posted), Decimal('0.00'))
         self.balance_end = (self.balance_start or Decimal('0.00')) + total
 
         self._compute_first_line_index()
-
-        if not self.name:
-            prefix = f'{self.journal.code} ' if self.journal_id else ''
-            self.name = f'{prefix}Estado {self.date}' if self.date else \
-                f'{prefix}Estado #{self.pk or "?"}'
+        self._compute_date()
+        self._compute_name()
 
         self.is_complete = bool(posted) and self.balance_end == self.balance_end_real
         self.is_valid = self._compute_is_valid()
@@ -187,6 +211,42 @@ class AccountBankStatement(models.Model):
                  .values_list('internal_index', flat=True)
                  .first())
         self.first_line_index = first or ''
+
+    def _compute_date(self):
+        """Odoo ``_compute_date`` (``odoo19c: account_bank_statement.py:
+        133-138``, tarea #126/H-API-331): la fecha de la última línea
+        POSTEADA del estado, ordenadas por ``internal_index`` — no por
+        ``date`` (sería circular: es el campo que se está calculando).
+        Entre las líneas con ``internal_index`` ya calculado, se ordena
+        ascendente y se toma la fecha de la última posteada; si ninguna
+        está posteada, ``date`` queda en ``None``. ``readonly=False`` en la
+        referencia: este compute sólo aporta el valor por defecto, el
+        usuario puede sobreescribirlo después."""
+        last_posted = (self.line_ids
+                       .exclude(internal_index='')
+                       .filter(move__state='posted')
+                       .order_by('internal_index')
+                       .last())
+        self.date = last_posted.date if last_posted is not None else None
+
+    def _compute_name(self):
+        """Odoo ``_compute_name`` (``odoo19c: account_bank_statement.py:
+        118-124``): ``<código del diario> Estado <fecha>``. La referencia
+        recalcula sólo cuando cambia ``create_date`` — que no vuelve a
+        cambiar tras el INSERT —, así que en la práctica corre una vez y
+        el usuario puede sobreescribir el resultado después
+        (``readonly=False``). Aquí se reproduce ese efecto sin motor de
+        compute: no se sobreescribe un ``name`` ya fijado.
+
+        Divergencia declarada (ver docstring del módulo): el fallback de la
+        referencia cuando no hay ``date`` usa ``create_date``; este modelo
+        no denormaliza timestamp de creación, así que cae a ``Estado
+        #<pk>``."""
+        if self.name:
+            return
+        prefix = f'{self.journal.code} ' if self.journal_id else ''
+        self.name = f'{prefix}Estado {self.date}' if self.date else \
+            f'{prefix}Estado #{self.pk or "?"}'
 
     # -------------------------------------------------------------------
     # BUSQUEDA/LOTE — SQL de ventana (Odoo _get_invalid_statement_ids)

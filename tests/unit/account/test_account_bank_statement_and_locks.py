@@ -12,10 +12,11 @@ Cubre:
 - ``AccountBankStatement``/``AccountBankStatementLine``: ``_inherits`` de
   ``account.move`` (delegación por propiedad), ``recompute()``,
   ``internal_index`` (orden invertido de ``sequence``), ``running_balance``
-  (ancla + SQL crudo) e ``is_valid`` (camino directo + camino buscable con
+  (ancla + SQL crudo, incluyendo la rama multi-empresa vía ``parent_path``
+  — H-API-330) e ``is_valid`` (camino directo + camino buscable con
   ventana ``LAG`` — H-API-321).
 """
-from datetime import timedelta
+from datetime import date, timedelta
 from decimal import Decimal
 
 import pytest
@@ -32,7 +33,8 @@ from addons.account.models import (
     AccountLockException,
     AccountMove,
 )
-from addons.base.models import ResCompany
+from addons.base.models import ResCompany, ResUsers
+from exceptions import UserError
 
 pytestmark = pytest.mark.django_db
 
@@ -40,6 +42,11 @@ pytestmark = pytest.mark.django_db
 @pytest.fixture
 def company():
     return ResCompany.objects.create(code='acme', name='ACME')
+
+
+@pytest.fixture
+def user():
+    return ResUsers.objects.create_user(login='candados@kaupamex.test', password='x')
 
 
 @pytest.fixture
@@ -106,6 +113,137 @@ class TestAccountLockException:
             lock_date='2026-01-01')
         assert exc.applies_to('purchase_lock_date') == exc.lock_date
         assert exc.applies_to('sale_lock_date') is None
+
+
+class TestResCompanyLockDates:
+    """``ResCompany.get_user_lock_date`` y su API — H-API-320, tarea #110.
+
+    Cierra el computado que ``account_lock_exception.py`` declaraba
+    pendiente: el candado vigente para un usuario combina el campo crudo de
+    ``ResCompany`` con la excepción vigente más favorable.
+    """
+
+    def test_no_lock_date_set_returns_date_min(self, company):
+        assert company.get_user_sale_lock_date() == date.min
+
+    def test_raw_company_lock_date_without_exception(self, company):
+        company.sale_lock_date = date(2026, 1, 31)
+        company.save(update_fields=['sale_lock_date'])
+        assert company.get_user_sale_lock_date() == date(2026, 1, 31)
+
+    def test_global_exception_moves_lock_date_earlier_for_any_user(
+            self, company, user):
+        company.purchase_lock_date = date(2026, 3, 31)
+        company.save(update_fields=['purchase_lock_date'])
+        AccountLockException.objects.create(
+            company=company, lock_date_field='purchase_lock_date',
+            lock_date=date(2026, 2, 15))
+        assert company.get_user_purchase_lock_date(user=user) == date(2026, 2, 15)
+        assert company.get_user_purchase_lock_date(user=None) == date(2026, 2, 15)
+
+    def test_user_scoped_exception_does_not_apply_to_other_user(
+            self, company, user):
+        other_user = ResUsers.objects.create_user(
+            login='otro@kaupamex.test', password='x')
+        company.tax_lock_date = date(2026, 4, 30)
+        company.save(update_fields=['tax_lock_date'])
+        AccountLockException.objects.create(
+            company=company, user=user, lock_date_field='tax_lock_date',
+            lock_date=date(2026, 3, 1))
+        assert company.get_user_tax_lock_date(user=user) == date(2026, 3, 1)
+        assert company.get_user_tax_lock_date(user=other_user) == date(2026, 4, 30)
+
+    def test_ignore_exceptions_returns_raw_company_date(self, company, user):
+        company.fiscalyear_lock_date = date(2026, 1, 31)
+        company.save(update_fields=['fiscalyear_lock_date'])
+        AccountLockException.objects.create(
+            company=company, lock_date_field='fiscalyear_lock_date',
+            lock_date=date(2025, 12, 1))
+        assert company.get_user_fiscalyear_lock_date(
+            user=user, ignore_exceptions=True) == date(2026, 1, 31)
+
+    def test_revoked_exception_does_not_apply(self, company, user):
+        company.sale_lock_date = date(2026, 5, 31)
+        company.save(update_fields=['sale_lock_date'])
+        exc = AccountLockException.objects.create(
+            company=company, lock_date_field='sale_lock_date',
+            lock_date=date(2026, 4, 1))
+        exc.revoke()
+        assert company.get_user_sale_lock_date() == date(2026, 5, 31)
+
+    def test_hard_lock_date_has_no_exceptions(self, company):
+        company.hard_lock_date = date(2026, 6, 30)
+        company.save(update_fields=['hard_lock_date'])
+        assert company.get_user_hard_lock_date() == date(2026, 6, 30)
+
+    def test_hard_lock_date_without_value_returns_date_min(self, company):
+        assert company.get_user_hard_lock_date() == date.min
+
+    def test_violated_soft_lock_date_before_lock(self, company):
+        company.sale_lock_date = date(2026, 1, 31)
+        company.save(update_fields=['sale_lock_date'])
+        violated = company.get_violated_soft_lock_date(
+            'sale_lock_date', date(2026, 1, 15))
+        assert violated == date(2026, 1, 31)
+
+    def test_violated_soft_lock_date_after_lock_is_none(self, company):
+        company.sale_lock_date = date(2026, 1, 31)
+        company.save(update_fields=['sale_lock_date'])
+        violated = company.get_violated_soft_lock_date(
+            'sale_lock_date', date(2026, 2, 15))
+        assert violated is None
+
+    def test_get_lock_date_violations_aggregates_soft_and_hard(self, company):
+        company.sale_lock_date = date(2026, 1, 31)
+        company.hard_lock_date = date(2026, 1, 15)
+        company.save(update_fields=['sale_lock_date', 'hard_lock_date'])
+        violations = company.get_lock_date_violations(date(2026, 1, 10))
+        fields_hit = {field for _, field in violations}
+        assert fields_hit == {'sale_lock_date', 'hard_lock_date'}
+
+    def test_get_violated_lock_dates_respects_journal_type(
+            self, company, journal):
+        sale_journal = AccountJournal.objects.create(
+            name='Ventas', code='SAL', type='sale', company=company)
+        company.sale_lock_date = date(2026, 1, 31)
+        company.purchase_lock_date = date(2026, 1, 31)
+        company.save(update_fields=['sale_lock_date', 'purchase_lock_date'])
+
+        locks_sale = company.get_violated_lock_dates(
+            date(2026, 1, 10), has_tax=False, journal=sale_journal)
+        fields_sale = {field for _, field in locks_sale}
+        assert 'sale_lock_date' in fields_sale
+        assert 'purchase_lock_date' not in fields_sale
+
+        # ``journal`` (fixture) es type='bank': ni venta ni compra se chequean.
+        locks_bank = company.get_violated_lock_dates(
+            date(2026, 1, 10), has_tax=False, journal=journal)
+        fields_bank = {field for _, field in locks_bank}
+        assert 'sale_lock_date' not in fields_bank
+        assert 'purchase_lock_date' not in fields_bank
+
+    def test_format_lock_dates_includes_verbose_name_and_date(self, company):
+        formatted = company.format_lock_dates(
+            [(date(2026, 1, 31), 'sale_lock_date')])
+        assert 'Candado de ventas' in formatted
+        assert '2026-01-31' in formatted
+
+    def test_validate_hard_lock_date_change_noop_when_unset(self, company):
+        company.validate_hard_lock_date_change(date(2026, 1, 1))
+
+    def test_validate_hard_lock_date_change_rejects_removal(self, company):
+        company.hard_lock_date = date(2026, 1, 31)
+        with pytest.raises(UserError):
+            company.validate_hard_lock_date_change(None)
+
+    def test_validate_hard_lock_date_change_rejects_earlier_date(self, company):
+        company.hard_lock_date = date(2026, 1, 31)
+        with pytest.raises(UserError):
+            company.validate_hard_lock_date_change(date(2026, 1, 1))
+
+    def test_validate_hard_lock_date_change_accepts_later_date(self, company):
+        company.hard_lock_date = date(2026, 1, 31)
+        company.validate_hard_lock_date_change(date(2026, 2, 28))
 
 
 class TestAccountBankStatement:
@@ -206,6 +344,54 @@ class TestAccountBankStatement:
 
         assert line1.running_balance == Decimal('150.00')
         assert line2.running_balance == Decimal('170.00')
+
+    def test_running_balance_multicompany_includes_children_not_siblings(
+            self, journal):
+        """H-API-330 (tarea #125): ``_compute_running_balances`` ancla en la
+        empresa del primer registro de línea que trae la consulta y expande
+        esa ancla a sus descendientes vía ``parent_path`` — equivalente al
+        ``child_of`` de la referencia (odoo19c:
+        account_bank_statement_line.py:178-256, ``company2children``).
+        Empresa matriz + filial: el acumulado de una línea de la MATRIZ
+        suma también las líneas de la FILIAL (descendiente). Una tercera
+        empresa SIN relación (ni ancestro ni descendiente de la matriz) NO
+        debe sumarse, aunque su transacción caiga cronológicamente entre
+        las de la matriz y la filial."""
+        parent_company = ResCompany.objects.create(
+            code='hold-p125', name='Holding P125')
+        child_company = ResCompany.objects.create(
+            code='sub-p125', name='Filial P125', parent=parent_company)
+        unrelated_company = ResCompany.objects.create(
+            code='oth-p125', name='Otra empresa P125')
+
+        move_child = AccountMove.objects.create(
+            company=child_company, journal=journal, date='2026-04-01',
+            state='posted')
+        move_unrelated = AccountMove.objects.create(
+            company=unrelated_company, journal=journal, date='2026-04-02',
+            state='posted')
+        move_parent = AccountMove.objects.create(
+            company=parent_company, journal=journal, date='2026-04-03',
+            state='posted')
+
+        line_child = AccountBankStatementLine.objects.create(
+            move=move_child, amount=Decimal('50.00'))
+        line_unrelated = AccountBankStatementLine.objects.create(
+            move=move_unrelated, amount=Decimal('9999.00'))
+        line_parent = AccountBankStatementLine.objects.create(
+            move=move_parent, amount=Decimal('100.00'))
+
+        # La filial, aislada: no tiene descendientes propios, así que sólo
+        # se ve a sí misma.
+        assert line_child.running_balance == Decimal('50.00')
+
+        # La empresa sin relación, aislada de ambas.
+        assert line_unrelated.running_balance == Decimal('9999.00')
+
+        # La matriz suma su propia línea + la de la filial (descendiente),
+        # NUNCA la de la empresa sin relación — aunque sea cronológicamente
+        # anterior a la de la matriz.
+        assert line_parent.running_balance == Decimal('150.00')
 
     def test_is_valid_true_and_false_cases(self, company, journal):
         """``is_valid`` — caso válido (primer estado del diario) y caso
