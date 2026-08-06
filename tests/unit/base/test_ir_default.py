@@ -35,7 +35,7 @@ def test_importable_desde_addons_base_models():
 
 # --- db_table / app_label fieles a Odoo ------------------------------------
 
-def test_db_table_fiel_a_odoo():
+def test_db_table_matches_reference():
     assert IrDefault._meta.db_table == 'ir_default'
     assert IrDefault._meta.app_label == 'base'
 

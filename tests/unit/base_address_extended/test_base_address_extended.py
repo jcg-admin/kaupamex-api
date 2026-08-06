@@ -34,7 +34,7 @@ class TestStreetSplit:
         ('', {'street_name': '', 'street_number': '', 'street_number2': ''}),
         (None, {'street_name': '', 'street_number': '', 'street_number2': ''}),
     ])
-    def test_street_split_matches_odoo(self, street, expected):
+    def test_street_split_matches_reference(self, street, expected):
         assert street_split(street) == expected
 
     def test_street_number_with_letters(self):

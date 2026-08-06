@@ -51,7 +51,7 @@ def test_importables_desde_addons_mail_models():
     assert MailAliasDomain.__module__ == 'addons.mail.models.mail_alias_domain'
 
 
-def test_db_table_fiel_a_odoo():
+def test_db_table_matches_reference():
     assert MailAlias._meta.db_table == 'mail_alias'
     assert MailAliasDomain._meta.db_table == 'mail_alias_domain'
 

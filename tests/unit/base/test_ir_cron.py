@@ -53,7 +53,7 @@ def test_importable_desde_addons_base_models():
 
 # --- db_table / app_label fieles a Odoo ------------------------------------
 
-def test_db_table_fiel_a_odoo():
+def test_db_table_matches_reference():
     assert IrCron._meta.db_table == 'ir_cron'
     assert IrCron._meta.app_label == 'base'
 
@@ -119,7 +119,7 @@ def test_create_minimo_aplica_defaults():
 # --- interval_type: choices de Odoo + rechazo de valor inválido -------------
 
 @pytest.mark.parametrize('interval_type', ['minutes', 'hours', 'days', 'weeks', 'months'])
-def test_interval_type_acepta_los_5_choices_odoo(interval_type):
+def test_interval_type_accepts_the_five_reference_choices(interval_type):
     cron = IrCron(
         ir_actions_server=_accion('Tarea', 'orders.Order', 'run'),
         nextcall=datetime(2026, 1, 1, tzinfo=dt_timezone.utc),

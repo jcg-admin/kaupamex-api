@@ -62,7 +62,7 @@ def test_policy_is_hot_editable_via_systemparameter():
     assert get_password_policy()['minlength'] == 12
 
 
-def test_absent_param_disables_policy_like_odoo():
+def test_absent_param_disables_policy_like_reference():
     """Borrar la clave L2 deshabilita el enforcement (fallback 0, fiel a Odoo)."""
     SystemParameter.set_param('authz.password_minlength', None)  # delete
     v = ConfigurablePasswordPolicyValidator()

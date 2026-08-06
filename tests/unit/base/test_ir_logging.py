@@ -41,7 +41,7 @@ def test_importable_desde_addons_base_models():
 
 # --- db_table fiel a Odoo ---------------------------------------------------
 
-def test_db_table_fiel_a_odoo():
+def test_db_table_matches_reference():
     assert IrLogging._meta.db_table == 'ir_logging'
     assert IrLogging._meta.app_label == 'base'
 

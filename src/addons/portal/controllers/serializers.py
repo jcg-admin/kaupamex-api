@@ -25,7 +25,7 @@ from addons.portal.models.res_partner import frontend_writable_fields
 #: allowlist es la única fuente y así no puede derivar del modelo.
 #: ``state_id``/``country_id``/``zipcode`` son la grafía Odoo de campos que
 #: aquí se llaman ``state``/``country``/``zip``; el mapa las traduce.
-_ALIAS_ODOO_A_NUESTRO = {
+_SOURCE_FIELD_ALIASES = {
     'state_id': 'state',
     'country_id': 'country',
     'zipcode': 'zip',
@@ -35,7 +35,7 @@ _NOMBRES_DE_MODELO = {f.name for f in ResPartner._meta.get_fields()}
 
 CAMPOS_EDITABLES = sorted(
     {
-        _ALIAS_ODOO_A_NUESTRO.get(nombre, nombre)
+        _SOURCE_FIELD_ALIASES.get(nombre, nombre)
         for nombre in frontend_writable_fields()
     }
     & _NOMBRES_DE_MODELO

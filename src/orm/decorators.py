@@ -22,21 +22,21 @@ __all__ = [
 
 def depends(*fields):
     def deco(func):
-        func._odoo_depends = fields
+        func._depends = fields
         return func
     return deco
 
 
 def constrains(*fields):
     def deco(func):
-        func._odoo_constrains = fields
+        func._constrains = fields
         return func
     return deco
 
 
 def onchange(*fields):
     def deco(func):
-        func._odoo_onchange = fields
+        func._onchange = fields
         return func
     return deco
 
