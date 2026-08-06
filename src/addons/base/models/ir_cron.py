@@ -168,24 +168,31 @@ on_delete=SET_NULL``) — mismo patrón que ``company`` en
 
 Cross-app: ``user`` → ``settings.AUTH_USER_MODEL`` (Odoo ``user_id``).
 
-``user`` NO se consume todavía en el runner (gap declarado, no omisión
-silenciosa)
------------------------------------------------------------------------
+``user`` SÍ se consume: el callback corre bajo ``user_scope``
+--------------------------------------------------------------
 
 La referencia ejecuta el callback **como el usuario del job**
 (``env = api.Environment(job_cr, job['user_id'], {...})``,
-ir_cron.py:481-483) — el ``method_name``/``model_name`` invocado aquí
-(``_callback``, arriba) es una llamada de **clase**
-(``getattr(apps.get_model(model_name), method_name)()``) sin ningún
-mecanismo de impersonación de usuario en este monolito (no hay un
-``env``/contexto de sesión que threading un ``user_id`` a través de la
-llamada, a diferencia de Odoo). El campo ``user`` queda persistido y
-disponible, pero **con o sin valor, el runner no lo lee todavía** — el
-método invocado corre con los privilegios que tenga el proceso worker
-(``kaupamex-bin cron``), no con los del ``user`` del cron. Candidato
-H-BASE cuando un ``method_name`` necesite ejecutar con los privilegios
-de un usuario concreto (p. ej. para que las reglas de registro/ACL del
-propio método se apliquen).
+ir_cron.py:481-483). Aquí el equivalente es ``orm.environments.user_scope``
+—el ``with_user`` de ``odoo19c: odoo/orm/models.py:5981-5988``, implementado
+con ``ContextVar`` para ser seguro bajo hilos y async—, que ``_callback``
+envuelve alrededor de la invocación.
+
+El camino HTTP ya poblaba ese mismo eje (``ir_http.py:257``,
+``set_current_uid``); el cron era el único llamador que lo dejaba sin
+poblar. Con el scope puesto, ``orm.environments.get_current_user()`` dentro
+del método invocado devuelve el ``user`` del cron, que es lo que consumen
+``bus/ir_attachment.py``, ``bus/bus_listener_mixin.py`` y
+``digest/digest.py``.
+
+**Lo que esto NO alcanza todavía:** ``IrRule.eval_context`` (``ir_rule.py:161``)
+recibe ``user`` como parámetro explícito y **no** cae a ``get_current_user()``
+cuando el llamador no lo pasa. Así que un cron con ``user`` puesto tiene el
+usuario disponible en el contexto, pero las record rules evaluadas dentro no
+lo ven salvo que el propio método lo pase. Cambiar ese default altera el
+dominio evaluado para **todo** consumidor de record rules, no sólo el cron:
+va por separado, con su barrido de llamadores (tarea #127, segunda mitad;
+:ref:`h-api-333`).
 """
 import calendar
 import logging
@@ -199,6 +206,7 @@ from django.utils import timezone
 import fields
 import models
 from addons.base.models.ir_actions import IrActionsServer
+from orm.environments import user_scope
 
 _logger = logging.getLogger(__name__)
 
@@ -294,8 +302,11 @@ class IrCron(models.Model):
         help_text=(
             'Usuario de ejecución (Odoo user_id — ahí required con '
             'default=env.user; aquí nullable porque no hay contexto de '
-            'request implícito al registrar la tarea, ver docstring del '
-            'módulo).'
+            'request implícito al registrar la tarea). El runner lo aplica '
+            'con orm.environments.user_scope, así que get_current_user() '
+            'dentro del método invocado lo devuelve. Caveat: IrRule.'
+            'eval_context aún no cae a ese usuario — ver docstring del '
+            'módulo.'
         ),
     )
 
@@ -416,10 +427,20 @@ class IrCron(models.Model):
         (``ir_actions.py:436-444``) es ``method_name``/``model_name``: el
         runner —este método— la invoca directamente, sin pasar por
         ``.run()``. Deja escapar la excepción del método invocado; quien la
-        atrapa es ``_run_job()``."""
+        atrapa es ``_run_job()``.
+
+        Corre bajo ``user_scope(self.user_id)`` — el equivalente del
+        ``env = api.Environment(job_cr, job['user_id'], ...)`` de la
+        referencia (ir_cron.py:481-483). ``user_id`` es el atributo de la FK
+        de Django (el id crudo), no una consulta extra. Con ``user`` nulo el
+        scope se fija a ``None``, que es el estado que ya tiene el proceso
+        worker: poner el contextmanager de todos modos mantiene un solo
+        camino y garantiza que el valor previo se **restaure** al salir, sin
+        filtrar el usuario de un job al siguiente."""
         model = apps.get_model(self.model_name)
         method = getattr(model, self.method_name)
-        method()
+        with user_scope(self.user_id):
+            method()
 
     def _run_job(self):
         """Ejecuta el callback de este cron ya adquirido (lock tomado) y

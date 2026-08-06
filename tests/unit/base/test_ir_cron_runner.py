@@ -32,6 +32,7 @@ from django.db import connection, transaction
 from django.utils import timezone
 
 from addons.base.models import IrActionsServer, IrCron, SystemParameter
+from orm.environments import get_current_uid
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
@@ -274,3 +275,68 @@ def test_cron_command_sale_limpio_ante_sigterm():
 
     assert proc.returncode == 0, f'stdout={salida!r} stderr={error!r}'
     assert 'saliendo limpio' in salida
+
+
+# --- el scope de usuario (H-API-333, tarea #127) ----------------------------
+
+def test_callback_corre_bajo_el_usuario_del_cron(monkeypatch, django_user_model):
+    """El equivalente del ``env = api.Environment(job_cr, job['user_id'], …)``
+    de la referencia (``odoo19c: ir_cron.py:481-483``): dentro del método
+    invocado, ``get_current_user()`` debe ser el ``user`` del cron.
+
+    Antes de #127 este eje existía (``orm/environments.py:114``) pero el cron
+    no lo poblaba: el campo se persistía y no cambiaba nada."""
+    visto = {}
+    monkeypatch.setattr(
+        SystemParameter, 'noop_test',
+        classmethod(lambda cls: visto.update(uid=get_current_uid())),
+        raising=False,
+    )
+    usuario = django_user_model.objects.create_user(
+        login='cron.operador@kaupamex.test', password='x')
+    cron = _cron_listo()
+    cron.user = usuario
+    cron.save(update_fields=['user'])
+
+    assert IrCron._process_jobs() == 1
+    assert visto['uid'] == usuario.pk, (
+        'el callback debe correr bajo el usuario del cron, no con el uid del '
+        'proceso worker'
+    )
+
+
+def test_el_scope_se_restaura_al_salir_del_callback(monkeypatch, django_user_model):
+    """``user_scope`` es un contextmanager que **restaura** el valor previo.
+    Sin eso, el usuario de un job se filtraría al siguiente — y a todo lo que
+    corriera después en el mismo proceso worker."""
+    monkeypatch.setattr(
+        SystemParameter, 'noop_test', classmethod(lambda cls: None), raising=False)
+    usuario = django_user_model.objects.create_user(
+        login='cron.otro@kaupamex.test', password='x')
+    cron = _cron_listo()
+    cron.user = usuario
+    cron.save(update_fields=['user'])
+
+    previo = get_current_uid()
+    assert IrCron._process_jobs() == 1
+    assert get_current_uid() == previo, (
+        'el uid previo debe restaurarse: un job no puede dejar su usuario '
+        'puesto para el siguiente'
+    )
+
+
+def test_cron_sin_usuario_deja_el_scope_en_none(monkeypatch):
+    """Con ``user`` nulo el scope se fija a ``None`` — el mismo estado que
+    tiene el proceso worker. Se pone el contextmanager igual para no tener dos
+    caminos, y esto lo comprueba."""
+    visto = {}
+    monkeypatch.setattr(
+        SystemParameter, 'noop_test',
+        classmethod(lambda cls: visto.update(uid=get_current_uid())),
+        raising=False,
+    )
+    cron = _cron_listo()
+    assert cron.user_id is None
+
+    assert IrCron._process_jobs() == 1
+    assert visto['uid'] is None
