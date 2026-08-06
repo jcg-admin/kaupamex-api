@@ -49,7 +49,9 @@ class TestLoading:
     def test_loads_the_four_families(self, company):
         ChartTemplate.try_loading('generic_coa', company)
 
-        assert AccountAccount.objects.filter(company=company).count() == 46
+        # 46 del CSV + las 4 de utilidad que crea el paso del banco
+        # (transitoria, transferencia y las dos de pendientes).
+        assert AccountAccount.objects.filter(company=company).count() == 50
         assert AccountTaxGroup.objects.filter(company=company).count() == 2
         assert AccountTax.objects.filter(company=company).count() == 4
         assert AccountFiscalPosition.objects.filter(company=company).count() == 2
@@ -239,7 +241,7 @@ class TestCompanyIsolation:
         ChartTemplate.try_loading('generic_coa', company)
         ChartTemplate.try_loading('generic_coa', company)
 
-        assert AccountAccount.objects.filter(company=company).count() == 46
+        assert AccountAccount.objects.filter(company=company).count() == 50
 
 
 @pytest.mark.django_db
@@ -285,3 +287,83 @@ class TestRegistryComposes:
             assert seen == ['generic_coa']
         finally:
             TEMPLATE_REGISTRY[None]['account.journal'].remove(spy)
+
+
+@pytest.mark.django_db
+class TestUtilityBankAccounts:
+    """Las cuentas que un diario de banco necesita para poder asentar.
+
+    ≙ ``_setup_utility_bank_accounts`` (``odoo19c: chart_template.py:891``).
+    Sin ellas, un cobro que aún no se identifica no tiene dónde esperar y un
+    arqueo que no cuadra no tiene contra qué cerrar.
+    """
+
+    def test_the_prefix_becomes_the_first_free_code(self, company):
+        """``1014`` + 6 dígitos → ``101401`` — ≙ el cálculo de la referencia.
+
+        El código de arranque rellena el prefijo con ceros hasta un dígito
+        menos del ancho y cierra con ``1``; de ahí en adelante manda
+        ``search_new_account_code``.
+        """
+        ChartTemplate.try_loading('generic_coa', company)
+        company.refresh_from_db()
+
+        assert company.account_journal_suspense_account.code == '101401'
+        assert company.transfer_account.code == '101701'
+
+    def test_outstanding_accounts_do_not_collide_between_them(self, company):
+        """Tres cuentas bajo el mismo prefijo toman tres huecos distintos.
+
+        Es lo que hace el ``cache``: sin él las tres pedirían ``101401``,
+        porque ninguna está escrita todavía cuando la siguiente pregunta.
+        """
+        ChartTemplate.try_loading('generic_coa', company)
+
+        debit = ChartTemplate.ref('account_journal_payment_debit_account', company)
+        credit = ChartTemplate.ref('account_journal_payment_credit_account', company)
+        assert {debit.code, credit.code} == {'101402', '101403'}
+        assert debit.reconcile and credit.reconcile
+
+    def test_the_chart_reuses_the_accounts_it_already_declares(self, company):
+        """Lo que el plan trae en su CSV no se duplica — se apunta.
+
+        Las cuatro de diferencia de efectivo y descuento por pronto pago ya
+        están en ``account.account-generic_coa.csv``. Si el paso del banco no
+        las viera, intentaría crear la de descuento con el código literal
+        ``999998``, que en este plan ya es ``retained_earnings``.
+        """
+        ChartTemplate.try_loading('generic_coa', company)
+        company.refresh_from_db()
+
+        assert company.default_cash_difference_income_account.code == '4420'
+        assert company.account_journal_early_pay_discount_loss_account.code == '4430'
+        assert AccountAccount.objects.filter(
+            company=company, code='999998').get().name == (
+                'Accumulated Retained Earnings')
+
+    def test_the_bank_fees_rule_gets_its_account(self, company):
+        """La regla de comisiones nace apuntada — ≙ el cierre de ``_load``.
+
+        Un método correcto al que nadie llama es el defecto de
+        :ref:`h-api-346`; este test es su consumidor.
+        """
+        ChartTemplate.try_loading('generic_coa', company)
+
+        fees = ChartTemplate.ref('bank_fees_reco', company)
+        line = fees.line_ids.get()
+        assert line.account is not None
+        assert line.account.account_type == 'expense'
+
+    def test_a_subsidiary_takes_the_accounts_of_its_root(self, company):
+        """Una hija no crea las suyas — ≙ ``company.parent_ids[0]``."""
+        company.chart_template = 'generic_coa'
+        company.save(update_fields=['chart_template'])
+        ChartTemplate.try_loading('generic_coa', company)
+        company.refresh_from_db()
+
+        subsidiary = ResCompany.objects.create(
+            code='acme-sub', name='ACME Sub', parent=company)
+        subsidiary.refresh_from_db()
+
+        assert (subsidiary.account_journal_suspense_account
+                == company.account_journal_suspense_account)

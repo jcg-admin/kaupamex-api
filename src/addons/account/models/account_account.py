@@ -15,6 +15,8 @@ fabricado; ambos valores existen en 19). Ver audit.
 import api
 import fields
 import models
+from exceptions import UserError
+from tools.translate import _
 
 
 class AccountAccount(models.Model):
@@ -111,3 +113,64 @@ class AccountAccount(models.Model):
     def save(self, *args, **kwargs):
         self._compute_internal_group()
         return super().save(*args, **kwargs)
+
+    @classmethod
+    def search_new_account_code(cls, start_code, company, cache=None):
+        """El primer código libre a partir de ``start_code`` — ≙ ``_search_new_account_code``.
+
+        Es lo que permite declarar una cuenta por **prefijo** en vez de por
+        código: la plantilla dice "la cuenta transitoria de banco va bajo
+        1014" y este método encuentra el primer hueco. Comportamiento de la
+        referencia (``odoo19c: account_account.py:466-540``), incluidos sus
+        dos casos de borde:
+
+        - se incrementa **la cola numérica**, conservando el ancho:
+          ``102100 → 102101``; ``1021A`` no tiene cola, así que incrementa el
+          número que la precede (``1022A``);
+        - si no queda hueco —o el código no termina en dígito— cae a
+          ``<code>.copy``, ``.copy2`` … hasta ``.copy99``.
+
+        ``cache`` son los códigos que quien llama ya reservó pero aún no
+        escribió; sin él, dos cuentas creadas en la misma tanda tomarían el
+        mismo hueco.
+        """
+        if cache is None:
+            cache = {start_code}
+
+        def is_free(code):
+            return code not in cache and not cls.objects.filter(
+                company=company, code=code).exists()
+
+        if is_free(start_code):
+            return start_code
+
+        head = start_code.rstrip('0123456789')
+        tail = start_code[len(head):]
+        if tail:
+            width = len(tail)
+            for number in range(int(tail) + 1, 10 ** width):
+                candidate = f'{head}{number:0{width}d}'
+                if is_free(candidate):
+                    return candidate
+        else:
+            # Sin cola numérica: la referencia incrementa el número que
+            # precede al sufijo no numérico (``1021A`` → ``1022A``).
+            stem = start_code.rstrip('abcdefghijklmnopqrstuvwxyz'
+                                     'ABCDEFGHIJKLMNOPQRSTUVWXYZ')
+            suffix = start_code[len(stem):]
+            inner = stem.rstrip('0123456789')
+            digits = stem[len(inner):]
+            if digits:
+                width = len(digits)
+                for number in range(int(digits) + 1, 10 ** width):
+                    candidate = f'{inner}{number:0{width}d}{suffix}'
+                    if is_free(candidate):
+                        return candidate
+
+        for n in [''] + [str(i) for i in range(2, 100)]:
+            candidate = f'{start_code}.copy{n}'
+            if is_free(candidate):
+                return candidate
+        raise UserError(
+            _('No hay código disponible a partir de «%(code)s».')
+            % {'code': start_code})

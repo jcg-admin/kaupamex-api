@@ -113,6 +113,44 @@ def apply_account_extensions():
                   'chart_template, company.py:117). Una empresa hija hereda '
                   'el de su raíz al crearse.',
     ))
+    # Los tres prefijos de código con los que el plan declara sus cuentas de
+    # utilidad — ≙ ``odoo19c: company.py:118,119,125``. No son adorno: son lo
+    # que ``setup_utility_bank_accounts`` usa para pedirle a
+    # ``AccountAccount.search_new_account_code`` el primer hueco libre.
+    for prefix_name, prefix_help in (
+        ('bank_account_code_prefix', 'bancarias'),
+        ('cash_account_code_prefix', 'de efectivo'),
+        ('transfer_account_code_prefix', 'de transferencia'),
+    ):
+        _add_if_absent(ResCompany, prefix_name, fields.Char(
+            max_length=64, null=True, blank=True,
+            help_text=f'Prefijo de código de las cuentas {prefix_help} '
+                      f'(Odoo {prefix_name}).',
+        ))
+
+    # Las seis cuentas de utilidad que el plan crea y deja apuntadas en la
+    # empresa — ≙ el bloque de ``_get_accounts_data_values``
+    # (``odoo19c: chart_template.py:848-887``). Las de cobros/pagos pendientes
+    # NO están aquí a propósito: la referencia las crea con identificador
+    # externo y **sin** campo en la empresa ("No fields on company").
+    for account_name, account_help in (
+        ('account_journal_suspense_account', 'transitoria de banco'),
+        ('account_journal_early_pay_discount_loss_account',
+         'de pérdida por descuento por pronto pago'),
+        ('account_journal_early_pay_discount_gain_account',
+         'de ganancia por descuento por pronto pago'),
+        ('default_cash_difference_income_account',
+         'de sobrante de efectivo'),
+        ('default_cash_difference_expense_account',
+         'de faltante de efectivo'),
+        ('transfer_account', 'de transferencia de liquidez'),
+    ):
+        _add_if_absent(ResCompany, account_name, fields.Many2one(
+            'account.AccountAccount', on_delete=dj_models.SET_NULL,
+            null=True, blank=True, related_name=f'company_{account_name}',
+            help_text=f'Cuenta {account_help} (Odoo {account_name}_id).',
+        ))
+
     dj_models.signals.post_save.connect(
         load_chart_for_new_company, sender=ResCompany,
         dispatch_uid='account.load_chart_for_new_company',
@@ -143,6 +181,6 @@ def load_chart_for_new_company(sender, instance, created, **kwargs):
     """
     if not created or instance.parent is None:
         return
-    codigo = getattr(instance.parent.root_id, 'chart_template', None)
-    if codigo:
-        ChartTemplate.try_loading(codigo, instance)
+    template_code = getattr(instance.parent.root_id, 'chart_template', None)
+    if template_code:
+        ChartTemplate.try_loading(template_code, instance)

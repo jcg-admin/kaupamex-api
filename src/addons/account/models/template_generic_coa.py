@@ -47,4 +47,21 @@ class GenericCoaChartTemplate(ChartTemplate):
         return {
             'account_sale_tax': 'sale_tax_template',
             'account_purchase_tax': 'purchase_tax_template',
+            # Los tres prefijos con los que ``setup_utility_bank_accounts``
+            # pide sus cuentas. Valores de la referencia, verbatim
+            # (``odoo19c: template_generic_coa.py:37-39``).
+            'bank_account_code_prefix': '1014',
+            'cash_account_code_prefix': '1015',
+            'transfer_account_code_prefix': '1017',
+            # Cuatro cuentas que este plan **ya trae en su CSV**, así que se
+            # apuntan en vez de crearse. No es un detalle de estilo: el guard
+            # de ``setup_utility_bank_accounts`` descarta lo que la empresa ya
+            # tiene puesto, y sin estas cuatro claves el paso intentaría crear
+            # la de descuento con el código literal ``999998`` — que en este
+            # plan ya es ``retained_earnings``. La colisión es la señal de que
+            # faltaban (``odoo19c: template_generic_coa.py:44-47``).
+            'default_cash_difference_income_account': 'cash_diff_income',
+            'default_cash_difference_expense_account': 'cash_diff_expense',
+            'account_journal_early_pay_discount_loss_account': 'cash_discount_loss',
+            'account_journal_early_pay_discount_gain_account': 'cash_discount_gain',
         }

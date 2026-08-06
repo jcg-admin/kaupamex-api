@@ -41,40 +41,42 @@ Lo que este porte NO trae (medido, con desenlace)
 ---------------------------------------------------
 
 **Conteo medido, no estimado:** la referencia declara **40** métodos de clase;
-aquí hay **15** equivalentes y quedan **25** ausentes (1537 líneas allá contra
-639 aquí). Una versión anterior de este docstring decía "13 restantes" — era un
-conteo generoso, el defecto que ``porte-completo-no-parcial.md`` nombra.
+aquí hay **28** y quedan **20** ausentes (1537 líneas allá contra 894 aquí). Lo
+mide ``scripts/check_porte_completo.py``, no la memoria.
 
-Los 25 se reparten en tres grupos, y **sólo el tercero es trabajo pendiente**:
+Los 20 se reparten en tres grupos, y **sólo el tercero es trabajo pendiente**:
 
-**a) Siete que este puerto resuelve de otra forma** (divergencia de mecanismo,
+**a) Ocho que este puerto resuelve de otra forma** (divergencia de mecanismo,
 declarada arriba): ``_template_register`` y ``_post_model_setup__`` (el
-decorador se registra solo), y los cinco ``_get_account_<modelo>`` —
-``account``, ``group``, ``tax_group``, ``tax``, ``fiscal_position``—, cuyas
-tablas viven en los CSV y cuyo orden lo fija ``loaded_models``.
+decorador se registra solo), los cinco ``_get_account_<modelo>`` — ``account``,
+``group``, ``tax_group``, ``tax``, ``fiscal_position``—, cuyas tablas viven en
+los CSV y cuyo orden lo fija ``loaded_models``, y ``_load_data``, repartido
+entre ``load_model_data`` y ``load_child_lines``.
 
 **b) Seis de traducción** (``_load_translations`` y sus ayudantes) — dependen
 del mecanismo de campos traducibles de la referencia, que este proyecto no
 porta. Si se portara, entran; hoy no hay dónde enchufarlos.
 
-**c) Doce que son trabajo pendiente**, con su dependencia real medida:
+**c) Seis que son trabajo pendiente**, con su dependencia real medida:
 
-- ``_setup_utility_bank_accounts``, ``_create_outstanding_accounts``,
-  ``_get_accounts_data_values``, ``_get_property_accounts`` y
-  ``_get_bank_fees_reco_account`` — las cuentas transitorias de pago. Necesitan
-  ``ResCompany.bank_account_code_prefix``, un campo de la **misma familia**
-  (``odoo19c: company.py``): no hay bloqueo, hay campo por colgar.
 - ``_get_tag_mapper`` y ``_deref_account_tags`` — el modelo
   ``account.account.tag`` **existe y está portado** (``account_account_tag.py``);
   lo que falta del mapeador es su discriminación xmlid-vs-nombre, que consulta
   ``ir.module.module``, un registro de módulos que este puerto no tiene por
-  diseño. Los CSV de ``generic_coa`` **no traen columnas de etiqueta**, así que
-  hoy no tiene consumidor.
+  diseño. Los CSV de ``generic_coa`` **sí** traen columna de etiqueta
+  (``account.account_tag_investing``), pero esa etiqueta no está sembrada —
+  sucesor #160.
 - ``_instantiate_foreign_taxes`` — impuestos de otro país sobre la misma
   empresa; exige un plan ``l10n_*`` portado, y hay **cero** en ``src/addons``.
 - ``_install_demo`` — datos de demostración, que este proyecto no tiene.
 - ``_pre_reload_data`` (219 líneas) y ``_pre_load_data`` — recarga sobre una
   plantilla ya cargada, preservando lo que el usuario tocó.
+
+**Cerrado en este pase:** las cinco cuentas de utilidad del banco
+(``_setup_utility_bank_accounts``, ``_create_outstanding_accounts``,
+``_get_accounts_data_values``, ``_get_property_accounts`` y
+``_get_bank_fees_reco_account``). Lo que las bloqueaba —los prefijos de código
+en ``res.company``— era un campo de la misma familia, no una incapacidad.
 
 Sucesor registrado: tarea #155.
 """
@@ -441,6 +443,9 @@ class ChartTemplate:
                 name, model_class, data.get(name, {}), company,
                 force_create=force_create)
         cls.post_load_data(template_code, company, data[TEMPLATE_DATA])
+        cls.setup_utility_bank_accounts(
+            template_code, company, data[TEMPLATE_DATA])
+        cls.wire_bank_fees_account(company)
         return created
 
     @classmethod
@@ -550,11 +555,17 @@ class ChartTemplate:
                 to_write[target] = cls.ref(xmlid, company, raise_if_not_found=False)
         if company_values:
             for key, value in company_values.items():
-                if key in model_fields and isinstance(value, str):
+                if key not in model_fields:
+                    continue
+                if not type(company)._meta.get_field(key).is_relation:
+                    # Escalar: se escribe tal cual. Es el caso de los tres
+                    # prefijos de código, que son cadenas y no identificadores.
+                    to_write[key] = value
+                elif isinstance(value, str):
                     resolved = cls.ref(value, company, raise_if_not_found=False)
                     if resolved is not None:
                         to_write[key] = resolved
-                elif key in model_fields and not isinstance(value, str):
+                else:
                     to_write[key] = value
         if not to_write:
             return company
@@ -562,6 +573,222 @@ class ChartTemplate:
             setattr(company, key, value)
         company.save(update_fields=list(to_write))
         return company
+
+    # -- cuentas de utilidad del banco --------------------------------------
+
+    @classmethod
+    def get_accounts_data_values(cls, company, template_data,
+                                 bank_prefix='', code_digits=0):
+        """Las seis cuentas de utilidad y cómo se piden — ≙ ``_get_accounts_data_values``.
+
+        Cada una se declara por **prefijo**, no por código: el plan dice bajo
+        qué familia va y ``AccountAccount.search_new_account_code`` busca el
+        primer hueco. Las dos de descuento por pronto pago son la excepción —
+        la referencia les fija código literal (``999998``/``999997``).
+
+        Divergencia declarada: las dos de diferencia de efectivo llevan allá
+        ``tag_ids`` apuntando a ``account.account_tag_investing``. Aquí ese
+        identificador externo **no está sembrado** (medido: aparece sólo como
+        columna de los CSV de ``generic_coa``, sin fila que lo cree), así que
+        la clave se omite en vez de fabricar una etiqueta. Entra sola cuando
+        se siembren las etiquetas — sucesor #160.
+        """
+        bank_prefix = bank_prefix or company.bank_account_code_prefix or ''
+        code_digits = code_digits or int(template_data.get('code_digits', 6))
+        return {
+            'account_journal_suspense_account': {
+                'name': _('Cuenta transitoria de banco'),
+                'prefix': bank_prefix,
+                'code_digits': code_digits,
+                'account_type': 'asset_current',
+            },
+            'account_journal_early_pay_discount_loss_account': {
+                'name': _('Pérdida por descuento por pronto pago'),
+                'code': '999998',
+                'account_type': 'expense',
+            },
+            'account_journal_early_pay_discount_gain_account': {
+                'name': _('Ganancia por descuento por pronto pago'),
+                'code': '999997',
+                'account_type': 'income_other',
+            },
+            'default_cash_difference_income_account': {
+                'name': _('Sobrante de efectivo'),
+                'prefix': '999',
+                'code_digits': code_digits,
+                'account_type': 'income_other',
+            },
+            'default_cash_difference_expense_account': {
+                'name': _('Faltante de efectivo'),
+                'prefix': '999',
+                'code_digits': code_digits,
+                'account_type': 'expense',
+            },
+            'transfer_account': {
+                'name': _('Transferencia de liquidez'),
+                'prefix': company.transfer_account_code_prefix or '',
+                'code_digits': code_digits,
+                'account_type': 'asset_current',
+                'reconcile': True,
+            },
+        }
+
+    @classmethod
+    def resolve_account_code(cls, values, company, cache):
+        """``prefix`` + ``code_digits`` → un ``code`` libre.
+
+        ≙ el bloque de ``odoo19c: account_account.py:1025-1030``. El código de
+        arranque se compone rellenando el prefijo con ceros hasta un dígito
+        menos del ancho y cerrando con un ``1``: prefijo ``1014`` y 6 dígitos
+        dan ``101401``. Si el prefijo ya es igual o más largo que el ancho, se
+        usa tal cual.
+        """
+        values = dict(values)
+        if 'prefix' not in values:
+            return values
+        prefix = values.pop('prefix') or ''
+        digits = values.pop('code_digits')
+        start_code = (prefix.ljust(digits - 1, '0') + '1'
+                      if len(prefix) < digits else prefix)
+        values['code'] = apps.get_model(
+            'account', 'AccountAccount').search_new_account_code(
+                start_code, company, cache)
+        cache.add(values['code'])
+        return values
+
+    @classmethod
+    def setup_utility_bank_accounts(cls, template_code, company, template_data):
+        """Crea las cuentas que el banco necesita — ≙ ``_setup_utility_bank_accounts``.
+
+        Transitoria, diferencias de efectivo, descuentos por pronto pago y
+        transferencia de liquidez. Sin ellas un diario de banco no puede
+        registrar un cobro que aún no se identifica ni un arqueo que no cuadra.
+
+        Una empresa **hija** no crea las suyas: toma las de su raíz, igual que
+        la referencia (``company.parent_ids[0]``). Y lo que la empresa ya tenga
+        puesto no se toca.
+        """
+        bank_prefix = company.bank_account_code_prefix or ''
+        code_digits = int(template_data.get('code_digits', 6))
+        accounts_data = cls.get_accounts_data_values(
+            company, template_data, bank_prefix=bank_prefix,
+            code_digits=code_digits)
+        for field_name in list(accounts_data):
+            if getattr(company, field_name, None):
+                del accounts_data[field_name]
+        if not accounts_data:
+            return
+
+        to_write = {}
+        if company.parent is not None:
+            root = company.parent.root_id
+            for field_name in accounts_data:
+                to_write[field_name] = getattr(root, field_name, None)
+        else:
+            account_model = apps.get_model('account', 'AccountAccount')
+            cache = set()
+            resolved = {
+                xmlid: cls.resolve_account_code(values, company, cache)
+                for xmlid, values in accounts_data.items()
+            }
+            to_write = cls.load_model_data(
+                'account.account', account_model, resolved, company,
+                force_create=False)
+            cls.create_outstanding_accounts(company, bank_prefix, code_digits)
+
+        written = [name for name, account in to_write.items()
+                   if account is not None]
+        for field_name in written:
+            setattr(company, field_name, to_write[field_name])
+        if written:
+            company.save(update_fields=written)
+
+    @classmethod
+    def create_outstanding_accounts(cls, company, bank_prefix, code_digits):
+        """Cobros y pagos pendientes — ≙ ``_create_outstanding_accounts``.
+
+        Las dos cuentas donde vive un pago que ya se registró y todavía no se
+        concilió con el extracto. No se apuntan en la empresa: la referencia
+        las deja sólo con identificador externo, y el comentario que lo dice
+        —"No fields on company"— es la razón de que este método esté separado
+        del anterior.
+        """
+        cache = set()
+        outstanding = {
+            'account_journal_payment_debit_account': {
+                'name': _('Cobros pendientes'),
+                'prefix': bank_prefix,
+                'code_digits': code_digits,
+                'account_type': 'asset_current',
+                'reconcile': True,
+            },
+            'account_journal_payment_credit_account': {
+                'name': _('Pagos pendientes'),
+                'prefix': bank_prefix,
+                'code_digits': code_digits,
+                'account_type': 'asset_current',
+                'reconcile': True,
+            },
+        }
+        account_model = apps.get_model('account', 'AccountAccount')
+        cls.load_model_data(
+            'account.account', account_model,
+            {xmlid: cls.resolve_account_code(values, company, cache)
+             for xmlid, values in outstanding.items()},
+            company, force_create=False)
+
+    @classmethod
+    def wire_bank_fees_account(cls, company):
+        """Apunta las dos reglas de conciliación a su cuenta — ≙ el cierre de ``_load``.
+
+        La referencia lo hace en ``chart_template.py:785-792``: la regla de
+        transferencia interna apunta a ``transfer_account`` de la empresa, y la
+        de comisiones a la que devuelve ``get_bank_fees_reco_account``. Sin
+        este paso las dos reglas nacen sin cuenta y no pueden asentar nada —
+        que es la forma de :ref:`h-api-346`: un método correcto al que nadie
+        llama.
+        """
+        transfer = cls.ref('internal_transfer_reco', company,
+                           raise_if_not_found=False)
+        if transfer is not None and company.transfer_account is not None:
+            transfer.line_ids.update(account=company.transfer_account)
+
+        bank_fees = cls.ref('bank_fees_reco', company, raise_if_not_found=False)
+        if bank_fees is not None:
+            account = cls.get_bank_fees_reco_account(company)
+            if account is not None:
+                bank_fees.line_ids.update(account=account)
+
+    @classmethod
+    def get_property_accounts(cls, additional_properties):
+        """Qué modelo consume cada cuenta de propiedad — ≙ ``_get_property_accounts``.
+
+        En la referencia estas claves se guardan como *properties* por modelo;
+        aquí son campos de la empresa, así que el mapa sirve para saber a quién
+        pertenece cada una, no para escribirla.
+        """
+        return {
+            **additional_properties,
+            'property_account_receivable_id': 'res.partner',
+            'property_account_payable_id': 'res.partner',
+            'property_stock_journal': 'product.category',
+        }
+
+    @classmethod
+    def get_bank_fees_reco_account(cls, company):
+        """La cuenta donde cae una comisión bancaria — ≙ ``_get_bank_fees_reco_account``.
+
+        Preferimos una cuenta que se llame así; si no la hay, la primera de
+        gasto. Es lo que la regla de conciliación de comisiones necesita para
+        tener dónde asentar.
+        """
+        account_model = apps.get_model('account', 'AccountAccount')
+        return (account_model.objects.filter(
+                    company=company, name__icontains='Bank Fees').first()
+                or account_model.objects.filter(
+                    company=company, name__icontains='comisiones').first()
+                or account_model.objects.filter(
+                    company=company, account_type='expense').first())
 
     # -- plantillas base (Root template functions) ---------------------------
     #
