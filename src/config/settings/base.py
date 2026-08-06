@@ -118,6 +118,7 @@ INSTALLED_APPS = [
     'addons.analytic',
     'addons.fleet',
     'addons.resource',
+    'addons.digest',
 ]
 
 AUTH_USER_MODEL = 'base.ResUsers'

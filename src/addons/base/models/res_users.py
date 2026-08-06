@@ -68,6 +68,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.utils.crypto import salted_hmac
 
+from addons.base.models import signals
 from addons.base.models.timestamped_mixin import TimeStampedModel
 
 # Sal del HMAC de sesión. Literal de Django (``AbstractBaseUser``): cambiarlo
@@ -97,7 +98,22 @@ class ResUsersManager(models.Manager):
             return email.strip()
         return email_name + '@' + domain_part.lower()
 
-    def _create_user(self, login, password, partner=None, **extra_fields):
+    def _create_user(self, login, password, partner=None, group_ids=None,
+                     **extra_fields):
+        """Crea la credencial **con sus grupos ya aplicados**.
+
+        ``group_ids`` replica el campo homónimo de ``res.users`` en la
+        referencia (``odoo19c: odoo/addons/base/models/res_users.py:257``),
+        que viaja dentro de ``vals`` y queda escrito cuando ``create()``
+        retorna. Por eso el propio ``create`` de la referencia puede leer
+        ``user._is_internal()`` (``:583``) y ``user.share`` (``:590``) sobre
+        lo que acaba de crear, y por eso el override de ``digest`` funciona.
+
+        En Django el M2M sólo se escribe una vez que la fila tiene PK, así
+        que aquí se aplica explícitamente entre el ``save()`` y el retorno.
+        Quien reciba el usuario lo recibe en el mismo estado que en la
+        referencia. Ver H-API-304.
+        """
         if not login:
             raise ValueError('El login es obligatorio para ResUsers')
         login = self.normalize_email(login)
@@ -113,6 +129,12 @@ class ResUsersManager(models.Manager):
         user = self.model(login=login, partner=partner, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
+        if group_ids:
+            user.group_ids.set(group_ids)
+        # Equivalente del punto en que ``super().create()`` retorna en la
+        # referencia: la credencial existe y sus grupos están escritos. Los
+        # satélites (``digest``) escuchan aquí; ``base`` no los importa.
+        signals.res_users_created.send(sender=self.model, user=user)
         return user
 
     def create_user(self, login, password=None, **extra_fields):
