@@ -81,3 +81,68 @@ class TestAccountMoveSequence:
         move.post()
         move.refresh_from_db()
         assert move.name == 'MANUAL-001'
+
+    def test_post_guarda_el_nombre_partido(self, setup):
+        """``name`` y sus dos mitades salen del mismo ``post()``.
+
+        Si se desincronizan, el ``MAX`` del siguiente asiento mide otra cosa.
+        """
+        move = _balanced(*setup)
+        move.post()
+        move.refresh_from_db()
+        assert move.sequence_prefix == f'INV/VEN/{move.date.year}/'
+        assert move.sequence_number == 1
+
+
+@pytest.mark.django_db
+class TestLimiteDeCincoDigitos:
+    """El punto exacto donde el orden de cadena rompía (:ref:`h-api-339`).
+
+    ``_assign_sequence`` buscaba el último con ``order_by('-name').first()``.
+    Con el relleno a cinco dígitos eso ordena bien hasta 99 999, y se rompe al
+    llegar a 100 000: ``'/100000'`` es lexicográficamente **menor** que
+    ``'/99999'``, así que el descendente sigue devolviendo el 99 999 y la
+    secuencia propone 100 000 otra vez. Como ``name`` es único, la numeración
+    de ese diario queda atascada con ``IntegrityError`` para siempre.
+
+    No hace falta crear 100 000 asientos para ejercerlo: bastan las dos filas
+    que lo disparan.
+    """
+
+    @staticmethod
+    def _numerado(company, journal, name, numero):
+        return AccountMove.objects.create(
+            name=name,
+            sequence_prefix=f'INV/{journal.code}/{timezone.now().year}/',
+            sequence_number=numero,
+            move_type='out_invoice', date=timezone.now().date(),
+            journal=journal, company=company, state='posted',
+        )
+
+    def test_el_siguiente_de_100000_es_100001(self, setup):
+        company, journal, receivable, income = setup
+        anio = timezone.now().year
+        self._numerado(company, journal, f'INV/VEN/{anio}/99999', 99999)
+        self._numerado(company, journal, f'INV/VEN/{anio}/100000', 100000)
+        siguiente = _balanced(*setup)
+        assert siguiente._assign_sequence() == f'INV/VEN/{anio}/100001'
+
+    def test_contraprueba_el_orden_de_cadena_se_equivoca(self, setup):
+        """Sin esto, el test de arriba pasaría con cualquier implementación.
+
+        Mide el instrumento **viejo** sobre las mismas filas y muestra que da
+        el resultado equivocado — que es lo que demuestra que había defecto, no
+        sólo que la versión actual funciona.
+        """
+        company, journal, receivable, income = setup
+        anio = timezone.now().year
+        self._numerado(company, journal, f'INV/VEN/{anio}/99999', 99999)
+        self._numerado(company, journal, f'INV/VEN/{anio}/100000', 100000)
+        por_cadena = (AccountMove.objects
+                      .filter(name__startswith=f'INV/VEN/{anio}/')
+                      .order_by('-name').first())
+        por_entero = (AccountMove.objects
+                      .filter(sequence_prefix=f'INV/VEN/{anio}/')
+                      .order_by('-sequence_number').first())
+        assert por_cadena.sequence_number == 99999    # el viejo se equivoca
+        assert por_entero.sequence_number == 100000   # el nuevo acierta

@@ -49,6 +49,22 @@ class AccountMove(models.Model):
         max_length=255, blank=True, default='/',
         help_text='Número del asiento (Odoo name; "/" hasta postear).',
     )
+    # El nombre partido en sus dos mitades, fiel a odoo19c:
+    # account/models/sequence_mixin.py:47-48 (sequence_prefix/sequence_number,
+    # ambos compute con store=True). No son duplicado de `name`: son lo que
+    # permite preguntar "cuál es el último" con un MAX entero en vez de un
+    # orden de cadena. Ver el docstring de _assign_sequence.
+    sequence_prefix = fields.Char(
+        max_length=255, blank=True, default='', db_index=True,
+        help_text='Todo lo que precede al número en `name`, p. ej. '
+                  '``INV/VTA/2026/`` (Odoo sequence_prefix).',
+    )
+    sequence_number = fields.Integer(
+        default=0, db_index=True,
+        help_text='El número dentro del prefijo, como entero. Es la columna '
+                  'que se agrega con MAX para obtener el siguiente (Odoo '
+                  'sequence_number).',
+    )
     ref          = fields.Char(
         max_length=255, blank=True, default='',
         help_text='Referencia (Odoo ref).',
@@ -120,6 +136,11 @@ class AccountMove(models.Model):
         if not self.is_balanced():
             raise UserError(_('El asiento no está balanceado (debe ≠ haber).'))
 
+    def _sequence_base(self):
+        """El prefijo del asiento: ``{tipo}/{diario}/{año}/``."""
+        prefix = self.SEQUENCE_PREFIXES.get(self.move_type, 'MISC')
+        return f'{prefix}/{self.journal.code}/{self.date.year}/'
+
     def _assign_sequence(self):
         """Siguiente ``name`` por (diario, move_type, año).
 
@@ -127,20 +148,25 @@ class AccountMove(models.Model):
         con la forma ``{prefijo}/{código-diario}/{año}/{NNNNN}``, única por diario
         y tipo. El ``name`` global es único (constraint del modelo) porque el
         código de diario forma parte del prefijo.
+
+        **El "último" se obtiene con un MAX entero sobre ``sequence_number``,
+        no ordenando ``name``.** La versión anterior usaba
+        ``order_by('-name').first()``, que es un orden de **cadena**: con el
+        relleno a cinco dígitos funciona hasta 99 999, y al llegar a 100 000 se
+        rompe — ``'/100000'`` es lexicográficamente **menor** que ``'/99999'``,
+        así que el orden descendente sigue devolviendo el 99 999 y la secuencia
+        propone 100 000 indefinidamente. Como ``name`` es único, eso no duplica:
+        lanza ``IntegrityError`` y la numeración de ese diario queda atascada
+        para siempre. Es la razón por la que la referencia guarda el número
+        como columna entera aparte (``odoo19c: sequence_mixin.py:47-48``), no
+        un adorno. Ver :ref:`h-api-339`.
         """
-        prefix = self.SEQUENCE_PREFIXES.get(self.move_type, 'MISC')
-        base = f'{prefix}/{self.journal.code}/{self.date.year}/'
-        last = (AccountMove.objects
-                .filter(journal=self.journal, move_type=self.move_type,
-                        name__startswith=base)
-                .exclude(pk=self.pk)
-                .order_by('-name').first())
-        n = 1
-        if last and last.name:
-            try:
-                n = int(last.name.rsplit('/', 1)[1]) + 1
-            except (ValueError, IndexError):
-                n = 1
+        base = self._sequence_base()
+        ultimo = (AccountMove.objects
+                  .filter(sequence_prefix=base)
+                  .exclude(pk=self.pk)
+                  .aggregate(models.Max('sequence_number'))['sequence_number__max'])
+        n = (ultimo or 0) + 1
         return f'{base}{n:05d}'
 
     def post(self):
@@ -156,8 +182,16 @@ class AccountMove(models.Model):
         self.compute_amount_total()
         if not self.name or self.name == '/':
             self.name = self._assign_sequence()
+            # Las dos mitades se guardan en el mismo write que el nombre: son
+            # la forma consultable de lo que `name` dice en texto, y si se
+            # desincronizan el MAX del siguiente asiento mide otra cosa.
+            self.sequence_prefix = self._sequence_base()
+            self.sequence_number = int(self.name.rsplit('/', 1)[1])
         self.state = 'posted'
-        self.save(update_fields=['name', 'state', 'amount_total'])
+        self.save(update_fields=[
+            'name', 'sequence_prefix', 'sequence_number', 'state',
+            'amount_total',
+        ])
         return True
 
     def button_cancel(self):
