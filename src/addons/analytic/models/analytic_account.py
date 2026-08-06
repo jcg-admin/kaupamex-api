@@ -69,10 +69,6 @@ class AccountAnalyticAccount(MailThread, models.Model):
         ordering = ['plan', 'name']
         verbose_name = 'Cuenta analítica'
         verbose_name_plural = 'Cuentas analíticas'
-        # ADDON NO INSTALADO TODAVÍA — ver el comentario extenso en
-        # ``analytic_plan.py::AccountAnalyticPlan.Meta`` (mismo precedente
-        # que ``onboarding``).
-        app_label = 'analytic'
 
     def __str__(self):
         """Fiel a ``_compute_display_name`` (odoo19c: líneas 104-112),

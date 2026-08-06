@@ -79,11 +79,6 @@ class OnboardingOnboarding(TimeStampedModel):
         ordering = ['sequence', '-id']
         verbose_name = 'Onboarding'
         verbose_name_plural = 'Onboardings'
-        # Ver el comentario extenso en ``OnboardingOnboardingStep.Meta`` —
-        # addon aún no wireado en INSTALLED_APPS (directiva del ejecutor);
-        # ``app_label`` explícito evita el ``RuntimeError`` de
-        # ``apps.get_containing_app_config`` al importar el módulo.
-        app_label = 'onboarding'
 
     def __str__(self):
         return self.name or self.route_name

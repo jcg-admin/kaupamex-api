@@ -53,10 +53,6 @@ class AccountAnalyticDistributionModel(AnalyticMixin, TimeStampedModel):
         ordering = ['sequence', '-id']
         verbose_name = 'Modelo de distribución analítica'
         verbose_name_plural = 'Modelos de distribución analítica'
-        # ADDON NO INSTALADO TODAVÍA — ver el comentario extenso en
-        # ``analytic_plan.py::AccountAnalyticPlan.Meta`` (mismo precedente
-        # que ``onboarding``).
-        app_label = 'analytic'
 
     def __str__(self):
         return f'Distribución analítica #{self.pk}' if self.pk else 'Distribución analítica (nueva)'

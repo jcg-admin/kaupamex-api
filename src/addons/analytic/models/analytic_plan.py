@@ -99,15 +99,6 @@ class AccountAnalyticPlan(models.Model):
         ordering = ['sequence', 'id']
         verbose_name = 'Plan analítico'
         verbose_name_plural = 'Planes analíticos'
-        # ADDON NO INSTALADO TODAVÍA (instrucción de esta tarea: no editar
-        # INSTALLED_APPS ni generar migraciones en este porte). Mismo
-        # precedente que ``onboarding`` (``onboarding_onboarding_step.py``):
-        # sin la entrada en INSTALLED_APPS, ``apps.get_containing_app_config``
-        # lanza ``RuntimeError`` al definir la clase. Se fija explícito
-        # (coincide con el label que ``AppConfig.name = 'addons.analytic'``
-        # derivaría igual una vez instalado) para que el módulo sea
-        # importable ya mismo.
-        app_label = 'analytic'
 
     def __str__(self):
         return self.name
@@ -202,7 +193,6 @@ class AccountAnalyticApplicability(models.Model):
         verbose_name = 'Aplicabilidad de plan analítico'
         verbose_name_plural = 'Aplicabilidades de plan analítico'
         # Ver el comentario extenso en ``AccountAnalyticPlan.Meta``.
-        app_label = 'analytic'
 
     def __str__(self):
         return f'{self.analytic_plan_id} / {self.business_domain}'

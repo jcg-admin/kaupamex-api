@@ -107,18 +107,6 @@ class OnboardingOnboardingStep(models.Model):
         ordering = ['sequence', 'id']
         verbose_name = 'Paso de onboarding'
         verbose_name_plural = 'Pasos de onboarding'
-        # ADDON NO INSTALADO TODAVÍA (directiva del ejecutor: no editar
-        # INSTALLED_APPS ni generar migraciones en este porte). Django
-        # deriva el ``app_label`` de la app CONTENEDORA vía
-        # ``apps.get_containing_app_config`` — sin la entrada en
-        # INSTALLED_APPS eso lanza un ``RuntimeError`` al definir la clase.
-        # Se fija explícito (coincide con el label que ``AppConfig.name =
-        # 'addons.onboarding'`` derivaría igual una vez instalado, así que no
-        # hay conflicto cuando se active) para que el módulo sea importable
-        # ya mismo. Ningún addon hermano lo necesita — todos están instalados
-        # (verificado: comm entre ``ls src/addons/`` y los labels de
-        # ``INSTALLED_APPS`` da 0 de diferencia salvo este addon nuevo).
-        app_label = 'onboarding'
 
     def __str__(self):
         # Odoo ``_rec_name = 'title'``.

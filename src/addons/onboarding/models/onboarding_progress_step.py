@@ -68,10 +68,6 @@ class OnboardingProgressStep(TimeStampedModel):
         db_table = 'onboarding_progress_step'
         verbose_name = 'Progreso de paso de onboarding'
         verbose_name_plural = 'Progresos de paso de onboarding'
-        # ADDON NO INSTALADO TODAVÍA — ver el comentario extenso en
-        # ``OnboardingOnboardingStep.Meta`` (mismo razonamiento, los 4
-        # modelos del addon).
-        app_label = 'onboarding'
         constraints = [
             models.UniqueConstraint(
                 fields=['step', 'company_key'],

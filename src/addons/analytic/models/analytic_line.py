@@ -111,10 +111,6 @@ class AccountAnalyticLine(AnalyticPlanFieldsMixin, models.Model):
         ordering = ['-date', '-id']
         verbose_name = 'Apunte analítico'
         verbose_name_plural = 'Apuntes analíticos'
-        # ADDON NO INSTALADO TODAVÍA — ver el comentario extenso en
-        # ``analytic_plan.py::AccountAnalyticPlan.Meta`` (mismo precedente
-        # que ``onboarding``).
-        app_label = 'analytic'
 
     def __str__(self):
         return self.name
