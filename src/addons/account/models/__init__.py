@@ -86,9 +86,10 @@ from .account_tax import AccountTax
 from .account_tax_group import AccountTaxGroup
 from .account_tax_repartition_line import AccountTaxRepartitionLine
 from .chart_template import ChartTemplate, template
-# Importar la plantilla genérica REGISTRA sus funciones (ver la nota de
-# divergencia del registro en chart_template.py): sin este import el plan
-# 'generic_coa' no existiría para el cargador.
+# Importar una plantilla REGISTRA sus funciones (ver la nota de divergencia del
+# registro en chart_template.py). Sin estos imports el plan 'generic_coa' no
+# existiría para el cargador, y ninguna empresa recibiría sus diarios.
+from . import template_base  # noqa: F401
 from . import template_generic_coa  # noqa: F401
 
 __all__ = [

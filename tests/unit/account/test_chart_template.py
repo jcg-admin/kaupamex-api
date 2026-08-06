@@ -15,6 +15,7 @@ import pytest
 from addons.account.models import (
     AccountAccount,
     AccountFiscalPosition,
+    AccountJournal,
     AccountTax,
     AccountTaxGroup,
     ChartTemplate,
@@ -103,6 +104,35 @@ class TestCarga:
             'sale_tax_template', company)
         assert company.account_purchase_tax == ChartTemplate.ref(
             'purchase_tax_template', company)
+
+
+@pytest.mark.django_db
+class TestPlantillaBase:
+    """Los diarios no pertenecen a un plan: pertenecen a *tener* contabilidad.
+
+    Se declaran con ``@template(model=...)`` sin código, y el resolutor los
+    aplica a todo plan — ``[None] + parents`` en la referencia.
+    """
+
+    def test_la_empresa_recibe_los_seis_diarios(self, company):
+        ChartTemplate.try_loading('generic_coa', company)
+
+        diarios = AccountJournal.objects.filter(company=company)
+        assert diarios.count() == 6
+        assert set(diarios.values_list('code', flat=True)) == {
+            'INV', 'BILL', 'MISC', 'EXCH', 'CABA', 'BNK1'}
+
+    def test_el_diario_de_ventas_es_el_que_busca_el_asiento(self, company):
+        """``create_invoice_from_subscription`` busca por ``type='sale'``.
+
+        Es el consumidor real: sin un diario de ese tipo lanza ``UserError`` y
+        el cobro no se puede asentar.
+        """
+        ChartTemplate.try_loading('generic_coa', company)
+
+        venta = AccountJournal.objects.get(company=company, type='sale')
+        assert venta.code == 'INV'
+        assert venta == ChartTemplate.ref('sale', company)
 
 
 @pytest.mark.django_db

@@ -74,13 +74,20 @@ TEMPLATE_REGISTRY = {}
 TEMPLATE_DATA = 'template_data'
 
 
-def template(code, model=TEMPLATE_DATA):
+def template(code=None, model=TEMPLATE_DATA):
     """Declara que la función aporta los datos de ``model`` para ``code``.
 
     ≙ el decorador ``template`` de la referencia
-    (``odoo19c: chart_template.py:54``). Allá guarda ``_l10n_template`` en la
+    (``odoo19c: chart_template.py:53``). Allá guarda ``_l10n_template`` en la
     función para que el registro la encuentre después; aquí registra
     directamente, porque no hay un barrido posterior que la busque.
+
+    ``code=None`` declara una plantilla **base**: aporta a *todos* los planes.
+    Es el mismo mecanismo de la referencia, cuyo resolutor recorre
+    ``[None] + parents`` (``chart_template.py:813``) — la base primero, para
+    que un plan concreto pueda sobreescribirla campo a campo. Así viven los
+    diarios por defecto: no pertenecen a un plan, pertenecen a *tener*
+    contabilidad.
     """
     def decorator(func):
         TEMPLATE_REGISTRY[(code, model)] = func
@@ -287,10 +294,11 @@ class ChartTemplate:
         una plantilla puede corregir un campo suelto sin copiar la tabla.
         """
         datos = cls.parse_csv(template_code, model_name, model_class)
-        func = TEMPLATE_REGISTRY.get((template_code, model_name))
-        if func is not None:
-            for xmlid, valores in func().items():
-                datos.setdefault(xmlid, {}).update(valores)
+        for code in (None, template_code):
+            func = TEMPLATE_REGISTRY.get((code, model_name))
+            if func is not None:
+                for xmlid, valores in func().items():
+                    datos.setdefault(xmlid, {}).update(valores)
         return datos
 
     @classmethod
@@ -325,6 +333,7 @@ class ChartTemplate:
             ('account.tax.group', apps.get_model('account', 'AccountTaxGroup')),
             ('account.tax', apps.get_model('account', 'AccountTax')),
             ('account.fiscal.position', apps.get_model('account', 'AccountFiscalPosition')),
+            ('account.journal', apps.get_model('account', 'AccountJournal')),
         ]
 
     # -- instanciación ------------------------------------------------------
