@@ -225,6 +225,60 @@ class SequenceMixin(models.Model):
             qs = qs.filter(**{self.sequence_index: getattr(self, f'{self.sequence_index}_id', None)})
         return qs.aggregate(models.Max('sequence_number'))['sequence_number__max']
 
+    @staticmethod
+    def get_sequence_cache():
+        """Caché de secuencia con vida de **transacción**.
+
+        ≙ ``_get_sequence_cache``. En la referencia cuelga de ``cr.cache`` y
+        existe para no pedir un savepoint por documento al numerar en lote;
+        aquí cuelga de ``connection`` y se limpia al cerrar la transacción,
+        que es el equivalente de este ORM.
+
+        El ciclo de vida es lo que la hace correcta, no la velocidad: la
+        entrada sólo es válida **mientras la transacción sostiene el lock**
+        del prefijo. En cuanto se libera, otra transacción puede consumir el
+        siguiente número y la caché dejaría de saberlo.
+
+        Por eso se invalida en ``lock_sequence()`` —el único punto donde se
+        sabe qué prefijo se está protegiendo— y no colgando un ``on_commit``:
+        ese hook no corre en ROLLBACK, así que dejaría entradas vivas justo
+        cuando la transacción que las validaba se deshizo. La invalidación por
+        cambio de prefijo cubre los dos desenlaces sin depender de API interna
+        del ORM.
+        """
+        cache = getattr(connection, '_sequence_mixin_cache', None)
+        if cache is None:
+            cache = {}
+            connection._sequence_mixin_cache = cache
+        return cache
+
+    @classmethod
+    def clear_sequence_cache(cls):
+        """Invalida la caché de secuencia de la transacción actual."""
+        connection._sequence_mixin_cache = None
+
+    def save(self, *args, **kwargs):
+        """≙ el ``write`` de la referencia: invalida la caché al renombrar.
+
+        La referencia intercepta ``write`` para vaciar la caché cuando alguien
+        toca el campo de secuencia (``odoo19c: sequence_mixin.py:114-117``); el
+        equivalente en este ORM es ``save()``.
+
+        Por qué importa: si un documento se renumera a mano, el último número
+        cacheado deja de describir la serie. Sin esta invalidación, el
+        siguiente documento de la misma transacción heredaría un valor obsoleto
+        y podría chocar con el UNIQUE.
+
+        El guard ``update_fields`` evita vaciar la caché en cada ``save()`` que
+        no toque el nombre — el equivalente del ``if self._sequence_field in
+        vals`` de la referencia.
+        """
+        update_fields = kwargs.get('update_fields')
+        toca_secuencia = update_fields is None or self.sequence_field in update_fields
+        if toca_secuencia:
+            self.clear_sequence_cache()
+        return super().save(*args, **kwargs)
+
     def lock_sequence(self, prefix):
         """Serializa por prefijo dentro de la transacción actual.
 
@@ -236,7 +290,14 @@ class SequenceMixin(models.Model):
 
         Sin esto, dos transacciones concurrentes leen el mismo MAX y proponen
         el mismo número; una de las dos muere con IntegrityError.
+
+        Invalida además la caché si el prefijo protegido cambia: una entrada
+        cacheada sólo vale mientras se sostenga el lock de **su** prefijo.
         """
+        cache = self.get_sequence_cache()
+        if cache.get('__prefix__') != prefix:
+            cache.clear()
+            cache['__prefix__'] = prefix
         with connection.cursor() as cursor:
             cursor.execute('SELECT pg_advisory_xact_lock(hashtext(%s))', [prefix])
 
