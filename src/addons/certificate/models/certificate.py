@@ -29,6 +29,13 @@ Divergencias declaradas frente a la referencia
    aislamiento por fila que el resto del árbol, p. ej. ``CompanySetting``).
    Documentado como decisión de forma, no como hallazgo pendiente.
 
+   La divergencia es **sólo** el eje multi-compañía. La otra mitad de
+   ``_check_company_domain`` — el ``+ [False]`` de registros compartidos —
+   **no** se pierde: es vacía en ambos árboles, porque la referencia declara
+   ``company_id`` con ``required=True``
+   (``odoo19c: addons/certificate/models/certificate.py:94-99``) y nuestra
+   columna es ``IS_NULLABLE = NO``. Medido al refutar H-API-298.
+
 4. **``ensure_one()`` no aplica** — Django no tiene recordsets.
 
 5. **El batch de ``create``/``write`` (``vals_list``) se colapsa a una fila
@@ -209,6 +216,13 @@ class CertificateCertificate(TimeStampedModel):
         if not issuer_cn:
             return None
 
+        # Sólo la ``company`` de la fila. El ``+ [False]`` que añade
+        # ``_check_company_domain`` en la referencia es la rama de registros
+        # **compartidos**, y aquí es vacía: ``certificate.company_id`` se
+        # declara ``required=True`` en la referencia
+        # (``odoo19c: addons/certificate/models/certificate.py:94-99``) y
+        # nuestra columna es ``IS_NULLABLE = NO``, así que una CA compartida
+        # no es representable en ninguno de los dos árboles. Ver H-API-298.
         candidates = list(
             type(self).objects
             .filter(company=self.company, subject_common_name=issuer_cn)
