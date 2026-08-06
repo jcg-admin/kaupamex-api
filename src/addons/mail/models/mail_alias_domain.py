@@ -67,11 +67,7 @@ import fields
 
 from addons.base.models.ir_config_parameter import SystemParameter
 from addons.base.models.timestamped_mixin import TimeStampedModel
-from addons.mail.models.mail_alias import (
-    DOT_ATOM_TEXT,
-    MailAlias,
-    sanitize_alias_name,
-)
+from addons.mail.models.mail_alias import DOT_ATOM_TEXT, MailAlias
 
 
 class MailAliasDomain(TimeStampedModel):
@@ -222,14 +218,15 @@ class MailAliasDomain(TimeStampedModel):
         ``default_from`` con el sanitizador de ``mail.alias``. El último va con
         ``is_email=True`` porque admite un correo completo.
         """
+        sanear = MailAlias.sanitize_alias_name
         if config_values.get('name'):
-            config_values['name'] = sanitize_alias_name(config_values['name'])
+            config_values['name'] = sanear(config_values['name'])
         if config_values.get('bounce_alias'):
-            config_values['bounce_alias'] = sanitize_alias_name(config_values['bounce_alias'])
+            config_values['bounce_alias'] = sanear(config_values['bounce_alias'])
         if config_values.get('catchall_alias'):
-            config_values['catchall_alias'] = sanitize_alias_name(config_values['catchall_alias'])
+            config_values['catchall_alias'] = sanear(config_values['catchall_alias'])
         if config_values.get('default_from'):
-            config_values['default_from'] = sanitize_alias_name(
+            config_values['default_from'] = sanear(
                 config_values['default_from'], is_email=True)
         return config_values
 

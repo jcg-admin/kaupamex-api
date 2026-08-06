@@ -123,6 +123,16 @@ class AccountTaxQuerySet(models.QuerySet):
 
     Un ``QuerySet`` es el análogo exacto del recordset sobre el que la
     referencia llama ``compute_all``: el conjunto de impuestos de UNA línea.
+
+    **Divergencia de sitio, declarada (#164).** La referencia declara estos
+    cinco dentro de ``AccountTax`` —``compute_all``,
+    ``_batch_for_taxes_computation``, ``_flatten_taxes_and_sort_them``,
+    ``_get_tax_details`` y ``_propagate_extra_taxes_base``— porque en su ORM
+    ``self`` **es** el conjunto. Aquí el conjunto es el ``QuerySet``, así que
+    ponerlos en el modelo obligaría a cada uno a recibir la lista de impuestos
+    como argumento: la misma operación con el receptor equivocado. El gate de
+    porte los reporta como ``FUERA DE SITIO`` y tiene razón en verlos; el
+    veredicto es que la ubicación es correcta y lo que faltaba era decirlo.
     """
 
     # -- ordenamiento y aplanado -------------------------------------------

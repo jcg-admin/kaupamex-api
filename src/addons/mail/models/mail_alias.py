@@ -33,9 +33,11 @@ Correspondencia Odoo -> Django (adaptación sin azúcar sintáctica):
   ``NULL != NULL``: sin él, dos aliases con el mismo nombre y **sin** dominio
   no colisionarían. MariaDB tiene la misma semántica, así que se replica con
   ``Coalesce`` en el constraint.
-- ``dot_atom_text`` (rfc5322 §3.2.3) y ``_sanitize_alias_name`` se portan
-  verbatim — son el contrato que ``MailAliasDomain`` invoca para sanear sus
-  propios ``bounce_alias`` / ``catchall_alias`` / ``default_from``.
+- ``dot_atom_text`` (rfc5322 §3.2.3) se porta verbatim como constante de
+  módulo, igual que en la referencia. ``_sanitize_alias_name`` se porta como
+  ``MailAlias.sanitize_alias_name`` (``@staticmethod``, porque la referencia
+  lo declara ``@api.model``) — es el contrato que ``MailAliasDomain`` invoca
+  para sanear sus ``bounce_alias`` / ``catchall_alias`` / ``default_from``.
 
 **Fuera de este archivo:** la pasarela de correo entrante de Odoo
 (``_alias_bounced_content``, ``_check_alias_domain_id_mc`` y el ruteo de
@@ -69,40 +71,46 @@ def remove_accents(input_str):
     return ''.join(c for c in nkfd_form if not unicodedata.combining(c))
 
 
-def sanitize_alias_name(name, is_email=False):
-    """Limpia y sanea el nombre de un alias (Odoo ``_sanitize_alias_name``).
-
-    En algunos casos el alias debe ser un correo completo en vez de sólo la
-    parte izquierda (al sanear ``default_from``, por ejemplo). En ese caso se
-    extrae la parte derecha y se vuelve a poner tras sanear la izquierda.
-
-    :param str name: nombre a sanear.
-    :param bool is_email: si conservar la parte derecha; si no, sólo se
-        conserva la izquierda.
-    :returns: el nombre saneado, o ``False`` si no queda nada.
-
-    Es función de módulo (no método) porque Odoo la declara ``@api.model`` —
-    no usa el recordset. ``MailAliasDomain`` la invoca directamente.
-    """
-    sanitized_name = name.strip() if name else ''
-    if is_email:
-        right_part = sanitized_name.lower().partition('@')[2]
-    else:
-        right_part = False
-    if sanitized_name:
-        sanitized_name = remove_accents(sanitized_name).lower().split('@')[0]
-        # no puede empezar ni terminar en punto
-        sanitized_name = re.sub(r'^\.+|\.+$|\.+(?=\.)', '', sanitized_name)
-        # subconjunto de caracteres permitidos
-        sanitized_name = re.sub(r"[^\w!#$%&'*+\-/=?^_`{|}~.]+", '-', sanitized_name)
-        sanitized_name = sanitized_name.encode('ascii', errors='replace').decode()
-    if not sanitized_name.strip():
-        return False
-    return f'{sanitized_name}@{right_part}' if is_email and right_part else sanitized_name
-
-
 class MailAlias(TimeStampedModel):
     """Mapeo de una dirección de correo a un modelo del registro reflejado."""
+
+    @staticmethod
+    def sanitize_alias_name(name, is_email=False):
+        """Limpia y sanea el nombre de un alias — ≙ ``_sanitize_alias_name``.
+
+        En algunos casos el alias debe ser un correo completo en vez de sólo
+        la parte izquierda (al sanear ``default_from``, por ejemplo). En ese
+        caso se extrae la parte derecha y se vuelve a poner tras sanear la
+        izquierda.
+
+        :param str name: nombre a sanear.
+        :param bool is_email: si conservar la parte derecha; si no, sólo se
+            conserva la izquierda.
+        :returns: el nombre saneado, o ``False`` si no queda nada.
+
+        Es ``@staticmethod`` porque la referencia la declara ``@api.model``:
+        no usa el recordset. Vivió como función de módulo hasta #164, y ahí
+        el gate de porte la reportaba fuera de sitio con razón — nada impedía
+        declararla en la clase, que es donde la referencia la tiene.
+        """
+        sanitized_name = name.strip() if name else ''
+        if is_email:
+            right_part = sanitized_name.lower().partition('@')[2]
+        else:
+            right_part = False
+        if sanitized_name:
+            sanitized_name = remove_accents(sanitized_name).lower().split('@')[0]
+            # no puede empezar ni terminar en punto
+            sanitized_name = re.sub(r'^\.+|\.+$|\.+(?=\.)', '', sanitized_name)
+            # subconjunto de caracteres permitidos
+            sanitized_name = re.sub(
+                r"[^\w!#$%&'*+\-/=?^_`{|}~.]+", '-', sanitized_name)
+            sanitized_name = sanitized_name.encode(
+                'ascii', errors='replace').decode()
+        if not sanitized_name.strip():
+            return False
+        return (f'{sanitized_name}@{right_part}'
+                if is_email and right_part else sanitized_name)
 
     # -- Definición del correo ---------------------------------------------
     alias_name = fields.Char(
@@ -269,6 +277,6 @@ class MailAlias(TimeStampedModel):
         con ``alias_name`` + ``alias_domain``.
         """
         if self.alias_name:
-            self.alias_name = sanitize_alias_name(self.alias_name) or None
+            self.alias_name = self.sanitize_alias_name(self.alias_name) or None
         self.alias_full_name = self._compute_alias_full_name()
         return super().save(*args, **kwargs)

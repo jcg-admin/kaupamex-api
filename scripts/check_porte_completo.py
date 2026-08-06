@@ -102,38 +102,34 @@ def simbolos(ruta):
     }
 
 
-def simbolos_del_addon(raiz):
-    """Todos los símbolos del addon, para no declarar ausente lo que se movió.
+def simbolos_del_archivo(ruta):
+    """Todos los símbolos de UN archivo: métodos de clase y funciones sueltas.
 
-    Recoge funciones a nivel de módulo **además** de métodos de clase, y eso es
-    una concesión de alcance, no una justificación: un símbolo que la
-    referencia declara dentro de una clase y aquí vive suelto **es una
-    divergencia**, no una equivalencia. La primera versión de este docstring
-    la excusaba con "su ORM lo exige"; era una racionalización — explicaba por
-    qué la referencia lo hace así, no por qué nosotros lo haríamos distinto. Si
-    Django no ofrece el mecanismo, se analiza y se construye (precedentes:
-    ``api.depends``, ``fields``, ``Command``, ``_inherits``, ``sequence.mixin``).
-    El caso que la motivó —las plantillas de ``template_base.py``— se corrigió
-    moviéndolas a ``ChartTemplate``, donde la referencia las tiene.
+    Delimita qué cuenta como *portado en otro sitio*. Un símbolo que la
+    referencia declara dentro de una clase y que aquí vive en **el archivo que
+    le corresponde** —en otra clase del mismo archivo, o suelto a nivel de
+    módulo— es una divergencia de sitio: existe, y hay que darle veredicto. Si
+    vive en **otro archivo**, no es evidencia de nada sobre este método.
 
-    Se conserva el barrido de funciones sueltas, pero **ya no absuelve**: desde
-    #159 un símbolo que existe aquí fuera de la clase que le toca se reporta
-    como ``FUERA DE SITIO``, no se descarta. Este conjunto pasó de ser el
-    criterio de "está portado" a ser el que distingue *portado en otro sitio*
-    de *ausente del todo* — dos estados que el gate devolvía como uno solo.
+    El alcance era el addon entero hasta #164, y esa amplitud fabricaba
+    coincidencias. Medido sobre los 18 símbolos que #159 destapó: **11** los
+    absolvía un símbolo homónimo de **otro modelo** —los cuatro
+    ``_compute_name`` de ``AccountBankStatement``/``AccountMove``/
+    ``AccountMoveLine``/``AccountPayment`` los cubría uno solo, el de
+    ``AccountPaymentMethodLine``— y sólo **7** estaban de verdad fuera de sitio
+    dentro de su archivo. Con el alcance en el archivo, los 11 salen como
+    ausentes, que es lo que son. Ver :ref:`h-api-356`.
+
+    *Ciega a:* un método genuinamente reubicado a un archivo hermano del mismo
+    puerto sale como ausente. Es el lado seguro —declara de menos, no de más—
+    y se corrige declarando el alias, no ampliando el alcance.
     """
-    todos = set()
-    for py in raiz.rglob('*.py'):
-        if 'migrations' in py.parts or '__pycache__' in py.parts:
-            continue
-        try:
-            arbol = ast.parse(py.read_text())
-        except (SyntaxError, UnicodeDecodeError):
-            continue
-        for n in ast.walk(arbol):
-            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                todos.add(n.name)
-    return todos
+    try:
+        arbol = ast.parse(ruta.read_text())
+    except (SyntaxError, UnicodeDecodeError):
+        return set()
+    return {n.name for n in ast.walk(arbol)
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
 
 
 def clases_del_addon(raiz):
@@ -173,7 +169,6 @@ def compara(addon):
     if not ref_raiz.is_dir() or not mio_raiz.is_dir():
         return 0, []
 
-    propios = {normaliza(x) for x in simbolos_del_addon(mio_raiz)}
     por_clase = clases_del_addon(mio_raiz)
     pares, hallazgos = 0, []
 
@@ -221,6 +216,7 @@ def compara(addon):
         ref_clases = simbolos(ref_py) or {}
         mias = simbolos(mio_py) or {}
         mias_norm = {normaliza(c): ms for c, ms in mias.items()}
+        del_archivo = {normaliza(x) for x in simbolos_del_archivo(mio_py)}
 
         for clase, metodos in ref_clases.items():
             aqui = mias_norm.get(normaliza(clase))
@@ -234,13 +230,13 @@ def compara(addon):
                 n = normaliza(m)
                 if n in aqui_norm:
                     continue
-                # El símbolo existe en el addon pero NO en la clase que le
-                # toca: función suelta, o método de otra clase. Antes esto se
-                # descartaba en silencio y el método contaba como portado —
-                # el gate medía **presencia del nombre**, no su sitio. Es la
-                # ceguera que #159 cierra: dos estados distintos que el
-                # instrumento devolvía como uno.
-                (fuera_de_sitio if n in propios else faltan).append(m)
+                # El símbolo existe en ESTE archivo pero NO en la clase que le
+                # toca: función suelta, o método de otra clase del archivo.
+                # Antes esto se descartaba en silencio y el método contaba
+                # como portado — el gate medía **presencia del nombre**, no su
+                # sitio (#159). El alcance era el addon entero hasta #164, y
+                # entonces un homónimo de otro modelo lo daba por ubicado.
+                (fuera_de_sitio if n in del_archivo else faltan).append(m)
             if faltan:
                 hallazgos.append(
                     (addon, ref_py.name, clase, 'MÉTODOS AUSENTES', faltan))

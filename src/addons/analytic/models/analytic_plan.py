@@ -76,7 +76,22 @@ APPLICABILITY_CHOICES = [
 
 
 def _default_color():
-    """Color aleatorio 1-11, fiel a ``_default_color`` (odoo19c: línea 20-21)."""
+    """Color aleatorio 1-11 — ≙ ``_default_color`` (``odoo19c: :20-21``).
+
+    **Divergencia de sitio, medida (#164).** La referencia lo declara dentro
+    de ``account.analytic.plan``; aquí es función de módulo porque las dos
+    rutas para dejarlo en la clase están cerradas, y se comprobó ejecutando,
+    no suponiendo:
+
+    - referenciarlo como ``AccountAnalyticPlan._default_color`` en el cuerpo
+      de su propia clase → ``NameError``: el nombre aún no está ligado;
+    - referenciarlo desnudo como ``@staticmethod`` sí resuelve en Python, pero
+      el serializador de migraciones de Django rechaza el objeto:
+      ``ValueError: Cannot serialize: <staticmethod(...)>``.
+
+    El gate de porte lo reporta ``FUERA DE SITIO`` y hace bien en verlo; el
+    veredicto es que el mecanismo diverge, con la medición que lo sostiene.
+    """
     return randint(1, 11)
 
 

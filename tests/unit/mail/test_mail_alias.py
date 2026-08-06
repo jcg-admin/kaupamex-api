@@ -29,7 +29,6 @@ from addons.mail.models import (
     DOT_ATOM_TEXT,
     MailAlias,
     MailAliasDomain,
-    sanitize_alias_name,
 )
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
@@ -66,22 +65,23 @@ def test_db_table_matches_reference():
     ('a..b', 'a.b'),                     # puntos consecutivos colapsan
 ])
 def test_sanitize_alias_name(crudo, esperado):
-    assert sanitize_alias_name(crudo) == esperado
+    assert MailAlias.sanitize_alias_name(crudo) == esperado
 
 
 def test_sanitize_alias_name_vacio_devuelve_false():
     """Odoo devuelve ``False``, no ``''`` — quien llama distingue los casos."""
-    assert sanitize_alias_name('   ') is False
-    assert sanitize_alias_name(None) is False
+    assert MailAlias.sanitize_alias_name('   ') is False
+    assert MailAlias.sanitize_alias_name(None) is False
 
 
 def test_sanitize_alias_name_is_email_conserva_la_derecha():
-    assert sanitize_alias_name('Notifications@Example.com', is_email=True) == \
-        'notifications@example.com'
+    assert MailAlias.sanitize_alias_name(
+        'Notifications@Example.com', is_email=True) == 'notifications@example.com'
 
 
 def test_sanitize_alias_name_is_email_sin_arroba_no_inventa_dominio():
-    assert sanitize_alias_name('notifications', is_email=True) == 'notifications'
+    assert MailAlias.sanitize_alias_name(
+        'notifications', is_email=True) == 'notifications'
 
 
 # --- Derivados del dominio (Odoo compute sin store) -------------------------
