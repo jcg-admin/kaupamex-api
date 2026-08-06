@@ -57,7 +57,25 @@ Lo que este archivo NO hace
 No numera al crear: numera al **publicar**. Es la semántica de la referencia —
 un borrador no consume número— y la que ``AccountMove.post()`` ya implementaba
 antes de existir este mixin.
+
+**Cobertura: 19 de los 21 métodos de la referencia.** Los dos que faltan, con
+su razón:
+
+- ``_get_sequence_cache`` — caché por transacción para evitar un savepoint por
+  documento al numerar en lote. No aplica: con el advisory lock no hay
+  savepoints que ahorrar. Divergencia de **rendimiento**, no de resultado;
+  detallada en ``set_next_sequence``.
+- ``write`` — en la referencia intercepta la reescritura del campo de secuencia
+  para invalidar la caché anterior y revalidar el periodo. Su equivalente aquí
+  sería ``save()``, pero interceptarlo en un modelo **abstracto** obligaría a
+  cada consumidor a llamar a ``super()`` en el orden correcto, y hoy el único
+  consumidor (``AccountMove``) ya valida en ``post()``, que es donde se asigna
+  el número. Queda como **DESCONOCIDO declarado**: se decide cuando exista un
+  segundo consumidor que numere fuera de ``post()`` — antes no hay con qué
+  comparar el diseño.
 """
+import calendar
+import datetime
 import re
 
 from django.db import connection, models
@@ -277,3 +295,234 @@ class SequenceMixin(models.Model):
         if last is None:
             return True
         return self.sequence_number >= last
+
+    @classmethod
+    def is_end_of_seq_chain(cls, records):
+        """¿Son estos registros los últimos de sus series?
+
+        ≙ ``_is_end_of_seq_chain``, la versión en lote de
+        ``is_last_from_seq_chain``. Existe porque anular N documentos de golpe
+        no es N preguntas independientes: si se descartan el 41 y el 42 de la
+        misma serie, **ambos** son válidos como corte aunque el 41 no sea el
+        último visto por separado. Agrupa por serie, comprueba que los números
+        de cada grupo sean consecutivos hasta el máximo, y sólo entonces
+        acepta.
+        """
+        por_serie = {}
+        for r in records:
+            if not getattr(r, r.sequence_field, None):
+                continue
+            por_serie.setdefault(r.sequence_prefix, []).append(r)
+        for prefijo, grupo in por_serie.items():
+            numeros = sorted(r.sequence_number for r in grupo)
+            ultimo = grupo[0].get_last_sequence_number(with_prefix=prefijo)
+            if ultimo is None:
+                continue
+            # El bloque debe terminar en el último de la serie y no tener huecos.
+            if numeros[-1] < ultimo:
+                return False
+            if numeros != list(range(numeros[0], numeros[-1] + 1)):
+                return False
+        return True
+
+    # -- generar el siguiente nombre ---------------------------------------
+    #
+    # Ésta es la mitad de ESCRITURA del mecanismo. Sin ella el mixin sólo sabe
+    # leer una numeración existente; es la que produce el nombre siguiente
+    # respetando el formato que la serie ya venía usando.
+
+    def get_last_sequence_name(self, relaxed=False):
+        """El nombre completo del último de la serie, o ``None``.
+
+        ≙ la otra mitad de ``_get_last_sequence``. ``get_last_sequence_number``
+        devuelve el entero para el MAX; **esto devuelve el texto**, que es lo
+        que hace falta para deducir el formato.
+
+        ``relaxed``: si no hay ninguno con este prefijo, busca el último de
+        **cualquier** prefijo del mismo segmento. Es como la referencia
+        inaugura una serie nueva heredando el formato de la anterior, en vez
+        de inventar uno.
+        """
+        qs = type(self).objects.all()
+        if self.pk:
+            qs = qs.exclude(pk=self.pk)
+        if self.sequence_index:
+            qs = qs.filter(**{self.sequence_index: getattr(self, f'{self.sequence_index}_id', None)})
+        qs = qs.exclude(**{f'{self.sequence_field}__in': ('', '/')})
+        if not relaxed:
+            qs = qs.filter(sequence_prefix=self.sequence_prefix)
+        last = qs.order_by('-sequence_prefix', '-sequence_number').first()
+        return getattr(last, self.sequence_field, None) if last else None
+
+    def get_last_sequence_domain(self, queryset, relaxed=False):
+        """Hook: acota qué filas cuentan como "la serie".
+
+        ≙ ``_get_last_sequence_domain``. En la referencia devuelve un WHERE
+        crudo; aquí recibe y devuelve un ``QuerySet``, que es el equivalente
+        componible en este ORM.
+
+        Es el hook que hace correcta la numeración de ``AccountMove``: sólo los
+        asientos **publicados** consumen número, así que la subclase filtra por
+        estado. Sin él, un borrador contaría para el MAX y dejaría huecos al
+        descartarse.
+        """
+        return queryset
+
+    def get_starting_sequence(self):
+        """El nombre base de una serie que aún no existe.
+
+        ≙ ``_get_starting_sequence``. Hook para la subclase: la referencia
+        devuelve ``'00000000'`` y espera que el modelo concreto lo redefina con
+        su propio formato (``AccountMove`` compone diario + año). Se incrementa
+        después, así que arranca en cero a propósito.
+        """
+        return '00000000'
+
+    def get_sequence_format_param(self, previous):
+        """Deriva de un nombre el formato y sus valores.
+
+        ≙ ``_get_sequence_format_param``, y es **el corazón del mecanismo**:
+        ``format.format(**values)`` reconstruye ``previous`` exactamente. Eso
+        es lo que permite continuar la serie con el formato que alguien ya
+        eligió —relleno, separadores, dos o cuatro dígitos de año— en vez de
+        imponer uno nuevo.
+
+        El patrón se elige según la periodicidad deducida, y de ahí salen las
+        longitudes (``seq_length``, ``year_length``…) que conservan el relleno.
+        """
+        reset = self.deduce_sequence_number_reset(previous)
+        regex = {
+            'year': self.sequence_yearly_regex,
+            'year_range': self.sequence_year_range_regex,
+            'month': self.sequence_monthly_regex,
+            'year_range_month': self.sequence_year_range_monthly_regex,
+        }.get(reset, self.sequence_fixed_regex)
+
+        values = re.match(regex, previous).groupdict()
+        values['seq_length'] = len(values['seq'] or '')
+        values['year_length'] = len(values.get('year') or '')
+        values['year_end_length'] = len(values.get('year_end') or '')
+        if not values.get('seq') and 'prefix1' in values and 'suffix' in values:
+            # Sin número, lo que hay es prefijo y no sufijo: la referencia lo
+            # reinterpreta así para que el formato no quede invertido.
+            values['prefix1'] = values['suffix']
+            values['suffix'] = ''
+        for campo in ('seq', 'year', 'month', 'year_end'):
+            values[campo] = int(values.get(campo) or 0)
+
+        marcadores = re.findall(
+            r'\b(prefix\d|seq|suffix\d?|year|year_end|month)\b', regex)
+        formato = ''.join(
+            '{seq:0{seq_length}d}' if m == 'seq' else
+            '{month:02d}' if m == 'month' else
+            '{year:0{year_length}d}' if m == 'year' else
+            '{year_end:0{year_end_length}d}' if m == 'year_end' else
+            '{%s}' % m
+            for m in marcadores
+        )
+        return formato, values
+
+    def get_sequence_date_range(self, reset):
+        """Ventana de fechas que cubre la periodicidad dada.
+
+        ≙ ``_get_sequence_date_range``. ``never`` devuelve el rango máximo
+        representable: una serie que no se reinicia cubre cualquier fecha.
+        """
+        ref = getattr(self, self.sequence_date_field, None) or datetime.date.today()
+        if reset in ('year', 'year_range', 'year_range_month'):
+            return datetime.date(ref.year, 1, 1), datetime.date(ref.year, 12, 31)
+        if reset == 'month':
+            ultimo = calendar.monthrange(ref.year, ref.month)[1]
+            return datetime.date(ref.year, ref.month, 1), datetime.date(ref.year, ref.month, ultimo)
+        if reset == 'never':
+            return datetime.date(1, 1, 1), datetime.date(9999, 12, 31)
+        raise NotImplementedError(reset)
+
+    def get_next_sequence_format(self):
+        """Formato y valores del **siguiente** nombre de la serie.
+
+        ≙ ``_get_next_sequence_format``. Dos caminos:
+
+        - la serie ya existe → se toma su último nombre y se hereda su formato;
+        - la serie es nueva → se busca en modo ``relaxed`` un nombre del mismo
+          segmento para heredar su forma, y si tampoco hay se parte de
+          ``get_starting_sequence()``. En ese caso los campos de periodo se
+          fijan desde la fecha del documento y el contador arranca en 0.
+        """
+        ultimo = self.get_last_sequence_name()
+        nueva = not ultimo
+        if nueva:
+            ultimo = self.get_last_sequence_name(relaxed=True) or self.get_starting_sequence()
+
+        formato, valores = self.get_sequence_format_param(ultimo)
+        if nueva:
+            reset = self.deduce_sequence_number_reset(ultimo)
+            inicio, fin = self.get_sequence_date_range(reset)
+            fecha = getattr(self, self.sequence_date_field, None) or inicio
+            valores['seq'] = 0
+            valores['year'] = self._truncate_year(inicio.year, valores['year_length'] or 4)
+            valores['year_end'] = self._truncate_year(fin.year, valores['year_end_length'] or 4)
+            valores['month'] = fecha.month
+        return formato, valores
+
+    def set_next_sequence(self):
+        """Asigna el siguiente nombre de la serie, con bloqueo.
+
+        ≙ ``_set_next_sequence``. El orden importa: **primero el lock, después
+        la lectura**. Al revés, dos transacciones leerían el mismo último antes
+        de que ninguna bloquee, y propondrían el mismo número.
+
+        La referencia sostiene además una caché por transacción para no pedir
+        un savepoint por documento al numerar en lote
+        (``odoo19c: sequence_mixin.py:355``). Aquí no se porta: con el advisory
+        lock no hay savepoints que ahorrar, y una caché de sesión sería estado
+        mutable sin el ciclo de vida del ``env`` de Odoo que la limpia. Es una
+        divergencia de rendimiento, no de resultado.
+        """
+        self.split_sequence()
+        prefijo_previo = self.sequence_prefix or self.get_starting_sequence()
+        self.lock_sequence(prefijo_previo)
+
+        formato, valores = self.get_next_sequence_format()
+        valores['seq'] = valores.get('seq', 0) + 1
+        nombre = formato.format(**valores)
+
+        setattr(self, self.sequence_field, nombre)
+        self.split_sequence()
+        return nombre
+
+    # -- validación de periodo ---------------------------------------------
+
+    def must_check_date_sequence(self):
+        """Hook: ¿se comprueba que el número cae en su periodo?
+
+        ≙ ``_must_check_constrains_date_sequence``. La subclase lo desactiva
+        cuando la serie es legítimamente independiente de la fecha.
+        """
+        return True
+
+    def year_matches(self, format_value, year):
+        """¿El año del nombre corresponde al del documento?
+
+        ≙ ``_year_match``. Compara truncando a la longitud que el nombre usa,
+        para que ``26`` y ``2026`` se consideren el mismo año.
+        """
+        return format_value == self._truncate_year(year, len(str(format_value)))
+
+    def constrains_date_sequence(self):
+        """Valida que el nombre y la fecha hablen del mismo periodo.
+
+        ≙ ``_constrains_date_sequence``. Lanza en vez de devolver ``False``
+        porque es una restricción de integridad contable: un documento
+        numerado en una serie de 2026 y fechado en 2027 rompe la correlación
+        que la numeración promete al fisco.
+        """
+        if not self.must_check_date_sequence():
+            return
+        if not self.sequence_matches_date():
+            nombre = getattr(self, self.sequence_field, '')
+            fecha = getattr(self, self.sequence_date_field, None)
+            raise ValidationError(_(
+                'La secuencia «%(name)s» no corresponde al periodo de la fecha '
+                '%(date)s. Cambie la fecha o el número.'
+            ) % {'name': nombre, 'date': fecha})
