@@ -5,11 +5,16 @@ BD exclusiva para tests: ``kaupamex_qa`` (SOL-087), definido en ``src/.env``
 (sin ``default=`` en el código — todo vive en el env). Separada de produccion.
 pytest apunta aqui via pytest.ini.
 
-Arranque de MariaDB en entornos sin systemd:
-  nohup su -s /bin/bash mysql -c "/usr/sbin/mariadbd \\
-    --datadir=/var/lib/mysql --socket=/run/mysqld/mysqld.sock \\
-    --pid-file=/run/mysqld/mysqld.pid --bind-address=127.0.0.1 \\
-    --port=3306" &> /tmp/mariadbd.log &
+Arranque de PostgreSQL en entornos sin systemd: NO se replica el
+``nohup mariadbd`` de la era MariaDB. En Debian/Ubuntu el motor se opera por
+**cluster**, y arrancarlo a mano lo deja fuera del registro de
+``postgresql-common`` (``pg_lsclusters`` deja de decir la verdad)::
+
+    pg_ctlcluster 16 main start      # arrancar
+    pg_lsclusters                    # ver estado
+    pg_isready                       # probe de disponibilidad
+
+Ver el skill ``db: .claude/skills/db-postgres/SKILL.md`` §1.
 """
 import certifi
 import tempfile
@@ -23,10 +28,9 @@ DEBUG = False
 # 'develop' no puede escribir el media/ del repo). (H-API-02)
 MEDIA_ROOT = tempfile.mkdtemp(prefix='pyqa-media-')
 
-_DB_QA_OPTIONS = {
-    'charset': 'utf8mb4',
-    'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-}
+# Vacio a proposito: ``charset`` e ``init_command`` no tienen equivalente en
+# PostgreSQL — ver la explicacion en ``base.py``, no se repite aqui.
+_DB_QA_OPTIONS = {}
 # SSL: por defecto se verifica el cert del server contra CAs publicas
 # (certifi), valido para la DB productiva (Let's Encrypt). En CI la DB es un
 # service container con cert self-signed; DB_QA_SSL_MODE=DISABLED apaga TLS
@@ -40,28 +44,29 @@ _DB_QA_OPTIONS = {
 # justamente el fallback TCP esperado).
 _DB_QA_SSL_MODE = config('DB_QA_SSL_MODE', default='')
 if _DB_QA_SSL_MODE:
-    _DB_QA_OPTIONS['ssl_mode'] = _DB_QA_SSL_MODE
+    _DB_QA_OPTIONS['sslmode'] = _DB_QA_SSL_MODE.lower()
 else:
-    _DB_QA_OPTIONS['ssl'] = {'ca': certifi.where()}
+    _DB_QA_OPTIONS['sslmode'] = 'verify-full'
+    _DB_QA_OPTIONS['sslrootcert'] = certifi.where()
+# El socket es el HOST en libpq, no una opcion — ver ``base.py`` y H-API-305.
 _DB_QA_SOCKET = config('DB_QA_SOCKET', default='')
-if _DB_QA_SOCKET:
-    _DB_QA_OPTIONS['unix_socket'] = _DB_QA_SOCKET
 
 # Config de conexión QA — SIN ``default=`` (SOL-087): todo vive en ``.env``.
 # El schema de tests es ``kaupamex_qa`` (DB_QA_NAME en ``src/.env``).
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
+        'ENGINE': 'django.db.backends.postgresql',
         'NAME':     config('DB_QA_NAME'),
         'USER':     config('DB_QA_USER'),
         'PASSWORD': config('DB_QA_PASSWORD'),
-        'HOST':     config('DB_QA_HOST'),
+        'HOST':     _DB_QA_SOCKET or config('DB_QA_HOST'),
         'PORT':     config('DB_QA_PORT'),
         'OPTIONS': _DB_QA_OPTIONS,
+        # ``CHARSET``/``COLLATION`` se retiran: en PostgreSQL el encoding y la
+        # collation son de la DATABASE, fijados al crearla. Django los ignora
+        # para este backend, asi que dejarlos seria decoracion que miente.
         'TEST': {
-            'NAME':      config('DB_QA_NAME'),
-            'CHARSET':   'utf8mb4',
-            'COLLATION': 'utf8mb4_unicode_ci',
+            'NAME': config('DB_QA_NAME'),
         },
     }
 }

@@ -1,4 +1,4 @@
-"""Introspección SQL (SOL-091) — tools.sql contra MariaDB real (== odoo.tools.sql).
+"""Introspección SQL (SOL-091) — tools.sql contra PostgreSQL real (== odoo.tools.sql).
 
 Usa ``django_migrations`` (siempre presente en la base de test) como sujeto.
 """
@@ -17,9 +17,10 @@ def test_table_exists():
 
 
 def test_table_exists_with_explicit_schema():
-    name = connection.settings_dict['NAME']
+    # ``schema`` designa un NAMESPACE dentro de la base, no otra base: el
+    # explícito es ``public``, no ``settings_dict['NAME']`` como bajo MariaDB.
     with connection.cursor() as c:
-        assert sql.table_exists(c, 'django_migrations', schema=name) is True
+        assert sql.table_exists(c, 'django_migrations', schema='public') is True
         assert sql.table_exists(c, 'django_migrations', schema='information_schema') is False
 
 
@@ -32,5 +33,7 @@ def test_column_exists():
 def test_index_exists():
     with connection.cursor() as c:
         # La PK de django_migrations se llama 'PRIMARY' en MariaDB.
-        assert sql.index_exists(c, 'django_migrations', 'PRIMARY') is True
+        # PostgreSQL nombra el índice de la PK ``<tabla>_pkey``; ``PRIMARY``
+        # era el nombre fijo que MariaDB le daba a todas.
+        assert sql.index_exists(c, 'django_migrations', 'django_migrations_pkey') is True
         assert sql.index_exists(c, 'django_migrations', 'idx_inexistente') is False

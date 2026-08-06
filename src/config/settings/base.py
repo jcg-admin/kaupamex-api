@@ -188,14 +188,22 @@ TEMPLATES = [{
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-# Conexion DB — socket Unix preferido en dev local (si DB_SOCKET está
-# seteada, mysqlclient ignora HOST/PORT). En produccion OVH (VM1→VM3)
-# se usa TCP con SSL obligatorio (require_secure_transport=ON en VM3).
+# Conexion DB — PostgreSQL (iniciativa migrar-motor-mariadb-a-postgresql).
+# Socket Unix preferido en dev local; en produccion OVH (VM1→VM3) TCP con SSL.
 # Ver docs/source/normativa/procedimientos/proc-ejecutar-pruebas.rst.
-_DB_OPTIONS = {
-    'charset': 'utf8mb4',
-    'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-}
+#
+# Dos claves de la era mysqlclient NO tienen equivalente y se retiran, no se
+# traducen — escribir un sustituto inventado seria peor que no tenerlas:
+#
+#   ``charset='utf8mb4'``  El encoding es de la DATABASE, no de la conexion ni
+#                          de la tabla. Lo fija ``CREATE DATABASE … ENCODING``
+#                          (el provisioner de db lo hace con TEMPLATE
+#                          template0). No hay nada que declarar por conexion.
+#   ``init_command``       ``SET sql_mode='STRICT_TRANS_TABLES'`` endurecia un
+#   ``SET sql_mode=…``     motor que por defecto es laxo (truncaba en vez de
+#                          fallar). PostgreSQL ya rechaza el dato que no cabe:
+#                          no hay modo laxo que endurecer.
+_DB_OPTIONS = {}
 # SSL: por defecto verifica el cert del server contra CAs publicas (certifi),
 # valido para la DB productiva (Let's Encrypt; VM3 TCP + require_secure_transport).
 # DB_SSL_MODE=DISABLED apaga TLS para entornos con cert self-signed o socket
@@ -212,12 +220,17 @@ _DB_OPTIONS = {
 # construye ``DATABASES`` al import antes de que testing.py lo reemplace).
 _DB_SSL_MODE = config('DB_SSL_MODE', default='')
 if _DB_SSL_MODE:
-    _DB_OPTIONS['ssl_mode'] = _DB_SSL_MODE
+    _DB_OPTIONS['sslmode'] = _DB_SSL_MODE.lower()
 else:
-    _DB_OPTIONS['ssl'] = {'ca': certifi.where()}
+    _DB_OPTIONS['sslmode'] = 'verify-full'
+    _DB_OPTIONS['sslrootcert'] = certifi.where()
+# El socket NO es una opcion en libpq: es el HOST. Cuando ``host`` empieza por
+# ``/``, libpq lo interpreta como el DIRECTORIO donde vive el socket y NO abre
+# TCP — el puerto pasa a nombrar el archivo (``.s.PGSQL.<port>``), no un puerto
+# de red. Por eso ``DB_SOCKET`` aqui vale el directorio
+# (``/var/run/postgresql``), no la ruta del archivo como en mysqlclient.
+# Ver H-API-305.
 _DB_SOCKET = config('DB_SOCKET', default='')
-if _DB_SOCKET:
-    _DB_OPTIONS['unix_socket'] = _DB_SOCKET
 
 # Config de conexión — SIN ``default=`` (SOL-087, directiva ejecutor
 # 2026-07-16): toda la configuración vive en ``.env`` (12-factor). Falla
@@ -227,11 +240,11 @@ if _DB_SOCKET:
 # (``BOOTSTRAP_COMPANY_CODE`` + ``company_create``), no por código.
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
+        'ENGINE': 'django.db.backends.postgresql',
         'NAME': config('DB_NAME'),
         'USER': config('DB_USER'),
         'PASSWORD': config('DB_PASSWORD'),
-        'HOST': config('DB_HOST'),
+        'HOST': _DB_SOCKET or config('DB_HOST'),
         'PORT': config('DB_PORT'),
         'OPTIONS': _DB_OPTIONS,
     }

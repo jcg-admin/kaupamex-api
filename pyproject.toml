@@ -20,8 +20,10 @@ dependencies = [
     "drf-spectacular==0.29.0",
     # Configuracion (.env tolerante a sin-comillas; ver diagnostico-env)
     "python-decouple==3.8",
-    # Base de datos
-    "mysqlclient==2.2.1",
+    # Base de datos — PostgreSQL, el motor de la referencia (iniciativa
+    # migrar-motor-mariadb-a-postgresql). psycopg 3 es el driver que Django 6
+    # prefiere; el 2 sigue soportado pero es el camino de salida.
+    "psycopg[binary]>=3.2",
     "certifi>=2024.0.0",
     # Imagenes / media
     "Pillow>=10.3.0",

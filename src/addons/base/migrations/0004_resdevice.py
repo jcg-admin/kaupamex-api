@@ -9,40 +9,32 @@ que omite toda operación que modifique la base en modelos no gestionados—, as
 que la vista la crea este ``RunSQL``. Por lo mismo el ``CreateModel`` va sin
 campos: son estado, no esquema.
 
-Dos adaptaciones de dialecto, verificadas contra MariaDB 11.8.8 antes de
-escribirlas:
+El SQL es hoy **idéntico al de la referencia**: no queda ninguna adaptación de
+dialecto que mantener.
 
-============================================  ===============================
-``odoo19c`` (PostgreSQL)                      Aquí (MariaDB)
-============================================  ===============================
-``D2.platform IS NOT DISTINCT FROM D.platform``  ``D2.platform <=> D.platform``
-``revoked IS NOT TRUE``                       idéntico (soportado)
-============================================  ===============================
+Histórico, porque explica por qué este archivo tuvo dos formas: bajo MariaDB,
+``IS NOT DISTINCT FROM`` no era una preferencia de estilo sino un **error de
+sintaxis** (``ERROR 1064 … near 'DISTINCT FROM NULL'``), y se escribía con su
+equivalente nativo ``<=>`` — mismo comportamiento NULL-safe, medido entonces:
+``1 <=> 1`` → 1 · ``NULL <=> NULL`` → 1 · ``1 <=> NULL`` → 0. Al migrar el
+motor (iniciativa ``migrar-motor-mariadb-a-postgresql``) la traducción se
+**revirtió**, que era justamente lo previsto: la adaptación de dialecto es
+reversible, no una reescritura.
 
-La forma estándar **no es opcional aquí, es un error de sintaxis**::
-
-    MariaDB> SELECT NULL IS NOT DISTINCT FROM NULL;
-    ERROR 1064 (42000): You have an error in your SQL syntax ...
-             near 'DISTINCT FROM NULL' at line 1
-
-``<=>`` es su equivalente nativo, no un rodeo. La ayuda del propio servidor
-(``HELP '<=>'``) lo define así: *"NULL-safe equal operator. It performs an
-equality comparison like the ``=`` operator, but returns 1 rather than NULL if
-both operands are NULL, and 0 rather than NULL if one operand is NULL"* — que
-es la semántica de ``IS NOT DISTINCT FROM`` palabra por palabra. Medido:
-``1 <=> 1`` → 1 · ``NULL <=> NULL`` → 1 · ``1 <=> NULL`` → 0.
-
-Sin él, una fila con ``platform`` nulo nunca se compararía consigo misma: el
-``NOT EXISTS`` no encontraría a su sucesora y la vista devolvería **todo** el
-log en vez de la última actividad por dispositivo.
+Lo que la comparación NULL-safe protege sigue igual de vivo: sin ella, una fila
+con ``platform`` nulo nunca se compararía consigo misma, el ``NOT EXISTS`` no
+encontraría a su sucesora, y la vista devolvería **todo** el log en vez de la
+última actividad por dispositivo.
 """
 from django.db import migrations, models
 
 _SELECT = 'SELECT D.*'
 _FROM = 'FROM res_device_log D'
-# Verbatim de ``odoo19c: res_device.py:213-243``, con ``<=>`` por
-# ``IS NOT DISTINCT FROM``: sobrevive la fila **más reciente** de cada
-# (usuario, sesión, plataforma, navegador) que no esté revocada.
+# Verbatim de ``odoo19c: res_device.py:213-243``: sobrevive la fila **más
+# reciente** de cada (usuario, sesión, plataforma, navegador) que no esté
+# revocada. Tras migrar el motor a PostgreSQL ya no hay traducción que hacer —
+# el ``<=>`` de MariaDB volvió a ``IS NOT DISTINCT FROM``, que es la forma de
+# la referencia. Ver la nota del docstring del módulo.
 _WHERE = """
 WHERE
     NOT EXISTS (
@@ -51,8 +43,8 @@ WHERE
         WHERE
             D2.user_id = D.user_id
             AND D2.session_identifier = D.session_identifier
-            AND D2.platform <=> D.platform
-            AND D2.browser <=> D.browser
+            AND D2.platform IS NOT DISTINCT FROM D.platform
+            AND D2.browser IS NOT DISTINCT FROM D.browser
             AND (
                 D2.last_activity > D.last_activity
                 OR (D2.last_activity = D.last_activity AND D2.id > D.id)
