@@ -12,7 +12,7 @@
 #
 # Gates activos:
 #
-#   1. Zero lazy imports en src/apps/** (PEP 8).
+#   1. Zero lazy imports en src/addons/** (PEP 8).
 #      Iniciativa: docs/source/gestion/pm/api/iniciativas/
 #                  eliminar-lazy-imports-pep8/
 #      Script:     scripts/check_no_lazy_imports.py
@@ -24,7 +24,7 @@ set -euo pipefail
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 EXIT_CODE=0
 
-# ─── Gate 1: lazy imports en src/apps/** ──────────────────────────
+# ─── Gate 1: lazy imports en src/addons/** ────────────────────────
 # Detectar staged .py dentro del scope vigilado.
 STAGED_PY=()
 while IFS= read -r line; do
@@ -32,7 +32,7 @@ while IFS= read -r line; do
     STAGED_PY+=("$line")
 done < <(
     git diff --cached --name-only --diff-filter=ACM \
-        -- 'src/apps/***.py' 'tests/***.py' 2>/dev/null \
+        -- 'src/addons/***.py' 'tests/***.py' 2>/dev/null \
     | grep -vE 'migrations/|__pycache__' || true
 )
 
@@ -50,7 +50,7 @@ fi
 #             canon-idioma-enums-error-codes/
 # Script:     docs/scripts/check_canon_idioma.py (cross-submodule).
 # Allowlist:  docs/scripts/canon-idioma-allowlist.txt.
-# El gate aplica solo cuando hay .py staged en apps/.
+# El gate aplica solo cuando hay .py staged en addons/.
 # El clon hermano de docs se llama `kaupamex-docs` desde el rename de repos
 # (DEC-KX-06); la ruta `../docs` que este gate usaba dejo de existir y el gate
 # degradaba a skip silencioso — H-API-109. Se prueban los nombres conocidos en
