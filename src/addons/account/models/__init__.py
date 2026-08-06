@@ -30,6 +30,11 @@ doble entrada:
 - ``account_full_reconcile.py``    → ``AccountFullReconcile``    (número de conciliación total).
 - ``account_reconcile_model.py``   → ``AccountReconcileModel`` + ``AccountReconcileModelLine``
   (reglas de conciliación automática).
+- ``account_report.py``            → ``AccountReport`` + ``AccountReportLine``
+  + ``AccountReportExpression`` + ``AccountReportColumn``
+  + ``AccountReportExternalValue`` (el árbol declarativo de un reporte
+  contable; el motor de evaluación de fórmulas NO se porta aquí — ver el
+  docstring del archivo).
 """
 from .account_account import AccountAccount
 from .account_account_tag import AccountAccountTag
@@ -51,6 +56,13 @@ from .account_payment import AccountPayment
 from .account_payment_method import AccountPaymentMethod, AccountPaymentMethodLine
 from .account_payment_term import AccountPaymentTerm, AccountPaymentTermLine
 from .account_reconcile_model import AccountReconcileModel, AccountReconcileModelLine
+from .account_report import (
+    AccountReport,
+    AccountReportColumn,
+    AccountReportExpression,
+    AccountReportExternalValue,
+    AccountReportLine,
+)
 from .account_root import (
     account_root_from_code,
     account_root_name,
@@ -84,6 +96,11 @@ __all__ = [
     'AccountPaymentTermLine',
     'AccountReconcileModel',
     'AccountReconcileModelLine',
+    'AccountReport',
+    'AccountReportColumn',
+    'AccountReportExpression',
+    'AccountReportExternalValue',
+    'AccountReportLine',
     'AccountTax',
     'AccountTaxGroup',
     'AccountTaxRepartitionLine',
