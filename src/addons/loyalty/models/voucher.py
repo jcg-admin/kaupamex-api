@@ -7,16 +7,20 @@ SIN contraparte 1:1 en ``odoo19c: loyalty/models/`` (allí el dominio es
 loyalty_program/card/reward/rule); el porte semántico de esa familia es una
 iniciativa aparte — ver el mapa en ``__init__.py``.
 """
+import logging
 import secrets
 import string
 from decimal import Decimal
 
+from django.apps import apps
 from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 
 from addons.base.models import SoftDeleteModel, TimeStampedModel
+
+logger = logging.getLogger('apps')
 
 _ALPHABET = string.ascii_uppercase + string.digits
 
@@ -176,3 +180,64 @@ class Voucher(TimeStampedModel, SoftDeleteModel):
             return raw.quantize(Decimal('0.01'))
         # FREE_SHIPPING
         return Decimal('0.00')
+
+    # ------------------------------------------------------------------
+    # Caducidad — el método que el cron invoca (UC-SYS-02)
+    # ------------------------------------------------------------------
+
+    @classmethod
+    def expire_overdue(cls):
+        """Desactiva los vouchers vencidos y registra el cambio. Devuelve cuántos.
+
+        Vivía como función suelta en ``addons.loyalty.tasks``, invocada sólo por
+        un management command. ``ir.cron`` resuelve ``<model>.<method>()``, no
+        módulos ni comandos, así que el registro de horario no tenía a qué
+        apuntar. La lógica es la misma; cambia su hogar.
+
+        Dos candados, ambos con su hallazgo:
+
+        - ``skip_locked`` (H-VOUCHER-01) — dos crons concurrentes no procesan el
+          mismo voucher ni duplican su entrada de bitácora.
+        - re-chequeo de ``valid_until`` **dentro** del candado (H-CICLO125-02) —
+          la lista inicial se lee sin bloquear; si un administrador extiende la
+          vigencia entre esa lectura y el candado, sin este guard el voucher se
+          caducaría igual. Cierra la ventana TOCTOU.
+        """
+        # apps.get_model, no un import: ``voucher_change_log`` importa Voucher
+        # (voucher_change_log.py:6), así que el import al top sería un ciclo
+        # REAL — verificado, no supuesto. La excepción #3 de no-lazy-imports
+        # prohíbe resolverlo con un import diferido; esto es una **llamada**,
+        # el mismo mecanismo sancionado que importlib en AppConfig.ready().
+        VoucherChangeLog = apps.get_model('loyalty', 'VoucherChangeLog')
+
+        now = timezone.now()
+        vencidos = list(
+            cls.objects.filter(is_active=True, valid_until__lt=now)
+            .values_list('id', flat=True)
+        )
+        contados = 0
+        for voucher_id in vencidos:
+            with transaction.atomic():
+                actualizado = cls.objects.filter(
+                    pk=voucher_id, is_active=True, valid_until__lt=now
+                ).select_for_update(skip_locked=True).first()
+                if actualizado is None:
+                    continue
+                actualizado.is_active = False
+                actualizado.deactivated_at = now
+                actualizado.save(
+                    update_fields=['is_active', 'deactivated_at', 'updated_at']
+                )
+                VoucherChangeLog.objects.create(
+                    voucher=actualizado,
+                    changed_by=None,
+                    changes={
+                        'is_active': {'before': True, 'after': False},
+                        'source': 'AUTOMATIC_EXPIRATION',
+                        'deactivated_at': str(now),
+                    },
+                )
+                contados += 1
+        if contados:
+            logger.info('expire_overdue: %d vouchers expirados.', contados)
+        return contados

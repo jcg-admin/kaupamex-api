@@ -45,6 +45,11 @@ Fidelidad y adaptaciones (documentadas, principio-rector Clausula 2):
   ≙ ``mail.mail.process_email_queue``) para no importar addons al poblar el
   registro de apps.
 """
+import logging
+from datetime import timedelta
+
+from django.core.mail import send_mail
+from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 
@@ -52,6 +57,15 @@ import fields
 import models
 from addons.base.models import TimeStampedModel
 from addons.mail.models.mail_message import MailMessage
+
+logger = logging.getLogger(__name__)
+
+# Tamaño del lote por corrida. La referencia lo pasa como argumento del cron
+# (``model.process_email_queue(batch_size=1000)``, odoo19c: mail/data/
+# ir_cron_data.xml:8, odoo-tools@622ddc2a); nuestro runner invoca el método sin
+# argumentos, así que el default ES el valor de producción.
+_BATCH_SIZE = 50
+_BACKOFF_PER_ATTEMPT = timedelta(minutes=5)
 
 
 class MailMail(TimeStampedModel):
@@ -258,3 +272,87 @@ class MailMail(TimeStampedModel):
                 self.scheduled_date = timezone.now() + backoff
                 fields.append('scheduled_date')
         self.save(update_fields=fields)
+
+    # ------------------------------------------------------------------
+    # Cola de envío — el método que el cron invoca
+    # ------------------------------------------------------------------
+
+    @classmethod
+    def process_email_queue(cls, batch_size=_BATCH_SIZE):
+        """Procesa el lote de correos pendientes. Devuelve ``(sent, failed,
+        skipped)``.
+
+        Homónimo de ``model.process_email_queue(batch_size=1000)`` que la
+        referencia declara como cuerpo del cron ``ir_cron_mail_scheduler_action``
+        (``odoo19c: mail/data/ir_cron_data.xml:4-13``, ``odoo-tools@622ddc2a``).
+        La lógica vivía en el ``handle()`` de un management command suelto, así
+        que el registro de horario no tenía a qué apuntar: ``ir.cron`` invoca
+        ``<model>.<method>()``, no un comando de Django.
+
+        ``select_for_update(skip_locked=True)`` por fila: varios workers pueden
+        procesar la cola a la vez sin pisarse. Cada correo va en su **propia**
+        transacción — un fallo de SMTP no debe revertir los envíos ya
+        confirmados del mismo lote.
+        """
+        pending_ids = list(
+            cls.pending()
+            .order_by('scheduled_date', 'id')
+            .values_list('pk', flat=True)[:batch_size]
+        )
+        sent = failed = skipped = 0
+        for pk in pending_ids:
+            resultado = cls._send_one(pk)
+            if resultado == 'sent':
+                sent += 1
+            elif resultado == 'failed':
+                failed += 1
+            else:
+                skipped += 1
+        return sent, failed, skipped
+
+    @classmethod
+    def _send_one(cls, pk):
+        """Envía un correo en su propia transacción. ``'sent'|'failed'|'skipped'``."""
+        with transaction.atomic():
+            try:
+                mail = (
+                    cls.objects
+                    # subject/email_from se delegan al mail.message (_inherits):
+                    # sin el JOIN, cada correo del lote pagaría una query extra.
+                    .select_related('mail_message')
+                    .select_for_update(skip_locked=True)
+                    .get(pk=pk, state=cls.STATE_OUTGOING)
+                )
+            except cls.DoesNotExist:
+                # Otro worker lo tomó, o cambió de estado entre el SELECT del
+                # lote y este bloqueo. No es un error: es la carrera esperada.
+                return 'skipped'
+
+            if mail.attempts >= mail.max_attempts:
+                mail.register_failed_attempt(
+                    cls.FAILURE_MAIL_SMTP, mail.failure_reason,
+                )
+                return 'failed'
+
+            recipient_list = [e.strip() for e in mail.email_to.split(',') if e.strip()]
+            try:
+                send_mail(
+                    subject=mail.subject,
+                    message=mail.body_html,
+                    from_email=mail.email_from or None,
+                    recipient_list=recipient_list,
+                    fail_silently=False,
+                )
+            except Exception as exc:
+                logger.error(
+                    'process_email_queue: mail pk=%s attempt=%s error=%s',
+                    pk, mail.attempts + 1, exc,
+                )
+                mail.register_failed_attempt(
+                    cls.FAILURE_MAIL_SMTP, str(exc),
+                    backoff=_BACKOFF_PER_ATTEMPT * (mail.attempts + 1),
+                )
+                return 'failed'
+            else:
+                mail.mark_sent(count_attempt=True)
+                return 'sent'

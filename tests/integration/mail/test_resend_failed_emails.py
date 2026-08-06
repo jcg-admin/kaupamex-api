@@ -1,15 +1,25 @@
 """
 Tests — Reenviar emails de notificacion fallidos (UC-SYS-04).
 
-UC-SYS-04 es un proceso de sistema (sin endpoint HTTP): el management
-command ``send_pending_emails`` drena la cola de correo saliente ``mail.mail``
-(``MailMail``, hogar Odoo fiel de la ex-``EmailTask``): filas ``outgoing`` cuya
-fecha diferida ya pasó, reintentando con backoff exponencial (5 min x attempts)
-y marcando ``exception`` al agotar ``max_attempts``.
+UC-SYS-04 es un proceso de sistema (sin endpoint HTTP): drena la cola de correo
+saliente ``mail.mail`` (``MailMail``, hogar Odoo fiel de la ex-``EmailTask``):
+filas ``outgoing`` cuya fecha diferida ya pasó, reintentando con backoff
+exponencial (5 min x attempts) y marcando ``exception`` al agotar
+``max_attempts``.
+
+El ciclo lo corre el **cron** ``ir_cron_mail_scheduler``; el management command
+es la entrada manual. Los tests siguen entrando por el comando porque ejercen el
+mismo método —``MailMail.process_email_queue``— y de paso cubren que la
+envoltura de CLI no se desconecte.
+
+Por eso ``send_mail`` se parchea en ``addons.mail.models.mail_mail``: ahí vive
+ahora la costura de envío. Parchearlo en el módulo del comando dejó de
+funcionar cuando la lógica bajó al modelo, que es la señal correcta — el test
+apuntaba a la implementación, no al contrato.
 
 Implementacion:
-  src/addons/mail/management/commands/send_pending_emails.py
-  src/addons/mail/models/mail_mail.py :: MailMail
+  src/addons/mail/models/mail_mail.py :: MailMail.process_email_queue
+  src/addons/mail/management/commands/send_pending_emails.py (envoltura)
 """
 import pytest
 from datetime import timedelta
@@ -68,7 +78,7 @@ class TestSendPendingEmails:
             def _boom(*a, **k):
                 raise RuntimeError('SMTP down')
             mp.setattr(
-                'addons.mail.management.commands.send_pending_emails.send_mail',
+                'addons.mail.models.mail_mail.send_mail',
                 _boom,
             )
             _run()
@@ -90,7 +100,7 @@ class TestSendPendingEmails:
             def _boom(*a, **k):
                 raise RuntimeError('SMTP down')
             mp.setattr(
-                'addons.mail.management.commands.send_pending_emails.send_mail',
+                'addons.mail.models.mail_mail.send_mail',
                 _boom,
             )
             _run()
