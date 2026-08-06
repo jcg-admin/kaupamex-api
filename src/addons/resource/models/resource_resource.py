@@ -135,19 +135,16 @@ class ResourceResource(TimeStampedModel):
         if self.company_id and not self.calendar_id:
             self.calendar = self.company.resource_calendar
         if not self.tz:
-            # ``getattr`` y no ``self.user.tz`` directo: en la referencia el
-            # usuario obtiene ``tz`` por delegación ``_inherits`` a
-            # ``res.partner`` (``odoo19c: odoo/addons/base/models/
-            # res_partner.py:223`` + ``res_users.py:165``), y **nuestro
-            # ``base`` no portó ese campo** — medido: ``ResUsers`` no expone
-            # ``tz`` ni como columna ni como atributo. Sin el guard, esta
-            # rama lanza ``AttributeError`` en cuanto un recurso tenga
-            # usuario y no traiga ``tz`` explícito. Ver H-API-300.
+            # La precedencia usuario > calendario es de la referencia, y
+            # **ya está activa**: ``res.users`` delega en ``res.partner`` por
+            # el mecanismo ``_inherits`` (``orm/inherits.py``), así que
+            # ``self.user.tz`` resuelve al partner igual que en la referencia
+            # (``odoo19c: odoo/addons/base/models/res_users.py:165``).
             #
-            # La rama queda **inerte** hasta que ``tz`` aterrice en
-            # ``base``: hoy siempre cae al calendario. Se conserva —en vez de
-            # borrarla— porque la precedencia usuario > calendario es de la
-            # referencia, y borrarla obligaría a redescubrirla después.
+            # Estuvo inerte mientras la delegación no existía —el campo vivía
+            # en el partner pero el usuario no lo exponía— y esa rama lanzaba
+            # ``AttributeError``. Ver H-API-300. El ``getattr`` se conserva
+            # como cinturón: un usuario sin partner no debe reventar aquí.
             user_tz = getattr(self.user, 'tz', None) if self.user_id else None
             if user_tz:
                 self.tz = user_tz

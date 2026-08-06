@@ -51,24 +51,31 @@ class TestResourceResourceDefaults:
 
     def test_save_falls_back_to_calendar_tz_when_user_has_no_tz(
             self, company, calendar):
-        """La precedencia usuario > calendario de la referencia está inerte.
-
-        ``ResUsers`` no expone ``tz``: en la referencia lo hereda de
-        ``res.partner`` por ``_inherits``, y nuestro ``base`` no portó ese
-        campo (ver H-API-300). El test fija el comportamiento **real** de
-        hoy —cae al calendario— y sirve de centinela: cuando ``tz`` aterrice
-        en ``base``, este test empieza a fallar y ahí se restituye la
-        precedencia de la referencia.
-        """
-        assert not hasattr(ResUsers, 'tz'), (
-            'ResUsers ya expone tz: restituir la precedencia usuario > '
-            'calendario en ResourceResource.save y actualizar H-API-300'
-        )
+        """Sin ``tz`` en el partner del usuario, gana el del calendario."""
         user = ResUsers.objects.create_user(login='ana@practicayoruba.mx')
+        assert not user.tz, 'el partner recién creado no debería traer tz'
         resource = ResourceResource.objects.create(
             name='Ana', company=company, user=user,
         )
         assert resource.tz == calendar.tz
+
+    def test_save_prefers_user_tz_over_calendar_tz(self, company, calendar):
+        """Precedencia de la referencia: el huso del usuario gana.
+
+        Estuvo **inerte** mientras ``res.users`` no delegaba en
+        ``res.partner``: el campo existía en el partner pero el usuario no lo
+        exponía, así que la rama nunca se tomaba (H-API-300). La delegación
+        ``_inherits`` (``orm/inherits.py``) la restituye sin tocar este
+        modelo — ``self.user.tz`` ahora resuelve al partner.
+        """
+        user = ResUsers.objects.create_user(login='beto@practicayoruba.mx')
+        user.tz = 'America/Mexico_City'
+        user.save()
+        resource = ResourceResource.objects.create(
+            name='Beto', company=company, user=user,
+        )
+        assert calendar.tz == 'UTC', 'el calendario debe diferir, si no no prueba nada'
+        assert resource.tz == 'America/Mexico_City'
 
     def test_time_efficiency_must_be_positive(self, company):
         with pytest.raises(IntegrityError):
