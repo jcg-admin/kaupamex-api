@@ -14,6 +14,7 @@ import pytest
 
 from addons.account.models import (
     AccountAccount,
+    AccountAccountTag,
     AccountFiscalPosition,
     AccountJournal,
     AccountReconcileModel,
@@ -25,6 +26,7 @@ from addons.account.models.chart_template import TEMPLATE_REGISTRY, template
 from addons.account.models.account_tax_repartition_line import AccountTaxRepartitionLine
 from addons.base.models.ir_model import IrModelData
 from addons.base.models.res_company import ResCompany
+from exceptions import UserError
 
 pytestmark = [pytest.mark.unit]
 
@@ -367,3 +369,93 @@ class TestUtilityBankAccounts:
 
         assert (subsidiary.account_journal_suspense_account
                 == company.account_journal_suspense_account)
+
+
+@pytest.fixture
+def master_tags(db):
+    """Las tres etiquetas maestras, sembradas por el test.
+
+    No se confía en la data-migration: sus filas **no sobreviven al flush** de
+    la suite (:ref:`h-api-337`), así que un test que las diera por puestas
+    pasaría o fallaría según el orden de ejecución.
+    """
+    created = {}
+    for name, label in (
+        ('account_tag_operating', 'Operating Activities'),
+        ('account_tag_financing', 'Financing Activities'),
+        ('account_tag_investing', 'Investing & Extraordinary Activities'),
+    ):
+        tag, _new = AccountAccountTag.objects.get_or_create(
+            name=label, applicability='accounts')
+        IrModelData.set_xmlid(tag, f'account.{name}', noupdate=True)
+        created[name] = tag
+    return created
+
+
+@pytest.mark.django_db
+class TestAccountTags:
+    """La columna ``tag_ids`` del plan y la herencia por código.
+
+    ≙ ``tag_ids`` de ``odoo19c: account_account.py:104`` y su compute
+    ``_compute_account_tags`` (línea 609). El plan genérico etiqueta **13 de
+    sus 46** cuentas; las otras 33 heredan de la cuenta de código anterior, que
+    es la jerarquía que ningún campo declara.
+    """
+
+    def test_the_csv_tag_column_lands_on_the_account(self, company, master_tags):
+        """La columna del CSV se resuelve por identificador externo.
+
+        Antes se descartaba entera: ``resolve_values`` saltaba todo M2M con un
+        comentario que prometía una resolución posterior inexistente
+        (:ref:`h-api-352`).
+        """
+        ChartTemplate.try_loading('generic_coa', company)
+
+        sales = AccountAccount.objects.get(company=company, code='4000')
+        assert list(sales.tags.all()) == [master_tags['account_tag_operating']]
+
+    def test_an_account_without_its_own_tag_inherits_the_previous_one(
+            self, company, master_tags):
+        """≙ ``_compute_account_tags`` con su ``_get_closest_parent_account``.
+
+        ``4421`` no declara etiqueta, así que toma la de ``4420``. La búsqueda
+        es por código ordenado y ``bisect_left``, igual que la referencia.
+        """
+        parent = AccountAccount.objects.create(
+            company=company, code='4420', name='Cash Difference Gain',
+            account_type='income_other')
+        parent.tags.set([master_tags['account_tag_investing']])
+
+        child = AccountAccount.objects.create(
+            company=company, code='4421', name='Otra', account_type='income_other')
+
+        assert list(child.tags.all()) == [master_tags['account_tag_investing']]
+
+    def test_an_explicit_tag_wins_over_the_inherited_one(
+            self, company, master_tags):
+        """La guarda ``not account.tag_ids`` de la referencia, verbatim."""
+        parent = AccountAccount.objects.create(
+            company=company, code='4420', name='Cash Difference Gain',
+            account_type='income_other')
+        parent.tags.set([master_tags['account_tag_investing']])
+
+        child = AccountAccount.objects.create(
+            company=company, code='4421', name='Otra', account_type='income_other')
+        child.tags.set([master_tags['account_tag_operating']])
+        child.save()
+
+        assert list(child.tags.all()) == [master_tags['account_tag_operating']]
+
+    def test_a_master_tag_cannot_be_deleted(self, master_tags):
+        """≙ ``_unlink_except_master_tags``: el plan las cita por identificador."""
+        with pytest.raises(UserError):
+            master_tags['account_tag_investing'].delete()
+
+    def test_a_plain_tag_can_be_deleted(self, db):
+        """La guarda protege las tres maestras, no toda etiqueta."""
+        tag = AccountAccountTag.objects.create(
+            name='Casilla 33', applicability='taxes')
+
+        tag.delete()
+
+        assert not AccountAccountTag.objects.filter(name='Casilla 33').exists()

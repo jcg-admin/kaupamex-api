@@ -59,13 +59,13 @@ porta. Si se portara, entran; hoy no hay dónde enchufarlos.
 
 **c) Seis que son trabajo pendiente**, con su dependencia real medida:
 
-- ``_get_tag_mapper`` y ``_deref_account_tags`` — el modelo
-  ``account.account.tag`` **existe y está portado** (``account_account_tag.py``);
-  lo que falta del mapeador es su discriminación xmlid-vs-nombre, que consulta
-  ``ir.module.module``, un registro de módulos que este puerto no tiene por
-  diseño. Los CSV de ``generic_coa`` **sí** traen columna de etiqueta
-  (``account.account_tag_investing``), pero esa etiqueta no está sembrada —
-  sucesor #160.
+- ``_get_tag_mapper`` y ``_deref_account_tags`` — resuelven las etiquetas de
+  **impuesto** (``repartition_line_ids/tag_ids``, con su delimitador y su signo),
+  no las de cuenta. Lo que falta del mapeador es su discriminación
+  xmlid-vs-nombre, que consulta ``ir.module.module``, un registro de módulos que
+  este puerto no tiene por diseño. **Las etiquetas de cuenta ya no dependen de
+  ellos**: la columna ``tag_ids`` del CSV la resuelve ``resolve_many_to_many``
+  y las tres maestras las siembra ``migrations/0012_seed_account_tags.py``.
 - ``_instantiate_foreign_taxes`` — impuestos de otro país sobre la misma
   empresa; exige un plan ``l10n_*`` portado, y hay **cero** en ``src/addons``.
 - ``_install_demo`` — datos de demostración, que este proyecto no tiene.
@@ -472,6 +472,8 @@ class ChartTemplate:
                 else:
                     flat_values[field] = value
 
+            many_to_many = cls.resolve_many_to_many(
+                model_class, flat_values, company)
             flat_values = cls.resolve_values(model_class, flat_values, company)
             flat_values['company'] = company
             if existing is not None:
@@ -481,6 +483,8 @@ class ChartTemplate:
                 record_data = existing
             else:
                 record_data = model_class.objects.create(**flat_values)
+            for name, records in many_to_many.items():
+                getattr(record_data, name).set(records)
             IrModelData.set_xmlid(record_data, cls.company_xmlid(xmlid, company))
             cls.load_child_lines(record_data, children, company)
             created[xmlid] = record_data
@@ -527,10 +531,43 @@ class ChartTemplate:
                     continue
                 out[name] = cls.ref(value, company, raise_if_not_found=False)
             elif field.many_to_many:
-                continue          # se resuelven tras crear todo (ver post_load_data)
+                continue          # los aplica resolve_many_to_many, tras crear
             else:
                 out[name] = cls.coerce(field, value)
         return {k: v for k, v in out.items() if v is not None}
+
+    @classmethod
+    def resolve_many_to_many(cls, model_class, values, company):
+        """Los valores M2M del CSV, ya resueltos a registros.
+
+        Van aparte porque una relación de muchos-a-muchos no se puede escribir
+        en el ``create``: necesita la fila creada para poblar su tabla
+        intermedia. ``load_model_data`` los aplica justo después.
+
+        La columna admite **varios** identificadores separados por coma, que es
+        la convención de CSV de la referencia; hoy el plan genérico usa uno por
+        fila (medido: 13 filas, un identificador cada una).
+
+        Un identificador que no resuelve se descarta en silencio, por el mismo
+        motivo que el resto del cargador: el CSV viene de la referencia y cita
+        registros que este puerto todavía no siembra. Lo que **no** se descarta
+        es la columna entera — ese era el defecto (:ref:`h-api-352`).
+        """
+        model_fields = {f.name: f for f in model_class._meta.get_fields()}
+        out = {}
+        for raw, value in values.items():
+            name = cls.map_field_name(model_class, raw)
+            field = model_fields.get(name) if name else None
+            if field is None or not field.many_to_many or not value:
+                continue
+            records = [
+                cls.ref(token.strip(), company, raise_if_not_found=False)
+                for token in str(value).split(',') if token.strip()
+            ]
+            records = [record for record in records if record is not None]
+            if records:
+                out[name] = records
+        return out
 
     @classmethod
     def post_load_data(cls, template_code, company, template_data):
@@ -586,12 +623,11 @@ class ChartTemplate:
         primer hueco. Las dos de descuento por pronto pago son la excepción —
         la referencia les fija código literal (``999998``/``999997``).
 
-        Divergencia declarada: las dos de diferencia de efectivo llevan allá
-        ``tag_ids`` apuntando a ``account.account_tag_investing``. Aquí ese
-        identificador externo **no está sembrado** (medido: aparece sólo como
-        columna de los CSV de ``generic_coa``, sin fila que lo cree), así que
-        la clave se omite en vez de fabricar una etiqueta. Entra sola cuando
-        se siembren las etiquetas — sucesor #160.
+        Las dos de diferencia de efectivo llevan ``account_tag_investing``,
+        igual que la referencia (``odoo19c: chart_template.py:873,880``). La
+        etiqueta la siembra ``account: migrations/0012_seed_account_tags.py``;
+        si faltara, ``resolve_many_to_many`` la descarta y la cuenta se crea
+        sin ella — nunca aborta la carga del plan por una etiqueta.
         """
         bank_prefix = bank_prefix or company.bank_account_code_prefix or ''
         code_digits = code_digits or int(template_data.get('code_digits', 6))
@@ -617,12 +653,14 @@ class ChartTemplate:
                 'prefix': '999',
                 'code_digits': code_digits,
                 'account_type': 'income_other',
+                'tags': 'account.account_tag_investing',
             },
             'default_cash_difference_expense_account': {
                 'name': _('Faltante de efectivo'),
                 'prefix': '999',
                 'code_digits': code_digits,
                 'account_type': 'expense',
+                'tags': 'account.account_tag_investing',
             },
             'transfer_account': {
                 'name': _('Transferencia de liquidez'),
