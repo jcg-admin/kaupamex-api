@@ -131,28 +131,58 @@ class AccountAccount(models.Model):
         cuentas — las otras 33 heredan de su vecina anterior.
 
         La búsqueda es la misma: todas las cuentas de la empresa ordenadas por
-        código, y ``bisect_left`` sobre esa lista. Devuelve un diccionario
-        ``{cuenta: valor}`` en vez de escribir el campo, porque una relación de
-        muchos-a-muchos no se puede asignar antes de que la fila exista.
+        código, y ``bisect_left`` sobre esa lista.
+
+        Devuelve una **lista alineada con la entrada** en vez de escribir el
+        campo, por dos razones que la referencia no tiene: una relación M2M no
+        se puede asignar antes de que la fila exista, y una cuenta todavía sin
+        ``pk`` no es hasheable, así que tampoco sirve de clave.
         """
-        accounts_to_process = [
-            account for account in accounts_to_process if account.code]
-        if not accounts_to_process:
-            return {}
-        company = accounts_to_process[0].company
-        rows = list(cls.objects.filter(company=company).order_by('code')
-                    .values_list('pk', 'code'))
-        codes = [code for _pk, code in rows]
-        out = {}
+        codes_of_the_company = {}
+        out = []
         for account in accounts_to_process:
-            closest_index = bisect_left(codes, account.code) - 1
-            if closest_index == -1:
-                out[account] = default_value
+            if not account.code:
+                out.append(default_value)
                 continue
-            parent = cls.objects.get(pk=rows[closest_index][0])
-            value = getattr(parent, field_name)
-            out[account] = list(value.all()) if hasattr(value, 'all') else value
+            company = account.company
+            if company.pk not in codes_of_the_company:
+                codes_of_the_company[company.pk] = list(
+                    cls.objects.filter(company=company).order_by('code')
+                    .values_list('pk', 'code'))
+            rows = codes_of_the_company[company.pk]
+            closest_index = bisect_left(
+                [code for _pk, code in rows], account.code) - 1
+            if closest_index == -1:
+                out.append(default_value)
+                continue
+            value = getattr(cls.objects.get(pk=rows[closest_index][0]),
+                            field_name)
+            out.append(list(value.all()) if hasattr(value, 'all') else value)
         return out
+
+    @api.depends('code')
+    def _compute_account_type(self):
+        """Hereda el tipo de la cuenta anterior — ≙ ``_compute_account_type``.
+
+        ≙ ``odoo19c: account_account.py:603-606`` (``odoo-tools@622ddc2a``). El
+        segundo consumidor de ``_get_closest_parent_account``, con el mismo
+        criterio que las etiquetas: la jerarquía del plan es el código.
+
+        **Requerido y computado no se contradicen.** La referencia declara el
+        campo ``required=True`` *y* ``compute=… precompute=True`` a la vez
+        (``account_account.py:104-126``): el cómputo corre **antes** del insert,
+        así que rellena lo que el usuario no puso y la exigencia se comprueba
+        después. Aquí el orden lo fija ``save``, que lo llama antes de guardar.
+        Por eso esto **no** cambia el contrato del campo: el serializer lo sigue
+        exigiendo, y el modelo sólo cubre el caso de la carga masiva.
+
+        ``asset_current`` es el default de la referencia cuando no hay cuenta
+        anterior — la primera del plan.
+        """
+        if not self.code or self.account_type:
+            return
+        self.account_type = self._get_closest_parent_account(
+            [self], 'account_type', 'asset_current')[0] or 'asset_current'
 
     @api.depends('code')
     def _compute_account_tags(self):
@@ -168,12 +198,15 @@ class AccountAccount(models.Model):
         """
         if not self.code or self.tags.exists():
             return
-        inherited = self._get_closest_parent_account([self], 'tags', [])
-        tags = inherited.get(self) or []
+        tags = self._get_closest_parent_account([self], 'tags', [])[0]
         if tags:
             self.tags.set(tags)
 
     def save(self, *args, **kwargs):
+        # El orden importa y es el de la referencia: el tipo se computa antes
+        # que el grupo, que lo deriva; y las etiquetas después de guardar,
+        # porque una relación M2M necesita la fila creada.
+        self._compute_account_type()
         self._compute_internal_group()
         result = super().save(*args, **kwargs)
         self._compute_account_tags()

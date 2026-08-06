@@ -446,6 +446,31 @@ class TestAccountTags:
 
         assert list(child.tags.all()) == [master_tags['account_tag_operating']]
 
+    def test_an_account_without_a_type_inherits_the_previous_one(self, company):
+        """≙ ``_compute_account_type``, el segundo consumidor del ayudante.
+
+        Requerido y computado no se contradicen: la referencia declara el campo
+        ``required=True`` **y** ``precompute=True``, y el cómputo corre antes
+        del insert. Aquí lo llama ``save`` antes de guardar.
+        """
+        AccountAccount.objects.create(
+            company=company, code='4420', name='Cash Difference Gain',
+            account_type='income_other')
+
+        child = AccountAccount.objects.create(
+            company=company, code='4421', name='Otra', account_type='')
+
+        assert child.account_type == 'income_other'
+        assert child.internal_group == 'income'
+
+    def test_the_first_account_of_the_chart_falls_back_to_the_default(
+            self, company):
+        """Sin cuenta anterior, ``asset_current`` — el default de la referencia."""
+        first = AccountAccount.objects.create(
+            company=company, code='1010', name='Current Assets', account_type='')
+
+        assert first.account_type == 'asset_current'
+
     def test_a_master_tag_cannot_be_deleted(self, master_tags):
         """≙ ``_unlink_except_master_tags``: el plan las cita por identificador."""
         with pytest.raises(UserError):
