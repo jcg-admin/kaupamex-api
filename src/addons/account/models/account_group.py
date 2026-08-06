@@ -16,20 +16,44 @@ Se respeta la forma de la referencia (rango de prefijo + adopción del padre
 más específico) — **no** se inventa un MPTT/``parent_path`` (eso es lo que
 la propia referencia rechaza al no usar ``_parent_store``).
 
-Portado en Python: la restricción de longitud igual entre
-``code_prefix_start``/``code_prefix_end`` (``_check_length_prefix``, un
-``CheckConstraint``), el anti-ciclo (``_check_parent_not_circular``, vía el
+Portado en Python: el anti-ciclo (``_check_parent_not_circular``, vía el
 mixin transversal ``_reject_hierarchy_cycle`` — mismo patrón que
 ``AccountAnalyticPlan``) y una versión simplificada, en Python, de
 ``_adapt_parent_account_group`` (Odoo la resuelve con una consulta SQL de
 ventana; aquí se itera en ``save()`` sobre los grupos de la misma empresa
 buscando el prefijo más específico que contiene al del grupo actual).
 
-NO se porta: ``_constraint_prefix_overlap`` (SQL crudo con self-join que
-valida que dos grupos de igual granularidad no se solapen — se declara
-pendiente, no fabricado) ni ``_search_display_name``/``_compute_display_name``
-(formato de UI del cliente web de Odoo).
+**Corrección 2026-08-06 (H-API-323, tarea #113) — las dos restricciones de
+prefijo SÍ se hacen cumplir; ninguna quedaba fuera del ORM.** Redacciones
+previas declaraban ``_check_length_prefix`` "no portable en un
+``CheckConstraint``" y ``_constraint_prefix_overlap`` "pendiente". Medido:
+Django SÍ expresa ``LENGTH(a) = LENGTH(b)`` en un ``CheckConstraint`` —
+``django.db.models.lookups.Exact`` tiene ``conditional = True`` y acepta dos
+``Func`` (aquí ``Length``) como operandos, así que ``Exact(Length(F('a')),
+Length(F('b')))`` es un `condition=` válido (verificado con
+``constraint.constraint_sql()``: compila a
+``CHECK (LENGTH(code_prefix_start) = (LENGTH(code_prefix_end)))``). No exigía
+registrar el lookup ``__length`` global de ``CharField`` (que no viene
+registrado por defecto) ni relajar el corte — exigía construir la expresión
+con las piezas que el ORM ya trae, igual que ``api.depends``/``Command``
+antes. Ver ``_check_prefix_length`` (duplicado en ``clean()``, ver docstring
+del método) y el ``CheckConstraint`` de ``Meta.constraints``.
+
+``_constraint_prefix_overlap`` (self-join SQL crudo contra las filas
+hermanas) se porta a Python en ``clean()`` — no es expresable como
+``CheckConstraint`` (compara una fila contra el resto de la tabla, no
+consigo misma); es la misma familia de restricción que
+``_check_parent_not_circular``, y se resuelve con el mismo patrón: una
+consulta del ORM sobre ``type(self).objects``.
+
+NO se porta: ``_search_display_name``/``_compute_display_name`` (formato de
+UI del cliente web de Odoo, sin análogo en esta API).
 """
+from django.core.exceptions import ValidationError
+from django.db.models import F
+from django.db.models.functions import Length
+from django.db.models.lookups import Exact
+
 import fields
 import models
 
@@ -67,12 +91,22 @@ class AccountGroup(models.Model):
     class Meta:
         db_table = 'account_group'
         ordering = ['code_prefix_start']
-        # Odoo _check_length_prefix (odoo19c: 1510-1513) — CHECK SQL a nivel
-        # DB: char_length(code_prefix_start) == char_length(code_prefix_end).
-        # NO portado: expresar char_length() en un CheckConstraint portable
-        # entre motores excede este corte. Declarado pendiente, no fabricado.
         verbose_name = 'Grupo de cuentas'
         verbose_name_plural = 'Grupos de cuentas'
+        constraints = [
+            # Odoo _check_length_prefix (odoo19c: 1510-1513) — CHECK SQL a
+            # nivel DB: char_length(start) == char_length(end). Sin COALESCE
+            # (que la referencia sí usa): nuestros campos son NOT NULL con
+            # default='' (Django CharField sin null=True nunca persiste
+            # NULL), así que LENGTH() ya nunca ve NULL.
+            models.CheckConstraint(
+                condition=Exact(
+                    Length(F('code_prefix_start')), Length(F('code_prefix_end')),
+                ),
+                name='account_group_prefix_length_eq',
+                violation_error_code='ACCOUNT_GROUP_PREFIX_LENGTH_MISMATCH',
+            ),
+        ]
 
     def __str__(self) -> str:
         prefix = self.code_prefix_start or ''
@@ -83,6 +117,60 @@ class AccountGroup(models.Model):
     def clean(self):
         super().clean()
         _reject_hierarchy_cycle(self, 'parent', 'ACCOUNT_GROUP_CYCLE')
+        self._check_prefix_length()
+        self._check_prefix_overlap()
+
+    def _check_prefix_length(self):
+        """``code_prefix_start`` y ``code_prefix_end`` deben tener la misma
+        longitud — Odoo ``_check_length_prefix`` (odoo19c: 1510-1513).
+
+        El ``CheckConstraint`` de ``Meta.constraints`` es la garantía real
+        (nivel DB, se cumple sin importar el camino de escritura). Esta
+        duplicación en Python existe para que ``clean()`` — el punto que
+        esta clase y sus hermanas (``AccountAnalyticPlan``, ``HrDepartment``)
+        ya usan para exponer un error legible con ``ValidationError`` y
+        ``codigo_error`` — la detecte también; ``clean()`` NO ejecuta
+        ``Meta.constraints`` (eso sólo ocurre vía ``validate_constraints()``/
+        ``full_clean()``, que este proyecto no invoca desde ``save()``, ver
+        precedente en ``_check_parent_not_circular``)."""
+        start = self.code_prefix_start or ''
+        end = self.code_prefix_end or ''
+        if len(start) != len(end):
+            raise ValidationError({
+                'code_prefix_end': 'ACCOUNT_GROUP_PREFIX_LENGTH_MISMATCH',
+            })
+
+    def _check_prefix_overlap(self):
+        """Rechaza que el rango de prefijo de ``self`` se solape con el de
+        otro grupo de la misma empresa y granularidad (misma longitud de
+        prefijo) — Odoo ``_constraint_prefix_overlap`` (odoo19c: 1549-1568).
+
+        La referencia lo resuelve con un self-join SQL crudo contra la
+        propia tabla; aquí se porta a una consulta del ORM sobre las filas
+        hermanas — no es expresable como ``CheckConstraint`` (que sólo ve
+        la fila que se escribe, no el resto de la tabla). Mismo criterio de
+        solape que la referencia, verbatim: dos rangos se solapan si el
+        inicio de uno cae dentro del rango del otro, en cualquier
+        dirección."""
+        start = self.code_prefix_start
+        if not self.company_id or not start:
+            return
+        end = self.code_prefix_end or start
+        conflict = (
+            type(self).objects
+            .filter(company_id=self.company_id)
+            .exclude(pk=self.pk)
+            .annotate(_prefix_length=Length('code_prefix_start'))
+            .filter(_prefix_length=len(start))
+            .filter(
+                models.Q(code_prefix_start__lte=start, code_prefix_end__gte=start)
+                | models.Q(code_prefix_start__gte=start, code_prefix_start__lte=end)
+            )
+        )
+        if conflict.exists():
+            raise ValidationError({
+                'code_prefix_start': 'ACCOUNT_GROUP_PREFIX_OVERLAP',
+            })
 
     def _sanitize_prefixes(self):
         """Cross-default de inicio/fin — Odoo ``_compute_code_prefix_start``/
