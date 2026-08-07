@@ -1,3 +1,13 @@
+---
+name: db-conexion-socket
+description: "Use when a migration, a pytest run, or an integration test fails on database connection in kaupamex-api, or before running the suite for the first time in a session. Carries the executable gate that tells socket from TCP (in libpq the socket IS the HOST), the two failures that look like credentials and are not (peer authentication, CREATEDB), and how the cluster is started on Debian. Invoke BEFORE diagnosing any connection error."
+allowed-tools: Read Glob Grep Bash
+layer: backend
+project: kaupamex
+origen: era .claude/rules/db-conexion-socket.md en api (siempre-cargada);
+  migrada a skill on-demand 2026-08-07 — sólo aplica al diagnosticar conexión.
+---
+
 # Conexión a DB — Socket Unix (gate ejecutable)
 
 Actualizado: 2026-08-06 (motor MariaDB → PostgreSQL, ADR-028).
