@@ -1,15 +1,46 @@
 """Bootstrap del cliente web — adaptación de
 ``odoo19c: addons/web/controllers/webclient.py``, licencia LGPL-3
-(``web/__manifest__.py``, DEC-KX-03).
-
-Completado 2026-08-07 contra H-API-369 / DEC-FW-04 — el addon ``web`` era una
-cáscara por debajo del 15 % de la masa de su contraparte; este archivo cierra
-el último de sus controladores.
+(``odoo-tools: addons/web/__manifest__.py``, DEC-KX-03).
 
 Medición símbolo-por-símbolo (``re.findall(r'^\\s{4}def (\\w+)', ref, re.M)``,
 mismo criterio que ``porte-completo-no-parcial.md``, sobre la clase única
 ``WebClient``): **6** métodos. **0 portados, 6 declarados ausentes** con
 razón — no hay recorte silencioso.
+
+Re-verificación 2026-08-07 (H-API-378) — los 6 se volvieron a medir hoy, no
+se heredaron del docstring anterior
+================================================================================
+
+``porte-completo-no-parcial.md`` prohíbe tratar una ausencia declarada como
+decisión cerrada. Los seis se re-comprobaron con comandos ejecutados en este
+pase, no releyendo la prosa previa:
+
+- ``bootstrap_translations`` / ``translations`` — se re-confirmó ``babel``
+  ausente y **0** ``.po`` de proyecto (mismo par de comandos que
+  ``utils.py::_local_web_translations``, ver ese docstring) y **0**
+  referencias a ``/web/webclient/translations`` en ``kaupamex-ui/src``
+  (``grep -rn`` → 0).
+- ``version_info`` — se releyó ``src/service/common.py`` completo hoy: existe,
+  y su tabla dice explícitamente *"``exp_version``/``exp_about`` → endpoint de
+  versión propio / metadata del build; no se expone un RPC de versión de
+  servidor"*. La afirmación del docstring anterior ("ya resuelto en
+  ``service/common.py``") se verificó, no se repitió de memoria — el archivo
+  está en ``src/service/common.py`` (paquete ``service`` top-level, hermano
+  de ``addons/``, no dentro de un addon).
+- ``unit_tests_suite`` / ``test_suite`` — ``find src/addons -type d -iname
+  static | wc -l`` → 0 (sigue sin ningún directorio de assets estáticos en
+  los addons) y ``find src/addons -iname "*.xml" | wc -l`` → 0 (sin plantillas
+  QWeb que renderizar). ``kaupamex-ui/package.json`` confirma
+  ``jest: ^29.7.0`` como el runner de pruebas de UI real.
+- ``bundle`` — ``base/models/ir_qweb.py`` (releído) declara el motor de
+  plantillas sin implementación de compilación; ``base/models/ir_asset.py`` y
+  ``base/models/assetsbundle.py`` (ambos releídos) declaran, respectivamente,
+  que la resolución de rutas contra manifests y el empaquetado real viven en
+  Webpack, en ``ui/``.
+
+Ningún consumidor nuevo apareció en ``kaupamex-ui`` para ninguno de los seis
+(mismo grep de arriba, 0 hits) — el veredicto se sostiene con evidencia
+propia de hoy, no por herencia del pase anterior.
 
 Por qué los 6 son ausentes — la misma causa raíz, en su forma final
 =====================================================================
