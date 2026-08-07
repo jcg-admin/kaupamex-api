@@ -16,7 +16,12 @@ class WebConfig(AppConfig):
     #: ``base.ResPartner``.
     _EXTENSIONES = (
         'addons.web.models.ir_http',
+        'addons.web.models.ir_model',
+        'addons.web.models.ir_ui_menu',
+        'addons.web.models.ir_ui_view',
         'addons.web.models.res_partner',
+        'addons.web.models.res_users',
+        'addons.web.models.res_users_settings',
     )
 
     def ready(self):

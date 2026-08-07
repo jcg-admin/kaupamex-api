@@ -21,15 +21,24 @@ qué se declara ausente con su razón — no hay recorte silencioso.
 - ``ir_http.py`` / ``res_partner.py`` extienden modelos de ``base`` vía
   ``_inherit`` (``apply_web_extensions()``, colgado desde
   ``WebConfig.ready()`` — ver ``apps.py``, no se importan aquí).
-- ``ir_model.py`` extiende ``ir.model``: 0 de 5 métodos portados (todos
-  declarados ausentes con razón) — sin código, no exporta símbolo.
+- ``ir_model.py`` / ``ir_ui_menu.py`` / ``ir_ui_view.py`` / ``res_users.py`` /
+  ``res_users_settings.py`` extienden modelos de ``base`` con el mismo
+  mecanismo que ``ir_http.py``.
+- ``res_users_settings_embedded_action.py`` → ``ResUsersSettingsEmbeddedAction``,
+  el **único modelo concreto** que la tanda añadió: tabla propia, FKs a
+  ``ResUsersSettings`` y ``IrActionsActWindow``. Por eso se importa aquí (Django
+  necesita verlo para registrarlo) y por eso ``web`` estrena ``migrations/``.
 """
 from .base_document_layout import BaseDocumentLayout  # noqa: F401
 from .models import AND, OR, Base, lazymapping  # noqa: F401
+from .res_users_settings_embedded_action import (  # noqa: F401
+    ResUsersSettingsEmbeddedAction,
+)
 
 __all__ = [
     'Base',
     'BaseDocumentLayout',
+    'ResUsersSettingsEmbeddedAction',
     'lazymapping',
     'AND',
     'OR',
