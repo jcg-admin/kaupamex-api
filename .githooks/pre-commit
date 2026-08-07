@@ -153,4 +153,22 @@ if [ -f "$LAYOUT_CHECKER" ]; then
     fi
 fi
 
+# ---------------------------------------------------------------------------
+# Gate 8: la URLConf resuelve entera (H-API-376).
+# Ninguno de los gates anteriores importa las rutas, y `django.setup()` tampoco
+# — leido del binario, solo hace logging + script prefix + apps.populate(). La
+# URLConf de Django es perezosa. Por eso api@31c2470 pudo commitear un urls.py
+# que importaba tres simbolos que su session.py no definia: el registro
+# arrancaba verde y el ImportError esperaba a la primera peticion.
+# Cuesta ~1.9 s, el mismo orden que el gate de lazy imports (~1.5 s).
+# Script: scripts/check_urlconf.py (se re-lanza solo bajo .venv).
+URLCONF_CHECKER="$REPO_ROOT/scripts/check_urlconf.py"
+if [ -f "$URLCONF_CHECKER" ] && [ ${#STAGED_PY[@]} -gt 0 ]; then
+    if ! python3 "$URLCONF_CHECKER" >/dev/null 2>&1; then
+        python3 "$URLCONF_CHECKER" >&2
+        echo "pre-commit: la URLConf no resuelve — commit bloqueado" >&2
+        exit 1
+    fi
+fi
+
 exit "$EXIT_CODE"
