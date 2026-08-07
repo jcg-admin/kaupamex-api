@@ -88,6 +88,7 @@ RE_COMODEL = re.compile(r"comodel_name\s*=\s*['\"]([\w.]+)['\"]")
 RE_ENV = re.compile(r"env\[['\"]([\w.]+)['\"]\]")
 RE_STR = re.compile(r"['\"]([\w.]+)['\"]")
 RE_CLASE = re.compile(r'^class\s+(\w+)\s*\(', re.M)
+RE_DEF = re.compile(r'^\s*def \w+', re.M)
 
 
 def commit_referencia():
@@ -132,11 +133,41 @@ def addons_de(raiz):
 
 
 def nuestros_addons():
-    """Los addons de src/addons. NO exigimos __manifest__: el porte no siempre lo trae."""
+    """Los addons de src/addons. NO exigimos __manifest__: el porte no siempre lo trae.
+
+    **El directorio prueba PRESENCIA, no cobertura.** Un addon presente puede ser
+    una cáscara — medido: ``crm`` tiene 5 ``def`` contra 414 de la referencia. Por
+    eso el grafo 4 mide la masa de cada addon presente; sin él, los grafos 1-3
+    tratan "el directorio existe" como "la dependencia está satisfecha", que es la
+    premisa que H-API-369 invalidó.
+    """
     if not os.path.isdir(NUESTRO):
         return set()
     return {n for n in os.listdir(NUESTRO)
             if os.path.isdir(os.path.join(NUESTRO, n)) and not n.startswith('_')}
+
+
+def cuenta_defs(raiz, addon):
+    """Número de ``def`` del árbol de un addon. Insumo del grafo 4.
+
+    Se cuenta la MASA, no la identidad: un símbolo renombrado al inglés sigue
+    contando. Es lo que distingue esta métrica de un cotejo por nombre, que
+    reporta 0 % ante un rename y no puede separar 'ausente' de 'renombrado'.
+    """
+    total = 0
+    base = os.path.join(raiz, addon)
+    for dirpath, _, ficheros in os.walk(base):
+        if '__pycache__' in dirpath:
+            continue
+        for f in ficheros:
+            if not f.endswith('.py'):
+                continue
+            try:
+                t = open(os.path.join(dirpath, f), encoding='utf-8', errors='replace').read()
+            except OSError:
+                continue
+            total += len(RE_DEF.findall(t))
+    return total
 
 
 def modelos_de_addon(raiz, addon):
@@ -295,6 +326,17 @@ def construir():
         usados |= modelos_referenciados(ODOO19C, a)
     mecanismos = sorted(m for m in usados if not (nombres_de_clase(m) & clases))
 
+    # Grafo 4 — cobertura de lo que YA está presente. Los grafos 1-3 asumen que un
+    # directorio presente satisface la dependencia; éste mide si eso es cierto.
+    masa = []
+    for a in portados_en_ref:
+        mio, suyo = cuenta_defs(NUESTRO, a), cuenta_defs(ODOO19C, a)
+        masa.append({'addon': a, 'nuestros': mio, 'referencia': suyo,
+                     'ratio': (mio / suyo) if suyo else None})
+    masa.sort(key=lambda x: (x['ratio'] is None, x['ratio']))
+    m_tot = sum(x['nuestros'] for x in masa)
+    r_tot = sum(x['referencia'] for x in masa)
+
     capas, ciclo = orden_topologico(set(huecos_reales) |
                                     cierre_transitivo(huecos_reales, depends) & set(ref),
                                     depends)
@@ -313,6 +355,9 @@ def construir():
         'cotenencia': cotenencia,
         'mecanismos_ausentes': mecanismos,
         'modelos_usados': len(usados),
+        'masa': masa,
+        'masa_total': {'nuestros': m_tot, 'referencia': r_tot,
+                       'ratio': (m_tot / r_tot) if r_tot else None},
         'orden_topologico': capas,
         'ciclo': ciclo,
     }
@@ -366,6 +411,25 @@ def imprimir(d):
         print(f"    - {m}")
     if len(d['mecanismos_ausentes']) > 40:
         print(f"    … {len(d['mecanismos_ausentes']) - 40} más (usar --json)")
+
+    mt = d['masa_total']
+    print(f"\nGRAFO 4 — cobertura de lo presente: {mt['nuestros']} def nuestros contra "
+          f"{mt['referencia']} de la referencia = {mt['ratio']:.1%}")
+    print("  Los grafos 1-3 tratan 'el directorio existe' como 'la dependencia está")
+    print("  satisfecha'. Este grafo mide si eso es cierto. Es H-API-369.")
+    print("  Métrica: conteo de 'def' por árbol de addon — MASA, no identidad, así que")
+    print("  un símbolo renombrado al inglés sigue contando.")
+    print("  Ciega a: (a) una descomposición distinta (menos métodos más grandes),")
+    print("  (b) los addons de forma propia deliberada (rating→Review, catalogue),")
+    print("  (c) un método presente pero HUECO — el defecto de H-API-350.")
+    cascaras = [x for x in d['masa'] if x['ratio'] is not None and x['ratio'] < 0.15]
+    print(f"\n  CÁSCARAS (<15% de la masa de su contraparte): {len(cascaras)} de "
+          f"{len(d['masa'])} addons presentes")
+    for x in cascaras[:20]:
+        print(f"    {x['addon']:<28} {x['nuestros']:>4} / {x['referencia']:>5} = "
+              f"{x['ratio']:.3f}")
+    if len(cascaras) > 20:
+        print(f"    … {len(cascaras) - 20} más (usar --json)")
 
     print(f"\nORDEN TOPOLÓGICO del pendiente — {len(d['orden_topologico'])} capas")
     print("  Una capa sólo depende de capas anteriores: sus addons son")
