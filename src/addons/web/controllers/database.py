@@ -25,9 +25,35 @@ Referencia                           Aquí
 ``drop`` (``:111``, master_pwd)      ``POST /api/v2/web/database/drop/``
                                       ``platform.provision`` — ``company_id``
 -----------------------------------  ----------------------------------------
+``backup`` (``:126``, master_pwd)    ``POST /api/v2/web/database/backup/``
+                                      ``platform.provision`` — ``company_id``,
+                                      streaming ``pg_dump --format=c``
+-----------------------------------  ----------------------------------------
+``restore`` (``:150``, master_pwd)   ``POST /api/v2/web/database/restore/``
+                                      ``platform.provision`` — ``company_id``
+                                      + ``dump_file`` (multipart)
+-----------------------------------  ----------------------------------------
 ``list`` (``:178``, jsonrpc,         ``GET /api/v2/web/database/``
 ``auth='none'``, sin password)       ``platform.view``
 ===================================  ========================================
+
+``backup``/``restore`` — corrección de una divergencia mal medida
+====================================================================
+
+La versión anterior de este docstring declaraba ``backup``/``restore`` como
+NO portados, razonando que ``db: scripts/backup_postgres.sh`` ya cubría el
+respaldo. **Esa premisa era falsa** — medido hoy
+(``kaupamex-db: scripts/backup_postgres.sh:60-61``): ese script vuelca
+únicamente ``DB_PROD``/``DB_QA`` (``kaupamex_db``/``kaupamex_qa``, el plano
+L0), nunca un ``company_<N>_db`` — el propio script no conoce esa forma de
+nombre. No había mecanismo alguno, ni HTTP ni de script, para respaldar o
+restaurar la base de **una empresa**. Ambos se construyen aquí:
+``service/db.py::dump_database``/``restore_database`` (``pg_dump
+--format=c``/``pg_restore``, streaming, sin fichero intermedio en el dump).
+Ver ``porte-completo-no-parcial.md`` — un porte que se queda sin la mitad que
+le da sentido pasa igual sus tests si los tests también se escriben sobre lo
+portado; aquí el defecto lo destapó comparar la afirmación contra el archivo
+citado, no una suite.
 
 Lo que esta adaptación NO porta
 ================================
@@ -35,20 +61,12 @@ Lo que esta adaptación NO porta
 ``selector`` / ``manager`` / ``_render_template`` (``:59``, ``:65``, ``:30``).
 Renderizan la página HTML de gestión de bases vía QWeb
 (``database_manager.qweb.html`` + fragments). Este backend es API-only (DRF +
-JSON) — no hay motor de plantillas server-side cableado para esta superficie.
-El consumidor de los cuatro endpoints de arriba sería un panel nativo en
-``ui/`` (no construido aún), no una página renderizada por el servidor.
-``_render_template`` sólo existía para alimentar a ``selector``/``manager``:
-sin ellas no tiene función.
-
-``backup`` / ``restore`` (``:126``, ``:150``). Volcado/restauración completos
-de una base (con filestore) ya tienen mecanismo operativo propio en este
-proyecto: ``db: scripts/backup_postgres.sh`` (``pg_dump -Fc`` + verificación
-``pg_restore --list`` + SHA-256) y su contraparte de restauración manual.
-Exponer un dump/restore completo por HTTP duplicaría ese tooling y añadiría
-riesgo (transferencia de binarios grandes, acción irreversible) sin que
-ningún consumidor lo requiera hoy — divergencia de mecanismo declarada
-(``porte-completo-no-parcial.md``, desenlace 1), no una omisión silenciosa.
+JSON) — no hay motor de plantillas server-side cableado para esta superficie
+(mismo hallazgo, mismo comando, que ``home.py``/``webmanifest.py`` ya
+midieron: **0** directorios ``static/`` en los 78 addons). El consumidor de
+los seis endpoints de arriba sería un panel nativo en ``ui/`` (no construido
+aún), no una página renderizada por el servidor. ``_render_template`` sólo
+existía para alimentar a ``selector``/``manager``: sin ellas no tiene función.
 
 ``change_password`` (``:169``). Cambia el ``master_pwd`` compartido que
 autoriza `toda` la gestión multi-DB. Ese concepto no tiene análogo aquí: el
@@ -57,12 +75,12 @@ que se administra por asignación de rol (``RoleCapability``), no por un
 secreto que rotar. No hay nada que "cambiar" — el mecanismo completo se
 resuelve de otra forma.
 
-Tres divergencias declaradas sobre los cuatro endpoints portados
+Cinco divergencias declaradas sobre los seis endpoints portados
 ==================================================================
 
 1. **Identidad por ``company_id``, nunca por nombre de base crudo.** La
    referencia recibe el nombre de la base como string libre (``name``,
-   ``new_name``) validado sólo contra ``DBNAME_PATTERN``. Aquí los cuatro
+   ``new_name``) validado sólo contra ``DBNAME_PATTERN``. Aquí los seis
    endpoints reciben el ``id`` de una fila ``ResCompany`` existente y derivan
    el alias con ``company_db_alias(company.id)`` — un string arbitrario del
    cliente nunca llega a ``CREATE``/``DROP DATABASE``. Guard adicional sobre
@@ -73,16 +91,42 @@ Tres divergencias declaradas sobre los cuatro endpoints portados
    operativo; aquí el nombre de la base **es** la identidad del tenant
    (``company_<N>_db``), dato sensible en un modelo multi-company — exponerlo
    sin autenticar filtraría el tamaño y la existencia de la plataforma.
-3. **``create``/``duplicate``/``drop`` gated con ``platform.provision``
-   (DEC-11), no con ``master_pwd``.** Es el mismo criterio de
-   ``sale_subscription/controllers/views.py::CompanyViewSet`` (alta/baja de
-   tenants L0): escritura sensible por capacidad, no por secreto compartido.
-   ``platform.provision`` está marcada ``is_sensitive=True`` en el catálogo
+3. **``create``/``duplicate``/``drop``/``backup``/``restore`` gated con
+   ``platform.provision`` (DEC-11), no con ``master_pwd``.** Es el mismo
+   criterio de ``sale_subscription/controllers/views.py::CompanyViewSet``
+   (alta/baja de tenants L0): escritura sensible por capacidad, no por
+   secreto compartido. ``platform.provision`` está marcada
+   ``is_sensitive=True`` en el catálogo
    (``sale_subscription/security/authz_catalog.py``), así que
-   ``HasCapability`` exige sesión elevada fresca (DEC-12) automáticamente.
+   ``HasCapability`` exige sesión elevada fresca (DEC-12) automáticamente —
+   incluida ``backup``, que en la referencia sólo exige ``master_pwd`` y aquí
+   además exige la re-auth de DEC-12 pese a ser de sólo lectura: es el mismo
+   trato que ``code_requires_fresh_session`` da a toda acción nombrada
+   sensible (``addons/authz/catalog.py:44-59``), sin la excepción que sí
+   aplica a los sustantivos graduados (leer ``payments.view`` no exige
+   frescura; una acción nombrada sensible, sí, siempre).
+4. **``backup`` sin fichero intermedio, sin ``filestore``.** La referencia
+   arma un directorio temporal con ``dump.sql`` + copia del ``filestore/`` y
+   lo empaqueta en ``zip`` (``backup_format='zip'`` por defecto). Aquí no hay
+   filestore que copiar (los binarios de ``IrAttachment`` viven en la propia
+   base), así que el dump ``-Fc`` de ``pg_dump`` ya es autocontenido — no hace
+   falta el paso de empaquetado. El streaming es igual de directo que la
+   referencia con ``backup_format='custom'`` (``Popen(..., stdout=PIPE)``, sin
+   ``stream=None``, ver ``odoo19c: odoo/service/db.py:307-313``).
+5. **``restore`` sin ``copy``/``neutralize_database``, y aborta si el destino
+   ya existe.** La referencia también aborta si el destino existe
+   (``restore_db`` — *"Database already exists"*); ``copy``/
+   ``neutralize_database`` son transformaciones post-restore sin consumidor
+   hoy (ver docstring de ``service/db.py::restore_database``).
 """
+import os
+import tempfile
+
+from django.http import FileResponse
+
 from rest_framework import status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, parser_classes
+from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 
 from drf_spectacular.utils import OpenApiResponse, extend_schema
@@ -93,10 +137,13 @@ from orm.routers import company_db_alias
 from service.db import (
     DatabaseExists,
     DatabaseManagementDisabled,
+    RestoreFailed,
     drop_database,
+    dump_database,
     duplicate_database,
     list_company_db_names,
     provision_company_database,
+    restore_database,
 )
 
 _TAGS = ['web-database']
@@ -296,3 +343,126 @@ def database_drop(request):
             status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
     return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@extend_schema(
+    tags=_TAGS,
+    summary='Respaldar la base de una empresa (streaming, formato -Fc)',
+    request=OpenApiResponse(description='{company_id: int}'),
+    responses={
+        200: OpenApiResponse(description='application/octet-stream — pg_dump --format=c'),
+        400: OpenApiResponse(description='COMPANY_ID_REQUIRED'),
+        404: OpenApiResponse(description='COMPANY_NOT_FOUND | DATABASE_NOT_FOUND'),
+        503: OpenApiResponse(description='DATABASE_MANAGEMENT_DISABLED'),
+    },
+)
+@api_view(['POST'])
+@require_capability(_CAP_PROVISION)
+def database_backup(request):
+    """≙ ``/web/database/backup`` — streaming ``pg_dump --format=c``, sin
+    ``master_pwd``/``filestore`` (divergencias 3-4 del docstring del módulo)."""
+    company_id = request.data.get('company_id')
+    company = _get_company_or_404(company_id)
+    if company is None:
+        if company_id is None:
+            return Response(
+                {'codigo_error': 'COMPANY_ID_REQUIRED',
+                 'detail': 'company_id es obligatorio.'},
+                status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {'codigo_error': 'COMPANY_NOT_FOUND',
+             'detail': 'No existe una company con ese id.'},
+            status=status.HTTP_404_NOT_FOUND)
+
+    db_name = company_db_alias(company.id)
+    try:
+        stream = dump_database(db_name)
+    except DatabaseManagementDisabled as exc:
+        return Response(
+            {'codigo_error': 'DATABASE_MANAGEMENT_DISABLED', 'detail': str(exc)},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE)
+    except ValueError as exc:
+        return Response(
+            {'codigo_error': 'DATABASE_NOT_FOUND', 'detail': str(exc)},
+            status=status.HTTP_404_NOT_FOUND)
+
+    return FileResponse(
+        stream, as_attachment=True, filename=f'{db_name}.dump',
+        content_type='application/octet-stream')
+
+
+@extend_schema(
+    tags=_TAGS,
+    summary='Restaurar la base de una empresa desde un dump -Fc',
+    request={'multipart/form-data': OpenApiResponse(
+        description='company_id, dump_file (formato -Fc de pg_dump)')},
+    responses={
+        200: OpenApiResponse(description='{db_name}'),
+        400: OpenApiResponse(description='COMPANY_ID_REQUIRED | DUMP_FILE_REQUIRED'),
+        404: OpenApiResponse(description='COMPANY_NOT_FOUND'),
+        409: OpenApiResponse(description='TARGET_DATABASE_ALREADY_EXISTS'),
+        422: OpenApiResponse(description='RESTORE_FAILED'),
+        503: OpenApiResponse(description='DATABASE_MANAGEMENT_DISABLED'),
+    },
+)
+@api_view(['POST'])
+@parser_classes([MultiPartParser])
+@require_capability(_CAP_PROVISION)
+def database_restore(request):
+    """≙ ``/web/database/restore`` — ``dump_file`` (mismo contrato multipart
+    que ``binary.py::upload_attachment``) en vez de ``backup_file``+``name``
+    (divergencia 5 del docstring del módulo: sin ``copy``/
+    ``neutralize_database``, aborta si el destino ya existe).
+
+    ``company_id`` se castea explícito con ``int()`` — a diferencia de
+    ``database_create``/``database_drop`` (JSON, donde ``request.data`` ya
+    entrega un ``int``), ``MultiPartParser`` entrega **todos** los campos de
+    formulario como ``str`` (mismo patrón que ``upload_attachment::res_id``);
+    sin el cast, ``_get_company_or_404`` descartaría cualquier id válido por
+    ``isinstance(company_id, int)``.
+    """
+    raw_company_id = request.data.get('company_id')
+    try:
+        company_id = int(raw_company_id)
+    except (TypeError, ValueError):
+        return Response(
+            {'codigo_error': 'COMPANY_ID_REQUIRED',
+             'detail': 'company_id es obligatorio y debe ser un entero.'},
+            status=status.HTTP_400_BAD_REQUEST)
+    company = _get_company_or_404(company_id)
+    if company is None:
+        return Response(
+            {'codigo_error': 'COMPANY_NOT_FOUND',
+             'detail': 'No existe una company con ese id.'},
+            status=status.HTTP_404_NOT_FOUND)
+
+    dump_file = request.FILES.get('dump_file')
+    if dump_file is None:
+        return Response(
+            {'codigo_error': 'DUMP_FILE_REQUIRED',
+             'detail': 'dump_file es obligatorio.'},
+            status=status.HTTP_400_BAD_REQUEST)
+
+    db_name = company_db_alias(company.id)
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix='.dump')
+    try:
+        for chunk in dump_file.chunks():
+            tmp.write(chunk)
+        tmp.close()
+        db_name = restore_database(db_name, tmp.name)
+    except DatabaseManagementDisabled as exc:
+        return Response(
+            {'codigo_error': 'DATABASE_MANAGEMENT_DISABLED', 'detail': str(exc)},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE)
+    except DatabaseExists as exc:
+        return Response(
+            {'codigo_error': 'TARGET_DATABASE_ALREADY_EXISTS', 'detail': str(exc)},
+            status=status.HTTP_409_CONFLICT)
+    except RestoreFailed as exc:
+        return Response(
+            {'codigo_error': 'RESTORE_FAILED', 'detail': str(exc)},
+            status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+    finally:
+        os.unlink(tmp.name)
+
+    return Response({'db_name': db_name})

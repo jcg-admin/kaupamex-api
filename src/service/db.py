@@ -25,7 +25,9 @@ y ``RENAME DATABASE`` no existen en MariaDB → se adaptan con
 """
 import copy
 import logging
+import os
 import re
+import subprocess
 from contextlib import contextmanager
 
 import psycopg
@@ -44,6 +46,15 @@ class DatabaseManagementDisabled(Exception):
 
 class DatabaseExists(Exception):
     """== ``DatabaseExists`` de ``_create_empty_database`` en Odoo."""
+
+
+class RestoreFailed(Exception):
+    """== ``Exception("Couldn't restore database")`` de ``restore_db`` en Odoo.
+
+    ``pg_restore`` devolvió un código de salida distinto de cero. El mensaje
+    lleva su ``stdout+stderr`` combinado (mismo criterio que ``exp_restore``:
+    la referencia también propaga un genérico, no el traceback de psql).
+    """
 
 
 # Forma canónica del nombre de base de empresa (== ``routers.company_db_alias``).
@@ -430,6 +441,117 @@ def duplicate_database(src_name, dst_name, using=DEFAULT_DB_ALIAS):
             % (quote_db_identifier(dst_name), quote_db_identifier(src_name))
         )
     return dst_name
+
+
+# ---------------------------------------------------------------------------
+# Respaldo/restauración (== ``dump_db``/``restore_db`` de ``service/db.py``)
+# ---------------------------------------------------------------------------
+
+def _pg_env(using=DEFAULT_DB_ALIAS):
+    """``PGHOST``/``PGPORT``/``PGUSER``/``PGPASSWORD``/``PGSSLMODE`` para
+    ``pg_dump``/``pg_restore`` en subproceso (== ``exec_pg_environ`` de la
+    referencia).
+
+    Reusa las credenciales del alias activo — el rol que crea las bases
+    (``django_user``) es también su dueño, así que puede volcarlas y
+    restaurarlas sin un rol de respaldo aparte. Ese rol (``py_backup_user``,
+    ``db: scripts/backup_postgres.sh``) existe para el respaldo **periódico**
+    de las dos bases L0 (``kaupamex_db``/``kaupamex_qa``, cron, mínimo
+    privilegio de sólo-lectura); esta superficie es **on-demand**, por una
+    base de empresa concreta, ejercida por quien ya tiene ``platform.
+    provision`` — no hay razón para introducir un segundo rol.
+    """
+    sd = connections[using].settings_dict
+    env = os.environ.copy()
+    host = sd.get('HOST') or None
+    if host:
+        env['PGHOST'] = host
+    port = sd.get('PORT') or None
+    if port:
+        env['PGPORT'] = str(port)
+    env['PGUSER'] = sd['USER']
+    password = sd.get('PASSWORD') or None
+    if password:
+        env['PGPASSWORD'] = password
+    # El socket ignora TLS (mismo guard que ``_connect``); sólo viaja por TCP.
+    if not (host or '').startswith('/'):
+        sslmode = (sd.get('OPTIONS', {}) or {}).get('sslmode')
+        if sslmode:
+            env['PGSSLMODE'] = sslmode
+    return env
+
+
+class _DumpStream:
+    """Envuelve ``Popen.stdout``: al cerrarse (``FileResponse`` ya terminó de
+    leerlo), espera al proceso para no dejar un zombie.
+
+    ``Popen`` por sí solo no reapa el hijo hasta ``.wait()``/``.poll()``; un
+    ``FileResponse`` sólo cierra el file-like, nunca conoce el ``Popen`` que
+    lo produjo. Este envoltorio ata ambos ciclos de vida.
+    """
+
+    def __init__(self, proc):
+        self._proc = proc
+
+    def read(self, size=-1):
+        return self._proc.stdout.read(size)
+
+    def close(self):
+        self._proc.stdout.close()
+        self._proc.wait()
+
+
+def dump_database(db_name, using=DEFAULT_DB_ALIAS):
+    """== ``dump_db``: ``pg_dump --format=c`` de ``db_name``, en streaming.
+
+    Sin fichero intermedio — mismo patrón que la referencia
+    (``subprocess.Popen(..., stdout=PIPE)``, sin ``stream=None``): el
+    llamador consume el file-like devuelto y lo cierra cuando termina de
+    leer. Mismo formato ``-Fc`` que ``db: scripts/backup_postgres.sh`` (deja
+    restaurar selectivamente con ``pg_restore -t``); a diferencia de la
+    referencia (``backup_format='zip'`` con ``filestore/`` embebido), esta
+    plataforma no separa un filestore de disco — los binarios de
+    ``IrAttachment`` viven en la propia base (``datas``) — así que no hay
+    directorio adicional que empaquetar: el dump SQL ya es completo.
+    """
+    ensure_management_enabled()
+    if not database_exists(db_name, using):
+        raise ValueError('la base %r no existe' % (db_name,))
+    cmd = ['pg_dump', '--no-owner', '--format=c', db_name]
+    proc = subprocess.Popen(
+        cmd, env=_pg_env(using), stdin=subprocess.DEVNULL, stdout=subprocess.PIPE)
+    return _DumpStream(proc)
+
+
+def restore_database(db_name, dump_path, using=DEFAULT_DB_ALIAS):
+    """== ``restore_db``: crea ``db_name`` vacía y aplica ``pg_restore`` desde
+    ``dump_path`` (fichero en disco, formato ``-Fc``).
+
+    ``DatabaseExists`` si ``db_name`` ya existe — igual que la referencia
+    (``restore_db`` nunca sobreescribe una base viva); soltarla antes es
+    decisión explícita del llamador, mismo criterio que ``duplicate_database``.
+    Si ``pg_restore`` falla, la base recién creada (vacía o a medio restaurar)
+    se suelta — un restore fallido no debe dejar una base a medias con el
+    mismo nombre que el siguiente intento necesita.
+
+    Sin ``copy``/``neutralize_database`` (kwargs de ``restore_db``): no hay
+    consumidor hoy, y ambas son transformaciones *post*-restore que corren
+    igual de bien invocando ``manage.py`` después — no son parte del
+    mecanismo de restaurar, sino de qué hacer con lo restaurado.
+    """
+    ensure_management_enabled()
+    if database_exists(db_name, using):
+        raise DatabaseExists('la base %r ya existe' % (db_name,))
+    create_empty_database(db_name, using)
+    cmd = ['pg_restore', '--no-owner', '--dbname=' + db_name, dump_path]
+    result = subprocess.run(
+        cmd, env=_pg_env(using),
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    if result.returncode != 0:
+        drop_database(db_name, using)
+        raise RestoreFailed(result.stdout.decode(errors='replace'))
+    install_company_aliases(settings.DATABASES, names=[db_name], using=using)
+    return db_name
 
 
 def rename_database(old_name, new_name, using=DEFAULT_DB_ALIAS):

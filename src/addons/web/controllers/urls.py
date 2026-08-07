@@ -13,10 +13,12 @@ from addons.web.controllers.binary import (
     upload_attachment,
 )
 from addons.web.controllers.database import (
+    database_backup,
     database_create,
     database_drop,
     database_duplicate,
     database_list,
+    database_restore,
 )
 from addons.web.controllers.home import health, robots
 from addons.web.controllers.session import (
@@ -50,6 +52,8 @@ urlpatterns = [
     path('database/create/', database_create, name='database-create'),
     path('database/duplicate/', database_duplicate, name='database-duplicate'),
     path('database/drop/', database_drop, name='database-drop'),
+    path('database/backup/', database_backup, name='database-backup'),
+    path('database/restore/', database_restore, name='database-restore'),
     # ≙ binary.py (H-API-369, DEC-FW-04) — streaming de binarios; nombres
     # de ruta calcan el segmento ``/web/...`` de la referencia.
     path('content/', content_common, name='content-common'),
