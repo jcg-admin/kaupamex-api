@@ -1,8 +1,18 @@
 """Sesión del cliente — adaptación de ``odoo19c: addons/web/controllers/session.py``.
 
-Las cuatro rutas de sesión de la referencia, adaptadas al contrato REST del
-producto. El mecanismo NO se reimplementa: Django ya provee sesión de servidor,
-que es justo lo que ADR-018 declara como autenticación por defecto.
+Siete de las ocho rutas de sesión de la referencia (todas salvo ``account``,
+ver más abajo), adaptadas al contrato REST del producto. El mecanismo NO se
+reimplementa: Django ya provee sesión de servidor, que es justo lo que
+ADR-018 declara como autenticación por defecto.
+
+Completado 2026-08-07 (H-API-373): ``check``/``modules``/``get_lang_list``
+figuraban en esta tabla y en ``LangSerializer``/``IrModule``/``ResLang``
+importados, pero **sin vista implementada** — un grep por substring
+(``'authenticate' in texto``) los daba por portados porque ``authenticate``
+aparece contenido dentro de ``session_authenticate``. Medido por AST
+(``ast.FunctionDef``, no substring) sobre la clase ``Session`` de la
+referencia (8 métodos) contra las funciones de este módulo: sólo 4 tenían
+cuerpo real. Los tres quedan implementados abajo.
 
 Correspondencia con la referencia (``odoo-tools@622ddc2a``)
 ===========================================================
@@ -96,6 +106,8 @@ from addons.base.models import IrModule, ResLang
 from addons.web.controllers.serializers import (
     CredentialSerializer, LangSerializer, SessionInfoSerializer,
 )
+
+_MODULES_RESPONSE = OpenApiResponse(description='["addon_a", "addon_b", ...]')
 
 
 def _session_info(user):
@@ -209,3 +221,64 @@ def session_logout(request):
     """
     logout(request)
     return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@extend_schema(
+    tags=['web'],
+    summary='Validar la sesión activa (no-op)',
+    request=None,
+    responses={204: OpenApiResponse(description='Sesión válida')},
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def session_check(request):
+    """≙ ``/web/session/check`` — la referencia también es un no-op
+    (``return  # ir.http@_authenticate does the job``). Aquí
+    ``permission_classes([IsAuthenticated])`` ES ese chequeo: si la sesión no
+    es válida, DRF corta antes de llegar al cuerpo de la vista.
+    """
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@extend_schema(
+    tags=['web'],
+    summary='Listar los addons instalados',
+    responses={200: _MODULES_RESPONSE},
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def session_modules(request):
+    """≙ ``/web/session/modules``.
+
+    La referencia lee ``request.env.registry._init_modules`` (el registry en
+    memoria del proceso Odoo). Aquí el catálogo de addons instalados es un
+    modelo de datos propio (``base.IrModule``, ``ir_module.py``), así que se
+    consulta ahí en vez de un registry — mismo dato, otra fuente.
+    """
+    names = list(
+        IrModule.objects
+        .filter(state=IrModule.STATE_INSTALLED)
+        .order_by('name')
+        .values_list('name', flat=True)
+    )
+    return Response(names)
+
+
+@extend_schema(
+    tags=['web'],
+    summary='Listar los idiomas activos',
+    responses={200: LangSerializer(many=True)},
+    auth=[],
+)
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def session_get_lang_list(request):
+    """≙ ``/web/session/get_lang_list``.
+
+    La referencia escanea los ``.po`` del árbol (``scan_languages()``, vía
+    ``dispatch_rpc('db', 'list_lang', [])``). Aquí el catálogo de idiomas
+    activos es un modelo (``base.ResLang``), así que se consulta ahí — ver
+    docstring de ``LangSerializer``.
+    """
+    langs = ResLang.objects.filter(active=True).order_by('name')
+    return Response(LangSerializer(langs, many=True).data)

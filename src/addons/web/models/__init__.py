@@ -16,11 +16,20 @@ qué se declara ausente con su razón — no hay recorte silencioso.
 - ``models.py`` → ``Base`` (mixin abstracto, ≙ ``_inherit = 'base'`` de la
   referencia — mismo estado no-wireado que ``addons.base.models.ir_model.Base``,
   su propio destino) + ``lazymapping`` + ``AND``/``OR``.
+- ``base_document_layout.py`` → ``BaseDocumentLayout`` (``TransientModel``
+  sin tabla — asistente de papelería/membrete, ``base.document.layout``).
+- ``ir_http.py`` / ``res_partner.py`` extienden modelos de ``base`` vía
+  ``_inherit`` (``apply_web_extensions()``, colgado desde
+  ``WebConfig.ready()`` — ver ``apps.py``, no se importan aquí).
+- ``ir_model.py`` extiende ``ir.model``: 0 de 5 métodos portados (todos
+  declarados ausentes con razón) — sin código, no exporta símbolo.
 """
+from .base_document_layout import BaseDocumentLayout  # noqa: F401
 from .models import AND, OR, Base, lazymapping  # noqa: F401
 
 __all__ = [
     'Base',
+    'BaseDocumentLayout',
     'lazymapping',
     'AND',
     'OR',

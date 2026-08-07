@@ -11,9 +11,12 @@ class WebConfig(AppConfig):
 
     #: Módulos que extienden modelos de OTRO addon — ≙ ``_inherit``. Mismo
     #: patrón que ``AccountQrCodeSepaConfig._EXTENSIONES``: ``ir_http.py``
-    #: cuelga ``is_a_bot``/``bots`` sobre ``base.IrHttp`` (H-API-369).
+    #: cuelga ``is_a_bot``/``bots`` sobre ``base.IrHttp`` (H-API-369);
+    #: ``res_partner.py`` cuelga ``_build_vcard``/``_get_vcard_file`` sobre
+    #: ``base.ResPartner``.
     _EXTENSIONES = (
         'addons.web.models.ir_http',
+        'addons.web.models.res_partner',
     )
 
     def ready(self):
