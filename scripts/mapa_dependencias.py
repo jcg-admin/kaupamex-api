@@ -54,16 +54,31 @@ NUESTRO = os.path.join(os.path.dirname(AQUI), 'src', 'addons')
 ODOO19C = '/home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0/addons'
 ODOO_TOOLS = '/home/user/odoo-tools'
 
-# Huecos que NO son huecos: absorciones deliberadas con otro nombre. Cada fila
-# necesita su evidencia; sin ella el nombre no entra aqui.
-ABSORBIDOS = {
+# SOSPECHA de absorción con otro nombre. **NO se descuenta del conteo de
+# huecos** — la absorción es un VEREDICTO que se emite con evidencia, no una
+# precondición de la medición.
+#
+# La versión anterior de este bloque se llamaba ABSORBIDOS y sí descontaba. El
+# ejecutor midió que una de sus filas era falsa: `portal_rating` → `rating`.
+# En la referencia son DOS addons distintos — `rating` declara los tres modelos
+# (`rating.rating`, `rating.mixin`, `rating.parent.mixin`, 15 .py) y
+# `portal_rating` es la capa de portal encima, con **0 `_name`** en sus 9 .py.
+# Nuestro `rating` tampoco es el suyo: sus clases son `Review`,
+# `ReviewHelpfulVote`, `RatingConfig` — implementación REST propia. La fila
+# afirmaba una equivalencia que nadie había medido, y `website_sale` y
+# `website_slides` exigen `portal_rating`, así que descontarlo escondía un
+# hueco real.
+#
+# Sólo 2 de las 7 filas llegaban a disparar; las otras cinco eran filas muertas
+# sobre addons fuera del cierre transitivo. Un mapa cuyo denominador depende de
+# siete afirmaciones sin medir no es un mapa.
+SOSPECHA_ABSORCION = {
     'auth_signup': 'authz_signup',
     'auth_totp': 'authz_totp',
     'auth_totp_mail': 'authz_totp_mail',
     'auth_ldap': 'authz_ldap',
     'auth_oauth': 'authz_oauth',
     'auth_passkey': 'authz_passkey',
-    'portal_rating': 'rating',
 }
 
 RE_NAME = re.compile(r"^\s*_name\s*=\s*['\"]([\w.]+)['\"]", re.M)
@@ -249,8 +264,9 @@ def construir():
     portados_en_ref = sorted(nuestros & set(ref))
     cierre = cierre_transitivo(portados_en_ref, depends)
     huecos = sorted(a for a in cierre if a not in nuestros and a in ref)
-    huecos_reales = [h for h in huecos if h not in ABSORBIDOS]
-    huecos_absorbidos = [h for h in huecos if h in ABSORBIDOS]
+    # Los huecos son TODOS. La sospecha se anota al lado, no se descuenta.
+    huecos_reales = list(huecos)
+    sospechosos = [h for h in huecos if h in SOSPECHA_ABSORCION]
 
     # Grafo 2 — co-tenencia sin dependencia, restringida a lo que ya tenemos
     por_modelo = defaultdict(set)
@@ -282,7 +298,7 @@ def construir():
     capas, ciclo = orden_topologico(set(huecos_reales) |
                                     cierre_transitivo(huecos_reales, depends) & set(ref),
                                     depends)
-    capas = [[a for a in c if a not in nuestros and a not in ABSORBIDOS] for c in capas]
+    capas = [[a for a in c if a not in nuestros] for c in capas]
     capas = [c for c in capas if c]
 
     return {
@@ -292,7 +308,7 @@ def construir():
         'portados_en_ref': portados_en_ref,
         'cierre_transitivo': len(cierre),
         'huecos': huecos_reales,
-        'huecos_absorbidos': {h: ABSORBIDOS[h] for h in huecos_absorbidos},
+        'sospecha_absorcion': {h: SOSPECHA_ABSORCION[h] for h in sospechosos},
         'manifiestos_ilegibles': malos,
         'cotenencia': cotenencia,
         'mecanismos_ausentes': mecanismos,
@@ -323,11 +339,12 @@ def imprimir(d):
     print("  deliberados, (c) lo inverso — un addon que usa algo sin declararlo.")
     for h in d['huecos']:
         print(f"    - {h}")
-    if d['huecos_absorbidos']:
-        print(f"\n  Ya absorbidos con otro nombre ({len(d['huecos_absorbidos'])}), "
-              f"excluidos del conteo:")
-        for h, n in sorted(d['huecos_absorbidos'].items()):
-            print(f"    - {h} → {n}")
+    if d['sospecha_absorcion']:
+        print(f"\n  SOSPECHA de absorción ({len(d['sospecha_absorcion'])}) — "
+              f"NO descontados: la absorción es un veredicto con evidencia,")
+        print("  no una precondición del conteo (ver el bloque SOSPECHA_ABSORCION).")
+        for h, n in sorted(d['sospecha_absorcion'].items()):
+            print(f"    - {h} ¿→ {n}?")
 
     print(f"\nGRAFO 2 — co-tenencia sin dependencia: {len(d['cotenencia'])} pares")
     print("  Un análisis de depends es CIEGO a esto por construcción: dos addons")
