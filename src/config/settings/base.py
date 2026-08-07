@@ -126,6 +126,11 @@ INSTALLED_APPS = [
     'addons.fleet',
     'addons.resource',
     'addons.digest',
+    # Bloque 0 de `integrar-cfdi-mexico-nativo`: la localización contable de
+    # México. Va DESPUÉS de `account` porque su `ready()` cuelga campos sobre
+    # `account.account`/`account.tax` con `add_to_class`, y el registro tiene
+    # que tener esos modelos ya poblados.
+    'addons.l10n_mx',
 ]
 
 AUTH_USER_MODEL = 'base.ResUsers'
