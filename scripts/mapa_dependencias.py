@@ -148,16 +148,27 @@ def nuestros_addons():
 
 
 def cuenta_defs(raiz, addon):
-    """Número de ``def`` del árbol de un addon. Insumo del grafo 4.
+    """Número de ``def`` de PRODUCCIÓN de un addon. Insumo del grafo 4.
 
     Se cuenta la MASA, no la identidad: un símbolo renombrado al inglés sigue
     contando. Es lo que distingue esta métrica de un cotejo por nombre, que
     reporta 0 % ante un rename y no puede separar 'ausente' de 'renombrado'.
+
+    **``tests/`` queda fuera en AMBOS lados.** La suite de la referencia usa su
+    propio framework y no se porta verbatim — los nuestros son pytest en
+    ``tests/unit/<addon>/``, fuera del árbol del addon. Incluirla inflaba el
+    denominador un **41.4 %** (6563 de 15849 ``def`` en los 34 addons de
+    DEC-FW-04) con trabajo que nunca se hará en esa forma, y hundía el ratio de
+    los addons cuya referencia está bien testeada. La cobertura de nuestra
+    suite es un eje aparte; ésta mide código de producción contra código de
+    producción.
     """
     total = 0
     base = os.path.join(raiz, addon)
     for dirpath, _, ficheros in os.walk(base):
         if '__pycache__' in dirpath:
+            continue
+        if os.sep + 'tests' in dirpath + os.sep:
             continue
         for f in ficheros:
             if not f.endswith('.py'):
