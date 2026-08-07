@@ -23,10 +23,22 @@ Referencia                       Aquí
 -------------------------------  --------------------------------------------
 ``/web/session/get_session_info``  ``GET /api/v2/web/session/``
 ``:25``, ``auth='user'``
+-------------------------------  --------------------------------------------
+``/web/session/check``           ``GET /api/v2/web/session/check/``
+``:69``, ``jsonrpc``,            ``IsAuthenticated`` — no-op, valida sesión
+``auth='user'``
+-------------------------------  --------------------------------------------
+``/web/session/modules``         ``GET /api/v2/web/session/modules/``
+``:64``, ``jsonrpc``,            ``IsAuthenticated``
+``auth='user'``
+-------------------------------  --------------------------------------------
+``/web/session/get_lang_list``   ``GET /api/v2/web/session/get_lang_list/``
+``:57``, ``jsonrpc``,            ``AllowAny`` — catálogo público, sin dato
+``auth="none"``                  sensible
 ===============================  ============================================
 
-Tres divergencias declaradas
-=============================
+Cuatro divergencias declaradas
+================================
 
 1. **Sin parámetro ``db``.** La referencia lo recibe y valida contra
    ``http.db_filter`` porque un servidor sirve N bases. Aquí la base es una y
@@ -38,6 +50,30 @@ Tres divergencias declaradas
    (``keep_db``); ninguna de las dos distinciones sobrevive aquí. Se conservan
    ambas rutas porque son contrato publicado de la referencia, no por aportar
    comportamientos distintos.
+4. **``modules``/``get_lang_list`` resuelven contra modelos propios, no
+   contra el registry ni el RPC dispatch de la referencia.** ``modules``
+   consulta ``base.IrModule`` (``state='installed'``) en vez de
+   ``request.env.registry._init_modules`` — el catálogo técnico de addons ya
+   es un modelo de datos en este árbol (ver ``base/models/ir_module.py``).
+   ``get_lang_list`` consulta ``base.ResLang`` (``active=True``) en vez de
+   escanear los ``.po`` del árbol con ``scan_languages()`` — el catálogo de
+   idiomas también es un modelo, no un directorio de traducciones.
+
+Lo que esta adaptación NO porta
+================================
+
+``account`` (``:73``, ``jsonrpc``, ``auth='user'``). Arma la URL de OAuth
+hacia ``https://accounts.odoo.com/oauth2/auth`` para enlazar la sesión con
+una cuenta de Odoo Online — el hub de identidad de la SaaS de Odoo. Esta
+plataforma no tiene (ni le corresponde tener) un "Kaupamex Online" al que
+enlazar: es un mecanismo de la casa matriz de la referencia, no una laguna
+del ORM que completar (regla 7, ``porte-completo-no-parcial.md`` — la
+pregunta es "¿qué me impide construirlo?", y la respuesta aquí es que no hay
+qué construir, no que el stack no alcance). ``authz_oauth`` (addon propio)
+resuelve el problema adyacente pero distinto de *iniciar sesión* vía un
+proveedor externo (Google, etc.) — no el de *enlazar* la sesión ya abierta a
+un backend SaaS ajeno. Divergencia de mecanismo declarada (desenlace 1 de
+``porte-completo-no-parcial.md``), no omisión silenciosa.
 
 Lo que esta adaptación NO cubre
 ================================
@@ -56,7 +92,10 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from addons.authz.services import is_superadmin
-from addons.web.controllers.serializers import CredentialSerializer, SessionInfoSerializer
+from addons.base.models import IrModule, ResLang
+from addons.web.controllers.serializers import (
+    CredentialSerializer, LangSerializer, SessionInfoSerializer,
+)
 
 
 def _session_info(user):

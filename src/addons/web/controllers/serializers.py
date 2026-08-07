@@ -23,3 +23,71 @@ class SessionInfoSerializer(serializers.Serializer):
     login = serializers.CharField(read_only=True)
     name = serializers.CharField(read_only=True)
     is_system = serializers.BooleanField(read_only=True)
+
+
+class LangSerializer(serializers.Serializer):
+    """Un idioma activo — ≙ la tupla ``(code, name)`` que la referencia
+    devuelve desde ``/web/session/get_lang_list`` (``odoo19c:
+    addons/web/controllers/session.py:57-62``, vía ``exp_list_lang``).
+
+    Aquí se lee ``base.ResLang`` en vez de escanear los ``.po`` del árbol
+    (``scan_languages()`` de la referencia): el catálogo de idiomas es un
+    modelo de datos propio, no un directorio de traducciones.
+    """
+
+    code = serializers.CharField(read_only=True)
+    name = serializers.CharField(read_only=True)
+
+
+class GetFieldsRequestSerializer(serializers.Serializer):
+    """Payload de ``POST /web/export/get_fields`` (``Export.get_fields`` de
+    ``odoo19c: addons/web/controllers/export.py``). ``model`` usa la
+    convención ``app_label.ModelName`` del proyecto (≙ ``ir.model.model``),
+    no el ``dominio.punto`` de Odoo.
+    """
+
+    model = serializers.CharField()
+    domain = serializers.JSONField(default=list)
+    prefix = serializers.CharField(default='', allow_blank=True)
+    parent_name = serializers.CharField(default='', allow_blank=True)
+    import_compat = serializers.BooleanField(default=True)
+    parent_field_type = serializers.CharField(
+        required=False, allow_null=True, allow_blank=True)
+    exclude = serializers.ListField(
+        child=serializers.CharField(), required=False, allow_null=True)
+
+
+class ExportFieldTreeNodeSerializer(serializers.Serializer):
+    """Un nodo del árbol devuelto por ``get_fields``/``namelist``."""
+
+    id = serializers.CharField(read_only=True)
+    string = serializers.CharField(read_only=True)
+    value = serializers.CharField(read_only=True)
+    children = serializers.BooleanField(read_only=True)
+    field_type = serializers.CharField(read_only=True, allow_null=True)
+    required = serializers.BooleanField(read_only=True, allow_null=True)
+    relation_field = serializers.CharField(read_only=True, allow_null=True)
+    default_export = serializers.BooleanField(read_only=True, allow_null=True)
+
+
+class NamelistRequestSerializer(serializers.Serializer):
+    """Payload de ``POST /web/export/namelist`` — ``model`` + el ``id`` de un
+    ``ir.exports`` guardado (``IrExports``, ``addons.base``)."""
+
+    model = serializers.CharField()
+    export_id = serializers.IntegerField()
+
+
+class ExportFormatSerializer(serializers.Serializer):
+    """Un formato de exportación disponible (≙ ``Export.formats``)."""
+
+    tag = serializers.CharField(read_only=True)
+    label = serializers.CharField(read_only=True)
+    error = serializers.CharField(read_only=True, allow_null=True)
+
+
+class HealthCheckSerializer(serializers.Serializer):
+    """≙ el retorno de ``Home.health`` (``home.py:174-188``)."""
+
+    status = serializers.ChoiceField(choices=['pass', 'fail'], read_only=True)
+    db_server_status = serializers.BooleanField(read_only=True, required=False)
