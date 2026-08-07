@@ -78,6 +78,46 @@ class AccountAccountTag(models.Model):
     def __str__(self) -> str:
         return self.name
 
+    @classmethod
+    def get_tax_tags_domain(cls, formula, country):
+        """El filtro que localiza la etiqueta de una fórmula — ≙
+        ``_get_tax_tags_domain`` (``odoo19c: account_account_tag.py:88-95``).
+
+        Devuelve ``kwargs`` de ``filter()`` en vez de la lista de tuplas del
+        dominio de la referencia: es el mismo predicado escrito en el idioma de
+        este ORM.
+
+        ``lstrip('-')`` no es cosmético. **El signo pertenece a la fórmula, no
+        al nombre:** ``-DIOT: 16%`` y ``DIOT: 16%`` designan la *misma*
+        etiqueta, restada o sumada en el reparto. Guardar el signo en el nombre
+        crearía una etiqueta huérfana por cada fórmula negativa, y el reparto
+        del plan dejaría de resolver la mitad de sus citas.
+        """
+        return {
+            'name': formula.lstrip('-'),
+            'country': country,
+            'applicability': 'taxes',
+        }
+
+    @classmethod
+    def get_tax_tags(cls, tag_name, country):
+        """Las etiquetas de impuesto de ese nombre y país — ≙ ``_get_tax_tags``.
+
+        ≙ ``odoo19c: account_account_tag.py:78-86``. Allá el ``search`` lleva
+        ``active_test=False`` explícito porque su ORM descarta los archivados
+        por defecto; **aquí no hace falta** — el manager de este stack no filtra
+        por ``active``, así que la consulta ya ve la etiqueta archivada. El
+        efecto es el que la referencia busca, y es el que importa: una etiqueta
+        archivada sigue ocupando su ``(name, applicability, country)``, y no
+        verla llevaría a crear una duplicada que la restricción única rechaza.
+
+        Tampoco se porta el baile de ``lang`` de la referencia (buscar en
+        ``en_US`` y restaurar el idioma original): sus nombres de etiqueta son
+        campos traducibles y los de este puerto no, así que no hay dos idiomas
+        entre los que oscilar. Divergencia de mecanismo, no recorte.
+        """
+        return cls.objects.filter(**cls.get_tax_tags_domain(tag_name, country))
+
     #: Identificadores externos que el plan contable cita; borrarlos lo rompe.
     MASTER_XMLIDS = (
         'account.account_tag_operating',

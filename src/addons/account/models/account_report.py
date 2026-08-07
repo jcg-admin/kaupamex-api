@@ -70,6 +70,8 @@ Divergencias declaradas (DEC-KX-03)
    ``report_country`` son ``related=`` de la referencia — proyecciones de un
    join, no dato propio. Se navegan por la FK.
 """
+from django.apps import apps
+
 import fields
 import models
 
@@ -506,6 +508,64 @@ class AccountReportExpression(models.Model):
                 name='unique_account_report_expression_label',
             ),
         ]
+
+    @classmethod
+    def get_tags_create_vals(cls, tag_name, country, existing_tag=None):
+        """Los ``vals`` con que nace la etiqueta — ≙ ``_get_tags_create_vals``.
+
+        ≙ ``odoo19c: account_report.py:900-910``. Devuelve una **lista**, vacía
+        cuando la etiqueta ya existe: así el llamador no decide si crear, sólo
+        crea lo que reciba. La referencia hace lo mismo y por el mismo motivo.
+        """
+        if existing_tag:
+            return []
+        return [{
+            'name': tag_name.lstrip('-'),
+            'applicability': 'taxes',
+            'country': country,
+        }]
+
+    @classmethod
+    def create_tax_tags(cls, tag_name, country):
+        """Crea la etiqueta si falta — ≙ ``_create_tax_tags``.
+
+        ≙ ``odoo19c: account_report.py:695-700``. Idempotente por
+        construcción: varias expresiones citan la misma etiqueta (en el reporte
+        DIOT, 31 expresiones sobre 21 nombres distintos) y la segunda no debe
+        duplicarla.
+        """
+        AccountAccountTag = apps.get_model('account', 'AccountAccountTag')
+        existing = AccountAccountTag.get_tax_tags(tag_name, country).first()
+        for vals in cls.get_tags_create_vals(tag_name, country, existing):
+            AccountAccountTag.objects.create(**vals)
+
+    def save(self, *args, **kwargs):
+        """Guardar una expresión ``tax_tags`` crea su etiqueta.
+
+        ≙ el ``create()`` sobreescrito de la referencia
+        (``odoo19c: account_report.py:704-720``). Allá el disparador es la
+        creación; aquí es ``save()``, que es el punto equivalente de este stack,
+        y la idempotencia de ``create_tax_tags`` hace que un ``save()``
+        posterior no duplique nada — así que no hace falta distinguir alta de
+        actualización.
+
+        **Esto es lo que hace que definir un reporte baste.** El CSV de
+        impuestos de una localización cita sus etiquetas por nombre suelto, y
+        ``get_tag_mapper`` descarta en silencio el nombre que no resuelve. Sin
+        este gancho, cargar el plan mexicano deja sus 138 impuestos con cero
+        enlaces de reparto: verde en los tests, reporte vacío en producción.
+        Ver :ref:`h-api-358`.
+
+        El país sale del reporte —≙ ``expression.report_line_id.report_id
+        .country_id``—, así que la etiqueta nace con el mismo valor con que
+        ``get_tax_tags`` la buscará después. Ese par es lo que el mecanismo
+        necesita; que hoy sea ``None`` porque este árbol no siembra países no
+        lo rompe, sólo lo deja sin discriminar por país.
+        """
+        super().save(*args, **kwargs)
+        if self.engine == 'tax_tags' and self.formula:
+            country = getattr(self.report_line.report, 'country', None)
+            self.create_tax_tags(self.formula, country)
 
 
 class AccountReportColumn(models.Model):
