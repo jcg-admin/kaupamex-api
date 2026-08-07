@@ -62,6 +62,39 @@ es DESCONOCIDO según `react-verification-gate.md`.
 - En contextos de HALT, checkpoint (CP1/CP2/CP3...), o cierre de tarea.
 - Aunque el push sea "solo documentación" o "trivial".
 
+## Precondición: el superproyecto tiene que estar en la sesión
+
+**Directiva del ejecutor 2026-08-07T19:38:44.** El superproyecto **ya no se
+trabaja**: no se estaba operando correctamente y el repo vivía siempre en un
+mismo estado. Queda **ausente por decisión** desde el arranque de esta sesión,
+y sigue así hasta que se cargue o se inicie otra conversación con él.
+
+Medido en el mismo turno: `ls -d /home/user/kaupamex` → *No such file or
+directory*; el árbol tiene los **cinco clones hermanos** (`kaupamex-api`,
+`-db`, `-docs`, `-server`, `-ui`) más `odoo-tools` y `-progress`.
+
+Consecuencia operativa, y es la mitad que faltaba de esta regla:
+
+- **Con el superproyecto en la sesión** → la regla aplica entera, sin cambios.
+  Nació de dos fallos reales en la misma sesión (L-004), y esos siguen siendo
+  posibles.
+- **Sin él** → el bump **no se puede hacer ni verificar**. Entonces no se
+  declara "publicado y bumpeado" (sería una afirmación de estado sin
+  `Observation`), pero **tampoco se bloquea el push del submódulo**: el push
+  es completo en su propio repo. Se dice explícitamente que el gitlink queda
+  **DESCONOCIDO por ausencia del superproyecto**, y se sigue.
+
+Lo que **no** es válido en ninguno de los dos casos: callar. Un push de
+submódulo sin mención del gitlink se lee como bump hecho, que es exactamente
+el defecto que L-004 registró dos veces.
+
+**Por qué se repunta y no se retira.** `principio-aprender-haciendo` Cláusula 2
+da dos desenlaces para una regla heredada que no se sostiene: repuntar a lo que
+existe, o retirar. Aquí la regla **sí** se sostiene — lo que cambió es su
+**precondición**, no su contenido. Retirarla dejaría el proyecto sin defensa el
+día que el superproyecto vuelva; dejarla sin esta sección la convierte en una
+orden incumplible, que es cómo una regla se vuelve ruido que nadie obedece.
+
 ## Cuándo NO aplica
 
 - Commits directamente en el superproyecto (no crea gitlink pendiente).
