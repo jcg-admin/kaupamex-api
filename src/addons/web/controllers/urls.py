@@ -21,6 +21,11 @@ from addons.web.controllers.database import (
     database_restore,
 )
 from addons.web.controllers.home import health, robots
+from addons.web.controllers.webmanifest import (
+    scoped_app_icon_png,
+    scoped_app_manifest,
+    webmanifest,
+)
 from addons.web.controllers.session import (
     session_authenticate,
     session_check,
@@ -60,4 +65,10 @@ urlpatterns = [
     path('image/', content_image, name='content-image'),
     path('binary/upload_attachment/', upload_attachment, name='binary-upload-attachment'),
     path('binary/company_logo/', company_logo, name='binary-company-logo'),
+    # ≙ webmanifest.py — manifiesto PWA y su app acotada. Públicas
+    # (``auth='public'`` en la referencia): no exponen nada que
+    # ``company_logo``/``robots`` no expongan ya.
+    path('manifest.webmanifest', webmanifest, name='webmanifest'),
+    path('manifest.scoped_app_manifest', scoped_app_manifest, name='scoped-app-manifest'),
+    path('scoped_app_icon_png', scoped_app_icon_png, name='scoped-app-icon-png'),
 ]
