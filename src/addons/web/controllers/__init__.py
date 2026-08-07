@@ -12,4 +12,5 @@ from addons.web.controllers import json  # noqa: F401
 from addons.web.controllers import schema  # noqa: F401
 from addons.web.controllers import serializers  # noqa: F401
 from addons.web.controllers import session  # noqa: F401
+from addons.web.controllers import webclient  # noqa: F401
 from addons.web.controllers import webmanifest  # noqa: F401
