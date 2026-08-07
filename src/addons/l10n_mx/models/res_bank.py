@@ -16,48 +16,46 @@ más una repetición del mismo cómputo:
 Clase             Campo                     Qué es
 ================  ========================  ================================
 ``ResBank``       ``l10n_mx_edi_code``      Char — código ABM. **Se porta.**
-``ResBank``       ``fiscal_country_codes``  Selection derivado. **Bloqueado.**
+``ResBank``       ``fiscal_country_codes``  Derivado de sesión. **Se porta.**
 ``ResPartnerBank``\ ``l10n_mx_edi_clabe``   Char — CLABE. **Se porta.**
-``ResPartnerBank``\ ``fiscal_country_codes``\ Selection derivado. **Bloqueado.**
+``ResPartnerBank``\ ``fiscal_country_codes``\ Derivado de sesión. **Se porta.**
 ================  ========================  ================================
 
 ``l10n_mx_edi_code`` y ``l10n_mx_edi_clabe`` son columnas propias, sin
 dependencia de nada ausente — se cuelgan igual que en la referencia.
 
-``fiscal_country_codes`` — bloqueado, con su medición
-======================================================
+``fiscal_country_codes`` — desbloqueado, y no vive aquí
+========================================================
 
 En la referencia es ``fields.Char(store=False, default=_get_fiscal_country_codes)``,
 y ``_get_fiscal_country_codes`` hace
 ``','.join(self.env.companies.mapped('account_fiscal_country_id.code'))``:
-concatena el código de país fiscal de las empresas activas de la sesión.
+concatena el código de país fiscal de las empresas activadas de la sesión.
 
-*Métrica:* ``grep -n "account_fiscal_country" src/addons/base/models/res_company.py``.
-*Ciega a:* que el campo exista con otro nombre en el mismo modelo.
-Medido (2026-08-07): **0 hits** — ``ResCompany`` no declara
-``account_fiscal_country_id``. [PROVEN]
+Una versión anterior de este archivo lo declaraba **bloqueado** porque
+``ResCompany`` no tenía ``account_fiscal_country``. Ese campo ya existe
+(``account/models/res_company.py``, ``base/0018``), así que el bloqueo se
+levanta.
 
-Es el mismo campo ausente que ``account/models/res_currency.py`` y
-``account/models/product.py`` ya documentan bloqueado por la misma razón — el
-Bloque 1 de ``res.company`` (72 campos de la referencia, sólo 2 portados hasta
-ahora, ver ``account/models/res_company.py``). **Ya cubierto por la tarea
-#137**, que mapea ese bloque campo por campo. No se fabrica aquí una FK ni un
-valor calculado que sustituya al campo ausente: eso adelantaría una decisión
-que le corresponde a #137 (qué de los 72 campos entra y con qué forma).
+**El mecanismo se cuelga desde ``account``, no desde aquí**, y la razón es de
+la referencia: ``fiscal_country_codes`` no es un símbolo de la localización
+mexicana. ``odoo19c`` lo declara en **diez clases** repartidas por el árbol —
+cinco en ``account`` (``res_currency``, ``product``, ``account_payment_term``,
+``partner``, ``uom_uom``), dos aquí, y tres más en otras localizaciones
+(``l10n_cl``, ``l10n_ec_sale``). Colgarlo desde ``l10n_mx`` haría que el
+código ABM de un banco mexicano fuera precondición de un campo que
+``res.currency`` necesita igual.
 
-Un campo no-store de un solo valor derivado de sesión (``self.env.companies``,
-sin fila propia) tampoco tendría equivalente directo en este ORM aunque el
-campo destino existiera — no hay ``env`` de sesión sobre el que mapear; el
-análogo más cercano es ``orm.environments.get_current_companies()``
-(usado por ``base/models/ir_http.py``). Queda anotado para cuando #137 cierre
-el campo ausente: en ese momento se decide si ``fiscal_country_codes`` se
-expone como ``@property`` que recorra ``get_current_companies()``.
+Por eso ``account/models/res_company.py`` cuelga la ``property`` sobre
+``ResBank`` y ``ResPartnerBank`` junto con las otras cuatro: allí está el
+campo del que deriva, y allí está su única definición.
 
-Los dos métodos ``_get_fiscal_country_codes`` (uno por clase en la referencia,
-mismo cuerpo) no se portan como funciones colgadas porque no tienen campo al
-que servir de ``default`` — colgar el método sin el campo sería un símbolo sin
-efecto observable, el mismo anti-patrón que ``porte-completo-no-parcial.md``
-señala para métodos "a medias".
+Los dos ``_get_fiscal_country_codes`` de la referencia —uno por clase, mismo
+cuerpo— se portan como **un** ayudante compartido
+(``account.models.res_company.get_fiscal_country_codes``), no duplicado. La
+referencia los repite porque su ``default=`` necesita un método en la clase;
+este ORM no tiene ese constructor, así que repetir el cuerpo sería copiar una
+restricción ajena en vez de la conducta.
 """
 import fields
 

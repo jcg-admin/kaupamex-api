@@ -19,45 +19,45 @@ analisis-medicion-l10n-mx-bloque-0.rst``. Este módulo aporta lo que **no**
 cabe en una tabla: el nombre del plan, los diarios base, y lo que el plan
 escribe en la empresa.
 
-Cuatro de cinco métodos, con el porqué del quinto
-====================================================
+Los cinco métodos de la referencia
+====================================
 
 - ``_get_mx_template_data`` → :func:`get_mx_template_data`.
 - ``_get_mx_res_company`` → :func:`get_mx_res_company`.
 - ``_get_mx_account_journal`` → :func:`get_mx_account_journal`.
 - ``_get_mx_account_account`` → :func:`get_mx_account_account`.
 - ``_get_accounts_data_values`` (override, **no** decorado con
-  ``@template``) — **no se porta en este pase**. Bloqueado por algo medido:
-  ``TEMPLATE_REGISTRY`` compone datos **por (código, modelo)**, pero no
-  ofrece un punto de extensión para que un plan hijo sobreescriba un
-  **método** del cargador base. En la referencia, ``ChartTemplate.load``
-  siempre se invoca como ``cls.get_accounts_data_values(...)`` con
-  ``cls == ChartTemplate`` — el único punto de entrada es
-  ``ChartTemplate.try_loading`` (``account: models/res_company.py``,
-  ``load_chart_for_new_company``) — así que declarar el método en esta
-  subclase no lo engancha: nunca se invoca con ``cls`` apuntando aquí. Es la
-  misma forma que el mecanismo de ``@template`` resuelve para *datos*
-  (composición aditiva por lista), pero que no existe para *comportamiento*
-  (sobreescritura de un método).
+  ``@template``) → :func:`add_mx_cash_difference_accounts`.
 
-  Lo que ese método agregaría, si tuviera dónde enchufarse: dos cuentas de
-  utilidad bancaria condicionadas al país fiscal de la empresa
-  (``default_cash_difference_income_account_id`` código ``403.01.01``,
-  ``default_cash_difference_expense_account_id`` código ``601.84.02``,
-  ``odoo19c: l10n_mx/models/template_mx.py:64-77``) — hoy, una empresa
-  mexicana recibe en su lugar las dos cuentas **genéricas** que
-  ``ChartTemplate.get_accounts_data_values`` ya crea
-  (``account: models/chart_template.py:848-861``); el plan carga completo,
-  con una cuenta de sobrante/faltante de efectivo sin el código ni el
-  nombre que el SAT mexicano espera.
+El quinto y su punto de extensión
+-----------------------------------
 
-  Sucesor: dar a ``ChartTemplate.get_accounts_data_values`` un registro de
-  overrides por país —análogo a ``TEMPLATE_REGISTRY`` pero para
-  post-procesar el dict en vez de aportar filas— es un cambio en
-  ``account/models/chart_template.py``, fuera de los archivos que este pase
-  toca.
+Una versión anterior de este archivo lo declaraba bloqueado: ``TEMPLATE_REGISTRY``
+compone **datos** por ``(código, modelo)``, y no había forma de que una
+localización sobreescribiera un **método** del cargador —
+``setup_utility_bank_accounts`` invoca ``cls.get_accounts_data_values(...)``
+con ``cls == ChartTemplate``, así que declararlo en esta subclase no lo
+enganchaba.
+
+La medición era correcta y la conclusión —diferirlo— no: el punto de extensión
+faltaba, y construirlo es lo que la regla ``porte-completo-no-parcial`` pide
+cuando el stack no trae un mecanismo que la referencia sí usa. Se construyó
+como ``ACCOUNTS_DATA_OVERRIDES`` + ``@accounts_data_override``
+(``account/models/chart_template.py``), con la forma que la referencia tiene y
+no la que resultaba cómoda: **una lista global de ajustes auto-guardados**, no
+un registro por código de plan — porque en la referencia el ``_inherit`` se
+instala para toda carga y la guarda por país vive **dentro** del método.
+
+Sin ese ajuste, una empresa mexicana recibía las dos cuentas **genéricas** de
+sobrante/faltante de efectivo, sin el código (``403.01.01`` / ``601.84.02``)
+ni el nombre que el catálogo del SAT exige.
 """
-from addons.account.models.chart_template import ChartTemplate, template
+from addons.account.models.chart_template import (
+    ChartTemplate,
+    accounts_data_override,
+    template,
+)
+from tools.translate import _
 
 
 class MxChartTemplate(ChartTemplate):
@@ -98,9 +98,18 @@ class MxChartTemplate(ChartTemplate):
         dict es plano, mismo criterio que
         ``template_generic_coa.get_generic_coa_res_company``.
 
-        De esas 21, **9 tienen campo donde aterrizar** en este árbol — las
-        que siguen — y se portan. Las otras 12
-        (``anglo_saxon_accounting``, ``account_fiscal_country_id``,
+        De esas 21, **10 tienen campo donde aterrizar** en este árbol — las
+        que siguen — y se portan.
+
+        La décima es ``account_fiscal_country``, que hasta hoy figuraba entre
+        las ausentes: se portó junto con el catálogo de países
+        (:ref:`h-api-360`). No es cosmética — es la que hace que el plan
+        mexicano deje a la empresa **con México como país fiscal**, y de ahí
+        depende que :func:`add_mx_cash_difference_accounts` reconozca a esa
+        empresa como mexicana. El valor ``'base.mx'`` es el identificador
+        externo que siembra ``base/0017``.
+
+        Las otras 11 (``anglo_saxon_accounting``,
         ``account_default_pos_receivable_account_id``,
         ``income_currency_exchange_account_id``,
         ``expense_currency_exchange_account_id``,
@@ -109,12 +118,12 @@ class MxChartTemplate(ChartTemplate):
         ``income_account_id``, ``account_cash_basis_base_account_id``,
         ``account_stock_journal_id``, ``account_stock_valuation_id``) no
         tienen columna en ``ResCompany`` a HEAD — ``post_load_data``
-        (``account: models/chart_template.py:791-792``) las descarta en
-        silencio por diseño, mismo mecanismo que
+        las descarta en silencio por diseño, mismo mecanismo que
         ``template_generic_coa.py`` ya documenta: entran solas cuando su
-        campo llegue. Ninguna de las 12 es requisito de este bloque (medido:
-        ``grep -rn "class ResCompany\\b" src/addons/*/models/res_company.py``
-        confirma que ninguna existe hoy).
+        campo llegue. Las cierra la tarea **#137** (mapeo del Bloque 1 campo
+        por campo), que es su sucesor real: a diferencia del país fiscal,
+        ninguna de las 11 es una FK simple con un fallback de una línea —
+        todas nombran cuentas o diarios cuyo eje sigue en decisión.
 
         **Nombres de clave sin sufijo** ``_id``: a diferencia de
         :func:`get_mx_account_journal` y :func:`get_mx_account_account`, el
@@ -125,6 +134,7 @@ class MxChartTemplate(ChartTemplate):
         clave nunca calzara y se descartara igual que las 12 sin campo.
         """
         return {
+            'account_fiscal_country': 'base.mx',
             'bank_account_code_prefix': '102.01.0',
             'cash_account_code_prefix': '101.01.0',
             'transfer_account_code_prefix': '102.01.01',
@@ -190,3 +200,41 @@ class MxChartTemplate(ChartTemplate):
                 'account_stock_variation_id': 'cuenta501_02',
             },
         }
+
+
+@accounts_data_override
+def add_mx_cash_difference_accounts(cls, company, accounts_data, template_data):
+    """Las dos cuentas de diferencia de efectivo del SAT — ≙ el override de
+    ``_get_accounts_data_values`` (``odoo19c: l10n_mx/models/template_mx.py:64-77``).
+
+    La referencia no ata esto al plan ``mx`` sino al **país fiscal de la
+    empresa**, y la guarda vive dentro del método. Se porta con la misma
+    forma: un ajuste global auto-guardado, no una entrada del registro por
+    código de plan. Ver ``ACCOUNTS_DATA_OVERRIDES``.
+
+    Los códigos son literales del catálogo del SAT —``403.01.01`` para el
+    sobrante, ``601.84.02`` para el faltante— y por eso **reemplazan** la
+    entrada completa en vez de fusionarse con ella: la genérica se declara por
+    ``prefix``, y dejar el prefijo junto al código haría que
+    ``resolve_account_code`` buscara un hueco libre ignorando el código que el
+    SAT exige.
+
+    DIVERGENCIA HEREDADA, no introducida: al reemplazar la entrada se pierde
+    ``tags: account.account_tag_investing``, que la genérica sí lleva
+    (``account: chart_template.py``). Ocurre igual en la referencia —su
+    ``accounts_data.update({...})`` reemplaza el valor entero— y se porta así
+    a propósito: cambiarlo aquí divergiría del comportamiento de la fuente sin
+    una decisión que lo respalde.
+    """
+    if getattr(company.account_fiscal_country, 'code', None) != 'MX':
+        return
+    accounts_data.update({
+        'default_cash_difference_income_account': {
+            'name': _('Otros ingresos'),
+            'code': '403.01.01',
+        },
+        'default_cash_difference_expense_account': {
+            'name': _('Pérdida por diferencia de efectivo'),
+            'code': '601.84.02',
+        },
+    })

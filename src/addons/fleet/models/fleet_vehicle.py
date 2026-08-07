@@ -19,18 +19,26 @@ Divergencias documentadas
    range_unit, electric_assistance, trailer_hook, brand_id) son "default
    heredado del modelo, pero editable y persistido por instancia" — el
    idioma de Odoo 17+ para "cópialo del padre, pero el usuario puede
-   sobreescribirlo". Django no tiene el motor ``@api.depends`` que dispara la
-   copia en cada cambio de ``model_id``; se portan como **campos reales**
-   (no ``@property``) más el método explícito ``sync_fields_from_model()``
-   que replica ``_load_fields_from_model`` — el llamador (serializer/vista)
-   lo invoca cuando corresponda. NO se dispara automáticamente en ``save()``
-   para no pisar en silencio un valor que el usuario ya edited.
+   sobreescribirlo". Allá **también son columnas** (``store=True``), así que
+   portarlos como campos reales es fidelidad, no un rodeo: lo único que
+   diverge es el **disparador**. El motor ``@api.depends`` que recopia en
+   cada cambio de ``model_id`` no existe aquí, y su equivalente es el método
+   explícito ``sync_fields_from_model()`` (≙ ``_load_fields_from_model``),
+   que invoca el llamador. NO se dispara en ``save()`` para no pisar en
+   silencio un valor que el usuario ya editó.
 
-3. **``name`` NO se persiste** — es ``compute='_compute_vehicle_name',
-   store=True`` en la referencia (se guarda para poder ordenar/buscar por
-   texto), pero aquí es ``@property`` (regla del encargo: "compute →
-   @property/método"). Si se necesita indexar por nombre en el futuro,
-   promoverlo a columna real es un cambio aditivo.
+3. **``name`` ES columna, igual que en la referencia** —
+   ``compute='_compute_vehicle_name', store=True``
+   (``odoo19c: fleet/models/fleet_vehicle.py:38``): se guarda para poder
+   ordenar y buscar por texto. Aquí se declara como ``fields.Char`` y lo
+   calcula ``save()`` a partir de ``compute_vehicle_name()``.
+
+   Hasta ``api@<pendiente>`` era una ``@property``, justificada por una
+   convención nuestra ("compute → @property/método") que contradecía a la
+   referencia en el único punto donde ésta es explícita: allá el campo se
+   almacena **para** poder ordenarlo. Es el defecto que
+   ``referencia-odoo-gobierna-las-decisiones`` describe — nuestra costumbre
+   sobreescribiendo la forma de la fuente. Ver :ref:`h-api-362`.
 
 4. **``odometer`` (compute+inverse) → ``@property`` con setter**, fiel al
    patrón ``_get_odometer``/``_set_odometer``: leer devuelve el último valor
@@ -122,6 +130,12 @@ class FleetVehicle(MailThread, TimeStampedModel):
     FRAME_TYPES = [('diamant', 'Diamante'), ('trapez', 'Trapecio'), ('wave', 'Wave')]
     RANGE_UNITS = [('km', 'km'), ('mi', 'mi')]
 
+    name = fields.Char(
+        max_length=255, blank=True, default='',
+        help_text='Marca/Modelo/Placa. Odoo name (compute + store): se '
+                  'almacena para poder ordenar y buscar por texto. Lo '
+                  'calcula save() con compute_vehicle_name().',
+    )
     description = fields.Html(blank=True, default='', help_text='Odoo description.')
     active = fields.Boolean(default=True, help_text='Odoo active.')
     manager = fields.Many2one(
@@ -262,13 +276,20 @@ class FleetVehicle(MailThread, TimeStampedModel):
         verbose_name_plural = 'Vehículos'
 
     def __str__(self):
-        return self.name
+        return self.name or self.compute_vehicle_name()
 
     # --- compute → @property (punto 3) ------------------------------------
 
-    @property
-    def name(self):
-        """``_compute_vehicle_name`` — "Marca/Modelo/Placa"."""
+    def compute_vehicle_name(self):
+        """≙ ``_compute_vehicle_name`` — "Marca/Modelo/Placa".
+
+        Devuelve el valor; quien lo persiste es ``save()``. La referencia lo
+        recalcula por ``@api.depends('model_id.brand_id.name', 'model_id.name',
+        'license_plate')``; aquí el disparador es el propio guardado, que es
+        cuando esos tres cambian en esta fila. Un cambio de ``name`` en la
+        **marca** o el **modelo** no repropaga a los vehículos ya guardados —
+        divergencia declarada, del mismo tipo que la del punto 2.
+        """
         brand_name = self.model.brand.name if self.model_id and self.model.brand_id else ''
         model_name = self.model.name if self.model_id else ''
         plate = self.license_plate or 'Sin placa'
@@ -468,6 +489,14 @@ class FleetVehicle(MailThread, TimeStampedModel):
                 type(self).objects.filter(pk=self.pk)
                 .values_list('driver_id', flat=True).first()
             )
+        # ``name`` es columna, como en la referencia: se calcula aquí. Si el
+        # llamador acotó las columnas con update_fields, hay que añadirla —
+        # si no, la asignación se descarta en silencio y la fila queda con el
+        # nombre viejo.
+        self.name = self.compute_vehicle_name()
+        update_fields = kwargs.get('update_fields')
+        if update_fields:
+            kwargs['update_fields'] = list(dict.fromkeys([*update_fields, 'name']))
         super().save(*args, **kwargs)
         if self.driver_id and self.driver_id != previous_driver_id:
             self.create_driver_history()

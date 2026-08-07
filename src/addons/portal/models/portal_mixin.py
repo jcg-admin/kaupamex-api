@@ -50,9 +50,20 @@ class PortalMixin(models.Model):
     class Meta:
         abstract = True
 
-    # ``access_url`` es un campo compute en la referencia; aquí es un método
-    # que el modelo concreto sobreescribe (Django no tiene campos compute no
-    # almacenados de forma nativa sin un property).
+    # ``access_url`` es un campo compute sin ``store`` en la referencia
+    # (``odoo19c: portal/models/portal_mixin.py``), y este ORM **sí** tiene ya
+    # su equivalente: ``fields.Char(store=False, default=…)``
+    # (``orm/fields_nonstored.py``). Aquí sigue siendo ``property`` por una
+    # razón distinta de la que decía el comentario anterior —«Django no tiene
+    # campos compute no almacenados», que era falsa incluso antes de
+    # construirlo—: el contrato de este mixin es que **el modelo concreto lo
+    # sobreescriba**, y sobreescribir una ``property`` en la subclase es
+    # directo, mientras que sustituir un descriptor heredado obliga a
+    # redeclararlo con su ``default`` en cada modelo concreto. La referencia
+    # tiene el mismo patrón por la vía de su ``_inherit``.
+    #
+    # Si algún día el mixin necesita un valor derivado que las subclases NO
+    # sobreescriben, ése sí va como ``store=False``.
     @property
     def access_url(self):
         """URL del documento en el portal. El modelo concreto la

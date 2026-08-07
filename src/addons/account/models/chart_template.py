@@ -125,6 +125,35 @@ REPARTITION_FIELDS = (
 )
 
 
+#: Ajustes de localización a las cuentas de utilidad — ≙ el ``_inherit`` con
+#: el que la referencia sobreescribe ``_get_accounts_data_values``.
+#:
+#: **Por qué una lista global y no un registro por código de plan.** En la
+#: referencia el override de ``l10n_mx`` no está atado al plan ``mx``: es un
+#: ``_inherit = 'account.chart.template'`` que se instala para **toda** carga,
+#: y es el propio método el que decide con ``if company.account_fiscal_country_id
+#: .code == 'MX'`` (``odoo19c: l10n_mx/models/template_mx.py:66``). Un registro
+#: por código habría movido esa guarda del método al cableado, cambiando
+#: **cuándo** se evalúa: el país fiscal de la empresa no tiene por qué coincidir
+#: con el plan que se le carga.
+#:
+#: Cada función recibe ``(cls, company, accounts_data, template_data)`` y muta
+#: el dict en sitio, igual que el ``accounts_data.update(...)`` de la
+#: referencia.
+ACCOUNTS_DATA_OVERRIDES = []
+
+
+def accounts_data_override(func):
+    """Registra un ajuste de localización a las cuentas de utilidad.
+
+    Idempotente: registrar dos veces la misma función —lo que pasa cuando
+    ``ready()`` corre bajo el autoreloader— la deja una sola vez.
+    """
+    if func not in ACCOUNTS_DATA_OVERRIDES:
+        ACCOUNTS_DATA_OVERRIDES.append(func)
+    return func
+
+
 def template(code=None, model=TEMPLATE_DATA):
     """Declara que la función aporta los datos de ``model`` para ``code``.
 
@@ -825,10 +854,15 @@ class ChartTemplate:
         etiqueta la siembra ``account: migrations/0012_seed_account_tags.py``;
         si faltara, ``resolve_many_to_many`` la descarta y la cuenta se crea
         sin ella — nunca aborta la carga del plan por una etiqueta.
+
+        Los planes de localización **ajustan** este dict registrándose con
+        ``@accounts_data_override``: es el punto de extensión equivalente al
+        ``_inherit`` con el que la referencia sobreescribe el método (ver la
+        constante ``ACCOUNTS_DATA_OVERRIDES``).
         """
         bank_prefix = bank_prefix or company.bank_account_code_prefix or ''
         code_digits = code_digits or int(template_data.get('code_digits', 6))
-        return {
+        accounts_data = {
             'account_journal_suspense_account': {
                 'name': _('Cuenta transitoria de banco'),
                 'prefix': bank_prefix,
@@ -867,6 +901,9 @@ class ChartTemplate:
                 'reconcile': True,
             },
         }
+        for override in ACCOUNTS_DATA_OVERRIDES:
+            override(cls, company, accounts_data, template_data)
+        return accounts_data
 
     @classmethod
     def resolve_account_code(cls, values, company, cache):

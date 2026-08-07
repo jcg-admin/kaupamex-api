@@ -1,4 +1,4 @@
-"""Lo que ``account`` le cuelga a la empresa — ≙ ``_inherit`` (tarea #140).
+r"""Lo que ``account`` le cuelga a la empresa — ≙ ``_inherit`` (tarea #140).
 
 Adaptación de ``addons/account/models/company.py`` (``odoo-tools@622ddc2a``,
 ``odoo19c:``). **Sólo dos de los 72 campos del Bloque 1**, y la razón de portar
@@ -121,10 +121,20 @@ from django.utils import timezone
 
 import fields
 
+from addons.account.models.account_fiscal_position import AccountFiscalPosition
 from addons.account.models.account_lock_exception import AccountLockException
+from addons.account.models.account_payment_term import AccountPaymentTerm
 from addons.account.models.chart_template import ChartTemplate
 from addons.base.models import ResCompany
+from addons.base.models.res_bank import ResBank
+from addons.base.models.res_country import ResCountry
+from addons.base.models.res_currency import ResCurrency
+from addons.base.models.res_partner import ResPartner
+from addons.base.models.res_partner_bank import ResPartnerBank
+from addons.product.models.product_template import ProductTemplate
+from addons.uom.models.uom_uom import Uom
 from exceptions import UserError
+from orm.environments import get_current_companies
 
 
 def _default_tax(help_text, tax_use):
@@ -330,12 +340,155 @@ def validate_hard_lock_date_change(self, new_hard_lock_date):
             'Un nuevo candado duro debe ser posterior (o igual) al anterior.')
 
 
+def compute_account_tax_fiscal_country(self):
+    """El país fiscal cae al país de la empresa cuando nadie lo fijó — ≙
+    ``compute_account_tax_fiscal_country`` (``odoo19c: company.py:387-390``).
+
+    En la referencia el campo es ``compute=… store=True readonly=False``: se
+    calcula al crear, pero el usuario puede sobreescribirlo y su valor
+    persiste. Aquí es una **columna con resolutor explícito** — el mismo
+    patrón que ``validate_hard_lock_date_change`` en este archivo: lo llama
+    quien crea o edita la empresa, no un hook de ``save()``.
+
+    La razón de no auto-engancharlo es medible: ``ResCompany.country`` NO es
+    una columna sino una **propiedad delegada al partner**
+    (``base/models/res_company.py:179`` lo declara entre los campos de
+    dirección que viven en el partner). Un ``save()`` que lea ``self.country``
+    dispararía una consulta al partner en cada guardado de empresa, incluidos
+    los que no tocan el país.
+    """
+    if not self.account_fiscal_country and self.country:
+        self.account_fiscal_country = self.country
+    return self.account_fiscal_country
+
+
+def account_fiscal_country_group_codes(self):
+    """Códigos de las agrupaciones de su país fiscal — ≙
+    ``_compute_account_fiscal_country_group_codes``
+    (``odoo19c: company.py:363-368``).
+
+    Devuelve ``['']`` cuando no hay país fiscal, igual que la referencia. Ese
+    valor **es contrato**, no una rareza: quien compare contra esta lista
+    obtiene otro resultado si cambia a lista vacía. Misma decisión, con la
+    misma razón, que ``ResCountry.country_group_codes``.
+    """
+    country = self.account_fiscal_country
+    return country.country_group_codes if country else ['']
+
+
+def get_account_enabled_tax_countries(self, user=None):
+    """Países cuyos impuestos esta empresa puede usar — ≙
+    ``_compute_account_enabled_tax_country_ids``
+    (``odoo19c: company.py:392-403``).
+
+    Son su país fiscal más los de toda posición fiscal con ``foreign_vat``:
+    una empresa registrada para IVA en otro país puede emitir con los
+    impuestos de ese país sin cambiar su país fiscal.
+
+    DIVERGENCIA DECLARADA — el usuario se recibe explícito, no ambiente.
+    La referencia corta con ``if record not in self.env.user.company_ids``
+    porque el formulario de empresa es visible sin acceso a su contenido
+    (``base.res_company_rule_erp_manager``). Aquí el mismo corte se hace con
+    el ``user`` recibido, por la razón que ya fija este archivo para los
+    candados: el ORM portado no lleva un ``env`` de sesión.
+    """
+    if user is not None and not user.company_ids.filter(pk=self.pk).exists():
+        return ResCountry.objects.none()
+    foreign = AccountFiscalPosition.objects.filter(
+        company=self, country__isnull=False,
+    ).exclude(foreign_vat__isnull=True).exclude(
+        foreign_vat='').values('country')
+    condition = Q(pk__in=foreign)
+    # `account_fiscal_country_id` es el atributo crudo de la FK: leerlo evita
+    # traer la fila del país sólo para pedirle su clave.
+    if self.account_fiscal_country_id:
+        condition |= Q(pk=self.account_fiscal_country_id)
+    return ResCountry.objects.filter(condition)
+
+
+def get_fiscal_country_codes(company_ids=None):
+    """Códigos de país fiscal de las empresas dadas, en su orden.
+
+    Es el cuerpo compartido de los siete ``_get_fiscal_country_codes`` /
+    ``_compute_fiscal_country_codes`` que la referencia reparte por el árbol
+    (``account``: ``res_currency``, ``product``, ``account_payment_term``,
+    ``partner``, ``uom_uom``; ``l10n_mx: res_bank`` ×2).
+
+    Sin argumento usa las empresas **activadas de la sesión** — ≙ el
+    ``self.env.companies`` de la referencia, que aquí es
+    ``get_current_companies()`` (el canal del dato de ``orm.environments``).
+
+    El orden se preserva a propósito: ``mapped`` en la referencia respeta el
+    orden del recordset, y un ``filter(pk__in=…)`` de Django lo perdería a
+    favor del ``ordering`` del modelo.
+    """
+    pks = tuple(company_ids) if company_ids is not None else get_current_companies()
+    if not pks:
+        return ''
+    by_pk = dict(
+        ResCompany.objects.filter(pk__in=pks)
+        .values_list('pk', 'account_fiscal_country__code'),
+    )
+    return ','.join(by_pk[pk] for pk in pks if by_pk.get(pk))
+
+
+def session_fiscal_country_codes(self):
+    """≙ el ``fiscal_country_codes`` que sólo mira la sesión.
+
+    Forma de ``odoo19c: account/models/res_currency.py:12-17`` y
+    ``uom_uom.py:41-46``, y la que ``l10n_mx: res_bank.py`` repite en sus dos
+    clases. En la referencia es ``fields.Char(store=False, default=…)``: una
+    columna que no existe en la base. Aquí es ``property`` por lo mismo — no
+    hay dato que guardar, y un campo no-almacenado no tiene análogo en este
+    ORM.
+    """
+    return get_fiscal_country_codes()
+
+
+def record_fiscal_country_codes(self):
+    """≙ la forma que antepone la empresa del registro a la sesión.
+
+    ``odoo19c: account/models/product.py:100-105`` y
+    ``account_payment_term.py:48-53``: ``record.company_id or
+    self.env.companies``. Un producto de una empresa concreta muestra el país
+    fiscal de **esa** empresa, no el de las activadas.
+    """
+    company_id = getattr(self, 'company_id', None)
+    return get_fiscal_country_codes([company_id] if company_id else None)
+
+
+def partner_fiscal_country_codes(self):
+    """≙ ``ResPartner._compute_fiscal_country_codes``
+    (``odoo19c: account/models/partner.py:342-349``).
+
+    La forma del registro **más el país propio del partner**, deduplicado. La
+    referencia usa ``set()``, así que el orden se pierde allá también; aquí se
+    deduplica preservando el primer avistamiento, que es un superconjunto
+    determinista de su contrato.
+    """
+    codes = [c for c in record_fiscal_country_codes(self).split(',') if c]
+    own_code = self.country.code if self.country_id else None
+    if own_code and own_code not in codes:
+        codes.append(own_code)
+    return ','.join(codes)
+
+
 def apply_account_extensions():
     """≙ ``_inherit = 'res.company'`` de ``account`` (``odoo19c: company.py``).
 
     Se llama desde ``AccountConfig.ready()``, no al importar: en tiempo de
     import el registro de modelos aún no está poblado.
     """
+    # El país fiscal — la raíz que mantenía inertes `fiscal_country_codes` en
+    # cinco modelos de `account` y en los dos de `l10n_mx: res_bank.py`.
+    # ≙ `odoo19c: company.py:203-209`.
+    _add_if_absent(ResCompany, 'account_fiscal_country', fields.Many2one(
+        'base.ResCountry', on_delete=dj_models.SET_NULL,
+        null=True, blank=True, related_name='+',
+        help_text='País cuyos reportes fiscales usa esta empresa (Odoo '
+                  'account_fiscal_country). Cae al país de la empresa '
+                  'cuando nadie lo fija.',
+    ))
     _add_if_absent(ResCompany, 'account_sale_tax', _default_tax(
         'Impuesto de venta por defecto de la empresa. Lo hereda todo producto '
         'nuevo que no declare el suyo (Odoo account_sale_tax_id, '
@@ -432,9 +585,45 @@ def apply_account_extensions():
         ('format_lock_dates', format_lock_dates),
         ('get_violated_lock_dates', get_violated_lock_dates),
         ('validate_hard_lock_date_change', validate_hard_lock_date_change),
+        ('compute_account_tax_fiscal_country',
+         compute_account_tax_fiscal_country),
+        ('account_fiscal_country_group_codes',
+         property(account_fiscal_country_group_codes)),
+        ('get_account_enabled_tax_countries',
+         get_account_enabled_tax_countries),
     ):
         if not hasattr(ResCompany, nombre):
             setattr(ResCompany, nombre, funcion)
+
+    # `fiscal_country_codes` en los siete modelos que la referencia decora y
+    # que este árbol tiene. No es un cuerpo repetido siete veces: son TRES
+    # formas distintas, y colapsarlas borraría la diferencia (ver los
+    # docstrings de arriba).
+    #
+    # `Uom` es `uom.uom` (`odoo19c: account/models/uom_uom.py:41-46`): allá la
+    # clase se llama `UomUom` y aquí `Uom`, así que buscarla por el nombre de
+    # la referencia da 0 hits y la deja fuera en silencio. Se resuelve por
+    # `_name`, no por nombre de clase.
+    #
+    # El octavo caso de la referencia, `AccountFiscalPosition`
+    # (`odoo19c: account/models/partner.py:55`), NO entra: allá es
+    # `related='company_country_id.code'` — mismo nombre, otro símbolo. Su
+    # porte depende de `company_country_id`, del Bloque 1 (#137).
+    for model, funcion in (
+        (ResCurrency, session_fiscal_country_codes),
+        (ResBank, session_fiscal_country_codes),
+        (ResPartnerBank, session_fiscal_country_codes),
+        (Uom, session_fiscal_country_codes),
+        (ProductTemplate, record_fiscal_country_codes),
+        (AccountPaymentTerm, record_fiscal_country_codes),
+        (ResPartner, partner_fiscal_country_codes),
+    ):
+        if not hasattr(model, 'fiscal_country_codes'):
+            model.add_to_class('fiscal_country_codes', fields.Char(
+                store=False, default=funcion,
+                help_text='Códigos de país fiscal visibles en la sesión '
+                          '(Odoo fiscal_country_codes).',
+            ))
 
     dj_models.signals.post_save.connect(
         load_chart_for_new_company, sender=ResCompany,

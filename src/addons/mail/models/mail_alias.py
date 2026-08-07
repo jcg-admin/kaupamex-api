@@ -271,10 +271,18 @@ class MailAlias(TimeStampedModel):
     def save(self, *args, **kwargs):
         """Sanea el nombre y recalcula ``alias_full_name`` antes de guardar.
 
-        Odoo lo hace con ``@api.depends`` + ``store=True``; Django no tiene
-        campos calculados almacenados, así que el recálculo va aquí — el
-        efecto observable es el mismo: la columna queda siempre consistente
-        con ``alias_name`` + ``alias_domain``.
+        Odoo lo hace con ``@api.depends`` + ``store=True``. La frase anterior
+        de este docstring —«Django no tiene campos calculados almacenados»—
+        era **falsa**: un campo calculado **almacenado** es exactamente una
+        columna que se recalcula al guardar, que es lo que hace esta línea. Lo
+        que falta no es el campo sino el **motor de dependencias** que dispara
+        el recálculo cuando cambia algo aguas arriba sin pasar por este
+        ``save()``.
+
+        Divergencia declarada, entonces, y acotada: si algún día
+        ``alias_domain`` se modifica por ``update()`` masivo sin instanciar,
+        la columna queda obsoleta. El efecto observable por el camino normal
+        —crear o guardar el alias— es idéntico al de la referencia.
         """
         if self.alias_name:
             self.alias_name = self.sanitize_alias_name(self.alias_name) or None

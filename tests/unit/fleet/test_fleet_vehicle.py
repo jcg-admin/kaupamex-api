@@ -50,6 +50,37 @@ class TestFleetVehicleName:
         vehicle = FleetVehicle.objects.create(model=model)
         assert vehicle.name == 'Toyota/Corolla/Sin placa'
 
+    def test_name_is_a_column_so_the_database_can_filter_by_it(self, model):
+        """El motivo por el que la referencia lo declara ``store=True``.
+
+        Con ``@property`` esta consulta lanzaba ``FieldError``: la vieja
+        divergencia impedía exactamente lo que el campo existe para permitir.
+        """
+        FleetVehicle.objects.create(model=model, license_plate='ABC-123')
+
+        encontrado = FleetVehicle.objects.filter(name__icontains='corolla')
+        assert encontrado.count() == 1
+        assert encontrado.first().name == 'Toyota/Corolla/ABC-123'
+
+    def test_name_is_recomputed_when_the_plate_changes(self, model):
+        vehicle = FleetVehicle.objects.create(model=model, license_plate='ABC-123')
+
+        vehicle.license_plate = 'XYZ-789'
+        vehicle.save()
+
+        vehicle.refresh_from_db()
+        assert vehicle.name == 'Toyota/Corolla/XYZ-789'
+
+    def test_name_survives_a_save_that_narrows_update_fields(self, model):
+        """``update_fields`` acotado no debe dejar el nombre viejo en la fila."""
+        vehicle = FleetVehicle.objects.create(model=model, license_plate='ABC-123')
+
+        vehicle.license_plate = 'XYZ-789'
+        vehicle.save(update_fields=['license_plate'])
+
+        vehicle.refresh_from_db()
+        assert vehicle.name == 'Toyota/Corolla/XYZ-789'
+
 
 class TestFleetVehicleRelatedProperties:
     def test_vehicle_type_delegates_to_model(self, model):
