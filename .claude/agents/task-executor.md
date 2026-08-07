@@ -11,6 +11,18 @@ tools:
   - mcp__thyrox-executor__exec_cmd
   - mcp__thyrox-executor__exec_python
   - mcp__thyrox-memory__store
+disallowedTools:
+  # La suite comparte una sola kaupamex_qa: N agentes concurrentes
+  # migran y truncan la MISMA base, asi que su verde no mide su
+  # cambio sino la contencion. El orquestador la corre una vez.
+  # Ver docs: .claude/rules/bash-background-tasks.md y H-DOCS-94.
+  - Bash(uv run pytest *)
+  - Bash(pytest *)
+  - Bash(python -m pytest *)
+  # exec_cmd/exec_python son shell por otra puerta: sin esto el
+  # deny de Bash no cubre la suite.
+  - mcp__thyrox-executor__exec_cmd
+  - mcp__thyrox-executor__exec_python
 ---
 
 # Task Executor Agent
