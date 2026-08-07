@@ -32,14 +32,39 @@ Uso
     python3 scripts/pendientes_cascara.py web --args --limite 12
 """
 import argparse
+import ast
 import json
 import os
-import re
 import sys
 
 ODOO19C = ('/home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0/addons')
 NUESTRO = 'src/addons'
-RE_DEF = re.compile(r'^\s*def (\w+)', re.M)
+
+
+def simbolos(ruta):
+    """Nombres declarados en un archivo, por AST.
+
+    **Por AST y no por substring.** La primera versión de este script comparaba
+    ``nombre not in texto``, y eso dio un falso "completo" en
+    ``web/controllers/session.py``: ``authenticate`` es substring de
+    ``session_authenticate``, ``destroy`` de ``session_destroy``, ``logout`` de
+    ``session_logout``. El archivo declaraba **cinco funciones sueltas** contra
+    una ``class Session`` con nueve métodos, y el script lo dio por portado.
+
+    Es el conteo generoso de ``porte-completo-no-parcial.md`` — construido
+    dentro del instrumento escrito para evitarlo. Ver :ref:`h-api-373`.
+    """
+    try:
+        arbol = ast.parse(open(ruta, encoding='utf-8', errors='ignore').read())
+    except SyntaxError:
+        return set()
+    nombres = set()
+    for nodo in ast.walk(arbol):
+        if isinstance(nodo, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            nombres.add(nodo.name)
+        elif isinstance(nodo, ast.ClassDef):
+            nombres.add('class:' + nodo.name)
+    return nombres
 
 
 def archivos_de_produccion(raiz):
@@ -62,18 +87,15 @@ def estado(addon):
         sys.exit(f"'{addon}' no existe en la referencia ({ref_raiz})")
     pendientes, hechos = [], []
     for rel in archivos_de_produccion(ref_raiz):
-        texto_ref = open(os.path.join(ref_raiz, rel),
-                         encoding='utf-8', errors='ignore').read()
-        simbolos = RE_DEF.findall(texto_ref)
-        if not simbolos:
+        de_ref = simbolos(os.path.join(ref_raiz, rel))
+        if not de_ref:
             continue                      # __init__ vacíos y afines: nada que portar
         mio = os.path.join(mio_raiz, rel)
         if not os.path.exists(mio):
-            pendientes.append((rel, len(simbolos), len(simbolos)))
+            pendientes.append((rel, len(de_ref), len(de_ref)))
             continue
-        texto_mio = open(mio, encoding='utf-8', errors='ignore').read()
-        falta = [s for s in simbolos if s not in texto_mio]
-        (pendientes if falta else hechos).append((rel, len(simbolos), len(falta)))
+        falta = de_ref - simbolos(mio)
+        (pendientes if falta else hechos).append((rel, len(de_ref), len(falta)))
     return pendientes, hechos
 
 
