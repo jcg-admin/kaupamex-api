@@ -63,7 +63,7 @@ class TestResCurrency:
 
 class TestResCountry:
     def test_code_alpha2_unique(self):
-        ResCountry.objects.create(name='México', code='MX')
+        ResCountry.objects.get_or_create(code='MX', defaults={'name': 'México'})[0]
         with transaction.atomic(), pytest.raises(IntegrityError):
             ResCountry.objects.create(name='Otro', code='MX')
 
@@ -71,13 +71,18 @@ class TestResCountry:
         # XTS (código ISO de prueba): MXN puede estar referenciada con PROTECT
         # por compañías comprometidas en la DB reutilizada.
         xts = ResCurrency.objects.create(name='XTS', symbol='X')
-        mx = ResCountry.objects.create(name='México', code='MX', currency=xts)
+        # El catálogo de `base/0017` ya trae MX: se le reapunta la moneda en vez
+        # de crear un segundo país, que ahora choca con `res_country_code_key`.
+        mx = ResCountry.objects.get_or_create(
+            code='MX', defaults={'name': 'México'})[0]
+        mx.currency = xts
+        mx.save(update_fields=['currency'])
         xts.delete()
         mx.refresh_from_db()
         assert mx.currency is None
 
     def test_state_ids_reverse_relation(self):
-        mx = ResCountry.objects.create(name='México', code='MX')
+        mx = ResCountry.objects.get_or_create(code='MX', defaults={'name': 'México'})[0]
         ResCountryState.objects.create(country=mx, name='Jalisco', code='JAL')
         ResCountryState.objects.create(country=mx, name='Nuevo León', code='NLE')
         assert mx.state_ids.count() == 2
@@ -85,20 +90,20 @@ class TestResCountry:
 
 class TestResCountryState:
     def test_unique_country_code(self):
-        mx = ResCountry.objects.create(name='México', code='MX')
+        mx = ResCountry.objects.get_or_create(code='MX', defaults={'name': 'México'})[0]
         ResCountryState.objects.create(country=mx, name='Jalisco', code='JAL')
         with transaction.atomic(), pytest.raises(IntegrityError):
             ResCountryState.objects.create(country=mx, name='Otro', code='JAL')
 
     def test_same_code_different_country_allowed(self):
-        mx = ResCountry.objects.create(name='México', code='MX')
-        us = ResCountry.objects.create(name='USA', code='US')
+        mx = ResCountry.objects.get_or_create(code='MX', defaults={'name': 'México'})[0]
+        us = ResCountry.objects.get_or_create(code='US', defaults={'name': 'USA'})[0]
         s1 = ResCountryState.objects.create(country=mx, name='Jalisco', code='JA')
         s2 = ResCountryState.objects.create(country=us, name='Georgia', code='JA')
         assert s1.pk != s2.pk
 
     def test_cascade_delete_with_country(self):
-        mx = ResCountry.objects.create(name='México', code='MX')
+        mx = ResCountry.objects.get_or_create(code='MX', defaults={'name': 'México'})[0]
         ResCountryState.objects.create(country=mx, name='Jalisco', code='JAL')
         mx.delete()
         assert ResCountryState.objects.count() == 0

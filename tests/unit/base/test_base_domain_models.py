@@ -47,8 +47,8 @@ class TestResLang:
 
 class TestResCountryGroup:
     def test_m2m_countries(self):
-        mx = ResCountry.objects.create(name='México', code='MX')
-        us = ResCountry.objects.create(name='USA', code='US')
+        mx = ResCountry.objects.get_or_create(code='MX', defaults={'name': 'México'})[0]
+        us = ResCountry.objects.get_or_create(code='US', defaults={'name': 'USA'})[0]
         grp = ResCountryGroup.objects.create(name='NAFTA', code='NAFTA')
         grp.country_ids.add(mx, us)
         assert grp.country_ids.count() == 2
@@ -88,7 +88,7 @@ class TestDecimalPrecision:
 
 class TestResBank:
     def test_bank_with_country(self):
-        mx = ResCountry.objects.create(name='México', code='MX')
+        mx = ResCountry.objects.get_or_create(code='MX', defaults={'name': 'México'})[0]
         bank = ResBank.objects.create(name='BBVA', bic='BCMRMXMM', country=mx)
         assert bank.active is True
         assert bank.country == mx

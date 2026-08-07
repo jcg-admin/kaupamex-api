@@ -47,17 +47,17 @@ pytestmark = pytest.mark.django_db
 
 class TestResCity:
     def test_str_without_zipcode(self):
-        mx = ResCountry.objects.create(name='México', code='MX')
+        mx = ResCountry.objects.get_or_create(code='MX', defaults={'name': 'México'})[0]
         c = ResCity.objects.create(name='Guadalajara', country=mx)
         assert str(c) == 'Guadalajara'
 
     def test_str_with_zipcode(self):
-        mx = ResCountry.objects.create(name='México', code='MX')
+        mx = ResCountry.objects.get_or_create(code='MX', defaults={'name': 'México'})[0]
         c = ResCity.objects.create(name='Guadalajara', country=mx, zipcode='44100')
         assert str(c) == 'Guadalajara (44100)'
 
     def test_country_required_state_optional(self):
-        mx = ResCountry.objects.create(name='México', code='MX')
+        mx = ResCountry.objects.get_or_create(code='MX', defaults={'name': 'México'})[0]
         jal = ResCountryState.objects.create(country=mx, name='Jalisco', code='JAL')
         c = ResCity.objects.create(name='Zapopan', country=mx, state=jal)
         assert c.state == jal
@@ -65,7 +65,7 @@ class TestResCity:
         assert c2.state is None
 
     def test_state_set_null_on_delete(self):
-        mx = ResCountry.objects.create(name='México', code='MX')
+        mx = ResCountry.objects.get_or_create(code='MX', defaults={'name': 'México'})[0]
         jal = ResCountryState.objects.create(country=mx, name='Jalisco', code='JAL')
         c = ResCity.objects.create(name='Zapopan', country=mx, state=jal)
         jal.delete()
@@ -74,7 +74,7 @@ class TestResCity:
         assert ResCity.objects.filter(pk=c.pk).exists()
 
     def test_cities_reverse_on_country(self):
-        mx = ResCountry.objects.create(name='México', code='MX')
+        mx = ResCountry.objects.get_or_create(code='MX', defaults={'name': 'México'})[0]
         ResCity.objects.create(name='Guadalajara', country=mx)
         ResCity.objects.create(name='Monterrey', country=mx)
         assert mx.cities.count() == 2
@@ -82,17 +82,17 @@ class TestResCity:
 
 class TestCountryAddressPolicy:
     def test_enforce_cities_defaults_false(self):
-        mx = ResCountry.objects.create(name='México', code='MX')
+        mx = ResCountry.objects.get_or_create(code='MX', defaults={'name': 'México'})[0]
         pol = CountryAddressPolicy.objects.create(country=mx)
         assert pol.enforce_cities is False
 
     def test_one_to_one_country(self):
-        mx = ResCountry.objects.create(name='México', code='MX')
+        mx = ResCountry.objects.get_or_create(code='MX', defaults={'name': 'México'})[0]
         CountryAddressPolicy.objects.create(country=mx, enforce_cities=True)
         assert mx.address_policy.enforce_cities is True
 
     def test_cascade_delete_with_country(self):
-        mx = ResCountry.objects.create(name='México', code='MX')
+        mx = ResCountry.objects.get_or_create(code='MX', defaults={'name': 'México'})[0]
         CountryAddressPolicy.objects.create(country=mx)
         mx.delete()
         assert CountryAddressPolicy.objects.count() == 0
@@ -144,7 +144,7 @@ class TestAddressStructured:
         assert st.country_enforce_cities is False
 
     def test_country_enforce_cities_reads_policy(self):
-        mx = ResCountry.objects.create(name='México', code='MX')
+        mx = ResCountry.objects.get_or_create(code='MX', defaults={'name': 'México'})[0]
         CountryAddressPolicy.objects.create(country=mx, enforce_cities=True)
         city = ResCity.objects.create(name='CDMX', country=mx)
         partner = _make_partner()

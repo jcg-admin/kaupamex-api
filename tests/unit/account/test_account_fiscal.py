@@ -44,7 +44,7 @@ def company():
 
 class TestAccountTaxGroup:
     def test_create_and_country_defaults_from_company(self, company):
-        mx = ResCountry.objects.create(name='México', code='MX')
+        mx = ResCountry.objects.get_or_create(code='MX', defaults={'name': 'México'})[0]
         company.country = mx
         group = AccountTaxGroup.objects.create(name='IVA', company=company)
         assert group.country_id == mx.pk
@@ -98,7 +98,7 @@ class TestAccountAccountTag:
         # UNIQUE SQL: NULL != NULL (mismo comportamiento que la referencia,
         # `_name_uniq = 'unique(name, applicability, country_id)'`). Se
         # ejercita con country no-nulo para que el constraint aplique.
-        mx = ResCountry.objects.create(name='México', code='MX')
+        mx = ResCountry.objects.get_or_create(code='MX', defaults={'name': 'México'})[0]
         AccountAccountTag.objects.create(name='+base', applicability='taxes', country=mx)
         with transaction.atomic(), pytest.raises(IntegrityError):
             AccountAccountTag.objects.create(name='+base', applicability='taxes', country=mx)

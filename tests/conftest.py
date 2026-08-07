@@ -20,6 +20,7 @@ from addons.authz.models import Role, RoleAssignment
 from addons.authz.services import SUPERADMIN_ROLE_CODE
 from addons.base.models import SystemParameter
 from addons.base.security.base_security import seed as base_rules_seed
+from addons.base.data.res_country_data import seed as countries_seed
 from addons.base_geolocalize.data import seed as geo_providers_seed
 from addons.sale.data.report_templates import seed as sale_report_view_seed
 from addons.sale.security.ir_rules import seed as sale_rules_seed
@@ -277,6 +278,7 @@ def _reset_system_parameter_cache():
 # hallazgo aparte en vez de arrastrarlo aquí a ciegas.
 _SEEDERS = (
     SystemParameter.seed,       # base/0002 + base/0003 (_DEFAULT_PARAMETERS)
+    countries_seed,             # base/0017 (251 países + 8 agrupaciones)
     password_policy_seed,       # authz_password_policy/0001
     signup_flags_seed,          # authz_signup/0001
     totp_params_seed,           # authz_totp/0001 + 0002
