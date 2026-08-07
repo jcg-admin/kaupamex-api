@@ -131,6 +131,16 @@ INSTALLED_APPS = [
     # `account.account`/`account.tax` con `add_to_class`, y el registro tiene
     # que tener esos modelos ya poblados.
     'addons.l10n_mx',
+    # Satélites de `account` (Ola F, primera tanda). Van DESPUÉS de `account`
+    # y de `fleet` por la misma razón que `l10n_mx`: sus `ready()` cuelgan
+    # campos con `add_to_class` sobre modelos que el registro debe tener ya
+    # poblados. `account_fleet` es puente y exige ambas.
+    'addons.account_add_gln',
+    'addons.account_qr_code_emv',
+    'addons.account_qr_code_sepa',
+    'addons.account_debit_note',
+    'addons.account_fleet',
+    'addons.account_tax_python',
 ]
 
 AUTH_USER_MODEL = 'base.ResUsers'

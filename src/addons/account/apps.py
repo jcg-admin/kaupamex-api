@@ -29,6 +29,7 @@ class AccountConfig(AppConfig):
         'addons.account.models.res_company',
         'addons.account.models.product',
         'addons.account.models.res_currency',
+        'addons.account.models.res_partner_bank',
     )
 
     def ready(self):
