@@ -22,3 +22,6 @@ test-results/
 test-results/
 # PID del servidor de aplicacion embebido (setup/gunicorn.conf.py, ADR-027)
 /.gunicorn.pid
+
+# Telemetria local del hook (instrumento de #177) — no versionar
+.claude/agent-results/
