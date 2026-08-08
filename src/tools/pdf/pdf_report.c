@@ -36,6 +36,7 @@
 #include <string.h>
 #include <setjmp.h>
 #include <hpdf.h>
+#include "pdf_fonts.h"
 
 /* ------------------------------------------------------------------ *
  *  Input buffering                                                    *
@@ -153,6 +154,44 @@ obj_find(const char *obj, const char *key)
 }
 
 /*
+ * Escribe `cp` como UTF-8 en `out`; devuelve los bytes escritos, o 0 si no
+ * caben en `espacio`. El documento habla UTF-8 desde que la fuente es
+ * LiberationSans embebida con HPDF_UseUTFEncodings (DEC-01 de
+ * `integrar-libharu`) — antes hablaba WinAnsi, un byte por carácter.
+ */
+static size_t
+utf8_encode(unsigned long cp, char *out, size_t espacio)
+{
+    if (cp < 0x80) {
+        if (espacio < 1) return 0;
+        out[0] = (char)cp;
+        return 1;
+    }
+    if (cp < 0x800) {
+        if (espacio < 2) return 0;
+        out[0] = (char)(0xC0 | (cp >> 6));
+        out[1] = (char)(0x80 | (cp & 0x3F));
+        return 2;
+    }
+    if (cp < 0x10000) {
+        if (espacio < 3) return 0;
+        out[0] = (char)(0xE0 | (cp >> 12));
+        out[1] = (char)(0x80 | ((cp >> 6) & 0x3F));
+        out[2] = (char)(0x80 | (cp & 0x3F));
+        return 3;
+    }
+    if (cp <= 0x10FFFF) {
+        if (espacio < 4) return 0;
+        out[0] = (char)(0xF0 | (cp >> 18));
+        out[1] = (char)(0x80 | ((cp >> 12) & 0x3F));
+        out[2] = (char)(0x80 | ((cp >> 6) & 0x3F));
+        out[3] = (char)(0x80 | (cp & 0x3F));
+        return 4;
+    }
+    return 0;
+}
+
+/*
  * Decode a JSON string value at p (pointing AT the opening '"') into out
  * (size cap). Returns pointer just past the string value, or p unchanged if
  * p is not a string.
@@ -175,13 +214,30 @@ json_string(const char *p, char *out, size_t cap)
                 case '\\': if (o + 1 < cap) out[o++] = '\\'; break;
                 case '/': if (o + 1 < cap) out[o++] = '/';  break;
                 case 'u': {
+                    /* Decodifica \uXXXX a UTF-8, que es lo que el documento
+                       habla desde que la fuente es TrueType embebida. Antes
+                       plegaba a UN byte WinAnsi y mandaba '?' arriba de
+                       U+00FF, lo que perdía el '€' y el em-dash; con la
+                       fuente UTF ese plegado además da mojibake. Ver
+                       H-API-290 y la sonda de T-002. */
                     if (p[1] && p[2] && p[3] && p[4]) {
                         char hex[5] = { p[1], p[2], p[3], p[4], 0 };
-                        long cp = strtol(hex, NULL, 16);
-                        if (cp < 0x80) { if (o + 1 < cap) out[o++] = (char)cp; }
-                        else if (cp < 0x100) { if (o + 1 < cap) out[o++] = (char)cp; }
-                        else { if (o + 1 < cap) out[o++] = '?'; }
+                        unsigned long cp = strtoul(hex, NULL, 16);
                         p += 4;
+                        /* Par suplente UTF-16: dos escapes, un codepoint. */
+                        if (cp >= 0xD800 && cp <= 0xDBFF &&
+                            p[1] == '\\' && p[2] == 'u' &&
+                            p[3] && p[4] && p[5] && p[6]) {
+                            char bajo[5] = { p[3], p[4], p[5], p[6], 0 };
+                            unsigned long lo = strtoul(bajo, NULL, 16);
+                            if (lo >= 0xDC00 && lo <= 0xDFFF) {
+                                cp = 0x10000UL + ((cp - 0xD800) << 10)
+                                   + (lo - 0xDC00);
+                                p += 6;
+                            }
+                        }
+                        if (o + 1 < cap)
+                            o += utf8_encode(cp, out + o, cap - o - 1);
                     }
                     break;
                 }
@@ -243,26 +299,81 @@ draw_text(HPDF_Page page, HPDF_Font font, float size,
     HPDF_Page_EndText(page);
 }
 
-/* Truncate a UTF-mapped string in place to at most n chars. */
+/*
+ * Recorta `txt` in situ para que quepa en `ancho_max` PUNTOS, no en un número
+ * de bytes o de caracteres.
+ *
+ * Reemplaza a `truncate_chars`, que cortaba por bytes con un presupuesto
+ * derivado de `col_w / 5.0` — una aproximación al ancho medio de **Helvetica**,
+ * que ya no es la fuente (T-002 la cambió por LiberationSans embebida). Medir
+ * el ancho real elimina de una vez las dos aproximaciones: la de la métrica y
+ * la de la unidad.
+ *
+ * Se retrocede hasta el inicio del carácter UTF-8 anterior (los bytes de
+ * continuación son 10xxxxxx): cortar a media secuencia dejaría el ancho
+ * dibujado por debajo del que se acaba de medir.
+ */
 static void
-truncate_chars(char *s, size_t n)
+truncar_a_ancho(HPDF_Page page, HPDF_Font font, float size,
+                char *txt, float ancho_max)
 {
-    if (strlen(s) > n) s[n] = '\0';
+    HPDF_Page_SetFontAndSize(page, font, size);
+    size_t n = strlen(txt);
+    while (n > 0 && HPDF_Page_TextWidth(page, txt) > ancho_max) {
+        do { n--; } while (n > 0 && ((unsigned char)txt[n] & 0xC0) == 0x80);
+        txt[n] = '\0';
+    }
 }
 
 static void
 draw_header_row(HPDF_Page page, HPDF_Font font_bold, float y,
                 float *col_x, int ncols, char cells[][256])
 {
+    /* Banda sombreada del encabezado (T-005): los glifos se pintan con el
+       fill color, así que se restaura negro antes de escribir encima. */
+    HPDF_Page_SetRGBFill(page, 0.92f, 0.92f, 0.92f);
+    HPDF_Page_Rectangle(page, MARGIN_L, y - 4.0f,
+                        col_x[ncols] - col_x[0], 16.0f);
+    HPDF_Page_Fill(page);
+    HPDF_Page_SetRGBFill(page, 0.0f, 0.0f, 0.0f);
+
     HPDF_Page_SetLineWidth(page, 0.5f);
     HPDF_Page_MoveTo(page, MARGIN_L, y + 12);
     HPDF_Page_LineTo(page, MARGIN_L + (col_x[ncols] - col_x[0]), y + 12);
     HPDF_Page_Stroke(page);
+    /* El recorte va aquí y no al parsear: el ancho de columna sólo se conoce
+       cuando ya se sabe cuántas columnas hay. Es idempotente, así que
+       redibujar la cabecera en cada página no acumula recortes. */
+    for (int c = 0; c < ncols; c++)
+        truncar_a_ancho(page, font_bold, 9, cells[c],
+                        col_x[c + 1] - col_x[c] - 6.0f);
     for (int c = 0; c < ncols; c++)
         draw_text(page, font_bold, 9, col_x[c], y, cells[c]);
     HPDF_Page_MoveTo(page, MARGIN_L, y - 4);
     HPDF_Page_LineTo(page, MARGIN_L + (col_x[ncols] - col_x[0]), y - 4);
     HPDF_Page_Stroke(page);
+}
+
+/* --- catálogo tipográfico embebido (DEC-01/DEC-02 de `integrar-libharu`) ---
+ *
+ * La fuente viaja DENTRO del binario (build/pdf_fonts.c, generado desde el
+ * .ttf vendorizado). No se lee de /usr/share/fonts ni de ninguna ruta: el
+ * helper no resuelve nada en runtime, así que no tiene un modo de fallo
+ * "fuente no encontrada" que obligara a elegir entre abortar y degradar en
+ * silencio — y el silencio es lo que H-API-290 costó descubrir.
+ *
+ * Con UTF-8 + TrueType desaparecen las tres limitaciones que WinAnsi imponía:
+ * el plegado a un byte, el '?' para todo lo que pase de U+00FF, y la
+ * aproximación en 80-9F. LiberationSans es métricamente compatible con
+ * Helvetica —la que se usaba antes—, así que el diseño no se mueve.
+ */
+static HPDF_Font
+cargar_fuente(HPDF_Doc pdf, const unsigned char *datos, unsigned int largo)
+{
+    const char *nombre = HPDF_LoadTTFontFromMemory(pdf, datos, largo, HPDF_TRUE);
+    if (!nombre)
+        return NULL;
+    return HPDF_GetFont(pdf, nombre, "UTF-8");
 }
 
 int
@@ -298,8 +409,22 @@ main(void)
 
     HPDF_SetCompressionMode(pdf, HPDF_COMP_ALL);
 
-    HPDF_Font font      = HPDF_GetFont(pdf, "Helvetica", NULL);
-    HPDF_Font font_bold = HPDF_GetFont(pdf, "Helvetica-Bold", NULL);
+    if (HPDF_UseUTFEncodings(pdf) != HPDF_OK) {
+        fprintf(stderr, "pdf_report: no se pudo registrar el encoder UTF-8\n");
+        HPDF_Free(pdf);
+        free(g_input);
+        return 2;
+    }
+    HPDF_Font font      = cargar_fuente(pdf, liberation_sans_regular,
+                                        liberation_sans_regular_len);
+    HPDF_Font font_bold = cargar_fuente(pdf, liberation_sans_bold,
+                                        liberation_sans_bold_len);
+    if (!font || !font_bold) {
+        fprintf(stderr, "pdf_report: no se pudo cargar la fuente embebida\n");
+        HPDF_Free(pdf);
+        free(g_input);
+        return 2;
+    }
 
     HPDF_Page page = HPDF_AddPage(pdf);
     HPDF_Page_SetSize(page, HPDF_PAGE_SIZE_A4, HPDF_PAGE_LANDSCAPE);
@@ -339,8 +464,10 @@ main(void)
             while (ncols < MAX_COLS) {
                 p = skip_ws(p);
                 if (*p == ']' || *p == '\0') break;
+                /* La cabecera NO se recorta aquí: su ancho de columna depende
+                   de cuántas columnas resulten, y eso sólo se sabe al terminar
+                   este bucle. El recorte vive en `draw_header_row`. */
                 p = json_string(p, headers[ncols], sizeof(headers[ncols]));
-                truncate_chars(headers[ncols], 28);
                 ncols++;
                 p = skip_ws(p);
                 if (*p == ',') p++;
@@ -379,11 +506,7 @@ main(void)
                     p = skip_ws(p);
                     if (*p == ']' || *p == '\0') break;
                     p = json_string(p, cell, sizeof(cell));
-                    /* approx char budget per column for Helvetica 9pt */
-                    size_t budget = (size_t)(col_w / 5.0f);
-                    if (budget < 4) budget = 4;
-                    if (budget > 60) budget = 60;
-                    truncate_chars(cell, budget);
+                    truncar_a_ancho(page, font, 9, cell, col_w - 6.0f);
                     draw_text(page, font, 9, col_x[c], y, cell);
                     c++;
                     p = skip_ws(p);

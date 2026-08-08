@@ -46,7 +46,7 @@ class Review(TimeStampedModel, SoftDeleteModel):
         related_name='reviews',
     )
     product = models.ForeignKey(
-        'catalogue.Product', on_delete=models.CASCADE,
+        'product.ProductProduct', on_delete=models.CASCADE,
         related_name='reviews',
     )
     # E4-pre (H-API-26): anclaje invertido. La prueba de compra (UC-REV-02)

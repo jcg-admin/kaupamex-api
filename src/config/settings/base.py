@@ -32,33 +32,36 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    # Registra los lookups del motor (unaccent, trigram_similar, arreglos) y
+    # los system checks de sus campos. Sin esta app los lookups NO existen:
+    # medido, CharField pasa de 17 a 22 lookups al declararla. ArrayField y
+    # GinIndex se importan igual, pero `__unaccent` / `__trigram_similar`
+    # fallarian con FieldError. Ver ADR-028 y T-008 de la iniciativa
+    # migrar-motor-mariadb-a-postgresql.
+    'django.contrib.postgres',
     'corsheaders',
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'drf_spectacular',
     'core',
-    'addons.users',
-    'addons.settings_app',
-    'addons.catalogue',
-    'addons.chartsize',
     'addons.bus',
     'addons.uom',
     'addons.product',
-    'addons.inventory',
     'addons.stock',
     'addons.stock_account',
     'addons.stock_landed_costs',
     'addons.product_expiry',
-    'addons.cart',
     'addons.loyalty',
-    'addons.wishlist',
+    'addons.website_sale',
     'addons.website_sale_wishlist',
     'addons.sale',
     'addons.sales_team',
     'addons.sale_stock',
     'addons.sale_loyalty',
+    'addons.sale_loyalty_delivery',
     'addons.sale_management',
+    'addons.sale_service',
     'addons.sale_margin',
     'addons.crm',
     'addons.sale_crm',
@@ -67,6 +70,7 @@ INSTALLED_APPS = [
     'addons.product_matrix',
     'addons.sale_product_matrix',
     'addons.sale_stock_margin',
+    'addons.sale_stock_product_expiry',
     'addons.project',
     'addons.sale_project',
     'addons.purchase',
@@ -74,6 +78,7 @@ INSTALLED_APPS = [
     'addons.mrp',
     'addons.mrp_subcontracting',
     'addons.sale_mrp',
+    'addons.sale_mrp_margin',
     'addons.payment',
     'addons.payment_aps',
     'addons.payment_authorize',
@@ -82,19 +87,15 @@ INSTALLED_APPS = [
     'addons.payment_mercado_pago',
     'addons.payment_paypal',
     'addons.payment_stripe',
-    'addons.payments',
     'addons.helpdesk',
     'addons.mass_mailing',
     'addons.website_mass_mailing',
-    'addons.questions',
-    'addons.reports',
     'addons.delivery',
     'addons.rating',
-    'addons.search_history',
     'addons.website',
     'addons.auto_backup',
-    'addons.geo',
     'addons.base',
+    'addons.base_setup',
     'addons.observability',
     'addons.mail',
     'addons.base_address_extended',
@@ -104,16 +105,85 @@ INSTALLED_APPS = [
     'addons.authz',
     'addons.authz_audit',
     'addons.authz_reauth',
-    'addons.authz_menu',
-    'addons.auth_password_policy',
-    'addons.auth_signup',
-    'addons.auth_totp',
-    'addons.company',
+    'addons.authz_password_policy',
+    'addons.authz_signup',
+    'addons.authz_totp',
+    'addons.authz_ldap',
+    'addons.authz_oauth',
+    'addons.authz_totp_mail',
+    'addons.authz_passkey',
+    'addons.web',
+    'addons.portal',
+    'addons.sale_subscription',
+    'addons.hr',
     'addons.account',
-    'addons.finance',
+    # Familias nuevas de la Ola 0 de `integrar-familia-account-completa`:
+    # dependencias que la referencia declara y nuestro árbol no tenía. Se
+    # portan completas, no recortadas a la superficie que account toca.
+    'addons.certificate',
+    'addons.onboarding',
+    'addons.analytic',
+    'addons.fleet',
+    'addons.resource',
+    'addons.digest',
+    # Bloque 0 de `integrar-cfdi-mexico-nativo`: la localización contable de
+    # México. Va DESPUÉS de `account` porque su `ready()` cuelga campos sobre
+    # `account.account`/`account.tax` con `add_to_class`, y el registro tiene
+    # que tener esos modelos ya poblados.
+    'addons.l10n_mx',
+    # Satélites de `account` (Ola F, primera tanda). Van DESPUÉS de `account`
+    # y de `fleet` por la misma razón que `l10n_mx`: sus `ready()` cuelgan
+    # campos con `add_to_class` sobre modelos que el registro debe tener ya
+    # poblados. `account_fleet` es puente y exige ambas.
+    'addons.account_add_gln',
+    'addons.account_qr_code_emv',
+    'addons.account_qr_code_sepa',
+    'addons.account_debit_note',
+    'addons.account_fleet',
+    'addons.account_tax_python',
+    # Satélites de `account` (Ola F, segunda tanda). Van DESPUÉS de `account`
+    # por la misma razón que los de arriba, y su orden RELATIVO no es
+    # arbitrario:
+    #
+    # - `account_update_tax_tags` y `account_test` sólo declaran modelos
+    #   PROPIOS con FK hacia `account` (no cuelgan nada sobre clases ajenas),
+    #   así que basta con ir después de `account`.
+    # - `account_check_printing` cuelga métodos sobre `base.IrSequence`,
+    #   `base.ResCurrency` y `account.AccountPaymentMethod` desde `ready()`:
+    #   exige `base` y `account` ya poblados.
+    # - `account_payment` va ÚLTIMO porque es el único que exige las DOS
+    #   familias a la vez — `account` y `payment` (sus 4 modelos RELATED de
+    #   `models/links.py` apuntan a ambas).
+    #
+    # `account_check_printing` y `account_payment` extienden AMBOS
+    # `account.payment.method._get_payment_method_information`. No se pisan:
+    # los dos usan `chain_method` con un `combine` de fusión de diccionarios
+    # (H-API-364), así que la contribución de los dos sobrevive sea cual sea
+    # el orden. El orden de abajo sólo fija cuál queda primero en la cadena.
+    'addons.account_update_tax_tags',
+    'addons.account_test',
+    'addons.account_check_printing',
+    'addons.account_payment',
 ]
 
-AUTH_USER_MODEL = 'users.IdentityUser'
+AUTH_USER_MODEL = 'base.ResUsers'
+
+# Cadena de autenticación — el equivalente Django de la cadena super()._login
+# de la referencia (auth_ldap/models/res_users.py:13-32): el password local
+# intenta primero (ModelBackend, el default implícito hasta ahora — se declara
+# explícito al federar) y LDAP es el fallback. Sin python-ldap instalado
+# (extra `ldap`), LdapBackend degrada devolviendo None y la cadena se comporta
+# como antes.
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'addons.authz_ldap.models.backends.LdapBackend',
+    # ≙ credential type 'oauth_token' de auth_oauth (_check_credentials):
+    # solo atiende el kwarg oauth_token, invisible para logins con password.
+    'addons.authz_oauth.models.backends.OauthTokenBackend',
+    # ≙ credential type 'webauthn' de auth_passkey: solo atiende el kwarg
+    # webauthn_response.
+    'addons.authz_passkey.models.backends.PasskeyBackend',
+]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -133,13 +203,18 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'addons.company.middleware.CompanyContextMiddleware',
+    'addons.base.models.ir_http.CompanyContextMiddleware',
+    # DeviceLogMiddleware: el punto donde la referencia registra el dispositivo
+    # de la peticion (check_session -> res.device.log._update_device,
+    # odoo19c: odoo/service/security.py:23,31). Va DESPUES de Session y
+    # Authentication: necesita session_key y request.user. Trazado throttled a
+    # una fila por dispositivo por hora; nunca rompe la respuesta.
+    'addons.base.models.res_device.DeviceLogMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     # H-CART-01 Fase 2: fija la cookie httpOnly cart_token para carritos
     # anonimos. Va por DEBAJO de CookieGovernanceMiddleware para que el
     # process_response de aquel (orden inverso) observe la cookie de carrito.
-    'addons.cart.middleware.CartCookieMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -158,14 +233,22 @@ TEMPLATES = [{
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-# Conexion DB — socket Unix preferido en dev local (si DB_SOCKET está
-# seteada, mysqlclient ignora HOST/PORT). En produccion OVH (VM1→VM3)
-# se usa TCP con SSL obligatorio (require_secure_transport=ON en VM3).
+# Conexion DB — PostgreSQL (iniciativa migrar-motor-mariadb-a-postgresql).
+# Socket Unix preferido en dev local; en produccion OVH (VM1→VM3) TCP con SSL.
 # Ver docs/source/normativa/procedimientos/proc-ejecutar-pruebas.rst.
-_DB_OPTIONS = {
-    'charset': 'utf8mb4',
-    'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-}
+#
+# Dos claves de la era mysqlclient NO tienen equivalente y se retiran, no se
+# traducen — escribir un sustituto inventado seria peor que no tenerlas:
+#
+#   ``charset='utf8mb4'``  El encoding es de la DATABASE, no de la conexion ni
+#                          de la tabla. Lo fija ``CREATE DATABASE … ENCODING``
+#                          (el provisioner de db lo hace con TEMPLATE
+#                          template0). No hay nada que declarar por conexion.
+#   ``init_command``       ``SET sql_mode='STRICT_TRANS_TABLES'`` endurecia un
+#   ``SET sql_mode=…``     motor que por defecto es laxo (truncaba en vez de
+#                          fallar). PostgreSQL ya rechaza el dato que no cabe:
+#                          no hay modo laxo que endurecer.
+_DB_OPTIONS = {}
 # SSL: por defecto verifica el cert del server contra CAs publicas (certifi),
 # valido para la DB productiva (Let's Encrypt; VM3 TCP + require_secure_transport).
 # DB_SSL_MODE=DISABLED apaga TLS para entornos con cert self-signed o socket
@@ -182,25 +265,31 @@ _DB_OPTIONS = {
 # construye ``DATABASES`` al import antes de que testing.py lo reemplace).
 _DB_SSL_MODE = config('DB_SSL_MODE', default='')
 if _DB_SSL_MODE:
-    _DB_OPTIONS['ssl_mode'] = _DB_SSL_MODE
+    _DB_OPTIONS['sslmode'] = _DB_SSL_MODE.lower()
 else:
-    _DB_OPTIONS['ssl'] = {'ca': certifi.where()}
+    _DB_OPTIONS['sslmode'] = 'verify-full'
+    _DB_OPTIONS['sslrootcert'] = certifi.where()
+# El socket NO es una opcion en libpq: es el HOST. Cuando ``host`` empieza por
+# ``/``, libpq lo interpreta como el DIRECTORIO donde vive el socket y NO abre
+# TCP — el puerto pasa a nombrar el archivo (``.s.PGSQL.<port>``), no un puerto
+# de red. Por eso ``DB_SOCKET`` aqui vale el directorio
+# (``/var/run/postgresql``), no la ruta del archivo como en mysqlclient.
+# Ver H-API-305.
 _DB_SOCKET = config('DB_SOCKET', default='')
-if _DB_SOCKET:
-    _DB_OPTIONS['unix_socket'] = _DB_SOCKET
 
 # Config de conexión — SIN ``default=`` (SOL-087, directiva ejecutor
 # 2026-07-16): toda la configuración vive en ``.env`` (12-factor). Falla
 # ruidoso si una clave falta, en vez de esconder un valor mágico en el código.
-# La infraestructura la nombra el operador L0 (Kaupamex), no un tenant;
-# practicayoruba queda como fila de la tabla ``company`` (get_founder).
+# La infraestructura la nombra el operador L0 (Kaupamex), no una empresa L1;
+# cada L1 queda como fila de la tabla ``res_company``, creada por bootstrap
+# (``BOOTSTRAP_COMPANY_CODE`` + ``company_create``), no por código.
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
+        'ENGINE': 'django.db.backends.postgresql',
         'NAME': config('DB_NAME'),
         'USER': config('DB_USER'),
         'PASSWORD': config('DB_PASSWORD'),
-        'HOST': config('DB_HOST'),
+        'HOST': _DB_SOCKET or config('DB_HOST'),
         'PORT': config('DB_PORT'),
         'OPTIONS': _DB_OPTIONS,
     }
@@ -233,10 +322,10 @@ MULTIDB_CONTROL_PLANE_APPS = ('sessions', 'contenttypes', 'base', 'observability
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     # Longitud mínima editable en caliente (L2) — adaptación de
-    # auth_password_policy de Odoo. Reemplaza a MinimumLengthValidator (que
+    # authz_password_policy de Odoo. Reemplaza a MinimumLengthValidator (que
     # cablea min_length=8 en settings) por la variante configurable en
-    # SystemParameter (default 8; sin regresión). Ver addons.auth_password_policy.
-    {'NAME': 'addons.auth_password_policy.validators.ConfigurablePasswordPolicyValidator'},
+    # SystemParameter (default 8; sin regresión). Ver addons.authz_password_policy.
+    {'NAME': 'addons.authz_password_policy.validators.ConfigurablePasswordPolicyValidator'},
     {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
@@ -261,36 +350,41 @@ DEFAULT_FROM_EMAIL = 'noreply@kaupamex.com'
 # Destinatario de alertas operativas (UC-ADM-05: backup fallido). Migrado a
 # SystemParameter L2 ('backup.alert_email', H-API-CFG-01) — tenia default=
 # stale (practicayoruba.com); ahora editable en caliente. Ver
-# addons.auto_backup.views._notify_backup_failed().
+# addons.auto_backup.controllers.main._notify_backup_failed().
 #
 # Buzones por propósito en VM2 (Postfix + Cyrus). Contacto y newsletter usan
 # su buzón monitoreado para que la conversación llegue a un humano y las
 # respuestas no caigan en un buzón no-reply.
 #
-# Los remitentes de correo per-tenant migraron a L3
-# (``addons.company.CompanySetting`` — per-empresa, FK ``company`` +
-# ``CompanyScopedManager``): ya NO son settings de Django.
+# Los remitentes de correo per-empresa migraron a L3
+# (``addons.base.CompanySetting`` — per-empresa, FK ``company`` +
+# record rules ``ir_rule``): ya NO son settings de Django.
 #
 # - CONTACT_FROM_EMAIL/CONTACT_NOTIFY_EMAIL/NEWSLETTER_FROM_EMAIL → SOL-090
-#   slice 3 (``company/0006_seed_founder_settings``).
+#   slice 3.
 # - DEFAULT_FROM_EMAIL (remitente no-reply transaccional: auth, órdenes,
 #   envíos, devoluciones, soporte) → follow-up #199, clave
-#   ``notifications.from_email`` (``company/0007_seed_founder_notifications_from``).
+#   ``notifications.from_email``.
 #
-# Los valores previos (``hola@practicayoruba.com`` / ``newsletter@practica…`` /
-# ``noreply@practicayoruba.com``) NO eran stale — PracticaYoruba es un tenant
-# **L1** (el founder, NO L0/Kaupamex), y esos eran su config correcta. Las
-# migraciones los siembran como filas ``CompanySetting`` de PracticaYoruba
-# (founder), no los reemplazan. Los consumidores
-# (``addons.contact.views``, ``addons.newsletter.views``,
-# ``addons.notifications.emails``, ``addons.users.tokens_email``) leen
+# Los consumidores (``addons.crm.controllers``,
+# ``addons.mass_mailing.controllers``, ``addons.mail.models``,
+# ``addons.website_mass_mailing.controllers``) leen
 # ``CompanySetting.get_setting('<key>', <fallback neutral>)`` bajo la empresa
 # resuelta (ambiente para flujos autenticados; ``company=user.company_id``
-# explícito para auth pre-login); el fallback SÍ es neutral (nivel Kaupamex,
-# ``*@kaupamex.com``) — PracticaYoruba es solo un tenant entre potencialmente
-# varios. Cierra H-CFG-IMPL-10 + H-CFG-IMPL-13. Ver
-# addons.company.models.CompanySetting y
+# explícito para auth pre-login); el fallback ES neutral (nivel Kaupamex,
+# ``*@kaupamex.com``) — el L1 de ejemplo es una empresa entre potencialmente
+# varias, así que su remitente propio se declara en el bootstrap
+# (``manage.py company_create <code> --setting clave=valor``), NO como
+# constante de código. Cierra H-CFG-IMPL-10 + H-CFG-IMPL-13. Ver
+# addons.base.models.CompanySetting y
 # hallazgos-implementar-systemparameter-l2.
+
+# Bootstrap de la primera empresa L1 (DEC-3 de ``tenants-sin-clases-en-codigo``).
+# La app NO nombra "el founder" por código en runtime: la empresa inicial se
+# declara aquí (12-factor, ``.env``) y la crea ``company_create``. Vacío = la
+# instalación no siembra ninguna empresa por sí sola.
+BOOTSTRAP_COMPANY_CODE = config('BOOTSTRAP_COMPANY_CODE', default='')
+BOOTSTRAP_COMPANY_NAME = config('BOOTSTRAP_COMPANY_NAME', default='')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -307,7 +401,7 @@ REST_FRAMEWORK = {
         # JWT (SimpleJWT) queda INSTALADO pero fuera del default: el login aun
         # emite tokens (dormidos). Para una futura app movil basta re-anadir
         # 'rest_framework_simplejwt.authentication.JWTAuthentication' aqui.
-        'addons.users.authentication.CsrfExemptSessionAuthentication',
+        'addons.base.authentication.CsrfExemptSessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -395,9 +489,11 @@ SIMPLE_JWT = {
 
 SPECTACULAR_SETTINGS = {
     # --- Metadatos ---
-    'TITLE': 'PracticaYoruba API',
+    'TITLE': 'Kaupamex API',
     'DESCRIPTION': (
-        'API REST de PracticaYoruba — plataforma e-commerce de productos Yoruba.\n\n'
+        'API REST de Kaupamex — plataforma multi-company de comercio\n'
+        'electrónico. PracticaYoruba es su L1 de ejemplo, no la\n'
+        'plataforma.\n\n'
         'Autenticación: sesión de servidor (cookie HttpOnly) via '
         'POST /api/v2/auth/login/\n'
         'Todos los endpoints bajo el prefijo /api/v2/'
@@ -406,11 +502,14 @@ SPECTACULAR_SETTINGS = {
     # Contacto del schema OpenAPI = operador de la plataforma (L0, Kaupamex):
     # la API es infraestructura de plataforma (un solo codebase Django sirve a
     # todos los tenants), evaluada estáticamente al generar el schema — sin
-    # dimensión de empresa. Antes reusaba el buzón L1 del founder
+    # dimensión de empresa. Antes reusaba el buzón L1 de ejemplo
     # (``hola@practicayoruba.com``); es config de plataforma, no per-tenant
-    # (DEC-KX-05, follow-up #199). El TITLE/DESCRIPTION mantienen el branding
-    # de PracticaYoruba como producto insignia — cambiarlos es una decisión de
-    # producto aparte, no de clasificación de config.
+    # (DEC-KX-05, follow-up #199). El TITLE/DESCRIPTION **ya no** llevan el
+    # branding del L1: la API publicada es la de la plataforma, y llamarla
+    # "PracticaYoruba API" la confundía con su tenant de ejemplo. La decisión
+    # de producto que este comentario dejaba pendiente la tomó el ejecutor el
+    # 2026-08-06; el schema QA ya se llamaba ``kaupamex_qa``, así que el
+    # título era el último resto del nombre viejo en la superficie publicada.
     'CONTACT': {
         'name': 'Equipo Kaupamex',
         'email': 'soporte@kaupamex.com',
@@ -499,8 +598,6 @@ SPECTACULAR_SETTINGS = {
             'addons.website.models.StaticPageVersion.STATUS_CHOICES',
         'NotificationStatusEnum':
             'addons.mail.models.manual_notification.ManualNotification.Status',
-        'QuestionStatusEnum':
-            'addons.questions.models.QuestionStatus.choices',
         'SupportTicketStatusEnum':
             'addons.helpdesk.models.SupportTicket.Status',
         'ReturnRequestStatusEnum':
@@ -523,8 +620,6 @@ SPECTACULAR_SETTINGS = {
         # nombre de campo `reason` — devolucion vs ajuste de inventario.
         'ReturnReasonEnum':
             'addons.stock.models.ReturnRequest.Reason',
-        'StockAdjustmentReasonEnum':
-            'addons.inventory.serializers.ADJUSTMENT_REASONS',
     },
 }
 

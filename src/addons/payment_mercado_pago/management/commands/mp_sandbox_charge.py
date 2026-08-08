@@ -31,11 +31,10 @@ from addons.sale.models import SaleOrder
 from django.core.management.base import BaseCommand, CommandError
 
 from addons.sale.status_projection import (
-    STATUS_PENDING,
     order_status,
 )
 from addons.payment.models import Payment
-from addons.payments.services import initiate_checkout_api_payment
+from addons.payment.services import initiate_checkout_api_payment
 from addons.payment.models import PaymentGateway
 
 # Tarjetas de PRUEBA oficiales de MP México (públicas, libres). El estado
@@ -134,17 +133,28 @@ def run_sandbox_charge(status='APRO', method='master', amount='199.00',
         user.mp_customer_id = ''
         user.save(update_fields=['mp_customer_id'])
 
-    # order_number único por corrida (uuid): SaleOrder es SoftDeleteModel, así que
-    # una orden "borrada" deja la fila viva y su order_number único colisionaría
+    # ``name`` único por corrida (uuid): SaleOrder es SoftDeleteModel, así que
+    # una orden "borrada" deja la fila viva y su ``name`` único colisionaría
     # con un contador. El sufijo aleatorio lo evita. 'MPSMOKE'(7)+12 = 19 <= 20.
-    order_number = f'MPSMOKE{uuid.uuid4().hex[:12].upper()}'
+    #
+    # Vocabulario canónico tras el retiro del espejo (SOL-098): ``name`` en vez
+    # de ``order_number``, ``partner`` en vez de ``user``, y ``state='sale'``
+    # (orden confirmada) en vez del ``status`` proyectado — el humo cobra
+    # contra una orden ya confirmada, y ``PENDING`` es lo que ``order_status``
+    # deriva de ella mientras no haya pago aprobado.
     order = SaleOrder.objects.create(
-        order_number=order_number, user=user,
-        status=STATUS_PENDING)
-    SaleOrderValue_REMOVED.objects.create(
-        order=order, subtotal=Decimal(amount), tax=Decimal('0.00'),
-        shipping_cost=Decimal('0.00'), discount=Decimal('0.00'),
-        total=Decimal(amount))
+        name=f'MPSMOKE{uuid.uuid4().hex[:12].upper()}',
+        partner=user,
+        state=SaleOrder.STATE_SALE,
+    )
+    # Los importes ya no viven en una entidad aparte: son columnas de la propia
+    # orden (``amount_*``), normalmente recalculadas desde las líneas. El humo
+    # no crea líneas —cobra un monto suelto contra el gateway—, así que se
+    # fijan directo.
+    order.amount_untaxed = Decimal(amount)
+    order.amount_tax = Decimal('0.00')
+    order.amount_total = Decimal(amount)
+    order.save(update_fields=['amount_untaxed', 'amount_tax', 'amount_total'])
 
     token = tokenize_test_card(public_key, method, status)
     payment, result = initiate_checkout_api_payment(
@@ -159,7 +169,7 @@ def run_sandbox_charge(status='APRO', method='master', amount='199.00',
         'mp_detail': getattr(result, 'status_detail',
                              getattr(result, 'detail', '')),
         'expected_mp_status': EXPECTED_MP_STATUS.get(status),
-        'order_number': order.order_number,
+        'order_number': order.name,
         'order_status': order_status(order),
         'payment_id': getattr(payment, 'pk', None),
         'gateway_payment_id': getattr(payment, 'gateway_payment_id', None),
@@ -168,9 +178,9 @@ def run_sandbox_charge(status='APRO', method='master', amount='199.00',
 
     if not keep:
         # hard_delete: SaleOrder es SoftDeleteModel; su delete() dejaría la fila.
-        for pay in Payment.objects.filter(order=order):
+        for pay in Payment.objects.filter(sale_order=order):
             (pay.hard_delete if hasattr(pay, 'hard_delete') else pay.delete)()
-        order.hard_delete()  # SaleOrderValue_REMOVED cascada real
+        order.hard_delete()  # los importes viven en la propia fila
 
     return out
 

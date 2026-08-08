@@ -13,4 +13,4 @@ class HelpdeskConfig(AppConfig):
         # ``importlib.import_module`` —no un ``import`` statement— es la
         # excepción #4 sancionada para ``ready()``: el gate AST prohíbe
         # imports dentro de funciones y no tiene ``# noqa``.
-        importlib.import_module(f'{self.name}.handlers')
+        importlib.import_module(f'{self.name}.models.handlers')

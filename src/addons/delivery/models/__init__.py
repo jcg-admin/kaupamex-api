@@ -24,6 +24,8 @@ from django.db import models
 from addons.base.models import SoftDeleteModel, TimeStampedModel
 from addons.delivery.offers import RateCard
 from addons.delivery.models.shipping_zone import ShippingZone
+from addons.product.models import ProductProduct, ProductTemplate
+from addons.product.models.product_template import TYPE_SERVICE
 
 logger = logging.getLogger('apps')
 
@@ -39,7 +41,7 @@ class Courier(TimeStampedModel):
     is_active   = models.BooleanField(default=True, db_index=True)
     # LOG-04 (US-1.2 / DEC-LOOP-05): shared secret used to verify the HMAC
     # signature of courier status webhooks. Stored Fernet-encrypted (same
-    # pattern as addons.settings_app.PaymentGateway.credentials, DEC-DOC-008) —
+    # pattern as addons.payment.PaymentGateway.credentials, DEC-DOC-008) —
     # never in plaintext. Empty/unset means the courier cannot send webhooks
     # and any incoming webhook for it is rejected fail-closed.
     webhook_secret = models.BinaryField(
@@ -291,7 +293,7 @@ class ShippingMethod(TimeStampedModel):
     # puebla por método vía ``ensure_service_product`` y el gate de la línea
     # vive en el servicio, no en el esquema.
     product        = models.ForeignKey(
-                       'catalogue.Product', null=True, blank=True,
+                       'product.ProductProduct', null=True, blank=True,
                        on_delete=models.PROTECT, related_name='shipping_methods',
                        help_text='Producto de servicio para la línea de envío '
                                  '(Odoo delivery.carrier.product_id).')
@@ -321,24 +323,27 @@ class ShippingMethod(TimeStampedModel):
         producto es informativo — el importe que va a la línea lo fija el
         servicio de venta con el costo calculado para la orden (por zona), no
         este campo.
+
+        H-API — mismo drift que ``sale_order.ensure_generic_service_product``:
+        creaba la variante con kwargs de ``catalogue.Product``
+        (``sku``/``slug``/``price``/``is_active``/``is_published``/
+        ``short_description``), ninguno vigente en el catálogo canónico. Ver
+        el docstring hermano.
         """
         if self.product_id is not None:
             return self.product
-        product_model = self._meta.get_field('product').related_model
         sku = f'{self.SERVICE_SKU_PREFIX}{self.pk}'
-        product, _ = product_model.objects.get_or_create(
-            sku=sku,
-            defaults={
-                'name': f'Envío — {self.name}',
-                'slug': f'servicio-envio-{self.pk}',
-                'price': self.cost,
-                'is_active': True,
-                'is_published': False,
-                'short_description': 'Concepto de envío para facturación.',
-            },
-        )
-        self.product = product
+        variant = ProductProduct.objects.filter(default_code=sku).first()
+        if variant is None:
+            tmpl = ProductTemplate.objects.create(
+                name=f'Envío — {self.name}', type=TYPE_SERVICE,
+                list_price=self.cost, sale_ok=False, active=True,
+            )
+            variant = ProductProduct.objects.create(
+                product_tmpl=tmpl, default_code=sku, active=True,
+            )
+        self.product = variant
         self.save(update_fields=['product', 'updated_at'])
-        return product
+        return variant
 
 from .delivery_address import DeliveryAddress  # noqa: E402

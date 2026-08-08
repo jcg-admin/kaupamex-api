@@ -51,7 +51,7 @@ def create_invoice_from_sale_order(order, company) -> AccountMove:
     ``draft``; el llamador decide cuándo ``post()``.
 
     :param order: orden de venta confirmada (``state='sale'`` con líneas).
-    :param company: empresa emisora (``company.Company``).
+    :param company: empresa emisora (``base.ResCompany``).
     :raises UserError: si la orden no está confirmada o sin líneas, o si a la
         empresa le falta el diario de ventas o las cuentas requeridas.
     """

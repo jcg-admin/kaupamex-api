@@ -20,7 +20,7 @@ User = get_user_model()
 
 def _user(email='a@e.com', **kw):
     # Party (T-201): IdentityUser sólo tiene email como identificador.
-    return User.objects.create_user(email=email, password='x', **kw)
+    return User.objects.create_user(login=email, password='x', **kw)
 
 
 def _cap(code='orders.refund', **kw):

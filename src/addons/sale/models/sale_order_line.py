@@ -14,7 +14,8 @@ import fields
 import models
 
 from addons.base.models import TimeStampedModel
-from addons.base.models import SiteSettings
+from addons.base_setup.settings_access import get_setting
+from addons.stock.services import InventoryService
 
 
 class SaleOrderLine(TimeStampedModel):
@@ -25,12 +26,8 @@ class SaleOrderLine(TimeStampedModel):
         help_text='Odoo order_id.',
     )
     product         = fields.Many2one(
-        'catalogue.Product', on_delete=models.PROTECT,
+        'product.ProductProduct', on_delete=models.PROTECT,
         related_name='sale_order_lines', help_text='Odoo product_id.',
-    )
-    variant         = fields.Many2one(
-        'chartsize.ProductVariant', null=True, blank=True,
-        on_delete=models.PROTECT, related_name='sale_order_lines',
     )
     name            = fields.Char(
         max_length=255, blank=True, default='',
@@ -73,10 +70,25 @@ class SaleOrderLine(TimeStampedModel):
         default=False, db_index=True,
         help_text='La línea representa un descuento/recompensa (precio negativo).',
     )
+    sequence        = models.IntegerField(
+        default=10, db_index=True,
+        help_text='Orden de la línea dentro de la orden (Odoo sequence).',
+    )
 
     class Meta:
         db_table     = 'sale_order_line'
         verbose_name = 'Línea de orden de venta'
+        # ≙ ``odoo19c: sale/models/sale_order_line.py:17`` — ``_order =
+        # 'order_id, sequence, id'``. No es cosmética: sin ORDER BY el motor
+        # devuelve las filas en el orden que le conviene, y PostgreSQL no
+        # promete el de la PK. MariaDB lo daba de hecho, así que dos caminos
+        # que leían las mismas líneas coincidían por suerte del
+        # almacenamiento — hasta que dejaron de coincidir (H-API-312).
+        #
+        # ``sequence`` viene con el orden: es lo que hace que el usuario pueda
+        # reordenar líneas sin depender del id de inserción, y es la razón por
+        # la que la referencia no ordena sólo por ``id``.
+        ordering     = ['order', 'sequence', 'id']
 
     def __str__(self):
         return f'{self.name or self.product_id} ×{self.product_uom_qty}'
@@ -119,7 +131,7 @@ class SaleOrderLine(TimeStampedModel):
         return gross.quantize(Decimal('0.01'))
 
     def price_tax(self) -> Decimal:
-        rate = SiteSettings.get_current().iva_rate
+        rate = get_setting('iva_rate')
         return (self.price_total() * rate / (1 + rate)).quantize(Decimal('0.01'))
 
     def price_subtotal(self) -> Decimal:
@@ -127,27 +139,26 @@ class SaleOrderLine(TimeStampedModel):
 
     # ------------------------------------------------------------------
     # V2 unificación orders→sale: la línea del draft (carrito) necesita el
-    # estado VIVO del catálogo — paridad con los métodos que OrderItem ganó
-    # en S2c-2b como línea strangler. En Odoo website_sale recalcula el
-    # precio del carrito contra la pricelist vigente; aquí el vigente es
-    # variant.effective_price() / product.price.
+    # estado VIVO del catálogo. En Odoo ``website_sale`` recalcula el precio
+    # del carrito contra la pricelist vigente; aquí el vigente es
+    # ``ProductProduct.lst_price`` — el de la ficha más el extra de los
+    # valores de atributo de la variante (odoo19c:
+    # ``product/models/product_product.py``).
+    #
+    # El eje ``variant`` desapareció: ``product`` **es** la variante
+    # (H-API-213). La existencia se deriva de ``stock.quant`` vía
+    # ``InventoryService``, no de una columna del producto (odoo19c:
+    # ``stock/models/stock_quant.py:119-122``).
     # ------------------------------------------------------------------
     def current_price(self) -> Decimal:
-        """Precio vigente del catálogo (variant.effective_price o product.price)."""
-        if self.variant:
-            return self.variant.effective_price()
-        return self.product.price
+        """Precio vigente del catálogo (Odoo ``lst_price``)."""
+        return self.product.lst_price
 
     def is_available(self) -> bool:
-        """Paridad con OrderItem.is_available (guardias H-CICLO42-01)."""
-        if not (self.product.is_active and self.product.is_published):
+        """Paridad con la guardia histórica de carrito (H-CICLO42-01)."""
+        if not self.product.active:
             return False
-        if self.variant:
-            return (self.variant.is_available()
-                    and self.variant.stock >= self.product_uom_qty)
-        return self.product.stock >= self.product_uom_qty
+        return self.available_stock() >= self.product_uom_qty
 
-    def available_stock(self) -> int:
-        if self.variant:
-            return self.variant.stock
-        return self.product.stock
+    def available_stock(self) -> Decimal:
+        return InventoryService.available_quantity(self.product)

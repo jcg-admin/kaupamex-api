@@ -16,7 +16,7 @@ apunta siempre hacia abajo: ``base`` 0, ``mail`` 4, ``product`` 5, ``payment``
 ``website_sale`` 12. Ningún addon de infraestructura declara ``depends`` sobre
 uno de negocio. Este gate prohíbe esa inversión.
 
-**Ratchet:** las inversiones que ya existen están en ``INVERSIONES_CONOCIDAS``
+**Ratchet:** las inversiones que ya existen están en ``KNOWN_INVERSIONS``
 con su motivo. El gate falla si aparece **una nueva**. Al cerrar una, se borra
 de la lista — la lista sólo puede encoger.
 
@@ -29,7 +29,7 @@ import os
 import sys
 from collections import defaultdict
 
-RAIZ = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'src', 'addons')
+ROOT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'src', 'addons')
 
 # Addons de infraestructura: identidad, acceso, correo y catálogo base. En la
 # referencia viven entre profundidad 0 y 5, por debajo de todo el negocio.
@@ -52,8 +52,7 @@ NEGOCIO = frozenset({
 
 # Inversiones fundacional -> negocio ya presentes. El gate falla ante una nueva.
 # Formato: (origen, destino): motivo / tarea que la cierra.
-INVERSIONES_CONOCIDAS = {
-    ('users', 'orders'): 'serializers/admin_views leen el espejo — cierra con el bloque E',
+KNOWN_INVERSIONS = {
     ('users', 'sale'): 'admin_views compone dinero de la venta — H-API-40',
     ('users', 'cart'): 'views enlaza el carrito del usuario',
     ('catalogue', 'sale'): 'views consulta líneas de venta del producto',
@@ -64,113 +63,113 @@ INVERSIONES_CONOCIDAS = {
 }
 
 
-def construir_grafo():
+def build_graph():
     """Devuelve (addons, aristas, sitios) leyendo los imports con AST."""
-    addons = sorted(d for d in os.listdir(RAIZ) if os.path.isdir(os.path.join(RAIZ, d)))
-    indice = set(addons)
-    aristas = defaultdict(set)
-    sitios = defaultdict(list)
+    addons = sorted(d for d in os.listdir(ROOT) if os.path.isdir(os.path.join(ROOT, d)))
+    index = set(addons)
+    edges = defaultdict(set)
+    sites = defaultdict(list)
     for addon in addons:
-        for carpeta, _, archivos in os.walk(os.path.join(RAIZ, addon)):
-            if 'migrations' in carpeta.split(os.sep):
+        for folder, _, files in os.walk(os.path.join(ROOT, addon)):
+            if 'migrations' in folder.split(os.sep):
                 continue
-            for archivo in archivos:
-                if not archivo.endswith('.py'):
+            for filename in files:
+                if not filename.endswith('.py'):
                     continue
-                ruta = os.path.join(carpeta, archivo)
+                path = os.path.join(folder, filename)
                 try:
-                    arbol = ast.parse(open(ruta, encoding='utf-8').read())
+                    tree = ast.parse(open(path, encoding='utf-8').read())
                 except SyntaxError:
                     continue
-                for nodo in ast.walk(arbol):
-                    if isinstance(nodo, ast.ImportFrom) and nodo.module:
-                        modulos = [nodo.module]
-                    elif isinstance(nodo, ast.Import):
-                        modulos = [alias.name for alias in nodo.names]
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.ImportFrom) and node.module:
+                        modules = [node.module]
+                    elif isinstance(node, ast.Import):
+                        modules = [alias.name for alias in node.names]
                     else:
                         continue
-                    for modulo in modulos:
-                        if not modulo.startswith('addons.'):
+                    for module in modules:
+                        if not module.startswith('addons.'):
                             continue
-                        partes = modulo.split('.')
-                        if len(partes) > 1 and partes[1] in indice and partes[1] != addon:
-                            aristas[addon].add(partes[1])
-                            sitios[(addon, partes[1])].append(
-                                f'{os.path.relpath(ruta, os.getcwd())}:{nodo.lineno}')
-    return addons, aristas, sitios
+                        parts = module.split('.')
+                        if len(parts) > 1 and parts[1] in index and parts[1] != addon:
+                            edges[addon].add(parts[1])
+                            sites[(addon, parts[1])].append(
+                                f'{os.path.relpath(path, os.getcwd())}:{node.lineno}')
+    return addons, edges, sites
 
 
-def componentes_ciclicos(addons, aristas):
+def componentes_ciclicos(addons, edges):
     """Tarjan iterativo; devuelve los componentes de tamaño > 1."""
-    indice, bajo, en_pila, pila, contador, salida = {}, {}, {}, [], [0], []
+    index, bajo, en_pila, pila, contador, output = {}, {}, {}, [], [0], []
 
     def recorrer(inicio):
         trabajo = [(inicio, 0)]
         while trabajo:
-            nodo, i = trabajo[-1]
+            node, i = trabajo[-1]
             if i == 0:
-                indice[nodo] = bajo[nodo] = contador[0]
+                index[node] = bajo[node] = contador[0]
                 contador[0] += 1
-                pila.append(nodo)
-                en_pila[nodo] = True
+                pila.append(node)
+                en_pila[node] = True
             descendio = False
-            vecinos = sorted(aristas[nodo])
+            vecinos = sorted(edges[node])
             for j in range(i, len(vecinos)):
                 vecino = vecinos[j]
-                if vecino not in indice:
-                    trabajo[-1] = (nodo, j + 1)
+                if vecino not in index:
+                    trabajo[-1] = (node, j + 1)
                     trabajo.append((vecino, 0))
                     descendio = True
                     break
                 if en_pila.get(vecino):
-                    bajo[nodo] = min(bajo[nodo], indice[vecino])
+                    bajo[node] = min(bajo[node], index[vecino])
             if descendio:
                 continue
-            if bajo[nodo] == indice[nodo]:
-                componente = []
+            if bajo[node] == index[node]:
+                component = []
                 while True:
                     w = pila.pop()
                     en_pila[w] = False
-                    componente.append(w)
-                    if w == nodo:
+                    component.append(w)
+                    if w == node:
                         break
-                salida.append(componente)
+                output.append(component)
             trabajo.pop()
             if trabajo:
-                bajo[trabajo[-1][0]] = min(bajo[trabajo[-1][0]], bajo[nodo])
+                bajo[trabajo[-1][0]] = min(bajo[trabajo[-1][0]], bajo[node])
 
     for addon in addons:
-        if addon not in indice:
+        if addon not in index:
             recorrer(addon)
-    return [c for c in salida if len(c) > 1]
+    return [c for c in output if len(c) > 1]
 
 
 def main():
-    solo_reporte = '--report' in sys.argv
-    addons, aristas, sitios = construir_grafo()
+    report_only = '--report' in sys.argv
+    addons, edges, sites = build_graph()
 
     actuales = {
-        (origen, destino)
-        for origen in FUNDACIONALES & set(addons)
-        for destino in aristas[origen] & NEGOCIO
+        (source, target)
+        for source in FUNDACIONALES & set(addons)
+        for target in edges[source] & NEGOCIO
     }
-    nuevas = actuales - set(INVERSIONES_CONOCIDAS)
-    cerradas = set(INVERSIONES_CONOCIDAS) - actuales
+    nuevas = actuales - set(KNOWN_INVERSIONS)
+    cerradas = set(KNOWN_INVERSIONS) - actuales
 
     print(f'Addons: {len(addons)}')
-    for componente in sorted(componentes_ciclicos(addons, aristas), key=len, reverse=True):
-        print(f'  ciclo de {len(componente)}: {" ".join(sorted(componente))}')
+    for component in sorted(componentes_ciclicos(addons, edges), key=len, reverse=True):
+        print(f'  ciclo de {len(component)}: {" ".join(sorted(component))}')
     print(f'Inversiones fundacional -> negocio: {len(actuales)} '
-          f'(conocidas: {len(INVERSIONES_CONOCIDAS)})')
+          f'(conocidas: {len(KNOWN_INVERSIONS)})')
 
-    for origen, destino in sorted(cerradas):
-        print(f'  CERRADA  {origen} -> {destino} — bórrala de INVERSIONES_CONOCIDAS')
-    for origen, destino in sorted(nuevas):
-        print(f'  NUEVA    {origen} -> {destino}')
-        for sitio in sitios[(origen, destino)]:
+    for source, target in sorted(cerradas):
+        print(f'  CERRADA  {source} -> {target} — bórrala de KNOWN_INVERSIONS')
+    for source, target in sorted(nuevas):
+        print(f'  NUEVA    {source} -> {target}')
+        for sitio in sites[(source, target)]:
             print(f'             {sitio}')
 
-    if solo_reporte:
+    if report_only:
         return 0
     if nuevas:
         print(f'\nFALLO: {len(nuevas)} inversión(es) nueva(s). Un addon fundacional no '

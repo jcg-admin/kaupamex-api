@@ -6,7 +6,7 @@ Run via:
 
 Idempotent: existing categories are left untouched.
 """
-from addons.catalogue.models import Category
+from addons.product.models import ProductCategory as Category
 
 CATEGORIES = [
     ('Collares y Elekes', 'collares', 'Collares ceremoniales y elekes Lukumí.'),

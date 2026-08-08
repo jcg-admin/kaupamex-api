@@ -27,7 +27,7 @@ from tools.translate import _
 
 from addons.account.services import create_invoice_from_sale_order
 from addons.base.models import IrSequence, TimeStampedModel
-from addons.company.models import CompanyScopedManager
+from addons.base.models.ir_rule import RuleScopedManager
 from addons.mail.models import MailThread
 
 
@@ -76,6 +76,12 @@ class SaleOrder(MailThread, TimeStampedModel):
         (STATE_SALE,   'Orden de venta'),
         (STATE_CANCEL, 'Cancelada'),
     ]
+
+    # DEC-003: ``TimeStampedModel`` deja ``created_at`` sin índice y encarga a
+    # cada modelo declararlo "por volumen (inventario, órdenes)". El espejo lo
+    # declaraba y la canónica no lo heredó al retirarlo, aunque es ella la que
+    # se ordena por fecha en el panel del comprador y en el admin.
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     # ``name`` NULL mientras es borrador (Odoo lo asigna al crear vía secuencia;
     # aquí se asigna al confirmar). UNIQUE admite múltiples NULL en SQL.
@@ -126,7 +132,7 @@ class SaleOrder(MailThread, TimeStampedModel):
     # SOL-085 S3: nullable durante el backfill (la migración asigna las filas
     # heredadas a la founder company). Espeja el patrón de company.CompanySetting.
     company     = fields.Many2one(
-        'company.Company', null=True, blank=True,
+        'base.ResCompany', null=True, blank=True,
         on_delete=models.CASCADE, related_name='sale_orders',
         help_text='Empresa dueña de la orden (Odoo company_id). NULL pre-backfill.',
     )
@@ -192,13 +198,33 @@ class SaleOrder(MailThread, TimeStampedModel):
     )
 
     objects = models.Manager()               # cross-company (L0 admin)
-    scoped = CompanyScopedManager()          # L3: fail-closed por empresa activa
+    scoped = RuleScopedManager()             # L3: record rules (ir_rule)
 
     class Meta:
         db_table     = 'sale_order'
         ordering     = ['-created_at']
         verbose_name = 'Orden de venta'
         verbose_name_plural = 'Órdenes de venta'
+        constraints  = [
+            # Un solo draft por partner, garantizado por la BASE y no por
+            # convención de código. El rodeo anterior lo sostenía en
+            # services.get_or_create_draft_order() "porque MariaDB no soporta
+            # UNIQUE parcial" — cierto entonces, falso desde ADR-028: el índice
+            # único parcial es exactamente esta construcción.
+            #
+            # Un invariante en Python se cumple mientras todos pasen por esa
+            # función; una migración de datos, un script de mantenimiento o dos
+            # peticiones concurrentes lo saltan. La base no.
+            #
+            # partner__isnull=False acota el índice a las filas que le importan:
+            # el carrito anónimo (partner NULL, unicidad por cart_token) queda
+            # fuera. Ver H-API-309.
+            models.UniqueConstraint(
+                fields=['partner'],
+                condition=models.Q(state='draft', partner__isnull=False),
+                name='sale_order_un_draft_por_partner',
+            ),
+        ]
 
     def __str__(self):
         return self.name or f'draft:{self.cart_token or self.pk}'

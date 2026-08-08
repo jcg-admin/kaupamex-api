@@ -16,9 +16,10 @@ from addons.base.models import TimeStampedModel
 class ProductTemplateAttributeLine(TimeStampedModel):
     """``product.template.attribute.line`` — atributo aplicado a un producto."""
 
-    product   = fields.Many2one(
-        'catalogue.Product', on_delete=models.CASCADE, related_name='attribute_lines',
-        help_text='Producto (Odoo product_tmpl_id).',
+    product_tmpl = fields.Many2one(
+        'product.ProductTemplate', on_delete=models.CASCADE,
+        related_name='attribute_lines',
+        help_text='Plantilla de producto (Odoo product_tmpl_id).',
     )
     attribute = fields.Many2one(
         'product.ProductAttribute', on_delete=models.PROTECT,
@@ -37,11 +38,12 @@ class ProductTemplateAttributeLine(TimeStampedModel):
         ordering = ['sequence', 'id']
         constraints = [
             models.UniqueConstraint(
-                fields=['product', 'attribute'], name='unique_template_attribute',
+                fields=['product_tmpl', 'attribute'],
+                name='unique_template_attribute',
             ),
         ]
         verbose_name = 'Línea de atributo de producto'
         verbose_name_plural = 'Líneas de atributo de producto'
 
     def __str__(self) -> str:
-        return f'{self.product} / {self.attribute}'
+        return f'{self.product_tmpl} / {self.attribute}'

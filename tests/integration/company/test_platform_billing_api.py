@@ -20,13 +20,13 @@ from django.contrib.auth import get_user_model
 import pytest
 
 from addons.authz.models import Capability, Module, Role, RoleAssignment
-from addons.company import billing
-from addons.company.models import (
-    Company,
+from addons.sale_subscription import services
+from addons.sale_subscription.models import (
     CompanyModuleSubscription,
     SubscriptionBillingRun,
     SubscriptionInvoice,
 )
+from addons.base.models import ResCompany
 
 pytestmark = pytest.mark.integration
 
@@ -58,7 +58,7 @@ def _user_with_caps(email, codes):
         defaults={'name': 'Test billing role'},
     )
     role.capabilities.set(caps)
-    u = get_user_model().objects.create_user(email=email, password='TestPass123!')
+    u = get_user_model().objects.create_user(login=email, password='TestPass123!')
     RoleAssignment.objects.create(user=u, role=role)
     return u
 
@@ -90,7 +90,7 @@ class TestBillingRunsEndpoint:
         assert any(r['period'] == '2026-08' for r in rows)
 
     def test_trigger_run_requires_platform_billing(self, api_client, db):
-        c = Company.objects.create(code='acme', name='Acme')
+        c = ResCompany.objects.create(code='acme', name='Acme')
         _active_priced_sub(c, 'catalogue', '199.00')
         # platform.view NO alcanza para disparar el cobro.
         viewer = _user_with_caps('viewer2@practicayoruba.mx', ['platform.view'])
@@ -110,8 +110,8 @@ class TestBillingRunsEndpoint:
 
 class TestCompanyInvoicesEndpoint:
     def test_list_company_invoices_scoped_and_gated(self, api_client, db):
-        c = Company.objects.create(code='acme', name='Acme')
-        other = Company.objects.create(code='globex', name='Globex')
+        c = ResCompany.objects.create(code='acme', name='Acme')
+        other = ResCompany.objects.create(code='globex', name='Globex')
         sub = _active_priced_sub(c, 'catalogue', '199.00')
         run = SubscriptionBillingRun.objects.create(period='2026-08')
         SubscriptionInvoice.objects.create(
@@ -146,7 +146,7 @@ class TestRetryInvoiceEndpoint:
         )
 
     def test_retry_requires_platform_billing(self, api_client, db):
-        c = Company.objects.create(code='acme', name='Acme')
+        c = ResCompany.objects.create(code='acme', name='Acme')
         inv = self._failed_invoice(c)
         viewer = _user_with_caps('v4@practicayoruba.mx', ['platform.view'])
         api_client.force_login(viewer)
@@ -154,9 +154,9 @@ class TestRetryInvoiceEndpoint:
 
     def test_retry_failed_invoice_charges_and_pays(self, api_client, db,
                                                    monkeypatch):
-        c = Company.objects.create(code='acme', name='Acme')
+        c = ResCompany.objects.create(code='acme', name='Acme')
         inv = self._failed_invoice(c)
-        monkeypatch.setattr(billing, 'charge_invoice', lambda invoice: True)
+        monkeypatch.setattr(services, 'charge_invoice', lambda invoice: True)
         biller = _user_with_caps('b2@practicayoruba.mx', ['platform.billing'])
         api_client.force_login(biller)
         res = api_client.post(_retry_url(inv.id))
@@ -166,7 +166,7 @@ class TestRetryInvoiceEndpoint:
         assert inv.paid_at is not None
 
     def test_retry_non_failed_invoice_is_409(self, api_client, db):
-        c = Company.objects.create(code='acme', name='Acme')
+        c = ResCompany.objects.create(code='acme', name='Acme')
         inv = self._failed_invoice(c)
         inv.status = SubscriptionInvoice.Status.PAID
         inv.save(update_fields=['status', 'updated_at'])

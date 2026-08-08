@@ -2,12 +2,21 @@
 #
 # Targets para ejecucion local y en pipelines de CI futuros.
 # Mantiene paridad con ui/package.json scripts equivalentes.
-.PHONY: help check-lazy check-lazy-ci check-cycles check-cycles-ci check-canon check-canon-ci test test-coverage install-hooks db-up ci-test ci-test-fast
+.PHONY: help check-names check-names-ci check-layout check-layout-ci check-lazy check-lazy-ci check-cycles check-cycles-ci check-catalog check-catalog-ci check-canon check-canon-ci test test-coverage install-hooks db-up ci-test ci-test-fast pdf check-pdf clean-pdf
 
 help:
 	@echo 'Targets:'
+	@echo '  make check-names       Nombre de addon contra odoo-tools (H-API-119)'
+	@echo '  make check-names-ci    Idem, exit != 0 tambien con deuda heredada'
+	@echo '  make check-layout      Capas estructurales en paquete (H-API-238)'
+	@echo '  make check-layout-ci   Idem, exit != 0 tambien con deuda heredada'
+	@echo '  make check-porte       Simbolos de cada puerto vs odoo19c (surfacing)'
+	@echo '  make porte-mapa        Inventario por archivo: COMPLETO/PARCIAL/NO PORTADO'
+	@echo '  make check-porte-ci    Idem, exit != 0 si hay porte incompleto'
 	@echo '  make check-lazy        Audit AST: 0 lazy imports en apps/** y tests/**'
 	@echo '  make check-lazy-ci     Idem, exit code != 0 si hay violaciones'
+	@echo '  make check-catalog     Coherencia de los authz_catalog.py (SOL-100)'
+	@echo '  make check-catalog-ci  Idem, exit code != 0 si hay incoherencias'
 	@echo '  make check-cycles      Direccion de dependencias: 0 inversiones nuevas'
 	@echo '  make check-cycles-ci   Idem, exit code != 0 si hay inversiones nuevas'
 	@echo '  make check-canon       Canon-idioma: 0 identifiers ES en apps/** (soft)'
@@ -18,8 +27,38 @@ help:
 	@echo '  make db-up             Arranca MariaDB via el script de db (socket)'
 	@echo '  make ci-test           db-up + pytest suite completa (--reuse-db)'
 	@echo '  make ci-test-fast      db-up + subset de humo cart/ (--reuse-db)'
+	@echo '  make serve             Servidor de aplicacion embebido (ADR-027)'
+	@echo '  make check-serve       Gate: valida gunicorn.conf.py y que la app importe'
+	@echo '  make pdf               Compila los helpers PDF (libharu vendorizada; ADR-017)'
+	@echo '  make check-pdf         Gate: los helpers PDF compilan (salida a build/)'
+	@echo '  make clean-pdf         Borra binarios y objetos de los helpers PDF'
 
 # Audit local — imprime hallazgos pero no falla (para inspeccion manual).
+check-names:
+	python3 scripts/check_addon_names.py
+
+check-names-ci:
+	python3 scripts/check_addon_names.py --strict
+
+check-layout:
+	python3 scripts/check_addon_layout.py
+
+check-layout-ci:
+	python3 scripts/check_addon_layout.py --strict
+
+# Cobertura de simbolos del puerto contra la referencia. Surfacing: al dia 1
+# hay 181 grupos incompletos en 149 pares de archivo (deuda heredada), asi que
+# bloquear el push por eso seria bloquear por deuda ajena — mismo criterio que
+# DEC-AM-01. Graduar a -ci en pre-push cuando el conteo baje.
+check-porte:
+	python3 scripts/check_porte_completo.py || true
+
+check-porte-ci:
+	python3 scripts/check_porte_completo.py --strict
+
+porte-mapa:
+	python3 scripts/check_porte_completo.py --mapa
+
 check-lazy:
 	python3 scripts/check_no_lazy_imports.py || true
 
@@ -41,12 +80,21 @@ check-cycles:
 check-cycles-ci:
 	@python3 scripts/check_addon_cycles.py
 
+# Declaracion del catalogo L0 (SOL-100) — coherencia estatica de los
+# authz_catalog.py: addon instalado, sin duenos duplicados, sin capacidades
+# huerfanas, sin aristas depends colgantes.
+check-catalog:
+	@python3 scripts/check_catalog_declaration.py --report
+
+check-catalog-ci:
+	@python3 scripts/check_catalog_declaration.py
+
 check-canon:
-	python3 ../docs/scripts/check_canon_idioma.py --repo-root .. --soft
+	python3 $$(ls -d ../kaupamex-docs ../docs 2>/dev/null | head -1)/scripts/check_canon_idioma.py --repo-root .. --soft
 
 # Canon-idioma estricto — exit != 0 si hay literales ES fuera del allowlist.
 check-canon-ci:
-	python3 ../docs/scripts/check_canon_idioma.py --repo-root ..
+	python3 $$(ls -d ../kaupamex-docs ../docs 2>/dev/null | head -1)/scripts/check_canon_idioma.py --repo-root ..
 
 test:
 	pytest
@@ -75,3 +123,32 @@ ci-test: db-up
 # Subset rapido de humo (cart/) — smoke test de CI.
 ci-test-fast: db-up
 	uv run pytest tests/integration/cart/ -q --reuse-db
+
+# Servidor de aplicacion embebido (ADR-027). Prefork sincrono, loopback.
+# Sobrescribir con GUNICORN_BIND / GUNICORN_WORKERS; ver setup/gunicorn.conf.py.
+serve:
+	uv run gunicorn -c setup/gunicorn.conf.py
+
+# Gate de configuracion del servidor: valida el archivo y que la app importe.
+check-serve:
+	DJANGO_SETTINGS_MODULE=config.settings.testing \
+	  uv run gunicorn -c setup/gunicorn.conf.py --check-config
+
+# Helpers PDF nativos (ADR-017). libharu va vendorizada en
+# src/tools/pdf/vendor/libharu, asi que un clon limpio compila sin buscar nada
+# fuera del arbol: no hace falta libhpdf-dev ni CMake, solo gcc/make y las
+# cabeceras de zlib/libpng (paquetes de `main`).
+#
+# Los binarios NO se versionan (son especificos de arquitectura y ABI): un .a
+# compilado en otra maquina puede enlazar y comportarse mal, que es peor que
+# no estar. Por eso este target existe — el deploy lo ejecuta.
+pdf:
+	$(MAKE) -C src/tools/pdf build
+
+# Gate de compilacion: exit != 0 si alguno de los dos helpers no compila.
+# Deja los binarios de prueba en src/tools/pdf/build/, nunca en /tmp.
+check-pdf:
+	$(MAKE) -C src/tools/pdf check
+
+clean-pdf:
+	$(MAKE) -C src/tools/pdf distclean

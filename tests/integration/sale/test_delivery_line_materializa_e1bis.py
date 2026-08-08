@@ -18,19 +18,25 @@ Invariantes que fijan el contrato:
    la incluye.
 2. El descuento del cupón nace como línea ``is_reward`` de precio negativo, con
    el importe calculado **del cupón**, no recibido del llamador.
-3. **El espejo no se contamina**: sus ``SaleOrderLine`` siguen siendo sólo de
-   producto (el puente itera la lista capturada antes de materializar), y su
-   ``OrderValue_GONE`` conserva los escalares. No hay doble conteo — son dos
-   modelos distintos.
-4. Mecanismo A (borrar+recrear) es idempotente: re-materializar deja una sola
+3. Mecanismo A (borrar+recrear) es idempotente: re-materializar deja una sola
    línea. El Mecanismo B de Odoo (reescritura in-place bajo flag de contexto)
    no se porta.
-5. El transportista es **opcional**: sin ``carrier`` la línea se crea igual,
+4. El transportista es **opcional**: sin ``carrier`` la línea se crea igual,
    con el producto de servicio genérico. Lo que decide si hay línea es el
    importe. (La versión original degradaba aquí; corregido en E5-pre,
    H-API-42, al descubrir que ésa es la ruta real de producción.)
-6. La base del descuento es el subtotal de **producto**: el orden en que se
+5. La base del descuento es el subtotal de **producto**: el orden en que se
    materializan las dos líneas no altera el importe.
+
+**Invariante retirado (post-V5d/SOL-098):** la versión original de este
+módulo fijaba un invariante 3 — "el espejo no se contamina": el
+``orders.Order`` que corría en paralelo a ``SaleOrder`` no debía ver las
+líneas marcadoras, y su columna escalar ``shipping_cost``/``total`` debía
+seguir coincidiendo con el canónico. Con el retiro del addon espejo
+``orders`` (SOL-098, ``api@77bd1f0``) el invariante dejó de tener sujeto:
+no hay un segundo modelo con el que poder doble-contar. La clase
+``TestElEspejoNoSeContamina`` que lo verificaba se eliminó de este archivo
+en la migración post-retiro.
 """
 from decimal import Decimal
 from uuid import uuid4
@@ -38,7 +44,6 @@ from uuid import uuid4
 import pytest
 from django.utils import timezone
 
-from addons.catalogue.models import Category, Product
 from addons.delivery.models import ShippingMethod
 from addons.delivery.models.sale_order import set_delivery_line
 from addons.loyalty.models import Voucher
@@ -50,6 +55,7 @@ from addons.sale.services import (
 )
 from addons.sale_loyalty.models.sale_order import set_reward_line
 from addons.sale_loyalty.models.sale_order_coupon import REWARD_SKU
+from tests.factories.product_factory import make_category, make_product
 
 pytestmark = pytest.mark.django_db
 
@@ -61,12 +67,8 @@ ADDR = {
 
 @pytest.fixture
 def producto():
-    cat = Category.objects.create(name='Cat M', slug='cat-m', is_active=True)
-    prod = Product.objects.create(
-        name='Prod M', slug='prod-m', sku='SKU-M',
-        price=Decimal('100.00'), stock=9, is_active=True, is_published=True)
-    prod.categories.add(cat)
-    return prod
+    cat = make_category(name='Cat M')
+    return make_product(name='Prod M', price=Decimal('100.00'), stock=9, categ=cat)
 
 
 @pytest.fixture
@@ -121,7 +123,7 @@ class TestLineaDeEnvio:
         draft = _draft(producto, carrier=metodo)
         set_delivery_line(draft, Decimal('99.00'))
         linea = draft.order_line.get(is_delivery=True)
-        assert linea.product.sku == f'{ShippingMethod.SERVICE_SKU_PREFIX}{metodo.pk}'
+        assert linea.product.default_code == f'{ShippingMethod.SERVICE_SKU_PREFIX}{metodo.pk}'
 
     def test_sin_carrier_tambien_hay_linea_con_producto_generico(
             self, producto):
@@ -135,14 +137,12 @@ class TestLineaDeEnvio:
         en cero. Lo que decide si hay línea es el importe, no el transportista.
         """
         draft = _draft(producto, carrier=None)
-        legacy = _checkout(draft, Decimal('50.00'))
+        _checkout(draft, Decimal('50.00'))
         draft.refresh_from_db()
         linea = draft.order_line.get(is_delivery=True)
         assert linea.price_unit == Decimal('50.00')
-        assert linea.product.sku == 'SRV-ENVIO'     # producto genérico
+        assert linea.product.default_code == 'SRV-ENVIO'     # producto genérico
         assert linea.name == 'Envío'
-        # El espejo conserva su escalar; los dos totales siguen coincidiendo.
-        assert OrderValue_GONE.objects.get(order=legacy).shipping_cost == Decimal('50.00')
         assert draft.amount_total == Decimal('150.00')
 
 
@@ -155,7 +155,7 @@ class TestLineaDeRecompensa:
         set_reward_line(draft)
         linea = draft.order_line.get(is_reward=True)
         assert linea.price_unit == Decimal('-20.00')
-        assert linea.product.sku == REWARD_SKU
+        assert linea.product.default_code == REWARD_SKU
 
     def test_resta_del_total_canonico(self, producto, metodo, voucher_20):
         draft = _draft(producto, carrier=metodo)
@@ -227,35 +227,15 @@ class TestBaseDelDescuento:
         assert draft.amount_total == Decimal('179.00')
 
 
-class TestElEspejoNoSeContamina:
-    """El contrato del espejo queda intacto: sus SaleOrderLine son de producto."""
-
-    def test_los_orderitem_siguen_siendo_solo_de_producto(
-            self, producto, metodo):
-        draft = _draft(producto, carrier=metodo)
-        legacy = _checkout(draft, Decimal('99.00'))
-        items = SaleOrderLine.objects.filter(order=legacy)
-        assert items.count() == 1
-        assert items.first().product_id == producto.pk
-
-    def test_los_dos_totales_coinciden_sin_doble_conteo(
-            self, producto, metodo):
-        draft = _draft(producto, carrier=metodo)
-        legacy = _checkout(draft, Decimal('99.00'))
-        draft.refresh_from_db()
-        valor = OrderValue_GONE.objects.get(order=legacy)
-        assert valor.total == draft.amount_total == Decimal('199.00')
-
-
 class TestVoucherEndToEnd:
 
     def test_checkout_con_voucher_materializa_ambas_lineas(
             self, producto, metodo, voucher_20):
         draft = _draft(producto, carrier=metodo)
         apply_voucher_to_draft(draft, voucher_20.code)
-        legacy = _checkout(draft, Decimal('99.00'))
+        _checkout(draft, Decimal('99.00'))
         draft.refresh_from_db()
         assert draft.order_line.filter(is_delivery=True).count() == 1
         assert draft.order_line.filter(is_reward=True).count() == 1
-        valor = OrderValue_GONE.objects.get(order=legacy)
-        assert valor.total == draft.amount_total
+        # producto 100.00 - descuento 20.00 + envío 99.00
+        assert draft.amount_total == Decimal('179.00')

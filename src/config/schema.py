@@ -12,7 +12,7 @@ from rest_framework import serializers
 
 
 class ErrorResponseSerializer(serializers.Serializer):
-    """Forma canonica de una respuesta de error de la API PracticaYoruba.
+    """Forma canonica de una respuesta de error de la API de Kaupamex.
 
     Todas las vistas que devuelven un error de cliente/servidor responden
     con este shape: un ``detail`` legible y un ``codigo_error`` estable

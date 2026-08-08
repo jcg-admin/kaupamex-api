@@ -3,19 +3,18 @@ from decimal import Decimal
 
 import pytest
 
-from addons.catalogue.models import Product
 from addons.sale.models import SaleOrder, SaleOrderLine
 from addons.sale_margin.models import SaleOrderLineMargin
 from addons.sale_stock.models import SaleOrderLineDelivery
 from addons.sale_stock_margin.services import recompute_purchase_price
+from tests.factories.product_factory import make_product
 
 pytestmark = pytest.mark.integration
 
 
 def _line(qty=10, cost=Decimal('50.00')):
-    product = Product.objects.create(
-        name='Bolsa', slug='bolsa', sku='BOL-001',
-        price=Decimal('100.00'), cost=cost,
+    product = make_product(
+        name='Bolsa', price=Decimal('100.00'), standard_price=cost,
     )
     order = SaleOrder.objects.create()
     return SaleOrderLine.objects.create(

@@ -1,0 +1,55 @@
+# Procedencia de los addons que NO resuelven por nombre contra los cuatro
+# árboles con alias de odoo-tools. Lo lee scripts/check_addon_names.py.
+#
+#   <addon> | <clase> | <cita>
+#
+#   puerto     el nombre viene de la referencia, pero de un árbol fuera de los
+#              cuatro alias (p. ej. community de terceros). La cita lo prueba.
+#   propio     addon nuestro por decisión documentada. La cita es esa decisión.
+#   drift      el análisis YA dictaminó que el nombre está mal; hay tarea
+#              abierta. Falla con --strict.
+#   pendiente  el documento existe; falta leerlo y clasificar. Falla con
+#              --strict.
+#
+# El gate verifica que el archivo citado EXISTA — no interpreta su contenido.
+# Así el veredicto no depende de que quien escribió la línea resumiera bien.
+#
+# Tener addons propios es legítimo. Crearlos sin decisión, no.
+
+# --- puerto: nombre de la referencia, árbol fuera de los alias -----------
+# "Home-map correcto: backups mapea fielmente a auto_backup/app_auto_backup."
+auto_backup   | puerto | source/gestion/pm/api/iniciativas/adaptar-familias-odoo-monolito-modular/analisis-familia-backups.rst
+
+# --- propio: decisión leída y verificada ---------------------------------
+# "El nombre base_bank es correcto como módulo base_*: NO se renombra a
+#  base_iban porque el módulo no valida IBAN (México usa CLABE). La
+#  faithfulness aquí es de patrón, no de nombre literal 1:1."
+base_bank     | propio | source/gestion/pm/api/iniciativas/adaptar-familias-odoo-monolito-modular/analisis-familia-base-bank.rst
+# Net-new legítimo CONFIRMADO POR MEDICIÓN, no sólo por la directiva:
+# ir.logging (odoo19c: odoo/addons/base/models/ir_logging.py) no tiene campos
+# de request (method/status_code/duration_ms/correlation_id) — es una fila por
+# mensaje, no por petición; Odoo loguea HTTP con logging de Python sin modelo
+# (odoo/http.py:214); mail.tracking.value audita campos, no acciones; y los
+# tres *audit_trail* existen SÓLO en 18e (0 hits en los 735 addons de 19e).
+observability | propio | source/gestion/pm/api/iniciativas/adaptar-familias-odoo-monolito-modular/analisis-familia-observability.rst
+# "authz_audit — sin análogo directo" en la tabla de la familia auth.
+authz_audit   | propio | source/gestion/pm/api/iniciativas/adaptar-familias-odoo-monolito-modular/analisis-familia-auth-vs-authz-y-modelo-de-autorizacion.rst
+
+# --- drift: el análisis ya dictaminó que el nombre está mal ---------------
+# "authz_reauth — equivalente, nombre distinto: auth_timeout (sólo en 19)."
+# No es addon propio: es un puerto con el nombre equivocado. Tarea #20.
+authz_reauth  | drift | source/gestion/pm/api/iniciativas/adaptar-familias-odoo-monolito-modular/analisis-familia-auth-vs-authz-y-modelo-de-autorizacion.rst
+# "Nuestro addon authz hace autorización, pero lleva el nombre de la familia
+#  de autenticación. Es un nombre heredado del rename auth_* -> authz_*, no
+#  una equivalencia real." Tarea #20.
+authz         | drift | source/gestion/pm/api/iniciativas/adaptar-familias-odoo-monolito-modular/analisis-familia-auth-vs-authz-y-modelo-de-autorizacion.rst
+
+# platform DISUELTO (2026-08-03, directiva ejecutor + D-0 cerrada): Company
+# fundido en base.ResCompany (una tabla, como la referencia); Subsidiary
+# disuelto en res.company.parent_id (Branches); CompanySetting transitorio en
+# base (D-5 abierta: company_dependent distribuido); billing/suscripciones →
+# sale_subscription. Ver H-API-261/262 y analisis-disolucion-platform.rst.
+# sale_subscription: reimplementación NATIVA del patrón 19e (OEEL-1, sin
+# copia — DEC-KX-03); el eje (suscripción de MÓDULOS por compañía) es
+# plataforma-propio (DEC-KX-05), sin contraparte en los 4 árboles.
+sale_subscription | propio | source/gestion/pm/api/iniciativas/adaptar-familias-odoo-monolito-modular/analisis-disolucion-platform.rst

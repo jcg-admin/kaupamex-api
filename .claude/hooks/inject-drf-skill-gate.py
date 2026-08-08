@@ -33,6 +33,41 @@ def _read_stdin():
         return {}
 
 
+def _huella_de_agente(data):
+    """Registra las CLAVES del payload para medir si trae ``agent_id``.
+
+    La documentacion del Agent SDK dice que los hooks **programaticos**
+    reciben ``agent_id`` y ``agent_type`` — *"identify which agent fired the
+    hook"*. De los hooks de **filesystem** (este) solo dice que disparan *"in
+    the main agent and any subagents it spawns"*: donde, no con que campos.
+
+    Sin ``agent_id`` un ``PreToolUse`` no puede expresar "denegar cuando hay
+    mas de un agente vivo", que es lo que ``bash-background-tasks.md`` pide y
+    hoy es prosa. Medirlo exige que dispare un SUBAGENTE, no la sesion
+    principal, asi que el instrumento se instala ahora y el dato llega en la
+    proxima tanda. Ver tarea #177 y el analisis del Agent SDK.
+
+    Solo se guardan las claves y los valores de identidad — nunca el
+    ``tool_input``, que lleva contenido de archivo. El log es local y
+    git-ignored; el hook sale 0 pase lo que pase.
+    """
+    try:
+        registro = {
+            "claves": sorted(data.keys()),
+            "agent_id": data.get("agent_id"),
+            "agent_type": data.get("agent_type"),
+            "hook_event_name": data.get("hook_event_name"),
+            "session_id": data.get("session_id"),
+        }
+        destino = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "..", "agent-results", "huella-payload-hook.jsonl")
+        os.makedirs(os.path.dirname(destino), exist_ok=True)
+        with open(destino, "a", encoding="utf-8") as fh:
+            fh.write(json.dumps(registro, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
+
+
 def _target_path(data):
     ti = data.get("tool_input", {}) or {}
     return (ti.get("file_path") or ti.get("path") or "").replace("\\", "/")
@@ -80,6 +115,7 @@ def _message(p):
 
 def main():
     data = _read_stdin()
+    _huella_de_agente(data)   # instrumento de #177; nunca altera el flujo
     p = _target_path(data)
     if not _in_app_python(p):
         print("{}")

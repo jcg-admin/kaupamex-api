@@ -19,7 +19,7 @@ def user_channel(user) -> str:
 def channels_for_user(user) -> list[str]:
     """Canales que el usuario autenticado puede leer.
 
-    Hoy sólo el suyo. Cuando aparezca un canal compartido (por Company, por
+    Hoy sólo el suyo. Cuando aparezca un canal compartido (por ResCompany, por
     rol), se añade aquí — y el gate de capacidad de la vista sigue siendo el
     que decide si puede leer algo en absoluto.
     """

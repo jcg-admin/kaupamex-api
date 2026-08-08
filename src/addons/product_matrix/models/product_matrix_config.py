@@ -31,7 +31,7 @@ class ProductMatrixConfig(TimeStampedModel):
     ]
 
     product  = models.OneToOneField(
-        'catalogue.Product', on_delete=models.CASCADE, related_name='matrix_config',
+        'product.ProductProduct', on_delete=models.CASCADE, related_name='matrix_config',
         help_text='Producto (Odoo product.template).',
     )
     # Odoo product.template.product_add_mode.

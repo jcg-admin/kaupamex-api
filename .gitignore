@@ -15,5 +15,13 @@ test-results/
 # Compiled PDF helpers (built per-environment by the server provisioner; ADR-017)
 /src/tools/pdf/pdf_receipt
 /src/tools/pdf/pdf_report
+# Objetos de la libharu vendorizada + gate de compilacion. El FUENTE de
+# vendor/libharu SI se versiona; lo compilado no (ADR-017).
+/src/tools/pdf/build/
 # pytest-last-failed output
 test-results/
+# PID del servidor de aplicacion embebido (setup/gunicorn.conf.py, ADR-027)
+/.gunicorn.pid
+
+# Telemetria local del hook (instrumento de #177) — no versionar
+.claude/agent-results/

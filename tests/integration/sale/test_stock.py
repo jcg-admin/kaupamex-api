@@ -9,7 +9,6 @@ from decimal import Decimal
 
 import pytest
 
-from addons.catalogue.models import Product
 from addons.stock.models import (
     StockLocation,
     StockMove,
@@ -17,19 +16,13 @@ from addons.stock.models import (
     StockQuant,
     StockRule,
 )
+from tests.factories.product_factory import make_product
 
 pytestmark = pytest.mark.integration
 
-_slug_seq = [0]
-
 
 def _product(price='100.00'):
-    _slug_seq[0] += 1
-    n = _slug_seq[0]
-    return Product.objects.create(
-        name=f'Prod {n}', slug=f'stk-prod-{n}', sku=f'STK-{n:04d}',
-        price=Decimal(price),
-    )
+    return make_product(name='Prod', price=Decimal(price))
 
 
 def _internal(name='WH/Stock'):

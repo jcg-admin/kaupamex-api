@@ -32,8 +32,13 @@ def recompute_purchase_price(line, delivered_unit_cost=None) -> Decimal:
     Crea el ``SaleOrderLineMargin`` si la línea aún no tiene uno y persiste el
     nuevo ``purchase_price``. Devuelve el valor calculado.
     """
+    # H-API — ``prod.cost`` no existe en ``product.ProductProduct``: el costo
+    # por variante es ``standard_price`` (odoo19c: ``product_product.py:
+    # 144-148``). Mismo drift que ``sale_margin/models/sale_order_line_margin.py``
+    # tras la disolución de ``catalogue`` en ``product`` (H-API-212 y hermanas).
     prod = line.product
-    std_cost = prod.cost if prod and prod.cost is not None else Decimal('0.00')
+    std_cost = (prod.standard_price
+                if prod and prod.standard_price is not None else Decimal('0.00'))
 
     delivery = getattr(line, 'delivery', None)
     qty_delivered = delivery.qty_delivered if delivery is not None else 0

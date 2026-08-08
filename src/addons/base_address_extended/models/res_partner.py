@@ -5,11 +5,17 @@ vía ``_inherit`` con ``street_name`` / ``street_number`` / ``street_number2``
 (compute/inverse desde ``street``) + ``city_id`` (FK ``res.city``) +
 ``country_enforce_cities`` (related de ``country_id.enforce_cities``).
 
-En este proyecto el "partner" con dirección es ``users.Address`` (no
-``res.partner``). El ``_inherit`` cross-app se modela como RELATED OneToOne
-(DEC-SALE-01): ``AddressStructured`` cuelga de ``users.Address`` sin inyectar
+El destino del ``_inherit`` es ``base.ResPartner`` — el mismo modelo que la
+referencia extiende. El ``_inherit`` se modela como RELATED OneToOne
+(DEC-SALE-01): ``AddressStructured`` cuelga de ``res.partner`` sin inyectar
 columnas en su tabla, y aloja la descomposición estructurada de la calle + el
 enlace al catálogo ``res.city``.
+
+**Corrección (H-API-210).** Hasta ``api@e2c3022`` este FK apuntaba a
+``users.Address``, un modelo que la referencia no tiene: allí la dirección son
+**campos** de ``res.partner`` (``ADDRESS_FIELDS`` en
+``odoo19c: base/models/res_partner.py:25``), no un modelo aparte. Al disolverse
+``users`` en ``base`` el apuntador quedó colgado; se re-apunta al destino fiel.
 """
 import fields
 import models
@@ -18,13 +24,13 @@ from addons.base_address_extended.services import street_split
 
 
 class AddressStructured(models.Model):
-    """Descomposición estructurada de una ``users.Address`` (Odoo res_partner
+    """Descomposición estructurada de la calle de un ``res.partner`` (Odoo
     ``street_name``/``street_number``/``street_number2`` + ``city_id``).
     """
 
-    address        = models.OneToOneField(
-        'users.Address', on_delete=models.CASCADE, related_name='structured',
-        help_text='Dirección a la que pertenece (Odoo res.partner).',
+    partner        = models.OneToOneField(
+        'base.ResPartner', on_delete=models.CASCADE, related_name='structured',
+        help_text='Partner al que pertenece (Odoo _inherit res.partner).',
     )
     city          = fields.Many2one(
         'base_address_extended.ResCity', on_delete=models.SET_NULL,

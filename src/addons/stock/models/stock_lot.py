@@ -31,7 +31,7 @@ class StockLot(TimeStampedModel):
         help_text='Referencia interna (Odoo stock.lot.ref).',
     )
     product    = fields.Many2one(
-        'catalogue.Product', on_delete=models.CASCADE, related_name='lots',
+        'product.ProductProduct', on_delete=models.CASCADE, related_name='lots',
         help_text='Producto (Odoo product_id).',
     )
 

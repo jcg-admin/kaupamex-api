@@ -2,21 +2,28 @@
 
 Post-venta y logística anclan al canónico: ``rating.Review`` (prueba de
 compra UC-REV-02) y ``delivery.ShipmentGuide`` (el eje de fulfillment,
-adaptación de ``stock.picking``) ganan la FK dual ``sale_order``,
-propagada desde el enlace del espejo (``Order.sale_order``, V3a).
+adaptación de ``stock.picking``) tienen FK ``sale_order`` directa a la venta.
+
+Post-E5 (retiro del addon espejo ``orders``, ``api@77bd1f0``): la venta ES la
+orden — no hay un segundo objeto ``.sale_order`` que enlazar; ``Review`` y
+``ShipmentGuide`` sólo declaran ``sale_order`` (verificado:
+``src/addons/rating/models/review.py:55`` y
+``src/addons/delivery/models/__init__.py:129``, ninguno tiene ya ``order``).
 """
-import uuid
 from decimal import Decimal
 
 import pytest
+from django.contrib.auth import get_user_model
 
-from addons.catalogue.models import Category, Product
 from addons.delivery.models import Courier, ShipmentGuide
 from addons.rating.models import Review
 from addons.sale.models import SaleOrder
 from addons.sale.services import add_item_to_draft, confirm_draft_order
+from tests.factories.product_factory import make_category, make_product
 
 pytestmark = pytest.mark.django_db
+
+User = get_user_model()
 
 ADDR = {
     'recipient_name': 'Test V4a', 'street': 'Calle 2', 'city': 'CDMX',
@@ -26,48 +33,38 @@ ADDR = {
 
 @pytest.fixture
 def product_v4(db):
-    cat = Category.objects.create(name='Cat V4a', slug='cat-v4a', is_active=True)
-    p = Product.objects.create(
-        name='Prod V4a', slug='prod-v4a', sku='V4A-001', description='',
-        price=Decimal('120.00'), stock=6, is_active=True, is_published=True,
-    )
-    p.categories.add(cat)
-    return p
+    cat = make_category(name='Cat V4a')
+    return make_product(name='Prod V4a', price=Decimal('120.00'), stock=6, categ=cat)
 
 
 @pytest.fixture
-def confirmed_pair(product_v4, django_user_model):
-    user = django_user_model.objects.create_user(
-        email='v4a@test.mx', password='x')
-    draft = SaleOrder.objects.create(
-        partner=user, state=SaleOrder.STATE_DRAFT)
+def confirmed_order(product_v4):
+    user = User.objects.create_user(login='v4a@practicayoruba.mx', password='x')
+    draft = SaleOrder.objects.create(partner=user, state=SaleOrder.STATE_DRAFT)
     add_item_to_draft(draft, product_v4, quantity=1)
-    legacy = confirm_draft_order(draft, address_data=dict(ADDR))
-    draft.refresh_from_db()
-    return draft, legacy
+    order = confirm_draft_order(draft, address_data=dict(ADDR))
+    return order
 
 
 class TestReviewAnchorsToCanonical:
-    def test_review_carries_sale_order_fk(self, confirmed_pair, product_v4):
-        canonical, legacy = confirmed_pair
+    def test_review_carries_sale_order_fk(self, confirmed_order, product_v4):
         review = Review.objects.create(
-            user=legacy.user, product=product_v4, order=legacy,
-            sale_order=legacy.sale_order,
+            user=confirmed_order.partner, product=product_v4,
+            sale_order=confirmed_order,
             rating=5, title='Excelente', body='x',
             status=Review.STATUS_PENDING,
         )
-        assert review.sale_order_id == canonical.pk
-        assert list(canonical.reviews.all()) == [review]
+        assert review.sale_order_id == confirmed_order.pk
+        assert list(confirmed_order.reviews.all()) == [review]
 
 
 class TestShipmentGuideAnchorsToCanonical:
-    def test_guide_carries_sale_order_fk(self, confirmed_pair):
-        canonical, legacy = confirmed_pair
+    def test_guide_carries_sale_order_fk(self, confirmed_order):
         courier = Courier.objects.create(name='DHL V4a', code='DHL4A',
                                          is_active=True)
         guide = ShipmentGuide.objects.create(
-            order=legacy, sale_order=legacy.sale_order, courier=courier,
+            sale_order=confirmed_order, courier=courier,
             tracking_number='V4A-TRK-001',
         )
-        assert guide.sale_order_id == canonical.pk
-        assert canonical.shipment_guide.pk == guide.pk
+        assert guide.sale_order_id == confirmed_order.pk
+        assert confirmed_order.shipment_guide.pk == guide.pk

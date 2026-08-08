@@ -1,9 +1,31 @@
 """Introspección SQL sobre ``information_schema`` (fiel a ``odoo.tools.sql``).
 
 ``odoo/tools/sql.py`` ofrece ``table_exists``/``column_exists``/``index_exists``
-sobre ``information_schema``. Aquí la versión **MariaDB**: el "current schema" de
-Odoo (``current_schema`` de PostgreSQL) es ``DATABASE()`` en MariaDB. Todas
-reciben un ``cursor`` de Django (``connections[alias].cursor()``) y devuelven bool.
+sobre ``information_schema``. Tras migrar el motor a PostgreSQL estas tres
+convergen con la referencia y ya **no** hay traducción que mantener: el "current
+schema" vuelve a ser ``current_schema`` (``odoo19c: odoo/tools/sql.py:320``),
+que bajo MariaDB había que escribir como ``DATABASE()``.
+
+El cambio no es cosmético — ``schema`` significa otra cosa en cada motor:
+
+  ============  =====================================  ========================
+  Motor         ``schema=None`` resuelve a             ``schema='x'`` designa
+  ============  =====================================  ========================
+  MariaDB       ``DATABASE()`` — la base conectada     una **base**
+  PostgreSQL    ``current_schema`` — normalmente       un **namespace** dentro
+                ``public``                             de la base (no otra base)
+  ============  =====================================  ========================
+
+Un consumidor que pasaba el nombre de la base como ``schema`` funcionaba en
+MariaDB y aquí no encontraría nada. Medido a HEAD: **0** consumidores en
+``src/`` pasan ``schema`` explícito, así que el cambio de significado no rompe
+código vivo — pero queda escrito porque el próximo que lo use tiene que saberlo.
+Ver H-API-306.
+
+``index_exists`` cambia de catálogo: PostgreSQL no tiene
+``information_schema.STATISTICS`` (es una tabla de MySQL). La referencia usa
+``pg_indexes`` (``odoo19c: odoo/tools/sql.py:542``), y aquí se conserva además
+el filtro por tabla que nuestra firma ya exponía.
 
 Además expone ``SQL`` (fiel a la clase componible ``odoo.tools.SQL``), que un
 addon portado importa como ``from tools.sql import SQL``. Respaldo Django:
@@ -18,17 +40,17 @@ SQL = RawSQL                       # Odoo tools.SQL ≈ Django RawSQL
 def table_exists(cursor, table_name, schema=None):
     """== ``odoo.tools.sql.table_exists``: ¿existe la tabla?
 
-    ``schema=None`` → el schema de la conexión (``DATABASE()``).
+    ``schema=None`` → el schema de la conexión (``current_schema``).
     """
     if schema is None:
         cursor.execute(
-            'SELECT 1 FROM information_schema.TABLES '
-            'WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s',
+            'SELECT 1 FROM information_schema.tables '
+            'WHERE table_schema = current_schema AND table_name = %s',
             [table_name])
     else:
         cursor.execute(
-            'SELECT 1 FROM information_schema.TABLES '
-            'WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s',
+            'SELECT 1 FROM information_schema.tables '
+            'WHERE table_schema = %s AND table_name = %s',
             [schema, table_name])
     return cursor.fetchone() is not None
 
@@ -37,27 +59,27 @@ def column_exists(cursor, table_name, column_name, schema=None):
     """== ``odoo.tools.sql.column_exists``: ¿existe la columna?"""
     if schema is None:
         cursor.execute(
-            'SELECT 1 FROM information_schema.COLUMNS '
-            'WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND COLUMN_NAME = %s',
+            'SELECT 1 FROM information_schema.columns '
+            'WHERE table_schema = current_schema AND table_name = %s AND column_name = %s',
             [table_name, column_name])
     else:
         cursor.execute(
-            'SELECT 1 FROM information_schema.COLUMNS '
-            'WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = %s',
+            'SELECT 1 FROM information_schema.columns '
+            'WHERE table_schema = %s AND table_name = %s AND column_name = %s',
             [schema, table_name, column_name])
     return cursor.fetchone() is not None
 
 
 def index_exists(cursor, table_name, index_name, schema=None):
-    """== ``odoo.tools.sql.index_exists``: ¿existe el índice? (``STATISTICS``)."""
+    """== ``odoo.tools.sql.index_exists``: ¿existe el índice? (``pg_indexes``)."""
     if schema is None:
         cursor.execute(
-            'SELECT 1 FROM information_schema.STATISTICS '
-            'WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND INDEX_NAME = %s '
+            'SELECT 1 FROM pg_indexes '
+            'WHERE schemaname = current_schema AND tablename = %s AND indexname = %s '
             'LIMIT 1', [table_name, index_name])
     else:
         cursor.execute(
-            'SELECT 1 FROM information_schema.STATISTICS '
-            'WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND INDEX_NAME = %s '
+            'SELECT 1 FROM pg_indexes '
+            'WHERE schemaname = %s AND tablename = %s AND indexname = %s '
             'LIMIT 1', [schema, table_name, index_name])
     return cursor.fetchone() is not None

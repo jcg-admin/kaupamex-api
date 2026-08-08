@@ -15,7 +15,10 @@ import pytest
 from django.core.exceptions import ValidationError
 
 from addons.authz.models import Module
-from addons.company.models import Company, CompanyModuleSubscription
+from addons.sale_subscription.models import (
+    CompanyModuleSubscription,
+)
+from addons.base.models import ResCompany
 
 pytestmark = pytest.mark.django_db
 
@@ -43,7 +46,7 @@ class TestModuleDependencyGraph:
 
 class TestActivationGuard:
     def test_missing_dependency_blocks_active_subscription(self):
-        company = Company.objects.create(code="acme", name="Acme")
+        company = ResCompany.objects.create(code="acme", name="Acme")
         cat = _module("catalogue")
         pos = _module("pos", depends=[cat])
         # catalogue NOT active for the company -> activating pos must fail
@@ -54,7 +57,7 @@ class TestActivationGuard:
             )
 
     def test_active_dependency_allows_active_subscription(self):
-        company = Company.objects.create(code="acme", name="Acme")
+        company = ResCompany.objects.create(code="acme", name="Acme")
         cat = _module("catalogue")
         pos = _module("pos", depends=[cat])
         # subscribe catalogue first (active) -> then pos activates fine
@@ -70,7 +73,7 @@ class TestActivationGuard:
         assert company.active_module_codes() == {"catalogue", "pos"}
 
     def test_inactive_subscription_skips_dependency_check(self):
-        company = Company.objects.create(code="acme", name="Acme")
+        company = ResCompany.objects.create(code="acme", name="Acme")
         cat = _module("catalogue")
         pos = _module("pos", depends=[cat])
         # a SUSPENDED (not active) pos subscription is allowed without catalogue
@@ -82,7 +85,7 @@ class TestActivationGuard:
         assert company.active_module_codes() == set()
 
     def test_missing_dependencies_helper_lists_the_gap(self):
-        company = Company.objects.create(code="acme", name="Acme")
+        company = ResCompany.objects.create(code="acme", name="Acme")
         cat = _module("catalogue")
         inv = _module("inventory")
         pos = _module("pos", depends=[cat, inv])

@@ -17,7 +17,9 @@ from rest_framework.test import APIClient
 pytestmark = pytest.mark.integration
 
 User = get_user_model()
-PROFILE_URL = '/api/v2/auth/profile/'
+# Reapuntado: el perfil propio es ``/my/account`` de ``portal`` en la
+# referencia (odoo19c, LGPL-3), montado aquí como /api/v2/portal/account/.
+PROFILE_URL = '/api/v2/portal/account/'
 SELF_ACCOUNT = {'account.profile', 'account.password',
                 'account.deactivate', 'account.payments'}
 
@@ -36,7 +38,7 @@ def test_non_comprador_staff_can_read_own_profile(db):
     # así que accede a SU perfil (no queda fuera por el candado).
     staff_role = Role.objects.create(code='staff-y', name='Staff Y')
     call_command('seed_authz')
-    u = User.objects.create_user(email='staffy@e.com', password='StaffPass123!')
+    u = User.objects.create_user(login='staffy@e.com', password='StaffPass123!')
     RoleAssignment.objects.create(user=u, role=staff_role)
     invalidate_capabilities(u.id)
     client = APIClient()
@@ -47,7 +49,7 @@ def test_non_comprador_staff_can_read_own_profile(db):
 def test_user_without_any_role_is_denied_own_profile(db):
     # Sin rol alguno → sin account.profile → 403 (el candado aplica).
     call_command('seed_authz')
-    u = User.objects.create_user(email='norole@e.com', password='NoRolePass123!')
+    u = User.objects.create_user(login='norole@e.com', password='NoRolePass123!')
     client = APIClient()
     client.force_authenticate(u)
     assert client.get(PROFILE_URL).status_code == 403

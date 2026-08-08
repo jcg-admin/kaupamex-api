@@ -12,13 +12,11 @@ from decimal import Decimal
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import date, timedelta
-from addons.catalogue.models import Category, Product
-from addons.sale.models import SaleOrderLine
-from addons.sale_loyalty.models.sale_order_coupon import (
-    SaleOrderCoupon, ensure_reward_product,
-)
+from tests.factories.product_factory import make_category, make_product
+from addons.sale_loyalty.models.sale_order_coupon import SaleOrderCoupon
+from addons.sale_loyalty.models.sale_order import set_reward_line
 from addons.loyalty.models import Voucher, VoucherChangeLog
-from addons.loyalty.serializers import VoucherSerializer
+from addons.loyalty.controllers.admin_serializers import VoucherSerializer
 from tests.factories.order_factory import make_order
 from addons.sale.status_projection import STATUS_DELIVERED
 
@@ -42,19 +40,15 @@ def _future(**kw):
 
 @pytest.fixture
 def cat_s13(db):
-    return Category.objects.create(name='Cat S13', slug='cat-s13', is_active=True)
+    return make_category('Cat S13')
 
 
 @pytest.fixture
 def product_s13(db, cat_s13):
-    _p = Product.objects.create(
-        name='Prod S13', slug='prod-s13', sku='S13-001',
-        description='',
-        price=Decimal('1000.00'), stock=10,
-        is_active=True, is_published=True,
+    return make_product(
+        name='Prod S13', default_code='S13-001',
+        price=Decimal('1000.00'), stock=10, categ=cat_s13,
     )
-    _p.categories.add(cat_s13)
-    return _p
 
 
 @pytest.fixture
@@ -304,26 +298,22 @@ class TestReporteVouchers:
     ):
         User = get_user_model()
         buyer = User.objects.create_user(
+            login='buyer_roi@test.com',
             password='pass',
-            email='buyer_roi@test.com',
         )
         # E4 — el reporte se ancla al canónico: el cupón es una FK
-        # (``SaleOrderCoupon``), no el string ``SaleOrder.voucher_code``, y el
-        # descuento se mide de la línea ``is_reward`` que ``sale_loyalty``
-        # materializa, no de un escalar declarado en ``OrderValue_GONE``.
+        # (``SaleOrderCoupon``), no un string/escalar declarado a mano en la
+        # orden (espejo retirado); el descuento se MIDE de la línea
+        # ``is_reward`` que ``sale_loyalty`` materializa vía
+        # ``set_reward_line`` — el importe se calcula del cupón aplicado,
+        # no se recibe (ver ``sale_order_coupon.discount_amount``).
         order = make_order(
             user=buyer,
-            voucher_code=voucher_fixed.code,
-            voucher_discount=Decimal('50.00'),
             status=STATUS_DELIVERED,
             product=product_s13, quantity=1, unit_price=Decimal('1000.00'),
         )
-        SaleOrderCoupon.objects.create(
-            order=order.sale_order, voucher=voucher_fixed)
-        SaleOrderLine.objects.create(
-            order=order.sale_order, product=ensure_reward_product(),
-            name='Descuento', product_uom_qty=1,
-            price_unit=Decimal('-50.00'), is_reward=True)
+        SaleOrderCoupon.objects.create(order=order, voucher=voucher_fixed)
+        set_reward_line(order)
         res = admin_client.get(f'{VOUCHERS_URL}report/')
         assert res.status_code == 200
         voucher_data = next(
@@ -339,26 +329,22 @@ class TestReporteVouchers:
     ):
         User = get_user_model()
         buyer = User.objects.create_user(
+            login='buyer_datefrom@test.com',
             password='pass',
-            email='buyer_datefrom@test.com',
         )
         # E4 — el reporte se ancla al canónico: el cupón es una FK
-        # (``SaleOrderCoupon``), no el string ``SaleOrder.voucher_code``, y el
-        # descuento se mide de la línea ``is_reward`` que ``sale_loyalty``
-        # materializa, no de un escalar declarado en ``OrderValue_GONE``.
+        # (``SaleOrderCoupon``), no un string/escalar declarado a mano en la
+        # orden (espejo retirado); el descuento se MIDE de la línea
+        # ``is_reward`` que ``sale_loyalty`` materializa vía
+        # ``set_reward_line`` — el importe se calcula del cupón aplicado,
+        # no se recibe (ver ``sale_order_coupon.discount_amount``).
         order = make_order(
             user=buyer,
-            voucher_code=voucher_fixed.code,
-            voucher_discount=Decimal('50.00'),
             status=STATUS_DELIVERED,
             product=product_s13, quantity=1, unit_price=Decimal('1000.00'),
         )
-        SaleOrderCoupon.objects.create(
-            order=order.sale_order, voucher=voucher_fixed)
-        SaleOrderLine.objects.create(
-            order=order.sale_order, product=ensure_reward_product(),
-            name='Descuento', product_uom_qty=1,
-            price_unit=Decimal('-50.00'), is_reward=True)
+        SaleOrderCoupon.objects.create(order=order, voucher=voucher_fixed)
+        set_reward_line(order)
         tomorrow = (date.today() + timedelta(days=1)).isoformat()
         res = admin_client.get(f'{VOUCHERS_URL}report/?date_from={tomorrow}')
         assert res.status_code == 200

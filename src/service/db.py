@@ -24,15 +24,20 @@ y ``RENAME DATABASE`` no existen en MariaDB → se adaptan con
 ``mariadb-dump | mariadb`` y con duplicate+drop respectivamente.
 """
 import copy
+import logging
+import os
 import re
-import shutil
 import subprocess
+from contextlib import contextmanager
 
+import psycopg
 from django.conf import settings
 from django.core.management import call_command
 from django.db import DEFAULT_DB_ALIAS, connections
 
 from tools import config
+
+_logger = logging.getLogger(__name__)
 
 
 class DatabaseManagementDisabled(Exception):
@@ -41,6 +46,15 @@ class DatabaseManagementDisabled(Exception):
 
 class DatabaseExists(Exception):
     """== ``DatabaseExists`` de ``_create_empty_database`` en Odoo."""
+
+
+class RestoreFailed(Exception):
+    """== ``Exception("Couldn't restore database")`` de ``restore_db`` en Odoo.
+
+    ``pg_restore`` devolvió un código de salida distinto de cero. El mensaje
+    lleva su ``stdout+stderr`` combinado (mismo criterio que ``exp_restore``:
+    la referencia también propaga un genérico, no el traceback de psql).
+    """
 
 
 # Forma canónica del nombre de base de empresa (== ``routers.company_db_alias``).
@@ -104,8 +118,8 @@ def list_all_schema_names(using=DEFAULT_DB_ALIAS):
     """Todos los schemas del motor (== ``list_dbs``: ``pg_database`` → SCHEMATA)."""
     with connections[using].cursor() as cursor:
         cursor.execute(
-            'SELECT SCHEMA_NAME FROM information_schema.SCHEMATA '
-            'ORDER BY SCHEMA_NAME'
+            'SELECT datname FROM pg_database WHERE NOT datistemplate '
+            'ORDER BY datname'
         )
         return [row[0] for row in cursor.fetchall()]
 
@@ -209,7 +223,7 @@ def close_all():
 # ---------------------------------------------------------------------------
 
 def quote_db_identifier(name):
-    """Valida y backtick-cita un identificador de base (== ``database_identifier``).
+    """Valida y cita un identificador de base (== ``database_identifier``).
 
     Nuestras bases son ``company_<N>_db``; validar contra ``^[A-Za-z0-9_]+$`` es
     más estricto que ``quote_ident`` de Odoo e imposibilita la inyección en el
@@ -217,7 +231,59 @@ def quote_db_identifier(name):
     """
     if not _IDENTIFIER_RE.match(name or ''):
         raise ValueError('identificador de base invalido: %r' % (name,))
-    return '`%s`' % name
+    return '"%s"' % name
+
+
+def _maintenance_cursor(using=DEFAULT_DB_ALIAS):
+    """Cursor en **autocommit** contra la base de mantenimiento.
+
+    == ``odoo.sql_db.db_connect('postgres')`` de la referencia
+    (``odoo19c: odoo/service/db.py:_create_empty_database``), que abre la
+    conexión a ``postgres`` y hace ``cr._cnx.autocommit = True`` antes del DDL.
+
+    Existe porque PostgreSQL **prohíbe** ``CREATE``/``DROP``/``ALTER DATABASE``
+    dentro de un bloque de transacción, y la conexión de Django puede estar en
+    uno (un test con ``django_db``, una vista con ``ATOMIC_REQUESTS``). Bajo
+    MariaDB el problema no existía: su DDL auto-commitea y por eso la versión
+    anterior usaba ``connections[using]`` directo. Ver H-API-307.
+
+    Se conecta a la base de mantenimiento (``postgres``) y no a la del alias
+    porque no se puede soltar una base a la que se está conectado.
+    """
+    return closing_cursor(_connect(config.maintenance_db(), using))
+
+
+def _connect(db_name, using=DEFAULT_DB_ALIAS):
+    """Conexión psycopg en autocommit a ``db_name``, con los parámetros del alias.
+
+    == ``sql_db.connection_info_for``: reusa credenciales/host/puerto del alias
+    y sólo cambia la base. Si ``HOST`` empieza por ``/`` es el directorio del
+    socket, y libpq ignora el TLS ahí — por eso ``sslmode`` sólo viaja en TCP.
+    """
+    sd = connections[using].settings_dict
+    host = sd.get('HOST') or None
+    opts = sd.get('OPTIONS', {}) or {}
+    tls = {} if (host or '').startswith('/') else {
+        k: v for k, v in opts.items() if k in ('sslmode', 'sslrootcert')}
+    return psycopg.connect(
+        dbname=db_name,
+        user=sd['USER'],
+        password=sd.get('PASSWORD') or None,
+        host=host,
+        port=sd.get('PORT') or None,
+        autocommit=True,
+        **tls,
+    )
+
+
+@contextmanager
+def closing_cursor(conn):
+    """Cede el cursor y cierra SIEMPRE la conexión (== ``closing(db.cursor())``)."""
+    try:
+        with conn.cursor() as cursor:
+            yield cursor
+    finally:
+        conn.close()
 
 
 def ensure_management_enabled():
@@ -231,48 +297,73 @@ def database_exists(db_name, using=DEFAULT_DB_ALIAS):
     """== ``exp_db_exist``: ¿existe la base? (catálogo ``information_schema``)."""
     with connections[using].cursor() as cursor:
         cursor.execute(
-            'SELECT 1 FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = %s',
+            'SELECT 1 FROM pg_database WHERE datname = %s',
             [db_name],
         )
         return cursor.fetchone() is not None
 
 
 def create_empty_database(db_name, using=DEFAULT_DB_ALIAS):
-    """== ``_create_empty_database``: ``CREATE DATABASE`` charset/collation utf8mb4.
+    """== ``_create_empty_database``: ``CREATE DATABASE`` + extensiones.
 
-    Si existe → ``DatabaseExists``. **Sin extensiones** (``pg_trgm``/``unaccent``
-    no existen en MariaDB; el unaccent se resuelve con collation ``_ci`` +
-    ``REGEXP``, SOL-089).
+    Si existe → ``DatabaseExists``. Fiel a la referencia
+    (``odoo19c: odoo/service/db.py``): ``ENCODING 'unicode' TEMPLATE template0``
+    y luego ``CREATE EXTENSION IF NOT EXISTS pg_trgm``/``unaccent``.
+
+    Las extensiones son lo que MariaDB **no** podía dar: allá el acento-
+    insensible se emulaba con collation ``_ci`` + ``REGEXP`` (SOL-089), que
+    cubre la comparación pero no indexa la búsqueda por similitud.
     """
     ensure_management_enabled()
     if database_exists(db_name, using):
         raise DatabaseExists('la base %r ya existe' % (db_name,))
     ident = quote_db_identifier(db_name)
-    with connections[using].cursor() as cursor:
+    with _maintenance_cursor(using) as cursor:
         cursor.execute(
-            'CREATE DATABASE %s CHARACTER SET %s COLLATE %s'
-            % (ident, config.db_charset(), config.db_collation())
+            "CREATE DATABASE %s ENCODING '%s' TEMPLATE %s"
+            % (ident, config.db_encoding(), quote_db_identifier(config.db_template()))
         )
+    _install_extensions(db_name, using)
+
+
+def _install_extensions(db_name, using=DEFAULT_DB_ALIAS):
+    """``pg_trgm`` + ``unaccent`` en la base recién creada (== la referencia).
+
+    Best-effort igual que allá (``except psycopg2.Error: _logger.warning``): si
+    el rol no es superusuario la extensión no se instala y la base sigue siendo
+    usable — lo que se pierde es la búsqueda sin acentos indexada, no la base.
+    """
+    try:
+        with closing_cursor(_connect(db_name, using)) as cursor:
+            cursor.execute('CREATE EXTENSION IF NOT EXISTS pg_trgm')
+            cursor.execute('CREATE EXTENSION IF NOT EXISTS unaccent')
+    except Exception as exc:  # noqa: BLE001
+        _logger.warning('extensiones no instaladas en %s: %s', db_name, exc)
 
 
 def kill_connections(db_name, using=DEFAULT_DB_ALIAS):
     """== ``_drop_conn``: termina conexiones a la base (best-effort).
 
-    MariaDB: ``KILL`` sobre ``information_schema.PROCESSLIST`` filtrando por
-    ``DB`` y excluyendo ``CONNECTION_ID()`` (== ``pg_terminate_backend`` de Odoo).
+    Idéntico a la referencia (``odoo19c: odoo/service/db.py:_drop_conn``):
+    ``pg_terminate_backend`` sobre ``pg_stat_activity``, excluyendo la propia
+    sesión con ``pg_backend_pid()``. Bajo MariaDB había que emularlo leyendo
+    ``information_schema.PROCESSLIST`` y emitiendo un ``KILL CONNECTION`` por
+    fila; aquí es una sola sentencia y el motor hace el resto.
     """
-    with connections[using].cursor() as cursor:
-        cursor.execute(
-            'SELECT ID FROM information_schema.PROCESSLIST '
-            'WHERE DB = %s AND ID != CONNECTION_ID()',
-            [db_name],
-        )
-        ids = [row[0] for row in cursor.fetchall()]
-        for pid in ids:
-            try:
-                cursor.execute('KILL CONNECTION %d' % int(pid))
-            except Exception:
-                pass
+    with _maintenance_cursor(using) as cursor:
+        try:
+            cursor.execute(
+                'SELECT pg_terminate_backend(pid) FROM pg_stat_activity '
+                'WHERE datname = %s AND pid != pg_backend_pid()',
+                [db_name],
+            )
+        except Exception:
+            # silent OK because es best-effort: si no se puede terminar las
+            # conexiones, el DROP DATABASE que viene después falla solo y con
+            # un mensaje mucho más claro que cualquiera que se pudiera relanzar
+            # aquí. Copiado verbatim de `odoo19c: odoo/service/db.py:226-227`,
+            # que usa el mismo `except Exception: pass` en el mismo punto.
+            pass
 
 
 def drop_database(db_name, using=DEFAULT_DB_ALIAS):
@@ -283,7 +374,7 @@ def drop_database(db_name, using=DEFAULT_DB_ALIAS):
     close_db(db_name)
     kill_connections(db_name, using)
     ident = quote_db_identifier(db_name)
-    with connections[using].cursor() as cursor:
+    with _maintenance_cursor(using) as cursor:
         cursor.execute('DROP DATABASE %s' % ident)
     return True
 
@@ -325,76 +416,161 @@ def provision_company_database(db_name, using=DEFAULT_DB_ALIAS):
     return db_name, created
 
 
-def _resolve_bin(*candidates):
-    """Primer binario disponible (MariaDB 11.8 quitó ``mysqldump``/``mysql``;
-    quedan ``mariadb-dump``/``mariadb``)."""
-    for name in candidates:
-        path = shutil.which(name)
-        if path:
-            return path
-    raise RuntimeError('binario no encontrado: %s' % (candidates,))
-
-
-def _mysql_conn_args(alias):
-    """Flags de conexión (socket/host/port/user/pass) del alias, para los
-    binarios externos (== Odoo delega en ``pg_dump``/``pg_restore``)."""
-    sd = connections[alias].settings_dict
-    opts = sd.get('OPTIONS', {}) or {}
-    args = ['-u', sd['USER']]
-    if sd.get('PASSWORD'):
-        args.append('-p%s' % sd['PASSWORD'])
-    if opts.get('unix_socket'):
-        args += ['--socket=%s' % opts['unix_socket']]
-    else:
-        if sd.get('HOST'):
-            args += ['-h', sd['HOST']]
-        if sd.get('PORT'):
-            args += ['-P', str(sd['PORT'])]
-    return args
-
-
 def duplicate_database(src_name, dst_name, using=DEFAULT_DB_ALIAS):
     """== ``exp_duplicate_database``: copia ``src`` → ``dst``.
 
-    MariaDB **no tiene** ``CREATE DATABASE ... TEMPLATE``: se crea la destino
-    vacía y se copia schema + datos con ``mariadb-dump src | mariadb dst``.
+    Una sentencia: ``CREATE DATABASE dst TEMPLATE src``, igual que la
+    referencia. Bajo MariaDB había que emularlo con
+    ``mariadb-dump src | mariadb dst`` —dos subprocesos, tuberia, y el cuidado
+    de ``--single-transaction``/``--skip-add-locks`` porque el grant mínimo
+    ``company_%`` no incluía ``LOCK TABLES``—. Todo eso desaparece. Ver H-API-308.
+
+    ``TEMPLATE`` exige que **nadie** esté conectado al origen: se cierran sus
+    conexiones antes, como hace la referencia con ``_drop_conn``.
     """
     ensure_management_enabled()
     if not database_exists(src_name, using):
         raise ValueError('la base origen %r no existe' % (src_name,))
-    create_empty_database(dst_name, using)
-    conn_args = _mysql_conn_args(using)
-    dump_bin = _resolve_bin('mariadb-dump', 'mysqldump')
-    client_bin = _resolve_bin('mariadb', 'mysql')
-    # --single-transaction: snapshot InnoDB consistente sin ``LOCK TABLES`` (que
-    # el grant mínimo company_% no incluye). Se copian tablas + datos; las bases
-    # de empresa son schemas Django (sin routines/events server-side).
-    # --single-transaction: snapshot InnoDB sin ``LOCK TABLES`` en el origen.
-    # --skip-add-locks: que el volcado NO emita ``LOCK TABLES`` alrededor de los
-    # INSERT — el grant mínimo company_% no incluye LOCK TABLES en el destino.
-    dump = subprocess.Popen(
-        [dump_bin, *conn_args, '--single-transaction', '--skip-lock-tables',
-         '--skip-add-locks', src_name],
-        stdout=subprocess.PIPE,
-    )
-    load = subprocess.Popen([client_bin, *conn_args, dst_name], stdin=dump.stdout)
-    dump.stdout.close()
-    load.communicate()
-    if load.returncode != 0 or dump.wait() != 0:
-        drop_database(dst_name, using)
-        raise RuntimeError('duplicado %r -> %r fallo' % (src_name, dst_name))
+    if database_exists(dst_name, using):
+        raise DatabaseExists('la base %r ya existe' % (dst_name,))
+    close_db(src_name)
+    kill_connections(src_name, using)
+    with _maintenance_cursor(using) as cursor:
+        cursor.execute(
+            'CREATE DATABASE %s TEMPLATE %s'
+            % (quote_db_identifier(dst_name), quote_db_identifier(src_name))
+        )
     return dst_name
+
+
+# ---------------------------------------------------------------------------
+# Respaldo/restauración (== ``dump_db``/``restore_db`` de ``service/db.py``)
+# ---------------------------------------------------------------------------
+
+def _pg_env(using=DEFAULT_DB_ALIAS):
+    """``PGHOST``/``PGPORT``/``PGUSER``/``PGPASSWORD``/``PGSSLMODE`` para
+    ``pg_dump``/``pg_restore`` en subproceso (== ``exec_pg_environ`` de la
+    referencia).
+
+    Reusa las credenciales del alias activo — el rol que crea las bases
+    (``django_user``) es también su dueño, así que puede volcarlas y
+    restaurarlas sin un rol de respaldo aparte. Ese rol (``py_backup_user``,
+    ``db: scripts/backup_postgres.sh``) existe para el respaldo **periódico**
+    de las dos bases L0 (``kaupamex_db``/``kaupamex_qa``, cron, mínimo
+    privilegio de sólo-lectura); esta superficie es **on-demand**, por una
+    base de empresa concreta, ejercida por quien ya tiene ``platform.
+    provision`` — no hay razón para introducir un segundo rol.
+    """
+    sd = connections[using].settings_dict
+    env = os.environ.copy()
+    host = sd.get('HOST') or None
+    if host:
+        env['PGHOST'] = host
+    port = sd.get('PORT') or None
+    if port:
+        env['PGPORT'] = str(port)
+    env['PGUSER'] = sd['USER']
+    password = sd.get('PASSWORD') or None
+    if password:
+        env['PGPASSWORD'] = password
+    # El socket ignora TLS (mismo guard que ``_connect``); sólo viaja por TCP.
+    if not (host or '').startswith('/'):
+        sslmode = (sd.get('OPTIONS', {}) or {}).get('sslmode')
+        if sslmode:
+            env['PGSSLMODE'] = sslmode
+    return env
+
+
+class _DumpStream:
+    """Envuelve ``Popen.stdout``: al cerrarse (``FileResponse`` ya terminó de
+    leerlo), espera al proceso para no dejar un zombie.
+
+    ``Popen`` por sí solo no reapa el hijo hasta ``.wait()``/``.poll()``; un
+    ``FileResponse`` sólo cierra el file-like, nunca conoce el ``Popen`` que
+    lo produjo. Este envoltorio ata ambos ciclos de vida.
+    """
+
+    def __init__(self, proc):
+        self._proc = proc
+
+    def read(self, size=-1):
+        return self._proc.stdout.read(size)
+
+    def close(self):
+        self._proc.stdout.close()
+        self._proc.wait()
+
+
+def dump_database(db_name, using=DEFAULT_DB_ALIAS):
+    """== ``dump_db``: ``pg_dump --format=c`` de ``db_name``, en streaming.
+
+    Sin fichero intermedio — mismo patrón que la referencia
+    (``subprocess.Popen(..., stdout=PIPE)``, sin ``stream=None``): el
+    llamador consume el file-like devuelto y lo cierra cuando termina de
+    leer. Mismo formato ``-Fc`` que ``db: scripts/backup_postgres.sh`` (deja
+    restaurar selectivamente con ``pg_restore -t``); a diferencia de la
+    referencia (``backup_format='zip'`` con ``filestore/`` embebido), esta
+    plataforma no separa un filestore de disco — los binarios de
+    ``IrAttachment`` viven en la propia base (``datas``) — así que no hay
+    directorio adicional que empaquetar: el dump SQL ya es completo.
+    """
+    ensure_management_enabled()
+    if not database_exists(db_name, using):
+        raise ValueError('la base %r no existe' % (db_name,))
+    cmd = ['pg_dump', '--no-owner', '--format=c', db_name]
+    proc = subprocess.Popen(
+        cmd, env=_pg_env(using), stdin=subprocess.DEVNULL, stdout=subprocess.PIPE)
+    return _DumpStream(proc)
+
+
+def restore_database(db_name, dump_path, using=DEFAULT_DB_ALIAS):
+    """== ``restore_db``: crea ``db_name`` vacía y aplica ``pg_restore`` desde
+    ``dump_path`` (fichero en disco, formato ``-Fc``).
+
+    ``DatabaseExists`` si ``db_name`` ya existe — igual que la referencia
+    (``restore_db`` nunca sobreescribe una base viva); soltarla antes es
+    decisión explícita del llamador, mismo criterio que ``duplicate_database``.
+    Si ``pg_restore`` falla, la base recién creada (vacía o a medio restaurar)
+    se suelta — un restore fallido no debe dejar una base a medias con el
+    mismo nombre que el siguiente intento necesita.
+
+    Sin ``copy``/``neutralize_database`` (kwargs de ``restore_db``): no hay
+    consumidor hoy, y ambas son transformaciones *post*-restore que corren
+    igual de bien invocando ``manage.py`` después — no son parte del
+    mecanismo de restaurar, sino de qué hacer con lo restaurado.
+    """
+    ensure_management_enabled()
+    if database_exists(db_name, using):
+        raise DatabaseExists('la base %r ya existe' % (db_name,))
+    create_empty_database(db_name, using)
+    cmd = ['pg_restore', '--no-owner', '--dbname=' + db_name, dump_path]
+    result = subprocess.run(
+        cmd, env=_pg_env(using),
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    if result.returncode != 0:
+        drop_database(db_name, using)
+        raise RestoreFailed(result.stdout.decode(errors='replace'))
+    install_company_aliases(settings.DATABASES, names=[db_name], using=using)
+    return db_name
 
 
 def rename_database(old_name, new_name, using=DEFAULT_DB_ALIAS):
     """== ``exp_rename``: renombra ``old`` → ``new``.
 
-    MariaDB **eliminó** ``RENAME DATABASE`` (era peligroso): se adapta con
-    ``duplicate`` + ``drop`` (el patrón recomendado en MariaDB).
+    ``ALTER DATABASE old RENAME TO new`` — la forma de la referencia. MariaDB
+    **eliminó** ``RENAME DATABASE`` por peligroso, así que se emulaba con
+    duplicate+drop: copiaba todos los datos para mover un nombre. Ver H-API-308.
     """
     ensure_management_enabled()
-    duplicate_database(old_name, new_name, using)
-    drop_database(old_name, using)
+    if not database_exists(old_name, using):
+        raise ValueError('la base origen %r no existe' % (old_name,))
+    close_db(old_name)
+    kill_connections(old_name, using)
+    with _maintenance_cursor(using) as cursor:
+        cursor.execute(
+            'ALTER DATABASE %s RENAME TO %s'
+            % (quote_db_identifier(old_name), quote_db_identifier(new_name))
+        )
     return new_name
 
 

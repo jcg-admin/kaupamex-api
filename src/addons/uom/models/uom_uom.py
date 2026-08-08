@@ -22,16 +22,62 @@ factor de un padre dejaría a sus hijos con un ``factor`` obsoleto.
 
 ``rounding`` (``:36``) es un ``compute`` **no** almacenado: aquí es una
 propiedad que lee la precisión declarada de ``decimal.precision``.
+
+Nombre de la clase — divergencia declarada
+==========================================
+
+La referencia llama a la clase ``UomUom``; aquí es ``Uom``. Renombrar un modelo
+de Django exige una ``RenameModel`` en migraciones, que migra la tabla, así que
+va en su propio pase — mismo criterio que ``BusMessage``/``BusBus`` y que las
+columnas ``Char`` que esperan su FK.
+
+La protección de datos maestros
+===============================
+
+Se completó en este pase. La referencia impide **borrar** las unidades que
+vienen de sus datos maestros —salvo tres explícitamente liberadas— y avisa al
+**editar** una de ellas si el registro tiene más de un día. Las dos piezas
+faltaban.
+
+Su mecanismo consulta ``ir.model.data`` por ``module='uom'``, y esa tabla
+**ya existe** (``api@b618a6b``), así que se porta tal cual en vez de inventar
+un booleano paralelo. Durante un tiempo la guarda quedó **inerte** porque nadie
+poblaba la tabla; se activó sola al llegar el escritor
+(``IrModelData.set_xmlid``, ``api@6ff52ca``… ver :ref:`h-api-347`) **sin tocar
+este archivo**, que era lo que aquella nota predijo. La llave que este lector
+usa —``model=cls._meta.label``— es la que fijó la convención del resolutor.
+
+Lo que sigue faltando es el **sembrado** de las unidades maestras: la guarda
+funciona, y protegerá lo que se siembre con identificador del módulo ``uom``.
 """
+import datetime
+
 import fields
 import models
-from addons.base.models import DecimalPrecision, TimeStampedModel
+from addons.base.models import DecimalPrecision, IrModelData, TimeStampedModel
+from django.utils import timezone
 from exceptions import UserError
 from tools.float_utils import float_compare, float_is_zero, float_round
 
 #: Nombre de la precisión decimal que gobierna el redondeo de cantidades
 #: (``uom/data/uom_data.xml``: ``decimal_product_uom`` → "Product Unit").
 PRODUCT_UNIT_PRECISION = 'Product Unit'
+
+#: Módulo cuyos datos maestros de unidad están protegidos.
+UOM_MASTER_MODULE = 'uom'
+
+#: Las tres unidades que la referencia **libera** explícitamente
+#: (``_unprotected_uom_xml_ids``, verbatim). Se copian enteras: recortar la
+#: lista protegería de más, y protegerlas es impedir que alguien las borre.
+UNPROTECTED_UOM_XML_IDS = (
+    'product_uom_hour',
+    'product_uom_dozen',
+    'product_uom_pack_6',
+)
+
+#: La referencia sólo avisa al editar una unidad protegida si el registro
+#: tiene más de un día — recién creada, editarla es parte de configurarla.
+CRITICAL_CHANGE_GRACE = datetime.timedelta(days=1)
 
 
 class Uom(TimeStampedModel):
@@ -74,6 +120,16 @@ class Uom(TimeStampedModel):
         ordering = ['sequence', 'relative_uom_id', 'id']
         verbose_name = 'Unidad de medida'
         verbose_name_plural = 'Unidades de medida'
+        constraints = [
+            # ``_factor_gt_zero``: el ratio de conversión no puede ser 0.
+            # Estaba sólo como chequeo de Python (``clean_business``); la
+            # referencia lo declara **también** en la base, y ahí es donde
+            # aguanta una escritura que no pase por el modelo.
+            models.CheckConstraint(
+                condition=~models.Q(relative_factor=0),
+                name='uom_uom_factor_gt_zero',
+            ),
+        ]
 
     def __str__(self) -> str:
         return self.name
@@ -136,6 +192,75 @@ class Uom(TimeStampedModel):
         # un padre, los hijos quedarían obsoletos si no se repropaga.
         for child in self.related_uoms.all():
             child.save()
+
+    # === PROTECCIÓN DE DATOS MAESTROS ======================================
+
+    @classmethod
+    def filter_protected_uoms(cls, uoms):
+        """``_filter_protected_uoms`` — cuáles de ``uoms`` están protegidas.
+
+        Una unidad está protegida si tiene un identificador externo del módulo
+        ``uom`` **y** su nombre no está entre los tres liberados. Se porta la
+        consulta de la referencia contra ``ir.model.data``, no un booleano
+        paralelo. Cubierto de punta a punta en
+        ``tests/unit/base/test_ir_model_data_xmlid.py``, que siembra un
+        identificador y comprueba que esta guarda lo ve.
+        """
+        ids = [uom.pk for uom in uoms if uom.pk is not None]
+        if not ids:
+            return []
+        protected_ids = set(
+            IrModelData.objects.filter(
+                model=cls._meta.label, res_id__in=ids,
+                module=UOM_MASTER_MODULE,
+            ).exclude(
+                name__in=UNPROTECTED_UOM_XML_IDS,
+            ).values_list('res_id', flat=True)
+        )
+        return [uom for uom in uoms if uom.pk in protected_ids]
+
+    def check_can_delete(self):
+        """``_unlink_except_master_data`` — no se borra una unidad del sistema.
+
+        La referencia no se limita a impedirlo: **nombra** las unidades que
+        bloquean y ofrece la alternativa (archivarlas, que para eso está
+        ``active``). Se conserva porque un error que sólo dice "no puedes"
+        deja al operador sin saber qué hacer.
+        """
+        protected = type(self).filter_protected_uoms([self])
+        if not protected:
+            return
+        names = ', '.join(uom.name for uom in protected)
+        raise UserError(
+            'Las siguientes unidades de medida las usa el sistema y no se '
+            'pueden eliminar: %s\nPuede archivarlas en su lugar.' % names
+        )
+
+    def critical_change_warning(self):
+        """``_onchange_critical_fields`` — aviso al tocar una unidad del sistema.
+
+        Devuelve el texto del aviso, o ``None`` si no aplica. **No** levanta:
+        en la referencia es un ``warning`` de formulario, no un error — cambiar
+        una unidad maestra está permitido y es peligroso, que no es lo mismo
+        que estar prohibido.
+
+        La ventana de gracia de un día es de la referencia y tiene sentido:
+        una unidad recién creada se está configurando, y avisar entonces sería
+        ruido en el flujo normal.
+        """
+        if not type(self).filter_protected_uoms([self]):
+            return None
+        if self.created_at is None:
+            return None
+        if self.created_at >= timezone.now() - CRITICAL_CHANGE_GRACE:
+            return None
+        return (
+            'Se han modificado campos críticos de %s.\n'
+            'Los datos existentes NO se actualizarán con este cambio.\n\n'
+            'Como las unidades de medida afectan a todo el sistema, esto '
+            'puede causar problemas graves. Cambiar unidades de medida '
+            'básicas en una base en marcha no es recomendable.' % self.name
+        )
 
     # === MÉTODOS DE NEGOCIO ================================================
 

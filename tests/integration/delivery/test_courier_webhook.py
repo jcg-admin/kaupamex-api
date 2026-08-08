@@ -15,6 +15,7 @@ Contract:
 
 English JSON keys per DEC-DOC-005. Spanish business codes per DEC-DOC-006.
 """
+from addons.sale.models import SaleOrderLine
 import hashlib
 import hmac
 import json
@@ -23,9 +24,11 @@ from decimal import Decimal
 import pytest
 from django.utils import timezone
 
-from addons.catalogue.models import Category, Product
-from addons.delivery.models import Courier, ShipmentEvent, ShipmentGuide
+from addons.delivery.models import Courier, DeliveryAddress, ShipmentEvent, ShipmentGuide
+from addons.delivery.models.sale_order import set_delivery_line
 from tests.factories.order_factory import make_order
+
+from tests.factories.product_factory import make_category, make_product
 
 pytestmark = pytest.mark.integration
 
@@ -55,16 +58,14 @@ def _post(client, payload: dict, secret=WEBHOOK_SECRET, signature=None):
 
 @pytest.fixture
 def cat_log(db):
-    return Category.objects.create(name='Logistics', slug='log-cat', is_active=True)
+    return make_category(name='Logistics',)
 
 
 @pytest.fixture
 def prod_log(db, cat_log):
-    p = Product.objects.create(
-        name='Pulsera Yoruba', slug='pulsera-yoruba', sku='LOG-PY-001',
-        price=Decimal('500.00'), stock=10, is_active=True, is_published=True,
-    )
-    p.categories.add(cat_log)
+    p = make_product(
+        name='Pulsera Yoruba', default_code='LOG-PY-001',
+        price=Decimal('500.00'), stock=10, categ=cat_log)
     return p
 
 
@@ -74,16 +75,14 @@ def order_log(db, user, prod_log):
     # orden base se fabrica PENDING para no duplicar el eje de fulfillment.
     o = make_order(user=user)
     SaleOrderLine.objects.create(
-        order=o, product=prod_log, product_name=prod_log.name,
-        sku=prod_log.sku, unit_price=prod_log.price,
-        quantity=1, subtotal=prod_log.price,
+        order=o, product=prod_log, name=prod_log.name, price_unit=prod_log.lst_price,
+        product_uom_qty=1,
     )
-    OrderValue_GONE.objects.create(
-        order=o, subtotal=Decimal('500'), tax=Decimal('0'),
-        shipping_cost=Decimal('80'), total=Decimal('580'),
-    )
+    # El envío ($80) se materializa como línea marcada — el importe ya no
+    # vive en un escalar ``shipping_cost`` del espejo retirado.
+    set_delivery_line(o, Decimal('80'))
     DeliveryAddress.objects.create(
-        order=o, recipient_name='Test', street='Av', city='CDMX',
+        sale_order=o, recipient_name='Test', street='Av', city='CDMX',
         state='CDMX', zip_code='06600',
     )
     return o
@@ -100,7 +99,7 @@ def courier_log(db):
 @pytest.fixture
 def guide_log(db, order_log, courier_log):
     return ShipmentGuide.objects.create(
-        order=order_log, sale_order=order_log.sale_order, courier=courier_log,
+        sale_order=order_log, courier=courier_log,
         tracking_number='TRK-0001', status=ShipmentGuide.STATUS_PICKED_UP,
     )
 
@@ -223,7 +222,7 @@ class TestCourierWebhookSecretUnset:
     def test_secret_no_configurado_rechazo_seguro(self, api_client, order_log, db):
         courier = Courier.objects.create(name='SinSecreto', code='NOSEC')
         guide = ShipmentGuide.objects.create(
-            order=order_log, sale_order=order_log.sale_order, courier=courier,
+            sale_order=order_log, courier=courier,
             tracking_number='TRK-NOSEC', status=ShipmentGuide.STATUS_PICKED_UP,
         )
         payload = {

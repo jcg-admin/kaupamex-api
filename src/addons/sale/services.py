@@ -11,12 +11,11 @@ El voucher del draft deja de anclarse por ``voucher_code`` string y pasa a
 ``sale_loyalty.SaleOrderCoupon`` (OneToOne a la orden) — cierra
 H-CART-CL-02.
 
-Puente transicional: ``confirm_draft_order`` confirma la ``SaleOrder``
-nativamente (``action_confirm``) y ADEMÁS materializa el espejo legacy
-``orders.Order(PENDING)`` + ``SaleOrderLine``/``SaleOrderValue_REMOVED``/``SaleOrderAddress``
-que los clusters de pagos/logística/post-venta siguen consumiendo hasta
-V3–V5 (el plan retira el espejo en V5). ``orders/services.py`` re-exporta
-estas funciones para no romper los imports de los consumidores.
+``confirm_draft_order`` confirma la ``SaleOrder`` nativamente
+(``action_confirm``): la venta **es** la orden. El puente transicional que
+materializaba el espejo ``orders.Order`` desapareció con el addon (SOL-098,
+``api@77bd1f0``); pagos, logística y post-venta consumen la canónica
+directamente.
 """
 import logging
 from decimal import Decimal
@@ -28,12 +27,14 @@ from addons.delivery.models import DeliveryAddress
 from django.db.models import F
 from django.utils import timezone
 
-from addons.base.models import SiteSettings
-from addons.inventory.services import InventoryService
+from addons.base_setup.settings_access import get_setting
+from addons.stock.services import InventoryService
 from addons.loyalty.models import Voucher, VoucherUsage
 from addons.stock.models import StockPicking
+from addons.mail.models.notification_service import notify_order_status_changed
+from .status_projection import STATUS_CANCELLED, order_status
 from .models import SaleOrder, SaleOrderLine
-from .signals import (draft_discount_requested,
+from .signals import (draft_discount_requested, order_cancelled,
                       draft_voucher_requested, order_confirmed)
 
 
@@ -52,11 +53,13 @@ class DraftOrderError(ValueError):
 def get_or_create_draft_order(user=None, cart_token=None):
     """Resuelve el ``SaleOrder(draft)`` que hace de carrito activo.
 
-    - Autenticado (``user``): un único draft por partner — MariaDB no
-      soporta UNIQUE parcial, la unicidad one-draft-per-partner se
-      garantiza aquí (draft más reciente).
+    - Autenticado (``user``): un único draft por partner. La unicidad la
+      garantiza la **base** — ``SaleOrder.Meta.constraints`` declara un
+      índice único parcial sobre ``partner`` restringido a
+      ``state='draft'`` (H-API-309). Esta función ya no la sostiene: sólo
+      resuelve o crea.
     - Anónimo (``cart_token``): busca/crea el draft por token (columna
-      UNIQUE; múltiples NULL permitidos).
+      UNIQUE; múltiples NULL permitidos — verificado en PostgreSQL).
 
     Retorna ``(order, created)``.
     """
@@ -78,48 +81,56 @@ def get_or_create_draft_order(user=None, cart_token=None):
     return order, created
 
 
-def _line_snapshot_name(product, variant=None):
-    """Descripción de la línea (Odoo ``sale.order.line.name``)."""
-    if variant is not None:
-        return f'{product.name} ({variant.option.label})'
-    return product.name
+def _line_snapshot_name(product):
+    """Descripción de la línea (Odoo ``sale.order.line.name``).
+
+    ``product`` es la **variante** (``product.product``): su ``display_name``
+    ya incluye los valores de atributo, así que no hay que componerlo desde un
+    eje ``variant`` aparte (odoo19c: ``product/models/product_product.py``).
+    """
+    return str(product)
 
 
-def add_item_to_draft(order, product, variant=None, quantity=1):
+def add_item_to_draft(order, product, quantity=1):
     """Agrega/mezcla una línea en el draft (UC-CART-02).
 
+    ``product`` es la **variante** (``product.product``), fiel a
+    ``odoo19c: addons/sale/models/sale_order_line.py:83-88``. El parámetro
+    ``variant`` desapareció: era el mismo dato en un segundo eje, herencia del
+    modelo plano previo a la separación plantilla/variante (H-API-213).
+
     Guard de stock doble (antes y dentro del atomic, H-CICLO121-01),
-    merge de cantidad si la línea ya existe, y precio vigente al momento
-    de la operación (``variant.effective_price()`` o ``product.price``).
-    El snapshot (``name``/``price_unit``) se refresca mientras la orden
-    siga en draft; ``action_confirm`` lo congela.
+    merge de cantidad si la línea ya existe, y precio vigente al momento de la
+    operación. La existencia se **deriva** de ``stock.quant`` vía
+    ``InventoryService``, no de una columna del producto (odoo19c:
+    ``stock/models/stock_quant.py:119-122``).
     """
     if order.state != SaleOrder.STATE_DRAFT:
-        raise DraftOrderError('La orden no es un draft.', 'ORDEN_NO_DRAFT')
+        raise DraftOrderError('La orden no es un draft.', 'ORDER_NOT_DRAFT')
     if quantity < 1:
-        raise DraftOrderError('quantity debe ser >= 1.', 'CANTIDAD_INVALIDA')
+        raise DraftOrderError('quantity debe ser >= 1.', 'INVALID_QUANTITY')
 
-    available = variant.stock if variant else product.stock
-    if available is not None and available <= 0:
+    available = InventoryService.available_quantity(product)
+    if available <= 0:
         raise DraftOrderError('Producto sin stock.', 'OUT_OF_STOCK')
-    if available is not None and quantity > available:
+    if quantity > available:
         raise DraftOrderError('Stock insuficiente.', 'INSUFFICIENT_STOCK')
 
-    unit_price = variant.effective_price() if variant else product.price
+    unit_price = product.lst_price
 
     with transaction.atomic():
         line, created = order.order_line.get_or_create(
-            product=product, variant=variant,
+            product=product,
             defaults={
-                'name': _line_snapshot_name(product, variant),
+                'name': _line_snapshot_name(product),
                 'price_unit': unit_price,
                 'product_uom_qty': quantity,
             },
         )
         if not created:
             new_qty = line.product_uom_qty + quantity
-            avail = variant.stock if variant else product.stock
-            if avail is not None and new_qty > avail:
+            avail = InventoryService.available_quantity(product)
+            if new_qty > avail:
                 raise DraftOrderError('Stock insuficiente.', 'INSUFFICIENT_STOCK')
             line.product_uom_qty = new_qty
             line.price_unit = unit_price
@@ -133,10 +144,10 @@ def clear_draft_items(order):
 
     ``QuerySet.delete()`` en bloque no dispara el recálculo de
     ``SaleOrderLine.delete()`` (H-API-30) — se dispara explícito para que el
-    total de la orden quede en ``0.00`` y no stale con el valor previo.
+    total de la orden quede en ``0.00`` y no stale con el value previo.
     """
     if order.state != SaleOrder.STATE_DRAFT:
-        raise DraftOrderError('La orden no es un draft.', 'ORDEN_NO_DRAFT')
+        raise DraftOrderError('La orden no es un draft.', 'ORDER_NOT_DRAFT')
     order.order_line.all().delete()
     order._compute_amounts()
 
@@ -155,7 +166,7 @@ def _draft_extra_discount(order, subtotal):
     respuestas = draft_discount_requested.send(
         sender=SaleOrder, order=order, subtotal=subtotal)
     return sum(
-        (valor for _receptor, valor in respuestas if valor),
+        (value for _receptor, value in respuestas if value),
         Decimal('0.00'),
     )
 
@@ -168,8 +179,8 @@ def get_draft_totals(order):
     y el descuento los sigue); ``confirm_draft_order`` lo congela en el
     espejo legacy.
     """
-    iva_rate  = SiteSettings.get_current().iva_rate
-    threshold = SiteSettings.get_current().free_shipping_threshold
+    iva_rate  = get_setting('iva_rate')
+    threshold = get_setting('free_shipping_threshold')
     threshold = threshold if threshold > 0 else None
 
     lines    = list(order.order_line.all())
@@ -204,14 +215,14 @@ def get_draft_totals(order):
 def update_draft_item_quantity(order, item_pk, quantity):
     """Fija la cantidad de una línea del draft (UC-CART-02)."""
     if order.state != SaleOrder.STATE_DRAFT:
-        raise DraftOrderError('La orden no es un draft.', 'ORDEN_NO_DRAFT')
+        raise DraftOrderError('La orden no es un draft.', 'ORDER_NOT_DRAFT')
     if quantity < 1:
-        raise DraftOrderError('quantity debe ser >= 1.', 'CANTIDAD_INVALIDA')
+        raise DraftOrderError('quantity debe ser >= 1.', 'INVALID_QUANTITY')
     line = order.order_line.filter(pk=item_pk).first()
     if line is None:
         raise DraftOrderError('Item no encontrado.', 'ITEM_NOT_FOUND')
-    stock = line.variant.stock if line.variant else line.product.stock
-    if stock is not None and quantity > stock:
+    stock = InventoryService.available_quantity(line.product)
+    if quantity > stock:
         raise DraftOrderError('Stock insuficiente.', 'INSUFFICIENT_STOCK')
     line.product_uom_qty = quantity
     line.save(update_fields=['product_uom_qty', 'updated_at'])
@@ -221,7 +232,7 @@ def update_draft_item_quantity(order, item_pk, quantity):
 def remove_draft_item(order, item_pk):
     """Elimina una línea del draft (UC-CART-03)."""
     if order.state != SaleOrder.STATE_DRAFT:
-        raise DraftOrderError('La orden no es un draft.', 'ORDEN_NO_DRAFT')
+        raise DraftOrderError('La orden no es un draft.', 'ORDER_NOT_DRAFT')
     line = order.order_line.filter(pk=item_pk).first()
     if line is None:
         raise DraftOrderError('Item no encontrado.', 'ITEM_NOT_FOUND')
@@ -250,21 +261,19 @@ def merge_draft_orders(user, cart_token):
 
     skipped = []
     with transaction.atomic():
-        for anon_line in anon_order.order_line.select_related(
-                'product', 'variant').all():
-            available = (anon_line.variant.stock if anon_line.variant
-                         else anon_line.product.stock)
-            if available is not None and available <= 0:
+        for anon_line in anon_order.order_line.select_related('product').all():
+            available = InventoryService.available_quantity(anon_line.product)
+            if available <= 0:
                 skipped.append({'product_id': anon_line.product_id,
                                 'product_name': anon_line.name,
                                 'reason': 'OUT_OF_STOCK'})
                 continue
 
             existing = auth_order.order_line.filter(
-                product=anon_line.product, variant=anon_line.variant).first()
+                product=anon_line.product).first()
             if existing:
                 new_qty = existing.product_uom_qty + anon_line.product_uom_qty
-                if available is not None and new_qty > available:
+                if new_qty > available:
                     new_qty = available
                 existing.product_uom_qty = new_qty
                 existing.price_unit = anon_line.price_unit
@@ -272,11 +281,10 @@ def merge_draft_orders(user, cart_token):
                                              'updated_at'])
             else:
                 merge_qty = anon_line.product_uom_qty
-                if available is not None and merge_qty > available:
+                if merge_qty > available:
                     merge_qty = available
                 auth_order.order_line.create(
                     product=anon_line.product,
-                    variant=anon_line.variant,
                     name=anon_line.name,
                     price_unit=anon_line.price_unit,
                     product_uom_qty=merge_qty,
@@ -299,18 +307,17 @@ def confirm_draft_order(order, *, address_data, guest_email=None, notes='',
        consumo del voucher del cupón (DEC-VCU-01 / DEC-BC-10) y
        liberación de ``cart_token`` (el token de la cookie debe poder
        acuñar un draft nuevo).
-    4. Puente V2→V5: materializa el espejo legacy ``orders.Order(PENDING)``
-       + ``SaleOrderLine``/``SaleOrderValue_REMOVED``/``SaleOrderAddress`` que pagos/
-       logística/post-venta consumen hasta re-anclarse (V3/V4); la
-       ``SaleOrderAddress`` ancla a AMBOS (FK dual de V1). Retorna el espejo
-       legacy para que la vista selle la misma respuesta 201.
+    4. Materializa la dirección de entrega (``delivery.DeliveryAddress``):
+       por la referencia no es del eje comercial, así que vive en
+       ``delivery``, no en la orden. Retorna la ``SaleOrder`` confirmada —
+       ya no hay espejo que devolver.
 
     Levanta ``DraftOrderError`` en los guards; propaga
     ``InsufficientStockError``/``IntegrityError`` para que la vista selle
     los mismos ``codigo_error`` históricos.
     """
     if order.state != SaleOrder.STATE_DRAFT:
-        raise DraftOrderError('La orden no es un draft.', 'ORDEN_NO_DRAFT')
+        raise DraftOrderError('La orden no es un draft.', 'ORDER_NOT_DRAFT')
 
     # E1-bis — SÓLO líneas de producto. Las líneas marcadoras
     # (``is_delivery``/``is_reward``, materializadas por ``delivery`` y
@@ -320,12 +327,11 @@ def confirm_draft_order(order, *, address_data, guest_email=None, notes='',
     # espejo legacy, cuyos ``SaleOrderLine`` son de producto por contrato.
     # Un carrito con sólo líneas marcadoras está vacío.
     lines = list(order.order_line.filter(is_delivery=False, is_reward=False)
-                 .select_related('product', 'variant__product',
-                                 'variant__option'))
+                 .select_related('product'))
     if not lines:
         raise DraftOrderError('El carrito está vacío.', 'EMPTY_CART')
 
-    check_items = [{'product': l.product, 'variant': l.variant,
+    check_items = [{'product': l.product,
                     'quantity': l.product_uom_qty} for l in lines]
     insufficient = InventoryService.check_availability(check_items)
     if insufficient:
@@ -334,7 +340,7 @@ def confirm_draft_order(order, *, address_data, guest_email=None, notes='',
         err.items = insufficient
         raise err
 
-    iva_rate = SiteSettings.get_current().iva_rate
+    iva_rate = get_setting('iva_rate')
     respuestas = draft_voucher_requested.send(sender=SaleOrder, order=order)
     voucher = next((v for _r, v in respuestas if v is not None), None)
 
@@ -346,7 +352,7 @@ def confirm_draft_order(order, *, address_data, guest_email=None, notes='',
             live_price = line.current_price()
             subtotal  += live_price * line.product_uom_qty
             line.price_unit = live_price
-            line.name = _line_snapshot_name(line.product, line.variant)
+            line.name = _line_snapshot_name(line.product)
             line.save(update_fields=['price_unit', 'name', 'updated_at'])
 
         voucher_discount = (voucher.calculate_discount(subtotal)
@@ -400,4 +406,109 @@ def confirm_draft_order(order, *, address_data, guest_email=None, notes='',
         # que faltaba materializar es la dirección de entrega, que por la
         # referencia no es del eje comercial: vive en ``delivery``.
         DeliveryAddress.objects.create(sale_order=order, **address_data)
+    return order
+
+
+def track_sale_state(order, previous, new, author, note=''):
+    """Registra una transición de estado de la venta en su chatter.
+
+    Reemplaza a ``orders.OrderStatusLog``. El destino lo declara
+    ``analisis-estructura-destino-comercial.rst``: en la referencia la bitácora
+    es ``mail.thread`` con ``tracking=True`` sobre el campo, no una tabla
+    lateral. ``SaleOrder`` ya hereda ``MailThread``, así que la paridad es
+    directa: ``changed_by`` → autor del ``mail.message``; los estados →
+    ``old``/``new`` del ``mail.tracking.value``.
+
+    La nota va como mensaje aparte porque ``message_track`` publica el
+    tracking con cuerpo vacío (fiel a Odoo, donde el comentario es otro
+    mensaje del hilo).
+
+    Vive aquí y no en ``delivery`` —donde nació— porque el sujeto es el estado
+    de la **venta**: ``delivery`` depende de ``sale``, nunca al revés.
+    """
+    order.message_track(
+        [{'field': 'state', 'field_desc': 'Estado', 'field_type': 'char',
+          'old': previous, 'new': new}],
+        author=author,
+    )
+    if note:
+        order.message_post(body=note, author=author)
+
+
+# Cancelable por el **comprador**. Una vez despachada la orden, la vuelta
+# atrás es una devolución (``returns``), no una cancelación.
+CANCELABLE_STATUSES = ['PENDING', 'PAID']
+
+
+def cancel_order(order, reason='', cancelled_by=None, cancelable_statuses=None):
+    """Cancela una venta de forma atómica (UC-ORD-04).
+
+    Cuatro pasos en una sola transacción: validar que el estado proyectado sea
+    cancelable, cancelar el eje comercial, restaurar el stock de las líneas de
+    producto, y reembolsar si hay un pago aprobado.
+
+    El estado **no se escribe**: se cancela ``action_cancel()`` y la proyección
+    deriva CANCELLED de ahí. Los campos de metadata de la cancelación
+    (``cancellation_reason``/``cancelled_at``) sí son columnas de la venta.
+
+    :raises ValueError: si la orden no es cancelable.
+    :raises RuntimeError: si el gateway de reembolso falla (revierte todo).
+    """
+    allowed = (cancelable_statuses if cancelable_statuses is not None
+               else CANCELABLE_STATUSES)
+    if order_status(order) not in allowed:
+        raise ValueError(
+            f'La orden {order.name} no se puede cancelar '
+            f'(estado: {order_status(order)}). Solo se permiten cancelaciones '
+            f'en estados: {allowed}.'
+        )
+
+    with transaction.atomic():
+        # Re-verificar bajo lock: dos cancelaciones concurrentes restaurarían
+        # el stock dos veces. Se re-deriva el estado sobre la fila bloqueada.
+        order = SaleOrder.objects.select_for_update().get(pk=order.pk)
+        if order_status(order) not in allowed:
+            raise ValueError(
+                f'La orden {order.name} ya no es cancelable '
+                f'(cancelada por una petición concurrente).'
+            )
+
+        previous_status = order_status(order)
+        order.cancellation_reason = reason
+        order.cancelled_at        = timezone.now()
+        order.save(update_fields=['cancellation_reason', 'cancelled_at',
+                                  'updated_at'])
+
+        if order.state != SaleOrder.STATE_CANCEL and not order.locked:
+            order.action_cancel()
+
+        track_sale_state(order, previous_status, STATUS_CANCELLED,
+                         cancelled_by, note=reason)
+        notify_order_status_changed(order, STATUS_CANCELLED)
+
+        # Restaurar stock — sólo las líneas de producto: las marcadoras de
+        # envío y descuento no reservaron nada que devolver.
+        stock_items = [
+            {'product': line.product, 'quantity': line.product_uom_qty}
+            for line in (order.order_line
+                         .filter(is_delivery=False, is_reward=False)
+                         .select_related('product'))
+            if line.product_id
+        ]
+        if stock_items:
+            InventoryService.restore(
+                items=stock_items, reference=order.name,
+                created_by=cancelled_by,
+            )
+            logger.info('Stock restaurado para la orden cancelada %s — %d líneas',
+                        order.name, len(stock_items))
+
+        # El reembolso lo hace ``payments`` al escuchar la señal: el núcleo
+        # no puede importarlo (``Payment`` tiene FK a ``SaleOrder``). Si el
+        # gateway falla, el receptor levanta y revierte la transacción entera
+        # — cancelar sin devolver el dinero dejaría al comprador pagado y sin
+        # orden.
+        order_cancelled.send(sender=SaleOrder, order=order, reason=reason,
+                             cancelled_by=cancelled_by)
+
     return order

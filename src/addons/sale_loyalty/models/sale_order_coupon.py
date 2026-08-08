@@ -13,7 +13,9 @@ import fields
 import models
 
 from addons.base.models import TimeStampedModel
-from addons.catalogue.models import Product
+from addons.product.models import ProductProduct as Product
+from addons.product.models import ProductTemplate
+from addons.product.models.product_template import TYPE_SERVICE
 
 # ----------------------------------------------------------------------
 # E1-bis — producto de servicio de la línea de recompensa.
@@ -35,19 +37,23 @@ def ensure_reward_product() -> Product:
 
     Idempotente. Precio 0: el importe efectivo lo fija la línea con su
     ``price_unit`` negativo, calculado por el voucher aplicado.
+
+    H-API — mismo drift que ``delivery.models.sale_order.
+    ensure_generic_service_product``: creaba la variante con kwargs de
+    ``catalogue.Product`` (``sku``/``slug``/``price``/``is_active``/
+    ``is_published``/``short_description``), ninguno vigente en el catálogo
+    canónico (ficha ``ProductTemplate`` + variante ``ProductProduct``).
     """
-    product, _ = Product.objects.get_or_create(
-        sku=REWARD_SKU,
-        defaults={
-            'name': 'Descuento',
-            'slug': 'servicio-descuento',
-            'price': Decimal('0.00'),
-            'is_active': True,
-            'is_published': False,
-            'short_description': 'Concepto de descuento para facturación.',
-        },
+    product = Product.objects.filter(default_code=REWARD_SKU).first()
+    if product is not None:
+        return product
+    tmpl = ProductTemplate.objects.create(
+        name='Descuento', type=TYPE_SERVICE,
+        list_price=Decimal('0.00'), sale_ok=False, active=True,
     )
-    return product
+    return Product.objects.create(
+        product_tmpl=tmpl, default_code=REWARD_SKU, active=True,
+    )
 
 
 class SaleOrderCoupon(TimeStampedModel):

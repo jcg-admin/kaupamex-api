@@ -4,7 +4,8 @@ Hogar fiel de la lista de deseos del comprador. En Odoo la wishlist del
 storefront la provee el módulo ``website_sale_wishlist`` (modelo
 ``product.wishlist``); no existe un módulo ``wishlist`` a secas. Este
 ``WishlistItem`` es la contraparte: satélite de lectura del catálogo (FK string
-a ``catalogue.Product``/``chartsize.ProductVariant``), sin FK-in, que guarda el
+a ``product.ProductProduct`` — la **variante**, como el ``product_id`` de
+``product.wishlist`` en odoo19c :16), sin FK-in, que guarda el
 interés del comprador y el precio al momento de agregar (``price_at_add``).
 
 Identifiers + field names in English per DEC-DOC-005.
@@ -12,15 +13,17 @@ Identifiers + field names in English per DEC-DOC-005.
 from decimal import Decimal
 from django.conf import settings
 from django.db import models
-from django.db.models import Q
 from addons.base.models import SoftDeleteModel, TimeStampedModel
+from addons.stock.services import InventoryService
 
 
 class WishlistItem(TimeStampedModel, SoftDeleteModel):
     """
     Item en la lista de deseos de un comprador. UC-WISH-01/02/03.
-    Unico por (user, product, variant).
-    variant es nullable para productos sin variantes.
+    Unico por (user, product) — donde ``product`` es la **variante**
+    (``product.product``), igual que el ``product_id`` de ``product.wishlist``
+    en la referencia, cuya restriccion es ``UNIQUE(product_id, partner_id)``
+    (odoo19c: ``website_sale_wishlist/models/product_wishlist.py:11``).
     price_at_add: precio en el momento de agregar (informativo, no snapshot de orden).
 
     Hereda SoftDeleteModel (DEC-DOC-007): un item eliminado conserva
@@ -31,54 +34,34 @@ class WishlistItem(TimeStampedModel, SoftDeleteModel):
         related_name='wishlist_items',
     )
     product       = models.ForeignKey(
-        'catalogue.Product', on_delete=models.CASCADE,
+        'product.ProductProduct', on_delete=models.CASCADE,
         related_name='wishlist_items',
-    )
-    variant       = models.ForeignKey(
-        'chartsize.ProductVariant', null=True, blank=True,
-        on_delete=models.SET_NULL, related_name='wishlist_items',
     )
     price_at_add  = models.DecimalField(max_digits=10, decimal_places=2)
 
     class Meta:
         db_table = 'wishlist_item'
-        # H-CICLO45-01: unique_together no protege columnas NULL en SQL
-        # (NULL != NULL semantics). Un producto sin variante tiene variant=NULL;
-        # dos peticiones concurrentes pueden crear filas duplicadas
-        # (user, product, NULL) porque el constraint de BD no las detecta.
-        # Reemplazado por dos UniqueConstraint condicionales (igual que CartItem):
-        #   - con variante: (user, product, variant) cuando variant IS NOT NULL
-        #   - sin variante: (user, product) cuando variant IS NULL
-        # MariaDB no soporta UniqueConstraint con condition (W036) — la
-        # constraint no existe a nivel de BD. La unicidad se garantiza a
-        # nivel de aplicación: WishlistView.post() hace pre-check con
-        # all_objects.filter(user, product, variant) y captura IntegrityError
-        # como fallback contra race conditions, retornando 409 en ambos casos.
-        # W036 silenciado via SILENCED_SYSTEM_CHECKS en base.py (T-DEV-4).
+        # Al colapsar el eje ``variant`` (H-API-213) la clave vuelve a ser
+        # simple y **sin** columna nullable, así que las dos UniqueConstraint
+        # condicionales de H-CICLO45-01 dejan de hacer falta: existían sólo
+        # porque ``variant=NULL`` no participa de un UNIQUE en SQL
+        # (``NULL != NULL``). Un UNIQUE plano sí lo aplica la BD, así que la
+        # carrera que el pre-check de la vista cubría a mano ya no existe.
         constraints = [
             models.UniqueConstraint(
-                fields=['user', 'product', 'variant'],
-                condition=Q(variant__isnull=False),
-                name='unique_wishlist_user_product_variant',
-            ),
-            models.UniqueConstraint(
                 fields=['user', 'product'],
-                condition=Q(variant__isnull=True),
-                name='unique_wishlist_user_product_no_variant',
+                name='unique_wishlist_user_product',
             ),
         ]
         ordering     = ['-created_at']
         verbose_name = 'Item de lista de deseos'
 
     def __str__(self):
-        label = self.variant.option.label if self.variant else self.product.name
-        return f'{self.user.email} → {self.product.name} ({label})'
+        return f'{self.user.login} → {self.product}'
 
     @property
     def current_price(self) -> Decimal:
-        if self.variant:
-            return self.variant.effective_price()
-        return self.product.price
+        return self.product.lst_price
 
     @property
     def price_changed(self) -> bool:
@@ -86,6 +69,5 @@ class WishlistItem(TimeStampedModel, SoftDeleteModel):
 
     @property
     def is_available(self) -> bool:
-        if self.variant:
-            return self.variant.is_available()
-        return self.product.stock > 0 and self.product.is_active and self.product.is_published
+        return (self.product.active
+                and InventoryService.available_quantity(self.product) > 0)

@@ -5,10 +5,10 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 
-from addons.catalogue.models import Product
 from addons.purchase.models import PurchaseOrder, PurchaseOrderLine
 from addons.sale.models import SaleOrder, SaleOrderLine
 from addons.sale_purchase.models import SaleLinePurchaseLink
+from tests.factories.product_factory import make_product
 
 pytestmark = pytest.mark.integration
 
@@ -19,13 +19,12 @@ _vendor_seq = [0]
 
 def _vendor():
     _vendor_seq[0] += 1
-    return User.objects.create_user(email=f'prov{_vendor_seq[0]}@x.com', password='x')
+    return User.objects.create_user(
+        login=f'prov{_vendor_seq[0]}@practicayoruba.mx', password='x')
 
 
 def test_purchase_order_confirm_state_machine(db):
-    product = Product.objects.create(
-        name='Insumo', slug='insumo', sku='INS-001', price=Decimal('58.00'),
-    )
+    product = make_product(name='Insumo', price=Decimal('58.00'))
     po = PurchaseOrder.objects.create(partner=_vendor())
     # No se puede confirmar sin líneas.
     with pytest.raises(ValidationError):
@@ -38,9 +37,7 @@ def test_purchase_order_confirm_state_machine(db):
 
 
 def test_purchase_line_tax_breakdown(db):
-    product = Product.objects.create(
-        name='Insumo', slug='insumo2', sku='INS-002', price=Decimal('116.00'),
-    )
+    product = make_product(name='Insumo', price=Decimal('116.00'))
     po = PurchaseOrder.objects.create(partner=_vendor())
     line = PurchaseOrderLine.objects.create(
         order=po, product=product, price_unit=Decimal('116.00'), product_qty=2,
@@ -54,9 +51,7 @@ def test_purchase_line_tax_breakdown(db):
 
 
 def test_generate_purchase_from_sale_line(db):
-    product = Product.objects.create(
-        name='Servicio a comprar', slug='s2c', sku='SVC-001', price=Decimal('300.00'),
-    )
+    product = make_product(name='Servicio a comprar', price=Decimal('300.00'))
     order = SaleOrder.objects.create()
     sale_line = SaleOrderLine.objects.create(
         order=order, product=product, price_unit=Decimal('300.00'),
@@ -75,9 +70,7 @@ def test_generate_purchase_from_sale_line(db):
 
 
 def test_generate_purchase_twice_counts_two(db):
-    product = Product.objects.create(
-        name='Servicio', slug='svc2', sku='SVC-002', price=Decimal('100.00'),
-    )
+    product = make_product(name='Servicio', price=Decimal('100.00'))
     order = SaleOrder.objects.create()
     sale_line = SaleOrderLine.objects.create(
         order=order, product=product, price_unit=Decimal('100.00'), name='S',

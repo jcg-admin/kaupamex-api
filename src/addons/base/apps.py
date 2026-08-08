@@ -20,7 +20,9 @@ globales de la instancia, no per-empresa (eso es L3 = ``Company``/
 ``MULTIDB_CONTROL_PLANE_APPS`` (SOL-091) para que el router lo enrute siempre a
 ``default`` bajo N>1.
 """
-from django.apps import AppConfig
+from django.apps import AppConfig, apps
+
+from orm.inherits import apply_inherits
 
 
 class BaseConfig(AppConfig):
@@ -28,3 +30,24 @@ class BaseConfig(AppConfig):
     name = 'addons.base'
     label = 'base'
     verbose_name = 'Base (infraestructura fundacional ir.*)'
+
+    def ready(self):
+        """Instala la delegación ``_inherits`` de ``res.users`` al partner.
+
+        Equivale a ``_inherits = {'res.partner': 'partner_id'}`` de la
+        referencia (``odoo19c: odoo/addons/base/models/res_users.py:165``),
+        que es de donde el usuario obtiene ``tz``, ``lang`` y el resto de los
+        campos del partner.
+
+        Va en ``ready()`` y no al pie del módulo porque ``res_users`` resuelve
+        el modelo de partner de forma perezosa (``_partner_model()``) para
+        evitar el ciclo de importación; aquí el registro ya está poblado.
+        ``apps.get_model`` es una **llamada**, no un ``import`` — el gate de
+        no-lazy-imports da exit 0 (misma resolución que la excepción #4 de
+        ``no-lazy-imports.md``).
+        """
+        apply_inherits(
+            apps.get_model('base', 'ResUsers'),
+            apps.get_model('base', 'ResPartner'),
+            'partner',
+        )

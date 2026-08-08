@@ -1,5 +1,5 @@
 """Contrato de ``base_geolocalize`` — ``GeoProvider`` / ``Geocoder`` /
-``AddressGeolocation``.
+``PartnerGeolocation``.
 
 Portación fiel del addon ``base_geolocalize`` de Odoo (18/19, "Partners
 Geolocation"). Cada test verifica un comportamiento del original:
@@ -12,7 +12,7 @@ Geolocation"). Cada test verifica un comportamiento del original:
 - ``Geocoder.geo_find`` — dispatch a ``_call_<tech_name>`` (Odoo 19:60-80);
   ``_call_openstreetmap`` parsea ``(lat, lng)`` de Nominatim (Odoo 19:82-103).
   Sin red real: ``_http_get_json`` se mockea.
-- ``AddressGeolocation`` — RELATED OneToOne sobre ``users.Address``; reset de
+- ``PartnerGeolocation`` — RELATED OneToOne sobre ``base.ResPartner``; reset de
   lat/lng al cambiar la dirección (Odoo ``ResPartner.write``, 19:12-21);
   ``geo_localize()`` persiste el resultado (Odoo 19:33-65, geocoder mockeado).
 - Migración de seed — crea ambos proveedores (Odoo ``data/data.xml``).
@@ -21,19 +21,14 @@ from unittest.mock import patch
 
 import pytest
 
-from django.contrib.auth import get_user_model
-
-from addons.base.models import SystemParameter, _PARAM_CACHE
+from addons.base.models import ResPartner, SystemParameter, _PARAM_CACHE
 from addons.base_geolocalize.models import (
-    AddressGeolocation,
     Geocoder,
     GeoProvider,
     GeoProviderNotImplemented,
+    PartnerGeolocation,
 )
 from addons.base_geolocalize.models.base_geocoder import GEO_PROVIDER_PARAM
-from addons.users.models import Address
-
-User = get_user_model()
 
 pytestmark = pytest.mark.django_db
 
@@ -48,16 +43,16 @@ def _clear_param_cache():
     _PARAM_CACHE.clear()
 
 
-def _make_address(**overrides):
-    user = User.objects.create_user(
-        email=overrides.pop('email', 'geo@example.com'), password='x')
+def _make_partner(**overrides):
+    # En la referencia el addon extiende ``res.partner`` — la dirección ES el
+    # partner (odoo19c: base_geolocalize/models/res_partner.py:8). ``state`` y
+    # ``country`` son Many2one; se omiten cuando el test no los necesita.
     defaults = dict(
-        user=user, recipient_name='Nestor', street='Av. Insurgentes Sur 1234',
-        city='CDMX', state='CDMX', zip_code='03100', country='MX',
-        phone='5512345678',
+        name='Nestor', street='Av. Insurgentes Sur 1234', city='CDMX',
+        zip='03100', phone='5512345678',
     )
     defaults.update(overrides)
-    return Address.objects.create(**defaults)
+    return ResPartner.objects.create(**defaults)
 
 
 class TestGeoProvider:
@@ -168,40 +163,40 @@ class TestGeoFind:
             Geocoder.geo_find('Zocalo, CDMX, MX')
 
 
-class TestAddressGeolocation:
-    def test_one_to_one_on_address(self):
-        addr = _make_address()
-        geo = AddressGeolocation.objects.create(address=addr, latitude=19.4,
+class TestPartnerGeolocation:
+    def test_one_to_one_on_partner(self):
+        partner = _make_partner()
+        geo = PartnerGeolocation.objects.create(partner=partner, latitude=19.4,
                                                  longitude=-99.1)
-        addr.refresh_from_db()
-        assert addr.geolocation == geo
-        assert addr.geolocation.latitude == 19.4
+        partner.refresh_from_db()
+        assert partner.geolocation == geo
+        assert partner.geolocation.latitude == 19.4
 
     def test_defaults_zero(self):
-        addr = _make_address()
-        geo = AddressGeolocation.objects.create(address=addr)
+        partner = _make_partner()
+        geo = PartnerGeolocation.objects.create(partner=partner)
         assert geo.latitude == 0.0
         assert geo.longitude == 0.0
         assert geo.date_localization is None
 
     def test_str(self):
-        addr = _make_address()
-        geo = AddressGeolocation.objects.create(address=addr, latitude=1.0,
+        partner = _make_partner()
+        geo = PartnerGeolocation.objects.create(partner=partner, latitude=1.0,
                                                  longitude=2.0)
-        assert str(geo) == f'{addr.pk}: (1.0, 2.0)'
+        assert str(geo) == f'{partner.pk}: (1.0, 2.0)'
 
     def test_write_reset_clears_lat_lng_on_address_field_change(self):
-        addr = _make_address()
-        geo = AddressGeolocation.objects.create(
-            address=addr, latitude=19.4, longitude=-99.1)
+        partner = _make_partner()
+        geo = PartnerGeolocation.objects.create(
+            partner=partner, latitude=19.4, longitude=-99.1)
         geo.apply_write_reset(['street'])
         assert geo.latitude == 0.0
         assert geo.longitude == 0.0
 
     def test_write_reset_skipped_when_geolocation_fields_also_changed(self):
-        addr = _make_address()
-        geo = AddressGeolocation.objects.create(
-            address=addr, latitude=19.4, longitude=-99.1)
+        partner = _make_partner()
+        geo = PartnerGeolocation.objects.create(
+            partner=partner, latitude=19.4, longitude=-99.1)
         # Si el caller actualiza street Y latitude/longitude en el mismo
         # write, Odoo NO resetea (19:15-16: not all('partner_%s' % f in vals
         # for f in ['latitude', 'longitude'])).
@@ -210,16 +205,16 @@ class TestAddressGeolocation:
         assert geo.longitude == -99.1
 
     def test_write_reset_ignored_for_unrelated_fields(self):
-        addr = _make_address()
-        geo = AddressGeolocation.objects.create(
-            address=addr, latitude=19.4, longitude=-99.1)
+        partner = _make_partner()
+        geo = PartnerGeolocation.objects.create(
+            partner=partner, latitude=19.4, longitude=-99.1)
         geo.apply_write_reset(['is_default', 'phone'])
         assert geo.latitude == 19.4
         assert geo.longitude == -99.1
 
     def test_geo_localize_persists_result_and_date(self):
-        addr = _make_address()
-        geo = AddressGeolocation.objects.create(address=addr)
+        partner = _make_partner()
+        geo = PartnerGeolocation.objects.create(partner=partner)
         with patch(
             'addons.base_geolocalize.models.res_partner.Geocoder.geo_find',
             return_value=(19.4326, -99.1332),
@@ -232,8 +227,8 @@ class TestAddressGeolocation:
         assert geo.date_localization is not None
 
     def test_geo_localize_returns_false_without_match(self):
-        addr = _make_address()
-        geo = AddressGeolocation.objects.create(address=addr)
+        partner = _make_partner()
+        geo = PartnerGeolocation.objects.create(partner=partner)
         with patch(
             'addons.base_geolocalize.models.res_partner.Geocoder.geo_find',
             return_value=None,
@@ -244,8 +239,11 @@ class TestAddressGeolocation:
         assert geo.latitude == 0.0
         assert geo.date_localization is None
 
-    def test_cascade_delete_with_address(self):
-        addr = _make_address()
-        AddressGeolocation.objects.create(address=addr)
-        addr.hard_delete()
-        assert AddressGeolocation.objects.count() == 0
+    def test_cascade_delete_with_partner(self):
+        # ``res.partner`` no tiene borrado lógico (se archiva con ``active``);
+        # ``delete()`` borra la fila y el CASCADE del OneToOne arrastra la
+        # geolocalización.
+        partner = _make_partner()
+        PartnerGeolocation.objects.create(partner=partner)
+        partner.delete()
+        assert PartnerGeolocation.objects.count() == 0

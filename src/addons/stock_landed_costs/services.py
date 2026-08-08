@@ -46,7 +46,12 @@ def compute(cost, moves):
     former_by_move = {}
     for move in moves:
         qty = move.quantity or move.product_uom_qty
-        weight = qty * Decimal(getattr(move.product, 'weight_kg', 0) or 0)
+        # H-API — el campo de peso de la variante es ``weight`` (Float,
+        # odoo19c: ``product_product.py:154-156``, sobreescribe al de la
+        # ficha). ``weight_kg`` no existe en ``product.ProductProduct``;
+        # con ``getattr(..., 0)`` el ``SPLIT_BY_WEIGHT`` degradaba en
+        # silencio a "todo pesa 0" en vez de fallar.
+        weight = qty * Decimal(getattr(move.product, 'weight', 0) or 0)
         volume = qty * Decimal(getattr(move.product, 'volume', 0) or 0)
         former = _former_cost(move)
         former_by_move[move.id] = (qty, weight, volume, former)

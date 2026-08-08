@@ -15,7 +15,7 @@ from addons.sale_stock.models import SaleOrderDelivery
 
 @receiver(order_confirmed, sender=SaleOrder,
           dispatch_uid='sale_stock.abrir_seguimiento_entrega')
-def abrir_seguimiento_de_entrega(sender, order, **kwargs):
+def open_delivery_tracking(sender, order, **kwargs):
     """Abre el seguimiento de entrega de la orden recién confirmada."""
     SaleOrderDelivery.objects.get_or_create(
         order=order,

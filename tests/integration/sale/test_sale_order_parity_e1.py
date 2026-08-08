@@ -22,13 +22,15 @@ se estimó al abrir la rebanada):
 from decimal import Decimal
 
 import pytest
+from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 from addons.delivery.models import ShippingMethod
 from addons.sale.models import SaleOrder
-from addons.users.models import IdentityUser
 
 pytestmark = pytest.mark.django_db
+
+User = get_user_model()
 
 
 @pytest.fixture
@@ -97,8 +99,8 @@ class TestCancellationParity:
         assert draft.admin_cancelled_by_id is None
 
     def test_cancelacion_administrativa_registra_quien(self, draft):
-        admin = IdentityUser.objects.create_user(
-            email='admin.e1@example.com', password='x')
+        admin = User.objects.create_user(
+            login='admin.e1@practicayoruba.mx', password='x')
         draft.state = SaleOrder.STATE_CANCEL
         draft.admin_cancelled_by = admin
         draft.cancellation_reason = 'Sin inventario'
@@ -113,8 +115,8 @@ class TestCancellationParity:
 
     def test_borrar_al_admin_conserva_la_orden_cancelada(self, draft):
         """El historial de la venta sobrevive a la baja de la cuenta."""
-        admin = IdentityUser.objects.create_user(
-            email='baja.e1@example.com', password='x')
+        admin = User.objects.create_user(
+            login='baja.e1@practicayoruba.mx', password='x')
         draft.state = SaleOrder.STATE_CANCEL
         draft.admin_cancelled_by = admin
         draft.cancellation_reason = 'Fraude'

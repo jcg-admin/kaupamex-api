@@ -39,3 +39,19 @@ draft_voucher_requested = django.dispatch.Signal()
 #   :param order: la orden ya confirmada
 #   :param subtotal: base de la venta (para calcular el consumo)
 order_confirmed = django.dispatch.Signal()
+
+
+# Emitida por ``cancel_order``, dentro de la transacción y después de cancelar
+# el eje comercial. La usa ``payments`` para reembolsar: el núcleo **no puede**
+# importar ``payments`` —``Payment`` tiene FK a ``SaleOrder``, así que la
+# dependencia va al revés— y con la señal no necesita nombrarlo.
+#
+# Un receptor que levante aborta la cancelación entera: reembolsar es parte de
+# cancelar, no un efecto posterior. Cancelar sin devolver el dinero dejaría al
+# comprador pagado y sin orden.
+#
+#   :param sender: la clase ``SaleOrder``
+#   :param order: la orden ya cancelada
+#   :param reason: motivo de la cancelación
+#   :param cancelled_by: usuario que cancela (puede ser None)
+order_cancelled = django.dispatch.Signal()

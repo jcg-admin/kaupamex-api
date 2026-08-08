@@ -38,26 +38,41 @@ class TestSchemaEndpoint:
         r = api_client.get('/api/schema/?format=json')
         assert r.json()['info']['version'] == '1.0.0'
 
-    def test_schema_titulo_correcto(self, api_client, db):
+    def test_schema_titulo_nombra_la_plataforma(self, api_client, db):
+        # El título publicado nombra al operador L0 (Kaupamex), NO al L1 de
+        # ejemplo: la API es una sola y sirve a todas las Company. Decisión de
+        # producto del ejecutor (2026-08-05); antes decía 'PracticaYoruba API'
+        # y este test guardaba ese valor — el guard sigue, el valor cambió.
         r = api_client.get('/api/schema/?format=json')
-        assert 'PracticaYoruba' in r.json()['info']['title']
+        titulo = r.json()['info']['title']
+        assert 'Kaupamex' in titulo
+        assert 'PracticaYoruba' not in titulo
 
-    def test_schema_contiene_endpoints_auth(self, api_client, db):
+    def test_schema_has_signup_endpoint(self, api_client, db):
+        # El alta vive en ``authz_signup`` (``controllers/urls.py:9``),
+        # montado bajo ``/api/v2/authz/`` (``src/config/urls.py:132``).
+        r = api_client.get('/api/schema/?format=json')
+        assert '/api/v2/authz/signup/' in r.json()['paths']
+
+    def test_schema_has_session_endpoints(self, api_client, db):
+        # La sesión (login/logout) es de la familia ``web`` de la referencia
+        # (``odoo19c: addons/web/controllers/session.py:31,88``), portada en
+        # este árbol — ver H-API-279. No es forma propia: es un puerto con
+        # contrato ya decidido.
         r = api_client.get('/api/schema/?format=json')
         paths = r.json()['paths']
-        assert '/api/v2/auth/login/' in paths
-        assert '/api/v2/auth/register/' in paths
-        assert '/api/v2/auth/logout/' in paths
+        assert '/api/v2/web/session/authenticate/' in paths
+        assert '/api/v2/web/session/logout/' in paths
 
     def test_schema_contiene_endpoint_config(self, api_client, db):
         r = api_client.get('/api/schema/?format=json')
         paths = r.json()['paths']
         assert '/api/v2/config/settings/' in paths
 
-    def test_schema_register_tiene_request_body(self, api_client, db):
+    def test_schema_signup_has_request_body(self, api_client, db):
         r = api_client.get('/api/schema/?format=json')
-        register = r.json()['paths']['/api/v2/auth/register/']['post']
-        assert 'requestBody' in register
+        alta = r.json()['paths']['/api/v2/authz/signup/']['post']
+        assert 'requestBody' in alta
 
     def test_schema_config_settings_patch_tiene_request(self, api_client, db):
         r = api_client.get('/api/schema/?format=json')
@@ -93,45 +108,95 @@ class TestRedocUI:
 # Sprint 4 — T-001..T-008 (pytest.mark.schema)
 # =============================================================================
 
-class TestSchemaAuthExtended:
+class TestSchemaSelfAccount:
     """
-    T-001: Endpoints de auth Sprint 2/3 presentes en schema.
+    Superficie de cuenta propia — ≙ ``/my/*`` de ``odoo19c: portal``.
 
-    H-SCHEMA-01: AddressViewSet usa DefaultRouter con basename='address'.
-    El router genera /api/v2/auth/addresses/ (plural), no /api/v2/auth/address/.
+    El prefijo ``/api/v2/auth/`` que estos tests esperaban no existe: la
+    cuenta propia vive en ``portal`` (``controllers/urls.py``, montado en
+    ``src/config/urls.py:135``) y el alta/reset en ``authz_signup``
+    (``src/config/urls.py:132``). Triage en
+    :ref:`analisis-triage-rutas-schema-v2`.
     """
     pytestmark = pytest.mark.schema
 
     def _paths(self, api_client, db):
         return api_client.get('/api/schema/?format=json').json()['paths']
 
-    def test_profile_en_schema(self, api_client, db):
-        assert '/api/v2/auth/profile/' in self._paths(api_client, db)
+    def test_account_in_schema(self, api_client, db):
+        # ``portal/controllers/urls.py:16`` — ≙ /my/account
+        assert '/api/v2/portal/account/' in self._paths(api_client, db)
 
-    def test_addresses_en_schema(self, api_client, db):
-        # H-SCHEMA-01: plural 'addresses' — generado por DefaultRouter
-        assert '/api/v2/auth/addresses/' in self._paths(api_client, db)
+    def test_addresses_in_schema(self, api_client, db):
+        # ``portal/controllers/urls.py:17`` — ≙ /my/addresses
+        assert '/api/v2/portal/addresses/' in self._paths(api_client, db)
 
-    def test_address_detail_en_schema(self, api_client, db):
-        assert '/api/v2/auth/addresses/{id}/' in self._paths(api_client, db)
+    def test_archive_address_in_schema(self, api_client, db):
+        # ``portal/controllers/urls.py:18`` — el verbo es **archivar**, no
+        # borrar: la referencia desactiva con ``ResPartner.active``
+        # (H-API-252). Por eso la ruta lleva el sufijo ``/archive/``.
+        assert ('/api/v2/portal/addresses/{id}/archive/'
+                in self._paths(api_client, db))
 
-    def test_change_password_en_schema(self, api_client, db):
-        assert '/api/v2/auth/change-password/' in self._paths(api_client, db)
+    def test_change_password_in_schema(self, api_client, db):
+        # ``portal/controllers/urls.py:21`` — ≙ /my/security
+        assert '/api/v2/portal/security/password/' in self._paths(api_client, db)
 
-    def test_logout_all_en_schema(self, api_client, db):
-        assert '/api/v2/auth/logout-all/' in self._paths(api_client, db)
+    def test_request_reset_in_schema(self, api_client, db):
+        # ``authz_signup/controllers/urls.py:11``
+        assert '/api/v2/authz/request-reset/' in self._paths(api_client, db)
 
-    def test_verify_email_en_schema(self, api_client, db):
-        assert '/api/v2/auth/verify-email/' in self._paths(api_client, db)
+    def test_deactivate_account_in_schema(self, api_client, db):
+        # ``portal/controllers/urls.py:22`` — ≙ /my/deactivate_account
+        assert '/api/v2/portal/deactivations/' in self._paths(api_client, db)
 
-    def test_resend_verification_en_schema(self, api_client, db):
-        assert '/api/v2/auth/resend-verification/' in self._paths(api_client, db)
 
-    def test_password_reset_en_schema(self, api_client, db):
-        assert '/api/v2/auth/password-reset/' in self._paths(api_client, db)
+class TestSchemaSession:
+    """
+    Superficie de sesión — familia ``web``, ya portada.
 
-    def test_me_deactivate_en_schema(self, api_client, db):
-        assert '/api/v2/auth/me/deactivate/' in self._paths(api_client, db)
+    Las cuatro rutas adaptan ``odoo19c: addons/web/controllers/session.py``.
+    El contrato de comportamiento se prueba en ``tests/integration/web/``;
+    aquí sólo se verifica que estén **publicadas** en el OpenAPI.
+    """
+    pytestmark = pytest.mark.schema
+
+    def _paths(self, api_client, db):
+        return api_client.get('/api/schema/?format=json').json()['paths']
+
+    def test_session_info_in_schema(self, api_client, db):
+        assert '/api/v2/web/session/' in self._paths(api_client, db)
+
+    def test_destroy_session_in_schema(self, api_client, db):
+        assert '/api/v2/web/session/destroy/' in self._paths(api_client, db)
+
+
+class TestSchemaEmailVerification:
+    """
+    Verificación de correo — montada en ``authz_signup`` (``api@4b83a9b``).
+
+    Estuvo PENDIENTE mientras el módulo de tokens de correo no existía
+    (H-API-252 midió ``send_verification_email`` → 0 hits). Ya no: el flujo
+    reusa el token firmado del propio ``authz_signup`` con un tercer
+    ``signup_type``. Su **existencia** es forma propia declarada — la
+    referencia no verifica el correo porque su alta llega por invitación
+    (H-API-281); el **mecanismo** sí se hereda entero.
+    """
+    pytestmark = pytest.mark.schema
+
+    def _paths(self, api_client, db):
+        return api_client.get('/api/schema/?format=json').json()['paths']
+
+    def test_verify_email_in_schema(self, api_client, db):
+        """Una ruta, dos operaciones — no hay ``resend-verification/`` aparte.
+
+        El reenvío y la verificación viven en el mismo endpoint y ramifican
+        por el payload (``{token}`` verifica, ``{login}`` reenvía), siguiendo
+        el patrón de la referencia: ``odoo19c:
+        addons/auth_signup/controllers/main.py`` resuelve alta externa y
+        set-password en la misma ``@route``, ramificando por ``token``.
+        """
+        assert '/api/v2/authz/verify-email/' in self._paths(api_client, db)
 
 
 class TestSchemaCartWishlist:
@@ -268,8 +333,10 @@ class TestSchemaReviewsQuestions:
     def test_product_review_helpful_en_schema(self, api_client, db):
         assert '/api/v2/products/{product_id}/reviews/{id}/helpful-votes/' in self._paths(api_client, db)
 
-    def test_product_questions_en_schema(self, api_client, db):
-        assert '/api/v2/products/{product_id}/questions/' in self._paths(api_client, db)
+    # Q&A de producto — RETIRADA: 0 addons con ``question`` en el nombre y 0
+    # ``@route`` con ``question`` en el path en todo ``odoo19c:``
+    # (``odoo-tools@622ddc2a``). El canal no está en el producto de referencia
+    # y su decisión sigue abierta como trabajo aparte. Ver H-API-282.
 
     def test_search_history_en_schema(self, api_client, db):
         assert '/api/v2/search/history/' in self._paths(api_client, db)
@@ -283,8 +350,8 @@ class TestSchemaInventoryLogisticsVoucher:
     T-006: Endpoints de inventario, logística y vouchers.
 
     Inventory montado en /api/v2/admin/inventory/ (addons.inventory.urls).
-    Logistics montado en /api/v2/logistics/ (addons.delivery.urls).
-    Voucher router montado en /api/v2/admin/vouchers/ (addons.loyalty.urls).
+    Logistics montado en /api/v2/logistics/ (addons.delivery.controllers.urls).
+    Voucher router montado en /api/v2/admin/vouchers/ (addons.loyalty.controllers.admin_urls).
     """
     pytestmark = pytest.mark.schema
 
@@ -335,11 +402,11 @@ class TestSchemaSupportReturnsNewsletter:
     def test_support_ticket_close_en_schema(self, api_client, db):
         assert '/api/v2/support/tickets/{ticket_id}/status/' in self._paths(api_client, db)
 
-    def test_returns_en_schema(self, api_client, db):
-        assert '/api/v2/return-requests/' in self._paths(api_client, db)
-
-    def test_returns_detail_en_schema(self, api_client, db):
-        assert '/api/v2/return-requests/{return_id}/' in self._paths(api_client, db)
+    # Devoluciones — RETIRADA: la única ``@route`` con ``return`` en el path de
+    # ``odoo19c:`` sirve el PDF de la etiqueta
+    # (``addons/sale_stock/controllers/portal.py:40``); la devolución en sí es
+    # un wizard de backoffice, ``stock.return.picking``
+    # (``addons/stock/wizard/stock_picking_return.py:87``). Ver H-API-282.
 
     def test_contact_messages_en_schema(self, api_client, db):
         # H-SCHEMA-04: path es /messages/ dentro de /api/v2/contact/
@@ -360,22 +427,24 @@ class TestSchemaAdminEndpoints:
     """
     T-008: Endpoints admin representativos de cada dominio.
 
-    Users admin usa DefaultRouter (AdminUserViewSet) — genera
-    /api/v2/admin/users/ y /api/v2/admin/users/{id}/.
-    Las custom actions (suspend, reactivate, make-admin) generan
-    /api/v2/admin/users/{id}/suspend/ etc. si el ViewSet las declara.
+    RETIRADAS (H-API-279): ``admin/users/`` y ``admin/users/{id}/`` describían
+    un CRUD REST de usuarios que la referencia **no expone** — el único
+    ``@http.route`` bajo ``odoo19c: odoo/addons/base/`` es ``ir_http.py``, el
+    despachador. La gestión de ``res.users`` pasa por el mecanismo genérico
+    sobre el modelo, no por una ruta dedicada; crearla sería invención, no
+    adaptación. Su equivalente adaptado ya existe por el lado de autorización
+    (``/api/v2/admin/roles/``, ``/api/v2/admin/permissions/``).
+
+    También retiradas ``admin/reports/{sales,dashboard}`` y
+    ``admin/dashboard/``: el addon ``reports`` se eliminó (``api@115d219``) y
+    sus objetos SQL de agregación no tienen consumidor (ver H-DB-01).
+
     Orders admin usa <str:order_number> — schema genera {order_number}.
     """
     pytestmark = pytest.mark.schema
 
     def _paths(self, api_client, db):
         return api_client.get('/api/schema/?format=json').json()['paths']
-
-    def test_admin_users_en_schema(self, api_client, db):
-        assert '/api/v2/admin/users/' in self._paths(api_client, db)
-
-    def test_admin_user_detail_en_schema(self, api_client, db):
-        assert '/api/v2/admin/users/{id}/' in self._paths(api_client, db)
 
     def test_admin_orders_en_schema(self, api_client, db):
         assert '/api/v2/admin/orders/' in self._paths(api_client, db)
@@ -390,22 +459,9 @@ class TestSchemaAdminEndpoints:
         # v2: approve/reject → PATCH /status/ (admin_urls_v2.py)
         assert '/api/v2/admin/reviews/{id}/status/' in self._paths(api_client, db)
 
-    def test_admin_reports_sales_en_schema(self, api_client, db):
-        assert '/api/v2/admin/reports/sales/' in self._paths(api_client, db)
-
-    def test_admin_reports_dashboard_en_schema(self, api_client, db):
-        assert '/api/v2/admin/reports/dashboard/' in self._paths(api_client, db)
-
     def test_admin_settings_en_schema(self, api_client, db):
         # settings mounted at /api/v2/config/ (settings_app/urls.py)
         assert '/api/v2/config/settings/' in self._paths(api_client, db)
 
-    def test_admin_questions_en_schema(self, api_client, db):
-        assert '/api/v2/admin/questions/' in self._paths(api_client, db)
-
-    def test_admin_question_approve_en_schema(self, api_client, db):
-        # v2: approve/reject → PATCH /status/ (questions/admin_urls_v2.py)
-        assert '/api/v2/admin/questions/{question_id}/status/' in self._paths(api_client, db)
-
-    def test_admin_dashboard_en_schema(self, api_client, db):
-        assert '/api/v2/admin/dashboard/' in self._paths(api_client, db)
+    # Admin de Q&A — RETIRADA junto con la superficie pública (ver arriba y
+    # H-API-282): no hay dominio que administrar.

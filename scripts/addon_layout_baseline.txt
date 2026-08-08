@@ -1,0 +1,51 @@
+# Deuda congelada de H-API-238 — capas estructurales planas ya existentes
+# cuando se cableó el gate (scripts/check_addon_layout.py). El gate bloquea
+# planos NUEVOS; estas se migran una por una con el mapa de H-API-238 y salen
+# de aquí al hacerlo.
+#
+# platform/ pagado (2026-08-03): el addon se disolvió — Company en base,
+# billing en sale_subscription (controllers/ security/ data/), contexto en
+# orm.environments, middleware en base.models.ir_http. Ver H-API-261/262.
+
+account/authz_catalog.py
+authz/views.py
+authz/serializers.py
+authz/urls.py
+authz/admin_views.py
+authz/admin_serializers.py
+authz/admin_urls.py
+authz/authz_catalog.py
+authz/models.py
+authz_audit/models.py
+authz_password_policy/data.py
+authz_reauth/models.py
+authz_totp/views.py
+authz_totp/serializers.py
+authz_totp/urls.py
+authz_totp/data.py
+base/authz_catalog.py
+base_geolocalize/data.py
+bus/views.py
+bus/urls.py
+loyalty/views.py
+loyalty/serializers.py
+loyalty/urls.py
+loyalty/schema.py
+loyalty/authz_catalog.py
+observability/views.py
+observability/admin_urls.py
+observability/authz_catalog.py
+payment/authz_catalog.py
+product/authz_catalog.py
+rating/authz_catalog.py
+sale/views.py
+sale/serializers.py
+sale/urls.py
+sale/authz_catalog.py
+sale/signals.py
+stock/authz_catalog.py
+website/views.py
+website/serializers.py
+website/schema.py
+website/admin_urls.py
+website/authz_catalog.py

@@ -15,7 +15,7 @@ Contrato:
 """
 import pytest
 from decimal import Decimal
-from addons.base.models import SiteSettings
+from addons.base.models.ir_config_parameter import SystemParameter
 
 pytestmark = pytest.mark.api
 
@@ -79,13 +79,19 @@ class TestSiteSettingsEndpointPatch:
         assert res.status_code == 403
 
     def test_update_persists_to_database(self, admin_client, db):
+        """El ajuste aterriza en su destino, no en una fila monolítica.
+
+        Antes leía ``SiteSettings.get_current()``: esa tabla se retiró
+        (H-API-265) porque mezclaba diez dominios en un esquema. El valor
+        vive ahora en el parámetro de su dominio dueño, que es lo que la
+        referencia hace con ``config_parameter``.
+        """
         admin_client.patch(
             '/api/v2/config/settings/',
             {'payment_timeout_minutes': 60},
             format='json',
         )
-        s = SiteSettings.get_current()
-        assert s.payment_timeout_minutes == 60
+        assert SystemParameter.get_param('payment.timeout_minutes') == '60' 
 
     def test_invalid_iva_rate_returns_400(self, admin_client):
         """Negative test: iva_rate out of valid bounds should return 400."""

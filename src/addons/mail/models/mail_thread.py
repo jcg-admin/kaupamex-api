@@ -208,9 +208,11 @@ class MailThread(models.Model):
         datetime/monetary/boolean), ``old`` y ``new``. Publica UN
         ``mail.message`` de tipo notification en el hilo y le adjunta un
         ``mail.tracking.value`` por cada cambio. Devuelve el mensaje (o ``None``
-        si no hubo cambios). Django no tiene el ``@api.depends``/``write`` que
-        dispara esto en Odoo; el llamador invoca este metodo al detectar el
-        cambio (mismo resultado, mecanismo adaptado).
+        si no hubo cambios). Lo que falta no es el decorador —``@api.depends``
+        existe (``orm/decorators.py:23``)— sino el **motor** que lo lee: las 26
+        anotaciones del arbol son inertes, 0 lectores (ver ``h-api-363``). Por
+        eso el llamador invoca este metodo al detectar el cambio: mismo
+        resultado, disparador explicito en vez de automatico.
         """
         changes = list(changes or [])
         if not changes:

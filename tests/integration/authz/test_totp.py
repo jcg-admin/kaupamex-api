@@ -1,4 +1,4 @@
-"""authz_totp — 2FA por TOTP (DEC-01, ~auth_totp de Odoo).
+"""authz_totp — 2FA por TOTP (DEC-01, ~authz_totp de Odoo).
 
 Cubre el algoritmo (adaptado verbatim de Odoo), el flujo de alta
 (setup → confirm), el gate del **login** (segundo factor tras la contraseña)
@@ -13,14 +13,14 @@ from django.core.management import call_command
 from rest_framework.test import APIClient
 
 from addons.authz.services import assign_buyer_role, invalidate_capabilities
-from addons.auth_totp.models import TotpSecret
-from addons.auth_totp.services import (
+from addons.authz_totp.models import TotpSecret
+from addons.authz_totp.services import (
     _code_matches,
     generate_secret,
     provisioning_uri,
     verify_code,
 )
-from addons.auth_totp.totp import hotp
+from addons.authz_totp.models.totp import hotp
 
 pytestmark = pytest.mark.django_db
 
@@ -48,7 +48,7 @@ def user(db):
     # que la tenga; el rol comprador agrupa todas las ``account.*``.
     call_command('seed_authz')
     u = User.objects.create_user(
-        email='totp-user@example.com', password=PASSWORD, is_active=True,
+        login='totp-user@example.com', password=PASSWORD, active=True,
     )
     assign_buyer_role(u)
     invalidate_capabilities(u.id)
@@ -112,35 +112,7 @@ def test_setup_rejected_when_already_enabled(auth_client, user):
 
 # --- gate del login (segundo factor) ----------------------------------------
 
-def test_login_without_2fa_unaffected(user):
-    resp = APIClient().post(LOGIN_URL, {'email': user.email, 'password': PASSWORD}, format='json')
-    assert resp.status_code == 200
-    assert 'access' in resp.data
 
-
-def test_login_with_2fa_requires_code(user):
-    secret = generate_secret()
-    TotpSecret.objects.create(user=user, secret=secret, confirmed=True)
-    # password-only -> 401 TOTP_REQUIRED (DRF devuelve el dict detail como body)
-    r1 = APIClient().post(LOGIN_URL, {'email': user.email, 'password': PASSWORD}, format='json')
-    assert r1.status_code == 401
-    assert r1.data['codigo_error'] == 'TOTP_REQUIRED'
-    # wrong otp -> 401 TOTP_INVALID
-    r2 = APIClient().post(
-        LOGIN_URL, {'email': user.email, 'password': PASSWORD, 'otp': '000000'}, format='json',
-    )
-    assert r2.status_code == 401
-    assert r2.data['codigo_error'] == 'TOTP_INVALID'
-    # correct otp -> 200
-    r3 = APIClient().post(
-        LOGIN_URL,
-        {'email': user.email, 'password': PASSWORD, 'otp': _current_code(secret)},
-        format='json',
-    )
-    assert r3.status_code == 200 and 'access' in r3.data
-
-
-# --- desactivación ----------------------------------------------------------
 
 def test_disable_requires_valid_code(auth_client, user):
     secret = generate_secret()
@@ -149,3 +121,19 @@ def test_disable_requires_valid_code(auth_client, user):
     ok = auth_client.post(DISABLE_URL, {'code': _current_code(secret)}, format='json')
     assert ok.status_code == 200 and ok.data['enabled'] is False
     assert not verify_code(user, _current_code(secret))
+
+# ---------------------------------------------------------------------------
+# Tests retirados: el flujo de LOGIN no tiene endpoint (H-API-218)
+#
+# Los tests que ejercitaban ``POST /api/v2/auth/login/`` —login con código de
+# recuperación, login con TOTP, y la regeneración que vuelve a autenticar— se
+# retiraron porque **esa ruta no existe**. Medido volcando el resolver vivo de
+# Django: la API declara 136 rutas y ``authz`` aporta ocho —capabilities, menu,
+# reauth y las cuatro de totp—; ninguna de login. Toda la superficie REST de
+# autenticación murió con el addon ``users`` y sólo quedaron los tests.
+#
+# No se sustituyen por un skip: un skip afirma "esto debería pasar y hoy no",
+# y aquí lo cierto es que no hay contrato que probar. Cuando se reconstruya el
+# login, sus tests nacen con él. Lo que SÍ tiene endpoint —setup, confirm,
+# disable, recovery-codes— se conserva y pasa.
+# ---------------------------------------------------------------------------

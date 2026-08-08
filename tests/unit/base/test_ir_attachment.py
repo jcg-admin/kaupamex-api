@@ -23,13 +23,13 @@ import pytest
 from django.core.files.base import ContentFile
 
 from addons.base.models import IrAttachment
-from addons.company.models import Company
+from addons.base.models import ResCompany
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
 
 def _make_company():
-    return Company.objects.create(code='acme-attach', name='Acme Attach')
+    return ResCompany.objects.create(code='acme-attach', name='Acme Attach')
 
 
 # --- Importable desde el hogar canónico ------------------------------------
@@ -40,7 +40,7 @@ def test_importable_desde_addons_base_models():
 
 # --- db_table / app_label fieles a Odoo ------------------------------------
 
-def test_db_table_fiel_a_odoo():
+def test_db_table_matches_reference():
     assert IrAttachment._meta.db_table == 'ir_attachment'
     assert IrAttachment._meta.app_label == 'base'
 

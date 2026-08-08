@@ -18,12 +18,12 @@ from addons.account.models import (
     AccountMove,
     AccountMoveLine,
 )
-from addons.company.models import Company
+from addons.base.models import ResCompany
 
 
 @pytest.fixture
 def company(db):
-    return Company.objects.create(code='acme', name='ACME')
+    return ResCompany.objects.create(code='acme', name='ACME')
 
 
 @pytest.fixture
@@ -81,3 +81,121 @@ class TestAccountMoveSequence:
         move.post()
         move.refresh_from_db()
         assert move.name == 'MANUAL-001'
+
+    def test_post_guarda_el_nombre_partido(self, setup):
+        """``name`` y sus dos mitades salen del mismo ``post()``.
+
+        Si se desincronizan, el ``MAX`` del siguiente asiento mide otra cosa.
+        """
+        move = _balanced(*setup)
+        move.post()
+        move.refresh_from_db()
+        assert move.sequence_prefix == f'INV/VEN/{move.date.year}/'
+        assert move.sequence_number == 1
+
+
+@pytest.mark.django_db
+class TestDominioDeLaSerie:
+    """Qué filas cuentan como "la serie" — el hook ``get_last_sequence_domain``.
+
+    Es la pieza que el mixin dejaba decorativa: existía el hook pero ningún
+    lector pasaba por él. Estos tests fijan las tres decisiones del dominio.
+    """
+
+    def test_un_borrador_no_consume_numero(self, setup):
+        """El que no está numerado no entra en el MAX.
+
+        Si entrara, descartar un borrador dejaría un hueco en la serie.
+        """
+        _balanced(*setup)                      # se queda en borrador
+        publicado = _balanced(*setup)
+        publicado.post()
+        publicado.refresh_from_db()
+        assert publicado.name.endswith('/00001')
+
+    def test_dos_borradores_conviven(self, setup):
+        """El UNIQUE es **parcial**: sólo cubre publicados con número.
+
+        Sin el predicado, dos borradores —ambos con ``name='/'``— chocarían
+        entre sí y no se podría tener más de uno abierto por diario.
+        """
+        _balanced(*setup)
+        _balanced(*setup)
+        assert AccountMove.objects.filter(name='/').count() == 2
+
+    def test_un_asiento_cancelado_sigue_contando(self, setup):
+        """Cancelar no libera el número.
+
+        Es la razón por la que el dominio filtra ``name != '/'`` y **no**
+        ``state='posted'``: un cancelado conserva su nombre, así que si se
+        excluyera, el siguiente propondría un número ya usado.
+        """
+        primero = _balanced(*setup)
+        primero.post()
+        segundo = _balanced(*setup)
+        segundo.post()
+        segundo.button_cancel()
+
+        tercero = _balanced(*setup)
+        tercero.post()
+        tercero.refresh_from_db()
+        assert tercero.name.endswith('/00003')
+
+
+@pytest.mark.django_db
+class TestLimiteDeCincoDigitos:
+    """El punto exacto donde el orden de cadena rompía (:ref:`h-api-339`).
+
+    ``_assign_sequence`` buscaba el último con ``order_by('-name').first()``.
+    Con el relleno a cinco dígitos eso ordena bien hasta 99 999, y se rompe al
+    llegar a 100 000: ``'/100000'`` es lexicográficamente **menor** que
+    ``'/99999'``, así que el descendente sigue devolviendo el 99 999 y la
+    secuencia propone 100 000 otra vez. Como ``name`` es único, la numeración
+    de ese diario queda atascada con ``IntegrityError`` para siempre.
+
+    No hace falta crear 100 000 asientos para ejercerlo: bastan las dos filas
+    que lo disparan.
+    """
+
+    @staticmethod
+    def _numerado(company, journal, name, numero):
+        return AccountMove.objects.create(
+            name=name,
+            sequence_prefix=f'INV/{journal.code}/{timezone.now().year}/',
+            sequence_number=numero,
+            move_type='out_invoice', date=timezone.now().date(),
+            journal=journal, company=company, state='posted',
+        )
+
+    def test_el_siguiente_de_100000_es_100001(self, setup):
+        company, journal, receivable, income = setup
+        anio = timezone.now().year
+        self._numerado(company, journal, f'INV/VEN/{anio}/99999', 99999)
+        self._numerado(company, journal, f'INV/VEN/{anio}/100000', 100000)
+        siguiente = _balanced(*setup)
+        # `set_next_sequence` es el sucesor de `_assign_sequence`: viene de
+        # SequenceMixin, toma el lock del prefijo y deja las dos mitades
+        # sincronizadas con el nombre.
+        assert siguiente.set_next_sequence() == f'INV/VEN/{anio}/100001'
+        assert siguiente.sequence_number == 100001
+        assert siguiente.sequence_prefix == f'INV/VEN/{anio}/'
+
+    def test_contraprueba_el_orden_de_cadena_se_equivoca(self, setup):
+        """Sin esto, el test de arriba pasaría con cualquier implementación.
+
+        Mide el instrumento **viejo** sobre las mismas filas y muestra que da
+        el resultado equivocado — que es lo que demuestra que había defecto, no
+        sólo que la versión actual funciona.
+        """
+        company, journal, receivable, income = setup
+        anio = timezone.now().year
+        self._numerado(company, journal, f'INV/VEN/{anio}/99999', 99999)
+        self._numerado(company, journal, f'INV/VEN/{anio}/100000', 100000)
+        por_cadena = (AccountMove.objects
+                      .filter(name__startswith=f'INV/VEN/{anio}/')
+                      .order_by('-name').first())
+        por_entero = (AccountMove.objects
+                      .filter(sequence_prefix=f'INV/VEN/{anio}/')
+                      .order_by('-sequence_number').first())
+        assert por_cadena.sequence_number == 99999    # el viejo se equivoca
+        assert por_entero.sequence_number == 100000   # el nuevo acierta

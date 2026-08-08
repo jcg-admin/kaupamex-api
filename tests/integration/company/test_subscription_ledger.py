@@ -16,25 +16,25 @@ import pytest
 from exceptions import UserError
 from addons.account.models import AccountAccount, AccountJournal, AccountMove
 from addons.authz.models import Module
-from addons.company.models import (
-    Company,
+from addons.sale_subscription.models import (
     CompanyModuleSubscription,
     SubscriptionBillingRun,
     SubscriptionInvoice,
 )
+from addons.base.models import ResCompany
 
 pytestmark = pytest.mark.django_db
 
 
 @pytest.fixture
 def tenant():
-    return Company.objects.create(code='acme', name='Acme')
+    return ResCompany.objects.create(code='acme', name='Acme')
 
 
 @pytest.fixture
 def l0_chart():
     """System company (Kaupamex) con su plan de cuentas L0 mínimo."""
-    system = Company.get_system()
+    system = ResCompany.get_system()
     AccountJournal.objects.create(
         name='Ventas plataforma', code='VEN', type='sale', company=system)
     AccountAccount.objects.create(
@@ -92,6 +92,6 @@ class TestSubscriptionPostToLedger:
 
     def test_requires_l0_chart(self, invoice):
         # Sin diario/cuentas de la system company → falla ruidoso (fail-loud).
-        Company.get_system()  # existe, pero sin chart
+        ResCompany.get_system()  # existe, pero sin chart
         with pytest.raises(UserError):
             invoice.post_to_ledger()

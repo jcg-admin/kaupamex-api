@@ -85,7 +85,6 @@ class PurchaseOrder(TimeStampedModel):
 
     def _generate_purchase_name(self) -> str:
         # Odoo asigna la secuencia 'purchase.order' al confirmar; aquí P-<uuid>.
-        import uuid
         return f'P-{uuid.uuid4().hex[:8].upper()}'
 
     def button_confirm(self):
@@ -97,7 +96,6 @@ class PurchaseOrder(TimeStampedModel):
         if not self.name:
             self.name = self._generate_purchase_name()
         self.state = self.STATE_PURCHASE
-        from django.utils import timezone
         self.date_order = self.date_order or timezone.now()
         self.save(update_fields=['name', 'state', 'date_order', 'updated_at'])
         return self

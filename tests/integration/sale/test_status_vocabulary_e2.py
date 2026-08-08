@@ -68,18 +68,16 @@ class TestLaProyeccionNoDependeDelEspejo:
     def test_derive_sigue_proyectando_los_mismos_valores(self):
         """El cambio es de hogar, no de comportamiento.
 
-        El ``Payment`` se crea con **ambas** FK porque ``Payment.order`` sigue
-        siendo ``NOT NULL`` hacia el espejo (H-API-26: el anclaje de los ejes
-        está invertido — la FK legacy es obligatoria y la canónica opcional).
-        Ese es el bloqueo de esquema que E5 tendrá que levantar; aquí sólo se
-        reproduce el estado real.
+        Post-E5 (retiro del addon espejo ``orders``, ``api@77bd1f0``): la
+        venta **es** la orden — ``make_order`` ya no devuelve un segundo
+        objeto que enlazar. ``Payment.sale_order`` es el único ancla
+        (NOT NULL, PROTECT — ver ``payment/models/payment.py``).
         """
-        espejo = make_order(status=sp.STATUS_PENDING)
-        venta = espejo.sale_order
+        venta = make_order(status=sp.STATUS_PENDING)
         assert sp.derive_order_status(venta) == sp.STATUS_PENDING
 
         Payment.objects.create(
-            order=espejo, sale_order=venta, amount=100,
+            sale_order=venta, amount=100,
             gateway=Payment.GATEWAY_MANUAL, status=Payment.STATUS_APPROVED)
         assert sp.derive_order_status(venta) == sp.STATUS_PAID
 

@@ -54,7 +54,7 @@ def check_mercadopago_client_secret(app_configs, **kwargs):
                 'No active PaymentGateway(MERCADOPAGO) found',
                 hint='Crear PaymentGateway con gateway=MERCADOPAGO, is_active=True, '
                      'y credentials.client_secret antes de deploy.',
-                id='payments.E001',
+                id='payment.E001',
             ))
             return errors
 
@@ -64,13 +64,13 @@ def check_mercadopago_client_secret(app_configs, **kwargs):
                 'PaymentGateway(MERCADOPAGO) is active but credentials.client_secret is missing',
                 hint='Configurar el secret HMAC del webhook MP en gw.credentials.client_secret. '
                      'Sin secret, los webhooks MP se rechazan 401 fail-closed (DEC-BC-01).',
-                id='payments.E001',
+                id='payment.E001',
             ))
     except Exception as exc:
         errors.append(Error(
             f'Cannot verify PaymentGateway(MERCADOPAGO) configuration: {exc!r}',
             hint='Verificar que la tabla settings_payment_gateway existe y es leible.',
-            id='payments.E002',
+            id='payment.E002',
         ))
 
     return errors

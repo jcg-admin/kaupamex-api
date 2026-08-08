@@ -1,0 +1,221 @@
+"""``ir.model`` extendido por ``web`` — API del selector de modelo dinámico.
+
+Adaptación de ``odoo19c: addons/web/models/ir_model.py``
+(``odoo-tools@622ddc2a``, 99 líneas, LGPL-3 — atribución y aviso de licencia
+preservados, DEC-KX-03). Cinco métodos de una clase (``IrModel``):
+``display_name_for``/``_display_name_for`` (nombres visibles de una lista de
+modelos, filtrados por acceso), ``_is_valid_for_model_selector`` (el filtro
+de acceso que usan los dos anteriores), ``get_available_models`` (todos los
+modelos accesibles al usuario actual) y ``_get_definitions`` (metadatos de
+campo por modelo, para el cliente).
+
+**Re-medición independiente 2026-08-07** (H-API-378 — el docstring de
+entrada declaraba 0 de 5 sin escribir código; no se hereda esa conclusión
+sin re-verificarla, ver ``porte-completo-no-parcial.md``). Resultado de hoy:
+**4 de 5 portados**, adaptados a este vocabulario; **1 ausente**
+(``_get_definitions``) con razón medida hoy.
+
+Medición símbolo-por-símbolo (``re.findall(r'^\\s{4}def (\\w+)', ref)``):
+**5** métodos de **1** clase. El nodo ``class IrModel`` en sí **no** es un
+símbolo ausente — es artefacto del medidor (H-API-379): este árbol extiende
+``ir.model`` con funciones de módulo instaladas como ``classmethod``
+(``_install_classmethod``, abajo — NO ``chain_method`` de
+``orm/method_chain.py``, que no reconoce descriptores ``classmethod`` en su
+chequeo de idempotencia; ver el docstring de ``_install_classmethod``), no
+redeclarando la clase.
+
+Qué SÍ se pudo portar, y con qué (Nivel 0a/0c — comandos de hoy)
+==================================================================
+
+La razón original para no portar los cuatro primeros era doble: (a) el único
+consumidor real (el selector de modelo del campo ``Properties`` dinámico) no
+existe en este árbol (DEC-03, componentes React explícitos, sin arch XML), y
+(b) el chequeo de acceso de la referencia (``self.env.user._is_internal()``
++ ``model.has_access('read')``) parecía no tener destino porque la
+autorización efectiva es por capacidad a nivel de vista (DEC-11), no por ACL
+genérica por-modelo.
+
+(a) sigue siendo cierto — medido hoy:
+``grep -rln "model_selector\\|modelSelector\\|ModelSelector" ui/src/`` → **0**;
+``grep -rln "PropertiesField\\|Properties(" src/addons/`` → sólo ``fleet`` y
+``product``, ambos con comodelo **fijo** (``fleet.vehicle`` →
+``fleet.vehicle.model``), sin picker dinámico. Pero (b) **no** era correcto:
+existen, ya construidas, las dos piezas que hacían falta —
+``IrModelAccess.has_global_access`` (``base/models/ir_model.py:848-861``,
+la "mitad portable" que esa misma clase ya declara) y la clausura de grupos
+de ``ResGroups._closure``/``implied_ids``
+(``base/models/res_groups.py:184-217``, ya construida para
+``check_user_disjoint_groups``/``all_user_ids``) — y compone directamente el
+chequeo de acceso real por usuario que faltaba, sin inventar mecanismo
+nuevo (Rule 6 de ``porte-completo-no-parcial.md``: componer piezas
+existentes, no fabricar). ``self.env.user._is_internal()`` tiene destino
+real y exacto: ``ResUsers.is_internal()`` (``base/models/res_users.py:430``),
+que YA resuelve el eje interno/portal/público por ``user_type`` de grupo.
+
+Qué NO se porta, con su medición de hoy
+=========================================
+
+**``_get_definitions``** — sigue sin destino, por una razón distinta a la de
+(a)/(b): este árbol ya tiene un equivalente construido y en uso para la
+misma introspección de campos, ``_fields_get()``
+(``web/controllers/export.py:530-546``, Rule 7: "Django no expone un
+equivalente genérico a ``Model.fields_get()``... se construye"). Duplicar
+``_get_definitions`` aquí describiría el mismo contrato dos veces divergiendo
+con el tiempo. Y su único llamador en la referencia
+(``controllers/model.py::get_model_definitions``,
+``POST /web/model/get_definitions``) no tiene contraparte JS ni siquiera en
+la propia referencia — medido hoy: ``grep -rln "get_definitions"
+ui/src/`` → **0**; el contrato de campos por endpoint ya lo publica este
+árbol de forma estática vía OpenAPI: ``grep -rn "@extend_schema"
+src/ --include=*.py | wc -l`` → **209** puntos (drf-spectacular, skill
+``backend-drf-spectacular``). Portar ``_get_definitions`` produciría una
+tercera fuente de verdad para lo que ``_fields_get`` y ``@extend_schema`` ya
+resuelven.
+
+Adaptación de firma — ``user`` explícito, no ``self.env.user``
+================================================================
+
+La referencia usa ``@api.model`` + ``self.env.user``: el "usuario actual"
+viaja implícito en el ``env``. Este árbol no tiene ``env`` — las cuatro
+funciones aceptan ``user`` explícito, mismo patrón que
+``authz/permissions.py::has_capability(request.user, ...)``. Se instalan como
+``classmethod`` sobre ``IrModel`` (equivalente de ``@api.model`` — no operan
+sobre un registro concreto, igual que ``IrModel.reflect_models``, que ya es
+``classmethod`` en ``base``).
+"""
+from addons.base.models.ir_model import IrModel, IrModelAccess
+from addons.base.models.res_groups import ResGroups
+
+
+def _has_access(user, model_name, access_mode='read'):
+    """¿``user`` tiene ``access_mode`` sobre ``model_name``?
+
+    ≙ ``model.has_access(mode)`` de la referencia, compuesto — no
+    reimplementado — a partir de lo que ya existe: la ACL global de
+    ``IrModelAccess`` (sin grupo, abre el modo a todos) y la clausura de
+    grupos efectivos del usuario (directos + implicados por
+    ``ResGroups.implied_ids``). Sin clausura de expresiones de grupos
+    (``_get_group_definitions``, no portada — ver el docstring de
+    ``IrModelAccess`` en ``base``): un modelo que sólo abre el modo vía esa
+    álgebra no resuelve aquí, misma frontera ya declarada en ``base``.
+    """
+    if IrModelAccess.has_global_access(model_name, access_mode):
+        return True
+    direct_groups = list(
+        ResGroups.objects.filter(pk__in=user.group_ids.values_list('pk', flat=True))
+    )
+    if not direct_groups:
+        return False
+    effective_ids = ResGroups._closure(direct_groups, lambda g: g.implied_ids.all())
+    return IrModelAccess.objects.filter(
+        model_id__model=model_name, active=True, group_id__in=effective_ids,
+        **{f'perm_{access_mode}': True},
+    ).exists()
+
+
+def _is_valid_for_model_selector(cls, user, model_name):
+    """≙ ``_is_valid_for_model_selector`` (``odoo19c:
+    web/models/ir_model.py:36-45``).
+
+    Las cuatro condiciones de la referencia, con destino real cada una:
+    usuario interno (``ResUsers.is_internal()``), el modelo existe
+    (``django_model``), no transitorio, no abstracto, y acceso de lectura
+    (``_has_access``, arriba).
+    """
+    try:
+        model_row = cls.objects.get(model=model_name)
+    except cls.DoesNotExist:
+        return False
+    return (
+        user is not None
+        and user.is_internal()
+        and model_row.django_model is not None
+        and not model_row.transient
+        and not model_row.abstract
+        and _has_access(user, model_name, 'read')
+    )
+
+
+def _display_name_for(cls, model_names):
+    """≙ ``_display_name_for`` (``odoo19c: web/models/ir_model.py:28-34``).
+
+    Una sola consulta para todos los modelos accesibles, igual que la
+    referencia (``search_read`` con la lista completa).
+    """
+    rows = cls.objects.filter(model__in=model_names).values('name', 'model')
+    return [
+        {'display_name': row['name'], 'model': row['model']}
+        for row in rows
+    ]
+
+
+def display_name_for(cls, user, model_names):
+    """≙ ``display_name_for`` (``odoo19c: web/models/ir_model.py:10-26``).
+
+    Nombres visibles de ``model_names`` que ``user`` puede acceder; los no
+    accesibles se devuelven con su propio nombre técnico como
+    ``display_name`` — mismo resultado tanto si el modelo no existe como si
+    el usuario no tiene acceso (la referencia lo documenta así verbatim).
+    """
+    accessible = []
+    not_accessible = []
+    for model_name in model_names:
+        if _is_valid_for_model_selector(cls, user, model_name):
+            accessible.append(model_name)
+        else:
+            not_accessible.append({'display_name': model_name, 'model': model_name})
+    return _display_name_for(cls, accessible) + not_accessible
+
+
+def get_available_models(cls, user):
+    """≙ ``get_available_models`` (``odoo19c: web/models/ir_model.py:47-54``).
+
+    Todos los modelos reflejados en ``ir.model`` que ``user`` puede acceder,
+    con su nombre visible.
+    """
+    accessible = [
+        row.model for row in cls.objects.all()
+        if _is_valid_for_model_selector(cls, user, row.model)
+    ]
+    return _display_name_for(cls, accessible)
+
+
+def _install_classmethod(cls, name, func):
+    """Instala ``func`` como ``classmethod`` de ``cls``, idempotente.
+
+    NO se usa ``chain_method`` (``orm/method_chain.py``) aquí: su chequeo de
+    idempotencia (``_already_in_chain``) compara el atributo YA vinculado a
+    la clase —un ``bound method``, resultado de leer un ``classmethod`` vía
+    ``getattr``— contra el ``classmethod`` recién envuelto en la llamada
+    siguiente. Nunca son el mismo objeto, así que una segunda instalación
+    NO se detecta como reinstalación y ``chain_method`` cae en su rama de
+    encadenamiento — que asume funciones planas, no descriptores
+    ``classmethod``, y deja el atributo roto (verificado hoy: la segunda
+    llamada convertía ``IrModel.display_name_for`` en función plana, ya no
+    invocable como ``IrModel.x(...)``). Como estas cuatro son altas nuevas
+    (0 previa en ``base`` — no hay nada que encadenar, sólo instalar), un
+    guard local basta: si ``cls.__dict__[name]`` ya envuelve exactamente
+    ``func``, no-op — mismo criterio de idempotencia que ``chain_method``
+    aplica a sus propios casos, adaptado al descriptor correcto.
+    """
+    existing = cls.__dict__.get(name)
+    if isinstance(existing, classmethod) and existing.__func__ is func:
+        return
+    setattr(cls, name, classmethod(func))
+
+
+def apply_web_extensions():
+    """Cuelga las cuatro extensiones de ``web`` sobre ``base.IrModel``.
+
+    ``classmethod`` en vez de instancia — ≙ ``@api.model`` de la referencia
+    (no operan sobre un registro concreto). Se invoca desde
+    ``WebConfig.ready()`` (``web/apps.py::_EXTENSIONES``), mismo patrón que
+    ``ir_http.py``/``res_partner.py`` — con ``_install_classmethod`` en vez
+    de ``chain_method`` (ver su docstring).
+    """
+    _install_classmethod(IrModel, 'display_name_for', display_name_for)
+    _install_classmethod(IrModel, '_display_name_for', _display_name_for)
+    _install_classmethod(
+        IrModel, '_is_valid_for_model_selector', _is_valid_for_model_selector,
+    )
+    _install_classmethod(IrModel, 'get_available_models', get_available_models)

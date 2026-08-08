@@ -31,7 +31,180 @@ azúcar de acceso (p. ej. un helper ``env(request)`` que exponga ``user`` +
 ``lang`` + ``company``), se añade aquí como conveniencia sobre las piezas
 nativas, sin reintroducir el motor.
 """
+from contextlib import contextmanager
+from contextvars import ContextVar
+
 from django.apps import apps
 from django.db import connection, connections
 
-__all__ = ['apps', 'connection', 'connections']
+from exceptions import AccessError
+
+# === Los DOS canales del entorno (DEC-AISL-04) =============================
+# Réplica de la separación de la referencia, verificada idéntica en las dos
+# poblaciones:
+#
+# - **Canal del DATO** — qué compañías están activadas: ``env.companies`` /
+#   ``env.company`` (``odoo19c: odoo/orm/environments.py`` — ctx
+#   ``allowed_company_ids`` validado contra lo permitido del usuario, con
+#   ``AccessError`` si trae contenido no autorizado; en 18c el símbolo vive
+#   en ``odoo/api.py`` — citar por símbolo, no por ruta).
+# - **Canal de ELEVACIÓN** — operar por encima de las reglas: ``env.su`` /
+#   ``sudo()`` (``odoo19c: orm/models.py:5954``; ``odoo18c: api.py:674-679``).
+#   NO cambia al usuario; sólo omite las guardas. Y — verbatim del docstring
+#   de la fuente — *"No sanity checks applied in sudo mode!"*: bajo ``su`` la
+#   validación de compañías no aplica (habilita flujos inter-company).
+#
+# Antes de esta separación, la elevación se codificaba como ``company=None``
+# (centinela EN el canal del dato): cualquier ruta sin middleware quedaba
+# indistinguible del operador. Ahora la ausencia de dato DENIEGA y elevar es
+# un acto explícito (``sudo()``).
+#
+# ``ContextVar`` (no globals) para ser seguro bajo async/threads. Los puebla
+# ``CompanyContextMiddleware`` (``addons.base.models.ir_http`` — allá vive el
+# enlace request→entorno, como ``ir.http`` en la referencia).
+
+_current_companies: ContextVar = ContextVar('current_companies', default=())
+_su: ContextVar = ContextVar('su', default=False)
+_uid: ContextVar = ContextVar('uid', default=None)
+
+
+# --- Canal del actor -------------------------------------------------------
+# El TERCER eje del entorno, y el que faltaba. La referencia los declara
+# juntos y separados (``odoo19c: odoo/orm/environments.py:54-56``)::
+#
+#     uid: int
+#     context: frozendict
+#     su: bool
+#
+# QUIÉN actúa (``uid``) no es QUÉ datos ve (``companies``) ni SI está elevado
+# (``su``): tres razones de cambio distintas en un mismo objeto.
+#
+# Su ausencia tuvo un costo medido: ``bus`` no tenía de dónde sacar el
+# ``self.env.user`` que la referencia usa en ``ir_attachment._bus_channel``, y
+# lo compensó ensanchando la firma de **todos** los ``_bus_channel`` con un
+# parámetro ``actor``. Un contrato entero cambiado para cubrir la carencia de
+# un solo caso — lo contrario de una responsabilidad por clase. Ver H-API-277.
+
+def get_current_uid():
+    """PK del usuario que actúa — el ``env.uid`` de la referencia."""
+    return _uid.get()
+
+
+def get_current_user():
+    """Registro del usuario que actúa — el ``env.user`` de la referencia.
+
+    La fuente **no guarda el registro**: guarda el identificador y lo
+    materializa al pedirlo (``odoo19c: orm/environments.py:213`` —
+    ``self(su=True)['res.users'].browse(self.uid)``). Se replica igual para
+    que el entorno no retenga objetos vivos entre peticiones que comparten
+    hilo bajo WSGI.
+    """
+    uid = _uid.get()
+    if uid is None:
+        return None
+    return apps.get_model('base', 'ResUsers').objects.filter(pk=uid).first()
+
+
+def set_current_uid(uid):
+    """Fija el usuario que actúa (o lo limpia con ``None``)."""
+    _uid.set(uid)
+
+
+@contextmanager
+def user_scope(uid):
+    """Actúa como ese usuario en el bloque y **restaura** el valor previo."""
+    token = _uid.set(uid)
+    try:
+        yield
+    finally:
+        _uid.reset(token)
+
+
+# --- Canal de elevación ----------------------------------------------------
+
+def is_su():
+    """¿El contexto actual está elevado? — el ``env.su`` de la referencia."""
+    return _su.get()
+
+
+@contextmanager
+def sudo(flag=True):
+    """Eleva el bloque por encima de las reglas — el ``sudo()`` de la fuente.
+
+    No cambia al usuario; omite el filtrado por compañía (y, cuando
+    ``ir_rule`` se cablee, sus reglas). Mismo warning que la referencia:
+    usarlo puede cruzar los límites de aislamiento entre compañías — por eso
+    es un bloque explícito y acotado, nunca un default.
+    """
+    token = _su.set(bool(flag))
+    try:
+        yield
+    finally:
+        _su.reset(token)
+
+
+# --- Canal del dato --------------------------------------------------------
+
+def get_current_companies():
+    """Tupla de PKs de las compañías ACTIVADAS — el ``env.companies``."""
+    return _current_companies.get()
+
+
+def get_current_company():
+    """PK de la compañía actual (la primera activada) — el ``env.company``.
+
+    ``None`` = sin compañía en contexto. Ya NO significa elevación: la regla
+    multi-company sembrada (``[('company_id','in',company_ids)]``) con cero
+    activadas da ``IN []`` → cero filas (fail-closed como dato).
+    """
+    companies = _current_companies.get()
+    return companies[0] if companies else None
+
+
+def set_current_company(company_id):
+    """Activa una sola compañía (o limpia con ``None``)."""
+    _current_companies.set(() if company_id is None else (company_id,))
+
+
+def activate_companies(requested_ids, permitted_ids):
+    """Valida y activa el conjunto pedido — el cómputo de ``env.companies``.
+
+    Fiel a la fuente: lo pedido (ctx ``allowed_company_ids``) se valida
+    contra lo permitido del usuario y el excedente es ``AccessError``;
+    vacío cae al permitido completo (*"fallback on current user
+    companies"*). Bajo ``su`` no hay sanity check (verbatim del docstring
+    de la referencia).
+    """
+    requested = tuple(requested_ids or ())
+    permitted = tuple(permitted_ids or ())
+    if not requested:
+        _current_companies.set(permitted)
+        return permitted
+    if not is_su() and set(requested) - set(permitted):
+        raise AccessError('Access to unauthorized or invalid companies.')
+    _current_companies.set(requested)
+    return requested
+
+
+@contextmanager
+def company_scope(company_id):
+    """Activa la compañía en el bloque y **restaura** el valor previo."""
+    token = _current_companies.set(
+        () if company_id is None else (company_id,))
+    try:
+        yield
+    finally:
+        _current_companies.reset(token)
+
+
+# El manager ``CompanyScopedManager`` que vivía aquí (transitorio) se retiró
+# en DEC-AISL-04 §4: el aislamiento por fila es DATO — record rules
+# (``addons.base.models.ir_rule``, dominio ``[('company_id','in',
+# company_ids)]``) aplicadas por ``RuleScopedManager`` de ese módulo.
+
+__all__ = [
+    'apps', 'connection', 'connections',
+    'get_current_company', 'get_current_companies', 'set_current_company',
+    'activate_companies', 'company_scope', 'sudo', 'is_su',
+    'get_current_uid', 'get_current_user', 'set_current_uid', 'user_scope',
+]

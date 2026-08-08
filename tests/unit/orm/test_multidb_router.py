@@ -13,7 +13,7 @@ ninguna entidad. La lista de bases de empresa se descubre de
 """
 from django.test import override_settings
 
-from addons.company.context import company_scope, set_current_company
+from orm.environments import company_scope, set_current_company
 from orm.routers import CompanyDatabaseRouter, company_db_alias
 
 # Routing DB-per-company (N>1) sólo activa cuando la base de la empresa está

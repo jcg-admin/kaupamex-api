@@ -74,7 +74,7 @@ class IrAttachment(models.Model):
     res_model = fields.Char(
         max_length=128, blank=True, default='',
         help_text=(
-            'Modelo polimórfico referenciado, p. ej. "catalogue.Product" '
+            'Modelo polimórfico referenciado, p. ej. "product.ProductProduct" '
             '(Odoo res_model). NO es una FK — vínculo plano igual que Odoo.'
         ),
     )
@@ -123,7 +123,7 @@ class IrAttachment(models.Model):
         ),
     )
     company = fields.Many2one(
-        'company.Company', on_delete=models.SET_NULL, null=True, blank=True,
+        'base.ResCompany', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='attachments', help_text='Empresa (Odoo company_id).',
     )
 

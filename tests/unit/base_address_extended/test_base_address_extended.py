@@ -13,18 +13,13 @@ verifica un comportamiento del original:
 """
 import pytest
 
-from django.contrib.auth import get_user_model
-
-from addons.base.models import ResCountry, ResCountryState
+from addons.base.models import ResCountry, ResCountryState, ResPartner
 from addons.base_address_extended.models import (
     AddressStructured,
     CountryAddressPolicy,
     ResCity,
 )
 from addons.base_address_extended.services import street_split
-from addons.users.models import Address
-
-User = get_user_model()
 
 
 class TestStreetSplit:
@@ -39,7 +34,7 @@ class TestStreetSplit:
         ('', {'street_name': '', 'street_number': '', 'street_number2': ''}),
         (None, {'street_name': '', 'street_number': '', 'street_number2': ''}),
     ])
-    def test_street_split_matches_odoo(self, street, expected):
+    def test_street_split_matches_reference(self, street, expected):
         assert street_split(street) == expected
 
     def test_street_number_with_letters(self):
@@ -52,17 +47,17 @@ pytestmark = pytest.mark.django_db
 
 class TestResCity:
     def test_str_without_zipcode(self):
-        mx = ResCountry.objects.create(name='México', code='MX')
+        mx = ResCountry.objects.get_or_create(code='MX', defaults={'name': 'México'})[0]
         c = ResCity.objects.create(name='Guadalajara', country=mx)
         assert str(c) == 'Guadalajara'
 
     def test_str_with_zipcode(self):
-        mx = ResCountry.objects.create(name='México', code='MX')
+        mx = ResCountry.objects.get_or_create(code='MX', defaults={'name': 'México'})[0]
         c = ResCity.objects.create(name='Guadalajara', country=mx, zipcode='44100')
         assert str(c) == 'Guadalajara (44100)'
 
     def test_country_required_state_optional(self):
-        mx = ResCountry.objects.create(name='México', code='MX')
+        mx = ResCountry.objects.get_or_create(code='MX', defaults={'name': 'México'})[0]
         jal = ResCountryState.objects.create(country=mx, name='Jalisco', code='JAL')
         c = ResCity.objects.create(name='Zapopan', country=mx, state=jal)
         assert c.state == jal
@@ -70,7 +65,7 @@ class TestResCity:
         assert c2.state is None
 
     def test_state_set_null_on_delete(self):
-        mx = ResCountry.objects.create(name='México', code='MX')
+        mx = ResCountry.objects.get_or_create(code='MX', defaults={'name': 'México'})[0]
         jal = ResCountryState.objects.create(country=mx, name='Jalisco', code='JAL')
         c = ResCity.objects.create(name='Zapopan', country=mx, state=jal)
         jal.delete()
@@ -79,7 +74,7 @@ class TestResCity:
         assert ResCity.objects.filter(pk=c.pk).exists()
 
     def test_cities_reverse_on_country(self):
-        mx = ResCountry.objects.create(name='México', code='MX')
+        mx = ResCountry.objects.get_or_create(code='MX', defaults={'name': 'México'})[0]
         ResCity.objects.create(name='Guadalajara', country=mx)
         ResCity.objects.create(name='Monterrey', country=mx)
         assert mx.cities.count() == 2
@@ -87,85 +82,90 @@ class TestResCity:
 
 class TestCountryAddressPolicy:
     def test_enforce_cities_defaults_false(self):
-        mx = ResCountry.objects.create(name='México', code='MX')
+        mx = ResCountry.objects.get_or_create(code='MX', defaults={'name': 'México'})[0]
         pol = CountryAddressPolicy.objects.create(country=mx)
         assert pol.enforce_cities is False
 
     def test_one_to_one_country(self):
-        mx = ResCountry.objects.create(name='México', code='MX')
+        mx = ResCountry.objects.get_or_create(code='MX', defaults={'name': 'México'})[0]
         CountryAddressPolicy.objects.create(country=mx, enforce_cities=True)
         assert mx.address_policy.enforce_cities is True
 
     def test_cascade_delete_with_country(self):
-        mx = ResCountry.objects.create(name='México', code='MX')
+        mx = ResCountry.objects.get_or_create(code='MX', defaults={'name': 'México'})[0]
         CountryAddressPolicy.objects.create(country=mx)
         mx.delete()
         assert CountryAddressPolicy.objects.count() == 0
 
 
-def _make_address(street='Av. Insurgentes Sur 1234 - 5B'):
-    user = User.objects.create_user(email='addr@example.com', password='x')
-    return Address.objects.create(
-        user=user, recipient_name='Nestor', street=street, city='CDMX',
-        state='CDMX', zip_code='03100', phone='5512345678',
+def _make_partner(street='Av. Insurgentes Sur 1234 - 5B'):
+    # En la referencia una dirección ES un partner: el addon extiende
+    # ``res.partner``, no una tabla de direcciones aparte
+    # (odoo19c: base_address_extended/models/res_partner.py).
+    return ResPartner.objects.create(
+        name='Nestor', street=street, city='CDMX', zip='03100',
+        phone='5512345678',
     )
 
 
 class TestAddressStructured:
     def test_compute_from_street_splits_parts(self):
-        addr = _make_address()
-        st = AddressStructured(address=addr)
-        st.compute_from_street(addr.street)
+        partner = _make_partner()
+        st = AddressStructured(partner=partner)
+        st.compute_from_street(partner.street)
         assert st.street_name == 'Av. Insurgentes Sur'
         assert st.street_number == '1234'
         assert st.street_number2 == '5B'
 
     def test_inverse_to_street_roundtrip(self):
-        addr = _make_address()
-        st = AddressStructured(address=addr)
-        st.compute_from_street(addr.street)
+        partner = _make_partner()
+        st = AddressStructured(partner=partner)
+        st.compute_from_street(partner.street)
         # Odoo _inverse_street_data: 'name number - number2'.
         assert st.inverse_to_street() == 'Av. Insurgentes Sur 1234 - 5B'
 
     def test_get_street_split_returns_three_keys(self):
-        addr = _make_address('Main 12')
-        st = AddressStructured(address=addr)
-        st.compute_from_street(addr.street)
+        partner = _make_partner('Main 12')
+        st = AddressStructured(partner=partner)
+        st.compute_from_street(partner.street)
         assert st.get_street_split() == {
             'street_name': 'Main', 'street_number': '12', 'street_number2': '',
         }
 
-    def test_one_to_one_reverse_on_address(self):
-        addr = _make_address()
-        AddressStructured.objects.create(address=addr, street_name='Main')
-        addr.refresh_from_db()
-        assert addr.structured.street_name == 'Main'
+    def test_one_to_one_reverse_on_partner(self):
+        partner = _make_partner()
+        AddressStructured.objects.create(partner=partner, street_name='Main')
+        partner.refresh_from_db()
+        assert partner.structured.street_name == 'Main'
 
     def test_country_enforce_cities_false_without_city(self):
-        addr = _make_address()
-        st = AddressStructured.objects.create(address=addr)
+        partner = _make_partner()
+        st = AddressStructured.objects.create(partner=partner)
         assert st.country_enforce_cities is False
 
     def test_country_enforce_cities_reads_policy(self):
-        mx = ResCountry.objects.create(name='México', code='MX')
+        mx = ResCountry.objects.get_or_create(code='MX', defaults={'name': 'México'})[0]
         CountryAddressPolicy.objects.create(country=mx, enforce_cities=True)
         city = ResCity.objects.create(name='CDMX', country=mx)
-        addr = _make_address()
-        st = AddressStructured.objects.create(address=addr, city=city)
+        partner = _make_partner()
+        st = AddressStructured.objects.create(partner=partner, city=city)
         assert st.country_enforce_cities is True
 
-    def test_soft_delete_keeps_structured_row(self):
-        # Address hereda SoftDeleteModel: delete() es soft (marca is_deleted),
-        # NO dispara el CASCADE de la BD → la fila estructurada persiste.
-        addr = _make_address()
-        AddressStructured.objects.create(address=addr)
-        addr.delete()
+    def test_archiving_partner_keeps_structured_row(self):
+        # ``res.partner`` NO se borra lógicamente: se **archiva** con
+        # ``active`` (odoo19c: base/models/res_partner.py, campo ``active``).
+        # Archivar no toca la BD → la fila estructurada persiste. Reemplaza al
+        # test de soft-delete, que asumía el ``users.Address`` disuelto.
+        partner = _make_partner()
+        AddressStructured.objects.create(partner=partner)
+        partner.active = False
+        partner.save(update_fields=['active'])
         assert AddressStructured.objects.count() == 1
 
-    def test_hard_delete_cascades_structured_row(self):
-        # hard_delete() sí borra la fila de la BD → CASCADE elimina la
-        # AddressStructured enlazada.
-        addr = _make_address()
-        AddressStructured.objects.create(address=addr)
-        addr.hard_delete()
+    def test_delete_cascades_structured_row(self):
+        # ``delete()`` en ResPartner sí borra la fila → CASCADE elimina la
+        # AddressStructured enlazada (on_delete=CASCADE en el OneToOne).
+        partner = _make_partner()
+        AddressStructured.objects.create(partner=partner)
+        partner.delete()
         assert AddressStructured.objects.count() == 0

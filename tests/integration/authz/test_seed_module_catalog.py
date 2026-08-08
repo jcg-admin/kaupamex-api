@@ -30,10 +30,30 @@ ERP_FAMILIES = {
 def test_sellable_modules_are_applications():
     _seed()
     for code in ('catalogue', 'orders', 'payments', 'invoices', 'inventory',
-                 'logistics', 'finance', 'reports', 'newsletter', 'support'):
+                 'logistics', 'finance', 'newsletter', 'support'):
         m = Module.objects.get(code=code)
         assert m.is_application is True, code
         assert m.category in ERP_FAMILIES, (code, m.category)
+
+
+def test_reports_is_not_a_module_of_its_own():
+    """El reporting NO es un módulo comercial transversal.
+
+    En la referencia no existe un addon ``reports``: el análisis de cada
+    dominio vive **dentro** de su addon (``odoo19c: addons/sale/report/
+    sale_report.py``, ``_auto = False``) y el submenú Reporting cuelga del root
+    de esa app, gateado por el grupo de esa app — no hay un permiso global de
+    "ver reportes". Medido: 74 addons con su propio subdirectorio ``report/``,
+    0 addons llamados ``reports`` (``odoo-tools@622ddc2a``).
+
+    Lo que sí existe es el **contenedor** de dashboards transversales
+    (``spreadsheet_dashboard``), al que cada dominio aporta por un addon puente
+    ``spreadsheet_dashboard_<dominio>``. Ese concepto vuelve al catálogo cuando
+    se construya, con su propio addon dueño; hasta entonces no se declara, que
+    es justo lo que evita el código huérfano de H-API-106.
+    """
+    _seed()
+    assert not Module.objects.filter(code='reports').exists()
 
 
 def test_billing_pieces_are_order_management_not_finance():

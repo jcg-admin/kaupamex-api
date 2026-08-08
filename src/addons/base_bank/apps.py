@@ -10,7 +10,7 @@ class BaseBankConfig(AppConfig):
     (MX = CLABE, la Clave Bancaria Estandarizada de 18 dígitos con su
     dígito verificador mod-10 ponderado). Es un módulo ``base_*`` —
     cimiento del cluster ``account_*`` (bank / payment / L0 billing:
-    una ``Company`` que cobra o paga por SPEI necesita una CLABE bien
+    una ``ResCompany`` que cobra o paga por SPEI necesita una CLABE bien
     formada).
     """
     default_auto_field = 'django.db.models.BigAutoField'

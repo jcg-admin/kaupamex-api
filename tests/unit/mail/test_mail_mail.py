@@ -15,7 +15,11 @@ from addons.mail.models import MailMail
 
 class TestMailMailStates:
     def test_new_mail_defaults_to_outgoing(self, db):
-        m = MailMail.objects.create(email_to='a@x.com', subject='Hola')
+        # ``subject`` NO es columna de ``mail.mail``: se delega al
+        # ``mail.message`` enlazado (``_inherits`` de la referencia). El punto
+        # de entrada que crea ambos es ``enqueue``; ``objects.create`` toca
+        # sólo la tabla del correo y no puede recibirlo.
+        m = MailMail.enqueue(to='a@x.com', subject='Hola')
         assert m.state == MailMail.STATE_OUTGOING
         assert m.attempts == 0
         assert m.max_attempts == 3

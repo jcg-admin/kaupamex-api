@@ -27,13 +27,25 @@ def test_mixins_son_abstractos():
         assert cls._meta.abstract is True
 
 
-def test_hogar_canonico_es_addons_base():
-    """El módulo de definición canónico es ``addons.base.models.mixins``."""
-    for cls in (TimeStampedModel, AppendOnlyModel, SoftDeleteModel,
-                SoftDeleteQuerySet, SoftDeleteManager, AllObjectsManager):
-        assert cls.__module__ == 'addons.base.models.mixins', (
-            f'{cls.__name__} se define en {cls.__module__}, '
-            f'no en addons.base.models.mixins')
+def test_hogar_canonico_es_un_archivo_por_mixin():
+    """Cada mixin se define en SU archivo, como en la referencia.
+
+    Odoo tiene ``image_mixin.py`` / ``avatar_mixin.py`` /
+    ``properties_base_definition_mixin.py`` — un archivo por mixin, no un
+    ``mixins.py`` que los agrupe por naturaleza. El QuerySet y los managers de
+    soft-delete viven **con su modelo**, no en un archivo de managers.
+    """
+    hogar = {
+        TimeStampedModel: 'addons.base.models.timestamped_mixin',
+        AppendOnlyModel: 'addons.base.models.append_only_mixin',
+        SoftDeleteModel: 'addons.base.models.soft_delete_mixin',
+        SoftDeleteQuerySet: 'addons.base.models.soft_delete_mixin',
+        SoftDeleteManager: 'addons.base.models.soft_delete_mixin',
+        AllObjectsManager: 'addons.base.models.soft_delete_mixin',
+    }
+    for cls, modulo in hogar.items():
+        assert cls.__module__ == modulo, (
+            f'{cls.__name__} se define en {cls.__module__}, no en {modulo}')
 
 
 def test_abstractos_ya_no_se_definen_en_core():

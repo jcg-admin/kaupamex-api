@@ -16,7 +16,9 @@ from django.utils import timezone
 import pytest
 
 from addons.authz.models import Capability, Module, Role, RoleAssignment
-from addons.company.models import ModulePrice
+from addons.sale_subscription.models import (
+    ModulePrice,
+)
 
 pytestmark = pytest.mark.integration
 
@@ -37,7 +39,7 @@ def _user_with_caps(email, codes):
         defaults={'name': 'Test platform role'},
     )
     role.capabilities.set(caps)
-    u = get_user_model().objects.create_user(email=email, password='TestPass123!')
+    u = get_user_model().objects.create_user(login=email, password='TestPass123!')
     RoleAssignment.objects.create(user=u, role=role)
     return u
 

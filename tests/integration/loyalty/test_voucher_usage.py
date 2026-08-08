@@ -13,8 +13,8 @@ from django.utils import timezone
 from datetime import timedelta
 from unittest.mock import patch
 
-from addons.catalogue.models import Category, Product
-from addons.inventory.services import InventoryService
+from tests.factories.product_factory import make_category, make_product
+from addons.stock.services import InventoryService
 from addons.delivery.models import ShippingZone
 from addons.delivery.models import ShippingMethod
 from addons.loyalty.models import Voucher, VoucherUsage
@@ -22,6 +22,13 @@ from addons.loyalty.models import Voucher, VoucherUsage
 pytestmark = pytest.mark.integration
 
 VOUCHER_APPLY_URL = '/api/v2/cart/voucher/'
+# El checkout confirma el carrito; NO crea una orden. En la referencia el
+# carrito ES la ``sale.order`` en borrador (``odoo19c:
+# website_sale/models/sale_order.py:133``), y ``/shop/payment`` la confirma —
+# no hay ningún POST que "cree" un pedido. Por eso ``POST /api/v2/orders/``
+# responde 405: ``OrderListView`` es el historial (GET), y ese 405 es la
+# respuesta correcta, no un hueco. Ver H-API-282 para el mismo patrón.
+CHECKOUT_URL      = '/api/v2/checkout/express/'
 ITEMS_URL         = '/api/v2/cart/items/'
 
 
@@ -53,19 +60,15 @@ def voucher_single(db):
 
 @pytest.fixture
 def cat_vou(db):
-    return Category.objects.create(name='Cat Voucher', slug='cat-vou', is_active=True)
+    return make_category('Cat Voucher')
 
 
 @pytest.fixture
 def product_vou(db, cat_vou):
-    _p = Product.objects.create(
-        name='Producto Voucher', slug='prod-vou', sku='VOU-001',
-        description='',
-        price=Decimal('200.00'), stock=10,
-        is_active=True, is_published=True,
+    return make_product(
+        name='Producto Voucher', default_code='VOU-001',
+        price=Decimal('200.00'), stock=10, categ=cat_vou,
     )
-    _p.categories.add(cat_vou)
-    return _p
 
 
 class TestVoucherAlreadyApplied:
@@ -130,7 +133,7 @@ class TestVoucherUsageCreatedOnCheckout:
         # Mock InventoryService para no depender de stock
         with patch.object(InventoryService, 'check_availability', return_value=[]), \
              patch.object(InventoryService, 'decrement', return_value=None):
-            res = auth_client.post('/api/v2/orders/', checkout_data, format='json')
+            res = auth_client.post(CHECKOUT_URL, checkout_data, format='json')
 
         assert res.status_code == 201, f'Checkout fallo: {res.data}'
 

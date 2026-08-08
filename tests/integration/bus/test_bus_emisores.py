@@ -26,7 +26,7 @@ User = get_user_model()
 
 @pytest.fixture
 def comprador(db):
-    return User.objects.create_user(email='emisor@e.com', password='BusPass123!')
+    return User.objects.create_user(login='emisor@e.com', password='BusPass123!')
 
 
 # --- Notificación ----------------------------------------------------------

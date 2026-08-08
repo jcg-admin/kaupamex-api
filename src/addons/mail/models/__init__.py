@@ -18,6 +18,8 @@ modelos y ya solo depende de ``mail`` (``MailMail``), no de ``notifications``.
 de servicio con estado (un ``ThreadPoolExecutor``), no un modelo. Los
 consumidores importan la ruta completa ``addons.mail.models.email_executor``.
 """
+from .mail_alias import MailAlias, DOT_ATOM_TEXT
+from .mail_alias_domain import MailAliasDomain
 from .mail_message_subtype import MailMessageSubtype
 from .mail_message import MailMessage
 from .mail_followers import MailFollowers
@@ -38,6 +40,7 @@ from .manual_notification import ManualNotification
 from .mail_thread import MailThread
 
 __all__ = [
+    'MailAlias', 'MailAliasDomain', 'DOT_ATOM_TEXT',
     'MailMessageSubtype', 'MailMessage', 'MailFollowers', 'MailNotification',
     'MailActivityType', 'MailActivity', 'MailTrackingValue',
     'MailTemplate', 'MailMail', 'MailThread',

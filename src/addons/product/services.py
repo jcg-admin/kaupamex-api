@@ -31,14 +31,22 @@ def sync_template_values(line):
     return created
 
 
-def combinations(product):
+def combinations(template):
     """Producto cartesiano de un PTAV por cada línea de atributo (Odoo).
+
+    El parámetro es la **ficha** (``product.template``), no la variante: las
+    líneas de atributo cuelgan de ella (``ProductTemplateAttributeLine.
+    product_tmpl``), que es lo que la referencia declara. Se nombraba
+    ``product`` cuando el catálogo era plano y no había distinción; con la
+    separación el nombre viejo inducía a pasar la variante y fallar con
+    ``AttributeError: 'ProductProduct' object has no attribute
+    'attribute_lines'``. Ver H-API-217.
 
     Devuelve una lista de combinaciones; cada combinación es una tupla de
     ``ProductTemplateAttributeValue`` (uno por línea, en orden de ``sequence``).
-    Sin líneas → una combinación vacía (el producto sin variantes).
+    Sin líneas → una combinación vacía (la ficha sin variantes).
     """
-    lines = list(product.attribute_lines.order_by('sequence', 'id'))
+    lines = list(template.attribute_lines.order_by('sequence', 'id'))
     per_line = []
     for line in lines:
         ptavs = list(line.template_values.order_by('id'))
@@ -52,19 +60,33 @@ def combinations(product):
     return [tuple(combo) for combo in itertools.product(*per_line)]
 
 
-def combination_price(product, ptavs) -> Decimal:
-    """Precio de una combinación = precio base + Σ ``price_extra`` (Odoo)."""
-    total = Decimal(product.price)
+def combination_price(template, ptavs) -> Decimal:
+    """Precio de una combinación = precio base + Σ ``price_extra``.
+
+    Fiel a ``odoo19c: addons/product/models/product_template.py:720-727``, que
+    suma los ``price_extra`` de los valores de atributo de la combinación al
+    precio de la ficha.
+
+    El campo de la ficha es ``list_price``, no ``price``: la referencia no
+    declara ``price`` en ``product.template``. Leerlo lanzaba
+    ``AttributeError`` en cualquier llamada real — el defecto sobrevivió
+    porque no había test que ejercitara esta función. Ver H-API-217.
+    """
+    total = Decimal(template.list_price)
     for ptav in ptavs:
         total += ptav.price_extra
     return total.quantize(Decimal('0.01'))
 
 
-def combination_count(product) -> int:
-    """Número de combinaciones posibles (Odoo product_variant_count)."""
+def combination_count(template) -> int:
+    """Número de combinaciones posibles (Odoo ``product_variant_count``).
+
+    Como ``combinations``, opera sobre la **ficha**: las líneas de atributo
+    son suyas. Ver H-API-217.
+    """
     count = 1
     has_line = False
-    for line in product.attribute_lines.all():
+    for line in template.attribute_lines.all():
         n = line.template_values.count() or line.values.count()
         if n:
             has_line = True

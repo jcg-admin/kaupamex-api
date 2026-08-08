@@ -11,8 +11,10 @@ Fuente Odoo community (LGPL-3): copia + adaptacion con atribucion.
 
 - ``user`` ← ``user_id`` (Odoo ``res.users``, asignado): party = ``IdentityUser``.
 - ``state`` (Odoo ``:92`` computed ``overdue/today/planned/done``): aqui es una
-  ``@property`` derivada de ``date_deadline`` (Django no tiene el motor
-  ``@api.depends``; el comportamiento se preserva). El estado ``done`` en Odoo
+  ``@property`` derivada de ``date_deadline``. **La referencia tampoco lo
+  almacena** — ``compute='_compute_state'`` sin ``store=True``
+  (``odoo19c: mail/models/mail_activity.py:92-97``), asi que la ``property``
+  es fiel y no hay mecanismo ausente que la justifique. El estado ``done`` en Odoo
   se materializa al completar (``action_done`` publica un mensaje y elimina la
   actividad) — se replica en ``action_done`` abajo.
 """

@@ -1,9 +1,10 @@
 # CLAUDE.md — api (cheat-sheet local)
 
 Submódulo `api` del monorepo PracticaYoruba (repo GitHub `jcg-admin/kaupamex-api`).
-Backend Django 6 + DRF, gestionado con `uv`, tests con pytest contra MariaDB.
-El producto se llama **PracticaYoruba** dentro del código (schemas
-`practicayoruba_db` / `practicayoruba_qa`; usuario `django_user`).
+Backend Django 6 + DRF, gestionado con `uv`, tests con pytest contra PostgreSQL.
+El operador de plataforma (L0) es **Kaupamex**: las bases son `kaupamex_db`
+(prod/dev) y `kaupamex_qa` (tests), con el rol `django_user`. **PracticaYoruba**
+es el L1 de ejemplo (insignia), no el nombre del producto ni de la base.
 
 Este archivo es **solo un cheat-sheet local** — NO redefine gobernanza.
 
@@ -28,7 +29,7 @@ La gobernanza vive en el superproyecto, no aquí:
 - Python `>=3.12,<3.15`
 - Django `6.0.5`, djangorestframework `3.16.1`,
   djangorestframework-simplejwt `5.5.1`, drf-spectacular `0.29.0`
-- mysqlclient `2.2.1`, python-decouple `3.8`, Pillow `>=10.3.0`,
+- psycopg[binary] `>=3.2`, python-decouple `3.8`, Pillow `>=10.3.0`,
   mercadopago `>=2.2.0`, django-cors-headers `4.9.0`
 - Test group: pytest `7.4.4`, pytest-django `4.7.0`, factory-boy `3.3.0`
 - uv: `package = false` (app Django, no wheel)
@@ -36,17 +37,19 @@ La gobernanza vive en el superproyecto, no aquí:
 ## Comandos (todos verificados)
 
 ```bash
-# Levantar MariaDB (idempotente, socket Unix) — script del submódulo db
-bash /home/user/kaupamex-db/scripts/start_db.sh        # o: make db-up
+# PostgreSQL: Debian opera por cluster, no por proceso suelto
+pg_isready                                             # ¿responde?
+sudo pg_ctlcluster 16 main start                       # si no
 
-# Gate de conexión (ver .claude/rules/db-conexion-socket.md): debe imprimir un .sock
-PYTHONPATH=practicayoruba DJANGO_SETTINGS_MODULE=config.settings.testing \
-  python -c "from django.db import connection; \
-    print('unix_socket:', connection.settings_dict.get('OPTIONS',{}).get('unix_socket','<NONE>'))"
+# Gate de conexión (ver .claude/rules/db-conexion-socket.md): HOST debe ser el
+# directorio del socket — en libpq el socket ES el host, no una opción aparte
+DJANGO_SETTINGS_MODULE=config.settings.testing uv run python -c \
+  "from django.db import connection as c; \
+   print('HOST:', c.settings_dict['HOST'], '| PORT:', c.settings_dict['PORT'])"
 
-# Pytest — settings=config.settings.testing, schema practicayoruba_qa (pytest.ini)
-# --reuse-db ya está en addopts. NUNCA SQLite (proyecto canónico = MariaDB).
-# OJO: la DB es compartida; no recrees el schema con otros agentes corriendo.
+# Pytest — settings=config.settings.testing, base kaupamex_qa (pytest.ini)
+# --reuse-db ya está en addopts. NUNCA SQLite (proyecto canónico = PostgreSQL).
+# OJO: la base es compartida; no la recrees con otros agentes corriendo.
 uv run pytest --reuse-db -q                              # o: make ci-test
 uv run pytest tests/integration/cart/ -q --reuse-db      # subset (make ci-test-fast)
 
@@ -64,21 +67,25 @@ install-hooks db-up ci-test ci-test-fast` (`make help`).
 
 ## Convenciones locales / gotchas
 
-- **DB por socket Unix** `/run/mysqld/mysqld.sock` (convención del proyecto,
-  `config/settings/base.py:77-89`). Si `DB_SOCKET`/`DB_QA_SOCKET` está seteada,
-  mysqlclient ignora HOST/PORT.
-- **Socket stale**: el contenedor puede caerse → si el gate da `<NONE>` o falla
-  la conexión, re-correr `start_db.sh` (idempotente). El script pasa
-  `--tmpdir=/tmp` porque `TMPDIR=/tmp/claude-0` no es escribible por `mysql`.
-- **`--reuse-db` vs `--create-db`** (pytest.ini:30-34): testing.py declara
-  `TEST.NAME=practicayoruba_qa`, así que sin `--reuse-db` Django intenta
-  DROP+CREATE en cada run y se cuelga (falta GRANT DROP/CREATE global a
-  `django_user`). Reusar la DB; forzar recreación solo con `--create-db`.
+- **DB por socket Unix** — en libpq el socket **es el HOST**: un `HOST` que
+  empieza con `/` designa el *directorio* del socket (`/var/run/postgresql`) y
+  el `PORT` nombra el archivo (`.s.PGSQL.5432`). Por eso los settings resuelven
+  `'HOST': _DB_SOCKET or config('DB_HOST')` — no hay opción `unix_socket`.
+- **`Peer authentication failed`** no es un problema de credenciales: el
+  `pg_hba.conf` de Debian asigna `peer` al canal local. El rol de aplicación
+  necesita una regla explícita **por encima** de la genérica; la instala
+  `db: provisioners/postgresql/db_setup.sh` (H-DB-05).
+- **`--reuse-db` vs `--create-db`** (pytest.ini): testing.py declara
+  `TEST.NAME=kaupamex_qa`, así que sin `--reuse-db` Django intenta DROP+CREATE
+  en cada run. Reusar la base; forzar recreación solo con `--create-db`.
+- **Base ≠ schema**: lo que MariaDB llamaba *schema* aquí es una **base**; un
+  *schema* es un namespace dentro de ella (`public`). Ver
+  `db: .claude/skills/db-postgres/SKILL.md`.
 - **Migración nueva en QA**: aplicarla con
   `DJANGO_SETTINGS_MODULE=config.settings.testing python manage.py migrate`
   (docs/operaciones.md); pytest aplica migraciones nuevas con `--reuse-db`.
-- **Canon error key = `codigo_error`** (no `error_code`); ~198 usos en
-  `practicayoruba/apps/`. El gate canon-idioma lo vigila.
+- **Canon error key = `codigo_error`** (no `error_code`). El gate canon-idioma
+  lo vigila.
 - **Zero lazy imports**: imports al top del módulo; el pre-commit lo bloquea.
 
 ### Vistas DRF — invariante de seguridad (detalle en el skill `backend-drf`)

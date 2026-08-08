@@ -4,27 +4,50 @@ Verifica Fase 1 (TimeStampedModel) y Fase 2 (Proxy Models).
 
 No son tests de integración de negocio — son tests de infraestructura
 que garantizan que el refactoring no rompe nada.
+
+Nota (retiro del espejo ``orders.Order``, SOL-098, ``api@77bd1f0``): la
+antigua ``TestOrderProxies`` ejercía los proxies ``DeliveredOrder``/
+``ActiveOrder`` de ese addon retirado — ninguno de los dos existe ya en
+``src/`` (los seis proxies restantes ya se habían eliminado antes, H-API-06).
+Sin el modelo espejo, el caso ya no tiene sujeto: se borró en vez de
+reencuadrarse, porque su reemplazo funcional (derivar estado desde
+``sale.state``/pago/guía sin proxy dedicado) ya está cubierto en
+``tests/integration/sale/test_proxy_replacement_e5r5.py``, fuera de este
+archivo.
+
+Nota (disolución de ``catalogue``/``chartsize``/``inventory``/``cart``,
+H-API-250): cuatro de los addons que este archivo inventariaba ya no existen
+(``ls src/addons/{catalogue,chartsize,inventory,cart}`` → *No such file or
+directory*). Se retiraron los casos cuyo **sujeto** desapareció:
+
+- ``TestStockMovementProxies`` entero — los proxies vivían en
+  ``inventory.proxy_models``; el movimiento de stock ahora es
+  ``stock.quant``/``stock.move`` (odoo19c), sin proxies por tipo.
+- ``test_h_inh_001_{stockmovement,stockalert}_...`` — ídem ``inventory``.
+- ``test_h_inh_002_searchhistory_*`` — ``SearchHistory`` no tiene sucesor: la
+  referencia no modela historial de búsqueda (el único análogo en ``odoo19c:``
+  es un mixin de ``website``, no un modelo).
+- ``test_h_inh_005_savedcart_*`` — ``cart`` disuelto; el carrito es una
+  ``sale.order`` en borrador (odoo19c).
+
+El inventario de herencia conserva los modelos vivos y **suma** los sucesores
+del catálogo (``ProductTemplate``/``ProductProduct``/``ProductCategory``), que
+sí heredan ``TimeStampedModel``. Se retiran además los símbolos de
+``addons.users`` (disuelto: ``res.users`` vive en ``base``) y con ellos
+``test_user_NO_hereda_de_timestampedmodel``, cuya premisa se invierte —
+``base.ResUsers`` **sí** hereda ``TimeStampedModel`` (``res_users.py:148``).
 """
 import pytest
 from decimal import Decimal
 from addons.base.models import TimeStampedModel
-from addons.cart.models import SavedCart, SavedCartItem
-from addons.catalogue.models import Category, Product, SearchHistory, ProductImage
-from addons.chartsize.models import VariantType, VariantOption, ProductVariant
-from addons.inventory.models import StockMovement, StockAlert
-from addons.base.models import SiteSettings
+from addons.product.models import ProductCategory, ProductProduct, ProductTemplate
 from addons.delivery.models import ShippingMethod
 from addons.payment.models import PaymentGateway
 from addons.website.models import StaticPage, StaticPageVersion
-from addons.users.models import Address, PasswordResetToken, EmailVerificationToken
-from addons.users.models import IdentityUser as User
 from addons.loyalty.models import Voucher, VoucherChangeLog
 from addons.website_sale_wishlist.models import WishlistItem
-from addons.catalogue.serializers import SearchHistorySerializer
-from addons.inventory.proxy_models import SaleMovement, CancellationMovement, AdjustmentMovement, ImportMovement
-from addons.sale.models import SaleOrder
-from addons.payment.models import Payment
-from addons.delivery.models import Courier, ShipmentGuide
+from addons.sale.models import SaleOrder, SaleOrderLine
+from addons.delivery.models import DeliveryAddress
 from django.utils import timezone
 from datetime import timedelta
 from addons.loyalty.proxy_models import FixedVoucher, PercentageVoucher, FreeShippingVoucher
@@ -42,24 +65,16 @@ class TestTimeStampedModelHerencia:
     def test_todos_los_modelos_heredan_de_timestampedmodel(self, db):
 
         models_concretos = [
-            SavedCart, SavedCartItem,
-            Category, Product, SearchHistory, ProductImage,
-            VariantType, VariantOption, ProductVariant,
-            StockMovement, StockAlert,
-            SaleOrder, SaleOrderLine, OrderValue_GONE, DeliveryAddress,
-            SiteSettings, PaymentGateway, ShippingMethod,
+            ProductCategory, ProductTemplate, ProductProduct,
+            SaleOrder, SaleOrderLine, DeliveryAddress,
+            PaymentGateway, ShippingMethod,
             StaticPage, StaticPageVersion,
-            Address, PasswordResetToken, EmailVerificationToken,
             Voucher, VoucherChangeLog,
             WishlistItem,
         ]
         for model in models_concretos:
             assert issubclass(model, TimeStampedModel), \
                 f'{model.__name__} no hereda de TimeStampedModel'
-
-    def test_user_NO_hereda_de_timestampedmodel(self, db):
-        """DEC-005: User se excluye — hereda de AbstractUser de Django."""
-        assert not issubclass(User, TimeStampedModel)
 
     def test_timestampedmodel_es_abstracto(self, db):
         """TimeStampedModel no debe crear tabla propia."""
@@ -72,37 +87,10 @@ class TestTimeStampedModelHerencia:
 class TestTimestampsEspeciales:
     """Casos especiales documentados en los hallazgos."""
 
-    def test_h_inh_001_stockmovement_created_at_tiene_db_index(self, db):
-        """H-INH-001 / DEC-003: override explícito en StockMovement."""
-        field = StockMovement._meta.get_field('created_at')
-        assert field.db_index is True
-
-    def test_h_inh_001_stockalert_created_at_tiene_db_index(self, db):
-        """DEC-003: override explícito en StockAlert."""
-        field = StockAlert._meta.get_field('created_at')
-        assert field.db_index is True
-
     def test_h_inh_001_order_created_at_tiene_db_index(self, db):
         """DEC-003: override explícito en SaleOrder."""
         field = SaleOrder._meta.get_field('created_at')
         assert field.db_index is True
-
-    def test_h_inh_002_searchhistory_campo_externo_es_searched_at(self, db):
-        """
-        H-INH-002: SearchHistory.searched_at → updated_at internamente.
-        El serializer expone 'searched_at' via source='updated_at'.
-        """
-        s = SearchHistorySerializer()
-        assert 'searched_at' in s.fields
-        field = s.fields['searched_at']
-        assert field.source == 'updated_at'
-
-    def test_h_inh_002_searchhistory_no_tiene_campo_searched_at_en_bd(self, db):
-        """searched_at ya no es un campo del modelo."""
-        field_names = [f.name for f in SearchHistory._meta.get_fields()]
-        assert 'searched_at' not in field_names
-        assert 'updated_at' in field_names
-        assert 'created_at' in field_names
 
     def test_h_inh_003_voucherchangelog_campo_es_created_at(self, db):
         """H-INH-003: VoucherChangeLog.changed_at renombrado a created_at."""
@@ -111,117 +99,16 @@ class TestTimestampsEspeciales:
         assert 'created_at' in field_names
         assert 'updated_at' in field_names
 
-    def test_h_inh_004_sitesettings_tiene_created_at(self, db):
-        """H-INH-004: SiteSettings solo tenía updated_at — ahora tiene ambos."""
-        field_names = [f.name for f in SiteSettings._meta.get_fields()]
-        assert 'created_at' in field_names
-        assert 'updated_at' in field_names
-
-    def test_h_inh_005_savedcart_tiene_created_at_y_updated_at(self, db):
-        """H-INH-005: SavedCart.saved_at renombrado a updated_at + ADD created_at."""
-        field_names = [f.name for f in SavedCart._meta.get_fields()]
-        assert 'saved_at' not in field_names
-        assert 'updated_at' in field_names
-        assert 'created_at' in field_names
+    # H-INH-004 verificaba que ``SiteSettings`` tuviera ambos timestamps. Esa
+    # tabla se retiró (H-API-265): los ajustes ya no son una fila, son claves
+    # de parámetro, y ``SystemParameter`` trae sus propios timestamps —
+    # cubiertos por el caso de arriba. El hallazgo queda cerrado por
+    # desaparición del sujeto, no por regresión.
 
 
 # =============================================================================
 # Fase 2 — Proxy Models
 # =============================================================================
-
-class TestStockMovementProxies:
-    """T-012: proxy models para StockMovement."""
-
-    def test_proxy_models_no_crean_tablas(self, db):
-        for proxy in [SaleMovement, CancellationMovement, AdjustmentMovement, ImportMovement]:
-            assert proxy._meta.db_table == StockMovement._meta.db_table
-            assert proxy._meta.proxy is True
-
-    def test_sale_movement_filtra_por_tipo(self, db):
-
-        cat = Category.objects.create(name='CP', slug='cp', is_active=True)
-        p = Product.objects.create(
-            name='PP', slug='pp', sku='PP-001', description='',
-            price=Decimal('100'), stock=10,
-            is_active=True, is_published=True,
-        )
-        p.categories.add(cat)
-        p.categories.add(cat)
-        StockMovement.objects.create(
-            product=p, delta=-2, stock_after=8,
-            movement_type=StockMovement.TYPE_SALE,
-        )
-        StockMovement.objects.create(
-            product=p, delta=5, stock_after=13,
-            movement_type=StockMovement.TYPE_ADJUSTMENT,
-        )
-        assert SaleMovement.objects.filter(product=p).count() == 1
-        assert AdjustmentMovement.objects.filter(product=p).count() == 1
-        assert SaleMovement.objects.filter(product=p).first().movement_type == 'SALE'
-
-
-class TestOrderProxies:
-    """T-013 (O2C V5c-3): proxies vivos derivan de los ejes canónicos.
-
-    Los dos proxies restantes (``DeliveredOrder``, ``ActiveOrder``) filtran por
-    sale.state + pago + guía, no por la columna espejo ``order.status``. Los
-    seis proxies muertos se eliminaron (H-API-06).
-    """
-
-    def _order(self, *, approved=False):
-        """Orden canónica: SaleOrder confirmada + SaleOrder enlazada (+ pago)."""
-        so = SaleOrder.objects.create(state=SaleOrder.STATE_SALE)
-        order = SaleOrder.objects.create(sale_order=so)
-        if approved:
-            Payment.objects.create(
-                order=order, sale_order=so,
-                gateway=Payment.GATEWAY_MERCADOPAGO,
-                amount=Decimal('100.00'), status=Payment.STATUS_APPROVED,
-            )
-        return order
-
-    def _guide(self, order, *, delivered=False):
-        courier = Courier.objects.create(
-            name=f'DHL-{order.pk}', code=f'dhl-{order.pk}', is_active=True)
-        kwargs = dict(
-            order=order, sale_order=order.sale_order, courier=courier,
-            tracking_number=f'TRK-{order.pk}',
-        )
-        if delivered:
-            kwargs['status'] = ShipmentGuide.STATUS_DELIVERED
-        return ShipmentGuide.objects.create(**kwargs)
-
-    def test_proxy_models_no_crean_tablas(self, db):
-        for proxy in [DeliveredOrder, ActiveOrder]:
-            assert proxy._meta.db_table == SaleOrder._meta.db_table
-            assert proxy._meta.proxy is True
-
-    def test_delivered_order_desde_guia_entregada(self, db):
-        entregada = self._order(approved=True)
-        self._guide(entregada, delivered=True)
-        pendiente = self._order()                     # sin guía → PENDING
-
-        assert DeliveredOrder.objects.filter(pk=entregada.pk).exists()
-        assert not DeliveredOrder.objects.filter(pk=pendiente.pk).exists()
-
-    def test_active_order_pending_y_shipped_desde_ejes(self, db):
-        pendiente = self._order()                     # PENDING
-        enviada   = self._order(approved=True)
-        self._guide(enviada, delivered=False)         # SHIPPED (guía viva)
-        entregada = self._order(approved=True)
-        self._guide(entregada, delivered=True)        # DELIVERED → no activa
-
-        activos = set(ActiveOrder.objects.values_list('pk', flat=True))
-        assert pendiente.pk in activos
-        assert enviada.pk in activos
-        assert entregada.pk not in activos
-
-    def test_active_order_incluye_paid_sin_guia_h_api_14(self, db):
-        # H-API-14: una venta pagada sin guía (PAID) es activa — protege su
-        # ShippingMethod. El conjunto legacy la dejaba fuera (bug latente).
-        paid = self._order(approved=True)             # PAID, sin guía
-        assert ActiveOrder.objects.filter(pk=paid.pk).exists()
-
 
 class TestVoucherProxies:
     """T-014: proxy models para Voucher con calculate_discount especializado."""

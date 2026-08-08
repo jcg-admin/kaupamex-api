@@ -55,7 +55,7 @@ def _auth(client, user):
 
 
 def _user(email):
-    return User.objects.create_user(email=email, password='x')
+    return User.objects.create_user(login=email, password='x')
 
 
 def _grant(role, code, level=AccessLevel.FULL):

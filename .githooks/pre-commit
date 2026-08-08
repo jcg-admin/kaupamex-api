@@ -12,7 +12,7 @@
 #
 # Gates activos:
 #
-#   1. Zero lazy imports en src/apps/** (PEP 8).
+#   1. Zero lazy imports en src/addons/** (PEP 8).
 #      Iniciativa: docs/source/gestion/pm/api/iniciativas/
 #                  eliminar-lazy-imports-pep8/
 #      Script:     scripts/check_no_lazy_imports.py
@@ -24,7 +24,7 @@ set -euo pipefail
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 EXIT_CODE=0
 
-# ─── Gate 1: lazy imports en src/apps/** ──────────────────────────
+# ─── Gate 1: lazy imports en src/addons/** ────────────────────────
 # Detectar staged .py dentro del scope vigilado.
 STAGED_PY=()
 while IFS= read -r line; do
@@ -32,7 +32,7 @@ while IFS= read -r line; do
     STAGED_PY+=("$line")
 done < <(
     git diff --cached --name-only --diff-filter=ACM \
-        -- 'src/apps/***.py' 'tests/***.py' 2>/dev/null \
+        -- 'src/addons/***.py' 'tests/***.py' 2>/dev/null \
     | grep -vE 'migrations/|__pycache__' || true
 )
 
@@ -50,13 +50,24 @@ fi
 #             canon-idioma-enums-error-codes/
 # Script:     docs/scripts/check_canon_idioma.py (cross-submodule).
 # Allowlist:  docs/scripts/canon-idioma-allowlist.txt.
-# El gate aplica solo cuando hay .py staged en apps/.
+# El gate aplica solo cuando hay .py staged en addons/.
+# El clon hermano de docs se llama `kaupamex-docs` desde el rename de repos
+# (DEC-KX-06); la ruta `../docs` que este gate usaba dejo de existir y el gate
+# degradaba a skip silencioso — H-API-109. Se prueban los nombres conocidos en
+# vez de asumir uno.
 if [[ "${#STAGED_PY[@]}" -gt 0 ]]; then
-    CANON_CHECKER="$REPO_ROOT/../docs/scripts/check_canon_idioma.py"
-    if [[ ! -f "$CANON_CHECKER" ]]; then
-        echo "pre-commit: $CANON_CHECKER no encontrado — skip canon-idioma gate" >&2
+    CANON_CHECKER=""
+    for CANDIDATO in kaupamex-docs docs e-commerce-docs; do
+        if [[ -f "$REPO_ROOT/../$CANDIDATO/scripts/check_canon_idioma.py" ]]; then
+            CANON_CHECKER="$REPO_ROOT/../$CANDIDATO/scripts/check_canon_idioma.py"
+            CANON_ROOT="$REPO_ROOT/.."
+            break
+        fi
+    done
+    if [[ -z "$CANON_CHECKER" ]]; then
+        echo "pre-commit: clon de docs no encontrado — skip canon-idioma gate" >&2
     else
-        python3 "$CANON_CHECKER" --repo-root "$REPO_ROOT/.." || EXIT_CODE=1
+        python3 "$CANON_CHECKER" --repo-root "$CANON_ROOT" || EXIT_CODE=1
     fi
 fi
 
@@ -89,6 +100,73 @@ if [ -f "$CYCLES_CHECKER" ]; then
     if ! python3 "$CYCLES_CHECKER" >/dev/null 2>&1; then
         python3 "$CYCLES_CHECKER" >&2
         echo "pre-commit: inversion de dependencia nueva — commit bloqueado" >&2
+        exit 1
+    fi
+fi
+
+# ---------------------------------------------------------------------------
+# Gate 5: declaracion del catalogo L0 (SOL-100).
+# Cada addon declara sus modulos/capacidades en authz_catalog.py; el seed solo
+# recolecta. Este gate verifica que la declaracion sea coherente ANTES de que
+# llegue a una DB: addon en INSTALLED_APPS, sin duenos duplicados, sin
+# capacidades huerfanas, sin aristas depends hacia un modulo inexistente.
+# Ese ultimo check es el que habria cazado H-API-106 (el modulo 'orders'
+# sobrevivio al addon retirado con cuatro aristas colgando).
+# Script: scripts/check_catalog_declaration.py.
+CATALOG_CHECKER="$REPO_ROOT/scripts/check_catalog_declaration.py"
+if [ -f "$CATALOG_CHECKER" ]; then
+    if ! python3 "$CATALOG_CHECKER" >/dev/null 2>&1; then
+        python3 "$CATALOG_CHECKER" >&2
+        echo "pre-commit: declaracion de catalogo incoherente — commit bloqueado" >&2
+        exit 1
+    fi
+fi
+
+# ---------------------------------------------------------------------------
+# Gate 6: procedencia de addon (H-API-119, reincidido en H-API-256).
+# El eje NO es "existe en la referencia" — tener addons propios es legitimo.
+# Lo que se exige es que cada addon que no resuelve por nombre DECLARE su
+# procedencia en scripts/addon_provenance.txt citando un documento que exista;
+# el gate verifica la existencia del archivo, no interpreta su contenido.
+# Los renames que Django fuerza (auth -> authz) los conoce el script.
+NAMES_CHECKER="$REPO_ROOT/scripts/check_addon_names.py"
+if [ -f "$NAMES_CHECKER" ]; then
+    if ! python3 "$NAMES_CHECKER" >/dev/null 2>&1; then
+        python3 "$NAMES_CHECKER" >&2
+        echo "pre-commit: addon sin procedencia declarada — commit bloqueado" >&2
+        exit 1
+    fi
+fi
+
+# ---------------------------------------------------------------------------
+# Gate 7: capas estructurales en paquete, no planas (H-API-238). El mapa ya
+# esta decidido (views/serializers/urls/schema -> controllers/, data -> data/,
+# authz_catalog -> security/); este gate solo impide que aparezcan planos
+# NUEVOS. Mover un plano de un addon a otro no lo saca de la deuda: lo renombra
+# — que es exactamente como reincidio en H-API-256.
+LAYOUT_CHECKER="$REPO_ROOT/scripts/check_addon_layout.py"
+if [ -f "$LAYOUT_CHECKER" ]; then
+    if ! python3 "$LAYOUT_CHECKER" >/dev/null 2>&1; then
+        python3 "$LAYOUT_CHECKER" >&2
+        echo "pre-commit: capa estructural plana nueva — commit bloqueado" >&2
+        exit 1
+    fi
+fi
+
+# ---------------------------------------------------------------------------
+# Gate 8: la URLConf resuelve entera (H-API-376).
+# Ninguno de los gates anteriores importa las rutas, y `django.setup()` tampoco
+# — leido del binario, solo hace logging + script prefix + apps.populate(). La
+# URLConf de Django es perezosa. Por eso api@31c2470 pudo commitear un urls.py
+# que importaba tres simbolos que su session.py no definia: el registro
+# arrancaba verde y el ImportError esperaba a la primera peticion.
+# Cuesta ~1.9 s, el mismo orden que el gate de lazy imports (~1.5 s).
+# Script: scripts/check_urlconf.py (se re-lanza solo bajo .venv).
+URLCONF_CHECKER="$REPO_ROOT/scripts/check_urlconf.py"
+if [ -f "$URLCONF_CHECKER" ] && [ ${#STAGED_PY[@]} -gt 0 ]; then
+    if ! python3 "$URLCONF_CHECKER" >/dev/null 2>&1; then
+        python3 "$URLCONF_CHECKER" >&2
+        echo "pre-commit: la URLConf no resuelve — commit bloqueado" >&2
         exit 1
     fi
 fi

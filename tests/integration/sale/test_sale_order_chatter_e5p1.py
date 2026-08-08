@@ -26,9 +26,9 @@ from decimal import Decimal
 
 import pytest
 
-from addons.catalogue.models import Category, Product
 from addons.mail.models import MailMessage, MailTrackingValue
 from addons.sale.models import SaleOrder, SaleOrderLine
+from tests.factories.product_factory import make_category, make_product
 
 pytestmark = pytest.mark.django_db
 
@@ -44,12 +44,8 @@ def _tracking_de(order, field):
 
 @pytest.fixture
 def producto():
-    cat = Category.objects.create(name='Cat E5p1', slug='cat-e5p1', is_active=True)
-    prod = Product.objects.create(
-        name='Prod E5p1', slug='prod-e5p1', sku='SKU-E5P1',
-        price=Decimal('100.00'), stock=5, is_active=True, is_published=True)
-    prod.categories.add(cat)
-    return prod
+    cat = make_category(name='Cat E5p1')
+    return make_product(name='Prod E5p1', price=Decimal('100.00'), stock=5, categ=cat)
 
 
 @pytest.fixture

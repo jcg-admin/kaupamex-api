@@ -9,7 +9,6 @@ from decimal import Decimal
 
 import pytest
 
-from addons.catalogue.models import Product
 from addons.product import services as pa_services
 from addons.product.models import (
     ProductAttribute,
@@ -17,6 +16,7 @@ from addons.product.models import (
     ProductTemplateAttributeLine,
     ProductTemplateAttributeValue,
 )
+from tests.factories.product_factory import make_product
 
 pytestmark = pytest.mark.integration
 
@@ -26,8 +26,8 @@ _slug_seq = [0]
 def _product(price='100.00'):
     _slug_seq[0] += 1
     n = _slug_seq[0]
-    return Product.objects.create(
-        name=f'Attr {n}', slug=f'attr-prod-{n}', sku=f'ATR-{n:04d}',
+    return make_product(
+        name=f'Attr {n}', default_code=f'ATR-{n:04d}',
         price=Decimal(price),
     )
 
@@ -43,7 +43,7 @@ def _attribute(name, values):
 
 def _line(product, attr, values, sequence=10):
     line = ProductTemplateAttributeLine.objects.create(
-        product=product, attribute=attr, sequence=sequence,
+        product_tmpl=product.product_tmpl, attribute=attr, sequence=sequence,
     )
     line.values.set(values)
     return line
@@ -77,10 +77,10 @@ def test_cartesian_combinations(db):
     product = _product()
     _line(product, color, colors, sequence=1)
     _line(product, size, sizes, sequence=2)
-    combos = pa_services.combinations(product)
+    combos = pa_services.combinations(product.product_tmpl)
     # 2 colores × 3 tallas = 6 combinaciones.
     assert len(combos) == 6
-    assert pa_services.combination_count(product) == 6
+    assert pa_services.combination_count(product.product_tmpl) == 6
     # Cada combinación tiene un PTAV por eje (2).
     assert all(len(c) == 2 for c in combos)
 
@@ -96,8 +96,8 @@ def test_combination_price_adds_price_extra(db):
     ptav_l.save(update_fields=['price_extra', 'updated_at'])
     ptav_s = ProductTemplateAttributeValue.objects.get(line=line, attribute_value=s)
     # Precio de la combinación S = 100 ; combinación L = 150.
-    assert pa_services.combination_price(product, [ptav_s]) == Decimal('100.00')
-    assert pa_services.combination_price(product, [ptav_l]) == Decimal('150.00')
+    assert pa_services.combination_price(product.product_tmpl, [ptav_s]) == Decimal('100.00')
+    assert pa_services.combination_price(product.product_tmpl, [ptav_l]) == Decimal('150.00')
 
 
 def test_multi_axis_price_sums_extras(db):
@@ -116,11 +116,11 @@ def test_multi_axis_price_sums_extras(db):
     gold_ptav = ProductTemplateAttributeValue.objects.get(line=lc, attribute_value=gold)
     xl_ptav = ProductTemplateAttributeValue.objects.get(line=ls, attribute_value=xl)
     # Combinación Dorado+XL = 200 + 30 + 40 = 270.
-    assert pa_services.combination_price(product, [gold_ptav, xl_ptav]) == Decimal('270.00')
+    assert pa_services.combination_price(product.product_tmpl, [gold_ptav, xl_ptav]) == Decimal('270.00')
 
 
 def test_no_lines_yields_single_empty_combination(db):
     product = _product()
-    assert pa_services.combinations(product) == [()]
-    assert pa_services.combination_count(product) == 0
-    assert pa_services.combination_price(product, ()) == Decimal('100.00')
+    assert pa_services.combinations(product.product_tmpl) == [()]
+    assert pa_services.combination_count(product.product_tmpl) == 0
+    assert pa_services.combination_price(product.product_tmpl, ()) == Decimal('100.00')

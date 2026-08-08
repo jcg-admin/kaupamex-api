@@ -42,7 +42,7 @@ class MrpProduction(TimeStampedModel):
         help_text='Referencia (Odoo mrp.production.name).',
     )
     product     = fields.Many2one(
-        'catalogue.Product', on_delete=models.PROTECT, related_name='productions',
+        'product.ProductProduct', on_delete=models.PROTECT, related_name='productions',
         help_text='Producto a fabricar (Odoo product_id).',
     )
     product_qty = fields.Monetary(

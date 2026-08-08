@@ -15,7 +15,9 @@ from service.db import (
 
 
 def test_quote_accepts_company_db_name():
-    assert quote_db_identifier('company_5_db') == '`company_5_db`'
+    # Comillas dobles, no backticks: el backtick es de MySQL/MariaDB; el
+    # delimitador de identificadores del estándar —y de PostgreSQL— es ``"``.
+    assert quote_db_identifier('company_5_db') == '"company_5_db"'
 
 
 @pytest.mark.parametrize('bad', [

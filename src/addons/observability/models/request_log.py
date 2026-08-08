@@ -13,10 +13,13 @@ Migracion de datos no destructiva desde ``core.RequestLog`` (tabla
 y ``core/migrations/0003_eliminar_requestlog.py`` (que depende de la
 anterior para garantizar el orden).
 """
+from datetime import timedelta
+
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
-from addons.base.models import AppendOnlyModel
+from addons.base.models import AppendOnlyModel, IrLogging
 
 
 class RequestLog(AppendOnlyModel):
@@ -56,3 +59,53 @@ class RequestLog(AppendOnlyModel):
 
     def __str__(self):
         return f'{self.method} {self.path} -> {self.status_code} ({self.correlation_id})'
+
+    # ------------------------------------------------------------------
+    # Retención — el método que el cron invoca (DEC-LOG-05)
+    # ------------------------------------------------------------------
+
+    # Ventanas de DEC-LOG-05. Los niveles altos se conservan seis veces más
+    # que los bajos: un ERROR sigue siendo útil para diagnosticar meses
+    # después; un DEBUG de hace dos semanas ya no.
+    REQUESTLOG_DAYS = 30
+    APPLOG_LOW_DAYS = 14    # DEBUG / INFO
+    APPLOG_HIGH_DAYS = 90   # WARNING / ERROR / CRITICAL
+    _LOW_LEVELS = ['DEBUG', 'INFO']
+    _HIGH_LEVELS = ['WARNING', 'ERROR', 'CRITICAL']
+
+    @classmethod
+    def purge_expired(cls, dry_run=False):
+        """Aplica la retención de DEC-LOG-05. Devuelve ``{etiqueta: filas}``.
+
+        Vivía en el ``handle()`` de un management command, así que ``ir.cron``
+        —que resuelve ``<model>.<method>()``— no tenía a qué apuntar.
+
+        **Cubre dos modelos, no uno**: ``RequestLog`` (aquí) e ``IrLogging``
+        (en ``base``). La retención es una sola política y partirla en dos crons
+        permitiría que una mitad corriera y la otra no. El método vive en
+        ``RequestLog`` porque observability ya depende de base, no al revés.
+
+        ``BusinessEvent`` **no se toca**: es el registro de hechos de negocio,
+        no telemetría, y no tiene ventana de retención.
+        """
+        ahora = timezone.now()
+
+        request_qs = cls.objects.filter(
+            created_at__lt=ahora - timedelta(days=cls.REQUESTLOG_DAYS))
+        low_qs = IrLogging.objects.filter(
+            level__in=cls._LOW_LEVELS,
+            created_at__lt=ahora - timedelta(days=cls.APPLOG_LOW_DAYS))
+        high_qs = IrLogging.objects.filter(
+            level__in=cls._HIGH_LEVELS,
+            created_at__lt=ahora - timedelta(days=cls.APPLOG_HIGH_DAYS))
+
+        conteos = {
+            'RequestLog': request_qs.count(),
+            'IrLogging INFO/DEBUG': low_qs.count(),
+            'IrLogging WARNING/ERROR': high_qs.count(),
+        }
+        if not dry_run:
+            request_qs.delete()
+            low_qs.delete()
+            high_qs.delete()
+        return conteos

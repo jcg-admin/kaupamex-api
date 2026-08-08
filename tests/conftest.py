@@ -13,19 +13,31 @@ from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.cache import cache
 
-from addons.auth_password_policy.data import seed as password_policy_seed
-from addons.auth_signup.data import seed as signup_flags_seed
-from addons.auth_totp.data import seed as totp_params_seed
+from addons.authz_password_policy.data import seed as password_policy_seed
+from addons.authz_signup.data import seed as signup_flags_seed
+from addons.authz_totp.data import seed as totp_params_seed
 from addons.authz.models import Role, RoleAssignment
 from addons.authz.services import SUPERADMIN_ROLE_CODE
 from addons.base.models import SystemParameter
+from addons.base.security.base_security import seed as base_rules_seed
+from addons.base.data.res_country_data import seed as countries_seed
 from addons.base_geolocalize.data import seed as geo_providers_seed
-from addons.company.data import seed as founder_company_seed
+from addons.sale.data.report_templates import seed as sale_report_view_seed
+from addons.sale.security.ir_rules import seed as sale_rules_seed
+from addons.sale_stock.data.report_templates import (
+    seed as incoterm_extension_seed,
+)
+from addons.sale_subscription.security.ir_rules import (
+    seed as subscription_rules_seed,
+)
+from addons.sale_subscription.data.res_company_data import (
+    seed as bootstrap_company_seed,
+)
 from addons.mail.data import seed as mail_subtypes_seed
-from addons.users.models import EmployeeProfile, Person
 from tests.factories.user_factory import make_buyer  # noqa: F401 (re-export)
 
 import pytest
+from addons.base.models.ir_config_parameter import _clear_cache as _clear_param_cache
 from pytest_django.plugin import blocking_manager_key
 import warnings
 
@@ -41,23 +53,29 @@ _DB_QA_SCRIPT = (
 
 @pytest.fixture
 def user(db):
-    """Usuario basico activo (party: IdentityUser + Person)."""
+    """Usuario basico activo (party: ResUsers + ResPartner).
+
+    ``res.users`` delega la identidad al partner (``_inherits`` de la
+    referencia, ``odoo19c: base/models/res_users.py``): el nombre humano vive
+    en ``ResPartner.name``, no en la credencial. El manager crea el partner
+    cuando no se le pasa uno.
+    """
     User = get_user_model()
     u = User.objects.create_user(
-        email='test@practicayoruba.mx', password='TestPass123!',
+        login='test@practicayoruba.mx', password='TestPass123!',
+        name='Test User',
     )
-    Person.objects.create(identity=u, first_name='Test', last_name='User')
     return make_buyer(u)
 
 
 @pytest.fixture
 def auth_user(db):
-    """Usuario independiente usado en tests de payments y orders."""
+    """Usuario independiente usado en tests de payment y sale."""
     User = get_user_model()
     u = User.objects.create_user(
-        email='auth@practicayoruba.mx', password='AuthPass123!',
+        login='auth@practicayoruba.mx', password='AuthPass123!',
+        name='Auth User',
     )
-    Person.objects.create(identity=u, first_name='Auth', last_name='User')
     return make_buyer(u)
 
 
@@ -67,9 +85,13 @@ def admin_user(db):
     se le asigna el rol superadmin (bypass del resolver, DEC-01=B)."""
     User = get_user_model()
     u = User.objects.create_user(
-        email='admin@practicayoruba.mx', password='AdminPass123!',
+        login='admin@practicayoruba.mx', password='AdminPass123!',
+        name='Admin User',
     )
-    EmployeeProfile.objects.create(identity=u)
+    # ``EmployeeProfile`` no existe en la referencia: el empleado es el campo
+    # ``employee`` de ``res.partner`` (odoo19c: base/models/res_partner.py).
+    u.partner.employee = True
+    u.partner.save(update_fields=['employee'])
     role, _ = Role.objects.get_or_create(
         code=SUPERADMIN_ROLE_CODE, defaults={'name': 'Superadministrador'},
     )
@@ -213,6 +235,26 @@ def mariadb_keepalive(db):
     yield
 
 
+@pytest.fixture(autouse=True)
+def _reset_system_parameter_cache():
+    """Aísla la caché de parámetros entre tests.
+
+    ``SystemParameter`` cachea a nivel de módulo (``_PARAM_CACHE``, el
+    equivalente del ``ormcache`` de Odoo). La caché es per-proceso: el
+    rollback de la transacción del test revierte la FILA, pero no el valor
+    ya cacheado, así que un test que escribe un parámetro se lo filtra a
+    todos los siguientes.
+
+    Se destapó al mover los ajustes del sitio a parámetros (H-API-265):
+    ``test_admin_can_update_iva_rate`` fijaba ``account.iva_rate`` a 0.08 y
+    seis tests de ``sale`` calculaban su IVA con ese valor. Sin el reset,
+    ``sale/`` da 8 fallos tras ``config/`` y 2 en solitario.
+    """
+    _clear_param_cache()
+    yield
+    _clear_param_cache()
+
+
 # ─── Catálogo de semillas restauradas (H-API-22) ─────────────────────────────
 # Verificado 2026-07-28 en kaupamex_qa: tras re-aplicar las semillas
 # (system_parameter=3, mail_message_subtype=2, base_geo_provider=2), un único
@@ -236,13 +278,39 @@ def mariadb_keepalive(db):
 # hallazgo aparte en vez de arrastrarlo aquí a ciegas.
 _SEEDERS = (
     SystemParameter.seed,       # base/0002 + base/0003 (_DEFAULT_PARAMETERS)
-    password_policy_seed,       # auth_password_policy/0001
-    signup_flags_seed,          # auth_signup/0001
-    totp_params_seed,           # auth_totp/0001 + 0002
+    countries_seed,             # base/0017 (251 países + 8 agrupaciones)
+    password_policy_seed,       # authz_password_policy/0001
+    signup_flags_seed,          # authz_signup/0001
+    totp_params_seed,           # authz_totp/0001 + 0002
     mail_subtypes_seed,         # mail/0002
     geo_providers_seed,         # base_geolocalize/0002
-    founder_company_seed,       # company/0006 + 0007
+    bootstrap_company_seed,     # BOOTSTRAP_COMPANY_CODE (no-op si no se declara)
+    base_rules_seed,            # base/security (record rules multi-company)
+    sale_rules_seed,            # sale/security/ir_rules
+    subscription_rules_seed,    # sale_subscription/security/ir_rules
+    sale_report_view_seed,      # sale/0002 (plantilla del documento)
+    incoterm_extension_seed,    # sale_stock/0003 — después de la primaria
 )
+
+
+@pytest.fixture(scope='session', autouse=True)
+def _sembrar_al_inicio_de_sesion(django_db_setup, django_db_blocker):
+    """Re-aplica el catálogo de semillas una vez al arrancar la sesión.
+
+    El hook de teardown repara **después** de un test transaccional, pero no
+    puede reparar lo que ya estaba roto: con ``--reuse-db``, un flush de una
+    sesión anterior deja el schema sin semillas y ``django_migrations`` las
+    sigue dando por aplicadas, así que la sesión siguiente arranca en rojo y
+    el fallo aparece lejos de su causa (una vista de reporte que "no existe").
+
+    Medido: la plantilla ``sale.report_saleorder`` sembrada por ``sale.0002``
+    desapareció del schema de QA y tres tests del motor de reportes fallaban
+    desde un arranque limpio. Con esta siembra de sesión, el orden de
+    ejecución —y el historial del schema reusado— dejan de importar.
+    """
+    with django_db_blocker.unblock():
+        for seed in _SEEDERS:
+            seed()
 
 
 @pytest.hookimpl(hookwrapper=True)
@@ -278,160 +346,14 @@ def pytest_runtest_teardown(item):
             seed()
 
 
-# ─── DB Objects — SPs, funciones y vistas (H-DB-01) ─────────────────────────
-# Cuando pytest-django recrea kaupamex_qa, los objetos SQL instalados
-# manualmente (SPs, funciones, vistas) desaparecen. Este fixture los reinstala
-# automáticamente al inicio de la sesión de tests si no existen.
-# Orden OBLIGATORIO por dependencias: funciones → vistas → SPs.
-
-# conftest.py está en tests/ (hijo directo del repo <prefijo>-api/).
-# El repo de db es su HERMANO con el mismo prefijo: <prefijo>-db.
+# ─── Objetos SQL: retirados (H-DB-01) ───────────────────────────────────────
+# Aquí vivía ``db_objects_setup``, que reinstalaba 3 funciones + 3 vistas + 3
+# SPs desde el repo hermano ``<prefijo>-db`` cada vez que pytest-django
+# recreaba el schema. Los nueve objetos se eliminaron de ``db``: la referencia
+# no lleva lógica de negocio en SQL —0 ``CREATE PROCEDURE``/``FUNCTION`` en sus
+# 78 ``.sql``— y declara sus vistas desde Python (``_auto = False`` +
+# ``_table_query``), así que el ORM sigue siendo la fuente.
 #
-# H-API-23: el nombre estaba hardcodeado a ``kaupamex-db`` y quedó obsoleto con
-# el rename de repos (2026-07-23, DEC-KX-06 → ``e-commerce-*``). Se deriva del
-# nombre del propio repo para que sobreviva al siguiente rename: si mañana el
-# prefijo cambia de nuevo, ambos cambian juntos.
-_REPOS_ROOT  = _REPO_ROOT.parent                          # /home/user
-_DB_REPO_NAME = _REPO_ROOT.name.removesuffix('-api') + '-db'
-_DB_OBJETOS  = (
-    _REPOS_ROOT / _DB_REPO_NAME / 'provisioners' / 'mariadb' / 'objetos'
-)
-
-# Orden de instalación: (tipo, nombre_objeto, path_relativo_desde_objetos)
-_DB_OBJECTS_ORDERED = [
-    # Funciones (sin dependencias entre sí)
-    ('function', 'fn_price_with_tax',           'funciones/fn_price_with_tax.sql'),
-    ('function', 'fn_qualifies_free_shipping',   'funciones/fn_qualifies_free_shipping.sql'),
-    ('function', 'fn_stock_status',              'funciones/fn_stock_status.sql'),
-    # Vistas — v_published_catalog primero (otras vistas pueden depender de ella)
-    ('view',     'v_published_catalog',          'vistas/v_published_catalog.sql'),
-    ('view',     'v_featured_products',          'vistas/v_featured_products.sql'),
-    ('view',     'v_low_stock',                  'vistas/v_low_stock.sql'),
-    # Stored Procedures
-    ('procedure', 'sp_rpt_catalog_by_category',  'sps/sp_rpt_catalog_by_category.sql'),
-    ('procedure', 'sp_rpt_catalog_summary',      'sps/sp_rpt_catalog_summary.sql'),
-    ('procedure', 'sp_rpt_low_stock',            'sps/sp_rpt_low_stock.sql'),
-]
-
-
-def _db_object_exists(cursor, db_name: str, obj_type: str, obj_name: str) -> bool:
-    """Verifica si un SP, función o vista existe en la BD."""
-    if obj_type == 'procedure':
-        cursor.execute(
-            'SHOW PROCEDURE STATUS WHERE Db = %s AND Name = %s',
-            [db_name, obj_name],
-        )
-        return cursor.fetchone() is not None
-    elif obj_type == 'function':
-        cursor.execute(
-            'SHOW FUNCTION STATUS WHERE Db = %s AND Name = %s',
-            [db_name, obj_name],
-        )
-        return cursor.fetchone() is not None
-    elif obj_type == 'view':
-        cursor.execute(
-            'SELECT COUNT(*) FROM information_schema.VIEWS '
-            'WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s',
-            [db_name, obj_name],
-        )
-        row = cursor.fetchone()
-        return bool(row and row[0])
-    return False
-
-
-def _run_sql_file(sql_path: Path, db_settings: dict) -> bool:
-    """
-    Ejecuta un archivo SQL usando el cliente mariadb.
-    Usa MYSQL_PWD para no exponer la contraseña en la línea de comandos.
-    Retorna True si tuvo éxito.
-    """
-    env = {'MYSQL_PWD': db_settings.get('PASSWORD', '')}
-
-    cmd = ['mariadb', '--batch']
-
-    # Conexión — socket Unix tiene prioridad si está configurado
-    unix_socket = db_settings.get('OPTIONS', {}).get('unix_socket', '')
-    if unix_socket:
-        cmd += [f'--socket={unix_socket}']
-    else:
-        host = db_settings.get('HOST', '127.0.0.1')
-        port = str(db_settings.get('PORT', '3306'))
-        cmd += [f'--host={host}', f'--port={port}']
-
-    cmd += [
-        f'--user={db_settings.get("USER", "root")}',
-        db_settings.get('NAME', ''),
-    ]
-
-    try:
-        with open(sql_path, 'r', encoding='utf-8') as fh:
-            sql_content = fh.read()
-        result = subprocess.run(
-            cmd,
-            input=sql_content.encode('utf-8'),
-            capture_output=True,
-            timeout=30,
-            env={**__import__('os').environ, **env},
-        )
-        if result.returncode != 0:
-            stderr = result.stderr.decode('utf-8', errors='replace')[:500]
-            warnings.warn(
-                f'db_objects_setup: error ejecutando {sql_path.name}: {stderr}',
-                RuntimeWarning,
-                stacklevel=2,
-            )
-            return False
-        return True
-    except Exception as exc:
-        warnings.warn(
-            f'db_objects_setup: excepción ejecutando {sql_path.name}: {exc}',
-            RuntimeWarning,
-            stacklevel=2,
-        )
-        return False
-
-
-@pytest.fixture(scope='session', autouse=True)
-def db_objects_setup(django_db_setup, django_db_blocker):
-    """
-    Instala SPs, funciones y vistas en kaupamex_qa si no existen.
-
-    H-DB-01: cuando pytest-django recrea la BD con --create-db, los objetos
-    SQL instalados manualmente desaparecen. Este fixture los reinstala
-    automáticamente al comienzo de cada sesión de tests.
-
-    Orden: funciones → vistas (v_published_catalog primero) → SPs.
-    """
-    if not _DB_OBJETOS.exists():
-        raise RuntimeError(
-            f'db_objects_setup: no existe el directorio de objetos SQL en '
-            f'{_DB_OBJETOS} (repo hermano {_DB_REPO_NAME!r}). Sin SPs, '
-            f'funciones y vistas los tests de reportes fallan con '
-            f'"PROCEDURE ... does not exist", lejos de la causa real. '
-            f'Clonar el repo db como hermano de {_REPO_ROOT.name!r}.'
-        )
-
-    db_settings = connection.settings_dict
-    db_name     = db_settings.get('NAME', '')
-
-    with django_db_blocker.unblock():
-        with connection.cursor() as cursor:
-            for obj_type, obj_name, rel_path in _DB_OBJECTS_ORDERED:
-                sql_path = _DB_OBJETOS / rel_path
-                if not sql_path.exists():
-                    raise RuntimeError(
-                        f'db_objects_setup: SQL no encontrado: {sql_path}. '
-                        f'El inventario _DB_OBJECTS_ORDERED quedó desfasado '
-                        f'del repo db.'
-                    )
-
-                if _db_object_exists(cursor, db_name, obj_type, obj_name):
-                    continue  # ya instalado — no reinstalar
-
-                success = _run_sql_file(sql_path, db_settings)
-                if not success:
-                    raise RuntimeError(
-                        f'db_objects_setup: falló la instalación de {obj_name} '
-                        f'({obj_type}) desde {sql_path}. Los tests que lo usan '
-                        f'fallarían con "does not exist", lejos de la causa.'
-                    )
+# El fixture no se sustituye por nada: sin objetos que instalar no hay paso que
+# dar. Si vuelve a hacer falta una vista de reporte, se declara como modelo
+# Python en el addon dueño, y entonces la crea la migración — no un fixture.

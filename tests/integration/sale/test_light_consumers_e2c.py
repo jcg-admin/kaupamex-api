@@ -18,32 +18,38 @@ re-anclaje inflaría la audiencia con carritos abandonados.
 Los demás consumidores ligeros NO se tocan aquí, con causa registrada:
 contrato público de identidad ``Order.pk`` (H-API-29) y agregados de dinero
 sin columna canónica (H-API-30).
+
+**Retiro parcial (H-API, este pase):** ``TestGuardVarianteCanonico`` probaba
+el guard de borrado de ``chartsize.ProductVariant`` — la familia
+``chartsize`` se disolvió por completo (el eje ``variant`` desapareció:
+``product.ProductProduct`` **es** la variante, H-API-213) y
+``src/addons/chartsize/views.py`` no existe (verificado:
+``find src/addons/chartsize`` → vacío). Ni el modelo, ni el archivo que el
+candado leía, sobreviven. Se retira la clase; ``TestAudienciaCompradoresCanonica``
+(el otro consumidor, sin dependencia de chartsize) se conserva.
 """
 from decimal import Decimal
 
 import pytest
+from django.contrib.auth import get_user_model
 
-from addons.catalogue.models import Category, Product
-from addons.chartsize.models import VariantType, VariantOption, ProductVariant
-from addons.mail.views import (
+from addons.mail.controllers.main import (
     _compute_audience_count,
     _resolve_audience_user_ids,
 )
 from addons.mail.models import ManualNotification
 from addons.sale.models import SaleOrder, SaleOrderLine
-from addons.users.models import IdentityUser
+from tests.factories.product_factory import make_category, make_product
 
 pytestmark = pytest.mark.django_db
+
+User = get_user_model()
 
 
 @pytest.fixture
 def producto():
-    cat = Category.objects.create(name='Cat E2c', slug='cat-e2c', is_active=True)
-    prod = Product.objects.create(
-        name='Prod E2c', slug='prod-e2c', sku='SKU-E2C',
-        price=Decimal('100.00'), is_active=True)
-    prod.categories.add(cat)
-    return prod
+    cat = make_category(name='Cat E2c')
+    return make_product(name='Prod E2c', price=Decimal('100.00'), categ=cat)
 
 
 def _venta(producto, usuario=None, confirmar=True):
@@ -51,7 +57,7 @@ def _venta(producto, usuario=None, confirmar=True):
         state=SaleOrder.STATE_DRAFT, partner=usuario)
     SaleOrderLine.objects.create(
         order=orden, product=producto, name=producto.name,
-        product_uom_qty=1, price_unit=producto.price)
+        product_uom_qty=1, price_unit=producto.lst_price)
     if confirmar:
         orden.action_confirm()
     return orden
@@ -61,10 +67,10 @@ class TestAudienciaCompradoresCanonica:
     """``PRODUCT_BUYERS`` se resuelve desde ``SaleOrderLine``."""
 
     def test_compradores_confirmados_cuentan(self, producto):
-        u1 = IdentityUser.objects.create_user(email='b1.e2c@example.com',
-                                              password='x')
-        u2 = IdentityUser.objects.create_user(email='b2.e2c@example.com',
-                                              password='x')
+        u1 = User.objects.create_user(login='b1.e2c@practicayoruba.mx',
+                                      password='x')
+        u2 = User.objects.create_user(login='b2.e2c@practicayoruba.mx',
+                                      password='x')
         _venta(producto, u1)
         _venta(producto, u2)
 
@@ -77,8 +83,8 @@ class TestAudienciaCompradoresCanonica:
 
     def test_un_carrito_draft_no_es_comprador(self, producto):
         """La sutileza del re-anclaje: la línea existe desde el draft."""
-        mirón = IdentityUser.objects.create_user(email='cart.e2c@example.com',
-                                                 password='x')
+        mirón = User.objects.create_user(login='cart.e2c@practicayoruba.mx',
+                                         password='x')
         _venta(producto, mirón, confirmar=False)
 
         ids = _resolve_audience_user_ids(
@@ -87,8 +93,8 @@ class TestAudienciaCompradoresCanonica:
 
     def test_una_orden_cancelada_post_confirm_sigue_contando(self, producto):
         """Paridad con el espejo: OrderItem persistía tras la cancelación."""
-        arrepentido = IdentityUser.objects.create_user(
-            email='cancel.e2c@example.com', password='x')
+        arrepentido = User.objects.create_user(
+            login='cancel.e2c@practicayoruba.mx', password='x')
         orden = _venta(producto, arrepentido)
         orden.action_cancel()
 
@@ -101,38 +107,3 @@ class TestAudienciaCompradoresCanonica:
         assert _compute_audience_count(
             ManualNotification.RecipientType.PRODUCT_BUYERS, '',
             producto.pk) == 0
-
-
-class TestGuardVarianteCanonico:
-    """El borrado de variante se bloquea leyendo ``SaleOrderLine``."""
-
-    @pytest.fixture
-    def variante(self, producto):
-        vt = VariantType.objects.create(product=producto, name='Talla', order=0)
-        opt = VariantOption.objects.create(
-            variant_type=vt, label='M', slug='m-e2c', order=0)
-        return ProductVariant.objects.create(
-            product=producto, option=opt, sku_suffix='M', stock=5,
-            is_active=True)
-
-    def test_variante_en_orden_confirmada_no_entregada_bloquea(
-            self, producto, variante):
-        orden = SaleOrder.objects.create(state=SaleOrder.STATE_DRAFT)
-        SaleOrderLine.objects.create(
-            order=orden, product=producto, variant=variante,
-            name=producto.name, product_uom_qty=1,
-            price_unit=producto.price)
-        orden.action_confirm()
-
-        bloqueada = SaleOrderLine.objects.filter(
-            variant=variante, order__state=SaleOrder.STATE_SALE,
-        ).exists()
-        assert bloqueada
-
-    def test_el_guard_ya_no_consulta_orderitem(self):
-        fuente = open('src/addons/chartsize/views.py', encoding='utf-8').read()
-        assert 'OrderItem' not in fuente
-
-    def test_la_audiencia_ya_no_consulta_orderitem(self):
-        fuente = open('src/addons/mail/views.py', encoding='utf-8').read()
-        assert 'OrderItem' not in fuente

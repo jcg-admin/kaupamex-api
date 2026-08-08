@@ -20,18 +20,48 @@ dependencies = [
     "drf-spectacular==0.29.0",
     # Configuracion (.env tolerante a sin-comillas; ver diagnostico-env)
     "python-decouple==3.8",
-    # Base de datos
-    "mysqlclient==2.2.1",
+    # Base de datos — PostgreSQL, el motor de la referencia (iniciativa
+    # migrar-motor-mariadb-a-postgresql). psycopg 3 es el driver que Django 6
+    # prefiere; el 2 sigue soportado pero es el camino de salida.
+    "psycopg[binary]>=3.2",
     "certifi>=2024.0.0",
     # Imagenes / media
     "Pillow>=10.3.0",
     # Seguridad
     "cryptography>=42.0.0",
+    # Passkeys / WebAuthn (addons.authz_passkey). La referencia VENDORIZA esta
+    # libreria en auth_passkey/_vendor/webauthn (4537 loc); aqui se declara como
+    # dependencia porque el proyecto tiene uv + lock y copiarla seria peor
+    # (sin CVEs, sin upgrades). Ver H-API-228.
+    "webauthn>=2.8.0",
+    # HTTP saliente (addons.authz_oauth valida access_tokens contra el
+    # proveedor). Ya llegaba transitivo via mercadopago; se declara directo
+    # porque ahora hay imports propios (uv no garantiza transitivas).
+    "requests>=2.31.0",
     # Pagos
     "mercadopago>=2.2.0",
     # CORS
     "django-cors-headers==4.9.0",
     "xlsxwriter>=3.2.9",
+    # Servidor de aplicacion WSGI embebido (ADR-027). Es dependencia de
+    # PRODUCCION a proposito: el producto L0 se distribuye a terceros y debe
+    # servir HTTP por si mismo, sin asumir Apache+mod_wsgi en el destino. La
+    # referencia publica su propia invocacion de Gunicorn en
+    # odoo19c: setup/odoo-wsgi.example.py (odoo-tools@622ddc2a).
+    "gunicorn>=23.0.0",
+    "lxml>=6.1.1",
+]
+
+[project.optional-dependencies]
+# Federacion LDAP (addons.authz_ldap). OPCIONAL a proposito: la referencia
+# tambien la declara asi —auth_ldap/__manifest__.py:
+# external_dependencies={'python': ['python-ldap'], 'apt': {...: 'python3-ldap'}}—
+# porque python-ldap compila contra libldap/libsasl del sistema. Sin el paquete
+# apt (libldap2-dev libsasl2-dev) la rueda NO compila. El addon carga igual y
+# degrada: LDAP_AVAILABLE=False y todo intento de autenticar levanta un error
+# explicito. Instalar con:  uv sync --extra ldap
+ldap = [
+    "python-ldap>=3.4.0",
 ]
 
 [dependency-groups]

@@ -31,7 +31,7 @@ class StockValuationAdjustment(TimeStampedModel):
         related_name='landed_cost_adjustments', help_text='Movimiento (Odoo move_id).',
     )
     product                = fields.Many2one(
-        'catalogue.Product', on_delete=models.CASCADE,
+        'product.ProductProduct', on_delete=models.CASCADE,
         related_name='landed_cost_adjustments', help_text='Producto (Odoo product_id).',
     )
     quantity               = fields.Monetary(

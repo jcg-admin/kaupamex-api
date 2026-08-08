@@ -79,7 +79,7 @@ def resolve_capabilities(user):
     )
 
     # Gate L1-a (DEC-T7 / SOL-085): filtra las capacidades L2 por los módulos
-    # con suscripción activa de la Company del usuario. ``company=None`` (operador
+    # con suscripción activa de la ResCompany del usuario. ``company=None`` (operador
     # L0 cross-company o usuario sin asignar) → sin gate. Se aplica al origen de
     # las capacidades (roles + directas); las revocaciones nunca se filtran.
     company = getattr(user, 'company', None)

@@ -3,23 +3,20 @@ from decimal import Decimal
 
 import pytest
 
-from addons.catalogue.models import Category, Product
 from addons.sale.models import SaleOrder, SaleOrderLine
 from addons.sale_margin.models import SaleOrderLineMargin
+from tests.factories.product_factory import make_category, make_product
 
 pytestmark = pytest.mark.integration
 
 
 @pytest.fixture
 def producto(db):
-    cat = Category.objects.create(name='Cat M', slug='cat-margin', is_active=True)
-    p = Product.objects.create(
-        name='Prod M', slug='prod-margin', sku='MRG-001',
-        description='', price=Decimal('100.00'), cost=Decimal('60.00'), stock=5,
-        is_active=True, is_published=True,
+    cat = make_category(name='Cat M')
+    return make_product(
+        name='Prod M', price=Decimal('100.00'), stock=5, categ=cat,
+        standard_price=Decimal('60.00'),
     )
-    p.categories.add(cat)
-    return p
 
 
 def test_margin_from_product_cost(producto):
@@ -40,7 +37,8 @@ def test_capture_purchase_price_snapshot(producto):
     m.capture_purchase_price()
     assert m.purchase_price == Decimal('60.00')
     # cambiar el costo del producto no altera el snapshot ya congelado
-    producto.cost = Decimal('80.00'); producto.save()
+    producto.standard_price = Decimal('80.00')
+    producto.save()
     m.refresh_from_db()
     assert m._cost_snapshot() == Decimal('60.00')
 

@@ -55,14 +55,37 @@ MP_STATUS_MAP = {
 }
 
 
+def _product_lines(order):
+    """Renglones de producto de la venta, sin las líneas marcadoras.
+
+    ``is_delivery``/``is_reward`` son términos del total (envío y descuento),
+    no partidas que el gateway deba listar; el espejo tampoco las incluía
+    porque sus ``OrderItem`` eran de producto por contrato.
+    """
+    return (order.order_line
+            .filter(is_delivery=False, is_reward=False)
+            .select_related('product', 'variant__option')
+            .order_by('id'))
+
+
 def _split_payer_name(order) -> tuple[str, str]:
     """
     Deriva (first_name, last_name) del comprador. Prefiere el nombre de la
-    cuenta (order.user); si no, parte el recipient_name de la dirección.
+    cuenta (order.partner); si no, parte el recipient_name de la dirección.
+
+    La referencia no separa nombre y apellido: ``res.partner`` tiene un solo
+    ``name`` (``odoo19c: base/models/res_partner.py``), y ``res.users`` lo
+    delega por ``_inherits``. ``user.first_name``/``last_name`` no existen en
+    ``ResUsers`` — se parte ``user.name`` con el mismo criterio que ya se
+    aplica al ``recipient_name`` de la dirección, unos renglones abajo.
     """
     user = getattr(order, 'user', None)
-    if user and (user.first_name or user.last_name):
-        return user.first_name or '', user.last_name or ''
+    account_name = (getattr(user, 'name', '') or '').strip() if user else ''
+    if account_name:
+        parts = account_name.split()
+        if len(parts) == 1:
+            return parts[0], ''
+        return parts[0], ' '.join(parts[1:])
     addr = getattr(order, 'address', None)
     full = (getattr(addr, 'recipient_name', '') or '').strip()
     if not full:
@@ -121,14 +144,17 @@ def _build_additional_info(order) -> dict:
     """
     info: dict = {}
 
+    # Sólo renglones de producto, como cuando los aportaba el espejo: las
+    # líneas marcadoras de envío y descuento son términos del total, no
+    # partidas que el gateway deba listar.
     items = [
         {
             'id':         str(item.pk),
-            'title':      item.product_name,
-            'quantity':   item.quantity,
-            'unit_price': _money_number(item.unit_price),
+            'title':      item.name,
+            'quantity':   item.product_uom_qty,
+            'unit_price': _money_number(item.price_unit),
         }
-        for item in order.items.all()
+        for item in _product_lines(order)
     ]
     if items:
         info['items'] = items
@@ -255,7 +281,7 @@ def _build_order_payload(
 
     Función pura: no hace red; determinística desde ``order``.
     """
-    total = _amount_str(order.value.total)
+    total = _amount_str(order.amount_total)
 
     payment_method = _build_order_payment_method(
         payment_method_id, payment_type, token, installments, statement_descriptor,
@@ -273,7 +299,7 @@ def _build_order_payload(
 
     email_resolved = (
         payer_email
-        or (order.user.email if order.user else '')
+        or (order.partner.email if order.partner_id else '')
         or getattr(order, 'guest_email', '')
         or 'guest@practicayoruba.mx'
     )
@@ -297,7 +323,7 @@ def _build_order_payload(
 
     payload = {
         'type':               'online',
-        'external_reference':  order.order_number,
+        'external_reference':  order.name,
         'total_amount':        total,
         'processing_mode':     'automatic',
         'capture_mode':        'automatic',
@@ -365,7 +391,7 @@ class MercadoPagoGateway(BaseGateway):
         - payer: email del comprador o guest_email
         - back_urls: success, failure, pending
         - auto_return: 'approved'
-        - external_reference: order.order_number para correlacionar el webhook
+        - external_reference: order.name para correlacionar el webhook
         - installments (solo si > 1): configuración de cuotas MSI
         """
         sdk = _get_sdk()
@@ -374,18 +400,19 @@ class MercadoPagoGateway(BaseGateway):
         items = [
             {
                 'id':          str(item.pk),
-                'title':       item.product_name,
-                'description': f'{item.variant_label}' if item.variant_label else '',
-                'quantity':    item.quantity,
-                'unit_price':  _money_number(item.unit_price),
+                'title':       item.name,
+                'description': (item.variant.option.label if item.variant_id
+                                else ''),
+                'quantity':    item.product_uom_qty,
+                'unit_price':  _money_number(item.price_unit),
                 'currency_id': 'MXN',
             }
-            for item in order.items.all()
+            for item in _product_lines(order)
         ]
 
         # Email del comprador (autenticado o invitado)
         payer_email = (
-            order.user.email if order.user
+            order.partner.email if order.partner_id
             else order.guest_email or 'guest@practicayoruba.com'
         )
 
@@ -394,7 +421,7 @@ class MercadoPagoGateway(BaseGateway):
             'payer':              _build_preference_payer(order, payer_email),
             'back_urls':          back_urls,
             'auto_return':        'approved',
-            'external_reference': order.order_number,
+            'external_reference': order.name,
         }
 
         # Calidad de integración MP: dirección de envío da señales al motor
@@ -572,7 +599,7 @@ class MercadoPagoGateway(BaseGateway):
         )
 
     def search_order(self, external_reference: str) -> dict:
-        """Busca orders por ``external_reference`` (order_number) — T-403.
+        """Busca ventas por ``external_reference`` (``SaleOrder.name``) — T-403.
 
         Reconciliación cuando se pierde el webhook (rescate N2): recupera el
         estado real de la order desde MP. Retorna el ``response`` del SDK (dict
@@ -718,7 +745,7 @@ class MercadoPagoGateway(BaseGateway):
             mp_order_id           = str(data.get('id') or ''),
             status                = map_order_payment_status(pay_status, pay_detail),
             status_detail         = pay_detail,
-            amount                = Decimal(str(pay.get('amount') or order.value.total)),
+            amount                = Decimal(str(pay.get('amount') or order.amount_total)),
             installments          = pay_method.get('installments', installments),
             external_resource_url = external_resource_url,
             date_of_expiration    = date_of_expiration,

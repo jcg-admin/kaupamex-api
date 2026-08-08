@@ -19,7 +19,7 @@ class StockQuant(TimeStampedModel):
     """``stock.quant`` — existencia de un producto en una ubicación."""
 
     product           = fields.Many2one(
-        'catalogue.Product', on_delete=models.CASCADE, related_name='quants',
+        'product.ProductProduct', on_delete=models.CASCADE, related_name='quants',
         help_text='Producto (Odoo product_id).',
     )
     location          = fields.Many2one(

@@ -20,7 +20,7 @@ class StockValuationLayer(TimeStampedModel):
     """``stock.valuation.layer`` — una capa de valoración de inventario."""
 
     product         = fields.Many2one(
-        'catalogue.Product', on_delete=models.CASCADE, related_name='valuation_layers',
+        'product.ProductProduct', on_delete=models.CASCADE, related_name='valuation_layers',
         help_text='Producto (Odoo product_id).',
     )
     quantity        = fields.Monetary(

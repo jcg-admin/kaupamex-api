@@ -6,15 +6,15 @@ Un archivo por modelo (monolito modular, como Odoo):
 - ``base_geocoder.py`` -> ``GeoProvider`` (catálogo) + ``Geocoder`` (servicio,
   ``base.geocoder`` de Odoo — ``AbstractModel`` sin tabla) +
   ``GeoProviderNotImplemented``.
-- ``res_partner.py`` -> ``AddressGeolocation`` (lat/lng/fecha RELATED sobre
-  ``users.Address``).
+- ``res_partner.py`` -> ``PartnerGeolocation`` (lat/lng/fecha RELATED sobre
+  ``base.ResPartner``).
 """
 from .base_geocoder import Geocoder, GeoProvider, GeoProviderNotImplemented
-from .res_partner import AddressGeolocation
+from .res_partner import PartnerGeolocation
 
 __all__ = [
     'GeoProvider',
     'Geocoder',
     'GeoProviderNotImplemented',
-    'AddressGeolocation',
+    'PartnerGeolocation',
 ]

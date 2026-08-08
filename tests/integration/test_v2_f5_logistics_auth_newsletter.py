@@ -1,6 +1,6 @@
 """
 Tests de integracion — API v2 F5: logistics, newsletter, contact,
-settings/pages, backups, reports, auth §2.1
+settings/pages, backups, auth §2.1
 
 Verifica los endpoints /api/v2/ para el bloque F5. F7 elimino
 la coexistencia v1/v2 — los tests de doble-corrida se removieron.
@@ -24,12 +24,14 @@ V2_ADMIN_CONTACT_REP = lambda pk: f'/api/v2/admin/contact/messages/{pk}/replies/
 V2_ADMIN_PAGE_STATUS = lambda slug: f'/api/v2/admin/pages/{slug}/status/'
 V2_ADMIN_PAGE_REST   = lambda slug: f'/api/v2/admin/pages/{slug}/restorations/'
 V2_ADMIN_BACKUPS     = '/api/v2/admin/backups/'
-V2_ADMIN_REPORT_EXP  = lambda slug: f'/api/v2/admin/reports/{slug}/exports/'
-V2_AUTH_EMAIL_VER    = '/api/v2/auth/email-verifications/'
-V2_AUTH_PWD_RESETS   = '/api/v2/auth/password-resets/'
-V2_AUTH_PWD_CONFIRM  = '/api/v2/auth/password-resets/confirm/'
-V2_AUTH_ME           = '/api/v2/auth/me/'
-V2_AUTH_SESSIONS     = '/api/v2/auth/sessions/'
+# El prefijo /api/v2/auth/ nunca existió: el alta y el reset viven en
+# ``authz_signup``, la cuenta propia en ``portal`` y la sesión en ``web``.
+# Ver el triage de rutas y H-API-279.
+V2_AUTH_EMAIL_VER    = '/api/v2/authz/verify-email/'      # PENDIENTE (sin módulo de tokens)
+V2_AUTH_PWD_RESETS   = '/api/v2/authz/request-reset/'
+V2_AUTH_PWD_CONFIRM  = '/api/v2/authz/signup/'            # set-password con token
+V2_AUTH_ME           = '/api/v2/portal/deactivations/'
+V2_AUTH_SESSIONS     = '/api/v2/web/session/destroy/'
 
 
 # ─── Logistics / Shipments ───────────────────────────────────────────────────
@@ -80,7 +82,7 @@ class TestShipmentsV2Auth:
 
 class TestNewsletterSubscriptionsV2:
     def test_subscribe_201(self, api_client, db):
-        with patch('addons.website_mass_mailing.views.subscribe._send_confirmation_email'):
+        with patch('addons.website_mass_mailing.controllers.subscribe._send_confirmation_email'):
             r = api_client.post(V2_NEWSLETTER_SUBS,
                                 {'email': 'v2test@example.com'},
                                 format='json')
@@ -200,29 +202,34 @@ class TestBackupsV2:
         assert r.status_code == 403
 
 
-# ─── Reports v2 ──────────────────────────────────────────────────────────────
-
-class TestReportsV2:
-    def test_export_unauthenticated_401(self, api_client):
-        r = api_client.post(V2_ADMIN_REPORT_EXP('sales'), {})
-        assert r.status_code == 401
-
-    def test_export_non_admin_403(self, auth_client):
-        r = auth_client.post(V2_ADMIN_REPORT_EXP('sales'), {})
-        assert r.status_code == 403
+# ─── Reports v2 — RETIRADA, no hay superficie que probar ─────────────────────
+#
+# ``/api/v2/admin/reports/<slug>/exports/`` no existe y **no se va a crear**.
+# Medido sobre ``odoo-tools@622ddc2a``: en todo ``odoo19c:`` no hay una sola
+# ``@route`` cuyo path contenga ``report``; el reporte es un **modelo**, no una
+# superficie HTTP — ``odoo19c: addons/sale/report/sale_report.py:10`` declara
+# ``_auto = False`` (vista SQL de sólo lectura), igual en ``odoo18c:``.
+#
+# Crear el endpoint sería invención, no adaptación — mismo criterio ya aplicado
+# a ``admin/users/*`` en H-API-279. Los dos tests que lo ejercían se eliminan.
 
 
 # ─── Auth §2.1 v2 ────────────────────────────────────────────────────────────
 
 class TestAuthV2EmailVerifications:
-    def test_no_token_routes_to_resend_200(self, api_client, db):
+    """PENDIENTE — el módulo de tokens de correo no existe.
+
+    H-API-252 midió ``send_verification_email`` → 0 hits en ``src/``. Estos
+    dos quedan rojos a propósito: son el inventario ejecutable del hueco.
+    """
+
+    def test_resend_verification(self, api_client, db):
         r = api_client.post(V2_AUTH_EMAIL_VER,
-                            {'email': 'nobody@example.com'},
+                            {'login': 'nobody@example.com'},
                             format='json')
-        # No 'token' key → resend path; unknown email → silent 200 (anti-enum)
         assert r.status_code == 200
 
-    def test_token_key_routes_to_verify_invalid_400(self, api_client, db):
+    def test_invalid_token_returns_400(self, api_client, db):
         r = api_client.post(V2_AUTH_EMAIL_VER,
                             {'token': 'invalid-token'},
                             format='json')
@@ -230,16 +237,24 @@ class TestAuthV2EmailVerifications:
 
 
 class TestAuthV2PasswordResets:
-    def test_request_missing_email_400(self, api_client, db):
+    """Reset de contraseña — ``authz_signup``.
+
+    El campo es ``login``, no ``email``: la credencial de acceso es el login
+    (``ResUsers.USERNAME_FIELD``), y el correo llega delegado del partner.
+    """
+
+    def test_request_missing_login_400(self, api_client, db):
         r = api_client.post(V2_AUTH_PWD_RESETS, {}, format='json')
         assert r.status_code == 400
 
-    def test_request_valid_email_200(self, api_client, db):
+    def test_request_unknown_login_is_silent(self, api_client, db):
         r = api_client.post(V2_AUTH_PWD_RESETS,
-                            {'email': 'nobody@example.com'},
+                            {'login': 'nobody@example.com'},
                             format='json')
-        # silent OK even if email not found (anti-enumeration)
-        assert r.status_code == 200
+        # 202, no 200: la petición se acepta pero el envío es asíncrono y
+        # sólo ocurre si hay cuenta. Mismo código para login inexistente —
+        # distinguirlos revelaría qué cuentas existen.
+        assert r.status_code == 202
 
     def test_confirm_missing_fields_400(self, api_client, db):
         r = api_client.post(V2_AUTH_PWD_CONFIRM, {}, format='json')
@@ -247,17 +262,25 @@ class TestAuthV2PasswordResets:
 
 
 class TestAuthV2Me:
-    def test_delete_unauthenticated_401(self, api_client):
-        r = api_client.delete(V2_AUTH_ME)
+    """Baja de cuenta — ≙ ``/my/deactivate_account`` de ``odoo19c: portal``."""
+
+    def test_unauthenticated_401(self, api_client):
+        # POST, no DELETE: la referencia modela la baja como una ACCIÓN sobre
+        # la cuenta (``deactivate_account``), no como el borrado del recurso —
+        # ``ResPartner.active`` se apaga, la fila se conserva.
+        r = api_client.post(V2_AUTH_ME)
         assert r.status_code == 401
 
 
 class TestAuthV2Sessions:
-    def test_delete_unauthenticated_401(self, api_client):
-        r = api_client.delete(V2_AUTH_SESSIONS)
+    """Cierre de sesión — ``web`` (≙ ``/web/session/destroy``)."""
+
+    def test_unauthenticated_401(self, api_client):
+        r = api_client.post(V2_AUTH_SESSIONS)
         assert r.status_code == 401
 
-    def test_delete_authenticated_200(self, auth_client):
-        r = auth_client.delete(V2_AUTH_SESSIONS)
-        assert r.status_code == 200
+    def test_authenticated_closes_session(self, auth_client):
+        # 204, no 200: cerrar sesión no devuelve cuerpo.
+        r = auth_client.post(V2_AUTH_SESSIONS)
+        assert r.status_code == 204
 

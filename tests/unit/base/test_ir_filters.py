@@ -30,7 +30,7 @@ def test_importable_desde_addons_base_models():
 
 # --- db_table / app_label fieles a Odoo ------------------------------------
 
-def test_db_table_fiel_a_odoo():
+def test_db_table_matches_reference():
     assert IrFilters._meta.db_table == 'ir_filters'
     assert IrFilters._meta.app_label == 'base'
 

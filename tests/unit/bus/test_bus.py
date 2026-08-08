@@ -99,7 +99,7 @@ def test_gc_borra_lo_viejo_y_conserva_lo_reciente(_):
     )
     BusMessage.sendone('c1', 't', {'n': 'nuevo'})
 
-    borrados = BusMessage.gc_messages()
+    borrados = BusMessage._gc_messages()
 
     assert borrados == 1
     assert [m.payload()['payload']['n'] for m in BusMessage.objects.all()] == ['nuevo']
@@ -114,7 +114,7 @@ def test_gc_lee_la_retencion_de_system_parameter(_):
         created_at=timezone.now() - datetime.timedelta(seconds=120),
     )
 
-    assert BusMessage.gc_messages() == 1
+    assert BusMessage._gc_messages() == 1
 
 
 # --- El mixin: punto de extensión (bus_listener_mixin.py) ------------------

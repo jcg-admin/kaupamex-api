@@ -1,7 +1,7 @@
 """Contrato de ``IrLogging`` (``ir.logging``) — portación fiel de Odoo,
 DEC-08 slice 2 de ``adoptar-arquitectura-server-service-odoo``.
 
-Reemplaza a ``core.AppLog`` (ver ``addons/base/models/ir_logging_log.py`` para
+Reemplaza a ``core.AppLog`` (ver ``addons/base/models/ir_logging.py`` para
 el mapeo de campos completo). Verifica:
 
 - importable desde el hogar canónico ``addons.base.models``,
@@ -36,12 +36,12 @@ def _make_ir_logging():
 # --- Importable desde el hogar canónico ------------------------------------
 
 def test_importable_desde_addons_base_models():
-    assert IrLogging.__module__ == 'addons.base.models.ir_logging_log'
+    assert IrLogging.__module__ == 'addons.base.models.ir_logging'
 
 
 # --- db_table fiel a Odoo ---------------------------------------------------
 
-def test_db_table_fiel_a_odoo():
+def test_db_table_matches_reference():
     assert IrLogging._meta.db_table == 'ir_logging'
     assert IrLogging._meta.app_label == 'base'
 

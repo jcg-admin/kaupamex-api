@@ -1,12 +1,24 @@
-"""Seed idempotente del catálogo authz — módulos, capacidades y rol superadmin.
+"""Seed idempotente del catálogo authz — **recolector**, no fuente (#179).
 
 **DEC-11 (sustantivo + nivel).** Las capacidades **CRUD** se siembran como
-**sustantivo puro** (``catalogue``, ``orders``, …): el nivel de acceso
+**sustantivo puro** (``catalogue``, ``payments``, …): el nivel de acceso
 (``VIEW<CREATE<EDIT<FULL``) vive en ``RoleCapability.level``, no en el código.
 El resolver expande ``noun@nivel → {noun.view, noun.create, noun.edit,
 noun.full}`` (``addons.authz.services.resolve_capabilities``). Las **acciones
-nombradas** (``account.*``, ``inventory.adjust``/``import``, ``reports.export``,
+nombradas** (``account.*``, ``inventory.adjust``/``import``, ``finance.close``,
 ``platform.provision``) se siembran **con punto** (membresía, sin nivel).
+
+**Qué cambió (SOL-100).** Este comando **ya no declara** el catálogo: lo
+**recoge**. Cada addon declara sus ``ModuleSpec``/``CapabilitySpec`` en su
+propio ``authz_catalog.py`` y ``addons.authz.declaration.discover()`` los junta
+recorriendo ``INSTALLED_APPS``.
+
+El motivo es medido, no estético: mientras las listas vivieron aquí, agregar un
+addon no agregaba nada al catálogo —había que acordarse de editar este
+archivo—, y el resultado fue H-API-106 (9 de 77 carpetas con ``Module.code``
+homónimo; el código ``orders`` sobreviviendo al addon retirado en
+``api@77bd1f0`` con cuatro aristas colgando). Con la declaración en el addon,
+el catálogo nace y muere con su dueño.
 
 El rol ``superadmin`` agrupa todas las capacidades a nivel FULL (default de
 ``RoleCapability``) y además hace *bypass* en el resolver. Idempotente
@@ -14,144 +26,14 @@ El rol ``superadmin`` agrupa todas las capacidades a nivel FULL (default de
 
 Uso: ``python manage.py seed_authz [--skip-checks]``.
 """
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
+from addons.authz.declaration import (
+    discover, orphan_capabilities, unknown_depends,
+)
 from addons.authz.models import Capability, Module, Role
 from addons.authz.services import BUYER_ROLE_CODE, SUPERADMIN_ROLE_CODE
-
-# Capacidades CRUD (sustantivo, sin punto). ``(noun, is_sensitive)``. El nivel
-# se asigna en RoleCapability; el nombre proviene de _MODULE_NAMES (1:1 noun↔módulo).
-CRUD_NOUNS = [
-    ('audit',         False),
-    ('backups',       True),
-    ('banners',       False),
-    ('catalogue',     False),
-    ('content',       False),
-    ('finance',       True),
-    ('inventory',     False),
-    ('invoices',      True),
-    ('logistics',     False),
-    ('moderation',    False),
-    ('newsletter',    False),
-    ('notifications', False),
-    ('orders',        False),
-    ('payments',      True),
-    ('permissions',   True),
-    ('platform',      True),
-    ('questions',     False),
-    ('reports',       False),
-    ('returns',       False),
-    ('seo',           False),
-    ('settings',      True),
-    ('support',       False),
-    ('users',         True),
-    ('vouchers',      False),
-]
-
-# Acciones nombradas (con punto → membresía, sin nivel). ``(code, name, is_sensitive)``.
-NAMED_ACTIONS = [
-    ('account.overview',      'Ver resumen de cuenta',            False),
-    ('account.orders',        'Ver mis pedidos',                  False),
-    ('account.wishlist',      'Ver mis favoritos',                False),
-    ('account.returns',       'Ver mis devoluciones',             False),
-    ('account.support',       'Ver mi soporte',                   False),
-    ('account.notifications', 'Ver mis notificaciones',           False),
-    ('account.bus',          'Leer mi canal de eventos',         False),
-    ('account.profile',       'Ver mi perfil',                    False),
-    ('account.password',      'Cambiar mi contraseña',            False),
-    ('account.security',      'Gestionar mi verificación 2FA',    False),
-    ('account.deactivate',    'Dar de baja mi cuenta',            False),
-    ('account.reviews',       'Ver y escribir mis reseñas',       False),
-    ('account.referral',      'Ver mi programa de referidos',     False),
-    ('account.payments',      'Ver mi historial y tarjetas',      False),
-    ('account.shipments',     'Ver el seguimiento de mis envíos', False),
-    ('inventory.adjust',      'Ajustar existencias',              True),
-    ('inventory.import',      'Importar inventario',              True),
-    ('reports.export',        'Exportar reportes',                False),
-    ('platform.provision',    'Provisionar la plataforma (operador Kaupamex L0)', True),
-    ('platform.billing',      'Facturar y cobrar suscripciones (operador Kaupamex L0)', True),
-    # MOD-028 FINANCE — acciones SoD (segregacion de funciones, UC-FIN-01..08).
-    ('finance.record',        'Registrar movimiento/concepto financiero',  True),
-    ('finance.reconcile',     'Conciliar liquidaciones del gateway',       True),
-    ('finance.disburse',      'Pagar flete / cancelar-reembolsar cobro',   True),
-    ('finance.close',         'Sellar corte de caja / cerrar ejercicio',   True),
-]
-
-_MODULE_NAMES = {
-    'audit': 'Auditoría', 'backups': 'Respaldos', 'banners': 'Banners',
-    'catalogue': 'Catálogo', 'content': 'Contenido', 'finance': 'Finanzas',
-    'inventory': 'Inventario',
-    'invoices': 'Facturas', 'logistics': 'Logística', 'moderation': 'Moderación',
-    'newsletter': 'Newsletter', 'notifications': 'Notificaciones',
-    'orders': 'Pedidos', 'payments': 'Pagos', 'permissions': 'Permisos',
-    'platform': 'Plataforma', 'questions': 'Preguntas de producto',
-    'reports': 'Reportes', 'returns': 'Devoluciones', 'seo': 'SEO',
-    'settings': 'Configuración', 'support': 'Soporte', 'users': 'Usuarios',
-    'vouchers': 'Cupones', 'account': 'Mi cuenta',
-}
-
-# Grafo de dependencias entre módulos (SOL-085 S3): activar un módulo para una
-# company exige sus ``depends`` activos. Dependencias funcionales reales; sólo
-# se declaran deps directas (transitivamente correcto — ver Module.depends).
-MODULE_DEPENDS = {
-    'inventory': ['catalogue'],              # stock es por producto
-    'orders':    ['catalogue', 'inventory'],  # no hay pedido sin catálogo + stock
-    'payments':  ['orders'],                 # el pago es contra un pedido
-    'invoices':  ['orders'],                 # se factura un pedido
-    'logistics': ['orders'],                 # se envía un pedido
-    'returns':   ['orders'],                 # se devuelve un pedido
-}
-
-
-# Catálogo L0 de NUESTROS módulos (diseno-catalogo-l0-module-extendido, #179).
-# ``is_application`` = app vendible top-level vs módulo técnico (dependencia
-# interna) — clasificación ESTRUCTURAL (INFERRED, ratificable: es dato editable
-# en runtime). ``category`` = agrupación funcional de catálogo. **``tier`` NO se
-# fija aquí**: el modelo de precios (free/paid por módulo) es GAP 4 / #180
-# (billing L0 abierto); todos quedan en el default ``free`` hasta esa decisión.
-# ``category`` = **familia funcional ERP** (taxonomía NetSuite/Odoo ``__manifest__``),
-# no una etiqueta plana. Los módulos se agrupan por familia (Order Management ≠
-# SCM ≠ Finance ≠ CRM ≠ Employee Management), como ratifican los análisis de
-# referencia de la iniciativa plataforma-kaupamex:
-#   - Order Management = el continuo comercial completo (Sales Order → Fulfill →
-#     Invoice → Payment → Returns), PROVEN en
-#     ``analisis-ubicacion-modulo-billing-order-management`` (facturación e
-#     invoices viven aquí, NO en Finance).
-#   - Employee Management (SuitePeople/HCM) = familia HR, hermana top-level;
-#     futura, ningún módulo actual la ocupa (``analisis-netsuite-modulo-employee-management``).
-# Valor = string display en inglés (contrato del ``category`` de manifest, que
-# en Odoo es "Human Resources"/"Sales", no un slug). El identificador máquina es
-# ``code``. ``tier`` NO se fija aquí (pricing = GAP 4 / #180 — no inventar precios).
-MODULE_CATALOG = {
-    # code:        (is_application, category)  — category = familia funcional ERP
-    'catalogue':   (True,  'Order Management'),
-    'orders':      (True,  'Order Management'),
-    'payments':    (True,  'Order Management'),
-    'invoices':    (True,  'Order Management'),
-    'vouchers':    (True,  'Order Management'),
-    'inventory':   (True,  'Supply Chain Management'),
-    'logistics':   (True,  'Order Management'),
-    'returns':     (True,  'Order Management'),
-    'finance':     (True,  'Finance'),
-    'reports':     (True,  'Finance'),
-    'newsletter':  (True,  'CRM'),
-    'support':     (True,  'CRM'),
-    # Técnicos (no se contratan por separado; dependencia/infra interna):
-    'moderation':  (False, 'CRM'),
-    'questions':   (False, 'Order Management'),
-    'banners':     (False, 'CRM'),
-    'content':     (False, 'Platform'),
-    'seo':         (False, 'Platform'),
-    'notifications': (False, 'Platform'),
-    'audit':       (False, 'Platform'),
-    'backups':     (False, 'Platform'),
-    'permissions': (False, 'Platform'),
-    'platform':    (False, 'Platform'),
-    'settings':    (False, 'Platform'),
-    'users':       (False, 'Platform'),
-    'account':     (False, 'Platform'),
-}
 
 
 class Command(BaseCommand):
@@ -159,45 +41,56 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **options):
-        modules = {}
-        for domain, name in _MODULE_NAMES.items():
-            modules[domain], _ = Module.objects.get_or_create(
-                code=domain, defaults={'name': name},
+        # Recolección: cada addon declara lo suyo en su authz_catalog.py.
+        specs_modules, specs_caps = discover()
+
+        # Dos checks ANTES de tocar la DB. Son el assert_valid_permission de
+        # pretix aplicado a la declaración: sin ellos, una capacidad huérfana
+        # rompe el seed con un KeyError opaco y una arista colgante no rompe
+        # nada — que es exactamente cómo pasó H-API-106.
+        orphans = orphan_capabilities(specs_modules, specs_caps)
+        if orphans:
+            raise CommandError(
+                'Capacidades cuyo módulo nadie declara: '
+                + ', '.join(orphans)
+            )
+        dangling = unknown_depends(specs_modules)
+        if dangling:
+            raise CommandError(
+                'Aristas depends hacia un módulo no declarado: '
+                + ', '.join(f'{o}->{d}' for o, d in dangling)
             )
 
-        # Catálogo L0 (#179): clasifica NUESTROS módulos (is_application +
-        # category). Idempotente; refresca filas ya existentes. ``tier`` se
-        # deja en su default (free) — pricing es GAP 4 / #180.
-        for code, (is_app, category) in MODULE_CATALOG.items():
+        modules = {}
+        for code, spec in specs_modules.items():
+            modules[code], _ = Module.objects.get_or_create(
+                code=code, defaults={'name': spec.name},
+            )
+
+        # Metadata de catálogo L0 (#179). Idempotente; refresca filas ya
+        # existentes. ``tier`` se deja en su default (free) — pricing es #180.
+        for code, spec in specs_modules.items():
             mod = modules[code]
-            if mod.is_application != is_app or mod.category != category:
-                mod.is_application = is_app
-                mod.category = category
-                mod.save(update_fields=['is_application', 'category', 'updated_at'])
+            if (mod.is_application != spec.is_application
+                    or mod.category != spec.category):
+                mod.is_application = spec.is_application
+                mod.category = spec.category
+                mod.save(update_fields=[
+                    'is_application', 'category', 'updated_at',
+                ])
 
         # Grafo de dependencias (SOL-085 S3). ``set`` es idempotente.
-        for domain, dep_codes in MODULE_DEPENDS.items():
-            modules[domain].depends.set([modules[d] for d in dep_codes])
+        for code, spec in specs_modules.items():
+            if spec.depends:
+                modules[code].depends.set([modules[d] for d in spec.depends])
 
         caps = []
-        # Capacidades CRUD como sustantivo (nivel en RoleCapability).
-        for noun, sensitive in CRUD_NOUNS:
-            cap, _ = Capability.objects.get_or_create(
-                code=noun,
-                defaults={
-                    'module': modules[noun], 'name': _MODULE_NAMES[noun],
-                    'is_sensitive': sensitive,
-                },
-            )
-            caps.append(cap)
-        # Acciones nombradas (con punto → membresía).
-        for code, name, sensitive in NAMED_ACTIONS:
-            domain = code.split('.', 1)[0]
+        for code, spec in specs_caps.items():
             cap, _ = Capability.objects.get_or_create(
                 code=code,
                 defaults={
-                    'module': modules[domain], 'name': name,
-                    'is_sensitive': sensitive,
+                    'module': modules[spec.module], 'name': spec.name,
+                    'is_sensitive': spec.is_sensitive,
                 },
             )
             caps.append(cap)
@@ -243,7 +136,7 @@ class Command(BaseCommand):
         ))
         self.stdout.write(self.style.SUCCESS(
             f'authz seed OK: {len(modules)} módulos, {len(caps)} capacidades '
-            f'({len(CRUD_NOUNS)} CRUD sustantivo + {len(NAMED_ACTIONS)} nombradas), '
+            f'recolectadas de los authz_catalog.py de INSTALLED_APPS, '
             f'rol {SUPERADMIN_ROLE_CODE} con {role.capabilities.count()} y '
             f'rol {BUYER_ROLE_CODE} con {buyer_role.capabilities.count()}.'
         ))

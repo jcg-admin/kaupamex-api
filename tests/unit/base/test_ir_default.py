@@ -21,7 +21,7 @@ Toca DB → django_db.
 import pytest
 
 from addons.base.models import IrDefault
-from addons.company.models import Company
+from addons.base.models import ResCompany
 from tests.factories.user_factory import UserFactory
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
@@ -35,7 +35,7 @@ def test_importable_desde_addons_base_models():
 
 # --- db_table / app_label fieles a Odoo ------------------------------------
 
-def test_db_table_fiel_a_odoo():
+def test_db_table_matches_reference():
     assert IrDefault._meta.db_table == 'ir_default'
     assert IrDefault._meta.app_label == 'base'
 
@@ -101,7 +101,7 @@ def test_otro_usuario_sin_default_propio_ve_el_global():
 # --- Alcance de empresa (company) -------------------------------------------
 
 def test_default_de_company_prevalece_sobre_global():
-    company = Company.objects.create(code='acme-corp', name='Acme Corp')
+    company = ResCompany.objects.create(code='acme-corp', name='Acme Corp')
     IrDefault.set_default('orders.Order', 'tax_regime', 'general')
     IrDefault.set_default('orders.Order', 'tax_regime', 'simplificado', company=company)
 
@@ -111,7 +111,7 @@ def test_default_de_company_prevalece_sobre_global():
 
 def test_default_user_y_company_prevalece_sobre_ambos_parciales():
     user = UserFactory()
-    company = Company.objects.create(code='acme-corp-2', name='Acme Corp 2')
+    company = ResCompany.objects.create(code='acme-corp-2', name='Acme Corp 2')
     IrDefault.set_default('orders.Order', 'warehouse', 'central', user=user)
     IrDefault.set_default('orders.Order', 'warehouse', 'norte', company=company)
     IrDefault.set_default('orders.Order', 'warehouse', 'especifico', user=user, company=company)

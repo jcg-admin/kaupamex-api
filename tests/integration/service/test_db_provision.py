@@ -13,6 +13,7 @@ from django.test import override_settings
 
 from service.db import (
     DatabaseExists,
+    _connect,
     DatabaseManagementDisabled,
     create_database,
     create_empty_database,
@@ -21,6 +22,7 @@ from service.db import (
     drop_database,
     duplicate_database,
     kill_connections,
+    closing_cursor,
     rename_database,
 )
 
@@ -58,14 +60,14 @@ def test_create_then_drop():
     assert database_exists(DB_A) is False
     create_empty_database(DB_A)
     assert database_exists(DB_A) is True
-    # charset/collation utf8mb4 aplicado.
+    # ENCODING aplicado. El catálogo es ``pg_database``, y el encoding se lee
+    # con ``pg_encoding_to_char`` porque la columna guarda su id numérico.
     with connections['default'].cursor() as c:
         c.execute(
-            'SELECT DEFAULT_CHARACTER_SET_NAME, DEFAULT_COLLATION_NAME '
-            'FROM information_schema.SCHEMATA WHERE SCHEMA_NAME=%s', [DB_A])
-        charset, collation = c.fetchone()
-    assert charset == 'utf8mb4'
-    assert collation == 'utf8mb4_unicode_ci'
+            'SELECT pg_encoding_to_char(encoding) FROM pg_database WHERE datname = %s',
+            [DB_A])
+        (encoding,) = c.fetchone()
+    assert encoding == 'UTF8'
     assert drop_database(DB_A) is True
     assert database_exists(DB_A) is False
 
@@ -88,21 +90,25 @@ def test_kill_connections_best_effort():
 
 
 def test_duplicate_copies_schema_and_data():
+    # PostgreSQL NO permite calificar una tabla con el nombre de la base
+    # (``base.tabla`` designa ``schema.tabla``): hay que CONECTARSE a cada base.
+    # Bajo MariaDB el ``\`db\`.tabla`` funcionaba porque allá base y schema son
+    # lo mismo. Se usa el mismo helper que ``service.db`` (``_connect``).
     create_empty_database(DB_A)
-    with connections['default'].cursor() as c:
-        c.execute('CREATE TABLE `%s`.widget (id INT PRIMARY KEY, name VARCHAR(20))' % DB_A)
-        c.execute("INSERT INTO `%s`.widget VALUES (1, 'uno')" % DB_A)
+    with closing_cursor(_connect(DB_A)) as c:
+        c.execute('CREATE TABLE widget (id INT PRIMARY KEY, name VARCHAR(20))')
+        c.execute("INSERT INTO widget VALUES (1, 'uno')")
     duplicate_database(DB_A, DB_B)
     assert database_exists(DB_B) is True
-    with connections['default'].cursor() as c:
-        c.execute('SELECT id, name FROM `%s`.widget' % DB_B)
+    with closing_cursor(_connect(DB_B)) as c:
+        c.execute('SELECT id, name FROM widget')
         assert list(c.fetchall()) == [(1, 'uno')]
 
 
 def test_rename_moves_database():
     create_empty_database(DB_A)
-    with connections['default'].cursor() as c:
-        c.execute('CREATE TABLE `%s`.widget (id INT PRIMARY KEY)' % DB_A)
+    with closing_cursor(_connect(DB_A)) as c:
+        c.execute('CREATE TABLE widget (id INT PRIMARY KEY)')
     rename_database(DB_A, DB_B)
     assert database_exists(DB_A) is False
     assert database_exists(DB_B) is True

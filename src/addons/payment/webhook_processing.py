@@ -42,7 +42,7 @@ def _process_payment_approval(
         payment = (
             Payment.objects
             .select_for_update()
-            .select_related('order')
+            .select_related('sale_order')
             .filter(gateway_payment_id=gateway_payment_id, gateway=gateway)
             .first()
         )
@@ -67,7 +67,7 @@ def _process_payment_approval(
         # ya no se escribe (V5d la retira).
         logger.info(
             'Orden %s → PAID (proyectado) tras pago aprobado (%s)',
-            payment.order.order_number, gateway,
+            payment.sale_order.name, gateway,
         )
 
     return payment, True

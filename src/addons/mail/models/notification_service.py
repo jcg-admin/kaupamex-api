@@ -44,23 +44,41 @@ def notify_order_created(order, user, total_amount):
     Notification.objects.create(
         user=user,
         type=NotificationType.ORDER_UPDATE,
-        subject=f'Orden confirmada #{order.order_number}',
+        subject=f'Orden confirmada #{order.name}',
         body=(
-            f'Tu orden #{order.order_number} ha sido recibida y '
+            f'Tu orden #{order.name} ha sido recibida y '
             f'esta siendo procesada. Total: ${total_amount}.'
         ),
     )
 
     if user.email:
         user_email  = user.email
-        name        = user.first_name or user.email
-        order_num   = order.order_number
+        name        = user.name or user.email
+        order_num   = order.name
         total_str   = str(total_amount)
         transaction.on_commit(
             lambda: send_order_confirmation_email(
                 user_email, name, order_num, total_str,
             )
         )
+
+
+def _order_user(order):
+    """Comprador de una orden.
+
+    El espejo ``order.user`` murió con la disolución de ``users``
+    (V5d/H-API-20). El campo vigente es ``SaleOrder.partner``, que lleva el
+    nombre de la referencia (``sale.order.partner_id``) pero **apunta a
+    ``AUTH_USER_MODEL``**, no a ``res.partner``
+    (``sale/models/sale_order.py:92-95``) — así que ya es la credencial y no
+    hay que resolver nada. Esa divergencia con la referencia es real y está
+    registrada como H-API-254; corregirla es una migración de esquema, no un
+    cambio de este servicio.
+
+    ``None`` en carrito anónimo (el campo es nullable): no hay bandeja que
+    notificar.
+    """
+    return getattr(order, 'partner', None)
 
 
 def notify_order_status_changed(order, new_status):
@@ -76,7 +94,7 @@ def notify_order_status_changed(order, new_status):
     if new_status not in notify_statuses:
         return
 
-    user = getattr(order, 'user', None)
+    user = _order_user(order)
     if not user or not getattr(user, 'pk', None):
         return
 
@@ -93,15 +111,15 @@ def notify_order_status_changed(order, new_status):
     Notification.objects.create(
         user=user,
         type=NotificationType.ORDER_UPDATE,
-        subject=f'{label} — #{order.order_number}',
-        body=f'El estado de tu orden #{order.order_number} cambio a: {label}.',
+        subject=f'{label} — #{order.name}',
+        body=f'El estado de tu orden #{order.name} cambio a: {label}.',
     )
 
     if user.email:
         user_email   = user.email
-        name         = user.first_name or user.email
-        order_num    = order.order_number
-        shipping     = getattr(order, 'shipping_info', None)
+        name         = user.name or user.email
+        order_num    = order.name
+        shipping     = getattr(order, 'shipment_guide', None)
         tracking_num = shipping.tracking_number if shipping else None
         transaction.on_commit(
             lambda: send_order_status_email(
@@ -121,14 +139,14 @@ def notify_shipping_updated(order, user, tracking_number=None, event_description
     Notification.objects.create(
         user=user,
         type=NotificationType.ORDER_UPDATE,
-        subject=f'Actualizacion de envio — #{order.order_number}',
-        body=event_description or f'Hay una actualizacion sobre el envio de tu orden #{order.order_number}.',
+        subject=f'Actualizacion de envio — #{order.name}',
+        body=event_description or f'Hay una actualizacion sobre el envio de tu orden #{order.name}.',
     )
 
     if user.email:
         user_email  = user.email
-        name        = user.first_name or user.email
-        order_num   = order.order_number
+        name        = user.name or user.email
+        order_num   = order.name
         tracking    = tracking_number
         description = event_description
         transaction.on_commit(
@@ -155,14 +173,14 @@ def notify_return_processed(order, user, return_status, reason=None):
     Notification.objects.create(
         user=user,
         type=NotificationType.RETURN_UPDATE,
-        subject=f'{label} — #{order.order_number}',
-        body=f'Actualizacion sobre tu devolucion de la orden #{order.order_number}.',
+        subject=f'{label} — #{order.name}',
+        body=f'Actualizacion sobre tu devolucion de la orden #{order.name}.',
     )
 
     if user.email:
         user_email   = user.email
-        name         = user.first_name or user.email
-        order_num    = order.order_number
+        name         = user.name or user.email
+        order_num    = order.name
         r_status     = return_status
         r_reason     = reason
         transaction.on_commit(
@@ -201,16 +219,16 @@ def notify_refund_processed(order, user, amount_refunded):
     UC-NOT-05: notificacion de reembolso procesado.
     Llamar desde addons.payments dentro de transaction.atomic().
 
-    I2 (H-API-31): ``order`` es la orden **canonica** (``sale.SaleOrder``);
-    su identidad publica vive en ``name`` (I1). Se acepta tambien el espejo
-    (``order_number``) mientras el puente exista, para no romper llamadores
-    heredados durante el cut-over.
+    ``order`` es la orden canonica (``sale.SaleOrder``) y su identidad
+    publica vive en ``name``. El puente que aceptaba tambien ``order_number``
+    del espejo se retiro con el (SOL-098): no queda llamador heredado al que
+    proteger, y conservarlo enmascararia un objeto equivocado en vez de
+    delatarlo.
     """
     if not user or not getattr(user, 'pk', None):
         return
 
-    referencia = (getattr(order, 'name', None)
-                  or getattr(order, 'order_number', ''))
+    referencia = order.name
 
     Notification.objects.create(
         user=user,
@@ -221,7 +239,7 @@ def notify_refund_processed(order, user, amount_refunded):
 
     if user.email:
         user_email  = user.email
-        name        = user.first_name or user.email
+        name        = user.name or user.email
         order_num   = referencia
         amount      = str(amount_refunded)
         transaction.on_commit(
@@ -262,7 +280,7 @@ def notify_support_closed(ticket, user, closed_by_staff=False):
 
     if user.email:
         user_email   = user.email
-        name         = user.first_name or user.email
+        name         = user.name or user.email
         ticket_id    = ticket.pk
         ticket_subj  = ticket.subject
         by_staff     = closed_by_staff
@@ -298,7 +316,7 @@ def notify_support_created(ticket, user):
 
     if user.email:
         user_email   = user.email
-        name         = user.first_name or user.email
+        name         = user.name or user.email
         ticket_id    = ticket.pk
         ticket_subj  = ticket.subject
         transaction.on_commit(

@@ -4,6 +4,21 @@ Portación fiel de ``account_move_line.py`` (Odoo 18/19). Campos núcleo:
 ``move``, ``account``, ``name``, ``debit``, ``credit``, ``balance``
 (= debit - credit, Odoo ``_compute_balance``), ``display_type``, ``quantity``,
 ``price_unit``, ``currency``.
+
+``full_reconcile`` y ``matching_number`` — Adaptación de Odoo
+``addons/account/models/account_move_line.py`` (odoo-tools@622ddc2a,
+odoo19c:). Añadidos aquí (no en el archivo original del puerto) porque la
+conciliación cuelga de los apuntes: ``account.partial.reconcile`` y
+``account.full.reconcile`` (``account_partial_reconcile.py``,
+``account_full_reconcile.py``) necesitan un destino de FK y una columna
+donde escribir el resultado del algoritmo de agrupamiento
+(``AccountPartialReconcile._update_matching_number``). ``matched_debit_ids``/
+``matched_credit_ids`` de la referencia son el reverso de las FK
+``debit_move_id``/``credit_move_id`` de ``account.partial.reconcile``
+(``related_name`` en ese archivo, sin columna propia aquí — mismo patrón que
+``Many2one``/reverse FK del resto del puerto). ``amount_residual`` /
+``reconciled`` (booleano derivado) quedan DEFERIDOS: dependen de
+``amount_currency`` multi-moneda que este modelo no porta todavía.
 """
 from decimal import Decimal
 
@@ -66,6 +81,20 @@ class AccountMoveLine(models.Model):
         'base.ResCurrency', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='move_lines',
         help_text='Moneda (Odoo currency_id).',
+    )
+    full_reconcile = fields.Many2one(
+        'account.AccountFullReconcile', on_delete=models.SET_NULL, null=True,
+        blank=True, related_name='reconciled_line_ids',
+        help_text='Conciliación total que agrupa este apunte (Odoo '
+                   'full_reconcile_id). Nulo mientras no exista match total.',
+    )
+    matching_number = fields.Char(
+        max_length=16, blank=True, default='',
+        help_text="Odoo matching_number: 'P<id>' mientras la conciliación es "
+                   "parcial (id del grupo, asignado por "
+                   "AccountPartialReconcile._update_matching_number); el id "
+                   "de account.full.reconcile como texto cuando es total. "
+                   "Vacío si el apunte no está conciliado.",
     )
 
     class Meta:
