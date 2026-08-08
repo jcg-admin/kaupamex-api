@@ -141,6 +141,29 @@ INSTALLED_APPS = [
     'addons.account_debit_note',
     'addons.account_fleet',
     'addons.account_tax_python',
+    # Satélites de `account` (Ola F, segunda tanda). Van DESPUÉS de `account`
+    # por la misma razón que los de arriba, y su orden RELATIVO no es
+    # arbitrario:
+    #
+    # - `account_update_tax_tags` y `account_test` sólo declaran modelos
+    #   PROPIOS con FK hacia `account` (no cuelgan nada sobre clases ajenas),
+    #   así que basta con ir después de `account`.
+    # - `account_check_printing` cuelga métodos sobre `base.IrSequence`,
+    #   `base.ResCurrency` y `account.AccountPaymentMethod` desde `ready()`:
+    #   exige `base` y `account` ya poblados.
+    # - `account_payment` va ÚLTIMO porque es el único que exige las DOS
+    #   familias a la vez — `account` y `payment` (sus 4 modelos RELATED de
+    #   `models/links.py` apuntan a ambas).
+    #
+    # `account_check_printing` y `account_payment` extienden AMBOS
+    # `account.payment.method._get_payment_method_information`. No se pisan:
+    # los dos usan `chain_method` con un `combine` de fusión de diccionarios
+    # (H-API-364), así que la contribución de los dos sobrevive sea cual sea
+    # el orden. El orden de abajo sólo fija cuál queda primero en la cadena.
+    'addons.account_update_tax_tags',
+    'addons.account_test',
+    'addons.account_check_printing',
+    'addons.account_payment',
 ]
 
 AUTH_USER_MODEL = 'base.ResUsers'
