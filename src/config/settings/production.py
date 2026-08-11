@@ -86,11 +86,12 @@ ALLOWED_HOSTS = config(
 # Ruta al build de producción del UI (resultado de: npm run build).
 # Usada por la vista serve_spa en config/urls.py para servir index.html.
 #
-# Iniciativa: configurar-ui-dist-en-deploy (H-UID-1, H-UID-2). Default
-# previo ``/opt/practicayoruba/ui/dist`` era ruta histórica obsoleta
-# para el layout WSL2/VPS canónico. Cambiado a string vacío — centinela
-# para que ``serve_spa`` se desactive (urls.py:130 ya tiene el guard
-# ``if getattr(settings, 'UI_DIST', None):``).
+# Iniciativa: configurar-ui-dist-en-deploy (H-UID-1, H-UID-2). El default
+# previo era una ruta fija que ningún layout usaba ya. Cambiado a string
+# vacío — centinela para que ``serve_spa`` se desactive (urls.py:130 ya
+# tiene el guard ``if getattr(settings, 'UI_DIST', None):``). El valor
+# viejo no se nombra: la marca L1 no va en código (DEC-KX-06) y el git log
+# lo conserva si alguien lo necesita.
 #
 # Configurar en ``src/.env`` la ruta real:
 #   UI_DIST=/srv/repos/ecom/kaupamex-ui/dist   (WSL2 canónico)
