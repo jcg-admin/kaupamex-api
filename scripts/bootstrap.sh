@@ -418,7 +418,7 @@ main() {
     # Fix correcto: chown al OWNER del repo (PROJECT_ROOT), no a
     # SUDO_USER. El procedimiento garantiza que el repo es propiedad
     # del runtime-user (develop en WSL2/VPS con procedimiento;
-    # ubuntu/practicayoruba en VPS estandar). Si el repo es root-owned
+    # ubuntu/kaupamex en VPS estandar). Si el repo es root-owned
     # (clone como root sin chown), el script no toca nada — safe default.
     #
     # Reportado por deploy@yollotl: 'develop' (owner del repo) no
