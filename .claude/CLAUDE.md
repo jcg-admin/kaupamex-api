@@ -8,32 +8,48 @@ updated_at: 2026-07-17 19:33:06
 
 **Level 2 — Puente entre [SKILL](skills/thyrox/SKILL.md) (Level 1) y proyecto.**
 
-**Identidad — dos capas distintas (no confundir):**
+**Identidad — tres capas distintas (no confundir):**
 
-- **Repositorio en GitHub:** `jcg-admin/kaupamex` (parent) y los cinco
-  submodulos `jcg-admin/kaupamex-{api,db,docs,server,ui}`.
-- **Proyecto / producto:** PracticaYoruba — e-commerce de productos
-  Yoruba. Este es el nombre usado **dentro** del codigo: schemas
-  (`kaupamex_db`, `kaupamex_qa`), usuarios (`django_user`
-  contra esos schemas), env files (`practicayoruba/.env`), runbooks
-  internos, branding del UI ("PracticaYoruba UI"), etc.
-- **Plataforma vs tenant (DEC-KX-05):** el modelo es multi-tenant. El
-  **operador L0** de la plataforma es **Kaupamex** (schemas `kaupamex_*`,
-  `SYSTEM_COMPANY_CODE='kaupamex_global'`); **PracticaYoruba** es el tenant
-  **L1 de ejemplo (insignia)** — la constante de código es `FOUNDER_COMPANY_CODE=
-  'practicayoruba'`, pero en prosa no se usa "founder" (ver
-  `terminologia-l0-company.md`), **no** el operador de plataforma ni "el producto"
-  como un todo. Los nombres `practicayoruba_*` del codigo son de ese tenant
-  L1. Regla de clasificacion de config: infra/ops → L0 (Kaupamex);
-  per-tenant (contacto, newsletter, remitente transaccional) → L1/L3
-  (`CompanySetting`). Ver DEC-KX-05 (iniciativa `plataforma-kaupamex`).
+- **Repositorios en GitHub:** los cinco submodulos
+  `jcg-admin/kaupamex-{api,db,docs,server,ui}` (renombrados desde `e-comerce-*`
+  el 2026-07-23, DEC-KX-06). El superproyecto `jcg-admin/kaupamex` existe pero
+  **esta ausente por decision** del ejecutor desde 2026-08-07: el arbol tiene
+  los cinco clones hermanos, no el padre (ver `gitlink-bump-gate.md`).
+
+- **Producto / plataforma: Kaupamex.** Es el **operador L0**: un SaaS
+  multi-empresa que hospeda a empresas cliente para gestionar su ecommerce +
+  ERP + CRM, con cobro por modulo + renta mensual. El nombre del repo coincide
+  con el operador L0 a proposito. Dentro del codigo: bases `kaupamex_db` /
+  `kaupamex_qa`, rol `django_user`, `SYSTEM_COMPANY_CODE = 'kaupamex_global'`,
+  env files en `src/.env`, punto de entrada `kaupamex-bin`.
+
+- **PracticaYoruba es UNA empresa L1, no el producto.** Es el L1 de ejemplo
+  (insignia), no el operador de plataforma ni "el producto" como un todo.
+  **En prosa no se usa "founder"** — implica que fundo u opera la plataforma,
+  que es exactamente lo contrario (ver `terminologia-l0-company.md`).
+
+**El L1 ya no se nombra en codigo (DEC-3 de `tenants-sin-clases-en-codigo`,
+2026-08-05).** La constante `FOUNDER_COMPANY_CODE = 'practicayoruba'` **fue
+retirada**: la empresa inicial se declara en config (`BOOTSTRAP_COMPANY_CODE`
+/ `BOOTSTRAP_COMPANY_NAME`, ambas con `default=''`) y la crea
+`kaupamex-bin company_create`. Con esas claves vacias no se siembra ninguna
+empresa — `seed()` es un no-op.
+
+Es **mas abstracto que la referencia**, que si siembra un placeholder:
+`odoo19c: base/data/res_company_data.xml:5` declara `name = "My Company"`, y
+lo hace igual en los doce arboles medidos (19, 18 y 16; Community y
+Enterprise). La referencia nunca nombra una empresa real; su data de **demo**
+usa una ficticia (`ProBike Inc`, `res_company_demo.xml`).
+
+Regla de clasificacion de config: infra/ops → L0 (Kaupamex); per-empresa
+(contacto, newsletter, remitente transaccional) → L1/L3 (`CompanySetting`).
+Ver DEC-KX-05 (iniciativa `plataforma-kaupamex`).
 
 Una iniciativa cuyo slug contiene `practicayoruba` (ej.
-`crear-practicayoruba-db`, `configurar-red-dmz-practicayoruba-server`)
-**no es legacy** — documenta trabajo sobre el producto PracticaYoruba
-hospedado en el repo `kaupamex-*`. La aparente discrepancia es
-intencional y debe respetarse: no renombrar PracticaYoruba a kaupamex
-dentro del codigo sin una decision explicita de producto.
+`crear-practicayoruba-db`) **no es legacy** — documenta trabajo sobre esa
+empresa L1. Lo que **si** es drift, y se corrige al encontrarlo, es
+`practicayoruba` en **infraestructura**: nombres de base, rutas de despliegue,
+dominios de plataforma. Esos son L0 y llevan `kaupamex`.
 
 **Nota de adaptacion (2026-05-19):** este archivo proviene del template
 THYROX usado en IACT-docs. Para kaupamex se decidio **no importar**
