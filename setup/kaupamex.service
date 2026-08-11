@@ -9,10 +9,19 @@
 # DIVERGENCIA DECLARADA — la referencia lleva UNA unidad, nosotros DOS.
 # Su cron vive dentro del binario: `cron_spawn()` lanza hilos en
 # ThreadedServer (`odoo/service/server.py:614-624,723`) y `WorkerCron` es un
-# proceso del arbiter en PreforkServer (`:1047`). Gunicorn no puede alojar
-# eso: su arbiter construye una única `worker_class` para todo el pool
-# (`gunicorn/arbiter.py:687-691`) y sus seis clases son todas HTTP. Por eso
-# el planificador es un proceso aparte — ver `kaupamex-cron.service`.
+# proceso del arbiter en PreforkServer (`:1047`). El pool HTTP de Gunicorn es
+# homogéneo —una única `worker_class` atada a LISTENERS,
+# `gunicorn/arbiter.py:687-691`, y sus seis clases son todas HTTP— así que el
+# cron no puede ser un worker más del pool.
+#
+# Lo que NO es cierto es que Gunicorn "no pueda alojarlo": sus hooks
+# `on_starting` (`arbiter.py:162`) y `when_ready` (`arbiter.py:199`) corren en
+# el master y desde ahí se puede forkear un proceso lateral. Medido con
+# `scripts/probe_gunicorn_side_process.py` (Gunicorn 26.0.0): el hijo arranca
+# y late, pero SOBREVIVE al SIGTERM del master (17 latidos posteriores). Ese
+# huérfano es el motivo real de la segunda unidad — systemd daría ésta por
+# detenida con el cron todavía tocando la base, y el `KillMode=mixed` de abajo
+# señala al líder del cgroup, no a un reparentado. Ver `kaupamex-cron.service`.
 #
 # Instalación (el operador ajusta rutas y usuario):
 #
