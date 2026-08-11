@@ -1,0 +1,53 @@
+# kaupamex-cron.service — planificador del producto L0.
+#
+# No tiene contraparte 1:1 en la referencia, y esa ausencia ES el diseño:
+# `odoo19c: debian/odoo.service` es una sola unidad porque su planificador
+# vive dentro del binario. Aquí es un proceso aparte porque Gunicorn no puede
+# alojarlo — el razonamiento medido está en el docstring de
+# `src/addons/base/management/commands/cron.py` y en `kaupamex.service`.
+#
+# Es un DEMONIO, no una tarea periódica: `cron.py:122` corre `while
+# self._alive` con sleep interrumpible de `--interval` (default 60 s, == el
+# de la referencia). Por eso es una unidad Type=simple y NO un systemd.timer:
+# un timer relanzaría el proceso entero cada minuto y perdería el estado de
+# la pasada. Para el caso one-shot el comando ya trae `--once` (`cron.py:105`).
+#
+# Instalación:
+#
+#   sudo cp setup/kaupamex-cron.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now kaupamex-cron
+
+[Unit]
+Description=Kaupamex L0 — planificador (ir.cron)
+Documentation=https://github.com/jcg-admin/kaupamex-api
+After=network.target postgresql.service
+Wants=postgresql.service
+# El planificador recorre el plano L0 y las bases por empresa, así que su
+# precondición real es la base, no el servidor web. `After` sin `Requires`:
+# que el HTTP esté caído no es razón para dejar de ejecutar tareas.
+After=kaupamex.service
+
+[Service]
+Type=simple
+User=kaupamex
+Group=kaupamex
+WorkingDirectory=/opt/kaupamex/api
+
+ExecStart=/opt/kaupamex/api/.venv/bin/python /opt/kaupamex/api/kaupamex-bin cron
+
+# Aquí PATH no es crítico —este comando no hace execvp— pero se declara igual
+# para que las dos unidades tengan el mismo entorno y no diverjan en silencio.
+Environment=PATH=/opt/kaupamex/api/.venv/bin:/usr/local/bin:/usr/bin:/bin
+Environment=DJANGO_SETTINGS_MODULE=config.settings.production
+EnvironmentFile=/opt/kaupamex/api/src/.env
+
+# El bucle atiende señales para cortar el sleep, así que un SIGTERM al proceso
+# principal termina la pasada en curso sin matar el grupo a mitad de una tarea.
+KillMode=mixed
+TimeoutStopSec=90
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
