@@ -4,14 +4,18 @@
 # runner de GitHub disponible). VALIDAR en el primer push: revisar logs
 # del job, ajustar nombres de schema/usuario y los TODO marcados abajo.
 #
-# Estrategia de DB: usa `services: mariadb:11.8` (TCP en 127.0.0.1:3306).
-# En CI el fallback TCP es el comportamiento esperado (DB_QA_SOCKET sin
-# setear), igual que en el runner cloud de este repo. Ver
-# .claude/rules/db-conexion-socket.md.
+# Estrategia de DB: usa `services: postgres:16` (TCP en 127.0.0.1:5432).
+# En CI el service container expone TCP, no socket Unix, asi que DB_*_SOCKET
+# se deja sin setear: en libpq el socket ES el HOST, y declararlo apuntaria
+# al directorio equivocado dentro del runner (H-API-305).
 #
-# Alternativa (no usada aqui): levantar la DB con el script del submodulo
-# db `bash db/scripts/start_db.sh` via socket. Requiere checkout del
+# Alternativa (no usada aqui): levantar el cluster con el script del submodulo
+# db `bash db/scripts/start_postgres.sh` via socket. Requiere checkout del
 # submodulo db; el service container es mas simple para CI.
+#
+# Migrado de mariadb:11.8 el 2026-08-11 — ADR-028 movio el motor el 2026-08-06
+# y este workflow quedo sin migrar: psycopg no puede hablar con MariaDB en
+# 3306, asi que el job no podia pasar. Ver H-API-386.
 
 name: api-tests
 
@@ -30,41 +34,39 @@ jobs:
     runs-on: ubuntu-latest
 
     services:
-      mariadb:
-        image: mariadb:11.8
+      postgres:
+        # 16 es la version del distro en Ubuntu 24.04; el minimo EFECTIVO es
+        # 14 — el mayor entre el de la referencia (13, que avisa) y el de
+        # Django 6 (14, que aborta la conexion). Ver H-DB-03.
+        image: postgres:16
         env:
-          # Crea el schema y el usuario de QA al arrancar el contenedor.
-          MARIADB_DATABASE: practicayoruba_qa
-          MARIADB_USER: django_user
+          # Crea la base y el rol de QA al arrancar el contenedor.
+          POSTGRES_DB: kaupamex_qa
+          POSTGRES_USER: django_user
           # TODO: mover a secreto real del repo (GitHub Secrets) en vez de
           # hardcodear. Por ahora coincide con el default de testing.py.
-          MARIADB_PASSWORD: ${{ secrets.DB_QA_PASSWORD || 'django_pass' }}
-          MARIADB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD || 'root_pass' }}
+          POSTGRES_PASSWORD: ${{ secrets.DB_QA_PASSWORD || 'django_pass' }}
         ports:
-          - 3306:3306
+          - 5432:5432
         options: >-
-          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-cmd="pg_isready -U django_user -d kaupamex_qa"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=10
 
     env:
       # testing.py lee estos via python-decouple (config(...)).
-      # Sin DB_QA_SOCKET => fallback TCP a 127.0.0.1:3306 (el service).
+      # Sin DB_QA_SOCKET => conexion TCP a 127.0.0.1:5432 (el service).
       DJANGO_SETTINGS_MODULE: config.settings.testing
       PYTHONPATH: src
       # base.py:8 hace config('SECRET_KEY') sin default => obligatorio.
       # Valor de CI no sensible; en prod va por GitHub Secrets.
       SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY || 'ci-insecure-key-not-for-production' }}
-      DB_QA_NAME: practicayoruba_qa
+      DB_QA_NAME: kaupamex_qa
       DB_QA_USER: django_user
       DB_QA_PASSWORD: ${{ secrets.DB_QA_PASSWORD || 'django_pass' }}
       DB_QA_HOST: 127.0.0.1
-      DB_QA_PORT: 3306
-      # El service container MariaDB usa cert self-signed; el cliente no debe
-      # verificar TLS contra CAs publicas (testing.py lo lee). Sin esto:
-      # OperationalError 2026 'SSL ... certificate verify failed'.
-      DB_QA_SSL_MODE: DISABLED
+      DB_QA_PORT: 5432
       # base.py construye DATABASES desde las claves de CONEXION base (DB_*) al
       # importar el modulo — ANTES de que testing.py reemplace DATABASES con las
       # DB_QA_*. Esas claves son sin ``default=`` a proposito (SOL-087, 12-factor
@@ -72,18 +74,18 @@ jobs:
       # solo os.environ. Apuntan al mismo service container; testing.py descarta
       # este DATABASES, pero el import debe resolver. DB_SSL_MODE/DB_SOCKET ya
       # tienen ``default=''`` en base.py (toggles opcionales), no van aqui.
-      DB_NAME: practicayoruba_qa
+      DB_NAME: kaupamex_qa
       DB_USER: django_user
       DB_PASSWORD: ${{ secrets.DB_QA_PASSWORD || 'django_pass' }}
       DB_HOST: 127.0.0.1
-      DB_PORT: 3306
+      DB_PORT: 5432
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         # TODO: si se decide usar el script del submodulo db en vez del
         # service container, agregar `with: { submodules: recursive }`
-        # y un step `bash db/scripts/start_db.sh`.
+        # y un step `bash db/scripts/start_postgres.sh`.
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
@@ -97,7 +99,7 @@ jobs:
 
       # TODO (seed real): si la suite requiere datos semilla de catalogo,
       # agregar aqui `uv run python manage.py loaddata <fixture>` o ejecutar
-      # el seed de db (db/provisioners/mariadb/seed_catalogo.sql). La suite
+      # el seed via `kaupamex-bin create_seed_catalog`. La suite
       # de integracion actual crea sus datos via factory-boy, por lo que el
       # seed puede no ser necesario — VALIDAR en el primer push.
 
@@ -110,10 +112,13 @@ jobs:
         # via subprocess; sin compilar => 500 PDF_GENERATION_FAILED.
 
       - name: Run tests
-        run: >-
-          uv run pytest --create-db -q
-          --ignore=tests/integration/reports/test_db_rpt_endpoints.py
-        # --create-db: recrea el schema desde migraciones (greenfield CI).
-        # --ignore: los tests sp_rpt_* requieren los stored procedures de
-        # kaupamex-db (no provisionados en CI). Re-incluir cuando se
-        # provisionen los SP (ver migrar-urls-rest-v2 / auditar-endpoints-api).
+        run: uv run pytest --create-db -q
+        # --create-db: recrea la base desde migraciones (greenfield CI).
+        #
+        # El `--ignore=tests/integration/reports/test_db_rpt_endpoints.py` se
+        # retiro el 2026-08-11: se excusaba en "los stored procedures de
+        # kaupamex-db no provisionados en CI", y esos sp_rpt_* ya no existen —
+        # se eliminaron con el addon `reports` (H-DB-01). Medido: el directorio
+        # tests/integration/reports/ no existe y `grep -rl sp_rpt_` sobre
+        # kaupamex-db devuelve 0 archivos. El flag protegia de un fallo
+        # imposible y ocultaba que el archivo ya no estaba. Ver H-API-386.

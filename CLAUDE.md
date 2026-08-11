@@ -109,8 +109,9 @@ install-hooks db-up ci-test ci-test-fast` (`make help`).
 ## Estructura
 
 ```
-practicayoruba/apps/            apps Django (cart, catalogue, inventory, ...)
-practicayoruba/config/settings/ base.py · development.py · production.py · testing.py
+src/addons/                     addons del monolito modular (sale, stock, account, ...)
+src/config/settings/            base.py · development.py · production.py · testing.py
+kaupamex-bin                    punto de entrada del producto (≙ odoo-bin)
 tests/integration/              flujos end-to-end (auth, cart, payments, ...)
 tests/{unit,factories,fixtures} unit, factory-boy, fixtures
 scripts/                        check_no_lazy_imports.py · check_silent_oks.py · install-hooks.sh

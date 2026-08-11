@@ -36,7 +36,7 @@ _LOG_FILE=""
 # -----------------------------------------------------------------------------
 init_log() {
     local name="${1:-bootstrap}"
-    local log_dir="${PROJECT_ROOT}/practicayoruba/logs"
+    local log_dir="${PROJECT_ROOT}/src/logs"
     mkdir -p "$log_dir"
     _LOG_FILE="${log_dir}/${name}.log"
     echo "=== $(date '+%Y-%m-%d %H:%M:%S') — Inicio ===" >> "$_LOG_FILE"

@@ -1,6 +1,6 @@
 # docs/operaciones.md
 
-Runbook de operaciones para PracticaYoruba-api.
+Runbook de operaciones para kaupamex-api.
 
 ---
 

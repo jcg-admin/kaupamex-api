@@ -92,7 +92,7 @@ ALLOWED_HOSTS = config(
 # para que ``serve_spa`` se desactive (urls.py:130 ya tiene el guard
 # ``if getattr(settings, 'UI_DIST', None):``).
 #
-# Configurar en ``practicayoruba/.env`` la ruta real:
+# Configurar en ``src/.env`` la ruta real:
 #   UI_DIST=/srv/repos/ecom/kaupamex-ui/dist   (WSL2 canónico)
 UI_DIST = config('UI_DIST', default='')
 

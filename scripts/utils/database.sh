@@ -1,5 +1,15 @@
 #!/bin/bash
 # =============================================================================
+# RETIRADO — motor MariaDB (ADR-028, 2026-08-06). NO sirve a ningún entorno.
+# =============================================================================
+# `bootstrap.sh` dejó de invocarlo: la Fase 4 delega el provisioning en
+# `kaupamex-db` (`provisioners/postgresql/db_setup.sh [--qa]`), que es donde
+# vive el motor en uso. Este archivo sigue en el repo porque lo citan docs,
+# el runbook E2E de `ui`, `db/scripts/sync-and-test.sh` y ADR-004 — no porque
+# algo lo ejecute. Retirarlo exige limpiar antes esas citas: sucesor
+# registrado en H-API-385. No editar para "actualizarlo": el motor cambió.
+# =============================================================================
+# =============================================================================
 # database.sh — Funciones de base de datos — PracticaYoruba API
 # =============================================================================
 # MySQL / MariaDB.

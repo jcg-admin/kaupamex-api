@@ -15,7 +15,7 @@ no hay uno activo, se siembra desde las credenciales de entorno.
 No imprime secretos (solo ``****``+últimos 4 y el status de MP).
 
 Uso:
-  cd practicayoruba
+  cd src
   DJANGO_SETTINGS_MODULE=config.settings.testing \\
     python manage.py mp_sandbox_charge --status APRO --method master
   python manage.py mp_sandbox_charge --status FUND --method visa --amount 250.00

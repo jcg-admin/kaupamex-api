@@ -77,7 +77,7 @@ class Command(BaseCommand):
             raise CommandError(
                 'Faltan variables MP_ACCESS_TOKEN/MP_PUBLIC_KEY (o los '
                 'fallback MP_TEST_ACCESS_TOKEN/MP_TEST_PUBLIC_KEY). '
-                'Defínelas en practicayoruba/.env.'
+                'Defínelas en src/.env.'
             )
 
         # El prefijo del access_token determina el modo: TEST- = Sandbox,

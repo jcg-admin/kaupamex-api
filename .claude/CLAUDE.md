@@ -14,7 +14,7 @@ updated_at: 2026-07-17 19:33:06
   submodulos `jcg-admin/kaupamex-{api,db,docs,server,ui}`.
 - **Proyecto / producto:** PracticaYoruba — e-commerce de productos
   Yoruba. Este es el nombre usado **dentro** del codigo: schemas
-  (`practicayoruba_db`, `practicayoruba_qa`), usuarios (`django_user`
+  (`kaupamex_db`, `kaupamex_qa`), usuarios (`django_user`
   contra esos schemas), env files (`practicayoruba/.env`), runbooks
   internos, branding del UI ("PracticaYoruba UI"), etc.
 - **Plataforma vs tenant (DEC-KX-05):** el modelo es multi-tenant. El

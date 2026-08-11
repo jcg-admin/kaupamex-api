@@ -6,11 +6,11 @@ Los tests usan una BD **completamente separada** de produccion:
 
 | Entorno | BD | Settings |
 |---------|----|----------|
-| Produccion | `practicayoruba_db` | `config.settings.production` |
-| Desarrollo | `practicayoruba_db` | `config.settings.development` |
-| Tests (QA) | `practicayoruba_qa` | `config.settings.testing` |
+| Produccion | `kaupamex_db` | `config.settings.production` |
+| Desarrollo | `kaupamex_db` | `config.settings.development` |
+| Tests (QA) | `kaupamex_qa` | `config.settings.testing` |
 
-Nunca se toca `practicayoruba_db` al correr tests.
+Nunca se toca `kaupamex_db` al correr tests.
 
 ## Estructura
 
@@ -32,7 +32,7 @@ tests/
 ## Correr tests
 
 ```bash
-cd practicayoruba
+cd src
 
 # Todos
 pytest ../tests/

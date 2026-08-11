@@ -15,16 +15,31 @@ EXIT=0
 fail() { echo "FAIL: $*" >&2; EXIT=1; }
 pass() { echo "PASS: $*"; }
 
-# H-12: mariadb-client (no mysql-client) en apt install
-if grep -qE 'install_apt_packages.*mariadb-client|libmariadb-dev' "$PROJECT_ROOT/scripts/bootstrap.sh"; then
-    pass "bootstrap.sh usa mariadb-client + libmariadb-dev"
+# ADR-028: cliente PostgreSQL (libpq-dev + postgresql-client) en apt install
+if grep -qE 'libpq-dev postgresql-client' "$PROJECT_ROOT/scripts/bootstrap.sh"; then
+    pass "bootstrap.sh instala libpq-dev + postgresql-client"
 else
-    fail "bootstrap.sh NO usa mariadb-client (H-12 regresion)"
+    fail "bootstrap.sh NO instala el cliente PostgreSQL (ADR-028)"
 fi
-if grep -qE '\bmysql-client\b' "$PROJECT_ROOT/scripts/bootstrap.sh" | grep -v "^#"; then
-    fail "bootstrap.sh todavia referencia mysql-client (H-12 regresion)"
+
+# H-API-385: bootstrap NO debe reintroducir paquetes del motor retirado
+if grep -qE 'mariadb-client|libmariadb-dev|mysql-client' "$PROJECT_ROOT/scripts/bootstrap.sh"; then
+    fail "bootstrap.sh reintrodujo paquetes de MariaDB/MySQL (H-API-385 regresion)"
 else
-    pass "bootstrap.sh no instala mysql-client"
+    pass "bootstrap.sh no instala paquetes del motor retirado"
+fi
+# H-API-385: el PYTHONPATH a practicayoruba/ murio con el rename a src/.
+# kaupamex-bin resuelve el src-layout por si mismo.
+if grep -qE 'PROJECT_ROOT\}/practicayoruba' "$PROJECT_ROOT/scripts/bootstrap.sh"; then
+    fail "bootstrap.sh arma PYTHONPATH a practicayoruba/ (directorio inexistente)"
+else
+    pass "bootstrap.sh no usa el path muerto practicayoruba/"
+fi
+
+if grep -qE '"\$kbin"' "$PROJECT_ROOT/scripts/bootstrap.sh"; then
+    pass "bootstrap.sh invoca kaupamex-bin (punto de entrada del producto)"
+else
+    fail "bootstrap.sh no invoca kaupamex-bin"
 fi
 
 # H-13: .venv (no venv) como default
@@ -54,7 +69,7 @@ else
 fi
 
 # H-16: rest_framework (no djangorestframework) como modulo importable
-if grep -qE 'import rest_framework\b|^.*rest_framework MySQLdb' "$PROJECT_ROOT/scripts/provisioners/system/check_tools.sh"; then
+if grep -qE 'import rest_framework\b|rest_framework psycopg' "$PROJECT_ROOT/scripts/provisioners/system/check_tools.sh"; then
     pass "check_tools.sh importa rest_framework (no djangorestframework)"
 else
     fail "check_tools.sh aun importa djangorestframework (H-16 regresion)"
@@ -67,16 +82,16 @@ else
     fail "bootstrap.sh no chown al repo_owner post-sudo (H-18 regresion)"
 fi
 
-# H-17: mariadb (no mysql) como CLI canonico
-if grep -qE 'command_exists mariadb' "$PROJECT_ROOT/scripts/provisioners/system/check_tools.sh"; then
-    pass "check_tools.sh prefiere CLI mariadb (D-028)"
+# ADR-028: psql como CLI canonico
+if grep -qE 'command_exists psql' "$PROJECT_ROOT/scripts/provisioners/system/check_tools.sh"; then
+    pass "check_tools.sh detecta el CLI psql"
 else
-    fail "check_tools.sh sin deteccion de mariadb CLI (H-17 regresion)"
+    fail "check_tools.sh sin deteccion de psql (ADR-028)"
 fi
 
 # H-19: pytest.ini con pythonpath + testpaths
-if grep -qE '^pythonpath\s*=\s*practicayoruba' "$PROJECT_ROOT/pytest.ini"; then
-    pass "pytest.ini define pythonpath = practicayoruba"
+if grep -qE '^pythonpath\s*=\s*src' "$PROJECT_ROOT/pytest.ini"; then
+    pass "pytest.ini define pythonpath = src"
 else
     fail "pytest.ini sin pythonpath para que config sea importable (H-19 regresion)"
 fi
@@ -93,16 +108,14 @@ else
     fail "pytest.ini sin --reuse-db — pytest cuelga creando test DB (H-21 regresion)"
 fi
 
-# H-22: db_qa_setup.sh pre-crea test_practicayoruba_qa
-# El loop bash itera sobre ambas BDs ("${DB_NAME}" y "test_${DB_NAME}")
-# antes de emitir CREATE DATABASE IF NOT EXISTS, asi que verifico ambos
-# patrones (el loop y el CREATE) en lugar de buscar test_ y CREATE en la
-# misma linea (no estan en la misma linea por la indireccion de la var).
-if grep -qE 'for db in.*"test_\$\{DB_NAME\}"' "$PROJECT_ROOT/scripts/provisioners/mysql/db_qa_setup.sh" \
-   && grep -qE 'CREATE DATABASE IF NOT EXISTS' "$PROJECT_ROOT/scripts/provisioners/mysql/db_qa_setup.sh"; then
-    pass "db_qa_setup.sh pre-crea test_<DB_NAME> (H-22 anti-hang)"
+# H-API-385: la base de QA la provisiona db, no api. bootstrap delega en el
+# clon hermano en vez de duplicar el provisioner — la duplicacion fue el
+# defecto que dejo dos copias divergentes del mismo script.
+if grep -qE 'db_root.*provisioners/postgresql/db_setup.sh' "$PROJECT_ROOT/scripts/bootstrap.sh" \
+   && grep -qE 'db_setup.sh" --qa' "$PROJECT_ROOT/scripts/bootstrap.sh"; then
+    pass "bootstrap.sh delega base y QA en db/provisioners/postgresql"
 else
-    fail "db_qa_setup.sh no pre-crea test_DB (H-22 regresion)"
+    fail "bootstrap.sh no delega el provisioning en db (H-API-385 regresion)"
 fi
 
 # H-23: bootstrap.sh propaga exit code de phase_database
@@ -113,7 +126,7 @@ else
 fi
 
 # H-24: scripts validan root al inicio
-for f in scripts/bootstrap.sh scripts/provisioners/mysql/db_setup.sh scripts/provisioners/mysql/db_qa_setup.sh; do
+for f in scripts/bootstrap.sh; do
     if grep -qE 'id -u.*-ne 0|"\$\(id -u\)" -ne 0' "$PROJECT_ROOT/$f"; then
         pass "$(basename "$f") valida root al inicio (H-24)"
     else
@@ -121,11 +134,15 @@ for f in scripts/bootstrap.sh scripts/provisioners/mysql/db_setup.sh scripts/pro
     fi
 done
 
-# H-25: bootstrap re-resuelve MARIADB_CLI post phase_packages
-if grep -qE 'MARIADB_CLI="\$\(mariadb_client_bin\)"' "$PROJECT_ROOT/scripts/bootstrap.sh"; then
-    pass "bootstrap.sh re-resuelve MARIADB_CLI tras instalar mariadb-client (H-25)"
+# ADR-028: tras instalar postgresql-client, pg_isready debe estar en PATH.
+# Es el heredero de H-25: aquel re-resolvia MARIADB_CLI porque database.sh lo
+# fijaba al sourcear, antes de que el paquete existiera. postgres_is_running
+# resuelve pg_isready en cada llamada, asi que el problema no se reproduce —
+# lo que se verifica es que bootstrap avise si el binario no quedo.
+if grep -qE 'pg_isready no quedo en PATH' "$PROJECT_ROOT/scripts/bootstrap.sh"; then
+    pass "bootstrap.sh avisa si pg_isready no quedo tras instalar el cliente"
 else
-    fail "bootstrap.sh no re-resuelve MARIADB_CLI (H-25 regresion — vacio en primer run)"
+    fail "bootstrap.sh no verifica la presencia de pg_isready"
 fi
 
 # H-26: bootstrap registra git safe.directory para PROJECT_ROOT
@@ -136,27 +153,15 @@ else
     fail "bootstrap.sh no registra git safe.directory (H-26 regresion — dubious ownership emergera)"
 fi
 
-# H-27: cart.Cart NO tiene UniqueConstraint con condition
-# (incompatible con MariaDB, dispara warning W036; redundante con
-# OneToOneField que ya crea UNIQUE en columna).
-# Filtramos lineas de comentario para no matchear la explicacion en
-# el codigo de la propia remocion.
-if grep -vE '^\s*#' "$PROJECT_ROOT/practicayoruba/apps/cart/models.py" \
-   | grep -qE 'UniqueConstraint\s*\([^)]*condition\s*='; then
-    fail "cart/models.py tiene UniqueConstraint(condition=) en codigo activo (H-27 regresion — W036 sobre MariaDB)"
+# H-API-310 / H-API-385: el addon `cart` se retiro — su carrito vive en
+# `sale`. Las dos afirmaciones H-27 median practicayoruba/apps/cart/models.py,
+# un archivo que no existe desde el rename a src/ ni desde la retirada del
+# addon; grep imprimia "No such file" y una de ellas pasaba por vacio.
+if [[ -d "$PROJECT_ROOT/src/addons/cart" ]]; then
+    fail "src/addons/cart reapareceio (el carrito vive en sale — H-API-310)"
 else
-    pass "cart/models.py sin UniqueConstraint(condition=) — W036 cerrado (H-27)"
+    pass "addon cart retirado; el carrito vive en sale (H-API-310)"
 fi
-# Migracion de remocion debe existir
-if [[ -f "$PROJECT_ROOT/practicayoruba/apps/cart/migrations/0005_remove_redundant_user_constraint.py" ]]; then
-    pass "cart/migrations/0005_remove_redundant_user_constraint.py presente (H-27)"
-else
-    fail "cart migration 0005 ausente (H-27 — schema sin sync)"
-fi
-
-# ----------------------------------------------------------------------------
-# Iniciativa permisos-runtime-www-data (H-LOG-1..3)
-# ----------------------------------------------------------------------------
 
 # H-LOG-1/2: bootstrap.sh detecta www-data y aplica chgrp+setgid en
 # logs/ y media/ para que Apache pueda escribir.
@@ -182,22 +187,26 @@ fi
 # ----------------------------------------------------------------------------
 
 # H-UID-1: .env.example documenta UI_DIST con path OVHCloud (produccion)
-if grep -qE '^UI_DIST=/opt/practicayoruba/ui/dist' "$PROJECT_ROOT/practicayoruba/.env.example"; then
+if grep -qE '^UI_DIST=/opt/practicayoruba/ui/dist' "$PROJECT_ROOT/src/.env.example"; then
     pass ".env.example documenta UI_DIST con path OVHCloud (H-UID-1)"
 else
     fail ".env.example NO documenta UI_DIST OVHCloud (H-UID-1 regresion)"
 fi
 
 # H-UID-2: production.py default es '' (centinela), NO el path obsoleto /opt/...
-if grep -qE "config\('UI_DIST', default=''\)" "$PROJECT_ROOT/practicayoruba/config/settings/production.py"; then
+if grep -qE "config\('UI_DIST', default=''\)" "$PROJECT_ROOT/src/config/settings/production.py"; then
     pass "production.py UI_DIST default='' (centinela, H-UID-2)"
 else
     fail "production.py UI_DIST con default obsoleto (H-UID-2 regresion)"
 fi
-if grep -qE "default='/opt/practicayoruba" "$PROJECT_ROOT/practicayoruba/config/settings/production.py"; then
-    fail "production.py todavia usa default /opt/practicayoruba (H-UID-2 regresion)"
+# El patron anterior era "default='/opt/practicayoruba" a secas: decia UI_DIST
+# y medía CUALQUIER setting, así que enganchaba MEDIA_ROOT — otra variable, con
+# una ruta de despliegue legítima. Se acota a la línea de UI_DIST.
+if grep -qE "^UI_DIST = config\('UI_DIST', default='/opt/practicayoruba" \
+        "$PROJECT_ROOT/src/config/settings/production.py"; then
+    fail "UI_DIST todavia usa default /opt/practicayoruba (H-UID-2 regresion)"
 else
-    pass "production.py sin default /opt/practicayoruba obsoleto (H-UID-2)"
+    pass "UI_DIST sin default /opt/practicayoruba obsoleto (H-UID-2)"
 fi
 
 echo ""

@@ -2,6 +2,9 @@
 conftest.py — Fixtures globales para PracticaYoruba API tests.
 BD: kaupamex_qa (config.settings.testing)
 """
+import os
+import shutil
+import subprocess
 from pathlib import Path
 from django.contrib.auth import get_user_model
 from django.db import connection
@@ -35,6 +38,128 @@ from tests.factories.user_factory import make_buyer  # noqa: F401 (re-export)
 import pytest
 from addons.base.models.ir_config_parameter import _clear_cache as _clear_param_cache
 from pytest_django.plugin import blocking_manager_key
+
+# ─── PostgreSQL keepalive (ADR-028) ──────────────────────────────────────────
+# Gate de SESION, no fixture por test. La diferencia no es de estilo: el
+# keepalive de MariaDB que esto reemplaza era ``autouse`` y costaba 34,05 s por
+# test (H-API-384). ``pg_isready`` cuesta ~30 ms — barato una vez, 90 s si se
+# pregunta 2 996 veces lo mismo.
+#
+# Por que existe aunque la suite no lo pidiera: se corrio entera (2 996 passed
+# en 541 s) y el cluster no cayo, asi que no hay evidencia de que el modo de
+# fallo de MariaDB se reproduzca. Se implementa por directiva del ejecutor
+# (2026-08-11) como precondicion explicita: sin el, un cluster caido produce
+# 2 996 OperationalError cripticos en vez de un mensaje.
+#
+# Binarios: ver `docs: .../analisis-superficie-de-binarios-postgresql.rst`.
+# En Debian se opera por CLUSTER — `postgres`/`pg_ctl`/`initdb` no estan en
+# PATH a proposito porque son ambiguos con varias versiones instaladas.
+_PG_PROBE_TIMEOUT = '3'      # segundos; el propio --timeout de pg_isready
+_PG_START_RETRIES = 10       # reintentos tras pedir el arranque del cluster
+
+
+def _pg_target():
+    """(host, port) del servidor de QA. En libpq el socket ES el host."""
+    host = os.environ.get('DB_QA_SOCKET') or os.environ.get('DB_QA_HOST') or ''
+    port = os.environ.get('DB_QA_PORT') or ''
+    return host, port
+
+
+def _pg_probe():
+    """Exit code de ``pg_isready``, o None si el binario no esta.
+
+    0 acepta · 1 rechaza (arrancando/recuperando) · 2 no responde · 3 params.
+    Los cuatro estados se conservan: "arrancando" se espera, "caido" se
+    arranca, y tratarlos igual es el defecto que esta funcion evita.
+    """
+    if shutil.which('pg_isready') is None:
+        return None
+    host, port = _pg_target()
+    cmd = ['pg_isready', '-q', '-t', _PG_PROBE_TIMEOUT]
+    if host:
+        cmd += ['-h', host]
+    if port:
+        cmd += ['-p', port]
+    return subprocess.run(cmd, capture_output=True).returncode
+
+
+def _pg_clusters():
+    """[(version, nombre, estado)] segun ``pg_lsclusters``. Vacio si no esta."""
+    if shutil.which('pg_lsclusters') is None:
+        return []
+    out = subprocess.run(
+        ['pg_lsclusters', '--no-header'], capture_output=True, text=True,
+    )
+    rows = []
+    for line in out.stdout.splitlines():
+        parts = line.split()
+        if len(parts) >= 4:
+            rows.append((parts[0], parts[1], parts[3]))
+    return rows
+
+
+def _pg_try_start():
+    """Pide el arranque de los clusters caidos y espera a que acepten.
+
+    Usa ``pg_ctlcluster`` —no ``pg_ctl``— porque en Debian el arranque toma
+    version y nombre explicitos. Devuelve True si el servidor acepta al final.
+    """
+    if shutil.which('pg_ctlcluster') is None:
+        return False
+    started = False
+    for version, name, state in _pg_clusters():
+        if state != 'online':
+            subprocess.run(
+                ['pg_ctlcluster', version, name, 'start'],
+                capture_output=True,
+            )
+            started = True
+    if not started:
+        return False
+    for _ in range(_PG_START_RETRIES):
+        # pg_isready ya bloquea hasta --timeout: la espera la pone el, no un
+        # sleep nuestro. Un `sleep` incondicional aqui seria H-API-384 otra vez.
+        if _pg_probe() == 0:
+            return True
+    return False
+
+
+def pytest_sessionstart(session):
+    """Precondicion de sesion: el servidor responde, o la suite no arranca.
+
+    Es un HOOK, no un fixture, y la diferencia se midio: como fixture
+    ``scope='session', autouse=True`` NO dispara a tiempo — ``django_db_setup``
+    de pytest-django es tambien de sesion y corrio antes, asi que con el
+    servidor inalcanzable la suite daba **40 errores** de conexion en vez del
+    mensaje. ``pytest_sessionstart`` corre antes de cualquier fixture.
+    """
+    code = _pg_probe()
+
+    if code is None:
+        pytest.exit(
+            'pg_isready no esta en PATH: falta el paquete postgresql-client.\n'
+            '  sudo apt-get install -y postgresql-client',
+            returncode=1,
+        )
+
+    if code == 1:
+        # El servidor esta arrancando o en recuperacion: se espera, no se
+        # arranca. Distinguirlo de "caido" es para lo que sirven los codigos.
+        for _ in range(_PG_START_RETRIES):
+            if _pg_probe() == 0:
+                break
+
+    if _pg_probe() != 0 and not _pg_try_start():
+        host, port = _pg_target()
+        target = f'{host or "(default)"}:{port or "(default)"}'
+        pytest.exit(
+            f'PostgreSQL no responde en {target} y no se pudo arrancar.\n'
+            '  pg_lsclusters                     # estado de los clusters\n'
+            '  sudo pg_ctlcluster 16 main start  # arranque explicito\n'
+            '  tail -50 /var/log/postgresql/postgresql-16-main.log',
+            returncode=1,
+        )
+
 
 # ─── Paths del repositorio ───────────────────────────────────────────────────
 # Construidos relativos a este archivo — portables entre entornos.
