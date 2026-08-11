@@ -45,7 +45,7 @@ skill gobierna sólo la de arriba:
   skill**: `ModelSerializer` (`Meta.fields` explícito), `HasCapability`
   fail-closed (nunca `IsAuthenticated` a secas), FBV vs ViewSet+router,
   `@extend_schema`, canon `codigo_error`, paginación por-list-endpoint, testing
-  pytest-django contra MariaDB real. El serializer envuelve el modelo Odoo:
+  pytest-django contra PostgreSQL real. El serializer envuelve el modelo Odoo:
   un `fields.Monetary` (= `DecimalField`) sale como **string** vía
   `DecimalField(...,decimal_places=2)` (ver `serializer-fields.md`); un
   `UserError` de negocio del modelo se sella en el contrato con `codigo_error`
@@ -153,8 +153,8 @@ endpoint sin `@extend_schema` degrada el OpenAPI publicado. ViewSet:
 
 ## Phase 11: TRACK/EVALUATE — Verificar
 
-- **DB + pytest** contra MariaDB real (nunca SQLite):
-  `bash /home/user/kaupamex-db/scripts/start_db.sh` + `uv run pytest <ruta> -q --reuse-db`.
+- **DB + pytest** contra PostgreSQL real (nunca SQLite):
+  `bash /home/user/kaupamex-db/scripts/start_postgres.sh` + `uv run pytest <ruta> -q --reuse-db`.
 - **Autorización:** un test que confirme 403 sin la capacidad y 200 con ella
   (patrón `seed_authz` + `assign_buyer_role`/`RoleAssignment` +
   `invalidate_capabilities`; ver `tests/integration/authz/test_self_account_caps.py`).
@@ -287,7 +287,7 @@ Cargar el doc del eje que se está tocando (no todo el skill):
   `APITestCase` (0); `APIClient` 53, `APIRequestFactory` 9, `force_authenticate`
   36. `force_login` (Django, crea sesión — fiel a ADR-018) vs `force_authenticate`
   (DRF, `session_key=''` → sembrar reauth DEC-12). `format='json'` explícito;
-  assert `response.data`+status+`codigo_error`; MariaDB real, no SQLite.
+  assert `response.data`+status+`codigo_error`; PostgreSQL real, no SQLite.
 - [`settings.md`](references/settings.md) — **mapa maestro** del bloque
   `REST_FRAMEWORK` (`base.py`): qué se fija (auth sesión, `IsAuthenticated` como
   piso + `HasCapability` por vista, JSON-only, spectacular, EXCEPTION_HANDLER

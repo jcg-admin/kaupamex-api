@@ -2,10 +2,6 @@
 conftest.py — Fixtures globales para PracticaYoruba API tests.
 BD: kaupamex_qa (config.settings.testing)
 """
-import os
-import shutil
-import subprocess
-import time
 from pathlib import Path
 from django.contrib.auth import get_user_model
 from django.db import connection
@@ -39,15 +35,11 @@ from tests.factories.user_factory import make_buyer  # noqa: F401 (re-export)
 import pytest
 from addons.base.models.ir_config_parameter import _clear_cache as _clear_param_cache
 from pytest_django.plugin import blocking_manager_key
-import warnings
 
 # ─── Paths del repositorio ───────────────────────────────────────────────────
 # Construidos relativos a este archivo — portables entre entornos.
 _TESTS_DIR = Path(__file__).resolve().parent        # tests/
-_REPO_ROOT  = _TESTS_DIR.parent                     # PracticaYoruba-api/
-_DB_QA_SCRIPT = (
-    _REPO_ROOT / 'scripts' / 'provisioners' / 'mysql' / 'db_qa_setup.sh'
-)
+_REPO_ROOT  = _TESTS_DIR.parent                     # kaupamex-api/
 
 
 
@@ -150,90 +142,6 @@ def clear_rate_limit_cache():
     clear_rl()
     yield
     clear_rl()
-
-# ─── MariaDB Keepalive (ADR-008) ─────────────────────────────────────
-# En este entorno MariaDB corre sin systemd y puede morir durante
-# suites largas. El fixture reinicia automáticamente si detecta caída.
-
-
-def _mariadb_alive() -> bool:
-    # D-028: en MariaDB 11.x el binario es 'mariadb-admin' (NO 'mysqladmin').
-    # Resolver el que exista. NO silenciar la ausencia de AMBOS: sin binario el
-    # keepalive trataria una BD sana como caida y correria db_qa_setup + 30s de
-    # sleep en CADA test (error silencioso). Se avisa fuerte en vez de mentir.
-    admin_bin = shutil.which('mariadb-admin') or shutil.which('mysqladmin')
-    if admin_bin is None:
-        warnings.warn(
-            "mariadb_keepalive: ni 'mariadb-admin' ni 'mysqladmin' en PATH "
-            "(D-028) — no se puede verificar el estado de MariaDB.",
-            RuntimeWarning, stacklevel=2,
-        )
-        return False
-    # Ping por socket (canonico, ADR-008) con fallback a TCP.
-    socket_path = os.environ.get('DB_QA_SOCKET', '') or '/run/mysqld/mysqld.sock'
-    for cmd in (
-        [admin_bin, 'ping', '--silent', f'--socket={socket_path}'],
-        [admin_bin, 'ping', '--silent', '--host=127.0.0.1', '--port=3306'],
-    ):
-        try:
-            if subprocess.run(cmd, capture_output=True, timeout=5).returncode == 0:
-                return True
-        except Exception:
-            continue
-    return False
-
-
-def _restart_mariadb() -> bool:
-    """
-    Intenta restablecer el entorno de BD ejecutando db_qa_setup.sh.
-    Retorna True si MariaDB responde en los 30 segundos siguientes.
-
-    Nota: este script recrea el schema QA si es necesario — no reinicia
-    el proceso de MariaDB directamente. En entornos sin systemd el proceso
-    debe ser arrancado externamente; este helper solo reaplica el setup.
-    Ver testing.py y ADR-008 para el contexto completo.
-    """
-    if not _DB_QA_SCRIPT.exists():
-        # No silenciar — en un entorno nuevo el path debe existir.
-        # Si no existe, hay un problema de configuración del repositorio.
-        warnings.warn(
-            f"mariadb_keepalive: script no encontrado: {_DB_QA_SCRIPT}\n"
-            f"  El fixture no puede restablecer la BD automáticamente.\n"
-            f"  Verifica que el repositorio esté en el estado correcto.",
-            RuntimeWarning,
-            stacklevel=2,
-        )
-        return False
-
-    result = subprocess.run(
-        ['bash', str(_DB_QA_SCRIPT)],
-        capture_output=True,
-        timeout=90,
-    )
-
-    if result.returncode != 0:
-        stderr_snippet = result.stderr.decode('utf-8', errors='replace')[:500]
-        warnings.warn(
-            f"mariadb_keepalive: db_qa_setup.sh failed with exit code {result.returncode}\n"
-            f"  stderr: {stderr_snippet}",
-            RuntimeWarning,
-            stacklevel=2,
-        )
-
-    for _ in range(30):
-        if _mariadb_alive():
-            return True
-        time.sleep(1)
-    return False
-
-
-@pytest.fixture(autouse=True)
-def mariadb_keepalive(db):
-    """Reinicia MariaDB si cayó antes del test (ADR-008)."""
-    if not _mariadb_alive():
-        _restart_mariadb()
-    yield
-
 
 @pytest.fixture(autouse=True)
 def _reset_system_parameter_cache():

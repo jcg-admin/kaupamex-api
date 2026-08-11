@@ -11,7 +11,7 @@ escribir. No depende de la memoria del agente.
 Alcance (directiva ejecutor 2026-07-24): no solo ``src/addons/**`` — todo lo
 que vive en ``src/`` (monolito modular), y todo lo que involucre Django REST
 Framework / Python / drf-spectacular. Los tests de integracion tambien, porque
-ejercen el contrato DRF (``force_login`` + ``format='json'`` contra MariaDB).
+ejercen el contrato DRF (``force_login`` + ``format='json'`` contra PostgreSQL).
 
 Surfacing NO bloqueante: sale 0 SIEMPRE (nunca rompe el flujo). Es un gate por
 ser automatico y disparado en el momento de la accion, no por bloquear —
@@ -95,7 +95,7 @@ def _message(p):
             "(HasCapability fail-closed, NUNCA IsAuthenticated a secas; "
             "permission_map por accion; capacidad nueva -> seed_authz), "
             "canon `codigo_error`, ModelSerializer con Meta.fields explicito, "
-            "no-lazy-imports, testing pytest contra MariaDB real.\n"
+            "no-lazy-imports, testing pytest contra PostgreSQL real.\n"
             "  - `backend-drf-spectacular`: @extend_schema por endpoint "
             "(summary + tags=['<app>'] + responses con codigo_error), "
             "schema.py por app con SPECTACULAR_TAGS (Open/Closed; NO tocar "

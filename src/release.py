@@ -36,7 +36,7 @@ product_name = 'Kaupamex'
 description = 'Kaupamex — plataforma L0 de comercio multi-company'
 url = 'https://github.com/jcg-admin/kaupamex'
 author = 'Equipo Kaupamex'
-author_email = 'dev@practicayoruba.mx'
+author_email = 'dev@kaupamex.com'
 
 # Licencia de ESTE árbol. No es la de los addons adaptados: cada addon declara
 # en su ``__manifest__.py`` la licencia de la fuente de la que se adapta
@@ -44,8 +44,10 @@ author_email = 'dev@practicayoruba.mx'
 license = 'Confidential'
 
 # Mínimos de runtime. Coherentes con `requires-python` de pyproject
-# (">=3.12,<3.15"). La referencia declara además MIN_PG_VERSION; aquí la BD
-# canónica es MariaDB (ADR-008), no PostgreSQL.
+# (">=3.12,<3.15"). La BD canónica es PostgreSQL (ADR-028, supersede
+# ADR-008/ADR-009 MariaDB); mínimo efectivo 14 — el mayor entre el de la
+# referencia (13, ``odoo19c: odoo/release.py:41``) y el de Django 6
+# (``django/db/backends/postgresql/features.py:10``, que aborta la conexión).
 MIN_PY_VERSION = (3, 12)
 MAX_PY_VERSION = (3, 14)
-MIN_MARIADB_VERSION = (11, 8)
+MIN_PG_VERSION = (14, 0)

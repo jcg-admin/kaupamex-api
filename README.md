@@ -1,11 +1,11 @@
 # PracticaYoruba API
 
-Backend eCommerce — Django REST Framework + MariaDB + JWT.
+Backend eCommerce — Django REST Framework + PostgreSQL + JWT.
 
 ## Prerequisitos
 
-- Python 3.11 o superior
-- MariaDB 11.8 corriendo localmente
+- Python 3.12 o superior
+- PostgreSQL 16 (mínimo efectivo 14, ADR-028) corriendo localmente
 - `uv` (gestor de toolchain Python — D-031/H-14). Instalar:
   `curl -LsSf https://astral.sh/uv/install.sh | sh`
 
@@ -17,11 +17,11 @@ Backend eCommerce — Django REST Framework + MariaDB + JWT.
 uv sync
 
 # 2. Configurar variables de entorno
-cp practicayoruba/.env.example practicayoruba/.env
-# Editar practicayoruba/.env con las credenciales de MariaDB
+cp src/.env.example src/.env
+# Editar src/.env con las credenciales de PostgreSQL
 
 # 3. Aplicar migraciones y crear superusuario
-cd practicayoruba
+cd src
 uv run python manage.py migrate
 uv run python manage.py createsuperuser
 
@@ -33,14 +33,15 @@ uv run python manage.py runserver
 intérprete; no requiere `source .venv/bin/activate`). Para correr los
 tests: `uv run pytest`.
 
-Para entornos Ubuntu con MariaDB gestionado por el proyecto:
+Para provisionar la base y el rol en PostgreSQL (ver `kaupamex-db`):
 
 ```bash
-sudo bash scripts/bootstrap.sh
+sudo bash provisioners/postgresql/db_setup.sh          # base kaupamex_db
+sudo bash provisioners/postgresql/db_setup.sh --qa     # base kaupamex_qa
 ```
 
-El script crea los schemas `practicayoruba_db` (desarrollo) y
-`practicayoruba_qa` (tests), aplica migraciones y verifica el entorno.
+El provisioner crea las bases `kaupamex_db` (desarrollo) y `kaupamex_qa`
+(tests) con el rol `django_user`, y verifica el mínimo efectivo del motor.
 
 ## Endpoints
 
@@ -99,21 +100,17 @@ GET  /api/schema/redoc/      Redoc
 ## Tests
 
 ```bash
-cd practicayoruba
-pytest
+uv run pytest --reuse-db -q
 ```
 
-El archivo `pytest.ini` apunta a `config.settings.testing`, que usa el
-schema `practicayoruba_qa`. Los tests nunca tocan `practicayoruba_db`.
+El archivo `pytest.ini` apunta a `config.settings.testing`, que usa la base
+`kaupamex_qa`. Los tests nunca tocan `kaupamex_db`.
 
 ## Estructura
 
 ```
-practicayoruba/
-  apps/
-    users/          autenticacion, perfiles, direcciones
-    catalogue/      productos, categorias, busqueda
-    settings_app/   configuracion global del sitio (SiteSettings)
+src/
+  addons/           addons Django (monolito modular — cart, catalogue, ...)
   config/
     settings/
       base.py       configuracion base
@@ -124,6 +121,5 @@ practicayoruba/
   manage.py
 pyproject.toml      deps canonicas ([project] + grupo dev) — fuente unica
 uv.lock             grafo congelado (uv sync lo aplica)
-scripts/
-  bootstrap.sh      setup completo para Ubuntu con MariaDB
+scripts/            checkers de calidad + provisioners/postgresql/
 ```

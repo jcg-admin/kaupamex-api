@@ -73,11 +73,12 @@ USE_X_FORWARDED_HOST = True
 # base.py define ALLOWED_HOSTS con default 'localhost,127.0.0.1'.
 # init-env.sh copia ese default al .env sin incluir el dominio público.
 # Apache pasa Host: <dominio> a Django → DisallowedHost → HTTP 400.
-# Sobreescribir con un default de producción que incluye practicayoruba.com.
+# Sobreescribir con un default de producción que incluye el dominio de la
+# plataforma L0 (kaupamex.com — DEC-01, abstraer-infra-l0-kaupamex).
 # Si el .env tiene ALLOWED_HOSTS explícito, decouple lo usa en su lugar.
 ALLOWED_HOSTS = config(
     'ALLOWED_HOSTS',
-    default='practicayoruba.com,www.practicayoruba.com,localhost,127.0.0.1',
+    default='kaupamex.com,www.kaupamex.com,localhost,127.0.0.1',
     cast=Csv(),
 )
 
@@ -120,8 +121,8 @@ EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 
 # URL base del frontend — usada en tokens_email.py para construir los
 # enlaces de verificación de cuenta y recuperación de contraseña.
-# Debe coincidir con el dominio público de la aplicación.
-FRONTEND_URL = config('FRONTEND_URL', default='https://practicayoruba.com')
+# Debe coincidir con el dominio público de la plataforma L0 (kaupamex.com).
+FRONTEND_URL = config('FRONTEND_URL', default='https://kaupamex.com')
 
 # H-CICLO84-03: elevar nivel de log a WARNING en produccion.
 # base.py define ambos loggers en INFO, lo que es apropiado para

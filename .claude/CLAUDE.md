@@ -125,12 +125,13 @@ es buscable, indexable y publicable.
 
 Stack del monorepo (parent + 5 submodulos):
 
-- **api/**: Django 5.0.1 + DRF 3.14.0, mysqlclient 2.2.1, simplejwt 5.3.1,
-  drf-spectacular 0.27.0, pytest + pytest-django + factory-boy, mercadopago SDK.
+- **api/**: Django 6.0.5 + DRF 3.16.1, psycopg[binary] >=3.2, simplejwt 5.5.1,
+  drf-spectacular 0.29.0, pytest + pytest-django + factory-boy, mercadopago SDK.
 - **ui/**: React 19, Redux Toolkit 2.0, @tanstack/react-query 5.x,
   react-router-dom 6.x, Webpack 5.88, Babel 7.29, Jest 29 + RTL 16, SCSS
   con sass-loader, framer-motion, recharts, dompurify.
-- **db/**: MariaDB 11.8 LTS (provisionada con bash + python-dotenv).
+- **db/**: PostgreSQL 16 (ADR-028; mínimo efectivo 14), provisionada con
+  bash + python-dotenv.
 - **server/**: Ubuntu 24.04 + Apache 2.4 + mod_wsgi + Let's Encrypt
   (acme.sh) + fail2ban + SSH hardening.
 - **docs/**: Sphinx 8.2 + Furo + plantuml + sphinx-design + sphinx-tabs,

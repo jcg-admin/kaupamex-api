@@ -301,7 +301,7 @@ def _build_order_payload(
         payer_email
         or (order.partner.email if order.partner_id else '')
         or getattr(order, 'guest_email', '')
-        or 'guest@practicayoruba.mx'
+        or 'guest@kaupamex.com'
     )
     payer = {'email': email_resolved}
     if payer_identification_type and payer_identification_number:
@@ -413,7 +413,7 @@ class MercadoPagoGateway(BaseGateway):
         # Email del comprador (autenticado o invitado)
         payer_email = (
             order.partner.email if order.partner_id
-            else order.guest_email or 'guest@practicayoruba.com'
+            else order.guest_email or 'guest@kaupamex.com'
         )
 
         preference_data = {

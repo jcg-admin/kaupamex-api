@@ -263,7 +263,7 @@ class Command(BaseCommand):
                 'token': token_id,
                 'installments': 1,
                 'payment_method_id': 'master',
-                'payer': {'email': 'pairing-check@practicayoruba.mx'},
+                'payer': {'email': 'pairing-check@kaupamex.com'},
             })
         except Exception as exc:  # noqa: BLE001 — reportamos, no propagamos
             self.stderr.write(self.style.WARNING(

@@ -12,7 +12,7 @@ source: DRF api-guide/testing
 > DRF ofrece helpers de test (`APIClient`, `APIRequestFactory`,
 > `force_authenticate`) **y** clases xUnit (`APITestCase`, …). El proyecto usa
 > los **helpers** sobre **pytest-django** (funciones + fixtures) — **no** las
-> clases `APITestCase`/`unittest`. Todo corre contra **MariaDB real**, nunca
+> clases `APITestCase`/`unittest`. Todo corre contra **PostgreSQL real**, nunca
 > SQLite (ver `test-execution-protocol.md`).
 
 ## Estilo — pytest, no `unittest`
@@ -115,7 +115,7 @@ Con `APIRequestFactory` (vista directa) la respuesta **no está renderizada**: l
   no pasa por el form de login).
 - `TEST_REQUEST_DEFAULT_FORMAT` / `TEST_REQUEST_RENDERER_CLASSES` en settings: 0
   (por eso `format='json'` es explícito).
-- SQLite: prohibido; la suite corre contra MariaDB (`test-execution-protocol.md`).
+- SQLite: prohibido; la suite corre contra PostgreSQL (`test-execution-protocol.md`).
 
 ## Checklist al escribir un test de endpoint
 
@@ -127,7 +127,7 @@ Con `APIRequestFactory` (vista directa) la respuesta **no está renderizada**: l
 4. ¿Carrito anónimo? → `credentials(HTTP_X_CART_TOKEN=…)`; ¿JWT? → sólo en tests
    dedicados de JWT.
 5. Assert `response.data` + status (constante DRF) + `codigo_error` en errores.
-6. Correr contra MariaDB (DB por socket + `--reuse-db`), suite del módulo verde
+6. Correr contra PostgreSQL (DB por socket + `--reuse-db`), suite del módulo verde
    antes de commitear.
 
 ## Referencias cruzadas
@@ -140,7 +140,7 @@ Con `APIRequestFactory` (vista directa) la respuesta **no está renderizada**: l
   status.
 - `throttling.md` — la autouse `clear_rate_limit_cache` evita que el throttle
   contamine tests vecinos.
-- `test-execution-protocol.md` (regla) — MariaDB por socket, `--reuse-db`, suite
+- `test-execution-protocol.md` (regla) — PostgreSQL por socket, `--reuse-db`, suite
   completa antes de cerrar.
 - Código: `tests/conftest.py:72-104` (fixtures de cliente),
   `tests/integration/authz/test_admin_roles.py:46` (gotcha reauth +
