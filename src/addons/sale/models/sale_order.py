@@ -12,6 +12,7 @@ estados de *fulfillment* (enviado/entregado) y *pago* (pagado) NO viven aquí �
 Odoo están en ``stock.picking`` y ``payment.transaction``/``account.move``; se
 integran en sus addons (``inventory``/``logistics``/``payments``).
 """
+from datetime import timedelta
 from decimal import Decimal
 
 from django.conf import settings
@@ -23,6 +24,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from exceptions import UserError
+from orm.fields_nonstored import NonStored
 from tools.translate import _
 
 from addons.account.services import create_invoice_from_sale_order
@@ -48,6 +50,32 @@ def _next_sale_name() -> str:
             seq = IrSequence.objects.create(
                 name='Sales Order', code='sale.order', prefix='S', padding=5)
         return seq.get_next()
+
+
+#: Centinela: la instancia no se cargó de la base, así que no hay valor
+#: anterior de ``company`` contra el cual comparar. Distinto de ``None``, que
+#: sí es un valor legítimo (orden sin empresa).
+_EMPRESA_NO_CARGADA = object()
+
+
+def _compute_is_expired_default(order) -> bool:
+    """≙ ``_compute_is_expired`` (``odoo19c: sale_order.py:758-764``).
+
+    Cuerpo exacto de la referencia: cotización/enviada con vigencia vencida.
+    ``NonStored.resolve_default`` llama a este invocable con la instancia
+    porque acepta un parámetro (mismo protocolo que
+    ``account_fleet/models/account_move.py::_compute_need_vehicle``).
+
+    Usa la fecha del **servidor** a propósito: la referencia compara contra
+    ``fields.Date.today()`` aquí y contra ``fields.Date.context_today(self)``
+    en ``_compute_validity_date``. Esa asimetría se conserva — ver el
+    docstring de ``SaleOrder._compute_validity_date``.
+    """
+    return bool(
+        order.state in (order.STATE_DRAFT, order.STATE_SENT)
+        and order.validity_date
+        and order.validity_date < timezone.now().date()
+    )
 
 
 class SaleOrder(MailThread, TimeStampedModel):
@@ -136,6 +164,17 @@ class SaleOrder(MailThread, TimeStampedModel):
         on_delete=models.CASCADE, related_name='sale_orders',
         help_text='Empresa dueña de la orden (Odoo company_id). NULL pre-backfill.',
     )
+    # Vigencia de la cotización (Odoo sale.order.validity_date, tarea #256).
+    # ``store=True, compute='_compute_validity_date'`` en la referencia; aquí
+    # se calcula en ``save()`` (ver el override abajo, junto a
+    # ``_compute_validity_date``) porque el insumo es ``company`` — un campo
+    # del propio ``SaleOrder``, no de ``order_line`` como ``amount_*``.
+    validity_date = fields.Date(
+        null=True, blank=True,
+        help_text='Vigencia de la cotización (Odoo validity_date, '
+                  'sale/models/sale_order.py:135). NULL si la empresa '
+                  'no define quotation_validity_days.',
+    )
 
     # Método de envío elegido (Odoo sale.order.carrier_id, que el módulo
     # ``delivery`` añade a sale.order — delivery/models/sale_order.py:13).
@@ -196,6 +235,23 @@ class SaleOrder(MailThread, TimeStampedModel):
         max_digits=10, decimal_places=2, default=Decimal('0.00'),
         help_text='Total de la orden, suma de líneas (Odoo amount_total).',
     )
+    # Si la cotización venció (Odoo is_expired, compute, store=False;
+    # tarea #256). Sólo este símbolo del eje ``is_expired`` — sus dos
+    # consumidores de portal, ``_has_to_be_signed``/``_has_to_be_paid``
+    # (``odoo19c: sale_order.py:1894,1914``), quedan fuera: confirmado
+    # ausentes en ``src/`` (0 hits de implementación), eje portal sin
+    # superficie propia en este stack. Es DECISIÓN de alcance, no omisión.
+    is_expired = NonStored(
+        default=_compute_is_expired_default,
+        help_text='Si la cotización venció (Odoo is_expired, compute, '
+                  'store=False): state en draft/sent y validity_date '
+                  'anterior a hoy.',
+    )
+
+    #: Empresa con la que se cargó la fila — lo puebla ``from_db``. Es el
+    #: sustituto del grafo de dependencias que la referencia sí tiene: sin él,
+    #: ``save()`` no puede saber si ``company`` cambió.
+    _loaded_company_id = _EMPRESA_NO_CARGADA
 
     objects = models.Manager()               # cross-company (L0 admin)
     scoped = RuleScopedManager()             # L3: record rules (ir_rule)
@@ -229,6 +285,62 @@ class SaleOrder(MailThread, TimeStampedModel):
     def __str__(self):
         return self.name or f'draft:{self.cart_token or self.pk}'
 
+    @classmethod
+    def from_db(cls, db, field_names, values):
+        """Recuerda la empresa con la que se cargó la fila.
+
+        Es lo que permite a ``save()`` distinguir "cambió ``company``" de
+        "se guardó cualquier otra cosa", que es la diferencia entre reproducir
+        ``@api.depends('company_id')`` y recalcular a ciegas. Sin este dato el
+        único disparo posible sería "en cada save", que **no** es lo que hace
+        la referencia.
+        """
+        order = super().from_db(db, field_names, values)
+        if 'company_id' in field_names:
+            order._loaded_company_id = order.company_id
+        return order
+
+    def save(self, *args, **kwargs):
+        """Calcula ``validity_date`` antes de persistir (tarea #256).
+
+        Mismo patrón de disparo que ``res_country.save()`` (precedente tras
+        ``__str__``): en la referencia ``@api.depends('company_id')`` dispara
+        ``_compute_validity_date`` automáticamente; aquí ``@api.depends`` es
+        **inerte** (``orm/decorators.py:23-27`` sólo anota ``_depends``, no hay
+        motor de recompute — tarea #191), así que el único disparo real es este
+        ``save()``.
+
+        Reproduce **los dos** disparos de la referencia, que no son uno:
+
+        1. ``precompute=True`` — al **crear**, y sólo si quien llama no dio
+           valor. Medido en ``odoo19c: odoo/orm/models.py:4841``
+           (``_add_precomputed_values``): ``if fname not in vals:`` — un
+           ``validity_date`` explícito en ``create()`` **sobrevive**, no lo
+           pisa el cómputo.
+        2. ``@api.depends('company_id')`` — al **cambiar la empresa**, no en
+           cada escritura. Recalcular siempre convertiría un campo editable
+           (``readonly=False``) en uno que el usuario no puede fijar.
+
+        Fuera de esos dos casos no toca el valor. ``update_fields`` se respeta:
+        si el cómputo corre en un ``save`` parcial, ``validity_date`` se añade
+        a la lista para que llegue a la base — calcularlo sin persistirlo
+        dejaría la instancia divergiendo de la fila en silencio.
+        """
+        update_fields = kwargs.get('update_fields')
+        cambio_empresa = (
+            self._loaded_company_id is not _EMPRESA_NO_CARGADA
+            and self._loaded_company_id != self.company_id
+        )
+        if self._state.adding:
+            if self.validity_date is None:
+                self._compute_validity_date()
+        elif cambio_empresa:
+            self._compute_validity_date()
+            if update_fields is not None and 'validity_date' not in update_fields:
+                kwargs['update_fields'] = [*update_fields, 'validity_date']
+        super().save(*args, **kwargs)
+        self._loaded_company_id = self.company_id
+
     # amount_untaxed/tax/total — de sale.order._compute_amounts
     # (sale/models/sale_order.py:513): suma del desglose por línea ya redondeado.
     def _sum_lines(self, attr: str) -> Decimal:
@@ -260,6 +372,36 @@ class SaleOrder(MailThread, TimeStampedModel):
         self.amount_total = self._sum_lines('price_total')
         self.save(update_fields=[
             'amount_untaxed', 'amount_tax', 'amount_total', 'updated_at'])
+
+    @api.depends('company')
+    def _compute_validity_date(self):
+        """Vigencia de la cotización — ≙ ``_compute_validity_date``
+        (``odoo19c: sale/models/sale_order.py:367-374``).
+
+        Cuerpo fiel a la referencia, **sin guard de early-return**: recalcula
+        siempre, y cuando ``quotation_validity_days`` es 0 o la orden no tiene
+        empresa, **limpia** la fecha (``else: order.validity_date = False`` de
+        la referencia). Que la empresa baje el plazo a 0 tiene que borrar las
+        vigencias, no dejarlas rancias — una fecha rancia dispararía
+        ``is_expired`` sobre cotizaciones que la empresa ya no quiere vencer.
+
+        Sin empresa equivale a la referencia con recordset vacío:
+        ``order.company_id.quotation_validity_days`` sobre vacío da 0, así que
+        cae en la rama que limpia.
+
+        **Huso — divergencia declarada.** La referencia usa
+        ``fields.Date.context_today(self)`` (fecha de HOY en la zona del
+        *usuario*) aquí, y ``fields.Date.today()`` (fecha del servidor) en
+        ``_compute_is_expired``. Esa asimetría es deliberada y se conserva:
+        este stack no tiene contexto de zona por usuario, así que el análogo
+        más cercano a "hoy donde opera la empresa" es ``timezone.localdate()``
+        (``settings.TIME_ZONE``), no UTC. ``is_expired`` sí usa la fecha del
+        servidor, como la referencia.
+        """
+        days = self.company.quotation_validity_days if self.company else 0
+        self.validity_date = (
+            timezone.localdate() + timedelta(days=days) if days > 0 else None
+        )
 
     # ------------------------------------------------------------------
     # Máquina de estados de venta — de sale.order (sale/models/sale_order.py):

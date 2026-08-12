@@ -81,12 +81,33 @@ Consecuencia operativa, y es la mitad que faltaba de esta regla:
 - **Sin él** → el bump **no se puede hacer ni verificar**. Entonces no se
   declara "publicado y bumpeado" (sería una afirmación de estado sin
   `Observation`), pero **tampoco se bloquea el push del submódulo**: el push
-  es completo en su propio repo. Se dice explícitamente que el gitlink queda
-  **DESCONOCIDO por ausencia del superproyecto**, y se sigue.
+  es completo en su propio repo.
 
-Lo que **no** es válido en ninguno de los dos casos: callar. Un push de
-submódulo sin mención del gitlink se lee como bump hecho, que es exactamente
-el defecto que L-004 registró dos veces.
+Lo que **no** es válido: callar **cuando el estado del gitlink es una
+incógnita del turno**. Un push de submódulo sin mención del gitlink se lee
+como bump hecho, que es exactamente el defecto que L-004 registró dos veces.
+
+**La ausencia del superproyecto NO es una incógnita del turno — es una
+decisión registrada** (directiva del ejecutor 2026-08-07, arriba). Por tanto
+**no se repite por turno**: decirlo en cada push es ruido, no evidencia.
+
+> Directiva del ejecutor 2026-08-12T06:08:29: *"eso ya lo tenemos documentado
+> y es una decisión que ya se había documentado en mensajes anteriores"*.
+
+Se vuelve a mencionar sólo cuando el estado cambia o alguien lo pregunta:
+
+- el superproyecto **reaparece** en la sesión → la regla aplica entera otra vez,
+  y el primer push lo dice;
+- alguien **pregunta** por el gitlink o por el estado de publicación;
+- un artefacto **afirma** que el gitlink está bumpeado — ahí sí se corrige, porque
+  es una afirmación de estado falsa, que es lo que L-004 registró.
+
+**Por qué esto no reabre L-004.** El defecto de L-004 era declarar "publicado"
+habiendo un bump posible y omitido. Sin superproyecto no hay bump posible: no
+hay nada que omitir. La cláusula de no-callar protege contra una omisión que
+engaña; repetir una condición constante y ya escrita no protege de nada — sólo
+entrena a ignorar el aviso, que es cómo una regla se vuelve ruido que nadie
+obedece (el mismo criterio con que esta regla se repuntó en vez de retirarse).
 
 **Por qué se repunta y no se retira.** `principio-aprender-haciendo` Cláusula 2
 da dos desenlaces para una regla heredada que no se sostiene: repuntar a lo que
