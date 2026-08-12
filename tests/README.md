@@ -1,4 +1,4 @@
-# Tests — PracticaYoruba API
+# Tests — kaupamex-api
 
 ## Base de datos
 

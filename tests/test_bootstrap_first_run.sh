@@ -186,25 +186,33 @@ fi
 # Iniciativa configurar-ui-dist-en-deploy (H-UID-1, H-UID-2)
 # ----------------------------------------------------------------------------
 
-# H-UID-1: .env.example documenta UI_DIST con path OVHCloud (produccion)
-if grep -qE '^UI_DIST=/opt/practicayoruba/ui/dist' "$PROJECT_ROOT/src/.env.example"; then
+# H-UID-1: .env.example documenta UI_DIST con path OVHCloud (produccion).
+# Layout de despliegue OVHCloud paso de /opt/practicayoruba/ a /opt/kaupamex/
+# (H-API-382 + api@fa947f1, 2026-08-11) — una ruta de despliegue es L0 y
+# lleva el nombre del operador (terminologia-l0-company.md).
+if grep -qE '^UI_DIST=/opt/kaupamex/ui/dist' "$PROJECT_ROOT/src/.env.example"; then
     pass ".env.example documenta UI_DIST con path OVHCloud (H-UID-1)"
 else
     fail ".env.example NO documenta UI_DIST OVHCloud (H-UID-1 regresion)"
 fi
 
-# H-UID-2: production.py default es '' (centinela), NO el path obsoleto /opt/...
-if grep -qE "config\('UI_DIST', default=''\)" "$PROJECT_ROOT/src/config/settings/production.py"; then
-    pass "production.py UI_DIST default='' (centinela, H-UID-2)"
+# H-UID-2: el default vive ahora en config/settings/options.py (registro
+# conf[]-style, T-022) — production.py delega en opt('UI_DIST') en vez de
+# declarar el default inline. El centinela sigue siendo '' (desactiva
+# serve_spa), NO el path obsoleto /opt/practicayoruba.
+if grep -qE "'UI_DIST':.*default=''" "$PROJECT_ROOT/src/config/settings/options.py"; then
+    pass "options.py UI_DIST default='' (centinela, H-UID-2)"
 else
-    fail "production.py UI_DIST con default obsoleto (H-UID-2 regresion)"
+    fail "options.py UI_DIST sin default='' centinela (H-UID-2 regresion)"
 fi
-# El patron anterior era "default='/opt/practicayoruba" a secas: decia UI_DIST
-# y medía CUALQUIER setting, así que enganchaba MEDIA_ROOT — otra variable, con
-# una ruta de despliegue legítima. Se acota a la línea de UI_DIST.
-if grep -qE "^UI_DIST = config\('UI_DIST', default='/opt/practicayoruba" \
-        "$PROJECT_ROOT/src/config/settings/production.py"; then
-    fail "UI_DIST todavia usa default /opt/practicayoruba (H-UID-2 regresion)"
+if grep -qE "^UI_DIST = opt\('UI_DIST'\)" "$PROJECT_ROOT/src/config/settings/production.py"; then
+    pass "production.py UI_DIST delega en opt() (H-UID-2)"
+else
+    fail "production.py UI_DIST no delega en opt() (H-UID-2 regresion)"
+fi
+if grep -qE "/opt/practicayoruba" "$PROJECT_ROOT/src/config/settings/options.py" \
+        "$PROJECT_ROOT/src/config/settings/production.py" 2>/dev/null; then
+    fail "UI_DIST/options.py todavia citan /opt/practicayoruba obsoleto (H-UID-2 regresion)"
 else
     pass "UI_DIST sin default /opt/practicayoruba obsoleto (H-UID-2)"
 fi

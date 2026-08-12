@@ -50,7 +50,7 @@ def _notify_backup_failed(record_pk: int, error_detail: str) -> None:
         return
     try:
         dispatch_email(
-            subject=f'[PracticaYoruba] Backup #{record_pk} falló',
+            subject=f'[Kaupamex] Backup #{record_pk} falló',
             message=(
                 f'El backup on-demand #{record_pk} terminó en error.\n\n'
                 f'Detalle:\n{error_detail}'

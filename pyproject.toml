@@ -1,10 +1,10 @@
 [project]
-name = "practicayoruba-api"
+name = "kaupamex-api"
 version = "0.1.0"
-description = "PracticaYoruba — API REST (Django + DRF)"
+description = "Kaupamex — API REST (Django + DRF)"
 requires-python = ">=3.12,<3.15"
 authors = [
-    {name = "Equipo PracticaYoruba", email = "dev@practicayoruba.mx"}
+    {name = "Equipo Kaupamex", email = "dev@kaupamex.com"}
 ]
 license = {text = "Confidential"}
 

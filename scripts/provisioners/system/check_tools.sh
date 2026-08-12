@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# check_tools.sh — Verifica el estado del entorno — PracticaYoruba API
+# check_tools.sh — Verifica el estado del entorno — kaupamex-api
 # =============================================================================
 set -euo pipefail
 
@@ -163,7 +163,7 @@ check_logs_dir() {
 
 # =============================================================================
 log_separator 60 "="
-echo "  PracticaYoruba API — Estado del entorno"
+echo "  kaupamex-api — Estado del entorno"
 log_separator 60 "="
 echo ""
 

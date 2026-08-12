@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# logging.sh — Funciones de logging — PracticaYoruba API
+# logging.sh — Funciones de logging — kaupamex-api
 # =============================================================================
 # Provee: log_header, log_step, log_success, log_info, log_warn,
 #         log_fatal, log_error, log_separator, start_timer, show_elapsed,

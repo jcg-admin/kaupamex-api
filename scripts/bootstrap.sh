@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# bootstrap.sh — PracticaYoruba API: setup y verificacion del entorno
+# bootstrap.sh — kaupamex-api: setup y verificacion del entorno
 # =============================================================================
 # Uso:
 #   sudo bash scripts/bootstrap.sh [--skip-update]
@@ -31,7 +31,7 @@
 #   Fase 2 — Paquetes      : instala dependencias del sistema
 #   Fase 3 — Python        : crea venv e instala requirements (uv)
 #   Fase 4 — Base de datos : arranca PostgreSQL, crea base produccion y QA
-#   Fase 5 — Migraciones   : ejecuta kaupamex-bin migrate
+#   Fase 5 — Migraciones   : ejecuta kaupamex-bin migrate + createcachetable
 #   Fase 6 — Verificacion  : estado completo del entorno
 #
 # Motor: PostgreSQL (ADR-028, supersede ADR-008/009). La Fase 4 NO provisiona
@@ -286,6 +286,17 @@ phase_migrations() {
         && log_success "Migraciones aplicadas" \
         || log_warn "Migraciones con errores — revisa el output"
 
+    # createcachetable es aparte de migrate — Django no la incluye en el
+    # framework de migraciones (config.settings.base: CACHES usa
+    # DatabaseCache). Sin esta tabla, cualquier vista con throttling
+    # (REST_FRAMEWORK.DEFAULT_THROTTLE_CLASSES, global) responde 500 en
+    # la primera peticion real. Idempotente: si la tabla ya existe, sale
+    # OK sin tocarla.
+    DJANGO_SETTINGS_MODULE=config.settings.development \
+    "$python" "$kbin" createcachetable 2>&1 | tail -3 \
+        && log_success "Tabla de cache lista" \
+        || log_warn "createcachetable con errores — revisa el output"
+
     log_header "Fase 5b/6 — Static files"
     DJANGO_SETTINGS_MODULE=config.settings.development \
     "$python" "$kbin" collectstatic --noinput \
@@ -380,7 +391,7 @@ main() {
 
     echo ""
     log_separator 60 "="
-    echo "  PracticaYoruba API — Bootstrap"
+    echo "  kaupamex-api — Bootstrap"
     echo "  sudo bash scripts/bootstrap.sh [--skip-update]"
     [[ "$SKIP_APT_UPDATE" == "true" ]] && echo "  (--skip-update activo)"
     log_separator 60 "="

@@ -60,7 +60,7 @@ GEO_PROVIDER_PARAM = 'base_geolocalize.geo_provider'
 
 # User-Agent obligatorio por la política de uso de Nominatim (Odoo hardcodea
 # 'Odoo (http://www.odoo.com/contactus)', 19:94); se adapta al proyecto.
-_NOMINATIM_USER_AGENT = 'PracticaYoruba (contacto@kaupamex.com)'
+_NOMINATIM_USER_AGENT = 'Kaupamex (contacto@kaupamex.com)'
 _NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search'
 
 

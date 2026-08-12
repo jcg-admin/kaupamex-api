@@ -15,15 +15,19 @@ source: drf-spectacular settings + config/spectacular_hooks.py
 
 ## Metadatos e identidad
 
-PROVEN 2026-07-18:
+PROVEN 2026-08-12 (`src/config/settings/base.py:493-510`; supersede la
+medición 2026-07-18, que citaba `TITLE: 'PracticaYoruba API'` — decisión de
+producto del ejecutor 2026-08-05 lo cambió):
 
-- `TITLE`: `'PracticaYoruba API'` · `VERSION`: `'1.0.0'` · `LICENSE`: `'Propietario'`.
+- `TITLE`: `'Kaupamex API'` · `VERSION`: `'1.0.0'` · `LICENSE`: `'Propietario'`.
 - `DESCRIPTION`: declara la auth de **sesión** (cookie HttpOnly via
   `POST /api/v2/auth/login/`) y el prefijo `/api/v2/`.
 - `CONTACT`: `'Equipo Kaupamex' / 'soporte@kaupamex.com'` — es el **operador L0 de
   la plataforma**, no el buzón del L1 de ejemplo (DEC-KX-05, follow-up #199). El
-  `TITLE`/`DESCRIPTION` conservan el branding de PracticaYoruba como producto
-  insignia. Ver `backend-drf/references/schema.md`.
+  `TITLE`/`DESCRIPTION` nombran ahora al operador L0 (Kaupamex): la API es una
+  sola y sirve a todas las Company, no sólo a PracticaYoruba (el L1 de
+  ejemplo). Guardado por regresión en `tests/integration/test_schema.py`. Ver
+  `backend-drf/references/schema.md`.
 
 ## Comportamiento del generador
 

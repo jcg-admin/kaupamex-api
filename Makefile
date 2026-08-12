@@ -24,9 +24,9 @@ help:
 	@echo '  make test              Pytest suite completa'
 	@echo '  make test-coverage     Pytest con coverage'
 	@echo '  make install-hooks     Activar .githooks/ via core.hooksPath'
-	@echo '  make db-up             Arranca MariaDB via el script de db (socket)'
+	@echo '  make db-up             Arranca PostgreSQL via el script de db (socket)'
 	@echo '  make ci-test           db-up + pytest suite completa (--reuse-db)'
-	@echo '  make ci-test-fast      db-up + subset de humo cart/ (--reuse-db)'
+	@echo '  make ci-test-fast      db-up + subset de humo sale/ (--reuse-db)'
 	@echo '  make serve             Servidor de aplicacion embebido (ADR-027)'
 	@echo '  make check-serve       Gate: valida gunicorn.conf.py y que la app importe'
 	@echo '  make pdf               Compila los helpers PDF (libharu vendorizada; ADR-017)'
@@ -107,22 +107,25 @@ install-hooks:
 
 # --- Coordinacion CI/CD: db + api ---------------------------------------
 
-# Arranca MariaDB (idempotente) via el script del submodulo db.
-# DB_DIR permite override; fallback a ../db y luego a la ruta absoluta
-# conocida del contenedor.
+# Arranca PostgreSQL (idempotente) via el script del submodulo db
+# (ADR-028 — MariaDB retirado; start_db.sh ya no sirve a ningun entorno).
+# DB_DIR permite override; fallback a ../kaupamex-db y luego a la ruta
+# absoluta conocida del contenedor.
 db-up:
-	@DB_DIR="$${DB_DIR:-../db}"; \
+	@DB_DIR="$${DB_DIR:-../kaupamex-db}"; \
 	if [ ! -d "$$DB_DIR" ]; then DB_DIR=/home/user/kaupamex-db; fi; \
 	echo "db-up: usando DB_DIR=$$DB_DIR"; \
-	bash "$$DB_DIR/scripts/start_db.sh"
+	bash "$$DB_DIR/scripts/start_postgres.sh"
 
-# Suite completa contra MariaDB real (--reuse-db: no recrea schema).
+# Suite completa contra PostgreSQL real (--reuse-db: no recrea schema).
 ci-test: db-up
 	uv run pytest --reuse-db -q
 
-# Subset rapido de humo (cart/) — smoke test de CI.
+# Subset rapido de humo (sale/) — smoke test de CI. El addon cart se
+# retiro; el carrito vive en sale (H-API-310), tests/integration/cart/
+# ya no existe.
 ci-test-fast: db-up
-	uv run pytest tests/integration/cart/ -q --reuse-db
+	uv run pytest tests/integration/sale/ -q --reuse-db
 
 # Servidor de aplicacion embebido (ADR-027). Prefork sincrono, loopback.
 # Sobrescribir con GUNICORN_BIND / GUNICORN_WORKERS; ver setup/gunicorn.conf.py.
