@@ -105,22 +105,29 @@ estados sobre el pago, sólo el campo ``state``). ``void_check()`` escribe
 dos acciones ausentes, sin inventar el motor de estados completo (eso es
 trabajo de ``account``).
 
-Divergencia 7 — ``do_print_checks`` sin motor de reportes
-================================================================
+Divergencia 7 — ``do_print_checks`` sin declaración de reporte propia
+========================================================================
+
+Corregido 2026-08-12 (H-API-407): este comentario decía *"no hay ningún
+motor de reportes/PDF en todo el árbol"*, medido con un grep que sólo
+cazaba los símbolos de la referencia (``report_action``,
+``ir.actions.report``) — ciego al motor propio de este árbol, que usa otro
+vocabulario. El motor **sí existe**: ``base/models/ir_actions_report.py``
+(declaración de ``ir.actions.report``), ``base/report_catalog.py``
+(patrón de catálogo por familia) y los helpers ``libharu`` de
+``tools/pdf/`` (ADR-017) — ya consumidos por ``sale/report/
+report_catalog.py`` y por el recibo de UC-PAY-10, en producción.
 
 La parte QUE SÍ se porta: ``mark_as_sent()`` (≙ ``self.write({'is_sent':
 'True'})``) y la validación de diseño (≙ el ``RedirectWarning`` si no hay
 ``check_layout``). La parte que NO: ``report_action.report_action(self)`` —
-no hay ningún motor de reportes/PDF en todo el árbol
-(``grep -rln "report_action\\|ir.actions.report" src/`` → **0 hits** fuera
-de este mismo comentario [PROVEN]). Es una ausencia de infraestructura
-completa (no un ``super()`` de otro addon que falte — no aplica el "PÓRTALO,
-es tu trabajo" de un eslabón intermedio, porque no hay eslabón: es el
-terminal real, igual que ``account_qr_code_emv`` declara sus 5 hooks
-terminando en ``NotImplementedError`` cuando NINGÚN addon instalado provee
-el mecanismo). ``render_checks()`` documenta el bloqueo con
-``NotImplementedError`` explícito — condición de cierre: cuando exista un
-motor de reportes portado para ``account.payment``.
+no porque falte el motor, sino porque ``account_check_printing`` **no
+declara su ``ReportSpec``** en un ``report_catalog.py`` propio, como sí lo
+hace ``sale``. Es un eslabón de wiring pendiente, no infraestructura
+ausente. ``render_checks()`` documenta el bloqueo con ``NotImplementedError``
+explícito — condición de cierre: declarar el ``ReportSpec`` del cheque en
+``account_check_printing/report_catalog.py`` y llamar al motor existente
+(mismo patrón que ``sale``).
 
 Divergencia 8 — el stub de facturas pagadas depende de ``move_id`` (igual
 que la Divergencia 5)
@@ -401,17 +408,19 @@ class CheckPrintingPaymentInfo(TimeStampedModel):
     @classmethod
     def render_checks(cls, payments):
         """≙ el paso final de ``do_print_checks``
-        (``report_action.report_action(self)``) — Divergencia 7: no hay
-        motor de reportes en este árbol. Llamar primero a
-        ``mark_as_sent(payments)`` (side effect portado); esto es sólo el
-        terminal bloqueado.
+        (``report_action.report_action(self)``) — Divergencia 7: el motor
+        de reportes existe (``base/models/ir_actions_report.py`` +
+        ``report_catalog.py``, ADR-017), pero este addon no declara su
+        ``ReportSpec`` todavía. Llamar primero a ``mark_as_sent(payments)``
+        (side effect portado); esto es sólo el terminal bloqueado.
         """
         raise NotImplementedError(
-            'render_checks: sin motor de reportes/PDF en este árbol '
-            '(0 hits de "report_action"/"ir.actions.report" fuera de este '
-            'docstring). Bloqueado por infraestructura ausente, no por un '
-            'eslabón de extensión pendiente — condición de cierre: cuando '
-            'exista un motor de reportes portado para account.payment.')
+            'render_checks: motor de reportes/PDF disponible '
+            '(base.report_catalog + tools/pdf, ADR-017; ya consumido por '
+            'sale y por el recibo de UC-PAY-10), pero account_check_printing '
+            'aún no declara su ReportSpec — condición de cierre: crear '
+            'account_check_printing/report_catalog.py con la definición del '
+            'cheque, mismo patrón que sale/report/report_catalog.py.')
 
     @classmethod
     def void_check(cls, payment):
