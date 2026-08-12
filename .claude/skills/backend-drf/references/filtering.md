@@ -72,7 +72,8 @@ eso el repo tiene sólo 1 backend (`CatalogueOrderingFilter`).
 El único `search_fields` del repo está en `returns/admin.py` — es el **search del
 Django admin**, no el `SearchFilter` de DRF (PROVEN 2026-07-18). Una búsqueda de
 API se implementa manual en `get_queryset()` (`filter(name__icontains=q)`) o, si
-se necesita full-text, con el `FULLTEXT INDEX` de MariaDB — no con
+se necesita full-text, con un índice GIN + `pg_trgm`/`unaccent` de PostgreSQL
+(ADR-028; `db: .claude/skills/db-postgres/SKILL.md`) — no con
 `filters.SearchFilter` (pensado sobre todo para el browsable, que está apagado).
 
 ## Filtrado + object lookup
@@ -102,7 +103,7 @@ para no filtrar existencia.
    `codigo_error`. Nunca campo libre.
 4. ¿El filtro se reutiliza en varias vistas? → `BaseFilterBackend` +
    `filter_backends`; si es de una sola vista, `get_queryset()`.
-5. ¿Búsqueda? → `get_queryset()` (`icontains` o FULLTEXT MariaDB), no
+5. ¿Búsqueda? → `get_queryset()` (`icontains` o GIN/`pg_trgm` PostgreSQL), no
    `SearchFilter`.
 
 ## Referencias cruzadas

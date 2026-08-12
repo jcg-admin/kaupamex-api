@@ -405,7 +405,7 @@ class TestAdminFirstResponseMetric:
 
     Backlog: `grep csv` = 0 en support antes de este commit; tampoco existia
     ninguna metrica de tiempo-primera-respuesta en ``AdminSupportTicketListView``
-    (practicayoruba/apps/support/views.py:435-443, solo conteos por status).
+    (src/addons/helpdesk/views.py:435-443, solo conteos por status).
     """
 
     def _create_ticket_with_reply(self, user, admin_user, *, ticket_created_at,

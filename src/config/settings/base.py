@@ -1,29 +1,32 @@
 from pathlib import Path
 from datetime import timedelta
-from decouple import config, Csv
 import certifi
+
+from config.settings.options import get as opt
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-SECRET_KEY = config('SECRET_KEY')
+# Registro único de opciones — patrón ``conf[]`` de la referencia, ver
+# config/settings/options.py y docs: analisis-flujo-arranque-odoo-conf.rst.
+SECRET_KEY = opt('SECRET_KEY')
 # Dedicated key for MFA/TOTP secret encryption at rest (Fernet).
 # Decoupled from SECRET_KEY so rotating SECRET_KEY does NOT lock out
 # every 2FA user (analisis-utilidad-totp-nativa-kaupamex, T-PLT-33).
-MFA_ENCRYPTION_KEY = config('MFA_ENCRYPTION_KEY', default=SECRET_KEY)
+MFA_ENCRYPTION_KEY = opt('MFA_ENCRYPTION_KEY')
 # DEC-12: vida (segundos) de una sesion reautenticada (elevacion de confianza,
 # NO de privilegios). Migrada a SystemParameter L2 ('authz.reauth_ttl',
 # H-API-CFG-02) — era un tunable operativo global con default= cableado en
 # codigo; ahora editable en caliente sin redeploy. Ver
 # addons.authz.services._reauth_ttl().
-DEBUG = config('DEBUG', default=False, cast=bool)
+DEBUG = opt('DEBUG')
 
 # Seguridad (H-11): el admin nativo de Django se monta SOLO si esta bandera
 # esta activa. Default = DEBUG -> en produccion (DEBUG=False) queda APAGADO y
 # no expone un login de fuerza bruta en /admin/. El backoffice del producto es
 # el admin React + DRF (/api/v2/admin/), no el admin de Django.
-DJANGO_ADMIN_ENABLED = config('DJANGO_ADMIN_ENABLED', default=DEBUG, cast=bool)
+DJANGO_ADMIN_ENABLED = opt('DJANGO_ADMIN_ENABLED')
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
+ALLOWED_HOSTS = opt('ALLOWED_HOSTS')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -263,7 +266,7 @@ _DB_OPTIONS = {}
 # ``default=`` por SOL-087 (fail-loud). Requerir estos toggles rompia el import
 # de settings en cualquier entorno sin la envvar (CI sin ``.env``: base.py
 # construye ``DATABASES`` al import antes de que testing.py lo reemplace).
-_DB_SSL_MODE = config('DB_SSL_MODE', default='')
+_DB_SSL_MODE = opt('DB_SSL_MODE')
 if _DB_SSL_MODE:
     _DB_OPTIONS['sslmode'] = _DB_SSL_MODE.lower()
 else:
@@ -275,7 +278,7 @@ else:
 # de red. Por eso ``DB_SOCKET`` aqui vale el directorio
 # (``/var/run/postgresql``), no la ruta del archivo como en mysqlclient.
 # Ver H-API-305.
-_DB_SOCKET = config('DB_SOCKET', default='')
+_DB_SOCKET = opt('DB_SOCKET')
 
 # Config de conexión — SIN ``default=`` (SOL-087, directiva ejecutor
 # 2026-07-16): toda la configuración vive en ``.env`` (12-factor). Falla
@@ -286,11 +289,11 @@ _DB_SOCKET = config('DB_SOCKET', default='')
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('DB_NAME'),
-        'USER': config('DB_USER'),
-        'PASSWORD': config('DB_PASSWORD'),
-        'HOST': _DB_SOCKET or config('DB_HOST'),
-        'PORT': config('DB_PORT'),
+        'NAME': opt('DB_NAME'),
+        'USER': opt('DB_USER'),
+        'PASSWORD': opt('DB_PASSWORD'),
+        'HOST': _DB_SOCKET or opt('DB_HOST'),
+        'PORT': opt('DB_PORT'),
         'OPTIONS': _DB_OPTIONS,
     }
 }
@@ -304,7 +307,7 @@ DATABASES = {
 # conexión (SOL-087 aplica al bloque ``default`` de arriba).
 from service.db import install_company_aliases  # noqa: E402
 
-_MULTIDB_COMPANY_DBS = config('MULTIDB_COMPANY_DATABASES', default='', cast=Csv())
+_MULTIDB_COMPANY_DBS = opt('MULTIDB_COMPANY_DATABASES')
 install_company_aliases(DATABASES, list(_MULTIDB_COMPANY_DBS))
 
 # Router DB-per-company: enruta dominio→company_<N>_db, control L0→default. El
@@ -383,8 +386,8 @@ DEFAULT_FROM_EMAIL = 'noreply@kaupamex.com'
 # La app NO nombra "el founder" por código en runtime: la empresa inicial se
 # declara aquí (12-factor, ``.env``) y la crea ``company_create``. Vacío = la
 # instalación no siembra ninguna empresa por sí sola.
-BOOTSTRAP_COMPANY_CODE = config('BOOTSTRAP_COMPANY_CODE', default='')
-BOOTSTRAP_COMPANY_NAME = config('BOOTSTRAP_COMPANY_NAME', default='')
+BOOTSTRAP_COMPANY_CODE = opt('BOOTSTRAP_COMPANY_CODE')
+BOOTSTRAP_COMPANY_NAME = opt('BOOTSTRAP_COMPANY_NAME')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -626,7 +629,7 @@ SPECTACULAR_SETTINGS = {
 # CORS — origins must be set explicitly via env var in each environment.
 # Empty default means all cross-origin requests are rejected unless overridden
 # (e.g., development.py sets CORS_ALLOWED_ORIGINS for localhost).
-CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='', cast=Csv())
+CORS_ALLOWED_ORIGINS = opt('CORS_ALLOWED_ORIGINS')
 CORS_ALLOW_CREDENTIALS = True
 
 # H-09: ensure logs directory exists on fresh checkouts before RotatingFileHandler

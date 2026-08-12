@@ -34,17 +34,19 @@ El `DEFAULT_SCHEMA_CLASS` apunta a spectacular (PROVEN 2026-07-18,
 `SPECTACULAR_SETTINGS` (`config/settings/base.py:347`) fija los metadatos del
 contrato:
 
-- `TITLE`: ``'PracticaYoruba API'`` · `VERSION`: ``'1.0.0'`` · `LICENSE`:
-  ``'Propietario'``.
+- `TITLE`: ``'Kaupamex API'`` · `VERSION`: ``'1.0.0'`` · `LICENSE`:
+  ``'Propietario'``. (PROVEN 2026-08-12, `base.py:495` — decisión de producto
+  del ejecutor 2026-08-05 cambió el valor desde `'PracticaYoruba API'`;
+  guardado por regresión en `tests/integration/test_schema.py`.)
 - `DESCRIPTION`: declara la **auth de sesión** (cookie HttpOnly via
   ``POST /api/v2/auth/login/``) y el prefijo ``/api/v2/`` — coherente con
   `authentication.md` y `versioning.md`.
 - `CONTACT`: ``'Equipo Kaupamex' / 'soporte@kaupamex.com'`` — es el **operador
   L0 de la plataforma**, no el buzón del L1 de ejemplo. El schema es infraestructura
-  de plataforma (un solo codebase Django sirve a todos los tenants), evaluada
+  de plataforma (un solo codebase Django sirve a todas las Company), evaluada
   estáticamente al generar — sin dimensión de empresa (DEC-KX-05, follow-up
-  #199). El `TITLE`/`DESCRIPTION` conservan el branding de PracticaYoruba como
-  producto insignia; cambiarlos es decisión de producto aparte, no de
+  #199). El `TITLE`/`DESCRIPTION` nombran al operador L0 (Kaupamex), no al L1
+  de ejemplo (PracticaYoruba); cambiarlos es decisión de producto aparte, no de
   clasificación de config.
 - `SERVE_PUBLIC: True` + `SERVE_PERMISSIONS: ['AllowAny']`: el schema se sirve
   público. `SERVE_INCLUDE_SCHEMA: False`: el propio `/api/schema/` no aparece

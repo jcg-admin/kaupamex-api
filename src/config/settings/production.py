@@ -1,8 +1,9 @@
 from .base import *
-from decouple import config, Csv  # importación explícita — no depender del * de base.py
+# importación explícita — no depender del * de base.py
+from config.settings.options import get as opt, OPTIONS_PRODUCTION_OVERRIDES
 
 # Sobreescribe el default inseguro de base.py — falla explícitamente si no está configurada.
-SECRET_KEY = config('SECRET_KEY')
+SECRET_KEY = opt('SECRET_KEY')
 
 DEBUG = False
 SESSION_COOKIE_SECURE   = True
@@ -56,7 +57,7 @@ SECURE_HSTS_PRELOAD = True
 # de redirects 301 porque Django no puede detectar que la conexión
 # original era HTTPS. Apache debe setear el header correspondiente:
 #   RequestHeader set X-Forwarded-Proto "https"
-# (ver config/apache/practicayoruba-https.conf en PracticaYoruba-server)
+# (ver config/apache/practicayoruba-https.conf en kaupamex-server)
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # H-CICLO81-02: habilitar USE_X_FORWARDED_HOST para que Django use el
@@ -73,27 +74,25 @@ USE_X_FORWARDED_HOST = True
 # base.py define ALLOWED_HOSTS con default 'localhost,127.0.0.1'.
 # init-env.sh copia ese default al .env sin incluir el dominio público.
 # Apache pasa Host: <dominio> a Django → DisallowedHost → HTTP 400.
-# Sobreescribir con un default de producción que incluye practicayoruba.com.
+# Sobreescribir con un default de producción que incluye el dominio de la
+# plataforma L0 (kaupamex.com — DEC-01, abstraer-infra-l0-kaupamex).
 # Si el .env tiene ALLOWED_HOSTS explícito, decouple lo usa en su lugar.
-ALLOWED_HOSTS = config(
-    'ALLOWED_HOSTS',
-    default='practicayoruba.com,www.practicayoruba.com,localhost,127.0.0.1',
-    cast=Csv(),
-)
+ALLOWED_HOSTS = opt('ALLOWED_HOSTS', overrides=OPTIONS_PRODUCTION_OVERRIDES)
 
 # --- UI React (SPA) ----------------------------------------------------
 # Ruta al build de producción del UI (resultado de: npm run build).
 # Usada por la vista serve_spa en config/urls.py para servir index.html.
 #
-# Iniciativa: configurar-ui-dist-en-deploy (H-UID-1, H-UID-2). Default
-# previo ``/opt/practicayoruba/ui/dist`` era ruta histórica obsoleta
-# para el layout WSL2/VPS canónico. Cambiado a string vacío — centinela
-# para que ``serve_spa`` se desactive (urls.py:130 ya tiene el guard
-# ``if getattr(settings, 'UI_DIST', None):``).
+# Iniciativa: configurar-ui-dist-en-deploy (H-UID-1, H-UID-2). El default
+# previo era una ruta fija que ningún layout usaba ya. Cambiado a string
+# vacío — centinela para que ``serve_spa`` se desactive (urls.py:130 ya
+# tiene el guard ``if getattr(settings, 'UI_DIST', None):``). El valor
+# viejo no se nombra: la marca L1 no va en código (DEC-KX-06) y el git log
+# lo conserva si alguien lo necesita.
 #
-# Configurar en ``practicayoruba/.env`` la ruta real:
+# Configurar en ``src/.env`` la ruta real:
 #   UI_DIST=/srv/repos/ecom/kaupamex-ui/dist   (WSL2 canónico)
-UI_DIST = config('UI_DIST', default='')
+UI_DIST = opt('UI_DIST')
 
 # --- Email -----------------------------------------------------------------
 # Puerto saliente requerido en el VPS: 587/tcp (SMTP STARTTLS).
@@ -108,20 +107,17 @@ UI_DIST = config('UI_DIST', default='')
 # Variables opcionales (defaults válidos para la mayoría de proveedores):
 #   EMAIL_PORT          default: 587
 #   EMAIL_USE_TLS       default: True  (STARTTLS en puerto 587)
-EMAIL_BACKEND     = config(
-    'EMAIL_BACKEND',
-    default='django.core.mail.backends.smtp.EmailBackend',
-)
-EMAIL_HOST        = config('EMAIL_HOST',        default='')
-EMAIL_PORT        = config('EMAIL_PORT',        default=587,  cast=int)
-EMAIL_USE_TLS     = config('EMAIL_USE_TLS',     default=True, cast=bool)
-EMAIL_HOST_USER   = config('EMAIL_HOST_USER',   default='')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+EMAIL_BACKEND       = opt('EMAIL_BACKEND')
+EMAIL_HOST          = opt('EMAIL_HOST')
+EMAIL_PORT          = opt('EMAIL_PORT')
+EMAIL_USE_TLS       = opt('EMAIL_USE_TLS')
+EMAIL_HOST_USER     = opt('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = opt('EMAIL_HOST_PASSWORD')
 
 # URL base del frontend — usada en tokens_email.py para construir los
 # enlaces de verificación de cuenta y recuperación de contraseña.
-# Debe coincidir con el dominio público de la aplicación.
-FRONTEND_URL = config('FRONTEND_URL', default='https://practicayoruba.com')
+# Debe coincidir con el dominio público de la plataforma L0 (kaupamex.com).
+FRONTEND_URL = opt('FRONTEND_URL')
 
 # H-CICLO84-03: elevar nivel de log a WARNING en produccion.
 # base.py define ambos loggers en INFO, lo que es apropiado para
@@ -138,6 +134,6 @@ LOGGING['loggers']['apps']['level']   = 'WARNING'
 # dev/test. En producción los uploads de usuario deben vivir fuera del
 # árbol versionado: un git clean o re-clone no debe borrar fotos subidas.
 # RF-2 (alcance-agregar-fotos-reviews): acción de deploy requerida:
-#   sudo mkdir -p /opt/practicayoruba/media
-#   sudo chown www-data:www-data /opt/practicayoruba/media
-MEDIA_ROOT = Path(config('MEDIA_ROOT', default='/opt/practicayoruba/media'))
+#   sudo mkdir -p /opt/kaupamex/media
+#   sudo chown kaupamex:kaupamex /opt/kaupamex/media
+MEDIA_ROOT = Path(opt('MEDIA_ROOT'))

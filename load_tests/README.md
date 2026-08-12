@@ -20,7 +20,7 @@ Iniciativa: `docs/source/gestion/pm/api/iniciativas/implementar-load-tests-perfo
 
 ```bash
 pip install locust            # o: uv pip install locust
-# Con la api levantada en http://localhost:8000 (MariaDB + seed QA):
+# Con la api levantada en http://localhost:8000 (PostgreSQL + seed QA):
 locust -f load_tests/locustfile.py --host http://localhost:8000 \
        --headless -u 50 -r 5 -t 2m
 ```
@@ -42,12 +42,12 @@ locust -f load_tests/locustfile.py --tags read_simple --headless \
    el `Authorization: Bearer <JWT>`; el flujo anónimo de carrito usa el
    `X-Cart-Token` devuelto.
 2. **Datos de seed:** parametrizar `product_id`/slug/categoría contra el
-   seed real de QA (`db/seed_catalogo.sql`), no valores demo.
+   seed real de QA (`manage.py create_seed_catalog`), no valores demo.
 3. **Payloads reales:** `checkout` requiere carrito poblado +
    `Idempotency-Key`.
 4. **Concurrencia:** los AC-07 también exigen consistencia bajo carga;
    añadir aserciones de integridad (p. ej. stock no negativo) tras el run.
-5. **CI:** target `make load-ci` (o job) que levante api+MariaDB, corra
+5. **CI:** target `make load-ci` (o job) que levante api+PostgreSQL, corra
    en `--headless` y falle si `check_slo` da exit 1.
 
 ## Por qué esto cierra los 153 AC-07

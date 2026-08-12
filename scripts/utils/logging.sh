@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# logging.sh — Funciones de logging — PracticaYoruba API
+# logging.sh — Funciones de logging — kaupamex-api
 # =============================================================================
 # Provee: log_header, log_step, log_success, log_info, log_warn,
 #         log_fatal, log_error, log_separator, start_timer, show_elapsed,
@@ -36,7 +36,7 @@ _LOG_FILE=""
 # -----------------------------------------------------------------------------
 init_log() {
     local name="${1:-bootstrap}"
-    local log_dir="${PROJECT_ROOT}/practicayoruba/logs"
+    local log_dir="${PROJECT_ROOT}/src/logs"
     mkdir -p "$log_dir"
     _LOG_FILE="${log_dir}/${name}.log"
     echo "=== $(date '+%Y-%m-%d %H:%M:%S') — Inicio ===" >> "$_LOG_FILE"

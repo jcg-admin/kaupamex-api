@@ -1,5 +1,5 @@
 """
-Tests unitarios del modelo de credencial — PracticaYoruba API (party, T-201).
+Tests unitarios del modelo de credencial — kaupamex-api (party, T-201).
 
 ``base.ResUsers`` (Odoo ``res.users``) es la credencial de acceso (login +
 password); el nombre humano y el resto de la identidad viven en

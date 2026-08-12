@@ -165,7 +165,7 @@ codigo. **No se crean archivos `rup-<phase>.rst` separados.**
 | Architecture Prototype (Elaboration)        | Commits en ``api/``, ``ui/``, ``db/`` — citados desde progreso  |
 | Implementation (Construction)               | Commits productivos en ``api/``, ``ui/``                         |
 | Unit + integration tests                    | ``api/tests/`` + ``ui/src/**/*.test.{js,jsx}``                   |
-| Migrations / DB schema                      | ``api/practicayoruba/apps/*/migrations/`` + ``db/provisioners/`` |
+| Migrations / DB schema                      | ``api/src/addons/*/migrations/`` + ``db/provisioners/`` |
 | Deployment scripts                          | ``server/`` (Apache configs, scripts de cutover)                 |
 
 ### Regla de duplicacion

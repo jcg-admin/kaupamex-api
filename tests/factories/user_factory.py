@@ -1,5 +1,5 @@
 """
-Factories de usuarios — PracticaYoruba API (modelo party, T-201).
+Factories de usuarios — kaupamex-api (modelo party, T-201).
 
 La credencial ``base.ResUsers`` (``res.users``) sólo tiene ``login`` +
 credenciales; el nombre humano vive en ``base.ResPartner`` (``res.partner``),

@@ -1,11 +1,11 @@
-# PracticaYoruba API
+# kaupamex-api
 
-Backend eCommerce — Django REST Framework + MariaDB + JWT.
+Backend eCommerce — Django REST Framework + PostgreSQL + JWT.
 
 ## Prerequisitos
 
-- Python 3.11 o superior
-- MariaDB 11.8 corriendo localmente
+- Python 3.12 o superior
+- PostgreSQL 16 (mínimo efectivo 14, ADR-028) corriendo localmente
 - `uv` (gestor de toolchain Python — D-031/H-14). Instalar:
   `curl -LsSf https://astral.sh/uv/install.sh | sh`
 
@@ -17,30 +17,44 @@ Backend eCommerce — Django REST Framework + MariaDB + JWT.
 uv sync
 
 # 2. Configurar variables de entorno
-cp practicayoruba/.env.example practicayoruba/.env
-# Editar practicayoruba/.env con las credenciales de MariaDB
+cp src/.env.example src/.env
+# Editar src/.env con las credenciales de PostgreSQL
 
-# 3. Aplicar migraciones y crear superusuario
-cd practicayoruba
-uv run python manage.py migrate
-uv run python manage.py createsuperuser
+# 3. DJANGO_SETTINGS_MODULE es obligatorio y explícito: sin él,
+#    kaupamex-bin cae al default de src/cli/command.py — que es
+#    config.settings.production, no development (H-API-394).
+export DJANGO_SETTINGS_MODULE=config.settings.development
 
-# 4. Levantar el servidor de desarrollo
-uv run python manage.py runserver
+# 4. Aplicar migraciones — kaupamex-bin es el punto de entrada del
+#    producto (equivalente de odoo-bin), no manage.py directo
+uv run python kaupamex-bin migrate
+
+# 5. createcachetable — Django no la incluye en el framework de
+#    migraciones (config.settings.base: CACHES usa DatabaseCache).
+#    Sin esta tabla, cualquier endpoint DRF (throttling global)
+#    responde 500 en la primera peticion real. Idempotente.
+uv run python kaupamex-bin createcachetable
+
+# 6. Crear superusuario
+uv run python kaupamex-bin createsuperuser
+
+# 7. Levantar el servidor de desarrollo
+uv run python kaupamex-bin server
 ```
 
 `uv run <cmd>` ejecuta dentro del `.venv` gestionado por uv (fija el
 intérprete; no requiere `source .venv/bin/activate`). Para correr los
 tests: `uv run pytest`.
 
-Para entornos Ubuntu con MariaDB gestionado por el proyecto:
+Para provisionar la base y el rol en PostgreSQL (ver `kaupamex-db`):
 
 ```bash
-sudo bash scripts/bootstrap.sh
+sudo bash provisioners/postgresql/db_setup.sh          # base kaupamex_db
+sudo bash provisioners/postgresql/db_setup.sh --qa     # base kaupamex_qa
 ```
 
-El script crea los schemas `practicayoruba_db` (desarrollo) y
-`practicayoruba_qa` (tests), aplica migraciones y verifica el entorno.
+El provisioner crea las bases `kaupamex_db` (desarrollo) y `kaupamex_qa`
+(tests) con el rol `django_user`, y verifica el mínimo efectivo del motor.
 
 ## Endpoints
 
@@ -99,21 +113,17 @@ GET  /api/schema/redoc/      Redoc
 ## Tests
 
 ```bash
-cd practicayoruba
-pytest
+uv run pytest --reuse-db -q
 ```
 
-El archivo `pytest.ini` apunta a `config.settings.testing`, que usa el
-schema `practicayoruba_qa`. Los tests nunca tocan `practicayoruba_db`.
+El archivo `pytest.ini` apunta a `config.settings.testing`, que usa la base
+`kaupamex_qa`. Los tests nunca tocan `kaupamex_db`.
 
 ## Estructura
 
 ```
-practicayoruba/
-  apps/
-    users/          autenticacion, perfiles, direcciones
-    catalogue/      productos, categorias, busqueda
-    settings_app/   configuracion global del sitio (SiteSettings)
+src/
+  addons/           addons Django (monolito modular — sale, catalogue, account, ...)
   config/
     settings/
       base.py       configuracion base
@@ -121,9 +131,8 @@ practicayoruba/
       testing.py
       production.py
     urls.py
-  manage.py
+kaupamex-bin        punto de entrada del producto (equivalente de odoo-bin)
 pyproject.toml      deps canonicas ([project] + grupo dev) — fuente unica
 uv.lock             grafo congelado (uv sync lo aplica)
-scripts/
-  bootstrap.sh      setup completo para Ubuntu con MariaDB
+scripts/            checkers de calidad + provisioners/postgresql/
 ```

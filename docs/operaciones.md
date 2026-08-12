@@ -1,6 +1,6 @@
 # docs/operaciones.md
 
-Runbook de operaciones para PracticaYoruba-api.
+Runbook de operaciones para kaupamex-api.
 
 ---
 
@@ -13,14 +13,14 @@ cd kaupamex-api
 uv sync
 
 # 2. Variables de entorno
-cp practicayoruba/.env.example practicayoruba/.env
-# Editar practicayoruba/.env — credenciales de MariaDB y SECRET_KEY
+cp src/.env.example src/.env
+# Editar src/.env — credenciales de PostgreSQL y SECRET_KEY
 
 # 3. Aplicar migraciones
-cd practicayoruba
+cd src
 uv run python manage.py migrate
 
-# 4. Aplicar migraciones en el schema QA (para pytest)
+# 4. Aplicar migraciones en la base QA (para pytest)
 DJANGO_SETTINGS_MODULE=config.settings.testing \
   uv run python manage.py migrate
 
@@ -31,20 +31,21 @@ uv run python manage.py createsuperuser
 uv run python manage.py runserver
 ```
 
-Para entornos Ubuntu con MariaDB gestionado localmente (todo en una máquina):
+Para provisionar la base y el rol en PostgreSQL (ver `kaupamex-db`):
 
 ```bash
-sudo bash scripts/bootstrap.sh
+sudo bash provisioners/postgresql/db_setup.sh          # base kaupamex_db
+sudo bash provisioners/postgresql/db_setup.sh --qa     # base kaupamex_qa
 ```
 
-Para entornos con servidor de BD dedicado: ver `PracticaYoruba-db/docs/integracion-api.md`.
+Para entornos con servidor de BD dedicado: ver `kaupamex-db/docs/integracion-api.md`.
 
 ---
 
 ## Verificar la conexión a la base de datos
 
 ```bash
-cd practicayoruba
+cd src
 
 # Verificar que Django puede conectarse a la BD de desarrollo
 python manage.py check --database default
@@ -52,13 +53,12 @@ python manage.py check --database default
 # Verificar que las migraciones están al día (desarrollo)
 python manage.py showmigrations
 
-# Verificar estado de migraciones en el schema QA (tests)
+# Verificar estado de migraciones en la base QA (tests)
 DJANGO_SETTINGS_MODULE=config.settings.testing \
   python manage.py showmigrations
 
 # Verificar estado completo de la BD (desde kaupamex-db)
-bash ../kaupamex-db/scripts/verify.sh
-python ../kaupamex-db/scripts/check_db.py
+bash ../kaupamex-db/scripts/verify_postgres.sh
 ```
 
 ---
@@ -66,34 +66,24 @@ python ../kaupamex-db/scripts/check_db.py
 ## Tests
 
 ```bash
-cd practicayoruba
+cd src
 
-# Suite completa
-pytest
+# Suite completa (--reuse-db ya esta en addopts de pytest.ini)
+uv run pytest --reuse-db -q
 
-# Solo tests unitarios
-pytest -m unit
-
-# Solo tests de integración
-pytest -m integration
-
-# Solo tests de la app users
-pytest ../tests/unit/users/
-pytest ../tests/integration/auth/
-
-# Con cobertura
-pytest --cov=apps --cov-report=term-missing
+# Solo un addon
+uv run pytest tests/unit/<addon>/ tests/integration/<addon>/ -q --reuse-db
 ```
 
-Los tests usan el schema `practicayoruba_qa` — nunca tocan
-`practicayoruba_db`. Ver `pytest.ini` y `config/settings/testing.py`.
+Los tests usan la base `kaupamex_qa` — nunca tocan `kaupamex_db`. Ver
+`pytest.ini` y `config/settings/testing.py`.
 
 ---
 
 ## Migraciones
 
 ```bash
-cd practicayoruba
+cd src
 
 # Crear una nueva migración
 python manage.py makemigrations <app>
@@ -101,7 +91,7 @@ python manage.py makemigrations <app>
 # Aplicar en desarrollo
 python manage.py migrate
 
-# Aplicar en el schema QA (necesario cuando se agregan tablas)
+# Aplicar en la base QA (necesario cuando se agregan tablas)
 DJANGO_SETTINGS_MODULE=config.settings.testing \
   python manage.py migrate
 
@@ -114,7 +104,7 @@ python manage.py sqlmigrate <app> <migration_number>
 ## Servidor de desarrollo
 
 ```bash
-cd practicayoruba
+cd src
 
 # Arrancar en el puerto por defecto (8000)
 python manage.py runserver
@@ -128,7 +118,7 @@ python manage.py runserver 0.0.0.0:8080
 ## Recolección de archivos estáticos (para despliegue)
 
 ```bash
-cd practicayoruba
+cd src
 python manage.py collectstatic --noinput
 ```
 
@@ -137,7 +127,7 @@ python manage.py collectstatic --noinput
 ## Diagnóstico
 
 ```bash
-cd practicayoruba
+cd src
 
 # Verificar configuración de Django
 python manage.py check
@@ -158,13 +148,14 @@ python manage.py inspectdb | head -30
 |---|---|---|
 | `DJANGO_SETTINGS_MODULE` | todos | `config.settings.<env>` |
 | `SECRET_KEY` | todos | Clave secreta de Django |
-| `DB_NAME` | dev/prod | Schema de producción |
-| `DB_USER` | dev/prod | Usuario Django |
+| `DB_NAME` | dev/prod | Base de producción/desarrollo (`kaupamex_db`) |
+| `DB_USER` | dev/prod | Rol Django |
 | `DB_PASSWORD` | dev/prod | Contraseña Django |
-| `DB_HOST` | dev/prod | Host de MariaDB |
-| `DB_PORT` | dev/prod | Puerto de MariaDB |
-| `DB_QA_NAME` | testing | Schema QA para pytest |
-| `DB_QA_USER` | testing | Usuario QA |
+| `DB_SOCKET` | dev/prod | Directorio del socket Unix (en libpq el socket ES el host) |
+| `DB_HOST` | dev/prod | Host de PostgreSQL |
+| `DB_PORT` | dev/prod | Puerto de PostgreSQL |
+| `DB_QA_NAME` | testing | Base QA para pytest (`kaupamex_qa`) |
+| `DB_QA_USER` | testing | Rol QA |
 | `DB_QA_PASSWORD` | testing | Contraseña QA |
 | `EMAIL_HOST` | producción | Servidor SMTP |
 | `EMAIL_HOST_USER` | producción | Usuario SMTP |
@@ -172,6 +163,6 @@ python manage.py inspectdb | head -30
 | `FRONTEND_URL` | producción | URL pública del UI React |
 | `UI_DIST` | producción | Ruta al build de React |
 
-Las variables de BD deben coincidir con `PracticaYoruba-db/.env`.
-Ver `PracticaYoruba-db/docs/integracion-api.md` para la tabla de
+Las variables de BD deben coincidir con `kaupamex-db/.env`.
+Ver `kaupamex-db/docs/integracion-api.md` para la tabla de
 equivalencias completa.

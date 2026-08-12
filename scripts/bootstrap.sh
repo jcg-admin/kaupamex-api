@@ -1,25 +1,25 @@
 #!/bin/bash
 # =============================================================================
-# bootstrap.sh — PracticaYoruba API: setup y verificacion del entorno
+# bootstrap.sh — kaupamex-api: setup y verificacion del entorno
 # =============================================================================
 # Uso:
 #   sudo bash scripts/bootstrap.sh [--skip-update]
 #
-# Path esperado en produccion OVHCloud (layout /opt/practicayoruba/):
-#   /opt/practicayoruba/api/scripts/bootstrap.sh
+# Path esperado en produccion OVHCloud (layout /opt/kaupamex/):
+#   /opt/kaupamex/api/scripts/bootstrap.sh
 # El script resuelve PROJECT_ROOT relativo a su propia ubicacion
 # (SCRIPT_DIR/..) asi que funciona en cualquier checkout, pero el
-# layout de produccion lo coloca bajo /opt/practicayoruba/api/.
+# layout de produccion lo coloca bajo /opt/kaupamex/api/.
 #
 # Modelo de usuarios (D-031 H-24, ver Procedimiento-Implementacion-
 # Almacenamiento-WSL2-ecomerce-p001 v1.0.0):
 #   - INVOCADOR: deploy (cuenta sudoer). Ejecuta el script con sudo.
-#   - RUNTIME:   develop (owner del repo). Quien usa manage.py / pytest
+#   - RUNTIME:   develop (owner del repo). Quien usa kaupamex-bin / pytest
 #                tras el bootstrap. NO debe correr este script
 #                directamente — no tiene sudo y los apt-get fallarian
 #                con permission denied criptico.
 #   - PROVEEDOR: root (heredado via sudo). Instala paquetes, configura
-#                MariaDB. El script chowna al final al repo OWNER
+#                PostgreSQL. El script chowna al final al repo OWNER
 #                (develop) para que el runtime tenga write access.
 #
 # Cuentas en NO uso aqui (responsabilidad del provisioning de
@@ -30,9 +30,13 @@
 #   Fase 1 — Sistema       : verifica Ubuntu 24.04
 #   Fase 2 — Paquetes      : instala dependencias del sistema
 #   Fase 3 — Python        : crea venv e instala requirements (uv)
-#   Fase 4 — Base de datos : arranca MariaDB, crea BD produccion y BD QA
-#   Fase 5 — Migraciones   : ejecuta manage.py migrate
+#   Fase 4 — Base de datos : arranca PostgreSQL, crea base produccion y QA
+#   Fase 5 — Migraciones   : ejecuta kaupamex-bin migrate + createcachetable
 #   Fase 6 — Verificacion  : estado completo del entorno
+#
+# Motor: PostgreSQL (ADR-028, supersede ADR-008/009). La Fase 4 NO provisiona
+# el motor aqui — delega en el submodulo hermano kaupamex-db, que ya lo hace.
+# Ver H-API-385 para por que la duplicacion anterior fue el defecto.
 # =============================================================================
 set -euo pipefail
 
@@ -50,7 +54,7 @@ source "${SCRIPT_DIR}/utils/logging.sh"
 source "${SCRIPT_DIR}/utils/core.sh"
 source "${SCRIPT_DIR}/utils/validation.sh"
 source "${SCRIPT_DIR}/utils/network.sh"
-source "${SCRIPT_DIR}/utils/database.sh"
+source "${SCRIPT_DIR}/utils/postgresql.sh"
 source "${SCRIPT_DIR}/utils/provisioning.sh"
 
 # D-031 H-24 (reportado por deploy@yollotl): si develop (no-sudoer)
@@ -64,7 +68,7 @@ if [[ "$(id -u)" -ne 0 ]]; then
     log_error ""
     log_error "  Modelo de usuarios del proyecto (D-030):"
     log_error "    deploy   — cuenta sudoer que invoca este script"
-    log_error "    develop  — owner del repo, usa manage.py / pytest"
+    log_error "    develop  — owner del repo, usa kaupamex-bin / pytest"
     log_error "               POST-bootstrap (no aqui)"
     log_error ""
     log_error "  Invocacion correcta:"
@@ -102,37 +106,32 @@ phase_packages() {
 
     apt_update
 
-    # D-031 / H-12: en Ubuntu 24.04 noble el paquete 'mysql-client'
-    # instala Oracle MySQL 8.0 (no MariaDB). Esto:
-    #   1. Conflicta con mariadb-client (apt remueve uno al instalar el otro)
-    #   2. Provoca que el CLI 'mysql' apunte a MySQL 8.0 incompatible con
-    #      MariaDB 11.8 server (D-028: en 11.x el CLI es 'mariadb')
-    #   3. Si el operador instalo mariadb-server antes, apt lo desinstala
-    #      al instalar mysql-client (cascada confirmada por deploy@yollotl).
-    # Usar mariadb-client + libmariadb-dev — consistente con D-028.
+    # Motor PostgreSQL (ADR-028). Se instala el CLIENTE, no el servidor:
+    #   - libpq-dev      — cabeceras que psycopg necesita para compilar
+    #   - postgresql-client — trae psql y pg_isready, el gate canonico
+    # El SERVIDOR lo instala kaupamex-db (provisioners/postgresql/install.sh),
+    # que ademas verifica el minimo efectivo 14. En produccion la base puede
+    # vivir en otro host, asi que api no debe asumir servidor local.
     install_apt_packages \
         python3 python3-dev python3-venv python3-pip \
         build-essential pkg-config \
-        libmariadb-dev mariadb-client \
+        libpq-dev postgresql-client \
         curl git
 
-    # D-031 H-25: MARIADB_CLI / MARIADB_ADM se resolvieron al SOURCEAR
-    # database.sh (linea ~32), ANTES de que mariadb-client estuviera
-    # instalado. En el primer run bootstrap aparecen vacias y los
-    # helpers como mariadb_is_running fallarian. Re-resolver
-    # explicitamente AHORA que el paquete acaba de instalarse.
-    MARIADB_CLI="$(mariadb_client_bin)"
-    MARIADB_ADM="$(mariadb_admin_bin)"
-    export MARIADB_CLI MARIADB_ADM
-    log_info "  Re-resolucion CLI MariaDB: ${MARIADB_CLI:-(no encontrado)}"
+    if command -v pg_isready >/dev/null 2>&1; then
+        log_success "  Cliente PostgreSQL disponible: $(command -v pg_isready)"
+    else
+        log_error "  pg_isready no quedo en PATH tras instalar postgresql-client"
+    fi
 }
 
 # =============================================================================
 phase_python() {
     log_header "Fase 3/6 — Entorno Python"
 
-    validate_python_version 3 11 || {
-        log_fatal "Se requiere Python 3.11+"
+    # pyproject.toml declara requires-python = ">=3.12,<3.15".
+    validate_python_version 3 12 || {
+        log_fatal "Se requiere Python 3.12+"
         exit 1
     }
 
@@ -142,9 +141,10 @@ phase_python() {
     # la fuente unica de verdad es pyproject.toml. D-031/H-14.
     setup_venv "$venv_dir" ""
 
-    "${venv_dir}/bin/python3" -c "import MySQLdb" 2>/dev/null \
-        && log_success "mysqlclient OK" \
-        || { log_fatal "mysqlclient no disponible — revisa default-libmysqlclient-dev"; exit 1; }
+    # El driver es psycopg 3 (pyproject: psycopg[binary] >=3.2), no psycopg2.
+    "${venv_dir}/bin/python3" -c "import psycopg" 2>/dev/null \
+        && log_success "psycopg OK" \
+        || { log_fatal "psycopg no disponible — revisa libpq-dev"; exit 1; }
 }
 
 # =============================================================================
@@ -155,14 +155,13 @@ phase_database() {
     #    resolver-problemas-db-pendientes — cierra ENV-01, H-03).
     #    Si el sibling repo kaupamex-db esta presente y trae
     #    scripts/verify_env_sync.sh, validar que las claves DB_* en
-    #    db/.env.example coincidan con las de practicayoruba/.env.example.
+    #    db/.env.example coincidan con las de src/.env.example.
     #    Drift = log_error pero no fatal — la causa raiz (.env real
     #    desincronizado) la captura phase_database / phase_verify.
     local _env_sync=""
     for cand in \
-        "$(cd "${PROJECT_ROOT}/.." && pwd)/db/scripts/verify_env_sync.sh" \
         "$(cd "${PROJECT_ROOT}/.." && pwd)/kaupamex-db/scripts/verify_env_sync.sh" \
-        "$(cd "${PROJECT_ROOT}/.." && pwd)/PracticaYoruba-db/scripts/verify_env_sync.sh"; do
+        "$(cd "${PROJECT_ROOT}/.." && pwd)/db/scripts/verify_env_sync.sh"; do
         if [[ -f "$cand" ]]; then _env_sync="$cand"; break; fi
     done
     if [[ -n "$_env_sync" ]]; then
@@ -177,13 +176,33 @@ phase_database() {
         log_info "  Skip verify_env_sync (kaupamex-db sibling no detectado)"
     fi
 
-    # 1. Arrancar MySQL (incluye limpieza de estado stale y fallback sin systemd)
-    if ! mysql_start; then
-        log_warn "MySQL no pudo arrancar automaticamente"
+    # 1. Localizar el submodulo db. api NO provisiona el motor: lo hace db.
+    #    Sin el clon hermano no hay provisioning posible — fallar aqui es
+    #    correcto y barato; seguir produce un fallo cripitico en migrate.
+    local db_root
+    if ! db_root="$(db_repo_root)"; then
+        log_fatal "kaupamex-db no encontrado junto a ${PROJECT_ROOT}"
+        log_error ""
+        log_error "  La Fase 4 delega el provisioning en el submodulo db"
+        log_error "  (ADR-028): arranque del cluster + creacion de bases."
+        log_error ""
+        log_error "  Clonalo como hermano de este repo:"
+        log_error "    git clone https://github.com/jcg-admin/kaupamex-db"
+        return 1
+    fi
+    log_info "  Submodulo db: ${db_root}"
+
+    # 2. Arrancar PostgreSQL. En Debian/Ubuntu se opera por CLUSTER
+    #    (pg_ctlcluster), no por proceso suelto — initdb/pg_ctl/postgres no
+    #    estan en PATH a proposito. start_postgres.sh es idempotente y
+    #    verifica el minimo efectivo 14 antes de seguir: por debajo Django 6
+    #    aborta la conexion en vez de avisar (H-DB-03).
+    if ! bash "${db_root}/scripts/start_postgres.sh"; then
+        log_warn "PostgreSQL no pudo arrancar automaticamente"
         log_warn "Opciones manuales:"
-        log_warn "  Con systemd : sudo service mysql start"
-        log_warn "  Sin systemd : ver README — seccion 'Entornos sin systemd'"
-        log_warn "Continuando — db_setup.sh fallara si MySQL no esta disponible"
+        log_warn "  sudo pg_ctlcluster 16 main start"
+        log_warn "  pg_lsclusters   # estado de los clusters registrados"
+        log_warn "Continuando — db_setup.sh fallara si el servidor no responde"
     fi
 
     echo ""
@@ -196,19 +215,21 @@ phase_database() {
     # operador puede leer DB_PHASE_FAILED como flag al final.
     DB_PHASE_FAILED=false
 
-    # 2. Configurar BDs y usuario
-    if bash "${SCRIPT_DIR}/provisioners/mysql/db_setup.sh"; then
-        log_success "MySQL configurado"
+    # 3. Base de produccion/desarrollo + rol de aplicacion.
+    #    UN archivo con --qa, no dos gemelos: la logica es identica y
+    #    duplicarla es como divergen dos scripts hermanos.
+    if bash "${db_root}/provisioners/postgresql/db_setup.sh"; then
+        log_success "Base kaupamex_db configurada"
     else
         log_error "db_setup.sh fallo — revisa el output arriba"
         DB_PHASE_FAILED=true
     fi
 
-    # 3. Configurar BD de QA para tests
-    if bash "${SCRIPT_DIR}/provisioners/mysql/db_qa_setup.sh"; then
-        log_success "BD QA configurada"
+    # 4. Base de QA para tests
+    if bash "${db_root}/provisioners/postgresql/db_setup.sh" --qa; then
+        log_success "Base kaupamex_qa configurada"
     else
-        log_error "db_qa_setup.sh fallo — revisa el output arriba"
+        log_error "db_setup.sh --qa fallo — revisa el output arriba"
         DB_PHASE_FAILED=true
     fi
 
@@ -223,16 +244,22 @@ phase_database() {
 phase_migrations() {
     log_header "Fase 5/6 — Migraciones Django"
 
+    # kaupamex-bin es el punto de entrada del producto (equivalente de
+    # odoo-bin). Resuelve el src-layout por si mismo, asi que NO se arma un
+    # PYTHONPATH a mano — el que habia aqui apuntaba a practicayoruba/, un
+    # directorio que dejo de existir con el rename a src/ (H-API-385).
+    # Se invoca con el python del venv: su shebang es /usr/bin/env python3,
+    # que resolveria al interprete del sistema, sin las dependencias.
     local python="${PROJECT_ROOT}/.venv/bin/python3"
-    local manage="${PROJECT_ROOT}/src/manage.py"
+    local kbin="${PROJECT_ROOT}/kaupamex-bin"
 
-    if ! exists_file "$manage"; then
-        log_warn "manage.py no encontrado en ${manage}"
+    if ! exists_file "$kbin"; then
+        log_warn "kaupamex-bin no encontrado en ${kbin}"
         return 0
     fi
 
-    if ! mysql_is_running; then
-        log_warn "MySQL no disponible — omitiendo migraciones"
+    if ! postgres_is_running; then
+        log_warn "PostgreSQL no responde (pg_isready) — omitiendo migraciones"
         return 0
     fi
 
@@ -255,15 +282,24 @@ phase_migrations() {
     fi
 
     DJANGO_SETTINGS_MODULE=config.settings.development \
-    PYTHONPATH="${PROJECT_ROOT}/practicayoruba" \
-    "$python" "$manage" migrate 2>&1 | tail -5 \
+    "$python" "$kbin" migrate 2>&1 | tail -5 \
         && log_success "Migraciones aplicadas" \
         || log_warn "Migraciones con errores — revisa el output"
 
+    # createcachetable es aparte de migrate — Django no la incluye en el
+    # framework de migraciones (config.settings.base: CACHES usa
+    # DatabaseCache). Sin esta tabla, cualquier vista con throttling
+    # (REST_FRAMEWORK.DEFAULT_THROTTLE_CLASSES, global) responde 500 en
+    # la primera peticion real. Idempotente: si la tabla ya existe, sale
+    # OK sin tocarla.
+    DJANGO_SETTINGS_MODULE=config.settings.development \
+    "$python" "$kbin" createcachetable 2>&1 | tail -3 \
+        && log_success "Tabla de cache lista" \
+        || log_warn "createcachetable con errores — revisa el output"
+
     log_header "Fase 5b/6 — Static files"
     DJANGO_SETTINGS_MODULE=config.settings.development \
-    PYTHONPATH="${PROJECT_ROOT}/practicayoruba" \
-    "$python" "$manage" collectstatic --noinput \
+    "$python" "$kbin" collectstatic --noinput \
         2>&1 | tail -3 \
         && log_success "collectstatic OK" \
         || log_warn "collectstatic fallo — ejecutar manualmente"
@@ -274,11 +310,11 @@ phase_seed() {
     log_header "Fase 5c/6 — Seed de usuarios E2E (opcional)"
 
     local python="${PROJECT_ROOT}/.venv/bin/python3"
-    local manage="${PROJECT_ROOT}/src/manage.py"
+    local kbin="${PROJECT_ROOT}/kaupamex-bin"
     local env_file="${PROJECT_ROOT}/src/.env"
 
-    if ! exists_file "$manage"; then
-        log_warn "  manage.py no encontrado — seed omitido"
+    if ! exists_file "$kbin"; then
+        log_warn "  kaupamex-bin no encontrado — seed omitido"
         return 0
     fi
 
@@ -287,7 +323,7 @@ phase_seed() {
         return 0
     fi
 
-    # Cargar .env en el entorno del proceso para que manage.py
+    # Cargar .env en el entorno del proceso para que kaupamex-bin
     # pueda leer ADMIN_PASSWORD / QA_BUYER_PASSWORD via os.environ.
     # set -a exporta todas las variables; set +a detiene la exportacion.
     set -a
@@ -298,14 +334,12 @@ phase_seed() {
     if [[ -z "${ADMIN_PASSWORD:-}" || -z "${QA_BUYER_PASSWORD:-}" ]]; then
         log_warn "  ADMIN_PASSWORD / QA_BUYER_PASSWORD no definidos en .env"
         log_warn "  Seed de usuarios omitido — para ejecutar manualmente:"
-        log_warn "    cd src"
-        log_warn "    python manage.py create_seed_users"
+        log_warn "    ./kaupamex-bin create_seed_users"
         return 0
     fi
 
     DJANGO_SETTINGS_MODULE=config.settings.development \
-    PYTHONPATH="${PROJECT_ROOT}/practicayoruba" \
-    "$python" "$manage" create_seed_users 2>&1 | tail -5 \
+    "$python" "$kbin" create_seed_users 2>&1 | tail -5 \
         && log_success "  Seed de usuarios E2E completado" \
         || log_warn "  create_seed_users fallo — ejecutar manualmente"
 }
@@ -315,11 +349,11 @@ phase_seed_catalog() {
     log_header "Fase 5d/6 — Seed de catálogo E2E (opcional)"
 
     local python="${PROJECT_ROOT}/.venv/bin/python3"
-    local manage="${PROJECT_ROOT}/src/manage.py"
+    local kbin="${PROJECT_ROOT}/kaupamex-bin"
     local env_file="${PROJECT_ROOT}/src/.env"
 
-    if ! exists_file "$manage"; then
-        log_warn "  manage.py no encontrado — seed de catálogo omitido"
+    if ! exists_file "$kbin"; then
+        log_warn "  kaupamex-bin no encontrado — seed de catálogo omitido"
         return 0
     fi
 
@@ -336,12 +370,11 @@ phase_seed_catalog() {
     set +a
 
     DJANGO_SETTINGS_MODULE=config.settings.development \
-    PYTHONPATH="${PROJECT_ROOT}/practicayoruba" \
-    "$python" "$manage" create_seed_catalog 2>&1 | tail -10 \
+    "$python" "$kbin" create_seed_catalog 2>&1 | tail -10 \
         && log_success "  Seed de catálogo E2E completado" \
         || {
             log_warn "  create_seed_catalog falló — ejecutar manualmente:"
-            log_warn "    cd src && python manage.py create_seed_catalog"
+            log_warn "    ./kaupamex-bin create_seed_catalog"
         }
 }
 
@@ -358,7 +391,7 @@ main() {
 
     echo ""
     log_separator 60 "="
-    echo "  PracticaYoruba API — Bootstrap"
+    echo "  kaupamex-api — Bootstrap"
     echo "  sudo bash scripts/bootstrap.sh [--skip-update]"
     [[ "$SKIP_APT_UPDATE" == "true" ]] && echo "  (--skip-update activo)"
     log_separator 60 "="
@@ -387,16 +420,16 @@ main() {
 
     # D-031 / H-18: bootstrap corre como root (sudo bash) y crea
     # artefactos en el filesystem (logs/, .venv/, .env). El usuario
-    # que ejecuta manage.py despues NO es necesariamente $SUDO_USER:
+    # que ejecuta kaupamex-bin despues NO es necesariamente $SUDO_USER:
     # en el modelo de 5 cuentas del procedimiento de almacenamiento
     # (D-030), deploy invoca sudo pero develop es quien edita codigo
-    # y corre manage.py. Si chowneamos a deploy, develop sigue sin
+    # y corre kaupamex-bin. Si chowneamos a deploy, develop sigue sin
     # poder escribir → mismo error PermissionError.
     #
     # Fix correcto: chown al OWNER del repo (PROJECT_ROOT), no a
     # SUDO_USER. El procedimiento garantiza que el repo es propiedad
     # del runtime-user (develop en WSL2/VPS con procedimiento;
-    # ubuntu/practicayoruba en VPS estandar). Si el repo es root-owned
+    # ubuntu/kaupamex en VPS estandar). Si el repo es root-owned
     # (clone como root sin chown), el script no toca nada — safe default.
     #
     # Reportado por deploy@yollotl: 'develop' (owner del repo) no
@@ -447,7 +480,7 @@ main() {
         fi
     else
         log_warn "  PROJECT_ROOT root-owned o sin stat — omitiendo chown post-bootstrap"
-        log_warn "  Si manage.py falla con PermissionError en logs/:"
+        log_warn "  Si kaupamex-bin falla con PermissionError en logs/:"
         log_warn "    sudo chown -R \$(stat -c '%U' \"$PROJECT_ROOT\"):\$(stat -c '%G' \"$PROJECT_ROOT\") \\"
         log_warn "      ${PROJECT_ROOT}/src/logs ${PROJECT_ROOT}/.venv"
     fi
@@ -467,11 +500,11 @@ main() {
     log_info "Siguientes pasos:"
     log_info "  source .venv/bin/activate"
     log_info "  cd src"
-    log_info "  python manage.py runserver"
+    log_info "  ./kaupamex-bin server"
     log_info ""
     log_info "Si el seed E2E no se ejecuto automaticamente (ADMIN_PASSWORD"
     log_info "no definido en .env), ejecutar manualmente:"
-    log_info "  python manage.py create_seed_users"
+    log_info "  ./kaupamex-bin create_seed_users"
     echo ""
     log_info "Para verificar el entorno:"
     log_info "  bash scripts/provisioners/system/check_tools.sh"

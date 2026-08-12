@@ -7,19 +7,54 @@ líneas 1404-1489) y de ``cron_database_list`` (línea 99, ``odoo-tools@622ddc2a
 Por qué subcomando y no un worker de Gunicorn
 ----------------------------------------------
 
-Gunicorn no puede alojar un worker de cron dentro del mismo pool HTTP: su
-arbiter construye una **única** ``worker_class`` para todo el pool, atada a
-``LISTENERS`` (``gunicorn/arbiter.py:687-691``), y sus seis clases de worker
-son todas HTTP. La referencia en cambio lanza ``WorkerHTTP`` **y**
-``WorkerCron`` desde el mismo arbiter (``service/server.py:1361``/``:1404``) —
-un proceso especializado por rol, no un worker HTTP disfrazado.
+El **pool** HTTP de Gunicorn sí es homogéneo: el arbiter instancia una
+**única** ``worker_class`` para todo el pool, atada a ``LISTENERS``
+(``gunicorn/arbiter.py:687-691``), y sus seis clases de worker son todas HTTP.
+Así que el cron no puede ser *un worker más* del pool. La referencia en cambio
+lanza ``WorkerHTTP`` **y** ``WorkerCron`` desde el mismo arbiter
+(``service/server.py:1361``/``:1404``) — un proceso especializado por rol, no
+un worker HTTP disfrazado.
+
+Pero eso **no** implica que Gunicorn no pueda alojarlo, y la versión anterior
+de este docstring lo afirmaba. El arbiter expone hooks que corren en el
+**master**: ``cfg.on_starting(self)`` (``arbiter.py:162``) y
+``cfg.when_ready(self)`` (``arbiter.py:199``). Desde ahí se puede lanzar un
+proceso lateral, y se probó que funciona —
+``scripts/probe_gunicorn_side_process.py``, Gunicorn 26.0.0:
+
+.. code-block:: text
+
+   master pid=23920 | proceso lateral pid=23921
+   HALLAZGO 1 — el master SI puede alojar un proceso lateral: vivo
+   tras SIGTERM al master: proceso lateral SIGUE VIVO (huerfano)
+   latidos antes=0 despues=17 (crecio=True)
+
+Lo que decide es **el apagado**, no la imposibilidad: el hijo del hook
+sobrevive al ``SIGTERM`` del master. Systemd daría la unidad por detenida
+mientras el cron sigue vivo tocando la base — y ``KillMode=mixed`` (heredado
+de ``odoo19c: debian/odoo.service``) señala al líder del cgroup, no a un
+huérfano reparentado. A eso se suma que dos unidades permiten reiniciar el
+servidor web sin reiniciar el planificador.
+
+**Corrección (H-API-391):** una versión anterior de este párrafo afirmaba
+además que las dos unidades "permiten dos credenciales distintas" — sin
+haberlo verificado. Medido contra los ``.service`` reales:
+``setup/kaupamex.service`` y ``setup/kaupamex-cron.service`` declaran el
+**mismo** ``User=kaupamex``/``Group=kaupamex`` y cargan el **mismo**
+``EnvironmentFile=/opt/kaupamex/api/src/.env`` — misma identidad de sistema
+operativo, mismo ``DB_PASSWORD``/``SECRET_KEY``. La separación de
+credenciales que este párrafo daba por hecha **no existe hoy**; sólo existe
+la separación de procesos (reinicio independiente, aislamiento de
+crash/OOM). Si se decide implementarla, es trabajo aparte — no una
+consecuencia automática de tener dos unidades.
 
 Aquí la misma partición se resuelve como **subcomando aparte**
 (``kaupamex-bin cron``), el mismo criterio que separa ``db``/``server`` de la
 referencia (ver docstring de ``management/commands/server.py``): el servidor
 web es un comando entre varios, no el programa. Un supervisor (systemd) lanza
-``kaupamex-bin server`` y ``kaupamex-bin cron`` como dos procesos —y
-credenciales— distintos.
+``kaupamex-bin server`` y ``kaupamex-bin cron`` como dos procesos
+independientes — hoy con la misma identidad de sistema operativo (ver
+corrección arriba).
 
 Multi-base
 ----------

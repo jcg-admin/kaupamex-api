@@ -56,7 +56,7 @@ No sólo `src/addons/**`: **todo lo que vive en `src/`** (monolito modular) y
 **todo lo que involucre Django REST Framework / Python / drf-spectacular**. El
 matcher cubre `src/**/*.py` (los addons: modelos, vistas, serializers, urls,
 permisos, esquema, servicios) y `tests/**/*.py` (los tests de integración
-ejercen el contrato DRF: `force_login` + `format='json'` contra MariaDB). Queda
+ejercen el contrato DRF: `force_login` + `format='json'` contra PostgreSQL). Queda
 fuera el tooling de `.claude/` y los `.rst` de docs (no son código de app).
 
 ## Piezas

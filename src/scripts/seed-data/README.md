@@ -1,7 +1,7 @@
 # PracticaYoruba — Seed data
 
 Real Yoruba/Lukumí product seed for end-to-end testing. Used to populate the
-local MariaDB (`practicayoruba_db`) with the canonical demo catalogue.
+local PostgreSQL database (`kaupamex_db`) with the canonical demo catalogue.
 
 ## Files
 
@@ -25,7 +25,7 @@ DEC-DOC-005 (`products_created`, `products_failed`, `error_report`,
 ```bash
 cd kaupamex-api
 source .venv/bin/activate
-cd practicayoruba
+cd src
 
 # 1. Apply migrations + create the admin user (one-off).
 python manage.py migrate
@@ -34,10 +34,10 @@ from django.contrib.auth import get_user_model
 U = get_user_model()
 u, _ = U.objects.get_or_create(
     username='admin',
-    defaults={'email': 'admin@practicayoruba.com',
+    defaults={'email': 'admin@kaupamex.com',
               'is_superuser': True, 'is_staff': True})
 u.is_superuser = u.is_staff = u.is_active = True
-u.set_password('Adm1n!PracticaYoruba')
+u.set_password('Adm1n!Kaupamex')
 u.save()
 "
 
@@ -50,7 +50,7 @@ python manage.py runserver 127.0.0.1:8000
 # 4. Get an admin JWT and import the CSV.
 TOKEN=$(curl -s -X POST http://127.0.0.1:8000/api/v1/auth/login/ \
     -H 'Content-Type: application/json' \
-    -d '{"username":"admin","password":"Adm1n!PracticaYoruba"}' \
+    -d '{"username":"admin","password":"Adm1n!Kaupamex"}' \
     | python3 -c "import sys,json;print(json.load(sys.stdin)['access'])")
 
 curl -s -X POST http://127.0.0.1:8000/api/v1/admin/inventory/import/ \

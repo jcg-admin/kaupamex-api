@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# check_tools.sh — Verifica el estado del entorno — PracticaYoruba API
+# check_tools.sh — Verifica el estado del entorno — kaupamex-api
 # =============================================================================
 set -euo pipefail
 
@@ -10,7 +10,7 @@ PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 source "${PROJECT_ROOT}/scripts/utils/logging.sh"
 source "${PROJECT_ROOT}/scripts/utils/core.sh"
 source "${PROJECT_ROOT}/scripts/utils/network.sh"
-source "${PROJECT_ROOT}/scripts/utils/database.sh"
+source "${PROJECT_ROOT}/scripts/utils/postgresql.sh"
 
 # D-031: convencion actual es .venv; fallback a venv si existe (legacy)
 if [[ -x "${PROJECT_ROOT}/.venv/bin/python3" ]]; then
@@ -24,13 +24,13 @@ if exists_file "$VENV_PYTHON"; then
     export PATH="${PROJECT_ROOT}/.venv/bin:${PROJECT_ROOT}/venv/bin:${PATH}"
 fi
 
-ENV_FILE="${PROJECT_ROOT}/practicayoruba/.env"
+ENV_FILE="${PROJECT_ROOT}/src/.env"
 if exists_file "$ENV_FILE"; then
     set -a; source "$ENV_FILE"; set +a
 fi
 
-MYSQL_HOST="${DB_HOST:-127.0.0.1}"
-MYSQL_PORT="${DB_PORT:-3306}"
+PG_HOST="${DB_SOCKET:-${DB_HOST:-/var/run/postgresql}}"
+PG_PORT="${DB_PORT:-5432}"
 
 ERRORS=0; WARNINGS=0; OK=0
 
@@ -46,15 +46,13 @@ check_system() {
         && ok "python3: $(python3 --version 2>&1)" \
         || fail "python3 no encontrado"
 
-    # D-031 / H-12: en MariaDB 11.x el CLI es 'mariadb' (no 'mysql').
-    # Aceptar ambos para backwards-compat con MariaDB <=10.11; preferir
+    # Motor PostgreSQL (ADR-028). El cliente lo trae postgresql-client:
+    # psql para consultas y pg_isready como gate de disponibilidad.
     # el canonico cuando esta disponible.
-    if command_exists mariadb; then
-        ok "mariadb: $(mariadb --version 2>&1 | head -1)"
-    elif command_exists mysql; then
-        ok "mysql (legacy): $(mysql --version 2>&1 | head -1)"
+    if command_exists psql; then
+        ok "psql: $(psql --version 2>&1 | head -1)"
     else
-        warn "MariaDB CLI no encontrado (instala mariadb-client)"
+        warn "psql no encontrado (instala postgresql-client)"
     fi
 }
 
@@ -79,8 +77,8 @@ check_venv() {
     # D-031 / H-16: el nombre importable de DRF es 'rest_framework',
     # NO 'djangorestframework'. El check anterior siempre fallaba
     # falso-positivo aun con DRF correctamente instalado. Mismo
-    # principio para mysqlclient: el modulo se importa como MySQLdb.
-    for pkg in django rest_framework MySQLdb rest_framework_simplejwt; do
+    # El driver es psycopg 3 (pyproject: psycopg[binary] >=3.2).
+    for pkg in django rest_framework psycopg rest_framework_simplejwt; do
         "${venv_dir}/bin/python3" -c "import ${pkg}" 2>/dev/null \
             && ok "paquete: ${pkg}" \
             || fail "paquete faltante: ${pkg}"
@@ -106,64 +104,42 @@ check_env_file() {
 
 # =============================================================================
 check_database() {
-    log_header "MySQL / MariaDB"
+    log_header "PostgreSQL"
 
-    log_info "Host configurado: ${MYSQL_HOST}:${MYSQL_PORT}"
+    # En libpq el socket ES el HOST: un HOST que empieza con '/' designa el
+    # DIRECTORIO del socket y el PORT nombra el archivo (.s.PGSQL.5432). Por
+    # eso aqui no hay una rama "socket" y otra "TCP" como tenia la version de
+    # MariaDB — es el mismo parametro con distinto valor (H-API-305).
+    log_info "Host configurado: ${PG_HOST}:${PG_PORT}"
 
-    # 1. Verificar via socket Unix (entornos sin red / contenedores)
-    local socket_ok=false
-    for sock in /run/mysqld/mysqld.sock /var/run/mysqld/mysqld.sock; do
-        if [[ -S "$sock" ]]; then
-            if mysqladmin --socket="$sock" ping --silent >/dev/null 2>&1; then
-                ok "MySQL alcanzable via socket: ${sock}"
-                socket_ok=true
-                break
-            else
-                warn "Socket existe pero no responde (posible archivo stale): ${sock}"
-                warn "  Limpieza: bash scripts/provisioners/mysql/db_qa_setup.sh"
-            fi
-        fi
-    done
-
-    # 2. Si socket fallo, verificar via TCP
-    if [[ "$socket_ok" != "true" ]]; then
-        if tcp_is_reachable "$MYSQL_HOST" "$MYSQL_PORT" 3; then
-            ok "MySQL alcanzable via TCP: ${MYSQL_HOST}:${MYSQL_PORT}"
-        else
-            warn "MySQL NO alcanzable ni via socket ni TCP"
-            warn "  Opciones de arranque:"
-            warn "  Con systemd : sudo service mysql start"
-            warn "  Sin systemd : bash scripts/provisioners/mysql/db_qa_setup.sh"
-            return
-        fi
+    if ! command_exists pg_isready; then
+        warn "pg_isready no disponible — instala postgresql-client"
+        return
     fi
 
-    # 3. Verificar conexion con credenciales Django
-    local db_name="${DB_NAME:-practicayoruba_db}"
+    if pg_isready -h "$PG_HOST" -p "$PG_PORT" >/dev/null 2>&1; then
+        ok "PostgreSQL responde: ${PG_HOST}:${PG_PORT}"
+    else
+        warn "PostgreSQL NO responde en ${PG_HOST}:${PG_PORT}"
+        warn "  Arranque (Debian opera por cluster, no por proceso suelto):"
+        warn "    sudo pg_ctlcluster 16 main start"
+        warn "    pg_lsclusters      # estado de los clusters registrados"
+        return
+    fi
+
+    # Conexion con las credenciales de Django.
+    local db_name="${DB_NAME:-kaupamex_db}"
     local db_user="${DB_USER:-django_user}"
-    local db_pass="${DB_PASSWORD:-django_pass}"
-    local connected=false
 
-    # Intentar socket
-    for sock in /run/mysqld/mysqld.sock /var/run/mysqld/mysqld.sock; do
-        if [[ -S "$sock" ]]; then
-            mysql --socket="$sock" \
-                -u "$db_user" -p"${db_pass}" \
-                -e "SELECT 1;" "$db_name" &>/dev/null && {
-                ok "Conexion Django OK (socket): ${db_user}@${db_name}"
-                connected=true
-                break
-            }
-        fi
-    done
-
-    # Fallback TCP
-    if [[ "$connected" != "true" ]]; then
-        mysql -h "$MYSQL_HOST" -P "$MYSQL_PORT" \
-            -u "$db_user" -p"${db_pass}" \
-            -e "SELECT 1;" "$db_name" &>/dev/null \
-            && ok "Conexion Django OK (TCP): ${db_user}@${db_name}" \
-            || warn "No se pudo conectar como ${db_user} a ${db_name} — ejecuta db_setup.sh"
+    if PGPASSWORD="${DB_PASSWORD:-}" psql -h "$PG_HOST" -p "$PG_PORT" \
+            -U "$db_user" -d "$db_name" -tAc "SELECT 1" >/dev/null 2>&1; then
+        ok "Conexion Django OK: ${db_user}@${db_name}"
+    else
+        warn "No se pudo conectar como ${db_user} a ${db_name}"
+        warn "  Un 'Peer authentication failed' NO es de credenciales: el"
+        warn "  pg_hba.conf de Debian asigna 'peer' al canal local y el rol"
+        warn "  de aplicacion necesita su regla explicita (H-DB-05). La"
+        warn "  instala: db/provisioners/postgresql/db_setup.sh"
     fi
 }
 
@@ -171,23 +147,23 @@ check_database() {
 check_logs_dir() {
     log_header "Estructura del proyecto"
 
-    local logs_dir="${PROJECT_ROOT}/practicayoruba/logs"
+    local logs_dir="${PROJECT_ROOT}/src/logs"
     exists_dir "$logs_dir" \
         && ok "logs/ existe" \
         || warn "logs/ no existe — Django no podra escribir logs de archivo"
 
-    exists_file "${PROJECT_ROOT}/practicayoruba/manage.py" \
-        && ok "manage.py encontrado" \
-        || fail "manage.py no encontrado"
+    exists_file "${PROJECT_ROOT}/kaupamex-bin" \
+        && ok "kaupamex-bin encontrado" \
+        || fail "kaupamex-bin no encontrado"
 
-    exists_file "${PROJECT_ROOT}/practicayoruba/.env" \
+    exists_file "${PROJECT_ROOT}/src/.env" \
         && ok ".env encontrado" \
         || warn ".env no encontrado"
 }
 
 # =============================================================================
 log_separator 60 "="
-echo "  PracticaYoruba API — Estado del entorno"
+echo "  kaupamex-api — Estado del entorno"
 log_separator 60 "="
 echo ""
 

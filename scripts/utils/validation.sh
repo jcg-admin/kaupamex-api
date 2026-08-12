@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# validation.sh — Funciones de validacion — PracticaYoruba API
+# validation.sh — Funciones de validacion — kaupamex-api
 # =============================================================================
 # Depende de: logging.sh, core.sh
 # =============================================================================
