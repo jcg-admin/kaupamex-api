@@ -94,7 +94,7 @@ class PayPalGateway(BaseGateway):
 
         purchase_units = [{
             'reference_id':  order.name,
-            'description':   f'Orden {order.name} — PracticaYoruba',
+            'description':   f'Orden {order.name} — Kaupamex',
             'amount': {
                 'currency_code': 'MXN',
                 'value':         total,
@@ -123,7 +123,7 @@ class PayPalGateway(BaseGateway):
             'application_context': {
                 'return_url': back_urls.get('success', ''),
                 'cancel_url': back_urls.get('failure', ''),
-                'brand_name': 'PracticaYoruba',
+                'brand_name': 'Kaupamex',
                 'user_action': 'PAY_NOW',
             },
         }

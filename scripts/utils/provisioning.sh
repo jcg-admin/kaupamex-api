@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# provisioning.sh — Funciones de aprovisionamiento — PracticaYoruba API
+# provisioning.sh — Funciones de aprovisionamiento — kaupamex-api
 # =============================================================================
 # Depende de: logging.sh, core.sh
 # =============================================================================

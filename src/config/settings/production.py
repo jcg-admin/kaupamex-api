@@ -57,7 +57,7 @@ SECURE_HSTS_PRELOAD = True
 # de redirects 301 porque Django no puede detectar que la conexión
 # original era HTTPS. Apache debe setear el header correspondiente:
 #   RequestHeader set X-Forwarded-Proto "https"
-# (ver config/apache/practicayoruba-https.conf en PracticaYoruba-server)
+# (ver config/apache/practicayoruba-https.conf en kaupamex-server)
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # H-CICLO81-02: habilitar USE_X_FORWARDED_HOST para que Django use el

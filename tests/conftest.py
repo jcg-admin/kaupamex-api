@@ -1,5 +1,5 @@
 """
-conftest.py — Fixtures globales para PracticaYoruba API tests.
+conftest.py — Fixtures globales para kaupamex-api tests.
 BD: kaupamex_qa (config.settings.testing)
 """
 import os
