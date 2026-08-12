@@ -33,16 +33,28 @@ Lo que decide es **el apagado**, no la imposibilidad: el hijo del hook
 sobrevive al ``SIGTERM`` del master. Systemd daría la unidad por detenida
 mientras el cron sigue vivo tocando la base — y ``KillMode=mixed`` (heredado
 de ``odoo19c: debian/odoo.service``) señala al líder del cgroup, no a un
-huérfano reparentado. A eso se suma que dos unidades permiten dos
-credenciales distintas y reiniciar el servidor web sin reiniciar el
-planificador.
+huérfano reparentado. A eso se suma que dos unidades permiten reiniciar el
+servidor web sin reiniciar el planificador.
+
+**Corrección (H-API-391):** una versión anterior de este párrafo afirmaba
+además que las dos unidades "permiten dos credenciales distintas" — sin
+haberlo verificado. Medido contra los ``.service`` reales:
+``setup/kaupamex.service`` y ``setup/kaupamex-cron.service`` declaran el
+**mismo** ``User=kaupamex``/``Group=kaupamex`` y cargan el **mismo**
+``EnvironmentFile=/opt/kaupamex/api/src/.env`` — misma identidad de sistema
+operativo, mismo ``DB_PASSWORD``/``SECRET_KEY``. La separación de
+credenciales que este párrafo daba por hecha **no existe hoy**; sólo existe
+la separación de procesos (reinicio independiente, aislamiento de
+crash/OOM). Si se decide implementarla, es trabajo aparte — no una
+consecuencia automática de tener dos unidades.
 
 Aquí la misma partición se resuelve como **subcomando aparte**
 (``kaupamex-bin cron``), el mismo criterio que separa ``db``/``server`` de la
 referencia (ver docstring de ``management/commands/server.py``): el servidor
 web es un comando entre varios, no el programa. Un supervisor (systemd) lanza
-``kaupamex-bin server`` y ``kaupamex-bin cron`` como dos procesos —y
-credenciales— distintos.
+``kaupamex-bin server`` y ``kaupamex-bin cron`` como dos procesos
+independientes — hoy con la misma identidad de sistema operativo (ver
+corrección arriba).
 
 Multi-base
 ----------

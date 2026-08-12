@@ -19,6 +19,7 @@ Ver el skill ``db: .claude/skills/db-postgres/SKILL.md`` §1.
 import certifi
 import tempfile
 from .base import *
+from config.settings.options import get as opt
 
 DEBUG = False
 
@@ -42,31 +43,31 @@ _DB_QA_OPTIONS = {}
 # son sin ``default=`` por SOL-087. Sin el default, el import crasheaba en CI
 # (no hay ``.env``; el workflow no exporta DB_QA_SOCKET, cuya ausencia es
 # justamente el fallback TCP esperado).
-_DB_QA_SSL_MODE = config('DB_QA_SSL_MODE', default='')
+_DB_QA_SSL_MODE = opt('DB_QA_SSL_MODE')
 if _DB_QA_SSL_MODE:
     _DB_QA_OPTIONS['sslmode'] = _DB_QA_SSL_MODE.lower()
 else:
     _DB_QA_OPTIONS['sslmode'] = 'verify-full'
     _DB_QA_OPTIONS['sslrootcert'] = certifi.where()
 # El socket es el HOST en libpq, no una opcion — ver ``base.py`` y H-API-305.
-_DB_QA_SOCKET = config('DB_QA_SOCKET', default='')
+_DB_QA_SOCKET = opt('DB_QA_SOCKET')
 
 # Config de conexión QA — SIN ``default=`` (SOL-087): todo vive en ``.env``.
 # El schema de tests es ``kaupamex_qa`` (DB_QA_NAME en ``src/.env``).
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME':     config('DB_QA_NAME'),
-        'USER':     config('DB_QA_USER'),
-        'PASSWORD': config('DB_QA_PASSWORD'),
-        'HOST':     _DB_QA_SOCKET or config('DB_QA_HOST'),
-        'PORT':     config('DB_QA_PORT'),
+        'NAME':     opt('DB_QA_NAME'),
+        'USER':     opt('DB_QA_USER'),
+        'PASSWORD': opt('DB_QA_PASSWORD'),
+        'HOST':     _DB_QA_SOCKET or opt('DB_QA_HOST'),
+        'PORT':     opt('DB_QA_PORT'),
         'OPTIONS': _DB_QA_OPTIONS,
         # ``CHARSET``/``COLLATION`` se retiran: en PostgreSQL el encoding y la
         # collation son de la DATABASE, fijados al crearla. Django los ignora
         # para este backend, asi que dejarlos seria decoracion que miente.
         'TEST': {
-            'NAME': config('DB_QA_NAME'),
+            'NAME': opt('DB_QA_NAME'),
         },
     }
 }

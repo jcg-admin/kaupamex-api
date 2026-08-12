@@ -1,8 +1,9 @@
 from .base import *
-from decouple import config, Csv  # importación explícita — no depender del * de base.py
+# importación explícita — no depender del * de base.py
+from config.settings.options import get as opt, OPTIONS_PRODUCTION_OVERRIDES
 
 # Sobreescribe el default inseguro de base.py — falla explícitamente si no está configurada.
-SECRET_KEY = config('SECRET_KEY')
+SECRET_KEY = opt('SECRET_KEY')
 
 DEBUG = False
 SESSION_COOKIE_SECURE   = True
@@ -76,11 +77,7 @@ USE_X_FORWARDED_HOST = True
 # Sobreescribir con un default de producción que incluye el dominio de la
 # plataforma L0 (kaupamex.com — DEC-01, abstraer-infra-l0-kaupamex).
 # Si el .env tiene ALLOWED_HOSTS explícito, decouple lo usa en su lugar.
-ALLOWED_HOSTS = config(
-    'ALLOWED_HOSTS',
-    default='kaupamex.com,www.kaupamex.com,localhost,127.0.0.1',
-    cast=Csv(),
-)
+ALLOWED_HOSTS = opt('ALLOWED_HOSTS', overrides=OPTIONS_PRODUCTION_OVERRIDES)
 
 # --- UI React (SPA) ----------------------------------------------------
 # Ruta al build de producción del UI (resultado de: npm run build).
@@ -95,7 +92,7 @@ ALLOWED_HOSTS = config(
 #
 # Configurar en ``src/.env`` la ruta real:
 #   UI_DIST=/srv/repos/ecom/kaupamex-ui/dist   (WSL2 canónico)
-UI_DIST = config('UI_DIST', default='')
+UI_DIST = opt('UI_DIST')
 
 # --- Email -----------------------------------------------------------------
 # Puerto saliente requerido en el VPS: 587/tcp (SMTP STARTTLS).
@@ -110,20 +107,17 @@ UI_DIST = config('UI_DIST', default='')
 # Variables opcionales (defaults válidos para la mayoría de proveedores):
 #   EMAIL_PORT          default: 587
 #   EMAIL_USE_TLS       default: True  (STARTTLS en puerto 587)
-EMAIL_BACKEND     = config(
-    'EMAIL_BACKEND',
-    default='django.core.mail.backends.smtp.EmailBackend',
-)
-EMAIL_HOST        = config('EMAIL_HOST',        default='')
-EMAIL_PORT        = config('EMAIL_PORT',        default=587,  cast=int)
-EMAIL_USE_TLS     = config('EMAIL_USE_TLS',     default=True, cast=bool)
-EMAIL_HOST_USER   = config('EMAIL_HOST_USER',   default='')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+EMAIL_BACKEND       = opt('EMAIL_BACKEND')
+EMAIL_HOST          = opt('EMAIL_HOST')
+EMAIL_PORT          = opt('EMAIL_PORT')
+EMAIL_USE_TLS       = opt('EMAIL_USE_TLS')
+EMAIL_HOST_USER     = opt('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = opt('EMAIL_HOST_PASSWORD')
 
 # URL base del frontend — usada en tokens_email.py para construir los
 # enlaces de verificación de cuenta y recuperación de contraseña.
 # Debe coincidir con el dominio público de la plataforma L0 (kaupamex.com).
-FRONTEND_URL = config('FRONTEND_URL', default='https://kaupamex.com')
+FRONTEND_URL = opt('FRONTEND_URL')
 
 # H-CICLO84-03: elevar nivel de log a WARNING en produccion.
 # base.py define ambos loggers en INFO, lo que es apropiado para
@@ -142,4 +136,4 @@ LOGGING['loggers']['apps']['level']   = 'WARNING'
 # RF-2 (alcance-agregar-fotos-reviews): acción de deploy requerida:
 #   sudo mkdir -p /opt/kaupamex/media
 #   sudo chown kaupamex:kaupamex /opt/kaupamex/media
-MEDIA_ROOT = Path(config('MEDIA_ROOT', default='/opt/kaupamex/media'))
+MEDIA_ROOT = Path(opt('MEDIA_ROOT'))
