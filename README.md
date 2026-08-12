@@ -1,4 +1,4 @@
-# PracticaYoruba API
+# kaupamex-api
 
 Backend eCommerce — Django REST Framework + PostgreSQL + JWT.
 
@@ -20,13 +20,26 @@ uv sync
 cp src/.env.example src/.env
 # Editar src/.env con las credenciales de PostgreSQL
 
-# 3. Aplicar migraciones y crear superusuario
-cd src
-uv run python manage.py migrate
-uv run python manage.py createsuperuser
+# 3. DJANGO_SETTINGS_MODULE es obligatorio y explícito: sin él,
+#    kaupamex-bin cae al default de src/cli/command.py — que es
+#    config.settings.production, no development (H-API-394).
+export DJANGO_SETTINGS_MODULE=config.settings.development
 
-# 4. Levantar el servidor de desarrollo
-uv run python manage.py runserver
+# 4. Aplicar migraciones — kaupamex-bin es el punto de entrada del
+#    producto (equivalente de odoo-bin), no manage.py directo
+uv run python kaupamex-bin migrate
+
+# 5. createcachetable — Django no la incluye en el framework de
+#    migraciones (config.settings.base: CACHES usa DatabaseCache).
+#    Sin esta tabla, cualquier endpoint DRF (throttling global)
+#    responde 500 en la primera peticion real. Idempotente.
+uv run python kaupamex-bin createcachetable
+
+# 6. Crear superusuario
+uv run python kaupamex-bin createsuperuser
+
+# 7. Levantar el servidor de desarrollo
+uv run python kaupamex-bin server
 ```
 
 `uv run <cmd>` ejecuta dentro del `.venv` gestionado por uv (fija el
@@ -110,7 +123,7 @@ El archivo `pytest.ini` apunta a `config.settings.testing`, que usa la base
 
 ```
 src/
-  addons/           addons Django (monolito modular — cart, catalogue, ...)
+  addons/           addons Django (monolito modular — sale, catalogue, account, ...)
   config/
     settings/
       base.py       configuracion base
@@ -118,7 +131,7 @@ src/
       testing.py
       production.py
     urls.py
-  manage.py
+kaupamex-bin        punto de entrada del producto (equivalente de odoo-bin)
 pyproject.toml      deps canonicas ([project] + grupo dev) — fuente unica
 uv.lock             grafo congelado (uv sync lo aplica)
 scripts/            checkers de calidad + provisioners/postgresql/

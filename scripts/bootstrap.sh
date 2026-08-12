@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# bootstrap.sh — PracticaYoruba API: setup y verificacion del entorno
+# bootstrap.sh — kaupamex-api: setup y verificacion del entorno
 # =============================================================================
 # Uso:
 #   sudo bash scripts/bootstrap.sh [--skip-update]
@@ -391,7 +391,7 @@ main() {
 
     echo ""
     log_separator 60 "="
-    echo "  PracticaYoruba API — Bootstrap"
+    echo "  kaupamex-api — Bootstrap"
     echo "  sudo bash scripts/bootstrap.sh [--skip-update]"
     [[ "$SKIP_APT_UPDATE" == "true" ]] && echo "  (--skip-update activo)"
     log_separator 60 "="
