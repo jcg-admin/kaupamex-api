@@ -23,7 +23,6 @@
         'account',
         'authz',
         'base',
-        'delivery',
         'loyalty',
         'mail',
         'observability',
@@ -35,6 +34,16 @@
     # referencia la dirección es la contraria —`sale_loyalty` depende de
     # `sale`—. Declararlo aquí legitimaría la inversión en vez de registrarla;
     # el gate de dirección (`scripts/check_addon_cycles.py`) es su dueño.
+    #
+    # `delivery` se RETIRÓ por la misma razón (2026-08-13, tarea #296). La
+    # referencia declara `delivery → sale` y NO la vuelta
+    # (`odoo19c: sale/__manifest__.py` → ['sales_team', 'account_payment',
+    # 'utm']), así que declararla aquí cerraba un 2-ciclo `sale ↔ delivery`
+    # que dejaba 20 addons sin orden topológico y hacía reventar a
+    # `ModuleGraph` con RecursionError. Los cinco sitios que producen la
+    # arista medida quedan registrados, no legitimados:
+    #   controllers/serializers.py:20 · services.py:26 · amounts.py:29
+    #   models/sale_order.py:185 (FK por cadena) · status_projection.py:27
     #
     # Declaración de la licencia de la fuente de la que se adapta este addon,
     # tal como su manifest la declara (DEC-KX-03 punto 1): una licencia NO se

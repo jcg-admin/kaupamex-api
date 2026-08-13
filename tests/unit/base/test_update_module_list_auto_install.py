@@ -56,8 +56,15 @@ def test_the_published_scope_is_what_the_check_can_see():
 
     Un addon sin ``__manifest__.py`` no tiene dónde declarar ``auto_install``,
     así que es **invisible** para este cálculo aunque esté cargado. Publicar el
-    total como alcance sería el denominador oculto: hoy son 20 de 90, un factor
-    de 4.5 entre lo que el instrumento ve y lo que parecería ver.
+    total como alcance sería el denominador oculto.
+
+    Cuando este test se escribió el hueco era de 4.5× —20 addons con manifest
+    de 90 en el árbol— y su aserción era ``<``. La tarea #296 cerró el hueco
+    (:ref:`h-api-561`: la referencia declara manifiesto en 653 de 653), así
+    que hoy los dos conteos coinciden y lo que el test protege cambia de
+    sentido: ya no vigila que el denominador sea menor, vigila que **siga
+    publicándose**. Si alguien añade un addon sin manifiesto, el alcance baja
+    y la desigualdad de abajo lo delata.
     """
     out = io.StringIO()
     call_command('update_module_list', '--dry-run', stdout=out)
@@ -66,8 +73,9 @@ def test_the_published_scope_is_what_the_check_can_see():
     modules = sorted(get_modules())
     with_manifest = [name for name in modules if graph[name].manifest]
 
-    assert len(with_manifest) < len(modules), (
-        'si todo el árbol tuviera manifest, este test sobra — revísalo')
+    assert len(with_manifest) == len(modules), (
+        'un addon del árbol perdió su __manifest__.py — el alcance del '
+        'chequeo vuelve a ser menor que el árbol (ver #296)')
     assert (f'alcance medido: {len(with_manifest)} addon(s) con manifest '
             f'de {len(modules)} en el árbol') in out.getvalue()
 
