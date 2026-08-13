@@ -14,22 +14,38 @@ El motivo que da su manifiesto es el límite de PostgreSQL al número de
 columnas de una tabla; el efecto secundario —y el que más se usa— es poder
 añadir atributos a un modelo sin migración.
 
-Qué hace la referencia, y qué se hizo aquí
-===========================================
+Esto es un addon, no núcleo del ORM — y la referencia lo dice
+==============================================================
 
-La referencia **parchea su propia clase base** ``fields.Field`` con un
-decorador ``monkey_patch`` (``models/fields.py:9-16``): añade el atributo
-``sparse``, y engancha ``_get_attrs`` para que un campo con ``sparse=``
-quede ``store=False`` + ``copy=False`` + ``compute=_compute_sparse`` +
-``inverse=_inverse_sparse``.
+Medido en ``odoo19c``::
 
-Aquí **no se parchea**, y la razón es medida, no una costumbre: en este
-puerto ``fields.Char`` **es** ``django.db.models.CharField``
-(``orm/fields_textual.py``), así que la clase base equivalente es
-``models.Field`` — del framework, no nuestra. Parchearla alcanzaría al
-admin, a las migraciones y a DRF, que no son consumidores de este
-mecanismo. La diferencia no es "no se puede": es que el radio de la misma
-técnica no es el mismo.
+    grep -rn "class Serialized" odoo/orm/   ->  0
+    grep -rln "class Serialized" .          ->  addons/base_sparse_field/models/fields.py
+    grep -c "store" odoo/orm/fields.py      ->  66
+
+``store`` **sí** es del núcleo: por eso ``orm/fields_nonstored.py`` vive en
+``src/orm/``. ``Serialized`` **no**: la referencia lo puso deliberadamente
+en un addon instalable, con su ``depends: ['base']``, y por eso su
+``models/fields.py`` tiene que **parchear hacia adentro** con un decorador
+``monkey_patch`` (``models/fields.py:9-16``) y cerrar con
+``fields.Serialized = Serialized``.
+
+Ese parche no es un detalle de implementación a evitar: **es la evidencia
+de la decisión de ubicación**. Un addon no puede declarar campos en el
+núcleo, así que los inyecta. Aquí ``apps.py`` hace la inyección en
+``ready()``, que es el mismo movimiento con el mecanismo de Django.
+
+Qué NO se replica del parche, y por qué
+========================================
+
+La referencia engancha ``_get_attrs`` de su clase base para que un campo
+declarado ``sparse='data'`` quede ``store=False`` + ``copy=False`` +
+``compute=_compute_sparse`` + ``inverse=_inverse_sparse``. Aquí la clase
+base equivalente es ``django.db.models.Field`` —del framework, no nuestra—
+porque en este puerto ``fields.Char`` **es** ``models.CharField``
+(``orm/fields_textual.py``). Parcharla alcanzaría al admin, a las
+migraciones y a DRF, que no consumen este mecanismo: la misma técnica no
+tiene el mismo radio.
 
 Medido antes de decidir::
 

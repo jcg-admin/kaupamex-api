@@ -98,6 +98,11 @@ INSTALLED_APPS = [
     'addons.website',
     'addons.auto_backup',
     'addons.base',
+    # Va inmediatamente después de `base`: no declara modelos, sólo
+    # publica `Serialized`/`Sparse` en `orm.fields` desde su `ready()`,
+    # así que cualquier addon que declare un campo disperso necesita
+    # que este ya haya corrido.
+    'addons.base_sparse_field',
     'addons.base_setup',
     'addons.observability',
     'addons.mail',

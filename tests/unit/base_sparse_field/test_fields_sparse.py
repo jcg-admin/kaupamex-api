@@ -8,10 +8,14 @@ disperso deja el valor **dentro** del mapa, no en una columna propia.
 Aquí el modelo de prueba se declara en el propio test —sin migración— porque
 ``Sparse`` no registra nada en ``_meta``: es un descriptor, y para
 ejercitarlo basta un contenedor que tenga el ``Serialized``.
+
+Se importa del módulo del addon, no de ``orm.fields``: el núcleo no conoce
+estos dos tipos (los publica ``apps.py`` en ``ready()``), igual que en la
+referencia ``odoo/orm/`` no conoce ``Serialized``.
 """
 import pytest
 
-from orm import fields
+from addons.base_sparse_field.models import fields
 
 
 class Carrier:
@@ -43,7 +47,7 @@ def test_serialized_defaults_to_an_empty_map():
 def test_serialized_omits_its_own_defaults_from_the_migration():
     """El ``deconstruct`` no repite lo que el propio campo ya fija."""
     _name, path, _args, kwargs = fields.Serialized().deconstruct()
-    assert path.endswith('fields_sparse.Serialized')
+    assert path == 'addons.base_sparse_field.models.fields.Serialized'
     assert 'default' not in kwargs
     assert 'blank' not in kwargs
 

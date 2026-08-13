@@ -20,7 +20,6 @@ from orm.fields_properties import (                            # noqa: F401
 from orm.fields_reference import Many2oneReference, Reference  # noqa: F401
 from orm.fields_relational import Many2many, Many2one, One2many  # noqa: F401
 from orm.fields_selection import Selection                     # noqa: F401
-from orm.fields_sparse import Serialized, Sparse               # noqa: F401
 from orm.fields_temporal import Date, Datetime                 # noqa: F401
 from orm.fields_textual import Char, Html, Text                # noqa: F401
 
@@ -28,6 +27,5 @@ __all__ = [
     'Char', 'Text', 'Html', 'Integer', 'Float', 'Monetary', 'Date', 'Datetime',
     'Selection', 'Many2one', 'One2many', 'Many2many', 'Binary', 'Image',
     'Boolean', 'Json', 'Reference', 'Many2oneReference', 'Properties',
-    'Serialized', 'Sparse',
     'PropertiesDefinition',
 ]
