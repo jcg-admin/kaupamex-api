@@ -52,6 +52,23 @@ def test_serialized_omits_its_own_defaults_from_the_migration():
     assert 'blank' not in kwargs
 
 
+def test_the_framework_supplies_the_three_conversion_methods():
+    """Por qué ``convert_to_{column_insert,cache,record}`` no se portan.
+
+    La referencia los escribe porque su ``fields.Field`` guarda ``text`` y el
+    ``json.dumps``/``loads`` corre por cuenta del campo. Aquí la columna es
+    ``jsonb``: el valor sale tal cual hacia el driver y vuelve parseado.
+    """
+    campo = fields.Serialized()
+    valor = {'integer': 7, 'char': 'x', 'boolean': True}
+    # Ida: psycopg adapta el dict a jsonb — el campo no serializa a mano.
+    assert campo.get_prep_value(valor) == valor
+    # Vuelta: la fila cruda del motor llega como texto y se parsea sola.
+    crudo = '{"integer": 7, "char": "x", "boolean": true}'
+    assert campo.from_db_value(crudo, None, None) == valor
+    assert campo.from_db_value(None, None, None) is None
+
+
 def test_reading_an_unset_field_returns_its_default():
     carrier = Carrier()
     assert carrier.boolean is None

@@ -86,6 +86,9 @@ PORTE_ALIAS = {
     '_compute_partner_mapping': 'compute_mapped_partner',
     # El cargador no es un modelo aquí, así que no lleva el prefijo del addon.
     'AccountChartTemplate': 'ChartTemplate',
+    # El guion bajo es un artefacto de la convención de la referencia para el
+    # nombre técnico; los identificadores de este árbol van en CamelCase.
+    'Sparse_FieldsTest': 'SparseFieldsTest',
 }
 
 

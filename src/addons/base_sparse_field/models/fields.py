@@ -59,6 +59,31 @@ este puerto ya construyó en ``orm/fields_nonstored.py``; ``Sparse`` es ese
 mismo mecanismo con el respaldo puesto en el campo serializado hermano en
 vez de en ``instance.__dict__``.
 
+Los tres métodos de conversión: los pone el framework
+======================================================
+
+La referencia declara en ``Serialized`` el protocolo entero de conversión de
+su ORM — ``convert_to_column_insert``, ``convert_to_cache`` y
+``convert_to_record`` (``odoo19c: base_sparse_field/models/fields.py:85-93``)
+— porque su ``fields.Field`` no sabe nada de JSON: el ``column_type`` es
+``('text', 'text')`` y el ``json.dumps``/``json.loads`` lo escribe el campo.
+
+Aquí ``Serialized`` hereda de ``JSONField``, que ya trae ese protocolo con
+otros nombres. Medido antes de declararlo divergencia [PROVEN]::
+
+    f = Serialized()
+    f.get_prep_value({'integer': 7, 'char': 'x', 'boolean': True})
+    -> dict {'integer': 7, 'char': 'x', 'boolean': True}   # psycopg lo adapta a jsonb
+
+    f.from_db_value('{"integer": 7, "char": "x", "boolean": true}', None, None)
+    -> {'integer': 7, 'char': 'x', 'boolean': True}        # round-trip idéntico
+    f.from_db_value(None, None, None) -> None
+
+Es decir: **la columna es ``jsonb``, no ``text``**, así que la conversión la
+hace el driver y no el campo. Reescribir los tres métodos aquí volvería a
+serializar a mano lo que el motor ya guarda tipado — sería copiar una
+restricción de la referencia en vez de su conducta.
+
 Cómo se declara aquí
 =====================
 
