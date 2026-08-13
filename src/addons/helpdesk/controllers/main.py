@@ -394,6 +394,11 @@ class SupportTicketCloseView(APIView):
             else 'El comprador marco este ticket como resuelto.'
         )
         with transaction.atomic():
+            # _closed_by_staff: lo lee el signal _support_ticket_closed
+            # (handlers.py) para decidir el tono de la notificacion
+            # UC-NOT-08. H-API-404: faltaba, asi que el default del
+            # signal (True) se aplicaba tambien al cierre por comprador.
+            ticket._closed_by_staff = is_superadmin(request.user)
             ticket.status = SupportTicket.Status.CLOSED
             ticket.save(update_fields=['status', 'updated_at'])
 

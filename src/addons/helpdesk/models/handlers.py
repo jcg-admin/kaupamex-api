@@ -41,8 +41,12 @@ def _support_ticket_closed(sender, instance, created, **kwargs):
         return
     if instance.status != SupportTicket.Status.CLOSED:
         return
-    # closed_by_staff: la vista de cierre manual setea _closed_by_staff;
-    # el management command no lo setea, se asume staff (auto-close).
+    # closed_by_staff: la vista de cierre manual setea _closed_by_staff
+    # segun is_superadmin(request.user) (H-API-404); el auto-close por
+    # inactividad tambien lo setea explicitamente a True
+    # (support_ticket.py:_close_stale_one). El default True de este
+    # getattr es solo una red de seguridad si algun otro caller olvida
+    # setearlo.
     closed_by_staff = getattr(instance, '_closed_by_staff', True)
     try:
         notify_support_closed(instance, instance.user, closed_by_staff=closed_by_staff)
