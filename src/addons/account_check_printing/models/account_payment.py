@@ -109,10 +109,19 @@ Divergencia 7 — ``do_print_checks`` sin declaración de reporte propia
 ========================================================================
 
 Corregido 2026-08-12 (H-API-407): este comentario decía *"no hay ningún
-motor de reportes/PDF en todo el árbol"*, medido con un grep que sólo
-cazaba los símbolos de la referencia (``report_action``,
-``ir.actions.report``) — ciego al motor propio de este árbol, que usa otro
-vocabulario. El motor **sí existe**: ``base/models/ir_actions_report.py``
+motor de reportes/PDF en todo el árbol"* y citaba como prueba
+``grep -rln "report_action\\|ir.actions.report" src/`` → **0 hits**,
+marcado ``[PROVEN]``. Ese grep, corrido sobre el mismo commit que escribió
+la afirmación (``5630af7``, 2026-08-08) y excluyendo este propio archivo,
+devuelve **11 archivos** — entre ellos ``base/models/ir_actions_report.py``,
+que existe desde ``bacee17`` (2026-08-01), una semana antes.
+
+No fue una métrica ciega ni una afirmación que envejeció: el motor usa
+exactamente los símbolos que el grep buscaba. La cifra citada nunca fue el
+resultado de ese comando. Se registra como tal en H-API-407 —
+``react-verification-gate``, no ``metrica-decide-la-conclusion``.
+
+El motor **sí existe**: ``base/models/ir_actions_report.py``
 (declaración de ``ir.actions.report``), ``base/report_catalog.py``
 (patrón de catálogo por familia) y los helpers ``libharu`` de
 ``tools/pdf/`` (ADR-017) — ya consumidos por ``sale/report/
