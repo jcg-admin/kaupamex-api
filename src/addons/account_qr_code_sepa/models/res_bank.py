@@ -38,11 +38,14 @@ Este ORM es Django puro (``import fields``/``import models`` en
 ``base.ResPartnerBank`` son alias del vocabulario Odoo sobre
 ``django.db.models`` — ver el docstring de ``orm/models.py``): no tiene el
 registro dinámico de clases de Odoo que fusiona ``_inherit`` en una MRO real.
-El patrón que este árbol ya usa para "una clase reabre a otra sin declarar
-campos" es el de ``account/models/res_company.py``: funciones a nivel de
-módulo colgadas con ``setattr(Modelo, nombre, funcion) if not
-hasattr(Modelo, nombre)`` desde ``AppConfig.ready()`` — aplicado aquí
-literalmente igual, sin campos de por medio.
+El patrón de este árbol para "una clase reabre a otra sin declarar campos" es
+colgar funciones de módulo desde ``AppConfig.ready()``. Aquí se cuelgan con
+``chain_method`` (``orm/method_chain.py``), **no** con la guarda
+``setattr(...) if not hasattr(...)`` que este docstring describía antes: esa
+guarda es correcta para campos —que no deben duplicar columna— y catastrófica
+para overrides, cuyo propósito es añadirse a lo que ya hay. Fue exactamente el
+defecto de :ref:`h-api-364`, en el que este addon y ``account_qr_code_emv`` se
+pisaron los cinco métodos y ganó el que iba antes en ``INSTALLED_APPS``.
 
 Divergencias declaradas
 ========================
@@ -54,14 +57,20 @@ Divergencias declaradas
    (``_get_qr_vals`` → ``None``; ``_get_qr_code_generation_params`` → alza
    ``NotImplementedError()``; ``_get_error_messages_for_qr`` → ``None``;
    ``_check_for_qr_code_errors`` → ``None``; ``_get_available_qr_methods`` →
-   ``[]``). Ese archivo **no existe en este árbol** (medido: ``find
-   src/addons/account -iname "*partner_bank*"`` → 0 hits; mismo hallazgo que
-   ``account_qr_code_emv`` ya documentó para su propio puente). Cada método
-   de aquí reproduce el default base **directamente** en la rama
-   ``qr_method != 'sct_qr'`` en vez de encadenar un ``super()`` que no
-   existe — el resultado observable es idéntico al de la referencia
-   (``super()`` con la cadena vacía **es** ese default), y no hay ningún otro
-   addon en este árbol que contribuya a estos hooks todavía.
+   ``[]``). Cada método de aquí reproduce el default base **directamente** en
+   la rama ``qr_method != 'sct_qr'`` en vez de encadenar un ``super()``: eso
+   se escribió cuando ese archivo no existía en el árbol, y el resultado
+   observable era idéntico al de la referencia (``super()`` con la cadena
+   vacía **es** ese default).
+
+   **Ese archivo ya existe** — ``account/models/res_partner_bank.py``, desde
+   ``api@94bc01e``, con ``_build_qr_code_vals`` (:70) y
+   ``get_available_qr_methods_in_sequence`` (:201). La condición de cierre de
+   abajo, por tanto, **se cumple**, y la reproducción local del default pasó
+   de ser fiel a ser duplicada: ``chain_method`` ya encadena hacia el
+   terminal de ``account``, así que la rama local lo vuelve inalcanzable.
+   Registrado como tarea **#293**; no se re-cablea en el mismo pase que
+   ``base_iban`` porque cambia qué implementación gana y eso se mide aparte.
 
    **Condición de cierre:** cuando ``account/models/res_partner_bank.py`` se
    porte con ``_build_qr_code_vals``/``get_available_qr_methods_in_sequence``
@@ -193,12 +202,12 @@ def _get_error_messages_for_qr(self, qr_method, debtor_partner, currency):
     tipo de cuenta distinto de IBAN, o IBAN fuera de la zona SEPA (excluyendo
     los territorios que comparten código IBAN con otro país de la lista).
 
-    **Observación sobre el segundo check.** ``self.acc_type`` en este árbol
-    es siempre ``'bank'`` hasta que ``base_iban`` (no portado, Ola 0 · T-06)
-    detecte IBANs — ``base/models/res_partner_bank.py``, divergencia 2. En
-    consecuencia, **toda** cuenta rechaza aquí por este check mientras
-    ``base_iban`` no exista; no es un defecto de este archivo, es el estado
-    conocido de la infraestructura de la que depende.
+    **El segundo check ya discrimina.** Hasta que se portó ``base_iban``,
+    ``self.acc_type`` era ``'bank'`` para **toda** cuenta —IBAN incluida— así
+    que este check rechazaba todo y el addon estaba efectivamente muerto.
+    ``base_iban`` encadena ``retrieve_acc_type`` sobre ``ResPartnerBank`` y
+    deriva ``'iban'`` de un número que valida ISO 13616, de modo que la rama
+    distingue lo que la referencia distingue.
     """
     if qr_method != 'sct_qr':
         return None

@@ -19,10 +19,8 @@ Medición símbolo-por-símbolo (``re.findall(r'^\\s{4}def (\\w+)', ref)``):
 **5** métodos de **1** clase. El nodo ``class IrModel`` en sí **no** es un
 símbolo ausente — es artefacto del medidor (H-API-379): este árbol extiende
 ``ir.model`` con funciones de módulo instaladas como ``classmethod``
-(``_install_classmethod``, abajo — NO ``chain_method`` de
-``orm/method_chain.py``, que no reconoce descriptores ``classmethod`` en su
-chequeo de idempotencia; ver el docstring de ``_install_classmethod``), no
-redeclarando la clase.
+(``chain_method`` de ``orm/method_chain.py``, pasándole el descriptor
+explícito), no redeclarando la clase.
 
 Qué SÍ se pudo portar, y con qué (Nivel 0a/0c — comandos de hoy)
 ==================================================================
@@ -85,6 +83,7 @@ sobre un registro concreto, igual que ``IrModel.reflect_models``, que ya es
 """
 from addons.base.models.ir_model import IrModel, IrModelAccess
 from addons.base.models.res_groups import ResGroups
+from orm.method_chain import chain_method
 
 
 def _has_access(user, model_name, access_mode='read'):
@@ -180,42 +179,23 @@ def get_available_models(cls, user):
     return _display_name_for(cls, accessible)
 
 
-def _install_classmethod(cls, name, func):
-    """Instala ``func`` como ``classmethod`` de ``cls``, idempotente.
-
-    NO se usa ``chain_method`` (``orm/method_chain.py``) aquí: su chequeo de
-    idempotencia (``_already_in_chain``) compara el atributo YA vinculado a
-    la clase —un ``bound method``, resultado de leer un ``classmethod`` vía
-    ``getattr``— contra el ``classmethod`` recién envuelto en la llamada
-    siguiente. Nunca son el mismo objeto, así que una segunda instalación
-    NO se detecta como reinstalación y ``chain_method`` cae en su rama de
-    encadenamiento — que asume funciones planas, no descriptores
-    ``classmethod``, y deja el atributo roto (verificado hoy: la segunda
-    llamada convertía ``IrModel.display_name_for`` en función plana, ya no
-    invocable como ``IrModel.x(...)``). Como estas cuatro son altas nuevas
-    (0 previa en ``base`` — no hay nada que encadenar, sólo instalar), un
-    guard local basta: si ``cls.__dict__[name]`` ya envuelve exactamente
-    ``func``, no-op — mismo criterio de idempotencia que ``chain_method``
-    aplica a sus propios casos, adaptado al descriptor correcto.
-    """
-    existing = cls.__dict__.get(name)
-    if isinstance(existing, classmethod) and existing.__func__ is func:
-        return
-    setattr(cls, name, classmethod(func))
-
-
 def apply_web_extensions():
     """Cuelga las cuatro extensiones de ``web`` sobre ``base.IrModel``.
 
     ``classmethod`` en vez de instancia — ≙ ``@api.model`` de la referencia
     (no operan sobre un registro concreto). Se invoca desde
     ``WebConfig.ready()`` (``web/apps.py::_EXTENSIONES``), mismo patrón que
-    ``ir_http.py``/``res_partner.py`` — con ``_install_classmethod`` en vez
-    de ``chain_method`` (ver su docstring).
+    ``ir_http.py``/``res_partner.py``.
+
+    Se pasa ``classmethod(...)`` explícito: las cuatro son altas nuevas (0
+    previa en ``base``), así que es el llamador quien declara el descriptor.
+    El rodeo local ``_install_classmethod`` que vivía aquí se retiró al
+    arreglar ``chain_method`` para descriptores (:ref:`h-api-381`, #222).
     """
-    _install_classmethod(IrModel, 'display_name_for', display_name_for)
-    _install_classmethod(IrModel, '_display_name_for', _display_name_for)
-    _install_classmethod(
-        IrModel, '_is_valid_for_model_selector', _is_valid_for_model_selector,
-    )
-    _install_classmethod(IrModel, 'get_available_models', get_available_models)
+    for name, func in (
+            ('display_name_for', display_name_for),
+            ('_display_name_for', _display_name_for),
+            ('_is_valid_for_model_selector', _is_valid_for_model_selector),
+            ('get_available_models', get_available_models),
+    ):
+        chain_method(IrModel, name, classmethod(func))

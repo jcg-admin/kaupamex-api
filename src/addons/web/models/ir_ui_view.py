@@ -9,7 +9,7 @@ tipo de vista que consume el selector de tipo del cliente web.
 Medición símbolo-por-símbolo: **2** métodos de **1** clase (``IrUiView``).
 El nodo ``class IrUiView`` no es un símbolo ausente — artefacto del medidor
 (H-API-379): se extiende con funciones de módulo instaladas como
-``classmethod`` (``_install_classmethod``, abajo), no redeclarando la
+``classmethod`` (``chain_method`` con el descriptor explícito), no redeclarando la
 clase. **2 de 2 portados**, **0 ausentes**.
 
 Adaptación de vocabulario
@@ -31,6 +31,7 @@ modelo. Se instalan aquí como ``classmethod``, igual que
 ``ir_model.py::apply_web_extensions`` hace con sus cuatro extensiones.
 """
 from addons.base.models.ir_ui_view import VIEW_TYPE_CHOICES, IrUiView
+from orm.method_chain import chain_method
 
 
 def _get_view_info(cls):
@@ -70,26 +71,16 @@ def get_view_info(cls):
     }
 
 
-def _install_classmethod(cls, name, func):
-    """Instala ``func`` como ``classmethod`` de ``cls``, idempotente.
-
-    NO se usa ``chain_method`` (``orm/method_chain.py``): su chequeo de
-    idempotencia no reconoce descriptores ``classmethod`` (ver el docstring
-    homónimo en ``ir_model.py`` de este mismo addon, donde se verificó el
-    fallo). Guard local: si ``cls.__dict__[name]`` ya envuelve exactamente
-    ``func``, no-op.
-    """
-    existing = cls.__dict__.get(name)
-    if isinstance(existing, classmethod) and existing.__func__ is func:
-        return
-    setattr(cls, name, classmethod(func))
-
-
 def apply_web_extensions():
     """Cuelga las dos extensiones de ``web`` sobre ``base.IrUiView``.
 
     Se invoca desde ``WebConfig.ready()`` (``web/apps.py::_EXTENSIONES``),
     mismo patrón que ``ir_http.py``/``res_partner.py``/``ir_model.py``.
+
+    Se pasa ``classmethod(...)`` explícito: no hay implementación previa en
+    ``base``, así que es el llamador quien declara el descriptor. El rodeo
+    local ``_install_classmethod`` que vivía aquí se retiró al arreglar
+    ``chain_method`` para descriptores (:ref:`h-api-381`, tarea #222).
     """
-    _install_classmethod(IrUiView, 'get_view_info', get_view_info)
-    _install_classmethod(IrUiView, '_get_view_info', _get_view_info)
+    chain_method(IrUiView, 'get_view_info', classmethod(get_view_info))
+    chain_method(IrUiView, '_get_view_info', classmethod(_get_view_info))

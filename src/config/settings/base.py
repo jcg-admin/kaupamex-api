@@ -105,6 +105,11 @@ INSTALLED_APPS = [
     'addons.base_geolocalize',
     'addons.base_vat',
     'addons.base_bank',
+    # Va después de `base_bank`: los dos encadenan `retrieve_acc_type` con
+    # semántica de relevo, así que el orden decide quién se pregunta primero,
+    # no quién gana. CLABE (18 dígitos) e IBAN (prefijo de país + mod-97) no
+    # se solapan; el orden es estable, no crítico.
+    'addons.base_iban',
     'addons.authz',
     'addons.authz_audit',
     'addons.authz_reauth',

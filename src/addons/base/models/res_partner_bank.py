@@ -49,6 +49,7 @@ Divergencias declaradas (DEC-KX-03)
 """
 import fields
 import models
+from tools.translate import _
 
 
 def sanitize_account_number(acc_number):
@@ -62,6 +63,24 @@ def sanitize_account_number(acc_number):
     if not acc_number:
         return ''
     return ''.join(ch for ch in acc_number if ch.isalnum()).upper()
+
+
+def _supported_account_types():
+    """Vocabulario de ``acc_type`` — ≙ el ``selection=lambda`` de la referencia.
+
+    ``odoo19c: res_bank.py:89`` declara el campo como
+    ``Selection(selection=lambda x: x.env['res.partner.bank']
+    .get_supported_account_types())``. Django acepta un invocable en
+    ``choices`` (``django.utils.choices.CallableChoiceIterator``), así que la
+    forma se conserva: la lista se resuelve en cada validación, no al importar
+    el módulo — que es lo que permite a ``base_iban`` añadir ``iban`` desde su
+    ``ready()``, después de que esta clase ya existe.
+
+    Se declara a nivel de módulo porque una referencia a ``ResPartnerBank``
+    dentro del cuerpo de la propia clase no resuelve; aquí el nombre se busca
+    al invocar, no al definir.
+    """
+    return ResPartnerBank.get_supported_account_types()
 
 
 class ResPartnerBank(models.Model):
@@ -79,8 +98,8 @@ class ResPartnerBank(models.Model):
                   'sin ella, el mismo IBAN escrito con y sin espacios serían '
                   'dos cuentas distintas (Odoo sanitized_acc_number).',
     )
-    acc_type = fields.Char(
-        max_length=16, default='bank',
+    acc_type = fields.Selection(
+        max_length=16, default='bank', choices=_supported_account_types,
         help_text='Tipo inferido del número: ``bank`` en el núcleo, ``iban`` '
                   'cuando base_iban lo valide (Odoo acc_type; ver '
                   'divergencia 2).',
@@ -142,6 +161,25 @@ class ResPartnerBank(models.Model):
                 name='unique_partner_bank_account',
             ),
         ]
+
+    @classmethod
+    def get_supported_account_types(cls):
+        """Vocabulario público de ``acc_type`` — ≙ ``odoo19c: res_bank.py:81``.
+
+        La referencia separa el método público del que los addons
+        sobreescriben; se conserva la separación para que un addon extienda
+        ``_get_supported_account_types`` sin tocar el punto de consumo.
+        """
+        return cls._get_supported_account_types()
+
+    @classmethod
+    def _get_supported_account_types(cls):
+        """Los tipos que el núcleo reconoce — ≙ ``odoo19c: res_bank.py:85``.
+
+        Punto de extensión acumulativo: ``base_iban`` le añade ``iban`` con
+        ``chain_method(..., combine=extend_list)``.
+        """
+        return [('bank', _('Normal'))]
 
     @classmethod
     def retrieve_acc_type(cls, acc_number):

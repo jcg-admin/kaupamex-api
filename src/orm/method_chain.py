@@ -37,8 +37,74 @@ Dos semánticas, porque la referencia usa las dos:
 - **Combinación** (``combine=``) — el resultado de ambas se funde. Es la forma
   de ``rslt = super()._get_available_qr_methods(); rslt.append(...)``. Aquí sí
   se invocan las dos, porque ésa es la semántica.
+
+Descriptores: el tipo del método base fija la forma de ``func``
+=================================================================
+
+El método previo puede estar declarado como ``@classmethod`` o
+``@staticmethod``, no sólo como método de instancia. Los tres se encadenan, y
+**``func`` recibe lo mismo que recibe el método base**:
+
+======================  ==========================  ==========================
+Base declarado como     Firma de ``func``           Cómo queda instalado
+======================  ==========================  ==========================
+método de instancia     ``def f(self, ...)``        función simple
+``@classmethod``        ``def f(cls, ...)``         ``classmethod(chained)``
+``@staticmethod``       ``def f(...)``              ``staticmethod(chained)``
+======================  ==========================  ==========================
+
+Por qué hace falta decirlo (:ref:`h-api-381`): ``getattr(cls, name)`` sobre un
+``@classmethod`` devuelve un método **ya ligado** a ``cls``, así que reinvocarlo
+como ``previous(self, ...)`` pasa la instancia como argumento posicional extra
+—``TypeError``— y ``setattr(cls, name, chained)`` instala una función plana,
+destruyendo el descriptor: ``Cls.metodo(x)`` pasaría ``x`` como ``self``. Por
+eso la implementación previa se resuelve **cruda** recorriendo el ``__mro__``
+(``cls.__dict__``), nunca con ``getattr``, y se reinstala envuelta en el mismo
+descriptor que tenía.
 """
 import functools
+import types
+
+#: Marcas que ``_already_in_chain`` recorre. Viven en la función envoltorio,
+#: no en el descriptor: un ``classmethod`` no acepta atributos propios.
+_ORIGIN = '_chain_origin'
+_PREVIOUS = '_chain_previous'
+
+
+def _previous_of(cls, name):
+    """La implementación previa **sin ligar**, y su tipo de descriptor.
+
+    Devuelve ``(function, wrapper)`` donde ``wrapper`` es ``classmethod``,
+    ``staticmethod`` o ``None`` (método de instancia). ``(None, None)`` cuando
+    no hay nada que encadenar.
+
+    Recorre el ``__mro__`` en vez de usar ``getattr`` porque ``getattr`` ya
+    aplica el protocolo de descriptor: sobre un ``@classmethod`` devuelve un
+    método ligado a ``cls``, que es exactamente la información que aquí hay que
+    conservar sin consumir.
+
+    :raises TypeError: si el atributo existe pero no es un método —una
+        ``property``, el descriptor de un campo—. Encadenar ahí no tiene
+        semántica definida, y **instalar encima destruiría el descriptor en
+        silencio**: medido, una ``property`` sustituida por una función plana
+        hace que ``obj.value`` devuelva el método en vez de su valor. Este
+        mecanismo existe para no pisar nada en silencio (:ref:`h-api-364`), así
+        que aquí falla ruidoso.
+    """
+    for klass in getattr(cls, '__mro__', (cls,)):
+        if name not in klass.__dict__:
+            continue
+        raw = klass.__dict__[name]
+        if isinstance(raw, classmethod):
+            return raw.__func__, classmethod
+        if isinstance(raw, staticmethod):
+            return raw.__func__, staticmethod
+        if isinstance(raw, types.FunctionType):
+            return raw, None
+        raise TypeError(
+            f'{cls.__name__}.{name} es {type(raw).__name__}, no un método: '
+            f'chain_method no sabe encadenarlo y no lo va a sobreescribir.')
+    return None, None
 
 
 def _already_in_chain(current, func):
@@ -64,27 +130,51 @@ def chain_method(cls, name, func, combine=None):
     envoltorio que encadena — el equivalente del ``super()`` que este idioma
     no tiene. **Idempotente**: reinstalar la misma ``func`` es un no-op.
 
+    El descriptor del método previo se preserva: si era ``@classmethod`` o
+    ``@staticmethod``, la cadena se reinstala envuelta igual. Ver la tabla del
+    docstring del módulo para la firma que debe tener ``func`` en cada caso.
+
     :param combine: ``f(nuevo, anterior) -> resultado``. Sin él, se aplica el
         relevo por ``None``.
     """
-    previous = getattr(cls, name, None)
+    new_wrapper = None
+    if isinstance(func, (classmethod, staticmethod)):
+        new_wrapper = type(func)
+        func = func.__func__
+
+    # ``previous is None`` cubre dos casos que se tratan igual: no había nada,
+    # o lo que hay no es un método (``property``, descriptor de campo) y por
+    # tanto no es el caso de uso de esta herramienta.
+    previous, wrapper = _previous_of(cls, name)
     if _already_in_chain(previous, func):
         return
     if previous is None:
-        setattr(cls, name, func)
+        setattr(cls, name, new_wrapper(func) if new_wrapper else func)
         return
 
-    @functools.wraps(func)
-    def chained(self, *args, **kwargs):
-        result = func(self, *args, **kwargs)
-        if combine is not None:
-            return combine(result, previous(self, *args, **kwargs))
-        return result if result is not None else previous(self, *args, **kwargs)
+    if wrapper is staticmethod:
+        @functools.wraps(func)
+        def chained(*args, **kwargs):
+            result = func(*args, **kwargs)
+            if combine is not None:
+                return combine(result, previous(*args, **kwargs))
+            return result if result is not None else previous(*args, **kwargs)
+    else:
+        # ``first`` es ``self`` en un método de instancia y ``cls`` en un
+        # ``@classmethod``: el mismo cuerpo sirve para los dos porque
+        # ``previous`` está SIN ligar y lo recibe explícito.
+        @functools.wraps(func)
+        def chained(first, *args, **kwargs):
+            result = func(first, *args, **kwargs)
+            if combine is not None:
+                return combine(result, previous(first, *args, **kwargs))
+            return (result if result is not None
+                    else previous(first, *args, **kwargs))
 
     # Después de ``wraps``: copia ``func.__dict__`` y borraría estas marcas.
-    chained._chain_origin = func
-    chained._chain_previous = previous
-    setattr(cls, name, chained)
+    setattr(chained, _ORIGIN, func)
+    setattr(chained, _PREVIOUS, previous)
+    setattr(cls, name, wrapper(chained) if wrapper else chained)
 
 
 def extend_list(new, previous):

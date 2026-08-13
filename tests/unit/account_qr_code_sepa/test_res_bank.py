@@ -20,9 +20,15 @@ Esta suite invoca ``apply_account_qr_code_sepa_extensions()`` explícitamente
 en cada módulo de test — mismo criterio que la nota de wiring del propio
 addon (``apps.py``): sin ``'addons.account_qr_code_sepa'`` en
 ``INSTALLED_APPS`` (fuera de este alcance), ``AccountQrCodeSepaConfig.
-ready()`` no se dispara solo. La función es idempotente
-(``if not hasattr(...)``), así que llamarla en cada módulo no rompe si el
-wiring real ya la corrió.
+ready()`` no se dispara solo. La función es idempotente porque
+``chain_method`` recorre la cadena antes de instalar
+(``_already_in_chain``), así que llamarla en cada módulo no reinstala ni
+duplica si el wiring real ya la corrió.
+
+``base_iban`` **sí** está en ``INSTALLED_APPS``, así que su extensión de
+``retrieve_acc_type`` está viva en estos tests sin invocarla: por eso una
+cuenta con IBAN válido resuelve ``acc_type='iban'`` y sólo la cuenta nacional
+recorre la rama del segundo check.
 """
 import pytest
 
@@ -68,6 +74,20 @@ def cuenta_no_sepa(titular):
     # vector que acc_non_sepa_iban en la referencia).
     return ResPartnerBank.objects.create(
         acc_number='SA4420000001234567891234', partner=titular,
+    )
+
+
+@pytest.fixture
+def domestic_account(titular):
+    """Cuenta nacional que NO es IBAN — vector propio, no de la referencia.
+
+    La referencia no ejercita la rama ``acc_type != 'iban'`` porque allí
+    ``acc_type`` es un ``compute`` y sus dos vectores son IBAN. Aquí la rama sí
+    es alcanzable desde que ``base_iban`` distingue los dos tipos, así que
+    necesita un vector que la recorra.
+    """
+    return ResPartnerBank.objects.create(
+        acc_number='0012345678', partner=titular,
     )
 
 
@@ -235,17 +255,30 @@ class TestGetErrorMessagesForQr:
         assert mensaje is not None
         assert 'USD' in mensaje
 
-    def test_rechaza_cuenta_no_iban(self, cuenta_sepa, eur):
-        """``acc_type`` es siempre ``'bank'`` mientras ``base_iban`` (Ola 0 ·
-        T-06) no esté portado — ``base/models/res_partner_bank.py``,
-        divergencia 2. Este test fija ese estado conocido, no un defecto de
-        este addon: toda cuenta rechaza aquí hasta que exista detección IBAN.
+    def test_rechaza_cuenta_no_iban(self, domestic_account, eur):
+        """La rama ``acc_type != 'iban'``, con una cuenta nacional.
+
+        Hasta que ``base_iban`` existió, este test afirmaba lo contrario —que
+        ``acc_type`` era ``'bank'`` **para toda** cuenta, IBAN incluida— y
+        fijaba ese estado como conocido. Portado ``base_iban``, la afirmación
+        quedó falsa y el test la delató: ahora sólo rechaza aquí la cuenta que
+        de verdad no es IBAN.
         """
-        assert cuenta_sepa.acc_type == 'bank'
-        mensaje = cuenta_sepa._get_error_messages_for_qr(
+        assert domestic_account.acc_type == 'bank'
+        mensaje = domestic_account._get_error_messages_for_qr(
             'sct_qr', debtor_partner=None, currency=eur)
         assert mensaje is not None
         assert "isn't IBAN" in mensaje
+
+    def test_acepta_el_tipo_de_cuenta_de_un_iban_sepa(self, cuenta_sepa, eur):
+        """El contrapunto: un IBAN de la zona SEPA no dispara ningún mensaje.
+
+        Es la prueba de que ``base_iban`` está cableado — sin él, ``acc_type``
+        sería ``'bank'`` y esta cuenta rechazaría por el segundo check.
+        """
+        assert cuenta_sepa.acc_type == 'iban'
+        assert cuenta_sepa._get_error_messages_for_qr(
+            'sct_qr', debtor_partner=None, currency=eur) is None
 
     def test_rechaza_iban_fuera_de_zona_sepa(self, cuenta_no_sepa, eur):
         mensaje = cuenta_no_sepa._get_error_messages_for_qr(
@@ -254,11 +287,15 @@ class TestGetErrorMessagesForQr:
         assert 'non SEPA iban' in mensaje
 
     def test_acumula_varios_mensajes_separados_por_crlf(
-            self, cuenta_no_sepa, usd):
+            self, domestic_account, usd):
         """Divisa mal Y tipo de cuenta mal Y fuera de zona SEPA: los tres
-        mensajes se acumulan, separados por ``\\r\\n`` (fiel a la
-        referencia)."""
-        mensaje = cuenta_no_sepa._get_error_messages_for_qr(
+        mensajes se acumulan, separados por ``\\r\\n`` (fiel a la referencia).
+
+        Requiere la cuenta **nacional**: un IBAN saudí sólo dispara dos de los
+        tres checks, porque su ``acc_type`` sí es ``'iban'`` desde que
+        ``base_iban`` lo deriva.
+        """
+        mensaje = domestic_account._get_error_messages_for_qr(
             'sct_qr', debtor_partner=None, currency=usd)
         assert mensaje.count('\r\n') == 2
 
