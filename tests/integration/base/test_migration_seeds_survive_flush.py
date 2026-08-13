@@ -8,7 +8,7 @@ vuelve a correr**. Todo test posterior de la sesión ve las semillas ausentes, y
 el fallo aparece lejos de la causa (``get_param`` que devuelve ``None``, un
 subtipo de mensaje que no existe).
 
-Medido el 2026-07-28 en ``kaupamex_qa``: tras re-aplicar las cuatro migraciones
+Medido el 2026-07-28 en ``kaupamex_core_qa``: tras re-aplicar las cuatro migraciones
 de semilla (``system_parameter``=3, ``mail_message_subtype``=2,
 ``base_geo_provider``=2), **un solo** test transaccional dejó las tres en 0.
 

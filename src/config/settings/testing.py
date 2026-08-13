@@ -1,7 +1,7 @@
 """
 Django settings TESTING (QA) — Kaupamex API.
 
-BD exclusiva para tests: ``kaupamex_qa`` (SOL-087), definido en ``src/.env``
+BD exclusiva para tests: ``kaupamex_core_qa`` (SOL-087), definido en ``src/.env``
 (sin ``default=`` en el código — todo vive en el env). Separada de produccion.
 pytest apunta aqui via pytest.ini.
 
@@ -53,7 +53,7 @@ else:
 _DB_QA_SOCKET = opt('DB_QA_SOCKET')
 
 # Config de conexión QA — SIN ``default=`` (SOL-087): todo vive en ``.env``.
-# El schema de tests es ``kaupamex_qa`` (DB_QA_NAME en ``src/.env``).
+# El schema de tests es ``kaupamex_core_qa`` (DB_QA_NAME en ``src/.env``).
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',

@@ -9,7 +9,7 @@ nombres.
 Se recrea la tabla en vez de renombrar columnas porque el M2M automático no
 tiene modelo en el estado de migraciones: sale del árbol con ``RemoveField``
 y vuelve como ``CreateModel``. Medido antes de aplicar: la tabla tenía
-**0 filas** (``SELECT COUNT(*)`` sobre ``kaupamex_qa``), así que no hay
+**0 filas** (``SELECT COUNT(*)`` sobre ``kaupamex_core_qa``), así que no hay
 membresías que preservar — hoy nadie las escribe todavía.
 """
 import django.db.models.deletion

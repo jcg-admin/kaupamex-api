@@ -100,7 +100,9 @@ def reference_name_of(ours):
 
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ADDONS_DIR = os.path.join(REPO_ROOT, 'src', 'addons')
+import sys as _sys, os as _os
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+from addons_roots import addon_names
 REGISTRY = os.path.join(REPO_ROOT, 'scripts', 'addon_provenance.txt')
 DOCS_ROOT = os.path.join(os.path.dirname(REPO_ROOT), 'kaupamex-docs')
 
@@ -184,12 +186,9 @@ def is_valid_analysis(cita, addon):
 
 
 def our_names():
-    if not os.path.isdir(ADDONS_DIR):
+    if not addon_names():
         return []
-    return sorted(
-        d for d in os.listdir(ADDONS_DIR)
-        if os.path.isdir(os.path.join(ADDONS_DIR, d)) and not d.startswith('__')
-    )
+    return addon_names()
 
 
 def main(argv):

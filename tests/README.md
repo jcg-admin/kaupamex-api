@@ -6,11 +6,11 @@ Los tests usan una BD **completamente separada** de produccion:
 
 | Entorno | BD | Settings |
 |---------|----|----------|
-| Produccion | `kaupamex_db` | `config.settings.production` |
-| Desarrollo | `kaupamex_db` | `config.settings.development` |
-| Tests (QA) | `kaupamex_qa` | `config.settings.testing` |
+| Produccion | `kaupamex_core` | `config.settings.production` |
+| Desarrollo | `kaupamex_core` | `config.settings.development` |
+| Tests (QA) | `kaupamex_core_qa` | `config.settings.testing` |
 
-Nunca se toca `kaupamex_db` al correr tests.
+Nunca se toca `kaupamex_core` al correr tests.
 
 ## Estructura
 

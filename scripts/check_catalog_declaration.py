@@ -42,23 +42,46 @@ import sys
 from collections import defaultdict
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ROOT = os.path.join(BASE, 'src', 'addons')
+import sys as _sys, os as _os
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+from addons_roots import addon_dirs
 SETTINGS = os.path.join(BASE, 'src', 'config', 'settings', 'base.py')
 DECLARATION_FILE = 'authz_catalog.py'
 
 
 def installed_addons():
-    """Códigos de addon presentes en ``INSTALLED_APPS`` de ``base.py``.
+    """Códigos de addon presentes en las tuplas de apps de ``base.py``.
 
-    Se lee con regex sobre el bloque literal en vez de importar el settings:
-    el gate debe correr sin Django configurado ni base de datos, igual que
-    ``check_addon_cycles.py``.
+    Se lee con ``ast`` en vez de importar el settings: el gate debe correr sin
+    Django configurado ni base de datos, igual que ``check_addon_cycles.py``.
+
+    Recoge de **toda** asignación cuyo nombre termine en ``_APPS`` — hoy son
+    ``DJANGO_APPS``/``THIRD_PARTY_APPS``/``LOCAL_APPS``, concatenadas en
+    ``INSTALLED_APPS``. La versión anterior casaba un regex contra
+    ``INSTALLED_APPS = [...]`` y murió en cuanto la lista pasó a ser una suma de
+    tuplas: el gate quedó atado a la **forma** del literal, no a su contenido.
+
+    *Métrica:* cadenas ``addons.<x>`` dentro de asignaciones ``*_APPS``.
+    *Ciega a:* un addon añadido por vía dinámica (``INSTALLED_APPS +=`` bajo un
+    ``if``, como hace ``development.py`` con ``django_extensions``). Ninguno de
+    los nuestros lo usa hoy; si alguno lo hiciera, este gate no lo vería.
     """
-    source = open(SETTINGS, encoding='utf-8').read()
-    block = re.search(r'INSTALLED_APPS\s*=\s*\[(.*?)\n\]', source, re.S)
-    if not block:
-        raise SystemExit('No se encontró el bloque INSTALLED_APPS en base.py')
-    return set(re.findall(r"['\"]addons\.([a-z_0-9]+)['\"]", block.group(1)))
+    tree = ast.parse(open(SETTINGS, encoding='utf-8').read())
+    codigos, vistos = set(), 0
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Assign):
+            continue
+        nombres = [t.id for t in node.targets if isinstance(t, ast.Name)]
+        if not any(n.endswith('_APPS') for n in nombres):
+            continue
+        vistos += 1
+        for hoja in ast.walk(node.value):
+            if isinstance(hoja, ast.Constant) and isinstance(hoja.value, str):
+                if hoja.value.startswith('addons.'):
+                    codigos.add(hoja.value.split('.', 1)[1])
+    if not vistos:
+        raise SystemExit('No se encontró ninguna asignación *_APPS en base.py')
+    return codigos
 
 
 def _kwargs(node):
@@ -86,8 +109,9 @@ def read_declarations():
     modules = defaultdict(list)
     capabilities = defaultdict(list)
     non_literal = []
-    for addon in sorted(os.listdir(ROOT)):
-        path = os.path.join(ROOT, addon, DECLARATION_FILE)
+    for _p in sorted(addon_dirs()):
+        addon = _p.name
+        path = os.path.join(str(_p), DECLARATION_FILE)
         if not os.path.isfile(path):
             continue
         tree = ast.parse(open(path, encoding='utf-8').read(), filename=path)

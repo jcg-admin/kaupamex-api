@@ -44,7 +44,7 @@ La versión anterior de este docstring declaraba ``backup``/``restore`` como
 NO portados, razonando que ``db: scripts/backup_postgres.sh`` ya cubría el
 respaldo. **Esa premisa era falsa** — medido hoy
 (``kaupamex-db: scripts/backup_postgres.sh:60-61``): ese script vuelca
-únicamente ``DB_PROD``/``DB_QA`` (``kaupamex_db``/``kaupamex_qa``, el plano
+únicamente ``DB_PROD``/``DB_QA`` (``kaupamex_core``/``kaupamex_core_qa``, el plano
 L0), nunca un ``company_<N>_db`` — el propio script no conoce esa forma de
 nombre. No había mecanismo alguno, ni HTTP ni de script, para respaldar o
 restaurar la base de **una empresa**. Ambos se construyen aquí:

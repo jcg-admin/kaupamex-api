@@ -38,7 +38,9 @@ import os
 import sys
 
 ODOO19C = ('/home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0/addons')
-NUESTRO = 'src/addons'
+import sys as _sys, os as _os
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+from addons_roots import addon_path
 
 
 def simbolos(ruta):
@@ -82,7 +84,7 @@ def archivos_de_produccion(raiz):
 def estado(addon):
     """Clasifica cada archivo de la referencia. Devuelve (pendientes, hechos)."""
     ref_raiz = os.path.join(ODOO19C, addon)
-    mio_raiz = os.path.join(NUESTRO, addon)
+    mio_raiz = str(addon_path(addon) or '')
     if not os.path.isdir(ref_raiz):
         sys.exit(f"'{addon}' no existe en la referencia ({ref_raiz})")
     pendientes, hechos = [], []

@@ -49,11 +49,11 @@ tests: `uv run pytest`.
 Para provisionar la base y el rol en PostgreSQL (ver `kaupamex-db`):
 
 ```bash
-sudo bash provisioners/postgresql/db_setup.sh          # base kaupamex_db
-sudo bash provisioners/postgresql/db_setup.sh --qa     # base kaupamex_qa
+sudo bash provisioners/postgresql/db_setup.sh          # base kaupamex_core
+sudo bash provisioners/postgresql/db_setup.sh --qa     # base kaupamex_core_qa
 ```
 
-El provisioner crea las bases `kaupamex_db` (desarrollo) y `kaupamex_qa`
+El provisioner crea las bases `kaupamex_core` (desarrollo) y `kaupamex_core_qa`
 (tests) con el rol `django_user`, y verifica el mínimo efectivo del motor.
 
 ## Endpoints
@@ -117,7 +117,7 @@ uv run pytest --reuse-db -q
 ```
 
 El archivo `pytest.ini` apunta a `config.settings.testing`, que usa la base
-`kaupamex_qa`. Los tests nunca tocan `kaupamex_db`.
+`kaupamex_core_qa`. Los tests nunca tocan `kaupamex_core`.
 
 ## Estructura
 

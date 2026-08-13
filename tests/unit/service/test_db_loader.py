@@ -15,7 +15,7 @@ def _base_databases():
     return {
         'default': {
             'ENGINE': 'django.db.backends.mysql',
-            'NAME': 'kaupamex_db',
+            'NAME': 'kaupamex_core',
             'USER': 'django_user',
             'OPTIONS': {'unix_socket': '/run/mysqld/mysqld.sock'},
         }

@@ -28,7 +28,28 @@ DJANGO_ADMIN_ENABLED = opt('DJANGO_ADMIN_ENABLED')
 
 ALLOWED_HOSTS = opt('ALLOWED_HOSTS')
 
-INSTALLED_APPS = [
+# ---------------------------------------------------------------------------
+# INSTALLED_APPS en tres tramos
+# ---------------------------------------------------------------------------
+# Separar las apps del framework, las de terceros y las nuestras hace legible
+# de un vistazo qué superficie es ajena y cuál mantenemos. La concatenación
+# final es la lista que Django lee; los tres nombres existen para leerse, no
+# para reordenarse.
+#
+# **El orden de LOCAL_APPS es PORTANTE — no se altera al reagrupar.** Es el
+# orden en que corre ``AppConfig.ready()``, y varios addons cuelgan campos y
+# métodos sobre clases de OTRO addon con ``add_to_class``/``chain_method``:
+# exigen que el registro ya tenga poblado el modelo destino. Los comentarios
+# intercalados abajo dicen cuál depende de cuál y por qué; están donde están
+# porque documentan una restricción real, no una preferencia.
+#
+# Los sub-bloques de LOCAL_APPS son rótulos de lectura sobre el orden que ya
+# existía, NO una re-estratificación por dependencias. La diferencia importa:
+# el orden actual **no** es un orden topológico — ``addons.base`` aparece a
+# media lista, después del negocio, no al principio. Rotularlo "capa 0" sería
+# describir un árbol que no tenemos. Ese desajuste queda registrado como
+# hallazgo con sucesor propio en vez de disimularse con una etiqueta.
+DJANGO_APPS = (
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -42,12 +63,20 @@ INSTALLED_APPS = [
     # fallarian con FieldError. Ver ADR-028 y T-008 de la iniciativa
     # migrar-motor-mariadb-a-postgresql.
     'django.contrib.postgres',
+)
+
+THIRD_PARTY_APPS = (
     'corsheaders',
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'drf_spectacular',
+)
+
+LOCAL_APPS = (
+    # `core` no es un addon: es código transversal bajo `src/core/`.
     'core',
+    # --- catálogo, inventario y venta -------------------------------------
     'addons.bus',
     'addons.uom',
     'addons.product',
@@ -82,6 +111,7 @@ INSTALLED_APPS = [
     'addons.mrp_subcontracting',
     'addons.sale_mrp',
     'addons.sale_mrp_margin',
+    # --- pasarelas de pago ------------------------------------------------
     'addons.payment',
     'addons.payment_aps',
     'addons.payment_authorize',
@@ -90,12 +120,14 @@ INSTALLED_APPS = [
     'addons.payment_mercado_pago',
     'addons.payment_paypal',
     'addons.payment_stripe',
+    # --- soporte, marketing, entrega y sitio -------------------------------
     'addons.helpdesk',
     'addons.mass_mailing',
     'addons.website_mass_mailing',
     'addons.delivery',
     'addons.rating',
     'addons.website',
+    # --- núcleo `base` y sus extensiones -----------------------------------
     'addons.auto_backup',
     'addons.base',
     # Va inmediatamente después de `base`: no declara modelos, sólo
@@ -115,6 +147,7 @@ INSTALLED_APPS = [
     # no quién gana. CLABE (18 dígitos) e IBAN (prefijo de país + mod-97) no
     # se solapan; el orden es estable, no crítico.
     'addons.base_iban',
+    # --- identidad y control de acceso -------------------------------------
     'addons.authz',
     'addons.authz_audit',
     'addons.authz_reauth',
@@ -128,6 +161,7 @@ INSTALLED_APPS = [
     'addons.web',
     'addons.portal',
     'addons.sale_subscription',
+    # --- contabilidad y sus satélites --------------------------------------
     'addons.hr',
     'addons.account',
     # Familias nuevas de la Ola 0 de `integrar-familia-account-completa`:
@@ -177,7 +211,9 @@ INSTALLED_APPS = [
     'addons.account_test',
     'addons.account_check_printing',
     'addons.account_payment',
-]
+)
+
+INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 AUTH_USER_MODEL = 'base.ResUsers'
 
@@ -521,7 +557,7 @@ SPECTACULAR_SETTINGS = {
     # branding del L1: la API publicada es la de la plataforma, y llamarla
     # "PracticaYoruba API" la confundía con su tenant de ejemplo. La decisión
     # de producto que este comentario dejaba pendiente la tomó el ejecutor el
-    # 2026-08-06; el schema QA ya se llamaba ``kaupamex_qa``, así que el
+    # 2026-08-06; el schema QA ya se llamaba ``kaupamex_core_qa``, así que el
     # título era el último resto del nombre viejo en la superficie publicada.
     'CONTACT': {
         'name': 'Equipo Kaupamex',

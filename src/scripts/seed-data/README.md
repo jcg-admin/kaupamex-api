@@ -1,7 +1,7 @@
 # PracticaYoruba — Seed data
 
 Real Yoruba/Lukumí product seed for end-to-end testing. Used to populate the
-local PostgreSQL database (`kaupamex_db`) with the canonical demo catalogue.
+local PostgreSQL database (`kaupamex_core`) with the canonical demo catalogue.
 
 ## Files
 

@@ -128,7 +128,7 @@ check_database() {
     fi
 
     # Conexion con las credenciales de Django.
-    local db_name="${DB_NAME:-kaupamex_db}"
+    local db_name="${DB_NAME:-kaupamex_core}"
     local db_user="${DB_USER:-django_user}"
 
     if PGPASSWORD="${DB_PASSWORD:-}" psql -h "$PG_HOST" -p "$PG_PORT" \

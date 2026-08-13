@@ -65,9 +65,17 @@ def test_a_variable_receiver_yields_no_class():
 
 
 def test_the_real_addon_declares_its_installations():
-    """``base_sparse_field`` cuelga cuatro símbolos sobre ``IrModelFields``."""
-    mapa, no_resolubles = gate.instalaciones_del_addon(
-        gate.SRC / 'base_sparse_field')
+    """``base_sparse_field`` cuelga cuatro símbolos sobre ``IrModelFields``.
+
+    Resuelve la ruta con ``addon_path``, no con una constante de raíz: desde el
+    movimiento a dos raíces (:ref:`h-api-558`) ``base_sparse_field`` vive en
+    ``<repo>/addons`` y ``base`` en ``src/addons``. Un test que fijara una de
+    las dos volvería a romperse en cuanto un addon cambie de raíz — que es
+    justo lo que pasó con la constante ``SRC`` que este test usaba.
+    """
+    raiz = gate.addon_path('base_sparse_field')
+    assert raiz is not None, 'base_sparse_field no se resuelve en ninguna raíz'
+    mapa, no_resolubles = gate.instalaciones_del_addon(raiz)
     assert mapa[gate.normaliza('IrModelFields')] == {
         'reflect_fields', 'save', 'serialization_field_id', 'ttype_for'}
     assert no_resolubles == 0

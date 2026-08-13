@@ -121,13 +121,13 @@ class TestLosLectoresYaNoAtraviesanElEspejo:
         ``controllers/`` (mapa de H-API-238); el archivo de vistas quedó como
         ``controllers/main.py``.
         """
-        fuente = open('src/addons/delivery/controllers/serializers.py',
+        fuente = open('addons/delivery/controllers/serializers.py',
                       encoding='utf-8').read()
         assert "source='sale_order.name'" in fuente
         assert "source='order.order_number'" not in fuente
 
     def test_el_dashboard_de_guias_no_atraviesa_el_espejo(self):
-        fuente = open('src/addons/delivery/controllers/main.py',
+        fuente = open('addons/delivery/controllers/main.py',
                       encoding='utf-8').read()
         assert 'guide.order.order_number' not in fuente
         assert 'guide.sale_order.name' in fuente

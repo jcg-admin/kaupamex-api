@@ -47,7 +47,9 @@ import sys
 from collections import defaultdict, deque
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
-NUESTRO = os.path.join(os.path.dirname(AQUI), 'src', 'addons')
+import sys as _sys, os as _os
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+from addons_roots import addon_dirs, addon_names, addon_path, py_files
 
 # La raiz sale del alias de convencion-cita-referencia-odoo.rst, no de memoria.
 # El arbol esta triplicado en el repo (artefacto de empaquetado, no diseno).
@@ -141,10 +143,7 @@ def nuestros_addons():
     tratan "el directorio existe" como "la dependencia está satisfecha", que es la
     premisa que H-API-369 invalidó.
     """
-    if not os.path.isdir(NUESTRO):
-        return set()
-    return {n for n in os.listdir(NUESTRO)
-            if os.path.isdir(os.path.join(NUESTRO, n)) and not n.startswith('_')}
+    return set(addon_names())
 
 
 def cuenta_defs(raiz, addon):
@@ -229,9 +228,8 @@ def clases_nuestras():
     su silencio se lee como evidencia — ``metrica-decide-la-conclusion.md``.
     """
     clases = set()
-    if not os.path.isdir(NUESTRO):
-        return clases
-    for dirpath, _, ficheros in os.walk(NUESTRO):
+    for _raiz in addon_dirs():
+      for dirpath, _, ficheros in os.walk(str(_raiz)):
         for f in ficheros:
             if not f.endswith('.py'):
                 continue
@@ -341,7 +339,9 @@ def construir():
     # directorio presente satisface la dependencia; éste mide si eso es cierto.
     masa = []
     for a in portados_en_ref:
-        mio, suyo = cuenta_defs(NUESTRO, a), cuenta_defs(ODOO19C, a)
+        _d = addon_path(a)
+        mio = cuenta_defs(str(_d.parent), a) if _d else 0
+        suyo = cuenta_defs(ODOO19C, a)
         masa.append({'addon': a, 'nuestros': mio, 'referencia': suyo,
                      'ratio': (mio / suyo) if suyo else None})
     masa.sort(key=lambda x: (x['ratio'] is None, x['ratio']))

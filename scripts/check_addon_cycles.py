@@ -29,7 +29,12 @@ import os
 import sys
 from collections import defaultdict
 
-ROOT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'src', 'addons')
+import sys as _sys, os as _os
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+from addons_roots import addon_dirs
+
+# {nombre: ruta} sobre las DOS raices — un addon vive en una u otra.
+DIRS = {p.name: str(p) for p in addon_dirs()}
 
 # Addons de infraestructura: identidad, acceso, correo y catálogo base. En la
 # referencia viven entre profundidad 0 y 5, por debajo de todo el negocio.
@@ -65,12 +70,12 @@ KNOWN_INVERSIONS = {
 
 def build_graph():
     """Devuelve (addons, aristas, sitios) leyendo los imports con AST."""
-    addons = sorted(d for d in os.listdir(ROOT) if os.path.isdir(os.path.join(ROOT, d)))
+    addons = sorted(DIRS)
     index = set(addons)
     edges = defaultdict(set)
     sites = defaultdict(list)
     for addon in addons:
-        for folder, _, files in os.walk(os.path.join(ROOT, addon)):
+        for folder, _, files in os.walk(DIRS[addon]):
             if 'migrations' in folder.split(os.sep):
                 continue
             for filename in files:

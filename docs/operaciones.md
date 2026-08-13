@@ -34,8 +34,8 @@ uv run python manage.py runserver
 Para provisionar la base y el rol en PostgreSQL (ver `kaupamex-db`):
 
 ```bash
-sudo bash provisioners/postgresql/db_setup.sh          # base kaupamex_db
-sudo bash provisioners/postgresql/db_setup.sh --qa     # base kaupamex_qa
+sudo bash provisioners/postgresql/db_setup.sh          # base kaupamex_core
+sudo bash provisioners/postgresql/db_setup.sh --qa     # base kaupamex_core_qa
 ```
 
 Para entornos con servidor de BD dedicado: ver `kaupamex-db/docs/integracion-api.md`.
@@ -75,7 +75,7 @@ uv run pytest --reuse-db -q
 uv run pytest tests/unit/<addon>/ tests/integration/<addon>/ -q --reuse-db
 ```
 
-Los tests usan la base `kaupamex_qa` — nunca tocan `kaupamex_db`. Ver
+Los tests usan la base `kaupamex_core_qa` — nunca tocan `kaupamex_core`. Ver
 `pytest.ini` y `config/settings/testing.py`.
 
 ---
@@ -148,13 +148,13 @@ python manage.py inspectdb | head -30
 |---|---|---|
 | `DJANGO_SETTINGS_MODULE` | todos | `config.settings.<env>` |
 | `SECRET_KEY` | todos | Clave secreta de Django |
-| `DB_NAME` | dev/prod | Base de producción/desarrollo (`kaupamex_db`) |
+| `DB_NAME` | dev/prod | Base de producción/desarrollo (`kaupamex_core`) |
 | `DB_USER` | dev/prod | Rol Django |
 | `DB_PASSWORD` | dev/prod | Contraseña Django |
 | `DB_SOCKET` | dev/prod | Directorio del socket Unix (en libpq el socket ES el host) |
 | `DB_HOST` | dev/prod | Host de PostgreSQL |
 | `DB_PORT` | dev/prod | Puerto de PostgreSQL |
-| `DB_QA_NAME` | testing | Base QA para pytest (`kaupamex_qa`) |
+| `DB_QA_NAME` | testing | Base QA para pytest (`kaupamex_core_qa`) |
 | `DB_QA_USER` | testing | Rol QA |
 | `DB_QA_PASSWORD` | testing | Contraseña QA |
 | `EMAIL_HOST` | producción | Servidor SMTP |

@@ -2,8 +2,8 @@
 
 Submódulo `api` del monorepo PracticaYoruba (repo GitHub `jcg-admin/kaupamex-api`).
 Backend Django 6 + DRF, gestionado con `uv`, tests con pytest contra PostgreSQL.
-El operador de plataforma (L0) es **Kaupamex**: las bases son `kaupamex_db`
-(prod/dev) y `kaupamex_qa` (tests), con el rol `django_user`. **PracticaYoruba**
+El operador de plataforma (L0) es **Kaupamex**: las bases son `kaupamex_core`
+(prod/dev) y `kaupamex_core_qa` (tests), con el rol `django_user`. **PracticaYoruba**
 es el L1 de ejemplo (insignia), no el nombre del producto ni de la base.
 
 Este archivo es **solo un cheat-sheet local** — NO redefine gobernanza.
@@ -47,7 +47,7 @@ DJANGO_SETTINGS_MODULE=config.settings.testing uv run python -c \
   "from django.db import connection as c; \
    print('HOST:', c.settings_dict['HOST'], '| PORT:', c.settings_dict['PORT'])"
 
-# Pytest — settings=config.settings.testing, base kaupamex_qa (pytest.ini)
+# Pytest — settings=config.settings.testing, base kaupamex_core_qa (pytest.ini)
 # --reuse-db ya está en addopts. NUNCA SQLite (proyecto canónico = PostgreSQL).
 # OJO: la base es compartida; no la recrees con otros agentes corriendo.
 uv run pytest --reuse-db -q                              # o: make ci-test
@@ -76,7 +76,7 @@ install-hooks db-up ci-test ci-test-fast` (`make help`).
   necesita una regla explícita **por encima** de la genérica; la instala
   `db: provisioners/postgresql/db_setup.sh` (H-DB-05).
 - **`--reuse-db` vs `--create-db`** (pytest.ini): testing.py declara
-  `TEST.NAME=kaupamex_qa`, así que sin `--reuse-db` Django intenta DROP+CREATE
+  `TEST.NAME=kaupamex_core_qa`, así que sin `--reuse-db` Django intenta DROP+CREATE
   en cada run. Reusar la base; forzar recreación solo con `--create-db`.
 - **Base ≠ schema**: lo que MariaDB llamaba *schema* aquí es una **base**; un
   *schema* es un namespace dentro de ella (`public`). Ver
@@ -109,7 +109,8 @@ install-hooks db-up ci-test ci-test-fast` (`make help`).
 ## Estructura
 
 ```
-src/addons/                     addons del monolito modular (sale, stock, account, ...)
+addons/                         los 90 addons de comunidad (sale, stock, account, ...)
+src/addons/                     base — el addon del que depende el arranque
 src/config/settings/            base.py · development.py · production.py · testing.py
 kaupamex-bin                    punto de entrada del producto (≙ odoo-bin)
 tests/integration/              flujos end-to-end (auth, cart, payments, ...)

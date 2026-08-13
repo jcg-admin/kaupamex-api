@@ -128,7 +128,7 @@ def filter_company_dbs(names, pattern=_COMPANY_DB_RE):
     """Filtra los schemas con forma ``company_<N>_db`` (guard de forma propio).
 
     Función pura: descarta los del sistema (``mysql``, …) y el plano L0
-    (``kaupamex_db``), preservando el orden.
+    (``kaupamex_core``), preservando el orden.
     """
     return [n for n in names if pattern.match(n)]
 
@@ -456,7 +456,7 @@ def _pg_env(using=DEFAULT_DB_ALIAS):
     (``django_user``) es también su dueño, así que puede volcarlas y
     restaurarlas sin un rol de respaldo aparte. Ese rol (``py_backup_user``,
     ``db: scripts/backup_postgres.sh``) existe para el respaldo **periódico**
-    de las dos bases L0 (``kaupamex_db``/``kaupamex_qa``, cron, mínimo
+    de las dos bases L0 (``kaupamex_core``/``kaupamex_core_qa``, cron, mínimo
     privilegio de sólo-lectura); esta superficie es **on-demand**, por una
     base de empresa concreta, ejercida por quien ya tiene ``platform.
     provision`` — no hay razón para introducir un segundo rol.

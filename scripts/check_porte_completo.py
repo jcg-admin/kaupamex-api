@@ -144,7 +144,9 @@ ODOO19C = pathlib.Path(
     )
 )
 
-SRC = pathlib.Path(__file__).resolve().parent.parent / 'src' / 'addons'
+import sys as _sys, os as _os
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+from addons_roots import addon_dirs, addon_path
 
 #: Renombres declarados: ``nombre en la referencia -> nombre aquí``. Cada
 #: entrada es una decisión, no una conveniencia — si el nombre cambió sin
@@ -335,7 +337,7 @@ def _clase_sin_contraparte(addon, archivo, clase, metodos, instalado):
 def compara(addon):
     """Devuelve ``(pares_medidos, [hallazgo, ...], no_resolubles)``."""
     ref_raiz = ODOO19C / 'addons' / addon
-    mio_raiz = SRC / addon
+    mio_raiz = addon_path(addon) or pathlib.Path('/nonexistent')
     if not ref_raiz.is_dir() or not mio_raiz.is_dir():
         return 0, [], 0
 
@@ -441,7 +443,7 @@ def main():
         return 0
 
     addons = [args.addon] if args.addon else sorted(
-        d.name for d in SRC.iterdir() if d.is_dir())
+        d.name for d in addon_dirs())
 
     pares_total, todos, opacas = 0, [], 0
     for addon in addons:
@@ -462,7 +464,7 @@ def main():
                 else previo or 'PARCIAL')
         for addon in addons:
             ref_dir = ODOO19C / 'addons' / addon / 'models'
-            if not ref_dir.is_dir() or not (SRC / addon).is_dir():
+            if not ref_dir.is_dir() or addon_path(addon) is None:
                 continue
             for ref_py in sorted(ref_dir.glob('*.py')):
                 if ref_py.name == '__init__.py':

@@ -32,6 +32,6 @@ def test_list_all_schema_names_includes_test_schema():
 
 def test_list_company_db_names_filters_to_company_shape():
     # Sin bases company_<N>_db provisionadas, el descubrimiento devuelve [].
-    # (El schema de test es kaupamex_qa, que no matchea company_<N>_db.)
+    # (El schema de test es kaupamex_core_qa, que no matchea company_<N>_db.)
     names = list_company_db_names('default')
     assert all(n.startswith('company_') and n.endswith('_db') for n in names)

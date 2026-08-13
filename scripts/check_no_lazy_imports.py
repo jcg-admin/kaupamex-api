@@ -35,7 +35,8 @@ from pathlib import Path
 # devolvía 0 archivos y el script salía 0 **sin imprimir nada** — un cero que se
 # lee como limpieza. Ver H-API-336; mismo defecto que H-API-335 en
 # ``check_silent_oks.py``, del que se copia el manejo.
-DEFAULT_ROOTS = ('src/addons', 'tests')
+# Las DOS raices de addons (ver scripts/addons_roots.py) mas los tests.
+DEFAULT_ROOTS = ('src/addons', 'addons', 'tests')
 
 
 def find_lazy_imports(tree: ast.AST):

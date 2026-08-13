@@ -28,9 +28,10 @@ Aquí ``main()`` delega en ``execute_from_command_line``, que ya resuelve
 descubrimiento, parseo, ayuda y errores de comando.
 
 Tampoco se adopta ``--addons-path=``: la referencia lo parsea antes que nada
-para saber dónde buscar comandos de addons. Nuestros addons viven bajo
-``src/addons`` y se declaran en ``INSTALLED_APPS``, así que la ruta no es un
-parámetro de invocación.
+para saber dónde buscar comandos de addons. Nuestras raíces son fijas —
+``src/addons`` y ``addons/``, unidas en un solo namespace por
+``modules.module.initialize_sys_path`` — y los addons se declaran en
+``INSTALLED_APPS``, así que la ruta no es un parámetro de invocación.
 """
 
 import os

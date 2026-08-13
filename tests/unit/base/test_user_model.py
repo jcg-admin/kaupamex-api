@@ -8,7 +8,7 @@ password); el nombre humano y el resto de la identidad viven en
 ``addons.base.models.res_users``). ``login`` es el identificador
 (``USERNAME_FIELD``).
 
-BD: kaupamex_qa
+BD: kaupamex_core_qa
 """
 import pytest
 from django.contrib.auth import get_user_model
