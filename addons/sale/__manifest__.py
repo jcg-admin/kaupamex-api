@@ -13,11 +13,16 @@
     # Antes decía ['catalogue', 'inventory']: DOS addons que ya NO EXISTEN
     # (se disolvieron en `product` y `stock`). El grafo de `modules/` lo
     # destapó en su primera ejecución — ver H-API-229.
+    #
+    # TERCERA ocurrencia del mismo defecto: `company` tampoco existe ya (se
+    # disolvió en `base`, #19/#35) y siguió declarado hasta que la
+    # calibración de `derivar_depends.py` lo midió. Los tres se declararon
+    # correctos en su momento y sobrevivieron a la disolución del addon: un
+    # `depends` no se invalida solo cuando su destino desaparece.
     'depends': [
         'account',
         'authz',
         'base',
-        'company',
         'delivery',
         'loyalty',
         'mail',

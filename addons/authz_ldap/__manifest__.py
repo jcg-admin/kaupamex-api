@@ -8,14 +8,14 @@
     # La referencia declara ['base', 'base_setup']. `base_setup` es el addon
     # que hospeda `res.config.settings` (la UI de ajustes); este árbol no lo
     # tiene y su rol aquí lo cumplen la propia API DRF del recurso + los
-    # SystemParameter de `base` — por eso no aparece. `company` entra porque
-    # la configuración es por-ResCompany (FK medida en models.py); en la
-    # referencia ese modelo vive en `base`, aquí en su addon propio.
+    # SystemParameter de `base` — por eso no aparece. La configuración es
+    # por-ResCompany (FK medida en models.py), y ese modelo vive en `base`,
+    # igual que en la referencia: `company` se disolvió (#19/#35) y ya no
+    # existe como addon, así que la FK la cubre `base`.
     # `authz` entra por la capacidad que gatea el CRUD (permissions.ldap).
     'depends': [
         'authz',
         'base',
-        'company',
     ],
     # Igual que la referencia: python-ldap compila contra libldap/libsasl del
     # sistema, así que es dependencia EXTERNA opcional (extra `ldap` de
