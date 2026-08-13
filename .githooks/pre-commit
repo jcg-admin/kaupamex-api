@@ -171,4 +171,26 @@ if [ -f "$URLCONF_CHECKER" ] && [ ${#STAGED_PY[@]} -gt 0 ]; then
     fi
 fi
 
+# ---------------------------------------------------------------------------
+# Gate 9: el simbolo vive del lado que la referencia declara (H-API-556).
+# Ninguno de los gates anteriores mira DONDE aterriza un porte: el de layout
+# (7) mide la forma dentro del addon, el de porte completo mide simbolos
+# dentro de un archivo emparejado. Por eso api@61b7651 pudo poner
+# base_sparse_field en src/orm/ con su suite verde: `class Serialized` da 0
+# hits en odoo19c: odoo/orm/ y 1 en addons/base_sparse_field/, y nada lo medía.
+# Probado contra ese caso real: reponerlo en src/orm/ da exit 1.
+# Ratchet sobre UBICACIONES_ACEPTADAS — falla solo ante una ubicacion NUEVA.
+# Sin el arbol de la referencia informa y sale 0 (no mide el entorno de nadie).
+# Script: scripts/check_symbol_home.py.
+SYMBOL_HOME_CHECKER="$REPO_ROOT/scripts/check_symbol_home.py"
+if [ -f "$SYMBOL_HOME_CHECKER" ] && [ ${#STAGED_PY[@]} -gt 0 ]; then
+    if ! python3 "$SYMBOL_HOME_CHECKER" --strict >/dev/null 2>&1; then
+        python3 "$SYMBOL_HOME_CHECKER" --strict >&2
+        echo "pre-commit: simbolo fuera del lado que declara la referencia" >&2
+        echo "  Si la ubicacion es correcta, declararla en" >&2
+        echo "  UBICACIONES_ACEPTADAS con su motivo MEDIDO — no vaciarla." >&2
+        exit 1
+    fi
+fi
+
 exit "$EXIT_CODE"
