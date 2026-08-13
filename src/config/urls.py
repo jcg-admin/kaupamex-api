@@ -176,6 +176,12 @@ urlpatterns = _admin_urls + [
     path('api/v2/admin/',      include(('addons.authz.controllers.admin_urls', 'admin_authz'),             namespace='admin_authz_v2')),
     # UC-PLT-12: consola L0 del operador Kaupamex — directorio de tenants (platform.provision)
     path('api/v2/platform/',   include(('addons.sale_subscription.controllers.urls', 'company'),                     namespace='company')),
+    # UC-PAY-14 (H-API-408, tarea #55): registro de pago (abono/pago
+    # completo) sobre una factura. Primer endpoint DRF del propio addon
+    # `account` — dueño del módulo `finance`, así que el prefijo compartido
+    # `api/v2/admin/finance/` vive aquí.
+    path('api/v2/admin/finance/', include(('addons.account.controllers.urls', 'admin_finance_invoices'),
+                                          namespace='admin_finance_invoices_v2')),
 
     # ─── API v2 (F6: payments + checkout) ─────────────────────────────────────
     # GAP-C1: public shipping methods for checkout (unauthenticated)

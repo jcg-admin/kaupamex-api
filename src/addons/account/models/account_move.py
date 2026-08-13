@@ -13,6 +13,7 @@ from django.conf import settings
 from django.db.models import Q
 import fields
 import models
+from addons.account.models.account_partial_reconcile import AccountPartialReconcile
 from addons.account.models.sequence_mixin import SequenceMixin
 from exceptions import UserError
 from tools.translate import _
@@ -38,6 +39,26 @@ class AccountMove(SequenceMixin, models.Model):
         ('posted', 'Publicado'),
         ('cancel', 'Cancelado'),
     ]
+    #: ≙ ``odoo19c: account_move.py:48-56`` (``PAYMENT_STATE_SELECTION``,
+    #: ``odoo-tools@622ddc2aa5563d12295b4ab7d3eb438a43eb31de``). Los 7 valores
+    #: se portan completos por paridad de vocabulario con la referencia
+    #: (UC-PAY-14); sólo 3 se derivan hoy en ``compute_payment_state`` — ver
+    #: el docstring de ese método para los 4 restantes y su condición de
+    #: cierre.
+    PAYMENT_STATES = [
+        ('not_paid', 'Sin pagar'),
+        ('in_payment', 'En proceso de pago'),
+        ('paid', 'Pagada'),
+        ('partial', 'Parcialmente pagada'),
+        ('reversed', 'Revertida'),
+        ('blocked', 'Bloqueada'),
+        ('invoicing_legacy', 'Facturación heredada'),
+    ]
+    #: Tipos de cuenta cuyo saldo es "lo que falta cobrar/pagar" de este
+    #: asiento — ≙ el criterio de conciliable de la referencia
+    #: (``reconcile=True`` en ``asset_receivable``/``liability_payable``,
+    #: ``odoo19c: account_account.py``).
+    _RESIDUAL_ACCOUNT_TYPES = ('asset_receivable', 'liability_payable')
     MOVE_TYPES = [
         ('entry', 'Asiento contable'),
         ('out_invoice', 'Factura de cliente'),
@@ -75,6 +96,12 @@ class AccountMove(SequenceMixin, models.Model):
     state        = fields.Selection(
         max_length=8, choices=STATES, default='draft',
         help_text='Estado (Odoo state).',
+    )
+    payment_state = fields.Selection(
+        max_length=17, choices=PAYMENT_STATES, blank=True, default='not_paid',
+        help_text='Estado de pago (Odoo payment_state). Se recalcula con '
+                   'compute_payment_state() al registrar o revertir una '
+                   'conciliación — no se deriva automáticamente en save().',
     )
     move_type    = fields.Selection(
         max_length=16, choices=MOVE_TYPES, default='entry',
@@ -153,6 +180,87 @@ class AccountMove(SequenceMixin, models.Model):
         agg = self.line_ids.aggregate(d=models.Sum('debit'))
         self.amount_total = agg['d'] or Decimal('0.00')
         return self.amount_total
+
+    # -- payment_state / amount_residual (UC-PAY-14, H-API-408) ------------
+    def _receivable_totals(self):
+        """``(saldo original, saldo pendiente)`` de las líneas por cobrar/pagar.
+
+        Sin multi-moneda: ``account.move.line`` no porta ``amount_currency``
+        (DEFERIDO, declarado en ``account_move_line.py`` — depende de que
+        ese modelo porte soporte multi-moneda; no se duplica la divergencia
+        aquí). Ambos valores se computan en moneda de la empresa.
+
+        El **saldo original** es la suma de ``balance`` (debe − haber) de
+        las líneas cuya cuenta es ``asset_receivable``/``liability_payable``
+        — normalmente una sola línea por factura simple.
+
+        El **saldo pendiente** resta lo ya conciliado en
+        ``account.partial.reconcile`` sobre esas líneas: un partial donde la
+        línea es el lado ``debit_move`` reduce lo que el cliente debe (resta
+        del saldo); un partial donde es el lado ``credit_move`` reduce lo
+        que nosotros debíamos (suma al saldo) — caso nota de crédito. Es la
+        misma álgebra que ``AccountPartialReconcile._update_matching_number``
+        ya usa para decidir si un apunte quedó saldado.
+        """
+        line_ids = list(
+            self.line_ids.filter(account__account_type__in=self._RESIDUAL_ACCOUNT_TYPES)
+            .values_list('pk', flat=True)
+        )
+        if not line_ids:
+            return Decimal('0.00'), Decimal('0.00')
+        total = self.line_ids.filter(pk__in=line_ids).aggregate(
+            s=models.Sum('balance'))['s'] or Decimal('0.00')
+        debit_matched = AccountPartialReconcile.objects.filter(
+            debit_move__in=line_ids).aggregate(s=models.Sum('amount'))['s'] or Decimal('0.00')
+        credit_matched = AccountPartialReconcile.objects.filter(
+            credit_move__in=line_ids).aggregate(s=models.Sum('amount'))['s'] or Decimal('0.00')
+        residual = total - debit_matched + credit_matched
+        return total, residual
+
+    def get_amount_residual(self):
+        """Saldo pendiente del asiento — ≙ Odoo ``amount_residual`` simplificado.
+
+        Ver ``_receivable_totals`` para la derivación y la divergencia de
+        multi-moneda declarada. Es lo que UC-PAY-14 (PARTE 9, H-API-408)
+        necesitaba para saber "cuánto queda pendiente de una factura" sin
+        el campo ``amount_residual`` de ``account.move.line`` (DEFERIDO):
+        se deriva sumando ``balance`` de las líneas por cobrar/pagar y
+        restando lo ya conciliado, en vez de leer una columna dedicada.
+        """
+        return self._receivable_totals()[1]
+
+    def compute_payment_state(self):
+        """Recalcula y persiste ``payment_state`` a partir del saldo pendiente.
+
+        ≙ una versión simplificada de ``_compute_payment_state`` (``odoo19c:
+        account_move.py``): sólo las tres ramas que UC-PAY-14 necesita.
+
+        - ``not_paid`` — nada conciliado, o el asiento no tiene línea por
+          cobrar/pagar (ej. un asiento interno).
+        - ``partial`` — ``0 < saldo pendiente < saldo original``.
+        - ``paid`` — saldo pendiente ``<= 0``.
+
+        Las otras cuatro ramas del Selection (``in_payment``, ``reversed``,
+        ``blocked``, ``invoicing_legacy``) están declaradas en
+        ``PAYMENT_STATES`` para paridad de vocabulario con la referencia,
+        pero **no** se derivan aquí — dependen de mecanismos fuera del
+        alcance de UC-PAY-14 (PARTE 9): un pago en tránsito antes de
+        reconciliar (``in_payment``), reversión de asientos (``reversed``),
+        bloqueo de crédito (``blocked``) o migración de facturación legacy
+        (``invoicing_legacy``). Condición de cierre: sucesor cuando cada
+        mecanismo exista — no se improvisa la rama sin él.
+        """
+        total, residual = self._receivable_totals()
+        if not total:
+            self.payment_state = 'not_paid'
+        elif residual <= Decimal('0.00'):
+            self.payment_state = 'paid'
+        elif residual < total:
+            self.payment_state = 'partial'
+        else:
+            self.payment_state = 'not_paid'
+        self.save(update_fields=['payment_state'])
+        return self.payment_state
 
     @api.constrains('line_ids')
     def _check_balanced(self):
