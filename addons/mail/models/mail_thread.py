@@ -26,7 +26,6 @@ que no siguen el hilo). NO se porta la auto-suscripcion por ``_track_*``
 import fields  # noqa: F401  (coherencia de vocabulario del addon; el mixin no declara campos)
 import models
 
-from .mail_activity import MailActivity
 from .mail_followers import MailFollowers
 from .mail_message import MailMessage
 from .mail_notification import MailNotification
@@ -35,6 +34,19 @@ from .mail_tracking_value import MailTrackingValue
 
 class MailThread(models.Model):
     """Mixin abstracto: dota a un modelo de hilo de mensajes + seguidores."""
+
+    # Atributos de clase de modelo — los SEIS de ORM que la referencia declara
+    # (``odoo19c: addons/mail/models/mail_thread.py:127-132``), verbatim con su
+    # comentario. Los otros dos ``_`` de esa cabecera NO son atributos de ORM y
+    # por eso no van aquí: ``_CUSTOMER_HEADERS_LIMIT_COUNT`` es una constante de
+    # módulo y ``_Attachment`` un ``namedtuple`` — la distinción de tres vías que
+    # fija ``atributos-de-clase-de-modelo.md``.
+    _name = 'mail.thread'
+    _description = 'Email Thread'
+    _mail_flat_thread = True  # link orphan messages to the first message
+    _mail_thread_customer = False  # subscribe customer when being in post recipients
+    _mail_post_access = 'write'  # access required on the document to post on it
+    _primary_email = 'email'  # Must be set for the models that can be created by alias
 
     class Meta:
         abstract = True
@@ -45,11 +57,21 @@ class MailThread(models.Model):
     def _mail_thread_res_model(cls) -> str:
         """Valor que se guarda en ``mail_message.model`` / ``mail_followers.res_model``.
 
-        Fiel a Odoo, que guarda el ``_name`` del modelo. Aqui el identificador
-        estable y unico del modelo es su label Django (``app_label.ModelName``),
-        p. ej. ``"support.SupportTicket"``. Sobrescribible si un modelo quiere
-        un nombre canonico distinto.
+        La referencia guarda el ``_name`` del modelo que hereda. Aquí se busca
+        ese ``_name`` **propio** y se cae al label Django (``app_label.Model``)
+        cuando el modelo no declara ninguno.
+
+        El recorrido se detiene en ``MailThread`` a propósito: desde que este
+        mixin declara su propio ``_name = 'mail.thread'``, un ``getattr`` plano
+        lo heredaría y **todos** los modelos que lo usan compartirían un mismo
+        ``res_model``, mezclando sus hilos en una sola conversación.
         """
+        for klass in cls.__mro__:
+            if klass is MailThread:
+                break
+            nombre = klass.__dict__.get('_name')
+            if nombre:
+                return nombre
         return cls._meta.label
 
     # --- mensajes (chatter) ----------------------------------------------------
@@ -200,7 +222,7 @@ class MailThread(models.Model):
 
     # --- tracking de campos (auditoria de cambios) -----------------------------
 
-    def message_track(self, changes, author=None):
+    def _message_track(self, changes, author=None):
         """Registra cambios de campo en el chatter (Odoo ``_message_track``).
 
         ``changes`` es un iterable de dicts con claves ``field`` (nombre),
@@ -231,33 +253,14 @@ class MailThread(models.Model):
             tracking.save()
         return message
 
-    # --- actividades (to-dos planificados) -------------------------------------
-
-    def activity_schedule(self, *, activity_type=None, summary='', note='',
-                          date_deadline=None, user=None):
-        """Planifica una actividad sobre el registro (Odoo ``activity_schedule``).
-
-        Crea una ``mail.activity`` polimorfica apuntando a este registro.
-        Devuelve la ``MailActivity`` creada.
-        """
-        kwargs = dict(
-            res_model=self._mail_thread_res_model(),
-            res_id=self.pk,
-            activity_type=activity_type,
-            summary=summary,
-            note=note,
-            user=user,
-        )
-        if date_deadline is not None:
-            kwargs['date_deadline'] = date_deadline
-        return MailActivity.objects.create(**kwargs)
-
-    @property
-    def activity_ids(self):
-        """Actividades abiertas del registro, por plazo (Odoo ``activity_ids``)."""
-        return MailActivity.objects.filter(
-            res_model=self._mail_thread_res_model(), res_id=self.pk,
-        )
+    # --- actividades: NO viven aquí ---------------------------------------------
+    #
+    # ``activity_schedule`` y ``activity_ids`` estuvieron colgados de esta clase
+    # hasta 2026-08-14. Era el sitio equivocado —la clase de :ref:`h-api-568`—:
+    # la referencia los declara en ``mail.activity.mixin``, un ``AbstractModel``
+    # distinto, en su propio archivo (``odoo19c: mail/models/mail_activity_mixin.py``).
+    # Un modelo que quiera actividades hereda ``MailActivityMixin``; uno que
+    # quiera ambas cosas hereda los dos, como hace ``stock.picking``.
 
     @staticmethod
     def _normalize_partners(partners):

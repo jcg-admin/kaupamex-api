@@ -16,6 +16,13 @@ from addons.base.models import TimeStampedModel
 class MailActivityType(TimeStampedModel):
     """``mail.activity.type`` — plantilla de una actividad del chatter."""
 
+    # Atributos de clase de modelo — los cuatro que la referencia declara
+    # (``odoo19c: addons/mail/models/mail_activity_type.py:15-18``), verbatim.
+    _name = 'mail.activity.type'
+    _description = 'Activity Type'
+    _order = 'sequence, id'
+    _rec_name = 'name'
+
     DELAY_DAYS = 'days'
     DELAY_WEEKS = 'weeks'
     DELAY_MONTHS = 'months'

@@ -26,6 +26,7 @@ from .mail_followers import MailFollowers
 from .mail_notification import MailNotification
 from .mail_activity_type import MailActivityType
 from .mail_activity import MailActivity
+from .mail_activity_mixin import MailActivityMixin
 from .mail_tracking_value import MailTrackingValue
 from .mail_template import MailTemplate
 from .mail_mail import MailMail
@@ -42,7 +43,8 @@ from .mail_thread import MailThread
 __all__ = [
     'MailAlias', 'MailAliasDomain', 'DOT_ATOM_TEXT',
     'MailMessageSubtype', 'MailMessage', 'MailFollowers', 'MailNotification',
-    'MailActivityType', 'MailActivity', 'MailTrackingValue',
+    'MailActivityType', 'MailActivity', 'MailActivityMixin',
+    'MailTrackingValue',
     'MailTemplate', 'MailMail', 'MailThread',
     'Notification', 'NotificationType', 'NOTIFICATION_TYPE_LABELS',
     'MANDATORY_NOTIFICATION_TYPES', 'NotificationPreference',

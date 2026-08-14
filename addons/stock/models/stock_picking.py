@@ -151,6 +151,8 @@ from django.db.models import Exists, OuterRef, Q
 
 from addons.base.models import TimeStampedModel
 from addons.base.models.res_users import ResUsers
+from addons.mail.models.mail_activity_mixin import MailActivityMixin
+from addons.mail.models.mail_thread import MailThread
 from exceptions import UserError
 from tools.translate import _
 
@@ -215,8 +217,13 @@ XMLID_LOCATION_CUSTOMERS = 'stock.stock_location_customers'
 class StockPickingType(TimeStampedModel):
     """``stock.picking.type`` — la plantilla que gobierna una clase de albarán."""
 
+    # Atributos de clase de modelo — los cinco que la referencia declara
+    # (``odoo19c: addons/stock/models/stock_picking.py:21-25``), verbatim.
     _name = 'stock.picking.type'
     _description = "Picking Type"
+    _order = 'is_favorite desc, sequence, id'
+    _rec_names_search = ['name', 'warehouse_id.name']
+    _check_company_auto = True
 
     name                     = fields.Char(
         'Operation Type', max_length=100, required=True, translate=True,
@@ -533,7 +540,7 @@ class StockPickingType(TimeStampedModel):
     # -- favoritos --
 
     @classmethod
-    def search_is_favorite(cls, user):
+    def _search_is_favorite(cls, user):
         """≙ ``_search_is_favorite`` (``odoo19c: :221-225``)."""
         return cls.objects.filter(favorite_user_ids=user)
 
@@ -658,19 +665,19 @@ class StockPickingType(TimeStampedModel):
 
     # -- los computes almacenados: se recalculan al guardar --
 
-    def compute_use_create_lots(self):
+    def _compute_use_create_lots(self):
         """≙ ``_compute_use_create_lots`` (``odoo19c: :290-294``)."""
         if self.code == CODE_INCOMING:
             self.use_create_lots = True
         return self.use_create_lots
 
-    def compute_use_existing_lots(self):
+    def _compute_use_existing_lots(self):
         """≙ ``_compute_use_existing_lots`` (``odoo19c: :296-300``)."""
         if self.code == CODE_OUTGOING:
             self.use_existing_lots = True
         return self.use_existing_lots
 
-    def compute_print_label(self):
+    def _compute_print_label(self):
         """≙ ``_compute_print_label`` (``odoo19c: :338-344``)."""
         if self.code in (CODE_INCOMING, CODE_INTERNAL):
             self.print_label = False
@@ -747,9 +754,9 @@ class StockPickingType(TimeStampedModel):
 
     def save(self, *args, **kwargs):
         """Dispara los computes almacenados, que allá corren por ``@api.depends``."""
-        self.compute_use_create_lots()
-        self.compute_use_existing_lots()
-        self.compute_print_label()
+        self._compute_use_create_lots()
+        self._compute_use_existing_lots()
+        self._compute_print_label()
         self.compute_warehouse()
         if self.default_location_src is None:
             self.compute_default_location_src()
@@ -825,7 +832,7 @@ class StockPickingType(TimeStampedModel):
                 accion, 'get_context') else {},
         }
 
-    def get_action(self, action_xmlid):
+    def _get_action(self, action_xmlid):
         """≙ ``_get_action`` (``odoo19c: :414-441``).
 
         Fija el nombre visible, el contexto por defecto (tipo y empresa) y el
@@ -849,19 +856,19 @@ class StockPickingType(TimeStampedModel):
 
     def get_action_picking_tree_late(self):
         """≙ ``get_action_picking_tree_late`` (``odoo19c: :443-444``)."""
-        return self.get_action('stock.action_picking_tree_late')
+        return self._get_action('stock.action_picking_tree_late')
 
     def get_action_picking_tree_backorder(self):
         """≙ ``get_action_picking_tree_backorder`` (``odoo19c: :446-447``)."""
-        return self.get_action('stock.action_picking_tree_backorder')
+        return self._get_action('stock.action_picking_tree_backorder')
 
     def get_action_picking_tree_waiting(self):
         """≙ ``get_action_picking_tree_waiting`` (``odoo19c: :449-450``)."""
-        return self.get_action('stock.action_picking_tree_waiting')
+        return self._get_action('stock.action_picking_tree_waiting')
 
     def get_action_picking_tree_ready(self):
         """≙ ``get_action_picking_tree_ready`` (``odoo19c: :452-453``)."""
-        return self.get_action('stock.action_picking_tree_ready')
+        return self._get_action('stock.action_picking_tree_ready')
 
     def get_action_picking_type_moves_analysis(self):
         """≙ ``get_action_picking_type_moves_analysis`` (``odoo19c: :455-460``)."""
@@ -879,17 +886,17 @@ class StockPickingType(TimeStampedModel):
             CODE_OUTGOING: 'stock.action_picking_tree_outgoing',
             CODE_INTERNAL: 'stock.action_picking_tree_internal',
         }
-        return self.get_action(por_codigo.get(
+        return self._get_action(por_codigo.get(
             self.code, 'stock.stock_picking_action_picking_type'))
 
     def get_action_picking_type_ready_moves(self):
         """≙ ``get_action_picking_type_ready_moves`` (``odoo19c: :472-473``)."""
-        return self.get_action('stock.action_get_picking_type_ready_moves')
+        return self._get_action('stock.action_get_picking_type_ready_moves')
 
     # -- el gráfico del tablero --
 
     @classmethod
-    def get_aggregated_records_by_date(cls, picking_types):
+    def _get_aggregated_records_by_date(cls, picking_types):
         """≙ ``_get_aggregated_records_by_date`` (``odoo19c: :475-492``).
 
         Devuelve una terna por tipo: su id, las fechas previstas de sus
@@ -907,7 +914,7 @@ class StockPickingType(TimeStampedModel):
         return [(i, f, _('Transferencias')) for i, f in por_tipo.items()]
 
     @classmethod
-    def prepare_graph_data(cls, summaries):
+    def _prepare_graph_data(cls, summaries):
         """≙ ``_prepare_graph_data`` (``odoo19c: :494-525``).
 
         Convierte el resumen por categoría en la serie del gráfico. Si todos
@@ -940,7 +947,7 @@ class StockPickingType(TimeStampedModel):
     def kanban_dashboard_graph(self):
         """≙ ``_compute_kanban_dashboard_graph`` (``odoo19c: :370-392``)."""
         stock_picking = apps.get_model('stock', 'StockPicking')
-        agrupados = type(self).get_aggregated_records_by_date([self])
+        agrupados = type(self)._get_aggregated_records_by_date([self])
         resumenes = {}
         for picking_type_id, fechas, serie in agrupados:
             resumen = {
@@ -954,9 +961,9 @@ class StockPickingType(TimeStampedModel):
                     resumen['total_' + categoria] += 1
             resumenes[picking_type_id] = resumen
         return json.dumps(
-            type(self).prepare_graph_data(resumenes).get(self.pk, []))
+            type(self)._prepare_graph_data(resumenes).get(self.pk, []))
 
-    def get_code_report_name(self):
+    def _get_code_report_name(self):
         """≙ ``_get_code_report_name`` (``odoo19c: :527-535``)."""
         return {
             CODE_OUTGOING: _('Nota de entrega'),
@@ -1000,7 +1007,7 @@ class PickingTypeFavoriteUserRel(models.Model):
         return f'{self.picking_type_id}:{self.user_id}'
 
 
-class StockPicking(TimeStampedModel):
+class StockPicking(MailThread, MailActivityMixin, TimeStampedModel):
     """``stock.picking`` — una transferencia (albarán).
 
     .. warning:: Porte parcial declarado — 5 de 57 campos, 4 de 97 métodos.
@@ -1012,10 +1019,27 @@ class StockPicking(TimeStampedModel):
        transiciones). El porte completo es el paso siguiente de la tarea
        **#330**; hasta entonces la cobertura queda declarada aquí y no se
        presenta como terminada (``porte-completo-no-parcial.md``).
+
+       Dos consecuencias de la cabecera, declaradas por no dejarlas mudas:
+
+       - ``_order`` está declarado verbatim pero ``Meta.ordering`` **no lo
+         refleja**: ``priority`` y ``scheduled_date`` son dos de los 52 campos
+         aún sin portar. Al portarlos, ``Meta.ordering`` pasa a
+         ``['-priority', 'scheduled_date', '-id']``.
+       - ``_name_uniq`` (``odoo19c: :710`` — ``models.Constraint('unique(name,
+         company_id)', …)``) **no está**: su hogar es ``Meta.constraints`` y
+         exige el campo ``company``, que también falta. Entra con el porte
+         completo.
     """
 
+    # Atributos de clase de modelo — los cuatro de ORM que la referencia declara
+    # (``odoo19c: :539-542``), verbatim. Los dos mixins que ``_inherit`` nombra
+    # **existen y están heredados** (``MailThread``, ``MailActivityMixin`` en la
+    # lista de bases): el hilo del chatter y las actividades planificadas.
     _name = 'stock.picking'
+    _inherit = ['mail.thread', 'mail.activity.mixin']
     _description = "Transfer"
+    _order = "priority desc, scheduled_date asc, id desc"
 
     STATE_DRAFT     = 'draft'
     STATE_WAITING   = 'waiting'

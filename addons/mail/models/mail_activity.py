@@ -25,11 +25,20 @@ import fields
 import models
 from addons.base.models import TimeStampedModel
 
+from .mail_activity_type import MailActivityType
 from .mail_message import MailMessage
 
 
 class MailActivity(TimeStampedModel):
     """``mail.activity`` — actividad planificada sobre un registro polimorfico."""
+
+    # Atributos de clase de modelo — los cuatro que la referencia declara
+    # (``odoo19c: addons/mail/models/mail_activity.py:26-29``), verbatim.
+    # ``_order`` convive con ``Meta.ordering``, que ya lo refleja.
+    _name = 'mail.activity'
+    _description = 'Activity'
+    _order = 'date_deadline ASC, id ASC'
+    _rec_name = 'summary'
 
     STATE_OVERDUE = 'overdue'
     STATE_TODAY = 'today'
@@ -82,6 +91,26 @@ class MailActivity(TimeStampedModel):
 
     def __str__(self) -> str:
         return f'{self.summary or (self.activity_type_id and "actividad")} @ {self.date_deadline}'
+
+    @classmethod
+    def _default_activity_type_for_model(cls, model):
+        """≙ ``_default_activity_type_for_model`` (``odoo19c: :46-51``).
+
+        Docstring verbatim de la referencia: *"Take first one found, ordered by
+        sequence. Keep it simple."* Un tipo aplica al modelo cuando lo nombra o
+        cuando no nombra ninguno (``res_model`` vacío = universal); el orden lo
+        fija ``Meta.ordering = ['sequence', 'id']`` de ``MailActivityType``, que
+        es el ``sequence`` de la referencia.
+
+        Divergencia de vacío: allá ``res_model`` es ``False`` cuando el tipo es
+        universal; aquí el campo es ``blank=True, default=''``, así que el
+        universal se busca por cadena vacía.
+        """
+        if model:
+            return MailActivityType.objects.filter(
+                models.Q(res_model=model) | models.Q(res_model=''),
+            ).first()
+        return MailActivityType.objects.filter(res_model='').first()
 
     @property
     def state(self) -> str:
