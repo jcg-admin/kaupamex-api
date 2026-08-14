@@ -2,7 +2,11 @@ from pathlib import Path
 from datetime import timedelta
 import certifi
 
+from django.core.exceptions import ImproperlyConfigured
+
 from config.settings.options import get as opt
+from modules.module import get_modules
+from modules.module_graph import ModuleGraph
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -36,19 +40,27 @@ ALLOWED_HOSTS = opt('ALLOWED_HOSTS')
 # final es la lista que Django lee; los tres nombres existen para leerse, no
 # para reordenarse.
 #
-# **El orden de LOCAL_APPS es PORTANTE — no se altera al reagrupar.** Es el
-# orden en que corre ``AppConfig.ready()``, y varios addons cuelgan campos y
-# métodos sobre clases de OTRO addon con ``add_to_class``/``chain_method``:
-# exigen que el registro ya tenga poblado el modelo destino. Los comentarios
-# intercalados abajo dicen cuál depende de cuál y por qué; están donde están
-# porque documentan una restricción real, no una preferencia.
+# **El orden de LOCAL_APPS es PORTANTE, y por eso ya no se escribe a mano.**
+# Es el orden en que corre ``AppConfig.ready()``, y varios addons cuelgan
+# campos y métodos sobre clases de OTRO addon con ``add_to_class``/
+# ``chain_method``: exigen que el registro ya tenga poblado el modelo destino.
+# Hasta 2026-08-14 la lista era un literal con esas restricciones anotadas una
+# a una en comentarios intercalados; ``addons.base`` caía en la posición 49 de
+# 91 —después de todo el negocio, siendo aquél del que depende el árbol— y el
+# orden violaba 62 aristas declaradas. Funcionaba por accidente: Django puebla
+# el registro entero antes de correr ningún ``ready()``.
 #
-# Los sub-bloques de LOCAL_APPS son rótulos de lectura sobre el orden que ya
-# existía, NO una re-estratificación por dependencias. La diferencia importa:
-# el orden actual **no** es un orden topológico — ``addons.base`` aparece a
-# media lista, después del negocio, no al principio. Rotularlo "capa 0" sería
-# describir un árbol que no tenemos. Ese desajuste queda registrado como
-# hallazgo con sucesor propio en vez de disimularse con una etiqueta.
+# Ahora se **deriva** del grafo de addons (``modules.module_graph``), que
+# ordena por ``(depth, name)`` — el mismo orden topológico que la referencia
+# usa para cargar (``odoo/modules/module_graph.py``). La fuente de cada
+# restricción pasa a ser el ``depends`` del manifiesto que la necesita, que es
+# donde la referencia la pone y donde un gate puede verla.
+#
+# Precondición que lo hizo posible: los **91 de 91** manifiestos (#296) y el
+# 2-ciclo ``sale ↔ delivery`` retirado (H-API-563). Ver H-API-559 (el
+# diagnóstico) y H-API-562 (el ciclo del grafo de *imports*, que es otro
+# objeto y sigue abierto en #322 — no bloquea esta derivación porque Django no
+# recorre los imports para ordenar ``INSTALLED_APPS``).
 DJANGO_APPS = (
     'django.contrib.admin',
     'django.contrib.auth',
@@ -73,145 +85,69 @@ THIRD_PARTY_APPS = (
     'drf_spectacular',
 )
 
-LOCAL_APPS = (
-    # `core` no es un addon: es código transversal bajo `src/core/`.
-    'core',
-    # --- catálogo, inventario y venta -------------------------------------
-    'addons.bus',
-    'addons.uom',
-    'addons.product',
-    'addons.stock',
-    'addons.stock_account',
-    'addons.stock_landed_costs',
-    'addons.product_expiry',
-    'addons.loyalty',
-    'addons.website_sale',
-    'addons.website_sale_wishlist',
-    'addons.sale',
-    'addons.sales_team',
-    'addons.sale_stock',
-    'addons.sale_loyalty',
-    'addons.sale_loyalty_delivery',
-    'addons.sale_management',
-    'addons.sale_service',
-    'addons.sale_margin',
-    'addons.crm',
-    'addons.sale_crm',
-    'addons.sms',
-    'addons.sale_sms',
-    'addons.product_matrix',
-    'addons.sale_product_matrix',
-    'addons.sale_stock_margin',
-    'addons.sale_stock_product_expiry',
-    'addons.project',
-    'addons.sale_project',
-    'addons.purchase',
-    'addons.sale_purchase',
-    'addons.mrp',
-    'addons.mrp_subcontracting',
-    'addons.sale_mrp',
-    'addons.sale_mrp_margin',
-    # --- pasarelas de pago ------------------------------------------------
-    'addons.payment',
-    'addons.payment_aps',
-    'addons.payment_authorize',
-    'addons.payment_custom',
-    'addons.payment_demo',
-    'addons.payment_mercado_pago',
-    'addons.payment_paypal',
-    'addons.payment_stripe',
-    # --- soporte, marketing, entrega y sitio -------------------------------
-    'addons.helpdesk',
-    'addons.mass_mailing',
-    'addons.website_mass_mailing',
-    'addons.delivery',
-    'addons.rating',
-    'addons.website',
-    # --- núcleo `base` y sus extensiones -----------------------------------
-    'addons.auto_backup',
-    'addons.base',
-    # Va inmediatamente después de `base`: no declara modelos, sólo
-    # publica `Serialized`/`Sparse` en `orm.fields` desde su `ready()`,
-    # así que cualquier addon que declare un campo disperso necesita
-    # que este ya haya corrido.
-    'addons.base_sparse_field',
-    'addons.base_setup',
-    'addons.observability',
-    'addons.mail',
-    'addons.base_address_extended',
-    'addons.base_geolocalize',
-    'addons.base_vat',
-    'addons.base_bank',
-    # Va después de `base_bank`: los dos encadenan `retrieve_acc_type` con
-    # semántica de relevo, así que el orden decide quién se pregunta primero,
-    # no quién gana. CLABE (18 dígitos) e IBAN (prefijo de país + mod-97) no
-    # se solapan; el orden es estable, no crítico.
-    'addons.base_iban',
-    # --- identidad y control de acceso -------------------------------------
-    'addons.authz',
-    'addons.authz_audit',
-    'addons.authz_reauth',
-    'addons.authz_password_policy',
-    'addons.authz_signup',
-    'addons.authz_totp',
-    'addons.authz_ldap',
-    'addons.authz_oauth',
-    'addons.authz_totp_mail',
-    'addons.authz_passkey',
-    'addons.web',
-    'addons.portal',
-    'addons.sale_subscription',
-    # --- contabilidad y sus satélites --------------------------------------
-    'addons.hr',
-    'addons.account',
-    # Familias nuevas de la Ola 0 de `integrar-familia-account-completa`:
-    # dependencias que la referencia declara y nuestro árbol no tenía. Se
-    # portan completas, no recortadas a la superficie que account toca.
-    'addons.certificate',
-    'addons.onboarding',
-    'addons.analytic',
-    'addons.fleet',
-    'addons.resource',
-    'addons.digest',
-    # Bloque 0 de `integrar-cfdi-mexico-nativo`: la localización contable de
-    # México. Va DESPUÉS de `account` porque su `ready()` cuelga campos sobre
-    # `account.account`/`account.tax` con `add_to_class`, y el registro tiene
-    # que tener esos modelos ya poblados.
-    'addons.l10n_mx',
-    # Satélites de `account` (Ola F, primera tanda). Van DESPUÉS de `account`
-    # y de `fleet` por la misma razón que `l10n_mx`: sus `ready()` cuelgan
-    # campos con `add_to_class` sobre modelos que el registro debe tener ya
-    # poblados. `account_fleet` es puente y exige ambas.
-    'addons.account_add_gln',
-    'addons.account_qr_code_emv',
-    'addons.account_qr_code_sepa',
-    'addons.account_debit_note',
-    'addons.account_fleet',
-    'addons.account_tax_python',
-    # Satélites de `account` (Ola F, segunda tanda). Van DESPUÉS de `account`
-    # por la misma razón que los de arriba, y su orden RELATIVO no es
-    # arbitrario:
-    #
-    # - `account_update_tax_tags` y `account_test` sólo declaran modelos
-    #   PROPIOS con FK hacia `account` (no cuelgan nada sobre clases ajenas),
-    #   así que basta con ir después de `account`.
-    # - `account_check_printing` cuelga métodos sobre `base.IrSequence`,
-    #   `base.ResCurrency` y `account.AccountPaymentMethod` desde `ready()`:
-    #   exige `base` y `account` ya poblados.
-    # - `account_payment` va ÚLTIMO porque es el único que exige las DOS
-    #   familias a la vez — `account` y `payment` (sus 4 modelos RELATED de
-    #   `models/links.py` apuntan a ambas).
-    #
-    # `account_check_printing` y `account_payment` extienden AMBOS
-    # `account.payment.method._get_payment_method_information`. No se pisan:
-    # los dos usan `chain_method` con un `combine` de fusión de diccionarios
-    # (H-API-364), así que la contribución de los dos sobrevive sea cual sea
-    # el orden. El orden de abajo sólo fija cuál queda primero en la cadena.
-    'addons.account_update_tax_tags',
-    'addons.account_test',
-    'addons.account_check_printing',
-    'addons.account_payment',
-)
+
+def _local_apps() -> tuple[str, ...]:
+    """``LOCAL_APPS`` en orden topológico, derivado del grafo de addons.
+
+    ``ModuleGraph`` itera por ``(depth, name)`` — el orden de carga de la
+    referencia (``odoo/modules/module_graph.py``). Cada addon aparece después
+    de todo aquello que su ``__manifest__.py`` declara en ``depends``, así que
+    un ``ready()`` que cuelga campos sobre un modelo ajeno encuentra el
+    registro poblado sin que nadie tenga que recordarlo.
+
+    ``core`` va primero y a mano: no es un addon —es código transversal bajo
+    ``src/core/``— y por tanto no está en el grafo.
+    """
+    graph = ModuleGraph()
+    graph.extend(get_modules())
+
+    # El ciclo se busca ANTES de iterar: ``cycles()`` es un DFS iterativo y
+    # aguanta un grafo cíclico, pero ``__iter__`` ordena por ``depth``, que
+    # recurre y revienta con ``RecursionError`` sin nombrar al culpable
+    # (H-API-563). Con la guarda, el arranque falla diciendo qué addons lo
+    # cierran. La guarda del ciclo en el propio ``depth`` es la tarea #323.
+    cycles = graph.cycles()
+    if cycles:
+        rutas = '; '.join(' -> '.join(c) for c in cycles)
+        raise ImproperlyConfigured(
+            f'El grafo de addons declara {len(cycles)} ciclo(s) y no admite '
+            f'orden topológico, así que LOCAL_APPS no se puede derivar: '
+            f'{rutas}. Corregir el `depends` del manifiesto que invierte la '
+            f'dirección de la referencia (ver H-API-563).')
+
+    return ('core',) + tuple(f'addons.{node.name}' for node in graph)
+
+
+# Restricciones que el grafo ya satisface — se conservan escritas porque
+# documentan POR QUÉ importan, no para reintroducir el orden a mano. Cada una
+# vive hoy en el `depends` del manifiesto que la necesita, que es su único
+# dueño:
+#
+# - `base_sparse_field` publica `Serialized`/`Sparse` en `orm.fields` desde su
+#   `ready()`. Cualquier addon que declare un campo disperso tendría que
+#   declararlo en `depends` y quedaría por debajo de él. Medido 2026-08-14:
+#   **ningún** addon fuera de él usa esos campos, así que hoy la restricción
+#   no ata a nadie — y el día que ate, la ata el grafo.
+# - `base_iban` después de `base_bank`: encadenan `retrieve_acc_type` con
+#   semántica de relevo. CLABE (18 dígitos) e IBAN (país + mod-97) no se
+#   solapan, así que el orden es estable, no crítico.
+# - `l10n_mx` y los satélites de `account` cuelgan campos sobre
+#   `account.account`/`account.tax`/`account.payment.method` con
+#   `add_to_class`; `account_fleet` es puente y exige `account` y `fleet`.
+# - `account_check_printing` y `account_payment` extienden AMBOS
+#   `_get_payment_method_information`. No se pisan: los dos usan
+#   `chain_method` con un `combine` de fusión de diccionarios (H-API-364), así
+#   que la contribución de los dos sobrevive sea cual sea el orden.
+#
+# Lo que la derivación destapó, y es su mejor argumento: el comentario viejo
+# metía a `account_qr_code_emv` en el saco de "satélites de account", pero su
+# manifiesto declaraba `depends: ['base']`. Al derivar, el manifiesto mandó y
+# el addon subió a profundidad 0 — y sus dos tests cayeron, porque el terminal
+# de la cadena de QR lo instala `account`, no `base`. El comentario tenía razón
+# y el manifiesto no; ahora declara `account` y el grafo lo coloca solo.
+# Ver :ref:`h-api-564`. La restricción que antes sostenía una frase en prosa
+# hoy la sostiene el `depends`, que es donde un gate puede verla.
+LOCAL_APPS = _local_apps()
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 

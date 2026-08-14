@@ -44,43 +44,47 @@ from collections import defaultdict
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 import sys as _sys, os as _os
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+_sys.path.insert(0, _os.path.join(BASE, 'src'))
 from addons_roots import addon_dirs
-SETTINGS = os.path.join(BASE, 'src', 'config', 'settings', 'base.py')
+from modules.module import get_modules
 DECLARATION_FILE = 'authz_catalog.py'
 
 
 def installed_addons():
-    """Códigos de addon presentes en las tuplas de apps de ``base.py``.
+    """Códigos de addon que ``INSTALLED_APPS`` contiene, leídos de su fuente.
 
-    Se lee con ``ast`` en vez de importar el settings: el gate debe correr sin
-    Django configurado ni base de datos, igual que ``check_addon_cycles.py``.
+    Se lee **el mismo grafo del que** ``LOCAL_APPS`` **se deriva**, no el texto
+    de ``base.py``. Sigue sin necesitar Django ni base de datos —
+    ``modules.module`` no importa Django— igual que ``check_addon_cycles.py``.
 
-    Recoge de **toda** asignación cuyo nombre termine en ``_APPS`` — hoy son
-    ``DJANGO_APPS``/``THIRD_PARTY_APPS``/``LOCAL_APPS``, concatenadas en
-    ``INSTALLED_APPS``. La versión anterior casaba un regex contra
-    ``INSTALLED_APPS = [...]`` y murió en cuanto la lista pasó a ser una suma de
-    tuplas: el gate quedó atado a la **forma** del literal, no a su contenido.
+    Este gate ha muerto DOS veces por leer la forma del literal en vez de su
+    contenido, y la segunda es la que obliga a cambiar de fuente:
 
-    *Métrica:* cadenas ``addons.<x>`` dentro de asignaciones ``*_APPS``.
-    *Ciega a:* un addon añadido por vía dinámica (``INSTALLED_APPS +=`` bajo un
-    ``if``, como hace ``development.py`` con ``django_extensions``). Ninguno de
-    los nuestros lo usa hoy; si alguno lo hiciera, este gate no lo vería.
+    1. La primera versión casaba un regex contra ``INSTALLED_APPS = [...]`` y
+       murió cuando la lista pasó a ser una suma de tuplas.
+    2. La segunda recorría con ``ast`` toda asignación ``*_APPS`` buscando
+       constantes ``'addons.<x>'``, y murió el 2026-08-14 cuando ``LOCAL_APPS``
+       dejó de ser un literal y pasó a derivarse del grafo (#320): el gate
+       publicó **0 addons instalados** y acusó a los 11 que declaran catálogo.
+       Un cero de instrumento leído como cero del mundo — la ceguera que
+       ``metrica-decide-la-conclusion.md`` describe.
+
+    La lección de las dos es la misma: mientras la fuente sea el TEXTO del
+    settings, el gate mide su sintaxis. Ahora mide la población.
+
+    *Métrica:* addons con ``__manifest__.py`` bajo las dos raíces
+    (``get_modules()``), que es exactamente el conjunto que ``_local_apps()``
+    convierte en ``LOCAL_APPS``.
+    *Ciega a:* un addon añadido por vía dinámica fuera del grafo
+    (``INSTALLED_APPS +=`` bajo un ``if``, como hace ``development.py`` con
+    ``django_extensions``); y a un addon del árbol **sin** manifiesto, que hoy
+    no existe — son 91 de 91 desde #296.
     """
-    tree = ast.parse(open(SETTINGS, encoding='utf-8').read())
-    codigos, vistos = set(), 0
-    for node in ast.walk(tree):
-        if not isinstance(node, ast.Assign):
-            continue
-        nombres = [t.id for t in node.targets if isinstance(t, ast.Name)]
-        if not any(n.endswith('_APPS') for n in nombres):
-            continue
-        vistos += 1
-        for hoja in ast.walk(node.value):
-            if isinstance(hoja, ast.Constant) and isinstance(hoja.value, str):
-                if hoja.value.startswith('addons.'):
-                    codigos.add(hoja.value.split('.', 1)[1])
-    if not vistos:
-        raise SystemExit('No se encontró ninguna asignación *_APPS en base.py')
+    codigos = set(get_modules())
+    if not codigos:
+        raise SystemExit(
+            'get_modules() no devolvió ningún addon: las raíces de '
+            '`modules.module` no apuntan al árbol.')
     return codigos
 
 
