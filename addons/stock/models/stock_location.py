@@ -178,6 +178,21 @@ INTER_COMPANY_XMLID = 'stock.stock_location_inter_company'
 class StockLocation(TimeStampedModel):
     """``stock.location`` — el nodo del árbol físico y sus contrapartes virtuales."""
 
+    # Alias de clase de las constantes de módulo. NO son atributos de ORM de la
+    # referencia —su `usage` es una Selection con los literales en línea— sino
+    # una conveniencia de este árbol, y su contrato ya lo fijaron 26 llamadores
+    # que las leen como ``StockLocation.USAGE_INTERNAL``. Se alias, no se
+    # duplica el valor: la fuente sigue siendo la constante de módulo.
+    USAGE_SUPPLIER = USAGE_SUPPLIER
+    USAGE_VIEW = USAGE_VIEW
+    USAGE_INTERNAL = USAGE_INTERNAL
+    USAGE_CUSTOMER = USAGE_CUSTOMER
+    USAGE_INVENTORY = USAGE_INVENTORY
+    USAGE_PRODUCTION = USAGE_PRODUCTION
+    USAGE_TRANSIT = USAGE_TRANSIT
+    USAGE_CHOICES = USAGE_CHOICES
+    STOCKED_USAGES = STOCKED_USAGES
+
     name                      = fields.Char(
         max_length=100,
         help_text='Nombre de la ubicación (Odoo name, requerido).',

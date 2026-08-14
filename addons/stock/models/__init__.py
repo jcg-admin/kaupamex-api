@@ -35,6 +35,10 @@ from addons.stock.models.stock_picking import (
 )
 from addons.stock.models.stock_quant import StockQuant
 from addons.stock.models.stock_rule import StockRule
+from addons.stock.models.stock_warehouse import (
+    StockWarehouse,
+    StockWarehouseResupply,
+)
 from addons.stock.models.return_request import (
     ReturnRequest,
     ReturnItem,
@@ -59,6 +63,8 @@ __all__ = [
     'StockQuant',
     'StockRoute',
     'StockRule',
+    'StockWarehouse',
+    'StockWarehouseResupply',
     'StockStorageCategory',
     'StockStorageCategoryCapacity',
     'ReturnRequest',
