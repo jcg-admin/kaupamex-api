@@ -24,6 +24,10 @@ from addons.stock.models.stock_package import StockPackage
 from addons.stock.models.stock_package_history import StockPackageHistory
 from addons.stock.models.stock_lot import StockLot
 from addons.stock.models.stock_move import StockMove
+from addons.stock.models.stock_move_line import (
+    StockMoveLine,
+    StockMoveLineConsumeRel,
+)
 from addons.stock.models.stock_picking import (
     PickingTypeFavoriteUserRel,
     StockPicking,
@@ -44,6 +48,8 @@ __all__ = [
     'StockLocation',
     'StockLot',
     'StockMove',
+    'StockMoveLine',
+    'StockMoveLineConsumeRel',
     'StockPackage',
     'StockPackageHistory',
     'StockPackageType',
