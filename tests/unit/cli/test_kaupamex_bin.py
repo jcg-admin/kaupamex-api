@@ -13,6 +13,7 @@ from pathlib import Path
 import pytest
 
 from addons.base.management.commands.server import Command as ServerCommand
+from tests.subprocess_env import subprocess_env
 from cli import command as cli_command
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -71,8 +72,7 @@ def test_el_binario_lista_el_comando_server():
     salida = subprocess.run(
         [sys.executable, str(BIN), '--help'],
         capture_output=True, text=True, cwd=REPO_ROOT, timeout=120,
-        env={'PATH': '/usr/bin:/bin', 'DJANGO_SETTINGS_MODULE': 'config.settings.testing',
-             'HOME': '/root'},
+        env=subprocess_env(),
     )
     assert 'server' in salida.stdout, salida.stdout[-500:] + salida.stderr[-500:]
 
