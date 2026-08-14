@@ -10,6 +10,7 @@ Adaptado de Odoo Community ``odoo/tools/misc.py`` (LGPL-3) — atribución y
 aviso de licencia preservados (DEC-KX-03).
 """
 import hmac as hmac_lib
+from itertools import islice
 
 from django.utils.crypto import salted_hmac
 from django.utils.html import escape as django_html_escape
@@ -99,3 +100,32 @@ SKIPPED_ELEMENT_TYPES = (
 # como dependencia — el criterio de este archivo: stdlib/Django antes que una
 # dependencia nueva, con la decisión anotada.
 html_escape = django_html_escape
+
+
+def split_every(n, iterable, piece_maker=tuple):
+    """≙ ``split_every`` (``odoo19c: odoo/tools/misc.py:684-697``).
+
+    «Splits an iterable into length-n pieces. The last piece will be shorter if
+    ``n`` does not evenly divide the iterable length.»
+
+    Se porta en vez de resolverse con Django o stdlib porque **ninguno de los
+    dos lo trae**: ``itertools.batched`` existe desde Python 3.12 y sería el
+    candidato, pero fija ``piece_maker=tuple`` y la referencia lo declara
+    parametrizable —``odoo19c: addons/stock/models/stock_rule.py:710`` lo llama
+    con el default, pero el árbol lo usa con ``list`` y con ``set`` en otros
+    sitios—. Portar la firma entera cuesta ocho líneas y evita que el primer
+    consumidor con otro ``piece_maker`` tenga que reintroducirlo.
+
+    Las tres sobrecargas de ``typing.overload`` de la fuente (``:669-681``) no
+    se portan: son anotación para el verificador de tipos, no conducta.
+
+    :param n: tamaño máximo de cada trozo.
+    :param iterable: iterable a trocear.
+    :param piece_maker: invocable que recoge cada trozo de su rebanada; **debe
+        consumir la rebanada entera**.
+    """
+    iterator = iter(iterable)
+    piece = piece_maker(islice(iterator, n))
+    while piece:
+        yield piece
+        piece = piece_maker(islice(iterator, n))

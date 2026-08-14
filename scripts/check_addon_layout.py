@@ -26,7 +26,9 @@ import os
 import sys
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ADDONS_DIR = os.path.join(REPO_ROOT, 'src', 'addons')
+import sys as _sys, os as _os
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+from addons_roots import addon_dirs
 BASELINE = os.path.join(REPO_ROOT, 'scripts', 'addon_layout_baseline.txt')
 
 # Mapa de H-API-238, verbatim. La capa de vista de DRF va a ``controllers/``
@@ -75,10 +77,10 @@ def scan():
     "ausente", así que el conteo acota por abajo, no mide el total.
     """
     planos, disputados = [], []
-    if not os.path.isdir(ADDONS_DIR):
+    if not addon_dirs():
         return planos, disputados
-    for addon in sorted(os.listdir(ADDONS_DIR)):
-        root = os.path.join(ADDONS_DIR, addon)
+    for _p in addon_dirs():
+        addon, root = _p.name, str(_p)
         if not os.path.isdir(root) or addon.startswith('__'):
             continue
         for flat in FLAT_TO_PACKAGE:

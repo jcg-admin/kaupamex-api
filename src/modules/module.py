@@ -9,14 +9,22 @@ fuente.
 
 **Divergencias deliberadas** frente a la referencia:
 
-- ``initialize_sys_path`` / ``load_openerp_module`` / ``load_script`` / los
-  ``UpgradeHook``: NO se portan. Son el importador dinámico de Odoo
-  (``addons_path`` + ``sys.meta_path``); aquí los addons son paquetes Python
-  normales bajo ``src/addons/`` y los importa Python.
+- ``load_openerp_module`` / ``load_script`` / los ``UpgradeHook``: NO se
+  portan. Son el importador dinámico de Odoo (``sys.meta_path``); aquí los
+  addons son paquetes Python normales y los importa Python.
 - ``get_module_icon`` / ``get_resource_from_path``: NO se portan (sirven al
   servidor de assets de Odoo).
-- La raíz de addons es **una** (``src/addons``), no una lista ``addons_path``:
-  este árbol no monta addons de terceros.
+- ``initialize_sys_path`` **sí** se porta, con una divergencia de firma:
+  recibe la lista a extender en vez de mutar ``odoo.addons.__path__`` por
+  import. La referencia puede importar ``odoo.addons`` aquí porque su
+  ``odoo/addons/`` es un paquete de namespace sin código; el nuestro tiene
+  ``__init__.py``, así que importarlo desde este módulo cerraría un ciclo
+  (``addons`` → ``modules.module`` → ``addons``) que ``no-lazy-imports.md``
+  prohíbe resolver con un import diferido. El parámetro es el arreglo
+  estructural que esa regla pide.
+- La tercera fuente de raíces de la referencia (``addons_data_dir``, los
+  addons descargados en caliente) NO aplica: este árbol no instala addons en
+  tiempo de ejecución.
 - ``version`` se normaliza contra ``release.series`` de Kaupamex, no contra la
   serie de Odoo — ``adapt_version`` es fiel en forma, no en el valor.
 """
@@ -24,6 +32,7 @@ from __future__ import annotations
 
 import ast
 import importlib.util
+import os
 import typing
 from collections.abc import Mapping
 from pathlib import Path
@@ -32,8 +41,39 @@ import release
 
 MANIFEST_NAMES = ['__manifest__.py']
 
-# Raíz única de addons (≙ ``addons_path`` de la referencia, aquí singular).
-ADDONS_PATH = Path(__file__).resolve().parent.parent / 'addons'
+# Las dos raíces de addons, ≙ ``config.addons_base_dir`` y
+# ``config.addons_community_dir`` de la referencia. Allí ``root_path`` es el
+# paquete ``odoo/``; aquí es ``src/``, así que la comunidad cae en la raíz del
+# repositorio — la misma relación padre/hijo, no una elección nuestra.
+#
+#   referencia                       aquí
+#   odoo/addons/   → base + test_*   src/addons/   → base
+#   addons/        → los 629         <repo>/addons/ → los 90
+#
+# El reparto NO es estético: ``base`` es el único addon del que el núcleo
+# depende para arrancar, y por eso viaja con él.
+ADDONS_BASE_DIR = Path(__file__).resolve().parent.parent / 'addons'
+ADDONS_COMMUNITY_DIR = ADDONS_BASE_DIR.parent.parent / 'addons'
+
+# Orden de resolución: base primero, igual que la referencia, que arranca con
+# ``addons_base_dir`` ya presente en ``__path__`` y APENDA el resto.
+ADDONS_PATHS = (ADDONS_BASE_DIR, ADDONS_COMMUNITY_DIR)
+
+
+def initialize_sys_path(path_list: list[str]) -> None:
+    """Extiende el namespace ``addons`` con las raíces legibles. ≙ referencia.
+
+    Idempotente y tolerante: una raíz ausente o sin permiso de lectura se
+    omite en silencio, como en la referencia (``os.access(path, os.R_OK)``).
+    Lo llama ``addons/__init__.py`` — el momento más temprano posible, porque
+    Django importa ``addons.<x>`` al procesar ``INSTALLED_APPS``, antes de que
+    corra ningún punto de entrada nuestro (``manage.py``, ``kaupamex-bin``,
+    wsgi o pytest-django).
+    """
+    for path in ADDONS_PATHS:
+        entry = str(path)
+        if os.access(entry, os.R_OK) and entry not in path_list:
+            path_list.append(entry)
 
 # Defaults del manifest. Calca ``_DEFAULT_MANIFEST`` de la referencia, podado a
 # las claves que este árbol puede honrar: se omiten las de temas de website
@@ -99,10 +139,16 @@ class Manifest(Mapping):
 
 
 def get_module_path(module: str, display_warning: bool = True) -> str | None:
-    """Ruta del addon, o ``None`` si no existe. ≙ referencia."""
-    path = ADDONS_PATH / module
-    if (path / '__init__.py').is_file():
-        return str(path)
+    """Ruta del addon, o ``None`` si no existe. ≙ referencia.
+
+    Recorre las raíces en orden y devuelve la primera que lo contenga — la
+    misma precedencia que ``for adp in odoo.addons.__path__`` de la
+    referencia. Un addon presente en las dos raíces resuelve por ``base``.
+    """
+    for root in ADDONS_PATHS:
+        path = root / module
+        if (path / '__init__.py').is_file():
+            return str(path)
     return None
 
 
@@ -165,16 +211,21 @@ def get_manifest(module: str, mod_path: str | None = None) -> Mapping[str, typin
 def get_modules() -> list[str]:
     """Todos los addons del árbol (tengan manifest o no). ≙ referencia.
 
-    Criterio: directorio con ``__init__.py`` bajo la raíz de addons. Es más
-    ancho que "tiene manifest" a propósito — así ``get_modules()`` mide el
+    Criterio: directorio con ``__init__.py`` bajo alguna raíz de addons. Es
+    más ancho que "tiene manifest" a propósito — así ``get_modules()`` mide el
     universo real y el hueco de manifiestos es visible en vez de invisible.
+
+    Devuelve nombres únicos: un addon presente en las dos raíces se cuenta una
+    vez, no dos. Sin el ``set`` el conteo mentiría en cuanto alguien sombreara
+    un addon de ``base`` desde la comunidad.
     """
-    if not ADDONS_PATH.is_dir():
-        return []
-    return sorted(
-        p.name for p in ADDONS_PATH.iterdir()
+    nombres = {
+        p.name
+        for root in ADDONS_PATHS if root.is_dir()
+        for p in root.iterdir()
         if p.is_dir() and (p / '__init__.py').is_file()
-    )
+    }
+    return sorted(nombres)
 
 
 def get_modules_with_version() -> dict[str, str]:

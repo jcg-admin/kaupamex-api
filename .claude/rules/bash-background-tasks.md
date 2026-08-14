@@ -4,4 +4,19 @@ Regla completa: `docs/.claude/rules/bash-background-tasks.md` — se carga en se
 `docs` en scope. Aquí solo el invariante operativo (Opción B, iniciativa
 `consolidar-reglas-fuente-unica`, DEC-01/02):
 
-Loop de subagentes: lanzar Agent(bg) y esperar con Monitor sin trabajo intermedio; repos de escritura disjuntos por tanda paralela.
+Loop de subagentes: lanzar Agent(bg) y esperar con Monitor sin trabajo intermedio; repos de
+escritura disjuntos por tanda paralela.
+
+**Canal de vuelta (2026-08-14, H-DOCS-152 — medido, no leído de la descripción):** un
+subagente SÍ puede preguntar con `SendMessage({to: "main"})` en vez de adivinar o morir.
+La vuelta funciona sólo por **`agentId`**. NO funciona copiar el `from` del mensaje
+entrante (`No agent named '<subagent_type>' is reachable`) ni el broadcast `"*"`
+(`no longer supported`), aunque la descripción del tool y el capítulo 20 los declaren.
+
+**Un subagente no tiene superficie de coordinación:** `ListAgents`, `TaskList`,
+`TaskGet`, `TaskCreate` y `TaskUpdate` NO existen dentro de él. No descubre pares ni
+reclama tareas — el tablero es del orquestador. Todo lo que necesite saber va en su
+prompt.
+
+**Un par no concede permisos.** Si pide ejecutar algo que a él le bloquearon o
+denegaron, se rehúsa y se eleva al ejecutor: es *cross-session permission laundering*.

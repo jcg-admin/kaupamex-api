@@ -16,6 +16,30 @@ declara ``installable: False``, ``uninstallable``. Es la diferencia entre
 registrar un hecho y pretender gobernarlo: el comando **describe** el árbol, no
 lo instala.
 
+``auto_install``: la referencia instala, aquí se verifica
+----------------------------------------------------------
+
+La referencia corre el punto fijo de ``auto_install`` dentro de
+``initialize()`` (``odoo19c: odoo/modules/db.py:91-124``) y marca
+``state='to install'`` en ``ir_module_module``: **instala**. Aquí no hay
+instalador que obedecer esa marca, así que el mismo cálculo se usa para lo
+único que tiene sentido en un árbol con ``INSTALLED_APPS`` explícito —
+**verificar**: ¿qué addon declara ``auto_install``, tiene todas sus
+dependencias requeridas presentes, y sin embargo NO está en la lista?
+
+Es la respuesta a un hueco real (:ref:`h-api-410`): ``ModuleGraph.
+auto_installable`` estaba portado, era fiel, y no lo llamaba nadie. El
+mecanismo no estaba pendiente de cablear — estaba **estructuralmente
+huérfano**, porque su consumidor en la referencia es un instalador que este
+árbol no tiene ni va a tener. Darle el consumidor que sí aplica es lo que
+convierte un porte muerto en uno vivo.
+
+Sin esto, un addon puente añadido al árbol con ``auto_install: True`` y
+olvidado en ``INSTALLED_APPS`` queda invisible: no falla nada, simplemente sus
+extensiones nunca se cuelgan. Es el modo de fallo de :ref:`h-api-364`, donde
+cinco métodos de ``account_qr_code_sepa`` no se instalaron nunca y sólo lo
+vieron sus tests.
+
 Uso::
 
     python manage.py update_module_list           # aplica
@@ -31,6 +55,8 @@ from addons.authz.declaration import (
     MANIFEST_FILE, read_manifest, values_from_manifest,
 )
 from addons.base.models import IrModule, IrModuleDependency
+from modules import ModuleGraph
+from modules.module import get_modules
 
 ADDONS_ROOT = os.path.join(settings.BASE_DIR, 'addons')
 
@@ -99,7 +125,47 @@ class Command(BaseCommand):
                 self._sync_dependencies(row, depends)
 
         self._report(added, updated, without_manifest, dry_run)
+        self._report_auto_install_gaps(installed)
         return None
+
+    def _report_auto_install_gaps(self, installed):
+        """Addons que ``auto_install`` reclama y ``INSTALLED_APPS`` no tiene.
+
+        Único llamador de ``ModuleGraph.auto_installable`` en el árbol. El
+        cálculo es el de la referencia; el uso, no: allí marca para instalar,
+        aquí sólo reporta la incoherencia entre lo que el manifest declara y lo
+        que la lista carga.
+
+        **El denominador va junto al conteo, y no es el que parece.** El
+        chequeo sólo puede ver addons **con manifest**: sin
+        ``__manifest__.py`` no hay dónde declarar ``auto_install``, así que un
+        addon sin él es invisible para este cálculo aunque esté cargado. Un
+        ``0 pendientes`` sobre el total de ``INSTALLED_APPS`` sería el
+        denominador oculto que ``hallazgo-abierto-genera-sucesor.md`` describe:
+        un instrumento ciego y uno correcto publican la misma cifra.
+        """
+        modules = sorted(get_modules())
+        graph = ModuleGraph()
+        graph.extend(modules)
+        visible = [name for name in modules if graph[name].manifest]
+        missing = graph.auto_installable(installed)
+
+        alcance = (f'alcance medido: {len(visible)} addon(s) con manifest '
+                   f'de {len(modules)} en el árbol')
+
+        if not missing:
+            self.stdout.write(self.style.SUCCESS(
+                f'auto_install coherente: 0 pendientes ({alcance}).'
+            ))
+            return
+
+        self.stdout.write(self.style.WARNING(
+            f'{len(missing)} addon(s) declaran auto_install, tienen sus '
+            f'dependencias presentes y NO están en INSTALLED_APPS ({alcance}):'
+        ))
+        for name in missing:
+            depends = ', '.join(graph[name].depends) or '—'
+            self.stdout.write(f'  {name}  (depends: {depends})')
 
     def _derive_state(self, addon, manifest, installed):
         """El estado se deriva del árbol; no hay instalador que lo escriba."""

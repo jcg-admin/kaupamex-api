@@ -18,6 +18,52 @@ tres estados:
 - ``PARCIAL`` — el archivo existe pero le faltan clases o métodos;
 - ``NO PORTADO`` — ninguna de sus clases existe en el addon.
 
+Por clase hay un cuarto veredicto, ``CLASE EXTENDIDA``: la clase no existe
+aquí **y el addon instala símbolos sobre ella** desde ``ready()``. Ver la
+sección siguiente.
+
+El porte por extensión cross-app (H-API-569)
+---------------------------------------------
+
+Django no fusiona dos definiciones del mismo modelo declaradas en apps
+distintas, que es como la referencia materializa ``_inherit``. Este árbol lo
+resuelve **instalando** sobre la clase ajena: ``chain_method`` para un método,
+``add_to_class`` para un campo, los dos desde ``AppConfig.ready()``. El
+símbolo portado no vive en una clase propia — vive en una función de módulo
+que una llamada instala.
+
+Una versión anterior de este gate indexaba **sólo clases**, así que reportaba
+``CLASE AUSENTE`` sobre un porte que sí estaba. Lo destapó cerrar la tarea
+#314: de los cuatro símbolos que declaraba ausentes en
+``base_sparse_field/models/models.py``, **dos estaban portados** (``write`` →
+``save``, ``_reflect_fields`` → ``reflect_fields``) y dos eran divergencias
+declaradas.
+
+``instalaciones_del_addon`` lee esas llamadas y el gate emite
+``CLASE EXTENDIDA`` con lo que **sigue pendiente** tras descontar lo
+instalado. **Nunca absuelve la clase entera**: ``web :: IrHttp`` instala 1 de
+los 11 símbolos de su contraparte, y los 10 restantes se siguen listando.
+
+Delta medido al cablearlo (2026-08-13, 92 addons, 671 pares de archivo):
+
+.. code-block:: text
+
+   estado                antes   después
+   ARCHIVO NO PORTADO      469       468
+   CLASE AUSENTE           123       102
+   CLASE EXTENDIDA           0        15
+   MÉTODOS AUSENTES        121       121
+   FUERA DE SITIO            2         2
+   total                   715       708
+
+Las 21 ``CLASE AUSENTE`` que se reclasifican son las que caían sobre una
+clase realmente extendida: **15** quedan como extensión parcial y **6**
+desaparecen porque lo instalado las cubre entera (extensiones de sólo campos,
+donde la clase de la referencia no declara ningún método). El archivo que
+sale de ``ARCHIVO NO PORTADO`` es ``account/models/company.py``: pasa de
+"nada portado" a ``CLASE EXTENDIDA`` con 55 métodos pendientes, que es una
+descripción estrictamente mejor del mismo código.
+
 El tercer estado es el que importa declarar: una primera versión de este gate
 **saltaba** los archivos sin contraparte, así que su denominador era la
 intersección y lo más ausente de todo le resultaba invisible. Es la ceguera
@@ -46,6 +92,32 @@ Qué NO puede ver
   referencia tiene un método de clase pasa el conteo. Sucesor #159.
 - Un renombre que el mapa de alias no declare. Los renombres conocidos van en
   ``PORTE_ALIAS``; lo no declarado sale como ausente, que es el lado seguro.
+- **Una instalación cuyo receptor es una variable.** Tres addons envuelven el
+  ``add_to_class`` en un ayudante y le pasan el modelo por parámetro o por
+  bucle (``_add_if_absent(model, …)``), así que del AST sale el nombre de la
+  variable, no el del modelo. Esas instalaciones existen y no se pueden
+  atribuir: van al denominador como ``instalaciones con receptor no
+  resoluble``, no al silencio.
+- **Qué hace el método instalado.** ``CLASE EXTENDIDA`` dice que el addon
+  instala un símbolo con ese nombre sobre esa clase; no que haga lo que hace
+  el de la referencia. Es la misma ceguera de conteo que la primera viñeta,
+  un nivel más arriba.
+
+Por qué ``write`` NO se aliasa a ``save``
+------------------------------------------
+
+Es la tentación obvia —en la referencia ``write()`` es el método de
+actualización del ORM y aquí es ``save()``— y está **deliberadamente
+descartada**. Medido: ``write`` sale como ausente **90 veces** en el árbol.
+Un alias global convertiría noventa preguntas abiertas en noventa
+absoluciones silenciosas, sin que nadie compruebe que cada ``save()`` hace lo
+que hacía su ``write()``.
+
+Es exactamente la amplitud que #164 ya quitó de este gate por fabricar
+coincidencias: entonces un homónimo de otro modelo absolvía 11 de 18
+símbolos. ``PORTE_ALIAS`` es para renombres **decididos uno por uno** —así lo
+dice su propio comentario—, no para mapear el vocabulario de dos ORM de una
+vez.
 
 Uso
 ---
@@ -72,7 +144,9 @@ ODOO19C = pathlib.Path(
     )
 )
 
-SRC = pathlib.Path(__file__).resolve().parent.parent / 'src' / 'addons'
+import sys as _sys, os as _os
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+from addons_roots import addon_dirs, addon_path
 
 #: Renombres declarados: ``nombre en la referencia -> nombre aquí``. Cada
 #: entrada es una decisión, no una conveniencia — si el nombre cambió sin
@@ -86,7 +160,87 @@ PORTE_ALIAS = {
     '_compute_partner_mapping': 'compute_mapped_partner',
     # El cargador no es un modelo aquí, así que no lleva el prefijo del addon.
     'AccountChartTemplate': 'ChartTemplate',
+    # El guion bajo es un artefacto de la convención de la referencia para el
+    # nombre técnico; los identificadores de este árbol van en CamelCase.
+    'Sparse_FieldsTest': 'SparseFieldsTest',
 }
+
+
+#: Receptores de ``add_to_class`` que NO son una clase resoluble en estático:
+#: el ayudante recibe el modelo por parámetro o por variable de bucle, así que
+#: el nombre que se lee del AST es el de la variable, no el del modelo.
+_RECEPTOR_NO_RESOLUBLE = frozenset({'model', 'modelo', 'cls', 'self'})
+
+
+def instalaciones_del_addon(raiz):
+    """``{clase_destino: {símbolos instalados}}`` — la extensión cross-app.
+
+    Este árbol no puede fusionar dos definiciones del mismo modelo declaradas
+    en apps distintas, que es como la referencia materializa ``_inherit``. En
+    su lugar el addon extensor **instala** sobre la clase ajena desde
+    ``ready()``: ``chain_method`` para un método, ``add_to_class`` para un
+    campo. El símbolo portado no vive en una clase propia, así que indexar
+    clases —lo que hace ``clases_del_addon``— es ciego a él.
+
+    Se leen las **llamadas de instalación**, no los nombres sueltos del
+    módulo. La diferencia importa: indexar toda función de nivel superior
+    absolvería un método porque exista un homónimo en cualquier parte, que es
+    la amplitud que #164 ya quitó por fabricar coincidencias. Una llamada
+    ``chain_method(IrModelFields, 'save', …)`` es una **declaración** de qué
+    se instala y sobre qué clase.
+
+    Devuelve además ``no_resolubles``: las instalaciones cuyo receptor es una
+    variable (``_add_if_absent(model, …)`` dentro de un bucle), que existen y
+    no se pueden atribuir a una clase. Van al denominador, no al silencio.
+    """
+    mapa, no_resolubles = {}, 0
+    for py in raiz.rglob('*.py'):
+        if '__pycache__' in py.parts or 'migrations' in py.parts:
+            continue
+        try:
+            arbol = ast.parse(py.read_text())
+        except (SyntaxError, UnicodeDecodeError):
+            continue
+        for nodo in ast.walk(arbol):
+            if not isinstance(nodo, ast.Call):
+                continue
+            destino, clave = _destino_y_clave(nodo)
+            if clave is None:
+                continue
+            if destino is None or destino in _RECEPTOR_NO_RESOLUBLE:
+                no_resolubles += 1
+                continue
+            mapa.setdefault(normaliza(destino), set()).add(clave)
+    return mapa, no_resolubles
+
+
+def _destino_y_clave(nodo):
+    """``(clase, símbolo)`` de una llamada de instalación, o ``(None, None)``.
+
+    Reconoce las tres formas que el árbol usa hoy: ``chain_method(C, 'x', …)``,
+    ``C.add_to_class('x', …)`` y el ayudante ``_add_if_absent(C, 'x', …)`` que
+    tres addons repiten para hacer idempotente el ``add_to_class``.
+    """
+    f = nodo.func
+    nombre = f.id if isinstance(f, ast.Name) else (
+        f.attr if isinstance(f, ast.Attribute) else None)
+
+    if nombre in ('chain_method', '_add_if_absent') and len(nodo.args) >= 2:
+        destino, clave = nodo.args[0], nodo.args[1]
+    elif nombre == 'add_to_class' and nodo.args:
+        # El receptor es el destino: ``ResBank.add_to_class('campo', …)``.
+        destino = f.value if isinstance(f, ast.Attribute) else None
+        clave = nodo.args[0]
+    else:
+        return None, None
+
+    if not isinstance(clave, ast.Constant) or not isinstance(clave.value, str):
+        return None, None
+    if isinstance(destino, ast.Name):
+        return destino.id, clave.value
+    if isinstance(destino, ast.Attribute):
+        return destino.attr, clave.value
+    return None, clave.value
 
 
 def simbolos(ruta):
@@ -162,14 +316,33 @@ def normaliza(nombre):
     return PORTE_ALIAS.get(nombre, nombre).strip('_')
 
 
+def _clase_sin_contraparte(addon, archivo, clase, metodos, instalado):
+    """El hallazgo de una clase que no existe aquí — ausente, o **extendida**.
+
+    Si el addon instala símbolos sobre una clase con ese nombre, el porte
+    existe pero no tiene clase propia: se reporta ``CLASE EXTENDIDA`` con lo
+    que **sigue pendiente** tras descontar lo instalado. Nunca absuelve — si
+    quedan métodos, salen listados; si no queda ninguno, no hay hallazgo.
+    """
+    puestos = instalado.get(normaliza(clase))
+    if puestos is None:
+        return (addon, archivo, clase, 'CLASE AUSENTE', sorted(metodos))
+    ya = {normaliza(p) for p in puestos}
+    pendientes = [m for m in sorted(metodos) if normaliza(m) not in ya]
+    if not pendientes:
+        return None
+    return (addon, archivo, clase, 'CLASE EXTENDIDA', pendientes)
+
+
 def compara(addon):
-    """Devuelve ``(pares_medidos, [hallazgo, ...])`` para un addon."""
+    """Devuelve ``(pares_medidos, [hallazgo, ...], no_resolubles)``."""
     ref_raiz = ODOO19C / 'addons' / addon
-    mio_raiz = SRC / addon
+    mio_raiz = addon_path(addon) or pathlib.Path('/nonexistent')
     if not ref_raiz.is_dir() or not mio_raiz.is_dir():
-        return 0, []
+        return 0, [], 0
 
     por_clase = clases_del_addon(mio_raiz)
+    instalado, no_resolubles = instalaciones_del_addon(mio_raiz)
     pares, hallazgos = 0, []
 
     for ref_py in sorted((ref_raiz / 'models').glob('*.py')):
@@ -192,8 +365,13 @@ def compara(addon):
             # Si NINGUNA de sus clases existe aquí, el archivo entero está sin
             # portar; si alguna existe, es una extensión (``_inherit``) cubierta
             # a medias. Los dos estados se cuentan distinto en el mapa.
+            # "Ninguna de sus clases existe" incluye a las que existen **como
+            # extensión**: un archivo cuyo único contenido es un ``_inherit``
+            # portado con ``chain_method`` no está sin portar, aunque ninguna
+            # clase lleve su nombre.
             if ref_clases and not any(
-                    normaliza(c) in por_clase for c in ref_clases):
+                    normaliza(c) in por_clase or normaliza(c) in instalado
+                    for c in ref_clases):
                 hallazgos.append(
                     (addon, ref_py.name, '(archivo)', 'ARCHIVO NO PORTADO',
                      sorted(ref_clases)))
@@ -201,9 +379,10 @@ def compara(addon):
             for clase, metodos in ref_clases.items():
                 aqui = por_clase.get(normaliza(clase))
                 if aqui is None:
-                    hallazgos.append(
-                        (addon, ref_py.name, clase, 'CLASE AUSENTE',
-                         sorted(metodos)))
+                    hallazgo = _clase_sin_contraparte(
+                        addon, ref_py.name, clase, metodos, instalado)
+                    if hallazgo is not None:
+                        hallazgos.append(hallazgo)
                     continue
                 aqui_norm = {normaliza(m) for m in aqui}
                 faltan = [m for m in sorted(metodos)
@@ -221,8 +400,10 @@ def compara(addon):
         for clase, metodos in ref_clases.items():
             aqui = mias_norm.get(normaliza(clase))
             if aqui is None:
-                hallazgos.append(
-                    (addon, ref_py.name, clase, 'CLASE AUSENTE', sorted(metodos)))
+                hallazgo = _clase_sin_contraparte(
+                    addon, ref_py.name, clase, metodos, instalado)
+                if hallazgo is not None:
+                    hallazgos.append(hallazgo)
                 continue
             aqui_norm = {normaliza(m) for m in aqui}
             faltan, fuera_de_sitio = [], []
@@ -244,7 +425,7 @@ def compara(addon):
                 hallazgos.append(
                     (addon, ref_py.name, clase, 'FUERA DE SITIO',
                      fuera_de_sitio))
-    return pares, hallazgos
+    return pares, hallazgos, no_resolubles
 
 
 def main():
@@ -262,13 +443,14 @@ def main():
         return 0
 
     addons = [args.addon] if args.addon else sorted(
-        d.name for d in SRC.iterdir() if d.is_dir())
+        d.name for d in addon_dirs())
 
-    pares_total, todos = 0, []
+    pares_total, todos, opacas = 0, [], 0
     for addon in addons:
-        pares, hallazgos = compara(addon)
+        pares, hallazgos, no_resolubles = compara(addon)
         pares_total += pares
         todos += hallazgos
+        opacas += no_resolubles
 
     if args.mapa:
         # El inventario completo: cada archivo de la referencia con su estado.
@@ -282,7 +464,7 @@ def main():
                 else previo or 'PARCIAL')
         for addon in addons:
             ref_dir = ODOO19C / 'addons' / addon / 'models'
-            if not ref_dir.is_dir() or not (SRC / addon).is_dir():
+            if not ref_dir.is_dir() or addon_path(addon) is None:
                 continue
             for ref_py in sorted(ref_dir.glob('*.py')):
                 if ref_py.name == '__init__.py':
@@ -301,12 +483,15 @@ def main():
         # Y los dos estados van **separados**: uno es trabajo de porte, el otro
         # de reubicación. Sumarlos vuelve a esconder lo que #159 destapó.
         fuera = [h for h in todos if h[3] == 'FUERA DE SITIO']
+        extend = [h for h in todos if h[3] == 'CLASE EXTENDIDA']
         simb_fuera = sum(len(h[4]) for h in fuera)
         print(f'\nporte incompleto: {len(todos)} hallazgos '
-              f'({len(todos) - len(fuera)} de porte · {len(fuera)} de sitio, '
-              f'{simb_fuera} símbolos) '
+              f'({len(todos) - len(fuera) - len(extend)} de porte · '
+              f'{len(extend)} de extensión parcial · '
+              f'{len(fuera)} de sitio, {simb_fuera} símbolos) '
               f'(alcance medido: {pares_total} pares de archivo, '
-              f'{len(addons)} addons)')
+              f'{len(addons)} addons; '
+              f'{opacas} instalaciones con receptor no resoluble)')
     return 1 if (args.strict and todos) else 0
 
 

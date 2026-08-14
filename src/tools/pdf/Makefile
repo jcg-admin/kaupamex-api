@@ -8,7 +8,10 @@
 # vendor/README.md). No se instala `libhpdf-dev` del sistema: el producto es
 # autocontenido y un servidor de terceros no tiene por qué traer libharu —
 # misma premisa que llevó a Gunicorn embebido. Tampoco hace falta CMake: el
-# hpdf_config.h está instanciado a mano y aquí se compila con make plano.
+# hpdf_config.h está instanciado a mano en vendor-config/, FUERA del árbol
+# vendorizado, porque ese archivo es nuestro y el `.gitignore` del tarball de
+# libharu lo lista como salida de build — dentro de vendor/ nunca llegaba a
+# versionarse y un clon limpio moría en el primer objeto. Ver H-API-397.
 #
 # Únicas dependencias de la máquina que compila (ambas en `main` de Ubuntu, no
 # en universe como lo estaba libhpdf-dev):
@@ -26,13 +29,14 @@ CFLAGS  ?= -O2 -Wall -Wextra
 LDLIBS  := -lpng -lz -lm
 
 VENDOR    := vendor/libharu
+VENDORCFG := vendor-config
 BUILD     := build
 OBJ       := $(BUILD)/obj
 LIBHPDF_A := $(BUILD)/libhpdf.a
 
 HPDF_SRCS := $(wildcard $(VENDOR)/src/*.c)
 HPDF_OBJS := $(patsubst $(VENDOR)/src/%.c,$(OBJ)/%.o,$(HPDF_SRCS))
-INCLUDES  := -I$(VENDOR)/include -I$(BUILD)
+INCLUDES  := -I$(VENDORCFG) -I$(VENDOR)/include -I$(BUILD)
 
 # Catálogo tipográfico embebido (DEC-01/DEC-02 de `integrar-libharu`). El .ttf
 # es la fuente de verdad y el .c es derivado: se genera aquí, no se versiona.

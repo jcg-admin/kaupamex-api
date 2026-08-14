@@ -19,8 +19,8 @@ updated_at: 2026-07-17 19:33:06
 - **Producto / plataforma: Kaupamex.** Es el **operador L0**: un SaaS
   multi-empresa que hospeda a empresas cliente para gestionar su ecommerce +
   ERP + CRM, con cobro por modulo + renta mensual. El nombre del repo coincide
-  con el operador L0 a proposito. Dentro del codigo: bases `kaupamex_db` /
-  `kaupamex_qa`, rol `django_user`, `SYSTEM_COMPANY_CODE = 'kaupamex_global'`,
+  con el operador L0 a proposito. Dentro del codigo: bases `kaupamex_core` /
+  `kaupamex_core_qa`, rol `django_user`, `SYSTEM_COMPANY_CODE = 'kaupamex_global'`,
   env files en `src/.env`, punto de entrada `kaupamex-bin`.
 
 - **PracticaYoruba es UNA empresa L1, no el producto.** Es el L1 de ejemplo

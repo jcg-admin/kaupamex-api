@@ -219,7 +219,7 @@ phase_database() {
     #    UN archivo con --qa, no dos gemelos: la logica es identica y
     #    duplicarla es como divergen dos scripts hermanos.
     if bash "${db_root}/provisioners/postgresql/db_setup.sh"; then
-        log_success "Base kaupamex_db configurada"
+        log_success "Base kaupamex_core configurada"
     else
         log_error "db_setup.sh fallo — revisa el output arriba"
         DB_PHASE_FAILED=true
@@ -227,7 +227,7 @@ phase_database() {
 
     # 4. Base de QA para tests
     if bash "${db_root}/provisioners/postgresql/db_setup.sh" --qa; then
-        log_success "Base kaupamex_qa configurada"
+        log_success "Base kaupamex_core_qa configurada"
     else
         log_error "db_setup.sh --qa fallo — revisa el output arriba"
         DB_PHASE_FAILED=true

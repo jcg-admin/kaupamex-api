@@ -33,7 +33,9 @@ import sys
 DEFAULT_ODOO19C = (
     '/home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0'
 )
-ADDONS_NUESTROS = pathlib.Path(__file__).resolve().parent.parent / 'src' / 'addons'
+import sys as _sys, os as _os
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+from addons_roots import py_files
 
 
 def clase_esperada(modelo_odoo):
@@ -115,7 +117,7 @@ def declara_fk(ruta_clase, clase_padre):
 def localizar(nombre_clase):
     """Primer archivo de ``src/addons/`` que declara ``class <nombre>``."""
     patron = re.compile(rf'^class {re.escape(nombre_clase)}[(:]', re.M)
-    for p in sorted(ADDONS_NUESTROS.rglob('*.py')):
+    for p in py_files():
         if '__pycache__' in str(p) or '/migrations/' in str(p):
             continue
         if patron.search(p.read_text(errors='replace')):

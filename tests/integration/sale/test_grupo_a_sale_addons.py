@@ -20,9 +20,6 @@ from django.utils import timezone
 from addons.loyalty.models.voucher import Voucher
 from addons.mrp.models.mrp_bom import MrpBom, MrpBomLine
 from addons.product.models.product_template import TYPE_SERVICE
-from addons.product_expiry.models.product_expiry_config import (
-    ProductExpiryConfig,
-)
 from addons.sale.models.sale_order_line import SaleOrderLine
 from addons.sale_loyalty.models.sale_order_coupon import SaleOrderCoupon
 from addons.sale_loyalty_delivery.models.sale_order import (
@@ -119,15 +116,19 @@ class TestSaleLoyaltyDelivery:
 
 
 class TestSaleStockProductExpiry:
+    """Actualizado con :ref:`h-api-576`: la configuración de caducidad vive en
+    ``product.template`` (donde la referencia la declara), no en un modelo
+    satélite ``ProductExpiryConfig`` que este puerto inventaba."""
 
     def test_sin_config_es_falso(self, orden):
         assert use_expiration_date(orden.order_line.first()) is False
 
     def test_el_related_lee_la_config_del_producto(self, orden):
         linea = orden.order_line.first()
-        ProductExpiryConfig.objects.create(
-            product=linea.product, use_expiration_date=True,
-        )
+        plantilla = linea.product.product_tmpl
+        plantilla.tracking = 'lot'
+        plantilla.use_expiration_date = True
+        plantilla.save()
         linea.refresh_from_db()
         assert use_expiration_date(linea) is True
 

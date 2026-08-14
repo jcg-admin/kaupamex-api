@@ -14,7 +14,7 @@ from service.db import (
 
 BASE = {
     'ENGINE': 'django.db.backends.mysql',
-    'NAME': 'kaupamex_qa',
+    'NAME': 'kaupamex_core_qa',
     'USER': 'django_user',
     'PASSWORD': 'secret',
     'HOST': '127.0.0.1',
@@ -53,14 +53,14 @@ def test_filter_keeps_only_company_db_shape():
     # == db_filter de Odoo: descarta schemas del sistema y de negocio L0,
     # queda sólo company_<N>_db. Preserva el orden de entrada.
     raw = [
-        'company_2_db', 'information_schema', 'kaupamex_db', 'company_10_db',
+        'company_2_db', 'information_schema', 'kaupamex_core', 'company_10_db',
         'mysql', 'company_db', 'companyx_db', 'performance_schema',
     ]
     assert filter_company_dbs(raw) == ['company_2_db', 'company_10_db']
 
 
 def test_filter_empty_when_no_company_dbs():
-    assert filter_company_dbs(['mysql', 'kaupamex_db']) == []
+    assert filter_company_dbs(['mysql', 'kaupamex_core']) == []
 
 
 # --- db_filter: adaptación fiel de Odoo http.py:389-425 (host->db) ---

@@ -33,6 +33,7 @@ from django.utils import timezone
 
 from addons.base.models import IrActionsServer, IrCron, SystemParameter
 from orm.environments import get_current_uid
+from tests.subprocess_env import subprocess_env
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
@@ -241,11 +242,7 @@ def _correr_cron_subproceso(*extra_args):
     return subprocess.Popen(
         [sys.executable, 'manage.py', 'cron', *extra_args],
         cwd=str(SRC_DIR),
-        env={
-            'PATH': '/usr/bin:/bin',
-            'DJANGO_SETTINGS_MODULE': 'config.settings.testing',
-            'HOME': '/root',
-        },
+        env=subprocess_env(),
         stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
     )
 

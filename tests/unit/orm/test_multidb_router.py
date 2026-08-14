@@ -22,7 +22,7 @@ from orm.routers import CompanyDatabaseRouter, company_db_alias
 # para no romper el row-scoping SOL-085 (H-API-091-06). Los tests que verifican
 # el ruteo a ``company_5_db`` configuran ese alias explícitamente.
 _WITH_COMPANY_5 = {
-    'default': {'ENGINE': 'django.db.backends.mysql', 'NAME': 'kaupamex_db'},
+    'default': {'ENGINE': 'django.db.backends.mysql', 'NAME': 'kaupamex_core'},
     'company_5_db': {'ENGINE': 'django.db.backends.mysql', 'NAME': 'company_5_db'},
 }
 

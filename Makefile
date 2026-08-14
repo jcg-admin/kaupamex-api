@@ -2,7 +2,7 @@
 #
 # Targets para ejecucion local y en pipelines de CI futuros.
 # Mantiene paridad con ui/package.json scripts equivalentes.
-.PHONY: help check-names check-names-ci check-layout check-layout-ci check-lazy check-lazy-ci check-cycles check-cycles-ci check-catalog check-catalog-ci check-canon check-canon-ci test test-coverage install-hooks db-up ci-test ci-test-fast pdf check-pdf clean-pdf
+.PHONY: check-symbol-home check-symbol-home-ci help check-names check-names-ci check-layout check-layout-ci check-lazy check-lazy-ci check-cycles check-cycles-ci check-catalog check-catalog-ci check-canon check-canon-ci test test-coverage install-hooks db-up ci-test ci-test-fast pdf check-pdf clean-pdf
 
 help:
 	@echo 'Targets:'
@@ -19,6 +19,9 @@ help:
 	@echo '  make check-catalog-ci  Idem, exit code != 0 si hay incoherencias'
 	@echo '  make check-cycles      Direccion de dependencias: 0 inversiones nuevas'
 	@echo '  make check-cycles-ci   Idem, exit code != 0 si hay inversiones nuevas'
+	@echo '  make check-symbol-home Lado del arbol de cada simbolo vs la referencia'
+	@echo '  make check-addon-root  Un addon vive en UNA sola raiz de ADDONS_PATHS'
+	@echo '  make check-chain-depends  chain_method declara al dueno del simbolo'
 	@echo '  make check-canon       Canon-idioma: 0 identifiers ES en apps/** (soft)'
 	@echo '  make check-canon-ci    Idem, exit code != 0 si hay violaciones'
 	@echo '  make test              Pytest suite completa'
@@ -53,6 +56,16 @@ check-layout-ci:
 check-porte:
 	python3 scripts/check_porte_completo.py || true
 
+# El lado del arbol donde vive cada simbolo (H-API-556). A diferencia de
+# check-porte, este SI arranca en 0 fuera de sitio, asi que su variante -ci
+# ya esta cableada al pre-commit como gate 9: no hay deuda ajena que
+# bloquee a nadie.
+check-symbol-home:
+	python3 scripts/check_symbol_home.py
+
+check-symbol-home-ci:
+	python3 scripts/check_symbol_home.py --strict
+
 check-porte-ci:
 	python3 scripts/check_porte_completo.py --strict
 
@@ -72,6 +85,20 @@ check-silent:
 
 check-silent-ci:
 	python3 scripts/check_silent_oks.py
+
+# Reparto de raices: un addon vive en UNA sola raiz de ADDONS_PATHS.
+check-addon-root:
+	@python3 scripts/check_addon_root.py
+
+check-addon-root-ci:
+	@python3 scripts/check_addon_root.py --strict
+
+# chain_method: el dueno del simbolo encadenado esta en el depends (H-API-564).
+check-chain-depends:
+	@python3 scripts/check_chain_method_depends.py
+
+check-chain-depends-ci:
+	@python3 scripts/check_chain_method_depends.py --strict
 
 # Canon-idioma soft — imprime hallazgos pero retorna exit 0.
 check-cycles:

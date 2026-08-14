@@ -8,7 +8,7 @@ tools:
   - Bash
   - Write
 disallowedTools:
-  # La suite comparte una sola kaupamex_qa: N agentes concurrentes
+  # La suite comparte una sola kaupamex_core_qa: N agentes concurrentes
   # migran y truncan la MISMA base, asi que su verde no mide su
   # cambio sino la contencion. El orquestador la corre una vez.
   # Ver docs: .claude/rules/bash-background-tasks.md y H-DOCS-94.

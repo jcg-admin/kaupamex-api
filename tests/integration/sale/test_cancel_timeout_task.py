@@ -63,7 +63,15 @@ class TestSaleOrderIsExpired:
 
     def test_validity_date_se_calcula_del_plazo_de_la_empresa(self, company):
         # Empresa por defecto: quotation_validity_days=30 (Odoo default).
-        hoy = timezone.now().date()
+        #
+        # `localdate()`, no `now().date()`: `_compute_validity_date` usa la
+        # fecha en `settings.TIME_ZONE` (America/Mexico_City) por divergencia
+        # DECLARADA — "hoy donde opera la empresa", el análogo de
+        # `fields.Date.context_today` de la referencia. Medir con UTC hacía que
+        # el test fallara sólo en la ventana entre la medianoche UTC y la
+        # local: 2026-08-14T00:20 UTC dio `2026-09-12` contra un esperado
+        # `2026-09-13`. El código no estaba mal; el instrumento medía otro huso.
+        hoy = timezone.localdate()
         order = SaleOrder.objects.create(
             state=SaleOrder.STATE_DRAFT, company=company,
         )

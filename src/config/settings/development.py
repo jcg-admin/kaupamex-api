@@ -3,7 +3,8 @@ from .base import *
 DEBUG = True
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
-INSTALLED_APPS += ['django_extensions']
+# Tupla, no lista: INSTALLED_APPS se concatena de tres tuplas en base.py.
+INSTALLED_APPS += ('django_extensions',)
 
 REST_FRAMEWORK['DEFAULT_RENDERER_CLASSES'] = [
     'rest_framework.renderers.JSONRenderer',

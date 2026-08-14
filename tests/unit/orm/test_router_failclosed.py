@@ -30,7 +30,7 @@ SESSION = _Model('sessions', 'session')
 router = CompanyDatabaseRouter()
 
 _N_GT_1 = {
-    'default': {'ENGINE': 'django.db.backends.mysql', 'NAME': 'kaupamex_db'},
+    'default': {'ENGINE': 'django.db.backends.mysql', 'NAME': 'kaupamex_core'},
     'company_5_db': {'ENGINE': 'django.db.backends.mysql', 'NAME': 'company_5_db'},
 }
 

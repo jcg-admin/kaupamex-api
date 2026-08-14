@@ -1,6 +1,6 @@
 """
 conftest.py — Fixtures globales para kaupamex-api tests.
-BD: kaupamex_qa (config.settings.testing)
+BD: kaupamex_core_qa (config.settings.testing)
 """
 import os
 import shutil
@@ -289,7 +289,7 @@ def _reset_system_parameter_cache():
 
 
 # ─── Catálogo de semillas restauradas (H-API-22) ─────────────────────────────
-# Verificado 2026-07-28 en kaupamex_qa: tras re-aplicar las semillas
+# Verificado 2026-07-28 en kaupamex_core_qa: tras re-aplicar las semillas
 # (system_parameter=3, mail_message_subtype=2, base_geo_provider=2), un único
 # test transaccional las dejó las tres en 0.
 #

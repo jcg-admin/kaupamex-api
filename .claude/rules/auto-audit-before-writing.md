@@ -241,9 +241,9 @@ Antes de escribir cualquier artefacto sustantivo:
   - `pm/docs/iniciativas/` → Template A (IACT verbose con
     `:artefacto:`, `:tipo:`, `:dominio:`, `:subdominio:`,
     `:estado:`, `:version:`, `:fecha_creacion:` ISO 8601,
-    `:autor: Equipo kaupamex`, `:clasificacion:`).
+    `:autor: Equipo Kaupamex`, `:clasificacion:`).
   - `pm/{api,ui,db}/iniciativas/` → Template B (THYROX simple
-    con `:fecha_creacion: YYYY-MM-DD`, `:autor: claude`,
+    con `:fecha_creacion: YYYY-MM-DD`, `:autor: Equipo Kaupamex`,
     `:estado:`, `:submodulo:`, `:iniciativa:`).
   - `.claude/rules/` → markdown con yaml frontmatter
     (estilo de este archivo).

@@ -171,4 +171,60 @@ if [ -f "$URLCONF_CHECKER" ] && [ ${#STAGED_PY[@]} -gt 0 ]; then
     fi
 fi
 
+# ---------------------------------------------------------------------------
+# Gate 9: el simbolo vive del lado que la referencia declara (H-API-556).
+# Ninguno de los gates anteriores mira DONDE aterriza un porte: el de layout
+# (7) mide la forma dentro del addon, el de porte completo mide simbolos
+# dentro de un archivo emparejado. Por eso api@61b7651 pudo poner
+# base_sparse_field en src/orm/ con su suite verde: `class Serialized` da 0
+# hits en odoo19c: odoo/orm/ y 1 en addons/base_sparse_field/, y nada lo medía.
+# Probado contra ese caso real: reponerlo en src/orm/ da exit 1.
+# Ratchet sobre UBICACIONES_ACEPTADAS — falla solo ante una ubicacion NUEVA.
+# Sin el arbol de la referencia informa y sale 0 (no mide el entorno de nadie).
+# Script: scripts/check_symbol_home.py.
+SYMBOL_HOME_CHECKER="$REPO_ROOT/scripts/check_symbol_home.py"
+if [ -f "$SYMBOL_HOME_CHECKER" ] && [ ${#STAGED_PY[@]} -gt 0 ]; then
+    if ! python3 "$SYMBOL_HOME_CHECKER" --strict >/dev/null 2>&1; then
+        python3 "$SYMBOL_HOME_CHECKER" --strict >&2
+        echo "pre-commit: simbolo fuera del lado que declara la referencia" >&2
+        echo "  Si la ubicacion es correcta, declararla en" >&2
+        echo "  UBICACIONES_ACEPTADAS con su motivo MEDIDO — no vaciarla." >&2
+        exit 1
+    fi
+fi
+
+# ---------------------------------------------------------------------------
+# Gate 10: un addon vive en UNA sola raiz de ADDONS_PATHS (H-API-572).
+# El namespace `addons` abarca las dos raices, asi que un addon partido entre
+# ellas resuelve contra la primera y la otra copia queda muerta: sin
+# ImportError, sin fallo de arranque, sin test rojo. Su forma canonica es un
+# merge — una rama reubica el addon y otra anade archivos nuevos en la ruta
+# vieja, que git no puede aparear.
+# Script: scripts/check_addon_root.py.
+ROOT_CHECKER="$REPO_ROOT/scripts/check_addon_root.py"
+if [ -f "$ROOT_CHECKER" ]; then
+    if ! python3 "$ROOT_CHECKER" --strict >/dev/null 2>&1; then
+        python3 "$ROOT_CHECKER" --strict >&2
+        echo "pre-commit: addon partido entre raices — commit bloqueado" >&2
+        exit 1
+    fi
+fi
+
+# ---------------------------------------------------------------------------
+# Gate 11: quien encadena un metodo declara al addon que lo declara (H-API-564).
+# chain_method arma la cadena en ready(), y ready() corre en el orden de
+# INSTALLED_APPS, que sale del grafo depends. Si el dueno del simbolo no esta
+# en el depends del que encadena, el orden queda indefinido y su setattr puede
+# sepultar la cadena en silencio. Un depends medido por imports NO lo ve: la
+# arista que importa es la del simbolo, no la del modulo.
+# Script: scripts/check_chain_method_depends.py.
+CHAIN_CHECKER="$REPO_ROOT/scripts/check_chain_method_depends.py"
+if [ -f "$CHAIN_CHECKER" ]; then
+    if ! python3 "$CHAIN_CHECKER" --strict >/dev/null 2>&1; then
+        python3 "$CHAIN_CHECKER" --strict >&2
+        echo "pre-commit: chain_method sin el dueno en depends — bloqueado" >&2
+        exit 1
+    fi
+fi
+
 exit "$EXIT_CODE"

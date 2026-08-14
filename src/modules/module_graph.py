@@ -164,21 +164,21 @@ class ModuleGraph:
         """
         selected: set[str] = set(present)
         while True:
-            nuevos = []
+            newly_selected = []
             for node in self._nodes.values():
                 if node.name in selected:
                     continue
                 auto = node.manifest.get('auto_install', False)
                 if not auto:
                     continue
-                requeridas = node.depends if auto is True else [
+                required = node.depends if auto is True else [
                     d for d in node.depends if d in auto
                 ]
-                if all(d in selected for d in requeridas):
-                    nuevos.append(node.name)
-            if not nuevos:
+                if all(d in selected for d in required):
+                    newly_selected.append(node.name)
+            if not newly_selected:
                 break
-            selected.update(nuevos)
+            selected.update(newly_selected)
         return [n.name for n in self if n.name in selected - set(present)]
 
     def order(self) -> list[str]:

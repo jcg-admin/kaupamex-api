@@ -8,14 +8,18 @@ bypass), existencias (quant on-hand/available), el ciclo del movimiento
 from decimal import Decimal
 
 import pytest
+from django.utils import timezone
 
 from addons.stock.models import (
     StockLocation,
     StockMove,
     StockPicking,
     StockQuant,
+    StockRoute,
     StockRule,
 )
+from addons.stock.models.stock_rule import ProcurementException
+from addons.uom.models.uom_uom import Uom
 from tests.factories.product_factory import make_product
 
 pytestmark = pytest.mark.integration
@@ -42,7 +46,10 @@ def test_location_complete_name_and_bypass(db):
     child = StockLocation.objects.create(
         name='Stock', usage=StockLocation.USAGE_INTERNAL, location=parent,
     )
-    assert child.complete_name() == 'WH/Stock'
+    # ``complete_name`` es CAMPO almacenado, como en la referencia
+    # (``odoo19c: stock_location.py:29`` — ``compute=…, store=True``); lo
+    # recalcula ``compute_complete_name()`` desde ``save()``.
+    assert child.complete_name == 'WH/Stock'
     # Internas reservan; proveedor/cliente/inventario/producción no.
     assert child.should_bypass_reservation() is False
     assert _supplier().should_bypass_reservation() is True
@@ -139,15 +146,45 @@ def test_picking_validate_cascades_moves(db):
     assert StockQuant.available_qty(product, src) == Decimal('2.00')
 
 
-def test_rule_run_make_to_stock(db):
+def _route(name='Ruta'):
+    return StockRoute.objects.create(name=name)
+
+
+def _procurement(product, location, qty, **values):
+    """Arma el ``Procurement`` que ``_run_pull`` consume.
+
+    La firma la fija la referencia (``odoo19c: stock_rule.py:31-39``): ocho
+    campos posicionales. ``values`` lleva al menos ``date_planned``, que
+    ``_get_stock_move_values`` desempaqueta.
+    """
+    values.setdefault('date_planned', timezone.now())
+    return StockRule.Procurement(
+        product, qty, product.uom or _uom(), location,
+        product.name, 'test', None, values,
+    )
+
+
+def _uom():
+    return Uom.objects.first() or Uom.objects.create(name='Unidad')
+
+
+def test_run_pull_make_to_stock(db):
+    """``_run_pull`` crea y confirma el movimiento de una necesidad MTS.
+
+    Reemplaza al viejo ``rule.run(product, qty)``: esa firma **no existe en la
+    referencia** — su ``run`` resuelve *qué* regla aplica y delega en
+    ``_run_pull``, que es la capa que este test ejerce.
+    """
     product = _product()
     src = _internal('WH/Stock')
     dest = _customer()
     rule = StockRule.objects.create(
-        name='Entrega', action=StockRule.ACTION_PULL,
+        name='Entrega', action=StockRule.ACTION_PULL, route=_route(),
         location_src=src, location_dest=dest, procure_method=StockRule.PROCURE_MTS,
     )
-    move = rule.run(product, Decimal('7.00'))
+    StockRule._run_pull([(_procurement(product, dest, Decimal('7.00')), rule)])
+
+    move = StockMove.objects.latest('id')
     assert move.product_uom_qty == Decimal('7.00')
     assert move.location_id == src.id
     assert move.location_dest_id == dest.id
@@ -155,17 +192,21 @@ def test_rule_run_make_to_stock(db):
     assert move.state == StockMove.STATE_CONFIRMED
 
 
-def test_rule_run_attaches_picking(db):
+def test_run_pull_without_source_location_raises(db):
+    """Sin ``location_src`` la referencia levanta ``ProcurementException``.
+
+    ≙ el bucle preliminar de ``_run_pull`` (``odoo19c: :293-296``): la regla
+    sin origen no puede satisfacer nada, y el error nombra la regla.
+    """
     product = _product()
-    src = _internal()
     dest = _customer()
-    picking = StockPicking.objects.create(location=src, location_dest=dest)
     rule = StockRule.objects.create(
-        name='Salida', location_src=src, location_dest=dest,
+        name='Sin origen', action=StockRule.ACTION_PULL, route=_route(),
+        location_dest=dest,
     )
-    move = rule.run(product, Decimal('2.00'), picking=picking)
-    assert move.picking_id == picking.id
-    assert picking.move_ids.count() == 1
+    with pytest.raises(ProcurementException) as exc:
+        StockRule._run_pull([(_procurement(product, dest, Decimal('2.00')), rule)])
+    assert 'Sin origen' in exc.value.procurement_exceptions[0][1]
 
 
 def test_move_cancel_zeroes_reservation(db):
