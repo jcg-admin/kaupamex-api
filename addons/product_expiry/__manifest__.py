@@ -8,13 +8,14 @@
         'Las cuatro fechas del lote —caducidad, uso, retirada y alerta— y su '
         'cálculo desde la recepción'
     ),
-    # `depends` MEDIDO da tres; la referencia declara sólo ['stock'] porque su
-    # ORM resuelve `product` de forma transitiva. Aquí los imports son de
-    # Python y explícitos.
+    # La referencia declara sólo ['stock'] porque su ORM resuelve `product` de
+    # forma transitiva. Aquí los imports son de Python y explícitos: este addon
+    # cuelga campos sobre `product.template` (los cinco de configuración) y
+    # sobre `stock.lot`/`stock.quant`/`stock.move` (las fechas y el orden
+    # FEFO), así que nombra los dos.
     'depends': [
-        'base',     # ResCompany
-        'product',  # Product — de él salen los días de caducidad por defecto
-        'stock',    # StockLot — el portador de las cuatro fechas
+        'product',  # ProductTemplate — donde viven los días de caducidad
+        'stock',    # StockLot, StockQuant, StockMove — las fechas y FEFO
     ],
     'author': 'Odoo S.A.',
     'license': 'LGPL-3',

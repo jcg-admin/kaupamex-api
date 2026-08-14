@@ -26,14 +26,14 @@ Behavior-only (precedente ``sale_stock_margin``): sin tabla propia.
 def use_expiration_date(line) -> bool:
     """El ``related`` de la fuente: ¿el producto de la línea maneja caducidad?
 
-    Lee la config de caducidad por su reverso ``expiry_config`` —
-    ``product_expiry`` local la cuelga de la VARIANTE
-    (``ProductExpiryConfig.product`` OneToOne a ``product.ProductProduct``),
-    aunque la referencia la declare en la plantilla; se sigue al puerto, no
-    a la memoria (H-API-293). Sin config, ``False`` — el related de un
-    vacío es falsy.
+    Navega ``line.product.use_expiration_date`` — la misma cadena que la
+    referencia (``related='product_id.use_expiration_date'``). Actualizado en
+    el mismo pase que :ref:`h-api-576`: hasta entonces leía un reverso
+    ``expiry_config`` que ya no existe, porque ``product_expiry`` inventaba un
+    modelo satélite donde la referencia extiende ``product.template``.
+
+    Sin producto, ``False`` — el related de un vacío es falsy.
     """
     if line.product is None:
         return False
-    config = getattr(line.product, 'expiry_config', None)
-    return bool(config and config.use_expiration_date)
+    return bool(getattr(line.product, 'use_expiration_date', False))

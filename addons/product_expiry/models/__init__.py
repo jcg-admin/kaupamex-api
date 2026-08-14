@@ -1,13 +1,13 @@
 """Modelos del addon ``product_expiry`` — caducidad de productos y lotes.
 
-Extiende la base ``stock`` (DEC-SALE-01): la config de caducidad del producto
-(``ProductExpiryConfig``) y las fechas del lote (``StockLotExpiry``), con la
-estrategia de remoción FEFO en ``services``.
-"""
-from addons.product_expiry.models.product_expiry_config import ProductExpiryConfig
-from addons.product_expiry.models.stock_lot_expiry import StockLotExpiry
+Adaptación de Odoo ``product_expiry`` (``odoo-tools@622ddc2a``, ``odoo19c:``,
+LGPL-3) — atribución y aviso de licencia preservados (DEC-KX-03).
 
-__all__ = [
-    'ProductExpiryConfig',
-    'StockLotExpiry',
-]
+Este addon **no declara modelos propios**, y ésa es la corrección de forma de
+:ref:`h-api-576`: como la referencia, extiende los que ya existen
+(``product.template``, ``stock.lot``, ``stock.quant``, ``stock.move``). Cada
+archivo espeja el nombre del suyo en la referencia y expone
+``apply_product_expiry_extensions()``, que ``ProductExpiryConfig.ready()``
+invoca — el idioma de extensión cross-app ya establecido en este árbol
+(``account``, ``account_fleet``, ``l10n_mx``, ``account_qr_code_*``).
+"""
