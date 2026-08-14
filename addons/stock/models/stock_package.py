@@ -587,7 +587,7 @@ class StockPackage(TimeStampedModel):
                 quant.move_quants(message=_('Cantidades desempaquetadas'),
                                   unpack=True)
             StockQuant = apps.get_model('stock', 'StockQuant')
-            StockQuant.quant_tasks()
+            StockQuant._quant_tasks()
 
     def action_add_to_picking(self, picking):
         """≙ ``action_add_to_picking`` (``odoo19c: :327-330``)."""

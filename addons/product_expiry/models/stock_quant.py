@@ -17,7 +17,7 @@ Símbolo de la referencia (línea)          Dónde queda en este puerto
 ``removal_date`` (11, related+store)      property ``removal_date``
 ``use_expiration_date`` (12, related)     property ``use_expiration_date``
 ``available_quantity`` (13, help)         ``available_qty`` ya existe; ver la nota
-``_get_removal_strategy_order`` (24-28)   ``chain_method`` sobre ``gather``
+``_get_removal_strategy_order`` (24-28)   ``chain_method`` sobre el homónimo de la base
 ``_compute_available_quantity`` (30-36)   ``expired_qty`` + ``combine`` sobre ``available_qty``
 ``_get_gs1_barcode`` (16-22)              **bloqueado** — ver "Lo que no cierra"
 ``_set_view_context`` (38-42)             **bloqueado** — ver "Lo que no cierra"
@@ -39,11 +39,10 @@ FEFO — el orden que este addon aporta
 =======================================
 
 La estrategia ``fefo`` (*first expired, first out*) **no vive en la base**:
-``api: addons/stock/models/stock_quant.py:81-95`` porta ``fifo`` y ``lifo``, y
-su docstring ya declara que ``fefo`` la añade este satélite. Esta es esa
-adición, y la forma es la de la referencia — ``_get_removal_strategy_order``
-devuelve ``'removal_date, in_date, id'`` para ``fefo`` y delega en ``super()``
-para el resto::
+``api: addons/stock/models/stock_quant.py`` porta ``fifo``, ``lifo``,
+``least_packages`` y ``closest`` en ``_get_removal_strategy_order``; ``fefo``
+la añade este satélite. La forma es la de la referencia — devuelve el orden de
+``fefo`` y delega en ``super()`` para el resto::
 
     @api.model
     def _get_removal_strategy_order(self, removal_strategy):
@@ -51,10 +50,14 @@ para el resto::
             return 'removal_date, in_date, id'
         return super()._get_removal_strategy_order(removal_strategy)
 
-Aquí el equivalente encadena sobre ``gather`` con relevo por ``None``: la
-función atiende ``fefo`` y devuelve ``None`` para ``fifo``/``lifo``, con lo
-que ``chain_method`` delega en el ``gather`` de la base. Es la traducción
-literal del ``super()``, no una reescritura.
+Aquí el equivalente encadena sobre **el mismo símbolo** con relevo por
+``None``: la función atiende ``fefo`` y devuelve ``None`` para el resto, con lo
+que ``chain_method`` delega en el ``_get_removal_strategy_order`` de la base.
+Es la traducción literal del ``super()``, no una reescritura.
+
+Hasta 2026-08-14 encadenaba sobre ``gather``, un símbolo propio de firma
+recortada, porque la base no tenía portado el método real. Ya lo tiene
+(``api@<este commit>``), y la extensión se repuntó — :ref:`h-api-581`.
 
 ``_compute_available_quantity`` — la existencia caducada vale cero
 ====================================================================
@@ -115,19 +118,21 @@ def use_expiration_date(self):
 # -- los dos overrides (≙ los dos métodos portables de la referencia) --
 
 
-def gather(cls, product, location, removal_strategy='fifo'):
+def _get_removal_strategy_order(cls, removal_strategy):
     """≙ ``_get_removal_strategy_order`` para ``fefo`` (``:24-28``).
 
     Devuelve ``None`` para las estrategias que no son suyas — el relevo de
     ``chain_method``, que es el ``super()`` de la referencia.
+
+    **Corregido 2026-08-14.** Hasta hoy esto encadenaba sobre ``gather``, un
+    símbolo propio con la firma recortada, porque la base no tenía portado
+    ``_get_removal_strategy_order``. Ya lo tiene, así que la extensión cuelga
+    del símbolo **que la referencia extiende** — y con el mismo nombre y la
+    misma visibilidad (:ref:`h-api-581`).
     """
     if removal_strategy != 'fefo':
         return None
-    return (
-        cls.objects
-        .filter(product=product, location=location, quantity__gt=0)
-        .order_by(*FEFO_ORDER)
-    )
+    return FEFO_ORDER
 
 
 def expired_qty(cls, product, location):
@@ -175,7 +180,8 @@ def apply_product_expiry_extensions():
         if not hasattr(StockQuant, nombre):
             setattr(StockQuant, nombre, property(funcion))
 
-    chain_method(StockQuant, 'gather', classmethod(gather))
+    chain_method(StockQuant, '_get_removal_strategy_order',
+                 classmethod(_get_removal_strategy_order))
     chain_method(StockQuant, 'available_qty', classmethod(expired_qty),
                  combine=_subtract_expired)
 
@@ -185,7 +191,7 @@ __all__ = [
     'apply_product_expiry_extensions',
     'expiration_date',
     'expired_qty',
-    'gather',
+    '_get_removal_strategy_order',
     'removal_date',
     'use_expiration_date',
 ]

@@ -23,7 +23,7 @@ from addons.product_expiry.models import res_config_settings as pe_config
 from addons.product_expiry.models import stock_move_line as pe_move_line
 from addons.product_expiry.models import stock_picking as pe_picking
 from addons.product_expiry.models import stock_rule as pe_rule
-from addons.stock.models import StockLocation, StockLot, StockQuant
+from addons.stock.models import ProductRemoval, StockLocation, StockLot, StockQuant
 from tests.factories.product_factory import make_product
 
 pytestmark = pytest.mark.integration
@@ -198,10 +198,22 @@ def test_fefo_orders_by_removal_date_not_by_entry(db):
         product=producto, location=ubicacion, lot=urgente, quantity=Decimal('5.00'),
         in_date=timezone.now())
 
-    fefo = list(StockQuant.gather(producto, ubicacion, removal_strategy='fefo'))
+    # FEFO se declara en la ubicación, como en la referencia: ``_gather`` la
+    # deriva con ``_get_removal_strategy``, no la recibe por argumento.
+    ubicacion.removal_strategy = ProductRemoval.objects.create(
+        name='FEFO', method='fefo')
+    ubicacion.save(update_fields=['removal_strategy', 'updated_at'])
+    assert StockQuant._get_removal_strategy(producto, ubicacion) == 'fefo'
+    fefo = list(StockQuant._gather(producto, ubicacion))
     assert [q.lot.name for q in fefo] == ['LB', 'LA']
+
     # La estrategia de la base sigue respondiendo: es un relevo, no un pisotón.
-    fifo = list(StockQuant.gather(producto, ubicacion, removal_strategy='fifo'))
+    # El satélite encadena ``_get_removal_strategy_order``, así que ``fifo``
+    # cae al método de ``stock`` intacto.
+    assert StockQuant._get_removal_strategy_order('fifo') == ('in_date', 'id')
+    ubicacion.removal_strategy = None
+    ubicacion.save(update_fields=['removal_strategy', 'updated_at'])
+    fifo = list(StockQuant._gather(producto, ubicacion))
     assert [q.lot.name for q in fifo] == ['LA', 'LB']
 
 

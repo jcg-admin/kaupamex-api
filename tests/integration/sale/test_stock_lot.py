@@ -13,7 +13,9 @@ import pytest
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
-from addons.stock.models import StockLocation, StockLot, StockQuant
+from addons.stock.models import (
+    ProductRemoval, StockLocation, StockLot, StockQuant,
+)
 from tests.factories.product_factory import make_product
 
 pytestmark = pytest.mark.integration
@@ -61,7 +63,13 @@ def test_lot_and_nonlot_quants_coexist_at_same_location(db):
     assert StockQuant.available_qty(product, loc) == Decimal('7.00')
 
 
-def test_gather_fifo_orders_oldest_in_date_first(db):
+def test_gather_orders_oldest_in_date_first(db):
+    """La estrategia por defecto es FIFO: lo más antiguo se retira primero.
+
+    ``_gather`` **no** recibe la estrategia: la deriva de la categoría del
+    producto y, si no, subiendo por la cadena de ubicaciones
+    (``_get_removal_strategy``). Este test la deja en el default.
+    """
     product = _product()
     loc = _internal()
     l_old = StockLot.objects.create(name='OLD', product=product)
@@ -74,20 +82,62 @@ def test_gather_fifo_orders_oldest_in_date_first(db):
     # Forzar in_date: old anterior a new.
     StockQuant.objects.filter(pk=q_old.pk).update(in_date=now - timedelta(days=2))
     StockQuant.objects.filter(pk=q_new.pk).update(in_date=now - timedelta(days=1))
-    fifo = list(StockQuant.gather(product, loc, removal_strategy='fifo'))
+
+    assert StockQuant._get_removal_strategy(product, loc) == 'fifo'
+    fifo = list(StockQuant._gather(product, loc))
     assert [q.pk for q in fifo] == [q_old.pk, q_new.pk]
-    lifo = list(StockQuant.gather(product, loc, removal_strategy='lifo'))
+
+
+def test_gather_lifo_when_the_location_declares_it(db):
+    """LIFO se declara en la ubicación, no se pasa por argumento.
+
+    Es el camino que la referencia recorre en ``_get_removal_strategy``
+    (``odoo19c: stock_quant.py:618-628``): categoría del producto primero, y si
+    no declara nada, se sube por ``location_id`` hasta encontrar una.
+    """
+    product = _product()
+    loc = _internal()
+    loc.removal_strategy = ProductRemoval.objects.create(
+        name='LIFO', method='lifo')
+    loc.save(update_fields=['removal_strategy', 'updated_at'])
+
+    l_old = StockLot.objects.create(name='OLD2', product=product)
+    l_new = StockLot.objects.create(name='NEW2', product=product)
+    now = timezone.now()
+    q_new = StockQuant.objects.create(product=product, location=loc, lot=l_new,
+                                      quantity=Decimal('4.00'))
+    q_old = StockQuant.objects.create(product=product, location=loc, lot=l_old,
+                                      quantity=Decimal('6.00'))
+    StockQuant.objects.filter(pk=q_old.pk).update(in_date=now - timedelta(days=2))
+    StockQuant.objects.filter(pk=q_new.pk).update(in_date=now - timedelta(days=1))
+
+    assert StockQuant._get_removal_strategy(product, loc) == 'lifo'
+    lifo = list(StockQuant._gather(product, loc))
     assert [q.pk for q in lifo] == [q_new.pk, q_old.pk]
 
 
-def test_gather_excludes_zero_quantity_quants(db):
+def test_gather_incluye_los_quants_en_cero(db):
+    """``_gather`` NO filtra por cantidad — corregido 2026-08-14.
+
+    Hasta hoy este test afirmaba lo contrario (``gather`` sólo devolvía
+    ``quantity > 0``), y estaba comprobando una invención nuestra: el
+    ``_get_gather_domain`` de la referencia (``odoo19c: :750-769``) filtra por
+    producto, lote, paquete, propietario y ubicación — **nunca** por cantidad.
+
+    El descarte del quant vacío ocurre después, al repartir la reserva
+    (``_get_reserve_quantity``: ``if max_quantity_on_quant <= 0: continue``),
+    y esa distinción importa: un quant en cero sigue existiendo y sigue
+    contando para ``_merge_quants`` y para el ajuste de inventario.
+    """
     product = _product()
     loc = _internal()
     lot = StockLot.objects.create(name='Z', product=product)
-    StockQuant.objects.create(product=product, location=loc, lot=lot,
-                              quantity=Decimal('0.00'))
-    # gather solo devuelve quants con cantidad > 0 (réplica de _gather de Odoo).
-    assert list(StockQuant.gather(product, loc)) == []
+    quant = StockQuant.objects.create(product=product, location=loc, lot=lot,
+                                      quantity=Decimal('0.00'))
+    assert [q.pk for q in StockQuant._gather(product, loc)] == [quant.pk]
+    # Y no aporta nada que reservar, que es donde sí se descarta.
+    assert StockQuant._get_reserve_quantity(
+        product, loc, Decimal('1.00')) == []
 
 
 def test_lot_name_unique_per_product(db):
