@@ -12,11 +12,17 @@ import fields
 import models
 
 from addons.base.models import TimeStampedModel
-from addons.mail.models import MailThread
+from addons.mail.models import MailActivityMixin, MailThread
 
 
-class CrmLead(MailThread, TimeStampedModel):
-    """``crm.lead`` — iniciativa/oportunidad de venta."""
+class CrmLead(MailThread, MailActivityMixin, TimeStampedModel):
+    """``crm.lead`` — iniciativa/oportunidad de venta.
+
+    Hereda ``MailActivityMixin`` porque la referencia lo declara: su
+    ``_inherit`` lista ``'mail.activity.mixin'``
+    (``odoo19c: crm/models/crm_lead.py:90``). Faltaba, y con él faltaba toda la
+    superficie de actividades planificadas sobre la oportunidad.
+    """
 
     # Odoo type (crm_lead.py:123): lead (iniciativa) vs opportunity (oportunidad).
     TYPE_LEAD        = 'lead'

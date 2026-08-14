@@ -13,7 +13,7 @@ from django.db import models, transaction
 from django.utils import timezone
 
 from addons.base.models import SoftDeleteModel, TimeStampedModel
-from addons.mail.models import MailThread
+from addons.mail.models import MailActivityMixin, MailThread
 
 logger = logging.getLogger(__name__)
 
@@ -27,8 +27,14 @@ AUTO_CLOSE_BODY = (
 )
 
 
-class SupportTicket(MailThread, TimeStampedModel, SoftDeleteModel):
+class SupportTicket(MailThread, MailActivityMixin, TimeStampedModel, SoftDeleteModel):
     """Ticket de soporte. UC-SUPP-01.
+
+    Hereda ``MailActivityMixin`` con la misma composición que la referencia da
+    a su ticket: ``helpdesk.ticket`` declara ``'mail.activity.mixin'`` entre sus
+    mixins (``odoo19e: helpdesk/models/helpdesk_ticket.py:36``). Ese addon es
+    **OEEL-1**, así que se adopta la *forma* —qué mixins componen un ticket— y
+    no su código, que se reimplementa nativo (DEC-KX-03).
 
     Hereda ``MailThread`` (addon ``mail``, ``mail.thread`` de Odoo): dota al
     ticket de chatter/seguidores (``message_post``/``message_subscribe``) sin

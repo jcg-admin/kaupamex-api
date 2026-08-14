@@ -140,14 +140,22 @@ class MailActivityMixin(models.Model):
         ese ``_name`` **propio** y se cae al label Django (``app_label.Model``)
         para el modelo propio del L0 que no adapta nada.
 
-        El recorrido se detiene en ``MailActivityMixin``: un ``getattr`` plano
-        heredaría el ``_name`` del mixin, y entonces **todos** los modelos que lo
-        usan compartirían el ``res_model`` ``'mail.activity.mixin'`` — sus
-        actividades quedarían mezcladas en un solo montón.
+        El recorrido **salta los mixins**: un ``getattr`` plano heredaría el
+        ``_name`` del primer mixin del MRO, y entonces todos los modelos que lo
+        usan compartirían ese ``res_model`` — sus actividades quedarían
+        mezcladas en un solo montón.
+
+        Lo que distingue a un mixin es que es **abstracto**, no su identidad:
+        parar en ``MailActivityMixin`` sólo protege del mixin propio y deja
+        pasar a cualquier otro que vaya delante en el MRO. Un consumidor como
+        ``SupportTicket(MailThread, MailActivityMixin, …)`` encontraba primero
+        el ``_name = 'mail.thread'`` de ``MailThread`` y guardaba **ese** como
+        ``res_model`` — el defecto que el propio docstring describía, en su
+        segunda instancia. Ver :ref:`h-api-597`.
         """
         for klass in cls.__mro__:
-            if klass is MailActivityMixin:
-                break
+            if getattr(getattr(klass, '_meta', None), 'abstract', False):
+                continue
             nombre = klass.__dict__.get('_name')
             if nombre:
                 return nombre
@@ -187,7 +195,7 @@ class MailActivityMixin(models.Model):
         Tipo de respaldo cuando el identificador externo pedido no existe.
         Sobrescribible por modelo; sólo lo llama ``activity_schedule``.
         """
-        return MailActivity.default_activity_type_for_model(
+        return MailActivity._default_activity_type_for_model(
             self._activity_res_model())
 
     # -- los diez campos: property, sin columna (D-1) --
