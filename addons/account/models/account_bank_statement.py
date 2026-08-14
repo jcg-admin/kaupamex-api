@@ -1,4 +1,4 @@
-"""``account.bank.statement`` — Adaptación de Odoo addons/account/models/account_bank_statement.py
+r"""``account.bank.statement`` — Adaptación de Odoo addons/account/models/account_bank_statement.py
 (odoo-tools@622ddc2a, odoo19c:).
 
 Estado de cuenta bancario: agrupa líneas (``account.bank.statement.line``,

@@ -1,4 +1,4 @@
-"""``assetsbundle`` — el empaquetador de assets de la referencia.
+r"""``assetsbundle`` — el empaquetador de assets de la referencia.
 
 Adaptación de ``odoo/addons/base/models/assetsbundle.py``
 (``odoo-tools@bf077302``, ``odoo19c:``, 1087 líneas). Toma la lista de

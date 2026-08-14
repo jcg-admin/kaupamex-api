@@ -1,4 +1,4 @@
-"""``product.catalog.mixin`` — el contrato del selector de productos.
+r"""``product.catalog.mixin`` — el contrato del selector de productos.
 
 Adaptación de ``addons/product/models/product_catalog_mixin.py``
 (``odoo-tools@bf077302``, ``odoo19c:``, 151 líneas). Lo hereda todo modelo que

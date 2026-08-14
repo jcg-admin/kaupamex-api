@@ -193,4 +193,38 @@ if [ -f "$SYMBOL_HOME_CHECKER" ] && [ ${#STAGED_PY[@]} -gt 0 ]; then
     fi
 fi
 
+# ---------------------------------------------------------------------------
+# Gate 10: un addon vive en UNA sola raiz de ADDONS_PATHS (H-API-572).
+# El namespace `addons` abarca las dos raices, asi que un addon partido entre
+# ellas resuelve contra la primera y la otra copia queda muerta: sin
+# ImportError, sin fallo de arranque, sin test rojo. Su forma canonica es un
+# merge — una rama reubica el addon y otra anade archivos nuevos en la ruta
+# vieja, que git no puede aparear.
+# Script: scripts/check_addon_root.py.
+ROOT_CHECKER="$REPO_ROOT/scripts/check_addon_root.py"
+if [ -f "$ROOT_CHECKER" ]; then
+    if ! python3 "$ROOT_CHECKER" --strict >/dev/null 2>&1; then
+        python3 "$ROOT_CHECKER" --strict >&2
+        echo "pre-commit: addon partido entre raices — commit bloqueado" >&2
+        exit 1
+    fi
+fi
+
+# ---------------------------------------------------------------------------
+# Gate 11: quien encadena un metodo declara al addon que lo declara (H-API-564).
+# chain_method arma la cadena en ready(), y ready() corre en el orden de
+# INSTALLED_APPS, que sale del grafo depends. Si el dueno del simbolo no esta
+# en el depends del que encadena, el orden queda indefinido y su setattr puede
+# sepultar la cadena en silencio. Un depends medido por imports NO lo ve: la
+# arista que importa es la del simbolo, no la del modulo.
+# Script: scripts/check_chain_method_depends.py.
+CHAIN_CHECKER="$REPO_ROOT/scripts/check_chain_method_depends.py"
+if [ -f "$CHAIN_CHECKER" ]; then
+    if ! python3 "$CHAIN_CHECKER" --strict >/dev/null 2>&1; then
+        python3 "$CHAIN_CHECKER" --strict >&2
+        echo "pre-commit: chain_method sin el dueno en depends — bloqueado" >&2
+        exit 1
+    fi
+fi
+
 exit "$EXIT_CODE"

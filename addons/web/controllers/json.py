@@ -1,4 +1,4 @@
-"""JSON genérico del cliente web — adaptación de
+r"""JSON genérico del cliente web — adaptación de
 ``odoo19c: addons/web/controllers/json.py``.
 
 ``LGPL-3`` (``web/__manifest__.py``) — copia + adaptación con atribución.

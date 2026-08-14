@@ -20,6 +20,8 @@ help:
 	@echo '  make check-cycles      Direccion de dependencias: 0 inversiones nuevas'
 	@echo '  make check-cycles-ci   Idem, exit code != 0 si hay inversiones nuevas'
 	@echo '  make check-symbol-home Lado del arbol de cada simbolo vs la referencia'
+	@echo '  make check-addon-root  Un addon vive en UNA sola raiz de ADDONS_PATHS'
+	@echo '  make check-chain-depends  chain_method declara al dueno del simbolo'
 	@echo '  make check-canon       Canon-idioma: 0 identifiers ES en apps/** (soft)'
 	@echo '  make check-canon-ci    Idem, exit code != 0 si hay violaciones'
 	@echo '  make test              Pytest suite completa'
@@ -83,6 +85,20 @@ check-silent:
 
 check-silent-ci:
 	python3 scripts/check_silent_oks.py
+
+# Reparto de raices: un addon vive en UNA sola raiz de ADDONS_PATHS.
+check-addon-root:
+	@python3 scripts/check_addon_root.py
+
+check-addon-root-ci:
+	@python3 scripts/check_addon_root.py --strict
+
+# chain_method: el dueno del simbolo encadenado esta en el depends (H-API-564).
+check-chain-depends:
+	@python3 scripts/check_chain_method_depends.py
+
+check-chain-depends-ci:
+	@python3 scripts/check_chain_method_depends.py --strict
 
 # Canon-idioma soft — imprime hallazgos pero retorna exit 0.
 check-cycles:

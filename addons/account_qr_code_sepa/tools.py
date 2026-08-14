@@ -101,7 +101,7 @@ _ISO11649_PATTERN = re.compile(r'RF\d{2}[A-Z0-9]{1,21}')
 
 
 def _iso11649_is_valid(reference: str) -> bool:
-    """Checksum ISO 11649 (Structured Creditor Reference) — sustituye
+    r"""Checksum ISO 11649 (Structured Creditor Reference) — sustituye
     ``stdnum.iso11649.is_valid``.
 
     Formato: ``RF`` + 2 dígitos de control + hasta 21 alfanuméricos (longitud
