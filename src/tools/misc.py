@@ -129,3 +129,23 @@ def split_every(n, iterable, piece_maker=tuple):
     while piece:
         yield piece
         piece = piece_maker(islice(iterator, n))
+
+
+def clean_context(context: dict) -> dict:
+    """≙ ``clean_context`` (``odoo19c: odoo/tools/misc.py:952-956``).
+
+    «This function take a dictionary and remove each entry with its key
+    starting with ``default_``.»
+
+    Se porta en vez de resolverse con stdlib porque lo que se elimina no es un
+    detalle de forma: las claves ``default_*`` son las que su ORM consume para
+    prefijar valores al **crear** un registro. Propagarlas a una operación que
+    crea otra cosa —el caso de ``StockScrap.do_replenish``, que dispara un
+    abastecimiento— sembraría el registro nuevo con los defaults del formulario
+    que lo originó. La referencia limpia el contexto ahí por esa razón exacta
+    (``odoo19c: addons/stock/models/stock_scrap.py:171``).
+
+    :param context: diccionario de contexto a limpiar.
+    :returns: copia sin las claves ``default_*``.
+    """
+    return {k: v for k, v in context.items() if not k.startswith('default_')}

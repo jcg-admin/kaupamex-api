@@ -67,6 +67,13 @@ class StockMove(TimeStampedModel):
         'self', symmetrical=False, blank=True, related_name='move_dest',
         help_text='Movimientos origen que abastecen a éste (Odoo move_orig_ids).',
     )
+    scrap           = fields.Many2one(
+        'stock.StockScrap', null=True, blank=True, on_delete=models.CASCADE,
+        related_name='move_ids',
+        help_text='Desecho que originó el movimiento (Odoo scrap_id). Es el '
+                  'inverso que ``stock.scrap.move_ids`` declara '
+                  '(odoo19c: stock/models/stock_scrap.py:37).',
+    )
     state           = fields.Selection(
         max_length=16, choices=STATE_CHOICES, default=STATE_DRAFT,
         help_text='Estado (Odoo stock.move.state).',

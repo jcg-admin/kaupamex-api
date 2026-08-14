@@ -26,21 +26,27 @@ False``) pero no lo declara — colgarlo desde el satélite pondría el símbolo
 el addon equivocado, que es la clase de defecto que :ref:`h-api-350` registra
 (el porte que entrega todos los símbolos con la forma y el sitio cambiados).
 
-Divergencia declarada — el ``compute`` de ``tracking``
---------------------------------------------------------
+Divergencia declarada — los dos ``compute`` se invocan a mano
+--------------------------------------------------------------
 
-La referencia declara ``compute='_compute_tracking', store=True,
-readonly=False, precompute=True``: el valor se recalcula cuando cambia el tipo
-de producto y queda editable. Aquí se porta como campo **almacenado con
-default**, sin el compute: ``_compute_tracking`` depende de
-``is_storable``/``type``, dos campos de este mismo archivo que aún no están
-portados. El compute entra con ellos, en el mismo bloque de #274 — no antes,
-porque un compute sobre campos ausentes no se puede escribir sin inventar sus
-dependencias.
+La referencia declara ``is_storable`` y ``tracking`` como campos
+**almacenados con compute** (``compute='compute_is_storable'`` y
+``compute='_compute_tracking'``, ambos ``store=True, readonly=False,
+precompute=True``): su ORM los recalcula cuando cambia la dependencia y el
+valor queda editable. Aquí son campos almacenados con default y sus dos
+computes se portan como métodos que el consumidor invoca — el motor de
+``@api.depends`` no existe todavía (tarea **#191**).
+
+El texto anterior de esta sección decía que ``_compute_tracking`` estaba
+bloqueado porque dependía de ``is_storable``/``type``, «dos campos de este
+mismo archivo que aún no están portados». Ya lo están —``is_storable`` en este
+pase, ``type`` desde ``product.template``— así que el compute entró con ellos,
+que es la condición que ese texto fijaba.
 """
 import fields
 
 from addons.product.models import ProductProduct, ProductTemplate
+from addons.product.models.product_template import TYPE_CONSU
 
 #: ≙ ``tracking`` (``odoo19c: stock/models/product.py:842-848``). El
 #: vocabulario es el de la referencia, verbatim y en el mismo orden.
@@ -67,15 +73,67 @@ def tracking(self):
     return self.product_tmpl.tracking
 
 
+def is_storable(self):
+    """≙ ``product.product.is_storable`` — delegado al template.
+
+    Mismo idioma que ``tracking``: la variante expone por property lo que el
+    template declara como columna.
+    """
+    return self.product_tmpl.is_storable
+
+
+def compute_is_storable(self):
+    """≙ ``compute_is_storable`` (``odoo19c: stock/models/product.py:898-899``).
+
+    «``self.filtered(lambda t: t.type != 'consu' and t.is_storable).is_storable
+    = False``» — sólo un **bien** (``consu``) puede llevar existencias; un
+    servicio o un combo no, y si alguien lo marcó se desmarca.
+
+    El nombre va **sin** guion bajo porque la referencia lo declara así
+    (``compute='compute_is_storable'``, ``:826``): es de los pocos ``compute``
+    que expone en público, y el porte conserva su visibilidad
+    (``porte-completo-no-parcial.md``, H-API-581).
+    """
+    if self.type != TYPE_CONSU and self.is_storable:
+        self.is_storable = False
+
+
+def _compute_tracking(self):
+    """≙ ``_compute_tracking`` (``odoo19c: stock/models/product.py:1080-1082``).
+
+    «``self.filtered(lambda t: not t.is_storable and t.tracking != 'none')
+    .tracking = 'none'``» — sin existencias que rastrear no hay trazabilidad
+    que declarar.
+
+    Estaba **bloqueado** hasta este pase: el docstring de arriba decía que
+    depende de ``is_storable``/``type``, «dos campos de este mismo archivo que
+    aún no están portados». Ya lo están, así que el compute entra con ellos —
+    que es exactamente lo que ese texto anticipaba.
+    """
+    if not self.is_storable and self.tracking != 'none':
+        self.tracking = 'none'
+
+
 def apply_stock_product_extensions():
-    """Cuelga ``tracking`` sobre ``product.template`` y su delegación.
+    """Cuelga ``is_storable`` y ``tracking`` sobre ``product.template``.
 
     La llama ``StockConfig.ready()``; los tests la invocan explícitamente
     (mismo criterio que ``account_fleet``).
     """
+    _add_if_absent(ProductTemplate, 'is_storable', fields.Boolean(
+        default=False,
+        help_text='Lleva existencias en almacén (Odoo is_storable, '
+                  '«Track Inventory»).',
+    ))
     _add_if_absent(ProductTemplate, 'tracking', fields.Selection(
         choices=TRACKING_CHOICES, max_length=16, default='none',
         help_text='Trazabilidad del producto almacenable (Odoo tracking).',
     ))
+    if not hasattr(ProductTemplate, 'compute_is_storable'):
+        ProductTemplate.compute_is_storable = compute_is_storable
+    if not hasattr(ProductTemplate, '_compute_tracking'):
+        ProductTemplate._compute_tracking = _compute_tracking
     if not hasattr(ProductProduct, 'tracking'):
         ProductProduct.tracking = property(tracking)
+    if not hasattr(ProductProduct, 'is_storable'):
+        ProductProduct.is_storable = property(is_storable)
