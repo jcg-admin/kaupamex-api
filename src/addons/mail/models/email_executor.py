@@ -16,7 +16,7 @@ send_pending_emails (cron cada minuto). Garantia de entrega sin broker externo
 (sin Celery, sin Redis, sin RabbitMQ). ``MailMail`` es el hogar Odoo fiel de la
 cola (ex-``notifications.EmailTask``, disuelto en la familia ``mail``).
 
-UCs afectados: UC-NOT-01..05, UC-USR-02, UC-USR-04, UC-COM-01, UC-NEW-04.
+UCs afectados: UC-NOT-01..05, UC-AUTH-09, UC-AUTH-10, UC-COM-01, UC-NEW-04.
 """
 import logging
 from concurrent.futures import ThreadPoolExecutor
