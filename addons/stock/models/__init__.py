@@ -24,6 +24,7 @@ from addons.stock.models.stock_package import StockPackage
 from addons.stock.models.stock_package_history import StockPackageHistory
 from addons.stock.models.stock_lot import StockLot
 from addons.stock.models.stock_move import StockMove
+from addons.stock.models.stock_reference import StockReference
 from addons.stock.models.stock_move_line import (
     StockMoveLine,
     StockMoveLineConsumeRel,
@@ -62,6 +63,7 @@ __all__ = [
     'StockPickingType',
     'StockPutawayRule',
     'StockQuant',
+    'StockReference',
     'StockRoute',
     'StockRule',
     'StockScrap',
