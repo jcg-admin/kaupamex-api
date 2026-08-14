@@ -312,7 +312,7 @@ import fields
 import models
 from django.apps import apps
 from django.db import connection
-from django.db.models import F, Q, Sum
+from django.db.models import Case, F, IntegerField, Q, Sum, Value, When
 from django.utils import timezone
 
 from addons.base.models import TimeStampedModel
@@ -746,7 +746,7 @@ class StockQuant(TimeStampedModel):
         if not (modo_inventario and trae_conteo):
             if 'inventory_quantity' not in vals:
                 vals.setdefault('inventory_quantity_set', False)
-            return super().objects.create(**vals)
+            return cls.objects.create(**vals)
 
         invasores = [c for c in vals if not c.startswith('x_') and c not in permitidos]
         if invasores:
@@ -764,7 +764,7 @@ class StockQuant(TimeStampedModel):
             package=vals.get('package'), owner=vals.get('owner'), strict=True,
         ).first()
         if quant is None:
-            quant = super().objects.create(**vals)
+            quant = cls.objects.create(**vals)
         if auto_aplicar:
             quant.inventory_quantity_auto_apply = contado
         else:
@@ -1412,7 +1412,9 @@ class StockQuant(TimeStampedModel):
             if owner is not None:
                 dominios.append(Q(owner=owner))
             if location is not None:
-                dominios.append(Q(location__in=location.child_of()))
+                # ≙ ``Domain('location_id', 'child_of', location_id.id)``
+                # (``odoo19c: :759``) — el OPERADOR, no el predicado.
+                dominios.append(location.child_of_domain())
         else:
             dominios.extend((
                 Q(lot=lot) if lot is not None else Q(lot__isnull=True),
@@ -1451,13 +1453,28 @@ class StockQuant(TimeStampedModel):
             queryset = cls._run_least_packages_removal_strategy_astar(queryset, qty)
         orden = cls._get_removal_strategy_order(estrategia)
         if orden:
-            queryset = queryset.order_by(*orden)
+            orden_final = orden
         elif estrategia == 'closest':
-            queryset = queryset.order_by('location__complete_name', '-id')
-        # ≙ ``res.sorted(lambda q: not q.lot_id)`` (``:791``): los quants con
-        # lote van primero. En SQL es el mismo criterio expresado como NULLs al
-        # final.
-        return queryset.order_by(F('lot').desc(nulls_last=True), *(orden or ('id',)))
+            orden_final = ('location__complete_name', '-id')
+        else:
+            orden_final = ('id',)
+        # ≙ ``res.sorted(lambda q: not q.lot_id)`` (``:791``): los quants CON
+        # lote van primero, y dentro de cada grupo manda la estrategia — el
+        # ``sorted`` de la fuente es estable, así que no reordena lo ya ordenado.
+        #
+        # Dos cuidados que costaron el orden FIFO:
+        #
+        # - ``order_by`` de Django **reemplaza**, no acumula: encadenar uno por
+        #   rama y otro al final descartaba el de la estrategia (y con él las
+        #   ramas ``least_packages`` y ``closest``). Va una sola llamada.
+        # - la clave es «¿tiene lote?», un booleano, **no** el valor del lote:
+        #   ``F('lot').desc(nulls_last=True)`` ordena por id de lote descendente,
+        #   que es otra cosa y pisaba el ``in_date``.
+        return (queryset
+                .annotate(without_lot=Case(
+                    When(lot__isnull=True, then=Value(1)),
+                    default=Value(0), output_field=IntegerField()))
+                .order_by('without_lot', *orden_final))
 
     @classmethod
     def _get_available_quantity(cls, product, location, lot=None, package=None,
@@ -1579,10 +1596,12 @@ class StockQuant(TimeStampedModel):
         resultado = defaultdict(list)
         if not products or not locations:
             return resultado
-        descendientes = []
-        for location in locations:
-            descendientes.extend(location.child_of())
-        filtro = Q(product__in=products, location__in=descendientes)
+        # ≙ ``('location_id', 'child_of', locations.ids)`` — el operador de
+        # dominio, que sobre varias raíces es la unión de sus descendencias.
+        filtro = expression.AND([
+            Q(product__in=products),
+            expression.OR([location.child_of_domain() for location in locations]),
+        ])
         if extra_domain is not None:
             # ≙ ``domain &= Domain(extra_domain)`` (``odoo19c: :925``).
             filtro = expression.AND([filtro, extra_domain])

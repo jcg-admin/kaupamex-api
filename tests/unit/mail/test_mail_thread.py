@@ -180,7 +180,7 @@ class TestMailThreadActivities:
 
 class TestMailThreadTracking:
     def test_message_track_creates_notification_and_values(self, ticket, user):
-        msg = ticket.message_track([
+        msg = ticket._message_track([
             {'field': 'status', 'field_desc': 'Estado', 'field_type': 'char',
              'old': 'OPEN', 'new': 'RESOLVED'},
             {'field': 'priority', 'field_desc': 'Prioridad', 'field_type': 'char',
@@ -197,7 +197,7 @@ class TestMailThreadTracking:
         assert status_tv.get_new_value() == 'RESOLVED'
 
     def test_message_track_typed_value_columns(self, ticket, user):
-        msg = ticket.message_track([
+        msg = ticket._message_track([
             {'field': 'amount', 'field_type': 'float', 'old': 10.0, 'new': 25.5},
             {'field': 'qty', 'field_type': 'integer', 'old': 1, 'new': 3},
         ])
@@ -209,11 +209,11 @@ class TestMailThreadTracking:
         assert qty.old_value_integer == 1 and qty.new_value_integer == 3
 
     def test_message_track_empty_is_noop(self, ticket):
-        assert ticket.message_track([]) is None
+        assert ticket._message_track([]) is None
         assert ticket.message_ids.count() == 0
 
     def test_tracking_deleted_with_message(self, ticket, user):
-        msg = ticket.message_track([
+        msg = ticket._message_track([
             {'field': 'status', 'old': 'OPEN', 'new': 'CLOSED'}], author=user)
         tv_pk = msg.tracking_value_ids.first().pk
         msg.delete()  # CASCADE (Odoo ondelete='cascade')

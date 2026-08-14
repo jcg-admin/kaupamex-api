@@ -415,11 +415,11 @@ class SaleOrder(MailThread, TimeStampedModel):
         En Odoo el rastro lo dispara el ``write()`` del ORM al ver un campo con
         ``tracking=``; Django no tiene ese enganche, así que lo invoca quien
         hace la transición — mismo resultado, mecanismo adaptado (ver
-        ``MailThread.message_track``). No registra nada si el valor no cambió.
+        ``MailThread._message_track``). No registra nada si el valor no cambió.
         """
         if old == new:
             return None
-        return self.message_track([{
+        return self._message_track([{
             'field': field, 'field_desc': field_desc,
             'field_type': field_type, 'old': old, 'new': new,
         }])

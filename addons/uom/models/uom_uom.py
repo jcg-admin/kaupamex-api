@@ -80,6 +80,27 @@ UNPROTECTED_UOM_XML_IDS = (
 CRITICAL_CHANGE_GRACE = datetime.timedelta(days=1)
 
 
+def _as_float(value):
+    """Frontera entre el dominio ``Decimal`` de este árbol y ``float_utils``.
+
+    En la referencia toda cantidad es ``Float`` (``product_uom_qty``,
+    ``quantity``, ``product_qty``…), así que ``float_round``/``float_compare``
+    son float-only por construcción — su algoritmo normaliza dividiendo por el
+    factor de redondeo, y ``Decimal / float`` levanta ``TypeError``. Aquí esos
+    campos son ``DecimalField`` (dinero y cantidad exactos, ADR-028), de modo
+    que un ``Decimal`` llega a ``uom.compare(...)`` en cuanto alguien compara
+    dos cantidades reales — medido: ``stock_rule._run_pull`` ordenando por
+    ``product_uom.compare(proc.product_qty, 0.0)``.
+
+    La conversión se hace **aquí y no dentro de ``float_utils``**: aquel es
+    puerto verbatim de un algoritmo de coma flotante y aceptar ``Decimal`` en
+    silencio lo volvería mentiroso sobre lo que devuelve. ``Uom`` ya es la capa
+    de adaptación (declara ``_precision_digits()``, que la referencia no
+    tiene), así que es su sitio.
+    """
+    return float(value) if value is not None else value
+
+
 class Uom(TimeStampedModel):
     """``uom.uom`` — unidad de medida de producto."""
 
@@ -265,21 +286,26 @@ class Uom(TimeStampedModel):
     # === MÉTODOS DE NEGOCIO ================================================
 
     def round(self, value: float, rounding_method: str = 'HALF-UP') -> float:
-        """Redondea con la precisión "Product Unit" (Odoo ``:118-122``)."""
+        """Redondea con la precisión "Product Unit" (Odoo ``:118-122``).
+
+        ``value`` admite ``Decimal`` además de ``float`` — ver ``_as_float``.
+        """
         return float_round(
-            value, precision_digits=self._precision_digits(),
+            _as_float(value), precision_digits=self._precision_digits(),
             rounding_method=rounding_method,
         )
 
     def compare(self, value1: float, value2: float) -> int:
         """Compara dos medidas tras redondearlas (Odoo ``:124-133``)."""
         return float_compare(
-            value1, value2, precision_digits=self._precision_digits(),
+            _as_float(value1), _as_float(value2),
+            precision_digits=self._precision_digits(),
         )
 
     def is_zero(self, value: float) -> bool:
         """``True`` si el valor es cero a la precisión declarada (Odoo ``:135-139``)."""
-        return float_is_zero(value, precision_digits=self._precision_digits())
+        return float_is_zero(
+            _as_float(value), precision_digits=self._precision_digits())
 
     def compute_quantity(
         self,

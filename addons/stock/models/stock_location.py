@@ -137,7 +137,7 @@ from collections import defaultdict
 import fields
 import models
 from django.apps import apps
-from django.db.models import Sum
+from django.db.models import Q, Sum
 
 from addons.base.models import TimeStampedModel
 from addons.base.models.ir_model import IrModelData
@@ -516,8 +516,26 @@ class StockLocation(TimeStampedModel):
         ubicacion.refresh_computed_fields()
         return ubicacion
 
+    def save(self, *args, **kwargs):
+        """Los ``compute … store=True`` se disparan en CADA escritura.
+
+        En la referencia los recalcula el ORM, así que da igual por dónde entre
+        el registro. Aquí sólo los disparaba el ``create`` portado, y
+        ``objects.create(...)`` —el camino de Django, el que usan los tests y
+        buena parte del árbol— dejaba ``complete_name``, ``parent_path`` y
+        ``warehouse`` vacíos. Se detectó con ``complete_name == ''`` donde la
+        jerarquía decía ``WH/Stock``.
+
+        El recálculo va **después** del ``INSERT`` porque ``parent_path``
+        incluye el propio ``id``, y persiste con ``update_fields`` para no
+        reescribir el resto. No hay recursión: ``refresh_computed_fields`` llama
+        a ``super().save()``, que es el de ``TimeStampedModel``, no éste.
+        """
+        super().save(*args, **kwargs)
+        self.refresh_computed_fields()
+
     def refresh_computed_fields(self):
-        """Recalcula y persiste los tres campos almacenados de la referencia."""
+        """Recalcula y persiste los cinco campos almacenados de la referencia."""
         self.compute_parent_path()
         self.compute_complete_name()
         self.compute_replenish_location()
@@ -793,10 +811,20 @@ class StockLocation(TimeStampedModel):
         La fecha del quant de esta ubicación sale de tres reglas, en orden:
         el ciclo propio; si no, el inventario anual de la empresa; si no,
         ninguna. Con ambos, gana el más próximo.
+
+        **Divergencia — "sin fecha" es ``None``, no ``False``.** La fuente
+        devuelve ``False`` en las tres salidas negativas (``:379``, ``:405``):
+        en Odoo ``False`` es el nulo universal de todo campo. Aquí el nulo de un
+        ``DateField`` es ``None``, y ``False`` no lo es: el consumidor lo
+        escribe tal cual y Django revienta al preparar el valor
+        (``parse_date(False)`` → ``TypeError: fromisoformat: argument must be
+        str``), que es como se detectó — ``StockQuant._compute_inventory_date``
+        asignándolo a ``inventory_date``. Se traduce **en el productor** para
+        que ningún consumidor tenga que acordarse.
         """
         if self.usage not in STOCKED_USAGES:
-            return False
-        fecha_empresa = False
+            return None
+        fecha_empresa = None
         empresa = self.company
         mes = getattr(empresa, 'annual_inventory_month', None) if empresa else None
         if mes:
@@ -830,6 +858,28 @@ class StockLocation(TimeStampedModel):
         if not self.parent_path or other_location is None:
             return False
         return self.parent_path.startswith(other_location.parent_path)
+
+    def child_of_domain(self, field_path='location'):
+        """≙ el **operador de dominio** ``child_of``, no el predicado ``_child_of``.
+
+        Son dos cosas distintas y confundirlas costó cuatro tests: ``_child_of``
+        (arriba) responde *sí/no* sobre **una** ubicación; ``('location_id',
+        'child_of', id)`` selecciona **todas** las descendientes, y en la
+        referencia lo implementa el ORM, no el modelo
+        (``odoo19c: odoo/orm/domains.py:1780-1791``): para un modelo
+        ``_parent_store`` se reduce a ``parent_path =like <ruta>%``.
+
+        Aquí no hay motor de dominios que lo provea, así que el mecanismo vive
+        en el modelo que lo tiene —el que mantiene ``parent_path``— en vez de
+        repetirse en cada consumidor, que es como nació el defecto: ``stock_quant``
+        llamaba a ``location.child_of()`` esperando un conjunto y recibía la
+        firma del predicado.
+
+        :param field_path: prefijo del lookup desde el modelo que consulta
+            (``'location'`` para ``StockQuant``, que declara ese FK).
+        :return: un ``Q`` con el mismo alcance que el ``=like`` de la fuente.
+        """
+        return Q(**{f'{field_path}__parent_path__startswith': self.parent_path or ''})
 
     def is_outgoing(self) -> bool:
         """≙ ``_is_outgoing`` (``odoo19c: :467-472``).

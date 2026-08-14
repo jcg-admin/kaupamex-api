@@ -426,7 +426,7 @@ def track_sale_state(order, previous, new, author, note=''):
     Vive aquí y no en ``delivery`` —donde nació— porque el sujeto es el estado
     de la **venta**: ``delivery`` depende de ``sale``, nunca al revés.
     """
-    order.message_track(
+    order._message_track(
         [{'field': 'state', 'field_desc': 'Estado', 'field_type': 'char',
           'old': previous, 'new': new}],
         author=author,

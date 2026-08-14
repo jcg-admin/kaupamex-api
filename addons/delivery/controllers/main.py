@@ -29,7 +29,7 @@ def _track_sale_state(sale_order, previous, new, author, note=''):
     tracking con cuerpo vacío (fiel a Odoo, donde el comentario es otro
     mensaje del hilo).
     """
-    sale_order.message_track(
+    sale_order._message_track(
         [{'field': 'state', 'field_desc': 'Estado', 'field_type': 'char',
           'old': previous, 'new': new}],
         author=author,

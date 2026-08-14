@@ -404,7 +404,7 @@ class StockWarehouse(TimeStampedModel):
         """
         if company is None:
             return ''
-        cuenta = cls.all_objects.filter(company=company).count()
+        cuenta = cls.objects.filter(company=company).count()
         return f'{company.name} - warehouse # {cuenta + 1}' if cuenta else company.name
 
     def _onchange_company_id(self):
@@ -505,8 +505,8 @@ class StockWarehouse(TimeStampedModel):
                 cls._update_partner_data(vals['partner_id'], vals.get('company_id'))
 
             # El almacén no existía cuando se crearon sus ubicaciones.
-            raiz = location_model.all_objects.filter(pk=vals['view_location_id'])
-            location_model.all_objects.filter(
+            raiz = location_model.objects.filter(pk=vals['view_location_id'])
+            location_model.objects.filter(
                 Q(pk=vals['view_location_id']) | Q(location__in=raiz)
             ).update(warehouse=warehouse)
 
@@ -622,7 +622,7 @@ class StockWarehouse(TimeStampedModel):
                 previos = resupply_previos[warehouse.pk]
                 a_agregar, a_quitar = nuevos - previos, previos - nuevos
                 if a_agregar:
-                    existentes = route_model.all_objects.filter(
+                    existentes = route_model.objects.filter(
                         supplied_wh=warehouse, supplier_wh__in=a_agregar, active=False)
                     ya = set(existentes.values_list('supplier_wh_id', flat=True))
                     existentes.update(active=True)
@@ -653,7 +653,7 @@ class StockWarehouse(TimeStampedModel):
         move_model = apps.get_model('stock', 'StockMove')
         rule_model = apps.get_model('stock', 'StockRule')
 
-        tipos = picking_type_model.all_objects.filter(warehouse=self)
+        tipos = picking_type_model.objects.filter(warehouse=self)
         en_curso = move_model.objects.filter(picking_type__in=tipos).exclude(
             state__in=('done', 'cancel'))
         if en_curso.exists():
@@ -664,8 +664,8 @@ class StockWarehouse(TimeStampedModel):
                 warehouse=self.name))
         tipos.update(active=activo)
 
-        ubicaciones = location_model.all_objects.filter(
-            location__in=location_model.all_objects.filter(pk=self.view_location_id))
+        ubicaciones = location_model.objects.filter(
+            location__in=location_model.objects.filter(pk=self.view_location_id))
         ajenos = picking_type_model.objects.filter(
             default_location_src__in=ubicaciones,
             default_location_dest__in=ubicaciones,
@@ -676,8 +676,8 @@ class StockWarehouse(TimeStampedModel):
                 'within warehouse %(warehouse)s, therefore you cannot archive it.',
                 operations=[str(t) for t in ajenos], warehouse=self.name))
 
-        location_model.all_objects.filter(pk=self.view_location_id).update(active=activo)
-        rule_model.all_objects.filter(warehouse=self).update(active=activo)
+        location_model.objects.filter(pk=self.view_location_id).update(active=activo)
+        rule_model.objects.filter(warehouse=self).update(active=activo)
         # Sólo las rutas que aplican **sólo** a este almacén.
         for ruta in self.route_ids.all():
             if ruta.warehouse_ids.count() == 1:
@@ -830,7 +830,7 @@ class StockWarehouse(TimeStampedModel):
         empresa = self.company
 
         if ruta is None or (ruta.company_id and ruta.company_id != self.company_id):
-            ruta = route_model.all_objects.filter(
+            ruta = route_model.objects.filter(
                 expression.AND([
                     Q(name__contains=route_name),
                     Q(company__isnull=True) | Q(company=empresa),
@@ -1014,7 +1014,7 @@ class StockWarehouse(TimeStampedModel):
         """
         rule_model = apps.get_model('stock', 'StockRule')
         for vals in rules_list:
-            existente = rule_model.all_objects.filter(
+            existente = rule_model.objects.filter(
                 picking_type_id=vals['picking_type_id'],
                 location_src_id=vals['location_src_id'],
                 location_dest_id=vals['location_dest_id'],
@@ -1082,7 +1082,7 @@ class StockWarehouse(TimeStampedModel):
         de romper la restricción de unicidad.
         """
         location_model = apps.get_model('stock', 'StockLocation')
-        tomado = location_model.all_objects.filter(
+        tomado = location_model.objects.filter(
             barcode=barcode, company_id=company_id).exists()
         return not tomado and barcode
 
@@ -1396,7 +1396,7 @@ class StockWarehouse(TimeStampedModel):
                 rule_model.objects.create(**vals)
             return
 
-        a_reactivar = rule_model.all_objects.filter(
+        a_reactivar = rule_model.objects.filter(
             route__in=rutas, location_dest_id=self.wh_output_stock_loc_id,
             picking_type_id=self.pick_type_id).exclude(action='push')
         encontradas = set(a_reactivar.values_list('route_id', flat=True))
@@ -1456,10 +1456,10 @@ class StockWarehouse(TimeStampedModel):
     def _update_location_reception(cls, warehouses, new_reception_step):
         """≙ ``_update_location_reception`` (``odoo19c: :949-951``)."""
         location_model = apps.get_model('stock', 'StockLocation')
-        location_model.all_objects.filter(
+        location_model.objects.filter(
             pk__in=[w.wh_qc_stock_loc_id for w in warehouses if w.wh_qc_stock_loc_id]
         ).update(active=new_reception_step == 'three_steps')
-        location_model.all_objects.filter(
+        location_model.objects.filter(
             pk__in=[w.wh_input_stock_loc_id for w in warehouses if w.wh_input_stock_loc_id]
         ).update(active=new_reception_step != 'one_step')
 
@@ -1467,10 +1467,10 @@ class StockWarehouse(TimeStampedModel):
     def _update_location_delivery(cls, warehouses, new_delivery_step):
         """≙ ``_update_location_delivery`` (``odoo19c: :953-955``)."""
         location_model = apps.get_model('stock', 'StockLocation')
-        location_model.all_objects.filter(
+        location_model.objects.filter(
             pk__in=[w.wh_pack_stock_loc_id for w in warehouses if w.wh_pack_stock_loc_id]
         ).update(active=new_delivery_step == 'pick_pack_ship')
-        location_model.all_objects.filter(
+        location_model.objects.filter(
             pk__in=[w.wh_output_stock_loc_id for w in warehouses if w.wh_output_stock_loc_id]
         ).update(active=new_delivery_step != 'ship_only')
 
@@ -1657,9 +1657,9 @@ class StockWarehouse(TimeStampedModel):
         ids = set(self.route_ids.values_list('pk', flat=True))
         if self.mto_pull is not None and self.mto_pull.route_id:
             ids.add(self.mto_pull.route_id)
-        ids.update(route_model.all_objects.filter(supplied_wh=self)
+        ids.update(route_model.objects.filter(supplied_wh=self)
                    .values_list('pk', flat=True))
-        return route_model.all_objects.filter(pk__in=ids)
+        return route_model.objects.filter(pk__in=ids)
 
     def action_view_all_routes(self):
         """≙ ``action_view_all_routes`` (``odoo19c: :1148-1159``). Divergencia D-2."""
