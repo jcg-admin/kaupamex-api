@@ -236,8 +236,11 @@ WSGI_APPLICATION = 'config.wsgi.application'
 _DB_OPTIONS = {}
 # SSL: por defecto verifica el cert del server contra CAs publicas (certifi),
 # valido para la DB productiva (Let's Encrypt; VM3 TCP + require_secure_transport).
-# DB_SSL_MODE=DISABLED apaga TLS para entornos con cert self-signed o socket
-# local (contenedor/CI) sin afectar produccion. Paridad con testing.py
+# DB_SSL_MODE=disable apaga TLS para entornos con cert self-signed, sin SSL
+# compilado, o socket local (contenedor/CI) sin afectar produccion. El literal
+# es ``disable`` — uno de los seis de libpq (disable, allow, prefer, require,
+# verify-ca, verify-full); ``DISABLED`` NO existe y libpq lo rechaza al
+# conectar con ``invalid sslmode value``. Ver H-API-574. Paridad con testing.py
 # (DB_QA_SSL_MODE): antes 'ssl' estaba hardcodeado y rompia el socket local con
 # "certificate verify failed" (H-API-LOG-04).
 #

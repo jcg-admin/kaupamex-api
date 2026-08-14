@@ -34,8 +34,12 @@ MEDIA_ROOT = tempfile.mkdtemp(prefix='pyqa-media-')
 _DB_QA_OPTIONS = {}
 # SSL: por defecto se verifica el cert del server contra CAs publicas
 # (certifi), valido para la DB productiva (Let's Encrypt). En CI la DB es un
-# service container con cert self-signed; DB_QA_SSL_MODE=DISABLED apaga TLS
-# para ese entorno sin afectar local (socket) ni produccion (TCP+SSL).
+# service container SIN SSL compilado; DB_QA_SSL_MODE=disable apaga TLS para
+# ese entorno sin afectar local (socket) ni produccion (TCP+SSL).
+# El literal es ``disable`` — uno de los seis que libpq acepta (disable, allow,
+# prefer, require, verify-ca, verify-full). ``DISABLED`` NO existe: baja a
+# ``disabled`` por el ``.lower()`` y libpq lo rechaza al conectar con
+# ``invalid sslmode value: "disabled"``. Ver H-API-574.
 # DB_QA_SSL_MODE y DB_QA_SOCKET son TOGGLES OPCIONALES (paridad con base.py):
 # su ausencia tiene un significado definido por el guard ``if _X:`` de abajo
 # (verificar cert contra CAs publicas / fallback TCP). Llevan ``default=''`` a
@@ -112,7 +116,10 @@ FRONTEND_URL = "http://localhost:3001"
 # que mail.outbox este poblado cuando el test asserta (race condition).
 DISPATCH_EMAIL_SYNC = True
 
-# MySQL en testing — evitar deadlocks por conexiones persistentes
+# Conexion no persistente en tests: cada test cierra la suya. Evita que una
+# transaccion abierta de un test bloquee al siguiente. El comentario decia
+# "MySQL en testing" — drift de ADR-028, que movio el motor a PostgreSQL el
+# 2026-08-06; se corrige aqui por ser el pase que toca el archivo.
 DATABASES['default']['CONN_MAX_AGE'] = 0
 DATABASES['default']['OPTIONS']['connect_timeout'] = 10
 
