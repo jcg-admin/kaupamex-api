@@ -24,11 +24,10 @@ débito es una operación sobre ``account.move``, que dueña ``invoices``).
 
 Además, la ACL de la referencia gatea la tabla del **wizard**
 (``print.prenumbered.checks``), que aquí no tiene tabla (``TransientModel``,
-``managed = False`` — ver ``wizard/print_prenumbered_checks.py``) ni vista
-DRF propia en este pase (mismo criterio que ``models/account_payment.py``,
-Divergencia 3: sin serializer de ``account.payment`` todavía). El
-enforcement queda DEFERIDO a la vista que en el futuro exponga
-``CheckPrintingPaymentInfo.prepare_print_checks``/
-``PrintPrenumberedChecksWizard.print_checks`` — gateada por
-``HasCapability('finance.record')``, no por una capacidad nueva.
+``managed = False`` — ver ``wizard/print_prenumbered_checks.py``). El
+enforcement lo ejerce ``controllers/views.py::print_checks`` (H-API-406,
+tarea #50; UC-FIN-09) — gateada por ``HasCapability('finance.record')``, no
+por una capacidad nueva. La ACL de la referencia sobre
+``model_print_prenumbered_checks`` no tiene análogo directo (sin tabla que
+gatear); la capacidad de dominio cumple el mismo papel.
 """

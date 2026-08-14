@@ -24,9 +24,8 @@ usuario) declaren su propio catálogo.
 
 Además, la ACL de la referencia gatea la tabla del **wizard**
 (``account.debit.note``), que aquí no tiene tabla (``TransientModel``,
-``managed = False`` — ver ``wizard/account_debit_note.py``) ni vista DRF
-propia en este pase (ver ``__init__.py`` del addon). El enforcement queda
-DEFERIDO a la vista que en el futuro exponga ``AccountDebitNoteWizard.
-create_debit`` — gateada por ``HasCapability('invoices')``, no por una
-capacidad nueva.
+``managed = False`` — ver ``wizard/account_debit_note.py``). El enforcement
+lo ejerce ``controllers/views.py::create_debit_note`` (H-API-406, tarea #51;
+UC-FIN-10) — gateada por ``HasCapability('invoices')``, no por una capacidad
+nueva.
 """

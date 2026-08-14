@@ -22,7 +22,7 @@ Por clase hay un cuarto veredicto, ``CLASE EXTENDIDA``: la clase no existe
 aquí **y el addon instala símbolos sobre ella** desde ``ready()``. Ver la
 sección siguiente.
 
-El porte por extensión cross-app (H-API-557)
+El porte por extensión cross-app (H-API-569)
 ---------------------------------------------
 
 Django no fusiona dos definiciones del mismo modelo declaradas en apps

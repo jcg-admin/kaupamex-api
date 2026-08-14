@@ -25,6 +25,33 @@ logger = logging.getLogger('apps')
 PAYPAL_API_BASE    = 'https://api.paypal.com'
 PAYPAL_API_SANDBOX = 'https://api.sandbox.paypal.com'
 
+# Nombre público de checkout — fallback neutral de plataforma (L0, el
+# operador Kaupamex), NO el de una empresa concreta. H-API-395: el checkout
+# de PayPal mostraba 'Kaupamex' fijo para TODA orden, colapsando L0/L1 — el
+# comprador debe ver el nombre de la Company (L1) que le vende, no el
+# operador de plataforma. Mismo criterio que
+# ``mail.notification_emails.NOTIFICATIONS_FROM_EMAIL_DEFAULT``: constante
+# neutral sólo para cuando no hay Company resoluble.
+PAYPAL_BRAND_NAME_DEFAULT = 'Kaupamex'
+
+
+def _resolve_brand_name(order) -> str:
+    """
+    Nombre público que PayPal muestra en el checkout (``brand_name``) y en
+    la descripción de la compra — el de la Company (L1) dueña de la orden,
+    resuelto vía ``order.company``.
+
+    ``ResCompany.name`` ya delega a ``partner.name`` (``base/models/
+    res_company.py``): es el nombre público de la empresa, sin necesitar
+    un campo nuevo ni una migración. Cae al fallback neutral de plataforma
+    cuando la orden todavía no tiene ``company`` resuelta (nullable durante
+    el backfill, ``sale/models/sale_order.py:159-165``) o el nombre viene
+    vacío.
+    """
+    company = getattr(order, 'company', None)
+    name = (getattr(company, 'name', '') or '').strip() if company else ''
+    return name or PAYPAL_BRAND_NAME_DEFAULT
+
 
 def _get_credentials() -> dict:
     """
@@ -90,11 +117,12 @@ class PayPalGateway(BaseGateway):
         env          = creds.get('env', 'sandbox')
         base_url     = PAYPAL_API_BASE if env == 'live' else PAYPAL_API_SANDBOX
 
-        total = str(order.amount_total)
+        total       = str(order.amount_total)
+        brand_name  = _resolve_brand_name(order)
 
         purchase_units = [{
             'reference_id':  order.name,
-            'description':   f'Orden {order.name} — Kaupamex',
+            'description':   f'Orden {order.name} — {brand_name}',
             'amount': {
                 'currency_code': 'MXN',
                 'value':         total,
@@ -123,7 +151,7 @@ class PayPalGateway(BaseGateway):
             'application_context': {
                 'return_url': back_urls.get('success', ''),
                 'cancel_url': back_urls.get('failure', ''),
-                'brand_name': 'Kaupamex',
+                'brand_name': brand_name,
                 'user_action': 'PAY_NOW',
             },
         }

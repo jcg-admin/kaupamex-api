@@ -57,7 +57,7 @@ ALLOWED_HOSTS = opt('ALLOWED_HOSTS')
 # donde la referencia la pone y donde un gate puede verla.
 #
 # Precondición que lo hizo posible: los **91 de 91** manifiestos (#296) y el
-# 2-ciclo ``sale ↔ delivery`` retirado (H-API-563). Ver H-API-559 (el
+# 2-ciclo ``sale ↔ delivery`` retirado (H-API-563). Ver H-API-571 (el
 # diagnóstico) y H-API-562 (el ciclo del grafo de *imports*, que es otro
 # objeto y sigue abierto en #322 — no bloquea esta derivación porque Django no
 # recorre los imports para ordenar ``INSTALLED_APPS``).

@@ -46,7 +46,7 @@ Requiere:
 
 ## La Definition of Done en e-commerce
 
-La DoD se alinea con los gates **reales** del proyecto PracticaYoruba — no con un ideal abstracto. Cada item debe ser verificable con un comando o evidencia observable.
+La DoD se alinea con los gates **reales** del proyecto Kaupamex — no con un ideal abstracto. Cada item debe ser verificable con un comando o evidencia observable.
 
 | # | Item de la DoD | Verificación (PROVEN) |
 |---|----------------|------------------------|

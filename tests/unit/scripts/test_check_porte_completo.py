@@ -1,4 +1,4 @@
-"""El gate de porte reconoce la extensión cross-app (H-API-557, tarea #316).
+"""El gate de porte reconoce la extensión cross-app (H-API-569, tarea #316).
 
 Estos tests son **puros**: no tocan Django ni la base. Miden el instrumento,
 no el código de aplicación — y existen porque :ref:`h-api-556` dejó dicho que

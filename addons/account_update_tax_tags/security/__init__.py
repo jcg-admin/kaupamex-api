@@ -24,8 +24,8 @@ dominio que ``invoices`` ya cubre — mismo criterio que
 Además, la ACL de la referencia gatea la tabla del **wizard**
 (``account.update.tax.tags.wizard``), que aquí no tiene tabla
 (``TransientModel``, ``managed = False`` — ver
-``wizard/account_update_tax_tags_wizard.py``) ni vista DRF propia en este
-pase. El enforcement queda DEFERIDO a la vista que en el futuro exponga
-``AccountUpdateTaxTagsWizard.update_amls_tax_tags`` — gateada por
-``HasCapability('invoices')``, no por una capacidad nueva.
+``wizard/account_update_tax_tags_wizard.py``). El enforcement lo ejerce
+``controllers/views.py::recalculate_tax_tags`` (H-API-406, tarea #52;
+UC-FIN-11) — gateada por ``HasCapability('invoices')``, no por una capacidad
+nueva.
 """
