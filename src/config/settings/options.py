@@ -172,3 +172,16 @@ def get(name, *, overrides=None):
 def required_options():
     """Nombres de las opciones sin default — el equivalente a SOL-087."""
     return sorted(name for name, opt in OPTIONS.items() if opt.required)
+
+
+def env_names():
+    """Toda variable de entorno que este registro reconoce, requerida o no.
+
+    ``required_options()`` responde "¿qué falta si no está?"; esto responde
+    "¿qué configura al proceso?", que es una pregunta distinta y más amplia.
+    Un toggle con ``default=`` no rompe el import cuando falta, pero sí
+    cambia a qué base y con qué TLS se conecta — ``DB_QA_SSL_MODE`` es el
+    caso: ausente, la conexión cae en ``verify-full``. Quien reconstruya el
+    entorno de un proceso hijo necesita esta lista, no la de requeridas.
+    """
+    return sorted({opt.env_name for opt in OPTIONS.values()})
