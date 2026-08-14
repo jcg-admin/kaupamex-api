@@ -245,6 +245,31 @@ class TestCloseReopen:
         assert res.status_code == 200
         assert res.json()['status'] == 'CLOSED'
 
+    def test_buyer_close_notifies_as_buyer_not_staff(self, auth_client, user, db):
+        # H-API-404: SupportTicketCloseView.post no seteaba
+        # ticket._closed_by_staff antes de guardar, asi que el default
+        # True del signal _support_ticket_closed (handlers.py) se
+        # aplicaba tambien cuando cerraba el propio comprador.
+        t = SupportTicket.objects.create(
+            user=user, subject='Cerrar', body='Mensaje original del ticket.')
+        res = auth_client.patch(
+            f'{TICKETS_URL}{t.pk}/status/', {'action': 'close'}, format='json')
+        assert res.status_code == 200
+        notification = Notification.objects.get(
+            user=user, type=NotificationType.SUPPORT_UPDATE)
+        assert notification.subject == f'Ticket #{t.pk} cerrado'
+        assert 'resuelto' not in notification.subject
+
+    def test_admin_close_notifies_as_staff(self, admin_client, user, admin_user, db):
+        t = SupportTicket.objects.create(
+            user=user, subject='Cerrar', body='Mensaje original del ticket.')
+        res = admin_client.patch(
+            f'{TICKETS_URL}{t.pk}/status/', {'action': 'close'}, format='json')
+        assert res.status_code == 200
+        notification = Notification.objects.get(
+            user=user, type=NotificationType.SUPPORT_UPDATE)
+        assert notification.subject == f'Ticket #{t.pk} resuelto — Soporte'
+
     def test_close_already_closed_returns_409(self, auth_client, user, db):
         t = SupportTicket.objects.create(
             user=user, subject='Cerrar', body='Mensaje original del ticket.',
