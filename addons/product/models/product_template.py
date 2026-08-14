@@ -99,6 +99,8 @@ import models
 from django.core.exceptions import ValidationError
 
 from addons.base.models.image_mixin import ImageMixin
+from addons.base.models.ir_config_parameter import SystemParameter
+from addons.base.models.ir_model import IrModelData
 from addons.base.models.res_company import ResCompany
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from addons.product.models.product_category import ProductCategory
@@ -383,3 +385,62 @@ class ProductTemplate(ImageMixin, TimeStampedModel):
         ``JSONField``, que no lleva esa indirección.
         """
         return getattr(self.categ, 'product_properties_definition', None) or []
+
+    # -- unidad de peso / longitud / volumen leída del parámetro de sistema --
+    #
+    # ≙ los seis ayudantes de ``odoo19c: product/models/product_template.py:354-403``.
+    # Son ``@api.model``: no dependen de la instancia, así que aquí son
+    # ``classmethod``. Los consume ``stock.package.type`` (etiquetas de alto,
+    # ancho y peso) y ``stock.storage.category`` (etiqueta de peso máximo).
+
+    @classmethod
+    def get_weight_uom_id_from_ir_config_parameter(cls):
+        """≙ ``_get_weight_uom_id_from_ir_config_parameter`` (``:354-364``).
+
+        El peso se interpreta en kilogramos salvo que el parámetro
+        ``product.weight_in_lbs`` valga ``'1'``, en cuyo caso son libras.
+        """
+        if SystemParameter.get_param('product.weight_in_lbs') == '1':
+            return IrModelData.ref('uom.product_uom_lb', raise_if_not_found=False)
+        return IrModelData.ref('uom.product_uom_kgm', raise_if_not_found=False)
+
+    @classmethod
+    def get_length_uom_id_from_ir_config_parameter(cls):
+        """≙ ``_get_length_uom_id_from_ir_config_parameter`` (``:367-377``).
+
+        Milímetros por defecto; pies si ``product.volume_in_cubic_feet`` es
+        ``'1'``. La referencia reutiliza a propósito el parámetro del volumen:
+        quien mide en pies cúbicos mide en pies.
+        """
+        if SystemParameter.get_param('product.volume_in_cubic_feet') == '1':
+            return IrModelData.ref('uom.product_uom_foot', raise_if_not_found=False)
+        return IrModelData.ref('uom.product_uom_millimeter', raise_if_not_found=False)
+
+    @classmethod
+    def get_volume_uom_id_from_ir_config_parameter(cls):
+        """≙ ``_get_volume_uom_id_from_ir_config_parameter`` (``:380-390``)."""
+        if SystemParameter.get_param('product.volume_in_cubic_feet') == '1':
+            return IrModelData.ref('uom.product_uom_cubic_foot', raise_if_not_found=False)
+        return IrModelData.ref('uom.product_uom_cubic_meter', raise_if_not_found=False)
+
+    @classmethod
+    def get_weight_uom_name_from_ir_config_parameter(cls):
+        """≙ ``_get_weight_uom_name_from_ir_config_parameter`` (``:392-394``).
+
+        Devuelve ``''`` si la unidad no está sembrada — la referencia devuelve
+        el ``display_name`` de un recordset vacío, que también es ``''``.
+        """
+        unidad = cls.get_weight_uom_id_from_ir_config_parameter()
+        return str(unidad) if unidad is not None else ''
+
+    @classmethod
+    def get_length_uom_name_from_ir_config_parameter(cls):
+        """≙ ``_get_length_uom_name_from_ir_config_parameter`` (``:396-398``)."""
+        unidad = cls.get_length_uom_id_from_ir_config_parameter()
+        return str(unidad) if unidad is not None else ''
+
+    @classmethod
+    def get_volume_uom_name_from_ir_config_parameter(cls):
+        """≙ ``_get_volume_uom_name_from_ir_config_parameter`` (``:400-402``)."""
+        unidad = cls.get_volume_uom_id_from_ir_config_parameter()
+        return str(unidad) if unidad is not None else ''
