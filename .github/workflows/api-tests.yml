@@ -106,7 +106,13 @@ jobs:
       - name: Build PDF helper (ADR-017)
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq libhpdf-dev
+          # Las dos que declara src/tools/pdf/Makefile:16, NO libhpdf-dev.
+          # libharu 2.4.6 va vendorizado en vendor/libharu, asi que el paquete
+          # del distro no aporta nada: el compilador lee las fuentes del repo.
+          # Lo que si hace falta es lo que ESAS fuentes incluyen —
+          # hpdf_image_png.c:23 hace #include <png.h>— y lo que el enlace pide
+          # (LDLIBS := -lpng -lz -lm). Sin ellas: "png.h: No such file".
+          sudo apt-get install -y -qq zlib1g-dev libpng-dev
           make -C src/tools/pdf
         # UC-PAY-10 / UC-REP-05: las vistas invocan pdf_receipt/pdf_report
         # via subprocess; sin compilar => 500 PDF_GENERATION_FAILED.
