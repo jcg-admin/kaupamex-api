@@ -60,11 +60,35 @@ conceptos y por qué en Django divergen:
 Por eso este archivo es un stub delgado documentado: ``ModelBase`` hace el
 registro y las migraciones materializan el schema; no hay ``add_to_registry`` ni
 MRO-fusion que replicar.
+
+
+``extend_model`` — el ``_inherit`` por nombre
+===============================================
+
+La referencia extiende un modelo **nombrándolo**: ``add_to_registry``
+(``odoo19c: odoo/orm/model_classes.py:152-231``) resuelve cada cadena de
+``_inherit`` contra ``registry[parent_name]``, y ``add_field`` (``:596``) le
+cuelga el campo. Las dos operaciones viven en **este** archivo allá, y por eso
+viven aquí — un archivo propio sería la divergencia de forma de
+:ref:`h-api-568`.
+
+Django trae el acoplamiento tardío en ``Apps.lazy_model_operation``
+(``django/apps/registry.py:388-426``). Lo que este bloque añade es el
+adaptador que lo vuelve seguro; el porqué está medido en ``H-API-577`` y sus
+pruebas en ``tests/unit/orm/test_extension_tardia_por_nombre.py``.
 """
 from django.db.models import Model
 from django.db.models.base import ModelBase
 
-__all__ = ['ModelBase', 'is_model_class', 'is_model_definition']
+from django.apps import apps
+
+from orm.method_chain import chain_method
+from orm.registry import resolve_model_key
+
+__all__ = [
+    'ModelBase', 'is_model_class', 'is_model_definition',
+    'extend_model', 'add_field_if_absent', 'model_key',
+]
 
 
 def is_model_class(cls) -> bool:
@@ -77,3 +101,77 @@ def is_model_definition(cls) -> bool:
     """``True`` si ``cls`` es una definición concreta (no abstracta). Equivale a
     ``odoo.orm.model_classes.is_model_definition`` — sobre ``Model._meta``."""
     return is_model_class(cls) and not cls._meta.abstract
+
+
+def model_key(app_label, model_name):
+    """La clave que ``do_pending_operations`` va a reconstruir.
+
+    ``Model._meta.label`` da ``stock.StockLocation``; la cola se indexa por
+    ``_meta.model_name``, que Django guarda en minúscula. Normalizar aquí es lo
+    que impide el cuelgue silencioso descrito en el docstring del módulo.
+    """
+    return (app_label, model_name.lower())
+
+
+def add_field_if_absent(model, name, field):
+    """Cuelga el campo sólo si el modelo no lo tiene ya.
+
+    Idéntico al ``_add_if_absent`` que ya repiten ``account``,
+    ``account_fleet``, ``l10n_mx`` y ``product_expiry``: el idioma de extensión
+    por ``add_to_class`` no tiene MRO, así que dos addons que cuelguen el mismo
+    campo duplicarían la columna.
+
+    Devuelve ``True`` si lo añadió — para que el llamador pueda medir en vez de
+    suponer.
+    """
+    if any(f.name == name for f in model._meta.get_fields()):
+        return False
+    model.add_to_class(name, field)
+    return True
+
+
+def extend_model(*destino, campos=None, metodos=None,
+                 propiedades=None, luego=None):
+    """Extiende un modelo cuando exista — ≙ ``_inherit``.
+
+    El destino se nombra de una de las dos formas, y la primera es la de la
+    referencia::
+
+        extend_model('product.removal', campos={...})       # el _name portado
+        extend_model('stock', 'ProductRemoval', campos={})  # el par de Django
+
+    El nombre punteado exige que el modelo **ya esté cargado** (lo registra la
+    señal ``class_prepared``); el par de Django no, y es por tanto el único que
+    sirve para el caso genuinamente tardío. Ver
+    :func:`orm.model_naming.resolve_model_key`.
+
+    Ninguno de los cuatro bloques es obligatorio; se aplican en este orden
+    sobre la clase destino:
+
+    ``campos``
+        ``{nombre: field}`` — vía :func:`add_field_if_absent`.
+    ``metodos``
+        ``{nombre: función}`` — vía ``chain_method``, que preserva la
+        implementación previa (el ``super()`` que este idioma no tiene).
+    ``propiedades``
+        ``{nombre: función}`` — instaladas como ``property``, para los
+        ``compute`` sin ``store`` de la referencia. No pisa una existente.
+    ``luego``
+        ``f(modelo)`` — escotilla para lo que no cae en los tres anteriores
+        (índices, constraints, receptores de señal).
+
+    **No devuelve el modelo**: en el caso interesante todavía no existe. Quien
+    necesite la clase la pide dentro de ``luego``, que la recibe como argumento.
+    """
+    def aplicar(modelo):
+        for nombre, field in (campos or {}).items():
+            add_field_if_absent(modelo, nombre, field)
+        for nombre, funcion in (metodos or {}).items():
+            chain_method(modelo, nombre, funcion)
+        for nombre, funcion in (propiedades or {}).items():
+            if not hasattr(modelo, nombre):
+                setattr(modelo, nombre, property(funcion))
+        if luego is not None:
+            luego(modelo)
+
+    apps.lazy_model_operation(aplicar, resolve_model_key(*destino))

@@ -92,16 +92,39 @@ SUBLOCATION_CHOICES = [
 
 
 class ProductRemoval(TimeStampedModel):
-    """``product.removal`` — la estrategia que decide de qué lote se saca."""
+    """``product.removal`` — la estrategia que decide de qué lote se saca.
+
+    Primer modelo del árbol con ``_name`` y ``_description`` declarados
+    (directiva del ejecutor 2026-08-14). La cabecera se lee ahora contra la de
+    ``odoo19c: stock/models/product_strategy.py:8-13`` sin traducir nada:
+
+    .. code-block:: python
+
+       class ProductRemoval(models.Model):
+           _name = 'product.removal'
+           _description = 'Removal Strategy'
+
+           name = fields.Char('Name', required=True, translate=True)
+           method = fields.Char("Method", required=True, translate=True,
+                                help="FIFO, LIFO...")
+
+    ``_description`` conserva la cadena **inglesa** de la fuente —es el origen
+    de traducción allá— y no sustituye a ``Meta.verbose_name``, que es la
+    etiqueta ya en español que este árbol muestra. Ver
+    ``orm/model_naming.py``.
+    """
+
+    _name = 'product.removal'
+    _description = 'Removal Strategy'
 
     name   = fields.Char(
-        max_length=120,
-        help_text='Nombre de la estrategia (Odoo name, requerido, traducible).',
+        'Name', max_length=120, required=True, translate=True,
+        help='Nombre de la estrategia (Odoo name).',
     )
     method = fields.Char(
-        max_length=32,
-        help_text='Método: FIFO, LIFO, FEFO, closest, least_packages '
-                  '(Odoo method, requerido).',
+        'Method', max_length=32, required=True, translate=True,
+        help='FIFO, LIFO... — aquí además FEFO, closest y least_packages '
+             '(Odoo method).',
     )
 
     class Meta:

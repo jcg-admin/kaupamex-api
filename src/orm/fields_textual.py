@@ -33,7 +33,7 @@ Text = models.TextField
 Html = models.TextField               # Odoo Html ≈ TextField (saneo en capa UI)
 
 
-def Char(*args, store=True, **kwargs):
+def Char(*args, store=True, required=None, translate=None, help=None, **kwargs):
     """``fields.Char`` — ≙ el de la referencia, con y sin columna.
 
     ``store=True`` (el defecto, y el de los 432 usos del árbol) devuelve un
@@ -42,7 +42,49 @@ def Char(*args, store=True, **kwargs):
     ``store=False`` devuelve un campo **no persistido** cuyo valor sale de
     ``default`` al leerlo. No genera migración ni aparece en ``_meta``, que es
     lo que la referencia promete con esa bandera.
+
+    Los tres alias de firma
+    ~~~~~~~~~~~~~~~~~~~~~~~~
+
+    Añadidos 2026-08-14 para que el sitio de declaración se lea contra el de la
+    fuente sin traducir nada (directiva del ejecutor sobre
+    ``odoo19c: stock/models/product_strategy.py:12-13``)::
+
+        name = fields.Char('Name', required=True, translate=True)
+
+    ==============  =====================================================
+    De la fuente    Aquí
+    ==============  =====================================================
+    ``required=``   ``blank=False``/``blank=True`` — el vacío de formulario
+    ``help=``       ``help_text=``
+    ``translate=``  se **anota** en el campo; ver el aviso de abajo
+    ==============  =====================================================
+
+    El primer argumento posicional ya coincidía: es ``verbose_name`` en Django
+    y la etiqueta en la referencia.
+
+    .. warning:: ``translate=True`` todavía no traduce nada.
+
+       La referencia almacena el campo traducible como **columna ``jsonb``**
+       ``{lang: valor}`` y resuelve el idioma en el ORM
+       (``odoo19c: odoo/orm/fields_textual.py:53`` — ``if self.store and
+       self.translate``; ``:66`` — ``column['udt_name'] == 'jsonb'``). Aquí la
+       bandera **se conserva en el campo** (``field.odoo_translate``) para que
+       la declaración sea fiel y greppeable, pero el almacenamiento por idioma
+       no está construido: hoy la columna sigue siendo ``varchar`` y guarda un
+       solo idioma.
+
+       Anotarla en vez de aceptarla y tirarla es deliberado: un ``**kwargs``
+       que se traga la bandera deja el árbol sin forma de medir cuántos campos
+       esperan traducción. Con la anota, el barrido es un ``grep``.
+
+       Almacenamiento ``jsonb`` + resolución por idioma: tarea **#333**.
     """
-    if store:
-        return models.CharField(*args, **kwargs)
-    return NonStored(*args, **kwargs)
+    if required is not None:
+        kwargs.setdefault('blank', not required)
+    if help is not None:
+        kwargs.setdefault('help_text', help)
+
+    campo = models.CharField(*args, **kwargs) if store else NonStored(*args, **kwargs)
+    campo.odoo_translate = bool(translate)
+    return campo

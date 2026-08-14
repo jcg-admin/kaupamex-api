@@ -26,7 +26,7 @@ import pytest
 from django.apps import apps
 
 import fields
-from orm.model_extension import extend_model, model_key
+from orm.model_classes import extend_model, model_key
 
 
 def test_modelo_ya_registrado_corre_en_el_acto():
@@ -160,7 +160,7 @@ def test_con_el_destino_ausente_la_mayuscula_cuelga_la_operacion():
     funciona; si aún no lo estaba, la extensión **nunca corre** y no hay error
     — el fallo es silencioso y depende del orden de ``INSTALLED_APPS``.
 
-    Por eso ``orm.model_extension.extend_model`` normaliza la clave: es la
+    Por eso ``orm.model_classes.extend_model`` normaliza la clave: es la
     única defensa contra un bug que sólo aparece al reordenar la lista de apps.
     """
     clave_camel = ('stock', 'ModeloAusenteCamel')
@@ -190,7 +190,7 @@ def test_con_el_destino_ausente_la_mayuscula_cuelga_la_operacion():
 
 
 # ---------------------------------------------------------------------------
-# El adaptador: ``orm.model_extension.extend_model``
+# El adaptador: ``orm.model_classes.extend_model``
 # ---------------------------------------------------------------------------
 
 
