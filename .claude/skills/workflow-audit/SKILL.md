@@ -14,6 +14,8 @@ updated_at: 2026-04-17 22:01:55
 
 # /workflow-audit — Auditor crítico de work packages
 
+> **Adaptacion kaupamex (2026-08-15, H-API-622):** Las referencias a `.thyrox/context/work/<WP>/` y `.thyrox/context/now.md` en las instrucciones operativas de abajo son del template THYROX/IACT-docs. En kaupamex el directorio `.thyrox/` no existe (`.claude/CLAUDE.md`). El work-package equivalente es `docs/source/gestion/pm/<submodulo>/iniciativas/<slug>/` — en el repo hermano `kaupamex-docs` cuando se invoca fuera de él — con artefactos `.rst`: `alcance-<slug>.rst` (discover), `analisis-<slug>.rst` (analyze), `tareas-<slug>.rst` (plan-execution), `progreso-<slug>.rst` (track/bitácora — no hay equivalente de `now.md`, el estado vive ahí). Identificar el WP activo: revisar `docs/source/gestion/pm/<submodulo>/iniciativas/index.rst` y leer el `progreso-*.rst` más reciente (mismo paso que `.claude/CLAUDE.md` sección "Flujo de sesión", paso 1b).
+
 Verifica que el trabajo de un WP fue realizado correctamente. Emite un reporte con score y action plan. **No corrige — documenta.**
 
 ---
@@ -28,7 +30,7 @@ Verifica que el trabajo de un WP fue realizado correctamente. Emite un reporte c
 
 ## Contexto de sesión
 
-1. Identificar WP activo: `ls -t .thyrox/context/work/ | head -1`
+1. Identificar WP activo: revisar `docs/source/gestion/pm/<submodulo>/iniciativas/index.rst` (repo `kaupamex-docs`) y leer el `progreso-*.rst` más reciente
 2. Leer el task plan del WP: `find "$WP_DIR" -name "*task-plan*" | head -5`
 3. Revisar commits del WP: `git log --oneline --since="$(cat $WP_DIR/... created_at)" 2>/dev/null | head -30`
 4. Leer `references/audit-checklist.md` completo antes de empezar
@@ -41,7 +43,7 @@ Verifica que el trabajo de un WP fue realizado correctamente. Emite un reporte c
 ### Paso 0 — Identificar scope
 
 ```bash
-WP_DIR=$(ls -td .thyrox/context/work/*/ | head -1)
+WP_DIR=<ruta a la iniciativa activa en kaupamex-docs/source/gestion/pm/<submodulo>/iniciativas/<slug>/>
 WP_NAME=$(basename "$WP_DIR")
 echo "Auditando: $WP_NAME"
 ```

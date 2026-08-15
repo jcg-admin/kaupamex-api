@@ -14,13 +14,15 @@ updated_at: 2026-04-20 13:51:04
 
 # /workflow-decompose — Phase 8: PLAN EXECUTION
 
+> **Adaptacion kaupamex (2026-08-15, H-API-622):** Las referencias a `.thyrox/context/work/<WP>/` y `.thyrox/context/now.md` en las instrucciones operativas de abajo son del template THYROX/IACT-docs. En kaupamex el directorio `.thyrox/` no existe (`.claude/CLAUDE.md`). El work-package equivalente es `docs/source/gestion/pm/<submodulo>/iniciativas/<slug>/` — en el repo hermano `kaupamex-docs` cuando se invoca fuera de él — con artefactos `.rst`: `alcance-<slug>.rst` (discover), `analisis-<slug>.rst` (analyze), `tareas-<slug>.rst` (plan-execution), `progreso-<slug>.rst` (track/bitácora — no hay equivalente de `now.md`, el estado vive ahí). Identificar el WP activo: revisar `docs/source/gestion/pm/<submodulo>/iniciativas/index.rst` y leer el `progreso-*.rst` más reciente (mismo paso que `.claude/CLAUDE.md` sección "Flujo de sesión", paso 1b).
+
 Inicia o retoma Phase 8 PLAN EXECUTION del work package activo.
 
 ---
 
 ## Contexto de sesión
 
-1. Identificar WP activo: `ls -t .thyrox/context/work/ | head -1`
+1. Identificar WP activo: revisar `docs/source/gestion/pm/<submodulo>/iniciativas/index.rst` (repo `kaupamex-docs`) y leer el `progreso-*.rst` más reciente
 2. Leer `*-requirements-spec.md` del WP para obtener los SPECs
 3. Leer `context/now.md` — verificar `phase`
 4. Verificar si ya existe `*-task-plan.md` con checkboxes `- [ ] [T-NNN]`:
@@ -72,7 +74,7 @@ Tareas atómicas con trazabilidad previenen trabajo duplicado o perdido.
 Antes de presentar el gate 8→9/10:
 - **TD-031 deep review**: revisar `{nombre-wp}-requirements-spec.md` de Phase 7 — ¿el task-plan cubre TODO lo especificado? ¿hay SPECs sin tareas?
 - **TD-029 criterios**: task-plan.md con checkboxes · DAG documentado · atomicidad verificada · cobertura SPEC→tarea 100%
-- **TD-033 now.md**: `git add .thyrox/context/now.md` antes de commits y gates
+- **Estado de sesión**: no hay equivalente de `now.md` — el `Edit` que cierra el paso actualiza directamente `progreso-<slug>.rst`, en el mismo commit
 
 ## Gate humano
 

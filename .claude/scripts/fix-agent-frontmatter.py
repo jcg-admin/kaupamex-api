@@ -84,11 +84,6 @@ DESCRIPTIONS = {
         "Usar cuando la metodología Lean está activa. "
         "Worktree aislado."
     ),
-    "mysql-expert": (
-        "Tech-expert para MySQL y bases de datos relacionales. "
-        "Usar cuando se trabaja con MySQL queries, schema design, "
-        "migrations, indexes u optimización."
-    ),
     "pattern-harvester": (
         "Extrae patrones accionables de un corpus de archivos de análisis deep-dive "
         "y calibración, mapeando hallazgos a componentes THYROX "
@@ -110,9 +105,10 @@ DESCRIPTIONS = {
         "Usar cuando la metodología PMBOK está activa."
     ),
     "postgresql-expert": (
-        "Tech-expert para PostgreSQL. "
-        "Usar cuando se trabaja con PostgreSQL queries, schema design, "
-        "migrations, indexes o transacciones."
+        "Tech-expert para PostgreSQL en kaupamex-api. Usar cuando se trabaja "
+        "con schema design, migrations Django, índices, extensiones "
+        "(pg_trgm, unaccent) u optimización de queries contra "
+        "kaupamex_core/kaupamex_core_qa."
     ),
     "pps-coordinator": (
         "Coordinator para PPS — Practical Problem Solving (Toyota TBP): "
@@ -156,12 +152,58 @@ DESCRIPTIONS = {
         "Usar cuando hay una metodología THYROX registrada activa "
         "que no tiene coordinator dedicado."
     ),
-    "webpack-expert": (
-        "Tech-expert para Webpack y bundling de assets. "
-        "Conoce configuración de entry/output, loaders, plugins, "
-        "code splitting, optimización de bundles y resolución de módulos. "
-        "Usar cuando se trabaja con Webpack: configuración, "
-        "optimización de bundles o resolución de módulos."
+    "diagrama-ishikawa": (
+        "Especialista en análisis de causa raíz con diagramas de Ishikawa "
+        "(espina de pescado / causa-efecto). Usar cuando se necesite "
+        "identificar causas raíz de cualquier problema — técnico, "
+        "organizacional, de proceso, de producto, de ventas, de calidad, o "
+        "de investigación. Se auto-adapta al dominio del problema. Puede "
+        "invocar sub-agentes para investigar causas específicas."
+    ),
+    "increment-acceptor": (
+        "Juez de aceptación de incrementos para kaupamex (THYROX gate 6→7 / "
+        "EXECUTE→TRACK). Úsalo cuando haya que aceptar un incremento o "
+        "tarea contra la Definition of Done antes de cerrarla. Verifica "
+        "evidencia real (no compliance), emite veredicto PASS/FAIL por "
+        "criterio y un veredicto global ACEPTADO/RECHAZADO. Retorna "
+        "output_key='aceptacion'."
+    ),
+    "retro-facilitator": (
+        "Facilita la retrospectiva al cerrar una iniciativa/ciclo en "
+        "kaupamex (THYROX cierre, Fase TRACK). Úsalo cuando un work "
+        "package termina o el ejecutor pide capturar aprendizajes. Conduce "
+        "el formato de retro (Start/Stop/Continue por defecto; 4Ls; "
+        "Sailboat), aplica causa raíz (5 Whys / Ishikawa), registra "
+        "errores como ERR-NNN, prioriza acciones con dueño, y promueve "
+        "decisiones a ADR. Retorna output_key='retro'."
+    ),
+    "skill-generator": (
+        "Genera archivos de skill (.claude/skills/ o .claude/agents/) para "
+        "una tecnología específica a partir de los templates en registry/. "
+        "Usar cuando el usuario quiere agregar soporte para una nueva "
+        "tecnología o cuando bootstrap.py lo invoca para inicializar el "
+        "proyecto."
+    ),
+    "task-executor": (
+        "Ejecuta tareas atómicas de un task-plan.md. Usar cuando hay un "
+        "task-plan con checkboxes T-NNN y el usuario quiere implementar la "
+        "siguiente tarea pendiente. Usa herramientas nativas para file ops "
+        "y Bash para shell. Reporta errores con contexto."
+    ),
+    "task-planner": (
+        "Descompone trabajo nuevo en tareas atómicas con IDs trazables. "
+        "Usar cuando el usuario quiere planificar un feature, bug fix, "
+        "refactoring, o cualquier trabajo que requiera más de un paso. "
+        "Produce task-plan.md con checkboxes T-NNN. NUNCA ejecuta — solo "
+        "planifica. No usar para consolidar outputs de análisis existentes "
+        "(usar task-synthesizer)."
+    ),
+    "tech-detector": (
+        "Detecta el stack tecnológico de un proyecto analizando archivos "
+        "de configuración, dependencias y estructura de directorios. Usar "
+        "cuando el usuario quiere inicializar skills para su proyecto o "
+        "cuando bootstrap.py necesita saber qué tecnologías están "
+        "presentes."
     ),
 }
 

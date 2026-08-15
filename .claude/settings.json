@@ -48,6 +48,14 @@
           {
             "type": "command",
             "command": "python3 .claude/scripts/lint-agents.py || true"
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/inject-coherence-audit.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/inject-flow-selection.sh"
           }
         ]
       }
@@ -59,6 +67,16 @@
           {
             "type": "command",
             "command": "python3 .claude/hooks/inject-drf-skill-gate.py"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/save-agent-result.mjs"
           }
         ]
       }

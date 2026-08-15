@@ -14,13 +14,15 @@ updated_at: 2026-04-20 13:30:36
 
 # /workflow-structure — Phase 7: DESIGN/SPECIFY
 
+> **Adaptacion kaupamex (2026-08-15, H-API-622):** Las referencias a `.thyrox/context/work/<WP>/` y `.thyrox/context/now.md` en las instrucciones operativas de abajo son del template THYROX/IACT-docs. En kaupamex el directorio `.thyrox/` no existe (`.claude/CLAUDE.md`). El work-package equivalente es `docs/source/gestion/pm/<submodulo>/iniciativas/<slug>/` — en el repo hermano `kaupamex-docs` cuando se invoca fuera de él — con artefactos `.rst`: `alcance-<slug>.rst` (discover), `analisis-<slug>.rst` (analyze), `tareas-<slug>.rst` (plan-execution), `progreso-<slug>.rst` (track/bitácora — no hay equivalente de `now.md`, el estado vive ahí). Identificar el WP activo: revisar `docs/source/gestion/pm/<submodulo>/iniciativas/index.rst` y leer el `progreso-*.rst` más reciente (mismo paso que `.claude/CLAUDE.md` sección "Flujo de sesión", paso 1b).
+
 Inicia o retoma Phase 7 DESIGN/SPECIFY del work package activo.
 
 ---
 
 ## Contexto de sesión
 
-1. Identificar WP activo: `ls -t .thyrox/context/work/ | head -1`
+1. Identificar WP activo: revisar `docs/source/gestion/pm/<submodulo>/iniciativas/index.rst` (repo `kaupamex-docs`) y leer el `progreso-*.rst` más reciente
 2. Leer plan y solution-strategy del WP para entender el scope
 3. Leer `context/now.md` — verificar `phase`
 4. Verificar si ya existe `*-requirements-spec.md` sin `[NEEDS CLARIFICATION]`:
@@ -61,7 +63,7 @@ NO avanzar si quedan ítems sin +o marcadores `[NEEDS CLARIFICATION]` sin resolv
 Antes de presentar el gate 7→8:
 - **TD-031 deep review**: revisar `{nombre-wp}-plan.md` de Phase 6 — ¿la spec cubre TODO el scope aprobado?
 - **TD-029 criterios**: spec sin `[NEEDS CLARIFICATION]` · spec-checklist 100% · diseño técnico si era complejo
-- **TD-033 now.md**: `git add .thyrox/context/now.md` antes de commits y gates
+- **Estado de sesión**: no hay equivalente de `now.md` — el `Edit` que cierra el paso actualiza directamente `progreso-<slug>.rst`, en el mismo commit
 
 ## Gate humano
 
