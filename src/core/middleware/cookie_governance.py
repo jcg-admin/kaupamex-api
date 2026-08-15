@@ -39,6 +39,15 @@ COOKIE_REGISTER = {
     # solicitado -> exenta de consentimiento (LFPDPPP/GDPR). httpOnly, la
     # emite CartCookieMiddleware.
     'cart_token': {'category': 'necessary'},
+    # utm: los tres ejes de marketing que ir.http captura de la URL. La
+    # referencia los emite con cookie_type='optional' (odoo19c:
+    # addons/utm/models/ir_http.py:21), su clasificacion de consentimiento —
+    # aqui eso es una categoria distinta de "necessary", asi que sin
+    # consentimiento el modo enforce las suprime. No son indispensables para
+    # el servicio: atribuyen la visita a una campania.
+    'kaupamex_utm_campaign': {'category': 'marketing'},
+    'kaupamex_utm_source': {'category': 'marketing'},
+    'kaupamex_utm_medium': {'category': 'marketing'},
 }
 
 

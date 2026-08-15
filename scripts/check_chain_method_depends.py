@@ -164,9 +164,32 @@ def scan(roots=ADDONS_PATHS):
                        for padre in ast.walk(tree)
                        for hijo in ast.iter_child_nodes(padre)}
 
+            # ``from <otro addon> import IrHttp as BaseIrHttp`` — el nombre
+            # ORIGINAL de cada símbolo importado, por su alias local. Es lo que
+            # distingue declarar una clase de heredarla (ver abajo).
+            importado_como = {
+                (alias.asname or alias.name): alias.name
+                for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)
+                for alias in n.names
+            }
+
             for node in ast.walk(tree):
                 if isinstance(node, ast.ClassDef):
-                    declara_clase[node.name].add(addon)
+                    # Una clase que HEREDA de otra del mismo nombre lógico es la
+                    # extensión, no la declaración: no instala nada por sí misma,
+                    # así que no es dueña del símbolo. Es el idioma con el que la
+                    # referencia extiende ``ir.http`` desde un addon
+                    # (``odoo19c: addons/utm/models/ir_http.py``), y sin esta
+                    # distinción el gate atribuía ``IrHttp.is_a_bot`` —que define
+                    # e instala ``web`` sobre ``base``— a cualquier addon con una
+                    # clase llamada ``IrHttp``. Ver :ref:`h-api-635`.
+                    hereda_del_mismo = any(
+                        isinstance(b, ast.Name)
+                        and importado_como.get(b.id) == node.name
+                        for b in node.bases
+                    )
+                    if not hereda_del_mismo:
+                        declara_clase[node.name].add(addon)
                     for item in node.body:
                         if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
                             cuerpo[(node.name, item.name)].add(addon)
