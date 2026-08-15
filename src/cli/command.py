@@ -61,5 +61,19 @@ def main(argv=None):
         # Sin comando → server (== la referencia).
         args = [DEFAULT_COMMAND] + args
 
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.production')
+    # Perfil por defecto: el ABIERTO, como la referencia. Sin `-c` ni `ODOO_RC`
+    # el núcleo cae en sus `my_default` —`list_db` True, bind 0.0.0.0:8069— y
+    # separa arrancar de endurecer: el endurecimiento vive fuera del binario
+    # (`--proxy-mode`, `--x-sendfile`, el proxy delante).
+    #
+    # Esto no relaja producción: la declara quien la quiere, y ya lo hace —
+    # `setup/kaupamex.service:67` y `setup/kaupamex-cron.service:42` fijan
+    # `Environment=DJANGO_SETTINGS_MODULE=config.settings.production`. Como es
+    # `setdefault`, esa declaración gana.
+    #
+    # Cablear `production` aquí hacía que el camino sin declarar nada fuera el
+    # MÁS endurecido: la primera petición de un recién llegado recibía un 301 a
+    # `https://` que nadie sirve (`SECURE_SSL_REDIRECT = True`), sin que el
+    # mensaje de error nombrara la causa. Ver H-API-636.
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.development')
     execute_from_command_line([argv[0]] + args)

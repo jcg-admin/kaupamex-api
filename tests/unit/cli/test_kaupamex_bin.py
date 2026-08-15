@@ -6,11 +6,13 @@ que sostiene la partición por proceso de la referencia, así que se prueba en l
 dos sentidos: que aplique cuando no hay comando y que **no** aplique cuando sí.
 """
 
+import os
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
+from django.db.utils import DatabaseError
 
 from addons.base.management.commands.server import Command as ServerCommand
 from tests.subprocess_env import subprocess_env
@@ -87,3 +89,83 @@ def test_server_sale_2_si_falta_la_configuracion():
     with pytest.raises(SystemExit) as exc:
         cmd.handle(config='/ruta/que/no/existe.py')
     assert exc.value.code == 2
+
+
+# --- Perfil por defecto y preparación de la base (H-API-636) ----------------
+#
+# Los dos ejes que la referencia resuelve dentro de su comando por defecto:
+# `odoo19c: odoo/tools/config.py:223` declara el perfil como opción con
+# `env_name='ODOO_RC'` y cae en sus `my_default` abiertos cuando nadie lo
+# declara; `odoo/cli/server.py:100-110` deja la base utilizable ANTES de servir.
+
+
+def test_perfil_por_defecto_es_el_abierto(capturado, monkeypatch):
+    """Sin declarar nada se cae en ``development``, como la referencia.
+
+    Cablear ``production`` hacía que el camino sin declarar nada fuera el más
+    endurecido: ``SECURE_SSL_REDIRECT = True`` devuelve 301 en todo, incluido
+    ``/api/schema/``.
+    """
+    monkeypatch.delenv('DJANGO_SETTINGS_MODULE', raising=False)
+    cli_command.main(['kaupamex-bin', 'server'])
+    assert os.environ['DJANGO_SETTINGS_MODULE'] == 'config.settings.development'
+
+
+def test_el_perfil_declarado_gana(capturado, monkeypatch):
+    """Es ``setdefault``: quien declara producción la obtiene.
+
+    Lo hacen ``setup/kaupamex.service`` y ``setup/kaupamex-cron.service``, así
+    que invertir el default no relaja el despliegue.
+    """
+    monkeypatch.setenv('DJANGO_SETTINGS_MODULE', 'config.settings.production')
+    cli_command.main(['kaupamex-bin', 'server'])
+    assert os.environ['DJANGO_SETTINGS_MODULE'] == 'config.settings.production'
+
+
+def test_stop_after_init_prepara_y_no_arranca(monkeypatch):
+    """``--stop-after-init`` deja la base lista y vuelve, sin ``execvp``."""
+    corridos = []
+    monkeypatch.setattr(
+        'addons.base.management.commands.server.call_command',
+        lambda nombre, **kw: corridos.append(nombre),
+    )
+    monkeypatch.setattr(
+        'os.execvp',
+        lambda *a: pytest.fail('no debe arrancar con --stop-after-init'),
+    )
+    ServerCommand().handle(config=str(REPO_ROOT / 'setup' / 'gunicorn.conf.py'),
+                           stop_after_init=True)
+    assert corridos == ['migrate', 'createcachetable']
+
+
+def test_no_init_salta_la_preparacion(monkeypatch):
+    """``--no-init`` es el escape: no toca la base."""
+    corridos = []
+    monkeypatch.setattr(
+        'addons.base.management.commands.server.call_command',
+        lambda nombre, **kw: corridos.append(nombre),
+    )
+    monkeypatch.setattr('os.execvp', lambda *a: None)
+    ServerCommand().handle(config=str(REPO_ROOT / 'setup' / 'gunicorn.conf.py'),
+                           no_init=True, stop_after_init=True)
+    assert corridos == []
+
+
+def test_la_preparacion_no_aborta_por_error_de_base(monkeypatch):
+    """Un fallo de base baja a INFO y **sigue** — como la referencia.
+
+    ``odoo/cli/server.py:105-108`` usa INFO a propósito para no llenar de
+    advertencias un entorno con acceso restringido, y continúa hasta
+    ``server.start()``. ``setup/kaupamex.service`` declara la misma postura al
+    usar ``Wants`` y no ``Requires`` para PostgreSQL.
+    """
+    def revienta(nombre, **kw):
+        raise DatabaseError('permission denied for schema public')
+
+    monkeypatch.setattr(
+        'addons.base.management.commands.server.call_command', revienta,
+    )
+    arrancado = []
+    monkeypatch.setattr('os.execvp', lambda *a: arrancado.append(a))
+    ServerCommand().handle(config=str(REPO_ROOT / 'setup' / 'gunicorn.conf.py'))
+    assert arrancado, 'el servidor debe arrancar aunque la base no responda'
