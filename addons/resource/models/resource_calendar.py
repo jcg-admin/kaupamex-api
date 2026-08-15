@@ -172,6 +172,8 @@ class ResourceCalendar(TimeStampedModel):
 
     @property
     def flexible_hours(self):
+        """≙ ``flexible_hours`` / ``_compute_flexible_hours``
+        (``:90``, ``:164-166``)."""
         return self.schedule_type == 'flexible'
 
     @flexible_hours.setter
@@ -184,6 +186,7 @@ class ResourceCalendar(TimeStampedModel):
 
     @property
     def tz_offset(self):
+        """≙ ``tz_offset`` / ``_compute_tz_offset`` (``:114``, ``:238-240``)."""
         tzinfo = ZoneInfo(self.tz or 'UTC')
         return datetime.now(tzinfo).strftime('%z')
 
@@ -207,7 +210,9 @@ class ResourceCalendar(TimeStampedModel):
 
     @property
     def hours_per_week(self):
-        """Odoo ``_get_hours_per_week`` — expuesta como propiedad (divergencia 3)."""
+        """≙ ``hours_per_week`` / ``_compute_hours_per_week`` (``:104``,
+        ``:218-221``), que delega en ``_get_hours_per_week`` — expuesta como
+        propiedad (divergencia 3)."""
         if self.flexible_hours:
             return 0.0
         total = 0.0
@@ -220,7 +225,8 @@ class ResourceCalendar(TimeStampedModel):
 
     @property
     def hours_per_day(self):
-        """Odoo ``_get_hours_per_day``."""
+        """≙ ``hours_per_day`` / ``_compute_hours_per_day`` (``:102``,
+        ``:211-215``), que delega en ``_get_hours_per_day``."""
         if self.flexible_hours:
             return 0.0
         days = self._days_per_week()
@@ -232,12 +238,16 @@ class ResourceCalendar(TimeStampedModel):
 
     @property
     def work_time_rate(self):
+        """≙ ``work_time_rate`` / ``_compute_work_time_rate``
+        (``:116``, ``:251-258``)."""
         if not self.full_time_required_hours:
             return 100.0
         return self.hours_per_week / self.full_time_required_hours * 100
 
     @property
     def work_resources_count(self):
+        """≙ ``work_resources_count`` / ``_compute_work_resources_count``
+        (``:115``, ``:242-248``)."""
         return self.resources.count()
 
     def sync_full_time_required_hours(self):

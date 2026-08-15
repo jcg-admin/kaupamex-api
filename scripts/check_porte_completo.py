@@ -370,22 +370,51 @@ def normaliza(nombre):
     return PORTE_ALIAS.get(nombre, nombre).strip('_')
 
 
-def _clase_sin_contraparte(addon, archivo, clase, metodos, instalado):
-    """El hallazgo de una clase que no existe aquí — ausente, o **extendida**.
+def _clase_sin_contraparte(addon, archivo, clase, metodos, instalado,
+                           absueltos=frozenset()):
+    """``(hallazgo|None, absoluciones)`` de una clase que no existe aquí.
 
-    Si el addon instala símbolos sobre una clase con ese nombre, el porte
-    existe pero no tiene clase propia: se reporta ``CLASE EXTENDIDA`` con lo
-    que **sigue pendiente** tras descontar lo instalado. Nunca absuelve — si
-    quedan métodos, salen listados; si no queda ninguno, no hay hallazgo.
+    Dos estados distintos: **ausente** del todo, o **extendida** — si el addon
+    instala símbolos sobre una clase con ese nombre, el porte existe pero no
+    tiene clase propia, y se reporta ``CLASE EXTENDIDA`` con lo que sigue
+    pendiente tras descontar lo instalado.
+
+    ``absueltos`` son las equivalencias compute→property declaradas en NUESTRO
+    archivo (ver ``equivalencias_declaradas``). Aplican aquí igual que en la
+    rama de clase casada: la property vive en el archivo, no en la clase, así
+    que el porte es real aunque el nombre de la clase diverja
+    (``AccountTax`` → ``AccountTaxFormula``) o aunque la dueña del compute en
+    la referencia sea una clase hermana sin contraparte
+    (``WebsitePublishedMultiMixin``). Los dos casos se midieron: eran las **2**
+    declaraciones —de 15— que el gate no contaba, porque esta función nunca
+    consultaba ``absueltos``. Ver :ref:`h-api-612`.
+
+    Si tras absolver no queda ningún método, no hay hallazgo.
     """
     puestos = instalado.get(normaliza(clase))
-    if puestos is None:
-        return (addon, archivo, clase, 'CLASE AUSENTE', sorted(metodos))
-    ya = {normaliza(p) for p in puestos}
-    pendientes = [m for m in sorted(metodos) if normaliza(m) not in ya]
-    if not pendientes:
-        return None
-    return (addon, archivo, clase, 'CLASE EXTENDIDA', pendientes)
+    ya = {normaliza(p) for p in puestos} if puestos is not None else set()
+    tipo = 'CLASE AUSENTE' if puestos is None else 'CLASE EXTENDIDA'
+    pendientes, absoluciones = [], 0
+    for m in sorted(metodos):
+        n = normaliza(m)
+        if n in ya:
+            continue
+        if n in absueltos:
+            absoluciones += 1
+            continue
+        pendientes.append(m)
+    # Una clase AUSENTE con la lista vacía sigue siendo un hallazgo: la
+    # referencia declara clases de sólo campos, y que no tengan método no las
+    # vuelve portadas. Sólo se suprime cuando había métodos y TODOS quedaron
+    # cubiertos — por lo instalado o por una equivalencia declarada. Medido al
+    # introducir el cambio: sin esta guarda desaparecían 18 hallazgos de golpe
+    # con sólo 4 absoluciones nuevas, que es la señal de que el instrumento
+    # había dejado de ver algo en vez de resolverlo.
+    if metodos and not pendientes:
+        return None, absoluciones
+    if not metodos and tipo == 'CLASE EXTENDIDA':
+        return None, absoluciones
+    return (addon, archivo, clase, tipo, pendientes), absoluciones
 
 
 def compara(addon):
@@ -433,7 +462,9 @@ def compara(addon):
             for clase, metodos in ref_clases.items():
                 aqui = por_clase.get(normaliza(clase))
                 if aqui is None:
-                    hallazgo = _clase_sin_contraparte(
+                    # Sin archivo pareado no hay property nuestra que leer, así
+                    # que aquí no se absuelve nada: el conjunto va vacío.
+                    hallazgo, _ = _clase_sin_contraparte(
                         addon, ref_py.name, clase, metodos, instalado)
                     if hallazgo is not None:
                         hallazgos.append(hallazgo)
@@ -457,8 +488,9 @@ def compara(addon):
         for clase, metodos in ref_clases.items():
             aqui = mias_norm.get(normaliza(clase))
             if aqui is None:
-                hallazgo = _clase_sin_contraparte(
-                    addon, ref_py.name, clase, metodos, instalado)
+                hallazgo, absueltas = _clase_sin_contraparte(
+                    addon, ref_py.name, clase, metodos, instalado, absueltos)
+                absoluciones += absueltas
                 if hallazgo is not None:
                     hallazgos.append(hallazgo)
                 continue

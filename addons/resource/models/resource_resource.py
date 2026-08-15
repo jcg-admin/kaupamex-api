@@ -113,6 +113,7 @@ class ResourceResource(TimeStampedModel):
 
     @property
     def avatar_128(self):
+        """≙ ``avatar_128`` / ``_compute_avatar_128`` (``:39``, ``:62-64``)."""
         return self.user.avatar_128 if self.user_id else None
 
     @property

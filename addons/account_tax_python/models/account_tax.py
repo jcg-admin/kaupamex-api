@@ -270,7 +270,10 @@ class AccountTaxFormula(models.Model):
 
     @property
     def formula_decoded_info(self):
-        """≙ ``formula_decoded_info`` (``fields.Json``, compute, no
+        """≙ ``formula_decoded_info`` / ``_compute_formula_decoded_info``
+        (``:28``, ``:51-64``).
+
+        ``fields.Json``, compute, no
         almacenado — de ahí la ``@property`` en vez de una columna, mismo
         criterio que ``account: account_bank_statement_line.py`` documenta
         para computes sin ``store=True``).
