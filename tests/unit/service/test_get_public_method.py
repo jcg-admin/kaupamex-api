@@ -38,7 +38,7 @@ class _Base(models.Model):
         return 'no debería alcanzarse'
 
 
-class _Probe(_Base):
+class _Model(_Base):
     """Concreto pero ``managed = False``: se instancia sin tabla.
 
     ``get_public_method`` no toca la base —sólo inspecciona la clase— así que
@@ -79,53 +79,53 @@ class _Probe(_Base):
 
 
 @pytest.fixture
-def probe():
-    return _Probe()
+def model():
+    return _Model()
 
 
-def test_returns_the_public_method(probe):
+def test_returns_the_public_method(model):
     """El caso feliz: un método público se devuelve **sin ligar**."""
-    func = get_public_method(probe, 'public')
+    func = get_public_method(model, 'public')
     assert callable(func)
-    assert func(probe, 7) == 7, 'debe venir sin ligar: recibe self explícito'
+    assert func(model, 7) == 7, 'debe venir sin ligar: recibe self explícito'
 
 
-def test_rejects_the_underscore_prefix(probe):
+def test_rejects_the_underscore_prefix(model):
     with pytest.raises(AccessError, match='Private methods'):
-        get_public_method(probe, '_private_by_name')
+        get_public_method(model, '_private_by_name')
 
 
 @pytest.mark.parametrize('name', ['mro', 'f_globals', 'gi_frame'])
-def test_rejects_unsafe_attributes(probe, name):
+def test_rejects_unsafe_attributes(model, name):
     """``_UNSAFE_ATTRIBUTES`` es la segunda mitad del filtro por nombre."""
     assert name in _UNSAFE_ATTRIBUTES
     with pytest.raises(AccessError, match='Private methods'):
-        get_public_method(probe, name)
+        get_public_method(model, name)
 
 
-def test_unknown_method_is_attribute_error(probe):
+def test_unknown_method_is_attribute_error(model):
     """Distinto error a propósito: el dispatcher lo traduce a 404, no a 403."""
     with pytest.raises(AttributeError, match='does not exist'):
-        get_public_method(probe, 'no_such_method_at_all')
+        get_public_method(model, 'no_such_method_at_all')
 
 
-def test_non_callable_attribute_is_attribute_error(probe):
+def test_non_callable_attribute_is_attribute_error(model):
     with pytest.raises(AttributeError, match='does not exist'):
-        get_public_method(probe, 'not_callable')
+        get_public_method(model, 'not_callable')
 
 
 @pytest.mark.parametrize('name', ['plain_classmethod', 'plain_staticmethod'])
-def test_rejects_classmethod_and_staticmethod(probe, name):
+def test_rejects_classmethod_and_staticmethod(model, name):
     """No reciben ``self``, así que el despacho por recordset no aplica.
 
     La referencia los detecta comparando el atributo de la clase con el de la
     instancia: si son el mismo objeto, no hubo ligadura.
     """
     with pytest.raises(AccessError, match='cannot be called remotely'):
-        get_public_method(probe, name)
+        get_public_method(model, name)
 
 
-def test_accepts_the_classmethod_marked_api_model(probe):
+def test_accepts_the_classmethod_marked_api_model(model):
     """La divergencia declarada: aquí ``classmethod`` ES la forma de ``@api.model``.
 
     La referencia rechaza todo ``classmethod`` porque en su árbol un método de
@@ -142,17 +142,17 @@ def test_accepts_the_classmethod_marked_api_model(probe):
     ``classmethod`` es invocable si —y sólo si— lleva ``@api.model``. Sin él
     sigue rechazado, que es el default fail-closed. Ver :ref:`h-api-639`.
     """
-    func = get_public_method(probe, 'declared_model_level')
+    func = get_public_method(model, 'declared_model_level')
     assert callable(func)
     assert func() == 'model level'
 
 
-def test_rejects_the_api_private_decorated(probe):
+def test_rejects_the_api_private_decorated(model):
     with pytest.raises(AccessError, match='Private methods'):
-        get_public_method(probe, 'marked_private')
+        get_public_method(model, 'marked_private')
 
 
-def test_the_private_sweep_walks_the_mro(probe):
+def test_the_private_sweep_walks_the_mro(model):
     """Un ancestro puede volver privado un nombre que la subclase redefine.
 
     Es la razón de que la referencia recorra ``cls.mro()`` en vez de mirar sólo
@@ -160,7 +160,7 @@ def test_the_private_sweep_walks_the_mro(probe):
     levantaría la restricción del ancestro.
     """
     with pytest.raises(AccessError, match='Private methods'):
-        get_public_method(probe, 'inherited_private')
+        get_public_method(model, 'inherited_private')
 
 
 def test_api_private_sets_the_marker():

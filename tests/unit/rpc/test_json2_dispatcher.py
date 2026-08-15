@@ -27,14 +27,14 @@ from addons.rpc.controllers.json2 import UnprocessableEntity, resolve_call
 from exceptions import AccessError
 
 
-class RpcProbe(models.Model):
-    """Modelo de sonda: ``managed = False``, sin tabla.
+class RpcModel(models.Model):
+    """Modelo de prueba: ``managed = False``, sin tabla.
 
     La resolución no toca la base —sólo el registro y la clase— así que un
     modelo no gestionado basta.
     """
 
-    _name = 'test.rpc.probe'
+    _name = 'test.rpc.model'
 
     class Meta:
         app_label = 'base'
@@ -65,35 +65,35 @@ def test_unknown_method_is_404():
     conoce ``AttributeError`` y su handler devuelve ``None`` → 500.
     """
     with pytest.raises(NotFound, match='does not exist'):
-        resolve_call('test.rpc.probe', 'no_such_method', ())
+        resolve_call('test.rpc.model', 'no_such_method', ())
 
 
 def test_reserved_method_propagates_access_error():
     """403 por propagación, no por traducción — DRF ya mapea PermissionDenied."""
     with pytest.raises(AccessError):
-        resolve_call('test.rpc.probe', 'reserved', ())
+        resolve_call('test.rpc.model', 'reserved', ())
 
 
 def test_model_level_call_with_ids_is_422():
     """``≙`` *"cannot call X.y with ids"* de la referencia."""
     with pytest.raises(UnprocessableEntity, match='with ids'):
-        resolve_call('test.rpc.probe', 'model_level', (1, 2))
+        resolve_call('test.rpc.model', 'model_level', (1, 2))
 
 
 def test_model_level_call_without_ids_resolves():
-    _, func, _ = resolve_call('test.rpc.probe', 'model_level', ())
+    _, func, _ = resolve_call('test.rpc.model', 'model_level', ())
     assert func(echo='hello') == 'hello'
 
 
 def test_signature_mismatch_is_422():
     """``inspect.signature().bind()`` es el que decide, no un chequeo a mano."""
     with pytest.raises(UnprocessableEntity):
-        resolve_call('test.rpc.probe', 'add', (), {'no_such_argument': 1})
+        resolve_call('test.rpc.model', 'add', (), {'no_such_argument': 1})
 
 
 def test_matching_signature_resolves():
-    model, func, records = resolve_call('test.rpc.probe', 'add', (), {'a': 1, 'b': 2})
-    assert model is RpcProbe
+    model, func, records = resolve_call('test.rpc.model', 'add', (), {'a': 1, 'b': 2})
+    assert model is RpcModel
     assert func(records, a=1, b=2) == 3
 
 
