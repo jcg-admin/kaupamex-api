@@ -324,7 +324,8 @@ class ProductTemplate(ImageMixin, TimeStampedModel):
 
     @property
     def product_variant_count(self):
-        """``product_variant_count`` — cuántas variantes tiene.
+        """≙ ``product_variant_count`` / ``_compute_product_variant_count``
+        (``:148``, ``:413-415``) — cuántas variantes tiene.
 
         Devuelve 0 mientras ``product.product`` no esté portado; llega solo
         por el ``related_name`` de aquel archivo, sin tocar éste.

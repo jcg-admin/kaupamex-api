@@ -58,7 +58,8 @@ class WebsitePublishedMixin(models.Model):
 
     @property
     def website_published(self):
-        """Alias de lectura de ``is_published``.
+        """≙ ``website_published`` / ``_compute_website_published``
+        (``:280``, ``:287-293``) — alias de lectura de ``is_published``.
 
         La referencia lo declara ``related=…, readonly=False``; aquí es sólo
         lectura (ver el docstring del módulo).

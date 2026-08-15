@@ -124,6 +124,8 @@ class OnboardingOnboarding(TimeStampedModel):
 
     @property
     def current_progress(self):
+        """≙ ``current_progress_id`` / ``_compute_current_progress``
+        (``:28-29``, ``:58-69``)."""
         return self.get_current_progress()
 
     @property

@@ -414,8 +414,10 @@ class AccountPaymentTermLine(models.Model):
     # -- Odoo _compute_display_days_next_month --------------------------------
     @property
     def display_days_next_month(self):
-        """Odoo ``display_days_next_month`` (``compute='_compute_display_days_
-        next_month'``, sin store): visible sólo cuando
+        """≙ ``display_days_next_month`` / ``_compute_display_days_next_month``
+        (``:300``, ``:339-341``).
+
+        Sin store: visible sólo cuando
         ``delay_type='days_end_of_month_on_the'``. Portado como propiedad
         (single-record, sin dependencia de hermanas) en vez de un método
         ``_compute_*`` + campo persistido — no hay UI que requiera el campo

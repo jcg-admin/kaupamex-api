@@ -147,7 +147,7 @@ class StockStorageCategory(TimeStampedModel):
 
     @property
     def weight_uom_name(self):
-        """≙ ``weight_uom_name`` (``odoo19c: :23``, compute ``:36-37``).
+        """≙ ``weight_uom_name`` / ``_compute_weight_uom_name`` (``odoo19c: :23``, ``:36-37``).
 
         Etiqueta de la unidad de peso, leída del parámetro de sistema — igual
         que la referencia, que delega en

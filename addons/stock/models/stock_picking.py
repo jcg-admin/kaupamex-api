@@ -1090,6 +1090,23 @@ class StockPicking(MailThread, MailActivityMixin, TimeStampedModel):
         help_text='Odoo is_locked. Con el albarán sin validar permite cambiar '
                   'la demanda inicial; ya validado, las cantidades hechas.',
     )
+    # ≙ ``picking_type_id`` (``odoo19c: :620-623``). La referencia lo declara
+    # **requerido** con default por contexto; aquí es nulable porque el default
+    # de la fuente (``_default_picking_type_id``) sale del contexto de acción,
+    # que este árbol no tiene — un albarán creado por API llegaría sin él y la
+    # columna requerida lo haría reventar.
+    #
+    # Sin este campo, ``StockMoveLine.picking_type`` y ``picking_code``
+    # —portados como property que leen ``self.picking.picking_type``— fallaban
+    # con ``AttributeError``: la pareja lector/campo estaba rota por el lado
+    # del campo. Ver :ref:`h-api-608`.
+    picking_type     = fields.Many2one(
+        'stock.StockPickingType', null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='pickings', db_index=True,
+        verbose_name='Tipo de operación',
+        help_text='Tipo de operación que gobierna el albarán '
+                  '(Odoo picking_type_id).',
+    )
 
     class Meta:
         db_table = 'stock_picking'

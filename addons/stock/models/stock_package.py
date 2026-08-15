@@ -291,7 +291,7 @@ class StockPackage(TimeStampedModel):
 
     @property
     def dest_complete_name(self):
-        """≙ ``dest_complete_name`` (``:27``, compute ``:100-106``).
+        """≙ ``dest_complete_name`` / ``_compute_dest_complete_name`` (``:27``, ``:100-106``).
 
         El mismo nombre jerárquico, pero sobre el árbol de **destino**.
         """
@@ -301,7 +301,8 @@ class StockPackage(TimeStampedModel):
 
     @property
     def all_children_package_ids(self):
-        """≙ ``all_children_package_ids`` (``:46``, compute ``:59-70``).
+        """≙ ``all_children_package_ids`` /
+        ``_compute_all_children_package_ids`` (``:46``, ``:59-70``).
 
         Todos los descendientes del árbol **actual**, a cualquier profundidad.
         La referencia los recoge con una recursión sobre el agrupado; aquí
@@ -312,7 +313,7 @@ class StockPackage(TimeStampedModel):
 
     @property
     def contained_quant_ids(self):
-        """≙ ``contained_quant_ids`` (``:30``, compute ``:108-111``).
+        """≙ ``contained_quant_ids`` / ``_compute_contained_quant_ids`` (``:30``, ``:108-111``).
 
         Los quants propios más los de todos los descendientes.
         """
@@ -323,7 +324,7 @@ class StockPackage(TimeStampedModel):
 
     @property
     def content_description(self):
-        """≙ ``content_description`` (``:31``, compute ``:113-122``).
+        """≙ ``content_description`` / ``_compute_content_description`` (``:31``, ``:113-122``).
 
         «2 Unidades Camiseta, 3 kg Café» — la cantidad se imprime sin decimales
         cuando es entera, que es lo que hace el ``int(qty) if qty == int(qty)``
@@ -344,7 +345,7 @@ class StockPackage(TimeStampedModel):
 
     @property
     def json_popover(self):
-        """≙ ``json_popover`` (``:56``, compute ``:124-136``).
+        """≙ ``json_popover`` / ``_compute_json_popover`` (``:56``, ``:124-136``).
 
         El aviso de destinos múltiples, o ``None`` si no hay conflicto.
         """
@@ -371,7 +372,7 @@ class StockPackage(TimeStampedModel):
 
     @property
     def move_line_ids(self):
-        """≙ ``move_line_ids`` (``:50``, compute ``:143-155``).
+        """≙ ``move_line_ids`` / ``_compute_move_line_ids`` (``:50``, ``:143-155``).
 
         Las líneas en curso que apuntan a este paquete como destino, más las
         de todos sus contenedores-hijos de destino.
@@ -383,7 +384,7 @@ class StockPackage(TimeStampedModel):
 
     @property
     def picking_ids(self):
-        """≙ ``picking_ids`` (``:51``, compute ``:172-183``).
+        """≙ ``picking_ids`` / ``_compute_picking_ids`` (``:51``, ``:172-183``).
 
         Las transferencias donde este paquete es el destino.
         """
@@ -417,7 +418,7 @@ class StockPackage(TimeStampedModel):
 
     @property
     def valid_sscc(self):
-        """≙ ``valid_sscc`` (``:53``, compute ``:202-206``)."""
+        """≙ ``valid_sscc`` / ``_compute_valid_sscc`` (``:53``, ``:202-206``)."""
         return bool(self.name) and check_barcode_encoding(self.name, 'sscc')
 
     # -- las siete búsquedas --

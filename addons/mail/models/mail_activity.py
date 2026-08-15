@@ -114,7 +114,9 @@ class MailActivity(TimeStampedModel):
 
     @property
     def state(self) -> str:
-        """Estado derivado del plazo (Odoo ``state`` computed: overdue/today/planned)."""
+        """≙ ``state`` / ``_compute_state`` (``:92``, ``:153-157``).
+
+        Estado derivado del plazo: overdue / today / planned."""
         today = timezone.localdate()
         if self.date_deadline < today:
             return self.STATE_OVERDUE

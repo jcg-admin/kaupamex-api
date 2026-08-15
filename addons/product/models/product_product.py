@@ -283,7 +283,9 @@ class ProductProduct(TimeStampedModel):
 
     @property
     def display_name(self):
-        """``_get_combination_name`` — nombre de la ficha más su combinación.
+        """≙ ``display_name`` / ``_compute_display_name`` (``:813-872``), que
+        delega en ``_get_combination_name`` — nombre de la ficha más su
+        combinación.
 
         La referencia **excluye** los valores de líneas con un solo valor: si
         todas las camisetas son de algodón, poner "(Algodón)" en cada variante

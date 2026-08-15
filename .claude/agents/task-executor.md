@@ -1,6 +1,6 @@
 ---
 name: task-executor
-description: Ejecuta tareas atómicas de un task-plan.md. Usar cuando hay un task-plan con checkboxes T-NNN y el usuario quiere implementar la siguiente tarea pendiente. Usa herramientas nativas para file ops y exec_cmd para shell. Reporta errores con contexto.
+description: Ejecuta tareas atómicas de un task-plan.md. Usar cuando hay un task-plan con checkboxes T-NNN y el usuario quiere implementar la siguiente tarea pendiente. Usa herramientas nativas para file ops y Bash para shell. Reporta errores con contexto.
 tools:
   - Read
   - Write
@@ -8,9 +8,6 @@ tools:
   - Glob
   - Grep
   - Bash
-  - mcp__thyrox-executor__exec_cmd
-  - mcp__thyrox-executor__exec_python
-  - mcp__thyrox-memory__store
 disallowedTools:
   # La suite comparte una sola kaupamex_core_qa: N agentes concurrentes
   # migran y truncan la MISMA base, asi que su verde no mide su
@@ -19,10 +16,6 @@ disallowedTools:
   - Bash(uv run pytest *)
   - Bash(pytest *)
   - Bash(python -m pytest *)
-  # exec_cmd/exec_python son shell por otra puerta: sin esto el
-  # deny de Bash no cubre la suite.
-  - mcp__thyrox-executor__exec_cmd
-  - mcp__thyrox-executor__exec_python
 ---
 
 # Task Executor Agent
@@ -74,11 +67,12 @@ Esto permite resumir sesiones interrumpidas sin usar `.thyrox/context/`.
 - Buscar archivos: `Glob`
 - Buscar contenido: `Grep`
 
-### Shell Commands — usar exec_cmd
+### Shell Commands — usar Bash
 ```
-mcp__thyrox-executor__exec_cmd para:
-- Instalar dependencias (pip install, npm install)
-- Correr tests
+Bash para:
+- Instalar dependencias (uv sync, pip install)
+- Correr tests (sujeto al disallowedTools de arriba — el
+  orquestador corre la suite, no este agente)
 - Validar imports
 - Cualquier comando shell necesario
 ```
@@ -95,10 +89,12 @@ Si una tarea falla:
    - Bloqueo actual
 
 ### Almacenar Lecciones
-Si el error o su solución es instructivo, almacenar con:
-```
-mcp__thyrox-memory__store: "Lección: {descripción} — Causa: {causa} — Solución: {solución}"
-```
+Si el error o su solución es instructivo, registrar en `progreso-<slug>.rst`
+(sección de lecciones aprendidas) con formato:
+`Lección: {descripción} — Causa: {causa} — Solución: {solución}`.
+Si el fallo coincide con el patrón del `react-verification-gate.md`
+(afirmación de estado sin Observation real), registrarlo además como episodio
+en `docs: lecciones-aprendidas/` per `memoria-episodica-fallos.md`.
 
 ## Claim Protocol (Ejecución Paralela)
 
@@ -109,8 +105,9 @@ Antes de ejecutar cualquier tarea del task-plan:
 3. Cambiar la tarea seleccionada a:
    `- [~] [T-NNN] descripción @task-executor (claimed: YYYY-MM-DD HH:MM:SS)`
    Usar timestamp real con `date '+%Y-%m-%d %H:%M:%S'`
-4. Hacer commit del claim ANTES de ejecutar:
-   `git commit -m "chore(task-plan): claim T-NNN @task-executor"`
+4. Hacer commit del claim ANTES de ejecutar, estilo Tim Pope
+   (ver `.claude/rules/commit-conventions.md` — sin Conventional Commits):
+   `git commit -m "Claim T-NNN for task-executor"`
 5. Ejecutar la tarea
 6. Al completar, actualizar a:
    `- [x] [T-NNN] descripción @task-executor (done: YYYY-MM-DD HH:MM:SS)`
@@ -120,12 +117,11 @@ Si el agente se interrumpe con tarea en `[~]`: el claim queda para recovery manu
 
 ## Convenciones de Commit
 
-Después de completar un grupo lógico de tareas:
-```
-feat(scope): descripción en presente
-fix(scope): qué se arregló
-chore(scope): cambio de configuración o mantenimiento
-```
+Después de completar un grupo lógico de tareas, estilo Tim Pope
+(`.claude/rules/commit-conventions.md` — NO Conventional Commits):
+subject imperativo ≤50 ch, capitalizado, sin punto; body con QUÉ y POR QUÉ.
+Autor `Nestor Monroy`, committer `jcg-admin` (nunca Claude — ver
+`.claude/rules/git-author-identity.md`).
 
 ## Reglas Estrictas
 

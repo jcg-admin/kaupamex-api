@@ -188,6 +188,8 @@ class AccountAnalyticPlan(models.Model):
 
     @property
     def children_count(self):
+        """≙ ``children_count`` / ``_compute_children_count``
+        (``:48``, ``:180-182``)."""
         return self.children.count()
 
 
