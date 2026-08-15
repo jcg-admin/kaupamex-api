@@ -1074,6 +1074,14 @@ class StockPicking(MailThread, MailActivityMixin, TimeStampedModel):
         'stock.StockLocation', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='pickings_in', help_text='Destino (Odoo location_dest_id).',
     )
+    # ≙ ``origin`` (``odoo19c: :556-558``, ``index='trigram'``). Entra en este
+    # pase porque ``stock_move._compute_display_name`` lo lee: sin el campo, el
+    # nombre visible del movimiento no se puede portar sin inventar una
+    # divergencia. El índice trigram es la tarea **#95**.
+    origin           = fields.Char(
+        max_length=64, blank=True, default='', db_index=True,
+        help_text='Documento de origen (Odoo origin).',
+    )
     # Odoo stock.picking.sale_id — el enlace lo añade el módulo sale_stock
     # (stock_picking se inherita en sale_stock/models/stock_picking.py). Aquí el
     # albarán conoce su orden de venta canónica; el sub-estado de preparación
@@ -1118,6 +1126,18 @@ class StockPicking(MailThread, MailActivityMixin, TimeStampedModel):
 
     def __str__(self) -> str:
         return self.name or f'{self.state}:{self.pk}'
+
+    @property
+    def reference_ids(self):
+        """≙ ``reference_ids`` (``related="move_ids.reference_ids"``, ``odoo19c: :590-591``).
+
+        Las referencias de un albarán son las de sus movimientos — no tiene
+        ninguna propia. Es ``related`` sin ``store`` allá, así que es property
+        aquí (``porte-completo-no-parcial.md``); lo consume
+        ``stock_move._set_references``.
+        """
+        reference = apps.get_model('stock', 'StockReference')
+        return reference.objects.filter(move_ids__picking_id=self.pk).distinct()
 
     @property
     def is_date_editable(self) -> bool:

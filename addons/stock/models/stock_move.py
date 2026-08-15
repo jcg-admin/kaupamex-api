@@ -121,12 +121,12 @@ ellos son falsos** — es la ceguera que :ref:`h-api-579` registra.
    * - —
      - computes portados como property (normalización de arriba)
      - 30
-   * - **A** (este pase)
+   * - A
      - predicados, ayudantes puros, recorrido de cadena, ``_recompute_state``
-     - **40**
-   * - B
-     - persistencia: ``create`` · ``write`` · ``unlink`` · ``default_get``
-     - 5
+     - 40
+   * - **B** (este pase)
+     - persistencia y propagación a reglas de reabastecimiento
+     - **9**
    * - C
      - reserva y disponibilidad: ``_update_reserved_quantity`` y su familia
      - 12
@@ -140,8 +140,39 @@ ellos son falsos** — es la ceguera que :ref:`h-api-579` registra.
      - previsión, empuje, abastecimiento y las acciones de ventana
      - 14
 
-**Estado tras la ola A: 74 de 131.** Las olas B–F son la tarea **#390**; ninguna
-se difiere sin dueño.
+**Estado tras la ola B: 83 de 131** — remedido con el instrumento de arriba, no
+sumado. Las olas C–F son la tarea **#390**; ninguna se difiere sin dueño.
+
+**Uno de los 83 está portado a medias, y se dice aquí:** ``write`` tiene sus dos
+guardas (cantidad de un cancelado, unidad de un hecho) y la propagación a las
+reglas de reabastecimiento, pero **no** el des-reservar/re-asignar de
+``product_uom_qty`` (``odoo19c: :851-871``) ni el re-cálculo de almacén
+(``:891-899``). Ésos cuelgan de ``_do_unreserve`` y ``_action_assign``, que son
+la ola C; portar media mitad ahora dejaría un mecanismo a medio armar sin nadie
+que lo note. Es la cobertura declarada que ``porte-completo-no-parcial.md``
+exige en vez del silencio.
+
+Qué entró en la ola B
+-----------------------
+
+``default_get`` · ``create`` (con ``_normalize_create_values``, la parte pura
+separada para poder probarla sin insertar) · ``write`` (parcial, arriba) ·
+``unlink`` · ``_set_references`` · ``_compute_display_name`` (como property
+``display_name``) · ``_update_orderpoints`` · ``_get_orderpoints_to_update`` ·
+``_delay_alert_get_documents`` · ``_propagate_date_log_note``.
+
+Dos piezas que la ola B tuvo que traer de fuera, porque sin ellas el porte
+habría necesitado inventar una divergencia:
+
+- ``stock.picking.origin`` (``odoo19c: stock_picking.py:556-558``) — lo lee
+  ``_compute_display_name``. Migración ``0012_add_picking_origin``.
+- ``stock.picking.reference_ids`` (``related``, ``:590-591``) — lo lee
+  ``_set_references``; property, porque allá no tiene columna.
+
+Y una divergencia de mecanismo, declarada: ``_mark_orderpoints_for_recompute``
+es el ``add_to_compute`` de la fuente hecho explícito. Allá el ORM difiere el
+cálculo hasta la próxima lectura; este ORM no tiene cola de cómputo diferido
+(tarea **#191**), así que se ejecuta ya. Misma cifra, distinto cuándo.
 
 Por qué la ola A va primero, y no las acciones
 ------------------------------------------------
@@ -977,6 +1008,234 @@ class StockMove(TimeStampedModel):
         if re.fullmatch(r'([0-9]+\.?[0-9]*|\.[0-9]+)', string):
             return {'quantity': float(string)}
         return False
+
+    # -- ola B · persistencia: lo que pasa al crear, escribir y borrar --
+
+    @classmethod
+    def default_get(cls, field_names, values=None, default_picking=None):
+        """≙ ``default_get`` (``odoo19c: :770-784``).
+
+        El albarán de destino decide con qué estado nace el movimiento. La
+        fuente lo lee del contexto (``default_picking_id``); aquí es un
+        argumento explícito, igual que en ``stock_rule.default_get`` — este ORM
+        no lleva contexto de entorno en la llamada.
+
+        ``additional`` no es cosmético: es lo que hace que
+        ``_autoconfirm_picking`` recoja el movimiento. Sin la marca, una línea
+        añadida a un albarán ya en marcha se quedaría en borrador dentro de una
+        transferencia que ya avanzó.
+        """
+        defaults = dict(values or {})
+        if default_picking is None:
+            return defaults
+        if default_picking.state == 'done':
+            defaults['state'] = cls.STATE_DONE
+            defaults['additional'] = True
+        elif default_picking.state not in ('cancel', 'draft', 'done'):
+            defaults['additional'] = True    # dispara `_autoconfirm_picking`
+        return defaults
+
+    @staticmethod
+    def _normalize_create_values(values):
+        """≙ el bucle de normalización de ``create`` (``odoo19c: :819-826``).
+
+        Se separa del ``create`` porque es la parte **pura**: sólo transforma
+        el diccionario, sin tocar la base. Así se prueba sin insertar nada, y
+        ``create`` queda con lo que sí es persistencia.
+
+        Las tres reglas de la fuente, en su orden:
+
+        1. Con cantidad (o con líneas), ``lot_ids`` sobra y se descarta —
+           dejar ambos permitiría dos verdades sobre lo mismo.
+        2. Un movimiento que nace dentro de un albarán hecho nace hecho.
+        3. Todo movimiento hecho está recogido, por definición.
+        """
+        values = dict(values)
+        if (values.get('quantity') or values.get('move_line_ids')) and 'lot_ids' in values:
+            values.pop('lot_ids')
+        albaran = values.get('picking')
+        if albaran is not None and albaran.state == 'done' \
+                and values.get('state') != StockMove.STATE_DONE:
+            values['state'] = StockMove.STATE_DONE
+        if values.get('state') == StockMove.STATE_DONE:
+            values['picked'] = True
+        return values
+
+    @classmethod
+    def create(cls, **vals):
+        """≙ ``create`` (``odoo19c: :818-830``).
+
+        Normaliza, inserta, y **luego** propaga: las reglas de reabastecimiento
+        que este producto toca quedan marcadas para recalcularse, y el
+        movimiento hereda las referencias de su albarán.
+        """
+        move = cls.objects.create(**cls._normalize_create_values(vals))
+        move._update_orderpoints()
+        move._set_references()
+        return move
+
+    def write(self, vals, skip_uom_conversion=False):
+        """≙ ``write`` (``odoo19c: :833-905``) — la mitad de guardas.
+
+        Dos prohibiciones de la fuente, con su razón:
+
+        - **Cantidad de un cancelado.** El cancelado es un hecho histórico;
+          reescribirlo borraría por qué se canceló. La fuente pide una línea
+          nueva en su lugar.
+        - **Unidad de un hecho.** Cambiarla reinterpreta una cantidad ya
+          asentada: cinco cajas pasarían a ser cinco piezas sin que ningún
+          quant se mueva. ``skip_uom_conversion`` es la puerta que la fuente
+          deja abierta para quien sí sabe lo que hace.
+
+        Divergencia declarada — **la mitad de reserva no está aquí.** La fuente
+        encadena, tras las guardas, el des-reservar/re-asignar de
+        ``product_uom_qty`` (``:851-871``), el aviso de fecha límite
+        (``:872-873``) y el re-cálculo de almacén (``:891-899``). Esos cuelgan
+        de ``_do_unreserve`` y ``_action_assign``, que son la **ola C**; se
+        portan ahí y no antes, para no dejar medio mecanismo en pie. Cobertura
+        declarada en el docstring del módulo.
+        """
+        for campo, valor in vals.items():
+            if campo == 'quantity' and self.state == self.STATE_CANCEL:
+                raise UserError(_(
+                    'No puede cambiar un movimiento cancelado; cree una línea nueva.'))
+            if (campo == 'product_uom' and self.state == self.STATE_DONE
+                    and not skip_uom_conversion):
+                raise UserError(_(
+                    "No puede cambiar la unidad de un movimiento en estado 'Hecho'."))
+            setattr(self, campo, valor)
+        if {'product', 'location', 'location_dest'} & set(vals):
+            self._update_orderpoints()
+        self.save()
+        if {'product', 'state', 'date', 'product_uom_qty',
+                'location', 'location_dest'} & set(vals):
+            self._update_orderpoints()
+        if 'picking' in vals:
+            self._set_references()
+        return True
+
+    def unlink(self, *args, **kwargs):
+        """≙ ``unlink`` (``odoo19c: :2337-2343``).
+
+        El orden importa y es el de la fuente: primero las líneas, después la
+        fila. Y antes de todo, la guarda de cadena — que la fuente declara
+        aparte, con ``@api.ondelete``, y aquí se invoca explícitamente porque
+        este ORM no tiene ese decorador.
+
+        Las reglas de reabastecimiento se capturan **antes** de borrar: después
+        el movimiento ya no está para decir a cuáles tocaba.
+        """
+        self._unlink_if_draft_or_cancel()
+        self.move_line_ids.all().delete()
+        reglas = list(self._get_orderpoints_to_update())
+        resultado = super().delete(*args, **kwargs)
+        type(self)._mark_orderpoints_for_recompute(reglas)
+        return resultado
+
+    delete = unlink   # el nombre de Django apunta al de la referencia
+
+    def _set_references(self):
+        """≙ ``_set_references`` (``odoo19c: :793-796``).
+
+        Un movimiento sin referencias propias adopta las de su albarán: es lo
+        que hace que los documentos de un mismo encargo compartan nombre.
+        """
+        if not self.reference_ids.exists() and self.picking_id:
+            self.reference_ids.set(self.picking.reference_ids)
+
+    @property
+    def display_name(self):
+        """≙ ``display_name`` / ``_compute_display_name`` (``odoo19c: :786-792``).
+
+        ``origen/código: ubicación>destino``, con los dos primeros tramos
+        opcionales — la fuente los omite cuando están vacíos en vez de dejar
+        separadores huérfanos.
+        """
+        origen = self.picking.origin if self.picking_id else ''
+        codigo = self.product.code_for(None) if self.product_id else ''
+        return '%s%s%s>%s' % (
+            f'{origen}/' if origen else '',
+            f'{codigo}: ' if codigo else '',
+            self.location.name if self.location_id else '',
+            self.location_dest.name if self.location_dest_id else '')
+
+    # -- ola B · propagación a las reglas de reabastecimiento --
+
+    def _update_orderpoints(self):
+        """≙ ``_update_orderpoints`` (``odoo19c: :908-916``).
+
+        Marca para recálculo **sólo** las reglas del almacén afectado, no todas
+        las del producto. La fuente lo dice explícito: *"instead of all the
+        orderpoints linked to the product"*.
+        """
+        if self.pk is None:
+            return
+        type(self)._mark_orderpoints_for_recompute(self._get_orderpoints_to_update())
+
+    def _get_orderpoints_to_update(self):
+        """≙ ``_get_orderpoints_to_update`` (``odoo19c: :918-927``).
+
+        Las reglas de este producto, acotadas a los almacenes que el movimiento
+        toca — origen y destino. Sin almacén en ninguno de los dos extremos, el
+        acotamiento no aplica y quedan todas las del producto.
+        """
+        orderpoint = apps.get_model('stock', 'StockWarehouseOrderpoint')
+        if self.product_id is None:
+            return orderpoint.objects.none()
+        almacenes = [
+            a for a in (
+                self.location.warehouse_id if self.location_id else None,
+                self.location_dest.warehouse_id if self.location_dest_id else None,
+            ) if a is not None
+        ]
+        reglas = orderpoint.objects.filter(product_id=self.product_id)
+        if almacenes:
+            reglas = reglas.filter(warehouse_id__in=almacenes)
+        return reglas.order_by('id')
+
+    @classmethod
+    def _mark_orderpoints_for_recompute(cls, orderpoints):
+        """El ``add_to_compute`` de la fuente (``odoo19c: :916``), explícito.
+
+        Divergencia declarada: allá el ORM difiere el cálculo hasta la próxima
+        lectura del campo. Este ORM no tiene cola de cómputo diferido —
+        construirla es la tarea **#191**— así que el recálculo se ejecuta ya.
+        Es la misma cifra; cambia cuándo se paga.
+        """
+        reglas = list(orderpoints)
+        if reglas:
+            type(reglas[0])._compute_qty_to_order_computed(reglas)
+
+    # -- ola B · el aviso de retraso --
+
+    def _delay_alert_get_documents(self):
+        """≙ ``_delay_alert_get_documents`` (``odoo19c: :929-938``).
+
+        Los documentos sobre los que se publica el aviso de retraso. La fuente
+        lo declara para que otros módulos lo extiendan añadiendo su propio tipo
+        de documento (la orden de compra, la de fabricación); aquí sólo está el
+        albarán, que es lo que ``stock`` conoce.
+        """
+        return [self.picking] if self.picking_id else []
+
+    def _propagate_date_log_note(self, move_orig):
+        """≙ ``_propagate_date_log_note`` (``odoo19c: :940-957``).
+
+        Publica en los documentos de este movimiento que su fecha límite se
+        movió por un retraso aguas arriba. La guarda contra el duplicado es de
+        la fuente: si el último mensaje ya dice lo mismo, no se repite.
+        """
+        docs_origen = move_orig._delay_alert_get_documents()
+        documentos = self._delay_alert_get_documents()
+        if not documentos or not docs_origen:
+            return
+        cuerpo = _('La fecha límite se actualizó por un retraso en %s.') % docs_origen[0]
+        asunto = _('Fecha límite actualizada por retraso en %s') % docs_origen[0]
+        for doc in documentos:
+            ultimo = doc.message_ids.order_by('-id').first()
+            if ultimo is not None and ultimo.subject == asunto:
+                continue
+            doc.message_post(body=cuerpo, subject=asunto)
 
     def _unlink_if_draft_or_cancel(self):
         """≙ ``_unlink_if_draft_or_cancel`` (``odoo19c: :2333-2335``).
