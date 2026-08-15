@@ -25,6 +25,26 @@ class Command:
         manager.add(obj)
 
     @staticmethod
+    def update(obj, **values):
+        """``Command.update`` (1): escribe campos sobre un hijo existente.
+
+        Era el único de los siete que faltaba. Lo pidió el porte de
+        ``stock_move._set_quantity_done_prepare_vals``
+        (``odoo19c: addons/stock/models/stock_move.py:2490``), que reparte la
+        cantidad entre las líneas existentes actualizando unas y borrando otras.
+
+        Como el resto de esta clase, es **ejecutivo**: escribe al llamarlo, en
+        vez de devolver una tupla que el ORM aplique después. Esa divergencia
+        es de la clase entera y está registrada en :ref:`h-api-589` (tarea
+        **#345**), no de este método.
+        """
+        for campo, valor in values.items():
+            setattr(obj, campo, valor)
+        obj.save(update_fields=[*values, 'updated_at'] if hasattr(obj, 'updated_at')
+                 else list(values))
+        return obj
+
+    @staticmethod
     def unlink(manager, obj):
         """``Command.unlink`` (3): desenlaza sin borrar (m2m)."""
         manager.remove(obj)

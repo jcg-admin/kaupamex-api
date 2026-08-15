@@ -124,12 +124,12 @@ ellos son falsos** — es la ceguera que :ref:`h-api-579` registra.
    * - A
      - predicados, ayudantes puros, recorrido de cadena, ``_recompute_state``
      - 40
-   * - **B** (este pase)
+   * - B
      - persistencia y propagación a reglas de reabastecimiento
-     - **9**
-   * - C
+     - 9
+   * - **C** (este pase)
      - reserva y disponibilidad: ``_update_reserved_quantity`` y su familia
-     - 12
+     - **10**
    * - D
      - fusión, división y asignación de albarán
      - 18
@@ -140,10 +140,24 @@ ellos son falsos** — es la ceguera que :ref:`h-api-579` registra.
      - previsión, empuje, abastecimiento y las acciones de ventana
      - 14
 
-**Estado tras la ola B: 83 de 131** — remedido con el instrumento de arriba, no
-sumado. Las olas C–F son la tarea **#390**; ninguna se difiere sin dueño.
+**Estado tras la ola C: 95 de 131** — remedido con el instrumento de arriba, no
+sumado. Las olas D–F son la tarea **#390**; ninguna se difiere sin dueño.
 
-**Uno de los 83 está portado a medias, y se dice aquí:** ``write`` tiene sus dos
+*Métrica:* símbolos de la referencia presentes aquí por nombre, tras normalizar
+el prefijo de ``compute``/``inverse``/``set``/``search`` y el sufijo ``_id(s)``.
+*Ciega a:* el porte que además **cambia la raíz** del nombre. El instrumento
+reporta 96 ausentes en crudo y 37 tras normalizar; de esos 37, **uno es falso**:
+``_compute_product_availability`` está portado como la property ``availability``
+(su raíz cambió de ``product_availability`` a ``availability``, así que la
+normalización no lo alcanza). De ahí 95 y no 94 — la misma ceguera de
+:ref:`h-api-579`, esta vez en el instrumento que mide, no en el gate.
+
+**Tres de la ola C no entran, y tienen dueño:** ``_trigger_scheduler`` y
+``_trigger_assign`` leen su interruptor de ``ir.config_parameter``, que **no
+existe en el árbol** (tarea **#387**); ``_match_searched_availability`` depende
+de ``forecast_availability``, que es de la ola F.
+
+**Uno de los 95 está portado a medias, y se dice aquí:** ``write`` tiene sus dos
 guardas (cantidad de un cancelado, unidad de un hecho) y la propagación a las
 reglas de reabastecimiento, pero **no** el des-reservar/re-asignar de
 ``product_uom_qty`` (``odoo19c: :851-871``) ni el re-cálculo de almacén
@@ -174,6 +188,33 @@ es el ``add_to_compute`` de la fuente hecho explícito. Allá el ORM difiere el
 cálculo hasta la próxima lectura; este ORM no tiene cola de cómputo diferido
 (tarea **#191**), así que se ejecuta ya. Misma cifra, distinto cuándo.
 
+Qué entró en la ola C
+-----------------------
+
+``_prepare_move_line_vals`` · ``_add_serial_move_line_to_vals_list`` ·
+``_update_reserved_quantity_vals`` (la parte que **decide** el reparto, separada
+para poder probarla sin escribir) · ``_update_reserved_quantity`` (la que
+escribe) · ``_get_available_move_lines_in`` · ``_get_available_move_lines_out`` ·
+``_get_available_move_lines`` · ``_set_quantity_done_prepare_vals`` ·
+``_set_quantity_done`` · ``_adjust_procure_method``.
+
+Una divergencia de FORMA, declarada: ``_set_quantity_done_prepare_vals`` devuelve
+tuplas ``('update'|'delete'|'create', línea, vals)`` donde la fuente devuelve una
+lista de ``Command``. El ``Command`` de este árbol es **ejecutivo** —escribe al
+llamarlo—, así que una lista de comandos no es un valor que se pueda devolver sin
+haber escrito ya. El contenido es el mismo y sus tres salidas se conservan en
+orden; lo que cambia es quién aplica. La divergencia de ``Command`` está
+registrada en :ref:`h-api-589` (tarea **#345**), y ésta es su consecuencia, no
+una decisión nueva.
+
+Dos piezas que la ola C tuvo que traer de fuera:
+
+- ``Command.update`` (``orm/commands.py``) — era el único de los siete que
+  faltaba; lo pide el reparto de cantidad entre líneas existentes.
+- ``OrderedSet``/``LastOrderedSet``/``groupby`` en ``tools/misc.py`` — el
+  ``groupby`` de la fuente agrupa por clave, no por tramo consecutivo como el del
+  stdlib; sin él, ``_get_available_move_lines_*`` contaría un grupo varias veces.
+
 Por qué la ola A va primero, y no las acciones
 ------------------------------------------------
 
@@ -192,17 +233,23 @@ import re
 from decimal import Decimal
 
 from django.apps import apps
+from django.db.models import Q
 from django.utils import timezone
 
 import fields
 import models
 
+from orm.commands import Command
 from orm.environments import get_current_company, get_current_user
-from tools.float_utils import float_compare
+from tools.float_utils import float_compare, float_round
+from tools.misc import groupby
 from tools.translate import _
 from exceptions import UserError
 
 from addons.stock.models.stock_quant import StockQuant
+from addons.stock.models.stock_move_line import StockMoveLine
+from addons.stock.models.stock_rule import StockRule
+from addons.base.models.decimal_precision import DecimalPrecision
 from addons.base.models import TimeStampedModel
 
 #: ≙ ``PROCUREMENT_PRIORITIES`` (``odoo19c: stock_move.py:15``).
@@ -1382,6 +1429,337 @@ class StockMove(TimeStampedModel):
         for movimiento in origenes:
             salida |= movimiento._get_upstream_documents_and_responsibles(visited)
         return salida
+
+    # -- ola C · reserva y disponibilidad --
+
+    def _prepare_move_line_vals(self, quantity=None, reserved_quant=None):
+        """≙ ``_prepare_move_line_vals`` (``odoo19c: :1867-1897``).
+
+        El diccionario con que nace una línea de movimiento. Su parte
+        interesante es el **ida y vuelta de unidad**: convierte la cantidad a
+        la unidad del movimiento, la redondea, y la vuelve a convertir a la del
+        producto. Si el resultado no coincide con lo pedido, la conversión
+        perdió precisión y la fuente prefiere **guardar en la unidad del
+        producto** antes que asentar una cifra redondeada — un movimiento de
+        tres piezas en cajas de doce no se guarda como 0.25 cajas.
+        """
+        vals = {
+            'move': self,
+            'product': self.product,
+            'product_uom': self.product_uom,
+            'location': self.location,
+            'location_dest': self.location_dest,
+            'picking': self.picking,
+            'company': self.company,
+        }
+        if quantity:
+            redondeo = DecimalPrecision.precision_get('Product Unit')
+            en_uom = self.product.uom.compute_quantity(
+                quantity, self.product_uom, rounding_method='HALF-UP')
+            en_uom = float_round(en_uom, precision_digits=redondeo)
+            de_vuelta = self.product_uom.compute_quantity(
+                en_uom, self.product.uom, rounding_method='HALF-UP')
+            if float_compare(quantity, de_vuelta, precision_digits=redondeo) == 0:
+                vals = dict(vals, quantity=en_uom)
+            else:
+                vals = dict(vals, quantity=quantity, product_uom=self.product.uom)
+        if reserved_quant is not None:
+            vals = dict(
+                vals,
+                location=reserved_quant.location,
+                lot=reserved_quant.lot,
+                package=reserved_quant.package,
+                owner=reserved_quant.owner,
+            )
+        return vals
+
+    def _add_serial_move_line_to_vals_list(self, reserved_quant, quantity):
+        """≙ ``_add_serial_move_line_to_vals_list`` (``odoo19c: :1958-1959``).
+
+        Un producto con número de serie no admite fracción: **una línea por
+        unidad**, cada una con su lote.
+        """
+        return [self._prepare_move_line_vals(quantity=1, reserved_quant=reserved_quant)
+                for _ in range(int(quantity))]
+
+    def _update_reserved_quantity_vals(self, need, location, lot=None, package=None,
+                                       owner=None, strict=True):
+        """≙ ``_update_reserved_quantity_vals`` (``odoo19c: :1912-1956``).
+
+        Decide **el reparto** sin escribirlo: qué línea existente crece y qué
+        líneas nuevas hacen falta. Devuelve ``(valores, tomado)``.
+
+        Dos pasos de la fuente que no son adorno:
+
+        1. **Se agrupan los quants duplicados** por su combinación
+           (ubicación, lote, paquete, dueño) antes de repartir. Sin eso, dos
+           quants de la misma combinación crearían dos líneas donde debe haber
+           una.
+        2. **Sólo se acumula sobre una línea candidata si la conversión de
+           unidad es exacta** — el mismo ida y vuelta de
+           ``_prepare_move_line_vals``. Si no lo es, se crea línea nueva en vez
+           de asentar un redondeo sobre una cantidad que ya estaba.
+
+        Las líneas con paquete de resultado o con serie quedan fuera de las
+        candidatas: la fuente no acumula sobre ellas.
+        """
+        quants = StockQuant._get_reserve_quantity(
+            self.product, location, need, uom=self.product_uom,
+            lot=lot, package=package, owner=owner, strict=strict)
+
+        tomado = 0
+        redondeo = DecimalPrecision.precision_get('Product Unit')
+        candidatas = {}
+        for linea in self.move_line_ids.all():
+            if linea.result_package_id or linea.product.tracking == 'serial':
+                continue
+            candidatas[(linea.location_id, linea.lot_id,
+                        linea.package_id, linea.owner_id)] = linea
+
+        valores = []
+        agrupados = {}
+        for quant, cantidad in quants:
+            clave = (quant.location_id, quant.lot_id, quant.package_id, quant.owner_id)
+            if clave not in agrupados:
+                agrupados[clave] = [quant, cantidad]
+            else:
+                agrupados[clave][1] += cantidad
+
+        for quant, cantidad in agrupados.values():
+            tomado += cantidad
+            actualizable = candidatas.get(
+                (quant.location_id, quant.lot_id, quant.package_id, quant.owner_id))
+            exacta = False
+            if actualizable is not None:
+                en_uom = self.product.uom.compute_quantity(
+                    cantidad, actualizable.product_uom, rounding_method='HALF-UP')
+                en_uom = float_round(en_uom, precision_digits=redondeo)
+                de_vuelta = actualizable.product_uom.compute_quantity(
+                    en_uom, self.product.uom, rounding_method='HALF-UP')
+                exacta = float_compare(cantidad, de_vuelta,
+                                       precision_digits=redondeo) == 0
+            if actualizable is not None and exacta:
+                actualizable.quantity += Decimal(str(en_uom))
+                actualizable.save(update_fields=['quantity', 'updated_at'])
+            elif (self.product.tracking == 'serial' and self.picking_type_id
+                  and (self.picking_type.use_create_lots
+                       or self.picking_type.use_existing_lots)):
+                valores += self._add_serial_move_line_to_vals_list(quant, cantidad)
+            else:
+                valores.append(
+                    self._prepare_move_line_vals(quantity=cantidad, reserved_quant=quant))
+        return valores, tomado
+
+    def _update_reserved_quantity(self, need, location, lot=None, package=None,
+                                  owner=None, strict=True):
+        """≙ ``_update_reserved_quantity`` (``odoo19c: :1900-1910``).
+
+        «Create or update move lines and reserves quantity from quants.» Es la
+        mitad que **escribe**; el reparto lo decide el método de arriba.
+        """
+        valores, tomado = self._update_reserved_quantity_vals(
+            need, location, lot, package, owner, strict)
+        for vals in valores:
+            StockMoveLine.objects.create(**vals)
+        return tomado
+
+    def _get_available_move_lines_in(self):
+        """≙ ``_get_available_move_lines_in`` (``odoo19c: :1989-2002``).
+
+        Lo que **entró** por los hermanos de esta cadena, agrupado por su
+        combinación de destino. Se recorre ``move_orig_ids.move_dest_ids
+        .move_orig_ids`` —el rodeo es de la fuente— porque un mismo origen
+        puede abastecer a varios destinos y hay que ver todo lo que llegó.
+        """
+        lineas = [
+            linea
+            for origen in self.move_orig_ids.all()
+            for destino in origen.move_dest_ids.all()
+            for hermano in destino.move_orig_ids.all()
+            if hermano.state == self.STATE_DONE
+            for linea in hermano.move_line_ids.all()
+        ]
+
+        def clave(linea):
+            return (linea.location_dest_id, linea.lot_id,
+                    linea.result_package_id, linea.owner_id)
+
+        agrupado = {}
+        for k, grupo in groupby(lineas, key=clave):
+            agrupado[k] = sum(
+                ml.product_uom.compute_quantity(float(ml.quantity), ml.product.uom)
+                for ml in grupo)
+        return agrupado
+
+    def _get_available_move_lines_out(self, assigned_moves_ids, partially_available_moves_ids):
+        """≙ ``_get_available_move_lines_out`` (``odoo19c: :2004-2028``).
+
+        Lo que los **hermanos ya se llevaron**, por la misma combinación. Suma
+        dos poblaciones distintas, y la fuente explica por qué la segunda:
+        *"As we defer the write on the stock.move's state at the end of the
+        loop, there could be moves to consider in what our siblings already
+        took"* — es decir, hermanos cuyo estado aún no se ha escrito.
+        """
+        hermanos = [m for origen in self.move_orig_ids.all()
+                    for m in origen.move_dest_ids.all() if m.pk != self.pk]
+        hechos = [linea for m in hermanos if m.state == self.STATE_DONE
+                  for linea in m.move_line_ids.all()]
+        en_vuelo = set(assigned_moves_ids) | set(partially_available_moves_ids)
+        reservados = [
+            linea for m in hermanos
+            if m.state in (self.STATE_ASSIGNED, 'partially_available') or m.pk in en_vuelo
+            for linea in m.move_line_ids.all()
+        ]
+
+        def clave(linea):
+            return (linea.location_id, linea.lot_id, linea.package_id, linea.owner_id)
+
+        agrupado = {}
+        for k, grupo in groupby(hechos, key=clave):
+            agrupado[k] = sum(
+                ml.product_uom.compute_quantity(float(ml.quantity), ml.product.uom)
+                for ml in grupo)
+        for k, grupo in groupby(reservados, key=clave):
+            agrupado[k] = sum(float(ml.quantity_product_uom) for ml in grupo)
+        return agrupado
+
+    def _get_available_move_lines(self, assigned_moves_ids, partially_available_moves_ids):
+        """≙ ``_get_available_move_lines`` (``odoo19c: :2030-2036``).
+
+        Lo que entró menos lo que se llevaron. Las combinaciones que quedan en
+        cero **se descartan**: la fuente sólo devuelve las que aún tienen algo,
+        y quien la consume itera el diccionario esperando que cada entrada sea
+        reservable.
+        """
+        entradas = self._get_available_move_lines_in()
+        salidas = self._get_available_move_lines_out(
+            assigned_moves_ids, partially_available_moves_ids)
+        disponible = {k: entradas[k] - salidas.get(k, 0) for k in entradas}
+        redondeo = self.product.uom.rounding if self.product_id else 0.01
+        return {k: v for k, v in disponible.items()
+                if float_compare(v, 0, precision_rounding=redondeo) > 0}
+
+    def _set_quantity_done_prepare_vals(self, qty):
+        """≙ ``_set_quantity_done_prepare_vals`` (``odoo19c: :2468-2549``).
+
+        Reparte ``qty`` entre las líneas existentes y devuelve **el plan**: qué
+        línea se actualiza, cuál se borra y cuál falta crear.
+
+        Divergencia declarada de FORMA, no de contenido: la fuente devuelve
+        una lista de ``Command``, que su ORM aplica al asignar. El ``Command``
+        de este árbol es **ejecutivo** —escribe al llamarlo— así que una lista
+        de comandos no es un valor que se pueda devolver sin haber escrito ya.
+        El plan viaja como tuplas ``('update'|'delete'|'create', línea, vals)``
+        y lo aplica ``_set_quantity_done``. La divergencia de ``Command`` está
+        registrada en :ref:`h-api-589` (tarea **#345**); ésta es una de sus
+        consecuencias, no una decisión nueva.
+
+        El recorrido conserva las tres salidas de la fuente, en su orden:
+        agotada la cantidad, la línea sobra y se borra; si la línea tiene más
+        de lo que queda, se recorta; si tiene menos, se consume entera y se
+        sigue. Las líneas con paquete de resultado **descuentan pero no se
+        tocan** — ya están empaquetadas.
+        """
+        def en_uom_del_movimiento(cantidad):
+            return self.product.uom.compute_quantity(
+                cantidad, self.product_uom, round=False)
+
+        plan = []
+        qty = self.product_uom.compute_quantity(qty, self.product.uom, round=False)
+        for linea in self.move_line_ids.all():
+            cantidad_linea = float(linea.quantity)
+            if linea.product_uom.compare(cantidad_linea, 0) < 0:
+                continue
+            if linea.product_uom != self.product.uom:
+                cantidad_linea = linea.product_uom.compute_quantity(
+                    cantidad_linea, self.product.uom, round=False)
+
+            if self.product_uom.is_zero(en_uom_del_movimiento(qty)):
+                plan.append(('delete', linea, {}))
+                continue
+
+            if self.product.uom.compare(cantidad_linea, qty) > 0:
+                recorte = qty
+                if linea.product_uom != self.product.uom:
+                    recorte = self.product.uom.compute_quantity(
+                        qty, linea.product_uom, round=False)
+                plan.append(('update', linea, {'quantity': Decimal(str(recorte))}))
+                qty = 0
+                continue
+
+            if linea.result_package_id:
+                qty -= cantidad_linea
+                continue
+
+            plan.append(('update', linea, {'quantity': Decimal(str(
+                en_uom_del_movimiento(cantidad_linea)))}))
+            qty -= cantidad_linea
+
+        if self.product.uom.compare(qty, 0) > 0:
+            plan.append(('create', None,
+                         self._prepare_move_line_vals(quantity=qty)))
+        return plan
+
+    def _set_quantity_done(self, qty):
+        """≙ ``_set_quantity_done`` (``odoo19c: :2551-2562``).
+
+        «Set the given quantity as quantity done on the move through the move
+        lines.» Aplica el plan y **redirige las líneas nuevas** por la
+        estrategia de ubicación — que es la única razón por la que la fuente
+        distingue las nuevas de las que ya estaban.
+        """
+        nuevas = []
+        for accion, linea, vals in self._set_quantity_done_prepare_vals(qty):
+            if accion == 'delete':
+                Command.delete(linea)
+            elif accion == 'update':
+                Command.update(linea, **vals)
+            else:
+                nuevas.append(StockMoveLine.objects.create(**vals))
+        if nuevas:
+            StockMoveLine._apply_putaway_strategy(nuevas)
+
+    def _adjust_procure_method(self, picking_type_code=False):
+        """≙ ``_adjust_procure_method`` (``odoo19c: :2564-2599``).
+
+        «This method will try to apply the procure method MTO on some moves if
+        a compatible MTO route is found. Else the procure method will be set to
+        MTS.»
+
+        El bucle asciende por el árbol de ubicaciones buscando una regla que
+        cubra el trayecto: sin regla, el movimiento se abastece de existencias.
+        El ``while`` de la fuente se conserva porque una ubicación hija puede
+        no tener regla propia y heredar la de su padre.
+        """
+        regla = None
+        ubicacion = self.location
+        while ubicacion is not None:
+            criterio = (Q(location_src=ubicacion)
+                        & Q(location_dest=self.location_dest)
+                        & ~Q(action='push'))
+            if picking_type_code:
+                criterio &= Q(picking_type__code=picking_type_code)
+            regla = StockRule._search_rule(
+                None, self.packaging_uom, self.product,
+                self.warehouse or (self.picking_type.warehouse
+                                   if self.picking_type_id else None),
+                criterio)
+            if regla is not None:
+                break
+            ubicacion = ubicacion.location
+
+        if regla is None:
+            self.procure_method = self.PROCURE_MAKE_TO_STOCK
+            self.save(update_fields=['procure_method', 'updated_at'])
+            return
+
+        self.rule = regla
+        self.procure_method = (
+            regla.procure_method
+            if regla.procure_method in (self.PROCURE_MAKE_TO_STOCK,
+                                        self.PROCURE_MAKE_TO_ORDER)
+            else self.PROCURE_MAKE_TO_STOCK)
+        self.save(update_fields=['rule', 'procure_method', 'updated_at'])
 
     def _do_unreserve(self):
         """≙ ``_do_unreserve`` (``odoo19c: :1018-1044``).
