@@ -48,6 +48,13 @@ urlpatterns = _admin_urls + [
     # --- API v1 (DEC-V2-02: webhooks registrados con terceros — no renombrar) ---
     path('api/v1/logistics/', include('addons.delivery.controllers.webhook_urls')),
 
+    # Despacho genérico por modelo/método (≙ `addons/rpc` de la referencia).
+    # Va FUERA de `api/v2/`: la referencia lo monta en `/json/2`, y ese prefijo
+    # es el contrato que un cliente programático ya conoce. Su catch-all es
+    # `re_path(r'.*')`, así que tiene que ir después de las rutas concretas de
+    # su propio include, no de las del proyecto — por eso el include es uno.
+    path('json/2/', include(('addons.rpc.controllers.urls', 'rpc'), namespace='rpc_v2')),
+
     # --- API v2 ---
     # chartsize_v2 ANTES de catalogue_v2: más específico (/products/<slug>/variants/)
     # debe resolverse antes del catch-all de catalogue_v2 (/products/<slug>/).

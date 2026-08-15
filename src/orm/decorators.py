@@ -41,12 +41,40 @@ def onchange(*fields):
     return deco
 
 
-def model(func):
-    return func
+def _mark(method, attr):
+    """Deja ``attr`` en la función, atravesando ``classmethod``/``staticmethod``.
+
+    Un objeto ``classmethod`` no admite atributos arbitrarios, pero su
+    ``__func__`` sí — y ``getattr`` sobre el método ligado delega en él, así que
+    el marcador se lee igual desde la clase. Hace falta porque en este árbol un
+    método de nivel de modelo se escribe ``@api.model`` sobre un ``classmethod``
+    (``addons/product/models/product_template.py:400``), forma que la referencia
+    no tiene.
+    """
+    setattr(getattr(method, '__func__', method), attr, True)
+    return method
 
 
-def model_create_multi(func):
-    return func
+def model(method):
+    """≙ ``odoo19c: odoo/orm/decorators.py:313`` — ``method._api_model = True``.
+
+    Marca el método como de **nivel de modelo**: opera sobre el modelo, no sobre
+    registros concretos. El dispatcher ``/json/2`` lo lee para rechazar con 422
+    una llamada que además traiga ``ids``.
+
+    Era ``return func`` —un no-op con el nombre de la referencia— hasta
+    :ref:`h-api-639`.
+    """
+    return _mark(method, '_api_model')
+
+
+def model_create_multi(method):
+    """≙ ``odoo19c: odoo/orm/decorators.py:371`` — ``create._api_model = True``.
+
+    La referencia marca el ``create`` multi con el **mismo** atributo que
+    ``model``: crear no parte de registros existentes.
+    """
+    return _mark(method, '_api_model')
 
 
 def returns(*args, **kwargs):

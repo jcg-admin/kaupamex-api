@@ -86,10 +86,24 @@ def get_public_method(model, name):
         raise AttributeError(
             f"The method '{cls.__name__}.{name}' does not exist"
         )
-    if method == getattr(model, name, None):
+    if method == getattr(model, name, None) and not getattr(method, '_api_model', False):
         # Un `classmethod` o `staticmethod` da el MISMO objeto leído desde la
         # clase y desde la instancia: no hubo ligadura, así que no recibe el
         # recordset y el despacho por `func(records, **kwargs)` no aplica.
+        #
+        # DIVERGENCIA DECLARADA (:ref:`h-api-639`). La referencia corta aquí sin
+        # excepción, porque en su árbol el método de nivel de modelo se escribe
+        # `@api.model def f(self)` —con `self` = recordset vacío— y un
+        # `classmethod` real sería una anomalía. Aquí la convención es la
+        # contraria y está escrita en el código: *"Son ``@api.model``: no
+        # dependen de la instancia, así que aquí son ``classmethod``"*
+        # (`addons/product/models/product_template.py:400`).
+        #
+        # Así que el criterio pasa de la FORMA al MARCADOR: se admite el
+        # `classmethod` que declara `@api.model`, y sólo ése. Sin el marcador
+        # sigue rechazado — el default es fail-closed, y los 273 classmethods
+        # públicos que hoy no lo declaran quedan fuera del despacho hasta que
+        # su dueño los declare API.
         raise AccessError(
             f"The method '{cls.__name__}.{name}' cannot be called remotely."
         )

@@ -26,7 +26,7 @@ from service.model import get_public_method
 from tools.safe_eval import _UNSAFE_ATTRIBUTES
 
 
-class _Base(models.Model):
+class _Ancestor(models.Model):
     """Ancestro que declara el método privado, para probar el barrido del MRO."""
 
     class Meta:
@@ -34,11 +34,11 @@ class _Base(models.Model):
         app_label = 'base'
 
     @api.private
-    def heredado_privado(self):
+    def inherited_private(self):
         return 'no debería alcanzarse'
 
 
-class _Modelo(_Base):
+class _Probe(_Ancestor):
     """Concreto pero ``managed = False``: se instancia sin tabla.
 
     ``get_public_method`` no toca la base —sólo inspecciona la clase— así que
@@ -51,80 +51,108 @@ class _Modelo(_Base):
         app_label = 'base'
         managed = False
 
-    def publico(self, valor=1):
-        return valor
+    def public(self, value=1):
+        return value
 
-    def _privado_por_nombre(self):
+    def _private_by_name(self):
         return None
 
     @api.private
-    def marcado_privado(self):
+    def marked_private(self):
         return None
 
     @classmethod
-    def de_clase(cls):
+    def plain_classmethod(cls):
         return None
+
+    @api.model
+    @classmethod
+    def declared_model_level(cls):
+        """Nivel de modelo, declarado: la forma que este árbol da a ``@api.model``."""
+        return 'model level'
 
     @staticmethod
-    def estatico():
+    def plain_staticmethod():
         return None
 
-    no_invocable = 'soy un atributo, no un método'
+    not_callable = 'soy un atributo, no un método'
 
 
 @pytest.fixture
-def modelo():
-    return _Modelo()
+def probe():
+    return _Probe()
 
 
-def test_devuelve_el_metodo_publico(modelo):
+def test_returns_the_public_method(probe):
     """El caso feliz: un método público se devuelve **sin ligar**."""
-    func = get_public_method(modelo, 'publico')
+    func = get_public_method(probe, 'public')
     assert callable(func)
-    assert func(modelo, 7) == 7, 'debe venir sin ligar: recibe self explícito'
+    assert func(probe, 7) == 7, 'debe venir sin ligar: recibe self explícito'
 
 
-def test_rechaza_el_prefijo_de_guion_bajo(modelo):
+def test_rejects_the_underscore_prefix(probe):
     with pytest.raises(AccessError, match='Private methods'):
-        get_public_method(modelo, '_privado_por_nombre')
+        get_public_method(probe, '_private_by_name')
 
 
-@pytest.mark.parametrize('nombre', ['mro', 'f_globals', 'gi_frame'])
-def test_rechaza_los_atributos_inseguros(modelo, nombre):
+@pytest.mark.parametrize('name', ['mro', 'f_globals', 'gi_frame'])
+def test_rejects_unsafe_attributes(probe, name):
     """``_UNSAFE_ATTRIBUTES`` es la segunda mitad del filtro por nombre."""
-    assert nombre in _UNSAFE_ATTRIBUTES
+    assert name in _UNSAFE_ATTRIBUTES
     with pytest.raises(AccessError, match='Private methods'):
-        get_public_method(modelo, nombre)
+        get_public_method(probe, name)
 
 
-def test_metodo_inexistente_es_attribute_error(modelo):
+def test_unknown_method_is_attribute_error(probe):
     """Distinto error a propósito: el dispatcher lo traduce a 404, no a 403."""
     with pytest.raises(AttributeError, match='does not exist'):
-        get_public_method(modelo, 'no_existe_en_absoluto')
+        get_public_method(probe, 'no_such_method_at_all')
 
 
-def test_atributo_no_invocable_es_attribute_error(modelo):
+def test_non_callable_attribute_is_attribute_error(probe):
     with pytest.raises(AttributeError, match='does not exist'):
-        get_public_method(modelo, 'no_invocable')
+        get_public_method(probe, 'not_callable')
 
 
-@pytest.mark.parametrize('nombre', ['de_clase', 'estatico'])
-def test_rechaza_classmethod_y_staticmethod(modelo, nombre):
+@pytest.mark.parametrize('name', ['plain_classmethod', 'plain_staticmethod'])
+def test_rejects_classmethod_and_staticmethod(probe, name):
     """No reciben ``self``, así que el despacho por recordset no aplica.
 
     La referencia los detecta comparando el atributo de la clase con el de la
     instancia: si son el mismo objeto, no hubo ligadura.
     """
     with pytest.raises(AccessError, match='cannot be called remotely'):
-        get_public_method(modelo, nombre)
+        get_public_method(probe, name)
 
 
-def test_rechaza_el_decorado_api_private(modelo):
+def test_accepts_the_classmethod_marked_api_model(probe):
+    """La divergencia declarada: aquí ``classmethod`` ES la forma de ``@api.model``.
+
+    La referencia rechaza todo ``classmethod`` porque en su árbol un método de
+    nivel de modelo se escribe ``@api.model def f(self)`` —con ``self`` = un
+    recordset vacío— y un ``classmethod`` real sería una anomalía que recibiría
+    la clase en vez del recordset.
+
+    Aquí la convención es la contraria y está escrita en el código:
+    ``addons/product/models/product_template.py:400`` — *"Son ``@api.model``: no
+    dependen de la instancia, así que aquí son ``classmethod``"*. Rechazarlos
+    todos dejaría fuera del despacho la superficie de nivel de modelo entera.
+
+    Por eso el criterio se traslada de la **forma** al **marcador**: un
+    ``classmethod`` es invocable si —y sólo si— lleva ``@api.model``. Sin él
+    sigue rechazado, que es el default fail-closed. Ver :ref:`h-api-639`.
+    """
+    func = get_public_method(probe, 'declared_model_level')
+    assert callable(func)
+    assert func() == 'model level'
+
+
+def test_rejects_the_api_private_decorated(probe):
     with pytest.raises(AccessError, match='Private methods'):
-        get_public_method(modelo, 'marcado_privado')
+        get_public_method(probe, 'marked_private')
 
 
-def test_el_barrido_de_private_recorre_el_mro(modelo):
+def test_the_private_sweep_walks_the_mro(probe):
     """Un ancestro puede volver privado un nombre que la subclase redefine.
 
     Es la razón de que la referencia recorra ``cls.mro()`` en vez de mirar sólo
@@ -132,10 +160,10 @@ def test_el_barrido_de_private_recorre_el_mro(modelo):
     levantaría la restricción del ancestro.
     """
     with pytest.raises(AccessError, match='Private methods'):
-        get_public_method(modelo, 'heredado_privado')
+        get_public_method(probe, 'inherited_private')
 
 
-def test_api_private_marca_el_atributo():
+def test_api_private_sets_the_marker():
     """El decorador es lo que ``get_public_method`` consulta."""
 
     @api.private
@@ -145,7 +173,7 @@ def test_api_private_marca_el_atributo():
     assert f._api_private is True
 
 
-def test_api_readonly_marca_el_atributo():
+def test_api_readonly_sets_the_marker():
     """``_readonly`` lo consume el selector de cursor del dispatcher."""
 
     @api.readonly
@@ -153,3 +181,29 @@ def test_api_readonly_marca_el_atributo():
         return None
 
     assert f._readonly is True
+
+
+def test_api_model_sets_the_marker():
+    """``@api.model`` debe MARCAR, no ser un no-op.
+
+    Es lo que el dispatcher lee para su 422 (*"cannot call X.y with ids"*) y lo
+    que distingue un ``classmethod`` de nivel de modelo de uno cualquiera.
+    Antes de :ref:`h-api-639` el decorador era ``return func``: existía con el
+    nombre de la referencia y no hacía lo que el de la referencia hace.
+    """
+
+    @api.model
+    def f(self):
+        return None
+
+    assert f._api_model is True
+
+
+def test_api_model_create_multi_sets_the_marker():
+    """≙ ``create._api_model = True`` (``odoo19c: odoo/orm/decorators.py:371``)."""
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        return None
+
+    assert create._api_model is True
