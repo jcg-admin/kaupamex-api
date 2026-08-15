@@ -212,7 +212,6 @@ from django.utils import timezone
 from addons.base.models import TimeStampedModel
 from exceptions import UserError, ValidationError
 from orm.environments import get_current_company, is_su
-from orm.fields_nonstored import NonStored
 from osv import expression
 from tools.float_utils import float_is_zero
 from tools.misc import split_every
@@ -509,19 +508,19 @@ class StockRule(TimeStampedModel):
 
     #: ≙ ``route_company_id`` (``:77``) — ``related='route_id.company_id'`` sin
     #: ``store``. Devuelve el registro de empresa de la ruta, como la fuente.
-    route_company = NonStored(
+    route_company = fields.NonStored(
         default=lambda rule: rule.route.company if rule.route_id else None,
         help_text='Empresa de la ruta (Odoo route_company_id, related).',
     )
     #: ≙ ``picking_type_code_domain`` (``:91``) — ``fields.Json`` computado sin
     #: ``store``.
-    picking_type_code_domain = NonStored(
+    picking_type_code_domain = fields.NonStored(
         default=lambda rule: rule._compute_picking_type_code_domain(),
         help_text='Códigos de tipo de operación admisibles (Odoo '
                   'picking_type_code_domain).',
     )
     #: ≙ ``rule_message`` (``:110``) — ``fields.Html`` computado sin ``store``.
-    rule_message = NonStored(
+    rule_message = fields.NonStored(
         default=lambda rule: rule._compute_action_message(),
         help_text='Descripción legible del propósito de la regla (Odoo '
                   'rule_message).',
