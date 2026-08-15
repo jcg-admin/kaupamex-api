@@ -130,34 +130,47 @@ ellos son falsos** — es la ceguera que :ref:`h-api-579` registra.
    * - C
      - reserva y disponibilidad: ``_update_reserved_quantity`` y su familia
      - 10
-   * - **D** (este pase)
+   * - D
      - fusión, división y reparto en albarán
-     - **12**
-   * - E
+     - 12
+   * - **E** (este pase)
      - lotes y números de serie
-     - 8
+     - **8**
    * - F
      - previsión, empuje, abastecimiento y las acciones de ventana
-     - 16
+     - 15
 
-**Estado tras la ola D: 107 de 131** — remedido con el instrumento de arriba, no
-sumado. Las olas E–F son la tarea **#390**; ninguna se difiere sin dueño.
+**Estado tras la ola E: 116 de 131** — remedido con el instrumento de arriba, no
+sumado. La ola F es la tarea **#390**; nada se difiere sin dueño.
 
-> **La estimación de D/E/F estaba mal y se corrige aquí.** La tabla decía
+> **La estimación de D/E/F estaba mal y se corrigió en la ola D.** La tabla decía
 > 18/8/14 = 40, cuando los ausentes reales tras la ola C eran 36 (37 menos el
-> falso de abajo). Reparto medido sobre la lista que el instrumento devuelve:
-> **D 12 · E 8 · F 16**. La cifra de D no era una omisión de alcance — era una
+> falso de entonces). Reparto medido sobre la lista que el instrumento devuelve:
+> **D 12 · E 8 · F 15**. La cifra de D no era una omisión de alcance — era una
 > estimación escrita antes de contar, que es exactamente lo que
 > ``calibration-verified-numbers.md`` prohíbe.
 
-*Métrica:* símbolos de la referencia presentes aquí por nombre, tras normalizar
-el prefijo de ``compute``/``inverse``/``set``/``search`` y el sufijo ``_id(s)``.
-*Ciega a:* el porte que además **cambia la raíz** del nombre. El instrumento
-reporta 25 ausentes tras normalizar; de esos 25, **uno es falso**:
-``_compute_product_availability`` está portado como la property ``availability``
-(su raíz cambió de ``product_availability`` a ``availability``, así que la
-normalización no lo alcanza). De ahí 107 y no 106 — la misma ceguera de
-:ref:`h-api-579`, esta vez en el instrumento que mide, no en el gate.
+*Métrica:* métodos de **clase** de la referencia (131) presentes aquí por nombre,
+tras normalizar el prefijo de ``compute``/``inverse``/``set``/``search`` y el
+sufijo ``_id(s)``. Medido con un solo comando contra ``HEAD`` y contra el árbol
+de trabajo, para que el delta no mezcle dos instrumentos (la trampa de
+:ref:`h-api-350`): **106 → 114 presentes**, +8, exactamente los ocho de la ola E.
+*Ciega a:* el porte que además **cambia la raíz** del nombre. De los **17** que
+el instrumento reporta ausentes, **dos son falsos**:
+
+- ``_compute_product_availability`` → property ``availability``;
+- ``_compute_show_info`` → sus **tres** salidas son las properties
+  ``show_quant``, ``show_lots_text`` y ``show_lots_m2o``.
+
+De ahí 116 y no 114. **La cifra anterior (107) estaba un punto baja por esta
+misma razón:** declaraba un solo falso cuando ya eran dos — las tres properties
+de ``_compute_show_info`` existen desde antes de la ola D. Es la ceguera de
+:ref:`h-api-579` mordiendo dos veces al mismo instrumento.
+
+**Y uno que parecía falso y NO lo es:** ``_compute_package_ids``. El árbol tiene
+``related_name='package_ids'``, pero en ``StockPackageType`` y ``StockLocation``,
+**no** en ``StockMove`` — así que la ausencia es real. Se verificó en vez de
+suponerse, que es la diferencia entre este conteo y el anterior.
 
 **Tres de la ola C no entran, y tienen dueño:** ``_trigger_scheduler`` y
 ``_trigger_assign`` leen su interruptor de ``ir.config_parameter``, que **no
@@ -244,13 +257,13 @@ Tres divergencias de FORMA, declaradas:
 - **Las relaciones múltiples se enlazan aparte.** ``_merge_moves_fields`` y
   ``_prepare_move_split_vals`` devuelven ``move_dest_ids``/``move_orig_ids``
   dentro del diccionario, igual que la fuente —allá el ORM traduce los comandos
-  ``(4, id)``—; aquí ``_aplicar_merge`` y ``_create_backorder`` las separan antes
+  ``(4, id)``—; aquí ``_apply_merge`` y ``_create_backorder`` las separan antes
   de escribir. Es la misma raíz que la divergencia de ``Command`` de la ola C.
 
 Y dos ayudantes que la referencia no tiene, porque allá no hacen falta:
-``_resolver_candidatos`` (el conjunto de candidatos mezcla ``attname`` de albarán
+``_resolve_candidates`` (el conjunto de candidatos mezcla ``attname`` de albarán
 con tuplas de movimientos; allá ambas formas son el mismo recordset) y
-``_aplicar_merge`` (separar escalares de relaciones al escribir).
+``_apply_merge`` (separar escalares de relaciones al escribir).
 
 Cinco piezas que la ola D tuvo que traer o arreglar de fuera:
 
@@ -268,6 +281,45 @@ Cinco piezas que la ola D tuvo que traer o arreglar de fuera:
   funcionaba con un cero de por medio.
 
 Las cinco están en :ref:`h-api-625`.
+
+Qué entró en la ola E
+-----------------------
+
+``_compute_lot_ids`` (como la property ``lot_ids``) · ``_set_lot_ids`` (su
+setter) · ``_create_lot_ids_from_move_line_vals`` · ``split_lots`` ·
+``_generate_serial_move_line_commands`` · ``_generate_serial_numbers`` ·
+``_onchange_lot_ids`` · ``action_generate_lot_line_vals``.
+
+Tres divergencias de FORMA, declaradas:
+
+- **``lot_ids`` es property con setter.** La fuente lo declara
+  ``fields.Many2many(compute='_compute_lot_ids', inverse='_set_lot_ids')``
+  **sin** ``store``, así que aquí es una property — la misma convención que los
+  otros treinta computes sin almacenar de este archivo. El getter y el setter
+  conservan el cuerpo de cada mitad.
+- **Las colecciones son parámetros.** ``_set_lot_ids(lots)`` y
+  ``_onchange_lot_ids(lots, previous_lots=None)`` reciben lo que allá leen del
+  campo. El segundo además recibe el conjunto **anterior**: la fuente lo saca de
+  ``self._origin`` —el registro sin asentar del formulario— y aquí ese búfer no
+  existe; por defecto se lee de las líneas, que equivale a ``_origin`` si se
+  llama **antes** de ``_set_lot_ids``, que es el orden en que la fuente dispara.
+- **Los generadores devuelven tuplas, no ``Command``.** ``('update', línea,
+  vals)`` / ``('create', None, vals)`` / ``('delete', línea, None)``, y las
+  aplica ``_apply_move_line_commands``. Es la misma raíz que la divergencia de
+  la ola C: el ``Command`` de este árbol es ejecutivo (:ref:`h-api-589`, tarea
+  **#345**), así que un generador no puede devolver comandos sin haber escrito.
+
+Y una cuarta, de tipo: ``_create_lot_ids_from_move_line_vals`` vacía el
+``lot_name`` a ``None`` donde la fuente escribe ``False``. Esos valores acaban en
+un ``Char(null=True)``, y un booleano en columna de texto es el defecto que
+:ref:`h-api-590` registra (tarea **#346**).
+
+**Lo que la ola E NO cierra, y tiene dueño:** el bloque final de
+``action_generate_lot_line_vals`` (``odoo19c: :1193-1206``) rebobina el contador
+de la secuencia tras el botón «New» del asistente. Depende de
+``_get_current_sequence``, ``get_next_char`` y ``number_next_actual``, que
+``ir.sequence`` **no declara en este árbol**. Es completitud de ``ir.sequence``,
+no de este archivo. Sucesor: tarea **#394**.
 
 Por qué la ola A va primero, y no las acciones
 ------------------------------------------------
@@ -299,7 +351,7 @@ from orm.environments import get_current_company, get_current_user
 from tools.float_utils import float_compare, float_round
 from tools.misc import OrderedSet, groupby
 from tools.translate import _
-from exceptions import UserError
+from exceptions import UserError, ValidationError
 
 from addons.stock.models.stock_quant import StockQuant
 from addons.stock.models.stock_move_line import StockMoveLine
@@ -1011,15 +1063,15 @@ class StockMove(TimeStampedModel):
         los movimientos origen entra en la clave **sólo** si el movimiento no
         trae referencias propias: con referencia, ésta manda.
         """
-        clave = (tuple(self.reference_ids.values_list('pk', flat=True)),
+        key_of = (tuple(self.reference_ids.values_list('pk', flat=True)),
                  self.location_id, self.location_dest_id, self.picking_type_id)
         if not self.reference_ids.exists():
             origen_pickings = tuple(sorted(
                 self.move_orig_ids.exclude(picking__isnull=True)
                 .values_list('picking', flat=True)))
             if origen_pickings:
-                clave += (origen_pickings,)
-        return clave
+                key_of += (origen_pickings,)
+        return key_of
 
     def _prepare_merge_moves_distinct_fields(self, merge_extra=False):
         """≙ ``_prepare_merge_moves_distinct_fields`` (``odoo19c: :1275-1288``).
@@ -1637,11 +1689,11 @@ class StockMove(TimeStampedModel):
         valores = []
         agrupados = {}
         for quant, cantidad in quants:
-            clave = (quant.location_id, quant.lot_id, quant.package_id, quant.owner_id)
-            if clave not in agrupados:
-                agrupados[clave] = [quant, cantidad]
+            key_of = (quant.location_id, quant.lot_id, quant.package_id, quant.owner_id)
+            if key_of not in agrupados:
+                agrupados[key_of] = [quant, cantidad]
             else:
-                agrupados[clave][1] += cantidad
+                agrupados[key_of][1] += cantidad
 
         for quant, cantidad in agrupados.values():
             tomado += cantidad
@@ -1698,12 +1750,12 @@ class StockMove(TimeStampedModel):
             for linea in hermano.move_line_ids.all()
         ]
 
-        def clave(linea):
-            return (linea.location_dest_id, linea.lot_id,
-                    linea.result_package_id, linea.owner_id)
+        def key_of(line):
+            return (line.location_dest_id, line.lot_id,
+                    line.result_package_id, line.owner_id)
 
         agrupado = {}
-        for k, grupo in groupby(lineas, key=clave):
+        for k, grupo in groupby(lineas, key=key_of):
             agrupado[k] = sum(
                 ml.product_uom.compute_quantity(float(ml.quantity), ml.product.uom)
                 for ml in grupo)
@@ -1729,15 +1781,15 @@ class StockMove(TimeStampedModel):
             for linea in m.move_line_ids.all()
         ]
 
-        def clave(linea):
-            return (linea.location_id, linea.lot_id, linea.package_id, linea.owner_id)
+        def key_of(line):
+            return (line.location_id, line.lot_id, line.package_id, line.owner_id)
 
         agrupado = {}
-        for k, grupo in groupby(hechos, key=clave):
+        for k, grupo in groupby(hechos, key=key_of):
             agrupado[k] = sum(
                 ml.product_uom.compute_quantity(float(ml.quantity), ml.product.uom)
                 for ml in grupo)
-        for k, grupo in groupby(reservados, key=clave):
+        for k, grupo in groupby(reservados, key=key_of):
             agrupado[k] = sum(float(ml.quantity_product_uom) for ml in grupo)
         return agrupado
 
@@ -1778,9 +1830,9 @@ class StockMove(TimeStampedModel):
         sigue. Las líneas con paquete de resultado **descuentan pero no se
         tocan** — ya están empaquetadas.
         """
-        def en_uom_del_movimiento(cantidad):
+        def en_uom_del_movimiento(quantity):
             return self.product.uom.compute_quantity(
-                cantidad, self.product_uom, round=False)
+                quantity, self.product_uom, round=False)
 
         plan = []
         qty = self.product_uom.compute_quantity(qty, self.product.uom, round=False)
@@ -2012,7 +2064,7 @@ class StockMove(TimeStampedModel):
 
         distintos = self._prepare_merge_moves_distinct_fields(merge_extra=merge_extra)
         excluidos = self._prepare_merge_negative_moves_excluded_distinct_fields()
-        clave = self._merge_move_itemgetter(distintos)
+        key_of = self._merge_move_itemgetter(distintos)
         clave_limitada = self._merge_move_itemgetter(distintos, excluidos)
         del_precio = DecimalPrecision.precision_get('Product Price')
 
@@ -2026,11 +2078,11 @@ class StockMove(TimeStampedModel):
 
         por_clave_limitada = defaultdict(list)
         for grupo in candidatos:
-            vivos = [m for m in self._resolver_candidatos(grupo)
+            vivos = [m for m in self._resolve_candidates(grupo)
                      if m.state not in (self.STATE_DONE, self.STATE_CANCEL,
                                         self.STATE_DRAFT)
                      and m.pk not in {n.pk for n in negativos}]
-            for _k, iguales in groupby(sorted(vivos, key=clave), key=clave):
+            for _k, iguales in groupby(sorted(vivos, key=key_of), key=key_of):
                 iguales = list(iguales)
                 if len(iguales) > 1:
                     superviviente = iguales[0]
@@ -2038,7 +2090,7 @@ class StockMove(TimeStampedModel):
                         sobrante.move_line_ids.update(move=superviviente)
                     valores = superviviente._merge_moves_fields(
                         moves=iguales, merge_extra=merge_extra)
-                    superviviente._aplicar_merge(valores)
+                    superviviente._apply_merge(valores)
                     por_borrar.extend(iguales[1:])
                     fusionados.append(superviviente)
                 if iguales:
@@ -2093,7 +2145,7 @@ class StockMove(TimeStampedModel):
         vivos = [m for m in [*conjunto, *fusionados] if m.pk not in borrados]
         return list({m.pk: m for m in vivos}.values())
 
-    def _resolver_candidatos(self, grupo):
+    def _resolve_candidates(self, group):
         """Los movimientos de una entrada del conjunto de candidatos.
 
         ``_update_candidate_moves_list`` mete **albaranes** en el conjunto (es
@@ -2102,15 +2154,15 @@ class StockMove(TimeStampedModel):
         es el punto donde las dos formas se vuelven una lista de movimientos —
         la fuente no lo necesita porque allá ambas son el mismo recordset.
         """
-        if isinstance(grupo, tuple):
-            return list(grupo)
-        if isinstance(grupo, int):
+        if isinstance(group, tuple):
+            return list(group)
+        if isinstance(group, int):
             # ``_update_candidate_moves_list`` mete el ``attname`` del albarán
             # (un entero), no el objeto: es lo que hace hashable al conjunto.
-            return list(type(self).objects.filter(picking=grupo))
-        return list(grupo.move_ids.all())
+            return list(type(self).objects.filter(picking=group))
+        return list(group.move_ids.all())
 
-    def _aplicar_merge(self, valores):
+    def _apply_merge(self, values):
         """Escribe sobre el superviviente los valores que la fusión calculó.
 
         Separa las relaciones múltiples de los escalares: en la fuente
@@ -2118,11 +2170,11 @@ class StockMove(TimeStampedModel):
         traduce los comandos ``(4, id)``; aquí el gestor de la relación se
         toca aparte.
         """
-        destinos = valores.pop('move_dest_ids', [])
-        origenes = valores.pop('move_orig_ids', [])
-        for campo, valor in valores.items():
+        destinos = values.pop('move_dest_ids', [])
+        origenes = values.pop('move_orig_ids', [])
+        for campo, valor in values.items():
             setattr(self, campo, valor)
-        self.save(update_fields=[*valores, 'updated_at'])
+        self.save(update_fields=[*values, 'updated_at'])
         if destinos:
             self.move_dest_ids.add(*destinos)
         if origenes:
@@ -2382,6 +2434,509 @@ class StockMove(TimeStampedModel):
         self.save(update_fields=['product_uom_qty', 'updated_at'])
         self._recompute_state()
         return [valores]
+
+    # -- ola E · lotes y números de serie --
+
+    @property
+    def lot_ids(self):
+        """≙ ``_compute_lot_ids`` (``odoo19c: :601-610``).
+
+        Los lotes que este movimiento lleva puestos son los de sus líneas **con
+        cantidad**: el dominio de la fuente exige ``lot_id != False`` y
+        ``quantity != 0``, así que una línea a cero no aporta su lote aunque lo
+        tenga asignado.
+        """
+        return [linea.lot for linea in self.move_line_ids.all()
+                if linea.lot_id and linea.quantity]
+
+    @lot_ids.setter
+    def lot_ids(self, lots):
+        """La fuente declara el campo ``inverse='_set_lot_ids'`` (``:192``)."""
+        self._set_lot_ids(lots)
+
+    def _set_lot_ids(self, lots):
+        """≙ ``_set_lot_ids`` (``odoo19c: :612-720``).
+
+        Fijar los lotes de un movimiento **adapta la reserva**, y su docstring
+        declara las dos reglas: quitar un lote retira su referencia de la línea
+        pero no la cantidad reservada; añadir lotes se resuelve en orden,
+        asignando a cada uno el máximo entre la demanda restante y lo
+        disponible.
+
+        Cada lote necesita su propia línea, así que la reserva base es **una
+        unidad por lote** y el sobrante (``extra_uom_qty``) se reparte después.
+
+        **DIVERGENCIA de FORMA declarada:** la colección llega como parámetro.
+        Allá ``lot_ids`` es un campo y el ``inverse`` lo lee de ``self``; aquí
+        es una property, así que el valor nuevo viaja en la llamada. Es la misma
+        convención explícita que fijó ``_get_relevant_state_among_moves``.
+        """
+        if not self.product_id or self.product.tracking == 'none':
+            return self
+        lots = list(lots or [])
+        lineas = list(self.move_line_ids.all())
+        if (self.state == self.STATE_ASSIGNED
+                and all(l.lot_id for l in lineas)
+                and {l.lot_id for l in lineas} == {lot.pk for lot in lots}):
+            # Ya reservado con exactamente esos lotes: no hay nada que rehacer.
+            return self
+
+        product = self.product
+        uom = product.uom if product.tracking == 'serial' else self.product_uom
+        ordenes = []
+        lote_por_nombre = {lot.name: lot for lot in lots}
+        libres = []
+        free_uom_qty = self.product_uom.compute_quantity(
+            float(max(self.quantity or Decimal('0'), self.product_uom_qty or Decimal('0'))),
+            product.uom)
+        asignados = set()
+        for linea in lineas:
+            nombre = linea.lot.name if linea.lot_id else linea.lot_name
+            if linea.product_uom.is_zero(float(linea.quantity or 0)):
+                continue
+            elif not linea.lot_id and not linea.lot_name:
+                libres.append(linea)
+            elif nombre in lote_por_nombre:
+                lote = lote_por_nombre[nombre]
+                asignados.add(lote.pk)
+                free_uom_qty -= linea.product_uom.compute_quantity(
+                    float(linea.quantity or 0), product.uom)
+                ordenes.append(('update', linea, {'lot': lote}))
+            else:
+                ordenes.append(('delete', linea, None))
+
+        sin_reserva = self._should_bypass_reservation()
+        # Una línea por lote: la reserva base es 1 y lo que sobre se reparte.
+        extra_uom_qty = free_uom_qty - len({lot.pk for lot in lots} - asignados)
+        quants_por_lote = {}
+        if not sin_reserva:
+            for quant in StockQuant._gather(product, self.location):
+                quants_por_lote.setdefault(quant.lot_id, []).append(quant)
+
+        for lote in lots:
+            if lote.pk in asignados:
+                continue
+            if sin_reserva:
+                if libres:
+                    linea = libres.pop(0)
+                    cantidad = (Decimal('1') if product.tracking == 'serial'
+                                else linea.quantity)
+                    ordenes.append(('update', linea, {
+                        'lot': lote, 'lot_name': lote.name,
+                        'product_uom': uom, 'quantity': cantidad}))
+                    extra_uom_qty -= uom.compute_quantity(
+                        float(cantidad), product.uom) - 1
+                else:
+                    reservar = 1.0
+                    if (product.tracking == 'lot'
+                            and product.uom.compare(extra_uom_qty, 0.0) > 0):
+                        reservar += extra_uom_qty
+                        extra_uom_qty = 0
+                    vals = self._prepare_move_line_vals(quantity=reservar)
+                    vals.update({'lot': lote, 'lot_name': lote.name})
+                    if product.tracking == 'serial':
+                        vals.update({'quantity': Decimal('1'),
+                                     'product_uom': product.uom})
+                    ordenes.append(('create', None, vals))
+            else:
+                reservado = False
+                for quant in quants_por_lote.get(lote.pk, []):
+                    if reservado and product.uom.compare(extra_uom_qty, 0.0) <= 0:
+                        break
+                    disponible = float(quant.available_quantity or 0)
+                    if not quant.lot_id or product.uom.compare(disponible, 0.0) <= 0:
+                        continue
+                    reservar = min(
+                        disponible,
+                        max(extra_uom_qty if reservado else extra_uom_qty + 1, 1))
+                    if product.uom.compare(reservar, 0.0) > 0:
+                        vals = self._prepare_move_line_vals(
+                            quantity=reservar, reserved_quant=quant)
+                        vals.update({'lot': lote, 'lot_name': lote.name})
+                        if product.tracking == 'serial':
+                            reservar = 1
+                            vals.update({'quantity': Decimal('1'),
+                                         'product_uom': product.uom})
+                        ordenes.append(('create', None, vals))
+                        extra_uom_qty -= reservar if reservado else reservar - 1
+                        reservado = True
+                if not reservado:
+                    # Sin quant que reservar, se toma una unidad del producto.
+                    vals = self._prepare_move_line_vals(quantity=1.0)
+                    vals.update({'lot': lote, 'lot_name': lote.name})
+                    if product.tracking == 'serial':
+                        vals.update({'quantity': Decimal('1'),
+                                     'product_uom': product.uom})
+                    ordenes.append(('create', None, vals))
+
+        if not sin_reserva and libres:
+            # Se recrean las líneas vacías para alterar el orden de reserva: la
+            # des-reserva consume por orden, y las líneas con lote deben quedar
+            # por delante (``odoo19c: :706-718``).
+            for linea in libres:
+                ordenes.append(('delete', linea, None))
+            for linea in libres:
+                if product.uom.compare(extra_uom_qty, 0.0) <= 0:
+                    break
+                en_producto = linea.product_uom.compute_quantity(
+                    float(linea.quantity or 0), product.uom)
+                reservar = min(en_producto, extra_uom_qty)
+                ordenes.append(('create', None, {
+                    'move': self, 'product': linea.product,
+                    'product_uom': linea.product_uom,
+                    'location': linea.location, 'location_dest': linea.location_dest,
+                    'company': linea.company, 'picking': linea.picking,
+                    'picked': linea.picked,
+                    'quantity': Decimal(str(product.uom.compute_quantity(
+                        reservar, linea.product_uom))),
+                }))
+                extra_uom_qty -= reservar
+
+        self._apply_move_line_commands(ordenes)
+        return self
+
+    def _apply_move_line_commands(self, commands):
+        """Ejecuta las órdenes que los generadores de línea calcularon.
+
+        **DIVERGENCIA de FORMA declarada, la misma de la ola C:** la fuente
+        acumula ``Command.update``/``create``/``delete`` y los entrega al ORM,
+        que los traduce al escribir. El ``Command`` de este árbol es
+        **ejecutivo** —escribe al llamarlo—, así que un generador no puede
+        devolver una lista de comandos sin haber escrito ya. Devuelve tuplas y
+        este ayudante las aplica. Ver :ref:`h-api-589` (tarea **#345**).
+        """
+        creadas = []
+        for orden in commands:
+            accion, linea, vals = orden
+            if accion == 'delete':
+                linea.delete()
+            elif accion == 'update':
+                for campo, valor in vals.items():
+                    setattr(linea, campo, valor)
+                linea.save(update_fields=[*vals, 'updated_at'])
+            elif accion == 'create':
+                creadas.append(StockMoveLine.objects.create(**vals))
+        return creadas
+
+    @classmethod
+    def _create_lot_ids_from_move_line_vals(cls, vals_list, product_id,
+                                            company_id=None):
+        """≙ ``_create_lot_ids_from_move_line_vals`` (``odoo19c: :1067-1091``).
+
+        Resuelve cada ``lot_name`` a un lote: el que ya exista para ese producto
+        (de la empresa o sin empresa), y si no existe lo crea. Una vez resuelto,
+        el nombre sobra y se vacía — el dato vive en la relación.
+
+        **DIVERGENCIA declarada:** la fuente escribe ``lot_name = False``; aquí
+        ``None``, porque estos valores acaban en un ``Char(null=True)`` y un
+        booleano en columna de texto es el defecto de :ref:`h-api-590`.
+        """
+        nombres = [v['lot_name'] for v in vals_list if v.get('lot_name')]
+        if not nombres:
+            return vals_list
+        StockLot = apps.get_model('stock', 'StockLot')
+        existentes = list(StockLot.objects.filter(
+            Q(company=company_id) | Q(company__isnull=True),
+            product=product_id, name__in=nombres))
+        ya = {lot.name for lot in existentes}
+        existentes += [StockLot.objects.create(product_id=product_id, name=nombre)
+                       for nombre in dict.fromkeys(nombres) if nombre not in ya]
+
+        por_nombre = {lot.name: lot.pk for lot in existentes}
+        for vals in vals_list:
+            nombre = vals.get('lot_name', None)
+            if not nombre:
+                continue
+            vals['lot_id'] = por_nombre[nombre]
+            vals['lot_name'] = None
+        return vals_list
+
+    @classmethod
+    def split_lots(cls, lots):
+        """≙ ``split_lots`` (``odoo19c: :1093-1129``).
+
+        Interpreta lo que el usuario pega en el campo de lotes: un nombre por
+        renglón, y —por comodidad— el punto y coma se normaliza a tabulador
+        para que el separador de la cantidad sea uno solo. Si la parte extra no
+        se puede interpretar, **no se adivina**: el renglón entero pasa a ser el
+        nombre del lote.
+        """
+        salto, separador = '\n', '\t'
+        opciones = False
+        if not lots:
+            return []
+
+        renglones = [r for r in lots.split(salto) if r]
+        valores = []
+        for texto in renglones:
+            vals = {'lot_name': texto, 'quantity': 1}
+            partes = texto.replace(';', separador).split(separador)
+            opciones = opciones or cls._get_formating_options(partes[1:])
+            for extra in partes[1:]:
+                datos = cls._convert_string_into_field_data(extra, opciones)
+                if datos:
+                    texto = partes[0]
+                    if datos == 'ignore':
+                        vals.update(lot_name=texto)
+                    else:
+                        vals.update(**datos, lot_name=texto)
+                else:
+                    vals['lot_name'] = texto
+                    break
+            valores.append(vals)
+        return valores
+
+    def _generate_serial_move_line_commands(self, field_data, location_dest=None,
+                                            origin_move_line=None):
+        """≙ ``_generate_serial_move_line_commands`` (``odoo19c: :1595-1645``).
+
+        Traduce una lista de ``{lot_name, quantity}`` a las órdenes que crean o
+        actualizan líneas. Su regla es el **reuso**: primero se llenan las
+        líneas que aún no tienen lote ni nombre, y sólo cuando se agotan nace
+        una línea nueva, cuyo destino lo decide la estrategia de ubicación
+        acumulando lo ya colocado en cada una.
+        """
+        destino = None
+        base = {
+            'move': self,
+            'picking': self.picking,
+            'location': self.location,
+            'product': self.product,
+            'product_uom': self.product.uom,
+            'company': self.company,
+        }
+        if origin_move_line is not None:
+            destino = origin_move_line.location_dest
+            base.update({'owner': origin_move_line.owner,
+                         'package': origin_move_line.package})
+        destino = destino or location_dest
+
+        libres = [l for l in self.move_line_ids.all()
+                  if not l.lot_id and not l.lot_name]
+        ordenes = []
+        por_ubicacion = defaultdict(float)
+        for vals in field_data:
+            cantidad = vals['quantity']
+            if libres:
+                linea = libres.pop(0)
+                ordenes.append(('update', linea, dict(vals)))
+                por_ubicacion[linea.location_dest_id] += cantidad
+            else:
+                donde = destino or self.location_dest.get_putaway_strategy(
+                    self.product, quantity=cantidad,
+                    additional_qty=por_ubicacion)
+                ordenes.append(('create', {**base, **vals, 'location_dest': donde}))
+                por_ubicacion[donde.pk if donde is not None else None] += cantidad
+        return ordenes
+
+    def _generate_serial_numbers(self, next_serial, next_serial_count=False,
+                                 location=None):
+        """≙ ``_generate_serial_numbers`` (``odoo19c: :1049-1065``).
+
+        Genera los nombres de serie a partir del primero y crea **una línea por
+        unidad**. Si el tipo de albarán reutiliza lotes existentes, los nombres
+        se resuelven a lote antes de escribir las líneas.
+        """
+        StockLot = apps.get_model('stock', 'StockLot')
+        if location is None:
+            location = self.location_dest
+        count = next_serial_count or self.next_serial_count
+        if not count:
+            raise ValidationError(
+                _('The number of Serial Numbers to generate must be greater '
+                  'than zero.'))
+        nombres = StockLot.generate_lot_names(next_serial, count)
+        field_data = [{'lot_name': n['lot_name'], 'quantity': 1} for n in nombres]
+        if self._can_create_lot():
+            self._create_lot_ids_from_move_line_vals(
+                field_data, self.product_id, self.company_id)
+        ordenes = self._generate_serial_move_line_commands(
+            field_data, location_dest=location)
+        self._apply_move_line_commands(
+            [o if len(o) == 3 else (o[0], None, o[1]) for o in ordenes])
+        return True
+
+    def _onchange_lot_ids(self, lots, previous_lots=None):
+        """≙ ``_onchange_lot_ids`` (``odoo19c: :1449-1520``).
+
+        Ajusta la cantidad del movimiento a la que resulta de fijar esos lotes:
+        lo que las líneas sin lote pueden absorber, más lo ya asignado a los
+        lotes que siguen en el conjunto. Los lotes **nuevos** —los que no
+        estaban antes— exigen cada uno su propia línea, así que suben la
+        cantidad al menos en una unidad mínima.
+
+        Devuelve el aviso de la fuente cuando un número de serie del conjunto
+        existe **fuera** de la ubicación de origen, y ``None`` si no hay nada
+        que advertir.
+
+        **DIVERGENCIA de FORMA declarada, doble:** la colección nueva llega como
+        parámetro (``lot_ids`` es property, no campo) y la **anterior** también.
+        Allá el ORM compara contra ``self._origin``, el registro tal como está
+        en la base mientras el formulario aún no se guarda; aquí no hay ese
+        búfer sin asentar, así que por defecto se lee de las líneas actuales —
+        lo que equivale a ``_origin`` **si se llama antes** de ``_set_lot_ids``,
+        que es el orden en que la fuente lo dispara.
+        """
+        product = self.product if self.product_id else None
+        if product is None or product.tracking == 'none':
+            return None
+
+        asignada = 0.0
+        asignable = 0.0
+        sin_lote = 0
+        nuevos = OrderedSet(lot.name for lot in lots if lot.name)
+        for linea in self.move_line_ids.all():
+            en_uom = linea.product_uom.compute_quantity(
+                float(linea.quantity or 0), self.product_uom)
+            nombre = linea.lot.name if linea.lot_id else linea.lot_name
+            if not nombre:
+                asignable += en_uom
+                sin_lote += 1
+            elif nombre in nuevos:
+                asignada += en_uom
+
+        if previous_lots is None:
+            previous_lots = self.lot_ids
+        anteriores = OrderedSet(lot.name for lot in previous_lots if lot.name)
+        extra = [n for n in nuevos if n not in anteriores]
+        cantidad = asignada + asignable
+        if not extra:
+            # Sin lotes nuevos no hay reserva que ampliar: la cantidad es la
+            # que ya sostienen las líneas.
+            self.quantity = Decimal(str(cantidad))
+            self.save(update_fields=['quantity', 'updated_at'])
+            return None
+
+        base = self.picking.location if self.picking_id else self.location
+        uom = self.product_uom
+        minima = product.uom.compute_quantity(1.0, uom)
+        candidatos = StockQuant.objects.filter(
+            product=product, lot__name__in=extra,
+            lot__isnull=False,
+        ).exclude(quantity=0).filter(
+            Q(location__usage__in=('internal', 'transit', 'customer')),
+            Q(company__isnull=True) | Q(company=self.company_id),
+        )
+
+        if self._should_bypass_reservation():
+            # Cada lote nuevo necesita su línea: los que exceden a las líneas
+            # disponibles suben la cantidad en una unidad mínima cada uno.
+            exceden = max(len(extra) - sin_lote, 0)
+            if exceden > 0:
+                cantidad = max(float(self.product_uom_qty or 0),
+                               cantidad + exceden * minima)
+        else:
+            libre = float(self.product_uom_qty or 0) - asignada
+            disponible_por_lote = defaultdict(float)
+            for quant in candidatos.filter(base.child_of_domain('location')):
+                disponible_por_lote[quant.lot.name] += product.uom.compute_quantity(
+                    float((quant.quantity or 0) - (quant.reserved_quantity or 0)), uom)
+            # Cada lote se representa con una línea, así que de entrada se
+            # reserva la unidad mínima por lote; el resto se reparte después.
+            libre -= len(extra) * minima
+            nueva_asignada = len(extra) * minima
+            for nombre in extra:
+                if uom.compare(libre, 0.0) > 0:
+                    de_mas = min(disponible_por_lote[nombre],
+                                 libre + minima) - minima
+                    if uom.compare(de_mas, 0) > 0:
+                        nueva_asignada += de_mas
+                        libre -= de_mas
+            cantidad += max(0.0, nueva_asignada - asignable)
+
+        self.quantity = Decimal(str(cantidad))
+        self.save(update_fields=['quantity', 'updated_at'])
+
+        if product.tracking == 'serial':
+            problematicos = candidatos.exclude(base.child_of_domain('location'))
+            if problematicos.exists():
+                detalle = ''.join(
+                    _('\n(%(serial_number)s) exists in location %(location)s',
+                      serial_number=str(quant.lot), location=str(quant.location))
+                    for quant in problematicos)
+                return {'warning': {
+                    'title': _('Warning'),
+                    'message': _('Unavailable Serial numbers. Please correct '
+                                 'the serial numbers encoded: '
+                                 '%(serial_numbers_to_locations)s',
+                                 serial_numbers_to_locations=detalle)}}
+        return None
+
+    @classmethod
+    def action_generate_lot_line_vals(cls, context_data, mode, first_lot, count,
+                                      lot_text):
+        """≙ ``action_generate_lot_line_vals`` (``odoo19c: :1131-1207``).
+
+        Los valores con que el cliente pinta las líneas de lote/serie antes de
+        escribirlas. En modo ``generate`` los nombres salen de la secuencia; en
+        modo ``import``, del texto pegado. Con seguimiento **por lote** la
+        demanda se reparte en tramos de ``count`` y el residuo va en la última
+        fila; con seguimiento por serie cada fila vale una unidad.
+
+        **Lo que este método NO porta, y por qué:** el bloque final de la fuente
+        (``:1193-1206``) rebobina el contador de la secuencia tras el botón
+        «New» del asistente. Depende de ``_get_current_sequence``,
+        ``get_next_char`` y ``number_next_actual``, que ``ir.sequence`` **no
+        declara en este árbol** — medido sobre ``src/addons/base/models/
+        ir_sequence.py``. Es completitud de ``ir.sequence``, no de este archivo,
+        y corrige un pre-incremento que sólo causa un asistente que aquí no
+        existe. Sucesor: tarea **#394**.
+        """
+        if not context_data.get('default_product_id'):
+            raise UserError(_('No product found to generate Serials/Lots for.'))
+        assert mode in ('generate', 'import')
+        StockLot = apps.get_model('stock', 'StockLot')
+        StockLocation = apps.get_model('stock', 'StockLocation')
+        ProductProduct = apps.get_model('product', 'ProductProduct')
+
+        def reparto(quantity, qty_per_lot):
+            if qty_per_lot <= 0:
+                raise UserError(
+                    _('The quantity per lot should always be a positive value.'))
+            tramos = [qty_per_lot] * int(quantity // qty_per_lot)
+            residuo = quantity % qty_per_lot
+            if residuo:
+                tramos.append(residuo)
+            return tramos
+
+        por_defecto = {k[len('default_'):]: v for k, v in context_data.items()
+                       if k.startswith('default_')}
+
+        if por_defecto.get('tracking') == 'lot' and mode == 'generate':
+            cantidades = reparto(por_defecto['quantity'], count)
+        else:
+            cantidades = [1] * count
+
+        if mode == 'generate':
+            nombres = StockLot.generate_lot_names(first_lot, len(cantidades))
+        else:
+            nombres = cls.split_lots(lot_text)
+            cantidades = [1] * len(nombres)
+
+        valores = []
+        destino = StockLocation.objects.filter(
+            pk=por_defecto.get('location_dest_id')).first()
+        product = ProductProduct.objects.get(pk=por_defecto['product_id'])
+        for lote, qty in zip(nombres, cantidades):
+            if not lote.get('quantity'):
+                lote['quantity'] = qty
+            donde = (destino.get_putaway_strategy(product, quantity=lote['quantity'])
+                     if destino is not None else None)
+            valores.append({
+                **por_defecto, **lote,
+                'location_dest_id': donde.pk if donde is not None else None,
+                'product_uom_id': por_defecto.get('uom_id', product.uom.pk),
+            })
+        tipo_id = por_defecto.get('picking_type_id')
+        if tipo_id:
+            StockPickingType = apps.get_model('stock', 'StockPickingType')
+            tipo = StockPickingType.objects.filter(pk=tipo_id).first()
+            if tipo is not None and (tipo.use_existing_lots
+                                     or context_data.get('force_lot_m2o')):
+                cls._create_lot_ids_from_move_line_vals(
+                    valores, por_defecto['product_id'],
+                    por_defecto.get('company_id'))
+        return valores
 
     def _action_confirm(self):
         """Confirma el movimiento (≙ ``_action_confirm``).
