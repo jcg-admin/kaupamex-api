@@ -14,14 +14,16 @@ updated_at: 2026-04-20 13:51:04
 
 # /workflow-analyze — Stage 3: DIAGNOSE
 
+> **Adaptacion kaupamex (2026-08-15, H-API-622):** Las referencias a `.thyrox/context/work/<WP>/` y `.thyrox/context/now.md` en las instrucciones operativas de abajo son del template THYROX/IACT-docs. En kaupamex el directorio `.thyrox/` no existe (`.claude/CLAUDE.md`). El work-package equivalente es `docs/source/gestion/pm/<submodulo>/iniciativas/<slug>/` — en el repo hermano `kaupamex-docs` cuando se invoca fuera de él — con artefactos `.rst`: `alcance-<slug>.rst` (discover), `analisis-<slug>.rst` (analyze), `tareas-<slug>.rst` (plan-execution), `progreso-<slug>.rst` (track/bitácora — no hay equivalente de `now.md`, el estado vive ahí). Identificar el WP activo: revisar `docs/source/gestion/pm/<submodulo>/iniciativas/index.rst` y leer el `progreso-*.rst` más reciente (mismo paso que `.claude/CLAUDE.md` sección "Flujo de sesión", paso 1b).
+
 Inicia o retoma Stage 3 DIAGNOSE del work package activo.
 
 ---
 
 ## Contexto de sesión
 
-1. Identificar WP activo: `ls -t .thyrox/context/work/ | head -1`
-2. Leer síntesis DISCOVER: `cat .thyrox/context/work/[WP]/discover/*-analysis.md`
+1. Identificar WP activo: revisar `docs/source/gestion/pm/<submodulo>/iniciativas/index.rst` (repo `kaupamex-docs`) y leer el `progreso-*.rst` más reciente
+2. Leer síntesis DISCOVER: `cat <iniciativa>/alcance-<slug>.rst`
 3. Leer `context/now.md` — verificar `phase`
 4. Verificar si ya existe contenido en `work/.../analyze/`:
    - Si existe con análisis completos → Phase 3 ya avanzó. Revisar pendientes.

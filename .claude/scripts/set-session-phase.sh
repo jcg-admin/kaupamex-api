@@ -1,25 +1,15 @@
 #!/bin/bash
-# set-session-phase.sh — actualiza now.md::phase in-place (sin append)
-# Uso: bash .claude/scripts/set-session-phase.sh "Phase N"
-# Fix de Bug 1: reemplaza el campo existente en lugar de hacer echo >>
-
-set -e
-
-if [ -z "$1" ]; then
-  echo "Usage: set-session-phase.sh <phase-name>" >&2
-  exit 1
-fi
-
-PHASE="$1"
-NOW_FILE=".thyrox/context/now.md"
-DATE=$(date '+%Y-%m-%d %H:%M:%S')
-
-if [ ! -f "$NOW_FILE" ]; then
-  echo "Error: $NOW_FILE not found" >&2
-  exit 1
-fi
-
-sed -i \
-  -e "s|^phase: .*|phase: $PHASE|" \
-  -e "s|^updated_at: .*|updated_at: $DATE|" \
-  "$NOW_FILE"
+# set-session-phase.sh — no-op en kaupamex (H-API-625).
+#
+# Wireado como hook UserPromptSubmit en los 13 skills workflow-*/SKILL.md —
+# se dispara en cada sesión. El mecanismo original (now.md::phase in-place)
+# no tiene equivalente aquí: .claude/CLAUDE.md declara explícitamente que
+# "los state files de sesion no se persisten en el filesystem (no hay
+# .thyrox/context/) ... no archivos now-*.md". Antes de este fix, la
+# ausencia de .thyrox/context/now.md hacía que el script saliera con
+# "Error: .thyrox/context/now.md not found" y exit 1 en cada invocación.
+#
+# Se conserva el hook cableado (retirarlo exige editar 13 frontmatters,
+# fuera de alcance de este fix puntual) pero convertido en no-op seguro,
+# mismo patrón que el resto de hooks del repo: nunca rompe el flujo.
+exit 0
