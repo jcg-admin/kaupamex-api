@@ -14,10 +14,12 @@ from orm.decorators import (          # noqa: F401  (re-export de orm/decorators
     model,
     model_create_multi,
     onchange,
+    private,
+    readonly,
     returns,
 )
 
 __all__ = [
     'depends', 'constrains', 'onchange', 'model', 'model_create_multi', 'returns',
-    'autovacuum',
+    'autovacuum', 'private', 'readonly',
 ]

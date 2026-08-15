@@ -71,3 +71,29 @@ def autovacuum(method):
     )
     method._autovacuum = True
     return method
+
+
+def private(method):
+    """Marca un método público como **no invocable remotamente**.
+
+    ≙ ``odoo19c: odoo/orm/decorators.py:private``. Su docstring lo encuadra: si
+    un método de negocio no debe llamarse por RPC, lo natural es prefijarlo con
+    ``_``; este decorador existe para los que **ya son públicos** y pasan a no
+    serlo, y para los métodos del propio ORM.
+
+    Lo consulta ``service.model.get_public_method`` recorriendo el MRO: un
+    ancestro puede volver privado un nombre que la subclase redefine.
+    """
+    method._api_private = True
+    return method
+
+
+def readonly(method):
+    """Declara que el método puede correr con un cursor de sólo lectura.
+
+    ≙ ``odoo19c: odoo/orm/decorators.py:readonly``. Lo consulta el selector de
+    cursor del despacho genérico (``_web_json_2_rpc_readonly`` en la
+    referencia), que recorre el MRO buscando el primer ``_readonly`` declarado.
+    """
+    method._readonly = True
+    return method

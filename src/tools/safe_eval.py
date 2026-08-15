@@ -73,3 +73,28 @@ def safe_eval(expr, context=None):
     _assert_valid_ast(tree, expr)
     code = compile(tree, '<domain_force>', 'eval')
     return eval(code, {'__builtins__': {}}, dict(context or {}))
+
+
+#: Atributos que exponen frames, código o el MRO — copia verbatim de
+#: ``odoo19c: odoo/tools/safe_eval.py:52-70``. La referencia los usa en dos
+#: sitios: su evaluador acotado y ``service/model.get_public_method``, que los
+#: rechaza como nombre de método invocable remotamente. Se conserva el orden y
+#: los comentarios de la fuente porque la lista **es** el contrato.
+_UNSAFE_ATTRIBUTES = [
+    # Frames
+    'f_builtins', 'f_code', 'f_globals', 'f_locals', 'f_generator',
+    # Python 2 functions
+    'func_code', 'func_globals',
+    # Code object
+    'co_code', '_co_code_adaptive',
+    # Method resolution order,
+    'mro',
+    # Tracebacks
+    'tb_frame',
+    # Generators
+    'gi_code', 'gi_frame', 'gi_yieldfrom',
+    # Coroutines
+    'cr_await', 'cr_code', 'cr_frame',
+    # Coroutine generators
+    'ag_await', 'ag_code', 'ag_frame',
+]
