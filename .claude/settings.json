@@ -34,10 +34,6 @@
       "Bash(make test*)",
       "Bash(make help)"
     ],
-    "ask": [
-      "Edit(/.claude/scripts/*.sh)",
-      "Edit(/.claude/settings.json)"
-    ],
     "deny": [
       "Bash(git push --force *)",
       "Bash(git push --force-with-lease *)",
