@@ -346,7 +346,6 @@ from django.utils import timezone
 import fields
 import models
 
-from orm.commands import Command
 from orm.environments import get_current_company, get_current_user
 from tools.float_utils import float_compare, float_round
 from tools.misc import OrderedSet, groupby
@@ -1881,9 +1880,9 @@ class StockMove(TimeStampedModel):
         nuevas = []
         for accion, linea, vals in self._set_quantity_done_prepare_vals(qty):
             if accion == 'delete':
-                Command.delete(linea)
+                fields.Command.delete(linea)
             elif accion == 'update':
-                Command.update(linea, **vals)
+                fields.Command.update(linea, **vals)
             else:
                 nuevas.append(StockMoveLine.objects.create(**vals))
         if nuevas:
