@@ -26,7 +26,7 @@ from service.model import get_public_method
 from tools.safe_eval import _UNSAFE_ATTRIBUTES
 
 
-class _Ancestor(models.Model):
+class _Base(models.Model):
     """Ancestro que declara el método privado, para probar el barrido del MRO."""
 
     class Meta:
@@ -38,7 +38,7 @@ class _Ancestor(models.Model):
         return 'no debería alcanzarse'
 
 
-class _Probe(_Ancestor):
+class _Probe(_Base):
     """Concreto pero ``managed = False``: se instancia sin tabla.
 
     ``get_public_method`` no toca la base —sólo inspecciona la clase— así que
