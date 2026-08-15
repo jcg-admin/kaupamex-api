@@ -78,19 +78,40 @@ mismo archivo que aún no están portados». Ya lo están —``is_storable`` en 
 pase, ``type`` desde ``product.template``— así que el compute entró con ellos,
 que es la condición que ese texto fijaba.
 """
+import operator as py_operator
+from collections import defaultdict
+from datetime import date, datetime, time
+
 import fields
 import models
 from django.apps import apps
-from django.db.models import Q
+from django.db.models import Q, Sum
+from django.utils import timezone
 
 from exceptions import UserError
+from orm.domains import FALSE_DOMAIN, OR
+from orm.environments import get_current_companies
 from orm.method_chain import chain_method
 from tools.mail import html2plaintext, is_html_empty
 from tools.translate import _
 
 from addons.product.models import ProductCategory, ProductProduct, ProductTemplate
-from addons.product.models.product_template import TYPE_CONSU
+from addons.product.models.product_template import TYPE_CONSU, TYPE_SERVICE
 from addons.uom.models.uom_uom import Uom
+
+#: ≙ ``PY_OPERATORS`` (``odoo19c: stock/models/product.py:18-27``). El
+#: buscador de un campo calculado compara en Python, no en SQL, así que la
+#: fuente mapea el operador de dominio a su función. Verbatim.
+PY_OPERATORS = {
+    '<': py_operator.lt,
+    '>': py_operator.gt,
+    '<=': py_operator.le,
+    '>=': py_operator.ge,
+    '=': py_operator.eq,
+    '!=': py_operator.ne,
+    'in': lambda elem, container: elem in container,
+    'not in': lambda elem, container: elem not in container,
+}
 
 #: ≙ ``tracking`` (``odoo19c: stock/models/product.py:842-848``). El
 #: vocabulario es el de la referencia, verbatim y en el mismo orden.
@@ -177,8 +198,8 @@ def _get_description(self, picking_type):
     """
     if getattr(picking_type, 'code', None) == 'outgoing':
         return self.display_name
-    descripcion = getattr(self.product_tmpl, 'description', None)
-    return html2plaintext(descripcion) if not is_html_empty(descripcion) \
+    description = getattr(self.product_tmpl, 'description', None)
+    return html2plaintext(description) if not is_html_empty(description) \
         else self.display_name
 
 
@@ -214,12 +235,12 @@ def parent_route_ids(self):
     restar las propias.
     """
     StockRoute = apps.get_model('stock', 'StockRoute')
-    heredadas, actual = set(), self.parent
-    while actual is not None:
-        heredadas.update(actual.route_ids.values_list('pk', flat=True))
-        actual = actual.parent
-    propias = set(self.route_ids.values_list('pk', flat=True))
-    return StockRoute.objects.filter(pk__in=heredadas - propias)
+    inherited, current = set(), self.parent
+    while current is not None:
+        inherited.update(current.route_ids.values_list('pk', flat=True))
+        current = current.parent
+    own = set(self.route_ids.values_list('pk', flat=True))
+    return StockRoute.objects.filter(pk__in=inherited - own)
 
 
 def total_route_ids(self):
@@ -242,12 +263,12 @@ def _search_total_route_ids(cls, routes):
     queryset de las que casan. El guion bajo se conserva
     (``porte-completo-no-parcial.md``, H-API-581).
     """
-    buscadas = {r.pk for r in routes}
-    casan = [
+    wanted = {r.pk for r in routes}
+    matching = [
         c.pk for c in cls.objects.all()
-        if buscadas & set(c.total_route_ids.values_list('pk', flat=True))
+        if wanted & set(c.total_route_ids.values_list('pk', flat=True))
     ]
-    return cls.objects.filter(pk__in=casan)
+    return cls.objects.filter(pk__in=matching)
 
 
 def _search_filter_for_stock_putaway_rule(cls, active_model=None, active_id=None):
@@ -263,12 +284,12 @@ def _search_filter_for_stock_putaway_rule(cls, active_model=None, active_id=None
     """
     if active_model not in ('product.template', 'product.product') or not active_id:
         return cls.objects.all()
-    modelo = 'ProductTemplate' if active_model == 'product.template' else 'ProductProduct'
-    registro = apps.get_model('product', modelo).objects.filter(pk=active_id).first()
-    if registro is None:
+    model_name = 'ProductTemplate' if active_model == 'product.template' else 'ProductProduct'
+    record = apps.get_model('product', model_name).objects.filter(pk=active_id).first()
+    if record is None:
         return cls.objects.all()
-    categoria = registro.categ if modelo == 'ProductProduct' else registro.categ
-    return cls.objects.filter(pk=categoria.pk) if categoria else cls.objects.none()
+    category = record.categ if model_name == 'ProductProduct' else record.categ
+    return cls.objects.filter(pk=category.pk) if category else cls.objects.none()
 
 
 # === ``uom.uom`` — el tipo de paquete y la guarda del factor =================
@@ -306,18 +327,18 @@ def check_factor_not_in_use(self):
     StockMove = apps.get_model('stock', 'StockMove')
     StockMoveLine = apps.get_model('stock', 'StockMoveLine')
     StockQuant = apps.get_model('stock', 'StockQuant')
-    mensaje = _(
+    message = _(
         'No se puede cambiar el ratio de esta unidad de medida: ya hay '
         'productos con ella movidos o reservados.'
     )
-    abiertos = ~Q(state__in=('cancel', 'done'))
-    if StockMove.objects.filter(abiertos, product_uom=self).exists():
-        raise UserError(mensaje)
-    if StockMoveLine.objects.filter(abiertos, product_uom=self).exists():
-        raise UserError(mensaje)
+    open_moves = ~Q(state__in=('cancel', 'done'))
+    if StockMove.objects.filter(open_moves, product_uom=self).exists():
+        raise UserError(message)
+    if StockMoveLine.objects.filter(open_moves, product_uom=self).exists():
+        raise UserError(message)
     if StockQuant.objects.filter(product__product_tmpl__uom=self).exclude(
             quantity=0).exists():
-        raise UserError(mensaje)
+        raise UserError(message)
 
 
 def save_guarding_factor(self, *args, **kwargs):
@@ -340,10 +361,10 @@ def save_guarding_factor(self, *args, **kwargs):
     """
     if self.pk is None:
         return None
-    anterior = type(self).objects.filter(pk=self.pk).values(
+    previous = type(self).objects.filter(pk=self.pk).values(
         'relative_factor', 'relative_uom_id').first()
-    if anterior and (anterior['relative_factor'] != self.relative_factor
-                     or anterior['relative_uom_id'] != self.relative_uom_id):
+    if previous and (previous['relative_factor'] != self.relative_factor
+                     or previous['relative_uom_id'] != self.relative_uom_id):
         self.check_factor_not_in_use()
     return None
 
@@ -365,6 +386,493 @@ def _adjust_uom_quantities(self, qty, quant_uom):
         return (self.compute_quantity(qty, quant_uom, rounding_method='HALF-UP'),
                 quant_uom)
     return (self.compute_quantity(qty, self, rounding_method='HALF-UP'), self)
+
+
+# === el motor de cantidades (``odoo19c: :146-536``) =========================
+#
+# Es el bloque del que cuelgan los cinco campos de cantidad de la referencia
+# —``qty_available``, ``virtual_available``, ``free_qty``, ``incoming_qty`` y
+# ``outgoing_qty``— y sus cinco buscadores. Tres divergencias declaradas, todas
+# de mecanismo:
+#
+# 1. **El contexto se vuelve parámetros.** La referencia lee once claves de
+#    ``self.env.context`` (``location``, ``warehouse_id``, ``lot_id``,
+#    ``owner_id``, ``package_id``, ``from_date``, ``to_date``, ``strict``,
+#    ``skip_in_progress``, ``owners``, ``with_expiration``). Aquí
+#    ``orm.environments`` sólo lleva el canal del dato (``get_current_companies``)
+#    y el de elevación, no un diccionario libre, así que cada clave es un
+#    argumento con nombre. Es el mismo idioma que ya usa ``StockQuant._gather``.
+# 2. **``Domain`` → ``Q``.** La clase ``Domain`` de ``odoo/orm/domains.py`` no
+#    está portada (tarea **#356**); ``orm.domains`` es su espejo sobre ``Q``,
+#    que es el tipo que el ORM de destino consume.
+# 3. **El CTE recursivo → ``parent_path``.** La referencia arma un
+#    ``WITH RECURSIVE descendants`` y su propio comentario dice por qué: evitar
+#    que el ORM inyecte «un montón de ids de ubicación» en la consulta. Aquí la
+#    ruta materializada ya existe (``stock_location.py``, ``compute_parent_path``)
+#    y un ``parent_path__startswith`` da el mismo conjunto sin subconsulta — es
+#    el idioma que ``stock_location.py:412,444`` ya usa.
+
+
+def _descendants_q(locations, prefix):
+    """``Q`` que matchea las ubicaciones del conjunto y toda su descendencia.
+
+    ``prefix`` es la ruta al campo de ubicación desde el modelo que se
+    consulta (``'location'`` para el quant y para el origen del movimiento,
+    ``'location_dest'`` para el destino).
+    """
+    paths = [loc.parent_path for loc in locations if loc.parent_path]
+    if not paths:
+        return FALSE_DOMAIN
+    return OR([Q(**{f'{prefix}__parent_path__startswith': r}) for r in paths])
+
+
+def _get_domain_locations_new(cls, location_ids, strict=False,
+                              skip_in_progress=False):
+    """≙ ``_get_domain_locations_new`` (``odoo19c: :394-462``).
+
+    Devuelve la terna ``(q_quant_loc, q_move_in_loc, q_move_out_loc)``: el
+    filtro sobre existencias, sobre movimientos que ENTRAN al conjunto y sobre
+    los que SALEN de él.
+    """
+    StockLocation = apps.get_model('stock', 'StockLocation')
+    location_ids = list(location_ids or ())
+    if not location_ids:
+        return (FALSE_DOMAIN,) * 3
+
+    if strict:
+        loc_domain = Q(location__in=location_ids)
+        dest_loc_domain = Q(location_dest__in=location_ids)
+        dest_loc_domain_out = ~Q(location_dest__in=location_ids)
+        return (loc_domain, dest_loc_domain & ~loc_domain,
+                loc_domain & dest_loc_domain_out)
+
+    locations = list(StockLocation.objects.filter(pk__in=location_ids))
+    loc_domain = _descendants_q(locations, 'location')
+    dest_done = _descendants_q(locations, 'location_dest')
+
+    # El destino final sólo tiene sentido en la parte de la cadena que aún no
+    # está hecha, así que la referencia parte la condición por estado.
+    dest_in_progress = (
+        (Q(location_final__isnull=False) & _descendants_q(locations, 'location_final'))
+        | (Q(location_final__isnull=True) & dest_done)
+    )
+    done = Q(state='done')
+    dest_loc_domain = (done & dest_done) | (~done & dest_in_progress)
+    dest_loc_domain_out = (done & ~dest_done) | (~done & ~dest_in_progress)
+
+    if skip_in_progress:
+        return (loc_domain, dest_done & ~loc_domain, loc_domain & ~dest_done)
+
+    return (loc_domain, dest_loc_domain & ~loc_domain,
+            loc_domain & dest_loc_domain_out)
+
+
+def _get_domain_locations(cls, location=None, warehouse=None, strict=False,
+                          skip_in_progress=False):
+    """≙ ``_get_domain_locations`` (``odoo19c: :341-392``).
+
+    Resuelve el conjunto de ubicaciones a partir de ubicación y/o almacén y
+    delega en ``_get_domain_locations_new``. Cada argumento acepta un id, un
+    nombre (búsqueda ``icontains``, ≙ el ``ilike`` sobre ``_rec_name``) o una
+    lista de cualquiera de los dos.
+
+    Sin ninguno de los dos, el conjunto son las ubicaciones vista de los
+    almacenes de las empresas activadas — ≙ ``self.env.companies``.
+    """
+    StockLocation = apps.get_model('stock', 'StockLocation')
+    StockWarehouse = apps.get_model('stock', 'StockWarehouse')
+
+    def _search_ids(model_name, name_field, values):
+        ids, names = set(), []
+        for item in values:
+            if isinstance(item, int):
+                ids.add(item)
+            else:
+                names.append(Q(**{f'{name_field}__icontains': item}))
+        if names:
+            ids |= set(model_name.objects.filter(OR(names))
+                       .values_list('pk', flat=True))
+        return ids
+
+    if location is not None and not isinstance(location, (list, tuple, set)):
+        location = [location]
+    if warehouse is not None and not isinstance(warehouse, (list, tuple, set)):
+        warehouse = [warehouse]
+
+    if warehouse:
+        w_ids = _search_ids(StockWarehouse, 'name', warehouse)
+        view_ids = set(StockWarehouse.objects.filter(pk__in=w_ids)
+                        .exclude(view_location__isnull=True)
+                        .values_list('view_location_id', flat=True))
+        if location:
+            l_ids = _search_ids(StockLocation, 'complete_name', location)
+            parents = [p for p in StockLocation.objects
+                      .filter(pk__in=view_ids)
+                      .values_list('parent_path', flat=True) if p]
+            location_ids = {
+                loc.pk for loc in StockLocation.objects.filter(pk__in=l_ids)
+                if loc.parent_path
+                and any(loc.parent_path.startswith(p) for p in parents)
+            }
+        else:
+            location_ids = view_ids
+    elif location:
+        location_ids = _search_ids(StockLocation, 'complete_name', location)
+    else:
+        companies = get_current_companies()
+        warehouses = StockWarehouse.objects.exclude(view_location__isnull=True)
+        if companies:
+            warehouses = warehouses.filter(company_id__in=companies)
+        location_ids = set(warehouses.values_list('view_location_id', flat=True))
+
+    return cls._get_domain_locations_new(
+        location_ids, strict=strict, skip_in_progress=skip_in_progress)
+
+
+def _compute_quantities_dict(cls, products, lot=None, owner=None, package=None,
+                             from_date=None, to_date=None, owners=None,
+                             with_expiration=None, location=None,
+                             warehouse=None, strict=False,
+                             skip_in_progress=False):
+    """≙ ``_compute_quantities_dict`` (``odoo19c: :164-268``).
+
+    Devuelve ``{pk: {qty_available, free_qty, incoming_qty, outgoing_qty,
+    virtual_available}}`` para los productos dados.
+
+    **Divergencia declarada — ``_origin``.** La fuente distingue el registro
+    persistido de su borrador de onchange (``product._origin.id``) y devuelve
+    ceros para los que aún no existen en base. Aquí no hay borradores: un
+    modelo de Django o tiene ``pk`` o no está en el queryset, así que la rama
+    se colapsa a la comprobación de que el producto aparezca en algún agregado.
+    """
+    StockMove = apps.get_model('stock', 'StockMove')
+    StockQuant = apps.get_model('stock', 'StockQuant')
+
+    records = [p for p in products if p.pk is not None]
+    ids = [p.pk for p in records]
+    zeros = dict.fromkeys(
+        ['qty_available', 'free_qty', 'incoming_qty', 'outgoing_qty',
+         'virtual_available'], 0.0)
+    if not ids:
+        return {}
+
+    q_quant_loc, q_move_in_loc, q_move_out_loc = cls._get_domain_locations(
+        location=location, warehouse=warehouse, strict=strict,
+        skip_in_progress=skip_in_progress)
+
+    q_quant = Q(product_id__in=ids) & q_quant_loc
+    q_move_in = Q(product_id__in=ids) & q_move_in_loc
+    q_move_out = Q(product_id__in=ids) & q_move_out_loc
+
+    # Sólo ``to_date`` mira al pasado: es el que corresponde a qty_available.
+    cutoff = _to_cutoff_datetime(to_date)
+    dates_in_the_past = bool(cutoff and cutoff < timezone.now())
+
+    if lot is not None:
+        q_quant &= Q(lot=lot)
+        q_move_in &= Q(move_line_ids__lot=lot)
+        q_move_out &= Q(move_line_ids__lot=lot)
+    if owner is not None:
+        q_quant &= Q(owner=owner)
+        q_move_in &= Q(restrict_partner=owner)
+        q_move_out &= Q(restrict_partner=owner)
+    if owners is not None:
+        if owners:
+            q_quant &= Q(owner__in=owners)
+            q_move_in &= Q(move_line_ids__owner__in=owners)
+            q_move_out &= Q(move_line_ids__owner__in=owners)
+        else:
+            q_quant &= Q(owner__isnull=True)
+            q_move_in &= Q(move_line_ids__owner__isnull=True)
+            q_move_out &= Q(move_line_ids__owner__isnull=True)
+    if package is not None:
+        q_quant &= Q(package=package)
+
+    q_move_in_done, q_move_out_done = q_move_in, q_move_out
+    if from_date:
+        q_move_in &= Q(date__gte=from_date)
+        q_move_out &= Q(date__gte=from_date)
+    if cutoff:
+        q_move_in &= Q(date__lte=cutoff)
+        q_move_out &= Q(date__lte=cutoff)
+
+    pending = ('waiting', 'confirmed', 'assigned', 'partially_available')
+    moves_in = _sum_by_product(
+        StockMove.objects.filter(q_move_in, state__in=pending), 'product_qty')
+    moves_out = _sum_by_product(
+        StockMove.objects.filter(q_move_out, state__in=pending), 'product_qty')
+
+    quants = {
+        row['product']: (float(row['q'] or 0), float(row['r'] or 0))
+        for row in StockQuant.objects.filter(q_quant).values('product')
+        .annotate(q=Sum('quantity'), r=Sum('reserved_quantity'))
+    }
+
+    # Existencias ya caducadas y sin reservar: no cuentan como disponibles.
+    expired = {}
+    if with_expiration:
+        expired = {
+            row['product']: float(row['q'] or 0) - float(row['r'] or 0)
+            for row in StockQuant.objects
+            .filter(q_quant, lot__removal_date__lte=with_expiration)
+            .values('product').annotate(q=Sum('quantity'),
+                                        r=Sum('reserved_quantity'))
+        }
+
+    # Para mirar al pasado se deshacen los movimientos hechos DESPUÉS del
+    # corte, convirtiendo cada uno desde su propia unidad de medida.
+    moves_in_past, moves_out_past = defaultdict(float), defaultdict(float)
+    if dates_in_the_past:
+        for bucket, query in ((moves_in_past, q_move_in_done),
+                              (moves_out_past, q_move_out_done)):
+            for move in (StockMove.objects
+                         .filter(query, state='done', date__gt=cutoff)
+                         .select_related('product__product_tmpl__uom',
+                                         'product_uom')):
+                bucket[move.product_id] += _in_product_uom(move)
+
+    res = {}
+    for record in records:
+        pk = record.pk
+        if not any(pk in table for table in
+                   (quants, moves_in, moves_out, moves_in_past, moves_out_past,
+                    expired)):
+            res[pk] = dict(zeros)
+            continue
+        on_hand, reserved = quants.get(pk, (0.0, 0.0))
+        if dates_in_the_past:
+            on_hand = on_hand - moves_in_past.get(pk, 0.0) + moves_out_past.get(pk, 0.0)
+        expired_qty = expired.get(pk, 0.0)
+        uom = record.uom
+        incoming = _round_to(uom, moves_in.get(pk, 0.0))
+        outgoing = _round_to(uom, moves_out.get(pk, 0.0))
+        res[pk] = {
+            'qty_available': _round_to(uom, on_hand),
+            'free_qty': _round_to(uom, on_hand - reserved - expired_qty),
+            'incoming_qty': incoming,
+            'outgoing_qty': outgoing,
+            'virtual_available': _round_to(
+                uom, on_hand + incoming - outgoing - expired_qty),
+        }
+    return res
+
+
+def _to_cutoff_datetime(to_date):
+    """``to_date`` como instante: una fecha desnuda vale hasta su último tic.
+
+    ≙ el bloque ``datetime.combine(to_date.date(), time.max)`` de la fuente
+    (``odoo19c: :169-174``), que distingue una fecha de un instante para que
+    «hasta el día D» incluya el día D entero.
+    """
+    if not to_date:
+        return None
+    if isinstance(to_date, str):
+        to_date = (datetime.fromisoformat(to_date) if len(to_date) > 10
+                   else datetime.combine(date.fromisoformat(to_date), time.max))
+    elif isinstance(to_date, datetime):
+        pass
+    elif isinstance(to_date, date):
+        to_date = datetime.combine(to_date, time.max)
+    if timezone.is_naive(to_date):
+        to_date = timezone.make_aware(to_date)
+    return to_date
+
+
+def _in_product_uom(move):
+    """La cantidad del movimiento expresada en la unidad del producto.
+
+    ≙ ``uom._compute_quantity(quantity, product.uom_id)`` (``odoo19c: :231``).
+    Misma divergencia que ``_round_to``: la fuente convierte sin guarda porque
+    allá ``product_uom`` y ``uom_id`` son obligatorios; aquí los dos son
+    nulables, y sin unidad de origen o de destino no hay conversión que hacer.
+    """
+    qty = float(move.quantity or 0)
+    origin, target = move.product_uom, move.product.uom
+    if origin is None or target is None:
+        return qty
+    return origin.compute_quantity(qty, target)
+
+
+def _round_to(uom, value):
+    """Redondea a la unidad del producto; sin unidad, no hay a qué redondear.
+
+    **Divergencia declarada.** La fuente escribe ``product.uom_id.round(...)``
+    sin guarda porque allá ``uom_id`` es obligatorio y trae default
+    (``odoo19c: product/models/product_template.py``). Aquí
+    ``ProductTemplate.uom`` es nulable, así que un producto sin unidad haría
+    reventar el motor con ``AttributeError`` — un fallo que la referencia no
+    puede tener. Sin unidad se devuelve el valor crudo.
+    """
+    return uom.round(value) if uom is not None else float(value)
+
+
+def _sum_by_product(queryset, field):
+    """≙ ``_read_group(dominio, ['product_id'], ['<campo>:sum'])``."""
+    return {row['product']: float(row['total'] or 0)
+            for row in queryset.values('product').annotate(total=Sum(field))}
+
+
+def _compute_quantities(cls, products, **kwargs):
+    """≙ ``_compute_quantities`` (``odoo19c: :151-162``).
+
+    Un servicio no lleva existencias, así que sale del cálculo y recibe ceros.
+    """
+    storable = [p for p in products if p.type != TYPE_SERVICE]
+    res = cls._compute_quantities_dict(storable, **kwargs)
+    zeros = dict.fromkeys(
+        ['qty_available', 'free_qty', 'incoming_qty', 'outgoing_qty',
+         'virtual_available'], 0.0)
+    return {p.pk: res.get(p.pk, dict(zeros)) for p in products
+            if p.pk is not None}
+
+
+def _quantity_for(self, key, **kwargs):
+    """El valor de un campo de cantidad para ESTE producto."""
+    return type(self)._compute_quantities([self], **kwargs).get(
+        self.pk, {}).get(key, 0.0)
+
+
+def qty_available(self):
+    """≙ ``qty_available`` (``odoo19c: :52-66``) — existencias a la mano."""
+    return _quantity_for(self, 'qty_available')
+
+
+def virtual_available(self):
+    """≙ ``virtual_available`` (``:69-79``) — a la mano + entrante − saliente."""
+    return _quantity_for(self, 'virtual_available')
+
+
+def free_qty(self):
+    """≙ ``free_qty`` (``:81-91``) — a la mano menos lo reservado."""
+    return _quantity_for(self, 'free_qty')
+
+
+def incoming_qty(self):
+    """≙ ``incoming_qty`` (``:93-102``) — entradas planificadas."""
+    return _quantity_for(self, 'incoming_qty')
+
+
+def outgoing_qty(self):
+    """≙ ``outgoing_qty`` (``:104-113``) — salidas planificadas."""
+    return _quantity_for(self, 'outgoing_qty')
+
+
+def _search_product_quantity(cls, operator, value, field, **kwargs):
+    """≙ ``_search_product_quantity`` (``odoo19c: :492-496``).
+
+    La fuente rechaza aquí el mismo par de casos, y por la misma razón: sin un
+    número que comparar, o con un operador que no es de orden, la búsqueda no
+    tiene significado sobre una cantidad calculada.
+    """
+    if field not in ('qty_available', 'virtual_available', 'incoming_qty',
+                     'outgoing_qty', 'free_qty'):
+        raise UserError(_('Búsqueda no soportada sobre el campo %s.') % field)
+    if operator not in PY_OPERATORS:
+        raise UserError(_('Operador no soportado: %s.') % operator)
+    if not isinstance(value, (float, int)):
+        raise UserError(_('El valor a comparar debe ser un número.'))
+    return cls._search_qty_available_new(operator, value, field, **kwargs)
+
+
+def _search_qty_available_new(cls, operator, value, field, lot=None, owner=None,
+                              package=None, location=None, warehouse=None,
+                              strict=False):
+    """≙ ``_search_qty_available_new`` (``odoo19c: :498-536``).
+
+    Devuelve el ``Q`` que acota a los productos cuyo campo de cantidad cumple
+    la comparación. La fuente calcula el campo para el universo de productos
+    con existencias o movimientos y filtra en Python — no hay columna que
+    comparar en SQL, y aquí tampoco: el campo es una ``property``.
+    """
+    StockMove = apps.get_model('stock', 'StockMove')
+    StockQuant = apps.get_model('stock', 'StockQuant')
+    cls = cls
+
+    q_quant_loc, q_move_in_loc, q_move_out_loc = cls._get_domain_locations(
+        location=location, warehouse=warehouse, strict=strict)
+    candidates = set(
+        StockQuant.objects.filter(q_quant_loc)
+        .values_list('product_id', flat=True))
+    candidates |= set(
+        StockMove.objects.filter(q_move_in_loc | q_move_out_loc)
+        .values_list('product_id', flat=True))
+    if not candidates:
+        return FALSE_DOMAIN
+
+    records = list(cls.objects.filter(pk__in=candidates))
+    values = cls._compute_quantities(
+        records, lot=lot, owner=owner, package=package, location=location,
+        warehouse=warehouse, strict=strict)
+    compare = PY_OPERATORS[operator]
+    matches = [pk for pk, row in values.items()
+                if compare(row.get(field, 0.0), value)]
+    return Q(pk__in=matches) if matches else FALSE_DOMAIN
+
+
+def _search_qty_available(cls, operator, value, **kwargs):
+    """≙ ``_search_qty_available`` (``odoo19c: :464-475``).
+
+    El atajo de la fuente: preguntar por «cantidad distinta de cero» no
+    necesita el motor — basta con quién tiene un quant. Se conserva porque es
+    la búsqueda más frecuente y la que más costaría calcular entera.
+    """
+    if operator in ('=', '!=') and value == 0 and not kwargs:
+        StockQuant = apps.get_model('stock', 'StockQuant')
+        with_stock = set(StockQuant.objects.exclude(quantity=0)
+                             .values_list('product_id', flat=True))
+        if operator == '=':
+            return ~Q(pk__in=with_stock)
+        return Q(pk__in=with_stock)
+    return cls._search_product_quantity(operator, value, 'qty_available',
+                                        **kwargs)
+
+
+def _search_virtual_available(cls, operator, value, **kwargs):
+    """≙ ``_search_virtual_available`` (``odoo19c: :477-479``)."""
+    return cls._search_product_quantity(operator, value, 'virtual_available',
+                                        **kwargs)
+
+
+def _search_incoming_qty(cls, operator, value, **kwargs):
+    """≙ ``_search_incoming_qty`` (``odoo19c: :481-483``)."""
+    return cls._search_product_quantity(operator, value, 'incoming_qty',
+                                        **kwargs)
+
+
+def _search_outgoing_qty(cls, operator, value, **kwargs):
+    """≙ ``_search_outgoing_qty`` (``odoo19c: :485-487``)."""
+    return cls._search_product_quantity(operator, value, 'outgoing_qty',
+                                        **kwargs)
+
+
+def _search_free_qty(cls, operator, value, **kwargs):
+    """≙ ``_search_free_qty`` (``odoo19c: :489-490``)."""
+    return cls._search_product_quantity(operator, value, 'free_qty', **kwargs)
+
+
+def product_route_ids(self):
+    """≙ ``product.product.route_ids`` — delegado al template.
+
+    La fuente lo obtiene por ``_inherits``: el M2M vive en ``product.template``
+    (``StockRoute.product_ids``, ``related_name='route_ids'``) y la variante lo
+    lee a través de la delegación. Mismo idioma que ``categ``/``uom``/``type``
+    en ``api: addons/product/models/product_product.py``.
+    """
+    return self.product_tmpl.route_ids
+
+
+def get_total_routes(self):
+    """≙ ``get_total_routes`` (``odoo19c: :315-317``).
+
+    «``self.route_ids | self.categ_id.total_route_ids``» — las rutas propias
+    (las de su plantilla, por delegación) más las que hereda de su categoría.
+    """
+    StockRoute = apps.get_model('stock', 'StockRoute')
+    ids = set(self.route_ids.values_list('pk', flat=True))
+    category = self.categ
+    if category is not None:
+        ids |= set(category.total_route_ids.values_list('pk', flat=True))
+    return StockRoute.objects.filter(pk__in=ids)
 
 
 def apply_stock_product_extensions():
@@ -394,14 +902,14 @@ def apply_stock_product_extensions():
     # ≙ ``description_picking`` / ``description_pickingout`` /
     # ``description_pickingin`` (``odoo19c: stock/models/product.py:856-858``).
     # Los declara ``product.template``; los consume ``_get_picking_description``.
-    for nombre, etiqueta in (
+    for name, label in (
         ('description_picking', 'Descripción en el albarán'),
         ('description_pickingout', 'Descripción en órdenes de entrega'),
         ('description_pickingin', 'Descripción en recepciones'),
     ):
-        _add_if_absent(ProductTemplate, nombre, fields.Text(
-            null=True, blank=True, verbose_name=etiqueta,
-            help_text=f'Odoo {nombre}. La referencia lo declara traducible; '
+        _add_if_absent(ProductTemplate, name, fields.Text(
+            null=True, blank=True, verbose_name=label,
+            help_text=f'Odoo {name}. La referencia lo declara traducible; '
                       'el almacenamiento jsonb de translate=True es la tarea #333.',
         ))
     if not hasattr(ProductProduct, '_get_description'):
@@ -450,3 +958,33 @@ def apply_stock_product_extensions():
     if not hasattr(Uom, '_adjust_uom_quantities'):
         Uom._adjust_uom_quantities = _adjust_uom_quantities
     chain_method(Uom, 'save', save_guarding_factor)
+
+    # --- el motor de cantidades (``odoo19c: :146-536``) --------------------
+    for name, function in (
+        ('_get_domain_locations', _get_domain_locations),
+        ('_get_domain_locations_new', _get_domain_locations_new),
+        ('_compute_quantities_dict', _compute_quantities_dict),
+        ('_compute_quantities', _compute_quantities),
+        ('_search_product_quantity', _search_product_quantity),
+        ('_search_qty_available_new', _search_qty_available_new),
+        ('_search_qty_available', _search_qty_available),
+        ('_search_virtual_available', _search_virtual_available),
+        ('_search_incoming_qty', _search_incoming_qty),
+        ('_search_outgoing_qty', _search_outgoing_qty),
+        ('_search_free_qty', _search_free_qty),
+    ):
+        if not hasattr(ProductProduct, name):
+            setattr(ProductProduct, name, classmethod(function))
+    for name, function in (
+        ('qty_available', qty_available),
+        ('virtual_available', virtual_available),
+        ('free_qty', free_qty),
+        ('incoming_qty', incoming_qty),
+        ('outgoing_qty', outgoing_qty),
+    ):
+        if not hasattr(ProductProduct, name):
+            setattr(ProductProduct, name, property(function))
+    if not hasattr(ProductProduct, 'route_ids'):
+        ProductProduct.route_ids = property(product_route_ids)
+    if not hasattr(ProductProduct, 'get_total_routes'):
+        ProductProduct.get_total_routes = get_total_routes

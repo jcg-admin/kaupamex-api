@@ -15,7 +15,19 @@ from django.db.models import Q
 __all__ = ['AND', 'OR', 'NOT', 'TRUE_DOMAIN', 'FALSE_DOMAIN', 'to_q']
 
 TRUE_DOMAIN = Q()
-FALSE_DOMAIN = ~Q(pk__in=[])
+
+#: El dominio que no matchea nada — ≙ ``Domain.FALSE``
+#: (``odoo19c: odoo/orm/domains.py``).
+#:
+#: **Corregido 2026-08-15 (H-API-606).** Decía ``~Q(pk__in=[])``, que es su
+#: opuesto exacto: ``Q(pk__in=[])`` levanta ``EmptyResultSet`` y Django lo
+#: colapsa a «ninguna fila», así que su negación colapsa a «sin cláusula
+#: ``WHERE``» — el queryset entero. Medido sobre ``StockQuant``, la consulta
+#: salía sin ``WHERE``.
+#:
+#: La forma correcta ya estaba en este mismo archivo: ``OR([])`` devuelve
+#: ``Q(pk__in=[])``. El archivo se contradecía a sí mismo.
+FALSE_DOMAIN = Q(pk__in=[])
 
 
 def AND(domains):
