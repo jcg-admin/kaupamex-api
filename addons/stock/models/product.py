@@ -80,18 +80,19 @@ que es la condición que ese texto fijaba.
 """
 import operator as py_operator
 from collections import defaultdict
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 
 import fields
 import models
 from django.apps import apps
-from django.db.models import Q, Sum
+from django.db.models import Count, Q, Sum
 from django.utils import timezone
 
 from exceptions import UserError
 from orm.domains import FALSE_DOMAIN, OR
 from orm.environments import get_current_companies
 from orm.method_chain import chain_method
+from tools.barcode import check_barcode_encoding
 from tools.mail import html2plaintext, is_html_empty
 from tools.translate import _
 
@@ -757,6 +758,268 @@ def outgoing_qty(self):
     return _quantity_for(self, 'outgoing_qty')
 
 
+def _year_ago():
+    """Un año atrás — ≙ ``fields.Datetime.now() - relativedelta(years=1)``."""
+    now = timezone.now()
+    try:
+        return now.replace(year=now.year - 1)
+    except ValueError:            # 29 de febrero en año no bisiesto
+        return now.replace(year=now.year - 1, day=28)
+
+
+def _count_done_lines_by_code(cls, products, code):
+    """Líneas de movimiento cerradas del último año, por tipo de albarán.
+
+    **Divergencia declarada.** La fuente filtra por ``picking_code``, que su
+    ORM resuelve en SQL porque un ``related`` es una columna consultable.
+    Aquí ``StockMoveLine.picking_code`` **sí está portado**
+    (``addons/stock/models/stock_move_line.py:477-480``) pero como
+    ``property`` de Python: se evalúa por instancia y el ORM no puede
+    empujarlo al ``WHERE``. El filtro recorre la relación —
+    ``picking__picking_type__code``— que es la misma travesía que el
+    ``related`` declara, escrita donde la consulta la puede usar.
+    """
+    StockMoveLine = apps.get_model('stock', 'StockMoveLine')
+    filas = (StockMoveLine.objects
+             .filter(product__in=products, state='done',
+                     picking__picking_type__code=code, date__gte=_year_ago())
+             .values('product').annotate(total=Count('pk')))
+    return {row['product']: row['total'] for row in filas}
+
+
+def _compute_nbr_moves(cls, products):
+    """≙ ``_compute_nbr_moves`` (``odoo19c: :292-309``).
+
+    Devuelve ``{pk: (entradas, salidas)}`` — el par que la fuente reparte
+    entre ``nbr_moves_in`` y ``nbr_moves_out``.
+    """
+    products = list(products)
+    entradas = _count_done_lines_by_code(cls, products, 'incoming')
+    salidas = _count_done_lines_by_code(cls, products, 'outgoing')
+    return {p.pk: (entradas.get(p.pk, 0), salidas.get(p.pk, 0))
+            for p in products}
+
+
+def nbr_moves_in(self):
+    """≙ ``nbr_moves_in`` — recepciones cerradas del último año."""
+    return type(self)._compute_nbr_moves([self]).get(self.pk, (0, 0))[0]
+
+
+def nbr_moves_out(self):
+    """≙ ``nbr_moves_out`` — entregas cerradas del último año."""
+    return type(self)._compute_nbr_moves([self]).get(self.pk, (0, 0))[1]
+
+
+def show_on_hand_qty_status_button(self):
+    """≙ ``_compute_show_qty_status_button`` (``odoo19c: :117-121``)."""
+    template = self.product_tmpl
+    return bool(template and getattr(template, 'is_storable', False))
+
+
+def show_forecasted_qty_status_button(self):
+    """≙ el segundo campo del mismo compute (``odoo19c: :117-121``)."""
+    template = self.product_tmpl
+    return bool(template and getattr(template, 'is_storable', False))
+
+
+def show_qty_update_button(self):
+    """≙ ``_compute_show_qty_update_button`` (``odoo19c: :123-126``)."""
+    template = self.product_tmpl
+    return bool(template and _should_open_product_quants(template))
+
+
+def valid_ean(self):
+    """≙ ``_compute_valid_ean`` (``odoo19c: :128-133``)."""
+    if not self.barcode:
+        return False
+    return check_barcode_encoding(self.barcode.rjust(14, '0'), 'gtin14')
+
+
+def _should_open_product_quants(template):
+    """≙ ``_should_open_product_quants`` de ``product.template``.
+
+    La fuente abre el ajuste de existencias sólo para un producto que las
+    lleva; para el resto el botón no tiene destino.
+    """
+    return bool(getattr(template, 'is_storable', False))
+
+
+def get_components(self):
+    """≙ ``get_components`` (``odoo19c: :311-313``)."""
+    return [self.pk]
+
+
+def _get_quantity_in_progress(self, location_ids=(), warehouse_ids=()):
+    """≙ ``_get_quantity_in_progress`` (``odoo19c: :707-708``).
+
+    La fuente devuelve dos mapas vacíos: es el punto de extensión que
+    ``purchase_stock`` y ``mrp`` rellenan con sus pedidos en curso. Se porta
+    con su cuerpo real —vacío— porque su valor es el contrato, no el cálculo.
+    """
+    return defaultdict(float), defaultdict(float)
+
+
+def _get_only_qty_available(cls, products):
+    """≙ ``_get_only_qty_available`` (``odoo19c: :735-745``).
+
+    Sólo la existencia física, sin tocar los movimientos: la fuente lo separa
+    justamente para no pagar el ``_read_group`` sobre ``stock.move``.
+    """
+    StockQuant = apps.get_model('stock', 'StockQuant')
+    products = list(products)
+    q_quant_loc = cls._get_domain_locations()[0]
+    filas = (StockQuant.objects
+             .filter(q_quant_loc, product__in=products)
+             .values('product').annotate(total=Sum('quantity')))
+    actuales = defaultdict(float)
+    actuales.update({row['product']: float(row['total'] or 0) for row in filas})
+    return actuales
+
+
+def _filter_to_unlink(cls, products):
+    """≙ ``_filter_to_unlink`` (``odoo19c: :747-751``).
+
+    Un producto con lotes registrados no se borra: la fuente lo excluye del
+    conjunto antes de delegar en su superclase.
+    """
+    StockLot = apps.get_model('stock', 'StockLot')
+    products = list(products)
+    con_lote = set(StockLot.objects.filter(product__in=products)
+                   .values_list('product_id', flat=True))
+    return [p for p in products if p.pk not in con_lote]
+
+
+def _count_returned_sn_products(cls, sn_lot, or_domains=()):
+    """≙ ``_count_returned_sn_products`` (``odoo19c: :753-758``)."""
+    StockMoveLine = apps.get_model('stock', 'StockMoveLine')
+    domain = cls._count_returned_sn_products_domain(sn_lot, or_domains)
+    if domain is None:
+        return 0
+    return StockMoveLine.objects.filter(domain).count()
+
+
+def _count_returned_sn_products_domain(cls, sn_lot, or_domains=()):
+    """≙ ``_count_returned_sn_products_domain`` (``odoo19c: :760-768``).
+
+    Sin las ramas que aportan los addons de venta y compra, la fuente
+    devuelve ``None`` y el contador sale 0 — el punto de extensión sigue
+    siendo el mismo aquí.
+    """
+    or_domains = list(or_domains or ())
+    if not or_domains:
+        return None
+    return (Q(lot=sn_lot, quantity=1, state='done')) & OR(or_domains)
+
+
+def filter_has_routes(cls, products):
+    """≙ ``filter_has_routes`` (``odoo19c: :796-805``).
+
+    Un producto tiene ruta si la declara él o si la hereda de su categoría —
+    y lo segundo exige el recorrido de padres que ``total_route_ids`` ya
+    resuelve.
+    """
+    salida = []
+    for product in products:
+        if product.route_ids.exists():
+            salida.append(product)
+            continue
+        categoria = getattr(product, 'categ', None)
+        if categoria is not None and categoria.total_route_ids.exists():
+            salida.append(product)
+    return salida
+
+
+def _get_rules_from_location(cls, product, location, route_ids=(),
+                             seen_rules=None):
+    """≙ ``_get_rules_from_location`` (``odoo19c: :710-725``).
+
+    Sube por la cadena de reglas hasta la que abastece contra existencias.
+    La guarda del bucle infinito es de la fuente, no un añadido.
+    """
+    StockRule = apps.get_model('stock', 'StockRule')
+    seen_rules = list(seen_rules or ())
+    warehouse = getattr(location, 'warehouse', None)
+    rule = StockRule._get_rule(product, location, {
+        'route_ids': route_ids,
+        'warehouse_id': warehouse,
+    })
+    if rule is not None and rule in seen_rules:
+        raise UserError(
+            _('Configuración de regla inválida: la regla %s provoca un bucle '
+              'infinito.') % rule)
+    if rule is None:
+        return seen_rules
+    seen_rules = seen_rules + [rule]
+    if (rule.procure_method == 'make_to_stock'
+            or rule.action not in ('pull_push', 'pull')):
+        return seen_rules
+    return cls._get_rules_from_location(
+        product, rule.location_src, seen_rules=seen_rules)
+
+
+def _get_dates_info(cls, product, date, location, route_ids=()):
+    """≙ ``_get_dates_info`` (``odoo19c: :727-733``)."""
+    StockRule = apps.get_model('stock', 'StockRule')
+    rules = cls._get_rules_from_location(product, location, route_ids=route_ids)
+    delays, _unused = StockRule._get_lead_days(rules, product)
+    return {
+        'date_planned': date,
+        'date_order': date - timedelta(days=delays.get('purchase_delay', 0)),
+    }
+
+
+def _uom_change_is_blocked(product, to_uom):
+    """Las dos consultas con que la fuente veta el cambio de unidad.
+
+    ≙ los dos ``_read_group`` de ``_update_uom`` (``odoo19c: :770-794``):
+    si el producto ya tiene movimientos o líneas en OTRA unidad, el cambio
+    reinterpretaría cantidades ya registradas.
+    """
+    StockMove = apps.get_model('stock', 'StockMove')
+    StockMoveLine = apps.get_model('stock', 'StockMoveLine')
+    actual = product.uom
+    usadas = set(StockMove.objects.filter(product=product)
+                 .exclude(product_uom__isnull=True)
+                 .values_list('product_uom_id', flat=True))
+    usadas |= set(StockMoveLine.objects.filter(product=product)
+                  .exclude(product_uom__isnull=True)
+                  .values_list('product_uom_id', flat=True))
+    ajenas = {u for u in usadas if actual is None or u != actual.pk}
+    return sorted(ajenas)
+
+
+def _update_uom(self, to_uom):
+    """≙ ``_update_uom`` (``odoo19c: :770-794``)."""
+    StockMove = apps.get_model('stock', 'StockMove')
+    StockMoveLine = apps.get_model('stock', 'StockMoveLine')
+    ajenas = _uom_change_is_blocked(self, to_uom)
+    if ajenas:
+        raise UserError(
+            _('Ya se usaron otras unidades de medida para este producto, así '
+              'que el cambio de unidad no puede hacerse. Si quiere cambiarla, '
+              'archive el producto y cree uno nuevo.'))
+    StockMove.objects.filter(product=self).update(product_uom=to_uom)
+    StockMoveLine.objects.filter(product=self).update(product_uom=to_uom)
+
+
+def _trigger_uom_warning(self):
+    """≙ ``_trigger_uom_warning`` (``odoo19c: :807-814``)."""
+    StockMove = apps.get_model('stock', 'StockMove')
+    return StockMove.objects.filter(product=self).exists()
+
+
+def _onchange_tracking(self):
+    """≙ ``_onchange_tracking`` (``odoo19c: :551-556``).
+
+    Devuelve el aviso, no lo levanta: la fuente lo entrega como ``warning``
+    para que la capa de presentación decida. Aquí lo consume el serializer.
+    """
+    if self.tracking != 'none' and self.qty_available > 0:
+        return _('Tiene existencias sin número de lote o de serie. Puede '
+                 'asignárselos con un ajuste de inventario.')
+    return None
+
+
 def _search_product_quantity(cls, operator, value, field, **kwargs):
     """≙ ``_search_product_quantity`` (``odoo19c: :492-496``).
 
@@ -988,3 +1251,42 @@ def apply_stock_product_extensions():
         ProductProduct.route_ids = property(product_route_ids)
     if not hasattr(ProductProduct, 'get_total_routes'):
         ProductProduct.get_total_routes = get_total_routes
+
+    # --- el resto de ``product.product`` (``odoo19c: :292-814``) -----------
+    _add_if_absent(ProductProduct, 'lot_properties_definition', fields.Json(
+        null=True, blank=True, default=None,
+        verbose_name='Definición de propiedades de lote',
+        help_text='Esquema de las propiedades que llevan los lotes de este '
+                  'producto (Odoo lot_properties_definition).',
+    ))
+    for name, function in (
+        ('_compute_nbr_moves', _compute_nbr_moves),
+        ('_get_only_qty_available', _get_only_qty_available),
+        ('_filter_to_unlink', _filter_to_unlink),
+        ('_count_returned_sn_products', _count_returned_sn_products),
+        ('_count_returned_sn_products_domain', _count_returned_sn_products_domain),
+        ('filter_has_routes', filter_has_routes),
+        ('_get_rules_from_location', _get_rules_from_location),
+        ('_get_dates_info', _get_dates_info),
+    ):
+        if not hasattr(ProductProduct, name):
+            setattr(ProductProduct, name, classmethod(function))
+    for name, function in (
+        ('nbr_moves_in', nbr_moves_in),
+        ('nbr_moves_out', nbr_moves_out),
+        ('show_on_hand_qty_status_button', show_on_hand_qty_status_button),
+        ('show_forecasted_qty_status_button', show_forecasted_qty_status_button),
+        ('show_qty_update_button', show_qty_update_button),
+        ('valid_ean', valid_ean),
+    ):
+        if not hasattr(ProductProduct, name):
+            setattr(ProductProduct, name, property(function))
+    for name, function in (
+        ('get_components', get_components),
+        ('_get_quantity_in_progress', _get_quantity_in_progress),
+        ('_update_uom', _update_uom),
+        ('_trigger_uom_warning', _trigger_uom_warning),
+        ('_onchange_tracking', _onchange_tracking),
+    ):
+        if not hasattr(ProductProduct, name):
+            setattr(ProductProduct, name, function)
