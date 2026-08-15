@@ -286,6 +286,54 @@ def simbolos_del_archivo(ruta):
             if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
 
 
+def equivalencias_declaradas(ruta):
+    """Símbolos de la referencia que una ``property`` nuestra absuelve.
+
+    Un ``compute='_compute_x'`` sin ``store`` de la referencia se porta aquí
+    como ``property x``: el valor se deriva en cada acceso en vez de
+    materializarse en columna. El símbolo ``_compute_x`` no existe entonces en
+    nuestro archivo, y el gate —que compara por nombre— lo declaraba ausente.
+    Medido sobre ``stock`` antes de este cambio: **38 de 395** ausentes eran de
+    esta forma, un 10 % de falsos positivos que inflaban la deuda declarada.
+
+    **La absolución exige que la equivalencia esté DECLARADA**, no que se pueda
+    inferir. El docstring de la ``property`` debe nombrar el símbolo de la
+    referencia (``_compute_x``) para que cuente. Absolver por la sola forma del
+    nombre sería la trampa que este gate ya cometió tres veces: un instrumento
+    que declara portado lo que no ha leído. Con la declaración exigida, un
+    porte legítimo pero mudo sale como ausente — y eso **es** la señal
+    correcta: ``porte-completo-no-parcial.md`` pide declarar la divergencia,
+    no sólo tenerla.
+
+    Medido en el mismo pase: de las 38, **23** citaban el compute y **15** no.
+    Las 15 son trabajo real —declarar su origen—, no ruido del gate.
+
+    *Métrica:* ``_compute_<campo>`` de la referencia cuyo ``<campo>`` es una
+    ``property``/``cached_property`` de nuestro archivo Y cuyo docstring
+    contiene la cadena ``_compute_<campo>``.
+    *Ciega a:* el mismo porte con el campo renombrado (``_compute_qty`` →
+    ``property quantity``), y a los ``_inverse_x``/``_search_x``, que la
+    referencia declara junto al compute y que aquí se resuelven de otras
+    formas. Ambos siguen saliendo como ausentes — el lado seguro.
+    """
+    try:
+        arbol = ast.parse(ruta.read_text())
+    except (SyntaxError, UnicodeDecodeError):
+        return set()
+    propiedades = {}
+    for n in ast.walk(arbol):
+        if not isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        for dec in n.decorator_list:
+            nombre = (dec.id if isinstance(dec, ast.Name) else
+                      dec.attr if isinstance(dec, ast.Attribute) else '')
+            if 'property' in nombre:
+                propiedades[n.name] = ast.get_docstring(n) or ''
+                break
+    return {f'_compute_{campo}' for campo, doc in propiedades.items()
+            if f'_compute_{campo}' in doc}
+
+
 def clases_del_addon(raiz):
     """``{clase_normalizada: {métodos}}`` de TODO el addon.
 
@@ -335,15 +383,15 @@ def _clase_sin_contraparte(addon, archivo, clase, metodos, instalado):
 
 
 def compara(addon):
-    """Devuelve ``(pares_medidos, [hallazgo, ...], no_resolubles)``."""
+    """Devuelve ``(pares, [hallazgo, ...], no_resolubles, absoluciones)``."""
     ref_raiz = ODOO19C / 'addons' / addon
     mio_raiz = addon_path(addon) or pathlib.Path('/nonexistent')
     if not ref_raiz.is_dir() or not mio_raiz.is_dir():
-        return 0, [], 0
+        return 0, [], 0, 0
 
     por_clase = clases_del_addon(mio_raiz)
     instalado, no_resolubles = instalaciones_del_addon(mio_raiz)
-    pares, hallazgos = 0, []
+    pares, hallazgos, absoluciones = 0, [], 0
 
     for ref_py in sorted((ref_raiz / 'models').glob('*.py')):
         if ref_py.name == '__init__.py':
@@ -396,6 +444,9 @@ def compara(addon):
         mias = simbolos(mio_py) or {}
         mias_norm = {normaliza(c): ms for c, ms in mias.items()}
         del_archivo = {normaliza(x) for x in simbolos_del_archivo(mio_py)}
+        # Un compute sin store portado como property, con la equivalencia
+        # declarada en su docstring. Ver equivalencias_declaradas().
+        absueltos = {normaliza(x) for x in equivalencias_declaradas(mio_py)}
 
         for clase, metodos in ref_clases.items():
             aqui = mias_norm.get(normaliza(clase))
@@ -411,6 +462,9 @@ def compara(addon):
                 n = normaliza(m)
                 if n in aqui_norm:
                     continue
+                if n in absueltos:
+                    absoluciones += 1
+                    continue
                 # El símbolo existe en ESTE archivo pero NO en la clase que le
                 # toca: función suelta, o método de otra clase del archivo.
                 # Antes esto se descartaba en silencio y el método contaba
@@ -425,7 +479,7 @@ def compara(addon):
                 hallazgos.append(
                     (addon, ref_py.name, clase, 'FUERA DE SITIO',
                      fuera_de_sitio))
-    return pares, hallazgos, no_resolubles
+    return pares, hallazgos, no_resolubles, absoluciones
 
 
 def main():
@@ -445,12 +499,13 @@ def main():
     addons = [args.addon] if args.addon else sorted(
         d.name for d in addon_dirs())
 
-    pares_total, todos, opacas = 0, [], 0
+    pares_total, todos, opacas, absueltos_total = 0, [], 0, 0
     for addon in addons:
-        pares, hallazgos, no_resolubles = compara(addon)
+        pares, hallazgos, no_resolubles, absoluciones = compara(addon)
         pares_total += pares
         todos += hallazgos
         opacas += no_resolubles
+        absueltos_total += absoluciones
 
     if args.mapa:
         # El inventario completo: cada archivo de la referencia con su estado.
@@ -491,7 +546,8 @@ def main():
               f'{len(fuera)} de sitio, {simb_fuera} símbolos) '
               f'(alcance medido: {pares_total} pares de archivo, '
               f'{len(addons)} addons; '
-              f'{opacas} instalaciones con receptor no resoluble)')
+              f'{opacas} instalaciones con receptor no resoluble; '
+              f'{absueltos_total} compute absueltos por property declarada)')
     return 1 if (args.strict and todos) else 0
 
 
