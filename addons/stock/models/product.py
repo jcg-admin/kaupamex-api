@@ -45,6 +45,8 @@ que es la condición que ese texto fijaba.
 """
 import fields
 
+from tools.mail import html2plaintext, is_html_empty
+
 from addons.product.models import ProductProduct, ProductTemplate
 from addons.product.models.product_template import TYPE_CONSU
 
@@ -114,6 +116,37 @@ def _compute_tracking(self):
         self.tracking = 'none'
 
 
+def _get_description(self, picking_type):
+    """≙ ``_get_description`` (``odoo19c: stock/models/product.py:319-329``).
+
+    Descripción del producto según el tipo de operación: en una **salida**
+    siempre manda el nombre; en el resto se intenta la descripción larga y,
+    si está vacía, se cae al nombre.
+
+    El guion bajo se conserva porque la fuente lo declara así
+    (``porte-completo-no-parcial.md``, H-API-581).
+    """
+    if getattr(picking_type, 'code', None) == 'outgoing':
+        return self.display_name
+    descripcion = getattr(self.product_tmpl, 'description', None)
+    return html2plaintext(descripcion) if not is_html_empty(descripcion) \
+        else self.display_name
+
+
+def _get_picking_description(self, picking_type):
+    """≙ ``_get_picking_description`` (``odoo19c: stock/models/product.py:331-339``).
+
+    La descripción **específica de la operación**: recepción, entrega o
+    interna. Sin tipo de operación no hay descripción que elegir.
+    """
+    tmpl = self.product_tmpl
+    return {
+        'incoming': tmpl.description_pickingin,
+        'outgoing': tmpl.description_pickingout,
+        'internal': tmpl.description_picking,
+    }.get(getattr(picking_type, 'code', None), '')
+
+
 def apply_stock_product_extensions():
     """Cuelga ``is_storable`` y ``tracking`` sobre ``product.template``.
 
@@ -137,3 +170,21 @@ def apply_stock_product_extensions():
         ProductProduct.tracking = property(tracking)
     if not hasattr(ProductProduct, 'is_storable'):
         ProductProduct.is_storable = property(is_storable)
+
+    # ≙ ``description_picking`` / ``description_pickingout`` /
+    # ``description_pickingin`` (``odoo19c: stock/models/product.py:856-858``).
+    # Los declara ``product.template``; los consume ``_get_picking_description``.
+    for nombre, etiqueta in (
+        ('description_picking', 'Descripción en el albarán'),
+        ('description_pickingout', 'Descripción en órdenes de entrega'),
+        ('description_pickingin', 'Descripción en recepciones'),
+    ):
+        _add_if_absent(ProductTemplate, nombre, fields.Text(
+            null=True, blank=True, verbose_name=etiqueta,
+            help_text=f'Odoo {nombre}. La referencia lo declara traducible; '
+                      'el almacenamiento jsonb de translate=True es la tarea #333.',
+        ))
+    if not hasattr(ProductProduct, '_get_description'):
+        ProductProduct._get_description = _get_description
+    if not hasattr(ProductProduct, '_get_picking_description'):
+        ProductProduct._get_picking_description = _get_picking_description

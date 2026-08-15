@@ -20,9 +20,13 @@ from addons.stock.models import (
 )
 from addons.stock.models.stock_rule import ProcurementException
 from addons.uom.models.uom_uom import Uom
+from orm.environments import get_current_company
 from tests.factories.product_factory import make_product
 
 pytestmark = pytest.mark.integration
+
+# La empresa activa la aporta ``active_company`` de ``conftest.py`` — es
+# precondición de todo el directorio, no de este archivo.
 
 
 def _product(price='100.00'):
@@ -71,7 +75,7 @@ def test_move_confirm_assign_done_updates_quants(db):
     dest = _customer()
     StockQuant.set_on_hand(product, src, Decimal('5.00'))
     move = StockMove.objects.create(
-        name=product.name, product=product, product_uom_qty=Decimal('3.00'),
+        product=product, product_uom_qty=Decimal('3.00'),
         location=src, location_dest=dest,
     )
     # draft → confirmed (sin orígenes pendientes).
@@ -98,9 +102,13 @@ def test_move_partial_reservation_stays_confirmed(db):
     )
     move._action_confirm()
     move._action_assign()
-    # Sólo 2 disponibles < 5 demandados → reserva parcial, no assigned.
+    # Sólo 2 disponibles < 5 demandados → reserva parcial.
+    # La referencia declara SIETE estados y reserva ``partially_available``
+    # para justo este caso (``odoo19c: stock_move.py:106-113``); el test
+    # esperaba ``confirmed`` porque se escribió contra el Selection de seis
+    # que este modelo tenía antes del porte completo (divergencia D-3).
     assert move.quantity == Decimal('2.00')
-    assert move.state == StockMove.STATE_CONFIRMED
+    assert move.state == StockMove.STATE_PARTIALLY_AVAILABLE
 
 
 def test_move_mto_chaining_waiting(db):
@@ -115,7 +123,7 @@ def test_move_mto_chaining_waiting(db):
     dest_move = StockMove.objects.create(
         product=product, product_uom_qty=Decimal('4.00'), location=mid, location_dest=dest,
     )
-    dest_move.move_orig.add(orig)
+    dest_move.move_orig_ids.add(orig)
     dest_move._action_confirm()
     # Con origen pendiente (no done) → waiting.
     assert dest_move.state == StockMove.STATE_WAITING
@@ -156,11 +164,16 @@ def _procurement(product, location, qty, **values):
     La firma la fija la referencia (``odoo19c: stock_rule.py:31-39``): ocho
     campos posicionales. ``values`` lleva al menos ``date_planned``, que
     ``_get_stock_move_values`` desempaqueta.
+
+    El séptimo campo —``company_id``— sale de la empresa activa, igual que en
+    la fuente: allá lo rellena ``ProcurementGroup.run`` desde ``env.company``,
+    y nunca llega vacío. Pasarlo ``None`` fabricaba un movimiento sin empresa
+    que la columna ``NOT NULL`` rechaza.
     """
     values.setdefault('date_planned', timezone.now())
     return StockRule.Procurement(
         product, qty, product.uom or _uom(), location,
-        product.name, 'test', None, values,
+        product.name, 'test', get_current_company(), values,
     )
 
 

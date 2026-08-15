@@ -164,6 +164,13 @@ class ProductTemplate(ImageMixin, TimeStampedModel):
         related_name='product_tmpl_ids', verbose_name='Unidad de medida',
         help_text='Odoo uom_id. FK real: uom.uom ya está portado.',
     )
+    uom_ids = fields.Many2many(
+        Uom, blank=True, related_name='packaging_product_tmpl_ids',
+        db_table='product_template_uom_rel', verbose_name='Empaquetados',
+        help_text='Odoo uom_ids ("Packagings"): unidades adicionales con las '
+                  'que este producto se puede vender. La fuente excluye la '
+                  'unidad base por dominio; aquí lo hace quien las consume.',
+    )
     list_price = fields.Monetary(
         max_digits=16, decimal_places=2, default=1,
         verbose_name='Precio de venta',

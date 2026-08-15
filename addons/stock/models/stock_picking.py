@@ -1081,6 +1081,15 @@ class StockPicking(MailThread, MailActivityMixin, TimeStampedModel):
         'sale.SaleOrder', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='pickings', help_text='Orden de venta (Odoo stock.picking.sale_id).',
     )
+    # ≙ ``is_locked`` (``odoo19c: :658-660``). Entra en este pase porque el
+    # movimiento lo consume en tres derivados (``is_locked``,
+    # ``is_initial_demand_editable``, ``is_date_editable``) — declararlo aquí es
+    # más barato que fabricar una divergencia en ``stock_move``.
+    is_locked        = fields.Boolean(
+        default=True,
+        help_text='Odoo is_locked. Con el albarán sin validar permite cambiar '
+                  'la demanda inicial; ya validado, las cantidades hechas.',
+    )
 
     class Meta:
         db_table = 'stock_picking'
@@ -1090,6 +1099,20 @@ class StockPicking(MailThread, MailActivityMixin, TimeStampedModel):
 
     def __str__(self) -> str:
         return self.name or f'{self.state}:{self.pk}'
+
+    @property
+    def is_date_editable(self) -> bool:
+        """≙ ``_compute_is_date_editable`` (``odoo19c: :749-754``).
+
+        Terminado o cancelado, la fecha sólo se toca si el albarán no está
+        bloqueado; en cualquier otro estado siempre se puede.
+
+        Es property y no columna porque la fuente lo declara ``compute=`` sin
+        ``store=`` — su ORM lo recalcula en cada lectura.
+        """
+        if self.state in (self.STATE_DONE, self.STATE_CANCEL):
+            return not self.is_locked
+        return True
 
     def action_confirm(self):
         """Confirma la transferencia y sus movimientos (Odoo action_confirm)."""
