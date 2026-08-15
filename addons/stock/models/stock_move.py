@@ -127,35 +127,43 @@ ellos son falsos** — es la ceguera que :ref:`h-api-579` registra.
    * - B
      - persistencia y propagación a reglas de reabastecimiento
      - 9
-   * - **C** (este pase)
+   * - C
      - reserva y disponibilidad: ``_update_reserved_quantity`` y su familia
-     - **10**
-   * - D
-     - fusión, división y asignación de albarán
-     - 18
+     - 10
+   * - **D** (este pase)
+     - fusión, división y reparto en albarán
+     - **12**
    * - E
      - lotes y números de serie
      - 8
    * - F
      - previsión, empuje, abastecimiento y las acciones de ventana
-     - 14
+     - 16
 
-**Estado tras la ola C: 95 de 131** — remedido con el instrumento de arriba, no
-sumado. Las olas D–F son la tarea **#390**; ninguna se difiere sin dueño.
+**Estado tras la ola D: 107 de 131** — remedido con el instrumento de arriba, no
+sumado. Las olas E–F son la tarea **#390**; ninguna se difiere sin dueño.
+
+> **La estimación de D/E/F estaba mal y se corrige aquí.** La tabla decía
+> 18/8/14 = 40, cuando los ausentes reales tras la ola C eran 36 (37 menos el
+> falso de abajo). Reparto medido sobre la lista que el instrumento devuelve:
+> **D 12 · E 8 · F 16**. La cifra de D no era una omisión de alcance — era una
+> estimación escrita antes de contar, que es exactamente lo que
+> ``calibration-verified-numbers.md`` prohíbe.
 
 *Métrica:* símbolos de la referencia presentes aquí por nombre, tras normalizar
 el prefijo de ``compute``/``inverse``/``set``/``search`` y el sufijo ``_id(s)``.
 *Ciega a:* el porte que además **cambia la raíz** del nombre. El instrumento
-reporta 96 ausentes en crudo y 37 tras normalizar; de esos 37, **uno es falso**:
+reporta 25 ausentes tras normalizar; de esos 25, **uno es falso**:
 ``_compute_product_availability`` está portado como la property ``availability``
 (su raíz cambió de ``product_availability`` a ``availability``, así que la
-normalización no lo alcanza). De ahí 95 y no 94 — la misma ceguera de
+normalización no lo alcanza). De ahí 107 y no 106 — la misma ceguera de
 :ref:`h-api-579`, esta vez en el instrumento que mide, no en el gate.
 
 **Tres de la ola C no entran, y tienen dueño:** ``_trigger_scheduler`` y
 ``_trigger_assign`` leen su interruptor de ``ir.config_parameter``, que **no
 existe en el árbol** (tarea **#387**); ``_match_searched_availability`` depende
-de ``forecast_availability``, que es de la ola F.
+de ``forecast_availability``, que es de la ola F. Los tres siguen contados como
+ausentes: entran con la ola F o con #387, lo que llegue antes.
 
 **Uno de los 95 está portado a medias, y se dice aquí:** ``write`` tiene sus dos
 guardas (cantidad de un cancelado, unidad de un hecho) y la propagación a las
@@ -215,6 +223,52 @@ Dos piezas que la ola C tuvo que traer de fuera:
   ``groupby`` de la fuente agrupa por clave, no por tramo consecutivo como el del
   stdlib; sin él, ``_get_available_move_lines_*`` contaría un grupo varias veces.
 
+Qué entró en la ola D
+-----------------------
+
+``_merge_moves_fields`` · ``_merge_move_itemgetter`` · ``_merge_moves`` ·
+``_search_picking_for_assignation_domain`` · ``_search_picking_for_assignation`` ·
+``_assign_picking`` · ``_assign_picking_values`` · ``_assign_picking_post_process`` ·
+``_get_new_picking_values`` · ``_create_backorder`` · ``_prepare_move_split_vals`` ·
+``_split``.
+
+Tres divergencias de FORMA, declaradas:
+
+- **La colección es explícita.** Los métodos de conjunto de la fuente operan
+  sobre ``self`` como recordset; aquí llevan ``moves=None``, que por defecto es
+  ``[self]``. Es la convención que ``_get_relevant_state_among_moves`` ya fijó
+  en la ola A, no una decisión nueva.
+- **Los contextos son parámetros.** ``merge_extra``, ``force_split_uom_id`` y
+  ``source_location_id`` de la fuente entran como argumentos: este ORM no lleva
+  contexto de entorno en la llamada.
+- **Las relaciones múltiples se enlazan aparte.** ``_merge_moves_fields`` y
+  ``_prepare_move_split_vals`` devuelven ``move_dest_ids``/``move_orig_ids``
+  dentro del diccionario, igual que la fuente —allá el ORM traduce los comandos
+  ``(4, id)``—; aquí ``_aplicar_merge`` y ``_create_backorder`` las separan antes
+  de escribir. Es la misma raíz que la divergencia de ``Command`` de la ola C.
+
+Y dos ayudantes que la referencia no tiene, porque allá no hacen falta:
+``_resolver_candidatos`` (el conjunto de candidatos mezcla ``attname`` de albarán
+con tuplas de movimientos; allá ambas formas son el mismo recordset) y
+``_aplicar_merge`` (separar escalares de relaciones al escribir).
+
+Cinco piezas que la ola D tuvo que traer o arreglar de fuera:
+
+- **Cinco campos de ``stock.picking``** — ``move_type``, ``partner``,
+  ``company``, ``user`` y ``printed``, con su migración. Los cinco existen en la
+  referencia y los consume el reparto en albarán; ``move_type`` además lo **ya
+  leía** ``_get_relevant_state_among_moves`` sobre un modelo que no lo declaraba.
+- **``StockMove.save()``** — aplica ``_compute_product_qty``, que la fuente
+  declara ``store=True`` y aquí era una columna que nadie calculaba.
+- **``StockPicking.save()``** — aplica ``_compute_move_type`` y el ``related`` de
+  ``company``, los dos ``store=True`` en la fuente.
+- **La lista de campos distintivos** — era la de 18c, con dos atributos que
+  ningún modelo declara.
+- **La frontera ``Decimal``/``float``** en ``_recompute_state``, que sólo
+  funcionaba con un cero de por medio.
+
+Las cinco están en :ref:`h-api-625`.
+
 Por qué la ola A va primero, y no las acciones
 ------------------------------------------------
 
@@ -230,6 +284,7 @@ habría producido una docena de BLOQUEADOS que la ola siguiente tendría que
 retocar de inmediato. Prevalece el análisis actual (Clausula 1).
 """
 import re
+from collections import defaultdict
 from decimal import Decimal
 
 from django.apps import apps
@@ -242,7 +297,7 @@ import models
 from orm.commands import Command
 from orm.environments import get_current_company, get_current_user
 from tools.float_utils import float_compare, float_round
-from tools.misc import groupby
+from tools.misc import OrderedSet, groupby
 from tools.translate import _
 from exceptions import UserError
 
@@ -966,18 +1021,42 @@ class StockMove(TimeStampedModel):
                 clave += (origen_pickings,)
         return clave
 
-    def _prepare_merge_moves_distinct_fields(self):
-        """≙ ``_prepare_merge_moves_distinct_fields`` (``odoo19c: :1276-1288``).
+    def _prepare_merge_moves_distinct_fields(self, merge_extra=False):
+        """≙ ``_prepare_merge_moves_distinct_fields`` (``odoo19c: :1275-1288``).
 
         Los campos que **impiden** fusionar dos movimientos: si difieren en
         alguno, son movimientos distintos.
+
+        > **Corregido en el pase de la ola D.** Esta lista era la de **18c**
+        > (``odoo18c: addons/stock/models/stock_move.py``): traía ``scrapped`` y
+        > ``package_level``, que 19 retiró del modelo y **este árbol nunca
+        > declaró** —dos atributos fantasma—, y omitía
+        > ``never_product_template_attribute_value_ids``, que sí existe. Nada lo
+        > delataba porque la ola D es su primer consumidor. Ver
+        > :ref:`h-api-625`.
+
+        ``merge_extra`` es el contexto homónimo de la fuente, aquí parámetro
+        explícito: al absorber un movimiento extra, el método de
+        abastecimiento deja de separar.
+
+        **Bloqueado, con dueño:** las dos ramas que la fuente condiciona a
+        ``ir.config_parameter`` —``stock.merge_only_same_date`` (añadiría
+        ``date``) y ``stock.merge_ignore_date_deadline`` (retiraría
+        ``date_deadline``)— quedan fijas en su valor por defecto: el modelo
+        ``ir.config_parameter`` no existe en el árbol (tarea **#387**). El
+        comportamiento resultante es el de la fuente sin configurar, así que el
+        método es funcional; lo que se difiere es su configurabilidad.
         """
-        return [
+        campos = [
             'product', 'price_unit', 'procure_method', 'location', 'location_dest',
-            'location_final', 'product_uom', 'restrict_partner', 'scrapped',
-            'origin_returned_move', 'package_level', 'propagate_cancel',
-            'description_picking', 'date_deadline',
+            'location_final', 'product_uom', 'restrict_partner',
+            'origin_returned_move', 'propagate_cancel', 'description_picking',
+            'never_product_template_attribute_value_ids',
         ]
+        if merge_extra:
+            campos.remove('procure_method')
+        campos.append('date_deadline')
+        return campos
 
     def _prepare_merge_negative_moves_excluded_distinct_fields(self):
         """≙ ``_prepare_merge_negative_moves_excluded_distinct_fields``
@@ -1057,6 +1136,38 @@ class StockMove(TimeStampedModel):
         return False
 
     # -- ola B · persistencia: lo que pasa al crear, escribir y borrar --
+
+    def save(self, *args, **kwargs):
+        """Aplica ``_compute_product_qty``, que es ``store=True`` en la fuente.
+
+        ≙ ``_compute_product_qty`` (``odoo19c: :791-794``,
+        ``@api.depends('product_uom_qty', 'product_uom')``): la cantidad pedida
+        expresada en la **unidad del producto**, no en la del movimiento. La
+        fuente la declara ``store=True``, así que su hogar aquí es ``save()``
+        (:ref:`h-api-591`).
+
+        > **Añadido en el pase de la ola D.** La columna existía desde el
+        > primer pase y **nadie la calculaba**: quedaba en cero, y todo lo que
+        > la lee —la absorción de negativos y el resto de una división, ambos
+        > de esta ola— operaba sobre cero sin error visible. Ver
+        > :ref:`h-api-625`.
+
+        La conversión trabaja en coma flotante (es el algoritmo de la fuente) y
+        la columna es ``Decimal``: la frontera se cruza aquí (H-API-588,
+        tarea **#344**).
+        """
+        campos = kwargs.get('update_fields')
+        toca_cantidad = campos is None or bool(
+            {'product_uom_qty', 'product_uom', 'product'} & set(campos))
+        if toca_cantidad and self.product_uom_id and self.product_id:
+            en_producto = self.product_uom.compute_quantity(
+                float(self.product_uom_qty or 0), self.product.uom,
+                rounding_method='HALF-UP')
+            self.product_qty = Decimal(str(en_producto))
+            if campos is not None:
+                kwargs['update_fields'] = list(
+                    dict.fromkeys([*campos, 'product_qty']))
+        return super().save(*args, **kwargs)
 
     @classmethod
     def default_get(cls, field_names, values=None, default_picking=None):
@@ -1343,12 +1454,17 @@ class StockMove(TimeStampedModel):
             return
         if self.state == self.STATE_DRAFT and not self.quantity:
             return
-        redondeo = self.product_uom.rounding if self.product_uom_id else Decimal('0.01')
-        if float_compare(self.quantity, self.product_uom_qty,
+        # ``float_compare`` es el algoritmo de la fuente y trabaja en coma
+        # flotante; las columnas son ``Decimal``. Sin la conversión sólo
+        # funcionaba con un cero de por medio —el corto-circuito de
+        # ``float_round``—, y con dos cantidades reales levantaba ``TypeError``
+        # en ejecución. Ver :ref:`h-api-625` (H-API-588, tarea **#344**).
+        redondeo = float(self.product_uom.rounding) if self.product_uom_id else 0.01
+        if float_compare(float(self.quantity), float(self.product_uom_qty),
                          precision_rounding=redondeo) >= 0:
             nuevo = self.STATE_ASSIGNED
         elif self.quantity and float_compare(
-                self.quantity, self.product_uom_qty,
+                float(self.quantity), float(self.product_uom_qty),
                 precision_rounding=redondeo) <= 0:
             nuevo = 'partially_available'
         elif (self.procure_method == self.PROCURE_MAKE_TO_ORDER
@@ -1372,10 +1488,12 @@ class StockMove(TimeStampedModel):
         lo visitado. ``seen`` corta el ciclo: una cadena puede volver sobre sí
         misma y sin el acumulador el recorrido no termina.
 
-        Divergencia declarada: la fuente devuelve ``OrderedSet``, que este
-        árbol aún no tiene (tarea **#357**). Aquí un ``dict`` vacío hace de
-        conjunto ordenado — Python garantiza el orden de inserción desde 3.7,
-        que es exactamente la propiedad que ``OrderedSet`` aporta.
+        Divergencia declarada: la fuente devuelve ``OrderedSet``; aquí un
+        ``dict`` vacío hace de conjunto ordenado — Python garantiza el orden de
+        inserción desde 3.7, que es exactamente la propiedad que ``OrderedSet``
+        aporta, y el acumulador se consulta por pertenencia, no se compone con
+        otros conjuntos. (``tools.misc.OrderedSet`` **sí** está portado desde
+        ``api@e6aff38``; la nota anterior lo daba por ausente.)
         """
         campo = 'move_orig_ids' if origin else 'move_dest_ids'
         if seen is None:
@@ -1790,6 +1908,480 @@ class StockMove(TimeStampedModel):
         if recogida_alguna:
             self._recompute_state()
         return True
+
+    # -- ola D · fusión, reparto en albarán y división --
+
+    def _merge_moves_fields(self, moves=None, merge_extra=False):
+        """≙ ``_merge_moves_fields`` (``odoo19c: :1260-1273``).
+
+        Los valores del movimiento **superviviente** cuando varios se funden en
+        uno. La cantidad se suma —salvo que se absorba un extra, donde manda la
+        del primero— y la fecha depende de la política de envío: con «lo antes
+        posible» gana la **más temprana**, porque el primer envío parcial ya
+        sale; con «todo junto» gana la **más tardía**, porque nada sale hasta
+        que todo esté.
+        """
+        conjunto = list(moves) if moves is not None else [self]
+        estado = self._get_relevant_state_among_moves(moves=conjunto)
+        origenes = {m.origin for m in conjunto if m.origin}
+        albaranes = [m.picking for m in conjunto if m.picking_id]
+        todos_directos = all(p.move_type == 'direct' for p in albaranes)
+        fechas = [m.date for m in conjunto if m.date]
+        return {
+            'product_uom_qty': (conjunto[0].product_uom_qty if merge_extra
+                                else sum(m.product_uom_qty for m in conjunto)),
+            'date': (min(fechas) if todos_directos else max(fechas)) if fechas else None,
+            'move_dest_ids': [d for m in conjunto for d in m.move_dest_ids.all()],
+            'move_orig_ids': [o for m in conjunto for o in m.move_orig_ids.all()],
+            'state': estado,
+            'origin': '/'.join(origenes),
+        }
+
+    def _merge_move_itemgetter(self, distinct_fields, excluded_fields=None):
+        """≙ ``_merge_move_itemgetter`` (``odoo19c: :1302-1321``).
+
+        Devuelve la **función clave** por la que se agrupa: dos movimientos con
+        la misma clave son fusionables. Su parte delicada es el campo decimal:
+        se formatea a cadena con la precisión que corresponde, para que un
+        error de redondeo no impida una fusión legítima.
+
+        ``price_unit`` toma la menor precisión entre la de ``Product Price`` y
+        la de la divisa de la empresa, igual que la fuente.
+
+        **Divergencia declarada:** la fuente usa ``operator.itemgetter`` sobre
+        el recordset, que indexa por nombre de campo. Aquí un modelo Django se
+        lee con ``getattr``, así que la clave la arma un ``tuple(...)`` — misma
+        semántica, distinto acceso. Y una relación múltiple
+        (``never_product_template_attribute_value_ids``) entra como **tupla de
+        claves primarias ordenada**: su gestor no es comparable ni hashable.
+        """
+        campos = [c for c in (distinct_fields or [])
+                  if c not in set(excluded_fields or [])]
+        decimales = {c for c in campos if c in ('price_unit',)}
+        precision = {}
+        if 'price_unit' in decimales:
+            del_precio = DecimalPrecision.precision_get('Product Price')
+            divisas = [m.company.currency for m in [self]
+                       if m.company_id and m.company.currency_id]
+            de_divisa = min((d.decimal_places for d in divisas), default=None)
+            precision['price_unit'] = (min(de_divisa, del_precio)
+                                       if de_divisa is not None else del_precio)
+
+        def valor(move, campo):
+            leido = getattr(move, campo, None)
+            if campo in decimales:
+                digitos = precision[campo]
+                # ``float_round`` es el algoritmo de la fuente y trabaja en
+                # coma flotante; la columna es ``Decimal``. La conversión va en
+                # el llamador, que es donde la frontera se conoce (H-API-588,
+                # tarea **#344**).
+                redondeado = float_round(float(leido or 0), precision_digits=digitos)
+                return f'{redondeado:.{digitos}f}'
+            if hasattr(leido, 'all'):          # relación múltiple
+                return tuple(sorted(leido.values_list('pk', flat=True)))
+            return leido
+
+        return lambda move: tuple(valor(move, c) for c in campos)
+
+    def _merge_moves(self, moves=None, merge_into=None, merge_extra=False):
+        """≙ ``_merge_moves`` (``odoo19c: :1323-1404``).
+
+        Funde los movimientos equivalentes de un mismo albarán en uno solo, y
+        absorbe los **negativos** contra su positivo correspondiente. Devuelve
+        los movimientos que sobreviven.
+
+        La absorción de negativos es lo que no se puede simplificar: un
+        movimiento de cantidad negativa (una devolución dentro de la misma
+        transferencia) se resta del positivo que comparte su clave *limitada*
+        —la clave sin ``description_picking``—, y el precio unitario se
+        recalcula sobre el **valor total** resultante, no sobre la media de los
+        dos precios. Si el positivo no alcanza a cubrirlo, se agota y el
+        negativo sigue buscando en el siguiente.
+
+        **Divergencia declarada:** la fuente separa los borrados
+        (``unlink``) de los cancelados (``_action_cancel``) y llama a ambos
+        sobre el recordset. Aquí se hace por instancia, en el mismo orden.
+        """
+        conjunto = list(moves) if moves is not None else [self]
+        candidatos = set()
+        if merge_into is None:
+            for move in conjunto:
+                move._update_candidate_moves_list(candidatos)
+        else:
+            candidatos.add(tuple(dict.fromkeys([*merge_into, *conjunto])))
+
+        distintos = self._prepare_merge_moves_distinct_fields(merge_extra=merge_extra)
+        excluidos = self._prepare_merge_negative_moves_excluded_distinct_fields()
+        clave = self._merge_move_itemgetter(distintos)
+        clave_limitada = self._merge_move_itemgetter(distintos, excluidos)
+        del_precio = DecimalPrecision.precision_get('Product Price')
+
+        por_borrar, fusionados, por_cancelar = [], [], []
+        negativos = [m for m in conjunto if m.product_uom_qty < 0]
+        for negativo in negativos:
+            # Se le suelta el albarán: o lo absorbe un positivo, o abre un
+            # pedido pendiente. En ninguno de los dos casos deja rastro aquí.
+            negativo.picking = None
+            negativo.save(update_fields=['picking', 'updated_at'])
+
+        por_clave_limitada = defaultdict(list)
+        for grupo in candidatos:
+            vivos = [m for m in self._resolver_candidatos(grupo)
+                     if m.state not in (self.STATE_DONE, self.STATE_CANCEL,
+                                        self.STATE_DRAFT)
+                     and m.pk not in {n.pk for n in negativos}]
+            for _k, iguales in groupby(sorted(vivos, key=clave), key=clave):
+                iguales = list(iguales)
+                if len(iguales) > 1:
+                    superviviente = iguales[0]
+                    for sobrante in iguales[1:]:
+                        sobrante.move_line_ids.update(move=superviviente)
+                    valores = superviviente._merge_moves_fields(
+                        moves=iguales, merge_extra=merge_extra)
+                    superviviente._aplicar_merge(valores)
+                    por_borrar.extend(iguales[1:])
+                    fusionados.append(superviviente)
+                if iguales:
+                    por_clave_limitada[clave_limitada(iguales[0])].append(iguales[0])
+
+        for negativo in negativos:
+            for positivo in por_clave_limitada.get(clave_limitada(negativo), []):
+                valor_total = (positivo.product_qty * positivo.price_unit
+                               + negativo.product_qty * negativo.price_unit)
+                if positivo.product_uom_qty >= abs(negativo.product_uom_qty):
+                    positivo.product_uom_qty += negativo.product_uom_qty
+                    positivo.price_unit = (
+                        float_round(valor_total / positivo.product_qty,
+                                    precision_digits=del_precio)
+                        if positivo.product_qty else Decimal('0'))
+                    positivo.move_dest_ids.add(*[
+                        d for d in negativo.move_dest_ids.all()
+                        if d.location_id == positivo.location_dest_id])
+                    positivo.move_orig_ids.add(*[
+                        o for o in negativo.move_orig_ids.all()
+                        if o.location_dest_id == positivo.location_id])
+                    positivo.save(update_fields=['product_uom_qty', 'price_unit',
+                                                 'updated_at'])
+                    fusionados.append(positivo)
+                    por_borrar.append(negativo)
+                    if not positivo.product_uom_qty:
+                        por_cancelar.append(positivo)
+                    break
+                negativo.product_uom_qty += positivo.product_uom_qty
+                negativo.price_unit = float_round(
+                    valor_total / negativo.product_qty, precision_digits=del_precio)
+                negativo.save(update_fields=['product_uom_qty', 'price_unit',
+                                             'updated_at'])
+                positivo.product_uom_qty = Decimal('0')
+                positivo.save(update_fields=['product_uom_qty', 'updated_at'])
+                por_cancelar.append(positivo)
+
+        # El conjunto de borrados se toma ANTES de borrar: ``Model.delete()``
+        # de Django pone ``pk = None`` sobre la instancia, así que leerlo
+        # después devuelve un conjunto de ``None`` y el filtro de abajo deja
+        # pasar lo que acaba de desaparecer.
+        borrados = {m.pk for m in por_borrar}
+        for move in [*por_borrar, *por_cancelar]:
+            move._clean_merged()
+        for move in por_borrar:
+            move._action_cancel()
+            move.delete()
+        for move in por_cancelar:
+            if not move.picked:
+                move._action_cancel()
+
+        vivos = [m for m in [*conjunto, *fusionados] if m.pk not in borrados]
+        return list({m.pk: m for m in vivos}.values())
+
+    def _resolver_candidatos(self, grupo):
+        """Los movimientos de una entrada del conjunto de candidatos.
+
+        ``_update_candidate_moves_list`` mete **albaranes** en el conjunto (es
+        lo que la fuente hace con ``picking.move_ids``); ``_merge_moves`` con
+        ``merge_into`` mete una tupla de movimientos ya resueltos. Este ayudante
+        es el punto donde las dos formas se vuelven una lista de movimientos —
+        la fuente no lo necesita porque allá ambas son el mismo recordset.
+        """
+        if isinstance(grupo, tuple):
+            return list(grupo)
+        if isinstance(grupo, int):
+            # ``_update_candidate_moves_list`` mete el ``attname`` del albarán
+            # (un entero), no el objeto: es lo que hace hashable al conjunto.
+            return list(type(self).objects.filter(picking=grupo))
+        return list(grupo.move_ids.all())
+
+    def _aplicar_merge(self, valores):
+        """Escribe sobre el superviviente los valores que la fusión calculó.
+
+        Separa las relaciones múltiples de los escalares: en la fuente
+        ``write`` acepta las dos cosas en el mismo diccionario porque el ORM
+        traduce los comandos ``(4, id)``; aquí el gestor de la relación se
+        toca aparte.
+        """
+        destinos = valores.pop('move_dest_ids', [])
+        origenes = valores.pop('move_orig_ids', [])
+        for campo, valor in valores.items():
+            setattr(self, campo, valor)
+        self.save(update_fields=[*valores, 'updated_at'])
+        if destinos:
+            self.move_dest_ids.add(*destinos)
+        if origenes:
+            self.move_orig_ids.add(*origenes)
+        return self
+
+    def _search_picking_for_assignation_domain(self):
+        """≙ ``_search_picking_for_assignation_domain`` (``odoo19c: :1529-1537``).
+
+        El filtro del albarán al que este movimiento se puede sumar. Un albarán
+        ya **impreso** queda fuera: se entregó al operario en papel y añadirle
+        líneas invisibles es lo que la condición evita.
+
+        Devuelve un diccionario de filtros de Django, que es la forma que este
+        árbol da al ``domain`` de la fuente.
+
+        **Divergencia declarada:** la fuente filtra por ``reference_ids``
+        directamente sobre el albarán, que allá es un ``related`` almacenable.
+        Aquí ``StockPicking.reference_ids`` es una **property** —la referencia
+        lo declara ``related`` sin ``store``— así que no se puede filtrar por
+        ella: el filtro atraviesa la misma relación a mano
+        (``move_ids__reference_ids``), que es lo que la property calcula.
+        """
+        destino = (self.location_dest_id
+                   or (self.picking_type.default_location_dest_id
+                       if self.picking_type_id else None))
+        return {
+            'move_ids__reference_ids__in': list(self.reference_ids.all()),
+            'location': self.location_id,
+            'location_dest': destino,
+            'picking_type': self.picking_type_id,
+            'printed': False,
+            'state__in': ['draft', 'confirmed', 'waiting',
+                          'partially_available', 'assigned'],
+        }
+
+    def _search_picking_for_assignation(self):
+        """≙ ``_search_picking_for_assignation`` (``odoo19c: :1539-1545``).
+
+        Sin referencias no hay albarán al que sumarse: la referencia es lo que
+        identifica al grupo de aprovisionamiento.
+        """
+        if not self.reference_ids.exists():
+            return None
+        picking = apps.get_model('stock', 'StockPicking')
+        return picking.objects.filter(
+            **self._search_picking_for_assignation_domain()).distinct().first()
+
+    def _assign_picking(self, moves=None):
+        """≙ ``_assign_picking`` (``odoo19c: :1547-1578``).
+
+        Reparte los movimientos en albaranes: busca uno existente que los
+        admita y, si no lo hay, crea uno nuevo. Los movimientos **negativos**
+        no estrenan albarán — se van a revertir y a asignar a otro.
+        """
+        conjunto = list(moves) if moves is not None else [self]
+        picking = apps.get_model('stock', 'StockPicking')
+        for _k, grupo in groupby(sorted(conjunto, key=lambda m: str(m._key_assign_picking())),
+                                 key=lambda m: m._key_assign_picking()):
+            grupo = list(grupo)
+            nuevo = False
+            albaran = grupo[0]._search_picking_for_assignation()
+            if albaran is not None:
+                valores = grupo[0]._assign_picking_values(albaran, moves=grupo)
+                if valores:
+                    for campo, valor in valores.items():
+                        setattr(albaran, campo, valor)
+                    albaran.save(update_fields=[*valores, 'updated_at'])
+            else:
+                grupo = [m for m in grupo if m.product_uom_qty >= 0]
+                if not grupo:
+                    continue
+                nuevo = True
+                albaran = picking.objects.create(
+                    **grupo[0]._get_new_picking_values(moves=grupo))
+            for move in grupo:
+                move.picking = albaran
+                move.save(update_fields=['picking', 'updated_at'])
+                move._assign_picking_post_process(new=nuevo)
+        return True
+
+    def _assign_picking_values(self, picking, moves=None):
+        """≙ ``_assign_picking_values`` (``odoo19c: :1580-1590``).
+
+        Qué cambia en el albarán al recibir movimientos nuevos. Si los
+        movimientos traen contactos distintos del suyo, el albarán **pierde**
+        el contacto: pasa a referirse a varios y ninguno es el correcto. Los
+        orígenes, en cambio, se acumulan sin repetir.
+        """
+        conjunto = list(moves) if moves is not None else [self]
+        valores = {}
+        if any(picking.partner_id != m.partner_id for m in conjunto):
+            valores['partner'] = None
+        if any(picking.origin != m.origin for m in conjunto):
+            actuales = picking.origin.split(',') if picking.origin else []
+            nuevo = ','.join(OrderedSet(
+                [*actuales, *[m.origin for m in conjunto if m.origin]]))
+            if picking.origin != nuevo:
+                valores['origin'] = nuevo
+        return valores
+
+    def _assign_picking_post_process(self, new=False):
+        """≙ ``_assign_picking_post_process`` (``odoo19c: :1592-1593``).
+
+        Vacío en la referencia: es el punto de extensión que otros addons
+        sobreescriben para actuar tras el reparto.
+        """
+        return
+
+    def _get_new_picking_values(self, moves=None):
+        """≙ ``_get_new_picking_values`` (``odoo19c: :1651-1677``).
+
+        Los valores del albarán que se crea para un grupo de movimientos. El
+        origen concatena hasta **cinco** documentos distintos y añade puntos
+        suspensivos si hay más — el campo es una etiqueta para leer, no un
+        índice. El contacto sólo entra si es el mismo para todo el grupo.
+        """
+        conjunto = list(moves) if moves is not None else [self]
+        origenes = list(dict.fromkeys(m.origin for m in conjunto if m.origin))
+        if not origenes:
+            origen = ''
+        else:
+            origen = ','.join(origenes[:5])
+            if len(origenes) > 5:
+                origen += '...'
+        contactos = {m.partner_id for m in conjunto if m.partner_id}
+        valores = {
+            'origin': origen,
+            'company': conjunto[0].company,
+            'user': None,
+            'partner': (conjunto[0].partner if len(contactos) == 1 else None),
+            'picking_type': conjunto[0].picking_type,
+            'location': conjunto[0].location,
+        }
+        if conjunto[0].location_dest_id:
+            valores['location_dest'] = conjunto[0].location_dest
+        return valores
+
+    def _create_backorder(self, moves=None):
+        """≙ ``_create_backorder`` (``odoo19c: :2314-2330``).
+
+        Cuando se entrega menos de lo pedido, lo que falta no se pierde: se
+        parte en un movimiento nuevo que queda pendiente. La comparación usa la
+        precisión **del producto**, no la de la unidad del movimiento — una
+        diferencia por debajo de esa precisión no justifica un pendiente.
+        """
+        conjunto = list(moves) if moves is not None else [self]
+        redondeo = DecimalPrecision.precision_get('Product Unit')
+        valores = []
+        for move in conjunto:
+            if float_compare(float(move.quantity), float(move.product_uom_qty),
+                             precision_digits=redondeo) < 0:
+                por_partir = move.product_uom.compute_quantity(
+                    float(move.product_uom_qty - move.quantity), move.product.uom,
+                    rounding_method='HALF-UP')
+                valores += move._split(Decimal(str(por_partir)))
+        # ``_split`` devuelve las relaciones múltiples dentro del diccionario,
+        # igual que la fuente —allá el ORM traduce los comandos ``(4, id)``—;
+        # aquí ``objects.create`` no las admite, así que se enlazan después.
+        pendientes = []
+        for vals in valores:
+            destinos = vals.pop('move_dest_ids', [])
+            origenes = vals.pop('move_orig_ids', [])
+            move = type(self).objects.create(**vals)
+            if destinos:
+                move.move_dest_ids.add(*destinos)
+            if origenes:
+                move.move_orig_ids.add(*origenes)
+            pendientes.append(move)
+        for move in pendientes:
+            move._action_confirm()
+        return pendientes
+
+    def _prepare_move_split_vals(self, qty, force_split_uom=None):
+        """≙ ``_prepare_move_split_vals`` (``odoo19c: :2345-2357``).
+
+        Los valores del movimiento que nace de una división. Hereda la cadena
+        —origen y destino— **salvo** los destinos ya hechos o cancelados: ésos
+        no esperan nada del pendiente.
+
+        ``force_split_uom`` es el contexto homónimo de la fuente, aquí
+        parámetro explícito: este ORM no lleva contexto de entorno en la
+        llamada (mismo criterio que ``merge_extra``).
+        """
+        valores = {
+            'product': self.product,
+            'product_uom_qty': qty,
+            'procure_method': self.procure_method,
+            'location': self.location,
+            'location_dest': self.location_dest,
+            'company': self.company,
+            'picking_type': self.picking_type,
+            'origin': self.origin,
+            'state': self.state,
+            'move_dest_ids': [d for d in self.move_dest_ids.all()
+                              if d.state not in (self.STATE_DONE, self.STATE_CANCEL)],
+            'move_orig_ids': list(self.move_orig_ids.all()),
+            'origin_returned_move': self.origin_returned_move,
+            'price_unit': self.price_unit,
+            'date_deadline': self.date_deadline,
+            'product_uom': force_split_uom or self.product_uom,
+        }
+        return valores
+
+    def _split(self, qty, restrict_partner=None, force_split_uom=None,
+               source_location=None):
+        """≙ ``_split`` (``odoo19c: :2359-2403``).
+
+        Parte la cantidad y devuelve los **valores** del movimiento nuevo — no
+        lo crea: quien llama decide cuándo. ``qty`` viene en la unidad del
+        producto.
+
+        Lo que decide la unidad del pendiente es un **ida y vuelta**: si
+        convertir a la unidad del movimiento y volver da la cantidad original,
+        el pendiente conserva esa unidad; si no, se crea en la del producto
+        para no arrastrar el error de redondeo. Es el mismo criterio que
+        ``_prepare_move_line_vals`` aplica a la línea.
+
+        Un movimiento **hecho** o **cancelado** no se parte, y uno en borrador
+        tampoco: sin confirmar puede sustituirse por otros (una lista de
+        materiales fantasma), y partirlo antes complica esa sustitución.
+        """
+        if self.state in (self.STATE_DONE, self.STATE_CANCEL):
+            raise UserError(
+                _("No puede dividir un movimiento en estado 'Hecho' o 'Cancelado'."))
+        if self.state == self.STATE_DRAFT:
+            raise UserError(
+                _('No puede dividir un movimiento en borrador. Debe confirmarse primero.'))
+        if not qty:
+            return []
+
+        # ``compute_quantity`` y ``float_compare`` son el algoritmo de la
+        # fuente y trabajan en coma flotante; las columnas son ``Decimal``. La
+        # conversión va aquí, en la frontera (H-API-588, tarea **#344**).
+        redondeo = DecimalPrecision.precision_get('Product Unit')
+        en_uom = self.product.uom.compute_quantity(
+            float(qty), self.product_uom, rounding_method='HALF-UP')
+        de_vuelta = self.product_uom.compute_quantity(
+            en_uom, self.product.uom, rounding_method='HALF-UP')
+        if float_compare(float(qty), de_vuelta, precision_digits=redondeo) == 0:
+            valores = self._prepare_move_split_vals(Decimal(str(en_uom)))
+        else:
+            valores = self._prepare_move_split_vals(
+                qty, force_split_uom=self.product.uom)
+
+        if restrict_partner is not None:
+            valores['restrict_partner'] = restrict_partner
+        if source_location is not None:
+            valores['location'] = source_location
+
+        # La cantidad del original baja en lo que se llevó el pendiente.
+        restante = self.product.uom.compute_quantity(
+            float(max(Decimal('0'), self.product_qty - qty)), self.product_uom,
+            round=False)
+        self.product_uom_qty = Decimal(str(
+            float_round(restante, precision_digits=redondeo)))
+        self.save(update_fields=['product_uom_qty', 'updated_at'])
+        self._recompute_state()
+        return [valores]
 
     def _action_confirm(self):
         """Confirma el movimiento (≙ ``_action_confirm``).
