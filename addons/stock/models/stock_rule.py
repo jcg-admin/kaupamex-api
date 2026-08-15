@@ -212,7 +212,6 @@ from django.utils import timezone
 from addons.base.models import TimeStampedModel
 from exceptions import UserError, ValidationError
 from orm.environments import get_current_company, is_su
-from orm.fields_nonstored import NonStored
 from osv import expression
 from tools.float_utils import float_is_zero
 from tools.misc import split_every
@@ -275,15 +274,47 @@ def _move_values_for_model(values):
     destino final es el único destino que hay.
     """
     move_model = apps.get_model('stock', 'StockMove')
-    concrete = {f.name for f in move_model._meta.get_fields()}
-    concrete |= {f'{f.name}_id' for f in move_model._meta.get_fields()
+    campos = move_model._meta.get_fields()
+    muchos_a_muchos = {f.name for f in campos if f.many_to_many}
+    concrete = {f.name for f in campos} - muchos_a_muchos
+    concrete |= {f'{f.name}_id' for f in campos
                  if f.is_relation and not f.many_to_many}
+
+    # Relaciones por nombre: la referencia entrega el **pk bajo el nombre del
+    # campo** (``'product_uom': product_uom.id``, ``odoo19c: stock_rule.py:359``)
+    # porque su ORM lo admite; Django exige la instancia, o el pk bajo
+    # ``<campo>_id``. Sin esta traducción el valor pasa el filtro por nombre y
+    # revienta al asignar (``Cannot assign "187": … must be a "Uom" instance``).
+    relacionales = {f.name for f in campos
+                    if f.is_relation and not f.many_to_many}
+
+    # ``False`` como vacío: la referencia lo usa para TODO campo sin valor
+    # —``date_deadline = False`` (``odoo19c: stock_rule.py:334``),
+    # ``'picking_id': False`` (``:365``)— porque su ORM no distingue el falso
+    # del nulo. Django sí: un ``DateTimeField`` que recibe ``False`` revienta
+    # en ``fromisoformat: argument must be str``. Se traduce a ``None`` salvo
+    # donde el campo de destino sea booleano de verdad.
+    booleanos = {f.name for f in campos
+                 if getattr(f, 'get_internal_type', None)
+                 and f.get_internal_type() == 'BooleanField'}
 
     projected, dropped = {}, []
     for key, value in values.items():
         if key == 'location_final_id':
             continue
-        if key in concrete:
+        # Los Many2many NO viajan en ``create()`` — Django los rechaza en el
+        # constructor (``Direct assignment to the reverse side … is
+        # prohibited``). La referencia sí los entrega ahí, en forma de comando
+        # (``'move_dest_ids': [(4, x.id) …]``, ``odoo19c: stock_rule.py:340,364``)
+        # porque su ``create`` los interpreta. Aquí los aplica ``_create_move``
+        # después de tener la fila.
+        if key in muchos_a_muchos:
+            continue
+        if value is False and key.removesuffix('_id') not in booleanos:
+            value = None
+        if key in relacionales and isinstance(value, (int, str)):
+            projected[f'{key}_id'] = value
+        elif key in concrete:
             projected[key] = value
         else:
             dropped.append(key)
@@ -297,6 +328,26 @@ def _move_values_for_model(values):
             'movimiento (divergencia D-4, tarea #330)',
             move_model.__name__, ', '.join(sorted(dropped)))
     return projected
+
+
+def _create_move(values):
+    """Crea el ``stock.move`` y **después** enlaza sus Many2many.
+
+    **No es un símbolo de la referencia**: allá ``create`` acepta los comandos
+    del Many2many en el mismo diccionario (``[(4, id)]``), así que crear y
+    enlazar es una sola llamada. Django separa las dos fases —la fila tiene que
+    existir antes de que su tabla intermedia pueda apuntarla—, y por eso el
+    enlace vive aquí y no en ``_move_values_for_model``, que sólo proyecta.
+    """
+    move_model = apps.get_model('stock', 'StockMove')
+    muchos_a_muchos = {f.name for f in move_model._meta.get_fields()
+                       if f.many_to_many}
+    move = move_model.objects.create(**_move_values_for_model(values))
+    for nombre in muchos_a_muchos & set(values):
+        relacionados = values[nombre]
+        if relacionados:
+            getattr(move, nombre).set(relacionados)
+    return move
 
 
 def _orderpoint_model():
@@ -457,19 +508,19 @@ class StockRule(TimeStampedModel):
 
     #: ≙ ``route_company_id`` (``:77``) — ``related='route_id.company_id'`` sin
     #: ``store``. Devuelve el registro de empresa de la ruta, como la fuente.
-    route_company = NonStored(
+    route_company = fields.NonStored(
         default=lambda rule: rule.route.company if rule.route_id else None,
         help_text='Empresa de la ruta (Odoo route_company_id, related).',
     )
     #: ≙ ``picking_type_code_domain`` (``:91``) — ``fields.Json`` computado sin
     #: ``store``.
-    picking_type_code_domain = NonStored(
+    picking_type_code_domain = fields.NonStored(
         default=lambda rule: rule._compute_picking_type_code_domain(),
         help_text='Códigos de tipo de operación admisibles (Odoo '
                   'picking_type_code_domain).',
     )
     #: ≙ ``rule_message`` (``:110``) — ``fields.Html`` computado sin ``store``.
-    rule_message = NonStored(
+    rule_message = fields.NonStored(
         default=lambda rule: rule._compute_action_message(),
         help_text='Descripción legible del propósito de la regla (Odoo '
                   'rule_message).',
@@ -718,9 +769,8 @@ class StockRule(TimeStampedModel):
                 return pushed[0] if pushed else None
             return None
 
-        move_model = apps.get_model('stock', 'StockMove')
         new_move_vals = self._push_prepare_move_copy_values(move, new_date)
-        new_move = move_model.objects.create(**_move_values_for_model(new_move_vals))
+        new_move = _create_move(new_move_vals)
         if hasattr(new_move, '_skip_push') and new_move._skip_push():
             new_move.location_dest_id = new_move_vals.get(
                 'location_final_id') or new_move.location_dest_id
@@ -729,8 +779,8 @@ class StockRule(TimeStampedModel):
             new_move.procure_method = self.PROCURE_MTS
             new_move.save()
         if not new_move.location.should_bypass_reservation():
-            move.move_dest.add(new_move) if hasattr(move, 'move_dest') else None
-            new_move.move_orig.add(move)
+            move.move_dest_ids.add(new_move) if hasattr(move, 'move_dest_ids') else None
+            new_move.move_orig_ids.add(move)
         return new_move
 
     def _push_prepare_move_copy_values(self, move_to_copy, new_date):
@@ -793,7 +843,6 @@ class StockRule(TimeStampedModel):
         aísla ahí los productos cuya cantidad prevista habría que leer, y
         aprovecha para exigir que la regla tenga origen.
         """
-        move_model = apps.get_model('stock', 'StockMove')
         moves_values_by_company = defaultdict(list)
 
         for procurement, rule in procurements:
@@ -819,8 +868,7 @@ class StockRule(TimeStampedModel):
             moves_values_by_company[key].append(move_values)
 
         for _company_id, moves_values in moves_values_by_company.items():
-            moves = [move_model.objects.create(**_move_values_for_model(vals))
-                     for vals in moves_values]
+            moves = [_create_move(vals) for vals in moves_values]
             # ``_action_confirm`` dispara a su vez el grupo de aprovisionamiento.
             for move in moves:
                 move._action_confirm()

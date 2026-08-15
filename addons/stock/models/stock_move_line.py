@@ -211,8 +211,6 @@ from django.utils import timezone
 
 from addons.base.models import TimeStampedModel
 from exceptions import UserError, ValidationError
-from orm.commands import Command
-from orm.fields_nonstored import NonStored
 from osv import expression
 from tools.translate import _
 
@@ -370,7 +368,7 @@ class StockMoveLine(TimeStampedModel):
     #: escribirse en memoria, nunca para consultarse. Aquí es el mismo
     #: mecanismo (``orm/fields_nonstored.py``), no una ``property``: la
     #: referencia **le asigna** valor (``vals.get('quant_id')`` en ``create``).
-    quant = NonStored(help_text='Existencia de la que se toma (Odoo quant_id).')
+    quant = fields.NonStored(help_text='Existencia de la que se toma (Odoo quant_id).')
 
     class Meta:
         db_table = 'stock_move_line'
@@ -1671,7 +1669,7 @@ class StockMoveLine(TimeStampedModel):
         for movimiento in move_model.objects.filter(pk__in=movimientos):
             movimiento.procure_method = 'make_to_stock'
             # ≙ ``'move_orig_ids': [Command.clear()]`` (``odoo19c: :1038``).
-            Command.clear(movimiento.move_orig_ids)
+            fields.Command.clear(movimiento.move_orig_ids)
             movimiento.save()
         if a_desatar:
             type(self).unlink(a_desatar)

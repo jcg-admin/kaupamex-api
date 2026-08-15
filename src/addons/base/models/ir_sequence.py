@@ -14,9 +14,13 @@ en la fila (``number_next``); la variante PostgreSQL-sequence de Odoo
 Interpolación de fecha: se portan los tokens comunes (``%(year)s`` ``%(y)s``
 ``%(month)s`` ``%(day)s`` ``%(doy)s`` ``%(woy)s``); el resto queda documentado.
 """
+import logging
+
 from django.utils import timezone
 import fields
 import models
+
+logger = logging.getLogger(__name__)
 
 
 class IrSequence(models.Model):
@@ -101,3 +105,36 @@ class IrSequence(models.Model):
         self.number_next = number + self.number_increment
         self.save(update_fields=['number_next'])
         return formatted
+
+    @classmethod
+    def next_by_code(cls, sequence_code: str, company=None, for_date=None):
+        """Siguiente valor de la secuencia con ese código, o ``None``. ≙
+        ``next_by_code`` (``odoo19c: odoo/addons/base/models/ir_sequence.py:279-292``).
+
+        «Draw an interpolated string using a sequence with the requested code.
+        If several sequences with the correct code are available to the user
+        (multi-company cases), the one from the user's current company will be
+        used.»
+
+        Se conserva la desambiguación multi-empresa: se buscan las secuencias de
+        la empresa dada **y** las globales (``company IS NULL``), ordenadas por
+        empresa para que la propia gane sobre la global — el ``order='company_id'``
+        de la fuente. Sin secuencia, la referencia registra un ``debug`` y
+        devuelve ``False``; aquí devuelve ``None``, que es el vacío tipado de
+        este stack (H-API-590: un ``False`` portado a un campo tipado miente).
+
+        :param sequence_code: valor de ``code`` a buscar.
+        :param company: empresa cuyo ``code`` tiene prioridad; ``None`` mira sólo
+            las globales.
+        :param for_date: fecha de interpolación de prefijo/sufijo.
+        """
+        qs = cls.objects.filter(code=sequence_code, active=True)
+        qs = qs.filter(company__in=[company, None]) if company else qs.filter(company__isnull=True)
+        secuencia = qs.order_by(models.F('company').desc(nulls_last=True), 'id').first()
+        if secuencia is None:
+            logger.debug(
+                "No ir.sequence has been found for code '%s'. Please make sure "
+                "a sequence is set for current company.", sequence_code,
+            )
+            return None
+        return secuencia.get_next(for_date=for_date)

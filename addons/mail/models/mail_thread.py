@@ -61,14 +61,23 @@ class MailThread(models.Model):
         ese ``_name`` **propio** y se cae al label Django (``app_label.Model``)
         cuando el modelo no declara ninguno.
 
-        El recorrido se detiene en ``MailThread`` a propósito: desde que este
-        mixin declara su propio ``_name = 'mail.thread'``, un ``getattr`` plano
-        lo heredaría y **todos** los modelos que lo usan compartirían un mismo
+        El recorrido **salta todo mixin abstracto**: desde que este mixin
+        declara su propio ``_name = 'mail.thread'``, un ``getattr`` plano lo
+        heredaría y **todos** los modelos que lo usan compartirían un mismo
         ``res_model``, mezclando sus hilos en una sola conversación.
+
+        Lo que distingue a un mixin es que es **abstracto**, no su identidad.
+        Parar en ``MailThread`` por nombre sólo protege de este mixin y deja
+        pasar a cualquier otro que vaya delante en el MRO: un consumidor como
+        ``SupportTicket(MailActivityMixin, MailThread, …)`` habría encontrado
+        primero el ``_name = 'mail.activity.mixin'`` del otro. Hoy los dos
+        consumidores declaran ``MailThread`` primero, así que el defecto está
+        latente y no activo — pero es el mismo que :ref:`h-api-597` registra en
+        ``mail_activity_mixin.py``, donde sí se disparó.
         """
         for klass in cls.__mro__:
-            if klass is MailThread:
-                break
+            if getattr(getattr(klass, '_meta', None), 'abstract', False):
+                continue
             nombre = klass.__dict__.get('_name')
             if nombre:
                 return nombre

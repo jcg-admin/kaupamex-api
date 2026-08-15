@@ -34,10 +34,12 @@ def subcontract_generate_moves(production, subcontractor_location,
     if production.bom is None:
         raise ValidationError('La orden requiere una BoM para generar movimientos.')
 
+    # Sin ``name``: ``stock.move`` no declara ese campo en la fuente — ver la
+    # nota de ``mrp/services.py::generate_moves``, mismo criterio.
     for line in production.bom.bom_line_ids.all():
         qty = line.product_qty * production.product_qty
         move = StockMove.objects.create(
-            name=line.product.name, product=line.product, product_uom_qty=qty,
+            product=line.product, product_uom_qty=qty,
             location=subcontractor_location, location_dest=production_location,
         )
         MrpProductionMove.objects.create(
@@ -45,7 +47,7 @@ def subcontract_generate_moves(production, subcontractor_location,
         )
 
     finished = StockMove.objects.create(
-        name=production.product.name, product=production.product,
+        product=production.product,
         product_uom_qty=production.product_qty,
         location=production_location, location_dest=dest_location,
     )

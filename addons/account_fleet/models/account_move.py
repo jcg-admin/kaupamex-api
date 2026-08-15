@@ -96,7 +96,6 @@ from addons.account_fleet.models.fleet_vehicle_log_services import (
 )
 from addons.base.models import IrModelData
 from addons.fleet.models import FleetVehicleLogServices
-from orm.fields_nonstored import NonStored
 from tools.translate import _
 
 #: Identificador externo del tipo de servicio semilla — ≙
@@ -238,7 +237,7 @@ def apply_account_fleet_extensions():
                       'servicio de flota correspondiente.'),
     )
     if not hasattr(AccountMoveLine, 'need_vehicle'):
-        AccountMoveLine.add_to_class('need_vehicle', NonStored(
+        AccountMoveLine.add_to_class('need_vehicle', fields.NonStored(
             default=_compute_need_vehicle,
             help_text='Si el apunte admite asociar un vehículo (Odoo '
                       'need_vehicle, compute, store=False). Constante False '

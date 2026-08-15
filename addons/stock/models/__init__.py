@@ -24,6 +24,7 @@ from addons.stock.models.stock_package import StockPackage
 from addons.stock.models.stock_package_history import StockPackageHistory
 from addons.stock.models.stock_lot import StockLot
 from addons.stock.models.stock_move import StockMove
+from addons.stock.models.stock_reference import StockReference
 from addons.stock.models.stock_move_line import (
     StockMoveLine,
     StockMoveLineConsumeRel,
@@ -34,6 +35,7 @@ from addons.stock.models.stock_picking import (
     StockPickingType,
 )
 from addons.stock.models.stock_quant import StockQuant
+from addons.stock.models.stock_scrap import StockScrap, StockScrapReasonTag
 from addons.stock.models.stock_rule import StockRule
 from addons.stock.models.stock_warehouse import (
     StockWarehouse,
@@ -61,8 +63,11 @@ __all__ = [
     'StockPickingType',
     'StockPutawayRule',
     'StockQuant',
+    'StockReference',
     'StockRoute',
     'StockRule',
+    'StockScrap',
+    'StockScrapReasonTag',
     'StockWarehouse',
     'StockWarehouseResupply',
     'StockStorageCategory',

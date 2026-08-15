@@ -24,7 +24,6 @@ from django.db import transaction
 from django.utils import timezone
 
 from exceptions import UserError
-from orm.fields_nonstored import NonStored
 from tools.translate import _
 
 from addons.account.services import create_invoice_from_sale_order
@@ -241,7 +240,7 @@ class SaleOrder(MailThread, TimeStampedModel):
     # (``odoo19c: sale_order.py:1894,1914``), quedan fuera: confirmado
     # ausentes en ``src/`` (0 hits de implementación), eje portal sin
     # superficie propia en este stack. Es DECISIÓN de alcance, no omisión.
-    is_expired = NonStored(
+    is_expired = fields.NonStored(
         default=_compute_is_expired_default,
         help_text='Si la cotización venció (Odoo is_expired, compute, '
                   'store=False): state en draft/sent y validity_date '

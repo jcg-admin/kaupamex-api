@@ -124,7 +124,6 @@ import unicodedata
 
 import fields
 from addons.base.models.res_partner_bank import ResPartnerBank
-from orm.fields_nonstored import NonStored
 from orm.method_chain import chain_method, extend_list
 from tools.translate import _
 
@@ -460,7 +459,7 @@ def apply_account_qr_code_emv_extensions():
     """
     # -- los dos campos NonStored (sin columna) --------------------------
     if not hasattr(ResPartnerBank, 'display_qr_setting'):
-        ResPartnerBank.add_to_class('display_qr_setting', NonStored(
+        ResPartnerBank.add_to_class('display_qr_setting', fields.NonStored(
             default=compute_display_qr_setting,
             help_text='Visibilidad de la sección de ajustes EMV (Odoo '
                       'display_qr_setting, compute, store=False). '

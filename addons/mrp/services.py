@@ -30,10 +30,18 @@ def generate_moves(production, stock_location, production_location):
     if production.bom is None:
         raise ValidationError('La orden requiere una BoM para generar movimientos.')
 
+    # Sin ``name``: ``stock.move`` **no declara ese campo** en la fuente — su
+    # etiqueta es ``description_picking`` (calculada desde el producto) y su
+    # referencia es ``reference`` (calculada desde el albarán),
+    # ``odoo19c: addons/stock/models/stock_move.py:52,183``. Su
+    # ``_get_move_raw_values`` tampoco lo entrega
+    # (``addons/mrp/models/mrp_production.py``). La empresa la pone el
+    # ``default=get_current_company`` del propio campo, porque esta
+    # ``MrpProduction`` todavía no declara la suya.
     for line in production.bom.bom_line_ids.all():
         qty = line.product_qty * production.product_qty
         move = StockMove.objects.create(
-            name=line.product.name, product=line.product, product_uom_qty=qty,
+            product=line.product, product_uom_qty=qty,
             location=stock_location, location_dest=production_location,
         )
         MrpProductionMove.objects.create(
@@ -41,7 +49,7 @@ def generate_moves(production, stock_location, production_location):
         )
 
     finished = StockMove.objects.create(
-        name=production.product.name, product=production.product,
+        product=production.product,
         product_uom_qty=production.product_qty,
         location=production_location, location_dest=stock_location,
     )
