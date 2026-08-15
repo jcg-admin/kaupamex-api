@@ -404,7 +404,8 @@ class StockLocation(TimeStampedModel):
 
     @property
     def child_internal_location_ids(self):
-        """≙ ``child_internal_location_ids`` (``:51-57``, compute ``:174-178``).
+        """≙ ``child_internal_location_ids`` /
+        ``_compute_child_internal_location_ids`` (``:51-57``, ``:174-178``).
 
         Esta ubicación y todas sus descendientes, filtradas a internas.
         """
@@ -413,7 +414,7 @@ class StockLocation(TimeStampedModel):
 
     @property
     def is_empty(self):
-        """≙ ``is_empty`` (``:90``, compute ``:132-139``)."""
+        """≙ ``is_empty`` / ``_compute_is_empty`` (``:90``, ``:132-139``)."""
         if self.usage not in STOCKED_USAGES:
             return True
         total = self.quant_ids.aggregate(total=Sum('quantity'))['total']

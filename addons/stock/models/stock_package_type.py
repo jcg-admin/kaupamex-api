@@ -220,17 +220,17 @@ class StockPackageType(TimeStampedModel):
 
     @property
     def weight_uom_name(self):
-        """≙ ``weight_uom_name`` (``:28``, compute ``:85-87``)."""
+        """≙ ``weight_uom_name`` / ``_compute_weight_uom_name`` (``:28``, ``:85-87``)."""
         return self.get_default_weight_uom()
 
     @property
     def length_uom_name(self):
-        """≙ ``length_uom_name`` (``:29``, compute ``:81-83``)."""
+        """≙ ``length_uom_name`` / ``_compute_length_uom_name`` (``:29``, ``:81-83``)."""
         return self.get_default_length_uom()
 
     @property
     def has_quants(self):
-        """≙ ``has_quants`` (``:37``, compute ``:74-79``).
+        """≙ ``has_quants`` / ``_compute_has_quants`` (``:37``, ``:74-79``).
 
         ``True`` si algún paquete de este tipo tiene existencias dentro. La
         referencia lo resuelve con un ``_read_group`` agrupado por tipo porque

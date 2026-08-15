@@ -602,7 +602,8 @@ class StockQuant(TimeStampedModel):
 
     @property
     def inventory_quantity_auto_apply(self):
-        """≙ ``inventory_quantity_auto_apply`` (``:100-104``, compute ``:211-215``).
+        """≙ ``inventory_quantity_auto_apply`` /
+        ``_compute_inventory_quantity_auto_apply`` (``:100-104``, ``:211-215``).
 
         Lee la cantidad a la mano; al **escribirla** dispara el ajuste, que es
         lo que hace el ``inverse='_set_inventory_quantity'`` de la referencia.

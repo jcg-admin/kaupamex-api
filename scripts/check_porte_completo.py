@@ -320,6 +320,11 @@ def equivalencias_declaradas(ruta):
         arbol = ast.parse(ruta.read_text())
     except (SyntaxError, UnicodeDecodeError):
         return set()
+    # Los docstrings se ACUMULAN por nombre, no se sobreescriben: dos clases
+    # del mismo archivo pueden declarar `property x` —una citando su compute y
+    # otra no— y con un dict simple ganaría la última en aparecer. El
+    # instrumento decidiría por orden de lectura, que es exactamente la clase
+    # de arbitrariedad que este gate ha pagado antes.
     propiedades = {}
     for n in ast.walk(arbol):
         if not isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
@@ -328,10 +333,11 @@ def equivalencias_declaradas(ruta):
             nombre = (dec.id if isinstance(dec, ast.Name) else
                       dec.attr if isinstance(dec, ast.Attribute) else '')
             if 'property' in nombre:
-                propiedades[n.name] = ast.get_docstring(n) or ''
+                propiedades.setdefault(n.name, []).append(
+                    ast.get_docstring(n) or '')
                 break
-    return {f'_compute_{campo}' for campo, doc in propiedades.items()
-            if f'_compute_{campo}' in doc}
+    return {f'_compute_{campo}' for campo, docs in propiedades.items()
+            if any(f'_compute_{campo}' in doc for doc in docs)}
 
 
 def clases_del_addon(raiz):
