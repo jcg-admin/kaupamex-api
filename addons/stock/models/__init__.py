@@ -37,6 +37,7 @@ from addons.stock.models.stock_picking import (
 from addons.stock.models.stock_quant import StockQuant
 from addons.stock.models.stock_scrap import StockScrap, StockScrapReasonTag
 from addons.stock.models.stock_rule import StockRule
+from addons.stock.models.stock_orderpoint import StockWarehouseOrderpoint
 from addons.stock.models.stock_warehouse import (
     StockWarehouse,
     StockWarehouseResupply,
@@ -68,6 +69,7 @@ __all__ = [
     'StockRule',
     'StockScrap',
     'StockScrapReasonTag',
+    'StockWarehouseOrderpoint',
     'StockWarehouse',
     'StockWarehouseResupply',
     'StockStorageCategory',

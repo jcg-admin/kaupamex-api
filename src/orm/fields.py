@@ -49,12 +49,24 @@ from orm.fields_selection import Selection                     # noqa: F401
 from orm.fields_temporal import Date, Datetime                 # noqa: F401
 from orm.fields_textual import Char, Html, Text                # noqa: F401
 
+#: El **registro de tipos de campo**, no la lista de exportables del módulo.
+#:
+#: ``base.models.ir_model`` lo consume literalmente: deriva ``FIELD_TYPES`` de
+#: esta secuencia (``ir_model.py:147,164``) y con ella puebla las opciones de
+#: ``IrModelFields.ttype``. Un nombre que no sea una clase de campo entra al
+#: vocabulario de ``ttype`` y ensucia el modelo — y lo hace **en silencio**,
+#: porque la única señal es una migración inesperada.
+#:
+#: Por eso ``falsy_value``, ``condition_to_q``, ``SqlLike`` y ``SqlILike`` NO
+#: están aquí: son funciones y ``Lookup``, no tipos de campo. Siguen siendo
+#: importables por nombre —que es como los consume ``orm.domains``— porque
+#: ``__all__`` sólo gobierna ``from orm.fields import *``. Ver
+#: :ref:`h-api-616`.
 __all__ = [
     'Char', 'Text', 'Html', 'Integer', 'Float', 'Monetary', 'Date', 'Datetime',
     'Selection', 'Many2one', 'One2many', 'Many2many', 'Binary', 'Image',
     'Boolean', 'Json', 'Reference', 'Many2oneReference', 'Properties',
     'PropertiesDefinition',
-    'falsy_value', 'condition_to_q', 'SqlLike', 'SqlILike',
 ]
 
 
