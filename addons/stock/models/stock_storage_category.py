@@ -16,12 +16,15 @@ Porte símbolo por símbolo — 20 de 20
 Medido sobre ``odoo19c: addons/stock/models/stock_storage_category.py``
 (75 líneas): 2 clases, 13 campos y 7 métodos/restricciones.
 
-``StockStorageCategory`` — 8 campos + 4 métodos
--------------------------------------------------
+``StockStorageCategory`` — 3 atributos de clase + 8 campos + 4 métodos
+-----------------------------------------------------------------------
 
 =============================================  =========================================
 Símbolo de la referencia (línea)               Aquí
 =============================================  =========================================
+``_name`` (8)                                  ``_name`` verbatim
+``_description`` (9)                           ``_description`` verbatim
+``_order`` (10)                                ``_order`` verbatim + ``Meta.ordering``
 ``name`` (12)                                  ``name``
 ``max_weight`` (13)                            ``max_weight``
 ``capacity_ids`` (14)                          reverso ``capacity_ids`` de la capacidad
@@ -34,16 +37,20 @@ Símbolo de la referencia (línea)               Aquí
 ``_positive_max_weight`` (25-28)               ``CheckConstraint`` homónimo
 ``_compute_storage_capacity_ids`` (30-34)      las dos properties de arriba
 ``_compute_weight_uom_name`` (36-37)           property ``weight_uom_name``
-``_set_storage_capacity_ids`` (39-41)          ``set_storage_capacity_ids``
+``_set_storage_capacity_ids`` (39-41)          ``_set_storage_capacity_ids``
 ``copy_data`` (43-45)                          ``copy_data``
 =============================================  =========================================
 
-``StockStorageCategoryCapacity`` — 6 campos + 3 restricciones
----------------------------------------------------------------
+``StockStorageCategoryCapacity`` — 4 atributos de clase + 6 campos + 3 restricciones
+--------------------------------------------------------------------------------------
 
 =============================================  =========================================
 Símbolo de la referencia (línea)               Aquí
 =============================================  =========================================
+``_name`` (49)                                 ``_name`` verbatim
+``_description`` (50)                          ``_description`` verbatim
+``_check_company_auto`` (51)                   ``_check_company_auto`` verbatim
+``_order`` (52)                                ``_order`` verbatim + ``Meta.ordering``
 ``storage_category_id`` (54)                   ``storage_category``
 ``product_id`` (55-59)                         ``product``
 ``package_type_id`` (60)                       ``package_type``
@@ -63,11 +70,27 @@ Divergencias declaradas
    ``company_id`` (de la capacidad) son ``related``/``compute`` no almacenados
    en la referencia: no tienen columna allá y no la tienen aquí. Su
    ``inverse`` (``_set_storage_capacity_ids``) se porta como método explícito
-   ``set_storage_capacity_ids`` — este ORM no cablea el par compute/inverse
+   **con su guion bajo intacto** — este ORM no cablea el par compute/inverse
    sobre un descriptor, y construirlo es la tarea **#191**.
 2. **``max_weight`` es ``Monetary``, no ``Float``.** El árbol usa
    ``DecimalField`` para toda magnitud con redondeo declarado; la referencia
    pide lo mismo con ``digits='Stock Weight'``.
+
+Deuda saldada al tocar el archivo (2026-08-15)
+================================================
+
+Dos formas que ``porte-completo-no-parcial.md`` y
+``atributos-de-clase-de-modelo.md`` nombran, y que este archivo tenía:
+
+1. **Los atributos de clase no estaban declarados.** La referencia declara 3 en
+   ``StockStorageCategory`` y 4 en la capacidad; aquí había **0**. Se portan los
+   siete verbatim. La regla es condicional —si la fuente declara, se portan
+   todos— y la fuente declara.
+2. **``_set_storage_capacity_ids`` estaba despromovido** a
+   ``set_storage_capacity_ids``. Quitar el guion bajo no renombra: publica como
+   API un ayudante que la fuente reservó (H-API-581). Restaurado; medido antes
+   del cambio, **0 consumidores** fuera de este archivo, así que el renombre no
+   rompe a nadie.
 """
 from decimal import Decimal
 
@@ -90,6 +113,12 @@ ALLOW_NEW_PRODUCT_CHOICES = [
 
 class StockStorageCategory(TimeStampedModel):
     """``stock.storage.category`` — qué y cuánto admite una ubicación."""
+
+    # Atributos de clase de modelo — los tres que la referencia declara
+    # (``odoo19c: :8-10``), verbatim.
+    _name = 'stock.storage.category'
+    _description = "Storage Category"
+    _order = "name"
 
     name              = fields.Char(
         max_length=120,
@@ -155,7 +184,7 @@ class StockStorageCategory(TimeStampedModel):
         """
         return ProductTemplate.get_weight_uom_name_from_ir_config_parameter()
 
-    def set_storage_capacity_ids(self, product_capacities=(), package_capacities=()):
+    def _set_storage_capacity_ids(self, product_capacities=(), package_capacities=()):
         """≙ ``_set_storage_capacity_ids`` (``odoo19c: :39-41``).
 
         El ``inverse`` de las dos properties: reescribe ``capacity_ids`` con la
@@ -176,6 +205,13 @@ class StockStorageCategory(TimeStampedModel):
 
 class StockStorageCategoryCapacity(TimeStampedModel):
     """``stock.storage.category.capacity`` — cuánto de X cabe en la categoría."""
+
+    # Atributos de clase de modelo — los cuatro que la referencia declara
+    # (``odoo19c: :49-52``), verbatim.
+    _name = 'stock.storage.category.capacity'
+    _description = "Storage Category Capacity"
+    _check_company_auto = True
+    _order = "storage_category_id"
 
     storage_category = fields.Many2one(
         'stock.StockStorageCategory', on_delete=models.CASCADE,
