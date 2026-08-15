@@ -23,5 +23,11 @@ test-results/
 # PID del servidor de aplicacion embebido (setup/gunicorn.conf.py, ADR-027)
 /.gunicorn.pid
 
-# Telemetria local del hook (instrumento de #177) — no versionar
-.claude/agent-results/
+# Telemetria local del hook (instrumento de #177) — el MECANISMO se
+# versiona (docs: scripts/agent_store.py); el log raw de markdown no.
+# agent_store.sqlite3 (sesiones + historial de tareas de agente en UN
+# solo archivo, DEC-10 de implementar-base-datos-agentes — dos .sqlite3
+# separados son silos sin forma de cruzarlos) SI se versiona — solo
+# tareas/logs, sin informacion sensible que no este ya en docs.
+.claude/agent-results/*
+!.claude/agent-results/agent_store.sqlite3
