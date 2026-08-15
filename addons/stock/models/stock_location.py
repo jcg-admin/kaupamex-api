@@ -106,7 +106,7 @@ Símbolo de la referencia (línea)                 Aquí
 ``_onchange_warehouse_selectable`` (563-566)     ``apply_warehouse_selectable``
 ``write`` (568-575)                              ``write``
 ``_check_company_consistency`` (577-590)         ``check_company_consistency``
-``_is_valid_resupply_route_for_product`` (592-593) ``is_valid_resupply_route_for_product``
+``_is_valid_resupply_route_for_product`` (592-593) ``_is_valid_resupply_route_for_product``
 ===============================================  ======================================
 
 Divergencias declaradas
@@ -1098,7 +1098,7 @@ class StockRoute(TimeStampedModel):
             valores.setdefault(campo, getattr(self, campo))
         return valores
 
-    def is_valid_resupply_route_for_product(self, product) -> bool:
+    def _is_valid_resupply_route_for_product(self, product) -> bool:
         """≙ ``_is_valid_resupply_route_for_product`` (``odoo19c: :592-593``).
 
         Punto de extensión: la referencia devuelve ``False`` y lo reescriben

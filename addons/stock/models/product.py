@@ -146,6 +146,16 @@ def tracking(self):
     return self.product_tmpl.tracking
 
 
+def lot_sequence(self):
+    """≙ ``product.product.lot_sequence_id`` — delegado al template.
+
+    Mismo idioma que ``tracking``/``is_storable``: la variante expone por
+    property lo que el template declara como columna. Lo consume
+    ``stock.lot._compute_name``.
+    """
+    return self.product_tmpl.lot_sequence
+
+
 def is_storable(self):
     """≙ ``product.product.is_storable`` — delegado al template.
 
@@ -1251,6 +1261,22 @@ def apply_stock_product_extensions():
         ProductProduct.route_ids = property(product_route_ids)
     if not hasattr(ProductProduct, 'get_total_routes'):
         ProductProduct.get_total_routes = get_total_routes
+
+    # ≙ ``lot_sequence_id`` (``odoo19c: stock/models/product.py:849-851``), que
+    # la referencia declara sobre ``product.template``. Es el campo TÉCNICO del
+    # que ``stock.lot._compute_name`` saca el nombre cuando el usuario no lo
+    # escribe: sin él, ese compute no tiene de dónde numerar.
+    #
+    # El sufijo ``_id`` se retira como en todo el árbol; queda ``lot_sequence``,
+    # que no colisiona con nada de ``product.template``.
+    _add_if_absent(ProductTemplate, 'lot_sequence', fields.Many2one(
+        'base.IrSequence', null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='lot_product_tmpls', verbose_name='Secuencia de lote/serie',
+        help_text='Secuencia que genera los números de lote/serie de este '
+                  'producto (Odoo lot_sequence_id). Campo técnico.',
+    ))
+    if not hasattr(ProductProduct, 'lot_sequence'):
+        ProductProduct.lot_sequence = property(lot_sequence)
 
     # --- el resto de ``product.product`` (``odoo19c: :292-814``) -----------
     _add_if_absent(ProductProduct, 'lot_properties_definition', fields.Json(

@@ -19,6 +19,7 @@ class StockConfig(AppConfig):
         'addons.stock.models.product': 'apply_stock_product_extensions',
         'addons.stock.models.res_partner': 'apply_stock_res_partner_extensions',
         'addons.stock.models.res_company': 'apply_stock_res_company_extensions',
+        'addons.stock.models.res_users': 'apply_stock_res_users_extensions',
     }
 
     def ready(self):

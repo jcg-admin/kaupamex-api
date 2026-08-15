@@ -521,7 +521,7 @@ class StockPackage(TimeStampedModel):
         if not vals.get('name'):
             tipo = vals.get('package_type')
             if tipo is not None:
-                vals['name'] = tipo.get_next_name_by_sequence()
+                vals['name'] = tipo._get_next_name_by_sequence()
         paquete = cls.objects.create(**vals)
         paquete.refresh_computed_fields()
         return paquete
@@ -540,7 +540,7 @@ class StockPackage(TimeStampedModel):
         """
         if 'name' in vals and not vals['name']:
             tipo = vals.get('package_type', self.package_type)
-            vals['name'] = tipo.get_next_name_by_sequence() if tipo is not None else ''
+            vals['name'] = tipo._get_next_name_by_sequence() if tipo is not None else ''
 
         if 'location' in vals:
             vacio = not self.contained_quant_ids.exists()

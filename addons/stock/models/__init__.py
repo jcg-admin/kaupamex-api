@@ -38,6 +38,11 @@ from addons.stock.models.stock_quant import StockQuant
 from addons.stock.models.stock_scrap import StockScrap, StockScrapReasonTag
 from addons.stock.models.stock_rule import StockRule
 from addons.stock.models.stock_orderpoint import StockWarehouseOrderpoint
+from addons.stock.models.stock_replenish_mixin import (
+    ROUTE_FIELD,
+    StockReplenishMixin,
+)
+from addons.stock.models.product_catalog_mixin import StockProductCatalogMixin
 from addons.stock.models.stock_warehouse import (
     StockWarehouse,
     StockWarehouseResupply,
@@ -50,6 +55,7 @@ from addons.stock.models.return_request import (
 )
 
 __all__ = [
+    'ROUTE_FIELD',
     'PickingTypeFavoriteUserRel',
     'ProductRemoval',
     'StockLocation',
@@ -62,9 +68,11 @@ __all__ = [
     'StockPackageType',
     'StockPicking',
     'StockPickingType',
+    'StockProductCatalogMixin',
     'StockPutawayRule',
     'StockQuant',
     'StockReference',
+    'StockReplenishMixin',
     'StockRoute',
     'StockRule',
     'StockScrap',

@@ -50,7 +50,7 @@ Símbolo de la referencia (línea)             Aquí
 ``copy_data`` (89-91)                        ``copy_data``
 ``create`` (93-103)                          ``create`` (classmethod)
 ``write`` (105-127)                          ``write``
-``_get_next_name_by_sequence`` (129-131)     ``get_next_name_by_sequence``
+``_get_next_name_by_sequence`` (129-131)     ``_get_next_name_by_sequence``
 ===========================================  ==========================================
 
 Divergencias declaradas
@@ -326,12 +326,26 @@ class StockPackageType(TimeStampedModel):
             valores.setdefault(campo, getattr(self, campo))
         return valores
 
-    def get_next_name_by_sequence(self):
+    def _get_next_name_by_sequence(self):
         """≙ ``_get_next_name_by_sequence`` (``odoo19c: :129-131``).
 
         Con secuencia propia, el siguiente nombre sale de ella; sin ella, del
         código global ``stock.package``.
+
+        **Dos correcciones en el mismo pase** (ver :ref:`h-api-619`):
+
+        1. El cuerpo llamaba ``self.sequence_ref.next_by_id()``, y ese método
+           **no existe en ningún punto del árbol** — medido:
+           ``grep -rn "def next_by_id" addons/ src/`` → 0. El equivalente
+           nuestro de ``_next()``/``next_by_id()`` es ``get_next()``
+           (``src/addons/base/models/ir_sequence.py:94``), y lo dice el propio
+           docstring de ``account_check_printing/models/ir_sequence.py:17``.
+           Fallaba con ``AttributeError`` en tiempo de EJECUCIÓN, no de import,
+           así que ni el gate de porte ni la suite lo veían.
+        2. El nombre había perdido su guion bajo, que en la fuente es el
+           contrato (``porte-completo-no-parcial.md``, H-API-581). Se restaura
+           aquí porque este pase toca el archivo.
         """
         if self.sequence_ref is not None:
-            return self.sequence_ref.next_by_id()
+            return self.sequence_ref.get_next()
         return IrSequence.next_by_code('stock.package')
