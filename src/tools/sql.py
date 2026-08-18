@@ -27,14 +27,44 @@ Ver H-API-306.
 ``pg_indexes`` (``odoo19c: odoo/tools/sql.py:542``), y aquí se conserva además
 el filtro por tabla que nuestra firma ya exponía.
 
-Además expone ``SQL`` (fiel a la clase componible ``odoo.tools.SQL``), que un
-addon portado importa como ``from tools.sql import SQL``. Respaldo Django:
-``SQL`` = ``django.db.models.expressions.RawSQL`` (fragmento SQL parametrizado
-embebible en un ``QuerySet``, equivalente al rol de ``odoo.tools.SQL``).
+Además expone ``SQL``, que un addon portado importa como
+``from tools.sql import SQL``. **No es la clase de la referencia: es un alias
+de** ``django.db.models.expressions.RawSQL``, y la diferencia importa.
+
+``odoo.tools.SQL`` (``odoo19c: odoo/tools/sql.py``) es un fragmento componible
+con interpolación **por nombre** (``SQL("… %(x)s", x=…)``), constructores de
+clase (``SQL.identifier``, ``SQL.join``) y anidamiento de fragmentos. ``RawSQL``
+no tiene nada de eso: acepta una cadena y una secuencia de parámetros
+posicionales. La forma que el árbol usa hoy —medido: ``stock_quant.py:831,834``,
+``SQL('NULL', output_field=…)`` y una cadena de agregación— cabe en ``RawSQL``,
+así que el alias sirve **para ese uso y no más**.
+
+Quien porte código de la referencia que llame a ``SQL.identifier``,
+``SQL.join`` o interpolación por nombre se topará con un ``AttributeError`` o
+un ``TypeError``, no con una degradación silenciosa. Ver :ref:`h-api-698`; el
+porte de la clase real es la tarea **#549**.
 """
 from django.db.models.expressions import RawSQL
 
-SQL = RawSQL                       # Odoo tools.SQL ≈ Django RawSQL
+SQL = RawSQL                       # alias acotado — ver la cabecera y #549
+
+
+def escape_psql(to_escape):
+    """≙ ``escape_psql`` (``odoo19c: odoo/tools/sql.py:640-641``).
+
+    Escapa los comodines de ``LIKE``/``ILIKE`` para que el texto que teclea un
+    usuario se busque **literal**. Sin esto, un término con ``%`` o ``_`` deja
+    de ser un término y pasa a ser un patrón: ``%`` casa con cualquier cosa y
+    ``_`` con cualquier carácter.
+
+    El orden de los tres reemplazos no es intercambiable — la barra invertida
+    va primero, porque si no, escaparía a las barras que los otros dos
+    introducen.
+
+    :param to_escape: el texto a escapar.
+    :returns: el texto con ``\\``, ``%`` y ``_`` escapados.
+    """
+    return to_escape.replace('\\', r'\\').replace('%', r'\%').replace('_', r'\_')
 
 
 def table_exists(cursor, table_name, schema=None):

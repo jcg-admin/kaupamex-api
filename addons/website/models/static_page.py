@@ -9,10 +9,19 @@ from django.conf import settings
 from django.db import models
 
 from addons.base.models import TimeStampedModel
+from addons.website.models.mixins import WebsiteSearchableMixin
+from orm.domains import Domain
 
 
-class StaticPage(TimeStampedModel):
-    """Página estática del sitio. UC-CFG-04."""
+class StaticPage(WebsiteSearchableMixin, TimeStampedModel):
+    """Página estática del sitio. UC-CFG-04.
+
+    Hereda ``WebsiteSearchableMixin`` como su análogo ``website.page`` en la
+    referencia (``odoo19c: website/models/website_page.py:29`` —
+    ``_inherit = [... 'website.searchable.mixin']``): es el primer modelo
+    buscable desde ``Website._search_with_fuzzy``. Su realineación completa
+    a ``website.page`` sigue siendo la tarea **#104**.
+    """
     PAGE_ABOUT   = 'about'
     PAGE_TERMS   = 'terms'
     PAGE_PRIVACY = 'privacy'
@@ -39,6 +48,50 @@ class StaticPage(TimeStampedModel):
     @property
     def current_version(self):
         return self.versions.filter(status='PUBLISHED').order_by('-version').first()
+
+    @property
+    def url(self):
+        """URL pública de la página — ≙ el campo ``url`` de ``website.page``.
+
+        Allá es una columna propia porque cualquier página puede vivir en
+        cualquier ruta; aquí las páginas estáticas se sirven bajo un prefijo
+        fijo (``PublicStaticPageView``, ``controllers/main.py``), así que la
+        URL se deriva del ``slug`` en vez de almacenarse.
+        """
+        return f'/pages/{self.slug}'
+
+    @classmethod
+    def _search_get_detail(cls, website, order, options):
+        """≙ ``website.page._search_get_detail`` (``odoo19c: website_page.py:202``).
+
+        La receta de búsqueda de las páginas. Divergencias declaradas contra
+        la fuente, cada una con su porqué:
+
+        - ``base_domain`` restringe a páginas **con versión publicada** — el
+          análogo de su ``website_published = True``; aquí la publicación
+          vive en ``StaticPageVersion.status``.
+        - Sin el recorte por sitio (``website.website_domain()``): la página
+          estática no declara FK a ``website`` todavía (**#104**).
+        - Sin los escalones de visibilidad por grupo/contraseña: esos campos
+          son de ``website.page`` y llegan con la realineación (**#104**).
+        - ``requires_sudo`` se conserva en ``True`` — mismo motivo que la
+          fuente comenta (la lectura pública pasa por encima de las record
+          rules) — y ``model`` lleva la clase (ver el mixin).
+        - La rama ``displayDescription`` (``arch_db``) no aplica: el HTML
+          vive en la versión, no en la página; entra con **#104**.
+        """
+        return {
+            'model': cls,
+            'base_domain': [Domain('versions.status', '=', 'PUBLISHED')],
+            'requires_sudo': True,
+            'search_fields': ['title', 'slug'],
+            'fetch_fields': ['id', 'title', 'url'],
+            'mapping': {
+                'name': {'name': 'title', 'type': 'text', 'match': True},
+                'website_url': {'name': 'url', 'type': 'text', 'truncate': False},
+            },
+            'icon': 'fa-file-o',
+        }
 
 
 class StaticPageVersion(TimeStampedModel):

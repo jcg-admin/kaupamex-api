@@ -75,6 +75,11 @@ Qué NO se porta, con su medición
   ``ModelsConverter``, ``SignedIntConverter``) y las clases de optimización
   del compilado de rutas (``LazyCompiledBuilder``, ``FasterRule``). En este
   árbol eso es la URLconf de Django más el router de DRF.
+
+  Excepción quirúrgica (tarea #546): de ``_match`` sí se porta **una** de sus
+  responsabilidades — estampar ``request.is_frontend`` desde lo que el
+  endpoint despachado declara. Vive en ``CompanyContextMiddleware`` (el
+  default) y su ``process_view`` (el estampado); ver sus docstrings.
 - **Los métodos de autenticación** (``_auth_method_user`` / ``_none`` /
   ``_public`` / ``_bearer``, ``_authenticate``, ``_authenticate_explicit``).
   Se conserva **el vocabulario** —los cuatro nombres, que es lo que un
@@ -279,10 +284,83 @@ class CompanyContextMiddleware:
     DEC-AISL-04).
 
     Ubicar DESPUÉS de ``AuthenticationMiddleware`` (necesita ``request.user``).
+
+    ``is_frontend`` — la marca de petición de cara pública (tarea #546)
+    ====================================================================
+
+    En la referencia la marca la pone el **despacho**, no un prefijo de path:
+    ``_match`` lee la metadata de routing del endpoint que resultó despachado
+    y estampa ``request.is_frontend = routing.get('website', False)``
+    (``odoo19c: addons/http_routing/models/ir_http.py:375`` y ``:473``). Es
+    decir: el endpoint **declara** ser de sitio (``@route(..., website=True)``)
+    y el despachador copia esa declaración a la petición. El valor por defecto
+    es ``False`` (``odoo19c: addons/http_routing/__init__.py:11``).
+
+    Aquí se conserva esa semántica con las dos piezas análogas de Django:
+
+    - ``__call__`` estampa el **default** ``request.is_frontend = False``
+      antes de despachar — el papel del ``_post_init_hook`` de la fuente.
+    - ``process_view`` (hook que Django invoca justo tras resolver la URL y
+      antes de la vista — el punto ``_match`` → ``_pre_dispatch`` de la
+      fuente) lee la **declaración de la vista despachada**: un atributo
+      ``is_frontend = True`` en la clase de la vista (o en la función, para
+      FBV). Ese atributo es el análogo directo de ``website=True`` en el
+      ``@route`` de la referencia: metadata declarada por el endpoint, no
+      adivinada del path.
+
+    Alternativa considerada y descartada: leer el ``namespace`` de la URL
+    resuelta (``request.resolver_match.namespace``). Acoplaría la marca al
+    nombre que cada addon eligió para su ``app_name`` — una convención de
+    nombres, que es la misma clase de adivinanza que el prefijo de path. La
+    declaración explícita en la vista es lo que la fuente hace.
+
+    Divergencias declaradas frente a la fuente:
+
+    - **404 sin vista → ``False``, no ``True``.** La fuente pone ``True`` en
+      ``NotFound`` (``:478-479``) porque su frontend renderiza una página 404
+      bonita con el sitio. Aquí el 404 lo responde DRF/Django en JSON y no hay
+      render de sitio, así que el default conservador se mantiene.
+    - **``is_frontend_multilang`` no se porta.** Su condición
+      (``routing.get('multilang', routing['type'] == 'http')``, ``:376``)
+      describe el reescritor de idioma-en-URL de la fuente, mecanismo que este
+      árbol no tiene; portar el atributo sin su consumidor sería un nombre sin
+      mecanismo. Se porta cuando llegue ese reescritor.
     """
 
     def __init__(self, get_response):
         self.get_response = get_response
+
+    @staticmethod
+    def _view_declares_frontend(view_func):
+        """¿La vista despachada se declara de cara pública?
+
+        Lee el atributo ``is_frontend`` donde la declaración vive según el
+        estilo de la vista — medido en los paquetes instalados, no de
+        memoria: DRF ``as_view`` expone la clase como ``view.cls``
+        (``rest_framework/views.py:140``); las CBV de Django la exponen como
+        ``view.view_class`` (``django/views/generic/base.py:108``); una FBV
+        lleva el atributo en la propia función.
+        """
+        view_owner = (
+            getattr(view_func, 'cls', None)
+            or getattr(view_func, 'view_class', None)
+            or view_func
+        )
+        return bool(getattr(view_owner, 'is_frontend', False))
+
+    def process_view(self, request, view_func, view_args, view_kwargs):
+        """Estampa ``request.is_frontend`` desde la vista despachada.
+
+        ≙ ``ir.http._match`` copiando ``routing.get('website', False)`` a la
+        petición (``odoo19c: addons/http_routing/models/ir_http.py:375``).
+        Django invoca este hook tras resolver la URL y antes de llamar la
+        vista, así que la decisión es del **despacho** — qué vista sirve la
+        petición — nunca de un prefijo de path.
+
+        Devuelve ``None`` siempre: este hook marca, no responde.
+        """
+        request.is_frontend = self._view_declares_frontend(view_func)
+        return None
 
     def __call__(self, request):
         user = getattr(request, 'user', None)
@@ -309,6 +387,11 @@ class CompanyContextMiddleware:
         # todo lo que resuelve "en qué sitio estamos": ``Website._force``,
         # ``get_current_website`` y su cadena.
         set_current_request(request)
+        # Default de la marca de cara pública — el papel del
+        # ``_post_init_hook`` de la fuente (``odoo19c:
+        # addons/http_routing/__init__.py:11``): toda petición nace backend;
+        # ``process_view`` la promueve si la vista despachada lo declara.
+        request.is_frontend = False
         try:
             return self.get_response(request)
         finally:

@@ -294,15 +294,14 @@ def test_without_a_request_it_still_falls_back(clean_request_context):
 def test_no_fallback_outside_a_frontend_request_returns_none(clean_request_context):
     """La rama que devuelve vacío antes de mirar el ``Host``.
 
-    **Este test fija una divergencia medida, no una conducta deseada.** La
-    fuente sólo entra aquí en peticiones de backend, porque su despachador
-    marca ``request.is_frontend``. Medido sobre Django 6.0.5: ``HttpRequest``
-    no tiene ese atributo y nada en este árbol lo pone, así que la rama se
-    dispara **siempre** que ``fallback=False``. Sucesor: **#546**.
-
-    Se prueba para que el día que #546 marque la petición, este test se ponga
-    rojo y obligue a revisar la expectativa — que es justo lo que un test que
-    pinta una divergencia debe hacer.
+    La fuente sólo entra aquí en peticiones de backend, porque su despachador
+    marca ``request.is_frontend``. #546 (H-API-695) portó el mecanismo —
+    ``CompanyContextMiddleware.process_view`` copia la declaración
+    ``is_frontend = True`` de la vista despachada — pero esta petición se
+    fabrica a mano, sin pasar por el despacho, así que llega con el default
+    ``False``: exactamente la petición de backend de la fuente. La rama es
+    ahora conducta portada, no divergencia. El barrido que marca las vistas
+    públicas reales es **#550**.
     """
     _site(name='Tienda', domain='https://tienda.example')
 

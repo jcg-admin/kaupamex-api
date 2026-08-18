@@ -83,9 +83,31 @@ Qué NO se porta, con su medición
   dependen del lector de archivos y del mecanismo de traducción de Odoo.
 - **``get_view_arch_from_file``** y ``_hasclass``: lectura de la vista desde
   su archivo fuente y una extensión XPath. Ambos son del combinador.
-- **``xml_id`` / ``model_data_id``**: dependen de ``ir.model.data``, tabla que
-  existe desde ``api@b618a6b`` pero que nadie puebla. ``key`` **sí** se porta:
-  es el identificador estable de una vista QWeb y no pasa por esa tabla.
+- **``xml_id`` / ``model_data_id``**: dependen de ``ir.model.data``. ``key``
+  **sí** se porta: es el identificador estable de una vista QWeb y no pasa por
+  esa tabla. (La tabla ya tiene resolutor — ``IrModelData.xmlid_lookup`` y
+  hermanos, :ref:`h-api-347` — y la resolución de plantillas de abajo lo usa
+  como segundo escalón, igual que la fuente.)
+
+Resolución de plantillas — sin caché, y es una decisión
+=======================================================
+
+``_get_template_view`` / ``_get_cached_template_info`` (fuente
+``base/models/ir_ui_view.py:1120-1285``) se portan **sin** el
+``@tools.ormcache(..., cache='templates')`` de la fuente. Gunicorn corre
+prefork síncrono con 4 workers (``setup/gunicorn.conf.py``) y no hay
+invalidación compartida entre procesos: un caché por-proceso de contenido
+**mutable** (las vistas se editan y se archivan en caliente) serviría vistas
+viejas en 3 de 4 workers tras cada edición, sin error que lo delatara. La
+fuente puede permitírselo porque su registry invalida el ormcache en cada
+``write``; este árbol no tiene ese mecanismo, así que el desenlace correcto es
+resolver contra la base en cada llamada. Consecuencias declaradas:
+
+- ``_get_template_minimal_cache_keys`` **no se porta**: su único consumidor es
+  la clave del decorador retirado.
+- ``_clear_preload_views_cache_if_needed`` **no se porta**: invalida el memo
+  por-cursor (``cr.cache['_compile_batch_']``) que aquí no existe.
+- ``_preload_views`` se porta como resolutor puro, sin el memo por-transacción.
 - **``warning_info`` / ``invalid_locators``**: diagnósticos que el editor de
   vistas de Odoo muestra al validar el XML; sin combinador no hay qué validar.
 - **``ResetViewArchWizard._compute_arch_diff``**: compone un diff HTML entre
@@ -99,7 +121,10 @@ from lxml import etree
 
 import fields
 import models
+from django.apps import apps
 from django.core.exceptions import ValidationError
+from exceptions import MissingError
+from orm.environments import get_context
 from tools.template_inheritance import apply_inheritance_specs
 
 from addons.base.models.res_groups import ResGroups
@@ -150,6 +175,11 @@ RESET_MODE_CHOICES = [
 
 class IrUiView(TimeStampedModel):
     """``ir.ui.view`` — una vista y su lugar en el árbol de herencia."""
+
+    _name = 'ir.ui.view'
+    _description = 'View'
+    _order = "priority,name,id"
+    _allow_sudo_commands = False
 
     name = fields.Char(max_length=255, verbose_name='Nombre de la vista')
     model = fields.Char(
@@ -388,6 +418,217 @@ class IrUiView(TimeStampedModel):
         """La arquitectura combinada, como string (fuente ``:1043``)."""
         return etree.tostring(self._get_combined_arch(), encoding='unicode')
 
+    # ------------------------------------------------------------------ #
+    #  Resolución de plantillas (fuente ``:1120-1285``) — sin caché,     #
+    #  ver el docstring del módulo por qué.                              #
+    # ------------------------------------------------------------------ #
+
+    @classmethod
+    def _get_cached_template_prefetched_keys(cls):
+        """Campos que ``_get_cached_template_info`` publica (fuente ``:1122``).
+
+        La extensión de ``website`` en la fuente suma ``visibility`` y
+        ``track``; aquí se conserva como punto de extensión por ``super()``.
+        """
+        return ['id', 'key', 'active']
+
+    @classmethod
+    def _get_template_domain(cls, xmlids):
+        """``_get_template_domain`` (fuente ``:1169``) — vistas por ``key``.
+
+        Devuelve un ``Q`` en lugar del ``Domain`` de la fuente; la extensión
+        de ``website`` lo estrecha con ``website_id`` vía ``super()``.
+        """
+        return models.Q(key__in=list(xmlids))
+
+    @classmethod
+    def _get_template_order(cls):
+        """``_get_template_order`` (fuente ``:1173``) — ``"priority, id"``.
+
+        Divergencia de forma declarada: la fuente devuelve la cadena SQL del
+        ``order`` y aquí se devuelve la tupla que consume ``order_by``.
+        """
+        return ('priority', 'id')
+
+    @classmethod
+    def _fetch_template_views(cls, ids_or_xmlids):
+        """``_fetch_template_views`` (fuente ``:1177-1240``).
+
+        Resuelve cada referencia —id entero o ``xmlid``/``key``— a su vista, y
+        las ausentes a un ``MissingError``. Dos escalones, como la fuente:
+
+        1. Búsqueda por ``key`` (o id) ordenada por ``_get_template_order``;
+           entre vistas con la misma ``key`` gana la primera del orden — la de
+           menor ``priority``.
+        2. Las ``xmlid`` con punto que no aparecieron se buscan en
+           ``ir.model.data``. La fuente consulta ``model = 'ir.ui.view'``;
+           aquí la tabla guarda la etiqueta de Django (es lo que escribe
+           ``IrModelData.set_xmlid``), así que se consulta por
+           ``cls._meta.label``.
+
+        Divergencias declaradas:
+
+        - La fuente empuja cada resultado al ormcache
+          (``_get_cached_template_info(key, _view=view)``); sin caché ese
+          bucle no tiene efecto y no se porta.
+        - El ``try/except MissingError`` alrededor de ``view.key`` protege a
+          su ``browse`` perezoso de ids borrados; ``filter`` sólo devuelve
+          filas existentes y no lo necesita.
+        - ``ir.model.data`` se importa por el registro de apps, no por
+          ``import``: ``ir_model.py:144`` ya importa este módulo (ciclo real
+          medido — excepción 3 de ``no-lazy-imports.md``).
+        """
+        ids = [ref for ref in ids_or_xmlids if isinstance(ref, int)]
+        xmlids = [ref for ref in ids_or_xmlids if not isinstance(ref, int)]
+
+        view_by_id = {}
+        if xmlids:
+            domain = models.Q(id__in=ids) | cls._get_template_domain(xmlids)
+            views = cls.objects.filter(domain).order_by(
+                *cls._get_template_order())
+            # ``search`` de la fuente respeta ``active_test`` del contexto:
+            # con el valor por defecto las archivadas no se resuelven por
+            # ``key``; ``viewref``/``is_view_active`` entran con
+            # ``active_test=False`` para verlas.
+            if get_context().get('active_test', True):
+                views = views.filter(active=True)
+        else:
+            views = cls.objects.filter(id__in=ids)
+
+        for view in views:
+            if view.key in view_by_id:
+                # Conserva las vistas según su orden de prioridad.
+                continue
+            view_by_id[view.id] = view
+            if view.key:
+                view_by_id[view.key] = view
+
+        # Segundo escalón: ``xmlid`` ausentes, vía ``ir.model.data``.
+        missing_xmlid_views = [
+            xmlid for xmlid in xmlids
+            if '.' in xmlid and xmlid not in view_by_id]
+        if missing_xmlid_views:
+            data_model = apps.get_model('base', 'IrModelData')
+            domain = models.Q(pk__in=[])
+            for xmlid in missing_xmlid_views:
+                module, _, name = xmlid.partition('.')
+                domain |= models.Q(module=module, name=name)
+            rows = data_model.objects.filter(domain, model=cls._meta.label)
+            for model_data in rows:
+                view = cls.objects.filter(pk=model_data.res_id).first()
+                if view is not None:
+                    view_by_id[view.id] = view
+                    xmlid = f'{model_data.module}.{model_data.name}'
+                    view_by_id[xmlid] = view
+                    if view.key:
+                        view_by_id[view.key] = view
+
+        # Lo que no se resolvió sale como error, no como hueco silencioso.
+        for view_id in ids:
+            if view_id not in view_by_id:
+                view_by_id[view_id] = MissingError(
+                    'La plantilla no existe o fue eliminada: %s' % view_id)
+        for xmlid in xmlids:
+            if xmlid not in view_by_id:
+                view_by_id[xmlid] = MissingError(
+                    "Plantilla no encontrada: '%s'" % xmlid)
+        return view_by_id
+
+    @classmethod
+    def _preload_views(cls, refs):
+        """``_preload_views`` (fuente ``:1247-1285``), sin el memo.
+
+        La fuente memoiza por transacción en
+        ``cr.cache['_compile_batch_']`` (y lo invalida con
+        ``_clear_preload_views_cache_if_needed``); aquí no hay caché de
+        cursor y el memo no se porta — cada llamada resuelve contra la base.
+        La forma del resultado se conserva verbatim:
+        ``{ref: {'xmlid', 'ref', 'view', 'error'}}``.
+        """
+        refs = [
+            int(ref) if isinstance(ref, int) or ref.isdigit() else ref
+            for ref in refs]
+        batch = {}
+        wanted = [ref for ref in refs if ref]
+        if not wanted:
+            return batch
+
+        unknown_views = cls._fetch_template_views(wanted)
+
+        for id_or_xmlid, view in unknown_views.items():
+            if isinstance(view, models.Model):
+                batch[view.id] = batch[id_or_xmlid] = {
+                    'xmlid': view.key or id_or_xmlid,
+                    'ref': view.id,
+                    'view': view,
+                    'error': False,
+                }
+            else:
+                batch[id_or_xmlid] = {
+                    'xmlid': id_or_xmlid,
+                    'view': None,
+                    'ref': None,
+                    'error': view,  # MissingError
+                }
+        return batch
+
+    @classmethod
+    def _get_cached_template_info(cls, id_or_xmlid, _view=None):
+        """``_get_cached_template_info`` (fuente ``:1130-1160``).
+
+        Devuelve el dict ``{'id', 'key', 'active', 'error'}`` de la vista que
+        la referencia designa. A pesar del nombre —que se conserva por
+        fidelidad— **aquí no cachea**: ver el docstring del módulo.
+
+        ``_view`` es el atajo de la fuente para poblar el resultado con una
+        vista ya resuelta (``_view=False`` marca "ausente conocida": campos
+        ``None`` y ``error`` falso, verbatim de la fuente).
+
+        Divergencia declarada: la rama entera de la fuente atrapa además
+        ``UserError`` del control de acceso de su ``browse``; la consulta
+        directa por pk de este árbol no pasa por record rules y esa rama no
+        tiene equivalente.
+        """
+        view = None
+        error = False
+        if _view is not None:
+            view = _view
+        elif isinstance(id_or_xmlid, int):
+            view = cls.objects.filter(pk=id_or_xmlid).first()
+            if view is None:
+                error = MissingError(
+                    "Plantilla no encontrada: '%s'" % id_or_xmlid)
+        else:
+            preload = cls._preload_views([id_or_xmlid])
+            if id_or_xmlid in preload:
+                info = preload[id_or_xmlid]
+                view = info['view']
+                error = info['error']
+            else:
+                # Verbatim de la fuente — cubre la referencia vacía y la
+                # cadena de dígitos, que el preload reindexa como entero.
+                error = SyntaxError('Error compiling template')
+        info = {
+            f: getattr(view, f) if view else None
+            for f in cls._get_cached_template_prefetched_keys()}
+        info['error'] = error
+        return info
+
+    @classmethod
+    def _get_template_view(cls, id_or_xmlid, raise_if_not_found=True):
+        """``_get_template_view`` (fuente ``:1162-1166``).
+
+        La vista que designa ``id_or_xmlid`` (id entero, ``key`` o ``xmlid``).
+        Divergencia declarada: la fuente devuelve un recordset —vacío cuando
+        no hay vista y no se pide levantar—; aquí ese vacío es ``None``.
+        """
+        info = cls._get_cached_template_info(id_or_xmlid)
+        if info['error'] and raise_if_not_found:
+            raise info['error']
+        if info['id'] is None:
+            return None
+        return cls.objects.filter(pk=info['id']).first()
+
 
 class IrUiViewCustom(TimeStampedModel):
     """``ir.ui.view.custom`` — la personalización de una vista por un usuario.
@@ -398,6 +639,12 @@ class IrUiViewCustom(TimeStampedModel):
     orden ascendente devolvería la personalización **más vieja** al pedir una
     sola — un fallo silencioso en el que la vista guardada nunca se ve.
     """
+
+    _name = 'ir.ui.view.custom'
+    _description = 'Custom View'
+    _order = 'create_date desc, id desc'  # search(limit=1) should return the last customization
+    _rec_name = 'user_id'
+    _allow_sudo_commands = False
 
     ref_id = fields.Many2one(
         IrUiView, on_delete=models.CASCADE, db_index=True,
@@ -432,6 +679,9 @@ class ResetViewArchWizard(models.Model):
     es dato; el diff HTML entre versiones no se porta (ver el docstring del
     módulo).
     """
+
+    _name = 'reset.view.arch.wizard'
+    _description = "Reset View Architecture Wizard"
 
     class Meta:
         abstract = True

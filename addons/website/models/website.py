@@ -19,7 +19,7 @@ que no existía: **#101** (mudar el carrito a ``website_sale``), **#104**
 (realinear los cuatro modelos propios), **#105** (alinear ``SearchEntry``) y
 **#258** (recuperación de carrito abandonado).
 
-Porte por bloques — B1 y B2 de 6, con la partición declarada
+Porte por bloques — B1 a B3 de 6, con la partición declarada
 ==============================================================
 
 Medido sobre ``odoo19c: addons/website/models/website.py`` (2430 líneas):
@@ -149,15 +149,14 @@ reales son los de esta tabla; la aritmética del bloque (15) no cambia.
      - portado
      - delega en ``addons/portal/controllers/portal.py``
    * - ``copy_menu_hierarchy``
-     - BLOQUEADO
-     - ``website.menu`` **no declara** ``website_id`` en este árbol
-       (``website_menu.py:40`` lo dice explícitamente), y el método existe
-       para poblar justo ese campo. Sucesor: **#543**
+     - portado
+     - desbloqueado por **#543**, que añadió ``website_id`` a
+       ``website.menu``; la clave única ``key`` (campo propio, la fuente no
+       lo tiene) se deriva por sitio al clonar
    * - ``viewref`` · ``is_view_active``
-     - BLOQUEADO
-     - ``IrUiView`` no declara ``_get_template_view`` ni
-       ``_get_cached_template_info`` (medido: 0 en ``ir_ui_view.py``).
-       Sucesor: **#544**
+     - portado
+     - sobre ``_get_template_view`` / ``_get_cached_template_info`` que
+       **#544** portó a ``IrUiView``
    * - ``new_page`` · ``check_existing_page``
      - BLOQUEADO
      - ``website.page`` y ``website.rewrite`` no existen (0 clases).
@@ -189,21 +188,36 @@ tercero de los tres ejes que la fuente declara y el único que
 
 import base64
 import re
+from collections import defaultdict
 from urllib.parse import urlparse
 
 import fields
 import models
-from django.db.models import Q
+from lxml import etree
 
 from addons.base.models import TimeStampedModel
 from addons.base.models.ir_http import get_current_request
+from addons.base.models.ir_ui_view import IrUiView
 from addons.base.models.res_company import ResCompany
 from addons.base.models.res_lang import ResLang
 from addons.portal.controllers.portal import pager
+from addons.website.models.mixins import WebsiteSearchableMixin
+from addons.website.models.static_page import StaticPage
 from addons.website.models.website_menu import WebsiteMenu
-from addons.website.tools import get_base_domain
+from addons.website.tools import (
+    get_base_domain, similarity_score, text_from_html,
+)
 from exceptions import UserError, ValidationError
-from orm.environments import get_context, get_current_company, get_current_uid
+from modules.db import has_trigram
+from orm.domains import Domain, to_q
+from tools.sql import escape_psql
+# ``connection`` sale del espejo del entorno, no de Django crudo: es el
+# ``env.cr`` de la referencia, y ``orm.environments`` lo re-exporta a
+# propósito (su tabla de mapeo lo declara).
+from orm.environments import (
+    connection, context_scope, get_context, get_current_company,
+    get_current_uid, is_su, sudo,
+)
 from tools.translate import _
 
 #: ≙ ``DEFAULT_CDN_FILTERS`` (``odoo19c: website.py:39-47``).
@@ -596,7 +610,8 @@ class Website(TimeStampedModel):
         El dominio ORM —no el de red— con que se acotan los registros de un
         sitio: los del sitio, más los que no declaran sitio.
         """
-        return Q(website__isnull=True) | Q(website__in=[self.pk] if self.pk else [])
+        return (models.Q(website__isnull=True)
+                | models.Q(website__in=[self.pk] if self.pk else []))
 
     @classmethod
     def _active_languages(cls):
@@ -973,15 +988,16 @@ class Website(TimeStampedModel):
         sin recordset puede expresar. El llamador comprueba ``if website:``
         igual en los dos casos.
 
-        **Divergencia declarada (2) — ``is_frontend`` es hoy siempre falso.**
-        La fuente lo lee de su propio despachador
-        (``getattr(request, 'is_frontend', False)``), que marca la petición como
-        de cara pública. Medido sobre Django 6.0.5: el objeto ``HttpRequest``
-        **no tiene** ese atributo y nada en este árbol lo pone, así que el
-        escalón 3 nunca se alcanza cuando ``fallback=False``. La consecuencia es
-        conservadora, no peligrosa —se devuelve ``None`` en vez de adivinar un
-        sitio—, pero es una rama muerta mientras nadie marque la petición.
-        Sucesor: **#546**.
+        **Divergencia declarada (2) — ``is_frontend`` ya tiene mecanismo,
+        pero ninguna vista lo declara todavía.** #546 (H-API-695) lo cableó:
+        ``CompanyContextMiddleware`` estampa el default ``False`` y su
+        ``process_view`` copia a la petición la declaración
+        ``is_frontend = True`` de la vista despachada — el análogo del
+        ``routing.get('website', False)`` de la fuente. Medido tras el porte:
+        **0** vistas del árbol declaran el atributo, así que el escalón 3
+        sigue sin alcanzarse con ``fallback=False`` hasta que el barrido
+        **#550** marque las vistas públicas. La consecuencia mientras tanto
+        es conservadora: ``None`` en vez de adivinar un sitio.
         """
         request = get_current_request()
         session = getattr(request, 'session', None) if request else None
@@ -1063,8 +1079,8 @@ class Website(TimeStampedModel):
         domain_name_idna = domain_name.encode('ascii').decode('idna')
 
         found_websites = list(cls.objects.filter(
-            Q(domain__icontains=remove_port(domain_name))
-            | Q(domain__icontains=remove_port(domain_name_idna))))
+            models.Q(domain__icontains=remove_port(domain_name))
+            | models.Q(domain__icontains=remove_port(domain_name_idna))))
 
         websites = [w for w in found_websites if matches(w, domain_name)]
         if not websites:
@@ -1128,3 +1144,444 @@ class Website(TimeStampedModel):
         """
         return pager(url, total, page=page, step=step, scope=scope,
                      url_args=url_args)
+
+    # ── B2 — los tres que la tanda #543/#544 desbloqueó ──────────────────────
+
+    def copy_menu_hierarchy(self, top_menu):
+        """≙ ``copy_menu_hierarchy`` (``odoo19c: :1147-1161``).
+
+        Clona el árbol de menús plantilla (los de ``website=None``) para este
+        sitio. La fuente lo hace con ``menu.copy({...})``; aquí se clona campo
+        a campo porque el ORM no trae ``copy()``.
+
+        **Divergencia declarada:** ``key`` es campo propio (la fuente no lo
+        tiene) y es único, así que el clon deriva la suya por sitio
+        (``<key>-w<id>``). El nombre del menú raíz usa la misma plantilla
+        traducible que la fuente.
+        """
+        def copy_menu(menu, parent_menu):
+            new_menu = WebsiteMenu.objects.create(
+                name=menu.name,
+                route=menu.route,
+                sequence=menu.sequence,
+                new_window=menu.new_window,
+                web_icon=menu.web_icon,
+                key=f'{menu.key}-w{self.pk}',
+                parent=parent_menu,
+                website=self,
+            )
+            for submenu in menu.child.all():
+                copy_menu(submenu, new_menu)
+
+        new_top_menu = WebsiteMenu.objects.create(
+            name=_('Top Menu for Website %s') % self.pk,
+            route=top_menu.route,
+            sequence=top_menu.sequence,
+            new_window=top_menu.new_window,
+            web_icon=top_menu.web_icon,
+            key=f'{top_menu.key}-w{self.pk}',
+            website=self,
+        )
+        for submenu in top_menu.child.all():
+            copy_menu(submenu, new_top_menu)
+        return new_top_menu
+
+    @classmethod
+    def viewref(cls, view_id, raise_if_not_found=True):
+        """≙ ``viewref`` (``odoo19c: :1487-1501``).
+
+        Dado un xml_id o un id de vista, la vista correspondiente — mirando
+        también las archivadas, igual que la fuente
+        (``sudo().with_context(active_test=False)``).
+        """
+        if not isinstance(view_id, (int, str)):
+            raise ValueError(
+                'Expecting a string or an integer, not a %s.' % type(view_id))
+        with sudo(), context_scope(active_test=False):
+            return IrUiView._get_template_view(
+                view_id, raise_if_not_found=raise_if_not_found)
+
+    @classmethod
+    def is_view_active(cls, key):
+        """≙ ``is_view_active`` (``odoo19c: :1503-1507``).
+
+        ``True`` si está activa, ``False`` si no, ``None`` si no existe.
+        """
+        with context_scope(active_test=False):
+            return IrUiView._get_cached_template_info(key).get('active')
+
+    # ── B3 (#536) — búsqueda del sitio ───────────────────────────────────────
+    #
+    # Los 10 métodos de ``odoo19c: :1987-2355``, sobre tres piezas de soporte
+    # portadas en este mismo pase: ``website.searchable.mixin`` (mixins.py),
+    # ``escape_psql`` (``tools/sql.py``) y ``has_trigram``
+    # (``modules/db.py``). Divergencias transversales del bloque, declaradas
+    # una vez aquí:
+    #
+    # 1. ``search_details['model']`` lleva la CLASE del modelo, no su nombre
+    #    (ver el docstring de ``_search_get_detail`` del mixin; vuelve al
+    #    nombre con #104).
+    # 2. El SQL del enumerador por trigramas se construye con el cursor del
+    #    entorno + ``quote_name`` — la clase ``SQL`` componible de la fuente
+    #    no está portada (#549, :ref:`h-api-698`) y ``unaccent`` tampoco
+    #    (#98), así que las comparaciones no normalizan acentos.
+    # 3. La rama ``field.translate`` del enumerador NO se porta: ningún campo
+    #    declara ``translate=True`` porque el almacenamiento jsonb de
+    #    traducciones es la tarea **#333**; la rama llega con él.
+
+    @classmethod
+    def _search_build_domain(cls, domain_list, search, fields_list, extra=None):
+        """≙ ``_search_build_domain`` (``odoo19c: :1987-2007``).
+
+        La fuente duplica el cuerpo con el comentario *"just like
+        website.searchable.mixin"*; aquí se delega en el mixin en vez de
+        copiarlo — misma semántica, una sola implementación.
+        """
+        return WebsiteSearchableMixin._search_build_domain(
+            domain_list, search, fields_list, extra)
+
+    @staticmethod
+    def _search_text_from_html(html_fragment):
+        """≙ ``_search_text_from_html`` (``odoo19c: :2009-2019``).
+
+        El texto plano de un fragmento HTML. NO poda nodos técnicos — ese es
+        el contrato de ``tools.text_from_html``, su casi-homónimo; la fuente
+        mantiene los dos separados y aquí también.
+        """
+        # lxml exige un único elemento raíz.
+        tree = etree.fromstring(
+            '<p>%s</p>' % html_fragment, etree.XMLParser(recover=True))
+        return ' '.join(tree.itertext())
+
+    def _search_get_details(self, search_type, order, options):
+        """≙ ``_search_get_details`` (``odoo19c: :2021-2033``).
+
+        La fuente consulta ``website.page``; su análogo en este árbol es
+        ``StaticPage`` hasta la realineación **#104**.
+        """
+        result = []
+        if search_type in ('pages', 'all'):
+            result.append(StaticPage._search_get_detail(self, order, options))
+        return result
+
+    def _search_with_fuzzy(self, search_type, search, limit, order, options):
+        """≙ ``_search_with_fuzzy`` (``odoo19c: :2035-2064``)."""
+        fuzzy_term = False
+        search_details = self._search_get_details(search_type, order, options)
+        if search and options.get('allowFuzzy', True):
+            fuzzy_term = self._search_find_fuzzy_term(search_details, search)
+            if fuzzy_term:
+                count, results = self._search_exact(
+                    search_details, fuzzy_term, limit, order)
+                if fuzzy_term.lower() == search.lower():
+                    fuzzy_term = False
+            else:
+                count, results = self._search_exact(
+                    search_details, search, limit, order)
+        else:
+            count, results = self._search_exact(
+                search_details, search, limit, order)
+        return count, results, fuzzy_term
+
+    def _search_exact(self, search_details, search, limit, order):
+        """≙ ``_search_exact`` (``odoo19c: :2066-2089``)."""
+        all_results = []
+        total_count = 0
+        for search_detail in search_details:
+            model = search_detail['model']
+            results, count = model._search_fetch(
+                search_detail, search, limit, order)
+            search_detail['results'] = results
+            total_count += count
+            search_detail['count'] = count
+            all_results.append(search_detail)
+        return total_count, all_results
+
+    def _search_render_results(self, search_details, limit):
+        """≙ ``_search_render_results`` (``odoo19c: :2091-2112``).
+
+        La fuente llama al método SOBRE el recordset de resultados; aquí los
+        resultados son una lista, así que viajan como primer argumento al
+        classmethod del mixin (divergencia 1 del mixin).
+        """
+        for search_detail in search_details:
+            model = search_detail['model']
+            search_detail['results_data'] = model._search_render_results(
+                search_detail['results'],
+                search_detail['fetch_fields'],
+                search_detail['mapping'],
+                search_detail['icon'],
+                limit,
+            )
+        return search_details
+
+    def _search_find_fuzzy_term(self, search_details, search,
+                                limit=1000, word_list=None):
+        """≙ ``_search_find_fuzzy_term`` (``odoo19c: :2114-2143``).
+
+        La palabra disponible más parecida al término buscado. Los tres
+        atajos de la fuente se conservan verbatim: sin fuzzy para menos de 4
+        caracteres, para frases, ni para términos con 80 %+ de dígitos.
+
+        El despacho por capacidad replica el ``registry.has_trigram`` de la
+        fuente: se sondea ``pg_proc`` en cada llamada (``modules/db.py``) —
+        sin registry persistente no hay dónde memorizarlo, y la sonda es una
+        consulta al catálogo.
+        """
+        if (len(search) < 4 or ' ' in search
+                or len(re.findall(r'\d', search)) / len(search) >= 0.8):
+            return search
+        search = search.lower()
+        words = set()
+        best_score = 0
+        best_word = None
+        with connection.cursor() as cr:
+            trigram_ready = has_trigram(cr)
+        enumerate_words = (self._trigram_enumerate_words if trigram_ready
+                           else self._basic_enumerate_words)
+        for word in word_list or enumerate_words(search_details, search, limit):
+            if search in word:
+                return search
+            if word[0] == search[0] and word not in words:
+                similarity = similarity_score(search, word)
+                if similarity > best_score:
+                    best_score = similarity
+                    best_word = word
+                words.add(word)
+        return best_word
+
+    def _search_get_indirect_fields(self, fields_list, model):
+        """≙ ``_search_get_indirect_fields`` (``odoo19c: :2145-2180``).
+
+        Los campos punteados (``relacion.campo``) entre los pedidos, con su
+        detalle: campo directo, indirecto, comodel y —para las inversas— la
+        FK del comodel que apunta de vuelta (el
+        ``_description_relation_field`` de la fuente, que aquí es
+        ``rel.field.name`` de Django).
+        """
+        indirect_fields = {}
+        meta_fields = {f.name: f for f in model._meta.get_fields()}
+        for field_path in fields_list:
+            field_parts = field_path.split('.')
+            if len(field_parts) != 2:
+                continue
+            direct, indirect = field_parts
+            direct_field = meta_fields.get(direct)
+            if direct_field is None or not getattr(
+                    direct_field, 'is_relation', False):
+                continue
+            comodel = direct_field.related_model
+            if comodel is None:
+                continue
+            comodel_fields = {f.name: f for f in comodel._meta.get_fields()}
+            cofield = None
+            if direct_field.one_to_many:
+                # La FK del comodel hacia este modelo — ≙ el
+                # ``_description_relation_field`` del One2many.
+                cofield = direct_field.field.name
+                if cofield not in comodel_fields:
+                    continue
+            if indirect in comodel_fields:
+                indirect_fields[field_path] = {
+                    'direct': direct,
+                    'indirect': indirect,
+                    'comodel': comodel,
+                    'cofield': cofield,
+                }
+        return indirect_fields
+
+    @staticmethod
+    def _mapped_indirect_values(records, indirect_field):
+        """Los valores de un campo punteado sobre una lista de instancias.
+
+        Es el ``records.mapped(indirect_field)`` de la fuente, escrito sobre
+        ``getattr``: el tramo directo puede ser un registro (FK) o un manager
+        (inversa/M2M), y el indirecto se lee sobre lo que salga.
+        """
+        for record in records:
+            related = getattr(record, indirect_field['direct'], None)
+            if related is None:
+                continue
+            if hasattr(related, 'all'):
+                for co_record in related.all():
+                    yield getattr(co_record, indirect_field['indirect'], None)
+            else:
+                yield getattr(related, indirect_field['indirect'], None)
+
+    def _trigram_enumerate_words(self, search_details, search, limit):
+        """≙ ``_trigram_enumerate_words`` (``odoo19c: :2182-2295``).
+
+        Enumera las palabras candidatas restringiendo a los registros con
+        ``word_similarity()`` distinta de cero — que es lo que hace barato el
+        fuzzy: la base preselecciona por trigrama y Python sólo puntúa lo que
+        sobrevive. Requiere la extensión ``pg_trgm``
+        (``website/migrations/0005``).
+
+        El SQL se arma con ``quote_name`` + parámetros (divergencia 2 del
+        bloque); el ``SET LOCAL`` del umbral es transaccional, igual que en
+        la fuente.
+        """
+        def get_similarity_subquery(model, fields_list, id_column,
+                                    rel_table='', rel_joinkey=''):
+            """El subquery de mayor similitud por registro — ≙ el interno
+            homónimo de la fuente, con joins para inversas y M2M."""
+            quote = connection.ops.quote_name
+            table = quote(model._meta.db_table)
+            params = []
+            similarity_terms = []
+            for field_name in fields_list:
+                column = quote(model._meta.get_field(field_name).column)
+                similarity_terms.append(
+                    f'word_similarity(%s, {table}.{column}::text)')
+                params.append(search)
+            similarity = ('GREATEST(' + ', '.join(similarity_terms)
+                          + ') AS similarity')
+            where_clauses = []
+            for field_name in fields_list:
+                column = quote(model._meta.get_field(field_name).column)
+                # ``<%`` es el operador de word_similarity; el ``%`` se
+                # duplica porque el cursor interpola parámetros.
+                where_clauses.append(f'%s <%% {table}.{column}::text')
+                params.append(search)
+            table_alias = table
+            join_sql = ''
+            if rel_table:
+                rel = quote(rel_table)
+                join_sql = (f' JOIN {rel} ON {rel}.{quote(rel_joinkey)}'
+                            f' = {table}.{quote("id")}')
+                table_alias = rel
+            sql = (f'SELECT {table_alias}.{quote(id_column)} AS id,'
+                   f' {similarity} FROM {table}{join_sql} WHERE '
+                   + ' OR '.join(where_clauses))
+            return sql, params
+
+        match_pattern = r'[\w./-]{%s,}' % min(4, len(search) - 3)
+        with connection.cursor() as cr:
+            # Bajar el umbral de ``<%`` a 0.3 SOLO en esta transacción (el
+            # default del cluster es 0.6) — verbatim de la fuente.
+            cr.execute(
+                'SET LOCAL pg_trgm.word_similarity_threshold to 0.3;')
+            for search_detail in search_details:
+                model = search_detail['model']
+                fields_list = search_detail['search_fields']
+                requires_sudo = bool(search_detail.get('requires_sudo'))
+                domain = Domain.AND(search_detail['base_domain'])
+                meta_names = {f.name for f in model._meta.get_fields()}
+                direct_fields = set(fields_list).intersection(meta_names)
+                indirect_fields = self._search_get_indirect_fields(
+                    fields_list, model)
+                indirect_fields_info = defaultdict(dict)
+                for name, info in indirect_fields.items():
+                    indirect_fields_info[info['comodel']][name] = info
+                subqueries = [get_similarity_subquery(
+                    model, sorted(direct_fields), 'id')]
+                for comodel, infos in indirect_fields_info.items():
+                    comodel_similarity_fields = set()
+                    id_column = rel_table = rel_joinkey = ''
+                    for info in infos.values():
+                        direct_field = model._meta.get_field(info['direct'])
+                        if direct_field.one_to_many:
+                            comodel_similarity_fields.add(info['indirect'])
+                            id_column = comodel._meta.get_field(
+                                info['cofield']).column
+                        elif direct_field.many_to_many:
+                            comodel_similarity_fields.add(info['indirect'])
+                            id_column = direct_field.m2m_column_name()
+                            rel_table = direct_field.m2m_db_table()
+                            rel_joinkey = direct_field.m2m_reverse_name()
+                    if not comodel_similarity_fields:
+                        # Un Many2one punteado no tiene rama aquí — tampoco
+                        # en la fuente, donde dejaría el subquery sin columna
+                        # de id; se salta en vez de emitir SQL roto.
+                        continue
+                    subqueries.append(get_similarity_subquery(
+                        comodel, sorted(comodel_similarity_fields),
+                        id_column, rel_table, rel_joinkey))
+                union_sql = '\nUNION ALL\n'.join(sql for sql, _p in subqueries)
+                union_params = [p for _s, ps in subqueries for p in ps]
+                # UNION ALL permite que cada subplan use su índice GIST —
+                # comentario de la fuente, conservado.
+                cr.execute(
+                    'SELECT id, MAX(similarity) AS _best_similarity'
+                    f' FROM ({union_sql}) sub GROUP BY id'
+                    ' ORDER BY _best_similarity DESC LIMIT 1000',
+                    union_params)
+                ids = [row[0] for row in cr.fetchall()]
+                domain &= Domain('id', 'in', ids)
+                query = to_q(domain, model)
+                with sudo(requires_sudo or is_su()):
+                    records = list(model.objects.filter(query)
+                                   .values(*sorted(direct_fields))[:limit])
+                    objects = (list(model.objects.filter(query)[:limit])
+                               if indirect_fields else [])
+                for record in records:
+                    for value in record.values():
+                        if isinstance(value, str):
+                            yield from re.findall(
+                                match_pattern, value.lower())
+                for indirect_field in indirect_fields.values():
+                    for value in self._mapped_indirect_values(
+                            objects, indirect_field):
+                        if isinstance(value, str):
+                            yield from re.findall(
+                                match_pattern, value.lower())
+
+    def _basic_enumerate_words(self, search_details, search, limit):
+        """≙ ``_basic_enumerate_words`` (``odoo19c: :2297-2355``).
+
+        El enumerador de respaldo cuando ``pg_trgm`` no está: preselecciona
+        por ``=ilike`` sobre la primera letra (inicio de campo, inicio de
+        palabra, o tras ``>`` para HTML) y filtra en Python. Los tres
+        patrones y el rescate del match exacto cuando el ``perf_limit`` se
+        alcanza son verbatim de la fuente.
+        """
+        match_pattern = r'[\w./-]{%s,}' % min(4, len(search) - 3)
+        first = escape_psql(search[0])
+        for search_detail in search_details:
+            model = search_detail['model']
+            fields_list = search_detail['search_fields']
+            requires_sudo = bool(search_detail.get('requires_sudo'))
+            domain = Domain.AND(search_detail['base_domain'])
+            meta_names = {f.name for f in model._meta.get_fields()}
+            direct_fields = set(fields_list).intersection(meta_names)
+            indirect_fields = self._search_get_indirect_fields(
+                fields_list, model)
+            all_fields = direct_fields.union(indirect_fields)
+            fields_domain = Domain.OR([
+                Domain(field, '=ilike', pattern)
+                for field in all_fields
+                for pattern in (
+                    '%s%%' % first,
+                    '%% %s%%' % first,
+                    '%%>%s%%' % first,  # HTML
+                )
+            ])
+            domain &= fields_domain
+            perf_limit = 1000
+            query = to_q(domain, model)
+            with sudo(requires_sudo or is_su()):
+                records = list(model.objects.filter(query)
+                               .values(*sorted(direct_fields))[:perf_limit])
+                objects = (list(model.objects.filter(query)[:limit])
+                           if indirect_fields else [])
+            if len(records) == perf_limit:
+                # El match exacto pudo quedar fuera del recorte de
+                # rendimiento — verificarlo aparte, como la fuente.
+                exact_records, _count = model._search_fetch(
+                    search_detail, search, 1, None)
+                if exact_records:
+                    yield search
+            for record in records:
+                for field_name, value in record.items():
+                    if isinstance(value, str):
+                        value = value.lower()
+                        if field_name == 'arch_db':
+                            value = text_from_html(value)
+                        for word in re.findall(match_pattern, value):
+                            if word[0] == search[0]:
+                                yield word.lower()
+            for indirect_field in indirect_fields.values():
+                for value in self._mapped_indirect_values(
+                        objects, indirect_field):
+                    if isinstance(value, str):
+                        yield from re.findall(match_pattern, value.lower())
