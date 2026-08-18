@@ -1299,8 +1299,9 @@ class Website(TimeStampedModel):
         ``date_publish``, con la ``priority`` de la vista (vía la delegación)
         y el ``lastmod`` como el mayor de ``updated_at``/``view_write_date``
         (≙ ``write_date``/``view_write_date``). El filtro
-        ``('visibility', '=', False)`` es del mixin ausente — BLOQUEADO por
-        ``website.page_options.mixin`` — y no tiene sobre qué operar.
+        ``('visibility', '=', False)`` es de la vista delegada — BLOQUEADO
+        por ``ir.ui.view.visibility`` — y no tiene sobre qué operar
+        (sucesor: tarea **#565**).
         Después se enumera ``StaticPage`` — el interinato que #104 conserva
         (decisión en ``website_page.py``); sin ``force`` sólo cuentan las
         que tienen versión publicada.
@@ -1573,7 +1574,11 @@ class Website(TimeStampedModel):
           COW de ``ir.ui.view`` no portada (divergencia 2 de
           ``website_page.py``); el eje por sitio queda en la página.
         - ``'track': True`` del ``default_page_values`` — BLOQUEADO por
-          ``website.page_options.mixin`` — el campo es de ese mixin.
+          ``ir.ui.view.track`` — el campo **no** es del mixin de opciones de
+          página (#561 lo portó y no lo trae): lo declara la extensión de la
+          vista por el addon del sitio
+          (``odoo19c: website/models/ir_ui_view.py:24``) y llegaría a la
+          página por la delegación ``_inherits``. Sucesor: tarea **#565**.
         - El menú se busca/crea por ``route`` (≙ su ``url``) y lleva la
           ``key`` derivada — campo propio único de ``website.menu``.
         """

@@ -12,6 +12,9 @@ Un archivo por modelo, como la referencia y como ``base``:
 - ``static_page.py`` → ``StaticPage`` + ``StaticPageVersion``.
 - ``banner.py`` → ``Banner``.
 - ``search_entry.py`` → ``SearchEntry``.
+- ``mixins.py`` → los cuatro mixins abstractos del sitio: publicación,
+  búsqueda y el par de opciones de página (``website.page_options.mixin`` +
+  ``website.page_visibility_options.mixin``, #561).
 
 **Los modelos propios ``static_*`` se conservan como interinato.** #104
 alineó ``website.page``/``website.rewrite``/``website.route`` con la
@@ -26,6 +29,12 @@ import StaticContent, ...``.
 """
 from .banner import Banner
 from .ir_http import IrHttp
+from .mixins import (
+    WebsitePageOptionsMixin,
+    WebsitePageVisibilityOptionsMixin,
+    WebsitePublishedMixin,
+    WebsiteSearchableMixin,
+)
 from .search_entry import SearchEntry
 from .website import Website
 from .website_page import PageCannotBeCached, WebsitePage
@@ -47,6 +56,10 @@ __all__ = [
     'WebsiteConfiguratorFeature',
     'WebsiteMenu',
     'WebsitePage',
+    'WebsitePageOptionsMixin',
+    'WebsitePageVisibilityOptionsMixin',
+    'WebsitePublishedMixin',
     'WebsiteRewrite',
     'WebsiteRoute',
+    'WebsiteSearchableMixin',
 ]

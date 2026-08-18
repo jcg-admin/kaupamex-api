@@ -1,10 +1,13 @@
 """Mixins del sitio — adaptación de ``odoo19c: website/models/mixins.py``.
 
-Se portan dos: **el estado de publicación** y **la búsqueda del sitio**
+Se portan cuatro: **el estado de publicación**, **la búsqueda del sitio**
 (``website.searchable.mixin``, ``:327-408``, que consume la búsqueda B3 de
-``website.py``). En la referencia viven en ``website``, no en ``product``, y
-ese reparto es deliberado: un producto existe en el ERP aunque no esté en la
-tienda. Quien dueña "esto se ve en el sitio" es el sitio.
+``website.py``) y el par de **opciones de página**
+(``website.page_visibility_options.mixin`` ``:161-166`` +
+``website.page_options.mixin`` ``:169-176``, tarea **#561**). En la referencia
+viven en ``website``, no en ``product``, y ese reparto es deliberado: un
+producto existe en el ERP aunque no esté en la tienda. Quien dueña "esto se ve
+en el sitio" es el sitio.
 
 Medido en las dos poblaciones que llevan el mixin
 (``odoo-tools@622ddc2a``):
@@ -34,10 +37,15 @@ La referencia declara cinco campos en el mixin; aquí sólo dos tienen sentido:
   construye la URL del documento). Portar el campo sin su motor daría un
   valor siempre falso o siempre ``'#'`` — que es lo que la referencia pone
   como *placeholder*, no como respuesta.
+
+Las opciones de página, en cambio, se portan **enteras**: sus dos clases
+declaran cinco campos y ningún método, y ninguno depende de pieza ausente
+(ver el docstring de ``WebsitePageOptionsMixin``).
 """
 import re
 
-from django.db import models
+import fields
+import models
 
 from addons.website.tools import text_from_html
 from orm.domains import Domain, to_q
@@ -254,3 +262,100 @@ class WebsitePublishedMixin(models.Model):
         for name in ('website_published', 'website_publish_button'):
             if not hasattr(model, name):
                 setattr(model, name, getattr(cls, name))
+
+
+class WebsitePageVisibilityOptionsMixin(models.Model):
+    """≙ ``website.page_visibility_options.mixin``
+    (``odoo19c: website/models/mixins.py:161-166``).
+
+    *"Website page/record specific visibility options"* — las dos banderas
+    con que una página decide si dibuja la cabecera y el pie del sitio. Su
+    consumidor en la referencia es la plantilla del layout
+    (``website/views/website_templates.xml:271``, que itera los cinco
+    nombres de este par de mixins).
+
+    Se porta **completo**: dos campos, ningún método. Vive separado de
+    ``WebsitePageOptionsMixin`` porque la referencia lo separa a propósito —
+    ``website_event`` y ``website_blog`` heredan **sólo** este
+    (``odoo19c: website_event/models/event_event.py:27`` y
+    ``website_blog/models/website_blog.py:165``): un evento oculta la
+    cabecera sin poder recolorearla. Fundir los dos aquí daría a esos dos
+    modelos tres campos que su fuente no les da.
+    """
+
+    _name = 'website.page_visibility_options.mixin'
+    _description = "Website page/record specific visibility options"
+
+    header_visible = fields.Boolean(
+        default=True,
+        help_text='La página dibuja la cabecera del sitio (Odoo '
+                  'header_visible).',
+    )
+    footer_visible = fields.Boolean(
+        default=True,
+        help_text='La página dibuja el pie del sitio (Odoo footer_visible).',
+    )
+
+    class Meta:
+        abstract = True
+
+
+class WebsitePageOptionsMixin(WebsitePageVisibilityOptionsMixin):
+    """≙ ``website.page_options.mixin``
+    (``odoo19c: website/models/mixins.py:169-176``) — tarea **#561**.
+
+    *"Website page/record specific options"* — lo que una página puede
+    decidir **por sí misma** sobre la cabecera del sitio: si el contenido
+    pasa por debajo (``header_overlay``) y con qué colores se pinta. Junto
+    con los dos heredados son los cinco nombres que la plantilla del layout
+    lee por página.
+
+    Contrato medido de la fuente (AST sobre las dos clases): **5 atributos
+    de clase, 5 campos, 0 métodos**. Se portan los diez — el porte es
+    completo, sin aristas.
+
+    ``_inherit`` se declara verbatim
+    (``atributos-de-clase-de-modelo.md``) y su **mecanismo** es la herencia
+    de Python: la clase hereda de ``WebsitePageVisibilityOptionsMixin``, que
+    es abstracta, así que los cinco campos aterrizan en la tabla del modelo
+    concreto que la consuma. Es el mismo camino que la fuente recorre con su
+    ``_inherit`` de un ``AbstractModel``.
+
+    Divergencias declaradas — las dos son del tipo ``Char``:
+
+    1. La fuente escribe ``fields.Char()`` sin longitud porque su columna es
+       ``varchar`` sin límite; Django exige ``max_length`` en ``CharField``.
+       Se fija en 64, que cubre con holgura lo que el editor escribe ahí:
+       ``getColorValue("background-color", "bg-")``
+       (``odoo19c: website/static/src/builder/plugins/options/website_page_config_option_plugin.js:100``)
+       produce clases cortas del tipo ``bg-o-color-1``.
+    2. El vacío se representa con ``default=''`` + ``blank=True`` en vez de
+       ``NULL``: la fuente lee el campo sin opción vacía
+       (``'header_color' in main_object and main_object.sudo().header_color
+       or ''``, ``website_templates.xml:278``), así que dos vacíos
+       distinguibles serían una diferencia sin consumidor. Mismo criterio
+       que ``ResCompany.primary_color``.
+    """
+
+    _name = 'website.page_options.mixin'
+    _inherit = ['website.page_visibility_options.mixin']
+    _description = "Website page/record specific options"
+
+    header_overlay = fields.Boolean(
+        default=False,
+        help_text='El contenido de la página pasa por debajo de la cabecera '
+                  '(Odoo header_overlay).',
+    )
+    header_color = fields.Char(
+        max_length=64, blank=True, default='',
+        help_text='Color o clase de fondo de la cabecera en esta página '
+                  '(Odoo header_color).',
+    )
+    header_text_color = fields.Char(
+        max_length=64, blank=True, default='',
+        help_text='Color o clase del texto de la cabecera en esta página '
+                  '(Odoo header_text_color).',
+    )
+
+    class Meta:
+        abstract = True

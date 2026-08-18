@@ -41,24 +41,8 @@ addons/hr/migrations/0006_hrversion_hremployee_version_and_more.py::help_text="O
 addons/hr/migrations/0006_hrversion_hremployee_version_and_more.py::help_text="Odoo job_title (compute+inverse+store). BLOQUEADO el auto-sync desde job.name — familia (a); se asigna directo.",
 addons/hr/migrations/0006_hrversion_hremployee_version_and_more.py::help_text="Odoo resource_calendar_id (inverse=_inverse_resource_calendar_id). BLOQUEADO el inverse (sincroniza employee.resource.calendar cuando esta versión es la vigente) — familia (a).",
 addons/hr/migrations/0006_hrversion_hremployee_version_and_more.py::help_text="Odoo structure_type_id (compute+store, default=_default_salary_structure). DIVERGENCIA: sin default de campo — se porta _default_salary_structure_for_company como helper explícito (ver métodos); BLOQUEADO el auto-sync (_compute_structure_type_id) — familia (a).",
-addons/hr/models/hr_employee.py::"Puesto/departamento" de la tabla BLOQUEADOS de abajo — ver la sección
-addons/hr/models/hr_employee.py::# UniqueConstraint de base de datos sin la columna. BLOQUEADO.
-addons/hr/models/hr_employee.py::# ``_inherits`` queda fuera: es justo el mecanismo BLOQUEADO.
-addons/hr/models/hr_employee.py::# registro y el wizard de salida quedan BLOQUEADOS, ver docstring)
-addons/hr/models/hr_employee.py::**Lo que sigue BLOQUEADO tras esta tarea:** los 83 métodos (ninguno se portó
-addons/hr/models/hr_employee.py::- **BLOQUEADOS: 83** — cuatro familias: (a) TODO lo que lee
 addons/hr/models/hr_employee.py::- BLOQUEADO
 addons/hr/models/hr_employee.py::- BLOQUEADO
-addons/hr/models/hr_employee.py::.. list-table:: Divergencias de campo (declaradas, no BLOQUEADAS)
-addons/hr/models/hr_employee.py::BLOQUEADO, con su pieza faltante nombrada. Sucesor: tarea PENDIENTE DE
-addons/hr/models/hr_employee.py::Sin ``hr.version`` (BLOQUEADO, ver docstring del módulo), este puerto
-addons/hr/models/hr_employee.py::Sucesor de TODO lo BLOQUEADO: tarea PENDIENTE DE ASIGNAR — portar
-addons/hr/models/hr_employee.py::``version_id.work_location_id`` (``:515-523``) — BLOQUEADOS con el
-addons/hr/models/hr_employee.py::help_text='BLOQUEADO el cómputo (_compute_last_activity, requiere '
-addons/hr/models/hr_employee.py::help_text='BLOQUEADO el cómputo (_compute_presence_icon).',
-addons/hr/models/hr_employee.py::help_text='BLOQUEADO el cómputo (_compute_presence_state, requiere '
-addons/hr/models/hr_employee.py::help_text='BLOQUEADO el cómputo (depende de version_id.work_location_id).',
-addons/hr/models/hr_employee.py::help_text='BLOQUEADO el cómputo (depende de version_id.work_location_id).',
 addons/hr/models/hr_employee_category.py::# DEFERIDO (no stub): employee_ids — requiere hr.employee (BLOQUEADO,
 addons/hr/models/hr_employee_category.py::- BLOQUEADO
 addons/hr/models/hr_mixin.py::# create()/write() — BLOQUEADO, ver tabla del docstring del módulo.

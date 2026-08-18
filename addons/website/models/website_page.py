@@ -85,6 +85,7 @@ from addons.base.models import TimeStampedModel
 from addons.base.models.ir_http import IrHttp
 from addons.base.models.ir_ui_view import IrUiView
 from addons.website.models.mixins import (
+    WebsitePageOptionsMixin,
     WebsitePublishedMixin,
     WebsiteSearchableMixin,
     order_expression_to_order_by,
@@ -127,22 +128,33 @@ def _translate_order(order):
 
 
 class WebsitePage(WebsiteSearchableMixin, WebsitePublishedMixin,
-                  TimeStampedModel):
+                  WebsitePageOptionsMixin, TimeStampedModel):
     """``website.page`` — una URL del sitio cuyo contenido es una vista.
 
     La página no *tiene* el contenido: **delega** en ``ir.ui.view`` por
     ``_inherits`` y aporta lo suyo — la URL, el sitio, la indexación y la
     fecha de publicación (ver el docstring del módulo, divergencia 1).
 
-    ``_inherit`` se declara verbatim (``atributos-de-clase-de-modelo.md``:
-    nombra la extensión aunque el mixin aún no exista). De los tres:
-    ``website.searchable.mixin`` y el estado de publicación están portados en
-    ``mixins.py`` (aquí la variante simple — la «multi» sólo añade el
-    ``website_id`` que esta clase redefine, igual que la fuente comenta);
-    ``website.page_options.mixin`` no existe — BLOQUEADO por
-    ``website.page_options.mixin`` — sus campos (``visibility``,
-    ``group_ids``, ``track``, ``header_*``) y las ramas que los consumen
-    quedan fuera hasta su porte.
+    ``_inherit`` se declara verbatim (``atributos-de-clase-de-modelo.md``) y
+    **los tres están portados en** ``mixins.py``:
+
+    - ``website.published.multi.mixin`` — aquí la variante simple; la «multi»
+      sólo añade el ``website_id`` que esta clase redefine, igual que la
+      fuente comenta.
+    - ``website.searchable.mixin`` — el contrato de búsqueda.
+    - ``website.page_options.mixin`` — desde la tarea **#561**: aporta los
+      cinco campos por página del layout (``header_visible``,
+      ``footer_visible``, ``header_overlay``, ``header_color``,
+      ``header_text_color``), heredados por MRO desde la clase abstracta.
+
+    Lo que **no** llega por esa vía, y su arista real: ``visibility``,
+    ``group_ids``, ``visibility_password`` y ``track`` son campos que el
+    addon ``website`` suma a **``ir.ui.view``**
+    (``odoo19c: website/models/ir_ui_view.py:24-35``), no al mixin de
+    opciones — llegarían a la página por la delegación ``_inherits``.
+    BLOQUEADO por ``addons/website/models/ir_ui_view.py`` — la extensión de
+    la vista por el addon del sitio no está portada; con ella llegan también
+    la COW por sitio y el motor de grupos.
     """
 
     _name = 'website.page'
@@ -461,9 +473,9 @@ class WebsitePage(WebsiteSearchableMixin, WebsitePublishedMixin,
         hace única, se propaga a los menús de la página y se sincroniza la
         portada del sitio; si el nombre cambió, la ``key`` de la vista se
         rederiva única. La rama ``visibility``/``group_ids`` de la fuente
-        pertenece al mixin ausente — BLOQUEADO por
-        ``website.page_options.mixin`` — y el ``clear_cache`` final es del
-        ormcache no portado (#542).
+        llega por la delegación en la vista, no por el mixin de opciones —
+        BLOQUEADO por ``ir.ui.view.visibility`` — (sucesor: tarea **#565**) y el
+        ``clear_cache`` final es del ormcache no portado (#542).
         """
         previous = None
         if self.pk:
@@ -516,7 +528,9 @@ class WebsitePage(WebsiteSearchableMixin, WebsitePublishedMixin,
           external ID (#467) el default conservador es aplicar SIEMPRE el
           recorte del público: publicada e indexada.
         - Los escalones ``visibility``/``group_ids`` — BLOQUEADO por
-          ``website.page_options.mixin`` — los campos no existen.
+          ``ir.ui.view.visibility`` — son campos de la vista delegada, no
+          del mixin de opciones, y la vista no los declara aquí. Sucesor:
+          tarea **#565**.
         """
         with_description = options.get('displayDescription')
         # La lectura de website.page exige sudo también aquí (comentario de
@@ -644,9 +658,9 @@ class WebsitePage(WebsiteSearchableMixin, WebsitePublishedMixin,
         divergencia 5 del módulo); (2) ``request`` es el ``HttpRequest`` de
         Django — la ruta sale de ``request.path`` y el sitio de
         ``get_current_website``, no de ``request.website``; (3)
-        ``group_ids`` pertenece al mixin ausente — BLOQUEADO por
-        ``website.page_options.mixin`` — la clave se sirve vacía para
-        conservar el contrato del dict.
+        ``group_ids`` es de la vista delegada — BLOQUEADO por
+        ``ir.ui.view.group_ids`` — (sucesor: tarea **#565**) la clave se sirve
+        vacía para conservar el contrato del dict.
         """
         req_page = request.path
         current_website = Website.get_current_website()

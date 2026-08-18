@@ -44,18 +44,50 @@ Actualización (tarea #513, H-API-690) — ``hr.version`` ya existe
 ``addons/hr/models/hr_version.py``. La columna ``version`` (FK real,
 sustituta de la delegación ``_inherits`` que Django no tiene) más 23
 propiedades conectan los grupos "Identidad de versión", "Contrato" y
-"Puesto/departamento" de la tabla BLOQUEADOS de abajo — ver la sección
+"Puesto/departamento" de la tabla histórica de abajo — ver la sección
 "Delegación a hr.version — PORTADO" en el cuerpo de la clase.
 
-**Lo que sigue BLOQUEADO tras esta tarea:** los 83 métodos (ninguno se portó
-en este pase — conectarlos exige releer cada uno contra el ``hr.version``
-recién construido, p. ej. ``_get_contract_dates`` agrega sobre **todas**
-las versiones del empleado, no sólo la vigente; no es una delegación
-directa a ``self.version.<método>``) y las columnas del grupo (b)/(c)/(d)/(e)
-del resumen de métodos, que dependen de acciones/onchange/ACL, no de
-``hr.version``. Sucesor: tarea **#524** — conectar los métodos
-familia (a) uno a uno contra ``hr.HrVersion.versions`` (el queryset
-completo del historial), no sólo contra ``self.version``.
+Aquel pase **no portó ningún método**: conectarlos exigía releer cada uno
+contra el ``hr.version`` recién construido, y eso es lo que hace la tarea
+#524 (abajo).
+
+Actualización (tarea #524, H-API-712) — familia (a) reconectada
+====================================================================
+
+Porte BLOQUEADO — 64 de 120 símbolos
+
+Aritmética medida por AST en este pase (no a ojo — el defecto de
+:ref:`h-api-711` es exactamente ése), con el mismo comando que fija
+``porte-completo-no-parcial.md``:
+
+===========================================================  ====
+métodos de ``HrEmployee`` en ``odoo19c``                      120
+presentes aquí **con el mismo nombre**                         44
+resueltos con **otra forma** (property, ``save()``/``clean()``) 20
+sin resolver                                                   56
+===========================================================  ====
+
+Antes de este pase los presentes por nombre eran **20**; la familia (a)
+aporta los **24** que faltaban: ``_get_first_versions``,
+``_get_first_versions_filtered``, ``_get_first_version_date``,
+``_get_first_contract_date``, ``_get_version``,
+``_compute_current_version_id``, ``_cron_update_current_version_id``,
+``_compute_work_location_name``, ``_compute_work_location_type``,
+``_get_all_contract_dates``, ``_get_contract_dates``, ``_is_in_contract``,
+``check_no_existing_contract``, ``_get_contract_versions``,
+``_get_contracts``, ``_get_versions_with_contract_overlap_with_period``,
+``_get_all_versions_with_contract_overlap_with_period``,
+``create_version``, ``create_contract``, ``_get_departure_date``,
+``_get_tz``, ``_get_tz_batch``, ``_get_version_periods`` y
+``_get_calendar_periods``.
+
+Lo que la reconexión confirma, y era la premisa de la tarea: **no es
+delegación a** ``self.version``. Nueve de los veinticuatro agregan sobre
+**todo** el historial (``self.versions``, el reverso de
+``hr.HrVersion.employee``): ``_get_all_contract_dates`` recorre los
+intervalos de contrato de todas las versiones, ``_get_first_versions_filtered``
+corta la serie en el primer hueco de 4 días, y ``_get_contract_versions``
+particiona el historial por ``contract_date_start``.
 
 Mixins heredados — mismo orden que ``_inherit`` de la referencia
 ==================================================================
@@ -80,7 +112,7 @@ final (mismo patrón que ``ResPartner``/``StockPicking`` en este árbol).
 - **``avatar.mixin``** da ``image_1920``…``image_128`` + los cinco
   ``avatar_*`` generados.
 
-.. list-table:: Divergencias de campo (declaradas, no BLOQUEADAS)
+.. list-table:: Divergencias de campo (declaradas, no bloqueadas)
    :header-rows: 1
 
    * - Símbolo
@@ -110,7 +142,7 @@ final (mismo patrón que ``ResPartner``/``StockPicking`` en este árbol).
        Quien necesite reasignar el usuario escribe en ``self.resource.user``,
        igual que la ``tz`` de ``ResourceMixin``.
    * - ``im_status`` (``related='user_id.im_status'``)
-     - BLOQUEADO
+     - BLOQUEADO por ``base.ResUsers.im_status``
      - ``base.ResUsers`` no declara ``im_status`` — es infraestructura de
        presencia (``bus``) no portada aquí. Sucesor: tarea **#21**
        (integración de la familia ``bus``).
@@ -126,7 +158,7 @@ final (mismo patrón que ``ResPartner``/``StockPicking`` en este árbol).
        ``hr_work_location.py::LocationType``. ``_get_certificate_selection``
        se conserva como método (devuelve la misma lista, ver métodos).
    * - ``employee_properties`` (``fields.Properties``)
-     - BLOQUEADO
+     - BLOQUEADO por ``company_id.employee_properties_definition``
      - ``PropertiesBaseDefinitionMixin`` existe en ``base`` pero el cableado
        específico a ``company_id.employee_properties_definition`` no está
        construido — mecanismo transversal, fuera de alcance de este archivo.
@@ -161,28 +193,50 @@ final (mismo patrón que ``ResPartner``/``StockPicking`` en este árbol).
      - Grep confirmado: 0 apariciones como campo en
        ``hr_employee.py``; viven en ``hr.version`` y llegan por
        delegación. ``work_location_name``/``work_location_type`` de este
-       archivo SÍ están declarados aquí pero su ``@api.depends`` lee
-       ``version_id.work_location_id`` (``:515-523``) — BLOQUEADOS con el
-       grupo de Contrato.
+       archivo SÍ están declarados aquí y su cómputo, que lee
+       ``version_id.work_location_id`` (``:515-523``), quedó reconectado en
+       la tarea #524.
 
 Métodos — resumen (detalle completo en :ref:`h-api-683`)
 ===========================================================
 
-- **PORTADOS: 31** — bancarios (``_compute_is_trusted_bank_account``…
-  ``action_toggle_primary_bank_account_trust``), work contact
-  (``_create_work_contacts``, ``_compute_work_contact_details``,
-  ``_inverse_work_contact_details``, ``_remove_work_contact_id``),
-  identidad (``_compute_legal_name``, ``_compute_coach``,
-  ``_compute_birthday_public_display_string``, ``_compute_work_permit_name``,
-  ``_get_age``, ``_compute_newly_hired``, ``_get_new_hire_field``),
-  contactos relacionados (``_get_related_partners``,
-  ``_compute_related_partners_count``), validación
-  (``_verify_pin``, ``_verify_barcode``), misceláneos
-  (``generate_random_barcode``, ``_phone_get_number_fields``,
-  ``_mail_get_partner_fields``, ``_lang_get``, ``_get_certificate_selection``,
+- **PORTADOS CON EL MISMO NOMBRE: 44** — los 20 previos más los 24 de la
+  familia (a) que lista la sección "Actualización (tarea #524)":
+
+  ``_compute_coach``, ``_compute_current_version_id``,
+  ``_compute_work_contact_details``, ``_compute_work_location_name``,
+  ``_compute_work_location_type``, ``_create_work_contacts``,
+  ``_cron_update_current_version_id``, ``_get_age``,
+  ``_get_all_contract_dates``,
+  ``_get_all_versions_with_contract_overlap_with_period``,
+  ``_get_calendar_periods``, ``_get_certificate_selection``,
+  ``_get_contract_dates``, ``_get_contract_versions``, ``_get_contracts``,
+  ``_get_departure_date``,
   ``_get_employee_m2o_to_empty_on_archived_employees``,
-  ``_get_user_m2o_to_empty_on_archived_employees``).
-- **DIVERGENCIA: 6** — ``_compute_avatar`` + las cinco
+  ``_get_first_contract_date``, ``_get_first_version_date``,
+  ``_get_first_versions``, ``_get_first_versions_filtered``,
+  ``_get_new_hire_field``, ``_get_related_partners``, ``_get_tz``,
+  ``_get_tz_batch``, ``_get_user_m2o_to_empty_on_archived_employees``,
+  ``_get_version``, ``_get_version_periods``,
+  ``_get_versions_with_contract_overlap_with_period``,
+  ``_inverse_work_contact_details``, ``_is_in_contract``, ``_lang_get``,
+  ``_mail_get_partner_fields``, ``_phone_get_number_fields``,
+  ``_remove_work_contact_id``, ``_sync_salary_distribution``,
+  ``action_toggle_primary_bank_account_trust``,
+  ``check_no_existing_contract``, ``create_contract``, ``create_version``,
+  ``generate_random_barcode``, ``get_accounts_with_fixed_allocations``,
+  ``get_bank_account_salary_allocation``, ``get_remaining_percentage``.
+
+- **RESUELTOS CON OTRA FORMA: 20** — ocho ``_compute_*`` que aquí son
+  ``@property`` (``newly_hired_computed``, ``versions_count``,
+  ``version_revision``, ``is_trusted_bank_account``,
+  ``has_multiple_bank_accounts``, ``primary_bank_account``,
+  ``related_partners_count_computed``, y ``_compute_version_id``, que la
+  FK real ``version`` sustituye); seis inlinados en ``save()``/``clean()``
+  (``_compute_legal_name``, ``_compute_birthday_public_display_string``,
+  ``_compute_work_permit_name``, ``_verify_pin``, ``_verify_barcode``,
+  ``_check_salary_distribution``); y los seis del avatar —
+  ``_compute_avatar`` + las cinco
   ``_compute_avatar_{1920,1024,512,256,128}``: la referencia las
   sobreescribe con la firma ``(self, avatar_field, image_field)`` para caer
   al avatar del usuario si el empleado no tiene imagen propia; la
@@ -192,16 +246,31 @@ Métodos — resumen (detalle completo en :ref:`h-api-683`)
   escribibles). El avatar generado (inicial + color por hash) sigue
   funcionando vía la mixin; lo que falta es el *fallback al avatar del
   usuario*.
-- **BLOQUEADOS: 83** — cuatro familias: (a) TODO lo que lee
-  ``version_id``/contrato/calendario de contrato (``create_version``,
-  ``create_contract``, ``_get_contract*``, ``_get_calendar*``,
-  ``_get_version*``, ``_get_tz*``, ``notify_expiring_contract_work_permit``,
-  ``check_no_existing_contract``, ``_is_in_contract``,
-  ``_get_expected_attendances``, ``_get_calendar_attendances``,
-  ``_get_unusual_days``, ``_employee_attendance_intervals``,
-  ``_get_departure_date``, ``_cron_update_current_version_id``,
-  ``_search_version_id``, ``_field_to_sql``); (b) el framework de acciones
-  cliente de Odoo, sin equivalente en este stack DRF+React
+- **SIN RESOLVER: 56** — cuatro familias, tras la tarea #524. La familia
+  (a) original (``version_id``/contrato/calendario) ya no aparece entera:
+  quedan de ella sólo las seis piezas que dependen de mecanismos ajenos a
+  ``hr.version``:
+
+  - BLOQUEADO por ``resource.mixin._get_calendars`` — ``_get_calendars`` es
+    un ``super()`` sobre la mixin, que no lo declara; y ``_get_calendar_tz_batch``
+    lo consume. Sucesor: tarea **#514**.
+  - BLOQUEADO por ``resource.ResourceCalendar._work_intervals_batch`` — el
+    motor de intervalos, del que cuelgan ``_get_unusual_days``,
+    ``_employee_attendance_intervals``, ``_get_expected_attendances`` y
+    ``_get_calendar_attendances``. Sucesor: tarea **#514**.
+  - BLOQUEADO por ``base.ResCompany.contract_expiration_notice_period`` —
+    ``notify_expiring_contract_work_permit`` lee ese plazo y su hermano
+    ``work_permit_expiration_notice_period``, que ``ResCompany`` no declara
+    (medido: 0 apariciones en ``addons/`` y ``src/``). Sucesor: tarea **#515**.
+  - DIVERGENCIA de mecanismo — ``_search_version_id`` y ``_field_to_sql``
+    traducen un dominio Odoo a SQL; aquí la FK ``version`` es una columna
+    real y se filtra con el ORM de Django directamente. No es un bloqueo:
+    ``orm.Domain`` **existe** (``src/orm/domains.py``, portada por la tarea
+    #356), así que citarla como pieza faltante sería falso. Lo que no hace
+    falta es la traducción, no la clase.
+
+  Las otras tres familias no cambian: (b) el framework de acciones cliente
+  de Odoo, sin equivalente en este stack DRF+React
   (``action_related_contacts``, ``action_create_user(s)``,
   ``action_open_versions``, ``action_open_allocation_wizard``,
   ``action_archive``, ``action_unarchive``, ``get_import_templates``,
@@ -215,38 +284,37 @@ Métodos — resumen (detalle completo en :ref:`h-api-683`)
   ``_check_private_fields``, ``_copy_cache_from``, ``get_view``,
   ``get_views``, ``_search``, ``search_fetch``, ``fetch``,
   ``_compute_display_name``, ``_load_demo_data``, ``_load_scenario``,
-  ``get_formview_id``, ``get_formview_action``); y (e) la mecánica
-  ``_inherits`` de alta/baja (``new``, ``create``, ``write``, ``unlink``,
-  ``_create``, ``_prepare_create_values``, ``_sync_user``,
-  ``_prepare_resource_values``, ``_get_partner_count_depends``
-  [``@api.depends`` dinámico, sin consumidor propio aquí],
-  ``_compute_presence_icon``, ``_compute_presence_state``,
-  ``_get_employee_working_now``, ``_compute_last_activity``,
-  ``_search_newly_hired``, ``_compute_version_id``,
-  ``_compute_work_location_name``, ``_compute_work_location_type``,
-  ``_compute_current_version_id``, ``_compute_versions_count``,
-  ``_compute_version_revision``, ``_get_first_versions*``,
-  ``_get_first_*_date``, ``_get_all_contract_dates``,
-  ``_get_contract_dates``, ``_get_all_versions_with_contract_overlap_with_period``,
-  ``_get_versions_with_contract_overlap_with_period``).
+  ``get_formview_id``, ``get_formview_action``, ``_search_newly_hired``); y
+  (e) la mecánica ``_inherits`` de alta/baja (``new``, ``create``,
+  ``write``, ``unlink``, ``_create``, ``_prepare_create_values``,
+  ``_sync_user``, ``_prepare_resource_values``,
+  ``_get_partner_count_depends`` [``@api.depends`` dinámico, sin consumidor
+  propio aquí], ``_compute_presence_icon``, ``_compute_presence_state``,
+  ``_get_employee_working_now``, ``_compute_last_activity``).
 
-Sucesores de todo lo bloqueado: ``hr.version`` ya está portado (#513); la
-reconexión de estos métodos es la tarea **#524**, y el motor de intervalos
-de ``resource.calendar``/``resource.resource`` (ya DEFERIDO por falta de
+Sucesores de lo que sigue sin resolver: ``hr.version`` ya está portado
+(#513) y su familia (a) reconectada (#524). El motor de intervalos de
+``resource.calendar``/``resource.resource`` (ya DEFERIDO por falta de
 consumidor en ``resource_resource.py`` / ``resource_mixin.py`` de este
-mismo addon padre) es la tarea **#514**.
+mismo addon padre) es la tarea **#514**; los plazos de aviso de contrato en
+``ResCompany`` y el cableado de ``employee_properties`` son la tarea
+**#515**.
 """
 import re
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from random import choice
 from string import digits
+from zoneinfo import ZoneInfo
 
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 import fields
 import models
+
+from exceptions import UserError
+from tools.translate import _
 
 from addons.base.models import (
     ResCountry,
@@ -266,15 +334,18 @@ from .hr_version import HrVersion
 class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin, TimeStampedModel):
     """``hr.employee`` — un empleado.
 
-    Sin ``hr.version`` (BLOQUEADO, ver docstring del módulo), este puerto
-    cubre identidad personal, contacto de trabajo, cuentas bancarias con su
-    distribución de nómina, y los mixins de chatter/actividad/avatar/recurso.
-    NO cubre puesto, departamento, contrato ni calendario efectivo.
+    Con ``hr.version`` ya portado (#513) y su familia de métodos reconectada
+    (#524), este puerto cubre identidad personal, contacto de trabajo,
+    cuentas bancarias con su distribución de nómina, los mixins de
+    chatter/actividad/avatar/recurso, y el historial de versiones: puesto,
+    departamento, contrato y sus fechas. Lo que sigue sin resolver está
+    contado en la cabecera del módulo.
     """
 
     # Atributos de clase de modelo — los 5 no delegados que la referencia
     # declara verbatim (``odoo19c: hr/models/hr_employee.py:37-42``).
-    # ``_inherits`` queda fuera: es justo el mecanismo BLOQUEADO.
+    # ``_inherits`` queda fuera: es el mecanismo que este ORM no tiene, y
+    # lo sustituye la FK ``version`` de abajo.
     _name = 'hr.employee'
     _description = "Employee"
     _order = 'name'
@@ -320,14 +391,16 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin, Time
             ('archive', 'Archivado'),
             ('out_of_working_hour', 'Fuera de horario')],
         default='out_of_working_hour', verbose_name='Estado de presencia',
-        help_text='BLOQUEADO el cómputo (_compute_presence_state, requiere '
-                  'resource_calendar_id del contrato + presence_ids de '
-                  'usuario); el campo queda en su default.',
+        help_text='BLOQUEADO por ``base.ResUsers.presence_ids`` — el cómputo '
+                  '(_compute_presence_state) necesita la presencia del '
+                  'usuario, infra bus no portada. El campo queda en su '
+                  'default. Sucesor: tarea #21.',
     )
     last_activity = fields.Date(
         null=True, blank=True, verbose_name='Última actividad',
-        help_text='BLOQUEADO el cómputo (_compute_last_activity, requiere '
-                  'presence_ids de usuario, infra bus no portada).',
+        help_text='BLOQUEADO por ``base.ResUsers.presence_ids`` — el cómputo '
+                  '(_compute_last_activity) necesita la presencia del '
+                  'usuario, infra bus no portada. Sucesor: tarea #21.',
     )
     last_activity_time = fields.Char(max_length=16, blank=True, default='')
     hr_icon_display = fields.Selection(
@@ -339,7 +412,9 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin, Time
             ('presence_archive', 'Archivado'),
             ('presence_undetermined', 'Indeterminado')],
         blank=True, default='',
-        help_text='BLOQUEADO el cómputo (_compute_presence_icon).',
+        help_text='BLOQUEADO por ``hr_presence_state`` — _compute_presence_icon '
+                  'deriva de ese campo, que queda en su default. '
+                  'Sucesor: tarea #21.',
     )
     show_hr_icon_display = fields.Boolean(default=False)
     newly_hired = fields.Boolean(
@@ -411,13 +486,17 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin, Time
 
     work_location_name = fields.Char(
         max_length=150, blank=True, default='',
-        help_text='BLOQUEADO el cómputo (depende de version_id.work_location_id).',
+        help_text='Odoo work_location_name — lo materializa '
+                  '_compute_work_location_name desde version.work_location '
+                  'al guardar (tarea #524).',
     )
     work_location_type = fields.Selection(
         max_length=6,
         choices=[('home', 'Casa'), ('office', 'Oficina'), ('other', 'Otra')],
         blank=True, default='',
-        help_text='BLOQUEADO el cómputo (depende de version_id.work_location_id).',
+        help_text='Odoo work_location_type — lo materializa '
+                  '_compute_work_location_type desde version.work_location '
+                  'al guardar (tarea #524).',
     )
 
     # --- employee in company ----------------------------------------------
@@ -456,9 +535,10 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin, Time
         ordering = ['name']
         verbose_name = 'Empleado'
         verbose_name_plural = 'Empleados'
-        # ``_user_uniq`` de la referencia (``:248-251``) requiere ``user_id``,
-        # que aquí es una property (no columna) — no expresable como
-        # UniqueConstraint de base de datos sin la columna. BLOQUEADO.
+        # ``_user_uniq`` de la referencia (``:248-251``) está
+        # BLOQUEADO por ``user_id`` — aquí es una property, no una columna,
+        # y una UniqueConstraint de base de datos necesita la columna.
+        # Sucesor: tarea #515.
         constraints = [
             # ``_barcode_uniq`` (``:244-247``) — ``unique=True`` en el campo
             # ya lo cubre a nivel de columna; se declara también aquí para
@@ -649,6 +729,520 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin, Time
     def work_location(self):
         """≙ ``work_location_id`` — idem ``department_id``, delegado."""
         return self.version.work_location if self.version_id else None
+
+    @property
+    def departure_reason(self):
+        """≙ ``departure_reason_id`` — idem ``department_id``, delegado."""
+        return self.version.departure_reason if self.version_id else None
+
+    @property
+    def departure_description(self):
+        """≙ ``departure_description`` — idem ``department_id``, delegado."""
+        return self.version.departure_description if self.version_id else ''
+
+    @property
+    def departure_date(self):
+        """≙ ``departure_date`` — idem ``department_id``, delegado.
+
+        Lo consume ``_get_departure_date`` (tarea #524).
+        """
+        return self.version.departure_date if self.version_id else None
+
+    # ------------------------------------------------------------------
+    # Historial de versiones — PORTADO (tarea #524)
+    #
+    # Familia (a) de :ref:`h-api-683`: lo que la referencia resuelve leyendo
+    # ``version_id``/``version_ids``/contrato/calendario. La reconexión NO es
+    # delegación a ``self.version``: la mayoría agrega sobre **todo** el
+    # historial (``self.versions``, el reverso de ``hr.HrVersion.employee``).
+    #
+    # Dos divergencias de forma que aplican a toda la sección y no se repiten
+    # en cada docstring:
+    #
+    # 1. El argumento que la referencia llama ``date`` se llama aquí
+    #    ``on_date`` — ``date`` es el tipo importado a nivel de módulo, y
+    #    sombrearlo rompe ``date.today()`` dentro del propio método. Mismo
+    #    criterio ya aplicado en ``hr_version.py::_is_in_contract``.
+    # 2. Los métodos que la referencia ejecuta sobre un recordset
+    #    (``_get_tz_batch``, ``_get_contracts``, ``_get_contract_versions``…)
+    #    son ``classmethod`` que reciben ``employees`` — mismo patrón que
+    #    ``web/models/models.py::web_read(cls, records, …)``.
+    # ------------------------------------------------------------------
+
+    def _get_first_versions(self, before_date=None):
+        """≙ ``_get_first_versions`` (``:453-458``) — el historial completo.
+
+        DIVERGENCIA: ``self.env.context['before_date']`` → argumento
+        explícito. Este ORM no tiene contexto de entorno.
+        """
+        versions = self.versions.all()
+        if before_date:
+            return [version for version in versions
+                    if version.date_start and version.date_start <= before_date]
+        return list(versions)
+
+    def _get_first_versions_filtered(self, no_gap=True, before_date=None):
+        """≙ ``_get_first_versions_filtered`` (``:460-486``).
+
+        Devuelve el tramo de versiones que forma la ocupación más antigua
+        **continua**: al recorrer el historial de la más nueva a la más
+        vieja, un hueco de 4 días o más entre el fin de una y el inicio de
+        la siguiente corta la serie.
+
+        BLOQUEADO por ``base.ResUsers.has_group`` — la referencia levanta
+        ``AccessError`` si quien llama no está en ``hr.group_hr_user``
+        (``:462-463``); medido: 0 apariciones de ``has_group`` y de
+        ``group_hr_user`` en ``addons/`` y ``src/``. Es la familia (d) del
+        resumen de métodos del módulo. Sucesor: tarea **#573**
+        (:ref:`h-api-718`).
+        """
+        def remove_gap(versions):
+            # Un hueco de más de 4 días no se considera la misma ocupación;
+            # las versiones llegan ya ordenadas de más nueva a más vieja.
+            if not versions:
+                return []
+            if len(versions) == 1:
+                return versions
+            current_version = versions[0]
+            older_versions = versions[1:]
+            current_date = current_version.date_start
+            for index, other_version in enumerate(older_versions):
+                # date_end vacío se trata como error y corta el recorrido.
+                other_end = other_version.date_end or date(2100, 1, 1)
+                gap = (current_date - other_end).days if current_date else 0
+                current_date = other_version.date_start
+                if gap >= 4:
+                    return older_versions[0:index] + [current_version]
+            return older_versions + [current_version]
+
+        versions = sorted(
+            self._get_first_versions(before_date=before_date),
+            key=lambda version: (version.date_start or date.min),
+            reverse=True,
+        )
+        if no_gap:
+            versions = remove_gap(versions)
+        return versions
+
+    def _get_first_version_date(self, no_gap=True):
+        """≙ ``_get_first_version_date`` (``:488-490``)."""
+        versions = self._get_first_versions_filtered(no_gap=no_gap)
+        starts = [version.date_start for version in versions if version.date_start]
+        return min(starts) if starts else None
+
+    def _get_first_contract_date(self, no_gap=True):
+        """≙ ``_get_first_contract_date`` (``:492-495``)."""
+        versions = [version for version in self._get_first_versions_filtered(no_gap=no_gap)
+                    if version.contract_date_start]
+        starts = [version.contract_date_start for version in versions]
+        return min(starts) if starts else None
+
+    def _get_version(self, on_date=None):
+        """≙ ``_get_version`` (``:557-567``) — la versión vigente en la fecha.
+
+        Si no hay ninguna válida devuelve la primera del empleado; ``None``
+        si el empleado no tiene historial.
+        """
+        on_date = on_date or date.today()
+        versions = list(self.versions.filter(active=True).order_by('date_version'))
+        if not versions:
+            versions = list(self.versions.all().order_by('date_version'))
+        if not versions:
+            return None
+        filtered = [version for version in versions
+                    if version.date_version and version.date_version <= on_date]
+        if not filtered:
+            return versions[0]
+        return max(filtered, key=lambda version: version.date_version)
+
+    def _compute_current_version_id(self):
+        """≙ ``_compute_current_version_id`` (``:526-540``) — recalcula la FK.
+
+        La referencia lo declara ``@api.depends('version_ids.date_version',
+        'version_ids.active', 'active')``; aquí no hay recómputo automático,
+        así que lo invoca ``save()`` y el cron. No escribe si el resultado
+        no cambia — misma guarda que la referencia (``:538-540``).
+        """
+        version = self.versions.filter(
+            date_version__lte=date.today(),
+        ).order_by('-date_version').first()
+        if version is None:
+            version = self.versions.order_by('date_version').first()
+        if version is not None and self.version_id != version.pk:
+            self.version = version
+        return version
+
+    @classmethod
+    def _cron_update_current_version_id(cls):
+        """≙ ``_cron_update_current_version_id`` (``:542-543``).
+
+        La referencia recalcula el campo sobre todo el modelo; aquí escribe
+        la FK de los empleados cuya versión vigente cambió.
+        """
+        updated = 0
+        for employee in cls.objects.all():
+            previous = employee.version_id
+            employee._compute_current_version_id()
+            if employee.version_id != previous:
+                cls.objects.filter(pk=employee.pk).update(version=employee.version_id)
+                updated += 1
+        return updated
+
+    def _compute_work_location_name(self):
+        """≙ ``_compute_work_location_name`` (``:515-519``)."""
+        self.work_location_name = (
+            self.work_location.name if self.work_location else ''
+        ) or ''
+        return self.work_location_name
+
+    def _compute_work_location_type(self):
+        """≙ ``_compute_work_location_type`` (``:520-524``).
+
+        DIVERGENCIA: la referencia cae a ``'other'``; aquí el campo admite
+        vacío y sólo se rellena cuando hay ubicación, para no inventar un
+        tipo en un empleado sin versión.
+        """
+        location = self.work_location
+        self.work_location_type = (location.location_type if location else '') or ''
+        return self.work_location_type
+
+    # --- contrato ------------------------------------------------------
+
+    def _get_all_contract_dates(self):
+        """≙ ``_get_all_contract_dates`` (``:753-761``).
+
+        Intervalos ``(date_from, date_to)`` en que el empleado está en
+        contrato. Un contrato indefinido tiene ``date_to`` en ``None``.
+        """
+        # ``.order_by()`` sin argumentos LIMPIA el orden por defecto del
+        # modelo (``HrVersion.Meta.ordering = ['date_version']``). Sin él,
+        # Django añade ``date_version`` al ``SELECT DISTINCT`` y dos
+        # versiones del MISMO contrato devuelven el intervalo dos veces —
+        # medido sobre la query generada. Ver H-API-713.
+        rows = self.versions.filter(
+            contract_date_start__isnull=False,
+        ).order_by().values_list(
+            'contract_date_start', 'contract_date_end',
+        ).distinct()
+        return sorted(rows, key=lambda row: row[0])
+
+    def _get_contract_dates(self, on_date):
+        """≙ ``_get_contract_dates`` (``:763-772``).
+
+        DIVERGENCIA: la referencia devuelve ``(False, False)`` cuando no hay
+        contrato; aquí ``(None, None)`` — mismo valor falsy, tipo correcto
+        para una columna de fecha de este ORM.
+        """
+        for date_from, date_to in self._get_all_contract_dates():
+            if date_from <= on_date and (date_to is None or date_to >= on_date):
+                return date_from, date_to
+        return None, None
+
+    def _is_in_contract(self, on_date):
+        """≙ ``_is_in_contract`` (``:667-668``)."""
+        return self._get_contract_dates(on_date) != (None, None)
+
+    def check_no_existing_contract(self, on_date):
+        """≙ ``check_no_existing_contract`` (``:385-391``)."""
+        if isinstance(on_date, str):
+            on_date = date.fromisoformat(on_date)
+        if self._is_in_contract(on_date):
+            raise ValidationError(
+                _('El empleado ya está en contrato el %s. Elige una fecha '
+                  'fuera de los contratos existentes.', on_date.isoformat()),
+            )
+
+    @classmethod
+    def _get_contract_versions(cls, employees, date_start=None, date_end=None,
+                               domain=None):
+        """≙ ``_get_contract_versions`` (``:713-751``).
+
+        Devuelve ``{employee_id: {contract_date_start: [versiones]}}``.
+        La referencia lo resuelve con ``_read_group`` agrupando por
+        ``employee_id`` y ``date_version:day``; aquí es la misma partición
+        hecha en Python sobre el queryset ordenado.
+
+        DIVERGENCIA: el argumento ``domain`` es un ``models.Q``, no un
+        dominio Odoo — es el equivalente de este ORM.
+        """
+        version_filter = models.Q(contract_date_start__isnull=False)
+        employee_ids = [employee.pk for employee in employees if employee.pk]
+        if employee_ids:
+            version_filter &= models.Q(employee_id__in=employee_ids)
+        if date_start:
+            version_filter &= (
+                models.Q(contract_date_end__isnull=True)
+                | models.Q(contract_date_end__gte=date_start)
+            )
+        if date_end:
+            version_filter &= models.Q(contract_date_start__lte=date_end)
+        if domain is not None:
+            version_filter &= domain
+
+        contract_versions_by_employee = {}
+        versions = HrVersion.objects.filter(version_filter).order_by(
+            'employee_id', 'date_version', 'pk',
+        )
+        for version in versions:
+            by_contract = contract_versions_by_employee.setdefault(
+                version.employee_id, {},
+            )
+            by_contract.setdefault(version.contract_date_start, []).append(version)
+        return contract_versions_by_employee
+
+    @classmethod
+    def _get_contracts(cls, employees, date_start=None, date_end=None,
+                       use_latest_version=True, domain=None):
+        """≙ ``_get_contracts`` (``:670-711``).
+
+        Para cada empleado, la versión que representa cada contrato: la
+        vigente al final del periodo (``use_latest_version=True``) o la del
+        inicio. Devuelve ``{employee_id: [versiones]}``.
+        """
+        contract_versions_by_employee = cls._get_contract_versions(
+            employees, date_start, date_end, domain,
+        )
+        contracts_by_employee = {}
+        for employee_id, by_contract in contract_versions_by_employee.items():
+            selected = contracts_by_employee.setdefault(employee_id, [])
+            for contract_versions in by_contract.values():
+                if not use_latest_version:
+                    continue
+                effective_date = date_end
+                if effective_date:
+                    correct = [version for version in contract_versions
+                               if version.date_version <= effective_date]
+                    chosen = correct[-1] if correct else contract_versions[0]
+                else:
+                    chosen = contract_versions[-1]
+                if chosen not in selected:
+                    selected.append(chosen)
+        return contracts_by_employee
+
+    def _get_versions_with_contract_overlap_with_period(self, date_from, date_to):
+        """≙ ``_get_versions_with_contract_overlap_with_period`` (``:1767-1775``)."""
+        return list(self.versions.filter(
+            models.Q(contract_date_start__isnull=False)
+            & models.Q(contract_date_start__lte=date_to)
+            & (models.Q(contract_date_end__gte=date_from)
+               | models.Q(contract_date_end__isnull=True)),
+        ).order_by('date_version', 'pk'))
+
+    @classmethod
+    def _get_all_versions_with_contract_overlap_with_period(cls, date_from, date_to):
+        """≙ ``_get_all_versions_with_contract_overlap_with_period``
+        (``:1633-1640``) — el mismo corte sobre todos los empleados,
+        activos y archivados."""
+        versions = []
+        for employee in cls.objects.all():
+            versions.extend(
+                employee._get_versions_with_contract_overlap_with_period(
+                    date_from, date_to,
+                ),
+            )
+        return versions
+
+    def create_version(self, values):
+        """≙ ``create_version`` (``:569-640``) — copia la versión vigente.
+
+        Copia la versión efectiva en ``date_version`` y aplica ``values``
+        encima. Si ya existe una versión en esa fecha exacta, la devuelve
+        sin duplicar (``:583-584``). Cuando el contrato conserva su inicio
+        pero cambia su fin, sincroniza el fin en todas las versiones del
+        mismo contrato (``:596-605``).
+
+        DIVERGENCIA: sin ``sudo()``, ``check_access`` ni ``env.protecting``
+        (mecanismos de ACL y de caché de la referencia, ``:606-608`` y
+        ``:630``); la copia de campos es campo a campo sobre la instancia en
+        vez de ``copy_data()``.
+        """
+        version_date = values.get('date_version')
+        if not version_date:
+            raise ValueError('date_version is required')
+        if isinstance(version_date, str):
+            version_date = date.fromisoformat(version_date)
+        elif hasattr(version_date, 'date') and not isinstance(version_date, date):
+            version_date = version_date.date()
+
+        version_to_copy = self._get_version(version_date)
+        if version_to_copy is None:
+            version_to_copy = self.versions.order_by('date_version', 'pk').first()
+        if version_to_copy is not None and version_to_copy.date_version == version_date:
+            return version_to_copy
+
+        date_from, date_to = self._get_contract_dates(version_date)
+        contract_date_start = values.get('contract_date_start', date_from)
+        contract_date_end = values.get('contract_date_end', date_to)
+        if isinstance(contract_date_start, str):
+            contract_date_start = date.fromisoformat(contract_date_start)
+        if isinstance(contract_date_end, str):
+            contract_date_end = date.fromisoformat(contract_date_end)
+
+        if contract_date_start == date_from and contract_date_end != date_to:
+            HrVersion.objects.filter(
+                employee_id=self.pk, contract_date_start=date_from,
+            ).update(contract_date_end=contract_date_end)
+
+        copy_values = self._prepare_version_copy_values(version_to_copy)
+        copy_values.update({
+            'date_version': version_date,
+            'employee': self,
+            'contract_date_start': contract_date_start,
+            'contract_date_end': contract_date_end,
+        })
+        if 'active' in values:
+            copy_values['active'] = values['active']
+        for field_name, field_value in values.items():
+            if field_name == 'date_version':
+                continue
+            copy_values[field_name] = field_value
+        return HrVersion.objects.create(**copy_values)
+
+    def _prepare_version_copy_values(self, version):
+        """Los valores copiables de ``version`` — ≙ ``copy_data()`` (``:625``).
+
+        Símbolo propio de este puerto: la referencia usa el ``copy_data()``
+        genérico del ORM, que no existe aquí. Copia las columnas concretas
+        (no M2M ni la pk) de la versión de origen.
+        """
+        if version is None:
+            return {}
+        skip = ('employee', 'created_at', 'updated_at')
+        values = {}
+        for field in HrVersion._meta.concrete_fields:
+            if field.primary_key or field.name in skip:
+                continue
+            # Se indexa por ``field.name`` (no por ``attname``) para que las
+            # claves coincidan con las de ``values`` en ``create_version`` y
+            # una relación no llegue dos veces (``job`` y ``job_id``).
+            values[field.name] = getattr(version, field.name)
+        return values
+
+    def create_contract(self, on_date):
+        """≙ ``create_contract`` (``:643-665``).
+
+        Supone que no hay contrato vigente en ``on_date``. Si ya existe una
+        versión en esa fecha sin contrato, le escribe las fechas; si no,
+        crea una versión nueva. El fin del contrato se corta el día antes
+        del siguiente contrato futuro, si lo hay.
+        """
+        if isinstance(on_date, str):
+            on_date = date.fromisoformat(on_date)
+
+        contracts = self._get_contract_versions([self], None, None).get(self.pk, {})
+        future_contract_dates = [start for start in contracts if start > on_date]
+        new_contract_date_end = (
+            min(future_contract_dates) - timedelta(days=1)
+            if future_contract_dates else None
+        )
+
+        version_same_date = self.versions.filter(date_version=on_date).first()
+        if version_same_date is not None:
+            version_same_date.contract_date_start = on_date
+            version_same_date.contract_date_end = new_contract_date_end
+            version_same_date.save()
+            return version_same_date
+
+        return self.create_version({
+            'date_version': on_date,
+            'contract_date_start': on_date,
+            'contract_date_end': new_contract_date_end,
+        })
+
+    def _get_departure_date(self):
+        """≙ ``_get_departure_date`` (``:1759-1765``) — default del wizard
+        de baja: sólo hay fecha de salida si el contrato ya terminó."""
+        end = self.date_end
+        if end and end < date.today():
+            return self.departure_date
+        return None
+
+    # --- zona horaria y periodos de versión ----------------------------
+
+    def _get_tz(self):
+        """≙ ``_get_tz`` (``:1545-1550``) — la primera zona válida entre el
+        calendario del empleado, la suya, la de la empresa y ``UTC``."""
+        if self.resource_calendar_id and self.resource_calendar.tz:
+            return self.resource_calendar.tz
+        if self.tz:
+            return self.tz
+        company_calendar = self.company.resource_calendar if self.company_id else None
+        if company_calendar is not None and company_calendar.tz:
+            return company_calendar.tz
+        return 'UTC'
+
+    @classmethod
+    def _get_tz_batch(cls, employees):
+        """≙ ``_get_tz_batch`` (``:1552-1556``) — ``{employee_id: tz}``."""
+        return {employee.pk: employee._get_tz() for employee in employees}
+
+    @classmethod
+    def _get_version_periods(cls, employees, start, stop, field=None,
+                             check_contract=False):
+        """≙ ``_get_version_periods`` (``:1594-1624``).
+
+        Trocea ``[start, stop]`` en los tramos que cubre cada versión, en
+        UTC. Devuelve ``{employee_id: [(desde, hasta, valor)]}``, donde el
+        valor es ``getattr(version, field)`` o la versión misma.
+
+        ``start`` y ``stop`` deben traer zona (``tzinfo``): los extremos de
+        cada tramo se calculan en la zona de la versión y se comparan con
+        ellos, y Python no compara un ``datetime`` con zona contra uno sin
+        ella. La referencia opera en UTC naíf y no necesita decirlo.
+
+        DIVERGENCIA: zonas con ``zoneinfo`` de la biblioteca estándar, no
+        ``pytz`` — misma decisión que ``resource_calendar_leaves.py``.
+        """
+        if field and not hasattr(HrVersion, field):
+            raise UserError(
+                _('El campo %(field_name)s no existe en este modelo '
+                  '(hr.version).', field_name=field),
+            )
+        version_periods_by_employee = {}
+        for employee in employees:
+            if check_contract:
+                versions = employee._get_versions_with_contract_overlap_with_period(
+                    start.date(), stop.date(),
+                )
+            else:
+                versions = [
+                    version for version in employee.versions.order_by('date_version')
+                    if version.date_start and version.date_start <= stop.date()
+                    and (version.date_end is None or version.date_end >= start.date())
+                ]
+            periods = version_periods_by_employee.setdefault(employee.pk, [])
+            for version in versions:
+                # Contrato totalmente flexible: sin calendario, manda la
+                # zona del propio empleado (≙ ``:1617-1618``).
+                tz_name = (
+                    version.resource_calendar.tz
+                    if version.resource_calendar_id and version.resource_calendar.tz
+                    else (employee._get_tz())
+                )
+                tz = ZoneInfo(tz_name)
+                date_start = datetime.combine(
+                    version.date_start, time.min, tzinfo=tz,
+                ).astimezone(ZoneInfo('UTC'))
+                if version.date_end:
+                    date_end = datetime.combine(
+                        version.date_end + timedelta(days=1), time.min, tzinfo=tz,
+                    ).astimezone(ZoneInfo('UTC'))
+                else:
+                    date_end = stop
+                periods.append((
+                    max(date_start, start),
+                    min(date_end, stop),
+                    getattr(version, field) if field else version,
+                ))
+        return version_periods_by_employee
+
+    @classmethod
+    def _get_calendar_periods(cls, employees, start, stop, check_contract=True):
+        """≙ ``_get_calendar_periods`` (``:1626-1631``) — los mismos tramos,
+        con el calendario de cada versión como valor."""
+        return cls._get_version_periods(
+            employees, start, stop, 'resource_calendar', check_contract,
+        )
 
     # ------------------------------------------------------------------
     # Identidad / clasificación — PORTADOS
@@ -986,6 +1580,15 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin, Time
 
         self.newly_hired = self.newly_hired_computed if self.pk else False
 
+        # Historial de versiones (tarea #524): la referencia recalcula estos
+        # tres con ``@api.depends``; aquí los materializa el guardado, igual
+        # que legal_name o work_permit_name de arriba. Sin pk no hay
+        # historial que leer todavía.
+        if self.pk:
+            self._compute_current_version_id()
+        self._compute_work_location_name()
+        self._compute_work_location_type()
+
         super().save(*args, **kwargs)
 
         # Post-save: lo que depende del pk (bank_account M2M, related_partners
@@ -1000,7 +1603,8 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin, Time
 
     # ------------------------------------------------------------------
     # Archivado — PORTADO parcial (los helpers; la orquestación multi-
-    # registro y el wizard de salida quedan BLOQUEADOS, ver docstring)
+    # registro y el wizard de salida siguen sin resolver: familia (b) del
+    # resumen de métodos del módulo)
     # ------------------------------------------------------------------
 
     def _get_employee_m2o_to_empty_on_archived_employees(self):
