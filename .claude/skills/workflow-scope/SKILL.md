@@ -14,13 +14,15 @@ updated_at: 2026-04-20 13:08:54
 
 # /workflow-plan — Stage 6: SCOPE
 
+> **Adaptacion kaupamex (2026-08-15, H-API-622):** Las referencias a `.thyrox/context/work/<WP>/` y `.thyrox/context/now.md` en las instrucciones operativas de abajo son del template THYROX/IACT-docs. En kaupamex el directorio `.thyrox/` no existe (`.claude/CLAUDE.md`). El work-package equivalente es `docs/source/gestion/pm/<submodulo>/iniciativas/<slug>/` — en el repo hermano `kaupamex-docs` cuando se invoca fuera de él — con artefactos `.rst`: `alcance-<slug>.rst` (discover), `analisis-<slug>.rst` (analyze), `tareas-<slug>.rst` (plan-execution), `progreso-<slug>.rst` (track/bitácora — no hay equivalente de `now.md`, el estado vive ahí). Identificar el WP activo: revisar `docs/source/gestion/pm/<submodulo>/iniciativas/index.rst` y leer el `progreso-*.rst` más reciente (mismo paso que `.claude/CLAUDE.md` sección "Flujo de sesión", paso 1b).
+
 Inicia o retoma Stage 6 SCOPE del work package activo.
 
 ---
 
 ## Contexto de sesión
 
-1. Identificar WP activo: `ls -t .thyrox/context/work/ | head -1`
+1. Identificar WP activo: revisar `docs/source/gestion/pm/<submodulo>/iniciativas/index.rst` (repo `kaupamex-docs`) y leer el `progreso-*.rst` más reciente
 2. Leer `context/now.md` — verificar `phase`
 3. Verificar si ya existe `*-plan.md` con `[x] Scope aprobado`:
    - Si existe aprobado → Phase 6 ya completó. Proponer `/thyrox:design`.
@@ -66,7 +68,7 @@ Definir scope antes de estructurar previene scope creep.
 Antes de presentar el gate 6→7:
 - **TD-031 deep review**: revisar `{nombre-wp}-solution-strategy.md` de Phase 5 — ¿el scope refleja todas las decisiones?
 - **TD-029 criterios**: `{nombre-wp}-plan.md` existe · ROADMAP.md tiene el WP · scope sin ambigüedades pendientes
-- **TD-033 now.md**: `git add .thyrox/context/now.md` antes de commits y gates
+- **Estado de sesión**: no hay equivalente de `now.md` — el `Edit` que cierra el paso actualiza directamente `progreso-<slug>.rst`, en el mismo commit
 
 ---
 

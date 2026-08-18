@@ -142,7 +142,9 @@ la clave se conserva para no cambiar la forma del descriptor.
 """
 import json
 import datetime
+import math
 import uuid
+from collections import defaultdict
 
 import fields
 import models
@@ -1072,6 +1074,14 @@ class StockPicking(MailThread, MailActivityMixin, TimeStampedModel):
         'stock.StockLocation', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='pickings_in', help_text='Destino (Odoo location_dest_id).',
     )
+    # ≙ ``origin`` (``odoo19c: :556-558``, ``index='trigram'``). Entra en este
+    # pase porque ``stock_move._compute_display_name`` lo lee: sin el campo, el
+    # nombre visible del movimiento no se puede portar sin inventar una
+    # divergencia. El índice trigram es la tarea **#95**.
+    origin           = fields.Char(
+        max_length=64, blank=True, default='', db_index=True,
+        help_text='Documento de origen (Odoo origin).',
+    )
     # Odoo stock.picking.sale_id — el enlace lo añade el módulo sale_stock
     # (stock_picking se inherita en sale_stock/models/stock_picking.py). Aquí el
     # albarán conoce su orden de venta canónica; el sub-estado de preparación
@@ -1107,6 +1117,58 @@ class StockPicking(MailThread, MailActivityMixin, TimeStampedModel):
         help_text='Tipo de operación que gobierna el albarán '
                   '(Odoo picking_type_id).',
     )
+    # ≙ ``move_type`` (``odoo19c: :571-574``, ``compute='_compute_move_type'``
+    # ``store=True required=True readonly=False precompute=True``). Entra en
+    # este pase porque ``stock_move._get_relevant_state_among_moves`` **ya lo
+    # leía** —``albaran.move_type == 'one'``— sobre un modelo que no lo
+    # declaraba: la pareja lector/campo estaba rota por el lado del campo, y
+    # sólo reventaba en ejecución. Ver :ref:`h-api-625`.
+    #
+    # Su ``compute`` copia el del tipo de operación (``_compute_move_type``:
+    # ``record.move_type = record.picking_type_id.move_type``); aquí lo aplica
+    # ``save()`` mientras el campo no se haya fijado a mano.
+    move_type        = fields.Selection(
+        max_length=8, choices=MOVE_TYPE_CHOICES, default='direct',
+        verbose_name='Política de envío',
+        help_text='Parcial o todo junto (Odoo move_type). Sale del tipo de '
+                  'operación y se puede sobreescribir por albarán.',
+    )
+    # ≙ ``partner_id`` (``odoo19c: :631-633``, ``index='btree_not_null'``).
+    # El índice parcial de la referencia es la tarea **#95**; aquí un índice
+    # normal sobre una columna nulable.
+    partner          = fields.Many2one(
+        'base.ResPartner', null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='pickings', db_index=True, verbose_name='Contacto',
+        help_text='Contacto del albarán (Odoo partner_id). Lo borra '
+                  '``_assign_picking_values`` cuando el albarán agrupa '
+                  'movimientos de contactos distintos.',
+    )
+    # ≙ ``company_id`` (``odoo19c: :634-636``, ``related='picking_type_id.company_id'``
+    # ``store=True readonly=True index=True``). Nulable aquí porque
+    # ``picking_type`` lo es (ver arriba): con el tipo ausente no hay empresa
+    # de la que derivarla.
+    company          = fields.Many2one(
+        'base.ResCompany', null=True, blank=True, on_delete=models.PROTECT,
+        related_name='stock_pickings', db_index=True,
+        help_text='Empresa (Odoo company_id, related del tipo de operación).',
+    )
+    # ≙ ``user_id`` (``odoo19c: :637-641``, ``tracking=True copy=False``). Su
+    # ``domain`` de la referencia acota a los usuarios de ``stock.group_stock_user``;
+    # el grupo aún no se siembra, así que la acotación queda declarada y no
+    # inventada — la impone quien asigne, no el campo.
+    user             = fields.Many2one(
+        ResUsers, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='stock_pickings', verbose_name='Responsable',
+        help_text='Responsable del albarán (Odoo user_id).',
+    )
+    # ≙ ``printed`` (``odoo19c: :655``, ``copy=False``). Lo lee
+    # ``stock_move._search_picking_for_assignation_domain``: un albarán ya
+    # impreso no admite que se le añadan movimientos.
+    printed          = fields.Boolean(
+        default=False, verbose_name='Impreso',
+        help_text='El albarán ya se imprimió (Odoo printed). Un albarán '
+                  'impreso no recibe movimientos nuevos por asignación.',
+    )
 
     class Meta:
         db_table = 'stock_picking'
@@ -1116,6 +1178,45 @@ class StockPicking(MailThread, MailActivityMixin, TimeStampedModel):
 
     def __str__(self) -> str:
         return self.name or f'{self.state}:{self.pk}'
+
+    def save(self, *args, **kwargs):
+        """Aplica los dos ``compute`` almacenados que dependen del tipo de operación.
+
+        ≙ ``_compute_move_type`` (``odoo19c: :719-721``, ``@api.depends('picking_type_id')``)
+        y el ``related='picking_type_id.company_id'`` de ``company_id``
+        (``odoo19c: :634-636``). Los dos son ``store=True``, así que su hogar
+        aquí es ``save()`` — el mecanismo que este árbol ya usa para los
+        ``compute`` con columna (:ref:`h-api-591`).
+
+        **Divergencia declarada:** la fuente los recalcula cuando su
+        ``depends`` cambia, sea cual sea el camino. Aquí se aplican al insertar
+        y cuando ``picking_type`` viene en ``update_fields`` — que son los dos
+        momentos en que este ORM puede saber que el tipo cambió sin releer la
+        fila. ``move_type`` es ``readonly=False`` allá, así que un valor puesto
+        a mano y guardado sin tocar el tipo se respeta, igual que en la fuente.
+        """
+        campos = kwargs.get('update_fields')
+        insertando = self._state.adding
+        cambio_tipo = campos is not None and 'picking_type' in campos
+        if (insertando or cambio_tipo) and self.picking_type_id:
+            self.move_type = self.picking_type.move_type
+            self.company = self.picking_type.company
+            if campos is not None:
+                kwargs['update_fields'] = list(dict.fromkeys(
+                    [*campos, 'move_type', 'company']))
+        return super().save(*args, **kwargs)
+
+    @property
+    def reference_ids(self):
+        """≙ ``reference_ids`` (``related="move_ids.reference_ids"``, ``odoo19c: :590-591``).
+
+        Las referencias de un albarán son las de sus movimientos — no tiene
+        ninguna propia. Es ``related`` sin ``store`` allá, así que es property
+        aquí (``porte-completo-no-parcial.md``); lo consume
+        ``stock_move._set_references``.
+        """
+        reference = apps.get_model('stock', 'StockReference')
+        return reference.objects.filter(move_ids__picking_id=self.pk).distinct()
 
     @property
     def is_date_editable(self) -> bool:

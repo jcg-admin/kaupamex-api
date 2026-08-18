@@ -14,6 +14,8 @@ updated_at: 2026-04-16 00:00:00
 
 # /workflow-discover — Phase 1: DISCOVER
 
+> **Adaptacion kaupamex (2026-08-15, H-API-622):** Las referencias a `.thyrox/context/work/<WP>/` y `.thyrox/context/now.md` en las instrucciones operativas de abajo son del template THYROX/IACT-docs. En kaupamex el directorio `.thyrox/` no existe (`.claude/CLAUDE.md`). El work-package equivalente es `docs/source/gestion/pm/<submodulo>/iniciativas/<slug>/` — en el repo hermano `kaupamex-docs` cuando se invoca fuera de él — con artefactos `.rst`: `alcance-<slug>.rst` (discover), `analisis-<slug>.rst` (analyze), `tareas-<slug>.rst` (plan-execution), `progreso-<slug>.rst` (track/bitácora — no hay equivalente de `now.md`, el estado vive ahí). Identificar el WP activo: revisar `docs/source/gestion/pm/<submodulo>/iniciativas/index.rst` y leer el `progreso-*.rst` más reciente (mismo paso que `.claude/CLAUDE.md` sección "Flujo de sesión", paso 1b).
+
 Inicia o retoma Phase 1 DISCOVER del work package activo.
 
 ---
@@ -35,11 +37,11 @@ Ver [escalabilidad](references/scalability.md) para detalles y casos de borde.
 
 ## Contexto de sesión
 
-1. Identificar WP activo: `ls -t .thyrox/context/work/ | head -1`
+1. Identificar WP activo: revisar `docs/source/gestion/pm/<submodulo>/iniciativas/index.rst` (repo `kaupamex-docs`) y leer el `progreso-*.rst` más reciente
 2. Leer `context/now.md` — verificar `phase` y `current_work`
 3. Listar tech skills activos: `ls .claude/skills/ | grep -v thyrox`
 4. Verificar si ya existe `*-analysis.md` en el WP:
-   - `ls .thyrox/context/work/[WP-activo]/discover/ 2>/dev/null`
+   - `ls <iniciativa>/alcance-<slug>.rst 2>/dev/null`
    - Si existe sin `[NEEDS CLARIFICATION]` → Phase 1 ya completó. Proponer `/thyrox:measure`.
    - Si no existe → iniciar Phase 1.
 
@@ -102,7 +104,7 @@ Excepción: si el WP ya existe (retomar work package), saltar este gate.
 
 7. Si hay principios arquitectónicos globales: crear/actualizar `constitution.md` en la raíz
 
-8. ADR: crear solo si aplica (cambio de stack, nuevo patrón arquitectónico, decisión que afecta todos los WPs futuros). Path: `adr_path` en CLAUDE.md → `.thyrox/context/decisions/`
+8. ADR: crear solo si aplica (cambio de stack, nuevo patrón arquitectónico, decisión que afecta todos los WPs futuros). Path: `adr_path_api`/`adr_path_doc` en `.claude/CLAUDE.md` (raíz `docs/source/backend/adr/` o `docs/source/gestion/decisiones/` según corresponda)
 
 9. REQUERIDO: Añadir `## Stopping Point Manifest` al final del `*-analysis.md`:
    - Registrar gates obligatorios: 1→2, 2→3, 3→4, 4→5, 5→6, 6→7, 7→8, 8→9, 9→10, 10→11, 11→12
@@ -120,7 +122,7 @@ Tech skills activos: si hay `frontend-react` investigar componentes; `backend-no
 Antes de presentar el gate 1→2:
 - **TD-031 deep review**: revisar `{nombre-wp}-analysis.md` — ¿cubre los 8 aspectos sin [NEEDS CLARIFICATION]?
 - **TD-029 criterios**: `{nombre-wp}-risk-register.md` existe · Stopping Point Manifest documentado · `now.md::phase = Phase 1`
-- **TD-033 now.md**: `git add .thyrox/context/now.md` antes de commits y gates
+- **Estado de sesión**: no hay equivalente de `now.md` — el `Edit` que cierra el paso actualiza directamente `progreso-<slug>.rst`, en el mismo commit
 
 ## Gate humano
 

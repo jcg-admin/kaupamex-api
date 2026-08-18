@@ -83,3 +83,22 @@ def test_una_property_no_cuenta_como_metodo_del_cuerpo():
 def test_los_flags_existen(flag, monkeypatch):
     monkeypatch.setattr(gate.sys, 'argv', ['gate', flag])
     assert gate.main() == 0
+
+
+def test_heredar_la_clase_no_convierte_en_dueno_del_simbolo():
+    """``utm.IrHttp`` hereda de ``base.IrHttp``; no es dueña de ``is_a_bot``.
+
+    Control positivo del árbol real, no fabricado: ``is_a_bot`` lo **define e
+    instala** ``web`` sobre la clase de ``base``
+    (``addons/web/models/ir_http.py:176,213``), y ``utm`` sólo declara una
+    subclase — el idioma con el que la referencia extiende ``ir.http`` desde un
+    addon (``odoo19c: addons/utm/models/ir_http.py``).
+
+    Resolver el dueño por **nombre corto de clase** hacía que cualquier addon
+    con una ``class IrHttp`` entrara en el conjunto, y el gate exigía a ``web``
+    un ``depends: ['utm']`` que sería una dependencia inventada. Ver
+    :ref:`h-api-635`.
+    """
+    declara_clase, _, _, _ = gate.scan()
+    assert 'base' in declara_clase['IrHttp']
+    assert 'utm' not in declara_clase['IrHttp']

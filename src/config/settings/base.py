@@ -200,6 +200,14 @@ MIDDLEWARE = [
     # H-CART-01 Fase 2: fija la cookie httpOnly cart_token para carritos
     # anonimos. Va por DEBAJO de CookieGovernanceMiddleware para que el
     # process_response de aquel (orden inverso) observe la cookie de carrito.
+    #
+    # utm: el despacho que invoca ir.http._post_dispatch (odoo19c:
+    # addons/utm/models/ir_http.py:23-26) — pasa ?utm_campaign/source/medium
+    # a cookie. Va por DEBAJO de CookieGovernanceMiddleware por la misma
+    # razon que la del carrito: su process_response corre ANTES (orden
+    # inverso) y las tres cookies llegan puestas al gobierno de
+    # consentimiento, que es donde se decide si sobreviven.
+    'addons.utm.models.ir_http.UtmCookieMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'

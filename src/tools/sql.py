@@ -70,6 +70,41 @@ def column_exists(cursor, table_name, column_name, schema=None):
     return cursor.fetchone() is not None
 
 
+def table_columns(cursor, table_name, schema=None):
+    """== ``odoo.tools.sql.table_columns``: columnas de la tabla y su forma.
+
+    Devuelve ``{nombre: {udt_name, character_maximum_length, is_nullable}}``.
+    Fiel a ``odoo19c: odoo/tools/sql.py`` — incluida su omisión deliberada de
+    ``character_octet_length``, que su comentario justifica: en hospedaje
+    compartido (Heroku, OVH) el rol de la aplicación puede no tener permiso
+    para leer esa columna, y pedirla haría fallar la consulta entera.
+
+    La referencia devuelve el ``row`` de ``dictfetchall()``; aquí se arma el
+    diccionario a mano porque el cursor de Django devuelve tuplas.
+    """
+    if schema is None:
+        cursor.execute(
+            'SELECT column_name, udt_name, character_maximum_length, is_nullable '
+            'FROM information_schema.columns '
+            'WHERE table_name = %s AND table_schema = current_schema',
+            [table_name])
+    else:
+        cursor.execute(
+            'SELECT column_name, udt_name, character_maximum_length, is_nullable '
+            'FROM information_schema.columns '
+            'WHERE table_name = %s AND table_schema = %s',
+            [table_name, schema])
+    return {
+        fila[0]: {
+            'column_name': fila[0],
+            'udt_name': fila[1],
+            'character_maximum_length': fila[2],
+            'is_nullable': fila[3],
+        }
+        for fila in cursor.fetchall()
+    }
+
+
 def index_exists(cursor, table_name, index_name, schema=None):
     """== ``odoo.tools.sql.index_exists``: ¿existe el índice? (``pg_indexes``)."""
     if schema is None:

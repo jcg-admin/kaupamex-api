@@ -83,6 +83,19 @@ if [[ "${#STAGED_PY[@]}" -gt 0 ]]; then
     fi
 fi
 
+# ─── Gate 4: identificadores en inglés, comentarios en español ───────────────
+# Directiva reiterada del ejecutor; vivía sólo en prosa y hubo que corregirla a
+# mano en medio de una tarea, que es el coste que este gate elimina.
+# Script: scripts/check_identifier_language.py (con baseline de deuda heredada).
+if [[ "${#STAGED_PY[@]}" -gt 0 ]]; then
+    LANG_CHECKER="$REPO_ROOT/scripts/check_identifier_language.py"
+    if [[ ! -f "$LANG_CHECKER" ]]; then
+        echo "pre-commit: $LANG_CHECKER no encontrado — skip idioma gate" >&2
+    else
+        python3 "$LANG_CHECKER" "${STAGED_PY[@]}" || EXIT_CODE=1
+    fi
+fi
+
 if [[ "$EXIT_CODE" -ne 0 ]]; then
     echo "" >&2
     echo "pre-commit: gates fallaron. Corrige los problemas o usa" >&2

@@ -10,15 +10,18 @@ al paquete dónde estuvo no tiene respuesta — sólo sabe dónde está. Este mo
 es la fotografía: guarda los **nombres** de origen y destino además de sus FK,
 para que la traza sobreviva a que el contenedor se renombre o se borre.
 
-Porte símbolo por símbolo — 15 de 15
+Porte símbolo por símbolo — 18 de 18
 ======================================
 
 Medido sobre ``odoo19c: addons/stock/models/stock_package_history.py``
-(42 líneas): 13 campos y 2 métodos.
+(42 líneas): 3 atributos de clase, 13 campos y 2 métodos.
 
 ===============================================  ======================================
 Símbolo de la referencia (línea)                 Aquí
 ===============================================  ======================================
+``_name`` (6)                                    ``_name`` verbatim
+``_description`` (7)                             ``_description`` verbatim
+``_check_company_auto`` (8)                      ``_check_company_auto`` verbatim
 ``company_id`` (10)                              ``company``
 ``location_id`` (11)                             ``location``
 ``location_dest_id`` (12)                        ``location_dest``
@@ -32,7 +35,7 @@ Símbolo de la referencia (línea)                 Aquí
 ``parent_dest_name`` (20)                        ``parent_dest_name``
 ``outermost_dest_id`` (21)                       ``outermost_dest``
 ``picking_ids`` (22)                             ``picking_ids`` (M2M)
-``_get_complete_dest_name_except_outermost`` (24-32) mismo nombre sin guion bajo
+``_get_complete_dest_name_except_outermost`` (24-32) mismo nombre, guion bajo intacto
 ``action_show_package`` (34-42)                  ``action_show_package``
 ===============================================  ======================================
 
@@ -44,6 +47,15 @@ referencia retorna ``{'type': 'ir.actions.act_window', 'res_model':
 'stock.package', 'res_id': …}`` para que su cliente web abra el formulario.
 Sin capa de vistas, aquí devuelve el registro; el consumidor —la API REST—
 decide cómo presentarlo. Registrado en la tarea **#279**.
+
+Deuda saldada al tocar el archivo (2026-08-15)
+================================================
+
+1. **Los tres atributos de clase no estaban declarados.** Portados verbatim
+   (``atributos-de-clase-de-modelo.md``).
+2. **``_get_complete_dest_name_except_outermost`` estaba despromovido.**
+   Restaurado con su guion bajo (H-API-581); medido antes del cambio,
+   **0 consumidores** en ``addons/``, ``src/`` y ``tests/``.
 """
 import fields
 import models
@@ -53,6 +65,13 @@ from addons.base.models import TimeStampedModel
 
 class StockPackageHistory(TimeStampedModel):
     """``stock.package.history`` — la fotografía de un movimiento de paquete."""
+
+    # Atributos de clase de modelo — los tres que la referencia declara
+    # (``odoo19c: :6-8``), verbatim. No declara ``_order``: su orden por
+    # defecto es el del ORM, y ``Meta.ordering`` aquí lo fija explícito.
+    _name = 'stock.package.history'
+    _description = "Stock Package History"
+    _check_company_auto = True
 
     company           = fields.Many2one(
         'base.ResCompany', on_delete=models.CASCADE,
@@ -121,7 +140,7 @@ class StockPackageHistory(TimeStampedModel):
         """≙ ``package_type_id`` (``related='package_id.package_type_id'``, ``:16``)."""
         return self.package.package_type if self.package is not None else None
 
-    def get_complete_dest_name_except_outermost(self):
+    def _get_complete_dest_name_except_outermost(self):
         """≙ ``_get_complete_dest_name_except_outermost`` (``odoo19c: :24-32``).
 
         El nombre jerárquico del destino **sin** el contenedor más externo.

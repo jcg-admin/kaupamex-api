@@ -10,11 +10,20 @@ Adaptado de Odoo Community ``odoo/tools/misc.py`` (LGPL-3) — atribución y
 aviso de licencia preservados (DEC-KX-03).
 """
 import hmac as hmac_lib
-from itertools import islice
+import typing
+from collections import defaultdict
+from collections.abc import Callable, Iterable, MutableSet
+from functools import reduce
+from itertools import islice, repeat
 
 from django.utils.crypto import salted_hmac
 from django.utils.html import escape as django_html_escape
 from lxml import etree
+
+# Variables de tipo de la referencia (``odoo19c: odoo/tools/misc.py:70-72``),
+# que las declara para los genéricos de esta misma familia de colecciones.
+K = typing.TypeVar('K')
+T = typing.TypeVar('T')
 
 # ``consteq`` — comparación en tiempo constante.
 #
@@ -149,3 +158,94 @@ def clean_context(context: dict) -> dict:
     :returns: copia sin las claves ``default_*``.
     """
     return {k: v for k, v in context.items() if not k.startswith('default_')}
+
+
+class OrderedSet(MutableSet[T], typing.Generic[T]):
+    """≙ ``OrderedSet`` (``odoo19c: odoo/tools/misc.py:1057-1096``).
+
+    «A set collection that remembers the elements first insertion order.»
+
+    Se porta en vez de resolverse con stdlib porque **no hay sustituto**: un
+    `set` de Python no promete orden, y un `dict` con valores `None` da el
+    orden pero no la interfaz de conjunto (`|`, `&`, `-`, `add`, `discard`)
+    que la referencia usa. `MutableSet` de `collections.abc` deriva los
+    operadores de los tres métodos abstractos, así que la implementación es
+    la de la fuente y el resto lo pone la ABC — igual que allá.
+
+    El orden importa donde se usa: ``_action_assign`` acumula los movimientos
+    asignados en uno de éstos y luego los escribe en bloque; con un `set` el
+    orden de escritura cambiaría entre ejecuciones y con él el orden de los
+    quants tocados.
+    """
+
+    __slots__ = ['_map']
+
+    def __init__(self, elems: Iterable[T] = ()):
+        self._map: dict[T, None] = dict.fromkeys(elems)
+
+    def __contains__(self, elem):
+        return elem in self._map
+
+    def __iter__(self):
+        return iter(self._map)
+
+    def __len__(self):
+        return len(self._map)
+
+    def add(self, elem):
+        self._map[elem] = None
+
+    def discard(self, elem):
+        self._map.pop(elem, None)
+
+    def update(self, elems):
+        self._map.update(zip(elems, repeat(None)))
+
+    def difference_update(self, elems):
+        for elem in elems:
+            self.discard(elem)
+
+    def __repr__(self):
+        return f'{type(self).__name__}({list(self)!r})'
+
+    def intersection(self, *others):
+        return reduce(OrderedSet.__and__, others, self)
+
+    def copy(self):
+        new_set = OrderedSet()
+        new_set._map = self._map.copy()      # copia atómica del dict
+        return new_set
+
+
+class LastOrderedSet(OrderedSet[T], typing.Generic[T]):
+    """≙ ``LastOrderedSet`` (``odoo19c: odoo/tools/misc.py:1098-1102``).
+
+    «A set collection that remembers the elements last insertion order.»
+
+    Entra con ``OrderedSet`` porque es su única diferencia —re-insertar mueve
+    el elemento al final— y portarlo aparte dejaría el par incompleto.
+    """
+
+    def add(self, elem):
+        self.discard(elem)
+        super().add(elem)
+
+
+def groupby(iterable: Iterable[T], key: Callable[[T], K] = lambda arg: arg):
+    """≙ ``groupby`` (``odoo19c: odoo/tools/misc.py:1201-1210``).
+
+    «Return a collection of pairs ``(key, elements)`` from ``iterable``. The
+    ``key`` is a function computing a key value for each element. This
+    function is similar to ``itertools.groupby``, but aggregates all elements
+    under the same key, not only consecutive elements.»
+
+    La última frase es la razón de portarlo: ``itertools.groupby`` **corta al
+    cambiar la clave**, así que sobre una lista sin ordenar devuelve el mismo
+    grupo varias veces. Sustituirlo por el del stdlib exigiría ordenar antes
+    por la clave — y las claves de sus consumidores son tuplas de registros
+    (ubicación, lote, paquete, dueño), que no tienen orden natural.
+    """
+    groups = defaultdict(list)
+    for elem in iterable:
+        groups[key(elem)].append(elem)
+    return groups.items()
