@@ -19,7 +19,7 @@ que no existía: **#101** (mudar el carrito a ``website_sale``), **#104**
 (realinear los cuatro modelos propios), **#105** (alinear ``SearchEntry``) y
 **#258** (recuperación de carrito abandonado).
 
-Porte por bloques — B1 a B3 de 6, con la partición declarada
+Porte por bloques — B1 a B6 de 6, con la partición declarada
 ==============================================================
 
 Medido sobre ``odoo19c: addons/website/models/website.py`` (2430 líneas):
@@ -28,9 +28,12 @@ Medido sobre ``odoo19c: addons/website/models/website.py`` (2430 líneas):
 Los 111 métodos NO caben en un pase, y ``porte-completo-no-parcial.md`` exige
 que un porte parcial **declare su cobertura** en vez de callarla. La partición
 se registró como seis tareas con la aritmética **33+15+10+15+6+32 = 111**;
-dos bloques se re-midieron al ejecutarlos — B4 dio 21 (no 15) y B5 dio 8
-(no 6), cada uno con su nota en la tabla — así que las cifras de la tabla
-son las medidas, y la suma original queda como la estimación registrada:
+tres bloques se re-midieron al ejecutarlos — B4 dio 21 (no 15), B5 dio 8
+(no 6) y B6 dio 42 (no 32), cada uno con su nota en la tabla — así que las
+cifras de la tabla son las medidas, y la suma original queda como la
+estimación registrada. Las cifras medidas de los bloques suman más de 111
+porque los bloqueados de B2/B4 se cuentan dos veces: en su bloque y en B6,
+que por definición es «lo que la clase aún no declara por nombre»:
 
 .. list-table::
    :header-rows: 1
@@ -66,10 +69,16 @@ son las medidas, y la suma original queda como la estimación registrada:
        de B1 (medido: 0 hits de ``_get_blocked_third_party_domains_list``
        antes de este pase), así que se portan aquí, donde está su consumidor
      - **#538** ← este archivo
-   * - B6
-     - 32
-     - CDN, Plausible, URL canónica, snippets, acciones de cliente
-     - #539
+   * - **B6**
+     - **42** (re-medido; la partición decía 32)
+     - CDN, Plausible, URL canónica, snippets, acciones de cliente, cachés
+       y campos HTML — el bloque de cierre: por AST, la fuente declara 111
+       métodos y este árbol declaraba 75 al abrirlo. De los 42: **19
+       portados aquí**, **11 bloqueados** (banner del bloque B6), **3
+       cubiertos con nombre divergente** desde B1 (``create``/``write`` →
+       ``save``, ``unlink`` → ``delete``) y **9 del configurador que siguen
+       bloqueados en el banner de B4** (sin cambio)
+     - **#539** ← este archivo
 
 *Métrica:* clases, métodos y asignaciones por AST sobre el cuerpo de
 ``Website``.
@@ -105,7 +114,10 @@ Cuatro divergencias de mecanismo, declaradas
 Lo que este archivo NO cierra
 ===============================
 
-Los 78 métodos de B2-B6, cada uno con su tarea registrada arriba. Los 33 de B1
+Los seis bloques están abiertos y cerrados con su cobertura declarada: lo que
+queda vivo son los **bloqueados** — 9 del configurador (banner de B4), 5 de
+enumeración de páginas heredados de B2 y 6 nuevos de B6 (banner de B6), cada
+uno con su sucesor. Los 33 de B1
 están todos declarados; **tres tienen el cuerpo recortado**, y cada uno dice por
 qué en su propio docstring en vez de callarlo:
 
@@ -124,8 +136,11 @@ con su razón: ``_bootstrap_homepage`` (es de B4, #537, y además necesita
 ``website.page``) y el alta del grupo multi-sitio (necesita el registro de datos
 por módulo, #467).
 
-Cobertura de B2 — 6 de 15, con el bloqueo medido de los otros 9
-================================================================
+Cobertura de B2 — el bloqueo medido, método a método
+======================================================
+
+(B6 desbloqueó ``search_url_dependencies`` al portar ``_get_html_fields``;
+la fila correspondiente lo registra.)
 
 La partición prometía 15 métodos y **el nombre de uno no existe en la
 fuente**: ``get_alternate_languages`` se registró en la tarea #535 de memoria y
@@ -173,9 +188,10 @@ reales son los de esta tabla; la aritmética del bloque (15) no cambia.
        explícitamente **no portado** (todo el enrutado y el despacho son la
        URLconf de Django). Sucesor: **#545**
    * - ``search_url_dependencies``
-     - BLOQUEADO
-     - necesita ``_get_html_fields`` (es de B6, #539) y ``website.rewrite``.
-       Sucesor: **#545**
+     - portado (B6)
+     - lo desbloqueó ``_get_html_fields`` de #539. La mención a
+       ``website.rewrite`` de esta fila era imprecisa: el método de la
+       fuente (``:1297-1358``) no lo toca — medido al abrir B6
 
 *Métrica:* nombre del método presente y con cuerpo que hace lo que hace el de
 la referencia.
@@ -192,19 +208,24 @@ tercero de los tres ejes que la fuente declara y el único que
 ``context_scope``).
 """
 
+import ast
 import base64
+import hashlib
+import inspect
 import re
 import uuid
 from collections import defaultdict
-from urllib.parse import urlparse, urlsplit
+from urllib.parse import unquote, urlparse, urlsplit, urlunsplit
 
 import fields
 import models
 import requests
+from django.apps import apps
 from django.utils.safestring import mark_safe
 from lxml import etree, html
 
 from addons.base.models import TimeStampedModel
+from addons.base.models.ir_asset import IrAsset
 from addons.base.models.ir_http import get_current_request
 from addons.base.models.ir_ui_view import IrUiView
 from addons.base.models.res_company import ResCompany
@@ -222,6 +243,8 @@ from addons.base.models.ir_config_parameter import SystemParameter
 from exceptions import AccessError, UserError, ValidationError
 from modules.db import has_trigram
 from orm.domains import Domain, to_q
+from orm.models_transient import TransientModel
+from orm.registry import model_by_name, name_of
 from tools.sql import escape_psql
 # ``connection`` sale del espejo del entorno, no de Django crudo: es el
 # ``env.cr`` de la referencia, y ``orm.environments`` lo re-exporta a
@@ -982,9 +1005,10 @@ class Website(TimeStampedModel):
 
     # ── B2 · resolución de sitio actual y páginas (#535) ──────────────────────
     #
-    # 7 de los 15 métodos del bloque. Los 8 restantes están BLOQUEADOS por una
-    # pieza medida, cada uno con su sucesor — ver "Cobertura de B2" en el
-    # docstring del módulo. Ninguno se omite en silencio.
+    # 7 de los 15 métodos del bloque. Los 8 restantes quedaron BLOQUEADOS por
+    # una pieza medida, cada uno con su sucesor — ver "Cobertura de B2" en el
+    # docstring del módulo. Ninguno se omite en silencio. B6 desbloqueó uno
+    # (``search_url_dependencies``, al portar ``_get_html_fields``).
 
     @classmethod
     def get_current_website(cls, fallback=True):
@@ -1896,6 +1920,597 @@ class Website(TimeStampedModel):
         """≙ ``_is_tag_classes_watchlisted`` (``odoo19c: :2429-2430``)."""
         return self._get_blocked_iframe_containers_classes().intersection(
             (atts.get('class') or '').split(' '))
+
+    # ── B6 (#539) · CDN, Plausible, URL canónica, snippets, cachés ───────────
+    #
+    # El bloque de cierre. Re-medido por AST al abrirlo (patrón de H-API-699:
+    # el barrido se hace al abrir el bloque, no de memoria): la fuente declara
+    # **111 métodos** y este árbol declaraba **75**, así que el resto es
+    # **42**, no los 32 de la partición. De esos 42: **19 se portan aquí**,
+    # **3 ya estaban cubiertos con nombre divergente** (``create``/``write`` →
+    # ``save``, ``unlink`` → ``delete``; divergencia CRUD declarada en B1),
+    # **9 siguen bloqueados por el banner de B4** (configurador), y **11
+    # quedan BLOQUEADOS aquí**, cada uno con su pieza medida y su sucesor:
+    #
+    # - ``new_page`` (``:1164``) — necesita ``website.page`` (0 clases, #104)
+    #   y el template resuelto por external ID (``env.ref``, #467).
+    # - ``rule_is_enumerable`` (``:1519``), ``_enumerate_pages`` (``:1546``),
+    #   ``search_pages`` (``:1714``) — recorren ``ir.http.routing_map()``,
+    #   que ``ir_http.py`` declara no portado (el enrutado es la URLconf de
+    #   Django). Sucesor: **#545** (ya declarados así en B2; sin cambio).
+    # - ``check_existing_page`` (``:1723``) — ``website.page`` (#104) más
+    #   ``website.rewrite`` y ``routing_map`` (#545).
+    # - ``get_website_page_ids`` (``:1670``), ``_get_website_pages``
+    #   (``:1707``) — ``website.page`` con ``_get_most_specific_pages`` no
+    #   existe. Sucesor: **#104**.
+    # - ``action_dashboard_redirect`` (``:1801``) — resuelve una acción y dos
+    #   grupos por external ID; necesita el registro de datos por módulo.
+    #   Sucesor: **#467**.
+    # - ``get_client_action_url`` (``:1807``), ``get_client_action``
+    #   (``:1817``), ``button_go_website`` (``:1826``) — construyen la URL y
+    #   la acción del web client de la referencia (``/odoo/action-…``); el
+    #   marco de cliente está sin decidir (**#488**) y esa ruta llevaría la
+    #   marca del árbol de referencia a un endpoint del cliente (#416).
+    #
+    # Divergencias transversales del bloque, declaradas una vez aquí:
+    #
+    # - **Sin caché.** ``is_menu_cache_disabled`` y ``_get_cached_values``
+    #   llevan ``@tools.ormcache`` en la fuente; aquí calculan siempre — la
+    #   decisión de caché bajo prefork es la tarea **#542**, el mismo
+    #   criterio medido de ``_get_current_website_id`` (B2).
+    # - ``tools.urls.urljoin`` no está portado; su mecánica vive abajo como
+    #   ``_urljoin_strict`` + ``_contains_dot_segments`` (funciones de
+    #   módulo) hasta ganar su hogar en ``src/tools/urls.py`` — raíz
+    #   espejada fuera del write-set de esta tanda; sucesor reportado al
+    #   orquestador (mismo patrón que ``_configurator_rpc_call`` con #413).
+    # - **Plausible con default vacío.** La fuente apunta a
+    #   ``https://plausible.io`` (el SaaS que su instancia consume); esta
+    #   plataforma L0 no sirve endpoints de terceros por defecto (#416). El
+    #   operador declara los suyos en ``ir.config_parameter``
+    #   (``website.plausible_script`` / ``website.plausible_server``).
+
+    def is_menu_cache_disabled(self):
+        """≙ ``is_menu_cache_disabled`` (``odoo19c: :305-313``).
+
+        ¿El menú del sitio contiene una ruta «de registro» (``…-123/``) o un
+        menú restringido por grupo? En cualquiera de los dos casos la caché
+        de plantillas del menú no puede compartirse entre usuarios.
+
+        Divergencias declaradas: (1) sin el
+        ``@tools.ormcache('self.env.uid', 'self.id', cache='templates')`` de
+        la fuente — #542 (banner del bloque); (2) el campo del menú se llama
+        ``route`` y ``group_ids`` es la FK singular ``group``, las dos
+        divergencias ya declaradas en ``website_menu.py``.
+        """
+        menus = WebsiteMenu.objects.filter(website=self.pk)
+        return any(
+            (menu.route
+             and re.search(r"[/](([^/=?&]+-)?[0-9]+)([/]|$)", menu.route))
+            or menu.group_id is not None
+            for menu in menus
+        )
+
+    def get_unique_path(self, page_url):
+        """≙ ``get_unique_path`` (``odoo19c: :1240-1254``).
+
+        Dada una URL, la misma URL sufijada con un contador si ya existe.
+
+        Divergencia declarada: la fuente busca sobre ``website.page`` acotado
+        por ``website_id``; aquí el análogo es ``StaticPage`` (hasta #104),
+        cuya ``url`` es una property derivada del slug — sin columna que
+        filtrar, el conjunto se materializa y se compara en Python. El eje
+        por sitio llega con la FK de #104.
+        """
+        existing_urls = {page.url for page in StaticPage.objects.all()}
+        inc = 0
+        page_temp = page_url
+        while page_temp in existing_urls:
+            inc += 1
+            page_temp = page_url + ('-%s' % inc)
+        return page_temp
+
+    def _get_plausible_script_url(self):
+        """≙ ``_get_plausible_script_url`` (``odoo19c: :1256-1260``).
+
+        Divergencia declarada: el default de la fuente es
+        ``https://plausible.io/js/plausible.js`` — aquí vacío (#416, banner
+        del bloque). Sin parámetro configurado no se inyecta script alguno.
+        """
+        with sudo():
+            return SystemParameter.get_param('website.plausible_script', '')
+
+    def _get_plausible_server(self):
+        """≙ ``_get_plausible_server`` (``odoo19c: :1262-1266``).
+
+        Divergencia declarada: default vacío en vez de
+        ``https://plausible.io`` (#416, banner del bloque).
+        """
+        with sudo():
+            return SystemParameter.get_param('website.plausible_server', '')
+
+    def _get_plausible_share_url(self):
+        """≙ ``_get_plausible_share_url`` (``odoo19c: :1268-1270``).
+
+        La URL del tablero compartido de Plausible, o cadena vacía sin clave
+        compartida — y también sin servidor configurado, que es la rama que
+        la fuente no necesita porque su default nunca es vacío.
+        """
+        server = self._get_plausible_server()
+        if not (self.plausible_shared_key and server):
+            return ''
+        embed_url = (f'/share/{self.plausible_site}'
+                     f'?auth={self.plausible_shared_key}&embed=true'
+                     '&theme=system')
+        return _urljoin_strict(server, embed_url)
+
+    def get_unique_key(self, string, template_module=False):
+        """≙ ``get_unique_key`` (``odoo19c: :1272-1295``).
+
+        Dada una cadena, una clave única con prefijo de módulo, sufijada con
+        contador si ya existe.
+
+        Divergencias declaradas: (1) ``ir.ui.view`` aquí no declara
+        ``website_id``, así que el recorte por sitio de la fuente no tiene
+        eje — la unicidad se verifica global, que es lo conservador (una
+        clave única global también lo es por sitio); llega con #104. (2) el
+        ``active_test=False`` + ``sudo()`` de la fuente son el estado por
+        defecto de este ORM: el manager no filtra ``active`` ni aplica ACL
+        de lectura.
+        """
+        if template_module:
+            string = template_module + '.' + string
+        elif not string.startswith('website.'):
+            string = 'website.' + string
+        key_copy = string
+        inc = 0
+        while IrUiView.objects.filter(key=key_copy).exists():
+            inc += 1
+            key_copy = string + ('-%s' % inc)
+        return key_copy
+
+    @classmethod
+    def search_url_dependencies(cls, res_model, res_ids):
+        """≙ ``search_url_dependencies`` (``odoo19c: :1297-1358``;
+        ``@api.model``).
+
+        Dependencias «informativas» de las URL de los registros dados: qué
+        registros con campos HTML citan esas URL. La fuente avisa que no
+        atrapa el 100 % y que el falso positivo es más que posible; aquí
+        igual. Estaba BLOQUEADO en B2; lo desbloqueó ``_get_html_fields``.
+
+        Divergencias declaradas, cada una con su pieza:
+
+        - el modelo se resuelve por ``_name`` (``orm.registry``); un nombre
+          desconocido levanta ``KeyError`` — el mismo tipo que el
+          ``env[res_model]`` de la fuente.
+        - ``Model.has_access('read')`` no tiene análogo de modelo: la
+          autorización vive en la capa DRF (capacidades DEC-11), así que el
+          barrido no filtra por ACL.
+        - la rama ``_handle_views_and_pages`` reagrupa las vistas que
+          pertenecen a páginas; ``ir.ui.view`` aquí no declara ``page_ids``
+          (#104), así que las vistas se reportan como vistas.
+        - el nombre de despliegue sale de ``Meta.verbose_name`` — no hay
+          ``ir.model`` poblado con display names.
+        - el enlace de respaldo de la fuente (``/odoo/<model>/<id>``) es la
+          ruta de su web client y llevaría su marca a un endpoint del
+          cliente (#416): sin ``website_url``/``url``, el enlace va vacío
+          hasta que el marco de cliente exista (#488).
+        - ``ilike`` → ``icontains``: Django escapa ``%``/``_`` del término,
+          más estricto (y más seguro) que el ``ilike`` crudo de la fuente.
+        """
+        dependencies = {}
+        current_website = cls.get_current_website()
+        model = model_by_name(res_model)
+        if model is None:
+            raise KeyError(res_model)
+        records = model.objects.filter(
+            pk__in=[int(res_id) for res_id in res_ids])
+        search_criteria = []
+        for record in records:
+            website = getattr(record, 'website', None) or current_website
+            url = getattr(record, 'website_url', None) or record.url
+            website_q = website.website_domain() if website else models.Q()
+            search_criteria.append((url, website_q))
+        if not search_criteria:
+            return dependencies
+        for dep_model, field_name in cls._get_html_fields():
+            has_website = any(
+                f.name == 'website' for f in dep_model._meta.get_fields())
+            query = models.Q()
+            for url, website_q in search_criteria:
+                term = models.Q(**{f'{field_name}__icontains': url})
+                if has_website:
+                    term &= website_q
+                query |= term
+            dependency_records = list(dep_model.objects.filter(query))
+            if not dependency_records:
+                continue
+            model_display_name = str(dep_model._meta.verbose_name)
+            field_string = str(
+                dep_model._meta.get_field(field_name).verbose_name)
+            dependencies.setdefault(model_display_name, [])
+            dependencies[model_display_name] += [{
+                'field_name': field_string,
+                'record_name': str(dependency),
+                'link': (getattr(dependency, 'website_url', None)
+                         or getattr(dependency, 'url', None) or ''),
+                'model_name': model_display_name,
+            } for dependency in dependency_records]
+        return dependencies
+
+    @classmethod
+    def get_template(cls, template):
+        """≙ ``get_template`` (``odoo19c: :1510-1513``; ``@api.model``).
+
+        El ``.sudo()`` final de la fuente es el estado por defecto de este
+        ORM (sin ACL de lectura), como declara ``get_unique_key``.
+        """
+        if isinstance(template, str) and '.' not in template:
+            template = 'website.%s' % template
+        return IrUiView._get_template_view(template)
+
+    def get_suggested_controllers(self):
+        """≙ ``get_suggested_controllers`` (``odoo19c: :1770-1779``).
+
+        Tuplas ``(nombre, url, icono)``; el icono puede ser un nombre de
+        módulo o una ruta.
+
+        Divergencia declarada: la fuente pasa cada URL por
+        ``ir.http._url_for`` (la localización de idioma del enrutado); ese
+        eje no está portado (#545), así que las rutas van tal cual.
+        """
+        return [
+            (_('Homepage'), '/', 'website'),
+            (_('Contact Us'), '/contactus', 'website_crm'),
+        ]
+
+    @classmethod
+    def image_url(cls, record, field, size=None):
+        """≙ ``image_url`` (``odoo19c: :1781-1787``; ``@api.model``).
+
+        URL local que apunta al campo de imagen del registro dado; el
+        ``unique=`` es un hash de la fecha de escritura para invalidar la
+        caché del navegador al cambiar la imagen.
+
+        Divergencias declaradas: (1) ``write_date`` ↔ ``updated_at``
+        (``TimeStampedModel``); (2) el ``record.sudo()`` de la fuente es
+        innecesario — este ORM no aplica ACL en lecturas; (3) sin ``_name``
+        declarado, el segmento del modelo usa el label de Django
+        (``app.modelo``) y converge al nombre punteado con el barrido
+        prospectivo de ``atributos-de-clase-de-modelo.md``.
+        """
+        sha = hashlib.sha512(
+            str(getattr(record, 'updated_at', None)).encode('utf-8')
+        ).hexdigest()[:7]
+        size = '' if size is None else '/%s' % size
+        model_name = name_of(type(record)) or type(record)._meta.label_lower
+        return '/web/image/%s/%s/%s%s?unique=%s' % (
+            model_name, record.pk, field, size, sha)
+
+    def get_cdn_url(self, uri):
+        """≙ ``get_cdn_url`` (``odoo19c: :1789-1798``).
+
+        Reescribe la URI contra la base CDN si algún filtro de
+        ``cdn_filters`` la matchea; si ninguno, la URI vuelve intacta. El
+        ``ensure_one`` de la fuente es innecesario por construcción (banner
+        de B5). El llamador decide consultar ``cdn_activated``, igual que en
+        la fuente.
+        """
+        if not uri:
+            return ''
+        cdn_url = self.cdn_url
+        cdn_filters = (self.cdn_filters or '').splitlines()
+        for cdn_filter in cdn_filters:
+            if cdn_filter and re.match(cdn_filter, uri):
+                return _urljoin_strict(cdn_url, uri)
+        return uri
+
+    def _get_canonical_url(self):
+        """≙ ``_get_canonical_url`` (``odoo19c: :1830-1835``).
+
+        La URL canónica de la petición en curso, sobre el dominio del sitio.
+
+        Divergencia declarada: la fuente delega en
+        ``ir.http._url_localized`` para poner el idioma en la ruta; el eje
+        de idioma en URL es parte del enrutado no portado (#545), así que la
+        canónica es el dominio configurado más la ruta pedida (query
+        incluida), sin prefijo de idioma.
+        """
+        request = get_current_request()
+        path = request.get_full_path() if request is not None else '/'
+        return _urljoin_strict(self.domain or '', path)
+
+    def _is_canonical_url(self):
+        """≙ ``_is_canonical_url`` (``odoo19c: :1837-1849``).
+
+        ¿La URL pedida es la canónica? Con el eje de idioma fuera (#545), la
+        diferencia detectable es el dominio — que es justo la mitad que la
+        fuente subraya (*«it is important to also test the domain»*). Fuera
+        de una petición no hay URL que corregir: ``True``.
+        """
+        request = get_current_request()
+        if request is None:
+            return True
+        return request.build_absolute_uri() == self._get_canonical_url()
+
+    def _get_cached_values(self):
+        """≙ ``_get_cached_values`` (``odoo19c: :1851-1873``).
+
+        Los cuatro valores que el despacho HTTP necesita antes de tener el
+        entorno completo.
+
+        Divergencias declaradas: (1) sin ``@tools.ormcache('self.id')`` —
+        #542 (banner del bloque); sin caché tampoco hace falta el
+        ``fetch()`` selectivo con que la fuente esquiva los campos
+        traducibles. (2) las claves conservan los nombres de la fuente, que
+        aquí coinciden con los attname de los FK (``user_id``,
+        ``company_id``, ``default_lang_id``).
+        """
+        return {
+            'user_id': self.user_id,
+            'company_id': self.company_id,
+            'default_lang_id': self.default_lang_id,
+            'homepage_url': self.homepage_url,
+        }
+
+    def _get_cached(self, field):
+        """≙ ``_get_cached`` (``odoo19c: :1875-1876``)."""
+        return self._get_cached_values()[field]
+
+    @classmethod
+    def _get_html_fields_blacklist(cls):
+        """≙ ``_get_html_fields_blacklist`` (``odoo19c: :1878-1881``).
+
+        Los nombres punteados de la referencia, verbatim;
+        ``_get_html_fields`` los traduce a tabla con la misma derivación
+        ``_name.replace('.', '_')`` que la referencia usa para ``_table``.
+        Classmethod y no método de instancia porque la fuente lo llama sobre
+        un recordset vacío sin usar ``self`` — mismo criterio que
+        ``is_public_user`` en B2.
+        """
+        return (
+            'mail.message', 'mail.activity', 'digest.tip',
+        )
+
+    @classmethod
+    def _get_html_fields(cls):
+        """≙ ``_get_html_fields`` (``odoo19c: :1883-1908``).
+
+        Todos los campos HTML almacenados de los modelos no transitorios,
+        sembrando ``('ir.ui.view', 'arch_db')`` como la fuente.
+
+        **Divergencia de mecanismo, declarada.** La fuente consulta el
+        catálogo (``ir_model_fields.ttype = 'html'``). Ese catálogo no puede
+        existir aquí: ``fields.Html`` es un alias pelado de ``TextField``
+        (``src/orm/fields_textual.py:33``), así que en runtime un campo HTML
+        es indistinguible de un ``Text``. El equivalente medible es el sitio
+        de declaración: se parsea por AST el módulo de cada modelo y se
+        toman las asignaciones ``<campo> = fields.Html(...)`` de su clase y
+        de sus bases. Darle identidad de clase a ``Html`` cerraría esta
+        divergencia — es cambio de ``src/orm``, fuera del write-set de esta
+        tanda; sucesor reportado al orquestador.
+
+        **Segunda divergencia (la de B3):** cada entrada lleva la CLASE del
+        modelo, no su nombre punteado — la mayoría de los modelos aún no
+        declara ``_name`` (mismo criterio que ``search_details['model']``
+        del mixin; vuelve al nombre con el barrido prospectivo de
+        ``atributos-de-clase-de-modelo.md``).
+
+        *Métrica:* asignaciones ``fields.Html(`` en el cuerpo de la clase
+        del modelo (y sus bases), por AST sobre el archivo fuente.
+        *Ciega a:* un campo HTML declarado vía alias intermedio o construido
+        dinámicamente — no aparecería aunque exista.
+        """
+        html_fields = [(IrUiView, 'arch_db')]
+        blacklist_tables = {
+            model_name.replace('.', '_')
+            for model_name in cls._get_html_fields_blacklist()
+        }
+        module_trees = {}
+
+        def html_names_in_class(klass):
+            module = inspect.getmodule(klass)
+            path = getattr(module, '__file__', None)
+            if not path:
+                return set()
+            if path not in module_trees:
+                try:
+                    with open(path, encoding='utf-8') as handle:
+                        module_trees[path] = ast.parse(handle.read())
+                except (OSError, SyntaxError):
+                    # Un módulo sin fuente legible (frozen, generado) no
+                    # puede declarar ``fields.Html`` de este árbol; la
+                    # fuente hace el mismo ``continue`` ante su KeyError.
+                    module_trees[path] = None
+            tree = module_trees[path]
+            if tree is None:
+                return set()
+            names = set()
+            for node in tree.body:
+                if not (isinstance(node, ast.ClassDef)
+                        and node.name == klass.__name__):
+                    continue
+                for stmt in node.body:
+                    if not isinstance(stmt, ast.Assign):
+                        continue
+                    call = stmt.value
+                    if not (isinstance(call, ast.Call)
+                            and isinstance(call.func, ast.Attribute)
+                            and call.func.attr == 'Html'
+                            and isinstance(call.func.value, ast.Name)
+                            and call.func.value.id == 'fields'):
+                        continue
+                    names.update(target.id for target in stmt.targets
+                                 if isinstance(target, ast.Name))
+            return names
+
+        for model in apps.get_models():
+            meta = model._meta
+            if issubclass(model, TransientModel):
+                continue
+            if (meta.db_table.startswith('ir_actions')
+                    or meta.db_table in blacklist_tables):
+                continue
+            declared = set()
+            for klass in model.__mro__:
+                if (isinstance(klass, type)
+                        and issubclass(klass, models.Model)
+                        and klass is not models.Model):
+                    declared |= html_names_in_class(klass)
+            field_names = {f.name for f in meta.get_fields()}
+            for field_name in sorted(declared & field_names):
+                html_fields.append((model, field_name))
+        return html_fields
+
+    def _is_snippet_used(self, snippet_module, snippet_id, asset_version,
+                         asset_type, html_fields):
+        """≙ ``_is_snippet_used`` (``odoo19c: :1910-1934``).
+
+        ¿Alguna aparición del snippet —en los campos HTML del árbol— usa la
+        versión del asset dada?
+
+        Divergencias declaradas: (1) el chequeo sobre la **definición de
+        plantilla** del snippet exige el compilador QWeb
+        (``ir.qweb._render``); ``ir_qweb.py`` es portador de vocabulario sin
+        compilador, así que esa rama llega con el marco de cliente (#488) —
+        consecuencia conservadora: un snippet cuyo único uso sea su propia
+        plantilla se reporta como no usado, y su asset se apaga. (2) el SQL
+        se compone con el cursor + ``quote_name`` — la clase ``SQL``
+        componible no está portada (#549, mismo criterio que el enumerador
+        por trigramas de B3); el patrón viaja como parámetro.
+        """
+        if not html_fields:
+            return False
+        quote = connection.ops.quote_name
+        pattern = f'<([^>]*data-snippet="{snippet_id}"[^>]*)>'
+        selects = []
+        params = []
+        for model, field_name in html_fields:
+            table = quote(model._meta.db_table)
+            column = quote(model._meta.get_field(field_name).column)
+            selects.append(
+                f"SELECT regexp_matches({table}.{column}, %s, 'g')"
+                f' FROM {table}')
+            params.append(pattern)
+        with connection.cursor() as cr:
+            cr.execute(' UNION '.join(selects), params)
+            snippet_occurences = [row[0][0] for row in cr.fetchall()]
+        return self._check_snippet_used(
+            snippet_occurences, asset_type, asset_version)
+
+    def _disable_unused_snippets_assets(self):
+        """≙ ``_disable_unused_snippets_assets`` (``odoo19c: :1955-1985``).
+
+        Apaga (``active=False``) los assets de snippets que ya nadie usa, y
+        reenciende los que reaparecen. El caso especial de
+        ``s_quotes_carousel``/``s_blockquote`` se porta verbatim: cubre
+        snippets viejos sin atributo ``data-snippet``.
+
+        Divergencias declaradas: (1) el ``active_test=False`` de la fuente
+        es el estado por defecto del manager de ``IrAsset``; (2) el ``like``
+        con comodín interno (``/static%/snippets/``) se expresa con
+        ``__regex``; (3) el ``flush_model()`` final no aplica — cada
+        ``save()`` ya escribió.
+        """
+        snippet_assets = list(
+            IrAsset.objects
+            .filter(path__regex=r'/static.*/snippets/')
+            .order_by('pk'))
+        snippet_re = re.compile(
+            r'(\w*)\/.*\/snippets\/(\w*)\/(\d{3})(?:_\w*)?\.(js|scss)')
+        # El regex matchea /module/static/[…/]/snippets/snippet_id/XXX[_var].tipo
+        # — _var no se conserva: sólo module, snippet_id, versión (XXX) y tipo
+        # son relevantes (comentario de la fuente).
+        html_fields = self._get_html_fields()
+        snippet_used = {}
+        for snippet_asset in snippet_assets:
+            match = snippet_re.match(snippet_asset.path)
+            if not match:
+                continue
+            snippet_module, snippet_id, asset_version, asset_type = (
+                match.groups())
+            if asset_type == 'scss':
+                asset_type = 'css'
+            # El módulo no es parte de la clave: se quiere el primero en el
+            # orden de id para filtrar extensiones de módulo (fuente).
+            key = (snippet_id, asset_version, asset_type)
+            if key not in snippet_used:
+                snippet_used[key] = self._is_snippet_used(
+                    snippet_module, snippet_id, asset_version, asset_type,
+                    html_fields)
+            is_snippet_used = snippet_used[key]
+            if is_snippet_used != snippet_asset.active:
+                snippet_asset.active = is_snippet_used
+                snippet_asset.save(update_fields=['active'])
+                # Cobertura de data-snippet ausentes (fuente, verbatim).
+                if (snippet_id == 's_quotes_carousel'
+                        and asset_type == 'css'
+                        and asset_version in ['000', '001']):
+                    old_blockquote_key = ('s_blockquote', '000', 'css')
+                    if not snippet_used.get(old_blockquote_key):
+                        snippet_used[old_blockquote_key] = True
+                        old_blockquote_assets = [
+                            asset for asset in snippet_assets
+                            if asset.path == ('website/static/src/snippets/'
+                                              's_blockquote/000.scss')]
+                        for old_asset in old_blockquote_assets:
+                            if not old_asset.active:
+                                old_asset.active = True
+                                old_asset.save(update_fields=['active'])
+
+
+def _contains_dot_segments(path):
+    """≙ ``_contains_dot_segments`` (``odoo19c: odoo/tools/urls.py:7-10``).
+
+    La mayoría de los servidores decodifica la URL antes de resolver los
+    segmentos punto — por eso se evalúa sobre la forma decodificada.
+    """
+    decoded_path = unquote(path, errors='strict')
+    return any(segment in ('.', '..') for segment in decoded_path.split('/'))
+
+
+def _urljoin_strict(base, extra):
+    """≙ ``tools.urls.urljoin`` (``odoo19c: odoo/tools/urls.py:13-77``).
+
+    Une una base confiable con una URL relativa de forma estricta — NO es el
+    ``urljoin`` RFC 3986 de ``urllib.parse``: se comporta como
+    ``base + '/' + extra``, conserva esquema y host de la base, rechaza que
+    ``extra`` traiga otro esquema/host y prohíbe los segmentos ``.``/``..``
+    (path traversal).
+
+    Su hogar real es ``src/tools/urls.py`` (raíz espejada de
+    ``odoo/tools/``) — fuera del write-set de esta tanda, así que vive aquí
+    como función de módulo, igual que ``_configurator_rpc_call`` con el
+    addon ``iap``; se muda cuando esa raíz lo gane (sucesor reportado al
+    orquestador).
+    """
+    base_scheme, base_netloc, path, _base_query, _base_fragment = (
+        urlsplit(base))
+    extra_scheme, extra_netloc, extra_path, extra_query, extra_fragment = (
+        urlsplit(extra))
+    if extra_scheme or extra_netloc:
+        # Se admite una ``extra`` absoluta sólo si coincide con la base.
+        if (extra_scheme != base_scheme or extra_netloc != base_netloc
+                or not extra_path.startswith(path)):
+            raise ValueError(
+                'Extra URL must use same scheme and host as base, and '
+                'begin with base path')
+        extra_path = extra_path[len(path):]
+    if extra_path:
+        # Evita que urljoin('/', '\\example.com/') resuelva absoluto a
+        # '//example.com/' en un redirect de navegador — verbatim de la
+        # fuente, controles C0 y espacio incluidos.
+        extra_path = extra_path.lstrip(
+            '/\\\x00\x01\x02\x03\x04\x05\x06\x07\x08\t\n\x0b\x0c\r'
+            '\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b'
+            '\x1c\x1d\x1e\x1f ')
+        path = f'{path}/{extra_path}'
+    # Normaliza: foo//bar -> foo/bar (fuente).
+    path = re.sub(r'/+', '/', path)
+    if _contains_dot_segments(path):
+        raise ValueError('Dot segments are not allowed')
+    return urlunsplit(
+        (base_scheme, base_netloc, path, extra_query, extra_fragment))
 
 
 def _configurator_rpc_call(url, method='call', params=None, timeout=15):

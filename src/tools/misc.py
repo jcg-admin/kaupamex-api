@@ -249,3 +249,33 @@ def groupby(iterable: Iterable[T], key: Callable[[T], K] = lambda arg: arg):
     for elem in iterable:
         groups[key(elem)].append(elem)
     return groups.items()
+
+
+def named_to_positional_printf(string, args):
+    """≙ ``named_to_positional_printf`` (``odoo19c: odoo/tools/misc.py:1959``).
+
+    Convierte una plantilla printf con argumentos por nombre
+    (``"%(x)s"``) en su equivalente posicional (``"%s"``) con la tupla de
+    valores en el orden en que la plantilla los consume. Su consumidor es
+    ``tools.sql.SQL``, que la importa igual que la referencia
+    (``odoo19c: odoo/tools/sql.py:20``).
+    """
+    pargs = _PrintfArgs(args)
+    return string.replace('%%', '%%%%') % pargs, tuple(pargs.values)
+
+
+class _PrintfArgs:
+    """≙ ``_PrintfArgs`` (``odoo19c: odoo/tools/misc.py:1967``).
+
+    Objeto ayudante: al formatear con ``%``, cada ``%(clave)s`` que la
+    plantilla consume registra su valor en orden y se sustituye por ``%s``.
+    """
+    __slots__ = ('mapping', 'values')
+
+    def __init__(self, mapping):
+        self.mapping = mapping
+        self.values = []
+
+    def __getitem__(self, key):
+        self.values.append(self.mapping[key])
+        return "%s"

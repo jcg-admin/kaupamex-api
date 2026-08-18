@@ -1,8 +1,59 @@
-"""Introspección SQL sobre ``information_schema`` (fiel a ``odoo.tools.sql``).
+"""Fragmentos SQL componibles e introspección (fiel a ``odoo.tools.sql``).
 
-``odoo/tools/sql.py`` ofrece ``table_exists``/``column_exists``/``index_exists``
-sobre ``information_schema``. Tras migrar el motor a PostgreSQL estas tres
-convergen con la referencia y ya **no** hay traducción que mantener: el "current
+La pieza central es la clase :class:`SQL` (``odoo19c: odoo/tools/sql.py:46``),
+portada COMPLETA en la tarea #549 (H-API-698): hasta entonces ``SQL`` era un
+alias de ``django.db.models.expressions.RawSQL`` — no componible, sin
+``SQL.identifier``, sin ``SQL.join`` ni interpolación por nombre. El alias
+quedó retirado; la única traza que se conserva de él es la adaptación
+``output_field`` (ver la clase).
+
+Cobertura del resto del módulo fuente — medida por AST el 2026-08-18 sobre
+``odoo19c: odoo/tools/sql.py`` (781 líneas): 2 clases, 37 funciones de módulo
+y 5 variables de módulo.
+
+  ================================  =====================================
+  Símbolo de la referencia          Estado aquí
+  ================================  =====================================
+  ``SQL`` (clase, ``:46``)          **portada completa** (este pase, #549)
+  ``escape_psql`` (``:640``)        portada (previa)
+  ``table_exists`` (``:216``)       adaptada (previa; firma con cursor +
+                                    ``schema``, vía ``information_schema``
+                                    en vez de ``pg_class``)
+  ``column_exists`` (``:315``)      adaptada (previa)
+  ``table_columns`` (``:299``)      adaptada (previa)
+  ``index_exists`` (``:540``)       adaptada (previa; ``pg_indexes``)
+  ``IDENT_RE`` (``:35``)            **portada** (la consume
+                                    ``SQL.identifier``)
+  ================================  =====================================
+
+**Pendientes — 32 funciones de módulo, 1 clase y 4 variables** que la
+referencia declara y aquí no existen: ``existing_tables``, ``table_kind`` (+
+``TableKind``), ``create_model_table``, ``create_column``, ``rename_column``,
+``convert_column``, ``convert_column_translatable``, ``_convert_column``,
+``drop_depending_views``, ``get_depending_views``, ``set_not_null``,
+``drop_not_null``, ``constraint_definition``, ``add_constraint``,
+``drop_constraint``, ``add_foreign_key``, ``get_foreign_keys``,
+``fix_foreign_key``, ``check_index_exist``, ``index_definition``,
+``create_index``, ``add_index``, ``create_unique_index``, ``drop_index``,
+``drop_view_if_exists``, ``pg_varchar``, ``reverse_order``,
+``increment_fields_skiplock``, ``value_to_translated_trigram_pattern``,
+``pattern_to_translated_trigram_pattern``, ``make_identifier``,
+``make_index_name``; y ``__all__``, ``_schema``, ``_CONFDELTYPES``,
+``SQL_ORDER_BY_TYPE``. Todas sirven al DDL del registro de modelos de la
+referencia; aquí ese DDL lo emiten las migraciones de Django. Se portan
+cuando un consumidor las exija — el alcance de #549 es la clase ``SQL``;
+esta declaración medida es el registro de esa cobertura (regla
+``porte-completo-no-parcial``).
+
+``named_to_positional_printf`` y ``_PrintfArgs`` viven en
+``src/tools/misc.py`` — su hogar espejado (``odoo19c: odoo/tools/misc.py:1959``
+y ``:1967``) — y este módulo importa la primera igual que la referencia
+(``odoo19c: odoo/tools/sql.py:20``). Aterrizaron aquí durante el pase de #549
+por el write-set del agente y la consolidación las mudó en el mismo commit.
+
+Sobre los ayudantes de introspección ya existentes: ``odoo/tools/sql.py``
+ofrece ``table_exists``/``column_exists``/``index_exists`` sobre
+``information_schema``. Tras migrar el motor a PostgreSQL, el "current
 schema" vuelve a ser ``current_schema`` (``odoo19c: odoo/tools/sql.py:320``),
 que bajo MariaDB había que escribir como ``DATABASE()``.
 
@@ -19,34 +70,215 @@ El cambio no es cosmético — ``schema`` significa otra cosa en cada motor:
 Un consumidor que pasaba el nombre de la base como ``schema`` funcionaba en
 MariaDB y aquí no encontraría nada. Medido a HEAD: **0** consumidores en
 ``src/`` pasan ``schema`` explícito, así que el cambio de significado no rompe
-código vivo — pero queda escrito porque el próximo que lo use tiene que saberlo.
-Ver H-API-306.
+código vivo — pero queda escrito porque el próximo que lo use tiene que
+saberlo. Ver H-API-306.
 
 ``index_exists`` cambia de catálogo: PostgreSQL no tiene
 ``information_schema.STATISTICS`` (es una tabla de MySQL). La referencia usa
 ``pg_indexes`` (``odoo19c: odoo/tools/sql.py:542``), y aquí se conserva además
 el filtro por tabla que nuestra firma ya exponía.
-
-Además expone ``SQL``, que un addon portado importa como
-``from tools.sql import SQL``. **No es la clase de la referencia: es un alias
-de** ``django.db.models.expressions.RawSQL``, y la diferencia importa.
-
-``odoo.tools.SQL`` (``odoo19c: odoo/tools/sql.py``) es un fragmento componible
-con interpolación **por nombre** (``SQL("… %(x)s", x=…)``), constructores de
-clase (``SQL.identifier``, ``SQL.join``) y anidamiento de fragmentos. ``RawSQL``
-no tiene nada de eso: acepta una cadena y una secuencia de parámetros
-posicionales. La forma que el árbol usa hoy —medido: ``stock_quant.py:831,834``,
-``SQL('NULL', output_field=…)`` y una cadena de agregación— cabe en ``RawSQL``,
-así que el alias sirve **para ese uso y no más**.
-
-Quien porte código de la referencia que llame a ``SQL.identifier``,
-``SQL.join`` o interpolación por nombre se topará con un ``AttributeError`` o
-un ``TypeError``, no con una degradación silenciosa. Ver :ref:`h-api-698`; el
-porte de la clase real es la tarea **#549**.
 """
+import re
+import warnings
+
 from django.db.models.expressions import RawSQL
 
-SQL = RawSQL                       # alias acotado — ver la cabecera y #549
+from .misc import named_to_positional_printf
+
+# ≙ ``IDENT_RE`` (``odoo19c: odoo/tools/sql.py:35``) — el filtro de
+# ``SQL.identifier``: minúsculas, dígitos, ``_``, ``$`` y ``-``.
+IDENT_RE = re.compile(r'^[a-z0-9_][a-z0-9_$\-]*$', re.I)
+
+
+class SQL:
+    """≙ ``SQL`` (``odoo19c: odoo/tools/sql.py:46``) — fragmento SQL con sus
+    parámetros, componible::
+
+        sql = SQL("UPDATE TABLE foo SET a = %s, b = %s", 'hello', 42)
+        cursor.execute(sql.code, sql.params)
+
+    El código es una plantilla printf (``%``) con argumentos posicionales
+    (``%s``) o por nombre (``%(name)s``). El carácter ``%`` literal siempre
+    va escapado como ``%%``, incluso sin parámetros
+    (``SQL("foo LIKE 'a%%'")``).
+
+    Los argumentos pueden ser parámetros reales u objetos ``SQL`` — de ahí la
+    composición::
+
+        sql = SQL(
+            "UPDATE TABLE %s SET %s",
+            SQL.identifier(tablename),
+            SQL("%s = %s", SQL.identifier(columnname), value),
+        )
+
+    El código combinado sale por ``sql.code`` y los parámetros combinados por
+    ``sql.params``, así que N fragmentos se componen sin cuadrar sus
+    parámetros a mano. El segundo propósito es desalentar la inyección: si
+    ``code`` es un literal, el objeto es seguro siempre que los ``SQL``
+    anidados lo sean.
+
+    El wrapper puede llevar la metadata ``to_flush``: campos de los que el
+    código depende, accesibles (los propios y los de sus partes) por el
+    iterable ``sql.to_flush``. La referencia lo tipa con ``odoo.fields.Field``;
+    aquí se acepta cualquier objeto campo (divergencia declarada: el tipo
+    ``Field`` de la referencia no gobierna este árbol y las anotaciones que
+    lo citan se omiten).
+
+    **Adaptaciones a este stack (no existen en la referencia):**
+
+    - En la referencia ``cr.execute(sql)`` acepta el objeto porque su cursor
+      lo desenvuelve; el cursor de Django/psycopg 3 no — aquí se ejecuta con
+      ``cursor.execute(sql.code, sql.params)``.
+    - ``output_field`` (keyword-only) + :meth:`resolve_expression`: conservan
+      el uso del alias ``RawSQL`` retirado — un ``SQL('NULL',
+      output_field=DecimalField())`` sigue siendo utilizable como expresión
+      del ORM en ``annotate()``/``aggregate()`` (consumidor vivo:
+      ``addons/stock/models/stock_quant.py:831,834``). Como ``to_flush``, el
+      nombre ``output_field`` queda reservado y no puede usarse como
+      parámetro por nombre de la plantilla.
+    """
+    __slots__ = ('__code', '__params', '__to_flush', '__output_field')
+
+    # pylint: disable=keyword-arg-before-vararg
+    def __init__(self, code="", /, *args, to_flush=None, output_field=None, **kwargs):
+        # ≙ ``__init__`` (``odoo19c: odoo/tools/sql.py:89-135``); la rama de
+        # ``output_field`` es la adaptación declarada arriba.
+        if isinstance(code, SQL):
+            if args or kwargs or to_flush or output_field:
+                raise TypeError("SQL() unexpected arguments when code has type SQL")
+            self.__code = code.__code
+            self.__params = code.__params
+            self.__to_flush = code.__to_flush
+            self.__output_field = code.__output_field
+            return
+
+        # valida la forma del código y de los parámetros
+        if args and kwargs:
+            raise TypeError("SQL() takes either positional arguments, or named arguments")
+
+        if kwargs:
+            code, args = named_to_positional_printf(code, kwargs)
+        elif not args:
+            code % ()  # verifica que el código no contenga %s sin parámetro
+            self.__code = code
+            self.__params = ()
+            if to_flush is None:
+                self.__to_flush = ()
+            elif hasattr(to_flush, '__iter__'):
+                self.__to_flush = tuple(to_flush)
+            else:
+                self.__to_flush = (to_flush,)
+            self.__output_field = output_field
+            return
+
+        code_list = []
+        params_list = []
+        to_flush_list = []
+        for arg in args:
+            if isinstance(arg, SQL):
+                code_list.append(arg.__code)
+                params_list.extend(arg.__params)
+                to_flush_list.extend(arg.__to_flush)
+            else:
+                code_list.append("%s")
+                params_list.append(arg)
+        if to_flush is not None:
+            if hasattr(to_flush, '__iter__'):
+                to_flush_list.extend(to_flush)
+            else:
+                to_flush_list.append(to_flush)
+
+        self.__code = code.replace('%%', '%%%%') % tuple(code_list)
+        self.__params = tuple(params_list)
+        self.__to_flush = tuple(to_flush_list)
+        self.__output_field = output_field
+
+    @property
+    def code(self):
+        """El código SQL combinado (``odoo19c: odoo/tools/sql.py:137-140``)."""
+        return self.__code
+
+    @property
+    def params(self):
+        """Los parámetros combinados, como lista
+        (``odoo19c: odoo/tools/sql.py:142-145``).
+        """
+        return list(self.__params)
+
+    @property
+    def to_flush(self):
+        """Iterable de los campos a vaciar en la metadata de ``self`` y de
+        todas sus partes (``odoo19c: odoo/tools/sql.py:147-152``).
+        """
+        return self.__to_flush
+
+    def __repr__(self):
+        # ≙ ``__repr__`` (``odoo19c: odoo/tools/sql.py:154-155``)
+        return f"SQL({', '.join(map(repr, [self.__code, *self.__params]))})"
+
+    def __bool__(self):
+        # ≙ ``__bool__`` (``odoo19c: odoo/tools/sql.py:157-158``)
+        return bool(self.__code)
+
+    def __eq__(self, other):
+        # ≙ ``__eq__`` (``odoo19c: odoo/tools/sql.py:160-161``)
+        return isinstance(other, SQL) and self.__code == other.__code and self.__params == other.__params
+
+    def __hash__(self):
+        # ≙ ``__hash__`` (``odoo19c: odoo/tools/sql.py:163-164``)
+        return hash((self.__code, self.__params))
+
+    def __iter__(self):
+        """≙ ``__iter__`` (``odoo19c: odoo/tools/sql.py:166-176``). Rinde
+        ``self.code`` y ``self.params`` — retrocompatibilidad que la propia
+        referencia declara deprecada::
+
+            code, params = sql
+        """
+        warnings.warn("Deprecated since 19.0, use code and params properties directly", DeprecationWarning)
+        yield self.code
+        yield self.params
+
+    def join(self, args):
+        """≙ ``join`` (``odoo19c: odoo/tools/sql.py:178-192``): une objetos
+        ``SQL`` o parámetros con ``self`` como separador.
+        """
+        args = list(args)
+        # optimizaciones para los casos especiales
+        if len(args) == 0:
+            return SQL()
+        if len(args) == 1 and isinstance(args[0], SQL):
+            return args[0]
+        if not self.__params:
+            return SQL(self.__code.join("%s" for arg in args), *args)
+        # caso general: alterna args con self
+        items = [self] * (len(args) * 2 - 1)
+        for index, arg in enumerate(args):
+            items[index * 2] = arg
+        return SQL("%s" * len(items), *items)
+
+    @classmethod
+    def identifier(cls, name, subname=None, to_flush=None):
+        """≙ ``identifier`` (``odoo19c: odoo/tools/sql.py:194-201``): un
+        objeto ``SQL`` que representa un identificador (entrecomillado).
+        """
+        assert name.isidentifier() or IDENT_RE.match(name), f"{name!r} invalid for SQL.identifier()"
+        if subname is None:
+            return cls(f'"{name}"', to_flush=to_flush)
+        assert subname.isidentifier() or IDENT_RE.match(subname), f"{subname!r} invalid for SQL.identifier()"
+        return cls(f'"{name}"."{subname}"', to_flush=to_flush)
+
+    def resolve_expression(self, *args, **kwargs):
+        """Adaptación Django — NO existe en la referencia.
+
+        Hace al fragmento utilizable como expresión del ORM
+        (``annotate()``/``aggregate()``): delega en un ``RawSQL`` con el
+        ``output_field`` recibido en el constructor. Es la superficie que el
+        alias retirado (``SQL = RawSQL``) daba gratis y que
+        ``stock_quant._read_group_select`` consume.
+        """
+        raw = RawSQL(self.__code, self.__params, output_field=self.__output_field)
+        return raw.resolve_expression(*args, **kwargs)
 
 
 def escape_psql(to_escape):
