@@ -32,17 +32,23 @@ pytestmark = pytest.mark.django_db
 
 
 class TestResLang:
+    # Los dos usan un locale INVENTADO (``zz_ZZ``) y no uno real. Desde que
+    # ``base/0026_seed_langs`` siembra los 93 idiomas de la referencia, el
+    # catálogo ya NO nace vacío: crear ``es_MX`` o ``en_US`` choca con la
+    # semilla y el fallo no habla de lo que el test quiere probar. ``zz_ZZ`` no
+    # está en ``odoo19c: base/data/res.lang.csv`` (medido), así que el test mide
+    # el modelo y no el catálogo.
     def test_defaults(self):
-        lang = ResLang.objects.create(name='Español (México)', code='es_MX', url_code='es_MX')
+        lang = ResLang.objects.create(name='Idioma de prueba', code='zz_ZZ', url_code='zz')
         assert lang.direction == 'ltr'
         assert lang.week_start == '7'
         assert lang.grouping == '[3,0]'
         assert lang.decimal_point == '.'
 
     def test_code_unique(self):
-        ResLang.objects.create(name='English', code='en_US', url_code='en')
+        ResLang.objects.create(name='Idioma de prueba', code='zz_ZZ', url_code='zz')
         with transaction.atomic(), pytest.raises(IntegrityError):
-            ResLang.objects.create(name='English (UK)', code='en_US', url_code='en_gb')
+            ResLang.objects.create(name='Otro', code='zz_ZZ', url_code='zz_alt')
 
 
 class TestResCountryGroup:

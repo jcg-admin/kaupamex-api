@@ -83,7 +83,13 @@ wsgi_app = 'config.wsgi:application'
 # ── Modelo de concurrencia ───────────────────────────────────────────────────
 # Prefork síncrono — el mismo que mod_wsgi en modo demonio ya usaba. NO cambiar
 # a un worker asíncrono sin un ADR: la aplicación es WSGI síncrona (0 `async def`
-# medidos, ADR-027) y mysqlclient no es cooperativo.
+# medidos, ADR-027) y el driver de base tampoco es cooperativo: psycopg 3 en
+# modo síncrono bloquea el hilo mientras espera a PostgreSQL (ADR-028).
+#
+# Decía «mysqlclient», que quedó atrás con la migración de motor (ADR-028,
+# 2026-08-06). Corregido al leer este archivo como fuente del modelo de
+# concurrencia en la tarea #535: un archivo que se cita como autoridad no puede
+# nombrar un driver que el producto ya no usa.
 workers = _int_env('GUNICORN_WORKERS', 4)
 threads = _int_env('GUNICORN_THREADS', 1)
 

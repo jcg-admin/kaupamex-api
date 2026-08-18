@@ -19,8 +19,8 @@ que no existía: **#101** (mudar el carrito a ``website_sale``), **#104**
 (realinear los cuatro modelos propios), **#105** (alinear ``SearchEntry``) y
 **#258** (recuperación de carrito abandonado).
 
-Porte por bloques — B1 de 6, con la partición declarada
-=========================================================
+Porte por bloques — B1 y B2 de 6, con la partición declarada
+==============================================================
 
 Medido sobre ``odoo19c: addons/website/models/website.py`` (2430 líneas):
 **1 clase**, **111 métodos**, **44 campos**, **4 atributos de clase**.
@@ -43,11 +43,11 @@ está registrada como seis tareas y **verificada completa: 33+15+10+15+6+32 =
      - cabecera, los 44 campos, ``_default_*``, ``_compute_*``, ``_check_*``,
        CRUD y los ``_handle_*``
      - **#534** ← este archivo
-   * - B2
-     - 15
+   * - **B2**
+     - **15**
      - resolución de sitio actual (``_force``, ``get_current_website``) y
-       enumeración de páginas
-     - #535
+       enumeración de páginas — **6 portados, 9 bloqueados** (ver abajo)
+     - **#535** ← este archivo
    * - B3
      - 10
      - búsqueda del sitio sobre ``pg_trgm``
@@ -117,6 +117,74 @@ Y dos cosas que la fuente hace en ``create``/``write`` y aquí **no** se hacen,
 con su razón: ``_bootstrap_homepage`` (es de B4, #537, y además necesita
 ``website.page``) y el alta del grupo multi-sitio (necesita el registro de datos
 por módulo, #467).
+
+Cobertura de B2 — 6 de 15, con el bloqueo medido de los otros 9
+================================================================
+
+La partición prometía 15 métodos y **el nombre de uno no existe en la
+fuente**: ``get_alternate_languages`` se registró en la tarea #535 de memoria y
+un barrido por AST del archivo de la referencia da **0** ocurrencias. Los 15
+reales son los de esta tabla; la aritmética del bloque (15) no cambia.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 34 12 54
+
+   * - Método
+     - Estado
+     - Bloqueo medido / nota
+   * - ``get_current_website``
+     - portado
+     - sobre el nuevo ``get_current_request``
+   * - ``_get_current_website_id``
+     - portado
+     - sin la caché de la fuente — ver #542
+   * - ``_force`` · ``_force_website``
+     - portado
+     - sesión de la petición en curso
+   * - ``is_public_user``
+     - portado
+     - lee el campo, no su caché por petición
+   * - ``pager``
+     - portado
+     - delega en ``addons/portal/controllers/portal.py``
+   * - ``copy_menu_hierarchy``
+     - BLOQUEADO
+     - ``website.menu`` **no declara** ``website_id`` en este árbol
+       (``website_menu.py:40`` lo dice explícitamente), y el método existe
+       para poblar justo ese campo. Sucesor: **#543**
+   * - ``viewref`` · ``is_view_active``
+     - BLOQUEADO
+     - ``IrUiView`` no declara ``_get_template_view`` ni
+       ``_get_cached_template_info`` (medido: 0 en ``ir_ui_view.py``).
+       Sucesor: **#544**
+   * - ``new_page`` · ``check_existing_page``
+     - BLOQUEADO
+     - ``website.page`` y ``website.rewrite`` no existen (0 clases).
+       Sucesor: **#104**
+   * - ``rule_is_enumerable`` · ``_enumerate_pages`` · ``search_pages``
+     - BLOQUEADO
+     - los tres recorren ``ir.http.routing_map()``, que ``ir_http.py`` declara
+       explícitamente **no portado** (todo el enrutado y el despacho son la
+       URLconf de Django). Sucesor: **#545**
+   * - ``search_url_dependencies``
+     - BLOQUEADO
+     - necesita ``_get_html_fields`` (es de B6, #539) y ``website.rewrite``.
+       Sucesor: **#545**
+
+*Métrica:* nombre del método presente y con cuerpo que hace lo que hace el de
+la referencia.
+*Ciega a:* que el cuerpo portado sea correcto — eso lo miden los tests, no el
+conteo.
+
+**Un mecanismo construido, no un rodeo.** ``get_current_website`` necesita la
+petición en curso, que la fuente lee de su ``request`` global. Este árbol no lo
+tenía, así que se construyó donde ya vive el enlace petición→entorno:
+``get_current_request`` en ``src/addons/base/models/ir_http.py``, poblado por
+``CompanyContextMiddleware``. Y su segundo escalón necesita ``env.context``, el
+tercero de los tres ejes que la fuente declara y el único que
+``src/orm/environments.py`` no tenía: se añadió ahí (``get_context`` /
+``context_scope``).
 """
 
 import base64
@@ -128,10 +196,14 @@ import models
 from django.db.models import Q
 
 from addons.base.models import TimeStampedModel
+from addons.base.models.ir_http import get_current_request
 from addons.base.models.res_company import ResCompany
 from addons.base.models.res_lang import ResLang
+from addons.portal.controllers.portal import pager
 from addons.website.models.website_menu import WebsiteMenu
+from addons.website.tools import get_base_domain
 from exceptions import UserError, ValidationError
+from orm.environments import get_context, get_current_company, get_current_uid
 from tools.translate import _
 
 #: ≙ ``DEFAULT_CDN_FILTERS`` (``odoo19c: website.py:39-47``).
@@ -207,6 +279,99 @@ def default_cdn_filters():
     return '\n'.join(DEFAULT_CDN_FILTERS)
 
 
+def default_company():
+    """El valor inicial de ``company`` — la empresa activa del entorno.
+
+    ≙ ``default=lambda self: self.env.company`` (``odoo19c: website.py:124``).
+
+    **Este ``default=`` faltaba en el porte de B1** y lo destapó el primer test
+    de B2 que creó un sitio: ``IntegrityError: null value in column
+    "company_id" … violates not-null constraint``. El campo estaba portado y
+    contaba como tal —``required=True`` incluido—, pero sin su valor inicial;
+    es la clase de defecto que ``porte-completo-no-parcial.md`` describe como
+    fallar por FORMA sin fallar por conteo. Ver :ref:`h-api-696`.
+
+    Con nombre y no ``lambda`` por la misma razón que ``default_cdn_filters``:
+    Django serializa los ``default=`` dentro de la migración.
+
+    Devuelve ``None`` fuera de todo contexto de empresa —un cron sin entorno—
+    en vez de inventar una. Ahí el llamador pasa la empresa explícitamente, que
+    es lo que hace la fuente cuando ``env.company`` no aplica.
+    """
+    return get_current_company()
+
+
+# --- Los doce ``default=`` que el porte de B1 dejó sin cablear ---------------
+# Medido por AST sobre la fuente: **19 de 45 campos declaran ``default=``**, y
+# doce de esos doce no lo tenían aquí. Los ayudantes SÍ estaban portados —
+# ``_active_languages``, ``_default_language``, los ocho ``_default_social_*``,
+# ``_default_logo``, ``_default_favicon``, todos abajo en la clase—; lo que
+# faltaba era el cable entre el campo y su ayudante. El conteo de símbolos daba
+# porte completo y el campo nacía vacío: es la forma exacta que
+# ``porte-completo-no-parcial.md`` describe como fallar por FORMA sin fallar por
+# conteo. Ver :ref:`h-api-696`.
+#
+# Son funciones de módulo con nombre y no referencias directas al ``classmethod``
+# porque Django serializa el ``default=`` dentro de la migración, y un
+# ``classmethod`` colgado de una clase que aún no existe al evaluar el cuerpo no
+# se puede citar ahí. La indirección resuelve el ayudante al llamarse, no al
+# declararse.
+
+def default_language():
+    """El valor inicial de ``default_lang`` — ≙ ``default=_default_language``."""
+    return Website._default_language()
+
+
+def default_logo():
+    """El valor inicial de ``logo`` — ≙ ``default=_default_logo``."""
+    return Website._default_logo()
+
+
+def default_favicon():
+    """El valor inicial de ``favicon`` — ≙ ``default=_default_favicon``."""
+    return Website._default_favicon()
+
+
+def default_social_twitter():
+    """≙ ``default=_default_social_twitter`` (``odoo19c: website.py:174``)."""
+    return Website._default_social_twitter()
+
+
+def default_social_facebook():
+    """≙ ``default=_default_social_facebook`` (``odoo19c: website.py:175``)."""
+    return Website._default_social_facebook()
+
+
+def default_social_github():
+    """≙ ``default=_default_social_github`` (``odoo19c: website.py:176``)."""
+    return Website._default_social_github()
+
+
+def default_social_linkedin():
+    """≙ ``default=_default_social_linkedin`` (``odoo19c: website.py:177``)."""
+    return Website._default_social_linkedin()
+
+
+def default_social_youtube():
+    """≙ ``default=_default_social_youtube`` (``odoo19c: website.py:178``)."""
+    return Website._default_social_youtube()
+
+
+def default_social_instagram():
+    """≙ ``default=_default_social_instagram`` (``odoo19c: website.py:179``)."""
+    return Website._default_social_instagram()
+
+
+def default_social_tiktok():
+    """≙ ``default=_default_social_tiktok`` (``odoo19c: website.py:180``)."""
+    return Website._default_social_tiktok()
+
+
+def default_social_discord():
+    """≙ ``default=_default_social_discord`` (``odoo19c: website.py:181``)."""
+    return Website._default_social_discord()
+
+
 class Website(TimeStampedModel):
     """``website`` — el sitio: dominio, empresa, idiomas y tema."""
 
@@ -234,6 +399,7 @@ class Website(TimeStampedModel):
     )
     company = fields.Many2one(
         'base.ResCompany', on_delete=models.CASCADE, related_name='websites',
+        default=default_company,
         help_text='Empresa dueña del sitio (Odoo company_id, required).',
     )
     languages = fields.Many2many(
@@ -242,8 +408,16 @@ class Website(TimeStampedModel):
         help_text='Idiomas publicados del sitio (Odoo language_ids, '
                   'required; su tabla puente es website_lang_rel).',
     )
+    # ``languages`` NO lleva ``default=`` aunque la fuente sí lo declare
+    # (``default=_active_languages``, ``odoo19c: website.py:125-128``):
+    # divergencia de mecanismo, no omisión. En Django el ``default=`` de un
+    # ``ManyToManyField`` no participa en la creación de la instancia — la
+    # relación se escribe después del ``INSERT``, así que el valor sólo lo
+    # consumen los formularios. Su equivalente vive en ``save()``, que es donde
+    # la fuente lo aplica también (dentro de su ``create``).
     default_lang = fields.Many2one(
         'base.ResLang', on_delete=models.PROTECT, related_name='default_websites',
+        default=default_language,
         help_text='Idioma por defecto (Odoo default_lang_id, required).',
     )
     auto_redirect_lang = fields.Boolean(
@@ -271,17 +445,33 @@ class Website(TimeStampedModel):
                   'groups=website.group_website_designer).',
     )
     logo = fields.Binary(
-        null=True, blank=True,
+        null=True, blank=True, default=default_logo,
         help_text='Logotipo del sitio (Odoo logo).',
     )
-    social_twitter = fields.Char(max_length=255, null=True, blank=True, help_text='Cuenta de X (Odoo social_twitter).')
-    social_facebook = fields.Char(max_length=255, null=True, blank=True, help_text='Cuenta de Facebook (Odoo social_facebook).')
-    social_github = fields.Char(max_length=255, null=True, blank=True, help_text='Cuenta de GitHub (Odoo social_github).')
-    social_linkedin = fields.Char(max_length=255, null=True, blank=True, help_text='Cuenta de LinkedIn (Odoo social_linkedin).')
-    social_youtube = fields.Char(max_length=255, null=True, blank=True, help_text='Cuenta de Youtube (Odoo social_youtube).')
-    social_instagram = fields.Char(max_length=255, null=True, blank=True, help_text='Cuenta de Instagram (Odoo social_instagram).')
-    social_tiktok = fields.Char(max_length=255, null=True, blank=True, help_text='Cuenta de TikTok (Odoo social_tiktok).')
-    social_discord = fields.Char(max_length=255, null=True, blank=True, help_text='Cuenta de Discord (Odoo social_discord).')
+    social_twitter = fields.Char(
+        max_length=255, null=True, blank=True, default=default_social_twitter,
+        help_text='Cuenta de X (Odoo social_twitter).')
+    social_facebook = fields.Char(
+        max_length=255, null=True, blank=True, default=default_social_facebook,
+        help_text='Cuenta de Facebook (Odoo social_facebook).')
+    social_github = fields.Char(
+        max_length=255, null=True, blank=True, default=default_social_github,
+        help_text='Cuenta de GitHub (Odoo social_github).')
+    social_linkedin = fields.Char(
+        max_length=255, null=True, blank=True, default=default_social_linkedin,
+        help_text='Cuenta de LinkedIn (Odoo social_linkedin).')
+    social_youtube = fields.Char(
+        max_length=255, null=True, blank=True, default=default_social_youtube,
+        help_text='Cuenta de Youtube (Odoo social_youtube).')
+    social_instagram = fields.Char(
+        max_length=255, null=True, blank=True, default=default_social_instagram,
+        help_text='Cuenta de Instagram (Odoo social_instagram).')
+    social_tiktok = fields.Char(
+        max_length=255, null=True, blank=True, default=default_social_tiktok,
+        help_text='Cuenta de TikTok (Odoo social_tiktok).')
+    social_discord = fields.Char(
+        max_length=255, null=True, blank=True, default=default_social_discord,
+        help_text='Cuenta de Discord (Odoo social_discord).')
     social_default_image = fields.Binary(
         null=True, blank=True,
         help_text='Imagen por defecto al compartir en redes; si se fija, '
@@ -335,7 +525,7 @@ class Website(TimeStampedModel):
                   'sanitize=False).',
     )
     favicon = fields.Binary(
-        null=True, blank=True,
+        null=True, blank=True, default=default_favicon,
         help_text='Favicon del sitio (Odoo favicon).',
     )
     theme = fields.Many2one(
@@ -359,17 +549,27 @@ class Website(TimeStampedModel):
     # La fuente los declara con ``compute=`` y sin ``store=True``; aquí van con
     # ``fields.NonStored`` (``src/orm/fields_nonstored.py``). No son columnas.
 
+    # El cómputo va en ``default=``, que es el parámetro que ``NonStored``
+    # declara (``src/orm/fields_nonstored.py:53``); un posicional lo traga su
+    # ``*_args`` y el campo queda leyendo ``None`` **en silencio**. Los cinco
+    # nacieron así en B1 y el fallo no se vio hasta que B2 comparó dominios: sin
+    # ``domain_punycode``, ``_get_current_website_id`` no emparejaba nunca y
+    # caía al primer sitio por ``sequence``. Ver :ref:`h-api-697`.
+
     #: ≙ ``domain_punycode`` (``odoo19c: :121-126``).
-    domain_punycode = fields.NonStored(lambda self: self._compute_domain_punycode())
+    domain_punycode = fields.NonStored(
+        default=lambda self: self._compute_domain_punycode())
     #: ≙ ``language_count`` (``:132``).
-    language_count = fields.NonStored(lambda self: self._compute_language_count())
+    language_count = fields.NonStored(
+        default=lambda self: self._compute_language_count())
     #: ≙ ``blocked_third_party_domains`` (``:141-143``).
     blocked_third_party_domains = fields.NonStored(
-        lambda self: self._compute_blocked_third_party_domains())
+        default=lambda self: self._compute_blocked_third_party_domains())
     #: ≙ ``menu_id`` (``:196``) — la portada del árbol de menús del sitio.
-    menu = fields.NonStored(lambda self: self._compute_menu())
+    menu = fields.NonStored(default=lambda self: self._compute_menu())
     #: ≙ ``partner_id`` (``:195``) — ``related='user_id.partner_id'``.
-    partner = fields.NonStored(lambda self: self.user.partner if self.user_id else None)
+    partner = fields.NonStored(
+        default=lambda self: self.user.partner if self.user_id else None)
 
     class Meta:
         db_table = 'website'
@@ -704,6 +904,12 @@ class Website(TimeStampedModel):
         —que en la fuente es ``store=True``— porque este ORM no tiene el motor
         de ``@api.depends`` que lo dispararía (#191).
 
+        Y aquí vive el ``default=_active_languages`` de ``languages``, que en
+        Django no puede ir en el campo: el ``default=`` de un ``ManyToManyField``
+        no participa en la creación de la instancia —la relación se escribe
+        después del ``INSERT``— así que sólo lo consumirían los formularios. La
+        fuente lo aplica dentro de su ``create``, que es exactamente este punto.
+
         Lo que NO se hace aquí, con su razón: ``_bootstrap_homepage`` (necesita
         ``website.page``, #104) y el alta del grupo multi-sitio (necesita el
         registro de datos por módulo, #467).
@@ -713,7 +919,11 @@ class Website(TimeStampedModel):
         self.domain = valores['domain']
         self.homepage_url = valores['homepage_url']
         self.has_social_default_image = self._compute_has_social_default_image()
-        return super().save(*args, **kwargs)
+        es_alta = self.pk is None
+        resultado = super().save(*args, **kwargs)
+        if es_alta and not self.languages.exists():
+            self.languages.set(self._active_languages())
+        return resultado
 
     def delete(self, *args, **kwargs):
         """≙ ``unlink`` (``odoo19c: :445-451``)."""
@@ -732,3 +942,189 @@ class Website(TimeStampedModel):
         cuando #104 alinee los modelos propios del addon.
         """
         return None
+
+    # ── B2 · resolución de sitio actual y páginas (#535) ──────────────────────
+    #
+    # 7 de los 15 métodos del bloque. Los 8 restantes están BLOQUEADOS por una
+    # pieza medida, cada uno con su sucesor — ver "Cobertura de B2" en el
+    # docstring del módulo. Ninguno se omite en silencio.
+
+    @classmethod
+    def get_current_website(cls, fallback=True):
+        """≙ ``get_current_website`` (``odoo19c: :1364-1406``).
+
+        El sitio actual, resuelto en el orden que la fuente declara y **en ese
+        orden**, porque cada escalón existe por una razón distinta:
+
+        1. el sitio forzado en la sesión (``force_website_id``) — el conmutador
+           del administrador, que gana sobre el ``Host``;
+        2. el sitio del contexto — un cron o una llamada interna que ya sabe
+           sobre qué sitio opera;
+        3. el que coincida con el ``Host`` de la petición;
+        4. si ``fallback``, el primero de la base.
+
+        La rama que parece de más y no lo es: una petición de **backend** sin
+        ``fallback`` devuelve vacío antes de mirar el ``Host``. La fuente lo
+        comenta explícitamente — un endpoint de administración no debe heredar
+        un sitio por accidente del dominio con que se le llamó.
+
+        **Divergencia declarada (1):** la fuente devuelve un recordset (vacío o
+        de uno); aquí se devuelve la instancia o ``None``, que es lo que un ORM
+        sin recordset puede expresar. El llamador comprueba ``if website:``
+        igual en los dos casos.
+
+        **Divergencia declarada (2) — ``is_frontend`` es hoy siempre falso.**
+        La fuente lo lee de su propio despachador
+        (``getattr(request, 'is_frontend', False)``), que marca la petición como
+        de cara pública. Medido sobre Django 6.0.5: el objeto ``HttpRequest``
+        **no tiene** ese atributo y nada en este árbol lo pone, así que el
+        escalón 3 nunca se alcanza cuando ``fallback=False``. La consecuencia es
+        conservadora, no peligrosa —se devuelve ``None`` en vez de adivinar un
+        sitio—, pero es una rama muerta mientras nadie marque la petición.
+        Sucesor: **#546**.
+        """
+        request = get_current_request()
+        session = getattr(request, 'session', None) if request else None
+        is_frontend_request = bool(request) and getattr(request, 'is_frontend', False)
+
+        if session is not None and session.get('force_website_id'):
+            website = cls.objects.filter(pk=session['force_website_id']).first()
+            if website is None:
+                # No reventar si el sitio de la sesión fue borrado — igual que
+                # la fuente, que hace ``session.pop`` y sigue.
+                session.pop('force_website_id', None)
+            else:
+                return website
+
+        website_id = get_context().get('website_id')
+        if website_id:
+            return cls.objects.filter(pk=website_id).first()
+
+        if not is_frontend_request and not fallback:
+            return None
+
+        # El formato de ``httprequest.host`` de la fuente es ``dominio:puerto``;
+        # el ``HTTP_HOST`` de Django trae lo mismo.
+        domain_name = ''
+        if request is not None:
+            domain_name = request.META.get('HTTP_HOST', '') or ''
+        found = cls._get_current_website_id(domain_name, fallback=fallback)
+        return cls.objects.filter(pk=found).first() if found else None
+
+    @classmethod
+    def _get_current_website_id(cls, domain_name, fallback=True):
+        """≙ ``_get_current_website_id`` (``odoo19c: :1409-1473``).
+
+        El id del sitio cuyo ``domain`` configurado coincide con el
+        ``domain_name`` dado; si ninguno coincide, el primero de la base cuando
+        ``fallback``, o ``False``.
+
+        Tres sutilezas de la fuente que se conservan porque cada una arregla un
+        caso real:
+
+        - **unicode y punycode.** Se prueban las dos formas del dominio, porque
+          un sitio puede tener declarado ``münchen.de`` y llegar la petición
+          como ``xn--mnchen-3ya.de``.
+        - **``ilike`` y luego filtro exacto.** El ``ilike`` es sólo para acotar
+          la búsqueda en la base; el filtro exacto posterior es lo que descarta
+          los subdominios que el ``ilike`` deja pasar.
+        - **el puerto se ignora en segunda vuelta.** Primero se busca con
+          puerto; si nada coincide, se reintenta sin él. Así un sitio declarado
+          sin puerto responde a ``localhost:8000``.
+
+        **Divergencia declarada:** la fuente decora con
+        ``@tools.ormcache('domain_name', 'fallback')``. Aquí **no se cachea**, y
+        la razón es el modelo de concurrencia medido, no una preferencia:
+        ``setup/gunicorn.conf.py`` declara **prefork con ``workers = 4``**, así
+        que una caché por proceso serían **cuatro cachés independientes sin
+        invalidación compartida** — el mecanismo que
+        ``src/addons/base/models/ir_config_parameter.py`` declara no construido.
+
+        El fallo concreto que eso produce: un administrador cambia el ``domain``
+        de un sitio; el worker que atendió esa petición invalida su caché y los
+        **otros tres siguen sirviendo el sitio anterior** hasta que reciclen por
+        ``max_requests`` (2000 peticiones). Un usuario vería un sitio u otro
+        según qué worker le tocara.
+
+        Se prefiere la consulta correcta a la caché rota. La caché —y si hace
+        falta señalización entre workers— se decide en la tarea **#542**.
+        """
+        def remove_port(value):
+            return (value or '').split(':')[0]
+
+        def matches(website, domain_name, ignore_port=False):
+            website_domain = get_base_domain(website.domain_punycode)
+            if ignore_port:
+                website_domain = remove_port(website_domain)
+                domain_name = remove_port(domain_name)
+            return website_domain.lower() == (domain_name or '').lower()
+
+        domain_name = (domain_name or '').encode('idna').decode('ascii')
+        domain_name_idna = domain_name.encode('ascii').decode('idna')
+
+        found_websites = list(cls.objects.filter(
+            Q(domain__icontains=remove_port(domain_name))
+            | Q(domain__icontains=remove_port(domain_name_idna))))
+
+        websites = [w for w in found_websites if matches(w, domain_name)]
+        if not websites:
+            websites = [w for w in found_websites
+                        if matches(w, domain_name, ignore_port=True)]
+
+        if not websites:
+            if not fallback:
+                return False
+            first = cls.objects.order_by('sequence', 'pk').first()
+            return first.pk if first else False
+
+        return websites[0].pk
+
+    def _force(self):
+        """≙ ``_force`` (``odoo19c: :1475-1476``)."""
+        self._force_website(self.pk)
+
+    @classmethod
+    def _force_website(cls, website_id):
+        """≙ ``_force_website`` (``odoo19c: :1478-1480``).
+
+        Fija en la sesión qué sitio se está viendo. Es lo que consume el
+        escalón 1 de ``get_current_website``.
+
+        La guarda ``str(website_id).isdigit()`` de la fuente se conserva: el
+        valor entra desde un parámetro de URL, y sin ella un ``?website_id=x``
+        dejaría basura en la sesión.
+        """
+        request = get_current_request()
+        session = getattr(request, 'session', None) if request else None
+        if session is not None:
+            session['force_website_id'] = (
+                website_id and str(website_id).isdigit() and int(website_id))
+
+    @classmethod
+    def is_public_user(cls):
+        """≙ ``is_public_user`` (``odoo19c: :1482-1484``).
+
+        ¿Quien navega es el usuario público del sitio, o alguien con sesión?
+        Lo decide comparando el actor actual contra el ``user`` configurado del
+        sitio — el mismo criterio de la fuente, que compara
+        ``request.env.user.id`` contra el ``user_id`` cacheado del sitio.
+
+        **Divergencia declarada:** la fuente lee el valor por
+        ``request.website._get_cached('user_id')``, su caché de campos por
+        petición. Aquí se lee el campo directamente: sin ese motor de caché, un
+        ``_get_cached`` inventado sería un nombre sin mecanismo detrás.
+        """
+        website = cls.get_current_website()
+        if website is None or website.user_id is None:
+            return False
+        return get_current_uid() == website.user_id
+
+    @classmethod
+    def pager(cls, url, total, page=1, step=30, scope=5, url_args=None):
+        """≙ ``pager`` (``odoo19c: :1515-1517``).
+
+        Delegación de una línea, igual que en la fuente. La lógica vive en
+        ``addons/portal/controllers/portal.py``, que es su hogar allá y aquí.
+        """
+        return pager(url, total, page=page, step=step, scope=scope,
+                     url_args=url_args)

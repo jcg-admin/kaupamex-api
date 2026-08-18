@@ -92,12 +92,60 @@ import logging
 import os
 import re
 import unicodedata
+from contextvars import ContextVar
 
 import models
 
 from orm.environments import activate_companies, set_current_uid
 
 _logger = logging.getLogger(__name__)
+
+#: La petición en curso — el ``request`` global de la referencia
+#: (``odoo19c: odoo/http.py``), que ``website.py`` consulta 30 veces para
+#: resolver el sitio, la sesión y el ``Host``.
+#:
+#: Vive **aquí** y no en un ``src/http.py`` nuevo porque este archivo ya es el
+#: hogar declarado del enlace petición→entorno en este árbol: es donde vive
+#: ``CompanyContextMiddleware``, que hace el papel de ``ir.http._authenticate``.
+#: Crear un ``src/http.py`` para una sola variable abriría una raíz espejada
+#: entera —enrutado, despacho, sesiones— por un ContextVar.
+#:
+#: ``ContextVar`` y no un global, por la misma razón que los tres ejes del
+#: entorno (``orm.environments``) — y con el modelo de concurrencia **medido**,
+#: no supuesto. ``setup/gunicorn.conf.py`` declara **prefork síncrono**:
+#: ``workers = 4`` y ``threads = 1`` por defecto, y su propio comentario prohíbe
+#: pasar a un worker asíncrono sin ADR. Es decir, cada worker es un proceso que
+#: atiende **una petición a la vez en el mismo hilo**, y ese hilo se reutiliza
+#: para la petición siguiente.
+#:
+#: De ahí las dos mitades del mecanismo, que sin esa medición parecen
+#: redundantes:
+#:
+#: - un **global** filtraría el sitio de una petición a la siguiente del mismo
+#:   worker, porque el hilo es el mismo;
+#: - el ``ContextVar`` no basta por sí solo: se limpia en el ``finally`` del
+#:   middleware justo por eso. Sin ese ``finally``, el valor sobreviviría a la
+#:   petición dentro del mismo worker.
+#:
+#: Con ``GUNICORN_THREADS > 1`` Gunicorn pasa a hilos y el ``ContextVar`` aísla
+#: por hilo — el mecanismo vale igual en las dos configuraciones.
+_current_request: ContextVar = ContextVar('current_request', default=None)
+
+
+def get_current_request():
+    """La petición en curso, o ``None`` fuera de una — ≙ el ``request`` global.
+
+    Devolver ``None`` en vez de levantar es deliberado y es lo que hace la
+    fuente: ``website.py`` escribe ``if request and …`` una y otra vez, porque
+    el mismo código corre en una petición web y en un cron sin petición
+    ninguna. Un acceso que reventara fuera de petición rompería el cron.
+    """
+    return _current_request.get()
+
+
+def set_current_request(request):
+    """Fija la petición en curso (o la limpia con ``None``)."""
+    _current_request.set(request)
 
 #: Extensiones cuyo tipo MIME sirve la web — verbatim de la fuente. En modo
 #: ``path`` la extensión se preserva en vez de convertirse en parte del slug.
@@ -256,8 +304,14 @@ class CompanyContextMiddleware:
         # petición, pero son ejes distintos: el actor no acota el dato.
         set_current_uid(user.pk if authenticated else None)
         activate_companies((), permitted)
+        # La petición misma es el tercer dato que la referencia deja
+        # disponible antes del despacho (su ``request`` global). Lo consume
+        # todo lo que resuelve "en qué sitio estamos": ``Website._force``,
+        # ``get_current_website`` y su cadena.
+        set_current_request(request)
         try:
             return self.get_response(request)
         finally:
             activate_companies((), ())
             set_current_uid(None)
+            set_current_request(None)
