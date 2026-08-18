@@ -74,7 +74,8 @@ que por definición es «lo que la clase aún no declara por nombre»:
      - CDN, Plausible, URL canónica, snippets, acciones de cliente, cachés
        y campos HTML — el bloque de cierre: por AST, la fuente declara 111
        métodos y este árbol declaraba 75 al abrirlo. De los 42: **19
-       portados aquí**, **11 bloqueados** (banner del bloque B6), **3
+       portados aquí**, **7 bloqueados** (banner del bloque B6; eran 11 —
+       #545 cerró después los 4 de enumeración sobre la URLconf), **3
        cubiertos con nombre divergente** desde B1 (``create``/``write`` →
        ``save``, ``unlink`` → ``delete``) y **9 del configurador que siguen
        bloqueados en el banner de B4** (sin cambio)
@@ -115,9 +116,10 @@ Lo que este archivo NO cierra
 ===============================
 
 Los seis bloques están abiertos y cerrados con su cobertura declarada: lo que
-queda vivo son los **bloqueados** — 9 del configurador (banner de B4), 5 de
-enumeración de páginas heredados de B2 y 6 nuevos de B6 (banner de B6), cada
-uno con su sucesor. Los 33 de B1
+queda vivo son los **bloqueados** — 9 del configurador (banner de B4), 1
+heredado de B2 (``new_page``) y 6 nuevos de B6 (banner de B6), cada uno con
+su sucesor; #545 cerró los 4 de enumeración de páginas que aquí se contaban
+como heredados de B2. Los 33 de B1
 están todos declarados; **tres tienen el cuerpo recortado**, y cada uno dice por
 qué en su propio docstring en vez de callarlo:
 
@@ -178,15 +180,21 @@ reales son los de esta tabla; la aritmética del bloque (15) no cambia.
      - portado
      - sobre ``_get_template_view`` / ``_get_cached_template_info`` que
        **#544** portó a ``IrUiView``
-   * - ``new_page`` · ``check_existing_page``
-     - BLOQUEADO
-     - ``website.page`` y ``website.rewrite`` no existen (0 clases).
-       Sucesor: **#104**
+   * - ``new_page``
+     - BLOQUEADO por ``website.page``
+     - 0 clases en el árbol (#104); además el template se resuelve por
+       external ID (#467). Única fila abierta del bloque
+   * - ``check_existing_page``
+     - portado (#545)
+     - la mitad de routing corre sobre la URLconf de Django
+       (``get_resolver().resolve``); la mitad de ``website.rewrite`` queda
+       declarada como arista en su docstring (#104)
    * - ``rule_is_enumerable`` · ``_enumerate_pages`` · ``search_pages``
-     - BLOQUEADO
-     - los tres recorren ``ir.http.routing_map()``, que ``ir_http.py`` declara
-       explícitamente **no portado** (todo el enrutado y el despacho son la
-       URLconf de Django). Sucesor: **#545**
+     - portado (#545)
+     - los tres leen la URLconf de Django (``get_resolver()``) en vez del
+       ``routing_map()`` werkzeug; las divergencias de mecanismo —el
+       protocolo ``generate`` de los converters, el ``sitemap`` callable—
+       van declaradas método a método en sus docstrings
    * - ``search_url_dependencies``
      - portado (B6)
      - lo desbloqueó ``_get_html_fields`` de #539. La mención a
@@ -208,19 +216,25 @@ tercero de los tres ejes que la fuente declara y el único que
 ``context_scope``).
 """
 
-import ast
 import base64
+import fnmatch
 import hashlib
 import inspect
+import logging
 import re
 import uuid
 from collections import defaultdict
-from urllib.parse import unquote, urlparse, urlsplit, urlunsplit
+from urllib.parse import urlparse, urlsplit
 
 import fields
 import models
 import requests
 from django.apps import apps
+from django.urls import Resolver404, URLPattern, URLResolver, get_resolver
+# ``RoutePattern`` distingue una ruta literal de ``path()`` de un regex de
+# ``re_path()`` — interno de Django leído en el paquete instalado
+# (``django/urls/resolvers.py:314``), no de memoria.
+from django.urls.resolvers import RoutePattern
 from django.utils.safestring import mark_safe
 from lxml import etree, html
 
@@ -246,6 +260,7 @@ from orm.domains import Domain, to_q
 from orm.models_transient import TransientModel
 from orm.registry import model_by_name, name_of
 from tools.sql import escape_psql
+from tools.urls import urljoin
 # ``connection`` sale del espejo del entorno, no de Django crudo: es el
 # ``env.cr`` de la referencia, y ``orm.environments`` lo re-exporta a
 # propósito (su tabla de mapeo lo declara).
@@ -254,6 +269,11 @@ from orm.environments import (
     get_current_uid, is_su, sudo,
 )
 from tools.translate import _
+
+#: ≙ ``logger = logging.getLogger(__name__)`` de la fuente (``odoo19c: :36``);
+#: lo consume la advertencia de ``_enumerate_pages`` sobre rutas sin
+#: declaración de sitemap.
+logger = logging.getLogger(__name__)
 
 # ≙ ``DEFAULT_WEBSITE_ENDPOINT`` / ``DEFAULT_OLG_ENDPOINT``
 # (``odoo19c: :49-50``). La fuente apunta a ``https://website.api.odoo.com``
@@ -1005,10 +1025,12 @@ class Website(TimeStampedModel):
 
     # ── B2 · resolución de sitio actual y páginas (#535) ──────────────────────
     #
-    # 7 de los 15 métodos del bloque. Los 8 restantes quedaron BLOQUEADOS por
-    # una pieza medida, cada uno con su sucesor — ver "Cobertura de B2" en el
-    # docstring del módulo. Ninguno se omite en silencio. B6 desbloqueó uno
-    # (``search_url_dependencies``, al portar ``_get_html_fields``).
+    # 14 de los 15 métodos del bloque están declarados con cuerpo; el único
+    # que sigue bloqueado es ``new_page`` (su arista vive en la tabla
+    # "Cobertura de B2" del docstring del módulo y en el banner de B6).
+    # Historia del desbloqueo: 7 se portaron al abrir el bloque, #543/#544
+    # abrieron 3, B6 uno (``search_url_dependencies``, al portar
+    # ``_get_html_fields``) y #545 los 4 de enumeración sobre la URLconf.
 
     @classmethod
     def get_current_website(cls, fallback=True):
@@ -1191,6 +1213,231 @@ class Website(TimeStampedModel):
         return pager(url, total, page=page, step=step, scope=scope,
                      url_args=url_args)
 
+    # ── B2 — la enumeración de páginas que #545 desbloqueó ───────────────────
+    #
+    # El eje entero: el ``routing_map()`` de la fuente es un mapa werkzeug
+    # cuyas reglas se introspectan (``rule.endpoint.routing``, converters con
+    # ``generate``). Aquí el mapa de rutas es la **URLconf de Django**
+    # (``django.urls.get_resolver()``) y «regla» se lee sobre
+    # ``URLPattern``/``URLResolver`` — la recorre ``_iter_url_patterns``
+    # (función de módulo, abajo). El análogo de ``routing.get('website')``
+    # es el atributo ``is_frontend = True`` de la vista, el mecanismo que
+    # #546 cableó en ``CompanyContextMiddleware``. Cada divergencia de
+    # mecanismo se declara en el docstring del método que la sufre.
+
+    def rule_is_enumerable(self, rule):
+        """≙ ``rule_is_enumerable`` (``odoo19c: :1519-1544``).
+
+        ¿Se pueden generar consultas GET sensatas para esta regla? Aquí
+        ``rule`` es un ``django.urls.URLPattern``. Las condiciones de la
+        fuente, una a una:
+
+        - ``'GET' in methods`` → si la vista declara ``http_method_names``
+          (CBV/DRF), debe incluir ``get``; una FBV sin declaración admite
+          GET — mismo default que el ``or ['GET']`` de la fuente.
+        - ``routing['auth'] in ('none', 'public')`` y
+          ``routing.get('website', False)`` → el atributo
+          ``is_frontend = True`` de la vista (#546): es la única declaración
+          por-vista de «cara pública» que la URLconf conoce, y subsume los
+          dos ejes — una vista de backend o de API no lo declara.
+        - ``routing['type'] == 'http'`` → **divergencia declarada**: el eje
+          http/json-rpc no existe en Django; toda vista es HTTP.
+        - ``hasattr(converter, 'generate')`` → **divergencia declarada**:
+          ningún converter de ``path()`` sabe enumerar registros (convierten
+          un valor, no generan la población), así que una ruta con
+          converters no es enumerable hasta que exista ese protocolo.
+        - la firma sin argumentos requeridos sin converter → portado con
+          ``inspect.signature`` sobre el callback, saltando ``request`` como
+          la fuente salta ``self``; ``default_args`` del patrón cuenta como
+          valor provisto.
+
+        Una regla de ``re_path()`` tampoco es enumerable: su patrón no es
+        una URL literal que ``_enumerate_pages`` pueda construir (el
+        ``rule.build`` de werkzeug no tiene análogo sobre un regex).
+        """
+        if not isinstance(rule, URLPattern):
+            return False
+        if not isinstance(rule.pattern, RoutePattern):
+            return False
+        owner = _view_owner(rule.callback)
+        methods = [method.upper()
+                   for method in (getattr(owner, 'http_method_names', None)
+                                  or ['GET'])]
+        if 'GET' not in methods:
+            return False
+        if not getattr(owner, 'is_frontend', False):
+            return False
+        if rule.pattern.converters:
+            return False
+
+        # No listar rutas con argumentos sin default ni converter (fuente).
+        sign = inspect.signature(rule.callback)
+        params = list(sign.parameters.values())[1:]  # saltar request
+        supported_kinds = (inspect.Parameter.POSITIONAL_ONLY,
+                           inspect.Parameter.POSITIONAL_OR_KEYWORD)
+        provided = set(rule.pattern.converters) | set(rule.default_args or {})
+        return all(p.name in provided for p in params
+                   if p.kind in supported_kinds
+                   and p.default is inspect.Parameter.empty)
+
+    def _enumerate_pages(self, query_string=None, force=False):
+        """≙ ``_enumerate_pages`` (``odoo19c: :1546-1668``).
+
+        Las páginas disponibles del sitio: primero los registros de página,
+        después los controladores enumerables de la URLconf. Generador,
+        como la fuente.
+
+        **Mitad de páginas — análogo ``StaticPage`` hasta #104** (mismo
+        interinato que ``get_unique_path``): ``website.page`` no existe, así
+        que se enumera ``StaticPage``. Sin ``force`` sólo cuentan las que
+        tienen versión publicada (el análogo de su
+        ``website_published = True``); ``website_indexed``, ``visibility``,
+        ``date_publish`` y la ``priority`` de la vista son campos de
+        ``website.page`` y llegan con #104. El ``lastmod`` sale de
+        ``updated_at`` (≙ ``write_date``; el eje ``view_write_date`` también
+        es de #104).
+
+        **Mitad de controladores — la URLconf.** Divergencias declaradas:
+
+        - el ``sitemap`` de la fuente es una clave de routing; aquí es un
+          atributo de la vista (mismo canal que ``is_frontend``).
+          ``sitemap = False`` excluye la ruta, igual que allá. Un ``sitemap``
+          **callable** se salta: su protocolo (``func(env, rule, qs)``
+          generando locs con converters werkzeug) no está portado — la ruta
+          dinámica que lo necesite lo declara cuando exista el protocolo de
+          generación (misma pieza que los converters de
+          ``rule_is_enumerable``).
+        - la generación por converters (``convitems``, ``converter.generate``,
+          ``sitemap_qs2dom``) no se porta — sin protocolo ``generate`` no hay
+          población que producir, así que una ruta parametrizada no emite
+          URLs.
+        - el ``with_context(lang=self.default_lang_id.code)`` vive dentro de
+          las dos ramas no portadas (sitemap callable y generación); no hay
+          dónde aplicarlo todavía.
+
+        La advertencia de la fuente ante un controlador enumerable sin
+        declaración de sitemap se conserva (``logger.warning``), y también
+        ``_norm`` (normaliza la barra final preservando ``/``) y la
+        deduplicación por ``url_set``.
+        """
+        # ==== páginas (StaticPage hasta #104) ====
+        # '/' ya está en la URLconf, así que tendrá su entrada por la mitad
+        # de controladores (comentario de la fuente, mismo motivo).
+        for page in StaticPage.objects.all():
+            url = page.url
+            if url == '/':
+                continue
+            if not force and page.current_version is None:
+                continue
+            if query_string and query_string not in url:
+                continue
+            record = {'loc': url, 'id': page.pk, 'name': page.title}
+            if page.updated_at:
+                record['lastmod'] = page.updated_at.date()
+            yield record
+
+        # ==== controladores ====
+        url_set = set()
+
+        def _norm(url):
+            # Normaliza la barra final preservando '/' (ayudante de la
+            # fuente, verbatim).
+            return '/' if url == '/' else url.rstrip('/')
+
+        for route, rule, literal in _iter_url_patterns():
+            owner = _view_owner(rule.callback)
+            sitemap_value = getattr(owner, 'sitemap', None)
+            if sitemap_value is False:
+                continue
+            if callable(sitemap_value):
+                # Protocolo de generación no portado — ver el docstring.
+                continue
+
+            if not literal or not self.rule_is_enumerable(rule):
+                continue
+
+            # Avisar sólo si la declaración de sitemap está ausente
+            # (conducta legacy de la fuente).
+            if not hasattr(owner, 'sitemap'):
+                logger.warning(
+                    'No Sitemap value provided for controller %s (%s)',
+                    rule.callback, route)
+
+            url = _norm('/' + route)
+            if query_string and query_string not in url:
+                continue
+
+            pattern = (query_string
+                       and '*%s*' % '*'.join(query_string.split('/')))
+            if not query_string or fnmatch.fnmatch(url.lower(), pattern):
+                if url in url_set:
+                    continue
+                url_set.add(url)
+                yield {'loc': url}
+
+    def search_pages(self, needle=None, limit=None):
+        """≙ ``search_pages`` (``odoo19c: :1714-1721``).
+
+        Las páginas cuya URL matchea el ``needle`` slugificado, hasta
+        ``limit``.
+
+        Divergencia declarada: la fuente llama
+        ``self.env['ir.http']._slugify``; aquí el porte de ``base`` lo
+        declara como ``slugify`` (despromoción preexistente de
+        ``src/addons/base/models/ir_http.py:211``, anterior a este pase —
+        familia de :ref:`h-api-581`, barrido #337). Se consume el nombre que
+        existe; el renombre pertenece a ese archivo, no a éste.
+        """
+        name = IrHttp.slugify(needle, max_length=50, path=True)
+        res = []
+        for page in self._enumerate_pages(query_string=name, force=True):
+            res.append(page)
+            if len(res) == limit:
+                break
+        return res
+
+    def check_existing_page(self, page):
+        """≙ ``check_existing_page`` (``odoo19c: :1723-1768``).
+
+        ¿La página existe para el sitio actual? Heurística, no perfectamente
+        confiable — el mismo aviso de la fuente. Tres escalones allá; aquí
+        dos portados y uno bloqueado:
+
+        1. **Registro de página** — la fuente busca ``website.page`` con esa
+           ``url`` vía ``_get_website_pages``; aquí el análogo interino es
+           ``StaticPage`` (hasta #104, igual que ``get_unique_path``): sin
+           columna ``url`` ni FK a sitio, el conjunto se materializa y se
+           compara en Python.
+        2. **Redirecciones** — BLOQUEADO por ``website.rewrite`` — el modelo
+           no existe (0 clases en el árbol); la búsqueda de redirects
+           301/302 y el atrapado del 308 (``RequestRedirect``) llegan con su
+           porte. Sucesor: **#104**.
+        3. **El mapa de rutas** — el ``router.test``/``router.match`` de la
+           fuente es aquí ``get_resolver().resolve(page)``: sin match
+           (``Resolver404``) la página no existe; con match, existe.
+
+        Divergencias declaradas del escalón 3: (a) el resolver de Django no
+        redirige — el análogo del ``RequestRedirect`` werkzeug
+        (``APPEND_SLASH``) vive en ``CommonMiddleware``, no en la
+        resolución, así que ese desenlace no aparece aquí; (b) la
+        validación por registro de los args del match (``rule.build`` +
+        ``MissingError`` + el descarte por ``website_id`` ajeno) depende de
+        los model converters, que la URLconf no tiene — un match resuelto se
+        acepta sin materializar registros.
+        """
+        # 1) Registro de página (StaticPage hasta #104).
+        if any(existing.url == page for existing in StaticPage.objects.all()):
+            return True
+
+        # 2) website.rewrite — bloqueado; ver el docstring.
+
+        # 3) Si ninguna regla matchea la página, no existe.
+        try:
+            get_resolver().resolve(page)
+        except Resolver404:
+            return False
+        return True
+
     # ── B2 — los tres que la tanda #543/#544 desbloqueó ──────────────────────
 
     def copy_menu_hierarchy(self, top_menu):
@@ -1268,9 +1515,10 @@ class Website(TimeStampedModel):
     #    (ver el docstring de ``_search_get_detail`` del mixin; vuelve al
     #    nombre con #104).
     # 2. El SQL del enumerador por trigramas se construye con el cursor del
-    #    entorno + ``quote_name`` — la clase ``SQL`` componible de la fuente
-    #    no está portada (#549, :ref:`h-api-698`) y ``unaccent`` tampoco
-    #    (#98), así que las comparaciones no normalizan acentos.
+    #    entorno + ``quote_name`` — la clase ``SQL`` componible ya está
+    #    portada (#549 resuelto, :ref:`h-api-698`; migrar este rodeo es
+    #    opcional) y ``unaccent`` sigue sin cablear (#98), así que las
+    #    comparaciones no normalizan acentos.
     # 3. La rama ``field.translate`` del enumerador NO se porta: ningún campo
     #    declara ``translate=True`` porque el almacenamiento jsonb de
     #    traducciones es la tarea **#333**; la rama llega con él.
@@ -1929,17 +2177,15 @@ class Website(TimeStampedModel):
     # **42**, no los 32 de la partición. De esos 42: **19 se portan aquí**,
     # **3 ya estaban cubiertos con nombre divergente** (``create``/``write`` →
     # ``save``, ``unlink`` → ``delete``; divergencia CRUD declarada en B1),
-    # **9 siguen bloqueados por el banner de B4** (configurador), y **11
-    # quedan BLOQUEADOS aquí**, cada uno con su pieza medida y su sucesor:
+    # **9 siguen bloqueados por el banner de B4** (configurador), y **7
+    # quedan bloqueados aquí** —eran 11: #545 cerró ``rule_is_enumerable``,
+    # ``_enumerate_pages``, ``search_pages`` y ``check_existing_page``, ya
+    # portados sobre la URLconf en la sección de B2— cada uno con su pieza
+    # medida y su sucesor:
     #
-    # - ``new_page`` (``:1164``) — necesita ``website.page`` (0 clases, #104)
-    #   y el template resuelto por external ID (``env.ref``, #467).
-    # - ``rule_is_enumerable`` (``:1519``), ``_enumerate_pages`` (``:1546``),
-    #   ``search_pages`` (``:1714``) — recorren ``ir.http.routing_map()``,
-    #   que ``ir_http.py`` declara no portado (el enrutado es la URLconf de
-    #   Django). Sucesor: **#545** (ya declarados así en B2; sin cambio).
-    # - ``check_existing_page`` (``:1723``) — ``website.page`` (#104) más
-    #   ``website.rewrite`` y ``routing_map`` (#545).
+    # - ``new_page`` (``:1164``) — BLOQUEADO por ``website.page`` — 0 clases
+    #   en el árbol (#104); además el template se resuelve por external ID
+    #   (``env.ref``, #467).
     # - ``get_website_page_ids`` (``:1670``), ``_get_website_pages``
     #   (``:1707``) — ``website.page`` con ``_get_most_specific_pages`` no
     #   existe. Sucesor: **#104**.
@@ -1958,11 +2204,9 @@ class Website(TimeStampedModel):
     #   llevan ``@tools.ormcache`` en la fuente; aquí calculan siempre — la
     #   decisión de caché bajo prefork es la tarea **#542**, el mismo
     #   criterio medido de ``_get_current_website_id`` (B2).
-    # - ``tools.urls.urljoin`` no está portado; su mecánica vive abajo como
-    #   ``_urljoin_strict`` + ``_contains_dot_segments`` (funciones de
-    #   módulo) hasta ganar su hogar en ``src/tools/urls.py`` — raíz
-    #   espejada fuera del write-set de esta tanda; sucesor reportado al
-    #   orquestador (mismo patrón que ``_configurator_rpc_call`` con #413).
+    # - ``tools.urls.urljoin`` vive en ``src/tools/urls.py`` (raíz espejada
+    #   de ``odoo/tools/``, H-API-701/#555) — la unión estricta que este
+    #   bloque consume tres veces.
     # - **Plausible con default vacío.** La fuente apunta a
     #   ``https://plausible.io`` (el SaaS que su instancia consume); esta
     #   plataforma L0 no sirve endpoints de terceros por defecto (#416). El
@@ -2041,7 +2285,7 @@ class Website(TimeStampedModel):
         embed_url = (f'/share/{self.plausible_site}'
                      f'?auth={self.plausible_shared_key}&embed=true'
                      '&theme=system')
-        return _urljoin_strict(server, embed_url)
+        return urljoin(server, embed_url)
 
     def get_unique_key(self, string, template_module=False):
         """≙ ``get_unique_key`` (``odoo19c: :1272-1295``).
@@ -2076,7 +2320,7 @@ class Website(TimeStampedModel):
         Dependencias «informativas» de las URL de los registros dados: qué
         registros con campos HTML citan esas URL. La fuente avisa que no
         atrapa el 100 % y que el falso positivo es más que posible; aquí
-        igual. Estaba BLOQUEADO en B2; lo desbloqueó ``_get_html_fields``.
+        igual. Estaba bloqueado en B2; lo desbloqueó ``_get_html_fields``.
 
         Divergencias declaradas, cada una con su pieza:
 
@@ -2157,7 +2401,9 @@ class Website(TimeStampedModel):
 
         Divergencia declarada: la fuente pasa cada URL por
         ``ir.http._url_for`` (la localización de idioma del enrutado); ese
-        eje no está portado (#545), así que las rutas van tal cual.
+        reescritor sigue sin portar — #545 cerró la enumeración sobre la
+        URLconf, no el eje de idioma en URL (familia declarada en
+        ``ir_http.py`` de este addon) — así que las rutas van tal cual.
         """
         return [
             (_('Homepage'), '/', 'website'),
@@ -2202,7 +2448,7 @@ class Website(TimeStampedModel):
         cdn_filters = (self.cdn_filters or '').splitlines()
         for cdn_filter in cdn_filters:
             if cdn_filter and re.match(cdn_filter, uri):
-                return _urljoin_strict(cdn_url, uri)
+                return urljoin(cdn_url, uri)
         return uri
 
     def _get_canonical_url(self):
@@ -2211,19 +2457,21 @@ class Website(TimeStampedModel):
         La URL canónica de la petición en curso, sobre el dominio del sitio.
 
         Divergencia declarada: la fuente delega en
-        ``ir.http._url_localized`` para poner el idioma en la ruta; el eje
-        de idioma en URL es parte del enrutado no portado (#545), así que la
-        canónica es el dominio configurado más la ruta pedida (query
-        incluida), sin prefijo de idioma.
+        ``ir.http._url_localized`` para poner el idioma en la ruta; ese
+        reescritor sigue sin portar (#545 cerró la enumeración, no el eje de
+        idioma en URL — familia declarada en ``ir_http.py`` de este addon),
+        así que la canónica es el dominio configurado más la ruta pedida
+        (query incluida), sin prefijo de idioma.
         """
         request = get_current_request()
         path = request.get_full_path() if request is not None else '/'
-        return _urljoin_strict(self.domain or '', path)
+        return urljoin(self.domain or '', path)
 
     def _is_canonical_url(self):
         """≙ ``_is_canonical_url`` (``odoo19c: :1837-1849``).
 
-        ¿La URL pedida es la canónica? Con el eje de idioma fuera (#545), la
+        ¿La URL pedida es la canónica? Con el eje de idioma en URL aún sin
+        portar (ver ``_get_canonical_url``), la
         diferencia detectable es el dominio — que es justo la mitad que la
         fuente subraya (*«it is important to also test the domain»*). Fuera
         de una petición no hay URL que corregir: ``True``.
@@ -2277,18 +2525,17 @@ class Website(TimeStampedModel):
         """≙ ``_get_html_fields`` (``odoo19c: :1883-1908``).
 
         Todos los campos HTML almacenados de los modelos no transitorios,
-        sembrando ``('ir.ui.view', 'arch_db')`` como la fuente.
+        sembrando ``('ir.ui.view', 'arch_db')`` como la fuente — allá el
+        seed también es explícito porque ``arch_db`` no es de tipo html.
 
         **Divergencia de mecanismo, declarada.** La fuente consulta el
-        catálogo (``ir_model_fields.ttype = 'html'``). Ese catálogo no puede
-        existir aquí: ``fields.Html`` es un alias pelado de ``TextField``
-        (``src/orm/fields_textual.py:33``), así que en runtime un campo HTML
-        es indistinguible de un ``Text``. El equivalente medible es el sitio
-        de declaración: se parsea por AST el módulo de cada modelo y se
-        toman las asignaciones ``<campo> = fields.Html(...)`` de su clase y
-        de sus bases. Darle identidad de clase a ``Html`` cerraría esta
-        divergencia — es cambio de ``src/orm``, fuera del write-set de esta
-        tanda; sucesor reportado al orquestador.
+        catálogo (``ir_model_fields.ttype = 'html'``); ese catálogo no está
+        poblado aquí. El equivalente vivo es la **identidad de clase**:
+        desde #554 (H-API-700) ``fields.Html`` es una subclase de
+        ``TextField``, así que el campo se reconoce con ``isinstance``
+        sobre ``_meta.get_fields()`` — que además ve los campos heredados
+        de mixins, invisibles para el rodeo por AST que este método usaba
+        antes de #554.
 
         **Segunda divergencia (la de B3):** cada entrada lleva la CLASE del
         modelo, no su nombre punteado — la mayoría de los modelos aún no
@@ -2296,54 +2543,16 @@ class Website(TimeStampedModel):
         del mixin; vuelve al nombre con el barrido prospectivo de
         ``atributos-de-clase-de-modelo.md``).
 
-        *Métrica:* asignaciones ``fields.Html(`` en el cuerpo de la clase
-        del modelo (y sus bases), por AST sobre el archivo fuente.
-        *Ciega a:* un campo HTML declarado vía alias intermedio o construido
-        dinámicamente — no aparecería aunque exista.
+        *Métrica:* campos con ``isinstance(f, fields.Html)`` — declarados o
+        heredados — en cada modelo concreto no transitorio.
+        *Ciega a:* un campo HTML declarado como ``fields.Text`` o
+        ``TextField`` pelado — sin la subclase no hay identidad que ver.
         """
         html_fields = [(IrUiView, 'arch_db')]
         blacklist_tables = {
             model_name.replace('.', '_')
             for model_name in cls._get_html_fields_blacklist()
         }
-        module_trees = {}
-
-        def html_names_in_class(klass):
-            module = inspect.getmodule(klass)
-            path = getattr(module, '__file__', None)
-            if not path:
-                return set()
-            if path not in module_trees:
-                try:
-                    with open(path, encoding='utf-8') as handle:
-                        module_trees[path] = ast.parse(handle.read())
-                except (OSError, SyntaxError):
-                    # Un módulo sin fuente legible (frozen, generado) no
-                    # puede declarar ``fields.Html`` de este árbol; la
-                    # fuente hace el mismo ``continue`` ante su KeyError.
-                    module_trees[path] = None
-            tree = module_trees[path]
-            if tree is None:
-                return set()
-            names = set()
-            for node in tree.body:
-                if not (isinstance(node, ast.ClassDef)
-                        and node.name == klass.__name__):
-                    continue
-                for stmt in node.body:
-                    if not isinstance(stmt, ast.Assign):
-                        continue
-                    call = stmt.value
-                    if not (isinstance(call, ast.Call)
-                            and isinstance(call.func, ast.Attribute)
-                            and call.func.attr == 'Html'
-                            and isinstance(call.func.value, ast.Name)
-                            and call.func.value.id == 'fields'):
-                        continue
-                    names.update(target.id for target in stmt.targets
-                                 if isinstance(target, ast.Name))
-            return names
-
         for model in apps.get_models():
             meta = model._meta
             if issubclass(model, TransientModel):
@@ -2351,15 +2560,11 @@ class Website(TimeStampedModel):
             if (meta.db_table.startswith('ir_actions')
                     or meta.db_table in blacklist_tables):
                 continue
-            declared = set()
-            for klass in model.__mro__:
-                if (isinstance(klass, type)
-                        and issubclass(klass, models.Model)
-                        and klass is not models.Model):
-                    declared |= html_names_in_class(klass)
-            field_names = {f.name for f in meta.get_fields()}
-            for field_name in sorted(declared & field_names):
-                html_fields.append((model, field_name))
+            for field_name in sorted(
+                    f.name for f in meta.get_fields()
+                    if isinstance(f, fields.Html)):
+                if (model, field_name) not in html_fields:
+                    html_fields.append((model, field_name))
         return html_fields
 
     def _is_snippet_used(self, snippet_module, snippet_id, asset_version,
@@ -2376,8 +2581,9 @@ class Website(TimeStampedModel):
         consecuencia conservadora: un snippet cuyo único uso sea su propia
         plantilla se reporta como no usado, y su asset se apaga. (2) el SQL
         se compone con el cursor + ``quote_name`` — la clase ``SQL``
-        componible no está portada (#549, mismo criterio que el enumerador
-        por trigramas de B3); el patrón viaja como parámetro.
+        componible ya está portada (#549 resuelto, mismo criterio que el
+        enumerador por trigramas de B3: migrar el rodeo es opcional); el
+        patrón viaja como parámetro.
         """
         if not html_fields:
             return False
@@ -2459,58 +2665,44 @@ class Website(TimeStampedModel):
                                 old_asset.save(update_fields=['active'])
 
 
-def _contains_dot_segments(path):
-    """≙ ``_contains_dot_segments`` (``odoo19c: odoo/tools/urls.py:7-10``).
+def _view_owner(view_func):
+    """El objeto que porta las declaraciones de una vista despachable.
 
-    La mayoría de los servidores decodifica la URL antes de resolver los
-    segmentos punto — por eso se evalúa sobre la forma decodificada.
+    La misma resolución que ``CompanyContextMiddleware._view_declares_frontend``
+    (``src/addons/base/models/ir_http.py:352-367``, el mecanismo de #546):
+    DRF expone la clase como ``view.cls``, las CBV de Django como
+    ``view.view_class``, y una FBV lleva los atributos en la propia función.
+    Aquí se necesita el dueño —no sólo el booleano— porque la enumeración lee
+    tres atributos (``is_frontend``, ``http_method_names``, ``sitemap``), el
+    análogo del dict ``routing`` de la fuente.
     """
-    decoded_path = unquote(path, errors='strict')
-    return any(segment in ('.', '..') for segment in decoded_path.split('/'))
+    return (getattr(view_func, 'cls', None)
+            or getattr(view_func, 'view_class', None)
+            or view_func)
 
 
-def _urljoin_strict(base, extra):
-    """≙ ``tools.urls.urljoin`` (``odoo19c: odoo/tools/urls.py:13-77``).
+def _iter_url_patterns(resolver=None, prefix='', literal=True):
+    """≙ ``router.iter_rules()`` (consumido en ``odoo19c: :1603``).
 
-    Une una base confiable con una URL relativa de forma estricta — NO es el
-    ``urljoin`` RFC 3986 de ``urllib.parse``: se comporta como
-    ``base + '/' + extra``, conserva esquema y host de la base, rechaza que
-    ``extra`` traiga otro esquema/host y prohíbe los segmentos ``.``/``..``
-    (path traversal).
+    Recorre la URLconf de Django —el mapa de rutas de este árbol— y produce
+    ``(route, rule, literal)`` por cada ``URLPattern`` hoja: la ruta compuesta
+    con los prefijos de los ``include()``, el patrón, y si la cadena entera
+    son ``path()`` literales. ``literal`` es lo que decide si la ruta se
+    puede CONSTRUIR como URL — el papel del ``rule.build`` de werkzeug, que
+    sobre un regex de ``re_path()`` no tiene análogo.
 
-    Su hogar real es ``src/tools/urls.py`` (raíz espejada de
-    ``odoo/tools/``) — fuera del write-set de esta tanda, así que vive aquí
-    como función de módulo, igual que ``_configurator_rpc_call`` con el
-    addon ``iap``; se muda cuando esa raíz lo gane (sucesor reportado al
-    orquestador).
+    Función de módulo y no método: la fuente tampoco lo declara como método
+    (``iter_rules`` es del mapa, no del modelo).
     """
-    base_scheme, base_netloc, path, _base_query, _base_fragment = (
-        urlsplit(base))
-    extra_scheme, extra_netloc, extra_path, extra_query, extra_fragment = (
-        urlsplit(extra))
-    if extra_scheme or extra_netloc:
-        # Se admite una ``extra`` absoluta sólo si coincide con la base.
-        if (extra_scheme != base_scheme or extra_netloc != base_netloc
-                or not extra_path.startswith(path)):
-            raise ValueError(
-                'Extra URL must use same scheme and host as base, and '
-                'begin with base path')
-        extra_path = extra_path[len(path):]
-    if extra_path:
-        # Evita que urljoin('/', '\\example.com/') resuelva absoluto a
-        # '//example.com/' en un redirect de navegador — verbatim de la
-        # fuente, controles C0 y espacio incluidos.
-        extra_path = extra_path.lstrip(
-            '/\\\x00\x01\x02\x03\x04\x05\x06\x07\x08\t\n\x0b\x0c\r'
-            '\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b'
-            '\x1c\x1d\x1e\x1f ')
-        path = f'{path}/{extra_path}'
-    # Normaliza: foo//bar -> foo/bar (fuente).
-    path = re.sub(r'/+', '/', path)
-    if _contains_dot_segments(path):
-        raise ValueError('Dot segments are not allowed')
-    return urlunsplit(
-        (base_scheme, base_netloc, path, extra_query, extra_fragment))
+    if resolver is None:
+        resolver = get_resolver()
+    for entry in resolver.url_patterns:
+        entry_literal = literal and isinstance(entry.pattern, RoutePattern)
+        if isinstance(entry, URLResolver):
+            yield from _iter_url_patterns(
+                entry, prefix + str(entry.pattern), entry_literal)
+        elif isinstance(entry, URLPattern):
+            yield prefix + str(entry.pattern), entry, entry_literal
 
 
 def _configurator_rpc_call(url, method='call', params=None, timeout=15):

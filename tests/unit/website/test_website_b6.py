@@ -3,19 +3,19 @@
 Adaptación de ``odoo19c: addons/website/models/website.py``
 (``odoo-tools@622ddc2a``, LGPL-3). B6 es el bloque de cierre de la partición
 B1-B6: re-medido por AST al abrirlo, el resto no declarado eran **42** métodos
-(no los 32 de la partición). De ellos, **19 se portan** — CDN, Plausible, URL
-canónica, snippets, ``_get_html_fields``, cachés sin caché (#542) — y los
-demás quedan declarados en los banners del módulo (11 bloqueados en B6, 9 en
-B4, 3 cubiertos con nombre divergente desde B1).
+(no los 32 de la partición). De ellos, **19 se portaron** en el pase B6 — CDN,
+Plausible, URL canónica, snippets, ``_get_html_fields``, cachés sin caché
+(#542) — y **4 más** en el pase de enumeración de rutas (#545:
+``rule_is_enumerable``, ``_enumerate_pages``, ``search_pages``,
+``check_existing_page``). Los demás quedan declarados en los banners del
+módulo (7 bloqueados en B6, 9 en B4, 3 cubiertos con nombre divergente
+desde B1).
 
 Los casos cubren:
 
-1. **Presencia por nombre de los 19 portados** — el conteo contra la fuente
+1. **Presencia por nombre de los portados** — el conteo contra la fuente
    es lo único que distingue un porte parcial de uno completo.
-2. **``_urljoin_strict``** (≙ ``tools.urls.urljoin``) — función pura, sin DB:
-   unión estricta, query fusionada, rechazo de esquema/host ajenos y de
-   segmentos punto.
-3. **Los métodos de modelo** — CDN, claves únicas, valores cacheables,
+2. **Los métodos de modelo** — CDN, claves únicas, valores cacheables,
    canónica, campos HTML y bloqueo de menú — contra PostgreSQL real
    (``django_db``).
 """
@@ -28,9 +28,7 @@ from addons.base.models.res_company import ResCompany
 from addons.base.models.res_users import ResUsers
 from addons.base.models.ir_http import set_current_request
 from addons.base.models.ir_ui_view import IrUiView
-from addons.website.models.website import (
-    Website, _contains_dot_segments, _urljoin_strict,
-)
+from addons.website.models.website import Website
 from addons.website.models.website_menu import WebsiteMenu
 
 pytestmark = [pytest.mark.django_db]
@@ -61,16 +59,21 @@ B6_PORTED = [
     '_disable_unused_snippets_assets',
 ]
 
-#: Los 11 que B6 no porta — cada uno lleva su arista de bloqueo con la
-#: forma fija en el banner del módulo (website.py). Se listan para que un
-#: porte futuro los encuentre por grep; NO deben existir como métodos
+#: El eje de enumeración de rutas, portado por #545 sobre el URLconf de
+#: Django (``_iter_url_patterns`` ≙ ``router.iter_rules()``).
+B6_PORTED_ROUTING = [
+    'rule_is_enumerable',
+    '_enumerate_pages',
+    'search_pages',
+    'check_existing_page',
+]
+
+#: Los 7 que siguen sin portarse — cada uno lleva su arista de bloqueo con
+#: la forma fija en el banner del módulo (website.py). Se listan para que
+#: un porte futuro los encuentre por grep; NO deben existir como métodos
 #: hasta que su bloqueador se cierre.
 B6_BLOCKED = [
     'new_page',                    # #104 + #467
-    'rule_is_enumerable',          # #545
-    '_enumerate_pages',            # #545
-    'search_pages',                # #545
-    'check_existing_page',         # #104 + #545
     'get_website_page_ids',        # #104
     '_get_website_pages',          # #104
     'action_dashboard_redirect',   # #467
@@ -83,8 +86,8 @@ B6_BLOCKED = [
 class TestB6Coverage:
     """La cobertura declarada del bloque es la real."""
 
-    def test_the_nineteen_ported_methods_exist(self):
-        missing = [name for name in B6_PORTED
+    def test_the_ported_methods_exist(self):
+        missing = [name for name in B6_PORTED + B6_PORTED_ROUTING
                    if not callable(getattr(Website, name, None))]
         assert missing == []
 
@@ -93,37 +96,6 @@ class TestB6Coverage:
         # completo; el bloqueado correcto NO declara el símbolo.
         present = [name for name in B6_BLOCKED if hasattr(Website, name)]
         assert present == []
-
-
-class TestUrljoinStrict:
-    """≙ ``tools.urls.urljoin`` — los ejemplos del docstring de la fuente."""
-
-    def test_joins_base_and_relative_path(self):
-        assert (_urljoin_strict('https://api.example.com/v1/?bar=fiz',
-                                '/users/42?bar=bob')
-                == 'https://api.example.com/v1/users/42?bar=bob')
-
-    def test_merges_query_onto_base_path(self):
-        assert (_urljoin_strict('https://api.example.com/data/', '/?lang=fr')
-                == 'https://api.example.com/data/?lang=fr')
-
-    def test_rejects_foreign_scheme_or_host(self):
-        with pytest.raises(ValueError):
-            _urljoin_strict('https://example.com/foo', 'http://8.8.8.8/foo')
-
-    def test_rejects_dot_segments(self):
-        with pytest.raises(ValueError):
-            _urljoin_strict('https://example.com', '/a/../b')
-
-    def test_strips_backslash_prefix(self):
-        # urljoin('/', '\\example.com/') NO debe resolver absoluto a
-        # '//example.com/' — la guarda de la fuente, verbatim.
-        joined = _urljoin_strict('/', '\\example.com/')
-        assert not joined.startswith('//')
-
-    def test_contains_dot_segments_decodes_first(self):
-        assert _contains_dot_segments('/a/%2e%2e/b') is True
-        assert _contains_dot_segments('/a/b') is False
 
 
 def _make_website(**overrides):

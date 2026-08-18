@@ -1363,10 +1363,10 @@ class StockPicking(MailThread, MailActivityMixin, TimeStampedModel):
         help_text='El albarán ya se imprimió (Odoo printed). Un albarán '
                   'impreso no recibe movimientos nuevos por asignación.',
     )
-    # ≙ ``note`` (``odoo19c: :559``, ``fields.Html``). Aquí ``Text`` — el saneo
-    # HTML es cosa de la capa UI, que este stack no tiene (mismo criterio que
-    # ``fields.Html`` en ``orm/fields_textual.py``).
-    note             = fields.Text(
+    # ≙ ``note`` (``odoo19c: :559``, ``fields.Html``). Desde #554 ``Html``
+    # tiene identidad de clase (misma columna TEXT; el saneo sigue siendo de
+    # la capa UI), así que se declara fiel a la fuente.
+    note             = fields.Html(
         blank=True, default='', verbose_name='Notas',
         help_text='Notas libres del albarán (Odoo note).',
     )
