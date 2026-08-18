@@ -1,0 +1,107 @@
+# Deuda heredada de marcas de bloqueo sin forma fija.
+# Una marca listada NO bloquea; una NUEVA si. Se paga al tocar
+# el archivo — mismo criterio prospectivo que el baseline de
+# idioma. Al reescribir una marca, borrar su linea de aqui.
+addons/account/models/__init__.py::- ``account_analytic_account.py``      → no-op documentado (BLOQUEADO, ver
+addons/account/models/__init__.py::- ``account_analytic_line.py``         → no-op documentado (BLOQUEADO, ver
+addons/account/models/account_analytic_account.py::Los cuatro símbolos — BLOQUEADO, ninguno se porta
+addons/account/models/account_analytic_account.py::Tarea #520 — sigue BLOQUEADO, misma causa, ahora con el conector construido
+addons/account/models/account_analytic_distribution_model.py::``H-API-684`` (tramo anterior) dejó BLOQUEADOS estos 3 métodos porque su
+addons/account/models/account_analytic_line.py::BLOQUEADO por la migración ausente.
+addons/account/models/account_analytic_line.py::Los 2 `def` que el conector desbloquea a medias — BLOQUEADO de segundo orden
+addons/account/models/account_analytic_line.py::``H-API-684`` (tramo anterior) dejó los 11 ``def`` BLOQUEADOS porque
+addons/account/models/account_analytic_line.py::``account_move_line.py`` fuera de alcance. BLOQUEADO, sin cambio.
+addons/account/models/account_analytic_line.py::escribibles de esta tarea. BLOQUEADO, no campo.
+addons/account/models/account_analytic_plan.py::BLOQUEADOS porque ``addons/analytic/migrations/`` no estaba en el alcance de
+addons/account/models/product.py::``tax_string``                     template    DESBLOQUEADO — pendiente de portar (#141)
+addons/account/report/account_hash_integrity_templates.py::**Por que ``_get_report_values`` esta BLOQUEADO, y no es una excusa.** Su
+addons/account/report/account_hash_integrity_templates.py::- BLOQUEADO -- ver abajo
+addons/account/report/account_hash_integrity_templates.py::Cobertura del porte -- 1 de 1 simbolo (con su unico metodo BLOQUEADO)
+addons/account/report/account_invoice_report.py::""">= ``_from`` (``odoo19c: :128-``). BLOQUEADO -- ver el
+addons/account/report/account_invoice_report.py::"""Genera la URL de codigo QR por factura -- BLOQUEADO.
+addons/account/report/account_invoice_report.py::'AccountInvoiceReport._from esta BLOQUEADO: requiere '
+addons/account/report/account_invoice_report.py::'AccountInvoiceReport._read_group_select esta BLOQUEADO: '
+addons/account/report/account_invoice_report.py::'AccountInvoiceReport._select esta BLOQUEADO: casi todas sus '
+addons/account/report/account_invoice_report.py::'AccountInvoiceReport._table_query esta BLOQUEADO: depende de '
+addons/account/report/account_invoice_report.py::'de ``_read_group_select``, BLOQUEADO -- ver el '
+addons/account/report/account_invoice_report.py::**Por que ``AccountInvoiceReport`` esta BLOQUEADO -- con las citas exactas.**
+addons/account/report/account_invoice_report.py::BLOQUEADO -- ver el docstring del modulo. La fuente compone
+addons/account/report/account_invoice_report.py::Cobertura del porte -- 45 de 45 simbolos (forma), 3 BLOQUEADOS (comportamiento)
+addons/account/report/account_invoice_report.py::``_read_group_select`` **BLOQUEADOS** en tiempo de ejecucion
+addons/account/report/account_invoice_report.py::aislan en :meth:`_qr_code_urls`, que si esta BLOQUEADO -- ver su
+addons/account/tools/structured_reference.py::pieza BLOQUEADA, pero con salida: los tres algoritmos que ``stdnum`` provee
+addons/hr/migrations/0005_hremployee.py::help_text="BLOQUEADO el cómputo (_compute_last_activity, requiere presence_ids de usuario, infra bus no portada).",
+addons/hr/migrations/0005_hremployee.py::help_text="BLOQUEADO el cómputo (_compute_presence_icon).",
+addons/hr/migrations/0005_hremployee.py::help_text="BLOQUEADO el cómputo (_compute_presence_state, requiere resource_calendar_id del contrato + presence_ids de usuario); el campo queda en su default.",
+addons/hr/migrations/0005_hremployee.py::help_text="BLOQUEADO el cómputo (depende de version_id.work_location_id).",
+addons/hr/migrations/0005_hremployee.py::help_text="BLOQUEADO el cómputo (depende de version_id.work_location_id).",
+addons/hr/migrations/0006_hrversion_hremployee_version_and_more.py::help_text="Odoo address_id. DIVERGENCIA: sin default (la referencia usa self.env.company.partner_id.address_get(['default']) — sesión, familia b, ver _get_default_address_id BLOQUEADO).",
+addons/hr/migrations/0006_hrversion_hremployee_version_and_more.py::help_text="Odoo company_id (compute+store, default=env.company). BLOQUEADO el auto-sync desde employee.company — familia (a).",
+addons/hr/migrations/0006_hrversion_hremployee_version_and_more.py::help_text="Odoo is_custom_job_title (compute+store). BLOQUEADO el auto-sync — familia (a).",
+addons/hr/migrations/0006_hrversion_hremployee_version_and_more.py::help_text="Odoo job_title (compute+inverse+store). BLOQUEADO el auto-sync desde job.name — familia (a); se asigna directo.",
+addons/hr/migrations/0006_hrversion_hremployee_version_and_more.py::help_text="Odoo resource_calendar_id (inverse=_inverse_resource_calendar_id). BLOQUEADO el inverse (sincroniza employee.resource.calendar cuando esta versión es la vigente) — familia (a).",
+addons/hr/migrations/0006_hrversion_hremployee_version_and_more.py::help_text="Odoo structure_type_id (compute+store, default=_default_salary_structure). DIVERGENCIA: sin default de campo — se porta _default_salary_structure_for_company como helper explícito (ver métodos); BLOQUEADO el auto-sync (_compute_structure_type_id) — familia (a).",
+addons/hr/models/hr_employee.py::"Puesto/departamento" de la tabla BLOQUEADOS de abajo — ver la sección
+addons/hr/models/hr_employee.py::# UniqueConstraint de base de datos sin la columna. BLOQUEADO.
+addons/hr/models/hr_employee.py::# ``_inherits`` queda fuera: es justo el mecanismo BLOQUEADO.
+addons/hr/models/hr_employee.py::# registro y el wizard de salida quedan BLOQUEADOS, ver docstring)
+addons/hr/models/hr_employee.py::**Lo que sigue BLOQUEADO tras esta tarea:** los 83 métodos (ninguno se portó
+addons/hr/models/hr_employee.py::- **BLOQUEADOS: 83** — cuatro familias: (a) TODO lo que lee
+addons/hr/models/hr_employee.py::- BLOQUEADO
+addons/hr/models/hr_employee.py::- BLOQUEADO
+addons/hr/models/hr_employee.py::.. list-table:: Divergencias de campo (declaradas, no BLOQUEADAS)
+addons/hr/models/hr_employee.py::BLOQUEADO, con su pieza faltante nombrada. Sucesor: tarea PENDIENTE DE
+addons/hr/models/hr_employee.py::Sin ``hr.version`` (BLOQUEADO, ver docstring del módulo), este puerto
+addons/hr/models/hr_employee.py::Sucesor de TODO lo BLOQUEADO: tarea PENDIENTE DE ASIGNAR — portar
+addons/hr/models/hr_employee.py::``version_id.work_location_id`` (``:515-523``) — BLOQUEADOS con el
+addons/hr/models/hr_employee.py::help_text='BLOQUEADO el cómputo (_compute_last_activity, requiere '
+addons/hr/models/hr_employee.py::help_text='BLOQUEADO el cómputo (_compute_presence_icon).',
+addons/hr/models/hr_employee.py::help_text='BLOQUEADO el cómputo (_compute_presence_state, requiere '
+addons/hr/models/hr_employee.py::help_text='BLOQUEADO el cómputo (depende de version_id.work_location_id).',
+addons/hr/models/hr_employee.py::help_text='BLOQUEADO el cómputo (depende de version_id.work_location_id).',
+addons/hr/models/hr_employee_category.py::# DEFERIDO (no stub): employee_ids — requiere hr.employee (BLOQUEADO,
+addons/hr/models/hr_employee_category.py::- BLOQUEADO
+addons/hr/models/hr_mixin.py::# create()/write() — BLOQUEADO, ver tabla del docstring del módulo.
+addons/hr/models/hr_mixin.py::- BLOQUEADO
+addons/hr/models/hr_mixin.py::- BLOQUEADO
+addons/hr/models/hr_payroll_structure_type.py::declaró BLOQUEADO en el pase que portó este archivo por no tener el
+addons/hr/models/hr_version.py::# recordset por lotes — ver las tres familias BLOQUEADAS en el docstring)
+addons/hr/models/hr_version.py::'BLOQUEADO el auto-sync desde employee.company — familia (a).',
+addons/hr/models/hr_version.py::'BLOQUEADO el inverse (sincroniza employee.resource.calendar '
+addons/hr/models/hr_version.py::'helper explícito (ver métodos); BLOQUEADO el auto-sync '
+addons/hr/models/hr_version.py::'— sesión, familia b, ver _get_default_address_id BLOQUEADO).',
+addons/hr/models/hr_version.py::- **Métodos: 13/46 PORTADOS**, 33 BLOQUEADOS en 3 familias nombradas (ver
+addons/hr/models/hr_version.py::BLOQUEADO — tres familias, con la pieza que falta nombrada:
+addons/hr/models/hr_version.py::``hr_employee.py`` ya declaró BLOQUEADA. Sucesor: tarea PENDIENTE DE
+addons/hr/models/hr_version.py::addons/ src/ → 0 hits"*— y declaraba BLOQUEADOS ~70 campos y 83 métodos por su
+addons/hr/models/hr_version.py::help_text='Odoo is_custom_job_title (compute+store). BLOQUEADO el '
+addons/hr/models/hr_version.py::help_text='Odoo job_title (compute+inverse+store). BLOQUEADO el '
+addons/product_expiry/models/stock_move_line.py::**Estaba BLOQUEADO y ya no lo está.** Hasta hoy este archivo era un no-op
+addons/stock/models/stock_lot.py::Campos — 13 PORTADOS · 1 DIVERGENCIA · 0 BLOQUEADOS
+addons/stock/models/stock_lot.py::Métodos — 17 PORTADOS · 7 DIVERGENCIA · 0 BLOQUEADOS
+addons/stock/models/stock_move.py::habría producido una docena de BLOQUEADOS que la ola siguiente tendría que
+addons/stock/models/stock_picking.py::# BLOQUEADO (``_compute_scheduled_date``), ``created_at`` sustituye al
+addons/stock/models/stock_picking.py::(grupo backorder BLOQUEADO); el llamador confirma explícitamente
+addons/stock/models/stock_picking.py::**Grupos BLOQUEADOS — 79 símbolos tras tarea #521 (H-API-692),
+addons/stock/models/stock_picking.py::BLOQUEADO.
+addons/stock/models/stock_picking.py::El motor de recálculo condicional vive en el grupo BLOQUEADO
+addons/stock/models/stock_picking.py::``_compute_show_lots_text``, que sigue BLOQUEADO (Grupo D).
+addons/stock/models/stock_picking.py::``scheduled_date``, que sigue BLOQUEADO— y quedó ahí mismo (arriba).
+addons/stock/models/stock_picking.py::acceso. Se retiró antes de cerrar el pase y pasó al grupo BLOQUEADO,
+addons/stock/models/stock_picking.py::el grupo BLOQUEADO (backorder/autoconfirm, ver el docstring de la
+addons/stock/models/stock_picking.py::grupo BLOQUEADO). Habría reventado con ``AttributeError`` en el primer
+addons/stock/models/stock_picking.py::resto, **79**, sigue en el grupo BLOQUEADO de abajo (era 94; ver el
+src/addons/base/report/report_base_report_irmodulereference.py::"""≙ ``_fields_find`` (``odoo19c: :18-26``) — **BLOQUEADO**.
+src/addons/base/report/report_base_report_irmodulereference.py::- **BLOQUEADO** en ``fields_get``; ver abajo
+src/addons/base/wizard/base_partner_merge.py::(``:240-320``) quedan BLOQUEADOS.** Reasignan los valores por empresa que
+src/addons/base/wizard/base_partner_merge.py::BLOQUEADOS por la tarea **#381** — ver la divergencia 2 del módulo.
+tests/unit/account/test_account_analytic_account.py::``account/models/account_analytic_account.py``) siguen BLOQUEADOS — ver el
+tests/unit/account/test_account_analytic_line.py::"""``create``/``write``/``unlink`` (BLOQUEADO): el campo que
+tests/unit/account/test_account_analytic_line.py::BLOQUEADO: ``account.move.line`` no declara ``journal``."""
+tests/unit/account/test_account_analytic_line.py::``journal``/``_compute_partner_id`` — BLOQUEADO de segundo orden
+tests/unit/account/test_account_analytic_line.py::alcance); ``create``/``write``/``unlink`` — BLOQUEADO (``analytic_
+tests/unit/account/test_report_account_hash_integrity_templates.py::#398, hallazgo H-API-682). El unico metodo esta BLOQUEADO -- ver su
+tests/unit/account/test_report_account_invoice_report.py::"""Los cinco metodos que arman la vista SQL estan BLOQUEADOS -- el
+tests/unit/hr/test_hr_mixin.py::``create``/``write`` quedan BLOQUEADOS en este tramo (ver el docstring del
+tests/unit/stock/test_stock_lot_partner_ids.py::(``_search_partner_ids``). Los tres símbolos quedaban **BLOQUEADOS** en el
+tests/unit/stock/test_stock_picking.py::``_action_done``) queda declarado BLOQUEADO — ver :ref:`h-api-685` y

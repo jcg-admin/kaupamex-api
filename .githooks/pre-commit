@@ -96,6 +96,21 @@ if [[ "${#STAGED_PY[@]}" -gt 0 ]]; then
     fi
 fi
 
+# ─── check_bloqueo_declarado: el simbolo no portado nombra su bloqueador ─────
+# "No lo porte porque falta que algo lo llame" es una ARISTA dirigida, y el
+# orden de lo que queda sale de recorrer ese grafo. Mientras la razon viva en
+# prosa libre no hay grafo: medido, 103 marcas y solo unas pocas con direccion.
+# Baseline de deuda heredada; una marca nueva sin forma fija SI bloquea.
+# Script: scripts/check_bloqueo_declarado.py.
+if [[ ${#STAGED_PY[@]} -gt 0 ]]; then
+    BLOQUEO_CHECKER="$REPO_ROOT/scripts/check_bloqueo_declarado.py"
+    if [[ ! -f "$BLOQUEO_CHECKER" ]]; then
+        echo "pre-commit: $BLOQUEO_CHECKER no encontrado — skip bloqueo gate" >&2
+    else
+        python3 "$BLOQUEO_CHECKER" "${STAGED_PY[@]}" || EXIT_CODE=1
+    fi
+fi
+
 if [[ "$EXIT_CODE" -ne 0 ]]; then
     echo "" >&2
     echo "pre-commit: gates fallaron. Corrige los problemas o usa" >&2
@@ -103,7 +118,7 @@ if [[ "$EXIT_CODE" -ne 0 ]]; then
     echo "(solo emergencias documentadas)." >&2
 fi
 
-# ─── Gate 4: direccion de dependencias entre addons (T-036) ─────────────────
+# ─── check_addon_cycles: direccion de dependencias entre addons (T-036) ─────
 # Un addon fundacional (identidad, acceso, correo, catalogo) NO importa uno de
 # negocio: en la referencia Odoo la dependencia apunta siempre hacia abajo.
 # Ratchet sobre INVERSIONES_CONOCIDAS — falla solo ante una inversion NUEVA.
@@ -118,7 +133,7 @@ if [ -f "$CYCLES_CHECKER" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# Gate 5: declaracion del catalogo L0 (SOL-100).
+# check_catalog_declaration: declaracion del catalogo L0 (SOL-100).
 # Cada addon declara sus modulos/capacidades en authz_catalog.py; el seed solo
 # recolecta. Este gate verifica que la declaracion sea coherente ANTES de que
 # llegue a una DB: addon en INSTALLED_APPS, sin duenos duplicados, sin
@@ -136,7 +151,7 @@ if [ -f "$CATALOG_CHECKER" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# Gate 6: procedencia de addon (H-API-119, reincidido en H-API-256).
+# check_addon_names: procedencia de addon (H-API-119, reincidido en H-API-256).
 # El eje NO es "existe en la referencia" — tener addons propios es legitimo.
 # Lo que se exige es que cada addon que no resuelve por nombre DECLARE su
 # procedencia en scripts/addon_provenance.txt citando un documento que exista;
