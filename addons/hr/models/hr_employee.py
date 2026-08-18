@@ -36,6 +36,28 @@ para conectar los ~83 métodos y ~70 campos aquí bloqueados.
 
 Cobertura completa símbolo a símbolo: ver el hallazgo :ref:`h-api-683`.
 
+Actualización (tarea #513, H-API-690) — ``hr.version`` ya existe
+====================================================================
+
+``hr.version`` **no era un addon separado** (premisa corregida en
+``hr_version.py``): es un modelo del propio addon ``hr``
+(``odoo19c: addons/hr/models/hr_version.py``), ahora portado a
+``addons/hr/models/hr_version.py``. La columna ``version`` (FK real,
+sustituta de la delegación ``_inherits`` que Django no tiene) más 23
+propiedades conectan los grupos "Identidad de versión", "Contrato" y
+"Puesto/departamento" de la tabla BLOQUEADOS de abajo — ver la sección
+"Delegación a hr.version — PORTADO" en el cuerpo de la clase.
+
+**Lo que sigue BLOQUEADO tras esta tarea:** los 83 métodos (ninguno se portó
+en este pase — conectarlos exige releer cada uno contra el ``hr.version``
+recién construido, p. ej. ``_get_contract_dates`` agrega sobre **todas**
+las versiones del empleado, no sólo la vigente; no es una delegación
+directa a ``self.version.<método>``) y las columnas del grupo (b)/(c)/(d)/(e)
+del resumen de métodos, que dependen de acciones/onchange/ACL, no de
+``hr.version``. Sucesor: tarea PENDIENTE DE ASIGNAR — conectar los métodos
+familia (a) uno a uno contra ``hr.HrVersion.versions`` (el queryset
+completo del historial), no sólo contra ``self.version``.
+
 Mixins heredados — mismo orden que ``_inherit`` de la referencia
 ==================================================================
 
@@ -110,8 +132,15 @@ final (mismo patrón que ``ResPartner``/``StockPicking`` en este árbol).
        construido — mecanismo transversal, fuera de alcance de este archivo.
        Sucesor: PENDIENTE DE ASIGNAR.
 
-.. list-table:: Campos delegados a ``hr.version`` — BLOQUEADOS en bloque
+.. list-table:: Campos delegados a ``hr.version`` — RESUELTOS (tarea #513)
    :header-rows: 1
+
+.. note::
+   Tabla histórica de H-API-683 — los 23 campos de abajo (``version_ids`` es
+   el reverso automático, no cuenta) ya se conectaron como propiedades sobre
+   ``self.version`` en la sección "Delegación a hr.version — PORTADO" del
+   cuerpo de la clase (tarea #513, H-API-690). Se conserva la tabla como
+   registro del análisis original.
 
    * - Grupo
      - Símbolos
@@ -209,6 +238,7 @@ DEFERIDO por falta de consumidor en ``resource_resource.py`` /
 """
 import re
 from datetime import date, timedelta
+from decimal import Decimal
 from random import choice
 from string import digits
 
@@ -230,6 +260,7 @@ from addons.mail.models import MailActivityMixin, MailThread
 from addons.resource.models.resource_mixin import ResourceMixin
 
 from .hr_employee_category import HrEmployeeCategory
+from .hr_version import HrVersion
 
 
 class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin, TimeStampedModel):
@@ -258,6 +289,18 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin, Time
         MASTER = 'master', 'Maestría'
         DOCTOR = 'doctor', 'Doctorado'
         OTHER = 'other', 'Otro'
+
+    # --- versión vigente (tarea #513 — el mecanismo que desbloquea la
+    # mitad delegada del archivo, ver "Delegación a hr.version" abajo) -----
+    version = fields.Many2one(
+        HrVersion, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+', verbose_name='Versión vigente',
+        help_text='Odoo version_id — la ``hr.version`` que ``_inherits`` '
+                  'delegaba. Aquí es una FK real (Django no tiene '
+                  'delegación de campos); ``hr.HrVersion.employee`` '
+                  '(``related_name=\'versions\'``) es el reverso — el '
+                  'historial completo es ``self.versions.all()``.',
+    )
 
     # --- resource and user (parte NO delegada) --------------------------
     name = fields.Char(
@@ -468,6 +511,144 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin, Time
     def currency(self):
         """≙ ``currency_id`` (``related='company_id.currency_id'``)."""
         return self.company.currency if self.company_id else None
+
+    # ------------------------------------------------------------------
+    # Delegación a hr.version — PORTADO (tarea #513, cierra H-API-683)
+    #
+    # Las 24 columnas que la referencia declara ``related='version_id.*',
+    # inherited=True`` (grupos "Identidad de versión", "Contrato" y
+    # "Puesto/departamento" del docstring del módulo) leen ahora a través de
+    # ``self.version`` — mismo patrón que las propiedades de
+    # ``resource.user`` de arriba. Sin versión asignada, cada propiedad
+    # devuelve el valor vacío de su tipo (``None``/``''``/``False``/
+    # ``Decimal('0.00')``), nunca levanta.
+    # ------------------------------------------------------------------
+
+    @property
+    def current_version(self):
+        """≙ ``current_version_id`` — alias de ``version`` en este puerto.
+
+        En la referencia son dos campos distintos (``version_id`` es la base
+        ``_inherits``; ``current_version_id`` se recalcula sobre ella vía
+        ``_compute_current_version_id``). Aquí una sola FK cumple ambos
+        roles — no hay recómputo que diverja de la base.
+        """
+        return self.version
+
+    @property
+    def current_date_version(self):
+        """≙ ``current_date_version`` (``related='version_id.date_version'``)."""
+        return self.version.date_version if self.version_id else None
+
+    @property
+    def versions_count(self):
+        """≙ ``versions_count`` (``:198``).
+
+        DIVERGENCIA: ``version_ids`` en sí no necesita property — es el
+        reverso automático de ``hr.HrVersion.employee``
+        (``related_name='versions'``): ``self.versions.all()``.
+        """
+        return self.versions.count()
+
+    @property
+    def version_revision(self):
+        """≙ ``version_revision`` (``:199``) — posición 1-based en el
+        historial ordenado por ``date_version``."""
+        if not self.version_id:
+            return 0
+        ordered_ids = list(
+            self.versions.order_by('date_version').values_list('pk', flat=True),
+        )
+        return ordered_ids.index(self.version_id) + 1 if self.version_id in ordered_ids else 0
+
+    @property
+    def contract_date_start(self):
+        """≙ ``contract_date_start`` (``related='version_id.contract_date_start'``)."""
+        return self.version.contract_date_start if self.version_id else None
+
+    @property
+    def contract_date_end(self):
+        """≙ ``contract_date_end`` (``related='version_id.contract_date_end'``)."""
+        return self.version.contract_date_end if self.version_id else None
+
+    @property
+    def trial_date_end(self):
+        """≙ ``trial_date_end`` (``related='version_id.trial_date_end'``)."""
+        return self.version.trial_date_end if self.version_id else None
+
+    @property
+    def contract_wage(self):
+        """≙ ``contract_wage`` (``related='version_id.contract_wage'``)."""
+        if not self.version_id:
+            return Decimal('0.00')
+        return self.version.contract_wage
+
+    @property
+    def date_start(self):
+        """≙ ``date_start`` (``related='version_id.date_start'``)."""
+        return self.version.date_start if self.version_id else None
+
+    @property
+    def date_end(self):
+        """≙ ``date_end`` (``related='version_id.date_end'``)."""
+        return self.version.date_end if self.version_id else None
+
+    @property
+    def is_current(self):
+        """≙ ``is_current`` (``related='version_id.is_current'``)."""
+        return bool(self.version_id and self.version.is_current)
+
+    @property
+    def is_past(self):
+        """≙ ``is_past`` (``related='version_id.is_past'``)."""
+        return bool(self.version_id and self.version.is_past)
+
+    @property
+    def is_future(self):
+        """≙ ``is_future`` (``related='version_id.is_future'``)."""
+        return bool(self.version_id and self.version.is_future)
+
+    @property
+    def is_in_contract(self):
+        """≙ ``is_in_contract`` (``related='version_id.is_in_contract'``)."""
+        return bool(self.version_id and self.version.is_in_contract)
+
+    @property
+    def structure_type(self):
+        """≙ ``structure_type_id`` (``related='version_id.structure_type_id'``)."""
+        return self.version.structure_type if self.version_id else None
+
+    @property
+    def contract_type(self):
+        """≙ ``contract_type_id`` (``related='version_id.contract_type_id'``)."""
+        return self.version.contract_type if self.version_id else None
+
+    @property
+    def department(self):
+        """≙ ``department_id`` — no declarado en la referencia; vive en
+        ``hr.version`` y llega por delegación (``_inherits``)."""
+        return self.version.department if self.version_id else None
+
+    @property
+    def job(self):
+        """≙ ``job_id`` — idem ``department_id``, delegado."""
+        return self.version.job if self.version_id else None
+
+    @property
+    def job_title(self):
+        """≙ ``job_title`` — no declarado en la referencia; vive en
+        ``hr.version`` y llega por delegación (``_inherits``, ``:131``)."""
+        return self.version.job_title if self.version_id else ''
+
+    @property
+    def address(self):
+        """≙ ``address_id`` — idem ``department_id``, delegado."""
+        return self.version.address if self.version_id else None
+
+    @property
+    def work_location(self):
+        """≙ ``work_location_id`` — idem ``department_id``, delegado."""
+        return self.version.work_location if self.version_id else None
 
     # ------------------------------------------------------------------
     # Identidad / clasificación — PORTADOS

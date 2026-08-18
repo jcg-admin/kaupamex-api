@@ -1048,6 +1048,10 @@ class StockPicking(MailThread, MailActivityMixin, TimeStampedModel):
             - 19
             - 29
             - 48
+          * - Después de tarea #521 (H-API-692)
+            - 19
+            - 44
+            - 63
           * - Referencia (``odoo19c:``)
             - 57
             - 97
@@ -1058,8 +1062,10 @@ class StockPicking(MailThread, MailActivityMixin, TimeStampedModel):
        de qué hay aquí, no cuánto de la referencia cubre. Normalizando por
        los alias declarados (D-1..D-9: ``location``↔``location_id``,
        ``product``↔``product_id``, un ``compute`` colapsado a una sola
-       ``property``, etc.) la cobertura real es **60 de 154** — el resto,
-       **94**, es el grupo BLOQUEADO de abajo.
+       ``property``, etc.) la cobertura real tras el segundo pase era
+       **60 de 154**; tras tarea #521 (H-API-692) son **75 de 154** — el
+       resto, **79**, sigue en el grupo BLOQUEADO de abajo (era 94; ver el
+       detalle de qué se cerró en :ref:`h-api-692`).
 
        **Corrección durante este mismo pase (H-API-685):** un primer borrador
        incluía ``has_deadline_issue`` como ``property`` — leía
@@ -1071,19 +1077,22 @@ class StockPicking(MailThread, MailActivityMixin, TimeStampedModel):
        referencia; se deja registrado porque el propio ejercicio de escribir
        el caso de prueba —no una relectura— fue lo que lo destapó.
 
-       **Grupos BLOQUEADOS — 94 símbolos, verificados por AST contra la
-       cobertura real** (``ref_all - cubiertos_por_alias - resueltos = 94``;
-       el detalle símbolo a símbolo vive en el hallazgo del pase, no aquí):
+       **Grupos BLOQUEADOS — 79 símbolos tras tarea #521 (H-API-692),
+       verificados por AST contra la cobertura real** (eran 94; el detalle
+       símbolo a símbolo de qué se cerró vive en :ref:`h-api-692`, no aquí):
 
-       - **Report/QWeb — 14** (``do_print_picking``,
+       - **Report/QWeb — 13** (``do_print_picking``,
          ``get_action_click_graph``, ``_get_action``,
          ``get_action_picking_tree_incoming/outgoing/internal``,
          ``action_open_label_layout``, ``action_open_label_type``,
          ``_get_autoprint_report_actions``, ``_get_packages_for_print``,
-         ``_get_report_lang``, ``get_empty_list_help``,
+         ``_get_report_lang``,
          ``should_print_delivery_address``, ``action_view_reception_report``):
          cuelgan del renderizador QWeb pendiente (tarea **#273**), igual que
-         ``StockPickingType._get_action``.
+         ``StockPickingType._get_action``. ``get_empty_list_help`` **salió**
+         de este grupo en tarea #521: no necesita reportes, sólo texto — se
+         portó con la misma divergencia declarada (sin QWeb, texto plano)
+         que ya usan ``calculate_date_category``/``date_category_to_domain``.
        - **Paquetes — 17** (``action_put_in_pack``, ``action_add_entire_packs``,
          ``action_see_packages``, ``action_see_package_histories``,
          ``_check_move_lines_map_quant_package``,
@@ -1095,36 +1104,47 @@ class StockPicking(MailThread, MailActivityMixin, TimeStampedModel):
          ``show_check_availability`` + ``_compute_show_check_availability``):
          tocan ``stock_package.py``, fuera de los archivos escribibles de
          este pase.
-       - **Backorder/wizard — 10** (``_should_show_transfers``,
+       - **Backorder/wizard — 9** (``_should_show_transfers``,
          ``_should_ignore_backorders``, ``_get_without_quantities_error_message``,
-         ``_action_generate_backorder_wizard``, ``action_toggle_is_locked``,
+         ``_action_generate_backorder_wizard``,
          ``_check_backorder``, ``_autoconfirm_picking``,
          ``_get_moves_to_backorder``, ``_create_backorder_picking``,
          ``_create_backorder``): exigen un modelo wizard
          (``stock.backorder.confirmation``) que no existe — sub-iniciativa
-         explícita, no un fix de una función.
-       - **Sanity/reserva/reporte de cierre — 22** (``do_unreserve``,
+         explícita, no un fix de una función. ``action_toggle_is_locked``
+         **salió** de este grupo en tarea #521 (H-API-692): es un toggle de
+         dos líneas sobre ``is_locked``, sin relación real con el backorder
+         — estaba agrupado por vecindad de línea en la referencia, no por
+         dependencia.
+       - **Sanity/reserva/reporte de cierre — 12** (``do_unreserve``,
          ``action_split_transfer``, ``_pre_action_done_hook``,
          ``_sanity_check``, ``_get_lot_move_lines_for_sanity_check``,
-         ``button_scrap``, ``action_see_move_scrap``, ``action_next_transfer``,
-         ``action_detailed_operations``, ``_action_done``,
-         ``_send_confirmation_email``, ``action_picking_move_tree``,
-         ``_can_return``, ``action_see_returns``, ``_add_reference``,
-         ``_remove_reference``, ``_log_activity``,
-         ``_log_activity_get_documents``,
-         ``_log_less_quantities_than_expected``,
-         ``_less_quantities_than_expected_add_documents``,
-         ``_get_impacted_pickings``, ``_is_to_external_location``):
+         ``button_scrap``, ``action_see_move_scrap``,
+         ``action_picking_move_tree``,
+         ``_can_return``, ``action_see_returns``, ``_action_done``,
+         ``_is_to_external_location``):
          reescriben ``_action_done``, que ya sostiene ``button_validate``
          simplificado; profundizar aquí sin la máquina de reservas completa
          de ``stock.move`` arriesga contradecir ese archivo, fuera de lo
-         escribible de este pase.
-       - **Estado reactivo/ubicación/UI — 31** (``_compute_state``,
-         ``_compute_location_id``, ``_compute_scheduled_date``,
+         escribible de este pase. **10 de los 22 originales salieron en
+         tarea #521 (H-API-692)** — ``action_next_transfer``,
+         ``action_detailed_operations``, ``_send_confirmation_email``,
+         ``_add_reference``, ``_remove_reference``, ``_log_activity``,
+         ``_log_activity_get_documents``,
+         ``_log_less_quantities_than_expected``,
+         ``_less_quantities_than_expected_add_documents``,
+         ``_get_impacted_pickings`` — porque, medidos uno por uno, ninguno
+         reescribe ``_action_done`` ni toca la máquina de reservas: la razón
+         de bloqueo de la fila de arriba era una justificación de bloque, no
+         símbolo a símbolo. Ver H-API-692 para la divergencia declarada de
+         cada uno (mensajería sin plantilla QWeb, actividad sin ``sudo()``,
+         ``mail.activity.user`` NOT NULL sin fallback a un usuario de
+         sesión implícito).
+       - **Estado reactivo/ubicación/UI — 28** (``_compute_location_id``,
+         ``_compute_scheduled_date``,
          ``scheduled_date``, ``_set_scheduled_date``,
          ``has_deadline_issue`` + ``_compute_has_deadline_issue`` — lee
          ``scheduled_date``, que está en este mismo grupo —,
-         ``_onchange_picking_type``, ``_onchange_location_id``,
          ``signature``, ``is_signed`` + ``_compute_is_signed``,
          ``_attach_sign``, ``json_popover`` + ``_compute_json_popover``,
          ``show_lots_text`` + ``_compute_show_lots_text``,
@@ -1140,7 +1160,13 @@ class StockPicking(MailThread, MailActivityMixin, TimeStampedModel):
          ``_compute_shipping_weight``, ``shipping_volume`` +
          ``_compute_shipping_volume``, ``partner_country_id``,
          ``picking_properties``): quedan para el bloque de reservas/UI de la
-         tarea #330, tercer pase.
+         tarea #330. **``_compute_state``, ``_onchange_picking_type`` y
+         ``_onchange_location_id`` salieron de este grupo en tarea #521**
+         (H-API-692) — ``StockMove._get_relevant_state_among_moves``,
+         ``_get_upstream_documents_and_responsibles``, ``procure_method``,
+         ``location_dest_usage`` y ``should_bypass_reservation()`` ya
+         existían en ``stock_move.py``/``stock_location.py``; no hacía
+         falta editarlos, sólo leerlos.
 
        ``_compute_move_type`` (ya cubierto por ``save()``, primer pase) y
        ``_default_picking_type_id`` (divergencia ya declarada — ``picking_type``
@@ -1817,3 +1843,393 @@ class StockPicking(MailThread, MailActivityMixin, TimeStampedModel):
         for move in self.move_ids.all():
             move._action_cancel()
         return self
+
+    # -- tarea #521 — grupos C (mensajería) y E (estado reactivo/UI) --
+    #
+    # Cierra parte de los grupos que ``docstring`` (arriba) etiquetaba
+    # "Backorder/wizard — 10" y "Sanity/reserva/reporte de cierre — 22" (el
+    # primero es Grupo C de H-API-685; el segundo mezclaba Grupo C y Grupo E)
+    # y "Estado reactivo/ubicación/UI — 31" (Grupo E). Divergencia frente a
+    # ese bloqueo, declarada aquí y en el hallazgo H-API-692: los símbolos de
+    # abajo NO reescriben ``_action_done`` ni tocan la máquina de reservas —
+    # son independientes de ella, y su razón de bloqueo original ("reescriben
+    # _action_done... arriesga contradecir stock_move.py") no les aplica
+    # símbolo a símbolo. ``_action_done`` en sí, ``do_unreserve``,
+    # ``_sanity_check``, ``action_split_transfer``, ``_pre_action_done_hook``,
+    # ``button_scrap``, ``action_see_move_scrap``, ``action_picking_move_tree``,
+    # ``_can_return``, ``action_see_returns``, ``_is_to_external_location`` y
+    # todo el clúster de backorder (``_check_backorder``,
+    # ``_autoconfirm_picking``, ``_get_moves_to_backorder``,
+    # ``_create_backorder_picking``, ``_create_backorder``,
+    # ``_action_generate_backorder_wizard``, ``_should_show_transfers``,
+    # ``_should_ignore_backorders``, ``_get_without_quantities_error_message``)
+    # SIGUEN bloqueados — el primer bloque porque de verdad exige la máquina
+    # de reservas completa de ``stock_move.py``; el segundo porque exige el
+    # modelo wizard ``stock.backorder.confirmation``, que no existe en este
+    # árbol. Ver H-API-692.
+
+    def _compute_state(self):
+        """≙ ``_compute_state`` (``odoo19c: :816-848``).
+
+        Deriva el estado del albarán a partir del de sus movimientos y lo
+        persiste. Método de RE-derivación explícita — no sustituye las
+        asignaciones directas de ``action_confirm``/``action_assign``/
+        ``button_validate``/``action_cancel`` (D-8 ya declaró esa forma);
+        sirve para resincronizar el estado tras un cambio externo a los
+        movimientos (p. ej. tras un ``_onchange_location_id`` o una edición
+        en bloque de ``move_ids``).
+
+        **Divergencia declarada:** el vocabulario de estados de la
+        referencia distingue más matices de "esperando"/"parcial" de los
+        que este ``STATE_CHOICES`` (6 valores) separa; se colapsan al valor
+        más cercano, igual que ``StockMove._get_relevant_state_among_moves``
+        ya hace para ``assigned``.
+        """
+        stock_move = apps.get_model('stock', 'StockMove')
+        moves = list(self.move_ids.all())
+        if not moves or any(m.state == stock_move.STATE_DRAFT for m in moves):
+            nuevo_estado = self.STATE_DRAFT
+        elif all(m.state == stock_move.STATE_CANCEL for m in moves):
+            nuevo_estado = self.STATE_CANCEL
+        elif all(m.state in (stock_move.STATE_CANCEL, stock_move.STATE_DONE)
+                 for m in moves):
+            hechos = [m for m in moves if m.state == stock_move.STATE_DONE]
+            todo_hecho_es_merma = all(
+                m.location_dest_usage == USAGE_INVENTORY for m in hechos)
+            algun_cancelado_no_merma = any(
+                m.state == stock_move.STATE_CANCEL
+                and m.location_dest_usage != USAGE_INVENTORY
+                for m in moves)
+            if todo_hecho_es_merma and algun_cancelado_no_merma:
+                nuevo_estado = self.STATE_CANCEL
+            else:
+                nuevo_estado = self.STATE_DONE
+        elif (self.location is not None
+                and self.location.should_bypass_reservation()
+                and all(m.procure_method == stock_move.PROCURE_MAKE_TO_STOCK
+                        for m in moves)):
+            nuevo_estado = self.STATE_ASSIGNED
+        else:
+            relevante = moves[0]._get_relevant_state_among_moves(moves)
+            nuevo_estado = (
+                self.STATE_ASSIGNED if relevante == 'partially_available'
+                else relevante)
+        self.state = nuevo_estado
+        self.save(update_fields=['state', 'updated_at'])
+        return nuevo_estado
+
+    def _onchange_picking_type(self):
+        """≙ ``_onchange_picking_type`` (``odoo19c: :1093-1099``).
+
+        Sólo en borrador: al fijar/cambiar el tipo de operación, sus
+        movimientos existentes se realinean al mismo tipo y empresa — evita
+        que un albarán en edición arrastre movimientos de un tipo distinto.
+        """
+        if self.picking_type is None or self.state != self.STATE_DRAFT:
+            return
+        stock_move = apps.get_model('stock', 'StockMove')
+        stock_move.objects.filter(picking=self).exclude(
+            picking_type=self.picking_type,
+        ).update(picking_type=self.picking_type)
+        stock_move.objects.filter(picking=self).exclude(
+            company=self.company,
+        ).update(company=self.company)
+
+    def _onchange_location_id(self):
+        """≙ ``_onchange_location_id`` (``odoo19c: :1101-1113``).
+
+        Propaga la nueva ubicación origen a los movimientos del albarán, y
+        avisa si alguno de los movimientos encadenados (``move_orig_ids``)
+        tiene una línea reservada fuera del nuevo árbol de ubicaciones — la
+        reserva se perdería al guardar.
+        """
+        stock_move = apps.get_model('stock', 'StockMove')
+        stock_move.objects.filter(picking=self).update(location=self.location)
+        for move in self.move_ids.all():
+            if not move.move_orig_ids.exists():
+                continue
+            for ml in move.move_line_ids.all():
+                if ml.location is None or not ml.location.parent_path:
+                    continue
+                ruta = [int(x) for x in ml.location.parent_path.split('/') if x]
+                if self.location is not None and self.location.pk not in ruta:
+                    return {
+                        'warning': {
+                            'title': _('Aviso: cambio de ubicación origen'),
+                            'message': _(
+                                'Actualizar la ubicación de esta '
+                                'transferencia liberará la reserva actual. '
+                                'Se intentará reservar en la nueva ubicación '
+                                'y el enlace con transferencias previas se '
+                                'perderá.\n\nPara evitarlo, descarta el '
+                                'cambio antes de guardar.'),
+                        }
+                    }
+        return None
+
+    def action_detailed_operations(self):
+        """≙ ``action_detailed_operations`` (``odoo19c: :1217-1236``).
+
+        **Divergencia declarada:** sin registro de vistas (``self.env.ref``
+        de una vista XML), el descriptor de acción se arma directo — mismo
+        contrato de dominio y contexto que la referencia, sin ``view_id``.
+        ``show_lots_text`` no entra en el contexto: depende de
+        ``_compute_show_lots_text``, que sigue BLOQUEADO (Grupo D).
+        """
+        return {
+            'name': _('Operaciones detalladas'),
+            'view_mode': 'list',
+            'type': 'ir.actions.act_window',
+            'res_model': 'stock.move.line',
+            'domain': [('picking', '=', self.pk)],
+            'context': {
+                'sml_specific_default': True,
+                'default_picking': self.pk,
+                'default_location': self.location_id,
+                'default_location_dest': self.location_dest_id,
+                'default_company': self.company_id,
+                'picking_code': self.picking_type_code,
+                'create': self.state not in (self.STATE_DONE, self.STATE_CANCEL),
+            },
+        }
+
+    def action_next_transfer(self):
+        """≙ ``action_next_transfer`` (``odoo19c: :1238-1256``)."""
+        siguientes_ids = list(
+            self._get_next_transfers().values_list('pk', flat=True))
+        if len(siguientes_ids) == 1:
+            return {
+                'type': 'ir.actions.act_window',
+                'res_model': 'stock.picking',
+                'views': [[False, 'form']],
+                'res_id': siguientes_ids[0],
+            }
+        return {
+            'name': _('Siguientes transferencias'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'stock.picking',
+            'views': [[False, 'list'], [False, 'form']],
+            'domain': [('id', 'in', siguientes_ids)],
+        }
+
+    def get_empty_list_help(self, help_message=''):
+        """≙ ``get_empty_list_help`` (``odoo19c: :1079-1084``).
+
+        **Divergencia declarada:** sin motor QWeb (``ir.ui.view.
+        _render_template`` no existe en este stack — ver ``ir_qweb.py``), el
+        mensaje se arma como texto plano equivalente por tipo de operación.
+        """
+        if help_message:
+            return help_message
+        code = self.picking_type_code
+        if code == 'incoming':
+            return _('Registra una recepción de mercancía.')
+        if code == 'outgoing':
+            return _('Registra una entrega al cliente.')
+        if code == 'internal':
+            return _('Registra un movimiento interno de mercancía.')
+        return ''
+
+    def action_toggle_is_locked(self):
+        """≙ ``action_toggle_is_locked`` (``odoo19c: :1529-1532``)."""
+        self.is_locked = not self.is_locked
+        self.save(update_fields=['is_locked', 'updated_at'])
+        return True
+
+    def _add_reference(self, reference=False):
+        """≙ ``_add_reference`` (``odoo19c: :2118-2121``).
+
+        Enlaza cada referencia de ``reference`` a TODOS los movimientos del
+        albarán — ``move.reference_ids`` es el M2M real declarado en
+        ``stock_reference.py``.
+        """
+        if not reference:
+            return
+        for move in self.move_ids.all():
+            move.reference_ids.add(*reference)
+
+    def _remove_reference(self, reference):
+        """≙ ``_remove_reference`` (``odoo19c: :2124-2127``)."""
+        if not reference:
+            return
+        for move in self.move_ids.all():
+            move.reference_ids.remove(*reference)
+
+    def _get_impacted_pickings(self, moves):
+        """≙ ``_get_impacted_pickings`` (``odoo19c: :1738-1760``).
+
+        Recorre ``move_dest_ids`` en cascada desde ``moves`` y devuelve los
+        albaranes de cada movimiento visitado (directo e indirecto) — lo usa
+        ``_log_less_quantities_than_expected`` para avisar de un cambio de
+        cantidad en cadena.
+        """
+        stock_picking = apps.get_model('stock', 'StockPicking')
+        visitados = set()
+        to_explore = list(moves)
+        impactados_ids = set()
+        while to_explore:
+            move = to_explore.pop()
+            if move.pk in visitados:
+                continue
+            visitados.add(move.pk)
+            if move.picking_id is not None:
+                impactados_ids.add(move.picking_id)
+            to_explore.extend(move.move_dest_ids.all())
+        if not impactados_ids:
+            return stock_picking.objects.none()
+        return stock_picking.objects.filter(pk__in=impactados_ids)
+
+    def _log_activity_get_documents(
+            self, orig_obj_changes, stream_field, stream,
+            groupby_method=False):
+        """≙ ``_log_activity_get_documents`` (``odoo19c: :1605-1673``).
+
+        Agrupa los movimientos alcanzables desde ``orig_obj_changes`` (por
+        ``stream_field``, en el sentido ``stream``) en pares
+        (documento, responsable) → contexto de renderizado, para que
+        ``_log_activity`` publique una nota por grupo.
+
+        **Divergencia declarada:** el flujo ``'UP'`` depende de
+        ``StockMove._get_upstream_documents_and_responsibles``, que en este
+        árbol todavía no agrega ningún par (documento, responsable) —
+        devuelve siempre conjunto vacío (mecanismo preexistente, no se toca
+        aquí; ver el propio docstring de ese método). El flujo ``'UP'`` por
+        tanto queda funcionalmente inerte (no publica nada) hasta que esa
+        pieza se complete; no lanza error.
+        """
+        if not orig_obj_changes:
+            return {}
+        move_to_orig = {}
+        for orig_obj in orig_obj_changes:
+            for move in getattr(orig_obj, stream_field).all():
+                move_to_orig.setdefault(move.pk, []).append(orig_obj)
+
+        grouped = {}
+        if stream == 'DOWN':
+            if not groupby_method:
+                raise ValueError(
+                    'Hace falta un groupby_method para el flujo DOWN.')
+            for orig_obj in orig_obj_changes:
+                for move in getattr(orig_obj, stream_field).all():
+                    grouped.setdefault(groupby_method(move), []).append(move)
+        elif stream == 'UP':
+            for orig_obj in orig_obj_changes:
+                for move in getattr(orig_obj, stream_field).all():
+                    for documento, responsable in (
+                            move._get_upstream_documents_and_responsibles()):
+                        grouped.setdefault(
+                            (documento, responsable), []).append(move)
+        else:
+            raise ValueError('Flujo desconocido: %r' % stream)
+
+        documentos = {}
+        for clave, moves in grouped.items():
+            parent, responsable = clave
+            if not parent:
+                continue
+            rendering_context = {
+                move: (orig_obj, orig_obj_changes[orig_obj])
+                for move in moves
+                for orig_obj in move_to_orig.get(move.pk, [])
+            }
+            documentos[(parent, responsable)] = rendering_context
+        return documentos
+
+    def _log_activity(self, render_method, documents):
+        """≙ ``_log_activity`` (``odoo19c: :1675-1701``).
+
+        Publica una actividad por (documento, responsable) en ``documents``,
+        con la nota que ``render_method`` construye a partir de su contexto.
+
+        **Divergencia declarada (dos):**
+
+        1. Sin mecanismo ``sudo()`` en este stack (no hay elevación de
+           privilegios portada), la actividad se planifica con los permisos
+           del llamador.
+        2. ``mail.activity.user`` es ``NOT NULL`` en este esquema y
+           ``MailActivityMixin.activity_schedule`` (``addons/mail/models/
+           mail_activity_mixin.py``, fuera de lo escribible de este pase) no
+           cae a ``env.user`` cuando ``user`` llega ``None`` — a diferencia
+           de la referencia (``user_id or self.env.user.id``), porque este
+           stack no tiene un usuario de sesión implícito. Un par
+           ``(documento, responsable=None)`` se omite en vez de fallar con
+           ``IntegrityError``; se documenta como pendiente aguas arriba, no
+           se silencia.
+        """
+        for (parent, responsable), rendering_context in documents.items():
+            if responsable is None:
+                continue
+            nota = render_method(rendering_context)
+            parent.activity_schedule(
+                'mail.mail_activity_data_warning',
+                date_deadline=datetime.date.today(),
+                note=nota,
+                user=responsable,
+            )
+
+    def _log_less_quantities_than_expected(self, moves):
+        """≙ ``_log_less_quantities_than_expected`` (``odoo19c: :1703-1735``).
+
+        Publica una actividad de aviso sobre el albarán que sigue a los
+        movimientos cuya cantidad reservada bajó — ``moves`` es un dict
+        ``{movimiento: (cantidad_nueva, cantidad_vieja)}``.
+
+        **Divergencia declarada:** el render QWeb de la referencia
+        (plantilla ``stock.exception_on_picking``) no existe en este stack
+        (sin compilador QWeb activo — ver ``ir_qweb.py``); la nota se arma
+        como texto plano equivalente.
+        """
+        def keys_in_groupby(move):
+            responsable = move.picking.user if move.picking is not None else None
+            return (move.picking, responsable)
+
+        def render_note(rendering_context):
+            origin_moves = [orig for (orig, _cambio) in rendering_context.values()]
+            origin_pickings = {
+                m.picking for m in origin_moves if m.picking is not None}
+            move_dest_ids = list(rendering_context.keys())
+            destinos_pickings = {
+                m.picking for m in move_dest_ids if m.picking is not None}
+            impactados = set(
+                self._get_impacted_pickings(move_dest_ids)) - destinos_pickings
+            lineas = [
+                _('La cantidad reservada de %(origen)s bajó a '
+                  '%(nueva)s (esperada: %(vieja)s).') % {
+                    'origen': orig, 'nueva': nuevo, 'vieja': viejo}
+                for orig in origin_pickings
+                for (nuevo, viejo) in [
+                    rendering_context[m][1] for m in rendering_context
+                    if rendering_context[m][0].picking == orig][:1]
+            ]
+            if impactados:
+                lineas.append(_('Albaranes impactados: %s') % ', '.join(
+                    str(p) for p in impactados))
+            return '\n'.join(lineas)
+
+        documents = self._log_activity_get_documents(
+            moves, 'move_dest_ids', 'DOWN', keys_in_groupby)
+        documents = self._less_quantities_than_expected_add_documents(
+            moves, documents)
+        self._log_activity(render_note, documents)
+
+    def _less_quantities_than_expected_add_documents(self, moves, documents):
+        """≙ ``_less_quantities_than_expected_add_documents``
+        (``odoo19c: :1735-1736``) — pass-through; puntos de extensión de
+        otros addons (venta, compra) que no viven en este árbol.
+        """
+        return documents
+
+    def _send_confirmation_email(self):
+        """≙ ``_send_confirmation_email`` (``odoo19c: :1283-1291``).
+
+        Publica un mensaje de confirmación en el hilo del albarán, usando la
+        plantilla de la empresa, cuando ``stock_move_email_validation`` está
+        activo y el tipo de operación es de salida.
+        """
+        if self.company is None or not self.company.stock_move_email_validation:
+            return
+        if self.picking_type is None or self.picking_type.code != 'outgoing':
+            return
+        template = self.company.stock_mail_confirmation_template
+        if template is not None:
+            self.message_post_with_template(template)

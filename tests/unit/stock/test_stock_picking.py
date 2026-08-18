@@ -1,25 +1,36 @@
-"""Contrato de ``stock.picking`` — segundo pase de la tarea **#330**.
+"""Contrato de ``stock.picking`` — segundo y tercer pase de la tarea **#330**
+(tercero: **#521**, grupos C/E de :ref:`h-api-685`).
 
 Fiel a ``odoo19c: addons/stock/models/stock_picking.py:538-2149``
 (``odoo-tools@622ddc2a``, LGPL-3). Cada caso cita la línea de la referencia
-que fija la regla. Cubre el bloque portado en este pase — ciclo de vida
+que fija la regla. Cubre el bloque portado en el segundo pase — ciclo de vida
 (``create``/``write``/``unlink``), campos estructurales, sus computados de
-sólo lectura, y las dos funciones de categorización de fecha. El resto
-(paquetes, backorder-wizard, reservas/estado) queda declarado BLOQUEADO en el
-docstring de ``StockPicking`` y en :ref:`h-api-685`.
+sólo lectura, y las dos funciones de categorización de fecha — y el bloque
+del tercer pase: estado reactivo/UI (``_compute_state``,
+``_onchange_picking_type``, ``_onchange_location_id``,
+``action_detailed_operations``, ``action_next_transfer``,
+``get_empty_list_help``, ``action_toggle_is_locked``) y mensajería
+(``_add_reference``, ``_remove_reference``, ``_get_impacted_pickings``,
+``_log_activity_get_documents``, ``_log_activity``,
+``_log_less_quantities_than_expected``, ``_send_confirmation_email``). El
+resto (paquetes, backorder-wizard, la máquina de reservas de
+``_action_done``) queda declarado BLOQUEADO — ver :ref:`h-api-685` y
+:ref:`h-api-692`.
 """
 from decimal import Decimal
 
 import pytest
 from django.utils import timezone
 
-from addons.base.models import IrSequence, ResCompany, ResPartner
+from addons.base.models import IrSequence, ResCompany, ResPartner, ResUsers
+from addons.mail.models import MailActivity, MailMessage, MailTemplate
 from addons.product.models import ProductProduct, ProductTemplate
 from addons.stock.models import (
     StockLocation,
     StockMove,
     StockPicking,
     StockPickingType,
+    StockReference,
 )
 from exceptions import UserError
 
@@ -445,3 +456,387 @@ def test_unlink_refuses_when_a_done_move_is_chained(
 
     with pytest.raises(UserError):
         picking.delete()
+
+
+# -- tarea #521 — Grupo E: estado reactivo / UI ----------------------------
+
+def test_compute_state_draft_when_any_move_is_draft(
+        picking_type, company, source, destination, variant):
+    """``odoo19c: :843-844`` — cualquier movimiento ``draft`` fuerza el
+    albarán entero a ``draft``."""
+    picking = StockPicking.objects.create(picking_type=picking_type, company=company)
+    _move(picking, variant, source, destination, company, state='confirmed')
+    _move(picking, variant, source, destination, company, state='draft')
+
+    assert picking._compute_state() == StockPicking.STATE_DRAFT
+    picking.refresh_from_db()
+    assert picking.state == StockPicking.STATE_DRAFT
+
+
+def test_compute_state_cancel_when_all_moves_cancel(
+        picking_type, company, source, destination, variant):
+    """``odoo19c: :845-846``."""
+    picking = StockPicking.objects.create(picking_type=picking_type, company=company)
+    _move(picking, variant, source, destination, company, state='cancel')
+    _move(picking, variant, source, destination, company, state='cancel')
+
+    assert picking._compute_state() == StockPicking.STATE_CANCEL
+
+
+def test_compute_state_done_when_all_moves_done_and_not_scrapped(
+        picking_type, company, source, destination, variant):
+    """``odoo19c: :847-853`` — ``done``+``cancel`` con destino que NO es
+    merma → ``done``."""
+    picking = StockPicking.objects.create(picking_type=picking_type, company=company)
+    _move(picking, variant, source, destination, company, state='done')
+    _move(picking, variant, source, destination, company, state='cancel')
+
+    assert picking._compute_state() == StockPicking.STATE_DONE
+
+
+def test_compute_state_cancel_when_done_moves_are_all_scrapped(
+        picking_type, company, source, inventory_loss, variant):
+    """``odoo19c: :849-853`` — todo lo ``done`` es merma y hay un
+    ``cancel`` no-merma → el conjunto se lee como ``cancel``, no ``done``."""
+    picking = StockPicking.objects.create(picking_type=picking_type, company=company)
+    other_dest = StockLocation.objects.create(name='Customers2', usage='customer')
+    _move(picking, variant, source, inventory_loss, company, state='done')
+    _move(picking, variant, source, other_dest, company, state='cancel')
+
+    assert picking._compute_state() == StockPicking.STATE_CANCEL
+
+
+def test_compute_state_assigned_via_bypass_reservation(
+        picking_type, company, destination, variant):
+    """``odoo19c: :857-858`` — origen que ``should_bypass_reservation()`` +
+    todos los movimientos ``make_to_stock`` → ``assigned`` directo."""
+    supplier = StockLocation.objects.create(name='Suppliers', usage='supplier')
+    picking = StockPicking.objects.create(
+        picking_type=picking_type, company=company, location=supplier,
+        location_dest=destination)
+    _move(picking, variant, supplier, destination, company,
+          state='confirmed', procure_method='make_to_stock')
+
+    assert picking._compute_state() == StockPicking.STATE_ASSIGNED
+
+
+def test_compute_state_falls_back_to_relevant_move_state(
+        picking_type, company, source, destination, variant):
+    """``odoo19c: :859-864`` — sin bypass, delega en
+    ``StockMove._get_relevant_state_among_moves``; un único movimiento
+    ``assigned`` con cantidad hace que el albarán quede ``assigned``."""
+    picking = StockPicking.objects.create(picking_type=picking_type, company=company)
+    _move(picking, variant, source, destination, company, state='assigned')
+
+    assert picking._compute_state() == StockPicking.STATE_ASSIGNED
+
+
+def test_onchange_picking_type_realigns_draft_moves(
+        picking_type, company, source, destination, variant):
+    """``odoo19c: :1093-1099`` — sólo en ``draft`` propaga ptype y empresa a
+    los movimientos existentes."""
+    other_type = StockPickingType.objects.create(
+        name='Recepción', code='incoming', sequence_code='IN', company=company)
+    picking = StockPicking.objects.create(
+        picking_type=other_type, company=company, state=StockPicking.STATE_DRAFT)
+    move = _move(picking, variant, source, destination, company, state='draft')
+
+    picking.picking_type = picking_type
+    picking._onchange_picking_type()
+
+    move.refresh_from_db()
+    assert move.picking_type_id == picking_type.pk
+
+
+def test_onchange_picking_type_noop_when_not_draft(
+        picking_type, company, source, destination, variant):
+    """``odoo19c: :1094`` — fuera de ``draft`` no toca los movimientos."""
+    other_type = StockPickingType.objects.create(
+        name='Recepción 2', code='incoming', sequence_code='IN2', company=company)
+    picking = StockPicking.objects.create(
+        picking_type=other_type, company=company, state=StockPicking.STATE_ASSIGNED)
+    # El tipo se fija a mano a propósito: en la referencia lo pondría
+    # ``StockMove._compute_picking_type_id`` (``odoo19c: stock_move.py:299-302``,
+    # ``compute=`` con ``store=True``), que aquí NO está portado —
+    # ``picking_type`` es una FK plana y nace en ``None``. Sin este valor
+    # explícito el test mediría esa ausencia, no la ausencia de propagación
+    # que su nombre declara. Sucesor: tarea **#527**.
+    move = _move(picking, variant, source, destination, company,
+                 state='assigned', picking_type=other_type)
+
+    picking.picking_type = picking_type
+    picking._onchange_picking_type()
+
+    move.refresh_from_db()
+    assert move.picking_type_id == other_type.pk
+
+
+def test_onchange_location_id_propagates_to_moves(
+        picking_type, company, source, destination, variant):
+    """``odoo19c: :1102``."""
+    picking = StockPicking.objects.create(
+        picking_type=picking_type, company=company, location=source,
+        location_dest=destination)
+    move = _move(picking, variant, source, destination, company, state='confirmed')
+    new_source = StockLocation.objects.create(name='NuevaOrigen521', usage='internal')
+
+    picking.location = new_source
+    result = picking._onchange_location_id()
+
+    move.refresh_from_db()
+    assert move.location_id == new_source.pk
+    assert result is None
+
+
+def test_onchange_location_id_warns_when_chained_reservation_breaks(
+        picking_type, company, source, destination, variant):
+    """``odoo19c: :1104-1113`` — un movimiento encadenado con línea
+    reservada fuera del nuevo árbol produce el dict de aviso."""
+    picking = StockPicking.objects.create(
+        picking_type=picking_type, company=company, location=source,
+        location_dest=destination)
+    origin_move = _move(picking, variant, source, destination, company, state='done')
+    chained = _move(picking, variant, source, destination, company, state='confirmed')
+    chained.move_orig_ids.add(origin_move)
+    other_branch = StockLocation.objects.create(name='OtraRama521', usage='internal')
+    chained.move_line_ids.create(
+        picking=picking, product=variant, location=other_branch,
+        location_dest=destination, company=company,
+        product_uom=variant.product_tmpl.uom, quantity=Decimal('1'))
+
+    picking.location = StockLocation.objects.create(
+        name='DistintaRama521', usage='internal')
+    result = picking._onchange_location_id()
+
+    assert result is not None
+    assert 'warning' in result
+
+
+def test_action_detailed_operations_returns_navigation_dict(
+        picking_type, company, source, destination):
+    """``odoo19c: :1217-1236`` — descriptor de acción con dominio y
+    contexto por el albarán."""
+    picking = StockPicking.objects.create(
+        picking_type=picking_type, company=company, location=source,
+        location_dest=destination)
+
+    action = picking.action_detailed_operations()
+
+    assert action['res_model'] == 'stock.move.line'
+    assert action['domain'] == [('picking', '=', picking.pk)]
+    assert action['context']['default_picking'] == picking.pk
+    assert action['context']['picking_code'] == 'outgoing'
+
+
+def test_action_next_transfer_single_result(
+        picking_type, company, source, destination, variant):
+    """``odoo19c: :1240-1247`` — un único siguiente → acción de formulario."""
+    picking = StockPicking.objects.create(picking_type=picking_type, company=company)
+    move = _move(picking, variant, source, destination, company, state='confirmed')
+    siguiente_picking = StockPicking.objects.create(
+        picking_type=picking_type, company=company)
+    siguiente_move = _move(
+        siguiente_picking, variant, destination, source, company, state='confirmed')
+    move.move_dest_ids.add(siguiente_move)
+
+    action = picking.action_next_transfer()
+
+    assert action['views'] == [[False, 'form']]
+    assert action['res_id'] == siguiente_picking.pk
+
+
+def test_action_next_transfer_multiple_results(
+        picking_type, company, source, destination, variant):
+    """``odoo19c: :1248-1255`` — más de uno → acción de lista."""
+    picking = StockPicking.objects.create(picking_type=picking_type, company=company)
+    move = _move(picking, variant, source, destination, company, state='confirmed')
+    for label in ('A521', 'B521'):
+        siguiente_picking = StockPicking.objects.create(
+            picking_type=picking_type, company=company, name=label)
+        siguiente_move = _move(
+            siguiente_picking, variant, destination, source, company,
+            state='confirmed')
+        move.move_dest_ids.add(siguiente_move)
+
+    action = picking.action_next_transfer()
+
+    assert action['views'] == [[False, 'list'], [False, 'form']]
+    assert len(action['domain'][0][2]) == 2
+
+
+@pytest.mark.parametrize('code,snippet', [
+    ('incoming', 'recepción'),
+    ('outgoing', 'entrega'),
+    ('internal', 'movimiento interno'),
+])
+def test_get_empty_list_help_by_picking_type_code(
+        company, code, snippet):
+    """``odoo19c: :1079-1084`` — divergencia declarada: texto plano por
+    ``picking_type_code``, sin motor QWeb."""
+    ptype = StockPickingType.objects.create(
+        name='Tipo %s' % code, code=code, sequence_code=code.upper(), company=company)
+    picking = StockPicking.objects.create(picking_type=ptype, company=company)
+
+    assert snippet in picking.get_empty_list_help().lower()
+
+
+def test_get_empty_list_help_respects_explicit_message(picking_type, company):
+    picking = StockPicking.objects.create(picking_type=picking_type, company=company)
+    assert picking.get_empty_list_help('message explícito') == 'message explícito'
+
+
+def test_action_toggle_is_locked_flips_the_flag(picking_type, company):
+    """``odoo19c: :1529-1532``."""
+    picking = StockPicking.objects.create(
+        picking_type=picking_type, company=company, is_locked=True)
+
+    assert picking.action_toggle_is_locked() is True
+    picking.refresh_from_db()
+    assert picking.is_locked is False
+
+
+# -- tarea #521 — Grupo C: mensajería (reference_obj + actividades) ----------
+
+def test_add_reference_links_to_all_moves(
+        picking_type, company, source, destination, variant):
+    """``odoo19c: :2118-2121``."""
+    picking = StockPicking.objects.create(picking_type=picking_type, company=company)
+    move_a = _move(picking, variant, source, destination, company, state='confirmed')
+    move_b = _move(picking, variant, source, destination, company, state='confirmed')
+    reference_obj = StockReference.objects.create(name='SO521')
+
+    picking._add_reference([reference_obj])
+
+    assert reference_obj in list(move_a.reference_ids.all())
+    assert reference_obj in list(move_b.reference_ids.all())
+
+
+def test_remove_reference_unlinks_from_all_moves(
+        picking_type, company, source, destination, variant):
+    """``odoo19c: :2124-2127``."""
+    picking = StockPicking.objects.create(picking_type=picking_type, company=company)
+    move = _move(picking, variant, source, destination, company, state='confirmed')
+    reference_obj = StockReference.objects.create(name='SO522')
+    move.reference_ids.add(reference_obj)
+
+    picking._remove_reference([reference_obj])
+
+    assert reference_obj not in list(move.reference_ids.all())
+
+
+def test_get_impacted_pickings_follows_move_dest_chain(
+        picking_type, company, source, destination, variant):
+    """``odoo19c: :1738-1760`` — recorre ``move_dest_ids`` en cascada y
+    devuelve los albaranes de cada movimiento visitado, directo e
+    indirecto."""
+    origin_picking = StockPicking.objects.create(
+        picking_type=picking_type, company=company)
+    origin_move = _move(
+        origin_picking, variant, source, destination, company, state='done')
+
+    mid_picking = StockPicking.objects.create(
+        picking_type=picking_type, company=company)
+    mid_move = _move(
+        mid_picking, variant, destination, source, company, state='confirmed')
+    origin_move.move_dest_ids.add(mid_move)
+
+    final_picking = StockPicking.objects.create(
+        picking_type=picking_type, company=company)
+    final_move = _move(
+        final_picking, variant, source, destination, company, state='confirmed')
+    mid_move.move_dest_ids.add(final_move)
+
+    impactados = origin_picking._get_impacted_pickings([origin_move])
+
+    ids = set(impactados.values_list('pk', flat=True))
+    assert ids == {origin_picking.pk, mid_picking.pk, final_picking.pk}
+
+
+def test_log_activity_schedules_one_activity_per_document(
+        picking_type, company):
+    """``odoo19c: :1675-1701``."""
+    picking = StockPicking.objects.create(picking_type=picking_type, company=company)
+    partner = ResPartner.objects.create(name='Responsable521')
+    responsible = ResUsers.objects.create(
+        partner=partner, login='responsable521@test', password='x')
+    documents = {(picking, responsible): {'x': 1}}
+
+    picking._log_activity(lambda ctx: 'nota de prueba 521', documents)
+
+    activity = MailActivity.objects.filter(
+        res_model='stock.picking', res_id=picking.pk).first()
+    assert activity is not None
+    assert activity.note == 'nota de prueba 521'
+    assert activity.user_id == responsible.pk
+
+
+def test_log_activity_skips_a_pair_without_a_responsible(picking_type, company):
+    """Divergencia declarada: ``mail.activity.user`` es ``NOT NULL`` y este
+    stack no cae a un usuario de sesión implícito — el par se omite en vez
+    de reventar con ``IntegrityError``."""
+    picking = StockPicking.objects.create(picking_type=picking_type, company=company)
+    documents = {(picking, None): {'x': 1}}
+
+    picking._log_activity(lambda ctx: 'nota de prueba 521', documents)
+
+    assert not MailActivity.objects.filter(
+        res_model='stock.picking', res_id=picking.pk).exists()
+
+
+def test_log_less_quantities_than_expected_posts_activity_with_note(
+        picking_type, company, source, destination, variant):
+    """``odoo19c: :1703-1735`` — divergencia declarada: nota en texto plano,
+    sin plantilla QWeb."""
+    orig_picking = StockPicking.objects.create(
+        picking_type=picking_type, company=company)
+    orig_move = _move(
+        orig_picking, variant, source, destination, company, state='confirmed',
+        product_uom_qty=Decimal('10'))
+
+    partner = ResPartner.objects.create(name='Responsable522')
+    responsible = ResUsers.objects.create(
+        partner=partner, login='responsable522@test', password='x')
+    dest_picking = StockPicking.objects.create(
+        picking_type=picking_type, company=company, user=responsible)
+    dest_move = _move(
+        dest_picking, variant, destination, source, company, state='confirmed')
+    orig_move.move_dest_ids.add(dest_move)
+
+    orig_picking._log_less_quantities_than_expected(
+        {orig_move: (Decimal('4'), Decimal('10'))})
+
+    activity = MailActivity.objects.filter(
+        res_model='stock.picking', res_id=dest_picking.pk).first()
+    assert activity is not None
+    assert '4' in activity.note and '10' in activity.note
+
+
+def test_send_confirmation_email_posts_when_enabled_and_outgoing(
+        picking_type, company):
+    """``odoo19c: :1283-1291``."""
+    company.stock_move_email_validation = True
+    template = MailTemplate.objects.create(
+        name='Confirmación 521', subject='Tu pedido salió',
+        body_html='<p>Gracias por tu compra.</p>')
+    company.stock_mail_confirmation_template = template
+    company.save(update_fields=[
+        'stock_move_email_validation', 'stock_mail_confirmation_template',
+        'updated_at'])
+    picking = StockPicking.objects.create(picking_type=picking_type, company=company)
+
+    picking._send_confirmation_email()
+
+    message = MailMessage.objects.filter(
+        model='stock.picking', res_id=picking.pk).first()
+    assert message is not None
+    assert message.subject == 'Tu pedido salió'
+
+
+def test_send_confirmation_email_noop_when_disabled(picking_type, company):
+    """``odoo19c: :1284`` — sin ``stock_move_email_validation`` no publica."""
+    picking = StockPicking.objects.create(picking_type=picking_type, company=company)
+
+    picking._send_confirmation_email()
+
+    assert not MailMessage.objects.filter(
+        model='stock.picking', res_id=picking.pk).exists()

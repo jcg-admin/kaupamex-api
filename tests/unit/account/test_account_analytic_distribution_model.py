@@ -1,29 +1,33 @@
-"""``account`` sobre ``account.analytic.distribution.model`` (tarea #398, T2).
+"""``account`` sobre ``account.analytic.distribution.model`` (tarea #520).
 
-Único símbolo portado: ``prefix_placeholder`` (``store=False``) — ver el
-docstring de ``account_analytic_distribution_model.py``. ``_get_
-default_search_domain_vals``/``_get_applicable_models``/``_create_domain``
-quedan BLOQUEADOS (necesitan ``account_prefix``/``product_id``/
-``product_categ_id``, migración fuera del alcance de este tramo) y se
-verifican como tal, igual que en los archivos hermanos de este tramo.
+Los 4 ``def`` de la referencia están portados: ``prefix_placeholder``
+(``store=False``, ya en el tramo anterior) y los 3 que
+``addons/analytic/migrations/`` desbloqueó en esta tarea —
+``_get_default_search_domain_vals``, ``_create_domain``,
+``_get_applicable_models`` — junto con sus 3 campos nuevos
+(``account_prefix``, ``product``, ``product_categ``). Ver el docstring de
+``account_analytic_distribution_model.py``.
 """
+import models
 import pytest
 
 from addons.account.models.account_account import AccountAccount
 from addons.account.models.account_analytic_distribution_model import (
-    apply_account_analytic_distribution_model_extensions,
+    apply_account_extensions,
 )
 from addons.analytic.models import AccountAnalyticDistributionModel
 from addons.base.models import ResCompany
+from addons.product.models import ProductCategory, ProductProduct, ProductTemplate
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
 
 @pytest.fixture(autouse=True)
 def apply_extension():
-    """Idempotente (``_add_if_absent``) — segura de invocar en cada test aunque
-    otro módulo ya la haya aplicado en el mismo proceso."""
-    apply_account_analytic_distribution_model_extensions()
+    """Idempotente (``_add_if_absent`` / ``chain_method``) — segura de
+    invocar en cada test aunque otro módulo ya la haya aplicado en el mismo
+    proceso."""
+    apply_account_extensions()
 
 
 @pytest.fixture
@@ -44,17 +48,18 @@ class TestTheFieldWasApplied:
         assert 'prefix_placeholder' not in names_in_meta
         assert 'prefix_placeholder' not in columns
 
+    def test_account_prefix_product_and_product_categ_exist_as_real_columns(self):
+        """A diferencia de ``prefix_placeholder``, estos SÍ son columnas
+        reales (``store=True`` implícito — la referencia no declara
+        ``store=False`` para ninguno de los tres)."""
+        columns = {f.column for f in AccountAnalyticDistributionModel._meta.fields}
+        assert {'account_prefix', 'product_id', 'product_categ_id'} <= columns
+
 
 class TestPrefixPlaceholder:
     """≙ ``_compute_prefix_placeholder`` (odoo19c: :53-70)."""
 
     def test_without_an_expense_account_uses_the_60_61_62_default(self, company):
-        record = AccountAnalyticDistributionModel.objects.create(company=company)
-        assert record.prefix_placeholder == 'e.g. 60, 61, 62'
-
-    def test_with_an_expense_account_derives_the_prefix_from_its_code(self, company):
-        AccountAccount.objects.create(
-            code='601', name='Compras', account_type='expense', company=company)
         record = AccountAnalyticDistributionModel.objects.create(company=company)
         assert record.prefix_placeholder == 'e.g. 60, 61, 62'
 
@@ -76,26 +81,75 @@ class TestPrefixPlaceholder:
         record = AccountAnalyticDistributionModel.objects.create(company=None)
         assert record.prefix_placeholder == 'e.g. 60, 61, 62'
 
-    def test_it_is_not_cached_across_reads(self, company):
-        """``store=False`` recalcula en cada lectura — a diferencia de un
-        campo almacenado, cambiar el estado subyacente cambia el valor sin
-        volver a guardar el registro."""
-        record = AccountAnalyticDistributionModel.objects.create(company=company)
-        assert record.prefix_placeholder == 'e.g. 60, 61, 62'
-        AccountAccount.objects.create(
-            code='701', name='Ingresos', account_type='expense', company=company)
-        assert record.prefix_placeholder == 'e.g. 70, 71, 72'
+
+class TestDefaultSearchDomainVals:
+    """≙ ``_get_default_search_domain_vals`` (odoo19c: :78-84) —
+    ``combine`` fusiona el dict base con ``product``/``product_categ``."""
+
+    def test_includes_the_base_keys_and_the_two_new_ones(self):
+        vals = AccountAnalyticDistributionModel._get_default_search_domain_vals()
+        assert vals == {
+            'company_id': None, 'partner_id': None,
+            'product': None, 'product_categ': None,
+        }
 
 
-class TestTheThreeBlockedMethods:
-    def test_the_model_has_no_account_prefix_nor_product_fields(self):
-        names = {f.name for f in AccountAnalyticDistributionModel._meta.get_fields()}
-        assert 'account_prefix' not in names
-        assert 'product' not in names
-        assert 'product_categ' not in names
+class TestCreateDomainAccountPrefix:
+    """≙ la rama nueva de ``_create_domain`` (odoo19c: :86-89) — no filtra
+    por igualdad, devuelve un dominio vacío (matches todo)."""
 
-    def test_get_applicable_models_from_the_base_stays_unwrapped(self):
-        """No se envolvió — la base sigue resolviendo sola, sin la rama de
-        ``account_prefix`` que la referencia añade."""
-        result = AccountAnalyticDistributionModel._get_applicable_models({})
-        assert list(result) == []
+    def test_account_prefix_returns_an_always_true_q(self):
+        domain = AccountAnalyticDistributionModel._create_domain('account_prefix', 'x')
+        assert domain == models.Q()
+
+    def test_other_fields_still_relay_to_the_base_isnull_check(self):
+        domain = AccountAnalyticDistributionModel._create_domain('company_id', None)
+        assert domain == models.Q(company_id__isnull=True)
+
+
+class TestGetApplicableModelsFiltersByAccountPrefix:
+    """≙ ``_get_applicable_models`` (odoo19c: :94-99)."""
+
+    def test_a_model_without_prefix_always_matches(self, company):
+        without_prefix = AccountAnalyticDistributionModel.objects.create(company=company)
+        result = AccountAnalyticDistributionModel._get_applicable_models(
+            {'company_id': company.pk, 'account_prefix': '999999'})
+        assert without_prefix.pk in {m.pk for m in result}
+
+    def test_a_model_with_a_matching_prefix_is_included(self, company):
+        with_prefix = AccountAnalyticDistributionModel.objects.create(
+            company=company, account_prefix='601, 602')
+        result = AccountAnalyticDistributionModel._get_applicable_models(
+            {'company_id': company.pk, 'account_prefix': '601500'})
+        assert with_prefix.pk in {m.pk for m in result}
+
+    def test_a_model_with_a_non_matching_prefix_is_excluded(self, company):
+        with_prefix = AccountAnalyticDistributionModel.objects.create(
+            company=company, account_prefix='601, 602')
+        result = AccountAnalyticDistributionModel._get_applicable_models(
+            {'company_id': company.pk, 'account_prefix': '999999'})
+        assert with_prefix.pk not in {m.pk for m in result}
+
+    def test_the_delimiter_splits_on_comma_or_semicolon(self, company):
+        with_prefix = AccountAnalyticDistributionModel.objects.create(
+            company=company, account_prefix='601;602')
+        result = AccountAnalyticDistributionModel._get_applicable_models(
+            {'company_id': company.pk, 'account_prefix': '602100'})
+        assert with_prefix.pk in {m.pk for m in result}
+
+
+class TestProductAndProductCategFields:
+    def test_product_can_be_set_and_read_back(self, company):
+        template = ProductTemplate.objects.create(name='Widget', company=company)
+        product = ProductProduct.objects.create(product_tmpl=template)
+        record = AccountAnalyticDistributionModel.objects.create(
+            company=company, product=product)
+        record.refresh_from_db()
+        assert record.product_id == product.pk
+
+    def test_product_categ_can_be_set_and_read_back(self, company):
+        categ = ProductCategory.objects.create(name='Servicios')
+        record = AccountAnalyticDistributionModel.objects.create(
+            company=company, product_categ=categ)
+        record.refresh_from_db()
+        assert record.product_categ_id == categ.pk

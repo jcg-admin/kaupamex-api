@@ -48,25 +48,37 @@ cliente web propio: no hay consumidor de ese diccionario. Ver el mismo
 criterio ya aplicado a ``on_change_unit_amount``/``view_header_get`` en
 ``account_analytic_line.py`` de este mismo tramo.
 
-Sucesor: tarea PENDIENTE DE ASIGNAR — declarar ``account_move_line.py`` en el
-alcance de un pase, añadir ``analytic_distribution`` (o el enlace explícito
-vía ``account.analytic.line.move_line`` que ``account_analytic_line.py``
-también deja bloqueado por la misma familia de causas), con su migración en
-``addons/account/migrations/``, y entonces recuperar este archivo.
+Tarea #520 — sigue BLOQUEADO, misma causa, ahora con el conector construido
+==============================================================================
+
+``account.analytic.line.move_line`` (el enlace que este docstring pedía) SE
+CONSTRUYÓ en este mismo tramo (``account_analytic_line.py``). No basta: los 4
+símbolos de este archivo dependen de ``AccountMoveLine.analytic_distribution``
+y de ``AccountMove.get_sale_types``/``get_purchase_types`` — ninguno de los
+dos vive en un archivo que este tramo pueda escribir
+(``addons/account/models/account_move.py`` y ``account_move_line.py`` siguen
+fuera de la lista, igual que en el tramo anterior). El bloqueo es real, no
+fabricado por el alcance — ver :ref:`h-docs-194` para la distinción.
+
+Sucesor: tarea PENDIENTE DE ASIGNAR — declarar ``account_move_line.py`` (y,
+para los dos métodos de acción de ventana, evaluar si aplica del todo en una
+API DRF sin cliente web) en el alcance de un pase, añadir
+``analytic_distribution`` con su migración en ``addons/account/migrations/``,
+y entonces recuperar este archivo.
 """
 
 
-def apply_account_analytic_account_extensions():
+def apply_account_extensions():
     """No-op documentado — ninguno de los 4 símbolos de la referencia se porta.
 
     Se conserva la función (en vez de omitir el archivo) por el precedente de
     ``addons/stock/models/barcode.py``: *"un porte bloqueado se declara donde
     la referencia lo declara... un archivo ausente no se distingue de un
-    archivo olvidado"*. Cableada por la MISMA vía que las demás extensiones de
-    ``account`` (``AccountConfig._EXTENSIONES`` + ``ready()``) — pero
-    ``addons/account/apps.py`` **no está en la lista de archivos escribibles
-    de este tramo**, así que el cableado real es también parte del sucesor
-    de arriba. Hasta entonces, invocable a mano (y así se prueba: ver
-    ``tests/unit/account/test_account_analytic_account.py``).
+    archivo olvidado"*. Cableada en ``AccountConfig.ready()`` vía
+    ``_EXTENSIONES`` (tarea #520 — el nombre de la función se unificó a
+    ``apply_account_extensions`` para que el llamador uniforme de ``ready()``
+    la encuentre; antes se llamaba ``apply_account_analytic_account_extensions``
+    y NO estaba cableada). Invocable a mano; ver
+    ``tests/unit/account/test_account_analytic_account.py``.
     """
     return None

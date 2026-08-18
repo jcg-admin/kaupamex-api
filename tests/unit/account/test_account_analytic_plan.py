@@ -1,28 +1,27 @@
-"""``account`` sobre ``account.analytic.applicability`` (tarea #398, tramo 2).
+"""``account`` sobre ``account.analytic.applicability`` (tarea #520).
 
 Pese a su nombre, el archivo de la referencia extiende ``account.analytic.
-applicability`` (medido por AST al abrir este tramo), no ``account.analytic.
-plan`` — ver docstring de ``account_analytic_plan.py``. Se portan 3 de los 5
-símbolos: la ampliación de ``business_domain`` (``invoice``/``bill``) y los
-dos campos ``store=False`` que dependen de ella. ``account_prefix``/
-``product_categ_id``/``_get_score`` quedan BLOQUEADOS (migración fuera de
-alcance) y se verifican como tal.
+applicability`` (medido por AST), no ``account.analytic.plan`` — ver
+docstring de ``account_analytic_plan.py``. Los 3 ``def`` de la referencia
+están portados: la ampliación de ``business_domain`` y los dos campos
+``store=False`` (tramo anterior), más ``_get_score`` — envuelto vía
+``chain_method`` con los 2 campos que ``addons/analytic/migrations/``
+desbloqueó en esta tarea (``account_prefix``, ``product_categ``).
 """
 import pytest
 
 from addons.account.models.account_account import AccountAccount
-from addons.account.models.account_analytic_plan import (
-    apply_account_analytic_plan_extensions,
-)
+from addons.account.models.account_analytic_plan import apply_account_extensions
 from addons.analytic.models import AccountAnalyticApplicability
 from addons.base.models import ResCompany
+from addons.product.models import ProductCategory, ProductProduct, ProductTemplate
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
 
 @pytest.fixture(autouse=True)
 def apply_extension():
-    apply_account_analytic_plan_extensions()
+    apply_account_extensions()
 
 
 @pytest.fixture
@@ -47,8 +46,8 @@ class TestBusinessDomainExtended:
     def test_it_is_idempotent(self):
         """Aplicar dos veces no duplica la entrada (``ready()`` puede correr
         más de una vez en tests que recargan el registro)."""
-        apply_account_analytic_plan_extensions()
-        apply_account_analytic_plan_extensions()
+        apply_account_extensions()
+        apply_account_extensions()
         field = AccountAnalyticApplicability._meta.get_field('business_domain')
         values = [value for value, _ in field.choices]
         assert values.count('invoice') == 1
@@ -130,15 +129,82 @@ class TestAccountPrefixPlaceholder:
         assert applicability.account_prefix_placeholder == 'e.g. 60, 61, 62'
 
 
-class TestWhatStaysBlocked:
-    def test_the_model_has_no_account_prefix_nor_product_categ_fields(self):
-        names = {f.name for f in AccountAnalyticApplicability._meta.get_fields()}
-        assert 'account_prefix' not in names
-        assert 'product_categ' not in names
+class TestAccountPrefixAndProductCategFields:
+    """≙ las 2 columnas nuevas (odoo19c: :20-27), desbloqueadas en tarea
+    #520 por ``addons/analytic/migrations/``."""
 
-    def test_get_score_from_the_base_stays_unwrapped(self, company):
-        """``_get_score`` no fue envuelto — su firma y comportamiento son
-        exactamente los de ``analytic_plan.py`` (ver ese archivo)."""
+    def test_the_model_has_real_columns_for_both(self):
+        columns = {f.column for f in AccountAnalyticApplicability._meta.fields}
+        assert {'account_prefix', 'product_categ_id'} <= columns
+
+    def test_product_categ_can_be_set_and_read_back(self, company):
+        categ = ProductCategory.objects.create(name='Servicios')
+        applicability = AccountAnalyticApplicability.objects.create(
+            business_domain='general', applicability='optional', company=company,
+            product_categ=categ)
+        applicability.refresh_from_db()
+        assert applicability.product_categ_id == categ.pk
+
+
+class TestGetScoreWrappedWithAccountPrefixAndProductCateg:
+    """≙ ``_get_score`` (odoo19c: :59-76) — envuelve la base con
+    ``chain_method``+``combine``, desbloqueado en tarea #520."""
+
+    def test_without_account_prefix_nor_product_categ_only_the_base_score_applies(self, company):
+        """Sin los dos campos nuevos, el comportamiento es idéntico al de la
+        base — el envoltorio no aporta ni resta nada."""
         applicability = AccountAnalyticApplicability.objects.create(
             business_domain='general', applicability='optional', company=company)
         assert applicability._get_score(company_id=company.pk) == 0.5
+
+    def test_account_prefix_matching_adds_one_point(self, company):
+        AccountAccount.objects.create(
+            code='601100', name='Compras', account_type='expense', company=company)
+        account = AccountAccount.objects.get(code='601100')
+        applicability = AccountAnalyticApplicability.objects.create(
+            business_domain='general', applicability='optional', company=company,
+            account_prefix='601, 602')
+        assert applicability._get_score(company_id=company.pk, account=account.pk) == 1.5
+
+    def test_account_prefix_not_matching_vetoes_to_minus_one(self, company):
+        """El veto descarta INCLUSO el puntaje base ya ganado — mismo
+        criterio de corto-circuito que la referencia (odoo19c: :69-72)."""
+        AccountAccount.objects.create(
+            code='701100', name='Ventas', account_type='income', company=company)
+        account = AccountAccount.objects.get(code='701100')
+        applicability = AccountAnalyticApplicability.objects.create(
+            business_domain='general', applicability='optional', company=company,
+            account_prefix='601, 602')
+        assert applicability._get_score(company_id=company.pk, account=account.pk) == -1
+
+    def test_a_base_score_of_minus_one_short_circuits_before_the_bonus(self, company):
+        """``business_domain`` no coincide → base ya es ``-1`` (odoo19c:
+        :454-455) — el bonus ni se evalúa."""
+        applicability = AccountAnalyticApplicability.objects.create(
+            business_domain='invoice', applicability='optional', company=company,
+            account_prefix='601')
+        assert applicability._get_score(business_domain='bill') == -1
+
+    def test_product_categ_matching_adds_one_point(self, company):
+        categ = ProductCategory.objects.create(name='Consultoría')
+        applicability = AccountAnalyticApplicability.objects.create(
+            business_domain='general', applicability='optional', company=company,
+            product_categ=categ)
+        template = ProductTemplate.objects.create(
+            name='Hora de consultoría', company=company, categ=categ)
+        product = ProductProduct.objects.create(product_tmpl=template)
+        assert applicability._get_score(
+            company_id=company.pk, product=product.pk) == 1.5
+
+    def test_it_is_idempotent(self, company):
+        """``chain_method`` no re-envuelve al reaplicar — mismo puntaje que
+        sin reaplicar, no doble bonus."""
+        apply_account_extensions()
+        apply_account_extensions()
+        AccountAccount.objects.create(
+            code='601200', name='Compras', account_type='expense', company=company)
+        account = AccountAccount.objects.get(code='601200')
+        applicability = AccountAnalyticApplicability.objects.create(
+            business_domain='general', applicability='optional', company=company,
+            account_prefix='601')
+        assert applicability._get_score(company_id=company.pk, account=account.pk) == 1.5
