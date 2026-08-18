@@ -27,8 +27,10 @@ Medido sobre ``odoo19c: addons/website/models/website.py`` (2430 líneas):
 
 Los 111 métodos NO caben en un pase, y ``porte-completo-no-parcial.md`` exige
 que un porte parcial **declare su cobertura** en vez de callarla. La partición
-está registrada como seis tareas y **verificada completa: 33+15+10+15+6+32 =
-111**, sin solapes ni huérfanos:
+se registró como seis tareas con la aritmética **33+15+10+15+6+32 = 111**;
+dos bloques se re-midieron al ejecutarlos — B4 dio 21 (no 15) y B5 dio 8
+(no 6), cada uno con su nota en la tabla — así que las cifras de la tabla
+son las medidas, y la suma original queda como la estimación registrada:
 
 .. list-table::
    :header-rows: 1
@@ -57,10 +59,13 @@ está registrada como seis tareas y **verificada completa: 33+15+10+15+6+32 =
      - configurador y los tres RPC a servicio externo — **12 portados,
        9 bloqueados** (ver el banner del bloque B4)
      - **#537** ← este archivo
-   * - B5
-     - 6
-     - bloqueo de rastreadores de terceros
-     - #538
+   * - **B5**
+     - **8** (re-medido; la partición decía 6)
+     - bloqueo de rastreadores de terceros — **8 portados**. Los dos
+       ayudantes de la lista (``:291-301``) no estaban en los 33 declarados
+       de B1 (medido: 0 hits de ``_get_blocked_third_party_domains_list``
+       antes de este pase), así que se portan aquí, donde está su consumidor
+     - **#538** ← este archivo
    * - B6
      - 32
      - CDN, Plausible, URL canónica, snippets, acciones de cliente
@@ -191,12 +196,13 @@ import base64
 import re
 import uuid
 from collections import defaultdict
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlsplit
 
 import fields
 import models
 import requests
-from lxml import etree
+from django.utils.safestring import mark_safe
+from lxml import etree, html
 
 from addons.base.models import TimeStampedModel
 from addons.base.models.ir_http import get_current_request
@@ -204,6 +210,7 @@ from addons.base.models.ir_ui_view import IrUiView
 from addons.base.models.res_company import ResCompany
 from addons.base.models.res_lang import ResLang
 from addons.portal.controllers.portal import pager
+from addons.website.models.ir_http import IrHttp
 from addons.website.models.mixins import WebsiteSearchableMixin
 from addons.website.models.static_page import StaticPage
 from addons.website.models.website_menu import WebsiteMenu
@@ -1748,6 +1755,147 @@ class Website(TimeStampedModel):
                 'lang': get_context().get('lang'),
             }
         )
+
+    # ── B5 (#538) · bloqueo de rastreadores de terceros ──────────────────────
+    #
+    # ≙ ``odoo19c: website.py:291-301`` (los dos ayudantes de la lista) y
+    # ``:2357-2440`` (los seis del control de HTML). Medido: 8 métodos en el
+    # bloque; en este pase: **8 portados, 0 bloqueados**.
+    #
+    # Divergencias declaradas del bloque:
+    #
+    # - ``Markup`` (markupsafe) → ``django.utils.safestring.mark_safe``:
+    #   markupsafe NO está instalado (medido: ``ModuleNotFoundError``) y
+    #   ``SafeString`` es el marcador de «HTML ya seguro» nativo del stack.
+    # - ``self.env['ir.http']._is_allowed_cookie`` → ``IrHttp._is_allowed_cookie``
+    #   de ``addons/website/models/ir_http.py`` (la extensión de sitio, portada
+    #   en este mismo pase sobre la base nueva de
+    #   ``src/addons/base/models/ir_http.py``). El FORMATO del consentimiento
+    #   diverge — cookie ``cookie_consent`` por categoría en vez de
+    #   ``website_cookies_bar`` ``{'optional': bool}``; ver su docstring.
+    # - ``user.has_group('website.group_website_restricted_editor')`` NO se
+    #   porta: resolver un grupo por external ID necesita el registro de datos
+    #   por módulo (#467; mismo criterio que ``_compute_display_name`` de
+    #   ``website_menu.py``). Consecuencia conservadora: los editores
+    #   restringidos también ven los rastreadores bloqueados — default seguro.
+    # - ``self.ensure_one()`` de la fuente es innecesario por construcción:
+    #   un método de instancia de Django opera sobre exactamente un registro.
+
+    def _get_blocked_third_party_domains_list(self):
+        """≙ ``_get_blocked_third_party_domains_list`` (``odoo19c: :291-292``)."""
+        return self.blocked_third_party_domains.split('\n')
+
+    def _get_blocked_iframe_containers_classes(self):
+        """≙ ``_get_blocked_iframe_containers_classes`` (``odoo19c: :294-301``).
+
+        Clases de contenedores dentro de los cuales el cliente construye
+        iframes al vuelo; se marcan para que el iframe nazca ya controlado.
+        """
+        return {
+            's_map',
+            's_instagram_page',
+            'o_facebook_page',
+            'o_background_video',
+            'media_iframe_video',
+        }
+
+    def _allConsentsGranted(self):
+        """≙ ``_allConsentsGranted`` (``odoo19c: :2357-2369``) — el camelCase
+        de la fuente se conserva: el nombre es el contrato.
+
+        ¿Se concedieron todos los consentimientos (de cookies)? Si el sitio
+        no tiene barra de cookies habilitada, el consentimiento pleno se
+        considera concedido de inmediato: en ese caso se supone que el
+        operador implementó su propia conducta de consentimiento con código o
+        aplicación propios, capaces de sobreescribir esta función.
+
+        :return: True si todos los consentimientos están concedidos.
+        """
+        return not self.cookies_bar or IrHttp._is_allowed_cookie('optional')
+
+    def _control_third_party_trackers_in_html(self, html_content):
+        """≙ ``_control_third_party_trackers_in_html`` (``odoo19c: :2371-2381``).
+
+        Neutraliza los iframes/scripts de dominios vigilados dentro de un
+        fragmento HTML. Ante HTML que el parser no acepta, passthrough del
+        input: mejor servir el contenido intacto que romperlo.
+        """
+        if not html_content or not self._should_remove_third_party_trackers():
+            return html_content
+        try:
+            root_node = html.fromstring(str(html_content))
+            els = root_node.xpath("//script | //iframe")
+        except (etree.ParserError, etree.XMLSyntaxError):
+            return html_content
+        for el in els:
+            self._remove_third_party_trackers(el.tag, el.attrib, ['domains'])
+        return mark_safe(html.tostring(root_node, encoding="unicode"))
+
+    def _should_remove_third_party_trackers(self):
+        """≙ ``_should_remove_third_party_trackers`` (``odoo19c: :2383-2387``).
+
+        El escalón ``has_group(...group_website_restricted_editor)`` de la
+        fuente NO se porta (#467 — ver el banner del bloque): sin registro de
+        grupos por external ID, el default seguro es controlar también al
+        editor.
+        """
+        return (self.cookies_bar
+            and self.block_third_party_domains
+            and not IrHttp._is_allowed_cookie('optional'))
+
+    def _remove_third_party_trackers(self, tag_name, atts, cookies_watchlist):
+        """≙ ``_remove_third_party_trackers`` (``odoo19c: :2389-2412``).
+
+        El ``tagName`` de la fuente se recibe como ``tag_name`` — mismo
+        símbolo, forma PEP 8; aplica igual en los dos ``_is_tag_*``.
+        """
+        # Si la barra de cookies está activada, los iframes y scripts de
+        # terceros embebidos deben controlarse. Para eso:
+        # - 'domains' es una lista de vigilancia sobre el propio src del
+        #   iframe/script,
+        # - 'classes' es una lista de vigilancia sobre elementos contenedores
+        #   dentro de los cuales el cliente construye (o podría construir)
+        #   iframes al vuelo por alguna razón.
+        watchlist_checker = {
+            'domains': self._is_tag_domains_watchlisted,
+            'classes': self._is_tag_classes_watchlisted,
+        }
+        remove_src = False
+        for watch in cookies_watchlist:
+            if (checker := watchlist_checker.get(watch)) and checker(tag_name, atts):
+                remove_src = True
+                break
+        if remove_src:
+            atts['data-need-cookies-approval'] = 'true'
+            # Caso clase en la lista de vigilancia: el trabajo termina aquí.
+            # El elemento podría contener un iframe creado al vuelo del lado
+            # cliente; se marca ahora para que el iframe pueda marcarse
+            # después, al crearse.
+            # Caso src de iframe/script en la lista: se adapta el src.
+            if atts.get("src"):
+                atts['data-nocookie-src'] = atts['src']
+                atts['src'] = 'about:blank'
+
+    def _is_tag_domains_watchlisted(self, tag_name, atts):
+        """≙ ``_is_tag_domains_watchlisted`` (``odoo19c: :2414-2427``)."""
+        domains = self.blocked_third_party_domains.split('\n')
+        if tag_name in ('iframe', 'script'):
+            src_host = urlsplit((atts.get('src') or '').lower()).hostname
+            if src_host:
+                return any(
+                    # "www.example.com" y "example.com" deben bloquear ambos.
+                    src_host == domain.removeprefix('www.')
+                    # "domain.com" debe bloquear "subdomain.domain.com", pero
+                    # no "(subdomain.)mydomain.com".
+                    or src_host.endswith('.' + domain.removeprefix('www.'))
+                    for domain in domains
+                )
+        return False
+
+    def _is_tag_classes_watchlisted(self, tag_name, atts):
+        """≙ ``_is_tag_classes_watchlisted`` (``odoo19c: :2429-2430``)."""
+        return self._get_blocked_iframe_containers_classes().intersection(
+            (atts.get('class') or '').split(' '))
 
 
 def _configurator_rpc_call(url, method='call', params=None, timeout=15):

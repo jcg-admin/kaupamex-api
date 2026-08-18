@@ -21,18 +21,22 @@ Se reexporta aquí para preservar el contrato ``from addons.website.models
 import StaticContent, ...``.
 """
 from .banner import Banner
+from .ir_http import IrHttp
 from .search_entry import SearchEntry
 from .website import Website
 from .static_content import StaticContent, StaticContentVersion
 from .static_page import StaticPage, StaticPageVersion
+from .website_configurator_feature import WebsiteConfiguratorFeature
 from .website_menu import WebsiteMenu
 
 __all__ = [
     'Banner',
+    'IrHttp',
     'SearchEntry',
     'StaticContent',
     'StaticContentVersion',
     'StaticPage',
     'StaticPageVersion',
+    'WebsiteConfiguratorFeature',
     'WebsiteMenu',
 ]

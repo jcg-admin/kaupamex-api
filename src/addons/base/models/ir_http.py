@@ -265,6 +265,24 @@ class IrHttp(models.Model):
         """
         return cookies
 
+    @classmethod
+    def _is_allowed_cookie(cls, cookie_type):
+        """``_is_allowed_cookie`` — ¿esta clase de cookie está permitida?
+
+        ≙ ``odoo19c: odoo/addons/base/models/ir_http.py:450-452``. En ``base``
+        la política es mínima: la cookie requerida pasa siempre; las demás
+        pasan mientras haya una petición que las transporte. Los módulos de
+        sitio la restringen sobreescribiendo este método (el consentimiento
+        vive en ``addons/website/models/ir_http.py``).
+
+        Divergencia declarada: la fuente devuelve ``bool(request.env.user)``,
+        que es verdadero siempre que hay petición — su usuario público es un
+        registro real, nunca falsy. Aquí el mismo hecho se expresa como
+        ``get_current_request() is not None``: fuera de una petición (cron,
+        shell) no hay transporte de cookies y la respuesta es ``False``.
+        """
+        return True if cookie_type == 'required' else get_current_request() is not None
+
 
 class CompanyContextMiddleware:
     """Ata la petición al canal del dato — el rol de ``ir.http._authenticate``.
