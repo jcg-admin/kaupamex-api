@@ -62,7 +62,6 @@ import models
 from addons.account.models.account_account import AccountAccount
 from addons.analytic.models.analytic_plan import AccountAnalyticApplicability
 from addons.product.models import ProductCategory, ProductProduct
-from orm.fields_nonstored import NonStored
 from orm.method_chain import chain_method
 from tools.translate import _
 
@@ -191,7 +190,7 @@ def apply_account_extensions():
     )
     _add_if_absent(
         AccountAnalyticApplicability, 'display_account_prefix',
-        NonStored(
+        fields.NonStored(
             default=_default_display_account_prefix,
             help_text='Odoo display_account_prefix (compute, store=False). '
                        'Si el campo account_prefix debería mostrarse para '
