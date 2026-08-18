@@ -73,7 +73,47 @@ class SystemParameter(models.Model):
 
     Equivalente a ``ir.config_parameter``. Vive en el plano de control
     (``default``); no es per-empresa (eso es L3).
+
+    Cabecera — los 5 atributos de clase que la referencia declara
+    (``odoo19c: odoo/addons/base/models/ir_config_parameter.py:28-34``),
+    portados verbatim junto a su forma Django derivada
+    (``atributos-de-clase-de-modelo.md``, H-API-580):
+
+    - ``_name`` -> en la referencia, ``Meta.db_table`` se derivaria de él
+      (``_name.replace('.', '_')`` = ``'ir_config_parameter'``). Aquí
+      **diverge**: la tabla es ``'system_parameter'`` (el nombre de la
+      clase Django, ya migrado en ``0001_initial``). Divergencia
+      **declarada**, no símbolo omitido — renombrar la tabla excede el
+      alcance de esta tarea (T-387 sólo admite migración nueva para
+      campo/índice agregado, no para renombrar una tabla ya migrada).
+      Ver ``test_table_diverges_from_name_dot_replaced_by_declared_naming``.
+    - ``_description`` -> convive con ``Meta.verbose_name`` (no lo
+      sustituye).
+    - ``_rec_name`` -> el campo que etiqueta el registro; lo consume
+      ``__str__``.
+    - ``_order`` -> convive con ``Meta.ordering``.
+    - ``_allow_sudo_commands`` -> Odoo lo usa para permitir comandos con
+      privilegio elevado sobre este modelo incluso en contexto ``sudo``
+      restringido; se declara verbatim como documentación del contrato de
+      la referencia. Este puerto no tiene un mecanismo de sudo-restringido
+      equivalente al de Odoo (no hay ``env.su`` ni un modo "sudo command"
+      separado del superusuario de Django) — divergencia de mecanismo, no
+      símbolo omitido.
+
+    Divergencia declarada (NO ausente): ``_key_uniq`` (Odoo
+    ``models.Constraint('unique (key)', ...)``, un **objeto de tabla**, no
+    un atributo de ORM per ``atributos-de-clase-de-modelo.md``) ya está
+    cubierto por ``key = CharField(unique=True)`` abajo — unicidad
+    funcionalmente equivalente, sin el nombre de la referencia preservado
+    en un ``Meta.constraints`` explícito porque no requiere migración
+    nueva para un mecanismo ya presente.
     """
+
+    _name = 'ir.config_parameter'
+    _description = 'System Parameter'
+    _rec_name = 'key'
+    _order = 'key'
+    _allow_sudo_commands = False
 
     key = models.CharField(max_length=255, unique=True)
     value = models.TextField()
