@@ -24,7 +24,7 @@ source: DRF api-guide/authentication
 
 Es la migración completa a **sesión de servidor** para la web (ADR-018): la única
 auth por default es la **cookie de sesión HttpOnly** (`__Host-sessionid;
-SameSite=Strict`). Con `SessionAuthentication`, `request.user` es el usuario
+SameSite=Lax`). Con `SessionAuthentication`, `request.user` es el usuario
 Django (`IdentityUser`, `USERNAME_FIELD='email'`) y **`request.auth` es `None`**
 (no hay token).
 
@@ -46,7 +46,7 @@ a la lista. **Hoy la auth web activa es la sesión, no el JWT.**
 
 `CsrfExemptSessionAuthentication` (subclase de `SessionAuthentication`,
 `addons/users/authentication.py:19`) vuelve **no-op** `enforce_csrf`: no se pide
-`X-CSRFToken`. La defensa CSRF es `SameSite=Strict` + prefijo `__Host-` (la cookie
+`X-CSRFToken`. La defensa CSRF es `SameSite=Lax` + prefijo `__Host-` (la cookie
 no viaja cross-site, que es el vector de CSRF). Origen: el incidente en que las
 mutaciones por sesión pedían `X-CSRFToken` y el SPA, tras recargar, no lo tenía →
 403 → logout. **No** re-introducir plumbing de token CSRF.

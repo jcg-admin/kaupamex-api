@@ -388,8 +388,9 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         # ADR-018 — migracion completa a sesion de servidor (web).
         # La UNICA auth por defecto es la cookie de sesion HttpOnly, exenta
-        # de token CSRF: la defensa CSRF es SameSite=Strict + prefijo __Host-
-        # (la cookie no viaja cross-site, que es el vector de CSRF). Esto
+        # de token CSRF: la defensa CSRF es SameSite=Lax + prefijo __Host-
+        # (la cookie no viaja en un POST cross-site, que es el vector de CSRF,
+        # y toda mutacion del SPA es XHR POST/PATCH/DELETE). Esto
         # arregla el incidente en que las mutaciones por sesion pedian
         # X-CSRFToken y el SPA, tras recargar (JWT en memoria perdido), no lo
         # tenia -> 403 -> logout. Ver analisis-incidente-csrf-mutaciones.
@@ -663,15 +664,17 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 # Auth por sesion (ADR-018, DEC-STF-AUTH-COOKIE) — sesion como unica auth web.
 # La cookie de sesion es HttpOnly y SameSite=Lax (mismo origin en dev via el
 # proxy de webpack y en prod mismo dominio). El endurecimiento a __Host- +
-# Secure + SameSite=Strict vive en production.py; ese SameSite=Strict es la
-# defensa CSRF que reemplaza al token (ver DEFAULT_AUTHENTICATION_CLASSES).
+# Secure vive en production.py; el SameSite se queda en Lax TAMBIEN alli
+# (CR-5, ver production.py:18-25), y ese SameSite=Lax es la defensa CSRF que
+# reemplaza al token (ver DEFAULT_AUTHENTICATION_CLASSES).
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 
 # CSRF: NO se usa token CSRF. La auth por sesion esta exenta
-# (CsrfExemptSessionAuthentication) y la defensa CSRF es SameSite=Strict +
+# (CsrfExemptSessionAuthentication) y la defensa CSRF es SameSite=Lax +
 # __Host- de la cookie de sesion. Por eso NO se define CSRF_USE_SESSIONS ni se
 # emite cookie/token CSRF: no hay plumbing de token que el SPA deba mantener.
+# Guardrail que acompania a Lax: ningun endpoint muta estado por GET.
 
 # Cache — DatabaseCache (cnst-arquitectura T4/T5).
 # UC-SRCH-02 (autocomplete) usa la clave "autocomplete:<prefijo>" con TTL 60s.

@@ -18,7 +18,7 @@ source: DRF api-guide/settings
 
 | Key | Valor | Por qué / referencia |
 |---|---|---|
-| `DEFAULT_AUTHENTICATION_CLASSES` | `[CsrfExemptSessionAuthentication]` | Auth de **sesión** HttpOnly, CSRF-exenta (SameSite=Strict + `__Host-`); JWT instalado pero **dormant** (ADR-018). Ver `authentication.md`. |
+| `DEFAULT_AUTHENTICATION_CLASSES` | `[CsrfExemptSessionAuthentication]` | Auth de **sesión** HttpOnly, CSRF-exenta (SameSite=Lax + `__Host-`); JWT instalado pero **dormant** (ADR-018). Ver `authentication.md`. |
 | `DEFAULT_PERMISSION_CLASSES` | `[IsAuthenticated]` | **Piso** global (fail-closed a autenticado). **No** es la última palabra: cada vista **añade `HasCapability`** (DEC-11) y las públicas hacen opt-out explícito a `AllowAny`. Ver `permissions.md`. |
 | `DEFAULT_RENDERER_CLASSES` | `[JSONRenderer]` | JSON-only en prod (browsable apagado). Ver `renderers.md`. |
 | `DEFAULT_SCHEMA_CLASS` | `drf_spectacular.openapi.AutoSchema` | Contrato OpenAPI por **drf-spectacular**, no el schema nativo. Ver `schema.md`. |
