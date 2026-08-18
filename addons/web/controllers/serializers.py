@@ -91,3 +91,22 @@ class HealthCheckSerializer(serializers.Serializer):
 
     status = serializers.ChoiceField(choices=['pass', 'fail'], read_only=True)
     db_server_status = serializers.BooleanField(read_only=True, required=False)
+
+
+class DomainValidateRequestSerializer(serializers.Serializer):
+    """Payload de ``POST /web/domain/validate`` (``domain.py::validate``,
+    ``odoo19c: addons/web/controllers/domain.py``). ``model`` usa la
+    convención ``app_label.ModelName`` del proyecto (≙ ``dominio.punto`` de
+    Odoo), la misma que ``GetFieldsRequestSerializer.model``.
+    """
+
+    model = serializers.CharField()
+    domain = serializers.JSONField()
+
+
+class DomainValidateResponseSerializer(serializers.Serializer):
+    """≙ el booleano que devuelve ``Domain.validate`` de la referencia,
+    envuelto en objeto — el campo lleva nombre en inglés
+    (``identificadores-en-ingles.md``)."""
+
+    valid = serializers.BooleanField(read_only=True)

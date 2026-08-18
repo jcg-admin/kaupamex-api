@@ -25,12 +25,19 @@ qué se declara ausente con su razón — no hay recorte silencioso.
   ``res_users_settings.py`` extienden modelos de ``base`` con el mismo
   mecanismo que ``ir_http.py``.
 - ``res_users_settings_embedded_action.py`` → ``ResUsersSettingsEmbeddedAction``,
-  el **único modelo concreto** que la tanda añadió: tabla propia, FKs a
+  el **único modelo concreto CON TABLA** que la tanda añadió: FKs a
   ``ResUsersSettings`` y ``IrActionsActWindow``. Por eso se importa aquí (Django
   necesita verlo para registrarlo) y por eso ``web`` estrena ``migrations/``.
+- ``res_config_settings.py`` → ``WebConfigSettings`` (tarea #397) — subclase
+  concreta de ``addons.base.models.res_config.ResConfigSettings``, mismo
+  patrón que ``base_setup.SiteConfigSettings``. ``managed = False``
+  (``TransientModel`` de la referencia): sin ``CREATE TABLE``, pero SÍ suma
+  migración (``0002_webconfigsettings.py`` — Django registra el modelo en el
+  grafo de migraciones aunque no cree tabla, ver el docstring del módulo).
 """
 from .base_document_layout import BaseDocumentLayout  # noqa: F401
 from .models import AND, OR, Base, lazymapping  # noqa: F401
+from .res_config_settings import WebConfigSettings  # noqa: F401
 from .res_users_settings_embedded_action import (  # noqa: F401
     ResUsersSettingsEmbeddedAction,
 )
@@ -39,6 +46,7 @@ __all__ = [
     'Base',
     'BaseDocumentLayout',
     'ResUsersSettingsEmbeddedAction',
+    'WebConfigSettings',
     'lazymapping',
     'AND',
     'OR',
