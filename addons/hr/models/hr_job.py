@@ -27,7 +27,7 @@ class HrJob(MailThread, TimeStampedModel):
     # D-2: FK directa a base.ResCompany (Odoo company_id), igual que HrDepartment.
     company = fields.Many2one(
         'base.ResCompany', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='hr_jobs', verbose_name='Empresa (tenant)',
+        related_name='hr_jobs', verbose_name='Empresa',
         help_text='Empresa dueña del puesto (Odoo company_id).',
     )
     no_of_recruitment = fields.Integer(

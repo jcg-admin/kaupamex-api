@@ -90,13 +90,13 @@ Símbolo de la referencia (línea)                 Aquí
 ``action_put_in_pack`` (347-367)                 ``action_put_in_pack``
 ``action_remove_package`` (369-405)              ``action_remove_package``
 ``action_view_picking`` (407-412)                ``action_view_picking``
-``_check_move_lines_map_quant`` (414-433)        ``check_move_lines_map_quant``
+``_check_move_lines_map_quant`` (414-433)        ``_check_move_lines_map_quant``
 ``_get_weight`` (435-470)                        ``get_weight``
 ``_has_issues`` (472-474)                        ``has_issues``
 ``_apply_dest_to_package`` (476-509)             ``apply_dest_to_package``
 ``_get_all_children_package_dest_ids`` (511-531) ``get_all_children_package_dest_ids``
 ``_get_all_package_dest_ids`` (533-544)          ``get_all_package_dest_ids``
-``_apply_package_dest_for_entire_packs`` (546-558) ``apply_package_dest_for_entire_packs``
+``_apply_package_dest_for_entire_packs`` (546-558) ``_apply_package_dest_for_entire_packs``
 ===============================================  ======================================
 
 Divergencias declaradas
@@ -162,6 +162,22 @@ archivos línea a línea, no asumida:
    diseño que ya declaran los tres ``_default_*`` de
    ``product_strategy.py::StockPutawayRule`` (contexto por parámetro
    explícito, no ambiental).
+
+Deuda saldada al tocar el archivo (2026-08-18)
+================================================
+
+``_check_move_lines_map_quant`` y ``_apply_package_dest_for_entire_packs``
+estaban despromovidos (H-API-581) — la referencia los declara privados y el
+puerto los había publicado. Restaurados con su guion bajo al consumirlos el
+grupo «Paquetes» de ``stock.picking`` (tarea #521); medido antes del cambio,
+**0 llamadores** con el nombre público fuera de este archivo (``grep -rn``
+sobre ``addons/``, ``src/`` y ``tests/``). Los demás despromovidos de este
+archivo (``get_weight``, ``has_issues``, ``apply_dest_to_package``,
+``get_all_children_package_dest_ids``, ``get_all_package_dest_ids``,
+``pre_put_in_pack_hook``, ``post_put_in_pack_hook``) siguen en el barrido de
+la tarea **#337** — dos de ellos tienen llamadores externos medidos
+(``apply_dest_to_package`` y ``get_all_package_dest_ids``, en
+``stock_move_line.py``) y ninguno lo consume el grupo Paquetes de este pase.
 """
 import datetime
 from collections import defaultdict
@@ -800,7 +816,7 @@ class StockPackage(TimeStampedModel):
 
     # -- verificación y peso --
 
-    def check_move_lines_map_quant(self, move_lines):
+    def _check_move_lines_map_quant(self, move_lines):
         """≙ ``_check_move_lines_map_quant`` (``odoo19c: :414-433``).
 
         ¿Las líneas cubren exactamente lo que el paquete contiene? Se agrupa
@@ -947,7 +963,7 @@ class StockPackage(TimeStampedModel):
             actual = actual.package_dest
         return list(ids)
 
-    def apply_package_dest_for_entire_packs(self, allowed_package_ids=None):
+    def _apply_package_dest_for_entire_packs(self, allowed_package_ids=None):
         """≙ ``_apply_package_dest_for_entire_packs`` (``odoo19c: :546-558``).
 
         Si al asignar paquetes se añadió un contenedor **completo**, el
@@ -966,4 +982,4 @@ class StockPackage(TimeStampedModel):
                     self.package_dest = contenedor
                     self.save(update_fields=['package_dest'])
         if self.package_dest is not None:
-            self.package_dest.apply_package_dest_for_entire_packs(allowed_package_ids)
+            self.package_dest._apply_package_dest_for_entire_packs(allowed_package_ids)

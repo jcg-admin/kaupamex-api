@@ -119,10 +119,11 @@ class WebsiteSearchableMixin:
 
         Cada modelo buscable devuelve su receta: ``model``, ``base_domain``,
         ``search_fields``, ``fetch_fields``, ``mapping`` e ``icon``. Aquí
-        ``model`` lleva **la clase del modelo**, no su nombre: el registro
-        por nombre existe (``orm.registry.MODELS_BY_ODOO_NAME``) pero los
-        modelos propios del addon aún no declaran ``_name`` — su realineación
-        es la tarea **#104**, y con ella esta clave puede volver al nombre.
+        ``model`` lleva **la clase del modelo**, no su nombre: #104 alineó
+        ``website.page`` (que sí declara ``_name``), pero el interinato
+        ``StaticPage`` sigue sin nombre y el consumidor
+        (``Website._search_exact``) espera la clase — volver esta clave al
+        nombre es de la tarea **#560** (absorción del interinato).
         """
         raise NotImplementedError()
 

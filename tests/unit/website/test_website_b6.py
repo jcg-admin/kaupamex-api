@@ -7,9 +7,11 @@ B1-B6: re-medido por AST al abrirlo, el resto no declarado eran **42** métodos
 Plausible, URL canónica, snippets, ``_get_html_fields``, cachés sin caché
 (#542) — y **4 más** en el pase de enumeración de rutas (#545:
 ``rule_is_enumerable``, ``_enumerate_pages``, ``search_pages``,
-``check_existing_page``). Los demás quedan declarados en los banners del
-módulo (7 bloqueados en B6, 9 en B4, 3 cubiertos con nombre divergente
-desde B1).
+``check_existing_page``) y **3 más** en el pase de ``website.page`` (#104:
+``new_page``, ``get_website_page_ids``, ``_get_website_pages`` — su
+bloqueador era el propio modelo de página, que ese pase portó). Los demás
+quedan declarados en los banners del módulo (4 bloqueados en B6, 9 en B4,
+3 cubiertos con nombre divergente desde B1).
 
 Los casos cubren:
 
@@ -68,14 +70,20 @@ B6_PORTED_ROUTING = [
     'check_existing_page',
 ]
 
-#: Los 7 que siguen sin portarse — cada uno lleva su arista de bloqueo con
+#: El eje de páginas, desbloqueado por #104 al portar ``website.page``:
+#: la fábrica de páginas y las dos consultas que la fuente cuelga del
+#: sitio.
+B6_PORTED_PAGES = [
+    'new_page',
+    'get_website_page_ids',
+    '_get_website_pages',
+]
+
+#: Los 4 que siguen sin portarse — cada uno lleva su arista de bloqueo con
 #: la forma fija en el banner del módulo (website.py). Se listan para que
 #: un porte futuro los encuentre por grep; NO deben existir como métodos
 #: hasta que su bloqueador se cierre.
 B6_BLOCKED = [
-    'new_page',                    # #104 + #467
-    'get_website_page_ids',        # #104
-    '_get_website_pages',          # #104
     'action_dashboard_redirect',   # #467
     'get_client_action_url',       # #488
     'get_client_action',           # #488
@@ -87,7 +95,7 @@ class TestB6Coverage:
     """La cobertura declarada del bloque es la real."""
 
     def test_the_ported_methods_exist(self):
-        missing = [name for name in B6_PORTED + B6_PORTED_ROUTING
+        missing = [name for name in B6_PORTED + B6_PORTED_ROUTING + B6_PORTED_PAGES
                    if not callable(getattr(Website, name, None))]
         assert missing == []
 

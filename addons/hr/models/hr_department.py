@@ -28,11 +28,12 @@ class HrDepartment(MailThread, TimeStampedModel):
 
     name = fields.Char(max_length=150, verbose_name='Nombre')
     # D-2: FK directa a base.ResCompany (Odoo company_id, res.company). El eje
-    # tenant que usa el árbol (record rules ``ir_rule``, DEC-KX-05). Opcional +
-    # SET_NULL como el resto de FKs de company del proyecto (sale.order).
+    # de aislamiento por Company que usa el árbol (record rules ``ir_rule``,
+    # DEC-KX-05). Opcional + SET_NULL como el resto de FKs de company del
+    # proyecto (sale.order).
     company = fields.Many2one(
         'base.ResCompany', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='hr_departments', verbose_name='Empresa (tenant)',
+        related_name='hr_departments', verbose_name='Empresa',
         help_text='Empresa dueña del departamento (Odoo company_id).',
     )
     # ``subsidiary`` se disolvió (D-1 cerrada contra la referencia): la

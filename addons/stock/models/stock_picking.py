@@ -1052,6 +1052,10 @@ class StockPicking(MailThread, MailActivityMixin, TimeStampedModel):
             - 19
             - 44
             - 63
+          * - Después del grupo Paquetes (tarea #521, continuación)
+            - 19
+            - 57
+            - 76
           * - Referencia (``odoo19c:``)
             - 57
             - 97
@@ -1063,9 +1067,12 @@ class StockPicking(MailThread, MailActivityMixin, TimeStampedModel):
        los alias declarados (D-1..D-9: ``location``↔``location_id``,
        ``product``↔``product_id``, un ``compute`` colapsado a una sola
        ``property``, etc.) la cobertura real tras el segundo pase era
-       **60 de 154**; tras tarea #521 (H-API-692) son **75 de 154** — el
-       resto, **79**, sigue en el grupo BLOQUEADO de abajo (era 94; ver el
-       detalle de qué se cerró en :ref:`h-api-692`).
+       **60 de 154**; tras tarea #521 (H-API-692) eran **75 de 154**, y tras
+       cerrar el grupo Paquetes (17 símbolos: 13 ``def`` nuevos medidos por
+       AST + 3 campos como ``property`` + ``package_history_ids`` como
+       reverso M2M) son **92 de 154** — el resto, **62**, sigue en los grupos
+       bloqueados de abajo (era 94 → 79 → 62; ver el detalle de qué se cerró
+       en :ref:`h-api-692`).
 
        **Corrección durante este mismo pase (H-API-685):** un primer borrador
        incluía ``has_deadline_issue`` como ``property`` — leía
@@ -1077,9 +1084,12 @@ class StockPicking(MailThread, MailActivityMixin, TimeStampedModel):
        referencia; se deja registrado porque el propio ejercicio de escribir
        el caso de prueba —no una relectura— fue lo que lo destapó.
 
-       **Grupos BLOQUEADOS — 79 símbolos tras tarea #521 (H-API-692),
-       verificados por AST contra la cobertura real** (eran 94; el detalle
-       símbolo a símbolo de qué se cerró vive en :ref:`h-api-692`, no aquí):
+       **Grupos bloqueados — 62 símbolos tras cerrar el grupo Paquetes
+       (tarea #521, continuación), verificados por AST contra la cobertura
+       real** (eran 94 → 79; el detalle símbolo a símbolo de qué se cerró
+       vive en :ref:`h-api-692`, no aquí — la marca en mayúsculas queda
+       reservada a las declaraciones con forma fija del gate
+       ``check_bloqueo_declarado.py``):
 
        - **Report/QWeb — 13** (``do_print_picking``,
          ``get_action_click_graph``, ``_get_action``,
@@ -1093,17 +1103,18 @@ class StockPicking(MailThread, MailActivityMixin, TimeStampedModel):
          de este grupo en tarea #521: no necesita reportes, sólo texto — se
          portó con la misma divergencia declarada (sin QWeb, texto plano)
          que ya usan ``calculate_date_category``/``date_category_to_domain``.
-       - **Paquetes — 17** (``action_put_in_pack``, ``action_add_entire_packs``,
+       - **Paquetes — CERRADO en la continuación de tarea #521.** Los 17
+         símbolos (``action_put_in_pack``, ``action_add_entire_packs``,
          ``action_see_packages``, ``action_see_package_histories``,
          ``_check_move_lines_map_quant_package``,
          ``_get_entire_pack_location_dest``, ``_is_single_transfer``,
          ``_check_entire_pack``, ``_prepare_entire_pack_move_line_vals``,
-         ``packages_count`` + ``_compute_packages_count``,
-         ``show_allocation`` + ``_compute_show_allocation`` +
-         ``_get_show_allocation``, ``package_history_ids``,
-         ``show_check_availability`` + ``_compute_show_check_availability``):
-         tocan ``stock_package.py``, fuera de los archivos escribibles de
-         este pase.
+         ``packages_count``, ``show_allocation`` + ``_get_show_allocation``,
+         ``package_history_ids``, ``show_check_availability``) están
+         portados al final de esta clase; su bloqueo era sólo de write-set
+         (``stock_package.py`` fuera del pase anterior). Los tres computes
+         sin ``store`` son ``property`` (D-6) y ``package_history_ids`` es el
+         reverso del M2M declarado en ``stock_package_history.py``.
        - **Backorder/wizard — 9** (``_should_show_transfers``,
          ``_should_ignore_backorders``, ``_get_without_quantities_error_message``,
          ``_action_generate_backorder_wizard``,
@@ -1177,8 +1188,9 @@ class StockPicking(MailThread, MailActivityMixin, TimeStampedModel):
        es la ceguera de este instrumento (``metrica-decide-la-conclusion.md``).
 
        Sucesor de todo el grupo: tarea **PENDIENTE DE ASIGNAR** — completar
-       ``StockPicking`` en tres sub-pases (paquetes, backorder-wizard,
-       reservas/estado), en ese orden de dependencia.
+       ``StockPicking`` en dos sub-pases restantes (backorder-wizard,
+       reservas/estado), en ese orden de dependencia; el sub-pase de
+       paquetes se cerró en la continuación de tarea #521.
 
        Dos consecuencias de la cabecera, ya resueltas en este pase:
 
@@ -2233,3 +2245,298 @@ class StockPicking(MailThread, MailActivityMixin, TimeStampedModel):
         template = self.company.stock_mail_confirmation_template
         if template is not None:
             self.message_post_with_template(template)
+
+    # -- tarea #521 (continuación) — grupo Paquetes, 17 símbolos --
+    #
+    # El grupo quedó bloqueado en el pase anterior SÓLO por aislamiento de
+    # write-set (tocaba ``stock_package.py``); en esta tanda ese archivo es
+    # escribible y el grupo se cierra completo. Dos de sus símbolos
+    # (``_is_single_transfer`` y ``_check_move_lines_map_quant_package``) ya
+    # tenían un llamador vivo en ``stock_move_line.py:2022-2023``
+    # (``_get_lines_not_entire_pack``) — la pareja llamador/método estaba rota
+    # por el lado del método, la misma clase que :ref:`h-api-608`.
+
+    @property
+    def packages_count(self):
+        """≙ ``packages_count`` / ``_compute_packages_count`` (``odoo19c:
+        addons/stock/models/stock_picking.py:643``, ``:944-962``).
+
+        Con el albarán terminado cuenta las fotografías
+        (``stock.package.history``); en curso, los paquetes vivos cuya
+        ``picking_ids`` lo incluye. ``compute`` sin ``store`` allá → property
+        aquí (D-6). El dominio ``[('picking_ids', 'in', ...)]`` de la fuente
+        es exactamente ``StockPackage._search_picking_ids``.
+        """
+        if self.state == self.STATE_DONE:
+            return self.package_history_ids.count()
+        StockPackage = apps.get_model('stock', 'StockPackage')
+        return StockPackage._search_picking_ids([self]).count()
+
+    @property
+    def show_check_availability(self):
+        """≙ ``show_check_availability`` / ``_compute_show_check_availability``
+        (``odoo19c: addons/stock/models/stock_picking.py:645-647``, ``:964-980``).
+
+        ¿Debe ofrecerse «Comprobar disponibilidad»? Sólo con el albarán en
+        confirmado/esperando/disponible, con demanda aún no cubierta, y con
+        algún movimiento pendiente de cantidad no nula.
+        """
+        if self.state not in (self.STATE_CONFIRMED, self.STATE_WAITING,
+                              self.STATE_ASSIGNED):
+            return False
+        moves = list(self.move_ids.all())
+        if all(m.picked or m.product_uom_qty == m.quantity for m in moves):
+            return False
+        return any(
+            m.state in ('waiting', 'confirmed', 'partially_available')
+            and m.product_uom is not None
+            and m.product_uom.compare(m.product_uom_qty, 0) != 0
+            for m in moves)
+
+    @property
+    def show_allocation(self):
+        """≙ ``show_allocation`` / ``_compute_show_allocation`` (``odoo19c:
+        addons/stock/models/stock_picking.py:648-650``, ``:982-988``).
+
+        **Divergencia declarada:** la referencia lo apaga si el usuario no
+        tiene el grupo ``stock.group_reception_report``; este stack no tiene
+        grupos de usuario — se calcula siempre y la gate de visibilidad queda
+        del lado de quien consuma el campo (mismo criterio que
+        ``picking_warning_text``).
+        """
+        return bool(self._get_show_allocation(self.picking_type))
+
+    def _get_show_allocation(self, picking_type):
+        """≙ ``_get_show_allocation`` (``odoo19c: :1056-1077``).
+
+        Helper separado del compute para que otros modelos (p. ej. batch) lo
+        reusen. Hay asignación que ofrecer cuando OTRO albarán espera
+        (confirmado/parcial/esperando, y también reservado si éste ya
+        terminó) mercancía almacenable de los mismos productos, dentro del
+        almacén de este tipo de operación.
+        """
+        if picking_type is None or picking_type.code == 'outgoing':
+            return False
+        lines = [m for m in self.move_ids.all()
+                 if m.product is not None and m.product.is_storable
+                 and m.state != self.STATE_CANCEL]
+        if not lines:
+            return False
+        allowed_states = ['confirmed', 'partially_available', 'waiting']
+        if self.state == self.STATE_DONE:
+            allowed_states.append('assigned')
+        warehouse = picking_type.warehouse
+        view_location = warehouse.view_location if warehouse is not None else None
+        if view_location is None:
+            # ≙ un ``child_of`` sobre un id falsy en la fuente: conjunto vacío.
+            return False
+        StockMove = apps.get_model('stock', 'StockMove')
+        line_ids = [m.pk for m in lines]
+        product_ids = {m.product_id for m in lines}
+        return StockMove.objects.filter(
+            view_location.child_of_domain('location'),
+            Q(move_orig_ids__isnull=True) | Q(move_orig_ids__in=line_ids),
+            state__in=allowed_states,
+            product_qty__gt=0,
+            product_id__in=product_ids,
+        ).exclude(
+            location__usage='supplier',
+        ).exclude(picking=self).exists()
+
+    def action_put_in_pack(self, *, package_id=False, package_type_id=False,
+                           package_name=False):
+        """≙ ``action_put_in_pack`` (``odoo19c: :1761-1766``).
+
+        Delega en las líneas del albarán mientras no esté terminado ni
+        cancelado. **Divergencia declarada:** la limpieza de contexto
+        (``sml_specific_default`` + ``clean_context``) no aplica — no hay
+        ``env.context`` ambiental en este stack; los defaults viajan en el
+        descriptor de acción, no en el entorno.
+        """
+        if self.state in (self.STATE_DONE, self.STATE_CANCEL):
+            return None
+        StockMoveLine = apps.get_model('stock', 'StockMoveLine')
+        return StockMoveLine.action_put_in_pack(
+            list(self.move_line_ids.all()), package_id=package_id,
+            package_type_id=package_type_id, package_name=package_name)
+
+    def action_add_entire_packs(self, package_ids):
+        """≙ ``action_add_entire_packs`` (``odoo19c: :1904-1917``).
+
+        Añade paquetes COMPLETOS al albarán: borra las líneas que ya tomaban
+        parte de esos paquetes (ahora van enteros), crea una línea por quant
+        contenido, re-aplica la estrategia de colocación y marca como destino
+        los contenedores que quedaron completos. El ``child_of`` de la fuente
+        es aquí el prefijo de ``parent_path`` — el árbol de contenedores
+        ACTUALES, el mismo que usa ``all_children_package_ids``.
+        """
+        if self.state in (self.STATE_DONE, self.STATE_CANCEL):
+            return False
+        StockPackage = apps.get_model('stock', 'StockPackage')
+        StockMoveLine = apps.get_model('stock', 'StockMoveLine')
+        tree_domain = Q(pk__in=list(package_ids))
+        for root in StockPackage.objects.filter(pk__in=list(package_ids)):
+            if root.parent_path:
+                tree_domain |= Q(parent_path__startswith=root.parent_path)
+        all_packages = StockPackage.objects.filter(tree_domain)
+        all_package_ids = set(all_packages.values_list('pk', flat=True))
+        self.move_line_ids.filter(package_id__in=all_package_ids).delete()
+        move_line_vals = self._prepare_entire_pack_move_line_vals(all_packages)
+        pack_move_lines = [
+            StockMoveLine.objects.create(**vals) for vals in move_line_vals]
+        if pack_move_lines:
+            StockMoveLine._apply_putaway_strategy(pack_move_lines)
+        for container in {
+                l.result_package for l in self.move_line_ids.all()
+                if l.result_package_id is not None}:
+            container._apply_package_dest_for_entire_packs(
+                allowed_package_ids=all_package_ids)
+        return True
+
+    def action_see_packages(self):
+        """≙ ``action_see_packages`` (``odoo19c: :1927-1942``).
+
+        **Divergencia declarada:** sin registro de vistas (``self.env.ref``)
+        el descriptor se arma directo — mismo contrato de dominio y contexto
+        que la referencia, sin ``views`` con ids de vista XML (misma forma
+        que ``action_detailed_operations``).
+        """
+        return {
+            'name': _('Paquetes'),
+            'res_model': 'stock.package',
+            'view_mode': 'list,kanban,form',
+            'type': 'ir.actions.act_window',
+            'domain': [('picking_ids', 'in', [self.pk])],
+            'context': {
+                'picking_ids': [self.pk],
+                'location_id': self.location_id,
+                'can_add_entire_packs': self.picking_type_code != 'incoming',
+                'search_default_main_packages': True,
+            },
+        }
+
+    def action_see_package_histories(self):
+        """≙ ``action_see_package_histories`` (``odoo19c: :1944-1957``)."""
+        return {
+            'name': _('Paquetes'),
+            'res_model': 'stock.package.history',
+            'view_mode': 'list',
+            'type': 'ir.actions.act_window',
+            'domain': [('picking_ids', '=', self.pk)],
+            'context': {
+                'search_default_main_packages': 1,
+            },
+        }
+
+    def _check_move_lines_map_quant_package(self, package):
+        """≙ ``_check_move_lines_map_quant_package`` (``odoo19c: :1293-1296``).
+
+        ¿Las líneas de este albarán que tocan ``package`` (o a cualquiera de
+        sus descendientes) cubren exactamente su contenido? La comparación en
+        sí vive en el paquete (``_check_move_lines_map_quant``).
+        """
+        descendants = set(
+            package.all_children_package_ids.values_list('pk', flat=True))
+        lines = [
+            l for l in self.move_line_ids.all()
+            if l.product is not None and l.product.is_storable
+            and (l.package_id == package.pk or l.package_id in descendants)]
+        return package._check_move_lines_map_quant(lines)
+
+    def _get_entire_pack_location_dest(self, move_line_ids):
+        """≙ ``_get_entire_pack_location_dest`` (``odoo19c: :1298-1302``).
+
+        El destino común de las líneas, o ``False`` si no hay uno solo.
+        """
+        location_dest_ids = {l.location_dest_id for l in move_line_ids}
+        if len(location_dest_ids) != 1:
+            return False
+        return next(iter(location_dest_ids))
+
+    def _is_single_transfer(self):
+        """≙ ``_is_single_transfer`` (``odoo19c: :1304-1306``).
+
+        La fuente responde ``len(self) == 1`` sobre un recordset (y los
+        batches la reescriben). Una instancia Django es siempre un solo
+        registro, así que aquí es ``True``; la pregunta de conjunto —¿las
+        líneas de un paquete caen en UN solo albarán?— la hace
+        ``_check_entire_pack`` comparando el conjunto de albaranes.
+        """
+        return True
+
+    def _check_entire_pack(self):
+        """≙ ``_check_entire_pack`` (``odoo19c: :1308-1324``).
+
+        Detecta paquetes movidos COMPLETOS: si todas las líneas de un paquete
+        caen en un solo albarán y cubren exactamente su contenido, las líneas
+        sin destino heredan el paquete como ``result_package`` — salvo que el
+        contenedor sea reutilizable, que por definición se vacía y vuelve. Al
+        final, los contenedores completos propagan su propio destino.
+        """
+        by_package = defaultdict(list)
+        for line in self.move_line_ids.all():
+            if line.package_id is not None:
+                by_package[line.package].append(line)
+        for package, package_move_lines in by_package.items():
+            transfers = {l.picking for l in package_move_lines
+                         if l.picking_id is not None}
+            # ≙ ``pickings._is_single_transfer()`` sobre el recordset: aquí el
+            # conjunto de albaranes se compara directo (ver el docstring de
+            # ``_is_single_transfer``).
+            if len(transfers) != 1:
+                continue
+            transfer = next(iter(transfers))
+            if not transfer._check_move_lines_map_quant_package(package):
+                continue
+            reusable = (package.package_type is not None
+                        and package.package_type.package_use == 'reusable')
+            if reusable:
+                continue
+            for line in package_move_lines:
+                if (line.result_package_id is None
+                        and line.state not in (self.STATE_DONE,
+                                               self.STATE_CANCEL)):
+                    line.result_package = package
+                    line.is_entire_pack = True
+                    line.save(
+                        update_fields=['result_package', 'is_entire_pack'])
+        for container in {
+                l.result_package for l in self.move_line_ids.all()
+                if l.result_package_id is not None}:
+            container._apply_package_dest_for_entire_packs()
+
+    def _prepare_entire_pack_move_line_vals(self, packages):
+        """≙ ``_prepare_entire_pack_move_line_vals`` (``odoo19c: :2129-2149``).
+
+        Una línea por quant directamente contenido en cada paquete de
+        ``packages`` (los descendientes ya vienen en el conjunto — los trae
+        el ``child_of`` de ``action_add_entire_packs``).
+
+        **Divergencia declarada:** la fuente escribe ``'company_id': self.id``
+        (``odoo19c: :2143``) — el **id del albarán** en la FK de empresa, un
+        defecto aparente de la referencia. Aquí la empresa es la del albarán
+        (``self.company``), que es lo que ``save()`` de la línea recalcularía
+        de todos modos.
+        """
+        StockQuant = apps.get_model('stock', 'StockQuant')
+        move_line_vals = []
+        quants = (StockQuant.objects
+                  .filter(package__in=packages)
+                  .select_related('product', 'location', 'package',
+                                  'lot', 'owner'))
+        for package_quant in quants:
+            move_line_vals.append({
+                'product': package_quant.product,
+                'quantity': package_quant.quantity,
+                'product_uom': package_quant.product_uom,
+                'location': package_quant.location,
+                'location_dest': self.location_dest,
+                'picking': self,
+                'company': self.company,
+                'package': package_quant.package,
+                'result_package': package_quant.package,
+                'lot': package_quant.lot,
+                'owner': package_quant.owner,
+                'is_entire_pack': True,
+            })
+        return move_line_vals

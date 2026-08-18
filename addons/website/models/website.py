@@ -116,16 +116,19 @@ Lo que este archivo NO cierra
 ===============================
 
 Los seis bloques están abiertos y cerrados con su cobertura declarada: lo que
-queda vivo son los **bloqueados** — 9 del configurador (banner de B4), 1
-heredado de B2 (``new_page``) y 6 nuevos de B6 (banner de B6), cada uno con
-su sucesor; #545 cerró los 4 de enumeración de páginas que aquí se contaban
-como heredados de B2. Los 33 de B1
+queda vivo son los **bloqueados** — 9 del configurador (banner de B4) y 4 de
+B6 (banner de B6), cada uno con su sucesor; #545 cerró los 4 de enumeración
+de páginas que aquí se contaban como heredados de B2, y **#104** cerró
+``new_page`` (el heredado de B2), ``get_website_page_ids`` y
+``_get_website_pages`` al portar ``website.page``/``website.rewrite``.
+Los 33 de B1
 están todos declarados; **tres tienen el cuerpo recortado**, y cada uno dice por
 qué en su propio docstring en vez de callarlo:
 
 - ``_remove_attachments_on_website_unlink`` — ``ir.attachment`` no declara
   ``website_id`` en este árbol, así que el filtro no tiene sobre qué operar.
-  Se cierra con #104.
+  #104 no lo cubrió (su alcance fueron los modelos del addon, no la extensión
+  de attachments); sucesor: tarea **#563**.
 - ``_handle_favicon`` — ``tools.image.image_process`` existe pero su firma aún
   no acepta ``output_format='ICO'``; el valor pasa sin reprocesar.
 - ``_default_logo`` y ``_default_favicon`` — leen estáticos
@@ -181,14 +184,15 @@ reales son los de esta tabla; la aritmética del bloque (15) no cambia.
      - sobre ``_get_template_view`` / ``_get_cached_template_info`` que
        **#544** portó a ``IrUiView``
    * - ``new_page``
-     - BLOQUEADO por ``website.page``
-     - 0 clases en el árbol (#104); además el template se resuelve por
-       external ID (#467). Única fila abierta del bloque
+     - portado (#104)
+     - ``website.page`` existe; el template se resuelve por la ``key`` de
+       la vista (≙ xml_id) en vez de external ID — ver su docstring. Con
+       esta fila el bloque queda sin filas abiertas
    * - ``check_existing_page``
-     - portado (#545)
+     - portado (#545 + #104)
      - la mitad de routing corre sobre la URLconf de Django
-       (``get_resolver().resolve``); la mitad de ``website.rewrite`` queda
-       declarada como arista en su docstring (#104)
+       (``get_resolver().resolve``); la mitad de ``website.rewrite`` la
+       cerró #104 (escalón 2 del docstring)
    * - ``rule_is_enumerable`` · ``_enumerate_pages`` · ``search_pages``
      - portado (#545)
      - los tres leen la URLconf de Django (``get_resolver()``) en vez del
@@ -235,6 +239,7 @@ from django.urls import Resolver404, URLPattern, URLResolver, get_resolver
 # ``re_path()`` — interno de Django leído en el paquete instalado
 # (``django/urls/resolvers.py:314``), no de memoria.
 from django.urls.resolvers import RoutePattern
+from django.utils import timezone
 from django.utils.safestring import mark_safe
 from lxml import etree, html
 
@@ -1018,19 +1023,20 @@ class Website(TimeStampedModel):
         todos: la fuente es explícita en que las facturas no se tocan.
 
         **Esbozo declarado.** ``ir.attachment`` no declara ``website_id`` en
-        este árbol, así que el filtro no tiene sobre qué operar. Se cierra
-        cuando #104 alinee los modelos propios del addon.
+        este árbol, así que el filtro no tiene sobre qué operar. #104 alineó
+        los modelos propios del addon pero no la extensión de attachments;
+        sucesor: tarea **#563**.
         """
         return None
 
     # ── B2 · resolución de sitio actual y páginas (#535) ──────────────────────
     #
-    # 14 de los 15 métodos del bloque están declarados con cuerpo; el único
-    # que sigue bloqueado es ``new_page`` (su arista vive en la tabla
-    # "Cobertura de B2" del docstring del módulo y en el banner de B6).
+    # Los 15 métodos del bloque están declarados con cuerpo — la última fila
+    # abierta (``new_page``) la cerró **#104** al portar ``website.page``.
     # Historia del desbloqueo: 7 se portaron al abrir el bloque, #543/#544
     # abrieron 3, B6 uno (``search_url_dependencies``, al portar
-    # ``_get_html_fields``) y #545 los 4 de enumeración sobre la URLconf.
+    # ``_get_html_fields``), #545 los 4 de enumeración sobre la URLconf y
+    # #104 el último (su método vive en la sección de este bloque, abajo).
 
     @classmethod
     def get_current_website(cls, fallback=True):
@@ -1287,15 +1293,17 @@ class Website(TimeStampedModel):
         después los controladores enumerables de la URLconf. Generador,
         como la fuente.
 
-        **Mitad de páginas — análogo ``StaticPage`` hasta #104** (mismo
-        interinato que ``get_unique_path``): ``website.page`` no existe, así
-        que se enumera ``StaticPage``. Sin ``force`` sólo cuentan las que
-        tienen versión publicada (el análogo de su
-        ``website_published = True``); ``website_indexed``, ``visibility``,
-        ``date_publish`` y la ``priority`` de la vista son campos de
-        ``website.page`` y llegan con #104. El ``lastmod`` sale de
-        ``updated_at`` (≙ ``write_date``; el eje ``view_write_date`` también
-        es de #104).
+        **Mitad de páginas — ``website.page`` desde #104, más el interinato
+        ``StaticPage``.** La enumeración primaria es la de la fuente:
+        ``website.page`` filtrado por ``website_indexed``, publicación y
+        ``date_publish``, con la ``priority`` de la vista (vía la delegación)
+        y el ``lastmod`` como el mayor de ``updated_at``/``view_write_date``
+        (≙ ``write_date``/``view_write_date``). El filtro
+        ``('visibility', '=', False)`` es del mixin ausente — BLOQUEADO por
+        ``website.page_options.mixin`` — y no tiene sobre qué operar.
+        Después se enumera ``StaticPage`` — el interinato que #104 conserva
+        (decisión en ``website_page.py``); sin ``force`` sólo cuentan las
+        que tienen versión publicada.
 
         **Mitad de controladores — la URLconf.** Divergencias declaradas:
 
@@ -1320,9 +1328,37 @@ class Website(TimeStampedModel):
         ``_norm`` (normaliza la barra final preservando ``/``) y la
         deduplicación por ``url_set``.
         """
-        # ==== páginas (StaticPage hasta #104) ====
+        # ==== páginas (website.page; StaticPage como interinato) ====
         # '/' ya está en la URLconf, así que tendrá su entrada por la mitad
-        # de controladores (comentario de la fuente, mismo motivo).
+        # de controladores (comentario de la fuente, mismo motivo). El
+        # ``('view_id', '!=', False)`` del dominio de la fuente es invariante
+        # aquí: la FK es NOT NULL.
+        page_model = model_by_name('website.page')
+        pages_queryset = page_model.objects.exclude(url='/')
+        if not force:
+            pages_queryset = pages_queryset.filter(
+                website_indexed=True, is_published=True)
+            pages_queryset = pages_queryset.filter(
+                models.Q(date_publish__isnull=True)
+                | models.Q(date_publish__lte=timezone.now()))
+        if query_string:
+            pages_queryset = pages_queryset.filter(
+                url__contains=query_string)
+        current_website = self.get_current_website()
+        if current_website is not None:
+            pages_queryset = pages_queryset.filter(
+                current_website.website_domain())
+        for page in page_model._get_most_specific_pages(
+                list(pages_queryset), website=current_website):
+            record = {'loc': page.url, 'id': page.pk, 'name': page.name}
+            if page.priority != 16:
+                record['priority'] = min(round(page.priority / 32.0, 1), 1)
+            last_dates = [d for d in (page.updated_at, page.view_write_date)
+                          if d]
+            if last_dates:
+                record['lastmod'] = max(last_dates).date()
+            yield record
+
         for page in StaticPage.objects.all():
             url = page.url
             if url == '/':
@@ -1400,18 +1436,22 @@ class Website(TimeStampedModel):
         """≙ ``check_existing_page`` (``odoo19c: :1723-1768``).
 
         ¿La página existe para el sitio actual? Heurística, no perfectamente
-        confiable — el mismo aviso de la fuente. Tres escalones allá; aquí
-        dos portados y uno bloqueado:
+        confiable — el mismo aviso de la fuente. Los tres escalones de la
+        fuente, ya portados (#545 trajo el tercero; **#104** cerró los dos
+        primeros al portar ``website.page`` y ``website.rewrite``):
 
-        1. **Registro de página** — la fuente busca ``website.page`` con esa
-           ``url`` vía ``_get_website_pages``; aquí el análogo interino es
-           ``StaticPage`` (hasta #104, igual que ``get_unique_path``): sin
-           columna ``url`` ni FK a sitio, el conjunto se materializa y se
-           compara en Python.
-        2. **Redirecciones** — BLOQUEADO por ``website.rewrite`` — el modelo
-           no existe (0 clases en el árbol); la búsqueda de redirects
-           301/302 y el atrapado del 308 (``RequestRedirect``) llegan con su
-           porte. Sucesor: **#104**.
+        1. **Registro de página** — ``website.page`` con esa ``url`` vía
+           ``_get_website_pages``. El ``('view_id', '!=', False)`` de la
+           fuente es invariante aquí: la FK ``view`` es NOT NULL. El
+           interinato ``StaticPage`` cuenta como segundo paso mientras sus
+           consumidores REST vivan (decisión de #104 — ver el docstring de
+           ``website_page.py``).
+        2. **Redirecciones** — un ``website.rewrite`` 301/302 con ese
+           ``url_from`` cuenta como existente; por simplicidad no se sigue
+           el destino (comentario de la fuente). La 308 entra por este mismo
+           filtro — en la fuente aparece después, como el
+           ``RequestRedirect`` que lanza su router; el resolver de Django no
+           redirige, así que su mitad de datos se consulta aquí.
         3. **El mapa de rutas** — el ``router.test``/``router.match`` de la
            fuente es aquí ``get_resolver().resolve(page)``: sin match
            (``Resolver404``) la página no existe; con match, existe.
@@ -1419,17 +1459,27 @@ class Website(TimeStampedModel):
         Divergencias declaradas del escalón 3: (a) el resolver de Django no
         redirige — el análogo del ``RequestRedirect`` werkzeug
         (``APPEND_SLASH``) vive en ``CommonMiddleware``, no en la
-        resolución, así que ese desenlace no aparece aquí; (b) la
+        resolución; la 308 de datos ya se cubrió en el escalón 2; (b) la
         validación por registro de los args del match (``rule.build`` +
         ``MissingError`` + el descarte por ``website_id`` ajeno) depende de
         los model converters, que la URLconf no tiene — un match resuelto se
         acepta sin materializar registros.
         """
-        # 1) Registro de página (StaticPage hasta #104).
+        # 1) Registro de página (website.page; StaticPage como interinato).
+        if self._get_website_pages(domain=Domain('url', '=', page), limit=1):
+            return True
         if any(existing.url == page for existing in StaticPage.objects.all()):
             return True
 
-        # 2) website.rewrite — bloqueado; ver el docstring.
+        # 2) website.rewrite 301/302 (más la 308 — ver el docstring).
+        rewrite_model = model_by_name('website.rewrite')
+        current_website = self.get_current_website()
+        redirects = rewrite_model.objects.filter(
+            url_from=page, redirect_type__in=('301', '302', '308'))
+        if current_website is not None:
+            redirects = redirects.filter(current_website.website_domain())
+        if redirects.exists():
+            return True
 
         # 3) Si ninguna regla matchea la página, no existe.
         try:
@@ -1437,6 +1487,166 @@ class Website(TimeStampedModel):
         except Resolver404:
             return False
         return True
+
+    def get_website_page_ids(self):
+        """≙ ``get_website_page_ids`` (``odoo19c: :1670-1705``).
+
+        IDs de ``website.page`` agrupados por sitio, reducidos a las páginas
+        más específicas. Portado por **#104**.
+
+        Divergencias declaradas:
+
+        - El gate ``has_group('website.group_website_restricted_editor')``
+          con su ``AccessError`` — BLOQUEADO por
+          ``website.group_website_restricted_editor`` — resolver el grupo
+          exige el registro de datos por external ID (#467; mismo criterio
+          que ``_should_remove_third_party_trackers``). La autorización de
+          este árbol corre en la capa DRF (``HasCapability``, fail-closed),
+          que es quien expone el método.
+        - El recordset vacío/inexistente de la fuente es aquí la instancia
+          sin ``pk``: devuelve todas las páginas bajo la clave ``None``. Una
+          instancia guardada devuelve su propio mapa de un sitio.
+        - ``Domain('url', '!=', False)`` es invariante aquí: ``url`` es NOT
+          NULL, así que no se re-declara.
+        - El ``sudo()`` de la fuente es el estado por defecto de este ORM
+          (el manager no aplica ACL de lectura).
+        """
+        page_model = model_by_name('website.page')
+        if not self.pk:
+            return {None: list(
+                page_model.objects.values_list('id', flat=True))}
+        pages = list(page_model.objects.filter(self.website_domain()))
+        most_specific = page_model._get_most_specific_pages(
+            pages, website=self)
+        return {self.pk: [page.pk for page in most_specific]}
+
+    @classmethod
+    def _get_website_pages(cls, domain=None, order='name', limit=None):
+        """≙ ``_get_website_pages`` (``odoo19c: :1707-1712``).
+
+        Las páginas del sitio actual que cumplen el dominio, reducidas a las
+        más específicas. Portado por **#104**.
+
+        Divergencias declaradas: (1) recordset → lista de instancias;
+        (2) el ``order='name'`` por defecto ordena una columna del delegado
+        — la traduce ``_translate_order`` de ``website.page`` al JOIN de la
+        delegación (``view__name``); (3) el ``sudo()`` de la fuente es el
+        estado por defecto de este ORM.
+        """
+        page_model = model_by_name('website.page')
+        website = cls.get_current_website()
+        queryset = page_model.objects.all()
+        if domain is not None:
+            queryset = queryset.filter(to_q(domain, page_model))
+        if website is not None:
+            queryset = queryset.filter(website.website_domain())
+        order_by = page_model._translate_order(order)
+        if order_by:
+            queryset = queryset.order_by(*order_by)
+        if limit:
+            queryset = queryset[:limit]
+        return page_model._get_most_specific_pages(
+            list(queryset), website=website)
+
+    def new_page(self, name=False, add_menu=False,
+                 template='website.default_page', ispage=True, namespace=None,
+                 page_values=None, menu_values=None, sections_arch=None,
+                 page_title=None):
+        """≙ ``new_page`` (``odoo19c: :1164-1238``).
+
+        Crea una página nueva del sitio: clona la vista plantilla, deriva la
+        URL y la clave únicas, crea el ``website.page`` y, si se pide, su
+        menú. Desbloqueado por **#104** (``website.page`` existe); el
+        escalón del template quedó resuelto sin external ID (abajo).
+
+        Divergencias declaradas:
+
+        - ``self.env.ref(template)`` (external ID, #467) se resuelve por la
+          ``key`` de la vista: en la referencia las vistas QWeb del sitio
+          llevan ``key = xml_id``, así que la misma cadena localiza la misma
+          vista sin registro de datos (es el criterio con que ``key`` se
+          portó a ``ir.ui.view``). Sin plantilla con esa clave corta con
+          ``UserError`` — la fuente revienta en el ``ref``.
+        - ``template_record.copy({...})`` es un clon campo a campo (el ORM
+          no trae ``copy()``; mismo criterio que ``copy_menu_hierarchy``).
+          El ``website_id`` del contexto que la fuente pasa al clon es de la
+          COW de ``ir.ui.view`` no portada (divergencia 2 de
+          ``website_page.py``); el eje por sitio queda en la página.
+        - ``'track': True`` del ``default_page_values`` — BLOQUEADO por
+          ``website.page_options.mixin`` — el campo es de ese mixin.
+        - El menú se busca/crea por ``route`` (≙ su ``url``) y lleva la
+          ``key`` derivada — campo propio único de ``website.menu``.
+        """
+        template_module = namespace if namespace else template.split('.')[0]
+        page_url = '/' + IrHttp.slugify(name or '', max_length=1024, path=True)
+        page_url = self.get_unique_path(page_url)
+        page_key = IrHttp.slugify(name or '')
+        result = {'url': page_url}
+
+        if not name:
+            name = 'Home'
+            page_key = 'home'
+
+        page_model = model_by_name('website.page')
+        template_record = IrUiView.objects.filter(key=template).first()
+        if template_record is None:
+            raise UserError(
+                _('No hay vista plantilla con la clave %s') % template)
+        arch = template_record.arch_db
+        if sections_arch:
+            tree = html.fromstring(arch)
+            wrap = tree.xpath('//div[@id="wrap"]')[0]
+            for section in html.fromstring(f'<wrap>{sections_arch}</wrap>'):
+                wrap.append(section)
+            arch = etree.tostring(tree, encoding="unicode")
+        key = self.get_unique_key(page_key, template_module)
+        view = IrUiView.objects.create(
+            name=page_title or name,
+            model=template_record.model,
+            type=template_record.type,
+            priority=template_record.priority,
+            mode=template_record.mode,
+            inherit_id=template_record.inherit_id,
+            key=key,
+            arch_db=arch.replace(template, key),
+            # ≙ ``view.arch_fs = False``: el clon no procede de un archivo.
+            arch_fs='',
+        )
+        result['view_id'] = view.pk
+
+        current_website = self.get_current_website()
+        page = None
+        if ispage:
+            default_page_values = {
+                'url': page_url,
+                # «quitar si hay un solo sitio, ¿o no?» — comentario de la
+                # fuente, conservado.
+                'website': current_website,
+                'view': view,
+            }
+            if page_values:
+                default_page_values.update(page_values)
+            page = page_model.objects.create(**default_page_values)
+            result['page_id'] = page.pk
+        if add_menu:
+            menu = WebsiteMenu.objects.filter(
+                route=page_url, website=current_website).first()
+            if not menu:
+                default_menu_values = {
+                    'name': name,
+                    'route': page_url,
+                    'parent': current_website.menu if current_website else None,
+                    'page': page,
+                    'website': current_website,
+                    'key': '%s-w%s' % (
+                        page_key or 'home',
+                        current_website.pk if current_website else 0),
+                }
+                if menu_values:
+                    default_menu_values.update(menu_values)
+                menu = WebsiteMenu.objects.create(**default_menu_values)
+            result['menu_id'] = menu.pk
+        return result
 
     # ── B2 — los tres que la tanda #543/#544 desbloqueó ──────────────────────
 
@@ -1550,8 +1760,15 @@ class Website(TimeStampedModel):
     def _search_get_details(self, search_type, order, options):
         """≙ ``_search_get_details`` (``odoo19c: :2021-2033``).
 
-        La fuente consulta ``website.page``; su análogo en este árbol es
-        ``StaticPage`` hasta la realineación **#104**.
+        La fuente consulta ``website.page``. Aquí sigue sirviendo
+        ``StaticPage`` — el interinato que #104 conserva (decisión en
+        ``website_page.py``): sus consumidores REST y sus tests viven sobre
+        él. La receta de ``website.page`` ya existe
+        (``WebsitePage._search_get_detail``), pero su cableado a este flujo
+        está BLOQUEADO por ``_trigram_enumerate_words`` — los enumeradores
+        de palabras construyen su SQL sobre columnas de la tabla del modelo,
+        y los campos de búsqueda de la página cruzan el JOIN de la
+        delegación (``view.name``). Sucesor: tarea **#564**.
         """
         result = []
         if search_type in ('pages', 'all'):
@@ -2177,18 +2394,15 @@ class Website(TimeStampedModel):
     # **42**, no los 32 de la partición. De esos 42: **19 se portan aquí**,
     # **3 ya estaban cubiertos con nombre divergente** (``create``/``write`` →
     # ``save``, ``unlink`` → ``delete``; divergencia CRUD declarada en B1),
-    # **9 siguen bloqueados por el banner de B4** (configurador), y **7
+    # **9 siguen bloqueados por el banner de B4** (configurador), y **4
     # quedan bloqueados aquí** —eran 11: #545 cerró ``rule_is_enumerable``,
-    # ``_enumerate_pages``, ``search_pages`` y ``check_existing_page``, ya
-    # portados sobre la URLconf en la sección de B2— cada uno con su pieza
-    # medida y su sucesor:
+    # ``_enumerate_pages``, ``search_pages`` y ``check_existing_page`` (ya
+    # portados sobre la URLconf en la sección de B2), y **#104** cerró
+    # ``new_page`` (``:1164``), ``get_website_page_ids`` (``:1670``) y
+    # ``_get_website_pages`` (``:1707``) al portar ``website.page`` con
+    # ``_get_most_specific_pages`` (ver ``website_page.py``)— cada uno con
+    # su pieza medida y su sucesor:
     #
-    # - ``new_page`` (``:1164``) — BLOQUEADO por ``website.page`` — 0 clases
-    #   en el árbol (#104); además el template se resuelve por external ID
-    #   (``env.ref``, #467).
-    # - ``get_website_page_ids`` (``:1670``), ``_get_website_pages``
-    #   (``:1707``) — ``website.page`` con ``_get_most_specific_pages`` no
-    #   existe. Sucesor: **#104**.
     # - ``action_dashboard_redirect`` (``:1801``) — resuelve una acción y dos
     #   grupos por external ID; necesita el registro de datos por módulo.
     #   Sucesor: **#467**.
@@ -2238,17 +2452,29 @@ class Website(TimeStampedModel):
         """≙ ``get_unique_path`` (``odoo19c: :1240-1254``).
 
         Dada una URL, la misma URL sufijada con un contador si ya existe.
+        Realineado por **#104**: la búsqueda corre sobre ``website.page``
+        acotada al sitio específico — sólo ``website_id`` estricto, no
+        ``website_domain()``: ``/url`` puede existir para la genérica y para
+        el sitio a la vez, y el gestor de páginas administra ese duplicado
+        (comentario de la fuente, conservado).
 
-        Divergencia declarada: la fuente busca sobre ``website.page`` acotado
-        por ``website_id``; aquí el análogo es ``StaticPage`` (hasta #104),
-        cuya ``url`` es una property derivada del slug — sin columna que
-        filtrar, el conjunto se materializa y se compara en Python. El eje
-        por sitio llega con la FK de #104.
+        Divergencias declaradas: (1) el ``active_test=False`` + ``sudo()``
+        de la fuente son el estado por defecto de este ORM; (2) el
+        interinato ``StaticPage`` sigue contando mientras sus consumidores
+        REST vivan (decisión de #104) — su ``url`` es una property derivada
+        del slug, sin columna que filtrar, así que su conjunto se
+        materializa y se compara en Python, como antes.
         """
-        existing_urls = {page.url for page in StaticPage.objects.all()}
+        page_model = model_by_name('website.page')
+        current_website = self.get_current_website()
+        website_id = (get_context().get('website_id')
+                      or (current_website.pk if current_website else None))
+        static_urls = {page.url for page in StaticPage.objects.all()}
         inc = 0
         page_temp = page_url
-        while page_temp in existing_urls:
+        while (page_model.objects.filter(
+                url=page_temp, website_id=website_id).exists()
+               or page_temp in static_urls):
             inc += 1
             page_temp = page_url + ('-%s' % inc)
         return page_temp
@@ -2296,7 +2522,9 @@ class Website(TimeStampedModel):
         Divergencias declaradas: (1) ``ir.ui.view`` aquí no declara
         ``website_id``, así que el recorte por sitio de la fuente no tiene
         eje — la unicidad se verifica global, que es lo conservador (una
-        clave única global también lo es por sitio); llega con #104. (2) el
+        clave única global también lo es por sitio); #104 dejó el eje por
+        sitio en la página, no en la vista (divergencia 2 de
+        ``website_page.py``), así que el recorte llega con la COW. (2) el
         ``active_test=False`` + ``sudo()`` de la fuente son el estado por
         defecto de este ORM: el manager no filtra ``active`` ni aplica ACL
         de lectura.

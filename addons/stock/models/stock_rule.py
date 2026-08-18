@@ -759,7 +759,7 @@ class StockRule(TimeStampedModel):
             move.save()
             # El destino de las líneas tiene que seguir al del movimiento.
             for line in move.move_line_ids.all() if hasattr(move, 'move_line_ids') else []:
-                strategy = move.location_dest.get_putaway_strategy(move.product)
+                strategy = move.location_dest._get_putaway_strategy(move.product)
                 line.location_dest = strategy or move.location_dest
                 line.save()
             # Evita el bucle si la regla push está mal configurada; si el

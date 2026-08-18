@@ -71,7 +71,7 @@ Divergencias declaradas
 3. **``get_putaway_location`` es de instancia y de conjunto.** La referencia
    itera ``self`` porque su ``self`` es un recordset; aquí el método vive en el
    manager (``StockPutawayRule.objects``) y también en la instancia, para que
-   ``StockLocation.get_putaway_strategy`` pueda llamarlo regla por regla como
+   ``StockLocation._get_putaway_strategy`` pueda llamarlo regla por regla como
    ya hace.
 
 Guion bajo restaurado (2026-08-18, :ref:`h-api-680`)

@@ -79,9 +79,14 @@ class WebsiteMenu(TimeStampedModel):
       razón (DEC-11).
     - ``is_visible`` (computed, ``:51``) → lo resuelve el manager al podar;
       no se persiste.
-    - ``page_id`` · ``controller_page_id`` (``:43-44``) → **no se portan**:
-      ``website.page`` y ``website.controller.page`` no existen en este árbol
-      (0 clases, medido en el porte de ``website.py``). Sucesor: **#104**.
+    - ``page_id`` (``:43``) → ``page``: **portado en #104** (el sufijo
+      ``_id`` se cae en los FK, :ref:`h-api-579`; la columna sigue siendo
+      ``page_id``). Su reverso es el ``menu_ids`` de ``website.page``. El
+      FK va por cadena (``'website.WebsitePage'``) para conservar el sentido
+      del import página → menú.
+    - ``controller_page_id`` (``:44``) → BLOQUEADO por
+      ``website.controller.page`` — el modelo no existe en este árbol
+      (0 clases, medido en el porte de ``website.py``).
     - ``is_mega_menu`` · ``mega_menu_content`` · ``mega_menu_classes``
       (``:55-57``) → **no se portan**: pertenecen al editor de sitios de
       Odoo, que este árbol no tiene (el cliente es un SPA React). Divergencia
@@ -188,6 +193,14 @@ class WebsiteMenu(TimeStampedModel):
             'Odoo group_ids. Lleva la capacidad que enforce el endpoint del '
             'destino, no la del ítem. Null en secciones.'
         ),
+    )
+    page = models.ForeignKey(
+        'website.WebsitePage', on_delete=models.CASCADE, null=True,
+        blank=True, db_index=True, related_name='menu_ids',
+        db_column='page_id', verbose_name='Página relacionada',
+        help_text="Odoo page_id ('website.page', ondelete='cascade', "
+                  'index=btree_not_null). Null = el menú apunta a una ruta, '
+                  'no a una página.',
     )
     route = models.CharField(
         max_length=160, blank=True, default='', verbose_name='Ruta SPA',

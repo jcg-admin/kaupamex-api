@@ -1,9 +1,23 @@
-"""Página estática de settings con historial.
+"""Página estática de settings con historial — interinato conservado por #104.
 
 Duplica el propósito de ``static_content.py`` — ambos pares modelan "página
-con versionado". La referencia tiene **un** modelo (``website.page``). La
-consolidación está registrada como hallazgo; ver
-``alinear-addon-website-referencia``.
+con versionado". La referencia tiene **un** modelo (``website.page``), que
+**#104 ya portó** (``website_page.py``, delegando en ``ir.ui.view``).
+
+**Decisión de #104: este par se CONSERVA, absorbido en papel pero no en
+datos.** Razones, medidas en el pase:
+
+- El flujo editorial DRAFT→PUBLISHED→ARCHIVED con historial
+  (``StaticPageVersion``) no tiene hogar en ``website.page``: allá el
+  versionado sale del COW de ``ir.ui.view``, que no está portado.
+- Los consumidores REST (``controllers/main.py``, serializers,
+  ``authz_catalog`` y los tests de integración) sirven este par; migrar su
+  contrato público excede el pase y es la tarea **#560**.
+
+Ninguna tabla se borra ni migra: cero pérdida de datos. Los consumidores
+internos de ``Website`` (``get_unique_path``, ``check_existing_page``,
+``_enumerate_pages``) ya consultan ``website.page`` como primario y este par
+como interinato.
 """
 from django.conf import settings
 from django.db import models
@@ -19,8 +33,9 @@ class StaticPage(WebsiteSearchableMixin, TimeStampedModel):
     Hereda ``WebsiteSearchableMixin`` como su análogo ``website.page`` en la
     referencia (``odoo19c: website/models/website_page.py:29`` —
     ``_inherit = [... 'website.searchable.mixin']``): es el primer modelo
-    buscable desde ``Website._search_with_fuzzy``. Su realineación completa
-    a ``website.page`` sigue siendo la tarea **#104**.
+    buscable desde ``Website._search_with_fuzzy``. #104 portó
+    ``website.page``; este modelo queda como interinato conservado (ver el
+    docstring del módulo).
     """
     PAGE_ABOUT   = 'about'
     PAGE_TERMS   = 'terms'
@@ -70,15 +85,19 @@ class StaticPage(WebsiteSearchableMixin, TimeStampedModel):
         - ``base_domain`` restringe a páginas **con versión publicada** — el
           análogo de su ``website_published = True``; aquí la publicación
           vive en ``StaticPageVersion.status``.
-        - Sin el recorte por sitio (``website.website_domain()``): la página
-          estática no declara FK a ``website`` todavía (**#104**).
-        - Sin los escalones de visibilidad por grupo/contraseña: esos campos
-          son de ``website.page`` y llegan con la realineación (**#104**).
+        - Sin el recorte por sitio (``website.website_domain()``): este
+          modelo es el interinato conservado por #104 y no declara FK a
+          ``website`` — el recorte por sitio vive en la receta de
+          ``website.page`` (``WebsitePage._search_get_detail``).
+        - Sin los escalones de visibilidad por grupo/contraseña: son del
+          mixin ``website.page_options.mixin``, sin portar (arista declarada
+          en ``website_page.py``).
         - ``requires_sudo`` se conserva en ``True`` — mismo motivo que la
           fuente comenta (la lectura pública pasa por encima de las record
           rules) — y ``model`` lleva la clase (ver el mixin).
         - La rama ``displayDescription`` (``arch_db``) no aplica: el HTML
-          vive en la versión, no en la página; entra con **#104**.
+          vive en la versión, no en la página; la receta de ``website.page``
+          sí la trae.
         """
         return {
             'model': cls,

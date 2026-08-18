@@ -2730,7 +2730,7 @@ class StockMove(TimeStampedModel):
                 ordenes.append(('update', linea, dict(vals)))
                 por_ubicacion[linea.location_dest_id] += cantidad
             else:
-                donde = destino or self.location_dest.get_putaway_strategy(
+                donde = destino or self.location_dest._get_putaway_strategy(
                     self.product, quantity=cantidad,
                     additional_qty=por_ubicacion)
                 ordenes.append(('create', {**base, **vals, 'location_dest': donde}))
@@ -2928,7 +2928,7 @@ class StockMove(TimeStampedModel):
         for lote, qty in zip(nombres, cantidades):
             if not lote.get('quantity'):
                 lote['quantity'] = qty
-            donde = (destino.get_putaway_strategy(product, quantity=lote['quantity'])
+            donde = (destino._get_putaway_strategy(product, quantity=lote['quantity'])
                      if destino is not None else None)
             valores.append({
                 **por_defecto, **lote,

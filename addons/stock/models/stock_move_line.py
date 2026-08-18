@@ -670,13 +670,19 @@ class StockMoveLine(TimeStampedModel):
                 'picking').first()
         albaran_previo = origen.picking if origen is not None else None
 
+        # La rama "el albarán cambió" sólo aplica a líneas EXISTENTES: en una
+        # nueva no hay ``_origin`` y dispararía siempre, pisando el valor que
+        # el llamador fijó explícitamente — la fuente sólo rellena lo no
+        # provisto (precompute) y resincroniza al cambiar el albarán.
         if (self.location_id is None
-                or getattr(albaran_previo, 'location_id', None) != del_albaran):
+                or (origen is not None
+                    and getattr(albaran_previo, 'location_id', None) != del_albaran)):
             nueva = del_movimiento or del_albaran
             if nueva is not None:
                 self.location_id = nueva
         if (self.location_dest_id is None
-                or getattr(albaran_previo, 'location_dest_id', None) != dest_albaran):
+                or (origen is not None
+                    and getattr(albaran_previo, 'location_dest_id', None) != dest_albaran)):
             nueva = dest_movimiento or dest_albaran
             if nueva is not None:
                 self.location_dest_id = nueva
@@ -2135,7 +2141,7 @@ class StockMoveLine(TimeStampedModel):
         ignoran las no tomadas — el capturista ya declaró qué va.
         """
         lines = list(lines)
-        tipos = {l.picking_type_id for l in lines if l.picking_type is not None}
+        tipos = {l.picking_type.pk for l in lines if l.picking_type is not None}
         if len(tipos) > 1:
             raise UserError(_('You cannot pack products into the same package when '
                               'they are from different transfers with different '
@@ -2265,7 +2271,7 @@ class StockMoveLine(TimeStampedModel):
         Con más de un tipo de operación en juego no hay respuesta única, así
         que la referencia responde que no.
         """
-        tipos = {l.picking_type_id for l in lines if l.picking_type is not None}
+        tipos = {l.picking_type.pk for l in lines if l.picking_type is not None}
         if len(tipos) != 1:
             return False
         tipo = next(l.picking_type for l in lines if l.picking_type is not None)

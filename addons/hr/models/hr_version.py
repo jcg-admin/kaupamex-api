@@ -47,12 +47,19 @@ Medido por AST sobre la referencia (``odoo19c: addons/hr/models/hr_version.py``,
 Desenlace de este porte (NÚCLEO, no exhaustivo — ver hallazgo)
 ==================================================================
 
-- **Campos: 63/63 con desenlace.** 46 COLUMNA (dato persistido), 14 PROPERTY
+- **Campos: 63/63 con desenlace.** 45 COLUMNA (dato persistido), 14 PROPERTY
   (``related=``/``compute=`` puro sin ``store`` verdadero), 3 divergencia de
   mecanismo (``km_home_work`` pasa de compute+store a property con setter,
-  como ``ResourceCalendar.flexible_hours`` ya hace en este árbol).
-- **Métodos: 13/46 PORTADOS**, 33 BLOQUEADOS en 3 familias nombradas (ver
-  docstring de la clase).
+  como ``ResourceCalendar.flexible_hours`` ya hace en este árbol), y 1
+  campo (``member_of_department``) BLOQUEADO por
+  ``_get_valid_employee_for_user`` — la marca completa vive junto a
+  ``department``.
+- **Métodos: 14/46 PORTADOS** (13 verbatim + ``_default_salary_structure``
+  adaptado como ``_default_salary_structure_for_company``), 12 realizados
+  como property (divergencia de mecanismo, declarada en el docstring de
+  cada una) y 20 BLOQUEADOS por ``self.env`` (sesión/recordset a nivel de
+  modelo) — las aristas por símbolo, en 3 familias, viven en el docstring
+  de la clase. Conteos medidos por AST contra la fuente, no estimados.
 - **Atributos de clase: 7/7** — ``_name``/``_description``/``_order``/
   ``_rec_name``/``_mail_post_access`` verbatim; ``_inherit`` traducido a
   mixins (mismo patrón que ``hr_employee.py``); los dos objetos de tabla
@@ -89,15 +96,14 @@ class HrVersion(MailThread, MailActivityMixin, TimeStampedModel):
         Afecta a: ``_compute_company_id``, ``_compute_job_title``,
         ``_inverse_job_title``, ``_compute_is_custom_job_title``,
         ``_compute_structure_type_id``, ``_inverse_resource_calendar_id``.
-        Sucesor: tarea PENDIENTE DE ASIGNAR — señales ``pre_save`` que
-        repliquen estos seis cómputos.
+        Sucesor: tarea **#558** — señales ``pre_save`` que repliquen
+        estos seis cómputos.
     (b) **Sesión/usuario activo (``self.env.user``/``self.env.company``),
         ausente a nivel de modelo.** Afecta a: ``_get_valid_employee_for_user``,
         ``_compute_part_of_department``, ``_search_part_of_department``,
         ``_get_default_address_id``, ``_get_hr_responsible_domain``.
-        Sucesor: tarea PENDIENTE DE ASIGNAR — pasar el usuario/compañía
-        activos por parámetro desde la capa de vista (DRF), no leerlos del
-        modelo.
+        Sucesor: tarea **#559** — pasar el usuario/compañía activos por
+        parámetro desde la capa de vista (DRF), no leerlos del modelo.
     (c) **Framework ORM de recordset por lotes** (``create(vals_list)``
         batch, ``write(vals)`` con sincronización cruzada entre versiones,
         ``@api.constrains`` con ``_read_group`` (``_check_dates``),
@@ -106,9 +112,9 @@ class HrVersion(MailThread, MailActivityMixin, TimeStampedModel):
         ``get_formview_action``, y las dos ``ir.actions.act_window``
         (``action_open_version``, ``action_open_version_form_view``) — sin
         equivalente en este stack DRF+React, misma familia (b)/(e) que
-        ``hr_employee.py`` ya declaró BLOQUEADA. Sucesor: tarea PENDIENTE DE
-        ASIGNAR — ``_check_dates`` en particular es validación de negocio
-        real (solapamiento de contratos) y merece su propio método
+        ``hr_employee.py`` ya declaró bloqueada. Sucesor: tarea **#525**
+        — ``_check_dates`` en particular es validación de negocio real
+        (solapamiento de contratos) y merece su propio método
         ``validate_no_overlapping_contract()`` invocado desde la capa de
         servicio, no heredado de ``clean()``.
     """
@@ -161,9 +167,11 @@ class HrVersion(MailThread, MailActivityMixin, TimeStampedModel):
     )
     company = fields.Many2one(
         'base.ResCompany', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='hr_versions', verbose_name='Empresa (tenant)',
+        related_name='hr_versions', verbose_name='Empresa',
         help_text='Odoo company_id (compute+store, default=env.company). '
-                  'BLOQUEADO el auto-sync desde employee.company — familia (a).',
+                  'El auto-sync desde employee.company está '
+                  'BLOQUEADO por ``api.depends`` — sin trigger de recómputo, '
+                  'lo asigna quien escribe (familia (a)).',
     )
     name = fields.Char(max_length=150, blank=True, default='', verbose_name='Nombre')
     active = fields.Boolean(default=True, verbose_name='Activa')
@@ -234,6 +242,13 @@ class HrVersion(MailThread, MailActivityMixin, TimeStampedModel):
         'hr.HrDepartment', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='hr_versions', verbose_name='Departamento',
     )
+    # member_of_department (``odoo19c: addons/hr/models/hr_version.py:128``):
+    # BLOQUEADO por ``_get_valid_employee_for_user`` — el cómputo compara el
+    # departamento de la versión contra el del empleado del usuario ACTIVO,
+    # y su búsqueda (``_search_part_of_department``) hace lo mismo; sin
+    # sesión a nivel de modelo (familia (b) del docstring de la clase) no
+    # hay valor que persistir ni property que derivar. Sucesor: el mismo de
+    # la familia (b).
     job = fields.Many2one(
         'hr.HrJob', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='hr_versions', verbose_name='Puesto',
@@ -353,7 +368,8 @@ class HrVersion(MailThread, MailActivityMixin, TimeStampedModel):
 
     @property
     def km_home_work(self):
-        """≙ ``km_home_work`` (compute+inverse+store, ``:100-101``).
+        """≙ ``km_home_work`` (``_compute_km_home_work`` ``:553-555`` +
+        ``_inverse_km_home_work`` ``:557-562``; campo ``:100-101``).
 
         DIVERGENCIA declarada: property+setter en vez de columna espejo —
         mismo criterio que ``ResourceCalendar.flexible_hours`` en este árbol.
@@ -371,7 +387,8 @@ class HrVersion(MailThread, MailActivityMixin, TimeStampedModel):
 
     @property
     def allowed_country_states(self):
-        """≙ ``allowed_country_state_ids`` (``:230-237``) — filtro de UI."""
+        """≙ ``allowed_country_state_ids`` (``_compute_allowed_country_state_ids``
+        ``:230-237``; campo ``:90``) — filtro de UI."""
         if self.private_country_id:
             return self.private_country.state_ids.all()
         return ResCountryState.objects.all()

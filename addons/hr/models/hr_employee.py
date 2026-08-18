@@ -29,10 +29,9 @@ delegado real.
 **directamente** (no delegados) — campos + métodos que no dependen de
 ``version_id``/contrato/calendario del contrato/framework de acciones
 Odoo/ACL por grupo. Todo lo que depende de esas cuatro familias queda
-BLOQUEADO, con su pieza faltante nombrada. Sucesor: tarea PENDIENTE DE
-ASIGNAR — portar ``hr.version`` (modelo de "versión de carrera": contrato,
-puesto, departamento, calendario por período) y volver sobre este archivo
-para conectar los ~83 métodos y ~70 campos aquí bloqueados.
+bloqueado, con su pieza faltante nombrada. Sucesores: ``hr.version`` ya
+está portado (tarea #513); la reconexión de los ~83 métodos y ~70 campos
+aquí bloqueados es la tarea **#524**.
 
 Cobertura completa símbolo a símbolo: ver el hallazgo :ref:`h-api-683`.
 
@@ -54,7 +53,7 @@ recién construido, p. ej. ``_get_contract_dates`` agrega sobre **todas**
 las versiones del empleado, no sólo la vigente; no es una delegación
 directa a ``self.version.<método>``) y las columnas del grupo (b)/(c)/(d)/(e)
 del resumen de métodos, que dependen de acciones/onchange/ACL, no de
-``hr.version``. Sucesor: tarea PENDIENTE DE ASIGNAR — conectar los métodos
+``hr.version``. Sucesor: tarea **#524** — conectar los métodos
 familia (a) uno a uno contra ``hr.HrVersion.versions`` (el queryset
 completo del historial), no sólo contra ``self.version``.
 
@@ -113,7 +112,8 @@ final (mismo patrón que ``ResPartner``/``StockPicking`` en este árbol).
    * - ``im_status`` (``related='user_id.im_status'``)
      - BLOQUEADO
      - ``base.ResUsers`` no declara ``im_status`` — es infraestructura de
-       presencia (``bus``) no portada aquí. Sucesor: PENDIENTE DE ASIGNAR.
+       presencia (``bus``) no portada aquí. Sucesor: tarea **#21**
+       (integración de la familia ``bus``).
    * - ``lang`` (``Selection`` dinámico vía ``_lang_get``)
      - DIVERGENCIA
      - Se porta como ``Char`` (código de ``base.ResLang.code``) en vez de
@@ -130,7 +130,7 @@ final (mismo patrón que ``ResPartner``/``StockPicking`` en este árbol).
      - ``PropertiesBaseDefinitionMixin`` existe en ``base`` pero el cableado
        específico a ``company_id.employee_properties_definition`` no está
        construido — mecanismo transversal, fuera de alcance de este archivo.
-       Sucesor: PENDIENTE DE ASIGNAR.
+       Sucesor: tarea **#515**.
 
 .. list-table:: Campos delegados a ``hr.version`` — RESUELTOS (tarea #513)
    :header-rows: 1
@@ -230,11 +230,11 @@ Métodos — resumen (detalle completo en :ref:`h-api-683`)
   ``_get_contract_dates``, ``_get_all_versions_with_contract_overlap_with_period``,
   ``_get_versions_with_contract_overlap_with_period``).
 
-Sucesor de TODO lo BLOQUEADO: tarea PENDIENTE DE ASIGNAR — portar
-``hr.version`` (contrato + puesto + departamento + calendario por período) y
-el motor de intervalos de ``resource.calendar``/``resource.resource`` (ya
-DEFERIDO por falta de consumidor en ``resource_resource.py`` /
-``resource_mixin.py`` de este mismo addon padre).
+Sucesores de todo lo bloqueado: ``hr.version`` ya está portado (#513); la
+reconexión de estos métodos es la tarea **#524**, y el motor de intervalos
+de ``resource.calendar``/``resource.resource`` (ya DEFERIDO por falta de
+consumidor en ``resource_resource.py`` / ``resource_mixin.py`` de este
+mismo addon padre) es la tarea **#514**.
 """
 import re
 from datetime import date, timedelta

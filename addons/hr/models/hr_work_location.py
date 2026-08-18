@@ -57,7 +57,7 @@ class HrWorkLocation(TimeStampedModel):
     )
     company = fields.Many2one(
         'base.ResCompany', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='hr_work_locations', verbose_name='Empresa (tenant)',
+        related_name='hr_work_locations', verbose_name='Empresa',
         help_text='Empresa dueña de la sede (Odoo company_id, required=True '
                   'en la fuente — ver docstring del módulo).',
     )

@@ -69,7 +69,7 @@ Símbolo de la referencia (línea)                 Aquí
 ``name_create`` (272-284)                        ``name_create`` (classmethod)
 ``create`` (286-290)                             ``create`` (classmethod)
 ``copy_data`` (292-298)                          ``copy_data``
-``_get_putaway_strategy`` (300-374)              ``get_putaway_strategy``
+``_get_putaway_strategy`` (300-374)              ``_get_putaway_strategy``
 ``_get_next_inventory_date`` (376-406)           ``get_next_inventory_date``
 ``should_bypass_reservation`` (408-410)          ``should_bypass_reservation``
 ``_check_access_putaway`` (412-413)              ``check_access_putaway``
@@ -663,9 +663,9 @@ class StockLocation(TimeStampedModel):
 
     # -- estrategia de colocación --
 
-    def get_putaway_strategy(self, product, quantity=0, package=None,
-                             packaging=None, additional_qty=None,
-                             products=None, locations=None, exclude_sml_ids=None):
+    def _get_putaway_strategy(self, product, quantity=0, package=None,
+                              packaging=None, additional_qty=None,
+                              products=None, locations=None, exclude_sml_ids=None):
         """≙ ``_get_putaway_strategy`` (``odoo19c: :300-374``).
 
         Devuelve la ubicación donde colocar el producto según las reglas de
