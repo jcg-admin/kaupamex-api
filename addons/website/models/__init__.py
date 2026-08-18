@@ -22,6 +22,7 @@ import StaticContent, ...``.
 """
 from .banner import Banner
 from .search_entry import SearchEntry
+from .website import Website
 from .static_content import StaticContent, StaticContentVersion
 from .static_page import StaticPage, StaticPageVersion
 from .website_menu import WebsiteMenu
