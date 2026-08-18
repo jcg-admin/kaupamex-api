@@ -114,7 +114,7 @@ SPACELESS_CRITERIA = ('vat',)
 #: entero cualquiera.
 #:
 #: Se declaran por ``(app_label, clase)`` y no por nombre punteado: el registro
-#: por nombre de la referencia (``orm.registry.MODELS_BY_ODOO_NAME``) se puebla
+#: por nombre de la referencia (``orm.registry.MODELS_BY_NAME``) se puebla
 #: con los modelos que declaran ``_name``, y hoy son **tres** en todo el árbol
 #: (``atributos-de-clase-de-modelo.md``). Resolver por ahí devolvería ``None``
 #: para los cinco. Cuando el barrido prospectivo de esa regla llegue a estos

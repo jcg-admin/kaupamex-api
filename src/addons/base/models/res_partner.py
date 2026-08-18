@@ -49,7 +49,54 @@ class ResPartner(AvatarMixin, TimeStampedModel):
     ``AvatarMixin`` hereda de ``ImageMixin``, y ``ImageMixin`` hereda de
     ``models.Model``, **no** de ``TimeStampedModel``. Sustituir una base por la
     otra habría borrado las marcas de tiempo en silencio.
+
+    Atributos de clase — 7 de los 9 que la fuente declara
+    ======================================================
+
+    Medido sobre ``odoo19c: res_partner.py:185-195`` (tarea #385). Se portan
+    verbatim los siete que no dependen de un símbolo ausente:
+
+    - ``_name`` / ``_description`` — el nombre punteado y su etiqueta. El
+      primero es lo que registra ``orm.registry.MODELS_BY_NAME``, y sin él
+      la delegación ``_inherits`` de ``res.users`` no puede resolver a quién
+      delega: pide ``'res.partner'`` por nombre, no por clase.
+    - ``_inherit`` — los cuatro mixins de la fuente. Aquí sólo ``avatar.mixin``
+      está construido; los otros tres se declaran igual porque el atributo
+      **nombra la extensión aunque el mixin aún no exista**, que es lo que hace
+      greppeable el hueco.
+    - ``_order`` — verbatim. ``Meta.ordering`` **no** puede derivarse tal cual:
+      ``complete_name`` es un campo computado que este puerto no trae (medido:
+      0 apariciones en este archivo), así que la forma Django ordena por el
+      campo que sí existe.
+    - ``_rec_names_search`` — los cinco campos que ``name_search`` considera.
+    - ``_allow_sudo_commands`` / ``_check_company_auto`` — verbatim.
+
+    **Los dos que NO se portan, y por qué** (``hallazgo-abierto-genera-sucesor``):
+
+    - ``_check_company_domain = models.check_company_domain_parent_of``
+      (``odoo19c: :192``) referencia un símbolo que vive en
+      ``odoo19c: odoo/orm/models.py:169`` y que **no existe** en ``src/orm``.
+      Escribirlo aquí sería un ``NameError`` en tiempo de import. Su mecanismo
+      consumidor —el check de coherencia de empresa al guardar— tampoco está
+      construido (medido: 0 apariciones de ``check_company`` en ``src/orm``).
+    - ``_complete_name_displayed_types`` (``:195``) es una constante de clase,
+      no un atributo de ORM, y sólo la consume el compute de ``complete_name``,
+      que no está portado.
+
+    Los dos, más el objeto de tabla ``_check_name`` (``:326``, cuyo hogar sería
+    ``Meta.constraints`` y exige migración), quedan registrados en la tarea
+    **#504**.
     """
+
+    _name                = 'res.partner'
+    _description         = 'Contact'
+    _inherit             = ['format.address.mixin', 'format.vat.label.mixin',
+                            'avatar.mixin', 'properties.base.definition.mixin']
+    _order               = 'complete_name ASC, id DESC'
+    _rec_names_search    = ['complete_name', 'email', 'ref', 'vat',
+                            'company_registry']
+    _allow_sudo_commands = False
+    _check_company_auto  = True
 
     # ``type`` — un partner hijo es una dirección; el padre es el titular.
     TYPE_CONTACT  = 'contact'
@@ -150,7 +197,11 @@ class ResPartner(AvatarMixin, TimeStampedModel):
 
     class Meta:
         db_table            = 'res_partner'
-        ordering            = ['name']
+        # Derivado de ``_order = 'complete_name ASC, id DESC'``. ``complete_name``
+        # es un compute que este puerto no trae, así que el primer tramo se
+        # sustituye por ``name`` — el campo que lo alimenta en la fuente. El
+        # segundo tramo se conserva verbatim.
+        ordering            = ['name', '-id']
         verbose_name        = 'Partner'
         verbose_name_plural = 'Partners'
 

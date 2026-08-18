@@ -23,6 +23,7 @@ globales de la instancia, no per-empresa (eso es L3 = ``Company``/
 from django.apps import AppConfig, apps
 
 from orm.inherits import apply_inherits
+from orm.registry import MODELS_BY_NAME
 
 
 class BaseConfig(AppConfig):
@@ -45,9 +46,17 @@ class BaseConfig(AppConfig):
         ``apps.get_model`` es una **llamada**, no un ``import`` — el gate de
         no-lazy-imports da exit 0 (misma resolución que la excepción #4 de
         ``no-lazy-imports.md``).
+
+        **El par delegado→FK sale del atributo, no de aquí** (tarea #385). Antes
+        estaba escrito a mano en esta llamada; ahora se lee de
+        ``ResUsers._inherits``, que es donde la referencia lo declara. Así el
+        cableado no puede divergir de la cabecera: cambiar el atributo cambia
+        la delegación.
         """
-        apply_inherits(
-            apps.get_model('base', 'ResUsers'),
-            apps.get_model('base', 'ResPartner'),
-            'partner',
-        )
+        users = apps.get_model('base', 'ResUsers')
+        for model_name, fk_name in users._inherits.items():
+            apply_inherits(
+                users,
+                MODELS_BY_NAME[model_name],
+                fk_name,
+            )

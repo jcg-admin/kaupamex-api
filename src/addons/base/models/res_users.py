@@ -184,7 +184,39 @@ class ResUsers(TimeStampedModel):
     cambia la autorización: este árbol sigue autorizando por **capacidad**
     (DEC-11, ``HasCapability`` fail-closed) sobre ``authz``; el re-apuntado de
     los consumidores es una decisión de producto aparte.
+
+    Los cinco atributos de clase (H-API-618, tarea #385)
+    -----------------------------------------------------
+
+    La fuente los declara en ``:163-167``; aquí van los cinco, con su forma
+    Django derivada al lado cuando existe:
+
+    - ``_inherits`` — el destino de la delegación. **El mecanismo ya estaba**
+      (``orm/inherits.py``, tarea #88, aplicado en ``BaseConfig.ready()``); lo
+      que faltaba era la declaración, que es de donde ese cableado ahora lee su
+      par delegado→FK en vez de tenerlo escrito a mano. El valor de la FK es
+      ``partner``, no ``partner_id``: este árbol suprime el sufijo ``_id``.
+    - ``_order = 'name, login'`` → ``Meta.ordering = ['partner__name',
+      'login']``. ``name`` **no es columna** de ``res_users``: la fuente lo
+      obtiene del partner por la misma delegación, y aquí eso es el lookup de
+      la FK. Antes decía ``['login']`` — divergencia silenciosa, ahora cerrada.
+    - ``_allow_sudo_commands = False`` — la fuente lo declara explícito: este
+      modelo **no** admite comandos con privilegio.
+    - ``_name`` y ``_description`` — verbatim; ``_description`` convive con
+      ``Meta.verbose_name``, no lo sustituye.
+
+    **El objeto de tabla ``_login_key``** (``UNIQUE (login)``, ``:274``) ya
+    existe y con el nombre de la referencia: ``login`` se declara
+    ``unique=True`` y PostgreSQL nombra el constraint ``res_users_login_key``
+    — verificado con ``pg_constraint``. No hace falta un ``Meta.constraints``
+    para renombrarlo.
     """
+
+    _name                 = 'res.users'
+    _description          = 'User'
+    _inherits             = {'res.partner': 'partner'}
+    _order                = 'name, login'
+    _allow_sudo_commands  = False
 
     # Causas distintas de ``active=False`` (UC-AUTH-01 Alt-A, UC-AUTH-13/16).
     # No están en la referencia: allí ``active`` es un booleano sin motivo.
@@ -251,7 +283,9 @@ class ResUsers(TimeStampedModel):
 
     class Meta:
         db_table            = 'res_users'
-        ordering            = ['login']
+        # Derivado de ``_order = 'name, login'``: ``name`` vive en el partner
+        # delegado, así que aquí es el lookup de la FK.
+        ordering            = ['partner__name', 'login']
         verbose_name        = 'Usuario'
         verbose_name_plural = 'Usuarios'
 

@@ -1186,15 +1186,15 @@ class StockWarehouseOrderpoint(TimeStampedModel):
         enlace a esa transferencia. En otro caso, ``False``.
         """
         move_model = apps.get_model('stock', 'StockMove')
-        movimiento = move_model.objects.filter(orderpoint=self).first()
-        if movimiento is None:
+        move = move_model.objects.filter(orderpoint=self).first()
+        if move is None:
             return False
-        origen = movimiento.location
-        otro_almacen = (origen is not None and origen.warehouse is not None
-                        and origen.warehouse != self.warehouse)
-        transito = origen is not None and origen.usage == 'transit'
-        picking = getattr(movimiento, 'picking', None)
-        if not (otro_almacen or transito) or picking is None:
+        origin = move.location
+        other_warehouse = (origin is not None and origin.warehouse is not None
+                           and origin.warehouse != self.warehouse)
+        in_transit = origin is not None and origin.usage == 'transit'
+        picking = getattr(move, 'picking', None)
+        if not (other_warehouse or in_transit) or picking is None:
             return False
         return {
             'type': 'ir.actions.client',

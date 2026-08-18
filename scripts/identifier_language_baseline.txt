@@ -292,9 +292,6 @@ src/orm/model_classes.py::funcion
 src/orm/model_classes.py::modelo
 src/orm/model_classes.py::nombre
 src/orm/model_classes.py::propiedades
-src/orm/registry.py::modelo
-src/orm/registry.py::nombre
-src/orm/registry.py::nombre_punteado
 src/scripts/generate_oja_csv.py::marcador
 src/tools/barcode.py::codigo
 src/tools/barcode.py::posicion
