@@ -9,6 +9,7 @@ como campo calculado con inverso y que aquí es ``property`` con setter (D-2 del
 docstring del módulo portado).
 """
 from datetime import date
+from decimal import Decimal
 
 import pytest
 from django.core.exceptions import ValidationError
@@ -17,6 +18,8 @@ from django.db.utils import IntegrityError
 from addons.base.models import ResCompany
 from addons.stock.models import (
     StockLocation,
+    StockMove,
+    StockPicking,
     StockRoute,
     StockWarehouse,
     StockWarehouseOrderpoint,
@@ -252,3 +255,85 @@ def test_without_rules_the_horizon_falls_back_to_the_active_company(company):
 def test_days_to_order_is_zero_as_in_the_source(company, warehouse):
     """≙ ``_compute_days_to_order`` (``:251-253``) — «``self.days_to_order = 0``»."""
     assert _orderpoint(company, warehouse).days_to_order == 0.0
+
+
+# === la FK inversa: StockMove.orderpoint (odoo19c: stock_move.py:189) =======
+#
+# La referencia declara ``orderpoint_id = fields.Many2one(
+# 'stock.warehouse.orderpoint', 'Original Reordering Rule', index=True)``.
+# Aquí el field pierde el sufijo ``_id`` por la convención del árbol.
+
+
+def test_the_move_declares_the_foreign_key_back_to_the_rule():
+    """≙ ``odoo19c: stock_move.py:189`` — el field, su destino y su índice."""
+    field = StockMove._meta.get_field('orderpoint')
+    assert field.related_model is StockWarehouseOrderpoint
+    assert field.db_index is True, 'la fuente lo declara index=True'
+    assert field.null is True, 'la fuente no lo declara required'
+
+
+def test_the_rule_reaches_its_moves_by_the_reverse_accessor(company, warehouse):
+    """El ``related_name`` es lo que hace resoluble el dominio de la fuente.
+
+    ``odoo19c: stock_orderpoint.py:645`` busca los movimientos con
+    ``Domain('orderpoint_id', 'in', self.ids)``; aquí ese mismo conjunto sale
+    del acceso inverso.
+    """
+    orderpoint = _orderpoint(company, warehouse)
+    move = StockMove.objects.create(
+        product=orderpoint.product, product_uom_qty=Decimal('3'),
+        location=warehouse.lot_stock, location_dest=warehouse.lot_stock,
+        orderpoint=orderpoint)
+    assert list(orderpoint.stock_moves.all()) == [move]
+
+
+def test_the_notification_answers_when_the_transfer_came_from_another_warehouse(
+        company, warehouse):
+    """≙ ``_get_replenishment_order_notification`` con su rama verdadera.
+
+    Hasta que la FK existió, el método se protegía con un guard sobre
+    ``_meta.get_fields()`` y devolvía ``False`` siempre — el rodeo que la
+    tarea #382 retira.
+    """
+    other_view = StockLocation.objects.create(
+        name='WH2', usage=StockLocation.USAGE_VIEW, company=company,
+        barcode='OP2-VIEW')
+    other_stock = StockLocation.objects.create(
+        name='WH2/Stock', usage=StockLocation.USAGE_INTERNAL,
+        location=other_view, company=company, barcode='OP2-STOCK')
+    other_wh = StockWarehouse.objects.create(
+        name='Second', code='WH2', company=company,
+        view_location=other_view, lot_stock=other_stock)
+    # El ``save()`` explícito NO es adorno: ``StockLocation.warehouse`` es un
+    # compute **almacenado** que sólo corre al guardar la ubicación, así que
+    # crear el almacén después la deja apuntando a ``None``. En la fuente el
+    # field es ``compute=`` sin ``store=`` y se recalcula al leerlo. Ver
+    # :ref:`h-api-667` — el mismo defecto de clase que la tarea #277.
+    other_stock.save()
+    other_stock.refresh_from_db()
+
+    orderpoint = _orderpoint(company, warehouse)
+    picking = StockPicking.objects.create(
+        location=other_wh.lot_stock, location_dest=warehouse.lot_stock)
+    StockMove.objects.create(
+        product=orderpoint.product, product_uom_qty=Decimal('3'),
+        location=other_wh.lot_stock, location_dest=warehouse.lot_stock,
+        picking=picking, orderpoint=orderpoint)
+
+    notification = orderpoint._get_replenishment_order_notification()
+    assert notification is not False
+    assert notification['tag'] == 'display_notification'
+    assert notification['params']['links'][0]['label'] == picking.name
+
+
+def test_the_notification_stays_silent_inside_the_same_warehouse(
+        company, warehouse):
+    """≙ la rama falsa: mismo almacén y sin tránsito no genera aviso."""
+    orderpoint = _orderpoint(company, warehouse)
+    picking = StockPicking.objects.create(
+        location=warehouse.lot_stock, location_dest=warehouse.lot_stock)
+    StockMove.objects.create(
+        product=orderpoint.product, product_uom_qty=Decimal('3'),
+        location=warehouse.lot_stock, location_dest=warehouse.lot_stock,
+        picking=picking, orderpoint=orderpoint)
+    assert orderpoint._get_replenishment_order_notification() is False

@@ -1186,9 +1186,7 @@ class StockWarehouseOrderpoint(TimeStampedModel):
         enlace a esa transferencia. En otro caso, ``False``.
         """
         move_model = apps.get_model('stock', 'StockMove')
-        movimiento = move_model.objects.filter(orderpoint=self).first() if any(
-            f.name == 'orderpoint' for f in move_model._meta.get_fields()
-        ) else None
+        movimiento = move_model.objects.filter(orderpoint=self).first()
         if movimiento is None:
             return False
         origen = movimiento.location

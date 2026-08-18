@@ -26,14 +26,17 @@ partiéndolo, según el orden que fija :ref:`h-api-601`:
 5    segundo pase de este       ``orderpoint_id`` + los métodos que lo consumen
 ===  =========================  ====================================================
 
-**Por qué ``orderpoint_id`` no está aquí, y no es una omisión silenciosa.**
-``stock.warehouse.orderpoint`` **no existe en este árbol** — medido:
-``grep -rn "class .*Orderpoint" addons/ src/`` → **0**. Una FK por cadena es
-perezosa en el *orden de resolución*, no en la *existencia* del destino: Django
-emite ``fields.E300`` cuando el modelo no está instalado, y el commit
-``07044d3`` lo midió con 18 errores por exactamente esa causa. El campo entra en
-el paso 5, cuando el paso 4 haya aterrizado. Sucesores: tareas **#257** y
-**#330**.
+**El paso 5 está cerrado (tarea #382).** ``orderpoint`` se declara abajo, junto
+a ``next_serial_count``, en la misma posición que la fuente
+(``odoo19c: :189``). El campo faltó mientras
+``stock.warehouse.orderpoint`` no existía en este árbol: una FK por cadena es
+perezosa en el *orden de resolución*, no en la *existencia* del destino —
+Django emite ``fields.E300`` cuando el modelo no está instalado, y el commit
+``07044d3`` lo midió con 18 errores por exactamente esa causa. Aterrizado el
+modelo (tarea **#257**), la FK entra con su migración y su acceso inverso
+``stock_moves``, que es lo que hace resoluble el dominio
+``Domain('orderpoint_id', 'in', self.ids)`` de
+``odoo19c: stock_orderpoint.py:645``.
 
 Los 73 campos de este pase
 ============================
@@ -639,6 +642,12 @@ class StockMove(TimeStampedModel):
     next_serial_count = fields.Integer(
         default=0,
         help_text='Cuántos números de serie generar (Odoo next_serial_count).',
+    )
+    orderpoint      = fields.Many2one(
+        'stock.StockWarehouseOrderpoint', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='stock_moves', db_index=True,
+        help_text='La regla de reabastecimiento que originó el movimiento '
+                  '(Odoo orderpoint_id, «Original Reordering Rule», index).',
     )
 
     class Meta:
