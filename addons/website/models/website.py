@@ -52,10 +52,11 @@ está registrada como seis tareas y **verificada completa: 33+15+10+15+6+32 =
      - 10
      - búsqueda del sitio sobre ``pg_trgm``
      - #536
-   * - B4
-     - 15
-     - configurador y los tres RPC a servicio externo
-     - #537
+   * - **B4**
+     - **21** (re-medido; la estimación decía 15)
+     - configurador y los tres RPC a servicio externo — **12 portados,
+       9 bloqueados** (ver el banner del bloque B4)
+     - **#537** ← este archivo
    * - B5
      - 6
      - bloqueo de rastreadores de terceros
@@ -188,11 +189,13 @@ tercero de los tres ejes que la fuente declara y el único que
 
 import base64
 import re
+import uuid
 from collections import defaultdict
 from urllib.parse import urlparse
 
 import fields
 import models
+import requests
 from lxml import etree
 
 from addons.base.models import TimeStampedModel
@@ -207,7 +210,9 @@ from addons.website.models.website_menu import WebsiteMenu
 from addons.website.tools import (
     get_base_domain, similarity_score, text_from_html,
 )
-from exceptions import UserError, ValidationError
+import release
+from addons.base.models.ir_config_parameter import SystemParameter
+from exceptions import AccessError, UserError, ValidationError
 from modules.db import has_trigram
 from orm.domains import Domain, to_q
 from tools.sql import escape_psql
@@ -219,6 +224,16 @@ from orm.environments import (
     get_current_uid, is_su, sudo,
 )
 from tools.translate import _
+
+# ≙ ``DEFAULT_WEBSITE_ENDPOINT`` / ``DEFAULT_OLG_ENDPOINT``
+# (``odoo19c: :49-50``). La fuente apunta a ``https://website.api.odoo.com``
+# y ``https://olg.api.odoo.com`` — los servicios SaaS de Odoo. Esta
+# plataforma L0 no los llama (#416): el default es vacío y el operador
+# declara el suyo en ``ir.config_parameter`` (``website.website_api_endpoint``
+# / ``website.olg_api_endpoint``). Sin endpoint, el RPC corta con
+# ``AccessError`` y los llamadores degradan como en la fuente.
+DEFAULT_WEBSITE_ENDPOINT = ''
+DEFAULT_OLG_ENDPOINT = ''
 
 #: ≙ ``DEFAULT_CDN_FILTERS`` (``odoo19c: website.py:39-47``).
 DEFAULT_CDN_FILTERS = [
@@ -1585,3 +1600,189 @@ class Website(TimeStampedModel):
                         objects, indirect_field):
                     if isinstance(value, str):
                         yield from re.findall(match_pattern, value.lower())
+
+    # ── B4 (#537) · configurador y RPC a servicio externo ────────────────────
+    #
+    # ≙ ``odoo19c: website.py:460-1145`` (zona del configurador). Medida por
+    # AST: 19 métodos en la zona + los 2 ayudantes de indexación que la
+    # preceden (la estimación inicial de la partición decía 15). En este pase:
+    # **12 portados, 9 bloqueados** — cada bloqueado con su sucesor:
+    #
+    # - ``create_and_redirect_configurator`` (``:460``) — necesita
+    #   ``ir.actions.todo`` resuelto por external ID (#467).
+    # - ``_preconfigure_snippet`` (``:513``), ``_set_background_options``
+    #   (``:591``), ``get_theme_configurator_snippets`` (``:610``) — operan
+    #   sobre el árbol lxml de vistas QWeb de snippets; el marco de cliente
+    #   está sin decidir (#488) y no hay vistas de snippet que preconfigurar.
+    # - ``configurator_init`` (``:658``) — lee ``website.configurator.feature``,
+    #   modelo no portado (#552).
+    # - ``configurator_recommended_themes`` (``:685``), ``configurator_apply``
+    #   (``:721-1106``), ``configurator_addons_apply`` (``:1108``) — módulos
+    #   de tema (``theme_*``) e instalación de addons en caliente; no existen
+    #   aquí (#488 + #552).
+    # - ``_bootstrap_homepage`` (``:1114``) — necesita ``website.page`` (#104).
+    #
+    # Divergencia transversal del transporte: la fuente delega en
+    # ``iap_tools.iap_jsonrpc`` (addon ``iap``); esa cadena está pendiente de
+    # la DECISIÓN #413, así que el transporte vive aquí como función local
+    # (``_configurator_rpc_call``) y se muda al addon cuando #413 decida.
+    # Los endpoints por defecto son cadena vacía — la fuente apunta a
+    # ``*.api.odoo.com`` y esta plataforma L0 NO llama a los servicios de
+    # Odoo (#416); el operador configura el suyo por ``ir.config_parameter``.
+
+    def _idna_url(self, url):
+        """≙ ``_idna_url`` (``odoo19c: :465-466``)."""
+        return get_base_domain(url.lower(), True).encode('idna').decode('ascii')
+
+    def _is_indexable_url(self, url):
+        """≙ ``_is_indexable_url`` (``odoo19c: :468-480``).
+
+        True si los buscadores deben indexar la URL: coincide con el dominio
+        del sitio ignorando ``www.`` y el esquema (eso hace ``get_base_domain``
+        con ``strip_www=True``); el ``.lower()`` de ``_idna_url`` es lo único
+        que vuelve insensible la comparación — el codec idna no normaliza
+        mayúsculas (medido en B2).
+        """
+        return self._idna_url(url) == self._idna_url(self.domain)
+
+    # ── los tres RPC ─────────────────────────────────────────────────────────
+
+    def _api_rpc(self, route, params, endpoint_param_name, default_endpoint,
+                 **kwargs):
+        """≙ ``_api_rpc`` (``odoo19c: :486-490``).
+
+        Anota la versión del producto, resuelve el endpoint declarado en
+        ``ir.config_parameter`` (bajo ``sudo``, como la fuente) y despacha el
+        JSON-RPC. Sin endpoint configurado levanta ``AccessError`` — el mismo
+        tipo con el que la fuente reporta el fallo de red, y el que
+        ``configurator_init`` atrapa para degradar con gracia.
+        """
+        params['version'] = release.version
+        with sudo():
+            api_endpoint = SystemParameter.get_param(
+                endpoint_param_name, default_endpoint)
+        if not api_endpoint:
+            raise AccessError(
+                _('No external service endpoint is configured for %s.')
+                % endpoint_param_name)
+        return _configurator_rpc_call(api_endpoint + route, params=params,
+                                      **kwargs)
+
+    def _website_api_rpc(self, route, params):
+        """≙ ``_website_api_rpc`` (``odoo19c: :492-494``) — industrias,
+        sugerencias de tema, …"""
+        return self._api_rpc(route, params, 'website.website_api_endpoint',
+                             DEFAULT_WEBSITE_ENDPOINT)
+
+    def _OLG_api_rpc(self, route, params):
+        """≙ ``_OLG_api_rpc`` (``odoo19c: :496-498``) — generación de texto."""
+        return self._api_rpc(route, params, 'website.olg_api_endpoint',
+                             DEFAULT_OLG_ENDPOINT, timeout=45)
+
+    # ── el configurador (lo portable sin temas/QWeb) ─────────────────────────
+
+    def get_cta_data(self, website_purpose, website_type):
+        """≙ ``get_cta_data`` (``odoo19c: :500-501``), verbatim."""
+        return {'cta_btn_text': False, 'cta_btn_href': '/contactus'}
+
+    def _get_snippet_defaults(self, snippet):
+        """≙ ``_get_snippet_defaults`` (``odoo19c: :503-505``), verbatim:
+        el gancho que los verticales sobreescriben."""
+        return {}
+
+    def _get_snippet_view_key(self, snippet, page_code):
+        """≙ ``_get_snippet_view_key`` (``odoo19c: :507-511``), verbatim."""
+        if '.' not in snippet:
+            snippet = 'website.' + snippet
+        module, snippet = snippet.split('.')
+        return f'{module}.configurator_{page_code}_{snippet}'
+
+    def configurator_set_menu_links(self, menu_company, module_data):
+        """≙ ``configurator_set_menu_links`` (``odoo19c: :647-650``).
+
+        La fuente empareja por ``url``; aquí el campo del menú SPA se llama
+        ``route`` (divergencia declarada en ``website_menu.py``), y el recorte
+        por sitio usa la FK ``website`` que #543 cableó.
+        """
+        menus = WebsiteMenu.objects.filter(
+            route__in=list(module_data.keys()), website=self)
+        for m in menus:
+            m.sequence = module_data[m.route]['sequence']
+            m.save(update_fields=['sequence'])
+
+    def configurator_get_footer_links(self):
+        """≙ ``configurator_get_footer_links`` (``odoo19c: :652-655``).
+
+        El ``href`` diverge: las páginas estáticas públicas viven bajo
+        ``/pages/<slug>`` (``StaticPage.url``), no en la raíz.
+        """
+        return [
+            {'text': _("Privacy Policy"), 'href': '/pages/privacy'},
+        ]
+
+    @classmethod
+    def configurator_skip(cls):
+        """≙ ``configurator_skip`` (``odoo19c: :704-708``; ``@api.model``).
+
+        La fuente además instala ``theme_default`` y devuelve su redirect
+        (``button_choose_theme``); los módulos de tema no existen aquí (#488),
+        así que se marca el sitio y se devuelve ``None`` — divergencia
+        declarada, no un recorte silencioso.
+        """
+        website = cls.get_current_website()
+        website.configurator_done = True
+        website.save(update_fields=['configurator_done'])
+        return None
+
+    @classmethod
+    def configurator_missing_industry(cls, unknown_industry):
+        """≙ ``configurator_missing_industry`` (``odoo19c: :711-718``;
+        ``@api.model``) — reporta al servicio la industria que su catálogo no
+        tiene. Hereda el estado del RPC: sin endpoint, ``AccessError``.
+        """
+        website = cls.get_current_website()
+        website._website_api_rpc(
+            '/api/website/unknown_industry',
+            {
+                'unknown_industry': unknown_industry,
+                'lang': get_context().get('lang'),
+            }
+        )
+
+
+def _configurator_rpc_call(url, method='call', params=None, timeout=15):
+    """El transporte de los tres RPC — ≙ ``iap_tools.iap_jsonrpc``
+    (``odoo19c: addons/iap/tools/iap_tools.py:102-142``).
+
+    Su hogar real es el addon ``iap``; esa cadena espera la DECISIÓN #413,
+    así que vive aquí como función de módulo y se muda cuando se decida.
+    Se porta el contrato observable de la fuente: payload JSON-RPC 2.0 con
+    ``id`` aleatorio, desempaquetado de ``result``, y TODO fallo de red o
+    del servidor sale como ``AccessError`` (los llamadores — p. ej.
+    ``configurator_init`` en la fuente — atrapan exactamente ese tipo).
+    Lo que NO se porta, con razón: ``InsufficientCreditError`` es el modelo
+    de créditos IAP de Odoo (#413) y el corto-circuito ``current_test`` es
+    de su runner (aquí los tests no llegan a la red: sin endpoint el RPC
+    corta antes, y con endpoint se les inyecta el transporte).
+    """
+    payload = {
+        'jsonrpc': '2.0',
+        'method': method,
+        'params': params,
+        'id': uuid.uuid4().hex,
+    }
+    try:
+        response = requests.post(url, json=payload, timeout=timeout)
+        response.raise_for_status()
+        body = response.json()
+    except requests.exceptions.Timeout:
+        raise AccessError(
+            _('The request to the service timed out. The URL it tried to '
+              'contact was %s') % url)
+    except requests.exceptions.RequestException as error:
+        raise AccessError(
+            _('An error occurred while reaching %s: %s') % (url, error))
+    if 'error' in body:
+        raise AccessError(
+            _('The external service at %s reported an error.') % url)
+    return body.get('result')
