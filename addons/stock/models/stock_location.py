@@ -129,6 +129,20 @@ Divergencias declaradas
    cliente web de Odoo; aquí son métodos que el consumidor llama, con el mismo
    cuerpo. No se pierde la regla, se pierde el disparo automático en un
    formulario que este stack no tiene.
+4. **El lado ``stock.warehouse`` de ``@api.depends('warehouse_view_ids',
+   'location_id')`` lo dispara** ``StockWarehouse.save()`` **, no este
+   archivo** (tarea **#503**, cierra :ref:`h-api-667`). ``compute_warehouse()``
+   ya resuelve correctamente el lado ``location_id`` (se recalcula en cada
+   ``save()`` propio, y busca el ancestro más profundo **incluyéndose a sí
+   misma**, igual que la referencia: su ``[:-1]`` recorta el elemento vacío
+   de la barra final, no el ``id`` propio). Lo que faltaba es el lado
+   ``warehouse_view_ids``: cuando
+   un almacén nuevo apunta su ``view_location`` a un árbol de ubicaciones ya
+   existente, ninguna de esas ubicaciones se vuelve a guardar por su cuenta,
+   así que su ``warehouse`` queda ``None`` hasta el próximo ``save()`` propio.
+   Ver D-4 en ``stock_warehouse.py`` para la medición y el fix — que delega
+   de vuelta en ``compute_warehouse()`` de este archivo, sin duplicar la
+   regla de «ancestro más profundo».
 """
 import calendar
 import datetime
@@ -376,6 +390,17 @@ class StockLocation(TimeStampedModel):
         El almacén es aquel cuya ubicación-vista es ancestro de ésta. Con
         varios candidatos gana el **más profundo**, que es lo que la referencia
         obtiene ordenando por ``parent_path`` descendente antes de recorrer.
+
+        ``ancestros`` recorta el último elemento de ``parent_path.split('/')``,
+        que es la cadena **vacía** que deja la barra final (``«1/4/9/»`` →
+        ``['1','4','9','']``): el ``id`` propio SÍ entra en el conjunto, así
+        que una ``view_location`` se resuelve a su propio almacén. Es lo
+        mismo que hace la referencia (``odoo19c: :171``), cuyo ``parent_path``
+        tiene idéntico formato.
+        ``StockWarehouse.save()`` es quien vuelve a llamar a este método
+        cuando el cambio que invalida el resultado ocurrió del OTRO lado de
+        la relación (el almacén), porque este método sólo se dispara con el
+        ``save()`` de esta ubicación.
         """
         StockWarehouse = apps.get_model('stock', 'StockWarehouse')
         self.warehouse = None

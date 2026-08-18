@@ -30,6 +30,7 @@ from django.test import RequestFactory
 from django.utils import timezone
 
 from addons.base.models import IrModelData, ResUsers
+from addons.utm.data import seed as _seed_utm_catalog
 from addons.utm.models import (
     IrHttp,
     UtmCampaign,
@@ -45,6 +46,33 @@ from addons.utm.models.utm_tag import _default_color
 from exceptions import UserError, ValidationError
 
 pytestmark = pytest.mark.django_db
+
+
+@pytest.fixture(autouse=True)
+def _semillas_utm_restauradas(db):
+    """Repone las cuatro familias sembradas antes de cada test — H-API-674.
+
+    Seis tests de este archivo asumen la siembra de ``0002_seed_utm_data``
+    (``'Search engine'``, ``'Email'``, la etapa ``'New'``…), y esa siembra
+    **no sobrevive** a un test ``django_db(transaction=True)`` de cualquier
+    otro addon en la misma sesión — ``django_migrations`` no es tabla de
+    modelo, así que el ``flush`` la deja vacía sin que la migración vuelva a
+    correr (H-API-22, ``tests/integration/base/
+    test_migration_seeds_survive_flush.py``). Medido en este mismo pase:
+    ``utm_source``, ``utm_stage``, ``utm_medium`` y ``ir_model_data`` (módulo
+    ``utm``) estaban en **0 filas** en ``kaupamex_core_qa`` pese a que
+    ``showmigrations utm`` marcaba ``0002_seed_utm_data`` como aplicada.
+
+    El arreglo correcto y compartido —añadir ``addons.utm.data.seed`` a
+    ``tests/conftest.py::_SEEDERS``, que ya reaplica esta familia de
+    semillas tras cada test transaccional— queda fuera del alcance de este
+    archivo (``tests/conftest.py`` lo edita otro pase; ver el hallazgo). Este
+    fixture cierra el síntoma para ESTE módulo, sin depender de ese cableado
+    global: ``seed()`` es idempotente (no duplica, no pisa un valor editado),
+    así que repetirlo en cada test no tiene costo de corrección, sólo un
+    puñado de consultas baratas.
+    """
+    _seed_utm_catalog()
 
 
 # ---------------------------------------------------------------- utm.mixin --
@@ -198,8 +226,14 @@ class TestUtmMedium:
         assert medium.SELF_REQUIRED_UTM_MEDIUMS_REF['utm.utm_medium_twitter'] == 'X'
 
     def test_protected_medium_cannot_be_deleted(self):
-        medium = UtmMedium.objects.create(name='Direct')
-        IrModelData.set_xmlid(medium, 'utm.utm_medium_direct')
+        """El medio protegido es el que la siembra registra, no uno nuevo.
+
+        ``'Direct'`` ya existe — lo crea ``0002_seed_utm_data`` — y su
+        ``UNIQUE(name)`` impide un segundo ``.create(name='Direct')``
+        (``H-API-674``). Se toma el registro sembrado por su identificador
+        externo, que es como la guarda real lo encuentra.
+        """
+        medium = IrModelData.ref('utm.utm_medium_direct')
 
         with pytest.raises(UserError):
             medium.delete()
@@ -244,8 +278,14 @@ class TestUtmSource:
         assert second.name == 'Blog [2]'
 
     def test_referral_source_cannot_be_deleted(self):
-        source = UtmSource.objects.create(name='Referral')
-        IrModelData.set_xmlid(source, 'utm.utm_source_referral')
+        """La fuente protegida es la que la siembra registra, no una nueva.
+
+        ``'Referral'`` ya existe — lo crea ``0002_seed_utm_data`` — y su
+        ``UNIQUE(name)`` impide un segundo ``.create(name='Referral')``
+        (``H-API-674``). Se toma el registro sembrado por su identificador
+        externo, que es como la guarda real lo encuentra.
+        """
+        source = IrModelData.ref('utm.utm_source_referral')
 
         with pytest.raises(ValidationError):
             source.delete()

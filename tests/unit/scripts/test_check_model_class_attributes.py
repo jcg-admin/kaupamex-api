@@ -7,12 +7,18 @@ incumplidor fabricado por quien escribió el patrón — un fabricado hereda el
 encuadre de su autor y confirma el instrumento en vez de ponerlo a prueba.
 
 El positivo conocido aquí es ``src/addons/base/models/res_partner.py``: su
-propio docstring (líneas 52-87) documenta que porta 7 de los 9 atributos que
+propio docstring documenta cuántos de los 9 atributos que
 ``odoo19c: odoo/addons/base/models/res_partner.py`` declara para
-``ResPartner``, y nombra los dos que faltan: ``_check_company_domain``
-(atributo de ORM) y el objeto de tabla ``_check_name``. Si el gate no
-reproduce exactamente esos dos, o reproduce de más, el instrumento está mal
-calibrado — no el archivo.
+``ResPartner`` están portados, y nombra el que falta —
+``_check_company_domain``, un atributo de ORM cuyo mecanismo vive en
+``src/orm`` y todavía no existe. Si el gate no reproduce exactamente ése, o
+reproduce de más, el instrumento está mal calibrado — no el archivo.
+
+El objeto de tabla ``_check_name`` **no** es un hallazgo: aterrizó en
+``Meta.constraints`` como ``res_partner_check_name``, que es su hogar
+declarado por ``atributos-de-clase-de-modelo.md``. El gate lo reportaba
+ausente hasta que aprendió a leer ``Meta`` — un falso positivo sobre trabajo
+correcto, que es peor que no medir (:ref:`h-api-675`).
 """
 import ast
 import importlib.util
@@ -185,15 +191,20 @@ def test_addon_and_relpath_is_none_outside_any_addons_root():
 
 
 @requires_reference_tree
-def test_the_real_positive_res_partner_names_exactly_its_two_known_gaps():
-    """``res_partner.py`` — 7 de 9 portados; el gate reproduce los 2 que faltan.
+def test_the_real_positive_res_partner_names_its_one_remaining_gap():
+    """``res_partner.py`` — 8 de 9 portados; el gate reproduce el que falta.
 
-    Ninguno de más, ninguno de menos: los siete ya portados (``_name``,
+    Ninguno de más, ninguno de menos: los ya portados (``_name``,
     ``_description``, ``_inherit``, ``_order``, ``_rec_names_search``,
     ``_allow_sudo_commands``, ``_check_company_auto``) no deben salir como
     ausentes, y la constante ``_complete_name_displayed_types`` (categoría
     "otros") tampoco — sólo así el gate confirma que sabe leer las tres
     categorías, no sólo detectar *algo*.
+
+    ``_check_name`` **tampoco** sale: es un objeto de tabla y aterrizó en
+    ``Meta.constraints`` como ``res_partner_check_name``, que es su hogar
+    declarado. El gate lo daba por ausente hasta que aprendió a leer ``Meta``
+    — un falso positivo sobre trabajo correcto (:ref:`h-api-675`).
     """
     addon, relpath = 'base', pathlib.Path('models/res_partner.py')
     ref_addon = gate.ref_addon_dir(addon)
@@ -205,15 +216,13 @@ def test_the_real_positive_res_partner_names_exactly_its_two_known_gaps():
     findings = gate.compare_file_pair(addon, relpath, ref_path, our_path)
     by_kind = {(f[0], f[4]) for f in findings}
 
-    assert by_kind == {
-        ('orm', '_check_company_domain'),
-        ('table', '_check_name'),
-    }
-    # Ninguno de los siete ya portados sale como ausente:
+    assert by_kind == {('orm', '_check_company_domain')}
+    # Ninguno de los ya portados sale como ausente — el objeto de tabla
+    # incluido, porque su hogar es Meta.constraints:
     missing = {f[4] for f in findings}
     for ported in ('_name', '_description', '_inherit', '_order',
                    '_rec_names_search', '_allow_sudo_commands',
-                   '_check_company_auto'):
+                   '_check_company_auto', '_check_name'):
         assert ported not in missing
     # La constante de clase no es un hallazgo — categoría "otros", ignorada:
     assert '_complete_name_displayed_types' not in missing
@@ -288,7 +297,6 @@ def test_cli_exits_one_and_names_the_real_positive(monkeypatch, tmp_path, capsys
     assert gate.main() == 1
     output = capsys.readouterr().out
     assert '_check_company_domain' in output
-    assert '_check_name' in output
 
 
 @requires_reference_tree
@@ -302,11 +310,56 @@ def test_cli_write_baseline_freezes_current_findings(monkeypatch, tmp_path):
     content = destination.read_text()
     assert 'orm::base/models/res_partner.py::ResPartner::_check_company_domain' \
         in content
-    assert 'table::base/models/res_partner.py::ResPartner::_check_name' \
-        in content
+    # El objeto de tabla NO entra al baseline: está portado en Meta.constraints.
+    assert '_check_name' not in content
 
     # Con ese baseline ya escrito, correr --strict sobre el MISMO archivo
     # ahora da limpio: es deuda congelada, no un hallazgo nuevo.
     monkeypatch.setattr(gate.sys, 'argv', [
         'check_model_class_attributes.py', '--strict', str(path)])
     assert gate.main() == 0
+
+
+# --- Meta.constraints / Meta.indexes: el hogar del objeto de tabla ---------
+
+
+def test_meta_names_reads_db_table_and_the_declared_constraint_names():
+    """El gate lee ``Meta`` para saber dónde aterrizó el objeto de tabla."""
+    node = _class_def(
+        'class C:\n'
+        '    class Meta:\n'
+        '        db_table = "res_partner"\n'
+        '        constraints = [models.CheckConstraint(condition=Q(),'
+        ' name="res_partner_check_name")]\n'
+        '        indexes = [models.Index(fields=["a"], name="res_partner_a_idx")]\n'
+    )
+    db_table, names = gate.meta_table_object_names(node)
+    assert db_table == 'res_partner'
+    assert names == {'res_partner_check_name', 'res_partner_a_idx'}
+
+
+def test_meta_names_is_empty_when_the_class_has_no_meta():
+    db_table, names = gate.meta_table_object_names(_class_def('class C:\n    x = 1\n'))
+    assert (db_table, names) == ('', set())
+
+
+def test_a_table_object_is_placed_when_meta_uses_the_derived_full_name():
+    """``full_name()`` de la referencia: ``f'{_table}_{attr[1:]}'``.
+
+    ``odoo19c: odoo/orm/table_objects.py:54-57`` — el nombre real de la
+    restricción es la tabla más el atributo sin su guion bajo.
+    """
+    assert gate.table_object_is_placed(
+        '_check_name', 'res_partner', {'res_partner_check_name'})
+
+
+def test_a_table_object_is_placed_when_only_the_suffix_survives():
+    """Un puerto puede nombrar su tabla distinto y conservar el sufijo."""
+    assert gate.table_object_is_placed(
+        '_check_name', 'otra_tabla', {'system_parameter_check_name'})
+
+
+def test_a_table_object_is_not_placed_when_meta_names_something_else():
+    """El control negativo: sin el sufijo, no está — el gate sigue viendo."""
+    assert not gate.table_object_is_placed(
+        '_check_name', 'res_partner', {'res_partner_unique_vat'})

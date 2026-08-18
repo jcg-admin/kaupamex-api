@@ -6,6 +6,7 @@
 # Un archivo NUEVO sin contraparte no entra aquí solo: se declara, con razón
 # real, o se corrige el sitio. Ver .claude/rules/atributos-de-clase-de-modelo.md
 # y check_mirrored_roots.py.
+src/orm/checks.py::wrapper de django.core.checks.run_checks() (tarea #341, H-API-677); Odoo valida el registro de modelos vía _auto_init/setup del ORM, no tiene un registro declarativo de checks equivalente — no hay símbolo que portar. Divergencia de ubicación declarada en el propio archivo: el hogar natural es scripts/check_system_checks.py (hermano de check_urlconf.py), ausente en esta rama; consolidar es la tarea #483
 src/orm/fields_nonstored.py::campo no-persistido (store=False); mecanismo propio de la plataforma, no existe símbolo equivalente en el ORM de la referencia
 src/orm/inherits.py::mecanismo de _inherits (delegación por Many2one nombrado); construido porque Django no lo trae
 src/orm/method_chain.py::encadenado de métodos vía api.depends; construido, no existe en Django

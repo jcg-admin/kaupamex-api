@@ -50,11 +50,12 @@ class ResPartner(AvatarMixin, TimeStampedModel):
     ``models.Model``, **no** de ``TimeStampedModel``. Sustituir una base por la
     otra habría borrado las marcas de tiempo en silencio.
 
-    Atributos de clase — 7 de los 9 que la fuente declara
+    Atributos de clase — 8 de los 9 que la fuente declara
     ======================================================
 
-    Medido sobre ``odoo19c: res_partner.py:185-195`` (tarea #385). Se portan
-    verbatim los siete que no dependen de un símbolo ausente:
+    Medido sobre ``odoo19c: res_partner.py:185-195`` (tarea #385) y
+    ``:326`` (tarea #504). Se portan verbatim los ocho que no exigen un
+    símbolo ausente **en este archivo**:
 
     - ``_name`` / ``_description`` — el nombre punteado y su etiqueta. El
       primero es lo que registra ``orm.registry.MODELS_BY_NAME``, y sin él
@@ -70,22 +71,35 @@ class ResPartner(AvatarMixin, TimeStampedModel):
       campo que sí existe.
     - ``_rec_names_search`` — los cinco campos que ``name_search`` considera.
     - ``_allow_sudo_commands`` / ``_check_company_auto`` — verbatim.
+    - ``_complete_name_displayed_types`` (``:195``) — constante de clase, no
+      atributo de ORM (categoría 3 de ``atributos-de-clase-de-modelo.md``).
+      Se porta aunque su único consumidor —el compute de ``complete_name``—
+      no esté construido: la regla exige portar la constante en sí, no su
+      consumidor.
+    - el objeto de tabla ``_check_name`` (``:326``) — vive en
+      ``Meta.constraints`` como ``models.CheckConstraint``, con el nombre de
+      la referencia conservado: ``full_name()`` en
+      ``odoo19c: odoo/orm/table_objects.py:55-58`` compone
+      ``f"{model._table}_{self.name}"`` con ``self.name`` = el atributo sin
+      guion bajo (``__set_name__``, ``:40-46``), así que el nombre real de la
+      fuente es ``res_partner_check_name`` — el mismo que aquí.
 
-    **Los dos que NO se portan, y por qué** (``hallazgo-abierto-genera-sucesor``):
+    **El único que NO se porta, y por qué** (``hallazgo-abierto-genera-sucesor``):
 
     - ``_check_company_domain = models.check_company_domain_parent_of``
-      (``odoo19c: :192``) referencia un símbolo que vive en
-      ``odoo19c: odoo/orm/models.py:169`` y que **no existe** en ``src/orm``.
-      Escribirlo aquí sería un ``NameError`` en tiempo de import. Su mecanismo
-      consumidor —el check de coherencia de empresa al guardar— tampoco está
-      construido (medido: 0 apariciones de ``check_company`` en ``src/orm``).
-    - ``_complete_name_displayed_types`` (``:195``) es una constante de clase,
-      no un atributo de ORM, y sólo la consume el compute de ``complete_name``,
-      que no está portado.
-
-    Los dos, más el objeto de tabla ``_check_name`` (``:326``, cuyo hogar sería
-    ``Meta.constraints`` y exige migración), quedan registrados en la tarea
-    **#504**.
+      (``odoo19c: :192``) referencia un símbolo de
+      ``odoo19c: odoo/orm/models.py:169`` que **no existe** en ``src/orm`` —
+      y su hogar correcto **es** ``src/orm/models.py`` (raíz espejada;
+      segunda cláusula de ``atributos-de-clase-de-modelo.md``), no este
+      archivo. Escribirlo aquí sería fabricar el símbolo en el sitio
+      equivocado, el mismo defecto que ``H-API-578``. El bloqueo es de
+      **alcance de escritura de la tarea #504** (sólo este archivo, sus
+      migraciones y sus tests — no ``src/orm/**``), no de capacidad: el
+      mecanismo consumidor (el check de coherencia de empresa en ``save()``)
+      tampoco existe en ninguna parte de ``src/orm`` (medido: 0 apariciones
+      de ``check_company`` fuera de este docstring), así que construirlo
+      exige tocar el ORM espejado — mecanismo transversal que usan **21
+      clases** de la referencia, no sólo ``res.partner``.
     """
 
     _name                = 'res.partner'
@@ -97,6 +111,12 @@ class ResPartner(AvatarMixin, TimeStampedModel):
                             'company_registry']
     _allow_sudo_commands = False
     _check_company_auto  = True
+
+    # Los tipos de partner que se anexan al nombre completo (Odoo
+    # ``odoo19c: res_partner.py:195``). Constante de clase, no atributo de
+    # ORM (categoría 3, ``atributos-de-clase-de-modelo.md``) — se porta aunque
+    # su consumidor (compute de ``complete_name``) no esté construido aquí.
+    _complete_name_displayed_types = ('invoice', 'delivery', 'other')
 
     # ``type`` — un partner hijo es una dirección; el padre es el titular.
     TYPE_CONTACT  = 'contact'
@@ -204,6 +224,26 @@ class ResPartner(AvatarMixin, TimeStampedModel):
         ordering            = ['name', '-id']
         verbose_name        = 'Partner'
         verbose_name_plural = 'Partners'
+        constraints         = [
+            # ``_check_name`` de la fuente (``odoo19c: res_partner.py:326``).
+            # Un partner ``type='contact'`` requiere ``name``; una dirección
+            # (``invoice``/``delivery``/``other``) puede carecer de él.
+            # Nombre conservado: ``full_name()`` compone
+            # ``f"{_table}_{atributo sin guion bajo}"``
+            # (``odoo19c: odoo/orm/table_objects.py:55-58``).
+            models.CheckConstraint(
+                condition=(
+                    # 'contact' == TYPE_CONTACT; el atributo de clase no es
+                    # visible aquí (``class Meta`` no hereda el namespace de
+                    # ``ResPartner`` — la scoping de clases de Python no
+                    # anida, verificado con un repro mínimo).
+                    models.Q(type='contact', name__isnull=False)
+                    | ~models.Q(type='contact')
+                ),
+                name='res_partner_check_name',
+                violation_error_message='Contacts require a name',
+            ),
+        ]
 
     def __str__(self) -> str:
         if self.parent_id and self.type != self.TYPE_CONTACT:

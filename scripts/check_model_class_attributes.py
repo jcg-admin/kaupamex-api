@@ -38,9 +38,18 @@ comparten el prefijo y NO son lo mismo:
    displayed_types`` es el caso real medido en ``res_partner.py``). Se
    ignoran: no son el objeto de la regla.
 
+Un objeto de tabla de la referencia se da por **portado** cuando aparece en
+``Meta.constraints`` / ``Meta.indexes`` con el nombre que ``full_name()``
+deriva (``odoo19c: odoo/orm/table_objects.py:54-57`` —
+``f'{_table}_{attr[1:]}'``), o con ese sufijo. Sin leer ``Meta``, el gate
+reportaba ausente un objeto correctamente portado: un falso positivo sobre
+trabajo correcto, que es peor que no medir (:ref:`h-api-675`).
+
 *Métrica:* atributos ``_x`` del universo ORM declarados en la clase de la
 referencia y ausentes en la clase homóloga de nuestro puerto, por AST.
-*Ciega a:* un atributo presente con el mismo nombre pero con **otro valor**
+*Ciega a:* un objeto de tabla en ``Meta`` cuyo nombre NO conserve el sufijo de
+la referencia (se lee como ausente, y es la lectura conservadora correcta);
+un atributo presente con el mismo nombre pero con **otro valor**
 (el conteo generoso que ``porte-completo-no-parcial.md`` documenta — este
 gate mide presencia, no equivalencia semántica); una clase sin contraparte en
 absoluto (la mide ``check_porte_completo.py``); un atributo del universo ORM
@@ -179,6 +188,54 @@ def class_underscore_attrs(class_node):
     return orm, table, other
 
 
+def meta_table_object_names(class_node):
+    """``(db_table, {nombres})`` de los objetos de tabla declarados en ``Meta``.
+
+    El hogar de un ``models.Constraint``/``Index`` de la referencia **es**
+    ``Meta.constraints`` / ``Meta.indexes`` — lo dice la propia regla. Sin leer
+    ese nivel, el gate reporta como ausente un objeto correctamente portado:
+    un falso positivo sobre trabajo correcto, que es peor que no medir.
+
+    Devuelve el ``db_table`` declarado (o ``''``) y el conjunto de literales
+    que aparecen como ``name=`` dentro de las listas ``constraints``/``indexes``.
+    """
+    db_table, names = '', set()
+    meta = next((s for s in class_node.body
+                 if isinstance(s, ast.ClassDef) and s.name == 'Meta'), None)
+    if meta is None:
+        return db_table, names
+    for stmt in meta.body:
+        if not (isinstance(stmt, ast.Assign) and len(stmt.targets) == 1
+                and isinstance(stmt.targets[0], ast.Name)):
+            continue
+        target = stmt.targets[0].id
+        if target == 'db_table' and isinstance(stmt.value, ast.Constant) \
+                and isinstance(stmt.value.value, str):
+            db_table = stmt.value.value
+        elif target in ('constraints', 'indexes'):
+            for node in ast.walk(stmt.value):
+                if isinstance(node, ast.keyword) and node.arg == 'name' \
+                        and isinstance(node.value, ast.Constant) \
+                        and isinstance(node.value.value, str):
+                    names.add(node.value.value)
+    return db_table, names
+
+
+def table_object_is_placed(attr, db_table, meta_names):
+    """¿El objeto de tabla ``_attr`` de la referencia aterrizó en ``Meta``?
+
+    La referencia deriva el nombre real con ``full_name()``
+    (``odoo19c: odoo/orm/table_objects.py:54-57``): ``f'{_table}_{attr[1:]}'``.
+    Se acepta ese nombre exacto y, como red, cualquiera que termine en el
+    sufijo — un puerto puede nombrar su tabla distinto y conservar el sufijo
+    de la referencia, que es lo que la regla pide preservar.
+    """
+    bare = attr.lstrip('_')
+    if f'{db_table}_{bare}' in meta_names:
+        return True
+    return any(name == bare or name.endswith(f'_{bare}') for name in meta_names)
+
+
 def top_level_classes(path):
     """``{nombre_clase: ClassDef}`` de las clases de MÓDULO (no anidadas), o ``{}``."""
     try:
@@ -227,9 +284,11 @@ def compare_file_pair(addon, relpath, ref_path, our_path):
         for attr, lineno in sorted(ref_orm.items()):
             if attr not in our_orm:
                 findings.append(('orm', addon, str(relpath), cls_name, attr, lineno))
+        db_table, meta_names = meta_table_object_names(our_node)
         for attr, lineno in sorted(ref_table.items()):
-            if attr not in our_table:
-                findings.append(('table', addon, str(relpath), cls_name, attr, lineno))
+            if attr in our_table or table_object_is_placed(attr, db_table, meta_names):
+                continue
+            findings.append(('table', addon, str(relpath), cls_name, attr, lineno))
     return findings
 
 
