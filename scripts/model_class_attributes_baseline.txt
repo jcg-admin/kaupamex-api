@@ -706,10 +706,6 @@ orm::sms/models/sms_sms.py::SmsSms::_rec_name
 orm::sms/models/sms_template.py::SmsTemplate::_description
 orm::sms/models/sms_template.py::SmsTemplate::_inherit
 orm::sms/models/sms_template.py::SmsTemplate::_name
-orm::stock/models/product_strategy.py::StockPutawayRule::_check_company_auto
-orm::stock/models/product_strategy.py::StockPutawayRule::_description
-orm::stock/models/product_strategy.py::StockPutawayRule::_name
-orm::stock/models/product_strategy.py::StockPutawayRule::_order
 orm::stock/models/stock_location.py::StockLocation::_check_company_auto
 orm::stock/models/stock_location.py::StockLocation::_description
 orm::stock/models/stock_location.py::StockLocation::_name
@@ -721,15 +717,6 @@ orm::stock/models/stock_location.py::StockRoute::_check_company_auto
 orm::stock/models/stock_location.py::StockRoute::_description
 orm::stock/models/stock_location.py::StockRoute::_name
 orm::stock/models/stock_location.py::StockRoute::_order
-orm::stock/models/stock_package.py::StockPackage::_description
-orm::stock/models/stock_package.py::StockPackage::_name
-orm::stock/models/stock_package.py::StockPackage::_order
-orm::stock/models/stock_package.py::StockPackage::_parent_name
-orm::stock/models/stock_package.py::StockPackage::_parent_store
-orm::stock/models/stock_package.py::StockPackage::_rec_name
-orm::stock/models/stock_package_type.py::StockPackageType::_description
-orm::stock/models/stock_package_type.py::StockPackageType::_name
-orm::stock/models/stock_package_type.py::StockPackageType::_order
 orm::stock_landed_costs/models/stock_landed_cost.py::StockLandedCost::_description
 orm::stock_landed_costs/models/stock_landed_cost.py::StockLandedCost::_inherit
 orm::stock_landed_costs/models/stock_landed_cost.py::StockLandedCost::_name

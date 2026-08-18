@@ -302,6 +302,20 @@ adaptadores de firma sobre los métodos portados.
   ``_get_removal_strategy_order``, que es **el símbolo que la referencia
   extiende**. Es un cierre de :ref:`h-api-581` y de la divergencia que el
   propio ``product_expiry`` declaraba.
+
+D-8 · ``_set_inventory_quantity`` — ya portado; el gate es ciego a los ``inverse``
+------------------------------------------------------------------------------------
+
+``check_porte_completo.py`` lo reporta ausente, y **no lo está**
+(:ref:`h-api-680`). ``_set_inventory_quantity`` (``odoo19c: :225-237``) es el
+``inverse='_set_inventory_quantity'`` del campo
+``inventory_quantity_auto_apply``; aquí es el **setter** de la property
+homónima (:613-625), citado en su propio docstring. La absolución del gate
+(``equivalencias_declaradas()``) sólo deriva claves ``_compute_<campo>`` a
+partir de una property **getter**; declara explícitamente en su propio
+docstring que es ciega a los ``_inverse_x``/``_search_x`` — «el lado seguro».
+El cuerpo es el mismo: si la cantidad no cambió no hay ajuste; si cambió,
+escribe ``inventory_quantity`` y aplica el inventario.
 """
 import datetime
 import heapq

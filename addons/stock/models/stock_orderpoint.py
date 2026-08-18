@@ -114,6 +114,48 @@ y ``_get_orderpoint_action`` devuelven el diccionario con su ``xml_id``; el
 cliente Odoo que lo consumiría no existe en este stack (DEC-FW-01). Es la misma
 forma que ``stock_quant.action_view_orderpoints`` ya usa.
 
+**D-4 — tres computes que ``check_porte_completo.py`` reporta ausentes por el
+mismo mecanismo que ``stock_package.py`` ya declaró** (:ref:`h-api-680`). El
+gate absuelve un ``_compute_<campo>`` sólo si existe una ``property`` con **el
+mismo nombre exacto** que el campo de la referencia y su docstring cita el
+símbolo (``scripts/check_porte_completo.py:289-340``). Los tres casos:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 30 40
+
+   * - Compute de la referencia
+     - Campo allá / aquí
+     - Por qué no absuelve
+   * - ``_compute_effective_route_id`` (``:237-242``)
+     - ``effective_route_id`` / ``effective_route`` (:445)
+     - el sufijo ``_id`` se retira de todo FK en este árbol
+   * - ``_compute_rules`` (``:192-207``)
+     - ``rule_ids`` / ``rule_ids`` (:360)
+     - la propia referencia nombra su compute distinto del campo
+       (no ``_compute_rule_ids``); la clave derivada no coincide
+   * - ``_compute_qty`` (``:374-393``)
+     - dos campos (``qty_on_hand``, ``qty_forecast``) / dos properties
+       homónimas (:478, :483)
+     - un compute de la referencia escribe DOS campos a la vez; el gate
+       deriva una clave por campo, ninguna es ``_compute_qty``
+
+Los tres cuerpos son equivalentes — verificado leyendo ambos archivos, no
+asumido — y quedan citados en el docstring de cada property.
+
+**D-5 — ``create``/``write`` se consolidan en ``save()``.** La referencia
+(``:295-307``) valida en dos métodos separados: ``create`` rechaza un
+``snoozed_until`` sobre un disparador ``auto`` en la creación; ``write``
+rechaza lo mismo y además el cambio de empresa. Este puerto usa ``save()``
+como el único punto de paso de ambos casos (Django no separa create/write en
+dos métodos de instancia con la misma firma que Odoo) — ``save()`` en
+``:753-784`` corre las dos guardas, distinguiendo creación de actualización
+con ``self.pk is None``. Las tres reglas de negocio —snooze sólo manual,
+mensaje distinto en creación vs actualización, empresa inmutable tras
+creada— están las tres presentes, verbatim en el mensaje. El gate compara por
+nombre de método (``create``, ``write``) y no ve la consolidación; es la
+misma forma que ya usan otros modelos de este árbol.
+
 Lo que este archivo NO cierra
 ===============================
 

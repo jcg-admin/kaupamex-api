@@ -69,6 +69,17 @@ Divergencias declaradas
    escritura conserva la semántica: crea la secuencia si no existe.
 3. **Las cuatro magnitudes son ``Monetary``, no ``Float``.** El árbol usa
    ``DecimalField`` para toda magnitud con redondeo declarado.
+4. **``_compute_display_name`` → ``__str__``, no property ``display_name``**
+   (:ref:`h-api-680`). ``check_porte_completo.py`` sólo absuelve un
+   ``_compute_<campo>`` cuando existe una ``property`` **con el mismo nombre**
+   que el campo — ``display_name`` en este puerto es el método especial
+   ``__str__`` (:193), no un descriptor con ese nombre exacto, así que el
+   gate no lo ve y lo reporta ausente. El cuerpo es el mismo: con las tres
+   dimensiones puestas, sufijo ``\t--largo x ancho x alto--``; sin ellas, el
+   nombre a secas. La única rama que la referencia no reproduce es
+   ``formatted_display_name`` del contexto del cliente web (no hay contexto
+   de petición en un método de modelo aquí) — la misma decisión que
+   ``stock_package.py::StockPackage._compute_display_name`` declara.
 """
 from decimal import Decimal
 
@@ -94,6 +105,13 @@ SEQUENCE_PADDING = 7
 
 class StockPackageType(TimeStampedModel):
     """``stock.package.type`` — el contenedor físico y sus límites."""
+
+    # Atributos de clase de modelo — los tres que la referencia declara
+    # (``odoo19c: stock/models/stock_package_type.py:8-10``), verbatim
+    # (:ref:`h-api-680`).
+    _name = 'stock.package.type'
+    _description = 'Stock package type'
+    _order = 'sequence, id'
 
     name                = fields.Char(
         max_length=120,

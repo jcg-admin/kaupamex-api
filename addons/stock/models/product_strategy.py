@@ -25,9 +25,9 @@ Medido sobre ``odoo19c: addons/stock/models/product_strategy.py`` (183 líneas):
 ===============================================  ======================================
 Símbolo de la referencia (línea)                 Aquí
 ===============================================  ======================================
-``_default_category_id`` (22-24)                 ``default_category`` (classmethod)
-``_default_location_id`` (26-32)                 ``default_location_in`` (classmethod)
-``_default_product_id`` (34-40)                  ``default_product`` (classmethod)
+``_default_category_id`` (22-24)                 ``_default_category_id`` (classmethod)
+``_default_location_id`` (26-32)                 ``_default_location_id`` (classmethod)
+``_default_product_id`` (34-40)                  ``_default_product_id`` (classmethod)
 ``product_id`` (42-48)                           ``product``
 ``category_id`` (49-50)                          ``category``
 ``location_in_id`` (51-55)                       ``location_in``
@@ -39,8 +39,8 @@ Símbolo de la referencia (línea)                 Aquí
 ``active`` (69)                                  ``active``
 ``sublocation`` (70-74)                          ``sublocation``
 ``_compute_storage_category`` (76-80)            ``compute_storage_category``
-``_onchange_sublocation`` (82-94)                ``check_sublocation_category``
-``_onchange_location_in`` (96-100)               ``apply_location_in``
+``_onchange_sublocation`` (82-94)                ``_onchange_sublocation``
+``_onchange_location_in`` (96-100)               ``_onchange_location_in``
 ``create`` (102-105)                             ``create`` (classmethod)
 ``write`` (107-112)                              ``write``
 ``_get_last_used_search_domain`` (114-124)       ``get_last_used_search_domain``
@@ -56,18 +56,47 @@ Divergencias declaradas
    que es lo que su cliente web pone al abrir el formulario desde un producto,
    una categoría o una ubicación. Este stack no tiene ese contexto implícito,
    así que la misma decisión se toma con los dos valores explícitos. El cuerpo
-   —qué default corresponde a qué modelo activo— es idéntico.
+   —qué default corresponde a qué modelo activo— es idéntico. **No se cablean
+   como** ``default=`` **de sus campos** (la referencia sí lo hace en
+   ``product_id``/``category_id``/``location_in_id``): al recibir el contexto
+   por parámetro en vez de leerlo de ``self.env``, no encajan en la firma sin
+   argumentos que Django exige para un ``default=`` — quien cree el registro
+   los invoca explícitamente con el ``active_model``/``active_id`` que tenga.
+   Divergencia declarada, no omisión: :ref:`h-api-680`.
 2. **``_onchange_sublocation`` devuelve el aviso, no lo muestra.** La
    referencia retorna un diccionario ``{'warning': …}`` que su cliente
-   renderiza. Aquí ``check_sublocation_category`` devuelve el mensaje o
-   ``None``; quien lo llame decide cómo presentarlo. La regla —avisar cuando
-   la categoría elegida no existe bajo la ubicación destino— se conserva
-   entera.
+   renderiza. Aquí devuelve el mensaje o ``None``; quien lo llame decide cómo
+   presentarlo. La regla —avisar cuando la categoría elegida no existe bajo la
+   ubicación destino— se conserva entera.
 3. **``get_putaway_location`` es de instancia y de conjunto.** La referencia
    itera ``self`` porque su ``self`` es un recordset; aquí el método vive en el
    manager (``StockPutawayRule.objects``) y también en la instancia, para que
    ``StockLocation.get_putaway_strategy`` pueda llamarlo regla por regla como
    ya hace.
+
+Guion bajo restaurado (2026-08-18, :ref:`h-api-680`)
+------------------------------------------------------
+
+Los cinco métodos privados de la referencia
+(``_default_category_id``/``_default_location_id``/``_default_product_id``/
+``_onchange_sublocation``/``_onchange_location_in``) habían perdido su guion
+bajo en el puerto (``default_category``, ``default_location_in``,
+``default_product``, ``check_sublocation_category``, ``apply_location_in``) —
+el defecto exacto que ``porte-completo-no-parcial.md`` (H-API-581) prohíbe:
+quitar el guion bajo promueve el símbolo a API pública. Medido antes de
+corregir: **0** referencias a los cinco nombres fuera de este archivo
+(``grep -rn`` sobre ``addons/`` y ``tests/``), así que el rename no rompe
+ningún llamador. Restaurados verbatim.
+
+**Bug de llamada descubierto al escribir el test de** ``_default_location_id``
+**(mismo patrón que H-API-619 en** ``stock_package_type.py``\ **).** El cuerpo
+llamaba ``almacen.get_input_output_locations(...)``; el método real de
+``StockWarehouse`` es ``_get_input_output_locations`` (privado — verificado
+con ``grep -n "def _get_input_output_locations" addons/stock/models/
+stock_warehouse.py`` → ``:1301``). ``get_input_output_locations`` sin guion
+bajo **no existe en ningún punto del árbol** — fallaba con ``AttributeError``
+en tiempo de EJECUCIÓN, sólo alcanzable con ``multi_warehouse=False``, rama
+que ningún test previo ejercitaba. Corregido en el mismo pase.
 """
 import fields
 import models
@@ -140,6 +169,13 @@ class ProductRemoval(TimeStampedModel):
 class StockPutawayRule(TimeStampedModel):
     """``stock.putaway.rule`` — dónde se guarda lo que entra."""
 
+    # Atributos de clase de modelo — los cuatro que la referencia declara
+    # (``odoo19c: stock/models/product_strategy.py:17-20``), verbatim.
+    _name = 'stock.putaway.rule'
+    _order = 'sequence,product_id'
+    _description = 'Putaway Rule'
+    _check_company_auto = True
+
     product            = fields.Many2one(
         'product.ProductProduct', null=True, blank=True, on_delete=models.CASCADE,
         related_name='putaway_rule_ids', db_index=True,
@@ -204,7 +240,7 @@ class StockPutawayRule(TimeStampedModel):
     # -- los tres defaults --
 
     @classmethod
-    def default_category(cls, active_model=None, active_id=None):
+    def _default_category_id(cls, active_model=None, active_id=None):
         """≙ ``_default_category_id`` (``odoo19c: :22-24``).
 
         Abriendo la regla desde una categoría, la categoría viene puesta.
@@ -214,8 +250,8 @@ class StockPutawayRule(TimeStampedModel):
         return None
 
     @classmethod
-    def default_location_in(cls, active_model=None, active_id=None, company=None,
-                            multi_warehouse=True):
+    def _default_location_id(cls, active_model=None, active_id=None, company=None,
+                             multi_warehouse=True):
         """≙ ``_default_location_id`` (``odoo19c: :26-32``).
 
         Desde una ubicación, esa ubicación. Sin permiso de multi-almacén, la
@@ -230,12 +266,12 @@ class StockPutawayRule(TimeStampedModel):
         almacen = StockWarehouse.objects.filter(company=company).first()
         if almacen is None:
             return None
-        entrada, _salida = almacen.get_input_output_locations(
+        entrada, _salida = almacen._get_input_output_locations(
             almacen.reception_steps, almacen.delivery_steps)
         return entrada
 
     @classmethod
-    def default_product(cls, active_model=None, active_id=None):
+    def _default_product_id(cls, active_model=None, active_id=None):
         """≙ ``_default_product_id`` (``odoo19c: :34-40``).
 
         Desde una plantilla con **una sola** variante, esa variante; desde una
@@ -263,7 +299,7 @@ class StockPutawayRule(TimeStampedModel):
             self.storage_category = None
         return self.storage_category
 
-    def check_sublocation_category(self):
+    def _onchange_sublocation(self):
         """≙ ``_onchange_sublocation`` (``odoo19c: :82-94``).
 
         Devuelve el mensaje de aviso, o ``None`` si no hay nada que avisar.
@@ -279,17 +315,27 @@ class StockPutawayRule(TimeStampedModel):
         return _('La categoría de almacenamiento elegida no existe en la '
                  'ubicación destino ni en ninguna de sus sububicaciones.')
 
-    def apply_location_in(self):
+    def _onchange_location_in(self):
         """≙ ``_onchange_location_in`` (``odoo19c: :96-100``).
 
         Si el destino no cuelga del origen, deja de ser válido: se iguala al
         origen, que siempre lo es.
+
+        Se leen los **attname** (``location_out_id``/``location_in_id``), no
+        los objetos, porque los dos campos son FK no nulables: leer
+        ``self.location_out`` con la relación sin fijar levanta
+        ``RelatedObjectDoesNotExist`` en vez de devolver ``None``. La fuente
+        hace exactamente esto —``loc_in, loc_out = self.location_in_id,
+        self.location_out_id`` (``odoo19c: :98``)— porque en su ORM el sufijo
+        ``_id`` ES el campo; aquí es el atributo crudo de Django, y la
+        traducción fiel del `falsy` de la fuente pasa por él.
         """
-        if self.location_out is None or (
-                self.location_in is not None
+        source_id, destination_id = self.location_in_id, self.location_out_id
+        if not destination_id or (
+                source_id
                 and not self.location_out.child_of(self.location_in)):
-            self.location_out = self.location_in
-        return self.location_out
+            self.location_out_id = source_id
+        return self.location_out if self.location_out_id else None
 
     # -- create / write --
 

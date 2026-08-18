@@ -193,6 +193,17 @@ con ``res_model``/``views``/``res_id``—, que es el contrato de datos; lo que n
 existe aquí es el cliente que lo consume. Mismo criterio que
 ``stock_picking.py`` ya usa con ``_action_by_xmlid``.
 
+**D-3 — ``_compute_picking_type_id`` → property ``picking_type`` (:483)**
+(:ref:`h-api-680`). El campo de la referencia es ``picking_type_id``; este
+árbol retira el sufijo ``_id`` de todo FK, así que la clave que
+``check_porte_completo.py`` deriva de la property (``_compute_picking_type``)
+nunca coincide con el nombre real de la referencia
+(``_compute_picking_type_id``), y el gate lo reporta ausente aunque el
+docstring de ``picking_type`` (:484) ya cite el símbolo. Mismo mecanismo que
+``stock_package.py::StockPackage`` y
+``stock_orderpoint.py::StockWarehouseOrderpoint`` ya declaran para el mismo
+patrón.
+
 Primitivas del proyecto, no Django crudo
 ==========================================
 

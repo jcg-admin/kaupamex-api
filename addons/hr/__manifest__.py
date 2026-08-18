@@ -11,6 +11,7 @@
     'depends': [
         'base',      # TimeStampedModel, _reject_hierarchy_cycle, ResUsers
         'mail',      # MailThread
+        'resource',  # ResourceCalendar (hr.payroll.structure.type) + ResCompany.resource_calendar
     ],
     # Licencia de la fuente de la que se adapta este addon, tal como su manifest
     # la declara (DEC-KX-03 punto 1): `hr` en Odoo Community es LGPL-3.
