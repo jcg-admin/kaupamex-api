@@ -2,6 +2,11 @@
 
 Un archivo por modelo, como la referencia y como ``base``:
 
+- ``ir_ui_view.py`` → ``WebsiteViewInfo`` + ``apply_website_ir_ui_view_extensions``
+  (la **extensión** que el addon del sitio cuelga sobre ``ir.ui.view``:
+  visibilidad, contraseña, seguimiento y sitio de la vista, #565). No declara
+  un modelo nuevo de la referencia — ``WebsiteViewInfo`` es la tabla lateral
+  que D-1 de ese módulo explica.
 - ``website_menu.py`` → ``WebsiteMenu`` (``website.menu``: menú de la cara
   pública, gemelo de ``base.IrUiMenu``).
 - ``website_page.py`` → ``WebsitePage`` (``website.page``, delegando en
@@ -29,6 +34,10 @@ import StaticContent, ...``.
 """
 from .banner import Banner
 from .ir_http import IrHttp
+from .ir_ui_view import (
+    WebsiteViewInfo,
+    apply_website_ir_ui_view_extensions,
+)
 from .mixins import (
     WebsitePageOptionsMixin,
     WebsitePageVisibilityOptionsMixin,
@@ -62,4 +71,6 @@ __all__ = [
     'WebsiteRewrite',
     'WebsiteRoute',
     'WebsiteSearchableMixin',
+    'WebsiteViewInfo',
+    'apply_website_ir_ui_view_extensions',
 ]

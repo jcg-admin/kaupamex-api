@@ -31,3 +31,20 @@ class WebsiteSaleConfig(AppConfig):
         sale_order_module = importlib.import_module(
             'addons.website_sale.models.sale_order')
         sale_order_module.apply_website_sale_order_extensions()
+
+        # Contador de carritos abandonados del equipo de venta (tarea #568):
+        # se cuelga de ``crm.team``, que es de ``sales_team``.
+        #
+        # Va **después** de ``sale_order``: su cómputo llama a
+        # ``SaleOrder._search_abandoned_cart``, que es justo lo que la línea
+        # anterior instala. El orden no es cosmético aunque hoy nadie lea el
+        # campo durante el arranque.
+        crm_team_module = importlib.import_module(
+            'addons.website_sale.models.crm_team')
+        crm_team_module.apply_website_sale_crm_team_extensions()
+
+        # ``models/res_config_settings.py`` NO se invoca a propósito: es un
+        # archivo de sólo docstring que declara su porte bloqueado (tarea
+        # **#278**, quinto caso del árbol). Añadir una llamada no-op sería un
+        # cableado muerto — mismo criterio que ``account_check_printing`` y
+        # ``stock``, que tampoco lo cablean.

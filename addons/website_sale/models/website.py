@@ -9,12 +9,18 @@ nombrada**: la recuperación de carrito abandonado (tarea **#258**). El resto
 —precios, posición fiscal, pasos del checkout, imágenes de producto— llega con
 su superficie, y no se cuenta aquí para no inflar el denominador.
 
-Universo medido de la rebanada — 7 símbolos
+Universo medido de la rebanada — 9 símbolos
 =============================================
 
 Derivados por AST sobre el archivo de la referencia, no a mano: entradas del
 cuerpo de ``class Website`` cuyo nombre o cuerpo menciona ``abandoned`` /
-``cart_recovery`` / ``recovery``.
+``cart_recovery`` / ``recovery``. **Más dos** que el AST no marca y que la
+tarea **#568** añadió a la rebanada: ``salesteam_id`` y su ``default``. No
+mencionan ninguna de las tres cadenas —no son recuperación de carrito— pero
+son la **pieza de la que cuelga** ``crm_team.py`` entero, y portarlos aquí es
+lo que lo desbloquea. Es la misma corrección declarada que
+``models/sale_order.py`` hace con ``website_id``: la métrica de cadenas es
+ciega al ancla del mecanismo.
 
 .. list-table::
    :header-rows: 1
@@ -44,6 +50,12 @@ cuerpo de ``class Website`` cuyo nombre o cuerpo menciona ``abandoned`` /
    * - ``_send_abandoned_cart_email`` (``:920-944``)
      - portado
      - ``WebsiteSaleSettings._send_abandoned_cart_email`` (``classmethod``)
+   * - ``_default_salesteam_id`` (``:35-39``)
+     - portado
+     - función de módulo; ver ``WEBSITE_SALESTEAM_XMLID``
+   * - ``salesteam_id`` (``:63-69``)
+     - portado
+     - ``WebsiteSaleSettings.salesteam``, sus 5 atributos — ver D-7
 
 *Métrica:* entradas del cuerpo de ``class Website`` en
 ``odoo19c: website_sale/models/website.py`` que nombran o mencionan la
@@ -106,24 +118,44 @@ o el del comprador si la plantilla no lo fija) se conserva.
 crearlo queda fuera del alcance de escritura de este pase. Se mueve cuando el
 addon estrene su módulo de datos. Sucesor: tarea **#567**.
 
+**D-7 — el ``related_name`` de ``salesteam`` alcanza esta fila, no el sitio.**
+En la referencia el inverso es ``crm.team.website_ids``, un ``One2many`` a
+``website`` (``odoo19c: website_sale/models/crm_team.py:9-11``). Aquí la FK
+sale de ``WebsiteSaleSettings`` —consecuencia directa de D-1—, así que
+``team.websites`` devuelve **filas de política**, y el sitio está un salto más
+allá (``settings.website``).
+
+La **cardinalidad es idéntica** porque la relación con el sitio es 1-1: hay
+exactamente una fila de política por sitio, así que "cuántos sitios tiene este
+equipo" y "cuántas filas de política tiene este equipo" son el mismo número.
+Eso es lo que hace que el guard de ``_compute_abandoned_carts`` siga siendo
+fiel — es lo único que ese guard pregunta.
+
 Aristas de porte
 =================
 
-Porte BLOQUEADO — 0 de 7 símbolos
+Porte BLOQUEADO — 0 de 9 símbolos
 
-Ninguno de los siete quedó fuera. Lo que sí queda fuera del alcance de
-escritura de este pase, y **no** por falta de pieza:
+Ninguno de los nueve quedó fuera. Lo que sí queda fuera, con su pieza y su
+sucesor:
 
-- ``crm_team.py`` de la referencia (``abandoned_carts_amount``,
-  ``abandoned_carts_count``, ``_compute_abandoned_carts``,
-  ``get_abandoned_carts``). Su pieza **existe**: ``sales_team.CrmTeam`` y
-  ``sale.SaleOrder.team``. Su hogar es un ``models/crm_team.py`` propio —
-  ponerlo en este archivo sería la divergencia de sitio que
-  ``atributos-de-clase-de-modelo.md`` prohíbe. Sucesor: tarea **#568**.
-- ``res_config_settings.py`` de la referencia. Su pieza también existe
-  (``ResConfigSettings``, ``src/addons/base/models/res_config.py:196``, con
-  precedente vivo en ``product_expiry`` y ``account_check_printing``). Mismo
-  criterio de sitio. Sucesor: tarea **#569**.
+- ``:697`` — ``'team_id': self.salesteam_id.id`` en los valores con que el
+  sitio prepara un pedido nuevo.
+  BLOQUEADO por ``Website._prepare_sale_order_values`` — el método que lo
+  contiene pertenece a la rebanada del **servicio de carrito**, que #258 no
+  portó y que ``__manifest__.py`` ya registra como tarea **#101**. El campo que
+  la línea lee (``salesteam``) sí está portado desde este pase: lo que falta es
+  su consumidor, no su pieza. Sucesor: tarea **#101**.
+- El **equipo «Website Sales» sembrado** — ``WEBSITE_SALESTEAM_XMLID`` no
+  resuelve porque ``addons/sales_team/`` no tiene ``data/``.
+  BLOQUEADO por ``sales_team.salesteam_website_sales`` — sembrarlo toca otro
+  addon, fuera del alcance de escritura de este pase. El default es fiel
+  igualmente (devuelve ``None``, como la fuente cuando el equipo no existe).
+  Sucesor: tarea **#568**.
+- ``res_config_settings.py`` de la referencia — no es falta de pieza sino el
+  bloqueo de forma ya registrado como tarea **#278**; su medición vive en
+  ``models/res_config_settings.py`` de este addon, quinto caso idéntico del
+  árbol.
 """
 import logging
 
@@ -144,6 +176,20 @@ logger = logging.getLogger(__name__)
 #: ``_default_recovery_mail_template`` (``odoo19c: :43``) y en
 #: ``_send_abandoned_cart_email`` (``odoo19c: :938``).
 CART_RECOVERY_TEMPLATE_XMLID = 'website_sale.mail_template_sale_cart_recovery'
+
+#: ≙ el identificador externo que la referencia resuelve con ``env.ref`` en
+#: ``_default_salesteam_id`` (``odoo19c: :36``).
+#:
+#: **No está sembrado en este árbol** (medido: ``grep -rn
+#: "salesteam_website_sales" addons/ src/`` → 0 hits; ``addons/sales_team/`` no
+#: tiene ``data/``). El default devuelve entonces ``None``, que es **el mismo
+#: desenlace** que da la fuente cuando el equipo no existe o está archivado
+#: (``odoo19c: :37-39``): allá el ``raise_if_not_found=False`` devuelve un
+#: recordset vacío y el ``if team and team.active`` cae al ``return None``.
+#: Fiel, por tanto — pero declarado, no implícito. La siembra del equipo
+#: «Website Sales» toca ``addons/sales_team/``, fuera del alcance de escritura
+#: de este pase. Sucesor: tarea **#568**.
+WEBSITE_SALESTEAM_XMLID = 'sales_team.salesteam_website_sales'
 
 #: ≙ ``ir_cron_send_availability_email`` (``odoo19c: website_sale/data/
 #: ir_cron_data.xml:3-9``, ``odoo-tools@622ddc2a``), cuyo cuerpo es
@@ -177,6 +223,28 @@ def _default_recovery_mail_template():
     """
     return IrModelData.ref(CART_RECOVERY_TEMPLATE_XMLID,
                            raise_if_not_found=False)
+
+
+def _default_salesteam_id():
+    """≙ ``_default_salesteam_id`` (``odoo19c: :35-39``).
+
+    El equipo de venta «Website Sales» si está sembrado **y activo**; ``None``
+    si no. Las dos condiciones de la fuente se conservan: el
+    ``raise_if_not_found=False`` (``:36``) y el ``and team.active`` (``:37``)
+    — un equipo archivado no se asigna por defecto.
+
+    Divergencia de firma: Django llama al ``default`` de un campo **sin
+    argumentos**, así que esto es una función de módulo y no un método del
+    modelo como en la fuente. Devuelve la clave primaria, que es lo que aquel
+    ``return team.id`` devuelve.
+
+    Hoy devuelve ``None`` siempre porque el identificador externo no está
+    sembrado — ver ``WEBSITE_SALESTEAM_XMLID``.
+    """
+    team = IrModelData.ref(WEBSITE_SALESTEAM_XMLID, raise_if_not_found=False)
+    if team is not None and team.active:
+        return team.pk
+    return None
 
 
 class WebsiteSaleSettings(TimeStampedModel):
@@ -220,12 +288,41 @@ class WebsiteSaleSettings(TimeStampedModel):
                   'carritos anteriores no se recuperan (Odoo '
                   'send_abandoned_cart_email_activation_time, store=True).',
     )
+    #: ≙ ``salesteam_id`` (``odoo19c: :63-69``). Los cinco atributos que la
+    #: fuente declara, uno a uno — ver D-7 del docstring del módulo para por
+    #: qué el ``related_name`` alcanza esta fila y no el sitio:
+    #:
+    #: - ``string="Sales Team"`` (``:64``)     → ``verbose_name``
+    #: - ``comodel_name='crm.team'`` (``:65``) → ``'sales_team.CrmTeam'``
+    #: - ``index='btree_not_null'`` (``:66``)  → el índice parcial de ``Meta``
+    #: - ``ondelete='set null'`` (``:67``)     → ``on_delete=models.SET_NULL``
+    #: - ``default=_default_salesteam_id`` (``:68``) → ídem, ver la función
+    salesteam = fields.Many2one(
+        'sales_team.CrmTeam', null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='websites',
+        default=_default_salesteam_id,
+        verbose_name='Equipo de venta',
+        help_text='Equipo de venta al que se atribuyen los pedidos de este '
+                  'sitio (Odoo website.salesteam_id).',
+    )
 
     class Meta:
         db_table = 'website_sale_settings'
         ordering = ['website_id']
         verbose_name = 'Política de recuperación de carrito'
         verbose_name_plural = 'Políticas de recuperación de carrito'
+        indexes = [
+            # ≙ ``index='btree_not_null'`` (``odoo19c: :66``). En 19 ese valor
+            # pide un btree **parcial**, ``WHERE col IS NOT NULL``: la mayoría
+            # de los sitios no fija equipo, y un índice completo pagaría por
+            # todas esas filas nulas. ``db_index=True`` daría un btree entero
+            # —otro índice, no éste—, así que se declara con su condición.
+            models.Index(
+                fields=['salesteam'],
+                condition=models.Q(salesteam__isnull=False),
+                name='website_sale_salesteam_nn',
+            ),
+        ]
 
     def __str__(self):
         return 'Recuperación de carrito — %s' % self.website

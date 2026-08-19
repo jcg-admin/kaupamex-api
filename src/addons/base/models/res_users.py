@@ -70,12 +70,23 @@ from django.utils.crypto import salted_hmac
 
 from addons.base.models import signals
 from addons.base.models.timestamped_mixin import TimeStampedModel
+from exceptions import AccessError
+from orm.environments import get_current_user, is_su
 
 # Sal del HMAC de sesión. Literal de Django (``AbstractBaseUser``): cambiarlo
 # invalidaría toda sesión viva, así que se replica verbatim.
 _SESSION_AUTH_KEY_SALT = (
     'django.contrib.auth.models.AbstractBaseUser.get_session_auth_hash'
 )
+
+#: El grupo "funciones técnicas". La referencia lo hace efectivo sólo en modo
+#: depuración (``res_users.py:1080-1082``); aquí no hay tal modo — ver
+#: :meth:`ResUsers.has_group`.
+GROUP_NO_ONE_XMLID = 'base.group_no_one'
+
+#: El grupo de usuario interno. Es el que la guarda de :meth:`ResUsers.has_group`
+#: exige a quien pregunta por los grupos de otro.
+GROUP_USER_XMLID = 'base.group_user'
 
 
 class ResUsersManager(models.Manager):
@@ -437,6 +448,163 @@ class ResUsers(TimeStampedModel):
         self.save(update_fields=[
             'active', 'deactivated_reason', 'deactivated_at', 'updated_at',
         ])
+
+    # --- Pertenencia a grupo por identificador externo (≙ :1034-1096) ---
+    #
+    # La referencia resuelve el xmlid contra
+    # ``res.groups._get_group_definitions().get_id(...)``, una caché del grafo
+    # de grupos que este árbol no tiene. Aquí la resolución va por
+    # ``ir.model.data`` —el mismo camino que ``env.ref`` toma allá— y la
+    # clausura transitiva sale de ``ResGroups.all_implied_by_ids``, que ya
+    # estaba portada.
+    #
+    # El puente entre ambas es una identidad, no una aproximación: la fuente
+    # pregunta ``group_id in user.all_group_ids`` con
+    # ``all_group_ids = group_ids.all_implied_ids`` (``:447-449``), es decir
+    # «¿algún grupo mío implica a G?». Leída desde G, esa misma arista es
+    # ``G.all_implied_by_ids``. Es exactamente el cómputo que
+    # ``ResGroups.all_user_ids`` ya hacía en este árbol, visto desde el
+    # usuario en vez de desde el grupo.
+    #
+    # ``ResGroups`` se resuelve por el registro de apps y no por import:
+    # ``res_groups.py`` importa ``ResUsers`` para declarar su M2M, así que un
+    # import en esta dirección cerraría el ciclo. Mismo criterio —y mismo
+    # mecanismo— que ``_partner_model()`` de arriba.
+
+    def has_groups(self, group_spec: str) -> bool:
+        """¿Satisface ``self`` las restricciones de grupo de ``group_spec``?
+
+        Verdadero cuando el usuario pertenece a **al menos uno** de los grupos
+        positivos y a **ninguno** de los precedidos por ``!``.
+
+        ``group_spec`` es una lista separada por comas de identificadores
+        externos totalmente calificados, cada uno opcionalmente precedido por
+        ``!`` — p. ej. ``"base.group_user,base.group_portal,!base.group_system"``.
+
+        Tres detalles de la fuente que se conservan porque cambian el
+        resultado, no la forma:
+
+        - El punto solo (``"."``) es falso por definición: es el marcador de
+          "ningún grupo satisface esto" del cargador de vistas.
+        - Los negativos se evalúan **primero**, por coste: un negativo que
+          acierta corta sin tocar los positivos.
+        - Un ``group_spec`` **sólo** de negativos que no aciertan es
+          verdadero (``return not positives``). No es un caso de borde
+          decorativo: ``"!base.group_system"`` significa "cualquiera que no
+          sea administrador", y con la lectura contraria no designaría a nadie.
+
+        Igual que en :meth:`has_group`, ``base.group_no_one`` no es efectivo
+        aquí — ver el porqué en ese método.
+        """
+        if group_spec == '.':
+            return False
+
+        positives = []
+        negatives = []
+        for group_ext_id in group_spec.split(','):
+            group_ext_id = group_ext_id.strip()
+            if group_ext_id.startswith('!'):
+                negatives.append(group_ext_id[1:])
+            else:
+                positives.append(group_ext_id)
+
+        # Por coste, los negativos primero — verbatim de la fuente.
+        if any(self.has_group(ext_id) for ext_id in negatives):
+            return False
+        if any(self.has_group(ext_id) for ext_id in positives):
+            return True
+        return not positives
+
+    def has_group(self, group_ext_id: str) -> bool:
+        """¿Pertenece ``self`` al grupo de ese identificador externo?
+
+        ``group_ext_id`` va **totalmente calificado** (``modulo.ext_id``): no
+        hay módulo implícito con el que completarlo.
+
+        Dos diferencias con :meth:`_has_group`, y las dos son de la fuente:
+
+        **1. La guarda de acceso.** La referencia levanta ``AccessError`` si
+        quien llama no está elevado, no se está preguntando por sí mismo, y no
+        es un usuario interno (``:1077-1080``); su comentario dice para qué:
+        *"this prevents RPC calls from non-internal users to retrieve
+        information about other users"*.
+
+        Aquí el actor sale de ``orm.environments`` (``is_su`` / la PK del
+        usuario en contexto), no de un ``env`` recibido. Eso añade un cuarto
+        estado que la referencia no tiene: **no hay actor en contexto**. Le
+        pasa a todo lo que corre fuera de una petición —cron, migraciones,
+        tests— y se resuelve como permitido, porque ahí no existe la llamada
+        RPC de la que la guarda protege. Denegarlo haría inusable el método
+        justo donde nadie está autenticándose.
+
+        **2. ``base.group_no_one``.** La fuente lo hace efectivo **sólo** en
+        modo depuración (``result and bool(request and request.session.debug)``).
+        Este árbol **no tiene modo desarrollador**: el matiz queda BLOQUEADO
+        por ``request.session.debug`` — no existe tal interruptor aquí.
+        Sucesor: tarea #450.
+
+        Mientras tanto la decisión es **fail-closed y explícita**: este método
+        devuelve ``False`` para ``base.group_no_one`` aunque el usuario esté en
+        el grupo. Es la lectura fiel de "sólo efectivo en depuración" cuando no
+        hay depuración, y **no es una precaución teórica**: el propio XML de la
+        fuente declara ``group_no_one.implied_by_ids = [group_user,
+        group_system]`` (``base_groups.xml:58``), así que **todo** usuario
+        interno lo tiene por implicación. Sin el matiz, las funciones técnicas
+        quedarían encendidas para todos y para siempre — que es exactamente lo
+        que la comprobación de depuración impide allá.
+
+        Quien necesite la pertenencia cruda tiene :meth:`_has_group`, que es
+        justo el método que la fuente deja sin el matiz.
+        """
+        if not (is_su() or self._caller_may_query_groups()):
+            raise AccessError(
+                'has_group() sólo puede consultarse sobre el usuario actual.')
+        if group_ext_id == GROUP_NO_ONE_XMLID:
+            # Sin modo desarrollador el grupo nunca es efectivo (ver docstring).
+            return False
+        return self._has_group(group_ext_id)
+
+    def _caller_may_query_groups(self) -> bool:
+        """¿Puede el actor en contexto preguntar por los grupos de ``self``?
+
+        **No es un símbolo de la referencia**: allá la condición cabe en la
+        línea de la guarda porque ``self.env.user`` siempre existe. Aquí hay
+        que distinguir el caso "sin actor" del caso "actor ajeno", y meter esa
+        distinción dentro del ``if`` lo volvía ilegible.
+
+        Sin actor en contexto → permitido (código de servidor, no RPC).
+        Con actor → o es uno mismo, o es interno (``base.group_user``).
+        """
+        actor = get_current_user()
+        if actor is None:
+            return True
+        if actor.pk == self.pk:
+            return True
+        return actor._has_group(GROUP_USER_XMLID)
+
+    def _has_group(self, group_ext_id: str) -> bool:
+        """Pertenencia cruda al grupo, sin guarda ni matiz de depuración.
+
+        :param str group_ext_id: identificador externo (XML ID) del grupo,
+           **totalmente calificado** (``modulo.ext_id``).
+        :return: ``True`` si ``self`` es miembro del grupo, explícita o
+           implícitamente (algún grupo suyo lo implica, directa o
+           transitivamente).
+
+        Devuelve ``False`` —en vez de fallar— cuando el identificador no
+        resuelve, resuelve a algo que no es un grupo, o el usuario todavía no
+        tiene PK. Es la misma postura fail-closed que la fuente da a un
+        ``group_id`` ausente de ``all_group_ids``: un grupo que no existe no
+        otorga pertenencia.
+        """
+        if self.pk is None:
+            return False
+        data_model = apps.get_model('base', 'IrModelData')
+        group = data_model.ref(group_ext_id, raise_if_not_found=False)
+        if not isinstance(group, apps.get_model('base', 'ResGroups')):
+            return False
+        implying = list(group.all_implied_by_ids.values_list('pk', flat=True))
+        return self.group_ids.filter(pk__in=implying).exists()
 
     # --- Eje interno / portal / público (≙ res_users.py:1165-1179) ---
     #

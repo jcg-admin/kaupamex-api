@@ -1299,9 +1299,11 @@ class Website(TimeStampedModel):
         ``date_publish``, con la ``priority`` de la vista (vía la delegación)
         y el ``lastmod`` como el mayor de ``updated_at``/``view_write_date``
         (≙ ``write_date``/``view_write_date``). El filtro
-        ``('visibility', '=', False)`` es de la vista delegada — BLOQUEADO
-        por ``ir.ui.view.visibility`` — y no tiene sobre qué operar
-        (sucesor: tarea **#565**).
+        ``('visibility', '=', False)`` de la vista delegada **ya opera**
+        desde #565: la visibilidad vive en la fila lateral de la vista
+        (``WebsiteViewInfo``, divergencia D-1 de ``ir_ui_view.py``), así que
+        el vacío de la fuente se escribe con las dos formas que aquí lo
+        significan — sin fila lateral, o con ``visibility`` en cadena vacía.
         Después se enumera ``StaticPage`` — el interinato que #104 conserva
         (decisión en ``website_page.py``); sin ``force`` sólo cuentan las
         que tienen versión publicada.
@@ -1342,6 +1344,12 @@ class Website(TimeStampedModel):
             pages_queryset = pages_queryset.filter(
                 models.Q(date_publish__isnull=True)
                 | models.Q(date_publish__lte=timezone.now()))
+            # ≙ ``('visibility', '=', False)`` — sólo las públicas entran al
+            # sitemap. La fuente lo escribe dos veces (``:1562`` y ``:1565``);
+            # aquí una, porque el mismo predicado repetido no añade recorte.
+            pages_queryset = pages_queryset.filter(
+                models.Q(view__website_info__isnull=True)
+                | models.Q(view__website_info__visibility=''))
         if query_string:
             pages_queryset = pages_queryset.filter(
                 url__contains=query_string)
@@ -1573,12 +1581,14 @@ class Website(TimeStampedModel):
           El ``website_id`` del contexto que la fuente pasa al clon es de la
           COW de ``ir.ui.view`` no portada (divergencia 2 de
           ``website_page.py``); el eje por sitio queda en la página.
-        - ``'track': True`` del ``default_page_values`` — BLOQUEADO por
-          ``ir.ui.view.track`` — el campo **no** es del mixin de opciones de
-          página (#561 lo portó y no lo trae): lo declara la extensión de la
-          vista por el addon del sitio
-          (``odoo19c: website/models/ir_ui_view.py:24``) y llegaría a la
-          página por la delegación ``_inherits``. Sucesor: tarea **#565**.
+        - ``'track': True`` del ``default_page_values`` **ya opera** desde
+          #565. El campo **no** es del mixin de opciones de página (#561 lo
+          portó y no lo trae): lo declara la extensión de la vista por el
+          addon del sitio (``odoo19c: website/models/ir_ui_view.py:24``) y
+          allá llega a la página por la delegación ``_inherits``. Aquí vive
+          en la fila lateral de la vista (D-1 de ``ir_ui_view.py``), así que
+          se escribe sobre ella tras crear la página; ``page_values`` puede
+          sobreescribirlo igual que en la fuente.
         - El menú se busca/crea por ``route`` (≙ su ``url``) y lleva la
           ``key`` derivada — campo propio único de ``website.menu``.
         """
@@ -1628,10 +1638,29 @@ class Website(TimeStampedModel):
                 # fuente, conservado.
                 'website': current_website,
                 'view': view,
+                # ≙ ``'track': True`` (``odoo19c: :1215``). Es campo de la
+                # vista, no de la página: allá llega por la delegación
+                # ``_inherits`` y aquí a la fila lateral de la vista (D-1 de
+                # ``ir_ui_view.py``). Se saca del dict antes de crear la
+                # página, pero se deja declarado aquí para que quien lea el
+                # bloque vea el mismo juego de valores que la fuente.
+                'track': True,
             }
             if page_values:
                 default_page_values.update(page_values)
+            track = default_page_values.pop('track', True)
             page = page_model.objects.create(**default_page_values)
+            # ``apps.get_model`` y no un ``import``: ``ir_ui_view.py`` importa
+            # este módulo (``Website``), así que el import inverso sería un
+            # ciclo real — es la divergencia 6 de ``website_page.py`` («el
+            # sentido del import es página → website, nunca al revés») y la
+            # excepción #4 de ``no-lazy-imports.md`` (una llamada, no un
+            # statement ``import``).
+            view_info_model = apps.get_model('website', 'WebsiteViewInfo')
+            view_info, _created = view_info_model.objects.get_or_create(
+                view=view)
+            view_info.track = track
+            view_info.save(update_fields=['track'])
             result['page_id'] = page.pk
         if add_menu:
             menu = WebsiteMenu.objects.filter(

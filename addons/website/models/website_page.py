@@ -147,14 +147,22 @@ class WebsitePage(WebsiteSearchableMixin, WebsitePublishedMixin,
       ``footer_visible``, ``header_overlay``, ``header_color``,
       ``header_text_color``), heredados por MRO desde la clase abstracta.
 
-    Lo que **no** llega por esa vía, y su arista real: ``visibility``,
-    ``group_ids``, ``visibility_password`` y ``track`` son campos que el
-    addon ``website`` suma a **``ir.ui.view``**
+    Lo que **no** llega por esa vía: ``visibility``, ``visibility_password``
+    y ``track`` son campos que el addon ``website`` suma a **``ir.ui.view``**
     (``odoo19c: website/models/ir_ui_view.py:24-35``), no al mixin de
-    opciones — llegarían a la página por la delegación ``_inherits``.
-    BLOQUEADO por ``addons/website/models/ir_ui_view.py`` — la extensión de
-    la vista por el addon del sitio no está portada; con ella llegan también
-    la COW por sitio y el motor de grupos.
+    opciones — allá llegan a la página por la delegación ``_inherits``.
+    **Portados por #565** (``addons/website/models/ir_ui_view.py``): viven en
+    la fila lateral de la vista, así que se leen por
+    ``page.view.visibility`` y se consultan por
+    ``view__website_info__visibility`` (divergencia D-1 de ese módulo). Lo
+    que #565 **no** trajo es la COW por sitio, que sigue con su arista allí.
+
+    ``group_ids`` **no es de esa extensión** — corrección de #565. Lo declara
+    el ``ir.ui.view`` **base** (``odoo19c:
+    odoo/addons/base/models/ir_ui_view.py:175``) y este árbol ya lo porta,
+    con el nombre ``groups`` (``src/addons/base/models/ir_ui_view.py:229``).
+    Su recorte efectivo depende del motor de grupos por external ID (#467),
+    no de esta extensión.
     """
 
     _name = 'website.page'
@@ -472,10 +480,15 @@ class WebsitePage(WebsiteSearchableMixin, WebsitePublishedMixin,
         En una edición (no en el alta): si la URL cambió, se re-slugifica, se
         hace única, se propaga a los menús de la página y se sincroniza la
         portada del sitio; si el nombre cambió, la ``key`` de la vista se
-        rederiva única. La rama ``visibility``/``group_ids`` de la fuente
-        llega por la delegación en la vista, no por el mixin de opciones —
-        BLOQUEADO por ``ir.ui.view.visibility`` — (sucesor: tarea **#565**) y el
-        ``clear_cache`` final es del ormcache no portado (#542).
+        rederiva única.
+
+        La rama ``visibility``/``group_ids`` de la fuente (``:188-190``)
+        **ya opera** desde #565, pero **no aquí**: los dos campos son de la
+        vista, no de la página, y esta ``save`` no los escribe nunca. El
+        invariante vive donde sí se escriben —
+        ``WebsiteViewInfo.save`` en ``ir_ui_view.py``—, con su divergencia de
+        sitio declarada ahí. El ``clear_cache`` final sigue siendo del
+        ormcache no portado (#542).
         """
         previous = None
         if self.pk:
@@ -508,8 +521,12 @@ class WebsitePage(WebsiteSearchableMixin, WebsitePublishedMixin,
         return super().save(*args, **kwargs)
 
     # ``get_website_meta`` (``:197-199``): BLOQUEADO por
-    # ``ir.ui.view.get_website_meta`` — la extensión website de la vista
-    # (metadatos OG/SEO del addon website sobre ir.ui.view) no está portada.
+    # ``website.seo.metadata`` — **corrección de #565**: el método NO lo
+    # declara la extensión de la vista (los 36 de
+    # ``odoo19c: website/models/ir_ui_view.py`` no lo incluyen), sino el
+    # mixin de metadatos SEO/OG que esa extensión hereda por su ``_inherit``
+    # (``odoo19c: website/models/mixins.py:75``). #561 portó de ese módulo
+    # sólo el par de opciones de página, así que el mixin sigue ausente.
 
     @classmethod
     def _search_get_detail(cls, website, order, options):
@@ -527,10 +544,16 @@ class WebsitePage(WebsiteSearchableMixin, WebsitePublishedMixin,
           ``website.group_website_designer`` — sin registro de grupos por
           external ID (#467) el default conservador es aplicar SIEMPRE el
           recorte del público: publicada e indexada.
-        - Los escalones ``visibility``/``group_ids`` — BLOQUEADO por
-          ``ir.ui.view.visibility`` — son campos de la vista delegada, no
-          del mixin de opciones, y la vista no los declara aquí. Sucesor:
-          tarea **#565**.
+        - Los escalones ``visibility``/``group_ids`` **ya operan** desde #565
+          y quedan dentro del mismo bloque siempre-aplicado que el recorte
+          del público, por la misma razón (el bypass del diseñador sigue sin
+          motor). ``visibility`` vive en la fila lateral de la vista (D-1 de
+          ``ir_ui_view.py``), así que cada escalón se escribe con las dos
+          formas que aquí significan "pública": sin fila lateral, o con el
+          valor distinto del que se excluye. ``group_ids`` **no** era de esa
+          extensión —corrección de #565—: es el ``groups`` del ``ir.ui.view``
+          base, que este árbol ya porta; su recorte sigue sin aplicarse, pero
+          por otra pieza — ver la arista en el cuerpo.
         """
         with_description = options.get('displayDescription')
         # La lectura de website.page exige sudo también aquí (comentario de
@@ -547,6 +570,30 @@ class WebsitePage(WebsiteSearchableMixin, WebsitePublishedMixin,
             ]))
         domain.append(Domain('is_published', '=', True))
         domain.append(Domain('website_indexed', '=', True))
+        # ≙ ``[('visibility', '!=', 'password')]`` — *"Prevent accessing
+        # unaccessible pages"*. Sin fila lateral la vista es pública.
+        domain.append(Domain.OR([
+            Domain('view.website_info', '=', False),
+            Domain('view.website_info.visibility', '!=', 'password'),
+        ]))
+        if website is None or Website.is_public_user():
+            # ≙ ``if website.is_public_user(): [('visibility','!=','connected')]``.
+            domain.append(Domain.OR([
+                Domain('view.website_info', '=', False),
+                Domain('view.website_info.visibility', '!=', 'connected'),
+            ]))
+        # ≙ ``OR([[('group_ids','=',False)], [('group_ids','in', user…)]])``:
+        # BLOQUEADO por ``orm.domains.to_q`` — su rama de ``= False`` sobre un
+        # Many2many colapsa al leaf falso (``Q(pk__in=[])``) en vez de
+        # significar "la relación está vacía", así que el primer escalón del
+        # ``OR`` anularía la consulta entera. Medido en este pase:
+        # ``to_q(Domain('view.groups', '=', False), WebsitePage)`` devuelve
+        # ``(AND: ('pk__in', []))`` y el queryset resultante levanta
+        # ``EmptyResultSet``. El segundo escalón sí traduce
+        # (``view__groups__in``), pero solo no es el recorte de la fuente.
+        # Sucesor: la tarea que enseñe a ``to_q`` la forma vacía de un
+        # Many2many; hasta entonces el recorte por grupo no se aplica aquí y
+        # ``_get_page_info`` sí sirve los grupos de la vista.
 
         search_fields = ['view.name', 'url']
         fetch_fields = ['id', 'name', 'url']
@@ -658,9 +705,11 @@ class WebsitePage(WebsiteSearchableMixin, WebsitePublishedMixin,
         divergencia 5 del módulo); (2) ``request`` es el ``HttpRequest`` de
         Django — la ruta sale de ``request.path`` y el sitio de
         ``get_current_website``, no de ``request.website``; (3)
-        ``group_ids`` es de la vista delegada — BLOQUEADO por
-        ``ir.ui.view.group_ids`` — (sucesor: tarea **#565**) la clave se sirve
-        vacía para conservar el contrato del dict.
+        ``group_ids`` **ya se sirve** — corrección de #565: no era de la
+        extensión del sitio, sino el ``groups`` del ``ir.ui.view`` base
+        (``src/addons/base/models/ir_ui_view.py:229``), que este árbol porta
+        desde antes. La clave lleva las PK de los grupos de la vista
+        delegada, como en la fuente.
         """
         req_page = request.path
         current_website = Website.get_current_website()
@@ -680,6 +729,7 @@ class WebsitePage(WebsiteSearchableMixin, WebsitePublishedMixin,
                 'id': page.pk,
                 'url': page.url,
                 'view_id': page.view_id,
-                'group_ids': [],
+                'group_ids': list(
+                    page.view.groups.values_list('pk', flat=True)),
             }
         return None

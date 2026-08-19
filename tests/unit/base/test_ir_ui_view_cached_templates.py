@@ -100,12 +100,21 @@ class TestModelDataFallback:
 
 class TestGetCachedTemplateInfo:
     def test_info_shape_matches_the_prefetched_keys(self):
+        """La forma la fija ``_get_cached_template_prefetched_keys``, que es un
+        punto de extensión: ``website`` le suma ``visibility`` y ``track``,
+        verbatim de la fuente. El contrato de ``base`` es que **sus** tres
+        claves salgan con el valor de la vista, más ``error`` — no que no haya
+        más. Afirmar igualdad exacta sería afirmar que ningún addon extiende,
+        que es falso en este árbol y en la referencia con ``website``
+        instalado."""
         view = make_view('home', key='website.homepage')
         info = IrUiView._get_cached_template_info('website.homepage')
-        assert info == {
-            'id': view.id, 'key': 'website.homepage',
-            'active': True, 'error': False,
-        }
+        for clave in IrUiView._get_cached_template_prefetched_keys():
+            assert clave in info
+        assert info['id'] == view.id
+        assert info['key'] == 'website.homepage'
+        assert info['active'] is True
+        assert info['error'] is False
 
     def test_active_flag_for_an_archived_view(self):
         """El uso de ``is_view_active``: bajo ``active_test=False`` devuelve
@@ -139,9 +148,15 @@ class TestGetCachedTemplateInfo:
         assert info['error'] is False
 
     def test_view_false_marks_a_known_miss(self):
-        """``_view=False`` — campos ``None`` y ``error`` falso, verbatim."""
+        """``_view=False`` — campos ``None`` y ``error`` falso, verbatim.
+
+        Se afirma sobre **todas** las claves publicadas, no sobre una lista
+        fija: la extensión de ``website`` suma las suyas y también deben salir
+        ``None``. Ver ``test_info_shape_matches_the_prefetched_keys``."""
         info = IrUiView._get_cached_template_info('website.x', _view=False)
-        assert info == {'id': None, 'key': None, 'active': None, 'error': False}
+        assert info['error'] is False
+        for clave in IrUiView._get_cached_template_prefetched_keys():
+            assert info[clave] is None
 
 
 class TestFetchTemplateViews:
