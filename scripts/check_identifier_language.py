@@ -36,6 +36,16 @@ Se excluyen a propósito las partículas ambiguas con el inglés (``no``, ``son`
 palabra fuera del léxico. Es una **cota inferior**: un 0 no prueba que no quede
 español, prueba que no queda del que este instrumento sabe ver.
 
+Su gemelo en prosa
+==================
+
+``docs: .claude/rules/redaccion-tecnica-es.md``, sección «Elegir el término».
+Miden la misma pregunta sobre ejes distintos, y **el veredicto puede ser el
+opuesto**: ``ejecución`` es correcto en prosa y defecto en un identificador
+(``run_id``); ``run`` al revés. ``SPANISH_WORDS`` es la forma ejecutable de la
+tabla de términos que esa regla resuelve — cuando resuelve uno nuevo, su palabra
+española entra aquí.
+
 Baseline
 ========
 
@@ -75,6 +85,11 @@ SPANISH_WORDS = frozenset({
     'clase', 'metodo', 'atributo', 'archivo', 'ejemplo', 'tarea', 'datos',
     'tienda', 'carrito', 'pedido', 'entrega', 'moneda', 'impuesto', 'cuenta',
     'asiento', 'almacen', 'existencia', 'comprador', 'vendedor', 'cobro',
+    # Vocabulario resuelto por redaccion-tecnica-es.md («Elegir el término»):
+    # el árbol nombra estas cosas en inglés, así que en un identificador
+    # el español es defecto. En PROSA el veredicto puede ser el opuesto.
+    'corrida', 'corridas', 'tanda', 'tandas', 'guion', 'guiones',
+    'lote', 'lotes',
 })
 
 
